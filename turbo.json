@@ -1,0 +1,32 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "ui": "stream",
+  "remoteCache": {
+    "enabled": false
+  },
+  "globalDependencies": [
+    "eslint.config.js",
+    "prettier.config.js",
+    "tsconfig.base.json",
+    "vitest.shared.ts",
+    "upstream/opengewerk/eslint.config.js",
+    "upstream/opengewerk/eslint.shared.js",
+    "upstream/opengewerk/tsconfig.base.json",
+    "upstream/opengewerk/vitest.shared.ts"
+  ],
+  "tasks": {
+    "build": {
+      "dependsOn": ["^build"],
+      "outputs": ["dist/**"]
+    },
+    "typecheck": {
+      "dependsOn": ["^build"]
+    },
+    "lint": {
+      "dependsOn": ["^build"]
+    },
+    "test": {
+      "dependsOn": ["^build"]
+    }
+  }
+}

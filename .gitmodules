@@ -1,0 +1,3 @@
+[submodule "upstream/opengewerk"]
+	path = upstream/opengewerk
+	url = https://github.com/opengewerk/opengewerk.git
