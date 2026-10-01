@@ -35,6 +35,13 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   Handwerkersoftware hier gelten, wie das Repository aufgebaut ist, wie die Pakete heißen und
   was diese Anwendung selbst nennt, damit sie neben der Handwerkersoftware auf demselben
   Server laufen kann
+- Die Serverseite des Fundaments ist Mitglied des Arbeitsbereichs: `@opengewerk/platform-server`
+  mit Datenbankzugriff, Migrationslauf, den Tabellen für Betreiber, Konten, Zugehörigkeiten,
+  Audit-Log und Abgleich und den SQL-Bausteinen, aus denen die erste Migration dieser Anwendung
+  entsteht. Ihre Tests laufen damit auch hier, in der CI gegen ein PostgreSQL 18 als Dienst und
+  lokal gegen eine eigene Testdatenbank aus `docker/compose.test.yaml` auf Port 5434.
+  `pnpm run test` richtet jedes Paket auf sie aus, damit die Tests des Fundaments nicht die
+  Testdatenbank eines anderen Repositorys leeren, die auf demselben Rechner läuft
 - ADR 0002 bis 0006, die Entscheidungen vor der ersten Tabelle: das Datenmodell vom Ort bis
   zum Nachweis mit den Namen im Code, die Zuständigkeitsbereiche in der Datenbank samt einer
   Messung gegen PostgreSQL 18 (eine Policy, die ihre Funktionen direkt aufruft, ist

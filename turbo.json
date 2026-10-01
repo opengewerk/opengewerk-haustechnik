@@ -14,6 +14,7 @@
     "upstream/opengewerk/tsconfig.base.json",
     "upstream/opengewerk/vitest.shared.ts"
   ],
+  "globalPassThroughEnv": ["DATABASE_URL"],
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
