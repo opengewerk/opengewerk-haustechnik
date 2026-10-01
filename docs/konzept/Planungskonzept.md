@@ -1,6 +1,6 @@
-# OpenGewerk Haustechnik: Planungskonzept (Software für Betreiber und ihre Haustechnik) · v0.1
+# OpenGewerk Haustechnik: Planungskonzept (Software für Betreiber und ihre Haustechnik) · v0.2
 
-2026-10-01 · Eigenständiges Projekt, Repository `opengewerk-haustechnik` in der GitHub-Organisation `opengewerk` · v0.1 ist der erste Entwurf, die Entscheidungen aus Abschnitt 15 stehen aus (Vergleich mit openMAINT, Atlas CMMS, eTASK, wave Facilities, pitFM, SPARTACUS, Planon, Lumiform, Wowflow und den Excel-Listen, die vielerorts die eigentliche Software sind)
+2026-10-01 · Eigenständiges Projekt, Repository `opengewerk-haustechnik` in der GitHub-Organisation `opengewerk` · v0.2 trägt die Entscheidungen vom 01.10.2026 ein, siehe Abschnitt 15 (Vergleich mit openMAINT, Atlas CMMS, eTASK, wave Facilities, pitFM, SPARTACUS, Planon, Lumiform, Wowflow und den Excel-Listen, die vielerorts die eigentliche Software sind)
 
 Self-hosted Open-Source-System für alle, die Gebäude betreiben und dafür eigene Haustechniker haben. Liegenschaften, Gebäude, Räume und technische Anlagen stehen in einem Datenmodell. Die Betreiberpflichten hängen daran als überwachte Fristen, Rundgänge und Prüfungen laufen auf dem Telefon auch ohne Netz, und zu jeder Pflicht gibt es einen Nachweis, der sich nachträglich nicht ändern lässt.
 
@@ -20,7 +20,7 @@ Self-hosted Open-Source-System für alle, die Gebäude betreiben und dafür eige
 4. **Das System schlägt vor, der Betreiber entscheidet.** Ob eine Pflicht für eine Anlage gilt, hängt an Tatsachen, die keine Software kennt: an der Baugenehmigung, an der Gefährdungsbeurteilung, an der Nutzung. Der Katalog schlägt deshalb vor, und ein Mensch bestätigt oder verwirft mit Begründung. Beides wird festgehalten, denn auch die Entscheidung, dass eine Pflicht nicht gilt, muss sich später belegen lassen ⚖
 5. **Ein Nachweis ist unveränderlich, auch für den Administrator.** Mit der Unterschrift wird der Stand eingefroren, die Unterschrift gilt genau der Seite, die gezeigt wurde, und die Datenbank lehnt jede spätere Änderung ab, gleich auf welchem Weg sie kommt. Berichtigt wird durch einen neuen Nachweis, der den alten nennt. Ein Zurücksetzen, das Antworten und Unterschriften löscht, gibt es nicht ⚖
 6. **Offline-first.** Technikzentrale, Keller, Aufzugsschacht und Dachzentrale haben kein Netz. Die Erfassung vor Ort arbeitet vollständig ohne Verbindung, gleicht später ab und zeigt einen Konflikt, statt ihn still aufzulösen.
-7. **Dasselbe Fundament wie OpenGewerk, und nie eine freie Abschrift.** Die ADRs 0002 bis 0009 im Repository `opengewerk` gelten auch hier: TypeScript mit NestJS, PostgreSQL mit Row-Level Security und Drizzle, React mit Vite als eine PWA mit zwei Einstiegen, eigener Abgleich mit Postausgang, better-auth, inhaltsadressierter Dateispeicher, PDF über einen eigenen Renderer. Mandantentrennung, Anmeldung, Rechte, Audit-Log, Regel-, Fristen- und Formular-Engine werden nicht ein zweites Mal gebaut. Was von dort übernommen wird, bleibt an seine Quelle gebunden, damit eine Sicherheitskorrektur im Fundament auch hier ankommt und nichts still auseinanderläuft. Den Weg legt ADR 0010 im Repository `opengewerk` fest (Abschnitt 2.1 und Abschnitt 15, Punkt 1).
+7. **Dasselbe Fundament wie OpenGewerk, eingebunden und nie abgeschrieben.** Die ADRs 0002 bis 0009 im Repository `opengewerk` gelten auch hier: TypeScript mit NestJS, PostgreSQL mit Row-Level Security und Drizzle, React mit Vite als eine PWA mit zwei Einstiegen, eigener Abgleich mit Postausgang, better-auth, inhaltsadressierter Dateispeicher, PDF über einen eigenen Renderer. Mandantentrennung, Anmeldung, Rechte, Audit-Log, Regel-, Fristen- und Formular-Engine werden nicht ein zweites Mal gebaut. Das Fundament liegt im Repository `opengewerk` in eigenen Paketen, und diese Anwendung bindet einen festen Stand davon ein. So kommt eine Sicherheitskorrektur dort auch hier an, und nichts läuft still auseinander (ADR 0010 im Repository `opengewerk`, Abschnitt 2.1).
 8. **Mandantenfähig, mit Zuständigkeitsbereichen.** Mehrere Betreiber auf einer Instanz sind getrennt wie die Betriebe in OpenGewerk. Innerhalb eines Betreibers gibt es Bereiche: wer für die Liegenschaften im Norden zuständig ist, sieht und bearbeitet die im Süden nicht, und sein Gerät hält sie nicht.
 9. **Mitbestimmung und Datenschutz sind Bauprinzip.** Die Software hält fest, wer einen Nachweis unterschrieben hat, weil das der Zweck eines Nachweises ist. Sie wertet nicht aus, wer wie viel oder wie schnell arbeitet. Die Arbeitszeiterfassung ist ein Modul, das ausgeschaltet ausgeliefert wird. Die Unterlagen, die Betriebsrat und Datenschutzbeauftragte vor der Einführung sehen wollen, erzeugt die Anwendung selbst ★ ⚖
 10. **Keine künstlich beschränkten Funktionen.** Leitentscheidung 9 der Feature-Gliederung von OpenGewerk gilt für die ganze Organisation: keine Tarifstufen, keine Module gegen Aufpreis, keine Nutzerlimits, kein Contributor License Agreement. Ein Pflichtenpaket, das Geld kostet, wäre dasselbe Feature-Gate an anderer Stelle und kommt deshalb auch vom Projekt selbst nicht.
@@ -75,7 +75,7 @@ Fertig gebaut in OpenGewerk, hier vorausgesetzt und nicht neu entworfen (Stand `
 - Betrieb über Docker Compose mit einem Befehl, nächtliche Sicherung, Rückspielen, Update in zwei Schritten, signierte Abbilder für x86_64 und ARM64
 - Oberfläche: zwei Einstiege aus einer Codebasis (Büro und vor Ort), Designsystem, Prüfung von Kontrast, Bündelgröße und Breiten in der CI
 
-**Was sich unverändert übernehmen lässt und was eine Naht braucht.** Gemessen am 01.10.2026 ist gut die Hälfte des Codes von OpenGewerk Fundament. Rund drei Fünftel davon kennen keine Fachlichkeit und lassen sich übernehmen, wie sie sind: Mandantentrennung, Migrationslauf, Anmeldung, der Guard, der Bereich der Instanz, Dateispeicher, Renderer, der Versand von E-Mail und Push, der Betrieb und die Bausteine der Oberfläche. Die übrigen zwei Fünftel zählen heute die Entitäten der Handwerkersoftware auf und brauchen eine Naht, bevor sie beiden dienen:
+**Was sich herauslösen lässt, wie es ist, und was eine Naht braucht.** Gemessen am 01.10.2026 ist gut die Hälfte des Codes von OpenGewerk Fundament. Rund drei Fünftel davon kennen keine Fachlichkeit und wandern in die Pakete des Fundaments, wie sie sind: Mandantentrennung, Migrationslauf, Anmeldung, der Guard, der Bereich der Instanz, Dateispeicher, Renderer, der Versand von E-Mail und Push, der Betrieb und die Bausteine der Oberfläche. Die übrigen zwei Fünftel zählen heute die Entitäten der Handwerkersoftware auf und brauchen eine Naht, bevor sie beiden dienen:
 
 - der Abgleich: welche Entität ein Gerät anlegen und ändern darf, steht in einer Liste und in Zweigen je Entität
 - die Fristen-Engine: ihre einzige Quelle ist das Angebot; die Quellen dieser Anwendung (2.4) kommen als weitere dazu
@@ -83,9 +83,9 @@ Fertig gebaut in OpenGewerk, hier vorausgesetzt und nicht neu entworfen (Stand `
 - die Benachrichtigungen: ihre Anlässe sind Beleg und Regiebericht
 - der Katalog der Rechte und Rollen, die Bezeichnungen im Änderungsprotokoll, die Schlüssel der Nummernkreise und Einstellungen, die Navigation
 
-Die Nähte entstehen im Repository `opengewerk`, eine nach der anderen, und kommen dort auch dem zweiten Gewerk und dem Kanzlei-Hub zugute.
+Die Pakete und die Nähte entstehen im Repository `opengewerk`, Stück für Stück in der Reihenfolge, in der diese Anwendung sie braucht, und kommen dort auch dem zweiten Gewerk und dem Kanzlei-Hub zugute. Diese Anwendung bindet einen festen Stand der Pakete ein und kopiert nichts; so hat es ADR 0010 entschieden.
 
-**Fachlich überschneidend.** QR-Etiketten lassen sich fast unverändert nutzen. Aufgaben, Dateien, Ansprechpartner, Tags und die Zeiterfassung passen, sobald ihre Bezüge auf Kunde und Auftrag gegen Ort, Anlage und Vorgang getauscht sind. Die Elektro-Struktur einer Anlage (Verteiler, Feld, Stromkreis, Betriebsmittel) samt Stromkreisverzeichnis und Prüfprotokoll, Artikel und Lieferanten mit dem Import aus DATANORM und die versiegelten Zugänge werden übernommen, wenn ihre Phase kommt. Ein eigenes Modell brauchen der Ort, weil ein Betreiber keinen Kunden über seinem Objekt hat, und der Auftrag.
+**Fachlich überschneidend.** QR-Etiketten lassen sich fast unverändert nutzen. Aufgaben, Dateien, Ansprechpartner, Tags und die Zeiterfassung passen, sobald ihre Bezüge auf Kunde und Auftrag gegen Ort, Anlage und Vorgang getauscht sind. Die Elektro-Struktur einer Anlage (Verteiler, Feld, Stromkreis, Betriebsmittel) samt Stromkreisverzeichnis und Prüfprotokoll, Artikel und Lieferanten mit dem Import aus DATANORM und die versiegelten Zugänge kommen als Pakete dazu, wenn ihre Phase kommt. Ein eigenes Modell brauchen der Ort, weil ein Betreiber keinen Kunden über seinem Objekt hat, und der Auftrag.
 
 ### 2.2 Datenmodell-Kern: vom Ort bis zum Nachweis
 
@@ -164,7 +164,7 @@ Die Formular-Engine von OpenGewerk: Felder für Text, Zahl mit Einheit, Messwert
 - Ein Nachweis entsteht aus einem unterschriebenen Protokoll, aus einem hochgeladenen Bericht einer Fremdfirma oder Prüforganisation (mit Prüfer, Organisation, Datum und Ergebnis), aus einem Punkt eines unterschriebenen Rundgangs oder aus einem abgenommenen Arbeitsauftrag
 - Mit der Unterschrift wird der Stand in einer Fassung eingefroren, das PDF entsteht beim ersten Abruf und liegt danach im inhaltsadressierten Speicher. Ein späterer Export liest den eingefrorenen Stand und nie die laufenden Daten
 - Die Unterschrift trägt einen Fingerabdruck der Seite, die gezeigt wurde. Der Server nimmt sie nur für genau diese Seite an
-- Sie ist eine elektronische Signatur der einfachen Stufe, gebunden an das angemeldete Konto. Wo eine Vorschrift mehr verlangt oder ein Betreiber mehr will, wird das PDF des Nachweises mit einer höheren Signatur versehen und am Nachweis abgelegt (Abschnitt 15, Punkt 13)
+- Sie ist eine elektronische Signatur der einfachen Stufe, gebunden an das angemeldete Konto. Wo eine Vorschrift mehr verlangt oder ein Betreiber mehr will, wird das PDF des Nachweises mit einer höheren Signatur versehen und am Nachweis abgelegt (Abschnitt 15)
 - Die Datenbank lehnt Änderung und Löschen eines Nachweises ab, auch für den Eigentümer der Tabellen. Das Löschen einer Anlage, eines Artikels oder eines Benutzers ändert keinen Nachweis
 - **Berichtigung** statt Zurücksetzen: ein neuer Nachweis nennt den, den er ersetzt, und beide bleiben. Ein fälschlich unterschriebener Rundgang wird für ungültig erklärt, mit Grund und Person, und bleibt lesbar
 - Nachweise tragen eine laufende Nummer aus einem Nummernkreis
@@ -187,7 +187,7 @@ Der Abgleich von OpenGewerk, mit den Regeln dieser Anwendung:
 - Ein **Bereich** bündelt Liegenschaften. Ein kleiner Betreiber hat einen einzigen und merkt nichts davon
 - Eine Zugehörigkeit gilt für alle Bereiche oder für genannte. Rollen und Bereich zusammen ergeben, was jemand sieht und tut
 - **Vertretung**: befristet übernimmt jemand die Bereiche einer anderen Person, mit Anfang und Ende
-- Durchgesetzt wird der Bereich in der Datenbank, nicht in jeder einzelnen Abfrage: eine Zeile mit Ortsbezug trägt ihren Bereich, und die Policy lässt nur die Bereiche der Anfrage durch (Abschnitt 15, Punkt 6)
+- Durchgesetzt wird der Bereich in der Datenbank, nicht in jeder einzelnen Abfrage: eine Zeile mit Ortsbezug trägt ihren Bereich, und die Policy lässt nur die Bereiche der Anfrage durch
 - Betreiberweit und ohne Bereich: Katalog, Fremdfirmen, Lager, Schlüsselanlagen, Einstellungen
 
 ### 2.9 Regel-Engine
@@ -388,7 +388,7 @@ pakete/<name>/
   vorlagen/*.json        # Vorlagen für Rundgänge, die ein Betreiber übernehmen und anpassen kann
 ```
 
-**Erste Pakete**, in der Reihenfolge, in der der Pilotbetrieb sie braucht:
+**Die Pakete bis Version 1**, in der Reihenfolge, in der sie gebaut werden. Jedes erscheint vollständig für seinen Bereich und nicht nur im Umfang eines Betreibers:
 
 | Paket | Inhalt |
 | --- | --- |
@@ -398,22 +398,23 @@ pakete/<name>/
 | Raumluft und Kälte | Lüftungs- und Klimaanlagen (Hygiene, Filter, energetische Inspektion), Kälteanlagen (Dichtheit), Verdunstungskühlanlagen |
 | Heizung | Wärmeerzeuger und Wärmepumpen, Abgasanlage, Heizöllagerung, Gasinstallation |
 | Förderanlagen und Arbeitsmittel | Aufzüge, kraftbetätigte Türen und Tore, Leitern und Tritte, Regale, Druckbehälter |
-| Landesrecht | je Bundesland die Prüfung technischer Anlagen in Sonderbauten, zuerst das Land des Pilotbetriebs |
+| Landesrecht | je Bundesland die Prüfung technischer Anlagen in Sonderbauten, zuerst Baden-Württemberg |
 
 **Was der Katalog nennen darf**, hängt an der Herkunft der Pflicht. Jede Pflichtart trägt sie als Angabe:
 
 | Herkunft | Was im Paket steht |
 | --- | --- |
 | Staatliches Recht: Gesetz, Verordnung, amtliche Bekanntmachung | Fundstelle, Frist, Qualifikation und die Pflicht in eigenen Worten. Amtliche Werke sind gemeinfrei (§ 5 Abs. 1 UrhG) |
-| Regelwerk der Unfallversicherungsträger und der staatlichen Ausschüsse | Fundstelle, Frist und Qualifikation in eigenen Worten; ob mehr zulässig ist, klärt eine rechtliche Prüfung vor dem ersten Paket (Abschnitt 15) |
+| Regelwerk der Unfallversicherungsträger und der staatlichen Ausschüsse | Fundstelle, Frist und Qualifikation in eigenen Worten; ob mehr zulässig ist, klärt die rechtliche Prüfung, die parallel läuft (Abschnitt 15) |
 | Private Normen und Richtlinien (DIN, VDE, VDI, VDMA, VdS, DVGW und andere) | Der Verweis auf Norm, Ausgabe und Abschnitt und die Pflicht in eigenen Worten. Kein Normtext, keine Tabelle, kein Leistungskatalog: das Urheberrecht an privaten Normen bleibt bestehen, auch wo ein Gesetz auf sie verweist (§ 5 Abs. 3 UrhG). Die Frist nennt das Paket nur, soweit die rechtliche Prüfung das trägt; bis dahin steht dort der Verweis, und der Betreiber trägt die Frist ein |
 
 Regeln für jeden Beitrag:
 
 - Eine Pflichtart ohne Fundstelle wird nicht aufgenommen: Paragraf, Norm mit Ausgabe und Abschnitt, oder die Regel der Technik, die sie trägt
 - Der Katalog nennt Fundstelle, Frist und Qualifikation. Er gibt keine Normtexte wieder
-- Jede Pflichtart und jeder Grenzwert braucht eine fachkundige Abnahme, bevor ein Betreiber sich darauf verlässt. Bis dahin ist der Eintrag gekennzeichnet, und die Oberfläche sagt es
+- Jede Pflichtart und jeder Grenzwert braucht eine fachkundige Abnahme, bevor ein Betreiber sich darauf verlässt. Bis dahin ist der Eintrag gekennzeichnet, und die Oberfläche sagt es. Wer abgenommen hat und wann, steht am Eintrag
 - Jeder Eintrag trägt den Tag, an dem er zuletzt gegen seine Quelle geprüft wurde, und die Oberfläche zeigt ihn. Liegt die Prüfung länger als ein Jahr zurück, ist der Eintrag gekennzeichnet, und ein geplanter Lauf erinnert daran, wie bei den Regelpaketen von OpenGewerk
+- Ein Paket erscheint, sobald seine Einträge aus staatlichem Recht stehen. Was die rechtliche Prüfung für die übrigen Quellen freigibt, kommt als neue Fassung dazu
 - Eine gemergte Definition wird nicht geändert, sie bekommt eine neue Fassung
 - Vorlagen, Checklisten und Texte eines Betreibers werden nicht aufgenommen, auch nicht abgewandelt. Was das Projekt mitliefert, ist neu geschrieben und steht unter der Lizenz des Projekts
 - Der Katalog erhebt keinen Anspruch auf Vollständigkeit. Er sagt, was er abdeckt, und die Verantwortung des Betreibers bleibt beim Betreiber
@@ -449,7 +450,7 @@ Regeln für jeden Beitrag:
 - Rechte sind feingranular und werden zentral vor jeder Route geprüft; die Datensichtbarkeit sichert zusätzlich die Datenbank (Mandant und Bereich)
 - Zugänge entstehen über Einmal-Links; gesperrt wird die Zugehörigkeit, nicht das Konto; die letzte Leitung lässt sich nicht entmachten
 - Sicherheitsrelevante Zusagen sind nicht einstellbar: die Unterschrift vor einem Nachweis, die Abnahme eines Auftrags und die Unveränderlichkeit lassen sich per Einstellung verschärfen, nie abschalten
-- Eigene Rollen des Betreibers ⏳, sobald das Fundament die Rollen als Tabelle führt
+- Eigene Rollen des Betreibers ab Phase 2. Das Fundament führt Rollen dafür von Anfang an als Daten: die mitgelieferten Rollen sind Zeilen, eigene kommen als weitere dazu. Was sich nach dem Satz darüber nicht abschalten lässt, hängt an keinem Recht, das eine eigene Rolle entziehen könnte
 
 ---
 
@@ -545,20 +546,20 @@ Leitgedanke wie bei OpenGewerk: **So früh wie möglich einen echten Betrieb dam
 
 | Phase | Inhalt | Ergebnis |
 | --- | --- | --- |
-| 0: Fundament | Einrichtung des Repositorys, Übernahme des Fundaments nach ADR 0010 mit Herkunftsdatei und Prüfung in der CI, Ausgangsmigration, Datenmodell-Kern (Ort, Anlage, Pflicht, Vorgang, Nachweis, Mangel), Bereiche, Rollen und Rechte, Abgleichregeln, Paketformat mit Geltungsbereich, eigenes Abbild und eigene Vorschau | Gerüst, auf dem Phase 1 ohne Umbau aufsetzt |
-| 1: MVP Pilotbetrieb | Liegenschaft bis Raum mit Import, Anlagen mit Anlagenarten und Akte, Etiketten, Bestandsaufnahme vor Ort, Pflichtenverzeichnis mit Vorschlägen und Übersicht, Nachweis aus Protokoll oder Bericht, Rundgänge mobil und ohne Netz, Mängel, Arbeitsaufträge, Zähler mit Ablesung, Dokumente, Benachrichtigungen, die ersten Pakete, Importweg aus der Vorgängeranwendung | Pilotbetrieb arbeitet produktiv damit, Parallelbetrieb beginnt |
-| 2: Betreiberpflichten vollständig | Pflichtenübertragung, Qualifikationen, weitere Protokolle und Pakete, Sammelnachweise, Nachweisverzeichnis, Prüfer-Zugang, Störmeldungen mit und ohne Konto, Fremdfirmen und Verträge, Leistungsnachweis, Dokumente mit Gültigkeit, DSGVO-Funktionen, Verfahrensbeschreibung | Vorgängeranwendung abgeschaltet; ein Betreiber kann eine Begehung allein aus dem System bestreiten |
-| 3: Material, Schlüssel, Energie | Lager mit Verbrauch am Auftrag, Schlüsselverwaltung, Energieauswertung mit Flächenbezug, Einsatzplanung, Kalender-Abo, Kostensicht | Tagesgeschäft ohne Listen daneben |
+| 0: Fundament | Einrichtung des Repositorys, das Fundament als Pakete im Repository `opengewerk` und seine Einbindung nach ADR 0010, Ausgangsmigration, Datenmodell-Kern (Ort, Anlage, Pflicht, Vorgang, Nachweis, Mangel), Bereiche, Rechte und Rollen als Daten, Abgleichregeln, Paketformat mit Geltungsbereich, eigenes Abbild und eigene Vorschau, Tafeln der Oberfläche für Phase 1 | Gerüst, auf dem Phase 1 ohne Umbau aufsetzt |
+| 1: MVP Pilotbetrieb | Liegenschaft bis Raum mit Import, Anlagen mit Anlagenarten und Akte, Etiketten, Bestandsaufnahme vor Ort, Pflichtenverzeichnis mit Vorschlägen und Übersicht, Nachweis aus Protokoll oder Bericht, Rundgänge mobil und ohne Netz, Mängel, Arbeitsaufträge, Zähler mit Ablesung, Dokumente, Benachrichtigungen, die Pakete Elektro, Brandschutz, Trinkwasser und Landesrecht, Importweg aus der Vorgängeranwendung | Pilotbetrieb arbeitet produktiv damit, Parallelbetrieb beginnt |
+| 2: Betreiberpflichten vollständig | Pflichtenübertragung, Qualifikationen, weitere Protokolle und Pakete, Sammelnachweise, Nachweisverzeichnis, Prüfer-Zugang, Störmeldungen mit und ohne Konto, Fremdfirmen und Verträge, Leistungsnachweis, Lager mit Verbrauch am Auftrag, Auswertungen über die Zeit, eigene Rollen, Dokumente mit Gültigkeit, DSGVO-Funktionen, Verfahrensbeschreibung | Vorgängeranwendung abgeschaltet; ein Betreiber kann eine Begehung allein aus dem System bestreiten |
+| 3: Schlüssel, Energie, Planung | DATANORM und Fahrzeuglager, Schlüsselverwaltung, Energieauswertung mit Flächenbezug, Einsatzplanung, Kalender-Abo, Kostensicht | Tagesgeschäft ohne Listen daneben |
 | 4: Anbindungen | Gebäudeleittechnik lesend, Messwerte und Zählerstände aus Dateien und Loggern, Ausgabe an ein Energiemanagementsystem, Übernahme aus CAFM-Connect, IFC und COBie, Übernahme aus einem Regelwerksdienst, Zugang für Fremdfirmen | Daten fließen, ohne dass jemand sie abtippt |
 | 5: Personal und Arbeitsschutz | Unterweisungen, Rufbereitschaft, Arbeitszeit als Modul, Gefährdungsbeurteilung, Ressourcen | Arbeitsschutz-Organisation im selben System |
-| 6: Verbund und Erweiterung | Verbindung zur Handwerkersoftware, offene API, weitere Länder und Sonderbauten, eigene Rollen, Volltextsuche, lokale KI | Vollausbau |
+| 6: Verbund und Erweiterung | Verbindung zur Handwerkersoftware, offene API, weitere Länder und Sonderbauten, Volltextsuche, lokale KI | Vollausbau |
 
 **Zuordnung im Einzelnen.** Die Tabelle nennt die Schwerpunkte. Die übrigen Punkte der Abschnitte 2 bis 10 gehören so zu den Phasen; beides zusammen ist der Fahrplan, und aus beidem werden die Issues einer Phase geschnitten. Was in keiner Phase steht, steht in Abschnitt 14. Wer in 2 bis 10 einen Punkt einträgt, trägt seine Phase im selben Zug hier ein.
 
-- **Phase 0:** die Nähte im Repository `opengewerk`, die Phase 1 braucht: Abgleichregeln, Rechte und Rollen, Bezeichnungen im Änderungsprotokoll, Schlüssel der Nummernkreise, Quellen der Fristen-Engine, Formulare ohne Stromkreis (2.1); die Regel-Engine mit Geltungsbereich und den neuen Einheiten (2.9); die Nummernkreise für Anlagen, Nachweise und Aufträge (2.2, 2.6, 4.8); die Fassungen des eingefrorenen Nachweises und die Trigger darunter (2.6); der Lebenszyklus als Zeitraum (2.2); die Auswahl je Gerät nach Bereich (2.7, 2.8); die Herkunft einer Pflichtart und der Tag ihrer letzten Prüfung im Paketformat (5)
-- **Phase 1:** Lagebild je Gebäude, Übersicht über alle Liegenschaften, Raumseite, Zeitachse und Pfadnavigation (4.1); Dubletten-Prüfung und Tausch einer Anlage (4.2); eigene Pflichten und die festgelegte Frist mit Begründung (4.3); eigene und fremde Durchführung mit Ergebnis (4.4); Vorlage, Plan, ein eigener Rundgang je Durchgang, Zuteilung, Punkt erfüllt Pflicht, Abgabe nur vollständig, Gegenzeichnung, PDF und Übersicht der Rundgänge (4.5); Mängel mit Klasse, Frist und Status (4.6); Aufträge aus Mangel und Termin mit Abnahme (4.8); Zählertausch, Stilllegung, Sperre und Notiz (4.9); Ablage mit Fassungen (4.10); Suche nach Name, Nummer und Kennzeichen, Aufgaben, Änderungsprotokoll, eigene Angaben unter „Konto“, Rechtstexte der Instanz, Bereich der Instanz und Passkeys, soweit das Fundament sie mitbringt (3); Barrierefreiheit der Bausteine (3) ⚖; Vertretung (2.8); die Rollen Leitung, Technische Leitung, Objektleitung und Haustechnik (7); die Pakete Elektro, Brandschutz und Trinkwasser im Umfang der Anlagen des Pilotbetriebs und das Landesrecht seines Landes, dazu der Lauf, der an die Prüfung der Katalogeinträge erinnert (5) ⚖; Hilfe an den Bildschirmen (10)
-- **Phase 2:** Sammelvorgänge und die Unterscheidung nach DIN 31051 (4.4); außer Betrieb durch Mangel und Mängelbericht (4.6); Eingang, Zusammenführen, Rückmeldung und Zeiten der Störmeldungen (4.7); Gewährleistung, Einweisung und Erlaubnisschein (4.11); Soll-Dokumente (4.10); die Elektro-Struktur mit Stromkreisverzeichnis (4.2); eigene Felder des Betreibers an Anlagenarten (2.5, 4.2); das Ende einer Zugehörigkeit als Frist (2.4, 9) ⚖; die Rollen Melder und Prüfer (7); die Aufbewahrung der Nachweise mit Löschvorschlag und das höher signierte PDF am Nachweis (2.6) ⚖; die Pakete Raumluft und Kälte, Heizung, Förderanlagen und Arbeitsmittel (5) ⚖; Gefährdungsbeurteilung als Dokument mit Frist (4.3); die externe Sicherheitsprüfung vor dem Release mit der Seite ohne Anmeldung (9)
-- **Phase 3:** DATANORM und Fahrzeuglager (4.12); Zugänge versiegelt und Schlüsselquittung (4.13); Ausreißer und Verbrauch je Quadratmeter, Flächen an Gebäuden und Räumen (4.1, 4.9); Auswertungen über die Zeit (4.16)
+- **Phase 0:** die Pakete und Nähte im Repository `opengewerk`, die Phase 1 braucht: Abgleichregeln, Rechte, Rollen als Daten, Bezeichnungen im Änderungsprotokoll, Schlüssel der Nummernkreise, Quellen der Fristen-Engine, Formulare ohne Stromkreis (2.1); die Regel-Engine mit Geltungsbereich und den neuen Einheiten (2.9); die Nummernkreise für Anlagen, Nachweise und Aufträge (2.2, 2.6, 4.8); die Fassungen des eingefrorenen Nachweises und die Trigger darunter (2.6); der Lebenszyklus als Zeitraum (2.2); die Auswahl je Gerät nach Bereich (2.7, 2.8); die Herkunft einer Pflichtart, der Tag ihrer letzten Prüfung und ihre Abnahme im Paketformat (5)
+- **Phase 1:** Lagebild je Gebäude, Übersicht über alle Liegenschaften, Raumseite, Zeitachse und Pfadnavigation (4.1); Dubletten-Prüfung und Tausch einer Anlage (4.2); eigene Pflichten und die festgelegte Frist mit Begründung (4.3); eigene und fremde Durchführung mit Ergebnis (4.4); Vorlage, Plan, ein eigener Rundgang je Durchgang, Zuteilung, Punkt erfüllt Pflicht, Abgabe nur vollständig, Gegenzeichnung, PDF und Übersicht der Rundgänge (4.5); Mängel mit Klasse, Frist und Status (4.6); Aufträge aus Mangel und Termin mit Abnahme (4.8); Zählertausch, Stilllegung, Sperre und Notiz (4.9); Ablage mit Fassungen (4.10); Suche nach Name, Nummer und Kennzeichen, Aufgaben, Änderungsprotokoll, eigene Angaben unter „Konto“, Rechtstexte der Instanz, Bereich der Instanz und Passkeys, soweit das Fundament sie mitbringt (3); Barrierefreiheit der Bausteine (3) ⚖; Vertretung (2.8); die Rollen Leitung, Technische Leitung, Objektleitung und Haustechnik (7); die Pakete Elektro, Brandschutz und Trinkwasser vollständig und das Landesrecht von Baden-Württemberg, dazu der Lauf, der an die Prüfung der Katalogeinträge erinnert (5) ⚖; Hilfe an den Bildschirmen (10)
+- **Phase 2:** Sammelvorgänge und die Unterscheidung nach DIN 31051 (4.4); außer Betrieb durch Mangel und Mängelbericht (4.6); Eingang, Zusammenführen, Rückmeldung und Zeiten der Störmeldungen (4.7); Gewährleistung, Einweisung und Erlaubnisschein (4.11); Soll-Dokumente (4.10); Lager, Mindestbestand und Entnahme am Auftrag (4.12); Auswertungen über die Zeit, ohne Auswertung je Person (4.16) ⚖; eigene Rollen (7); die Elektro-Struktur mit Stromkreisverzeichnis (4.2); eigene Felder des Betreibers an Anlagenarten (2.5, 4.2); das Ende einer Zugehörigkeit als Frist (2.4, 9) ⚖; die Rollen Melder und Prüfer (7); die Aufbewahrung der Nachweise mit Löschvorschlag und das höher signierte PDF am Nachweis (2.6) ⚖; die Pakete Raumluft und Kälte, Heizung, Förderanlagen und Arbeitsmittel (5) ⚖; Gefährdungsbeurteilung als Dokument mit Frist (4.3); die externe Sicherheitsprüfung vor dem Release mit der Seite ohne Anmeldung (9)
+- **Phase 3:** DATANORM und Fahrzeuglager (4.12); Zugänge versiegelt und Schlüsselquittung (4.13); Ausreißer und Verbrauch je Quadratmeter, Flächen an Gebäuden und Räumen (4.1, 4.9)
 - **Phase 4:** Meldungen der Leittechnik im Eingang der Störmeldungen (4.7, 4.15); der Adapter des Pilotbetriebs und die Freigabe von Adressen im eigenen Netz (4.15); die Rolle Fremdfirma (7)
 - **Phase 5:** die Hinweise zur Mitbestimmung beim Einschalten der Arbeitszeit (4.14) ⚖
 - **Phase 6:** Angaben und Export für das digitale Gebäudelogbuch (6); Volltextsuche und Texterkennung (3, 4.10); lesender Zugang für eigene Auswertungen (4.16); KI als Vorschlag (6)
@@ -614,34 +615,53 @@ Wer eine Ausschreibung mit diesen Anforderungen bestehen muss, ist dort besser a
 - **Steuerung von Anlagen**: die Leittechnik wird gelesen, nicht bedient
 - **Medizintechnik**: eigenes Regelwerk mit eigenem Bestandsverzeichnis und eigenen Kontrollen, in Kliniken meist eine eigene Abteilung; als Paket denkbar, wenn jemand vom Fach es trägt
 - **Frei einstellbare Abläufe**: Aufträge und Rundgänge haben feste Zustände. Ein Ablauf, den jeder Betreiber umbaut, lässt sich nicht absichern
-- **Mehrsprachigkeit**: Deutsch zuerst (Abschnitt 15, Punkt 5)
+- **Mehrsprachigkeit**: Deutsch zuerst. Der Pilotbetrieb braucht keine weitere Sprache, und eine zweite beträfe das ganze Fundament
 - **Native Apps**: erst, wenn Push oder Hardwarezugriff es verlangen
 - **Zertifizierung nach GEFMA 444**: die Kriterien sind Orientierung, eine Zertifizierung ist kein Ziel der ersten Fassungen. Das schließt Ausschreibungen aus, die das Zertifikat verlangen
 
 ---
 
-## 15. Offene Entscheidungen
+## 15. Entscheidungen
 
-Vor dem Bau zu klären. Jede Frage nennt eine Empfehlung; entschieden wird wie bei OpenGewerk, und die Antwort wandert an ihre Stelle im Konzept.
+Die offenen Fragen aus v0.1 sind am 01.10.2026 entschieden worden. Jede Antwort steht an ihrer Stelle im Konzept; diese Tabelle nennt sie einmal im Zusammenhang.
 
-1. **Wie das Fundament bezogen wird.** Der Entwurf von ADR 0010 schlägt vor: Übernahme von einem benannten Commit mit Herkunftsdatei und Prüfung in der CI, danach die Nähte im Repository `opengewerk` in Raten, bis das Fundament dort ein eigenes Paket ist. Die Alternativen sind geteilte Pakete vor dem ersten Commit hier oder die Haustechnik als weitere Anwendung im Repository `opengewerk`; eine freie Abschrift scheidet aus. Die Antwort hängt daran, ob Phase 2 der Handwerkersoftware währenddessen weiterläuft: ruht sie, ist das sofortige Herauslösen der bessere Weg. Das ADR ergänzt ADR 0001 und die Paketliste aus ADR 0009, und der Kanzlei-Hub bekommt dieselbe Antwort.
-2. **Was der Pilotbetrieb in Phase 1 wirklich braucht.** Welche Funktionen der Vorgängeranwendung in Gebrauch sind, und welche Ausdrucke aussehen müssen wie bisher.
-3. **Störmeldung ohne Konto.** Ja oder nein, und wenn ja, schon in Phase 2.
-4. **Arbeitszeit.** Als abschaltbares Modul im Plan lassen oder ganz ausklammern.
-5. **Sprachen.** Ob die Arbeit vor Ort weitere Sprachen braucht. OpenGewerk ist bewusst einsprachig, und eine zweite Sprache betrifft das geteilte Fundament.
-6. **Bereiche in der Datenbank.** Durchsetzung über eine Policy je Zeile (Empfehlung) oder in der Anwendung mit einem Abdeckungstest.
-7. **Fachkundige Abnahme des Pflichtenkatalogs.** Wer nimmt ab, und mit welchem Land beginnt das Landesrecht.
-8. **Eigene Rollen.** Ob feste Rollen mit Bereichen für den Anfang genügen.
-9. **Gebäudeleittechnik.** Welcher Adapter zuerst, und ob er vor Phase 4 gebraucht wird.
-10. **Name des Mandanten in der Oberfläche.** Das Fundament sagt „Betrieb“, hier wäre „Betreiber“ oder „Einrichtung“ treffender.
-11. **Namen und Uhrzeiten auf dem Leistungsnachweis.** Als Vorgabe aus (Empfehlung) oder an.
-12. **Wann das Repository öffentlich wird, und ob der Pilotbetrieb genannt werden darf.** Empfehlung: öffentlich mit Konzept und Einrichtung des Repositorys; der Pilotbetrieb bleibt ungenannt, bis er zustimmt.
-13. **Rechtliche Prüfung.** Drei Fragen für einen Fachanwalt, bevor das erste Paket veröffentlicht wird: ob Fristen aus privaten Normen als Tatsachen genannt werden dürfen; wie die Regelwerke der Unfallversicherung und der staatlichen Ausschüsse einzuordnen sind; und ob die Unterschrift auf dem Gerät als elektronische Signatur für jede Nachweisart genügt, denn § 14 Abs. 7 BetrSichV verlangt sie bei ausschließlich elektronisch übermittelten Dokumenten und nennt keine Stufe. Bis dahin gilt die vorsichtige Lesart aus den Abschnitten 2.6 und 5.
-14. **Wer den Katalog pflegt.** Empfehlung: ein kleiner Katalog, der abdeckt, was der Pilotbetrieb braucht, jeder Eintrag mit Prüfdatum und fachkundiger Abnahme, und ein geplanter Lauf, der an fällige Prüfungen erinnert. Wachsen soll er über Beiträge vom Fach, nicht über Vollständigkeit auf dem Papier.
+| Frage | Entscheidung | Steht in |
+| --- | --- | --- |
+| Wie das Fundament bezogen wird | Als Pakete im Repository `opengewerk`, eingebunden über einen festen Stand, ohne Abschrift | 0, 2.1, ADR 0010 |
+| Zuständigkeitsbereiche | In der Datenbank erzwungen, als Policy je Zeile | 2.8 |
+| Name des Mandanten in der Oberfläche | Betreiber | durchgehend |
+| Störmeldung ohne Konto | Ja, in Phase 2, mit externer Sicherheitsprüfung davor | 4.7, 9, 12 |
+| Arbeitszeit | Abschaltbares Modul in Phase 5 | 4.14 |
+| Namen und Uhrzeiten auf dem Leistungsnachweis | Als Vorgabe aus | 4.8 |
+| Sprachen | Deutsch, keine weitere | 14 |
+| Gebäudeleittechnik | Phase 4 | 4.15, 12 |
+| Eigene Rollen | Ab Phase 2; das Fundament führt Rollen von Anfang an als Daten | 7, 12 |
+| Umfang des Katalogs | Alle sieben Pakete vollständig vor Version 1 | 5, 12 |
+| Fachkundige Abnahme | Durch den Maintainer für Elektro, durch den Pilotbetrieb für die übrigen Pakete; bis dahin ist jeder Eintrag gekennzeichnet | 5 |
+| Erstes Land | Baden-Württemberg | 5 |
+| Veröffentlichung der Pakete | Staatliches Recht sofort, die rechtliche Prüfung läuft parallel | 5 |
+| Was der Pilotbetrieb braucht | Rundgänge, Aufträge, Leistungsnachweis, Zähler, Anlagen, Wartungen, Lager, Verträge und Auswertungen; kein Ausdruck muss aussehen wie bisher | 12 |
+| Der Pilotbetrieb im Repository | Bleibt ungenannt, bis er zustimmt | 11, 12 |
+
+**Noch offen**
+
+1. **Rechtliche Prüfung.** Drei Fragen für einen Fachanwalt: ob Fristen aus privaten Normen als Tatsachen genannt werden dürfen; wie die Regelwerke der Unfallversicherung und der staatlichen Ausschüsse einzuordnen sind; und ob die Unterschrift auf dem Gerät als elektronische Signatur für jede Nachweisart genügt, denn § 14 Abs. 7 BetrSichV verlangt sie bei ausschließlich elektronisch übermittelten Dokumenten und nennt keine Stufe. Bis zur Antwort gilt die vorsichtige Lesart aus den Abschnitten 2.6 und 5.
+2. **Technik der Einbindung des Fundaments.** Ob die Pakete als Git-Submodul, als Archiv am Release oder über eine Registry kommen, klärt ein Versuch in Phase 0 und steht dann in ADR 0010.
+3. **Externe Sicherheitsprüfung.** Wer sie vor der Fassung mit der Seite ohne Anmeldung macht.
+4. **Vorlage für den Vertrag zur Auftragsverarbeitung.** Sie wird gebraucht, bevor ein Betreiber mit echten Daten auf einer Instanz arbeitet, die ein anderer für ihn betreibt; für den Pilotbetrieb also zum Beginn des Parallelbetriebs.
 
 ---
 
 ## 16. Änderungsprotokoll
+
+### v0.1 → v0.2
+
+- Die Entscheidungen vom 01.10.2026 stehen an ihren Stellen, Abschnitt 15 nennt sie im Zusammenhang und führt, was offen bleibt
+- Fundament: als Pakete im Repository `opengewerk`, eingebunden über einen festen Stand, ohne Abschrift (Leitentscheidung 7, 2.1, Phase 0)
+- Katalog: alle sieben Pakete vollständig vor Version 1, Abnahme am Eintrag, staatliches Recht erscheint sofort, erstes Land ist Baden-Württemberg (5)
+- Rollen: eigene Rollen ab Phase 2, im Fundament von Anfang an als Daten (7)
+- Fahrplan: Lager mit Verbrauch am Auftrag, Auswertungen über die Zeit und eigene Rollen rücken nach Phase 2, weil der Pilotbetrieb sie vor der Abschaltung seiner bisherigen Anwendung braucht; Phase 3 heißt Schlüssel, Energie, Planung (12)
+- Sprachen: Deutsch, keine weitere (14)
 
 ### v0.1
 
