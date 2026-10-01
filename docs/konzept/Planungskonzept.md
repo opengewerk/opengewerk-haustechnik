@@ -1,6 +1,6 @@
-# OpenGewerk Haustechnik: Planungskonzept (Software für Betreiber und ihre Haustechnik) · v0.3
+# OpenGewerk Haustechnik: Planungskonzept (Software für Betreiber und ihre Haustechnik) · v0.4
 
-2026-10-01 · Eigenständiges Projekt, Repository `opengewerk-haustechnik` in der GitHub-Organisation `opengewerk` · v0.2 trägt die Entscheidungen vom 01.10.2026 ein, v0.3 die Technik, mit der das Fundament eingebunden wird, siehe Abschnitt 15 (Vergleich mit openMAINT, Atlas CMMS, eTASK, wave Facilities, pitFM, SPARTACUS, Planon, Lumiform, Wowflow und den Excel-Listen, die vielerorts die eigentliche Software sind)
+2026-10-01 · Eigenständiges Projekt, Repository `opengewerk-haustechnik` in der GitHub-Organisation `opengewerk` · v0.2 trägt die Entscheidungen vom 01.10.2026 ein, v0.3 die Technik, mit der das Fundament eingebunden wird, v0.4 gleicht Abschnitt 5 und die Wortwahl an die ADRs 0002 bis 0006 an, siehe Abschnitt 15 (Vergleich mit openMAINT, Atlas CMMS, eTASK, wave Facilities, pitFM, SPARTACUS, Planon, Lumiform, Wowflow und den Excel-Listen, die vielerorts die eigentliche Software sind)
 
 Self-hosted Open-Source-System für alle, die Gebäude betreiben und dafür eigene Haustechniker haben. Liegenschaften, Gebäude, Räume und technische Anlagen stehen in einem Datenmodell. Die Betreiberpflichten hängen daran als überwachte Fristen, Rundgänge und Prüfungen laufen auf dem Telefon auch ohne Netz, und zu jeder Pflicht gibt es einen Nachweis, der sich nachträglich nicht ändern lässt.
 
@@ -205,8 +205,8 @@ Wie dort gilt: jede Abfrage nennt einen Tag, und für einen Tag ohne hinterlegte
 
 - Benutzer, Rollen und Bereiche (Abschnitt 7); Anmeldung mit Passwort, zweitem Faktor und Passkeys; für Leitung und Verwaltung ist der zweite Faktor Pflicht
 - Eigene Angaben (Name, E-Mail, Passwort, zweiter Faktor, Geräte) ändert jede Person selbst unter „Konto“, mit erneuter Bestätigung; Name und E-Mail eines Kontos berichtigt auch die Leitung ⚖
-- Mehrere Betreiber auf einer Instanz, Wechsel ohne neue Anmeldung; Bereich für den Betreiber der Instanz
-- Rechtstexte der Instanz (Impressum, Datenschutzhinweise) pflegt ihr Betreiber in der Oberfläche; sie stehen nicht im Quelltext
+- Mehrere Betreiber auf einer Instanz, Wechsel ohne neue Anmeldung; Bereich für die Verwaltung der Instanz
+- Rechtstexte der Instanz (Impressum, Datenschutzhinweise) pflegt ihre Verwaltung in der Oberfläche; sie stehen nicht im Quelltext
 - Änderungsprotokoll über alle Module, für die Leitung einsehbar
 - Aufgaben mit Fälligkeit und verantwortlicher Person, an Ort, Anlage oder Vorgang
 - Benachrichtigungen per E-Mail und Push, gespeist nur aus der Fristen-Engine und aus Statuswechseln; welche Anlässe als Push kommen, wählt jede Person selbst
@@ -362,7 +362,7 @@ Wie dort gilt: jede Abfrage nennt einen Tag, und für einen Tag ohne hinterlegte
 - **Meldungsquellen**: ein Adapter je System holt Meldungen und Alarme ab, ordnet sie über die Datenpunktadresse einer Anlage zu und legt sie in den Eingang der Störmeldungen. Der erste Adapter ist der des Pilotbetriebs
 - **Messwerte und Zählerstände**: Übernahme aus Dateien (CSV) und von Datenloggern, Zuordnung über die Kennung der Messstelle
 - **Ausgabe**: Zählerstände als Datei in einem dokumentierten Format für ein Energiemanagementsystem, das sie abholt
-- Jede Verbindung nach außen läuft über einen eigenen Dienst mit eigenen Zugangsdaten, versiegelt gespeichert; welche Adressen im eigenen Netz erreichbar sind, gibt der Betreiber der Instanz frei, nicht der einzelne Betreiber
+- Jede Verbindung nach außen läuft über einen eigenen Dienst mit eigenen Zugangsdaten, versiegelt gespeichert; welche Adressen im eigenen Netz erreichbar sind, gibt die Verwaltung der Instanz frei, nicht der einzelne Betreiber
 
 ### 4.16 Auswertungen
 
@@ -386,6 +386,7 @@ pakete/<name>/
   regeln/*.json          # Fristen und Grenzwerte mit Gültigkeit und Fundstelle
   formulare/*.json       # Prüf- und Wartungsprotokolle
   vorlagen/*.json        # Vorlagen für Rundgänge, die ein Betreiber übernehmen und anpassen kann
+  abnahmen.json          # je Eintrag: zuletzt gegen die Quelle geprüft, abgenommen von wem und wann
 ```
 
 **Die Pakete bis Version 1**, in der Reihenfolge, in der sie gebaut werden. Jedes erscheint vollständig für seinen Bereich und nicht nur im Umfang eines Betreibers:
@@ -415,7 +416,8 @@ Regeln für jeden Beitrag:
 - Jede Pflichtart und jeder Grenzwert braucht eine fachkundige Abnahme, bevor ein Betreiber sich darauf verlässt. Bis dahin ist der Eintrag gekennzeichnet, und die Oberfläche sagt es. Wer abgenommen hat und wann, steht am Eintrag
 - Jeder Eintrag trägt den Tag, an dem er zuletzt gegen seine Quelle geprüft wurde, und die Oberfläche zeigt ihn. Liegt die Prüfung länger als ein Jahr zurück, ist der Eintrag gekennzeichnet, und ein geplanter Lauf erinnert daran, wie bei den Regelpaketen von OpenGewerk
 - Ein Paket erscheint, sobald seine Einträge aus staatlichem Recht stehen. Was die rechtliche Prüfung für die übrigen Quellen freigibt, kommt als neue Fassung dazu
-- Eine gemergte Definition wird nicht geändert, sie bekommt eine neue Fassung
+- Eine gemergte Definition wird nicht geändert, sie bekommt eine neue Fassung. Regeln werden fortgeschrieben: ändert sich die Vorschrift, endet der alte Datensatz und ein neuer beginnt; war ein Wert falsch eingetragen, wird er berichtigt, und seine Abnahme entfällt, bis jemand vom Fach ihn erneut ansieht
+- Prüfung und Abnahme stehen neben dem Eintrag und nicht in ihm, damit sie sich ändern können, ohne dass der Eintrag sich ändert (ADR 0005)
 - Vorlagen, Checklisten und Texte eines Betreibers werden nicht aufgenommen, auch nicht abgewandelt. Was das Projekt mitliefert, ist neu geschrieben und steht unter der Lizenz des Projekts
 - Der Katalog erhebt keinen Anspruch auf Vollständigkeit. Er sagt, was er abdeckt, und die Verantwortung des Betreibers bleibt beim Betreiber
 
@@ -652,6 +654,12 @@ Die offenen Fragen aus v0.1 sind am 01.10.2026 entschieden worden. Jede Antwort 
 ---
 
 ## 16. Änderungsprotokoll
+
+### v0.3 → v0.4
+
+- Abschnitt 5: Prüfung und Abnahme eines Eintrags stehen in `abnahmen.json` neben den Definitionen; Regeln werden fortgeschrieben und berichtigt statt neu gefasst (ADR 0005)
+- Wer eine Instanz betreibt, heißt durchgehend "Verwaltung der Instanz", damit "Betreiber" in der Oberfläche nur eines bedeutet (3, 4.15; ADR 0002)
+- Die ADRs 0002 bis 0006 entscheiden, wie die Abschnitte 2.2, 2.6, 2.7, 2.8 und 5 gebaut werden; am Funktionsumfang ändert sich nichts
 
 ### v0.2 → v0.3
 
