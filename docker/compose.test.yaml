@@ -1,0 +1,37 @@
+# The database for the tests, not for operation. No volume on purpose, so that
+# every start begins empty.
+#
+#   docker compose -f docker/compose.test.yaml up -d
+#
+# Its own container on its own port, next to the one of the repository the
+# foundation comes from: whoever works on both runs both suites, and two
+# suites that empty the same database pull the schema out from under each
+# other.
+#
+# The name ends in _test, and the tests refuse to run against a database where
+# it does not. They clean up before they start, and that is not to cost
+# anybody their development data.
+
+# A project name of its own, and that is not decoration. Without one, Compose
+# names the project after the folder this file lies in, `docker`, as it does
+# for every repository that keeps its files in a folder of that name. Two such
+# files are then one project to Compose, and starting this one replaces the
+# container of the other without a word. Seen on 01.10.2026 with the test
+# database of the repository the foundation comes from.
+name: opengewerk-haustechnik-test
+
+services:
+  postgres:
+    image: postgres:18-alpine
+    container_name: opengewerk-haustechnik-test-db
+    environment:
+      POSTGRES_USER: haustechnik
+      POSTGRES_PASSWORD: haustechnik
+      POSTGRES_DB: haustechnik_test
+    ports:
+      - '127.0.0.1:5434:5432'
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U haustechnik -d haustechnik_test']
+      interval: 2s
+      timeout: 3s
+      retries: 20

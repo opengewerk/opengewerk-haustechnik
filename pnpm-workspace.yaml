@@ -14,3 +14,12 @@ packages:
 # malicious version is usually found out and withdrawn within hours. Whoever
 # needs a version still inside that window enters it under
 # minimumReleaseAgeExclude, and the better answer is the version before it.
+
+# pnpm does not run the install scripts of other packages by itself. That is
+# the protection against a package that does something other than installing
+# while it installs. esbuild comes in through drizzle-kit, which the server
+# side of the foundation uses to write the tables of a first migration, and it
+# does not need its script: its binary sits in an optional package per
+# platform. The same entry as in the repository the foundation comes from.
+allowBuilds:
+  esbuild: false

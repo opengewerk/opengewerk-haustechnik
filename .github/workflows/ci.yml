@@ -255,6 +255,28 @@ jobs:
   check:
     name: Typprüfung, Lint und Tests
     runs-on: ubuntu-latest
+
+    # The tests of the foundation's database code run against a real
+    # PostgreSQL, not an imitation: what they check are policies, grants,
+    # triggers and uuidv7(), and that is exactly the part an imitation does
+    # differently from the real thing. The same address as
+    # docker/compose.test.yaml, which is what scripts/run-tests.js points every
+    # package at.
+    services:
+      postgres:
+        image: postgres:18-alpine
+        env:
+          POSTGRES_USER: haustechnik
+          POSTGRES_PASSWORD: haustechnik
+          POSTGRES_DB: haustechnik_test
+        ports:
+          - 5434:5432
+        options: >-
+          --health-cmd "pg_isready -U haustechnik -d haustechnik_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
     steps:
       # The foundation is a submodule on a fixed commit (ADR 0010 in the
       # repository opengewerk). Without it the workspace has no packages of the
