@@ -1,0 +1,9 @@
+version: 2
+updates:
+  # The actions in the workflows. A version that nobody moves stays where it is
+  # forever, and an action on an unmaintained runtime is a finding waiting to
+  # happen. Further ecosystems (npm, docker-compose) join with the first code.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly

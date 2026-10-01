@@ -1,0 +1,75 @@
+name: CodeQL
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    # Monday morning, so a finding is on the table at the start of the week
+    # instead of surfacing with the next push
+    - cron: "17 5 * * 1"
+
+permissions:
+  contents: read
+
+jobs:
+  detect:
+    name: Sprachen bestimmen
+    runs-on: ubuntu-latest
+    outputs:
+      languages: ${{ steps.collect.outputs.languages }}
+    steps:
+      - name: Repository auschecken
+        uses: actions/checkout@v7
+
+      - name: Sprachen aus dem Dateibestand ermitteln
+        id: collect
+        run: |
+          # A list kept by hand is a list that gets forgotten. Whoever commits
+          # the first TypeScript does not think of this file, and the result is
+          # a scan that scans nothing. So the job collects the languages itself.
+          #
+          # Listed here are only languages CodeQL analyses without a build.
+          # Compiled ones such as Java, C#, Go, C/C++ and Swift need a build
+          # step and have to be added by hand, together with that step.
+          languages=(actions)
+          if [ -n "$(git ls-files -- '*.ts' '*.tsx' '*.js' '*.jsx' '*.mjs' '*.cjs')" ]; then
+            languages+=(javascript-typescript)
+          fi
+          if [ -n "$(git ls-files -- '*.py')" ]; then
+            languages+=(python)
+          fi
+          # The names come from a fixed set, so building the JSON list by hand
+          # is enough.
+          list=$(printf '"%s",' "${languages[@]}")
+          list="[${list%,}]"
+          echo "languages=$list" >> "$GITHUB_OUTPUT"
+          echo "Geprüft wird: $list"
+
+  analyze:
+    name: Analyse (${{ matrix.language }})
+    needs: detect
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write
+      actions: read
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        language: ${{ fromJSON(needs.detect.outputs.languages) }}
+    steps:
+      - name: Repository auschecken
+        uses: actions/checkout@v7
+
+      - name: CodeQL vorbereiten
+        uses: github/codeql-action/init@v4
+        with:
+          languages: ${{ matrix.language }}
+          queries: security-extended
+
+      - name: Analyse ausführen
+        uses: github/codeql-action/analyze@v4
+        with:
+          category: "/language:${{ matrix.language }}"

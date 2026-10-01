@@ -14,3 +14,8 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   zum Nachweis, Funktionsumfang, Pflichtenpakete, rechtliche Anforderungen mit Fundstellen,
   die am 01.10.2026 gegen die amtlichen Texte geprüft sind, und der Fahrplan in sieben
   Phasen
+- CI mit den Prüfungen "Kodierung und Zeilenenden" und "Schreibweise", wie in den anderen
+  Repositories der Organisation: UTF-8 ohne BOM, LF, keine Gedankenstriche, keine
+  umgeschriebenen Umlaute, geprüft am ganzen Bestand und nicht nur am Diff
+- CodeQL, das die zu prüfenden Sprachen aus dem Dateibestand ermittelt, und Dependabot für
+  die Actions der Workflows
