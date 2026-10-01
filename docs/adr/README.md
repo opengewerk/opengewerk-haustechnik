@@ -27,6 +27,22 @@ Ein ADR in diesem Ordner entscheidet, was nur diese Anwendung betrifft. Braucht 
 | Nummer | Titel | Status |
 | --- | --- | --- |
 | [0001](0001-stack-und-fundament.md) | Derselbe Stack, das Fundament als Submodul | angenommen |
+| [0002](0002-datenmodell-vom-ort-bis-zum-nachweis.md) | Datenmodell vom Ort bis zum Nachweis | angenommen |
+| [0003](0003-zustaendigkeitsbereiche-in-der-datenbank.md) | Zuständigkeitsbereiche in der Datenbank | angenommen |
+| [0004](0004-nachweis-und-festschreibung.md) | Nachweis und Festschreibung | angenommen |
+| [0005](0005-pakete-als-daten.md) | Pakete: Pflichtenkatalog, Anlagenarten, Regeln und Formulare als Daten | angenommen |
+| [0006](0006-abgleich-ohne-netz.md) | Abgleich ohne Netz: was ein Gerät hält, anlegt und ändert | angenommen |
+
+## Die Entscheidungen auf einen Blick
+
+| ADR | Entscheidung |
+| --- | --- |
+| 0001 | Die ADRs 0002 bis 0010 der Handwerkersoftware gelten; das Fundament kommt als Submodul auf einem festen Commit, nichts wird abgeschrieben |
+| 0002 | Vier Tabellen für den Ort, die Komponente ist eine Anlage unter einer Anlage, ein Bezug ist eine Spalte mit Fremdschlüssel, Zustände werden abgeleitet und nie gespeichert, ein Vorschlag ist kein Datensatz |
+| 0003 | Jede Zeile mit Ortsbezug trägt Liegenschaft und Bereich über einen Fremdschlüssel; eine restriktive Policy fragt Funktionen der Datenbank, die die Bereiche der Person selbst herleiten |
+| 0004 | Der Nachweis trägt seinen Stand als eingefrorenes Dokument mit Fassungsnummer und Fingerabdruck; berichtigt wird durch einen neuen Nachweis, geändert wird nie |
+| 0005 | Pakete sind Daten im Repository und Teil des Baus; eine gemergte Fassung ist unveränderlich, Prüfung und Abnahme stehen daneben |
+| 0006 | Ein Gerät hält den Ausschnitt seiner Person; eine Zeile je Punkt; unterschrieben wird auf dem Gerät, festgeschrieben auf dem Server |
 
 ## Wann ein ADR sinnvoll ist
 

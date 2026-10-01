@@ -35,6 +35,12 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   Handwerkersoftware hier gelten, wie das Repository aufgebaut ist, wie die Pakete heißen und
   was diese Anwendung selbst nennt, damit sie neben der Handwerkersoftware auf demselben
   Server laufen kann
+- ADR 0002 bis 0006, die Entscheidungen vor der ersten Tabelle: das Datenmodell vom Ort bis
+  zum Nachweis mit den Namen im Code, die Zuständigkeitsbereiche in der Datenbank samt einer
+  Messung gegen PostgreSQL 18 (eine Policy, die ihre Funktionen direkt aufruft, ist
+  zweihundertmal langsamer als dieselbe mit Unterabfragen), der Nachweis mit eingefrorenem
+  Stand und Fingerabdruck, die Pakete als Daten mit unveränderlichen Fassungen, und die
+  Regeln dafür, was ein Gerät ohne Netz hält, anlegt und ändert
 
 ### Geändert
 
@@ -50,3 +56,7 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   Punkten; die Anlässe der Benachrichtigungen stehen in der Zuordnung bei Phase 0
 - Die Prüfungen "Kodierung und Zeilenenden" und "Schreibweise" überspringen den Eintrag
   eines Submoduls. Seine Dateien werden in dem Repository geprüft, zu dem sie gehören
+- Planungskonzept auf v0.4: Abschnitt 5 nennt `abnahmen.json`, in der Prüfung und Abnahme
+  eines Katalogeintrags neben ihm stehen, und sagt, dass Regeln fortgeschrieben und berichtigt
+  statt neu gefasst werden (ADR 0005). Wer eine Instanz betreibt, heißt durchgehend
+  "Verwaltung der Instanz", damit "Betreiber" in der Oberfläche nur eines bedeutet
