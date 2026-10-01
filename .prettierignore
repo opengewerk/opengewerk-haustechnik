@@ -1,0 +1,18 @@
+node_modules
+dist
+.turbo
+pnpm-lock.yaml
+
+# The foundation is a submodule. It is formatted in the repository it belongs
+# to, with the same rules.
+upstream/
+
+# The documentation is laid out by hand. Prettier would realign tables and
+# rewrap paragraphs, which would hide every change of content behind
+# formatting noise.
+*.md
+
+# The same goes for the workflows and templates: they hold check scripts in
+# block scalars, and rewriting the scaffolding around them brings nothing but
+# unreadable diffs at exactly the places that have to be readable.
+.github/

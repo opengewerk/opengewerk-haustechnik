@@ -1,0 +1,16 @@
+packages:
+  - packages/*
+  # The foundation every application of the organisation is built on. It lives
+  # in the repository opengewerk and is embedded here as a submodule on a fixed
+  # commit (ADR 0010 there, ADR 0001 here). Its packages are members of this
+  # workspace: their dependencies are in this lockfile, and they are built
+  # before the packages that need them. Only `packages/platform/*`: the
+  # packages of the Handwerkersoftware beside them are deliberately not
+  # members, so that an import of one of them fails as a missing module.
+  - upstream/opengewerk/packages/platform/*
+
+# pnpm holds back freshly published versions until they have been out for a
+# while. That is the protection against a hijacked npm account, where the
+# malicious version is usually found out and withdrawn within hours. Whoever
+# needs a version still inside that window enters it under
+# minimumReleaseAgeExclude, and the better answer is the version before it.

@@ -19,6 +19,7 @@ jobs:
       - name: Textdateien auf UTF-8 ohne BOM und LF prüfen
         run: |
           python3 - <<'PYTHON'
+          import os
           import subprocess
           import sys
 
@@ -37,6 +38,10 @@ jobs:
                   continue
               path = entry.decode("utf-8", "surrogateescape")
               if path.lower().endswith(BINARY_EXTENSIONS):
+                  continue
+              # A submodule is tracked as a single entry and is a directory on
+              # disk. Its files are checked in the repository they belong to.
+              if os.path.isdir(path):
                   continue
               with open(path, "rb") as handle:
                   content = handle.read()
@@ -71,6 +76,7 @@ jobs:
       - name: Auf Gedankenstriche prüfen
         run: |
           python3 - <<'PYTHON'
+          import os
           import subprocess
           import sys
 
@@ -94,6 +100,10 @@ jobs:
                   continue
               path = entry.decode("utf-8", "surrogateescape")
               if path in EXEMPT or path.lower().endswith(BINARY_EXTENSIONS):
+                  continue
+              # A submodule is tracked as a single entry and is a directory on
+              # disk. Its files are checked in the repository they belong to.
+              if os.path.isdir(path):
                   continue
               with open(path, "rb") as handle:
                   content = handle.read()
@@ -123,6 +133,7 @@ jobs:
       - name: Auf umgeschriebene Umlaute prüfen
         run: |
           python3 - <<'PYTHON'
+          import os
           import re
           import subprocess
           import sys
@@ -212,6 +223,10 @@ jobs:
               path = entry.decode("utf-8", "surrogateescape")
               if path in EXEMPT or path.lower().endswith(BINARY_EXTENSIONS):
                   continue
+              # A submodule is tracked as a single entry and is a directory on
+              # disk. Its files are checked in the repository they belong to.
+              if os.path.isdir(path):
+                  continue
               with open(path, "rb") as handle:
                   content = handle.read()
               if b"\0" in content:
@@ -236,3 +251,69 @@ jobs:
 
           print("Keine umgeschriebenen Umlaute gefunden.")
           PYTHON
+
+  check:
+    name: Typprüfung, Lint und Tests
+    runs-on: ubuntu-latest
+    steps:
+      # The foundation is a submodule on a fixed commit (ADR 0010 in the
+      # repository opengewerk). Without it the workspace has no packages of the
+      # foundation, and the install fails on a lockfile that names them.
+      - name: Repository mit dem Fundament auschecken
+        uses: actions/checkout@v7
+        with:
+          submodules: true
+
+      # A branch of the foundation disappears once it is merged, and a
+      # repository pointing at one of its commits could no longer be cloned
+      # (ADR 0001, point 9). While a change to the foundation is being built,
+      # a branch here may point at a branch there; this step keeps it from
+      # being merged before the other side is.
+      - name: Das Fundament steht auf einem Commit seines main
+        run: |
+          cd upstream/opengewerk
+          if [ "$(git rev-parse --is-shallow-repository)" = "true" ]; then
+            git fetch --quiet --unshallow origin main
+          else
+            git fetch --quiet origin main
+          fi
+          if git merge-base --is-ancestor HEAD FETCH_HEAD; then
+            echo "Das Submodul zeigt auf $(git rev-parse --short HEAD), einen Commit auf main des Fundaments."
+          else
+            echo "Das Submodul zeigt auf $(git rev-parse --short HEAD). Dieser Commit liegt nicht auf main"
+            echo "des Repositorys opengewerk. Erst dort mergen, dann hier den Zeiger auf den"
+            echo "gemergten Commit setzen."
+            exit 1
+          fi
+
+      - name: pnpm über Corepack bereitstellen
+        run: corepack enable
+
+      - name: Node einrichten
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Abhängigkeiten installieren
+        run: pnpm install --frozen-lockfile
+
+      # The application compiles the packages of the foundation with its own
+      # tools, so it keeps the same versions as the repository they come from.
+      - name: Werkzeuge wie im Fundament
+        run: pnpm run check:toolchain
+
+      - name: Bauen
+        run: pnpm run build
+
+      - name: Typprüfung
+        run: pnpm run typecheck
+
+      - name: Lint
+        run: pnpm run lint
+
+      - name: Formatierung
+        run: pnpm run format:check
+
+      - name: Tests
+        run: pnpm run test

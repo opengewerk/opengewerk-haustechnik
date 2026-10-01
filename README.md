@@ -28,13 +28,48 @@ Die Handwerkersoftware [`opengewerk`](https://github.com/opengewerk/opengewerk) 
 
 ## Status
 
-OpenGewerk Haustechnik ist in der **Planungsphase**. Es gibt noch keinen lauffähigen Code, nur das ausgearbeitete Konzept und dieses Repository-Gerüst. Ein Pilotbetrieb mit mehreren Liegenschaften steht bereit; Version 1 ist erreicht, wenn er seine bisherige Anwendung abschalten kann.
+OpenGewerk Haustechnik steht am Anfang von **Phase 0**, dem Fundament. Das Konzept ist ausgearbeitet, und der Arbeitsbereich bindet das Fundament der Handwerkersoftware ein; eine Anwendung, die man starten könnte, gibt es noch nicht. Ein Pilotbetrieb mit mehreren Liegenschaften steht bereit; Version 1 ist erreicht, wenn er seine bisherige Anwendung abschalten kann.
 
-Das vollständige Konzept liegt unter [`docs/konzept/`](docs/konzept/).
+Das vollständige Konzept liegt unter [`docs/konzept/`](docs/konzept/), die Architekturentscheidungen dieser Anwendung unter [`docs/adr/`](docs/adr/). Was in Phase 0 gebaut wird, steht als Issues im Meilenstein [Phase 0: Fundament](https://github.com/opengewerk/opengewerk-haustechnik/milestone/1).
 
 ## Fahrplan
 
 Der Fahrplan in sieben Phasen, vom Fundament bis zum Vollausbau, steht in [Abschnitt 12 des Planungskonzepts](docs/konzept/Planungskonzept.md#12-fahrplan) und bewusst nur dort. Eine Abschrift daneben läuft irgendwann auseinander.
+
+## Am Code arbeiten
+
+Vorausgesetzt werden Node 24 und ein aktiviertes Corepack; pnpm kommt in der Version, die im Wurzelpaket steht, und wird nicht von Hand installiert.
+
+Das Fundament liegt im Repository `opengewerk` und ist hier als Git-Submodul unter `upstream/opengewerk` eingebunden, auf einem festen Commit. Geklont wird deshalb mit dem Submodul:
+
+```bash
+git clone --recurse-submodules https://github.com/opengewerk/opengewerk-haustechnik.git
+```
+
+Wer schon ohne geklont hat, holt es nach:
+
+```bash
+git submodule update --init
+```
+
+Danach:
+
+```bash
+pnpm install
+pnpm run typecheck
+pnpm run lint
+pnpm run format:check
+pnpm run test
+```
+
+Die Prüfungen laufen über Turborepo und damit über alle Pakete, die des Fundaments eingeschlossen; dieselben Schritte laufen in der CI. `pnpm run check:toolchain` vergleicht die Fassungen der Werkzeuge mit denen des Fundaments. Warum das Repository so aufgebaut ist, steht in [ADR 0001](docs/adr/0001-stack-und-fundament.md).
+
+| Paket | Inhalt |
+| --- | --- |
+| [`packages/domain`](packages/domain) | Fachlichkeit ohne I/O. Reicht weiter, was das Fundament exportiert, damit Server und Oberfläche ein Paket fragen |
+| `upstream/opengewerk/packages/platform/*` | Das Fundament: Mandantentrennung, Anmeldung, Rechte, Abgleich, Audit-Log. Wird im Repository `opengewerk` geändert, nie hier |
+
+Server und Oberfläche entstehen mit ihrem ersten Inhalt: der Server mit der Ausgangsmigration, die Oberfläche mit ihrer Hülle.
 
 ## Projektfamilie
 

@@ -1,6 +1,6 @@
-# OpenGewerk Haustechnik: Planungskonzept (Software für Betreiber und ihre Haustechnik) · v0.2
+# OpenGewerk Haustechnik: Planungskonzept (Software für Betreiber und ihre Haustechnik) · v0.3
 
-2026-10-01 · Eigenständiges Projekt, Repository `opengewerk-haustechnik` in der GitHub-Organisation `opengewerk` · v0.2 trägt die Entscheidungen vom 01.10.2026 ein, siehe Abschnitt 15 (Vergleich mit openMAINT, Atlas CMMS, eTASK, wave Facilities, pitFM, SPARTACUS, Planon, Lumiform, Wowflow und den Excel-Listen, die vielerorts die eigentliche Software sind)
+2026-10-01 · Eigenständiges Projekt, Repository `opengewerk-haustechnik` in der GitHub-Organisation `opengewerk` · v0.2 trägt die Entscheidungen vom 01.10.2026 ein, v0.3 die Technik, mit der das Fundament eingebunden wird, siehe Abschnitt 15 (Vergleich mit openMAINT, Atlas CMMS, eTASK, wave Facilities, pitFM, SPARTACUS, Planon, Lumiform, Wowflow und den Excel-Listen, die vielerorts die eigentliche Software sind)
 
 Self-hosted Open-Source-System für alle, die Gebäude betreiben und dafür eigene Haustechniker haben. Liegenschaften, Gebäude, Räume und technische Anlagen stehen in einem Datenmodell. Die Betreiberpflichten hängen daran als überwachte Fristen, Rundgänge und Prüfungen laufen auf dem Telefon auch ohne Netz, und zu jeder Pflicht gibt es einen Nachweis, der sich nachträglich nicht ändern lässt.
 
@@ -556,7 +556,7 @@ Leitgedanke wie bei OpenGewerk: **So früh wie möglich einen echten Betrieb dam
 
 **Zuordnung im Einzelnen.** Die Tabelle nennt die Schwerpunkte. Die übrigen Punkte der Abschnitte 2 bis 10 gehören so zu den Phasen; beides zusammen ist der Fahrplan, und aus beidem werden die Issues einer Phase geschnitten. Was in keiner Phase steht, steht in Abschnitt 14. Wer in 2 bis 10 einen Punkt einträgt, trägt seine Phase im selben Zug hier ein.
 
-- **Phase 0:** die Pakete und Nähte im Repository `opengewerk`, die Phase 1 braucht: Abgleichregeln, Rechte, Rollen als Daten, Bezeichnungen im Änderungsprotokoll, Schlüssel der Nummernkreise, Quellen der Fristen-Engine, Formulare ohne Stromkreis (2.1); die Regel-Engine mit Geltungsbereich und den neuen Einheiten (2.9); die Nummernkreise für Anlagen, Nachweise und Aufträge (2.2, 2.6, 4.8); die Fassungen des eingefrorenen Nachweises und die Trigger darunter (2.6); der Lebenszyklus als Zeitraum (2.2); die Auswahl je Gerät nach Bereich (2.7, 2.8); die Herkunft einer Pflichtart, der Tag ihrer letzten Prüfung und ihre Abnahme im Paketformat (5)
+- **Phase 0:** die Pakete und Nähte im Repository `opengewerk`, die Phase 1 braucht: Abgleichregeln, Rechte, Rollen als Daten, Bezeichnungen im Änderungsprotokoll, Schlüssel der Nummernkreise, Quellen der Fristen-Engine, Anlässe der Benachrichtigungen, Formulare ohne Stromkreis (2.1); die Regel-Engine mit Geltungsbereich und den neuen Einheiten (2.9); die Nummernkreise für Anlagen, Nachweise und Aufträge (2.2, 2.6, 4.8); die Fassungen des eingefrorenen Nachweises und die Trigger darunter (2.6); der Lebenszyklus als Zeitraum (2.2); die Auswahl je Gerät nach Bereich (2.7, 2.8); die Herkunft einer Pflichtart, der Tag ihrer letzten Prüfung und ihre Abnahme im Paketformat (5)
 - **Phase 1:** Lagebild je Gebäude, Übersicht über alle Liegenschaften, Raumseite, Zeitachse und Pfadnavigation (4.1); Dubletten-Prüfung und Tausch einer Anlage (4.2); eigene Pflichten und die festgelegte Frist mit Begründung (4.3); eigene und fremde Durchführung mit Ergebnis (4.4); Vorlage, Plan, ein eigener Rundgang je Durchgang, Zuteilung, Punkt erfüllt Pflicht, Abgabe nur vollständig, Gegenzeichnung, PDF und Übersicht der Rundgänge (4.5); Mängel mit Klasse, Frist und Status (4.6); Aufträge aus Mangel und Termin mit Abnahme (4.8); Zählertausch, Stilllegung, Sperre und Notiz (4.9); Ablage mit Fassungen (4.10); Suche nach Name, Nummer und Kennzeichen, Aufgaben, Änderungsprotokoll, eigene Angaben unter „Konto“, Rechtstexte der Instanz, Bereich der Instanz und Passkeys, soweit das Fundament sie mitbringt (3); Barrierefreiheit der Bausteine (3) ⚖; Vertretung (2.8); die Rollen Leitung, Technische Leitung, Objektleitung und Haustechnik (7); die Pakete Elektro, Brandschutz und Trinkwasser vollständig und das Landesrecht von Baden-Württemberg, dazu der Lauf, der an die Prüfung der Katalogeinträge erinnert (5) ⚖; Hilfe an den Bildschirmen (10)
 - **Phase 2:** Sammelvorgänge und die Unterscheidung nach DIN 31051 (4.4); außer Betrieb durch Mangel und Mängelbericht (4.6); Eingang, Zusammenführen, Rückmeldung und Zeiten der Störmeldungen (4.7); Gewährleistung, Einweisung und Erlaubnisschein (4.11); Soll-Dokumente (4.10); Lager, Mindestbestand und Entnahme am Auftrag (4.12); Auswertungen über die Zeit, ohne Auswertung je Person (4.16) ⚖; eigene Rollen (7); die Elektro-Struktur mit Stromkreisverzeichnis (4.2); eigene Felder des Betreibers an Anlagenarten (2.5, 4.2); das Ende einer Zugehörigkeit als Frist (2.4, 9) ⚖; die Rollen Melder und Prüfer (7); die Aufbewahrung der Nachweise mit Löschvorschlag und das höher signierte PDF am Nachweis (2.6) ⚖; die Pakete Raumluft und Kälte, Heizung, Förderanlagen und Arbeitsmittel (5) ⚖; Gefährdungsbeurteilung als Dokument mit Frist (4.3); die externe Sicherheitsprüfung vor dem Release mit der Seite ohne Anmeldung (9)
 - **Phase 3:** DATANORM und Fahrzeuglager (4.12); Zugänge versiegelt und Schlüsselquittung (4.13); Ausreißer und Verbrauch je Quadratmeter, Flächen an Gebäuden und Räumen (4.1, 4.9)
@@ -627,7 +627,7 @@ Die offenen Fragen aus v0.1 sind am 01.10.2026 entschieden worden. Jede Antwort 
 
 | Frage | Entscheidung | Steht in |
 | --- | --- | --- |
-| Wie das Fundament bezogen wird | Als Pakete im Repository `opengewerk`, eingebunden über einen festen Stand, ohne Abschrift | 0, 2.1, ADR 0010 |
+| Wie das Fundament bezogen wird | Als Pakete im Repository `opengewerk`, eingebunden als Git-Submodul auf einem festen Commit, ohne Abschrift | 0, 2.1, ADR 0010 dort, ADR 0001 hier |
 | Zuständigkeitsbereiche | In der Datenbank erzwungen, als Policy je Zeile | 2.8 |
 | Name des Mandanten in der Oberfläche | Betreiber | durchgehend |
 | Störmeldung ohne Konto | Ja, in Phase 2, mit externer Sicherheitsprüfung davor | 4.7, 9, 12 |
@@ -646,13 +646,17 @@ Die offenen Fragen aus v0.1 sind am 01.10.2026 entschieden worden. Jede Antwort 
 **Noch offen**
 
 1. **Rechtliche Prüfung.** Drei Fragen für einen Fachanwalt: ob Fristen aus privaten Normen als Tatsachen genannt werden dürfen; wie die Regelwerke der Unfallversicherung und der staatlichen Ausschüsse einzuordnen sind; und ob die Unterschrift auf dem Gerät als elektronische Signatur für jede Nachweisart genügt, denn § 14 Abs. 7 BetrSichV verlangt sie bei ausschließlich elektronisch übermittelten Dokumenten und nennt keine Stufe. Bis zur Antwort gilt die vorsichtige Lesart aus den Abschnitten 2.6 und 5.
-2. **Technik der Einbindung des Fundaments.** Ob die Pakete als Git-Submodul, als Archiv am Release oder über eine Registry kommen, klärt ein Versuch in Phase 0 und steht dann in ADR 0010.
-3. **Externe Sicherheitsprüfung.** Wer sie vor der Fassung mit der Seite ohne Anmeldung macht.
-4. **Vorlage für den Vertrag zur Auftragsverarbeitung.** Sie wird gebraucht, bevor ein Betreiber mit echten Daten auf einer Instanz arbeitet, die ein anderer für ihn betreibt; für den Pilotbetrieb also zum Beginn des Parallelbetriebs.
+2. **Externe Sicherheitsprüfung.** Wer sie vor der Fassung mit der Seite ohne Anmeldung macht.
+3. **Vorlage für den Vertrag zur Auftragsverarbeitung.** Sie wird gebraucht, bevor ein Betreiber mit echten Daten auf einer Instanz arbeitet, die ein anderer für ihn betreibt; für den Pilotbetrieb also zum Beginn des Parallelbetriebs.
 
 ---
 
 ## 16. Änderungsprotokoll
+
+### v0.2 → v0.3
+
+- Die Technik der Einbindung ist entschieden und steht nicht mehr unter den offenen Punkten: das Repository `opengewerk` wird als Git-Submodul auf einem festen Commit eingebunden, seine Pakete unter `packages/platform/` sind Mitglieder des Arbeitsbereichs dieser Anwendung (ADR 0010 dort, ADR 0001 hier; Abschnitt 15)
+- Die Anlässe der Benachrichtigungen stehen in der Zuordnung bei Phase 0: Abschnitt 2.1 nennt sie als Naht, und Phase 1 braucht sie (12)
 
 ### v0.1 → v0.2
 

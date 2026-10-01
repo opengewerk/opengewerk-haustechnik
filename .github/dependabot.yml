@@ -2,8 +2,18 @@ version: 2
 updates:
   # The actions in the workflows. A version that nobody moves stays where it is
   # forever, and an action on an unmaintained runtime is a finding waiting to
-  # happen. Further ecosystems (npm, docker-compose) join with the first code.
+  # happen.
   - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+
+  # The foundation, embedded as a submodule on a fixed commit (ADR 0001). A
+  # security fix there reaches this application when the pointer moves, so
+  # somebody has to move it: this proposes the newest commit of its main every
+  # week. The pull request stays red until the lockfile and, if they moved
+  # there, the versions of the tools have followed.
+  - package-ecosystem: gitsubmodule
     directory: /
     schedule:
       interval: weekly

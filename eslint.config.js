@@ -1,0 +1,78 @@
+// @ts-check
+import {
+  computesOnly,
+  configuration,
+  everywhere,
+  formatting,
+  generated,
+  layersAbove,
+  mayNotImport,
+  runsInNode,
+} from './upstream/opengewerk/eslint.shared.js'
+
+// The rules themselves come from the foundation, where every application of
+// the organisation takes them from (ADR 0010 in the repository opengewerk).
+// This file says where the packages of this repository are and what they are
+// called.
+
+// What the domain package may not reach up into. Server and interface arrive
+// with their first content; their names are settled (ADR 0001), and a boundary
+// that is only drawn once somebody has crossed it is drawn too late.
+const above = layersAbove({
+  packages: ['@opengewerk/haustechnik-server', '@opengewerk/haustechnik-web'],
+  folders: ['server', 'web'],
+})
+
+// The submodule holds the whole repository of the Handwerkersoftware, and only
+// its foundation is a member of this workspace. An import of anything else in
+// there fails as a missing module; this is the rule that says why.
+const besideTheFoundation = [
+  {
+    group: [
+      '@opengewerk/domain',
+      '@opengewerk/domain/*',
+      '@opengewerk/server',
+      '@opengewerk/server/*',
+      '@opengewerk/web',
+      '@opengewerk/web/*',
+      '@opengewerk/gewerk-*',
+      '@opengewerk/gewerk-*/*',
+    ],
+    message:
+      'This application stands on the foundation, not on the Handwerkersoftware (ADR 0001). What both need belongs in a package of the foundation.',
+  },
+  {
+    group: ['**/upstream/**'],
+    message:
+      'The foundation is imported by the name of its package, never by a path into the submodule.',
+  },
+]
+
+export default configuration(
+  generated,
+
+  // Linted in the repository it belongs to, and here by its own configuration
+  // whenever a package of the foundation runs its lint as a member of this
+  // workspace.
+  { ignores: ['upstream/**'] },
+
+  ...everywhere,
+
+  // The domain package computes; it does not talk to the outside world.
+  computesOnly(['packages/domain/**/*.ts'], [...above, ...besideTheFoundation]),
+
+  // Every other package of the application: nothing reaches past the
+  // foundation. The domain package is left out because the block above
+  // already carries the whole list, and a later block would replace it.
+  {
+    ...mayNotImport(['packages/**/*.{ts,tsx}'], besideTheFoundation),
+    ignores: ['packages/domain/**'],
+  },
+
+  // The shared configuration at the root and the scripts beside it run in
+  // Node. The build tooling is the one place where reading the environment
+  // and writing to a console is the job.
+  runsInNode(['*.js', '*.config.js', '*.config.ts', 'scripts/**/*.js']),
+
+  formatting,
+)
