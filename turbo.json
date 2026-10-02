@@ -28,6 +28,9 @@
     },
     "test": {
       "dependsOn": ["^build"]
+    },
+    "@opengewerk/haustechnik-server#test": {
+      "dependsOn": ["^build", "@opengewerk/platform-server#test"]
     }
   }
 }

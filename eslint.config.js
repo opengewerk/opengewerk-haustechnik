@@ -69,6 +69,9 @@ export default configuration(
     ignores: ['packages/domain/**'],
   },
 
+  // The server runs in Node and nowhere else.
+  runsInNode(['packages/server/**/*.ts']),
+
   // The shared configuration at the root and the scripts beside it run in
   // Node. The build tooling is the one place where reading the environment
   // and writing to a console is the job.

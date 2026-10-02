@@ -210,6 +210,34 @@ importers:
         specifier: 5.0.1
         version: 5.0.1(@types/node@24.13.5)(vite@8.3.1(@types/node@24.13.5)(esbuild@0.28.2)(tsx@4.23.15))
 
+  packages/server:
+    dependencies:
+      '@opengewerk/haustechnik-domain':
+        specifier: workspace:*
+        version: link:../domain
+      '@opengewerk/platform-server':
+        specifier: workspace:*
+        version: link:../../upstream/opengewerk/packages/platform/server
+      drizzle-orm:
+        specifier: 0.45.2
+        version: 0.45.2(@types/pg@8.23.1)(kysely@0.29.6)(pg@8.23.0)
+      pg:
+        specifier: 8.23.0
+        version: 8.23.0
+    devDependencies:
+      '@types/node':
+        specifier: 24.13.5
+        version: 24.13.5
+      '@types/pg':
+        specifier: 8.23.1
+        version: 8.23.1
+      drizzle-kit:
+        specifier: 0.31.10
+        version: 0.31.10
+      vitest:
+        specifier: 5.0.1
+        version: 5.0.1(@types/node@24.13.5)(vite@8.3.1(@types/node@24.13.5)(esbuild@0.28.2)(tsx@4.23.15))
+
   upstream/opengewerk/packages/platform/domain:
     devDependencies:
       vitest:

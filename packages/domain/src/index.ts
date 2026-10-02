@@ -6,3 +6,9 @@
 // server and interface of this application ask one package, whichever of the
 // two a name comes from.
 export * from '@opengewerk/platform-domain'
+
+// What this application names where a mechanism of the foundation needs a
+// list: the sequences its numbers are drawn from, and what a tenant hands it
+// to keep sealed.
+export * from './model/number-range.js'
+export * from './model/secret.js'

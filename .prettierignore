@@ -16,3 +16,8 @@ upstream/
 # block scalars, and rewriting the scaffolding around them brings nothing but
 # unreadable diffs at exactly the places that have to be readable.
 .github/
+
+# drizzle-kit generates the migrations and rewrites the meta folder on every
+# run. Formatting it only gets it back reformatted at the next generate, and a
+# migration that has run is not changed, not even in its whitespace.
+packages/server/migrations/
