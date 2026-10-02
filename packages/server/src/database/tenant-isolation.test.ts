@@ -1,0 +1,636 @@
+import { randomUUID } from 'node:crypto'
+
+import type { TenantId } from '@opengewerk/haustechnik-domain'
+import { Database, newId } from '@opengewerk/platform-server'
+import { type SQL, sql } from 'drizzle-orm'
+import { drizzle } from 'drizzle-orm/node-postgres'
+import type { Pool } from 'pg'
+import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+
+import {
+  allowApplicationLogin,
+  applicationDatabaseUrl,
+  applicationRole,
+  applyMigrations,
+  connect,
+  insufficientPrivilege,
+  keysBetweenTenantTables,
+  readDefinerFunctions,
+  readPolicies,
+  refusedBy,
+  resetSchema,
+  tableProtections,
+  unprotected,
+  withoutTheTenant,
+} from './test-database.js'
+
+/**
+ * Row level security is a property of the database and not of the code above
+ * it, so these tests talk to a real PostgreSQL through the role the
+ * application uses. A superuser walks past every policy, which is exactly why
+ * the application must never be one, and why a test run as one would prove
+ * nothing.
+ *
+ * Two kinds of question are asked. The catalogue is asked what protects each
+ * table, with the questions of the foundation (ADR 0010 in the repository
+ * opengewerk). And two tenants are given a row in every table, to see what
+ * each of them reaches: the catalogue says what should hold, the rows say
+ * whether it does.
+ *
+ * A tenant is what the interface calls a "Betreiber". In the database it
+ * keeps the name the foundation gives it.
+ */
+
+/** A tenant, and the one person working for it. */
+interface Tenant {
+  readonly id: TenantId
+  readonly name: string
+  readonly userId: string
+  readonly email: string
+}
+
+const north: Tenant = {
+  id: newId<'tenant'>(),
+  name: 'Wohnbau Nord eG',
+  userId: 'user-north',
+  email: 'leitung@nord.example',
+}
+const south: Tenant = {
+  id: newId<'tenant'>(),
+  name: 'Wohnbau Süd eG',
+  userId: 'user-south',
+  email: 'leitung@sued.example',
+}
+const both = [north.id, south.id].sort()
+
+/** One row for one table, as the columns it sets. */
+interface Row {
+  readonly table: string
+  readonly values: Readonly<Record<string, unknown>>
+}
+
+const tomorrow = new Date(Date.now() + 24 * 60 * 60 * 1000)
+
+/**
+ * A row for a tenant in every table of a tenant that takes rows from outside.
+ *
+ * In the order the keys ask for. Every value that has to be unique is made
+ * anew on each call, so the same rows can be offered a second time: once to
+ * fill the tables, and once by the other tenant, which is the attempt below.
+ *
+ * Three tables of a tenant are missing on purpose. `audit_chains` and
+ * `audit_entries` are written by the trigger while the rows here go in, and
+ * `sync_sequences` by the function that hands out the number of a change.
+ *
+ * A table that a later migration adds gets its row here. Without one the
+ * tenant has nothing in it, and the tests below say so by name.
+ */
+function rowsOf(tenant: Tenant): readonly Row[] {
+  return [
+    {
+      table: 'tenants',
+      values: { id: tenant.id, name: tenant.name },
+    },
+    {
+      table: 'tenant_roles',
+      values: {
+        tenant_id: tenant.id,
+        key: `lead-${randomUUID().slice(0, 8)}`,
+        label: 'Leitung',
+        rights: ['membership.read', 'membership.write'],
+        leads: true,
+        second_factor: true,
+      },
+    },
+    {
+      table: 'memberships',
+      values: { tenant_id: tenant.id, user_id: tenant.userId, roles: ['lead'] },
+    },
+    {
+      table: 'member_passkeys',
+      values: {
+        tenant_id: tenant.id,
+        user_id: tenant.userId,
+        passkey_id: `passkey-${randomUUID()}`,
+        name: 'Schlüssel am Telefon',
+      },
+    },
+    {
+      table: 'invitations',
+      values: {
+        tenant_id: tenant.id,
+        email: `neu-${randomUUID().slice(0, 8)}@beispiel.example`,
+        name: 'Neu im Haus',
+        roles: ['lead'],
+        token_hash: randomUUID(),
+        invited_by: tenant.userId,
+        expires_at: tomorrow,
+      },
+    },
+    {
+      table: 'tenant_sessions',
+      values: {
+        tenant_id: tenant.id,
+        user_id: tenant.userId,
+        session_id: `session-${randomUUID()}`,
+      },
+    },
+    {
+      table: 'sync_operations',
+      values: {
+        id: randomUUID(),
+        tenant_id: tenant.id,
+        entity: 'record',
+        record_id: randomUUID(),
+        outcome: 'applied',
+        device_id: 'tablet',
+      },
+    },
+    {
+      table: 'sync_conflicts',
+      values: {
+        tenant_id: tenant.id,
+        operation_id: randomUUID(),
+        entity: 'record',
+        record_id: randomUUID(),
+        reason: 'changed_elsewhere',
+        fields: ['name'],
+        wanted: { name: 'wanted' },
+        seen: { name: 'seen' },
+        found: { name: 'found' },
+        device_id: 'tablet',
+        recorded_at: new Date(),
+      },
+    },
+    {
+      table: 'number_ranges',
+      values: { tenant_id: tenant.id, key: 'asset', pattern: 'A-{number:5}' },
+    },
+    {
+      table: 'secrets',
+      values: {
+        tenant_id: tenant.id,
+        purpose: 'smtp_password',
+        sealed: `sealed-${randomUUID()}`,
+      },
+    },
+  ]
+}
+
+/**
+ * A row in every table that belongs to the instance and to no tenant: the
+ * accounts with what somebody signs in with, and who runs the instance.
+ *
+ * `instance_settings` holds its one row since the migration, and
+ * `instance_changes` is written by the trigger while these go in.
+ */
+function rowsOfTheInstance(): readonly Row[] {
+  const person = (tenant: Tenant): Row => ({
+    table: 'auth_users',
+    values: { id: tenant.userId, name: `Leitung ${tenant.name}`, email: tenant.email },
+  })
+
+  return [
+    person(north),
+    person(south),
+    {
+      table: 'auth_accounts',
+      values: {
+        id: randomUUID(),
+        account_id: north.userId,
+        provider_id: 'credential',
+        user_id: north.userId,
+      },
+    },
+    {
+      table: 'auth_passkeys',
+      values: {
+        id: randomUUID(),
+        user_id: north.userId,
+        public_key: 'public-key',
+        credential_id: randomUUID(),
+        counter: 0,
+        device_type: 'singleDevice',
+        backed_up: false,
+      },
+    },
+    {
+      table: 'auth_rate_limits',
+      values: { id: randomUUID(), key: 'sign-in', count: 1, last_request: 1 },
+    },
+    {
+      table: 'auth_sessions',
+      values: {
+        id: randomUUID(),
+        token: randomUUID(),
+        user_id: north.userId,
+        expires_at: tomorrow,
+      },
+    },
+    {
+      table: 'auth_two_factors',
+      values: { id: randomUUID(), user_id: north.userId, secret: 'sealed', backup_codes: 'sealed' },
+    },
+    {
+      table: 'auth_verifications',
+      values: {
+        id: randomUUID(),
+        identifier: 'reset-password',
+        value: north.userId,
+        expires_at: tomorrow,
+      },
+    },
+    {
+      table: 'instance_operators',
+      values: { user_id: north.userId },
+    },
+  ]
+}
+
+/** The statement that puts a row in. Every value travels beside it, as a parameter. */
+function insertOf(row: Row): SQL {
+  const columns = Object.keys(row.values)
+
+  return sql`insert into ${sql.identifier(row.table)} (${sql.join(
+    columns.map((column) => sql.identifier(column)),
+    sql`, `,
+  )}) values (${sql.join(
+    columns.map((column) => sql.param(row.values[column])),
+    sql`, `,
+  )})`
+}
+
+/** A table as the catalogue knows it. */
+interface CatalogueTable {
+  readonly table: string
+  /** The column that says whose row it is, or nothing: then it is the instance's. */
+  readonly tenantColumn: 'tenant_id' | 'id' | null
+  /** What the application role may do with it, as the grants say. */
+  readonly mayInsert: boolean
+  readonly mayDelete: boolean
+  /** A column the role may update, to try an update with. */
+  readonly updatable: string | null
+}
+
+/**
+ * Every table in `public`, read from the catalogue and not from a list. A
+ * list is complete on the day it is written; the catalogue knows the table a
+ * later migration added.
+ */
+async function tablesInTheCatalogue(): Promise<CatalogueTable[]> {
+  const { rows } = await admin.query<{
+    table_name: string
+    has_tenant: boolean
+    may_insert: boolean
+    may_delete: boolean
+    updatable: string | null
+  }>(
+    `select c.relname as table_name,
+            exists (
+              select 1 from pg_attribute a
+               where a.attrelid = c.oid and a.attname = 'tenant_id' and not a.attisdropped
+            ) as has_tenant,
+            has_table_privilege($1, c.oid, 'INSERT') as may_insert,
+            has_table_privilege($1, c.oid, 'DELETE') as may_delete,
+            (select a.attname from pg_attribute a
+              where a.attrelid = c.oid and a.attnum > 0 and not a.attisdropped
+                and has_column_privilege($1, c.oid, a.attnum, 'UPDATE')
+              order by a.attnum
+              limit 1) as updatable
+       from pg_class c
+       join pg_namespace n on n.oid = c.relnamespace
+      where n.nspname = 'public'
+        and c.relkind = 'r'
+      order by c.relname`,
+    [applicationRole],
+  )
+
+  return rows.map((row) => ({
+    table: row.table_name,
+    tenantColumn: row.has_tenant ? 'tenant_id' : row.table_name === 'tenants' ? 'id' : null,
+    mayInsert: row.may_insert,
+    mayDelete: row.may_delete,
+    updatable: row.updatable,
+  }))
+}
+
+async function tablesOfATenant(): Promise<(CatalogueTable & { tenantColumn: string })[]> {
+  const tables = await tablesInTheCatalogue()
+
+  return tables.filter(
+    (table): table is CatalogueTable & { tenantColumn: string } => table.tenantColumn !== null,
+  )
+}
+
+/** The tenants whose rows a query came back with, each once. */
+function tenantsIn(rows: readonly { tenant: string }[]): string[] {
+  return [...new Set(rows.map((row) => row.tenant))].sort()
+}
+
+/**
+ * Thrown at the end of a transaction that only wanted to see what a statement
+ * finds: the transaction is rolled back, and what it found comes out with the
+ * error.
+ */
+class TakenBack extends Error {
+  constructor(readonly found: Readonly<Record<string, unknown>>) {
+    super('Taken back on purpose')
+  }
+}
+
+let admin: Pool
+let database: Database
+
+beforeAll(async () => {
+  admin = await connect()
+  await resetSchema(admin)
+  await applyMigrations()
+  await allowApplicationLogin(admin)
+
+  // The rows go in past the application: a tenant is not something its role
+  // creates, and the accounts are written outside any tenant. What is asked
+  // below is what the application reaches afterwards.
+  const asAdmin = drizzle(admin)
+
+  for (const row of rowsOfTheInstance()) {
+    await asAdmin.execute(insertOf(row))
+  }
+
+  // The same rows on both sides, so that nothing passes by accident: if a
+  // query came back with the rows of the wrong tenant, a count would not show
+  // it.
+  for (const tenant of [north, south]) {
+    for (const row of rowsOf(tenant)) {
+      await asAdmin.execute(insertOf(row))
+    }
+
+    await admin.query('select next_sync_sequence($1)', [tenant.id])
+  }
+
+  database = Database.connect(applicationDatabaseUrl())
+})
+
+afterAll(async () => {
+  await database.close()
+  await admin.end()
+})
+
+describe('the tables', () => {
+  it('all have row level security enabled and forced, with a policy and a grant', async () => {
+    // The check that keeps this working. A table added by a later migration
+    // that forgets one of them is a leak nobody notices, because everything
+    // still works: its rows are simply there for everyone.
+    const tables = await tableProtections(admin)
+
+    // A floor, so that a query that finds nothing cannot pass as "no table
+    // unprotected": the first migration alone creates 23.
+    expect(tables.length).toBeGreaterThanOrEqual(23)
+    expect(unprotected(tables)).toEqual([])
+  })
+
+  /**
+   * The test above asks whether a table has a policy, not what the policy
+   * says. One with `using (true)`, or one that compares against the wrong
+   * setting, passes it and opens the table to every tenant. This reads the
+   * expression of every policy the application falls under and holds it
+   * against the one comparison that is allowed: the tenant of the row against
+   * the tenant of the transaction.
+   */
+  it('let the application reach a row only through the tenant of the transaction', async () => {
+    // The exceptions are the two of the foundation, the chooser after a sign
+    // in, which reads its memberships and the names of its tenants outside
+    // any tenant. This application has added none of its own.
+    const reading = await readPolicies(admin)
+
+    // 13 tables carry a tenant after the first migration.
+    expect(reading.tables).toBeGreaterThanOrEqual(13)
+    expect(reading.violations).toEqual([])
+    expect(reading.stale).toEqual([])
+  })
+
+  /**
+   * A function that runs as its definer runs as the owner of the tables,
+   * whoever calls it, and so walks past every policy above. Each of them was
+   * opened on purpose for one question and is on the list of the foundation
+   * with its reason. This application has added none: a migration that adds
+   * one, or leaves one behind it meant to replace, turns this red, and the
+   * place for its reason is here.
+   */
+  it('let a function past the policies only where a list says why', async () => {
+    expect(await readDefinerFunctions(admin)).toEqual({ unexplained: [], stale: [] })
+  })
+
+  /**
+   * A foreign key is checked past row level security: the database looks the
+   * parent up as the owner of its table. A key on the id alone therefore
+   * finds the record of any tenant, and a record of one could be hung on a
+   * record of the next. Between two tables of a tenant the tenant comes first
+   * on both sides.
+   */
+  it('run every key between two tables of a tenant over the tenant', async () => {
+    const keys = await keysBetweenTenantTables(admin)
+
+    // The passkey of a member points at the membership, the one such key of
+    // the first migration.
+    expect(keys.length).toBeGreaterThanOrEqual(1)
+    expect(withoutTheTenant(keys)).toEqual([])
+  })
+})
+
+describe('a tenant', () => {
+  /**
+   * Table by table, and the tables come from the catalogue. A table of a
+   * tenant in which one of the two has no row turns this red as well: an
+   * empty table shows nobody anything, and would pass for well guarded.
+   */
+  it('sees its own rows in every table of a tenant, and no row of another', async () => {
+    const tables = await tablesOfATenant()
+    const seen: Record<string, unknown> = {}
+    const expected: Record<string, unknown> = {}
+
+    for (const { table, tenantColumn } of tables) {
+      const select = `select "${tenantColumn}"::text as tenant from "${table}"`
+      const through = async (tenant: Tenant) => {
+        const result = await database.forTenant({ tenantId: tenant.id }, (tx) =>
+          tx.execute<{ tenant: string }>(sql.raw(select)),
+        )
+
+        return tenantsIn(result.rows)
+      }
+      const held = await admin.query<{ tenant: string }>(select)
+
+      seen[table] = {
+        held: tenantsIn(held.rows),
+        north: await through(north),
+        south: await through(south),
+      }
+      expected[table] = { held: both, north: [north.id], south: [south.id] }
+    }
+
+    expect(tables.length).toBeGreaterThanOrEqual(13)
+    expect(seen).toEqual(expected)
+  })
+
+  /**
+   * The other half of the schema, from inside a tenant: the accounts and what
+   * belongs to whoever runs the instance. They hold the people of every
+   * tenant, so from inside one of them they are closed altogether. The names
+   * of its own people a tenant gets by asking the instance for exactly the
+   * accounts its memberships name, in a transaction outside any tenant.
+   */
+  it('sees no row of a table that belongs to the instance', async () => {
+    const tables = (await tablesInTheCatalogue()).filter((table) => table.tenantColumn === null)
+    const seen: Record<string, unknown> = {}
+    const expected: Record<string, unknown> = {}
+
+    for (const { table } of tables) {
+      const count = `select count(*)::int as rows from "${table}"`
+      const held = await admin.query<{ rows: number }>(count)
+      const inside = await database.forTenant({ tenantId: north.id }, (tx) =>
+        tx.execute<{ rows: number }>(sql.raw(count)),
+      )
+
+      // Whether the table holds anything at all is part of the answer: an
+      // empty one would show nothing to anybody.
+      seen[table] = { holdsRows: (held.rows[0]?.rows ?? 0) > 0, fromInside: inside.rows[0]?.rows }
+      expected[table] = { holdsRows: true, fromInside: 0 }
+    }
+
+    // The seven tables of the accounts and the three of the instance.
+    expect(tables.length).toBeGreaterThanOrEqual(10)
+    expect(seen).toEqual(expected)
+  })
+
+  /**
+   * And the tables of a tenant from outside any tenant, where signing in
+   * happens before anybody knows which tenant is meant. A policy that
+   * compares a row against a tenant that was never set matches nothing, so
+   * every one of them is empty there.
+   */
+  it('is not seen from outside any tenant, by somebody who is nobody yet', async () => {
+    const tables = await tablesOfATenant()
+    const seen: Record<string, unknown> = {}
+    const expected: Record<string, unknown> = {}
+
+    for (const { table } of tables) {
+      const outside = await database.forInstance((tx) =>
+        tx.execute<{ rows: number }>(sql.raw(`select count(*)::int as rows from "${table}"`)),
+      )
+
+      seen[table] = outside.rows[0]?.rows
+      expected[table] = 0
+    }
+
+    expect(seen).toEqual(expected)
+  })
+
+  /**
+   * Writing, table by table. Where the application may insert at all, a row
+   * that names the other tenant is refused by the policy. Where it may not,
+   * the table is written by a trigger or a function alone, and the attempt
+   * ends at the missing right. Both answer with the same code, so the
+   * catalogue is asked which of the two it has to be.
+   */
+  it('cannot put a row into another tenant, in any table', async () => {
+    const tables = await tablesOfATenant()
+    const offered = new Map(rowsOf(south).map((row) => [row.table, row]))
+    const outcome: Record<string, unknown> = {}
+    const expected: Record<string, unknown> = {}
+
+    for (const { table, mayInsert } of tables) {
+      const row = offered.get(table)
+
+      if (mayInsert && !row) {
+        // A table the application writes into and no row to try it with:
+        // `rowsOf` is short one entry.
+        outcome[table] = 'no row to try with'
+      } else if (row) {
+        const refusal = await refusedBy(
+          database.forTenant({ tenantId: north.id }, (tx) => tx.execute(insertOf(row))),
+        )
+
+        outcome[table] = refusal.code
+      } else {
+        outcome[table] = 'written by a trigger or a function alone'
+      }
+
+      expected[table] =
+        mayInsert || row ? insufficientPrivilege : 'written by a trigger or a function alone'
+    }
+
+    expect(outcome).toEqual(expected)
+
+    // And nothing arrived: the other tenant holds what it held.
+    const held = await admin.query<{ rows: number }>(
+      'select count(*)::int as rows from number_ranges where tenant_id = $1',
+      [south.id],
+    )
+
+    expect(held.rows).toEqual([{ rows: 1 }])
+  })
+
+  /**
+   * Changing and removing. The policy hides the rows of the other tenant from
+   * an update and a delete as it hides them from a select, so both find
+   * nothing to work on. Where the application may not update or delete at
+   * all, the attempt ends at the missing right.
+   */
+  it('cannot change or remove a row of another tenant, in any table', async () => {
+    const tables = await tablesOfATenant()
+    const outcome: Record<string, unknown> = {}
+    const expected: Record<string, unknown> = {}
+
+    const asNorth = (statement: SQL) =>
+      database.forTenant({ tenantId: north.id }, (tx) => tx.execute(statement))
+
+    // What the catalogue says decides how an attempt is read: with the right,
+    // it has to go through and find nothing; without it, it has to be refused.
+    const attempt = async (permitted: boolean, statement: SQL): Promise<unknown> =>
+      permitted ? (await asNorth(statement)).rowCount : (await refusedBy(asNorth(statement))).code
+
+    for (const { table, tenantColumn, updatable, mayDelete } of tables) {
+      const theirs = sql`${sql.identifier(tenantColumn)} = ${south.id}`
+      const column = sql.identifier(updatable ?? tenantColumn)
+
+      outcome[table] = {
+        updated: await attempt(
+          updatable !== null,
+          sql`update ${sql.identifier(table)} set ${column} = ${column} where ${theirs}`,
+        ),
+        deleted: await attempt(
+          mayDelete,
+          sql`delete from ${sql.identifier(table)} where ${theirs}`,
+        ),
+      }
+      expected[table] = {
+        updated: updatable !== null ? 0 : insufficientPrivilege,
+        deleted: mayDelete ? 0 : insufficientPrivilege,
+      }
+    }
+
+    expect(outcome).toEqual(expected)
+
+    // The same two statements find the rows when the tenant is the one they
+    // belong to. Without this the zeros above could come from a statement
+    // that matches nothing for anybody. Taken back again, so that the rows
+    // stay for whichever test runs after this one.
+    const own = await database
+      .forTenant({ tenantId: south.id }, async (tx) => {
+        const updated = await tx.execute(
+          sql`update number_ranges set pattern = pattern where tenant_id = ${south.id}`,
+        )
+        const deleted = await tx.execute(sql`delete from secrets where tenant_id = ${south.id}`)
+
+        throw new TakenBack({ updated: updated.rowCount, deleted: deleted.rowCount })
+      })
+      .catch((error: unknown) => {
+        if (error instanceof TakenBack) {
+          return error.found
+        }
+
+        throw error
+      })
+
+    expect(own).toEqual({ updated: 1, deleted: 1 })
+  })
+})

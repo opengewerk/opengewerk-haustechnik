@@ -48,6 +48,28 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   zweihundertmal langsamer als dieselbe mit Unterabfragen), der Nachweis mit eingefrorenem
   Stand und Fingerabdruck, die Pakete als Daten mit unveränderlichen Fassungen, und die
   Regeln dafür, was ein Gerät ohne Netz hält, anlegt und ändert
+- Der Server dieser Anwendung beginnt mit ihrer Datenbank: das Paket
+  `@opengewerk/haustechnik-server` mit dem Schema, der ersten Migration `0000_foundation` samt
+  Rücknahme und dem Befehl `migrate`, der Migrationen als Eigentümer der Tabellen einspielt. Die
+  Migration legt in einer leeren Datenbank an, was jede Anwendung der Organisation trägt:
+  Betreiber, Konten und Sitzungen, Zugehörigkeiten und Einladungen, Rollen, das Audit-Log mit
+  Hashkette, die Tabellen des Abgleichs, Nummernkreise, versiegelte Zugangsdaten und den Bereich
+  der Instanz. Sie ist aus den Schema-Modulen und SQL-Bausteinen des Fundaments zusammengesetzt
+  und nicht abgeschrieben. Die Nummernkreise dieser Anwendung sind `asset` für die Anlagennummer
+  und `evidence` für den Nachweis, der eine Zweck versiegelter Zugangsdaten ist `smtp_password`;
+  die Einstellungen mit Gültigkeitszeitraum kommen mit der ersten Einstellung (ADR 0001, Nachtrag
+  vom 02.10.2026)
+- Tests gegen die echte Datenbank, migriert als Eigentümer der Tabellen und nicht als Superuser,
+  für den keine Policy gilt. Eine leere Datenbank ist nach dem Lauf bereit, und ein zweiter Lauf
+  tut nichts; eine geänderte Migration wird abgelehnt; schlägt eine von mehreren fehl, bleibt die
+  Datenbank auf dem Stand davor; die Rücknahme führt zu einer leeren Datenbank. Zwei Betreiber
+  bekommen in jeder Tabelle eine Zeile, und geprüft wird je Tabelle, aus dem Katalog der
+  Datenbank und nicht aus einer Liste, dass jeder nur seine sieht, keiner dem anderen eine
+  schreibt, ändert oder löscht, und dass von innen nichts von dem zu sehen ist, was der Instanz
+  gehört. Eine Tabelle, die eine spätere Migration ohne `FORCE`, ohne Policy, ohne Recht, ohne
+  Audit-Trigger oder ohne eine Zeile in diesem Test bringt, macht ihn rot. Dazu der Vergleich
+  der Datenbank mit den Bausteinen des Fundaments, der anzeigt, wenn das Fundament sich bewegt
+  hat und diese Anwendung eine Migration schuldet
 
 ### Geändert
 
@@ -95,3 +117,8 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   die Verwaltung der Instanz nennt, gibt diese Anwendung dem Fundament mit, damit er hier so
   heißt wie im Konzept. Gebaut ist davon hier noch nichts. Die Tests des Fundaments dazu laufen
   in der CI dieses Repositorys mit, 432 statt 351
+- `pnpm run check:toolchain` vergleicht auch die Fassungen der Abhängigkeiten, die ein Paket
+  dieser Anwendung und ein Paket des Fundaments beide laden, zuerst `drizzle-orm` und `pg`. Zwei
+  Fassungen davon in einem Prozess hießen Tabellen, die mit der einen angelegt und mit der
+  anderen abgefragt werden; die Prüfung wird rot, sobald das Fundament eine Fassung hebt und die
+  Anwendung nicht folgt

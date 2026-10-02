@@ -11,8 +11,11 @@ updates:
   # The foundation, embedded as a submodule on a fixed commit (ADR 0001). A
   # security fix there reaches this application when the pointer moves, so
   # somebody has to move it: this proposes the newest commit of its main every
-  # week. The pull request stays red until the lockfile and, if they moved
-  # there, the versions of the tools have followed.
+  # week. The pull request stays red until the lockfile has followed and, if
+  # they moved there, the versions of the tools and of the dependencies both
+  # sides share. It also stays red when a building block of the foundation
+  # changed: this application then owes its database a migration that follows,
+  # in the same pull request (ADR 0001, addendum of 02.10.2026).
   - package-ecosystem: gitsubmodule
     directory: /
     schedule:

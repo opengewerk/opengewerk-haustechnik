@@ -1,5 +1,5 @@
 // @ts-check
-import { readFileSync } from 'node:fs'
+import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 
 // The application compiles the packages of the foundation with its own tools
@@ -30,6 +30,49 @@ function manifest(path) {
   }
 }
 
+/**
+ * The manifests of the packages directly under a folder.
+ *
+ * @param {string} folder relative to the root of the repository
+ * @returns {Record<string, any>[]}
+ */
+function manifestsUnder(folder) {
+  const url = new URL(`../${folder}/`, import.meta.url)
+
+  if (!existsSync(url)) {
+    console.error(`${fileURLToPath(url)} fehlt.`)
+    console.error('Ist das Submodul ausgecheckt? git submodule update --init')
+    process.exit(1)
+  }
+
+  return readdirSync(url, { withFileTypes: true })
+    .filter((entry) => entry.isDirectory())
+    .map((entry) => `${folder}/${entry.name}/package.json`)
+    .filter((path) => existsSync(new URL(`../${path}`, import.meta.url)))
+    .map((path) => manifest(path))
+}
+
+const sections = ['dependencies', 'devDependencies', 'peerDependencies', 'optionalDependencies']
+
+/**
+ * Everything a package depends on, whichever section names it.
+ *
+ * @param {Record<string, any>} entry a manifest
+ * @returns {Map<string, string>}
+ */
+function declared(entry) {
+  /** @type {Map<string, string>} */
+  const versions = new Map()
+
+  for (const section of sections) {
+    for (const [name, version] of Object.entries(entry[section] ?? {})) {
+      versions.set(name, String(version))
+    }
+  }
+
+  return versions
+}
+
 const here = manifest('package.json')
 const foundation = manifest('upstream/opengewerk/package.json')
 
@@ -56,13 +99,37 @@ for (const [name, version] of Object.entries(foundation.devDependencies ?? {})) 
   same(name, here.devDependencies?.[name], version)
 }
 
+// And what a package of this application depends on together with a package
+// of the foundation. Such a dependency is loaded once in a process or it is
+// loaded twice: with two versions of drizzle-orm a table would be declared
+// with the one and queried with the other. So a package here takes it in the
+// version the foundation names. A dependency only this application has is its
+// own business.
+/** @type {Map<string, string>} */
+const sharedWithTheFoundation = new Map()
+
+for (const theirs of manifestsUnder('upstream/opengewerk/packages/platform')) {
+  for (const [name, version] of declared(theirs)) {
+    sharedWithTheFoundation.set(name, version)
+  }
+}
+
+for (const ours of manifestsUnder('packages')) {
+  for (const [name, version] of declared(ours)) {
+    if (sharedWithTheFoundation.has(name)) {
+      same(`${name} in ${ours.name}`, version, sharedWithTheFoundation.get(name))
+    }
+  }
+}
+
 if (differences.length > 0) {
-  console.error('Die Werkzeuge weichen von denen des Fundaments ab:')
+  console.error('Werkzeuge oder gemeinsame Abhängigkeiten weichen von denen des Fundaments ab:')
   for (const line of differences) console.error(`  ${line}`)
   console.error('Die Anwendung übersetzt die Pakete des Fundaments mit ihren eigenen')
-  console.error('Werkzeugen und hält deshalb dieselben Fassungen. Die Fassungen in')
-  console.error('package.json angleichen und pnpm install laufen lassen.')
+  console.error('Werkzeugen und lädt mit ihnen dieselben Bibliotheken, sie hält deshalb')
+  console.error('dieselben Fassungen. Die Fassungen in der package.json angleichen und')
+  console.error('pnpm install laufen lassen.')
   process.exit(1)
 }
 
-console.log('Die Werkzeuge sind dieselben wie im Fundament.')
+console.log('Werkzeuge und gemeinsame Abhängigkeiten sind dieselben wie im Fundament.')

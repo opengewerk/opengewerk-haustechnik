@@ -1,0 +1,30 @@
+{
+  "name": "@opengewerk/haustechnik-server",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "files": [
+    "dist",
+    "migrations"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "migrate": "node dist/migrate.js",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "test": "vitest run",
+    "db:generate": "drizzle-kit generate"
+  },
+  "dependencies": {
+    "@opengewerk/haustechnik-domain": "workspace:*",
+    "@opengewerk/platform-server": "workspace:*",
+    "drizzle-orm": "0.45.2",
+    "pg": "8.23.0"
+  },
+  "devDependencies": {
+    "@types/node": "24.13.5",
+    "@types/pg": "8.23.1",
+    "drizzle-kit": "0.31.10",
+    "vitest": "5.0.1"
+  }
+}
