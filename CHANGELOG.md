@@ -84,3 +84,14 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   weitere Zeilen und kein neuer Mechanismus. Die Oberfläche bekommt die Rechte je Betreiber vom
   Server und hält keine eigene Liste, was eine Rolle darf. Gebaut ist davon hier noch nichts.
   Die Tests des Fundaments dazu laufen in der CI dieses Repositorys mit, 351 statt 328
+- Das Fundament ist auf den Stand mit Zugangsdaten, Nummernkreisen und dem Bereich der Instanz
+  angehoben (`opengewerk/opengewerk#480` und `#481`). Versiegelte Zugangsdaten, Einstellungen
+  mit Gültigkeitszeitraum und Nummernkreise sind damit Tabellen des Fundaments, die eine
+  Anwendung mit ihren eigenen Listen anlegt: welche Zwecke, welche Einstellungen und welche
+  Kreise es gibt, nennt diese Anwendung, den Mechanismus dahinter schreibt sie nicht noch
+  einmal. Dazu kommt der Bereich der Instanz: wer sie verwaltet, ihre Einstellungen, ihr
+  Protokoll, die Liste der Betreiber und der Weg zu einem weiteren Betreiber, samt den Befehlen
+  `appoint-operator` und `add-tenant`. Jeden Satz, der dabei einen Betreiber, seine Leitung oder
+  die Verwaltung der Instanz nennt, gibt diese Anwendung dem Fundament mit, damit er hier so
+  heißt wie im Konzept. Gebaut ist davon hier noch nichts. Die Tests des Fundaments dazu laufen
+  in der CI dieses Repositorys mit, 432 statt 351
