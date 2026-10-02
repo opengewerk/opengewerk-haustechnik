@@ -21,8 +21,10 @@ const ownTestDatabase = 'postgres://haustechnik:haustechnik@127.0.0.1:5434/haust
 process.env['DATABASE_URL'] ??= ownTestDatabase
 
 // Through the shell, because the command pnpm puts on the path is a script of
-// its own on Windows. What follows `pnpm run test --` is handed on, a filter
-// for instance.
+// its own on Windows. What follows `pnpm run test` is handed on, a filter for
+// instance: `pnpm run test --filter=<package>`. Without a `--` in between:
+// pnpm hands that on as well, and turbo then passes the filter to the test
+// runner of every package, which does not know it.
 const forwarded = process.argv.slice(2)
 const result = spawnSync(['turbo', 'run', 'test', ...forwarded].join(' '), {
   stdio: 'inherit',

@@ -70,6 +70,28 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   Audit-Trigger oder ohne eine Zeile in diesem Test bringt, macht ihn rot. Dazu der Vergleich
   der Datenbank mit den Bausteinen des Fundaments, der anzeigt, wenn das Fundament sich bewegt
   hat und diese Anwendung eine Migration schuldet
+- Rechte und Rollen dieser Anwendung. Der Katalog der Rechte steht in `packages/domain`: lesen
+  und schreiben für Ort, Anlagen, Pflichten, Vorgänge, Nachweise und Mängel, dazu Zugänge,
+  Einstellungen und Änderungsprotokoll, jedes mit einem Schlüssel aus Ding und Tätigkeit und
+  einer Bezeichnung in Worten. Wo das Konzept zwei Wörter für dasselbe Ding hat, sind es zwei
+  Rechte: Anlagen aufnehmen und pflegen, Vorgänge ausführen, planen und abnehmen, Mängel
+  melden und führen. Ein Betreiber beginnt mit den vier Rollen aus Phase 1, Leitung, Technische
+  Leitung, Objektleitung und Haustechnik, geschrieben als Zeilen, sobald er entsteht. Die
+  Leitung führt den Betreiber und arbeitet nur mit zweitem Faktor; beides sind Angaben der Rolle
+  und keine Rechte, und die letzte Leitung lässt sich weder herabstufen noch sperren. Kein
+  Recht ändert oder löscht einen Nachweis, ersetzt eine Unterschrift oder überspringt eine
+  Abnahme
+- Die Schnittstelle des Servers beginnt mit dem, was das Fundament mitbringt: Ersteinrichtung
+  mit Einrichtungscode, Einmal-Link, Konto und Geräte, die Verwaltung der Zugänge und der
+  Bereich der Instanz, hinter dem Guard und in den Worten dieser Anwendung (Betreiber, Leitung,
+  Verwaltung der Instanz). Gestartet wird sie noch nicht, und eine Einladung geht als Link
+  hinaus, bis ein Betreiber seinen Mailserver einrichten kann
+- Tests dazu: je Rolle, was sie darf und was nicht; die Tabelle in Abschnitt 7 des Konzepts
+  gegen den Katalog, sodass ein Recht, das nur an einer der beiden Stellen steht, anders heißt
+  oder einer anderen Rolle gehört, den Lauf rot macht; jede Route des Moduls gegen den Guard,
+  mit den Routen ohne Anmeldung als Liste, die sich nur mit Absicht verlängert; und gegen die
+  echte Datenbank der Weg von der leeren Instanz über die Ersteinrichtung bis zur Anmeldung, bei
+  der die Leitung ohne zweiten Faktor nicht weiterkommt
 
 ### Geändert
 
@@ -122,6 +144,12 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   Fassungen davon in einem Prozess hießen Tabellen, die mit der einen angelegt und mit der
   anderen abgefragt werden; die Prüfung wird rot, sobald das Fundament eine Fassung hebt und die
   Anwendung nicht folgt
+- Planungskonzept auf v0.5: Abschnitt 7 nennt für die vier Rollen aus Phase 1 jedes Recht
+  einzeln, in den Worten, die ein Betreiber liest, wenn ihm eines fehlt. Zugänge, Einstellungen
+  und Änderungsprotokoll hat nur die Leitung; die Struktur der Liegenschaften, das
+  Pflichtenverzeichnis und die Fristen pflegen Leitung und Technische Leitung; die
+  Objektleitung plant, verteilt und nimmt ab und pflegt die Anlagen ihrer Bereiche. ADR 0002
+  nennt im Nachtrag die Namen für den Ort, die Rechte und die Rollen im Code
 
 ### Behoben
 
@@ -133,3 +161,7 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   Datenbank auf dem Stand der ersten Migration, mit Zählern eines Betreibers, bekommt den Kreis
   und behält ihre Zähler; die Rücknahme entfernt nur den Zähler der Aufträge und schreibt den
   Grund in das Protokoll des Betreibers
+- Die README nannte für die Tests eines einzelnen Pakets den Aufruf
+  `pnpm run test -- --filter=<paket>`. pnpm reicht das `--` mit weiter, der Filter landet dann
+  beim Testläufer jedes Pakets, und der kennt ihn nicht. Richtig ist
+  `pnpm run test --filter=<paket>`

@@ -212,6 +212,15 @@ importers:
 
   packages/server:
     dependencies:
+      '@nestjs/common':
+        specifier: 12.0.3
+        version: 12.0.3(reflect-metadata@0.2.2)(rxjs@7.8.2)
+      '@nestjs/core':
+        specifier: 12.0.3
+        version: 12.0.3(@nestjs/common@12.0.3(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/platform-express@12.0.3)(reflect-metadata@0.2.2)(rxjs@7.8.2)
+      '@nestjs/platform-express':
+        specifier: 12.0.3
+        version: 12.0.3(@nestjs/common@12.0.3(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@12.0.3)
       '@opengewerk/haustechnik-domain':
         specifier: workspace:*
         version: link:../domain
@@ -224,16 +233,34 @@ importers:
       pg:
         specifier: 8.23.0
         version: 8.23.0
+      reflect-metadata:
+        specifier: 0.2.2
+        version: 0.2.2
+      rxjs:
+        specifier: 7.8.2
+        version: 7.8.2
     devDependencies:
+      '@nestjs/testing':
+        specifier: 12.0.3
+        version: 12.0.3(@nestjs/common@12.0.3(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@12.0.3)(@nestjs/platform-express@12.0.3)
       '@types/node':
         specifier: 24.13.5
         version: 24.13.5
       '@types/pg':
         specifier: 8.23.1
         version: 8.23.1
+      '@types/supertest':
+        specifier: 7.2.1
+        version: 7.2.1
+      better-auth:
+        specifier: 1.7.6
+        version: 1.7.6(drizzle-kit@0.31.10)(drizzle-orm@0.45.2(@types/pg@8.23.1)(kysely@0.29.6)(pg@8.23.0))(pg@8.23.0)(vitest@5.0.1(@types/node@24.13.5)(vite@8.3.1(@types/node@24.13.5)(esbuild@0.28.2)(tsx@4.23.15)))
       drizzle-kit:
         specifier: 0.31.10
         version: 0.31.10
+      supertest:
+        specifier: 7.2.2
+        version: 7.2.2
       vitest:
         specifier: 5.0.1
         version: 5.0.1(@types/node@24.13.5)(vite@8.3.1(@types/node@24.13.5)(esbuild@0.28.2)(tsx@4.23.15))

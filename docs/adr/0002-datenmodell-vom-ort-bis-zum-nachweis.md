@@ -172,6 +172,27 @@ Schlecht:
 - Werte der Felder einer Anlagenart stehen in einer JSON-Spalte. Der Abgleich führt sie als ein Feld zusammen: ändern zwei Geräte verschiedene Merkmale derselben Anlage, ist das ein Konflikt und kein stilles Zusammenführen.
 - Eine Tabelle für alle Vorgänge heißt, dass Spalten, die nur eine Art braucht, in Tabellen daneben liegen, und dass eine Abfrage nach einer Art eine Bedingung mehr trägt.
 
+Nachträge:
+
+- **Nachtrag vom 02.10.2026, Namen für den Ort, die Rechte und die Rollen.** Punkt 19 nennt jedes Ding des Datenmodells, aber kein Wort für den Ort als Ganzes, für ein Recht und für die Rollen. Mit dem Katalog der Rechte (`#11`) kommen dazu:
+
+  | Deutsch | Im Code | Bemerkung |
+  | --- | --- | --- |
+  | Ort (Liegenschaft, Gebäude, Geschoss und Raum zusammen) | `location` | wo ein Recht oder eine Abfrage alle vier Ebenen meint |
+  | Recht | `right` | wie im Fundament; der Schlüssel ist Ding und Tätigkeit, etwa `asset.record` |
+  | ansehen | `read` | |
+  | aufnehmen | `record` | anlegen und die Angaben ergänzen und berichtigen |
+  | pflegen, führen, ändern, eintragen | `write` | |
+  | ausführen | `perform` | |
+  | abnehmen, gegenzeichnen | `accept` | |
+  | melden | `report` | |
+  | Leitung | `management` | die Rolle, die einen Betreiber führt |
+  | Technische Leitung | `technical_management` | |
+  | Objektleitung | `site_management` | "Objekt" heißt in der Organisation `site` |
+  | Haustechnik | `technician` | |
+
+  Die Schlüssel der Rollen stehen in den Zeilen eines Betreibers und in seinen Zugehörigkeiten. Sie sind deshalb Namen, die bleiben: eine Rolle, die anders heißen soll, bekommt eine andere Bezeichnung und behält ihren Schlüssel. Welche Rolle was darf, steht in Abschnitt 7 des Konzepts und nicht hier.
+
 ## Bestätigung
 
 Die Entscheidung gilt als umgesetzt, wenn

@@ -12,3 +12,8 @@ export * from '@opengewerk/platform-domain'
 // to keep sealed.
 export * from './model/number-range.js'
 export * from './model/secret.js'
+
+// What somebody may do with what a tenant keeps, the roles a tenant starts
+// with, and what a tenant may be called.
+export * from './model/rights.js'
+export * from './model/tenant.js'

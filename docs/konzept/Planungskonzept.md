@@ -1,6 +1,6 @@
-# OpenGewerk Haustechnik: Planungskonzept (Software für Betreiber und ihre Haustechnik) · v0.4
+# OpenGewerk Haustechnik: Planungskonzept (Software für Betreiber und ihre Haustechnik) · v0.5
 
-2026-10-01 · Eigenständiges Projekt, Repository `opengewerk-haustechnik` in der GitHub-Organisation `opengewerk` · v0.2 trägt die Entscheidungen vom 01.10.2026 ein, v0.3 die Technik, mit der das Fundament eingebunden wird, v0.4 gleicht Abschnitt 5 und die Wortwahl an die ADRs 0002 bis 0006 an, siehe Abschnitt 15 (Vergleich mit openMAINT, Atlas CMMS, eTASK, wave Facilities, pitFM, SPARTACUS, Planon, Lumiform, Wowflow und den Excel-Listen, die vielerorts die eigentliche Software sind)
+2026-10-02 · Eigenständiges Projekt, Repository `opengewerk-haustechnik` in der GitHub-Organisation `opengewerk` · v0.2 trägt die Entscheidungen vom 01.10.2026 ein, v0.3 die Technik, mit der das Fundament eingebunden wird, v0.4 gleicht Abschnitt 5 und die Wortwahl an die ADRs 0002 bis 0006 an, siehe Abschnitt 15; v0.5 sagt in Abschnitt 7, was jede Rolle im Einzelnen darf (Vergleich mit openMAINT, Atlas CMMS, eTASK, wave Facilities, pitFM, SPARTACUS, Planon, Lumiform, Wowflow und den Excel-Listen, die vielerorts die eigentliche Software sind)
 
 Self-hosted Open-Source-System für alle, die Gebäude betreiben und dafür eigene Haustechniker haben. Liegenschaften, Gebäude, Räume und technische Anlagen stehen in einem Datenmodell. Die Betreiberpflichten hängen daran als überwachte Fristen, Rundgänge und Prüfungen laufen auf dem Telefon auch ohne Netz, und zu jeder Pflicht gibt es einen Nachweis, der sich nachträglich nicht ändern lässt.
 
@@ -454,6 +454,44 @@ Regeln für jeden Beitrag:
 - Sicherheitsrelevante Zusagen sind nicht einstellbar: die Unterschrift vor einem Nachweis, die Abnahme eines Auftrags und die Unveränderlichkeit lassen sich per Einstellung verschärfen, nie abschalten
 - Eigene Rollen des Betreibers ab Phase 2. Das Fundament führt Rollen dafür von Anfang an als Daten: die mitgelieferten Rollen sind Zeilen, eigene kommen als weitere dazu. Was sich nach dem Satz darüber nicht abschalten lässt, hängt an keinem Recht, das eine eigene Rolle entziehen könnte
 
+**Rechte je Rolle.** Die Tabelle oben sagt in Worten, wofür eine Rolle da ist. Was sie im Einzelnen darf, steht hier, für die vier Rollen aus Phase 1. Der Katalog der Rechte im Code ist dieselbe Liste, und ein Test hält beide gegeneinander. Die Bezeichnungen sind die, die ein Betreiber liest, wenn ihm ein Recht fehlt, und ab Phase 2, wenn er eigene Rollen anlegt.
+
+| Recht | Leitung | Technische Leitung | Objektleitung | Haustechnik |
+| --- | --- | --- | --- | --- |
+| Liegenschaften, Gebäude und Räume ansehen | ja | ja | ja | ja |
+| Liegenschaften, Gebäude und Geschosse pflegen | ja | ja | nein | nein |
+| Räume aufnehmen | ja | ja | ja | ja |
+| Anlagen ansehen | ja | ja | ja | ja |
+| Anlagen aufnehmen | ja | ja | ja | ja |
+| Anlagen pflegen | ja | ja | ja | nein |
+| Zähler ablesen | ja | ja | ja | ja |
+| Pflichten ansehen | ja | ja | ja | ja |
+| Das Pflichtenverzeichnis führen | ja | ja | nein | nein |
+| Fristen ansehen | ja | ja | nein | nein |
+| Fristen bearbeiten | ja | ja | nein | nein |
+| Vorgänge ansehen | ja | ja | ja | ja |
+| Vorgänge ausführen | ja | ja | ja | ja |
+| Vorgänge planen und verteilen | ja | ja | ja | nein |
+| Aufträge abnehmen und Rundgänge gegenzeichnen | ja | ja | ja | nein |
+| Nachweise ansehen | ja | ja | ja | ja |
+| Nachweise eintragen, berichtigen und für ungültig erklären | ja | ja | ja | nein |
+| Mängel ansehen | ja | ja | ja | ja |
+| Mängel melden | ja | ja | ja | ja |
+| Mängel führen | ja | ja | ja | nein |
+| Zugänge ansehen | ja | nein | nein | nein |
+| Zugänge verwalten | ja | nein | nein | nein |
+| Einstellungen ansehen | ja | nein | nein | nein |
+| Einstellungen ändern | ja | nein | nein | nein |
+| Das Änderungsprotokoll einsehen | ja | nein | nein | nein |
+
+- Jede Rolle darf, was die Rolle rechts von ihr darf, und der Bereich begrenzt, wo: ein Recht gilt in den Bereichen der Person (2.8)
+- **Aufnehmen und pflegen.** Aufnehmen heißt anlegen und die Angaben ergänzen und berichtigen, wie es die Bestandsaufnahme vor Ort braucht (2.7, 4.2). Pflegen ist, was Folgen über den Datensatz hinaus hat: der Lebenszyklus einer Anlage, weil ihre Pflichten ruhen, sobald sie außer Betrieb ist, der Tausch, das Verlegen an einen anderen Ort und das Entfernen. Einen Raum verlegt oder entfernt, wer Liegenschaften, Gebäude und Geschosse pflegt
+- **Ausführen, planen, abnehmen.** Vorgänge sind Rundgänge, Prüfungen, Wartungen und Aufträge (2.2). Ausführen ist die Arbeit daran bis zur Unterschrift. Planen und verteilen ist, was davor geschieht: einen Rundgang planen, einen Auftrag anlegen und zuteilen, einen offenen Rundgang mit Grund schließen. Abnehmen und gegenzeichnen ist die zweite Unterschrift (4.5, 4.8)
+- **Melden und führen.** Melden heißt einen Mangel festhalten, mit Bemerkung und Foto. Führen ist sein weiterer Weg: Klasse, Frist und Status (4.6)
+- **Nachweise eintragen** meint den Bericht einer Fremdfirma oder Prüforganisation (4.4). Der Nachweis aus einem eigenen Protokoll oder einem Rundgang entsteht mit der Unterschrift dessen, der ausführt, und braucht kein weiteres Recht
+- Kein Recht hebt eine der Zusagen auf, die sich nicht abschalten lassen: es gibt keines, das einen Nachweis ändert oder löscht, eine Unterschrift ersetzt oder die Abnahme eines Auftrags überspringt. Ob eine Rolle einen Betreiber führt und ob sie den zweiten Faktor verlangt, sind Angaben der Rolle und keine Rechte
+- Was die Tabelle oben nennt und hier noch fehlt, kommt mit seiner Phase: Störungen annehmen, Verträge, Auswertungen über die Zeit und die Pflichtenübertragung in Phase 2. Rechte für den Abgleich, für Aufgaben, Dokumente und Benachrichtigungen kommen mit diesen Bausteinen in Phase 0 und 1. Jedes neue Recht steht dann auch in dieser Tabelle
+
 ---
 
 ## 8. Rechtliche Anforderungen im Überblick ⚖
@@ -654,6 +692,12 @@ Die offenen Fragen aus v0.1 sind am 01.10.2026 entschieden worden. Jede Antwort 
 ---
 
 ## 16. Änderungsprotokoll
+
+### v0.4 → v0.5
+
+- Abschnitt 7 nennt für die vier Rollen aus Phase 1 jedes Recht einzeln. Die Tabelle der Rollen darüber bleibt, wie sie war; die neue Tabelle führt aus, was sie in Worten sagt, und ist dieselbe Liste wie der Katalog der Rechte im Code
+- Wo die Tabelle der Rollen zwei Wörter für dasselbe Ding hat, sind es zwei Rechte: aufnehmen und pflegen, ausführen und planen, melden und führen. Die Abnahme und die Gegenzeichnung sind ein eigenes Recht
+- Zugänge, Einstellungen und Änderungsprotokoll hat nur die Leitung; die Struktur der Liegenschaften, das Pflichtenverzeichnis und die Fristen pflegen Leitung und Technische Leitung
 
 ### v0.3 → v0.4
 

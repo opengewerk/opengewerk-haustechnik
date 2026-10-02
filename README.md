@@ -28,7 +28,7 @@ Die Handwerkersoftware [`opengewerk`](https://github.com/opengewerk/opengewerk) 
 
 ## Status
 
-OpenGewerk Haustechnik steht am Anfang von **Phase 0**, dem Fundament. Das Konzept ist ausgearbeitet, der Arbeitsbereich bindet das Fundament der Handwerkersoftware ein, und die erste Migration legt es in einer leeren Datenbank an; eine Anwendung, die man starten könnte, gibt es noch nicht. Ein Pilotbetrieb mit mehreren Liegenschaften steht bereit; Version 1 ist erreicht, wenn er seine bisherige Anwendung abschalten kann.
+OpenGewerk Haustechnik steht am Anfang von **Phase 0**, dem Fundament. Das Konzept ist ausgearbeitet, der Arbeitsbereich bindet das Fundament der Handwerkersoftware ein, die erste Migration legt es in einer leeren Datenbank an, und die Rechte und die vier Rollen aus Phase 1 sind an Anmeldung und Zugangsverwaltung des Fundaments gebunden; eine Anwendung, die man starten könnte, gibt es noch nicht. Ein Pilotbetrieb mit mehreren Liegenschaften steht bereit; Version 1 ist erreicht, wenn er seine bisherige Anwendung abschalten kann.
 
 Das vollständige Konzept liegt unter [`docs/konzept/`](docs/konzept/), die Architekturentscheidungen dieser Anwendung unter [`docs/adr/`](docs/adr/). Was in Phase 0 gebaut wird, steht als Issues im Meilenstein [Phase 0: Fundament](https://github.com/opengewerk/opengewerk-haustechnik/milestone/1).
 
@@ -65,12 +65,12 @@ pnpm run test
 
 Die Prüfungen laufen über Turborepo und damit über alle Pakete, die des Fundaments eingeschlossen; dieselben Schritte laufen in der CI. `pnpm run check:toolchain` vergleicht die Fassungen der Werkzeuge mit denen des Fundaments, dazu die der Abhängigkeiten, die ein Paket hier und ein Paket des Fundaments beide laden. Warum das Repository so aufgebaut ist, steht in [ADR 0001](docs/adr/0001-stack-und-fundament.md).
 
-Ein Teil der Tests braucht ein PostgreSQL 18 und leert es vor jedem Lauf. Dafür gibt es eine eigene Testdatenbank auf Port 5434, die `docker/compose.test.yaml` startet. `pnpm run test` an der Wurzel richtet jedes Paket auf sie aus, auch die des Fundaments, die sonst die Testdatenbank ihres eigenen Repositorys suchen. Einzelne Pakete also über die Wurzel prüfen, `pnpm run test -- --filter=<paket>`, oder `DATABASE_URL` selbst setzen. Der Name der Datenbank muss auf `_test` enden, sonst lehnen die Tests sie ab.
+Ein Teil der Tests braucht ein PostgreSQL 18 und leert es vor jedem Lauf. Dafür gibt es eine eigene Testdatenbank auf Port 5434, die `docker/compose.test.yaml` startet. `pnpm run test` an der Wurzel richtet jedes Paket auf sie aus, auch die des Fundaments, die sonst die Testdatenbank ihres eigenen Repositorys suchen. Einzelne Pakete also über die Wurzel prüfen, `pnpm run test --filter=<paket>`, oder `DATABASE_URL` selbst setzen. Der Name der Datenbank muss auf `_test` enden, sonst lehnen die Tests sie ab.
 
 | Paket | Inhalt |
 | --- | --- |
-| [`packages/domain`](packages/domain) | Fachlichkeit ohne I/O. Reicht weiter, was das Fundament exportiert, damit Server und Oberfläche ein Paket fragen |
-| [`packages/server`](packages/server) | Die Datenbank dieser Anwendung: Schema, Migrationen und der Befehl, der sie einspielt. Die Schnittstelle kommt mit den nächsten Schritten dazu |
+| [`packages/domain`](packages/domain) | Fachlichkeit ohne I/O: der Katalog der Rechte und die Rollen, mit denen ein Betreiber beginnt. Reicht weiter, was das Fundament exportiert, damit Server und Oberfläche ein Paket fragen |
+| [`packages/server`](packages/server) | Die Datenbank dieser Anwendung (Schema, Migrationen und der Befehl, der sie einspielt) und die Schnittstelle, soweit das Fundament sie mitbringt: Anmeldung, Zugänge und der Bereich der Instanz, hinter dem Guard. Gestartet wird sie noch nicht |
 | `upstream/opengewerk/packages/platform/*` | Das Fundament: Mandantentrennung, Anmeldung, Rechte, Abgleich, Audit-Log. Wird im Repository `opengewerk` geändert, nie hier |
 
 Die Oberfläche entsteht mit ihrem ersten Inhalt, ihrer Hülle.
@@ -101,6 +101,22 @@ MIGRATION_DATABASE_URL=postgres://opengewerk_owner:<passwort>@<host>:5432/hauste
 ```
 
 Gegen eine Datenbank, die schon auf dem Stand ist, tut er nichts.
+
+### Rechte und Rollen
+
+Was jemand darf, steht an drei Stellen, und zwei Tests halten sie zusammen:
+
+- **Abschnitt 7 des Konzepts** nennt jedes Recht in Worten und sagt je Rolle ja oder nein. Das ist die Quelle.
+- **`packages/domain/src/model/rights.ts`** ist dieselbe Liste als Code: der Katalog der Rechte, ihre Bezeichnungen und die vier Rollen, mit denen ein Betreiber beginnt. Ein Test im Serverpaket liest die Tabelle aus dem Konzept und wird rot, wenn ein Recht nur an einer der beiden Stellen steht, anders heißt oder einer anderen Rolle gehört.
+- **Die Zeilen eines Betreibers.** Beim Anlegen eines Betreibers werden die Rollen als Zeilen geschrieben, und von da an zählt, was in ihnen steht: der Guard des Fundaments liest sie bei jeder Anfrage.
+
+Ein neues Recht ist also eine Zeile im Konzept, eine im Katalog mit ihrer Bezeichnung und, wo eine Rolle es bekommt, ein Eintrag bei der Rolle. Der Schlüssel ist Ding und Tätigkeit in den Namen aus ADR 0002, etwa `asset.record`.
+
+Jede Route sagt, welches Recht sie braucht, mit `@RequiresPermission` aus `packages/server/src/api/authorization.ts`. Eine Route ohne Angabe lehnt der Guard ab, und `route-coverage.test.ts` findet sie vorher: der Test liest die Controller aus dem Modul, ein neuer Controller ist also dabei, ohne dass jemand an den Test denkt. Routen, die ohne Anmeldung antworten oder nur eine Sitzung brauchen, stehen dort als Liste; eine weitere macht den Test rot und ist damit eine Entscheidung.
+
+Ob eine Rolle einen Betreiber führt und ob sie den zweiten Faktor verlangt, sind Angaben der Rolle und keine Rechte. Die letzte Leitung eines Betreibers lässt sich weder herabstufen noch sperren.
+
+Solange keine Fassung erschienen ist, gibt es keine Installation, deren Zeilen hinter dem Code zurückbleiben könnten. Mit der ersten Fassung ändert sich das: eine Änderung an den Rechten einer mitgelieferten Rolle braucht dann eine Migration, die sie in die Zeilen der bestehenden Betreiber schreibt. `roles-of-a-version.test.ts` wird mit dem Pull Request rot, der die erste Fassung in den CHANGELOG schreibt, und sagt, was dann zu bauen ist.
 
 ## Projektfamilie
 
