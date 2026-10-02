@@ -75,3 +75,12 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   Wie ein Mandant und seine Rollen in dieser Anwendung heißen, sagt sie dem Fundament selbst;
   gebaut ist davon hier noch nichts. Die Tests des Fundaments dazu laufen in der CI dieses
   Repositorys mit, 328 statt 154
+- Das Fundament ist auf den Stand mit den Rollen als Zeilen angehoben
+  (`opengewerk/opengewerk#477` und `#479`). Was jemand bei einem Betreiber darf, steht damit in
+  Zeilen des Betreibers (`tenant_roles`): je Rolle der Schlüssel, die Bezeichnung, die Rechte
+  und zwei Angaben, ob sie den Betreiber führt und ob sie einen zweiten Faktor verlangt. Die
+  Rechte dieser Anwendung werden ihr eigener Katalog, ihre Rollen die Zeilen, mit denen ein
+  Betreiber beginnt; eigene Rollen eines Betreibers, wie Phase 2 sie vorsieht, sind dann
+  weitere Zeilen und kein neuer Mechanismus. Die Oberfläche bekommt die Rechte je Betreiber vom
+  Server und hält keine eigene Liste, was eine Rolle darf. Gebaut ist davon hier noch nichts.
+  Die Tests des Fundaments dazu laufen in der CI dieses Repositorys mit, 351 statt 328
