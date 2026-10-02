@@ -55,10 +55,10 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   Betreiber, Konten und Sitzungen, Zugehörigkeiten und Einladungen, Rollen, das Audit-Log mit
   Hashkette, die Tabellen des Abgleichs, Nummernkreise, versiegelte Zugangsdaten und den Bereich
   der Instanz. Sie ist aus den Schema-Modulen und SQL-Bausteinen des Fundaments zusammengesetzt
-  und nicht abgeschrieben. Die Nummernkreise dieser Anwendung sind `asset` für die Anlagennummer
-  und `evidence` für den Nachweis, der eine Zweck versiegelter Zugangsdaten ist `smtp_password`;
-  die Einstellungen mit Gültigkeitszeitraum kommen mit der ersten Einstellung (ADR 0001, Nachtrag
-  vom 02.10.2026)
+  und nicht abgeschrieben. Die Nummernkreise dieser Anwendung sind `asset` für die Anlagennummer,
+  `work_order` für die Nummer eines Auftrags und `evidence` für den Nachweis, der eine Zweck
+  versiegelter Zugangsdaten ist `smtp_password`; die Einstellungen mit Gültigkeitszeitraum kommen
+  mit der ersten Einstellung (ADR 0001, Nachträge vom 02.10.2026)
 - Tests gegen die echte Datenbank, migriert als Eigentümer der Tabellen und nicht als Superuser,
   für den keine Policy gilt. Eine leere Datenbank ist nach dem Lauf bereit, und ein zweiter Lauf
   tut nichts; eine geänderte Migration wird abgelehnt; schlägt eine von mehreren fehl, bleibt die
@@ -122,3 +122,14 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   Fassungen davon in einem Prozess hießen Tabellen, die mit der einen angelegt und mit der
   anderen abgefragt werden; die Prüfung wird rot, sobald das Fundament eine Fassung hebt und die
   Anwendung nicht folgt
+
+### Behoben
+
+- Der Nummernkreis für Aufträge fehlte in der Ausgangsmigration. Das Konzept nennt für das
+  Fundament drei Kreise, für Anlagen, Nachweise und Aufträge (Abschnitt 12, Phase 0; Abschnitt
+  4.8; ADR 0002, Punkt 13); angelegt waren zwei. Die Migration `0001_work_order_numbers` trägt
+  den dritten nach, an seiner Stelle zwischen Anlage und Nachweis, mit Rücknahme. Eine gemergte
+  Migration wird nicht geändert, deshalb eine zweite. Dazu die ersten Tests für ein Update: eine
+  Datenbank auf dem Stand der ersten Migration, mit Zählern eines Betreibers, bekommt den Kreis
+  und behält ihre Zähler; die Rücknahme entfernt nur den Zähler der Aufträge und schreibt den
+  Grund in das Protokoll des Betreibers

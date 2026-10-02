@@ -140,6 +140,8 @@ Nachträge:
 
   Zwei Tabellen des Fundaments entstehen mit Listen dieser Anwendung (ADR 0010, Nachtrag vom 02.10.2026), und beide Listen stehen in `packages/domain`. Die Nummernkreise sind `asset` für die Anlagennummer (ADR 0002, Punkt 8) und `evidence` für den Nachweis (ADR 0004, Punkt 10); das Muster, mit dem ein Kreis beginnt, steht nicht in der Migration, sondern wird festgelegt, wo die erste Nummer gezogen wird, mit der Anlage (`#20`) und dem Nachweis (`#26`). Der eine Zweck versiegelter Zugangsdaten ist `smtp_password`, das Passwort des Mailservers, über den ein Betreiber seine E-Mails verschickt. Die Einstellungen mit Gültigkeitszeitraum entstehen ebenso aus einer Liste. Das Konzept nennt für Phase 0 keine Einstellung, und eine Aufzählung ohne Wert ist keine; die Tabelle kommt deshalb mit der ersten Einstellung, in der Migration, die sie bringt.
 
+- **Nachtrag vom 02.10.2026, Berichtigung: drei Nummernkreise, nicht zwei.** Der Nachtrag darüber nennt zwei Nummernkreise. Das war falsch. Das Konzept nennt für das Fundament drei, für Anlagen, Nachweise und Aufträge (Abschnitt 12, Phase 0), ein Auftrag trägt eine Nummer (Abschnitt 4.8), und ADR 0002 führt die Nummer eines Auftrags in Punkt 13. Der dritte Kreis heißt `work_order`. Weil die erste Migration zu diesem Zeitpunkt schon gemergt war, trägt ihn die Migration `0001_work_order_numbers` nach, an seiner Stelle zwischen `asset` und `evidence`; die Liste in `packages/domain` nennt alle drei in dieser Reihenfolge. Sein Vorgabemuster wird wie bei den anderen festgelegt, wo die erste Nummer gezogen wird, mit dem Auftrag (`#26`).
+
 ## Bestätigung
 
 Die Entscheidung gilt als umgesetzt, wenn
