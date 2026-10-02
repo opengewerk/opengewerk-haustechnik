@@ -16,15 +16,24 @@
     "db:generate": "drizzle-kit generate"
   },
   "dependencies": {
+    "@nestjs/common": "12.0.3",
+    "@nestjs/core": "12.0.3",
+    "@nestjs/platform-express": "12.0.3",
     "@opengewerk/haustechnik-domain": "workspace:*",
     "@opengewerk/platform-server": "workspace:*",
     "drizzle-orm": "0.45.2",
-    "pg": "8.23.0"
+    "pg": "8.23.0",
+    "reflect-metadata": "0.2.2",
+    "rxjs": "7.8.2"
   },
   "devDependencies": {
+    "@nestjs/testing": "12.0.3",
     "@types/node": "24.13.5",
     "@types/pg": "8.23.1",
+    "@types/supertest": "7.2.1",
+    "better-auth": "1.7.6",
     "drizzle-kit": "0.31.10",
+    "supertest": "7.2.2",
     "vitest": "5.0.1"
   }
 }
