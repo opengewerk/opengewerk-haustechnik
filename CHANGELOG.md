@@ -67,3 +67,11 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   eines Katalogeintrags neben ihm stehen, und sagt, dass Regeln fortgeschrieben und berichtigt
   statt neu gefasst werden (ADR 0005). Wer eine Instanz betreibt, heißt durchgehend
   "Verwaltung der Instanz", damit "Betreiber" in der Oberfläche nur eines bedeutet
+- Das Fundament ist auf den Stand mit der Anmeldung angehoben (`opengewerk/opengewerk#473`,
+  `#475` und `#476`). Der Guard vor jeder Route mit Herkunftsprüfung und Sicherheits-Headern,
+  Konten mit Passwort, zweitem Faktor und Passkeys, Sitzungen je Gerät, die Ersteinrichtung
+  mit Einrichtungscode, der Einmal-Link und die Verwaltung der Zugänge liegen damit in
+  `@opengewerk/platform-server` und kommen von dort, statt hier ein zweites Mal zu entstehen.
+  Wie ein Mandant und seine Rollen in dieser Anwendung heißen, sagt sie dem Fundament selbst;
+  gebaut ist davon hier noch nichts. Die Tests des Fundaments dazu laufen in der CI dieses
+  Repositorys mit, 328 statt 154
