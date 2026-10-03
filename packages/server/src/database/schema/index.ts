@@ -9,3 +9,6 @@ export * from '@opengewerk/platform-server/schema'
 // Tables of the foundation this application makes with lists of its own.
 export * from './number-ranges.js'
 export * from './secrets.js'
+
+// The tables of this application.
+export * from './areas.js'

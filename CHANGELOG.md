@@ -146,6 +146,24 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   damit nur unter dem Hostnamen, von dem es kam, und die Haustechnik lässt sich samt Volumes
   entfernen, ohne dass sich an OpenGewerk etwas ändert
 
+- Zuständigkeitsbereiche in der Datenbank (#17, ADR 0003): ein Betreiber bündelt seine
+  Liegenschaften in Bereichen, eine Zugehörigkeit gilt für alle Bereiche oder für genannte, und
+  eine Vertretung gibt jemandem an ihren Tagen die Bereiche einer anderen Person dazu. Was eine
+  Person sieht, liest die Datenbank selbst aus diesen Tabellen, mit zwei Funktionen, die die
+  Policy jeder Tabelle mit Ort als Unterabfrage fragt; die Anwendung gibt keine Liste von
+  Bereichen weiter, und eine Route, die sich irrt, kann nichts aufweiten. Eine Transaktion ohne
+  Person sieht keine Zeile mit Ort, ein Lauf im Hintergrund sagt ausdrücklich, dass er alle
+  Bereiche braucht. Ein neuer Betreiber bekommt mit seiner ersten Zugehörigkeit den Bereich
+  "Alle Liegenschaften" und merkt sonst nichts davon; Leitung und Technische Leitung sehen von
+  Haus aus alle Bereiche, die anderen den einen, und wer schon vor dem Update bei einem
+  Betreiber arbeitete, bekommt dieselbe Vorgabe. Noch hat keine Tabelle einen Ort, die
+  Liegenschaften kommen mit #18 und bringen die Policy aus dem Baustein mit. Geprüft ist die
+  Grenze an Tabellen, die der Test nach demselben Baustein anlegt: Lesen, Ändern und Löschen je
+  Tabelle, ein Verweis auf einen Ort eines anderen Bereichs, das Verlegen einer Liegenschaft, das
+  jede Zeile darunter mitnimmt, und die Vertretung an ihren Tagen. Ein Katalogtest wird rot,
+  sobald eine Tabelle mit Ort einen Teil der Grenze vergisst oder ihre Policy die Funktionen
+  direkt aufruft, was beim Zählen von 6000 Anlagen 54.160 statt 169 Puffer kostet
+
 ### Geändert
 
 - Planungskonzept auf v0.2: die Entscheidungen vom 01.10.2026 stehen an ihren Stellen, und

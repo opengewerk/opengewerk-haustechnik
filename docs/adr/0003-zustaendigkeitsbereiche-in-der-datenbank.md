@@ -126,6 +126,25 @@ Schlecht:
 - Wer in einer Auswertung über alle Bereiche zählen will und nicht alle sehen darf, bekommt die Zahl seiner Bereiche. Das ist die Entscheidung und kein Fehler, muss aber an der Oberfläche gesagt werden, wo eine Zahl nach "alle" aussieht.
 - Der Tag einer Vertretung ist der Tag der Datenbank. Eine Vertretung, die um Mitternacht endet, endet um Mitternacht in deren Zeitzone.
 
+Nachträge:
+
+- **Nachtrag vom 03.10.2026, gebaut mit `#17`.** Die Migration `0002_areas` legt Bereiche, Zugehörigkeit zu allen oder zu genannten Bereichen und Vertretung an, dazu die zwei Funktionen aus Punkt 8, als Aufrufer und `STABLE`. An sechs Stellen sagt der Bau mehr als diese Entscheidung oder weicht von ihr ab:
+
+  1. Wer alle Bereiche sieht, steht nicht als Spalte `all_areas` an der Zugehörigkeit (Punkt 2), sondern als Zeile einer eigenen Tabelle `member_all_areas`. `memberships` ist eine Tabelle des Fundaments: eine Spalte dieser Anwendung daran wäre eine Abweichung von seinen Bausteinen, die jeder Vergleich meldet (ADR 0010 im Repository `opengewerk`), und das Vokabular des Änderungsprotokolls könnte sie nicht benennen, weil eine Anwendung keine Tabelle des Fundaments selbst benennt. Die Zeile hängt über `(tenant_id, user_id)` an der Zugehörigkeit und geht mit ihr.
+  2. Die Vorgabe beim Anlegen (Punkt 2) gibt ein Trigger an `memberships`, nicht die Anwendung. Jeder Weg in einen Betreiber schreibt eine Zugehörigkeit (Ersteinrichtung, Einladung, `add-staff`, weiterer Betreiber), keiner davon kennt Bereiche, und alle schreiben sie nach dem Schritt in den Betreiber, unter der Anwendungsrolle; dort läuft der Trigger. Ein Betreiber ohne Bereich bekommt mit seiner ersten Zugehörigkeit den Bereich "Alle Liegenschaften". Leitung und Technische Leitung sehen alle Bereiche, alle anderen den einen, solange es nur einen gibt, und keinen, sobald es mehrere gibt, bis jemand ihre nennt; die Liste der Rollen ist `rolesSeeingEveryArea` in `packages/domain`, ein Test hält sie gegen die Datenbank. Ein Trigger an `tenants` ging nicht: einen Betreiber legt eine Funktion an, die als Eigentümer der Tabellen läuft, und unter `FORCE` dürfte der Eigentümer keinen Bereich schreiben. Die Vorgabe gilt nur für eine neue Zugehörigkeit, wer wieder hereingelassen wird, behält seine Bereiche. Die Zugehörigkeiten, die vor der Migration bestanden, bekommen dieselbe Vorgabe, mit dem Grund `migration` im Protokoll ihres Betreibers, damit niemand nach dem Update weniger sieht als davor.
+  3. Der Tag einer Vertretung ist der Tag in Deutschland (`Europe/Berlin`) und nicht der der Zeitzone, auf die der Server gestellt ist; damit entfällt der letzte Punkt unter "Schlecht". Eine gesperrte vertretene Person gibt ihre Bereiche weiter, das ist der Fall aus Abschnitt 1 des Konzepts: jemand verlässt das Unternehmen, und die Vertretung übernimmt. Eine gesperrte Person sieht nichts und vertritt niemanden.
+  4. Der Katalogtest (Bestätigung) prüft vier Regeln. Jede Policy `within_areas` ist restriktiv, gilt für jeden Befehl und für die Anwendungsrolle und liest und schreibt über den Ausdruck des Bausteins `withinAreas`; ein direkter Aufruf wird als solcher benannt. Jede Tabelle mit `area_id` hat sie, ausgenommen `member_areas`, die die Funktionen selbst lesen. Jede Tabelle mit `property_id` hat `area_id` und den Schlüssel auf die Liegenschaft mit `ON UPDATE CASCADE`. Und ein Schlüssel, der auf eine Zeile mit Bereich zeigt, läuft über Mandant und Liegenschaft, damit sich keine Zeile an einen Ort eines anderen Bereichs hängen kann. Solange keine Tabelle einen Ort hat, zeigt der Test das an Tabellen, die er nach dem Baustein selbst anlegt, mit einer Gegenprobe je Regel.
+  5. Die Messung aus Punkt 9 ist als Test wiederholt, an denselben Mengen: zwei Betreiber mit je 4 Bereichen, 20 Liegenschaften und 6000 Anlagen, und eine Person mit einem Bereich zählt alle Anlagen ihres Betreibers. Gezählt werden die gelesenen Puffer, weil die Zeit eine Eigenschaft der Maschine ist und die Puffer eine des Plans:
+
+     | Policy | Puffer | Zeit am 03.10.2026 |
+     | --- | --- | --- |
+     | nur die des Betreibers | 160 | 2,6 ms, zählt 6000 Zeilen |
+     | Baustein mit Unterabfragen | 169 | 1,1 ms, zählt 1500 Zeilen |
+     | Funktionen direkt aufgerufen | 54.160 | rund 900 ms |
+
+     Der Test verlangt, dass der Baustein weniger als 50 Puffer mehr liest als die Policy des Betreibers allein und der direkte Aufruf mehr als das Zwanzigfache des Bausteins. Dass der direkte Aufruf langsamer ist als in der ersten Messung, liegt an den Funktionen, wie sie gebaut sind: sie prüfen auch die Sperre und die Vertretung und setzen ihren `search_path`. Einmal je Anweisung fällt das nicht ins Gewicht, für jede Zeile summiert es sich.
+  6. Ein Lauf im Hintergrund sagt über `inEveryArea` in `packages/server/src/database/every-area.ts`, dass er alle Bereiche braucht; die Funktion setzt `app.all_areas` für die eine Transaktion. Ein Test hält die Liste der Dateien, die das dürfen, bisher nur diese; die Läufe kommen mit `#24` und `#25`.
+
 ## Bestätigung
 
 Die Entscheidung gilt als umgesetzt, wenn

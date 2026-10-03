@@ -5,17 +5,20 @@
 # compose, restart_app and $base, and the two tenants test-stack.sh creates are
 # $first_tenant and $second_tenant.
 #
-# This application has no records of its own yet. What a backup has to bring
+# This application has no records with a place yet. What a backup has to bring
 # back besides the tenants, the audit log and the file store is what the
-# foundation keeps for it: accounts, the roles of a Betreiber and who works for
-# which, and the sign in that rests on them.
+# foundation keeps for it, accounts, the roles of a Betreiber and who works for
+# which, the sign in that rests on them, and the areas of a Betreiber with who
+# sees which (opengewerk-haustechnik#17).
 
 # A route touching data, which refuses everybody without a sign in: the
 # accounts of a Betreiber.
 guarded_route=/staff
 
-# The tables counted before the backup and after the restore.
-counted_tables='auth_users memberships tenant_roles'
+# The tables counted before the backup and after the restore. The area and
+# the place of the account in it come with the account: a Betreiber gets its
+# first area with its first membership.
+counted_tables='auth_users memberships tenant_roles areas member_areas'
 
 # The migrations, and how many of them make the older state an update starts
 # from: the first, without the sequence for work orders that the second brings.
@@ -23,10 +26,11 @@ migrations="$here/../packages/server/migrations"
 older_migrations=1
 
 # What the update from that state adds to the log of a tenant that was there
-# before, as "<table> (<reason>)": the tenant written with SQL gets the roles a
-# Betreiber begins with when the application starts again, and those are
-# changes like any other.
-update_adds='tenant_roles (roles.complete)'
+# before, as "<table> (<reason>)": the migration of the areas gives the account
+# that worked there the first area of its Betreiber, and the tenant written
+# with SQL gets the roles a Betreiber begins with when the application starts
+# again. Those are changes like any other.
+update_adds='areas (migration), member_areas (migration), tenant_roles (roles.complete)'
 
 # An account of the first Betreiber with a password, made with the command an
 # operator has for it, so that the sign in can be tried after the restore. A
@@ -64,12 +68,16 @@ after_restore() {
   echo 'Das Konto von vor der Sicherung meldet sich mit seinem Passwort an.'
 }
 
-# The sequence the second migration brings, in its place in the list, and the
-# account from before the update with its place at the Betreiber.
+# The sequence the second migration brings, in its place in the list, the
+# account from before the update with its place at the Betreiber, and the first
+# area of the Betreiber with the account in it.
 after_update() {
   kinds=$(value "select string_agg(enumlabel, ' ' order by enumsortorder) from pg_enum where enumtypid = 'number_range_key'::regtype")
   echo "Nummernkreise nach dem Update: ${kinds}"
   test "${kinds}" = 'asset work_order evidence'
   test "$(value "select count(*) from memberships where user_id = 'u-probe'")" = 1
-  echo 'Der Zugang von vor dem Update ist da, und der Nummernkreis für Aufträge ist dazugekommen.'
+  areas=$(value "select string_agg(a.name, ', ') from areas a join member_areas m on m.area_id = a.id where m.user_id = 'u-probe' and m.tenant_id = '$first_tenant'")
+  echo "Bereiche des Zugangs nach dem Update: ${areas}"
+  test "${areas}" = 'Alle Liegenschaften'
+  echo 'Der Zugang von vor dem Update ist da, sieht den ersten Bereich seines Betreibers, und der Nummernkreis für Aufträge ist dazugekommen.'
 }

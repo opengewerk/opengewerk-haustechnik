@@ -18,6 +18,10 @@ export * from './model/secret.js'
 export * from './model/rights.js'
 export * from './model/tenant.js'
 
+// Where somebody may do it: the areas a tenant bundles its properties in, and
+// who stands in for whom.
+export * from './model/area.js'
+
 // What a device may create, change and hold, and the rules server and device
 // decide an operation by.
 export * from './model/sync.js'

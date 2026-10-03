@@ -29,6 +29,19 @@ describe('the change log in the words of this application', () => {
     expect(way('session.start')).toBe('Anmeldung')
   })
 
+  it('names the areas, who sees which and who stands in for whom', () => {
+    expect(audit.tableLabel('areas')).toBe('Bereich')
+    expect(audit.fieldLabel('member_areas', 'area_id')).toBe('Bereich einer Person, Bereich')
+    expect(audit.fieldLabel('substitutions', 'absent_user_id')).toBe(
+      'Vertretung, Vertretene Person',
+    )
+
+    // An area moved elsewhere reads as two names, a person as a name.
+    expect(audit.referenceOf('area_id')).toBe('areas')
+    expect(audit.isPersonField('substitute_user_id')).toBe(true)
+    expect(audit.isPersonField('absent_user_id')).toBe(true)
+  })
+
   it('names the roles a tenant begins with', () => {
     expect(auditVocabulary.roles).toEqual({
       management: 'Leitung',

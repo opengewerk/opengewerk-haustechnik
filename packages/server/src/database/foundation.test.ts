@@ -25,8 +25,10 @@ afterAll(async () => {
 
 describe('the foundation in this database', () => {
   it('is what its building blocks say, after every migration', async () => {
-    // Nothing of its own hangs on a table of the foundation, so nothing is
-    // excused.
-    expect(await foundationDeviations(admin)).toEqual([])
+    // One thing of its own hangs on a table of the foundation: the trigger
+    // that gives a new membership its areas (ADR 0003, migration 0002).
+    expect(await foundationDeviations(admin, { triggers: ['memberships.default_areas'] })).toEqual(
+      [],
+    )
   })
 })

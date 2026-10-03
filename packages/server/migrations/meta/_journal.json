@@ -15,6 +15,13 @@
       "when": 1790926194586,
       "tag": "0001_work_order_numbers",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1791015266185,
+      "tag": "0002_areas",
+      "breakpoints": true
     }
   ]
 }

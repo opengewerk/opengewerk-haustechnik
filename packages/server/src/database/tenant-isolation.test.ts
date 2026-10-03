@@ -23,6 +23,7 @@ import {
   unprotected,
   withoutTheTenant,
 } from './test-database.js'
+import { areaBoundaryProblems } from './test-areas.js'
 
 /**
  * Row level security is a property of the database and not of the code above
@@ -41,12 +42,16 @@ import {
  * keeps the name the foundation gives it.
  */
 
-/** A tenant, and the one person working for it. */
+/**
+ * A tenant, and the two people working for it: one stands in for the other,
+ * which is the one row of a tenant that needs two.
+ */
 interface Tenant {
   readonly id: TenantId
   readonly name: string
   readonly userId: string
   readonly email: string
+  readonly colleagueId: string
 }
 
 const north: Tenant = {
@@ -54,12 +59,14 @@ const north: Tenant = {
   name: 'Wohnbau Nord eG',
   userId: 'user-north',
   email: 'leitung@nord.example',
+  colleagueId: 'colleague-north',
 }
 const south: Tenant = {
   id: newId<'tenant'>(),
   name: 'Wohnbau Süd eG',
   userId: 'user-south',
   email: 'leitung@sued.example',
+  colleagueId: 'colleague-south',
 }
 const both = [north.id, south.id].sort()
 
@@ -86,6 +93,8 @@ const tomorrow = new Date(Date.now() + 24 * 60 * 60 * 1000)
  * tenant has nothing in it, and the tests below say so by name.
  */
 function rowsOf(tenant: Tenant): readonly Row[] {
+  const area = randomUUID()
+
   return [
     {
       table: 'tenants',
@@ -105,6 +114,10 @@ function rowsOf(tenant: Tenant): readonly Row[] {
     {
       table: 'memberships',
       values: { tenant_id: tenant.id, user_id: tenant.userId, roles: ['lead'] },
+    },
+    {
+      table: 'memberships',
+      values: { tenant_id: tenant.id, user_id: tenant.colleagueId, roles: ['lead'] },
     },
     {
       table: 'member_passkeys',
@@ -174,6 +187,30 @@ function rowsOf(tenant: Tenant): readonly Row[] {
         sealed: `sealed-${randomUUID()}`,
       },
     },
+    // A first membership gives a tenant its first area, so the area here is a
+    // second one beside it, under a name of its own.
+    {
+      table: 'areas',
+      values: { id: area, tenant_id: tenant.id, name: `Bereich ${area.slice(0, 8)}` },
+    },
+    {
+      table: 'member_areas',
+      values: { tenant_id: tenant.id, user_id: tenant.userId, area_id: area },
+    },
+    {
+      table: 'member_all_areas',
+      values: { tenant_id: tenant.id, user_id: tenant.colleagueId },
+    },
+    {
+      table: 'substitutions',
+      values: {
+        tenant_id: tenant.id,
+        substitute_user_id: tenant.userId,
+        absent_user_id: tenant.colleagueId,
+        starts_on: '2026-10-05',
+        ends_on: '2026-10-09',
+      },
+    },
   ]
 }
 
@@ -189,10 +226,20 @@ function rowsOfTheInstance(): readonly Row[] {
     table: 'auth_users',
     values: { id: tenant.userId, name: `Leitung ${tenant.name}`, email: tenant.email },
   })
+  const colleague = (tenant: Tenant): Row => ({
+    table: 'auth_users',
+    values: {
+      id: tenant.colleagueId,
+      name: `Kollegium ${tenant.name}`,
+      email: `kollegium-${tenant.email}`,
+    },
+  })
 
   return [
     person(north),
     person(south),
+    colleague(north),
+    colleague(south),
     {
       table: 'auth_accounts',
       values: {
@@ -434,6 +481,17 @@ describe('the tables', () => {
     // the first migration.
     expect(keys.length).toBeGreaterThanOrEqual(1)
     expect(withoutTheTenant(keys)).toEqual([])
+  })
+
+  /**
+   * The second line, between the areas of a tenant (ADR 0003). No table of
+   * this database has a place yet; the first arrives with the properties
+   * (#18), and from then on a table with a place that lacks any part of the
+   * line turns this red. That the check finds what it looks for is shown on
+   * tables built for the purpose, in `areas.test.ts`.
+   */
+  it('draw the line between the areas wherever a row has a place', async () => {
+    expect(await areaBoundaryProblems(admin)).toEqual([])
   })
 })
 
