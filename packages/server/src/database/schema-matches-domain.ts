@@ -1,6 +1,20 @@
-import type { Building, Floor, Property, Room } from '@opengewerk/haustechnik-domain'
+import type {
+  Building,
+  Duty,
+  DutyDismissal,
+  Floor,
+  Property,
+  Room,
+} from '@opengewerk/haustechnik-domain'
 
-import type { buildings, floors, properties, rooms } from './schema/index.js'
+import type {
+  buildings,
+  duties,
+  dutyDismissals,
+  floors,
+  properties,
+  rooms,
+} from './schema/index.js'
 
 /**
  * The model in `domain` is what the data means; the tables are only where it
@@ -18,3 +32,5 @@ export type PropertyMatches = Assert<Exact<typeof properties.$inferSelect, Prope
 export type BuildingMatches = Assert<Exact<typeof buildings.$inferSelect, Building>>
 export type FloorMatches = Assert<Exact<typeof floors.$inferSelect, Floor>>
 export type RoomMatches = Assert<Exact<typeof rooms.$inferSelect, Room>>
+export type DutyMatches = Assert<Exact<typeof duties.$inferSelect, Duty>>
+export type DutyDismissalMatches = Assert<Exact<typeof dutyDismissals.$inferSelect, DutyDismissal>>

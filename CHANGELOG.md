@@ -231,6 +231,20 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   überfällig, fällig, erfüllt bis) sind reine Funktionen in `packages/domain`, mit
   Eigenschaftstests über beliebige Tage; eine nicht bestandene oder nicht durchgeführte Prüfung
   zählt nicht. Das Bündel des Katalogs hat damit das Format 2
+- Die Pflicht im Datenmodell (#25, ADR 0002): eine Pflicht hängt an einer Anlage, einem Raum,
+  einem Gebäude oder der Liegenschaft. Aus dem Katalog bestätigt hängt sie an einer Anlage, deren
+  Art die Pflichtart nennt, und trägt deren Schlüssel und Fassung; eine eigene Pflicht des
+  Betreibers trägt Bezeichnung, Grundlage und Quelle. Dazu kommen die tatsächliche Frist in Tagen
+  oder Monaten mit Begründung, wer verantwortlich ist, wer ausführt, wer bestätigt hat und wann
+  sie endet. Die Höchstfrist vom Tag der Bestätigung steht neben der Frist, und eine längere
+  lehnen Route und Datenbank ab, weil sich eine Höchstfrist nur verkürzen lässt und eine
+  bestätigte Pflicht sich nicht still ändert, wenn ein Paket eine neue Fassung bekommt. Ein
+  verworfener Vorschlag hält Begründung und Person fest, denn auch die Entscheidung, dass eine
+  Pflicht nicht gilt, muss sich belegen lassen; bestätigt jemand die Pflicht doch, ist die
+  Verwerfung zurückgenommen. Die Routen unter `/duties` und `/duty-dismissals` stehen hinter den
+  Rechten aus Abschnitt 7: lesen dürfen alle, führen Leitung und Technische Leitung. Vorschläge,
+  Pflichtenverzeichnis und Bildschirme kommen in Phase 1, auf ein Gerät reisen die Pflichten
+  mit den Regeln des Abgleichs (#27)
 
 ### Geändert
 

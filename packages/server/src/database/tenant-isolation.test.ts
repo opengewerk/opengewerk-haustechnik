@@ -336,6 +336,36 @@ function rowsOf(tenant: Tenant): readonly Row[] {
         building_id: building,
       },
     },
+    // A duty from the catalogue at the asset, and a proposal dismissed there.
+    {
+      table: 'duties',
+      values: {
+        tenant_id: tenant.id,
+        property_id: property,
+        area_id: area,
+        asset_id: asset,
+        kind: 'probe.elevator_main_test',
+        kind_version: 1,
+        counting: 'betrsichv',
+        interval_months: 24,
+        maximum_months: 24,
+        responsible_user_id: tenant.userId,
+        confirmed_by: tenant.userId,
+      },
+    },
+    {
+      table: 'duty_dismissals',
+      values: {
+        tenant_id: tenant.id,
+        property_id: property,
+        area_id: area,
+        asset_id: asset,
+        kind: 'probe.elevator_annual_check',
+        kind_version: 1,
+        reason: 'Die Anlage hat keine Notrufeinrichtung.',
+        dismissed_by: tenant.colleagueId,
+      },
+    },
   ]
 }
 
@@ -621,9 +651,32 @@ describe('the tables', () => {
 
     // A floor, so that a check that finds no table with a place cannot pass:
     // the four levels of the place carry the line since #18, the assets, their
-    // life cycle and their supplies since #20.
-    expect(rows[0]?.tables).toBeGreaterThanOrEqual(7)
+    // life cycle and their supplies since #20, the duties and the dismissed
+    // proposals since #25.
+    expect(rows[0]?.tables).toBeGreaterThanOrEqual(9)
     expect(await areaBoundaryProblems(admin)).toEqual([])
+  })
+
+  /**
+   * What is removed by marking it (ADR 0002, point 17) carries `deleted_at`,
+   * and the application may not delete it either: a row that is gone cannot
+   * tell a device that it went, and the triggers that mark what hangs below a
+   * row answer to the mark, not to a DELETE.
+   */
+  it('keep a row that is removed by marking out of reach of DELETE', async () => {
+    const { rows } = await admin.query<{ table_name: string; deletable: boolean }>(
+      `select table_name,
+              has_table_privilege('opengewerk_app', format('%I.%I', table_schema, table_name), 'DELETE')
+                as deletable
+         from information_schema.columns
+        where table_schema = 'public' and column_name = 'deleted_at'
+        order by table_name`,
+    )
+
+    // A floor: the place since #18, the technology since #20, the duties and
+    // the dismissed proposals since #25.
+    expect(rows.length).toBeGreaterThanOrEqual(9)
+    expect(rows.filter((row) => row.deletable).map((row) => row.table_name)).toEqual([])
   })
 })
 

@@ -72,6 +72,40 @@ export const auditVocabulary: AuditVocabulary = {
       fields: { state: 'Zustand', valid_from: 'Ab' },
     },
     asset_supplies: { label: 'Versorgt' },
+    // The duties of an operator and the proposals dismissed (ADR 0002, points
+    // 10 and 11).
+    duties: {
+      label: 'Pflicht',
+      fields: {
+        kind: 'Pflichtart',
+        kind_version: 'Fassung der Pflichtart',
+        label: 'Bezeichnung',
+        basis: 'Grundlage',
+        source_note: 'Quelle',
+        counting: 'Zählweise',
+        interval_days: 'Frist in Tagen',
+        interval_months: 'Frist in Monaten',
+        interval_reason: 'Begründung der Frist',
+        maximum_days: 'Höchstfrist in Tagen',
+        maximum_months: 'Höchstfrist in Monaten',
+        responsible_user_id: 'Verantwortlich',
+        performer: 'Ausgeführt von',
+        performer_note: 'Fremdfirma',
+        confirmed_by: 'Bestätigt von',
+        confirmed_at: 'Bestätigt am',
+        ends_on: 'Endet am',
+        end_reason: 'Grund für das Ende',
+      },
+    },
+    duty_dismissals: {
+      label: 'Verworfener Vorschlag',
+      fields: {
+        kind: 'Pflichtart',
+        kind_version: 'Fassung der Pflichtart',
+        reason: 'Begründung',
+        dismissed_by: 'Verworfen von',
+      },
+    },
   },
   // Every row with a place carries its area and the levels above it (ADR 0002,
   // point 2, and ADR 0003, point 4).
@@ -109,7 +143,13 @@ export const auditVocabulary: AuditVocabulary = {
     asset_id: 'assets',
     parent_asset_id: 'assets',
   },
-  personFields: ['substitute_user_id', 'absent_user_id'],
+  personFields: [
+    'substitute_user_id',
+    'absent_user_id',
+    'responsible_user_id',
+    'confirmed_by',
+    'dismissed_by',
+  ],
   // Rows without a name of their own are named after the person they are
   // about, and a substitution after the person whose areas it takes over.
   titles: {
@@ -121,6 +161,10 @@ export const auditVocabulary: AuditVocabulary = {
     // An entry of a life cycle by its state, a supply by what is supplied.
     asset_lifecycle: ['state'],
     asset_supplies: ['building_id', 'room_id'],
+    // A duty of the operator's own by its name, one from the catalogue by its
+    // kind; a dismissal by the kind it dismissed.
+    duties: ['label', 'kind'],
+    duty_dismissals: ['kind'],
   },
   reasons: {},
   rights: rightLabel,
