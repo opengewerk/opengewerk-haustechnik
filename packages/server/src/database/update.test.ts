@@ -1,6 +1,6 @@
 import { rmSync } from 'node:fs'
 
-import type { TenantId } from '@opengewerk/haustechnik-domain'
+import { firstAreaName, type TenantId } from '@opengewerk/haustechnik-domain'
 import { Database, newId } from '@opengewerk/platform-server'
 import type { Pool } from 'pg'
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest'
@@ -13,11 +13,13 @@ import {
   applyMigrations,
   connect,
   enumValues,
+  functionNames,
   migrationsFolderUpTo,
   ownerDatabaseUrl,
   refusedBy,
   resetSchema,
   revertMigration,
+  tableNames,
 } from './test-database.js'
 
 // What an update does to a database that has been in use. The tests beside
@@ -138,6 +140,8 @@ describe('an installation that began on the first migration', () => {
 
     const tenant = await tenantWithCounters({ asset: 42, work_order: 7, evidence: 3 })
 
+    // Back to the first migration, in the reverse order of the way forward.
+    await revertMigration(admin, '0002_areas')
     await revertMigration(admin, '0001_work_order_numbers')
 
     expect(await sequences()).toEqual(['asset', 'evidence'])
@@ -165,5 +169,151 @@ describe('an installation that began on the first migration', () => {
 
     // invalid_text_representation: not a value of the enum.
     expect(refusal.code).toBe('22P02')
+  })
+})
+
+/** Accounts for the given people, and their memberships in a tenant, put in past the application. */
+async function members(
+  tenant: { id: TenantId },
+  people: Readonly<Record<string, { roles: readonly string[]; blocked?: boolean }>>,
+): Promise<void> {
+  for (const [userId, { roles, blocked = false }] of Object.entries(people)) {
+    await admin.query(
+      'insert into auth_users (id, name, email) values ($1, $1, $2) on conflict do nothing',
+      [userId, `${userId}@beispiel.example`],
+    )
+    await admin.query(
+      `insert into memberships (tenant_id, user_id, roles, blocked_at)
+       values ($1, $2, $3, case when $4 then now() end)`,
+      [tenant.id, userId, roles, blocked],
+    )
+  }
+}
+
+/** Who sees which area of a tenant: every area, or the names of theirs. */
+async function areasOf(tenant: { id: TenantId }): Promise<Record<string, unknown>> {
+  const { rows: areas } = await admin.query<{ name: string }>(
+    'select name from areas where tenant_id = $1 order by name',
+    [tenant.id],
+  )
+  const { rows: every } = await admin.query<{ user_id: string }>(
+    'select user_id from member_all_areas where tenant_id = $1 order by user_id',
+    [tenant.id],
+  )
+  const { rows: named } = await admin.query<{ user_id: string; name: string }>(
+    `select m.user_id, a.name from member_areas m join areas a on a.id = m.area_id
+      where m.tenant_id = $1 order by m.user_id, a.name`,
+    [tenant.id],
+  )
+
+  return {
+    areas: areas.map((row) => row.name),
+    everyArea: every.map((row) => row.user_id),
+    named: named.map((row) => `${row.user_id}: ${row.name}`),
+  }
+}
+
+/**
+ * Before the areas, every membership saw everything its tenant had. The
+ * update gives each membership the areas it would have been given had it been
+ * made afterwards: whoever leads and the technical management every area, the
+ * others the one area a tenant begins with. Nobody who worked before sees
+ * less after it, and the log of the tenant says why its areas came.
+ */
+describe('an installation from before the areas', () => {
+  it('gives every membership there its areas with the update, and the log says why', async () => {
+    await runMigrations(ownerDatabaseUrl(), kept(migrationsFolderUpTo(2)))
+
+    const staffed = { id: newId<'tenant'>() }
+    const empty = { id: newId<'tenant'>() }
+
+    await admin.query('insert into tenants (id, name) values ($1, $2), ($3, $4)', [
+      staffed.id,
+      'Wohnbau Nord eG',
+      empty.id,
+      'Wohnbau Süd eG',
+    ])
+    await members(staffed, {
+      'user-lead': { roles: ['management'] },
+      'user-duties': { roles: ['technical_management'] },
+      'user-site': { roles: ['technician'] },
+      // A blocked membership keeps what it would have had, for the day it is let back in.
+      'user-gone': { roles: ['technician'], blocked: true },
+    })
+
+    await runMigrations(ownerDatabaseUrl())
+
+    expect(await areasOf(staffed)).toEqual({
+      areas: [firstAreaName],
+      everyArea: ['user-duties', 'user-lead'],
+      named: [`user-gone: ${firstAreaName}`, `user-site: ${firstAreaName}`],
+    })
+    // A tenant nobody works for gets its first area with its first member.
+    expect(await areasOf(empty)).toEqual({ areas: [], everyArea: [], named: [] })
+
+    const { rows: logged } = await admin.query<{ table_name: string; reason: string | null }>(
+      `select distinct table_name, reason from audit_entries
+        where tenant_id = $1 and table_name in ('areas', 'member_all_areas', 'member_areas')
+        order by table_name`,
+      [staffed.id],
+    )
+
+    expect(logged).toEqual([
+      { table_name: 'areas', reason: 'migration' },
+      { table_name: 'member_all_areas', reason: 'migration' },
+      { table_name: 'member_areas', reason: 'migration' },
+    ])
+
+    // And a membership made after the update gets its areas from the
+    // database, whichever version of the application writes it.
+    await members(staffed, { 'user-new': { roles: ['technician'] } })
+
+    expect((await areasOf(staffed))['named']).toContain(`user-new: ${firstAreaName}`)
+  })
+
+  it('loses the areas and nothing else when the update is taken back', async () => {
+    await applyMigrations()
+
+    const tenant = { id: newId<'tenant'>() }
+
+    await admin.query('insert into tenants (id, name) values ($1, $2)', [
+      tenant.id,
+      'Wohnbau Nord eG',
+    ])
+    await members(tenant, {
+      'user-lead': { roles: ['management'] },
+      'user-site': { roles: ['technician'] },
+    })
+
+    await revertMigration(admin, '0002_areas')
+
+    const left = ['areas', 'member_all_areas', 'member_areas', 'substitutions']
+
+    expect((await tableNames(admin)).filter((table) => left.includes(table))).toEqual([])
+    expect((await functionNames(admin)).filter((name) => name.includes('area'))).toEqual([])
+
+    const { rows: people } = await admin.query<{ rows: number }>(
+      'select count(*)::int as rows from memberships where tenant_id = $1',
+      [tenant.id],
+    )
+
+    expect(people).toEqual([{ rows: 2 }])
+
+    // The log of the tenant says that its areas went, and why.
+    const { rows: removed } = await admin.query<{ table_name: string; reason: string | null }>(
+      `select distinct table_name, reason from audit_entries
+        where tenant_id = $1 and operation = 'delete'
+        order by table_name`,
+      [tenant.id],
+    )
+
+    expect(removed).toEqual([
+      { table_name: 'areas', reason: 'migration' },
+      { table_name: 'member_all_areas', reason: 'migration' },
+      { table_name: 'member_areas', reason: 'migration' },
+    ])
+
+    // A membership made afterwards is just a membership again.
+    await members(tenant, { 'user-new': { roles: ['technician'] } })
   })
 })
