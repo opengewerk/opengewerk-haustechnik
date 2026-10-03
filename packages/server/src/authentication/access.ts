@@ -63,6 +63,9 @@ export const access: AccessRules<Right> = {
     passkeyNotRecorded:
       'Der Passkey ließ sich nicht im Protokoll der Betreiber festhalten und ist deshalb ' +
       'nicht angelegt. Bitte noch einmal versuchen.',
+    emptyInstance:
+      'Diese Instanz ist noch leer: im Browser steht die Ersteinrichtung, die den ' +
+      'Betreiber und den ersten Zugang anlegt.',
     addStaff: {
       usage: 'Aufruf: add-staff <kennung-des-betreibers> <e-mail> "<name>" <rolle> [<rolle> ...]',
       added: (email, tenantId, roles) =>

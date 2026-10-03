@@ -150,6 +150,17 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   Pfade, die der Server des Fundaments selbst beantwortet, stehen als `foundationPaths` in
   `platform-domain`. Die Tests des Fundaments laufen in der CI dieses Repositorys mit: 95 in
   `platform-domain`, 437 in `platform-server` und 693 in `platform-web`
+- Das Fundament ist auf den Stand mit seinem Betrieb angehoben (`opengewerk/opengewerk#498` bis
+  `#500`, #14). Der Einstieg des Servers liegt damit in `@opengewerk/platform-server`: die
+  Gesundheitsprüfung unter `/health`, das Ausliefern der Oberfläche, der Server mit allem, was
+  vor den Routen steht, das Herunterfahren in fester Reihenfolge und die Zeile beim Start.
+  Einrichten, Starten und Sichern sind Skripte des Fundaments, die den Namen einer Anwendung und
+  den Anfang ihrer Variablen aus ihrer `application.env` lesen, und die drei CI-Läufe auf einem
+  ganzen Stapel sind Schritte, die eine Anwendung mit ihrem Material füllt. Benutzt wird davon
+  hier noch nichts, das kommt mit dem eigenen Betrieb (#15). Dem Fundament sagt diese Anwendung
+  dafür einen Satz mehr, den das Protokoll beim Start einer leeren Instanz schreibt: dass die
+  Ersteinrichtung im Browser den Betreiber und den ersten Zugang anlegt. Die Tests des
+  Fundaments laufen in der CI dieses Repositorys mit, in `platform-server` jetzt 479 statt 437
 - `pnpm run check:toolchain` vergleicht auch die Fassungen der Abhängigkeiten, die ein Paket
   dieser Anwendung und ein Paket des Fundaments beide laden, zuerst `drizzle-orm` und `pg`. Zwei
   Fassungen davon in einem Prozess hießen Tabellen, die mit der einen angelegt und mit der
