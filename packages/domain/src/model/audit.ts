@@ -106,6 +106,23 @@ export const auditVocabulary: AuditVocabulary = {
         dismissed_by: 'Verworfen von',
       },
     },
+    evidence: {
+      label: 'Nachweis',
+      fields: {
+        duty_id: 'Pflicht',
+        performed_on: 'Durchgeführt am',
+        result: 'Ergebnis',
+      },
+    },
+  },
+  // The deadlines are a table of the foundation (opengewerk-haustechnik#24);
+  // what a deadline of this application hangs on is this application's own.
+  ownFields: {
+    deadlines: {
+      duty_id: 'Pflicht',
+      property_id: 'Liegenschaft',
+      area_id: 'Bereich',
+    },
   },
   // Every row with a place carries its area and the levels above it (ADR 0002,
   // point 2, and ADR 0003, point 4).
@@ -142,6 +159,7 @@ export const auditVocabulary: AuditVocabulary = {
     room_id: 'rooms',
     asset_id: 'assets',
     parent_asset_id: 'assets',
+    duty_id: 'duties',
   },
   personFields: [
     'substitute_user_id',
@@ -165,6 +183,8 @@ export const auditVocabulary: AuditVocabulary = {
     // kind; a dismissal by the kind it dismissed.
     duties: ['label', 'kind'],
     duty_dismissals: ['kind'],
+    // An evidence by the day it was done on.
+    evidence: ['performed_on'],
   },
   reasons: {},
   rights: rightLabel,

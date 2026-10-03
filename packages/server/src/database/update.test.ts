@@ -141,8 +141,10 @@ describe('an installation that began on the first migration', () => {
     const tenant = await tenantWithCounters({ asset: 42, work_order: 7, evidence: 3 })
 
     // Back to the first migration, in the reverse order of the way forward.
-    // The duties hang on the place and the assets, so they go first; the
-    // files, the mail server and the deadlines hang on nothing of this.
+    // The evidence and the deadlines hang on the duties, the duties on the
+    // place and the assets, so they go first; the files, the mail server and
+    // the settings of the deadlines hang on nothing of this.
+    await revertMigration(admin, '0008_evidence_and_deadlines')
     await revertMigration(admin, '0007_duties')
     await revertMigration(admin, '0004_assets')
     await revertMigration(admin, '0003_places')
@@ -292,6 +294,7 @@ describe('an installation from before the areas', () => {
 
     // The places hang on the areas and go first, as on the way back of an
     // installation.
+    await revertMigration(admin, '0008_evidence_and_deadlines')
     await revertMigration(admin, '0007_duties')
     await revertMigration(admin, '0004_assets')
     await revertMigration(admin, '0003_places')
@@ -351,6 +354,7 @@ describe('an installation with places', () => {
       [tenant.id],
     )
 
+    await revertMigration(admin, '0008_evidence_and_deadlines')
     await revertMigration(admin, '0007_duties')
     await revertMigration(admin, '0004_assets')
     await revertMigration(admin, '0003_places')
@@ -437,6 +441,7 @@ describe('an installation with assets', () => {
       [tenant.id, asset, at.property, at.area, at.building],
     )
 
+    await revertMigration(admin, '0008_evidence_and_deadlines')
     await revertMigration(admin, '0007_duties')
     await revertMigration(admin, '0004_assets')
 
@@ -530,6 +535,7 @@ describe('an installation with assets', () => {
       [tenant.id, at.property, at.area, at.asset],
     )
 
+    await revertMigration(admin, '0008_evidence_and_deadlines')
     await revertMigration(admin, '0007_duties')
 
     expect(
@@ -568,6 +574,86 @@ describe('an installation with assets', () => {
     expect(removed).toEqual([
       { table_name: 'duties', reason: 'migration' },
       { table_name: 'duty_dismissals', reason: 'migration' },
+    ])
+  })
+
+  it('loses its evidence and deadlines and nothing else when the update is taken back', async () => {
+    await applyMigrations()
+
+    const tenant = { id: newId<'tenant'>() }
+
+    await admin.query('insert into tenants (id, name) values ($1, $2)', [
+      tenant.id,
+      'Wohnbau Nord eG',
+    ])
+    await members(tenant, { 'user-lead': { roles: ['management'] } })
+
+    const { rows: made } = await admin.query<{ property: string; area: string; duty: string }>(
+      `with property as (
+         insert into properties (tenant_id, area_id, name, street, postal_code, city, federal_state)
+         select $1, id, 'Campus Nord', 'Nordstraße 12', '68535', 'Edingen-Neckarhausen', 'DE-BW'
+           from areas where tenant_id = $1
+         returning id, area_id
+       ), building as (
+         insert into buildings (tenant_id, property_id, area_id, name, kinds)
+         select $1, id, area_id, 'Haus A', '{school}' from property
+         returning id, property_id, area_id
+       ), duty as (
+         insert into duties (tenant_id, property_id, area_id, building_id, label, basis,
+                             source_note, counting, interval_months, confirmed_by)
+         select $1, property_id, area_id, id, 'Dachrinnen reinigen', 'insurer', 'Vertrag 4711',
+                'from_performance', 12, 'user-lead' from building
+         returning id, property_id, area_id
+       )
+       select property_id as property, area_id as area, id as duty from duty`,
+      [tenant.id],
+    )
+    const at = made[0] as { property: string; area: string; duty: string }
+
+    await admin.query(
+      `insert into evidence (tenant_id, property_id, area_id, duty_id, performed_on, result)
+       values ($1, $2, $3, $4, '2025-11-03', 'without_defects')`,
+      [tenant.id, at.property, at.area, at.duty],
+    )
+    await admin.query(
+      `insert into deadlines (tenant_id, kind, source_id, source_label, anchor_on, due_on, duty_id,
+                              property_id, area_id)
+       values ($1, 'duty.due', $2, 'Dachrinnen reinigen, Haus A', '2025-11-03', '2026-11-03', $2,
+               $3, $4)`,
+      [tenant.id, at.duty, at.property, at.area],
+    )
+
+    await revertMigration(admin, '0008_evidence_and_deadlines')
+
+    expect(
+      (await tableNames(admin)).filter((table) => ['deadlines', 'evidence'].includes(table)),
+    ).toEqual([])
+    expect(
+      [...(await enumValues(admin)).keys()].filter((name) =>
+        ['deadline_status', 'evidence_result'].includes(name),
+      ),
+    ).toEqual([])
+
+    // The duty stays, and can be marked as before.
+    await admin.query('update duties set deleted_at = now() where id = $1', [at.duty])
+
+    const { rows: duties } = await admin.query<{ rows: number }>(
+      'select count(*)::int as rows from duties where tenant_id = $1',
+      [tenant.id],
+    )
+
+    expect(duties).toEqual([{ rows: 1 }])
+
+    const { rows: removed } = await admin.query<{ table_name: string; reason: string | null }>(
+      `select distinct table_name, reason from audit_entries
+        where tenant_id = $1 and operation = 'delete'
+        order by table_name`,
+      [tenant.id],
+    )
+
+    expect(removed).toEqual([
+      { table_name: 'deadlines', reason: 'migration' },
+      { table_name: 'evidence', reason: 'migration' },
     ])
   })
 })

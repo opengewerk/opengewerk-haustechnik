@@ -1,4 +1,6 @@
+import { deadlinesSchema } from '@opengewerk/platform-server'
 import {
+  deadlinesGuard,
   type MadeByTheApplication,
   numberRangesGuard,
   secretsGuard,
@@ -6,6 +8,14 @@ import {
 
 import { numberRangeKey, numberRanges } from './number-ranges.js'
 import { secretPurpose, secrets } from './secrets.js'
+
+/**
+ * The deadlines as the foundation makes them, without what this application
+ * gives them for the duty, its property and its area: a database of the
+ * building blocks has none of those. `foundation.test.ts` names them as its
+ * own, the policy of the areas with them.
+ */
+const deadlinesOfTheBlocks = deadlinesSchema()
 
 /**
  * The tables of the foundation this application makes with lists of its own:
@@ -23,6 +33,13 @@ import { secretPurpose, secrets } from './secrets.js'
  * migration that brings it.
  */
 export const madeWithLists: MadeByTheApplication = {
-  schema: { numberRangeKey, numberRanges, secretPurpose, secrets },
-  guards: [numberRangesGuard, secretsGuard],
+  schema: {
+    numberRangeKey,
+    numberRanges,
+    secretPurpose,
+    secrets,
+    deadlineStatus: deadlinesOfTheBlocks.deadlineStatus,
+    deadlines: deadlinesOfTheBlocks.deadlines,
+  },
+  guards: [numberRangesGuard, secretsGuard, deadlinesGuard],
 }

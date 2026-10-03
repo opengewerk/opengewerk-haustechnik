@@ -245,6 +245,20 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   Rechten aus Abschnitt 7: lesen dürfen alle, führen Leitung und Technische Leitung. Vorschläge,
   Pflichtenverzeichnis und Bildschirme kommen in Phase 1, auf ein Gerät reisen die Pflichten
   mit den Regeln des Abgleichs (#27)
+- Der Termin einer Pflicht (#25, ADR 0002): die Fristen-Engine des Fundaments führt ihn als Frist
+  der Art "Fälligkeit einer Pflicht", fällig an dem Tag, den der letzte Nachweis mit der Frist und
+  der Zählweise der Pflicht ergibt, nach § 14 Abs. 5 BetrSichV als Monat. Keine Frist gibt es für
+  eine Pflicht, die nie erfasst wurde, keine, solange ihre Anlage ruht, und keine mehr, wenn die
+  Pflicht endet; ein Nachweis, der nicht bestanden oder nicht durchgeführt ist, zählt nicht. Die
+  Fristen tragen Pflicht, Liegenschaft und Bereich und bleiben in den Bereichen der Person, die
+  fragt; der Lauf startet mit der Anwendung, geht jede Minute durch alle Bereiche eines Betreibers
+  und erinnert dreißig Tage vor dem fälligen Tag, bis ein Betreiber einen anderen Vorlauf setzt.
+  Die Routen unter `/deadlines` und `/settings/deadlines` sind die des Fundaments, hinter den
+  Rechten "Fristen ansehen" und "Fristen bearbeiten". Ein Nachweis ist bis #26 eine Zeile mit
+  Pflicht, Tag und Ergebnis, die keine Route schreibt und die sich nicht ändern lässt; das Anheben
+  des Fundaments bringt den Weg des Laufs in alle Bereiche (opengewerk#517) und die eigene Policy
+  der Bereiche an seiner Tabelle der Fristen (opengewerk#518) mit. Die Sicherung zählt Nachweise
+  und Fristen, und der Lauf im Stapel schreibt die Frist selbst
 
 ### Geändert
 

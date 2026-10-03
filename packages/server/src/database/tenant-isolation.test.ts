@@ -99,6 +99,7 @@ function rowsOf(tenant: Tenant): readonly Row[] {
   const building = randomUUID()
   const floor = randomUUID()
   const asset = randomUUID()
+  const duty = randomUUID()
 
   return [
     {
@@ -340,6 +341,7 @@ function rowsOf(tenant: Tenant): readonly Row[] {
     {
       table: 'duties',
       values: {
+        id: duty,
         tenant_id: tenant.id,
         property_id: property,
         area_id: area,
@@ -364,6 +366,32 @@ function rowsOf(tenant: Tenant): readonly Row[] {
         kind_version: 1,
         reason: 'Die Anlage hat keine Notrufeinrichtung.',
         dismissed_by: tenant.colleagueId,
+      },
+    },
+    // An evidence of the duty, and the deadline the engine keeps from it.
+    {
+      table: 'evidence',
+      values: {
+        tenant_id: tenant.id,
+        property_id: property,
+        area_id: area,
+        duty_id: duty,
+        performed_on: '2025-03-14',
+        result: 'without_defects',
+      },
+    },
+    {
+      table: 'deadlines',
+      values: {
+        tenant_id: tenant.id,
+        kind: 'duty.due',
+        source_id: duty,
+        source_label: 'Hauptprüfung der Aufzugsanlage, Aufzug',
+        anchor_on: '2025-03-14',
+        due_on: '2027-03-01',
+        duty_id: duty,
+        property_id: property,
+        area_id: area,
       },
     },
   ]

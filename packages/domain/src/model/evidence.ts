@@ -1,3 +1,9 @@
+import type { Id, IsoDate, TenantOwned } from '@opengewerk/platform-domain'
+
+import type { AreaId } from './area.js'
+import type { DutyId } from './duty-record.js'
+import type { PropertyId } from './location.js'
+
 /**
  * The result of a performance, in the words of section 4.4 of the concept:
  * without defects, with defects, failed, or not performed. The evidence as a
@@ -30,4 +36,22 @@ export const evidenceResultLabel: Readonly<Record<EvidenceResult, string>> = {
  */
 export function meetsTheDuty(result: EvidenceResult): boolean {
   return result === 'without_defects' || result === 'with_defects'
+}
+
+export type EvidenceId = Id<'evidence'>
+
+/**
+ * The row of an evidence as far as #25 needs it (ADR 0004, point 1): which
+ * duty was met on which day, with which result, at the place of the duty. The
+ * frozen state, the number, who performed it and who wrote it down, the
+ * signature, a correction and a declaration of invalidity come with #26;
+ * until then no route writes one, and a row is never changed.
+ */
+export interface Evidence extends TenantOwned {
+  readonly id: EvidenceId
+  readonly propertyId: PropertyId
+  readonly areaId: AreaId
+  readonly dutyId: DutyId
+  readonly performedOn: IsoDate
+  readonly result: EvidenceResult
 }

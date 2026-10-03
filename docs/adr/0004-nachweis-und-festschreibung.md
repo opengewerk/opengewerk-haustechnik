@@ -116,6 +116,10 @@ Schlecht:
 - Wer unterschrieben hat, bevor die Verbindung da war, kann beim Übertragen erfahren, dass seine Unterschrift nicht gilt, weil inzwischen jemand anderes am selben Vorgang war.
 - Der Löschlauf braucht eine Ausnahme im Trigger. Sie ist eng, aber sie ist eine, und sie gehört vor ihrem Bau in dieses ADR nachgetragen.
 
+Nachträge:
+
+- **Nachtrag vom 03.10.2026, die Zeile des Nachweises vor der Festschreibung (`#25`).** Der Termin einer Pflicht ist "letzter Nachweis plus Frist" (ADR 0002, Punkt 12), und die Fristen-Engine braucht dafür Nachweise, bevor `#26` sie festschreiben kann. Die Migration `0008_evidence_and_deadlines` legt deshalb die Zeile aus Punkt 1 an, soweit der Termin sie braucht: Pflicht, Tag der Durchführung und Ergebnis, dazu Liegenschaft und Bereich der Pflicht. Die Anwendung darf eine Zeile lesen und anlegen; ändern und löschen darf sie keine. Keine Route schreibt bis `#26` einen Nachweis. Stand, Fassungsnummer, Fingerabdruck, Nummer, wer ausgeführt und wer festgeschrieben hat, Unterschrift, Berichtigung, Ungültigerklärung und die Trigger, die Ändern und Löschen für jede Rolle ablehnen, kommen mit `#26`. Zwei Dinge gehören dabei mit hinein: wird eine Liegenschaft in einen anderen Bereich verlegt, zieht der Schlüssel den Bereich ihrer Nachweise mit (`ON UPDATE CASCADE`), ein Trigger gegen jede Änderung muss diesen einen Fall durchlassen; und eine Anlage mit einem Nachweis wird zurückgebaut und nicht gelöscht (Punkt 13), was bis dahin keine Route fragt, weil es keinen Nachweis aus einer Route gibt.
+
 ## Bestätigung
 
 Die Entscheidung gilt als umgesetzt, wenn

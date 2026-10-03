@@ -39,6 +39,10 @@ export * from './model/duty.js'
 export * from './model/duty-record.js'
 export * from './model/evidence.js'
 
+// The deadlines of this application: the kinds the deadline engine of the
+// foundation keeps, with their sources and actions.
+export * from './model/deadlines.js'
+
 // What a device may create, change and hold, and the rules server and device
 // decide an operation by.
 export * from './model/sync.js'

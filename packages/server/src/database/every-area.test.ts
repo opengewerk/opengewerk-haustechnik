@@ -15,7 +15,12 @@ import { describe, expect, it } from 'vitest'
  * every area is added to the list with the run, and anything else that names
  * the setting or the function turns this red.
  */
-const allowed = ['database/every-area.ts']
+const allowed = [
+  'database/every-area.ts',
+  // The deadline engine: a pass works for nobody and goes through every area
+  // of an operator (opengewerk-haustechnik#25).
+  'deadlines/engine.ts',
+]
 
 const source = fileURLToPath(new URL('..', import.meta.url))
 
