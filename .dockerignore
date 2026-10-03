@@ -1,0 +1,53 @@
+# What does not belong in the build context. Everything here either makes the
+# image bigger or makes it wrong: node_modules of another platform, a dist
+# from yesterday, or a .env holding real credentials.
+#
+# The order matters: the last pattern that matches a path decides. The
+# exception for the packages of the foundation comes first, so that the rules
+# for node_modules, dist and the rest below still apply inside them. In the
+# other order the exception took the node_modules of this machine along, with
+# links pointing at C:/, and the build in the image failed for want of the
+# types of Node.
+
+# Of the submodule only the packages of the foundation and the root files the
+# workspace reads its configuration from. The packages of the
+# Handwerkersoftware beside them are no members of this workspace, and its
+# documents, scripts and assets are not built here.
+upstream/opengewerk/packages/*
+!upstream/opengewerk/packages/platform
+upstream/opengewerk/docs/
+upstream/opengewerk/docker/
+upstream/opengewerk/assets/
+upstream/opengewerk/*.md
+upstream/opengewerk/LICENSE
+upstream/opengewerk/Dockerfile
+
+.git/
+# The submodule has a file called .git that points into the .git above.
+**/.git
+.github/
+**/.github/
+.turbo/
+**/.turbo/
+node_modules/
+**/node_modules/
+dist/
+**/dist/
+**/preview-build/
+.env
+.env.*
+!.env.example
+*.log
+
+# None of this is built or shipped.
+docs/
+docker/
+README.md
+CHANGELOG.md
+LICENSE
+
+# assets/ is shipped: it is the public folder of the interface build
+# (publicDir in packages/web/vite.config.ts), so assets/brand is what the image
+# serves under /brand. Only the README next to the brand files stays out; it is
+# written for people, not for browsers.
+assets/brand/README.md

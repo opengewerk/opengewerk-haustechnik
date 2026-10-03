@@ -351,3 +351,235 @@ jobs:
 
       - name: Tests
         run: pnpm run test
+
+  # The three runs on a whole stack call their steps from the foundation's
+  # docker/test-stack.sh (opengewerk-haustechnik#14), against the folder of
+  # this application: APPLICATION_DIRECTORY names it, and what the steps need
+  # to know about this application beyond compose.yaml and application.env is
+  # in docker/test-material.sh. The names of the steps are the ones the runs in
+  # the repository opengewerk take. The checks of the scripts themselves
+  # (test-setup.sh, test-start.sh, test-backup.sh) run there, where the
+  # scripts are changed.
+  operations:
+    name: Betrieb über Docker Compose
+    runs-on: ubuntu-latest
+    env:
+      APPLICATION_DIRECTORY: ${{ github.workspace }}/docker
+
+    steps:
+      - name: Repository mit dem Fundament auschecken
+        uses: actions/checkout@v7
+        with:
+          submodules: true
+
+      - name: Jeder Dienst begrenzt seine Protokolle
+        working-directory: docker
+        run: sh ../upstream/opengewerk/docker/test-stack.sh log-limits
+
+      # The way an installation starts, with the one command the README
+      # names: the image is built with the submodule, the .env filled in, the
+      # database migrated and only then the containers started.
+      - name: Stapel starten
+        working-directory: docker
+        run: sh ../upstream/opengewerk/docker/test-stack.sh start
+
+      - name: Die .env ist ausgefüllt und nur für ihren Besitzer lesbar
+        working-directory: docker
+        run: sh ../upstream/opengewerk/docker/test-stack.sh env-file
+
+      - name: Instanz antwortet mit migrierter Datenbank
+        working-directory: docker
+        run: sh ../upstream/opengewerk/docker/test-stack.sh answers
+
+      - name: Die Ersteinrichtung verlangt den Einrichtungscode
+        working-directory: docker
+        run: sh ../upstream/opengewerk/docker/test-stack.sh first-run
+
+      - name: Favicon und Icons beider Einstiege kommen als Bild
+        working-directory: docker
+        run: sh ../upstream/opengewerk/docker/test-stack.sh icons
+
+      - name: Speicherbedarf im Leerlauf melden
+        working-directory: docker
+        run: docker stats --no-stream --format 'table {{.Name}}\t{{.MemUsage}}'
+
+      - name: Protokolle bei einem Fehlschlag
+        if: failure()
+        working-directory: docker
+        run: docker compose logs
+
+      - name: Aufräumen
+        if: always()
+        working-directory: docker
+        run: docker compose down --volumes
+
+  backup:
+    name: Sicherung und Rückspielen
+    runs-on: ubuntu-latest
+    env:
+      APPLICATION_DIRECTORY: ${{ github.workspace }}/docker
+
+    steps:
+      - name: Repository mit dem Fundament auschecken
+        uses: actions/checkout@v7
+        with:
+          submodules: true
+
+      - name: Zugangsdaten und Schlüsselpaar erzeugen
+        working-directory: docker
+        run: |
+          sh ../upstream/opengewerk/docker/test-stack.sh setup
+          sh ../upstream/opengewerk/docker/test-stack.sh keys
+
+      - name: Stapel starten
+        working-directory: docker
+        run: sh ../upstream/opengewerk/docker/test-stack.sh up
+
+      - name: Eine leere Instanz sichert der Zeitplan nicht
+        working-directory: docker
+        run: sh ../upstream/opengewerk/docker/test-stack.sh skips-empty
+
+      - name: Daten und Dateien anlegen
+        working-directory: docker
+        run: sh ../upstream/opengewerk/docker/test-stack.sh seed
+
+      - name: Stand vor der Sicherung festhalten
+        working-directory: docker
+        run: sh ../upstream/opengewerk/docker/test-stack.sh snapshot
+
+      - name: Sicherung erstellen
+        working-directory: docker
+        run: sh ../upstream/opengewerk/docker/test-stack.sh backup
+
+      - name: Die Anwendung liest, wann die Sicherung fertig wurde
+        working-directory: docker
+        run: sh ../upstream/opengewerk/docker/test-stack.sh record
+
+      - name: Datenplatte verlieren, Sicherung behalten
+        working-directory: docker
+        run: sh ../upstream/opengewerk/docker/test-stack.sh lose-data
+
+      - name: Sicherung zurückspielen
+        working-directory: docker
+        run: sh ../upstream/opengewerk/docker/test-stack.sh restore
+
+      # Besides the counts and the audit chains: the account from before the
+      # backup signs in with its password (after_restore in test-material.sh).
+      - name: Derselbe Datenbestand, dieselbe Audit-Kette
+        working-directory: docker
+        run: sh ../upstream/opengewerk/docker/test-stack.sh compare
+
+      - name: Eine beschädigte Sicherung wird abgelehnt
+        working-directory: docker
+        run: sh ../upstream/opengewerk/docker/test-stack.sh corrupt
+
+      - name: Die nächtliche Sicherung holt nach
+        working-directory: docker
+        run: sh ../upstream/opengewerk/docker/test-stack.sh catch-up
+
+      - name: Protokolle bei einem Fehlschlag
+        if: failure()
+        working-directory: docker
+        run: docker compose logs
+
+      - name: Aufräumen
+        if: always()
+        working-directory: docker
+        run: docker compose --profile backup down --volumes --remove-orphans
+
+  update:
+    name: Update einer laufenden Instanz
+    runs-on: ubuntu-latest
+    env:
+      APPLICATION_DIRECTORY: ${{ github.workspace }}/docker
+
+    steps:
+      - name: Repository mit dem Fundament auschecken
+        uses: actions/checkout@v7
+        with:
+          submodules: true
+
+      - name: Zugangsdaten für den Lauf erzeugen
+        working-directory: docker
+        run: sh ../upstream/opengewerk/docker/test-stack.sh setup
+
+      - name: Auf den Stand einer älteren Fassung zurücknehmen
+        working-directory: docker
+        run: sh ../upstream/opengewerk/docker/test-stack.sh rewind
+
+      - name: Datenbank auf dem Stand der älteren Fassung
+        working-directory: docker
+        run: sh ../upstream/opengewerk/docker/test-stack.sh older
+
+      - name: Daten anlegen und den Stand festhalten
+        working-directory: docker
+        run: sh ../upstream/opengewerk/docker/test-stack.sh seed-older
+
+      - name: Aktualisieren, erst migrieren und dann tauschen
+        working-directory: docker
+        run: sh ../upstream/opengewerk/docker/test-stack.sh update
+
+      - name: Derselbe Bestand auf dem neuen Stand
+        working-directory: docker
+        run: sh ../upstream/opengewerk/docker/test-stack.sh after-update
+
+      - name: Eine fehlerhafte Migration bricht ab, die Instanz läuft weiter
+        working-directory: docker
+        run: sh ../upstream/opengewerk/docker/test-stack.sh broken-update
+
+      - name: Protokolle bei einem Fehlschlag
+        if: failure()
+        working-directory: docker
+        run: docker compose logs
+
+      - name: Aufräumen
+        if: always()
+        working-directory: docker
+        run: docker compose down --volumes --remove-orphans
+
+  # This application beside an OpenGewerk on one machine (#15): both stacks at
+  # once, apart in projects, ports, volumes and sessions, and this one removed
+  # with its volumes without touching the other. OpenGewerk comes from the
+  # submodule, built from the commit it points at. The steps stand with their
+  # reasons in docker/test-beside.sh.
+  beside:
+    name: Neben OpenGewerk auf einem Server
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Repository mit dem Fundament auschecken
+        uses: actions/checkout@v7
+        with:
+          submodules: true
+
+      - name: OpenGewerk aus dem Submodul starten
+        working-directory: docker
+        run: sh test-beside.sh theirs
+
+      - name: Die Haustechnik daneben starten
+        working-directory: docker
+        run: sh test-beside.sh ours
+
+      - name: Eigene Ports und eigene Volumes
+        working-directory: docker
+        run: sh test-beside.sh apart
+
+      - name: Eine Sitzung gilt nur bei ihrer Anwendung
+        working-directory: docker
+        run: sh test-beside.sh session
+
+      - name: Die Haustechnik entfernen, OpenGewerk läuft weiter
+        working-directory: docker
+        run: sh test-beside.sh remove-ours
+
+      - name: Protokolle bei einem Fehlschlag
+        if: failure()
+        run: |
+          docker compose -f docker/compose.yaml logs
+          docker compose -f upstream/opengewerk/docker/compose.yaml logs
+
+      - name: Aufräumen
+        if: always()
+        run: |
+          docker compose -f docker/compose.yaml --profile backup down --volumes --remove-orphans
+          docker compose -f upstream/opengewerk/docker/compose.yaml --profile backup down --volumes --remove-orphans

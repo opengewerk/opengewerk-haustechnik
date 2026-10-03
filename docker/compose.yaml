@@ -1,0 +1,215 @@
+# OpenGewerk Haustechnik for operation. One command, and an empty machine runs
+# a migrated instance:
+#
+#   sh docker/start.sh
+#
+# The scripts behind it are the foundation's (upstream/opengewerk/docker, ADR
+# 0010 in the repository opengewerk): setup.sh fills in the .env, start.sh
+# migrates and then starts, in the order of an update. What they need to know
+# about this application stands in application.env beside this file and here.
+#
+# Five services. Three run at all times, the migration exits when it is done,
+# and the backup by hand sits in a profile. The order is not a convenience:
+# the database has to answer before anything migrates, and the migration has
+# to be through before the application starts.
+#
+# Side by side with an OpenGewerk on the same server (opengewerk-haustechnik
+# #15): a project name, a port, a database and volumes of its own, and a host
+# name of its own in front of it, because a browser keeps cookies per host name
+# and not per port.
+
+name: opengewerk-haustechnik
+
+# Where every service below logs to, with a limit: without one Docker writes
+# json-file without rotation until the disk is full. Five files of 10 MB per
+# container at most. A new service takes the same line, and the CI checks that
+# none is without it.
+x-logging: &logging
+  driver: local
+  options:
+    max-size: 10m
+    max-file: '5'
+
+services:
+  postgres:
+    image: postgres:18-alpine
+    restart: unless-stopped
+    logging: *logging
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD fehlt in der .env-Datei}
+      POSTGRES_DB: haustechnik
+      # The script of the foundation below creates the two roles and reads
+      # their passwords under these names; the values are this application's.
+      OPENGEWERK_OWNER_PASSWORD: ${HAUSTECHNIK_OWNER_PASSWORD:?HAUSTECHNIK_OWNER_PASSWORD fehlt in der .env-Datei}
+      OPENGEWERK_APP_PASSWORD: ${HAUSTECHNIK_APP_PASSWORD:?HAUSTECHNIK_APP_PASSWORD fehlt in der .env-Datei}
+    volumes:
+      # On /var/lib/postgresql, not on .../data: the images from PostgreSQL 18
+      # on put the data in a subdirectory per major version, and a volume on
+      # the old path keeps the container from starting at all.
+      - database:/var/lib/postgresql
+      # Creates the two roles, once, on the first start, with the script of the
+      # foundation rather than a copy of it. After that the data lives in the
+      # volume and this directory is never looked at again.
+      - ../upstream/opengewerk/docker/postgres-init:/docker-entrypoint-initdb.d:ro
+    # No published port. Whoever wants psql takes
+    # "docker compose -f docker/compose.yaml exec postgres psql".
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres -d haustechnik']
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  # Brings the database up to date and exits. Runs on every "up": against a
+  # database that is already current it does nothing. An update calls it on
+  # its own first, which start.sh does, because "up" alone recreates the
+  # serving container before the migration has even started.
+  #
+  # Its own service, because it signs in as the owner of the tables. The
+  # application never sees those credentials.
+  #
+  # The image a release will publish, under its version; until the first one
+  # a checkout builds it under the tag "source".
+  migrate:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    image: ghcr.io/opengewerk/opengewerk-haustechnik:${HAUSTECHNIK_VERSION:-source}
+    logging: *logging
+    command: ['node', '--enable-source-maps', 'dist/migrate.js']
+    environment:
+      MIGRATION_DATABASE_URL: postgres://opengewerk_owner:${HAUSTECHNIK_OWNER_PASSWORD}@postgres:5432/haustechnik
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: 'no'
+
+  app:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    image: ghcr.io/opengewerk/opengewerk-haustechnik:${HAUSTECHNIK_VERSION:-source}
+    restart: unless-stopped
+    logging: *logging
+    environment:
+      # opengewerk_app, never opengewerk_owner: for the owner of the tables
+      # row level security applies only through FORCE. The application refuses
+      # an address carrying the wrong role at startup.
+      DATABASE_URL: postgres://opengewerk_app:${HAUSTECHNIK_APP_PASSWORD}@postgres:5432/haustechnik
+      PORT: '23800'
+      # The content addressed file store. The application refuses to start
+      # when it cannot write here, because a wrong mount otherwise shows up as
+      # the first lost file rather than as an error.
+      STORAGE_PATH: /var/lib/opengewerk-haustechnik/storage
+      # Signs the session cookies and encrypts the second factors. Changing it
+      # signs everybody out, so it belongs in the backup of an installation.
+      SESSION_SECRET: ${SESSION_SECRET:?SESSION_SECRET fehlt in der .env-Datei}
+      # The addresses a browser may send an authenticated request from. No
+      # default on purpose: one would switch the protection off in exactly the
+      # installation whose operator did not think about it.
+      TRUSTED_ORIGINS: ${TRUSTED_ORIGINS:?TRUSTED_ORIGINS fehlt in der .env-Datei}
+      # The code the first run asks for. Optional here on purpose: an instance
+      # that has been set up never needs it again and starts without it.
+      SETUP_CODE: ${SETUP_CODE:-}
+      # Recognises nobody while this is on, the sign in included.
+      CLOSED: ${CLOSED:-false}
+      # The version the image above runs, from the same expression, for the
+      # health check. A checkout says "source", which the application takes
+      # for no version at all.
+      HAUSTECHNIK_VERSION: ${HAUSTECHNIK_VERSION:-source}
+      # When the last backup finished. Only this record, read-only: the
+      # archives themselves hold every Betreiber and stay out of reach of the
+      # application.
+      BACKUP_STATUS_PATH: /var/lib/opengewerk-haustechnik/backup-status
+    volumes:
+      - files:/var/lib/opengewerk-haustechnik/storage
+      - backup-status:/var/lib/opengewerk-haustechnik/backup-status:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    # Loopback only. A reverse proxy terminating TLS belongs in front of it,
+    # under a host name of its own.
+    ports:
+      - '127.0.0.1:${HAUSTECHNIK_PORT:-23800}:23800'
+
+  # Backup and restore by hand, with the image of the foundation's backup:
+  #
+  #   docker compose -f docker/compose.yaml --profile backup run --rm backup backup.sh
+  #   docker compose -f docker/compose.yaml --profile backup run --rm backup restore.sh latest
+  #
+  # Built on the database image so that pg_dump always matches the server.
+  # Connects as the superuser: row level security is FORCEd on every table and
+  # applies to the owner too, so a dump taken as anybody else comes back
+  # refused or empty. The archives are named after the database, haustechnik,
+  # so a target shared with an OpenGewerk keeps both apart.
+  backup:
+    build:
+      context: ../upstream/opengewerk/docker/backup
+    image: ghcr.io/opengewerk/opengewerk-haustechnik-backup:${HAUSTECHNIK_VERSION:-source}
+    profiles: ['backup']
+    logging: *logging
+    environment: &backup-environment
+      POSTGRES_HOST: postgres
+      POSTGRES_DB: haustechnik
+      PGPASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD fehlt in der .env-Datei}
+      STORAGE_PATH: /var/lib/opengewerk-haustechnik/storage
+      BACKUP_PATH: /var/lib/opengewerk-haustechnik/backups
+      BACKUP_STATUS_PATH: /var/lib/opengewerk-haustechnik/backup-status
+      BACKUP_KEEP: ${BACKUP_KEEP:-14}
+      # The public key an archive is encrypted to. Without it the archive is
+      # written in the clear.
+      BACKUP_AGE_RECIPIENT: ${BACKUP_AGE_RECIPIENT:-}
+      # Only a restore needs this, and only for an encrypted archive. It
+      # points at a key file, which is why the key itself never stands in the
+      # .env next to the data it protects.
+      BACKUP_AGE_IDENTITY: ${BACKUP_AGE_IDENTITY:-}
+    volumes:
+      - files:/var/lib/opengewerk-haustechnik/storage
+      - ${BACKUP_TARGET:-backups}:/var/lib/opengewerk-haustechnik/backups
+      - backup-status:/var/lib/opengewerk-haustechnik/backup-status
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  # The backup every night, at the hour the area of the instance sets, 02:30
+  # unless somebody changed it. Runs with the instance and not in a profile: a
+  # backup that has to be switched on is missing on the day it is needed. Why
+  # it catches up and why it skips an instance without a Betreiber stands in
+  # schedule.sh of the foundation.
+  backup-schedule:
+    build:
+      context: ../upstream/opengewerk/docker/backup
+    image: ghcr.io/opengewerk/opengewerk-haustechnik-backup:${HAUSTECHNIK_VERSION:-source}
+    restart: unless-stopped
+    logging: *logging
+    command: ['schedule.sh']
+    environment:
+      <<: *backup-environment
+      TZ: Europe/Berlin
+    volumes:
+      # Read-only: a backup reads the files and never writes them.
+      - files:/var/lib/opengewerk-haustechnik/storage:ro
+      - ${BACKUP_TARGET:-backups}:/var/lib/opengewerk-haustechnik/backups
+      - backup-status:/var/lib/opengewerk-haustechnik/backup-status
+    # After the migration, like the application: the schedule checks at once
+    # when it starts, and before the migration there is not even a table of
+    # Betreiber to ask.
+    depends_on:
+      postgres:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+
+volumes:
+  database:
+  files:
+  # Where the archives land by default. An installation that means it points
+  # BACKUP_TARGET at a path on another machine, because a backup on the same
+  # disk as the data survives a mistake and not a disk.
+  backups:
+  # The record of the last backup, written by the backup services and read by
+  # the application. A few hundred bytes.
+  backup-status:
