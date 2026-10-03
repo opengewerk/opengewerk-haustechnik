@@ -213,6 +213,23 @@ function rowsOf(tenant: Tenant): readonly Row[] {
         from_address: `technik-${tenant.id.slice(0, 8)}@beispiel.example`,
       },
     },
+    // What a tenant sets for a kind of deadline and when the engine last went
+    // through it come with the foundation (#24). The deadlines themselves come
+    // with the duties (#25); until then only the test writes either table.
+    {
+      table: 'deadline_settings',
+      values: {
+        tenant_id: tenant.id,
+        kind: 'probe.inspection',
+        lead_days: 14,
+        interval_months: 12,
+        responsible_user_id: tenant.userId,
+      },
+    },
+    {
+      table: 'deadline_runs',
+      values: { tenant_id: tenant.id, succeeded_at: new Date() },
+    },
     // A first membership gives a tenant its first area, so the area here is a
     // second one beside it, under a name of its own.
     {

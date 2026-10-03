@@ -11,9 +11,10 @@
 # them; the areas of a Betreiber with who sees which
 # (opengewerk-haustechnik#17); the first record with a place, a property
 # (opengewerk-haustechnik#18); a building on it with the first asset
-# (opengewerk-haustechnik#20); and a file in the store with its row and the
-# mail server of a Betreiber, the two tables the foundation brings since
-# opengewerk-haustechnik#23.
+# (opengewerk-haustechnik#20); a file in the store with its row and the mail
+# server of a Betreiber, the two tables the foundation brings since
+# opengewerk-haustechnik#23; and a setting for a kind of deadline with a pass of
+# the deadline engine, the two it brings since opengewerk-haustechnik#24.
 
 # A route touching data, which refuses everybody without a sign in: the
 # accounts of a Betreiber.
@@ -22,7 +23,7 @@ guarded_route=/staff
 # The tables counted before the backup and after the restore. The area and
 # the place of the account in it come with the account: a Betreiber gets its
 # first area with its first membership.
-counted_tables='auth_users memberships tenant_roles areas member_areas properties buildings assets files mail_settings'
+counted_tables='auth_users memberships tenant_roles areas member_areas properties buildings assets files mail_settings deadline_settings deadline_runs'
 
 # The migrations, and how many of them make the older state an update starts
 # from: the first, without the sequence for work orders that the second brings.
@@ -72,6 +73,13 @@ records_for_backup() {
       ('$first_tenant', '$hash', 21, 'text/plain');
     insert into mail_settings (tenant_id, host, port, security, from_address) values
       ('$first_tenant', 'mail.probe.example.de', 587, 'starttls', 'technik@probe.example.de');"
+  # A setting for a kind of deadline and a pass of the engine, the two tables
+  # the foundation brings since opengewerk-haustechnik#24. The deadlines come
+  # with the duties of opengewerk-haustechnik#25, and with them what writes both.
+  sql "
+    insert into deadline_settings (tenant_id, kind, lead_days, interval_months) values
+      ('$first_tenant', 'probe.inspection', 14, 12);
+    insert into deadline_runs (tenant_id, succeeded_at) values ('$first_tenant', now());"
 }
 
 # An account and its place at the Betreiber on the older state, written with

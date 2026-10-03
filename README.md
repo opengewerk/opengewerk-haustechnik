@@ -133,7 +133,7 @@ Die erste Migration, `0000_foundation`, legt das Fundament in einer leeren Daten
 
 Zwei Tabellen des Fundaments entstehen mit Listen dieser Anwendung, und beide Listen stehen in `packages/domain`: die Nummernkreise (`asset` für die Anlagennummer, `work_order` für die Nummer eines Auftrags, `evidence` für den Nachweis) und die Zwecke versiegelter Zugangsdaten (`smtp_password`). Ein weiterer Eintrag ist eine Zeile dort und eine Migration, die ihn der Aufzählung in der Datenbank hinzufügt; ein Test hält beide gegeneinander. So ist der Nummernkreis für Aufträge gekommen: die erste Migration hatte ihn ausgelassen, `0001_work_order_numbers` trägt ihn nach. Die Einstellungen mit Gültigkeitszeitraum entstehen ebenso aus einer Liste und kommen mit der ersten Einstellung.
 
-Bringt das Fundament eine neue Tabelle mit, kommt mit dem Anheben eine Migration dazu, die sie anlegt, so wie es die Bausteine des Fundaments beschreiben; `foundation.test.ts` vergleicht die Datenbank nach allen Migrationen mit einer aus den Bausteinen allein. So sind die Dateien eines Betreibers und sein Mailserver mit `0005_files_and_mail_settings` gekommen, bevor etwas in dieser Anwendung sie schreibt.
+Bringt das Fundament eine neue Tabelle mit, kommt mit dem Anheben eine Migration dazu, die sie anlegt, so wie es die Bausteine des Fundaments beschreiben; `foundation.test.ts` vergleicht die Datenbank nach allen Migrationen mit einer aus den Bausteinen allein. So sind die Dateien eines Betreibers und sein Mailserver mit `0005_files_and_mail_settings` gekommen und die Einstellungen der Fristarten mit dem Stand des Fristenlaufs mit `0006_deadlines`, jeweils bevor etwas in dieser Anwendung sie schreibt.
 
 Eine neue Migration:
 
