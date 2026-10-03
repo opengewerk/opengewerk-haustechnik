@@ -23,6 +23,7 @@ import { AssetsController, BuildingAssetsController } from './assets.controller.
 import { authorization, AuthorizationGuard } from './authorization.js'
 import { BuildingsController } from './buildings.controller.js'
 import { DatabaseExceptionFilter } from './database-errors.js'
+import { DutiesController, DutyDismissalsController } from './duties.controller.js'
 import { FloorsController } from './floors.controller.js'
 import { PropertiesController } from './properties.controller.js'
 import { RoomsController } from './rooms.controller.js'
@@ -133,6 +134,9 @@ export class ApiModule {
         // The technology: assets and their components.
         BuildingAssetsController,
         AssetsController,
+        // The duties of an operator and the proposals dismissed.
+        DutiesController,
+        DutyDismissalsController,
       ],
       providers: [
         { provide: Database, useValue: database },

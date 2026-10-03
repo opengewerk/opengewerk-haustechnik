@@ -270,6 +270,18 @@ async function placeIn(where: 'north' | 'south'): Promise<void> {
      values ($1, $2, $3, $4, $5, $6)`,
     [at.supply, tenant, at.asset, at.property, areaId, at.building],
   )
+  await admin.query(
+    `insert into duties (tenant_id, property_id, area_id, asset_id, kind, kind_version, counting,
+                         interval_months, maximum_months, confirmed_by)
+     values ($1, $2, $3, $4, 'probe.elevator_main_test', 1, 'betrsichv', 24, 24, $5)`,
+    [tenant, at.property, areaId, at.asset, person.lead],
+  )
+  await admin.query(
+    `insert into duty_dismissals (tenant_id, property_id, area_id, asset_id, kind, kind_version,
+                                  reason, dismissed_by)
+     values ($1, $2, $3, $4, 'probe.elevator_annual_check', 1, 'Keine Notrufeinrichtung.', $5)`,
+    [tenant, at.property, areaId, at.asset, person.lead],
+  )
 }
 
 beforeAll(async () => {
@@ -359,6 +371,8 @@ describe('a person with the north', () => {
       'asset_supplies',
       'assets',
       'buildings',
+      'duties',
+      'duty_dismissals',
       'floors',
       'properties',
       'rooms',
@@ -537,6 +551,8 @@ describe('a property moved to another area', () => {
         'asset_supplies',
         'assets',
         'buildings',
+        'duties',
+        'duty_dismissals',
         'floors',
         'rooms',
       ])

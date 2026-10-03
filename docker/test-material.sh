@@ -13,8 +13,10 @@
 # (opengewerk-haustechnik#18); a building on it with the first asset
 # (opengewerk-haustechnik#20); a file in the store with its row and the mail
 # server of a Betreiber, the two tables the foundation brings since
-# opengewerk-haustechnik#23; and a setting for a kind of deadline with a pass of
-# the deadline engine, the two it brings since opengewerk-haustechnik#24.
+# opengewerk-haustechnik#23; a setting for a kind of deadline with a pass of
+# the deadline engine, the two it brings since opengewerk-haustechnik#24; and a
+# duty at the asset with a dismissed proposal beside it
+# (opengewerk-haustechnik#25).
 
 # A route touching data, which refuses everybody without a sign in: the
 # accounts of a Betreiber.
@@ -23,7 +25,7 @@ guarded_route=/staff
 # The tables counted before the backup and after the restore. The area and
 # the place of the account in it come with the account: a Betreiber gets its
 # first area with its first membership.
-counted_tables='auth_users memberships tenant_roles areas member_areas properties buildings assets files mail_settings deadline_settings deadline_runs'
+counted_tables='auth_users memberships tenant_roles areas member_areas properties buildings assets files mail_settings deadline_settings deadline_runs duties duty_dismissals'
 
 # The migrations, and how many of them make the older state an update starts
 # from: the first, without the sequence for work orders that the second brings.
@@ -80,6 +82,22 @@ records_for_backup() {
     insert into deadline_settings (tenant_id, kind, lead_days, interval_months) values
       ('$first_tenant', 'probe.inspection', 14, 12);
     insert into deadline_runs (tenant_id, succeeded_at) values ('$first_tenant', now());"
+  # A duty of the catalogue at the asset, confirmed by the account, and a
+  # proposal it dismissed with its reason (opengewerk-haustechnik#25). The kinds
+  # are keys of the probe package, as the asset's is.
+  sql "
+    insert into duties (tenant_id, property_id, area_id, asset_id, kind, kind_version, counting,
+                        interval_months, maximum_months, confirmed_by)
+    select a.tenant_id, a.property_id, a.area_id, a.id, 'probe.elevator_main_test', 1, 'betrsichv',
+           24, 24, u.id
+      from assets a, auth_users u
+     where a.tenant_id = '$first_tenant' and u.email = '$probe_email';
+    insert into duty_dismissals (tenant_id, property_id, area_id, asset_id, kind, kind_version,
+                                 reason, dismissed_by)
+    select a.tenant_id, a.property_id, a.area_id, a.id, 'probe.elevator_annual_check', 1,
+           'Die Anlage hat keine Notrufeinrichtung.', u.id
+      from assets a, auth_users u
+     where a.tenant_id = '$first_tenant' and u.email = '$probe_email';"
 }
 
 # An account and its place at the Betreiber on the older state, written with
