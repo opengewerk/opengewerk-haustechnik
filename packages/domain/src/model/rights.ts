@@ -120,6 +120,15 @@ export const rights = [
   /** Where a defect goes from there: its class, its time limit and its status. */
   'defect.write',
   /**
+   * Taking what has changed onto a device, and sending what it queued up
+   * without a network. The rights the foundation asks for on the routes of the
+   * sync (ADR 0006). A different way in, not a different thing to do: what an
+   * operation may touch is still decided by the rights above, entity by
+   * entity, so every role has both.
+   */
+  'sync.read',
+  'sync.write',
+  /**
    * Who works for this tenant, what they may do, and whether they still get
    * in. The rights the foundation asks for on its own routes; only the role
    * that leads holds them, because somebody who can hand out roles can hand
@@ -177,6 +186,8 @@ export const rightLabel: Readonly<Record<Right, string>> = {
   'defect.read': 'Mängel ansehen',
   'defect.report': 'Mängel melden',
   'defect.write': 'Mängel führen',
+  'sync.read': 'Daten abgleichen',
+  'sync.write': 'Änderungen senden',
   'membership.read': 'Zugänge ansehen',
   'membership.write': 'Zugänge verwalten',
   'settings.read': 'Einstellungen ansehen',
@@ -233,6 +244,9 @@ const technician: readonly Right[] = [
   'evidence.read',
   'defect.read',
   'defect.report',
+  // Every device takes and sends; what it may touch the rights above decide.
+  'sync.read',
+  'sync.write',
 ]
 
 /**

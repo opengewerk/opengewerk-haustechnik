@@ -5,16 +5,20 @@ import {
   authenticationParts,
   AUTHORIZATION,
   Database,
+  HealthController,
   IDENTITY_SOURCE,
   type IdentitySource,
   type InstanceSettingsCache,
   SameOriginGuard,
+  syncParts,
   TRUSTED_ORIGINS,
+  VERSION,
 } from '@opengewerk/platform-server'
 
 import { access } from '../authentication/access.js'
 import { authorization, AuthorizationGuard } from './authorization.js'
 import { DatabaseExceptionFilter } from './database-errors.js'
+import { syncRoutes } from './sync-routes.js'
 
 /**
  * What the module needs beyond a database and an identity source.
@@ -45,6 +49,11 @@ export interface ApiOptions {
    * the database and nothing is kept.
    */
   readonly instance?: { readonly settings: InstanceSettingsCache } | null
+  /**
+   * The version this installation runs, which the health check names. Left
+   * out, there is none to name, as in a checkout.
+   */
+  readonly version?: string | null
 }
 
 /**
@@ -63,9 +72,10 @@ export interface ApiOptions {
  * remembering the test.
  *
  * What is here so far is what the foundation brings: signing in, the account
- * of the person signed in, who works for a tenant, and the area of the
- * instance. An invitation is handed over as a link; sending one by mail
- * arrives with the mail server of a tenant.
+ * of the person signed in, who works for a tenant, the area of the instance,
+ * and the sync of a device with the rules of this application. An invitation
+ * is handed over as a link; sending one by mail arrives with the mail server
+ * of a tenant.
  */
 @Module({})
 export class ApiModule {
@@ -74,7 +84,7 @@ export class ApiModule {
     identities: IdentitySource,
     options: ApiOptions = {},
   ): DynamicModule {
-    const { authentication, setupCode = null, trustedOrigins = [] } = options
+    const { authentication, setupCode = null, trustedOrigins = [], version = null } = options
 
     // The authentication is the foundation's, with the rights, the roles and
     // the words of this application.
@@ -84,14 +94,21 @@ export class ApiModule {
       setupCode,
       instanceSettings: options.instance?.settings,
     })
+    // The routes a device syncs through, with the rules of this application:
+    // the bar of the sync on every screen asks them.
+    const syncing = syncParts({ access, routes: syncRoutes })
 
     return {
       module: ApiModule,
-      controllers: [...signingIn.controllers],
+      // The health check first: it answers without an identity, for the
+      // container runtime and for whoever looks whether the instance is up.
+      controllers: [HealthController, ...signingIn.controllers, ...syncing.controllers],
       providers: [
         { provide: Database, useValue: database },
         ...signingIn.providers,
+        ...syncing.providers,
         { provide: TRUSTED_ORIGINS, useValue: trustedOrigins },
+        { provide: VERSION, useValue: version },
         { provide: IDENTITY_SOURCE, useValue: identities },
         // What a refusal says, for the guard of the foundation.
         { provide: AUTHORIZATION, useValue: authorization },
