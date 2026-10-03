@@ -285,6 +285,17 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   Superuser; nur der Bereich folgt seiner Liegenschaft. Eine Anlage mit Nachweis wird zurückgebaut
   und nicht gelöscht, auch nicht mit ihrem Gebäude, und die Routen sagen das mit einem Satz.
   Routen, die einen Nachweis schreiben, kommen mit den Abläufen in Phase 1
+- Die Unterschrift auf einem Vorgang (#26, ADR 0004): unterschrieben wird auf dem Gerät, mit
+  Zeitpunkt, Gerät, Linienzug und dem Fingerabdruck der Seite, die gezeigt wurde, und der Server
+  nimmt die Unterschrift nur für genau diese Seite an. Die Seite hält, was vor Ort gesagt wird,
+  und nichts, was Server oder Büro später ergänzen, damit Gerät und Server sie gleich berechnen.
+  Vor der Unterschrift braucht der Vorgang den Tag der Durchführung und jede seiner Pflichten ein
+  Ergebnis; wo die Vorlage es verlangt, zeichnet die Objektleitung danach gegen. Sind alle
+  Unterschriften da, entsteht in derselben Transaktion ein Nachweis je Pflicht. Ein Auftrag
+  wartet auf seine Abnahme; eine Zurückweisung mit Grund lässt die Unterschrift stehen, die dann
+  nicht mehr gilt. Unterschriften und Entscheidungen ändert und löscht die Datenbank für keine
+  Rolle. Die Routen und die Sperre des unterschriebenen Vorgangs kommen in Phase 1, der Weg über
+  den Abgleich mit #27
 
 ### Geändert
 

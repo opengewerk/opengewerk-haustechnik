@@ -2,6 +2,7 @@ import type { Id, IsoDate, Synced } from '@opengewerk/platform-domain'
 
 import type { AreaId } from './area.js'
 import type { DutyId } from './duty-record.js'
+import { type EvidenceResult, evidenceResultLabel, evidenceResults } from './evidence.js'
 import { calendarDay, oneOf, optional, type Problems, required } from './fields.js'
 import type { PropertyId } from './location.js'
 import type { PlaceTarget } from './target.js'
@@ -97,6 +98,10 @@ export interface Activity extends Synced, PlaceTarget {
   readonly contractorNote: string | null
   /** Why it was not performed; only an activity that was not. */
   readonly closingReason: string | null
+  /** The day it was performed on, which every evidence of it carries. */
+  readonly performedOn: IsoDate | null
+  /** Whether the site management countersigns it, as its template asks (section 4.5). */
+  readonly countersignatureRequired: boolean
 }
 
 /**
@@ -109,6 +114,9 @@ export interface ActivityDuty extends Synced {
   readonly areaId: AreaId
   readonly activityId: ActivityId
   readonly dutyId: DutyId
+  /** What came of it for this duty, entered while the activity is performed, with the reason of "not performed". */
+  readonly result: EvidenceResult | null
+  readonly resultReason: string | null
 }
 
 /**
@@ -171,6 +179,12 @@ export function activityProblems(activity: Readonly<Record<string, unknown>>): R
     problems['dueOn'] = 'Die Fälligkeit ist ein Tag, geschrieben 2026-10-03.'
   }
 
+  const performedOn = activity['performedOn']
+
+  if (performedOn !== undefined && performedOn !== null && !calendarDay(performedOn)) {
+    problems['performedOn'] = 'Der Tag der Durchführung ist ein Tag, geschrieben 2026-10-03.'
+  }
+
   const status = activity['status']
   const reason = activity['closingReason']
   const hasReason = typeof reason === 'string' && reason.trim() !== ''
@@ -184,6 +198,47 @@ export function activityProblems(activity: Readonly<Record<string, unknown>>): R
     problems['closingReason'] === undefined
   ) {
     problems['closingReason'] = 'Einen Grund nennt nur ein Vorgang, der nicht durchgeführt wurde.'
+  }
+
+  return problems
+}
+
+/**
+ * What is wrong with the result of a duty of an activity: one of the four, and
+ * the reason with "not performed" and only then, asked when the record names
+ * the result.
+ */
+export function activityDutyProblems(line: Readonly<Record<string, unknown>>): Readonly<Problems> {
+  const problems: Problems = {}
+
+  oneOf(
+    problems,
+    line,
+    'result',
+    evidenceResults,
+    `Das Ergebnis ist eines von: ${evidenceResults.map((result) => evidenceResultLabel[result]).join(', ')}.`,
+  )
+  optional(
+    problems,
+    line,
+    'resultReason',
+    activityLimits.closingReason,
+    `Der Grund hat höchstens ${String(activityLimits.closingReason)} Zeichen.`,
+  )
+
+  const result = line['result']
+  const reason = line['resultReason']
+  const hasReason = typeof reason === 'string' && reason.trim() !== ''
+
+  if (result === 'not_performed' && !hasReason && problems['resultReason'] === undefined) {
+    problems['resultReason'] = 'Was nicht durchgeführt wurde, nennt den Grund.'
+  } else if (
+    result !== undefined &&
+    result !== 'not_performed' &&
+    hasReason &&
+    problems['resultReason'] === undefined
+  ) {
+    problems['resultReason'] = 'Einen Grund nennt nur, was nicht durchgeführt wurde.'
   }
 
   return problems

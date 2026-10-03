@@ -25,7 +25,7 @@ guarded_route=/staff
 # The tables counted before the backup and after the restore. The area and
 # the place of the account in it come with the account: a Betreiber gets its
 # first area with its first membership.
-counted_tables='auth_users memberships tenant_roles areas member_areas properties buildings assets files mail_settings deadline_settings deadline_runs duties duty_dismissals evidence deadlines activities activity_duties work_orders defects'
+counted_tables='auth_users memberships tenant_roles areas member_areas properties buildings assets files mail_settings deadline_settings deadline_runs duties duty_dismissals evidence deadlines activities activity_duties work_orders defects activity_signatures work_order_decisions'
 
 # The migrations, and how many of them make the older state an update starts
 # from: the first, without the sequence for work orders that the second brings.
@@ -115,7 +115,19 @@ records_for_backup() {
                          description, found_on)
     select tenant_id, property_id, area_id, asset_id, id, 'Notruf im Fahrkorb ohne Verbindung.',
            '2026-10-01'
-      from activities where tenant_id = '$first_tenant';"
+      from activities where tenant_id = '$first_tenant';
+    insert into activity_signatures (tenant_id, property_id, area_id, activity_id, signed_by, role,
+                                     signed_at, path, page_fingerprint)
+    select a.tenant_id, a.property_id, a.area_id, a.id, u.id, 'signer', '2026-10-01T09:30:00Z',
+           'M10,10L200,300', repeat('a', 64)
+      from activities a, auth_users u
+     where a.tenant_id = '$first_tenant' and u.email = '$probe_email';
+    insert into work_order_decisions (tenant_id, property_id, area_id, work_order_id, decision,
+                                      reason, decided_by)
+    select w.tenant_id, w.property_id, w.area_id, w.id, 'rejected',
+           'Die Notrufverbindung fehlt noch.', u.id
+      from work_orders w, auth_users u
+     where w.tenant_id = '$first_tenant' and u.email = '$probe_email';"
   # An evidence of the duty. The engine runs in the application, its first pass
   # ten seconds after the start and then once a minute, and keeps a deadline
   # for the duty from it; the backup brings back what the pass wrote, the

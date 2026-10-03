@@ -14,6 +14,7 @@ import {
 import { memberships, tenantColumn } from '@opengewerk/platform-server/schema'
 import { sql } from 'drizzle-orm'
 import {
+  boolean,
   check,
   date,
   foreignKey,
@@ -28,6 +29,7 @@ import {
 import { withinAreas } from './areas.js'
 import { assets } from './assets.js'
 import { duties } from './duties.js'
+import { evidenceResult } from './evidence-result.js'
 import { buildings, optionalTrimmed, properties, rooms, trimmed } from './locations.js'
 
 // The activities of an operator (section 2.2 of the concept, ADR 0002, point
@@ -73,6 +75,8 @@ export const activities = pgTable(
     performerUserId: text('performer_user_id'),
     contractorNote: text('contractor_note'),
     closingReason: text('closing_reason'),
+    performedOn: date('performed_on', { mode: 'string' }),
+    countersignatureRequired: boolean('countersignature_required').notNull().default(false),
     ...timestamps,
     ...syncColumns,
   },
@@ -136,6 +140,11 @@ export const activities = pgTable(
       'activities_closed_with_a_reason',
       sql`(${table.status} = 'not_performed') = (${table.closingReason} is not null)`,
     ),
+    // A work order is accepted by whoever handed it out, and not countersigned.
+    check(
+      'activities_countersigned_but_no_work_order',
+      sql`${table.kind} <> 'work_order' or not ${table.countersignatureRequired}`,
+    ),
   ],
 )
 
@@ -152,6 +161,8 @@ export const activityDuties = pgTable(
     areaId: reference<'area'>('area_id').notNull(),
     activityId: reference<'activity'>('activity_id').notNull(),
     dutyId: reference<'duty'>('duty_id').notNull(),
+    result: evidenceResult('result'),
+    resultReason: text('result_reason'),
     ...timestamps,
     ...syncColumns,
   },
@@ -178,6 +189,15 @@ export const activityDuties = pgTable(
     uniqueIndex('activity_duties_once')
       .on(table.tenantId, table.activityId, table.dutyId)
       .where(sql`${table.deletedAt} is null`),
+    check(
+      'activity_duties_result_reason_shaped',
+      optionalTrimmed(table.resultReason, activityLimits.closingReason),
+    ),
+    // A reason with "not performed", and only then; no result, no reason.
+    check(
+      'activity_duties_not_performed_with_a_reason',
+      sql`(${table.result} is not distinct from 'not_performed') = (${table.resultReason} is not null)`,
+    ),
   ],
 )
 

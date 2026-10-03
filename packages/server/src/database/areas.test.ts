@@ -370,6 +370,19 @@ async function placeIn(where: 'north' | 'south'): Promise<void> {
      values ($1, $2, $3, $4, $5, 'Notruf im Fahrkorb ohne Verbindung.', '2026-10-01')`,
     [tenant, at.property, areaId, at.asset, at.activity],
   )
+  // The signature on the work order, and its rejection.
+  await admin.query(
+    `insert into activity_signatures (tenant_id, property_id, area_id, activity_id, signed_by, role,
+                                      signed_at, path, page_fingerprint)
+     values ($1, $2, $3, $4, $5, 'signer', '2026-10-01T09:30:00Z', 'M10,10L200,300', $6)`,
+    [tenant, at.property, areaId, at.activity, person.lead, 'a'.repeat(64)],
+  )
+  await admin.query(
+    `insert into work_order_decisions (tenant_id, property_id, area_id, work_order_id, decision,
+                                       reason, decided_by)
+     values ($1, $2, $3, $4, 'rejected', 'Die Notrufverbindung fehlt noch.', $5)`,
+    [tenant, at.property, areaId, at.workOrder, person.lead],
+  )
 }
 
 beforeAll(async () => {
@@ -457,6 +470,7 @@ describe('a person with the north', () => {
     expect(tables).toEqual([
       'activities',
       'activity_duties',
+      'activity_signatures',
       'asset_lifecycle',
       'asset_supplies',
       'assets',
@@ -469,6 +483,7 @@ describe('a person with the north', () => {
       'floors',
       'properties',
       'rooms',
+      'work_order_decisions',
       'work_orders',
     ])
     expect(seen).toEqual(expected)
@@ -663,6 +678,7 @@ describe('a property moved to another area', () => {
       expect(tables.map((row) => row.table_name)).toEqual([
         'activities',
         'activity_duties',
+        'activity_signatures',
         'asset_lifecycle',
         'asset_supplies',
         'assets',
@@ -674,6 +690,7 @@ describe('a property moved to another area', () => {
         'evidence',
         'floors',
         'rooms',
+        'work_order_decisions',
         'work_orders',
       ])
       expect(below).toEqual(expected)
