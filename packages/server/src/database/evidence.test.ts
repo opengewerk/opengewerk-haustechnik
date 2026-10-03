@@ -30,6 +30,7 @@ const tenant = newId<'tenant'>() as TenantId
 const lead = 'u-lead'
 const changeRefused = 'HT003'
 const assetRefused = 'HT004'
+const voidingRefused = 'HT006'
 
 /** A property with a building, an asset in it, a duty at the asset and an activity to meet it. */
 interface Place {
@@ -252,7 +253,9 @@ describe('an evidence', () => {
         changeRefused,
       )
       expect(await asOwner('delete from evidence where id = $1', [id])).toBe(changeRefused)
-      expect(await asOwner('truncate evidence')).toBe(changeRefused)
+      // With CASCADE, past the key of the declarations of invalidity, which
+      // refuses a plain truncate before any trigger is asked.
+      expect(await asOwner('truncate evidence cascade')).toBe(changeRefused)
     } finally {
       client.release()
     }
@@ -275,7 +278,7 @@ describe('an evidence', () => {
     expect(await codeOf(admin.query('delete from evidence where id = $1', [id]))).toBe(
       changeRefused,
     )
-    expect(await codeOf(admin.query('truncate evidence'))).toBe(changeRefused)
+    expect(await codeOf(admin.query('truncate evidence cascade'))).toBe(changeRefused)
 
     const { rows } = await admin.query<{ result: string }>(
       'select result from evidence where id = $1',
@@ -361,6 +364,7 @@ describe('an evidence', () => {
 
   it('is refused what the model in domain and the server refuse, check by check', async () => {
     const report = rowAt(here)
+    const itself = randomUUID()
     const byNobody = { ...report, examiner: null, examiner_organisation: null }
     const checks: Record<string, Record<string, unknown>> = {
       evidence_number_shaped: { ...report, number: ' NW-2026-00001' },
@@ -383,6 +387,18 @@ describe('an evidence', () => {
       evidence_activity_as_its_origin_says: { ...byNobody, origin: 'protocol', performed_by: lead },
       evidence_state_shaped: { ...report, state: '[1]' },
       evidence_fingerprint_shaped: { ...report, fingerprint: 'abc' },
+      evidence_replacement_with_a_reason: { ...report, replacement_reason: 'Falscher Tag.' },
+      evidence_replacement_reason_shaped: {
+        ...report,
+        replaces_evidence_id: randomUUID(),
+        replacement_reason: 'Falscher Tag. ',
+      },
+      evidence_not_its_own_replacement: {
+        ...report,
+        id: itself,
+        replaces_evidence_id: itself,
+        replacement_reason: 'Falscher Tag.',
+      },
     }
     const refused: Record<string, unknown> = {}
     const expected: Record<string, unknown> = {}
@@ -405,6 +421,10 @@ describe('an evidence', () => {
     expect(await triedRow({ ...report, state: '{"number": "NW-2026-00001"}' })).toEqual({
       code: '23514',
       constraint: 'evidence_state_shaped',
+    })
+    expect(await triedRow({ ...report, replaces_evidence_id: randomUUID() })).toEqual({
+      code: '23514',
+      constraint: 'evidence_replacement_with_a_reason',
     })
 
     // And the rows they let through, each with a number of its own.
@@ -430,6 +450,7 @@ describe('an evidence', () => {
    */
   it('hangs on its duty, its activity and the people here, key by key', async () => {
     const report = rowAt(here)
+    const elsewhere = await written(rowAt(beside))
     const attempts: Record<string, Record<string, unknown>> = {
       evidence_follows_its_property: { ...report, area_id: secondArea },
       evidence_of_a_duty_of_its_property: { ...report, duty_id: beside.duty },
@@ -443,6 +464,11 @@ describe('an evidence', () => {
         performed_by: 'u-nobody',
       },
       evidence_written_by_somebody_here: { ...report, written_by: 'u-nobody' },
+      evidence_replaces_one_of_its_duty: {
+        ...report,
+        replaces_evidence_id: elsewhere,
+        replacement_reason: 'Falscher Tag.',
+      },
     }
     const { rows } = await admin.query<{ name: string }>(
       `select k.conname as name
@@ -460,6 +486,250 @@ describe('an evidence', () => {
 
     for (const [key, values] of Object.entries(attempts)) {
       refused[key] = await triedRow(values)
+      expected[key] = { code: '23503', constraint: key }
+    }
+
+    expect(refused).toEqual(expected)
+  })
+
+  it('is corrected by another of its duty, once, and both stay', async () => {
+    const at = await placeIn(here.area)
+    const first = await written(rowAt(at))
+    const correction = await written({
+      ...rowAt(at),
+      performed_on: '2026-09-29',
+      replaces_evidence_id: first,
+      replacement_reason: 'Der Prüfbericht nennt den 29. September.',
+    })
+
+    expect(
+      await triedRow({ ...rowAt(at), replaces_evidence_id: first, replacement_reason: 'Doppelt.' }),
+    ).toEqual({ code: '23505', constraint: 'evidence_replaced_once' })
+
+    // The correction is corrected in turn, and all three stay as they were.
+    await written({
+      ...rowAt(at),
+      replaces_evidence_id: correction,
+      replacement_reason: 'Doch der 30. September.',
+    })
+
+    const { rows } = await admin.query<{ count: number }>(
+      'select count(*)::int as count from evidence where property_id = $1',
+      [at.property],
+    )
+
+    expect(rows).toEqual([{ count: 3 }])
+  })
+})
+
+/** The columns of a declaration of invalidity, of a new evidence at a place. */
+async function voidingAt(at: Place): Promise<Record<string, unknown>> {
+  return {
+    tenant_id: tenant,
+    property_id: at.property,
+    area_id: at.area,
+    evidence_id: await written(rowAt(at)),
+    reason: 'Der Rundgang wurde nicht gegangen.',
+    voided_by: lead,
+  }
+}
+
+/** A declaration of invalidity put in past the application, as the superuser. */
+async function voided(values: Record<string, unknown>): Promise<string> {
+  const columns = Object.keys(values)
+  const { rows } = await admin.query<{ id: string }>(
+    `insert into evidence_voidings (${columns.join(', ')})
+     values (${columns.map((_, index) => `$${String(index + 1)}`).join(', ')}) returning id`,
+    Object.values(values),
+  )
+
+  return rows[0]?.id ?? ''
+}
+
+/** The key or check that refused a declaration of invalidity, or that it was accepted. */
+async function triedVoiding(
+  values: Record<string, unknown>,
+): Promise<{ code?: string; constraint?: string } | 'accepted'> {
+  try {
+    await voided(values)
+
+    return 'accepted'
+  } catch (error) {
+    const { code, constraint } = error as { code?: string; constraint?: string }
+
+    return { code, constraint }
+  }
+}
+
+describe('a declaration of invalidity', () => {
+  it('is added by the application, which changes and removes none', async () => {
+    const values = await voidingAt(here)
+    const columns = Object.keys(values)
+
+    expect(
+      await refusalOf((tx) =>
+        tx.execute(
+          sql`insert into evidence_voidings (${sql.join(
+            columns.map((column) => sql.identifier(column)),
+            sql`, `,
+          )}) values (${sql.join(
+            columns.map((column) => sql.param(values[column])),
+            sql`, `,
+          )})`,
+        ),
+      ),
+    ).toBeNull()
+    expect(
+      await refusalOf((tx) =>
+        tx.execute(sql`update evidence_voidings set reason = 'Doch.' where tenant_id = ${tenant}`),
+      ),
+    ).toBe(insufficientPrivilege)
+    expect(
+      await refusalOf((tx) =>
+        tx.execute(sql`delete from evidence_voidings where tenant_id = ${tenant}`),
+      ),
+    ).toBe(insufficientPrivilege)
+    expect(await refusalOf((tx) => tx.execute(sql`truncate evidence_voidings`))).toBe(
+      insufficientPrivilege,
+    )
+  })
+
+  it('is changed and removed by nobody, not by the owner of the tables', async () => {
+    const id = await voided(await voidingAt(here))
+    const client = await owner.connect()
+    const asOwner = async (statement: string, values: readonly unknown[] = []) => {
+      await client.query('begin')
+
+      try {
+        await client.query('alter table evidence_voidings no force row level security')
+
+        return await codeOf(client.query(statement, [...values]))
+      } finally {
+        await client.query('rollback')
+      }
+    }
+
+    try {
+      expect(
+        await asOwner(`update evidence_voidings set reason = 'Doch.' where id = $1`, [id]),
+      ).toBe(voidingRefused)
+      expect(await asOwner('delete from evidence_voidings where id = $1', [id])).toBe(
+        voidingRefused,
+      )
+      expect(await asOwner('truncate evidence_voidings')).toBe(voidingRefused)
+    } finally {
+      client.release()
+    }
+  })
+
+  it('is changed and removed by nobody, not by a superuser', async () => {
+    const id = await voided(await voidingAt(here))
+
+    expect(
+      await codeOf(
+        admin.query(`update evidence_voidings set reason = 'Doch.' where id = $1`, [id]),
+      ),
+    ).toBe(voidingRefused)
+    expect(await codeOf(admin.query('delete from evidence_voidings where id = $1', [id]))).toBe(
+      voidingRefused,
+    )
+    expect(await codeOf(admin.query('truncate evidence_voidings'))).toBe(voidingRefused)
+  })
+
+  it('follows its property into another area, and takes no other change that way', async () => {
+    const at = await placeIn(here.area)
+    const id = await voided(await voidingAt(at))
+    const areaOf = async () =>
+      (
+        await admin.query<{ area: string }>(
+          'select area_id as area from evidence_voidings where id = $1',
+          [id],
+        )
+      ).rows[0]?.area
+
+    await admin.query('update properties set area_id = $1 where id = $2', [secondArea, at.property])
+
+    expect(await areaOf()).toBe(secondArea)
+    expect(
+      await codeOf(
+        admin.query('update evidence_voidings set area_id = $1 where id = $2', [here.area, id]),
+      ),
+    ).toBe(voidingRefused)
+
+    // A trigger of somebody's making, a level deeper like the key, that moves
+    // the row with its property and changes the reason besides.
+    await admin.query(`
+      create function probe_rewrite_voiding() returns trigger language plpgsql as $$
+      begin
+        update evidence_voidings set area_id = new.area_id, reason = 'Doch.'
+         where property_id = new.id;
+        return null;
+      end;
+      $$`)
+    await admin.query(`
+      create trigger "A_probe_rewrite_voiding" after update of area_id on properties
+        for each row execute function probe_rewrite_voiding()`)
+
+    try {
+      expect(
+        await codeOf(
+          admin.query('update properties set area_id = $1 where id = $2', [here.area, at.property]),
+        ),
+      ).toBe(voidingRefused)
+    } finally {
+      await admin.query('drop trigger "A_probe_rewrite_voiding" on properties')
+      await admin.query('drop function probe_rewrite_voiding()')
+    }
+
+    await admin.query('update properties set area_id = $1 where id = $2', [here.area, at.property])
+
+    expect(await areaOf()).toBe(here.area)
+  })
+
+  it('stands once for an evidence, with its reason', async () => {
+    const values = await voidingAt(here)
+
+    await voided(values)
+
+    expect(await triedVoiding({ ...values, reason: 'Noch einmal.' })).toEqual({
+      code: '23505',
+      constraint: 'evidence_voided_once',
+    })
+
+    for (const reason of ['', ' Nicht gegangen.', 'x'.repeat(501)]) {
+      expect(await triedVoiding({ ...(await voidingAt(here)), reason })).toEqual({
+        code: '23514',
+        constraint: 'evidence_voidings_reason_shaped',
+      })
+    }
+  })
+
+  it('hangs on an evidence of its property and on somebody here, key by key', async () => {
+    const values = await voidingAt(here)
+    const attempts: Record<string, Record<string, unknown>> = {
+      evidence_voidings_follow_their_property: { ...values, area_id: secondArea },
+      evidence_voidings_of_an_evidence_of_their_property: {
+        ...values,
+        evidence_id: await written(rowAt(beside)),
+      },
+      evidence_voidings_by_somebody_here: { ...values, voided_by: 'u-nobody' },
+    }
+    const { rows } = await admin.query<{ name: string }>(
+      `select k.conname as name
+         from pg_constraint k
+         join pg_class c on c.oid = k.conrelid
+        where k.contype = 'f' and c.relname = 'evidence_voidings'
+          and k.conname not like '%_tenant_id_tenants_id_fk'
+        order by 1`,
+    )
+
+    expect(rows.map((row) => row.name)).toEqual(Object.keys(attempts).sort())
+
+    const refused: Record<string, unknown> = {}
+    const expected: Record<string, unknown> = {}
+
+    for (const [key, attempt] of Object.entries(attempts)) {
+      refused[key] = await triedVoiding(attempt)
       expected[key] = { code: '23503', constraint: key }
     }
 

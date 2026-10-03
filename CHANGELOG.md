@@ -296,6 +296,14 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   nicht mehr gilt. Unterschriften und Entscheidungen ändert und löscht die Datenbank für keine
   Rolle. Die Routen und die Sperre des unterschriebenen Vorgangs kommen in Phase 1, der Weg über
   den Abgleich mit #27
+- Berichtigung und Ungültigerklärung eines Nachweises (#26, ADR 0004): eine Berichtigung ist ein
+  neuer Nachweis derselben Pflicht, der den ersetzten mit Grund nennt, an der Zeile und im
+  eingefrorenen Stand, der dafür in Fassung 2 steht; der ersetzte bleibt, wie er war. Eine
+  Ungültigerklärung ist eine eigene Zeile mit Grund, Person und Zeitpunkt, höchstens eine je
+  Nachweis und für keine Rolle änderbar. Für die Frist einer Pflicht zählt nur, was weder ersetzt
+  noch für ungültig erklärt ist, so ist die Pflicht eines fälschlich unterschriebenen Rundgangs
+  wieder offen. Ein Test ruft jede Route auf und hält fest, dass keine Antworten, Unterschriften
+  oder Nachweise zurücksetzt. Die Routen dafür kommen in Phase 1
 
 ### Geändert
 

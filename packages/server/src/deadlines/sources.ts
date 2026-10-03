@@ -9,6 +9,7 @@ import {
   nextAppointment,
   type PropertyId,
   restsOn,
+  standingEvidence,
 } from '@opengewerk/haustechnik-domain'
 import type { ExpectedDeadline, SourceQuery } from '@opengewerk/platform-server'
 import { asc, eq, isNull } from 'drizzle-orm'
@@ -19,6 +20,7 @@ import {
   buildings,
   duties,
   evidence,
+  evidenceVoidings,
   properties,
   rooms,
 } from '../database/schema/index.js'
@@ -81,6 +83,10 @@ function labelOf(duty: DutyRow, catalogue: Catalogue): string {
  * has an appointment, due on the day `nextAppointment` names from the
  * evidence that met it, its interval and its counting.
  *
+ * Counted from the evidence that stands: neither replaced by a correction nor
+ * declared invalid (ADR 0004, points 14 and 15), so that a duty whose only
+ * evidence is invalid is open again.
+ *
  * None for a duty that was never recorded, because it has no appointment; none
  * while its asset rests, because nothing on it falls due (section 2.2 of the
  * concept); and none once it has ended, nor for an appointment on or after the
@@ -125,15 +131,23 @@ export function dutySource(options: {
       .where(isNull(duties.deletedAt))
 
     const performances = new Map<string, IsoDate[]>()
-
-    for (const row of await tx
+    const voided = new Set(
+      (await tx.select({ evidenceId: evidenceVoidings.evidenceId }).from(evidenceVoidings)).map(
+        (row) => row.evidenceId as string,
+      ),
+    )
+    const written = await tx
       .select({
+        id: evidence.id,
+        replacesEvidenceId: evidence.replacesEvidenceId,
         dutyId: evidence.dutyId,
         performedOn: evidence.performedOn,
         result: evidence.result,
       })
       .from(evidence)
-      .orderBy(asc(evidence.performedOn))) {
+      .orderBy(asc(evidence.performedOn))
+
+    for (const row of standingEvidence(written, voided)) {
       if (meetsTheDuty(row.result)) {
         performances.set(row.dutyId, [...(performances.get(row.dutyId) ?? []), row.performedOn])
       }

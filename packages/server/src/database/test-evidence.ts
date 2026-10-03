@@ -1,4 +1,8 @@
-import type { EvidenceState, IsoDate } from '@opengewerk/haustechnik-domain'
+import {
+  type EvidenceState,
+  evidenceStateVersion,
+  type IsoDate,
+} from '@opengewerk/haustechnik-domain'
 
 import { stateFingerprint } from '../evidence/fingerprint.js'
 
@@ -20,12 +24,13 @@ export function nextEvidenceNumber(): string {
 /** The least state of an evidence of a report, in the newest version. */
 export function leastState(number: string, performedOn: IsoDate, result: string): EvidenceState {
   return {
-    version: 1,
+    version: evidenceStateVersion,
     number,
     origin: 'report',
     performedOn,
     result: result as EvidenceState['result'],
     resultReason: result === 'not_performed' ? 'Anlage war abgeschaltet.' : null,
+    replaces: null,
     duty: {
       label: 'Hauptprüfung der Aufzugsanlage',
       kind: null,

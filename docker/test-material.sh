@@ -16,7 +16,9 @@
 # opengewerk-haustechnik#23; a setting for a kind of deadline with a pass of
 # the deadline engine, the two it brings since opengewerk-haustechnik#24; and a
 # duty at the asset with a dismissed proposal beside it, an evidence of the
-# duty and the deadline the engine keeps from it (opengewerk-haustechnik#25).
+# duty and the deadline the engine keeps from it (opengewerk-haustechnik#25);
+# a work order with a defect, its signature and its rejection, and an evidence
+# declared invalid (opengewerk-haustechnik#26).
 
 # A route touching data, which refuses everybody without a sign in: the
 # accounts of a Betreiber.
@@ -25,7 +27,7 @@ guarded_route=/staff
 # The tables counted before the backup and after the restore. The area and
 # the place of the account in it come with the account: a Betreiber gets its
 # first area with its first membership.
-counted_tables='auth_users memberships tenant_roles areas member_areas properties buildings assets files mail_settings deadline_settings deadline_runs duties duty_dismissals evidence deadlines activities activity_duties work_orders defects activity_signatures work_order_decisions'
+counted_tables='auth_users memberships tenant_roles areas member_areas properties buildings assets files mail_settings deadline_settings deadline_runs duties duty_dismissals evidence deadlines activities activity_duties work_orders defects activity_signatures work_order_decisions evidence_voidings'
 
 # The migrations, and how many of them make the older state an update starts
 # from: the first, without the sequence for work orders that the second brings.
@@ -135,6 +137,8 @@ records_for_backup() {
   # of it is written between the count before the backup and the backup.
   # The state is the least a report has (#26), written as JSON, and the
   # fingerprint a placeholder of the right form: nothing here reads it back.
+  # An older evidence beside it is declared invalid, so the deadline still
+  # counts from the first.
   sql "
     insert into evidence (tenant_id, property_id, area_id, duty_id, performed_on, result, number,
                           origin, examiner, examiner_organisation, written_by, state, fingerprint)
@@ -143,7 +147,20 @@ records_for_backup() {
            '{\"version\": 1, \"number\": \"NW-2025-00001\", \"origin\": \"report\"}',
            repeat('0', 64)
       from duties d, auth_users u
-     where d.tenant_id = '$first_tenant' and u.email = '$probe_email';"
+     where d.tenant_id = '$first_tenant' and u.email = '$probe_email';
+    insert into evidence (tenant_id, property_id, area_id, duty_id, performed_on, result, number,
+                          origin, examiner, examiner_organisation, written_by, state, fingerprint)
+    select d.tenant_id, d.property_id, d.area_id, d.id, '2025-01-10', 'without_defects',
+           'NW-2025-00002', 'report', 'Erika Muster', 'Prüfstelle Süd', u.id,
+           '{\"version\": 2, \"number\": \"NW-2025-00002\", \"origin\": \"report\"}',
+           repeat('0', 64)
+      from duties d, auth_users u
+     where d.tenant_id = '$first_tenant' and u.email = '$probe_email';
+    insert into evidence_voidings (tenant_id, property_id, area_id, evidence_id, reason, voided_by)
+    select e.tenant_id, e.property_id, e.area_id, e.id, 'Der Bericht gehört zu einer anderen Anlage.',
+           u.id
+      from evidence e, auth_users u
+     where e.number = 'NW-2025-00002' and u.email = '$probe_email';"
   waited=0
   until test "$(value "select count(*) from deadlines where tenant_id = '$first_tenant'")" = 1 &&
     test "$(value "select count(*) from deadline_runs where succeeded_at is not null")" = \

@@ -121,8 +121,20 @@ export const auditVocabulary: AuditVocabulary = {
         examiner_organisation: 'Organisation des Prüfers',
         written_by: 'Festgeschrieben von',
         written_at: 'Festgeschrieben am',
+        replaces_evidence_id: 'Berichtigt den Nachweis',
+        replacement_reason: 'Grund der Berichtigung',
         state: 'Eingefrorener Stand',
         fingerprint: 'Fingerabdruck',
+      },
+    },
+    // An evidence declared invalid (ADR 0004, point 15).
+    evidence_voidings: {
+      label: 'Ungültigerklärung eines Nachweises',
+      fields: {
+        evidence_id: 'Nachweis',
+        reason: 'Grund',
+        voided_by: 'Für ungültig erklärt von',
+        voided_at: 'Für ungültig erklärt am',
       },
     },
     // The activities with the duties they meet and their work orders, and the
@@ -246,6 +258,8 @@ export const auditVocabulary: AuditVocabulary = {
     found_in_activity_id: 'activities',
     remedy_work_order_id: 'work_orders',
     work_order_id: 'work_orders',
+    evidence_id: 'evidence',
+    replaces_evidence_id: 'evidence',
   },
   personFields: [
     'substitute_user_id',
@@ -256,6 +270,7 @@ export const auditVocabulary: AuditVocabulary = {
     'written_by',
     'signed_by',
     'decided_by',
+    'voided_by',
     'confirmed_by',
     'dismissed_by',
   ],
@@ -274,8 +289,9 @@ export const auditVocabulary: AuditVocabulary = {
     // kind; a dismissal by the kind it dismissed.
     duties: ['label', 'kind'],
     duty_dismissals: ['kind'],
-    // An evidence by its number.
+    // An evidence by its number, and a declaration of invalidity by its evidence.
     evidence: ['number'],
+    evidence_voidings: ['evidence_id'],
     // An activity by its name, the duty of an activity by the duty, a work
     // order by its number and a defect by what was noticed.
     activities: ['title'],

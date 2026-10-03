@@ -46,6 +46,10 @@ export const evidenceOrigin = pgEnum('evidence_origin', evidenceOrigins)
  * refuses every change and every removal to every role, the owner and a
  * superuser included; the one change it lets through is the area that
  * follows a property into another area, by the key and nothing else.
+ *
+ * A correction is a new evidence of the same duty that names the one it
+ * replaces, with the reason, at most one for an evidence; both stay readable
+ * (ADR 0004, point 14).
  */
 export const evidence = pgTable(
   'evidence',
@@ -66,6 +70,8 @@ export const evidence = pgTable(
     examinerOrganisation: text('examiner_organisation'),
     writtenBy: text('written_by').notNull(),
     writtenAt: timestamp('written_at', { withTimezone: true }).notNull().defaultNow(),
+    replacesEvidenceId: reference<'evidence'>('replaces_evidence_id'),
+    replacementReason: text('replacement_reason'),
     state: jsonb('state').$type<StoredEvidenceState>().notNull(),
     fingerprint: text('fingerprint').notNull(),
     ...timestamps,
@@ -74,6 +80,14 @@ export const evidence = pgTable(
     tenantIsolation(table.tenantId),
     withinAreas(),
     unique('evidence_tenant_id_key').on(table.tenantId, table.id),
+    // What a correction and a declaration of invalidity point at.
+    unique('evidence_tenant_id_property_duty_key').on(
+      table.tenantId,
+      table.id,
+      table.propertyId,
+      table.dutyId,
+    ),
+    unique('evidence_tenant_id_property_key').on(table.tenantId, table.id, table.propertyId),
     foreignKey({
       columns: [table.tenantId, table.propertyId, table.areaId],
       foreignColumns: [properties.tenantId, properties.id, properties.areaId],
@@ -99,6 +113,14 @@ export const evidence = pgTable(
       foreignColumns: [memberships.tenantId, memberships.userId],
       name: 'evidence_written_by_somebody_here',
     }),
+    // A correction replaces an evidence of its own duty, and each evidence once.
+    // The key runs over the property as every key between rows with a place.
+    foreignKey({
+      columns: [table.tenantId, table.replacesEvidenceId, table.propertyId, table.dutyId],
+      foreignColumns: [table.tenantId, table.id, table.propertyId, table.dutyId],
+      name: 'evidence_replaces_one_of_its_duty',
+    }),
+    uniqueIndex('evidence_replaced_once').on(table.tenantId, table.replacesEvidenceId),
     index('evidence_duty_idx').on(table.tenantId, table.dutyId, table.performedOn),
     uniqueIndex('evidence_number_once').on(table.tenantId, table.number),
     check('evidence_number_shaped', trimmed(table.number, evidenceLimits.number)),
@@ -152,5 +174,65 @@ export const evidence = pgTable(
         and coalesce(jsonb_typeof(${table.state} -> 'version') = 'number', false)`,
     ),
     check('evidence_fingerprint_shaped', sql`${table.fingerprint} ~ '^[0-9a-f]{64}$'`),
+    // A correction names its reason, and only a correction has one.
+    check(
+      'evidence_replacement_with_a_reason',
+      sql`(${table.replacesEvidenceId} is null) = (${table.replacementReason} is null)`,
+    ),
+    check(
+      'evidence_replacement_reason_shaped',
+      optionalTrimmed(table.replacementReason, evidenceLimits.replacementReason),
+    ),
+    check('evidence_not_its_own_replacement', sql`${table.replacesEvidenceId} <> ${table.id}`),
+  ],
+)
+
+/**
+ * An evidence declared invalid (ADR 0004, point 15): the reason, who did it
+ * and when, at most one for an evidence. The evidence stays readable and
+ * carries the note wherever it is shown, and its duty counts from the
+ * evidence before it, as if it had never been written (`standingEvidence` in
+ * `domain`).
+ *
+ * At the place of its evidence, with the property and the area kept by the
+ * key over the property with ON UPDATE CASCADE and the policy `within_areas`
+ * (ADR 0003). Written once, like the evidence: the application may read and
+ * add a row, and a trigger refuses every change and every removal to every
+ * role but the area that follows its property.
+ */
+export const evidenceVoidings = pgTable(
+  'evidence_voidings',
+  {
+    id: primaryId<'evidence_voiding'>(),
+    ...tenantColumn,
+    propertyId: reference<'property'>('property_id').notNull(),
+    areaId: reference<'area'>('area_id').notNull(),
+    evidenceId: reference<'evidence'>('evidence_id').notNull(),
+    reason: text('reason').notNull(),
+    voidedBy: text('voided_by').notNull(),
+    voidedAt: timestamp('voided_at', { withTimezone: true }).notNull().defaultNow(),
+    ...timestamps,
+  },
+  (table) => [
+    tenantIsolation(table.tenantId),
+    withinAreas(),
+    unique('evidence_voidings_tenant_id_key').on(table.tenantId, table.id),
+    foreignKey({
+      columns: [table.tenantId, table.propertyId, table.areaId],
+      foreignColumns: [properties.tenantId, properties.id, properties.areaId],
+      name: 'evidence_voidings_follow_their_property',
+    }).onUpdate('cascade'),
+    foreignKey({
+      columns: [table.tenantId, table.evidenceId, table.propertyId],
+      foreignColumns: [evidence.tenantId, evidence.id, evidence.propertyId],
+      name: 'evidence_voidings_of_an_evidence_of_their_property',
+    }),
+    foreignKey({
+      columns: [table.tenantId, table.voidedBy],
+      foreignColumns: [memberships.tenantId, memberships.userId],
+      name: 'evidence_voidings_by_somebody_here',
+    }),
+    uniqueIndex('evidence_voided_once').on(table.tenantId, table.evidenceId),
+    check('evidence_voidings_reason_shaped', trimmed(table.reason, evidenceLimits.voidingReason)),
   ],
 )

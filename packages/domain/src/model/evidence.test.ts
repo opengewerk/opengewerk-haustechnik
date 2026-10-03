@@ -12,13 +12,16 @@ import {
   meetsTheDuty,
   readableStateVersions,
   readEvidenceState,
+  standingEvidence,
+  statedReasonProblem,
   UnknownEvidenceStateError,
 } from './evidence.js'
 
 /**
  * A state of each version as a row carries it, written once and never
- * changed: the first as the server writes it since #26. A new version adds
- * its own here, and the test below turns red until it does.
+ * changed: the first as the server wrote it from the second part of #26, the
+ * second with the evidence a correction replaces, from its fourth part. A new
+ * version adds its own here, and the test below turns red until it does.
  */
 const storedStates: Readonly<Record<number, unknown>> = {
   1: JSON.parse(
@@ -35,6 +38,21 @@ const storedStates: Readonly<Record<number, unknown>> = {
       '"retention":{"kind":"until_next_inspection","on":"2026-10-01"},' +
       '"signatures":[{"name":"Hanna Probe","role":"signer","signedAt":"2026-10-01T09:30:00.000Z"}],' +
       '"version":1,"writtenAt":"2026-10-01T09:31:12.345Z","writtenBy":"Hanna Probe"}',
+  ),
+  2: JSON.parse(
+    '{"activity":null,"defects":[],' +
+      '"duty":{"counting":"betrsichv","interval":{"months":24},"kind":"probe.elevator_main_test","kindVersion":1,' +
+      '"label":"Hauptprüfung der Aufzugsanlage","source":"§ 16 Abs. 3 BetrSichV"},' +
+      '"files":[],"number":"NW-2026-00002","origin":"report","performedOn":"2026-09-30",' +
+      '"performer":{"examiner":"Erika Muster","organisation":"Prüfstelle Süd"},' +
+      '"place":{"asset":{"kind":"probe.elevator","kindLabel":"Aufzugsanlage","name":"Aufzug","number":"AN-00001",' +
+      '"serialNumber":null},"building":{"name":"Haus A","shortCode":null},' +
+      '"property":{"address":"Hauptstraße 1, 68535 Edingen-Neckarhausen","name":"Campus"},"room":null},' +
+      '"replaces":{"number":"NW-2026-00001","reason":"Der Prüfbericht nennt den 30. September."},' +
+      '"result":"without_defects","resultReason":null,' +
+      '"retention":{"kind":"until_next_inspection","on":"2026-09-30"},' +
+      '"signatures":[],' +
+      '"version":2,"writtenAt":"2026-10-02T14:05:00.000Z","writtenBy":"Hanna Probe"}',
   ),
 }
 
@@ -70,7 +88,9 @@ describe('the frozen state', () => {
   it('reads a state of the first version', () => {
     const state: EvidenceState = readEvidenceState(storedStates[1])
 
-    expect(state.version).toBe(1)
+    // In the newest shape: no evidence of the first version corrects another.
+    expect(state.version).toBe(evidenceStateVersion)
+    expect(state.replaces).toBeNull()
     expect(state.number).toBe('NW-2026-00001')
     expect(state.duty.label).toBe('Hauptprüfung der Aufzugsanlage')
     expect(state.place.asset?.number).toBe('AN-00001')
@@ -84,6 +104,19 @@ describe('the frozen state', () => {
     expect(state.signatures[0]?.role).toBe('signer')
     // Stored in its canonical form, as the server writes it.
     expect(canonicalForm(storedStates[1])).toBe(JSON.stringify(storedStates[1]))
+  })
+
+  it('reads a state of the second version, with the evidence a correction replaces', () => {
+    const state = readEvidenceState(storedStates[2])
+
+    expect(state.version).toBe(2)
+    expect(state.number).toBe('NW-2026-00002')
+    expect(state.replaces).toEqual({
+      number: 'NW-2026-00001',
+      reason: 'Der Prüfbericht nennt den 30. September.',
+    })
+    expect(state.performer).toEqual({ examiner: 'Erika Muster', organisation: 'Prüfstelle Süd' })
+    expect(canonicalForm(storedStates[2])).toBe(JSON.stringify(storedStates[2]))
   })
 
   it('has a reader and a stored example for every version up to the newest', () => {
@@ -114,6 +147,47 @@ describe('the frozen state', () => {
     expect(refused({ version: '1' })).toBe('Einen Stand der Fassung 1 kennt dieser Leser nicht.')
     expect(refused(null)).toBe('Einen Stand der Fassung undefined kennt dieser Leser nicht.')
     expect(refused([1])).toBe('Einen Stand der Fassung undefined kennt dieser Leser nicht.')
+  })
+})
+
+describe('the evidence that counts for the due day', () => {
+  const row = (id: string, replacesEvidenceId: string | null = null) => ({ id, replacesEvidenceId })
+
+  it('is the evidence nobody replaced and nobody declared invalid', () => {
+    const rows = [row('first'), row('second'), row('correction', 'first'), row('third')]
+
+    expect(standingEvidence(rows, new Set()).map((entry) => entry.id)).toEqual([
+      'second',
+      'correction',
+      'third',
+    ])
+    expect(standingEvidence(rows, new Set(['third'])).map((entry) => entry.id)).toEqual([
+      'second',
+      'correction',
+    ])
+  })
+
+  it('leaves an evidence replaced when its correction is declared invalid in turn', () => {
+    const rows = [row('first'), row('correction', 'first'), row('second correction', 'correction')]
+
+    expect(standingEvidence(rows, new Set()).map((entry) => entry.id)).toEqual([
+      'second correction',
+    ])
+    expect(standingEvidence(rows, new Set(['second correction']))).toEqual([])
+  })
+})
+
+describe('the reason of a correction or a declaration of invalidity', () => {
+  it('is given, and has at most as many characters as allowed', () => {
+    const missing = 'Eine Berichtigung nennt ihren Grund.'
+
+    expect(statedReasonProblem(undefined, 500, missing)).toBe(missing)
+    expect(statedReasonProblem('   ', 500, missing)).toBe(missing)
+    expect(statedReasonProblem(' Falscher Tag. ', 500, missing)).toBeUndefined()
+    expect(statedReasonProblem('x'.repeat(500), 500, missing)).toBeUndefined()
+    expect(statedReasonProblem('x'.repeat(501), 500, missing)).toBe(
+      'Der Grund hat höchstens 500 Zeichen.',
+    )
   })
 })
 

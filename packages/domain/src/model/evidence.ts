@@ -69,10 +69,15 @@ export const evidenceLimits = {
   examiner: 200,
   examinerOrganisation: 200,
   resultReason: 500,
+  replacementReason: 500,
+  voidingReason: 500,
 } as const
 
-/** The number of the newest shape of the frozen state, counted up when a field comes in. */
-export const evidenceStateVersion = 1
+/**
+ * The number of the newest shape of the frozen state, counted up when a field
+ * comes in: 2 since a correction names the evidence it replaces (#26).
+ */
+export const evidenceStateVersion = 2
 
 /** The place of an evidence in words, as it was on the day it was written down. */
 export interface StatedPlace {
@@ -132,6 +137,12 @@ export interface StatedFile {
   readonly mediaType: string
 }
 
+/** The evidence a correction replaces: its number, and why it is replaced (ADR 0004, point 14). */
+export interface StatedReplacement {
+  readonly number: string
+  readonly reason: string
+}
+
 /**
  * The frozen state of an evidence (ADR 0004, points 3 to 6): everything the
  * page said, as JSON, written by the server when the evidence is written down
@@ -151,6 +162,8 @@ export interface EvidenceState {
   readonly result: EvidenceResult
   /** Why it was not performed; only a result "not performed" has one. */
   readonly resultReason: string | null
+  /** The evidence this one corrects, since version 2; none for one that corrects nothing. */
+  readonly replaces: StatedReplacement | null
   readonly duty: StatedDuty
   readonly place: StatedPlace
   readonly activity: { readonly kind: ActivityKind; readonly title: string } | null
@@ -181,13 +194,24 @@ export class UnknownEvidenceStateError extends Error {
   }
 }
 
+/** The first version: all of the second but the evidence a correction replaces. */
+type EvidenceStateOfVersion1 = Omit<EvidenceState, 'version' | 'replaces'> & {
+  readonly version: 1
+}
+
 /**
  * One reader per version that was ever written, each handing out the newest
  * shape. A version is never taken out: a state of the first version is read
  * as long as the application exists (ADR 0004, point 4).
  */
 const readers: Readonly<Record<number, (stored: StoredEvidenceState) => EvidenceState>> = {
-  1: (stored) => stored as unknown as EvidenceState,
+  // No evidence of the first version corrects another.
+  1: (stored) => ({
+    ...(stored as unknown as EvidenceStateOfVersion1),
+    version: evidenceStateVersion,
+    replaces: null,
+  }),
+  2: (stored) => stored as unknown as EvidenceState,
 }
 
 /** The versions this reader knows. */
@@ -231,9 +255,62 @@ export interface Evidence extends TenantOwned {
   readonly examinerOrganisation: string | null
   readonly writtenBy: string
   readonly writtenAt: Date
+  /** The evidence of the same duty this one corrects, with the reason; both stay. */
+  readonly replacesEvidenceId: EvidenceId | null
+  readonly replacementReason: string | null
   readonly state: StoredEvidenceState
   /** SHA-256 over the canonical form of the state, as 64 hexadecimal digits. */
   readonly fingerprint: string
+}
+
+export type EvidenceVoidingId = Id<'evidence_voiding'>
+
+/**
+ * An evidence declared invalid (ADR 0004, point 15): the reason, who did it
+ * and when, at most one for an evidence and itself never changed. The
+ * evidence stays readable and carries the note wherever it is shown.
+ */
+export interface EvidenceVoiding extends TenantOwned {
+  readonly id: EvidenceVoidingId
+  readonly propertyId: PropertyId
+  readonly areaId: AreaId
+  readonly evidenceId: EvidenceId
+  readonly reason: string
+  readonly voidedBy: string
+  readonly voidedAt: Date
+}
+
+/**
+ * The evidence that counts for the due day of its duty: the ones neither
+ * replaced by a correction nor declared invalid (ADR 0004, points 14 and 15).
+ * A correction counts in place of the evidence it replaces, and an invalid
+ * one counts no more, so the duty of a falsely signed round is open again.
+ * An evidence a correction replaces stays replaced when the correction is
+ * declared invalid in turn: what is wrong with both is written anew.
+ */
+export function standingEvidence<
+  Row extends { readonly id: string; readonly replacesEvidenceId: string | null },
+>(rows: readonly Row[], voided: ReadonlySet<string>): Row[] {
+  const replaced = new Set(
+    rows.flatMap((row) => (row.replacesEvidenceId === null ? [] : [row.replacesEvidenceId])),
+  )
+
+  return rows.filter((row) => !replaced.has(row.id) && !voided.has(row.id))
+}
+
+/** What is wrong with the reason a correction or a declaration of invalidity gives. */
+export function statedReasonProblem(
+  reason: unknown,
+  limit: number,
+  missing: string,
+): string | undefined {
+  if (typeof reason !== 'string' || reason.trim() === '') {
+    return missing
+  }
+
+  return reason.trim().length > limit
+    ? `Der Grund hat höchstens ${String(limit)} Zeichen.`
+    : undefined
 }
 
 /**
