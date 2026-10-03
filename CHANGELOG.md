@@ -139,6 +139,17 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   die Verwaltung der Instanz nennt, gibt diese Anwendung dem Fundament mit, damit er hier so
   heißt wie im Konzept. Gebaut ist davon hier noch nichts. Die Tests des Fundaments dazu laufen
   in der CI dieses Repositorys mit, 432 statt 351
+- Das Fundament ist auf den Stand mit seiner Oberfläche angehoben (`opengewerk/opengewerk#482`
+  bis `#497`). `@opengewerk/platform-web` ist damit Mitglied des Arbeitsbereichs: Tokens und
+  Bausteine der Bildschirme, der Abgleich auf dem Gerät, die Sitzung, das Tor vor der Anmeldung,
+  die Hülle der beiden Einstiege, "Konto", die Zugänge und der Bereich der Instanz, Kamera, Scan
+  und Unterschrift, der Konfliktbildschirm, Service Worker und Manifeste und die Prüfungen der CI
+  als Werkzeug. Wie diese Anwendung heißt und was sie dazu sagt, gibt sie dem Fundament einmal
+  als Wert mit, wenn ihre Oberfläche entsteht (#13); gebaut ist davon hier noch nichts. Dazu
+  heißt der Kopf, in dem eine Seite ihren Betreiber nennt, jetzt `x-opengewerk-tenant`, und die
+  Pfade, die der Server des Fundaments selbst beantwortet, stehen als `foundationPaths` in
+  `platform-domain`. Die Tests des Fundaments laufen in der CI dieses Repositorys mit: 95 in
+  `platform-domain`, 437 in `platform-server` und 693 in `platform-web`
 - `pnpm run check:toolchain` vergleicht auch die Fassungen der Abhängigkeiten, die ein Paket
   dieser Anwendung und ein Paket des Fundaments beide laden, zuerst `drizzle-orm` und `pg`. Zwei
   Fassungen davon in einem Prozess hießen Tabellen, die mit der einen angelegt und mit der
