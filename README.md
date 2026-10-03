@@ -71,10 +71,19 @@ Ein Teil der Tests braucht ein PostgreSQL 18 und leert es vor jedem Lauf. Dafür
 | --- | --- |
 | [`packages/domain`](packages/domain) | Fachlichkeit ohne I/O: der Katalog der Rechte und die Rollen, mit denen ein Betreiber beginnt. Reicht weiter, was das Fundament exportiert, damit Server und Oberfläche ein Paket fragen |
 | [`packages/server`](packages/server) | Die Datenbank dieser Anwendung (Schema, Migrationen und der Befehl, der sie einspielt) und die Schnittstelle, soweit das Fundament sie mitbringt: Anmeldung, Zugänge und der Bereich der Instanz, hinter dem Guard. Gestartet wird sie noch nicht |
+| [`packages/web`](packages/web) | Die Oberfläche mit zwei Einstiegen, `/` für das Büro und `/m` für die Arbeit vor Ort. Bisher die Hülle des Fundaments mit dem, was diese Anwendung dazu sagt: Tor und Anmeldung, "Konto", "Zugänge", der Bereich der Instanz, die Leiste des Abgleichs und der Konfliktbildschirm, mit Service Worker und Manifesten |
 | `upstream/opengewerk/packages/platform/*` | Das Fundament: Mandantentrennung, Anmeldung, Rechte, Abgleich auf dem Gerät und auf dem Server samt seinen Routen, Audit-Log, der Einstieg des Servers und die Oberfläche, die jede Anwendung zeigt, bevor ihr erster eigener Bildschirm kommt, mit den Bausteinen, aus denen sie ihre Bildschirme baut. Wird im Repository `opengewerk` geändert, nie hier |
 | `upstream/opengewerk/docker/` | Einrichten, Starten und Sichern einer Instanz und die Prüfungen eines laufenden Stapels, als Skripte des Fundaments. Eine Anwendung ruft sie gegen ihren eigenen Ordner auf, mit ihren Namen in `application.env`; hier kommt das mit dem eigenen Betrieb (#15) |
 
-Die Oberfläche entsteht mit ihrem ersten Inhalt, ihrer Hülle.
+Die Oberfläche baut Vite in ein `dist` mit beiden Einstiegen. Zwei Prüfungen laufen danach auf dem Bau, lokal wie in der CI: das Bündelbudget je Einstieg und die Suche nach Wörtern der Handwerkersoftware, denn hier heißt der Mandant "Betreiber", wer ihn führt, "Leitung", und der Einstieg für die Arbeit vor Ort "Vor Ort".
+
+```bash
+pnpm --filter @opengewerk/haustechnik-web run build
+pnpm --filter @opengewerk/haustechnik-web run budget
+pnpm --filter @opengewerk/haustechnik-web run words
+```
+
+In der Entwicklung liefert `pnpm --filter @opengewerk/haustechnik-web run dev` beide Einstiege aus und reicht jeden Pfad der Schnittstelle an den Server auf Port 23800 weiter. Die Markendateien liegen unter `assets/brand` als die eine Kopie, die eine selbst betriebene Anwendung braucht; ihre Quelle ist das Repository `.github` der Organisation.
 
 ### Datenbank und Migrationen
 

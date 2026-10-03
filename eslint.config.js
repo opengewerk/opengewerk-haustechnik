@@ -7,6 +7,7 @@ import {
   generated,
   layersAbove,
   mayNotImport,
+  runsInBrowser,
   runsInNode,
 } from './upstream/opengewerk/eslint.shared.js'
 
@@ -69,13 +70,21 @@ export default configuration(
     ignores: ['packages/domain/**'],
   },
 
-  // The server runs in Node and nowhere else.
+  // The server runs in Node and nowhere else, the interface in a browser.
   runsInNode(['packages/server/**/*.ts']),
+  runsInBrowser(['packages/web/**/*.{ts,tsx}']),
 
-  // The shared configuration at the root and the scripts beside it run in
-  // Node. The build tooling is the one place where reading the environment
-  // and writing to a console is the job.
-  runsInNode(['*.js', '*.config.js', '*.config.ts', 'scripts/**/*.js']),
+  // The shared configuration at the root, the scripts beside it and the small
+  // scripts a package keeps beside its source run in Node. The build tooling
+  // is the one place where reading the environment and writing to a console
+  // is the job.
+  runsInNode([
+    '*.js',
+    '*.config.js',
+    '*.config.ts',
+    'scripts/**/*.js',
+    'packages/*/scripts/**/*.js',
+  ]),
 
   formatting,
 )

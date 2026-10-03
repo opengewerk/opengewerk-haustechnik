@@ -92,6 +92,19 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   mit den Routen ohne Anmeldung als Liste, die sich nur mit Absicht verlängert; und gegen die
   echte Datenbank der Weg von der leeren Instanz über die Ersteinrichtung bis zur Anmeldung, bei
   der die Leitung ohne zweiten Faktor nicht weiterkommt
+- Die Oberfläche beginnt mit ihrer Hülle (#13, erster Teil): das Paket
+  `@opengewerk/haustechnik-web` mit den beiden Einstiegen `/` für das Büro und `/m` für die
+  Arbeit vor Ort, mit Tor, Anmeldung, Ersteinrichtung, Einladung, zweitem Faktor, "Konto",
+  "Zugänge", dem Bereich der Instanz, der Leiste des Abgleichs und dem Konfliktbildschirm aus dem
+  Fundament. Was diese Anwendung dazu sagt, sagt sie in ihren Worten: der Mandant ist der
+  Betreiber, wer ihn führt, die Leitung, wer die Instanz betreibt, die Verwaltung der Instanz,
+  und die Einstiege heißen "Büro" und "Vor Ort". Name, Symbol und beide Manifeste tragen
+  "OpenGewerk Haustechnik"; die Markendateien liegen als die eine erlaubte Kopie unter
+  `assets/brand`. Bis die Datensätze aus Phase 1 eigene Listen haben, beginnt das Büro bei den
+  Einstellungen und der Einstieg vor Ort bei den Konflikten. Die CI prüft das Bündelbudget je
+  Einstieg (gebaut 150 kB vor Ort und 168 kB im Büro, Grenzen 300 und 450 kB) und den Bau auf
+  Wörter der Handwerkersoftware für Betreiber, Leitung und den Einstieg vor Ort. Der Einstieg
+  vor Ort öffnet auf einem Gerät, das schon angemeldet war, auch ohne Netz
 
 ### Geändert
 
@@ -169,6 +182,12 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   gebunden werden die Routen mit der Leiste des Abgleichs (#13), die Richtlinien je Entität und
   die Auswahl nach Bereich mit #27. Die Tests des Fundaments laufen in der CI dieses Repositorys
   mit, in `platform-server` jetzt 526 statt 479
+- Das Fundament ist auf den Stand mit den neuesten Fassungen seiner Werkzeuge angehoben
+  (`opengewerk/opengewerk#503`): `vite` 8.3.2, `vitest` 5.0.3, `@tanstack/react-router`
+  1.170.41, `@tanstack/react-query` 5.104.0 und `lucide-react` 1.49.0. Die Oberfläche dieser
+  Anwendung beginnt damit auf der neuesten Fassung, und `vitest` steht hier wie dort auf 5.0.3.
+  `@opengewerk/haustechnik-domain` sagt jetzt, dass das Laden eines Moduls nichts tut
+  (`sideEffects: false`), damit der Service Worker nur die eine Liste mitnimmt, die er braucht
 - `pnpm run check:toolchain` vergleicht auch die Fassungen der Abhängigkeiten, die ein Paket
   dieser Anwendung und ein Paket des Fundaments beide laden, zuerst `drizzle-orm` und `pg`. Zwei
   Fassungen davon in einem Prozess hießen Tabellen, die mit der einen angelegt und mit der
