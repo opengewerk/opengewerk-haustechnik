@@ -1,4 +1,9 @@
-import { type Identity, offlineRules, type Right } from '@opengewerk/haustechnik-domain'
+import {
+  type Identity,
+  offlineRules,
+  type Right,
+  syncEntities,
+} from '@opengewerk/haustechnik-domain'
 import {
   type FoundIdentity,
   serverSync,
@@ -16,14 +21,29 @@ import { answerFor } from './database-errors.js'
 // words for a refusal of the database.
 
 /**
+ * The tables that travel: those of the schema module with a policy. A table
+ * carries the columns of the sync from its first migration, and the pull reads
+ * every table that has them; without this a table would travel before its
+ * rules say what a device may do with it and which device holds which rows
+ * (#27). The places carry the columns since #18 and stay on the server until
+ * then.
+ */
+export function travellingTables(
+  all: ReturnType<typeof syncTables>,
+  entities: readonly string[],
+): ReturnType<typeof syncTables> {
+  return new Map([...all].filter(([entity]) => entities.includes(entity)))
+}
+
+/**
  * The sync on the server of this application: its rules, made from its
- * policies, and the tables of its schema module, so that a table that comes
- * to travel is found without a second list. No record travels yet (#27): the
- * rules know no entity, and no table carries the columns a pull reads.
+ * policies, and the tables of its schema module that have one, so that a
+ * table that comes to travel is found without a second list. No record
+ * travels yet (#27): the rules know no entity.
  */
 export const sync = serverSync<FoundIdentity<Identity>>({
   rules: offlineRules,
-  tables: syncTables(schema),
+  tables: travellingTables(syncTables(schema), syncEntities),
 })
 
 /**

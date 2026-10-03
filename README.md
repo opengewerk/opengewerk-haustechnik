@@ -28,7 +28,7 @@ Die Handwerkersoftware [`opengewerk`](https://github.com/opengewerk/opengewerk) 
 
 ## Status
 
-OpenGewerk Haustechnik steht am Anfang von **Phase 0**, dem Fundament. Das Konzept ist ausgearbeitet, der Arbeitsbereich bindet das Fundament der Handwerkersoftware ein, die erste Migration legt es in einer leeren Datenbank an, und die Rechte und die vier Rollen aus Phase 1 sind an Anmeldung und Zugangsverwaltung des Fundaments gebunden. Eine Installation startet mit einem Befehl über Docker Compose, sichert sich jede Nacht und aktualisiert in zwei Schritten, mit der Oberfläche des Fundaments und dem Änderungsprotokoll in den Worten dieser Anwendung. Die Zuständigkeitsbereiche setzt die Datenbank durch; Datensätze mit einem Ort hat sie noch nicht. Ein Pilotbetrieb mit mehreren Liegenschaften steht bereit; Version 1 ist erreicht, wenn er seine bisherige Anwendung abschalten kann.
+OpenGewerk Haustechnik steht am Anfang von **Phase 0**, dem Fundament. Das Konzept ist ausgearbeitet, der Arbeitsbereich bindet das Fundament der Handwerkersoftware ein, die erste Migration legt es in einer leeren Datenbank an, und die Rechte und die vier Rollen aus Phase 1 sind an Anmeldung und Zugangsverwaltung des Fundaments gebunden. Eine Installation startet mit einem Befehl über Docker Compose, sichert sich jede Nacht und aktualisiert in zwei Schritten, mit der Oberfläche des Fundaments und dem Änderungsprotokoll in den Worten dieser Anwendung. Die Zuständigkeitsbereiche setzt die Datenbank durch, und der Ort von der Liegenschaft bis zum Raum ist als Daten und Schnittstelle gebaut; Bildschirme dafür kommen in Phase 1. Ein Pilotbetrieb mit mehreren Liegenschaften steht bereit; Version 1 ist erreicht, wenn er seine bisherige Anwendung abschalten kann.
 
 Das vollständige Konzept liegt unter [`docs/konzept/`](docs/konzept/), die Architekturentscheidungen dieser Anwendung unter [`docs/adr/`](docs/adr/). Was in Phase 0 gebaut wird, steht als Issues im Meilenstein [Phase 0: Fundament](https://github.com/opengewerk/opengewerk-haustechnik/milestone/1).
 
@@ -186,7 +186,15 @@ Was eine Person sieht, gibt die Anwendung nicht weiter. Zwei Funktionen der Date
 
 Ein neuer Betreiber bekommt mit seiner ersten Zugehörigkeit den Bereich "Alle Liegenschaften" und merkt sonst nichts davon. Leitung und Technische Leitung sehen von Haus aus alle Bereiche, die anderen den einen, solange es nur einen gibt; das gibt ein Trigger an `memberships`, weil jeder Weg in einen Betreiber eine Zugehörigkeit schreibt und keiner davon Bereiche kennt. Die Liste dieser Rollen ist `rolesSeeingEveryArea` in `packages/domain`.
 
-Noch hat keine Tabelle einen Ort; die Liegenschaften kommen mit #18. `areas.test.ts` prüft die Grenze deshalb an Tabellen, die der Test nach dem Baustein anlegt, und `areaBoundaryProblems` aus `test-areas.ts` fragt den Katalog: eine Tabelle mit Ort ohne Spalte, Schlüssel oder Policy macht `tenant-isolation.test.ts` rot, ebenso eine Policy, die die Funktionen direkt aufruft, und ein Schlüssel, der auf eine Zeile mit Bereich zeigt, ohne über Betreiber und Liegenschaft zu laufen.
+`areas.test.ts` prüft die Grenze an den Tabellen des Orts, und `areaBoundaryProblems` aus `test-areas.ts` fragt den Katalog: eine Tabelle mit Ort ohne Spalte, Schlüssel oder Policy macht `tenant-isolation.test.ts` rot, ebenso eine Policy, die die Funktionen direkt aufruft, und ein Schlüssel, der auf eine Zeile mit Bereich zeigt, ohne über Betreiber und Liegenschaft zu laufen.
+
+### Der Ort
+
+Liegenschaft, Gebäude, Geschoss und Raum (ADR 0002) liegen in `properties`, `buildings`, `floors` und `rooms`. Jede Ebene trägt die Kennungen der Ebenen darüber und den Bereich ihrer Liegenschaft, und zusammengesetzte Schlüssel halten sie zusammen: ein Raum steht auf einem Geschoss seines Gebäudes, ein Gebäude auf seiner Liegenschaft. Die Prüfungen jeder Ebene stehen in `packages/domain/src/model/location.ts` (`propertyProblems` und die übrigen) und dieselben noch einmal als Checks in der Datenbank; `schema-matches-domain.ts` lässt den Compiler die Zeilen gegen das Modell halten. Gelöscht wird durch Markieren, und ein Trigger markiert, was darunter hängt.
+
+Die Routen liegen unter `/properties`, `/buildings`, `/floors` und `/rooms`. Angelegt wird unter der Ebene darüber (`POST /properties/:id/buildings`, `POST /buildings/:id/floors`, `POST /floors/:id/rooms`), und Liegenschaft, Bereich und Gebäude kommen aus ihr, nie aus dem Rumpf. Ein Betreiber mit einem einzigen Bereich nennt beim Anlegen einer Liegenschaft keinen. Einen Raum verlegt `PUT /rooms/:id/floor` mit dem Recht, die Struktur zu pflegen; Nummer, Bezeichnung und Nutzung ändert, wer Räume aufnehmen darf.
+
+Die Orte tragen die Spalten des Abgleichs, reisen aber erst mit den Regeln des Abgleichs (#27): bis dahin gibt der Server nur Tabellen mit einer Richtlinie heraus (`travellingTables` in `packages/server/src/api/sync-routes.ts`).
 
 ### Das Änderungsprotokoll
 

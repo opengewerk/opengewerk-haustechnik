@@ -8,8 +8,13 @@
  * of the interface, which forwards them to the server. A path missing from one
  * of the three comes back as HTML where a program expects JSON.
  *
- * Empty so far: every route of this server is one the foundation brings. The
- * test of the routes holds the list against the controllers, in both
+ * The test of the routes holds the list against the controllers, in both
  * directions.
  */
-export const serverPaths: readonly string[] = []
+export const serverPaths: readonly string[] = [
+  // The place, from the property to the room.
+  'properties',
+  'buildings',
+  'floors',
+  'rooms',
+]

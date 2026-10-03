@@ -22,6 +22,9 @@ export * from './model/tenant.js'
 // who stands in for whom.
 export * from './model/area.js'
 
+// The place: properties, buildings, floors and rooms.
+export * from './model/location.js'
+
 // What a device may create, change and hold, and the rules server and device
 // decide an operation by.
 export * from './model/sync.js'

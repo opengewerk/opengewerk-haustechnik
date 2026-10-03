@@ -163,6 +163,23 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   jede Zeile darunter mitnimmt, und die Vertretung an ihren Tagen. Ein Katalogtest wird rot,
   sobald eine Tabelle mit Ort einen Teil der Grenze vergisst oder ihre Policy die Funktionen
   direkt aufruft, was beim Zählen von 6000 Anlagen 54.160 statt 169 Puffer kostet
+- Der Ort (#18, ADR 0002): Liegenschaft mit Anschrift, Bundesland und Bereich, Gebäude mit
+  Kürzel, Gebäudearten und Baujahr, Geschoss mit Ebene, Raum mit Nummer, Bezeichnung und
+  Nutzung, in den Tabellen `properties`, `buildings`, `floors` und `rooms`. Jede Ebene trägt
+  die Kennungen der Ebenen darüber, und zusammengesetzte Schlüssel lassen einen Raum nur auf
+  einem Geschoss seines Gebäudes stehen und ein Gebäude nur auf seiner Liegenschaft. Jede
+  Zeile trägt den Bereich ihrer Liegenschaft, die Policy aus dem Baustein der Bereiche und die
+  Spalten des Abgleichs; verlegt die Leitung eine Liegenschaft in einen anderen Bereich, zieht
+  jede Zeile darunter mit. Gelöscht wird durch Markieren, und was darunter hängt, wird im selben
+  Augenblick mitmarkiert. Ein Gebäude hat eine Gebäudeart oder mehrere, aus den Sonderbauten
+  des § 38 Abs. 2 LBO Baden-Württemberg, dazu Wohngebäude, Garage, Außenanlage und Sonstiges:
+  eine Schule mit Aula ist auch Versammlungsstätte. Die Routen unter `/properties`,
+  `/buildings`, `/floors` und `/rooms` legen an, ändern, verlegen einen Raum und löschen, mit
+  den Rechten aus Abschnitt 7 des Konzepts: Räume nimmt auf, wer vor Ort arbeitet, die
+  Struktur pflegen Leitung und Technische Leitung. Dieselben Prüfungen stehen in `domain` und
+  in der Datenbank, und der Compiler hält die Typen der Zeilen gegen das Modell. Die Flächen
+  kommen nach dem Fahrplan des Konzepts in Phase 3, die Bildschirme in Phase 1, und auf ein
+  Gerät reisen die Orte erst mit den Regeln des Abgleichs (#27)
 
 ### Geändert
 

@@ -29,9 +29,29 @@ export const auditVocabulary: AuditVocabulary = {
         ends_on: 'Bis',
       },
     },
+    // The place (ADR 0002).
+    properties: {
+      label: 'Liegenschaft',
+      fields: {
+        street: 'Straße',
+        postal_code: 'Postleitzahl',
+        city: 'Ort',
+        federal_state: 'Bundesland',
+      },
+    },
+    buildings: {
+      label: 'Gebäude',
+      fields: { short_code: 'Kürzel', kinds: 'Gebäudearten', year_built: 'Baujahr' },
+    },
+    floors: { label: 'Geschoss', fields: { level: 'Ebene' } },
+    rooms: {
+      label: 'Raum',
+      fields: { floor_id: 'Geschoss', number: 'Raumnummer', use: 'Nutzung' },
+    },
   },
-  // Every row with a place will carry its area (ADR 0003, point 4).
-  commonFields: { area_id: 'Bereich' },
+  // Every row with a place carries its area and the levels above it (ADR 0002,
+  // point 2, and ADR 0003, point 4).
+  commonFields: { area_id: 'Bereich', property_id: 'Liegenschaft', building_id: 'Gebäude' },
   // A tenant is a "Betreiber", whoever leads one its "Leitung", and whoever
   // runs the instance the "Verwaltung der Instanz" (ADR 0001, point 11).
   foundation: {
@@ -50,7 +70,12 @@ export const auditVocabulary: AuditVocabulary = {
   },
   parts: {},
   records: [],
-  references: { area_id: 'areas' },
+  references: {
+    area_id: 'areas',
+    property_id: 'properties',
+    building_id: 'buildings',
+    floor_id: 'floors',
+  },
   personFields: ['substitute_user_id', 'absent_user_id'],
   // Rows without a name of their own are named after the person they are
   // about, and a substitution after the person whose areas it takes over.
@@ -58,6 +83,8 @@ export const auditVocabulary: AuditVocabulary = {
     member_all_areas: ['user_id'],
     member_areas: ['user_id'],
     substitutions: ['absent_user_id'],
+    // A room by its number, and by its name where it has none.
+    rooms: ['number', 'name'],
   },
   reasons: {},
   rights: rightLabel,

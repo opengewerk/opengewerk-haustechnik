@@ -98,6 +98,36 @@ describe('the sync of this application', () => {
     })
   })
 
+  /**
+   * The places carry the columns of the sync from their first migration (#18),
+   * and the pull reads every table that has them. Until the rules of the sync
+   * say what a device may do with a place and which device holds which (#27),
+   * none of them travels, also not to whoever sees every area.
+   */
+  it('hands out no place before the places have their rules', async () => {
+    await admin.query(
+      `insert into auth_users (id, name, email) values ('u-lead', 'Leitung', 'leitung@nord.example')`,
+    )
+    // The first membership gives the tenant its area, and the Leitung every area.
+    await admin.query(
+      `insert into memberships (tenant_id, user_id, roles) values ($1, 'u-lead', '{management}')`,
+      [tenantId],
+    )
+    await admin.query(
+      `insert into properties (tenant_id, area_id, name, street, postal_code, city, federal_state)
+       select $1, id, 'Campus Nord', 'Nordstraße 12', '68535', 'Edingen-Neckarhausen', 'DE-BW'
+         from areas where tenant_id = $1`,
+      [tenantId],
+    )
+
+    const answer = await http()
+      .get('/sync?since=0')
+      .set(testIdentityHeader, as(tenantId, 'u-lead', 'management'))
+      .expect(200)
+
+    expect(answer.body).toEqual({ changes: [], cursor: 0, hasMore: false, narrowed: {} })
+  })
+
   it('takes an empty outbox, as a device sends one that holds nothing', async () => {
     const answer = await http()
       .post('/sync')

@@ -23,6 +23,7 @@ import {
   unprotected,
   withoutTheTenant,
 } from './test-database.js'
+import { inEveryArea } from './every-area.js'
 import { areaBoundaryProblems } from './test-areas.js'
 
 /**
@@ -94,6 +95,9 @@ const tomorrow = new Date(Date.now() + 24 * 60 * 60 * 1000)
  */
 function rowsOf(tenant: Tenant): readonly Row[] {
   const area = randomUUID()
+  const property = randomUUID()
+  const building = randomUUID()
+  const floor = randomUUID()
 
   return [
     {
@@ -209,6 +213,54 @@ function rowsOf(tenant: Tenant): readonly Row[] {
         absent_user_id: tenant.colleagueId,
         starts_on: '2026-10-05',
         ends_on: '2026-10-09',
+      },
+    },
+    // The place, from the property to the room, in the area above.
+    {
+      table: 'properties',
+      values: {
+        id: property,
+        tenant_id: tenant.id,
+        area_id: area,
+        name: 'Wohnanlage Nordstraße',
+        street: 'Nordstraße 12',
+        postal_code: '68535',
+        city: 'Edingen-Neckarhausen',
+        federal_state: 'DE-BW',
+      },
+    },
+    {
+      table: 'buildings',
+      values: {
+        id: building,
+        tenant_id: tenant.id,
+        property_id: property,
+        area_id: area,
+        name: 'Haus A',
+        kinds: ['residential'],
+      },
+    },
+    {
+      table: 'floors',
+      values: {
+        id: floor,
+        tenant_id: tenant.id,
+        building_id: building,
+        property_id: property,
+        area_id: area,
+        name: 'Erdgeschoss',
+        level: 0,
+      },
+    },
+    {
+      table: 'rooms',
+      values: {
+        tenant_id: tenant.id,
+        floor_id: floor,
+        building_id: building,
+        property_id: property,
+        area_id: area,
+        number: '0.01',
       },
     },
   ]
@@ -484,17 +536,29 @@ describe('the tables', () => {
   })
 
   /**
-   * The second line, between the areas of a tenant (ADR 0003). No table of
-   * this database has a place yet; the first arrives with the properties
-   * (#18), and from then on a table with a place that lacks any part of the
-   * line turns this red. That the check finds what it looks for is shown on
-   * tables built for the purpose, in `areas.test.ts`.
+   * The second line, between the areas of a tenant (ADR 0003). A table with a
+   * place that lacks any part of it turns this red; that the check finds what
+   * it looks for is shown in `areas.test.ts`, on tables built to lack one part
+   * each.
    */
   it('draw the line between the areas wherever a row has a place', async () => {
+    const { rows } = await admin.query<{ tables: number }>(
+      `select count(distinct polrelid)::int as tables from pg_policy where polname = 'within_areas'`,
+    )
+
+    // A floor, so that a check that finds no table with a place cannot pass:
+    // the four levels of the place carry the line since #18.
+    expect(rows[0]?.tables).toBeGreaterThanOrEqual(4)
     expect(await areaBoundaryProblems(admin)).toEqual([])
   })
 })
 
+/**
+ * Every transaction below that reads or writes as a tenant does so in every
+ * area of it (`inEveryArea`), so that what is seen or refused is the line
+ * between the tenants and not the one between the areas, which
+ * `areas.test.ts` holds.
+ */
 describe('a tenant', () => {
   /**
    * Table by table, and the tables come from the catalogue. A table of a
@@ -509,7 +573,7 @@ describe('a tenant', () => {
     for (const { table, tenantColumn } of tables) {
       const select = `select "${tenantColumn}"::text as tenant from "${table}"`
       const through = async (tenant: Tenant) => {
-        const result = await database.forTenant({ tenantId: tenant.id }, (tx) =>
+        const result = await inEveryArea(database, { tenantId: tenant.id }, (tx) =>
           tx.execute<{ tenant: string }>(sql.raw(select)),
         )
 
@@ -604,7 +668,7 @@ describe('a tenant', () => {
         outcome[table] = 'no row to try with'
       } else if (row) {
         const refusal = await refusedBy(
-          database.forTenant({ tenantId: north.id }, (tx) => tx.execute(insertOf(row))),
+          inEveryArea(database, { tenantId: north.id }, (tx) => tx.execute(insertOf(row))),
         )
 
         outcome[table] = refusal.code
@@ -639,7 +703,7 @@ describe('a tenant', () => {
     const expected: Record<string, unknown> = {}
 
     const asNorth = (statement: SQL) =>
-      database.forTenant({ tenantId: north.id }, (tx) => tx.execute(statement))
+      inEveryArea(database, { tenantId: north.id }, (tx) => tx.execute(statement))
 
     // What the catalogue says decides how an attempt is read: with the right,
     // it has to go through and find nothing; without it, it has to be refused.

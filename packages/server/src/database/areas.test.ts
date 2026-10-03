@@ -35,13 +35,11 @@ import {
  * the application uses, because a policy is a property of the database and
  * not of the code above it.
  *
- * No table of this application has a place yet; the properties come with
- * #18. The tables here are built for the test by the owner of the tables, the
- * way a migration builds them, with the expression of the building block
- * `withinAreas` and the keys ADR 0003 asks for: properties, assets under a
- * property, and readings of an asset. What holds for them holds for every
- * table that is built the same way, and the catalogue test makes sure every
- * table with a place is.
+ * On the tables with a place, from the catalogue: since #18 the four levels of
+ * the place, a property, a building on it, a floor in the building and a room
+ * on the floor, one of each in the north and in the south. The tables of the
+ * counterproofs at the end are built for one check each by the owner of the
+ * tables, the way a migration builds them, and dropped again after it.
  */
 
 const tenant: TenantId = newId<'tenant'>()
@@ -56,8 +54,21 @@ const person = {
   unplaced: 'user-unplaced',
 } as const
 
-const property = { north: randomUUID(), south: randomUUID() }
-const asset = { north: randomUUID(), south: randomUUID() }
+/** The place in each area, from the property down to the room. */
+const place = {
+  north: {
+    property: randomUUID(),
+    building: randomUUID(),
+    floor: randomUUID(),
+    room: randomUUID(),
+  },
+  south: {
+    property: randomUUID(),
+    building: randomUUID(),
+    floor: randomUUID(),
+    room: randomUUID(),
+  },
+}
 
 /** The policies, FORCE and the grants of a table with a place, as a migration writes them. */
 function protections(
@@ -77,46 +88,9 @@ function protections(
              USING (${line}) WITH CHECK (${line})`,
         ]),
     `ALTER TABLE ${table} FORCE ROW LEVEL SECURITY`,
-    `GRANT SELECT, INSERT, UPDATE, DELETE ON ${table} TO opengewerk_app`,
+    `GRANT SELECT, INSERT, UPDATE ON ${table} TO opengewerk_app`,
   ]
 }
-
-const probeTables = [
-  `CREATE TABLE probe_properties (
-     id uuid PRIMARY KEY DEFAULT uuidv7(),
-     tenant_id uuid NOT NULL REFERENCES tenants (id),
-     area_id uuid NOT NULL,
-     name text NOT NULL,
-     CONSTRAINT probe_properties_place UNIQUE (tenant_id, id, area_id),
-     CONSTRAINT probe_properties_in_an_area FOREIGN KEY (tenant_id, area_id)
-       REFERENCES areas (tenant_id, id)
-   )`,
-  ...protections('probe_properties'),
-  `CREATE TABLE probe_assets (
-     id uuid PRIMARY KEY DEFAULT uuidv7(),
-     tenant_id uuid NOT NULL REFERENCES tenants (id),
-     property_id uuid NOT NULL,
-     area_id uuid NOT NULL,
-     name text NOT NULL,
-     CONSTRAINT probe_assets_place UNIQUE (tenant_id, id, property_id),
-     CONSTRAINT probe_assets_follow_their_property FOREIGN KEY (tenant_id, property_id, area_id)
-       REFERENCES probe_properties (tenant_id, id, area_id) ON UPDATE CASCADE
-   )`,
-  ...protections('probe_assets'),
-  `CREATE TABLE probe_readings (
-     id uuid PRIMARY KEY DEFAULT uuidv7(),
-     tenant_id uuid NOT NULL REFERENCES tenants (id),
-     asset_id uuid NOT NULL,
-     property_id uuid NOT NULL,
-     area_id uuid NOT NULL,
-     value integer NOT NULL,
-     CONSTRAINT probe_readings_of_an_asset_there FOREIGN KEY (tenant_id, asset_id, property_id)
-       REFERENCES probe_assets (tenant_id, id, property_id),
-     CONSTRAINT probe_readings_follow_their_property FOREIGN KEY (tenant_id, property_id, area_id)
-       REFERENCES probe_properties (tenant_id, id, area_id) ON UPDATE CASCADE
-   )`,
-  ...protections('probe_readings'),
-]
 
 /**
  * Thrown at the end of a transaction that only wanted to see whether a write
@@ -170,7 +144,7 @@ async function areasSeen(
   const read = async (tx: TenantTransaction) =>
     (
       await tx.execute<{ area: string }>(
-        sql.raw(`select distinct area_id::text as area from ${table}`),
+        sql.raw(`select distinct area_id::text as area from ${table} where deleted_at is null`),
       )
     ).rows
   const rows = background
@@ -237,14 +211,40 @@ async function whileStandingIn<Result>(
   }
 }
 
+/** The place in one area, from the property down to the room, put in past the application. */
+async function placeIn(where: 'north' | 'south'): Promise<void> {
+  const at = place[where]
+  const areaId = area[where]
+  const name = where === 'north' ? 'Wohnanlage Nordstraße' : 'Wohnanlage Südring'
+
+  await admin.query(
+    `insert into properties (id, tenant_id, area_id, name, street, postal_code, city, federal_state)
+     values ($1, $2, $3, $4, 'Hauptstraße 1', '68535', 'Edingen-Neckarhausen', 'DE-BW')`,
+    [at.property, tenant, areaId, name],
+  )
+  await admin.query(
+    `insert into buildings (id, tenant_id, property_id, area_id, name, kinds)
+     values ($1, $2, $3, $4, 'Haus A', '{residential}')`,
+    [at.building, tenant, at.property, areaId],
+  )
+  await admin.query(
+    `insert into floors (id, tenant_id, building_id, property_id, area_id, name, level)
+     values ($1, $2, $3, $4, $5, 'Erdgeschoss', 0)`,
+    [at.floor, tenant, at.building, at.property, areaId],
+  )
+  await admin.query(
+    `insert into rooms (id, tenant_id, floor_id, building_id, property_id, area_id, number)
+     values ($1, $2, $3, $4, $5, $6, '0.01')`,
+    [at.room, tenant, at.floor, at.building, at.property, areaId],
+  )
+}
+
 beforeAll(async () => {
   admin = await connect()
   await resetSchema(admin)
   await applyMigrations()
   await allowApplicationLogin(admin)
   owner = new Pool({ connectionString: ownerDatabaseUrl() })
-
-  await asOwner(probeTables)
 
   // The tenant and its people go in past the application. The two areas come
   // before the first membership, so that the tenant does not begin with the
@@ -277,21 +277,8 @@ beforeAll(async () => {
     [tenant, person.north, person.south, area.north, area.south, person.blocked],
   )
 
-  await admin.query(
-    `insert into probe_properties (id, tenant_id, area_id, name) values
-       ($1, $3, $4, 'Wohnanlage Nordstraße'), ($2, $3, $5, 'Wohnanlage Südring')`,
-    [property.north, property.south, tenant, area.north, area.south],
-  )
-  await admin.query(
-    `insert into probe_assets (id, tenant_id, property_id, area_id, name) values
-       ($1, $3, $4, $6, 'Heizkessel'), ($2, $3, $5, $7, 'Aufzug')`,
-    [asset.north, asset.south, tenant, property.north, property.south, area.north, area.south],
-  )
-  await admin.query(
-    `insert into probe_readings (tenant_id, asset_id, property_id, area_id, value) values
-       ($1, $2, $4, $6, 1200), ($1, $3, $5, $7, 830)`,
-    [tenant, asset.north, asset.south, property.north, property.south, area.north, area.south],
-  )
+  await placeIn('north')
+  await placeIn('south')
 
   database = Database.connect(applicationDatabaseUrl())
 })
@@ -334,10 +321,14 @@ describe('a person with the north', () => {
       }
     }
 
-    expect(tables).toEqual(['probe_assets', 'probe_properties', 'probe_readings'])
+    expect(tables).toEqual(['buildings', 'floors', 'properties', 'rooms'])
     expect(seen).toEqual(expected)
   })
 
+  /**
+   * Changing a row and marking it deleted, which is how a place is removed:
+   * the application role has no DELETE on them.
+   */
   it('changes and removes no row of the south, in every table with a place', async () => {
     const tables = await tablesWithAPlace()
     const outcome: Record<string, unknown> = {}
@@ -350,26 +341,31 @@ describe('a person with the north', () => {
         updated: (
           await tx.execute(sql.raw(`update ${table} set area_id = area_id where ${theirs}`))
         ).rowCount,
-        deleted: (await tx.execute(sql.raw(`delete from ${table} where ${theirs}`))).rowCount,
+        removed: (
+          await tx.execute(sql.raw(`update ${table} set deleted_at = now() where ${theirs}`))
+        ).rowCount,
       }))
-      expected[table] = { updated: 0, deleted: 0 }
+      expected[table] = { updated: 0, removed: 0 }
     }
 
     expect(outcome).toEqual(expected)
 
     // The same statements find the rows of the area the person has. Without
     // this the zeros above could come from statements that match nothing for
-    // anybody. Readings first, so that the delete is not held up by a key.
+    // anybody. From the room up, so that every level counts its own row and
+    // not one a level above it marked.
     const own = await triedAs(person.north, async (tx) => {
       const mine = `area_id = '${area.north}'`
       const found: Record<string, unknown> = {}
 
-      for (const table of ['probe_readings', 'probe_assets', 'probe_properties']) {
+      for (const table of ['rooms', 'floors', 'buildings', 'properties']) {
         found[table] = {
           updated: (
             await tx.execute(sql.raw(`update ${table} set area_id = area_id where ${mine}`))
           ).rowCount,
-          deleted: (await tx.execute(sql.raw(`delete from ${table} where ${mine}`))).rowCount,
+          removed: (
+            await tx.execute(sql.raw(`update ${table} set deleted_at = now() where ${mine}`))
+          ).rowCount,
         }
       }
 
@@ -377,70 +373,77 @@ describe('a person with the north', () => {
     })
 
     expect(own).toEqual({
-      probe_readings: { updated: 1, deleted: 1 },
-      probe_assets: { updated: 1, deleted: 1 },
-      probe_properties: { updated: 1, deleted: 1 },
+      rooms: { updated: 1, removed: 1 },
+      floors: { updated: 1, removed: 1 },
+      buildings: { updated: 1, removed: 1 },
+      properties: { updated: 1, removed: 1 },
     })
   })
 
   /**
-   * A row has to name its property and the area of it, and both are checked:
-   * the area against what the person may see, by the policy, and the pair
-   * against the property, by the key. A place of another area is out of reach
-   * whichever of the two the row gets wrong.
+   * A row has to name the place above it and the area of its property, and
+   * all of it is checked: the area against what the person may see, by the
+   * policy, and the rest against the rows above, by the keys. A place of
+   * another area is out of reach whichever part the row gets wrong.
    */
   it('hangs no row on a place of the south', async () => {
-    const assetIn = (where: string, inArea: string) =>
+    const north = place.north
+    const south = place.south
+    const buildingOn = (property: string, inArea: string) =>
       refusedBy(
         triedAs(person.north, (tx) =>
-          tx.execute(sql`insert into probe_assets (tenant_id, property_id, area_id, name)
-                         values (${tenant}, ${where}, ${inArea}, 'Wärmepumpe')`),
+          tx.execute(sql`insert into buildings (tenant_id, property_id, area_id, name, kinds)
+                         values (${tenant}, ${property}, ${inArea}, 'Haus B', '{office}')`),
         ),
       )
-    const readingOf = (of: string, where: string, inArea: string) =>
+    const roomOn = (floor: string, building: string, property: string, inArea: string) =>
       refusedBy(
         triedAs(person.north, (tx) =>
-          tx.execute(sql`insert into probe_readings (tenant_id, asset_id, property_id, area_id, value)
-                         values (${tenant}, ${of}, ${where}, ${inArea}, 1)`),
+          tx.execute(sql`insert into rooms (tenant_id, floor_id, building_id, property_id, area_id, number)
+                         values (${tenant}, ${floor}, ${building}, ${property}, ${inArea}, '0.02')`),
         ),
       )
 
     // Naming the south: the policy.
-    expect((await assetIn(property.south, area.south)).code).toBe(insufficientPrivilege)
-    // Naming the north for a property of the south: the key.
-    expect(await assetIn(property.south, area.north)).toEqual({
-      code: '23503',
-      constraint: 'probe_assets_follow_their_property',
-    })
-    // A reading of an asset of the south, either way.
-    expect((await readingOf(asset.south, property.south, area.south)).code).toBe(
+    expect((await buildingOn(south.property, area.south)).code).toBe(insufficientPrivilege)
+    expect((await roomOn(south.floor, south.building, south.property, area.south)).code).toBe(
       insufficientPrivilege,
     )
-    expect(await readingOf(asset.south, property.north, area.north)).toEqual({
+    // Naming the north for a place of the south: the key that follows the property.
+    expect(await buildingOn(south.property, area.north)).toEqual({
       code: '23503',
-      constraint: 'probe_readings_of_an_asset_there',
+      constraint: 'buildings_follow_their_property',
     })
+    expect(await roomOn(south.floor, south.building, south.property, area.north)).toEqual({
+      code: '23503',
+      constraint: 'rooms_follow_their_property',
+    })
+    // A floor of the south under the building and property of the north: the
+    // keys that hold the levels together.
+    expect((await roomOn(south.floor, north.building, north.property, area.north)).code).toBe(
+      '23503',
+    )
 
     // And in the north the same rows go in.
     const written = await triedAs(person.north, async (tx) => ({
-      asset: (
-        await tx.execute(sql`insert into probe_assets (tenant_id, property_id, area_id, name)
-                             values (${tenant}, ${property.north}, ${area.north}, 'Wärmepumpe')`)
+      building: (
+        await tx.execute(sql`insert into buildings (tenant_id, property_id, area_id, name, kinds)
+                             values (${tenant}, ${north.property}, ${area.north}, 'Haus B', '{office}')`)
       ).rowCount,
-      reading: (
-        await tx.execute(sql`insert into probe_readings (tenant_id, asset_id, property_id, area_id, value)
-                             values (${tenant}, ${asset.north}, ${property.north}, ${area.north}, 1)`)
+      room: (
+        await tx.execute(sql`insert into rooms (tenant_id, floor_id, building_id, property_id, area_id, number)
+                             values (${tenant}, ${north.floor}, ${north.building}, ${north.property}, ${area.north}, '0.02')`)
       ).rowCount,
     }))
 
-    expect(written).toEqual({ asset: 1, reading: 1 })
+    expect(written).toEqual({ building: 1, room: 1 })
   })
 
   it('cannot move a property out of its sight', async () => {
     const refusal = await refusedBy(
       triedAs(person.north, (tx) =>
         tx.execute(
-          sql`update probe_properties set area_id = ${area.south} where id = ${property.north}`,
+          sql`update properties set area_id = ${area.south} where id = ${place.north.property}`,
         ),
       ),
     )
@@ -458,7 +461,7 @@ describe('a property moved to another area', () => {
   it('takes every row below it along, in every table that names a property', async () => {
     const move = (to: string) =>
       database.forTenant({ tenantId: tenant, userId: person.lead }, (tx) =>
-        tx.execute(sql`update probe_properties set area_id = ${to} where id = ${property.north}`),
+        tx.execute(sql`update properties set area_id = ${to} where id = ${place.north.property}`),
       )
     const { rows: tables } = await admin.query<{ table_name: string }>(
       `select distinct c.relname as table_name
@@ -481,31 +484,31 @@ describe('a property moved to another area', () => {
           `select count(*)::int as rows,
                   count(*) filter (where area_id <> $2)::int as elsewhere
              from ${table} where property_id = $1`,
-          [property.north, area.south],
+          [place.north.property, area.south],
         )
 
         below[table] = rows[0]
         expected[table] = { rows: 1, elsewhere: 0 }
       }
 
-      expect(tables.map((row) => row.table_name)).toEqual(['probe_assets', 'probe_readings'])
+      expect(tables.map((row) => row.table_name)).toEqual(['buildings', 'floors', 'rooms'])
       expect(below).toEqual(expected)
 
       // What the people see follows: the north has nothing left, the south both.
-      expect(await areasSeen('probe_assets', person.north)).toEqual([])
-      expect(await areasSeen('probe_assets', person.south)).toEqual(['south'])
+      expect(await areasSeen('rooms', person.north)).toEqual([])
+      expect(await areasSeen('rooms', person.south)).toEqual(['south'])
     } finally {
       await move(area.north)
     }
 
-    expect(await areasSeen('probe_readings', person.north)).toEqual(['north'])
+    expect(await areasSeen('rooms', person.north)).toEqual(['north'])
   })
 })
 
 describe('a substitution', () => {
   it('shows the substitute the areas of the absent person on its days and on no other', async () => {
     const { yesterday, today, tomorrow } = await days()
-    const seenBySouth = () => areasSeen('probe_assets', person.south)
+    const seenBySouth = () => areasSeen('rooms', person.south)
 
     expect(
       await whileStandingIn(
@@ -530,7 +533,7 @@ describe('a substitution', () => {
     expect(
       await whileStandingIn(
         { substitute: person.south, absent: person.north, startsOn: today, endsOn: today },
-        () => areasSeen('probe_assets', person.north),
+        () => areasSeen('rooms', person.north),
       ),
     ).toEqual(['north'])
   })
@@ -541,7 +544,7 @@ describe('a substitution', () => {
     expect(
       await whileStandingIn(
         { substitute: person.unplaced, absent: person.lead, startsOn: today, endsOn: today },
-        () => areasSeen('probe_assets', person.unplaced),
+        () => areasSeen('rooms', person.unplaced),
       ),
     ).toEqual(['north', 'south'])
   })
@@ -557,13 +560,13 @@ describe('a substitution', () => {
     expect(
       await whileStandingIn(
         { substitute: person.unplaced, absent: person.blocked, startsOn: today, endsOn: today },
-        () => areasSeen('probe_assets', person.unplaced),
+        () => areasSeen('rooms', person.unplaced),
       ),
     ).toEqual(['north'])
     expect(
       await whileStandingIn(
         { substitute: person.blocked, absent: person.south, startsOn: today, endsOn: today },
-        () => areasSeen('probe_assets', person.blocked),
+        () => areasSeen('rooms', person.blocked),
       ),
     ).toEqual([])
   })
@@ -591,15 +594,12 @@ describe('a substitution', () => {
 
 describe('a run in the background', () => {
   it('sees every area when it says so, and that ends with its transaction', async () => {
-    expect(await areasSeen('probe_assets', undefined, { background: true })).toEqual([
-      'north',
-      'south',
-    ])
+    expect(await areasSeen('rooms', undefined, { background: true })).toEqual(['north', 'south'])
 
     // The setting is local to the transaction: the connection goes back to the
     // pool without it, and the next transaction without a person sees nothing.
     for (let attempt = 0; attempt < 3; attempt++) {
-      expect(await areasSeen('probe_assets', undefined)).toEqual([])
+      expect(await areasSeen('rooms', undefined)).toEqual([])
     }
   })
 })
@@ -771,7 +771,7 @@ describe('the name of an area', () => {
 
 describe('the catalogue', () => {
   it('finds the line between the areas on every table with a place', async () => {
-    expect(await areaBoundaryProblems(admin, { propertyTable: 'probe_properties' })).toEqual([])
+    expect(await areaBoundaryProblems(admin)).toEqual([])
   })
 
   /** A table built for one check by the owner, and dropped again after it. */
@@ -779,7 +779,7 @@ describe('the catalogue', () => {
     await asOwner(statements)
 
     try {
-      return await areaBoundaryProblems(admin, { propertyTable: 'probe_properties' })
+      return await areaBoundaryProblems(admin)
     } finally {
       await owner.query(`drop table ${table}`)
     }
@@ -790,7 +790,7 @@ describe('the catalogue', () => {
      property_id uuid NOT NULL,
      area_id uuid NOT NULL`
   const follows = `CONSTRAINT probe_more_follows FOREIGN KEY (tenant_id, property_id, area_id)
-       REFERENCES probe_properties (tenant_id, id, area_id) ON UPDATE CASCADE`
+       REFERENCES properties (tenant_id, id, area_id) ON UPDATE CASCADE`
 
   /**
    * The counterproof: each of the ways ADR 0003 names for a table with a place
@@ -813,13 +813,13 @@ describe('the catalogue', () => {
         [
           `CREATE TABLE probe_more (${columns},
              CONSTRAINT probe_more_follows FOREIGN KEY (tenant_id, property_id, area_id)
-               REFERENCES probe_properties (tenant_id, id, area_id))`,
+               REFERENCES properties (tenant_id, id, area_id))`,
           ...protections('probe_more'),
         ],
         'probe_more',
       ),
     ).toEqual([
-      'table probe_more: no key over (tenant_id, property_id, area_id) to probe_properties with ON UPDATE CASCADE',
+      'table probe_more: no key over (tenant_id, property_id, area_id) to properties with ON UPDATE CASCADE',
     ])
 
     expect(
@@ -867,15 +867,15 @@ describe('the catalogue', () => {
       await problemsWith(
         [
           `CREATE TABLE probe_more (${columns},
-             asset_id uuid NOT NULL,
+             room_id uuid NOT NULL,
              ${follows},
-             CONSTRAINT probe_more_of_an_asset FOREIGN KEY (asset_id) REFERENCES probe_assets (id))`,
+             CONSTRAINT probe_more_of_a_room FOREIGN KEY (room_id) REFERENCES rooms (id))`,
           ...protections('probe_more'),
         ],
         'probe_more',
       ),
     ).toEqual([
-      'table probe_more, key probe_more_of_an_asset: points at probe_assets, which has an area, without running over tenant_id and property_id',
+      'table probe_more, key probe_more_of_a_room: points at rooms, which has an area, without running over tenant_id and property_id',
     ])
   })
 })
