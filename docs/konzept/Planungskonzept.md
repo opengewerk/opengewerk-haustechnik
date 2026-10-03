@@ -1,6 +1,6 @@
-# OpenGewerk Haustechnik: Planungskonzept (Software für Betreiber und ihre Haustechnik) · v0.6
+# OpenGewerk Haustechnik: Planungskonzept (Software für Betreiber und ihre Haustechnik) · v0.7
 
-2026-10-03 · Eigenständiges Projekt, Repository `opengewerk-haustechnik` in der GitHub-Organisation `opengewerk` · v0.2 trägt die Entscheidungen vom 01.10.2026 ein, v0.3 die Technik, mit der das Fundament eingebunden wird, v0.4 gleicht Abschnitt 5 und die Wortwahl an die ADRs 0002 bis 0006 an, siehe Abschnitt 15; v0.5 sagt in Abschnitt 7, was jede Rolle im Einzelnen darf, v0.6 nennt dort die Rechte für den Abgleich (Vergleich mit openMAINT, Atlas CMMS, eTASK, wave Facilities, pitFM, SPARTACUS, Planon, Lumiform, Wowflow und den Excel-Listen, die vielerorts die eigentliche Software sind)
+2026-10-03 · Eigenständiges Projekt, Repository `opengewerk-haustechnik` in der GitHub-Organisation `opengewerk` · v0.2 trägt die Entscheidungen vom 01.10.2026 ein, v0.3 die Technik, mit der das Fundament eingebunden wird, v0.4 gleicht Abschnitt 5 und die Wortwahl an die ADRs 0002 bis 0006 an, siehe Abschnitt 15; v0.5 sagt in Abschnitt 7, was jede Rolle im Einzelnen darf, v0.6 nennt dort die Rechte für den Abgleich, v0.7 gibt den eigenen Anlagenarten und den Mängelklassen ihre Phase (Vergleich mit openMAINT, Atlas CMMS, eTASK, wave Facilities, pitFM, SPARTACUS, Planon, Lumiform, Wowflow und den Excel-Listen, die vielerorts die eigentliche Software sind)
 
 Self-hosted Open-Source-System für alle, die Gebäude betreiben und dafür eigene Haustechniker haben. Liegenschaften, Gebäude, Räume und technische Anlagen stehen in einem Datenmodell. Die Betreiberpflichten hängen daran als überwachte Fristen, Rundgänge und Prüfungen laufen auf dem Telefon auch ohne Netz, und zu jeder Pflicht gibt es einen Nachweis, der sich nachträglich nicht ändern lässt.
 
@@ -236,7 +236,7 @@ Wie dort gilt: jede Abfrage nennt einen Tag, und für einen Tag ohne hinterlegte
 
 - Anlagenverzeichnis je Gebäude und über alle Gebäude, gefiltert nach Kostengruppe, Anlagenart, Zustand, Standort, Lebenszyklus
 - **Anlagenakte** mit eigener Adresse: Stammdaten, Standort und Versorgungsbereich, Komponenten, Pflichten mit Zustand, Nachweise, Mängel, Aufträge, Störungen, Dokumente, Verträge und Gewährleistung, Zeitachse
-- **Anlagenarten** aus Paketen (Abschnitt 5): jede Art bringt ihre Felder, ihre Kostengruppe und die Pflichten mit, die für sie in Frage kommen. Eigene Anlagenarten und eigene Felder des Betreibers kommen dazu
+- **Anlagenarten** aus Paketen (Abschnitt 5): jede Art bringt ihre Felder, ihre Kostengruppe und die Pflichten mit, die für sie in Frage kommen. Eigene Anlagenarten und eigene Felder des Betreibers kommen dazu. Für jede Anlage, die kein Fachpaket beschreibt, gibt es eine allgemeine Anlagenart ihrer Kostengruppe, damit Import und Bestandsaufnahme den ganzen Bestand erfassen, bevor das passende Paket oder die eigene Anlagenart da ist
 - **Bestandsaufnahme vor Ort** ★: Anlage auf dem Telefon anlegen, auch ohne Netz, Typenschild fotografieren, Seriennummer mit der Kamera lesen, Etikett kleben und zuordnen
 - Dubletten-Prüfung beim Anlegen und Importieren (gleiche Seriennummer, gleiches Kennzeichen)
 - Etikett je Anlage: der Scan öffnet die Akte, für Melder ohne Konto die Störungsmeldung (4.7)
@@ -400,6 +400,8 @@ pakete/<name>/
 | Heizung | Wärmeerzeuger und Wärmepumpen, Abgasanlage, Heizöllagerung, Gasinstallation |
 | Förderanlagen und Arbeitsmittel | Aufzüge, kraftbetätigte Türen und Tore, Leitern und Tritte, Regale, Druckbehälter |
 | Landesrecht | je Bundesland die Prüfung technischer Anlagen in Sonderbauten, zuerst Baden-Württemberg |
+
+Dazu kommt vor ihnen das Paket **Allgemein**: je Kostengruppe nach DIN 276 eine allgemeine Anlagenart, in eigenen Worten benannt und ohne Pflichtarten. Es ist der Auffang für jede Anlage, die kein Fachpaket beschreibt, damit der Bestand eines Betreibers vollständig erfasst werden kann, auch bevor das Paket für seine Anlagen erscheint. Kommt das Fachpaket, wird die Anlagenart der Anlage berichtigt; ihre Pflichten werden dann vorgeschlagen. Eigene Pflichten kann eine Anlage mit allgemeiner Art von Anfang an tragen (4.3)
 
 **Was der Katalog nennen darf**, hängt an der Herkunft der Pflicht. Jede Pflichtart trägt sie als Angabe:
 
@@ -600,8 +602,8 @@ Leitgedanke wie bei OpenGewerk: **So früh wie möglich einen echten Betrieb dam
 **Zuordnung im Einzelnen.** Die Tabelle nennt die Schwerpunkte. Die übrigen Punkte der Abschnitte 2 bis 10 gehören so zu den Phasen; beides zusammen ist der Fahrplan, und aus beidem werden die Issues einer Phase geschnitten. Was in keiner Phase steht, steht in Abschnitt 14. Wer in 2 bis 10 einen Punkt einträgt, trägt seine Phase im selben Zug hier ein.
 
 - **Phase 0:** die Pakete und Nähte im Repository `opengewerk`, die Phase 1 braucht: Abgleichregeln, Rechte, Rollen als Daten, Bezeichnungen im Änderungsprotokoll, Schlüssel der Nummernkreise, Quellen der Fristen-Engine, Anlässe der Benachrichtigungen, Formulare ohne Stromkreis (2.1); die Regel-Engine mit Geltungsbereich und den neuen Einheiten (2.9); die Nummernkreise für Anlagen, Nachweise und Aufträge (2.2, 2.6, 4.8); die Fassungen des eingefrorenen Nachweises und die Trigger darunter (2.6); der Lebenszyklus als Zeitraum (2.2); die Auswahl je Gerät nach Bereich (2.7, 2.8); die Herkunft einer Pflichtart, der Tag ihrer letzten Prüfung und ihre Abnahme im Paketformat (5)
-- **Phase 1:** Lagebild je Gebäude, Übersicht über alle Liegenschaften, Raumseite, Zeitachse und Pfadnavigation (4.1); Dubletten-Prüfung und Tausch einer Anlage (4.2); eigene Pflichten und die festgelegte Frist mit Begründung (4.3); eigene und fremde Durchführung mit Ergebnis (4.4); Vorlage, Plan, ein eigener Rundgang je Durchgang, Zuteilung, Punkt erfüllt Pflicht, Abgabe nur vollständig, Gegenzeichnung, PDF und Übersicht der Rundgänge (4.5); Mängel mit Klasse, Frist und Status (4.6); Aufträge aus Mangel und Termin mit Abnahme (4.8); Zählertausch, Stilllegung, Sperre und Notiz (4.9); Ablage mit Fassungen (4.10); Suche nach Name, Nummer und Kennzeichen, Aufgaben, Änderungsprotokoll, eigene Angaben unter „Konto“, Rechtstexte der Instanz, Bereich der Instanz und Passkeys, soweit das Fundament sie mitbringt (3); Barrierefreiheit der Bausteine (3) ⚖; Vertretung (2.8); die Rollen Leitung, Technische Leitung, Objektleitung und Haustechnik (7); die Pakete Elektro, Brandschutz und Trinkwasser vollständig und das Landesrecht von Baden-Württemberg, dazu der Lauf, der an die Prüfung der Katalogeinträge erinnert (5) ⚖; Hilfe an den Bildschirmen (10)
-- **Phase 2:** Sammelvorgänge und die Unterscheidung nach DIN 31051 (4.4); außer Betrieb durch Mangel und Mängelbericht (4.6); Eingang, Zusammenführen, Rückmeldung und Zeiten der Störmeldungen (4.7); Gewährleistung, Einweisung und Erlaubnisschein (4.11); Soll-Dokumente (4.10); Lager, Mindestbestand und Entnahme am Auftrag (4.12); Auswertungen über die Zeit, ohne Auswertung je Person (4.16) ⚖; eigene Rollen (7); die Elektro-Struktur mit Stromkreisverzeichnis (4.2); eigene Felder des Betreibers an Anlagenarten (2.5, 4.2); das Ende einer Zugehörigkeit als Frist (2.4, 9) ⚖; die Rollen Melder und Prüfer (7); die Aufbewahrung der Nachweise mit Löschvorschlag und das höher signierte PDF am Nachweis (2.6) ⚖; die Pakete Raumluft und Kälte, Heizung, Förderanlagen und Arbeitsmittel (5) ⚖; Gefährdungsbeurteilung als Dokument mit Frist (4.3); die externe Sicherheitsprüfung vor dem Release mit der Seite ohne Anmeldung (9)
+- **Phase 1:** Lagebild je Gebäude, Übersicht über alle Liegenschaften, Raumseite, Zeitachse und Pfadnavigation (4.1); Dubletten-Prüfung und Tausch einer Anlage (4.2); eigene Pflichten und die festgelegte Frist mit Begründung (4.3); eigene und fremde Durchführung mit Ergebnis (4.4); Vorlage, Plan, ein eigener Rundgang je Durchgang, Zuteilung, Punkt erfüllt Pflicht, Abgabe nur vollständig, Gegenzeichnung, PDF und Übersicht der Rundgänge (4.5); Mängel mit Klasse, Frist und Status, die Mängelklassen im Paketformat (4.4, 4.6, 5); Aufträge aus Mangel und Termin mit Abnahme (4.8); Zählertausch, Stilllegung, Sperre und Notiz (4.9); Ablage mit Fassungen (4.10); Suche nach Name, Nummer und Kennzeichen, Aufgaben, Änderungsprotokoll, eigene Angaben unter „Konto“, Rechtstexte der Instanz, Bereich der Instanz und Passkeys, soweit das Fundament sie mitbringt (3); Barrierefreiheit der Bausteine (3) ⚖; Vertretung (2.8); die Rollen Leitung, Technische Leitung, Objektleitung und Haustechnik (7); das Paket Allgemein mit einer allgemeinen Anlagenart je Kostengruppe (4.2, 5); die Pakete Elektro, Brandschutz und Trinkwasser vollständig und das Landesrecht von Baden-Württemberg, dazu der Lauf, der an die Prüfung der Katalogeinträge erinnert (5) ⚖; Hilfe an den Bildschirmen (10)
+- **Phase 2:** Sammelvorgänge und die Unterscheidung nach DIN 31051 (4.4); außer Betrieb durch Mangel und Mängelbericht (4.6); Eingang, Zusammenführen, Rückmeldung und Zeiten der Störmeldungen (4.7); Gewährleistung, Einweisung und Erlaubnisschein (4.11); Soll-Dokumente (4.10); Lager, Mindestbestand und Entnahme am Auftrag (4.12); Auswertungen über die Zeit, ohne Auswertung je Person (4.16) ⚖; eigene Rollen (7); die Elektro-Struktur mit Stromkreisverzeichnis (4.2); eigene Anlagenarten des Betreibers und eigene Felder an Anlagenarten (2.5, 4.2); das Ende einer Zugehörigkeit als Frist (2.4, 9) ⚖; die Rollen Melder und Prüfer (7); die Aufbewahrung der Nachweise mit Löschvorschlag und das höher signierte PDF am Nachweis (2.6) ⚖; die Pakete Raumluft und Kälte, Heizung, Förderanlagen und Arbeitsmittel (5) ⚖; Gefährdungsbeurteilung als Dokument mit Frist (4.3); die externe Sicherheitsprüfung vor dem Release mit der Seite ohne Anmeldung (9)
 - **Phase 3:** DATANORM und Fahrzeuglager (4.12); Zugänge versiegelt und Schlüsselquittung (4.13); Ausreißer und Verbrauch je Quadratmeter, Flächen an Gebäuden und Räumen (4.1, 4.9)
 - **Phase 4:** Meldungen der Leittechnik im Eingang der Störmeldungen (4.7, 4.15); der Adapter des Pilotbetriebs und die Freigabe von Adressen im eigenen Netz (4.15); die Rolle Fremdfirma (7)
 - **Phase 5:** die Hinweise zur Mitbestimmung beim Einschalten der Arbeitszeit (4.14) ⚖
@@ -666,7 +668,7 @@ Wer eine Ausschreibung mit diesen Anforderungen bestehen muss, ist dort besser a
 
 ## 15. Entscheidungen
 
-Die offenen Fragen aus v0.1 sind am 01.10.2026 entschieden worden. Jede Antwort steht an ihrer Stelle im Konzept; diese Tabelle nennt sie einmal im Zusammenhang.
+Die offenen Fragen aus v0.1 sind am 01.10.2026 entschieden worden, die Phasen der eigenen Anlagenarten und der Mängelklassen am 03.10.2026. Jede Antwort steht an ihrer Stelle im Konzept; diese Tabelle nennt sie einmal im Zusammenhang.
 
 | Frage | Entscheidung | Steht in |
 | --- | --- | --- |
@@ -685,16 +687,25 @@ Die offenen Fragen aus v0.1 sind am 01.10.2026 entschieden worden. Jede Antwort 
 | Veröffentlichung der Pakete | Staatliches Recht sofort, die rechtliche Prüfung läuft parallel | 5 |
 | Was der Pilotbetrieb braucht | Rundgänge, Aufträge, Leistungsnachweis, Zähler, Anlagen, Wartungen, Lager, Verträge und Auswertungen; kein Ausdruck muss aussehen wie bisher | 12 |
 | Der Pilotbetrieb im Repository | Bleibt ungenannt, bis er zustimmt | 11, 12 |
+| Eigene Anlagenarten | In Phase 2, mit den eigenen Feldern; bis dahin findet jede Anlage eine allgemeine Anlagenart im Paket Allgemein, das in Phase 1 kommt | 4.2, 5, 12 |
+| Mängelklassen | Im Paketformat, gebaut in Phase 1 mit den Mängeln | 4.4, 4.6, 12 |
 
 **Noch offen**
 
 1. **Rechtliche Prüfung.** Drei Fragen für einen Fachanwalt: ob Fristen aus privaten Normen als Tatsachen genannt werden dürfen; wie die Regelwerke der Unfallversicherung und der staatlichen Ausschüsse einzuordnen sind; und ob die Unterschrift auf dem Gerät als elektronische Signatur für jede Nachweisart genügt, denn § 14 Abs. 7 BetrSichV verlangt sie bei ausschließlich elektronisch übermittelten Dokumenten und nennt keine Stufe. Bis zur Antwort gilt die vorsichtige Lesart aus den Abschnitten 2.6 und 5.
 2. **Externe Sicherheitsprüfung.** Wer sie vor der Fassung mit der Seite ohne Anmeldung macht.
 3. **Vorlage für den Vertrag zur Auftragsverarbeitung.** Sie wird gebraucht, bevor ein Betreiber mit echten Daten auf einer Instanz arbeitet, die ein anderer für ihn betreibt; für den Pilotbetrieb also zum Beginn des Parallelbetriebs.
+4. **Mängelklassen im Paket.** Wo sie stehen (als eigene Datei je Paket, an einer Pflichtart oder an einem Formular) und welche Klasse ein Mangel hat, der nicht aus einer Prüfung kommt, sondern aus einem Rundgang, einer Störmeldung oder von Hand. Entschieden wird vor dem Bau der Mängel in Phase 1.
 
 ---
 
 ## 16. Änderungsprotokoll
+
+### v0.6 → v0.7
+
+- Eigene Anlagenarten des Betreibers hatten keine Phase, nur die eigenen Felder an Anlagenarten standen bei Phase 2. Sie stehen jetzt beide dort, wie in 4.2 nebeneinander (12)
+- Damit Import und Bestandsaufnahme in Phase 1 den ganzen Bestand erfassen, auch Anlagen, deren Fachpaket erst in Phase 2 kommt, gibt es das Paket Allgemein mit einer allgemeinen Anlagenart je Kostengruppe, ohne Pflichtarten (4.2, 5, 12)
+- Die Mängelklassen kommen nach 4.4 aus dem Paket, das Paketformat in Abschnitt 5 nannte aber keinen Ort dafür. Sie stehen jetzt in der Zuordnung bei Phase 1, mit den Mängeln; wo genau, ist unter den offenen Punkten (12, 15)
 
 ### v0.5 → v0.6
 
