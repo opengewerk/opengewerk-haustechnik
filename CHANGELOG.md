@@ -124,6 +124,27 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   das Protokoll liest und die anderen Rollen die Ablehnung mit dem fehlenden Recht in Worten
   bekommen, dass die Prüfung der Kette antwortet und dass die Einstellungen den Eintrag nur dem
   anbieten, der ihn lesen darf, mit Gegenproben
+- Der Betrieb über Docker Compose (#15): ein eigenes Abbild, gebaut mit dem Submodul und geprüft
+  auf Bündelbudget und Wörter der Handwerkersoftware, die Compose-Datei mit Datenbank,
+  Migrationsdienst, Anwendung und Sicherung, und `sh docker/start.sh` als der eine Befehl für
+  den ersten Start und jedes Update. Die Skripte dahinter sind die des Fundaments; diese
+  Anwendung nennt ihnen ihren Namen, den Anfang ihrer Variablen (`HAUSTECHNIK_`) und eine
+  Beispieladresse. Projektname, Port, Datenbank und Volumes sind ihre eigenen, damit sie neben
+  einer Installation von OpenGewerk läuft, und die Archive der Sicherung heißen nach ihrer
+  Datenbank. Den Renderer bringt #23 mit, weil die Anwendung bis dahin nichts druckt
+- Die Befehle für die Kommandozeile: `add-staff`, `reset-password`, `appoint-operator` und
+  `add-tenant`, die Befehle des Fundaments mit den Worten und Rollen dieser Anwendung, als
+  Rückweg, wenn sich jemand ausgesperrt hat. Ein Passwort kommt verdeckt vom Terminal oder aus
+  `HAUSTECHNIK_PASSWORD`, nie aus einem Argument
+- Die CI-Läufe "Betrieb über Docker Compose", "Sicherung und Rückspielen" und "Update einer
+  laufenden Instanz" mit den Schritten des Fundaments gegen den Stapel dieser Anwendung. Dazu
+  meldet sich nach dem Rückspielen ein Konto von vor der Sicherung mit seinem Passwort an, und
+  das Update führt von der ersten Migration auf die zweite, mit dem Nummernkreis für Aufträge an
+  seiner Stelle. Ein vierter Lauf, "Neben OpenGewerk auf einem Server", startet OpenGewerk aus
+  dem Submodul und die Haustechnik daneben: beide antworten auf ihrem Port und mit eigenen
+  Volumes, eine Sitzung gilt nur bei ihrer Anwendung, ihr Cookie nennt keine Domain und gilt
+  damit nur unter dem Hostnamen, von dem es kam, und die Haustechnik lässt sich samt Volumes
+  entfernen, ohne dass sich an OpenGewerk etwas ändert
 
 ### Geändert
 

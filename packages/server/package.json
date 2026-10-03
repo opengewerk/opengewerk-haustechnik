@@ -11,6 +11,8 @@
     "build": "tsc -p tsconfig.build.json",
     "start": "node dist/main.js",
     "migrate": "node dist/migrate.js",
+    "add-staff": "node dist/add-staff.js",
+    "reset-password": "node dist/reset-password.js",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
     "test": "vitest run",

@@ -28,13 +28,48 @@ Die Handwerkersoftware [`opengewerk`](https://github.com/opengewerk/opengewerk) 
 
 ## Status
 
-OpenGewerk Haustechnik steht am Anfang von **Phase 0**, dem Fundament. Das Konzept ist ausgearbeitet, der Arbeitsbereich bindet das Fundament der Handwerkersoftware ein, die erste Migration legt es in einer leeren Datenbank an, und die Rechte und die vier Rollen aus Phase 1 sind an Anmeldung und Zugangsverwaltung des Fundaments gebunden. Eine Instanz startet aus dem Checkout, mit der Oberfläche des Fundaments und dem Änderungsprotokoll in den Worten dieser Anwendung; eigene Datensätze hat sie noch nicht, und den Betrieb über Docker Compose bringt #15. Ein Pilotbetrieb mit mehreren Liegenschaften steht bereit; Version 1 ist erreicht, wenn er seine bisherige Anwendung abschalten kann.
+OpenGewerk Haustechnik steht am Anfang von **Phase 0**, dem Fundament. Das Konzept ist ausgearbeitet, der Arbeitsbereich bindet das Fundament der Handwerkersoftware ein, die erste Migration legt es in einer leeren Datenbank an, und die Rechte und die vier Rollen aus Phase 1 sind an Anmeldung und Zugangsverwaltung des Fundaments gebunden. Eine Installation startet mit einem Befehl über Docker Compose, sichert sich jede Nacht und aktualisiert in zwei Schritten, mit der Oberfläche des Fundaments und dem Änderungsprotokoll in den Worten dieser Anwendung; eigene Datensätze hat sie noch nicht. Ein Pilotbetrieb mit mehreren Liegenschaften steht bereit; Version 1 ist erreicht, wenn er seine bisherige Anwendung abschalten kann.
 
 Das vollständige Konzept liegt unter [`docs/konzept/`](docs/konzept/), die Architekturentscheidungen dieser Anwendung unter [`docs/adr/`](docs/adr/). Was in Phase 0 gebaut wird, steht als Issues im Meilenstein [Phase 0: Fundament](https://github.com/opengewerk/opengewerk-haustechnik/milestone/1).
 
 ## Fahrplan
 
 Der Fahrplan in sieben Phasen, vom Fundament bis zum Vollausbau, steht in [Abschnitt 12 des Planungskonzepts](docs/konzept/Planungskonzept.md#12-fahrplan) und bewusst nur dort. Eine Abschrift daneben läuft irgendwann auseinander.
+
+## Betrieb
+
+Eine Installation startet mit einem Befehl, aus einem Checkout mit dem Submodul (Kapitel "Am Code arbeiten"):
+
+```bash
+sh docker/start.sh
+```
+
+Beim ersten Mal legt das Skript `docker/.env` an, erzeugt jeden Schlüssel und fragt nach der Adresse, unter der die Instanz im Browser geöffnet wird; ohne Terminal kommt sie aus `HAUSTECHNIK_ADDRESS`. Ausgegeben werden nur Namen, nie ein Wert. Danach baut es das Abbild, spielt die Migrationen ein und startet erst dann die Anwendung, in der Reihenfolge eines Updates. Eine leere Instanz zeigt im Browser die Ersteinrichtung, die nach dem Einrichtungscode aus `docker/.env` fragt und den Betreiber, das erste Konto und dessen zweiten Faktor anlegt. Die Skripte dahinter sind die des Fundaments (`upstream/opengewerk/docker`); was sie über diese Anwendung wissen müssen, steht in `docker/application.env` und `docker/compose.yaml`.
+
+Ein Update ist derselbe Befehl, nach `git pull` und `git submodule update --init`. Er baut das Abbild neu, migriert und tauscht erst danach die laufenden Container; scheitert die Migration, arbeitet die Instanz auf dem Stand davor weiter. Signierte Abbilder zum Herunterladen kommen mit der ersten Fassung.
+
+Die Sicherung läuft jede Nacht von selbst, zu der Uhrzeit, die der Bereich der Instanz festlegt, und holt eine verpasste nach. Von Hand, etwa vor einem Update, und zum Rückspielen:
+
+```bash
+docker compose -f docker/compose.yaml --profile backup run --rm backup backup.sh
+docker compose -f docker/compose.yaml --profile backup run --rm backup restore.sh latest
+docker compose -f docker/compose.yaml --profile backup run --rm backup verify.sh latest
+```
+
+Wie ein Archiv verschlüsselt wird und wohin es gehört, steht in `docker/.env.example`. Die Archive heißen nach der Datenbank (`haustechnik-<zeit>.tar.gz`), ein Ziel lässt sich also mit einer Installation von OpenGewerk teilen: jede Anwendung findet, behält und löscht nur ihre eigenen.
+
+**Neben OpenGewerk auf einem Server.** Die Haustechnik hat ein eigenes Compose-Projekt (`opengewerk-haustechnik`), einen eigenen Port (23800 statt 23700), eine eigene Datenbank in einem eigenen PostgreSQL-Container und eigene Volumes, und ihre Variablen beginnen mit `HAUSTECHNIK_`. Davor gehört ein eigener Hostname: ein Browser hält Cookies je Hostname und nicht je Port, zwei Anwendungen unter einem Namen meldeten sich gegenseitig ab.
+
+Die Kommandozeile ist der Rückweg, wenn sich jemand ausgesperrt hat, und der einzige Weg auf einem Rechner ohne Browser. Das Passwort eines neuen Kontos fragt jeder Befehl verdeckt ab; aus einem Skript kommt es aus `HAUSTECHNIK_PASSWORD`, nie aus einem Argument, denn ein Argument steht in der Prozessliste und im Verlauf der Shell.
+
+```bash
+docker compose -f docker/compose.yaml exec app node dist/add-staff.js <kennung-des-betreibers> <e-mail> "<name>" technician
+docker compose -f docker/compose.yaml exec app node dist/reset-password.js <e-mail>
+docker compose -f docker/compose.yaml exec app node dist/appoint-operator.js <e-mail>
+docker compose -f docker/compose.yaml exec app node dist/add-tenant.js "<name des betreibers>" <e-mail> "<name der leitung>"
+```
+
+Der Renderer für PDFs, E-Mail und Push kommen mit den Diensten dahinter (#23), mit ihren Zeilen in der `.env`.
 
 ## Am Code arbeiten
 
@@ -73,7 +108,8 @@ Ein Teil der Tests braucht ein PostgreSQL 18 und leert es vor jedem Lauf. Dafür
 | [`packages/server`](packages/server) | Die Datenbank dieser Anwendung (Schema, Migrationen und der Befehl, der sie einspielt), der Start einer Instanz, die auch die Oberfläche ausliefert, und die Schnittstelle, soweit das Fundament sie mitbringt: Anmeldung, Zugänge, der Bereich der Instanz, der Abgleich und das Änderungsprotokoll, hinter dem Guard |
 | [`packages/web`](packages/web) | Die Oberfläche mit zwei Einstiegen, `/` für das Büro und `/m` für die Arbeit vor Ort. Bisher die Hülle des Fundaments mit dem, was diese Anwendung dazu sagt: Tor und Anmeldung, "Konto", "Zugänge", das Änderungsprotokoll, der Bereich der Instanz mit seinem Protokoll, die Leiste des Abgleichs und der Konfliktbildschirm, mit Service Worker und Manifesten |
 | `upstream/opengewerk/packages/platform/*` | Das Fundament: Mandantentrennung, Anmeldung, Rechte, Abgleich auf dem Gerät und auf dem Server samt seinen Routen, Audit-Log, der Einstieg des Servers und die Oberfläche, die jede Anwendung zeigt, bevor ihr erster eigener Bildschirm kommt, mit den Bausteinen, aus denen sie ihre Bildschirme baut. Wird im Repository `opengewerk` geändert, nie hier |
-| `upstream/opengewerk/docker/` | Einrichten, Starten und Sichern einer Instanz und die Prüfungen eines laufenden Stapels, als Skripte des Fundaments. Eine Anwendung ruft sie gegen ihren eigenen Ordner auf, mit ihren Namen in `application.env`; hier kommt das mit dem eigenen Betrieb (#15) |
+| [`docker`](docker) | Der Betrieb dieser Anwendung: die Compose-Datei, die Vorlage der `.env`, ihre Namen für die Skripte des Fundaments (`application.env`), das Startskript und was die Prüfungen eines laufenden Stapels über sie wissen müssen (`test-material.sh`) |
+| `upstream/opengewerk/docker/` | Einrichten, Starten und Sichern einer Instanz und die Prüfungen eines laufenden Stapels, als Skripte des Fundaments. Diese Anwendung ruft sie gegen ihren Ordner `docker` auf, über `docker/start.sh` und in der CI; das Abbild der Sicherung entsteht aus ihrem Ordner `backup`, die Rollen der Datenbank legt ihr `postgres-init` an |
 
 Die Oberfläche baut Vite in ein `dist` mit beiden Einstiegen. Zwei Prüfungen laufen danach auf dem Bau, lokal wie in der CI: das Bündelbudget je Einstieg und die Suche nach Wörtern der Handwerkersoftware, denn hier heißt der Mandant "Betreiber", wer ihn führt, "Leitung", und der Einstieg für die Arbeit vor Ort "Vor Ort".
 
@@ -112,9 +148,9 @@ MIGRATION_DATABASE_URL=postgres://opengewerk_owner:<passwort>@<host>:5432/hauste
 
 Gegen eine Datenbank, die schon auf dem Stand ist, tut er nichts.
 
-### Eine Instanz von Hand starten
+### Eine Instanz ohne Docker starten
 
-Der Betrieb über Docker Compose kommt mit #15. Bis dahin startet eine Instanz aus dem Checkout: Migrationen einspielen wie oben, die Oberfläche bauen, dann den Server mit seiner Konfiguration.
+Eine Installation läuft über Docker Compose (Kapitel "Betrieb"). Für die Entwicklung startet eine Instanz auch aus dem Checkout: Migrationen einspielen wie oben, die Oberfläche bauen, dann den Server mit seiner Konfiguration.
 
 ```bash
 pnpm --filter @opengewerk/haustechnik-web run build
