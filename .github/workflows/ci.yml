@@ -325,8 +325,21 @@ jobs:
       - name: Werkzeuge wie im Fundament
         run: pnpm run check:toolchain
 
+      # Building checks the packages under pakete/ as well: the catalogue
+      # package refuses to write a bundle from a package with a fault, and the
+      # list of what is wrong stands in the log of this step (ADR 0005).
       - name: Bauen
         run: pnpm run build
+
+      # A version of an entry that is merged is what a confirmed duty or a
+      # filled form names, so it stays as it is, byte for byte (ADR 0005,
+      # point 16). Only a pull request has a main to compare with; the base is
+      # fetched on its own, because the checkout holds the merge commit alone.
+      - name: Gemergte Fassungen der Pakete unverändert
+        if: github.event_name == 'pull_request'
+        run: |
+          git fetch --no-tags --depth=1 origin "$GITHUB_BASE_REF"
+          pnpm --filter @opengewerk/haustechnik-catalogue run compare FETCH_HEAD
 
       # ADR 0004 in the repository opengewerk asks for a bundle budget per entry
       # and names a number for the entry on site; the tool is the foundation's.

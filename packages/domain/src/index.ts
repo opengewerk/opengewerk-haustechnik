@@ -25,6 +25,10 @@ export * from './model/area.js'
 // The place: properties, buildings, floors and rooms.
 export * from './model/location.js'
 
+// The catalogue the packages under pakete/ make up: asset kinds, duty kinds
+// and their rules, each with its review, and the questions asked of it.
+export * from './model/catalogue.js'
+
 // What a device may create, change and hold, and the rules server and device
 // decide an operation by.
 export * from './model/sync.js'

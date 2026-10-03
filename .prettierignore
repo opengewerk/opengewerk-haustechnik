@@ -21,3 +21,9 @@ upstream/
 # run. Formatting it only gets it back reformatted at the next generate, and a
 # migration that has run is not changed, not even in its whitespace.
 packages/server/migrations/
+
+# A version of an entry in a package is not changed once it is merged, not
+# even in its whitespace (ADR 0005, point 7). A newer Prettier that lays out
+# JSON differently would otherwise demand exactly the change the comparison
+# with main refuses.
+pakete/

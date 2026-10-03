@@ -20,8 +20,12 @@ import {
 // with their first content; their names are settled (ADR 0001), and a boundary
 // that is only drawn once somebody has crossed it is drawn too late.
 const above = layersAbove({
-  packages: ['@opengewerk/haustechnik-server', '@opengewerk/haustechnik-web'],
-  folders: ['server', 'web'],
+  packages: [
+    '@opengewerk/haustechnik-catalogue',
+    '@opengewerk/haustechnik-server',
+    '@opengewerk/haustechnik-web',
+  ],
+  folders: ['catalogue', 'server', 'web'],
 })
 
 // The submodule holds the whole repository of the Handwerkersoftware, and only
@@ -70,8 +74,9 @@ export default configuration(
     ignores: ['packages/domain/**'],
   },
 
-  // The server runs in Node and nowhere else, the interface in a browser.
-  runsInNode(['packages/server/**/*.ts']),
+  // The server runs in Node and nowhere else, the interface in a browser. The
+  // loader of the catalogue runs in Node as well, at build time.
+  runsInNode(['packages/server/**/*.ts', 'packages/catalogue/**/*.ts']),
   runsInBrowser(['packages/web/**/*.{ts,tsx}']),
 
   // The shared configuration at the root, the scripts beside it and the small

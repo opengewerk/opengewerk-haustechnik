@@ -1,0 +1,19 @@
+{
+  "entries": [
+    {
+      "file": "anlagenarten/elevator.v1.json",
+      "checkedOn": "2026-10-03"
+    },
+    {
+      "file": "pflichten/elevator_main_test.v1.json",
+      "checkedOn": "2026-10-03"
+    }
+  ],
+  "rules": [
+    {
+      "key": "elevator_main_test_interval",
+      "validFrom": "2015-06-01",
+      "checkedOn": "2026-10-03"
+    }
+  ]
+}

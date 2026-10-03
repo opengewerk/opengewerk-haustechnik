@@ -23,6 +23,7 @@ COPY pnpm-workspace.yaml pnpm-lock.yaml package.json turbo.json tsconfig.base.js
 COPY upstream/opengewerk/packages/platform/domain/package.json upstream/opengewerk/packages/platform/domain/
 COPY upstream/opengewerk/packages/platform/server/package.json upstream/opengewerk/packages/platform/server/
 COPY upstream/opengewerk/packages/platform/web/package.json upstream/opengewerk/packages/platform/web/
+COPY packages/catalogue/package.json packages/catalogue/
 COPY packages/domain/package.json packages/domain/
 COPY packages/server/package.json packages/server/
 COPY packages/web/package.json packages/web/

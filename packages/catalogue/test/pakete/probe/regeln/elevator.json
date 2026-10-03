@@ -1,0 +1,15 @@
+{
+  "note": "Die Höchstfrist der Hauptprüfung einer Aufzugsanlage. Am 03.10.2026 gegen die geltende BetrSichV und gegen ihre Fassung vom 3. Februar 2015 geprüft, die am 1. Juni 2015 in Kraft trat: der Satz steht in beiden gleich.",
+  "records": [
+    {
+      "key": "elevator_main_test_interval",
+      "validFrom": "2015-06-01",
+      "validUntil": null,
+      "unit": "months",
+      "value": 24,
+      "source": "Anhang 2 Abschnitt 2 Nr. 4.1 Satz 4 BetrSichV",
+      "origin": "state_law",
+      "note": "Höchstfrist: der Arbeitgeber legt die Frist nach § 3 Abs. 6 BetrSichV fest und darf sie nur kürzer wählen."
+    }
+  ]
+}

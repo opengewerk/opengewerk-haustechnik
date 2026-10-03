@@ -1,0 +1,30 @@
+{
+  "name": "@opengewerk/haustechnik-catalogue",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "sideEffects": false,
+  "files": [
+    "dist"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json && node dist/build.js",
+    "compare": "node dist/compare.js",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@opengewerk/haustechnik-domain": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "24.13.5",
+    "vitest": "5.0.3"
+  }
+}

@@ -180,6 +180,25 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   in der Datenbank, und der Compiler hält die Typen der Zeilen gegen das Modell. Die Flächen
   kommen nach dem Fahrplan des Konzepts in Phase 3, die Bildschirme in Phase 1, und auf ein
   Gerät reisen die Orte erst mit den Regeln des Abgleichs (#27)
+- Das Paketformat (#19, ADR 0005): der Katalog aus Anlagenarten, Pflichtarten, Regeln,
+  Formularen und Vorlagen steht als JSON unter `pakete/<name>/`, jede Fassung einer Anlagenart,
+  Pflichtart, eines Formulars oder einer Vorlage in einer eigenen Datei, und `abnahmen.json`
+  nennt je Fassung und je Regel den Tag der letzten Prüfung gegen die Quelle und, wo es sie
+  gibt, die Abnahme mit Person, Tag und Prüfsumme. Das neue Paket
+  `@opengewerk/haustechnik-catalogue` liest den Ordner beim Bau, prüft jede Datei gegen ihr
+  Schema und die Pakete gegeneinander und schreibt das Bündel, das Server und Oberfläche laden
+  werden; ein Fehler hält den Bau an und nennt Datei, Feld und Grund. Rot wird es unter anderem
+  bei einer Pflichtart ohne Fundstelle, einer Frist ohne Regel, einer Lücke mitten in einer
+  Reihe von Regeln, einem Verweis ohne Ziel, einer Frist aus einer privaten Norm ohne den
+  Vermerk der rechtlichen Prüfung und einer Abnahme, deren Prüfsumme nicht passt. In einem Pull
+  Request vergleicht die CI jede Fassung, die es auf `main` gibt, Byte für Byte, denn eine
+  bestätigte Pflicht muss morgen auf dieselbe Fassung zeigen können. In `domain` beantwortet
+  `catalogueOf` die Fragen an den Katalog, jede mit einem Tag: welche Fassung gilt, welche Regel
+  der Frist, und für einen Tag vor dem Beginn einer Regel keine. Jeder Eintrag kommt dort nur
+  mit seiner Prüfung und Abnahme heraus, sodass ein Eintrag ohne Abnahme überall als solcher
+  erkennbar ist. Ein Probepaket mit der Hauptprüfung einer Aufzugsanlage nach der BetrSichV
+  liegt als Material bei den Tests und als Vorbild für einen Beitrag, beschrieben in
+  `pakete/README.md`. Die Inhalte der Pakete kommen in Phase 1
 
 ### Geändert
 
