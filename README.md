@@ -70,7 +70,7 @@ Ein Teil der Tests braucht ein PostgreSQL 18 und leert es vor jedem Lauf. Dafür
 | Paket | Inhalt |
 | --- | --- |
 | [`packages/domain`](packages/domain) | Fachlichkeit ohne I/O: der Katalog der Rechte und die Rollen, mit denen ein Betreiber beginnt. Reicht weiter, was das Fundament exportiert, damit Server und Oberfläche ein Paket fragen |
-| [`packages/server`](packages/server) | Die Datenbank dieser Anwendung (Schema, Migrationen und der Befehl, der sie einspielt) und die Schnittstelle, soweit das Fundament sie mitbringt: Anmeldung, Zugänge und der Bereich der Instanz, hinter dem Guard. Gestartet wird sie noch nicht |
+| [`packages/server`](packages/server) | Die Datenbank dieser Anwendung (Schema, Migrationen und der Befehl, der sie einspielt), der Start einer Instanz, die auch die Oberfläche ausliefert, und die Schnittstelle, soweit das Fundament sie mitbringt: Anmeldung, Zugänge, der Bereich der Instanz und der Abgleich, hinter dem Guard |
 | [`packages/web`](packages/web) | Die Oberfläche mit zwei Einstiegen, `/` für das Büro und `/m` für die Arbeit vor Ort. Bisher die Hülle des Fundaments mit dem, was diese Anwendung dazu sagt: Tor und Anmeldung, "Konto", "Zugänge", der Bereich der Instanz, die Leiste des Abgleichs und der Konfliktbildschirm, mit Service Worker und Manifesten |
 | `upstream/opengewerk/packages/platform/*` | Das Fundament: Mandantentrennung, Anmeldung, Rechte, Abgleich auf dem Gerät und auf dem Server samt seinen Routen, Audit-Log, der Einstieg des Servers und die Oberfläche, die jede Anwendung zeigt, bevor ihr erster eigener Bildschirm kommt, mit den Bausteinen, aus denen sie ihre Bildschirme baut. Wird im Repository `opengewerk` geändert, nie hier |
 | `upstream/opengewerk/docker/` | Einrichten, Starten und Sichern einer Instanz und die Prüfungen eines laufenden Stapels, als Skripte des Fundaments. Eine Anwendung ruft sie gegen ihren eigenen Ordner auf, mit ihren Namen in `application.env`; hier kommt das mit dem eigenen Betrieb (#15) |
@@ -112,6 +112,18 @@ MIGRATION_DATABASE_URL=postgres://opengewerk_owner:<passwort>@<host>:5432/hauste
 
 Gegen eine Datenbank, die schon auf dem Stand ist, tut er nichts.
 
+### Eine Instanz von Hand starten
+
+Der Betrieb über Docker Compose kommt mit #15. Bis dahin startet eine Instanz aus dem Checkout: Migrationen einspielen wie oben, die Oberfläche bauen, dann den Server mit seiner Konfiguration.
+
+```bash
+pnpm --filter @opengewerk/haustechnik-web run build
+pnpm --filter @opengewerk/haustechnik-server run build
+DATABASE_URL=postgres://opengewerk_app:<passwort>@<host>:5432/haustechnik STORAGE_PATH=<verzeichnis> SESSION_SECRET=<64 hex> TRUSTED_ORIGINS=http://localhost:23800 SETUP_CODE=<XXXX-XXXX> pnpm --filter @opengewerk/haustechnik-server run start
+```
+
+Der Server lauscht auf Port 23800 und liefert die gebaute Oberfläche gleich mit aus; ohne Bau antwortet er mit der Schnittstelle allein und sagt das beim Start. Eine leere Instanz zeigt im Browser die Ersteinrichtung, die nach dem Einrichtungscode aus `SETUP_CODE` fragt und den Betreiber, das erste Konto und dessen zweiten Faktor anlegt. Mit `CLOSED=true` läuft die Instanz, meldet unter `/health` ihre Gesundheit und gibt sonst nichts heraus.
+
 ### Rechte und Rollen
 
 Was jemand darf, steht an drei Stellen, und zwei Tests halten sie zusammen:
@@ -121,6 +133,8 @@ Was jemand darf, steht an drei Stellen, und zwei Tests halten sie zusammen:
 - **Die Zeilen eines Betreibers.** Beim Anlegen eines Betreibers werden die Rollen als Zeilen geschrieben, und von da an zählt, was in ihnen steht: der Guard des Fundaments liest sie bei jeder Anfrage.
 
 Ein neues Recht ist also eine Zeile im Konzept, eine im Katalog mit ihrer Bezeichnung und, wo eine Rolle es bekommt, ein Eintrag bei der Rolle. Der Schlüssel ist Ding und Tätigkeit in den Namen aus ADR 0002, etwa `asset.record`.
+
+Der Abgleich hat zwei Rechte, "Daten abgleichen" und "Änderungen senden", und alle vier Rollen haben beide: was ein Gerät sendet, entscheidet für jeden Vorgang das Recht an dem, was er anfasst. Welches das ist, sagt `permissionFor` in `packages/server/src/api/sync-routes.ts`; bis die Datensätze ihre Richtlinien haben (#27), lehnt es jeden ab.
 
 Jede Route sagt, welches Recht sie braucht, mit `@RequiresPermission` aus `packages/server/src/api/authorization.ts`. Eine Route ohne Angabe lehnt der Guard ab, und `route-coverage.test.ts` findet sie vorher: der Test liest die Controller aus dem Modul, ein neuer Controller ist also dabei, ohne dass jemand an den Test denkt. Routen, die ohne Anmeldung antworten oder nur eine Sitzung brauchen, stehen dort als Liste; eine weitere macht den Test rot und ist damit eine Entscheidung.
 

@@ -76,13 +76,14 @@ describe('every route', () => {
    * the one worth counting: adding one turns this test red, which makes it a
    * decision instead of a line in a diff nobody looked at twice.
    */
-  it('that answers without an identity is the first run or a one time link', () => {
+  it('that answers without an identity is the health check, the first run or a one time link', () => {
     const publicRoutes = routesOf(controllers)
       .filter((route) => route.isPublic)
       .map((route) => route.name)
       .sort()
 
     expect(publicRoutes).toEqual([
+      'GET /health',
       'GET /invitation/:token',
       'GET /setup',
       'POST /invitation/:token',
@@ -123,7 +124,11 @@ describe('every route', () => {
   it('that answers without an identity does not exist on a closed instance', () => {
     const closed = routesOf(whenClosed)
 
-    expect(closed.filter((route) => route.isPublic).map((route) => route.name)).toEqual([])
+    // The health check stays: a closed instance still says that it runs, for
+    // the container runtime and for whoever restores it.
+    expect(closed.filter((route) => route.isPublic).map((route) => route.name)).toEqual([
+      'GET /health',
+    ])
     // Who works for a tenant is behind the guard like everything else, so it
     // stays on the table and answers 401. Closing an instance is about the
     // ways in that need no identity, not about taking routes away.

@@ -105,6 +105,14 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   Einstieg (gebaut 150 kB vor Ort und 168 kB im Büro, Grenzen 300 und 450 kB) und den Bau auf
   Wörter der Handwerkersoftware für Betreiber, Leitung und den Einstieg vor Ort. Der Einstieg
   vor Ort öffnet auf einem Gerät, das schon angemeldet war, auch ohne Netz
+- Der Server startet (#13, zweiter Teil): `pnpm --filter @opengewerk/haustechnik-server run
+  start` setzt eine Instanz aus ihrer Konfiguration zusammen, liefert beide Einstiege der
+  Oberfläche aus, meldet unter `/health` seine Gesundheit mit der Fassung und zeigt auf einer
+  leeren Instanz die Ersteinrichtung mit Einrichtungscode; mit `CLOSED` läuft er, ohne etwas
+  herauszugeben. Dazu kommen die Routen des Abgleichs unter `/sync`, die die Leiste des
+  Abgleichs fragt, mit den Regeln dieser Anwendung: bis die Datensätze ihre Richtlinien haben
+  (#27), reist keiner, und ein Gerät, das trotzdem einen schickt, bekommt die Ablehnung mit dem
+  Vorgang genannt
 
 ### Geändert
 
@@ -193,6 +201,10 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   Fassungen davon in einem Prozess hießen Tabellen, die mit der einen angelegt und mit der
   anderen abgefragt werden; die Prüfung wird rot, sobald das Fundament eine Fassung hebt und die
   Anwendung nicht folgt
+- Planungskonzept auf v0.6: Abschnitt 7 nennt die Rechte für den Abgleich, "Daten abgleichen"
+  und "Änderungen senden". Alle vier Rollen haben beide, weil der Abgleich ein anderer Weg
+  hinein ist und kein eigenes Tun: was ein Gerät sendet, entscheiden die übrigen Rechte Vorgang
+  für Vorgang. Katalog und Rollen in `packages/domain` haben sie ebenso
 - Planungskonzept auf v0.5: Abschnitt 7 nennt für die vier Rollen aus Phase 1 jedes Recht
   einzeln, in den Worten, die ein Betreiber liest, wenn ihm eines fehlt. Zugänge, Einstellungen
   und Änderungsprotokoll hat nur die Leitung; die Struktur der Liegenschaften, das
