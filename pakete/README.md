@@ -105,6 +105,7 @@ Wasser.
 | `bindingness` | Verbindlichkeit: `statute` (Gesetz oder Verordnung), `technical_rule` (technische Regel), `manufacturer` (Vorgabe des Herstellers) |
 | `source` | Fundstelle: der Paragraf mit Gesetz oder Verordnung, die Norm mit Ausgabe und Abschnitt, oder die Regel der Technik. Ohne sie wird eine Pflichtart nicht aufgenommen |
 | `interval` | Frist: `kind` ist `maximum` (Höchstfrist), `guide` (Richtwert) oder `none` (ohne Vorgabe); die ersten beiden nennen in `rule` den Schlüssel einer Regel, nie eine Zahl |
+| `counting` | Zählweise des nächsten Termins: `from_performance` (ab dem Tag der Durchführung), `from_due` (ab dem fälligen Tag) oder `betrsichv` (nach § 14 Abs. 5 BetrSichV: Termin als Monat und Jahr, fristgerecht bis zwei Monate danach; die Regel der Frist zählt dann in Monaten oder Jahren) |
 | `qualification` | `level`: `instructed_person`, `skilled_person`, `competent_person`, `approved_body`, `certified_expert` oder `accredited_laboratory`; auf Wunsch eine `note` |
 | `evidence` | `kinds`, eine oder mehrere von `protocol`, `report`, `round_point`, `work_order`; bei einem Protokoll auf Wunsch das `form` |
 | `retention` | Aufbewahrung: `kind` ist `years` mit der `rule` der Jahre, `until_next_inspection` oder `while_in_use` |

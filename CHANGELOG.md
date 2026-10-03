@@ -223,6 +223,14 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   für die Tests des Servers aus. Eigene Anlagenarten des Betreibers haben im Fahrplan noch
   keine Phase (#52); die Stände der Zähler und die Bildschirme kommen in Phase 1, und auf ein
   Gerät reisen die Anlagen mit den Regeln des Abgleichs (#27)
+- Wie der nächste Termin einer Pflicht gezählt wird, sagt ihre Pflichtart (#25): ab dem Tag der
+  Durchführung, ab dem fälligen Tag oder nach § 14 Abs. 5 BetrSichV, wo der Termin ein Monat mit
+  Jahr ist und eine Prüfung noch zwei Monate danach fristgerecht. Der Bau eines Pakets verlangt die
+  Angabe und lehnt für die BetrSichV eine Frist in Tagen ab. Der nächste Termin aus den Tagen, an
+  denen die Pflicht erfüllt wurde, und der Zustand einer Pflicht an einem Tag (nie erfasst, ruht,
+  überfällig, fällig, erfüllt bis) sind reine Funktionen in `packages/domain`, mit
+  Eigenschaftstests über beliebige Tage; eine nicht bestandene oder nicht durchgeführte Prüfung
+  zählt nicht. Das Bündel des Katalogs hat damit das Format 2
 
 ### Geändert
 

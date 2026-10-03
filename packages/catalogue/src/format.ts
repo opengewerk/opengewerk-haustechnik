@@ -7,6 +7,7 @@ import {
   catalogueOrigins,
   type Characteristic,
   type ChoiceOption,
+  countings,
   dutyBindingnesses,
   type DutyInterval,
   type DutyKind,
@@ -876,6 +877,7 @@ export function readDutyKind(
     'bindingness',
     'source',
     'interval',
+    'counting',
     'qualification',
     'evidence',
     'retention',
@@ -920,6 +922,14 @@ export function readDutyKind(
         'Die Frist fehlt, auch "kind": "none" ist eine Angabe.',
       )
     : interval(from['interval'], below(spot, 'interval'), findings, origin)
+  const counting = oneOf(
+    from,
+    'counting',
+    countings,
+    spot,
+    findings,
+    'Die Zählweise fehlt: ab dem Tag der Durchführung (from_performance), ab dem fälligen Tag (from_due) oder nach § 14 Abs. 5 BetrSichV (betrsichv).',
+  )
 
   const qualificationFields = missing(from, 'qualification')
     ? noted(findings, below(spot, 'qualification'), 'Die geforderte Qualifikation fehlt.')
@@ -992,6 +1002,7 @@ export function readDutyKind(
     bindingness === undefined ||
     source === undefined ||
     readInterval === undefined ||
+    counting === undefined ||
     level === undefined ||
     kinds === undefined ||
     !defined(kinds) ||
@@ -1011,6 +1022,7 @@ export function readDutyKind(
       bindingness,
       source,
       interval: readInterval,
+      counting,
       qualification:
         qualificationNote === undefined ? { level } : { level, note: qualificationNote },
       evidence: form === undefined ? { kinds: [...kinds] } : { kinds: [...kinds], form },

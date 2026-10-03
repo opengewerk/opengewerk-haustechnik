@@ -217,6 +217,15 @@ Nachträge:
 
   Umziehen, umhängen, den Lebenszyklus führen und löschen ist "pflegen" (`asset.write`), alles andere an einer Anlage "aufnehmen" (`asset.record`), wie Abschnitt 7 des Konzepts es verteilt. Die Anlagen tragen die Spalten des Abgleichs und reisen mit den Regeln aus `#27`.
 
+- **Nachtrag vom 03.10.2026, Termin und Zustand einer Pflicht als Funktionen (`#25`, erster Schritt).** Was die Punkte 12 und 16 verlangen, steht in `packages/domain/src/model/duty.ts`:
+
+  1. **Der Termin folgt aus den Tagen, an denen die Pflicht erfüllt wurde**, aus ihrer Frist und der Zählweise ihrer Pflichtart (`nextAppointment`, Nachtrag zu ADR 0005 vom selben Tag). Er nennt den ersten Tag, an dem sie fällig ist, und den letzten, an dem eine Durchführung noch fristgerecht ist; nach § 14 Abs. 5 BetrSichV liegen dazwischen der Monat des Termins und die zwei Monate danach. Ab dem fälligen Tag gezählt bleibt der Rhythmus: eine zweite Durchführung in einem schon erfüllten Zeitraum rückt ihn nicht weiter, und eine, die später als der übernächste Termin kommt, lässt die versäumten hinter sich, statt die Pflicht im Augenblick ihrer Erfüllung überfällig zu nennen. Jeder Termin wird vom ersten Tag aus gezählt, damit ein Rhythmus vom Monatsende nicht auf den 28. wandert.
+  2. **Es zählt, was die Pflicht erfüllt**: ein Ergebnis ohne Mangel oder mit Mängeln (`meetsTheDuty` in `evidence.ts`, die Ergebnisse in den Worten von Abschnitt 4.4 des Konzepts). Eine nicht bestandene Prüfung lässt die Pflicht offen, eine nicht durchgeführte ändert nichts.
+  3. **Der Zustand an einem Tag** (`dutyStateOn`): ruht, solange die Anlage nicht in Betrieb ist, gleich was ihr Termin sagt; nie erfasst ohne Termin; überfällig nach dem letzten fristgerechten Tag; fällig ab dem Vorlauf vor dem fälligen Tag; davor erfüllt bis zum fälligen Tag. Mit den Tagen wird ein Zustand nur schlechter, nie besser, das hält ein Eigenschaftstest fest.
+  4. **Ruhen heißt: geplant, außer Betrieb, stillgelegt oder zurückgebaut** (`restsOn`). Eine Anlage ohne einen Eintrag im Lebenszyklus gilt als in Betrieb: eine Pflicht, die ruht, nur weil niemand den Tag der Inbetriebnahme eingetragen hat, wäre die übersehene, die niemandem auffällt.
+
+  Pflicht, Verwerfen, die Zeile des Nachweises und die Fristen der Engine kommen in den nächsten Schritten von `#25`.
+
 ## Bestätigung
 
 Die Entscheidung gilt als umgesetzt, wenn

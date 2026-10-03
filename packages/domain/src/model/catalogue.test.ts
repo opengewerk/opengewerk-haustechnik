@@ -35,6 +35,7 @@ const mainTest: DutyKind = {
   bindingness: 'statute',
   source: 'Anhang 2 Abschnitt 2 Nr. 4.1 BetrSichV',
   interval: { kind: 'maximum', rule: 'probe.elevator_main_test_interval' },
+  counting: 'betrsichv',
   qualification: { level: 'approved_body' },
   evidence: { kinds: ['report'] },
   retention: { kind: 'while_in_use' },
@@ -245,7 +246,8 @@ describe('the catalogue', () => {
   })
 
   it('refuses a bundle in another format, and rules that are in force twice on one day', () => {
-    expect(() => catalogueOf({ ...bundle(), format: 2 as never })).toThrow(/Format 2/)
+    // Format 1 had no counting at its duty kinds (#25).
+    expect(() => catalogueOf({ ...bundle(), format: 1 as never })).toThrow(/Format 1/)
     expect(() =>
       catalogueOf(
         bundle({
