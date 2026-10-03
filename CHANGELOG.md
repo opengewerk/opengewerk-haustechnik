@@ -161,6 +161,14 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   dafür einen Satz mehr, den das Protokoll beim Start einer leeren Instanz schreibt: dass die
   Ersteinrichtung im Browser den Betreiber und den ersten Zugang anlegt. Die Tests des
   Fundaments laufen in der CI dieses Repositorys mit, in `platform-server` jetzt 479 statt 437
+- Das Fundament ist auf den Stand mit dem Abgleich auf dem Server angehoben
+  (`opengewerk/opengewerk#501` und `#502`, #21). Das Anwenden der Vorgänge eines Geräts, die
+  Konflikte und der Abruf nach der Änderungsnummer liegen damit in
+  `@opengewerk/platform-server`, ebenso die Routen unter `/sync`, denen eine Anwendung das Recht
+  je Vorgang, ihre Worte für eine Ablehnung der Datenbank und die Auswahl je Gerät mitgibt. Hier
+  gebunden werden die Routen mit der Leiste des Abgleichs (#13), die Richtlinien je Entität und
+  die Auswahl nach Bereich mit #27. Die Tests des Fundaments laufen in der CI dieses Repositorys
+  mit, in `platform-server` jetzt 526 statt 479
 - `pnpm run check:toolchain` vergleicht auch die Fassungen der Abhängigkeiten, die ein Paket
   dieser Anwendung und ein Paket des Fundaments beide laden, zuerst `drizzle-orm` und `pg`. Zwei
   Fassungen davon in einem Prozess hießen Tabellen, die mit der einen angelegt und mit der

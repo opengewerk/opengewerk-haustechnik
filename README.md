@@ -71,7 +71,7 @@ Ein Teil der Tests braucht ein PostgreSQL 18 und leert es vor jedem Lauf. Dafür
 | --- | --- |
 | [`packages/domain`](packages/domain) | Fachlichkeit ohne I/O: der Katalog der Rechte und die Rollen, mit denen ein Betreiber beginnt. Reicht weiter, was das Fundament exportiert, damit Server und Oberfläche ein Paket fragen |
 | [`packages/server`](packages/server) | Die Datenbank dieser Anwendung (Schema, Migrationen und der Befehl, der sie einspielt) und die Schnittstelle, soweit das Fundament sie mitbringt: Anmeldung, Zugänge und der Bereich der Instanz, hinter dem Guard. Gestartet wird sie noch nicht |
-| `upstream/opengewerk/packages/platform/*` | Das Fundament: Mandantentrennung, Anmeldung, Rechte, Abgleich, Audit-Log, der Einstieg des Servers und die Oberfläche, die jede Anwendung zeigt, bevor ihr erster eigener Bildschirm kommt, mit den Bausteinen, aus denen sie ihre Bildschirme baut. Wird im Repository `opengewerk` geändert, nie hier |
+| `upstream/opengewerk/packages/platform/*` | Das Fundament: Mandantentrennung, Anmeldung, Rechte, Abgleich auf dem Gerät und auf dem Server samt seinen Routen, Audit-Log, der Einstieg des Servers und die Oberfläche, die jede Anwendung zeigt, bevor ihr erster eigener Bildschirm kommt, mit den Bausteinen, aus denen sie ihre Bildschirme baut. Wird im Repository `opengewerk` geändert, nie hier |
 | `upstream/opengewerk/docker/` | Einrichten, Starten und Sichern einer Instanz und die Prüfungen eines laufenden Stapels, als Skripte des Fundaments. Eine Anwendung ruft sie gegen ihren eigenen Ordner auf, mit ihren Namen in `application.env`; hier kommt das mit dem eigenen Betrieb (#15) |
 
 Die Oberfläche entsteht mit ihrem ersten Inhalt, ihrer Hülle.
