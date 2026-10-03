@@ -7,6 +7,7 @@ import {
   catalogueOf,
   type DutyId,
   type EvidenceState,
+  evidenceStateVersion,
   readEvidenceState,
   type TenantId,
 } from '@opengewerk/haustechnik-domain'
@@ -314,12 +315,13 @@ describe('an evidence written down', () => {
 
     const written = await write(protocol(duty, activity))
     const expected: EvidenceState = {
-      version: 1,
+      version: evidenceStateVersion,
       number: 'NW-2026-00001',
       origin: 'protocol',
       performedOn: '2026-10-01',
       result: 'with_defects',
       resultReason: null,
+      replaces: null,
       duty: {
         label: 'Sichtprüfung der Aufzugsanlage',
         kind: keptTest,

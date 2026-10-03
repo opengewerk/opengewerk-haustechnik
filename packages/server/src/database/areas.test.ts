@@ -383,6 +383,13 @@ async function placeIn(where: 'north' | 'south'): Promise<void> {
      values ($1, $2, $3, $4, 'rejected', 'Die Notrufverbindung fehlt noch.', $5)`,
     [tenant, at.property, areaId, at.workOrder, person.lead],
   )
+  // The evidence of the duty, declared invalid.
+  await admin.query(
+    `insert into evidence_voidings (tenant_id, property_id, area_id, evidence_id, reason, voided_by)
+     select tenant_id, property_id, area_id, id, 'Der Bericht gehört zu einer anderen Anlage.', $2
+       from evidence where duty_id = $1`,
+    [at.duty, person.lead],
+  )
 }
 
 beforeAll(async () => {
@@ -480,6 +487,7 @@ describe('a person with the north', () => {
       'duties',
       'duty_dismissals',
       'evidence',
+      'evidence_voidings',
       'floors',
       'properties',
       'rooms',
@@ -688,6 +696,7 @@ describe('a property moved to another area', () => {
         'duties',
         'duty_dismissals',
         'evidence',
+        'evidence_voidings',
         'floors',
         'rooms',
         'work_order_decisions',

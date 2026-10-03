@@ -26,6 +26,9 @@ export const applicationConflicts: Readonly<Record<string, string>> = {
   // A signature or the decision on a work order changed or removed (#26).
   HT005:
     'Eine Unterschrift oder eine Entscheidung über einen Auftrag wird nicht geändert und nicht gelöscht.',
+  // A declaration that an evidence is invalid changed or removed (#26).
+  HT006:
+    'Eine Ungültigerklärung wird nicht geändert und nicht gelöscht. Der Nachweis bleibt mit ihr lesbar.',
 }
 
 export const { answerFor, DatabaseExceptionFilter } = databaseErrors(applicationConflicts)

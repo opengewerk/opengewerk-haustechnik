@@ -5,6 +5,7 @@ import {
   dutyInterval,
   type EvidenceId,
   evidenceKindLabel,
+  evidenceLimits,
   type EvidenceOrigin,
   evidenceProblems,
   type EvidenceResult,
@@ -15,7 +16,9 @@ import {
   type StatedPerformer,
   type StatedPlace,
   type StatedRetention,
+  type StatedReplacement,
   type StatedSignature,
+  statedReasonProblem,
   type TenantId,
 } from '@opengewerk/haustechnik-domain'
 import type { TenantTransaction } from '@opengewerk/platform-server'
@@ -30,6 +33,7 @@ import {
   defects,
   duties,
   evidence,
+  evidenceVoidings,
   properties,
   rooms,
 } from '../database/schema/index.js'
@@ -51,6 +55,11 @@ export interface EvidenceToWrite {
   readonly signatures: readonly StatedSignature[]
   /** The files the evidence rests on, by checksum (the documents of phase 1). */
   readonly files: readonly StatedFile[]
+  /**
+   * The evidence of the same duty this one corrects, with the reason (ADR
+   * 0004, point 14); none for an evidence that corrects nothing.
+   */
+  readonly replaces?: { readonly evidenceId: EvidenceId; readonly reason: string } | null
 }
 
 /** Who writes it down, when, and what the state needs from outside the tenant. */
@@ -93,7 +102,9 @@ export class EvidenceRefusal extends Error {
  *
  * Only the server writes an evidence down; a device signs and waits (ADR
  * 0004, point 10). The four ways of phase 1, the signed protocol, the report,
- * the point of a round and the accepted work order, end here.
+ * the point of a round and the accepted work order, end here, and so does a
+ * correction: a new evidence of the same duty that names the one it
+ * replaces, which stays as it is.
  */
 export async function writeEvidence(
   tx: TenantTransaction,
@@ -155,6 +166,10 @@ export async function writeEvidence(
     )
   }
 
+  const replaced =
+    input.replaces === undefined || input.replaces === null
+      ? null
+      : await replacedOf(tx, context, input.replaces, duty.id)
   const activity = input.activityId === null ? null : await activityOf(tx, context, input)
   const [property] = await tx
     .select()
@@ -195,6 +210,7 @@ export async function writeEvidence(
     performedOn: input.performedOn,
     result: input.result,
     resultReason: input.resultReason,
+    replaces: replaced === null ? null : { number: replaced.number, reason: replaced.reason },
     duty: {
       label: kind?.definition.label ?? duty.label ?? duty.kind ?? '',
       kind: duty.kind,
@@ -237,6 +253,8 @@ export async function writeEvidence(
       examinerOrganisation: input.examiner?.organisation ?? null,
       writtenBy: context.writtenBy,
       writtenAt: context.at,
+      replacesEvidenceId: replaced?.id ?? null,
+      replacementReason: replaced?.reason ?? null,
       state,
       fingerprint,
     })
@@ -247,6 +265,72 @@ export async function writeEvidence(
   }
 
   return { id: row.id, number, fingerprint, state }
+}
+
+/**
+ * The evidence a correction replaces: one of the same duty, not corrected
+ * before and not declared invalid. Its correction is corrected in turn, so
+ * the evidence that counts is always the last of a line. The database holds
+ * the first two by its keys; the third is asked here, because a declaration
+ * of invalidity is a row of its own.
+ */
+async function replacedOf(
+  tx: TenantTransaction,
+  context: WritingContext,
+  replaces: NonNullable<EvidenceToWrite['replaces']>,
+  dutyId: DutyId,
+): Promise<StatedReplacement & { readonly id: EvidenceId }> {
+  const problem = statedReasonProblem(
+    replaces.reason,
+    evidenceLimits.replacementReason,
+    'Eine Berichtigung nennt ihren Grund.',
+  )
+
+  if (problem !== undefined) {
+    throw new EvidenceRefusal(problem)
+  }
+
+  const [found] = await tx
+    .select({ id: evidence.id, number: evidence.number, dutyId: evidence.dutyId })
+    .from(evidence)
+    .where(and(eq(evidence.tenantId, context.tenantId), eq(evidence.id, replaces.evidenceId)))
+
+  if (!found) {
+    throw new EvidenceRefusal('Den Nachweis, der berichtigt werden soll, gibt es nicht.')
+  }
+
+  if (found.dutyId !== dutyId) {
+    throw new EvidenceRefusal(
+      'Eine Berichtigung gilt für die Pflicht des Nachweises, den sie ersetzt.',
+    )
+  }
+
+  const [correction] = await tx
+    .select({ number: evidence.number })
+    .from(evidence)
+    .where(and(eq(evidence.tenantId, context.tenantId), eq(evidence.replacesEvidenceId, found.id)))
+
+  if (correction) {
+    throw new EvidenceRefusal(
+      `Dieser Nachweis ist schon berichtigt, mit ${correction.number}; berichtigt wird dann die Berichtigung.`,
+    )
+  }
+
+  const [voiding] = await tx
+    .select({ id: evidenceVoidings.id })
+    .from(evidenceVoidings)
+    .where(
+      and(
+        eq(evidenceVoidings.tenantId, context.tenantId),
+        eq(evidenceVoidings.evidenceId, found.id),
+      ),
+    )
+
+  if (voiding) {
+    throw new EvidenceRefusal('Ein für ungültig erklärter Nachweis wird nicht berichtigt.')
+  }
+
+  return { id: found.id, number: found.number, reason: replaces.reason.trim() }
 }
 
 /** The activity of an evidence, which has to be one to meet its duty. */

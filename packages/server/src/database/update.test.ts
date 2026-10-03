@@ -145,6 +145,7 @@ describe('an installation that began on the first migration', () => {
     // The evidence and the deadlines hang on the duties, the duties on the
     // place and the assets, so they go first; the files, the mail server and
     // the settings of the deadlines hang on nothing of this.
+    await revertMigration(admin, '0012_evidence_corrections')
     await revertMigration(admin, '0011_signatures')
     await revertMigration(admin, '0010_evidence_written')
     await revertMigration(admin, '0009_activities_and_defects')
@@ -298,6 +299,7 @@ describe('an installation from before the areas', () => {
 
     // The places hang on the areas and go first, as on the way back of an
     // installation.
+    await revertMigration(admin, '0012_evidence_corrections')
     await revertMigration(admin, '0011_signatures')
     await revertMigration(admin, '0010_evidence_written')
     await revertMigration(admin, '0009_activities_and_defects')
@@ -361,6 +363,7 @@ describe('an installation with places', () => {
       [tenant.id],
     )
 
+    await revertMigration(admin, '0012_evidence_corrections')
     await revertMigration(admin, '0011_signatures')
     await revertMigration(admin, '0010_evidence_written')
     await revertMigration(admin, '0009_activities_and_defects')
@@ -451,6 +454,7 @@ describe('an installation with assets', () => {
       [tenant.id, asset, at.property, at.area, at.building],
     )
 
+    await revertMigration(admin, '0012_evidence_corrections')
     await revertMigration(admin, '0011_signatures')
     await revertMigration(admin, '0010_evidence_written')
     await revertMigration(admin, '0009_activities_and_defects')
@@ -548,6 +552,7 @@ describe('an installation with assets', () => {
       [tenant.id, at.property, at.area, at.asset],
     )
 
+    await revertMigration(admin, '0012_evidence_corrections')
     await revertMigration(admin, '0011_signatures')
     await revertMigration(admin, '0010_evidence_written')
     await revertMigration(admin, '0009_activities_and_defects')
@@ -646,6 +651,7 @@ describe('an installation with assets', () => {
       [tenant.id, at.duty, at.property, at.area],
     )
 
+    await revertMigration(admin, '0012_evidence_corrections')
     await revertMigration(admin, '0011_signatures')
     await revertMigration(admin, '0010_evidence_written')
     await revertMigration(admin, '0009_activities_and_defects')
@@ -747,6 +753,7 @@ describe('an installation with assets', () => {
       [tenant.id, at.property, at.area, at.asset, activityId],
     )
 
+    await revertMigration(admin, '0012_evidence_corrections')
     await revertMigration(admin, '0011_signatures')
     await revertMigration(admin, '0010_evidence_written')
     await revertMigration(admin, '0009_activities_and_defects')
@@ -841,6 +848,7 @@ describe('an installation with assets', () => {
       ],
     )
 
+    await revertMigration(admin, '0012_evidence_corrections')
     await revertMigration(admin, '0011_signatures')
     await revertMigration(admin, '0010_evidence_written')
 
@@ -940,6 +948,7 @@ describe('an installation with assets', () => {
       [at.order],
     )
 
+    await revertMigration(admin, '0012_evidence_corrections')
     await revertMigration(admin, '0011_signatures')
 
     expect(
@@ -982,5 +991,97 @@ describe('an installation with assets', () => {
       { table_name: 'activity_signatures', reason: 'migration' },
       { table_name: 'work_order_decisions', reason: 'migration' },
     ])
+  })
+  it('loses its declarations of invalidity and what a correction replaces, and nothing else, when the update is taken back', async () => {
+    await applyMigrations()
+
+    const tenant = { id: newId<'tenant'>() }
+
+    await admin.query('insert into tenants (id, name) values ($1, $2)', [
+      tenant.id,
+      'Wohnbau Nord eG',
+    ])
+    await members(tenant, { 'user-lead': { roles: ['management'] } })
+
+    const { rows: made } = await admin.query<{ property: string; area: string; duty: string }>(
+      `with property as (
+         insert into properties (tenant_id, area_id, name, street, postal_code, city, federal_state)
+         select $1, id, 'Campus Nord', 'Nordstraße 12', '68535', 'Edingen-Neckarhausen', 'DE-BW'
+           from areas where tenant_id = $1
+         returning id, area_id
+       ), duty as (
+         insert into duties (tenant_id, property_id, area_id, label, basis, source_note, counting,
+                             interval_months, confirmed_by)
+         select $1, id, area_id, 'Zufahrt freihalten', 'authority', 'Brandschutzkonzept',
+                'from_performance', 1, 'user-lead' from property
+         returning id, property_id, area_id
+       )
+       select property_id as property, area_id as area, id as duty from duty`,
+      [tenant.id],
+    )
+    const at = made[0] as { property: string; area: string; duty: string }
+    const evidenceAt = async (
+      performedOn: string,
+      replaces: { readonly id: string; readonly reason: string } | null,
+    ) => {
+      const values = [
+        tenant.id,
+        at.property,
+        at.area,
+        at.duty,
+        performedOn,
+        ...writtenValues('user-lead', performedOn, 'without_defects'),
+        ...(replaces === null ? [] : [replaces.id, replaces.reason]),
+      ]
+      const { rows } = await admin.query<{ id: string }>(
+        `insert into evidence (tenant_id, property_id, area_id, duty_id, performed_on, result,
+                               ${writtenColumnNames}${replaces === null ? '' : ', replaces_evidence_id, replacement_reason'})
+         values ($1, $2, $3, $4, $5, 'without_defects', ${writtenPlaceholders(6)}${
+           replaces === null ? '' : `, $${String(values.length - 1)}, $${String(values.length)}`
+         })
+         returning id`,
+        values,
+      )
+
+      return rows[0]?.id ?? ''
+    }
+
+    const first = await evidenceAt('2026-09-01', null)
+    const correction = await evidenceAt('2026-09-02', { id: first, reason: 'Falscher Tag.' })
+
+    await admin.query(
+      `insert into evidence_voidings (tenant_id, property_id, area_id, evidence_id, reason, voided_by)
+       values ($1, $2, $3, $4, 'Der Bericht gehört zu einer anderen Zufahrt.', 'user-lead')`,
+      [tenant.id, at.property, at.area, correction],
+    )
+
+    await revertMigration(admin, '0012_evidence_corrections')
+
+    expect((await tableNames(admin)).includes('evidence_voidings')).toBe(false)
+
+    const { rows: columns } = await admin.query<{ column_name: string }>(
+      `select column_name from information_schema.columns
+        where table_schema = 'public' and table_name = 'evidence'
+          and column_name in ('replaces_evidence_id', 'replacement_reason')`,
+    )
+
+    expect(columns).toEqual([])
+
+    // Both evidence stay, the correction as an evidence of its own.
+    const { rows: kept } = await admin.query<{ evidence: number }>(
+      'select count(*)::int as evidence from evidence where tenant_id = $1',
+      [tenant.id],
+    )
+
+    expect(kept).toEqual([{ evidence: 2 }])
+
+    const { rows: removed } = await admin.query<{ table_name: string; reason: string | null }>(
+      `select distinct table_name, reason from audit_entries
+        where tenant_id = $1 and operation = 'delete'
+        order by table_name`,
+      [tenant.id],
+    )
+
+    expect(removed).toEqual([{ table_name: 'evidence_voidings', reason: 'migration' }])
   })
 })

@@ -222,6 +222,8 @@ Ein Nachweis (ADR 0004 und der Nachtrag zu #26) ist eine Zeile in `evidence`: Pf
 
 Unterschrieben wird ein Vorgang über `takeSignature` aus `packages/server/src/activities/signing.ts`: die Unterschrift trägt den Fingerabdruck der Seite, die gezeigt wurde (`SignedPage` in `packages/domain/src/model/signature.ts`), und der Server nimmt sie nur, wenn er aus seinen Datensätzen denselben errechnet. Sind alle verlangten Unterschriften da, entsteht ein Nachweis je Pflicht; ein Auftrag wartet auf seine Abnahme (`decideWorkOrder`). Unterschriften stehen in `activity_signatures`, Abnahmen und Zurückweisungen in `work_order_decisions`, beide einmal geschrieben.
 
+Berichtigt wird ein Nachweis mit `writeEvidence` und `replaces`: der neue Nachweis derselben Pflicht nennt den ersetzten mit Grund, an der Zeile und im Stand, der dafür in Fassung 2 steht, und beide bleiben lesbar. Für ungültig erklärt wird er mit `voidEvidence` aus `packages/server/src/evidence/voiding.ts`, als eigene Zeile in `evidence_voidings`. Für die Frist zählt nur, was weder ersetzt noch für ungültig erklärt ist (`standingEvidence` in `packages/domain/src/model/evidence.ts`), und `packages/server/src/api/nothing-taken-back.test.ts` hält fest, dass keine Route Antworten, Unterschriften oder Nachweise zurücksetzt.
+
 ### Die Pakete
 
 Welche Anlagenarten es gibt, welche Pflichten für sie in Frage kommen und nach welcher Regel ihre Frist läuft, steht als JSON unter `pakete/<name>/` (ADR 0005), mit dem Tag der letzten Prüfung gegen die Quelle und der Abnahme je Eintrag in `abnahmen.json`. Wie ein Paket aufgebaut ist und was ein Beitrag beachten muss, steht in [`pakete/README.md`](pakete/README.md); ein vollständiges Beispiel ist das Probepaket unter `packages/catalogue/test/pakete/probe/`.

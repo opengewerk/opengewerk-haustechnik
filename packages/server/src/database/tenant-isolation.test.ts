@@ -103,6 +103,7 @@ function rowsOf(tenant: Tenant): readonly Row[] {
   const duty = randomUUID()
   const activity = randomUUID()
   const workOrder = randomUUID()
+  const evidence = randomUUID()
 
   return [
     {
@@ -375,6 +376,7 @@ function rowsOf(tenant: Tenant): readonly Row[] {
     {
       table: 'evidence',
       values: {
+        id: evidence,
         tenant_id: tenant.id,
         property_id: property,
         area_id: area,
@@ -471,6 +473,18 @@ function rowsOf(tenant: Tenant): readonly Row[] {
         decision: 'rejected',
         reason: 'Die Notrufverbindung fehlt noch.',
         decided_by: tenant.colleagueId,
+      },
+    },
+    // The evidence declared invalid.
+    {
+      table: 'evidence_voidings',
+      values: {
+        tenant_id: tenant.id,
+        property_id: property,
+        area_id: area,
+        evidence_id: evidence,
+        reason: 'Der Prüfbericht gehört zu einer anderen Anlage.',
+        voided_by: tenant.colleagueId,
       },
     },
   ]
