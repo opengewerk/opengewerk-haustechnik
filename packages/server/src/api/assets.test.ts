@@ -20,6 +20,11 @@ import {
   resetSchema,
   testIdentityHeader,
 } from '../database/test-database.js'
+import {
+  writtenColumnNames,
+  writtenPlaceholders,
+  writtenValues,
+} from '../database/test-evidence.js'
 import { ApiModule } from './api.module.js'
 import { as, testIdentities } from './test-identity.js'
 
@@ -513,6 +518,45 @@ describe('an asset', () => {
     )
 
     expect(rows[0]?.standing).toBe('0')
+  })
+
+  it('is taken out of service and not deleted once it has an evidence, nor is its building', async () => {
+    const place = await placeIn()
+    const asset = await assetIn(place.building)
+    const sentence =
+      'Eine Anlage mit Nachweis wird zurückgebaut und nicht gelöscht; ihre Nachweise bleiben bei ihr.'
+
+    // A duty at the asset and an evidence of it, put in past the application:
+    // no route writes an evidence before phase 1.
+    await admin.query(
+      `with duty as (
+         insert into duties (tenant_id, property_id, area_id, asset_id, label, basis, source_note,
+                             counting, interval_months, confirmed_by)
+         select tenant_id, property_id, area_id, id, 'Sichtprüfung', 'manufacturer',
+                'Betriebsanleitung', 'from_performance', 12, 'u-duties'
+           from assets where id = $1
+         returning id, tenant_id, property_id, area_id
+       )
+       insert into evidence (tenant_id, property_id, area_id, duty_id, performed_on, result,
+                             ${writtenColumnNames})
+       select tenant_id, property_id, area_id, id, '2026-09-30', 'without_defects',
+              ${writtenPlaceholders(2)}
+         from duty`,
+      [asset.id, ...writtenValues('u-duties', '2026-09-30', 'without_defects')],
+    )
+
+    for (const [path, userId] of [
+      [`/assets/${asset.id}`, 'u-site'],
+      [`/buildings/${place.building}`, 'u-duties'],
+    ] as const) {
+      await http()
+        .delete(path)
+        .set(testIdentityHeader, by(userId))
+        .expect(409)
+        .expect((answer) => expect(answer.body.message).toBe(sentence))
+    }
+
+    await http().get(`/assets/${asset.id}`).set(testIdentityHeader, by('u-site')).expect(200)
   })
 })
 

@@ -1,0 +1,369 @@
+import {
+  type ActivityId,
+  type Catalogue,
+  type DutyId,
+  dutyInterval,
+  type EvidenceId,
+  evidenceKindLabel,
+  type EvidenceOrigin,
+  evidenceProblems,
+  type EvidenceResult,
+  type EvidenceState,
+  evidenceStateVersion,
+  type IsoDate,
+  type StatedFile,
+  type StatedPerformer,
+  type StatedPlace,
+  type StatedRetention,
+  type StatedSignature,
+  type TenantId,
+} from '@opengewerk/haustechnik-domain'
+import type { TenantTransaction } from '@opengewerk/platform-server'
+import { and, asc, eq, isNull } from 'drizzle-orm'
+
+import { assignNumber } from '../database/number-ranges.js'
+import {
+  activities,
+  activityDuties,
+  assets,
+  buildings,
+  defects,
+  duties,
+  evidence,
+  properties,
+  rooms,
+} from '../database/schema/index.js'
+import { dayInGermany } from '../today.js'
+import { stateFingerprint } from './fingerprint.js'
+
+/** What is to be written down: the performance of one duty and who did it. */
+export interface EvidenceToWrite {
+  readonly dutyId: DutyId
+  readonly activityId: ActivityId | null
+  readonly origin: EvidenceOrigin
+  readonly performedOn: IsoDate
+  readonly result: EvidenceResult
+  readonly resultReason: string | null
+  /** A person of the operator who did it, or an examiner with the organisation from outside. */
+  readonly performedBy: string | null
+  readonly examiner: { readonly name: string; readonly organisation: string } | null
+  /** The signatures the activity carries, by name and moment (#26, third step). */
+  readonly signatures: readonly StatedSignature[]
+  /** The files the evidence rests on, by checksum (the documents of phase 1). */
+  readonly files: readonly StatedFile[]
+}
+
+/** Who writes it down, when, and what the state needs from outside the tenant. */
+export interface WritingContext {
+  readonly tenantId: TenantId
+  readonly writtenBy: string
+  readonly at: Date
+  readonly catalogue: Catalogue
+  /**
+   * The name of a person the evidence names. Accounts are read outside a
+   * tenant (`accountsOf` of the foundation), so the caller reads them before
+   * the transaction, for the people the keys of the evidence tie to a
+   * membership here.
+   */
+  readonly nameOf: (userId: string) => string
+}
+
+export interface WrittenEvidence {
+  readonly id: EvidenceId
+  readonly number: string
+  readonly fingerprint: string
+  readonly state: EvidenceState
+}
+
+/** Why an evidence is not written, in a sentence for the person who wanted it. */
+export class EvidenceRefusal extends Error {
+  constructor(sentence: string) {
+    super(sentence)
+    this.name = 'EvidenceRefusal'
+  }
+}
+
+/**
+ * Writes an evidence down (ADR 0004, points 1 to 6 and 10): draws its number
+ * from the sequence of the evidence, puts together the frozen state from what
+ * the records say today and writes the row with the fingerprint over the
+ * state, all in the transaction it is given. Nothing is written when anything
+ * is refused, and a refused number goes back with the transaction, so the
+ * numbers run without holes in the order the evidence came about.
+ *
+ * Only the server writes an evidence down; a device signs and waits (ADR
+ * 0004, point 10). The four ways of phase 1, the signed protocol, the report,
+ * the point of a round and the accepted work order, end here.
+ */
+export async function writeEvidence(
+  tx: TenantTransaction,
+  context: WritingContext,
+  input: EvidenceToWrite,
+): Promise<WrittenEvidence> {
+  const problems = evidenceProblems({
+    performedOn: input.performedOn,
+    result: input.result,
+    resultReason: input.resultReason,
+    examiner: input.examiner?.name ?? null,
+    examinerOrganisation: input.examiner?.organisation ?? null,
+  })
+  const firstProblem = Object.values(problems)[0]
+
+  if (firstProblem !== undefined) {
+    throw new EvidenceRefusal(firstProblem)
+  }
+
+  if (input.performedOn > dayInGermany(context.at)) {
+    throw new EvidenceRefusal('Ein Nachweis gilt für einen Tag, der schon war.')
+  }
+
+  const [duty] = await tx
+    .select()
+    .from(duties)
+    .where(
+      and(
+        eq(duties.tenantId, context.tenantId),
+        eq(duties.id, input.dutyId),
+        isNull(duties.deletedAt),
+      ),
+    )
+
+  if (!duty) {
+    throw new EvidenceRefusal('Diese Pflicht gibt es nicht.')
+  }
+
+  const kind =
+    duty.kind !== null && duty.kindVersion !== null
+      ? context.catalogue.dutyKindVersion(duty.kind, duty.kindVersion)
+      : null
+
+  if (duty.kind !== null && kind === null) {
+    throw new EvidenceRefusal(
+      `Die Pflichtart ${duty.kind} in der Fassung ${String(duty.kindVersion)} kennt der Katalog nicht.`,
+    )
+  }
+
+  const allowed = kind?.definition.evidence.kinds
+
+  if (
+    allowed &&
+    input.origin !== 'legacy' &&
+    !(allowed as readonly string[]).includes(input.origin)
+  ) {
+    throw new EvidenceRefusal(
+      `Diese Pflichtart nimmt als Nachweis: ${allowed.map((way) => evidenceKindLabel[way]).join(', ')}.`,
+    )
+  }
+
+  const activity = input.activityId === null ? null : await activityOf(tx, context, input)
+  const [property] = await tx
+    .select()
+    .from(properties)
+    .where(and(eq(properties.tenantId, context.tenantId), eq(properties.id, duty.propertyId)))
+
+  if (!property) {
+    throw new EvidenceRefusal('Die Liegenschaft dieser Pflicht gibt es nicht.')
+  }
+
+  const place = await placeOf(tx, context, duty, {
+    name: property.name,
+    address: `${property.street}, ${property.postalCode} ${property.city}`,
+  })
+  const found =
+    activity === null
+      ? []
+      : await tx
+          .select({
+            description: defects.description,
+            defectClass: defects.defectClass,
+            dueOn: defects.dueOn,
+          })
+          .from(defects)
+          .where(
+            and(
+              eq(defects.tenantId, context.tenantId),
+              eq(defects.foundInActivityId, activity.id),
+              isNull(defects.deletedAt),
+            ),
+          )
+          .orderBy(asc(defects.createdAt), asc(defects.id))
+  const number = await assignNumber(tx, context.tenantId, 'evidence', context.at)
+  const state: EvidenceState = {
+    version: evidenceStateVersion,
+    number,
+    origin: input.origin,
+    performedOn: input.performedOn,
+    result: input.result,
+    resultReason: input.resultReason,
+    duty: {
+      label: kind?.definition.label ?? duty.label ?? duty.kind ?? '',
+      kind: duty.kind,
+      kindVersion: duty.kindVersion,
+      source: kind?.definition.source ?? duty.sourceNote ?? '',
+      interval: dutyInterval(duty),
+      counting: duty.counting,
+    },
+    place,
+    activity: activity === null ? null : { kind: activity.kind, title: activity.title },
+    performer: performerOf(input, context),
+    defects: found,
+    signatures: input.signatures,
+    files: input.files,
+    retention: retentionOf(
+      context.catalogue,
+      kind?.definition ?? null,
+      input.performedOn,
+      property.federalState,
+    ),
+    writtenBy: context.nameOf(context.writtenBy),
+    writtenAt: context.at.toISOString(),
+  }
+  const fingerprint = stateFingerprint(state)
+  const [row] = await tx
+    .insert(evidence)
+    .values({
+      tenantId: context.tenantId,
+      propertyId: duty.propertyId,
+      areaId: duty.areaId,
+      dutyId: duty.id,
+      performedOn: input.performedOn,
+      result: input.result,
+      resultReason: input.resultReason,
+      number,
+      origin: input.origin,
+      activityId: activity?.id ?? null,
+      performedBy: input.performedBy,
+      examiner: input.examiner?.name ?? null,
+      examinerOrganisation: input.examiner?.organisation ?? null,
+      writtenBy: context.writtenBy,
+      writtenAt: context.at,
+      state,
+      fingerprint,
+    })
+    .returning({ id: evidence.id })
+
+  if (!row) {
+    throw new Error('The evidence was not written')
+  }
+
+  return { id: row.id, number, fingerprint, state }
+}
+
+/** The activity of an evidence, which has to be one to meet its duty. */
+async function activityOf(
+  tx: TenantTransaction,
+  context: WritingContext,
+  input: EvidenceToWrite,
+): Promise<{ id: ActivityId; kind: (typeof activities.$inferSelect)['kind']; title: string }> {
+  const [found] = await tx
+    .select({ id: activities.id, kind: activities.kind, title: activities.title })
+    .from(activities)
+    .innerJoin(
+      activityDuties,
+      and(
+        eq(activityDuties.tenantId, activities.tenantId),
+        eq(activityDuties.activityId, activities.id),
+        eq(activityDuties.dutyId, input.dutyId),
+        isNull(activityDuties.deletedAt),
+      ),
+    )
+    .where(
+      and(
+        eq(activities.tenantId, context.tenantId),
+        eq(activities.id, input.activityId as ActivityId),
+        isNull(activities.deletedAt),
+      ),
+    )
+
+  if (!found) {
+    throw new EvidenceRefusal('Dieser Vorgang soll die Pflicht nicht erfüllen.')
+  }
+
+  return found
+}
+
+/** The place of a duty in words: its property, and the building, room and asset it hangs on. */
+async function placeOf(
+  tx: TenantTransaction,
+  context: WritingContext,
+  duty: typeof duties.$inferSelect,
+  property: StatedPlace['property'],
+): Promise<StatedPlace> {
+  const asset =
+    duty.assetId === null
+      ? null
+      : ((
+          await tx
+            .select()
+            .from(assets)
+            .where(and(eq(assets.tenantId, context.tenantId), eq(assets.id, duty.assetId)))
+        )[0] ?? null)
+  const roomId = asset?.roomId ?? duty.roomId
+  const room =
+    roomId === null
+      ? null
+      : ((
+          await tx
+            .select()
+            .from(rooms)
+            .where(and(eq(rooms.tenantId, context.tenantId), eq(rooms.id, roomId)))
+        )[0] ?? null)
+  const buildingId = asset?.buildingId ?? room?.buildingId ?? duty.buildingId
+  const building =
+    buildingId === null
+      ? null
+      : ((
+          await tx
+            .select()
+            .from(buildings)
+            .where(and(eq(buildings.tenantId, context.tenantId), eq(buildings.id, buildingId)))
+        )[0] ?? null)
+
+  return {
+    property,
+    building: building === null ? null : { name: building.name, shortCode: building.shortCode },
+    room: room === null ? null : { number: room.number, name: room.name },
+    asset:
+      asset === null
+        ? null
+        : {
+            number: asset.number,
+            name: asset.name,
+            kind: asset.kind,
+            kindLabel:
+              context.catalogue.assetKind(asset.kind, dayInGermany(context.at))?.definition.label ??
+              null,
+            serialNumber: asset.serialNumber,
+          },
+  }
+}
+
+function performerOf(input: EvidenceToWrite, context: WritingContext): StatedPerformer | null {
+  if (input.examiner !== null) {
+    return { examiner: input.examiner.name, organisation: input.examiner.organisation }
+  }
+
+  return input.performedBy === null ? null : { person: context.nameOf(input.performedBy) }
+}
+
+/** How long the evidence is kept, from the duty kind as the rules stand on the day of the work. */
+function retentionOf(
+  catalogue: Catalogue,
+  definition: Parameters<Catalogue['retention']>[0] | null,
+  on: IsoDate,
+  state: Parameters<Catalogue['retention']>[2],
+): StatedRetention | null {
+  if (definition === null) {
+    return null
+  }
+
+  const found = catalogue.retention(definition, on, state)
+
+  if (found === null) {
+    return null
+  }
+
+  return found.kind === 'years'
+    ? { kind: 'years', years: found.rule.record.value, rule: found.rule.record.key, on }
+    : { kind: found.kind, on }
+}

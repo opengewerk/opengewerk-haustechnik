@@ -112,6 +112,17 @@ export const auditVocabulary: AuditVocabulary = {
         duty_id: 'Pflicht',
         performed_on: 'Durchgeführt am',
         result: 'Ergebnis',
+        result_reason: 'Grund',
+        number: 'Nachweisnummer',
+        origin: 'Herkunft',
+        activity_id: 'Vorgang',
+        performed_by: 'Durchgeführt von',
+        examiner: 'Prüfer',
+        examiner_organisation: 'Organisation des Prüfers',
+        written_by: 'Festgeschrieben von',
+        written_at: 'Festgeschrieben am',
+        state: 'Eingefrorener Stand',
+        fingerprint: 'Fingerabdruck',
       },
     },
     // The activities with the duties they meet and their work orders, and the
@@ -209,6 +220,8 @@ export const auditVocabulary: AuditVocabulary = {
     'absent_user_id',
     'responsible_user_id',
     'performer_user_id',
+    'performed_by',
+    'written_by',
     'confirmed_by',
     'dismissed_by',
   ],
@@ -227,8 +240,8 @@ export const auditVocabulary: AuditVocabulary = {
     // kind; a dismissal by the kind it dismissed.
     duties: ['label', 'kind'],
     duty_dismissals: ['kind'],
-    // An evidence by the day it was done on.
-    evidence: ['performed_on'],
+    // An evidence by its number.
+    evidence: ['number'],
     // An activity by its name, the duty of an activity by the duty, a work
     // order by its number and a defect by what was noticed.
     activities: ['title'],
