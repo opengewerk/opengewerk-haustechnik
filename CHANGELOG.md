@@ -199,6 +199,30 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   erkennbar ist. Ein Probepaket mit der Hauptprüfung einer Aufzugsanlage nach der BetrSichV
   liegt als Material bei den Tests und als Vorbild für einen Beitrag, beschrieben in
   `pakete/README.md`. Die Inhalte der Pakete kommen in Phase 1
+- Die Technik (#20, ADR 0002): eine Anlage steht in genau einem Gebäude und auf Wunsch in
+  einem seiner Räume, hat eine Anlagenart aus dem Katalog der Pakete und dazu Hersteller,
+  Typ, Seriennummer, Baujahr, Inbetriebnahme, Gewährleistungsende und das Kennzeichen des
+  Betreibers. Eine Komponente ist eine Anlage unter einer Anlage im selben Gebäude, beliebig
+  tief; dass keine unter sich selbst hängt, prüft die Datenbank, und zieht die Anlage in ein
+  anderes Gebäude, kommen ihre Komponenten mit. Auf ihrer Liegenschaft bleibt eine Anlage,
+  denn auf einer anderen gälten andere Pflichten. Die Werte der Merkmale und Felder einer
+  Anlagenart stehen an der Anlage und werden gegen die Art geprüft. Eine Messstelle ist eine
+  Anlagenart, deren Paket Medium und Einheiten nennt, und ihre Anlage trägt Zählernummer und
+  Einheit. Der Lebenszyklus ist eine Liste von Zuständen ab einem Tag, einer je Tag; der
+  Zustand an einem Tag wird daraus gerechnet und nie gespeichert, mit Eigenschaftstests über
+  beliebige Einträge und Tage. Die Anlagennummer kommt aus dem Nummernkreis `asset`,
+  `AN-00001` aufwärts, und wird nach dem Löschen nicht neu vergeben, damit ein Etikett nie auf
+  eine andere Anlage zeigt. Was eine Anlage versorgt, ohne dort zu stehen, ist eine Liste von
+  Gebäuden und Räumen ihrer Liegenschaft. Die Routen unter `/assets` und
+  `POST /buildings/:id/assets` legen an, ändern, verlegen, hängen um, führen den Lebenszyklus
+  und löschen, mit den Rechten aus Abschnitt 7: aufnehmen darf, wer vor Ort arbeitet,
+  pflegen die Objektleitung und darüber. Ein Raum, in dem eine Anlage steht, zieht seitdem nur
+  innerhalb seines Gebäudes um, einer, den eine Anlage versorgt, nur innerhalb seiner
+  Liegenschaft, weil die Schlüssel jede Zeile halten, die ihn nennt. Das Probepaket hat einen
+  Wasserzähler bekommen, und der Bau gibt es unter `@opengewerk/haustechnik-catalogue/testing`
+  für die Tests des Servers aus. Eigene Anlagenarten des Betreibers haben im Fahrplan noch
+  keine Phase (#52); die Stände der Zähler und die Bildschirme kommen in Phase 1, und auf ein
+  Gerät reisen die Anlagen mit den Regeln des Abgleichs (#27)
 
 ### Geändert
 

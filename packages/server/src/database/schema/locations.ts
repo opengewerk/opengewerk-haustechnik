@@ -46,7 +46,7 @@ export const federalState = pgEnum('federal_state', federalStates)
 export const buildingKind = pgEnum('building_kind', buildingKinds)
 
 /** A trimmed text of one character up to the bound. */
-function trimmed(column: unknown, most: number) {
+export function trimmed(column: unknown, most: number) {
   return sql`${column} = btrim(${column}) and char_length(${column}) between 1 and ${sql.raw(String(most))}`
 }
 
@@ -206,6 +206,14 @@ export const rooms = pgTable(
     withinAreas(),
     unique('rooms_tenant_id_key').on(table.tenantId, table.id),
     unique('rooms_place').on(table.tenantId, table.id, table.propertyId),
+    // What an asset points at: the room in its building, so that an asset can
+    // only name a room of the building it stands in (#20).
+    unique('rooms_in_their_building').on(
+      table.tenantId,
+      table.id,
+      table.buildingId,
+      table.propertyId,
+    ),
     foreignKey({
       columns: [table.tenantId, table.floorId, table.buildingId, table.propertyId],
       foreignColumns: [floors.tenantId, floors.id, floors.buildingId, floors.propertyId],

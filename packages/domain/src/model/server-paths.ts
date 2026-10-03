@@ -17,4 +17,6 @@ export const serverPaths: readonly string[] = [
   'buildings',
   'floors',
   'rooms',
+  // The technology: assets and their components.
+  'assets',
 ]

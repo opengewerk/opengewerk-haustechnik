@@ -5,7 +5,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url'
 
 import { afterEach, describe, expect, it } from 'vitest'
 
-import { bundleFiles } from './bundle.js'
+import { bundleFiles, probeFiles } from './bundle.js'
 import { readPackageFiles } from './files.js'
 import { loadCatalogue } from './load.js'
 
@@ -35,6 +35,29 @@ describe('the bundle module', () => {
     }
 
     expect(written.catalogueBundle).toEqual(bundle)
+  })
+
+  it('hands on the probe package under a name of its own, apart from the catalogue', async () => {
+    const { bundle } = loadCatalogue(probe, { applicationVersion: '0.0.0', today: '2026-10-03' })
+    const folder = mkdtempSync(join(tmpdir(), 'catalogue-'))
+    folders.push(folder)
+
+    for (const [name, content] of Object.entries(
+      probeFiles(bundle as NonNullable<typeof bundle>),
+    )) {
+      writeFileSync(join(folder, name), content, 'utf8')
+    }
+
+    const written = (await import(pathToFileURL(join(folder, 'testing.js')).href)) as {
+      readonly probeCatalogueBundle: unknown
+    }
+
+    expect(Object.keys(probeFiles(bundle as NonNullable<typeof bundle>)).sort()).toEqual([
+      'probe.json',
+      'testing.d.ts',
+      'testing.js',
+    ])
+    expect(written.probeCatalogueBundle).toEqual(bundle)
   })
 
   it('declares the type of the bundle from the domain package', () => {

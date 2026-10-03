@@ -45,9 +45,11 @@ describe('the server package', () => {
     ).toEqual([])
   })
 
-  it('is above the domain package of this application and below its interface', () => {
+  it('is above the domain package and the catalogue of this application and below its interface', () => {
+    // The catalogue is built into the server with its code (ADR 0005, point
+    // 4); the interface is a package the server serves and never imports.
     expect(
       fromTheOrganisation.filter((name) => name.startsWith('@opengewerk/haustechnik-')),
-    ).toEqual(['@opengewerk/haustechnik-domain'])
+    ).toEqual(['@opengewerk/haustechnik-catalogue', '@opengewerk/haustechnik-domain'])
   })
 })

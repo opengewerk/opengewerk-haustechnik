@@ -1,6 +1,7 @@
 import { type FederalState, federalStates, type Id, type Synced } from '@opengewerk/platform-domain'
 
 import type { AreaId } from './area.js'
+import { optional, type Problems, required, wholeFromTo } from './fields.js'
 
 /**
  * The place, the one half of the data model (section 2.2 of the concept,
@@ -129,57 +130,6 @@ export const locationLimits = {
   lowestLevel: -20,
   highestLevel: 200,
 } as const
-
-type Problems = Record<string, string>
-
-/**
- * A text the record has to have, named by its subject ("Die Bezeichnung").
- * Undefined is a field that was not given, as in a change of other fields,
- * and is not asked about; null or nothing but spaces is a field that was
- * emptied.
- */
-function required(
-  problems: Problems,
-  record: Readonly<Record<string, unknown>>,
-  field: string,
-  most: number,
-  subject: string,
-): void {
-  const value = record[field]
-
-  if (value === undefined) {
-    return
-  }
-
-  if (typeof value !== 'string' || value.trim() === '') {
-    problems[field] = `${subject} fehlt.`
-  } else if (value.trim().length > most) {
-    problems[field] = `${subject} hat höchstens ${String(most)} Zeichen.`
-  }
-}
-
-/** A text the record may leave empty. */
-function optional(
-  problems: Problems,
-  record: Readonly<Record<string, unknown>>,
-  field: string,
-  most: number,
-  sentence: string,
-): void {
-  const value = record[field]
-
-  if (value === undefined || value === null) {
-    return
-  }
-
-  if (typeof value !== 'string' || value.trim().length > most) {
-    problems[field] = sentence
-  }
-}
-
-function wholeFromTo(value: unknown, least: number, most: number): boolean {
-  return typeof value === 'number' && Number.isInteger(value) && value >= least && value <= most
-}
 
 /**
  * What is wrong with a property, one sentence per field, empty when nothing

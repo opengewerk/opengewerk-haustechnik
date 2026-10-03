@@ -9,8 +9,9 @@
 # file store: what the foundation keeps for this application, accounts, the
 # roles of a Betreiber and who works for which, and the sign in that rests on
 # them; the areas of a Betreiber with who sees which
-# (opengewerk-haustechnik#17); and the first record with a place, a property
-# (opengewerk-haustechnik#18).
+# (opengewerk-haustechnik#17); the first record with a place, a property
+# (opengewerk-haustechnik#18); and a building on it with the first asset
+# (opengewerk-haustechnik#20).
 
 # A route touching data, which refuses everybody without a sign in: the
 # accounts of a Betreiber.
@@ -19,7 +20,7 @@ guarded_route=/staff
 # The tables counted before the backup and after the restore. The area and
 # the place of the account in it come with the account: a Betreiber gets its
 # first area with its first membership.
-counted_tables='auth_users memberships tenant_roles areas member_areas properties'
+counted_tables='auth_users memberships tenant_roles areas member_areas properties buildings assets'
 
 # The migrations, and how many of them make the older state an update starts
 # from: the first, without the sequence for work orders that the second brings.
@@ -46,11 +47,19 @@ records_for_backup() {
   restart_app
   HAUSTECHNIK_PASSWORD=$probe_password compose exec -T -e HAUSTECHNIK_PASSWORD app \
     node dist/add-staff.js "$first_tenant" "$probe_email" 'Hanna Probe' technician
-  # The membership gave the Betreiber its first area; a property goes into it.
+  # The membership gave the Betreiber its first area; a property goes into it,
+  # with a building and an asset in that. The kind is one of the probe package:
+  # the database keeps the key, the catalogue is asked by the routes.
   sql "
     insert into properties (tenant_id, area_id, name, street, postal_code, city, federal_state)
     select '$first_tenant', id, 'Campus Probe', 'Probestraße 1', '68535', 'Edingen-Neckarhausen', 'DE-BW'
-      from areas where tenant_id = '$first_tenant';"
+      from areas where tenant_id = '$first_tenant';
+    insert into buildings (tenant_id, property_id, area_id, name, kinds)
+    select tenant_id, id, area_id, 'Haus A', '{school}'
+      from properties where tenant_id = '$first_tenant';
+    insert into assets (tenant_id, property_id, area_id, building_id, kind, name)
+    select tenant_id, property_id, area_id, id, 'probe.elevator', 'Aufzug Haus A'
+      from buildings where tenant_id = '$first_tenant';"
 }
 
 # An account and its place at the Betreiber on the older state, written with

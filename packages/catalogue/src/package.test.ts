@@ -27,9 +27,10 @@ describe('the catalogue package', () => {
     ])
   })
 
-  it('hands on only the built bundle', () => {
+  it('hands on the built bundle, and the one of the probe package for the tests of the server', () => {
     expect(manifest.exports).toEqual({
       '.': { types: './dist/index.d.ts', default: './dist/index.js' },
+      './testing': { types: './dist/testing.d.ts', default: './dist/testing.js' },
     })
   })
 })

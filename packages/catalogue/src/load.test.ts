@@ -76,7 +76,12 @@ describe('the probe package', () => {
     expect(bundle?.packages.map((entry) => entry.name)).toEqual(['probe'])
     expect(bundle?.packages[0]?.assetKinds.map((entry) => [entry.key, entry.version])).toEqual([
       ['probe.elevator', 1],
+      ['probe.water_meter', 1],
     ])
+    expect(bundle?.packages[0]?.assetKinds[1]?.definition.meter).toEqual({
+      medium: 'water',
+      units: ['cubic_metres'],
+    })
     expect(bundle?.packages[0]?.dutyKinds[0]?.definition).toMatchObject({
       interval: { kind: 'maximum', rule: 'probe.elevator_main_test_interval' },
       scope: { assetKinds: ['probe.elevator'], conditions: [], buildingKinds: [], states: [] },
@@ -411,6 +416,47 @@ describe('a duty kind', () => {
   })
 })
 
+describe('an asset kind', () => {
+  it('is no measuring point unless it names the medium and the units of a meter', () => {
+    const { bundle } = loadCatalogue(probe, options)
+
+    expect(bundle?.packages[0]?.assetKinds[0]?.definition.meter).toBeNull()
+  })
+
+  it('that is a measuring point names its medium and the units a meter of it counts in', () => {
+    const meter = { medium: 'electricity', units: ['kilowatt_hours', 'megawatt_hours'] }
+    const { bundle, problems: found } = loadCatalogue(
+      withFiles({ [assetKindFile]: { ...assetKind, meter } }),
+      options,
+    )
+
+    expect(found).toEqual([])
+    expect(bundle?.packages[0]?.assetKinds[0]?.definition.meter).toEqual(meter)
+    expect(
+      problems({
+        [assetKindFile]: {
+          ...assetKind,
+          meter: { medium: 'steam', units: ['kilowatt_hours', 'kilowatt_hours', 'litres'] },
+        },
+      }),
+    ).toEqual([
+      `${assetKindFile}, meter.medium: "steam" ist keiner der Werte electricity, water, heat, district_heating, gas, cooling.`,
+      `${assetKindFile}, meter.units[2]: Das ist keine der Einheiten kilowatt_hours, megawatt_hours, cubic_metres.`,
+    ])
+    expect(
+      problems({ [assetKindFile]: { ...assetKind, meter: { medium: 'gas', units: [] } } }),
+    ).toEqual([`${assetKindFile}, meter.units: Ein Zähler zählt in mindestens einer Einheit.`])
+    expect(
+      problems({
+        [assetKindFile]: {
+          ...assetKind,
+          meter: { medium: 'gas', units: ['cubic_metres', 'cubic_metres'] },
+        },
+      }),
+    ).toEqual([`${assetKindFile}, meter.units: Die Einheit cubic_metres steht zweimal da.`])
+  })
+})
+
 describe('the rules', () => {
   const later = (validFrom: string, validUntil: string | null, value: number) => ({
     ...rule,
@@ -528,6 +574,7 @@ describe('the reviews', () => {
   it('name for every entry and every rule when it was last checked against its source', () => {
     expect(problems({ [acceptancesFile]: { entries: [], rules: [] } })).toEqual([
       expect.stringMatching(/Für anlagenarten\/elevator\.v1\.json fehlt ein Eintrag/),
+      expect.stringMatching(/Für anlagenarten\/water_meter\.v1\.json fehlt ein Eintrag/),
       expect.stringMatching(/Für pflichten\/elevator_main_test\.v1\.json fehlt ein Eintrag/),
       expect.stringMatching(
         /Für die Regel elevator_main_test_interval \(DE\) ab 2015-06-01 fehlt ein Eintrag/,
@@ -550,7 +597,7 @@ describe('the reviews', () => {
         [acceptancesFile]: {
           entries: [
             { file: 'anlagenarten/elevator.v1.json', checkedOn: '2026-10-04' },
-            (acceptances['entries'] as readonly Json[])[1],
+            ...(acceptances['entries'] as readonly Json[]).slice(1),
           ],
           rules: acceptances['rules'],
         },
@@ -571,7 +618,7 @@ describe('the reviews', () => {
                 sha256: entryChecksum(probe.get(assetKindFile) as Uint8Array),
               },
             },
-            (acceptances['entries'] as readonly Json[])[1],
+            ...(acceptances['entries'] as readonly Json[]).slice(1),
           ],
           rules: acceptances['rules'],
         },
@@ -584,7 +631,9 @@ describe('the reviews', () => {
   it('accept an entry with the checksum of what was accepted, and no other', () => {
     const accepted = (sha: string) => ({
       entries: [
-        (acceptances['entries'] as readonly Json[])[0],
+        ...(acceptances['entries'] as readonly Json[]).filter(
+          (entry) => entry['file'] !== 'pflichten/elevator_main_test.v1.json',
+        ),
         {
           file: 'pflichten/elevator_main_test.v1.json',
           checkedOn: '2026-10-03',

@@ -98,6 +98,7 @@ function rowsOf(tenant: Tenant): readonly Row[] {
   const property = randomUUID()
   const building = randomUUID()
   const floor = randomUUID()
+  const asset = randomUUID()
 
   return [
     {
@@ -261,6 +262,40 @@ function rowsOf(tenant: Tenant): readonly Row[] {
         property_id: property,
         area_id: area,
         number: '0.01',
+      },
+    },
+    {
+      table: 'assets',
+      values: {
+        id: asset,
+        tenant_id: tenant.id,
+        property_id: property,
+        area_id: area,
+        building_id: building,
+        kind: 'probe.elevator',
+        number: 'AN-00001',
+        name: 'Aufzug',
+      },
+    },
+    {
+      table: 'asset_lifecycle',
+      values: {
+        tenant_id: tenant.id,
+        asset_id: asset,
+        property_id: property,
+        area_id: area,
+        state: 'in_service',
+        valid_from: '2020-01-01',
+      },
+    },
+    {
+      table: 'asset_supplies',
+      values: {
+        tenant_id: tenant.id,
+        asset_id: asset,
+        property_id: property,
+        area_id: area,
+        building_id: building,
       },
     },
   ]
@@ -547,8 +582,9 @@ describe('the tables', () => {
     )
 
     // A floor, so that a check that finds no table with a place cannot pass:
-    // the four levels of the place carry the line since #18.
-    expect(rows[0]?.tables).toBeGreaterThanOrEqual(4)
+    // the four levels of the place carry the line since #18, the assets, their
+    // life cycle and their supplies since #20.
+    expect(rows[0]?.tables).toBeGreaterThanOrEqual(7)
     expect(await areaBoundaryProblems(admin)).toEqual([])
   })
 })

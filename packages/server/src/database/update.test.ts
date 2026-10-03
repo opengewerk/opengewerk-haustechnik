@@ -141,6 +141,7 @@ describe('an installation that began on the first migration', () => {
     const tenant = await tenantWithCounters({ asset: 42, work_order: 7, evidence: 3 })
 
     // Back to the first migration, in the reverse order of the way forward.
+    await revertMigration(admin, '0004_assets')
     await revertMigration(admin, '0003_places')
     await revertMigration(admin, '0002_areas')
     await revertMigration(admin, '0001_work_order_numbers')
@@ -288,6 +289,7 @@ describe('an installation from before the areas', () => {
 
     // The places hang on the areas and go first, as on the way back of an
     // installation.
+    await revertMigration(admin, '0004_assets')
     await revertMigration(admin, '0003_places')
     await revertMigration(admin, '0002_areas')
 
@@ -345,6 +347,7 @@ describe('an installation with places', () => {
       [tenant.id],
     )
 
+    await revertMigration(admin, '0004_assets')
     await revertMigration(admin, '0003_places')
 
     const places = ['properties', 'buildings', 'floors', 'rooms']
@@ -374,5 +377,105 @@ describe('an installation with places', () => {
     )
 
     expect(removed).toEqual([{ table_name: 'properties', reason: 'migration' }])
+  })
+})
+
+/**
+ * The assets hang on the places and on nothing else yet. Taking their
+ * migration back takes every asset with its life cycle and supplies along,
+ * says so in the log of the tenant, and leaves the places as they were,
+ * without the key of a room in its building that came for the assets.
+ */
+describe('an installation with assets', () => {
+  it('loses its assets and nothing else when the update is taken back', async () => {
+    await applyMigrations()
+
+    const tenant = { id: newId<'tenant'>() }
+
+    await admin.query('insert into tenants (id, name) values ($1, $2)', [
+      tenant.id,
+      'Wohnbau Nord eG',
+    ])
+    await members(tenant, { 'user-lead': { roles: ['management'] } })
+
+    const { rows: place } = await admin.query<{ property: string; building: string; area: string }>(
+      `with property as (
+         insert into properties (tenant_id, area_id, name, street, postal_code, city, federal_state)
+         select $1, id, 'Campus Nord', 'Nordstraße 12', '68535', 'Edingen-Neckarhausen', 'DE-BW'
+           from areas where tenant_id = $1
+         returning id, area_id
+       ), building as (
+         insert into buildings (tenant_id, property_id, area_id, name, kinds)
+         select $1, id, area_id, 'Haus A', '{school}' from property
+         returning id, property_id, area_id
+       )
+       select property_id as property, id as building, area_id as area from building`,
+      [tenant.id],
+    )
+    const at = place[0] as { property: string; building: string; area: string }
+    const { rows: made } = await admin.query<{ id: string }>(
+      `insert into assets (tenant_id, property_id, area_id, building_id, kind, number, name)
+       values ($1, $2, $3, $4, 'probe.elevator', 'AN-00001', 'Aufzug')
+       returning id`,
+      [tenant.id, at.property, at.area, at.building],
+    )
+    const asset = made[0]?.id
+
+    await admin.query(
+      `insert into asset_lifecycle (tenant_id, asset_id, property_id, area_id, state, valid_from)
+       values ($1, $2, $3, $4, 'in_service', '2020-01-01')`,
+      [tenant.id, asset, at.property, at.area],
+    )
+    await admin.query(
+      `insert into asset_supplies (tenant_id, asset_id, property_id, area_id, building_id)
+       values ($1, $2, $3, $4, $5)`,
+      [tenant.id, asset, at.property, at.area, at.building],
+    )
+
+    await revertMigration(admin, '0004_assets')
+
+    const technology = ['assets', 'asset_lifecycle', 'asset_supplies']
+
+    expect((await tableNames(admin)).filter((table) => technology.includes(table))).toEqual([])
+    expect(
+      [...(await enumValues(admin)).keys()].filter((name) =>
+        ['lifecycle_state', 'meter_unit'].includes(name),
+      ),
+    ).toEqual([])
+    expect(
+      (await functionNames(admin)).filter((name) =>
+        [
+          'asset_hangs_not_under_itself',
+          'asset_stays_on_its_property',
+          'mark_assets_below',
+        ].includes(name),
+      ),
+    ).toEqual([])
+
+    const { rows: keys } = await admin.query<{ conname: string }>(
+      `select conname from pg_constraint where conname = 'rooms_in_their_building'`,
+    )
+
+    expect(keys).toEqual([])
+
+    const { rows: places } = await admin.query<{ rows: number }>(
+      'select count(*)::int as rows from buildings where tenant_id = $1',
+      [tenant.id],
+    )
+
+    expect(places).toEqual([{ rows: 1 }])
+
+    const { rows: removed } = await admin.query<{ table_name: string; reason: string | null }>(
+      `select distinct table_name, reason from audit_entries
+        where tenant_id = $1 and operation = 'delete'
+        order by table_name`,
+      [tenant.id],
+    )
+
+    expect(removed).toEqual([
+      { table_name: 'asset_lifecycle', reason: 'migration' },
+      { table_name: 'asset_supplies', reason: 'migration' },
+      { table_name: 'assets', reason: 'migration' },
+    ])
   })
 })

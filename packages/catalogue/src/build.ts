@@ -1,7 +1,7 @@
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 
-import { bundleFiles } from './bundle.js'
+import { bundleFiles, probeFiles } from './bundle.js'
 import { MissingFolderError, readPackageFiles } from './files.js'
 import { loadCatalogue } from './load.js'
 
@@ -9,10 +9,12 @@ import { loadCatalogue } from './load.js'
 // repository, checks every package and writes the bundle into dist/. A faulty
 // package stops the build with the list of what is wrong, so that no
 // catalogue reaches server or interface that the checks have not passed
-// (ADR 0005, point 16).
+// (ADR 0005, point 16). The probe package is built beside it for the tests of
+// the server, under the entry `./testing`, and checked the same way.
 
 const repository = new URL('../../../', import.meta.url)
 const folder = fileURLToPath(new URL('pakete/', repository))
+const probeFolder = fileURLToPath(new URL('../test/pakete/', import.meta.url))
 const output = new URL('./', import.meta.url)
 
 const manifest = JSON.parse(readFileSync(new URL('package.json', repository), 'utf8')) as {
@@ -47,9 +49,27 @@ if (result.bundle === null) {
   process.exit(1)
 }
 
+const probe = loadCatalogue(readPackageFiles(probeFolder), {
+  applicationVersion: manifest.version,
+  today,
+})
+
+if (probe.bundle === null) {
+  console.error('Das Probepaket unter test/pakete/ ergibt keinen Katalog:')
+
+  for (const problem of probe.problems) {
+    console.error(`  - ${problem}`)
+  }
+
+  process.exit(1)
+}
+
 mkdirSync(output, { recursive: true })
 
-for (const [name, content] of Object.entries(bundleFiles(result.bundle))) {
+for (const [name, content] of Object.entries({
+  ...bundleFiles(result.bundle),
+  ...probeFiles(probe.bundle),
+})) {
   writeFileSync(new URL(name, output), content, 'utf8')
 }
 

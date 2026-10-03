@@ -61,12 +61,18 @@ const place = {
     building: randomUUID(),
     floor: randomUUID(),
     room: randomUUID(),
+    asset: randomUUID(),
+    lifecycle: randomUUID(),
+    supply: randomUUID(),
   },
   south: {
     property: randomUUID(),
     building: randomUUID(),
     floor: randomUUID(),
     room: randomUUID(),
+    asset: randomUUID(),
+    lifecycle: randomUUID(),
+    supply: randomUUID(),
   },
 }
 
@@ -211,7 +217,11 @@ async function whileStandingIn<Result>(
   }
 }
 
-/** The place in one area, from the property down to the room, put in past the application. */
+/**
+ * The place in one area, from the property down to the room, and an asset in
+ * the room with an entry of its life cycle and the building it supplies, put
+ * in past the application.
+ */
 async function placeIn(where: 'north' | 'south'): Promise<void> {
   const at = place[where]
   const areaId = area[where]
@@ -236,6 +246,29 @@ async function placeIn(where: 'north' | 'south'): Promise<void> {
     `insert into rooms (id, tenant_id, floor_id, building_id, property_id, area_id, number)
      values ($1, $2, $3, $4, $5, $6, '0.01')`,
     [at.room, tenant, at.floor, at.building, at.property, areaId],
+  )
+  await admin.query(
+    `insert into assets (id, tenant_id, property_id, area_id, building_id, room_id, kind, number, name)
+     values ($1, $2, $3, $4, $5, $6, 'probe.elevator', $7, 'Aufzug')`,
+    [
+      at.asset,
+      tenant,
+      at.property,
+      areaId,
+      at.building,
+      at.room,
+      where === 'north' ? 'AN-00001' : 'AN-00002',
+    ],
+  )
+  await admin.query(
+    `insert into asset_lifecycle (id, tenant_id, asset_id, property_id, area_id, state, valid_from)
+     values ($1, $2, $3, $4, $5, 'in_service', '2020-01-01')`,
+    [at.lifecycle, tenant, at.asset, at.property, areaId],
+  )
+  await admin.query(
+    `insert into asset_supplies (id, tenant_id, asset_id, property_id, area_id, building_id)
+     values ($1, $2, $3, $4, $5, $6)`,
+    [at.supply, tenant, at.asset, at.property, areaId, at.building],
   )
 }
 
@@ -321,7 +354,15 @@ describe('a person with the north', () => {
       }
     }
 
-    expect(tables).toEqual(['buildings', 'floors', 'properties', 'rooms'])
+    expect(tables).toEqual([
+      'asset_lifecycle',
+      'asset_supplies',
+      'assets',
+      'buildings',
+      'floors',
+      'properties',
+      'rooms',
+    ])
     expect(seen).toEqual(expected)
   })
 
@@ -491,7 +532,14 @@ describe('a property moved to another area', () => {
         expected[table] = { rows: 1, elsewhere: 0 }
       }
 
-      expect(tables.map((row) => row.table_name)).toEqual(['buildings', 'floors', 'rooms'])
+      expect(tables.map((row) => row.table_name)).toEqual([
+        'asset_lifecycle',
+        'asset_supplies',
+        'assets',
+        'buildings',
+        'floors',
+        'rooms',
+      ])
       expect(below).toEqual(expected)
 
       // What the people see follows: the north has nothing left, the south both.

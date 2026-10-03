@@ -1,0 +1,23 @@
+{
+  "validFrom": "2015-06-01",
+  "label": "Wasserzähler",
+  "costGroup": "412",
+  "characteristics": [
+    {
+      "key": "hot_water",
+      "label": "Warmwasserzähler",
+      "kind": "flag"
+    }
+  ],
+  "fields": [
+    {
+      "key": "calibration_year",
+      "label": "Eichjahr",
+      "kind": "number"
+    }
+  ],
+  "meter": {
+    "medium": "water",
+    "units": ["cubic_metres"]
+  }
+}

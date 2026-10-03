@@ -5,6 +5,10 @@
       "checkedOn": "2026-10-03"
     },
     {
+      "file": "anlagenarten/water_meter.v1.json",
+      "checkedOn": "2026-10-03"
+    },
+    {
       "file": "pflichten/elevator_main_test.v1.json",
       "checkedOn": "2026-10-03"
     }

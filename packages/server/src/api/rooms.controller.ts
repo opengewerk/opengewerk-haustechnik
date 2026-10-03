@@ -1,4 +1,13 @@
-import { Body, Controller, Delete, Get, Param, Patch, Put } from '@nestjs/common'
+import {
+  BadRequestException,
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Patch,
+  Put,
+} from '@nestjs/common'
 import { type Floor, type Room, type RoomId, roomProblems } from '@opengewerk/haustechnik-domain'
 import {
   CurrentIdentity,
@@ -6,9 +15,9 @@ import {
   requireFields,
   requireSomething,
 } from '@opengewerk/platform-server'
-import { and, eq, isNull } from 'drizzle-orm'
+import { and, count, eq, isNull } from 'drizzle-orm'
 
-import { floors, rooms } from '../database/schema/index.js'
+import { assets, assetSupplies, floors, rooms } from '../database/schema/index.js'
 import { RequiresPermission } from './authorization.js'
 import { type Asking, fieldsOf, placeOf, refuse } from './places.js'
 
@@ -68,6 +77,11 @@ export class RoomsController {
    * Moves the room to another floor, in its building or in another. Building,
    * property and area come from the floor; whoever does not see the area of
    * the floor does not find it.
+   *
+   * A room an asset stands in moves only within its building, and a room an
+   * asset supplies only within its property (#20): an asset stands in the
+   * building of its room, a supply names a room on the property of its asset,
+   * and the keys hold every row that ever named the room, a deleted one too.
    */
   @Put(':id/floor')
   @RequiresPermission('location.write')
@@ -81,7 +95,7 @@ export class RoomsController {
     requireFields(values, ['floorId'])
 
     return this.database.forTenant(identity, async (tx) => {
-      await placeOf<Room>(tx, rooms, id, missing)
+      const room = await placeOf<Room>(tx, rooms, id, missing)
 
       const floor = await placeOf<Floor>(
         tx,
@@ -89,6 +103,33 @@ export class RoomsController {
         String(values.floorId),
         'Dieses Geschoss gibt es nicht oder nicht mehr.',
       )
+
+      if (floor.buildingId !== room.buildingId) {
+        const [standing] = await tx
+          .select({ count: count() })
+          .from(assets)
+          .where(eq(assets.roomId, room.id))
+
+        if ((standing?.count ?? 0) > 0) {
+          throw new BadRequestException(
+            'In diesem Raum stehen Anlagen, gelöschte mitgezählt; er zieht deshalb nur innerhalb seines Gebäudes um.',
+          )
+        }
+      }
+
+      if (floor.propertyId !== room.propertyId) {
+        const [supplied] = await tx
+          .select({ count: count() })
+          .from(assetSupplies)
+          .where(eq(assetSupplies.roomId, room.id))
+
+        if ((supplied?.count ?? 0) > 0) {
+          throw new BadRequestException(
+            'Diesen Raum versorgen Anlagen, gelöschte Einträge mitgezählt; er zieht deshalb nur innerhalb seiner Liegenschaft um.',
+          )
+        }
+      }
+
       const [moved] = await tx
         .update(rooms)
         .set({
