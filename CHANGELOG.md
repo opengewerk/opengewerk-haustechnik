@@ -342,6 +342,18 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   Tafeln; bis dahin geht eine Einladung als Link hinaus. Die Tests des Fundaments laufen in der CI
   dieses Repositorys mit, in `platform-domain` jetzt 137 statt 130 und in `platform-server` 740
   statt 552
+- Das Fundament ist auf den Stand mit der Fristen-Engine angehoben (`opengewerk/opengewerk#513`
+  bis `#516`, #24). Fristart und Frist in Tagen oder Monaten, der Lauf, der die Fristen mit ihren
+  Quellen abgleicht und je Fälligkeit genau einmal erinnert, die Routen unter `/deadlines` und die
+  Bildschirme "Fristen" liegen damit im Fundament, dazu `GET /deadlines/run`, über das ein Lauf,
+  der nicht stattgefunden hat, im Büro sichtbar wird. Zwei Tabellen davon trägt das Fundament
+  selbst, was ein Betreiber für eine Fristart einstellt und wann der Lauf ihn zuletzt durchging;
+  die Migration `0006_deadlines` legt sie an, wie die Bausteine des Fundaments sie beschreiben, und
+  die Prüfung von Sicherung und Rückspielen zählt beide mit einer ersten Zeile. Das
+  Änderungsprotokoll sieht die Läufe nicht, die Liste dafür übernimmt `audit.test.ts` jetzt vom
+  Fundament, statt sie auszuschreiben. Gebunden wird die Engine hier mit den Pflichten (#25), deren
+  Fristen Liegenschaft und Bereich tragen. Die Tests des Fundaments laufen in der CI dieses
+  Repositorys mit, in `platform-domain` jetzt 160 statt 137 und in `platform-server` 774 statt 740
 - `pnpm run check:toolchain` vergleicht auch die Fassungen der Abhängigkeiten, die ein Paket
   dieser Anwendung und ein Paket des Fundaments beide laden, zuerst `drizzle-orm` und `pg`. Zwei
   Fassungen davon in einem Prozess hießen Tabellen, die mit der einen angelegt und mit der

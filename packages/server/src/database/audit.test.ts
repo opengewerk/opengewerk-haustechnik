@@ -36,16 +36,18 @@ const tenant: { readonly id: TenantId; readonly name: string } = {
 
 /**
  * What stays out of the log in this application, beyond what the foundation
- * keeps out everywhere: the log itself, the sync layer, the accounts and what
- * belongs to the instance.
+ * keeps out everywhere: the log itself, the sync layer, the accounts, what
+ * belongs to the instance and the passes of the deadline engine, which would
+ * fill it once a minute.
  *
- * `secrets` is the one table of a tenant without the trigger. The log writes
- * every value it sees, and a sealed value written there would stay for as
- * long as the log is kept, which is longer than any credential should live.
+ * `secrets` is the one table of a tenant this application adds without the
+ * trigger. The log writes every value it sees, and a sealed value written
+ * there would stay for as long as the log is kept, which is longer than any
+ * credential should live.
  */
 const outsideTheLog = {
   prefixes: [...foundationOutsideTheLog.prefixes],
-  tables: ['secrets'],
+  tables: [...foundationOutsideTheLog.tables, 'secrets'],
 }
 
 let admin: Pool
