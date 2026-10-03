@@ -36,10 +36,13 @@ export * from './model/meter.js'
 export * from './model/catalogue.js'
 
 // The duties of a tenant: when one falls due next and what state it is in on
-// a day, and the results of what was done, which decide whether it counts.
+// a day, and the evidence of what was done, with its frozen state, the
+// canonical form its fingerprint is taken over and who signs it.
 export * from './model/duty.js'
 export * from './model/duty-record.js'
+export * from './model/canonical.js'
 export * from './model/evidence.js'
+export * from './model/signature.js'
 
 // What is done to meet a duty or to set a fault right, and what is noticed on
 // the way: activities with the duties they meet and their work orders, and

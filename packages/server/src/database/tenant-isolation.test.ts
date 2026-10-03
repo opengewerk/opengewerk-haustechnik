@@ -23,6 +23,7 @@ import {
   unprotected,
   withoutTheTenant,
 } from './test-database.js'
+import { writtenColumns } from './test-evidence.js'
 import { inEveryArea } from './every-area.js'
 import { areaBoundaryProblems } from './test-areas.js'
 
@@ -380,6 +381,7 @@ function rowsOf(tenant: Tenant): readonly Row[] {
         duty_id: duty,
         performed_on: '2025-03-14',
         result: 'without_defects',
+        ...writtenColumns(tenant.userId, '2025-03-14', 'without_defects'),
       },
     },
     {

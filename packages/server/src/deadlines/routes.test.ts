@@ -22,6 +22,11 @@ import {
   resetSchema,
   testIdentityHeader,
 } from '../database/test-database.js'
+import {
+  writtenColumnNames,
+  writtenPlaceholders,
+  writtenValues,
+} from '../database/test-evidence.js'
 import { runDeadlinesOf } from './engine.js'
 
 /**
@@ -92,11 +97,19 @@ async function dutyWithEvidence(
          from elevator
        returning id, property_id, area_id
      ), done as (
-       insert into evidence (tenant_id, property_id, area_id, duty_id, performed_on, result)
-       select $1, property_id, area_id, id, $4, 'without_defects' from duty
+       insert into evidence (tenant_id, property_id, area_id, duty_id, performed_on, result,
+                             ${writtenColumnNames})
+       select $1, property_id, area_id, id, $4, 'without_defects', ${writtenPlaceholders(5)}
+         from duty
      )
      select id as duty, property_id as property from duty`,
-    [tenantId, areaId ?? null, `AN-${String(places).padStart(5, '0')}`, performedOn],
+    [
+      tenantId,
+      areaId ?? null,
+      `AN-${String(places).padStart(5, '0')}`,
+      performedOn,
+      ...writtenValues('u-duties', performedOn, 'without_defects'),
+    ],
   )
 
   return rows[0] as { duty: string; property: string }

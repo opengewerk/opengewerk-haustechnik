@@ -17,6 +17,12 @@ export const applicationConflicts: Readonly<Record<string, string>> = {
   // An asset moved to another property (#20).
   HT002:
     'Eine Anlage bleibt auf ihrer Liegenschaft; an einem anderen Ort ist sie eine neue Anlage.',
+  // An evidence changed or removed, by whatever way (#26, ADR 0004).
+  HT003:
+    'Ein Nachweis wird nicht geändert und nicht gelöscht. Berichtigt wird er durch einen neuen Nachweis, der ihn nennt.',
+  // An asset with an evidence marked deleted, also by marking its place (#26).
+  HT004:
+    'Eine Anlage mit Nachweis wird zurückgebaut und nicht gelöscht; ihre Nachweise bleiben bei ihr.',
 }
 
 export const { answerFor, DatabaseExceptionFilter } = databaseErrors(applicationConflicts)

@@ -29,6 +29,7 @@ import {
   refusedBy,
   resetSchema,
 } from './test-database.js'
+import { writtenColumnNames, writtenPlaceholders, writtenValues } from './test-evidence.js'
 
 /**
  * The line between the areas of a tenant (ADR 0003), asked through the role
@@ -305,17 +306,27 @@ async function placeIn(where: 'north' | 'south'): Promise<void> {
      values ($1, $2, $3, $4, $5, $6)`,
     [at.supply, tenant, at.asset, at.property, areaId, at.building],
   )
+  // A duty of the property itself: the evidence below would keep an asset it
+  // hung on from being marked, and with it the room the asset stands in.
   await admin.query(
-    `insert into duties (id, tenant_id, property_id, area_id, asset_id, kind, kind_version,
-                         counting, interval_months, maximum_months, confirmed_by)
-     values ($1, $2, $3, $4, $5, 'probe.elevator_main_test', 1, 'betrsichv', 24, 24, $6)`,
-    [at.duty, tenant, at.property, areaId, at.asset, person.lead],
+    `insert into duties (id, tenant_id, property_id, area_id, label, basis, source_note,
+                         counting, interval_months, confirmed_by)
+     values ($1, $2, $3, $4, 'Zufahrt freihalten', 'authority', 'Brandschutzkonzept',
+             'from_performance', 1, $5)`,
+    [at.duty, tenant, at.property, areaId, person.lead],
   )
   // An evidence of the duty, and the deadline the engine keeps from it.
   await admin.query(
-    `insert into evidence (tenant_id, property_id, area_id, duty_id, performed_on, result)
-     values ($1, $2, $3, $4, '2025-03-14', 'without_defects')`,
-    [tenant, at.property, areaId, at.duty],
+    `insert into evidence (tenant_id, property_id, area_id, duty_id, performed_on, result,
+                           ${writtenColumnNames})
+     values ($1, $2, $3, $4, '2025-03-14', 'without_defects', ${writtenPlaceholders(5)})`,
+    [
+      tenant,
+      at.property,
+      areaId,
+      at.duty,
+      ...writtenValues(person.lead, '2025-03-14', 'without_defects'),
+    ],
   )
   await admin.query(
     `insert into deadlines (tenant_id, kind, source_id, source_label, anchor_on, due_on, duty_id,

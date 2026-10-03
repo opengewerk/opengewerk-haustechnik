@@ -273,6 +273,18 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   eine Anlage, ein Vorgang oder eine Pflicht markiert, wird markiert, was darunter hängt. Routen
   und Bildschirme kommen mit den Abläufen in Phase 1, auf ein Gerät reisen Vorgänge und Mängel mit
   den Regeln des Abgleichs (#27); die Sicherung zählt die vier neuen Tabellen
+- Der festgeschriebene Nachweis (#26, ADR 0004): ein Nachweis trägt jetzt seine Nummer aus dem
+  Nummernkreis der Nachweise, seine Herkunft (Protokoll, Bericht, Punkt eines Rundgangs, Auftrag
+  oder Altbestand), wer ihn ausgeführt hat, wer ihn festgeschrieben hat und wann, und seinen
+  eingefrorenen Stand: alles, was auf der Seite stand, mit der Frist und der Fundstelle des Tages,
+  dem Ort in Worten, den Mängeln, den Unterschriften und der Aufbewahrung, damit ein Nachweis von
+  2027 im Jahr 2035 zeigt, was 2027 galt. Über dem Stand liegt ein Fingerabdruck, SHA-256 über
+  seine kanonische Form, an der Zeile und im Änderungsprotokoll. Festgeschrieben wird nur auf dem
+  Server, in einer Transaktion mit der Nummer, sodass die Nummern ohne Lücke laufen. Ändern und
+  Löschen lehnt die Datenbank für jede Rolle ab, auch für den Eigentümer der Tabellen und einen
+  Superuser; nur der Bereich folgt seiner Liegenschaft. Eine Anlage mit Nachweis wird zurückgebaut
+  und nicht gelöscht, auch nicht mit ihrem Gebäude, und die Routen sagen das mit einem Satz.
+  Routen, die einen Nachweis schreiben, kommen mit den Abläufen in Phase 1
 
 ### Geändert
 

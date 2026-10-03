@@ -121,10 +121,17 @@ records_for_backup() {
   # for the duty from it; the backup brings back what the pass wrote, the
   # deadline and the pass of every operator. Waited for here, so that nothing
   # of it is written between the count before the backup and the backup.
+  # The state is the least a report has (#26), written as JSON, and the
+  # fingerprint a placeholder of the right form: nothing here reads it back.
   sql "
-    insert into evidence (tenant_id, property_id, area_id, duty_id, performed_on, result)
-    select tenant_id, property_id, area_id, id, '2025-03-14', 'without_defects'
-      from duties where tenant_id = '$first_tenant';"
+    insert into evidence (tenant_id, property_id, area_id, duty_id, performed_on, result, number,
+                          origin, examiner, examiner_organisation, written_by, state, fingerprint)
+    select d.tenant_id, d.property_id, d.area_id, d.id, '2025-03-14', 'without_defects',
+           'NW-2025-00001', 'report', 'Erika Muster', 'Prüfstelle Süd', u.id,
+           '{\"version\": 1, \"number\": \"NW-2025-00001\", \"origin\": \"report\"}',
+           repeat('0', 64)
+      from duties d, auth_users u
+     where d.tenant_id = '$first_tenant' and u.email = '$probe_email';"
   waited=0
   until test "$(value "select count(*) from deadlines where tenant_id = '$first_tenant'")" = 1 &&
     test "$(value "select count(*) from deadline_runs where succeeded_at is not null")" = \

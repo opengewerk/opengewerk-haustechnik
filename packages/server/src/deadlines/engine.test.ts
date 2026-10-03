@@ -11,6 +11,11 @@ import {
   connect,
   resetSchema,
 } from '../database/test-database.js'
+import {
+  writtenColumnNames,
+  writtenPlaceholders,
+  writtenValues,
+} from '../database/test-evidence.js'
 import { runDeadlineCycle, runDeadlinesOf } from './engine.js'
 
 /**
@@ -112,9 +117,18 @@ async function evidenceOf(
   result = 'without_defects',
 ): Promise<void> {
   await admin.query(
-    `insert into evidence (tenant_id, property_id, area_id, duty_id, performed_on, result)
-     values ($1, $2, $3, $4, $5, $6)`,
-    [at.tenantId, at.property, at.area, dutyId, performedOn, result],
+    `insert into evidence (tenant_id, property_id, area_id, duty_id, performed_on, result,
+                           ${writtenColumnNames})
+     values ($1, $2, $3, $4, $5, $6, ${writtenPlaceholders(7)})`,
+    [
+      at.tenantId,
+      at.property,
+      at.area,
+      dutyId,
+      performedOn,
+      result,
+      ...writtenValues('u-duties', performedOn, result),
+    ],
   )
 }
 
