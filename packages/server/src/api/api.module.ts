@@ -1,6 +1,8 @@
 import { type DynamicModule, Module } from '@nestjs/common'
 import { APP_FILTER, APP_GUARD } from '@nestjs/core'
+import { auditVocabulary } from '@opengewerk/haustechnik-domain'
 import {
+  auditLogParts,
   type Authentication,
   authenticationParts,
   AUTHORIZATION,
@@ -97,16 +99,25 @@ export class ApiModule {
     // The routes a device syncs through, with the rules of this application:
     // the bar of the sync on every screen asks them.
     const syncing = syncParts({ access, routes: syncRoutes })
+    // The change log of a tenant for its Leitung, read by the foundation in
+    // the words of this application.
+    const auditing = auditLogParts({ access, vocabulary: auditVocabulary })
 
     return {
       module: ApiModule,
       // The health check first: it answers without an identity, for the
       // container runtime and for whoever looks whether the instance is up.
-      controllers: [HealthController, ...signingIn.controllers, ...syncing.controllers],
+      controllers: [
+        HealthController,
+        ...signingIn.controllers,
+        ...syncing.controllers,
+        ...auditing.controllers,
+      ],
       providers: [
         { provide: Database, useValue: database },
         ...signingIn.providers,
         ...syncing.providers,
+        ...auditing.providers,
         { provide: TRUSTED_ORIGINS, useValue: trustedOrigins },
         { provide: VERSION, useValue: version },
         { provide: IDENTITY_SOURCE, useValue: identities },

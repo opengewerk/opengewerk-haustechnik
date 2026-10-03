@@ -127,6 +127,42 @@ describe('the office of this application', () => {
     expect(await screen.findByText('Wer für diesen Betreiber arbeitet, und womit.')).toBeTruthy()
   })
 
+  it('offers the change log among the settings, under the words of this application', async () => {
+    answers.set('/auth/tenants', [{ ...nord, rights: [...nord.rights, 'audit.read'] }])
+    answers.set('/audit/changes', { changes: [], next: null, titles: {}, people: {}, devices: {} })
+    answers.set('/audit/people', [])
+    await mount('/einstellungen/protokoll')
+
+    expect(screen.getByRole('heading', { level: 1, name: 'Änderungsprotokoll' })).toBeTruthy()
+    expect(
+      await screen.findByText(
+        'Jede Änderung bei diesem Betreiber, Feld für Feld: wer, wann, auf welchem Gerät und auf welchem Weg.',
+      ),
+    ).toBeTruthy()
+    expect(await screen.findByText('Hier steht noch keine Änderung.')).toBeTruthy()
+  })
+
+  it('says to whoever is not the Leitung that the log is the Leitung’s', async () => {
+    await mount('/einstellungen/protokoll')
+
+    expect(await screen.findByText('Das Änderungsprotokoll sieht nur die Leitung.')).toBeTruthy()
+  })
+
+  it('has the log of the instance in the area of the instance', async () => {
+    answers.set('/instance/access', { operator: true, secondFactor: true })
+    answers.set('/instance/log', { changes: [], next: null, titles: {}, people: {}, devices: {} })
+    await mount('/instanz/protokoll')
+
+    expect(
+      await screen.findByText(
+        'Jede Änderung an der Instanz. Was bei einem Betreiber geändert wird, steht in dessen Änderungsprotokoll.',
+      ),
+    ).toBeTruthy()
+    expect(screen.getByRole('link', { name: /Protokoll/ }).getAttribute('aria-current')).toBe(
+      'page',
+    )
+  })
+
   it('has "Konto" and the list of the exchange with the server', async () => {
     const router = await mount('/konto')
 

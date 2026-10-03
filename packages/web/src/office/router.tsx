@@ -1,9 +1,10 @@
 import {
+  InstanceLogScreen,
   InstanceOperatorsScreen,
   InstanceSettingsScreen,
   InstanceTenantsScreen,
 } from '@opengewerk/platform-web/instance'
-import { SettingsScreen, SyncScreen } from '@opengewerk/platform-web/office'
+import { AuditLogScreen, SettingsScreen, SyncScreen } from '@opengewerk/platform-web/office'
 import {
   createRootRoute,
   createRoute,
@@ -61,6 +62,11 @@ export function officeRoutes() {
       path: '/verwaltung',
       component: InstanceOperatorsScreen,
     }),
+    createRoute({
+      getParentRoute: () => instance,
+      path: '/protokoll',
+      component: InstanceLogScreen,
+    }),
   ]
 
   const routes = [
@@ -82,6 +88,11 @@ export function officeRoutes() {
       getParentRoute: () => office,
       path: '/einstellungen/zugaenge',
       component: StaffScreen,
+    }),
+    createRoute({
+      getParentRoute: () => office,
+      path: '/einstellungen/protokoll',
+      component: AuditLogScreen,
     }),
   ]
 

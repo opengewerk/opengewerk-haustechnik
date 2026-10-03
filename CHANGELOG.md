@@ -113,6 +113,17 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   Abgleichs fragt, mit den Regeln dieser Anwendung: bis die Datensätze ihre Richtlinien haben
   (#27), reist keiner, und ein Gerät, das trotzdem einen schickt, bekommt die Ablehnung mit dem
   Vorgang genannt
+- Das Änderungsprotokoll (#13, dritter Teil): unter den Einstellungen für die Leitung, die es
+  nach Abschnitt 7 des Konzepts als einzige einsieht, und im Bereich der Instanz unter
+  "Protokoll". Bildschirm und Routen sind die des Fundaments, die Wörter die dieser Anwendung:
+  ein Betreiber, seine Einstellungen, die Rolle, die ihn leitet, die Verwaltung der Instanz,
+  die Gründe einer Änderung und die Bezeichnungen der Rechte und Rollen. Sie stehen einmal in
+  `packages/domain` und gelten für Server und Oberfläche. Eigene Tabellen hat diese Anwendung
+  noch nicht; jede, die kommt, braucht dort Namen für sich und jede Spalte, sonst wird ein Test
+  rot, der die Wörter gegen den Katalog der Datenbank hält. Dazu Tests, dass nur die Leitung
+  das Protokoll liest und die anderen Rollen die Ablehnung mit dem fehlenden Recht in Worten
+  bekommen, dass die Prüfung der Kette antwortet und dass die Einstellungen den Eintrag nur dem
+  anbieten, der ihn lesen darf, mit Gegenproben
 
 ### Geändert
 
@@ -196,6 +207,19 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   Anwendung beginnt damit auf der neuesten Fassung, und `vitest` steht hier wie dort auf 5.0.3.
   `@opengewerk/haustechnik-domain` sagt jetzt, dass das Laden eines Moduls nichts tut
   (`sideEffects: false`), damit der Service Worker nur die eine Liste mitnimmt, die er braucht
+- Das Fundament ist auf den Stand mit dem Änderungsprotokoll angehoben
+  (`opengewerk/opengewerk#504` und `#505`, #22). Das Lesen einer Seite von Änderungen, die
+  Prüfung der Hashkette und die Liste der Personen unter `/audit` liegen damit in
+  `@opengewerk/platform-server`, der Bildschirm "Änderungsprotokoll", der Knopf "Änderungen" an
+  einem Datensatz und das Protokoll der Instanz in `@opengewerk/platform-web`. Was eine
+  Anwendung dazu sagt, gibt sie als Vokabular mit: wie ihre Tabellen und Spalten heißen, welche
+  Teile das Protokoll eines Datensatzes mitnimmt, woran ein Datensatz zu erkennen ist, und die
+  Wörter, die das Fundament für seine eigenen Tabellen und Gründe von ihr braucht. Ein
+  Baukasten (`auditVocabularyGaps`) hält das Vokabular gegen den Katalog der Datenbank; dass er
+  Wörter für die Einstellungen eines Betreibers meldete, eine Tabelle, die diese Anwendung erst
+  mit ihrer ersten Einstellung anlegt, ist im Fundament berichtigt (`#505`). Die Tests des
+  Fundaments laufen in der CI dieses Repositorys mit: 112 in `platform-domain`, 552 in
+  `platform-server` (vorher 526) und 728 in `platform-web`
 - `pnpm run check:toolchain` vergleicht auch die Fassungen der Abhängigkeiten, die ein Paket
   dieser Anwendung und ein Paket des Fundaments beide laden, zuerst `drizzle-orm` und `pg`. Zwei
   Fassungen davon in einem Prozess hießen Tabellen, die mit der einen angelegt und mit der

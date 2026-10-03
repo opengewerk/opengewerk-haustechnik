@@ -9,6 +9,7 @@ import {
   TenantScreen,
 } from '@opengewerk/platform-web/gate'
 import { SettingsScreen } from '@opengewerk/platform-web/office'
+import { useWho } from '@opengewerk/platform-web/session'
 import { EntrySuggestion } from '@opengewerk/platform-web/shell'
 import { InRouter } from '@opengewerk/platform-web/testing'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
@@ -47,13 +48,24 @@ function inApplication(node: ReactNode) {
   )
 }
 
+/**
+ * The name of the tenant one works in, once the answer is there that also
+ * carries the rights: what a test waits for before it says a screen is not
+ * offered, since nothing is offered while nobody knows the rights yet.
+ */
+function TenantName() {
+  const { tenant } = useWho()
+
+  return tenant ? <p>{tenant}</p> : null
+}
+
 /** A tenant of the account, as `GET /auth/tenants` lists it for somebody who leads it. */
 const nord: TenantChoice = {
   id: 't-nord' as TenantId,
   name: 'Gebäudeverwaltung Nord',
   roles: ['management'],
   roleLabels: ['Leitung'],
-  rights: ['membership.read', 'membership.write'],
+  rights: ['membership.read', 'membership.write', 'audit.read'],
   secondFactor: true,
 }
 
@@ -195,7 +207,7 @@ describe('what each entry hands to the foundation', () => {
    */
   it('is the same application, with the settings of a Betreiber only from the office', () => {
     expect(application.settings).toEqual([])
-    expect(officeApplication.settings.map((entry) => entry.key)).toEqual(['zugaenge'])
+    expect(officeApplication.settings.map((entry) => entry.key)).toEqual(['zugaenge', 'protokoll'])
     expect(application.ownTenant).toBeUndefined()
     expect(officeApplication.ownTenant).toBeUndefined()
     expect(application.sentences.staff).toBeUndefined()
@@ -203,9 +215,18 @@ describe('what each entry hands to the foundation', () => {
     expect(officeApplication.sentences.staff?.accounts).toBe('Konten dieses Betreibers')
     expect(officeApplication.sentences.instance?.tenants.title).toBe('Betreiber')
     expect(officeApplication.sentences.instance?.operators.title).toBe('Verwaltung der Instanz')
+    expect(officeApplication.sentences.instance?.log.tenantCreated).toBe('Betreiber angelegt')
+    // The change log is the Leitung's, and its words come only with the office.
+    expect(application.audit).toBeUndefined()
+    expect(application.sentences.audit).toBeUndefined()
+    expect(officeApplication.sentences.audit?.onlyFor).toBe(
+      'Das Änderungsprotokoll sieht nur die Leitung.',
+    )
+    expect(officeApplication.audit?.vocabulary.foundation.tenant).toBe('Betreiber')
 
     const {
-      sentences: { staff: _staff, instance: _instance, ...sentences },
+      audit: _audit,
+      sentences: { staff: _staff, instance: _instance, audit: _log, ...sentences },
       ...shared
     } = officeApplication
 
@@ -260,7 +281,7 @@ describe('the two entries of this application', () => {
 })
 
 describe('the settings of a Betreiber', () => {
-  it('are called the Betreiber’s on the overview, with "Zugänge" for whoever leads it', async () => {
+  it('are called the Betreiber’s on the overview, with "Zugänge" and the change log for whoever leads it', async () => {
     answers.set('GET /api/auth/get-session', {
       status: 200,
       body: {
@@ -289,5 +310,37 @@ describe('the settings of a Betreiber', () => {
         'Wer für diesen Betreiber arbeitet, mit welchen Rollen, und die Einladungen.',
       ),
     ).toBeTruthy()
+    expect(
+      screen.getByText(
+        'Wer wann was geändert hat, Feld für Feld, und ob das Protokoll unverändert ist.',
+      ),
+    ).toBeTruthy()
+  })
+
+  it('leave the change log out for whoever may not read it', async () => {
+    answers.set('GET /api/auth/get-session', {
+      status: 200,
+      body: {
+        user: { id: 'u-2', email: 'objekt@nord.example.de', name: 'Ole Objektleitung' },
+        session: { activeTenantId: 't-nord' },
+      },
+    })
+    answers.set('GET /auth/tenants', {
+      status: 200,
+      body: [{ ...nord, roles: ['site_management'], roleLabels: ['Objektleitung'], rights: [] }],
+    })
+
+    render(
+      inApplication(
+        <InRouter at="/einstellungen">
+          <TenantName />
+          <SettingsScreen />
+        </InRouter>,
+      ),
+    )
+
+    expect(await screen.findByText('Gebäudeverwaltung Nord')).toBeTruthy()
+    expect(screen.queryByText('Änderungsprotokoll')).toBeNull()
+    expect(screen.queryByText('Zugänge')).toBeNull()
   })
 })
