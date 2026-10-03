@@ -49,7 +49,7 @@ describe('the words of the Handwerkersoftware in a build', () => {
   it('are none in the words this application uses instead', () => {
     file(
       'assets/site-1.js',
-      'const t=["Kein Zugang zu diesem Betreiber.","Die Leitung des Betreibers","Vor Ort","Betreiberverantwortung","Die Betriebsart der Anlage"];',
+      'const t=["Kein Zugang zu diesem Betreiber.","Die Leitung des Betreibers","Vor Ort","Betreiberverantwortung","Die Betriebsart der Anlage","In Betrieb","Außer Betrieb","seit Montag in Betrieb","außer Betrieb genommen"];',
     )
 
     expect(foreignWordsIn(dist)).toEqual([])

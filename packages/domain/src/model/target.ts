@@ -17,3 +17,24 @@ export interface PlaceTarget {
   readonly roomId: RoomId | null
   readonly assetId: AssetId | null
 }
+
+/** The places a record may hang on besides its property, in the order a form asks them. */
+export const placeTargetFields = ['assetId', 'roomId', 'buildingId'] as const
+
+/**
+ * What is wrong with the place a record hangs on, or null: more than one of
+ * an asset, a room and a building, which the check in the database refuses
+ * as well. `subject` is the record in a sentence, "Ein Vorgang", "Ein Mangel".
+ */
+export function placeTargetProblem(
+  target: Readonly<Record<string, unknown>>,
+  subject: string,
+): string | null {
+  const named = placeTargetFields.filter(
+    (field) => target[field] !== undefined && target[field] !== null,
+  )
+
+  return named.length > 1
+    ? `${subject} hängt an der Liegenschaft oder an genau einem: einer Anlage, einem Raum oder einem Gebäude.`
+    : null
+}

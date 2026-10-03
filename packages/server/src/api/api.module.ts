@@ -29,7 +29,7 @@ import { DutiesController, DutyDismissalsController } from './duties.controller.
 import { FloorsController } from './floors.controller.js'
 import { PropertiesController } from './properties.controller.js'
 import { RoomsController } from './rooms.controller.js'
-import { syncRoutes } from './sync-routes.js'
+import { syncRoutesFor } from './sync-routes.js'
 
 /**
  * What the module needs beyond a database and an identity source.
@@ -103,6 +103,7 @@ export class ApiModule {
     options: ApiOptions = {},
   ): DynamicModule {
     const { authentication, setupCode = null, trustedOrigins = [], version = null } = options
+    const catalogue = options.catalogue ?? shippedCatalogue()
 
     // The authentication is the foundation's, with the rights, the roles and
     // the words of this application.
@@ -112,9 +113,10 @@ export class ApiModule {
       setupCode,
       instanceSettings: options.instance?.settings,
     })
-    // The routes a device syncs through, with the rules of this application:
-    // the bar of the sync on every screen asks them.
-    const syncing = syncParts({ access, routes: syncRoutes })
+    // The routes a device syncs through, with the rules of this application
+    // and the catalogue its asset kinds come from: the bar of the sync on
+    // every screen asks them.
+    const syncing = syncParts({ access, routes: syncRoutesFor(catalogue) })
     // The change log of a tenant for its Leitung, read by the foundation in
     // the words of this application.
     const auditing = auditLogParts({ access, vocabulary: auditVocabulary })
@@ -162,7 +164,7 @@ export class ApiModule {
         ...deadlining.providers,
         { provide: TRUSTED_ORIGINS, useValue: trustedOrigins },
         { provide: VERSION, useValue: version },
-        { provide: CATALOGUE, useValue: options.catalogue ?? shippedCatalogue() },
+        { provide: CATALOGUE, useValue: catalogue },
         { provide: IDENTITY_SOURCE, useValue: identities },
         // What a refusal says, for the guard of the foundation.
         { provide: AUTHORIZATION, useValue: authorization },

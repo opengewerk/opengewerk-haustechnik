@@ -1,15 +1,83 @@
-import { type SyncPolicy, syncRules } from '@opengewerk/platform-domain'
+import {
+  type Operation,
+  type SyncPolicy,
+  syncRules,
+  type SyncValue,
+} from '@opengewerk/platform-domain'
+
+/**
+ * Changed only with a connection, through the routes of the office (ADR 0006,
+ * point 6): "no" in the table there means "not without a connection" and not
+ * "never". A device holds these records to read them.
+ */
+const officeOnly: SyncPolicy = { create: false, change: 'never' }
+
+/** The states of an activity while its work goes on, before a signature fixes it. */
+const inProgress: readonly SyncValue[] = ['open', 'started']
 
 /**
  * What a device may create and change of each kind of record, and what it
- * holds (ADR 0006).
+ * holds (ADR 0006, point 6). Every table that carries the columns of the sync
+ * has one, and a test holds each to a table and each table to one.
  *
- * No record of this application travels yet. The policies arrive with the
- * records they govern (#27), each with a test that holds every synced table to
- * a policy and every policy to a table; until then a device keeps and sends
- * nothing, and the bar of the sync still says whether it reaches the server.
+ * The fields the server works out are reserved: the area of every row, which
+ * follows its property, the property and building where they follow the
+ * record a row hangs on, and the numbers drawn from a sequence (point 8). A
+ * device that sends one gets the conflict `set_by_server`. What a device may
+ * write beyond that is narrower than "create" and "merge" say, field by
+ * field, and stands in `offlineEdits`.
  */
-export const syncPolicies: Readonly<Record<string, SyncPolicy>> = {}
+export const syncPolicies: Readonly<Record<string, SyncPolicy>> = {
+  // The places: the office keeps them, with a connection.
+  properties: officeOnly,
+  buildings: officeOnly,
+  floors: officeOnly,
+  // A room is taken stock of on site; its building, property and area follow
+  // its floor.
+  rooms: { create: true, change: 'merge', reserved: ['buildingId', 'propertyId', 'areaId'] },
+  // An asset and its components: taken stock of and completed on site, with
+  // the number the server draws.
+  assets: { create: true, change: 'merge', reserved: ['number', 'propertyId', 'areaId'] },
+  // Its life cycle has consequences beyond the record: its duties rest while
+  // it is out of service.
+  asset_lifecycle: officeOnly,
+  asset_supplies: { create: true, change: 'merge', reserved: ['propertyId', 'areaId'] },
+  // The register of duties: the office keeps it.
+  duties: officeOnly,
+  duty_dismissals: officeOnly,
+  // An activity takes its progress from a device while its work goes on; a
+  // signature or the office ends it, and then a device corrects nothing. One
+  // made on a device names its state, so that the gate finds one before the
+  // server has answered.
+  activities: {
+    create: true,
+    change: 'merge',
+    onlyWhile: { field: 'status', values: inProgress },
+    reserved: ['areaId'],
+  },
+  // The result of each duty, until the activity is signed.
+  activity_duties: {
+    create: false,
+    change: 'merge',
+    gateFrom: {
+      reference: 'activityId',
+      entity: 'activities',
+      field: 'status',
+      values: inProgress,
+    },
+    reserved: ['propertyId', 'areaId'],
+  },
+  work_orders: {
+    create: true,
+    change: 'never',
+    reserved: ['number', 'activityKind', 'propertyId', 'areaId'],
+  },
+  defects: { create: true, change: 'merge', reserved: ['areaId'] },
+  // Read on a device until a signature from a device has its check, which
+  // writes the evidence (#27, third part).
+  activity_signatures: officeOnly,
+  work_order_decisions: officeOnly,
+}
 
 /**
  * The rules the server and every device decide by, made once from the
@@ -19,3 +87,254 @@ export const offlineRules = syncRules(syncPolicies)
 
 /** The kinds of record a device keeps, in the order of the policies. */
 export const syncEntities = offlineRules.entities
+
+/** Every value of a field, or only these. */
+export type OfflineValues = true | readonly SyncValue[]
+
+/**
+ * What a device may write without a connection, field by field, where its
+ * policy lets it create or change a record at all (ADR 0006, point 6): the
+ * fields of a record it creates, the fields of one it changes, each with the
+ * values it may give, and whether it may remove a record. Anything else needs
+ * a connection, and so does removing a record without `remove`: the office
+ * does it through the route of the record.
+ *
+ * The fields the server works out are reserved in the policy and not named
+ * here; the merge answers them before this is asked.
+ */
+export interface OfflineEdits {
+  readonly create?: Readonly<Record<string, OfflineValues>>
+  readonly change?: Readonly<Record<string, OfflineValues>>
+  readonly remove?: true
+}
+
+/** What is known about an asset, as the route that completes one takes it. */
+const assetDetails: Readonly<Record<string, OfflineValues>> = {
+  kind: true,
+  name: true,
+  mark: true,
+  manufacturer: true,
+  model: true,
+  serialNumber: true,
+  yearBuilt: true,
+  commissionedOn: true,
+  warrantyEndsOn: true,
+  values: true,
+  meterNumber: true,
+  meterUnit: true,
+}
+
+/** The place a record that belongs to one hangs on (ADR 0002, point 10). */
+const placeTarget: Readonly<Record<string, OfflineValues>> = {
+  propertyId: true,
+  buildingId: true,
+  roomId: true,
+  assetId: true,
+}
+
+export const offlineEdits: Readonly<Record<string, OfflineEdits>> = {
+  // A room on its floor, with its number, name and use. Moving it to another
+  // floor and removing it is for whoever keeps the places.
+  rooms: {
+    create: { floorId: true, number: true, name: true, use: true },
+    change: { number: true, name: true, use: true },
+  },
+  // An asset in its building, on request in a room or under another asset.
+  // Moving and removing it is "pflegen" and needs a connection.
+  assets: {
+    create: { buildingId: true, roomId: true, parentAssetId: true, ...assetDetails },
+    change: assetDetails,
+  },
+  // What an asset supplies, one building or room per row: added and taken
+  // away on site, never changed in place.
+  asset_supplies: {
+    create: { assetId: true, buildingId: true, roomId: true },
+    remove: true,
+  },
+  // A work order made on site; rounds, inspections and maintenance are
+  // planned in the office. Its progress: started, and the day it was
+  // performed on. Who it is given to, when it is due and its place are its
+  // plan.
+  activities: {
+    create: {
+      kind: ['work_order'],
+      title: true,
+      status: inProgress,
+      performedOn: true,
+      ...placeTarget,
+    },
+    change: { status: ['started'], performedOn: true },
+  },
+  // The result of a duty of an activity. Which duties an activity is to meet
+  // is its plan.
+  activity_duties: { change: { result: true, resultReason: true } },
+  // A work order made on site is one for a fault ("Störung").
+  work_orders: { create: { activityId: true, kind: ['fault'] } },
+  // A defect is reported with its description, where it was found, and on
+  // request its class; afterwards a device completes its description. Its
+  // status, the day to set it right by and the work order that does are its
+  // further way, kept by the office (section 7 of the concept).
+  defects: {
+    create: {
+      description: true,
+      defectClass: true,
+      foundOn: true,
+      foundInActivityId: true,
+      ...placeTarget,
+    },
+    change: { description: true },
+  },
+}
+
+/**
+ * The fields of an operation that a device may not write without a
+ * connection, or null when it may write all of it: a field outside what
+ * `offlineEdits` names for its kind of record, a value outside the ones named
+ * for a field, or the removal of a record that is not removed on site. An
+ * entity without an entry is decided by its policy alone.
+ *
+ * Asked by the server before the database, as the conflict `online_only` for
+ * this one operation, and by a form before it queues anything.
+ */
+export function offlineEditRefusal(
+  operation: Pick<Operation, 'entity' | 'kind' | 'patches'>,
+): readonly string[] | null {
+  const edits = Object.hasOwn(offlineEdits, operation.entity)
+    ? offlineEdits[operation.entity]
+    : undefined
+
+  if (!edits) {
+    return null
+  }
+
+  if (operation.kind === 'delete') {
+    return edits.remove ? null : []
+  }
+
+  const allowed = (operation.kind === 'create' ? edits.create : edits.change) ?? {}
+  const refused = operation.patches
+    .filter((patch) => {
+      const values = Object.hasOwn(allowed, patch.field) ? allowed[patch.field] : undefined
+
+      return values === undefined || (values !== true && !values.includes(patch.to))
+    })
+    .map((patch) => patch.field)
+
+  return refused.length === 0 ? null : refused
+}
+
+/**
+ * What each kind of record of the sync is called, over a conflict and in its
+ * sentences (ADR 0006). A test of the server holds it against the policies.
+ */
+export const syncEntityNames: Readonly<Record<string, string>> = {
+  properties: 'Liegenschaft',
+  buildings: 'Gebäude',
+  floors: 'Geschoss',
+  rooms: 'Raum',
+  assets: 'Anlage',
+  asset_lifecycle: 'Lebenszyklus einer Anlage',
+  asset_supplies: 'Versorgungsbereich einer Anlage',
+  duties: 'Pflicht',
+  duty_dismissals: 'Verworfener Vorschlag',
+  activities: 'Vorgang',
+  activity_duties: 'Pflicht eines Vorgangs',
+  work_orders: 'Arbeitsauftrag',
+  defects: 'Mangel',
+  activity_signatures: 'Unterschrift',
+  work_order_decisions: 'Abnahme eines Auftrags',
+}
+
+/**
+ * What each field of the sync is called, at the head of its row in a conflict.
+ * One name per field and not per kind of record: the card names the record
+ * above its fields, so "Art" under "Anlage" says what "Anlagenart" says in
+ * the change log. A test of the server holds every field a device may write
+ * against this list; what only the server writes never reaches a conflict.
+ */
+export const syncFieldNames: Readonly<Record<string, string>> = {
+  // The place, and what a row hangs on. A property names its area, which
+  // the office chooses; every other row takes it from its property.
+  areaId: 'Bereich',
+  propertyId: 'Liegenschaft',
+  buildingId: 'Gebäude',
+  floorId: 'Geschoss',
+  roomId: 'Raum',
+  assetId: 'Anlage',
+  parentAssetId: 'Gehört zu',
+  activityId: 'Vorgang',
+  dutyId: 'Pflicht',
+  workOrderId: 'Arbeitsauftrag',
+  foundInActivityId: 'Festgestellt bei',
+  remedyWorkOrderId: 'Beseitigt mit',
+  // What is said about a place.
+  name: 'Bezeichnung',
+  street: 'Straße',
+  postalCode: 'Postleitzahl',
+  city: 'Ort',
+  federalState: 'Bundesland',
+  shortCode: 'Kürzel',
+  kinds: 'Gebäudearten',
+  yearBuilt: 'Baujahr',
+  level: 'Ebene',
+  number: 'Nummer',
+  use: 'Nutzung',
+  // What is said about an asset.
+  kind: 'Art',
+  mark: 'Kennzeichen',
+  manufacturer: 'Hersteller',
+  model: 'Typ',
+  serialNumber: 'Seriennummer',
+  commissionedOn: 'Inbetriebnahme',
+  warrantyEndsOn: 'Ende der Gewährleistung',
+  values: 'Angaben der Anlagenart',
+  meterNumber: 'Zählernummer',
+  meterUnit: 'Einheit des Zählers',
+  state: 'Zustand',
+  validFrom: 'Ab',
+  // What is said about a duty.
+  kindVersion: 'Fassung der Art',
+  label: 'Bezeichnung',
+  basis: 'Grundlage',
+  sourceNote: 'Quelle',
+  counting: 'Zählweise',
+  intervalDays: 'Frist in Tagen',
+  intervalMonths: 'Frist in Monaten',
+  intervalReason: 'Begründung der Frist',
+  maximumDays: 'Höchstfrist in Tagen',
+  maximumMonths: 'Höchstfrist in Monaten',
+  responsibleUserId: 'Verantwortlich',
+  performer: 'Ausgeführt von',
+  performerNote: 'Fremdfirma',
+  confirmedBy: 'Bestätigt von',
+  confirmedAt: 'Bestätigt am',
+  endsOn: 'Endet am',
+  endReason: 'Grund für das Ende',
+  reason: 'Grund',
+  dismissedBy: 'Verworfen von',
+  // What is said about an activity and the work on it.
+  title: 'Bezeichnung',
+  status: 'Stand',
+  dueOn: 'Fällig am',
+  performerUserId: 'Ausgeführt von',
+  contractorNote: 'Fremdfirma',
+  closingReason: 'Grund',
+  performedOn: 'Durchgeführt am',
+  countersignatureRequired: 'Gegenzeichnung verlangt',
+  result: 'Ergebnis',
+  resultReason: 'Grund',
+  // What is said about a defect.
+  description: 'Beschreibung',
+  defectClass: 'Klasse',
+  foundOn: 'Festgestellt am',
+  // A signature, and a decision on a work order.
+  signedBy: 'Unterschrieben von',
+  role: 'Als',
+  signedAt: 'Unterschrieben am',
+  deviceInfo: 'Gerät',
+  path: 'Linienzug',
+  pageFingerprint: 'Fingerabdruck der Seite',
+  decision: 'Entscheidung',
+  decidedBy: 'Entschieden von',
+  decidedAt: 'Entschieden am',
+}

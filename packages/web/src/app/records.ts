@@ -1,19 +1,109 @@
+import {
+  activityKindLabel,
+  activityStatusLabel,
+  buildingKindLabel,
+  countingLabel,
+  defectStatusLabel,
+  dutyBasisLabel,
+  dutyPerformerLabel,
+  evidenceResultLabel,
+  lifecycleStateLabel,
+  meterUnitSymbol,
+  signatureRoleLabel,
+  syncEntityNames,
+  syncFieldNames,
+  type SyncValue,
+  workOrderDecisionLabel,
+  workOrderKindLabel,
+} from '@opengewerk/haustechnik-domain'
 import type { RecordWords } from '@opengewerk/platform-web'
 
 /**
  * What the screens of the conflicts say about a record of this application
  * (ADR 0010 in the repository opengewerk): what a kind of record and its
  * fields are called, the name a record goes by, and how a value is written.
- *
- * No record of this application travels yet (#27), so there is nothing to
- * name: a conflict that arrives anyway, from a newer server, shows the raw
- * names, which the foundation does where an application knows none. The
- * names come with the records, each with its policy.
+ * The names stand in `domain`, where a test of the server holds them against
+ * the policies and the schema (#27).
  */
+
+/** The field a record goes by on a screen, the first one it has. */
+const titleFields: Readonly<Record<string, readonly string[]>> = {
+  properties: ['name'],
+  buildings: ['name'],
+  floors: ['name'],
+  // A room by its number, and by its name where it has none.
+  rooms: ['number', 'name'],
+  assets: ['name'],
+  duties: ['label', 'kind'],
+  duty_dismissals: ['kind'],
+  activities: ['title'],
+  work_orders: ['number'],
+  defects: ['description'],
+}
+
+/**
+ * The words of the values of a field, where the field holds one of a list.
+ * Two kinds of record share `kind` and `status`, with values of their own:
+ * an activity is a round or a work order, a work order is for a fault, and
+ * the words for what both have are the same.
+ */
+const valueWords: Readonly<Record<string, Readonly<Record<string, string>>>> = {
+  kind: { ...activityKindLabel, ...workOrderKindLabel },
+  status: { ...activityStatusLabel, ...defectStatusLabel },
+  result: evidenceResultLabel,
+  state: lifecycleStateLabel,
+  meterUnit: meterUnitSymbol,
+  basis: dutyBasisLabel,
+  performer: dutyPerformerLabel,
+  counting: countingLabel,
+  role: signatureRoleLabel,
+  decision: workOrderDecisionLabel,
+}
+
+function wordOf(words: Readonly<Record<string, string>>, value: string): string | null {
+  return Object.hasOwn(words, value) ? (words[value] ?? null) : null
+}
+
+/**
+ * A value the way a screen writes it, or null where it is written as it is.
+ * The kinds of a building travel as the text of a list (ADR 0005 in the
+ * repository opengewerk) and are written as their words.
+ */
+function valueText(field: string, value: SyncValue): string | null {
+  if (typeof value !== 'string') {
+    return null
+  }
+
+  if (field === 'kinds') {
+    try {
+      const kinds = JSON.parse(value) as unknown
+
+      return Array.isArray(kinds)
+        ? kinds.map((kind) => wordOf(buildingKindLabel, String(kind)) ?? String(kind)).join(', ')
+        : null
+    } catch {
+      return null
+    }
+  }
+
+  const words = Object.hasOwn(valueWords, field) ? valueWords[field] : undefined
+
+  return words ? wordOf(words, value) : null
+}
+
 export const records: RecordWords = {
-  entityLabel: (entity) => entity,
-  fieldLabel: (field) => field,
-  titleOf: (entity) => entity,
-  valueText: () => null,
+  entityLabel: (entity) =>
+    (Object.hasOwn(syncEntityNames, entity) ? syncEntityNames[entity] : undefined) ?? entity,
+  fieldLabel: (field) =>
+    (Object.hasOwn(syncFieldNames, field) ? syncFieldNames[field] : undefined) ?? field,
+  titleOf: (entity, record) => {
+    const fields = Object.hasOwn(titleFields, entity) ? (titleFields[entity] ?? []) : []
+    const named = fields
+      .map((field) => record?.[field])
+      .find((value) => typeof value === 'string' && value.trim() !== '')
+
+    return typeof named === 'string' ? named : records.entityLabel(entity)
+  },
+  valueText,
   settledElsewhere: {},
 }
