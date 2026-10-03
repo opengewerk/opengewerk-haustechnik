@@ -5,11 +5,12 @@
 # compose, restart_app and $base, and the two tenants test-stack.sh creates are
 # $first_tenant and $second_tenant.
 #
-# This application has no records with a place yet. What a backup has to bring
-# back besides the tenants, the audit log and the file store is what the
-# foundation keeps for it, accounts, the roles of a Betreiber and who works for
-# which, the sign in that rests on them, and the areas of a Betreiber with who
-# sees which (opengewerk-haustechnik#17).
+# What a backup has to bring back besides the tenants, the audit log and the
+# file store: what the foundation keeps for this application, accounts, the
+# roles of a Betreiber and who works for which, and the sign in that rests on
+# them; the areas of a Betreiber with who sees which
+# (opengewerk-haustechnik#17); and the first record with a place, a property
+# (opengewerk-haustechnik#18).
 
 # A route touching data, which refuses everybody without a sign in: the
 # accounts of a Betreiber.
@@ -18,7 +19,7 @@ guarded_route=/staff
 # The tables counted before the backup and after the restore. The area and
 # the place of the account in it come with the account: a Betreiber gets its
 # first area with its first membership.
-counted_tables='auth_users memberships tenant_roles areas member_areas'
+counted_tables='auth_users memberships tenant_roles areas member_areas properties'
 
 # The migrations, and how many of them make the older state an update starts
 # from: the first, without the sequence for work orders that the second brings.
@@ -45,6 +46,11 @@ records_for_backup() {
   restart_app
   HAUSTECHNIK_PASSWORD=$probe_password compose exec -T -e HAUSTECHNIK_PASSWORD app \
     node dist/add-staff.js "$first_tenant" "$probe_email" 'Hanna Probe' technician
+  # The membership gave the Betreiber its first area; a property goes into it.
+  sql "
+    insert into properties (tenant_id, area_id, name, street, postal_code, city, federal_state)
+    select '$first_tenant', id, 'Campus Probe', 'Probestraße 1', '68535', 'Edingen-Neckarhausen', 'DE-BW'
+      from areas where tenant_id = '$first_tenant';"
 }
 
 # An account and its place at the Betreiber on the older state, written with

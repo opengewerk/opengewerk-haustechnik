@@ -19,7 +19,11 @@ import {
 
 import { access } from '../authentication/access.js'
 import { authorization, AuthorizationGuard } from './authorization.js'
+import { BuildingsController } from './buildings.controller.js'
 import { DatabaseExceptionFilter } from './database-errors.js'
+import { FloorsController } from './floors.controller.js'
+import { PropertiesController } from './properties.controller.js'
+import { RoomsController } from './rooms.controller.js'
 import { syncRoutes } from './sync-routes.js'
 
 /**
@@ -73,11 +77,12 @@ export interface ApiOptions {
  * listed here, so a controller added to the list is covered without anybody
  * remembering the test.
  *
- * What is here so far is what the foundation brings: signing in, the account
- * of the person signed in, who works for a tenant, the area of the instance,
- * and the sync of a device with the rules of this application. An invitation
- * is handed over as a link; sending one by mail arrives with the mail server
- * of a tenant.
+ * What the foundation brings: signing in, the account of the person signed
+ * in, who works for a tenant, the area of the instance, the change log and the
+ * sync of a device with the rules of this application. An invitation is
+ * handed over as a link; sending one by mail arrives with the mail server of a
+ * tenant. What this application brings: the place, from the property to the
+ * room.
  */
 @Module({})
 export class ApiModule {
@@ -112,6 +117,11 @@ export class ApiModule {
         ...signingIn.controllers,
         ...syncing.controllers,
         ...auditing.controllers,
+        // The place: properties, buildings, floors and rooms.
+        PropertiesController,
+        BuildingsController,
+        FloorsController,
+        RoomsController,
       ],
       providers: [
         { provide: Database, useValue: database },

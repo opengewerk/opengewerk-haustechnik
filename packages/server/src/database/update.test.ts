@@ -141,6 +141,7 @@ describe('an installation that began on the first migration', () => {
     const tenant = await tenantWithCounters({ asset: 42, work_order: 7, evidence: 3 })
 
     // Back to the first migration, in the reverse order of the way forward.
+    await revertMigration(admin, '0003_places')
     await revertMigration(admin, '0002_areas')
     await revertMigration(admin, '0001_work_order_numbers')
 
@@ -285,6 +286,9 @@ describe('an installation from before the areas', () => {
       'user-site': { roles: ['technician'] },
     })
 
+    // The places hang on the areas and go first, as on the way back of an
+    // installation.
+    await revertMigration(admin, '0003_places')
     await revertMigration(admin, '0002_areas')
 
     const left = ['areas', 'member_all_areas', 'member_areas', 'substitutions']
@@ -315,5 +319,60 @@ describe('an installation from before the areas', () => {
 
     // A membership made afterwards is just a membership again.
     await members(tenant, { 'user-new': { roles: ['technician'] } })
+  })
+})
+
+/**
+ * The places hang on the areas and on nothing else yet. Taking their
+ * migration back takes every place with it, says so in the log of the tenant,
+ * and leaves the areas and who works where as they were.
+ */
+describe('an installation with places', () => {
+  it('loses its places and nothing else when the update is taken back', async () => {
+    await applyMigrations()
+
+    const tenant = { id: newId<'tenant'>() }
+
+    await admin.query('insert into tenants (id, name) values ($1, $2)', [
+      tenant.id,
+      'Wohnbau Nord eG',
+    ])
+    await members(tenant, { 'user-lead': { roles: ['management'] } })
+    await admin.query(
+      `insert into properties (tenant_id, area_id, name, street, postal_code, city, federal_state)
+       select $1, id, 'Campus Nord', 'Nordstraße 12', '68535', 'Edingen-Neckarhausen', 'DE-BW'
+         from areas where tenant_id = $1`,
+      [tenant.id],
+    )
+
+    await revertMigration(admin, '0003_places')
+
+    const places = ['properties', 'buildings', 'floors', 'rooms']
+
+    expect((await tableNames(admin)).filter((table) => places.includes(table))).toEqual([])
+    expect(
+      [...(await enumValues(admin)).keys()].filter((name) =>
+        ['building_kind', 'federal_state'].includes(name),
+      ),
+    ).toEqual([])
+    expect(
+      (await functionNames(admin)).filter((name) =>
+        ['each_once', 'mark_places_below'].includes(name),
+      ),
+    ).toEqual([])
+    expect(await areasOf(tenant)).toEqual({
+      areas: [firstAreaName],
+      everyArea: ['user-lead'],
+      named: [],
+    })
+
+    const { rows: removed } = await admin.query<{ table_name: string; reason: string | null }>(
+      `select distinct table_name, reason from audit_entries
+        where tenant_id = $1 and operation = 'delete'
+        order by table_name`,
+      [tenant.id],
+    )
+
+    expect(removed).toEqual([{ table_name: 'properties', reason: 'migration' }])
   })
 })
