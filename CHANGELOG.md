@@ -329,6 +329,19 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   Schlüssel und Geltungsbereich (`ruleHoles`). Benutzt wird davon hier noch nichts, das kommt mit
   den Pflichtenpaketen. Die Tests des Fundaments laufen in der CI dieses Repositorys mit, in
   `platform-domain` jetzt 130 statt 112
+- Das Fundament ist auf den Stand mit Dateispeicher, Renderer, E-Mail und Push angehoben
+  (`opengewerk/opengewerk#507` bis `#512`, #23). Die Ablage von Dateien nach ihrem SHA-256, der
+  Stand der nächtlichen Sicherung, der Druck über den Renderer, der Mailserver eines Mandanten mit
+  Postausgang und Job, Push und der Weg vom Anlass zur Nachricht liegen damit in
+  `@opengewerk/platform-server`. Zwei Tabellen davon trägt das Fundament selbst, die Dateien eines
+  Betreibers und seinen Mailserver; die Migration `0005_files_and_mail_settings` legt sie an, wie
+  die Bausteine des Fundaments sie beschreiben, und die Prüfung von Sicherung und Rückspielen zählt
+  beide mit und findet eine Datei im Speicher. Gebunden wird davon hier noch nichts: der
+  Dateispeicher kommt mit den Dokumenten, der Renderer mit dem ersten PDF, Mailserver, Postausgang
+  und Push mit den Benachrichtigungen, alle in Phase 1 und jeweils mit ihren Rechten und ihren
+  Tafeln; bis dahin geht eine Einladung als Link hinaus. Die Tests des Fundaments laufen in der CI
+  dieses Repositorys mit, in `platform-domain` jetzt 137 statt 130 und in `platform-server` 740
+  statt 552
 - `pnpm run check:toolchain` vergleicht auch die Fassungen der Abhängigkeiten, die ein Paket
   dieser Anwendung und ein Paket des Fundaments beide laden, zuerst `drizzle-orm` und `pg`. Zwei
   Fassungen davon in einem Prozess hießen Tabellen, die mit der einen angelegt und mit der

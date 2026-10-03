@@ -192,6 +192,27 @@ function rowsOf(tenant: Tenant): readonly Row[] {
         sealed: `sealed-${randomUUID()}`,
       },
     },
+    // The files and the mail server of a tenant come with the foundation (#23).
+    // Nothing in this application writes them before phase 1; the test does.
+    {
+      table: 'files',
+      values: {
+        tenant_id: tenant.id,
+        sha256: randomUUID().replaceAll('-', '').repeat(2),
+        size_bytes: 2048,
+        media_type: 'application/pdf',
+      },
+    },
+    {
+      table: 'mail_settings',
+      values: {
+        tenant_id: tenant.id,
+        host: 'mail.beispiel.example',
+        port: 587,
+        security: 'starttls',
+        from_address: `technik-${tenant.id.slice(0, 8)}@beispiel.example`,
+      },
+    },
     // A first membership gives a tenant its first area, so the area here is a
     // second one beside it, under a name of its own.
     {

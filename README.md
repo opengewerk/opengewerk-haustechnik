@@ -69,7 +69,7 @@ docker compose -f docker/compose.yaml exec app node dist/appoint-operator.js <e-
 docker compose -f docker/compose.yaml exec app node dist/add-tenant.js "<name des betreibers>" <e-mail> "<name der leitung>"
 ```
 
-Der Renderer für PDFs, E-Mail und Push kommen mit den Diensten dahinter (#23), mit ihren Zeilen in der `.env`.
+Die Dienste für PDFs, E-Mail und Push liegen seit #23 im Fundament. Gebunden werden sie hier mit den Bausteinen, die sie brauchen: der Renderer mit dem ersten PDF, Mailserver, E-Mail und Push mit den Benachrichtigungen, beide in Phase 1 und jeweils mit ihren Zeilen in der `.env`. Bis dahin geht eine Einladung als Link hinaus.
 
 ## Am Code arbeiten
 
@@ -109,7 +109,7 @@ Ein Teil der Tests braucht ein PostgreSQL 18 und leert es vor jedem Lauf. Dafür
 | [`pakete`](pakete) | Der Katalog als Daten: Anlagenarten, Pflichtarten, Regeln, Formulare und Vorlagen mit ihren Abnahmen, wie ein Beitrag sie schreibt; bisher ohne Paket, die Inhalte kommen in Phase 1 |
 | [`packages/server`](packages/server) | Die Datenbank dieser Anwendung (Schema, Migrationen und der Befehl, der sie einspielt), der Start einer Instanz, die auch die Oberfläche ausliefert, und die Schnittstelle: vom Fundament Anmeldung, Zugänge, der Bereich der Instanz, der Abgleich und das Änderungsprotokoll, eigene Routen für den Ort und die Technik, alles hinter dem Guard |
 | [`packages/web`](packages/web) | Die Oberfläche mit zwei Einstiegen, `/` für das Büro und `/m` für die Arbeit vor Ort. Bisher die Hülle des Fundaments mit dem, was diese Anwendung dazu sagt: Tor und Anmeldung, "Konto", "Zugänge", das Änderungsprotokoll, der Bereich der Instanz mit seinem Protokoll, die Leiste des Abgleichs und der Konfliktbildschirm, mit Service Worker und Manifesten |
-| `upstream/opengewerk/packages/platform/*` | Das Fundament: Mandantentrennung, Anmeldung, Rechte, Abgleich auf dem Gerät und auf dem Server samt seinen Routen, Audit-Log, der Einstieg des Servers und die Oberfläche, die jede Anwendung zeigt, bevor ihr erster eigener Bildschirm kommt, mit den Bausteinen, aus denen sie ihre Bildschirme baut. Wird im Repository `opengewerk` geändert, nie hier |
+| `upstream/opengewerk/packages/platform/*` | Das Fundament: Mandantentrennung, Anmeldung, Rechte, Abgleich auf dem Gerät und auf dem Server samt seinen Routen, Audit-Log, Dateispeicher, Druck über den Renderer, Versand von E-Mail und Push, der Einstieg des Servers und die Oberfläche, die jede Anwendung zeigt, bevor ihr erster eigener Bildschirm kommt, mit den Bausteinen, aus denen sie ihre Bildschirme baut. Wird im Repository `opengewerk` geändert, nie hier |
 | [`docker`](docker) | Der Betrieb dieser Anwendung: die Compose-Datei, die Vorlage der `.env`, ihre Namen für die Skripte des Fundaments (`application.env`), das Startskript und was die Prüfungen eines laufenden Stapels über sie wissen müssen (`test-material.sh`) |
 | `upstream/opengewerk/docker/` | Einrichten, Starten und Sichern einer Instanz und die Prüfungen eines laufenden Stapels, als Skripte des Fundaments. Diese Anwendung ruft sie gegen ihren Ordner `docker` auf, über `docker/start.sh` und in der CI; das Abbild der Sicherung entsteht aus ihrem Ordner `backup`, die Rollen der Datenbank legt ihr `postgres-init` an |
 
@@ -132,6 +132,8 @@ Alle ausstehenden Migrationen laufen in einer Transaktion. Schlägt eine fehl, s
 Die erste Migration, `0000_foundation`, legt das Fundament in einer leeren Datenbank an: Betreiber, Konten und Sitzungen, Zugehörigkeiten und Einladungen, Rollen, das Audit-Log mit Hashkette, die Tabellen des Abgleichs, Nummernkreise, versiegelte Zugangsdaten und den Bereich der Instanz. Sie ist nicht abgeschrieben. Die Tabellen hat `drizzle-kit generate` aus den Schema-Modulen des Fundaments erzeugt, und `completeInitialMigrationIn` aus `@opengewerk/platform-server/migration` hat darumgelegt, was drizzle-kit nicht schreibt: die Rolle der Anwendung, `FORCE`, die Rechte je Tabelle, die Funktionen und die Trigger. In der Datenbank heißt ein Betreiber `tenant`, wie das Fundament ihn nennt.
 
 Zwei Tabellen des Fundaments entstehen mit Listen dieser Anwendung, und beide Listen stehen in `packages/domain`: die Nummernkreise (`asset` für die Anlagennummer, `work_order` für die Nummer eines Auftrags, `evidence` für den Nachweis) und die Zwecke versiegelter Zugangsdaten (`smtp_password`). Ein weiterer Eintrag ist eine Zeile dort und eine Migration, die ihn der Aufzählung in der Datenbank hinzufügt; ein Test hält beide gegeneinander. So ist der Nummernkreis für Aufträge gekommen: die erste Migration hatte ihn ausgelassen, `0001_work_order_numbers` trägt ihn nach. Die Einstellungen mit Gültigkeitszeitraum entstehen ebenso aus einer Liste und kommen mit der ersten Einstellung.
+
+Bringt das Fundament eine neue Tabelle mit, kommt mit dem Anheben eine Migration dazu, die sie anlegt, so wie es die Bausteine des Fundaments beschreiben; `foundation.test.ts` vergleicht die Datenbank nach allen Migrationen mit einer aus den Bausteinen allein. So sind die Dateien eines Betreibers und sein Mailserver mit `0005_files_and_mail_settings` gekommen, bevor etwas in dieser Anwendung sie schreibt.
 
 Eine neue Migration:
 

@@ -36,6 +36,13 @@
       "when": 1791023586592,
       "tag": "0004_assets",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1791039933573,
+      "tag": "0005_files_and_mail_settings",
+      "breakpoints": true
     }
   ]
 }
