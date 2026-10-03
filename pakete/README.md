@@ -6,8 +6,9 @@ zuletzt gegen seine Quelle geprüft und abgenommen hat. Pflichten sind Daten, ke
 Freitext (Leitentscheidung 3 des Planungskonzepts, ADR 0005). Wer zum Katalog beiträgt, schreibt
 JSON und kein Programm; was eine Datei falsch machen kann, sagt der Bau.
 
-Ein vollständiges Beispiel ist das Probepaket unter `packages/catalogue/test/pakete/probe/`: eine
-Anlagenart, eine Pflichtart aus staatlichem Recht und die Regel ihrer Frist. Es liegt nicht hier,
+Ein vollständiges Beispiel ist das Probepaket unter `packages/catalogue/test/pakete/probe/`: zwei
+Anlagenarten, davon eine Messstelle, eine Pflichtart aus staatlichem Recht und die Regel ihrer
+Frist. Es liegt nicht hier,
 weil alles in diesem Ordner mit der Anwendung ausgeliefert wird.
 
 ## Aufbau
@@ -82,9 +83,15 @@ es gebaut wird.
 | `characteristics` | Merkmale, nach denen der Geltungsbereich einer Pflichtart fragt; je Merkmal `key`, `label` und `kind`: `number` mit `unit` aus den Einheiten der Regel-Engine, `flag` für ja oder nein, `choice` mit mindestens zwei `options` aus `value` und `label` |
 | `fields` | weitere Felder einer Anlage dieser Art, nach denen keine Pflicht fragt: `text`, `number` mit einer Einheit zum Anzeigen, `date`, `flag`, `choice` |
 | `expectedDocuments` | Soll-Dokumente mit `key` und `label`, etwa der Notfallplan |
+| `meter` | nur bei einer Messstelle: `medium`, was sie misst (`electricity`, `water`, `heat`, `district_heating`, `gas`, `cooling`), und `units`, die Einheiten, in denen ein Zähler dieser Art zählt (`kilowatt_hours`, `megawatt_hours`, `cubic_metres`), mindestens eine |
 
 Ein Merkmal mit einer Zahl ist eine ganze Zahl in seiner Einheit, wie der Wert einer Regel: eine
 Füllmenge von 4,9 Tonnen CO2-Äquivalent steht als 4900 in `kilograms_co2e`.
+
+Eine Anlagenart ohne `meter` ist keine Messstelle. Das Medium steht an der Anlagenart,
+Zählernummer und Einheit stehen an der einzelnen Anlage: ein Stromzähler zählt in
+`kilowatt_hours` und ein großer vielleicht in `megawatt_hours`, ein Wasserzähler misst immer
+Wasser.
 
 ### pflichten/
 

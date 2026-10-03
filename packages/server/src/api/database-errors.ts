@@ -7,8 +7,16 @@ import { databaseErrors } from '@opengewerk/platform-server'
  * value that does not fit the data model a 400, and what the foundation's own
  * functions raise a 409 with their sentence.
  *
- * This application has no error class of its own yet. The first trigger that
- * raises one, the one that keeps evidence from being changed, enters its code
- * here with the sentence that stands in when the database gave none.
+ * The error classes of this application go the same way, each with the
+ * sentence that stands in when the database gave none. The class is `HT`
+ * followed by three digits, beside the foundation's `OG`.
  */
-export const { answerFor, DatabaseExceptionFilter } = databaseErrors()
+export const applicationConflicts: Readonly<Record<string, string>> = {
+  // A component under itself, however long the chain (#20).
+  HT001: 'Eine Komponente hängt nicht unter sich selbst.',
+  // An asset moved to another property (#20).
+  HT002:
+    'Eine Anlage bleibt auf ihrer Liegenschaft; an einem anderen Ort ist sie eine neue Anlage.',
+}
+
+export const { answerFor, DatabaseExceptionFilter } = databaseErrors(applicationConflicts)

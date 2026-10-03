@@ -219,6 +219,9 @@ importers:
         specifier: workspace:*
         version: link:../../upstream/opengewerk/packages/platform/domain
     devDependencies:
+      fast-check:
+        specifier: 4.10.1
+        version: 4.10.1
       vitest:
         specifier: 5.0.3
         version: 5.0.3(@types/node@24.13.5)(happy-dom@20.14.5)(vite@8.3.2(@types/node@24.13.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15))
@@ -234,6 +237,9 @@ importers:
       '@nestjs/platform-express':
         specifier: 12.0.3
         version: 12.0.3(@nestjs/common@12.0.3(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@12.0.3)
+      '@opengewerk/haustechnik-catalogue':
+        specifier: workspace:*
+        version: link:../catalogue
       '@opengewerk/haustechnik-domain':
         specifier: workspace:*
         version: link:../domain

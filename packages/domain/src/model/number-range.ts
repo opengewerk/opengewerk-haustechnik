@@ -18,8 +18,8 @@
  * How a number is drawn without holes, how a pattern is written and what a
  * counter becomes in it is the foundation's (`numberRangeStore`,
  * `patternProblem`, `numberFromPattern`). What this application says is which
- * sequences there are. The pattern each one starts with is named where its
- * first number is drawn, with the asset, the work order and the evidence.
+ * sequences there are, and the pattern each one starts with
+ * (`defaultNumberPatterns`).
  *
  * The list is the list in the database, in the same order: a further sequence
  * is a further entry here and a migration that adds it there.
@@ -27,3 +27,16 @@
 export const numberRangeKeys = ['asset', 'work_order', 'evidence'] as const
 
 export type NumberRangeKey = (typeof numberRangeKeys)[number]
+
+/**
+ * The pattern each sequence starts with, until a tenant sets its own. The
+ * foundation asks for one for every sequence when the store is made, so all
+ * three are named here, with the asset (#20): the asset number has no year,
+ * because an asset outlives many, and a work order and a piece of evidence
+ * carry the year they were made in, like the jobs of the Handwerkersoftware.
+ */
+export const defaultNumberPatterns: Readonly<Record<NumberRangeKey, string>> = {
+  asset: 'AN-{number:5}',
+  work_order: 'AU-{year}-{number:4}',
+  evidence: 'NW-{year}-{number:5}',
+}

@@ -48,10 +48,40 @@ export const auditVocabulary: AuditVocabulary = {
       label: 'Raum',
       fields: { floor_id: 'Geschoss', number: 'Raumnummer', use: 'Nutzung' },
     },
+    // The technology (ADR 0002, points 4 to 9).
+    assets: {
+      label: 'Anlage',
+      fields: {
+        parent_asset_id: 'Gehört zu',
+        kind: 'Anlagenart',
+        number: 'Anlagennummer',
+        mark: 'Kennzeichen',
+        manufacturer: 'Hersteller',
+        model: 'Typ',
+        serial_number: 'Seriennummer',
+        year_built: 'Baujahr',
+        commissioned_on: 'Inbetriebnahme',
+        warranty_ends_on: 'Ende der Gewährleistung',
+        values: 'Angaben der Anlagenart',
+        meter_number: 'Zählernummer',
+        meter_unit: 'Einheit des Zählers',
+      },
+    },
+    asset_lifecycle: {
+      label: 'Lebenszyklus',
+      fields: { state: 'Zustand', valid_from: 'Ab' },
+    },
+    asset_supplies: { label: 'Versorgt' },
   },
   // Every row with a place carries its area and the levels above it (ADR 0002,
   // point 2, and ADR 0003, point 4).
-  commonFields: { area_id: 'Bereich', property_id: 'Liegenschaft', building_id: 'Gebäude' },
+  commonFields: {
+    area_id: 'Bereich',
+    property_id: 'Liegenschaft',
+    building_id: 'Gebäude',
+    room_id: 'Raum',
+    asset_id: 'Anlage',
+  },
   // A tenant is a "Betreiber", whoever leads one its "Leitung", and whoever
   // runs the instance the "Verwaltung der Instanz" (ADR 0001, point 11).
   foundation: {
@@ -75,6 +105,9 @@ export const auditVocabulary: AuditVocabulary = {
     property_id: 'properties',
     building_id: 'buildings',
     floor_id: 'floors',
+    room_id: 'rooms',
+    asset_id: 'assets',
+    parent_asset_id: 'assets',
   },
   personFields: ['substitute_user_id', 'absent_user_id'],
   // Rows without a name of their own are named after the person they are
@@ -85,6 +118,9 @@ export const auditVocabulary: AuditVocabulary = {
     substitutions: ['absent_user_id'],
     // A room by its number, and by its name where it has none.
     rooms: ['number', 'name'],
+    // An entry of a life cycle by its state, a supply by what is supplied.
+    asset_lifecycle: ['state'],
+    asset_supplies: ['building_id', 'room_id'],
   },
   reasons: {},
   rights: rightLabel,

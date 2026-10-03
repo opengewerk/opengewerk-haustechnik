@@ -7,6 +7,7 @@ import {
 } from '@opengewerk/platform-domain'
 
 import type { BuildingKind } from './location.js'
+import type { MeterKind } from './meter.js'
 
 /**
  * The catalogue: what the packages under `pakete/` say, as the build of
@@ -193,13 +194,18 @@ export interface ExpectedDocument {
   readonly label: string
 }
 
-/** An asset kind: its cost group after DIN 276, its characteristics, fields and expected documents. */
+/**
+ * An asset kind: its cost group after DIN 276, its characteristics, fields
+ * and expected documents, and for a measuring point its medium and the units
+ * a meter of the kind counts in (ADR 0002, point 9).
+ */
 export interface AssetKind {
   readonly label: string
   readonly costGroup: string
   readonly characteristics: readonly Characteristic[]
   readonly fields: readonly AssetField[]
   readonly expectedDocuments: readonly ExpectedDocument[]
+  readonly meter: MeterKind | null
 }
 
 /**

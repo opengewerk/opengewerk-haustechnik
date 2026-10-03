@@ -18,6 +18,10 @@ import {
   federalStates,
   intervalKinds,
   type IsoDate,
+  type MeterKind,
+  meterMedia,
+  type MeterUnit,
+  meterUnits,
   type PackagedForm,
   qualificationLevels,
   type Retention,
@@ -469,6 +473,53 @@ export interface ReadEntry<Definition> {
 /** A cost group of DIN 276: three digits, the first one to eight. */
 const costGroupPattern = /^[1-8][0-9]{2}$/
 
+/**
+ * What makes an asset kind a measuring point (ADR 0002, point 9): the medium
+ * it measures and the units a meter of the kind may count in, at least one.
+ */
+function meterKind(value: unknown, spot: Spot, findings: Findings): MeterKind | undefined {
+  const from = fields(value, spot, findings, ['medium', 'units'])
+
+  if (!from) {
+    return undefined
+  }
+
+  const before = findings.problems.length
+  const medium = oneOf(from, 'medium', meterMedia, spot, findings)
+  const unitList = list(from, 'units', spot, findings, 'required')
+
+  if (unitList?.length === 0) {
+    findings.say(below(spot, 'units'), 'Ein Zähler zählt in mindestens einer Einheit.')
+  }
+
+  const units = unitList?.map((entry, index) => {
+    if (typeof entry !== 'string' || !(meterUnits as readonly string[]).includes(entry)) {
+      findings.say(
+        below(below(spot, 'units'), index),
+        `Das ist keine der Einheiten ${meterUnits.join(', ')}.`,
+      )
+      return undefined
+    }
+
+    return entry as MeterUnit
+  })
+
+  if (units && defined(units)) {
+    once(units, below(spot, 'units'), findings, 'Die Einheit')
+  }
+
+  if (
+    findings.problems.length > before ||
+    medium === undefined ||
+    units === undefined ||
+    !defined(units)
+  ) {
+    return undefined
+  }
+
+  return { medium, units: [...units] }
+}
+
 /** A version of an asset kind, `anlagenarten/<key>.v<n>.json`. */
 export function readAssetKind(
   value: unknown,
@@ -483,6 +534,7 @@ export function readAssetKind(
     'characteristics',
     'fields',
     'expectedDocuments',
+    'meter',
   ])
 
   if (!from) {
@@ -493,6 +545,9 @@ export function readAssetKind(
   const validFrom = day(from, 'validFrom', spot, findings)
   const label = text(from, 'label', spot, findings)
   const costGroup = from['costGroup']
+  const meter = missing(from, 'meter')
+    ? null
+    : meterKind(from['meter'], below(spot, 'meter'), findings)
 
   if (typeof costGroup !== 'string' || !costGroupPattern.test(costGroup)) {
     findings.say(
@@ -543,14 +598,22 @@ export function readAssetKind(
     typeof costGroup !== 'string' ||
     characteristics === undefined ||
     assetFields === undefined ||
-    expectedDocuments === undefined
+    expectedDocuments === undefined ||
+    meter === undefined
   ) {
     return undefined
   }
 
   return {
     validFrom,
-    definition: { label, costGroup, characteristics, fields: assetFields, expectedDocuments },
+    definition: {
+      label,
+      costGroup,
+      characteristics,
+      fields: assetFields,
+      expectedDocuments,
+      meter,
+    },
   }
 }
 

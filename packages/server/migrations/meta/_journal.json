@@ -29,6 +29,13 @@
       "when": 1791018537823,
       "tag": "0003_places",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1791023586592,
+      "tag": "0004_assets",
+      "breakpoints": true
     }
   ]
 }

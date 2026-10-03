@@ -1,6 +1,6 @@
 import { type DynamicModule, Module } from '@nestjs/common'
 import { APP_FILTER, APP_GUARD } from '@nestjs/core'
-import { auditVocabulary } from '@opengewerk/haustechnik-domain'
+import { auditVocabulary, type Catalogue } from '@opengewerk/haustechnik-domain'
 import {
   auditLogParts,
   type Authentication,
@@ -18,6 +18,8 @@ import {
 } from '@opengewerk/platform-server'
 
 import { access } from '../authentication/access.js'
+import { CATALOGUE, shippedCatalogue } from '../catalogue.js'
+import { AssetsController, BuildingAssetsController } from './assets.controller.js'
 import { authorization, AuthorizationGuard } from './authorization.js'
 import { BuildingsController } from './buildings.controller.js'
 import { DatabaseExceptionFilter } from './database-errors.js'
@@ -60,6 +62,12 @@ export interface ApiOptions {
    * out, there is none to name, as in a checkout.
    */
   readonly version?: string | null
+  /**
+   * The catalogue the routes ask which asset kinds there are (ADR 0005).
+   * Left out, the one this build ships, from the packages under pakete/; a
+   * test hands in the probe package.
+   */
+  readonly catalogue?: Catalogue
 }
 
 /**
@@ -82,7 +90,7 @@ export interface ApiOptions {
  * sync of a device with the rules of this application. An invitation is
  * handed over as a link; sending one by mail arrives with the mail server of a
  * tenant. What this application brings: the place, from the property to the
- * room.
+ * room, and the technology, assets and their components.
  */
 @Module({})
 export class ApiModule {
@@ -122,6 +130,9 @@ export class ApiModule {
         BuildingsController,
         FloorsController,
         RoomsController,
+        // The technology: assets and their components.
+        BuildingAssetsController,
+        AssetsController,
       ],
       providers: [
         { provide: Database, useValue: database },
@@ -130,6 +141,7 @@ export class ApiModule {
         ...auditing.providers,
         { provide: TRUSTED_ORIGINS, useValue: trustedOrigins },
         { provide: VERSION, useValue: version },
+        { provide: CATALOGUE, useValue: options.catalogue ?? shippedCatalogue() },
         { provide: IDENTITY_SOURCE, useValue: identities },
         // What a refusal says, for the guard of the foundation.
         { provide: AUTHORIZATION, useValue: authorization },

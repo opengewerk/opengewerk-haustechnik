@@ -24,6 +24,7 @@ const elevator: AssetKind = {
   characteristics: [],
   fields: [],
   expectedDocuments: [],
+  meter: null,
 }
 
 const mainTest: DutyKind = {
