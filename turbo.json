@@ -29,6 +29,11 @@
     "test": {
       "dependsOn": ["^build"]
     },
+    "@opengewerk/haustechnik-catalogue#build": {
+      "dependsOn": ["^build"],
+      "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/pakete/**", "$TURBO_ROOT$/package.json"],
+      "outputs": ["dist/**"]
+    },
     "@opengewerk/haustechnik-server#test": {
       "dependsOn": ["^build", "@opengewerk/platform-server#test"],
       "inputs": [

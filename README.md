@@ -28,7 +28,7 @@ Die Handwerkersoftware [`opengewerk`](https://github.com/opengewerk/opengewerk) 
 
 ## Status
 
-OpenGewerk Haustechnik steht am Anfang von **Phase 0**, dem Fundament. Das Konzept ist ausgearbeitet, der Arbeitsbereich bindet das Fundament der Handwerkersoftware ein, die erste Migration legt es in einer leeren Datenbank an, und die Rechte und die vier Rollen aus Phase 1 sind an Anmeldung und Zugangsverwaltung des Fundaments gebunden. Eine Installation startet mit einem Befehl über Docker Compose, sichert sich jede Nacht und aktualisiert in zwei Schritten, mit der Oberfläche des Fundaments und dem Änderungsprotokoll in den Worten dieser Anwendung. Die Zuständigkeitsbereiche setzt die Datenbank durch, und der Ort von der Liegenschaft bis zum Raum ist als Daten und Schnittstelle gebaut; Bildschirme dafür kommen in Phase 1. Ein Pilotbetrieb mit mehreren Liegenschaften steht bereit; Version 1 ist erreicht, wenn er seine bisherige Anwendung abschalten kann.
+OpenGewerk Haustechnik steht am Anfang von **Phase 0**, dem Fundament. Das Konzept ist ausgearbeitet, der Arbeitsbereich bindet das Fundament der Handwerkersoftware ein, die erste Migration legt es in einer leeren Datenbank an, und die Rechte und die vier Rollen aus Phase 1 sind an Anmeldung und Zugangsverwaltung des Fundaments gebunden. Eine Installation startet mit einem Befehl über Docker Compose, sichert sich jede Nacht und aktualisiert in zwei Schritten, mit der Oberfläche des Fundaments und dem Änderungsprotokoll in den Worten dieser Anwendung. Die Zuständigkeitsbereiche setzt die Datenbank durch, und der Ort von der Liegenschaft bis zum Raum ist als Daten und Schnittstelle gebaut; Bildschirme dafür kommen in Phase 1. Das Format der Pakete, in denen Anlagenarten, Pflichtarten und ihre Regeln als Daten stehen, ist mit Lader und Prüfungen gebaut; die Inhalte kommen in Phase 1. Ein Pilotbetrieb mit mehreren Liegenschaften steht bereit; Version 1 ist erreicht, wenn er seine bisherige Anwendung abschalten kann.
 
 Das vollständige Konzept liegt unter [`docs/konzept/`](docs/konzept/), die Architekturentscheidungen dieser Anwendung unter [`docs/adr/`](docs/adr/). Was in Phase 0 gebaut wird, steht als Issues im Meilenstein [Phase 0: Fundament](https://github.com/opengewerk/opengewerk-haustechnik/milestone/1).
 
@@ -104,7 +104,9 @@ Ein Teil der Tests braucht ein PostgreSQL 18 und leert es vor jedem Lauf. Dafür
 
 | Paket | Inhalt |
 | --- | --- |
-| [`packages/domain`](packages/domain) | Fachlichkeit ohne I/O: der Katalog der Rechte, die Rollen, mit denen ein Betreiber beginnt, und die Wörter des Änderungsprotokolls. Reicht weiter, was das Fundament exportiert, damit Server und Oberfläche ein Paket fragen |
+| [`packages/domain`](packages/domain) | Fachlichkeit ohne I/O: der Katalog der Rechte, die Rollen, mit denen ein Betreiber beginnt, die Wörter des Änderungsprotokolls, das Modell des Orts und die Fragen an den Katalog der Pakete. Reicht weiter, was das Fundament exportiert, damit Server und Oberfläche ein Paket fragen |
+| [`packages/catalogue`](packages/catalogue) | Der Lader der Pakete: liest beim Bau den Ordner `pakete`, prüft jedes Paket und schreibt das Bündel, das Server und Oberfläche laden; dazu der Vergleich der Fassungen mit `main` und das Probepaket als Material der Tests |
+| [`pakete`](pakete) | Der Katalog als Daten: Anlagenarten, Pflichtarten, Regeln, Formulare und Vorlagen mit ihren Abnahmen, wie ein Beitrag sie schreibt; bisher ohne Paket, die Inhalte kommen in Phase 1 |
 | [`packages/server`](packages/server) | Die Datenbank dieser Anwendung (Schema, Migrationen und der Befehl, der sie einspielt), der Start einer Instanz, die auch die Oberfläche ausliefert, und die Schnittstelle, soweit das Fundament sie mitbringt: Anmeldung, Zugänge, der Bereich der Instanz, der Abgleich und das Änderungsprotokoll, hinter dem Guard |
 | [`packages/web`](packages/web) | Die Oberfläche mit zwei Einstiegen, `/` für das Büro und `/m` für die Arbeit vor Ort. Bisher die Hülle des Fundaments mit dem, was diese Anwendung dazu sagt: Tor und Anmeldung, "Konto", "Zugänge", das Änderungsprotokoll, der Bereich der Instanz mit seinem Protokoll, die Leiste des Abgleichs und der Konfliktbildschirm, mit Service Worker und Manifesten |
 | `upstream/opengewerk/packages/platform/*` | Das Fundament: Mandantentrennung, Anmeldung, Rechte, Abgleich auf dem Gerät und auf dem Server samt seinen Routen, Audit-Log, der Einstieg des Servers und die Oberfläche, die jede Anwendung zeigt, bevor ihr erster eigener Bildschirm kommt, mit den Bausteinen, aus denen sie ihre Bildschirme baut. Wird im Repository `opengewerk` geändert, nie hier |
@@ -195,6 +197,19 @@ Liegenschaft, Gebäude, Geschoss und Raum (ADR 0002) liegen in `properties`, `bu
 Die Routen liegen unter `/properties`, `/buildings`, `/floors` und `/rooms`. Angelegt wird unter der Ebene darüber (`POST /properties/:id/buildings`, `POST /buildings/:id/floors`, `POST /floors/:id/rooms`), und Liegenschaft, Bereich und Gebäude kommen aus ihr, nie aus dem Rumpf. Ein Betreiber mit einem einzigen Bereich nennt beim Anlegen einer Liegenschaft keinen. Einen Raum verlegt `PUT /rooms/:id/floor` mit dem Recht, die Struktur zu pflegen; Nummer, Bezeichnung und Nutzung ändert, wer Räume aufnehmen darf.
 
 Die Orte tragen die Spalten des Abgleichs, reisen aber erst mit den Regeln des Abgleichs (#27): bis dahin gibt der Server nur Tabellen mit einer Richtlinie heraus (`travellingTables` in `packages/server/src/api/sync-routes.ts`).
+
+### Die Pakete
+
+Welche Anlagenarten es gibt, welche Pflichten für sie in Frage kommen und nach welcher Regel ihre Frist läuft, steht als JSON unter `pakete/<name>/` (ADR 0005), mit dem Tag der letzten Prüfung gegen die Quelle und der Abnahme je Eintrag in `abnahmen.json`. Wie ein Paket aufgebaut ist und was ein Beitrag beachten muss, steht in [`pakete/README.md`](pakete/README.md); ein vollständiges Beispiel ist das Probepaket unter `packages/catalogue/test/pakete/probe/`.
+
+Der Bau von `@opengewerk/haustechnik-catalogue` liest den Ordner, prüft jede Datei gegen ihr Schema und die Pakete gegeneinander und schreibt das Bündel nach `dist/`; ein Fehler hält den Bau an und nennt Datei, Feld und Grund. Eine gemergte Fassung wird nicht geändert, in einem Pull Request vergleicht die CI jede mit `main`:
+
+```bash
+pnpm --filter @opengewerk/haustechnik-catalogue run build
+pnpm --filter @opengewerk/haustechnik-catalogue run compare origin/main
+```
+
+Die Fragen an den Katalog stellt `catalogueOf` aus `packages/domain`, jede mit einem Tag; jeder Eintrag kommt dort nur mit seiner Prüfung und Abnahme heraus.
 
 ### Das Änderungsprotokoll
 

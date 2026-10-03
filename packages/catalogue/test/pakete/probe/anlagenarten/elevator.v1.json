@@ -1,0 +1,29 @@
+{
+  "validFrom": "2015-06-01",
+  "label": "Aufzugsanlage",
+  "costGroup": "461",
+  "characteristics": [
+    {
+      "key": "firefighters_lift",
+      "label": "Feuerwehraufzug",
+      "kind": "flag"
+    }
+  ],
+  "fields": [
+    {
+      "key": "stops",
+      "label": "Haltestellen",
+      "kind": "number"
+    }
+  ],
+  "expectedDocuments": [
+    {
+      "key": "declaration_of_conformity",
+      "label": "EG-Konformitätserklärung"
+    },
+    {
+      "key": "emergency_plan",
+      "label": "Notfallplan"
+    }
+  ]
+}
