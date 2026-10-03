@@ -28,7 +28,7 @@ Die Handwerkersoftware [`opengewerk`](https://github.com/opengewerk/opengewerk) 
 
 ## Status
 
-OpenGewerk Haustechnik steht am Anfang von **Phase 0**, dem Fundament. Das Konzept ist ausgearbeitet, der Arbeitsbereich bindet das Fundament der Handwerkersoftware ein, die erste Migration legt es in einer leeren Datenbank an, und die Rechte und die vier Rollen aus Phase 1 sind an Anmeldung und Zugangsverwaltung des Fundaments gebunden; eine Anwendung, die man starten könnte, gibt es noch nicht. Ein Pilotbetrieb mit mehreren Liegenschaften steht bereit; Version 1 ist erreicht, wenn er seine bisherige Anwendung abschalten kann.
+OpenGewerk Haustechnik steht am Anfang von **Phase 0**, dem Fundament. Das Konzept ist ausgearbeitet, der Arbeitsbereich bindet das Fundament der Handwerkersoftware ein, die erste Migration legt es in einer leeren Datenbank an, und die Rechte und die vier Rollen aus Phase 1 sind an Anmeldung und Zugangsverwaltung des Fundaments gebunden. Eine Instanz startet aus dem Checkout, mit der Oberfläche des Fundaments und dem Änderungsprotokoll in den Worten dieser Anwendung; eigene Datensätze hat sie noch nicht, und den Betrieb über Docker Compose bringt #15. Ein Pilotbetrieb mit mehreren Liegenschaften steht bereit; Version 1 ist erreicht, wenn er seine bisherige Anwendung abschalten kann.
 
 Das vollständige Konzept liegt unter [`docs/konzept/`](docs/konzept/), die Architekturentscheidungen dieser Anwendung unter [`docs/adr/`](docs/adr/). Was in Phase 0 gebaut wird, steht als Issues im Meilenstein [Phase 0: Fundament](https://github.com/opengewerk/opengewerk-haustechnik/milestone/1).
 
@@ -69,9 +69,9 @@ Ein Teil der Tests braucht ein PostgreSQL 18 und leert es vor jedem Lauf. Dafür
 
 | Paket | Inhalt |
 | --- | --- |
-| [`packages/domain`](packages/domain) | Fachlichkeit ohne I/O: der Katalog der Rechte und die Rollen, mit denen ein Betreiber beginnt. Reicht weiter, was das Fundament exportiert, damit Server und Oberfläche ein Paket fragen |
-| [`packages/server`](packages/server) | Die Datenbank dieser Anwendung (Schema, Migrationen und der Befehl, der sie einspielt), der Start einer Instanz, die auch die Oberfläche ausliefert, und die Schnittstelle, soweit das Fundament sie mitbringt: Anmeldung, Zugänge, der Bereich der Instanz und der Abgleich, hinter dem Guard |
-| [`packages/web`](packages/web) | Die Oberfläche mit zwei Einstiegen, `/` für das Büro und `/m` für die Arbeit vor Ort. Bisher die Hülle des Fundaments mit dem, was diese Anwendung dazu sagt: Tor und Anmeldung, "Konto", "Zugänge", der Bereich der Instanz, die Leiste des Abgleichs und der Konfliktbildschirm, mit Service Worker und Manifesten |
+| [`packages/domain`](packages/domain) | Fachlichkeit ohne I/O: der Katalog der Rechte, die Rollen, mit denen ein Betreiber beginnt, und die Wörter des Änderungsprotokolls. Reicht weiter, was das Fundament exportiert, damit Server und Oberfläche ein Paket fragen |
+| [`packages/server`](packages/server) | Die Datenbank dieser Anwendung (Schema, Migrationen und der Befehl, der sie einspielt), der Start einer Instanz, die auch die Oberfläche ausliefert, und die Schnittstelle, soweit das Fundament sie mitbringt: Anmeldung, Zugänge, der Bereich der Instanz, der Abgleich und das Änderungsprotokoll, hinter dem Guard |
+| [`packages/web`](packages/web) | Die Oberfläche mit zwei Einstiegen, `/` für das Büro und `/m` für die Arbeit vor Ort. Bisher die Hülle des Fundaments mit dem, was diese Anwendung dazu sagt: Tor und Anmeldung, "Konto", "Zugänge", das Änderungsprotokoll, der Bereich der Instanz mit seinem Protokoll, die Leiste des Abgleichs und der Konfliktbildschirm, mit Service Worker und Manifesten |
 | `upstream/opengewerk/packages/platform/*` | Das Fundament: Mandantentrennung, Anmeldung, Rechte, Abgleich auf dem Gerät und auf dem Server samt seinen Routen, Audit-Log, der Einstieg des Servers und die Oberfläche, die jede Anwendung zeigt, bevor ihr erster eigener Bildschirm kommt, mit den Bausteinen, aus denen sie ihre Bildschirme baut. Wird im Repository `opengewerk` geändert, nie hier |
 | `upstream/opengewerk/docker/` | Einrichten, Starten und Sichern einer Instanz und die Prüfungen eines laufenden Stapels, als Skripte des Fundaments. Eine Anwendung ruft sie gegen ihren eigenen Ordner auf, mit ihren Namen in `application.env`; hier kommt das mit dem eigenen Betrieb (#15) |
 
@@ -141,6 +141,12 @@ Jede Route sagt, welches Recht sie braucht, mit `@RequiresPermission` aus `packa
 Ob eine Rolle einen Betreiber führt und ob sie den zweiten Faktor verlangt, sind Angaben der Rolle und keine Rechte. Die letzte Leitung eines Betreibers lässt sich weder herabstufen noch sperren.
 
 Solange keine Fassung erschienen ist, gibt es keine Installation, deren Zeilen hinter dem Code zurückbleiben könnten. Mit der ersten Fassung ändert sich das: eine Änderung an den Rechten einer mitgelieferten Rolle braucht dann eine Migration, die sie in die Zeilen der bestehenden Betreiber schreibt. `roles-of-a-version.test.ts` wird mit dem Pull Request rot, der die erste Fassung in den CHANGELOG schreibt, und sagt, was dann zu bauen ist.
+
+### Das Änderungsprotokoll
+
+Jede Änderung bei einem Betreiber steht in seinem Audit-Log, Feld für Feld, mit Person, Gerät und Weg, und eine Hashkette zeigt, ob das Protokoll unverändert ist. Einsehen darf es nur die Leitung (`audit.read`), unter "Einstellungen", "Änderungsprotokoll"; die Verwaltung der Instanz liest das Protokoll der Instanz unter "Protokoll" in deren Bereich. Bildschirm und Routen sind die des Fundaments.
+
+Was dort in Worten steht, sagt diese Anwendung an einer Stelle: `auditVocabulary` in `packages/domain/src/model/audit.ts`, dasselbe für Server und Oberfläche. Die Tabellen des Fundaments benennt das Fundament selbst; von dieser Anwendung nimmt es, wie sie einen Betreiber, seine Einstellungen, seine Leitung und die Verwaltung der Instanz nennt, und die Bezeichnungen ihrer Rechte und Rollen. Eigene Tabellen hat sie noch nicht. Jede, die kommt und die der Trigger des Audit-Logs beobachtet, braucht dort einen Namen für sich und für jede Spalte. `audit-vocabulary.test.ts` im Serverpaket hält das Vokabular gegen den Katalog der Datenbank und wird rot bei einer Tabelle oder Spalte ohne Namen und bei einer Regel, die eine Tabelle oder Spalte nennt, die es nicht gibt. Wie die Oberfläche die Werte einer Spalte schreibt und welcher Weg zu einem Datensatz führt, kommt mit dessen Bildschirmen in `packages/web/src/office/audit.ts` dazu.
 
 ## Projektfamilie
 

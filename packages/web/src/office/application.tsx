@@ -1,19 +1,23 @@
 import type { Right } from '@opengewerk/haustechnik-domain'
 import type {
+  AuditSentences,
   InstanceAreaSentences,
   InterfaceApplication,
   SettingsEntry,
   StaffSentences,
 } from '@opengewerk/platform-web'
-import { Users } from 'lucide-react'
+import { auditLogPath } from '@opengewerk/platform-web/office'
+import { History, Users } from 'lucide-react'
 
 import { application } from '../app/application.js'
+import { auditScreenWords } from './audit.js'
 
 /**
  * The screens a tenant sets itself up with, each with the right it takes to
- * read it. So far the one the foundation brings: who works for the tenant.
- * The right is one of this application's, and the type holds that; the
- * foundation, which draws the list, takes it as a name.
+ * read it. So far those the foundation brings: who works for the tenant, and
+ * the change log for its Leitung. The right is one of this application's, and
+ * the type holds that; the foundation, which draws the list, takes it as a
+ * name.
  */
 const settings = [
   {
@@ -23,6 +27,14 @@ const settings = [
     about: 'Wer für diesen Betreiber arbeitet, mit welchen Rollen, und die Einladungen.',
     icon: Users,
     right: 'membership.read',
+  },
+  {
+    key: 'protokoll',
+    to: auditLogPath,
+    title: 'Änderungsprotokoll',
+    about: 'Wer wann was geändert hat, Feld für Feld, und ob das Protokoll unverändert ist.',
+    icon: History,
+    right: 'audit.read',
   },
 ] as const satisfies readonly (SettingsEntry & { readonly right: Right })[]
 
@@ -91,18 +103,38 @@ const instance = {
     mailOwnServer: 'Ein Betreiber verschickt seine E-Mails über seinen eigenen Mailserver.',
     mailNoWayIn: 'So greift kein Betreiber über die Instanz in das Netz dahinter.',
   },
+  log: {
+    what: 'Jede Änderung an der Instanz. Was bei einem Betreiber geändert wird, steht in dessen Änderungsprotokoll.',
+    aTenant: 'Ein Betreiber',
+    operatorAppointed: 'Zur Verwaltung benannt',
+    operatorRemoved: 'Aus der Verwaltung entfernt',
+    tenantCreated: 'Betreiber angelegt',
+    tenantRemoved: 'Betreiber entfernt',
+  },
 } as const satisfies InstanceAreaSentences
 
 /**
+ * What the change log of a tenant says in the words of this application:
+ * what it holds, and that its Leitung reads it, as section 7 of the concept
+ * gives the right to see it to the Leitung alone.
+ */
+const audit = {
+  what: 'Jede Änderung bei diesem Betreiber, Feld für Feld: wer, wann, auf welchem Gerät und auf welchem Weg.',
+  onlyFor: 'Das Änderungsprotokoll sieht nur die Leitung.',
+} as const satisfies AuditSentences
+
+/**
  * This application as the office hands it to the foundation: what both
- * entries share, and what only the office shows, the settings of a tenant and
- * what "Zugänge" and the area of the instance say (ADR 0010 in the
- * repository opengewerk). Kept apart from the shared value so that the entry
- * on site does not load any of it. A further tenant of one's own is no part
- * of this application: a tenant is made in the area of the instance.
+ * entries share, and what only the office shows, the settings of a tenant,
+ * the words of the change log, and what "Zugänge", the area of the instance
+ * and the change log say (ADR 0010 in the repository opengewerk). Kept apart
+ * from the shared value so that the entry on site does not load any of it. A
+ * further tenant of one's own is no part of this application: a tenant is
+ * made in the area of the instance.
  */
 export const officeApplication: InterfaceApplication = {
   ...application,
   settings,
-  sentences: { ...application.sentences, staff, instance },
+  audit: auditScreenWords,
+  sentences: { ...application.sentences, staff, instance, audit },
 }

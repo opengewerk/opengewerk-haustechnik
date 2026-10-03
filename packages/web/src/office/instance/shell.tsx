@@ -1,16 +1,16 @@
 import { InstanceFrame } from '@opengewerk/platform-web/instance'
 import type { InstanceEntry } from '@opengewerk/platform-web/instance'
-import { House, Settings, Shield } from 'lucide-react'
+import { History, House, Settings, Shield } from 'lucide-react'
 
 /**
  * The screens of the area of the instance, by this application's words: the
- * tenants on it and the accounts of whoever runs it. The log of the area
- * comes with the change log of the foundation.
+ * tenants on it, the accounts of whoever runs it, and its log.
  */
 const navigation: readonly InstanceEntry[] = [
   { to: '/instanz', label: 'Betreiber', icon: House },
   { to: '/instanz/einstellungen', label: 'Einstellungen', icon: Settings },
   { to: '/instanz/verwaltung', label: 'Verwaltung', icon: Shield },
+  { to: '/instanz/protokoll', label: 'Protokoll', icon: History },
 ]
 
 /**

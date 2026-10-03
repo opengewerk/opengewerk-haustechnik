@@ -22,5 +22,9 @@ export * from './model/tenant.js'
 // decide an operation by.
 export * from './model/sync.js'
 
+// What the change log calls the tables of this application, and the words the
+// foundation takes from it for its own.
+export * from './model/audit.js'
+
 // The paths the server of this application answers itself.
 export * from './model/server-paths.js'
