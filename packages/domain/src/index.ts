@@ -33,6 +33,11 @@ export * from './model/meter.js'
 // and their rules, each with its review, and the questions asked of it.
 export * from './model/catalogue.js'
 
+// The duties of a tenant: when one falls due next and what state it is in on
+// a day, and the results of what was done, which decide whether it counts.
+export * from './model/duty.js'
+export * from './model/evidence.js'
+
 // What a device may create, change and hold, and the rules server and device
 // decide an operation by.
 export * from './model/sync.js'

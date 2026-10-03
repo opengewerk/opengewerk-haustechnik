@@ -99,6 +99,32 @@ export const intervalKindLabel: Readonly<Record<IntervalKind, string>> = {
 /** The units the rule of an interval may be counted in. */
 export const intervalUnits = ['days', 'months', 'years'] as const satisfies readonly RuleUnit[]
 
+/**
+ * How the next due day of a duty is counted from what was done (section 4.4
+ * of the concept, #25): from the day it was done, from the day it was due, or
+ * as § 14 Abs. 5 BetrSichV counts the inspections of the work equipment in
+ * its annexes 2 and 3, the lifts among them, due in a month and on time until
+ * two months after it. A field with fixed values and no expression in a
+ * language of its own (ADR 0005, point 14); `nextAppointment` does the
+ * counting.
+ */
+export const countings = ['from_performance', 'from_due', 'betrsichv'] as const
+
+export type Counting = (typeof countings)[number]
+
+export const countingLabel: Readonly<Record<Counting, string>> = {
+  from_performance: 'Ab dem Tag der Durchführung',
+  from_due: 'Ab dem fälligen Tag',
+  betrsichv: 'Nach § 14 Abs. 5 BetrSichV',
+}
+
+/** The units a counting takes its interval in: § 14 Abs. 5 BetrSichV knows months and years only. */
+export const countingUnits: Readonly<Record<Counting, readonly RuleUnit[]>> = {
+  from_performance: intervalUnits,
+  from_due: intervalUnits,
+  betrsichv: ['months', 'years'],
+}
+
 /** Who may carry out the task, from the instructed employee to the accredited laboratory. */
 export const qualificationLevels = [
   'instructed_person',
@@ -258,6 +284,8 @@ export interface DutyKind {
   readonly bindingness: DutyBindingness
   readonly source: string
   readonly interval: DutyInterval
+  /** How the next due day is counted from what was done. */
+  readonly counting: Counting
   readonly qualification: { readonly level: QualificationLevel; readonly note?: string }
   readonly evidence: { readonly kinds: readonly EvidenceKind[]; readonly form?: string }
   readonly retention: Retention
@@ -323,7 +351,7 @@ export interface CataloguePackage {
 }
 
 /** The shape of the bundle, counted up when it changes so that an old bundle is not misread. */
-export const catalogueFormat = 1
+export const catalogueFormat = 2
 
 /**
  * What the build writes and server and interface load. The checksum is taken

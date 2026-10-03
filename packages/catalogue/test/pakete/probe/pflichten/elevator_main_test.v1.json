@@ -10,6 +10,7 @@
     "kind": "maximum",
     "rule": "elevator_main_test_interval"
   },
+  "counting": "betrsichv",
   "qualification": {
     "level": "approved_body"
   },

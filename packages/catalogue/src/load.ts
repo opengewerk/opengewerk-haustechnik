@@ -7,9 +7,9 @@ import {
   type CatalogueReview,
   type CatalogueRule,
   type CatalogueRuleRecord,
+  countingUnits,
   type DutyKind,
   federalStates,
-  intervalUnits,
   type IsoDate,
   nationwide,
   type PackagedForm,
@@ -419,14 +419,16 @@ function checkDutyKind(
   }
 
   if (dutyKind.interval.kind !== 'none') {
+    // § 14 Abs. 5 BetrSichV gives the due day as a month and a year, so a
+    // duty kind counted that way takes its interval in months or years.
     checkRuleReference(
       spot,
       dutyKind.interval.rule,
       home,
       index,
       findings,
-      'Die Frist',
-      intervalUnits,
+      dutyKind.counting === 'betrsichv' ? 'Die Frist nach § 14 Abs. 5 BetrSichV' : 'Die Frist',
+      countingUnits[dutyKind.counting],
     )
 
     // The interval has to answer wherever the duty kind applies: a rule of

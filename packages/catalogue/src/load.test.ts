@@ -155,7 +155,7 @@ describe('a duty kind', () => {
         },
       }),
     ).toEqual([
-      `${dutyKindFile}: Die Frist nennt die Regel elevator_test_interval, die es nicht gibt. Eine Regel steht unter regeln/ mit Gültigkeitszeitraum und Fundstelle.`,
+      `${dutyKindFile}: Die Frist nach § 14 Abs. 5 BetrSichV nennt die Regel elevator_test_interval, die es nicht gibt. Eine Regel steht unter regeln/ mit Gültigkeitszeitraum und Fundstelle.`,
     ])
   })
 
@@ -178,6 +178,7 @@ describe('a duty kind', () => {
   it('counts its interval in days, months or years, and its retention in years', () => {
     expect(
       problems({
+        [dutyKindFile]: { ...dutyKind, counting: 'from_performance' },
         [rulesFile]: { ...rules, records: [{ ...rule, unit: 'kilowatts' }] },
       }),
     ).toEqual([
@@ -193,6 +194,29 @@ describe('a duty kind', () => {
     ).toEqual([
       `${dutyKindFile}: Die Aufbewahrung nennt die Regel elevator_main_test_interval, die ab 2015-06-01 in Monaten zählt; gezählt wird hier in Jahren.`,
     ])
+  })
+
+  it('says how its next appointment is counted, in one of three ways', () => {
+    expect(problems({ [dutyKindFile]: { ...dutyKind, counting: undefined } })).toEqual([
+      `${dutyKindFile}, counting: Die Zählweise fehlt: ab dem Tag der Durchführung (from_performance), ab dem fälligen Tag (from_due) oder nach § 14 Abs. 5 BetrSichV (betrsichv).`,
+    ])
+    expect(problems({ [dutyKindFile]: { ...dutyKind, counting: 'from_test' } })).toEqual([
+      `${dutyKindFile}, counting: "from_test" ist keiner der Werte from_performance, from_due, betrsichv.`,
+    ])
+  })
+
+  it('counted under § 14 Abs. 5 BetrSichV, takes its interval in months or years and not in days', () => {
+    const inDays = { ...rules, records: [{ ...rule, unit: 'days', value: 730 }] }
+
+    expect(problems({ [rulesFile]: inDays })).toEqual([
+      `${dutyKindFile}: Die Frist nach § 14 Abs. 5 BetrSichV nennt die Regel elevator_main_test_interval, die ab 2015-06-01 in Tagen zählt; gezählt wird hier in Monaten oder Jahren.`,
+    ])
+    expect(
+      problems({ [rulesFile]: inDays, [dutyKindFile]: { ...dutyKind, counting: 'from_due' } }),
+    ).toEqual([])
+    expect(
+      problems({ [rulesFile]: { ...rules, records: [{ ...rule, unit: 'years', value: 2 }] } }),
+    ).toEqual([])
   })
 
   it('from a private standard names an interval only with the note of the legal review', () => {
