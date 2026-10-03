@@ -395,6 +395,13 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   Fassungen davon in einem Prozess hießen Tabellen, die mit der einen angelegt und mit der
   anderen abgefragt werden; die Prüfung wird rot, sobald das Fundament eine Fassung hebt und die
   Anwendung nicht folgt
+- Planungskonzept auf v0.7: eigene Anlagenarten des Betreibers kommen in Phase 2, zusammen mit
+  den eigenen Feldern, mit denen sie in Abschnitt 4.2 stehen; bis dahin hatten sie keine Phase
+  (#52). Damit der Pilotbetrieb in Phase 1 trotzdem seinen ganzen Bestand erfassen kann, auch
+  Heizung, Lüftung und Aufzüge, deren Pakete erst in Phase 2 erscheinen, kommt in Phase 1 das
+  Paket Allgemein mit einer allgemeinen Anlagenart je Kostengruppe nach DIN 276, ohne
+  Pflichtarten. Die Mängelklassen stehen in der Zuordnung bei Phase 1, mit den Mängeln; wo sie
+  im Paket stehen, ist unter den offenen Punkten in Abschnitt 15 (#59)
 - Planungskonzept auf v0.6: Abschnitt 7 nennt die Rechte für den Abgleich, "Daten abgleichen"
   und "Änderungen senden". Alle vier Rollen haben beide, weil der Abgleich ein anderer Weg
   hinein ist und kein eigenes Tun: was ein Gerät sendet, entscheiden die übrigen Rechte Vorgang
