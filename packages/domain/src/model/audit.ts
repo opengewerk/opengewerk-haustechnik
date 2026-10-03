@@ -138,11 +138,18 @@ export const auditVocabulary: AuditVocabulary = {
         performer_user_id: 'Ausgeführt von',
         contractor_note: 'Fremdfirma',
         closing_reason: 'Grund',
+        performed_on: 'Durchgeführt am',
+        countersignature_required: 'Gegenzeichnung verlangt',
       },
     },
     activity_duties: {
       label: 'Pflicht eines Vorgangs',
-      fields: { activity_id: 'Vorgang', duty_id: 'Pflicht' },
+      fields: {
+        activity_id: 'Vorgang',
+        duty_id: 'Pflicht',
+        result: 'Ergebnis',
+        result_reason: 'Grund',
+      },
     },
     work_orders: {
       label: 'Arbeitsauftrag',
@@ -151,6 +158,30 @@ export const auditVocabulary: AuditVocabulary = {
         activity_kind: 'Art des Vorgangs',
         number: 'Auftragsnummer',
         kind: 'Art des Auftrags',
+      },
+    },
+    // A signature on an activity and the decision on a work order (ADR 0004,
+    // points 7 and 8).
+    activity_signatures: {
+      label: 'Unterschrift',
+      fields: {
+        activity_id: 'Vorgang',
+        signed_by: 'Unterschrieben von',
+        role: 'Als',
+        signed_at: 'Unterschrieben am',
+        device_info: 'Gerät',
+        path: 'Linienzug',
+        page_fingerprint: 'Fingerabdruck der Seite',
+      },
+    },
+    work_order_decisions: {
+      label: 'Abnahme eines Auftrags',
+      fields: {
+        work_order_id: 'Arbeitsauftrag',
+        decision: 'Entscheidung',
+        reason: 'Grund',
+        decided_by: 'Entschieden von',
+        decided_at: 'Entschieden am',
       },
     },
     defects: {
@@ -214,6 +245,7 @@ export const auditVocabulary: AuditVocabulary = {
     activity_id: 'activities',
     found_in_activity_id: 'activities',
     remedy_work_order_id: 'work_orders',
+    work_order_id: 'work_orders',
   },
   personFields: [
     'substitute_user_id',
@@ -222,6 +254,8 @@ export const auditVocabulary: AuditVocabulary = {
     'performer_user_id',
     'performed_by',
     'written_by',
+    'signed_by',
+    'decided_by',
     'confirmed_by',
     'dismissed_by',
   ],
@@ -248,6 +282,9 @@ export const auditVocabulary: AuditVocabulary = {
     activity_duties: ['duty_id'],
     work_orders: ['number'],
     defects: ['description'],
+    // A signature by who gave it, a decision by what it decided.
+    activity_signatures: ['signed_by'],
+    work_order_decisions: ['decision'],
   },
   reasons: {},
   rights: rightLabel,

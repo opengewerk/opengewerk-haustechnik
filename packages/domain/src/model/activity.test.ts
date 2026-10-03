@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import {
+  activityDutyProblems,
   activityKindLabel,
   activityKinds,
   activityLimits,
@@ -83,6 +84,32 @@ describe('an activity', () => {
         closingReason: 'x'.repeat(activityLimits.closingReason + 1),
       }),
     ).toEqual({ closingReason: 'Der Grund hat höchstens 500 Zeichen.' })
+  })
+})
+
+describe('the result of a duty of an activity', () => {
+  it('is one of four, and names the reason of "not performed" and only then', () => {
+    expect(activityDutyProblems({ result: 'passed' })).toEqual({
+      result:
+        'Das Ergebnis ist eines von: Ohne Mangel, Mit Mängeln, Nicht bestanden, Nicht durchgeführt.',
+    })
+    expect(activityDutyProblems({ result: 'not_performed' })).toEqual({
+      resultReason: 'Was nicht durchgeführt wurde, nennt den Grund.',
+    })
+    expect(activityDutyProblems({ result: 'failed', resultReason: 'Anlage war aus.' })).toEqual({
+      resultReason: 'Einen Grund nennt nur, was nicht durchgeführt wurde.',
+    })
+    expect(
+      activityDutyProblems({ result: 'not_performed', resultReason: 'Anlage war aus.' }),
+    ).toEqual({})
+    expect(activityDutyProblems({ result: null, resultReason: null })).toEqual({})
+  })
+
+  it('belongs to an activity performed on a day of the calendar', () => {
+    expect(activityProblems({ performedOn: '2026-13-01' })).toEqual({
+      performedOn: 'Der Tag der Durchführung ist ein Tag, geschrieben 2026-10-03.',
+    })
+    expect(activityProblems({ performedOn: '2026-10-01' })).toEqual({})
   })
 })
 

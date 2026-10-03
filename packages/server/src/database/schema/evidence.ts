@@ -1,7 +1,6 @@
 import {
   evidenceLimits,
   evidenceOrigins,
-  evidenceResults,
   type StoredEvidenceState,
 } from '@opengewerk/haustechnik-domain'
 import { primaryId, reference, tenantIsolation, timestamps } from '@opengewerk/platform-server'
@@ -24,10 +23,8 @@ import {
 import { activities } from './activities.js'
 import { withinAreas } from './areas.js'
 import { duties } from './duties.js'
+import { evidenceResult } from './evidence-result.js'
 import { optionalTrimmed, properties, trimmed } from './locations.js'
-
-/** The result of a performance, from the list in `domain`. */
-export const evidenceResult = pgEnum('evidence_result', evidenceResults)
 
 /** What an evidence came from, from the list in `domain`. */
 export const evidenceOrigin = pgEnum('evidence_origin', evidenceOrigins)

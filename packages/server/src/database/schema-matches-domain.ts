@@ -1,6 +1,7 @@
 import type {
   Activity,
   ActivityDuty,
+  ActivitySignature,
   Building,
   Defect,
   Duty,
@@ -10,11 +11,13 @@ import type {
   Property,
   Room,
   WorkOrder,
+  WorkOrderDecision,
 } from '@opengewerk/haustechnik-domain'
 
 import type {
   activities,
   activityDuties,
+  activitySignatures,
   buildings,
   defects,
   duties,
@@ -23,6 +26,7 @@ import type {
   floors,
   properties,
   rooms,
+  workOrderDecisions,
   workOrders,
 } from './schema/index.js'
 
@@ -55,4 +59,10 @@ export type DefectMatches = Assert<Exact<typeof defects.$inferSelect, Defect>>
  */
 export type WorkOrderMatches = Assert<
   Exact<Omit<typeof workOrders.$inferSelect, 'activityKind'>, WorkOrder>
+>
+export type ActivitySignatureMatches = Assert<
+  Exact<typeof activitySignatures.$inferSelect, ActivitySignature>
+>
+export type WorkOrderDecisionMatches = Assert<
+  Exact<typeof workOrderDecisions.$inferSelect, WorkOrderDecision>
 >

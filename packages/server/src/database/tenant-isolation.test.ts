@@ -446,6 +446,33 @@ function rowsOf(tenant: Tenant): readonly Row[] {
         found_on: '2026-10-01',
       },
     },
+    // The signature on the work order, and its rejection.
+    {
+      table: 'activity_signatures',
+      values: {
+        tenant_id: tenant.id,
+        property_id: property,
+        area_id: area,
+        activity_id: activity,
+        signed_by: tenant.userId,
+        role: 'signer',
+        signed_at: '2026-10-01T09:30:00Z',
+        path: 'M10,10L200,300',
+        page_fingerprint: 'a'.repeat(64),
+      },
+    },
+    {
+      table: 'work_order_decisions',
+      values: {
+        tenant_id: tenant.id,
+        property_id: property,
+        area_id: area,
+        work_order_id: workOrder,
+        decision: 'rejected',
+        reason: 'Die Notrufverbindung fehlt noch.',
+        decided_by: tenant.colleagueId,
+      },
+    },
   ]
 }
 

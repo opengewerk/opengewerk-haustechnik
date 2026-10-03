@@ -145,6 +145,7 @@ describe('an installation that began on the first migration', () => {
     // The evidence and the deadlines hang on the duties, the duties on the
     // place and the assets, so they go first; the files, the mail server and
     // the settings of the deadlines hang on nothing of this.
+    await revertMigration(admin, '0011_signatures')
     await revertMigration(admin, '0010_evidence_written')
     await revertMigration(admin, '0009_activities_and_defects')
     await revertMigration(admin, '0008_evidence_and_deadlines')
@@ -297,6 +298,7 @@ describe('an installation from before the areas', () => {
 
     // The places hang on the areas and go first, as on the way back of an
     // installation.
+    await revertMigration(admin, '0011_signatures')
     await revertMigration(admin, '0010_evidence_written')
     await revertMigration(admin, '0009_activities_and_defects')
     await revertMigration(admin, '0008_evidence_and_deadlines')
@@ -359,6 +361,7 @@ describe('an installation with places', () => {
       [tenant.id],
     )
 
+    await revertMigration(admin, '0011_signatures')
     await revertMigration(admin, '0010_evidence_written')
     await revertMigration(admin, '0009_activities_and_defects')
     await revertMigration(admin, '0008_evidence_and_deadlines')
@@ -448,6 +451,7 @@ describe('an installation with assets', () => {
       [tenant.id, asset, at.property, at.area, at.building],
     )
 
+    await revertMigration(admin, '0011_signatures')
     await revertMigration(admin, '0010_evidence_written')
     await revertMigration(admin, '0009_activities_and_defects')
     await revertMigration(admin, '0008_evidence_and_deadlines')
@@ -544,6 +548,7 @@ describe('an installation with assets', () => {
       [tenant.id, at.property, at.area, at.asset],
     )
 
+    await revertMigration(admin, '0011_signatures')
     await revertMigration(admin, '0010_evidence_written')
     await revertMigration(admin, '0009_activities_and_defects')
     await revertMigration(admin, '0008_evidence_and_deadlines')
@@ -641,6 +646,7 @@ describe('an installation with assets', () => {
       [tenant.id, at.duty, at.property, at.area],
     )
 
+    await revertMigration(admin, '0011_signatures')
     await revertMigration(admin, '0010_evidence_written')
     await revertMigration(admin, '0009_activities_and_defects')
     await revertMigration(admin, '0008_evidence_and_deadlines')
@@ -741,6 +747,7 @@ describe('an installation with assets', () => {
       [tenant.id, at.property, at.area, at.asset, activityId],
     )
 
+    await revertMigration(admin, '0011_signatures')
     await revertMigration(admin, '0010_evidence_written')
     await revertMigration(admin, '0009_activities_and_defects')
 
@@ -834,6 +841,7 @@ describe('an installation with assets', () => {
       ],
     )
 
+    await revertMigration(admin, '0011_signatures')
     await revertMigration(admin, '0010_evidence_written')
 
     const { rows: columns } = await admin.query<{ column_name: string }>(
@@ -875,5 +883,104 @@ describe('an installation with assets', () => {
     )
 
     expect(removed).toEqual([])
+  })
+  it('loses its signatures and decisions and nothing else when the update is taken back', async () => {
+    await applyMigrations()
+
+    const tenant = { id: newId<'tenant'>() }
+
+    await admin.query('insert into tenants (id, name) values ($1, $2)', [
+      tenant.id,
+      'Wohnbau Nord eG',
+    ])
+    await members(tenant, { 'user-lead': { roles: ['management'] } })
+
+    const { rows: made } = await admin.query<{ activity: string; order: string }>(
+      `with property as (
+         insert into properties (tenant_id, area_id, name, street, postal_code, city, federal_state)
+         select $1, id, 'Campus Nord', 'Nordstraße 12', '68535', 'Edingen-Neckarhausen', 'DE-BW'
+           from areas where tenant_id = $1
+         returning id, area_id
+       ), duty as (
+         insert into duties (tenant_id, property_id, area_id, label, basis, source_note, counting,
+                             interval_months, confirmed_by)
+         select $1, id, area_id, 'Zufahrt freihalten', 'authority', 'Brandschutzkonzept',
+                'from_performance', 1, 'user-lead' from property
+         returning id, property_id, area_id
+       ), activity as (
+         insert into activities (tenant_id, property_id, area_id, kind, title, performed_on)
+         select $1, property_id, area_id, 'work_order', 'Zufahrt räumen', '2026-10-01' from duty
+         returning id, property_id, area_id
+       ), line as (
+         insert into activity_duties (tenant_id, property_id, area_id, activity_id, duty_id, result)
+         select $1, a.property_id, a.area_id, a.id, d.id, 'without_defects' from activity a, duty d
+       ), work_order as (
+         insert into work_orders (tenant_id, property_id, area_id, activity_id, number, kind)
+         select $1, property_id, area_id, id, 'AU-2026-0001', 'other' from activity
+         returning id
+       )
+       select a.id as activity, w.id as order from activity a, work_order w`,
+      [tenant.id],
+    )
+    const at = made[0] as { activity: string; order: string }
+
+    await admin.query(
+      `insert into activity_signatures (tenant_id, property_id, area_id, activity_id, signed_by, role,
+                                        signed_at, path, page_fingerprint)
+       select tenant_id, property_id, area_id, id, 'user-lead', 'signer', now(), 'M10,10L200,300',
+              repeat('a', 64)
+         from activities where id = $1`,
+      [at.activity],
+    )
+    await admin.query(
+      `insert into work_order_decisions (tenant_id, property_id, area_id, work_order_id, decision,
+                                         reason, decided_by)
+       select tenant_id, property_id, area_id, id, 'rejected', 'Noch nicht geräumt.', 'user-lead'
+         from work_orders where id = $1`,
+      [at.order],
+    )
+
+    await revertMigration(admin, '0011_signatures')
+
+    expect(
+      (await tableNames(admin)).filter((table) =>
+        ['activity_signatures', 'work_order_decisions'].includes(table),
+      ),
+    ).toEqual([])
+    expect(
+      [...(await enumValues(admin)).keys()].filter((name) =>
+        ['signature_role', 'work_order_decision'].includes(name),
+      ),
+    ).toEqual([])
+
+    const { rows: columns } = await admin.query<{ table_name: string; column_name: string }>(
+      `select table_name, column_name from information_schema.columns
+        where table_schema = 'public'
+          and column_name in ('performed_on', 'countersignature_required', 'result', 'result_reason')
+          and table_name in ('activities', 'activity_duties')`,
+    )
+
+    expect(columns).toEqual([])
+
+    // The activity, its duty and its work order stay.
+    const { rows: kept } = await admin.query<{ activities: number; orders: number }>(
+      `select (select count(*)::int from activities where tenant_id = $1) as activities,
+              (select count(*)::int from work_orders where tenant_id = $1) as orders`,
+      [tenant.id],
+    )
+
+    expect(kept).toEqual([{ activities: 1, orders: 1 }])
+
+    const { rows: removed } = await admin.query<{ table_name: string; reason: string | null }>(
+      `select distinct table_name, reason from audit_entries
+        where tenant_id = $1 and operation = 'delete'
+        order by table_name`,
+      [tenant.id],
+    )
+
+    expect(removed).toEqual([
+      { table_name: 'activity_signatures', reason: 'migration' },
+      { table_name: 'work_order_decisions', reason: 'migration' },
+    ])
   })
 })

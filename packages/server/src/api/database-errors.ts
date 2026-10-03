@@ -23,6 +23,9 @@ export const applicationConflicts: Readonly<Record<string, string>> = {
   // An asset with an evidence marked deleted, also by marking its place (#26).
   HT004:
     'Eine Anlage mit Nachweis wird zurückgebaut und nicht gelöscht; ihre Nachweise bleiben bei ihr.',
+  // A signature or the decision on a work order changed or removed (#26).
+  HT005:
+    'Eine Unterschrift oder eine Entscheidung über einen Auftrag wird nicht geändert und nicht gelöscht.',
 }
 
 export const { answerFor, DatabaseExceptionFilter } = databaseErrors(applicationConflicts)
