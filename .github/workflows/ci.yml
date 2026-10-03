@@ -328,6 +328,18 @@ jobs:
       - name: Bauen
         run: pnpm run build
 
+      # ADR 0004 in the repository opengewerk asks for a bundle budget per entry
+      # and names a number for the entry on site; the tool is the foundation's.
+      - name: Bündelbudget je Einstieg
+        run: pnpm --filter @opengewerk/haustechnik-web run budget
+
+      # A tenant is a "Betreiber" here, whoever leads one the "Leitung", and the
+      # entry on site "Vor Ort" (ADR 0001, point 11). Checked on what a browser
+      # loads, the build, so that a sentence that came along with an import is
+      # found as well as one written here.
+      - name: Wörter der Anwendung im Bau
+        run: pnpm --filter @opengewerk/haustechnik-web run words
+
       - name: Typprüfung
         run: pnpm run typecheck
 

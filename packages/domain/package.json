@@ -3,6 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
+  "sideEffects": false,
   "files": [
     "dist"
   ],
@@ -22,6 +23,6 @@
     "@opengewerk/platform-domain": "workspace:*"
   },
   "devDependencies": {
-    "vitest": "5.0.1"
+    "vitest": "5.0.3"
   }
 }

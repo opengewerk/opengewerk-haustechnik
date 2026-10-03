@@ -59,4 +59,15 @@ describe('the domain package', () => {
     expect(surface.sha256Pattern).toBeInstanceOf(RegExp)
     expect(surface.operationKinds).toContain('create')
   })
+
+  /**
+   * The service worker of the interface takes one list from here, the paths
+   * of the server. A bundler may leave out every module whose names are not
+   * used only when the package says that loading a module does nothing;
+   * without it the worker would carry the whole package and the foundation's
+   * underneath, as it once did in the repository the foundation lives in.
+   */
+  it('says that loading a module of it does nothing, so that a bundler takes only what is used', () => {
+    expect((manifest as { sideEffects?: unknown }).sideEffects).toBe(false)
+  })
 })

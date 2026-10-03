@@ -17,3 +17,10 @@ export * from './model/secret.js'
 // with, and what a tenant may be called.
 export * from './model/rights.js'
 export * from './model/tenant.js'
+
+// What a device may create, change and hold, and the rules server and device
+// decide an operation by.
+export * from './model/sync.js'
+
+// The paths the server of this application answers itself.
+export * from './model/server-paths.js'

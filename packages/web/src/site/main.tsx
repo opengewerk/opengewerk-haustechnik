@@ -1,0 +1,40 @@
+import { startTheme } from '@opengewerk/platform-web'
+import { QueryProvider, queries } from '@opengewerk/platform-web/session'
+import { RouterProvider } from '@tanstack/react-router'
+import { StrictMode } from 'react'
+import { createRoot } from 'react-dom/client'
+
+import { application } from '../app/application.js'
+import { Root } from '../app/root.js'
+import { startServiceWorker } from '../entry/register.js'
+import { siteRouter } from './router.js'
+import '@opengewerk/platform-web/styles/index.css'
+
+/**
+ * The entry point for the work on site, `/m`.
+ *
+ * The same three steps as the office and one difference the gate makes: the
+ * device identity travels with the choice of tenant, which turns the session
+ * into the long one. A phone in a plant room is a registered device; a desk
+ * somebody walks away from is not.
+ */
+const mount = document.getElementById('app')
+
+if (!mount) {
+  throw new Error('Die Seite hat kein Element mit der Kennung app.')
+}
+
+// Light or dark as this device chose, before anything is drawn: the gate
+// comes first and must already have the right ground.
+startTheme()
+startServiceWorker()
+
+createRoot(mount).render(
+  <StrictMode>
+    <QueryProvider client={queries}>
+      <Root entry="site" application={application}>
+        <RouterProvider router={siteRouter} />
+      </Root>
+    </QueryProvider>
+  </StrictMode>,
+)
