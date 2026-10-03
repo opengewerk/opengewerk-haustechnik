@@ -1,21 +1,29 @@
 import type {
+  Activity,
+  ActivityDuty,
   Building,
+  Defect,
   Duty,
   DutyDismissal,
   Evidence,
   Floor,
   Property,
   Room,
+  WorkOrder,
 } from '@opengewerk/haustechnik-domain'
 
 import type {
+  activities,
+  activityDuties,
   buildings,
+  defects,
   duties,
   dutyDismissals,
   evidence,
   floors,
   properties,
   rooms,
+  workOrders,
 } from './schema/index.js'
 
 /**
@@ -37,3 +45,14 @@ export type RoomMatches = Assert<Exact<typeof rooms.$inferSelect, Room>>
 export type DutyMatches = Assert<Exact<typeof duties.$inferSelect, Duty>>
 export type DutyDismissalMatches = Assert<Exact<typeof dutyDismissals.$inferSelect, DutyDismissal>>
 export type EvidenceMatches = Assert<Exact<typeof evidence.$inferSelect, Evidence>>
+export type ActivityMatches = Assert<Exact<typeof activities.$inferSelect, Activity>>
+export type ActivityDutyMatches = Assert<Exact<typeof activityDuties.$inferSelect, ActivityDuty>>
+export type DefectMatches = Assert<Exact<typeof defects.$inferSelect, Defect>>
+
+/**
+ * A work order carries the kind of its activity, always `work_order`, only so
+ * that the key to the activity can say it; the model has no use for it.
+ */
+export type WorkOrderMatches = Assert<
+  Exact<Omit<typeof workOrders.$inferSelect, 'activityKind'>, WorkOrder>
+>

@@ -64,6 +64,13 @@
       "when": 1791053542795,
       "tag": "0008_evidence_and_deadlines",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1791058067486,
+      "tag": "0009_activities_and_defects",
+      "breakpoints": true
     }
   ]
 }

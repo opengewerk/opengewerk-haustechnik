@@ -51,6 +51,24 @@ export function optional(
   }
 }
 
+/**
+ * A choice of a list the record may leave empty. Undefined and null are not
+ * asked about; a value that is not on the list gets the sentence.
+ */
+export function oneOf(
+  problems: Problems,
+  record: Readonly<Record<string, unknown>>,
+  field: string,
+  values: readonly string[],
+  sentence: string,
+): void {
+  const value = record[field]
+
+  if (value !== undefined && value !== null && !values.includes(value as string)) {
+    problems[field] = sentence
+  }
+}
+
 export function wholeFromTo(value: unknown, least: number, most: number): boolean {
   return typeof value === 'number' && Number.isInteger(value) && value >= least && value <= most
 }

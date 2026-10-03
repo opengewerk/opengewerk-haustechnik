@@ -25,7 +25,7 @@ guarded_route=/staff
 # The tables counted before the backup and after the restore. The area and
 # the place of the account in it come with the account: a Betreiber gets its
 # first area with its first membership.
-counted_tables='auth_users memberships tenant_roles areas member_areas properties buildings assets files mail_settings deadline_settings deadline_runs duties duty_dismissals evidence deadlines'
+counted_tables='auth_users memberships tenant_roles areas member_areas properties buildings assets files mail_settings deadline_settings deadline_runs duties duty_dismissals evidence deadlines activities activity_duties work_orders defects'
 
 # The migrations, and how many of them make the older state an update starts
 # from: the first, without the sequence for work orders that the second brings.
@@ -97,6 +97,25 @@ records_for_backup() {
            'Die Anlage hat keine Notrufeinrichtung.', u.id
       from assets a, auth_users u
      where a.tenant_id = '$first_tenant' and u.email = '$probe_email';"
+  # A work order at the asset to meet the duty, and a defect noticed in it
+  # (opengewerk-haustechnik#26). What writes them comes with the rounds, the
+  # protocols and the work orders of phase 1.
+  sql "
+    insert into activities (tenant_id, property_id, area_id, asset_id, kind, title)
+    select tenant_id, property_id, area_id, id, 'work_order', 'Hauptprüfung Aufzug Haus A'
+      from assets where tenant_id = '$first_tenant';
+    insert into activity_duties (tenant_id, property_id, area_id, activity_id, duty_id)
+    select a.tenant_id, a.property_id, a.area_id, a.id, d.id
+      from activities a join duties d on d.tenant_id = a.tenant_id and d.asset_id = a.asset_id
+     where a.tenant_id = '$first_tenant';
+    insert into work_orders (tenant_id, property_id, area_id, activity_id, number, kind)
+    select tenant_id, property_id, area_id, id, 'AU-2026-0001', 'inspection'
+      from activities where tenant_id = '$first_tenant';
+    insert into defects (tenant_id, property_id, area_id, asset_id, found_in_activity_id,
+                         description, found_on)
+    select tenant_id, property_id, area_id, asset_id, id, 'Notruf im Fahrkorb ohne Verbindung.',
+           '2026-10-01'
+      from activities where tenant_id = '$first_tenant';"
   # An evidence of the duty. The engine runs in the application, its first pass
   # ten seconds after the start and then once a minute, and keeps a deadline
   # for the duty from it; the backup brings back what the pass wrote, the

@@ -31,7 +31,7 @@ import {
 
 import { withinAreas } from './areas.js'
 import { assets } from './assets.js'
-import { buildings, properties, rooms, trimmed } from './locations.js'
+import { buildings, optionalTrimmed, properties, rooms, trimmed } from './locations.js'
 
 // The duties of an operator (section 2.3 of the concept, ADR 0002, points 10
 // and 11): a duty at exactly one of an asset, a room, a building or the
@@ -50,11 +50,6 @@ export const dutyBasis = pgEnum('duty_basis', dutyBases)
 
 /** Who performs a duty. */
 export const dutyPerformer = pgEnum('duty_performer', dutyPerformers)
-
-/** A text the row may leave empty, trimmed and bounded when it is there. */
-function optionalTrimmed(column: unknown, most: number) {
-  return sql`${column} is null or (${trimmed(column, most)})`
-}
 
 /** The bounds of an interval, the same as the deadline engine's. */
 function intervalBounds(days: unknown, months: unknown) {

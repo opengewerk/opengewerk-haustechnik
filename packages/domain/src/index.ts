@@ -22,8 +22,10 @@ export * from './model/tenant.js'
 // who stands in for whom.
 export * from './model/area.js'
 
-// The place: properties, buildings, floors and rooms.
+// The place: properties, buildings, floors and rooms, and what a record that
+// belongs to a place hangs on.
 export * from './model/location.js'
+export * from './model/target.js'
 
 // The technology: assets, their components, life cycle and meters.
 export * from './model/asset.js'
@@ -38,6 +40,12 @@ export * from './model/catalogue.js'
 export * from './model/duty.js'
 export * from './model/duty-record.js'
 export * from './model/evidence.js'
+
+// What is done to meet a duty or to set a fault right, and what is noticed on
+// the way: activities with the duties they meet and their work orders, and
+// defects.
+export * from './model/activity.js'
+export * from './model/defect.js'
 
 // The deadlines of this application: the kinds the deadline engine of the
 // foundation keeps, with their sources and actions.

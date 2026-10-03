@@ -259,6 +259,20 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   des Fundaments bringt den Weg des Laufs in alle Bereiche (opengewerk#517) und die eigene Policy
   der Bereiche an seiner Tabelle der Fristen (opengewerk#518) mit. Die Sicherung zählt Nachweise
   und Fristen, und der Lauf im Stapel schreibt die Frist selbst
+- Vorgang und Mangel im Datenmodell (#26, ADR 0002): ein Rundgang, eine Prüfung, eine Wartung
+  und ein Arbeitsauftrag sind Arten eines Vorgangs in einer Tabelle, damit jeder dieselbe Pflicht
+  auf demselben Weg erfüllt. Ein Vorgang hängt wie eine Pflicht an Anlage, Raum, Gebäude oder
+  Liegenschaft, nennt die Pflichten, die er erfüllen soll, seinen Stand, seine Fälligkeit und wer
+  verantwortlich ist und wer ihn ausführt; nicht durchgeführt heißt er nur mit Grund, damit ein
+  versäumter Rundgang sichtbar bleibt. Was nur ein Auftrag hat, die Nummer aus dem Nummernkreis
+  der Aufträge und die Art des Auftrags, steht daneben, und die Datenbank hält, dass ein Auftrag
+  nur an einem Vorgang der Art "Arbeitsauftrag" hängt. Ein Mangel hängt an einer Anlage oder einem
+  Ort, nennt den Vorgang, bei dem er aufgefallen ist, und den Auftrag, der ihn beseitigt, mit
+  Beschreibung, Klasse, dem Tag der Feststellung, der Frist zur Beseitigung und dem Stand von
+  festgestellt bis nachgeprüft. Die Klasse prüft bis zur Antwort auf #59 kein Paket. Wird ein Ort,
+  eine Anlage, ein Vorgang oder eine Pflicht markiert, wird markiert, was darunter hängt. Routen
+  und Bildschirme kommen mit den Abläufen in Phase 1, auf ein Gerät reisen Vorgänge und Mängel mit
+  den Regeln des Abgleichs (#27); die Sicherung zählt die vier neuen Tabellen
 
 ### Geändert
 

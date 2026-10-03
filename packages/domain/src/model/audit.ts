@@ -114,6 +114,46 @@ export const auditVocabulary: AuditVocabulary = {
         result: 'Ergebnis',
       },
     },
+    // The activities with the duties they meet and their work orders, and the
+    // defects (ADR 0002, points 13 and 15).
+    activities: {
+      label: 'Vorgang',
+      fields: {
+        kind: 'Art',
+        title: 'Bezeichnung',
+        status: 'Stand',
+        due_on: 'Fällig am',
+        responsible_user_id: 'Verantwortlich',
+        performer_user_id: 'Ausgeführt von',
+        contractor_note: 'Fremdfirma',
+        closing_reason: 'Grund',
+      },
+    },
+    activity_duties: {
+      label: 'Pflicht eines Vorgangs',
+      fields: { activity_id: 'Vorgang', duty_id: 'Pflicht' },
+    },
+    work_orders: {
+      label: 'Arbeitsauftrag',
+      fields: {
+        activity_id: 'Vorgang',
+        activity_kind: 'Art des Vorgangs',
+        number: 'Auftragsnummer',
+        kind: 'Art des Auftrags',
+      },
+    },
+    defects: {
+      label: 'Mangel',
+      fields: {
+        found_in_activity_id: 'Festgestellt bei',
+        remedy_work_order_id: 'Beseitigt mit',
+        description: 'Beschreibung',
+        defect_class: 'Klasse',
+        found_on: 'Festgestellt am',
+        due_on: 'Zu beseitigen bis',
+        status: 'Stand',
+      },
+    },
   },
   // The deadlines are a table of the foundation (opengewerk-haustechnik#24);
   // what a deadline of this application hangs on is this application's own.
@@ -160,11 +200,15 @@ export const auditVocabulary: AuditVocabulary = {
     asset_id: 'assets',
     parent_asset_id: 'assets',
     duty_id: 'duties',
+    activity_id: 'activities',
+    found_in_activity_id: 'activities',
+    remedy_work_order_id: 'work_orders',
   },
   personFields: [
     'substitute_user_id',
     'absent_user_id',
     'responsible_user_id',
+    'performer_user_id',
     'confirmed_by',
     'dismissed_by',
   ],
@@ -185,6 +229,12 @@ export const auditVocabulary: AuditVocabulary = {
     duty_dismissals: ['kind'],
     // An evidence by the day it was done on.
     evidence: ['performed_on'],
+    // An activity by its name, the duty of an activity by the duty, a work
+    // order by its number and a defect by what was noticed.
+    activities: ['title'],
+    activity_duties: ['duty_id'],
+    work_orders: ['number'],
+    defects: ['description'],
   },
   reasons: {},
   rights: rightLabel,

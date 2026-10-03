@@ -65,6 +65,8 @@ const place = {
     lifecycle: randomUUID(),
     supply: randomUUID(),
     duty: randomUUID(),
+    activity: randomUUID(),
+    workOrder: randomUUID(),
   },
   south: {
     property: randomUUID(),
@@ -75,6 +77,8 @@ const place = {
     lifecycle: randomUUID(),
     supply: randomUUID(),
     duty: randomUUID(),
+    activity: randomUUID(),
+    workOrder: randomUUID(),
   },
 }
 
@@ -326,6 +330,35 @@ async function placeIn(where: 'north' | 'south'): Promise<void> {
      values ($1, $2, $3, $4, 'probe.elevator_annual_check', 1, 'Keine Notrufeinrichtung.', $5)`,
     [tenant, at.property, areaId, at.asset, person.lead],
   )
+  // A work order at the asset to meet the duty, and a defect noticed in it.
+  await admin.query(
+    `insert into activities (id, tenant_id, property_id, area_id, asset_id, kind, title)
+     values ($1, $2, $3, $4, $5, 'work_order', 'Hauptprüfung Aufzug')`,
+    [at.activity, tenant, at.property, areaId, at.asset],
+  )
+  await admin.query(
+    `insert into activity_duties (tenant_id, property_id, area_id, activity_id, duty_id)
+     values ($1, $2, $3, $4, $5)`,
+    [tenant, at.property, areaId, at.activity, at.duty],
+  )
+  await admin.query(
+    `insert into work_orders (id, tenant_id, property_id, area_id, activity_id, number, kind)
+     values ($1, $2, $3, $4, $5, $6, 'inspection')`,
+    [
+      at.workOrder,
+      tenant,
+      at.property,
+      areaId,
+      at.activity,
+      where === 'north' ? 'AU-2026-0001' : 'AU-2026-0002',
+    ],
+  )
+  await admin.query(
+    `insert into defects (tenant_id, property_id, area_id, asset_id, found_in_activity_id,
+                          description, found_on)
+     values ($1, $2, $3, $4, $5, 'Notruf im Fahrkorb ohne Verbindung.', '2026-10-01')`,
+    [tenant, at.property, areaId, at.asset, at.activity],
+  )
 }
 
 beforeAll(async () => {
@@ -411,17 +444,21 @@ describe('a person with the north', () => {
     }
 
     expect(tables).toEqual([
+      'activities',
+      'activity_duties',
       'asset_lifecycle',
       'asset_supplies',
       'assets',
       'buildings',
       'deadlines',
+      'defects',
       'duties',
       'duty_dismissals',
       'evidence',
       'floors',
       'properties',
       'rooms',
+      'work_orders',
     ])
     expect(seen).toEqual(expected)
   })
@@ -613,16 +650,20 @@ describe('a property moved to another area', () => {
       }
 
       expect(tables.map((row) => row.table_name)).toEqual([
+        'activities',
+        'activity_duties',
         'asset_lifecycle',
         'asset_supplies',
         'assets',
         'buildings',
         'deadlines',
+        'defects',
         'duties',
         'duty_dismissals',
         'evidence',
         'floors',
         'rooms',
+        'work_orders',
       ])
       expect(below).toEqual(expected)
 
