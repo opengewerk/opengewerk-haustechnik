@@ -100,6 +100,8 @@ function rowsOf(tenant: Tenant): readonly Row[] {
   const floor = randomUUID()
   const asset = randomUUID()
   const duty = randomUUID()
+  const activity = randomUUID()
+  const workOrder = randomUUID()
 
   return [
     {
@@ -394,6 +396,54 @@ function rowsOf(tenant: Tenant): readonly Row[] {
         area_id: area,
       },
     },
+    // A work order at the asset to meet the duty, and a defect noticed in it.
+    {
+      table: 'activities',
+      values: {
+        id: activity,
+        tenant_id: tenant.id,
+        property_id: property,
+        area_id: area,
+        asset_id: asset,
+        kind: 'work_order',
+        title: 'Hauptprüfung Aufzug',
+        responsible_user_id: tenant.userId,
+      },
+    },
+    {
+      table: 'activity_duties',
+      values: {
+        tenant_id: tenant.id,
+        property_id: property,
+        area_id: area,
+        activity_id: activity,
+        duty_id: duty,
+      },
+    },
+    {
+      table: 'work_orders',
+      values: {
+        id: workOrder,
+        tenant_id: tenant.id,
+        property_id: property,
+        area_id: area,
+        activity_id: activity,
+        number: 'AU-2026-0001',
+        kind: 'inspection',
+      },
+    },
+    {
+      table: 'defects',
+      values: {
+        tenant_id: tenant.id,
+        property_id: property,
+        area_id: area,
+        asset_id: asset,
+        found_in_activity_id: activity,
+        description: 'Notruf im Fahrkorb ohne Verbindung.',
+        found_on: '2026-10-01',
+      },
+    },
   ]
 }
 
@@ -680,8 +730,9 @@ describe('the tables', () => {
     // A floor, so that a check that finds no table with a place cannot pass:
     // the four levels of the place carry the line since #18, the assets, their
     // life cycle and their supplies since #20, the duties and the dismissed
-    // proposals since #25.
-    expect(rows[0]?.tables).toBeGreaterThanOrEqual(9)
+    // proposals since #25, the activities with their duties and work orders
+    // and the defects since #26.
+    expect(rows[0]?.tables).toBeGreaterThanOrEqual(13)
     expect(await areaBoundaryProblems(admin)).toEqual([])
   })
 
@@ -702,8 +753,9 @@ describe('the tables', () => {
     )
 
     // A floor: the place since #18, the technology since #20, the duties and
-    // the dismissed proposals since #25.
-    expect(rows.length).toBeGreaterThanOrEqual(9)
+    // the dismissed proposals since #25, the activities with their duties and
+    // work orders and the defects since #26.
+    expect(rows.length).toBeGreaterThanOrEqual(13)
     expect(rows.filter((row) => row.deletable).map((row) => row.table_name)).toEqual([])
   })
 })

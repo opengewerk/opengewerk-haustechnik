@@ -50,6 +50,11 @@ export function trimmed(column: unknown, most: number) {
   return sql`${column} = btrim(${column}) and char_length(${column}) between 1 and ${sql.raw(String(most))}`
 }
 
+/** A text the row may leave empty, trimmed and bounded when it is there. */
+export function optionalTrimmed(column: unknown, most: number) {
+  return sql`${column} is null or (${trimmed(column, most)})`
+}
+
 /**
  * A property: a site or a campus with an address and a federal state. The
  * state decides with the kinds of its buildings which duties are proposed.

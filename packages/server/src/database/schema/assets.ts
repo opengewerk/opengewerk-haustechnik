@@ -28,7 +28,7 @@ import {
 } from 'drizzle-orm/pg-core'
 
 import { withinAreas } from './areas.js'
-import { buildings, properties, rooms, trimmed } from './locations.js'
+import { buildings, optionalTrimmed, properties, rooms, trimmed } from './locations.js'
 
 // The technology, the other half of the data model (section 2.2 of the
 // concept, ADR 0002, points 4 to 9): an asset in exactly one building and on
@@ -44,11 +44,6 @@ export const lifecycleState = pgEnum('lifecycle_state', lifecycleStates)
 
 /** What a meter counts in, from the list in `domain`. */
 export const meterUnit = pgEnum('meter_unit', meterUnits)
-
-/** A text the row may leave empty, trimmed and bounded when it is there. */
-function optionalTrimmed(column: unknown, most: number) {
-  return sql`${column} is null or (${trimmed(column, most)})`
-}
 
 /**
  * An asset, or a component when it hangs under an asset. Its kind is a key of

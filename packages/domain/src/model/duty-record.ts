@@ -11,8 +11,9 @@ import {
 import type { AreaId } from './area.js'
 import type { AssetId } from './asset.js'
 import { type Counting, countings, type IntervalKind } from './catalogue.js'
-import { calendarDay, optional, type Problems, required } from './fields.js'
-import type { BuildingId, PropertyId, RoomId } from './location.js'
+import { calendarDay, oneOf, optional, type Problems, required } from './fields.js'
+import type { PropertyId } from './location.js'
+import type { PlaceTarget } from './target.js'
 
 /**
  * A duty as the register of an operator keeps it (section 2.3 of the concept,
@@ -61,16 +62,7 @@ export const dutyLimits = {
   dismissalReason: 500,
 } as const
 
-/** What a duty hangs on: the property always, and at most one of a building, a room or an asset there. */
-export interface DutyTarget {
-  readonly propertyId: PropertyId
-  readonly areaId: AreaId
-  readonly buildingId: BuildingId | null
-  readonly roomId: RoomId | null
-  readonly assetId: AssetId | null
-}
-
-export interface Duty extends Synced, DutyTarget {
+export interface Duty extends Synced, PlaceTarget {
   readonly id: DutyId
   /** The duty kind of the catalogue, `<package>.<key>`, and the version that was confirmed; both empty for a duty of the operator's own. */
   readonly kind: string | null
@@ -243,21 +235,6 @@ export function intervalNeedsReason(
   return 'days' in guide
     ? !('days' in interval) || interval.days !== guide.days
     : !('months' in interval) || interval.months !== guide.months
-}
-
-/** A choice of a list the record may leave empty. */
-function oneOf(
-  problems: Problems,
-  record: Readonly<Record<string, unknown>>,
-  field: string,
-  values: readonly string[],
-  sentence: string,
-): void {
-  const value = record[field]
-
-  if (value !== undefined && value !== null && !values.includes(value as string)) {
-    problems[field] = sentence
-  }
 }
 
 /**
