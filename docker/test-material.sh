@@ -15,8 +15,8 @@
 # server of a Betreiber, the two tables the foundation brings since
 # opengewerk-haustechnik#23; a setting for a kind of deadline with a pass of
 # the deadline engine, the two it brings since opengewerk-haustechnik#24; and a
-# duty at the asset with a dismissed proposal beside it
-# (opengewerk-haustechnik#25).
+# duty at the asset with a dismissed proposal beside it, an evidence of the
+# duty and the deadline the engine keeps from it (opengewerk-haustechnik#25).
 
 # A route touching data, which refuses everybody without a sign in: the
 # accounts of a Betreiber.
@@ -25,7 +25,7 @@ guarded_route=/staff
 # The tables counted before the backup and after the restore. The area and
 # the place of the account in it come with the account: a Betreiber gets its
 # first area with its first membership.
-counted_tables='auth_users memberships tenant_roles areas member_areas properties buildings assets files mail_settings deadline_settings deadline_runs duties duty_dismissals'
+counted_tables='auth_users memberships tenant_roles areas member_areas properties buildings assets files mail_settings deadline_settings deadline_runs duties duty_dismissals evidence deadlines'
 
 # The migrations, and how many of them make the older state an update starts
 # from: the first, without the sequence for work orders that the second brings.
@@ -75,13 +75,12 @@ records_for_backup() {
       ('$first_tenant', '$hash', 21, 'text/plain');
     insert into mail_settings (tenant_id, host, port, security, from_address) values
       ('$first_tenant', 'mail.probe.example.de', 587, 'starttls', 'technik@probe.example.de');"
-  # A setting for a kind of deadline and a pass of the engine, the two tables
-  # the foundation brings since opengewerk-haustechnik#24. The deadlines come
-  # with the duties of opengewerk-haustechnik#25, and with them what writes both.
+  # A setting for the kind of deadline of the duties, a table the foundation
+  # brings since opengewerk-haustechnik#24. The passes of the engine
+  # (`deadline_runs`) are written by the engine itself, below.
   sql "
-    insert into deadline_settings (tenant_id, kind, lead_days, interval_months) values
-      ('$first_tenant', 'probe.inspection', 14, 12);
-    insert into deadline_runs (tenant_id, succeeded_at) values ('$first_tenant', now());"
+    insert into deadline_settings (tenant_id, kind, lead_days) values
+      ('$first_tenant', 'duty.due', 14);"
   # A duty of the catalogue at the asset, confirmed by the account, and a
   # proposal it dismissed with its reason (opengewerk-haustechnik#25). The kinds
   # are keys of the probe package, as the asset's is.
@@ -98,6 +97,27 @@ records_for_backup() {
            'Die Anlage hat keine Notrufeinrichtung.', u.id
       from assets a, auth_users u
      where a.tenant_id = '$first_tenant' and u.email = '$probe_email';"
+  # An evidence of the duty. The engine runs in the application, its first pass
+  # ten seconds after the start and then once a minute, and keeps a deadline
+  # for the duty from it; the backup brings back what the pass wrote, the
+  # deadline and the pass of every operator. Waited for here, so that nothing
+  # of it is written between the count before the backup and the backup.
+  sql "
+    insert into evidence (tenant_id, property_id, area_id, duty_id, performed_on, result)
+    select tenant_id, property_id, area_id, id, '2025-03-14', 'without_defects'
+      from duties where tenant_id = '$first_tenant';"
+  waited=0
+  until test "$(value "select count(*) from deadlines where tenant_id = '$first_tenant'")" = 1 &&
+    test "$(value "select count(*) from deadline_runs where succeeded_at is not null")" = \
+      "$(value 'select count(*) from tenants')"; do
+    waited=$((waited + 1))
+    if [ "$waited" -gt 120 ]; then
+      echo 'Der Lauf der Fristen hat in zwei Minuten keine Frist für die Pflicht geschrieben.'
+      exit 1
+    fi
+    sleep 1
+  done
+  echo "Der Lauf der Fristen hat die Frist der Pflicht nach ${waited} Sekunden geschrieben."
 }
 
 # An account and its place at the Betreiber on the older state, written with

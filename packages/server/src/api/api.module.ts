@@ -3,6 +3,7 @@ import { APP_FILTER, APP_GUARD } from '@nestjs/core'
 import { auditVocabulary, type Catalogue } from '@opengewerk/haustechnik-domain'
 import {
   auditLogParts,
+  deadlineParts,
   type Authentication,
   authenticationParts,
   AUTHORIZATION,
@@ -19,6 +20,7 @@ import {
 
 import { access } from '../authentication/access.js'
 import { CATALOGUE, shippedCatalogue } from '../catalogue.js'
+import { deadlineRules } from '../deadlines/routes.js'
 import { AssetsController, BuildingAssetsController } from './assets.controller.js'
 import { authorization, AuthorizationGuard } from './authorization.js'
 import { BuildingsController } from './buildings.controller.js'
@@ -116,6 +118,19 @@ export class ApiModule {
     // The change log of a tenant for its Leitung, read by the foundation in
     // the words of this application.
     const auditing = auditLogParts({ access, vocabulary: auditVocabulary })
+    // The deadlines the engine keeps, and what an operator sets for a kind:
+    // section 7 of the concept gives both to whoever may look after the
+    // deadlines, and the routes see what the person sees.
+    const deadlining = deadlineParts({
+      access,
+      rights: {
+        read: 'deadline.read',
+        write: 'deadline.write',
+        settingsRead: 'deadline.read',
+        settingsWrite: 'deadline.write',
+      },
+      rules: deadlineRules,
+    })
 
     return {
       module: ApiModule,
@@ -126,6 +141,7 @@ export class ApiModule {
         ...signingIn.controllers,
         ...syncing.controllers,
         ...auditing.controllers,
+        ...deadlining.controllers,
         // The place: properties, buildings, floors and rooms.
         PropertiesController,
         BuildingsController,
@@ -143,6 +159,7 @@ export class ApiModule {
         ...signingIn.providers,
         ...syncing.providers,
         ...auditing.providers,
+        ...deadlining.providers,
         { provide: TRUSTED_ORIGINS, useValue: trustedOrigins },
         { provide: VERSION, useValue: version },
         { provide: CATALOGUE, useValue: options.catalogue ?? shippedCatalogue() },

@@ -10,7 +10,9 @@ import {
 } from '@opengewerk/platform-server'
 
 import { access } from './authentication/access.js'
+import { shippedCatalogue } from './catalogue.js'
 import { application } from './configuration.js'
+import { startDeadlineWorker } from './deadlines/engine.js'
 import { openInstance } from './instance.js'
 
 /**
@@ -26,8 +28,13 @@ async function start(): Promise<void> {
   const configuration = readConfiguration(application)
   const instance = await openInstance(configuration)
 
-  // Stopped in this order when the container runtime asks.
+  // Stopped in this order when the container runtime asks. The deadlines
+  // first: a pass that is running finishes, so that a reminder that has its
+  // mark is not cut off before its transaction ends.
+  let deadlineWorker: { readonly stop: () => Promise<void> } | null = null
+
   stopOnSignals(application.name, [
+    () => deadlineWorker?.stop(),
     instance.stopSettings,
     () => instance.application.close(),
     () => instance.database.close(),
@@ -52,6 +59,17 @@ async function start(): Promise<void> {
   }
 
   await instance.application.listen(configuration.port, configuration.host)
+
+  // The deadline engine runs on every instance that is open: it keeps the
+  // appointments of the duties whether or not anybody gets a message about
+  // them (opengewerk-haustechnik#25). Not on a closed instance, which writes
+  // nothing.
+  if (!configuration.closed) {
+    deadlineWorker = startDeadlineWorker({
+      database: instance.database,
+      catalogue: shippedCatalogue(),
+    })
+  }
 
   // Asked once at startup, because the answer decides what somebody sees when
   // they open the address for the first time. A database that cannot answer

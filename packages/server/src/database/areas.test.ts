@@ -64,6 +64,7 @@ const place = {
     asset: randomUUID(),
     lifecycle: randomUUID(),
     supply: randomUUID(),
+    duty: randomUUID(),
   },
   south: {
     property: randomUUID(),
@@ -73,6 +74,7 @@ const place = {
     asset: randomUUID(),
     lifecycle: randomUUID(),
     supply: randomUUID(),
+    duty: randomUUID(),
   },
 }
 
@@ -135,6 +137,34 @@ async function tablesWithAPlace(): Promise<string[]> {
   return rows.map((row) => row.table_name)
 }
 
+/**
+ * Whether a table is removed by marking a row, as the place and the
+ * technology are. An evidence is never removed, and a deadline drops out
+ * through its state; neither has the mark.
+ */
+async function removedByMarking(table: string): Promise<boolean> {
+  const { rows } = await admin.query<{ marked: boolean }>(
+    `select exists (
+       select 1 from information_schema.columns
+        where table_schema = 'public' and table_name = $1 and column_name = 'deleted_at'
+     ) as marked`,
+    [table],
+  )
+
+  return rows[0]?.marked === true
+}
+
+/** Whether the application may change the rows of a table at all. */
+async function changeable(table: string): Promise<boolean> {
+  const { rows } = await admin.query<{ changeable: boolean }>(
+    `select has_table_privilege('opengewerk_app', format('public.%I', $1::text), 'UPDATE')
+              as changeable`,
+    [table],
+  )
+
+  return rows[0]?.changeable === true
+}
+
 /** An area by the name this test gives it. */
 function named(id: string): string {
   return id === area.north ? 'north' : id === area.south ? 'south' : id
@@ -147,10 +177,11 @@ async function areasSeen(
   { background = false }: { background?: boolean } = {},
 ): Promise<string[]> {
   const actor = userId === undefined ? { tenantId: tenant } : { tenantId: tenant, userId }
+  const live = (await removedByMarking(table)) ? ' where deleted_at is null' : ''
   const read = async (tx: TenantTransaction) =>
     (
       await tx.execute<{ area: string }>(
-        sql.raw(`select distinct area_id::text as area from ${table} where deleted_at is null`),
+        sql.raw(`select distinct area_id::text as area from ${table}${live}`),
       )
     ).rows
   const rows = background
@@ -271,10 +302,23 @@ async function placeIn(where: 'north' | 'south'): Promise<void> {
     [at.supply, tenant, at.asset, at.property, areaId, at.building],
   )
   await admin.query(
-    `insert into duties (tenant_id, property_id, area_id, asset_id, kind, kind_version, counting,
-                         interval_months, maximum_months, confirmed_by)
-     values ($1, $2, $3, $4, 'probe.elevator_main_test', 1, 'betrsichv', 24, 24, $5)`,
-    [tenant, at.property, areaId, at.asset, person.lead],
+    `insert into duties (id, tenant_id, property_id, area_id, asset_id, kind, kind_version,
+                         counting, interval_months, maximum_months, confirmed_by)
+     values ($1, $2, $3, $4, $5, 'probe.elevator_main_test', 1, 'betrsichv', 24, 24, $6)`,
+    [at.duty, tenant, at.property, areaId, at.asset, person.lead],
+  )
+  // An evidence of the duty, and the deadline the engine keeps from it.
+  await admin.query(
+    `insert into evidence (tenant_id, property_id, area_id, duty_id, performed_on, result)
+     values ($1, $2, $3, $4, '2025-03-14', 'without_defects')`,
+    [tenant, at.property, areaId, at.duty],
+  )
+  await admin.query(
+    `insert into deadlines (tenant_id, kind, source_id, source_label, anchor_on, due_on, duty_id,
+                            property_id, area_id)
+     values ($1, 'duty.due', $2, 'Hauptprüfung der Aufzugsanlage, Aufzug', '2025-03-14',
+             '2027-03-01', $2, $3, $4)`,
+    [tenant, at.duty, at.property, areaId],
   )
   await admin.query(
     `insert into duty_dismissals (tenant_id, property_id, area_id, asset_id, kind, kind_version,
@@ -371,8 +415,10 @@ describe('a person with the north', () => {
       'asset_supplies',
       'assets',
       'buildings',
+      'deadlines',
       'duties',
       'duty_dismissals',
+      'evidence',
       'floors',
       'properties',
       'rooms',
@@ -382,7 +428,9 @@ describe('a person with the north', () => {
 
   /**
    * Changing a row and marking it deleted, which is how a place is removed:
-   * the application role has no DELETE on them.
+   * the application role has no DELETE on them. A table without the mark is
+   * only changed, and one the application may not change at all, the
+   * evidence, refuses the change to anybody, whichever area the row is in.
    */
   it('changes and removes no row of the south, in every table with a place', async () => {
     const tables = await tablesWithAPlace()
@@ -392,15 +440,33 @@ describe('a person with the north', () => {
     for (const table of tables) {
       const theirs = `area_id = '${area.south}'`
 
+      if (!(await changeable(table))) {
+        outcome[table] = await triedAs(person.north, (tx) =>
+          tx.execute(sql.raw(`update ${table} set area_id = area_id where ${theirs}`)),
+        ).catch((error: unknown) =>
+          (error as { cause?: { code?: string } }).cause?.code === insufficientPrivilege
+            ? 'refused'
+            : error,
+        )
+        expected[table] = 'refused'
+        continue
+      }
+
+      const marked = await removedByMarking(table)
+
       outcome[table] = await triedAs(person.north, async (tx) => ({
         updated: (
           await tx.execute(sql.raw(`update ${table} set area_id = area_id where ${theirs}`))
         ).rowCount,
-        removed: (
-          await tx.execute(sql.raw(`update ${table} set deleted_at = now() where ${theirs}`))
-        ).rowCount,
+        ...(marked
+          ? {
+              removed: (
+                await tx.execute(sql.raw(`update ${table} set deleted_at = now() where ${theirs}`))
+              ).rowCount,
+            }
+          : {}),
       }))
-      expected[table] = { updated: 0, removed: 0 }
+      expected[table] = marked ? { updated: 0, removed: 0 } : { updated: 0 }
     }
 
     expect(outcome).toEqual(expected)
@@ -551,8 +617,10 @@ describe('a property moved to another area', () => {
         'asset_supplies',
         'assets',
         'buildings',
+        'deadlines',
         'duties',
         'duty_dismissals',
+        'evidence',
         'floors',
         'rooms',
       ])

@@ -25,10 +25,23 @@ afterAll(async () => {
 
 describe('the foundation in this database', () => {
   it('is what its building blocks say, after every migration', async () => {
-    // One thing of its own hangs on a table of the foundation: the trigger
-    // that gives a new membership its areas (ADR 0003, migration 0002).
-    expect(await foundationDeviations(admin, { triggers: ['memberships.default_areas'] })).toEqual(
-      [],
-    )
+    // What hangs of its own on tables of the foundation: the trigger that
+    // gives a new membership its areas (ADR 0003, migration 0002), and what a
+    // deadline hangs on (opengewerk-haustechnik#25, migration 0008), the duty
+    // with its property and its area, their keys and index, and the policy
+    // that keeps a deadline in the areas of the person who asks. Only a
+    // restrictive policy may be named here; it takes rows away and opens none.
+    expect(
+      await foundationDeviations(admin, {
+        triggers: ['memberships.default_areas'],
+        columns: ['deadlines.duty_id', 'deadlines.property_id', 'deadlines.area_id'],
+        constraints: [
+          'deadlines.deadlines_follow_their_property',
+          'deadlines.deadlines_of_a_duty_of_their_property',
+        ],
+        indexes: ['deadlines.deadlines_duty_idx'],
+        policies: ['deadlines.within_areas'],
+      }),
+    ).toEqual([])
   })
 })

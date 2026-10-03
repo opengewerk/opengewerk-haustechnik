@@ -2,6 +2,7 @@ import type {
   Building,
   Duty,
   DutyDismissal,
+  Evidence,
   Floor,
   Property,
   Room,
@@ -11,6 +12,7 @@ import type {
   buildings,
   duties,
   dutyDismissals,
+  evidence,
   floors,
   properties,
   rooms,
@@ -34,3 +36,4 @@ export type FloorMatches = Assert<Exact<typeof floors.$inferSelect, Floor>>
 export type RoomMatches = Assert<Exact<typeof rooms.$inferSelect, Room>>
 export type DutyMatches = Assert<Exact<typeof duties.$inferSelect, Duty>>
 export type DutyDismissalMatches = Assert<Exact<typeof dutyDismissals.$inferSelect, DutyDismissal>>
+export type EvidenceMatches = Assert<Exact<typeof evidence.$inferSelect, Evidence>>
