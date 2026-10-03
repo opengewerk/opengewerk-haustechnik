@@ -2,16 +2,18 @@
 # application and can read nowhere else (opengewerk-haustechnik#14). The steps
 # are the foundation's, in upstream/opengewerk/docker; read with "." once the
 # helpers there are defined, so the functions below may use sql, value,
-# compose, restart_app and $base, and the two tenants test-stack.sh creates are
-# $first_tenant and $second_tenant.
+# compose, restart_app, store_file and $base, and the two tenants test-stack.sh
+# creates are $first_tenant and $second_tenant.
 #
 # What a backup has to bring back besides the tenants, the audit log and the
 # file store: what the foundation keeps for this application, accounts, the
 # roles of a Betreiber and who works for which, and the sign in that rests on
 # them; the areas of a Betreiber with who sees which
 # (opengewerk-haustechnik#17); the first record with a place, a property
-# (opengewerk-haustechnik#18); and a building on it with the first asset
-# (opengewerk-haustechnik#20).
+# (opengewerk-haustechnik#18); a building on it with the first asset
+# (opengewerk-haustechnik#20); and a file in the store with its row and the
+# mail server of a Betreiber, the two tables the foundation brings since
+# opengewerk-haustechnik#23.
 
 # A route touching data, which refuses everybody without a sign in: the
 # accounts of a Betreiber.
@@ -20,7 +22,7 @@ guarded_route=/staff
 # The tables counted before the backup and after the restore. The area and
 # the place of the account in it come with the account: a Betreiber gets its
 # first area with its first membership.
-counted_tables='auth_users memberships tenant_roles areas member_areas properties buildings assets'
+counted_tables='auth_users memberships tenant_roles areas member_areas properties buildings assets files mail_settings'
 
 # The migrations, and how many of them make the older state an update starts
 # from: the first, without the sequence for work orders that the second brings.
@@ -60,6 +62,16 @@ records_for_backup() {
     insert into assets (tenant_id, property_id, area_id, building_id, kind, name)
     select tenant_id, property_id, area_id, id, 'probe.elevator', 'Aufzug Haus A'
       from buildings where tenant_id = '$first_tenant';"
+  # A file in the store with the row that makes it one, and a mail server. Both
+  # tables come with the foundation (opengewerk-haustechnik#23); what writes
+  # them comes with the documents and the notifications of phase 1, so until
+  # then this file is the one the comparison of the store finds.
+  hash=$(store_file 'Bericht Aufzug Haus A')
+  sql "
+    insert into files (tenant_id, sha256, size_bytes, media_type) values
+      ('$first_tenant', '$hash', 21, 'text/plain');
+    insert into mail_settings (tenant_id, host, port, security, from_address) values
+      ('$first_tenant', 'mail.probe.example.de', 587, 'starttls', 'technik@probe.example.de');"
 }
 
 # An account and its place at the Betreiber on the older state, written with
