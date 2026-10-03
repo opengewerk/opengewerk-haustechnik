@@ -241,6 +241,16 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   mit ihrer ersten Einstellung anlegt, ist im Fundament berichtigt (`#505`). Die Tests des
   Fundaments laufen in der CI dieses Repositorys mit: 112 in `platform-domain`, 552 in
   `platform-server` (vorher 526) und 728 in `platform-web`
+- Das Fundament ist auf den Stand mit dem Geltungsbereich der Regel-Engine angehoben
+  (`opengewerk/opengewerk#506`, #16). Eine Regel gilt bundesweit oder in einem Land, und eine
+  Abfrage nennt neben dem Tag auf Wunsch das Land: eine Regel für Baden-Württemberg ist für
+  Bayern keine Antwort, eine bundesweite gilt in jedem Land. Gilt ein Schlüssel am selben Tag
+  bundesweit und in einem Land, lehnt der Aufbau das Paket ab, weil jede Antwort geraten wäre.
+  Dazu kommen die Einheiten, die Pflichten eines Gebäudes brauchen (Monate, Zehntelgrad Celsius,
+  Kilowatt, Kilogramm und Tonnen CO₂-Äquivalent, Anzahl je 100 ml), und die Prüfung auf Lücken je
+  Schlüssel und Geltungsbereich (`ruleHoles`). Benutzt wird davon hier noch nichts, das kommt mit
+  den Pflichtenpaketen. Die Tests des Fundaments laufen in der CI dieses Repositorys mit, in
+  `platform-domain` jetzt 130 statt 112
 - `pnpm run check:toolchain` vergleicht auch die Fassungen der Abhängigkeiten, die ein Paket
   dieser Anwendung und ein Paket des Fundaments beide laden, zuerst `drizzle-orm` und `pg`. Zwei
   Fassungen davon in einem Prozess hießen Tabellen, die mit der einen angelegt und mit der
