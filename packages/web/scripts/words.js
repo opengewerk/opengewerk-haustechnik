@@ -12,9 +12,13 @@ import { fileURLToPath } from 'node:url'
  * foundation, which has none of these words (its package tests hold that). One
  * of them in the build is a sentence of the Handwerkersoftware that came along
  * with an import, or one written here in the wrong words.
+ *
+ * An asset is "in Betrieb" or "außer Betrieb", which says how it runs and not
+ * whom anything belongs to; the states of its life cycle say so, and those two
+ * are no foreign words. "Im Betrieb" still is.
  */
 export const foreignWords =
-  /\b(?:Betrieb|Betriebs|Betriebe|Betrieben|Inhaber|Inhabers|Inhaberin|Monteur|Monteurs|Monteure|Baustelle|Baustellen)\b/g
+  /(?<!\b(?:[Ii]n|[Aa]ußer) )\b(?:Betrieb|Betriebs|Betriebe|Betrieben|Inhaber|Inhabers|Inhaberin|Monteur|Monteurs|Monteure|Baustelle|Baustellen)\b/g
 
 /** What a browser loads of the build: scripts, documents and manifests. */
 const read = ['.js', '.mjs', '.html', '.webmanifest', '.css']

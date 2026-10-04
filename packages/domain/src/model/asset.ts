@@ -90,6 +90,19 @@ export interface AssetSupply extends Synced {
   readonly roomId: RoomId | null
 }
 
+/**
+ * What is wrong with what an asset supplies, or null: an entry names a
+ * building or a room, never both and never neither, as the check in the
+ * database holds it.
+ */
+export function supplyPlaceProblem(supply: Readonly<Record<string, unknown>>): string | null {
+  const given = (value: unknown) => value !== undefined && value !== null
+
+  return given(supply['buildingId']) === given(supply['roomId'])
+    ? 'Ein Eintrag versorgt genau ein Gebäude oder einen Raum.'
+    : null
+}
+
 /** One entry of a life cycle: the state an asset is in from a day on. */
 export interface LifecycleEntry extends Synced {
   readonly id: LifecycleEntryId

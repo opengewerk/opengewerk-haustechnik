@@ -10,6 +10,7 @@ import {
   lifecycleStateOn,
   lifecycleStates,
   meterProblems,
+  supplyPlaceProblem,
 } from './asset.js'
 import type { AssetKind } from './catalogue.js'
 
@@ -237,5 +238,16 @@ describe('an asset', () => {
       meterUnit: 'Eine Einheit hat nur eine Messstelle.',
     })
     expect(meterProblems(elevator, { meterNumber: null, meterUnit: null })).toEqual({})
+  })
+})
+
+describe('what an asset supplies', () => {
+  it('is a building or a room, never both and never neither', () => {
+    expect(supplyPlaceProblem({ buildingId: 'b', roomId: null })).toBeNull()
+    expect(supplyPlaceProblem({ roomId: 'r' })).toBeNull()
+    expect(supplyPlaceProblem({ buildingId: 'b', roomId: 'r' })).toBe(
+      'Ein Eintrag versorgt genau ein Gebäude oder einen Raum.',
+    )
+    expect(supplyPlaceProblem({})).toBe('Ein Eintrag versorgt genau ein Gebäude oder einen Raum.')
   })
 })

@@ -1,0 +1,117 @@
+import {
+  type Catalogue,
+  type Identity,
+  offlineEditRefusal,
+  offlineRules,
+} from '@opengewerk/haustechnik-domain'
+import {
+  type FoundIdentity,
+  recordRulesCheck,
+  type ServerSync,
+  serverSync,
+  type SyncCheck,
+  type SyncCheckContext,
+  syncTables,
+} from '@opengewerk/platform-server'
+import { getTableColumns } from 'drizzle-orm'
+import type { PgColumn } from 'drizzle-orm/pg-core'
+
+import { assignNumber } from '../database/number-ranges.js'
+import * as schema from '../database/schema/index.js'
+import { placed } from './places.js'
+import { recordRules } from './record-rules.js'
+
+// The sync on the server is the foundation's (ADR 0010 in the repository
+// opengewerk): applying an operation, recording what became of it, the pull
+// by change sequence and the conflicts. What this application adds is in
+// here: its rules and tables, the questions it asks of an operation before
+// the database does, in the order they are asked, and the numbers the server
+// draws (ADR 0006). The routes a device syncs through are bound in
+// `api/sync-routes.ts`.
+
+type Sender = FoundIdentity<Identity>
+type Check = SyncCheck<Sender>
+
+/**
+ * A field a device may not write without a connection (`offlineEdits`): a
+ * conflict about this one operation, `online_only` with the fields, and not
+ * the refusal of the transmission. A form asks the same before it queues
+ * anything; an operation that gets here anyway was queued by a device whose
+ * rules were wider, before the rule became stricter, and it must not hold up
+ * the outbox behind it (ADR 0006, point 6).
+ */
+const offline: Check = ({ operation }) => {
+  const refused = offlineEditRefusal(operation)
+
+  return refused === null ? null : { kind: 'conflict', reason: 'online_only', fields: refused }
+}
+
+/**
+ * Every text the way a route takes it: trimmed, and an empty one stored as
+ * nothing where the column may be empty. The checks in the database hold a
+ * text to its trimmed form and an optional one to more than nothing; a form
+ * that left a space at the end would otherwise take the whole transmission
+ * down with it.
+ */
+const normalised: Check = ({ table, values }) => {
+  const columns = getTableColumns(table) as Record<string, PgColumn>
+
+  for (const [field, value] of Object.entries(values)) {
+    if (typeof value !== 'string') {
+      continue
+    }
+
+    const trimmed = value.trim()
+
+    values[field] = trimmed === '' && columns[field]?.notNull === false ? null : trimmed
+  }
+
+  return null
+}
+
+/**
+ * The number of an asset or a work order made on a device, drawn here as the
+ * route draws it for one made over it (ADR 0006, point 8). In the same
+ * transaction as the insert, so that a transmission refused afterwards takes
+ * the number back with it.
+ */
+async function numbered({
+  tx,
+  tenantId,
+  operation,
+  values,
+}: SyncCheckContext<Sender>): Promise<Record<string, unknown>> {
+  if (operation.kind !== 'create') {
+    return values
+  }
+
+  if (operation.entity === 'assets') {
+    return { ...values, number: await assignNumber(tx, tenantId, 'asset', new Date()) }
+  }
+
+  if (operation.entity === 'work_orders') {
+    return { ...values, number: await assignNumber(tx, tenantId, 'work_order', new Date()) }
+  }
+
+  return values
+}
+
+/**
+ * The sync on the server of this application, with the catalogue the asset
+ * kinds come from. The tables are those of the schema module itself: the pull
+ * reads every one with the columns of the sync, and a test holds each of them
+ * to a policy.
+ *
+ * The order of the checks is behaviour, the first that refuses answers: what
+ * may not be written without a connection, then the texts in their form, the
+ * rules of `domain` on the fields, and last the place, the one question that
+ * reads other records and the one that puts in what the server derives.
+ */
+export function syncFor(catalogue: Catalogue): ServerSync<Sender> {
+  return serverSync<Sender>({
+    rules: offlineRules,
+    tables: syncTables(schema),
+    checks: [offline, normalised, recordRulesCheck(recordRules(catalogue)), placed],
+    complete: numbered,
+  })
+}

@@ -304,9 +304,26 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   noch für ungültig erklärt ist, so ist die Pflicht eines fälschlich unterschriebenen Rundgangs
   wieder offen. Ein Test ruft jede Route auf und hält fest, dass keine Antworten, Unterschriften
   oder Nachweise zurücksetzt. Die Routen dafür kommen in Phase 1
+- Der Abgleich der Datensätze (#27, erster Teil, ADR 0006): jede Tabelle mit den Spalten des
+  Abgleichs hat ihre Richtlinie, und je Art von Datensatz steht fest, welche Felder ein Gerät
+  ohne Verbindung anlegt und ändert. Vor Ort entstehen so Räume, Anlagen mit Komponenten,
+  Einträge im Versorgungsbereich, Mängel und Aufträge für eine Störung, und ein Vorgang nimmt
+  seinen Fortschritt und die Ergebnisse seiner Pflichten bis zur Unterschrift; alles andere
+  ist ein Konflikt für genau diesen Vorgang, damit ein strengerer Server keinen Postausgang
+  aufhält. Bereich, Liegenschaft und Gebäude leitet der Server ab, die Nummer einer Anlage
+  und eines Auftrags zieht er, und einen Ort, der fehlt oder nicht passt, beantwortet er mit
+  einem Konflikt statt mit einem Fehler für die ganze Übertragung. Der Konfliktbildschirm
+  nennt Datensätze, Felder und Werte auf Deutsch; die Prüfung des Baus auf Wörter der
+  Handwerkersoftware nimmt dafür "in Betrieb" und "außer Betrieb" aus, den Zustand einer
+  Anlage. Die Auswahl je Gerät und die Unterschrift über den Abgleich folgen in den nächsten
+  Teilen
 
 ### Geändert
 
+- Das Fundament ist auf den Stand angehoben, mit dem Werte aus JSON und Listen im Abgleich als
+  ihr Text reisen (`opengewerk/opengewerk#519`). Die Werte einer Anlage und die Arten eines
+  Gebäudes sind die ersten solchen Spalten in einer Tabelle, die reist; ohne das las der
+  Server schon die Zeile einer Anlage nicht
 - Planungskonzept auf v0.2: die Entscheidungen vom 01.10.2026 stehen an ihren Stellen, und
   Abschnitt 15 nennt sie im Zusammenhang. Das Fundament kommt als Pakete aus dem Repository
   `opengewerk` und wird nicht abgeschrieben; die Zuständigkeitsbereiche erzwingt die
