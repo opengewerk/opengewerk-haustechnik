@@ -367,6 +367,16 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   eine: der Export, die Meldung einer neuen Fassung eines Pakets, Unterlagen für unterwegs, der
   Verlauf der Zähler und die Vorlagen für den Vertrag zur Auftragsverarbeitung und für eine
   Betriebs- oder Dienstvereinbarung
+- Das Fundament ist auf den Stand angehoben, mit dem der Fokus nach einem Wechsel der Seite an ihrer
+  Überschrift steht (`opengewerk/opengewerk#546` bis `#548`, #83). Für diese Anwendung heißt das:
+  Büro, der Einstieg vor Ort und der Bereich der Instanz tauschen die Seite, ohne ein Dokument zu
+  laden, und der Fokus blieb auf dem Link der Navigation oder auf nichts. Wer einen Bildschirmleser
+  benutzt, hörte von der neuen Seite nichts, und mit der Tastatur ging es noch einmal durch die
+  ganze Navigation. Jetzt steht der Fokus an der Überschrift der neuen Seite; ein Formular, das in
+  seinem ersten Feld beginnt, behält ihn, ebenso Suche und Filter. Unter "Abgleich" steht "Abgleich
+  abgelehnt", wenn der Server geantwortet und den Abgleich abgelehnt hat, und "Keine Verbindung" und
+  vor Ort "Offline" nur noch, wenn niemand geantwortet hat. Der Satz über einem Lauf der Fristen,
+  der scheitert, kommt mit dem Bildschirm der Fristen (#104)
 - Das Fundament ist auf den Stand nach den übrigen Befunden aus dem Review der Phase 0 angehoben
   (`opengewerk/opengewerk#536` bis `#544`, `opengewerk-haustechnik#31`), mit der Migration
   `0013_sync_counter_grant`. Für diese Anwendung heißt das: Den Zähler des Abgleichs ruft nur noch
