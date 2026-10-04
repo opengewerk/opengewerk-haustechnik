@@ -317,6 +317,12 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   Handwerkersoftware nimmt dafür "in Betrieb" und "außer Betrieb" aus, den Zustand einer
   Anlage. Die Auswahl je Gerät und die Unterschrift über den Abgleich folgen in den nächsten
   Teilen
+- Was ein Gerät hält (#27, zweiter Teil, ADR 0006): wer alle Bereiche sieht, den ganzen
+  Betreiber; wer nur seine sieht, die Orte, Anlagen und Pflichten seiner Bereiche, seine
+  Vorgänge, solange sie offen sind, und abgeschlossene noch dreißig Tage, mit ihren Pflichten
+  und Aufträgen, und die offenen Mängel. Die Antwort des Abrufs nennt dazu je Art einen
+  Fingerabdruck, damit ein Gerät fallen lässt, was es nach einem Wechsel der Person, anderen
+  Bereichen oder einer verlegten Liegenschaft nicht mehr halten darf
 
 ### Geändert
 

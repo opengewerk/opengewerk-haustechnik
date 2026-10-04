@@ -80,6 +80,15 @@ export const syncPolicies: Readonly<Record<string, SyncPolicy>> = {
 }
 
 /**
+ * How many days a closed activity stays on the device of whoever worked on it
+ * (ADR 0006, point 3): long enough to look up what was done last week without
+ * a network, short enough that a device does not carry every round of the
+ * year. Counted from its last change, which for a closed activity is its
+ * closing. Whoever sees every area holds every activity.
+ */
+export const closedActivitiesStayDays = 30
+
+/**
  * The rules the server and every device decide by, made once from the
  * policies: so that a device works out the answer the server will give.
  */
