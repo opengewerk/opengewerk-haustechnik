@@ -352,6 +352,21 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
 
 ### Geändert
 
+- Planungskonzept v0.8: die Entscheidungen vom 04.10.2026 vor dem Bau von Phase 1 stehen an ihrer
+  Stelle und in der Tabelle in Abschnitt 15 (#59, #72, #134). Die Issues von Phase 1 hatten unter
+  "Zu klären vor dem Bau" offen, was das Konzept nicht sagte oder was die freigegebenen Tafeln als
+  Lesart zeichnen. Entschieden ist unter anderem: Mängelklassen stehen als eigene Datei im Paket,
+  und das Paket Allgemein bringt drei allgemeine Stufen mit; ein Mangel ist mit der Unterschrift
+  unter dem Auftrag behoben, und ein Messwert außerhalb seines Grenzwerts wird ein Mangel; ein
+  Auftrag hat drei Stufen der Dringlichkeit, und weitere Beteiligte arbeiten mit, ohne
+  abzuschließen; die Zählweise ab dem fälligen Tag hat ein Fenster von einem Zwölftel der Frist;
+  der Plan eines Rundgangs nennt seine Wochentage und kann Feiertage auslassen, ein Gebäude hat
+  Schließzeiten; eine mögliche Dublette aus der Bestandsaufnahme und zwei Ablesungen desselben
+  Zählers am selben Tag sind Konflikte; die Unterschrift hat einen Weg ohne Schriftzug; ein
+  Altbestand kommt als Nachweis mit eigener Herkunft herein. Was in keiner Phase stand, hat jetzt
+  eine: der Export, die Meldung einer neuen Fassung eines Pakets, Unterlagen für unterwegs, der
+  Verlauf der Zähler und die Vorlagen für den Vertrag zur Auftragsverarbeitung und für eine
+  Betriebs- oder Dienstvereinbarung
 - Das Fundament ist auf den Stand nach dem Review der Phase 0 angehoben
   (`opengewerk/opengewerk#524` bis `#528`, `opengewerk-haustechnik#31`). Für diese Anwendung heißt
   das: Die Konfliktliste des Abgleichs zeigt jedem Gerät nur noch seine eigenen Konflikte, und nur
