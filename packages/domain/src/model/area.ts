@@ -1,5 +1,6 @@
 import type { Id, IsoDate } from '@opengewerk/platform-domain'
 
+import { calendarDay } from './fields.js'
 import type { RoleKey } from './rights.js'
 
 /**
@@ -56,6 +57,50 @@ export function areaNameProblem(name: string): string | null {
  */
 export const rolesSeeingEveryArea: readonly RoleKey[] = ['management', 'technical_management']
 
+/** An area as a list names it. */
+export interface Area {
+  readonly id: AreaId
+  readonly name: string
+}
+
+/**
+ * The areas a membership holds in: every area, those made later included, or
+ * the ones named. Named and none is somebody who sees nothing with a place,
+ * which is what the removal of an area can leave behind (section 2.8); the
+ * list of who works for the tenant says so, and nobody is blocked by it.
+ */
+export interface MemberAreas {
+  readonly userId: string
+  readonly all: boolean
+  readonly areaIds: readonly AreaId[]
+}
+
+/** Whether somebody with these roles holds in every area, whatever is named for them. */
+export function seesEveryArea(roles: readonly string[]): boolean {
+  return roles.some((role) => (rolesSeeingEveryArea as readonly string[]).includes(role))
+}
+
+/** Said to whoever names areas for a role that holds in all of them. */
+export const everyAreaSentence = 'Leitung und Technische Leitung haben immer alle Bereiche.'
+
+/**
+ * What is wrong with the areas somebody with these roles is to hold in, as a
+ * sentence for the screen, or null when nothing is.
+ *
+ * Whoever leads the tenant and whoever answers for its duties hold in every
+ * area (section 7 of the concept: "alle Bereiche"), so naming areas for them
+ * is refused where areas are given. The database knows no such rule (ADR 0003,
+ * point 2), it is what the routes and the screens of this application hold
+ * to. Everybody else holds in all of them or in the ones named, none
+ * included.
+ */
+export function memberAreasProblem(
+  roles: readonly string[],
+  wanted: Pick<MemberAreas, 'all'>,
+): string | null {
+  return seesEveryArea(roles) && !wanted.all ? everyAreaSentence : null
+}
+
 /**
  * A substitution: for a stretch of days somebody takes over the areas of
  * somebody else, both days included (section 2.8 of the concept). People are
@@ -84,4 +129,46 @@ export function substitutionProblem(substitution: Substitution): string | null {
   }
 
   return null
+}
+
+/**
+ * What is wrong with a substitution somebody enters, as a sentence for the
+ * screen, or null when nothing is: both people named, both days days of the
+ * calendar, the two rules above, and an end that has not passed. `today` is
+ * the day in Germany, where a substitution begins and ends.
+ */
+export function newSubstitutionProblem(
+  wanted: Readonly<Record<string, unknown>>,
+  today: IsoDate,
+): string | null {
+  const { substitute, absent, startsOn, endsOn } = wanted
+
+  if (typeof substitute !== 'string' || substitute === '') {
+    return 'Wer vertritt, fehlt.'
+  }
+
+  if (typeof absent !== 'string' || absent === '') {
+    return 'Wer vertreten wird, fehlt.'
+  }
+
+  if (!calendarDay(startsOn)) {
+    return 'Der Anfang der Vertretung ist kein Tag.'
+  }
+
+  if (!calendarDay(endsOn)) {
+    return 'Das Ende der Vertretung ist kein Tag.'
+  }
+
+  const problem = substitutionProblem({
+    substitute,
+    absent,
+    startsOn: startsOn as IsoDate,
+    endsOn: endsOn as IsoDate,
+  })
+
+  if (problem !== null) {
+    return problem
+  }
+
+  return endsOn < today ? 'Die Vertretung liegt in der Vergangenheit.' : null
 }
