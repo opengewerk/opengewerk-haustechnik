@@ -10,6 +10,9 @@ import {
   countingUnits,
   type DutyKind,
   federalStates,
+  type FormField,
+  type FormUnit,
+  formUnits,
   type IsoDate,
   nationwide,
   type PackagedForm,
@@ -471,6 +474,57 @@ function checkDutyKind(
   }
 }
 
+/** Every field of a form, the fields of its groups included. */
+function fieldsOfForm(form: PackagedForm): readonly FormField[] {
+  return form.sections.flatMap((section) =>
+    section.fields.flatMap((field): readonly FormField[] =>
+      field.kind === 'group' ? [field, ...field.fields] : [field],
+    ),
+  )
+}
+
+/**
+ * The limits of a form lead to rules that exist, in a unit the field can be
+ * measured in: a limit that leads nowhere would only show on site, as a
+ * measured value without a verdict.
+ */
+function checkForm(
+  version: Version<PackagedForm>,
+  form: PackagedForm,
+  home: string,
+  index: Index,
+  findings: Findings,
+): void {
+  const spot = spotIn(version.file)
+
+  for (const field of fieldsOfForm(form)) {
+    if (field.kind !== 'measurement' || field.limit === undefined || !('rule' in field.limit)) {
+      continue
+    }
+
+    const unit: FormUnit = formUnits[field.unit]
+    const units = Object.keys(unit.fromRule ?? {}) as RuleUnit[]
+
+    if (units.length === 0) {
+      findings.say(
+        spot,
+        `Der Grenzwert von ${field.key} nennt die Regel ${field.limit.rule}, doch ein Wert in ${unit.sign} lässt sich mit keiner Regel vergleichen.`,
+      )
+      continue
+    }
+
+    checkRuleReference(
+      spot,
+      field.limit.rule,
+      home,
+      index,
+      findings,
+      `Der Grenzwert von ${field.key}`,
+      units,
+    )
+  }
+}
+
 function ruleIdentity(rule: {
   readonly key: string
   readonly scope?: string
@@ -668,6 +722,24 @@ function qualified(dutyKind: DutyKind, home: string): DutyKind {
   }
 }
 
+/** The form with every rule its limits name written the way it is named outside its package. */
+function qualifiedForm(form: PackagedForm, home: string): PackagedForm {
+  const named = <Field extends FormField>(field: Field): Field =>
+    field.kind === 'measurement' && field.limit !== undefined && 'rule' in field.limit
+      ? { ...field, limit: { ...field.limit, rule: resolve(field.limit.rule, home).qualified } }
+      : field
+
+  return {
+    ...form,
+    sections: form.sections.map((section) => ({
+      ...section,
+      fields: section.fields.map((field) =>
+        field.kind === 'group' ? { ...field, fields: field.fields.map(named) } : named(field),
+      ),
+    })),
+  }
+}
+
 function bundled(content: PackageContent): CataloguePackage {
   const acceptances = content.acceptances as Acceptances
   const manifest = content.manifest as Manifest
@@ -721,8 +793,8 @@ function bundled(content: PackageContent): CataloguePackage {
     minimumCore: manifest.minimumCore,
     assetKinds: entries(content.assetKinds),
     dutyKinds: entries(content.dutyKinds, (dutyKind) => qualified(dutyKind, content.name)),
-    forms: entries(content.forms),
-    roundTemplates: entries(content.roundTemplates),
+    forms: entries(content.forms, (form) => qualifiedForm(form, content.name)),
+    roundTemplates: entries(content.roundTemplates, (form) => qualifiedForm(form, content.name)),
     rules,
   }
 }
@@ -793,13 +865,19 @@ export function loadCatalogue(
           case 'forms':
             content.forms.push({
               ...common,
-              read: value === unread ? undefined : readForm(value, path, findings),
+              read:
+                value === unread
+                  ? undefined
+                  : readForm(value, path, findings, { key: place.key, version: place.version }),
             })
             break
           case 'roundTemplates':
             content.roundTemplates.push({
               ...common,
-              read: value === unread ? undefined : readForm(value, path, findings),
+              read:
+                value === unread
+                  ? undefined
+                  : readForm(value, path, findings, { key: place.key, version: place.version }),
             })
             break
         }
@@ -851,6 +929,12 @@ export function loadCatalogue(
     for (const version of content.dutyKinds) {
       if (version.read) {
         checkDutyKind(version, version.read.definition, content.name, index, findings)
+      }
+    }
+
+    for (const version of [...content.forms, ...content.roundTemplates]) {
+      if (version.read) {
+        checkForm(version, version.read.definition, content.name, index, findings)
       }
     }
 

@@ -141,8 +141,9 @@ export function signaturesComplete(
  * class, no interval, no name out of the catalogue, whose version on the
  * device may be older. Its lists are ordered by their keys, which device and
  * server share, and not by a moment either side stamps on its own. When the
- * answers of a protocol come (#28), they come in only where there are some,
- * so that a page signed before keeps its fingerprint.
+ * answers of a protocol come with the filled forms of phase 1, they come in
+ * only where there are some, so that a page signed before keeps its
+ * fingerprint.
  */
 export interface SignedPage {
   readonly activity: {

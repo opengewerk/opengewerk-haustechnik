@@ -17,6 +17,10 @@ import {
   type ExpectedDocument,
   type FederalState,
   federalStates,
+  type FormDefinition,
+  type FormFieldKind,
+  formFieldKinds,
+  forms,
   intervalKinds,
   type IsoDate,
   type MeterKind,
@@ -1033,19 +1037,164 @@ export function readDutyKind(
 }
 
 /**
- * A version of a form or a round template. Only its envelope is read here:
- * the first day, the title and that it has sections. What the sections hold,
- * the form engine checks once it is part of the foundation
- * (opengewerk-haustechnik#28); until then a field it does not know is no
- * finding.
+ * The properties a field of a form may hold, by its kind, as the form engine
+ * of the foundation reads them. A property the engine would leave alone is a
+ * finding here, like any field the schema does not know: a misspelt
+ * `requird` would otherwise make a point optional without a word.
+ */
+const fieldBase = ['kind', 'key', 'label', 'hint', 'required', 'carry'] as const
+
+const fieldProperties: Readonly<Record<FormFieldKind, readonly string[]>> = {
+  text: [...fieldBase, 'multiline'],
+  number: [...fieldBase, 'unit', 'decimals'],
+  measurement: [...fieldBase, 'unit', 'decimals', 'limit'],
+  choice: [...fieldBase, 'options'],
+  yes_no: fieldBase,
+  photo: fieldBase,
+  check_point: fieldBase,
+  meter_reading: [...fieldBase, 'unit', 'decimals'],
+  signature: [...fieldBase, 'seals'],
+  group: [...fieldBase, 'repeat', 'fields'],
+}
+
+/** The type each property of a field has to have, the lists and the limit aside. */
+const propertyTypes: Readonly<Record<string, 'string' | 'boolean' | 'number'>> = {
+  kind: 'string',
+  key: 'string',
+  label: 'string',
+  hint: 'string',
+  required: 'boolean',
+  carry: 'boolean',
+  multiline: 'boolean',
+  unit: 'string',
+  decimals: 'number',
+  seals: 'boolean',
+  repeat: 'string',
+}
+
+const typeSentence = {
+  string: 'Hier gehört ein Text hin.',
+  boolean: 'Hier gehört true oder false hin.',
+  number: 'Hier gehört eine Zahl hin.',
+} as const
+
+/**
+ * Whether a field of a form has the shape the engine reads, saying where it
+ * has not. Only a form of that shape is handed to the engine, which judges
+ * what the shape cannot: keys, units, limits, what may carry.
+ */
+function formFieldShaped(value: unknown, spot: Spot, findings: Findings): boolean {
+  if (!isFields(value)) {
+    findings.say(spot, 'Hier gehört ein Objekt hin.')
+    return false
+  }
+
+  const kind = value['kind']
+
+  if (typeof kind !== 'string' || !(formFieldKinds as readonly string[]).includes(kind)) {
+    findings.say(
+      below(spot, 'kind'),
+      kind === undefined
+        ? 'Das Feld fehlt.'
+        : `${JSON.stringify(kind)} ist keine der Arten ${formFieldKinds.join(', ')}.`,
+    )
+    return false
+  }
+
+  const before = findings.problems.length
+
+  if (value['about'] !== undefined) {
+    findings.say(
+      below(spot, 'about'),
+      'Ein Formular aus einem Paket zeigt auf keinen Datensatz: welche Anlagen und Räume es gibt, weiß erst eine Instanz.',
+    )
+  }
+
+  fields(
+    Object.fromEntries(Object.entries(value).filter(([name]) => name !== 'about')),
+    spot,
+    findings,
+    fieldProperties[kind as FormFieldKind],
+  )
+
+  for (const [name, type] of Object.entries(propertyTypes)) {
+    if (value[name] !== undefined && typeof value[name] !== type) {
+      findings.say(below(spot, name), typeSentence[type])
+    }
+  }
+
+  if (value['limit'] !== undefined) {
+    const at = below(spot, 'limit')
+    const limit = fields(value['limit'], at, findings, ['kind', 'rule'])
+
+    if (limit && typeof limit['kind'] !== 'string') {
+      findings.say(
+        below(at, 'kind'),
+        limit['kind'] === undefined ? 'Das Feld fehlt.' : typeSentence.string,
+      )
+    }
+
+    if (limit && limit['rule'] !== undefined) {
+      reference(limit['rule'], below(at, 'rule'), findings)
+    }
+  }
+
+  if (kind === 'choice') {
+    const offered = list(value, 'options', spot, findings, 'required')
+
+    for (const [index, option] of (offered ?? []).entries()) {
+      const at = below(below(spot, 'options'), index)
+      const read = fields(option, at, findings, ['value', 'label'])
+
+      for (const name of ['value', 'label']) {
+        if (read && typeof read[name] !== 'string') {
+          findings.say(
+            below(at, name),
+            read[name] === undefined ? 'Das Feld fehlt.' : typeSentence.string,
+          )
+        }
+      }
+    }
+  }
+
+  if (kind === 'group') {
+    const nested = list(value, 'fields', spot, findings, 'required')
+
+    for (const [index, field] of (nested ?? []).entries()) {
+      formFieldShaped(field, below(below(spot, 'fields'), index), findings)
+    }
+  }
+
+  return findings.problems.length === before
+}
+
+/** A sentence of the engine as a finding of the file: without the key of the form in front. */
+function engineSentence(key: string, problem: string): string {
+  const sentence = problem.startsWith(`${key}: `) ? problem.slice(key.length + 2) : problem
+
+  // A sentence that begins with an article begins with a capital letter; one
+  // that begins with the key of a field keeps the key as it is written.
+  return /^(?:das|der|die|jede) /.test(sentence)
+    ? `${sentence.charAt(0).toUpperCase()}${sentence.slice(1)}`
+    : sentence
+}
+
+/**
+ * A version of a form or a round template, read whole (opengewerk-haustechnik
+ * #28): the first day, the title and its sections, every field in the shape
+ * the form engine of the foundation reads, and then the engine's own
+ * judgement of it under the key and the version the file name gives (ADR 0005,
+ * point 7). A form of a package points at no asset and no room; which there
+ * are, only an instance knows.
  */
 export function readForm(
   value: unknown,
   file: string,
   findings: Findings,
+  name: { readonly key: string; readonly version: number },
 ): ReadEntry<PackagedForm> | undefined {
   const spot = spotIn(file)
-  const from = fields(value, spot, findings, 'any')
+  const from = fields(value, spot, findings, ['validFrom', 'title', 'sections'])
 
   if (!from) {
     return undefined
@@ -1054,18 +1203,54 @@ export function readForm(
   const before = findings.problems.length
   const validFrom = day(from, 'validFrom', spot, findings)
   const title = text(from, 'title', spot, findings)
+  const sections = list(from, 'sections', spot, findings, 'required')
 
-  if (!Array.isArray(from['sections'])) {
-    findings.say(below(spot, 'sections'), 'Ein Formular hat eine Liste von Abschnitten.')
+  for (const [index, section] of (sections ?? []).entries()) {
+    const at = below(below(spot, 'sections'), index)
+    const read = fields(section, at, findings, ['key', 'title', 'hint', 'fields'])
+
+    if (!read) {
+      continue
+    }
+
+    for (const property of ['key', 'title', 'hint']) {
+      if (read[property] !== undefined && typeof read[property] !== 'string') {
+        findings.say(below(at, property), typeSentence.string)
+      }
+    }
+
+    const sectionFields = list(read, 'fields', at, findings, 'required')
+
+    for (const [position, field] of (sectionFields ?? []).entries()) {
+      formFieldShaped(field, below(below(at, 'fields'), position), findings)
+    }
   }
 
-  if (findings.problems.length > before || validFrom === undefined || title === undefined) {
+  if (
+    findings.problems.length > before ||
+    validFrom === undefined ||
+    title === undefined ||
+    sections === undefined
+  ) {
     return undefined
   }
 
-  const content = Object.fromEntries(Object.entries(from).filter(([name]) => name !== 'validFrom'))
+  const definition = {
+    key: name.key,
+    version: name.version,
+    title,
+    sections,
+  } as unknown as FormDefinition
 
-  return { validFrom, definition: { ...content, title } }
+  for (const problem of forms.definitionProblems(definition)) {
+    findings.say(spot, engineSentence(name.key, problem))
+  }
+
+  if (findings.problems.length > before) {
+    return undefined
+  }
+
+  return { validFrom, definition: { title, sections: definition.sections } }
 }
 
 /** A rule as its package states it, its key still the one of its package. */

@@ -6,6 +6,7 @@ import {
   ruleSet,
 } from '@opengewerk/platform-domain'
 
+import type { FormDefinition } from './forms.js'
 import type { BuildingKind } from './location.js'
 import type { MeterKind } from './meter.js'
 
@@ -293,11 +294,11 @@ export interface DutyKind {
 }
 
 /**
- * A form or a round template of a package, with its title. What its sections
- * hold, the form engine checks once it is part of the foundation
- * (opengewerk-haustechnik#28).
+ * A form or a round template of a package: its title and its sections, read
+ * whole and checked by the form engine (opengewerk-haustechnik#28). Key and
+ * version are those of its entry.
  */
-export type PackagedForm = { readonly title: string } & Readonly<Record<string, unknown>>
+export type PackagedForm = Pick<FormDefinition, 'title' | 'sections'>
 
 /** A rule of a package: a record of the rule engine with where it comes from. */
 export interface CatalogueRuleRecord extends RuleRecord {

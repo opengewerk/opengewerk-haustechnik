@@ -9,6 +9,10 @@
       "checkedOn": "2026-10-03"
     },
     {
+      "file": "formulare/water_meter_reading.v1.json",
+      "checkedOn": "2026-10-04"
+    },
+    {
       "file": "pflichten/elevator_main_test.v1.json",
       "checkedOn": "2026-10-03"
     }

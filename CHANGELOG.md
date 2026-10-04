@@ -331,6 +331,15 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   nie still auf einen anderen Stand übertragen wird. Gegengezeichnet wird mit dem Recht "Aufträge
   abnehmen und Rundgänge gegenzeichnen". Ein Gerät hält dafür auch die Mängel, die in seinen
   Vorgängen festgestellt wurden. Das Fundament ist auf opengewerk/opengewerk#520 angehoben
+- Formulare und Vorlagen der Pakete werden ganz gelesen (#28, ADR 0005): jedes Feld in der Form,
+  die die Formular-Engine des Fundaments liest, und danach die Prüfung der Engine selbst, unter
+  dem Schlüssel und der Fassung aus dem Dateinamen. Dazu kennt die Engine den Prüfpunkt mit "in
+  Ordnung", "nicht in Ordnung", "entfällt" und "nicht möglich" und den Zählerstand; die
+  Haustechnik bindet sie mit Grad Celsius für Messwerte und den drei Einheiten eines Zählers, und
+  ein Feld darf auf eine Anlage oder einen Raum zeigen, in einem Paket aber nicht, weil erst eine
+  Instanz weiß, welche es gibt. Ein Grenzwert nennt eine Regel, die es gibt und die in einer
+  passenden Einheit zählt. Das Probepaket hat ein Formular zur Ablesung des Wasserzählers bekommen.
+  Das Fundament ist auf opengewerk/opengewerk#522 angehoben
 
 ### Geändert
 
