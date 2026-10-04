@@ -31,6 +31,8 @@ venv/
 # Build output and logs
 dist/
 build/
+preview-build/
+widths-report/
 *.log
 .turbo/
 

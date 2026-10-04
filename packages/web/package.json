@@ -9,6 +9,7 @@
     "preview": "vite preview",
     "budget": "node scripts/budget.js",
     "words": "node scripts/words.js",
+    "widths": "node scripts/widths.js",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
     "test": "vitest run"

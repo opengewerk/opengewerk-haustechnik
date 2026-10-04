@@ -14,6 +14,7 @@
     "typecheck": "turbo run typecheck",
     "lint": "turbo run lint",
     "test": "node scripts/run-tests.js",
+    "preview": "turbo run build --filter=@opengewerk/haustechnik-web --filter=@opengewerk/haustechnik-server^... && pnpm --filter @opengewerk/haustechnik-server run preview",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "check:toolchain": "node scripts/check-toolchain.js"

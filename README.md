@@ -164,6 +164,30 @@ DATABASE_URL=postgres://opengewerk_app:<passwort>@<host>:5432/haustechnik STORAG
 
 Der Server lauscht auf Port 23800 und liefert die gebaute Oberfläche gleich mit aus; ohne Bau antwortet er mit der Schnittstelle allein und sagt das beim Start. Eine leere Instanz zeigt im Browser die Ersteinrichtung, die nach dem Einrichtungscode aus `SETUP_CODE` fragt und den Betreiber, das erste Konto und dessen zweiten Faktor anlegt. Mit `CLOSED=true` läuft die Instanz, meldet unter `/health` ihre Gesundheit und gibt sonst nichts heraus.
 
+### Vorschau ohne Anmeldung
+
+Oberflächen werden in einer Vorschau geprüft, ohne dass jemand ein Konto anlegt oder ein Passwort tippt (#29). Ein Befehl legt in einer eigenen Datenbank einen Beispielbetreiber an und beantwortet jede Anfrage als eine seiner Personen:
+
+```bash
+docker compose -f docker/compose.test.yaml up -d
+pnpm run preview
+```
+
+Die Vorschau baut die Oberfläche, leert die Datenbank `haustechnik_preview` im Container der Tests, spielt die Migrationen ein und legt über die Routen zwei Bereiche "Nord" und "Süd" mit je zwei Liegenschaften, Gebäuden, Geschossen, Räumen und Anlagen an, darunter ein Hauptwasserzähler mit seinem Unterzähler. Alle Namen und Anschriften sind erfunden, die Postleitzahlen beginnen mit `0000`, die es nicht gibt; der Katalog ist das Probepaket, weil dieser Bau noch kein Paket mitbringt. Danach läuft der Server unter `http://127.0.0.1:23800`, nur auf diesem Rechner und nie unter `NODE_ENV=production`.
+
+Wer gefragt wird, ist die Leitung, wenn nichts anderes gesagt ist. `PREVIEW_ROLE` nennt eine der vier Rollen (`management`, `technical_management`, `site_management`, `technician`) und `PREVIEW_AREA` einen der Bereiche; als Haustechnik in Nord gestartet, zeigt die Vorschau nichts aus Süd, weil Rechte und Bereiche wirken wie auf einer Instanz:
+
+```bash
+PREVIEW_ROLE=technician PREVIEW_AREA=Nord pnpm run preview
+```
+
+Die Datenbank liest die Vorschau aus `PREVIEW_DATABASE_URL` und nie aus `DATABASE_URL`, ihr Name endet auf `_preview`, und sie liegt auf diesem Rechner; der Port kommt aus `PREVIEW_PORT`. Die Vorschau steht unter `packages/server/src/preview/` und kommt weder in `dist` noch in das Abbild. Gegen sie läuft auch die Prüfung "Breiten und Auflösungen", die jede Seite beider Einstiege bei jeder Breite von 320 bis 3840 Pixeln hell und dunkel misst:
+
+```bash
+docker run -d --rm --name widths-browser -p 127.0.0.1:3998:3000 -e TOKEN=probe -e TIMEOUT=1800000 ghcr.io/browserless/chromium:v2.57.0
+WIDTHS_BROWSER="ws://127.0.0.1:3998?token=probe" WIDTHS_ADDRESS=http://host.docker.internal:23800 pnpm --filter @opengewerk/haustechnik-web run widths
+```
+
 ### Rechte und Rollen
 
 Was jemand darf, steht an drei Stellen, und zwei Tests halten sie zusammen:
