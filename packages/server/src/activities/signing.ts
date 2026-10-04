@@ -196,18 +196,29 @@ export async function pageOf(tx: TenantTransaction, activity: ActivityRow): Prom
   })
 }
 
-/** A live activity of the tenant, or the refusal. */
+/**
+ * A live activity of the tenant, or the refusal.
+ *
+ * `held` takes the row until the transaction ends, for a check that what
+ * follows must not overtake (opengewerk-haustechnik#31). Two devices that
+ * signed the same page without a network and send at once were each checked
+ * against signatures the other had not written yet, and both wrote the
+ * activity down: two evidences per duty, which nobody can change or delete.
+ * Held, the second waits for the first and finds what it wrote.
+ */
 async function activityOf(
   tx: TenantTransaction,
   tenantId: TenantId,
   id: ActivityId,
+  held = false,
 ): Promise<ActivityRow> {
-  const [activity] = await tx
+  const query = tx
     .select()
     .from(activities)
     .where(
       and(eq(activities.tenantId, tenantId), eq(activities.id, id), isNull(activities.deletedAt)),
     )
+  const [activity] = held ? await query.for('no key update') : await query
 
   if (!activity) {
     throw new SigningRefusal('Diesen Vorgang gibt es nicht.', 'activity')
@@ -277,7 +288,9 @@ export async function checkSignature(
     throw new SigningRefusal(firstProblem)
   }
 
-  const activity = await activityOf(tx, tenantId, input.activityId)
+  // Held until the signature and what follows it are written, by whichever
+  // way it comes, so that a second one for the same activity waits here.
+  const activity = await activityOf(tx, tenantId, input.activityId, true)
 
   if (activity.status === 'done' || activity.status === 'not_performed') {
     throw new SigningRefusal('Dieser Vorgang ist abgeschlossen.', 'closed')
@@ -437,7 +450,8 @@ export async function decideWorkOrder(
     throw new SigningRefusal('Diesen Auftrag gibt es nicht.')
   }
 
-  const activity = await activityOf(tx, context.tenantId, order.activityId)
+  // Held like a signature: two acceptances at once wrote the order down twice.
+  const activity = await activityOf(tx, context.tenantId, order.activityId, true)
   const valid = await signaturesOf(tx, activity, pageFingerprint(await pageOf(tx, activity)))
 
   if (activity.status !== 'signed' || !valid.some((signature) => signature.role === 'signer')) {
