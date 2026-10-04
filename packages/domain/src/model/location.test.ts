@@ -8,6 +8,7 @@ import {
   locationLimits,
   propertyProblems,
   roomProblems,
+  roomTitle,
 } from './location.js'
 
 const property = {
@@ -151,5 +152,21 @@ describe('a room', () => {
 
   it('leaves the pair alone when a change names only one of the two', () => {
     expect(roomProblems({ number: '' })).toEqual({})
+  })
+})
+
+describe('what a room is called in one line', () => {
+  it('is its number and its name, the number first', () => {
+    expect(roomTitle({ number: 'E.14', name: 'Heizraum' })).toBe('E.14 Heizraum')
+  })
+
+  it('is the one of the two it has', () => {
+    expect(roomTitle({ number: 'E.14', name: null })).toBe('E.14')
+    expect(roomTitle({ number: null, name: 'Treppenhaus Nord' })).toBe('Treppenhaus Nord')
+  })
+
+  it('leaves out one that is blank, and is empty for a room with neither', () => {
+    expect(roomTitle({ number: '  ', name: 'Heizraum' })).toBe('Heizraum')
+    expect(roomTitle({ number: null, name: null })).toBe('')
   })
 })

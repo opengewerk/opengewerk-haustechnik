@@ -28,6 +28,10 @@ import { OfficeShell } from './shell.js'
  * navigation stays lit on every one of them. Until the records of phase 1
  * have their lists, the start of the office is the overview of the settings.
  *
+ * A screen the board has in the navigation lives at the address its place
+ * names (`navigation.tsx`). Its route here is all it takes: the place stands
+ * in the navigation from then on, for whoever holds its right.
+ *
  * Two frames under the root: the office of the tenant, and the area of the
  * instance under `/instanz`, with a navigation and a header of its own,
  * because nothing in it belongs to a tenant.

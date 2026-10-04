@@ -265,3 +265,18 @@ export function roomProblems(room: Readonly<Record<string, unknown>>): Readonly<
 
   return problems
 }
+
+/**
+ * What a room is called where one line has to say it, in a path or in the
+ * name of a deadline: its number and its name, whichever it has, the number
+ * first as it stands on the door. A room has one of the two (`roomProblems`),
+ * so this is empty only for a room nobody could have entered.
+ */
+export function roomTitle(room: {
+  readonly number: string | null
+  readonly name: string | null
+}): string {
+  return [room.number, room.name]
+    .filter((part): part is string => part !== null && part.trim() !== '')
+    .join(' ')
+}

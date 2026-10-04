@@ -9,6 +9,7 @@ import {
   nextAppointment,
   type PropertyId,
   restsOn,
+  roomTitle,
   standingEvidence,
 } from '@opengewerk/haustechnik-domain'
 import type { ExpectedDeadline, SourceQuery } from '@opengewerk/platform-server'
@@ -73,7 +74,7 @@ function labelOf(duty: DutyRow, catalogue: Catalogue): string {
   const room =
     duty.roomNumber === null && duty.roomName === null
       ? null
-      : [duty.roomNumber, duty.roomName].filter((part) => part !== null).join(' ')
+      : roomTitle({ number: duty.roomNumber, name: duty.roomName })
 
   return `${what}, ${asset ?? room ?? duty.buildingName ?? duty.propertyName}`
 }
