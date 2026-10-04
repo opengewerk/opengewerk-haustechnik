@@ -5,10 +5,11 @@ import {
   catalogueOf,
   missingRight,
   type RoleKey,
+  syncEntities,
   type SyncValue,
   type TenantId,
 } from '@opengewerk/haustechnik-domain'
-import { Database, newId } from '@opengewerk/platform-server'
+import { Database, fingerprintOf, newId } from '@opengewerk/platform-server'
 import type { Pool } from 'pg'
 import request from 'supertest'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
@@ -23,6 +24,7 @@ import {
   resetSchema,
   testIdentityHeader,
 } from '../database/test-database.js'
+import { deviceScope } from './device-scope.js'
 
 /**
  * What a device sends without a connection and what the server makes of it
@@ -237,6 +239,12 @@ beforeAll(async () => {
     large,
     'u-tech',
     north,
+  ])
+  // And the Objektleitung in the south.
+  await admin.query('insert into member_areas (tenant_id, user_id, area_id) values ($1, $2, $3)', [
+    large,
+    'u-site',
+    south,
   ])
 
   database = Database.connect(applicationDatabaseUrl())
@@ -754,11 +762,64 @@ describe('a defect', () => {
   })
 })
 
-describe('what a device is sent', () => {
-  it('hands a device what its person sees, by area, and nothing of the area next door', async () => {
-    const inNorth = await placeIn(large, { areaId: north })
-    const inSouth = await placeIn(large, { areaId: south })
+describe('what a device holds', () => {
+  let inNorth: Place
+  let inSouth: Place
 
+  beforeAll(async () => {
+    inNorth = await placeIn(large, { areaId: north })
+    inSouth = await placeIn(large, { areaId: south })
+  })
+
+  /** What the answer of a pull names as narrowed, for a person. */
+  async function narrowedFor(userId: Person, tenantId = large) {
+    const answer = await http()
+      .get('/sync?since=0')
+      .set(testIdentityHeader, by(userId, tenantId))
+      .expect(200)
+
+    return answer.body.narrowed as Readonly<Record<string, string>>
+  }
+
+  /** The area of the property of the small tenant, for rows put in past the application. */
+  async function areaOfPlace(): Promise<string> {
+    const { rows } = await admin.query<{ area_id: string }>(
+      'select area_id from properties where id = $1',
+      [place.property],
+    )
+
+    return rows[0]?.area_id ?? ''
+  }
+
+  /** An activity at an elevator of the small tenant, as the office plans one. */
+  async function activityOf(
+    status: string,
+    responsible: string | null,
+    performer: string | null,
+    kind = 'inspection',
+  ): Promise<string> {
+    const asset = await elevatorIn(place)
+    const { rows } = await admin.query<{ id: string }>(
+      `insert into activities (tenant_id, property_id, area_id, asset_id, kind, title, status,
+                               responsible_user_id, performer_user_id, closing_reason)
+       values ($1, $2, $3, $4, $5, 'Sichtprüfung', $6, $7, $8, $9) returning id`,
+      [
+        small,
+        place.property,
+        await areaOfPlace(),
+        asset,
+        kind,
+        status,
+        responsible,
+        performer,
+        status === 'not_performed' ? 'Anlage abgeschaltet' : null,
+      ],
+    )
+
+    return rows[0]?.id ?? ''
+  }
+
+  it('hands a device what its person sees, by area, and nothing of the area next door', async () => {
     const theirs = await pulled('u-tech', large)
     const everything = await pulled('u-duties', large)
 
@@ -781,5 +842,168 @@ describe('what a device is sent', () => {
         large,
       ),
     ).toEqual([{ outcome: 'conflict', reason: 'record_missing', fields: ['floorId'] }])
+  })
+
+  it('hands whoever sees every area the whole operator, and says so for every kind of record', async () => {
+    const narrowed = await narrowedFor('u-duties')
+
+    expect(Object.keys(narrowed).sort()).toEqual([...syncEntities].sort())
+    expect(new Set(Object.values(narrowed))).toEqual(new Set(['all']))
+  })
+
+  it('names the places of whoever sees some areas by the properties they see, and others for another person on the same device', async () => {
+    const theTechnician = await narrowedFor('u-tech')
+    const theSiteManagement = await narrowedFor('u-site')
+
+    expect(Object.keys(theTechnician).sort()).toEqual([...syncEntities].sort())
+    expect(theTechnician['properties']).toBe(`properties:${fingerprintOf([inNorth.property])}`)
+    expect(theTechnician['rooms']).toBe(theTechnician['properties'])
+    expect(theTechnician['duties']).toBe(theTechnician['properties'])
+    expect(theSiteManagement['properties']).toBe(`properties:${fingerprintOf([inSouth.property])}`)
+
+    // The same device in the hands of the Objektleitung of the south holds
+    // nothing of the north once it has asked from the start, which the other
+    // value tells it to do.
+    const theirs = await pulled('u-site', large)
+
+    expect(theirs['properties']?.map((row) => row['id'])).toEqual([inSouth.property])
+    expect(theirs['rooms']?.every((row) => row['propertyId'] === inSouth.property)).toBe(true)
+  })
+
+  it('names the places by another value once the areas of the person change', async () => {
+    const before = await narrowedFor('u-tech')
+
+    await admin.query(
+      'insert into member_areas (tenant_id, user_id, area_id) values ($1, $2, $3)',
+      [large, 'u-tech', south],
+    )
+
+    try {
+      const after = await narrowedFor('u-tech')
+
+      expect(after['properties']).toBe(
+        `properties:${fingerprintOf([inNorth.property, inSouth.property])}`,
+      )
+      expect(after['properties']).not.toBe(before['properties'])
+    } finally {
+      await admin.query(
+        'delete from member_areas where tenant_id = $1 and user_id = $2 and area_id = $3',
+        [large, 'u-tech', south],
+      )
+    }
+  })
+
+  it('holds the activities of the person while open, given to them or to nobody, and closed ones for thirty days', async () => {
+    const mine = await activityOf('open', 'u-tech', null)
+    const theirs = await activityOf('started', 'u-site', 'u-site')
+    const nobodys = await activityOf('open', null, null)
+    const closed = await activityOf('done', null, 'u-tech')
+    const scopeAt = (now: Date) =>
+      database.forTenant({ tenantId: small, userId: 'u-tech' }, (tx) =>
+        deviceScope(tx, 'u-tech', now),
+      )
+
+    const today = await scopeAt(new Date())
+    const later = await scopeAt(new Date(Date.now() + 31 * 24 * 60 * 60 * 1000))
+
+    expect(today.everyArea).toBe(false)
+    expect(today.activityIds).toEqual(expect.arrayContaining([mine, nobodys, closed]))
+    expect(today.activityIds).not.toContain(theirs)
+    expect(later.activityIds).toEqual(expect.arrayContaining([mine, nobodys]))
+    expect(later.activityIds).not.toContain(closed)
+
+    // Over the routes, and named by a fingerprint over what it holds.
+    const rows = await pulled('u-tech')
+    const narrowed = await narrowedFor('u-tech', small)
+
+    expect(rows['activities']?.map((row) => row['id'])).toEqual(
+      expect.arrayContaining([mine, nobodys, closed]),
+    )
+    expect(rows['activities']?.map((row) => row['id'])).not.toContain(theirs)
+    expect(narrowed['activities']).toBe(`activities:${fingerprintOf(today.activityIds)}`)
+    expect(narrowed['activity_duties']).toBe(narrowed['activities'])
+
+    // The Objektleitung, who sees the area as well, holds their own, and one
+    // that was begun stays as long as it is open.
+    const theirScope = await database.forTenant({ tenantId: small, userId: 'u-site' }, (tx) =>
+      deviceScope(tx, 'u-site', new Date(Date.now() + 31 * 24 * 60 * 60 * 1000)),
+    )
+
+    expect(theirScope.activityIds).toEqual(expect.arrayContaining([theirs, nobodys]))
+    expect(theirScope.activityIds).not.toContain(mine)
+  })
+
+  it('holds the duties and the work order of the activities it holds, and of no other', async () => {
+    const theirs = await activityOf('open', 'u-site', null, 'work_order')
+    const areaId = await areaOfPlace()
+    const { rows: duty } = await admin.query<{ id: string }>(
+      `insert into duties (tenant_id, property_id, area_id, label, basis, source_note, counting,
+                           interval_months, confirmed_by)
+       values ($1, $2, $3, 'Kontrollgang', 'own_decision', 'Hausordnung', 'from_performance', 1,
+               'u-lead') returning id`,
+      [small, place.property, areaId],
+    )
+    const { rows: line } = await admin.query<{ id: string }>(
+      `insert into activity_duties (tenant_id, property_id, area_id, activity_id, duty_id)
+       values ($1, $2, $3, $4, $5) returning id`,
+      [small, place.property, areaId, theirs, duty[0]?.id],
+    )
+    const { rows: order } = await admin.query<{ id: string }>(
+      `insert into work_orders (tenant_id, property_id, area_id, activity_id, number, kind)
+       values ($1, $2, $3, $4, 'AU-2026-9999', 'fault') returning id`,
+      [small, place.property, areaId, theirs],
+    )
+
+    const mine = await pulled('u-tech')
+    const ours = await pulled('u-site')
+    const ids = (
+      rows: Readonly<Record<string, readonly Record<string, unknown>[]>>,
+      entity: string,
+    ) => (rows[entity] ?? []).map((row) => row['id'])
+
+    expect(ids(mine, 'activity_duties')).not.toContain(line[0]?.id)
+    expect(ids(mine, 'work_orders')).not.toContain(order[0]?.id)
+    expect(ids(ours, 'activity_duties')).toContain(line[0]?.id)
+    expect(ids(ours, 'work_orders')).toContain(order[0]?.id)
+  })
+
+  it('holds the open defects of its areas, and lets one that was set right go', async () => {
+    const open = newId<'defect'>()
+    const remedied = newId<'defect'>()
+
+    expect(
+      await outcomes('u-tech', [
+        operation('defects', 'create', open, {
+          description: 'Notbeleuchtung flackert',
+          foundOn: '2026-10-04',
+          propertyId: place.property,
+        }),
+        operation('defects', 'create', remedied, {
+          description: 'Tür quietscht',
+          foundOn: '2026-10-04',
+          propertyId: place.property,
+        }),
+      ]),
+    ).toEqual([applied, applied])
+
+    const before = await narrowedFor('u-tech', small)
+
+    await admin.query(`update defects set status = 'remedied' where id = $1`, [remedied])
+
+    const rows = await pulled('u-tech')
+    const after = await narrowedFor('u-tech', small)
+
+    expect(rows['defects']?.map((row) => row['id'])).toContain(open)
+    expect(rows['defects']?.map((row) => row['id'])).not.toContain(remedied)
+    expect(after['defects']).not.toBe(before['defects'])
+    expect(after['defects']).toBe(
+      `defects:${fingerprintOf(
+        (
+          await database.forTenant({ tenantId: small, userId: 'u-tech' }, (tx) =>
+            deviceScope(tx, 'u-tech'),
+          )
+        ).defectIds,
+      )}`,
+    )
   })
 })

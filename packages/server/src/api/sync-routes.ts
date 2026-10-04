@@ -9,6 +9,7 @@ import {
 } from '@opengewerk/haustechnik-domain'
 import type { SyncRoutes } from '@opengewerk/platform-server'
 
+import { deviceScope, pullScope } from '../sync/device-scope.js'
 import { syncFor } from '../sync/sync.js'
 import { answerFor } from './database-errors.js'
 
@@ -95,10 +96,16 @@ export function permissionFor(
 
 /**
  * The routes of the sync of this application, with the catalogue the asset
- * kinds come from. Every device holds everything of its tenant that its
- * person sees in the database, by area; the choice per device by what the
- * person works on arrives with the second part of #27 (ADR 0006, point 1).
+ * kinds come from. A device holds what its person sees, by area, and of that
+ * the part ADR 0006 gives it (`deviceScope`): the whole operator for whoever
+ * sees every area, the places, their own activities and the open defects for
+ * anybody else.
  */
 export function syncRoutesFor(catalogue: Catalogue): SyncRoutes<Identity, Right> {
-  return { sync: syncFor(catalogue), permissionFor, answerFor }
+  return {
+    sync: syncFor(catalogue),
+    permissionFor,
+    answerFor,
+    scope: async ({ tx, identity }) => pullScope(await deviceScope(tx, identity.userId)),
+  }
 }

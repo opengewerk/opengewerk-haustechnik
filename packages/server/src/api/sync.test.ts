@@ -1,6 +1,6 @@
 import type { INestApplication } from '@nestjs/common'
 import { Test } from '@nestjs/testing'
-import { missingRight, type TenantId } from '@opengewerk/haustechnik-domain'
+import { missingRight, syncEntities, type TenantId } from '@opengewerk/haustechnik-domain'
 import { Database, newId } from '@opengewerk/platform-server'
 import type { Pool } from 'pg'
 import request from 'supertest'
@@ -81,7 +81,9 @@ describe('the sync of this application', () => {
         .set(testIdentityHeader, as(tenantId, `u-${role}`, role))
         .expect(200)
 
-      expect(answer.body).toEqual({ changes: [], cursor: 0, hasMore: false, narrowed: {} })
+      expect(answer.body).toMatchObject({ changes: [], cursor: 0, hasMore: false })
+      // Every kind of record is named, so that a device knows what it holds.
+      expect(Object.keys(answer.body.narrowed as object).sort()).toEqual([...syncEntities].sort())
     }
   })
 
