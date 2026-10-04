@@ -15,7 +15,7 @@ import {
   testIdentityHeader,
 } from '../database/test-database.js'
 import { ApiModule } from './api.module.js'
-import { as, testIdentities } from './test-identity.js'
+import { as, onDevice, testIdentities } from './test-identity.js'
 
 // The routes a device syncs through are the foundation's, tested there with an
 // application that is nobody's (ADR 0010 in the repository opengewerk). What
@@ -113,9 +113,11 @@ describe('the sync of this application', () => {
   })
 
   it('has no conflicts to work through', async () => {
+    // Asked as the device that sent: the list is a device's own, and a session
+    // that is no device is answered without a look at the table.
     const answer = await http()
       .get('/sync/conflicts')
-      .set(testIdentityHeader, as(tenantId, 'u-technician', 'technician'))
+      .set(testIdentityHeader, onDevice(as(tenantId, 'u-technician', 'technician'), 'phone'))
       .expect(200)
 
     expect(answer.body).toEqual([])

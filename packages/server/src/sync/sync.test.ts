@@ -18,7 +18,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 import { pageFingerprint } from '../activities/signing.js'
 import { ApiModule } from '../api/api.module.js'
-import { as, testIdentities } from '../api/test-identity.js'
+import { as, onDevice, testIdentities } from '../api/test-identity.js'
 import {
   allowApplicationLogin,
   applicationDatabaseUrl,
@@ -127,6 +127,19 @@ async function outcomes(
 }
 
 const applied = { outcome: 'applied', reason: null, fields: [] }
+
+/**
+ * The open conflicts about one record on the list a session is given: that of
+ * a device, or of somebody whose session is no device.
+ */
+async function conflictsAbout(recordId: string, userId: Person, deviceId?: string) {
+  const somebody = deviceId === undefined ? by(userId) : onDevice(by(userId), deviceId)
+  const answer = await http().get('/sync/conflicts').set(testIdentityHeader, somebody).expect(200)
+
+  return (answer.body as { recordId: string; reason: string; fields: string[] }[])
+    .filter((conflict) => conflict.recordId === recordId)
+    .map(({ reason, fields }) => ({ reason, fields }))
+}
 
 /** The rows of each kind of record a device of the person is sent. */
 async function pulled(
@@ -424,6 +437,14 @@ describe('taking stock without a connection', () => {
         'phone-b',
       ),
     ).toEqual([{ outcome: 'conflict', reason: 'changed_elsewhere', fields: ['name'] }])
+    // The conflict waits on the list of the device whose change it was and on
+    // no other: it carries what that device wanted to write. Not on the first
+    // device's, and not for the same person in a session that is no device.
+    expect(await conflictsAbout(asset, 'u-site', 'phone-b')).toEqual([
+      { reason: 'changed_elsewhere', fields: ['name'] },
+    ])
+    expect(await conflictsAbout(asset, 'u-tech', 'phone-a')).toEqual([])
+    expect(await conflictsAbout(asset, 'u-site')).toEqual([])
     expect(
       await outcomes(
         'u-site',

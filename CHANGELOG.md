@@ -352,6 +352,21 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
 
 ### Geändert
 
+- Das Fundament ist auf den Stand nach dem Review der Phase 0 angehoben
+  (`opengewerk/opengewerk#524` bis `#528`, `opengewerk-haustechnik#31`). Für diese Anwendung heißt
+  das: Die Konfliktliste des Abgleichs zeigt jedem Gerät nur noch seine eigenen Konflikte, und nur
+  dieses Gerät schließt sie. Bisher bekam jeder mit dem Recht zum Abgleich die Konflikte des ganzen
+  Betreibers und mit ihnen Werte aus Bereichen, die er nicht sieht. Ein Konto, das es auf der
+  Instanz schon gibt, tritt einer Einladung nur noch angemeldet als dieses Konto bei, und die
+  Ersteinrichtung übernimmt das Passwort so, wie es eingegeben wurde. Was jemand auf einem Gerät
+  erfasst hat und nicht mehr senden konnte, wartet dort auf diese Person und geht nicht mehr unter
+  der nächsten hinaus, die sich anmeldet. "Zugänge" bietet die Schreibaktionen nur dem an, der
+  Zugänge ändern darf. Der Server übersteht eine Verbindung, die die Datenbank beendet, etwa beim
+  Rückspielen einer Sicherung; eine Erinnerung an eine Frist, die scheitert, hält die übrigen des
+  Betreibers nicht mehr auf; und der Migrationslauf lehnt ein Journal ab, dessen Zeitstempel nicht
+  steigen, bevor er etwas einspielt. Die Tests des Abgleichs fragen die Konfliktliste seitdem als
+  das Gerät, das gesendet hat, und einer hält fest, dass ein zweites Gerät und eine Sitzung ohne
+  Gerät den Konflikt eines anderen nicht bekommen
 - Das Fundament ist auf den Stand angehoben, mit dem Werte aus JSON und Listen im Abgleich als
   ihr Text reisen (`opengewerk/opengewerk#519`). Die Werte einer Anlage und die Arten eines
   Gebäudes sind die ersten solchen Spalten in einer Tabelle, die reist; ohne das las der

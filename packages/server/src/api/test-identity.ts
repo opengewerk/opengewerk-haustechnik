@@ -49,3 +49,12 @@ export const testIdentities: IdentitySource = {
 export function as(tenantId: TenantId, userId: string, ...roles: RoleKey[]): string {
   return JSON.stringify({ userId, tenantId, roles } satisfies Somebody)
 }
+
+/**
+ * The same somebody in a session opened on one device. What belongs to a
+ * device and to nobody else, as its list of conflicts, is asked for like this;
+ * a header from `as` alone is a session that is no device and has none.
+ */
+export function onDevice(somebody: string, deviceId: string): string {
+  return JSON.stringify({ ...(JSON.parse(somebody) as Somebody), deviceId })
+}
