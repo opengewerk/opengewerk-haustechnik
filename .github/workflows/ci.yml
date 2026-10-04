@@ -365,6 +365,112 @@ jobs:
       - name: Tests
         run: pnpm run test
 
+  widths:
+    name: Breiten und Auflösungen
+    runs-on: ubuntu-latest
+
+    # Every screen of both entries at the widths of the board "Breiten und
+    # Auflösungen", from 320 to 3840 pixels, light and dark, and the job fails
+    # as soon as a page is wider than its window, as in the repository
+    # opengewerk (#29). The screens are found by following the links of the
+    # preview, so a new one is checked without anybody adding it here.
+    #
+    # The browser is the image of the renderer of the foundation, on the
+    # network of the runner: the preview listens on 127.0.0.1 and nowhere
+    # else, and a service container would not reach it there. This
+    # application binds a renderer only in phase 1, so the image is read from
+    # the compose.yaml of the submodule.
+    services:
+      postgres:
+        image: postgres:18-alpine
+        env:
+          POSTGRES_USER: haustechnik
+          POSTGRES_PASSWORD: haustechnik
+          POSTGRES_DB: haustechnik_test
+        ports:
+          - 5434:5432
+        options: >-
+          --health-cmd "pg_isready -U haustechnik -d haustechnik_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    steps:
+      - name: Repository mit dem Fundament auschecken
+        uses: actions/checkout@v7
+        with:
+          submodules: true
+
+      - name: Browser wie im Betrieb starten
+        run: |
+          set -euo pipefail
+          image=$(sed -n '/^  renderer:$/{n;s/^ *image: //p;}' upstream/opengewerk/docker/compose.yaml)
+
+          if [ -z "$image" ]; then
+            echo "In upstream/opengewerk/docker/compose.yaml steht kein Abbild für den Renderer."
+            exit 1
+          fi
+
+          echo "Browser: $image"
+          docker run -d --rm --name browser --network host -e TOKEN=probe -e TIMEOUT=1800000 "$image"
+
+          for _ in $(seq 1 30); do
+            if curl -fsS -o /dev/null "http://127.0.0.1:3000/json/version?token=probe"; then
+              exit 0
+            fi
+            sleep 2
+          done
+
+          echo "Der Browser ist nach einer Minute nicht erreichbar."
+          exit 1
+
+      - name: pnpm über Corepack bereitstellen
+        run: corepack enable
+
+      - name: Node einrichten
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Abhängigkeiten installieren
+        run: pnpm install --frozen-lockfile
+
+      - name: Vorschau starten
+        run: |
+          set -euo pipefail
+          # Builds the interface, empties and migrates haustechnik_preview in
+          # the database above and plants the sample operator. The line below
+          # is printed once all of it is there.
+          nohup pnpm run preview > "$RUNNER_TEMP/preview.log" 2>&1 &
+
+          for _ in $(seq 1 90); do
+            if grep -q "Die Vorschau läuft unter" "$RUNNER_TEMP/preview.log"; then
+              exit 0
+            fi
+            sleep 2
+          done
+
+          cat "$RUNNER_TEMP/preview.log"
+          echo "Die Vorschau ist nach drei Minuten nicht gestartet."
+          exit 1
+
+      - name: Jede Seite bei jeder Breite
+        run: pnpm --filter @opengewerk/haustechnik-web run widths
+        env:
+          WIDTHS_BROWSER: ws://127.0.0.1:3000?token=probe&timeout=1800000
+          WIDTHS_ADDRESS: http://127.0.0.1:23800
+
+      - name: Aufnahmen bei einem Fehlschlag
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: widths-report
+          path: |
+            packages/web/widths-report
+            ${{ runner.temp }}/preview.log
+          if-no-files-found: ignore
+
   # The three runs on a whole stack call their steps from the foundation's
   # docker/test-stack.sh (opengewerk-haustechnik#14), against the folder of
   # this application: APPLICATION_DIRECTORY names it, and what the steps need

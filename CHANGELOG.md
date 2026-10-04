@@ -340,6 +340,15 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   Instanz weiß, welche es gibt. Ein Grenzwert nennt eine Regel, die es gibt und die in einer
   passenden Einheit zählt. Das Probepaket hat ein Formular zur Ablesung des Wasserzählers bekommen.
   Das Fundament ist auf opengewerk/opengewerk#522 angehoben
+- Eine Vorschau ohne Anmeldung (#29): `pnpm run preview` legt in einer eigenen Datenbank einen
+  erfundenen Beispielbetreiber mit zwei Bereichen, Liegenschaften, Gebäuden, Geschossen, Räumen und
+  Anlagen an und beantwortet jede Anfrage als eine seiner Personen, damit Oberflächen ohne Konto
+  und Passwort geprüft werden. Mit `PREVIEW_ROLE` und `PREVIEW_AREA` startet sie als eine andere
+  Rolle in einem Bereich; Rechte und Bereiche wirken wie auf einer Instanz, als Haustechnik in Nord
+  zeigt sie nichts aus Süd. Sie läuft nur auf diesem Rechner, nie in Produktion und nie gegen eine
+  Datenbank, deren Name nicht auf `_preview` endet, und kommt nicht in das Abbild. Dazu der CI-Job
+  "Breiten und Auflösungen", der jede Seite beider Einstiege gegen die Vorschau bei jeder Breite
+  von 320 bis 3840 Pixeln misst, hell und dunkel, mit dem Werkzeug des Fundaments
 
 ### Geändert
 
