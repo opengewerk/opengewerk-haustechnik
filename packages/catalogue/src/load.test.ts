@@ -11,7 +11,7 @@ import { loadCatalogue } from './load.js'
 // test below changes one thing about it and expects the one finding that
 // thing deserves.
 const probe = readPackageFiles(fileURLToPath(new URL('../test/pakete/', import.meta.url)))
-const options = { applicationVersion: '0.0.0', today: '2026-10-03' }
+const options = { applicationVersion: '0.0.0', today: '2026-10-04' }
 
 const assetKindFile = 'probe/anlagenarten/elevator.v1.json'
 const dutyKindFile = 'probe/pflichten/elevator_main_test.v1.json'
@@ -594,12 +594,229 @@ describe('the versions of an entry', () => {
   })
 })
 
+const formFile = 'probe/formulare/water_meter_reading.v1.json'
+const form = contentOf(formFile)
+
+/** The probe form with the fields of its first section replaced. */
+function formWithFields(fields: readonly unknown[]): Json {
+  const [first, ...rest] = form['sections'] as readonly Json[]
+
+  return { ...form, sections: [{ ...first, fields }, ...rest] }
+}
+
+const [sealIntact, noLeak, reading] = (form['sections'] as readonly Json[])[0]?.[
+  'fields'
+] as readonly Json[]
+
+describe('a form', () => {
+  it('loads whole, with its check points and its reading, under the key and the version of its file', () => {
+    const { bundle, problems: found } = loadCatalogue(probe, options)
+
+    expect(found).toEqual([])
+    expect(
+      bundle?.packages[0]?.forms.map((entry) => [entry.key, entry.version, entry.validFrom]),
+    ).toEqual([['probe.water_meter_reading', 1, '2015-06-01']])
+    expect(
+      bundle?.packages[0]?.forms[0]?.definition.sections.map((section) => section.key),
+    ).toEqual(['meter', 'end'])
+  })
+
+  it('says which property it does not know, on the form and on a field', () => {
+    expect(problems({ [formFile]: { ...form, hint: 'Einmal im Monat.' } })).toEqual([
+      `${formFile}, hint: Dieses Feld gibt es hier nicht. Ein Tippfehler?`,
+    ])
+    expect(
+      problems({ [formFile]: formWithFields([{ ...sealIntact, requird: true }, noLeak, reading]) }),
+    ).toEqual([
+      `${formFile}, sections[0].fields[0].requird: Dieses Feld gibt es hier nicht. Ein Tippfehler?`,
+    ])
+    expect(
+      problems({
+        [formFile]: formWithFields([
+          sealIntact,
+          noLeak,
+          reading,
+          {
+            kind: 'group',
+            key: 'taps',
+            label: 'Zapfstellen',
+            repeat: 'free',
+            fields: [{ ...noLeak, key: 'tap_tight', requird: true }],
+          },
+        ]),
+      }),
+    ).toEqual([
+      `${formFile}, sections[0].fields[3].fields[0].requird: Dieses Feld gibt es hier nicht. Ein Tippfehler?`,
+    ])
+  })
+
+  it('points at no asset and no room, which only an instance knows', () => {
+    expect(
+      problems({
+        [formFile]: formWithFields([
+          { ...sealIntact, about: { kind: 'asset', id: 'meter-1' } },
+          noLeak,
+          reading,
+        ]),
+      }),
+    ).toEqual([
+      `${formFile}, sections[0].fields[0].about: Ein Formular aus einem Paket zeigt auf keinen Datensatz: welche Anlagen und Räume es gibt, weiß erst eine Instanz.`,
+    ])
+  })
+
+  it('refuses a field of a kind nobody knows, a property of the wrong type and a choice without options', () => {
+    expect(
+      problems({
+        [formFile]: formWithFields([{ kind: 'slider', key: 'level', label: 'Stand' }]),
+      }),
+    ).toEqual([
+      `${formFile}, sections[0].fields[0].kind: "slider" ist keine der Arten text, number, measurement, choice, yes_no, photo, check_point, meter_reading, signature, group.`,
+    ])
+    expect(
+      problems({
+        [formFile]: formWithFields([sealIntact, noLeak, { ...reading, required: 'ja' }]),
+      }),
+    ).toEqual([`${formFile}, sections[0].fields[2].required: Hier gehört true oder false hin.`])
+    expect(
+      problems({ [formFile]: formWithFields([{ kind: 'choice', key: 'colour', label: 'Farbe' }]) }),
+    ).toEqual([`${formFile}, sections[0].fields[0].options: Das Feld fehlt.`])
+  })
+
+  it('hands the rest to the form engine, whose findings name the file', () => {
+    expect(
+      problems({
+        [formFile]: formWithFields([
+          { ...sealIntact, carry: true },
+          sealIntact,
+          { ...reading, unit: 'litres' },
+        ]),
+      }),
+    ).toEqual([
+      `${formFile}: seal_intact wird nicht übernommen, eine Antwort auf einen Prüfpunkt und ein Zählerstand gehören zu dem Tag, an dem sie entstanden sind.`,
+      `${formFile}: Das Feld seal_intact steht zweimal im Formular.`,
+      `${formFile}: reading nennt eine Einheit, die es nicht gibt.`,
+    ])
+  })
+
+  describe('with a measured value against a rule', () => {
+    const waterRules = {
+      note: 'Eine Regel für die Tests des Laders, aus keinem Gesetz.',
+      records: [
+        {
+          key: 'hot_water_minimum',
+          validFrom: '2015-06-01',
+          validUntil: null,
+          unit: 'decidegrees_celsius',
+          value: 550,
+          source: 'Probe',
+          origin: 'state_law',
+        },
+      ],
+    }
+    const reviewed = reviewsWith({
+      rules: [{ key: 'hot_water_minimum', validFrom: '2015-06-01', checkedOn: '2026-10-04' }],
+    })
+    const measured = (limit: Json, unit = 'degrees_celsius') => ({
+      kind: 'measurement',
+      key: 'temperature',
+      label: 'Wassertemperatur',
+      unit,
+      decimals: 1,
+      limit,
+    })
+    const loaded = (limit: Json, unit?: string) =>
+      loadCatalogue(
+        withFiles({
+          'probe/regeln/water.json': waterRules,
+          [acceptancesFile]: reviewed,
+          [formFile]: formWithFields([sealIntact, noLeak, reading, measured(limit, unit)]),
+        }),
+        options,
+      )
+
+    it('counts in degrees Celsius against a rule in tenths of a degree, written in the bundle the way it is named outside its package', () => {
+      const { bundle, problems: found } = loaded({ kind: 'at_least', rule: 'hot_water_minimum' })
+      const fields = bundle?.packages[0]?.forms[0]?.definition.sections[0]?.fields
+
+      expect(found).toEqual([])
+      expect(fields?.[3]).toEqual(measured({ kind: 'at_least', rule: 'probe.hot_water_minimum' }))
+    })
+
+    it('names a rule that exists, in a unit the field can be measured in', () => {
+      expect(loaded({ kind: 'at_least', rule: 'hot_water_maximum' }).problems).toEqual([
+        `${formFile}: Der Grenzwert von temperature nennt die Regel hot_water_maximum, die es nicht gibt. Eine Regel steht unter regeln/ mit Gültigkeitszeitraum und Fundstelle.`,
+      ])
+      expect(loaded({ kind: 'at_least', rule: 'elevator_main_test_interval' }).problems).toEqual([
+        `${formFile}: Der Grenzwert von temperature nennt die Regel elevator_main_test_interval, die ab 2015-06-01 in Monaten zählt; gezählt wird hier in Zehntelgrad Celsius.`,
+      ])
+      expect(
+        loaded({ kind: 'at_least', rule: 'hot_water_minimum' }, 'kilowatt_hours').problems,
+      ).toEqual([
+        `${formFile}: Der Grenzwert von temperature nennt die Regel hot_water_minimum, doch ein Wert in kWh lässt sich mit keiner Regel vergleichen.`,
+      ])
+      expect(loaded({ kind: 'at_least', rule: 'Hot water' }).problems).toEqual([
+        `${formFile}, sections[0].fields[3].limit.rule: Ein Verweis ist ein Schlüssel aus diesem Paket oder <paket>.<schlüssel> aus einem anderen.`,
+      ])
+    })
+
+    it('asks the same of a measured value in a group', () => {
+      const grouped = (rule: string) =>
+        loadCatalogue(
+          withFiles({
+            'probe/regeln/water.json': waterRules,
+            [acceptancesFile]: reviewed,
+            [formFile]: formWithFields([
+              sealIntact,
+              noLeak,
+              reading,
+              {
+                kind: 'group',
+                key: 'taps',
+                label: 'Zapfstellen',
+                repeat: 'free',
+                fields: [measured({ kind: 'at_least', rule })],
+              },
+            ]),
+          }),
+          options,
+        )
+      const { bundle, problems: found } = grouped('hot_water_minimum')
+      const taps = bundle?.packages[0]?.forms[0]?.definition.sections[0]?.fields[3]
+
+      expect(found).toEqual([])
+      expect(taps?.kind === 'group' ? taps.fields : undefined).toEqual([
+        measured({ kind: 'at_least', rule: 'probe.hot_water_minimum' }),
+      ])
+      expect(grouped('hot_water_maximum').problems).toEqual([
+        `${formFile}: Der Grenzwert von temperature nennt die Regel hot_water_maximum, die es nicht gibt. Eine Regel steht unter regeln/ mit Gültigkeitszeitraum und Fundstelle.`,
+      ])
+    })
+  })
+
+  it('reads a meter in each of the units a meter counts in', () => {
+    expect(
+      problems({
+        [formFile]: formWithFields(
+          ['kilowatt_hours', 'megawatt_hours', 'cubic_metres'].map((unit) => ({
+            kind: 'meter_reading',
+            key: unit,
+            label: 'Zählerstand',
+            unit,
+            decimals: 3,
+          })),
+        ),
+      }),
+    ).toEqual([])
+  })
+})
+
 describe('the reviews', () => {
   it('name for every entry and every rule when it was last checked against its source', () => {
     expect(problems({ [acceptancesFile]: { entries: [], rules: [] } })).toEqual([
       expect.stringMatching(/Für anlagenarten\/elevator\.v1\.json fehlt ein Eintrag/),
       expect.stringMatching(/Für anlagenarten\/water_meter\.v1\.json fehlt ein Eintrag/),
       expect.stringMatching(/Für pflichten\/elevator_main_test\.v1\.json fehlt ein Eintrag/),
+      expect.stringMatching(/Für formulare\/water_meter_reading\.v1\.json fehlt ein Eintrag/),
       expect.stringMatching(
         /Für die Regel elevator_main_test_interval \(DE\) ab 2015-06-01 fehlt ein Eintrag/,
       ),
@@ -620,14 +837,14 @@ describe('the reviews', () => {
       problems({
         [acceptancesFile]: {
           entries: [
-            { file: 'anlagenarten/elevator.v1.json', checkedOn: '2026-10-04' },
+            { file: 'anlagenarten/elevator.v1.json', checkedOn: '2026-10-05' },
             ...(acceptances['entries'] as readonly Json[]).slice(1),
           ],
           rules: acceptances['rules'],
         },
       }),
     ).toEqual([
-      `${acceptancesFile}: anlagenarten/elevator.v1.json ist am 2026-10-04 geprüft, einem Tag, der noch nicht war.`,
+      `${acceptancesFile}: anlagenarten/elevator.v1.json ist am 2026-10-05 geprüft, einem Tag, der noch nicht war.`,
     ])
     expect(
       problems({
@@ -638,7 +855,7 @@ describe('the reviews', () => {
               checkedOn: '2026-10-03',
               accepted: {
                 by: 'Eine Fachkraft',
-                on: '2026-10-04',
+                on: '2026-10-05',
                 sha256: entryChecksum(probe.get(assetKindFile) as Uint8Array),
               },
             },
@@ -648,7 +865,7 @@ describe('the reviews', () => {
         },
       }),
     ).toEqual([
-      `${acceptancesFile}, anlagenarten/elevator.v1.json: Die Abnahme ist auf den 2026-10-04 datiert, einen Tag, der noch nicht war.`,
+      `${acceptancesFile}, anlagenarten/elevator.v1.json: Die Abnahme ist auf den 2026-10-05 datiert, einen Tag, der noch nicht war.`,
     ])
   })
 

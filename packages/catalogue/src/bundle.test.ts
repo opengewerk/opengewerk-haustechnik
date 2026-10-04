@@ -20,7 +20,7 @@ afterEach(() => {
 
 describe('the bundle module', () => {
   it('hands on the bundle the build wrote, read the way Node reads a JSON module', async () => {
-    const { bundle } = loadCatalogue(probe, { applicationVersion: '0.0.0', today: '2026-10-03' })
+    const { bundle } = loadCatalogue(probe, { applicationVersion: '0.0.0', today: '2026-10-04' })
     const folder = mkdtempSync(join(tmpdir(), 'catalogue-'))
     folders.push(folder)
 
@@ -38,7 +38,7 @@ describe('the bundle module', () => {
   })
 
   it('hands on the probe package under a name of its own, apart from the catalogue', async () => {
-    const { bundle } = loadCatalogue(probe, { applicationVersion: '0.0.0', today: '2026-10-03' })
+    const { bundle } = loadCatalogue(probe, { applicationVersion: '0.0.0', today: '2026-10-04' })
     const folder = mkdtempSync(join(tmpdir(), 'catalogue-'))
     folders.push(folder)
 
@@ -61,7 +61,7 @@ describe('the bundle module', () => {
   })
 
   it('declares the type of the bundle from the domain package', () => {
-    const { bundle } = loadCatalogue(probe, { applicationVersion: '0.0.0', today: '2026-10-03' })
+    const { bundle } = loadCatalogue(probe, { applicationVersion: '0.0.0', today: '2026-10-04' })
 
     expect(bundleFiles(bundle as NonNullable<typeof bundle>)['index.d.ts']).toContain(
       "import type { CatalogueBundle } from '@opengewerk/haustechnik-domain'",

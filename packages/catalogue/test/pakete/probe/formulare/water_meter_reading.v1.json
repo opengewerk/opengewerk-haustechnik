@@ -1,0 +1,27 @@
+{
+  "validFrom": "2015-06-01",
+  "title": "Ablesung Wasserzähler",
+  "sections": [
+    {
+      "key": "meter",
+      "title": "Zähler",
+      "fields": [
+        { "kind": "check_point", "key": "seal_intact", "label": "Plombe unversehrt" },
+        { "kind": "check_point", "key": "no_leak", "label": "Zähler dicht" },
+        {
+          "kind": "meter_reading",
+          "key": "reading",
+          "label": "Zählerstand",
+          "unit": "cubic_metres",
+          "decimals": 3,
+          "required": true
+        }
+      ]
+    },
+    {
+      "key": "end",
+      "title": "Abschluss",
+      "fields": [{ "kind": "signature", "key": "signature", "label": "Unterschrift", "seals": true }]
+    }
+  ]
+}

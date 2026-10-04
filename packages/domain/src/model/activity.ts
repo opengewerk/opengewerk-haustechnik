@@ -14,7 +14,7 @@ import type { PlaceTarget } from './target.js'
  * with a truth each, so that a round, the test of a contractor and a work
  * order meet the same duty the same way (guiding decision 1). What only one
  * kind has stands in a table beside it: the number of a work order here, the
- * points and answers of a round with the forms (#28).
+ * points and answers of a round with the filled forms of phase 1.
  */
 export type ActivityId = Id<'activity'>
 export type ActivityDutyId = Id<'activity-duty'>

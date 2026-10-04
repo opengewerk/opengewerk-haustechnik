@@ -54,6 +54,23 @@ export * from './model/defect.js'
 // foundation keeps, with their sources and actions.
 export * from './model/deadlines.js'
 
+// The forms of this application: the form engine of the foundation, bound to
+// its units, the kinds of field it shows and the records a field may be
+// about. The types bound to its terms carry the names of the general ones of
+// the foundation, so they are named here once more, and these win.
+export * from './model/forms.js'
+export type {
+  BlockField,
+  FormDefinition,
+  FormField,
+  FormSection,
+  FormTerms,
+  GroupField,
+  MeasurementField,
+  MeterReadingField,
+  NumberField,
+} from './model/forms.js'
+
 // What a device may create, change and hold, and the rules server and device
 // decide an operation by.
 export * from './model/sync.js'

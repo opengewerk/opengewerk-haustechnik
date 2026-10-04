@@ -151,9 +151,63 @@ Lücke mitten in einer Reihe lehnt der Bau ab.
 
 ### formulare/ und vorlagen/
 
-Ein Formular nennt `validFrom`, `title` und seine `sections`. Was in den Abschnitten steht, prüft
-die Formular-Engine, sobald sie ins Fundament gezogen ist (`#28`); bis dahin liest der Bau nur
-diese drei Felder.
+```json
+{
+  "validFrom": "2015-06-01",
+  "title": "Ablesung Wasserzähler",
+  "sections": [
+    {
+      "key": "meter",
+      "title": "Zähler",
+      "fields": [
+        { "kind": "check_point", "key": "seal_intact", "label": "Plombe unversehrt" },
+        {
+          "kind": "meter_reading",
+          "key": "reading",
+          "label": "Zählerstand",
+          "unit": "cubic_metres",
+          "decimals": 3,
+          "required": true
+        }
+      ]
+    },
+    {
+      "key": "end",
+      "title": "Abschluss",
+      "fields": [{ "kind": "signature", "key": "signature", "label": "Unterschrift", "seals": true }]
+    }
+  ]
+}
+```
+
+Ein Formular und eine Vorlage für einen Rundgang nennen `validFrom`, `title` und ihre `sections`;
+Schlüssel und Fassung stehen im Dateinamen. Ein Abschnitt hat `key`, `title`, auf Wunsch `hint`
+und seine `fields`. Jedes Feld hat `kind`, `key` und `label`, auf Wunsch `hint`, `required`
+(muss vor der Unterschrift ausgefüllt sein) und `carry` (wird übernommen, wenn das letzte
+ausgefüllte Formular die Vorlage des nächsten ist). Die Arten:
+
+- `text`, auf Wunsch `multiline`
+- `number`: eine Zahl mit `unit` und `decimals` (null bis drei Nachkommastellen)
+- `measurement`: ein Messwert mit `unit` und `decimals`, auf Wunsch mit `limit`, etwa
+  `{ "kind": "at_least", "rule": "hot_water_minimum" }`. Ein Grenzwert ist immer eine Regel aus
+  `regeln/`, nie eine Zahl im Formular, und die Regel muss in einer Einheit zählen, in die sich der
+  Messwert umrechnen lässt: Grad Celsius gegen eine Regel in Zehntelgrad.
+- `choice`: eine Auswahl mit mindestens zwei `options`, je mit `value` und `label`
+- `yes_no` und `photo`
+- `check_point`: ein Prüfpunkt mit den Antworten "in Ordnung", "nicht in Ordnung", "entfällt"
+  und "nicht möglich". Jede Antwort außer der ersten braucht beim Ausfüllen eine Bemerkung, und
+  jeder Prüfpunkt braucht eine Antwort, bevor unterschrieben wird; `required: false` gibt es an
+  ihm deshalb nicht.
+- `meter_reading`: ein Zählerstand mit `unit` und `decimals`
+- `signature`: eine Unterschrift; mit `seals` schreibt sie das Formular fest
+- `group`: eine Gruppe von Feldern, die sich wiederholt, mit `repeat: "free"` und ihren `fields`
+
+Einheiten sind `degrees_celsius`, `kilowatt_hours`, `megawatt_hours` und `cubic_metres`. Ein
+Messwert, ein Prüfpunkt, ein Zählerstand und eine Unterschrift werden nie übernommen. Ein Feld eines
+Pakets zeigt auf keine Anlage und keinen Raum (`about`), denn welche es gibt, weiß erst eine
+Instanz; das kann nur die Vorlage eines Betreibers. Der Bau liest jedes Feld genau und prüft das
+Formular danach mit der Formular-Engine des Fundaments; ein Feld, das er nicht kennt, ist ein
+Befund wie überall im Paket.
 
 ### abnahmen.json
 

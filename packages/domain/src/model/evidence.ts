@@ -148,8 +148,8 @@ export interface StatedReplacement {
  * page said, as JSON, written by the server when the evidence is written down
  * and never again. Every output reads it and never the current records: the
  * view, the PDF, the register of evidence, an export. The answers and
- * measured values of a protocol with their limits come with the forms
- * (#28), in a later version.
+ * measured values of a protocol with their limits come with the filled
+ * forms of phase 1, in a later version.
  *
  * A field that comes in makes a new version; `readEvidenceState` reads every
  * version there ever was and hands out the newest shape.
