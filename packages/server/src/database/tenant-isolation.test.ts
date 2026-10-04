@@ -740,7 +740,11 @@ describe('the tables', () => {
    * place for its reason is here.
    */
   it('let a function past the policies only where a list says why', async () => {
-    expect(await readDefinerFunctions(admin)).toEqual({ unexplained: [], stale: [] })
+    expect(await readDefinerFunctions(admin)).toEqual({
+      unexplained: [],
+      stale: [],
+      openToEveryRole: [],
+    })
   })
 
   /**

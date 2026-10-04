@@ -1,0 +1,28 @@
+-- The counter of the sync is called by the application role and by no role
+-- that has no business with it (opengewerk#471, #31 here).
+--
+-- `next_sync_sequence` runs as its definer, because the application may not
+-- write `sync_sequences` itself. The building block of the foundation this
+-- database began with (0000) created it without a word about who may call
+-- it, and a function without one is open to PUBLIC: every role in the cluster
+-- could move the counter of any tenant forward, or begin one for a tenant by
+-- its id. Every other function that runs as the owner of the tables takes
+-- EXECUTE from PUBLIC first and gives it to the application role alone. This
+-- one was the exception, and the comparison with the building blocks could
+-- not see it: it compared who may call a function between two databases that
+-- had both been left open.
+--
+-- The building block says it now, and this is the same change for a database
+-- that was made from the earlier one. Without it the comparison in
+-- foundation.test.ts fails, which is what it is there for.
+--
+-- `stamp_sync_columns` calls the counter with the rights of whoever writes
+-- the row. Three roles write rows that travel, and all three keep the right:
+-- the application role by the grant below, the owner of the tables because the
+-- function is its own, and a superuser, who restores a backup, because nothing
+-- is kept from one.
+--
+-- No row is touched. A version of the application from before this migration
+-- runs on unchanged: it calls the function as the application role.
+REVOKE EXECUTE ON FUNCTION "next_sync_sequence"(uuid) FROM PUBLIC;--> statement-breakpoint
+GRANT EXECUTE ON FUNCTION "next_sync_sequence"(uuid) TO "opengewerk_app";

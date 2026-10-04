@@ -367,6 +367,27 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   eine: der Export, die Meldung einer neuen Fassung eines Pakets, Unterlagen für unterwegs, der
   Verlauf der Zähler und die Vorlagen für den Vertrag zur Auftragsverarbeitung und für eine
   Betriebs- oder Dienstvereinbarung
+- Das Fundament ist auf den Stand nach den übrigen Befunden aus dem Review der Phase 0 angehoben
+  (`opengewerk/opengewerk#536` bis `#544`, `opengewerk-haustechnik#31`), mit der Migration
+  `0013_sync_counter_grant`. Für diese Anwendung heißt das: Den Zähler des Abgleichs ruft nur noch
+  die Anwendungsrolle. Der Baustein, aus dem diese Datenbank entstand, ließ ihn jeder Rolle der
+  Datenbank offen, und der Vergleich mit den Bausteinen sieht so etwas jetzt, ebenso einen
+  abgeschalteten Trigger. Schickt ein Gerät seinen Postausgang zweimal zugleich, wird jeder
+  Vorgang einmal angewandt, statt dass die zweite Übertragung über einen angenommenen Vorgang
+  abgelehnt wird. Zwei, die einen Betreiber leiten, können sich nicht mehr im selben Moment
+  gegenseitig die Rolle nehmen, und ein doppelt angetippter Einmal-Link antwortet beim zweiten Mal
+  mit einem Satz statt mit einem Fehler des Servers. "Protokoll prüfen" liest die Kette in einem
+  Stand und meldet keinen fehlenden Eintrag mehr, wenn während der Prüfung jemand arbeitet; der
+  Hash einer Einladung und die Schlüssel eines Push-Abonnements verlassen den Server im
+  Änderungsprotokoll nicht mehr. `restore.sh` und `verify.sh` nehmen ein Archiv, das mit seinem
+  Namen genannt wird, nur noch, wenn es eines dieser Anwendung ist: in einem Ziel, das sie mit
+  einer Installation von OpenGewerk teilt, hätte deren Archiv die Betreiber dieser Instanz
+  ersetzt. Der Lauf "Sicherung und Rückspielen" prüft die Prüfsummen des Manifests jetzt an einem
+  Archiv, das nur sie ablehnen können. Die Liste der Fristen fragt die Datenbank für viele Fristen
+  so oft wie für eine, eine Liste im Büro misst ihre Seitenlänge auch, wenn ihre Zeilen erst nach
+  ihr kommen, und "Keine Verbindung" steht im Stand des Abgleichs auch neben einem Konflikt. Die
+  Prüfung "Breiten und Auflösungen" bricht ab, statt Erfolg zu melden, wenn ihr Gang durch die
+  Seiten seine Grenze erreicht oder der dunkle Durchgang hell läuft
 - Das Fundament ist auf den Stand nach dem Review der Phase 0 angehoben
   (`opengewerk/opengewerk#524` bis `#528`, `opengewerk-haustechnik#31`). Für diese Anwendung heißt
   das: Die Konfliktliste des Abgleichs zeigt jedem Gerät nur noch seine eigenen Konflikte, und nur
