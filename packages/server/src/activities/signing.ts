@@ -14,6 +14,7 @@ import {
   type WorkOrderDecisionId,
   type WorkOrderDecisionKind,
   workOrderDecisionKinds,
+  type TenantId,
   type WorkOrderId,
 } from '@opengewerk/haustechnik-domain'
 import type { TenantTransaction } from '@opengewerk/platform-server'
@@ -67,9 +68,27 @@ export interface TakenDecision {
   readonly written: readonly WrittenEvidence[]
 }
 
+/** What a signature is checked by before it is written: what it says, without when and in whose name. */
+export type SignatureToCheck = Pick<
+  SignatureToTake,
+  'activityId' | 'role' | 'deviceInfo' | 'path' | 'pageFingerprint'
+>
+
+/**
+ * What a refusal of a signature is about, which the sync answers by (ADR
+ * 0004, point 11): the signature itself, which its form asks before anything
+ * is queued (`signature`); the activity it is for, gone (`activity`) or
+ * closed (`closed`); the page, which is not the one the server works out
+ * (`page`); or its turn among the signatures already there (`turn`).
+ */
+export type SigningRefusalAbout = 'signature' | 'activity' | 'closed' | 'page' | 'turn'
+
 /** Why a signature or a decision is not taken, in a sentence for the person who gave it. */
 export class SigningRefusal extends Error {
-  constructor(sentence: string) {
+  constructor(
+    sentence: string,
+    readonly about: SigningRefusalAbout = 'signature',
+  ) {
     super(sentence)
     this.name = 'SigningRefusal'
   }
@@ -180,22 +199,18 @@ export async function pageOf(tx: TenantTransaction, activity: ActivityRow): Prom
 /** A live activity of the tenant, or the refusal. */
 async function activityOf(
   tx: TenantTransaction,
-  context: WritingContext,
+  tenantId: TenantId,
   id: ActivityId,
 ): Promise<ActivityRow> {
   const [activity] = await tx
     .select()
     .from(activities)
     .where(
-      and(
-        eq(activities.tenantId, context.tenantId),
-        eq(activities.id, id),
-        isNull(activities.deletedAt),
-      ),
+      and(eq(activities.tenantId, tenantId), eq(activities.id, id), isNull(activities.deletedAt)),
     )
 
   if (!activity) {
-    throw new SigningRefusal('Diesen Vorgang gibt es nicht.')
+    throw new SigningRefusal('Diesen Vorgang gibt es nicht.', 'activity')
   }
 
   return activity
@@ -232,18 +247,23 @@ async function signaturesOf(tx: TenantTransaction, activity: ActivityRow, finger
 }
 
 /**
- * Takes a signature (ADR 0004, points 7, 8 and 10): only for the page the
- * server works out itself, only in its turn, and only once the activity says
- * on which day it was performed and what came of each of its duties. When
- * every signature it calls for is there, the activity is written down, one
- * evidence per duty, in the same transaction; a work order waits for its
- * acceptance.
+ * Checks a signature before it is written (ADR 0004, points 7, 8 and 10):
+ * only for the page the server works out itself, only in its turn, and only
+ * once the activity says on which day it was performed and what came of each
+ * of its duties. Throws the refusal and writes nothing; asked by
+ * `takeSignature` and by the sync, before a signature from a device is
+ * written.
+ *
+ * The page comes before the day and the results: a device that showed a day
+ * and results the server no longer has signed another page, which is a
+ * conflict about that one operation (point 11), and one that showed the page
+ * as it is and signed it without them made a mistake its form asks about.
  */
-export async function takeSignature(
+export async function checkSignature(
   tx: TenantTransaction,
-  context: WritingContext,
-  input: SignatureToTake,
-): Promise<TakenSignature> {
+  tenantId: TenantId,
+  input: SignatureToCheck,
+): Promise<void> {
   const firstProblem = Object.values(
     signatureProblems({
       role: input.role,
@@ -257,17 +277,25 @@ export async function takeSignature(
     throw new SigningRefusal(firstProblem)
   }
 
-  const activity = await activityOf(tx, context, input.activityId)
+  const activity = await activityOf(tx, tenantId, input.activityId)
 
   if (activity.status === 'done' || activity.status === 'not_performed') {
-    throw new SigningRefusal('Dieser Vorgang ist abgeschlossen.')
+    throw new SigningRefusal('Dieser Vorgang ist abgeschlossen.', 'closed')
+  }
+
+  const page = await pageOf(tx, activity)
+  const fingerprint = pageFingerprint(page)
+
+  if (input.pageFingerprint !== fingerprint) {
+    throw new SigningRefusal(
+      'Die Seite hat sich geändert, seit sie gezeigt wurde. Sie wird neu gezeigt und neu unterschrieben.',
+      'page',
+    )
   }
 
   if (activity.performedOn === null) {
     throw new SigningRefusal('Der Tag der Durchführung fehlt.')
   }
-
-  const page = await pageOf(tx, activity)
 
   if (page.duties.some((line) => line.result === null)) {
     throw new SigningRefusal(
@@ -275,35 +303,74 @@ export async function takeSignature(
     )
   }
 
-  const fingerprint = pageFingerprint(page)
-
-  if (input.pageFingerprint !== fingerprint) {
-    throw new SigningRefusal(
-      'Die Seite hat sich geändert, seit sie gezeigt wurde. Sie wird neu gezeigt und neu unterschrieben.',
-    )
-  }
-
   const valid = await signaturesOf(tx, activity, fingerprint)
   const has = (role: SignatureRole) => valid.some((signature) => signature.role === role)
 
   if (input.role === 'signer' && has('signer')) {
-    throw new SigningRefusal('Dieser Vorgang ist schon unterschrieben.')
+    throw new SigningRefusal('Dieser Vorgang ist schon unterschrieben.', 'turn')
   }
 
   if (input.role === 'countersigner') {
     if (!activity.countersignatureRequired) {
-      throw new SigningRefusal('Dieser Vorgang wird nicht gegengezeichnet.')
+      throw new SigningRefusal('Dieser Vorgang wird nicht gegengezeichnet.', 'turn')
     }
 
     if (!has('signer')) {
-      throw new SigningRefusal('Gegengezeichnet wird nach der Unterschrift.')
+      throw new SigningRefusal('Gegengezeichnet wird nach der Unterschrift.', 'turn')
     }
 
     if (has('countersigner')) {
-      throw new SigningRefusal('Dieser Vorgang ist schon gegengezeichnet.')
+      throw new SigningRefusal('Dieser Vorgang ist schon gegengezeichnet.', 'turn')
     }
   }
+}
 
+/**
+ * What follows a signature once it is written, in the same transaction (ADR
+ * 0004, points 8 and 10): when every signature the activity calls for is
+ * there, the activity is written down, one evidence per duty, and is done;
+ * until then, and for a work order, which waits for its acceptance, it is
+ * signed. The signatures are read with the new one among them.
+ */
+export async function followSignature(
+  tx: TenantTransaction,
+  context: WritingContext,
+  activityId: ActivityId,
+): Promise<Omit<TakenSignature, 'id'>> {
+  const activity = await activityOf(tx, context.tenantId, activityId)
+  const valid = await signaturesOf(tx, activity, pageFingerprint(await pageOf(tx, activity)))
+  const complete = activity.kind !== 'work_order' && signaturesComplete(activity, valid)
+  const written = complete
+    ? await writeDown(
+        tx,
+        context,
+        activity,
+        valid,
+        activity.kind === 'round' ? 'round_point' : 'protocol',
+      )
+    : []
+  const status: ActivityStatus = complete ? 'done' : 'signed'
+
+  await tx
+    .update(activities)
+    .set({ status })
+    .where(and(eq(activities.tenantId, context.tenantId), eq(activities.id, activity.id)))
+
+  return { status, written }
+}
+
+/**
+ * Takes a signature: checked, written in the name of whoever is signed in,
+ * and followed by what comes of it, all in the transaction it is given.
+ */
+export async function takeSignature(
+  tx: TenantTransaction,
+  context: WritingContext,
+  input: SignatureToTake,
+): Promise<TakenSignature> {
+  await checkSignature(tx, context.tenantId, input)
+
+  const activity = await activityOf(tx, context.tenantId, input.activityId)
   const [signature] = await tx
     .insert(activitySignatures)
     .values({
@@ -319,31 +386,13 @@ export async function takeSignature(
       path: input.path,
       pageFingerprint: input.pageFingerprint,
     })
-    .returning()
+    .returning({ id: activitySignatures.id })
 
   if (!signature) {
     throw new Error('The signature was not taken')
   }
 
-  const signed = [...valid, signature]
-  const complete = activity.kind !== 'work_order' && signaturesComplete(activity, signed)
-  const written = complete
-    ? await writeDown(
-        tx,
-        context,
-        activity,
-        signed,
-        activity.kind === 'round' ? 'round_point' : 'protocol',
-      )
-    : []
-  const status: ActivityStatus = complete ? 'done' : 'signed'
-
-  await tx
-    .update(activities)
-    .set({ status })
-    .where(and(eq(activities.tenantId, context.tenantId), eq(activities.id, activity.id)))
-
-  return { id: signature.id, status, written }
+  return { id: signature.id, ...(await followSignature(tx, context, activity.id)) }
 }
 
 /**
@@ -388,7 +437,7 @@ export async function decideWorkOrder(
     throw new SigningRefusal('Diesen Auftrag gibt es nicht.')
   }
 
-  const activity = await activityOf(tx, context, order.activityId)
+  const activity = await activityOf(tx, context.tenantId, order.activityId)
   const valid = await signaturesOf(tx, activity, pageFingerprint(await pageOf(tx, activity)))
 
   if (activity.status !== 'signed' || !valid.some((signature) => signature.role === 'signer')) {

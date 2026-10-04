@@ -265,6 +265,27 @@ async function workOrderPlace(
   return null
 }
 
+/**
+ * A signature on its activity: property and area come from the activity.
+ * Whether it fits the activity as the server holds it is the next question
+ * (`signed` in `signatures.ts`).
+ */
+async function signaturePlace(
+  tx: TenantTransaction,
+  values: Record<string, unknown>,
+): Promise<SyncRefusal | null> {
+  const activity = await found<Activity>(tx, activities, values['activityId'])
+
+  if (!activity) {
+    return missing('activityId')
+  }
+
+  values['propertyId'] = activity.propertyId
+  values['areaId'] = activity.areaId
+
+  return null
+}
+
 const placeOf: Readonly<
   Record<
     string,
@@ -277,6 +298,7 @@ const placeOf: Readonly<
   activities: targetPlace,
   defects: defectPlace,
   work_orders: workOrderPlace,
+  activity_signatures: signaturePlace,
 }
 
 /**

@@ -323,6 +323,14 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   und Aufträgen, und die offenen Mängel. Die Antwort des Abrufs nennt dazu je Art einen
   Fingerabdruck, damit ein Gerät fallen lässt, was es nach einem Wechsel der Person, anderen
   Bereichen oder einer verlegten Liegenschaft nicht mehr halten darf
+- Die Unterschrift über den Abgleich (#27, dritter Teil, ADR 0004 und 0006): eine Unterschrift,
+  die ein Gerät ohne Verbindung leistet, prüft der Server wie eine über eine Route, und sind alle
+  verlangten da, schreibt er in derselben Transaktion je Pflicht den Nachweis, mit den Namen der
+  Konten. Eine Seite, die nicht mehr die ist, die der Server errechnet, eine Unterschrift außer der
+  Reihe und ein abgeschlossener Vorgang sind ein Konflikt für genau diese Unterschrift, damit sie
+  nie still auf einen anderen Stand übertragen wird. Gegengezeichnet wird mit dem Recht "Aufträge
+  abnehmen und Rundgänge gegenzeichnen". Ein Gerät hält dafür auch die Mängel, die in seinen
+  Vorgängen festgestellt wurden. Das Fundament ist auf opengewerk/opengewerk#520 angehoben
 
 ### Geändert
 

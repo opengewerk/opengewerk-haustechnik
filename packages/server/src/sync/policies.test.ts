@@ -134,6 +134,7 @@ describe('the rights of an operation', () => {
       activity_duties: { change: true },
       work_orders: { create: false },
       defects: { create: true, change: true },
+      activity_signatures: { create: true },
     })
   })
 
@@ -149,6 +150,13 @@ describe('the rights of an operation', () => {
     )
     expect(permissionFor('activities', 'update', patch('status', 'done'))).toBe('activity.write')
     expect(permissionFor('defects', 'update', patch('status', 'remedied'))).toBe('defect.write')
+    // The signature is the work's, the countersignature the Objektleitung's.
+    expect(permissionFor('activity_signatures', 'create', patch('role', 'signer'))).toBe(
+      'activity.perform',
+    )
+    expect(permissionFor('activity_signatures', 'create', patch('role', 'countersigner'))).toBe(
+      'activity.accept',
+    )
   })
 
   it('leave a field the server writes to the merge, which answers it as set_by_server', () => {

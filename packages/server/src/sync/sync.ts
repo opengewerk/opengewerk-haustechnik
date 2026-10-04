@@ -1,11 +1,5 @@
+import { type Catalogue, offlineEditRefusal, offlineRules } from '@opengewerk/haustechnik-domain'
 import {
-  type Catalogue,
-  type Identity,
-  offlineEditRefusal,
-  offlineRules,
-} from '@opengewerk/haustechnik-domain'
-import {
-  type FoundIdentity,
   recordRulesCheck,
   type ServerSync,
   serverSync,
@@ -20,16 +14,16 @@ import { assignNumber } from '../database/number-ranges.js'
 import * as schema from '../database/schema/index.js'
 import { placed } from './places.js'
 import { recordRules } from './record-rules.js'
+import { followed, type Sender, signed } from './signatures.js'
 
 // The sync on the server is the foundation's (ADR 0010 in the repository
 // opengewerk): applying an operation, recording what became of it, the pull
 // by change sequence and the conflicts. What this application adds is in
 // here: its rules and tables, the questions it asks of an operation before
 // the database does, in the order they are asked, and the numbers the server
-// draws (ADR 0006). The routes a device syncs through are bound in
-// `api/sync-routes.ts`.
+// draws (ADR 0006), and what follows a signature once it is written. The
+// routes a device syncs through are bound in `api/sync-routes.ts`.
 
-type Sender = FoundIdentity<Identity>
 type Check = SyncCheck<Sender>
 
 /**
@@ -70,19 +64,26 @@ const normalised: Check = ({ table, values }) => {
 }
 
 /**
- * The number of an asset or a work order made on a device, drawn here as the
- * route draws it for one made over it (ADR 0006, point 8). In the same
- * transaction as the insert, so that a transmission refused afterwards takes
- * the number back with it.
+ * What the server puts in on the way to the database (ADR 0006, point 8): the
+ * number of an asset or a work order made on a device, drawn here as the
+ * route draws it for one made over it, in the same transaction as the insert,
+ * so that a transmission refused afterwards takes the number back with it;
+ * and who gave a signature, the person signed in and never what a device
+ * says (ADR 0004, addendum on the signature).
  */
-async function numbered({
+async function completed({
   tx,
   tenantId,
   operation,
   values,
+  sender,
 }: SyncCheckContext<Sender>): Promise<Record<string, unknown>> {
   if (operation.kind !== 'create') {
     return values
+  }
+
+  if (operation.entity === 'activity_signatures') {
+    return { ...values, signedBy: sender.userId }
   }
 
   if (operation.entity === 'assets') {
@@ -104,14 +105,16 @@ async function numbered({
  *
  * The order of the checks is behaviour, the first that refuses answers: what
  * may not be written without a connection, then the texts in their form, the
- * rules of `domain` on the fields, and last the place, the one question that
- * reads other records and the one that puts in what the server derives.
+ * rules of `domain` on the fields, the place, the question that reads other
+ * records and puts in what the server derives, and last a signature against
+ * its activity.
  */
 export function syncFor(catalogue: Catalogue): ServerSync<Sender> {
   return serverSync<Sender>({
     rules: offlineRules,
     tables: syncTables(schema),
-    checks: [offline, normalised, recordRulesCheck(recordRules(catalogue)), placed],
-    complete: numbered,
+    checks: [offline, normalised, recordRulesCheck(recordRules(catalogue)), placed, signed],
+    complete: completed,
+    afterWrite: followed(catalogue),
   })
 }

@@ -19,7 +19,9 @@ import { type SQL, sql } from 'drizzle-orm'
  * area holds the whole operator. Whoever sees only some holds the places of
  * those, with the assets and duties there, their own activities while they are
  * open (given to them or to nobody) and closed ones for
- * `closedActivitiesStayDays`, with what hangs on them, and the open defects.
+ * `closedActivitiesStayDays`, with what hangs on them, and the open defects,
+ * with every defect found in an activity it holds: the page a device shows
+ * for a signature names them, also one set right meanwhile.
  */
 export interface DeviceScope {
   readonly everyArea: boolean
@@ -49,20 +51,22 @@ export async function deviceScope(
   const since = new Date(now.getTime() - closedActivitiesStayDays * 24 * 60 * 60 * 1000)
   const ids = async (query: SQL) =>
     (await tx.execute<{ id: string }>(query)).rows.map((row) => row.id)
-
-  return {
-    everyArea: false,
-    propertyIds: await ids(sql`select id from properties order by id`),
-    activityIds: await ids(sql`
+  const activityIds = await ids(sql`
       select id from activities
        where deleted_at is null
          and (responsible_user_id = ${userId} or performer_user_id = ${userId}
               or (responsible_user_id is null and performer_user_id is null))
          and (status in ('open', 'started', 'signed') or updated_at >= ${since.toISOString()})
-       order by id`),
+       order by id`)
+
+  return {
+    everyArea: false,
+    propertyIds: await ids(sql`select id from properties order by id`),
+    activityIds,
     defectIds: await ids(sql`
       select id from defects
-       where deleted_at is null and status in ('found', 'ordered')
+       where deleted_at is null
+         and (status in ('found', 'ordered') or found_in_activity_id = any(${idArray(activityIds)}))
        order by id`),
   }
 }

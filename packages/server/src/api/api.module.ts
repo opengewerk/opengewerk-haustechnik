@@ -116,7 +116,7 @@ export class ApiModule {
     // The routes a device syncs through, with the rules of this application
     // and the catalogue its asset kinds come from: the bar of the sync on
     // every screen asks them.
-    const syncing = syncParts({ access, routes: syncRoutesFor(catalogue) })
+    const syncing = syncParts({ access, routes: syncRoutesFor(catalogue, database) })
     // The change log of a tenant for its Leitung, read by the foundation in
     // the words of this application.
     const auditing = auditLogParts({ access, vocabulary: auditVocabulary })
