@@ -349,6 +349,20 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   Datenbank, deren Name nicht auf `_preview` endet, und kommt nicht in das Abbild. Dazu der CI-Job
   "Breiten und Auflösungen", der jede Seite beider Einstiege gegen die Vorschau bei jeder Breite
   von 320 bis 3840 Pixeln misst, hell und dunkel, mit dem Werkzeug des Fundaments
+- Die Hülle der Haustechnik (#83): die Navigation des Büros steht einmal als Liste, wie die Tafel
+  "Navigation mit dem Pfad" sie zeichnet, mit der Übersicht vorn, darunter "Bestand", "Pflichten"
+  und "Arbeit" und dem Katalog am Fuß vor "Abgleich" und "Einstellungen"; vor Ort sind es die
+  Reiter Start, Scannen und Aufnehmen vor "Konflikte" und "Menü". Ein Eintrag erscheint, sobald
+  unter seiner Adresse ein Bildschirm steht, und nur für den, der sein Recht hat. So sieht jede
+  Rolle nur, was sie öffnen darf, der Objektleitung und der Haustechnik fehlen die Fristen, und
+  wer einen Bildschirm baut, trägt seine Route ein und nichts an der Navigation. Bis der erste
+  Bildschirm kommt, zeigt die Navigation deshalb weiter nur ihren Fuß. Der Pfad über einer Seite
+  an einem Ort wird einmal gesagt: Liegenschaft, Gebäude, Geschoss, Raum und Anlage, soweit die
+  Seite darunter steht, im Büro ab der Liste der Liegenschaften und vor Ort ab der Liegenschaft,
+  mit denselben Wörtern. Wie ein Raum in einer Zeile heißt, steht dafür einmal im Modell, und die
+  Bezeichnung einer Frist liest dieselbe Funktion. Das Fundament ist auf
+  `opengewerk/opengewerk#550` angehoben, das dem Rahmen des Büros eine Gruppe ohne Titel und
+  eigene Einträge am Fuß gibt und dem Einstieg vor Ort den Pfad
 
 ### Geändert
 

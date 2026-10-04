@@ -15,6 +15,10 @@ import { SiteShell } from './shell.js'
  * conflicts: deciding one has to be possible on the device that caused it,
  * and it is the screen the foundation brings for that.
  *
+ * A screen the board has among the tabs lives at the address its tab names
+ * (`tabs.tsx`). Its route here is all it takes: the tab stands from then on,
+ * for whoever holds its right.
+ *
  * A function and not a value, so that a test builds a tree of its own for a
  * router with a history of its own.
  */
