@@ -230,6 +230,7 @@ describe('who keeps the areas of a tenant (section 7)', () => {
     ['patch', `/areas/${id}`, 'settings.write'],
     ['delete', `/areas/${id}`, 'settings.write'],
     ['get', '/areas/members', 'membership.read'],
+    ['get', '/areas/invitations', 'membership.read'],
     ['put', '/areas/members/u-tech', 'membership.write'],
     ['get', '/substitutions', 'membership.read'],
     ['post', '/substitutions', 'membership.write'],

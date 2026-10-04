@@ -6,9 +6,10 @@ import {
   tenantIsolation,
   timestamps,
 } from '@opengewerk/platform-server'
-import { memberships, tenantColumn } from '@opengewerk/platform-server/schema'
+import { invitations, memberships, tenantColumn } from '@opengewerk/platform-server/schema'
 import { sql } from 'drizzle-orm'
 import {
+  boolean,
   check,
   date,
   foreignKey,
@@ -157,6 +158,69 @@ export const substitutions = pgTable(
     check('substitutions_not_oneself', sql`${table.substituteUserId} <> ${table.absentUserId}`),
     check('substitutions_in_order', sql`${table.startsOn} <= ${table.endsOn}`),
     index('substitutions_substitute_idx').on(table.tenantId, table.substituteUserId),
+  ],
+)
+
+/**
+ * What an invitation says about the areas of whoever takes it up: all of
+ * them, or the ones named below, which may be none. One row for an invitation
+ * that says it. An invitation without one says nothing, and the membership it
+ * becomes begins with what the database gives a new one (`0002_areas`).
+ *
+ * A table of its own and no column on the invitation, for the reason
+ * `member_all_areas` is one: the invitation is a table of the foundation.
+ * Written with the invitation, in its transaction, and never changed: an
+ * invitation is not edited, it is replaced by a new one.
+ */
+export const invitationAreaChoices = pgTable(
+  'invitation_area_choices',
+  {
+    id: primaryId<'invitation-area-choice'>(),
+    ...tenantColumn,
+    invitationId: reference<'invitation'>('invitation_id').notNull(),
+    /** Every area, those made later included. Otherwise the ones named. */
+    everyArea: boolean('every_area').notNull(),
+    ...timestamps,
+  },
+  (table) => [
+    tenantIsolation(table.tenantId),
+    // One choice for an invitation, and what the key of a named area points at.
+    unique('invitation_area_choices_once').on(table.tenantId, table.invitationId),
+    foreignKey({
+      columns: [table.tenantId, table.invitationId],
+      foreignColumns: [invitations.tenantId, invitations.id],
+      name: 'invitation_area_choices_of_an_invitation',
+    }).onDelete('cascade'),
+  ],
+)
+
+/**
+ * An area an invitation names, one row each, under its choice. Removed with
+ * the area: an invitation that named only that one is left with none, and
+ * whoever takes it up holds in none until somebody names theirs.
+ */
+export const invitationAreas = pgTable(
+  'invitation_areas',
+  {
+    id: primaryId<'invitation-area'>(),
+    ...tenantColumn,
+    invitationId: reference<'invitation'>('invitation_id').notNull(),
+    areaId: reference<'area'>('area_id').notNull(),
+    ...timestamps,
+  },
+  (table) => [
+    tenantIsolation(table.tenantId),
+    unique('invitation_areas_once').on(table.tenantId, table.invitationId, table.areaId),
+    foreignKey({
+      columns: [table.tenantId, table.invitationId],
+      foreignColumns: [invitationAreaChoices.tenantId, invitationAreaChoices.invitationId],
+      name: 'invitation_areas_under_a_choice',
+    }).onDelete('cascade'),
+    foreignKey({
+      columns: [table.tenantId, table.areaId],
+      foreignColumns: [areas.tenantId, areas.id],
+      name: 'invitation_areas_area_of_the_tenant',
+    }).onDelete('cascade'),
   ],
 )
 

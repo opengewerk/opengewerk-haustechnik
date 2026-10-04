@@ -1,4 +1,4 @@
-import type { Id, IsoDate } from '@opengewerk/platform-domain'
+import type { Id, InvitationId, IsoDate } from '@opengewerk/platform-domain'
 
 import { calendarDay } from './fields.js'
 import type { RoleKey } from './rights.js'
@@ -99,6 +99,21 @@ export function memberAreasProblem(
   wanted: Pick<MemberAreas, 'all'>,
 ): string | null {
   return seesEveryArea(roles) && !wanted.all ? everyAreaSentence : null
+}
+
+/**
+ * What an invitation says about the areas of whoever takes it up: every area,
+ * or the ones named, none included (section 2.8 of the concept: the Leitung
+ * invites with a role and with areas). The same two things a membership holds,
+ * and the same rule: `memberAreasProblem` with the roles of the invitation.
+ *
+ * An invitation that says nothing about areas has none of these, and whoever
+ * takes it up begins with what a new membership is given.
+ */
+export interface InvitationAreas {
+  readonly invitationId: InvitationId
+  readonly all: boolean
+  readonly areaIds: readonly AreaId[]
 }
 
 /**

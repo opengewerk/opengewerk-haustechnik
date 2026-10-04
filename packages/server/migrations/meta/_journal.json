@@ -99,6 +99,13 @@
       "when": 1791139901722,
       "tag": "0013_sync_counter_grant",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1791153123029,
+      "tag": "0014_invitation_areas",
+      "breakpoints": true
     }
   ]
 }

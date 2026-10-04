@@ -304,6 +304,29 @@ export function areasFrom(body: unknown): Pick<MemberAreas, 'all' | 'areaIds'> {
 }
 
 /**
+ * Refuses areas the tenant does not have. Each of them once, as `areasFrom`
+ * hands them on; an area of another tenant is one this transaction does not
+ * find.
+ */
+export async function requireAreas(
+  tx: TenantTransaction,
+  areaIds: readonly AreaId[],
+): Promise<void> {
+  if (areaIds.length === 0) {
+    return
+  }
+
+  const known = await tx
+    .select({ id: areas.id })
+    .from(areas)
+    .where(inArray(areas.id, [...areaIds]))
+
+  if (known.length !== areaIds.length) {
+    throw new BadRequestException(unknownArea)
+  }
+}
+
+/**
  * Gives somebody the areas they hold in: all of them, those made later
  * included, or the ones named, none included. Named for a role that holds in
  * every area is refused (`memberAreasProblem`).
@@ -339,13 +362,7 @@ export async function setMemberAreas(
 
   const areaIds = wanted.all ? [] : wanted.areaIds
 
-  if (areaIds.length > 0) {
-    const known = await tx.select({ id: areas.id }).from(areas).where(inArray(areas.id, areaIds))
-
-    if (known.length !== areaIds.length) {
-      throw new BadRequestException(unknownArea)
-    }
-  }
+  await requireAreas(tx, areaIds)
 
   const ofThePerson = and(eq(memberAllAreas.tenantId, tenantId), eq(memberAllAreas.userId, userId))
   const [everywhere] = await tx

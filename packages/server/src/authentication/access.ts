@@ -19,6 +19,7 @@ import {
   type StaffMember as Member,
 } from '@opengewerk/platform-server'
 
+import { areaAdditions } from '../areas/additions.js'
 import { application } from '../configuration.js'
 
 // The authentication is the foundation's (ADR 0010 in the repository
@@ -44,6 +45,10 @@ export const access: AccessRules<Right> = {
   // factor.
   shippedRoles,
   tenantNameProblem,
+  // Beside a membership this application keeps the areas somebody holds in,
+  // written with an invitation, with the membership it becomes and with a
+  // change of roles (section 2.8 of the concept).
+  additions: areaAdditions,
   sentences: {
     noTenantChosen: 'Es ist noch kein Betreiber gewählt. Bitte zuerst einen Betreiber auswählen.',
     noAccessToTenant: 'Kein Zugang zu diesem Betreiber.',

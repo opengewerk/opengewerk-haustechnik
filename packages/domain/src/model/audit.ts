@@ -20,6 +20,15 @@ export const auditVocabulary: AuditVocabulary = {
     areas: { label: 'Bereich' },
     member_all_areas: { label: 'Alle Bereiche' },
     member_areas: { label: 'Bereich einer Person' },
+    // What an invitation says about the areas of whoever takes it up (#84).
+    invitation_area_choices: {
+      label: 'Bereiche einer Einladung',
+      fields: { invitation_id: 'Einladung', every_area: 'Alle Bereiche' },
+    },
+    invitation_areas: {
+      label: 'Bereich einer Einladung',
+      fields: { invitation_id: 'Einladung' },
+    },
     substitutions: {
       label: 'Vertretung',
       fields: {
@@ -279,6 +288,9 @@ export const auditVocabulary: AuditVocabulary = {
   titles: {
     member_all_areas: ['user_id'],
     member_areas: ['user_id'],
+    // What an invitation says about areas is named after the invitation.
+    invitation_area_choices: ['invitation_id'],
+    invitation_areas: ['invitation_id'],
     substitutions: ['absent_user_id'],
     // A room by its number, and by its name where it has none.
     rooms: ['number', 'name'],

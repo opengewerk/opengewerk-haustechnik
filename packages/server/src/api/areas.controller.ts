@@ -1,7 +1,8 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post, Put, Query } from '@nestjs/common'
-import type { Area, MemberAreas } from '@opengewerk/haustechnik-domain'
+import type { Area, InvitationAreas, MemberAreas } from '@opengewerk/haustechnik-domain'
 import { CurrentIdentity, Database, listColleagues, pick } from '@opengewerk/platform-server'
 
+import { openInvitationAreas } from '../areas/additions.js'
 import {
   areaOverview,
   type AreaOverview,
@@ -71,6 +72,17 @@ export class AreasController {
   @RequiresPermission('membership.read')
   members(@CurrentIdentity() identity: Asking): Promise<MemberAreas[]> {
     return this.database.forTenant(identity, (tx) => memberAreasOf(tx, identity.tenantId))
+  }
+
+  /**
+   * What the invitations that can still be used say about areas, beside the
+   * list of them the foundation keeps under `/staff/invitations`. An
+   * invitation that says nothing about areas is not in it.
+   */
+  @Get('invitations')
+  @RequiresPermission('membership.read')
+  invitations(@CurrentIdentity() identity: Asking): Promise<InvitationAreas[]> {
+    return this.database.forTenant(identity, (tx) => openInvitationAreas(tx))
   }
 
   /** Gives somebody every area or the ones named. */
