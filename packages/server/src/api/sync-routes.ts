@@ -7,17 +7,28 @@ import {
   type OperationKind,
   type Right,
 } from '@opengewerk/haustechnik-domain'
-import type { SyncRoutes } from '@opengewerk/platform-server'
+import { BadRequestException, type HttpException } from '@nestjs/common'
+import {
+  accountsOf,
+  type Database,
+  type FoundIdentity,
+  type SyncRoutes,
+} from '@opengewerk/platform-server'
+import { memberships } from '@opengewerk/platform-server/schema'
 
+import { SigningRefusal } from '../activities/signing.js'
+import { EvidenceRefusal } from '../evidence/write.js'
 import { deviceScope, pullScope } from '../sync/device-scope.js'
+import type { Sender } from '../sync/signatures.js'
 import { syncFor } from '../sync/sync.js'
-import { answerFor } from './database-errors.js'
+import { answerFor as answerForTheDatabase } from './database-errors.js'
 
 // The routes a device syncs through are the foundation's (ADR 0010 in the
 // repository opengewerk): reading an outbox, refusing one over an operation
 // and naming it, the pull and the conflicts. What this application hands them
-// is in here: its sync, the right each operation asks for, and its words for
-// a refusal of the database.
+// is in here: its sync, the right each operation asks for, its words for a
+// refusal, what a device holds, and whoever sent a transmission, with the
+// names an evidence freezes.
 
 /**
  * The rights an operation on a kind of record asks for (section 7 of the
@@ -29,7 +40,8 @@ import { answerFor } from './database-errors.js'
  * transmission refused over a missing right.
  */
 interface OperationRights {
-  readonly create?: Right
+  /** What making one takes, by what it says where that decides. */
+  readonly create?: Right | ((patches: Operation['patches']) => Right)
   readonly change?: Right
   readonly remove?: Right
   readonly otherwise: Right
@@ -57,7 +69,16 @@ export const operationRights: Readonly<Record<string, OperationRights>> = {
   activity_duties: { change: 'activity.perform', otherwise: 'activity.write' },
   work_orders: { create: 'activity.write', otherwise: 'activity.write' },
   defects: { create: 'defect.report', change: 'defect.report', otherwise: 'defect.write' },
-  activity_signatures: { otherwise: 'activity.perform' },
+  // The signature is the work's, the countersignature the Objektleitung's,
+  // who accepts work orders and countersigns rounds (ADR 0004, addendum on the
+  // signature, point 7).
+  activity_signatures: {
+    create: (patches) =>
+      patches.some((patch) => patch.field === 'role' && patch.to === 'countersigner')
+        ? 'activity.accept'
+        : 'activity.perform',
+    otherwise: 'activity.perform',
+  },
   work_order_decisions: { otherwise: 'activity.accept' },
 }
 
@@ -83,8 +104,8 @@ export function permissionFor(
     return null
   }
 
-  const narrow =
-    kind === 'create' ? rights.create : kind === 'delete' ? rights.remove : rights.change
+  const creating = typeof rights.create === 'function' ? rights.create(patches) : rights.create
+  const narrow = kind === 'create' ? creating : kind === 'delete' ? rights.remove : rights.change
   // A field the server writes is answered by the merge, as `set_by_server`
   // about this one operation; counted here, it would ask the right of the
   // office and refuse the whole transmission of whoever lacks it.
@@ -95,17 +116,71 @@ export function permissionFor(
 }
 
 /**
- * The routes of the sync of this application, with the catalogue the asset
- * kinds come from. A device holds what its person sees, by area, and of that
- * the part ADR 0006 gives it (`deviceScope`): the whole operator for whoever
- * sees every area, the places, their own activities and the open defects for
- * anybody else.
+ * The answer to what refuses a transmission over an operation: a signature or
+ * an evidence that cannot be written refuses it with its sentence, naming the
+ * operation, so that a device shows that one entry and a person can throw it
+ * away (a kind of duty that takes no protocol, which the catalogue says and a
+ * device does not foresee); a refusal of the database in the words of this
+ * application.
  */
-export function syncRoutesFor(catalogue: Catalogue): SyncRoutes<Identity, Right> {
+export function answerFor(error: unknown): HttpException {
+  return error instanceof SigningRefusal || error instanceof EvidenceRefusal
+    ? new BadRequestException(error.message)
+    : answerForTheDatabase(error)
+}
+
+/** What stands for a person whose account is not there any more. */
+const unknownAccount = 'Unbekanntes Konto'
+
+/**
+ * Whoever sent a transmission, read before its transaction: with a signature
+ * in it, the names of the people of the operator, which an evidence freezes.
+ * Accounts are read on the instance and never inside a tenant (`accountsOf`),
+ * and only for the people a membership here names; the memberships first, in
+ * the tenant, then their accounts. A transmission without a signature reads
+ * nothing.
+ */
+async function senderOf(
+  database: Database,
+  identity: FoundIdentity<Identity>,
+  operations: readonly Operation[],
+): Promise<Sender> {
+  if (!operations.some((operation) => operation.entity === 'activity_signatures')) {
+    return { ...identity, nameOf: () => unknownAccount }
+  }
+
+  const members = await database.forTenant(
+    { tenantId: identity.tenantId, userId: identity.userId, reason: 'sync' },
+    (tx) => tx.select({ userId: memberships.userId }).from(memberships),
+  )
+  const accounts = await accountsOf(
+    database,
+    members.map((member) => member.userId),
+    identity.userId,
+  )
+
+  return {
+    ...identity,
+    nameOf: (userId) => accounts.get(userId)?.name ?? unknownAccount,
+  }
+}
+
+/**
+ * The routes of the sync of this application, with the catalogue the asset
+ * and duty kinds come from. A device holds what its person sees, by area, and
+ * of that the part ADR 0006 gives it (`deviceScope`): the whole operator for
+ * whoever sees every area, the places, their own activities and the open
+ * defects for anybody else.
+ */
+export function syncRoutesFor(
+  catalogue: Catalogue,
+  database: Database,
+): SyncRoutes<Identity, Right, Sender> {
   return {
     sync: syncFor(catalogue),
     permissionFor,
     answerFor,
     scope: async ({ tx, identity }) => pullScope(await deviceScope(tx, identity.userId)),
+    senderOf: (identity, operations) => senderOf(database, identity, operations),
   }
 }

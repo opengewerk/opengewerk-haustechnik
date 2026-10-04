@@ -16,6 +16,12 @@ const officeOnly: SyncPolicy = { create: false, change: 'never' }
 const inProgress: readonly SyncValue[] = ['open', 'started']
 
 /**
+ * The states of an activity a signature is given in: while its work goes on,
+ * and once signed, for the countersignature (ADR 0004, point 8).
+ */
+const toBeSigned: readonly SyncValue[] = [...inProgress, 'signed']
+
+/**
  * What a device may create and change of each kind of record, and what it
  * holds (ADR 0006, point 6). Every table that carries the columns of the sync
  * has one, and a test holds each to a table and each table to one.
@@ -73,9 +79,22 @@ export const syncPolicies: Readonly<Record<string, SyncPolicy>> = {
     reserved: ['number', 'activityKind', 'propertyId', 'areaId'],
   },
   defects: { create: true, change: 'merge', reserved: ['areaId'] },
-  // Read on a device until a signature from a device has its check, which
-  // writes the evidence (#27, third part).
-  activity_signatures: officeOnly,
+  // A signature is given on the device, also without a connection, and never
+  // changed (ADR 0004, point 10). Who gave it is the person signed in, and
+  // the server writes what comes of it: the evidence, once every signature
+  // the activity calls for is there. The decision on a work order is the
+  // office's.
+  activity_signatures: {
+    create: true,
+    change: 'never',
+    gateFrom: {
+      reference: 'activityId',
+      entity: 'activities',
+      field: 'status',
+      values: toBeSigned,
+    },
+    reserved: ['propertyId', 'areaId', 'signedBy'],
+  },
   work_order_decisions: officeOnly,
 }
 
@@ -179,6 +198,17 @@ export const offlineEdits: Readonly<Record<string, OfflineEdits>> = {
   activity_duties: { change: { result: true, resultReason: true } },
   // A work order made on site is one for a fault ("Störung").
   work_orders: { create: { activityId: true, kind: ['fault'] } },
+  // A signature, with when, on which device and for which page it was given.
+  activity_signatures: {
+    create: {
+      activityId: true,
+      role: true,
+      signedAt: true,
+      deviceInfo: true,
+      path: true,
+      pageFingerprint: true,
+    },
+  },
   // A defect is reported with its description, where it was found, and on
   // request its class; afterwards a device completes its description. Its
   // status, the day to set it right by and the work order that does are its

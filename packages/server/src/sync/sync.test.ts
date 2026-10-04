@@ -3,8 +3,10 @@ import { Test } from '@nestjs/testing'
 import { probeCatalogueBundle } from '@opengewerk/haustechnik-catalogue/testing'
 import {
   catalogueOf,
+  type IsoDate,
   missingRight,
   type RoleKey,
+  signedPageOf,
   syncEntities,
   type SyncValue,
   type TenantId,
@@ -14,6 +16,7 @@ import type { Pool } from 'pg'
 import request from 'supertest'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
+import { pageFingerprint } from '../activities/signing.js'
 import { ApiModule } from '../api/api.module.js'
 import { as, testIdentities } from '../api/test-identity.js'
 import {
@@ -29,7 +32,8 @@ import { deviceScope } from './device-scope.js'
 /**
  * What a device sends without a connection and what the server makes of it
  * (#27, ADR 0006): the records a device takes stock of, the work on an
- * activity, a defect, and what the server derives, draws and refuses. Over
+ * activity up to its signature, a defect, and what the server derives, draws,
+ * writes down and refuses. Over
  * the routes of the sync, as a device sends, by the roles section 7 of the
  * concept gives each right.
  *
@@ -51,6 +55,14 @@ const people: Readonly<Record<string, RoleKey>> = {
 }
 
 type Person = keyof typeof people & string
+
+/** The names of their accounts, which an evidence freezes. */
+const names: Readonly<Record<Person, string>> = {
+  'u-lead': 'Hanna Leitung',
+  'u-duties': 'Theo Technik',
+  'u-site': 'Sina Objekt',
+  'u-tech': 'Tom Haustechnik',
+}
 
 let admin: Pool
 let database: Database
@@ -221,8 +233,9 @@ beforeAll(async () => {
   south = rows.find((row) => row.name === 'Süd')?.id ?? ''
 
   for (const [userId, role] of Object.entries(people)) {
-    await admin.query('insert into auth_users (id, name, email) values ($1, $1, $2)', [
+    await admin.query('insert into auth_users (id, name, email) values ($1, $2, $3)', [
       userId,
+      names[userId as Person],
       `${userId}@beispiel.example`,
     ])
 
@@ -389,6 +402,41 @@ describe('taking stock without a connection', () => {
         operation('rooms', 'create', newId<'room'>(), { floorId: place.floor, use: 'Lager' }),
       ),
     ).toBe('Ein Raum hat eine Nummer oder eine Bezeichnung.')
+  })
+
+  it('keeps the second of two devices that changed the same field of an asset for a person, and takes different fields from both', async () => {
+    const asset = await elevatorIn(place)
+
+    expect(
+      await outcomes(
+        'u-tech',
+        [operation('assets', 'update', asset, { name: 'Aufzug Nord' }, { name: 'Aufzug Haus A' })],
+        small,
+        'phone-a',
+      ),
+    ).toEqual([applied])
+    // The second device saw the name the first one changed.
+    expect(
+      await outcomes(
+        'u-site',
+        [operation('assets', 'update', asset, { name: 'Lastenaufzug' }, { name: 'Aufzug Haus A' })],
+        small,
+        'phone-b',
+      ),
+    ).toEqual([{ outcome: 'conflict', reason: 'changed_elsewhere', fields: ['name'] }])
+    expect(
+      await outcomes(
+        'u-site',
+        [operation('assets', 'update', asset, { manufacturer: 'Schindler' })],
+        small,
+        'phone-b',
+      ),
+    ).toEqual([applied])
+
+    expect(await rowOf('u-tech', 'assets', asset)).toMatchObject({
+      name: 'Aufzug Nord',
+      manufacturer: 'Schindler',
+    })
   })
 
   it('answers values that no longer fit a kind changed meanwhile as a conflict about that operation', async () => {
@@ -709,6 +757,373 @@ describe('the work on an activity', () => {
   })
 })
 
+describe('a signature from a device', () => {
+  const drawing = 'M10,10L200,300M400,20L410,30'
+
+  /** What a signature is given for: an activity at an elevator, with its duties and their lines. */
+  interface ToSign {
+    readonly activity: string
+    readonly kind: 'inspection' | 'round'
+    readonly title: string
+    readonly asset: string
+    readonly duties: readonly {
+      readonly duty: string
+      readonly line: string
+      readonly label: string | null
+    }[]
+    readonly dutyKind: string | null
+  }
+
+  /**
+   * An activity at a new elevator, put in past the application as the office
+   * plans one: open and given to nobody. An inspection with one duty of its
+   * own by default; on request a round with several, a countersignature, or a
+   * duty of the catalogue instead.
+   */
+  async function activityToSign({
+    kind = 'inspection',
+    duties = 1,
+    countersigned = false,
+    dutyKind = null,
+  }: {
+    kind?: 'inspection' | 'round'
+    duties?: number
+    countersigned?: boolean
+    dutyKind?: string | null
+  } = {}): Promise<ToSign> {
+    const asset = await elevatorIn(place)
+    const title = kind === 'round' ? 'Rundgang Aufzug' : 'Sichtprüfung Aufzug'
+    const { rows: area } = await admin.query<{ area_id: string }>(
+      'select area_id from properties where id = $1',
+      [place.property],
+    )
+    const areaId = area[0]?.area_id
+    const { rows: made } = await admin.query<{ id: string }>(
+      `insert into activities (tenant_id, property_id, area_id, asset_id, kind, title, status,
+                               countersignature_required)
+       values ($1, $2, $3, $4, $5, $6, 'open', $7) returning id`,
+      [small, place.property, areaId, asset, kind, title, countersigned],
+    )
+    const activity = made[0]?.id ?? ''
+    const lines: { duty: string; line: string; label: string | null }[] = []
+
+    for (const label of ['Sichtprüfung', 'Notruf prüfen', 'Schacht prüfen'].slice(0, duties)) {
+      const { rows: duty } = await admin.query<{ id: string }>(
+        dutyKind === null
+          ? `insert into duties (tenant_id, property_id, area_id, asset_id, label, basis,
+                                 source_note, counting, interval_months, confirmed_by)
+             values ($1, $2, $3, $4, $5, 'own_decision', 'Hausordnung', 'from_performance', 1,
+                     'u-lead')
+             returning id`
+          : `insert into duties (tenant_id, property_id, area_id, asset_id, kind, kind_version,
+                                 counting, interval_months, confirmed_by)
+             values ($1, $2, $3, $4, $5, 1, 'from_performance', 12, 'u-lead') returning id`,
+        [small, place.property, areaId, asset, dutyKind ?? label],
+      )
+      const { rows: line } = await admin.query<{ id: string }>(
+        `insert into activity_duties (tenant_id, property_id, area_id, activity_id, duty_id)
+         values ($1, $2, $3, $4, $5) returning id`,
+        [small, place.property, areaId, activity, duty[0]?.id],
+      )
+
+      lines.push({
+        duty: duty[0]?.id ?? '',
+        line: line[0]?.id ?? '',
+        label: dutyKind === null ? label : null,
+      })
+    }
+
+    return { activity, kind, title, asset, duties: lines, dutyKind }
+  }
+
+  /**
+   * The work on site, as a device queues it, one entry after the other:
+   * started and performed on the first, then each duty without defects.
+   */
+  function workDone(toSign: ToSign): Sent[] {
+    return [
+      operation(
+        'activities',
+        'update',
+        toSign.activity,
+        { status: 'started', performedOn: '2026-10-01' },
+        { status: 'open' },
+      ),
+      ...toSign.duties.map(({ line }) =>
+        operation('activity_duties', 'update', line, { result: 'without_defects' }),
+      ),
+    ]
+  }
+
+  /**
+   * The fingerprint of the page a device shows, from what it holds: by default
+   * once the work is done, otherwise with another title or before any work on
+   * it.
+   */
+  function pageOnTheDevice(
+    toSign: ToSign,
+    { title = toSign.title, worked = true }: { title?: string; worked?: boolean } = {},
+  ): string {
+    return pageFingerprint(
+      signedPageOf({
+        activity: {
+          id: toSign.activity,
+          kind: toSign.kind,
+          title,
+          performedOn: worked ? ('2026-10-01' as IsoDate) : null,
+        },
+        place: {
+          property: {
+            name: 'Schulzentrum Am Neckar',
+            address: 'Neckarstraße 4, 68535 Edingen-Neckarhausen',
+          },
+          building: { name: 'Haus A', shortCode: null },
+          room: null,
+          asset: {
+            id: toSign.asset,
+            name: 'Aufzug Haus A',
+            kind: 'probe.elevator',
+            serialNumber: null,
+          },
+        },
+        duties: toSign.duties.map(({ duty, label }) => ({
+          dutyId: duty,
+          kind: toSign.dutyKind,
+          label,
+          result: worked ? 'without_defects' : null,
+          resultReason: null,
+        })),
+        defects: [],
+      }),
+    )
+  }
+
+  /** A signature for the page with a fingerprint, given on the device on the first at half past nine. */
+  function signature(
+    activity: string,
+    fingerprint: string,
+    role: 'signer' | 'countersigner' = 'signer',
+  ): Sent {
+    return operation('activity_signatures', 'create', newId<'activity-signature'>(), {
+      activityId: activity,
+      role,
+      signedAt: '2026-10-01T09:30:00.000Z',
+      deviceInfo: 'Probe-Telefon',
+      path: drawing,
+      pageFingerprint: fingerprint,
+    })
+  }
+
+  async function statusOf(activity: string): Promise<string | undefined> {
+    const { rows } = await admin.query<{ status: string }>(
+      'select status from activities where id = $1',
+      [activity],
+    )
+
+    return rows[0]?.status
+  }
+
+  /** Who signed an activity, and as what, in the order the server took the signatures. */
+  async function signaturesOf(activity: string): Promise<string[][]> {
+    const { rows } = await admin.query<{ signed_by: string; role: string }>(
+      `select signed_by, role from activity_signatures where activity_id = $1
+        order by created_at, id`,
+      [activity],
+    )
+
+    return rows.map((row) => [row.signed_by, row.role])
+  }
+
+  /** The evidence written for an activity: its origin and what its state says about the people. */
+  async function evidenceOf(activity: string) {
+    const { rows } = await admin.query<{
+      origin: string
+      state: {
+        signatures: { name: string; role: string; signedAt: string }[]
+        performer: unknown
+        writtenBy: string
+      }
+    }>('select origin, state from evidence where activity_id = $1 order by number', [activity])
+
+    return rows
+  }
+
+  it('takes a round given without a connection from its first answer to the signature, and writes it down in the name of whoever signed', async () => {
+    const toSign = await activityToSign({ kind: 'round', duties: 2 })
+    // One outbox: the progress, the result of each duty and the signature, in
+    // the order they were given; the page is the one after the work.
+    const work = workDone(toSign)
+    const signed = signature(toSign.activity, pageOnTheDevice(toSign))
+
+    expect(await outcomes('u-tech', [...work, signed])).toEqual([
+      applied,
+      applied,
+      applied,
+      applied,
+    ])
+
+    expect(await statusOf(toSign.activity)).toBe('done')
+    expect(await rowOf('u-tech', 'activity_signatures', signed.recordId)).toMatchObject({
+      activityId: toSign.activity,
+      role: 'signer',
+      signedBy: 'u-tech',
+      propertyId: place.property,
+    })
+
+    const written = await evidenceOf(toSign.activity)
+
+    // One evidence per duty, as points of a round.
+    expect(written.map((evidence) => evidence.origin)).toEqual(['round_point', 'round_point'])
+    // The names of the accounts, read before the transaction.
+    expect(written[0]?.state.signatures).toEqual([
+      { name: 'Tom Haustechnik', role: 'signer', signedAt: '2026-10-01T09:30:00.000Z' },
+    ])
+    expect(written[0]?.state.performer).toEqual({ person: 'Tom Haustechnik' })
+    expect(written[0]?.state.writtenBy).toBe('Tom Haustechnik')
+  })
+
+  it('answers a signature for a page the server no longer has with a conflict about it, and keeps nothing of it', async () => {
+    const toSign = await activityToSign()
+
+    expect(await outcomes('u-tech', workDone(toSign))).toEqual([applied, applied])
+
+    const shown = pageOnTheDevice(toSign)
+
+    // The office renames the activity while the technician signs on site.
+    await admin.query(`update activities set title = 'Sichtprüfung Lastenaufzug' where id = $1`, [
+      toSign.activity,
+    ])
+
+    expect(await outcomes('u-tech', [signature(toSign.activity, shown)])).toEqual([
+      { outcome: 'conflict', reason: 'changed_elsewhere', fields: ['pageFingerprint'] },
+    ])
+    expect(await signaturesOf(toSign.activity)).toEqual([])
+    expect(await statusOf(toSign.activity)).toBe('started')
+    expect(await evidenceOf(toSign.activity)).toEqual([])
+
+    // Shown again and signed again, it is taken; the old one was never moved onto it.
+    expect(
+      await outcomes('u-tech', [
+        signature(toSign.activity, pageOnTheDevice(toSign, { title: 'Sichtprüfung Lastenaufzug' })),
+      ]),
+    ).toEqual([applied])
+    expect(await statusOf(toSign.activity)).toBe('done')
+  })
+
+  it('answers a signature for a day the office took back as a conflict about the page, not as a mistake of the form', async () => {
+    const toSign = await activityToSign()
+
+    expect(await outcomes('u-tech', workDone(toSign))).toEqual([applied, applied])
+
+    const shown = pageOnTheDevice(toSign)
+
+    await admin.query('update activities set performed_on = null where id = $1', [toSign.activity])
+
+    expect(await outcomes('u-tech', [signature(toSign.activity, shown)])).toEqual([
+      { outcome: 'conflict', reason: 'changed_elsewhere', fields: ['pageFingerprint'] },
+    ])
+  })
+
+  it('answers a signature for an activity the office removed with record_missing', async () => {
+    const toSign = await activityToSign()
+
+    expect(await outcomes('u-tech', workDone(toSign))).toEqual([applied, applied])
+
+    const shown = pageOnTheDevice(toSign)
+
+    await admin.query('update activities set deleted_at = now() where id = $1', [toSign.activity])
+
+    expect(await outcomes('u-tech', [signature(toSign.activity, shown)])).toEqual([
+      { outcome: 'conflict', reason: 'record_missing', fields: ['activityId'] },
+    ])
+  })
+
+  it('takes the countersignature after the signature from whoever countersigns, and answers one out of its turn as a conflict', async () => {
+    const toSign = await activityToSign({ countersigned: true })
+    const page = pageOnTheDevice(toSign)
+
+    expect(
+      await outcomes('u-tech', [...workDone(toSign), signature(toSign.activity, page)]),
+    ).toEqual([applied, applied, applied])
+    expect(await statusOf(toSign.activity)).toBe('signed')
+    expect(await evidenceOf(toSign.activity)).toEqual([])
+
+    // A second device signed the same activity before it heard of the first.
+    expect(await outcomes('u-site', [signature(toSign.activity, page)], small, 'phone-b')).toEqual([
+      { outcome: 'conflict', reason: 'changed_elsewhere', fields: ['role'] },
+    ])
+
+    // The countersignature is the Objektleitung's, not the work on site.
+    const byTheTechnician = signature(toSign.activity, page, 'countersigner')
+
+    expect((await send('u-tech', [byTheTechnician]).expect(400)).body).toMatchObject({
+      message: missingRight('activity.accept'),
+      operationId: byTheTechnician.id,
+    })
+
+    expect(
+      await outcomes(
+        'u-site',
+        [signature(toSign.activity, page, 'countersigner')],
+        small,
+        'phone-b',
+      ),
+    ).toEqual([applied])
+    expect(await statusOf(toSign.activity)).toBe('done')
+    expect(await signaturesOf(toSign.activity)).toEqual([
+      ['u-tech', 'signer'],
+      ['u-site', 'countersigner'],
+    ])
+    expect(
+      (await evidenceOf(toSign.activity))[0]?.state.signatures.map((signed) => [
+        signed.name,
+        signed.role,
+      ]),
+    ).toEqual([
+      ['Tom Haustechnik', 'signer'],
+      ['Sina Objekt', 'countersigner'],
+    ])
+
+    // Done, it takes no signature at all.
+    expect(
+      await outcomes(
+        'u-site',
+        [signature(toSign.activity, page, 'countersigner')],
+        small,
+        'phone-b',
+      ),
+    ).toEqual([{ outcome: 'conflict', reason: 'record_is_fixed', fields: ['status'] }])
+  })
+
+  it('refuses a signature on a page without its day or a result with the sentence of the form, naming the operation', async () => {
+    const toSign = await activityToSign()
+    // The page as it is before any work on it, signed anyway.
+    const signed = signature(toSign.activity, pageOnTheDevice(toSign, { worked: false }))
+
+    expect((await send('u-tech', [signed]).expect(400)).body).toMatchObject({
+      message: 'Der Tag der Durchführung fehlt.',
+      operationId: signed.id,
+    })
+    expect(await signaturesOf(toSign.activity)).toEqual([])
+  })
+
+  it('refuses the transmission with the sentence of the evidence when its kind of duty takes no protocol, naming the signature', async () => {
+    // The main test of the probe package takes reports only.
+    const toSign = await activityToSign({ dutyKind: 'probe.elevator_main_test' })
+    const work = workDone(toSign)
+    const signed = signature(toSign.activity, pageOnTheDevice(toSign))
+
+    expect((await send('u-tech', [...work, signed]).expect(400)).body).toMatchObject({
+      message:
+        'Diese Pflichtart nimmt als Nachweis: Bericht einer Fremdfirma oder Prüforganisation.',
+      operationId: signed.id,
+    })
+    // One transaction: the work before it is not there either.
+    expect(await statusOf(toSign.activity)).toBe('open')
+    expect(await signaturesOf(toSign.activity)).toEqual([])
+  })
+})
+
 describe('a defect', () => {
   it('is reported at its place and completed on site, and its status stays with the office', async () => {
     const asset = await elevatorIn(place)
@@ -965,6 +1380,39 @@ describe('what a device holds', () => {
     expect(ids(mine, 'work_orders')).not.toContain(order[0]?.id)
     expect(ids(ours, 'activity_duties')).toContain(line[0]?.id)
     expect(ids(ours, 'work_orders')).toContain(order[0]?.id)
+  })
+
+  it('holds every defect found in an activity it holds, also one set right, for the page it signs', async () => {
+    const mine = await activityOf('started', null, null)
+    const theirs = await activityOf('started', 'u-site', 'u-site')
+    const inMine = newId<'defect'>()
+    const inTheirs = newId<'defect'>()
+
+    expect(
+      await outcomes('u-tech', [
+        operation('defects', 'create', inMine, {
+          description: 'Kabinenlicht defekt',
+          foundOn: '2026-10-04',
+          propertyId: place.property,
+          foundInActivityId: mine,
+        }),
+        operation('defects', 'create', inTheirs, {
+          description: 'Notruf ohne Ton',
+          foundOn: '2026-10-04',
+          propertyId: place.property,
+          foundInActivityId: theirs,
+        }),
+      ]),
+    ).toEqual([applied, applied])
+
+    await admin.query(`update defects set status = 'remedied' where id = any($1)`, [
+      [inMine, inTheirs],
+    ])
+
+    const held = (await pulled('u-tech'))['defects']?.map((row) => row['id'])
+
+    expect(held).toContain(inMine)
+    expect(held).not.toContain(inTheirs)
   })
 
   it('holds the open defects of its areas, and lets one that was set right go', async () => {

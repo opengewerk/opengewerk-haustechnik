@@ -56,7 +56,7 @@ describe('the policies of the sync', () => {
       activity_duties: [false, 'merge'],
       work_orders: [true, 'never'],
       defects: [true, 'merge'],
-      activity_signatures: [false, 'never'],
+      activity_signatures: [true, 'never'],
       work_order_decisions: [false, 'never'],
     })
   })
@@ -99,6 +99,36 @@ describe('the policies of the sync', () => {
       field: 'status',
       values: ['open', 'started'],
     })
+  })
+
+  it('take a signature while the work goes on and once signed, in the name of whoever is signed in', () => {
+    // The countersignature comes after the signature (ADR 0004, point 8).
+    expect(syncPolicies['activity_signatures']?.gateFrom).toEqual({
+      reference: 'activityId',
+      entity: 'activities',
+      field: 'status',
+      values: ['open', 'started', 'signed'],
+    })
+    expect(syncPolicies['activity_signatures']?.reserved).toEqual(
+      expect.arrayContaining(['propertyId', 'areaId', 'signedBy']),
+    )
+
+    const signature = {
+      ...operation('activity_signatures', 'create'),
+      patches: [{ field: 'activityId', from: null, to: 'a' }],
+    }
+
+    for (const [status, outcome] of [
+      ['started', 'apply'],
+      ['signed', 'apply'],
+      ['done', 'conflict'],
+      ['not_performed', 'conflict'],
+    ] as const) {
+      expect(
+        offlineRules.decideMerge(signature, null, { id: 'a', status, deletedAt: null }).outcome,
+        status,
+      ).toBe(outcome)
+    }
   })
 
   it('let a device change an activity it made before the server has answered', () => {
