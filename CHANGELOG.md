@@ -509,6 +509,13 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
 
 ### Behoben
 
+- Zwei Unterschriften derselben Seite, die zugleich ankommen, schreiben einen Vorgang nur noch
+  einmal fest, und zwei Abnahmen desselben Auftrags nehmen ihn nur einmal ab
+  (`opengewerk-haustechnik#31`). Zwei Geräte, die ohne Netz unterschrieben hatten und zugleich
+  sendeten, wurden je gegen Unterschriften geprüft, die das andere noch nicht geschrieben hatte,
+  und beide schrieben je Pflicht einen Nachweis, den niemand mehr ändern oder löschen kann. Die
+  Prüfung hält die Zeile des Vorgangs jetzt bis zum Ende ihrer Transaktion; die zweite wartet und
+  findet den Vorgang abgeschlossen.
 - Der Nummernkreis für Aufträge fehlte in der Ausgangsmigration. Das Konzept nennt für das
   Fundament drei Kreise, für Anlagen, Nachweise und Aufträge (Abschnitt 12, Phase 0; Abschnitt
   4.8; ADR 0002, Punkt 13); angelegt waren zwei. Die Migration `0001_work_order_numbers` trägt

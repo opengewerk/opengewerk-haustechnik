@@ -643,3 +643,94 @@ describe('a work order', () => {
     expect(await countOf('work_order_decisions', 'work_order_id', order)).toBe(2)
   })
 })
+
+/**
+ * Two devices that signed the same page without a network and send at once,
+ * or two people who accept the same order at once (opengewerk-haustechnik#31).
+ * Each was checked against what the other had not written yet, and both wrote
+ * the activity down: two evidences per duty, which nobody can change or delete.
+ *
+ * Both have to meet at the check for a test to show anything, and two that
+ * merely start together meet only when the timing allows. So a third
+ * connection holds the row of the activity until both stand in line behind
+ * it, and lets go only then.
+ */
+describe('two at the same moment', () => {
+  async function inLine<Result>(
+    activity: ActivityId,
+    both: () => readonly Promise<Result>[],
+  ): Promise<PromiseSettledResult<Result>[]> {
+    const holder = await admin.connect()
+
+    try {
+      await holder.query('begin')
+      await holder.query('select id from activities where id = $1 for update', [activity])
+
+      const pending = both()
+
+      for (let tries = 0; tries < 400; tries += 1) {
+        const { rows } = await admin.query<{ waiting: number }>(
+          `select count(*)::int as waiting from pg_stat_activity
+            where datname = current_database() and wait_event_type = 'Lock'`,
+        )
+
+        if ((rows[0]?.waiting ?? 0) >= 2) {
+          break
+        }
+
+        await new Promise((resolve) => setTimeout(resolve, 25))
+      }
+
+      await holder.query('commit')
+
+      return await Promise.allSettled(pending)
+    } finally {
+      holder.release()
+    }
+  }
+
+  function refusals(settled: readonly PromiseSettledResult<unknown>[]): string[] {
+    return settled.flatMap((result) =>
+      result.status === 'rejected' && result.reason instanceof SigningRefusal
+        ? [result.reason.message]
+        : [],
+    )
+  }
+
+  it('write an activity down once: the second signature waits and finds it done', async () => {
+    const { activity, duties } = await activityToSign('inspection')
+    const signature = await signatureFor(activity)
+
+    const settled = await inLine(activity, () => [
+      as(technician, (tx, context) => takeSignature(tx, context, signature)),
+      as(lead, (tx, context) => takeSignature(tx, context, signature)),
+    ])
+
+    expect(settled.filter((result) => result.status === 'fulfilled')).toHaveLength(1)
+    expect(refusals(settled)).toEqual(['Dieser Vorgang ist abgeschlossen.'])
+    expect(await countOf('activity_signatures', 'activity_id', activity)).toBe(1)
+    expect(await countOf('evidence', 'duty_id', duties[0] as string)).toBe(1)
+  })
+
+  it('accept an order once: the second acceptance waits and finds it done', async () => {
+    const { activity, duties, workOrder } = await activityToSign('work_order')
+    const order = workOrder as WorkOrderId
+
+    await as(technician, async (tx, context) =>
+      takeSignature(tx, context, await signatureFor(activity)),
+    )
+
+    const accept = () =>
+      as(lead, (tx, context) =>
+        decideWorkOrder(tx, context, { workOrderId: order, decision: 'accepted', reason: null }),
+      )
+    const settled = await inLine(activity, () => [accept(), accept()])
+
+    expect(settled.filter((result) => result.status === 'fulfilled')).toHaveLength(1)
+    expect(refusals(settled)).toEqual([
+      'Abgenommen oder zurückgewiesen wird ein unterschriebener Auftrag.',
+    ])
+    expect(await countOf('work_order_decisions', 'work_order_id', order)).toBe(1)
+    expect(await countOf('evidence', 'duty_id', duties[0] as string)).toBe(1)
+  })
+})
