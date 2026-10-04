@@ -12,6 +12,9 @@
  * directions.
  */
 export const serverPaths: readonly string[] = [
+  // The areas of a tenant, and who stands in for whom.
+  'areas',
+  'substitutions',
   // The place, from the property to the room.
   'properties',
   'buildings',

@@ -21,6 +21,7 @@ import {
 import { access } from '../authentication/access.js'
 import { CATALOGUE, shippedCatalogue } from '../catalogue.js'
 import { deadlineRules } from '../deadlines/routes.js'
+import { AreasController, SubstitutionsController } from './areas.controller.js'
 import { AssetsController, BuildingAssetsController } from './assets.controller.js'
 import { authorization, AuthorizationGuard } from './authorization.js'
 import { BuildingsController } from './buildings.controller.js'
@@ -92,8 +93,9 @@ export interface ApiOptions {
  * in, who works for a tenant, the area of the instance, the change log and the
  * sync of a device with the rules of this application. An invitation is
  * handed over as a link; sending one by mail arrives with the mail server of a
- * tenant. What this application brings: the place, from the property to the
- * room, and the technology, assets and their components.
+ * tenant. What this application brings: the areas of a tenant, the place,
+ * from the property to the room, and the technology, assets and their
+ * components.
  */
 @Module({})
 export class ApiModule {
@@ -144,6 +146,9 @@ export class ApiModule {
         ...syncing.controllers,
         ...auditing.controllers,
         ...deadlining.controllers,
+        // The areas of a tenant, who holds in which, and who stands in for whom.
+        AreasController,
+        SubstitutionsController,
         // The place: properties, buildings, floors and rooms.
         PropertiesController,
         BuildingsController,

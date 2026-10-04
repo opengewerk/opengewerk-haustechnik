@@ -363,6 +363,16 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   Bezeichnung einer Frist liest dieselbe Funktion. Das Fundament ist auf
   `opengewerk/opengewerk#550` angehoben, das dem Rahmen des Büros eine Gruppe ohne Titel und
   eigene Einträge am Fuß gibt und dem Einstieg vor Ort den Pfad
+- Routen für Bereiche, Bereiche je Zugang und Vertretungen (#84, erster Teil; ADR 0003): bisher
+  standen Bereiche nur in der Datenbank, und wer in welchem arbeitet, ließ sich nur dort ändern.
+  Jeder, der Orte sieht, liest die Bereiche, in denen er arbeitet. Die Leitung legt Bereiche an,
+  benennt sie um und entfernt einen, sobald er leer ist; die Route verlegt seine Liegenschaften
+  auf Wunsch vorher in einen anderen, mit allem darunter, und der letzte Bereich bleibt. Wer nur
+  in dem entfernten arbeitete, hat danach keinen und sieht nichts mit Ortsbezug, gesperrt wird
+  niemand. Je Zugang gilt "alle" oder die genannten Bereiche, für Leitung und Technische Leitung
+  immer alle; geschrieben wird nur, was sich ändert, und das Gerät der Person lässt beim nächsten
+  Abgleich fallen, was sie nicht mehr sieht. Eine Vertretung gilt vom ersten bis zum letzten Tag,
+  gezählt in Deutschland, und endet sofort, wenn sie beendet wird. Die Bildschirme dazu folgen
 
 ### Geändert
 
