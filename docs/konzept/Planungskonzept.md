@@ -1,6 +1,6 @@
-# OpenGewerk Haustechnik: Planungskonzept (Software für Betreiber und ihre Haustechnik) · v0.7
+# OpenGewerk Haustechnik: Planungskonzept (Software für Betreiber und ihre Haustechnik) · v0.8
 
-2026-10-03 · Eigenständiges Projekt, Repository `opengewerk-haustechnik` in der GitHub-Organisation `opengewerk` · v0.2 trägt die Entscheidungen vom 01.10.2026 ein, v0.3 die Technik, mit der das Fundament eingebunden wird, v0.4 gleicht Abschnitt 5 und die Wortwahl an die ADRs 0002 bis 0006 an, siehe Abschnitt 15; v0.5 sagt in Abschnitt 7, was jede Rolle im Einzelnen darf, v0.6 nennt dort die Rechte für den Abgleich, v0.7 gibt den eigenen Anlagenarten und den Mängelklassen ihre Phase (Vergleich mit openMAINT, Atlas CMMS, eTASK, wave Facilities, pitFM, SPARTACUS, Planon, Lumiform, Wowflow und den Excel-Listen, die vielerorts die eigentliche Software sind)
+2026-10-04 · Eigenständiges Projekt, Repository `opengewerk-haustechnik` in der GitHub-Organisation `opengewerk` · v0.2 trägt die Entscheidungen vom 01.10.2026 ein, v0.3 die Technik, mit der das Fundament eingebunden wird, v0.4 gleicht Abschnitt 5 und die Wortwahl an die ADRs 0002 bis 0006 an, siehe Abschnitt 15; v0.5 sagt in Abschnitt 7, was jede Rolle im Einzelnen darf, v0.6 nennt dort die Rechte für den Abgleich, v0.7 gibt den eigenen Anlagenarten und den Mängelklassen ihre Phase, v0.8 trägt die Entscheidungen vom 04.10.2026 vor dem Bau von Phase 1 ein (Vergleich mit openMAINT, Atlas CMMS, eTASK, wave Facilities, pitFM, SPARTACUS, Planon, Lumiform, Wowflow und den Excel-Listen, die vielerorts die eigentliche Software sind)
 
 Self-hosted Open-Source-System für alle, die Gebäude betreiben und dafür eigene Haustechniker haben. Liegenschaften, Gebäude, Räume und technische Anlagen stehen in einem Datenmodell. Die Betreiberpflichten hängen daran als überwachte Fristen, Rundgänge und Prüfungen laufen auf dem Telefon auch ohne Netz, und zu jeder Pflicht gibt es einen Nachweis, der sich nachträglich nicht ändern lässt.
 
@@ -128,10 +128,10 @@ Der Zustand einer Anlage (in Ordnung, fällig, überfällig, nie geprüft, Mange
 
 - entsteht als **Vorschlag** aus dem Katalog, sobald eine Anlage angelegt oder geändert wird, und wird bestätigt oder mit Begründung verworfen
 - oder wird vom Betreiber selbst angelegt: Vorgabe des Herstellers, Auflage aus Baugenehmigung oder Brandschutzkonzept, Forderung des Versicherers, eigene Festlegung
-- trägt die tatsächliche Frist, ihre Begründung, den Verantwortlichen (aus der Pflichtenübertragung, 4.3) und wer ausführt (eigene Leute oder eine Fremdfirma mit Vertrag)
+- trägt die tatsächliche Frist, ihre Begründung, auf Wunsch den Verweis auf das Dokument, das die Frist trägt (4.3), den Verantwortlichen (aus der Pflichtenübertragung, 4.3) und wer ausführt (eigene Leute oder eine Fremdfirma mit Vertrag)
 - ihr Zustand ist abgeleitet: **nie erfasst** (Pflicht bestätigt, aber kein Nachweis und kein Termin), **überfällig**, **fällig**, **erfüllt bis**, **ruht** (Anlage außer Betrieb). „Nie erfasst“ ist ein eigener Zustand vor „überfällig“, weil das eine nach einer Ersterfassung ruft und das andere nach einer Prüfung
 
-Eine neue Fassung eines Pakets ändert bestätigte Pflichten nicht still. Sie meldet sich: „Für 12 Anlagen gilt ab dem 01.01. eine kürzere Frist“, und der Betreiber übernimmt.
+Eine neue Fassung eines Pakets ändert bestätigte Pflichten nicht still. Sie meldet sich: „Für 12 Anlagen gilt ab dem 01.01. eine kürzere Frist“, und der Betreiber übernimmt. Je betroffener Pflicht übernimmt er die neue Fassung oder lässt die Pflicht, wie sie ist, mit Begründung.
 
 ### 2.4 Fristen-Engine
 
@@ -156,14 +156,16 @@ Die Formular-Engine von OpenGewerk: Felder für Text, Zahl mit Einheit, Messwert
 
 - **Mitgelieferte Formulare** kommen aus Paketen (Abschnitt 5): Prüf- und Wartungsprotokolle je Anlagenart, die Grenzwerte als Regeln mit Fundstelle
 - **Eigene Formulare** legt der Betreiber im Büro an: die Vorlagen seiner Rundgänge und die Felder, die er an einer Anlagenart zusätzlich führen will
+- Ein Messwert in einer eigenen Vorlage misst gegen eine Regel aus einem Paket und folgt dann deren Fassungen, oder gegen einen eigenen Wert des Betreibers mit Quelle, der in der Fassung der Vorlage steht
 - Zwei Feldarten kommen dazu: der **Prüfpunkt** (in Ordnung, nicht in Ordnung, entfällt, nicht möglich, mit Bemerkung und Foto) und der **Zählerstand**, der den abgelesenen Wert an die Messstelle schreibt
-- Ein Punkt kann auf eine Anlage oder einen Raum zeigen. Was dort festgestellt wird, steht dann in deren Akte, und ein „nicht in Ordnung“ wird ein Mangel an genau dieser Anlage
+- Ein Punkt kann auf eine Anlage oder einen Raum zeigen. Was dort festgestellt wird, steht dann in deren Akte, und ein „nicht in Ordnung“ wird ein Mangel an genau dieser Anlage, ein Messwert außerhalb seines Grenzwerts ebenso (4.5)
 
 ### 2.6 Nachweis und Festschreibung ⚖
 
-- Ein Nachweis entsteht aus einem unterschriebenen Protokoll, aus einem hochgeladenen Bericht einer Fremdfirma oder Prüforganisation (mit Prüfer, Organisation, Datum und Ergebnis), aus einem Punkt eines unterschriebenen Rundgangs oder aus einem abgenommenen Arbeitsauftrag
+- Ein Nachweis entsteht aus einem unterschriebenen Protokoll, aus einem hochgeladenen Bericht einer Fremdfirma oder Prüforganisation (mit Prüfer, Organisation, Datum und Ergebnis), aus einem Punkt eines unterschriebenen Rundgangs oder aus einem abgenommenen Arbeitsauftrag. Bei der Übernahme aus einer Vorgängeranwendung kommt er als Altbestand herein und sagt das (Abschnitt 11)
 - Mit der Unterschrift wird der Stand in einer Fassung eingefroren, das PDF entsteht beim ersten Abruf und liegt danach im inhaltsadressierten Speicher. Ein späterer Export liest den eingefrorenen Stand und nie die laufenden Daten
 - Die Unterschrift trägt einen Fingerabdruck der Seite, die gezeigt wurde. Der Server nimmt sie nur für genau diese Seite an
+- Unterschrieben wird mit dem Schriftzug auf dem Gerät oder, wo das eine Hürde ist, ohne ihn: die Person bestätigt mit ihrem getippten Namen. Beides ist dieselbe Signatur des angemeldeten Kontos, und der Nachweis sagt, welcher Weg es war
 - Sie ist eine elektronische Signatur der einfachen Stufe, gebunden an das angemeldete Konto. Wo eine Vorschrift mehr verlangt oder ein Betreiber mehr will, wird das PDF des Nachweises mit einer höheren Signatur versehen und am Nachweis abgelegt (Abschnitt 15)
 - Die Datenbank lehnt Änderung und Löschen eines Nachweises ab, auch für den Eigentümer der Tabellen. Das Löschen einer Anlage, eines Artikels oder eines Benutzers ändert keinen Nachweis
 - **Berichtigung** statt Zurücksetzen: ein neuer Nachweis nennt den, den er ersetzt, und beide bleiben. Ein fälschlich unterschriebener Rundgang wird für ungültig erklärt, mit Grund und Person, und bleibt lesbar
@@ -174,9 +176,11 @@ Die Formular-Engine von OpenGewerk: Felder für Text, Zahl mit Einheit, Messwert
 
 Der Abgleich von OpenGewerk, mit den Regeln dieser Anwendung:
 
-- **Auswahl je Gerät**: ein Techniker hält die Orte und Anlagen seines Bereichs, seine Rundgänge und Aufträge, die Formulare und Pakete. Die Leitung hält den ganzen Betreiber. Beim Abmelden wird die lokale Ablage gelöscht
+- **Auswahl je Gerät**: ein Techniker hält die Orte und Anlagen seines Bereichs, seine Rundgänge und Aufträge, auch die, an denen er beteiligt ist, seine Aufgaben, die Formulare und Pakete. Die Leitung hält den ganzen Betreiber. Beim Abmelden wird die lokale Ablage gelöscht
 - Liegenschaft, Gebäude und Geschoss ändert das Büro mit Verbindung
 - Raum, Anlage und Komponente lassen sich vor Ort ohne Netz anlegen und ergänzen: die Bestandsaufnahme ist der häufigste Fall
+- Findet der Server beim Abgleich zu einer vor Ort angelegten Anlage eine mögliche Dublette, die das Gerät nicht halten konnte, wird der Vorgang ein Konflikt: die Person sieht die andere Anlage, soweit sie in ihrem Bereich liegt, und entscheidet, ob es dieselbe ist oder ob sie trotzdem angelegt wird
+- Lesen zwei Geräte denselben Zähler am selben Tag ab, bekommt das zweite einen Konflikt und entscheidet, ob sein Stand den ersten berichtigt oder verworfen wird (4.9)
 - Antworten eines Rundgangs und eines Protokolls sind je Punkt eine eigene Zeile. Zwei Leute an verschiedenen Punkten kollidieren nicht, am selben Punkt entsteht ein Konflikt
 - Unterschrift und Nachweis entstehen und werden nie geändert
 - Pflichten, Pflichtenübertragungen und Verträge pflegt das Büro mit Verbindung
@@ -187,6 +191,7 @@ Der Abgleich von OpenGewerk, mit den Regeln dieser Anwendung:
 - Ein **Bereich** bündelt Liegenschaften. Ein kleiner Betreiber hat einen einzigen und merkt nichts davon
 - Eine Zugehörigkeit gilt für alle Bereiche oder für genannte. Rollen und Bereich zusammen ergeben, was jemand sieht und tut
 - **Vertretung**: befristet übernimmt jemand die Bereiche einer anderen Person, mit Anfang und Ende
+- Ein Bereich lässt sich erst entfernen, wenn keine Liegenschaft mehr in ihm liegt; sie werden vorher in einen anderen verlegt. Wer danach keinen Bereich mehr hat, sieht nichts mit Ortsbezug, und die Liste der Zugänge sagt es; gesperrt wird dadurch niemand
 - Durchgesetzt wird der Bereich in der Datenbank, nicht in jeder einzelnen Abfrage: eine Zeile mit Ortsbezug trägt ihren Bereich, und die Policy lässt nur die Bereiche der Anfrage durch
 - Betreiberweit und ohne Bereich: Katalog, Fremdfirmen, Lager, Schlüsselanlagen, Einstellungen
 
@@ -196,6 +201,7 @@ Die Regel-Engine von OpenGewerk, um zwei Dinge erweitert:
 
 - **Geltungsbereich**: ein Regeldatensatz gilt bundesweit oder in einem Land. Bauordnungsrecht ist Landesrecht, und eine Prüfung, die in einem Land vorgeschrieben ist, gibt es im nächsten nicht
 - **Einheiten**: Monate, Grad Celsius in Zehnteln, Kilowatt, Kilogramm und Tonnen CO2-Äquivalent, Anzahl je 100 ml, dazu was die Formulare an Messwerten brauchen
+- **Gesetzliche Feiertage** je Land sind Regeln wie alle anderen, mit Fundstelle und Gültigkeit, damit der Plan eines Rundgangs sie auslassen kann (4.5)
 
 Wie dort gilt: jede Abfrage nennt einen Tag, und für einen Tag ohne hinterlegte Regel gibt es keine Antwort statt einer erfundenen.
 
@@ -208,14 +214,14 @@ Wie dort gilt: jede Abfrage nennt einen Tag, und für einen Tag ohne hinterlegte
 - Mehrere Betreiber auf einer Instanz, Wechsel ohne neue Anmeldung; Bereich für die Verwaltung der Instanz
 - Rechtstexte der Instanz (Impressum, Datenschutzhinweise) pflegt ihre Verwaltung in der Oberfläche; sie stehen nicht im Quelltext
 - Änderungsprotokoll über alle Module, für die Leitung einsehbar
-- Aufgaben mit Fälligkeit und verantwortlicher Person, an Ort, Anlage oder Vorgang
-- Benachrichtigungen per E-Mail und Push, gespeist nur aus der Fristen-Engine und aus Statuswechseln; welche Anlässe als Push kommen, wählt jede Person selbst
-- Suche über Liegenschaften, Gebäude, Räume, Anlagen und Vorgänge nach Name, Nummer und Kennzeichen; Volltextsuche über Dokumente ⏳
+- Aufgaben mit Fälligkeit und verantwortlicher Person, an Ort, Anlage oder Vorgang. Jede Person legt eigene an; einer anderen teilt sie zu, wer auch Vorgänge plant und verteilt. Die eigenen Aufgaben liegen auf dem Gerät und lassen sich ohne Netz erledigen
+- Benachrichtigungen per E-Mail und Push, gespeist nur aus der Fristen-Engine und aus Statuswechseln; welche Anlässe als Push kommen, wählt jede Person selbst. Die Anlässe: eine Frist wird fällig; ein Rundgang, eine Prüfung oder ein Auftrag wird jemandem zugeteilt; ein Auftrag wird zurückgewiesen; ein Rundgang wartet auf die Gegenzeichnung; ein Auftrag wartet auf die Abnahme; eine Aufgabe wird fällig. Nur ein Auftrag der Dringlichkeit „sofort“ kommt immer als Push (4.8)
+- Suche über Liegenschaften, Gebäude, Räume, Anlagen und Vorgänge nach Name, Nummer und Kennzeichen. Vor Ort fragt sie mit Netz den Server und findet im eigenen Bereich auch, was das Gerät nicht hält; ohne Netz sucht sie im Bestand des Geräts. Volltextsuche über Dokumente ⏳
 - Etiketten: QR-Code je Anlage und je Raum, für den Etikettendrucker oder als Bogen; ein verlorenes Etikett wird gesperrt
-- Import und Export (CSV, Excel) mit Vorschau und Dubletten-Prüfung
+- Import und Export (CSV, Excel) mit Vorschau und Dubletten-Prüfung; jede Liste im Büro lässt sich als Tabelle ausgeben, mit dem, was ihr Filter gerade zeigt
 - DSGVO-Funktionen ⚖: Löschkonzept mit Aufbewahrungsfristen, Auskunft und Datenexport, Verzeichnis der Verarbeitungstätigkeiten als erzeugtes Dokument, Vorlage für den Vertrag zur Auftragsverarbeitung
 - Verfahrensbeschreibung für Betriebsrat, Personalrat oder Mitarbeitervertretung als erzeugtes Dokument ★ ⚖ (Abschnitt 9)
-- Barrierefreiheit ⚖: Tastatur, Kontrast und Beschriftungen für Bildschirmleser von Anfang an in den Bausteinen, geprüft in der CI
+- Barrierefreiheit ⚖: Tastatur, Kontrast und Beschriftungen für Bildschirmleser von Anfang an in den Bausteinen, geprüft in der CI; die Unterschrift hat einen Weg ohne Schriftzug (2.6)
 - Betrieb: Sicherung und Rückspielen, Update mit Migrationen, Gesundheitsprüfung, Docker-Compose-Referenzinstallation, signierte Releases
 
 ---
@@ -225,12 +231,12 @@ Wie dort gilt: jede Abfrage nennt einen Tag, und für einen Tag ohne hinterlegte
 ### 4.1 Liegenschaften, Gebäude, Räume
 
 - Liegenschaften mit Anschrift, Land, Ansprechpartnern, Fotos und Zugängen (Schlüssel, Codes, versiegelt gespeichert, jedes Aufdecken festgehalten ⚖)
-- Gebäude mit Kürzel, Gebäudeart, Baujahr, Flächen; Geschosse; Räume mit Nummer, Nutzung und Fläche
+- Gebäude mit Kürzel, Gebäudeart, Baujahr, Flächen und Schließzeiten, in denen kein Rundgang entsteht (4.5); Geschosse; Räume mit Nummer, Nutzung und Fläche
 - **Lagebild je Gebäude** statt einer Mappe mit Reitern: oben, was zu tun ist (überfällig, fällig, nie erfasst, offene Mängel, offene Störungen, fehlende Zählerstände), darunter der Bestand, darunter die letzten Vorgänge. Jede Zahl ist ein Link auf die gefilterte Liste
 - **Übersicht über alle Liegenschaften** mit denselben Zahlen je Gebäude, in fester Reihenfolge, auf Wunsch nach Dringlichkeit
 - Raumseite mit den Anlagen, die dort stehen, und denen, die den Raum versorgen
 - Zeitachse je Liegenschaft, Gebäude und Raum über alle Vorgänge
-- Navigation über den Pfad Liegenschaft › Gebäude › Geschoss › Raum › Anlage, auf jedem Gerät gleich
+- Navigation über den Pfad Liegenschaft › Gebäude › Geschoss › Raum › Anlage, auf jedem Gerät gleich. Vor Ort hat jede Ebene eine schlichte Seite mit dem, was darunter liegt, ohne Lagebild
 
 ### 4.2 Anlagen und Anlagenakte
 
@@ -238,17 +244,17 @@ Wie dort gilt: jede Abfrage nennt einen Tag, und für einen Tag ohne hinterlegte
 - **Anlagenakte** mit eigener Adresse: Stammdaten, Standort und Versorgungsbereich, Komponenten, Pflichten mit Zustand, Nachweise, Mängel, Aufträge, Störungen, Dokumente, Verträge und Gewährleistung, Zeitachse
 - **Anlagenarten** aus Paketen (Abschnitt 5): jede Art bringt ihre Felder, ihre Kostengruppe und die Pflichten mit, die für sie in Frage kommen. Eigene Anlagenarten und eigene Felder des Betreibers kommen dazu. Für jede Anlage, die kein Fachpaket beschreibt, gibt es eine allgemeine Anlagenart ihrer Kostengruppe, damit Import und Bestandsaufnahme den ganzen Bestand erfassen, bevor das passende Paket oder die eigene Anlagenart da ist
 - **Bestandsaufnahme vor Ort** ★: Anlage auf dem Telefon anlegen, auch ohne Netz, Typenschild fotografieren, Seriennummer mit der Kamera lesen, Etikett kleben und zuordnen
-- Dubletten-Prüfung beim Anlegen und Importieren (gleiche Seriennummer, gleiches Kennzeichen)
+- Dubletten-Prüfung beim Anlegen und Importieren (gleiche Seriennummer, gleiches Kennzeichen); bei einer ohne Netz angelegten Anlage prüft der Abgleich (2.7)
 - Etikett je Anlage: der Scan öffnet die Akte, für Melder ohne Konto die Störungsmeldung (4.7)
 - Elektro: Verteiler, Felder, Stromkreise und Betriebsmittel mit Stromkreisverzeichnis für die Verteilertür
-- Tausch einer Anlage: die alte wird zurückgebaut, die neue übernimmt Standort und Versorgungsbereich; Pflichten werden neu vorgeschlagen, die Nachweise der alten bleiben bei der alten
+- Tausch einer Anlage: die alte wird zurückgebaut, die neue übernimmt Standort und Versorgungsbereich; Pflichten werden neu vorgeschlagen, die Nachweise der alten bleiben bei der alten. Was an der alten offen ist, endet mit ihr: ein offener Mangel gilt mit dem Tausch als behoben, ein offener Vorgang wird mit Grund als nicht durchgeführt geschlossen. Komponenten bleiben bei der alten, einzelne lassen sich mitnehmen
 
 ### 4.3 Betreiberpflichten ★ ⚖
 
 - **Pflichtenverzeichnis**: alle Pflichten des Betreibers mit Anlage, Fundstelle, Frist, Verantwortlichem, Ausführendem, letztem Nachweis und nächster Fälligkeit
 - **Vorschläge** aus dem Katalog je Anlage, zum Bestätigen oder Verwerfen mit Begründung; auch im Stapel für viele gleichartige Anlagen
 - **Eigene Pflichten**: Herstellervorgabe, Auflage, Forderung des Versicherers, eigene Festlegung, jeweils mit Quelle
-- **Frist festlegen**: innerhalb dessen, was die Pflichtart zulässt, mit Begründung und Verweis auf das Dokument, das sie trägt (Gefährdungsbeurteilung)
+- **Frist festlegen**: innerhalb dessen, was die Pflichtart zulässt, mit Begründung und Verweis auf das Dokument, das sie trägt (Gefährdungsbeurteilung). Der Verweis ist empfohlen und nicht verlangt; er merkt sich die Fassung des Dokuments vom Tag der Bestätigung, und liegt eine neuere vor, sagt die Pflicht „Frist prüfen“
 - **Übersicht Betreiberverantwortung**: über alle Liegenschaften oder einen Bereich, was überfällig ist, was in 30 und 90 Tagen fällig wird, wo eine Pflicht nie erfasst wurde, wo ein Nachweis fehlt, welche Mängel über ihrer Frist sind
 - **Pflichtenübertragung** ⚖: schriftlich, mit Aufgaben, Bereich und Befugnissen, von beiden unterschrieben, mit Beginn und Ende, als eingefrorenes Dokument; die beauftragte Person erhält eine Ausfertigung. Eine Pflicht ohne Verantwortlichen wird angezeigt, statt still weiterzulaufen
 - **Qualifikationen** der Mitarbeiter mit Ablaufdatum (Elektrofachkraft, zur Prüfung befähigte Person für ein Arbeitsmittel, Hygieneschulung, Sachkunde); wird ein Vorgang jemandem zugewiesen, dem die Qualifikation fehlt oder abgelaufen ist, weist die Oberfläche darauf hin
@@ -261,19 +267,19 @@ Wie dort gilt: jede Abfrage nennt einen Tag, und für einen Tag ohne hinterlegte
 - Aus einem fälligen Termin entsteht ein Vorgang, mit Vorlauf, beim Verantwortlichen oder beim Ausführenden
 - **Eigene Durchführung**: Protokoll aus dem Paket der Anlagenart, Messwerte mit Grenzwertprüfung, Ergebnis, Mängel, Unterschrift. Das letzte Protokoll einer Anlage ist die Vorlage des nächsten, soweit die Definition es zulässt
 - **Fremde Durchführung**: Termin mit der Fremdfirma, Bericht oder Prüfbescheinigung hochladen, Prüfer, Organisation, Datum und Ergebnis eintragen. Ein Bericht kann viele Anlagen abdecken und wird in einem Zug zugeordnet
-- **Ergebnis**: ohne Mangel, mit Mängeln, nicht bestanden, nicht durchgeführt (mit Grund). Die Mängelklassen kommen aus dem Paket
-- Die nächste Fälligkeit rechnet sich aus dem Nachweis und der Frist; ob ab dem Tag der Prüfung oder ab dem fälligen Tag gezählt wird, sagt die Pflichtart. Sie rückt erst mit dem Nachweis weiter und nie mit dem Anlegen des Vorgangs: eine Prüfung, die geplant und nicht durchgeführt wurde, bleibt überfällig
+- **Ergebnis**: ohne Mangel, mit Mängeln, nicht bestanden, nicht durchgeführt (mit Grund). Die Mängelklassen kommen aus dem Paket (4.6, Abschnitt 5)
+- Die nächste Fälligkeit rechnet sich aus dem Nachweis und der Frist; ob ab dem Tag der Prüfung oder ab dem fälligen Tag gezählt wird, sagt die Pflichtart. Zählt sie ab dem fälligen Tag, erfüllt eine Durchführung den offenen Termin, wenn sie höchstens ein Zwölftel der Frist vor ihm liegt, und der Rhythmus bleibt; liegt sie früher, zählt die Frist neu ab ihrem Tag, wie es § 14 Abs. 5 BetrSichV für Arbeitsmittel vorsieht. So fällt kein Termin aus, und keine Durchführung geht verloren. Die Fälligkeit rückt erst mit dem Nachweis weiter und nie mit dem Anlegen des Vorgangs: eine Prüfung, die geplant und nicht durchgeführt wurde, bleibt überfällig
 - Sammelvorgänge: alle Feuerlöscher eines Gebäudes, alle ortsveränderlichen Betriebsmittel eines Bereichs
 - Unterscheidung nach DIN 31051: Wartung, Inspektion, Instandsetzung, Verbesserung, damit Auswertungen dieselbe Sprache sprechen wie Verträge und Leistungsverzeichnisse
 
 ### 4.5 Rundgänge und Checklisten
 
-- **Vorlage** des Betreibers mit Kapiteln und Punkten, als Formular mit Fassungen. Ein laufender Rundgang bleibt auf seiner Fassung
-- **Plan**: Vorlage, Ort, Rhythmus (täglich, wöchentlich, monatlich, jährlich, mit Wochentag oder Tag), zuständige Person oder Bereich, Vorlauf. Zuteilung im Büro, auch als „wie letzte Woche“
+- **Vorlage** des Betreibers mit Kapiteln und Punkten, als Formular mit Fassungen. Ein laufender Rundgang bleibt auf seiner Fassung. Vorlagen führt, wer das Recht dafür hat, ab der Objektleitung; eine Vorlage, die auf Anlagen zeigt, ändert nur, wer deren Bereich sieht. Ein Punkt zeigt auf eine bestimmte Anlage, einen bestimmten Raum oder auf nichts; die Wiederholung über alle Anlagen einer Art kommt mit den Sammelvorgängen (4.4)
+- **Plan**: Vorlage, Ort, Rhythmus (täglich, wöchentlich, monatlich, jährlich, mit Wochentag oder Tag), zuständige Person oder Bereich, Vorlauf. Zuteilung im Büro, auch als „wie letzte Woche“. Ein Plan nennt die Wochentage, an denen er gilt, und kann gesetzliche Feiertage auslassen (2.9); in den Schließzeiten des Gebäudes (4.1) entsteht kein Rundgang. Sonst zählt ein Feiertag wie jeder Tag
 - **Jeder fällige Durchgang ist ein eigener Rundgang** mit eigener Unterschrift. Ein täglicher Rundgang ergibt sieben in der Woche und keine Wochenliste mit sieben Spalten; was in kürzerem Abstand zu belegen ist, etwa eine Spülung nach spätestens 72 Stunden, ist eine eigene Pflicht mit eigenem Nachweis
 - **Durchführung** auf dem Telefon, ohne Netz, jede Eingabe sofort auf dem Gerät gesichert: Prüfpunkt, Messwert mit Grenzwert, Zählerstand, Foto, Bemerkung
 - Ein Punkt kann eine **Pflicht erfüllen**: die monatliche Funktionskontrolle im Rundgang ist dann der Nachweis dieser Pflicht, ohne zweite Erfassung ★
-- „Nicht in Ordnung“ verlangt eine Bemerkung und wird mit der Unterschrift ein **Mangel** an der Anlage oder dem Raum des Punkts
+- „Nicht in Ordnung“ verlangt eine Bemerkung und wird mit der Unterschrift ein **Mangel** an der Anlage oder dem Raum des Punkts. Ein Messwert außerhalb seines Grenzwerts ebenso, mit Wert und Grenzwert
 - **Abgabe** erst, wenn jeder Punkt eine Antwort hat. „Entfällt“ und „nicht möglich“ sind Antworten und verlangen einen Grund; einen Rundgang mit unbeantworteten Punkten nimmt das System nicht an, und das lässt sich nicht abschalten
 - Unterschrift, danach unveränderlich (2.6). Verlangt die Vorlage eine **Gegenzeichnung** der Objektleitung, gilt der Nachweis erst mit beiden Unterschriften, jede mit eigenem Zeitpunkt
 - Offene Rundgänge vergangener Zeiträume bleiben sichtbar und lassen sich mit Grund als nicht durchgeführt schließen, statt still zu verschwinden
@@ -283,8 +289,8 @@ Wie dort gilt: jede Abfrage nennt einen Tag, und für einen Tag ohne hinterlegte
 ### 4.6 Mängel
 
 - Entstehen aus Rundgang, Prüfung, Störmeldung oder von Hand, immer an einer Anlage oder einem Ort, mit Foto
-- Klasse und Frist zur Beseitigung, die Vorgabe je Klasse stellt der Betreiber ein
-- Status: festgestellt → beauftragt → behoben → nachgeprüft; „behoben“ kommt aus dem Auftrag, „nachgeprüft“ ist ein eigener Schritt
+- Klasse und Frist zur Beseitigung, die Vorgabe je Klasse stellt der Betreiber ein. Die Klassen kommen aus dem Paket: ein Mangel aus einer Prüfung nimmt die des Pakets seiner Pflichtart, jeder andere die drei allgemeinen Stufen des Pakets Allgemein (gering, erheblich, gefährlich). Ein gemeldeter Mangel hat zuerst keine Klasse; vergeben wird sie von dem, der Mängel führt, und bis dahin steht er als „ohne Klasse“ in der Liste
+- Status: festgestellt → beauftragt → behoben → nachgeprüft; „behoben“ kommt aus dem Auftrag, mit der Unterschrift dessen, der ihn führt, und eine Zurückweisung bei der Abnahme setzt den Mangel auf „beauftragt“ zurück; „nachgeprüft“ ist ein eigener Schritt
 - Ein Mangel, der eine Anlage unsicher macht, setzt sie außer Betrieb und sagt das an der Anlage, am Raum und im Lagebild
 - Offene Mängel je Anlage, Gebäude und Bereich; Mängelbericht als PDF
 
@@ -299,7 +305,9 @@ Wie dort gilt: jede Abfrage nennt einen Tag, und für einen Tag ohne hinterlegte
 
 ### 4.8 Arbeitsaufträge und Leistungsnachweis
 
-- Auftrag mit Nummer, Ort oder Anlage, Art (Störung, Mangelbeseitigung, Wartung, Prüfung, sonstiger Auftrag), Dringlichkeit, Frist, einer verantwortlichen Person und weiteren Beteiligten
+- Auftrag mit Nummer, Ort oder Anlage, Art (Störung, Mangelbeseitigung, Wartung, Prüfung, sonstiger Auftrag), Dringlichkeit (normal, dringend, sofort), Frist, einer verantwortlichen Person und weiteren Beteiligten
+- „Sofort“ ist für eine Störung, die den Betrieb aufhält, und erreicht die verantwortliche Person immer als Push (Abschnitt 3)
+- Weitere Beteiligte arbeiten mit: sie haben den Auftrag auf ihrem Gerät und schreiben Notizen, Fotos und Dauer dazu. Abschließen können sie ihn nicht, und auf der unterschriebenen Seite stehen sie nicht
 - Entsteht aus Störmeldung, Mangel, Termin oder von Hand, und bleibt mit seinem Ursprung verknüpft
 - Vor Ort: Notizen als eigene Einträge, Fotos, Material aus dem Lager, Dauer, Protokoll; abschließen mit Unterschrift
 - **Abnahme** durch die Objektleitung oder den Ersteller: abgenommen oder zurückgewiesen mit Begründung. Eine Zurückweisung macht die Unterschrift ungültig und lässt sie stehen
@@ -310,7 +318,8 @@ Wie dort gilt: jede Abfrage nennt einen Tag, und für einen Tag ohne hinterlegte
 ### 4.9 Zähler und Energie
 
 - Messstellen als Anlagen: Medium (Strom, Wasser, Wärme, Fernwärme, Gas, Kälte), Einheit, Zählernummer, Wandlerfaktor, Haupt- und Unterzähler, Kennung in der Leittechnik
-- **Ablesung** zum Stichtag auf dem Telefon, als Punkt eines Rundgangs oder als eigene Runde, mit dem Vormonatswert daneben und einer Prüfung auf Unmögliches (kleiner als der letzte Stand, Sprung um ein Vielfaches)
+- **Ablesung** zum Stichtag auf dem Telefon, als Punkt eines Rundgangs oder als eigene Runde, mit dem Vormonatswert daneben und einer Prüfung auf Unmögliches (kleiner als der letzte Stand, Sprung um ein Vielfaches). Den Stichtag stellt der Betreiber ein, eine einzelne Messstelle kann davon abweichen
+- Ein Stand wird nie überschrieben: berichtigt wird durch einen neuen Eintrag, der den alten nennt, mit Grund und Person
 - **Verbrauch** wird abgeleitet und nie gespeichert
 - **Zählertausch** als Eintrag an der Messstelle (Endstand alt, Anfangsstand neu, beide Nummern, Tag); der Verbrauch des Tauschmonats rechnet über beide Geräte
 - **Stilllegung als Zeitraum**, **Sperre mit Begründung**, **Notiz** an der Messstelle („Zutritt nur für Elektrofachkräfte“)
@@ -386,6 +395,7 @@ pakete/<name>/
   regeln/*.json          # Fristen und Grenzwerte mit Gültigkeit und Fundstelle
   formulare/*.json       # Prüf- und Wartungsprotokolle
   vorlagen/*.json        # Vorlagen für Rundgänge, die ein Betreiber übernehmen und anpassen kann
+  mangelklassen.json     # Klassen der Mängel mit Fundstelle, und ob eine Klasse eine Anlage unsicher macht
   abnahmen.json          # je Eintrag: zuletzt gegen die Quelle geprüft, abgenommen von wem und wann
 ```
 
@@ -401,7 +411,7 @@ pakete/<name>/
 | Förderanlagen und Arbeitsmittel | Aufzüge, kraftbetätigte Türen und Tore, Leitern und Tritte, Regale, Druckbehälter |
 | Landesrecht | je Bundesland die Prüfung technischer Anlagen in Sonderbauten, zuerst Baden-Württemberg |
 
-Dazu kommt vor ihnen das Paket **Allgemein**: je Kostengruppe nach DIN 276 eine allgemeine Anlagenart, in eigenen Worten benannt und ohne Pflichtarten. Es ist der Auffang für jede Anlage, die kein Fachpaket beschreibt, damit der Bestand eines Betreibers vollständig erfasst werden kann, auch bevor das Paket für seine Anlagen erscheint. Kommt das Fachpaket, wird die Anlagenart der Anlage berichtigt; ihre Pflichten werden dann vorgeschlagen. Eigene Pflichten kann eine Anlage mit allgemeiner Art von Anfang an tragen (4.3)
+Dazu kommt vor ihnen das Paket **Allgemein**: je Kostengruppe nach DIN 276 eine allgemeine Anlagenart, in eigenen Worten benannt und ohne Pflichtarten. Es ist der Auffang für jede Anlage, die kein Fachpaket beschreibt, damit der Bestand eines Betreibers vollständig erfasst werden kann, auch bevor das Paket für seine Anlagen erscheint. Kommt das Fachpaket, wird die Anlagenart der Anlage berichtigt; ihre Pflichten werden dann vorgeschlagen. Eigene Pflichten kann eine Anlage mit allgemeiner Art von Anfang an tragen (4.3). Das Paket bringt außerdem die drei allgemeinen Mängelklassen mit, für jeden Mangel, der nicht aus einer Prüfung kommt (4.6)
 
 **Was der Katalog nennen darf**, hängt an der Herkunft der Pflicht. Jede Pflichtart trägt sie als Angabe:
 
@@ -414,6 +424,7 @@ Dazu kommt vor ihnen das Paket **Allgemein**: je Kostengruppe nach DIN 276 eine 
 Regeln für jeden Beitrag:
 
 - Eine Pflichtart ohne Fundstelle wird nicht aufgenommen: Paragraf, Norm mit Ausgabe und Abschnitt, oder die Regel der Technik, die sie trägt
+- Die Mängelklassen eines Pakets gelten für jede seiner Pflichtarten, solange eine Pflichtart die Auswahl nicht einengt
 - Der Katalog nennt Fundstelle, Frist und Qualifikation. Er gibt keine Normtexte wieder
 - Jede Pflichtart und jeder Grenzwert braucht eine fachkundige Abnahme, bevor ein Betreiber sich darauf verlässt. Bis dahin ist der Eintrag gekennzeichnet, und die Oberfläche sagt es. Wer abgenommen hat und wann, steht am Eintrag
 - Jeder Eintrag trägt den Tag, an dem er zuletzt gegen seine Quelle geprüft wurde, und die Oberfläche zeigt ihn. Liegt die Prüfung länger als ein Jahr zurück, ist der Eintrag gekennzeichnet, und ein geplanter Lauf erinnert daran, wie bei den Regelpaketen von OpenGewerk
@@ -495,7 +506,7 @@ Regeln für jeden Beitrag:
 - **Abgleichen und senden** ist der Weg eines Geräts zum Server, mit Netz und ohne (2.7): was sich geändert hat, auf das Gerät holen, und was es ohne Netz festgehalten hat, schicken. Das ist kein eigenes Tun, sondern ein anderer Weg hinein; was ein Vorgang anfasst, entscheiden die Rechte darüber, und deshalb haben alle Rollen beide
 - **Nachweise eintragen** meint den Bericht einer Fremdfirma oder Prüforganisation (4.4). Der Nachweis aus einem eigenen Protokoll oder einem Rundgang entsteht mit der Unterschrift dessen, der ausführt, und braucht kein weiteres Recht
 - Kein Recht hebt eine der Zusagen auf, die sich nicht abschalten lassen: es gibt keines, das einen Nachweis ändert oder löscht, eine Unterschrift ersetzt oder die Abnahme eines Auftrags überspringt. Ob eine Rolle einen Betreiber führt und ob sie den zweiten Faktor verlangt, sind Angaben der Rolle und keine Rechte
-- Was die Tabelle oben nennt und hier noch fehlt, kommt mit seiner Phase: Störungen annehmen, Verträge, Auswertungen über die Zeit und die Pflichtenübertragung in Phase 2. Rechte für Aufgaben, Dokumente und Benachrichtigungen kommen mit diesen Bausteinen in Phase 1. Jedes neue Recht steht dann auch in dieser Tabelle
+- Was die Tabelle oben nennt und hier noch fehlt, kommt mit seiner Phase: Störungen annehmen, Verträge, Auswertungen über die Zeit und die Pflichtenübertragung in Phase 2. Rechte für Aufgaben, Dokumente, Benachrichtigungen und die Vorlagen der Rundgänge kommen mit diesen Bausteinen in Phase 1, und wer sie bekommt, ist entschieden: Dokumente sehen und ablegen alle vier Rollen, entfernen ab der Objektleitung; Aufgaben legt jede Rolle an, einer anderen Person teilt sie zu, wer Vorgänge plant und verteilt; die Vorlagen der Rundgänge führen Leitung, Technische Leitung und Objektleitung. Jedes neue Recht steht dann auch in dieser Tabelle
 
 ---
 
@@ -552,7 +563,7 @@ Die Tabelle nennt, woran sich der Funktionsumfang ausrichtet. Die Fundstellen si
   - keine Auswertung je Person als Vorgabe, keine Ranglisten, keine Verzugsstatistik je Mitarbeiter
   - Einsicht in das Änderungsprotokoll nur für die Leitung
   - Arbeitszeit und Standort nur nach bewusstem Einschalten
-- **Verfahrensbeschreibung** als erzeugtes Dokument ★: welche personenbezogenen Daten in welchem Modul stehen, wer sie sieht, welche Auswertungen es gibt und welche nicht, wie lange sie aufbewahrt werden. Erzeugt aus dem, was eingeschaltet und eingestellt ist, damit sie stimmt
+- **Verfahrensbeschreibung** als erzeugtes Dokument ★: welche personenbezogenen Daten in welchem Modul stehen, wer sie sieht, welche Auswertungen es gibt und welche nicht, wie lange sie aufbewahrt werden. Erzeugt aus dem, was eingeschaltet und eingestellt ist, damit sie stimmt. Bis die Anwendung sie erzeugt, gibt es sie für den Stand von Phase 1 von Hand geschrieben, damit eine Arbeitnehmervertretung sie vor dem Parallelbetrieb in der Hand hat
 - Vorlage für eine Betriebs- oder Dienstvereinbarung auf opengewerk.de
 
 ---
@@ -575,11 +586,12 @@ Der Pilotbetrieb arbeitet heute mit einer Vorgängeranwendung des Maintainers un
 
 - **Struktur und Anlagen**: Import aus Tabellen mit Zuordnung der Spalten, Vorschau, Dubletten-Prüfung, Übernahme ganz oder gar nicht; ein Import ist ein Eintrag im Änderungsprotokoll
 - **Anlagenarten zuordnen**: eine Tabelle von alten Bezeichnungen auf Anlagenarten des Katalogs, einmal gepflegt, danach schlägt das System die Pflichten vor
-- **Laufende Fristen**: letzter Nachweis und nächste Fälligkeit je Anlage werden übernommen, damit keine Frist beim Wechsel neu zu laufen beginnt
-- **Alte Nachweise**: werden als Dokumente mit ihrem ursprünglichen PDF übernommen und als Altbestand gekennzeichnet. Sie werden nicht neu unterschrieben und nicht umgeschrieben
+- **Laufende Fristen**: letzter Nachweis und nächste Fälligkeit je Anlage werden übernommen, damit keine Frist beim Wechsel neu zu laufen beginnt. Je Pflicht entsteht dafür ein Nachweis mit der Herkunft „Altbestand“: mit dem Tag der letzten Durchführung, dem ursprünglichen PDF und dem Vermerk, dass er nicht in dieser Anwendung unterschrieben wurde. Er zählt für die Frist wie jeder Nachweis und sieht nie aus wie ein unterschriebener
+- **Alte Nachweise** darüber hinaus: werden als Dokumente mit ihrem ursprünglichen PDF übernommen und als Altbestand gekennzeichnet. Sie werden nicht neu unterschrieben und nicht umgeschrieben
 - **Zähler**: Messstellen und Stände mit Tauschen und Stilllegungen
 - **Vorlagen der Rundgänge**: die eigenen Vorlagen des Betreibers werden als Formulare in seine Instanz übernommen, die Punkte nachträglich Anlagen zugeordnet. Sie gehören ihm und bleiben dort; in die Pakete des Projekts wandert keine davon (Abschnitt 5)
 - **Was die Vorgängeranwendung nicht belegen kann**, wird nicht nachträglich geheilt: ein Nachweis ohne prüfbare Unterschrift kommt als Altbestand mit genau diesem Vermerk
+- **Offene Aufträge** werden nicht übernommen: sie werden im Parallelbetrieb in der Vorgängeranwendung zu Ende geführt, und was am Stichtag noch offen ist, wird hier neu angelegt
 - **Zugänge**: Einladung jedes Kontos, niemand bekommt ein übernommenes Passwort
 - **Parallelbetrieb**: mindestens ein voller Monat mit allen Rundgängen in beiden Systemen, danach Umstellung an einem Stichtag. Die Vorgängeranwendung bleibt lesend erreichbar, bis ihre Aufbewahrungsfristen abgelaufen oder ihre Nachweise übernommen sind
 
@@ -602,9 +614,9 @@ Leitgedanke wie bei OpenGewerk: **So früh wie möglich einen echten Betrieb dam
 **Zuordnung im Einzelnen.** Die Tabelle nennt die Schwerpunkte. Die übrigen Punkte der Abschnitte 2 bis 10 gehören so zu den Phasen; beides zusammen ist der Fahrplan, und aus beidem werden die Issues einer Phase geschnitten. Was in keiner Phase steht, steht in Abschnitt 14. Wer in 2 bis 10 einen Punkt einträgt, trägt seine Phase im selben Zug hier ein.
 
 - **Phase 0:** die Pakete und Nähte im Repository `opengewerk`, die Phase 1 braucht: Abgleichregeln, Rechte, Rollen als Daten, Bezeichnungen im Änderungsprotokoll, Schlüssel der Nummernkreise, Quellen der Fristen-Engine, Anlässe der Benachrichtigungen, Formulare ohne Stromkreis (2.1); die Regel-Engine mit Geltungsbereich und den neuen Einheiten (2.9); die Nummernkreise für Anlagen, Nachweise und Aufträge (2.2, 2.6, 4.8); die Fassungen des eingefrorenen Nachweises und die Trigger darunter (2.6); der Lebenszyklus als Zeitraum (2.2); die Auswahl je Gerät nach Bereich (2.7, 2.8); die Herkunft einer Pflichtart, der Tag ihrer letzten Prüfung und ihre Abnahme im Paketformat (5)
-- **Phase 1:** Lagebild je Gebäude, Übersicht über alle Liegenschaften, Raumseite, Zeitachse und Pfadnavigation (4.1); Dubletten-Prüfung und Tausch einer Anlage (4.2); eigene Pflichten und die festgelegte Frist mit Begründung (4.3); eigene und fremde Durchführung mit Ergebnis (4.4); Vorlage, Plan, ein eigener Rundgang je Durchgang, Zuteilung, Punkt erfüllt Pflicht, Abgabe nur vollständig, Gegenzeichnung, PDF und Übersicht der Rundgänge (4.5); Mängel mit Klasse, Frist und Status, die Mängelklassen im Paketformat (4.4, 4.6, 5); Aufträge aus Mangel und Termin mit Abnahme (4.8); Zählertausch, Stilllegung, Sperre und Notiz (4.9); Ablage mit Fassungen (4.10); Suche nach Name, Nummer und Kennzeichen, Aufgaben, Änderungsprotokoll, eigene Angaben unter „Konto“, Rechtstexte der Instanz, Bereich der Instanz und Passkeys, soweit das Fundament sie mitbringt (3); Barrierefreiheit der Bausteine (3) ⚖; Vertretung (2.8); die Rollen Leitung, Technische Leitung, Objektleitung und Haustechnik (7); das Paket Allgemein mit einer allgemeinen Anlagenart je Kostengruppe (4.2, 5); die Pakete Elektro, Brandschutz und Trinkwasser vollständig und das Landesrecht von Baden-Württemberg, dazu der Lauf, der an die Prüfung der Katalogeinträge erinnert (5) ⚖; Hilfe an den Bildschirmen (10)
-- **Phase 2:** Sammelvorgänge und die Unterscheidung nach DIN 31051 (4.4); außer Betrieb durch Mangel und Mängelbericht (4.6); Eingang, Zusammenführen, Rückmeldung und Zeiten der Störmeldungen (4.7); Gewährleistung, Einweisung und Erlaubnisschein (4.11); Soll-Dokumente (4.10); Lager, Mindestbestand und Entnahme am Auftrag (4.12); Auswertungen über die Zeit, ohne Auswertung je Person (4.16) ⚖; eigene Rollen (7); die Elektro-Struktur mit Stromkreisverzeichnis (4.2); eigene Anlagenarten des Betreibers und eigene Felder an Anlagenarten (2.5, 4.2); das Ende einer Zugehörigkeit als Frist (2.4, 9) ⚖; die Rollen Melder und Prüfer (7); die Aufbewahrung der Nachweise mit Löschvorschlag und das höher signierte PDF am Nachweis (2.6) ⚖; die Pakete Raumluft und Kälte, Heizung, Förderanlagen und Arbeitsmittel (5) ⚖; Gefährdungsbeurteilung als Dokument mit Frist (4.3); die externe Sicherheitsprüfung vor dem Release mit der Seite ohne Anmeldung (9)
-- **Phase 3:** DATANORM und Fahrzeuglager (4.12); Zugänge versiegelt und Schlüsselquittung (4.13); Ausreißer und Verbrauch je Quadratmeter, Flächen an Gebäuden und Räumen (4.1, 4.9)
+- **Phase 1:** Lagebild je Gebäude, Übersicht über alle Liegenschaften, Raumseite, Zeitachse und Pfadnavigation (4.1); Dubletten-Prüfung und Tausch einer Anlage (4.2); eigene Pflichten und die festgelegte Frist mit Begründung (4.3); eigene und fremde Durchführung mit Ergebnis (4.4); Vorlage, Plan, ein eigener Rundgang je Durchgang, Zuteilung, Punkt erfüllt Pflicht, Abgabe nur vollständig, Gegenzeichnung, PDF und Übersicht der Rundgänge (4.5); Mängel mit Klasse, Frist und Status, die Mängelklassen im Paketformat (4.4, 4.6, 5); Aufträge aus Mangel und Termin mit Abnahme (4.8); Zählertausch, Stilllegung, Sperre und Notiz (4.9); Ablage mit Fassungen (4.10); Suche nach Name, Nummer und Kennzeichen, Aufgaben, Änderungsprotokoll, eigene Angaben unter „Konto“, Rechtstexte der Instanz, Bereich der Instanz und Passkeys, soweit das Fundament sie mitbringt (3); Barrierefreiheit der Bausteine (3) ⚖; Vertretung (2.8); die Rollen Leitung, Technische Leitung, Objektleitung und Haustechnik (7); das Paket Allgemein mit einer allgemeinen Anlagenart je Kostengruppe (4.2, 5); die Pakete Elektro, Brandschutz und Trinkwasser vollständig und das Landesrecht von Baden-Württemberg, dazu der Lauf, der an die Prüfung der Katalogeinträge erinnert (5) ⚖; Hilfe an den Bildschirmen (10); die Seiten vor Ort für Liegenschaft, Gebäude und Geschoss, Ansprechpartner und Fotos an der Liegenschaft (4.1); der Konflikt bei einer möglichen Dublette (2.7, 4.2); der Verweis auf das Dokument, das eine Frist trägt (4.3); die Zählweise ab dem fälligen Tag mit ihrem Fenster (4.4); Wochentage, Feiertage und Schließzeiten im Plan eines Rundgangs, die Feiertage zuerst für Baden-Württemberg (2.9, 4.1, 4.5); die Dringlichkeit in drei Stufen und weitere Beteiligte (4.8); Stichtag, Berichtigung eines Stands und der Verlauf über 12 und 24 Monate mit dem Vergleich zum Vorjahr, schlicht (4.9); die Ausgabe jeder Liste im Büro als Tabelle und die Anlässe der Benachrichtigungen (3); die Meldung einer neuen Fassung eines Pakets an bestätigte Pflichten (2.3); der Weg ohne Schriftzug bei der Unterschrift (2.6); im Paket Elektro die Formulare, die ohne Stromkreis auskommen, im Landesrecht die Pflichtarten für die Anlagenarten der Pakete aus Phase 1 (5); die Vorlage für den Vertrag zur Auftragsverarbeitung und die von Hand geschriebene Verfahrensbeschreibung (9, 15) ⚖
+- **Phase 2:** Sammelvorgänge und die Unterscheidung nach DIN 31051 (4.4); außer Betrieb durch Mangel und Mängelbericht (4.6); Eingang, Zusammenführen, Rückmeldung und Zeiten der Störmeldungen (4.7); Gewährleistung, Einweisung und Erlaubnisschein (4.11); Soll-Dokumente (4.10); Lager, Mindestbestand und Entnahme am Auftrag (4.12); Auswertungen über die Zeit, ohne Auswertung je Person (4.16) ⚖; eigene Rollen (7); die Elektro-Struktur mit Stromkreisverzeichnis (4.2); eigene Anlagenarten des Betreibers und eigene Felder an Anlagenarten (2.5, 4.2); das Ende einer Zugehörigkeit als Frist (2.4, 9) ⚖; die Rollen Melder und Prüfer (7); die Aufbewahrung der Nachweise mit Löschvorschlag und das höher signierte PDF am Nachweis (2.6) ⚖; die Pakete Raumluft und Kälte, Heizung, Förderanlagen und Arbeitsmittel (5) ⚖; Gefährdungsbeurteilung als Dokument mit Frist (4.3); die externe Sicherheitsprüfung vor dem Release mit der Seite ohne Anmeldung (9); die Wiederholung eines Punkts über alle Anlagen einer Art (4.5); der Datenexport eines Rundgangs und der Export für Auswertungen (4.5, 4.16); Unterlagen für unterwegs (2.7); die Messwerte je Stromkreis im Paket Elektro und die Pflichtarten des Landesrechts für die Anlagenarten der Pakete aus Phase 2 (5); die Vorlage für eine Betriebs- oder Dienstvereinbarung (9); was die Auswertungen über die Zeit am Verlauf der Zähler zusätzlich brauchen (4.9)
+- **Phase 3:** DATANORM und Fahrzeuglager (4.12); Zugänge versiegelt und Schlüsselquittung (4.13); Ausreißer und Verbrauch je Quadratmeter, Flächen an Gebäuden und Räumen (4.1, 4.9); was die Energieauswertung am Verlauf der Zähler zusätzlich braucht (4.9)
 - **Phase 4:** Meldungen der Leittechnik im Eingang der Störmeldungen (4.7, 4.15); der Adapter des Pilotbetriebs und die Freigabe von Adressen im eigenen Netz (4.15); die Rolle Fremdfirma (7)
 - **Phase 5:** die Hinweise zur Mitbestimmung beim Einschalten der Arbeitszeit (4.14) ⚖
 - **Phase 6:** Angaben und Export für das digitale Gebäudelogbuch (6); Volltextsuche und Texterkennung (3, 4.10); lesender Zugang für eigene Auswertungen (4.16); KI als Vorschlag (6)
@@ -668,7 +680,7 @@ Wer eine Ausschreibung mit diesen Anforderungen bestehen muss, ist dort besser a
 
 ## 15. Entscheidungen
 
-Die offenen Fragen aus v0.1 sind am 01.10.2026 entschieden worden, die Phasen der eigenen Anlagenarten und der Mängelklassen am 03.10.2026. Jede Antwort steht an ihrer Stelle im Konzept; diese Tabelle nennt sie einmal im Zusammenhang.
+Die offenen Fragen aus v0.1 sind am 01.10.2026 entschieden worden, die Phasen der eigenen Anlagenarten und der Mängelklassen am 03.10.2026, und am 04.10.2026 kam dazu, was vor dem Bau von Phase 1 zu klären war. Jede Antwort steht an ihrer Stelle im Konzept; diese Tabelle nennt sie einmal im Zusammenhang.
 
 | Frage | Entscheidung | Steht in |
 | --- | --- | --- |
@@ -688,18 +700,57 @@ Die offenen Fragen aus v0.1 sind am 01.10.2026 entschieden worden, die Phasen de
 | Was der Pilotbetrieb braucht | Rundgänge, Aufträge, Leistungsnachweis, Zähler, Anlagen, Wartungen, Lager, Verträge und Auswertungen; kein Ausdruck muss aussehen wie bisher | 12 |
 | Der Pilotbetrieb im Repository | Bleibt ungenannt, bis er zustimmt | 11, 12 |
 | Eigene Anlagenarten | In Phase 2, mit den eigenen Feldern; bis dahin findet jede Anlage eine allgemeine Anlagenart im Paket Allgemein, das in Phase 1 kommt | 4.2, 5, 12 |
-| Mängelklassen | Im Paketformat, gebaut in Phase 1 mit den Mängeln | 4.4, 4.6, 12 |
+| Mängelklassen | Im Paketformat als eigene Datei je Paket, gebaut in Phase 1 mit den Mängeln; für einen Mangel, der nicht aus einer Prüfung kommt, drei allgemeine Stufen im Paket Allgemein | 4.4, 4.6, 5, 12 |
+| Wann ein Mangel behoben ist | Mit der Unterschrift unter dem Auftrag; eine Zurückweisung setzt ihn zurück | 4.6 |
+| Messwert außerhalb seines Grenzwerts | Wird mit der Unterschrift ein Mangel, wie „nicht in Ordnung“ | 2.5, 4.5 |
+| Dringlichkeit eines Auftrags | Normal, dringend, sofort; „sofort“ kommt immer als Push | 3, 4.8 |
+| Weitere Beteiligte an einem Auftrag | Arbeiten mit und schließen nicht ab | 4.8 |
+| Zählweise ab dem fälligen Tag | Ein Zwölftel der Frist vor dem Termin erfüllt ihn; früher zählt die Frist neu ab dem Tag | 4.4 |
+| Seiten vor Ort für Liegenschaft, Gebäude und Geschoss | Schlichte Listen ohne Lagebild | 4.1 |
+| Paket Elektro in Phase 1 | Die Formulare, die ohne Stromkreis auskommen; Messwerte je Stromkreis mit der Elektro-Struktur in Phase 2 | 12 |
+| Landesrecht in Phase 1 | Die Pflichtarten für die Anlagenarten der Pakete aus Phase 1; der Rest mit den Fachpaketen | 12 |
+| Anlässe der Benachrichtigungen | Sechs, genannt in Abschnitt 3 | 3 |
+| Ein Bereich wird entfernt | Erst, wenn keine Liegenschaft mehr in ihm liegt | 2.8 |
+| Tausch einer Anlage | Was an der alten offen ist, endet mit ihr; Komponenten bleiben, einzelne lassen sich mitnehmen | 4.2 |
+| Vorlagen der Rundgänge | Geführt ab der Objektleitung; ein Punkt zeigt auf eine feste Anlage; ein Grenzwert kommt aus einer Regel oder ist ein eigener Wert mit Quelle | 2.5, 4.5, 7 |
+| Feiertage und Schließzeiten | Der Plan nennt seine Wochentage und kann gesetzliche Feiertage auslassen, das Gebäude hat Schließzeiten | 2.9, 4.1, 4.5 |
+| Zähler | Verlauf schlicht in Phase 1 und erweitert mit Phase 2 und 3; Berichtigung als neuer Eintrag; Stichtag je Betreiber, an der Messstelle abweichend; zwei Ablesungen am selben Tag sind ein Konflikt | 2.7, 4.9, 12 |
+| Rechte an Dokumenten und Aufgaben | Dokumente sehen und ablegen alle, entfernen ab der Objektleitung; Aufgaben legt jede Rolle an, zuteilen ab der Objektleitung; die eigenen liegen auf dem Gerät | 3, 7 |
+| Suche vor Ort | Mit Netz auf dem Server, ohne Netz im Bestand des Geräts | 3 |
+| Verweis auf das Dokument, das eine Frist trägt | In Phase 1, empfohlen und nicht verlangt | 4.3 |
+| Unterschrift ohne Schriftzug | Name tippen und bestätigen; der Nachweis sagt, welcher Weg es war | 2.6 |
+| Export | Jede Liste im Büro in Phase 1, der Datenexport eines Rundgangs und der Export für Auswertungen in Phase 2 | 3, 12 |
+| Neue Fassung eines Pakets | Die Meldung an bestätigte Pflichten kommt am Ende von Phase 1 | 2.3, 12 |
+| Unterlagen für unterwegs | Phase 2 | 2.7, 12 |
+| Altbestand | Je Pflicht ein Nachweis mit der Herkunft „Altbestand“; offene Aufträge bleiben in der Vorgängeranwendung | 2.6, 11 |
+| Mögliche Dublette bei der Bestandsaufnahme | Ein Konflikt auf dem Gerät | 2.7, 4.2 |
+| Vertrag zur Auftragsverarbeitung | Die Vorlage entsteht im Projekt, die technischen und organisatorischen Maßnahmen als eigene Anlage; bis zur rechtlichen Prüfung ist sie gekennzeichnet | 9, 12 |
+| Verfahrensbeschreibung für den Parallelbetrieb | Von Hand geschrieben für den Stand von Phase 1; die erzeugte löst sie in Phase 2 ab | 9, 12 |
+| Vorlage für eine Betriebs- oder Dienstvereinbarung | Phase 2 | 9, 12 |
 
 **Noch offen**
 
-1. **Rechtliche Prüfung.** Drei Fragen für einen Fachanwalt: ob Fristen aus privaten Normen als Tatsachen genannt werden dürfen; wie die Regelwerke der Unfallversicherung und der staatlichen Ausschüsse einzuordnen sind; und ob die Unterschrift auf dem Gerät als elektronische Signatur für jede Nachweisart genügt, denn § 14 Abs. 7 BetrSichV verlangt sie bei ausschließlich elektronisch übermittelten Dokumenten und nennt keine Stufe. Bis zur Antwort gilt die vorsichtige Lesart aus den Abschnitten 2.6 und 5.
+1. **Rechtliche Prüfung.** Drei Fragen für einen Fachanwalt: ob Fristen aus privaten Normen als Tatsachen genannt werden dürfen; wie die Regelwerke der Unfallversicherung und der staatlichen Ausschüsse einzuordnen sind; und ob die Unterschrift auf dem Gerät als elektronische Signatur für jede Nachweisart genügt, denn § 14 Abs. 7 BetrSichV verlangt sie bei ausschließlich elektronisch übermittelten Dokumenten und nennt keine Stufe. Bis zur Antwort gilt die vorsichtige Lesart aus den Abschnitten 2.6 und 5. Dazu sieht er die Vorlage für den Vertrag zur Auftragsverarbeitung, die bis dahin als nicht rechtlich geprüft gekennzeichnet ist.
 2. **Externe Sicherheitsprüfung.** Wer sie vor der Fassung mit der Seite ohne Anmeldung macht.
-3. **Vorlage für den Vertrag zur Auftragsverarbeitung.** Sie wird gebraucht, bevor ein Betreiber mit echten Daten auf einer Instanz arbeitet, die ein anderer für ihn betreibt; für den Pilotbetrieb also zum Beginn des Parallelbetriebs.
-4. **Mängelklassen im Paket.** Wo sie stehen (als eigene Datei je Paket, an einer Pflichtart oder an einem Formular) und welche Klasse ein Mangel hat, der nicht aus einer Prüfung kommt, sondern aus einem Rundgang, einer Störmeldung oder von Hand. Entschieden wird vor dem Bau der Mängel in Phase 1.
 
 ---
 
 ## 16. Änderungsprotokoll
+
+### v0.7 → v0.8
+
+- Die Entscheidungen vom 04.10.2026 stehen an ihrer Stelle und in der Tabelle in Abschnitt 15. Sie beantworten, was die Issues von Phase 1 unter "Zu klären vor dem Bau" offen hatten
+- Mängel: die Klassen stehen als eigene Datei im Paket, das Paket Allgemein bringt drei allgemeine Stufen mit, "behoben" ist ein Mangel mit der Unterschrift unter dem Auftrag, und ein Messwert außerhalb seines Grenzwerts wird ein Mangel (2.5, 4.5, 4.6, 5)
+- Aufträge haben drei Stufen der Dringlichkeit, und weitere Beteiligte arbeiten mit, ohne abzuschließen (4.8)
+- Die Zählweise ab dem fälligen Tag hat ein Fenster von einem Zwölftel der Frist; eine frühere Durchführung zählt neu ab ihrem Tag (4.4)
+- Rundgänge: wer Vorlagen führt, worauf ein Punkt zeigt, woher ein Grenzwert kommt, und Wochentage, Feiertage und Schließzeiten im Plan (2.5, 2.9, 4.1, 4.5)
+- Zähler: Stichtag, Berichtigung eines Stands, zwei Ablesungen am selben Tag als Konflikt, und der Verlauf hat seine Phasen (2.7, 4.9, 12)
+- Abgleich: eine mögliche Dublette aus der Bestandsaufnahme ist ein Konflikt, und die eigenen Aufgaben liegen auf dem Gerät (2.7, 3)
+- Der Tausch einer Anlage sagt, was mit Offenem und mit Komponenten geschieht, und ein Bereich wird erst entfernt, wenn er leer ist (2.8, 4.2)
+- Die Unterschrift hat einen Weg ohne Schriftzug, und ein Nachweis kann als Altbestand hereinkommen (2.6, 11)
+- Abschnitt 3 nennt die Anlässe der Benachrichtigungen, die Suche vor Ort und die Ausgabe jeder Liste als Tabelle; Abschnitt 7 sagt, wer die Rechte für Dokumente, Aufgaben und Vorlagen bekommt
+- Was in keiner Phase stand, hat eine: der Export, die Meldung einer neuen Fassung eines Pakets, Unterlagen für unterwegs, die Vorlage für eine Betriebs- oder Dienstvereinbarung, Ansprechpartner und Fotos an der Liegenschaft, der Verlauf der Zähler und die Vorlage für den Vertrag zur Auftragsverarbeitung (12)
+- Unter den offenen Punkten stehen die Mängelklassen und die Vorlage für den Vertrag zur Auftragsverarbeitung nicht mehr: beide sind entschieden (15)
 
 ### v0.6 → v0.7
 
