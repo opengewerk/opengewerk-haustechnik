@@ -56,7 +56,7 @@ docker compose -f docker/compose.yaml --profile backup run --rm backup restore.s
 docker compose -f docker/compose.yaml --profile backup run --rm backup verify.sh latest
 ```
 
-Wie ein Archiv verschlüsselt wird und wohin es gehört, steht in `docker/.env.example`. Die Archive heißen nach der Datenbank (`haustechnik-<zeit>.tar.gz`), ein Ziel lässt sich also mit einer Installation von OpenGewerk teilen: jede Anwendung findet, behält und löscht nur ihre eigenen.
+Wie ein Archiv verschlüsselt wird und wohin es gehört, steht in `docker/.env.example`. Die Archive heißen nach der Datenbank (`haustechnik-<zeit>.tar.gz`), ein Ziel lässt sich also mit einer Installation von OpenGewerk teilen: jede Anwendung findet, behält und löscht nur ihre eigenen. Das gilt auch für ein Archiv, das statt `latest` mit seinem Namen genannt wird: eines der anderen Anwendung lehnen `restore.sh` und `verify.sh` ab, bevor sie die Datenbank fragen.
 
 **Neben OpenGewerk auf einem Server.** Die Haustechnik hat ein eigenes Compose-Projekt (`opengewerk-haustechnik`), einen eigenen Port (23800 statt 23700), eine eigene Datenbank in einem eigenen PostgreSQL-Container und eigene Volumes, und ihre Variablen beginnen mit `HAUSTECHNIK_`. Davor gehört ein eigener Hostname: ein Browser hält Cookies je Hostname und nicht je Port, zwei Anwendungen unter einem Namen meldeten sich gegenseitig ab.
 

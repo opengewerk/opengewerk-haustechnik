@@ -1084,4 +1084,34 @@ describe('an installation with assets', () => {
 
     expect(removed).toEqual([{ table_name: 'evidence_voidings', reason: 'migration' }])
   })
+
+  /**
+   * 0013 closes the counter of the sync to every role but the application
+   * (opengewerk#471). The database began with a building block that created
+   * the function without a word about who may call it, which leaves it open
+   * to PUBLIC; the building block says it now, and this migration is the same
+   * change for a database made from the earlier one. A database in use keeps
+   * working through it: the application role calls the counter before and
+   * after, and taken back, the function is as open as it was.
+   */
+  it('closes the counter of the sync to every role but the application, and opens it again when taken back', async () => {
+    await applyMigrations()
+
+    const mayCall = async (role: string) => {
+      const { rows } = await admin.query<{ may: boolean }>(
+        `select has_function_privilege($1, 'next_sync_sequence(uuid)', 'execute') as may`,
+        [role],
+      )
+
+      return rows[0]?.may
+    }
+
+    expect(await mayCall('public')).toBe(false)
+    expect(await mayCall('opengewerk_app')).toBe(true)
+
+    await revertMigration(admin, '0013_sync_counter_grant')
+
+    expect(await mayCall('public')).toBe(true)
+    expect(await mayCall('opengewerk_app')).toBe(true)
+  })
 })
