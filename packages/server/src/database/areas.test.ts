@@ -18,7 +18,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 import { inEveryArea } from './every-area.js'
 import { withinAreasExpression } from './schema/index.js'
-import { areaBoundaryProblems } from './test-areas.js'
+import { areaBoundaryProblems, areaColumnsWithoutTheLine } from './test-areas.js'
 import {
   allowApplicationLogin,
   applicationDatabaseUrl,
@@ -127,7 +127,11 @@ async function asOwner(statements: readonly string[]): Promise<void> {
   }
 }
 
-/** The tables with a place, from the catalogue: every table with `area_id` but the areas a person holds. */
+/**
+ * The tables with a place, from the catalogue: every table with `area_id` but
+ * the few that name areas without lying in one, the same list the check of
+ * the catalogue leaves aside.
+ */
 async function tablesWithAPlace(): Promise<string[]> {
   const { rows } = await admin.query<{ table_name: string }>(
     `select distinct c.relname as table_name
@@ -135,8 +139,9 @@ async function tablesWithAPlace(): Promise<string[]> {
        join pg_class c on c.oid = a.attrelid
        join pg_namespace n on n.oid = c.relnamespace
       where n.nspname = 'public' and c.relkind = 'r' and a.attname = 'area_id'
-        and not a.attisdropped and c.relname <> 'member_areas'
+        and not a.attisdropped and c.relname <> all ($1::text[])
       order by 1`,
+    [Object.keys(areaColumnsWithoutTheLine)],
   )
 
   return rows.map((row) => row.table_name)

@@ -95,6 +95,7 @@ const tomorrow = new Date(Date.now() + 24 * 60 * 60 * 1000)
  * tenant has nothing in it, and the tests below say so by name.
  */
 function rowsOf(tenant: Tenant): readonly Row[] {
+  const invitation = randomUUID()
   const area = randomUUID()
   const property = randomUUID()
   const building = randomUUID()
@@ -141,6 +142,7 @@ function rowsOf(tenant: Tenant): readonly Row[] {
     {
       table: 'invitations',
       values: {
+        id: invitation,
         tenant_id: tenant.id,
         email: `neu-${randomUUID().slice(0, 8)}@beispiel.example`,
         name: 'Neu im Haus',
@@ -248,6 +250,15 @@ function rowsOf(tenant: Tenant): readonly Row[] {
     {
       table: 'member_all_areas',
       values: { tenant_id: tenant.id, user_id: tenant.colleagueId },
+    },
+    // What the invitation above says about areas: the ones named, and one.
+    {
+      table: 'invitation_area_choices',
+      values: { tenant_id: tenant.id, invitation_id: invitation, every_area: false },
+    },
+    {
+      table: 'invitation_areas',
+      values: { tenant_id: tenant.id, invitation_id: invitation, area_id: area },
     },
     {
       table: 'substitutions',

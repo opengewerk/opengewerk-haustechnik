@@ -21,10 +21,13 @@ export const withinAreasAsStored =
 /**
  * Tables that carry `area_id` and no line between the areas, each with its
  * reason. The areas a person holds are what the functions of the policy read;
- * a policy that asked them there would ask itself.
+ * a policy that asked them there would ask itself. The areas an invitation
+ * names are kept by whoever keeps who works for the tenant, as those of a
+ * person are, and name no place.
  */
 export const areaColumnsWithoutTheLine: Readonly<Record<string, string>> = {
   member_areas: 'the areas a person holds, read by the functions of the policy itself',
+  invitation_areas: 'the areas an invitation names, kept like those of a person',
 }
 
 export interface AreaBoundaryOptions {

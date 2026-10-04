@@ -143,8 +143,10 @@ describe('an installation that began on the first migration', () => {
 
     // Back to the first migration, in the reverse order of the way forward.
     // The evidence and the deadlines hang on the duties, the duties on the
-    // place and the assets, so they go first; the files, the mail server and
-    // the settings of the deadlines hang on nothing of this.
+    // place and the assets, so they go first, and what an invitation says
+    // about areas hangs on the areas; the files, the mail server and the
+    // settings of the deadlines hang on nothing of this.
+    await revertMigration(admin, '0014_invitation_areas')
     await revertMigration(admin, '0012_evidence_corrections')
     await revertMigration(admin, '0011_signatures')
     await revertMigration(admin, '0010_evidence_written')
@@ -298,7 +300,8 @@ describe('an installation from before the areas', () => {
     })
 
     // The places hang on the areas and go first, as on the way back of an
-    // installation.
+    // installation, and so does what an invitation says about areas.
+    await revertMigration(admin, '0014_invitation_areas')
     await revertMigration(admin, '0012_evidence_corrections')
     await revertMigration(admin, '0011_signatures')
     await revertMigration(admin, '0010_evidence_written')
@@ -1113,5 +1116,79 @@ describe('an installation with assets', () => {
 
     expect(await mayCall('public')).toBe(true)
     expect(await mayCall('opengewerk_app')).toBe(true)
+  })
+})
+
+/**
+ * 0014 lets an invitation say in which areas whoever takes it up is to work
+ * (#84). On the way forward it touches no row: an invitation from before says
+ * nothing about areas, which is what it said then. Taken back, what the
+ * invitations say goes, with the reason in the log of the tenant, and the
+ * invitations themselves, the areas and who holds in which stay as they were.
+ */
+describe('an installation whose invitations name areas', () => {
+  it('loses what its invitations say about areas and nothing else when the update is taken back', async () => {
+    await applyMigrations()
+
+    const tenant = { id: newId<'tenant'>() }
+
+    await admin.query('insert into tenants (id, name) values ($1, $2)', [
+      tenant.id,
+      'Wohnbau Nord eG',
+    ])
+    await members(tenant, { 'user-lead': { roles: ['management'] } })
+
+    const { rows: invited } = await admin.query<{ id: string }>(
+      `insert into invitations (tenant_id, email, name, roles, token_hash, invited_by, expires_at)
+       values ($1, 'neu@beispiel.example', 'Neu im Haus', '{technician}', $2, 'user-lead',
+               now() + interval '7 days')
+       returning id`,
+      [tenant.id, 'c'.repeat(64)],
+    )
+    const invitation = invited[0]?.id
+
+    await admin.query(
+      `insert into invitation_area_choices (tenant_id, invitation_id, every_area)
+       values ($1, $2, false)`,
+      [tenant.id, invitation],
+    )
+    await admin.query(
+      `insert into invitation_areas (tenant_id, invitation_id, area_id)
+       select $1, $2, id from areas where tenant_id = $1`,
+      [tenant.id, invitation],
+    )
+
+    await revertMigration(admin, '0014_invitation_areas')
+
+    const left = ['invitation_area_choices', 'invitation_areas']
+
+    expect((await tableNames(admin)).filter((table) => left.includes(table))).toEqual([])
+
+    // The invitation stays, and so do the area and who holds in every one.
+    const { rows: kept } = await admin.query<{
+      invitations: number
+      areas: number
+      everywhere: number
+    }>(
+      `select (select count(*)::int from invitations where tenant_id = $1) as invitations,
+              (select count(*)::int from areas where tenant_id = $1) as areas,
+              (select count(*)::int from member_all_areas where tenant_id = $1) as everywhere`,
+      [tenant.id],
+    )
+
+    expect(kept).toEqual([{ invitations: 1, areas: 1, everywhere: 1 }])
+
+    // The log of the tenant says that what its invitation said went, and why.
+    const { rows: removed } = await admin.query<{ table_name: string; reason: string | null }>(
+      `select distinct table_name, reason from audit_entries
+        where tenant_id = $1 and operation = 'delete'
+        order by table_name`,
+      [tenant.id],
+    )
+
+    expect(removed).toEqual([
+      { table_name: 'invitation_area_choices', reason: 'migration' },
+      { table_name: 'invitation_areas', reason: 'migration' },
+    ])
   })
 })

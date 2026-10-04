@@ -373,6 +373,20 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   immer alle; geschrieben wird nur, was sich ändert, und das Gerät der Person lässt beim nächsten
   Abgleich fallen, was sie nicht mehr sieht. Eine Vertretung gilt vom ersten bis zum letzten Tag,
   gezählt in Deutschland, und endet sofort, wenn sie beendet wird. Die Bildschirme dazu folgen
+- Die Bereiche stehen mit der Einladung fest und werden mit einem Rollenwechsel in einem Zug
+  gespeichert (#84; ADR 0003, Migration `0014_invitation_areas`). Bisher trug eine Einladung nur
+  die Rolle: die Bereiche ließen sich erst nennen, wenn die Person beigetreten war, und bei mehr
+  als einem Bereich sah eine neue Kollegin zuerst eine leere Liste. Jetzt sagt eine Einladung
+  "alle Bereiche" oder die genannten, und wer sie einlöst, arbeitet von der ersten Anfrage an
+  darin. Wird ein genannter Bereich inzwischen entfernt, geht er aus der Einladung; nannte sie nur
+  diesen, hat die Person nach dem Beitritt keinen. Mit einem Rollenwechsel gehen die genannten
+  Bereiche in derselben Anfrage mit, und passt beides nicht zusammen, wird nichts gespeichert,
+  auch die Rolle nicht. Wer ohne ein Wort zu Bereichen Leitung oder Technische Leitung wird,
+  bekommt alle; wer es nicht mehr ist, behält sie, bis seine Bereiche genannt sind.
+  `GET /areas/invitations` nennt, was die offenen Einladungen dazu sagen. Eine Anfrage, die
+  nichts zu Bereichen sagt, wird genommen wie bisher. Das Fundament ist dafür auf
+  `opengewerk/opengewerk#552` angehoben, das eine Anwendung bei Einladung, Beitritt und
+  Rollenwechsel in seiner Transaktion mitschreiben lässt
 
 ### Geändert
 

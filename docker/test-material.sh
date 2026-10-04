@@ -9,7 +9,8 @@
 # file store: what the foundation keeps for this application, accounts, the
 # roles of a Betreiber and who works for which, and the sign in that rests on
 # them; the areas of a Betreiber with who sees which
-# (opengewerk-haustechnik#17); the first record with a place, a property
+# (opengewerk-haustechnik#17) and what an invitation says about them
+# (opengewerk-haustechnik#84); the first record with a place, a property
 # (opengewerk-haustechnik#18); a building on it with the first asset
 # (opengewerk-haustechnik#20); a file in the store with its row and the mail
 # server of a Betreiber, the two tables the foundation brings since
@@ -27,7 +28,7 @@ guarded_route=/staff
 # The tables counted before the backup and after the restore. The area and
 # the place of the account in it come with the account: a Betreiber gets its
 # first area with its first membership.
-counted_tables='auth_users memberships tenant_roles areas member_areas properties buildings assets files mail_settings deadline_settings deadline_runs duties duty_dismissals evidence deadlines activities activity_duties work_orders defects activity_signatures work_order_decisions evidence_voidings'
+counted_tables='auth_users memberships tenant_roles areas member_areas invitations invitation_area_choices invitation_areas properties buildings assets files mail_settings deadline_settings deadline_runs duties duty_dismissals evidence deadlines activities activity_duties work_orders defects activity_signatures work_order_decisions evidence_voidings'
 
 # The migrations, and how many of them make the older state an update starts
 # from: the first, without the sequence for work orders that the second brings.
@@ -54,6 +55,19 @@ records_for_backup() {
   restart_app
   HAUSTECHNIK_PASSWORD=$probe_password compose exec -T -e HAUSTECHNIK_PASSWORD app \
     node dist/add-staff.js "$first_tenant" "$probe_email" 'Hanna Probe' technician
+  # An invitation that names the area of the Betreiber for whoever takes it up
+  # (opengewerk-haustechnik#84). The hash stands for a link nobody has.
+  sql "
+    insert into invitations (tenant_id, email, name, roles, token_hash, invited_by, expires_at)
+    select '$first_tenant', 'neu@probe.example.de', 'Nele Neu', '{technician}', repeat('b', 64),
+           u.id, now() + interval '7 days'
+      from auth_users u where u.email = '$probe_email';
+    insert into invitation_area_choices (tenant_id, invitation_id, every_area)
+    select tenant_id, id, false from invitations where tenant_id = '$first_tenant';
+    insert into invitation_areas (tenant_id, invitation_id, area_id)
+    select i.tenant_id, i.id, a.id
+      from invitations i join areas a on a.tenant_id = i.tenant_id
+     where i.tenant_id = '$first_tenant';"
   # The membership gave the Betreiber its first area; a property goes into it,
   # with a building and an asset in that. The kind is one of the probe package:
   # the database keeps the key, the catalogue is asked by the routes.
