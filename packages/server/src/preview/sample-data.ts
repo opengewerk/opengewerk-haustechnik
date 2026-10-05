@@ -3,7 +3,9 @@ import type { PreviewArea } from './preview-database.js'
 /**
  * The sample operator of the preview: two areas, two properties in each, with
  * buildings, floors and rooms, and assets of the kinds of the probe package,
- * a main water meter with its sub meters among them (#29).
+ * a main water meter with its sub meters among them (#29). One property has
+ * two buildings and a note, so that the list and the page of a property show
+ * both (#85).
  *
  * Written for the preview and taken from nowhere: the names, streets and
  * places are made up, and the postal codes begin with 0000, which no place in
@@ -54,6 +56,8 @@ interface SampleProperty {
   readonly street: string
   readonly postalCode: string
   readonly city: string
+  /** What somebody has to know before going there, in the lines it was typed in. */
+  readonly note?: string
   readonly buildings: readonly SampleBuilding[]
 }
 
@@ -149,6 +153,7 @@ export const sampleProperties: readonly SampleProperty[] = [
     street: 'Am Lindenhain 7',
     postalCode: '00003',
     city: 'Musterhausen',
+    note: 'Zufahrt über den Hof an der Lindenstraße.\nSchlüssel beim Hausmeister, Raum E.10.',
     buildings: [
       {
         name: 'Schulhaus',
@@ -181,6 +186,23 @@ export const sampleProperties: readonly SampleProperty[] = [
             waterMeter('Unterzähler Sporthalle', 'WZ-3002', 'E.14'),
           ]),
         ],
+      },
+      {
+        name: 'Sporthalle',
+        shortCode: 'SH',
+        kinds: ['school', 'assembly'],
+        yearBuilt: 1982,
+        floors: [
+          {
+            name: 'Erdgeschoss',
+            level: 0,
+            rooms: [
+              { number: 'H.01', name: 'Halle' },
+              { number: 'H.02', name: 'Geräteraum' },
+            ],
+          },
+        ],
+        assets: [],
       },
     ],
   },

@@ -77,26 +77,35 @@ export function signedInAs(
   )
 }
 
-/** An entry at an address: its routes, the application's words and a sync client that has exchanged once. */
-export async function mounted({
+/**
+ * An entry at an address: its routes, the application's words and a sync
+ * client that has exchanged once. Hands back the router and the client, for a
+ * test that has the device exchange again while a screen stands.
+ */
+export async function mountedWithItsDevice({
   routeTree,
   at,
   basepath,
   application,
+  server = new TestServer(),
+  entities = [],
 }: {
   readonly routeTree: AnyRoute
   readonly at: string
   /** Where the entry lives, for the one that is not at the root. */
   readonly basepath?: string
   readonly application: InterfaceApplication
+  /** The server the device exchanges with, for a test that puts rows on it or watches what it is sent. */
+  readonly server?: TestServer
+  /** The kinds of record the device keeps, for a test of a screen that reads some. */
+  readonly entities?: readonly string[]
 }) {
-  const server = new TestServer()
   const client = await SyncClient.start({
     store: await openLocalStore(`entry${String((counter += 1))}` as TenantId),
     transport: server,
     writer: server,
     deviceId: 'test-device',
-    entities: [],
+    entities,
     onSignedOut: () => {},
   })
 
@@ -122,5 +131,12 @@ export async function mounted({
 
   await screen.findByRole('heading', { level: 1 })
 
-  return router
+  return { router, client }
+}
+
+/** An entry at an address, as `mountedWithItsDevice` mounts it, for a test that asks the router alone. */
+export async function mounted(
+  options: Parameters<typeof mountedWithItsDevice>[0],
+): Promise<Awaited<ReturnType<typeof mountedWithItsDevice>>['router']> {
+  return (await mountedWithItsDevice(options)).router
 }

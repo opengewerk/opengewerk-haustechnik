@@ -28,6 +28,8 @@ export interface Property extends Synced {
   readonly postalCode: string
   readonly city: string
   readonly federalState: FederalState
+  /** What somebody has to know before going there: the way in, where the key is. */
+  readonly note: string | null
 }
 
 /** A building on a property, with the kinds it is used as. */
@@ -121,6 +123,7 @@ export const locationLimits = {
   name: 120,
   street: 120,
   city: 80,
+  propertyNote: 2000,
   shortCode: 20,
   floorName: 60,
   roomNumber: 30,
@@ -139,9 +142,16 @@ export const locationLimits = {
 export function propertyProblems(property: Readonly<Record<string, unknown>>): Readonly<Problems> {
   const problems: Problems = {}
 
-  required(problems, property, 'name', locationLimits.name, 'Die Bezeichnung')
+  required(problems, property, 'name', locationLimits.name, 'Der Name')
   required(problems, property, 'street', locationLimits.street, 'Die Straße')
   required(problems, property, 'city', locationLimits.city, 'Der Ort')
+  optional(
+    problems,
+    property,
+    'note',
+    locationLimits.propertyNote,
+    `Die Notiz hat höchstens ${String(locationLimits.propertyNote)} Zeichen.`,
+  )
 
   const postalCode = property['postalCode']
 

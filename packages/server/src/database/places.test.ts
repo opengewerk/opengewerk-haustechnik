@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto'
 
-import type { TenantId } from '@opengewerk/haustechnik-domain'
+import { locationLimits, type TenantId } from '@opengewerk/haustechnik-domain'
 import { Database, newId, type TenantTransaction } from '@opengewerk/platform-server'
 import { sql } from 'drizzle-orm'
 import type { Pool } from 'pg'
@@ -397,5 +397,41 @@ describe('the rules of the model in the database', () => {
 
     // A kind the list does not know is no value of the enum at all.
     expect((await building('{castle}', null)).code).toBe('22P02')
+  })
+
+  /**
+   * The note of a property is a text or none: without spaces at its edges,
+   * not empty, and no longer than the model lets it be. Its line breaks are
+   * its own.
+   */
+  it('takes a note at a property only as the model shapes it', async () => {
+    const noted = (note: string | null) =>
+      tried(
+        `insert into properties (tenant_id, area_id, name, street, postal_code, city, federal_state, note)
+         values ($1, $2, $3, 'Hauptstraße 1', '00001', 'Ort', 'DE-BW', $4)`,
+        [tenant, here.area, `Campus ${randomUUID()}`, note],
+      )
+    const refused = { code: '23514', constraint: 'properties_note_shaped' }
+
+    expect(await noted('Zufahrt über den Hof. ')).toEqual(refused)
+    expect(await noted(' Zufahrt über den Hof.')).toEqual(refused)
+    expect(await noted('')).toEqual(refused)
+    expect(await noted('x'.repeat(locationLimits.propertyNote + 1))).toEqual(refused)
+
+    // What the model takes, the table takes.
+    await expect(
+      admin.query(
+        `insert into properties (tenant_id, area_id, name, street, postal_code, city, federal_state, note)
+         values ($1, $2, 'Campus mit Notiz', 'Hauptstraße 1', '00001', 'Ort', 'DE-BW', $3),
+                ($1, $2, 'Campus mit langer Notiz', 'Hauptstraße 1', '00001', 'Ort', 'DE-BW', $4),
+                ($1, $2, 'Campus ohne Notiz', 'Hauptstraße 1', '00001', 'Ort', 'DE-BW', null)`,
+        [
+          tenant,
+          here.area,
+          'Zufahrt über den Hof.\nSchlüssel beim Hausmeister.',
+          'x'.repeat(locationLimits.propertyNote),
+        ],
+      ),
+    ).resolves.toMatchObject({ rowCount: 3 })
   })
 })

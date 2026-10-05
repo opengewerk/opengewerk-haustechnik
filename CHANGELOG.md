@@ -387,9 +387,41 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   nichts zu Bereichen sagt, wird genommen wie bisher. Das Fundament ist dafür auf
   `opengewerk/opengewerk#552` angehoben, das eine Anwendung bei Einladung, Beitritt und
   Rollenwechsel in seiner Transaktion mitschreiben lässt
+- Die Liegenschaften im Büro, der erste Bildschirm der Tafeln (#85, erster Teil). Bisher gab es
+  Liegenschaften nur als Daten und Routen. Die Liste unter `/liegenschaften` zeigt jede
+  Liegenschaft mit Anschrift und ihren Gebäuden darunter, nach Namen geordnet; wer mehr als einen
+  Bereich sieht, grenzt auf einen ein, unter 1024 Pixeln hat die Liste eine eigene Suche, und auf
+  dem Telefon ist jede Liegenschaft eine Karte. Die Seite einer Liegenschaft zeigt Anschrift,
+  Bundesland, Notiz und ihre Gebäude mit Gebäudeart und Baujahr, mit dem Knopf "Änderungen" für
+  die Leitung. Anlegen, Ändern und Entfernen stehen für Leitung und Technische Leitung auf eigenen
+  Seiten; beides braucht eine Verbindung, und das Formular sagt das, bevor jemand tippt. Geändert
+  wird nur, was sich geändert hat, und entfernt wird nach einer Rückfrage, die sagt, was mitgeht.
+  Liste und Seite liest das Gerät aus dem Abgleich, sie stehen auch ohne Netz. Wer nur einen
+  Bereich sieht, liest und wählt keinen. Was die Tafeln mehr zeichnen, kommt mit dem, was es
+  zeigt: die Zahlen je Liegenschaft und Gebäude mit der Reihenfolge nach Dringlichkeit (#121), der
+  Import (#100), Fotos (#97), Gebäude anlegen (#86), die Zeitachse (#123) und die Ansprechpartner
+  mit den nächsten Teilen von #85. Das Fundament ist dafür auf `opengewerk/opengewerk#553`
+  angehoben: das Formular über einem Datensatz kennt ein Feld über mehrere Zeilen, den Platz
+  eines Felds im Raster und das Sternchen am Pflichtfeld, die schmale Spalte einer Seite steht auf
+  Wunsch links, eine leere Liste steht als Baustein für sich, und eine Auswahlliste zeigt, was das
+  Formular hält
+- Eine Liegenschaft hat eine Notiz zu dem, was man vor dem Weg dorthin wissen muss (#85,
+  Migration `0015_property_note` mit Rücknahme, Planungskonzept v0.9, Nachtrag in ADR 0002). Die
+  Tafel "Neue Liegenschaft" zeichnet sie, das Datenmodell hatte sie nicht. Ein Text oder keiner,
+  höchstens 2000 Zeichen, die Zeilen bleiben Zeilen. Ein Code gehört nicht hinein, und das Formular
+  sagt es: die Notiz liegt auf jedem Gerät, das die Liegenschaft hält, und jede Änderung steht im
+  Änderungsprotokoll. Die Rücknahme der Migration leert die Notizen vorher, damit das Protokoll des
+  Betreibers sagt, dass sie gingen
 
 ### Geändert
 
+- Das Büro beginnt bei den Liegenschaften statt bei den Einstellungen, bis die Übersicht gebaut
+  ist (#85): die erste Liste, und jede Rolle liest sie. Der Eintrag "Liegenschaften" steht damit
+  in der Navigation, wie #83 es vorbereitet hat
+- Fehlt der Name einer Liegenschaft, heißt es "Der Name fehlt." statt "Die Bezeichnung fehlt.",
+  wie das Feld im Formular heißt (#85)
+- Die Vorschau zeigt an einer Liegenschaft zwei Gebäude und eine Notiz, damit Liste und Seite beides
+  zeigen (#85)
 - Planungskonzept v0.8: die Entscheidungen vom 04.10.2026 vor dem Bau von Phase 1 stehen an ihrer
   Stelle und in der Tabelle in Abschnitt 15 (#59, #72, #134). Die Issues von Phase 1 hatten unter
   "Zu klären vor dem Bau" offen, was das Konzept nicht sagte oder was die freigegebenen Tafeln als

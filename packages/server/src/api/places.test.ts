@@ -251,6 +251,57 @@ describe('a place', () => {
       )
   })
 
+  it('keeps a note at a property, with its line breaks and without its edges, and none once it is emptied', async () => {
+    const without = await wholePlace()
+
+    expect(without.property['note']).toBeNull()
+
+    const note = 'Zufahrt über den Hof.\nSchlüssel beim Hausmeister.'
+    const noted = await http()
+      .post('/properties')
+      .set(testIdentityHeader, by('u-duties'))
+      .send({ ...property, name: 'Campus Süd', note: `  ${note}\n` })
+      .expect(201)
+
+    expect(noted.body.note).toBe(note)
+
+    // A form that sends its empty field makes a property without a note.
+    await http()
+      .post('/properties')
+      .set(testIdentityHeader, by('u-duties'))
+      .send({ ...property, name: 'Campus West', note: ' ' })
+      .expect(201)
+      .expect((answer) => expect(answer.body.note).toBeNull())
+
+    const id = String(noted.body.id)
+
+    // A change of something else leaves the note where it is.
+    await http()
+      .patch(`/properties/${id}`)
+      .set(testIdentityHeader, by('u-duties'))
+      .send({ city: 'Beispielstadt' })
+      .expect(200)
+      .expect((answer) => expect(answer.body.note).toBe(note))
+    await http()
+      .patch(`/properties/${id}`)
+      .set(testIdentityHeader, by('u-duties'))
+      .send({ note: 'x'.repeat(2001) })
+      .expect(400)
+      .expect((answer) => expect(answer.body.message).toBe('Die Notiz hat höchstens 2000 Zeichen.'))
+    // Emptied, it is no note, not an empty one.
+    await http()
+      .patch(`/properties/${id}`)
+      .set(testIdentityHeader, by('u-duties'))
+      .send({ note: '   ' })
+      .expect(200)
+      .expect((answer) => expect(answer.body.note).toBeNull())
+    await http()
+      .get(`/properties/${id}`)
+      .set(testIdentityHeader, by('u-tech'))
+      .expect(200)
+      .expect((answer) => expect(answer.body.note).toBeNull())
+  })
+
   it('is refused with the sentence of the model', async () => {
     await http()
       .post('/properties')
@@ -258,6 +309,12 @@ describe('a place', () => {
       .send({ ...property, postalCode: '6853' })
       .expect(400)
       .expect((answer) => expect(answer.body.message).toBe('Die Postleitzahl hat fünf Ziffern.'))
+    await http()
+      .post('/properties')
+      .set(testIdentityHeader, by('u-duties'))
+      .send({ ...property, name: ' ' })
+      .expect(400)
+      .expect((answer) => expect(answer.body.message).toBe('Der Name fehlt.'))
 
     const place = await wholePlace()
 

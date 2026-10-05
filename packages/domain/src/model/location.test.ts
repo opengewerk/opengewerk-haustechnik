@@ -28,7 +28,7 @@ describe('a property', () => {
     expect(
       propertyProblems({ name: ' ', street: null, postalCode: '', city: '', federalState: null }),
     ).toEqual({
-      name: 'Die Bezeichnung fehlt.',
+      name: 'Der Name fehlt.',
       street: 'Die Straße fehlt.',
       postalCode: 'Die Postleitzahl hat fünf Ziffern.',
       city: 'Der Ort fehlt.',
@@ -50,7 +50,7 @@ describe('a property', () => {
       {},
     )
     expect(propertyProblems({ ...property, name: 'x'.repeat(locationLimits.name + 1) })).toEqual({
-      name: `Die Bezeichnung hat höchstens ${String(locationLimits.name)} Zeichen.`,
+      name: `Der Name hat höchstens ${String(locationLimits.name)} Zeichen.`,
     })
     expect(propertyProblems({ ...property, city: 'x'.repeat(locationLimits.city + 1) })).toEqual({
       city: `Der Ort hat höchstens ${String(locationLimits.city)} Zeichen.`,
@@ -59,6 +59,23 @@ describe('a property', () => {
 
   it('leaves a field alone that a change does not name', () => {
     expect(propertyProblems({ name: 'Neuer Name' })).toEqual({})
+  })
+
+  it('may carry a note, of some length and with its line breaks, or none', () => {
+    const sentence = `Die Notiz hat höchstens ${String(locationLimits.propertyNote)} Zeichen.`
+
+    expect(propertyProblems({ ...property, note: null })).toEqual({})
+    expect(
+      propertyProblems({ ...property, note: 'Zufahrt über den Hof.\nSchlüssel beim Hausmeister.' }),
+    ).toEqual({})
+    expect(
+      propertyProblems({ ...property, note: 'x'.repeat(locationLimits.propertyNote) }),
+    ).toEqual({})
+    expect(
+      propertyProblems({ ...property, note: 'x'.repeat(locationLimits.propertyNote + 1) }),
+    ).toEqual({ note: sentence })
+    // Not a text at all is not a note either.
+    expect(propertyProblems({ ...property, note: 7 })).toEqual({ note: sentence })
   })
 })
 

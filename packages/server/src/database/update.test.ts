@@ -1192,3 +1192,67 @@ describe('an installation whose invitations name areas', () => {
     ])
   })
 })
+
+/**
+ * 0015 gives a property a note (#85). On the way forward it touches no row.
+ * Taken back, the notes go, and the log of the tenant says so with the
+ * reason, because dropping a column writes nothing in any log; the property
+ * and everything else it says stay.
+ */
+describe('an installation whose properties carry notes', () => {
+  it('loses the notes and nothing else when the update is taken back', async () => {
+    await applyMigrations()
+
+    const tenant = { id: newId<'tenant'>() }
+
+    await admin.query('insert into tenants (id, name) values ($1, $2)', [
+      tenant.id,
+      'Wohnbau Nord eG',
+    ])
+    await members(tenant, { 'user-lead': { roles: ['management'] } })
+    await admin.query(
+      `insert into properties (tenant_id, area_id, name, street, postal_code, city, federal_state, note)
+       select $1, areas.id, given.name, 'Musterweg 1', '00001', 'Beispielstadt', 'DE-BW', given.note
+         from areas, (values ('Campus Nord', 'Zufahrt über den Hof.'), ('Campus Süd', null)) as given (name, note)
+        where areas.tenant_id = $1`,
+      [tenant.id],
+    )
+
+    await revertMigration(admin, '0015_property_note')
+
+    const { rows: columns } = await admin.query<{ column_name: string }>(
+      `select column_name from information_schema.columns
+        where table_schema = 'public' and table_name = 'properties' and column_name = 'note'`,
+    )
+
+    expect(columns).toEqual([])
+
+    // Both properties stay, with what they said beside the note.
+    const { rows: kept } = await admin.query<{ name: string; city: string }>(
+      'select name, city from properties where tenant_id = $1 order by name',
+      [tenant.id],
+    )
+
+    expect(kept).toEqual([
+      { name: 'Campus Nord', city: 'Beispielstadt' },
+      { name: 'Campus Süd', city: 'Beispielstadt' },
+    ])
+
+    // The log of the tenant says that the one note went, and why.
+    const { rows: emptied } = await admin.query<{
+      old_value: string | null
+      new_value: string | null
+      reason: string | null
+    }>(
+      `select old_value, new_value, reason from audit_entries
+        where tenant_id = $1 and table_name = 'properties' and field = 'note'
+          and operation = 'update'
+        order by sequence`,
+      [tenant.id],
+    )
+
+    expect(emptied).toEqual([
+      { old_value: 'Zufahrt über den Hof.', new_value: null, reason: 'migration' },
+    ])
+  })
+})

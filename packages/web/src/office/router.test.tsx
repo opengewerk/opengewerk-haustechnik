@@ -28,7 +28,7 @@ const nord: TenantChoice = {
   name: 'Gebäudeverwaltung Nord',
   roles: ['management'],
   roleLabels: ['Leitung'],
-  rights: ['membership.read', 'membership.write'],
+  rights: ['membership.read', 'membership.write', 'location.read'],
   secondFactor: true,
 }
 
@@ -97,15 +97,15 @@ afterEach(() => {
 
 describe('the office of this application', () => {
   /**
-   * Until the records of phase 1 have their lists, the start of the office is
-   * the overview of the settings, and the navigation has only its foot: the
-   * exchange with the server and the settings, lit.
+   * Until the overview is built, the office starts at the properties: the
+   * first list there is, and one every role reads. The navigation has that
+   * one place, lit, over its foot.
    */
-  it('starts at the settings, and names itself and the Betreiber in the header', async () => {
+  it('starts at the properties, and names itself and the Betreiber in the header', async () => {
     const router = await mount('/')
 
-    expect(router.state.location.pathname).toBe('/einstellungen')
-    expect(screen.getByRole('heading', { level: 1, name: 'Einstellungen' })).toBeTruthy()
+    expect(router.state.location.pathname).toBe('/liegenschaften')
+    expect(screen.getByRole('heading', { level: 1, name: 'Liegenschaften' })).toBeTruthy()
 
     const header = screen.getByRole('banner')
 
@@ -116,7 +116,25 @@ describe('the office of this application', () => {
 
     expect(within(navigation).getByRole('link', { name: /Abgleich/ })).toBeTruthy()
     expect(
+      (await within(navigation).findByRole('link', { name: 'Liegenschaften' })).getAttribute(
+        'aria-current',
+      ),
+    ).toBe('page')
+    expect(
       within(navigation).getByRole('link', { name: 'Einstellungen' }).getAttribute('aria-current'),
+    ).toBeNull()
+  })
+
+  it('has the settings where they were, lit in the navigation', async () => {
+    await mount('/einstellungen')
+
+    expect(screen.getByRole('heading', { level: 1, name: 'Einstellungen' })).toBeTruthy()
+    expect(
+      (
+        await within(screen.getByRole('navigation', { name: 'Hauptbereiche' })).findByRole('link', {
+          name: 'Einstellungen',
+        })
+      ).getAttribute('aria-current'),
     ).toBe('page')
   })
 
