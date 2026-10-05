@@ -56,6 +56,9 @@ export const access: AccessRules<Right> = {
       'Dieser Zugang ist bei diesem Betreiber gesperrt. Die Leitung kann ihn wieder freigeben.',
     alreadyWorksHere: 'Diese Adresse arbeitet schon für diesen Betreiber.',
     notAMember: 'Dieses Konto arbeitet nicht für diesen Betreiber.',
+    accountNotOnlyHere:
+      'Dieses Konto arbeitet auch für einen anderen Betreiber dieser Instanz oder gehört zu ' +
+      'ihrer Verwaltung. Name und E-Mail ändert dann nur die Person selbst.',
     noSuchSessionHere: 'Diese Sitzung gibt es bei diesem Betreiber nicht.',
     lastLead:
       'Das ist die letzte Leitung dieses Betreibers. Erst eine zweite Leitung einsetzen, ' +

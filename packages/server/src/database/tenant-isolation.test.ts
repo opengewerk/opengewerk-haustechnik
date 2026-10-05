@@ -140,6 +140,15 @@ function rowsOf(tenant: Tenant): readonly Row[] {
       },
     },
     {
+      table: 'account_corrections',
+      values: {
+        tenant_id: tenant.id,
+        user_id: tenant.colleagueId,
+        name_before: 'Kolege',
+        name_after: 'Kollege',
+      },
+    },
+    {
       table: 'invitations',
       values: {
         id: invitation,

@@ -467,6 +467,15 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   auch die Objektleitung, trägt über "Hinzufügen" eine ein und entfernt eine nach einer Rückfrage, beides mit
   Verbindung an den Routen des Gebäudes; die Karte sagt es, wenn keine da ist. Wer nur liest, sieht die Zeiten
   und keinen Knopf. Geändert wird keine: eine falsche wird entfernt und neu eingetragen
+- Die Leitung berichtigt Name und E-Mail eines Kontos an der Schnittstelle (#84; Migration
+  `0018_account_corrections`). Bisher ließ sich ein Tippfehler im Namen oder eine geänderte Adresse nur von
+  der Person selbst oder gar nicht beheben. Die Route `PATCH /staff/:userId/account` kommt mit dem neuen Stand
+  des Fundaments, hinter dem Recht, Zugänge zu verwalten. Jede Berichtigung ist eine Zeile des Betreibers in
+  der neuen Tabelle `account_corrections` und steht damit in seinem Änderungsprotokoll, mit dem Wert vorher
+  und nachher; geändert oder gelöscht wird eine solche Zeile nicht. Arbeitet das Konto auch für einen anderen
+  Betreiber der Instanz oder gehört es zu ihrer Verwaltung, lehnt die Route ab und sagt, dass dann nur die
+  Person selbst ändert: ein Betreiber soll nicht umschreiben, was auch einem anderen gehört. Der Bildschirm
+  dazu folgt mit "Zugänge"
 
 ### Geändert
 
