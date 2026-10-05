@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 
 import {
@@ -19,7 +20,18 @@ import { loadCatalogue } from './load.js'
 // package an asset is corrected to.
 const shipped = readPackageFiles(fileURLToPath(new URL('../../../pakete/', import.meta.url)))
 const probe = readPackageFiles(fileURLToPath(new URL('../test/pakete/', import.meta.url)))
-const options = { applicationVersion: '0.0.0', today: '2026-10-05' }
+
+// With the version of the application and the day in Germany the build takes
+// (build.ts), and not with fixed ones: whoever checks an entry again, accepts
+// one or raises what the package asks of the application writes a later day
+// or a higher version into the package, and that must not turn this test red.
+const application = JSON.parse(
+  readFileSync(new URL('../../../package.json', import.meta.url), 'utf8'),
+) as { readonly version: string }
+const options = {
+  applicationVersion: application.version,
+  today: new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Berlin' }).format(new Date()),
+}
 
 function general(): CataloguePackage {
   const { bundle, problems } = loadCatalogue(shipped, options)
