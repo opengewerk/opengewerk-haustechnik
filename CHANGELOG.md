@@ -529,6 +529,20 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   und wo die mehr als ein Jahr zurückliegt, steht das dabei. Die Kennzeichnungen stehen an einer Stelle
   für beide Einstiege (`app/review-marks.tsx`), damit Vorschläge, Anlagenakte und Protokoll sie in
   denselben Worten bekommen
+- "Anlagen" im Büro: das Anlagenverzeichnis über alle Gebäude und die Akte einer Anlage (#87). Das
+  Verzeichnis kommt seitenweise vom Server (`GET /assets`) und wird dort eingegrenzt, nach Standort,
+  Kostengruppe, Anlagenart, Zustand und Lebenszyklus, damit auch einige tausend Anlagen nie auf einmal
+  im Browser liegen; wonach eingegrenzt ist, steht in der Adresse und lässt sich weitergeben. Der
+  Zustand einer Anlage (Mangel offen, nie geprüft, überfällig, fällig, in Ordnung, dazu "ruht" und
+  "ohne Pflichten") wird bei jedem Lesen aus ihren Pflichten, deren Nachweisen und ihren offenen
+  Mängeln abgeleitet und nie gespeichert (`assetStandingOn` in `packages/domain`). Der Server rechnet
+  ihn an einer Stelle, aus der auch die Fristen ihre Termine nehmen, damit Frist, Zustand einer Pflicht
+  und Zustand einer Anlage nie drei Geschichten erzählen. Die Akte unter `/anlagen/<id>` zeigt
+  Stammdaten mit den Angaben der Anlagenart, Standort und Versorgungsbereich, Komponenten, den
+  Lebenszyklus ganz und die Pflichten mit letztem Nachweis, nächstem Termin und Zustand
+  (`GET /assets/:id/duties`); die Pflichten einer stillgelegten Anlage stehen als ruhend da. Die Seite
+  eines Gebäudes zählt seine Anlagen nach Kostengruppe und führt von jeder Zahl ins Verzeichnis dieses
+  Gebäudes. Die Vorschau bringt dafür Pflichten, Nachweise und einen offenen Mangel mit
 
 ### Geändert
 

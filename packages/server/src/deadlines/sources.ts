@@ -5,26 +5,16 @@ import {
   type DutyId,
   type IsoDate,
   lifecycleStateOn,
-  meetsTheDuty,
   nextAppointment,
   type PropertyId,
   restsOn,
   roomTitle,
-  standingEvidence,
 } from '@opengewerk/haustechnik-domain'
 import type { ExpectedDeadline, SourceQuery } from '@opengewerk/platform-server'
-import { asc, eq, isNull } from 'drizzle-orm'
+import { eq, isNull } from 'drizzle-orm'
 
-import {
-  assetLifecycle,
-  assets,
-  buildings,
-  duties,
-  evidence,
-  evidenceVoidings,
-  properties,
-  rooms,
-} from '../database/schema/index.js'
+import { dutyTitle, lifecyclesByAsset, metDaysByDuty } from '../database/duty-standing.js'
+import { assets, buildings, duties, properties, rooms } from '../database/schema/index.js'
 
 /** What a deadline of this application hangs on, written into its own columns. */
 export interface DeadlineValues {
@@ -60,11 +50,7 @@ interface DutyRow {
  * kind in the version that was confirmed, and what it hangs on.
  */
 function labelOf(duty: DutyRow, catalogue: Catalogue): string {
-  const kind =
-    duty.kind === null || duty.kindVersion === null
-      ? null
-      : (catalogue.dutyKindVersion(duty.kind, duty.kindVersion)?.definition.label ?? duty.kind)
-  const what = duty.label ?? kind ?? 'Pflicht'
+  const what = dutyTitle(duty, catalogue)
   const asset =
     duty.assetName === null
       ? null
@@ -131,45 +117,8 @@ export function dutySource(options: {
       .leftJoin(buildings, eq(buildings.id, duties.buildingId))
       .where(isNull(duties.deletedAt))
 
-    const performances = new Map<string, IsoDate[]>()
-    const voided = new Set(
-      (await tx.select({ evidenceId: evidenceVoidings.evidenceId }).from(evidenceVoidings)).map(
-        (row) => row.evidenceId as string,
-      ),
-    )
-    const written = await tx
-      .select({
-        id: evidence.id,
-        replacesEvidenceId: evidence.replacesEvidenceId,
-        dutyId: evidence.dutyId,
-        performedOn: evidence.performedOn,
-        result: evidence.result,
-      })
-      .from(evidence)
-      .orderBy(asc(evidence.performedOn))
-
-    for (const row of standingEvidence(written, voided)) {
-      if (meetsTheDuty(row.result)) {
-        performances.set(row.dutyId, [...(performances.get(row.dutyId) ?? []), row.performedOn])
-      }
-    }
-
-    const lives = new Map<
-      string,
-      { state: (typeof assetLifecycle.$inferSelect)['state']; validFrom: IsoDate }[]
-    >()
-
-    for (const entry of await tx
-      .select({
-        assetId: assetLifecycle.assetId,
-        state: assetLifecycle.state,
-        validFrom: assetLifecycle.validFrom,
-      })
-      .from(assetLifecycle)
-      .where(isNull(assetLifecycle.deletedAt))) {
-      lives.set(entry.assetId, [...(lives.get(entry.assetId) ?? []), entry])
-    }
-
+    const performances = await metDaysByDuty(tx)
+    const lives = await lifecyclesByAsset(tx)
     const expected: ExpectedDeadline<DeadlineValues>[] = []
 
     for (const duty of rows) {

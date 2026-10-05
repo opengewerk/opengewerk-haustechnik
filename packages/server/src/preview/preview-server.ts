@@ -24,6 +24,7 @@ import {
 } from './preview-database.js'
 import { PreviewIdentitySource, previewSession } from './preview-identity.js'
 import { plantSampleData, sampleOperatorName } from './sample-data.js'
+import { writeSampleStandings } from './sample-standings.js'
 
 /**
  * The server as an instance runs it, with one difference: nobody signs in,
@@ -113,20 +114,20 @@ export async function openSamplePreview(
 
   await completeRoles(database, access)
 
-  const planting = await openPreview(
-    database,
-    previewIdentity(previewPeople.planter, tenant.id, 'management'),
-    previewPeople.planter,
-    previewCatalogue,
-    { interfaceDirectory: null },
-  )
+  const planter = previewIdentity(previewPeople.planter, tenant.id, 'management')
+  const planting = await openPreview(database, planter, previewPeople.planter, previewCatalogue, {
+    interfaceDirectory: null,
+  })
 
   await planting.listen(0, '127.0.0.1')
 
   try {
     const { port } = planting.getHttpServer().address() as AddressInfo
 
-    await plantSampleData(`http://127.0.0.1:${String(port)}`, areas)
+    const planted = await plantSampleData(`http://127.0.0.1:${String(port)}`, areas)
+
+    // What no route writes yet: the evidence of the duties and the defects.
+    await writeSampleStandings(database, planter, previewCatalogue, planted)
   } finally {
     await planting.close()
   }

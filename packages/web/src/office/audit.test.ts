@@ -50,6 +50,7 @@ describe('the words of the change log in the office', () => {
     expect(auditScreenWords.partsWords).toEqual({
       properties: 'mit ihren Ansprechpartnern',
       buildings: 'mit seinen Schließzeiten',
+      assets: 'mit ihrem Lebenszyklus und dem, was sie versorgt',
     })
     expect(Object.keys(auditScreenWords.partsWords ?? {})).toEqual(
       Object.keys(auditVocabulary.parts),
@@ -57,6 +58,10 @@ describe('the words of the change log in the office', () => {
     expect(auditVocabulary.parts).toEqual({
       properties: [{ table: 'contacts', column: 'property_id' }],
       buildings: [{ table: 'building_closures', column: 'building_id' }],
+      assets: [
+        { table: 'asset_lifecycle', column: 'asset_id' },
+        { table: 'asset_supplies', column: 'asset_id' },
+      ],
     })
   })
 
@@ -73,8 +78,14 @@ describe('the words of the change log in the office', () => {
       (table) => auditScreenWords.href?.(table, 'x') !== null,
     )
 
-    expect(paged).toEqual(['properties', 'buildings', 'floors', 'rooms'])
-    expect(auditVocabulary.records).toEqual(['properties', 'buildings', 'floors', 'rooms'])
+    expect(paged).toEqual(['properties', 'buildings', 'floors', 'rooms', 'assets'])
+    expect(auditVocabulary.records).toEqual([
+      'properties',
+      'buildings',
+      'floors',
+      'rooms',
+      'assets',
+    ])
   })
 
   // A record that opens on a page says where the link leads.

@@ -10,21 +10,24 @@ import {
   Patch,
   Post,
   Put,
+  Query,
 } from '@nestjs/common'
 import {
   type Asset,
+  type AssetDetails,
   type AssetId,
   assetProblems,
+  type AssetRegister,
   type AssetSupply,
   type AssetValue,
   assetValueProblems,
   type Building,
   type BuildingId,
   type Catalogue,
+  type DutyReading,
   type LifecycleEntry,
   lifecycleEntryProblems,
   type LifecycleState,
-  lifecycleStateOn,
   meterProblems,
   type Room,
   type RoomId,
@@ -40,6 +43,7 @@ import {
 import { and, asc, eq, inArray, isNull, sql } from 'drizzle-orm'
 
 import { CATALOGUE } from '../catalogue.js'
+import { assetsOnADay, dutyTitle } from '../database/duty-standing.js'
 import { assignNumber } from '../database/number-ranges.js'
 import {
   assetLifecycle,
@@ -49,6 +53,7 @@ import {
   rooms,
 } from '../database/schema/index.js'
 import { dayInGermany } from '../today.js'
+import { assetRegister, registerQuestion } from './asset-register.js'
 import { RequiresPermission } from './authorization.js'
 import { type Asking, fieldsOf, placeOf, refuse } from './places.js'
 
@@ -84,13 +89,6 @@ const emptiable = [
   'meterNumber',
   'meterUnit',
 ] as const
-
-/** An asset as the page of an asset reads it: with its life cycle, its state today and what it supplies. */
-export interface AssetDetails extends Asset {
-  readonly lifecycle: readonly LifecycleEntry[]
-  readonly lifecycleState: LifecycleState | null
-  readonly supplies: readonly AssetSupply[]
-}
 
 /** The asset kind of a key, as the catalogue knows it today, or a refusal. */
 function kindOf(catalogue: Catalogue, key: unknown) {
@@ -246,11 +244,50 @@ export class AssetsController {
     @Inject(CATALOGUE) private readonly catalogue: Catalogue,
   ) {}
 
+  /**
+   * The register over every building (section 4.2 of the concept), a page at
+   * a time: narrowed by place, cost group, kind, condition and life cycle,
+   * each of which the address may name, and two of them give what passes
+   * both. Whoever reads assets reads it, in their areas.
+   */
+  @Get()
+  @RequiresPermission('asset.read')
+  register(
+    @CurrentIdentity() identity: Asking,
+    @Query() query: Record<string, unknown>,
+  ): Promise<AssetRegister> {
+    const question = registerQuestion(query)
+
+    return this.database.forTenant(identity, (tx) =>
+      assetRegister(tx, this.catalogue, dayInGermany(), question),
+    )
+  }
+
+  /**
+   * The file of an asset: what is known about it, its life cycle whole, so
+   * that a decommissioned asset keeps its past, the components under it and
+   * the asset it is one of, and its condition today.
+   */
   @Get(':id')
   @RequiresPermission('asset.read')
   read(@CurrentIdentity() identity: Asking, @Param('id') id: string): Promise<AssetDetails> {
     return this.database.forTenant(identity, async (tx) => {
       const asset = await placeOf<Asset>(tx, assets, id, missing)
+      const { lifecycleState, condition, until } = (
+        await assetsOnADay(tx, dayInGermany(), [asset.id])
+      )(asset.id)
+      const components = await tx
+        .select({ id: assets.id, number: assets.number, name: assets.name, kind: assets.kind })
+        .from(assets)
+        .where(and(eq(assets.parentAssetId, asset.id), isNull(assets.deletedAt)))
+        .orderBy(asc(assets.number), asc(assets.name))
+      const [parent] =
+        asset.parentAssetId === null
+          ? []
+          : await tx
+              .select({ id: assets.id, number: assets.number, name: assets.name })
+              .from(assets)
+              .where(eq(assets.id, asset.parentAssetId))
       const lifecycle = (await tx
         .select()
         .from(assetLifecycle)
@@ -265,9 +302,47 @@ export class AssetsController {
       return {
         ...asset,
         lifecycle,
-        lifecycleState: lifecycleStateOn(lifecycle, dayInGermany()),
+        lifecycleState,
+        condition,
+        until,
         supplies,
+        components: components as AssetDetails['components'],
+        parent: (parent ?? null) as AssetDetails['parent'],
       }
+    })
+  }
+
+  /**
+   * The duties of the asset that have not ended, each with how it stands
+   * today (ADR 0002, point 16): resting while the asset is not in service,
+   * whatever its appointment says. Reading them is reading duties, so the
+   * right is that of the register of duties and not that of the assets.
+   */
+  @Get(':id/duties')
+  @RequiresPermission('duty.read')
+  duties(@CurrentIdentity() identity: Asking, @Param('id') id: string): Promise<DutyReading[]> {
+    return this.database.forTenant(identity, async (tx) => {
+      const asset = await placeOf<Asset>(tx, assets, id, missing)
+      const today = (await assetsOnADay(tx, dayInGermany(), [asset.id]))(asset.id)
+
+      return today.duties
+        .map(({ duty, standing, lastMetOn }): DutyReading => ({
+          id: duty.id,
+          kind: duty.kind,
+          kindVersion: duty.kindVersion,
+          label: duty.label,
+          basis: duty.basis,
+          sourceNote: duty.sourceNote,
+          counting: duty.counting,
+          intervalDays: duty.intervalDays,
+          intervalMonths: duty.intervalMonths,
+          endsOn: duty.endsOn,
+          title: dutyTitle(duty, this.catalogue),
+          state: standing.state,
+          appointment: standing.appointment,
+          lastMetOn,
+        }))
+        .sort((left, right) => left.title.localeCompare(right.title, 'de'))
     })
   }
 

@@ -40,6 +40,8 @@ export const cataloguePlaces = {
   package: (name: string): string => `${root}/${encodeURIComponent(name)}`,
   part: (name: string, part: CataloguePart): string =>
     `${root}/${encodeURIComponent(name)}/${part}`,
+  /** The asset kinds of the package an asset kind comes from, by the key of the kind. */
+  assetKind: (key: string): string => `${root}/${encodeURIComponent(halves(key)[0])}/anlagenarten`,
   /** The page of a duty kind, by the key everything outside its package names it by. */
   dutyKind: (key: string): string => {
     const [name, own] = halves(key)
