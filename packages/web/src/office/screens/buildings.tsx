@@ -18,7 +18,12 @@ import { byLevel, kindsOf, placeAbove } from '../../app/place-records.js'
 import { areaName, useAreas } from '../../session/areas.js'
 import { useCatalogue } from '../../sync/catalogue.js'
 import { AreaBadge } from '../area-badge.js'
-import { assetRegisterPlace, registerSearch } from '../asset-addresses.js'
+import {
+  assetForms,
+  assetRegisterPlace,
+  newAssetSearch,
+  registerSearch,
+} from '../asset-addresses.js'
 import { factLink } from '../links.js'
 import { BuildingClosures } from '../building-closures.js'
 import { officePlaces, placeForms } from '../place-addresses.js'
@@ -51,6 +56,7 @@ export function BuildingScreen() {
   const catalogue = useCatalogue()
   const areas = useAreas()
   const writes = useRight('location.write')
+  const records = useRight('asset.record')
   const navigate = useNavigate()
 
   if (!building || !buildingId || !property) {
@@ -93,6 +99,17 @@ export function BuildingScreen() {
                 }}
               >
                 Bearbeiten
+              </Button>
+            ) : null}
+            {records ? (
+              <Button
+                tone="primary"
+                icon={Plus}
+                onClick={() => {
+                  void navigate({ to: assetForms.new, search: newAssetSearch(buildingId) })
+                }}
+              >
+                Neue Anlage
               </Button>
             ) : null}
           </>

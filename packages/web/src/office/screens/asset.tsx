@@ -9,6 +9,7 @@ import {
   dutyInterval,
   type DutyReading,
   intervalWords,
+  type LifecycleEntry,
   lifecycleStateLabel,
   meterUnitSymbol,
   type RecordState,
@@ -16,9 +17,11 @@ import {
   ruleValueWords,
 } from '@opengewerk/haustechnik-domain'
 import {
+  Button,
   cardLink,
   Cell,
   Column,
+  IconButton,
   NumberBadge,
   Panel,
   Status,
@@ -35,16 +38,22 @@ import {
 } from '@opengewerk/platform-web/office'
 import { useRight } from '@opengewerk/platform-web/session'
 import { request, RequestRefused, text, useRecords } from '@opengewerk/platform-web/sync'
-import { useQuery } from '@tanstack/react-query'
-import { Link, useParams } from '@tanstack/react-router'
-import { Zap } from 'lucide-react'
-import type { ReactNode } from 'react'
+import { useQuery, type UseQueryResult } from '@tanstack/react-query'
+import { Link, useNavigate, useParams } from '@tanstack/react-router'
+import { Pencil, Plus, X, Zap } from 'lucide-react'
+import { type ReactNode, useState } from 'react'
 
 import { placePath } from '../../app/place-path.js'
 import { placeAbove, titleOfRoom } from '../../app/place-records.js'
 import { ReviewMarks } from '../../app/review-marks.js'
 import { useCatalogue } from '../../sync/catalogue.js'
-import { assetRegisterPlace } from '../asset-addresses.js'
+import { assetForms, assetRegisterPlace } from '../asset-addresses.js'
+import {
+  AssetSuppliesDialog,
+  LifecycleEntryDialog,
+  MoveAssetDialog,
+  TakeBackLifecycleEntry,
+} from '../asset-dialogs.js'
 import { AssetConditionMark, DutyStateMark } from '../asset-marks.js'
 import { AssetState } from '../asset-state.js'
 import { cataloguePlaces } from '../catalogue-addresses.js'
@@ -92,13 +101,23 @@ export const assetFileWords = {
  * device. The names of the places come from the device. A decommissioned
  * asset keeps its past here, and its duties stand as resting.
  *
- * What the board draws beyond this arrives with what it shows: changing and
- * swapping the asset (#88, #89), confirming duties (#102), evidence (#109),
- * defects (#116), work orders (#117), documents (#97) and the label (#98).
+ * Whoever takes assets into the register changes what is known about it, adds
+ * a component and says what it supplies; its life cycle and moving it are for
+ * whoever keeps the assets (section 7 of the concept, #88), and neither is
+ * offered to anybody else.
+ *
+ * What the board draws beyond this arrives with what it shows: swapping the
+ * asset (#89), confirming duties (#102), evidence (#109), defects (#116),
+ * work orders (#117), documents (#97) and the label (#98).
  */
 export function AssetFileScreen() {
   const { assetId } = useParams({ strict: false }) as { assetId?: string }
+  const navigate = useNavigate()
   const seesDuties = useRight('duty.read')
+  const records = useRight('asset.record')
+  const keeps = useRight('asset.write')
+  const [changing, setChanging] = useState<'place' | 'supplies' | 'lifecycle' | null>(null)
+  const [takingBack, setTakingBack] = useState<LifecycleEntry | null>(null)
   const file = useQuery({ ...assetFileQuery(assetId ?? ''), enabled: assetId !== undefined })
   const duties = useQuery({
     ...assetDutiesQuery(assetId ?? ''),
@@ -112,22 +131,11 @@ export function AssetFileScreen() {
   const asset = file.data
 
   if (asset === undefined || assetId === undefined) {
-    const gone = file.error instanceof RequestRefused && file.error.status === 404
+    return <AssetFileUnread file={file} />
+  }
 
-    return (
-      <Screen>
-        <PageHead title={gone ? 'Nicht gefunden' : 'Anlage'} crumbs={[assetRegisterPlace]} />
-        <Empty>
-          {gone
-            ? assetFileWords.notThere
-            : file.isError
-              ? assetFileWords.failed
-              : file.fetchStatus === 'paused'
-                ? assetFileWords.noConnection
-                : assetFileWords.loading}
-        </Empty>
-      </Screen>
-    )
+  const stopChanging = () => {
+    setChanging(null)
   }
 
   const byId = (records: readonly RecordState[], id: unknown) =>
@@ -192,7 +200,21 @@ export function AssetFileScreen() {
             {kind ? <ReviewMarks review={kind.review} /> : null}
           </>
         }
-        actions={<ChangesButton table="assets" id={assetId} />}
+        actions={
+          <>
+            <ChangesButton table="assets" id={assetId} />
+            {records ? (
+              <Button
+                icon={Pencil}
+                onClick={() => {
+                  void navigate({ to: assetForms.edit(assetId) })
+                }}
+              >
+                Bearbeiten
+              </Button>
+            ) : null}
+          </>
+        }
       />
       <div className="grid gap-3.5 lg:grid-cols-[minmax(0,1fr)_320px]">
         <div className="flex min-w-0 flex-col gap-3.5">
@@ -205,7 +227,22 @@ export function AssetFileScreen() {
           ) : null}
         </div>
         <div className="flex min-w-0 flex-col gap-3.5">
-          <Panel title="Stammdaten">
+          <Panel
+            title="Stammdaten"
+            action={
+              records ? (
+                <Button
+                  size="small"
+                  aria-label="Stammdaten bearbeiten"
+                  onClick={() => {
+                    void navigate({ to: assetForms.edit(assetId) })
+                  }}
+                >
+                  Bearbeiten
+                </Button>
+              ) : null
+            }
+          >
             {/* Wider than the facts of a place: a package names the fields of a kind. */}
             <FactList facts={masterData(asset, catalogue)} keyWidth={130} />
           </Panel>
@@ -271,6 +308,30 @@ export function AssetFileScreen() {
                 },
               ]}
             />
+            {records || keeps ? (
+              <div className="mt-2.5 flex flex-wrap gap-1.5">
+                {keeps ? (
+                  <Button
+                    size="small"
+                    onClick={() => {
+                      setChanging('place')
+                    }}
+                  >
+                    Verlegen
+                  </Button>
+                ) : null}
+                {records ? (
+                  <Button
+                    size="small"
+                    onClick={() => {
+                      setChanging('supplies')
+                    }}
+                  >
+                    Versorgung ändern
+                  </Button>
+                ) : null}
+              </div>
+            ) : null}
           </Panel>
           <Panel title="Komponenten">
             {asset.components.length === 0 ? (
@@ -293,10 +354,77 @@ export function AssetFileScreen() {
                 ))}
               </ul>
             )}
+            {records ? (
+              <div className="mt-2.5 flex">
+                <Button
+                  size="small"
+                  icon={Plus}
+                  onClick={() => {
+                    void navigate({ to: assetForms.component(assetId) })
+                  }}
+                >
+                  Komponente hinzufügen
+                </Button>
+              </div>
+            ) : null}
           </Panel>
-          <Lifecycle asset={asset} />
+          <Lifecycle
+            asset={asset}
+            {...(keeps
+              ? {
+                  onEnter: () => {
+                    setChanging('lifecycle')
+                  },
+                  onTakeBack: setTakingBack,
+                }
+              : {})}
+          />
         </div>
       </div>
+      {changing === 'place' ? <MoveAssetDialog asset={asset} onClose={stopChanging} /> : null}
+      {changing === 'supplies' ? (
+        <AssetSuppliesDialog asset={asset} onClose={stopChanging} />
+      ) : null}
+      {changing === 'lifecycle' ? (
+        <LifecycleEntryDialog asset={asset} onClose={stopChanging} />
+      ) : null}
+      {takingBack ? (
+        <TakeBackLifecycleEntry
+          asset={asset}
+          entry={takingBack}
+          onClose={() => {
+            setTakingBack(null)
+          }}
+        />
+      ) : null}
+    </Screen>
+  )
+}
+
+/**
+ * In place of the file while there is none to show: still on its way, not
+ * there for this person, or out of reach without a connection. The forms of
+ * an asset stand on the same file and say the same.
+ */
+export function AssetFileUnread({
+  file,
+}: {
+  readonly file: Pick<UseQueryResult<AssetDetails>, 'error' | 'isError' | 'fetchStatus'>
+}) {
+  const gone = file.error instanceof RequestRefused && file.error.status === 404
+
+  return (
+    <Screen>
+      <PageHead title={gone ? 'Nicht gefunden' : 'Anlage'} crumbs={[assetRegisterPlace]} />
+      <Empty>
+        {gone
+          ? assetFileWords.notThere
+          : file.isError
+            ? assetFileWords.failed
+            : file.fetchStatus === 'paused'
+              ? assetFileWords.noConnection
+              : assetFileWords.loading}
+      </Empty>
     </Screen>
   )
 }
@@ -502,8 +630,19 @@ function Duties({
  * "Lebenszyklus": every entry, the newest first, so that an asset taken out
  * of service still says since when it ran (2.2 of the concept). The entry
  * that holds today is the first that has begun.
+ *
+ * Entering a state and taking an entry back are handed in by the file for
+ * whoever keeps the assets; without them the card only reads.
  */
-function Lifecycle({ asset }: { readonly asset: AssetDetails }) {
+function Lifecycle({
+  asset,
+  onEnter,
+  onTakeBack,
+}: {
+  readonly asset: AssetDetails
+  readonly onEnter?: () => void
+  readonly onTakeBack?: (entry: LifecycleEntry) => void
+}) {
   const day = today()
   const entries = [...asset.lifecycle].sort((left, right) =>
     right.validFrom.localeCompare(left.validFrom),
@@ -511,20 +650,40 @@ function Lifecycle({ asset }: { readonly asset: AssetDetails }) {
   const current = entries.find((entry) => entry.validFrom <= day)
 
   return (
-    <Panel title="Lebenszyklus">
+    <Panel
+      title="Lebenszyklus"
+      action={
+        onEnter ? (
+          <Button size="small" icon={Plus} onClick={onEnter}>
+            Eintragen
+          </Button>
+        ) : null
+      }
+    >
       {entries.length === 0 ? (
         <p className="text-[13px] leading-[1.4] text-ink-muted">{assetFileWords.noLifecycle}</p>
       ) : (
         <ol className="flex flex-col gap-[5px] text-[13px] max-sm:text-[15px]">
           {entries.map((entry) => (
-            <li key={entry.id} className="flex items-baseline justify-between gap-2">
-              <span className={entry === current ? 'font-semibold' : 'text-ink-muted'}>
+            <li key={entry.id} className="flex items-center gap-2">
+              <span className={entry === current ? 'grow font-semibold' : 'grow text-ink-muted'}>
                 {lifecycleStateLabel[entry.state]}
                 {entry === current ? <span className="sr-only"> (heute)</span> : null}
               </span>
               <span className="numeric text-ink-muted">
                 {entry.validFrom > day ? 'ab' : 'seit'} {date(entry.validFrom)}
               </span>
+              {onTakeBack ? (
+                <IconButton
+                  label={`${lifecycleStateLabel[entry.state]} ${entry.validFrom > day ? 'ab' : 'seit'} ${date(entry.validFrom)} zurücknehmen`}
+                  className="-my-1.5 h-7! min-h-7! w-7! min-w-7! max-sm:h-10! max-sm:min-h-10! max-sm:w-10! max-sm:min-w-10!"
+                  onClick={() => {
+                    onTakeBack(entry)
+                  }}
+                >
+                  <X size={14} strokeWidth={2.2} aria-hidden="true" />
+                </IconButton>
+              ) : null}
             </li>
           ))}
         </ol>

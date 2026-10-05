@@ -17,6 +17,7 @@ import { InstanceShell } from './instance/shell.js'
 import { AccountScreen } from './screens/account.js'
 import { AreasScreen } from './screens/areas.js'
 import { AssetFileScreen } from './screens/asset.js'
+import { EditAssetScreen, NewAssetScreen, NewComponentScreen } from './screens/asset-form.js'
 import { AssetRegisterScreen } from './screens/assets.js'
 import { EditBuildingScreen, NewBuildingScreen } from './screens/building-form.js'
 import { BuildingScreen } from './screens/buildings.js'
@@ -163,12 +164,24 @@ export function officeRoutes() {
       component: EditRoomScreen,
     }),
     // The register of assets, narrowed by what its address names, and the
-    // file of one asset under it.
+    // file of one asset under it. The form of a new asset stands under the
+    // register, before the file: "neu" is no id.
     createRoute({ getParentRoute: () => office, path: '/anlagen', component: AssetRegisterScreen }),
+    createRoute({ getParentRoute: () => office, path: '/anlagen/neu', component: NewAssetScreen }),
     createRoute({
       getParentRoute: () => office,
       path: '/anlagen/$assetId',
       component: AssetFileScreen,
+    }),
+    createRoute({
+      getParentRoute: () => office,
+      path: '/anlagen/$assetId/bearbeiten',
+      component: EditAssetScreen,
+    }),
+    createRoute({
+      getParentRoute: () => office,
+      path: '/anlagen/$assetId/komponenten/neu',
+      component: NewComponentScreen,
     }),
     // The catalogue: the packages, one of them with one of its parts, and
     // the page of a duty kind under the package it comes from.

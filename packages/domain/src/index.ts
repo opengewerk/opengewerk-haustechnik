@@ -36,6 +36,9 @@ export * from './model/closure.js'
 
 // The technology: assets, their components, life cycle and meters.
 export * from './model/asset.js'
+// Whether an asset may already stand in the register, and the general kind
+// of a cost group.
+export * from './model/asset-duplicate.js'
 export * from './model/meter.js'
 export * from './model/cost-group.js'
 

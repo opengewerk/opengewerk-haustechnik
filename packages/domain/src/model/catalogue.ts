@@ -653,6 +653,66 @@ export function ruleValueWords(value: number, unit: RuleUnit): string {
 }
 
 /**
+ * How a figure in a unit of the rule engine is typed into a form: what stands
+ * behind the field, and how many decimal places a person writes of what is
+ * stored as a whole number of the smallest step. 60,0 °C are 600 tenths.
+ */
+export function ruleUnitEntry(unit: RuleUnit): {
+  readonly symbol: string
+  readonly places: number
+} {
+  switch (unit) {
+    case 'days':
+      return { symbol: 'Tage', places: 0 }
+    case 'months':
+      return { symbol: 'Monate', places: 0 }
+    case 'years':
+      return { symbol: 'Jahre', places: 0 }
+    case 'minutes':
+      return { symbol: 'Minuten', places: 0 }
+    case 'basis_points':
+      return { symbol: '%', places: 2 }
+    case 'cents':
+      return { symbol: '€', places: 2 }
+    case 'decidegrees_celsius':
+      return { symbol: '°C', places: 1 }
+    case 'kiloohms':
+      return { symbol: 'kΩ', places: 0 }
+    case 'milliseconds':
+      return { symbol: 'ms', places: 0 }
+    case 'volts':
+      return { symbol: 'V', places: 0 }
+    case 'kilowatts':
+      return { symbol: 'kW', places: 0 }
+    case 'kilograms_co2e':
+      return { symbol: 'kg CO2-Äquivalent', places: 0 }
+    case 'tonnes_co2e':
+      return { symbol: 't CO2-Äquivalent', places: 0 }
+    case 'count_per_100_ml':
+      return { symbol: 'je 100 ml', places: 0 }
+    case 'flag':
+    case 'factor':
+      return { symbol: '', places: 0 }
+  }
+}
+
+/**
+ * The duty kinds in force on a day that name an asset kind in their scope
+ * (section 2.3 of the concept): what the catalogue holds for assets of the
+ * kind. Whether one of them applies to an asset depends on more, on its
+ * characteristics, the kind of its building and the federal state.
+ */
+export function dutyKindsNaming(
+  catalogue: Pick<Catalogue, 'dutyKinds'>,
+  assetKind: string,
+  on: IsoDate,
+): readonly CatalogueEntry<DutyKind>[] {
+  return catalogue
+    .dutyKinds(on)
+    .filter((entry) => entry.definition.scope.assetKinds.includes(assetKind))
+}
+
+/**
  * The interval of a duty kind in a line, on a day: "Höchstfrist 24 Monate",
  * "Richtwert 12 Monate". A kind without a value says who enters one, in the
  * words of the board, and a kind whose rule has no record on the day says

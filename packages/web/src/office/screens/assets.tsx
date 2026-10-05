@@ -16,15 +16,18 @@ import {
 import { Button, cardLink, Cell, Column, Panel, TablePanel } from '@opengewerk/platform-web'
 import { today } from '@opengewerk/platform-web/format'
 import { Empty, PageHead, Screen } from '@opengewerk/platform-web/office'
+import { useRight } from '@opengewerk/platform-web/session'
 import { maybeText, request, text, useRecords } from '@opengewerk/platform-web/sync'
 import { useInfiniteQuery } from '@tanstack/react-query'
 import { Link, useNavigate, useSearch } from '@tanstack/react-router'
-import { ChevronDown } from 'lucide-react'
+import { ChevronDown, Plus } from 'lucide-react'
 import { type ReactNode, useId, useMemo } from 'react'
 
 import { useCatalogue } from '../../sync/catalogue.js'
 import {
+  assetForms,
   assetRegisterPlace,
+  newAssetSearch,
   registerFilterOf,
   registerRequest,
   registerSearch,
@@ -53,6 +56,7 @@ export function AssetRegisterScreen() {
   const search = useSearch({ strict: false })
   const filter = useMemo(() => registerFilterOf(search), [search])
   const navigate = useNavigate()
+  const records = useRight('asset.record')
   const catalogue = useCatalogue()
   const properties = useRecords('properties')
   const buildings = useRecords('buildings')
@@ -101,7 +105,29 @@ export function AssetRegisterScreen() {
 
   return (
     <Screen>
-      <PageHead title="Anlagen" {...(first ? { count: countedIn(first) } : {})} />
+      <PageHead
+        title="Anlagen"
+        {...(first ? { count: countedIn(first) } : {})}
+        {...(records
+          ? {
+              actions: (
+                <Button
+                  tone="primary"
+                  icon={Plus}
+                  onClick={() => {
+                    // In the building the list is narrowed to, where it is.
+                    void navigate({
+                      to: assetForms.new,
+                      search: newAssetSearch(filter.buildingId),
+                    })
+                  }}
+                >
+                  Neue Anlage
+                </Button>
+              ),
+            }
+          : {})}
+      />
       <Filters
         filter={filter}
         catalogue={catalogue}

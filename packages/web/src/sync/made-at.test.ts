@@ -116,6 +116,18 @@ describe('what a route is asked to do to a record that is there', () => {
     expect(log).toEqual(['exchange'])
   })
 
+  it('changes a record at its route, with the fields that are to change', async () => {
+    const asked = answering(200, { id: 'a-1', name: 'Aufzug' })
+    const { client, log } = exchanging()
+
+    const result = await askAt(client, 'PATCH', '/assets/a-1', 'a-1', { name: 'Aufzug' })
+
+    expect(result).toEqual({ outcome: 'queued', id: 'a-1' })
+    expect(asked[0]?.init?.method).toBe('PATCH')
+    expect(JSON.parse(String(asked[0]?.init?.body))).toEqual({ name: 'Aufzug' })
+    expect(log).toEqual(['exchange'])
+  })
+
   it('is sent without a body where there is nothing to say, as a removal', async () => {
     const asked = answering(200, { id: 'c-9' })
     const { client, log } = exchanging()

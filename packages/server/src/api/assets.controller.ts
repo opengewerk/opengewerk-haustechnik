@@ -15,6 +15,7 @@ import {
 import {
   type Asset,
   type AssetDetails,
+  type AssetDuplicate,
   type AssetId,
   assetProblems,
   type AssetRegister,
@@ -43,6 +44,7 @@ import {
 import { and, asc, eq, inArray, isNull, sql } from 'drizzle-orm'
 
 import { CATALOGUE } from '../catalogue.js'
+import { assetDuplicates, duplicateQuestion } from '../database/asset-duplicates.js'
 import { assetsOnADay, dutyTitle } from '../database/duty-standing.js'
 import { assignNumber } from '../database/number-ranges.js'
 import {
@@ -261,6 +263,26 @@ export class AssetsController {
     return this.database.forTenant(identity, (tx) =>
       assetRegister(tx, this.catalogue, dayInGermany(), question),
     )
+  }
+
+  /**
+   * The assets that may be the one somebody is entering or changing (section
+   * 4.2 of the concept): those with the same serial number or the same mark.
+   * A question and never a refusal, the asset is made all the same if whoever
+   * enters it says so. Whoever reads assets may ask, and is named those of
+   * their areas.
+   *
+   * Before the file of an asset, or its address would be read as an id.
+   */
+  @Get('duplicates')
+  @RequiresPermission('asset.read')
+  duplicates(
+    @CurrentIdentity() identity: Asking,
+    @Query() query: Record<string, unknown>,
+  ): Promise<AssetDuplicate[]> {
+    const question = duplicateQuestion(query)
+
+    return this.database.forTenant(identity, (tx) => assetDuplicates(tx, question))
   }
 
   /**

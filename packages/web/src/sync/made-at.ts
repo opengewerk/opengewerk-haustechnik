@@ -19,7 +19,7 @@ import type { SyncClient } from './client.js'
  */
 async function atRoute(
   client: Pick<SyncClient, 'synchronise'>,
-  method: 'POST' | 'PUT' | 'DELETE',
+  method: 'POST' | 'PATCH' | 'PUT' | 'DELETE',
   path: string,
   values: Draft | undefined,
   idOf: (answer: { readonly id?: unknown }) => string,
@@ -68,7 +68,9 @@ export function makeAt(
 
 /**
  * Asks a route for what it does to a record that is there: moving a room to
- * another floor, removing it, removing a time a building is closed.
+ * another floor, removing it, removing a time a building is closed, changing
+ * an asset in the office, which reads it from the server and not from the
+ * device.
  *
  * A room is changed through the outbox, so the sync client would put its
  * removal there as well, where the server refuses it (ADR 0006: moving and
@@ -78,7 +80,7 @@ export function makeAt(
  */
 export function askAt(
   client: Pick<SyncClient, 'synchronise'>,
-  method: 'PUT' | 'DELETE',
+  method: 'PATCH' | 'PUT' | 'DELETE',
   path: string,
   id: string,
   values?: Draft,

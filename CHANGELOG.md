@@ -543,6 +543,21 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   (`GET /assets/:id/duties`); die Pflichten einer stillgelegten Anlage stehen als ruhend da. Die Seite
   eines Gebäudes zählt seine Anlagen nach Kostengruppe und führt von jeder Zahl ins Verzeichnis dieses
   Gebäudes. Die Vorschau bringt dafür Pflichten, Nachweise und einen offenen Mangel mit
+- Eine Anlage im Büro anlegen und ändern, mit Dubletten-Prüfung (#88). Das Formular unter
+  `/anlagen/neu` und `/anlagen/<id>/bearbeiten` zeigt die Felder der gewählten Anlagenart in der
+  Fassung, die heute gilt, dazu die Pflichtarten, die der Katalog für sie führt, und für einen Zähler
+  Nummer und Einheit; eine Komponente entsteht unter `/anlagen/<id>/komponenten/neu` im Gebäude ihrer
+  Anlage. Ob es die Anlage schon geben kann, sagt eine Regel in `packages/domain`
+  (`asset-duplicate.ts`: gleiche Seriennummer oder gleiches Kennzeichen, ohne Rücksicht auf
+  Leerzeichen und Großschreibung) und fragt die Route `GET /assets/duplicates`, damit Büro, Import
+  und Gerät dasselbe fragen und dieselbe Anlage nennen. Die Dublette wird genannt und nie abgelehnt:
+  zwei Geräte einer Baureihe können dieselbe Nummer tragen, und wer die Anlage eingibt, entscheidet.
+  An der Akte stehen "Verlegen", "Versorgung ändern", "Komponente hinzufügen" und am Lebenszyklus
+  "Eintragen" und das Zurücknehmen eines Eintrags, im Formular "Anlage entfernen". Lebenszyklus,
+  Verlegen und Entfernen bekommt nur angeboten, wer Anlagen pflegt, weil sie über den Datensatz
+  hinaus wirken (Abschnitt 7 des Konzepts: aufnehmen und pflegen). Geschrieben wird an den Routen des
+  Servers, mit Verbindung, weil Verzeichnis und Akte von dort kommen; eine allgemeine Anlagenart des
+  Pakets "Allgemein" (#61) trägt den Hinweis, dass ihr Fachpaket noch fehlt
 
 ### Geändert
 

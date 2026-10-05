@@ -810,6 +810,130 @@ describe('a room with assets', () => {
   })
 })
 
+describe('a possible duplicate', () => {
+  /**
+   * Section 4.2 of the concept: an asset with the same serial number or the
+   * same mark is named, and the new one is made all the same.
+   */
+  const heater = { ...elevator, name: 'Aufzug Mensa', serialNumber: 'DUP-750-22', mark: 'DUP-A1' }
+  const ask = (query: object, header: string = by('u-tech')) =>
+    http().get('/assets/duplicates').query(query).set(testIdentityHeader, header)
+
+  it('is an asset with the same serial number or the same mark, however it was typed', async () => {
+    const place = await placeIn()
+    const elsewhere = await placeIn(small, { name: 'Sporthalle Süd' })
+    const there = await assetIn(place.building, heater)
+    // An asset that carries a mark and no serial number.
+    const marked = await assetIn(elsewhere.building, {
+      ...elevator,
+      name: 'Aufzug Halle',
+      mark: 'dup-a1',
+    })
+
+    await ask({ serialNumber: 'dup -750- 22' })
+      .expect(200)
+      .expect((answer) => {
+        expect(answer.body).toEqual([
+          {
+            id: there.id,
+            number: there['number'],
+            name: 'Aufzug Mensa',
+            kind: 'probe.elevator',
+            propertyId: place.property,
+            buildingId: place.building,
+            roomId: null,
+            serialNumber: 'DUP-750-22',
+            mark: 'DUP-A1',
+            same: ['serialNumber'],
+          },
+        ])
+      })
+    // Both fields: the asset that shares both stands first, the one on the
+    // other property is found by its mark.
+    await ask({ serialNumber: 'DUP-750-22', mark: 'DUP-A1' })
+      .expect(200)
+      .expect((answer) => {
+        expect(
+          answer.body.map((found: { id: string; same: string[] }) => [found.id, found.same]),
+        ).toEqual([
+          [there.id, ['serialNumber', 'mark']],
+          [marked.id, ['mark']],
+        ])
+      })
+    // A serial number is not held against a mark.
+    await ask({ serialNumber: 'DUP-A1' })
+      .expect(200)
+      .expect((answer) => expect(answer.body).toEqual([]))
+  })
+
+  it('is never the asset that is being changed, nor one that was removed', async () => {
+    const place = await placeIn()
+    const serialNumber = 'DUP-SELF-1'
+    const asset = await assetIn(place.building, { ...elevator, serialNumber })
+    const twin = await assetIn(place.building, { ...elevator, name: 'Zwilling', serialNumber })
+    const found = async (query: object): Promise<string[]> =>
+      (await ask(query).expect(200)).body.map((each: { id: string }) => each.id)
+
+    expect(await found({ serialNumber })).toEqual([asset.id, twin.id])
+    expect(await found({ serialNumber, except: asset.id })).toEqual([twin.id])
+
+    await http().delete(`/assets/${twin.id}`).set(testIdentityHeader, by('u-site')).expect(200)
+
+    expect(await found({ serialNumber, except: asset.id })).toEqual([])
+  })
+
+  it('does not keep the new asset from being made', async () => {
+    const place = await placeIn()
+    const serialNumber = 'DUP-TWICE-1'
+
+    await assetIn(place.building, { ...elevator, serialNumber })
+
+    const second = await assetIn(place.building, { ...elevator, name: 'Zweiter', serialNumber })
+
+    expect(second['serialNumber']).toBe(serialNumber)
+  })
+
+  it('is asked about with a serial number or a mark, and with nothing else', async () => {
+    const refused = async (query: object): Promise<string> =>
+      (await ask(query).expect(400)).body.message
+
+    expect(await refused({})).toBe(
+      'Nach einer Dublette wird mit einer Seriennummer oder einem Kennzeichen gefragt.',
+    )
+    expect(await refused({ serialNumber: '   ' })).toBe(
+      'Nach einer Dublette wird mit einer Seriennummer oder einem Kennzeichen gefragt.',
+    )
+    expect(await refused({ serialNumber: 'x'.repeat(81) })).toBe(
+      'Gefragt wird mit einer Seriennummer und einem Kennzeichen, wie eine Anlage sie trägt.',
+    )
+    expect(await refused({ mark: ['a', 'b'] })).toBe(
+      'Gefragt wird mit einer Seriennummer und einem Kennzeichen, wie eine Anlage sie trägt.',
+    )
+    expect(await refused({ mark: 'A1', except: 'keine-kennung' })).toBe(
+      'Die Anlage, die ausgenommen wird, steht als Kennung.',
+    )
+  })
+
+  it('names nobody an asset of another tenant or of an area they do not work in', async () => {
+    const serialNumber = 'DUP-AREA-1'
+    const inNorth = await placeIn(large, { areaId: north, name: 'Dublette Nord' })
+    const inSouth = await placeIn(large, { areaId: south, name: 'Dublette Süd' })
+    const northern = await assetIn(inNorth.building, { ...elevator, serialNumber }, 'u-tech', large)
+    const southern = await assetIn(
+      inSouth.building,
+      { ...elevator, serialNumber },
+      'u-duties',
+      large,
+    )
+    const found = async (header: string): Promise<string[]> =>
+      (await ask({ serialNumber }, header).expect(200)).body.map((each: { id: string }) => each.id)
+
+    expect(await found(by('u-duties', large))).toEqual([northern.id, southern.id])
+    expect(await found(by('u-tech', large))).toEqual([northern.id])
+    expect(await found(by('u-duties', small))).toEqual([])
+  })
+})
+
 describe('the rights to the technology', () => {
   /**
    * Section 7 of the concept: whoever works on site takes assets into the

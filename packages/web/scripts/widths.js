@@ -29,7 +29,10 @@ await checkWidths({
    * "Zugänge" (#84): a new access, the access of the person the preview
    * answers as, whose button carries their name, and a new substitution; and
    * the three dialogs of "Bereiche" (#84): a new area, another name for one
-   * and the question before one goes, whose buttons carry its name. A
+   * and the question before one goes, whose buttons carry its name; and
+   * what an asset is made and changed with (#88): the form of a new asset
+   * and of a component, and at its file the dialogs that move it, say what it
+   * supplies and enter a state of its life cycle. A
    * page that has one is checked a second time as a kind of its own, with the
    * button pressed. Found by its name, so that the next record with the same
    * button is checked as well.
@@ -47,5 +50,10 @@ await checkWidths({
     'Bereich anlegen',
     'Bereich Nord umbenennen',
     'Bereich Nord entfernen',
+    'Neue Anlage',
+    'Komponente hinzufügen',
+    'Verlegen',
+    'Versorgung ändern',
+    'Eintragen',
   ],
 })

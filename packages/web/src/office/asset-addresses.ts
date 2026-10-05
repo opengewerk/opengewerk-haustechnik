@@ -116,3 +116,58 @@ export function registerRequest(
 
   return `/assets?${query.toString()}`
 }
+
+/**
+ * Where the forms of an asset live: a new one under the register, a
+ * component under the asset it will be one of, and the form of an asset that
+ * is there under its file. The page of a building opens the form of a new
+ * asset with itself in the address, so that the form starts there; the form
+ * asks for the building all the same, because the register opens it without.
+ */
+export const assetForms = {
+  new: '/anlagen/neu',
+  edit: (assetId: string) => `/anlagen/${assetId}/bearbeiten`,
+  component: (assetId: string) => `/anlagen/${assetId}/komponenten/neu`,
+} as const
+
+/** The word of the address for the building a new asset starts in. */
+export const newAssetWord = 'gebaeude'
+
+/** The search of the address of a new asset that starts in a building, or in none. */
+export function newAssetSearch(buildingId?: string): Record<string, string> {
+  return buildingId === undefined ? {} : { [newAssetWord]: buildingId }
+}
+
+/** The building the address of a new asset names, if it names one. */
+export function newAssetBuilding(search: Readonly<Record<string, unknown>>): string | undefined {
+  return said(search, newAssetWord)
+}
+
+/** What the route of the duplicates is asked with. */
+export interface DuplicateAsked {
+  readonly serialNumber: string
+  readonly mark: string
+}
+
+/**
+ * The question for possible duplicates as the server reads it: the serial
+ * number, the mark, and for an asset that is being changed the asset itself,
+ * always in this order, each only where it says something.
+ */
+export function duplicatesRequest(asked: DuplicateAsked, except: string | null): string {
+  const query = new URLSearchParams()
+
+  for (const name of ['serialNumber', 'mark'] as const) {
+    const value = asked[name].trim()
+
+    if (value !== '') {
+      query.set(name, value)
+    }
+  }
+
+  if (except !== null) {
+    query.set('except', except)
+  }
+
+  return `/assets/duplicates?${query.toString()}`
+}
