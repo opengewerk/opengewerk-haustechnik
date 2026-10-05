@@ -49,6 +49,10 @@ interface SampleAsset {
   readonly kind: 'probe.elevator' | 'probe.water_meter'
   readonly name: string
   readonly manufacturer?: string
+  readonly model?: string
+  /** With a serial number and a mark an asset can be found again as a possible duplicate. */
+  readonly serialNumber?: string
+  readonly mark?: string
   readonly yearBuilt?: number
   readonly values: Readonly<Record<string, unknown>>
   readonly meterNumber?: string
@@ -309,6 +313,12 @@ export const sampleProperties: readonly SampleProperty[] = [
           {
             kind: 'probe.elevator',
             name: 'Aufzug Schulhaus',
+            manufacturer: 'Beispiel Aufzüge',
+            model: 'BA 630',
+            // The serial number the form of a new asset is tried with: the
+            // same one typed there names this asset as a possible duplicate.
+            serialNumber: 'BA-630-12-0193',
+            mark: 'AZ-01',
             yearBuilt: 2012,
             values: { firefighters_lift: false, stops: 2 },
             duties: [mainTest(100)],

@@ -783,6 +783,18 @@ describe('the rights to the register and the file', () => {
       .expect((answer) => expect(answer.body.message).toBe(missingRight('duty.read')))
 
     await http().get('/assets').set(testIdentityHeader, holding('asset.read')).expect(200)
+    // Asking for a possible duplicate names assets, so it is reading them.
+    await http()
+      .get('/assets/duplicates')
+      .query({ mark: 'A1' })
+      .set(testIdentityHeader, holding('asset.record'))
+      .expect(403)
+      .expect((answer) => expect(answer.body.message).toBe(missingRight('asset.read')))
+    await http()
+      .get('/assets/duplicates')
+      .query({ mark: 'A1' })
+      .set(testIdentityHeader, holding('asset.read'))
+      .expect(200)
     await http()
       .get(`/assets/${lift}/duties`)
       .set(testIdentityHeader, holding('duty.read'))

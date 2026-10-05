@@ -10,9 +10,11 @@ import {
   catalogueFormat,
   catalogueOf,
   type DutyKind,
+  dutyKindsNaming,
   intervalLine,
   type PackagedForm,
   reviewMarks,
+  ruleUnitEntry,
   ruleValueWords,
   scopeWords,
 } from './catalogue.js'
@@ -470,6 +472,23 @@ describe('the words of a rule', () => {
     expect(ruleValueWords(70, 'kilowatts')).toBe('70 kW')
     expect(ruleValueWords(5, 'tonnes_co2e')).toBe('5 t CO2-Äquivalent')
     expect(ruleValueWords(100, 'count_per_100_ml')).toBe('100 je 100 ml')
+  })
+
+  it('says how a figure of a unit is typed: what stands behind it and how many places it has', () => {
+    expect(ruleUnitEntry('kilowatts')).toEqual({ symbol: 'kW', places: 0 })
+    expect(ruleUnitEntry('decidegrees_celsius')).toEqual({ symbol: '°C', places: 1 })
+    expect(ruleUnitEntry('basis_points')).toEqual({ symbol: '%', places: 2 })
+    expect(ruleUnitEntry('months')).toEqual({ symbol: 'Monate', places: 0 })
+  })
+
+  it('names the duty kinds in force that have an asset kind in their scope', () => {
+    const catalogue = catalogueOf(bundle())
+    const keys = (kind: string, on: string) =>
+      dutyKindsNaming(catalogue, kind, on).map((entry) => entry.key)
+
+    expect(keys('probe.elevator', '2026-10-05')).toEqual(['probe.elevator_main_test'])
+    expect(keys('probe.water_meter', '2026-10-05')).toEqual([])
+    expect(keys('probe.elevator', '1990-01-01')).toEqual([])
   })
 
   it('says the interval of a duty kind in a line, and who enters one where the catalogue names none', () => {
