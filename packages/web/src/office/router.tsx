@@ -16,6 +16,8 @@ import {
 import { InstanceShell } from './instance/shell.js'
 import { AccountScreen } from './screens/account.js'
 import { AreasScreen } from './screens/areas.js'
+import { AssetFileScreen } from './screens/asset.js'
+import { AssetRegisterScreen } from './screens/assets.js'
 import { EditBuildingScreen, NewBuildingScreen } from './screens/building-form.js'
 import { BuildingScreen } from './screens/buildings.js'
 import { CatalogueScreen } from './screens/catalogue.js'
@@ -159,6 +161,14 @@ export function officeRoutes() {
       getParentRoute: () => office,
       path: '/raeume/$roomId/bearbeiten',
       component: EditRoomScreen,
+    }),
+    // The register of assets, narrowed by what its address names, and the
+    // file of one asset under it.
+    createRoute({ getParentRoute: () => office, path: '/anlagen', component: AssetRegisterScreen }),
+    createRoute({
+      getParentRoute: () => office,
+      path: '/anlagen/$assetId',
+      component: AssetFileScreen,
     }),
     // The catalogue: the packages, one of them with one of its parts, and
     // the page of a duty kind under the package it comes from.

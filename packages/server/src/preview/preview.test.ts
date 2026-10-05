@@ -303,6 +303,37 @@ describe('a preview started as the Leitung', () => {
     expect(sub?.parentAssetId).toBe(main?.id)
   })
 
+  // What the register of assets and the file of an asset are looked at with (#87).
+  it('shows an asset in every condition the register knows', async () => {
+    const server = application.getHttpServer()
+    const register = (await request(server).get('/assets').query({ limit: '200' }).expect(200))
+      .body as {
+      readonly total: number
+      readonly assets: readonly (Named & { readonly condition: string })[]
+    }
+    const conditionOf = (name: string) =>
+      register.assets.find((asset) => asset.name === name)?.condition
+
+    expect(register.total).toBe(register.assets.length)
+    expect({
+      inOrder: conditionOf('Aufzug Haus A'),
+      overdue: conditionOf('Hauptwasserzähler Haus A'),
+      due: conditionOf('Unterzähler Teeküche'),
+      neverChecked: conditionOf('Wasserzähler Werkstatt'),
+      defectOpen: conditionOf('Aufzug Schulhaus'),
+      resting: conditionOf('Unterzähler Sporthalle'),
+      noDuties: conditionOf('Aufzug Haus 2'),
+    }).toEqual({
+      inOrder: 'in_order',
+      overdue: 'overdue',
+      due: 'due',
+      neverChecked: 'never_checked',
+      defectOpen: 'defect_open',
+      resting: 'resting',
+      noDuties: 'no_duties',
+    })
+  })
+
   // What the list and the page of a property are looked at with (#85).
   it('shows one property with two buildings and a note in two lines', async () => {
     const server = application.getHttpServer()

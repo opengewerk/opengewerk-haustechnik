@@ -19,6 +19,7 @@ const screens: Readonly<Record<string, (id: string) => string>> = {
   buildings: officePlaces.building,
   floors: officePlaces.floor,
   rooms: officePlaces.room,
+  assets: officePlaces.asset,
 }
 
 /** The label of the link to a record. */
@@ -27,6 +28,7 @@ const links: Words = {
   buildings: 'Zum Gebäude',
   floors: 'Zum Geschoss',
   rooms: 'Zum Raum',
+  assets: 'Zur Anlage',
 }
 
 export const auditScreenWords: AuditScreenWords = {
@@ -49,5 +51,6 @@ export const auditScreenWords: AuditScreenWords = {
   partsWords: {
     properties: 'mit ihren Ansprechpartnern',
     buildings: 'mit seinen Schließzeiten',
+    assets: 'mit ihrem Lebenszyklus und dem, was sie versorgt',
   },
 }

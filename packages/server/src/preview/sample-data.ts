@@ -14,7 +14,10 @@ import type { PreviewArea } from './preview-database.js'
  * in service; one sub meter is out of service since the first day of the
  * year. The main meter of the school house supplies the whole building, and
  * its sub meter the gym, which it does not stand in, so that the page of a
- * room shows what supplies it from elsewhere. Beside the colleagues the
+ * room shows what supplies it from elsewhere. Some assets have duties, met a
+ * while ago, long ago or never, one rests with its asset and one elevator has
+ * an open defect, so that the register of assets and the file of an asset
+ * show every condition (#87). Beside the colleagues the
  * preview admits, one person is asked to join and one stands in for another
  * from next week on, so that "Zugänge" shows an invitation and a substitution
  * (#84).
@@ -56,6 +59,21 @@ interface SampleAsset {
   readonly lifecycle?: readonly SampleState[]
   /** The buildings of its property it supplies, by name: its own as a whole, or one it does not stand in. */
   readonly supplies?: readonly string[]
+  readonly duties?: readonly SampleDuty[]
+  /** A defect somebody found at it and nobody has set right. */
+  readonly defect?: string
+}
+
+/**
+ * A duty at a sample asset: confirmed from the catalogue by the key of its
+ * kind, or one of the operator's own after the instructions of the maker,
+ * with the days it was met on, counted back from the day the preview starts.
+ */
+export interface SampleDuty {
+  readonly kind?: 'probe.elevator_main_test'
+  readonly label?: string
+  readonly intervalMonths: number
+  readonly metDaysAgo?: readonly number[]
 }
 
 /** A state of a life cycle, from a day on. */
@@ -127,12 +145,26 @@ export const outOfServiceThisYear: readonly SampleState[] = [
   { state: 'out_of_service', validFrom: `${String(thisYear)}-01-01` },
 ]
 
+/** The main test of an elevator from the catalogue, every two years, met on these days. */
+const mainTest = (...metDaysAgo: number[]): SampleDuty => ({
+  kind: 'probe.elevator_main_test',
+  intervalMonths: 24,
+  metDaysAgo,
+})
+
+/** A duty of the operator's own, every year, met on these days. */
+const yearly = (label: string, ...metDaysAgo: number[]): SampleDuty => ({
+  label,
+  intervalMonths: 12,
+  metDaysAgo,
+})
+
 const waterMeter = (
   name: string,
   meterNumber: string,
   room: string,
   components: readonly SampleAsset[] = [],
-  further: Pick<SampleAsset, 'lifecycle' | 'supplies'> = {},
+  further: Pick<SampleAsset, 'lifecycle' | 'supplies' | 'duties'> = {},
 ): SampleAsset => ({
   kind: 'probe.water_meter',
   name,
@@ -181,10 +213,22 @@ export const sampleProperties: readonly SampleProperty[] = [
             manufacturer: 'Beispiel Aufzüge',
             yearBuilt: 1998,
             values: { firefighters_lift: false, stops: 2 },
+            // In order: both met, the next one falls due in months.
+            duties: [mainTest(200), yearly('Wartung des Aufzugs', 405, 40)],
           },
-          waterMeter('Hauptwasserzähler Haus A', 'WZ-1001', '0.12', [
-            waterMeter('Unterzähler Teeküche', 'WZ-1002', '1.20'),
-          ]),
+          waterMeter(
+            'Hauptwasserzähler Haus A',
+            'WZ-1001',
+            '0.12',
+            [
+              // Due: a year is over in two weeks.
+              waterMeter('Unterzähler Teeküche', 'WZ-1002', '1.20', [], {
+                duties: [yearly('Sichtprüfung der Zähleranlage', 350)],
+              }),
+            ],
+            // Overdue: the year was over a month ago.
+            { duties: [yearly('Sichtprüfung der Zähleranlage', 400)] },
+          ),
         ],
       },
     ],
@@ -212,7 +256,12 @@ export const sampleProperties: readonly SampleProperty[] = [
             ],
           },
         ],
-        assets: [waterMeter('Wasserzähler Werkstatt', 'WZ-2001', 'E.01')],
+        assets: [
+          // Never checked: confirmed, and no evidence yet.
+          waterMeter('Wasserzähler Werkstatt', 'WZ-2001', 'E.01', [], {
+            duties: [yearly('Sichtprüfung der Zähleranlage')],
+          }),
+        ],
       },
     ],
   },
@@ -262,15 +311,19 @@ export const sampleProperties: readonly SampleProperty[] = [
             name: 'Aufzug Schulhaus',
             yearBuilt: 2012,
             values: { firefighters_lift: false, stops: 2 },
+            duties: [mainTest(100)],
+            defect: 'Notruf im Fahrkorb ohne Verbindung',
           },
           waterMeter(
             'Hauptwasserzähler Schulhaus',
             'WZ-3001',
             'E.14',
             [
+              // Rests: out of service, whatever its duty says.
               waterMeter('Unterzähler Sporthalle', 'WZ-3002', 'E.14', [], {
                 lifecycle: outOfServiceThisYear,
                 supplies: ['Sporthalle'],
+                duties: [yearly('Sichtprüfung der Zähleranlage', 500)],
               }),
             ],
             { supplies: ['Schulhaus'] },
@@ -390,14 +443,33 @@ interface Supplying {
   readonly buildings: readonly string[]
 }
 
+/**
+ * What no route writes yet and the preview writes behind them once the
+ * planting is done (`sample-standings.ts`): the evidence of the duties, each
+ * on a day, and the defects of the assets.
+ */
+export interface PlantedStandings {
+  readonly evidence: { readonly dutyId: string; readonly performedOn: string }[]
+  readonly defects: { readonly assetId: string; readonly description: string }[]
+}
+
 async function plantAsset(
   address: string,
   path: string,
   asset: SampleAsset,
   rooms: ReadonlyMap<string, string>,
   supplying: Supplying[],
+  standings: PlantedStandings,
 ): Promise<void> {
-  const { components = [], room, lifecycle = [], supplies = [], ...fields } = asset
+  const {
+    components = [],
+    room,
+    lifecycle = [],
+    supplies = [],
+    duties = [],
+    defect,
+    ...fields
+  } = asset
   const roomId = room === undefined ? undefined : rooms.get(room)
   const created = await send(address, path, {
     ...fields,
@@ -413,20 +485,48 @@ async function plantAsset(
     supplying.push({ assetId: created.id, buildings: supplies })
   }
 
+  for (const { metDaysAgo = [], kind, label, intervalMonths } of duties) {
+    const duty = await send(address, '/duties', {
+      assetId: created.id,
+      intervalMonths,
+      ...(kind === undefined
+        ? { label, basis: 'manufacturer', sourceNote: 'Betriebsanleitung des Herstellers' }
+        : { kind }),
+    })
+
+    for (const days of metDaysAgo) {
+      standings.evidence.push({ dutyId: duty.id, performedOn: daysAhead(-days) })
+    }
+  }
+
+  if (defect !== undefined) {
+    standings.defects.push({ assetId: created.id, description: defect })
+  }
+
   for (const component of components) {
-    await plantAsset(address, `/assets/${created.id}/components`, component, rooms, supplying)
+    await plantAsset(
+      address,
+      `/assets/${created.id}/components`,
+      component,
+      rooms,
+      supplying,
+      standings,
+    )
   }
 }
 
 /**
  * Plants the sample operator through the routes of the preview at `address`,
  * as whoever that preview answers as, which has to be somebody who sees every
- * area and keeps the places: the Leitung.
+ * area and keeps the places: the Leitung. Hands back what is left to write
+ * behind the routes.
  */
 export async function plantSampleData(
   address: string,
   areas: ReadonlyMap<PreviewArea, string>,
-): Promise<void> {
+): Promise<PlantedStandings> {
+  const standings: PlantedStandings = { evidence: [], defects: [] }
+
   for (const property of sampleProperties) {
     const { buildings, area, contacts = [], ...fields } = property
     const created = await send(address, '/properties', {
@@ -470,7 +570,14 @@ export async function plantSampleData(
       }
 
       for (const asset of assets) {
-        await plantAsset(address, `/buildings/${madeBuilding.id}/assets`, asset, rooms, supplying)
+        await plantAsset(
+          address,
+          `/buildings/${madeBuilding.id}/assets`,
+          asset,
+          rooms,
+          supplying,
+          standings,
+        )
       }
     }
 
@@ -494,4 +601,6 @@ export async function plantSampleData(
     additions: { all: false, areaIds: [areas.get(sampleInvitationArea)] },
   })
   await send(address, '/substitutions', sampleSubstitution)
+
+  return standings
 }

@@ -37,6 +37,7 @@ export * from './model/closure.js'
 // The technology: assets, their components, life cycle and meters.
 export * from './model/asset.js'
 export * from './model/meter.js'
+export * from './model/cost-group.js'
 
 // The catalogue the packages under pakete/ make up: asset kinds, duty kinds
 // and their rules, each with its review, and the questions asked of it.
@@ -56,6 +57,10 @@ export * from './model/signature.js'
 // defects.
 export * from './model/activity.js'
 export * from './model/defect.js'
+
+// What the duties and the defects of an asset say about it, taken together,
+// and the register and the file of an asset as a screen reads them.
+export * from './model/asset-condition.js'
 
 // The deadlines of this application: the kinds the deadline engine of the
 // foundation keeps, with their sources and actions.

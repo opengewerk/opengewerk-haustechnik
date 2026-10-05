@@ -376,6 +376,8 @@ describe('the page of a building', () => {
       'Erdgeschoss5 Räume · 4 Anlagen',
       '1. Obergeschoss1 Raum · 0 Anlagen',
       'Ohne Raum1 Anlage',
+      // Beside the floors the assets by cost group (#87); this device holds no catalogue.
+      'Anlagenart nicht im Katalog5 Anlagen',
     ])
     expect(screen.getByRole('link', { name: 'Erdgeschoss' }).getAttribute('href')).toBe(
       '/geschosse/f-ground',

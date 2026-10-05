@@ -1,5 +1,11 @@
-import type { RecordState } from '@opengewerk/haustechnik-domain'
+import {
+  type Catalogue,
+  costGroupAbove,
+  costGroupNames,
+  type RecordState,
+} from '@opengewerk/haustechnik-domain'
 import { Button, cardLink, Cell, Column, Panel, Status, TablePanel } from '@opengewerk/platform-web'
+import { today } from '@opengewerk/platform-web/format'
 import { ChangesButton, PageHead, Screen } from '@opengewerk/platform-web/office'
 import { useRight } from '@opengewerk/platform-web/session'
 import { text, useRecord, useRecords, useRelated } from '@opengewerk/platform-web/sync'
@@ -10,7 +16,10 @@ import { type ReactNode, useMemo } from 'react'
 import { placePath } from '../../app/place-path.js'
 import { byLevel, kindsOf, placeAbove } from '../../app/place-records.js'
 import { areaName, useAreas } from '../../session/areas.js'
+import { useCatalogue } from '../../sync/catalogue.js'
 import { AreaBadge } from '../area-badge.js'
+import { assetRegisterPlace, registerSearch } from '../asset-addresses.js'
+import { factLink } from '../links.js'
 import { BuildingClosures } from '../building-closures.js'
 import { officePlaces, placeForms } from '../place-addresses.js'
 import { countedAssets, countedRooms, PlaceNotFound } from '../place-pages.js'
@@ -26,8 +35,11 @@ import { countedAssets, countedRooms, PlaceNotFound } from '../place-pages.js'
  * (`building-form.tsx`, `floor-form.tsx`), and whoever plans the rounds keeps
  * the times it is closed (`building-closures.tsx`). What the board draws beyond this
  * arrives with what it shows: what is to do with the register of duties, the
- * assets by cost group with the catalogue, the last activities with the
- * activities, and the labels with the labels.
+ * last activities with the activities, and the labels with the labels.
+ *
+ * The assets of the building are counted by cost group beside the floors, and
+ * each count leads into the register of assets, narrowed to this building
+ * (`assets.tsx`): the register "je Gebäude" of 4.2.
  */
 export function BuildingScreen() {
   const { buildingId } = useParams({ strict: false }) as { buildingId?: string }
@@ -36,6 +48,7 @@ export function BuildingScreen() {
   const floors = useRelated('floors', 'buildingId', buildingId)
   const rooms = useRecords('rooms')
   const assets = useRelated('assets', 'buildingId', buildingId)
+  const catalogue = useCatalogue()
   const areas = useAreas()
   const writes = useRight('location.write')
   const navigate = useNavigate()
@@ -85,8 +98,8 @@ export function BuildingScreen() {
           </>
         }
       />
-      {/* The columns of the board. Beside the floors the assets by cost group
-          take their place once the catalogue reaches the interface (#90). */}
+      {/* The columns of the board: the floors and the times the building is
+          closed, and beside them its assets by cost group. */}
       <div className="grid gap-3.5 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.25fr)]">
         <div className="flex min-w-0 flex-col gap-3.5">
           <Floors
@@ -108,6 +121,9 @@ export function BuildingScreen() {
             }
           />
           <BuildingClosures buildingId={buildingId} />
+        </div>
+        <div className="flex min-w-0 flex-col gap-3.5">
+          <AssetsByCostGroup buildingId={buildingId} assets={assets} catalogue={catalogue} />
         </div>
       </div>
     </Screen>
@@ -228,6 +244,122 @@ function Floors({
             <Cell numeric>{withoutRoom.toLocaleString('de-DE')}</Cell>
           </tr>
         )}
+      </tbody>
+    </TablePanel>
+  )
+}
+
+/** What stands in the place of a cost group for an asset whose kind no catalogue of this device knows. */
+const unknownGroup = ''
+
+/**
+ * "Anlagen nach Kostengruppe": the assets of the building counted by the
+ * group of the second level of DIN 276 their kind lies in, which is how a
+ * building is read. Every group leads into the register of assets narrowed to
+ * this building and that group, and "Alle Anlagen" to the building alone.
+ *
+ * Counted from the device, with the kinds of the catalogue it holds, so the
+ * card stands without a network; the register it leads to needs one.
+ */
+function AssetsByCostGroup({
+  buildingId,
+  assets,
+  catalogue,
+}: {
+  readonly buildingId: string
+  readonly assets: readonly RecordState[]
+  readonly catalogue: Catalogue | null
+}) {
+  const title = 'Anlagen nach Kostengruppe'
+  const groups = useMemo(() => {
+    const day = today()
+    const counted = new Map<string, number>()
+
+    for (const asset of assets) {
+      const kind = catalogue?.assetKind(text(asset, 'kind'), day) ?? null
+      const group = kind ? costGroupAbove(kind.definition.costGroup) : unknownGroup
+
+      counted.set(group, (counted.get(group) ?? 0) + 1)
+    }
+
+    return (
+      [...counted]
+        .map(([group, count]) => ({ group, count }))
+        // By number, and what has none after them.
+        .sort(
+          (left, right) =>
+            Number(left.group === unknownGroup) - Number(right.group === unknownGroup) ||
+            left.group.localeCompare(right.group),
+        )
+    )
+  }, [assets, catalogue])
+
+  if (assets.length === 0) {
+    return (
+      <Panel title={title}>
+        <p className="text-[13px] leading-[1.4] text-ink-muted">
+          In diesem Gebäude steht noch keine Anlage.
+        </p>
+      </Panel>
+    )
+  }
+
+  const nameOf = (group: string) =>
+    group === unknownGroup
+      ? 'Anlagenart nicht im Katalog'
+      : Object.hasOwn(costGroupNames, group)
+        ? (costGroupNames[group] ?? '')
+        : 'Kostengruppe'
+  const leadsTo = (group: string) =>
+    registerSearch(group === unknownGroup ? { buildingId } : { buildingId, costGroup: group })
+
+  return (
+    <TablePanel
+      title={title}
+      action={
+        <Link
+          to={assetRegisterPlace.to}
+          search={registerSearch({ buildingId })}
+          className={`${factLink} text-[13px]`}
+        >
+          Alle Anlagen
+        </Link>
+      }
+      caption="Anlagen dieses Gebäudes, gezählt nach Kostengruppe"
+      cards={groups.map(({ group, count }) => ({
+        key: group,
+        title: (
+          <Link to={assetRegisterPlace.to} search={leadsTo(group)} className={cardLink}>
+            {nameOf(group)}
+          </Link>
+        ),
+        sub: [group === unknownGroup ? null : `KG ${group}`, countedAssets(count)]
+          .filter((part) => part !== null)
+          .join(' · '),
+      }))}
+    >
+      <thead>
+        <tr>
+          <Column className="min-w-[200px]">Kostengruppe</Column>
+          <Column numeric className="w-[84px] min-w-[72px]">
+            Anlagen
+          </Column>
+        </tr>
+      </thead>
+      <tbody>
+        {groups.map(({ group, count }) => (
+          <tr key={group}>
+            <Cell>
+              {group === unknownGroup ? null : (
+                <span className="numeric text-ink-faint">{group} </span>
+              )}
+              <Link to={assetRegisterPlace.to} search={leadsTo(group)}>
+                {nameOf(group)}
+              </Link>
+            </Cell>
+            <Cell numeric>{count.toLocaleString('de-DE')}</Cell>
+          </tr>
+        ))}
       </tbody>
     </TablePanel>
   )

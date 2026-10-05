@@ -7,8 +7,9 @@ import type { PlaceAddresses } from '../app/place-path.js'
  * so that an address names one record and nothing it hangs on, and stays the
  * same when a room moves to another floor.
  *
- * The navigation lights "Liegenschaften" on all of them (`also` of the entry
- * in `navigation.tsx`). The page of an asset arrives with the assets (#88).
+ * The navigation lights "Liegenschaften" on the places (`also` of the entry in
+ * `navigation.tsx`) and "Anlagen" on the file of an asset, which lives under
+ * the register it is opened from.
  *
  * An id is taken as the text it is on a device: a screen reads it from an
  * address or from a record, and neither knows what kind of record it names.

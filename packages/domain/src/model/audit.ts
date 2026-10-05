@@ -263,15 +263,20 @@ export const auditVocabulary: AuditVocabulary = {
   },
   // What the log of a record takes in beside the record itself: the rows the
   // office sees and changes on the same screen. A property with the people to
-  // talk to there, a building with the times it is closed. The buildings of a
+  // talk to there, a building with the times it is closed, an asset with its
+  // life cycle and what it supplies. The buildings of a
   // property, their floors and the rooms on a floor are records of their own,
   // each with a page and a log of its own.
   parts: {
     properties: [{ table: 'contacts', column: 'property_id' }],
     buildings: [{ table: 'building_closures', column: 'building_id' }],
+    assets: [
+      { table: 'asset_lifecycle', column: 'asset_id' },
+      { table: 'asset_supplies', column: 'asset_id' },
+    ],
   },
   // The records the log is opened from, each from the screen that shows it.
-  records: ['properties', 'buildings', 'floors', 'rooms'],
+  records: ['properties', 'buildings', 'floors', 'rooms', 'assets'],
   references: {
     area_id: 'areas',
     property_id: 'properties',
