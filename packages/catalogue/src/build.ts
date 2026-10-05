@@ -85,7 +85,9 @@ const unaccepted =
       ...entry.roundTemplates,
     ])
     .filter((entry) => entry.review.accepted === null).length +
-  packages.flatMap((entry) => entry.rules).filter((rule) => rule.review.accepted === null).length
+  packages
+    .flatMap((entry) => [...entry.rules, ...entry.defectClasses])
+    .filter((entry) => entry.review.accepted === null).length
 
 /** "1 Paket", "2 Pakete", "0 Pakete". */
 const counted = (amount: number, one: string, more: string) =>
@@ -112,6 +114,12 @@ console.log(
       count((entry) => entry.rules),
       'Regel',
       'Regeln',
+    ),
+    ', ',
+    counted(
+      count((entry) => entry.defectClasses),
+      'Mängelklasse',
+      'Mängelklassen',
     ),
     '; ',
     counted(unaccepted, 'Eintrag', 'Einträge'),

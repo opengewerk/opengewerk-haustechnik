@@ -5,6 +5,7 @@ import {
   type CatalogueReview,
   type CatalogueRule,
   dutyTaskLabel,
+  generalPackage,
   intervalLine,
   type PackageContents,
   type PackagedForm,
@@ -30,7 +31,7 @@ import {
 /**
  * "Katalog" in the office, `katalog()` of the boards (section 5 of the
  * concept): the packages this instance works with, and of the one chosen its
- * duty kinds, asset kinds, forms, rules and round templates.
+ * duty kinds, asset kinds, forms, rules, round templates and defect classes.
  *
  * Read from the catalogue the device holds (`sync/catalogue.ts`), so it stands
  * without a network, and it is the catalogue the server computes with. No
@@ -232,6 +233,8 @@ function sizeOf(contents: PackageContents, part: CataloguePart): number {
       return contents.rules.length
     case 'vorlagen':
       return contents.roundTemplates.length
+    case 'mangelklassen':
+      return contents.defectClasses.length
   }
 }
 
@@ -429,6 +432,24 @@ function formRows(entries: PackageContents['forms']): readonly Listed[] {
   })
 }
 
+/**
+ * Asset kinds in the order assets are sorted by everywhere: by cost group
+ * (guiding decision 11 of the concept), then by what they are called. The
+ * bundle holds them by key, which no reader sees.
+ */
+function byCostGroup(
+  left: PackageContents['assetKinds'][number],
+  right: PackageContents['assetKinds'][number],
+): number {
+  return (
+    left.definition.costGroup.localeCompare(right.definition.costGroup) ||
+    left.definition.label.localeCompare(right.definition.label, 'de')
+  )
+}
+
+/** Where a defect class comes from that names no source: the package has drawn it up itself. */
+const ownClassification = 'eigene Einteilung des Pakets'
+
 const formHeadings = (first: string): readonly Heading[] => [
   { label: first, className: 'min-w-[200px]' },
   { label: 'Abschnitte', numeric: true, className: 'w-[110px] min-w-[96px]' },
@@ -449,7 +470,11 @@ function Part({
   switch (part) {
     case 'pflichtarten':
       return contents.dutyKinds.length === 0 ? (
-        <Nothing>Dieses Paket hat keine Pflichtarten.</Nothing>
+        <Nothing>
+          {contents.name === generalPackage
+            ? 'Dieses Paket hat keine Pflichtarten: seine Anlagenarten stehen für Anlagen, deren Fachpaket noch fehlt, und der Katalog schlägt für sie keine Pflichten vor.'
+            : 'Dieses Paket hat keine Pflichtarten.'}
+        </Nothing>
       ) : (
         <Entries
           caption={`Pflichtarten im Paket ${contents.title}`}
@@ -490,7 +515,7 @@ function Part({
             { label: 'Merkmale', numeric: true, className: 'w-[100px] min-w-[90px]' },
             { label: 'Angaben', numeric: true, className: 'w-[100px] min-w-[84px]' },
           ]}
-          rows={contents.assetKinds.map((entry) => ({
+          rows={[...contents.assetKinds].sort(byCostGroup).map((entry) => ({
             key: entry.key,
             name: entry.definition.label,
             ...(entry.definition.meter === null ? {} : { under: 'Messstelle' }),
@@ -568,6 +593,42 @@ function Part({
                 ),
               ],
               line: `${value} · ${appliesWords(record)}`,
+              review,
+            }
+          })}
+        />
+      )
+    case 'mangelklassen':
+      return contents.defectClasses.length === 0 ? (
+        <Nothing>Dieses Paket hat keine eigenen Mängelklassen.</Nothing>
+      ) : (
+        <Entries
+          caption={`Mängelklassen im Paket ${contents.title}`}
+          headings={[
+            { label: 'Mängelklasse', className: 'min-w-[160px]' },
+            { label: 'Macht die Anlage unsicher', className: 'w-[210px] min-w-[190px]' },
+            { label: 'Fundstelle', className: 'min-w-[150px]' },
+          ]}
+          rows={contents.defectClasses.map(({ defectClass, review }) => {
+            const unsafe = defectClass.unsafe ? 'ja' : 'nein'
+            const source = defectClass.source ?? ownClassification
+
+            return {
+              key: defectClass.key,
+              name: defectClass.label,
+              cells: [
+                unsafe,
+                defectClass.source === null ? (
+                  <span key="source" className="text-ink-muted">
+                    {source}
+                  </span>
+                ) : (
+                  source
+                ),
+              ],
+              line: `${
+                defectClass.unsafe ? 'macht die Anlage unsicher' : 'macht die Anlage nicht unsicher'
+              } · ${source}`,
               review,
             }
           })}

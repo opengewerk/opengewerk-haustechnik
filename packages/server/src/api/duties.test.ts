@@ -1,5 +1,6 @@
 import type { INestApplication } from '@nestjs/common'
 import { Test } from '@nestjs/testing'
+import { catalogueBundle } from '@opengewerk/haustechnik-catalogue'
 import { probeCatalogueBundle } from '@opengewerk/haustechnik-catalogue/testing'
 import {
   type CatalogueBundle,
@@ -39,7 +40,9 @@ import { as, testIdentities } from './test-identity.js'
  * The catalogue is the probe package: the main test of an elevator, at most
  * every 24 months and counted under § 14 Abs. 5 BetrSichV, and a water meter
  * no duty kind names. The package knows no kind with a guide and none without
- * a value; two such kinds stand beside it for this test alone.
+ * a value; two such kinds stand beside it for this test alone. In front of
+ * it stands what this build ships, the package Allgemein, whose asset kinds
+ * no duty kind names (#61).
  */
 
 /** One area, as most tenants have it. */
@@ -219,7 +222,15 @@ beforeAll(async () => {
   const built = await Test.createTestingModule({
     imports: [
       ApiModule.create(database, testIdentities, {
-        catalogue: catalogueOf(withTwoMoreKinds(probeCatalogueBundle)),
+        // The packages this build ships stand in front, the general one
+        // among them (#61): its asset kinds are the ones no duty kind names.
+        catalogue: catalogueOf({
+          ...probeCatalogueBundle,
+          packages: [
+            ...catalogueBundle.packages,
+            ...withTwoMoreKinds(probeCatalogueBundle).packages,
+          ],
+        }),
       }),
     ],
   }).compile()
@@ -314,6 +325,42 @@ describe('a duty from the catalogue', () => {
         }).expect(400)
       ).body.message,
     ).toBe('Die Pflichtart probe.escalator_test kennt kein Paket des Katalogs.')
+  })
+
+  /** Acceptance of #61: no general asset kind is offered a duty kind, and it may carry a duty of the operator. */
+  it('is refused for an asset of a general kind, whichever duty kind is asked for, while a duty of the operator is taken', async () => {
+    const place = await placeIn()
+    const general = (
+      await http()
+        .post(`/buildings/${place.building}/assets`)
+        .set(testIdentityHeader, by('u-duties'))
+        .send({ kind: 'allgemein.conveying_system', name: 'Aufzug Altbau' })
+        .expect(201)
+    ).body.id as string
+    const catalogue = catalogueOf({
+      ...probeCatalogueBundle,
+      packages: [...catalogueBundle.packages, ...withTwoMoreKinds(probeCatalogueBundle).packages],
+    })
+    const dutyKinds = catalogue.dutyKinds(dayInGermany()).map((entry) => entry.key)
+
+    // Every duty kind of the catalogue, so that a new one cannot slip past.
+    expect(dutyKinds).toEqual(expect.arrayContaining([mainTest, guided, unguided]))
+
+    for (const kind of dutyKinds) {
+      expect(
+        (await post({ assetId: general, kind, intervalMonths: 24 }).expect(400)).body.message,
+      ).toBe('Die Pflichtart gilt nicht für Anlagen dieser Art.')
+    }
+
+    const own = await post({
+      assetId: general,
+      label: 'Wartung nach Angabe des Herstellers',
+      basis: 'manufacturer',
+      sourceNote: 'Betriebsanleitung, Abschnitt 7',
+      intervalMonths: 12,
+    }).expect(201)
+
+    expect(own.body).toMatchObject({ assetId: general, kind: null, intervalMonths: 12 })
   })
 
   it('takes name, basis, source and counting from its kind', async () => {

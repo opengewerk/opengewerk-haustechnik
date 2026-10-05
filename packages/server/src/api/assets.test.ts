@@ -1,5 +1,6 @@
 import type { INestApplication } from '@nestjs/common'
 import { Test } from '@nestjs/testing'
+import { catalogueBundle } from '@opengewerk/haustechnik-catalogue'
 import { probeCatalogueBundle } from '@opengewerk/haustechnik-catalogue/testing'
 import {
   catalogueOf,
@@ -34,8 +35,9 @@ import { as, testIdentities } from './test-identity.js'
  * section 7 of the concept gives each right, and only in the areas of the
  * person asking.
  *
- * The catalogue is the probe package, with an elevator and a water meter:
- * the catalogue this build ships has no package yet.
+ * The catalogue is the probe package, with an elevator and a water meter,
+ * and in front of it what this build ships: the package Allgemein with the
+ * general asset kinds (#61).
  */
 
 /** One area, as most tenants have it. */
@@ -212,7 +214,12 @@ beforeAll(async () => {
   const built = await Test.createTestingModule({
     imports: [
       ApiModule.create(database, testIdentities, {
-        catalogue: catalogueOf(probeCatalogueBundle),
+        // The packages this build ships, the general one among them (#61),
+        // and beside them the probe package as the specialist package.
+        catalogue: catalogueOf({
+          ...probeCatalogueBundle,
+          packages: [...catalogueBundle.packages, ...probeCatalogueBundle.packages],
+        }),
       }),
     ],
   }).compile()
@@ -346,6 +353,44 @@ describe('an asset', () => {
           'Die Anlagenart probe.escalator kennt kein Paket des Katalogs.',
         ),
       )
+  })
+
+  /** Acceptance of #61: the general kind first, the kind of a specialist package later. */
+  it('is taken in with the general kind of its cost group and corrected to the kind of a package later', async () => {
+    const place = await placeIn()
+    const general = 'allgemein.conveying_system'
+    const asset = await assetIn(place.building, { name: 'Aufzug Altbau', kind: general })
+
+    expect(asset).toMatchObject({ kind: general, name: 'Aufzug Altbau', values: {} })
+
+    // A general kind asks nothing about an asset: it has no field a value could go to.
+    await http()
+      .patch(`/assets/${asset.id}`)
+      .set(testIdentityHeader, by('u-tech'))
+      .send({ values: { stops: 3 } })
+      .expect(400)
+
+    const corrected = await http()
+      .patch(`/assets/${asset.id}`)
+      .set(testIdentityHeader, by('u-tech'))
+      .send({ kind: 'probe.elevator', values: { firefighters_lift: false, stops: 3 } })
+      .expect(200)
+
+    // The same asset under the same number, now of the kind its package describes.
+    expect(corrected.body).toMatchObject({
+      id: asset.id,
+      number: asset['number'],
+      kind: 'probe.elevator',
+      name: 'Aufzug Altbau',
+      values: { firefighters_lift: false, stops: 3 },
+    })
+
+    const read = await http()
+      .get(`/assets/${asset.id}`)
+      .set(testIdentityHeader, by('u-tech'))
+      .expect(200)
+
+    expect(read.body).toMatchObject({ id: asset.id, kind: 'probe.elevator' })
   })
 
   it('carries the values of its kind, each of the sort the kind says', async () => {

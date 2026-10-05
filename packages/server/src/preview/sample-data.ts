@@ -4,7 +4,8 @@ import type { PreviewArea } from './preview-database.js'
 /**
  * The sample operator of the preview: two areas, two properties in each, with
  * buildings, floors and rooms, and assets of the kinds of the probe package,
- * a main water meter with its sub meters among them (#29). One property has
+ * a main water meter with its sub meters among them (#29), and one asset of a
+ * general kind, a ventilation unit no package describes yet (#61). One property has
  * two buildings and a note, so that the list and the page of a property show
  * both (#85), and the people to talk to there: one with everything known
  * about them and one without an address. At another property only a name is
@@ -46,7 +47,8 @@ interface SampleFloor {
 }
 
 interface SampleAsset {
-  readonly kind: 'probe.elevator' | 'probe.water_meter'
+  readonly kind:
+    'probe.elevator' | 'probe.water_meter' | 'allgemein.ventilation_and_air_conditioning'
   readonly name: string
   readonly manufacturer?: string
   readonly model?: string
@@ -265,6 +267,18 @@ export const sampleProperties: readonly SampleProperty[] = [
           waterMeter('Wasserzähler Werkstatt', 'WZ-2001', 'E.01', [], {
             duties: [yearly('Sichtprüfung der Zähleranlage')],
           }),
+          // No package describes it yet: the general kind of its cost group,
+          // which the catalogue proposes nothing for, and a duty of the
+          // operator's own, which such an asset may carry from the start.
+          {
+            kind: 'allgemein.ventilation_and_air_conditioning',
+            name: 'Lüftungsgerät Werkstatt',
+            manufacturer: 'Beispiel Lufttechnik',
+            yearBuilt: 2009,
+            values: {},
+            room: 'E.01',
+            duties: [yearly('Filterwechsel nach Angabe des Herstellers', 60)],
+          },
         ],
       },
     ],

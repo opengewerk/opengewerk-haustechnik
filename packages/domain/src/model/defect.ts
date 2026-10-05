@@ -39,9 +39,10 @@ export const defectLimits = {
  * a room or an asset there, like a duty and an activity.
  *
  * Its class is a key, `<package>.<key>`. Section 4.4 of the concept takes the
- * classes from the package, but no file of a package names them yet
- * (opengewerk-haustechnik#59); until one does, nothing holds a class against
- * the catalogue, and a defect may have none.
+ * classes from the package, which names them in its `mangelklassen.json`
+ * since opengewerk-haustechnik#61 (`defectClass` and `defectClasses` of the
+ * catalogue). Nothing holds the class of a defect against the catalogue yet;
+ * that comes with the screens of the defects, and a defect may have none.
  */
 export interface Defect extends Synced, PlaceTarget {
   readonly id: DefectId

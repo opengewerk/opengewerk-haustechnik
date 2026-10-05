@@ -15,6 +15,7 @@ export const catalogueParts = [
   { address: 'formulare', label: 'Formulare' },
   { address: 'regeln', label: 'Regeln' },
   { address: 'vorlagen', label: 'Vorlagen' },
+  { address: 'mangelklassen', label: 'Mängelklassen' },
 ] as const
 
 export type CataloguePart = (typeof catalogueParts)[number]['address']

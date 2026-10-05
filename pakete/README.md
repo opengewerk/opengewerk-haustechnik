@@ -11,6 +11,10 @@ Anlagenarten, davon eine Messstelle, eine Pflichtart aus staatlichem Recht und d
 Frist. Es liegt nicht hier,
 weil alles in diesem Ordner mit der Anwendung ausgeliefert wird.
 
+Das erste Paket hier ist [`allgemein`](allgemein/README.md): je Kostengruppe der technischen
+Anlagen eine allgemeine Anlagenart für jede Anlage, die kein Fachpaket beschreibt, und die drei
+allgemeinen Mängelklassen.
+
 ## Aufbau
 
 ```
@@ -21,7 +25,8 @@ pakete/<name>/
   regeln/                Fristen, Schwellen und Grenzwerte, je Datei beliebig viele: <name>.json
   formulare/             Prüf- und Wartungsprotokolle, <schlüssel>.v<fassung>.json
   vorlagen/              Vorlagen für Rundgänge, <schlüssel>.v<fassung>.json
-  abnahmen.json          je Fassung und je Regel: zuletzt geprüft am, abgenommen von wem und wann
+  mangelklassen.json     die Klassen der Mängel, und ob eine Klasse eine Anlage unsicher macht
+  abnahmen.json          je Fassung, Regel und Mängelklasse: zuletzt geprüft am, abgenommen von wem und wann
   README.md              wer mag, beschreibt hier das Paket
 ```
 
@@ -33,8 +38,8 @@ UTF-8 ohne BOM mit LF als Zeilenende.
 
 Ein Schlüssel hat kleine Buchstaben, Ziffern und Unterstriche und beginnt mit einem Buchstaben,
 etwa `elevator` oder `elevator_main_test_interval`. Er nennt in seinem Paket genau ein Ding: eine
-Anlagenart, eine Pflichtart, ein Formular, eine Vorlage oder eine Regel, und er wird nie neu
-vergeben. Außerhalb seines Pakets heißt ein Eintrag `<paket>.<schlüssel>`.
+Anlagenart, eine Pflichtart, ein Formular, eine Vorlage, eine Regel oder eine Mängelklasse, und
+er wird nie neu vergeben. Außerhalb seines Pakets heißt ein Eintrag `<paket>.<schlüssel>`.
 
 Ein Verweis ohne Punkt meint das eigene Paket, ein Verweis mit Punkt ein anderes: eine Pflichtart
 im Paket für das Landesrecht nennt die Anlagenart `brandschutz.smoke_extraction`.
@@ -209,6 +214,29 @@ Instanz; das kann nur die Vorlage eines Betreibers. Der Bau liest jedes Feld gen
 Formular danach mit der Formular-Engine des Fundaments; ein Feld, das er nicht kennt, ist ein
 Befund wie überall im Paket.
 
+### mangelklassen.json
+
+```json
+{
+  "classes": [
+    { "key": "minor", "label": "gering", "unsafe": false },
+    { "key": "significant", "label": "erheblich", "unsafe": false },
+    { "key": "dangerous", "label": "gefährlich", "unsafe": true }
+  ]
+}
+```
+
+Die Klassen, in die ein Mangel eingeordnet wird (Abschnitt 4.4 und 4.6 des Konzepts), in der
+Reihenfolge, in der sie zur Wahl stehen. Jede hat `key`, `label` und `unsafe`: ob ein Mangel
+dieser Klasse die Anlage unsicher macht. Eine Klasse aus einem Regelwerk nennt in `source`, wo sie
+dort steht; eine eigene Einteilung des Pakets lässt das Feld weg. Ein Mangel hält seine Klasse als
+`<paket>.<schlüssel>`, deshalb wird der Schlüssel einer Klasse nie neu vergeben.
+
+Die Datei gibt es nur in einem Paket mit eigenen Klassen, und dann nennt sie mindestens eine. Das
+Beispiel oben ist die Datei des Pakets `allgemein`: seine drei Klassen gelten für jeden Mangel,
+der nicht aus einer Prüfung kommt. Ein Mangel aus einer Prüfung nimmt die Klassen des Pakets
+seiner Pflichtart.
+
 ### abnahmen.json
 
 ```json
@@ -218,15 +246,20 @@ Befund wie überall im Paket.
   ],
   "rules": [
     { "key": "elevator_main_test_interval", "validFrom": "2015-06-01", "checkedOn": "2026-10-03" }
+  ],
+  "classes": [
+    { "key": "minor", "checkedOn": "2026-10-05" }
   ]
 }
 ```
 
-Jede Fassung und jede Regel hat genau einen Eintrag mit dem Tag, an dem sie zuletzt gegen ihre
-Quelle geprüft wurde. Liegt er mehr als ein Jahr zurück, ist der Eintrag gekennzeichnet. Wer einen Eintrag fachkundig abnimmt, ergänzt `"accepted": { "by": "Name", "on":
-"2026-10-05", "sha256": "..." }`. Die Prüfsumme ist die der Datei, bei einer Regel die ihres
-Datensatzes; fehlt sie oder passt sie nicht, nennt der Bau die richtige. Ein Eintrag ohne Abnahme
-ist überall gekennzeichnet, wo er gelesen wird.
+Jede Fassung, jede Regel und jede Mängelklasse hat genau einen Eintrag mit dem Tag, an dem sie
+zuletzt gegen ihre Quelle geprüft wurde; `classes` fehlt in einem Paket ohne Mängelklassen. Liegt
+der Tag mehr als ein Jahr zurück, ist der Eintrag gekennzeichnet. Wer einen Eintrag fachkundig
+abnimmt, ergänzt `"accepted": { "by": "Name", "on": "2026-10-05", "sha256": "..." }`. Die
+Prüfsumme ist die der Datei, bei einer Regel und bei einer Mängelklasse die ihres Datensatzes;
+fehlt sie oder passt sie nicht, nennt der Bau die richtige. Ein Eintrag ohne Abnahme ist überall
+gekennzeichnet, wo er gelesen wird.
 
 ## Was der Bau und die CI prüfen
 
@@ -236,9 +269,11 @@ ist überall gekennzeichnet, wo er gelesen wird.
 - jede genannte Regel gibt es, in der passenden Einheit und dort, wo die Pflichtart gilt; keine
   zwei Regeln eines Schlüssels an einem Tag und keine Lücke mitten in einer Reihe
 - jeder Verweis auf eine Anlagenart, ein Merkmal, ein Formular oder ein anderes Paket hat ein Ziel
+- keine Pflichtart nennt eine allgemeine Anlagenart des Pakets `allgemein`: sie steht für eine
+  Anlage, deren Fachpaket noch fehlt, und trägt keine Pflichtart
 - kein Schlüssel zweimal, keine Fassung fehlt in einer Reihe, keine beginnt vor der davor
-- für jede Fassung und jede Regel ein Eintrag in `abnahmen.json`, und jede Abnahme passt zu ihrer
-  Prüfsumme
+- für jede Fassung, jede Regel und jede Mängelklasse ein Eintrag in `abnahmen.json`, und jede
+  Abnahme passt zu ihrer Prüfsumme
 - in einem Pull Request: jede Fassung, die es auf `main` gibt, ist Byte für Byte dieselbe
 
 Was der Bau nicht prüfen kann, prüft die Abnahme: ob die Pflicht so in der Quelle steht, und ob der

@@ -1,6 +1,8 @@
 import { readFileSync } from 'node:fs'
 
 import type { INestApplication } from '@nestjs/common'
+import { catalogueBundle } from '@opengewerk/haustechnik-catalogue'
+import { probeCatalogueBundle } from '@opengewerk/haustechnik-catalogue/testing'
 import { rightsOfRoles, type TenantId } from '@opengewerk/haustechnik-domain'
 import { Database } from '@opengewerk/platform-server'
 import type { Pool } from 'pg'
@@ -25,7 +27,7 @@ import {
   previewViewer,
   refuseProduction,
 } from './preview-database.js'
-import { openSamplePreview } from './preview-server.js'
+import { openSamplePreview, previewBundle } from './preview-server.js'
 import {
   inServiceSince,
   outOfServiceThisYear,
@@ -317,6 +319,7 @@ describe('a preview started as the Leitung', () => {
     expect(register.total).toBe(register.assets.length)
     expect({
       inOrder: conditionOf('Aufzug Haus A'),
+      generalKind: conditionOf('Lüftungsgerät Werkstatt'),
       overdue: conditionOf('Hauptwasserzähler Haus A'),
       due: conditionOf('Unterzähler Teeküche'),
       neverChecked: conditionOf('Wasserzähler Werkstatt'),
@@ -325,6 +328,8 @@ describe('a preview started as the Leitung', () => {
       noDuties: conditionOf('Aufzug Haus 2'),
     }).toEqual({
       inOrder: 'in_order',
+      // An asset of a general kind carries a duty of the operator's own (#61).
+      generalKind: 'in_order',
       overdue: 'overdue',
       due: 'due',
       neverChecked: 'never_checked',
@@ -332,6 +337,40 @@ describe('a preview started as the Leitung', () => {
       resting: 'resting',
       noDuties: 'no_duties',
     })
+  })
+
+  // What the catalogue, the choice of an asset kind and the note at a general
+  // kind are looked at with (#61).
+  it('hands a device the packages of this build and the probe package beside them, as one catalogue', async () => {
+    const server = application.getHttpServer()
+    const whole = (await request(server).get('/catalogue').expect(200)).body as {
+      readonly sha256: string
+      readonly packages: readonly { readonly name: string }[]
+    }
+    const checksum = (await request(server).get('/catalogue/checksum').expect(200)).body as {
+      readonly sha256: string
+    }
+
+    expect(whole.packages.map((entry) => entry.name)).toEqual(['allgemein', 'probe'])
+    expect(whole).toEqual(previewBundle)
+    // One catalogue of its own: a device that held either of the two fetches this one.
+    expect(checksum.sha256).toBe(previewBundle.sha256)
+    expect(previewBundle.sha256).toMatch(/^[0-9a-f]{64}$/)
+    expect([catalogueBundle.sha256, probeCatalogueBundle.sha256]).not.toContain(
+      previewBundle.sha256,
+    )
+  })
+
+  it('has one asset of a general kind, standing where no package describes it yet', async () => {
+    const register = (
+      await request(application.getHttpServer()).get('/assets').query({ limit: '200' }).expect(200)
+    ).body as { readonly assets: readonly (Named & { readonly kind: string })[] }
+
+    expect(
+      register.assets
+        .filter((asset) => asset.kind.startsWith('allgemein.'))
+        .map((asset) => asset.name),
+    ).toEqual(['Lüftungsgerät Werkstatt'])
   })
 
   // What the list and the page of a property are looked at with (#85).

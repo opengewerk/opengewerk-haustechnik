@@ -558,9 +558,34 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   hinaus wirken (Abschnitt 7 des Konzepts: aufnehmen und pflegen). Geschrieben wird an den Routen des
   Servers, mit Verbindung, weil Verzeichnis und Akte von dort kommen; eine allgemeine Anlagenart des
   Pakets "Allgemein" (#61) trägt den Hinweis, dass ihr Fachpaket noch fehlt
+- Das Paket "Allgemein" unter `pakete/allgemein/` (#61), das erste Paket des Katalogs: je
+  Kostengruppe der technischen Anlagen eine allgemeine Anlagenart, 410 bis 490 nach der zweiten Ebene
+  der DIN 276 (Ausgabe 2018-12), ohne Merkmale, ohne Felder und ohne Pflichtarten, mit Bezeichnungen
+  in eigenen Worten. Es ist der Auffang für jede Anlage, die kein Fachpaket beschreibt, damit Import
+  und Bestandsaufnahme den ganzen Bestand erfassen, auch Heizung, Lüftung und Aufzüge, deren Pakete
+  später kommen; die zweite Ebene reicht, weil Anlagenverzeichnis und Lagebild auf ihr sortieren. Der
+  Bau lehnt jede Pflichtart ab, die eine allgemeine Anlagenart in ihrem Geltungsbereich nennt, damit
+  eine Anlage, die noch niemand eingeordnet hat, nie eine Pflicht vorgeschlagen bekommt. Abgenommen
+  hat niemand etwas, und der Katalog sagt es an jedem Eintrag
+- Mängelklassen im Paketformat (#61, entschieden mit #59): ein Paket nennt seine Klassen in
+  `mangelklassen.json`, mit Bezeichnung, der Angabe, ob ein Mangel der Klasse die Anlage unsicher
+  macht, und auf Wunsch der Fundstelle, in der Reihenfolge, in der sie zur Wahl stehen. Jede Klasse
+  hat wie eine Regel ihren Eintrag in `abnahmen.json`, mit der Prüfsumme ihres Datensatzes. Das Paket
+  "Allgemein" bringt die drei allgemeinen Stufen gering, erheblich und gefährlich mit, für jeden
+  Mangel, der nicht aus einer Prüfung kommt; nur "gefährlich" macht eine Anlage unsicher. Der Katalog
+  beantwortet `defectClass` und `defectClasses`, das Büro zeigt unter "Katalog" je Paket den Teil
+  "Mängelklassen", und das Format des Bündels ist 3. Das Format entsteht hier und nicht erst mit den
+  Mängeln, weil das Paket, das die allgemeinen Klassen trägt, zuerst gebaut wird
 
 ### Geändert
 
+- Die Vorschau zeigt den Katalog dieses Baus und daneben das Probepaket, statt nur das Probepaket
+  (#61): der Bau bringt jetzt ein Paket mit, und die Pakete mit Pflichtarten und Messstellen kommen
+  erst im Lauf von Phase 1. Ein Lüftungsgerät der Beispieldaten trägt eine allgemeine Anlagenart und
+  eine eigene Pflicht des Betreibers
+- Im Katalog des Büros stehen die Anlagenarten eines Pakets nach Kostengruppe und dann nach ihrer
+  Bezeichnung statt nach ihrem Schlüssel (#61): den Schlüssel sieht kein Leser, und nach
+  Kostengruppen sind Anlagen überall geordnet
 - Das Büro beginnt bei den Liegenschaften statt bei den Einstellungen, bis die Übersicht gebaut
   ist (#85): die erste Liste, und jede Rolle liest sie. Der Eintrag "Liegenschaften" steht damit
   in der Navigation, wie #83 es vorbereitet hat

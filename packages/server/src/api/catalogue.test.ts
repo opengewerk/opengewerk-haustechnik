@@ -74,6 +74,7 @@ describe('the catalogue of the server', () => {
       ...entry.forms.map((each) => each.review),
       ...entry.roundTemplates.map((each) => each.review),
       ...entry.rules.map((each) => each.review),
+      ...entry.defectClasses.map((each) => each.review),
     ])
 
     // An empty list would pass the check below and prove nothing.

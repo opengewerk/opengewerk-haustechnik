@@ -342,6 +342,27 @@ export interface CatalogueRule {
   readonly review: CatalogueReview
 }
 
+/**
+ * A class a defect is put in (sections 4.4 and 4.6 of the concept): what it
+ * is called, and whether a defect of the class makes its asset unsafe. A
+ * package names its classes in one file, `mangelklassen.json`, in the order
+ * they are offered in. A class taken from a set of rules names where it
+ * stands there; the three general ones of the package Allgemein are this
+ * project's own and name no source.
+ */
+export interface DefectClass {
+  /** `<package>.<key>`, what a defect keeps as its class. */
+  readonly key: string
+  readonly label: string
+  readonly unsafe: boolean
+  readonly source: string | null
+}
+
+export interface CatalogueDefectClass {
+  readonly defectClass: DefectClass
+  readonly review: CatalogueReview
+}
+
 export interface CataloguePackage {
   readonly name: string
   readonly title: string
@@ -352,10 +373,16 @@ export interface CataloguePackage {
   readonly forms: readonly CatalogueEntry<PackagedForm>[]
   readonly roundTemplates: readonly CatalogueEntry<PackagedForm>[]
   readonly rules: readonly CatalogueRule[]
+  /** In the order of the file of the package, which is the order they are offered in. */
+  readonly defectClasses: readonly CatalogueDefectClass[]
 }
 
-/** The shape of the bundle, counted up when it changes so that an old bundle is not misread. */
-export const catalogueFormat = 2
+/**
+ * The shape of the bundle, counted up when it changes so that an old bundle
+ * is not misread. Three since a package names its defect classes
+ * (opengewerk-haustechnik#61).
+ */
+export const catalogueFormat = 3
 
 /**
  * What the build writes and server and interface load. The checksum is taken
@@ -386,6 +413,8 @@ export interface PackageContents {
   readonly roundTemplates: readonly CatalogueEntry<PackagedForm>[]
   /** By key, the whole country before the states, the earliest record first. */
   readonly rules: readonly CatalogueRule[]
+  /** In the order they are offered in. */
+  readonly defectClasses: readonly CatalogueDefectClass[]
 }
 
 /**
@@ -428,6 +457,13 @@ export interface Catalogue {
     | { readonly kind: 'until_next_inspection' }
     | { readonly kind: 'while_in_use' }
     | null
+  /** A defect class by the key a defect keeps, `<package>.<key>`. */
+  readonly defectClass: (key: string) => CatalogueDefectClass | null
+  /**
+   * The defect classes of a package, in the order they are offered in:
+   * nothing for a package that names none, or that is not there.
+   */
+  readonly defectClasses: (packageName: string) => readonly CatalogueDefectClass[]
 }
 
 /** The versions of each key, ordered by version. */
@@ -495,6 +531,11 @@ export function catalogueOf(bundle: CatalogueBundle): Catalogue {
     rules.map((rule) => [rule.record, rule.review]),
   )
   const records = ruleSet(rules.map((rule) => rule.record))
+  const defectClasses = new Map(
+    bundle.packages.flatMap((entry) =>
+      entry.defectClasses.map((each) => [each.defectClass.key, each] as const),
+    ),
+  )
 
   const rule = (key: string, on: IsoDate, state?: FederalState): CatalogueRule | null => {
     const record = records.at(key, on, state)
@@ -528,6 +569,7 @@ export function catalogueOf(bundle: CatalogueBundle): Catalogue {
         forms: everyKey(versionsByKey(entry.forms), on),
         roundTemplates: everyKey(versionsByKey(entry.roundTemplates), on),
         rules: inReadingOrder(entry.rules),
+        defectClasses: entry.defectClasses,
       })),
     assetKind: (key, on) => inForce(assetKinds.get(key), on),
     assetKinds: (on) => everyKey(assetKinds, on),
@@ -549,6 +591,9 @@ export function catalogueOf(bundle: CatalogueBundle): Catalogue {
 
       return years ? { kind: 'years', rule: years } : null
     },
+    defectClass: (key) => defectClasses.get(key) ?? null,
+    defectClasses: (packageName) =>
+      bundle.packages.find((entry) => entry.name === packageName)?.defectClasses ?? [],
   }
 }
 
@@ -585,8 +630,9 @@ export interface AcceptanceTally {
 
 /**
  * The tally of a package. Every entry counts, an asset kind and a form like a
- * duty kind and a rule: the format gives each of them a review (ADR 0005,
- * point 9), and whoever reads "all accepted" must not find one that is not.
+ * duty kind, a rule and a defect class: the format gives each of them a
+ * review (ADR 0005, point 9), and whoever reads "all accepted" must not find
+ * one that is not.
  */
 export function acceptanceTally(contents: PackageContents): AcceptanceTally {
   const reviews = [
@@ -595,6 +641,7 @@ export function acceptanceTally(contents: PackageContents): AcceptanceTally {
     ...contents.forms,
     ...contents.roundTemplates,
     ...contents.rules,
+    ...contents.defectClasses,
   ].map((entry) => entry.review)
 
   return {

@@ -9,8 +9,8 @@ import { mountOffice, onA, rowsOf, signedInOffice } from '../test-office.js'
 
 /**
  * "Katalog" in the office (#90, section 5 of the concept): the packages of
- * the instance, and of one of them its duty kinds, asset kinds, forms, rules
- * and round templates, each entry with its review.
+ * the instance, and of one of them its duty kinds, asset kinds, forms, rules,
+ * round templates and defect classes (#61), each entry with its review.
  */
 
 const packages = 'Pakete des Katalogs'
@@ -41,11 +41,11 @@ describe('the packages of the catalogue', () => {
   it('are listed with what each holds and how much of it is accepted', async () => {
     await mount()
 
-    // Of the first package five of nine: the asset kind in force, a duty
-    // kind, the template and two rules are accepted; a version that has not
-    // begun counts for nothing.
+    // Of the first package six of eleven: the asset kind in force, a duty
+    // kind, the template, two rules and a defect class are accepted; a
+    // version that has not begun counts for nothing.
     expect(rowsOf(packages)).toEqual([
-      ['Probepaket', '1.2.0', '2', '2', '1', '5 von 9 abgenommen'],
+      ['Probepaket', '1.2.0', '2', '2', '1', '6 von 11 abgenommen'],
       ['Leeres Paket', '1.0.0', '0', '0', '0', 'nichts abzunehmen'],
       ['Abgenommenes Paket', '2.0.0', '1', '0', '0', '1 von 1 abgenommen'],
     ])
@@ -116,16 +116,62 @@ describe('the package shown', () => {
       ['Formulare1', '/katalog/probe/formulare', null],
       ['Regeln3', '/katalog/probe/regeln', 'page'],
       ['Vorlagen1', '/katalog/probe/vorlagen', null],
+      ['Mängelklassen2', '/katalog/probe/mangelklassen', null],
     ])
+  })
+
+  it('shows its defect classes in the order of the package, each with its review', async () => {
+    await mount('/katalog/probe/mangelklassen')
+
+    // Not by name: "leicht" stands before "schwer" because the package says so.
+    expect(rowsOf('Mängelklassen im Paket Probepaket')).toEqual([
+      ['leicht', 'nein', 'Probenorm 13015, Abschnitt 7', 'Abgenommen', checkedToday],
+      ['schwer', 'ja', 'eigene Einteilung des Pakets', 'Nicht abgenommen', checkedToday],
+    ])
+  })
+
+  it('says of the general package why it has no duty kinds', async () => {
+    await mount('/katalog/allgemein', {
+      ...testCatalogue,
+      sha256: '3'.repeat(64),
+      packages: [
+        {
+          name: 'allgemein',
+          title: 'Allgemein',
+          version: '1.0.0',
+          minimumCore: '0.0.0',
+          assetKinds: [],
+          dutyKinds: [],
+          forms: [],
+          roundTemplates: [],
+          rules: [],
+          defectClasses: [],
+        },
+        ...testCatalogue.packages,
+      ],
+    })
+
+    expect(
+      screen.getByText(
+        /Dieses Paket hat keine Pflichtarten: seine Anlagenarten stehen für Anlagen, deren Fachpaket noch fehlt/,
+      ),
+    ).toBeDefined()
+  })
+
+  it('says of any other package without duty kinds only that it has none', async () => {
+    await mount('/katalog/leer')
+
+    expect(screen.getByText('Dieses Paket hat keine Pflichtarten.')).toBeDefined()
   })
 
   it('shows its asset kinds in the version in force, each with its review', async () => {
     await mount('/katalog/probe/anlagenarten')
 
-    // The version of the lift that begins in 2999 is not one of today.
+    // The version of the lift that begins in 2999 is not one of today. By
+    // cost group, as assets are sorted everywhere, and not by key.
     expect(rowsOf('Anlagenarten im Paket Probepaket')).toEqual([
-      ['Aufzugsanlage', '461', '1', '1', 'Abgenommen', checkedToday],
       ['Druckerhöhungsanlage', '412', '0', '0', 'Nicht abgenommen', checkedToday],
+      ['Aufzugsanlage', '461', '1', '1', 'Abgenommen', checkedToday],
     ])
   })
 
@@ -207,7 +253,7 @@ describe('the catalogue on a phone', () => {
       .map((item) => item.textContent)
 
     expect(listed[0]).toBe(
-      'ProbepaketFassung 1.2.0 · 2 Anlagenarten · 2 Pflichtarten · 1 Formular5 von 9 abgenommen',
+      'ProbepaketFassung 1.2.0 · 2 Anlagenarten · 2 Pflichtarten · 1 Formular6 von 11 abgenommen',
     )
 
     const kinds = within(screen.getByRole('list', { name: 'Pflichtarten im Paket Probepaket' }))

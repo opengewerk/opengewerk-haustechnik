@@ -1377,6 +1377,96 @@ export function readRules(
   return findings.problems.length > before ? undefined : read
 }
 
+/**
+ * A defect class as its package states it, the key still the one of the
+ * package (sections 4.4, 4.6 and 5 of the concept).
+ */
+export interface PackageDefectClass {
+  readonly key: string
+  readonly label: string
+  readonly unsafe: boolean
+  readonly source?: string
+}
+
+function defectClass(
+  value: unknown,
+  spot: Spot,
+  findings: Findings,
+): PackageDefectClass | undefined {
+  const from = fields(value, spot, findings, ['key', 'label', 'unsafe', 'source'])
+
+  if (!from) {
+    return undefined
+  }
+
+  const before = findings.problems.length
+  const name = key(from, 'key', spot, findings)
+  const label = text(from, 'label', spot, findings)
+  const unsafe = from['unsafe']
+  const source = optionalText(from, 'source', spot, findings)
+
+  if (typeof unsafe !== 'boolean') {
+    findings.say(
+      below(spot, 'unsafe'),
+      unsafe === undefined
+        ? 'Ob ein Mangel dieser Klasse die Anlage unsicher macht, fehlt: true oder false.'
+        : 'Hier gehört true oder false hin: ob ein Mangel dieser Klasse die Anlage unsicher macht.',
+    )
+  }
+
+  if (
+    findings.problems.length > before ||
+    name === undefined ||
+    label === undefined ||
+    typeof unsafe !== 'boolean'
+  ) {
+    return undefined
+  }
+
+  return { key: name, label, unsafe, ...(source === undefined ? {} : { source }) }
+}
+
+/**
+ * The defect classes of a package, `mangelklassen.json`: in the order they
+ * are offered in. A package without classes of its own has no such file, so
+ * a file names at least one.
+ */
+export function readDefectClasses(
+  value: unknown,
+  file: string,
+  findings: Findings,
+): readonly PackageDefectClass[] | undefined {
+  const spot = spotIn(file)
+  const from = fields(value, spot, findings, ['classes'])
+
+  if (!from) {
+    return undefined
+  }
+
+  const before = findings.problems.length
+  const classes = list(from, 'classes', spot, findings, 'required')
+
+  if (classes?.length === 0) {
+    findings.say(
+      below(spot, 'classes'),
+      'Die Datei nennt mindestens eine Klasse; ein Paket ohne eigene Klassen hat sie nicht.',
+    )
+  }
+
+  const read = classes ? each(classes, below(spot, 'classes'), findings, defectClass) : undefined
+
+  if (read) {
+    once(
+      read.map((entry) => entry.key),
+      below(spot, 'classes'),
+      findings,
+      'Die Klasse',
+    )
+  }
+
+  return findings.problems.length > before ? undefined : read
+}
+
 /** What the manifest of a package says. */
 export interface Manifest {
   readonly name: string
@@ -1477,9 +1567,17 @@ export interface RuleReview {
   readonly accepted?: PackageAcceptance
 }
 
+export interface ClassReview {
+  readonly key: string
+  readonly checkedOn: IsoDate
+  readonly accepted?: PackageAcceptance
+}
+
 export interface Acceptances {
   readonly entries: readonly EntryReview[]
   readonly rules: readonly RuleReview[]
+  /** The reviews of the defect classes; a package without classes leaves the list out. */
+  readonly classes: readonly ClassReview[]
 }
 
 function acceptance(value: unknown, spot: Spot, findings: Findings): PackageAcceptance | undefined {
@@ -1566,6 +1664,27 @@ function ruleReview(value: unknown, spot: Spot, findings: Findings): RuleReview 
   }
 }
 
+function classReview(value: unknown, spot: Spot, findings: Findings): ClassReview | undefined {
+  const from = fields(value, spot, findings, ['key', 'checkedOn', 'accepted'])
+
+  if (!from) {
+    return undefined
+  }
+
+  const before = findings.problems.length
+  const name = key(from, 'key', spot, findings)
+  const checkedOn = day(from, 'checkedOn', spot, findings)
+  const accepted = missing(from, 'accepted')
+    ? undefined
+    : acceptance(from['accepted'], below(spot, 'accepted'), findings)
+
+  if (findings.problems.length > before || name === undefined || checkedOn === undefined) {
+    return undefined
+  }
+
+  return accepted === undefined ? { key: name, checkedOn } : { key: name, checkedOn, accepted }
+}
+
 /** The reviews of a package, `abnahmen.json`. */
 export function readAcceptances(
   value: unknown,
@@ -1573,7 +1692,7 @@ export function readAcceptances(
   findings: Findings,
 ): Acceptances | undefined {
   const spot = spotIn(file)
-  const from = fields(value, spot, findings, ['entries', 'rules'])
+  const from = fields(value, spot, findings, ['entries', 'rules', 'classes'])
 
   if (!from) {
     return undefined
@@ -1582,12 +1701,19 @@ export function readAcceptances(
   const before = findings.problems.length
   const entryList = list(from, 'entries', spot, findings, 'required')
   const ruleList = list(from, 'rules', spot, findings, 'required')
+  const classList = list(from, 'classes', spot, findings, 'optional')
   const entries = entryList
     ? each(entryList, below(spot, 'entries'), findings, entryReview)
     : undefined
   const rules = ruleList ? each(ruleList, below(spot, 'rules'), findings, ruleReview) : undefined
+  const classes = classList
+    ? each(classList, below(spot, 'classes'), findings, classReview)
+    : undefined
 
-  return findings.problems.length > before || entries === undefined || rules === undefined
+  return findings.problems.length > before ||
+    entries === undefined ||
+    rules === undefined ||
+    classes === undefined
     ? undefined
-    : { entries, rules }
+    : { entries, rules, classes }
 }

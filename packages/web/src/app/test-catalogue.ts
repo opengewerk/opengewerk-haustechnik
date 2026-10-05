@@ -165,6 +165,21 @@ export const testCatalogue: CatalogueBundle = {
           neglectedReview,
         ),
       ],
+      defectClasses: [
+        {
+          defectClass: {
+            key: 'probe.slight',
+            label: 'leicht',
+            unsafe: false,
+            source: 'Probenorm 13015, Abschnitt 7',
+          },
+          review: acceptedReview,
+        },
+        {
+          defectClass: { key: 'probe.severe', label: 'schwer', unsafe: true, source: null },
+          review: unacceptedReview,
+        },
+      ],
     },
     {
       name: 'leer',
@@ -176,6 +191,7 @@ export const testCatalogue: CatalogueBundle = {
       forms: [],
       roundTemplates: [],
       rules: [],
+      defectClasses: [],
     },
     {
       name: 'fertig',
@@ -187,6 +203,7 @@ export const testCatalogue: CatalogueBundle = {
       forms: [],
       roundTemplates: [],
       rules: [],
+      defectClasses: [],
     },
   ],
 }
