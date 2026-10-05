@@ -1,6 +1,5 @@
 import {
   type Area,
-  buildingKindLabel,
   federalStates,
   propertyProblems,
   type RecordState,
@@ -8,6 +7,7 @@ import {
 } from '@opengewerk/haustechnik-domain'
 import {
   Button,
+  cardLink,
   Cell,
   Column,
   Confirm,
@@ -47,9 +47,11 @@ import { Link, useNavigate, useParams } from '@tanstack/react-router'
 import { Building2, Pencil, Plus, Trash2 } from 'lucide-react'
 import { type ReactNode, useId, useMemo, useState } from 'react'
 
+import { kindsOf } from '../../app/place-records.js'
 import { areaName, useAreas, useAreasQuery } from '../../session/areas.js'
 import { makeAt } from '../../sync/made-at.js'
 import { AreaBadge } from '../area-badge.js'
+import { officePlaces } from '../place-addresses.js'
 import { PropertyContacts } from '../property-contacts.js'
 
 /**
@@ -63,19 +65,17 @@ import { PropertyContacts } from '../property-contacts.js'
  * fills it in when there is none.
  *
  * The people to talk to at a property stand on its page, in the card of the
- * foundation (`../property-contacts.tsx`).
+ * foundation (`../property-contacts.tsx`). Each of its buildings leads to
+ * the page of that building (`buildings.tsx`).
  *
  * What the boards draw beyond this arrives with what it shows: the numbers
  * per property and building and the order by urgency with the register of
  * duties, the import, the photos and the timeline each with their own step.
  */
 
-const listPath = '/liegenschaften'
-const list = { to: listPath, label: 'Liegenschaften' } as const
-
-function pageOf(id: string): string {
-  return `${listPath}/${id}`
-}
+const list = officePlaces.list
+const listPath = list.to
+const pageOf = officePlaces.property
 
 function byName(left: RecordState, right: RecordState): number {
   return text(left, 'name').localeCompare(text(right, 'name'), 'de')
@@ -97,33 +97,6 @@ function addressOf(property: RecordState): string {
 /** "00001 Beispielstadt". */
 function placeOf(property: RecordState): string {
   return `${text(property, 'postalCode')} ${text(property, 'city')}`
-}
-
-/**
- * The kinds of a building in words. On a device they are the text of a list
- * (ADR 0005 in the repository opengewerk), from a route a list.
- */
-function kindsOf(building: RecordState): string {
-  const held: unknown = building['kinds']
-  let kinds: unknown = held
-
-  if (typeof held === 'string') {
-    try {
-      kinds = JSON.parse(held)
-    } catch {
-      kinds = []
-    }
-  }
-
-  return Array.isArray(kinds)
-    ? kinds
-        .map((kind) =>
-          Object.hasOwn(buildingKindLabel, String(kind))
-            ? buildingKindLabel[kind as keyof typeof buildingKindLabel]
-            : String(kind),
-        )
-        .join(', ')
-    : ''
 }
 
 /** The buildings by the property they stand on, each list by name. */
@@ -341,7 +314,9 @@ export function PropertyListScreen() {
                         {/* The indent says it to the eye; a reader of the table hears it. */}
                         <span>
                           <span className="sr-only">Gebäude: </span>
-                          {text(building, 'name')}
+                          <Link to={officePlaces.building(String(building['id']))}>
+                            {text(building, 'name')}
+                          </Link>
                         </span>
                       </div>
                     </Cell>
@@ -509,8 +484,12 @@ function Buildings({ buildings }: { readonly buildings: readonly RecordState[] }
       caption="Gebäude der Liegenschaft"
       cards={buildings.map((building) => ({
         key: String(building['id']),
-        title: text(building, 'name'),
-        sub: kindsOf(building),
+        title: (
+          <Link to={officePlaces.building(String(building['id']))} className={cardLink}>
+            {text(building, 'name')}
+          </Link>
+        ),
+        sub: kindsOf(building).join(', '),
         right:
           year(building) === '' ? undefined : <span className="numeric">{year(building)}</span>,
       }))}
@@ -528,8 +507,12 @@ function Buildings({ buildings }: { readonly buildings: readonly RecordState[] }
           <tr key={String(building['id'])}>
             <Cell>
               <div className="leading-[1.3]">
-                <div className="font-medium">{text(building, 'name')}</div>
-                <div className="text-[12px] text-ink-faint">{kindsOf(building)}</div>
+                <div className="font-medium">
+                  <Link to={officePlaces.building(String(building['id']))}>
+                    {text(building, 'name')}
+                  </Link>
+                </div>
+                <div className="text-[12px] text-ink-faint">{kindsOf(building).join(', ')}</div>
               </div>
             </Cell>
             <Cell numeric>{year(building)}</Cell>

@@ -19,26 +19,49 @@ describe('the words of the change log in the office', () => {
     expect(states?.['DE-HE']).toBe('Hessen')
   })
 
+  // The log holds `{school,assembly}`, and the Leitung reads what the form
+  // offered.
+  it('write the kinds of a building in the words of the form', () => {
+    const kinds = auditScreenWords.lists?.['kinds']
+
+    expect(kinds?.['school']).toBe('Schule oder Hochschule')
+    expect(kinds?.['assembly']).toBe('Versammlungs- oder Sportstätte')
+    expect(kinds?.['other']).toBe('Sonstiges Gebäude')
+  })
+
   it('open a property on its page, under words of its own', () => {
     expect(auditScreenWords.href?.('properties', 'p-1')).toBe('/liegenschaften/p-1')
     expect(auditScreenWords.linkWords?.('properties')).toBe('Zur Liegenschaft')
   })
 
-  // The log of a property takes in the people to talk to there, and says so
-  // beside the chip of the record; every record the vocabulary gives parts
-  // has words for them.
+  it('open a building, a floor and a room on their pages, each under words of its own', () => {
+    expect(auditScreenWords.href?.('buildings', 'b-1')).toBe('/gebaeude/b-1')
+    expect(auditScreenWords.linkWords?.('buildings')).toBe('Zum Gebäude')
+    expect(auditScreenWords.href?.('floors', 'f-1')).toBe('/geschosse/f-1')
+    expect(auditScreenWords.linkWords?.('floors')).toBe('Zum Geschoss')
+    expect(auditScreenWords.href?.('rooms', 'r-1')).toBe('/raeume/r-1')
+    expect(auditScreenWords.linkWords?.('rooms')).toBe('Zum Raum')
+  })
+
+  // The log of a property takes in the people to talk to there, the log of a
+  // building the times it is closed, and each says so beside the chip of the
+  // record; every record the vocabulary gives parts has words for them.
   it('say what the log of a record takes in, for every record that takes something in', () => {
-    expect(auditScreenWords.partsWords).toEqual({ properties: 'mit ihren Ansprechpartnern' })
+    expect(auditScreenWords.partsWords).toEqual({
+      properties: 'mit ihren Ansprechpartnern',
+      buildings: 'mit seinen Schließzeiten',
+    })
     expect(Object.keys(auditScreenWords.partsWords ?? {})).toEqual(
       Object.keys(auditVocabulary.parts),
     )
     expect(auditVocabulary.parts).toEqual({
       properties: [{ table: 'contacts', column: 'property_id' }],
+      buildings: [{ table: 'building_closures', column: 'building_id' }],
     })
   })
 
   it('open nothing for a record without a screen, whatever it is called', () => {
-    for (const table of ['buildings', 'areas', 'constructor', 'toString']) {
+    for (const table of ['building_closures', 'contacts', 'areas', 'constructor', 'toString']) {
       expect(auditScreenWords.href?.(table, 'x')).toBeNull()
       expect(auditScreenWords.linkWords?.(table)).toBeNull()
     }
@@ -50,7 +73,14 @@ describe('the words of the change log in the office', () => {
       (table) => auditScreenWords.href?.(table, 'x') !== null,
     )
 
-    expect(paged).toEqual(['properties'])
-    expect(auditVocabulary.records).toEqual(['properties'])
+    expect(paged).toEqual(['properties', 'buildings', 'floors', 'rooms'])
+    expect(auditVocabulary.records).toEqual(['properties', 'buildings', 'floors', 'rooms'])
+  })
+
+  // A record that opens on a page says where the link leads.
+  it('name the link of every record that opens on a page', () => {
+    for (const table of auditVocabulary.records) {
+      expect(auditScreenWords.linkWords?.(table)).not.toBeNull()
+    }
   })
 })

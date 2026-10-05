@@ -439,6 +439,16 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   das das Gebäude hält, und ein Gerät schreibt keine. Ob ein Gebäude an einem Tag geschlossen ist,
   beantwortet `closureOn` in `domain`; der Plan eines Rundgangs fragt es mit #113. Die Karte auf
   der Seite des Gebäudes folgt, sobald ihre Tafel freigegeben ist
+- Die Seiten eines Gebäudes, eines Geschosses und eines Raums im Büro (#86, zweiter Teil). Abschnitt 4.1 des
+  Konzepts gibt jedem Ort eine eigene Seite und eine eigene Adresse, und bisher endete der Weg bei der
+  Liegenschaft. Die Seite eines Gebäudes sagt, als was es genutzt wird, sein Baujahr und seinen Bereich, und
+  zählt je Geschoss die Räume und die Anlagen, die darin stehen; was im Gebäude und in keinem Raum steht, zählt
+  eine eigene Zeile. Die Seite eines Geschosses listet seine Räume nach ihrer Nummer, E.2 vor E.10. Die
+  Raumseite zeigt die Anlagen, die im Raum stehen, mit ihrem Zustand am heutigen Tag, und darunter die Anlagen,
+  die ihn versorgen, ohne in ihm zu stehen, mit dem Ort, an dem sie stehen; eine Anlage, die das ganze Gebäude
+  versorgt, versorgt jeden seiner Räume. Der Pfad führt von der Liegenschaft herunter, auf dem Telefon steht an
+  seiner Stelle der Weg eine Ebene zurück, und in der Navigation leuchtet "Liegenschaften". Alle drei Seiten
+  liest das Gerät aus dem Abgleich, auch ohne Netz. Die Formulare und die Karte "Schließzeiten" folgen
 
 ### Geändert
 
@@ -455,6 +465,13 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
 - Die Rückfrage vor dem Entfernen einer Liegenschaft nennt auch ihre Ansprechpartner (#85)
 - Die Vorschau zeigt am Schulhaus zwei Schließzeiten, die Ferien, die als nächste kommen (#86)
 - Planungskonzept v0.11: was eine Schließzeit eines Gebäudes ist und wer sie einträgt (#86)
+- Ein Gebäude führt aus der Liste der Liegenschaften und von der Seite seiner Liegenschaft zu seiner eigenen
+  Seite (#86)
+- Gebäude, Geschoss und Raum haben für die Leitung den Knopf "Änderungen" an ihrer Seite. Das Protokoll eines
+  Gebäudes zeigt auch, was mit seinen Schließzeiten geschah, und schreibt die Gebäudearten in den Worten des
+  Formulars (#86)
+- Die Vorschau gibt jeder Anlage einen Zustand, nimmt einen Unterzähler außer Betrieb und lässt zwei Zähler je
+  ein Gebäude versorgen, einen davon eines, in dem er nicht steht, damit die Raumseite beides zeigt (#86)
 - Planungskonzept v0.8: die Entscheidungen vom 04.10.2026 vor dem Bau von Phase 1 stehen an ihrer
   Stelle und in der Tabelle in Abschnitt 15 (#59, #72, #134). Die Issues von Phase 1 hatten unter
   "Zu klären vor dem Bau" offen, was das Konzept nicht sagte oder was die freigegebenen Tafeln als

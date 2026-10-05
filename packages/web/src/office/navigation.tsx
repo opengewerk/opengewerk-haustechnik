@@ -16,6 +16,7 @@ import {
 } from 'lucide-react'
 
 import { type Offer, useOffered } from '../app/places.js'
+import { placeRoots } from './place-addresses.js'
 
 /** A place of the navigation: the entry the frame draws, and what it asks before it stands there. */
 export type OfficePlace = NavigationEntry & Offer
@@ -51,7 +52,14 @@ export const officeNavigation: readonly OfficePlaces[] = [
   {
     title: 'Bestand',
     entries: [
-      { to: '/liegenschaften', label: 'Liegenschaften', icon: Building2, right: 'location.read' },
+      {
+        to: '/liegenschaften',
+        label: 'Liegenschaften',
+        icon: Building2,
+        right: 'location.read',
+        // A building, a floor and a room live at an address of their own.
+        also: placeRoots,
+      },
       { to: '/anlagen', label: 'Anlagen', icon: Zap, right: 'asset.read' },
       // A meter is an asset with readings (4.9).
       { to: '/zaehler', label: 'Zähler', icon: Gauge, right: 'asset.read' },

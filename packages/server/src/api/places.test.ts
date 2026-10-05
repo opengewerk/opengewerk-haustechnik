@@ -1,6 +1,11 @@
 import type { INestApplication } from '@nestjs/common'
 import { Test } from '@nestjs/testing'
-import { missingRight, type RoleKey, type TenantId } from '@opengewerk/haustechnik-domain'
+import {
+  type AuditPage,
+  missingRight,
+  type RoleKey,
+  type TenantId,
+} from '@opengewerk/haustechnik-domain'
 import { Database, newId } from '@opengewerk/platform-server'
 import type { Pool } from 'pg'
 import request from 'supertest'
@@ -542,5 +547,41 @@ describe('the place of a tenant with two areas', () => {
       .set(testIdentityHeader, by('u-lead', large))
       .expect(200)
       .expect((answer) => expect(answer.body.areaId).toBe(south))
+  })
+})
+
+describe('the change log of a place', () => {
+  /**
+   * A building, a floor and a room each have a page in the office, and the
+   * log is opened from it (`records` of the vocabulary). It shows what
+   * happened to that record: the one above and the ones below are records of
+   * their own, each with a log of its own.
+   */
+  it('is opened from a building, a floor and a room, each for itself', async () => {
+    const place = await wholePlace()
+    const idOf = (record: Record<string, unknown>) => String(record['id'])
+
+    await http()
+      .patch(`/rooms/${idOf(place.room)}`)
+      .set(testIdentityHeader, by('u-duties'))
+      .send({ use: 'Veranstaltungen' })
+      .expect(200)
+
+    const logOf = async (table: string, record: Record<string, unknown>) => {
+      const answer = await http()
+        .get(`/audit/changes?table=${table}&record=${idOf(record)}`)
+        .set(testIdentityHeader, by('u-lead'))
+        .expect(200)
+
+      return (answer.body as AuditPage).changes.map((change) => [change.table, change.recordId])
+    }
+
+    expect(await logOf('buildings', place.building)).toEqual([['buildings', idOf(place.building)]])
+    expect(await logOf('floors', place.floor)).toEqual([['floors', idOf(place.floor)]])
+    // Made and changed.
+    expect(await logOf('rooms', place.room)).toEqual([
+      ['rooms', idOf(place.room)],
+      ['rooms', idOf(place.room)],
+    ])
   })
 })

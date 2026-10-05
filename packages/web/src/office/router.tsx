@@ -15,12 +15,15 @@ import {
 
 import { InstanceShell } from './instance/shell.js'
 import { AccountScreen } from './screens/account.js'
+import { BuildingScreen } from './screens/buildings.js'
+import { FloorScreen } from './screens/floors.js'
 import {
   EditPropertyScreen,
   NewPropertyScreen,
   PropertyListScreen,
   PropertyScreen,
 } from './screens/properties.js'
+import { RoomScreen } from './screens/rooms.js'
 import { StaffScreen } from './screens/staff.js'
 import { OfficeShell } from './shell.js'
 
@@ -32,9 +35,10 @@ import { OfficeShell } from './shell.js'
  * The paths are German because the address bar is something a person reads.
  * The settings all live under `/einstellungen`, so that the one entry in the
  * navigation stays lit on every one of them, and everything about one
- * property under `/liegenschaften`. Until the overview is built, the office
- * starts at the properties: the first list there is, and one every role
- * reads.
+ * property under `/liegenschaften`. A building, a floor and a room live at
+ * an address of their own, by their id (`place-addresses.ts`), and light the
+ * same entry. Until the overview is built, the office starts at the
+ * properties: the first list there is, and one every role reads.
  *
  * A screen the board has in the navigation lives at the address its place
  * names (`navigation.tsx`). Its route here is all it takes: the place stands
@@ -109,6 +113,17 @@ export function officeRoutes() {
       path: '/liegenschaften/$propertyId/bearbeiten',
       component: EditPropertyScreen,
     }),
+    createRoute({
+      getParentRoute: () => office,
+      path: '/gebaeude/$buildingId',
+      component: BuildingScreen,
+    }),
+    createRoute({
+      getParentRoute: () => office,
+      path: '/geschosse/$floorId',
+      component: FloorScreen,
+    }),
+    createRoute({ getParentRoute: () => office, path: '/raeume/$roomId', component: RoomScreen }),
     createRoute({ getParentRoute: () => office, path: '/konflikte', component: SyncScreen }),
     createRoute({ getParentRoute: () => office, path: '/konto', component: AccountScreen }),
     createRoute({

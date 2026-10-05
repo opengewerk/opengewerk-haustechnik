@@ -628,6 +628,40 @@ describe('the change log of a tenant', () => {
   })
 })
 
+describe('the change log of a building', () => {
+  /**
+   * The office sees and changes the closures on the page of the building, so
+   * the log opened from that page takes them in (`parts` of the vocabulary):
+   * who entered the holidays belongs to what happened to the building.
+   */
+  it('takes in what happened to the times it is closed, and to those of no other building', async () => {
+    const place = await placeIn()
+    const beside = await placeIn()
+    const closure = await closureOf(place.building)
+    const other = await closureOf(beside.building)
+
+    await http()
+      .delete(`/buildings/${place.building}/closures/${String(closure['id'])}`)
+      .set(testIdentityHeader, by('u-site'))
+      .expect(200)
+
+    const answer = await http()
+      .get(`/audit/changes?table=buildings&record=${place.building}`)
+      .set(testIdentityHeader, by('u-lead'))
+      .expect(200)
+    const { changes } = answer.body as AuditPage
+    const about = (table: string) =>
+      changes.filter((change) => change.table === table).map((change) => change.recordId)
+
+    expect(about('buildings')).toEqual([place.building])
+    // Entered and removed: two changes of the one closure.
+    expect(about('building_closures')).toEqual([closure['id'], closure['id']])
+    expect(about('building_closures')).not.toContain(other['id'])
+    // The property the building stands on is a record of its own.
+    expect(about('properties')).toEqual([])
+  })
+})
+
 describe('the closures of a building that is removed', () => {
   async function deletedAt(table: string, id: string): Promise<string | null> {
     const { rows } = await admin.query<{ at: string | null }>(
