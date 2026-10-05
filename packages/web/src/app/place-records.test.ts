@@ -1,12 +1,33 @@
 import { describe, expect, it } from 'vitest'
 
-import { byLevel, byNumber, kindsOf, placeAbove, titleOfRoom } from './place-records.js'
+import { byLevel, byNumber, kindKeysOf, kindsOf, placeAbove, titleOfRoom } from './place-records.js'
 
 /**
  * The places as a device holds them, read for a screen (#86): what a building
  * is used as, what a room is called, the order floors and rooms are listed
  * in, and what a page stands under.
  */
+
+// What the form of a building starts from: the keys, and not their words.
+describe('the kinds of a building by their keys', () => {
+  it('reads the text of a list and a list alike, in the order they were chosen', () => {
+    expect(kindKeysOf({ kinds: '["assembly","school"]' })).toEqual(['assembly', 'school'])
+    expect(kindKeysOf({ kinds: ['assembly', 'school'] })).toEqual(['assembly', 'school'])
+  })
+
+  it('keeps a key this version does not know, so that saving does not drop it', () => {
+    expect(kindKeysOf({ kinds: '["school","planetarium"]' })).toEqual(['school', 'planetarium'])
+  })
+
+  it('is empty for what is no list, and for a building that is not there', () => {
+    for (const kinds of [null, undefined, 'school', '{"school":true}', 'not json', 7, '']) {
+      expect([kinds, kindKeysOf({ kinds })]).toEqual([kinds, []])
+    }
+
+    expect(kindKeysOf(null)).toEqual([])
+    expect(kindKeysOf(undefined)).toEqual([])
+  })
+})
 
 describe('the kinds of a building in words', () => {
   it('reads the text of a list, as a device holds them', () => {

@@ -1,16 +1,17 @@
 import type { RecordState } from '@opengewerk/haustechnik-domain'
-import { cardLink, Cell, Column, Panel, Status, TablePanel } from '@opengewerk/platform-web'
+import { Button, cardLink, Cell, Column, Panel, Status, TablePanel } from '@opengewerk/platform-web'
 import { ChangesButton, PageHead, Screen } from '@opengewerk/platform-web/office'
+import { useRight } from '@opengewerk/platform-web/session'
 import { text, useRecord, useRecords, useRelated } from '@opengewerk/platform-web/sync'
-import { Link, useParams } from '@tanstack/react-router'
-import { Building2 } from 'lucide-react'
-import { useMemo } from 'react'
+import { Link, useNavigate, useParams } from '@tanstack/react-router'
+import { Building2, Pencil, Plus } from 'lucide-react'
+import { type ReactNode, useMemo } from 'react'
 
 import { placePath } from '../../app/place-path.js'
 import { byLevel, kindsOf, placeAbove } from '../../app/place-records.js'
 import { areaName, useAreas } from '../../session/areas.js'
 import { AreaBadge } from '../area-badge.js'
-import { officePlaces } from '../place-addresses.js'
+import { officePlaces, placeForms } from '../place-addresses.js'
 import { countedAssets, countedRooms, PlaceNotFound } from '../place-pages.js'
 
 /**
@@ -19,10 +20,12 @@ import { countedAssets, countedRooms, PlaceNotFound } from '../place-pages.js'
  * lies, and under that what it consists of, floor by floor with its rooms and
  * the assets standing in them.
  *
- * Read from the device, so it stands without a network. What the board draws
- * beyond this arrives with what it shows: what is to do with the register of
- * duties, the assets by cost group with the catalogue, the last activities
- * with the activities, and the labels with the labels.
+ * Read from the device, so it stands without a network. Whoever keeps the
+ * places changes the building from here and adds a floor to it
+ * (`building-form.tsx`, `floor-form.tsx`). What the board draws beyond this
+ * arrives with what it shows: what is to do with the register of duties, the
+ * assets by cost group with the catalogue, the last activities with the
+ * activities, and the labels with the labels.
  */
 export function BuildingScreen() {
   const { buildingId } = useParams({ strict: false }) as { buildingId?: string }
@@ -32,6 +35,8 @@ export function BuildingScreen() {
   const rooms = useRecords('rooms')
   const assets = useRelated('assets', 'buildingId', buildingId)
   const areas = useAreas()
+  const writes = useRight('location.write')
+  const navigate = useNavigate()
 
   if (!building || !buildingId || !property) {
     return <PlaceNotFound place="building" />
@@ -62,12 +67,43 @@ export function BuildingScreen() {
             {area === null ? null : <AreaBadge name={area} />}
           </>
         }
-        actions={<ChangesButton table="buildings" id={buildingId} />}
+        actions={
+          <>
+            <ChangesButton table="buildings" id={buildingId} />
+            {writes ? (
+              <Button
+                icon={Pencil}
+                onClick={() => {
+                  void navigate({ to: placeForms.editBuilding(buildingId) })
+                }}
+              >
+                Bearbeiten
+              </Button>
+            ) : null}
+          </>
+        }
       />
       {/* The columns of the board. Beside the floors the assets by cost group
           take their place once the catalogue reaches the interface (#90). */}
       <div className="grid gap-3.5 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.25fr)]">
-        <Floors floors={floors} rooms={rooms} assets={assets} />
+        <Floors
+          floors={floors}
+          rooms={rooms}
+          assets={assets}
+          action={
+            writes ? (
+              <Button
+                size="small"
+                icon={Plus}
+                onClick={() => {
+                  void navigate({ to: placeForms.newFloor(buildingId) })
+                }}
+              >
+                Geschoss anlegen
+              </Button>
+            ) : null
+          }
+        />
       </div>
     </Screen>
   )
@@ -95,10 +131,13 @@ function Floors({
   floors,
   rooms,
   assets,
+  action,
 }: {
   readonly floors: readonly RecordState[]
   readonly rooms: readonly RecordState[]
   readonly assets: readonly RecordState[]
+  /** "Geschoss anlegen", for whoever keeps the places. */
+  readonly action: ReactNode
 }) {
   const { rows, withoutRoom } = useMemo(() => {
     const assetsIn = new Map<string, number>()
@@ -126,7 +165,7 @@ function Floors({
 
   if (rows.length === 0 && withoutRoom === 0) {
     return (
-      <Panel title="Geschosse und Räume">
+      <Panel title="Geschosse und Räume" action={action}>
         <p className="text-[13px] leading-[1.4] text-ink-muted">
           In diesem Gebäude ist noch kein Geschoss angelegt.
         </p>
@@ -137,6 +176,7 @@ function Floors({
   return (
     <TablePanel
       title="Geschosse und Räume"
+      action={action}
       caption="Geschosse des Gebäudes mit ihren Räumen und Anlagen"
       cards={[
         ...rows.map((row) => ({

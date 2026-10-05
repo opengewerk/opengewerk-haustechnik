@@ -20,12 +20,11 @@ import type { PlaceAbove } from './place-path.js'
  */
 
 /**
- * The kinds of a building in words, in the order they were chosen. On a
+ * The kinds of a building by their keys, in the order they were chosen. On a
  * device they are the text of a list (ADR 0005 in the repository opengewerk),
- * from a route a list; a kind this version does not know is shown by its key
- * rather than dropped.
+ * from a route a list.
  */
-export function kindsOf(
+export function kindKeysOf(
   building: Readonly<Record<string, unknown>> | null | undefined,
 ): readonly string[] {
   const held: unknown = building?.['kinds']
@@ -39,13 +38,21 @@ export function kindsOf(
     }
   }
 
-  return Array.isArray(kinds)
-    ? kinds.map((kind) =>
-        Object.hasOwn(buildingKindLabel, String(kind))
-          ? buildingKindLabel[kind as keyof typeof buildingKindLabel]
-          : String(kind),
-      )
-    : []
+  return Array.isArray(kinds) ? kinds.map(String) : []
+}
+
+/**
+ * The kinds of a building in words, in the order they were chosen; a kind
+ * this version does not know is shown by its key rather than dropped.
+ */
+export function kindsOf(
+  building: Readonly<Record<string, unknown>> | null | undefined,
+): readonly string[] {
+  return kindKeysOf(building).map((kind) =>
+    Object.hasOwn(buildingKindLabel, kind)
+      ? buildingKindLabel[kind as keyof typeof buildingKindLabel]
+      : kind,
+  )
 }
 
 /** What a room is called in one line: its number and its name, whichever it has. */

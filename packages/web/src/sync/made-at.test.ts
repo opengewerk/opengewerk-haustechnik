@@ -1,11 +1,11 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import { makeAt } from './made-at.js'
+import { askAt, makeAt } from './made-at.js'
 
 /**
- * A record made at its route (ADR 0006, point 6): what the route is sent,
- * that the exchange follows, and what a form is told when the route refuses
- * or nobody answers.
+ * A record made at its route (ADR 0006, point 6), and what a route is asked
+ * to do to one that is there: what the route is sent, that the exchange
+ * follows, and what a form is told when the route refuses or nobody answers.
  */
 
 function answering(status: number, body: unknown) {
@@ -97,5 +97,67 @@ describe('a record made at its route', () => {
     expect(result.outcome).toBe('refused')
     // The exchange is where the sign in is asked for again.
     expect(log).toEqual(['exchange'])
+  })
+})
+
+describe('what a route is asked to do to a record that is there', () => {
+  it('is sent with what it takes, and the answer names the record that was asked about', async () => {
+    // The route answers with the room as it is now, which has an id of its own.
+    const asked = answering(200, { id: 'r-1', floorId: 'f-2' })
+    const { client, log } = exchanging()
+
+    const result = await askAt(client, 'PUT', '/rooms/r-1/floor', 'r-1', { floorId: 'f-2' })
+
+    expect(result).toEqual({ outcome: 'queued', id: 'r-1' })
+    expect(asked).toHaveLength(1)
+    expect(asked[0]?.path).toBe('/rooms/r-1/floor')
+    expect(asked[0]?.init?.method).toBe('PUT')
+    expect(JSON.parse(String(asked[0]?.init?.body))).toEqual({ floorId: 'f-2' })
+    expect(log).toEqual(['exchange'])
+  })
+
+  it('is sent without a body where there is nothing to say, as a removal', async () => {
+    const asked = answering(200, { id: 'c-9' })
+    const { client, log } = exchanging()
+
+    // Below a building: an address the sync client does not know. The answer
+    // names the closure, whatever the route answered with.
+    const result = await askAt(client, 'DELETE', '/buildings/b-1/closures/c-1', 'c-1')
+
+    expect(result).toEqual({ outcome: 'queued', id: 'c-1' })
+    expect(asked[0]?.path).toBe('/buildings/b-1/closures/c-1')
+    expect(asked[0]?.init?.method).toBe('DELETE')
+    expect(asked[0]?.init?.body).toBeUndefined()
+    expect(log).toEqual(['exchange'])
+  })
+
+  it('hands on the sentence of a refusal, and exchanges nothing', async () => {
+    const sentence =
+      'In diesem Raum stehen Anlagen, gelöschte mitgezählt; er zieht deshalb nur innerhalb seines Gebäudes um.'
+
+    answering(400, { message: sentence })
+
+    const { client, log } = exchanging()
+
+    expect(await askAt(client, 'PUT', '/rooms/r-1/floor', 'r-1', { floorId: 'f-9' })).toEqual({
+      outcome: 'refused',
+      reason: 'online_only',
+      fields: [],
+      message: sentence,
+    })
+    expect(log).toEqual([])
+  })
+
+  it('says without a sentence that it takes a connection when nobody answers', async () => {
+    vi.stubGlobal('fetch', () => Promise.reject(new TypeError('Failed to fetch')))
+
+    const { client, log } = exchanging()
+
+    expect(await askAt(client, 'DELETE', '/rooms/r-1', 'r-1')).toEqual({
+      outcome: 'refused',
+      reason: 'online_only',
+      fields: [],
+    })
+    expect(log).toEqual([])
   })
 })

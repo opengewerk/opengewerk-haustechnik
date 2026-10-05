@@ -1,13 +1,15 @@
 import type { RecordState } from '@opengewerk/haustechnik-domain'
-import { cardLink, Cell, Column, Panel, Status, TablePanel } from '@opengewerk/platform-web'
+import { Button, cardLink, Cell, Column, Panel, Status, TablePanel } from '@opengewerk/platform-web'
 import { ChangesButton, PageHead, Screen } from '@opengewerk/platform-web/office'
+import { useRight } from '@opengewerk/platform-web/session'
 import { maybeText, text, useRecord, useRelated } from '@opengewerk/platform-web/sync'
-import { Link, useParams } from '@tanstack/react-router'
+import { Link, useNavigate, useParams } from '@tanstack/react-router'
+import { Pencil, Plus } from 'lucide-react'
 import { useMemo } from 'react'
 
 import { placePath } from '../../app/place-path.js'
 import { byNumber, placeAbove, titleOfRoom } from '../../app/place-records.js'
-import { officePlaces } from '../place-addresses.js'
+import { officePlaces, placeForms } from '../place-addresses.js'
 import { countedAssets, countedRooms, PlaceNotFound } from '../place-pages.js'
 
 /**
@@ -16,7 +18,9 @@ import { countedAssets, countedRooms, PlaceNotFound } from '../place-pages.js'
  * one): its level, and its rooms in the order of their numbers, each with
  * what it is used for and how many assets stand in it.
  *
- * Read from the device, so it stands without a network.
+ * Read from the device, so it stands without a network. Whoever keeps the
+ * places changes the floor from here (`floor-form.tsx`), and whoever takes
+ * stock of rooms adds one to it (`room-form.tsx`).
  */
 export function FloorScreen() {
   const { floorId } = useParams({ strict: false }) as { floorId?: string }
@@ -25,6 +29,9 @@ export function FloorScreen() {
   const property = useRecord('properties', building ? String(building['propertyId']) : undefined)
   const rooms = useRelated('rooms', 'floorId', floorId)
   const assets = useRelated('assets', 'buildingId', building ? String(building['id']) : undefined)
+  const writes = useRight('location.write')
+  const records = useRight('room.record')
+  const navigate = useNavigate()
 
   if (!floor || !floorId || !building || !property) {
     return <PlaceNotFound place="floor" />
@@ -44,7 +51,32 @@ export function FloorScreen() {
             <Status tone="neutral">Ebene {floor['level']}</Status>
           ) : null
         }
-        actions={<ChangesButton table="floors" id={floorId} />}
+        actions={
+          <>
+            <ChangesButton table="floors" id={floorId} />
+            {writes ? (
+              <Button
+                icon={Pencil}
+                onClick={() => {
+                  void navigate({ to: placeForms.editFloor(floorId) })
+                }}
+              >
+                Bearbeiten
+              </Button>
+            ) : null}
+            {records ? (
+              <Button
+                tone="primary"
+                icon={Plus}
+                onClick={() => {
+                  void navigate({ to: placeForms.newRoom(floorId) })
+                }}
+              >
+                Neuer Raum
+              </Button>
+            ) : null}
+          </>
+        }
       />
       <Rooms rooms={rooms} assets={assets} />
     </Screen>

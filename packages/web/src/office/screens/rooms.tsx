@@ -1,17 +1,18 @@
 import type { LifecycleState, RecordState } from '@opengewerk/haustechnik-domain'
-import { Cell, Column, Panel, Status, TablePanel } from '@opengewerk/platform-web'
+import { Button, Cell, Column, Panel, Status, TablePanel } from '@opengewerk/platform-web'
 import { today } from '@opengewerk/platform-web/format'
 import { ChangesButton, PageHead, Screen } from '@opengewerk/platform-web/office'
+import { useRight } from '@opengewerk/platform-web/session'
 import { maybeText, text, useRecord, useRecords } from '@opengewerk/platform-web/sync'
-import { useParams } from '@tanstack/react-router'
-import { DoorOpen } from 'lucide-react'
+import { useNavigate, useParams } from '@tanstack/react-router'
+import { DoorOpen, Pencil } from 'lucide-react'
 import { useMemo } from 'react'
 
 import { statesOn } from '../../app/asset-records.js'
 import { placePath } from '../../app/place-path.js'
 import { byNumber, placeAbove, titleOfRoom } from '../../app/place-records.js'
 import { AssetState } from '../asset-state.js'
-import { officePlaces } from '../place-addresses.js'
+import { officePlaces, placeForms } from '../place-addresses.js'
 import { PlaceNotFound } from '../place-pages.js'
 
 /**
@@ -21,7 +22,8 @@ import { PlaceNotFound } from '../place-pages.js'
  * stands. An asset supplies a room by naming it, or by naming its building
  * as a whole: the fire alarm system of a school supplies every room of it.
  *
- * Read from the device, so it stands without a network. What the board draws
+ * Read from the device, so it stands without a network. Whoever takes stock
+ * of rooms corrects this one from here (`room-form.tsx`). What the board draws
  * beyond this arrives with what it shows: the kind of an asset with the
  * catalogue, the way to an asset with its page, the open defects with the
  * defects and the label of the room with the labels.
@@ -38,6 +40,8 @@ export function RoomScreen() {
   const rooms = useRecords('rooms')
   const buildings = useRecords('buildings')
   const buildingId = building ? String(building['id']) : undefined
+  const records = useRight('room.record')
+  const navigate = useNavigate()
 
   const inside = useMemo(
     () => assets.filter((asset) => asset['roomId'] === roomId).sort(byNumber),
@@ -94,7 +98,21 @@ export function RoomScreen() {
             </Status>
           )
         }
-        actions={<ChangesButton table="rooms" id={roomId} />}
+        actions={
+          <>
+            <ChangesButton table="rooms" id={roomId} />
+            {records ? (
+              <Button
+                icon={Pencil}
+                onClick={() => {
+                  void navigate({ to: placeForms.editRoom(roomId) })
+                }}
+              >
+                Bearbeiten
+              </Button>
+            ) : null}
+          </>
+        }
       />
       {/* The columns of the board. Beside the assets the open defects and the
           label of the room take their place once there are defects and labels

@@ -25,16 +25,37 @@ function json(body: unknown, status: number): Response {
   })
 }
 
+/** What a screen wrote to a route. */
+export interface Written {
+  readonly method: string
+  readonly path: string
+  readonly body: unknown
+}
+
+/** What a route answers a write with. */
+export interface WriteAnswer {
+  readonly status: number
+  readonly body: unknown
+}
+
 /**
- * The server as far as a screen that only reads asks it: who is signed in, as
+ * The server as far as a screen of the office asks it: who is signed in, as
  * what, and the areas they see. Every other question is answered with 404,
  * unless the test names it.
+ *
+ * What a screen writes to a route is kept in the order it came, and answered
+ * by the test; without an answer of its own a write is one nobody expected,
+ * and is refused. Handed back is what was written.
  */
 export function signedInOffice(
   role: RoleKey,
   areas: readonly NamedArea[],
   further: Readonly<Record<string, unknown>> = {},
-): void {
+  answerToWrite: (write: Written) => WriteAnswer = () => ({
+    status: 500,
+    body: { message: 'Dieser Test hat keinen Schreibzugriff erwartet.' },
+  }),
+): Written[] {
   const answers = new Map<string, unknown>([
     [
       '/api/auth/get-session',
@@ -47,10 +68,29 @@ export function signedInOffice(
     ['/areas', areas],
     ...Object.entries(further),
   ])
+  const written: Written[] = []
 
-  vi.stubGlobal('fetch', (path: string) =>
-    Promise.resolve(json(answers.get(path) ?? {}, answers.has(path) ? 200 : 404)),
-  )
+  vi.stubGlobal('fetch', (path: string, init?: RequestInit) => {
+    const method = init?.method ?? 'GET'
+
+    if (method === 'GET') {
+      return Promise.resolve(json(answers.get(path) ?? {}, answers.has(path) ? 200 : 404))
+    }
+
+    const write = {
+      method,
+      path,
+      body: typeof init?.body === 'string' ? (JSON.parse(init.body) as unknown) : undefined,
+    }
+
+    written.push(write)
+
+    const answer = answerToWrite(write)
+
+    return Promise.resolve(json(answer.body, answer.status))
+  })
+
+  return written
 }
 
 /** The office at an address, around a device that holds these kinds of record. */

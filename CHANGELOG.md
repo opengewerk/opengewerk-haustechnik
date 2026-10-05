@@ -448,7 +448,18 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   die ihn versorgen, ohne in ihm zu stehen, mit dem Ort, an dem sie stehen; eine Anlage, die das ganze Gebäude
   versorgt, versorgt jeden seiner Räume. Der Pfad führt von der Liegenschaft herunter, auf dem Telefon steht an
   seiner Stelle der Weg eine Ebene zurück, und in der Navigation leuchtet "Liegenschaften". Alle drei Seiten
-  liest das Gerät aus dem Abgleich, auch ohne Netz. Die Formulare und die Karte "Schließzeiten" folgen
+  liest das Gerät aus dem Abgleich, auch ohne Netz. Die Karte "Schließzeiten" folgt
+- Die Formulare für Gebäude, Geschoss und Raum im Büro (#86, dritter Teil). Unterhalb einer Liegenschaft ließ
+  sich bisher nichts anlegen, ändern oder entfernen; ein Gebäude kam nur über die Schnittstelle hinein. Ein
+  Gebäude bekommt Bezeichnung, Kürzel, Baujahr und eine oder mehrere Gebäudearten zum Ankreuzen, ein Geschoss
+  Bezeichnung und Ebene, ein Raum Nummer, Bezeichnung und Nutzung. Gebäude und Geschoss pflegen Leitung und
+  Technische Leitung, mit Verbindung, und das Formular sagt es, bevor jemand tippt. Einen Raum legt an und
+  berichtigt, wer Räume aufnimmt, also jede der vier Rollen, über den Postausgang und damit auch ohne Netz.
+  Entfernt wird nach einer Rückfrage, die sagt, was mitgeht; eine Anlage mit Nachweis bleibt, und dann bleibt
+  auch der Ort, mit dem Satz des Servers. Ein Raum zieht über "In ein anderes Geschoss verlegen" um: angeboten
+  werden die Geschosse seiner Liegenschaft und, solange Anlagen in ihm stehen, nur die seines Gebäudes, mit
+  dem Grund dazu. Was das Gerät nicht wissen kann, eine längst entfernte Anlage, die den Raum noch nennt, sagt
+  der Server, und sein Satz steht in der Rückfrage. Die Karte "Schließzeiten" folgt
 
 ### Geändert
 
@@ -472,6 +483,11 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   Formulars (#86)
 - Die Vorschau gibt jeder Anlage einen Zustand, nimmt einen Unterzähler außer Betrieb und lässt zwei Zähler je
   ein Gebäude versorgen, einen davon eines, in dem er nicht steht, damit die Raumseite beides zeigt (#86)
+- Die Seite einer Liegenschaft bietet "Neues Gebäude" an, die eines Gebäudes "Bearbeiten" und "Geschoss
+  anlegen", die eines Geschosses "Bearbeiten" und "Neuer Raum" und die eines Raums "Bearbeiten", jeweils nur
+  dem, der es darf (#86)
+- Die Prüfung "Breiten und Auflösungen" öffnet auch die Formulare für ein neues Gebäude, ein neues Geschoss
+  und einen neuen Raum (#86)
 - Planungskonzept v0.8: die Entscheidungen vom 04.10.2026 vor dem Bau von Phase 1 stehen an ihrer
   Stelle und in der Tabelle in Abschnitt 15 (#59, #72, #134). Die Issues von Phase 1 hatten unter
   "Zu klären vor dem Bau" offen, was das Konzept nicht sagte oder was die freigegebenen Tafeln als
@@ -690,6 +706,14 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
 
 ### Behoben
 
+- Das Formular einer Liegenschaft beginnt neu, wenn nur seine Adresse auf eine andere Liegenschaft wechselt
+  (#86). Über den Verlauf des Browsers führt ein Schritt von einem Formular in ein anderes, und bisher standen
+  dann unter der Überschrift der einen Liegenschaft die Eingaben der anderen; "Speichern" hätte sie dorthin
+  geschrieben. Die Formulare für Gebäude, Geschoss und Raum sind von Anfang an so gebaut
+- "Liegenschaft entfernen" bleibt links stehen, wenn der Server das Entfernen ablehnt (#86). Sein Satz stand
+  zwischen den Knöpfen des Formulars und brach ihre Zeile um, und der Knopf, den jemand eben gedrückt hatte,
+  sprang an den rechten Rand. Jetzt steht der Satz unter allen Knöpfen, und keiner bewegt sich. Die Formulare
+  für Gebäude, Geschoss und Raum sind von Anfang an so gebaut
 - Der Test der Karte "Ansprechpartner", der einen neuen Ansprechpartner anlegt, wartet darauf,
   dass sich das Formular schließt (#85). Die Zeile kommt mit dem Abgleich an, das Formular
   schließt erst, wenn die Route geantwortet hat, also einen Augenblick später; der Test fragte
