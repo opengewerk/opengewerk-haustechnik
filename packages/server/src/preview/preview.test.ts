@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto'
 import { readFileSync } from 'node:fs'
 
 import type { INestApplication } from '@nestjs/common'
@@ -225,6 +226,24 @@ describe('a preview started as a technician in the north', () => {
 
     expect(choice?.roles).toEqual(['technician'])
     expect([...(choice?.rights ?? [])].sort()).toEqual([...rightsOfRoles(['technician'])].sort())
+  })
+
+  /**
+   * The preview keeps files as an instance does (#96), in a folder of this
+   * start. Without a store the route would refuse every file, and a screen
+   * that files a photo could not be looked at here.
+   */
+  it('takes a file the technician sends, as an instance does', async () => {
+    const bytes = Buffer.from('Foto aus der Vorschau', 'utf8')
+    const sha256 = createHash('sha256').update(bytes).digest('hex')
+    const answer = await request(application.getHttpServer())
+      .put(`/files/${sha256}`)
+      .set('content-type', 'application/octet-stream')
+      .set('x-media-type', 'text/plain')
+      .send(bytes)
+      .expect(200)
+
+    expect(answer.body).toEqual({ sha256, sizeBytes: bytes.byteLength, mediaType: 'text/plain' })
   })
 })
 

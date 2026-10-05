@@ -2,8 +2,8 @@
 # application and can read nowhere else (opengewerk-haustechnik#14). The steps
 # are the foundation's, in upstream/opengewerk/docker; read with "." once the
 # helpers there are defined, so the functions below may use sql, value,
-# compose, restart_app, store_file and $base, and the two tenants test-stack.sh
-# creates are $first_tenant and $second_tenant.
+# compose, restart_app, fail, $base and $temp, and the two tenants
+# test-stack.sh creates are $first_tenant and $second_tenant.
 #
 # What a backup has to bring back besides the tenants, the audit log and the
 # file store: what the foundation keeps for this application, accounts, the
@@ -12,9 +12,11 @@
 # (opengewerk-haustechnik#17) and what an invitation says about them
 # (opengewerk-haustechnik#84); the first record with a place, a property
 # (opengewerk-haustechnik#18); a building on it with the first asset
-# (opengewerk-haustechnik#20); a file in the store with its row and the mail
-# server of a Betreiber, the two tables the foundation brings since
-# opengewerk-haustechnik#23; a setting for a kind of deadline with a pass of
+# (opengewerk-haustechnik#20); a file the account sent through the route of
+# the store, with the row that makes it a file of the Betreiber
+# (opengewerk-haustechnik#96), and the mail server of a Betreiber, the two
+# tables the foundation brings since opengewerk-haustechnik#23; a setting for
+# a kind of deadline with a pass of
 # the deadline engine, the two it brings since opengewerk-haustechnik#24; and a
 # duty at the asset with a dismissed proposal beside it, an evidence of the
 # duty and the deadline the engine keeps from it (opengewerk-haustechnik#25);
@@ -48,6 +50,50 @@ update_adds='areas (migration), member_areas (migration), tenant_roles (roles.co
 # through the environment and never as an argument, as the command asks.
 probe_email='haustechnik@probe.example.de'
 probe_password='ein-ordentlich-langes-probepasswort'
+
+# What the account sends through the route of the file store before the backup
+# (opengewerk-haustechnik#96). The store keeps it under the hash of this text.
+probe_file='Prüfbericht Aufzug Haus A'
+
+# Signs the probe account in and has it work for the first Betreiber, the way
+# a browser does. Prints the cookies of the session and nothing else: the
+# password goes to curl in the body of the request and into no output.
+probe_session() {
+  status=$(curl --silent --output /dev/null --dump-header "$temp/probe-sign-in.txt" --write-out '%{http_code}' \
+    --header 'Content-Type: application/json' --header "Origin: $base" \
+    --data "{\"email\":\"$probe_email\",\"password\":\"$probe_password\"}" \
+    "$base/api/auth/sign-in/email")
+  [ "$status" = 200 ] || fail "Die Anmeldung des Probekontos ist gescheitert: ${status}"
+
+  # Every cookie the answer set, name and value without its attributes, as
+  # one header: "a=1; b=2".
+  cookies=$(grep -i '^set-cookie:' "$temp/probe-sign-in.txt" | sed 's/^[^:]*: *//; s/;.*//' | tr -d '\r' | paste -s -d ';' - | sed 's/;/; /g')
+  [ -n "$cookies" ] || fail 'Die Anmeldung des Probekontos hat kein Cookie gesetzt.'
+
+  status=$(curl --silent --output /dev/null --write-out '%{http_code}' \
+    --header "Cookie: $cookies" --header 'Content-Type: application/json' --header "Origin: $base" \
+    --data "{\"tenantId\":\"$first_tenant\"}" "$base/auth/tenant")
+  [ "$status" = 201 ] || fail "Das Probekonto konnte seinen Betreiber nicht wählen: ${status}"
+
+  printf '%s\n' "$cookies"
+}
+
+# Sends the probe file the way a device sends one: as bytes, to the address
+# their hash names, in the session whose cookies are handed in.
+send_probe_file() {
+  printf '%s' "$probe_file" > "$temp/probe-file.bin"
+  hash=$(sha256sum "$temp/probe-file.bin" | cut -d' ' -f1)
+  status=$(curl --silent --output "$temp/probe-file.json" --write-out '%{http_code}' --request PUT \
+    --header "Cookie: $1" --header 'Content-Type: application/octet-stream' \
+    --header 'X-Media-Type: text/plain' --header "Origin: $base" \
+    --data-binary "@$temp/probe-file.bin" "$base/files/$hash")
+  echo "PUT /files/${hash}: ${status}"
+
+  if [ "$status" != 200 ]; then
+    cat "$temp/probe-file.json"
+    fail 'Die Datei ließ sich nicht über die Route des Dateispeichers ablegen.'
+  fi
+}
 
 records_for_backup() {
   # add-staff checks the role against the roles of the Betreiber, and a tenant
@@ -100,14 +146,21 @@ records_for_backup() {
     insert into building_closures (tenant_id, building_id, property_id, area_id, starts_on, ends_on, reason)
     select tenant_id, id, property_id, area_id, '2026-12-24', '2027-01-06', 'Weihnachtsferien'
       from buildings where tenant_id = '$first_tenant';"
-  # A file in the store with the row that makes it one, and a mail server. Both
-  # tables come with the foundation (opengewerk-haustechnik#23); what writes
-  # them comes with the documents and the notifications of phase 1, so until
-  # then this file is the one the comparison of the store finds.
-  hash=$(store_file 'Bericht Aufzug Haus A')
+  # A file in the store, sent through the route the way a device sends one
+  # (opengewerk-haustechnik#96): the account signs in, works for its Betreiber
+  # and puts the bytes to the address their hash names. The route writes the
+  # file into the volume and the row that makes it a file of the Betreiber;
+  # the comparison of the store finds the first, the count of the rows the
+  # second, and after_restore below looks at both once more.
+  cookies=$(probe_session)
+  send_probe_file "$cookies"
+  stored=$(value "select count(*) from files where tenant_id = '$first_tenant' and media_type = 'text/plain'")
+  echo "Dateien des Betreibers nach dem Ablegen: ${stored}"
+  test "${stored}" = 1
+  # A mail server, whose table comes with the foundation as well
+  # (opengewerk-haustechnik#23). What writes it comes with the notifications
+  # of phase 1.
   sql "
-    insert into files (tenant_id, sha256, size_bytes, media_type) values
-      ('$first_tenant', '$hash', 21, 'text/plain');
     insert into mail_settings (tenant_id, host, port, security, from_address) values
       ('$first_tenant', 'mail.probe.example.de', 587, 'starttls', 'technik@probe.example.de');"
   # A setting for the kind of deadline of the duties, a table the foundation
@@ -216,10 +269,21 @@ records_for_update() {
     insert into memberships (tenant_id, user_id, roles) values ('$first_tenant', 'u-probe', '{technician}');"
 }
 
-# After the restore the account signs in with the password it had before the
-# backup (opengewerk-haustechnik#15). The answer is a session, which also
-# means its sign in was written to the restored database.
+# After the restore the file the account sent is back where the store looks
+# for it, with the contents its name promises and the row that makes it a file
+# of the Betreiber (opengewerk-haustechnik#96). And the account signs in with
+# the password it had before the backup (opengewerk-haustechnik#15). The
+# answer is a session, which also means its sign in was written to the
+# restored database.
 after_restore() {
+  expected=$(printf '%s' "$probe_file" | sha256sum | cut -d' ' -f1)
+  hash=$(value "select sha256 from files where tenant_id = '$first_tenant'")
+  echo "Datei des Betreibers nach dem Rückspielen: ${hash}"
+  test "${hash}" = "${expected}"
+  found=$(compose exec -T app sh -c 'sha256sum "$STORAGE_PATH/$(printf "%s" "$1" | cut -c1-2)/$(printf "%s" "$1" | cut -c3-4)/$1"' sh "$hash" | cut -d' ' -f1)
+  test "${found}" = "${expected}"
+  echo 'Die abgelegte Datei ist mit ihrer Zeile zurück, und ihr Inhalt ist der von vor der Sicherung.'
+
   status=$(curl --silent --output "$temp/sign-in.json" --write-out '%{http_code}' \
     --header 'Content-Type: application/json' --header "Origin: $base" \
     --data "{\"email\":\"$probe_email\",\"password\":\"$probe_password\"}" \

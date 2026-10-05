@@ -6,7 +6,10 @@ import {
   ConfigurationError,
   createServer,
   Database,
+  FileStore,
   InstanceSettingsCache,
+  readRendererConfiguration,
+  rendererFor,
   type Server,
 } from '@opengewerk/platform-server'
 
@@ -34,6 +37,11 @@ export interface OpenInstance extends Server {
  * one that recognises nobody, and the instance runs, reports its health and
  * hands out nothing, the sign in and the first run included. Migrations do not
  * run from here; they run as another role, before this process starts.
+ *
+ * The file store lies where the configuration says (`STORAGE_PATH`, the volume
+ * the backup takes along), and the renderer is the service the environment
+ * names (`RENDERER_URL`, `RENDERER_TOKEN`). Without the two variables there is
+ * none, and whatever prints says so in a sentence.
  *
  * `interfaceDirectory` is where the built interface lies. Left out, it is
  * looked for where an image and a checkout keep it; null serves the API alone.
@@ -70,12 +78,15 @@ export async function openInstance(
     : new SessionIdentitySource(authentication, database)
 
   // The trusted origins and the version go in whether the instance is open or
-  // closed: they open nothing. The authentication goes in only when it is
-  // open, and that is what puts the first run and the one time link on the
-  // routing table at all.
+  // closed: they open nothing. Neither do the file store and the renderer:
+  // closed, nothing reaches them, because every route that would is behind
+  // the guard. The authentication goes in only when it is open, and that is
+  // what puts the first run and the one time link on the routing table at all.
   const output = {
     trustedOrigins: configuration.trustedOrigins,
     version: configuration.version,
+    files: new FileStore(configuration.storagePath),
+    renderer: rendererFor(readRendererConfiguration()),
   }
 
   const server = await createServer(

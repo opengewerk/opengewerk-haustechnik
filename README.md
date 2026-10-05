@@ -48,6 +48,8 @@ Beim ersten Mal legt das Skript `docker/.env` an, erzeugt jeden Schlüssel und f
 
 Ein Update ist derselbe Befehl, nach `git pull` und `git submodule update --init`. Er baut das Abbild neu, migriert und tauscht erst danach die laufenden Container; scheitert die Migration, arbeitet die Instanz auf dem Stand davor weiter. Signierte Abbilder zum Herunterladen kommen mit der ersten Fassung.
 
+**Dateien und PDFs.** Was ein Betreiber ablegt, liegt im Dateispeicher, einem eigenen Volume (`files`), unter der Prüfsumme seines Inhalts; die Datenbank hält dazu je Betreiber eine Zeile. Jede Sicherung nimmt Datenbank und Dateispeicher zusammen mit, und das Rückspielen prüft jede Datei gegen ihren Namen. Ein PDF druckt der Renderer, ein Chromium in einem eigenen Container, auf derselben festen Fassung wie im Fundament. Er startet von Haus aus mit, weil die Vorlage `COMPOSE_PROFILES=renderer` setzt, und braucht rund 340 MB Arbeitsspeicher und knapp 4 GB auf der Platte. Wer nie ein PDF braucht, schaltet ihn in `docker/.env` mit einem leeren `COMPOSE_PROFILES=` ab; alles andere läuft dann weiter, und wer ein PDF verlangt, bekommt einen Satz, der das sagt. Eine Installation von vor dem Renderer bekommt seine beiden Zeilen beim nächsten `sh docker/start.sh` in ihre `.env`.
+
 Die Sicherung läuft jede Nacht von selbst, zu der Uhrzeit, die der Bereich der Instanz festlegt, und holt eine verpasste nach. Von Hand, etwa vor einem Update, und zum Rückspielen:
 
 ```bash
@@ -69,7 +71,7 @@ docker compose -f docker/compose.yaml exec app node dist/appoint-operator.js <e-
 docker compose -f docker/compose.yaml exec app node dist/add-tenant.js "<name des betreibers>" <e-mail> "<name der leitung>"
 ```
 
-Der Lauf der Fristen läuft in der Anwendung, zehn Sekunden nach dem Start und danach jede Minute, und führt die Termine der Pflichten (#25); im Büro sagt `GET /deadlines/run`, wann er einen Betreiber zuletzt durchgegangen ist. Die Dienste für PDFs, E-Mail und Push liegen seit #23 im Fundament. Gebunden werden sie hier mit den Bausteinen, die sie brauchen: der Renderer mit dem ersten PDF, Mailserver, E-Mail und Push mit den Benachrichtigungen, beide in Phase 1 und jeweils mit ihren Zeilen in der `.env`. Bis dahin geht eine Einladung als Link hinaus.
+Der Lauf der Fristen läuft in der Anwendung, zehn Sekunden nach dem Start und danach jede Minute, und führt die Termine der Pflichten (#25); im Büro sagt `GET /deadlines/run`, wann er einen Betreiber zuletzt durchgegangen ist. Die Dienste für Dateien, PDFs, E-Mail und Push liegen seit #23 im Fundament. Dateispeicher und Renderer sind seit #96 gebunden: der Server nimmt den Inhalt einer Datei unter `PUT /files/<prüfsumme>` von dem an, der Dokumente ablegen darf, und reicht den Renderer an alles, was druckt; die Dokumente, die Etiketten und das PDF eines Nachweises bauen darauf auf. Mailserver, E-Mail und Push kommen mit den Benachrichtigungen, ebenfalls in Phase 1 und mit ihren Zeilen in der `.env`. Bis dahin geht eine Einladung als Link hinaus.
 
 ## Am Code arbeiten
 
@@ -162,7 +164,7 @@ pnpm --filter @opengewerk/haustechnik-server run build
 DATABASE_URL=postgres://opengewerk_app:<passwort>@<host>:5432/haustechnik STORAGE_PATH=<verzeichnis> SESSION_SECRET=<64 hex> TRUSTED_ORIGINS=http://localhost:23800 SETUP_CODE=<XXXX-XXXX> pnpm --filter @opengewerk/haustechnik-server run start
 ```
 
-Der Server lauscht auf Port 23800 und liefert die gebaute Oberfläche gleich mit aus; ohne Bau antwortet er mit der Schnittstelle allein und sagt das beim Start. Eine leere Instanz zeigt im Browser die Ersteinrichtung, die nach dem Einrichtungscode aus `SETUP_CODE` fragt und den Betreiber, das erste Konto und dessen zweiten Faktor anlegt. Mit `CLOSED=true` läuft die Instanz, meldet unter `/health` ihre Gesundheit und gibt sonst nichts heraus.
+Der Server lauscht auf Port 23800 und liefert die gebaute Oberfläche gleich mit aus; ohne Bau antwortet er mit der Schnittstelle allein und sagt das beim Start. Eine leere Instanz zeigt im Browser die Ersteinrichtung, die nach dem Einrichtungscode aus `SETUP_CODE` fragt und den Betreiber, das erste Konto und dessen zweiten Faktor anlegt. Mit `CLOSED=true` läuft die Instanz, meldet unter `/health` ihre Gesundheit und gibt sonst nichts heraus. Dateien legt sie unter `STORAGE_PATH` ab. Einen Renderer hat eine so gestartete Instanz nur, wenn `RENDERER_URL` und `RENDERER_TOKEN` einen nennen, etwa einen Container mit dem Abbild aus `docker/compose.yaml`; ohne die beiden sagt sie bei einem PDF, dass keiner eingerichtet ist.
 
 ### Vorschau ohne Anmeldung
 

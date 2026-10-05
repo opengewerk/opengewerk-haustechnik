@@ -8,10 +8,11 @@
 # migrates and then starts, in the order of an update. What they need to know
 # about this application stands in application.env beside this file and here.
 #
-# Five services. Three run at all times, the migration exits when it is done,
-# and the backup by hand sits in a profile. The order is not a convenience:
-# the database has to answer before anything migrates, and the migration has
-# to be through before the application starts.
+# Six services. The database, the application and the nightly backup run at
+# all times, and so does the renderer unless the .env switches it off; the
+# migration exits when it is done, and the backup by hand sits in a profile.
+# The order is not a convenience: the database has to answer before anything
+# migrates, and the migration has to be through before the application starts.
 #
 # Side by side with an OpenGewerk on the same server (opengewerk-haustechnik
 # #15): a project name, a port, a database and volumes of its own, and a host
@@ -98,9 +99,17 @@ services:
       # an address carrying the wrong role at startup.
       DATABASE_URL: postgres://opengewerk_app:${HAUSTECHNIK_APP_PASSWORD}@postgres:5432/haustechnik
       PORT: '23800'
-      # The content addressed file store. The application refuses to start
-      # when it cannot write here, because a wrong mount otherwise shows up as
-      # the first lost file rather than as an error.
+      # Where the renderer listens. The address stands here even when its
+      # profile is switched off: nobody answers then, and an attempt at a PDF
+      # gets the message that the service is not running rather than the one
+      # saying none is set up. The first is the true one.
+      RENDERER_URL: http://renderer:3000
+      RENDERER_TOKEN: ${RENDERER_TOKEN:-}
+      # The content addressed file store: the documents and photos a Betreiber
+      # files, and every PDF once it has been printed. The application refuses
+      # to start when it cannot write here, because a wrong mount otherwise
+      # shows up as the first lost file rather than as an error. The volume
+      # behind it is in every backup.
       STORAGE_PATH: /var/lib/opengewerk-haustechnik/storage
       # Signs the session cookies and encrypts the second factors. Changing it
       # signs everybody out, so it belongs in the backup of an installation.
@@ -134,6 +143,45 @@ services:
     # under a host name of its own.
     ports:
       - '127.0.0.1:${HAUSTECHNIK_PORT:-23800}:23800'
+
+  # Chromium for turning a page into a PDF, a container of its own and not
+  # part of the application process (ADR 0007 in the repository opengewerk):
+  # Chromium in the same process would cost more memory than the whole
+  # application is allowed to use.
+  #
+  # Starts with the instance: the .env switches its profile on with
+  # COMPOSE_PROFILES=renderer, and the template ships it that way, because an
+  # installation without it cannot hand out a single PDF. Left empty there, it
+  # stays off:
+  #
+  #   COMPOSE_PROFILES=
+  #
+  # Without it everything else keeps running, and an attempt at a PDF gets a
+  # readable message instead of a crash. Switched off, it saves close to 4 GB
+  # of disk and around 340 MB of memory.
+  #
+  # Pinned to a release and its digest, the ones the foundation names in
+  # upstream/opengewerk/docker/compose.yaml: the pages are built with the
+  # foundation's helpers and printed in its CI with exactly this Chromium. An
+  # update is a pull request that raises the submodule and changes this line
+  # with it; a step of the CI checks that both name the same image, and the
+  # check of the widths takes its browser from this line too.
+  renderer:
+    image: ghcr.io/browserless/chromium:v2.57.0@sha256:6bac628b3d8293f8fb251d3a6b63030dfc5a1cb0c7e5c39abe5efd8f4b25360b
+    restart: unless-stopped
+    profiles: ['renderer']
+    logging: *logging
+    environment:
+      # The service wants a token, even on its own network. It sits in the
+      # .env file and reaches the application as RENDERER_TOKEN.
+      TOKEN: ${RENDERER_TOKEN:?RENDERER_TOKEN fehlt in der .env-Datei}
+      # One browser per job, and two minutes is the end of it. A PDF of a
+      # protocol takes seconds; anything beyond that is stuck and should give
+      # up.
+      CONCURRENT: '1'
+      TIMEOUT: '120000'
+    # No published port either. It is reachable from the docker network only,
+    # which means from the application.
 
   # Backup and restore by hand, with the image of the foundation's backup:
   #

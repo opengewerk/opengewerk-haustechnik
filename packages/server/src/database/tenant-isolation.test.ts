@@ -209,7 +209,8 @@ function rowsOf(tenant: Tenant): readonly Row[] {
       },
     },
     // The files and the mail server of a tenant come with the foundation (#23).
-    // Nothing in this application writes them before phase 1; the test does.
+    // A file is written through the route of the foundation (#96); nothing in
+    // this application writes a mail server before its screen, the test does.
     {
       table: 'files',
       values: {

@@ -9,7 +9,9 @@
 # a session of the one is none at the other; and taking this one down with its
 # volumes leaves the other as it was. OpenGewerk comes from the submodule,
 # built from the commit it points at and started with its own scripts, without
-# its renderer, which this check does not need.
+# its renderer, which this check does not need. This application starts the
+# way an installation does, its renderer included (opengewerk-haustechnik#96),
+# so that taking it down is taking all of it down.
 #
 # Prints what it checks and stops at the first thing that is wrong.
 set -eu
@@ -145,16 +147,23 @@ session)
 
 remove-ours)
   before=$(theirs ps --quiet | sort | tr '\n' ' ')
-  ours --profile backup down --volumes --remove-orphans
+  # Every profile, so that the renderer goes with the rest: a profile named on
+  # the command line stands in place of the one the .env switches on, and
+  # "down" with the profile of the backup alone would leave the renderer
+  # running, on a network that cannot be removed under it.
+  ours --profile '*' down --volumes --remove-orphans
 
   remaining=$(volumes_of "$ours_project")
   [ -z "$remaining" ] || fail "Vom Stapel der Haustechnik sind Volumes geblieben: ${remaining}"
+
+  left=$(docker ps --all --quiet --filter "label=com.docker.compose.project=$ours_project")
+  [ -z "$left" ] || fail "Vom Stapel der Haustechnik sind Container geblieben: ${left}"
 
   volumes_of "$theirs_project" > "$temp/theirs-volumes-after.txt"
   diff "$temp/theirs-volumes.txt" "$temp/theirs-volumes-after.txt"
   test "$(theirs ps --quiet | sort | tr '\n' ' ')" = "${before}"
   healthy "$theirs_port"
-  echo 'Die Haustechnik ist samt Volumes entfernt, OpenGewerk läuft unverändert weiter.'
+  echo 'Die Haustechnik ist samt Renderer und Volumes entfernt, OpenGewerk läuft unverändert weiter.'
   ;;
 
 *)
