@@ -146,6 +146,7 @@ describe('an installation that began on the first migration', () => {
     // place and the assets, so they go first, and what an invitation says
     // about areas hangs on the areas; the files, the mail server and the
     // settings of the deadlines hang on nothing of this.
+    await revertMigration(admin, '0017_building_closures')
     await revertMigration(admin, '0016_contacts')
     await revertMigration(admin, '0014_invitation_areas')
     await revertMigration(admin, '0012_evidence_corrections')
@@ -302,6 +303,7 @@ describe('an installation from before the areas', () => {
 
     // The places hang on the areas and go first, as on the way back of an
     // installation, and so does what an invitation says about areas.
+    await revertMigration(admin, '0017_building_closures')
     await revertMigration(admin, '0016_contacts')
     await revertMigration(admin, '0014_invitation_areas')
     await revertMigration(admin, '0012_evidence_corrections')
@@ -368,6 +370,7 @@ describe('an installation with places', () => {
       [tenant.id],
     )
 
+    await revertMigration(admin, '0017_building_closures')
     await revertMigration(admin, '0016_contacts')
     await revertMigration(admin, '0012_evidence_corrections')
     await revertMigration(admin, '0011_signatures')
@@ -1325,5 +1328,81 @@ describe('an installation whose properties have people to talk to', () => {
     )
 
     expect(removed).toEqual([{ table_name: 'contacts', reason: 'migration', records: 2 }])
+  })
+})
+
+/**
+ * 0017 brings the times a building is closed (#86). On the way forward it
+ * touches no row. Taken back, the closures go with their table, and the log
+ * of the tenant says that they went and why, because dropping a table writes
+ * nothing in any log. The trigger on the buildings goes with its function, so
+ * a building is marked afterwards as it was before.
+ */
+describe('an installation whose buildings have times they are closed', () => {
+  it('loses its closures and nothing else when the update is taken back', async () => {
+    await applyMigrations()
+
+    const tenant = { id: newId<'tenant'>() }
+
+    await admin.query('insert into tenants (id, name) values ($1, $2)', [
+      tenant.id,
+      'Wohnbau Nord eG',
+    ])
+    await members(tenant, { 'user-lead': { roles: ['management'] } })
+
+    const { rows: made } = await admin.query<{ id: string; area_id: string }>(
+      `insert into properties (tenant_id, area_id, name, street, postal_code, city, federal_state)
+       select $1, id, 'Schulzentrum', 'Musterweg 1', '00001', 'Beispielstadt', 'DE-BW'
+         from areas where tenant_id = $1
+       returning id, area_id`,
+      [tenant.id],
+    )
+    const property = made[0]
+    const { rows: built } = await admin.query<{ id: string }>(
+      `insert into buildings (tenant_id, property_id, area_id, name, kinds)
+       values ($1, $2, $3, 'Schulhaus', '{school}')
+       returning id`,
+      [tenant.id, property?.id, property?.area_id],
+    )
+    const building = built[0]?.id
+
+    await admin.query(
+      `insert into building_closures (tenant_id, building_id, property_id, area_id, starts_on, ends_on, reason)
+       values ($1, $2, $3, $4, '2026-12-24', '2027-01-06', 'Weihnachtsferien'),
+              ($1, $2, $3, $4, '2027-07-27', '2027-09-06', 'Sommerferien')`,
+      [tenant.id, building, property?.id, property?.area_id],
+    )
+
+    await revertMigration(admin, '0017_building_closures')
+
+    expect((await tableNames(admin)).filter((table) => table === 'building_closures')).toEqual([])
+    expect((await functionNames(admin)).filter((name) => name === 'mark_closures_below')).toEqual(
+      [],
+    )
+
+    // The building stays as it was, and marking it asks after no table that is gone.
+    const { rows: kept } = await admin.query<{ name: string; version: number }>(
+      'select name, version from buildings where tenant_id = $1',
+      [tenant.id],
+    )
+
+    expect(kept).toEqual([{ name: 'Schulhaus', version: 1 }])
+    await expect(
+      admin.query('update buildings set deleted_at = now() where id = $1', [building]),
+    ).resolves.toMatchObject({ rowCount: 1 })
+
+    // The log of the tenant says that both closures went, and why.
+    const { rows: removed } = await admin.query<{
+      table_name: string
+      reason: string | null
+      records: number
+    }>(
+      `select table_name, reason, count(distinct record_id)::int as records from audit_entries
+        where tenant_id = $1 and operation = 'delete'
+        group by table_name, reason`,
+      [tenant.id],
+    )
+
+    expect(removed).toEqual([{ table_name: 'building_closures', reason: 'migration', records: 2 }])
   })
 })

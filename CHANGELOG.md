@@ -427,6 +427,18 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   Regeln, Routen und die Karte sind die des Fundaments, das dafür auf `opengewerk/opengewerk#554`
   und `#559` angehoben ist; diese Anwendung sagt, woran ein Ansprechpartner hängt, wer ihn pflegt
   und wie ihre Wörter heißen
+- Die Schließzeiten eines Gebäudes, unterhalb der Oberfläche (#86, erster Teil; Migration
+  `0017_building_closures` mit Rücknahme, Planungskonzept v0.11, Nachträge in ADR 0002 und 0006).
+  Abschnitt 4.1 des Konzepts gibt einem Gebäude Zeiten, in denen kein Rundgang entsteht, und
+  bisher gab es dafür keine Stelle. Eine Schließzeit reicht von einem Tag bis zu einem Tag, beide
+  eingeschlossen, und nennt auf Wunsch ihren Anlass. Sie hängt an ihrem Gebäude, liegt im Bereich
+  seiner Liegenschaft und geht mit dem Gebäude, wenn es entfernt wird. Eingetragen und entfernt
+  wird sie an den Routen unter `/buildings/:id/closures`, von allen, die Vorgänge planen und
+  verteilen, also auch von der Objektleitung; lesen kann sie, wer das Gebäude sieht. Geändert wird
+  keine: eine falsche wird entfernt und neu eingetragen. Die Schließzeiten reisen auf jedes Gerät,
+  das das Gebäude hält, und ein Gerät schreibt keine. Ob ein Gebäude an einem Tag geschlossen ist,
+  beantwortet `closureOn` in `domain`; der Plan eines Rundgangs fragt es mit #113. Die Karte auf
+  der Seite des Gebäudes folgt, sobald ihre Tafel freigegeben ist
 
 ### Geändert
 
@@ -441,6 +453,8 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   nur der Name bekannt ist, damit die Karte beides zeigt (#85)
 - Planungskonzept v0.10: wer die Ansprechpartner einer Liegenschaft pflegt und wer sie liest (#85)
 - Die Rückfrage vor dem Entfernen einer Liegenschaft nennt auch ihre Ansprechpartner (#85)
+- Die Vorschau zeigt am Schulhaus zwei Schließzeiten, die Ferien, die als nächste kommen (#86)
+- Planungskonzept v0.11: was eine Schließzeit eines Gebäudes ist und wer sie einträgt (#86)
 - Planungskonzept v0.8: die Entscheidungen vom 04.10.2026 vor dem Bau von Phase 1 stehen an ihrer
   Stelle und in der Tabelle in Abschnitt 15 (#59, #72, #134). Die Issues von Phase 1 hatten unter
   "Zu klären vor dem Bau" offen, was das Konzept nicht sagte oder was die freigegebenen Tafeln als

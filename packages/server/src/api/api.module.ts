@@ -26,6 +26,7 @@ import { AreasController, SubstitutionsController } from './areas.controller.js'
 import { AssetsController, BuildingAssetsController } from './assets.controller.js'
 import { authorization, AuthorizationGuard } from './authorization.js'
 import { BuildingsController } from './buildings.controller.js'
+import { BuildingClosuresController } from './closures.controller.js'
 import { contactRights, contactRoutes } from './contact-routes.js'
 import { DatabaseExceptionFilter } from './database-errors.js'
 import { DutiesController, DutyDismissalsController } from './duties.controller.js'
@@ -157,9 +158,11 @@ export class ApiModule {
         // The areas of a tenant, who holds in which, and who stands in for whom.
         AreasController,
         SubstitutionsController,
-        // The place: properties, buildings, floors and rooms.
+        // The place: properties, buildings, floors and rooms, and the times a
+        // building is closed.
         PropertiesController,
         BuildingsController,
+        BuildingClosuresController,
         FloorsController,
         RoomsController,
         // The technology: assets and their components.

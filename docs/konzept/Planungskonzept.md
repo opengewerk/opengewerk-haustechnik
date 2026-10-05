@@ -1,6 +1,6 @@
-# OpenGewerk Haustechnik: Planungskonzept (Software für Betreiber und ihre Haustechnik) · v0.10
+# OpenGewerk Haustechnik: Planungskonzept (Software für Betreiber und ihre Haustechnik) · v0.11
 
-2026-10-05 · Eigenständiges Projekt, Repository `opengewerk-haustechnik` in der GitHub-Organisation `opengewerk` · v0.2 trägt die Entscheidungen vom 01.10.2026 ein, v0.3 die Technik, mit der das Fundament eingebunden wird, v0.4 gleicht Abschnitt 5 und die Wortwahl an die ADRs 0002 bis 0006 an, siehe Abschnitt 15; v0.5 sagt in Abschnitt 7, was jede Rolle im Einzelnen darf, v0.6 nennt dort die Rechte für den Abgleich, v0.7 gibt den eigenen Anlagenarten und den Mängelklassen ihre Phase, v0.8 trägt die Entscheidungen vom 04.10.2026 vor dem Bau von Phase 1 ein, v0.9 gibt der Liegenschaft ihre Notiz, v0.10 sagt, wer ihre Ansprechpartner pflegt (Vergleich mit openMAINT, Atlas CMMS, eTASK, wave Facilities, pitFM, SPARTACUS, Planon, Lumiform, Wowflow und den Excel-Listen, die vielerorts die eigentliche Software sind)
+2026-10-05 · Eigenständiges Projekt, Repository `opengewerk-haustechnik` in der GitHub-Organisation `opengewerk` · v0.2 trägt die Entscheidungen vom 01.10.2026 ein, v0.3 die Technik, mit der das Fundament eingebunden wird, v0.4 gleicht Abschnitt 5 und die Wortwahl an die ADRs 0002 bis 0006 an, siehe Abschnitt 15; v0.5 sagt in Abschnitt 7, was jede Rolle im Einzelnen darf, v0.6 nennt dort die Rechte für den Abgleich, v0.7 gibt den eigenen Anlagenarten und den Mängelklassen ihre Phase, v0.8 trägt die Entscheidungen vom 04.10.2026 vor dem Bau von Phase 1 ein, v0.9 gibt der Liegenschaft ihre Notiz, v0.10 sagt, wer ihre Ansprechpartner pflegt, v0.11, was eine Schließzeit ist und wer sie einträgt (Vergleich mit openMAINT, Atlas CMMS, eTASK, wave Facilities, pitFM, SPARTACUS, Planon, Lumiform, Wowflow und den Excel-Listen, die vielerorts die eigentliche Software sind)
 
 Self-hosted Open-Source-System für alle, die Gebäude betreiben und dafür eigene Haustechniker haben. Liegenschaften, Gebäude, Räume und technische Anlagen stehen in einem Datenmodell. Die Betreiberpflichten hängen daran als überwachte Fristen, Rundgänge und Prüfungen laufen auf dem Telefon auch ohne Netz, und zu jeder Pflicht gibt es einen Nachweis, der sich nachträglich nicht ändern lässt.
 
@@ -231,7 +231,7 @@ Wie dort gilt: jede Abfrage nennt einen Tag, und für einen Tag ohne hinterlegte
 ### 4.1 Liegenschaften, Gebäude, Räume
 
 - Liegenschaften mit Anschrift, Land, einer Notiz zu dem, was man vor dem Weg dorthin wissen muss (Zufahrt, wo der Schlüssel liegt, Besonderheiten), Ansprechpartnern, Fotos und Zugängen (Schlüssel, Codes, versiegelt gespeichert, jedes Aufdecken festgehalten ⚖). Ein Code gehört zu den Zugängen und nicht in die Notiz: die liest jeder, der die Liegenschaft sieht
-- Gebäude mit Kürzel, Gebäudeart, Baujahr, Flächen und Schließzeiten, in denen kein Rundgang entsteht (4.5); Geschosse; Räume mit Nummer, Nutzung und Fläche
+- Gebäude mit Kürzel, Gebäudeart, Baujahr, Flächen und Schließzeiten, in denen kein Rundgang entsteht (4.5): eine Schließzeit reicht von einem Tag bis zu einem Tag, beide eingeschlossen, und nennt auf Wunsch ihren Anlass, etwa die Ferien einer Schule oder eine Sanierung; Geschosse; Räume mit Nummer, Nutzung und Fläche
 - **Lagebild je Gebäude** statt einer Mappe mit Reitern: oben, was zu tun ist (überfällig, fällig, nie erfasst, offene Mängel, offene Störungen, fehlende Zählerstände), darunter der Bestand, darunter die letzten Vorgänge. Jede Zahl ist ein Link auf die gefilterte Liste
 - **Übersicht über alle Liegenschaften** mit denselben Zahlen je Gebäude, in fester Reihenfolge, auf Wunsch nach Dringlichkeit
 - Raumseite mit den Anlagen, die dort stehen, und denen, die den Raum versorgen
@@ -501,7 +501,7 @@ Regeln für jeden Beitrag:
 
 - Jede Rolle darf, was die Rolle rechts von ihr darf, und der Bereich begrenzt, wo: ein Recht gilt in den Bereichen der Person (2.8)
 - **Aufnehmen und pflegen.** Aufnehmen heißt anlegen und die Angaben ergänzen und berichtigen, wie es die Bestandsaufnahme vor Ort braucht (2.7, 4.2). Pflegen ist, was Folgen über den Datensatz hinaus hat: der Lebenszyklus einer Anlage, weil ihre Pflichten ruhen, sobald sie außer Betrieb ist, der Tausch, das Verlegen an einen anderen Ort und das Entfernen. Einen Raum verlegt oder entfernt, wer Liegenschaften, Gebäude und Geschosse pflegt. Dasselbe Recht pflegt die Ansprechpartner einer Liegenschaft, mit Verbindung wie die Liegenschaft selbst; lesen kann sie, wer die Liegenschaft sieht, auch auf dem Gerät vor Ort (4.1, 2.7)
-- **Ausführen, planen, abnehmen.** Vorgänge sind Rundgänge, Prüfungen, Wartungen und Aufträge (2.2). Ausführen ist die Arbeit daran bis zur Unterschrift. Planen und verteilen ist, was davor geschieht: einen Rundgang planen, einen Auftrag anlegen und zuteilen, einen offenen Rundgang mit Grund schließen. Abnehmen und gegenzeichnen ist die zweite Unterschrift (4.5, 4.8)
+- **Ausführen, planen, abnehmen.** Vorgänge sind Rundgänge, Prüfungen, Wartungen und Aufträge (2.2). Ausführen ist die Arbeit daran bis zur Unterschrift. Planen und verteilen ist, was davor geschieht: einen Rundgang planen, einen Auftrag anlegen und zuteilen, einen offenen Rundgang mit Grund schließen. Dazu gehören die Schließzeiten eines Gebäudes: wer plant und verteilt, trägt sie ein und entfernt sie, mit Verbindung, auch die Objektleitung, die das Gebäude selbst nicht ändert; lesen kann sie, wer das Gebäude sieht, auch auf dem Gerät vor Ort. Abnehmen und gegenzeichnen ist die zweite Unterschrift (4.1, 4.5, 4.8)
 - **Melden und führen.** Melden heißt einen Mangel festhalten, mit Bemerkung und Foto. Führen ist sein weiterer Weg: Klasse, Frist und Status (4.6)
 - **Abgleichen und senden** ist der Weg eines Geräts zum Server, mit Netz und ohne (2.7): was sich geändert hat, auf das Gerät holen, und was es ohne Netz festgehalten hat, schicken. Das ist kein eigenes Tun, sondern ein anderer Weg hinein; was ein Vorgang anfasst, entscheiden die Rechte darüber, und deshalb haben alle Rollen beide
 - **Nachweise eintragen** meint den Bericht einer Fremdfirma oder Prüforganisation (4.4). Der Nachweis aus einem eigenen Protokoll oder einem Rundgang entsteht mit der Unterschrift dessen, der ausführt, und braucht kein weiteres Recht
@@ -736,6 +736,10 @@ Die offenen Fragen aus v0.1 sind am 01.10.2026 entschieden worden, die Phasen de
 ---
 
 ## 16. Änderungsprotokoll
+
+### v0.10 → v0.11
+
+- Eine Schließzeit eines Gebäudes reicht von einem Tag bis zu einem Tag, beide eingeschlossen, und nennt auf Wunsch ihren Anlass. Es trägt sie ein und entfernt sie, wer Vorgänge plant und verteilt, mit Verbindung; lesen kann sie, wer das Gebäude sieht, auch auf dem Gerät vor Ort. Ein eigenes Recht haben sie nicht (4.1, 7)
 
 ### v0.9 → v0.10
 

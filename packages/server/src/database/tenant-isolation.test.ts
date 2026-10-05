@@ -306,6 +306,18 @@ function rowsOf(tenant: Tenant): readonly Row[] {
       },
     },
     {
+      table: 'building_closures',
+      values: {
+        tenant_id: tenant.id,
+        building_id: building,
+        property_id: property,
+        area_id: area,
+        starts_on: '2026-12-24',
+        ends_on: '2027-01-06',
+        reason: 'Weihnachtsferien',
+      },
+    },
+    {
       table: 'floors',
       values: {
         id: floor,

@@ -620,6 +620,65 @@ describe('the people to talk to at a property', () => {
   })
 })
 
+describe('the times a building is closed', () => {
+  const christmas = { startsOn: '2026-12-24', endsOn: '2027-01-06', reason: 'Weihnachtsferien' }
+
+  /**
+   * A closure belongs to the planning of the rounds, which the office does
+   * with a connection (ADR 0006, point 6): a device holds the closures of its
+   * buildings to read, and what it sends about one waits for the office.
+   */
+  it('are left to the office: a device enters, changes and removes none', async () => {
+    const added = await http()
+      .post(`/buildings/${place.building}/closures`)
+      .set(testIdentityHeader, by('u-site'))
+      .send(christmas)
+      .expect(201)
+    const closure = added.body.id as string
+    const made = newId<'building_closure'>()
+
+    expect(
+      await outcomes('u-site', [
+        operation('building_closures', 'create', made, {
+          buildingId: place.building,
+          startsOn: '2027-07-27',
+          endsOn: '2027-09-06',
+        }),
+        operation('building_closures', 'update', closure, { endsOn: '2027-01-08' }),
+        operation('building_closures', 'delete', closure),
+      ]),
+    ).toEqual([
+      { outcome: 'conflict', reason: 'online_only', fields: [] },
+      { outcome: 'conflict', reason: 'online_only', fields: [] },
+      { outcome: 'conflict', reason: 'online_only', fields: [] },
+    ])
+
+    // Nothing of it was kept.
+    const held = (await pulled('u-site'))['building_closures'] ?? []
+
+    expect(held.find((row) => row['id'] === made)).toBeUndefined()
+    expect(held.find((row) => row['id'] === closure)).toMatchObject({
+      ...christmas,
+      deletedAt: null,
+      version: 1,
+    })
+  })
+
+  it('ask for the right to plan activities from whoever sends one', async () => {
+    const sent = operation('building_closures', 'create', newId<'building_closure'>(), {
+      buildingId: place.building,
+      startsOn: '2027-07-27',
+      endsOn: '2027-09-06',
+    })
+    const answer = await send('u-tech', [sent]).expect(400)
+
+    expect(answer.body).toMatchObject({
+      message: missingRight('activity.write'),
+      operationId: sent.id,
+    })
+  })
+})
+
 describe('what an asset supplies', () => {
   it('adds a place of its property and takes it away, and a second device entering the same place gets a conflict', async () => {
     const asset = await elevatorIn(place)
@@ -1381,6 +1440,53 @@ describe('what a device holds', () => {
       .expect(200)
 
     expect((await rowOf('u-tech', 'contacts', northern, large))?.['deletedAt']).not.toBeNull()
+  })
+
+  /**
+   * Whether the door will be locked is what somebody on the way there needs
+   * to know: the closures of a building travel with it, and with nothing else.
+   */
+  it('holds the times the buildings of its areas are closed, and learns when one is taken away', async () => {
+    const added = async (building: string, reason: string) =>
+      (
+        await http()
+          .post(`/buildings/${building}/closures`)
+          .set(testIdentityHeader, by('u-duties', large))
+          .send({ startsOn: '2026-12-24', endsOn: '2027-01-06', reason })
+          .expect(201)
+      ).body.id as string
+    const northern = await added(inNorth.building, 'Weihnachtsferien')
+    const southern = await added(inSouth.building, 'Sanierung')
+
+    const theirs = (await pulled('u-tech', large))['building_closures'] ?? []
+
+    expect(theirs.map((row) => row['id'])).toEqual([northern])
+    expect(theirs[0]).toMatchObject({
+      buildingId: inNorth.building,
+      propertyId: inNorth.property,
+      areaId: north,
+      startsOn: '2026-12-24',
+      endsOn: '2027-01-06',
+      reason: 'Weihnachtsferien',
+      deletedAt: null,
+    })
+    expect((await pulled('u-duties', large))['building_closures']?.map((row) => row['id'])).toEqual(
+      expect.arrayContaining([northern, southern]),
+    )
+
+    // Named like the places they hang on, so that a device lets them go with the property.
+    const narrowed = await narrowedFor('u-tech')
+
+    expect(narrowed['building_closures']).toBe(`properties:${fingerprintOf([inNorth.property])}`)
+
+    await http()
+      .delete(`/buildings/${inNorth.building}/closures/${northern}`)
+      .set(testIdentityHeader, by('u-duties', large))
+      .expect(200)
+
+    expect(
+      (await rowOf('u-tech', 'building_closures', northern, large))?.['deletedAt'],
+    ).not.toBeNull()
   })
 
   it('hands whoever sees every area the whole operator, and says so for every kind of record', async () => {
