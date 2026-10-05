@@ -314,8 +314,13 @@ describe('whoever keeps the properties', () => {
     await waitFor(() => {
       expect(people()).toContain('Tobias WendtHaustechnik · 0000 4410')
     })
-    // The form is gone, the button is back.
-    expect(card().queryByLabelText(/Nachname/)).toBeNull()
+    // The form is gone, the button is back. The row arrives with the exchange
+    // and the form closes once the route has answered, which is a moment
+    // later: asked without waiting, this was red on a machine that drew the
+    // row first.
+    await waitFor(() => {
+      expect(card().queryByLabelText(/Nachname/)).toBeNull()
+    })
     expect(card().getByRole('button', { name: 'Hinzufügen' })).toBeTruthy()
   })
 

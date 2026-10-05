@@ -659,6 +659,11 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
 
 ### Behoben
 
+- Der Test der Karte "Ansprechpartner", der einen neuen Ansprechpartner anlegt, wartet darauf,
+  dass sich das Formular schließt (#85). Die Zeile kommt mit dem Abgleich an, das Formular
+  schließt erst, wenn die Route geantwortet hat, also einen Augenblick später; der Test fragte
+  sofort und war auf `main` rot, sobald die Maschine die Zeile zuerst zeichnete. An der Karte
+  selbst ändert sich nichts
 - Zwei Unterschriften derselben Seite, die zugleich ankommen, schreiben einen Vorgang nur noch
   einmal fest, und zwei Abnahmen desselben Auftrags nehmen ihn nur einmal ab
   (`opengewerk-haustechnik#31`). Zwei Geräte, die ohne Netz unterschrieben hatten und zugleich
