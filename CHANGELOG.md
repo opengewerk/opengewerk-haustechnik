@@ -489,6 +489,19 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   dazukommen. "Vertretung anlegen" prüft mit den Regeln des Modells, bevor etwas gesendet wird, und sagt
   vorher, was die Vertretung bedeutet; beendet wird sie nach einer Rückfrage. Die Vorschau hat dafür sechs
   weitere Zugänge, eine offene Einladung und eine Vertretung
+- "Bereiche" unter den Einstellungen (#84, achter Teil): der Bildschirm, auf dem ein Betreiber seine
+  Bereiche anlegt, umbenennt und entfernt. Bisher ging das nur an der Schnittstelle, und niemand sah an
+  einer Stelle, welche Liegenschaften zusammengehören und wer sie sieht. Die Tabelle nennt je Bereich, wie
+  viele Liegenschaften und Gebäude in ihm liegen, bis zu fünf Liegenschaften beim Namen und die Zugänge,
+  für die er genannt ist. "Entfernen" fragt, wohin die Liegenschaften vorher verlegt werden, und verlegt
+  sie im selben Schritt mit allem, was an ihnen hängt; die Rückfrage nennt, wer danach keinen Bereich mehr
+  hat. Ein Bereich ohne Liegenschaften geht, wie er ist; kennt der Server dort noch entfernte
+  Liegenschaften, zeigt der Dialog dessen Satz und fragt dann ebenfalls, wohin. Der letzte Bereich bleibt
+  und hat kein "Entfernen". Ein Name wird mit den Regeln des Modells geprüft, bevor etwas gesendet wird.
+  Nach jeder Änderung fragen die Bildschirme die Bereiche neu, und wo Liegenschaften umgezogen sind, holt
+  der Abgleich sie mit ihrem neuen Bereich aufs Gerät. Die Kachel "Zugänge" nennt jetzt auch Bereiche und
+  Vertretungen. In der Vorschau ist die Leitung für keinen Bereich mehr eigens genannt, so wie die Routen
+  es bei jemandem halten, der alle hat: sonst stünde sie in der neuen Liste unter jedem Bereich
 
 ### Geändert
 

@@ -27,7 +27,9 @@ await checkWidths({
    * (#85); the forms a building, a floor and a room are made with, and
    * "Bearbeiten" on each of their pages (#86); and the three dialogs of
    * "Zugänge" (#84): a new access, the access of the person the preview
-   * answers as, whose button carries their name, and a new substitution. A
+   * answers as, whose button carries their name, and a new substitution; and
+   * the three dialogs of "Bereiche" (#84): a new area, another name for one
+   * and the question before one goes, whose buttons carry its name. A
    * page that has one is checked a second time as a kind of its own, with the
    * button pressed. Found by its name, so that the next record with the same
    * button is checked as well.
@@ -42,5 +44,8 @@ await checkWidths({
     'Zugang anlegen',
     'Vorschau bearbeiten',
     'Vertretung anlegen',
+    'Bereich anlegen',
+    'Bereich Nord umbenennen',
+    'Bereich Nord entfernen',
   ],
 })

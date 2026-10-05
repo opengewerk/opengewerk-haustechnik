@@ -243,6 +243,21 @@ describe('a preview started as the Leitung', () => {
     await admin.end()
   })
 
+  it('names the Leitung for no area, as the routes keep whoever holds in every area', async () => {
+    const overview = (await request(application.getHttpServer()).get('/areas/overview').expect(200))
+      .body as readonly {
+      readonly name: string
+      readonly members: readonly { readonly name: string }[]
+    }[]
+
+    expect(overview.map((area) => area.name)).toEqual(['Nord', 'Süd'])
+
+    for (const area of overview) {
+      expect(area.members.length).toBeGreaterThan(0)
+      expect(area.members.map((person) => person.name)).not.toContain(previewPeople.viewer.name)
+    }
+  })
+
   it('shows every property, with buildings, floors, rooms and assets, a main meter with its sub meter', async () => {
     const server = application.getHttpServer()
     const properties = (await request(server).get('/properties').expect(200)).body as Named[]

@@ -15,6 +15,7 @@ import {
 
 import { InstanceShell } from './instance/shell.js'
 import { AccountScreen } from './screens/account.js'
+import { AreasScreen } from './screens/areas.js'
 import { EditBuildingScreen, NewBuildingScreen } from './screens/building-form.js'
 import { BuildingScreen } from './screens/buildings.js'
 import { EditFloorScreen, NewFloorScreen } from './screens/floor-form.js'
@@ -163,6 +164,11 @@ export function officeRoutes() {
       getParentRoute: () => office,
       path: '/einstellungen',
       component: SettingsScreen,
+    }),
+    createRoute({
+      getParentRoute: () => office,
+      path: '/einstellungen/bereiche',
+      component: AreasScreen,
     }),
     createRoute({
       getParentRoute: () => office,

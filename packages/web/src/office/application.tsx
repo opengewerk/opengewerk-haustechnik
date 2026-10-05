@@ -7,24 +7,35 @@ import type {
   StaffSentences,
 } from '@opengewerk/platform-web'
 import { auditLogPath } from '@opengewerk/platform-web/office'
-import { History, Users } from 'lucide-react'
+import { History, Map, Users } from 'lucide-react'
 
 import { application } from '../app/application.js'
 import { auditScreenWords } from './audit.js'
 
 /**
  * The screens a tenant sets itself up with, each with the right it takes to
- * read it. So far those the foundation brings: who works for the tenant, and
- * the change log for its Leitung. The right is one of this application's, and
- * the type holds that; the foundation, which draws the list, takes it as a
- * name.
+ * read it, in the order of the board: the areas, which are this
+ * application's, and the two the foundation brings, who works for the tenant
+ * and the change log for its Leitung. The right is one of this application's,
+ * and the type holds that; the foundation, which draws the list, takes it as
+ * a name.
  */
 const settings = [
+  {
+    key: 'bereiche',
+    to: '/einstellungen/bereiche',
+    title: 'Bereiche',
+    about:
+      'Welche Liegenschaften zu welchem Bereich gehören. Wer einen Bereich hat, sieht nur dessen Orte.',
+    icon: Map,
+    right: 'settings.read',
+  },
   {
     key: 'zugaenge',
     to: '/einstellungen/zugaenge',
     title: 'Zugänge',
-    about: 'Wer für diesen Betreiber arbeitet, mit welchen Rollen, und die Einladungen.',
+    about:
+      'Wer für diesen Betreiber arbeitet, mit welchen Rollen, Bereichen und Vertretungen, und die Einladungen.',
     icon: Users,
     right: 'membership.read',
   },
