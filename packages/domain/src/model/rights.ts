@@ -15,7 +15,8 @@ import {
  * - `record` is "aufnehmen": bringing a room or an asset into being on site
  *   and completing and correcting what is known about it, which is what taking
  *   stock needs. `write` is "pflegen": what has consequences beyond the
- *   record itself.
+ *   record itself. For a document `record` is "ablegen", a first version as
+ *   well as the next.
  * - `perform` is "ausführen": the work on an activity up to the signature.
  *   `write` on an activity is planning and assigning, `accept` is the second
  *   signature.
@@ -120,6 +121,15 @@ export const rights = [
   /** Where a defect goes from there: its class, its time limit and its status. */
   'defect.write',
   /**
+   * Filing a document: sending the bytes of a file to the store and naming
+   * them in a record at a place, an asset or an activity, a photo taken on
+   * site included. A new version is filed like a first one, and none is ever
+   * changed. The store takes the bytes under this right ahead of the record,
+   * because a device without a network holds both and sends the bytes first;
+   * bytes no record names are in reach of nobody.
+   */
+  'document.record',
+  /**
    * Taking what has changed onto a device, and sending what it queued up
    * without a network. The rights the foundation asks for on the routes of the
    * sync (ADR 0006). A different way in, not a different thing to do: what an
@@ -186,6 +196,7 @@ export const rightLabel: Readonly<Record<Right, string>> = {
   'defect.read': 'Mängel ansehen',
   'defect.report': 'Mängel melden',
   'defect.write': 'Mängel führen',
+  'document.record': 'Dokumente ablegen',
   'sync.read': 'Daten abgleichen',
   'sync.write': 'Änderungen senden',
   'membership.read': 'Zugänge ansehen',
@@ -244,6 +255,8 @@ const technician: readonly Right[] = [
   'evidence.read',
   'defect.read',
   'defect.report',
+  // A photo at an asset or at a defect is filed like any other document.
+  'document.record',
   // Every device takes and sends; what it may touch the rights above decide.
   'sync.read',
   'sync.write',

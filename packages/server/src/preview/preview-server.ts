@@ -1,5 +1,8 @@
 import { createHash } from 'node:crypto'
+import { mkdtempSync } from 'node:fs'
 import type { AddressInfo } from 'node:net'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 
 import type { INestApplication } from '@nestjs/common'
 import { catalogueBundle } from '@opengewerk/haustechnik-catalogue'
@@ -12,7 +15,16 @@ import {
   serverPaths,
   type TenantId,
 } from '@opengewerk/haustechnik-domain'
-import { completeRoles, createServer, type Database, newId } from '@opengewerk/platform-server'
+import {
+  completeRoles,
+  createServer,
+  type Database,
+  type FileStorage,
+  FileStore,
+  newId,
+  readRendererConfiguration,
+  rendererFor,
+} from '@opengewerk/platform-server'
 import type { Pool } from 'pg'
 
 import { ApiModule } from '../api/api.module.js'
@@ -40,6 +52,12 @@ import { writeSampleStandings } from './sample-standings.js'
  * different, and the catalogue, which is the probe package as long as this
  * build ships none.
  *
+ * The files of a preview lie in the store handed in, a folder of this start
+ * under the temporary directory of the machine: a preview database is
+ * nobody's, and neither are its files. The renderer is the one the
+ * environment names (`RENDERER_URL`, `RENDERER_TOKEN`), as on an instance;
+ * without them a PDF gets the sentence saying that none is set up.
+ *
  * Not listening yet. The entry point listens on 127.0.0.1, the planting of
  * the sample data and the test on a port the system picks.
  */
@@ -48,7 +66,7 @@ export async function openPreview(
   identity: Identity,
   person: PreviewPerson,
   catalogue: Catalogue,
-  options: { readonly interfaceDirectory?: string | null } = {},
+  options: { readonly interfaceDirectory?: string | null; readonly files?: FileStorage } = {},
 ): Promise<INestApplication> {
   const port = previewPort()
   const { application } = await createServer(
@@ -67,6 +85,8 @@ export async function openPreview(
         'http://localhost:5173',
       ],
       catalogue,
+      files: options.files ?? previewFileStore(),
+      renderer: rendererFor(readRendererConfiguration()),
     }),
     {
       authenticationHandler: previewSession(identity, person),
@@ -78,6 +98,11 @@ export async function openPreview(
   )
 
   return application
+}
+
+/** A file store for one start of the preview, in a folder of its own. */
+function previewFileStore(): FileStorage {
+  return new FileStore(mkdtempSync(join(tmpdir(), 'haustechnik-vorschau-')))
 }
 
 /**
@@ -108,7 +133,9 @@ export const previewCatalogue: Catalogue = catalogueOf(previewBundle)
  *
  * The sample data is planted by the Leitung through a preview of its own on a
  * port the system picks, closed again before the preview of the viewer opens:
- * a browser that comes early never sees what only the Leitung may. A new
+ * a browser that comes early never sees what only the Leitung may. Both keep
+ * their files in one store, so that a file planted with the sample data is
+ * there for the viewer. A new
  * operator on every call, and with it a new local copy in the browser, because
  * the copy of the last start would otherwise sit ahead of a database that was
  * just emptied.
@@ -130,9 +157,11 @@ export async function openSamplePreview(
 
   await completeRoles(database, access)
 
+  const files = previewFileStore()
   const planter = previewIdentity(previewPeople.planter, tenant.id, 'management')
   const planting = await openPreview(database, planter, previewPeople.planter, previewCatalogue, {
     interfaceDirectory: null,
+    files,
   })
 
   await planting.listen(0, '127.0.0.1')
@@ -153,7 +182,7 @@ export async function openSamplePreview(
     previewIdentity(previewPeople.viewer, tenant.id, viewer.role),
     previewPeople.viewer,
     previewCatalogue,
-    options,
+    { ...options, files },
   )
 
   return { application, tenant }

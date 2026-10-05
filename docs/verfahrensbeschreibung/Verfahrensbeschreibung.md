@@ -1,7 +1,7 @@
 # OpenGewerk Haustechnik: Verfahrensbeschreibung für den Stand von Phase 1
 
 - **Gilt für:** noch keine veröffentlichte Fassung (Entwicklungsstand von Phase 1 auf dem Zweig `main`)
-- **Geschrieben:** von Hand, am 05.10.2026, aus dem Planungskonzept v0.11 und gegen den Quelltext geprüft
+- **Geschrieben:** von Hand, am 05.10.2026, aus dem Planungskonzept v0.11 und gegen den Quelltext geprüft; am 06.10.2026 um die Dateien im Speicher ergänzt (Planungskonzept v0.12)
 - **Abgelöst durch:** die Verfahrensbeschreibung, die die Anwendung ab Phase 2 selbst erzeugt
 
 ---
@@ -91,6 +91,7 @@ Anhang B nennt jedes Feld der Datenbank, das auf eine Person zeigt. Dieser Absch
 - Jeder Datensatz, der auf Geräte reist, trägt einen Stempel: wer ihn zuletzt geändert hat, von welchem Gerät, wann, und die wievielte Fassung es ist. Der Abgleich braucht davon die Fassung und die Reihenfolge. [K2.7, K9, B33]
 - Der Stempel reist mit dem Datensatz: er steht in den Antworten des Servers und auf den Geräten derer, die den Datensatz lesen dürfen. Kein Bildschirm zeigt ihn an, außer dem Änderungsprotokoll; eine Liste im Büro lässt sich nach „Zuletzt geändert“ ordnen, ohne den Zeitpunkt zu nennen (Abschnitt 10). [K2.7, K9]
 - Der Server führt eine Quittung je Änderung, die ein Gerät geschickt hat: die Kennung des Geräts und wann sie ankam, ohne Person. Einen Konflikt beim Abgleich sieht nur das Gerät, das ihn zu entscheiden hat; er nennt der Person, wann sie ihre Änderung erfasst hat. [K2.7, B57]
+- Eine Datei im Speicher nennt keine Person: zu ihr stehen der Betreiber, die Prüfsumme, die Größe und die Art der Datei. Wer sie geschickt hat und wann, steht im Änderungsprotokoll, wie bei jedem Datensatz. Schicken kann eine Datei, wer Dokumente ablegen darf, das sind alle vier Rollen. Der Server gibt in dieser Fassung keine Datei wieder aus; die Dokumente und Fotos, die eine Datei nennen, kommen in Phase 1 (Abschnitt 9). [K4.10, K7, B72, B73, B74]
 
 ### 3.7 Was auf dem Gerät liegt
 
@@ -302,6 +303,9 @@ Pfade ohne Vorsatz liegen im Repository `opengewerk/opengewerk-haustechnik`. Pfa
 | B69 | Stelle | `packages/domain/src/model/signature.ts` | `deviceInfo: 500` |
 | B70 | Test | `packages/server/src/authentication/roles.test.ts` | `are not for "%s" to put right` |
 | B71 | Test | `packages/server/src/api/route-coverage.test.ts` | `that answers without an identity is the health check, the first run or a one time link` |
+| B72 | Recht | `document.record` | Dokumente ablegen: Leitung, Technische Leitung, Objektleitung, Haustechnik |
+| B73 | Test | `packages/server/src/api/files.test.ts` | `stands in the change log of the tenant with who sent it` |
+| B74 | Test | `packages/server/src/api/files.test.ts` | `is handed out by no route under its hash, not even to "Leitung"` |
 
 ---
 
@@ -361,6 +365,7 @@ Jede Zeile ist der erste Abschnitt einer Adresse, unter der der Server antwortet
 | `deadlines` | Fristen |
 | `duties` | Pflichten |
 | `duty-dismissals` | verworfene Vorschläge für Pflichten |
+| `files` | Dateien: nimmt den Inhalt einer Datei an, bevor ein Datensatz sie nennt, und gibt keine aus |
 | `floors` | Geschosse |
 | `health` | Gesundheitsprüfung, ohne Daten |
 | `instance` | Verwaltung der Instanz |

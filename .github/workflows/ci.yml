@@ -375,11 +375,10 @@ jobs:
     # opengewerk (#29). The screens are found by following the links of the
     # preview, so a new one is checked without anybody adding it here.
     #
-    # The browser is the image of the renderer of the foundation, on the
-    # network of the runner: the preview listens on 127.0.0.1 and nowhere
-    # else, and a service container would not reach it there. This
-    # application binds a renderer only in phase 1, so the image is read from
-    # the compose.yaml of the submodule.
+    # The browser is the image of the renderer in docker/compose.yaml, the
+    # Chromium an installation prints with, on the network of the runner: the
+    # preview listens on 127.0.0.1 and nowhere else, and a service container
+    # would not reach it there.
     services:
       postgres:
         image: postgres:18-alpine
@@ -404,10 +403,10 @@ jobs:
       - name: Browser wie im Betrieb starten
         run: |
           set -euo pipefail
-          image=$(sed -n '/^  renderer:$/{n;s/^ *image: //p;}' upstream/opengewerk/docker/compose.yaml)
+          image=$(sed -n '/^  renderer:$/{n;s/^ *image: //p;}' docker/compose.yaml)
 
           if [ -z "$image" ]; then
-            echo "In upstream/opengewerk/docker/compose.yaml steht kein Abbild für den Renderer."
+            echo "In docker/compose.yaml steht kein Abbild für den Renderer."
             exit 1
           fi
 
@@ -495,6 +494,36 @@ jobs:
         working-directory: docker
         run: sh ../upstream/opengewerk/docker/test-stack.sh log-limits
 
+      # What this application prints is built with the helpers of the
+      # foundation and printed in its CI with the Chromium it pins. Both
+      # compose files name the image by hand, with release and digest, so this
+      # is the check that they name the same one: a submodule raised to a
+      # newer renderer turns it red until the line here has followed.
+      - name: Der Renderer ist der des Fundaments
+        run: |
+          python3 - <<'PYTHON'
+          import re
+          import sys
+
+
+          def renderer(path):
+              text = open(path, encoding="utf-8").read()
+              found = re.search(r"^  renderer:\n\s+image: (\S+)$", text, re.M)
+              return found.group(1) if found else None
+
+
+          ours = renderer("docker/compose.yaml")
+          theirs = renderer("upstream/opengewerk/docker/compose.yaml")
+
+          if not ours or ours != theirs or "@sha256:" not in ours:
+              print("Der Renderer aus docker/compose.yaml ist nicht der des Fundaments, mit Fassung und Prüfsumme:")
+              print(f"  docker/compose.yaml:                     {ours}")
+              print(f"  upstream/opengewerk/docker/compose.yaml: {theirs}")
+              sys.exit(1)
+
+          print(f"Renderer wie im Fundament: {ours}")
+          PYTHON
+
       # The way an installation starts, with the one command the README
       # names: the image is built with the submodule, the .env filled in, the
       # database migrated and only then the containers started.
@@ -517,6 +546,16 @@ jobs:
       - name: Favicon und Icons beider Einstiege kommen als Bild
         working-directory: docker
         run: sh ../upstream/opengewerk/docker/test-stack.sh icons
+
+      # The renderer belongs to the default stack (#96): COMPOSE_PROFILES in
+      # the template switches it on. Asked from inside the application
+      # container, through the function of the foundation the application
+      # prints with, so address and token come from its environment and never
+      # appear in this log. Chromium takes a few seconds after the container is
+      # up, hence the retries.
+      - name: Der Renderer läuft von Haus aus und druckt ein PDF
+        working-directory: docker
+        run: sh test-renderer.sh
 
       - name: Speicherbedarf im Leerlauf melden
         working-directory: docker
@@ -601,10 +640,12 @@ jobs:
         working-directory: docker
         run: docker compose logs
 
+      # Every profile: one named on the command line stands in place of the
+      # one the .env switches on, and the renderer would stay behind.
       - name: Aufräumen
         if: always()
         working-directory: docker
-        run: docker compose --profile backup down --volumes --remove-orphans
+        run: docker compose --profile '*' down --volumes --remove-orphans
 
   update:
     name: Update einer laufenden Instanz
@@ -700,5 +741,5 @@ jobs:
       - name: Aufräumen
         if: always()
         run: |
-          docker compose -f docker/compose.yaml --profile backup down --volumes --remove-orphans
-          docker compose -f upstream/opengewerk/docker/compose.yaml --profile backup down --volumes --remove-orphans
+          docker compose -f docker/compose.yaml --profile '*' down --volumes --remove-orphans
+          docker compose -f upstream/opengewerk/docker/compose.yaml --profile '*' down --volumes --remove-orphans

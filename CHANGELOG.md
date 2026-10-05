@@ -576,9 +576,36 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   beantwortet `defectClass` und `defectClasses`, das Büro zeigt unter "Katalog" je Paket den Teil
   "Mängelklassen", und das Format des Bündels ist 3. Das Format entsteht hier und nicht erst mit den
   Mängeln, weil das Paket, das die allgemeinen Klassen trägt, zuerst gebaut wird
+- Dateispeicher und Renderer des Fundaments sind gebunden (#96). Phase 1 braucht beide für Dokumente,
+  Etiketten und das PDF eines Nachweises, und gebunden waren sie mit Absicht noch nicht. Der Server nimmt
+  den Inhalt einer Datei unter `PUT /files/<prüfsumme>` an, von dem, der Dokumente ablegen darf, legt ihn
+  im Volume `files` unter seiner Prüfsumme ab und schreibt die Zeile, die ihn zur Datei des Betreibers
+  macht. Eine Datei, die nach ihren ersten Bytes weder Bild noch PDF ist, wird als Download vermerkt, was
+  immer sie von sich behauptet. Nach der Prüfsumme ausgegeben wird nichts: gelesen wird über den Datensatz,
+  der eine Datei nennt, und der kommt mit den Dokumenten. Der Renderer ist ein Dienst in
+  `docker/compose.yaml`, von Haus aus an (`COMPOSE_PROFILES=renderer` in der Vorlage der `.env`, dazu
+  `RENDERER_TOKEN`), mit demselben Abbild und derselben Prüfsumme wie im Fundament; der Server reicht ihn
+  an alles, was druckt, und sagt ohne ihn in einem Satz, dass kein PDF entsteht. Eine bestehende `.env`
+  bekommt die beiden Zeilen beim nächsten `sh docker/start.sh`. Die Vorschau hat einen Dateispeicher in
+  einem Ordner je Start und den Renderer, den ihre Umgebung nennt
+- Das Recht "Dokumente ablegen" (`document.record`) für alle vier Rollen (#96), wie am 04.10.2026
+  entschieden. Es kommt vor "Dokumente ansehen" und "Dokumente entfernen", weil der Dateispeicher eine
+  Datei unter ihm annimmt, bevor ein Datensatz sie nennt
+- Die Läufe auf einem Stapel halten beides fest (#96). "Betrieb über Docker Compose" prüft, dass der
+  Renderer der des Fundaments ist, dass er mit dem Stapel läuft und dass im Container der Anwendung ein
+  PDF entsteht (`docker/test-renderer.sh`). "Sicherung und Rückspielen" legt eine Datei als angemeldetes
+  Konto über die Route ab und findet sie nach dem Rückspielen mit ihrer Zeile und ihrem Inhalt wieder.
+  "Neben OpenGewerk auf einem Server" startet die Haustechnik mit ihrem Renderer und prüft, dass nach dem
+  Entfernen kein Container von ihr bleibt
 
 ### Geändert
 
+- Planungskonzept v0.12: das Recht "Dokumente ablegen" steht in der Tabelle in Abschnitt 7, und eine Datei
+  wird nie nach ihrer Prüfsumme ausgegeben, sondern über den Datensatz, der sie nennt (#96)
+- Die Prüfung "Breiten und Auflösungen" nimmt ihren Browser aus `docker/compose.yaml` statt aus der Datei
+  des Fundaments, seit diese Anwendung den Renderer selbst nennt (#96)
+- Die Verfahrensbeschreibung nennt die Adresse `files` und sagt, dass eine Datei im Speicher keine Person
+  nennt und im Änderungsprotokoll steht, wer sie geschickt hat (#96)
 - Die Vorschau zeigt den Katalog dieses Baus und daneben das Probepaket, statt nur das Probepaket
   (#61): der Bau bringt jetzt ein Paket mit, und die Pakete mit Pflichtarten und Messstellen kommen
   erst im Lauf von Phase 1. Ein Lüftungsgerät der Beispieldaten trägt eine allgemeine Anlagenart und

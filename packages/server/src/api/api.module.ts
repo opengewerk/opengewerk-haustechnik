@@ -9,10 +9,15 @@ import {
   authenticationParts,
   AUTHORIZATION,
   Database,
+  fileParts,
+  type FileStorage,
   HealthController,
   IDENTITY_SOURCE,
   type IdentitySource,
   type InstanceSettingsCache,
+  RENDERER,
+  type Renderer,
+  rendererFor,
   SameOriginGuard,
   syncParts,
   TRUSTED_ORIGINS,
@@ -76,6 +81,19 @@ export interface ApiOptions {
    * the packages under pakete/; a test hands in the probe package.
    */
   readonly catalogue?: Catalogue
+  /**
+   * Where the bytes of a file are kept, under the hash of what is in them.
+   * Left out, the route that takes them refuses every file with the sentence
+   * saying that no store is set up, which is what a test that never touches a
+   * file wants: nothing is written into a directory nobody chose.
+   */
+  readonly files?: FileStorage
+  /**
+   * What turns a page into a PDF. Left out, it is the renderer of an instance
+   * that has none set up, and whoever asks for a PDF gets the sentence saying
+   * so instead of a crash.
+   */
+  readonly renderer?: Renderer
 }
 
 /**
@@ -98,10 +116,14 @@ export interface ApiOptions {
  * sync of a device with the rules of this application. An invitation is
  * handed over as a link; sending one by mail arrives with the mail server of a
  * tenant. The people to talk to at a property are on routes of the foundation
- * as well, with the rights of the property. What this application brings: the
- * areas of a tenant, the place, from the property to the room, the
- * technology, assets and their components, and the catalogue a device
- * fetches.
+ * as well, with the rights of the property. The bytes of a file go into the
+ * store through the route of the foundation, under the right this application
+ * names for filing a document, and the renderer is handed to whatever prints;
+ * the records that name a file and the pages that are printed are this
+ * application's and come with the documents, the labels and the evidence. What
+ * this application brings: the areas of a tenant, the place, from the property
+ * to the room, the technology, assets and their components, and the catalogue
+ * a device fetches.
  */
 @Module({})
 export class ApiModule {
@@ -110,7 +132,14 @@ export class ApiModule {
     identities: IdentitySource,
     options: ApiOptions = {},
   ): DynamicModule {
-    const { authentication, setupCode = null, trustedOrigins = [], version = null } = options
+    const {
+      authentication,
+      setupCode = null,
+      trustedOrigins = [],
+      version = null,
+      files,
+      renderer = rendererFor({ url: undefined, token: undefined }),
+    } = options
     const catalogue = options.catalogue ?? shippedCatalogue()
 
     // The authentication is the foundation's, with the rights, the roles and
@@ -146,6 +175,13 @@ export class ApiModule {
     // with the rights of the property.
     const contacting = contactParts({ access, rights: contactRights, routes: contactRoutes })
 
+    // The bytes of a file, sent ahead of the record that names them: a device
+    // that took a photo without a network holds both and sends the bytes
+    // first. Whoever may file a document may send them (section 7 of the
+    // concept). Nothing here hands a file out by its hash: reading goes
+    // through the record that names it, in the area of that record.
+    const storing = fileParts({ access, upload: 'document.record', store: files })
+
     return {
       module: ApiModule,
       // The health check first: it answers without an identity, for the
@@ -157,6 +193,7 @@ export class ApiModule {
         ...auditing.controllers,
         ...deadlining.controllers,
         ...contacting.controllers,
+        ...storing.controllers,
         // The areas of a tenant, who holds in which, and who stands in for whom.
         AreasController,
         SubstitutionsController,
@@ -183,6 +220,9 @@ export class ApiModule {
         ...auditing.providers,
         ...deadlining.providers,
         ...contacting.providers,
+        ...storing.providers,
+        // What prints a page, for the routes that hand out a PDF.
+        { provide: RENDERER, useValue: renderer },
         { provide: TRUSTED_ORIGINS, useValue: trustedOrigins },
         { provide: VERSION, useValue: version },
         { provide: CATALOGUE, useValue: catalogue },
