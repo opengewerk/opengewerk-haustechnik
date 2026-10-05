@@ -130,6 +130,16 @@ interface Named {
   readonly name: string
 }
 
+/** Somebody to talk to at a property, as the route of the contacts hands one over. */
+interface Person {
+  readonly propertyId: string
+  readonly givenName: string | null
+  readonly familyName: string
+  readonly role: string | null
+  readonly phone: string | null
+  readonly email: string | null
+}
+
 describe('a preview started as a technician in the north', () => {
   let admin: Pool
   let database: Database
@@ -170,6 +180,14 @@ describe('a preview started as a technician in the north', () => {
     for (const south of rows) {
       await request(application.getHttpServer()).get(`/properties/${south.id}`).expect(404)
     }
+  })
+
+  it('shows the people to talk to in the north, and nobody of the school in the south', async () => {
+    const answer = await request(application.getHttpServer()).get('/contacts').expect(200)
+
+    expect((answer.body as readonly Person[]).map((contact) => contact.familyName)).toEqual([
+      'Albers',
+    ])
   })
 
   it('answers the question who is signed in with the technician, the operator already chosen', async () => {
@@ -282,10 +300,62 @@ describe('a preview started as the Leitung', () => {
     expect(properties.filter((property) => property.note !== null)).toHaveLength(1)
   })
 
-  it('plants nothing a real operator could recognise as theirs: every postal code is one no place has', () => {
+  // What the card on the page of a property is looked at with (#85): somebody
+  // with everything known about them, somebody without an address, somebody
+  // of whom only the name is known, and properties nobody is entered at.
+  it('shows the people to talk to at a property, two at the school and one at the yard', async () => {
+    const server = application.getHttpServer()
+    const properties = (await request(server).get('/properties').expect(200)).body as Named[]
+    const contacts = (await request(server).get('/contacts').expect(200)).body as Person[]
+    const at = (name: string) => {
+      const property = properties.find((one) => one.name === name)
+
+      return contacts
+        .filter((contact) => contact.propertyId === property?.id)
+        .map(({ givenName, familyName, role, phone, email }) => ({
+          givenName,
+          familyName,
+          role,
+          phone,
+          email,
+        }))
+        .sort((left, right) => left.familyName.localeCompare(right.familyName, 'de'))
+    }
+
+    expect(at('Schulzentrum Am Lindenhain')).toEqual([
+      {
+        givenName: 'Klaus',
+        familyName: 'Becker',
+        role: 'Hausmeister',
+        phone: '0000 4471',
+        email: 'hausmeister@schulzentrum.example',
+      },
+      {
+        givenName: 'Dr. Ines',
+        familyName: 'Hartmann',
+        role: 'Schulleitung',
+        phone: '0000 4400',
+        email: null,
+      },
+    ])
+    expect(at('Werkhof Nord')).toEqual([
+      { givenName: null, familyName: 'Albers', role: null, phone: null, email: null },
+    ])
+    expect(contacts).toHaveLength(3)
+    expect(
+      sampleProperties.filter((property) => (property.contacts ?? []).length === 0),
+    ).toHaveLength(2)
+  })
+
+  it('plants nothing a real operator could recognise as theirs: every postal code and every phone number is one nobody has', () => {
     for (const property of sampleProperties) {
       expect(property.postalCode).toMatch(/^0000\d$/)
       expect(['Beispielstadt', 'Musterhausen']).toContain(property.city)
+
+      for (const contact of property.contacts ?? []) {
+        expect(contact.phone ?? '0000 0000').toMatch(/^0000 \d{4}$/)
+        expect(contact.email ?? 'niemand@beispiel.example').toMatch(/\.example$/)
+      }
     }
   })
 })

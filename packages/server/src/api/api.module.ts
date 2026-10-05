@@ -3,6 +3,7 @@ import { APP_FILTER, APP_GUARD } from '@nestjs/core'
 import { auditVocabulary, type Catalogue } from '@opengewerk/haustechnik-domain'
 import {
   auditLogParts,
+  contactParts,
   deadlineParts,
   type Authentication,
   authenticationParts,
@@ -25,6 +26,7 @@ import { AreasController, SubstitutionsController } from './areas.controller.js'
 import { AssetsController, BuildingAssetsController } from './assets.controller.js'
 import { authorization, AuthorizationGuard } from './authorization.js'
 import { BuildingsController } from './buildings.controller.js'
+import { contactRights, contactRoutes } from './contact-routes.js'
 import { DatabaseExceptionFilter } from './database-errors.js'
 import { DutiesController, DutyDismissalsController } from './duties.controller.js'
 import { FloorsController } from './floors.controller.js'
@@ -93,9 +95,10 @@ export interface ApiOptions {
  * in, who works for a tenant, the area of the instance, the change log and the
  * sync of a device with the rules of this application. An invitation is
  * handed over as a link; sending one by mail arrives with the mail server of a
- * tenant. What this application brings: the areas of a tenant, the place,
- * from the property to the room, and the technology, assets and their
- * components.
+ * tenant. The people to talk to at a property are on routes of the foundation
+ * as well, with the rights of the property. What this application brings: the
+ * areas of a tenant, the place, from the property to the room, and the
+ * technology, assets and their components.
  */
 @Module({})
 export class ApiModule {
@@ -136,6 +139,10 @@ export class ApiModule {
       rules: deadlineRules,
     })
 
+    // The people to talk to at a property, on the routes of the foundation,
+    // with the rights of the property.
+    const contacting = contactParts({ access, rights: contactRights, routes: contactRoutes })
+
     return {
       module: ApiModule,
       // The health check first: it answers without an identity, for the
@@ -146,6 +153,7 @@ export class ApiModule {
         ...syncing.controllers,
         ...auditing.controllers,
         ...deadlining.controllers,
+        ...contacting.controllers,
         // The areas of a tenant, who holds in which, and who stands in for whom.
         AreasController,
         SubstitutionsController,
@@ -167,6 +175,7 @@ export class ApiModule {
         ...syncing.providers,
         ...auditing.providers,
         ...deadlining.providers,
+        ...contacting.providers,
         { provide: TRUSTED_ORIGINS, useValue: trustedOrigins },
         { provide: VERSION, useValue: version },
         { provide: CATALOGUE, useValue: catalogue },

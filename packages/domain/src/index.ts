@@ -27,6 +27,10 @@ export * from './model/area.js'
 export * from './model/location.js'
 export * from './model/target.js'
 
+// The people to talk to at a property: the contacts of the foundation, with
+// what one hangs on here and how long its texts may be.
+export * from './model/contact.js'
+
 // The technology: assets, their components, life cycle and meters.
 export * from './model/asset.js'
 export * from './model/meter.js'

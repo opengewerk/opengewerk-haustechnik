@@ -76,6 +76,7 @@ const placeEntities = [
   'properties',
   'buildings',
   'floors',
+  'contacts',
   'rooms',
   'assets',
   'asset_lifecycle',

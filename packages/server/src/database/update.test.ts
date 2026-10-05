@@ -146,6 +146,7 @@ describe('an installation that began on the first migration', () => {
     // place and the assets, so they go first, and what an invitation says
     // about areas hangs on the areas; the files, the mail server and the
     // settings of the deadlines hang on nothing of this.
+    await revertMigration(admin, '0016_contacts')
     await revertMigration(admin, '0014_invitation_areas')
     await revertMigration(admin, '0012_evidence_corrections')
     await revertMigration(admin, '0011_signatures')
@@ -301,6 +302,7 @@ describe('an installation from before the areas', () => {
 
     // The places hang on the areas and go first, as on the way back of an
     // installation, and so does what an invitation says about areas.
+    await revertMigration(admin, '0016_contacts')
     await revertMigration(admin, '0014_invitation_areas')
     await revertMigration(admin, '0012_evidence_corrections')
     await revertMigration(admin, '0011_signatures')
@@ -366,6 +368,7 @@ describe('an installation with places', () => {
       [tenant.id],
     )
 
+    await revertMigration(admin, '0016_contacts')
     await revertMigration(admin, '0012_evidence_corrections')
     await revertMigration(admin, '0011_signatures')
     await revertMigration(admin, '0010_evidence_written')
@@ -1254,5 +1257,73 @@ describe('an installation whose properties carry notes', () => {
     expect(emptied).toEqual([
       { old_value: 'Zufahrt über den Hof.', new_value: null, reason: 'migration' },
     ])
+  })
+})
+
+/**
+ * 0016 brings the people to talk to at a property (#85). On the way forward
+ * it touches no row. Taken back, the contacts go with their table, and the
+ * log of the tenant says that they went and why, because dropping a table
+ * writes nothing in any log. The trigger on the properties goes with its
+ * function, so a property is marked afterwards as it was before.
+ */
+describe('an installation whose properties have people to talk to', () => {
+  it('loses its contacts and nothing else when the update is taken back', async () => {
+    await applyMigrations()
+
+    const tenant = { id: newId<'tenant'>() }
+
+    await admin.query('insert into tenants (id, name) values ($1, $2)', [
+      tenant.id,
+      'Wohnbau Nord eG',
+    ])
+    await members(tenant, { 'user-lead': { roles: ['management'] } })
+
+    const { rows: made } = await admin.query<{ id: string; area_id: string }>(
+      `insert into properties (tenant_id, area_id, name, street, postal_code, city, federal_state)
+       select $1, id, 'Schulzentrum', 'Musterweg 1', '00001', 'Beispielstadt', 'DE-BW'
+         from areas where tenant_id = $1
+       returning id, area_id`,
+      [tenant.id],
+    )
+    const property = made[0]
+
+    await admin.query(
+      `insert into contacts (tenant_id, property_id, area_id, family_name, role)
+       values ($1, $2, $3, 'Becker', 'Hausmeister'), ($1, $2, $3, 'Albers', 'Schulleitung')`,
+      [tenant.id, property?.id, property?.area_id],
+    )
+
+    await revertMigration(admin, '0016_contacts')
+
+    expect((await tableNames(admin)).filter((table) => table === 'contacts')).toEqual([])
+    expect((await functionNames(admin)).filter((name) => name === 'mark_contacts_below')).toEqual(
+      [],
+    )
+
+    // The property stays as it was, and marking it asks after no table that is gone.
+    const { rows: kept } = await admin.query<{ name: string; version: number }>(
+      'select name, version from properties where tenant_id = $1',
+      [tenant.id],
+    )
+
+    expect(kept).toEqual([{ name: 'Schulzentrum', version: 1 }])
+    await expect(
+      admin.query('update properties set deleted_at = now() where id = $1', [property?.id]),
+    ).resolves.toMatchObject({ rowCount: 1 })
+
+    // The log of the tenant says that both contacts went, and why.
+    const { rows: removed } = await admin.query<{
+      table_name: string
+      reason: string | null
+      records: number
+    }>(
+      `select table_name, reason, count(distinct record_id)::int as records from audit_entries
+        where tenant_id = $1 and operation = 'delete'
+        group by table_name, reason`,
+      [tenant.id],
+    )
+
+    expect(removed).toEqual([{ table_name: 'contacts', reason: 'migration', records: 2 }])
   })
 })

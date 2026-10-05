@@ -296,6 +296,16 @@ function rowsOf(tenant: Tenant): readonly Row[] {
       },
     },
     {
+      table: 'contacts',
+      values: {
+        tenant_id: tenant.id,
+        property_id: property,
+        area_id: area,
+        family_name: 'Becker',
+        role: 'Hausmeister',
+      },
+    },
+    {
       table: 'floors',
       values: {
         id: floor,

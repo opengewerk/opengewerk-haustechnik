@@ -33,4 +33,9 @@ export const auditScreenWords: AuditScreenWords = {
     return start ? `${start}${id}` : null
   },
   linkWords: (table) => (Object.hasOwn(links, table) ? (links[table] ?? null) : null),
+  // Beside the chip of a record's log: what the log takes in with the record
+  // (`parts` of the vocabulary).
+  partsWords: {
+    properties: 'mit ihren Ansprechpartnern',
+  },
 }

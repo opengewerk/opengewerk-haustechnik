@@ -561,6 +561,65 @@ describe('taking stock without a connection', () => {
   })
 })
 
+describe('the people to talk to at a property', () => {
+  /**
+   * A contact is kept with a connection, like the property it hangs on
+   * (ADR 0006, point 6): a device holds the contacts of its areas to read and
+   * to call from, and what it sends about one waits for the office.
+   */
+  it('are left to the office: a device makes, corrects and removes none', async () => {
+    const added = await http()
+      .post('/contacts')
+      .set(testIdentityHeader, by('u-duties'))
+      .send({ propertyId: place.property, familyName: 'Becker', role: 'Hausmeister' })
+      .expect(201)
+    const contact = added.body.id as string
+    const made = newId<'contact'>()
+
+    expect(
+      await outcomes('u-duties', [
+        operation('contacts', 'create', made, {
+          propertyId: place.property,
+          familyName: 'Albers',
+        }),
+        operation('contacts', 'update', contact, { phone: '0000 4471' }),
+        operation('contacts', 'delete', contact),
+      ]),
+    ).toEqual([
+      { outcome: 'conflict', reason: 'online_only', fields: [] },
+      { outcome: 'conflict', reason: 'online_only', fields: [] },
+      { outcome: 'conflict', reason: 'online_only', fields: [] },
+    ])
+
+    // Nothing of it was kept.
+    const held = (await pulled('u-duties'))['contacts'] ?? []
+
+    expect(held.find((row) => row['id'] === made)).toBeUndefined()
+    expect(held.find((row) => row['id'] === contact)).toMatchObject({
+      familyName: 'Becker',
+      phone: null,
+      deletedAt: null,
+      version: 1,
+    })
+  })
+
+  it('ask for the right to keep the properties from whoever sends one', async () => {
+    const sent = operation('contacts', 'create', newId<'contact'>(), {
+      propertyId: place.property,
+      familyName: 'Albers',
+    })
+
+    for (const person of ['u-tech', 'u-site'] as const) {
+      const answer = await send(person, [sent]).expect(400)
+
+      expect(answer.body).toMatchObject({
+        message: missingRight('location.write'),
+        operationId: sent.id,
+      })
+    }
+  })
+})
+
 describe('what an asset supplies', () => {
   it('adds a place of its property and takes it away, and a second device entering the same place gets a conflict', async () => {
     const asset = await elevatorIn(place)
@@ -1278,6 +1337,50 @@ describe('what a device holds', () => {
         large,
       ),
     ).toEqual([{ outcome: 'conflict', reason: 'record_missing', fields: ['floorId'] }])
+  })
+
+  /**
+   * Who opens the door is what somebody standing in front of it needs to
+   * know: the contacts of a property travel with it, and with nothing else.
+   */
+  it('holds the people to talk to at the properties of its areas, and learns when one is taken away', async () => {
+    const added = async (propertyId: string, familyName: string) =>
+      (
+        await http()
+          .post('/contacts')
+          .set(testIdentityHeader, by('u-duties', large))
+          .send({ propertyId, familyName, role: 'Hausmeister', phone: '0000 4471' })
+          .expect(201)
+      ).body.id as string
+    const northern = await added(inNorth.property, 'Becker')
+    const southern = await added(inSouth.property, 'Albers')
+
+    const theirs = (await pulled('u-tech', large))['contacts'] ?? []
+
+    expect(theirs.map((row) => row['id'])).toEqual([northern])
+    expect(theirs[0]).toMatchObject({
+      propertyId: inNorth.property,
+      areaId: north,
+      familyName: 'Becker',
+      role: 'Hausmeister',
+      phone: '0000 4471',
+      deletedAt: null,
+    })
+    expect((await pulled('u-duties', large))['contacts']?.map((row) => row['id'])).toEqual(
+      expect.arrayContaining([northern, southern]),
+    )
+
+    // Named like the places they hang on, so that a device lets them go with the property.
+    const narrowed = await narrowedFor('u-tech')
+
+    expect(narrowed['contacts']).toBe(`properties:${fingerprintOf([inNorth.property])}`)
+
+    await http()
+      .delete(`/contacts/${northern}`)
+      .set(testIdentityHeader, by('u-duties', large))
+      .expect(200)
+
+    expect((await rowOf('u-tech', 'contacts', northern, large))?.['deletedAt']).not.toBeNull()
   })
 
   it('hands whoever sees every area the whole operator, and says so for every kind of record', async () => {

@@ -284,6 +284,11 @@ async function placeIn(where: 'north' | 'south'): Promise<void> {
     [at.floor, tenant, at.building, at.property, areaId],
   )
   await admin.query(
+    `insert into contacts (tenant_id, property_id, area_id, family_name, role)
+     values ($1, $2, $3, 'Becker', 'Hausmeister')`,
+    [tenant, at.property, areaId],
+  )
+  await admin.query(
     `insert into rooms (id, tenant_id, floor_id, building_id, property_id, area_id, number)
      values ($1, $2, $3, $4, $5, $6, '0.01')`,
     [at.room, tenant, at.floor, at.building, at.property, areaId],
@@ -487,6 +492,7 @@ describe('a person with the north', () => {
       'asset_supplies',
       'assets',
       'buildings',
+      'contacts',
       'deadlines',
       'defects',
       'duties',
@@ -696,6 +702,7 @@ describe('a property moved to another area', () => {
         'asset_supplies',
         'assets',
         'buildings',
+        'contacts',
         'deadlines',
         'defects',
         'duties',

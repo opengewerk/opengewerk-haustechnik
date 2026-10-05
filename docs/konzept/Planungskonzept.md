@@ -1,6 +1,6 @@
-# OpenGewerk Haustechnik: Planungskonzept (Software für Betreiber und ihre Haustechnik) · v0.9
+# OpenGewerk Haustechnik: Planungskonzept (Software für Betreiber und ihre Haustechnik) · v0.10
 
-2026-10-05 · Eigenständiges Projekt, Repository `opengewerk-haustechnik` in der GitHub-Organisation `opengewerk` · v0.2 trägt die Entscheidungen vom 01.10.2026 ein, v0.3 die Technik, mit der das Fundament eingebunden wird, v0.4 gleicht Abschnitt 5 und die Wortwahl an die ADRs 0002 bis 0006 an, siehe Abschnitt 15; v0.5 sagt in Abschnitt 7, was jede Rolle im Einzelnen darf, v0.6 nennt dort die Rechte für den Abgleich, v0.7 gibt den eigenen Anlagenarten und den Mängelklassen ihre Phase, v0.8 trägt die Entscheidungen vom 04.10.2026 vor dem Bau von Phase 1 ein, v0.9 gibt der Liegenschaft ihre Notiz (Vergleich mit openMAINT, Atlas CMMS, eTASK, wave Facilities, pitFM, SPARTACUS, Planon, Lumiform, Wowflow und den Excel-Listen, die vielerorts die eigentliche Software sind)
+2026-10-05 · Eigenständiges Projekt, Repository `opengewerk-haustechnik` in der GitHub-Organisation `opengewerk` · v0.2 trägt die Entscheidungen vom 01.10.2026 ein, v0.3 die Technik, mit der das Fundament eingebunden wird, v0.4 gleicht Abschnitt 5 und die Wortwahl an die ADRs 0002 bis 0006 an, siehe Abschnitt 15; v0.5 sagt in Abschnitt 7, was jede Rolle im Einzelnen darf, v0.6 nennt dort die Rechte für den Abgleich, v0.7 gibt den eigenen Anlagenarten und den Mängelklassen ihre Phase, v0.8 trägt die Entscheidungen vom 04.10.2026 vor dem Bau von Phase 1 ein, v0.9 gibt der Liegenschaft ihre Notiz, v0.10 sagt, wer ihre Ansprechpartner pflegt (Vergleich mit openMAINT, Atlas CMMS, eTASK, wave Facilities, pitFM, SPARTACUS, Planon, Lumiform, Wowflow und den Excel-Listen, die vielerorts die eigentliche Software sind)
 
 Self-hosted Open-Source-System für alle, die Gebäude betreiben und dafür eigene Haustechniker haben. Liegenschaften, Gebäude, Räume und technische Anlagen stehen in einem Datenmodell. Die Betreiberpflichten hängen daran als überwachte Fristen, Rundgänge und Prüfungen laufen auf dem Telefon auch ohne Netz, und zu jeder Pflicht gibt es einen Nachweis, der sich nachträglich nicht ändern lässt.
 
@@ -500,7 +500,7 @@ Regeln für jeden Beitrag:
 | Das Änderungsprotokoll einsehen | ja | nein | nein | nein |
 
 - Jede Rolle darf, was die Rolle rechts von ihr darf, und der Bereich begrenzt, wo: ein Recht gilt in den Bereichen der Person (2.8)
-- **Aufnehmen und pflegen.** Aufnehmen heißt anlegen und die Angaben ergänzen und berichtigen, wie es die Bestandsaufnahme vor Ort braucht (2.7, 4.2). Pflegen ist, was Folgen über den Datensatz hinaus hat: der Lebenszyklus einer Anlage, weil ihre Pflichten ruhen, sobald sie außer Betrieb ist, der Tausch, das Verlegen an einen anderen Ort und das Entfernen. Einen Raum verlegt oder entfernt, wer Liegenschaften, Gebäude und Geschosse pflegt
+- **Aufnehmen und pflegen.** Aufnehmen heißt anlegen und die Angaben ergänzen und berichtigen, wie es die Bestandsaufnahme vor Ort braucht (2.7, 4.2). Pflegen ist, was Folgen über den Datensatz hinaus hat: der Lebenszyklus einer Anlage, weil ihre Pflichten ruhen, sobald sie außer Betrieb ist, der Tausch, das Verlegen an einen anderen Ort und das Entfernen. Einen Raum verlegt oder entfernt, wer Liegenschaften, Gebäude und Geschosse pflegt. Dasselbe Recht pflegt die Ansprechpartner einer Liegenschaft, mit Verbindung wie die Liegenschaft selbst; lesen kann sie, wer die Liegenschaft sieht, auch auf dem Gerät vor Ort (4.1, 2.7)
 - **Ausführen, planen, abnehmen.** Vorgänge sind Rundgänge, Prüfungen, Wartungen und Aufträge (2.2). Ausführen ist die Arbeit daran bis zur Unterschrift. Planen und verteilen ist, was davor geschieht: einen Rundgang planen, einen Auftrag anlegen und zuteilen, einen offenen Rundgang mit Grund schließen. Abnehmen und gegenzeichnen ist die zweite Unterschrift (4.5, 4.8)
 - **Melden und führen.** Melden heißt einen Mangel festhalten, mit Bemerkung und Foto. Führen ist sein weiterer Weg: Klasse, Frist und Status (4.6)
 - **Abgleichen und senden** ist der Weg eines Geräts zum Server, mit Netz und ohne (2.7): was sich geändert hat, auf das Gerät holen, und was es ohne Netz festgehalten hat, schicken. Das ist kein eigenes Tun, sondern ein anderer Weg hinein; was ein Vorgang anfasst, entscheiden die Rechte darüber, und deshalb haben alle Rollen beide
@@ -736,6 +736,10 @@ Die offenen Fragen aus v0.1 sind am 01.10.2026 entschieden worden, die Phasen de
 ---
 
 ## 16. Änderungsprotokoll
+
+### v0.9 → v0.10
+
+- Die Ansprechpartner einer Liegenschaft pflegt, wer Liegenschaften, Gebäude und Geschosse pflegt, mit Verbindung wie die Liegenschaft selbst. Lesen kann sie, wer die Liegenschaft sieht, auch auf dem Gerät vor Ort. Ein eigenes Recht haben sie nicht (4.1, 7)
 
 ### v0.8 → v0.9
 

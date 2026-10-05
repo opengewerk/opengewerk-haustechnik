@@ -13,6 +13,7 @@ export * from './secrets.js'
 // The tables of this application.
 export * from './areas.js'
 export * from './locations.js'
+export * from './contacts.js'
 export * from './assets.js'
 export * from './duties.js'
 export * from './evidence-result.js'
