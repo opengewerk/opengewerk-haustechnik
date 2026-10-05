@@ -218,6 +218,32 @@ describe('every route', () => {
       ])
     }
   })
+
+  /**
+   * Section 9 of the concept: no evaluation by person. A route that takes one
+   * person in its path is where such an evaluation would begin, so each of
+   * them asks for a membership right, which only the role that leads holds.
+   * The description of the processing for a works council leans on this
+   * (`docs/verfahrensbeschreibung/`). A person is `userId` in a path
+   * throughout; the other names are here for the day somebody picks another.
+   * The area of the instance keeps its own administrators and says nothing
+   * about who works for a tenant.
+   */
+  it('that names one person in its path asks for a membership right, the area of the instance aside', () => {
+    const aboutOnePerson = routesOf(controllers).filter(
+      (route) => /\/:(user|person|member|account|staff)/i.test(route.name) && !route.needsOperator,
+    )
+
+    expect(aboutOnePerson.length).toBeGreaterThanOrEqual(6)
+    expect(
+      aboutOnePerson
+        .filter(
+          (route) =>
+            route.permission !== 'membership.read' && route.permission !== 'membership.write',
+        )
+        .map((route) => route.name),
+    ).toEqual([])
+  })
 })
 
 /**
