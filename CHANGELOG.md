@@ -502,6 +502,19 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   der Abgleich sie mit ihrem neuen Bereich aufs Gerät. Die Kachel "Zugänge" nennt jetzt auch Bereiche und
   Vertretungen. In der Vorschau ist die Leitung für keinen Bereich mehr eigens genannt, so wie die Routen
   es bei jemandem halten, der alle hat: sonst stünde sie in der neuen Liste unter jedem Bereich
+- Verfahrensbeschreibung für den Stand von Phase 1, von Hand geschrieben (#140), unter
+  `docs/verfahrensbeschreibung/`: damit eine Arbeitnehmervertretung vor dem Parallelbetrieb in der Hand
+  hat, welche Daten über Beschäftigte wo stehen, wer sie sieht, welche Auswertungen es gibt und welche
+  nicht, was sich einschalten lässt, wie lange aufbewahrt wird und was das Änderungsprotokoll festhält.
+  Jede Aussage nennt ihre Stelle im Konzept, jede Zusage einen Test. Was das Konzept zusagt und diese
+  Fassung noch nicht hält, steht in einem eigenen Abschnitt: im Änderungsprotokoll wird nichts geschwärzt,
+  nichts wird nach einer Frist gelöscht, der Stempel eines Datensatzes reist mit jeder Antwort mit, und die
+  Zeile einer Sitzung hält die Netzadresse der Anmeldung. `processing-description.test.ts` im Serverpaket
+  hält das Dokument gegen den Quelltext: jeder Beleg in Anhang A muss stimmen, Anhang B nennt jede Spalte,
+  die auf eine Person zeigt, Anhang C jede Adresse, die der Server beantwortet. Ein Baustein, der eines von
+  beiden bringt, wird rot, bis das Dokument ihn nennt, und so wird es berichtigt, wenn sich an seinen
+  Aussagen etwas ändert. Dazu ein Test am Gang über die Routen: eine Route, die eine Person im Pfad nennt,
+  verlangt ein Recht der Zugänge
 
 ### Geändert
 
