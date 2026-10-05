@@ -26,7 +26,12 @@ import {
   refuseProduction,
 } from './preview-database.js'
 import { openSamplePreview } from './preview-server.js'
-import { sampleProperties, schoolHolidays } from './sample-data.js'
+import {
+  inServiceSince,
+  outOfServiceThisYear,
+  sampleProperties,
+  schoolHolidays,
+} from './sample-data.js'
 
 /**
  * The preview lets every request through as one person of a sample operator
@@ -382,6 +387,81 @@ describe('a preview started as the Leitung', () => {
       'Sommerferien',
     ])
     expect(schoolHolidays.every((closure) => closure.endsOn >= dayInGermany())).toBe(true)
+  })
+
+  // What the pages of a building and of a room are looked at with (#86): an
+  // asset in every state the page draws, and one that supplies a room without
+  // standing in it. Every asset is in service, one sub meter is out of service
+  // since the first day of the year; the main meter of the school house
+  // supplies its whole building, and its sub meter the gym it does not stand in.
+  it('gives every asset a state, takes one sub meter out of service and has two meters supply a building', async () => {
+    const server = application.getHttpServer()
+    const properties = (await request(server).get('/properties').expect(200)).body as Named[]
+    const buildingNames = new Map<string, string>()
+    const states: Record<string, string | null> = {}
+    const supplying: Record<string, readonly string[]> = {}
+    const standing: Record<string, string> = {}
+
+    for (const property of properties) {
+      const buildings = (
+        await request(server).get(`/properties/${property.id}/buildings`).expect(200)
+      ).body as Named[]
+
+      for (const building of buildings) {
+        buildingNames.set(building.id, building.name)
+      }
+
+      for (const building of buildings) {
+        const listed = (await request(server).get(`/buildings/${building.id}/assets`).expect(200))
+          .body as Named[]
+
+        for (const { id } of listed) {
+          const asset = (await request(server).get(`/assets/${id}`).expect(200)).body as Named & {
+            readonly lifecycleState: string | null
+            readonly lifecycle: readonly { readonly state: string; readonly validFrom: string }[]
+            readonly supplies: readonly {
+              readonly buildingId: string | null
+              readonly roomId: string | null
+            }[]
+          }
+
+          states[asset.name] = asset.lifecycleState
+          standing[asset.name] = building.name
+          expect([asset.name, asset.lifecycle[0]]).toEqual([
+            asset.name,
+            expect.objectContaining({ state: 'in_service', validFrom: inServiceSince }),
+          ])
+
+          if (asset.supplies.length > 0) {
+            // Whole buildings: no sample asset names a room.
+            expect(asset.supplies.every((supply) => supply.roomId === null)).toBe(true)
+            supplying[asset.name] = asset.supplies.map(
+              (supply) => buildingNames.get(String(supply.buildingId)) ?? '',
+            )
+          }
+        }
+      }
+    }
+
+    const outOfService = Object.keys(states).filter((name) => states[name] === 'out_of_service')
+
+    expect(Object.keys(states).length).toBeGreaterThan(4)
+    expect(outOfService).toEqual(['Unterzähler Sporthalle'])
+    expect(
+      Object.keys(states).filter(
+        (name) => states[name] !== 'in_service' && states[name] !== 'out_of_service',
+      ),
+    ).toEqual([])
+    expect(outOfServiceThisYear).toEqual([
+      { state: 'out_of_service', validFrom: `${dayInGermany().slice(0, 4)}-01-01` },
+    ])
+
+    expect(supplying).toEqual({
+      'Hauptwasserzähler Schulhaus': ['Schulhaus'],
+      'Unterzähler Sporthalle': ['Sporthalle'],
+    })
+    // The sub meter supplies a building it does not stand in.
+    expect(standing['Unterzähler Sporthalle']).toBe('Schulhaus')
   })
 
   it('plants nothing a real operator could recognise as theirs: every postal code and every phone number is one nobody has', () => {

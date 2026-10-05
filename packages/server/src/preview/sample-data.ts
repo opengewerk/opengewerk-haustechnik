@@ -10,7 +10,11 @@ import type { PreviewArea } from './preview-database.js'
  * about them and one without an address. At another property only a name is
  * known, and two have nobody entered. The school house has the times it is
  * closed (#86): the holidays that come next, counted from the year the
- * preview is started in, so that they lie ahead in every year.
+ * preview is started in, so that they lie ahead in every year. Every asset is
+ * in service; one sub meter is out of service since the first day of the
+ * year. The main meter of the school house supplies the whole building, and
+ * its sub meter the gym, which it does not stand in, so that the page of a
+ * room shows what supplies it from elsewhere.
  *
  * Written for the preview and taken from nowhere: the names, streets and
  * places are made up, the postal codes and the phone numbers begin with 0000,
@@ -45,6 +49,16 @@ interface SampleAsset {
   /** The number of the room it stands in, if it stands in one. */
   readonly room?: string
   readonly components?: readonly SampleAsset[]
+  /** The state it is in from a day on, after being in service from the start. */
+  readonly lifecycle?: readonly SampleState[]
+  /** The buildings of its property it supplies, by name: its own as a whole, or one it does not stand in. */
+  readonly supplies?: readonly string[]
+}
+
+/** A state of a life cycle, from a day on. */
+export interface SampleState {
+  readonly state: 'in_service' | 'out_of_service'
+  readonly validFrom: string
 }
 
 interface SampleBuilding {
@@ -102,11 +116,20 @@ interface SampleProperty {
   readonly buildings: readonly SampleBuilding[]
 }
 
+/** Every sample asset is in service from this day on. */
+export const inServiceSince = '2020-01-01'
+
+/** Out of service since the first day of the year the preview is started in. */
+export const outOfServiceThisYear: readonly SampleState[] = [
+  { state: 'out_of_service', validFrom: `${String(thisYear)}-01-01` },
+]
+
 const waterMeter = (
   name: string,
   meterNumber: string,
   room: string,
   components: readonly SampleAsset[] = [],
+  further: Pick<SampleAsset, 'lifecycle' | 'supplies'> = {},
 ): SampleAsset => ({
   kind: 'probe.water_meter',
   name,
@@ -114,6 +137,7 @@ const waterMeter = (
   meterNumber,
   room,
   components,
+  ...further,
 })
 
 export const sampleProperties: readonly SampleProperty[] = [
@@ -236,9 +260,18 @@ export const sampleProperties: readonly SampleProperty[] = [
             yearBuilt: 2012,
             values: { firefighters_lift: false, stops: 2 },
           },
-          waterMeter('Hauptwasserzähler Schulhaus', 'WZ-3001', 'E.14', [
-            waterMeter('Unterzähler Sporthalle', 'WZ-3002', 'E.14'),
-          ]),
+          waterMeter(
+            'Hauptwasserzähler Schulhaus',
+            'WZ-3001',
+            'E.14',
+            [
+              waterMeter('Unterzähler Sporthalle', 'WZ-3002', 'E.14', [], {
+                lifecycle: outOfServiceThisYear,
+                supplies: ['Sporthalle'],
+              }),
+            ],
+            { supplies: ['Schulhaus'] },
+          ),
         ],
       },
       {
@@ -297,9 +330,14 @@ export const sampleProperties: readonly SampleProperty[] = [
 export const sampleOperatorName = 'Liegenschaften Beispielstadt (Vorschau)'
 
 /** A request of the planting, which fails with the answer of the server when it is refused. */
-async function send(address: string, path: string, body: unknown): Promise<{ id: string }> {
+async function send(
+  address: string,
+  path: string,
+  body: unknown,
+  method: 'POST' | 'PUT' = 'POST',
+): Promise<{ id: string }> {
   const response = await fetch(`${address}${path}`, {
-    method: 'POST',
+    method,
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify(body),
   })
@@ -311,13 +349,20 @@ async function send(address: string, path: string, body: unknown): Promise<{ id:
   return (await response.json()) as { id: string }
 }
 
+/** What an asset supplies, kept until every building of its property is there to be named. */
+interface Supplying {
+  readonly assetId: string
+  readonly buildings: readonly string[]
+}
+
 async function plantAsset(
   address: string,
   path: string,
   asset: SampleAsset,
   rooms: ReadonlyMap<string, string>,
+  supplying: Supplying[],
 ): Promise<void> {
-  const { components = [], room, ...fields } = asset
+  const { components = [], room, lifecycle = [], supplies = [], ...fields } = asset
   const roomId = room === undefined ? undefined : rooms.get(room)
   const created = await send(address, path, {
     ...fields,
@@ -325,8 +370,16 @@ async function plantAsset(
     ...(roomId === undefined ? {} : { roomId }),
   })
 
+  for (const entry of [{ state: 'in_service', validFrom: inServiceSince }, ...lifecycle]) {
+    await send(address, `/assets/${created.id}/lifecycle`, entry)
+  }
+
+  if (supplies.length > 0) {
+    supplying.push({ assetId: created.id, buildings: supplies })
+  }
+
   for (const component of components) {
-    await plantAsset(address, `/assets/${created.id}/components`, component, rooms)
+    await plantAsset(address, `/assets/${created.id}/components`, component, rooms, supplying)
   }
 }
 
@@ -351,6 +404,9 @@ export async function plantSampleData(
       await send(address, '/contacts', { ...contact, propertyId: created.id })
     }
 
+    const buildingIds = new Map<string, string>()
+    const supplying: Supplying[] = []
+
     for (const building of buildings) {
       const { floors, assets, closures = [], ...buildingFields } = building
       const madeBuilding = await send(
@@ -359,6 +415,8 @@ export async function plantSampleData(
         buildingFields,
       )
       const rooms = new Map<string, string>()
+
+      buildingIds.set(building.name, madeBuilding.id)
 
       for (const closure of closures) {
         await send(address, `/buildings/${madeBuilding.id}/closures`, closure)
@@ -377,8 +435,19 @@ export async function plantSampleData(
       }
 
       for (const asset of assets) {
-        await plantAsset(address, `/buildings/${madeBuilding.id}/assets`, asset, rooms)
+        await plantAsset(address, `/buildings/${madeBuilding.id}/assets`, asset, rooms, supplying)
       }
+    }
+
+    // Once every building of the property is there: an asset may supply one
+    // that was made after its own.
+    for (const { assetId, buildings: names } of supplying) {
+      await send(
+        address,
+        `/assets/${assetId}/supplies`,
+        { buildingIds: names.map((name) => buildingIds.get(name)) },
+        'PUT',
+      )
     }
   }
 }
