@@ -259,6 +259,8 @@ Nachträge:
 
   Routen und Bildschirme kommen mit den Abläufen aus Phase 1, hinter den Rechten aus Abschnitt 7 des Konzepts (`activity.*`, `defect.*`); auf ein Gerät reisen die vier Tabellen mit den Regeln aus `#27`. Den Nachweis mit eingefrorenem Stand, die Unterschrift und die Berichtigung bringen die nächsten Schritte von `#26`.
 
+- **Nachtrag vom 05.10.2026, die Notiz einer Liegenschaft (`#85`).** Die Migration `0015_property_note` gibt `properties` die Spalte `note`: ein Text oder keiner, ohne Leerzeichen an den Rändern und höchstens 2000 Zeichen, seine Zeilenumbrüche bleiben. Sie sagt, was man vor dem Weg zur Liegenschaft wissen muss, und steht seit v0.9 in Abschnitt 4.1 des Konzepts, weil die Tafel "Neue Liegenschaft" sie zeichnet. Sie ist ein Feld der Liegenschaft und keine eigene Tabelle: sie reist mit ihr auf jedes Gerät, das die Liegenschaft hält, und jede Änderung steht im Protokoll des Betreibers. Deshalb gehört kein Code hinein; der Platz dafür sind die versiegelten Zugänge aus Abschnitt 4.13. Ein Land führt die Liegenschaft nicht als Spalte: der Katalog ist deutsches Recht, und was Abschnitt 2.2 "Land" nennt, ist das Bundesland. Die Oberfläche nennt "Deutschland" trotzdem, wie die Tafel es zeichnet.
+
 ## Bestätigung
 
 Die Entscheidung gilt als umgesetzt, wenn

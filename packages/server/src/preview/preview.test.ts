@@ -264,6 +264,24 @@ describe('a preview started as the Leitung', () => {
     expect(sub?.parentAssetId).toBe(main?.id)
   })
 
+  // What the list and the page of a property are looked at with (#85).
+  it('shows one property with two buildings and a note in two lines', async () => {
+    const server = application.getHttpServer()
+    const properties = (await request(server).get('/properties').expect(200)).body as (Named & {
+      readonly note: string | null
+    })[]
+    const school = properties.find((property) => property.name === 'Schulzentrum Am Lindenhain')
+    const buildings = (
+      await request(server)
+        .get(`/properties/${String(school?.id)}/buildings`)
+        .expect(200)
+    ).body as Named[]
+
+    expect(school?.note?.split('\n')).toHaveLength(2)
+    expect(buildings.map((building) => building.name)).toEqual(['Schulhaus', 'Sporthalle'])
+    expect(properties.filter((property) => property.note !== null)).toHaveLength(1)
+  })
+
   it('plants nothing a real operator could recognise as theirs: every postal code is one no place has', () => {
     for (const property of sampleProperties) {
       expect(property.postalCode).toMatch(/^0000\d$/)

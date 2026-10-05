@@ -138,27 +138,41 @@ afterEach(() => {
 
 describe('the navigation of the office as it is built today', () => {
   /**
-   * No screen of the board is built yet, so the navigation is the foot of the
-   * frame alone. The first screen that arrives changes what stands here.
+   * The properties are the first screen of the board that is built (#85), so
+   * the navigation is their place under "Bestand" over the foot of the frame.
+   * Every role reads places. The next screen that arrives changes what stands
+   * here.
    */
   const today: readonly (readonly [RoleKey, readonly string[]])[] = [
-    ['management', ['Abgleich', 'Einstellungen']],
-    ['technical_management', ['Abgleich']],
-    ['site_management', ['Abgleich']],
-    ['technician', ['Abgleich']],
+    ['management', ['Liegenschaften', 'Abgleich', 'Einstellungen']],
+    ['technical_management', ['Liegenschaften', 'Abgleich']],
+    ['site_management', ['Liegenschaften', 'Abgleich']],
+    ['technician', ['Liegenschaften', 'Abgleich']],
   ]
 
-  it.each(today)('offers %s the foot alone: %j', async (role, expected) => {
+  it.each(today)('offers %s the properties over the foot: %j', async (role, expected) => {
     signedInAs(memberIn(role))
     await mounted({ routeTree: officeRoutes(), at: '/konflikte', application: officeApplication })
     await untilTheRightsAreKnown()
+    await screen.findByRole('link', { name: 'Liegenschaften' })
 
     if (expected.includes('Einstellungen')) {
       await screen.findByRole('link', { name: 'Einstellungen' })
     }
 
     expect(links()).toEqual(expected)
-    expect(titles()).toEqual([])
+    expect(titles()).toEqual(['Bestand'])
+  })
+
+  it('offers nobody a place whose screen is not built, the overview first of all', async () => {
+    signedInAs(memberIn('management'))
+    await mounted({ routeTree: officeRoutes(), at: '/konflikte', application: officeApplication })
+    await untilTheRightsAreKnown()
+    await screen.findByRole('link', { name: 'Liegenschaften' })
+
+    for (const label of ['Übersicht', 'Anlagen', 'Zähler', 'Pflichtenverzeichnis', 'Katalog']) {
+      expect(screen.queryByRole('link', { name: label })).toBeNull()
+    }
   })
 })
 

@@ -70,6 +70,7 @@ export const properties = pgTable(
     postalCode: text('postal_code').notNull(),
     city: text('city').notNull(),
     federalState: federalState('federal_state').notNull(),
+    note: text('note'),
     ...timestamps,
     ...syncColumns,
   },
@@ -89,6 +90,7 @@ export const properties = pgTable(
     check('properties_street_shaped', trimmed(table.street, locationLimits.street)),
     check('properties_city_shaped', trimmed(table.city, locationLimits.city)),
     check('properties_postal_code_shaped', sql`${table.postalCode} ~ '^[0-9]{5}$'`),
+    check('properties_note_shaped', optionalTrimmed(table.note, locationLimits.propertyNote)),
   ],
 )
 

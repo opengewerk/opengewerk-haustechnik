@@ -24,7 +24,15 @@ import { areaFor, type Asking, fieldsOf, placeOf, refuse } from './places.js'
 
 const missing = 'Diese Liegenschaft gibt es nicht oder nicht mehr.'
 
-const propertyFields = ['name', 'street', 'postalCode', 'city', 'federalState', 'areaId'] as const
+const propertyFields = [
+  'name',
+  'street',
+  'postalCode',
+  'city',
+  'federalState',
+  'areaId',
+  'note',
+] as const
 const buildingFields = ['name', 'shortCode', 'kinds', 'yearBuilt'] as const
 
 /**
@@ -55,7 +63,7 @@ export class PropertiesController {
   @Post()
   @RequiresPermission('location.write')
   create(@CurrentIdentity() identity: Asking, @Body() body: unknown): Promise<Property> {
-    const values = fieldsOf(body, propertyFields)
+    const values = fieldsOf(body, propertyFields, ['note'])
 
     refuse(
       propertyProblems({
@@ -80,6 +88,7 @@ export class PropertiesController {
           postalCode: values.postalCode as string,
           city: values.city as string,
           federalState: values.federalState as Property['federalState'],
+          note: (values.note ?? null) as string | null,
         })
         .returning()
 
@@ -105,7 +114,7 @@ export class PropertiesController {
     @Param('id') id: string,
     @Body() body: unknown,
   ): Promise<Property> {
-    const values = fieldsOf(body, propertyFields)
+    const values = fieldsOf(body, propertyFields, ['note'])
 
     requireSomething(values)
     refuse(propertyProblems(values))

@@ -46,6 +46,7 @@ export const auditVocabulary: AuditVocabulary = {
         postal_code: 'Postleitzahl',
         city: 'Ort',
         federal_state: 'Bundesland',
+        note: 'Notiz',
       },
     },
     buildings: {
@@ -253,7 +254,10 @@ export const auditVocabulary: AuditVocabulary = {
     },
   },
   parts: {},
-  records: [],
+  // The records the log is opened from, each from the screen that shows it.
+  // A property so far takes in nothing but itself: its buildings are records
+  // of their own, with a log of their own once they have a page.
+  records: ['properties'],
   references: {
     area_id: 'areas',
     property_id: 'properties',

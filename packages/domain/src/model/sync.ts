@@ -312,6 +312,7 @@ export const syncFieldNames: Readonly<Record<string, string>> = {
   postalCode: 'Postleitzahl',
   city: 'Ort',
   federalState: 'Bundesland',
+  note: 'Notiz',
   shortCode: 'Kürzel',
   kinds: 'Gebäudearten',
   yearBuilt: 'Baujahr',
