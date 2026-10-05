@@ -18,6 +18,8 @@ import { AccountScreen } from './screens/account.js'
 import { AreasScreen } from './screens/areas.js'
 import { EditBuildingScreen, NewBuildingScreen } from './screens/building-form.js'
 import { BuildingScreen } from './screens/buildings.js'
+import { CatalogueScreen } from './screens/catalogue.js'
+import { DutyKindScreen } from './screens/duty-kind.js'
 import { EditFloorScreen, NewFloorScreen } from './screens/floor-form.js'
 import { FloorScreen } from './screens/floors.js'
 import {
@@ -157,6 +159,24 @@ export function officeRoutes() {
       getParentRoute: () => office,
       path: '/raeume/$roomId/bearbeiten',
       component: EditRoomScreen,
+    }),
+    // The catalogue: the packages, one of them with one of its parts, and
+    // the page of a duty kind under the package it comes from.
+    createRoute({ getParentRoute: () => office, path: '/katalog', component: CatalogueScreen }),
+    createRoute({
+      getParentRoute: () => office,
+      path: '/katalog/$packageName',
+      component: CatalogueScreen,
+    }),
+    createRoute({
+      getParentRoute: () => office,
+      path: '/katalog/$packageName/$part',
+      component: CatalogueScreen,
+    }),
+    createRoute({
+      getParentRoute: () => office,
+      path: '/katalog/$packageName/pflichtarten/$dutyKey',
+      component: DutyKindScreen,
     }),
     createRoute({ getParentRoute: () => office, path: '/konflikte', component: SyncScreen }),
     createRoute({ getParentRoute: () => office, path: '/konto', component: AccountScreen }),

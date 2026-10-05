@@ -139,15 +139,16 @@ afterEach(() => {
 describe('the navigation of the office as it is built today', () => {
   /**
    * The properties are the first screen of the board that is built (#85), so
-   * the navigation is their place under "Bestand" over the foot of the frame.
-   * Every role reads places. The next screen that arrives changes what stands
-   * here.
+   * the navigation is their place under "Bestand" over the foot of the frame,
+   * and the catalogue stands at the foot since its screen is built (#90).
+   * Every role reads places, and the catalogue is the same for everybody. The
+   * next screen that arrives changes what stands here.
    */
   const today: readonly (readonly [RoleKey, readonly string[]])[] = [
-    ['management', ['Liegenschaften', 'Abgleich', 'Einstellungen']],
-    ['technical_management', ['Liegenschaften', 'Abgleich']],
-    ['site_management', ['Liegenschaften', 'Abgleich']],
-    ['technician', ['Liegenschaften', 'Abgleich']],
+    ['management', ['Liegenschaften', 'Katalog', 'Abgleich', 'Einstellungen']],
+    ['technical_management', ['Liegenschaften', 'Katalog', 'Abgleich']],
+    ['site_management', ['Liegenschaften', 'Katalog', 'Abgleich']],
+    ['technician', ['Liegenschaften', 'Katalog', 'Abgleich']],
   ]
 
   it.each(today)('offers %s the properties over the foot: %j', async (role, expected) => {
@@ -170,7 +171,7 @@ describe('the navigation of the office as it is built today', () => {
     await untilTheRightsAreKnown()
     await screen.findByRole('link', { name: 'Liegenschaften' })
 
-    for (const label of ['Übersicht', 'Anlagen', 'Zähler', 'Pflichtenverzeichnis', 'Katalog']) {
+    for (const label of ['Übersicht', 'Anlagen', 'Zähler', 'Pflichtenverzeichnis', 'Fristen']) {
       expect(screen.queryByRole('link', { name: label })).toBeNull()
     }
   })
