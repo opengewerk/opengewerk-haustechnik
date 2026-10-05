@@ -28,7 +28,7 @@ guarded_route=/staff
 # The tables counted before the backup and after the restore. The area and
 # the place of the account in it come with the account: a Betreiber gets its
 # first area with its first membership.
-counted_tables='auth_users memberships tenant_roles areas member_areas invitations invitation_area_choices invitation_areas properties buildings contacts building_closures assets files mail_settings deadline_settings deadline_runs duties duty_dismissals evidence deadlines activities activity_duties work_orders defects activity_signatures work_order_decisions evidence_voidings'
+counted_tables='auth_users memberships tenant_roles account_corrections areas member_areas invitations invitation_area_choices invitation_areas properties buildings contacts building_closures assets files mail_settings deadline_settings deadline_runs duties duty_dismissals evidence deadlines activities activity_duties work_orders defects activity_signatures work_order_decisions evidence_voidings'
 
 # The migrations, and how many of them make the older state an update starts
 # from: the first, without the sequence for work orders that the second brings.
@@ -55,6 +55,13 @@ records_for_backup() {
   restart_app
   HAUSTECHNIK_PASSWORD=$probe_password compose exec -T -e HAUSTECHNIK_PASSWORD app \
     node dist/add-staff.js "$first_tenant" "$probe_email" 'Hanna Probe' technician
+  # A correction of the name of that account (opengewerk-haustechnik#84), as
+  # the row the route writes beside the change. Only the row: the name of the
+  # account stays as the command made it.
+  sql "
+    insert into account_corrections (tenant_id, user_id, name_before, name_after)
+    select '$first_tenant', u.id, 'Hanna Brobe', 'Hanna Probe'
+      from auth_users u where u.email = '$probe_email';"
   # An invitation that names the area of the Betreiber for whoever takes it up
   # (opengewerk-haustechnik#84). The hash stands for a link nobody has.
   sql "

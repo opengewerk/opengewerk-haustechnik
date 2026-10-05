@@ -263,6 +263,116 @@ describe('who works for a tenant', () => {
   })
 })
 
+/**
+ * Whoever decides who works for a tenant puts the name and the address of an
+ * account right (opengewerk-haustechnik#84). The route and its rules are the
+ * foundation's and tested there. Here: that the database of this application
+ * has the table the route writes into, with the trigger that puts a
+ * correction into the log of the tenant, and that a refusal comes in the
+ * words of this application.
+ */
+describe('the name and the address of an account', () => {
+  async function accountOf(userId: string): Promise<{ name: string; email: string }> {
+    const { rows } = await admin.query<{ name: string; email: string }>(
+      'select name, email from auth_users where id = $1',
+      [userId],
+    )
+
+    if (!rows[0]) {
+      throw new Error(`No account ${userId}.`)
+    }
+
+    return rows[0]
+  }
+
+  /** What the tenant wrote down about corrections, the oldest first. */
+  async function corrections(): Promise<unknown[]> {
+    const { rows } = await admin.query(
+      `select user_id, name_before, name_after, email_before, email_after
+         from account_corrections
+        where tenant_id = $1
+        order by created_at, id`,
+      [tenantId],
+    )
+
+    return rows
+  }
+
+  it('are put right by "Leitung", and the correction stands in the log of the tenant', async () => {
+    const userId = await member('technik@klinikum.example', 'technician')
+
+    const answer = await asking(leadId, 'management')
+      .patch(`/staff/${userId}/account`, { name: 'Max Beispiel' })
+      .expect(200)
+
+    const corrected = { name: 'Max Beispiel', email: 'technik@klinikum.example' }
+
+    expect(answer.body).toEqual({ userId, ...corrected })
+    expect(await accountOf(userId)).toEqual(corrected)
+    expect(await corrections()).toEqual([
+      {
+        user_id: userId,
+        name_before: 'technik@klinikum.example',
+        name_after: 'Max Beispiel',
+        email_before: null,
+        email_after: null,
+      },
+    ])
+
+    // The row reached the log of the tenant, with the right it was made under.
+    const { rows } = await admin.query(
+      `select field, new_value, reason
+         from audit_entries
+        where tenant_id = $1 and table_name = 'account_corrections'
+          and field in ('name_before', 'name_after')
+        order by field`,
+      [tenantId],
+    )
+
+    expect(rows).toEqual([
+      { field: 'name_after', new_value: 'Max Beispiel', reason: 'membership.write' },
+      { field: 'name_before', new_value: 'technik@klinikum.example', reason: 'membership.write' },
+    ])
+  })
+
+  it.each(roleKeys.filter((key) => key !== 'management'))(
+    'are not for "%s" to put right',
+    async (key) => {
+      const userId = await member('technik@klinikum.example', 'technician')
+      const asker = await member(`${key}@klinikum.example`, key)
+
+      const refused = await asking(asker, key)
+        .patch(`/staff/${userId}/account`, { name: 'Max Beispiel' })
+        .expect(403)
+
+      expect((refused.body as { message: string }).message).toBe(missingRight('membership.write'))
+      expect(await accountOf(userId)).toEqual({
+        name: 'technik@klinikum.example',
+        email: 'technik@klinikum.example',
+      })
+      expect(await corrections()).toEqual([])
+    },
+  )
+
+  /**
+   * The first account of an instance belongs to its administration as well,
+   * so it is not this tenant's alone, and neither is one that works for a
+   * second tenant. One sentence for both.
+   */
+  it('stay with the person where the account is not this tenant’s alone', async () => {
+    const refused = await asking(leadId, 'management')
+      .patch(`/staff/${leadId}/account`, { name: 'Erika Anders' })
+      .expect(409)
+
+    expect((refused.body as { message: string }).message).toBe(access.sentences.accountNotOnlyHere)
+    expect(await accountOf(leadId)).toEqual({
+      name: 'Erika Beispiel',
+      email: 'leitung@klinikum.example',
+    })
+    expect(await corrections()).toEqual([])
+  })
+})
+
 describe('the last one who leads a tenant', () => {
   it('is not given a lesser role, by anybody and not by themselves', async () => {
     const refused = await asking(leadId, 'management')
