@@ -11,6 +11,7 @@ import { placePath } from '../../app/place-path.js'
 import { byLevel, kindsOf, placeAbove } from '../../app/place-records.js'
 import { areaName, useAreas } from '../../session/areas.js'
 import { AreaBadge } from '../area-badge.js'
+import { BuildingClosures } from '../building-closures.js'
 import { officePlaces, placeForms } from '../place-addresses.js'
 import { countedAssets, countedRooms, PlaceNotFound } from '../place-pages.js'
 
@@ -22,7 +23,8 @@ import { countedAssets, countedRooms, PlaceNotFound } from '../place-pages.js'
  *
  * Read from the device, so it stands without a network. Whoever keeps the
  * places changes the building from here and adds a floor to it
- * (`building-form.tsx`, `floor-form.tsx`). What the board draws beyond this
+ * (`building-form.tsx`, `floor-form.tsx`), and whoever plans the rounds keeps
+ * the times it is closed (`building-closures.tsx`). What the board draws beyond this
  * arrives with what it shows: what is to do with the register of duties, the
  * assets by cost group with the catalogue, the last activities with the
  * activities, and the labels with the labels.
@@ -86,24 +88,27 @@ export function BuildingScreen() {
       {/* The columns of the board. Beside the floors the assets by cost group
           take their place once the catalogue reaches the interface (#90). */}
       <div className="grid gap-3.5 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.25fr)]">
-        <Floors
-          floors={floors}
-          rooms={rooms}
-          assets={assets}
-          action={
-            writes ? (
-              <Button
-                size="small"
-                icon={Plus}
-                onClick={() => {
-                  void navigate({ to: placeForms.newFloor(buildingId) })
-                }}
-              >
-                Geschoss anlegen
-              </Button>
-            ) : null
-          }
-        />
+        <div className="flex min-w-0 flex-col gap-3.5">
+          <Floors
+            floors={floors}
+            rooms={rooms}
+            assets={assets}
+            action={
+              writes ? (
+                <Button
+                  size="small"
+                  icon={Plus}
+                  onClick={() => {
+                    void navigate({ to: placeForms.newFloor(buildingId) })
+                  }}
+                >
+                  Geschoss anlegen
+                </Button>
+              ) : null
+            }
+          />
+          <BuildingClosures buildingId={buildingId} />
+        </div>
       </div>
     </Screen>
   )

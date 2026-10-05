@@ -448,7 +448,7 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   die ihn versorgen, ohne in ihm zu stehen, mit dem Ort, an dem sie stehen; eine Anlage, die das ganze Gebäude
   versorgt, versorgt jeden seiner Räume. Der Pfad führt von der Liegenschaft herunter, auf dem Telefon steht an
   seiner Stelle der Weg eine Ebene zurück, und in der Navigation leuchtet "Liegenschaften". Alle drei Seiten
-  liest das Gerät aus dem Abgleich, auch ohne Netz. Die Karte "Schließzeiten" folgt
+  liest das Gerät aus dem Abgleich, auch ohne Netz
 - Die Formulare für Gebäude, Geschoss und Raum im Büro (#86, dritter Teil). Unterhalb einer Liegenschaft ließ
   sich bisher nichts anlegen, ändern oder entfernen; ein Gebäude kam nur über die Schnittstelle hinein. Ein
   Gebäude bekommt Bezeichnung, Kürzel, Baujahr und eine oder mehrere Gebäudearten zum Ankreuzen, ein Geschoss
@@ -459,7 +459,14 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   auch der Ort, mit dem Satz des Servers. Ein Raum zieht über "In ein anderes Geschoss verlegen" um: angeboten
   werden die Geschosse seiner Liegenschaft und, solange Anlagen in ihm stehen, nur die seines Gebäudes, mit
   dem Grund dazu. Was das Gerät nicht wissen kann, eine längst entfernte Anlage, die den Raum noch nennt, sagt
-  der Server, und sein Satz steht in der Rückfrage. Die Karte "Schließzeiten" folgt
+  der Server, und sein Satz steht in der Rückfrage
+- Die Karte "Schließzeiten" auf der Seite eines Gebäudes im Büro (#86, vierter Teil). Schließzeiten gab es seit
+  dem ersten Teil nur an der Schnittstelle; jetzt stehen sie dort, wo jemand das Gebäude ansieht. Die Karte
+  listet, was gerade läuft und was kommt, vom frühesten Tag an und mit dem Anlass; was vorbei ist, steht hinter
+  "Frühere anzeigen", und eine Schließzeit, die heute endet, zählt noch. Wer Vorgänge plant und verteilt, also
+  auch die Objektleitung, trägt über "Hinzufügen" eine ein und entfernt eine nach einer Rückfrage, beides mit
+  Verbindung an den Routen des Gebäudes; die Karte sagt es, wenn keine da ist. Wer nur liest, sieht die Zeiten
+  und keinen Knopf. Geändert wird keine: eine falsche wird entfernt und neu eingetragen
 
 ### Geändert
 
