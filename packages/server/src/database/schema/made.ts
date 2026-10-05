@@ -1,5 +1,6 @@
-import { deadlinesSchema } from '@opengewerk/platform-server'
+import { contactsSchema, deadlinesSchema } from '@opengewerk/platform-server'
 import {
+  contactsGuard,
   deadlinesGuard,
   type MadeByTheApplication,
   numberRangesGuard,
@@ -16,6 +17,12 @@ import { secretPurpose, secrets } from './secrets.js'
  * own, the policy of the areas with them.
  */
 const deadlinesOfTheBlocks = deadlinesSchema()
+
+/**
+ * The contacts as the foundation makes them, without the property and the
+ * area this application hangs them on, and without the bounds of their texts.
+ */
+const contactsOfTheBlocks = contactsSchema()
 
 /**
  * The tables of the foundation this application makes with lists of its own:
@@ -40,6 +47,7 @@ export const madeWithLists: MadeByTheApplication = {
     secrets,
     deadlineStatus: deadlinesOfTheBlocks.deadlineStatus,
     deadlines: deadlinesOfTheBlocks.deadlines,
+    contacts: contactsOfTheBlocks.contacts,
   },
-  guards: [numberRangesGuard, secretsGuard, deadlinesGuard],
+  guards: [numberRangesGuard, secretsGuard, deadlinesGuard, contactsGuard],
 }

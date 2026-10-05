@@ -24,6 +24,19 @@ describe('the words of the change log in the office', () => {
     expect(auditScreenWords.linkWords?.('properties')).toBe('Zur Liegenschaft')
   })
 
+  // The log of a property takes in the people to talk to there, and says so
+  // beside the chip of the record; every record the vocabulary gives parts
+  // has words for them.
+  it('say what the log of a record takes in, for every record that takes something in', () => {
+    expect(auditScreenWords.partsWords).toEqual({ properties: 'mit ihren Ansprechpartnern' })
+    expect(Object.keys(auditScreenWords.partsWords ?? {})).toEqual(
+      Object.keys(auditVocabulary.parts),
+    )
+    expect(auditVocabulary.parts).toEqual({
+      properties: [{ table: 'contacts', column: 'property_id' }],
+    })
+  })
+
   it('open nothing for a record without a screen, whatever it is called', () => {
     for (const table of ['buildings', 'areas', 'constructor', 'toString']) {
       expect(auditScreenWords.href?.(table, 'x')).toBeNull()

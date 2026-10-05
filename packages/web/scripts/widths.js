@@ -22,10 +22,11 @@ await checkWidths({
 
   /**
    * The buttons that lead to a form no link leads to: the form a property is
-   * made with and the one it is changed with (#85). A page that has one is
-   * checked a second time as a kind of its own, with the button pressed.
-   * Found by its name, so that the next record with the same button is
-   * checked as well.
+   * made with, the one it is changed with, and the form in the card of the
+   * people to talk to there, which stands in the narrow column of the page
+   * (#85). A page that has one is checked a second time as a kind of its
+   * own, with the button pressed. Found by its name, so that the next record
+   * with the same button is checked as well.
    */
-  openers: ['Neue Liegenschaft', 'Bearbeiten'],
+  openers: ['Neue Liegenschaft', 'Bearbeiten', 'Hinzufügen'],
 })

@@ -5,12 +5,15 @@ import type { PreviewArea } from './preview-database.js'
  * buildings, floors and rooms, and assets of the kinds of the probe package,
  * a main water meter with its sub meters among them (#29). One property has
  * two buildings and a note, so that the list and the page of a property show
- * both (#85).
+ * both (#85), and the people to talk to there: one with everything known
+ * about them and one without an address. At another property only a name is
+ * known, and two have nobody entered.
  *
  * Written for the preview and taken from nowhere: the names, streets and
- * places are made up, and the postal codes begin with 0000, which no place in
- * Germany has. Nothing here is a template, a building or an asset of a real
- * operator.
+ * places are made up, the postal codes and the phone numbers begin with 0000,
+ * which no place and no line in Germany has, and the addresses end in
+ * `.example`. Nothing here is a template, a building, an asset or a person of
+ * a real operator.
  *
  * Planted through the routes the interface uses, as the Leitung, so that a
  * route which changes its mind about a field breaks the test of the preview
@@ -50,6 +53,15 @@ interface SampleBuilding {
   readonly assets: readonly SampleAsset[]
 }
 
+/** Somebody to talk to at a property. */
+export interface SampleContact {
+  readonly givenName?: string
+  readonly familyName: string
+  readonly role?: string
+  readonly phone?: string
+  readonly email?: string
+}
+
 interface SampleProperty {
   readonly area: PreviewArea
   readonly name: string
@@ -58,6 +70,7 @@ interface SampleProperty {
   readonly city: string
   /** What somebody has to know before going there, in the lines it was typed in. */
   readonly note?: string
+  readonly contacts?: readonly SampleContact[]
   readonly buildings: readonly SampleBuilding[]
 }
 
@@ -127,6 +140,7 @@ export const sampleProperties: readonly SampleProperty[] = [
     street: 'Lagerweg 12',
     postalCode: '00002',
     city: 'Beispielstadt',
+    contacts: [{ familyName: 'Albers' }],
     buildings: [
       {
         name: 'Halle 1',
@@ -154,6 +168,17 @@ export const sampleProperties: readonly SampleProperty[] = [
     postalCode: '00003',
     city: 'Musterhausen',
     note: 'Zufahrt über den Hof an der Lindenstraße.\nSchlüssel beim Hausmeister, Raum E.10.',
+    contacts: [
+      {
+        givenName: 'Klaus',
+        familyName: 'Becker',
+        role: 'Hausmeister',
+        phone: '0000 4471',
+        email: 'hausmeister@schulzentrum.example',
+      },
+      // A title is typed with the given name: a contact has no field of its own for one.
+      { givenName: 'Dr. Ines', familyName: 'Hartmann', role: 'Schulleitung', phone: '0000 4400' },
+    ],
     buildings: [
       {
         name: 'Schulhaus',
@@ -286,12 +311,16 @@ export async function plantSampleData(
   areas: ReadonlyMap<PreviewArea, string>,
 ): Promise<void> {
   for (const property of sampleProperties) {
-    const { buildings, area, ...fields } = property
+    const { buildings, area, contacts = [], ...fields } = property
     const created = await send(address, '/properties', {
       ...fields,
       federalState: 'DE-BW',
       areaId: areas.get(area),
     })
+
+    for (const contact of contacts) {
+      await send(address, '/contacts', { ...contact, propertyId: created.id })
+    }
 
     for (const building of buildings) {
       const { floors, assets, ...buildingFields } = building

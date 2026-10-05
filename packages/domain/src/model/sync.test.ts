@@ -46,6 +46,8 @@ describe('the policies of the sync', () => {
       properties: [false, 'never'],
       buildings: [false, 'never'],
       floors: [false, 'never'],
+      // Kept with the property they hang on (addendum of 05.10.2026).
+      contacts: [false, 'never'],
       rooms: [true, 'merge'],
       assets: [true, 'merge'],
       asset_lifecycle: [false, 'never'],

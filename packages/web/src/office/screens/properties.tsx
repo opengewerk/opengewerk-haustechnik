@@ -50,6 +50,7 @@ import { type ReactNode, useId, useMemo, useState } from 'react'
 import { areaName, useAreas, useAreasQuery } from '../../session/areas.js'
 import { makeAt } from '../../sync/made-at.js'
 import { AreaBadge } from '../area-badge.js'
+import { PropertyContacts } from '../property-contacts.js'
 
 /**
  * The properties of a tenant in the office (4.1 of the concept): the list
@@ -61,10 +62,12 @@ import { AreaBadge } from '../area-badge.js'
  * the device and stand without a network, and the form says before anybody
  * fills it in when there is none.
  *
+ * The people to talk to at a property stand on its page, in the card of the
+ * foundation (`../property-contacts.tsx`).
+ *
  * What the boards draw beyond this arrives with what it shows: the numbers
  * per property and building and the order by urgency with the register of
- * duties, the import, the photos, the contacts and the timeline each with
- * their own step.
+ * duties, the import, the photos and the timeline each with their own step.
  */
 
 const listPath = '/liegenschaften'
@@ -398,9 +401,9 @@ function NotFound() {
 }
 
 /**
- * One property, `liegenschaft()` of the boards: where it is at the left, its
- * buildings beside that. The area stands beside the name for whoever sees
- * more than one.
+ * One property, `liegenschaft()` of the boards: where it is and who to talk
+ * to there at the left, its buildings beside that. The area stands beside the
+ * name for whoever sees more than one.
  */
 export function PropertyScreen() {
   const { propertyId } = useParams({ strict: false }) as { propertyId?: string }
@@ -441,40 +444,43 @@ export function PropertyScreen() {
         sideFirst
         sideWidth={340}
         side={
-          <Panel
-            title="Anschrift"
-            action={
-              // As the board draws it from a tablet on. On a phone the same
-              // button stands a thumb above it, at the head of the page.
-              writes ? (
-                <span className="max-sm:hidden">
-                  <Button size="small" onClick={edit}>
-                    Bearbeiten
-                  </Button>
-                </span>
-              ) : null
-            }
-          >
-            <FactList
-              keyWidth={96}
-              facts={[
-                { label: 'Straße', value: text(property, 'street') },
-                { label: 'Ort', value: placeOf(property) },
-                { label: 'Bundesland', value: stateName(property['federalState']) },
-                { label: 'Land', value: country.label },
-                ...(maybeText(property, 'note') === null
-                  ? []
-                  : [
-                      {
-                        label: 'Notiz',
-                        value: (
-                          <span className="whitespace-pre-line">{text(property, 'note')}</span>
-                        ),
-                      },
-                    ]),
-              ]}
-            />
-          </Panel>
+          <>
+            <Panel
+              title="Anschrift"
+              action={
+                // As the board draws it from a tablet on. On a phone the same
+                // button stands a thumb above it, at the head of the page.
+                writes ? (
+                  <span className="max-sm:hidden">
+                    <Button size="small" onClick={edit}>
+                      Bearbeiten
+                    </Button>
+                  </span>
+                ) : null
+              }
+            >
+              <FactList
+                keyWidth={96}
+                facts={[
+                  { label: 'Straße', value: text(property, 'street') },
+                  { label: 'Ort', value: placeOf(property) },
+                  { label: 'Bundesland', value: stateName(property['federalState']) },
+                  { label: 'Land', value: country.label },
+                  ...(maybeText(property, 'note') === null
+                    ? []
+                    : [
+                        {
+                          label: 'Notiz',
+                          value: (
+                            <span className="whitespace-pre-line">{text(property, 'note')}</span>
+                          ),
+                        },
+                      ]),
+                ]}
+              />
+            </Panel>
+            <PropertyContacts propertyId={propertyId} />
+          </>
         }
         main={<Buildings buildings={[...buildings].sort(byName)} />}
       />
@@ -836,9 +842,9 @@ function RemoveProperty({
           setAsking(false)
         }}
       >
-        Mit der Liegenschaft gehen ihre Gebäude, Geschosse und Räume, die Anlagen darin und alle
-        Pflichten, Vorgänge und Mängel dort. Eine Anlage mit Nachweis wird nicht entfernt, und dann
-        bleibt auch die Liegenschaft.
+        Mit der Liegenschaft gehen ihre Ansprechpartner, ihre Gebäude, Geschosse und Räume, die
+        Anlagen darin und alle Pflichten, Vorgänge und Mängel dort. Eine Anlage mit Nachweis wird
+        nicht entfernt, und dann bleibt auch die Liegenschaft.
       </Confirm>
     </>
   )

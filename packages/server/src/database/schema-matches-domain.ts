@@ -3,6 +3,7 @@ import type {
   ActivityDuty,
   ActivitySignature,
   Building,
+  Contact,
   Defect,
   Duty,
   DutyDismissal,
@@ -20,6 +21,7 @@ import type {
   activityDuties,
   activitySignatures,
   buildings,
+  contacts,
   defects,
   duties,
   dutyDismissals,
@@ -48,6 +50,7 @@ export type PropertyMatches = Assert<Exact<typeof properties.$inferSelect, Prope
 export type BuildingMatches = Assert<Exact<typeof buildings.$inferSelect, Building>>
 export type FloorMatches = Assert<Exact<typeof floors.$inferSelect, Floor>>
 export type RoomMatches = Assert<Exact<typeof rooms.$inferSelect, Room>>
+export type ContactMatches = Assert<Exact<typeof contacts.$inferSelect, Contact>>
 export type DutyMatches = Assert<Exact<typeof duties.$inferSelect, Duty>>
 export type DutyDismissalMatches = Assert<Exact<typeof dutyDismissals.$inferSelect, DutyDismissal>>
 export type EvidenceMatches = Assert<Exact<typeof evidence.$inferSelect, Evidence>>

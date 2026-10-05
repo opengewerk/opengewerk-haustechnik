@@ -412,6 +412,21 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   sagt es: die Notiz liegt auf jedem Gerät, das die Liegenschaft hält, und jede Änderung steht im
   Änderungsprotokoll. Die Rücknahme der Migration leert die Notizen vorher, damit das Protokoll des
   Betreibers sagt, dass sie gingen
+- Die Ansprechpartner einer Liegenschaft (#85, vierter Teil; Migration `0016_contacts` mit
+  Rücknahme, Planungskonzept v0.10, Nachträge in ADR 0002 und 0006). Abschnitt 4.1 des Konzepts
+  führt sie, die Tafel "Liegenschaft" zeichnet ihre Karte, und bisher gab es sie nicht. Ein
+  Ansprechpartner hängt an einer Liegenschaft und liegt in deren Bereich: Vorname, Nachname,
+  Funktion, Telefon und E-Mail, nur der Nachname ist Pflicht. Auf der Seite der Liegenschaft
+  steht die Karte unter der Anschrift, je Person eine Zeile, Nummer und Adresse zum Antippen.
+  Leitung und Technische Leitung fügen hinzu, berichtigen und entfernen, mit Verbindung wie bei
+  der Liegenschaft selbst, und die Karte sagt das, bevor jemand tippt; Objektleitung und
+  Haustechnik lesen. Die Ansprechpartner reisen auf jedes Gerät, das die Liegenschaft hält, und
+  ein Gerät schreibt keinen. Eine entfernte Liegenschaft nimmt ihre Ansprechpartner mit, die
+  Rückfrage sagt es, und zieht eine Liegenschaft in einen anderen Bereich, ziehen sie mit. Das
+  Änderungsprotokoll einer Liegenschaft zeigt, was mit ihren Ansprechpartnern geschah. Tabelle,
+  Regeln, Routen und die Karte sind die des Fundaments, das dafür auf `opengewerk/opengewerk#554`
+  und `#559` angehoben ist; diese Anwendung sagt, woran ein Ansprechpartner hängt, wer ihn pflegt
+  und wie ihre Wörter heißen
 
 ### Geändert
 
@@ -422,6 +437,10 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   wie das Feld im Formular heißt (#85)
 - Die Vorschau zeigt an einer Liegenschaft zwei Gebäude und eine Notiz, damit Liste und Seite beides
   zeigen (#85)
+- Die Vorschau zeigt an einer Liegenschaft zwei Ansprechpartner und an einer weiteren einen, von dem
+  nur der Name bekannt ist, damit die Karte beides zeigt (#85)
+- Planungskonzept v0.10: wer die Ansprechpartner einer Liegenschaft pflegt und wer sie liest (#85)
+- Die Rückfrage vor dem Entfernen einer Liegenschaft nennt auch ihre Ansprechpartner (#85)
 - Planungskonzept v0.8: die Entscheidungen vom 04.10.2026 vor dem Bau von Phase 1 stehen an ihrer
   Stelle und in der Tabelle in Abschnitt 15 (#59, #72, #134). Die Issues von Phase 1 hatten unter
   "Zu klären vor dem Bau" offen, was das Konzept nicht sagte oder was die freigegebenen Tafeln als

@@ -221,6 +221,9 @@ export const auditVocabulary: AuditVocabulary = {
   },
   // The deadlines are a table of the foundation (opengewerk-haustechnik#24);
   // what a deadline of this application hangs on is this application's own.
+  // The contacts are one as well (#85), and need no entry here: a contact
+  // hangs on its property and lies in its area, and both are named below with
+  // the fields every row with a place has.
   ownFields: {
     deadlines: {
       duty_id: 'Pflicht',
@@ -253,10 +256,12 @@ export const auditVocabulary: AuditVocabulary = {
       'tenant.cli': 'Betreiber über die Kommandozeile',
     },
   },
-  parts: {},
+  // What the log of a record takes in beside the record itself: the rows the
+  // office sees and changes on the same screen. A property with the people to
+  // talk to there; its buildings are records of their own, with a log of
+  // their own once they have a page.
+  parts: { properties: [{ table: 'contacts', column: 'property_id' }] },
   // The records the log is opened from, each from the screen that shows it.
-  // A property so far takes in nothing but itself: its buildings are records
-  // of their own, with a log of their own once they have a page.
   records: ['properties'],
   references: {
     area_id: 'areas',

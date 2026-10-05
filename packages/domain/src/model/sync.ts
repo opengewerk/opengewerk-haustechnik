@@ -38,6 +38,9 @@ export const syncPolicies: Readonly<Record<string, SyncPolicy>> = {
   properties: officeOnly,
   buildings: officeOnly,
   floors: officeOnly,
+  // The people to talk to at a property: whoever keeps the properties keeps
+  // them, and a device holds them to read and to call.
+  contacts: officeOnly,
   // A room is taken stock of on site; its building, property and area follow
   // its floor.
   rooms: { create: true, change: 'merge', reserved: ['buildingId', 'propertyId', 'areaId'] },
@@ -270,6 +273,7 @@ export const syncEntityNames: Readonly<Record<string, string>> = {
   properties: 'Liegenschaft',
   buildings: 'Gebäude',
   floors: 'Geschoss',
+  contacts: 'Ansprechpartner',
   rooms: 'Raum',
   assets: 'Anlage',
   asset_lifecycle: 'Lebenszyklus einer Anlage',
@@ -319,6 +323,13 @@ export const syncFieldNames: Readonly<Record<string, string>> = {
   level: 'Ebene',
   number: 'Nummer',
   use: 'Nutzung',
+  // What is said about somebody to talk to at a property. What somebody is
+  // there shares its entry with the role of a signature below; a device
+  // writes no contact, so the field of a contact never stands in a conflict.
+  givenName: 'Vorname',
+  familyName: 'Nachname',
+  phone: 'Telefon',
+  email: 'E-Mail',
   // What is said about an asset.
   kind: 'Art',
   mark: 'Kennzeichen',

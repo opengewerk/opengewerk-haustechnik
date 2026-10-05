@@ -59,6 +59,9 @@ export const operationRights: Readonly<Record<string, OperationRights>> = {
   properties: { otherwise: 'location.write' },
   buildings: { otherwise: 'location.write' },
   floors: { otherwise: 'location.write' },
+  // The people to talk to at a property are kept by whoever keeps the
+  // properties, with a connection.
+  contacts: { otherwise: 'location.write' },
   rooms: { create: 'room.record', change: 'room.record', otherwise: 'location.write' },
   assets: { create: 'asset.record', change: 'asset.record', otherwise: 'asset.write' },
   asset_lifecycle: { otherwise: 'asset.write' },

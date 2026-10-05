@@ -1109,7 +1109,7 @@ describe('the form of a property there is', () => {
 
     expect(asking.textContent).toBe(
       '„Schulzentrum Am Lindenhain“ entfernen?' +
-        'Mit der Liegenschaft gehen ihre Gebäude, Geschosse und Räume, die Anlagen darin und alle Pflichten, Vorgänge und Mängel dort. ' +
+        'Mit der Liegenschaft gehen ihre Ansprechpartner, ihre Gebäude, Geschosse und Räume, die Anlagen darin und alle Pflichten, Vorgänge und Mängel dort. ' +
         'Eine Anlage mit Nachweis wird nicht entfernt, und dann bleibt auch die Liegenschaft.' +
         'AbbrechenEntfernen',
     )
