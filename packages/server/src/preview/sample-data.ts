@@ -14,7 +14,10 @@ import type { PreviewArea } from './preview-database.js'
  * in service; one sub meter is out of service since the first day of the
  * year. The main meter of the school house supplies the whole building, and
  * its sub meter the gym, which it does not stand in, so that the page of a
- * room shows what supplies it from elsewhere.
+ * room shows what supplies it from elsewhere. Beside the colleagues the
+ * preview admits, one person is asked to join and one stands in for another
+ * from next week on, so that "Zugänge" shows an invitation and a substitution
+ * (#84).
  *
  * Written for the preview and taken from nowhere: the names, streets and
  * places are made up, the postal codes and the phone numbers begin with 0000,
@@ -329,6 +332,38 @@ export const sampleProperties: readonly SampleProperty[] = [
 /** The name the sample operator goes by, so that nobody takes it for a real one. */
 export const sampleOperatorName = 'Liegenschaften Beispielstadt (Vorschau)'
 
+/** Somebody the Leitung asked to join the building services, as the route takes it. */
+export const sampleInvitation = {
+  name: 'Kai Neumann',
+  email: 'k.neumann@beispielstadt.example',
+  roles: ['technician'],
+  send: 'link',
+} as const
+
+/** The area that invitation names. */
+export const sampleInvitationArea: PreviewArea = 'Süd'
+
+/** A day counted from the one the preview is started on, so that it lies ahead on every start. */
+function daysAhead(days: number): string {
+  const day = new Date(`${dayInGermany()}T00:00:00Z`)
+
+  day.setUTCDate(day.getUTCDate() + days)
+
+  return day.toISOString().slice(0, 10)
+}
+
+/**
+ * Who leads the north stands in for who leads the south, from next week on
+ * for twelve days: the two are colleagues of the preview
+ * (`previewColleagues`), named by the id of their account.
+ */
+export const sampleSubstitution = {
+  substitute: 'preview-lindner',
+  absent: 'preview-roth',
+  startsOn: daysAhead(7),
+  endsOn: daysAhead(18),
+} as const
+
 /** A request of the planting, which fails with the answer of the server when it is refused. */
 async function send(
   address: string,
@@ -450,4 +485,13 @@ export async function plantSampleData(
       )
     }
   }
+
+  // Somebody asked to join, with a role and an area, and somebody who stands
+  // in for a colleague, so that "Zugänge" shows both (#84). The link of the
+  // invitation is handed back once and kept nowhere: nobody takes it up.
+  await send(address, '/staff', {
+    ...sampleInvitation,
+    additions: { all: false, areaIds: [areas.get(sampleInvitationArea)] },
+  })
+  await send(address, '/substitutions', sampleSubstitution)
 }
