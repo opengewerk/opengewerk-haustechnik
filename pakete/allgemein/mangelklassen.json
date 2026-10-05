@@ -1,0 +1,19 @@
+{
+  "classes": [
+    {
+      "key": "minor",
+      "label": "gering",
+      "unsafe": false
+    },
+    {
+      "key": "significant",
+      "label": "erheblich",
+      "unsafe": false
+    },
+    {
+      "key": "dangerous",
+      "label": "gefährlich",
+      "unsafe": true
+    }
+  ]
+}

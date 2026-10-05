@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto'
 
-import type { PackageRuleRecord } from './format.js'
+import type { PackageDefectClass, PackageRuleRecord } from './format.js'
 
 export function sha256(content: Uint8Array | string): string {
   return createHash('sha256').update(content).digest('hex')
@@ -34,6 +34,23 @@ export function ruleChecksum(record: PackageRuleRecord): string {
       source: record.source,
       origin: record.origin,
       note: record.note,
+    }),
+  )
+}
+
+/**
+ * The checksum of a defect class, taken like the one of a rule and for the
+ * same reason: the classes of a package stand in one file, and accepting one
+ * must not hang on the others. Its fields in the order of the format, no
+ * spacing.
+ */
+export function defectClassChecksum(defectClass: PackageDefectClass): string {
+  return sha256(
+    JSON.stringify({
+      key: defectClass.key,
+      label: defectClass.label,
+      unsafe: defectClass.unsafe,
+      source: defectClass.source,
     }),
   )
 }

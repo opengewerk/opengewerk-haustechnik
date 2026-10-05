@@ -13,6 +13,7 @@ import {
   type FormField,
   type FormUnit,
   formUnits,
+  generalPackage,
   type IsoDate,
   nationwide,
   type PackagedForm,
@@ -24,15 +25,17 @@ import {
   type ScopeCondition,
 } from '@opengewerk/haustechnik-domain'
 
-import { entryChecksum, ruleChecksum, sha256 } from './checksum.js'
+import { defectClassChecksum, entryChecksum, ruleChecksum, sha256 } from './checksum.js'
 import {
   type Acceptances,
   Findings,
   type Manifest,
   type PackageAcceptance,
+  type PackageDefectClass,
   type PackageRuleRecord,
   readAcceptances,
   readAssetKind,
+  readDefectClasses,
   readDutyKind,
   readForm,
   readManifest,
@@ -88,6 +91,8 @@ interface PackageContent {
   readonly forms: Version<PackagedForm>[]
   readonly roundTemplates: Version<PackagedForm>[]
   readonly rules: RuleInFile[]
+  /** In the order of the file, which is the order they are offered in. */
+  readonly defectClasses: PackageDefectClass[]
 }
 
 function emptyPackage(name: string): PackageContent {
@@ -102,10 +107,14 @@ function emptyPackage(name: string): PackageContent {
     forms: [],
     roundTemplates: [],
     rules: [],
+    defectClasses: [],
   }
 }
 
 const unread = Symbol('unread')
+
+/** The one file of a package that names its defect classes. */
+const defectClassesFile = 'mangelklassen.json'
 
 /** The content of a JSON file, or nothing after saying why it is none. */
 function parsed(bytes: Uint8Array, file: string, findings: Findings): unknown {
@@ -205,7 +214,7 @@ function checkVersions<Definition>(
   }
 }
 
-/** A key names one thing in its package: one entry of one kind, or one rule. */
+/** A key names one thing in its package: one entry of one kind, one rule, or one defect class. */
 function checkKeys(content: PackageContent, findings: Findings): void {
   const folderOf = new Map<string, EntryFolder>()
 
@@ -231,6 +240,20 @@ function checkKeys(content: PackageContent, findings: Findings): void {
       findings.say(
         spotIn(file),
         `Die Regel ${record.key} heißt wie ${entryNoun[folder]} ${record.key}. Ein Schlüssel nennt in seinem Paket genau ein Ding.`,
+      )
+    }
+  }
+
+  const ruleKeys = new Set(content.rules.map(({ record }) => record.key))
+
+  for (const { key } of content.defectClasses) {
+    const folder = folderOf.get(key)
+    const taken = folder !== undefined ? entryNoun[folder] : ruleKeys.has(key) ? 'die Regel' : null
+
+    if (taken !== null) {
+      findings.say(
+        spotIn(`${content.name}/${defectClassesFile}`),
+        `Die Mängelklasse ${key} heißt wie ${taken} ${key}. Ein Schlüssel nennt in seinem Paket genau ein Ding.`,
       )
     }
   }
@@ -417,6 +440,14 @@ function checkDutyKind(
       findings.say(
         spot,
         `Der Geltungsbereich nennt die Anlagenart ${kind.qualified}, die es nicht gibt.`,
+      )
+    } else if (kind.packageName === generalPackage) {
+      // The general kinds stand in for a package that is still missing
+      // (section 5 of the concept). A duty kind naming one would be proposed
+      // for every asset nobody has sorted yet.
+      findings.say(
+        spot,
+        `Der Geltungsbereich nennt die allgemeine Anlagenart ${kind.qualified}. Eine allgemeine Anlagenart trägt keine Pflichtart: sie steht für eine Anlage, deren Fachpaket noch fehlt, und ihre Pflichten kommen mit der Anlagenart dieses Pakets.`,
       )
     }
   }
@@ -665,6 +696,52 @@ function checkReviews(content: PackageContent, today: IsoDate, findings: Finding
       )
     }
   }
+
+  const reviewsOfClass = grouped(acceptances.classes, (review) => review.key)
+
+  for (const defectClass of content.defectClasses) {
+    const reviews = reviewsOfClass.get(defectClass.key) ?? []
+
+    if (reviews.length === 0) {
+      findings.say(
+        spotIn(file),
+        `Für die Mängelklasse ${defectClass.key} fehlt ein Eintrag, mindestens mit dem Tag, an dem sie zuletzt gegen ihre Quelle geprüft wurde ("checkedOn").`,
+      )
+    } else if (reviews.length > 1) {
+      findings.say(
+        spotIn(file),
+        `Für die Mängelklasse ${defectClass.key} stehen ${String(reviews.length)} Einträge da, einer gehört hin.`,
+      )
+    }
+
+    for (const review of reviews) {
+      if (review.checkedOn > today) {
+        findings.say(
+          spotIn(file),
+          `Die Mängelklasse ${defectClass.key} ist am ${review.checkedOn} geprüft, einem Tag, der noch nicht war.`,
+        )
+      }
+
+      checkAcceptance(
+        { file, at: `Mängelklasse ${defectClass.key}` },
+        review.accepted,
+        defectClassChecksum(defectClass),
+        today,
+        findings,
+      )
+    }
+  }
+
+  const classKeys = new Set(content.defectClasses.map((defectClass) => defectClass.key))
+
+  for (const review of acceptances.classes) {
+    if (!classKeys.has(review.key)) {
+      findings.say(
+        spotIn(file),
+        `Der Eintrag für die Mängelklasse ${review.key} nennt keine Klasse, die es im Paket gibt.`,
+      )
+    }
+  }
 }
 
 /**
@@ -745,6 +822,7 @@ function bundled(content: PackageContent): CataloguePackage {
   const manifest = content.manifest as Manifest
   const entryReviews = new Map(acceptances.entries.map((each) => [each.file, each]))
   const ruleReviews = new Map(acceptances.rules.map((each) => [ruleIdentity(each), each]))
+  const classReviews = new Map(acceptances.classes.map((each) => [each.key, each]))
 
   const entries = <Definition>(
     versions: readonly Version<Definition>[],
@@ -796,6 +874,19 @@ function bundled(content: PackageContent): CataloguePackage {
     forms: entries(content.forms, (form) => qualifiedForm(form, content.name)),
     roundTemplates: entries(content.roundTemplates, (form) => qualifiedForm(form, content.name)),
     rules,
+    // Not sorted: the order of the file is the order the classes are offered in.
+    defectClasses: content.defectClasses.map((defectClass) => ({
+      defectClass: {
+        key: `${content.name}.${defectClass.key}`,
+        label: defectClass.label,
+        unsafe: defectClass.unsafe,
+        source: defectClass.source ?? null,
+      },
+      review: review(
+        classReviews.get(defectClass.key),
+        `Die Mängelklasse ${content.name}.${defectClass.key}`,
+      ),
+    })),
   }
 }
 
@@ -836,6 +927,14 @@ export function loadCatalogue(
         const value = parsed(bytes, path, findings)
         content.acceptancesSeen = true
         content.acceptances = value === unread ? undefined : readAcceptances(value, path, findings)
+        break
+      }
+      case 'defectClasses': {
+        const content = contentOf(place.packageName)
+        const value = parsed(bytes, path, findings)
+        const classes = value === unread ? undefined : readDefectClasses(value, path, findings)
+
+        content.defectClasses.push(...(classes ?? []))
         break
       }
       case 'entry': {

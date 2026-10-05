@@ -1,9 +1,12 @@
+import { createHash } from 'node:crypto'
 import type { AddressInfo } from 'node:net'
 
 import type { INestApplication } from '@nestjs/common'
+import { catalogueBundle } from '@opengewerk/haustechnik-catalogue'
 import { probeCatalogueBundle } from '@opengewerk/haustechnik-catalogue/testing'
 import {
   type Catalogue,
+  type CatalogueBundle,
   catalogueOf,
   type Identity,
   serverPaths,
@@ -78,11 +81,24 @@ export async function openPreview(
 }
 
 /**
- * The catalogue of the preview: the probe package, because the catalogue of
- * this build has no package yet, and the probe package is the one with asset
- * kinds to show.
+ * The catalogue of the preview as a bundle: the packages this build ships,
+ * and beside them the probe package. The build ships the package Allgemein
+ * (#61), whose asset kinds carry no duty kind and no field; the packages with
+ * duty kinds, measuring points and forms come later in Phase 1, and until
+ * then the probe package is the one that shows them.
+ *
+ * Its checksum is taken over the checksums of both, so that a device tells
+ * this catalogue from either of the two alone.
  */
-export const previewCatalogue: Catalogue = catalogueOf(probeCatalogueBundle)
+export const previewBundle: CatalogueBundle = {
+  format: catalogueBundle.format,
+  sha256: createHash('sha256')
+    .update(`${catalogueBundle.sha256} ${probeCatalogueBundle.sha256}`)
+    .digest('hex'),
+  packages: [...catalogueBundle.packages, ...probeCatalogueBundle.packages],
+}
+
+export const previewCatalogue: Catalogue = catalogueOf(previewBundle)
 
 /**
  * The sample operator as the preview shows it, on a database that is empty

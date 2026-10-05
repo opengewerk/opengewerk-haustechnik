@@ -335,6 +335,7 @@ describe('the form of a new asset', () => {
           forms: [],
           roundTemplates: [],
           rules: [],
+          defectClasses: [],
         },
       ],
     }

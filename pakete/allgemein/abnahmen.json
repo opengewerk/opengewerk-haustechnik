@@ -1,0 +1,55 @@
+{
+  "entries": [
+    {
+      "file": "anlagenarten/building_automation.v1.json",
+      "checkedOn": "2026-10-05"
+    },
+    {
+      "file": "anlagenarten/communication_and_security.v1.json",
+      "checkedOn": "2026-10-05"
+    },
+    {
+      "file": "anlagenarten/conveying_system.v1.json",
+      "checkedOn": "2026-10-05"
+    },
+    {
+      "file": "anlagenarten/electrical_installation.v1.json",
+      "checkedOn": "2026-10-05"
+    },
+    {
+      "file": "anlagenarten/heat_supply.v1.json",
+      "checkedOn": "2026-10-05"
+    },
+    {
+      "file": "anlagenarten/other_technical_installation.v1.json",
+      "checkedOn": "2026-10-05"
+    },
+    {
+      "file": "anlagenarten/use_specific_installation.v1.json",
+      "checkedOn": "2026-10-05"
+    },
+    {
+      "file": "anlagenarten/ventilation_and_air_conditioning.v1.json",
+      "checkedOn": "2026-10-05"
+    },
+    {
+      "file": "anlagenarten/water_wastewater_gas.v1.json",
+      "checkedOn": "2026-10-05"
+    }
+  ],
+  "rules": [],
+  "classes": [
+    {
+      "key": "minor",
+      "checkedOn": "2026-10-05"
+    },
+    {
+      "key": "significant",
+      "checkedOn": "2026-10-05"
+    },
+    {
+      "key": "dangerous",
+      "checkedOn": "2026-10-05"
+    }
+  ]
+}

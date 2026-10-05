@@ -41,7 +41,7 @@ export function bundleFiles(bundle: CatalogueBundle): Readonly<Record<string, st
 
 /**
  * The same for the probe package, under the entry `./testing`: the catalogue
- * the tests of the server load where the real one has nothing yet. It is no
+ * the tests of the server load for what the real one does not hold yet. It is no
  * part of the catalogue a server loads, and nothing outside a test imports it.
  */
 export function probeFiles(bundle: CatalogueBundle): Readonly<Record<string, string>> {

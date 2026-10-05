@@ -3,7 +3,7 @@ import { fileURLToPath } from 'node:url'
 import { catalogueOf, reviewMarks } from '@opengewerk/haustechnik-domain'
 import { describe, expect, it } from 'vitest'
 
-import { entryChecksum, ruleChecksum, sha256 } from './checksum.js'
+import { defectClassChecksum, entryChecksum, ruleChecksum, sha256 } from './checksum.js'
 import { readPackageFiles } from './files.js'
 import { loadCatalogue } from './load.js'
 
@@ -17,6 +17,7 @@ const assetKindFile = 'probe/anlagenarten/elevator.v1.json'
 const dutyKindFile = 'probe/pflichten/elevator_main_test.v1.json'
 const rulesFile = 'probe/regeln/elevator.json'
 const acceptancesFile = 'probe/abnahmen.json'
+const defectClassesFile = 'probe/mangelklassen.json'
 const manifestFile = 'probe/manifest.json'
 
 type Json = Readonly<Record<string, unknown>>
@@ -61,12 +62,28 @@ function problems(changes: Readonly<Record<string, unknown>>): readonly string[]
 }
 
 /** The reviews with one more entry or rule, everything else as it was. */
-function reviewsWith(more: { entries?: readonly Json[]; rules?: readonly Json[] }): Json {
+function reviewsWith(more: {
+  entries?: readonly Json[]
+  rules?: readonly Json[]
+  classes?: readonly Json[]
+}): Json {
   return {
     entries: [...(acceptances['entries'] as readonly Json[]), ...(more.entries ?? [])],
     rules: [...(acceptances['rules'] as readonly Json[]), ...(more.rules ?? [])],
+    ...(more.classes === undefined ? {} : { classes: more.classes }),
   }
 }
+
+// Two classes the probe package does not have: the tests below hand them in.
+// By their keys the severe one would come first; a file lists the slight one first.
+const severe = { key: 'severe', label: 'schwer', unsafe: true, source: 'Abschnitt 3 einer Regel' }
+const slight = { key: 'slight', label: 'leicht', unsafe: false }
+const bothReviewed = reviewsWith({
+  classes: [
+    { key: 'slight', checkedOn: '2026-10-04' },
+    { key: 'severe', checkedOn: '2026-10-03' },
+  ],
+})
 
 describe('the probe package', () => {
   it('loads into a bundle with every key named the way it is outside its package', () => {
@@ -274,6 +291,64 @@ describe('a duty kind', () => {
     expect(
       problems({ [dutyKindFile]: { ...dutyKind, scope: { assetKinds: ['probe.elevator'] } } }),
     ).toEqual([])
+  })
+
+  it('never names a general asset kind, which stands for an asset whose package is still missing', () => {
+    const beside = {
+      'allgemein/manifest.json': {
+        name: 'allgemein',
+        title: 'Allgemein',
+        version: '1.0.0',
+        minimumCore: '0.0.0',
+      },
+      'allgemein/anlagenarten/conveying_system.v1.json': {
+        validFrom: '2015-06-01',
+        label: 'Förderanlage',
+        costGroup: '460',
+      },
+      'allgemein/abnahmen.json': {
+        entries: [{ file: 'anlagenarten/conveying_system.v1.json', checkedOn: '2026-10-03' }],
+        rules: [],
+      },
+    }
+
+    // The general package beside the probe package is a catalogue.
+    expect(problems(beside)).toEqual([])
+    expect(
+      problems({
+        ...beside,
+        [dutyKindFile]: {
+          ...dutyKind,
+          scope: { assetKinds: ['elevator', 'allgemein.conveying_system'] },
+        },
+      }),
+    ).toEqual([
+      expect.stringMatching(
+        /^probe\/pflichten\/elevator_main_test\.v1\.json: Der Geltungsbereich nennt die allgemeine Anlagenart allgemein\.conveying_system\. Eine allgemeine Anlagenart trägt keine Pflichtart/,
+      ),
+    ])
+    // Nor does the general package give its own kinds a duty kind.
+    expect(
+      problems({
+        ...beside,
+        'allgemein/pflichten/conveying_check.v1.json': {
+          ...dutyKind,
+          interval: { kind: 'maximum', rule: 'probe.elevator_main_test_interval' },
+          scope: { assetKinds: ['conveying_system'] },
+        },
+        'allgemein/abnahmen.json': {
+          entries: [
+            { file: 'anlagenarten/conveying_system.v1.json', checkedOn: '2026-10-03' },
+            { file: 'pflichten/conveying_check.v1.json', checkedOn: '2026-10-03' },
+          ],
+          rules: [],
+        },
+      }),
+    ).toEqual([
+      expect.stringMatching(
+        /^allgemein\/pflichten\/conveying_check\.v1\.json: Der Geltungsbereich nennt die allgemeine Anlagenart allgemein\.conveying_system\./,
+      ),
+    ])
   })
 
   it('has its interval wherever it applies', () => {
@@ -807,6 +882,199 @@ describe('a form', () => {
         ),
       }),
     ).toEqual([])
+  })
+})
+
+describe('the defect classes', () => {
+  it('load in the order of their file, under the name outside their package, each with its review', () => {
+    const { bundle, problems: found } = loadCatalogue(
+      withFiles({
+        [defectClassesFile]: { classes: [slight, severe] },
+        [acceptancesFile]: bothReviewed,
+      }),
+      options,
+    )
+
+    expect(found).toEqual([])
+    // As the file lists them, not by key: that is the order they are offered in.
+    expect(bundle?.packages[0]?.defectClasses).toEqual([
+      {
+        defectClass: { key: 'probe.slight', label: 'leicht', unsafe: false, source: null },
+        review: { checkedOn: '2026-10-04', accepted: null },
+      },
+      {
+        defectClass: {
+          key: 'probe.severe',
+          label: 'schwer',
+          unsafe: true,
+          source: 'Abschnitt 3 einer Regel',
+        },
+        review: { checkedOn: '2026-10-03', accepted: null },
+      },
+    ])
+    // A package without the file has none, and its reviews need no list for them.
+    expect(loadCatalogue(probe, options).bundle?.packages[0]?.defectClasses).toEqual([])
+  })
+
+  it('change the checksum of the catalogue', () => {
+    const without = loadCatalogue(probe, options).bundle
+    const withClasses = loadCatalogue(
+      withFiles({
+        [defectClassesFile]: { classes: [severe, slight] },
+        [acceptancesFile]: bothReviewed,
+      }),
+      options,
+    ).bundle
+    const turned = loadCatalogue(
+      withFiles({
+        [defectClassesFile]: { classes: [slight, severe] },
+        [acceptancesFile]: bothReviewed,
+      }),
+      options,
+    ).bundle
+
+    expect(withClasses?.sha256).not.toBe(without?.sha256)
+    // The order is part of what a device holds: it is the order they are offered in.
+    expect(turned?.sha256).not.toBe(withClasses?.sha256)
+  })
+
+  it('say each what it is called and whether a defect of it makes the asset unsafe', () => {
+    const only = (entry: Json) =>
+      problems({
+        [defectClassesFile]: { classes: [entry] },
+        [acceptancesFile]: reviewsWith({ classes: [{ key: 'slight', checkedOn: '2026-10-04' }] }),
+      })
+
+    expect(only({ key: 'slight', label: 'leicht' })).toEqual([
+      `${defectClassesFile}, classes[0].unsafe: Ob ein Mangel dieser Klasse die Anlage unsicher macht, fehlt: true oder false.`,
+    ])
+    expect(only({ ...slight, unsafe: 'nein' })).toEqual([
+      `${defectClassesFile}, classes[0].unsafe: Hier gehört true oder false hin: ob ein Mangel dieser Klasse die Anlage unsicher macht.`,
+    ])
+    expect(only({ key: 'slight', unsafe: false })).toEqual([
+      `${defectClassesFile}, classes[0].label: Das Feld fehlt.`,
+    ])
+    expect(only({ ...slight, key: 'Leicht' })).toEqual([
+      expect.stringMatching(
+        /^probe\/mangelklassen\.json, classes\[0\]\.key: Ein Schlüssel hat kleine/,
+      ),
+    ])
+    expect(only({ ...slight, source: '' })).toEqual([
+      `${defectClassesFile}, classes[0].source: Hier gehört ein Text hin, der nicht leer ist.`,
+    ])
+    expect(only({ ...slight, frist: 14 })).toEqual([
+      `${defectClassesFile}, classes[0].frist: Dieses Feld gibt es hier nicht. Ein Tippfehler?`,
+    ])
+  })
+
+  it('stand in a file that names at least one, and each once', () => {
+    expect(problems({ [defectClassesFile]: { classes: [] } })).toEqual([
+      `${defectClassesFile}, classes: Die Datei nennt mindestens eine Klasse; ein Paket ohne eigene Klassen hat sie nicht.`,
+    ])
+    expect(problems({ [defectClassesFile]: {} })).toEqual([
+      `${defectClassesFile}, classes: Das Feld fehlt.`,
+    ])
+    expect(
+      problems({
+        [defectClassesFile]: { classes: [slight, { ...severe, key: 'slight' }] },
+        [acceptancesFile]: reviewsWith({ classes: [{ key: 'slight', checkedOn: '2026-10-04' }] }),
+      }),
+    ).toEqual([`${defectClassesFile}, classes: Die Klasse slight steht zweimal da.`])
+  })
+
+  it('carry a key that names one thing in the package', () => {
+    const named = (key: string) =>
+      problems({
+        [defectClassesFile]: { classes: [{ ...slight, key }] },
+        [acceptancesFile]: reviewsWith({ classes: [{ key, checkedOn: '2026-10-04' }] }),
+      })
+
+    expect(named('elevator')).toEqual([
+      `${defectClassesFile}: Die Mängelklasse elevator heißt wie die Anlagenart elevator. Ein Schlüssel nennt in seinem Paket genau ein Ding.`,
+    ])
+    expect(named('elevator_main_test_interval')).toEqual([
+      `${defectClassesFile}: Die Mängelklasse elevator_main_test_interval heißt wie die Regel elevator_main_test_interval. Ein Schlüssel nennt in seinem Paket genau ein Ding.`,
+    ])
+    expect(named('slight')).toEqual([])
+  })
+
+  it('have a review each, and no review names a class that is not there', () => {
+    const reviewed = (classes: readonly Json[] | undefined) =>
+      problems({
+        [defectClassesFile]: { classes: [slight] },
+        [acceptancesFile]: reviewsWith({ classes }),
+      })
+
+    expect(reviewed(undefined)).toEqual([
+      expect.stringMatching(
+        /^probe\/abnahmen\.json: Für die Mängelklasse slight fehlt ein Eintrag/,
+      ),
+    ])
+    expect(reviewed([])).toEqual([
+      expect.stringMatching(
+        /^probe\/abnahmen\.json: Für die Mängelklasse slight fehlt ein Eintrag/,
+      ),
+    ])
+    expect(
+      reviewed([
+        { key: 'slight', checkedOn: '2026-10-04' },
+        { key: 'slight', checkedOn: '2026-10-03' },
+      ]),
+    ).toEqual([
+      `${acceptancesFile}: Für die Mängelklasse slight stehen 2 Einträge da, einer gehört hin.`,
+    ])
+    expect(
+      reviewed([
+        { key: 'slight', checkedOn: '2026-10-04' },
+        { key: 'severe', checkedOn: '2026-10-04' },
+      ]),
+    ).toEqual([
+      `${acceptancesFile}: Der Eintrag für die Mängelklasse severe nennt keine Klasse, die es im Paket gibt.`,
+    ])
+    expect(reviewed([{ key: 'slight', checkedOn: '2026-10-05' }])).toEqual([
+      `${acceptancesFile}: Die Mängelklasse slight ist am 2026-10-05 geprüft, einem Tag, der noch nicht war.`,
+    ])
+    expect(reviewed([{ key: 'slight' }])).toEqual([
+      `${acceptancesFile}, classes[0].checkedOn: Das Feld fehlt.`,
+    ])
+  })
+
+  it('are accepted with the checksum of the class, and lose the acceptance once the class says something else', () => {
+    const checksum = defectClassChecksum(slight)
+    const acceptedWith = (sha: string, entry: Json = slight) =>
+      loadCatalogue(
+        withFiles({
+          [defectClassesFile]: { classes: [entry] },
+          [acceptancesFile]: reviewsWith({
+            classes: [
+              {
+                key: 'slight',
+                checkedOn: '2026-10-04',
+                accepted: { by: 'Eine Fachkraft', on: '2026-10-04', sha256: sha },
+              },
+            ],
+          }),
+        }),
+        options,
+      )
+
+    const taken = acceptedWith(checksum)
+
+    expect(taken.problems).toEqual([])
+    expect(taken.bundle?.packages[0]?.defectClasses[0]?.review).toEqual({
+      checkedOn: '2026-10-04',
+      accepted: { by: 'Eine Fachkraft', on: '2026-10-04' },
+    })
+    // Whoever accepted "does not make an asset unsafe" has not accepted the opposite.
+    expect(defectClassChecksum({ ...slight, unsafe: true })).not.toBe(checksum)
+    expect(defectClassChecksum({ ...slight, label: 'geringfügig' })).not.toBe(checksum)
+    expect(defectClassChecksum({ ...slight, source: 'Abschnitt 3' })).not.toBe(checksum)
+    expect(acceptedWith(checksum, { ...slight, unsafe: true }).problems).toEqual([
+      expect.stringMatching(
+        /^probe\/abnahmen\.json, Mängelklasse slight: Die Abnahme nennt die Prüfsumme .* der Eintrag hat /,
+      ),
+    ])
+    expect(acceptedWith('0'.repeat(64)).problems).toHaveLength(1)
   })
 })
 

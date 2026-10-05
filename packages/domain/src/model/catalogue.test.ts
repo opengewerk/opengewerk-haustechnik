@@ -4,6 +4,7 @@ import {
   acceptanceTally,
   type AssetKind,
   type CatalogueBundle,
+  type CatalogueDefectClass,
   type CatalogueEntry,
   type CatalogueReview,
   type CatalogueRule,
@@ -82,6 +83,15 @@ function rule(
   }
 }
 
+function defectClass(
+  key: string,
+  label: string,
+  unsafe: boolean,
+  review: CatalogueReview = unaccepted,
+): CatalogueDefectClass {
+  return { defectClass: { key, label, unsafe, source: null }, review }
+}
+
 function bundle(content: Partial<CatalogueBundle['packages'][number]> = {}): CatalogueBundle {
   return {
     format: catalogueFormat,
@@ -97,6 +107,7 @@ function bundle(content: Partial<CatalogueBundle['packages'][number]> = {}): Cat
         forms: [],
         roundTemplates: [],
         rules: [rule('probe.elevator_main_test_interval', '2015-06-01', null, 24)],
+        defectClasses: [],
         ...content,
       },
     ],
@@ -255,6 +266,11 @@ describe('the catalogue', () => {
   it('refuses a bundle in another format, and rules that are in force twice on one day', () => {
     // Format 1 had no counting at its duty kinds (#25).
     expect(() => catalogueOf({ ...bundle(), format: 1 as never })).toThrow(/Format 1/)
+    // Format 2 had no defect classes at its packages (#61): a device that
+    // kept such a bundle is told so, and fetches the one of its server.
+    expect(() => catalogueOf({ ...bundle(), format: 2 as never })).toThrow(
+      'Der Katalog hat das Format 2, gelesen wird 3.',
+    )
     expect(() =>
       catalogueOf(
         bundle({
@@ -331,6 +347,7 @@ describe('a package as a person reads it', () => {
           forms: [entry('second.reading', 1, '2020-01-01', reading)],
           roundTemplates: [],
           rules: [rule('second.limit', '2015-06-01', null, 12)],
+          defectClasses: [],
         },
       ],
     })
@@ -419,6 +436,53 @@ describe('a package as a person reads it', () => {
     expect(catalogue.form('probe.round', '2027-01-01')).toBeNull()
   })
 
+  it('names the defect classes of a package in the order of its file, and one by the key a defect keeps', () => {
+    const made = bundle({
+      defectClasses: [
+        defectClass('probe.minor', 'gering', false),
+        defectClass('probe.dangerous', 'gefährlich', true, accepted),
+      ],
+    })
+    const catalogue = catalogueOf({
+      ...made,
+      packages: [
+        ...made.packages,
+        {
+          name: 'second',
+          title: 'Zweites Paket',
+          version: '2.0.0',
+          minimumCore: '0.0.0',
+          assetKinds: [],
+          dutyKinds: [],
+          forms: [],
+          roundTemplates: [],
+          rules: [],
+          defectClasses: [defectClass('second.minor', 'geringfügig', false)],
+        },
+      ],
+    })
+
+    // Not by key: the most severe class comes last because the file says so.
+    expect(catalogue.defectClasses('probe').map((each) => each.defectClass.key)).toEqual([
+      'probe.minor',
+      'probe.dangerous',
+    ])
+    expect(catalogue.defectClasses('second').map((each) => each.defectClass.label)).toEqual([
+      'geringfügig',
+    ])
+    expect(catalogue.defectClasses('third')).toEqual([])
+    expect(catalogue.defectClass('probe.dangerous')).toEqual({
+      defectClass: { key: 'probe.dangerous', label: 'gefährlich', unsafe: true, source: null },
+      review: accepted,
+    })
+    // The same key in another package is another class, and a key nobody names is none.
+    expect(catalogue.defectClass('second.minor')?.defectClass.label).toBe('geringfügig')
+    expect(catalogue.defectClass('second.dangerous')).toBeNull()
+    expect(
+      catalogue.contents('2026-10-05').map((contents) => contents.defectClasses.length),
+    ).toEqual([2, 1])
+  })
+
   it('hands on the bundle it was made from, whole', () => {
     const made = bundle()
 
@@ -441,6 +505,15 @@ describe('a package as a person reads it', () => {
         roundTemplates: [entry('probe.round', 1, '2020-01-01', reading, accepted)],
       }),
     ).toEqual({ accepted: 3, entries: 5 })
+    // A defect class has a review like every other entry, and counts like one.
+    expect(
+      tally({
+        defectClasses: [
+          defectClass('probe.minor', 'gering', false, accepted),
+          defectClass('probe.dangerous', 'gefährlich', true),
+        ],
+      }),
+    ).toEqual({ accepted: 1, entries: 5 })
     // A duty kind accepted over a rule that is not is not a package accepted.
     expect(
       tally({

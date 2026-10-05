@@ -9,8 +9,8 @@ import { type Catalogue, catalogueOf } from '@opengewerk/haustechnik-domain'
  * same entries.
  *
  * Handed to the routes as a value under this token, so that a test hands in
- * another one, the probe package, where the catalogue of this build has
- * nothing yet.
+ * another one, the probe package, for what the catalogue of this build does
+ * not hold yet: a duty kind, a rule, a measuring point.
  */
 export const CATALOGUE = Symbol.for('opengewerk-haustechnik.catalogue')
 
