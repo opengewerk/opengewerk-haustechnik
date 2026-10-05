@@ -3,6 +3,7 @@ import {
   rightsOfRoles,
   type RoleKey,
   roleKeys,
+  seesEveryArea,
   type TenantId,
 } from '@opengewerk/haustechnik-domain'
 import { Pool } from 'pg'
@@ -293,8 +294,14 @@ export async function admitPreviewPeople(
 
     // With two areas the trigger gives a role that sees its own areas none,
     // and a role that sees every area the row that says so. The areas named
-    // are set here, and a named area takes that row away again.
-    for (const area of rows.filter((row) => viewer.area === null || row.name === viewer.area)) {
+    // are set here, and a named area takes that row away again. Whoever
+    // holds in every area is named for none, as the routes keep it: the
+    // screen of the areas lists who an area is named for.
+    const everywhere = viewer.area === null && seesEveryArea([viewer.role])
+
+    for (const area of rows.filter(
+      (row) => !everywhere && (viewer.area === null || row.name === viewer.area),
+    )) {
       await client.query(
         'insert into member_areas (tenant_id, user_id, area_id) values ($1, $2, $3)',
         [tenant.id, previewPeople.viewer.id, area.id],

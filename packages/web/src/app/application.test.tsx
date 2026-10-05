@@ -207,7 +207,11 @@ describe('what each entry hands to the foundation', () => {
    */
   it('is the same application, with the settings of a Betreiber only from the office', () => {
     expect(application.settings).toEqual([])
-    expect(officeApplication.settings.map((entry) => entry.key)).toEqual(['zugaenge', 'protokoll'])
+    expect(officeApplication.settings.map((entry) => entry.key)).toEqual([
+      'bereiche',
+      'zugaenge',
+      'protokoll',
+    ])
     expect(application.ownTenant).toBeUndefined()
     expect(officeApplication.ownTenant).toBeUndefined()
     expect(application.sentences.staff).toBeUndefined()
@@ -307,7 +311,7 @@ describe('the settings of a Betreiber', () => {
     ).toBeTruthy()
     expect(
       await screen.findByText(
-        'Wer für diesen Betreiber arbeitet, mit welchen Rollen, und die Einladungen.',
+        'Wer für diesen Betreiber arbeitet, mit welchen Rollen, Bereichen und Vertretungen, und die Einladungen.',
       ),
     ).toBeTruthy()
     expect(

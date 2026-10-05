@@ -80,7 +80,9 @@ export function signedInAs(
 /**
  * An entry at an address: its routes, the application's words and a sync
  * client that has exchanged once. Hands back the router and the client, for a
- * test that has the device exchange again while a screen stands.
+ * test that has the device exchange again while a screen stands, and what
+ * the screens asked the server, for a test of what a write makes them ask
+ * again.
  */
 export async function mountedWithItsDevice({
   routeTree,
@@ -117,10 +119,10 @@ export async function mountedWithItsDevice({
     history: createMemoryHistory({ initialEntries: [at] }),
   })
 
+  const queries = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+
   render(
-    <QueryClientProvider
-      client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}
-    >
+    <QueryClientProvider client={queries}>
       <ApplicationProvider application={application}>
         <SyncProvider client={client}>
           <RouterProvider router={router} />
@@ -131,7 +133,7 @@ export async function mountedWithItsDevice({
 
   await screen.findByRole('heading', { level: 1 })
 
-  return { router, client }
+  return { router, client, queries }
 }
 
 /** An entry at an address, as `mountedWithItsDevice` mounts it, for a test that asks the router alone. */
