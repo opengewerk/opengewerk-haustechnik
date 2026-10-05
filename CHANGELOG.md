@@ -476,6 +476,19 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   Betreiber der Instanz oder gehört es zu ihrer Verwaltung, lehnt die Route ab und sagt, dass dann nur die
   Person selbst ändert: ein Betreiber soll nicht umschreiben, was auch einem anderen gehört. Der Bildschirm
   dazu folgt mit "Zugänge"
+- "Zugänge" im Büro zeigt und ändert die Bereiche eines Zugangs und führt die Vertretungen (#84, siebter
+  Teil). Bisher ließen sich Bereiche und Vertretungen nur an der Schnittstelle pflegen, und der Bildschirm
+  kannte nur Rollen. Jetzt hat ein Zugang eine Rolle und wird in einem Dialog angelegt und bearbeitet, mit
+  dem Bildschirm des Fundaments dafür: Name und E-Mail, die Rolle mit einem Satz, wofür sie da ist, die
+  Bereiche ("Alle Bereiche" oder die genannten zum Ankreuzen) und die Geräte. Die Spalte "Bereiche" nennt
+  für jeden Zugang und jede offene Einladung "alle", die Namen oder "ohne Bereich"; steht jemand ohne Bereich
+  da, sagt der Satz darunter, was das heißt. Leitung und Technische Leitung haben immer alle, die Auswahl
+  steht dann still. Ein neuer Zugang beginnt so, wie die Datenbank ihn ohne Wahl anlegen würde: mit dem einen
+  Bereich eines Betreibers, der nur einen hat, sonst mit keinem, und dann sagt der Dialog, was das bedeutet.
+  Die Karte "Vertretungen" listet, wer wen von wann bis wann vertritt und welche Bereiche dadurch
+  dazukommen. "Vertretung anlegen" prüft mit den Regeln des Modells, bevor etwas gesendet wird, und sagt
+  vorher, was die Vertretung bedeutet; beendet wird sie nach einer Rückfrage. Die Vorschau hat dafür sechs
+  weitere Zugänge, eine offene Einladung und eine Vertretung
 
 ### Geändert
 

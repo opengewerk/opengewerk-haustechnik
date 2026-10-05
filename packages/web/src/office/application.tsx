@@ -46,7 +46,9 @@ const settings = [
 const staff = {
   what: 'Wer für diesen Betreiber arbeitet, und womit.',
   accounts: 'Konten dieses Betreibers',
-  noMail: 'Per E-Mail einladen geht, sobald für diesen Betreiber ein Mailserver eingerichtet ist.',
+  noMail:
+    'Per E-Mail einladen geht, sobald für diesen Betreiber ein Mailserver eingerichtet ist; bis ' +
+    'dahin geht der Link von Hand hinaus.',
   mailedLinkUnseen: 'im Büro sieht ihn niemand.',
   noDevices: 'Bei diesem Betreiber ist gerade kein Gerät angemeldet.',
   devicesOf: (name) => `Geräte, auf denen ${name} bei diesem Betreiber angemeldet ist`,

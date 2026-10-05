@@ -173,6 +173,65 @@ export const previewPeople = {
   viewer: { id: 'preview', name: 'Vorschau', email: 'vorschau@vorschau.invalid' },
 } as const satisfies Readonly<Record<string, PreviewPerson>>
 
+/** Somebody else who works for the sample operator: a role, and the areas named for it. */
+export interface PreviewColleague extends PreviewPerson {
+  readonly role: RoleKey
+  /** Empty for a role that holds in every area. */
+  readonly areas: readonly PreviewArea[]
+}
+
+/**
+ * The colleagues of the sample operator, so that "Zugänge" lists more than
+ * the two people of the preview (opengewerk-haustechnik#84): one who answers
+ * for the duties across every area, and for each area whoever leads it and
+ * whoever works in it. Made up like the rest of the sample data, and nobody
+ * can sign in as one of them either.
+ */
+export const previewColleagues: readonly PreviewColleague[] = [
+  {
+    id: 'preview-albrecht',
+    name: 'Jörg Albrecht',
+    email: 'j.albrecht@beispielstadt.example',
+    role: 'technical_management',
+    areas: [],
+  },
+  {
+    id: 'preview-lindner',
+    name: 'Petra Lindner',
+    email: 'p.lindner@beispielstadt.example',
+    role: 'site_management',
+    areas: ['Nord'],
+  },
+  {
+    id: 'preview-roth',
+    name: 'Dennis Roth',
+    email: 'd.roth@beispielstadt.example',
+    role: 'site_management',
+    areas: ['Süd'],
+  },
+  {
+    id: 'preview-yilmaz',
+    name: 'Murat Yilmaz',
+    email: 'm.yilmaz@beispielstadt.example',
+    role: 'technician',
+    areas: ['Nord'],
+  },
+  {
+    id: 'preview-vogt',
+    name: 'Lena Vogt',
+    email: 'l.vogt@beispielstadt.example',
+    role: 'technician',
+    areas: ['Nord'],
+  },
+  {
+    id: 'preview-wendt',
+    name: 'Tobias Wendt',
+    email: 't.wendt@beispielstadt.example',
+    role: 'technician',
+    areas: ['Süd'],
+  },
+]
+
 /** That person at work for the sample operator, with what the role may do. */
 export function previewIdentity(
   person: PreviewPerson,
@@ -247,6 +306,27 @@ export async function admitPreviewPeople(
         tenant.id,
         previewPeople.viewer.id,
       ])
+    }
+
+    // The colleagues, each with the areas named for them. Whoever holds in
+    // every area got the row that says so from the trigger.
+    for (const colleague of previewColleagues) {
+      await client.query(
+        `insert into auth_users (id, name, email, email_verified, two_factor_enabled)
+         values ($1, $2, $3, true, false)`,
+        [colleague.id, colleague.name, colleague.email],
+      )
+      await client.query(
+        'insert into memberships (tenant_id, user_id, roles) values ($1, $2, $3)',
+        [tenant.id, colleague.id, [colleague.role]],
+      )
+
+      for (const area of rows.filter((row) => colleague.areas.includes(row.name as PreviewArea))) {
+        await client.query(
+          'insert into member_areas (tenant_id, user_id, area_id) values ($1, $2, $3)',
+          [tenant.id, colleague.id, area.id],
+        )
+      }
     }
 
     await client.query('insert into instance_operators (user_id) values ($1)', [
