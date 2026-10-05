@@ -24,12 +24,27 @@ export function costGroupAbove(costGroup: string): string {
 }
 
 /**
+ * A cost group without the zeros it ends in: "46" of 460, "4" of 400. Counted
+ * by hand and not with a pattern: the group may come out of an address, and a
+ * pattern for "zeros at the end" takes quadratic time on a long text of them.
+ */
+function stemOf(group: string): string {
+  let end = group.length
+
+  while (end > 0 && group[end - 1] === '0') {
+    end -= 1
+  }
+
+  return group.slice(0, end)
+}
+
+/**
  * Whether a cost group lies in another. A group whose number ends in zeros
  * holds every group that begins like it, 460 the groups 461 to 469 and 400
  * every group of the technical installations; any other holds itself alone.
  */
 export function inCostGroup(costGroup: string, group: string): boolean {
-  const stem = group.replace(/0+$/, '')
+  const stem = stemOf(group)
 
   return stem !== '' && costGroup.startsWith(stem)
 }
