@@ -120,6 +120,13 @@
       "when": 1791168268882,
       "tag": "0016_contacts",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1791173838912,
+      "tag": "0017_building_closures",
+      "breakpoints": true
     }
   ]
 }

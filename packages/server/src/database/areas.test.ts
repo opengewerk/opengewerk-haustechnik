@@ -289,6 +289,11 @@ async function placeIn(where: 'north' | 'south'): Promise<void> {
     [tenant, at.property, areaId],
   )
   await admin.query(
+    `insert into building_closures (tenant_id, building_id, property_id, area_id, starts_on, ends_on, reason)
+     values ($1, $2, $3, $4, '2026-12-24', '2027-01-06', 'Weihnachtsferien')`,
+    [tenant, at.building, at.property, areaId],
+  )
+  await admin.query(
     `insert into rooms (id, tenant_id, floor_id, building_id, property_id, area_id, number)
      values ($1, $2, $3, $4, $5, $6, '0.01')`,
     [at.room, tenant, at.floor, at.building, at.property, areaId],
@@ -491,6 +496,7 @@ describe('a person with the north', () => {
       'asset_lifecycle',
       'asset_supplies',
       'assets',
+      'building_closures',
       'buildings',
       'contacts',
       'deadlines',
@@ -701,6 +707,7 @@ describe('a property moved to another area', () => {
         'asset_lifecycle',
         'asset_supplies',
         'assets',
+        'building_closures',
         'buildings',
         'contacts',
         'deadlines',

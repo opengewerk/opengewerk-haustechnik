@@ -14,6 +14,7 @@ import {
   connect,
   resetSchema,
 } from '../database/test-database.js'
+import { dayInGermany } from '../today.js'
 import {
   defaultPreviewDatabaseUrl,
   previewDatabaseUrl,
@@ -25,7 +26,7 @@ import {
   refuseProduction,
 } from './preview-database.js'
 import { openSamplePreview } from './preview-server.js'
-import { sampleProperties } from './sample-data.js'
+import { sampleProperties, schoolHolidays } from './sample-data.js'
 
 /**
  * The preview lets every request through as one person of a sample operator
@@ -345,6 +346,42 @@ describe('a preview started as the Leitung', () => {
     expect(
       sampleProperties.filter((property) => (property.contacts ?? []).length === 0),
     ).toHaveLength(2)
+  })
+
+  // What the card on the page of a building is looked at with (#86): the
+  // holidays that come next at the school house, and no closure anywhere else.
+  it('shows the times the school house is closed, in the order of the calendar, and none of any other building', async () => {
+    const server = application.getHttpServer()
+    const properties = (await request(server).get('/properties').expect(200)).body as Named[]
+    const closed: Record<string, readonly unknown[]> = {}
+
+    for (const property of properties) {
+      const buildings = (
+        await request(server).get(`/properties/${property.id}/buildings`).expect(200)
+      ).body as Named[]
+
+      for (const building of buildings) {
+        const closures = (
+          await request(server).get(`/buildings/${building.id}/closures`).expect(200)
+        ).body as { startsOn: string; endsOn: string; reason: string | null }[]
+
+        if (closures.length > 0) {
+          closed[building.name] = closures.map(({ startsOn, endsOn, reason }) => ({
+            startsOn,
+            endsOn,
+            reason,
+          }))
+        }
+      }
+    }
+
+    expect(closed).toEqual({ Schulhaus: schoolHolidays })
+    // Both lie ahead, whenever the preview is started.
+    expect(schoolHolidays.map((closure) => closure.reason)).toEqual([
+      'Weihnachtsferien',
+      'Sommerferien',
+    ])
+    expect(schoolHolidays.every((closure) => closure.endsOn >= dayInGermany())).toBe(true)
   })
 
   it('plants nothing a real operator could recognise as theirs: every postal code and every phone number is one nobody has', () => {

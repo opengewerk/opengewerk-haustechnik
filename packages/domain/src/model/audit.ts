@@ -54,6 +54,11 @@ export const auditVocabulary: AuditVocabulary = {
       fields: { short_code: 'Kürzel', kinds: 'Gebäudearten', year_built: 'Baujahr' },
     },
     floors: { label: 'Geschoss', fields: { level: 'Ebene' } },
+    // The times a building is closed (#86): in which no round is made for it.
+    building_closures: {
+      label: 'Schließzeit',
+      fields: { starts_on: 'Von', ends_on: 'Bis', reason: 'Anlass' },
+    },
     rooms: {
       label: 'Raum',
       fields: { floor_id: 'Geschoss', number: 'Raumnummer', use: 'Nutzung' },
@@ -301,6 +306,8 @@ export const auditVocabulary: AuditVocabulary = {
     invitation_area_choices: ['invitation_id'],
     invitation_areas: ['invitation_id'],
     substitutions: ['absent_user_id'],
+    // A closure by what it is for, and by its first day where it says nothing.
+    building_closures: ['reason', 'starts_on'],
     // A room by its number, and by its name where it has none.
     rooms: ['number', 'name'],
     // An entry of a life cycle by its state, a supply by what is supplied.

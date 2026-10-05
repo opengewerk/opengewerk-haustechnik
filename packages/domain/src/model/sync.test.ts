@@ -48,6 +48,9 @@ describe('the policies of the sync', () => {
       floors: [false, 'never'],
       // Kept with the property they hang on (addendum of 05.10.2026).
       contacts: [false, 'never'],
+      // Entered by whoever plans the rounds, with a connection (second
+      // addendum of 05.10.2026).
+      building_closures: [false, 'never'],
       rooms: [true, 'merge'],
       assets: [true, 'merge'],
       asset_lifecycle: [false, 'never'],

@@ -1,3 +1,4 @@
+import { dayInGermany } from '../today.js'
 import type { PreviewArea } from './preview-database.js'
 
 /**
@@ -7,7 +8,9 @@ import type { PreviewArea } from './preview-database.js'
  * two buildings and a note, so that the list and the page of a property show
  * both (#85), and the people to talk to there: one with everything known
  * about them and one without an address. At another property only a name is
- * known, and two have nobody entered.
+ * known, and two have nobody entered. The school house has the times it is
+ * closed (#86): the holidays that come next, counted from the year the
+ * preview is started in, so that they lie ahead in every year.
  *
  * Written for the preview and taken from nowhere: the names, streets and
  * places are made up, the postal codes and the phone numbers begin with 0000,
@@ -49,9 +52,34 @@ interface SampleBuilding {
   readonly shortCode: string
   readonly kinds: readonly string[]
   readonly yearBuilt: number
+  readonly closures?: readonly SampleClosure[]
   readonly floors: readonly SampleFloor[]
   readonly assets: readonly SampleAsset[]
 }
+
+/** A time a building is closed, from a day to a day. */
+export interface SampleClosure {
+  readonly startsOn: string
+  readonly endsOn: string
+  readonly reason?: string
+}
+
+/** The year the preview is started in, in Germany. */
+const thisYear = Number(dayInGermany().slice(0, 4))
+
+/** The holidays of the school that come next: over the turn of the year, and the summer after it. */
+export const schoolHolidays: readonly SampleClosure[] = [
+  {
+    startsOn: `${String(thisYear)}-12-24`,
+    endsOn: `${String(thisYear + 1)}-01-06`,
+    reason: 'Weihnachtsferien',
+  },
+  {
+    startsOn: `${String(thisYear + 1)}-07-27`,
+    endsOn: `${String(thisYear + 1)}-09-06`,
+    reason: 'Sommerferien',
+  },
+]
 
 /** Somebody to talk to at a property. */
 export interface SampleContact {
@@ -185,6 +213,7 @@ export const sampleProperties: readonly SampleProperty[] = [
         shortCode: 'S',
         kinds: ['school'],
         yearBuilt: 1975,
+        closures: schoolHolidays,
         floors: [
           {
             name: 'Erdgeschoss',
@@ -323,13 +352,17 @@ export async function plantSampleData(
     }
 
     for (const building of buildings) {
-      const { floors, assets, ...buildingFields } = building
+      const { floors, assets, closures = [], ...buildingFields } = building
       const madeBuilding = await send(
         address,
         `/properties/${created.id}/buildings`,
         buildingFields,
       )
       const rooms = new Map<string, string>()
+
+      for (const closure of closures) {
+        await send(address, `/buildings/${madeBuilding.id}/closures`, closure)
+      }
 
       for (const floor of floors) {
         const madeFloor = await send(address, `/buildings/${madeBuilding.id}/floors`, {

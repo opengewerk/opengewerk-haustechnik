@@ -31,6 +31,9 @@ export * from './model/target.js'
 // what one hangs on here and how long its texts may be.
 export * from './model/contact.js'
 
+// The times a building is closed, in which no round is made for it.
+export * from './model/closure.js'
+
 // The technology: assets, their components, life cycle and meters.
 export * from './model/asset.js'
 export * from './model/meter.js'

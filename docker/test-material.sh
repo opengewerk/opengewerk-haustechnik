@@ -28,7 +28,7 @@ guarded_route=/staff
 # The tables counted before the backup and after the restore. The area and
 # the place of the account in it come with the account: a Betreiber gets its
 # first area with its first membership.
-counted_tables='auth_users memberships tenant_roles areas member_areas invitations invitation_area_choices invitation_areas properties buildings contacts assets files mail_settings deadline_settings deadline_runs duties duty_dismissals evidence deadlines activities activity_duties work_orders defects activity_signatures work_order_decisions evidence_voidings'
+counted_tables='auth_users memberships tenant_roles areas member_areas invitations invitation_area_choices invitation_areas properties buildings contacts building_closures assets files mail_settings deadline_settings deadline_runs duties duty_dismissals evidence deadlines activities activity_duties work_orders defects activity_signatures work_order_decisions evidence_voidings'
 
 # The migrations, and how many of them make the older state an update starts
 # from: the first, without the sequence for work orders that the second brings.
@@ -87,6 +87,12 @@ records_for_backup() {
     insert into contacts (tenant_id, property_id, area_id, given_name, family_name, role, phone)
     select tenant_id, id, area_id, 'Jens', 'Probe', 'Hausmeister', '0000 4471'
       from properties where tenant_id = '$first_tenant';"
+  # A time the building is closed (opengewerk-haustechnik#86), on the property
+  # and in the area of it.
+  sql "
+    insert into building_closures (tenant_id, building_id, property_id, area_id, starts_on, ends_on, reason)
+    select tenant_id, id, property_id, area_id, '2026-12-24', '2027-01-06', 'Weihnachtsferien'
+      from buildings where tenant_id = '$first_tenant';"
   # A file in the store with the row that makes it one, and a mail server. Both
   # tables come with the foundation (opengewerk-haustechnik#23); what writes
   # them comes with the documents and the notifications of phase 1, so until

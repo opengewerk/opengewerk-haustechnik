@@ -41,6 +41,9 @@ export const syncPolicies: Readonly<Record<string, SyncPolicy>> = {
   // The people to talk to at a property: whoever keeps the properties keeps
   // them, and a device holds them to read and to call.
   contacts: officeOnly,
+  // The times a building is closed: whoever plans the rounds enters them, and
+  // a device holds them to read.
+  building_closures: officeOnly,
   // A room is taken stock of on site; its building, property and area follow
   // its floor.
   rooms: { create: true, change: 'merge', reserved: ['buildingId', 'propertyId', 'areaId'] },
@@ -267,13 +270,15 @@ export function offlineEditRefusal(
 
 /**
  * What each kind of record of the sync is called, over a conflict and in its
- * sentences (ADR 0006). A test of the server holds it against the policies.
+ * sentences (ADR 0006). The test beside this file holds it against the
+ * policies.
  */
 export const syncEntityNames: Readonly<Record<string, string>> = {
   properties: 'Liegenschaft',
   buildings: 'Gebäude',
   floors: 'Geschoss',
   contacts: 'Ansprechpartner',
+  building_closures: 'Schließzeit',
   rooms: 'Raum',
   assets: 'Anlage',
   asset_lifecycle: 'Lebenszyklus einer Anlage',
@@ -330,6 +335,10 @@ export const syncFieldNames: Readonly<Record<string, string>> = {
   familyName: 'Nachname',
   phone: 'Telefon',
   email: 'E-Mail',
+  // What is said about a time a building is closed. Its last day and what it
+  // is for share their entries with a duty below; a device writes no closure,
+  // so the field of a closure never stands in a conflict.
+  startsOn: 'Beginnt am',
   // What is said about an asset.
   kind: 'Art',
   mark: 'Kennzeichen',
