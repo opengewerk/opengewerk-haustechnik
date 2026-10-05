@@ -29,6 +29,7 @@ import { BuildingsController } from './buildings.controller.js'
 import { BuildingClosuresController } from './closures.controller.js'
 import { contactRights, contactRoutes } from './contact-routes.js'
 import { DatabaseExceptionFilter } from './database-errors.js'
+import { CatalogueController } from './catalogue.controller.js'
 import { DutiesController, DutyDismissalsController } from './duties.controller.js'
 import { FloorsController } from './floors.controller.js'
 import { PropertiesController } from './properties.controller.js'
@@ -70,9 +71,9 @@ export interface ApiOptions {
    */
   readonly version?: string | null
   /**
-   * The catalogue the routes ask which asset kinds there are (ADR 0005).
-   * Left out, the one this build ships, from the packages under pakete/; a
-   * test hands in the probe package.
+   * The catalogue the routes ask which asset kinds there are, and the one
+   * the devices fetch (ADR 0005). Left out, the one this build ships, from
+   * the packages under pakete/; a test hands in the probe package.
    */
   readonly catalogue?: Catalogue
 }
@@ -98,8 +99,9 @@ export interface ApiOptions {
  * handed over as a link; sending one by mail arrives with the mail server of a
  * tenant. The people to talk to at a property are on routes of the foundation
  * as well, with the rights of the property. What this application brings: the
- * areas of a tenant, the place, from the property to the room, and the
- * technology, assets and their components.
+ * areas of a tenant, the place, from the property to the room, the
+ * technology, assets and their components, and the catalogue a device
+ * fetches.
  */
 @Module({})
 export class ApiModule {
@@ -171,6 +173,8 @@ export class ApiModule {
         // The duties of an operator and the proposals dismissed.
         DutiesController,
         DutyDismissalsController,
+        // The catalogue of this server, for the devices that work with it.
+        CatalogueController,
       ],
       providers: [
         { provide: Database, useValue: database },

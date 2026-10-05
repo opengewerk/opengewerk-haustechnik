@@ -515,6 +515,20 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   beiden bringt, wird rot, bis das Dokument ihn nennt, und so wird es berichtigt, wenn sich an seinen
   Aussagen etwas ändert. Dazu ein Test am Gang über die Routen: eine Route, die eine Person im Pfad nennt,
   verlangt ein Recht der Zugänge
+- Der Katalog im Büro und auf dem Gerät (#90): damit ein Betreiber nachlesen kann, worauf sich ein
+  Vorschlag stützt, und ein Gerät im Keller mit denselben Einträgen rechnet wie sein Server. Der Server
+  liefert den Katalog unter `GET /catalogue` aus und nennt unter `GET /catalogue/checksum` seine
+  Prüfsumme, beide mit dem Recht `sync.read`. Ein Gerät holt ihn einmal, hält ihn in der lokalen Ablage,
+  auch ohne Netz, und holt ihn erst wieder, wenn der Server eine andere Prüfsumme nennt; die Oberfläche
+  bringt den Katalog nicht selbst mit (Nachträge in ADR 0005 und ADR 0006). "Katalog" zeigt die Pakete
+  mit ihrer Fassung und wie viele ihrer Einträge abgenommen sind, und je Paket Pflichtarten,
+  Anlagenarten, Formulare, Regeln und Vorlagen für Rundgänge. Die Seite einer Pflichtart nennt Herkunft,
+  Fundstelle, Verbindlichkeit, Frist, Qualifikation, Nachweis, Aufbewahrung und Geltungsbereich, dazu
+  ihre Regeln mit dem Zeitraum, in dem jede gilt. Kein Eintrag steht ohne seine Prüfung und Abnahme da:
+  jede Zeile sagt "Abgenommen" oder "Nicht abgenommen" und den Tag der letzten Prüfung gegen die Quelle,
+  und wo die mehr als ein Jahr zurückliegt, steht das dabei. Die Kennzeichnungen stehen an einer Stelle
+  für beide Einstiege (`app/review-marks.tsx`), damit Vorschläge, Anlagenakte und Protokoll sie in
+  denselben Worten bekommen
 
 ### Geändert
 

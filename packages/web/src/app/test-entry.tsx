@@ -91,6 +91,7 @@ export async function mountedWithItsDevice({
   application,
   server = new TestServer(),
   entities = [],
+  holds = {},
 }: {
   readonly routeTree: AnyRoute
   readonly at: string
@@ -101,6 +102,8 @@ export async function mountedWithItsDevice({
   readonly server?: TestServer
   /** The kinds of record the device keeps, for a test of a screen that reads some. */
   readonly entities?: readonly string[]
+  /** What the device kept on an earlier day, by the name it keeps it under. */
+  readonly holds?: Readonly<Record<string, string>>
 }) {
   const client = await SyncClient.start({
     store: await openLocalStore(`entry${String((counter += 1))}` as TenantId),
@@ -112,6 +115,10 @@ export async function mountedWithItsDevice({
   })
 
   await client.synchronise()
+
+  for (const [name, text] of Object.entries(holds)) {
+    await client.keep(name, text)
+  }
 
   const router = createRouter({
     routeTree,

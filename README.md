@@ -283,6 +283,8 @@ pnpm --filter @opengewerk/haustechnik-catalogue run compare origin/main
 
 Die Fragen an den Katalog stellt `catalogueOf` aus `packages/domain`, jede mit einem Tag; jeder Eintrag kommt dort nur mit seiner Prüfung und Abnahme heraus.
 
+Ein Gerät rechnet mit dem Katalog seines Servers (Nachtrag vom 05.10.2026 in ADR 0005). Der Server liefert ihn unter `GET /catalogue` ganz aus und nennt unter `GET /catalogue/checksum` seine Prüfsumme, beide mit dem Recht `sync.read`. Die Oberfläche holt ihn einmal, hält ihn in der lokalen Ablage des Betreibers (`packages/web/src/sync/catalogue.ts`) und fragt danach nur noch die Prüfsumme, bis der Server eine andere nennt. Ein Bildschirm fragt ihn mit `useCatalogue()`, auch ohne Netz; bis ein Gerät ihn geholt hat, kommt dort nichts, und der Bildschirm sagt es. Im Büro zeigt "Katalog" die Pakete mit ihren Pflichtarten, Anlagenarten, Formularen, Regeln und Vorlagen, und die Seite einer Pflichtart ihre Regeln mit dem Zeitraum, in dem jede gilt. Jede Zeile sagt, ob der Eintrag abgenommen ist und wann er zuletzt gegen seine Quelle geprüft wurde; die Kennzeichnungen dafür stehen an einer Stelle, `packages/web/src/app/review-marks.tsx`, für jeden Bildschirm, der einen Eintrag zeigt.
+
 ### Das Änderungsprotokoll
 
 Jede Änderung bei einem Betreiber steht in seinem Audit-Log, Feld für Feld, mit Person, Gerät und Weg, und eine Hashkette zeigt, ob das Protokoll unverändert ist. Einsehen darf es nur die Leitung (`audit.read`), unter "Einstellungen", "Änderungsprotokoll"; die Verwaltung der Instanz liest das Protokoll der Instanz unter "Protokoll" in deren Bereich. Bildschirm und Routen sind die des Fundaments.

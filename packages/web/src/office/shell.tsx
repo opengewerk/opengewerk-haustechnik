@@ -1,5 +1,6 @@
 import { OfficeFrame } from '@opengewerk/platform-web/office'
 
+import { useKeepCatalogue } from '../sync/catalogue.js'
 import { useNavigation } from './navigation.js'
 
 /**
@@ -13,9 +14,14 @@ import { useNavigation } from './navigation.js'
  * moment its screen is built and for whoever holds its right
  * (`useNavigation`). Until the first of them arrives, the navigation is the
  * foot alone.
+ *
+ * The frame is also where the device sees to it that it holds the catalogue
+ * of its server (`useKeepCatalogue`): every screen under it may ask one.
  */
 export function OfficeShell() {
   const { groups, foot } = useNavigation()
+
+  useKeepCatalogue()
 
   return <OfficeFrame navigation={groups} foot={foot} />
 }

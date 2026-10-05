@@ -2,12 +2,15 @@ import {
   type FederalState,
   type IsoDate,
   type RuleRecord,
-  type RuleUnit,
+  ruleScopeNames,
+  ruleScopes,
   ruleSet,
+  type RuleUnit,
+  scopeOf,
 } from '@opengewerk/platform-domain'
 
 import type { FormDefinition } from './forms.js'
-import type { BuildingKind } from './location.js'
+import { type BuildingKind, buildingKindLabel } from './location.js'
 import type { MeterKind } from './meter.js'
 
 /**
@@ -366,12 +369,39 @@ export interface CatalogueBundle {
 }
 
 /**
+ * What one package holds on a day, as a person reads a catalogue: of every key
+ * the version in force, and every record of its rules, those that have ended
+ * and those to come as well, because a rule is read with the time it applies
+ * in. Every entry comes with its review, like everything the catalogue hands
+ * out.
+ */
+export interface PackageContents {
+  readonly name: string
+  readonly title: string
+  readonly version: string
+  readonly minimumCore: string
+  readonly assetKinds: readonly CatalogueEntry<AssetKind>[]
+  readonly dutyKinds: readonly CatalogueEntry<DutyKind>[]
+  readonly forms: readonly CatalogueEntry<PackagedForm>[]
+  readonly roundTemplates: readonly CatalogueEntry<PackagedForm>[]
+  /** By key, the whole country before the states, the earliest record first. */
+  readonly rules: readonly CatalogueRule[]
+}
+
+/**
  * The questions the catalogue answers. Every one that depends on time names a
  * day, and a day before an entry or a rule begins has no answer.
  */
 export interface Catalogue {
+  /**
+   * The bundle the answers come from, whole. For the one route that hands the
+   * catalogue of a server to a device; everything else asks a question.
+   */
+  readonly bundle: CatalogueBundle
   readonly sha256: string
   readonly packages: readonly Pick<CataloguePackage, 'name' | 'title' | 'version'>[]
+  /** What each package holds on a day, in the order of the bundle. */
+  readonly contents: (on: IsoDate) => readonly PackageContents[]
   /** The version of an asset kind in force on a day. */
   readonly assetKind: (key: string, on: IsoDate) => CatalogueEntry<AssetKind> | null
   readonly assetKinds: (on: IsoDate) => readonly CatalogueEntry<AssetKind>[]
@@ -380,8 +410,12 @@ export interface Catalogue {
   /** One version of a duty kind, the one a confirmed duty names (ADR 0005, point 10). */
   readonly dutyKindVersion: (key: string, version: number) => CatalogueEntry<DutyKind> | null
   readonly dutyKinds: (on: IsoDate) => readonly CatalogueEntry<DutyKind>[]
+  /** The version of a form in force on a day, the one a duty kind names as its evidence. */
+  readonly form: (key: string, on: IsoDate) => CatalogueEntry<PackagedForm> | null
   /** The rule in force on a day, for a federal state or, without one, for the whole country. */
   readonly rule: (key: string, on: IsoDate, state?: FederalState) => CatalogueRule | null
+  /** Every record of a rule, the whole country before the states, the earliest first. */
+  readonly ruleRecords: (key: string) => readonly CatalogueRule[]
   /** The rule of the interval of a duty kind on a day, or nothing for one without a value. */
   readonly interval: (dutyKind: DutyKind, on: IsoDate, state?: FederalState) => CatalogueRule | null
   /** How long the evidence is kept, with the rule of the years where it has one. */
@@ -426,6 +460,21 @@ function inForce<Definition>(
   return [...(versions ?? [])].reverse().find((entry) => entry.validFrom <= on) ?? null
 }
 
+/** Compared by code unit and not by the language of the machine, so that a list reads the same everywhere. */
+function byText(left: string, right: string): number {
+  return left < right ? -1 : left > right ? 1 : 0
+}
+
+/** Rules as a person reads them: by key, the whole country before the states, the earliest record first. */
+function inReadingOrder(rules: readonly CatalogueRule[]): readonly CatalogueRule[] {
+  return [...rules].sort(
+    (left, right) =>
+      byText(left.record.key, right.record.key) ||
+      ruleScopes.indexOf(scopeOf(left.record)) - ruleScopes.indexOf(scopeOf(right.record)) ||
+      byText(left.record.validFrom, right.record.validFrom),
+  )
+}
+
 /**
  * The catalogue to ask, from a bundle the build wrote. It refuses a bundle in
  * another format, and the rules the way the rule engine does: two records of
@@ -440,6 +489,7 @@ export function catalogueOf(bundle: CatalogueBundle): Catalogue {
 
   const assetKinds = versionsByKey(bundle.packages.flatMap((entry) => entry.assetKinds))
   const dutyKinds = versionsByKey(bundle.packages.flatMap((entry) => entry.dutyKinds))
+  const forms = versionsByKey(bundle.packages.flatMap((entry) => entry.forms))
   const rules = bundle.packages.flatMap((entry) => entry.rules)
   const reviews = new Map<RuleRecord, CatalogueReview>(
     rules.map((rule) => [rule.record, rule.review]),
@@ -464,15 +514,30 @@ export function catalogueOf(bundle: CatalogueBundle): Catalogue {
       .filter((entry): entry is CatalogueEntry<Definition> => entry !== null)
 
   return {
+    bundle,
     sha256: bundle.sha256,
     packages: bundle.packages.map(({ name, title, version }) => ({ name, title, version })),
+    contents: (on) =>
+      bundle.packages.map((entry) => ({
+        name: entry.name,
+        title: entry.title,
+        version: entry.version,
+        minimumCore: entry.minimumCore,
+        assetKinds: everyKey(versionsByKey(entry.assetKinds), on),
+        dutyKinds: everyKey(versionsByKey(entry.dutyKinds), on),
+        forms: everyKey(versionsByKey(entry.forms), on),
+        roundTemplates: everyKey(versionsByKey(entry.roundTemplates), on),
+        rules: inReadingOrder(entry.rules),
+      })),
     assetKind: (key, on) => inForce(assetKinds.get(key), on),
     assetKinds: (on) => everyKey(assetKinds, on),
     dutyKind: (key, on) => inForce(dutyKinds.get(key), on),
     dutyKindVersion: (key, version) =>
       dutyKinds.get(key)?.find((entry) => entry.version === version) ?? null,
     dutyKinds: (on) => everyKey(dutyKinds, on),
+    form: (key, on) => inForce(forms.get(key), on),
     rule,
+    ruleRecords: (key) => inReadingOrder(rules.filter((entry) => entry.record.key === key)),
     interval: (dutyKind, on, state) =>
       dutyKind.interval.kind === 'none' ? null : rule(dutyKind.interval.rule, on, state),
     retention: (dutyKind, on, state) => {
@@ -509,5 +574,168 @@ export function reviewMarks(review: CatalogueReview, today: IsoDate): ReviewMark
   return {
     unaccepted: review.accepted === null,
     checkedLongAgo: review.checkedOn < yearBefore(today),
+  }
+}
+
+/** How many entries of a package somebody with expertise has accepted, and of how many. */
+export interface AcceptanceTally {
+  readonly accepted: number
+  readonly entries: number
+}
+
+/**
+ * The tally of a package. Every entry counts, an asset kind and a form like a
+ * duty kind and a rule: the format gives each of them a review (ADR 0005,
+ * point 9), and whoever reads "all accepted" must not find one that is not.
+ */
+export function acceptanceTally(contents: PackageContents): AcceptanceTally {
+  const reviews = [
+    ...contents.assetKinds,
+    ...contents.dutyKinds,
+    ...contents.forms,
+    ...contents.roundTemplates,
+    ...contents.rules,
+  ].map((entry) => entry.review)
+
+  return {
+    accepted: reviews.filter((review) => review.accepted !== null).length,
+    entries: reviews.length,
+  }
+}
+
+/** A whole number of the smallest step of a unit as a decimal number: 600 tenths are "60,0". */
+function decimal(value: number, places: number): string {
+  const digits = String(Math.abs(value)).padStart(places + 1, '0')
+
+  return `${value < 0 ? '-' : ''}${digits.slice(0, -places)},${digits.slice(-places)}`
+}
+
+function counted(value: number, one: string, more: string): string {
+  return `${String(value)} ${value === 1 ? one : more}`
+}
+
+/** The value of a rule as a person reads it: "24 Monate", "60,0 °C", "ja". */
+export function ruleValueWords(value: number, unit: RuleUnit): string {
+  switch (unit) {
+    case 'days':
+      return counted(value, 'Tag', 'Tage')
+    case 'months':
+      return counted(value, 'Monat', 'Monate')
+    case 'years':
+      return counted(value, 'Jahr', 'Jahre')
+    case 'minutes':
+      return counted(value, 'Minute', 'Minuten')
+    case 'flag':
+      return value === 0 ? 'nein' : 'ja'
+    case 'basis_points':
+      return `${decimal(value, 2)} %`
+    case 'cents':
+      return `${decimal(value, 2)} €`
+    case 'decidegrees_celsius':
+      return `${decimal(value, 1)} °C`
+    case 'kiloohms':
+      return `${String(value)} kΩ`
+    case 'milliseconds':
+      return `${String(value)} ms`
+    case 'volts':
+      return `${String(value)} V`
+    case 'kilowatts':
+      return `${String(value)} kW`
+    case 'kilograms_co2e':
+      return `${String(value)} kg CO2-Äquivalent`
+    case 'tonnes_co2e':
+      return `${String(value)} t CO2-Äquivalent`
+    case 'count_per_100_ml':
+      return `${String(value)} je 100 ml`
+    case 'factor':
+      return `Faktor ${String(value)}`
+  }
+}
+
+/**
+ * The interval of a duty kind in a line, on a day: "Höchstfrist 24 Monate",
+ * "Richtwert 12 Monate". A kind without a value says who enters one, in the
+ * words of the board, and a kind whose rule has no record on the day says
+ * that instead of a number nobody can check.
+ */
+export function intervalLine(
+  catalogue: Pick<Catalogue, 'interval'>,
+  kind: DutyKind,
+  on: IsoDate,
+  state?: FederalState,
+): string {
+  if (kind.interval.kind === 'none') {
+    return 'die Frist trägt der Betreiber ein'
+  }
+
+  const found = catalogue.interval(kind, on, state)
+  const label = intervalKindLabel[kind.interval.kind]
+
+  return found
+    ? `${label} ${ruleValueWords(found.record.value, found.record.unit)}`
+    : `${label}, an diesem Tag ohne Wert`
+}
+
+/** What the scope of a duty kind says, each part as the lines a person reads. */
+export interface ScopeWords {
+  readonly assetKinds: readonly string[]
+  readonly conditions: readonly string[]
+  readonly buildingKinds: readonly string[]
+  readonly states: readonly string[]
+}
+
+/**
+ * The scope of a duty kind in words, on a day. An asset kind and a
+ * characteristic are named by their labels, a threshold by the value of its
+ * rule on that day. A list the scope leaves empty stays empty here: what
+ * "every one" is called is a word of the screen.
+ */
+export function scopeWords(
+  catalogue: Pick<Catalogue, 'assetKind' | 'rule'>,
+  kind: DutyKind,
+  on: IsoDate,
+): ScopeWords {
+  const assetKinds = kind.scope.assetKinds.map((key) => catalogue.assetKind(key, on))
+  const characteristics = assetKinds.flatMap((entry) => entry?.definition.characteristics ?? [])
+
+  const threshold = (rule: string): string => {
+    const found = catalogue.rule(rule, on)
+
+    return found
+      ? ruleValueWords(found.record.value, found.record.unit)
+      : `dem Wert der Regel ${rule}`
+  }
+
+  const condition = (asked: ScopeCondition): string => {
+    const characteristic = characteristics.find((entry) => entry.key === asked.characteristic)
+    const label = characteristic?.label ?? asked.characteristic
+
+    if ('atLeast' in asked) {
+      return `${label} ab ${threshold(asked.atLeast)}`
+    }
+
+    if ('below' in asked) {
+      return `${label} unter ${threshold(asked.below)}`
+    }
+
+    if ('is' in asked) {
+      return `${label}: ${asked.is ? 'ja' : 'nein'}`
+    }
+
+    const options = characteristic?.kind === 'choice' ? characteristic.options : []
+    const named = asked.oneOf.map(
+      (value) => options.find((option) => option.value === value)?.label ?? value,
+    )
+
+    return `${label}: ${named.join(' oder ')}`
+  }
+
+  return {
+    assetKinds: kind.scope.assetKinds.map(
+      (key, index) => assetKinds[index]?.definition.label ?? key,
+    ),
+    conditions: kind.scope.conditions.map(condition),
+    buildingKinds: kind.scope.buildingKinds.map((entry) => buildingKindLabel[entry]),
+    states: kind.scope.states.map((entry) => ruleScopeNames[entry]),
   }
 }
