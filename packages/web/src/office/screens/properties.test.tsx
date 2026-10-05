@@ -1039,6 +1039,38 @@ describe('the form of a property there is', () => {
     expect(screen.queryByText(/legen Sie danach in der Liegenschaft an/)).toBeNull()
   })
 
+  // The way back of a browser may lead from the form of one property straight
+  // to the form of another. A form reads what it starts with once.
+  it('starts anew for another property when only the address changes', async () => {
+    const user = userEvent.setup()
+    const changes = takingChanges()
+    const router = await mount('/liegenschaften/p-school/bearbeiten')
+
+    await user.type(await screen.findByRole('textbox', { name: 'Ort' }), ' am See')
+    await router.navigate({ to: '/liegenschaften/p-office/bearbeiten' })
+
+    expect(
+      await screen.findByRole('heading', { level: 1, name: 'Ämter Am Probehang bearbeiten' }),
+    ).toBeTruthy()
+
+    const value = (name: string) =>
+      (screen.getByRole('textbox', { name }) as HTMLInputElement | HTMLTextAreaElement).value
+
+    expect(value('Name')).toBe('Ämter Am Probehang')
+    expect(value('Ort')).toBe('Beispielstadt')
+    expect(value('Notiz')).toBe('')
+    expect((screen.getByRole('combobox', { name: 'Bereich' }) as HTMLSelectElement).value).toBe(
+      nord.id,
+    )
+
+    // And saves nothing of the property it came from.
+    await user.click(screen.getByRole('button', { name: 'Speichern' }))
+    await waitFor(() => {
+      expect(router.state.location.pathname).toBe('/liegenschaften/p-office')
+    })
+    expect(changes).toEqual([])
+  })
+
   it('sends what was changed and nothing else, and leads back to the property', async () => {
     const user = userEvent.setup()
     const changes = takingChanges()

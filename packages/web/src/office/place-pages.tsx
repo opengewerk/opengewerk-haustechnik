@@ -14,6 +14,8 @@ import { officePlaces } from './place-addresses.js'
  * yet. Which of the three, a device cannot know.
  */
 const notThere = {
+  property:
+    'Diese Liegenschaft gibt es nicht mehr, sie liegt in einem Bereich, den dieser Zugang nicht sieht, oder dieses Gerät kennt sie noch nicht.',
   building:
     'Dieses Gebäude gibt es nicht mehr, es liegt in einem Bereich, den dieser Zugang nicht sieht, oder dieses Gerät kennt es noch nicht.',
   floor:

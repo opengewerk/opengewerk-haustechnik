@@ -15,7 +15,9 @@ import {
 
 import { InstanceShell } from './instance/shell.js'
 import { AccountScreen } from './screens/account.js'
+import { EditBuildingScreen, NewBuildingScreen } from './screens/building-form.js'
 import { BuildingScreen } from './screens/buildings.js'
+import { EditFloorScreen, NewFloorScreen } from './screens/floor-form.js'
 import { FloorScreen } from './screens/floors.js'
 import {
   EditPropertyScreen,
@@ -23,6 +25,7 @@ import {
   PropertyListScreen,
   PropertyScreen,
 } from './screens/properties.js'
+import { EditRoomScreen, NewRoomScreen } from './screens/room-form.js'
 import { RoomScreen } from './screens/rooms.js'
 import { StaffScreen } from './screens/staff.js'
 import { OfficeShell } from './shell.js'
@@ -115,15 +118,45 @@ export function officeRoutes() {
     }),
     createRoute({
       getParentRoute: () => office,
+      path: '/liegenschaften/$propertyId/gebaeude/neu',
+      component: NewBuildingScreen,
+    }),
+    createRoute({
+      getParentRoute: () => office,
       path: '/gebaeude/$buildingId',
       component: BuildingScreen,
+    }),
+    createRoute({
+      getParentRoute: () => office,
+      path: '/gebaeude/$buildingId/bearbeiten',
+      component: EditBuildingScreen,
+    }),
+    createRoute({
+      getParentRoute: () => office,
+      path: '/gebaeude/$buildingId/geschosse/neu',
+      component: NewFloorScreen,
     }),
     createRoute({
       getParentRoute: () => office,
       path: '/geschosse/$floorId',
       component: FloorScreen,
     }),
+    createRoute({
+      getParentRoute: () => office,
+      path: '/geschosse/$floorId/bearbeiten',
+      component: EditFloorScreen,
+    }),
+    createRoute({
+      getParentRoute: () => office,
+      path: '/geschosse/$floorId/raeume/neu',
+      component: NewRoomScreen,
+    }),
     createRoute({ getParentRoute: () => office, path: '/raeume/$roomId', component: RoomScreen }),
+    createRoute({
+      getParentRoute: () => office,
+      path: '/raeume/$roomId/bearbeiten',
+      component: EditRoomScreen,
+    }),
     createRoute({ getParentRoute: () => office, path: '/konflikte', component: SyncScreen }),
     createRoute({ getParentRoute: () => office, path: '/konto', component: AccountScreen }),
     createRoute({

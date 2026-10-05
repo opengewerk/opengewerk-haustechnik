@@ -22,5 +22,20 @@ export const officePlaces = {
   asset: (id: string) => `/anlagen/${id}`,
 } as const satisfies PlaceAddresses
 
+/**
+ * Where the forms of a building, a floor and a room live: a new one under the
+ * place it will stand in, which the address names because the form has
+ * nothing else to learn it from, and the form of one that is there under its
+ * own page.
+ */
+export const placeForms = {
+  newBuilding: (propertyId: string) => `/liegenschaften/${propertyId}/gebaeude/neu`,
+  editBuilding: (buildingId: string) => `/gebaeude/${buildingId}/bearbeiten`,
+  newFloor: (buildingId: string) => `/gebaeude/${buildingId}/geschosse/neu`,
+  editFloor: (floorId: string) => `/geschosse/${floorId}/bearbeiten`,
+  newRoom: (floorId: string) => `/geschosse/${floorId}/raeume/neu`,
+  editRoom: (roomId: string) => `/raeume/${roomId}/bearbeiten`,
+} as const
+
 /** The addresses below "Liegenschaften" that are not under its own. */
 export const placeRoots = ['/gebaeude', '/geschosse', '/raeume'] as const

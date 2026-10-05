@@ -10,7 +10,6 @@ import {
   cardLink,
   Cell,
   Column,
-  Confirm,
   isNarrow,
   Panel,
   TablePanel,
@@ -35,7 +34,6 @@ import {
   type FormField,
   maybeText,
   RecordForm,
-  refusalFor,
   text,
   useRecord,
   useRecords,
@@ -44,14 +42,15 @@ import {
   useSyncStatus,
 } from '@opengewerk/platform-web/sync'
 import { Link, useNavigate, useParams } from '@tanstack/react-router'
-import { Building2, Pencil, Plus, Trash2 } from 'lucide-react'
+import { Building2, Pencil, Plus } from 'lucide-react'
 import { type ReactNode, useId, useMemo, useState } from 'react'
 
 import { kindsOf } from '../../app/place-records.js'
 import { areaName, useAreas, useAreasQuery } from '../../session/areas.js'
 import { makeAt } from '../../sync/made-at.js'
 import { AreaBadge } from '../area-badge.js'
-import { officePlaces } from '../place-addresses.js'
+import { officePlaces, placeForms } from '../place-addresses.js'
+import { NotAllowed, RemovePlace } from '../place-forms.js'
 import { PropertyContacts } from '../property-contacts.js'
 
 /**
@@ -408,9 +407,20 @@ export function PropertyScreen() {
           <>
             <ChangesButton table="properties" id={propertyId} />
             {writes ? (
-              <Button icon={Pencil} onClick={edit}>
-                Bearbeiten
-              </Button>
+              <>
+                <Button icon={Pencil} onClick={edit}>
+                  Bearbeiten
+                </Button>
+                <Button
+                  tone="primary"
+                  icon={Plus}
+                  onClick={() => {
+                    void navigate({ to: placeForms.newBuilding(propertyId) })
+                  }}
+                >
+                  Neues Gebäude
+                </Button>
+              </>
             ) : null}
           </>
         }
@@ -581,15 +591,6 @@ export function EditPropertyScreen() {
   )
 }
 
-function NotAllowed({ children }: { readonly children: ReactNode }) {
-  return (
-    <Screen>
-      <PageHead title="Liegenschaften" crumbs={[list]} />
-      <Empty>{children}</Empty>
-    </Screen>
-  )
-}
-
 /**
  * A property to make or to change, `neue_liegenschaft()` of the boards: one
  * card with what it is called, where it lies and what there is to know
@@ -732,6 +733,9 @@ function PropertyFormScreen({ propertyId }: { readonly propertyId: string | unde
       {head}
       <Panel className="max-w-[860px] px-5! py-[18px]!">
         <RecordForm
+          // Made anew for another property: a form reads what it starts with
+          // once, and the browser's way back may lead from one to another.
+          key={propertyId ?? 'new'}
           fields={fields}
           // A new property starts in the state most of the others lie in.
           record={editing ? property : { federalState: usual }}
@@ -783,52 +787,18 @@ function RemoveProperty({
 }) {
   const client = useSync()
   const navigate = useNavigate()
-  const [asking, setAsking] = useState(false)
-  const [trouble, setTrouble] = useState<string | null>(null)
 
   return (
-    <>
-      <Button
-        tone="danger"
-        icon={Trash2}
-        disabled={disabled}
-        onClick={() => {
-          setTrouble(null)
-          setAsking(true)
-        }}
-      >
-        Liegenschaft entfernen
-      </Button>
-      {trouble ? (
-        <p role="alert" className="basis-full text-[13px] font-semibold text-conflict">
-          {trouble}
-        </p>
-      ) : null}
-      <Confirm
-        open={asking}
-        title={`„${name}“ entfernen?`}
-        confirm="Entfernen"
-        tone="danger"
-        onConfirm={() => {
-          setAsking(false)
-          void client.remove('properties', propertyId).then(async (result) => {
-            if (result.outcome === 'refused') {
-              setTrouble(refusalFor(result))
-
-              return
-            }
-
-            await navigate({ to: listPath })
-          })
-        }}
-        onCancel={() => {
-          setAsking(false)
-        }}
-      >
-        Mit der Liegenschaft gehen ihre Ansprechpartner, ihre Gebäude, Geschosse und Räume, die
-        Anlagen darin und alle Pflichten, Vorgänge und Mängel dort. Eine Anlage mit Nachweis wird
-        nicht entfernt, und dann bleibt auch die Liegenschaft.
-      </Confirm>
-    </>
+    <RemovePlace
+      label="Liegenschaft entfernen"
+      question={`„${name}“ entfernen?`}
+      disabled={disabled}
+      remove={() => client.remove('properties', propertyId)}
+      onRemoved={() => navigate({ to: listPath })}
+    >
+      Mit der Liegenschaft gehen ihre Ansprechpartner, ihre Gebäude, Geschosse und Räume, die
+      Anlagen darin und alle Pflichten, Vorgänge und Mängel dort. Eine Anlage mit Nachweis wird
+      nicht entfernt, und dann bleibt auch die Liegenschaft.
+    </RemovePlace>
   )
 }
