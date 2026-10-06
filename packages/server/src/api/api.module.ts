@@ -35,7 +35,11 @@ import { BuildingClosuresController } from './closures.controller.js'
 import { contactRights, contactRoutes } from './contact-routes.js'
 import { DatabaseExceptionFilter } from './database-errors.js'
 import { CatalogueController } from './catalogue.controller.js'
-import { DutiesController, DutyDismissalsController } from './duties.controller.js'
+import {
+  DutiesController,
+  DutyDismissalsController,
+  RoomDutiesController,
+} from './duties.controller.js'
 import { FloorsController } from './floors.controller.js'
 import { PropertiesController } from './properties.controller.js'
 import { RoomsController } from './rooms.controller.js'
@@ -209,6 +213,7 @@ export class ApiModule {
         AssetsController,
         // The duties of an operator and the proposals dismissed.
         DutiesController,
+        RoomDutiesController,
         DutyDismissalsController,
         // The catalogue of this server, for the devices that work with it.
         CatalogueController,

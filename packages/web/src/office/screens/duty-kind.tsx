@@ -5,6 +5,7 @@ import {
   countingLabel,
   dutyBindingnessLabel,
   type DutyKind,
+  type DutyRegister,
   dutyTaskLabel,
   evidenceKindLabel,
   intervalKindLabel,
@@ -19,7 +20,10 @@ import {
 import { Cell, Column, Panel, TablePanel } from '@opengewerk/platform-web'
 import { date, today } from '@opengewerk/platform-web/format'
 import { FactList, PageHead, Screen } from '@opengewerk/platform-web/office'
-import { useParams } from '@tanstack/react-router'
+import { useRight } from '@opengewerk/platform-web/session'
+import { request } from '@opengewerk/platform-web/sync'
+import { useQuery } from '@tanstack/react-query'
+import { Link, useParams } from '@tanstack/react-router'
 import { Check, History, Info } from 'lucide-react'
 import type { ReactNode } from 'react'
 
@@ -32,6 +36,8 @@ import {
 } from '../../app/review-marks.js'
 import { useCatalogue } from '../../sync/catalogue.js'
 import { cataloguePlaces } from '../catalogue-addresses.js'
+import { dutyRegisterPlace, dutyRegisterRequest, dutySearch } from '../duty-addresses.js'
+import { factLink } from '../links.js'
 import { appliesWords, NotInCatalogue } from './catalogue.js'
 
 /**
@@ -45,9 +51,11 @@ import { appliesWords, NotInCatalogue } from './catalogue.js'
  * and every rule in the table carries its own review: a duty kind accepted
  * over an interval nobody has looked at is not one to rely on.
  *
- * What the board draws beyond this arrives with what it counts: the duties
- * confirmed from this kind, and the proposals open and dismissed, with the
- * register of duties and the proposals.
+ * The catalogue is the device's and stands without a network. The one card
+ * that asks the server is "Bei diesem Betreiber": how many duties this
+ * operator has confirmed from the kind, with the way to them in the register
+ * of duties (#101), for whoever reads duties. The proposals open and
+ * dismissed arrive beside it with the proposals (#102).
  */
 export function DutyKindScreen() {
   const { packageName, dutyKey } = useParams({ strict: false }) as {
@@ -55,6 +63,7 @@ export function DutyKindScreen() {
     dutyKey?: string
   }
   const catalogue = useCatalogue()
+  const seesDuties = useRight('duty.read')
   const on = today()
   const key = `${packageName ?? ''}.${dutyKey ?? ''}`
   const entry = catalogue?.dutyKind(key, on) ?? null
@@ -135,37 +144,92 @@ export function DutyKindScreen() {
           </Panel>
           <Rules catalogue={catalogue} kind={kind} />
         </div>
-        <Panel title="Prüfung und Abnahme">
-          <div className="flex flex-col gap-2">
-            {entry.review.accepted === null ? (
-              <>
+        <div className="flex min-w-0 flex-col gap-3.5">
+          <Panel title="Prüfung und Abnahme">
+            <div className="flex flex-col gap-2">
+              {entry.review.accepted === null ? (
+                <>
+                  <Finding
+                    tone="waiting"
+                    icon={<Info size={18} strokeWidth={2.2} aria-hidden="true" />}
+                  >
+                    {unacceptedWords}
+                  </Finding>
+                  <Words small>
+                    Die fachkundige Abnahme steht aus. Bis dahin sagt jede Stelle, an der diese
+                    Pflichtart erscheint, dass sie nicht abgenommen ist.
+                  </Words>
+                </>
+              ) : (
                 <Finding
-                  tone="waiting"
-                  icon={<Info size={18} strokeWidth={2.2} aria-hidden="true" />}
+                  tone="done"
+                  icon={<Check size={18} strokeWidth={2.2} aria-hidden="true" />}
                 >
-                  {unacceptedWords}
+                  Abgenommen von {entry.review.accepted.by} am {date(entry.review.accepted.on)}
                 </Finding>
-                <Words small>
-                  Die fachkundige Abnahme steht aus. Bis dahin sagt jede Stelle, an der diese
-                  Pflichtart erscheint, dass sie nicht abgenommen ist.
-                </Words>
-              </>
-            ) : (
-              <Finding tone="done" icon={<Check size={18} strokeWidth={2.2} aria-hidden="true" />}>
-                Abgenommen von {entry.review.accepted.by} am {date(entry.review.accepted.on)}
+              )}
+              <Finding
+                tone={marks.checkedLongAgo ? 'waiting' : 'plain'}
+                icon={<History size={18} strokeWidth={2.2} aria-hidden="true" />}
+              >
+                Zuletzt gegen die Quelle geprüft am {date(entry.review.checkedOn)}
               </Finding>
-            )}
-            <Finding
-              tone={marks.checkedLongAgo ? 'waiting' : 'plain'}
-              icon={<History size={18} strokeWidth={2.2} aria-hidden="true" />}
-            >
-              Zuletzt gegen die Quelle geprüft am {date(entry.review.checkedOn)}
-            </Finding>
-            {marks.checkedLongAgo ? <Words small>Das liegt mehr als ein Jahr zurück.</Words> : null}
-          </div>
-        </Panel>
+              {marks.checkedLongAgo ? (
+                <Words small>Das liegt mehr als ein Jahr zurück.</Words>
+              ) : null}
+            </div>
+          </Panel>
+          {seesDuties ? <AtThisOperator dutyKind={entry.key} /> : null}
+        </div>
       </div>
     </Screen>
+  )
+}
+
+export const atThisOperatorWords = {
+  none: 'keine',
+  unread: 'Die Zahl kommt vom Server, mit Verbindung.',
+} as const
+
+/**
+ * "Bei diesem Betreiber": the duties confirmed from this kind that have not
+ * ended, in the areas of the person, counted by the register of duties
+ * itself, so that the number and the list it leads to cannot differ.
+ */
+function AtThisOperator({ dutyKind }: { readonly dutyKind: string }) {
+  const confirmed = useQuery({
+    queryKey: ['duties', 'register', 'count', dutyKind],
+    queryFn: () => request<DutyRegister>(dutyRegisterRequest({ dutyKind }, 0, 1)),
+  })
+  const total = confirmed.data?.total
+
+  return (
+    <Panel title="Bei diesem Betreiber">
+      {total === undefined || total === null ? (
+        <Words small>{atThisOperatorWords.unread}</Words>
+      ) : (
+        <FactList
+          keyWidth={100}
+          facts={[
+            {
+              label: 'Bestätigt',
+              value:
+                total === 0 ? (
+                  atThisOperatorWords.none
+                ) : (
+                  <Link
+                    to={dutyRegisterPlace.to}
+                    search={dutySearch({ dutyKind })}
+                    className={factLink}
+                  >
+                    {total === 1 ? '1 Pflicht' : `${total.toLocaleString('de-DE')} Pflichten`}
+                  </Link>
+                ),
+            },
+          ]}
+        />
+      )}
+    </Panel>
   )
 }
 

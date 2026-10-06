@@ -38,6 +38,8 @@ interface SampleRoom {
   readonly number: string
   readonly name: string
   readonly use?: string
+  /** Duties that hang on the room itself, of the operator's own. */
+  readonly duties?: readonly SampleDuty[]
 }
 
 interface SampleFloor {
@@ -71,16 +73,50 @@ interface SampleAsset {
 }
 
 /**
- * A duty at a sample asset: confirmed from the catalogue by the key of its
- * kind, or one of the operator's own after the instructions of the maker,
- * with the days it was met on, counted back from the day the preview starts.
+ * A duty at a sample asset or a sample room: confirmed from the catalogue by
+ * the key of its kind, or one of the operator's own, after the instructions
+ * of the maker unless it names another basis, with the days it was met on,
+ * counted back from the day the preview starts.
+ *
+ * Who answers for it is one of the colleagues of the preview
+ * (`previewColleagues`), by the id of their account; a duty without one is
+ * what the register points out.
  */
 export interface SampleDuty {
   readonly kind?: 'probe.elevator_main_test'
   readonly label?: string
+  readonly basis?: 'manufacturer' | 'own_decision'
+  readonly sourceNote?: string
   readonly intervalMonths: number
   readonly metDaysAgo?: readonly number[]
+  readonly responsible?: PreviewColleagueId
+  readonly performer?: 'own_staff' | 'contractor'
+  readonly performerNote?: string
+  /** It ended this many days ago, and calls for nothing since. */
+  readonly endedDaysAgo?: number
+  /**
+   * Evidence beside what met it, so that the page of a duty shows each thing
+   * an evidence can mean for the appointment: a test that failed, an evidence
+   * declared invalid, and one a correction replaced.
+   */
+  readonly alsoRecorded?: readonly SampleEvidence[]
 }
+
+/** An evidence of a sample duty that does not simply count. */
+export interface SampleEvidence {
+  readonly daysAgo: number
+  readonly result?: 'failed'
+  /** Declared invalid, for this reason. */
+  readonly voidedBecause?: string
+  /** A correction of the evidence of that many days ago, which it replaces. */
+  readonly correctsDaysAgo?: number
+}
+
+type PreviewColleagueId = 'preview-albrecht' | 'preview-lindner' | 'preview-roth' | 'preview-yilmaz'
+
+/** Who performs a duty: the operator's own people, or a contractor by name. */
+const ownStaff = { performer: 'own_staff' } as const
+const contractor = (performerNote: string) => ({ performer: 'contractor', performerNote }) as const
 
 /** A state of a life cycle, from a day on. */
 export interface SampleState {
@@ -220,7 +256,28 @@ export const sampleProperties: readonly SampleProperty[] = [
             yearBuilt: 1998,
             values: { firefighters_lift: false, stops: 2 },
             // In order: both met, the next one falls due in months.
-            duties: [mainTest(200), yearly('Wartung des Aufzugs', 405, 40)],
+            duties: [
+              {
+                ...mainTest(200),
+                responsible: 'preview-lindner',
+                ...contractor('Prüfdienst Beispiel GmbH'),
+              },
+              {
+                ...yearly('Wartung des Aufzugs', 405, 40),
+                responsible: 'preview-lindner',
+                ...contractor('Beispiel Aufzüge, Kundendienst'),
+                // What the last maintenance counts from stays the one of
+                // forty days ago: none of these three counts.
+                alsoRecorded: [
+                  { daysAgo: 404, correctsDaysAgo: 405 },
+                  { daysAgo: 25, result: 'failed' },
+                  {
+                    daysAgo: 12,
+                    voidedBecause: 'Der Bericht gehört zum Aufzug im Nachbarhaus.',
+                  },
+                ],
+              },
+            ],
           },
           waterMeter(
             'Hauptwasserzähler Haus A',
@@ -229,11 +286,25 @@ export const sampleProperties: readonly SampleProperty[] = [
             [
               // Due: a year is over in two weeks.
               waterMeter('Unterzähler Teeküche', 'WZ-1002', '1.20', [], {
-                duties: [yearly('Sichtprüfung der Zähleranlage', 350)],
+                duties: [
+                  {
+                    ...yearly('Sichtprüfung der Zähleranlage', 350),
+                    responsible: 'preview-lindner',
+                    ...ownStaff,
+                  },
+                ],
               }),
             ],
             // Overdue: the year was over a month ago.
-            { duties: [yearly('Sichtprüfung der Zähleranlage', 400)] },
+            {
+              duties: [
+                {
+                  ...yearly('Sichtprüfung der Zähleranlage', 400),
+                  responsible: 'preview-albrecht',
+                  ...ownStaff,
+                },
+              ],
+            },
           ),
         ],
       },
@@ -263,9 +334,17 @@ export const sampleProperties: readonly SampleProperty[] = [
           },
         ],
         assets: [
-          // Never checked: confirmed, and no evidence yet.
+          // Never checked: confirmed, no evidence yet, and nobody answers
+          // for it. Beside it a duty that ended a month ago.
           waterMeter('Wasserzähler Werkstatt', 'WZ-2001', 'E.01', [], {
-            duties: [yearly('Sichtprüfung der Zähleranlage')],
+            duties: [
+              { ...yearly('Sichtprüfung der Zähleranlage'), ...ownStaff },
+              {
+                ...yearly('Eichung des alten Zählers', 500),
+                responsible: 'preview-lindner',
+                endedDaysAgo: 30,
+              },
+            ],
           }),
           // No package describes it yet: the general kind of its cost group,
           // which the catalogue proposes nothing for, and a duty of the
@@ -277,7 +356,13 @@ export const sampleProperties: readonly SampleProperty[] = [
             yearBuilt: 2009,
             values: {},
             room: 'E.01',
-            duties: [yearly('Filterwechsel nach Angabe des Herstellers', 60)],
+            duties: [
+              {
+                ...yearly('Filterwechsel nach Angabe des Herstellers', 60),
+                responsible: 'preview-yilmaz',
+                ...ownStaff,
+              },
+            ],
           },
         ],
       },
@@ -314,7 +399,23 @@ export const sampleProperties: readonly SampleProperty[] = [
             level: 0,
             rooms: [
               { number: 'E.10', name: 'Hausmeister' },
-              { number: 'E.14', name: 'Heizraum', use: 'Haustechnik' },
+              {
+                number: 'E.14',
+                name: 'Heizraum',
+                use: 'Haustechnik',
+                // A duty of the room itself, due within three weeks, and
+                // nobody is named for it.
+                duties: [
+                  {
+                    label: 'Heizraum frei von Brandlasten',
+                    basis: 'own_decision',
+                    sourceNote: 'Brandschutzordnung Teil C',
+                    intervalMonths: 3,
+                    metDaysAgo: [72],
+                    ...ownStaff,
+                  },
+                ],
+              },
             ],
           },
           {
@@ -335,7 +436,13 @@ export const sampleProperties: readonly SampleProperty[] = [
             mark: 'AZ-01',
             yearBuilt: 2012,
             values: { firefighters_lift: false, stops: 2 },
-            duties: [mainTest(100)],
+            duties: [
+              {
+                ...mainTest(100),
+                responsible: 'preview-roth',
+                ...contractor('Prüfdienst Beispiel GmbH'),
+              },
+            ],
             defect: 'Notruf im Fahrkorb ohne Verbindung',
           },
           waterMeter(
@@ -347,7 +454,13 @@ export const sampleProperties: readonly SampleProperty[] = [
               waterMeter('Unterzähler Sporthalle', 'WZ-3002', 'E.14', [], {
                 lifecycle: outOfServiceThisYear,
                 supplies: ['Sporthalle'],
-                duties: [yearly('Sichtprüfung der Zähleranlage', 500)],
+                duties: [
+                  {
+                    ...yearly('Sichtprüfung der Zähleranlage', 500),
+                    responsible: 'preview-roth',
+                    ...ownStaff,
+                  },
+                ],
               }),
             ],
             { supplies: ['Schulhaus'] },
@@ -473,8 +586,69 @@ interface Supplying {
  * on a day, and the defects of the assets.
  */
 export interface PlantedStandings {
-  readonly evidence: { readonly dutyId: string; readonly performedOn: string }[]
+  readonly evidence: {
+    readonly dutyId: string
+    readonly performedOn: string
+    readonly result?: 'failed'
+    readonly voidedBecause?: string
+    /** The day of the evidence of the same duty this one corrects. */
+    readonly corrects?: string
+  }[]
   readonly defects: { readonly assetId: string; readonly description: string }[]
+}
+
+/**
+ * A duty at an asset or a room, confirmed through the route as whoever keeps
+ * the register would, and ended through its route where it has ended.
+ */
+async function plantDuty(
+  address: string,
+  target: { readonly assetId: string } | { readonly roomId: string },
+  duty: SampleDuty,
+  standings: PlantedStandings,
+): Promise<void> {
+  const {
+    metDaysAgo = [],
+    kind,
+    label,
+    basis = 'manufacturer',
+    sourceNote = 'Betriebsanleitung des Herstellers',
+    intervalMonths,
+    responsible,
+    performer,
+    performerNote,
+    endedDaysAgo,
+    alsoRecorded = [],
+  } = duty
+  const made = await send(address, '/duties', {
+    ...target,
+    intervalMonths,
+    ...(kind === undefined ? { label, basis, sourceNote } : { kind }),
+    ...(responsible === undefined ? {} : { responsibleUserId: responsible }),
+    ...(performer === undefined ? {} : { performer }),
+    ...(performerNote === undefined ? {} : { performerNote }),
+  })
+
+  for (const days of metDaysAgo) {
+    standings.evidence.push({ dutyId: made.id, performedOn: daysAhead(-days) })
+  }
+
+  for (const { daysAgo, result, voidedBecause, correctsDaysAgo } of alsoRecorded) {
+    standings.evidence.push({
+      dutyId: made.id,
+      performedOn: daysAhead(-daysAgo),
+      ...(result === undefined ? {} : { result }),
+      ...(voidedBecause === undefined ? {} : { voidedBecause }),
+      ...(correctsDaysAgo === undefined ? {} : { corrects: daysAhead(-correctsDaysAgo) }),
+    })
+  }
+
+  if (endedDaysAgo !== undefined) {
+    await send(address, `/duties/${made.id}/end`, {
+      endsOn: daysAhead(-endedDaysAgo),
+      endReason: 'Der Zähler wurde getauscht.',
+    })
+  }
 }
 
 async function plantAsset(
@@ -509,18 +683,8 @@ async function plantAsset(
     supplying.push({ assetId: created.id, buildings: supplies })
   }
 
-  for (const { metDaysAgo = [], kind, label, intervalMonths } of duties) {
-    const duty = await send(address, '/duties', {
-      assetId: created.id,
-      intervalMonths,
-      ...(kind === undefined
-        ? { label, basis: 'manufacturer', sourceNote: 'Betriebsanleitung des Herstellers' }
-        : { kind }),
-    })
-
-    for (const days of metDaysAgo) {
-      standings.evidence.push({ dutyId: duty.id, performedOn: daysAhead(-days) })
-    }
+  for (const duty of duties) {
+    await plantDuty(address, { assetId: created.id }, duty, standings)
   }
 
   if (defect !== undefined) {
@@ -587,9 +751,13 @@ export async function plantSampleData(
           level: floor.level,
         })
 
-        for (const room of floor.rooms) {
+        for (const { duties = [], ...room } of floor.rooms) {
           const madeRoom = await send(address, `/floors/${madeFloor.id}/rooms`, room)
           rooms.set(room.number, madeRoom.id)
+
+          for (const duty of duties) {
+            await plantDuty(address, { roomId: madeRoom.id }, duty, standings)
+          }
         }
       }
 

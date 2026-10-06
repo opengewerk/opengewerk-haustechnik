@@ -684,6 +684,47 @@ describe('changing a duty', () => {
       'Eine Pflicht aus dem Katalog nimmt Bezeichnung, Grundlage und Quelle von ihrer Pflichtart.',
     )
   })
+
+  it('asks for the reason of an interval where the interval or the reason changes, and not for naming who answers', async () => {
+    const place = await placeIn()
+    // As a duty confirmed before the guide of its kind changed: it departs
+    // from the guide of today, 24 months, and nobody gave a reason. Put in
+    // past the route, which would ask for one.
+    const { rows } = await admin.query<{ id: string }>(
+      `insert into duties (tenant_id, property_id, area_id, asset_id, kind, kind_version,
+                           counting, interval_months, confirmed_by)
+       select tenant_id, property_id, area_id, id, $2, 1, 'from_performance', 12, 'u-duties'
+         from assets where id = $1
+       returning id`,
+      [place.elevator, guided],
+    )
+    const change = (body: object) =>
+      http()
+        .patch(`/duties/${rows[0]?.id ?? ''}`)
+        .set(testIdentityHeader, by('u-duties'))
+        .send(body)
+    const needsAReason =
+      'Der Richtwert beträgt 24 Monate; eine Frist, die davon abweicht, braucht eine Begründung.'
+
+    expect((await change({ responsibleUserId: 'u-site' }).expect(200)).body).toMatchObject({
+      responsibleUserId: 'u-site',
+      intervalMonths: 12,
+      intervalReason: null,
+    })
+    expect((await change({ responsibleUserId: null }).expect(200)).body).toMatchObject({
+      responsibleUserId: null,
+    })
+    expect((await change({ performer: 'own_staff' }).expect(200)).body).toMatchObject({
+      performer: 'own_staff',
+    })
+
+    // Setting the interval, or taking its reason away, is asked as before.
+    expect((await change({ intervalMonths: 18 }).expect(400)).body.message).toBe(needsAReason)
+    expect((await change({ intervalReason: null }).expect(400)).body.message).toBe(needsAReason)
+    expect(
+      (await change({ intervalMonths: 18, intervalReason: 'Wenig genutzt.' }).expect(200)).body,
+    ).toMatchObject({ intervalMonths: 18, intervalReason: 'Wenig genutzt.' })
+  })
 })
 
 describe('the unit of an interval', () => {

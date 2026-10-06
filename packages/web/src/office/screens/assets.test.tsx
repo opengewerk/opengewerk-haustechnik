@@ -647,11 +647,14 @@ describe('the file of an asset', () => {
       '30.09.2026',
       'Überfällig',
     ])
-    // A duty from the catalogue leads to its kind there, one of the operator's own nowhere.
+    // The name of a duty leads to its page, one from the catalogue and one of
+    // the operator's own alike; from there the way goes on to its kind.
     expect(screen.getByRole('link', { name: 'Zwischenprüfung' }).getAttribute('href')).toBe(
-      '/katalog/probe/pflichtarten/interim_check',
+      '/pflichten/d-2',
     )
-    expect(screen.queryByRole('link', { name: 'Wartung' })).toBeNull()
+    expect(screen.getByRole('link', { name: 'Wartung' }).getAttribute('href')).toBe(
+      '/pflichten/d-1',
+    )
   })
 
   it('keeps the past of a decommissioned asset, and shows its duties as resting', async () => {

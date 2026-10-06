@@ -358,6 +358,81 @@ describe('a preview started as the Leitung', () => {
     })
   })
 
+  // What the register of duties and the page of a duty are looked at with (#101).
+  it('shows a duty in every state the register knows, one at a room, one nobody answers for and one that has ended', async () => {
+    const server = application.getHttpServer()
+    const asked = async (query: Readonly<Record<string, string>>) =>
+      (await request(server).get('/duties/register').query(query).expect(200)).body as {
+        readonly counts: Readonly<Record<string, number>>
+        readonly withoutResponsible: number
+        readonly people: readonly { readonly name: string }[] | null
+        readonly duties: readonly {
+          readonly title: string
+          readonly state: string
+          readonly roomId: string | null
+          readonly responsible: { readonly name: string } | null
+          readonly performerNote: string | null
+        }[]
+      }
+    const register = await asked({ limit: '200' })
+
+    for (const state of ['never_recorded', 'overdue', 'due', 'met', 'dormant', 'ended']) {
+      expect([state, register.counts[state]]).toEqual([state, expect.any(Number)])
+      expect(register.counts[state]).toBeGreaterThan(0)
+    }
+
+    const atRoom = register.duties.find((duty) => duty.roomId !== null)
+
+    expect(atRoom).toMatchObject({
+      title: 'Heizraum frei von Brandlasten',
+      state: 'due',
+      responsible: null,
+    })
+    expect(register.withoutResponsible).toBe(2)
+    // Whoever keeps the register is handed the people its duties name.
+    expect(register.people?.map((person) => person.name)).toEqual([
+      'Dennis Roth',
+      'Jörg Albrecht',
+      'Murat Yilmaz',
+      'Petra Lindner',
+    ])
+    expect(
+      register.duties.find((duty) => duty.title === 'Hauptprüfung der Aufzugsanlage'),
+    ).toMatchObject({
+      responsible: { name: expect.stringMatching(/^(Petra Lindner|Dennis Roth)$/) },
+      performerNote: 'Prüfdienst Beispiel GmbH',
+    })
+    expect((await asked({ state: 'ended' })).duties.map((duty) => duty.title)).toEqual([
+      'Eichung des alten Zählers',
+    ])
+
+    // One duty has evidence of every meaning for its appointment, and still
+    // counts from the maintenance of forty days ago.
+    const maintenance = (
+      (await request(server).get('/duties/register').query({ limit: '200' }).expect(200)).body as {
+        readonly duties: readonly {
+          readonly id: string
+          readonly title: string
+          readonly state: string
+        }[]
+      }
+    ).duties.find((duty) => duty.title === 'Wartung des Aufzugs')
+    const evidence = (
+      await request(server)
+        .get(`/duties/${String(maintenance?.id)}/evidence`)
+        .expect(200)
+    ).body as readonly { readonly result: string; readonly standing: string }[]
+
+    expect(maintenance?.state).toBe('met')
+    expect(evidence.map((entry) => [entry.result, entry.standing])).toEqual([
+      ['without_defects', 'voided'],
+      ['failed', 'does_not_meet'],
+      ['without_defects', 'counts'],
+      ['without_defects', 'counts'],
+      ['without_defects', 'replaced'],
+    ])
+  })
+
   // What the catalogue, the choice of an asset kind and the note at a general
   // kind are looked at with (#61).
   it('hands a device the packages of this build and the probe package beside them, as one catalogue', async () => {

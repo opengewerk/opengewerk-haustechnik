@@ -597,9 +597,47 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   Konto über die Route ab und findet sie nach dem Rückspielen mit ihrer Zeile und ihrem Inhalt wieder.
   "Neben OpenGewerk auf einem Server" startet die Haustechnik mit ihrem Renderer und prüft, dass nach dem
   Entfernen kein Container von ihr bleibt
+- Das Pflichtenverzeichnis im Büro (#101, Abschnitt 4.3 des Konzepts) unter `/pflichten`: alle Pflichten des
+  Betreibers mit Anlage oder Ort, Fundstelle, Frist, verantwortlicher Person, Ausführendem, letztem Nachweis,
+  nächstem Termin und Zustand. Die Liste kommt seitenweise vom Server (`GET /duties/register`) und wird dort
+  eingegrenzt, nach Zustand, Liegenschaft oder Gebäude, Anlagenart, Pflichtart und verantwortlicher Person;
+  der Filter steht in der Adresse. Der Zustand jeder Zeile ist der aus `dutyStateOn`, am Tag der Abfrage
+  gerechnet und an derselben Stelle wie der Termin der Fristen-Engine, damit Liste, Akte und Frist nie drei
+  Geschichten erzählen. "Nie erfasst" steht vor "überfällig", weil niemand weiß, seit wann eine solche
+  Pflicht fällig ist. Eine Pflicht, die geendet hat, steht in einer eigenen Liste "Beendet": sie verlangt
+  nichts mehr, und die Akte ihrer Anlage zeigt sie nicht
+- Die Seite einer Pflicht (`/pflichten/<id>`, #101): ihr nächster Termin, ihre Nachweise, ihre Herkunft aus dem
+  Katalog mit der bestätigten Fassung oder ihre eigene Quelle, ihre Frist mit Art, Höchstfrist und Begründung,
+  wer verantwortlich ist und wer ausführt, und woran sie hängt. Die Nachweise liest `GET /duties/:id/evidence`
+  mit dem Recht "Nachweise ansehen"; ein ersetzter und ein für ungültig erklärter bleiben in der Liste und
+  sagen es, und die Liste nennt keine Person. Der Name einer Pflicht in der Anlagenakte führt jetzt auf diese
+  Seite, auch bei einer eigenen Pflicht, die bisher keinen Link hatte
+- Wer für eine Pflicht verantwortlich ist, wählt das Büro (#101): wer das Pflichtenverzeichnis führt, benennt
+  auf der Seite der Pflicht eine Person, die für den Betreiber arbeitet und nicht gesperrt ist, oder nimmt
+  sie wieder weg. Die Namen dafür liefert `GET /duties/colleagues` nur diesen beiden Rollen. Eine Pflicht ohne
+  verantwortliche Person steht ohne Filter in der Liste, und eine Zeile über der Liste zählt sie und führt zu
+  ihnen: das Konzept verlangt, dass sie angezeigt wird, statt still weiterzulaufen. Die Pflichtenübertragung
+  mit Unterschrift kommt mit Phase 2
+- Die Karte "Pflichten an diesem Raum" auf der Raumseite (#101) mit den Pflichten, die am Raum selbst hängen
+  (`GET /rooms/:id/duties`), und auf der Seite einer Pflichtart im Katalog die Karte "Bei diesem Betreiber" mit
+  der Zahl der bestätigten Pflichten und dem Weg zu ihnen im Pflichtenverzeichnis; die Zahl zählt das
+  Verzeichnis selbst, damit sie und die Liste nicht auseinanderlaufen
 
 ### Geändert
 
+- Das Pflichtenverzeichnis auf die Pflichten einer Person eingrenzen kann nur, wer es führt, also Leitung und
+  Technische Leitung, und es nennt dann keine Zahl, weder im Kopf noch an einem Zustand (#101). Das Konzept
+  schließt eine Auswertung je Person aus (Abschnitte 4.16 und 9); eine Liste ist keine, eine Zählung der
+  überfälligen Pflichten einer Person wäre eine. Auf die Pflichten, für die niemand benannt ist, grenzt jede
+  Rolle ein
+- Die Verfahrensbeschreibung nennt das Pflichtenverzeichnis (#101): wer den Namen einer verantwortlichen Person
+  sieht, wer nach ihr eingrenzt, wer die Namen zur Auswahl bekommt und dass die Nachweise einer Pflicht keine
+  Person nennen, mit sieben neuen Belegen. Drei Sätze sind dafür genauer gefasst: die Kurzfassung nennt statt
+  "keine Liste des Verzugs je Person" jetzt "keine Zahl je Person" und sagt, dass sich das Verzeichnis auf eine
+  Person eingrenzen lässt; die Zusage zu den Zugängen nennt die Auswahl der verantwortlichen Person als die
+  eine Stelle daneben; und die Zusage zu Adressen mit einer Person sagt, was ihr Test prüft, den Pfad
+- Die Vorschau zeigt Pflichten in jedem Zustand mit verantwortlichen Personen, eine Pflicht an einem Raum,
+  zwei ohne verantwortliche Person und eine beendete (#101), damit sich das Pflichtenverzeichnis ansehen lässt
 - Planungskonzept v0.12: das Recht "Dokumente ablegen" steht in der Tabelle in Abschnitt 7, und eine Datei
   wird nie nach ihrer Prüfsumme ausgegeben, sondern über den Datensatz, der sie nennt (#96)
 - Die Prüfung "Breiten und Auflösungen" nimmt ihren Browser aus `docker/compose.yaml` statt aus der Datei
@@ -856,6 +894,11 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
 
 ### Behoben
 
+- Wer an einer Pflicht aus dem Katalog nur die verantwortliche Person oder den Ausführenden ändert, wird nicht
+  mehr nach einer Begründung der Frist gefragt (#101). `PATCH /duties/:id` prüfte bei jeder Änderung, ob die
+  Frist vom Richtwert von heute abweicht; eine Pflicht, die vor einer Änderung des Richtwerts bestätigt wurde,
+  ließ sich dadurch niemandem mehr zuordnen, bis jemand eine Begründung nachtrug. Gefragt wird jetzt, wenn die
+  Frist oder ihre Begründung sich ändert
 - Das Formular einer Liegenschaft beginnt neu, wenn nur seine Adresse auf eine andere Liegenschaft wechselt
   (#86). Über den Verlauf des Browsers führt ein Schritt von einem Formular in ein anderes, und bisher standen
   dann unter der Überschrift der einen Liegenschaft die Eingaben der anderen; "Speichern" hätte sie dorthin

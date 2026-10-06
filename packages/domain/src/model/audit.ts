@@ -276,7 +276,7 @@ export const auditVocabulary: AuditVocabulary = {
     ],
   },
   // The records the log is opened from, each from the screen that shows it.
-  records: ['properties', 'buildings', 'floors', 'rooms', 'assets'],
+  records: ['properties', 'buildings', 'floors', 'rooms', 'assets', 'duties'],
   references: {
     area_id: 'areas',
     property_id: 'properties',
