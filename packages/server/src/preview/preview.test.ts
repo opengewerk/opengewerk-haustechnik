@@ -455,6 +455,74 @@ describe('a preview started as the Leitung', () => {
     )
   })
 
+  // What the screen "Dokumente" and the cards at an asset, a room and a
+  // property are looked at with (#97).
+  it('has documents at the school centre, a plan with three versions among them, and hands the file of each version out', async () => {
+    const server = application.getHttpServer()
+    const changes = (await request(server).get('/sync?since=0').expect(200)).body.changes as {
+      readonly entity: string
+      readonly rows: readonly Record<string, unknown>[]
+    }[]
+    const rowsOf = (entity: string) =>
+      changes.find((change) => change.entity === entity)?.rows ?? []
+    const documents = rowsOf('attachments')
+    const versions = rowsOf('attachment_versions')
+    const hangsOn = (document: Record<string, unknown>) =>
+      ['assetId', 'roomId', 'buildingId'].find((field) => document[field] !== null) ?? 'propertyId'
+
+    expect(
+      documents
+        .map((document) => ({
+          title: document['title'],
+          kind: document['kind'],
+          hangsOn: hangsOn(document),
+          versions: versions.filter((version) => version['attachmentId'] === document['id']).length,
+        }))
+        .sort((left, right) => String(left.title).localeCompare(String(right.title))),
+    ).toEqual([
+      {
+        title: 'Betriebsanleitung BA 630',
+        kind: 'operating_manual',
+        hangsOn: 'assetId',
+        versions: 2,
+      },
+      {
+        title: 'Brandschutzkonzept Schulzentrum',
+        kind: 'concept',
+        hangsOn: 'propertyId',
+        versions: 1,
+      },
+      {
+        title: 'Revisionsunterlagen Heizung',
+        kind: 'as_built_documentation',
+        hangsOn: 'buildingId',
+        versions: 1,
+      },
+      { title: 'Schaltplan Heizraum', kind: 'circuit_diagram', hangsOn: 'roomId', versions: 3 },
+      { title: 'Typenschild', kind: null, hangsOn: 'assetId', versions: 1 },
+    ])
+
+    // Every version is handed out, an older one like the newest; the photo is
+    // a picture a browser shows, with a small one beside it.
+    for (const version of versions) {
+      const answer = await request(server)
+        .get(`/attachments/versions/${String(version['id'])}/content`)
+        .expect(200)
+
+      expect([version['fileName'], answer.headers['content-type']]).toEqual([
+        version['fileName'],
+        version['mediaType'],
+      ])
+      expect(answer.headers['content-disposition']).toMatch(/^inline/)
+    }
+
+    const photo = versions.find((version) => version['fileName'] === 'typenschild.png')
+
+    await request(server)
+      .get(`/attachments/versions/${String(photo?.['id'])}/preview`)
+      .expect(200)
+  })
+
   it('has one asset of a general kind, standing where no package describes it yet', async () => {
     const register = (
       await request(application.getHttpServer()).get('/assets').query({ limit: '200' }).expect(200)

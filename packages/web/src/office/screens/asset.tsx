@@ -56,6 +56,7 @@ import {
 import { AssetConditionMark, DutyStateMark } from '../asset-marks.js'
 import { AssetState } from '../asset-state.js'
 import { cataloguePlaces } from '../catalogue-addresses.js'
+import { DocumentsCard } from '../documents.js'
 import { dutyPlaces } from '../duty-addresses.js'
 import { dutySourceWords, kindOfDuty } from '../duty-words.js'
 import { factLink } from '../links.js'
@@ -107,9 +108,12 @@ export const assetFileWords = {
  * whoever keeps the assets (section 7 of the concept, #88), and neither is
  * offered to anybody else.
  *
+ * Its documents stand in the narrow column, after the life cycle (#97): what
+ * is filed at this asset, the one changed last first, read from the device.
+ *
  * What the board draws beyond this arrives with what it shows: swapping the
  * asset (#89), confirming duties (#102), evidence (#109), defects (#116),
- * work orders (#117), documents (#97) and the label (#98).
+ * work orders (#117) and the label (#98).
  */
 export function AssetFileScreen() {
   const { assetId } = useParams({ strict: false }) as { assetId?: string }
@@ -379,6 +383,10 @@ export function AssetFileScreen() {
                   onTakeBack: setTakingBack,
                 }
               : {})}
+          />
+          <DocumentsCard
+            place={{ propertyId: asset.propertyId, assetId }}
+            at={[asset.number, asset.name].filter(Boolean).join(' ')}
           />
         </div>
       </div>

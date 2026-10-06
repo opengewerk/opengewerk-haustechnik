@@ -1,5 +1,6 @@
 import { type Catalogue, offlineEditRefusal, offlineRules } from '@opengewerk/haustechnik-domain'
 import {
+  attachmentVersionFiles,
   recordRulesCheck,
   type ServerSync,
   serverSync,
@@ -64,6 +65,15 @@ const normalised: Check = ({ table, values }) => {
 }
 
 /**
+ * A version of a document names its file by tenant and hash, a key the check
+ * of the place does not read. Its own question, asked before the place: is
+ * the file there, sent ahead of the version, and is the size the one it has.
+ * A file that never arrived is a conflict about this one version, and not the
+ * refusal of everything a device sent with it.
+ */
+const versionFile: Check = attachmentVersionFiles()
+
+/**
  * What the server puts in on the way to the database (ADR 0006, point 8): the
  * number of an asset or a work order made on a device, drawn here as the
  * route draws it for one made over it, in the same transaction as the insert,
@@ -105,15 +115,22 @@ async function completed({
  *
  * The order of the checks is behaviour, the first that refuses answers: what
  * may not be written without a connection, then the texts in their form, the
- * rules of `domain` on the fields, the place, the question that reads other
- * records and puts in what the server derives, and last a signature against
- * its activity.
+ * rules of `domain` on the fields, the file of a version, the place, the
+ * question that reads other records and puts in what the server derives, and
+ * last a signature against its activity.
  */
 export function syncFor(catalogue: Catalogue): ServerSync<Sender> {
   return serverSync<Sender>({
     rules: offlineRules,
     tables: syncTables(schema),
-    checks: [offline, normalised, recordRulesCheck(recordRules(catalogue)), placed, signed],
+    checks: [
+      offline,
+      normalised,
+      recordRulesCheck(recordRules(catalogue)),
+      versionFile,
+      placed,
+      signed,
+    ],
     complete: completed,
     afterWrite: followed(catalogue),
   })

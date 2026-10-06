@@ -17,8 +17,8 @@ import { Pool } from 'pg'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 import { inEveryArea } from './every-area.js'
-import { withinAreasExpression } from './schema/index.js'
-import { areaBoundaryProblems, areaColumnsWithoutTheLine } from './test-areas.js'
+import { withinAreasExpression, withinAreasOfTheirFileExpression } from './schema/index.js'
+import { areaBoundaryProblems, areaColumnsWithoutTheLine, linesThroughARow } from './test-areas.js'
 import {
   allowApplicationLogin,
   applicationDatabaseUrl,
@@ -68,6 +68,9 @@ const place = {
     duty: randomUUID(),
     activity: randomUUID(),
     workOrder: randomUUID(),
+    document: randomUUID(),
+    version: randomUUID(),
+    file: randomUUID().replaceAll('-', '').repeat(2),
   },
   south: {
     property: randomUUID(),
@@ -80,6 +83,9 @@ const place = {
     duty: randomUUID(),
     activity: randomUUID(),
     workOrder: randomUUID(),
+    document: randomUUID(),
+    version: randomUUID(),
+    file: randomUUID().replaceAll('-', '').repeat(2),
   },
 }
 
@@ -405,6 +411,23 @@ async function placeIn(where: 'north' | 'south'): Promise<void> {
        from evidence where duty_id = $1`,
     [at.duty, person.lead],
   )
+  // A document at the asset, with the file its one version names.
+  await admin.query(
+    `insert into files (tenant_id, sha256, size_bytes, media_type)
+     values ($1, $2, 2048, 'application/pdf')`,
+    [tenant, at.file],
+  )
+  await admin.query(
+    `insert into attachments (id, tenant_id, property_id, area_id, asset_id, title, kind)
+     values ($1, $2, $3, $4, $5, 'Betriebsanleitung', 'operating_manual')`,
+    [at.document, tenant, at.property, areaId, at.asset],
+  )
+  await admin.query(
+    `insert into attachment_versions (id, tenant_id, attachment_id, sha256, file_name, media_type,
+                                      size_bytes)
+     values ($1, $2, $3, $4, 'betriebsanleitung.pdf', 'application/pdf', 2048)`,
+    [at.version, tenant, at.document, at.file],
+  )
 }
 
 beforeAll(async () => {
@@ -496,6 +519,7 @@ describe('a person with the north', () => {
       'asset_lifecycle',
       'asset_supplies',
       'assets',
+      'attachments',
       'building_closures',
       'buildings',
       'contacts',
@@ -707,6 +731,7 @@ describe('a property moved to another area', () => {
         'asset_lifecycle',
         'asset_supplies',
         'assets',
+        'attachments',
         'building_closures',
         'buildings',
         'contacts',
@@ -731,6 +756,160 @@ describe('a property moved to another area', () => {
     }
 
     expect(await areasSeen('rooms', person.north)).toEqual(['north'])
+  })
+})
+
+/**
+ * A version of a document carries no area (ADR 0003, addendum of #97): it is
+ * written once and a trigger of the foundation refuses every change to it, so
+ * an area on the row could not follow its property. Its line is the one of
+ * its document, asked by a policy of its own, and the tests above, which walk
+ * the tables with `area_id`, do not reach it. These do.
+ */
+describe('the versions of a document', () => {
+  /** The documents whose versions somebody reaches, by the area of the document. */
+  async function versionsSeen(userId: string | undefined): Promise<string[]> {
+    const actor = userId === undefined ? { tenantId: tenant } : { tenantId: tenant, userId }
+    const rows = await database.forTenant(actor, (tx) =>
+      tx.execute<{ attachment_id: string }>(sql`select attachment_id from attachment_versions`),
+    )
+
+    return rows.rows
+      .map((row) =>
+        row.attachment_id === place.north.document
+          ? 'north'
+          : row.attachment_id === place.south.document
+            ? 'south'
+            : row.attachment_id,
+      )
+      .sort()
+  }
+
+  const versionOf = (document: string, file: string) =>
+    sql`insert into attachment_versions (tenant_id, attachment_id, sha256, file_name, media_type,
+                                         size_bytes)
+        values (${tenant}, ${document}, ${file}, 'neu.pdf', 'application/pdf', 2048)`
+
+  it('are read by whoever reads their document, and by nobody else', async () => {
+    expect({
+      north: await versionsSeen(person.north),
+      south: await versionsSeen(person.south),
+      lead: await versionsSeen(person.lead),
+      blocked: await versionsSeen(person.blocked),
+      unplaced: await versionsSeen(person.unplaced),
+      nobody: await versionsSeen(undefined),
+    }).toEqual({
+      north: ['north'],
+      south: ['south'],
+      lead: ['north', 'south'],
+      blocked: [],
+      unplaced: [],
+      nobody: [],
+    })
+  })
+
+  it('are added to a document in sight, and to none of the south', async () => {
+    const refusal = await refusedBy(
+      triedAs(person.north, (tx) => tx.execute(versionOf(place.south.document, place.south.file))),
+    )
+
+    expect(refusal.code).toBe(insufficientPrivilege)
+
+    const added = await triedAs(
+      person.north,
+      async (tx) => (await tx.execute(versionOf(place.north.document, place.north.file))).rowCount,
+    )
+
+    expect(added).toBe(1)
+  })
+
+  /**
+   * The reason a version has no area of its own: with one, the key that
+   * follows the property would change the row, the trigger would refuse it,
+   * and the property could not be moved at all.
+   */
+  it('follow their document into another area without being changed', async () => {
+    const stamp = async () =>
+      (
+        await admin.query<{ updated_at: Date; change_sequence: string }>(
+          'select updated_at, change_sequence from attachment_versions where id = $1',
+          [place.north.version],
+        )
+      ).rows[0]
+    const before = await stamp()
+    const move = (to: string) =>
+      database.forTenant({ tenantId: tenant, userId: person.lead }, (tx) =>
+        tx.execute(sql`update properties set area_id = ${to} where id = ${place.north.property}`),
+      )
+
+    await move(area.south)
+
+    try {
+      expect(await versionsSeen(person.north)).toEqual([])
+      expect(await versionsSeen(person.south)).toEqual(['north', 'south'])
+      expect(await stamp()).toEqual(before)
+    } finally {
+      await move(area.north)
+    }
+
+    expect(await versionsSeen(person.north)).toEqual(['north'])
+  })
+
+  it('are changed and removed by nobody, not even past every policy', async () => {
+    for (const statement of [
+      `update attachment_versions set file_name = 'anders.pdf' where id = '${place.north.version}'`,
+      `delete from attachment_versions where id = '${place.north.version}'`,
+    ]) {
+      // Asked past the policies, where the row is in reach: the trigger of
+      // the foundation refuses, whoever asks.
+      const refusal = await refusedBy(admin.query(statement))
+
+      expect([statement, refusal.code]).toEqual([statement, 'OG001'])
+    }
+  })
+
+  /**
+   * The counterproof of the check of the catalogue: without its policy, with
+   * one another policy could widen, and with one that asks something else,
+   * the versions are named. The policy of the migration is put back after
+   * each, and the last line holds that it is.
+   */
+  it('are refused by the catalogue without the policy that asks their document', async () => {
+    const through = linesThroughARow['attachment_versions']
+
+    if (!through) {
+      throw new Error('The versions of a document are not on the list')
+    }
+
+    const policy = (as: string, line: string) =>
+      `CREATE POLICY ${through.policy} ON attachment_versions AS ${as} FOR ALL TO opengewerk_app
+         USING (${line}) WITH CHECK (${line})`
+    const problemsWithPolicy = async (statements: readonly string[]) => {
+      await asOwner([`DROP POLICY ${through.policy} ON attachment_versions`, ...statements])
+
+      try {
+        return await areaBoundaryProblems(admin)
+      } finally {
+        await asOwner([
+          `DROP POLICY IF EXISTS ${through.policy} ON attachment_versions`,
+          policy('RESTRICTIVE', withinAreasOfTheirFileExpression),
+        ])
+      }
+    }
+
+    expect(await problemsWithPolicy([])).toEqual([
+      'table attachment_versions: its rows are a part of attachments and it has no policy within_areas_of_their_file',
+    ])
+    expect(
+      await problemsWithPolicy([policy('PERMISSIVE', withinAreasOfTheirFileExpression)]),
+    ).toEqual([
+      'table attachment_versions, policy within_areas_of_their_file: not restrictive for every command, so another policy can widen it',
+    ])
+    expect(await problemsWithPolicy([policy('RESTRICTIVE', 'true')])).toEqual([
+      'table attachment_versions, policy within_areas_of_their_file reads through something else than the building block: true',
+      'table attachment_versions, policy within_areas_of_their_file writes through something else than the building block: true',
+    ])
+    expect(await areaBoundaryProblems(admin)).toEqual([])
   })
 })
 

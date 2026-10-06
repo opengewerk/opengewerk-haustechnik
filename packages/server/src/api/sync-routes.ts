@@ -85,6 +85,17 @@ export const operationRights: Readonly<Record<string, OperationRights>> = {
     otherwise: 'activity.perform',
   },
   work_order_decisions: { otherwise: 'activity.accept' },
+  // Filing a document and correcting its name and its kind is "ablegen"; so
+  // is a new version, which is filed like a first one. Taking a document out
+  // of the records is a right of its own, from the Objektleitung on (section
+  // 7 of the concept), and what a device may not send at all asks for it too.
+  attachments: {
+    create: 'document.record',
+    change: 'document.record',
+    remove: 'document.remove',
+    otherwise: 'document.remove',
+  },
+  attachment_versions: { create: 'document.record', otherwise: 'document.remove' },
 }
 
 /**

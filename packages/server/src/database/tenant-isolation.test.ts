@@ -105,6 +105,8 @@ function rowsOf(tenant: Tenant): readonly Row[] {
   const activity = randomUUID()
   const workOrder = randomUUID()
   const evidence = randomUUID()
+  const document = randomUUID()
+  const file = randomUUID().replaceAll('-', '').repeat(2)
 
   return [
     {
@@ -215,7 +217,7 @@ function rowsOf(tenant: Tenant): readonly Row[] {
       table: 'files',
       values: {
         tenant_id: tenant.id,
-        sha256: randomUUID().replaceAll('-', '').repeat(2),
+        sha256: file,
         size_bytes: 2048,
         media_type: 'application/pdf',
       },
@@ -528,6 +530,31 @@ function rowsOf(tenant: Tenant): readonly Row[] {
         evidence_id: evidence,
         reason: 'Der Prüfbericht gehört zu einer anderen Anlage.',
         voided_by: tenant.colleagueId,
+      },
+    },
+    // A document at the asset, and the one version of it, which names the
+    // file of the tenant above.
+    {
+      table: 'attachments',
+      values: {
+        id: document,
+        tenant_id: tenant.id,
+        property_id: property,
+        area_id: area,
+        asset_id: asset,
+        title: 'Betriebsanleitung',
+        kind: 'operating_manual',
+      },
+    },
+    {
+      table: 'attachment_versions',
+      values: {
+        tenant_id: tenant.id,
+        attachment_id: document,
+        sha256: file,
+        file_name: 'betriebsanleitung.pdf',
+        media_type: 'application/pdf',
+        size_bytes: 2048,
       },
     },
   ]

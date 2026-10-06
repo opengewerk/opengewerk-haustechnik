@@ -1,4 +1,5 @@
 import {
+  attachmentVersionPolicy,
   type Operation,
   type SyncPolicy,
   syncRules,
@@ -102,6 +103,14 @@ export const syncPolicies: Readonly<Record<string, SyncPolicy>> = {
     reserved: ['propertyId', 'areaId', 'signedBy'],
   },
   work_order_decisions: officeOnly,
+  // A document is filed in the office and on site, also without a connection:
+  // a photo of a type plate waits on the device with its bytes. Its name and
+  // its kind are corrected afterwards; what it hangs on stays. The area
+  // follows its property.
+  attachments: { create: true, change: 'merge', reserved: ['areaId'] },
+  // A version is made and never changed, and who filed it is the server's to
+  // write. It carries no place: it is seen with its document.
+  attachment_versions: attachmentVersionPolicy,
 }
 
 /**
@@ -229,6 +238,33 @@ export const offlineEdits: Readonly<Record<string, OfflineEdits>> = {
     },
     change: { description: true },
   },
+  // A document at its property, on request at one record there, with its name
+  // and its kind; both are corrected afterwards. Taking it out of the records
+  // goes the same way, and asks for a right of its own.
+  attachments: {
+    create: {
+      title: true,
+      kind: true,
+      propertyId: true,
+      buildingId: true,
+      roomId: true,
+      assetId: true,
+      activityId: true,
+    },
+    change: { title: true, kind: true },
+    remove: true,
+  },
+  // A version of a document, with the file it names by its hash.
+  attachment_versions: {
+    create: {
+      attachmentId: true,
+      sha256: true,
+      fileName: true,
+      mediaType: true,
+      sizeBytes: true,
+      previewSha256: true,
+    },
+  },
 }
 
 /**
@@ -291,6 +327,8 @@ export const syncEntityNames: Readonly<Record<string, string>> = {
   defects: 'Mangel',
   activity_signatures: 'Unterschrift',
   work_order_decisions: 'Abnahme eines Auftrags',
+  attachments: 'Dokument',
+  attachment_versions: 'Fassung eines Dokuments',
 }
 
 /**
@@ -397,4 +435,12 @@ export const syncFieldNames: Readonly<Record<string, string>> = {
   decision: 'Entscheidung',
   decidedBy: 'Entschieden von',
   decidedAt: 'Entschieden am',
+  // What is said about a document and a version of it. Its name and its kind
+  // share their entries with an activity and an asset above.
+  attachmentId: 'Dokument',
+  sha256: 'Prüfsumme',
+  fileName: 'Dateiname',
+  mediaType: 'Dateityp',
+  sizeBytes: 'Größe',
+  previewSha256: 'Vorschau',
 }

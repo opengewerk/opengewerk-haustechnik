@@ -34,7 +34,9 @@ await checkWidths({
    * and of a component, and at its file the dialogs that move it, say what it
    * supplies and enter a state of its life cycle; and the dialog that says
    * who answers for a duty, at the page of the duty (#101), whose button says
-   * "ändern" where somebody is named and "benennen" where nobody is. A
+   * "ändern" where somebody is named and "benennen" where nobody is; and
+   * the dialog a document is filed with (#97), on "Dokumente" and in the card
+   * "Dokumente" of an asset, a room and a property. A
    * page that has one is checked a second time as a kind of its own, with the
    * button pressed. Found by its name, so that the next record with the same
    * button is checked as well.
@@ -59,5 +61,6 @@ await checkWidths({
     'Eintragen',
     'Verantwortliche Person ändern',
     'Verantwortliche Person benennen',
+    'Hochladen',
   ],
 })

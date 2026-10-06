@@ -21,12 +21,24 @@ describe('the words of a conflict', () => {
     expect(records.titleOf('rooms', { number: ' ', name: 'Heizraum' })).toBe('Heizraum')
     expect(records.titleOf('work_orders', { number: null })).toBe('Arbeitsauftrag')
     expect(records.titleOf('defects', null)).toBe('Mangel')
+    // A document by its name, a version by its file, as a conflict about a
+    // file that never arrived names it.
+    expect(records.titleOf('attachments', { title: 'Schaltplan Heizraum' })).toBe(
+      'Schaltplan Heizraum',
+    )
+    expect(records.titleOf('attachment_versions', { fileName: 'schaltplan.pdf' })).toBe(
+      'schaltplan.pdf',
+    )
+    expect(records.titleOf('attachment_versions', null)).toBe('Fassung eines Dokuments')
+    expect(records.entityLabel('attachments')).toBe('Dokument')
+    expect(records.fieldLabel('sha256')).toBe('Prüfsumme')
   })
 
   it('write the value of a list in its words, the kinds of a building out of their text', () => {
     expect(records.valueText('status', 'started')).toBe('Begonnen')
     expect(records.valueText('status', 'remedied')).toBe('Behoben')
     expect(records.valueText('kind', 'fault')).toBe('Störung')
+    expect(records.valueText('kind', 'circuit_diagram')).toBe('Schaltplan')
     expect(records.valueText('kind', 'probe.elevator')).toBeNull()
     expect(records.valueText('kinds', '["school","office"]')).toBe(
       'Schule oder Hochschule, Büro- und Verwaltungsgebäude',

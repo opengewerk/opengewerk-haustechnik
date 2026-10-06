@@ -1,6 +1,6 @@
-# OpenGewerk Haustechnik: Planungskonzept (Software für Betreiber und ihre Haustechnik) · v0.12
+# OpenGewerk Haustechnik: Planungskonzept (Software für Betreiber und ihre Haustechnik) · v0.13
 
-2026-10-06 · Eigenständiges Projekt, Repository `opengewerk-haustechnik` in der GitHub-Organisation `opengewerk` · v0.2 trägt die Entscheidungen vom 01.10.2026 ein, v0.3 die Technik, mit der das Fundament eingebunden wird, v0.4 gleicht Abschnitt 5 und die Wortwahl an die ADRs 0002 bis 0006 an, siehe Abschnitt 15; v0.5 sagt in Abschnitt 7, was jede Rolle im Einzelnen darf, v0.6 nennt dort die Rechte für den Abgleich, v0.7 gibt den eigenen Anlagenarten und den Mängelklassen ihre Phase, v0.8 trägt die Entscheidungen vom 04.10.2026 vor dem Bau von Phase 1 ein, v0.9 gibt der Liegenschaft ihre Notiz, v0.10 sagt, wer ihre Ansprechpartner pflegt, v0.11, was eine Schließzeit ist und wer sie einträgt, v0.12 nennt das Recht, Dokumente abzulegen (Vergleich mit openMAINT, Atlas CMMS, eTASK, wave Facilities, pitFM, SPARTACUS, Planon, Lumiform, Wowflow und den Excel-Listen, die vielerorts die eigentliche Software sind)
+2026-10-06 · Eigenständiges Projekt, Repository `opengewerk-haustechnik` in der GitHub-Organisation `opengewerk` · v0.2 trägt die Entscheidungen vom 01.10.2026 ein, v0.3 die Technik, mit der das Fundament eingebunden wird, v0.4 gleicht Abschnitt 5 und die Wortwahl an die ADRs 0002 bis 0006 an, siehe Abschnitt 15; v0.5 sagt in Abschnitt 7, was jede Rolle im Einzelnen darf, v0.6 nennt dort die Rechte für den Abgleich, v0.7 gibt den eigenen Anlagenarten und den Mängelklassen ihre Phase, v0.8 trägt die Entscheidungen vom 04.10.2026 vor dem Bau von Phase 1 ein, v0.9 gibt der Liegenschaft ihre Notiz, v0.10 sagt, wer ihre Ansprechpartner pflegt, v0.11, was eine Schließzeit ist und wer sie einträgt, v0.12 nennt das Recht, Dokumente abzulegen, v0.13 die Rechte, sie anzusehen und zu entfernen, und woran ein Dokument hängt (Vergleich mit openMAINT, Atlas CMMS, eTASK, wave Facilities, pitFM, SPARTACUS, Planon, Lumiform, Wowflow und den Excel-Listen, die vielerorts die eigentliche Software sind)
 
 Self-hosted Open-Source-System für alle, die Gebäude betreiben und dafür eigene Haustechniker haben. Liegenschaften, Gebäude, Räume und technische Anlagen stehen in einem Datenmodell. Die Betreiberpflichten hängen daran als überwachte Fristen, Rundgänge und Prüfungen laufen auf dem Telefon auch ohne Netz, und zu jeder Pflicht gibt es einen Nachweis, der sich nachträglich nicht ändern lässt.
 
@@ -333,6 +333,8 @@ Wie dort gilt: jede Abfrage nennt einen Tag, und für einen Tag ohne hinterlegte
 - Art des Dokuments (Betriebsanleitung, Prüfbescheinigung, Schaltplan, Revisionsunterlage, Genehmigung, Konzept) und **Gültigkeit**: ein Ablaufdatum wird eine Frist
 - **Soll-Dokumente** je Anlagenart aus dem Paket: was zu einer Anlage vorliegen sollte. Vollständig ist eine Akte, wenn die Datei da ist, nicht wenn ein Haken gesetzt wurde
 - Fotos werden auf dem Gerät verkleinert, Dateien von außen nach ihren ersten Bytes geprüft
+- Ein Dokument hängt an seiner Liegenschaft und dort an höchstens einem Datensatz: einem Gebäude, einem Raum, einer Anlage oder einem Vorgang. Es bleibt, wo es abgelegt wurde. Die Art ist freiwillig, ein Foto vom Typenschild hat keine. Eine neue Fassung legt sich über die alte, und jede bleibt abrufbar
+- Entfernt wird ein Dokument, indem es markiert wird; gelöscht wird nichts, seine Fassungen und ihre Dateien bleiben aufbewahrt. Wird der Datensatz entfernt, an dem es hängt, geht es im selben Augenblick mit ihm aus der Ablage
 - Volltextsuche und Texterkennung ⏳
 
 ### 4.11 Fremdfirmen und Verträge
@@ -491,7 +493,9 @@ Regeln für jeden Beitrag:
 | Mängel ansehen | ja | ja | ja | ja |
 | Mängel melden | ja | ja | ja | ja |
 | Mängel führen | ja | ja | ja | nein |
+| Dokumente ansehen | ja | ja | ja | ja |
 | Dokumente ablegen | ja | ja | ja | ja |
+| Dokumente entfernen | ja | ja | ja | nein |
 | Daten abgleichen | ja | ja | ja | ja |
 | Änderungen senden | ja | ja | ja | ja |
 | Zugänge ansehen | ja | nein | nein | nein |
@@ -504,11 +508,12 @@ Regeln für jeden Beitrag:
 - **Aufnehmen und pflegen.** Aufnehmen heißt anlegen und die Angaben ergänzen und berichtigen, wie es die Bestandsaufnahme vor Ort braucht (2.7, 4.2). Pflegen ist, was Folgen über den Datensatz hinaus hat: der Lebenszyklus einer Anlage, weil ihre Pflichten ruhen, sobald sie außer Betrieb ist, der Tausch, das Verlegen an einen anderen Ort und das Entfernen. Einen Raum verlegt oder entfernt, wer Liegenschaften, Gebäude und Geschosse pflegt. Dasselbe Recht pflegt die Ansprechpartner einer Liegenschaft, mit Verbindung wie die Liegenschaft selbst; lesen kann sie, wer die Liegenschaft sieht, auch auf dem Gerät vor Ort (4.1, 2.7)
 - **Ausführen, planen, abnehmen.** Vorgänge sind Rundgänge, Prüfungen, Wartungen und Aufträge (2.2). Ausführen ist die Arbeit daran bis zur Unterschrift. Planen und verteilen ist, was davor geschieht: einen Rundgang planen, einen Auftrag anlegen und zuteilen, einen offenen Rundgang mit Grund schließen. Dazu gehören die Schließzeiten eines Gebäudes: wer plant und verteilt, trägt sie ein und entfernt sie, mit Verbindung, auch die Objektleitung, die das Gebäude selbst nicht ändert; lesen kann sie, wer das Gebäude sieht, auch auf dem Gerät vor Ort. Abnehmen und gegenzeichnen ist die zweite Unterschrift (4.1, 4.5, 4.8)
 - **Melden und führen.** Melden heißt einen Mangel festhalten, mit Bemerkung und Foto. Führen ist sein weiterer Weg: Klasse, Frist und Status (4.6)
-- **Dokumente ablegen** heißt, eine Datei in den Speicher zu geben und sie in einem Datensatz zu nennen: ein Dokument an einem Ort, einer Anlage oder einem Vorgang, eine neue Fassung davon, ein Foto vor Ort (4.10). Die Datei selbst geht ihrem Datensatz voraus, auch wenn sie ohne Netz aufgenommen wurde (2.7), und der Server nimmt sie von dem an, der ablegen darf. Eine Datei, die kein Datensatz nennt, erreicht niemand: ausgeliefert wird nie nach der Prüfsumme, sondern über den Datensatz und in dessen Bereich
+- **Dokumente ablegen** heißt, eine Datei in den Speicher zu geben und sie in einem Datensatz zu nennen: ein Dokument an einem Ort, einer Anlage oder einem Vorgang, eine neue Fassung davon, ein Foto vor Ort (4.10). Die Datei selbst geht ihrem Datensatz voraus, auch wenn sie ohne Netz aufgenommen wurde (2.7), und der Server nimmt sie von dem an, der ablegen darf. Eine Datei, die kein Datensatz nennt, erreicht niemand: ausgeliefert wird nie nach der Prüfsumme, sondern über den Datensatz und in dessen Bereich. Wer ablegen darf, berichtigt auch Bezeichnung und Art eines Dokuments
+- **Dokumente ansehen und entfernen.** Ansehen ist die Liste der Dokumente, ihre Fassungen und die Datei einer Fassung, die der Server über die Fassung ausgibt, jede in den Bereichen der Person. Entfernen nimmt ein Dokument aus der Ablage, ab der Objektleitung: es wird markiert und nie gelöscht, und ausgegeben wird es danach niemandem mehr (4.10)
 - **Abgleichen und senden** ist der Weg eines Geräts zum Server, mit Netz und ohne (2.7): was sich geändert hat, auf das Gerät holen, und was es ohne Netz festgehalten hat, schicken. Das ist kein eigenes Tun, sondern ein anderer Weg hinein; was ein Vorgang anfasst, entscheiden die Rechte darüber, und deshalb haben alle Rollen beide
 - **Nachweise eintragen** meint den Bericht einer Fremdfirma oder Prüforganisation (4.4). Der Nachweis aus einem eigenen Protokoll oder einem Rundgang entsteht mit der Unterschrift dessen, der ausführt, und braucht kein weiteres Recht
 - Kein Recht hebt eine der Zusagen auf, die sich nicht abschalten lassen: es gibt keines, das einen Nachweis ändert oder löscht, eine Unterschrift ersetzt oder die Abnahme eines Auftrags überspringt. Ob eine Rolle einen Betreiber führt und ob sie den zweiten Faktor verlangt, sind Angaben der Rolle und keine Rechte
-- Was die Tabelle oben nennt und hier noch fehlt, kommt mit seiner Phase: Störungen annehmen, Verträge, Auswertungen über die Zeit und die Pflichtenübertragung in Phase 2. Rechte für Aufgaben, Dokumente, Benachrichtigungen und die Vorlagen der Rundgänge kommen mit diesen Bausteinen in Phase 1, und wer sie bekommt, ist entschieden: Dokumente sehen und ablegen alle vier Rollen, entfernen ab der Objektleitung (das Ablegen steht schon in der Tabelle, weil der Dateispeicher die Dateien unter diesem Recht annimmt; ansehen und entfernen kommen mit der Ablage); Aufgaben legt jede Rolle an, einer anderen Person teilt sie zu, wer Vorgänge plant und verteilt; die Vorlagen der Rundgänge führen Leitung, Technische Leitung und Objektleitung. Jedes neue Recht steht dann auch in dieser Tabelle
+- Was die Tabelle oben nennt und hier noch fehlt, kommt mit seiner Phase: Störungen annehmen, Verträge, Auswertungen über die Zeit und die Pflichtenübertragung in Phase 2. Rechte für Aufgaben, Benachrichtigungen und die Vorlagen der Rundgänge kommen mit diesen Bausteinen in Phase 1, und wer sie bekommt, ist entschieden: Aufgaben legt jede Rolle an, einer anderen Person teilt sie zu, wer Vorgänge plant und verteilt; die Vorlagen der Rundgänge führen Leitung, Technische Leitung und Objektleitung. Jedes neue Recht steht dann auch in dieser Tabelle
 
 ---
 
@@ -738,6 +743,11 @@ Die offenen Fragen aus v0.1 sind am 01.10.2026 entschieden worden, die Phasen de
 ---
 
 ## 16. Änderungsprotokoll
+
+### v0.12 → v0.13
+
+- Die Rechte "Dokumente ansehen" und "Dokumente entfernen" stehen in der Tabelle der Rechte neben "Dokumente ablegen": ansehen alle vier Rollen, entfernen ab der Objektleitung, wie am 04.10.2026 entschieden. Die Klammer, nach der beide noch kommen, entfällt (7)
+- Abschnitt 4.10 sagt, woran ein Dokument hängt: an seiner Liegenschaft und dort an höchstens einem Datensatz, und es bleibt dort. Die Art ist freiwillig. Entfernt wird markiert, und ein entfernter Datensatz nimmt seine Dokumente mit (4.10)
 
 ### v0.11 → v0.12
 

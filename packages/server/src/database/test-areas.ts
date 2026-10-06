@@ -30,6 +30,46 @@ export const areaColumnsWithoutTheLine: Readonly<Record<string, string>> = {
   invitation_areas: 'the areas an invitation names, kept like those of a person',
 }
 
+/**
+ * The expression of `within_areas_of_their_file` as PostgreSQL writes it
+ * back, from `withinAreasOfTheirFileExpression` in the schema. Read from a
+ * database once and kept here, like the one above.
+ */
+export const withinAreasOfTheirFileAsStored =
+  '(EXISTS ( SELECT 1\n   FROM attachments\n' +
+  '  WHERE ((attachments.tenant_id = attachment_versions.tenant_id) AND ' +
+  '(attachments.id = attachment_versions.attachment_id))))'
+
+/** A table that takes the line between the areas from the row its rows are a part of. */
+export interface LineThroughARow {
+  /** The key by which a row names the row it is a part of. */
+  readonly key: string
+  /** The table that row is in, which carries the area. */
+  readonly target: string
+  /** The restrictive policy that asks that row, and its expression as PostgreSQL writes it back. */
+  readonly policy: string
+  readonly stored: string
+  readonly reason: string
+}
+
+/**
+ * Tables whose rows are a part of a row with a place, are written once and
+ * never changed, and so carry no area of their own: an area on such a row
+ * could not follow its property into another area. Each draws the line by a
+ * restrictive policy that asks the row it is a part of, and the key by which
+ * it names that row is the one key onto a row with an area that does not run
+ * over the property (ADR 0003, addendum of #97).
+ */
+export const linesThroughARow: Readonly<Record<string, LineThroughARow>> = {
+  attachment_versions: {
+    key: 'attachment_versions_attachment_in_tenant',
+    target: 'attachments',
+    policy: 'within_areas_of_their_file',
+    stored: withinAreasOfTheirFileAsStored,
+    reason: 'a version of a document, kept as written by a trigger of the foundation',
+  },
+}
+
 export interface AreaBoundaryOptions {
   /**
    * The table every place hangs under and takes its area from. `properties`
@@ -54,6 +94,10 @@ export interface AreaBoundaryOptions {
  * - The property table has `area_id` and a key to the areas of its tenant.
  * - A key that points at a row with an area runs over the tenant and the
  *   property, so that a row cannot hang itself on a place of another area.
+ * - The one exception is a table on the list `linesThroughARow`: its key onto
+ *   the row it is a part of is let through, and in exchange it has the
+ *   restrictive policy that asks that row, for every command, for the
+ *   application role and with the expression of the building block.
  */
 export async function areaBoundaryProblems(
   pool: Pool,
@@ -107,6 +151,27 @@ export async function areaBoundaryProblems(
        join pg_class c on c.oid = p.polrelid
        join pg_namespace n on n.oid = c.relnamespace
       where n.nspname = 'public' and p.polname = 'within_areas'`,
+  )
+  const { rows: throughPolicies } = await pool.query<{
+    table_name: string
+    name: string
+    permissive: boolean
+    command: string
+    roles: string[]
+    using: string | null
+    checking: string | null
+  }>(
+    `select c.relname as table_name, p.polname as name, p.polpermissive as permissive,
+            p.polcmd::text as command,
+            array(select case when r = 0 then 'public' else r::regrole::text end
+                    from unnest(p.polroles) as r) as roles,
+            pg_get_expr(p.polqual, p.polrelid) as using,
+            pg_get_expr(p.polwithcheck, p.polrelid) as checking
+       from pg_policy p
+       join pg_class c on c.oid = p.polrelid
+       join pg_namespace n on n.oid = c.relnamespace
+      where n.nspname = 'public' and p.polname = any ($1::text[])`,
+    [Object.values(linesThroughARow).map((through) => through.policy)],
   )
 
   const has = (table: string, column: string) =>
@@ -207,10 +272,56 @@ export async function areaBoundaryProblems(
     const overTheProperty =
       maps(key, 'tenant_id', 'tenant_id') && maps(key, 'property_id', property)
 
+    const through = Object.hasOwn(linesThroughARow, key.table_name)
+      ? linesThroughARow[key.table_name]
+      : undefined
+
+    // The key of a row onto the row it is a part of; its policy is asked below.
+    if (through?.key === key.name && through.target === key.target) {
+      continue
+    }
+
     if (!overTheProperty) {
       problems.push(
         `table ${key.table_name}, key ${key.name}: points at ${key.target}, which has an area, without running over tenant_id and property_id`,
       )
+    }
+  }
+
+  for (const [table, through] of Object.entries(linesThroughARow)) {
+    if (!columns.some((row) => row.table_name === table)) {
+      continue
+    }
+
+    const where = `table ${table}, policy ${through.policy}`
+    const policy = throughPolicies.find(
+      (found) => found.table_name === table && found.name === through.policy,
+    )
+
+    if (!policy) {
+      problems.push(
+        `table ${table}: its rows are a part of ${through.target} and it has no policy ${through.policy}`,
+      )
+      continue
+    }
+
+    if (policy.permissive || policy.command !== '*') {
+      problems.push(`${where}: not restrictive for every command, so another policy can widen it`)
+    }
+
+    if (policy.roles.length !== 1 || policy.roles[0] !== applicationRoleName) {
+      problems.push(`${where}: for ${policy.roles.join(', ')} and not for ${applicationRoleName}`)
+    }
+
+    for (const [half, expression] of [
+      ['reads', policy.using],
+      ['writes', policy.checking],
+    ] as const) {
+      if (expression !== through.stored) {
+        problems.push(
+          `${where} ${half} through something else than the building block: ${String(expression)}`,
+        )
+      }
     }
   }
 

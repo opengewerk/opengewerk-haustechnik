@@ -121,6 +121,12 @@ export const rights = [
   /** Where a defect goes from there: its class, its time limit and its status. */
   'defect.write',
   /**
+   * Looking at the documents of a place, an asset or an activity: the list,
+   * the versions of each, and the file of a version, which the server hands
+   * out by the version and never by its hash.
+   */
+  'document.read',
+  /**
    * Filing a document: sending the bytes of a file to the store and naming
    * them in a record at a place, an asset or an activity, a photo taken on
    * site included. A new version is filed like a first one, and none is ever
@@ -129,6 +135,11 @@ export const rights = [
    * bytes no record names are in reach of nobody.
    */
   'document.record',
+  /**
+   * Taking a document out of the records. It is marked and never deleted:
+   * its versions and their bytes stay, and nobody is handed them any more.
+   */
+  'document.remove',
   /**
    * Taking what has changed onto a device, and sending what it queued up
    * without a network. The rights the foundation asks for on the routes of the
@@ -196,7 +207,9 @@ export const rightLabel: Readonly<Record<Right, string>> = {
   'defect.read': 'Mängel ansehen',
   'defect.report': 'Mängel melden',
   'defect.write': 'Mängel führen',
+  'document.read': 'Dokumente ansehen',
   'document.record': 'Dokumente ablegen',
+  'document.remove': 'Dokumente entfernen',
   'sync.read': 'Daten abgleichen',
   'sync.write': 'Änderungen senden',
   'membership.read': 'Zugänge ansehen',
@@ -255,7 +268,9 @@ const technician: readonly Right[] = [
   'evidence.read',
   'defect.read',
   'defect.report',
-  // A photo at an asset or at a defect is filed like any other document.
+  // The documents of what somebody works on, and a photo at an asset or at a
+  // defect, which is filed like any other document.
+  'document.read',
   'document.record',
   // Every device takes and sends; what it may touch the rights above decide.
   'sync.read',
@@ -275,6 +290,7 @@ const siteManagement: readonly Right[] = [
   'activity.accept',
   'evidence.write',
   'defect.write',
+  'document.remove',
 ]
 
 /**
