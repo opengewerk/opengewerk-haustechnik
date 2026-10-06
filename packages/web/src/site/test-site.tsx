@@ -275,6 +275,11 @@ export async function mountSite(
   }
 
   vi.stubGlobal('fetch', (path: string, init?: RequestInit) => {
+    // Without a network a request gets no answer at all, as the sync gets none.
+    if (server.offline) {
+      return Promise.reject(new TypeError('Failed to fetch'))
+    }
+
     const method = init?.method ?? 'GET'
     const answer = known[`${method} ${path}`] ?? (method === 'GET' ? known[path] : undefined)
 
@@ -378,10 +383,22 @@ export async function mountSite(
   }
 }
 
-/** Takes the connection away, as a cellar does. */
-export function goOffline(): void {
+/**
+ * Takes the connection away, as a cellar does: the server is out of reach,
+ * for the sync and for every other request, and the browser says so.
+ */
+export function goOffline(server: TestServer): void {
+  server.offline = true
   act(() => {
     window.dispatchEvent(new Event('offline'))
+  })
+}
+
+/** Gives the connection back; the device starts its exchange by itself. */
+export function goOnline(server: TestServer): void {
+  server.offline = false
+  act(() => {
+    window.dispatchEvent(new Event('online'))
   })
 }
 

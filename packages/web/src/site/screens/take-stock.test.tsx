@@ -6,6 +6,8 @@ import {
   afterEachSiteTest,
   blockedSheet,
   fromASheet,
+  goOffline,
+  goOnline,
   mountSite,
   onHeater,
   queued,
@@ -396,5 +398,83 @@ describe('a label from a sheet, given to an asset', () => {
       screen.getByText('Etiketten zuordnen gehört nicht zu den Rechten dieses Zugangs.'),
     ).toBeTruthy()
     expect(cameraOpened()).toBe(0)
+  })
+})
+
+describe('taking stock without a network', () => {
+  it('takes an asset in with its photo and its label, and sends all of it when the network is back', async () => {
+    const { server, client, router, hold } = await assetForm('/aufnehmen/gebaeude/b-house')
+
+    goOffline(server)
+    expect(client.status().online).toBe(false)
+
+    type('Anlagenart', 'probe.pump')
+    type('Bezeichnung', 'Druckerhöhung')
+    fireEvent.change(screen.getByLabelText('Foto des Typenschilds'), {
+      target: { files: [new File(['%PDF-1.7'], 'schild.pdf', { type: 'application/pdf' })] },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Anlegen und Etikett zuordnen' }))
+
+    // The asset stands in the outbox and nowhere else, and the screen of its label knows it.
+    expect(await screen.findByRole('heading', { level: 1, name: 'Etikett zuordnen' })).toBeTruthy()
+    expect(screen.getByText('Neue Anlage: Druckerhöhung')).toBeTruthy()
+
+    const assetId = String(
+      client.list('assets').find((each) => each['name'] === 'Druckerhöhung')?.['id'],
+    )
+
+    expect(client.isPending('assets', assetId)).toBe(true)
+    expect(router.state.location.pathname).toBe(`/anlagen/${assetId}/etikett`)
+    hold(addressOf(fromASheet.code))
+
+    const gets = await screen.findByRole('region', { name: 'Bekommt das Etikett' })
+
+    expect(within(gets).getByText('Druckerhöhung, Nummer folgt')).toBeTruthy()
+    expect(within(gets).getByText('Schulhaus')).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: 'Zuordnen' }))
+
+    // The page of the asset stands from what the device holds: its label, and the photo that waits.
+    expect(await screen.findByRole('heading', { level: 1, name: 'Druckerhöhung' })).toBeTruthy()
+    expect(router.state.location.pathname).toBe(`/anlagen/${assetId}`)
+    expect(screen.getByText('Nummer folgt nach dem Abgleich')).toBeTruthy()
+    expect(
+      within(screen.getByRole('region', { name: 'Etikett' })).getByText('TA6W-3XQ7-M2K9-PDH4'),
+    ).toBeTruthy()
+
+    const documents = within(screen.getByRole('list', { name: 'Dokumente' }))
+
+    expect(documents.getByText('Typenschild')).toBeTruthy()
+    expect(documents.getByText('schild.pdf, 8 Byte, noch nicht übertragen')).toBeTruthy()
+    // Nothing of it has left the device: no file and no transmission.
+    expect(client.status().pending).toBe(4)
+    expect(server.operations()).toEqual([])
+    expect(server.log).toEqual([])
+
+    goOnline(server)
+
+    await waitFor(() => {
+      expect(queued(server).map(({ entity, kind }) => `${entity} ${kind}`)).toEqual([
+        'assets create',
+        'attachments create',
+        'attachment_versions create',
+        'labels update',
+      ])
+    })
+
+    const [made, photo, version, given] = queued(server)
+
+    // The file went up ahead of the version that names it, and the rest in one transmission.
+    expect(server.log).toEqual([
+      `upload ${String(version?.values['sha256']).slice(0, 8)}`,
+      'push assets,attachments,attachment_versions,labels',
+    ])
+    expect(server.operations()[0]?.recordId).toBe(assetId)
+    expect(made?.values).toMatchObject({ buildingId: 'b-house', name: 'Druckerhöhung' })
+    expect(photo?.values).toMatchObject({ title: 'Typenschild', propertyId: 'p-school', assetId })
+    expect(given?.values).toEqual({ assetId })
+    expect(server.operations()[3]?.recordId).toBe(fromASheet.id)
+    await waitFor(() => {
+      expect(client.status().pending).toBe(0)
+    })
   })
 })
