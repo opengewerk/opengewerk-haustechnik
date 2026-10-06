@@ -50,7 +50,8 @@ describe('the words of the change log in the office', () => {
     expect(auditScreenWords.partsWords).toEqual({
       properties: 'mit ihren Ansprechpartnern',
       buildings: 'mit seinen Schließzeiten',
-      assets: 'mit ihrem Lebenszyklus und dem, was sie versorgt',
+      rooms: 'mit seinen Etiketten',
+      assets: 'mit ihrem Lebenszyklus, dem, was sie versorgt, und ihren Etiketten',
       attachments: 'mit seinen Fassungen',
     })
     expect(Object.keys(auditScreenWords.partsWords ?? {})).toEqual(
@@ -59,9 +60,12 @@ describe('the words of the change log in the office', () => {
     expect(auditVocabulary.parts).toEqual({
       properties: [{ table: 'contacts', column: 'property_id' }],
       buildings: [{ table: 'building_closures', column: 'building_id' }],
+      // A label is made and blocked on the page of what it hangs on (#98).
+      rooms: [{ table: 'labels', column: 'room_id' }],
       assets: [
         { table: 'asset_lifecycle', column: 'asset_id' },
         { table: 'asset_supplies', column: 'asset_id' },
+        { table: 'labels', column: 'asset_id' },
       ],
       attachments: [{ table: 'attachment_versions', column: 'attachment_id' }],
     })

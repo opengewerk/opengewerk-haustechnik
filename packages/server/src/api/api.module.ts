@@ -43,6 +43,11 @@ import {
   RoomDutiesController,
 } from './duties.controller.js'
 import { FloorsController } from './floors.controller.js'
+import {
+  AssetLabelsController,
+  LabelsController,
+  RoomLabelsController,
+} from './labels.controller.js'
 import { PropertiesController } from './properties.controller.js'
 import { RoomsController } from './rooms.controller.js'
 import { syncRoutesFor } from './sync-routes.js'
@@ -126,7 +131,9 @@ export interface ApiOptions {
  * store through the route of the foundation, under the right this application
  * names for filing a document, and the renderer is handed to whatever prints;
  * the records that name a file and the pages that are printed are this
- * application's and come with the documents, the labels and the evidence. What
+ * application's and come with the documents, the labels and the evidence; a
+ * label is printed on the page of the foundation, with the lines of this
+ * application. What
  * this application brings: the areas of a tenant, the place, from the property
  * to the room, the technology, assets and their components, and the catalogue
  * a device fetches.
@@ -223,6 +230,11 @@ export class ApiModule {
         // The technology: assets and their components.
         BuildingAssetsController,
         AssetsController,
+        // The labels with a QR code on assets and rooms: made, blocked and
+        // printed, and what a code is for whoever scans it.
+        AssetLabelsController,
+        RoomLabelsController,
+        LabelsController,
         // The duties of an operator and the proposals dismissed.
         DutiesController,
         RoomDutiesController,

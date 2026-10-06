@@ -211,6 +211,12 @@ export const auditVocabulary: AuditVocabulary = {
         decided_at: 'Entschieden am',
       },
     },
+    // The labels with a QR code on assets and rooms (#98). What a label hangs
+    // on is named below with the fields every row with a place has.
+    labels: {
+      label: 'Etikett',
+      fields: { code: 'Code', blocked_at: 'Gesperrt am' },
+    },
     defects: {
       label: 'Mangel',
       fields: {
@@ -273,15 +279,17 @@ export const auditVocabulary: AuditVocabulary = {
   // What the log of a record takes in beside the record itself: the rows the
   // office sees and changes on the same screen. A property with the people to
   // talk to there, a building with the times it is closed, an asset with its
-  // life cycle and what it supplies. The buildings of a
+  // life cycle, what it supplies and its labels, a room with its labels. The buildings of a
   // property, their floors and the rooms on a floor are records of their own,
   // each with a page and a log of its own.
   parts: {
     properties: [{ table: 'contacts', column: 'property_id' }],
     buildings: [{ table: 'building_closures', column: 'building_id' }],
+    rooms: [{ table: 'labels', column: 'room_id' }],
     assets: [
       { table: 'asset_lifecycle', column: 'asset_id' },
       { table: 'asset_supplies', column: 'asset_id' },
+      { table: 'labels', column: 'asset_id' },
     ],
     // A document with its versions: who filed which, and when.
     attachments: [{ table: 'attachment_versions', column: 'attachment_id' }],
@@ -330,6 +338,8 @@ export const auditVocabulary: AuditVocabulary = {
     building_closures: ['reason', 'starts_on'],
     // A room by its number, and by its name where it has none.
     rooms: ['number', 'name'],
+    // A label by its code, which is what stands on the sticker.
+    labels: ['code'],
     // An entry of a life cycle by its state, a supply by what is supplied.
     asset_lifecycle: ['state'],
     asset_supplies: ['building_id', 'room_id'],

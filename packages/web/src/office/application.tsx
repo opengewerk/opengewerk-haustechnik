@@ -1,4 +1,4 @@
-import type { Right } from '@opengewerk/haustechnik-domain'
+import { labelCodeFromScan, type Right } from '@opengewerk/haustechnik-domain'
 import type {
   AuditSentences,
   InstanceAreaSentences,
@@ -7,7 +7,7 @@ import type {
   StaffSentences,
 } from '@opengewerk/platform-web'
 import { auditLogPath } from '@opengewerk/platform-web/office'
-import { History, Map, Users } from 'lucide-react'
+import { History, Map, ScanLine, Users } from 'lucide-react'
 
 import { application } from '../app/application.js'
 import { auditScreenWords } from './audit.js'
@@ -137,6 +137,33 @@ const audit = {
 } as const satisfies AuditSentences
 
 /**
+ * The line over the sign in for somebody who got here by scanning a label
+ * (#98): what comes once signed in. Read from the address of the page, which
+ * the router behind the gate keeps and opens next. It says nothing about what
+ * the label hangs on: before the sign in nobody is anybody.
+ */
+function ScannedLabelNote() {
+  if (labelCodeFromScan(globalThis.location.href) === null) {
+    return null
+  }
+
+  return (
+    <div
+      role="note"
+      className="flex max-w-[560px] items-start gap-2.5 rounded-[6px] border border-line bg-surface px-3.5 py-3 text-[15px] leading-[1.45]"
+    >
+      <ScanLine
+        size={18}
+        strokeWidth={2.2}
+        aria-hidden="true"
+        className="mt-px shrink-0 text-ink-muted"
+      />
+      <span>Sie haben ein Etikett gescannt. Nach der Anmeldung öffnet sich, wozu es gehört.</span>
+    </div>
+  )
+}
+
+/**
  * This application as the office hands it to the foundation: what both
  * entries share, and what only the office shows, the settings of a tenant,
  * the words of the change log, and what "Zugänge", the area of the instance
@@ -150,4 +177,5 @@ export const officeApplication: InterfaceApplication = {
   settings,
   audit: auditScreenWords,
   sentences: { ...application.sentences, staff, instance, audit },
+  beforeSignIn: <ScannedLabelNote />,
 }

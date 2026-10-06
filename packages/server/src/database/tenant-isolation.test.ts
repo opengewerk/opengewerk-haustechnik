@@ -1,6 +1,6 @@
-import { randomUUID } from 'node:crypto'
+import { randomBytes, randomUUID } from 'node:crypto'
 
-import type { TenantId } from '@opengewerk/haustechnik-domain'
+import { labelCodeFrom, type TenantId } from '@opengewerk/haustechnik-domain'
 import { Database, newId } from '@opengewerk/platform-server'
 import { type SQL, sql } from 'drizzle-orm'
 import { drizzle } from 'drizzle-orm/node-postgres'
@@ -13,6 +13,7 @@ import {
   applicationRole,
   applyMigrations,
   connect,
+  foundationDefinerFunctions,
   insufficientPrivilege,
   keysBetweenTenantTables,
   readDefinerFunctions,
@@ -557,6 +558,18 @@ function rowsOf(tenant: Tenant): readonly Row[] {
         size_bytes: 2048,
       },
     },
+    // The label on the asset. Its code stands once in the whole instance, so
+    // each tenant of the test gets one of its own.
+    {
+      table: 'labels',
+      values: {
+        tenant_id: tenant.id,
+        property_id: property,
+        area_id: area,
+        asset_id: asset,
+        code: labelCodeFrom(randomBytes(10)),
+      },
+    },
   ]
 }
 
@@ -805,12 +818,18 @@ describe('the tables', () => {
    * A function that runs as its definer runs as the owner of the tables,
    * whoever calls it, and so walks past every policy above. Each of them was
    * opened on purpose for one question and is on the list of the foundation
-   * with its reason. This application has added none: a migration that adds
-   * one, or leaves one behind it meant to replace, turns this red, and the
-   * place for its reason is here.
+   * with its reason. This application has added one: a migration that adds
+   * another, or leaves one behind it meant to replace, turns this red, and
+   * the place for its reason is here.
    */
   it('let a function past the policies only where a list says why', async () => {
-    expect(await readDefinerFunctions(admin)).toEqual({
+    expect(
+      await readDefinerFunctions(admin, {
+        ...foundationDefinerFunctions,
+        'label_state_in_tenant(asked text)':
+          'a scan of a label in another area is told that it lies outside the areas of the person, not that no such label exists; one word, and the tenant is read from the transaction',
+      }),
+    ).toEqual({
       unexplained: [],
       stale: [],
       openToEveryRole: [],

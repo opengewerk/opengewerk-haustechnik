@@ -1,7 +1,7 @@
 # OpenGewerk Haustechnik: Verfahrensbeschreibung für den Stand von Phase 1
 
 - **Gilt für:** noch keine veröffentlichte Fassung (Entwicklungsstand von Phase 1 auf dem Zweig `main`)
-- **Geschrieben:** von Hand, am 05.10.2026, aus dem Planungskonzept v0.11 und gegen den Quelltext geprüft; am 06.10.2026 um die Dateien im Speicher ergänzt (Planungskonzept v0.12) und um das Pflichtenverzeichnis, am selben Tag um die Dokumente (Planungskonzept v0.13)
+- **Geschrieben:** von Hand, am 05.10.2026, aus dem Planungskonzept v0.11 und gegen den Quelltext geprüft; am 06.10.2026 um die Dateien im Speicher ergänzt (Planungskonzept v0.12) und um das Pflichtenverzeichnis, am selben Tag um die Dokumente (Planungskonzept v0.13) und um die Etiketten
 - **Abgelöst durch:** die Verfahrensbeschreibung, die die Anwendung ab Phase 2 selbst erzeugt
 
 ---
@@ -120,6 +120,11 @@ Anhang B nennt jedes Feld der Datenbank, das auf eine Person zeigt. Dieser Absch
 - **Zusage:** Die Datei einer Fassung gibt der Server nur an den aus, der sieht, woran das Dokument hängt: beim eigenen Betreiber und in den Bereichen der Person. Wer außerhalb steht, bekommt dieselbe Antwort wie auf eine Fassung, die es nie gab. [K4.10, K2.8, B84]
 - Dokumente ansehen und ablegen können alle vier Rollen, jede in ihren Bereichen; dazu gehören eine neue Fassung und die Berichtigung von Bezeichnung und Art. Aus der Ablage nehmen können ein Dokument die Leitung, die Technische Leitung und die Objektleitung. [K7, B85, B72, B86]
 - **Zusage:** Ein Dokument, das jemand aus der Ablage nimmt, wird markiert und nicht gelöscht, und ausgegeben wird es danach niemandem mehr. Seine Fassungen und ihre Dateien bleiben aufbewahrt, und mit ihnen, wer sie abgelegt hat (Abschnitt 7). [K4.10, B87]
+
+### 3.10 Etiketten
+
+- Ein Etikett mit QR-Code hängt an einer Anlage oder einem Raum, oder es stammt von einem Bogen für die Bestandsaufnahme und gehört zu einer Liegenschaft. Es trägt einen zufälligen Code und wie jeder Datensatz seinen Stempel (Abschnitt 3.6): wer es angelegt und wer es gesperrt hat, steht dort und im Änderungsprotokoll. Darüber hinaus nennt ein Etikett keine Person. [K3, K4.2]
+- Auf dem gedruckten Etikett stehen der Betreiber, die Anlage oder der Raum und der Ort, und keine Person. [K3]
 
 ---
 
@@ -405,6 +410,7 @@ Jede Zeile ist der erste Abschnitt einer Adresse, unter der der Server antwortet
 | `health` | Gesundheitsprüfung, ohne Daten |
 | `instance` | Verwaltung der Instanz |
 | `invitation` | Einlösen einer Einladung |
+| `labels` | Etiketten: sagt zu einem gescannten Code in einem Wort, ob er für die fragende Person etwas öffnet, und druckt viele Etiketten auf einmal |
 | `properties` | Liegenschaften |
 | `rooms` | Räume, mit den Pflichten, die an ihnen hängen |
 | `settings` | Vorlauf der Fristen |

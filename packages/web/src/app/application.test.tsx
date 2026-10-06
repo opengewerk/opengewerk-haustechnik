@@ -228,8 +228,14 @@ describe('what each entry hands to the foundation', () => {
     )
     expect(officeApplication.audit?.vocabulary.foundation.tenant).toBe('Betreiber')
 
+    // The address on a label is one of the office: the line over its sign in
+    // for whoever scanned one comes only with the office (#98).
+    expect(application.beforeSignIn).toBeUndefined()
+    expect(officeApplication.beforeSignIn).toBeDefined()
+
     const {
       audit: _audit,
+      beforeSignIn: _beforeSignIn,
       sentences: { staff: _staff, instance: _instance, audit: _log, ...sentences },
       ...shared
     } = officeApplication

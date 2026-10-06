@@ -22,6 +22,9 @@ export const serverPaths: readonly string[] = [
   'rooms',
   // The technology: assets and their components.
   'assets',
+  // What a code on a label is for the person asking, and the prints of many
+  // labels at once.
+  'labels',
   // The duties of an operator and the proposals dismissed.
   'duties',
   'duty-dismissals',

@@ -57,7 +57,8 @@ export const auditScreenWords: AuditScreenWords = {
   partsWords: {
     properties: 'mit ihren Ansprechpartnern',
     buildings: 'mit seinen Schließzeiten',
-    assets: 'mit ihrem Lebenszyklus und dem, was sie versorgt',
+    rooms: 'mit seinen Etiketten',
+    assets: 'mit ihrem Lebenszyklus, dem, was sie versorgt, und ihren Etiketten',
     attachments: 'mit seinen Fassungen',
   },
 }

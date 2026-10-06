@@ -167,6 +167,10 @@ describe('the rights of an operation', () => {
       'document.record',
     )
     expect(permissionFor('attachment_versions', 'delete')).toBe('document.remove')
+    // A label is made and blocked at its routes: whatever an outbox says
+    // about one asks for the right of those routes.
+    expect(permissionFor('labels', 'create', patch('code', 'X'))).toBe('asset.record')
+    expect(permissionFor('labels', 'update', patch('blockedAt', 'now'))).toBe('asset.record')
     // The signature is the work's, the countersignature the Objektleitung's.
     expect(permissionFor('activity_signatures', 'create', patch('role', 'signer'))).toBe(
       'activity.perform',

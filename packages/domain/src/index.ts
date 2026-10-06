@@ -38,6 +38,10 @@ export * from './model/closure.js'
 // hangs on here and what kind of document it is.
 export * from './model/document.js'
 
+// The labels with a QR code on assets and rooms: the label of the foundation,
+// with what one hangs on here and what a scan of one says.
+export * from './model/label.js'
+
 // The technology: assets, their components, life cycle and meters.
 export * from './model/asset.js'
 // Whether an asset may already stand in the register, and the general kind

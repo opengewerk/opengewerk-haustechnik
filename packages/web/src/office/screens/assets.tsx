@@ -17,7 +17,7 @@ import { Button, cardLink, Cell, Column, Panel, TablePanel } from '@opengewerk/p
 import { today } from '@opengewerk/platform-web/format'
 import { Empty, PageHead, Screen } from '@opengewerk/platform-web/office'
 import { useRight } from '@opengewerk/platform-web/session'
-import { maybeText, request, useRecords } from '@opengewerk/platform-web/sync'
+import { maybeText, request, text, useRecords } from '@opengewerk/platform-web/sync'
 import { useInfiniteQuery } from '@tanstack/react-query'
 import { Link, useNavigate, useSearch } from '@tanstack/react-router'
 import { Plus } from 'lucide-react'
@@ -32,6 +32,7 @@ import {
   registerRequest,
   registerSearch,
 } from '../asset-addresses.js'
+import { PrintLabelsButton } from '../labels.js'
 import { AssetConditionMark } from '../asset-marks.js'
 import { AssetState } from '../asset-state.js'
 import { officePlaces } from '../place-addresses.js'
@@ -53,6 +54,11 @@ import { assetKindChoices, PlaceFilter, RegisterFilter as Filter } from '../regi
  * names of the places and of the kinds are read from the device, which holds
  * every place of the areas of the person and the catalogue of its server.
  */
+/** "Die 12 gelisteten Anlagen", what a print of labels for the list is called. */
+export function listedWords(total: number): string {
+  return total === 1 ? 'Die eine gelistete Anlage' : `Die ${String(total)} gelisteten Anlagen`
+}
+
 export function AssetRegisterScreen() {
   const search = useSearch({ strict: false })
   const filter = useMemo(() => registerFilterOf(search), [search])
@@ -112,19 +118,49 @@ export function AssetRegisterScreen() {
         {...(records
           ? {
               actions: (
-                <Button
-                  tone="primary"
-                  icon={Plus}
-                  onClick={() => {
-                    // In the building the list is narrowed to, where it is.
-                    void navigate({
-                      to: assetForms.new,
-                      search: newAssetSearch(filter.buildingId),
-                    })
-                  }}
-                >
-                  Neue Anlage
-                </Button>
+                <>
+                  {/* A label for everything the list shows, under the filter
+                      it is narrowed by, or a sheet that hangs on nothing yet. */}
+                  <PrintLabelsButton
+                    offers={
+                      first && first.total > 0
+                        ? [
+                            {
+                              key: 'assets',
+                              label: listedWords(first.total),
+                              batch: { what: 'assets', filter },
+                              count: first.total,
+                            },
+                          ]
+                        : []
+                    }
+                    properties={properties.map((property) => ({
+                      id: String(property['id']),
+                      name: text(property, 'name'),
+                    }))}
+                    propertyId={
+                      filter.propertyId ??
+                      maybeText(
+                        buildings.find((building) => building['id'] === filter.buildingId) ?? null,
+                        'propertyId',
+                      ) ??
+                      undefined
+                    }
+                  />
+                  <Button
+                    tone="primary"
+                    icon={Plus}
+                    onClick={() => {
+                      // In the building the list is narrowed to, where it is.
+                      void navigate({
+                        to: assetForms.new,
+                        search: newAssetSearch(filter.buildingId),
+                      })
+                    }}
+                  >
+                    Neue Anlage
+                  </Button>
+                </>
               ),
             }
           : {})}

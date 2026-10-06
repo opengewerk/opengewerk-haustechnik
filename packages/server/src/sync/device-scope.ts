@@ -89,6 +89,10 @@ const placeEntities = [
   // the property it hangs on, whatever else it names.
   'attachments',
   'attachment_versions',
+  // The labels of those places, of the assets and rooms there and of the
+  // sheets printed for them: a scan opens an asset without a network. A label
+  // carries the property it lies in, whatever it hangs on.
+  'labels',
 ]
 
 /** The kinds of record of the work on an activity, held with the activity. */

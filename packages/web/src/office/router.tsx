@@ -28,6 +28,7 @@ import { DutyScreen } from './screens/duty.js'
 import { DutyKindScreen } from './screens/duty-kind.js'
 import { EditFloorScreen, NewFloorScreen } from './screens/floor-form.js'
 import { FloorScreen } from './screens/floors.js'
+import { LabelLandingScreen } from './screens/label-landing.js'
 import {
   EditPropertyScreen,
   NewPropertyScreen,
@@ -227,6 +228,13 @@ export function officeRoutes() {
       getParentRoute: () => office,
       path: '/katalog/$packageName/pflichtarten/$dutyKey',
       component: DutyKindScreen,
+    }),
+    // The address on a label with a QR code: it leads on to the asset or the
+    // room the label hangs on, or says why it opens nothing.
+    createRoute({
+      getParentRoute: () => office,
+      path: '/a/$code',
+      component: LabelLandingScreen,
     }),
     createRoute({ getParentRoute: () => office, path: '/konflikte', component: SyncScreen }),
     createRoute({ getParentRoute: () => office, path: '/konto', component: AccountScreen }),

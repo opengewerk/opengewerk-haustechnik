@@ -16,9 +16,11 @@ await checkWidths({
   /**
    * Where the walk starts: the office and the entry on site, the account
    * and the area of the instance, which are behind the menu under the name
-   * and not behind a link on any page.
+   * and not behind a link on any page, and the address on a label with a QR
+   * code (#98), which only a scan reaches: with a code no label carries, it
+   * is the page that says so.
    */
-  entries: ['/', '/m/', '/konto', '/instanz'],
+  entries: ['/', '/m/', '/konto', '/instanz', `/a/${'0'.repeat(16)}`],
 
   /**
    * The buttons that lead to a form no link leads to: the form a property is
@@ -36,7 +38,8 @@ await checkWidths({
    * who answers for a duty, at the page of the duty (#101), whose button says
    * "ändern" where somebody is named and "benennen" where nobody is; and
    * the dialog a document is filed with (#97), on "Dokumente" and in the card
-   * "Dokumente" of an asset, a room and a property. A
+   * "Dokumente" of an asset, a room and a property; and the dialog that
+   * prints labels (#98), at the register of assets and at a building. A
    * page that has one is checked a second time as a kind of its own, with the
    * button pressed. Found by its name, so that the next record with the same
    * button is checked as well.
@@ -62,5 +65,6 @@ await checkWidths({
     'Verantwortliche Person ändern',
     'Verantwortliche Person benennen',
     'Hochladen',
+    'Etiketten drucken',
   ],
 })

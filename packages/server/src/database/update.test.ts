@@ -146,6 +146,7 @@ describe('an installation that began on the first migration', () => {
     // place and the assets, so they go first, and what an invitation says
     // about areas hangs on the areas; the files, the mail server and the
     // settings of the deadlines hang on nothing of this.
+    await revertMigration(admin, '0020_labels')
     await revertMigration(admin, '0019_documents')
     await revertMigration(admin, '0017_building_closures')
     await revertMigration(admin, '0016_contacts')
@@ -304,6 +305,7 @@ describe('an installation from before the areas', () => {
 
     // The places hang on the areas and go first, as on the way back of an
     // installation, and so does what an invitation says about areas.
+    await revertMigration(admin, '0020_labels')
     await revertMigration(admin, '0019_documents')
     await revertMigration(admin, '0017_building_closures')
     await revertMigration(admin, '0016_contacts')
@@ -372,6 +374,7 @@ describe('an installation with places', () => {
       [tenant.id],
     )
 
+    await revertMigration(admin, '0020_labels')
     await revertMigration(admin, '0019_documents')
     await revertMigration(admin, '0017_building_closures')
     await revertMigration(admin, '0016_contacts')
@@ -466,6 +469,7 @@ describe('an installation with assets', () => {
       [tenant.id, asset, at.property, at.area, at.building],
     )
 
+    await revertMigration(admin, '0020_labels')
     await revertMigration(admin, '0019_documents')
     await revertMigration(admin, '0012_evidence_corrections')
     await revertMigration(admin, '0011_signatures')
@@ -565,6 +569,7 @@ describe('an installation with assets', () => {
       [tenant.id, at.property, at.area, at.asset],
     )
 
+    await revertMigration(admin, '0020_labels')
     await revertMigration(admin, '0019_documents')
     await revertMigration(admin, '0012_evidence_corrections')
     await revertMigration(admin, '0011_signatures')
@@ -665,6 +670,7 @@ describe('an installation with assets', () => {
       [tenant.id, at.duty, at.property, at.area],
     )
 
+    await revertMigration(admin, '0020_labels')
     await revertMigration(admin, '0019_documents')
     await revertMigration(admin, '0012_evidence_corrections')
     await revertMigration(admin, '0011_signatures')
@@ -768,6 +774,7 @@ describe('an installation with assets', () => {
       [tenant.id, at.property, at.area, at.asset, activityId],
     )
 
+    await revertMigration(admin, '0020_labels')
     await revertMigration(admin, '0019_documents')
     await revertMigration(admin, '0012_evidence_corrections')
     await revertMigration(admin, '0011_signatures')
@@ -1415,6 +1422,89 @@ describe('an installation whose buildings have times they are closed', () => {
 })
 
 /**
+ * 0020 brings the labels with a QR code (#98). On the way forward it touches
+ * no row. Taken back, the labels go with their table, and the log of the
+ * tenant says that they went and why. The asset and the room they hung on
+ * stay as they were, the triggers on them go with their function, so an asset
+ * is marked afterwards as it was before, and the function that looks past the
+ * areas goes with the table it read.
+ */
+describe('an installation with labels', () => {
+  it('loses its labels and nothing else when the update is taken back', async () => {
+    await applyMigrations()
+
+    const tenant = { id: newId<'tenant'>() }
+
+    await admin.query('insert into tenants (id, name) values ($1, $2)', [
+      tenant.id,
+      'Wohnbau Nord eG',
+    ])
+    await members(tenant, { 'user-lead': { roles: ['management'] } })
+
+    const { rows: made } = await admin.query<{ id: string; area_id: string }>(
+      `insert into properties (tenant_id, area_id, name, street, postal_code, city, federal_state)
+       select $1, id, 'Schulzentrum', 'Musterweg 1', '00001', 'Beispielstadt', 'DE-BW'
+         from areas where tenant_id = $1
+       returning id, area_id`,
+      [tenant.id],
+    )
+    const property = made[0]
+    const { rows: built } = await admin.query<{ id: string }>(
+      `insert into buildings (tenant_id, property_id, area_id, name, kinds)
+       values ($1, $2, $3, 'Schulhaus', '{school}') returning id`,
+      [tenant.id, property?.id, property?.area_id],
+    )
+    const { rows: stood } = await admin.query<{ id: string }>(
+      `insert into assets (tenant_id, property_id, area_id, building_id, kind, name)
+       values ($1, $2, $3, $4, 'probe.elevator', 'Aufzug') returning id`,
+      [tenant.id, property?.id, property?.area_id, built[0]?.id],
+    )
+
+    await admin.query(
+      `insert into labels (tenant_id, property_id, area_id, asset_id, code, blocked_at)
+       values ($1, $2, $3, $4, '3XQ7M2K9PDH4TA6W', now()),
+              ($1, $2, $3, $4, '7M2K9PDH4TA6W3XQ', null),
+              ($1, $2, $3, null, 'PDH4TA6W3XQ7M2K9', null)`,
+      [tenant.id, property?.id, property?.area_id, stood[0]?.id],
+    )
+
+    await revertMigration(admin, '0020_labels')
+
+    expect((await tableNames(admin)).filter((table) => table === 'labels')).toEqual([])
+    expect(
+      (await functionNames(admin)).filter((name) =>
+        ['mark_labels_below', 'keep_label_blocked', 'label_state_in_tenant'].includes(name),
+      ),
+    ).toEqual([])
+
+    // The asset stays as it was, and marking it asks after no table that is gone.
+    const { rows: kept } = await admin.query<{ name: string; version: number }>(
+      'select name, version from assets where tenant_id = $1',
+      [tenant.id],
+    )
+
+    expect(kept).toEqual([{ name: 'Aufzug', version: 1 }])
+    await expect(
+      admin.query('update assets set deleted_at = now() where id = $1', [stood[0]?.id]),
+    ).resolves.toMatchObject({ rowCount: 1 })
+
+    // The log of the tenant says that the three labels went, and why.
+    const { rows: removed } = await admin.query<{
+      table_name: string
+      reason: string | null
+      records: number
+    }>(
+      `select table_name, reason, count(distinct record_id)::int as records from audit_entries
+        where tenant_id = $1 and operation = 'delete'
+        group by table_name, reason`,
+      [tenant.id],
+    )
+
+    expect(removed).toEqual([{ table_name: 'labels', reason: 'migration', records: 3 }])
+  })
+})
+
+/**
  * 0019 brings the documents with their versions (#97). On the way forward it
  * touches no row. Taken back, the documents and their versions go with their
  * tables, although a version is otherwise removed by nobody, and the log of
@@ -1464,6 +1554,7 @@ describe('an installation with documents', () => {
       [tenant.id, filed[0]?.id, file],
     )
 
+    await revertMigration(admin, '0020_labels')
     await revertMigration(admin, '0019_documents')
 
     expect(
