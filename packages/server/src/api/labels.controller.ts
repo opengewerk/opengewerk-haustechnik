@@ -24,6 +24,7 @@ import {
   type Catalogue,
   isLabelCode,
   labelBatchMost,
+  labelCountMax,
   type LabelFormat,
   type LabelId,
   labelPrintProblem,
@@ -200,6 +201,16 @@ function whole(value: unknown, fallback: number): number {
   }
 
   return typeof value === 'string' && /^\d{1,3}$/.test(value) ? Number(value) : Number.NaN
+}
+
+/**
+ * The same label as often as asked, and never more often than a print of one
+ * label holds. The check of the print has refused a larger number before this
+ * is reached; the bound stands here once more, where the list is made, so that
+ * what a request names can never decide how much memory a print takes.
+ */
+function copiesOf(face: LabelFace, count: number): LabelFace[] {
+  return Array.from({ length: Math.min(count, labelCountMax) }, () => face)
 }
 
 /** The body of a request as a record, whatever was sent. */
@@ -489,7 +500,7 @@ export class AssetLabelsController extends LabelPrinting {
       return { ...faces.get(asset.id), code: label.code } as LabelFace
     })
 
-    return this.pdf(response, Array<LabelFace>(count).fill(face), format, start, 'Etikett')
+    return this.pdf(response, copiesOf(face, count), format, start, 'Etikett')
   }
 }
 
@@ -549,7 +560,7 @@ export class RoomLabelsController extends LabelPrinting {
       return { ...faces.get(room.id), code: label.code } as LabelFace
     })
 
-    return this.pdf(response, Array<LabelFace>(count).fill(face), format, start, 'Etikett')
+    return this.pdf(response, copiesOf(face, count), format, start, 'Etikett')
   }
 }
 
@@ -728,7 +739,8 @@ export class LabelsController extends LabelPrinting {
         const made = await tx
           .insert(labels)
           .values(
-            Array.from({ length: count }, () => ({
+            // Bounded where the rows are made, as `copiesOf` is.
+            Array.from({ length: Math.min(count, labelBatchMost) }, () => ({
               tenantId: identity.tenantId,
               propertyId: property.id,
               areaId: property.areaId,
