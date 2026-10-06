@@ -50,7 +50,14 @@ import {
 import { fileDocument } from '../../app/documents.js'
 import { byNumber, titleOfRoom } from '../../app/place-records.js'
 import { useCatalogue } from '../../sync/catalogue.js'
-import { assetTitle, CameraFrame, CameraPicture, NotOffered, NotOnDevice } from '../kit.js'
+import {
+  assetTitle,
+  CameraFrame,
+  CameraPicture,
+  GoButton,
+  NotOffered,
+  NotOnDevice,
+} from '../kit.js'
 import { sitePlaces, stockTaking } from '../places.js'
 
 export const takeAssetWords = {
@@ -70,6 +77,8 @@ export const takeAssetWords = {
   photoTitle: 'Typenschild',
   photoNotFiled:
     'Die Anlage ist angelegt, das Foto ließ sich nicht ablegen. Auf ihrer Seite lässt es sich noch einmal aufnehmen.',
+  openAsset: 'Anlage öffnen',
+  giveLabel: 'Etikett zuordnen',
   holdThePlate: 'Halten Sie den Strichcode des Typenschilds in den Rahmen.',
 } as const
 
@@ -108,6 +117,11 @@ interface Typed {
  * The serial number is read from the bar code of the type plate where the
  * camera can, and typed where it cannot. The camera opens with the tap on
  * its button and never by itself.
+ *
+ * The photo of the type plate is filed at the new asset. Where it is not,
+ * the asset stands all the same: the screen says so in place of the form,
+ * with the reason where there is one, and leads on. The form is gone by
+ * then, so that nobody takes the same asset in a second time.
  */
 export function TakeAssetScreen() {
   const params = useParams({ strict: false }) as { buildingId?: string; roomId?: string }
@@ -202,6 +216,13 @@ function TakeAssetForm({
   const [problems, setProblems] = useState<Readonly<Record<string, string>>>({})
   const [trouble, setTrouble] = useState<string | null>(null)
   const [working, setWorking] = useState(false)
+  // The asset that stands without its photo: where the person was going,
+  // and why, where a sentence says so.
+  const [unfiled, setUnfiled] = useState<{
+    readonly assetId: string
+    readonly next: 'page' | 'label'
+    readonly reason: string | null
+  } | null>(null)
 
   const set = (values: Partial<Typed>) => {
     setTyped((current) => ({ ...current, ...values }))
@@ -301,14 +322,20 @@ function TakeAssetForm({
       const propertyId = maybeText(building, 'propertyId')
 
       if (photo && propertyId !== null) {
-        const filed = await fileDocument(client, { propertyId, assetId: made.id }, photo, {
+        // A sentence says why the photo is not filed; a filing that threw says nothing.
+        const missing = await fileDocument(client, { propertyId, assetId: made.id }, photo, {
           title: takeAssetWords.photoTitle,
-        }).catch(() => null)
+        }).then(
+          (sentence) => (sentence === null ? null : { reason: sentence }),
+          () => ({ reason: null }),
+        )
 
-        if (filed === null) {
-          // The asset stands: the page says what is missing, and offers the
-          // photo again.
-          setTrouble(takeAssetWords.photoNotFiled)
+        if (missing !== null) {
+          // The asset stands: the screen says what is missing in place of the
+          // form, and its page offers the photo again.
+          setUnfiled({ assetId: made.id, next: then, ...missing })
+
+          return
         }
       }
 
@@ -318,6 +345,33 @@ function TakeAssetForm({
     } finally {
       setWorking(false)
     }
+  }
+
+  const sub = [maybeText(property, 'name'), text(building, 'name')].filter(Boolean).join(', ')
+
+  if (unfiled) {
+    return (
+      <>
+        <SiteHeader title="Anlage aufnehmen" sub={sub} back={back} />
+        <SiteScreen>
+          <SiteTrouble>{takeAssetWords.photoNotFiled}</SiteTrouble>
+          {unfiled.reason === null ? null : <SiteText>{unfiled.reason}</SiteText>}
+        </SiteScreen>
+        <SiteActionBar stacked>
+          {unfiled.next === 'label' ? (
+            <GoButton to={stockTaking.label(unfiled.assetId)} icon={QrCode} tone="primary">
+              {takeAssetWords.giveLabel}
+            </GoButton>
+          ) : null}
+          <GoButton
+            to={sitePlaces.asset(unfiled.assetId)}
+            tone={unfiled.next === 'label' ? 'secondary' : 'primary'}
+          >
+            {takeAssetWords.openAsset}
+          </GoButton>
+        </SiteActionBar>
+      </>
+    )
   }
 
   const general = kind !== null && isGeneralKind(typed.kind)
@@ -330,11 +384,7 @@ function TakeAssetForm({
         void save('page', event)
       }}
     >
-      <SiteHeader
-        title="Anlage aufnehmen"
-        sub={[maybeText(property, 'name'), text(building, 'name')].filter(Boolean).join(', ')}
-        back={back}
-      />
+      <SiteHeader title="Anlage aufnehmen" sub={sub} back={back} />
       <SiteScreen>
         <SelectField
           label="Anlagenart"

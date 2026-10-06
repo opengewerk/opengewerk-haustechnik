@@ -154,6 +154,80 @@ describe('an asset taken in on site', () => {
     })
   })
 
+  const notFiled =
+    'Die Anlage ist angelegt, das Foto ließ sich nicht ablegen. Auf ihrer Seite lässt es sich noch einmal aufnehmen.'
+  /** What reached the server, in order. */
+  const reached = (server: Parameters<typeof queued>[0]) =>
+    queued(server).map(({ entity, kind }) => `${entity} ${kind}`)
+
+  it('says so where the photo is refused, with the reason, in place of the form, and leads on to the page of the asset', async () => {
+    const { server, router } = await assetForm('/aufnehmen/gebaeude/b-house')
+
+    type('Anlagenart', 'probe.pump')
+    type('Bezeichnung', 'Druckerhöhung')
+    // What a camera hands back that took nothing: a file without a byte.
+    fireEvent.change(screen.getByLabelText('Foto des Typenschilds'), {
+      target: { files: [new File([], 'schild.jpg', { type: 'image/jpeg' })] },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Anlegen' }))
+
+    expect((await screen.findByRole('alert')).textContent).toBe(notFiled)
+    expect(screen.getByText('schild.jpg: Die Datei ist leer.')).toBeTruthy()
+    // The asset stands, and nothing hangs on it.
+    await waitFor(() => {
+      expect(reached(server)).toEqual(['assets create'])
+    })
+    // The form that made it is gone, so nobody makes it a second time.
+    expect(router.state.location.pathname).toBe('/aufnehmen/gebaeude/b-house')
+    expect(screen.queryByLabelText('Bezeichnung')).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Anlegen' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Anlegen und Etikett zuordnen' })).toBeNull()
+    // Nobody asked for a label.
+    expect(screen.queryByRole('button', { name: 'Etikett zuordnen' })).toBeNull()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Anlage öffnen' }))
+
+    await waitFor(() => {
+      expect(router.state.location.pathname).toBe(
+        `/anlagen/${String(server.operations()[0]?.recordId)}`,
+      )
+    })
+    expect(reached(server)).toEqual(['assets create'])
+  })
+
+  it('says so where filing the photo fails without a sentence, and leads on to the label somebody asked for, the page beside it', async () => {
+    const { server, client, router } = await assetForm('/aufnehmen/gebaeude/b-house')
+
+    // A device that cannot keep the bytes, as one whose store is full.
+    vi.spyOn(client, 'keepFile').mockRejectedValueOnce(new Error('QuotaExceededError'))
+    type('Anlagenart', 'probe.pump')
+    type('Bezeichnung', 'Druckerhöhung')
+    fireEvent.change(screen.getByLabelText('Foto des Typenschilds'), {
+      target: { files: [new File(['%PDF-1.7'], 'schild.pdf', { type: 'application/pdf' })] },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Anlegen und Etikett zuordnen' }))
+
+    expect((await screen.findByRole('alert')).textContent).toBe(notFiled)
+    // What was thrown is no sentence for a person.
+    expect(screen.queryByText(/QuotaExceededError/)).toBeNull()
+    await waitFor(() => {
+      expect(reached(server)).toEqual(['assets create'])
+    })
+    expect(router.state.location.pathname).toBe('/aufnehmen/gebaeude/b-house')
+    expect(screen.queryByRole('button', { name: 'Anlegen' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Anlegen und Etikett zuordnen' })).toBeNull()
+    expect(screen.getByRole('button', { name: 'Anlage öffnen' })).toBeTruthy()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Etikett zuordnen' }))
+
+    await waitFor(() => {
+      expect(router.state.location.pathname).toBe(
+        `/anlagen/${String(server.operations()[0]?.recordId)}/etikett`,
+      )
+    })
+    expect(reached(server)).toEqual(['assets create'])
+  })
+
   it('shows the photo small, drawn to fill its frame, and in words where a browser draws none', async () => {
     await assetForm('/aufnehmen/gebaeude/b-house')
 
