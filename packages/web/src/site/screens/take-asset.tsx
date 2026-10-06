@@ -36,7 +36,7 @@ import {
 } from '@opengewerk/platform-web/sync'
 import { useNavigate, useParams } from '@tanstack/react-router'
 import { Camera, Check, Pencil, QrCode, ScanLine, TriangleAlert } from 'lucide-react'
-import { type FormEvent, useEffect, useMemo, useRef, useState } from 'react'
+import { type FormEvent, useEffect, useRef, useState } from 'react'
 
 import {
   generalKindNote,
@@ -66,6 +66,7 @@ export const takeAssetWords = {
     'Geprüft gegen die Anlagen auf diesem Gerät. Der Server prüft beim Abgleich noch einmal.',
   sameOne: 'Ist es dieselbe Anlage, öffnen Sie diese statt eine zweite anzulegen.',
   photoField: 'Foto des Typenschilds',
+  photoTaken: 'Aufgenommenes Typenschild',
   photoTitle: 'Typenschild',
   photoNotFiled:
     'Die Anlage ist angelegt, das Foto ließ sich nicht ablegen. Auf ihrer Seite lässt es sich noch einmal aufnehmen.',
@@ -583,38 +584,84 @@ function TakeAssetForm({
   )
 }
 
+/** The size the photo is shown in, and how many points of the picture stand behind each of its pixels. */
+const thumb = { width: 70, height: 52, density: 2 } as const
+
 /**
  * The photo that was taken, small, beside the button; in words where a
- * browser draws none from a file. The address is made with the photo and
- * given back when another one takes its place or the form goes.
+ * browser draws none from a file, and until it has. It is drawn once at the
+ * size it is shown in: the file never becomes an address of the page, and
+ * the telephone holds no second copy of a large picture.
  */
 function PhotoThumb({ photo }: { readonly photo: File | null }) {
-  const address = useMemo(
-    () => (photo && typeof URL.createObjectURL === 'function' ? URL.createObjectURL(photo) : null),
-    [photo],
-  )
+  const canvas = useRef<HTMLCanvasElement>(null)
+  const [drawn, setDrawn] = useState<File | null>(null)
 
-  useEffect(
-    () => () => {
-      if (address !== null) {
-        URL.revokeObjectURL(address)
-      }
-    },
-    [address],
-  )
+  useEffect(() => {
+    if (!photo || typeof createImageBitmap !== 'function') {
+      return undefined
+    }
+
+    let gone = false
+
+    void createImageBitmap(photo)
+      .then((picture) => {
+        const context = gone ? null : canvas.current?.getContext('2d')
+
+        if (context) {
+          cover(context, picture)
+          setDrawn(photo)
+        }
+
+        picture.close()
+      })
+      .catch(() => undefined)
+
+    return () => {
+      gone = true
+    }
+  }, [photo])
 
   if (!photo) {
     return null
   }
 
-  return address ? (
-    <img
-      src={address}
-      alt="Foto des Typenschilds"
-      className="h-[52px] w-[70px] shrink-0 rounded-[4px] border border-line object-cover"
-    />
-  ) : (
-    <span className="shrink-0 text-[15px] text-ink-muted">Foto aufgenommen</span>
+  const pictured = drawn === photo
+
+  return (
+    <>
+      <canvas
+        ref={canvas}
+        width={thumb.width * thumb.density}
+        height={thumb.height * thumb.density}
+        role="img"
+        aria-label={takeAssetWords.photoTaken}
+        hidden={!pictured}
+        className="h-[52px] w-[70px] shrink-0 rounded-[4px] border border-line"
+      />
+      {!pictured && <span className="shrink-0 text-[15px] text-ink-muted">Foto aufgenommen</span>}
+    </>
+  )
+}
+
+/** Fills the canvas with a picture that keeps its shape, cut evenly at the edges it overhangs. */
+function cover(context: CanvasRenderingContext2D, picture: ImageBitmap) {
+  const { width, height } = context.canvas
+  const scale = Math.max(width / picture.width, height / picture.height)
+  const cutWidth = width / scale
+  const cutHeight = height / scale
+
+  context.clearRect(0, 0, width, height)
+  context.drawImage(
+    picture,
+    (picture.width - cutWidth) / 2,
+    (picture.height - cutHeight) / 2,
+    cutWidth,
+    cutHeight,
+    0,
+    0,
+    width,
+    height,
   )
 }
 

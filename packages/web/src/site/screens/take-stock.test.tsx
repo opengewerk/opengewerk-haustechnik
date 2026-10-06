@@ -1,5 +1,5 @@
 import { fireEvent, screen, waitFor, within } from '@testing-library/react'
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import {
   addressOf,
@@ -150,6 +150,43 @@ describe('an asset taken in on site', () => {
       propertyId: 'p-school',
       assetId: server.operations()[0]?.recordId,
     })
+  })
+
+  it('shows the photo small, drawn to fill its frame, and in words where a browser draws none', async () => {
+    await assetForm('/aufnehmen/gebaeude/b-house')
+
+    const plate = () => new File(['plate'], 'schild.jpg', { type: 'image/jpeg' })
+    const take = () => {
+      fireEvent.change(screen.getByLabelText('Foto des Typenschilds'), {
+        target: { files: [plate()] },
+      })
+    }
+
+    take()
+
+    expect(await screen.findByText('Foto aufgenommen')).toBeTruthy()
+    expect(screen.queryByRole('img', { name: 'Aufgenommenes Typenschild' })).toBeNull()
+
+    const picture = { width: 280, height: 400, close: vi.fn() }
+    const context = { canvas: { width: 140, height: 104 }, clearRect: vi.fn(), drawImage: vi.fn() }
+    const drawing = vi
+      .spyOn(HTMLCanvasElement.prototype, 'getContext')
+      .mockReturnValue(context as unknown as CanvasRenderingContext2D)
+
+    vi.stubGlobal('createImageBitmap', () => Promise.resolve(picture))
+
+    try {
+      take()
+
+      expect(await screen.findByRole('img', { name: 'Aufgenommenes Typenschild' })).toBeTruthy()
+      expect(screen.queryByText('Foto aufgenommen')).toBeNull()
+      // Twice as wide as the frame is too tall for it: the middle of its height is drawn.
+      expect(context.drawImage).toHaveBeenCalledWith(picture, 0, 96, 280, 208, 0, 0, 140, 104)
+      expect(picture.close).toHaveBeenCalled()
+    } finally {
+      vi.unstubAllGlobals()
+      drawing.mockRestore()
+    }
   })
 
   it('goes on to its label where somebody asks for that', async () => {
