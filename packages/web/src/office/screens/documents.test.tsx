@@ -408,19 +408,23 @@ describe('the versions of the chosen document', () => {
     expect(rowsOf(tableName)).toHaveLength(5)
   })
 
-  it('stand above the list on a phone, and only for a document somebody chose', async () => {
+  it('stand under the list on a phone, and above it once somebody chose a document', async () => {
     onA('phone')
 
     const { router } = await mount()
     const column = () => card().parentElement?.className.split(' ') ?? []
 
-    expect(column()).toContain('max-lg:hidden')
+    // Those of the first document, there at every width: nothing is hidden.
+    expect(column()).not.toContain('max-lg:order-first')
+    expect(column().some((name) => name.includes('hidden'))).toBe(false)
+    expect(within(card()).getByRole('heading', { level: 3 }).textContent).toBe(
+      'Betriebsanleitung BA 630',
+    )
 
     await router.navigate({ to: '/dokumente/d-plan' })
     await waitFor(() => {
-      expect(column()).not.toContain('max-lg:hidden')
+      expect(column()).toContain('max-lg:order-first')
     })
-    expect(column()).toContain('max-lg:order-first')
 
     // And the way back, which a phone shows in place of a path, leads to the list.
     const back = screen

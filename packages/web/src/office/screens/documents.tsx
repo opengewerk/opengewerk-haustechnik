@@ -95,9 +95,9 @@ function pageOf(at: HangsOn): string | null {
  * and a document filed without one stands in it at once.
  *
  * What the list is narrowed by stands in the address, and so does the
- * document that is chosen (`document-addresses.ts`). On a wide screen the
- * first of the list is chosen until somebody chooses another; on a phone the
- * versions stand above the list once a document is chosen.
+ * document that is chosen (`document-addresses.ts`). The first of the list
+ * is chosen until somebody chooses another; on a phone its versions stand
+ * under the list, and above the list once a document is chosen.
  */
 export function DocumentsScreen() {
   const { documentId } = useParams({ strict: false }) as { documentId?: string }
@@ -336,15 +336,10 @@ export function DocumentsScreen() {
             </TablePanel>
           )}
         </div>
-        {/* On a phone the versions stand above the list, and only for a
-            document somebody chose: the first of the list is nobody's choice. */}
-        <div
-          className={
-            documentId === undefined
-              ? 'min-w-0 max-lg:order-first max-lg:hidden'
-              : 'min-w-0 max-lg:order-first'
-          }
-        >
+        {/* The first of the list is chosen until somebody chooses another, at
+            every width. On a phone its versions stand under the list, and
+            above it once somebody chose a document. */}
+        <div className={documentId === undefined ? 'min-w-0' : 'min-w-0 max-lg:order-first'}>
           <Panel title="Fassungen">
             {chosen === null || chosenId === null ? (
               <Empty>
