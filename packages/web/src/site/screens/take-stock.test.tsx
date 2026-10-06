@@ -91,6 +91,8 @@ describe('an asset taken in on site', () => {
 
     expect(await screen.findByText('Bitte prüfen Sie die markierten Felder.')).toBeTruthy()
     expect(screen.getByText('Das Baujahr ist eine ganze Zahl von 1800 bis 2100.')).toBeTruthy()
+    // Long enough for a form that went on regardless to reach the server.
+    await new Promise((resolve) => setTimeout(resolve, 80))
     expect(queued(server)).toEqual([])
   })
 
