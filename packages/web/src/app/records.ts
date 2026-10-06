@@ -19,6 +19,8 @@ import {
 } from '@opengewerk/haustechnik-domain'
 import type { RecordWords } from '@opengewerk/platform-web'
 
+import { ownDecision } from './duplicate-decision.js'
+
 /**
  * What the screens of the conflicts say about a record of this application
  * (ADR 0010 in the repository opengewerk): what a kind of record and its
@@ -111,4 +113,7 @@ export const records: RecordWords = {
   },
   valueText,
   settledElsewhere: {},
+  // A possible duplicate of an asset taken stock of on site is decided in a
+  // card of its own, with what was sent beside the asset (#99).
+  ownDecision,
 }

@@ -33,7 +33,7 @@ import {
   registerSearch,
 } from '../asset-addresses.js'
 import { PrintLabelsButton } from '../labels.js'
-import { AssetConditionMark } from '../asset-marks.js'
+import { AssetConditionMark } from '../../app/asset-marks.js'
 import { AssetState } from '../asset-state.js'
 import { officePlaces } from '../place-addresses.js'
 import { countedAssets } from '../place-pages.js'

@@ -39,7 +39,10 @@ await checkWidths({
    * "ändern" where somebody is named and "benennen" where nobody is; and
    * the dialog a document is filed with (#97), on "Dokumente" and in the card
    * "Dokumente" of an asset, a room and a property; and the dialog that
-   * prints labels (#98), at the register of assets and at a building. A
+   * prints labels (#98), at the register of assets and at a building; and
+   * what taking stock on site opens from the page of a place (#99): the form
+   * of an asset at a building and a room, the form of a room at a floor, and
+   * the label of an asset, whose camera a browser without one refuses. A
    * page that has one is checked a second time as a kind of its own, with the
    * button pressed. Found by its name, so that the next record with the same
    * button is checked as well.
@@ -66,5 +69,8 @@ await checkWidths({
     'Verantwortliche Person benennen',
     'Hochladen',
     'Etiketten drucken',
+    'Anlage aufnehmen',
+    'Raum aufnehmen',
+    'Etikett zuordnen',
   ],
 })

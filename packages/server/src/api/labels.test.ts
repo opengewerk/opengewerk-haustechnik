@@ -640,7 +640,9 @@ describe('the labels a device holds', () => {
         ({ outcome, reason }) => ({ outcome, reason }),
       ),
     ).toEqual([
-      { outcome: 'conflict', reason: 'online_only' },
+      // Its code and its property are the server's to write (#99), and that
+      // is answered before the question whether a device makes one at all.
+      { outcome: 'conflict', reason: 'set_by_server' },
       { outcome: 'conflict', reason: 'online_only' },
     ])
     expect(await labelsIn(fresh.property)).toEqual([

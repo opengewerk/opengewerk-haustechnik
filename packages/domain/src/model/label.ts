@@ -91,3 +91,57 @@ export type LabelStanding = (typeof labelStandings)[number]
 export interface LabelStandingAnswer {
   readonly standing: LabelStanding
 }
+
+/** Why a label from a sheet cannot be given to an asset. */
+export const labelAssignmentRefusals = ['blocked', 'taken', 'elsewhere', 'labelled'] as const
+
+export type LabelAssignmentRefusal = (typeof labelAssignmentRefusals)[number]
+
+export const labelAssignmentSentence: Readonly<Record<LabelAssignmentRefusal, string>> = {
+  blocked: 'Dieses Etikett ist gesperrt und lässt sich keiner Anlage mehr zuordnen.',
+  taken: 'Dieses Etikett hängt schon an einer Anlage oder an einem Raum.',
+  elsewhere: 'Dieses Etikett ist für eine andere Liegenschaft gedruckt.',
+  labelled: 'Diese Anlage hat schon ein gültiges Etikett.',
+}
+
+function given(value: unknown): boolean {
+  return value !== undefined && value !== null
+}
+
+/**
+ * Whether a label from a sheet may be given to an asset (section 4.2 of the
+ * concept, "Etikett kleben und zuordnen"), or why not. One rule for the
+ * screen on site, which asks before it queues anything, and for the server,
+ * which asks again when the device exchanges.
+ *
+ * A label is given once: one that is blocked, or hangs on something already,
+ * takes no asset. It stays on the property it was printed for, which is the
+ * one its face names, so an asset of another property does not get it. And an
+ * asset carries one valid label, which `labelled` says of the asset asked
+ * about: a second one would leave two stickers that open the same page, and
+ * nobody could tell which one to block when one is lost.
+ */
+export function labelAssignmentRefusal(
+  label: {
+    readonly blockedAt?: unknown
+    readonly assetId?: unknown
+    readonly roomId?: unknown
+    readonly propertyId?: unknown
+  },
+  asset: { readonly propertyId?: unknown },
+  labelled: boolean,
+): LabelAssignmentRefusal | null {
+  if (given(label.blockedAt)) {
+    return 'blocked'
+  }
+
+  if (given(label.assetId) || given(label.roomId)) {
+    return 'taken'
+  }
+
+  if (!given(label.propertyId) || label.propertyId !== asset.propertyId) {
+    return 'elsewhere'
+  }
+
+  return labelled ? 'labelled' : null
+}

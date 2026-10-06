@@ -1,3 +1,5 @@
+import { randomBytes } from 'node:crypto'
+
 import {
   type AssetId,
   type Catalogue,
@@ -5,11 +7,13 @@ import {
   type EvidenceId,
   type Identity,
   type IsoDate,
+  labelCodeFrom,
+  type PropertyId,
 } from '@opengewerk/haustechnik-domain'
 import type { Database } from '@opengewerk/platform-server'
 import { eq } from 'drizzle-orm'
 
-import { assets, defects } from '../database/schema/index.js'
+import { assets, defects, labels, properties } from '../database/schema/index.js'
 import { voidEvidence } from '../evidence/voiding.js'
 import { writeEvidence } from '../evidence/write.js'
 import { dayInGermany } from '../today.js'
@@ -109,6 +113,28 @@ export async function writeSampleStandings(
         description: defect.description,
         foundOn: dayInGermany(at),
       })
+    }
+
+    // The labels of a sheet: on their property and on nothing else, each with
+    // a code of its own, as the route that prints a sheet makes them.
+    for (const sheet of planted.sheets) {
+      const [property] = await tx
+        .select({ areaId: properties.areaId })
+        .from(properties)
+        .where(eq(properties.id, sheet.propertyId as PropertyId))
+
+      if (property === undefined) {
+        throw new Error(`Die Liegenschaft ${sheet.propertyId} der Beispieldaten gibt es nicht.`)
+      }
+
+      await tx.insert(labels).values(
+        Array.from({ length: sheet.labels }, () => ({
+          tenantId: planter.tenantId,
+          propertyId: sheet.propertyId as PropertyId,
+          areaId: property.areaId,
+          code: labelCodeFrom(randomBytes(10)),
+        })),
+      )
     }
   })
 }

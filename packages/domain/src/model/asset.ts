@@ -74,6 +74,13 @@ export interface Asset extends Synced {
   readonly values: Readonly<Record<string, AssetValue>>
   readonly meterNumber: string | null
   readonly meterUnit: MeterUnit | null
+  /**
+   * The assets this one was held against when it was entered and found to be
+   * another (section 4.2 of the concept, "trotzdem anlegen"). A possible
+   * duplicate somebody has seen and passed is not asked about a second time
+   * when the server looks again (section 2.7).
+   */
+  readonly distinctFrom: readonly AssetId[]
 }
 
 /**
@@ -123,6 +130,7 @@ export const assetLimits = {
   serialNumber: 80,
   meterNumber: 60,
   textValue: 500,
+  distinctFrom: 20,
   earliestYearBuilt: 1800,
   latestYearBuilt: 2100,
 } as const
@@ -240,6 +248,25 @@ export function assetProblems(asset: Readonly<Record<string, unknown>>): Readonl
   }
 
   return problems
+}
+
+const idShape = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/iu
+
+/**
+ * What is wrong with the list of assets one was found to be distinct from, or
+ * null: a list of ids, each once, and no longer than anybody passes possible
+ * duplicates on one form.
+ */
+export function distinctFromProblem(value: unknown): string | null {
+  const fits =
+    Array.isArray(value) &&
+    value.length <= assetLimits.distinctFrom &&
+    value.every((each) => typeof each === 'string' && idShape.test(each)) &&
+    new Set(value).size === value.length
+
+  return fits
+    ? null
+    : `Wovon eine Anlage verschieden ist, steht als Liste von höchstens ${String(assetLimits.distinctFrom)} Anlagen.`
 }
 
 /**

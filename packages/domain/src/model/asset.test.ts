@@ -5,6 +5,7 @@ import {
   assetLimits,
   assetProblems,
   assetValueProblems,
+  distinctFromProblem,
   lifecycleEntryProblems,
   type LifecycleState,
   lifecycleStateOn,
@@ -249,5 +250,32 @@ describe('what an asset supplies', () => {
       'Ein Eintrag versorgt genau ein Gebäude oder einen Raum.',
     )
     expect(supplyPlaceProblem({})).toBe('Ein Eintrag versorgt genau ein Gebäude oder einen Raum.')
+  })
+})
+
+describe('what an asset was found to be distinct from', () => {
+  const one = '0199c0de-0000-7000-8000-00000000000a'
+  const other = '0199c0de-0000-7000-8000-00000000000b'
+
+  it('is a list of assets, each once, and may be empty', () => {
+    expect(distinctFromProblem([])).toBeNull()
+    expect(distinctFromProblem([one, other])).toBeNull()
+  })
+
+  it('is nothing else: no text, no number of an asset, no asset twice, and no list longer than a form shows', () => {
+    const sentence = 'Wovon eine Anlage verschieden ist, steht als Liste von höchstens 20 Anlagen.'
+
+    expect(distinctFromProblem(one)).toBe(sentence)
+    expect(distinctFromProblem(null)).toBe(sentence)
+    expect(distinctFromProblem(['AN-00057'])).toBe(sentence)
+    expect(distinctFromProblem([one, one])).toBe(sentence)
+    expect(
+      distinctFromProblem(
+        Array.from(
+          { length: assetLimits.distinctFrom + 1 },
+          (_, index) => `0199c0de-0000-7000-8000-${String(index).padStart(12, '0')}`,
+        ),
+      ),
+    ).toBe(sentence)
   })
 })

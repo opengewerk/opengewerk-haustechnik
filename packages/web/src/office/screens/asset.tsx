@@ -53,7 +53,7 @@ import {
   MoveAssetDialog,
   TakeBackLifecycleEntry,
 } from '../asset-dialogs.js'
-import { AssetConditionMark, DutyStateMark } from '../asset-marks.js'
+import { AssetConditionMark, DutyStateMark } from '../../app/asset-marks.js'
 import { AssetState } from '../asset-state.js'
 import { cataloguePlaces } from '../catalogue-addresses.js'
 import { DocumentsCard } from '../documents.js'

@@ -38,10 +38,12 @@ import { type FormEvent, type ReactNode, useMemo, useRef, useState } from 'react
 
 import {
   type KindField,
+  kindChoices,
   kindFields,
   typedValues,
   unitOf,
   valuesOf,
+  yearOf,
 } from '../../app/asset-values.js'
 import { placePath } from '../../app/place-path.js'
 import { byLevel, byNumber, placeAbove, titleOfRoom } from '../../app/place-records.js'
@@ -225,27 +227,6 @@ interface Typed {
 interface Choice {
   readonly value: string
   readonly label: string
-}
-
-const byLabel = (left: Choice, right: Choice) => left.label.localeCompare(right.label, 'de')
-
-/** The kinds of the catalogue in force today, by package and then by name: "Trinkwasser: Trinkwassererwärmung". */
-function kindChoices(catalogue: Catalogue): readonly Choice[] {
-  return catalogue.contents(today()).flatMap((contents) =>
-    contents.assetKinds
-      .map((entry) => ({
-        value: entry.key,
-        label: `${contents.title}: ${entry.definition.label}`,
-      }))
-      .sort(byLabel),
-  )
-}
-
-/** The year as the model wants it: nothing, a whole number, or what was typed for the model to refuse. */
-function yearOf(typed: string): number | string | null {
-  const said = typed.trim()
-
-  return said === '' ? null : /^\d+$/.test(said) ? Number(said) : said
 }
 
 function AssetForm({

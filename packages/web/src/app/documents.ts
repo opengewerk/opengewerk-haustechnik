@@ -259,6 +259,26 @@ export function hangsOn(document: RecordState, around: DocumentSurroundings): Ha
   }
 }
 
+const homes = ['assetId', 'roomId', 'buildingId', 'activityId'] as const
+
+/**
+ * The documents filed at one record: those that name it, or for a property
+ * alone those of the property that hang on nothing else there.
+ */
+export function documentsAt(
+  documents: readonly RecordState[],
+  place: DocumentPlace,
+): readonly RecordState[] {
+  const home = homes.find((field) => place[field] !== undefined && place[field] !== null)
+
+  return documents.filter((document) =>
+    home === undefined
+      ? document['propertyId'] === place.propertyId &&
+        homes.every((field) => document[field] === null || document[field] === undefined)
+      : document[home] === place[home],
+  )
+}
+
 /**
  * The documents with their versions, the one changed last first: a document
  * counts by its newest version, whose id is minted when it is made, on a

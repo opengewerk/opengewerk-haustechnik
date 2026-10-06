@@ -125,6 +125,7 @@ Anhang B nennt jedes Feld der Datenbank, das auf eine Person zeigt. Dieser Absch
 
 - Ein Etikett mit QR-Code hängt an einer Anlage oder einem Raum, oder es stammt von einem Bogen für die Bestandsaufnahme und gehört zu einer Liegenschaft. Es trägt einen zufälligen Code und wie jeder Datensatz seinen Stempel (Abschnitt 3.6): wer es angelegt und wer es gesperrt hat, steht dort und im Änderungsprotokoll. Darüber hinaus nennt ein Etikett keine Person. [K3, K4.2]
 - Auf dem gedruckten Etikett stehen der Betreiber, die Anlage oder der Raum und der Ort, und keine Person. [K3]
+- Ein Etikett vom Bogen ordnet vor Ort einer Anlage zu, wer Anlagen aufnimmt. Wer es zugeordnet hat, steht wie bei jeder Änderung im Stempel des Etiketts und im Änderungsprotokoll, und sonst nirgends. [K4.2]
 
 ---
 

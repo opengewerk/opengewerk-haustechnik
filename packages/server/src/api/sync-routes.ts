@@ -97,8 +97,9 @@ export const operationRights: Readonly<Record<string, OperationRights>> = {
   },
   attachment_versions: { create: 'document.record', otherwise: 'document.remove' },
   // A label is made and blocked at its routes, with a connection, by whoever
-  // takes assets into the register; nothing about one is sent from an outbox.
-  labels: { otherwise: 'asset.record' },
+  // takes assets into the register, and the same right gives one from a sheet
+  // to an asset on site.
+  labels: { change: 'asset.record', otherwise: 'asset.record' },
 }
 
 /**

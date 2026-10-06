@@ -80,6 +80,7 @@ export const auditVocabulary: AuditVocabulary = {
         values: 'Angaben der Anlagenart',
         meter_number: 'Zählernummer',
         meter_unit: 'Einheit des Zählers',
+        distinct_from: 'Für eine andere befunden als',
       },
     },
     asset_lifecycle: {

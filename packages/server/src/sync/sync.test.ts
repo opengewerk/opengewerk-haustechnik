@@ -1,3 +1,5 @@
+import { randomBytes } from 'node:crypto'
+
 import type { INestApplication } from '@nestjs/common'
 import { Test } from '@nestjs/testing'
 import { probeCatalogueBundle } from '@opengewerk/haustechnik-catalogue/testing'
@@ -12,6 +14,8 @@ import {
   type TenantId,
 } from '@opengewerk/haustechnik-domain'
 import { Database, fingerprintOf, newId } from '@opengewerk/platform-server'
+import { sql } from 'drizzle-orm'
+import { labelCodeFrom } from '@opengewerk/haustechnik-domain'
 import type { Pool } from 'pg'
 import request from 'supertest'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
@@ -1683,5 +1687,335 @@ describe('what a device holds', () => {
         ).defectIds,
       )}`,
     )
+  })
+})
+
+describe('a possible duplicate of an asset taken stock of', () => {
+  const duplicate = (field: string) => ({
+    outcome: 'conflict',
+    reason: 'changed_elsewhere',
+    fields: [field],
+  })
+
+  /** An elevator with a serial number, as a device enters it. */
+  function entering(
+    building: string,
+    serialNumber: string | null,
+    more: Readonly<Record<string, SyncValue>> = {},
+  ) {
+    const id = newId<'asset'>()
+
+    return {
+      id,
+      sent: operation('assets', 'create', id, {
+        buildingId: building,
+        kind: 'probe.elevator',
+        name: 'Aufzug',
+        serialNumber,
+        ...more,
+      }),
+    }
+  }
+
+  it('is a conflict about the serial number for whoever enters it second, and the asset is not made', async () => {
+    const first = entering(place.building, 'SN 4711-A')
+    const second = entering(place.annex, 'sn4711-a')
+
+    expect(await outcomes('u-tech', [first.sent])).toEqual([applied])
+    expect(await outcomes('u-site', [second.sent], small, 'tablet')).toEqual([
+      duplicate('serialNumber'),
+    ])
+    expect(await rowOf('u-lead', 'assets', second.id)).toBeUndefined()
+    expect(await conflictsAbout(second.id, 'u-site', 'tablet')).toEqual([
+      { reason: 'changed_elsewhere', fields: ['serialNumber'] },
+    ])
+  })
+
+  it('lands once the person has passed the asset that is there, and keeps what was said', async () => {
+    const first = entering(place.building, 'SN-PASSED-21')
+    const second = entering(place.building, 'SN-PASSED-21')
+
+    expect(await outcomes('u-tech', [first.sent])).toEqual([applied])
+
+    const passing = operation('assets', 'create', second.id, {
+      buildingId: place.building,
+      kind: 'probe.elevator',
+      name: 'Aufzug',
+      serialNumber: 'SN-PASSED-21',
+      distinctFrom: JSON.stringify([first.id]),
+    })
+
+    expect(await outcomes('u-tech', [passing])).toEqual([applied])
+    expect(await rowOf('u-tech', 'assets', second.id)).toMatchObject({
+      distinctFrom: JSON.stringify([first.id]),
+    })
+  })
+
+  it('is asked about an asset the person has not passed, though another one was', async () => {
+    const first = entering(place.building, 'SN-THREE-33')
+    const second = entering(place.building, 'SN-THREE-33')
+
+    expect(await outcomes('u-tech', [first.sent])).toEqual([applied])
+    expect(
+      await outcomes('u-tech', [
+        entering(place.building, 'SN-THREE-33', { distinctFrom: JSON.stringify([first.id]) }).sent,
+      ]),
+    ).toEqual([applied])
+    // Two are there now, and this device has seen one of them.
+    expect(
+      await outcomes('u-tech', [
+        operation('assets', 'create', second.id, {
+          buildingId: place.building,
+          kind: 'probe.elevator',
+          name: 'Aufzug',
+          serialNumber: 'SN-THREE-33',
+          distinctFrom: JSON.stringify([first.id]),
+        }),
+      ]),
+    ).toEqual([duplicate('serialNumber')])
+  })
+
+  it('finds the asset in an area the person does not see, and says no more than the field', async () => {
+    const inNorth = await placeIn(large, { areaId: north })
+    const inSouth = await placeIn(large, { areaId: south })
+    // The Objektleitung works in the south, the technician in the north.
+    const there = entering(inSouth.building, 'SN-ACROSS-58')
+    const here = entering(inNorth.building, 'SN-ACROSS-58')
+
+    expect(await outcomes('u-site', [there.sent], large)).toEqual([applied])
+    expect(await rowOf('u-tech', 'assets', there.id, large)).toBeUndefined()
+    expect(await outcomes('u-tech', [here.sent], large)).toEqual([duplicate('serialNumber')])
+  })
+
+  it('names the mark where the mark is what two assets share', async () => {
+    const marked = (mark: string) =>
+      operation('assets', 'create', newId<'asset'>(), {
+        buildingId: place.building,
+        kind: 'probe.elevator',
+        name: 'Aufzug',
+        mark,
+      })
+
+    expect(await outcomes('u-tech', [marked('H 77-b')])).toEqual([applied])
+    expect(await outcomes('u-tech', [marked('h77-B')])).toEqual([duplicate('mark')])
+  })
+
+  it('asks nothing of an asset without a number, of one of another operator and of one that was removed', async () => {
+    expect(
+      await outcomes('u-tech', [
+        entering(place.building, null).sent,
+        entering(place.building, null).sent,
+      ]),
+    ).toEqual([applied, applied])
+
+    // The same number at another operator is no duplicate here.
+    const elsewhere = await placeIn(large, { areaId: north })
+
+    expect(
+      await outcomes('u-lead', [entering(elsewhere.building, 'SN-OTHER-64').sent], large),
+    ).toEqual([applied])
+    expect(await outcomes('u-tech', [entering(place.building, 'SN-OTHER-64').sent])).toEqual([
+      applied,
+    ])
+
+    // And an asset that was removed is none either.
+    const removed = entering(place.building, 'SN-GONE-65')
+
+    expect(await outcomes('u-tech', [removed.sent])).toEqual([applied])
+    await admin.query('update assets set deleted_at = now() where id = $1', [removed.id])
+    expect(await outcomes('u-tech', [entering(place.building, 'SN-GONE-65').sent])).toEqual([
+      applied,
+    ])
+  })
+
+  it('asks nothing of a serial number corrected afterwards: the asset is there, and its plate was read', async () => {
+    const first = entering(place.building, 'SN-FIX-91')
+    const second = entering(place.building, 'SN-FIX-92')
+
+    expect(await outcomes('u-tech', [first.sent, second.sent])).toEqual([applied, applied])
+    expect(
+      await outcomes('u-tech', [
+        operation(
+          'assets',
+          'update',
+          second.id,
+          { serialNumber: 'SN-FIX-91' },
+          { serialNumber: 'SN-FIX-92' },
+        ),
+      ]),
+    ).toEqual([applied])
+  })
+
+  it('leaves what was sent with the asset hanging on nothing, each a conflict of its own', async () => {
+    const first = entering(place.building, 'SN-PHOTO-72')
+    const second = entering(place.building, 'SN-PHOTO-72')
+    const photo = newId<'attachment'>()
+
+    expect(await outcomes('u-tech', [first.sent])).toEqual([applied])
+    expect(
+      await outcomes('u-tech', [
+        second.sent,
+        operation('attachments', 'create', photo, {
+          title: 'Typenschild',
+          propertyId: place.property,
+          assetId: second.id,
+        }),
+      ]),
+    ).toEqual([
+      duplicate('serialNumber'),
+      { outcome: 'conflict', reason: 'record_missing', fields: ['assetId'] },
+    ])
+  })
+
+  it('takes what an asset was found distinct from only as a list of assets', async () => {
+    const sent = entering(place.building, 'SN-FORM-80', {
+      distinctFrom: JSON.stringify(['AN-00001']),
+    }).sent
+    const answer = await send('u-tech', [sent]).expect(400)
+
+    expect(answer.body.operationId).toBe(sent.id)
+    expect(answer.body.message).toBe(
+      'Wovon eine Anlage verschieden ist, steht als Liste von höchstens 20 Anlagen.',
+    )
+  })
+
+  it('hands the server only the assets of the operator whose digits fit what is asked', async () => {
+    expect(
+      await outcomes('u-tech', [
+        entering(place.building, 'KX-90817-A').sent,
+        entering(place.building, 'KX-90818-A').sent,
+      ]),
+    ).toEqual([applied, applied])
+
+    const { rows } = await database.forTenant({ tenantId: small, userId: 'u-nobody' }, (tx) =>
+      tx.execute<{ serial_number: string }>(
+        sql`select serial_number from asset_duplicate_candidates('kx 90817 b', null)`,
+      ),
+    )
+
+    expect(rows.map((row) => row.serial_number)).toEqual(['KX-90817-A'])
+  })
+})
+
+describe('a label from a sheet, given to an asset on site', () => {
+  /** A label of a sheet printed for a property, as the office makes one: on nothing yet. */
+  async function sheetLabel(property: string, blocked = false): Promise<string> {
+    const id = newId<'label'>()
+
+    await admin.query(
+      `insert into labels (id, tenant_id, property_id, area_id, code, blocked_at)
+       select $1, tenant_id, id, area_id, $3, $4 from properties where id = $2`,
+      [id, property, labelCodeFrom(randomBytes(10)), blocked ? new Date() : null],
+    )
+
+    return id
+  }
+
+  const given = (label: string, asset: string | null, seen: string | null = null) =>
+    operation('labels', 'update', label, { assetId: asset }, { assetId: seen })
+
+  it('hangs on the asset from then on, and goes out with the asset it was made beside', async () => {
+    const label = await sheetLabel(place.property)
+    const asset = newId<'asset'>()
+
+    expect(
+      await outcomes('u-tech', [
+        operation('assets', 'create', asset, {
+          buildingId: place.building,
+          kind: 'probe.elevator',
+          name: 'Aufzug mit Etikett',
+        }),
+        given(label, asset),
+      ]),
+    ).toEqual([applied, applied])
+    expect(await rowOf('u-tech', 'labels', label)).toMatchObject({
+      assetId: asset,
+      blockedAt: null,
+    })
+  })
+
+  it('is a conflict for the second device where another gave it away or labelled the asset meanwhile', async () => {
+    const label = await sheetLabel(place.property)
+    const spare = await sheetLabel(place.property)
+    const [first, second] = [await elevatorIn(place), await elevatorIn(place)]
+
+    expect(await outcomes('u-tech', [given(label, first)])).toEqual([applied])
+    // The label is on the first asset: it takes no second one.
+    expect(await outcomes('u-site', [given(label, second)], small, 'tablet')).toEqual([
+      { outcome: 'conflict', reason: 'changed_elsewhere', fields: ['assetId'] },
+    ])
+    // And the first asset has its label: it takes no second one.
+    expect(await outcomes('u-site', [given(spare, first)], small, 'tablet')).toEqual([
+      { outcome: 'conflict', reason: 'changed_elsewhere', fields: ['assetId'] },
+    ])
+    expect(await rowOf('u-tech', 'labels', spare)).toMatchObject({ assetId: null })
+  })
+
+  it('takes no asset once it is blocked', async () => {
+    const label = await sheetLabel(place.property, true)
+
+    expect(await outcomes('u-tech', [given(label, await elevatorIn(place))])).toEqual([
+      expect.objectContaining({ outcome: 'conflict', reason: 'record_is_fixed' }),
+    ])
+  })
+
+  it('does not hang on an asset of another property, on one that is gone or on one in another area', async () => {
+    const other = await placeIn()
+    const gone = await elevatorIn(place)
+    const missing = { outcome: 'conflict', reason: 'record_missing', fields: ['assetId'] }
+
+    await admin.query('update assets set deleted_at = now() where id = $1', [gone])
+
+    expect(
+      await outcomes('u-tech', [
+        given(await sheetLabel(place.property), await elevatorIn(other)),
+        given(await sheetLabel(place.property), gone),
+      ]),
+    ).toEqual([missing, missing])
+
+    // In the tenant with two areas: a label in the north, an asset in the south.
+    const inNorth = await placeIn(large, { areaId: north })
+    const inSouth = await placeIn(large, { areaId: south })
+    const southern = newId<'asset'>()
+
+    expect(
+      await outcomes(
+        'u-site',
+        [
+          operation('assets', 'create', southern, {
+            buildingId: inSouth.building,
+            kind: 'probe.elevator',
+            name: 'Aufzug Süd',
+          }),
+        ],
+        large,
+      ),
+    ).toEqual([applied])
+    expect(
+      await outcomes('u-tech', [given(await sheetLabel(inNorth.property), southern)], large),
+    ).toEqual([missing])
+  })
+
+  it('is neither taken off its asset nor given to a room or blocked from an outbox', async () => {
+    const label = await sheetLabel(place.property)
+    const asset = await elevatorIn(place)
+
+    expect(await outcomes('u-tech', [given(label, asset)])).toEqual([applied])
+    expect(await outcomes('u-tech', [given(label, null, asset)])).toEqual([
+      { outcome: 'conflict', reason: 'changed_elsewhere', fields: ['assetId'] },
+    ])
+
+    const free = await sheetLabel(place.property)
+
+    expect(
+      await outcomes('u-tech', [
+        operation('labels', 'update', free, { roomId: place.room }),
+        operation('labels', 'update', free, { blockedAt: '2026-10-06T08:00:00.000Z' }),
+      ]),
+    ).toEqual([
+      { outcome: 'conflict', reason: 'online_only', fields: ['roomId'] },
+      { outcome: 'conflict', reason: 'online_only', fields: ['blockedAt'] },
+    ])
+    expect(await rowOf('u-tech', 'labels', free)).toMatchObject({ roomId: null, blockedAt: null })
   })
 })

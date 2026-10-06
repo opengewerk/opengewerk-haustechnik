@@ -68,7 +68,7 @@ describe('the policies of the sync', () => {
       attachments: [true, 'merge'],
       attachment_versions: [true, 'never'],
       // Made and blocked in the office; a device reads them for a scan.
-      labels: [false, 'never'],
+      labels: [false, 'merge'],
     })
   })
 
@@ -101,6 +101,16 @@ describe('the policies of the sync', () => {
     // there (ADR 0002, point 10); which property, only the device knows.
     expect(syncPolicies['activities']?.reserved).not.toContain('propertyId')
     expect(syncPolicies['defects']?.reserved).not.toContain('propertyId')
+  })
+
+  it('let a device give a label from a sheet to an asset while it is not blocked, and nothing else about a label', () => {
+    expect(syncPolicies['labels']).toEqual({
+      create: false,
+      change: 'merge',
+      onlyWhile: { field: 'blockedAt', values: [null] },
+      reserved: ['code', 'propertyId', 'areaId'],
+    })
+    expect(offlineEdits['labels']).toEqual({ change: { assetId: true } })
   })
 
   it('keep a result to the time before the signature, and a signed activity to the office', () => {

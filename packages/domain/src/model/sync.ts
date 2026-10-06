@@ -1,6 +1,5 @@
 import {
   attachmentVersionPolicy,
-  labelPolicy,
   type Operation,
   type SyncPolicy,
   syncRules,
@@ -114,8 +113,15 @@ export const syncPolicies: Readonly<Record<string, SyncPolicy>> = {
   attachment_versions: attachmentVersionPolicy,
   // A label is made and blocked in the office, with a connection: the server
   // draws its code. A device holds the labels of its places, so that a scan
-  // opens an asset without a network.
-  labels: labelPolicy,
+  // opens an asset without a network, and it gives a label from a sheet to an
+  // asset it takes stock of, also without one. A blocked label takes nothing.
+  // Its code, its property and its area are the server's.
+  labels: {
+    create: false,
+    change: 'merge',
+    onlyWhile: { field: 'blockedAt', values: [null] },
+    reserved: ['code', 'propertyId', 'areaId'],
+  },
 }
 
 /**
@@ -189,8 +195,15 @@ export const offlineEdits: Readonly<Record<string, OfflineEdits>> = {
   },
   // An asset in its building, on request in a room or under another asset.
   // Moving and removing it is "pflegen" and needs a connection.
+  // What it was found to be distinct from is said once, when it is entered.
   assets: {
-    create: { buildingId: true, roomId: true, parentAssetId: true, ...assetDetails },
+    create: {
+      buildingId: true,
+      roomId: true,
+      parentAssetId: true,
+      ...assetDetails,
+      distinctFrom: true,
+    },
     change: assetDetails,
   },
   // What an asset supplies, one building or room per row: added and taken
@@ -259,6 +272,9 @@ export const offlineEdits: Readonly<Record<string, OfflineEdits>> = {
     change: { title: true, kind: true },
     remove: true,
   },
+  // A label from a sheet is given to an asset. Blocking it, and giving one to
+  // a room, is done at the routes of the office.
+  labels: { change: { assetId: true } },
   // A version of a document, with the file it names by its hash.
   attachment_versions: {
     create: {
@@ -394,6 +410,7 @@ export const syncFieldNames: Readonly<Record<string, string>> = {
   values: 'Angaben der Anlagenart',
   meterNumber: 'Zählernummer',
   meterUnit: 'Einheit des Zählers',
+  distinctFrom: 'Für eine andere befunden als',
   state: 'Zustand',
   validFrom: 'Ab',
   // What is said about a duty.
@@ -449,7 +466,8 @@ export const syncFieldNames: Readonly<Record<string, string>> = {
   mediaType: 'Dateityp',
   sizeBytes: 'Größe',
   previewSha256: 'Vorschau',
-  // What is said about a label. A device writes none, so neither field ever
+  // What is said about a label. A device gives one to an asset, which shares
+  // its entry with every record that hangs on one; neither of these two ever
   // stands in a conflict.
   code: 'Code',
   blockedAt: 'Gesperrt am',
