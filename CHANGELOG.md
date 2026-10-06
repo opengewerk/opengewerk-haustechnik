@@ -687,6 +687,31 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   Submodul steht auf diesem Stand. Wie eine Pflicht steht, sagt vor Ort der Server, mit Verbindung; die letzten Nachweise
   kommen mit `#109`, "Mangel melden" mit `#116`
 
+- Der Import aus Tabellen (`#100`, Abschnitte 3 und 11 des Konzepts): Liegenschaften, Gebäude, Geschosse und Räume unter
+  "Liegenschaften", Anlagen unter "Anlagen", je hinter dem Knopf "Importieren". Eine Excel-Arbeitsmappe oder CSV-Datei wird
+  gewählt, ihre Spalten werden Feldern zugeordnet (vorgeschlagen nach den Namen der Spalten), die Vorschau zeigt, was die
+  Zeilen anlegen würden, welche zu klären sind und was es schon gibt, und ein Knopf übernimmt alles oder nichts. Bis dahin
+  wird nichts geschrieben und die Datei nicht gespeichert. Für Anlagen kommt ein Schritt dazwischen, "Anlagenarten
+  zuordnen": jede Bezeichnung der Liste bekommt einmal eine Anlagenart des Katalogs, der Betreiber behält die Zuordnung für
+  den nächsten Import, und was kein Fachpaket kennt, bekommt die allgemeine Anlagenart seiner Kostengruppe. Trägt eine Zeile
+  die Seriennummer oder das Kennzeichen einer Anlage, die es gibt, oder einer früheren Zeile, entscheidet, wer importiert,
+  für jede: nicht anlegen oder trotzdem anlegen; ohne die Entscheidung wird nichts übernommen. Orte werden am Namen
+  wiedererkannt, nie doppelt angelegt und nie geändert. **Ein Import steht als ein Eintrag im Änderungsprotokoll**, mit
+  Datei, Zeilenzahl und Ergebnis, statt mit einem Eintrag je Feld jedes Raums: die Migration `0022_imports` bringt dafür die
+  Tabelle `imports`, und die Trigger des Protokolls an Liegenschaften, Gebäuden, Geschossen, Räumen und Anlagen schweigen
+  genau in der Transaktion, die die Zeile ihres Imports selbst geschrieben hat. Die Nummern der Anlagen zieht die
+  Übernahme in einem Schritt, sodass daneben eine Änderung am Nummernkreis steht und nicht eine je Anlage
+  (`opengewerk#574`). Die Verfahrensbeschreibung sagte bisher zu, dass jede Änderung Feld für Feld im Protokoll steht;
+  sie nennt den Import jetzt in Abschnitt 8 als Ausnahme mit eigener Zusage und in 3.11, was von einem Import bleibt.
+  Gebaut, weil der Bestand eines Betreibers
+  heute in Listen steht und der Weg von dort Teil des Produkts ist (Abschnitt 11); derselbe Weg dient der Übernahme aus einer
+  Vorgängeranwendung (`#130`). Kein neues Recht: den Bestand importiert, wer Liegenschaften pflegt, Anlagen und
+  Anlagenarten, wer Anlagen pflegt, und beide nur in die Bereiche, die sie sehen. Das Format steht in
+  `docs/import/Tabellen.md`, im ersten Schritt gibt es je eine Vorlage. Tabellen liest das Fundament seit `opengewerk#573`,
+  ohne ein weiteres Paket; das Submodul steht auf dem Stand von `opengewerk#574`. Die Hinweise unter "Neue Liegenschaft" und "Neues Gebäude"
+  nennen den Import jetzt, wie die Tafeln es zeichnen. Was nur eine Anlagenart hat, liest der Import nicht; Fristen und alte
+  Nachweise kommen mit `#130`
+
 ### Geändert
 
 - Das Pflichtenverzeichnis auf die Pflichten einer Person eingrenzen kann nur, wer es führt, also Leitung und

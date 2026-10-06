@@ -63,6 +63,22 @@ export const auditVocabulary: AuditVocabulary = {
       label: 'Raum',
       fields: { floor_id: 'Geschoss', number: 'Raumnummer', use: 'Nutzung' },
     },
+    // An import from a table (#100): one row for the whole of it, which is
+    // what the log shows in the place of every record it made. And what the
+    // lists of the tenant call an asset kind.
+    imports: {
+      label: 'Import',
+      fields: {
+        kind: 'Übernommen wurden',
+        file_name: 'Datei',
+        lines: 'Zeilen',
+        summary: 'Ergebnis',
+      },
+    },
+    asset_kind_names: {
+      label: 'Bezeichnung einer Anlagenart',
+      fields: { name_key: 'Verglichen als', kind: 'Anlagenart' },
+    },
     // The technology (ADR 0002, points 4 to 9).
     assets: {
       label: 'Anlage',
@@ -339,6 +355,8 @@ export const auditVocabulary: AuditVocabulary = {
     building_closures: ['reason', 'starts_on'],
     // A room by its number, and by its name where it has none.
     rooms: ['number', 'name'],
+    // An import by its file.
+    imports: ['file_name'],
     // A label by its code, which is what stands on the sticker.
     labels: ['code'],
     // An entry of a life cycle by its state, a supply by what is supplied.

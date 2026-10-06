@@ -922,7 +922,7 @@ describe('the form of a new property', () => {
 
     expect(
       await screen.findByText(
-        'Gebäude, Geschosse und Räume legen Sie danach in der Liegenschaft an.',
+        'Gebäude, Geschosse und Räume legen Sie danach in der Liegenschaft an, oder Sie übernehmen sie mit dem Import.',
       ),
     ).toBeTruthy()
     expect(screen.queryByRole('button', { name: 'Liegenschaft entfernen' })).toBeNull()

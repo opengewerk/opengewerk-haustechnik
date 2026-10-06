@@ -11,6 +11,8 @@ import type {
   Evidence,
   EvidenceVoiding,
   Floor,
+  Import,
+  KeptKindName,
   PlaceLabel,
   Property,
   Room,
@@ -31,6 +33,8 @@ import type {
   evidence,
   evidenceVoidings,
   floors,
+  assetKindNames,
+  imports,
   labels,
   properties,
   rooms,
@@ -59,6 +63,8 @@ export type BuildingClosureMatches = Assert<
   Exact<typeof buildingClosures.$inferSelect, BuildingClosure>
 >
 export type PlaceLabelMatches = Assert<Exact<typeof labels.$inferSelect, PlaceLabel>>
+export type ImportMatches = Assert<Exact<typeof imports.$inferSelect, Import>>
+export type KeptKindNameMatches = Assert<Exact<typeof assetKindNames.$inferSelect, KeptKindName>>
 export type DutyMatches = Assert<Exact<typeof duties.$inferSelect, Duty>>
 export type DutyDismissalMatches = Assert<Exact<typeof dutyDismissals.$inferSelect, DutyDismissal>>
 export type EvidenceMatches = Assert<Exact<typeof evidence.$inferSelect, Evidence>>

@@ -42,13 +42,14 @@ import {
   useSyncStatus,
 } from '@opengewerk/platform-web/sync'
 import { Link, useNavigate, useParams } from '@tanstack/react-router'
-import { Building2, Pencil, Plus } from 'lucide-react'
+import { Building2, Pencil, Plus, Upload } from 'lucide-react'
 import { type ReactNode, useId, useMemo, useState } from 'react'
 
 import { kindsOf } from '../../app/place-records.js'
 import { areaName, useAreas, useAreasQuery } from '../../session/areas.js'
 import { makeAt } from '../../sync/made-at.js'
 import { AreaBadge } from '../area-badge.js'
+import { importPlaces } from '../import-addresses.js'
 import { officePlaces, placeForms } from '../place-addresses.js'
 import { NotAllowed, RemovePlace } from '../place-forms.js'
 import { DocumentsCard } from '../documents.js'
@@ -167,16 +168,27 @@ export function PropertyListScreen() {
   const shownBuildings = shown.reduce((sum, property) => sum + buildingsOf(property).length, 0)
   const allBuildings = properties.reduce((sum, property) => sum + buildingsOf(property).length, 0)
 
+  // Whoever keeps the places makes one by hand or takes a list over (#100).
   const create = creates ? (
-    <Button
-      tone="primary"
-      icon={Plus}
-      onClick={() => {
-        void navigate({ to: `${listPath}/neu` })
-      }}
-    >
-      Neue Liegenschaft
-    </Button>
+    <>
+      <Button
+        icon={Upload}
+        onClick={() => {
+          void navigate({ to: importPlaces.structure })
+        }}
+      >
+        Importieren
+      </Button>
+      <Button
+        tone="primary"
+        icon={Plus}
+        onClick={() => {
+          void navigate({ to: `${listPath}/neu` })
+        }}
+      >
+        Neue Liegenschaft
+      </Button>
+    </>
   ) : null
 
   if (properties.length === 0) {
@@ -758,7 +770,8 @@ function PropertyFormScreen({ propertyId }: { readonly propertyId: string | unde
           after={
             editing ? null : (
               <NoteBox>
-                Gebäude, Geschosse und Räume legen Sie danach in der Liegenschaft an.
+                Gebäude, Geschosse und Räume legen Sie danach in der Liegenschaft an, oder Sie
+                übernehmen sie mit dem Import.
               </NoteBox>
             )
           }

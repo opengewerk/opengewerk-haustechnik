@@ -30,4 +30,7 @@ export const serverPaths: readonly string[] = [
   'duty-dismissals',
   // The catalogue of the server, which a device fetches and keeps.
   'catalogue',
+  // The import of places and assets from tables, and what the lists of a
+  // tenant call the asset kinds.
+  'imports',
 ]

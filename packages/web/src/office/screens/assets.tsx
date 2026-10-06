@@ -20,7 +20,7 @@ import { useRight } from '@opengewerk/platform-web/session'
 import { maybeText, request, text, useRecords } from '@opengewerk/platform-web/sync'
 import { useInfiniteQuery } from '@tanstack/react-query'
 import { Link, useNavigate, useSearch } from '@tanstack/react-router'
-import { Plus } from 'lucide-react'
+import { Plus, Upload } from 'lucide-react'
 import { useMemo } from 'react'
 
 import { useCatalogue } from '../../sync/catalogue.js'
@@ -32,6 +32,7 @@ import {
   registerRequest,
   registerSearch,
 } from '../asset-addresses.js'
+import { importPlaces } from '../import-addresses.js'
 import { PrintLabelsButton } from '../labels.js'
 import { AssetConditionMark } from '../../app/asset-marks.js'
 import { AssetState } from '../asset-state.js'
@@ -64,6 +65,7 @@ export function AssetRegisterScreen() {
   const filter = useMemo(() => registerFilterOf(search), [search])
   const navigate = useNavigate()
   const records = useRight('asset.record')
+  const imports = useRight('asset.write')
   const catalogue = useCatalogue()
   const properties = useRecords('properties')
   const buildings = useRecords('buildings')
@@ -119,6 +121,17 @@ export function AssetRegisterScreen() {
           ? {
               actions: (
                 <>
+                  {/* A list taken over whole, for whoever keeps the assets (#100). */}
+                  {imports ? (
+                    <Button
+                      icon={Upload}
+                      onClick={() => {
+                        void navigate({ to: importPlaces.assets })
+                      }}
+                    >
+                      Importieren
+                    </Button>
+                  ) : null}
                   {/* A label for everything the list shows, under the filter
                       it is narrowed by, or a sheet that hangs on nothing yet. */}
                   <PrintLabelsButton

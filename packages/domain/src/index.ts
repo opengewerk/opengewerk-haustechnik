@@ -50,6 +50,14 @@ export * from './model/asset-duplicate.js'
 export * from './model/meter.js'
 export * from './model/cost-group.js'
 
+// The import of places and assets from a table: the plan of what its lines
+// would make, held against what is there, and what a list calls the asset
+// kinds.
+export * from './model/floor-level.js'
+export * from './model/import.js'
+export * from './model/import-structure.js'
+export * from './model/import-assets.js'
+
 // The catalogue the packages under pakete/ make up: asset kinds, duty kinds
 // and their rules, each with its review, and the questions asked of it.
 export * from './model/catalogue.js'

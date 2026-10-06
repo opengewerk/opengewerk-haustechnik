@@ -127,6 +127,11 @@ Anhang B nennt jedes Feld der Datenbank, das auf eine Person zeigt. Dieser Absch
 - Auf dem gedruckten Etikett stehen der Betreiber, die Anlage oder der Raum und der Ort, und keine Person. [K3]
 - Ein Etikett vom Bogen ordnet vor Ort einer Anlage zu, wer Anlagen aufnimmt. Wer es zugeordnet hat, steht wie bei jeder Änderung im Stempel des Etiketts und im Änderungsprotokoll, und sonst nirgends. [K4.2]
 
+### 3.11 Import aus Tabellen
+
+- Wer Liegenschaften oder Anlagen pflegt, übernimmt sie auch aus einer Tabelle. Die Datei wird gelesen und nicht gespeichert. Von einem Import bleiben eine Zeile mit dem Namen der Datei, der Zahl ihrer Zeilen und dem Ergebnis in Worten, und die Datensätze, die er angelegt hat. Die Zeile nennt keine Person. Wer importiert hat und wann, steht im Änderungsprotokoll (Abschnitt 8) und im Stempel der angelegten Datensätze (Abschnitt 3.6), dort wie immer nur, bis jemand den Datensatz ändert. [K11, K3, B92]
+- Wie die Listen eines Betreibers die Anlagenarten nennen, behält die Anwendung für den nächsten Import: ein Wort und die Anlagenart dazu, ohne Person. Wer ein Wort zugeordnet hat, steht im Änderungsprotokoll. [K11]
+
 ---
 
 ## 4. Wer was sieht
@@ -197,7 +202,8 @@ Leitung und Technische Leitung sehen als Vorgabe alle Bereiche.
 
 ## 8. Das Änderungsprotokoll
 
-- **Zusage:** Jede Änderung an einem Datensatz eines Betreibers steht im Änderungsprotokoll, Feld für Feld mit dem Wert davor und danach: wer sie gemacht hat, wann, von welchem Gerät und auf welchem Weg, also mit welchem Recht. Ausgenommen sind nur die Tabellen auf einer Liste, die der Test nennt: das Protokoll selbst, die Tabellen der Anmeldung, die Quittungen des Abgleichs, der Lauf der Fristen und versiegelte Zugangsdaten. [K3, B31, B32]
+- **Zusage:** Jede Änderung an einem Datensatz eines Betreibers steht im Änderungsprotokoll, Feld für Feld mit dem Wert davor und danach: wer sie gemacht hat, wann, von welchem Gerät und auf welchem Weg, also mit welchem Recht. Ausgenommen sind nur die Tabellen auf einer Liste, die der Test nennt: das Protokoll selbst, die Tabellen der Anmeldung, die Quittungen des Abgleichs, der Lauf der Fristen und versiegelte Zugangsdaten. Eine weitere Ausnahme gibt es, den Import aus Tabellen; sie steht im nächsten Punkt. [K3, B31, B32]
+- **Zusage:** Was ein Import aus Tabellen anlegt, steht nicht Datensatz für Datensatz im Änderungsprotokoll, sondern als ein Eintrag für den ganzen Import: wer importiert hat, wann, von welchem Gerät, welche Datei mit wie vielen Zeilen und was dabei angelegt wurde. Das gilt für Liegenschaften, Gebäude, Geschosse, Räume und Anlagen, und nur in dem Schritt, der den Eintrag des Imports selbst schreibt: kein anderer Weg legt einen Datensatz am Protokoll vorbei an. Ein Import legt nur an, er ändert und löscht nichts. Jede spätere Änderung an einem so angelegten Datensatz steht wieder Feld für Feld im Protokoll. Bei Anlagen steht neben dem Eintrag des Imports eine Änderung am Nummernkreis: er ist um ihre Zahl weitergerückt. [K11, K3, B88, B89, B90, B91]
 - Im Änderungsprotokoll stehen damit auch die An- und Abmeldungen bei dem Betreiber, die Zuteilung von Rollen und Bereichen, die Vertretungen, der Linienzug jeder Unterschrift, die Angaben der Ansprechpartner und jede Berichtigung von Name oder E-Mail-Adresse. Die Werte stehen dort im Klartext. [K9, B45]
 - **Zusage:** Das Änderungsprotokoll liest nur die Leitung. Technische Leitung, Objektleitung und Haustechnik werden abgelehnt. [K9, B3, B14]
 - **Zusage:** Das Änderungsprotokoll wird nur ergänzt. Einen Eintrag ändert oder löscht niemand, auch nicht der Eigentümer der Tabellen; jeder Eintrag verweist über einen Fingerabdruck auf seinen Vorgänger, und eine Prüfung der Kette findet einen Eintrag, der an der Anwendung vorbei verändert wurde. [K3, B54, B55]
@@ -345,6 +351,11 @@ Pfade ohne Vorsatz liegen im Repository `opengewerk/opengewerk-haustechnik`. Pfa
 | B85 | Recht | `document.read` | Dokumente ansehen: Leitung, Technische Leitung, Objektleitung, Haustechnik |
 | B86 | Recht | `document.remove` | Dokumente entfernen: Leitung, Technische Leitung, Objektleitung |
 | B87 | Test | `packages/server/src/api/documents.test.ts` | `is no longer handed out once its document is taken out of the records, and its row stays` |
+| B88 | Test | `packages/server/src/api/imports.test.ts` | `acceptance 2, "Ein Import steht als ein Eintrag im Änderungsprotokoll und nicht als tausend": the places of an import are one change, the row of the import` |
+| B89 | Test | `packages/server/src/api/imports.test.ts` | `acceptance 2 for assets: the assets of an import write no entry, its row is the one change that names it, and the counter of their numbers moves once` |
+| B90 | Test | `packages/server/src/database/imports.test.ts` | `is no for a later transaction that names the row of an import that is done, and its records are logged` |
+| B91 | Test | `packages/server/src/database/imports.test.ts` | `carry the condition on the five tables an import writes, and on no other` |
+| B92 | Test | `packages/server/src/api/imports.test.ts` | `answers with the table in it, and keeps neither the file nor a word about it` |
 
 ---
 
@@ -409,6 +420,7 @@ Jede Zeile ist der erste Abschnitt einer Adresse, unter der der Server antwortet
 | `files` | Dateien: nimmt den Inhalt einer Datei an, bevor ein Datensatz sie nennt, und gibt keine aus |
 | `floors` | Geschosse |
 | `health` | Gesundheitsprüfung, ohne Daten |
+| `imports` | Import aus Tabellen: liest die Datei einer Liste, ohne sie zu speichern, zeigt, was ihre Zeilen anlegen würden, übernimmt Liegenschaften, Gebäude, Geschosse, Räume und Anlagen ganz oder gar nicht, und hält, wie die Listen des Betreibers die Anlagenarten nennen |
 | `instance` | Verwaltung der Instanz |
 | `invitation` | Einlösen einer Einladung |
 | `labels` | Etiketten: sagt zu einem gescannten Code in einem Wort, ob er für die fragende Person etwas öffnet, und druckt viele Etiketten auf einmal |
