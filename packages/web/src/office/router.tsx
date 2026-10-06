@@ -22,6 +22,8 @@ import { AssetRegisterScreen } from './screens/assets.js'
 import { EditBuildingScreen, NewBuildingScreen } from './screens/building-form.js'
 import { BuildingScreen } from './screens/buildings.js'
 import { CatalogueScreen } from './screens/catalogue.js'
+import { DutyRegisterScreen } from './screens/duties.js'
+import { DutyScreen } from './screens/duty.js'
 import { DutyKindScreen } from './screens/duty-kind.js'
 import { EditFloorScreen, NewFloorScreen } from './screens/floor-form.js'
 import { FloorScreen } from './screens/floors.js'
@@ -182,6 +184,18 @@ export function officeRoutes() {
       getParentRoute: () => office,
       path: '/anlagen/$assetId/komponenten/neu',
       component: NewComponentScreen,
+    }),
+    // The register of duties, narrowed by what its address names, and the
+    // page of one duty under it.
+    createRoute({
+      getParentRoute: () => office,
+      path: '/pflichten',
+      component: DutyRegisterScreen,
+    }),
+    createRoute({
+      getParentRoute: () => office,
+      path: '/pflichten/$dutyId',
+      component: DutyScreen,
     }),
     // The catalogue: the packages, one of them with one of its parts, and
     // the page of a duty kind under the package it comes from.

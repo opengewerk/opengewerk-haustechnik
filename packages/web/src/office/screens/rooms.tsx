@@ -1,9 +1,10 @@
-import type { LifecycleState, RecordState } from '@opengewerk/haustechnik-domain'
+import type { DutyReading, LifecycleState, RecordState } from '@opengewerk/haustechnik-domain'
 import { Button, Cell, Column, Panel, Status, TablePanel } from '@opengewerk/platform-web'
 import { today } from '@opengewerk/platform-web/format'
 import { ChangesButton, PageHead, Screen } from '@opengewerk/platform-web/office'
 import { useRight } from '@opengewerk/platform-web/session'
-import { maybeText, text, useRecord, useRecords } from '@opengewerk/platform-web/sync'
+import { maybeText, request, text, useRecord, useRecords } from '@opengewerk/platform-web/sync'
+import { useQuery } from '@tanstack/react-query'
 import { useNavigate, useParams } from '@tanstack/react-router'
 import { DoorOpen, Pencil } from 'lucide-react'
 import { useMemo } from 'react'
@@ -11,9 +12,29 @@ import { useMemo } from 'react'
 import { statesOn } from '../../app/asset-records.js'
 import { placePath } from '../../app/place-path.js'
 import { byNumber, placeAbove, titleOfRoom } from '../../app/place-records.js'
+import { useCatalogue } from '../../sync/catalogue.js'
 import { AssetState } from '../asset-state.js'
 import { officePlaces, placeForms } from '../place-addresses.js'
 import { PlaceNotFound } from '../place-pages.js'
+import { Duties } from './asset.js'
+
+/** The duties that hang on a room itself, with how each stands today. */
+export function roomDutiesQuery(id: string) {
+  return {
+    // Under the duties, so that naming who answers for one reads them again.
+    queryKey: ['duties', 'room', id],
+    queryFn: () => request<DutyReading[]>(`/rooms/${id}/duties`),
+  } as const
+}
+
+export const roomDutyWords = {
+  title: 'Pflichten an diesem Raum',
+  caption: 'Pflichten an diesem Raum mit letztem Nachweis, nächstem Termin und Zustand',
+  none: 'An diesem Raum selbst hängt keine Pflicht. Die Pflichten einer Anlage stehen in ihrer Akte.',
+  loading: 'Die Pflichten werden geladen.',
+  noConnection: 'Die Pflichten kommen vom Server. Gerade ist keine Verbindung da.',
+  failed: 'Die Pflichten ließen sich nicht laden. Sie kommen vom Server, mit Verbindung.',
+} as const
 
 /**
  * The page of a room in the office, `raum()` of the boards (4.1 of the
@@ -23,10 +44,14 @@ import { PlaceNotFound } from '../place-pages.js'
  * as a whole: the fire alarm system of a school supplies every room of it.
  *
  * Read from the device, so it stands without a network. Whoever takes stock
- * of rooms corrects this one from here (`room-form.tsx`). What the board draws
- * beyond this arrives with what it shows: the kind of an asset with the
- * catalogue, the way to an asset with its page, the open defects with the
- * defects and the label of the room with the labels.
+ * of rooms corrects this one from here (`room-form.tsx`). The one card that
+ * needs a connection is the duties that hang on the room itself (#101): how
+ * a duty stands follows from its evidence, which never travels to a device,
+ * and without a connection the card says so while the rest stands.
+ *
+ * What the board draws beyond this arrives with what it shows: the kind of an
+ * asset with the catalogue, the way to an asset with its page, the open
+ * defects with the defects and the label of the room with the labels.
  */
 export function RoomScreen() {
   const { roomId } = useParams({ strict: false }) as { roomId?: string }
@@ -41,6 +66,12 @@ export function RoomScreen() {
   const buildings = useRecords('buildings')
   const buildingId = building ? String(building['id']) : undefined
   const records = useRight('room.record')
+  const seesDuties = useRight('duty.read')
+  const catalogue = useCatalogue()
+  const duties = useQuery({
+    ...roomDutiesQuery(roomId ?? ''),
+    enabled: roomId !== undefined && seesDuties,
+  })
   const navigate = useNavigate()
 
   const inside = useMemo(
@@ -125,6 +156,23 @@ export function RoomScreen() {
             standsIn={standsIn}
             hereName={text(building, 'name')}
           />
+          {seesDuties ? (
+            <Duties
+              duties={duties.data}
+              catalogue={catalogue}
+              resting={false}
+              words={{
+                title: roomDutyWords.title,
+                caption: roomDutyWords.caption,
+                none: roomDutyWords.none,
+                unread: duties.isError
+                  ? roomDutyWords.failed
+                  : duties.fetchStatus === 'paused'
+                    ? roomDutyWords.noConnection
+                    : roomDutyWords.loading,
+              }}
+            />
+          ) : null}
         </div>
       </div>
     </Screen>

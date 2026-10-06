@@ -141,15 +141,17 @@ describe('the navigation of the office as it is built today', () => {
    * The properties are the first screen of the board that is built (#85) and
    * the register of assets the second (#87), so the navigation is their two
    * places under "Bestand" over the foot of the frame, and the catalogue
-   * stands at the foot since its screen is built (#90). Every role reads
-   * places and assets, and the catalogue is the same for everybody. The next
-   * screen that arrives changes what stands here.
+   * stands at the foot since its screen is built (#90). The register of
+   * duties is the first place under "Pflichten" (#101). Every role reads
+   * places, assets and duties, and the catalogue is the same for everybody.
+   * The next screen that arrives changes what stands here.
    */
+  const built = ['Liegenschaften', 'Anlagen', 'Pflichtenverzeichnis', 'Katalog', 'Abgleich']
   const today: readonly (readonly [RoleKey, readonly string[]])[] = [
-    ['management', ['Liegenschaften', 'Anlagen', 'Katalog', 'Abgleich', 'Einstellungen']],
-    ['technical_management', ['Liegenschaften', 'Anlagen', 'Katalog', 'Abgleich']],
-    ['site_management', ['Liegenschaften', 'Anlagen', 'Katalog', 'Abgleich']],
-    ['technician', ['Liegenschaften', 'Anlagen', 'Katalog', 'Abgleich']],
+    ['management', [...built, 'Einstellungen']],
+    ['technical_management', built],
+    ['site_management', built],
+    ['technician', built],
   ]
 
   it.each(today)('offers %s the properties over the foot: %j', async (role, expected) => {
@@ -163,7 +165,7 @@ describe('the navigation of the office as it is built today', () => {
     }
 
     expect(links()).toEqual(expected)
-    expect(titles()).toEqual(['Bestand'])
+    expect(titles()).toEqual(['Bestand', 'Pflichten'])
   })
 
   it('offers nobody a place whose screen is not built, the overview first of all', async () => {
@@ -172,7 +174,7 @@ describe('the navigation of the office as it is built today', () => {
     await untilTheRightsAreKnown()
     await screen.findByRole('link', { name: 'Liegenschaften' })
 
-    for (const label of ['Übersicht', 'Zähler', 'Pflichtenverzeichnis', 'Fristen']) {
+    for (const label of ['Übersicht', 'Zähler', 'Fristen', 'Prüfungen']) {
       expect(screen.queryByRole('link', { name: label })).toBeNull()
     }
   })

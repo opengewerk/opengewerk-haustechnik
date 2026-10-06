@@ -32,7 +32,9 @@ await checkWidths({
    * and the question before one goes, whose buttons carry its name; and
    * what an asset is made and changed with (#88): the form of a new asset
    * and of a component, and at its file the dialogs that move it, say what it
-   * supplies and enter a state of its life cycle. A
+   * supplies and enter a state of its life cycle; and the dialog that says
+   * who answers for a duty, at the page of the duty (#101), whose button says
+   * "ändern" where somebody is named and "benennen" where nobody is. A
    * page that has one is checked a second time as a kind of its own, with the
    * button pressed. Found by its name, so that the next record with the same
    * button is checked as well.
@@ -55,5 +57,7 @@ await checkWidths({
     'Verlegen',
     'Versorgung ändern',
     'Eintragen',
+    'Verantwortliche Person ändern',
+    'Verantwortliche Person benennen',
   ],
 })

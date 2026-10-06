@@ -65,6 +65,10 @@ export * from './model/defect.js'
 // and the register and the file of an asset as a screen reads them.
 export * from './model/asset-condition.js'
 
+// The register of duties and the page of a duty as a screen reads them, with
+// the order of the register and what an evidence means for an appointment.
+export * from './model/duty-register.js'
+
 // The deadlines of this application: the kinds the deadline engine of the
 // foundation keeps, with their sources and actions.
 export * from './model/deadlines.js'

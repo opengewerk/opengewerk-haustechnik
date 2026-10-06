@@ -20,6 +20,7 @@ import { and, asc, eq, inArray, isNull } from 'drizzle-orm'
 
 import { assetsOnADay } from '../database/duty-standing.js'
 import { assets } from '../database/schema/index.js'
+import { counted, said } from './register-question.js'
 
 /**
  * The register of assets over every building (section 4.2 of the concept):
@@ -37,33 +38,6 @@ export interface RegisterQuestion {
   readonly filter: AssetRegisterFilter
   readonly offset: number
   readonly limit: number
-}
-
-/** A part of the address as text, and nothing for one that is empty or said twice. */
-function said(query: Readonly<Record<string, unknown>>, name: string): string | undefined {
-  const value = query[name]
-
-  return typeof value === 'string' && value !== '' ? value : undefined
-}
-
-/** A whole number of the address within its bounds, or the refusal. */
-function counted(
-  value: string | undefined,
-  fallback: number,
-  bounds: { readonly least: number; readonly most: number },
-  refusal: string,
-): number {
-  if (value === undefined) {
-    return fallback
-  }
-
-  const number = Number(value)
-
-  if (!/^\d+$/.test(value) || number < bounds.least || number > bounds.most) {
-    throw new BadRequestException(refusal)
-  }
-
-  return number
 }
 
 /**

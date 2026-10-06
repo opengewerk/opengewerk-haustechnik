@@ -1,7 +1,7 @@
 # OpenGewerk Haustechnik: Verfahrensbeschreibung für den Stand von Phase 1
 
 - **Gilt für:** noch keine veröffentlichte Fassung (Entwicklungsstand von Phase 1 auf dem Zweig `main`)
-- **Geschrieben:** von Hand, am 05.10.2026, aus dem Planungskonzept v0.11 und gegen den Quelltext geprüft; am 06.10.2026 um die Dateien im Speicher ergänzt (Planungskonzept v0.12)
+- **Geschrieben:** von Hand, am 05.10.2026, aus dem Planungskonzept v0.11 und gegen den Quelltext geprüft; am 06.10.2026 um die Dateien im Speicher ergänzt (Planungskonzept v0.12) und um das Pflichtenverzeichnis
 - **Abgelöst durch:** die Verfahrensbeschreibung, die die Anwendung ab Phase 2 selbst erzeugt
 
 ---
@@ -34,8 +34,8 @@ Ein Test hält außerdem dieses Dokument selbst gegen den Quelltext: jeder Beleg
 ## 2. Das Wichtigste in Kürze
 
 1. Die Anwendung hält zu jeder Änderung fest, wer sie gemacht hat, wann und von welchem Gerät, und zu jeder Unterschrift, wer unterschrieben hat. Nachlesen kann das im Einzelnen nur die Leitung, im Änderungsprotokoll (Abschnitt 8).
-2. Das Änderungsprotokoll enthält auch, wann sich eine Person bei dem Betreiber an- und abgemeldet hat, und es lässt sich nach Person filtern. Unter „Zugänge“ sieht die Leitung, wann eine Person zuletzt angemeldet war und auf welchen Geräten (Abschnitte 3.3 und 8). Das sind die Stellen, an denen die Anwendung einer Überwachung am nächsten kommt.
-3. Es gibt in dieser Fassung keine Auswertung: keine Statistik, keine Rangliste, keine Liste des Verzugs je Person, keinen Export (Abschnitt 5).
+2. Das Änderungsprotokoll enthält auch, wann sich eine Person bei dem Betreiber an- und abgemeldet hat, und es lässt sich nach Person filtern. Unter „Zugänge“ sieht die Leitung, wann eine Person zuletzt angemeldet war und auf welchen Geräten (Abschnitte 3.3 und 8). Das sind die Stellen, an denen die Anwendung einer Überwachung am nächsten kommt. Dazu kommt das Pflichtenverzeichnis: es nennt zu jeder Pflicht, wer für sie verantwortlich ist, und wer es führt, kann es auf die Pflichten einer Person eingrenzen, auch auf die überfälligen (Abschnitte 3.4 und 5).
+3. Es gibt in dieser Fassung keine Auswertung: keine Statistik, keine Rangliste, keine Zahl je Person, keinen Export (Abschnitt 5).
 4. Es gibt keine Erfassung von Arbeitszeit, keinen Standort und kein Feld für eine Dauer (Abschnitt 6).
 5. Diese Fassung löscht nichts nach Ablauf einer Frist. Das Löschkonzept kommt in Phase 2 (Abschnitte 7 und 10).
 6. Was das Planungskonzept zusagt und diese Fassung noch nicht hält oder noch nicht durch einen Test hält, steht in Abschnitt 10.
@@ -72,6 +72,8 @@ Anhang B nennt jedes Feld der Datenbank, das auf eine Person zeigt. Dieser Absch
 ### 3.4 Zuständigkeit und Zuteilung
 
 - Eine Pflicht nennt, wer für sie verantwortlich ist und wer sie bestätigt hat; ein verworfener Vorschlag nennt, wer ihn verworfen hat, mit Grund. Das Pflichtenverzeichnis führen die Leitung und die Technische Leitung. [K4.3, B11]
+- Das Pflichtenverzeichnis und die Seite einer Pflicht nennen die verantwortliche Person mit ihrem Namen, und sie sagen es, wenn für eine Pflicht niemand benannt ist. Lesen kann beides, wer Pflichten ansieht, das sind alle vier Rollen, jede in ihren Bereichen. Wer eine Pflicht bestätigt hat, zeigt kein Bildschirm außer dem Änderungsprotokoll. [K4.3, K7, B75]
+- **Zusage:** Wer für eine Pflicht verantwortlich ist, legt fest, wer das Pflichtenverzeichnis führt. Zur Wahl bekommt diese Person die Namen derer, die für den Betreiber arbeiten, und ob jemand gesperrt ist; Rolle, E-Mail-Adresse und Anmeldungen nennt die Auswahl nicht. Objektleitung und Haustechnik bekommen die Auswahl nicht. [K4.3, K7, B76, B77]
 - Eine Frist nennt, wer für sie verantwortlich ist, wen ihre Quelle als verantwortlich nennt und wer sie geschlossen hat. Fristen sehen die Leitung und die Technische Leitung. [K2.4, B10]
 - Ein Vorgang (Rundgang, Prüfung, Wartung, Auftrag) hat ein Feld für die verantwortliche und eines für die ausführende Person. In dieser Fassung trägt noch kein Weg der Anwendung dort jemanden ein: die Bildschirme, auf denen Vorgänge geplant und verteilt werden, kommen in Phase 1 (Abschnitt 9). Planen und verteilen werden die Leitung, die Technische Leitung und die Objektleitung. [K4.5, K4.8, B7]
 - Die Abnahme eines Auftrags hält fest, wer abgenommen oder zurückgewiesen hat, wann und mit welcher Begründung. Eine Zurückweisung lässt die Unterschrift stehen und macht sie ungültig. [K4.8, B8, B25]
@@ -84,7 +86,9 @@ Anhang B nennt jedes Feld der Datenbank, das auf eine Person zeigt. Dieser Absch
 - Mit der Unterschrift entsteht der Nachweis und friert seinen Stand ein: den Namen der Person, die unterschrieben hat, ihre Rolle dabei und den Zeitpunkt; bei einem eingetragenen Bericht den Namen des Prüfers und seine Organisation; dazu, wer den Nachweis eingetragen hat. Ein späterer Namenswechsel ändert daran nichts. [K2.6, B24, B30]
 - **Zusage:** Eine Unterschrift, die Abnahme eines Auftrags und ein Nachweis werden von niemandem geändert oder gelöscht, auch nicht vom Eigentümer der Tabellen und nicht von einem Administrator der Datenbank. Kein Recht hebt das auf. [K2.6, K7, B26, B27, B39]
 - Eine Berichtigung ist ein neuer Nachweis, der den alten nennt; beide bleiben. Eine Ungültigkeitserklärung nennt die Person und den Grund, und der Nachweis bleibt lesbar. Beides dürfen die Leitung, die Technische Leitung und die Objektleitung. [K2.6, B9, B28]
-- In dieser Fassung zeigt noch kein Bildschirm eine Unterschrift oder einen Nachweis. Die Bildschirme dafür kommen in Phase 1 (Abschnitt 9). [K12, B37]
+- Die Seite einer Pflicht listet ihre Nachweise mit Nummer, Tag, Ergebnis und Herkunft und sagt zu jedem, ob er für die Frist zählt, ersetzt oder für ungültig erklärt ist. Lesen kann die Liste, wer Nachweise ansieht, das sind alle vier Rollen, jede in ihren Bereichen. [K2.6, K4.3, B78]
+- **Zusage:** Diese Liste nennt keine Person: weder wer geprüft, noch wer unterschrieben, noch wer den Nachweis eingetragen hat. [K2.6, B79]
+- Einen Bildschirm, der eine Unterschrift oder einen Nachweis im Ganzen zeigt, gibt es in dieser Fassung nicht. Er kommt in Phase 1 (Abschnitt 9). [K12]
 
 ### 3.6 Was jeder Datensatz über seine letzte Änderung trägt
 
@@ -119,13 +123,15 @@ Phase 1 kennt vier Rollen. Was jede darf, steht Recht für Recht in Abschnitt 7 
 | Bereiche je Person und Vertretungen | ja | nein | nein | nein |
 | Änderungsprotokoll | ja | nein | nein | nein |
 | Das eigene Konto und die eigenen Geräte | ja | ja | ja | ja |
+| Wer für eine Pflicht verantwortlich ist, mit Namen | in ihren Bereichen | in ihren Bereichen | in ihren Bereichen | in ihren Bereichen |
+| Das Pflichtenverzeichnis auf eine Person eingrenzen; die Namen zur Wahl der verantwortlichen Person | ja | ja | nein | nein |
 | Datensätze mit ihrem Stempel | in ihren Bereichen | in ihren Bereichen | in ihren Bereichen | in ihren Bereichen |
 
 Leitung und Technische Leitung sehen als Vorgabe alle Bereiche.
 
 - **Zusage:** Jede Adresse des Servers sagt, welches Recht sie verlangt. Ohne Anmeldung antworten nur die Gesundheitsprüfung, die Ersteinrichtung und das Einlösen einer Einladung. [K7, B15, B71]
 - **Zusage:** Die Tabelle der Rechte in Abschnitt 7 des Planungskonzepts und der Katalog im Quelltext sind dieselbe Liste: was dort für eine Rolle steht, darf sie, und nichts anderes. [K7, B17]
-- **Zusage:** Wer bei einem Betreiber arbeitet, sieht und entscheidet nur die Leitung. Technische Leitung, Objektleitung und Haustechnik werden an diesen Adressen abgelehnt. [K7, B1, B2, B12]
+- **Zusage:** Die Zugänge, also wer bei einem Betreiber arbeitet, mit Rollen, Sperre, Anmeldungen und Geräten, sieht und entscheidet nur die Leitung. Technische Leitung, Objektleitung und Haustechnik werden an diesen Adressen abgelehnt. Die eine Stelle daneben ist die Auswahl der verantwortlichen Person im Pflichtenverzeichnis, die Namen nennt und sonst nichts (Abschnitt 3.4). [K7, B1, B2, B12]
 - **Zusage:** Die Leitung arbeitet nur mit einem zweiten Faktor. Das ist eine Angabe der Rolle und keine Einstellung. [K7, B36]
 - **Zusage:** Zwei Betreiber auf derselben Instanz sehen nichts voneinander. [K3, B56]
 - Die Übersicht der Bereiche nennt je Bereich, für wen er genannt ist. Sie sieht, wer die Einstellungen sieht, in Phase 1 also die Leitung. [K2.8, B4]
@@ -136,12 +142,15 @@ Leitung und Technische Leitung sehen als Vorgabe alle Bereiche.
 
 ## 5. Auswertungen: welche es gibt und welche nicht
 
-- In dieser Fassung gibt es Listen und keine Auswertungen: die Liegenschaften mit ihren Gebäuden, Geschossen und Räumen, die Bereiche, die Zugänge mit den Vertretungen und das Änderungsprotokoll, dazu das eigene Konto und der Abgleich des eigenen Geräts. Was die Navigation darüber hinaus vorsieht, ist nicht gebaut und wird niemandem angeboten. [K4.16, B37]
+- In dieser Fassung gibt es Listen und keine Auswertungen: die Liegenschaften mit ihren Gebäuden, Geschossen und Räumen, das Anlagenverzeichnis, das Pflichtenverzeichnis, den Katalog, die Bereiche, die Zugänge mit den Vertretungen und das Änderungsprotokoll, dazu das eigene Konto und der Abgleich des eigenen Geräts. Was die Navigation darüber hinaus vorsieht, ist nicht gebaut und wird niemandem angeboten. [K4.16, B37]
 - **Zusage:** Anhang C nennt jede Adresse, die der Server beantwortet. Eine Adresse für eine Statistik, eine Rangliste, eine Liste des Verzugs je Person oder einen Export ist nicht darunter. [K4.16, B40]
-- **Zusage:** Eine Adresse, die nach einer einzelnen Person fragt, verlangt ein Recht der Zugänge und ist damit der Leitung vorbehalten. Die einzige Ausnahme ist die Verwaltung der Instanz, die ihre eigenen Verwalter führt. [K9, B16]
+- **Zusage:** Eine Adresse, die eine einzelne Person in ihrem Pfad nennt, verlangt ein Recht der Zugänge und ist damit der Leitung vorbehalten. Die einzige Ausnahme ist die Verwaltung der Instanz, die ihre eigenen Verwalter führt. [K9, B16]
+- **Zusage:** Das Pflichtenverzeichnis lässt sich auf die Pflichten einer verantwortlichen Person eingrenzen. Das kann nur, wer es führt, also die Leitung und die Technische Leitung. Objektleitung und Haustechnik werden mit dieser Frage abgelehnt, auch wenn sie nach sich selbst fragen; auf die Pflichten, für die niemand benannt ist, grenzt jede Rolle ein. [K4.3, K7, B80]
+- **Zusage:** Eingegrenzt auf eine Person nennt das Pflichtenverzeichnis keine Zahl: weder wie viele Pflichten diese Person hat, noch wie viele davon überfällig, fällig oder nie erfasst sind. [K4.16, K9, B81]
+- Die Liste selbst zeigt in diesem Fall die Pflichten der Person mit ihrem Zustand, auch die überfälligen und die nie erfassten, und sie lässt sich zusätzlich nach dem Zustand eingrenzen. Das ist keine Zählung und kein Vergleich, aber es ist die Stelle, an der das Pflichtenverzeichnis einer Auswertung je Person am nächsten kommt. [K4.3, K4.16]
 - **Zusage:** Anhang B nennt jedes Feld der Datenbank, das auf eine Person zeigt. Kommt eines dazu, wird der Test rot, bis es hier steht. [K9, B41]
 - Das Änderungsprotokoll lässt sich nach Zeitraum, Person, Art des Datensatzes und einzelnem Datensatz filtern. Mit dem Filter nach Person zeigt es, was diese Person wann geändert hat. Das sieht nur die Leitung (Abschnitt 8). [K3, K9, B65]
-- Eine Rangliste, eine Statistik je Person oder eine Liste, wer mit was im Verzug ist, enthält die Anwendung nicht, und das Planungskonzept schließt sie als Vorgabe aus. Die Auswertungen über die Zeit, die Phase 2 bringt, sind ohne Auswertung je Person geplant. [K4.16, K9, K12]
+- Eine Rangliste, eine Statistik je Person oder einen Vergleich zwischen Personen enthält die Anwendung nicht, und das Planungskonzept schließt sie als Vorgabe aus. Die Auswertungen über die Zeit, die Phase 2 bringt, sind ohne Auswertung je Person geplant. [K4.16, K9, K12]
 
 ---
 
@@ -306,6 +315,13 @@ Pfade ohne Vorsatz liegen im Repository `opengewerk/opengewerk-haustechnik`. Pfa
 | B72 | Recht | `document.record` | Dokumente ablegen: Leitung, Technische Leitung, Objektleitung, Haustechnik |
 | B73 | Test | `packages/server/src/api/files.test.ts` | `stands in the change log of the tenant with who sent it` |
 | B74 | Test | `packages/server/src/api/files.test.ts` | `is handed out by no route under its hash, not even to "Leitung"` |
+| B75 | Recht | `duty.read` | Pflichten ansehen: Leitung, Technische Leitung, Objektleitung, Haustechnik |
+| B76 | Test | `packages/server/src/api/duty-register.test.ts` | `are everybody who works for the operator, by name and whether they can still be named, and nothing else of them` |
+| B77 | Test | `packages/server/src/api/duty-register.test.ts` | `let whoever reads duties read the register, a duty and the duties of a room; evidence and colleagues ask for their own` |
+| B78 | Recht | `evidence.read` | Nachweise ansehen: Leitung, Technische Leitung, Objektleitung, Haustechnik |
+| B79 | Test | `packages/server/src/api/duty-register.test.ts` | `lists its evidence, the newest first, each with what it means for the appointment, and names nobody` |
+| B80 | Test | `packages/server/src/api/duty-register.test.ts` | `is for whoever keeps the register, and the others are refused` |
+| B81 | Test | `packages/server/src/api/duty-register.test.ts` | `answers without a single number, and says all the same whether more follow` |
 
 ---
 
@@ -363,7 +379,7 @@ Jede Zeile ist der erste Abschnitt einer Adresse, unter der der Server antwortet
 | `catalogue` | Katalog der Pakete, für jeden Betreiber derselbe und ohne Daten eines Betreibers |
 | `contacts` | Ansprechpartner einer Liegenschaft |
 | `deadlines` | Fristen |
-| `duties` | Pflichten |
+| `duties` | Pflichten, das Pflichtenverzeichnis, die Nachweise einer Pflicht und die Auswahl der verantwortlichen Person |
 | `duty-dismissals` | verworfene Vorschläge für Pflichten |
 | `files` | Dateien: nimmt den Inhalt einer Datei an, bevor ein Datensatz sie nennt, und gibt keine aus |
 | `floors` | Geschosse |
@@ -371,7 +387,7 @@ Jede Zeile ist der erste Abschnitt einer Adresse, unter der der Server antwortet
 | `instance` | Verwaltung der Instanz |
 | `invitation` | Einlösen einer Einladung |
 | `properties` | Liegenschaften |
-| `rooms` | Räume |
+| `rooms` | Räume, mit den Pflichten, die an ihnen hängen |
 | `settings` | Vorlauf der Fristen |
 | `setup` | Ersteinrichtung |
 | `staff` | Zugänge |

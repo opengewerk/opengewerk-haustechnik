@@ -4,6 +4,7 @@ import {
   ConflictException,
   Controller,
   Delete,
+  ForbiddenException,
   Get,
   Inject,
   Param,
@@ -21,42 +22,61 @@ import {
   type DeadlineInterval,
   dismissalProblems,
   type Duty,
+  type DutyAsset,
+  type DutyColleague,
+  type DutyDetails,
   type DutyDismissal,
+  type DutyEvidenceEntry,
+  dutyHasEnded,
   type DutyId,
   dutyIntervalProblem,
   type DutyKind,
   dutyMaximum,
+  type DutyPerson,
   dutyProblems,
+  type DutyReading,
+  type DutyRegister,
+  evidenceStandingOf,
   type FederalState,
   type IntervalKind,
   intervalNeedsReason,
   intervalOfRule,
   intervalWords,
+  isAllowed,
   type IsoDate,
+  missingRight,
+  namesAPerson,
   type Property,
   type Room,
+  type RoomId,
 } from '@opengewerk/haustechnik-domain'
 import {
+  accountsOf,
   CurrentIdentity,
   Database,
   isUuid,
+  listColleagues,
   requireSomething,
   type TenantTransaction,
 } from '@opengewerk/platform-server'
-import { and, asc, eq, isNull } from 'drizzle-orm'
+import { and, asc, desc, eq, inArray, isNull } from 'drizzle-orm'
 
 import { CATALOGUE } from '../catalogue.js'
+import { dutiesOnADay, dutyTitle } from '../database/duty-standing.js'
 import {
   assets,
   buildings,
   duties,
   dutyDismissals,
+  evidence,
+  evidenceVoidings,
   memberships,
   properties,
   rooms,
 } from '../database/schema/index.js'
 import { dayInGermany } from '../today.js'
 import { RequiresPermission } from './authorization.js'
+import { dutyReading, dutyRegister, dutyRegisterQuestion } from './duty-register.js'
 import { type Asking, fieldsOf, placeOf, refuse } from './places.js'
 
 const missing = 'Diese Pflicht gibt es nicht oder nicht mehr.'
@@ -339,10 +359,174 @@ export class DutiesController {
     })
   }
 
+  /**
+   * The register over every place (section 4.3 of the concept), a page at a
+   * time: narrowed by state, place, asset kind, duty kind and the person who
+   * answers for a duty, each of which the address may name, and two of them
+   * give what passes both. Whoever reads duties reads it, in their areas.
+   *
+   * Narrowing it to one person is for whoever keeps the register, and the
+   * answer then holds no number: a list about somebody is no evaluation of
+   * them (sections 4.16 and 9 of the concept). The people to choose from are
+   * handed to the same people and to nobody else.
+   *
+   * Before the page of a duty, or its address would be read as an id.
+   */
+  @Get('register')
+  @RequiresPermission('duty.read')
+  async register(
+    @CurrentIdentity() identity: Asking,
+    @Query() query: Record<string, unknown>,
+  ): Promise<DutyRegister> {
+    const question = dutyRegisterQuestion(query)
+    const keeps = isAllowed(identity, 'duty.write')
+
+    if (namesAPerson(question.filter) && !keeps) {
+      throw new ForbiddenException(missingRight('duty.write'))
+    }
+
+    const read = await this.database.forTenant(identity, (tx) =>
+      dutyRegister(tx, this.catalogue, dayInGermany(), question),
+    )
+    const named = await this.named(identity, [
+      ...read.duties.map((duty) => duty.responsibleUserId),
+      ...(keeps ? read.people : []),
+    ])
+
+    return {
+      ...read,
+      duties: read.duties.map((duty) => ({ ...duty, responsible: named(duty.responsibleUserId) })),
+      people: keeps
+        ? read.people
+            .flatMap((userId) => named(userId) ?? [])
+            .sort((left, right) => left.name.localeCompare(right.name, 'de'))
+        : null,
+    }
+  }
+
+  /**
+   * The people of this operator by name, and which of them can still be named
+   * for a duty: for whoever keeps the register, to say who answers for one.
+   * The name and nothing else of a person, neither role nor address.
+   *
+   * Before the page of a duty, like the register.
+   */
+  @Get('colleagues')
+  @RequiresPermission('duty.write')
+  colleagues(@CurrentIdentity() identity: Asking): Promise<DutyColleague[]> {
+    return listColleagues(this.database, identity)
+  }
+
+  /**
+   * The page of a duty: the record whole, how it stands today, the asset it
+   * hangs on and who answers for it. One that has ended is read like any
+   * other, and says that it has.
+   */
   @Get(':id')
   @RequiresPermission('duty.read')
-  read(@CurrentIdentity() identity: Asking, @Param('id') id: string): Promise<Duty> {
-    return this.database.forTenant(identity, (tx) => placeOf<Duty>(tx, duties, id, missing))
+  async read(@CurrentIdentity() identity: Asking, @Param('id') id: string): Promise<DutyDetails> {
+    const today = dayInGermany()
+    const read = await this.database.forTenant(identity, async (tx) => {
+      const duty = await placeOf<Duty>(tx, duties, id, missing)
+      const [registered] = await dutiesOnADay(tx, today, [duty])
+      const [asset] =
+        duty.assetId === null
+          ? []
+          : await tx
+              .select({
+                id: assets.id,
+                number: assets.number,
+                name: assets.name,
+                kind: assets.kind,
+                buildingId: assets.buildingId,
+                roomId: assets.roomId,
+              })
+              .from(assets)
+              .where(eq(assets.id, duty.assetId))
+
+      return { duty, registered, asset: (asset ?? null) as DutyAsset | null }
+    })
+    const { duty, registered } = read
+    const named = await this.named(identity, [duty.responsibleUserId])
+
+    return {
+      ...duty,
+      title: dutyTitle(duty, this.catalogue),
+      state: registered?.standing.state ?? 'never_recorded',
+      appointment: registered?.standing.appointment ?? null,
+      lastMetOn: registered?.lastMetOn ?? null,
+      ended: dutyHasEnded(duty, today),
+      asset: read.asset,
+      responsible: named(duty.responsibleUserId),
+    }
+  }
+
+  /**
+   * The evidence of a duty, the newest first, each with what it means for the
+   * appointment: one a correction replaced and one declared invalid stay in
+   * the list and say so (ADR 0004, points 14 and 15). Reading it is reading
+   * evidence, so the right is that of the evidence. No person is named here;
+   * who did and who wrote down an evidence stands on its own page.
+   */
+  @Get(':id/evidence')
+  @RequiresPermission('evidence.read')
+  evidence(
+    @CurrentIdentity() identity: Asking,
+    @Param('id') id: string,
+  ): Promise<DutyEvidenceEntry[]> {
+    return this.database.forTenant(identity, async (tx) => {
+      const duty = await placeOf<Duty>(tx, duties, id, missing)
+      const written = await tx
+        .select({
+          id: evidence.id,
+          number: evidence.number,
+          performedOn: evidence.performedOn,
+          result: evidence.result,
+          origin: evidence.origin,
+          replacesEvidenceId: evidence.replacesEvidenceId,
+        })
+        .from(evidence)
+        .where(eq(evidence.dutyId, duty.id))
+        .orderBy(desc(evidence.performedOn), desc(evidence.writtenAt))
+      const voided =
+        written.length === 0
+          ? []
+          : await tx
+              .select({ evidenceId: evidenceVoidings.evidenceId })
+              .from(evidenceVoidings)
+              .where(
+                inArray(
+                  evidenceVoidings.evidenceId,
+                  written.map((row) => row.id),
+                ),
+              )
+      const standing = evidenceStandingOf(
+        written,
+        new Set(voided.map((row) => row.evidenceId as string)),
+      )
+
+      return written.map((row): DutyEvidenceEntry => {
+        const { replacesEvidenceId: _, ...shown } = row
+
+        return { ...shown, standing: standing(row) }
+      })
+    })
+  }
+
+  /**
+   * The names behind the people duties name. Asked of the instance for
+   * exactly these ids, which a key on each duty ties to a membership of this
+   * operator (`duties_responsible_works_here`).
+   */
+  private async named(
+    identity: Asking,
+    userIds: readonly (string | null)[],
+  ): Promise<(userId: string | null) => DutyPerson | null> {
+    const ids = [...new Set(userIds.filter((userId) => userId !== null))]
+    const accounts = await accountsOf(this.database, ids, identity.userId)
+
+    return (userId) =>
+      userId === null ? null : { userId, name: accounts.get(userId)?.name ?? 'Unbekanntes Konto' }
   }
 
   /**
@@ -541,7 +725,13 @@ export class DutiesController {
         throw new BadRequestException(problem)
       }
 
-      if (duty.kind !== null && duty.kindVersion !== null) {
+      // Asked where the interval or its reason is what changes. A duty that
+      // was confirmed before the guide of its kind changed departs from the
+      // guide of today without anybody having decided so; saying who answers
+      // for it is no reason to ask for one.
+      const reasonAtStake = intervalChanged || values.intervalReason !== undefined
+
+      if (reasonAtStake && duty.kind !== null && duty.kindVersion !== null) {
         const entry = this.catalogue.dutyKindVersion(duty.kind, duty.kindVersion)
         const property = await placeOf<Property>(tx, properties, duty.propertyId, missingProperty)
         const reason =
@@ -628,6 +818,41 @@ export class DutiesController {
  * and the person (ADR 0002, point 11). A proposal is no record; dismissing
  * one is, and withdrawing the dismissal brings the proposal back.
  */
+/**
+ * The duties that hang on a room itself, each with how it stands today.
+ * Beside the routes of the room and not among them, because what a duty
+ * needs, the catalogue and the evidence, is no business of the room. The
+ * duties of the assets in a room stand in their files.
+ */
+@Controller('rooms')
+export class RoomDutiesController {
+  constructor(
+    private readonly database: Database,
+    @Inject(CATALOGUE) private readonly catalogue: Catalogue,
+  ) {}
+
+  /** The duties at the room that have not ended. Reading them is reading duties. */
+  @Get(':id/duties')
+  @RequiresPermission('duty.read')
+  atRoom(@CurrentIdentity() identity: Asking, @Param('id') id: string): Promise<DutyReading[]> {
+    const today = dayInGermany()
+
+    return this.database.forTenant(identity, async (tx) => {
+      const room = await placeOf<Room>(tx, rooms, id, missingRoom)
+      const running = (
+        (await tx
+          .select()
+          .from(duties)
+          .where(and(eq(duties.roomId, room.id as RoomId), isNull(duties.deletedAt)))) as Duty[]
+      ).filter((duty) => !dutyHasEnded(duty, today))
+
+      return (await dutiesOnADay(tx, today, running))
+        .map((registered) => dutyReading(registered, this.catalogue))
+        .sort((left, right) => left.title.localeCompare(right.title, 'de'))
+    })
+  }
+}
+
 @Controller('duty-dismissals')
 export class DutyDismissalsController {
   constructor(

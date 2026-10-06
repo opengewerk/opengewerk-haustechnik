@@ -9,6 +9,7 @@ import {
   type DutyStanding,
   dutyStateOn,
   type IsoDate,
+  type LastEvidence,
   leadOf,
   type LifecycleState,
   lifecycleStateOn,
@@ -95,16 +96,16 @@ export async function lifecyclesByAsset(
 }
 
 /**
- * The days each duty was met on, earliest first, of these duties or of every
- * one. Counted from the evidence that stands: neither replaced by a
+ * The evidence each duty was met by, the earliest day first, of these duties
+ * or of every one. Only the evidence that stands: neither replaced by a
  * correction nor declared invalid (ADR 0004, points 14 and 15), so that a
  * duty whose only evidence is invalid is open again.
  */
-export async function metDaysByDuty(
+export async function meetingEvidenceByDuty(
   tx: TenantTransaction,
   dutyIds?: readonly string[],
-): Promise<ReadonlyMap<string, readonly IsoDate[]>> {
-  const performances = new Map<string, IsoDate[]>()
+): Promise<ReadonlyMap<string, readonly LastEvidence[]>> {
+  const performances = new Map<string, LastEvidence[]>()
 
   if (dutyIds?.length === 0) {
     return performances
@@ -122,6 +123,8 @@ export async function metDaysByDuty(
       dutyId: evidence.dutyId,
       performedOn: evidence.performedOn,
       result: evidence.result,
+      number: evidence.number,
+      origin: evidence.origin,
     })
     .from(evidence)
     .where(
@@ -129,15 +132,31 @@ export async function metDaysByDuty(
         ? undefined
         : inArray(evidence.dutyId, dutyIds as (typeof evidence.$inferSelect)['dutyId'][]),
     )
-    .orderBy(asc(evidence.performedOn))
+    .orderBy(asc(evidence.performedOn), asc(evidence.writtenAt))
 
   for (const row of standingEvidence(written, voided)) {
     if (meetsTheDuty(row.result)) {
-      performances.set(row.dutyId, [...(performances.get(row.dutyId) ?? []), row.performedOn])
+      performances.set(row.dutyId, [
+        ...(performances.get(row.dutyId) ?? []),
+        { number: row.number, performedOn: row.performedOn, origin: row.origin },
+      ])
     }
   }
 
   return performances
+}
+
+/** The days each duty was met on, earliest first, of these duties or of every one. */
+export async function metDaysByDuty(
+  tx: TenantTransaction,
+  dutyIds?: readonly string[],
+): Promise<ReadonlyMap<string, readonly IsoDate[]>> {
+  return new Map(
+    [...(await meetingEvidenceByDuty(tx, dutyIds))].map(([dutyId, met]) => [
+      dutyId,
+      met.map((each) => each.performedOn),
+    ]),
+  )
 }
 
 /**
@@ -217,6 +236,61 @@ export function dutyOnADay(
 /** A duty at an asset with how it stands today. */
 export interface StandingDuty extends DutyOnADay {
   readonly duty: Duty
+}
+
+/** A duty with how it stands on a day and the evidence its appointment is counted from. */
+export interface RegisteredDuty extends StandingDuty {
+  readonly lastEvidence: LastEvidence | null
+}
+
+/**
+ * From how many duties on the evidence and the life cycles are read whole
+ * rather than by a list of ids: a list of some thousand ids is the longer
+ * question.
+ */
+const readWholeFrom = 500
+
+/**
+ * How these duties stand on a day, whatever they hang on: an asset, whose
+ * life cycle lets them rest, or a room, a building or a property, which are
+ * never out of service. The one place a duty outside the file of an asset is
+ * worked out, with the same functions as inside it (`dutyOnADay`), so that
+ * the register, the page of a duty and the file of its asset say the same.
+ *
+ * A duty that has ended is worked out like any other: what it says then is
+ * how it stood, and whoever lists it says that it has ended.
+ */
+export async function dutiesOnADay(
+  tx: TenantTransaction,
+  today: IsoDate,
+  rows: readonly Duty[],
+): Promise<RegisteredDuty[]> {
+  if (rows.length === 0) {
+    return []
+  }
+
+  const whole = rows.length >= readWholeFrom
+  const assetIds = [
+    ...new Set(rows.flatMap((duty) => (duty.assetId === null ? [] : [duty.assetId]))),
+  ]
+  const lives = await lifecyclesByAsset(tx, whole ? undefined : assetIds)
+  const met = await meetingEvidenceByDuty(tx, whole ? undefined : rows.map((duty) => duty.id))
+  const leadDays = await leadDaysByDuty(tx)
+
+  return rows.map((duty) => {
+    const evidenceOfIt = met.get(duty.id) ?? []
+
+    return {
+      duty,
+      lastEvidence: evidenceOfIt.at(-1) ?? null,
+      ...dutyOnADay(duty, {
+        today,
+        life: duty.assetId === null ? [] : (lives.get(duty.assetId) ?? []),
+        met: evidenceOfIt.map((each) => each.performedOn),
+        leadDays: leadDays(duty.id),
+      }),
+    }
+  })
 }
 
 /** An asset on a day: the state of its life cycle, its condition, and its duties that have not ended. */

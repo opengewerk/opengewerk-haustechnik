@@ -1,6 +1,7 @@
 import { auditVocabulary, buildingKindLabel, ruleScopeNames } from '@opengewerk/haustechnik-domain'
 import type { AuditScreenWords } from '@opengewerk/platform-web/office'
 
+import { dutyPlaces } from './duty-addresses.js'
 import { officePlaces } from './place-addresses.js'
 
 /**
@@ -20,6 +21,7 @@ const screens: Readonly<Record<string, (id: string) => string>> = {
   floors: officePlaces.floor,
   rooms: officePlaces.room,
   assets: officePlaces.asset,
+  duties: dutyPlaces.duty,
 }
 
 /** The label of the link to a record. */
@@ -29,6 +31,7 @@ const links: Words = {
   floors: 'Zum Geschoss',
   rooms: 'Zum Raum',
   assets: 'Zur Anlage',
+  duties: 'Zur Pflicht',
 }
 
 export const auditScreenWords: AuditScreenWords = {

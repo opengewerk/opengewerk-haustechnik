@@ -5,6 +5,7 @@ import { screen, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { servingCatalogue, testCatalogue, unacceptedReview } from '../../app/test-catalogue.js'
+import { memberIn } from '../../app/test-entry.js'
 import { mountOffice, onA, rowsOf, signedInOffice } from '../test-office.js'
 
 /**
@@ -338,5 +339,91 @@ describe('the way to the page of a duty kind', () => {
       await router.navigate({ to: mainTest })
       await screen.findByRole('heading', { level: 1, name: 'Hauptprüfung der Aufzugsanlage' })
     }
+  })
+})
+
+describe('what this operator has confirmed of a duty kind', () => {
+  /** The one question the card asks: how many duties of the kind the register holds. */
+  const asked = '/duties/register?dutyKind=probe.elevator_main_test&offset=0&limit=1'
+  const counted = (total: number | null) => ({
+    total,
+    assets: total,
+    places: 0,
+    counts: null,
+    withoutResponsible: 0,
+    more: false,
+    duties: [],
+    people: null,
+  })
+
+  async function shown(further: Readonly<Record<string, unknown>>) {
+    signedInOffice('technician', [], { ...servingCatalogue(), ...further })
+
+    const mounted = await mountOffice(mainTest, new TestServer(), [])
+
+    await screen.findByRole('heading', { level: 1, name: 'Hauptprüfung der Aufzugsanlage' })
+
+    return mounted
+  }
+
+  it('is counted by the register of duties, and the count leads to those duties there', async () => {
+    await shown({ [asked]: counted(3) })
+
+    const link = await within(card('Bei diesem Betreiber')).findByRole('link', {
+      name: '3 Pflichten',
+    })
+
+    expect(fact('Bestätigt')).toBe('3 Pflichten')
+    expect(link.getAttribute('href')).toBe('/pflichten?pflichtart=probe.elevator_main_test')
+  })
+
+  it('says one duty in the singular', async () => {
+    await shown({ [asked]: counted(1) })
+
+    await within(card('Bei diesem Betreiber')).findByRole('link', { name: '1 Pflicht' })
+  })
+
+  it('says "keine" without a link where there is none', async () => {
+    await shown({ [asked]: counted(0) })
+    await within(card('Bei diesem Betreiber')).findByText('keine')
+
+    expect(within(card('Bei diesem Betreiber')).queryByRole('link')).toBeNull()
+  })
+
+  it('says that the number comes from the server where it has not come', async () => {
+    // No answer for the question: the server of this test says 404.
+    await shown({})
+
+    expect(
+      within(card('Bei diesem Betreiber')).getByText('Die Zahl kommt vom Server, mit Verbindung.'),
+    ).toBeDefined()
+  })
+
+  it('is shown only to somebody who may read duties, and the server is not asked for anybody else', async () => {
+    const technician = memberIn('technician')
+    const reads: string[] = []
+
+    signedInOffice('technician', [], {
+      ...servingCatalogue(),
+      [asked]: counted(3),
+      '/auth/tenants': [
+        { ...technician, rights: technician.rights.filter((right) => right !== 'duty.read') },
+      ],
+    })
+
+    const answer = globalThis.fetch
+
+    vi.stubGlobal('fetch', (path: string, init?: RequestInit) => {
+      reads.push(path)
+
+      return answer(path, init)
+    })
+
+    await mountOffice(mainTest, new TestServer(), [])
+    await screen.findByRole('heading', { level: 1, name: 'Hauptprüfung der Aufzugsanlage' })
+    await screen.findByText('Prüfung und Abnahme')
+
+    expect(screen.queryByText('Bei diesem Betreiber')).toBeNull()
+    expect(reads.filter((path) => path.startsWith('/duties'))).toEqual([])
   })
 })

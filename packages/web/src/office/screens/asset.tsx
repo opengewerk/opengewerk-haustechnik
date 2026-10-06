@@ -5,7 +5,6 @@ import {
   type Catalogue,
   type Characteristic,
   type ChoiceOption,
-  dutyBasisLabel,
   dutyInterval,
   type DutyReading,
   intervalWords,
@@ -57,6 +56,8 @@ import {
 import { AssetConditionMark, DutyStateMark } from '../asset-marks.js'
 import { AssetState } from '../asset-state.js'
 import { cataloguePlaces } from '../catalogue-addresses.js'
+import { dutyPlaces } from '../duty-addresses.js'
+import { dutySourceWords, kindOfDuty } from '../duty-words.js'
 import { factLink } from '../links.js'
 import { officePlaces } from '../place-addresses.js'
 import { kindLabel } from './assets.js'
@@ -514,58 +515,57 @@ function masterData(asset: AssetDetails, catalogue: Catalogue | null): Fact[] {
 }
 
 /** Under the name of a duty: where it comes from and how often it falls due. */
-function dutyLine(duty: DutyReading, catalogue: Catalogue | null): string {
-  const kind =
-    duty.kind === null || duty.kindVersion === null
-      ? null
-      : (catalogue?.dutyKindVersion(duty.kind, duty.kindVersion) ?? null)
-  const source =
-    kind?.definition.source ??
-    [duty.basis === null ? null : dutyBasisLabel[duty.basis], duty.sourceNote]
-      .filter(Boolean)
-      .join(', ')
-
-  return [source, `alle ${intervalWords(dutyInterval(duty))}`].filter(Boolean).join(' · ')
+export function dutyLine(duty: DutyReading, catalogue: Catalogue | null): string {
+  return [dutySourceWords(duty, catalogue), `alle ${intervalWords(dutyInterval(duty))}`]
+    .filter(Boolean)
+    .join(' · ')
 }
 
 /**
- * "Pflichten": the duties of the asset that have not ended, each with the
- * last day it was met, its next appointment and its state today. A duty of
- * an asset that is not in service rests, and has no appointment to name.
+ * "Pflichten": the duties of an asset or of a room that have not ended, each
+ * with the last day it was met, its next appointment and its state today,
+ * and its name the way to its page. A duty of an asset that is not in
+ * service rests, and has no appointment to name.
  */
-function Duties({
+export function Duties({
   duties,
   catalogue,
   resting,
+  words,
 }: {
   readonly duties: readonly DutyReading[] | undefined
   readonly catalogue: Catalogue | null
   readonly resting: boolean
+  /** What the card is called and says while it is empty or cannot be read, for a room. */
+  readonly words?: {
+    readonly title: string
+    readonly caption: string
+    readonly none: string
+    readonly unread?: string
+  }
 }) {
-  const title = 'Pflichten'
+  const title = words?.title ?? 'Pflichten'
 
   if (duties === undefined || duties.length === 0) {
     return (
       <Panel title={title}>
         <p className="text-[13px] leading-[1.4] text-ink-muted">
-          {duties === undefined ? 'Die Pflichten werden geladen.' : assetFileWords.noDuties}
+          {duties === undefined
+            ? (words?.unread ?? 'Die Pflichten werden geladen.')
+            : (words?.none ?? assetFileWords.noDuties)}
         </p>
       </Panel>
     )
   }
 
-  const nameOf = (duty: DutyReading, className?: string): ReactNode =>
-    duty.kind === null ? (
-      duty.title
-    ) : (
-      <Link to={cataloguePlaces.dutyKind(duty.kind)} {...(className ? { className } : {})}>
-        {duty.title}
-      </Link>
-    )
-  const reviewOf = (duty: DutyReading) =>
-    duty.kind === null || duty.kindVersion === null
-      ? null
-      : (catalogue?.dutyKindVersion(duty.kind, duty.kindVersion)?.review ?? null)
+  // The name of a duty leads to its page; from there the way goes on to its
+  // kind in the catalogue.
+  const nameOf = (duty: DutyReading, className?: string): ReactNode => (
+    <Link to={dutyPlaces.duty(duty.id)} {...(className ? { className } : {})}>
+      {duty.title}
+    </Link>
+  )
+  const reviewOf = (duty: DutyReading) => kindOfDuty(duty, catalogue)?.review ?? null
   const lastOf = (duty: DutyReading) => (duty.lastMetOn === null ? null : date(duty.lastMetOn))
   const nextOf = (duty: DutyReading) =>
     resting || duty.appointment === null ? null : date(duty.appointment.dueOn)
@@ -576,7 +576,10 @@ function Duties({
   return (
     <TablePanel
       title={title}
-      caption="Pflichten dieser Anlage mit letztem Nachweis, nächstem Termin und Zustand"
+      caption={
+        words?.caption ??
+        'Pflichten dieser Anlage mit letztem Nachweis, nächstem Termin und Zustand'
+      }
       cards={duties.map((duty) => ({
         key: duty.id,
         title: nameOf(duty, cardLink),

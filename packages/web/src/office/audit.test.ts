@@ -78,13 +78,14 @@ describe('the words of the change log in the office', () => {
       (table) => auditScreenWords.href?.(table, 'x') !== null,
     )
 
-    expect(paged).toEqual(['properties', 'buildings', 'floors', 'rooms', 'assets'])
+    expect(paged).toEqual(['properties', 'buildings', 'floors', 'rooms', 'assets', 'duties'])
     expect(auditVocabulary.records).toEqual([
       'properties',
       'buildings',
       'floors',
       'rooms',
       'assets',
+      'duties',
     ])
   })
 

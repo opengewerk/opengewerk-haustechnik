@@ -17,11 +17,11 @@ import { Button, cardLink, Cell, Column, Panel, TablePanel } from '@opengewerk/p
 import { today } from '@opengewerk/platform-web/format'
 import { Empty, PageHead, Screen } from '@opengewerk/platform-web/office'
 import { useRight } from '@opengewerk/platform-web/session'
-import { maybeText, request, text, useRecords } from '@opengewerk/platform-web/sync'
+import { maybeText, request, useRecords } from '@opengewerk/platform-web/sync'
 import { useInfiniteQuery } from '@tanstack/react-query'
 import { Link, useNavigate, useSearch } from '@tanstack/react-router'
-import { ChevronDown, Plus } from 'lucide-react'
-import { type ReactNode, useId, useMemo } from 'react'
+import { Plus } from 'lucide-react'
+import { useMemo } from 'react'
 
 import { useCatalogue } from '../../sync/catalogue.js'
 import {
@@ -36,6 +36,7 @@ import { AssetConditionMark } from '../asset-marks.js'
 import { AssetState } from '../asset-state.js'
 import { officePlaces } from '../place-addresses.js'
 import { countedAssets } from '../place-pages.js'
+import { assetKindChoices, PlaceFilter, RegisterFilter as Filter } from '../register-filter.js'
 
 /**
  * "Anlagen" in the office, `anlagen()` of the boards (4.2 of the concept): the
@@ -288,29 +289,7 @@ function Filters({
   readonly onPlace: (place: Pick<AssetRegisterFilter, 'propertyId' | 'buildingId'>) => void
   readonly onReset?: () => void
 }) {
-  // By what a kind is called. Two packages may call a kind the same; then
-  // each says which package it is from, so that the choice is one.
-  const kinds = useMemo(() => {
-    const entries = catalogue?.assetKinds(today()) ?? []
-    const packageOf = (key: string) => {
-      const name = key.slice(0, key.indexOf('.'))
-
-      return catalogue?.packages.find((entry) => entry.name === name)?.title ?? name
-    }
-    const said = (label: string) =>
-      entries.filter((entry) => entry.definition.label === label).length
-
-    return entries
-      .map((entry) => ({
-        key: entry.key,
-        costGroup: entry.definition.costGroup,
-        label:
-          said(entry.definition.label) > 1
-            ? `${entry.definition.label} (${packageOf(entry.key)})`
-            : entry.definition.label,
-      }))
-      .sort((left, right) => left.label.localeCompare(right.label, 'de'))
-  }, [catalogue])
+  const kinds = useMemo(() => assetKindChoices(catalogue), [catalogue])
   // A building is read by the groups of the second level, 460 with the
   // elevators of 461. A group or a kind the address names beyond those the
   // catalogue of this device knows stays a choice, so that the filter shows
@@ -329,48 +308,16 @@ function Filters({
     filter.kind !== undefined && !kinds.some((kind) => kind.key === filter.kind)
       ? filter.kind
       : null
-  const byName = (left: RecordState, right: RecordState) =>
-    text(left, 'name').localeCompare(text(right, 'name'), 'de')
-  const place =
-    filter.buildingId !== undefined
-      ? `b:${filter.buildingId}`
-      : filter.propertyId !== undefined
-        ? `p:${filter.propertyId}`
-        : ''
 
   return (
     <div className="flex flex-wrap items-end gap-2.5">
-      <Filter
-        label="Standort"
+      <PlaceFilter
         className="lg:w-[220px]"
-        value={place}
-        onChange={(value) => {
-          onPlace(
-            value.startsWith('b:')
-              ? { buildingId: value.slice(2) }
-              : value.startsWith('p:')
-                ? { propertyId: value.slice(2) }
-                : {},
-          )
-        }}
-      >
-        <option value="">Alle Liegenschaften</option>
-        {[...properties].sort(byName).map((property) => (
-          <optgroup key={String(property['id'])} label={text(property, 'name')}>
-            <option value={`p:${String(property['id'])}`}>
-              {text(property, 'name')}, alle Gebäude
-            </option>
-            {buildings
-              .filter((building) => building['propertyId'] === property['id'])
-              .sort(byName)
-              .map((building) => (
-                <option key={String(building['id'])} value={`b:${String(building['id'])}`}>
-                  {text(building, 'name')}
-                </option>
-              ))}
-          </optgroup>
-        ))}
-      </Filter>
+        place={filter}
+        properties={properties}
+        buildings={buildings}
+        onPlace={onPlace}
+      />
       <Filter
         label="Kostengruppe"
         className="lg:w-[210px]"
@@ -438,49 +385,6 @@ function Filters({
           Filter zurücksetzen
         </Button>
       ) : null}
-    </div>
-  )
-}
-
-/** One filter: its name, and a choice in the look of the filters of the foundation. */
-function Filter({
-  label,
-  value,
-  onChange,
-  className,
-  children,
-}: {
-  readonly label: string
-  readonly value: string
-  readonly onChange: (value: string) => void
-  readonly className: string
-  readonly children: ReactNode
-}) {
-  const id = useId()
-
-  return (
-    <div className={`flex flex-col gap-[3px] max-lg:w-full ${className}`}>
-      <label htmlFor={id} className="text-[12px] text-ink-faint max-lg:text-[13px]">
-        {label}
-      </label>
-      <div className="relative">
-        <select
-          id={id}
-          value={value}
-          onChange={(event) => {
-            onChange(event.target.value)
-          }}
-          className="h-8 w-full cursor-pointer appearance-none rounded-control border border-line-strong bg-surface pr-7 pl-2.5 text-[13px] text-ink max-lg:h-10 max-lg:text-[15px]"
-        >
-          {children}
-        </select>
-        <ChevronDown
-          size={14}
-          strokeWidth={2.2}
-          aria-hidden="true"
-          className="pointer-events-none absolute top-1/2 right-2 -translate-y-1/2 text-ink-muted"
-        />
-      </div>
     </div>
   )
 }
