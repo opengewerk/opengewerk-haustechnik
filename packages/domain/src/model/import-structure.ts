@@ -65,7 +65,7 @@ export const structureFields: readonly TableField[] = [
   {
     key: 'street',
     label: 'Straße und Hausnummer',
-    names: ['Straße', 'Strasse', 'Adresse', 'Anschrift'],
+    names: ['Straße', 'Adresse', 'Anschrift'],
   },
   { key: 'postalCode', label: 'Postleitzahl', names: ['PLZ'] },
   { key: 'city', label: 'Ort', names: ['Stadt', 'Gemeinde'] },

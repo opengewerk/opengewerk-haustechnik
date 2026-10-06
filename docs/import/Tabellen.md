@@ -49,7 +49,7 @@ das Gebäude an. Liegenschaft, Gebäude und Geschoss stehen deshalb in jeder Zei
 | Feld | Pflicht | Wird auch erkannt als | Was darin steht |
 |---|---|---|---|
 | Liegenschaft | ja | Objekt, Standort, Liegenschaftsname, Name der Liegenschaft | Name der Liegenschaft |
-| Straße und Hausnummer | | Straße, Strasse, Adresse, Anschrift | für eine neue Liegenschaft nötig |
+| Straße und Hausnummer | | Straße, Adresse, Anschrift | für eine neue Liegenschaft nötig |
 | Postleitzahl | | PLZ | fünf Ziffern, für eine neue Liegenschaft nötig |
 | Ort | | Stadt, Gemeinde | für eine neue Liegenschaft nötig |
 | Bundesland | | Land | Name, Kürzel (BW) oder Code (DE-BW); sonst gilt die Wahl im ersten Schritt |
