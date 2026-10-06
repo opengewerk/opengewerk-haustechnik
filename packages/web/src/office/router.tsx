@@ -13,6 +13,7 @@ import {
   redirect,
 } from '@tanstack/react-router'
 
+import { dutyPlaces } from './duty-addresses.js'
 import { importPlaces } from './import-addresses.js'
 import { InstanceShell } from './instance/shell.js'
 import { AccountScreen } from './screens/account.js'
@@ -26,6 +27,7 @@ import { CatalogueScreen } from './screens/catalogue.js'
 import { DocumentsScreen } from './screens/documents.js'
 import { DutyRegisterScreen } from './screens/duties.js'
 import { DutyScreen } from './screens/duty.js'
+import { NewDutyScreen } from './screens/duty-form.js'
 import { DutyKindScreen } from './screens/duty-kind.js'
 import { EditFloorScreen, NewFloorScreen } from './screens/floor-form.js'
 import { FloorScreen } from './screens/floors.js'
@@ -201,11 +203,17 @@ export function officeRoutes() {
       component: NewComponentScreen,
     }),
     // The register of duties, narrowed by what its address names, and the
-    // page of one duty under it.
+    // page of one duty under it. The form of a duty of the operator's own
+    // stands under the register, before the page: "neu" is no id.
     createRoute({
       getParentRoute: () => office,
       path: '/pflichten',
       component: DutyRegisterScreen,
+    }),
+    createRoute({
+      getParentRoute: () => office,
+      path: dutyPlaces.new,
+      component: NewDutyScreen,
     }),
     createRoute({
       getParentRoute: () => office,

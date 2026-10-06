@@ -4,6 +4,7 @@ import type {
   DutyEvidenceEntry,
   RoleKey,
 } from '@opengewerk/haustechnik-domain'
+import { today } from '@opengewerk/platform-web/format'
 import { TestServer } from '@opengewerk/platform-web/testing'
 import { fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -71,6 +72,7 @@ function duty(further: Readonly<Record<string, unknown>> = {}): DutyDetails {
     label: null,
     basis: null,
     sourceNote: null,
+    task: null,
     counting: 'betrsichv',
     intervalDays: null,
     intervalMonths: 12,
@@ -113,6 +115,7 @@ const atRoom = duty({
   title: 'Heizraum frei von Brandlasten',
   basis: 'own_decision',
   sourceNote: 'Brandschutzordnung Teil C',
+  task: 'visual_check',
   counting: 'from_performance',
   intervalMonths: 3,
   intervalReason: null,
@@ -279,7 +282,7 @@ describe('the page of a duty', () => {
     expect(leadsTo('E.14 Heizraum')).toBe('/raeume/r-boiler')
   })
 
-  it('shows a duty of the operator own at a room: its basis and its source, and that nobody answers for it', async () => {
+  it('shows a duty of the operator own at a room: its basis, its source and its task, and that nobody answers for it', async () => {
     await opened('technician', atRoom)
 
     expect(head()).toContain('Fällig')
@@ -290,6 +293,7 @@ describe('the page of a duty', () => {
       Gezählt: 'Ab dem Tag der Durchführung',
       Grundlage: 'Eigene Festlegung',
       Quelle: 'Brandschutzordnung Teil C',
+      Tätigkeit: 'Sichtkontrolle',
       Bestätigt: 'am 14.09.2026',
       Frist: '3 Monate',
       'Art der Frist': 'Eigene Pflicht',
@@ -299,6 +303,13 @@ describe('the page of a duty', () => {
       Gebäude: 'Schulhaus',
       Raum: 'E.14 Heizraum',
     })
+  })
+
+  it('names no task for a duty of the operator own that was entered before it had to name one', async () => {
+    await opened('technician', { ...atRoom, task: null })
+
+    expect(facts()).toMatchObject({ Quelle: 'Brandschutzordnung Teil C' })
+    expect(facts()['Tätigkeit']).toBeUndefined()
   })
 
   it('names no appointment for a duty never recorded, for one that rests and for one that has ended, and says why', async () => {
@@ -339,6 +350,7 @@ describe('the page of a duty', () => {
       Beendet: 'seit 05.09.2026, Der Aufzug wurde zurückgebaut.',
     })
     expect(screen.queryByRole('button', { name: /Verantwortliche Person/ })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Beenden' })).toBeNull()
   })
 
   it('lists its evidence, the newest first, each with its result, where it comes from and what it means for the appointment', async () => {
@@ -623,6 +635,121 @@ describe('who answers for a duty', () => {
 
     expect((await screen.findByRole('alert')).textContent).toBe(
       'Verantwortlich ist jemand, der für diesen Betreiber arbeitet.',
+    )
+    expect(screen.getByRole('dialog')).toBeTruthy()
+  })
+})
+
+describe('ending a duty', () => {
+  const end = () => {
+    fireEvent.click(
+      within(screen.getByRole('dialog')).getByRole('button', { name: 'Pflicht beenden' }),
+    )
+  }
+
+  /** The dialog, opened by whoever keeps the register. */
+  async function asking(role: RoleKey = 'technical_management', details: DutyDetails = duty()) {
+    await opened(role, details)
+    fireEvent.click(screen.getByRole('button', { name: 'Beenden' }))
+
+    return within(await screen.findByRole('dialog', { name: 'Pflicht beenden' }))
+  }
+
+  it.each(['management', 'technical_management'] as const)(
+    'is for whoever keeps the register: "%s" is offered the button',
+    async (role) => {
+      await opened(role)
+
+      expect(screen.getByRole('button', { name: 'Beenden' })).toBeTruthy()
+    },
+  )
+
+  it.each(['site_management', 'technician'] as const)(
+    'is offered to nobody else: not to "%s"',
+    async (role) => {
+      await opened(role)
+      await screen.findByText('Dennis Roth')
+
+      expect(screen.queryByRole('button', { name: 'Beenden' })).toBeNull()
+    },
+  )
+
+  it('is not offered for a duty that has its end already, although the day has not come', async () => {
+    await opened('management', duty({ endsOn: '2099-12-31' }))
+
+    expect(facts()).toMatchObject({ Endet: 'am 31.12.2099' })
+    expect(screen.queryByRole('button', { name: 'Beenden' })).toBeNull()
+  })
+
+  it('names the duty it is about, starts with today and says what an end means', async () => {
+    const dialog = await asking()
+
+    expect(screen.getByLabelText<HTMLInputElement>('Endet am').value).toBe(today())
+    expect(
+      dialog.getByText('Hauptprüfung der Aufzugsanlage, AN-00012 Aufzug Schulhaus'),
+    ).toBeTruthy()
+    expect(dialog.getByText(/Ein Ende wird nicht zurückgenommen/)).toBeTruthy()
+  })
+
+  it('sends the day and the reason to the route of the end, and reads the page again', async () => {
+    await asking()
+
+    const reads = watchingReads()
+
+    answerToWrite = answering({ id: 'd-1' }, 201)
+    fireEvent.change(screen.getByLabelText('Endet am'), { target: { value: '2027-01-31' } })
+    fireEvent.change(screen.getByLabelText('Grund'), {
+      target: { value: ' Aufzug zurückgebaut ' },
+    })
+    end()
+
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog')).toBeNull()
+    })
+    expect(written).toEqual([
+      {
+        method: 'POST',
+        path: '/duties/d-1/end',
+        body: { endsOn: '2027-01-31', endReason: 'Aufzug zurückgebaut' },
+      },
+    ])
+    await waitFor(() => {
+      expect(reads).toContain('/duties/d-1')
+    })
+  })
+
+  it('ends it today where no other day is named, and sends no reason where none was given', async () => {
+    await asking('management')
+
+    answerToWrite = answering({ id: 'd-1' }, 201)
+    end()
+
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog')).toBeNull()
+    })
+    expect(written).toEqual([
+      { method: 'POST', path: '/duties/d-1/end', body: { endsOn: today(), endReason: null } },
+    ])
+  })
+
+  it('is not sent without its day, and says so', async () => {
+    const dialog = await asking()
+
+    fireEvent.change(screen.getByLabelText('Endet am'), { target: { value: '' } })
+    end()
+
+    expect(await dialog.findByText('Der Tag fehlt, an dem die Pflicht endet.')).toBeTruthy()
+    expect(written).toEqual([])
+  })
+
+  it('shows what the server refuses with, and keeps the dialog open', async () => {
+    await asking()
+
+    answerToWrite = answering({ message: 'Diese Pflicht endet schon am 2026-09-05.' }, 409)
+    end()
+
+    expect((await screen.findByRole('alert')).textContent).toBe(
+      'Diese Pflicht endet schon am 2026-09-05.',
     )
     expect(screen.getByRole('dialog')).toBeTruthy()
   })

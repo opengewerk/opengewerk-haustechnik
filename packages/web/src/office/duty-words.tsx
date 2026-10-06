@@ -7,11 +7,14 @@ import {
   type DutyReading,
   intervalKindLabel,
 } from '@opengewerk/haustechnik-domain'
-import { Status } from '@opengewerk/platform-web'
+import { Button, Status } from '@opengewerk/platform-web'
 import { date } from '@opengewerk/platform-web/format'
-import { TriangleAlert } from 'lucide-react'
+import { useRight } from '@opengewerk/platform-web/session'
+import { useNavigate } from '@tanstack/react-router'
+import { Plus, TriangleAlert } from 'lucide-react'
 
 import { DutyStateMark } from '../app/asset-marks.js'
+import { dutyPlaces, type NewDutyStart, newDutySearch } from './duty-addresses.js'
 
 /**
  * What the register of duties, the page of a duty and the file of an asset
@@ -114,4 +117,36 @@ export function DutyStandingMark({
   ) : (
     <DutyStateMark state={duty.state} until={duty.appointment?.dueOn ?? null} />
   )
+}
+
+/**
+ * The way to the form of a duty of the operator's own (#103): "Eigene
+ * Pflicht" in the head of the register, and "Pflicht hinzufügen" in the card
+ * of the duties of an asset and of a room, as the boards name them. A duty
+ * from the catalogue is not added by hand: it is proposed (#102). For whoever
+ * keeps the register; nobody else is offered it.
+ */
+export function NewDutyButton({
+  start,
+  primary = false,
+}: {
+  /** The place the form starts at; from the register, what the list is narrowed to. */
+  readonly start: NewDutyStart
+  /** In the head of the register it is the one thing to do; in a card it stands back. */
+  readonly primary?: boolean
+}) {
+  const keeps = useRight('duty.write')
+  const navigate = useNavigate()
+
+  return keeps ? (
+    <Button
+      icon={Plus}
+      {...(primary ? { tone: 'primary' as const } : { size: 'small' as const })}
+      onClick={() => {
+        void navigate({ to: dutyPlaces.new, search: newDutySearch(start) })
+      }}
+    >
+      {primary ? 'Eigene Pflicht' : 'Pflicht hinzufügen'}
+    </Button>
+  ) : null
 }

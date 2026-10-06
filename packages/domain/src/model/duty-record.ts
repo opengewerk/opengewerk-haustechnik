@@ -10,7 +10,14 @@ import {
 
 import type { AreaId } from './area.js'
 import type { AssetId } from './asset.js'
-import { type Counting, countings, type IntervalKind } from './catalogue.js'
+import {
+  type Counting,
+  countings,
+  type DutyTask,
+  dutyTaskLabel,
+  dutyTasks,
+  type IntervalKind,
+} from './catalogue.js'
 import { calendarDay, oneOf, optional, type Problems, required } from './fields.js'
 import type { PropertyId } from './location.js'
 import type { PlaceTarget } from './target.js'
@@ -71,6 +78,8 @@ export interface Duty extends Synced, PlaceTarget {
   readonly label: string | null
   readonly basis: DutyBasis | null
   readonly sourceNote: string | null
+  /** What a duty of the operator's own has somebody do; one from the catalogue takes it from its kind. */
+  readonly task: DutyTask | null
   readonly counting: Counting
   /** The interval it actually has, in days or in months, never both. */
   readonly intervalDays: number | null
@@ -288,6 +297,13 @@ export function dutyProblems(duty: Readonly<Record<string, unknown>>): Readonly<
     'basis',
     dutyBases,
     `Die Grundlage ist keine von: ${dutyBases.map((basis) => dutyBasisLabel[basis]).join(', ')}.`,
+  )
+  oneOf(
+    problems,
+    duty,
+    'task',
+    dutyTasks,
+    `Die Tätigkeit ist keine von: ${dutyTasks.map((task) => dutyTaskLabel[task]).join(', ')}.`,
   )
   oneOf(
     problems,

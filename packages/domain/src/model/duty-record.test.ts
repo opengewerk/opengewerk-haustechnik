@@ -128,6 +128,7 @@ describe('the texts and choices of a duty', () => {
     expect(
       dutyProblems({
         basis: 'contract',
+        task: 'cleaning',
         performer: 'neighbour',
         counting: 'weekly',
         endsOn: '2026-02-30',
@@ -135,6 +136,7 @@ describe('the texts and choices of a duty', () => {
     ).toEqual({
       basis:
         'Die Grundlage ist keine von: Vorgabe des Herstellers, Auflage aus Baugenehmigung oder Brandschutzkonzept, Forderung des Versicherers, Eigene Festlegung.',
+      task: 'Die Tätigkeit ist keine von: Prüfung, Wartung, Inspektion, Funktionskontrolle, Sichtkontrolle, Probenahme.',
       performer: 'Ausgeführt wird von eigenen Leuten oder einer Fremdfirma.',
       counting:
         'Gezählt wird ab dem Tag der Durchführung, ab dem fälligen Tag oder nach § 14 Abs. 5 BetrSichV.',
@@ -143,6 +145,7 @@ describe('the texts and choices of a duty', () => {
     expect(
       dutyProblems({
         basis: 'manufacturer',
+        task: 'sampling',
         performer: 'contractor',
         counting: 'from_due',
         endsOn: '2027-12-31',
@@ -152,7 +155,9 @@ describe('the texts and choices of a duty', () => {
 
   it('may leave out what it does not change', () => {
     expect(dutyProblems({})).toEqual({})
-    expect(dutyProblems({ label: null, basis: null, performer: null, endsOn: null })).toEqual({})
+    expect(
+      dutyProblems({ label: null, basis: null, task: null, performer: null, endsOn: null }),
+    ).toEqual({})
   })
 })
 

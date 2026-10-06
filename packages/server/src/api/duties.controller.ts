@@ -36,6 +36,8 @@ import {
   dutyProblems,
   type DutyReading,
   type DutyRegister,
+  dutyTaskLabel,
+  dutyTasks,
   evidenceStandingOf,
   type FederalState,
   type IntervalKind,
@@ -108,6 +110,7 @@ const newFields = [
   'label',
   'basis',
   'sourceNote',
+  'task',
   'counting',
   'intervalDays',
   'intervalMonths',
@@ -122,6 +125,7 @@ const changeFields = [
   'label',
   'basis',
   'sourceNote',
+  'task',
   'intervalDays',
   'intervalMonths',
   'intervalReason',
@@ -145,7 +149,7 @@ const emptiable = [
 ] as const
 
 /** The fields of a duty of the operator's own, which a duty from the catalogue takes from its kind. */
-const ownFields = ['label', 'basis', 'sourceNote', 'counting'] as const
+const ownFields = ['label', 'basis', 'sourceNote', 'task', 'counting'] as const
 
 type Values = Partial<Record<(typeof newFields)[number], unknown>>
 
@@ -555,7 +559,7 @@ export class DutiesController {
       if (given(values.kind)) {
         if (ownFields.some((field) => given(values[field]))) {
           throw new BadRequestException(
-            'Eine Pflicht aus dem Katalog nimmt Bezeichnung, Grundlage, Quelle und Zählweise von ihrer Pflichtart.',
+            'Eine Pflicht aus dem Katalog nimmt Bezeichnung, Grundlage, Quelle, Tätigkeit und Zählweise von ihrer Pflichtart.',
           )
         }
 
@@ -618,6 +622,12 @@ export class DutiesController {
           throw new BadRequestException('Die Quelle einer eigenen Pflicht fehlt.')
         }
 
+        if (!given(values.task)) {
+          throw new BadRequestException(
+            `Die Tätigkeit einer eigenen Pflicht fehlt: ${dutyTasks.map((task) => dutyTaskLabel[task]).join(', ')}.`,
+          )
+        }
+
         const counting = (values.counting ?? 'from_performance') as Counting
         const problem = dutyIntervalProblem(values, counting, null)
 
@@ -645,6 +655,7 @@ export class DutiesController {
           label: decided.kind === null ? (values.label as string) : null,
           basis: decided.kind === null ? (values.basis as Duty['basis']) : null,
           sourceNote: decided.kind === null ? (values.sourceNote as string) : null,
+          task: decided.kind === null ? (values.task as Duty['task']) : null,
           counting: decided.counting,
           intervalDays: 'days' in interval ? interval.days : null,
           intervalMonths: 'months' in interval ? interval.months : null,
@@ -666,7 +677,7 @@ export class DutiesController {
 
   /**
    * The interval with its reason, who answers for the duty and who performs
-   * it, and for a duty of the operator's own its name, basis and source. The
+   * it, and for a duty of the operator's own its name, basis, source and task. The
    * interval stays within the maximum kept beside it; what the duty hangs on
    * and what it is stay as they were confirmed.
    */
@@ -697,15 +708,15 @@ export class DutiesController {
         ownFields.some((field) => values[field as keyof typeof values] !== undefined)
       ) {
         throw new BadRequestException(
-          'Eine Pflicht aus dem Katalog nimmt Bezeichnung, Grundlage und Quelle von ihrer Pflichtart.',
+          'Eine Pflicht aus dem Katalog nimmt Bezeichnung, Grundlage, Quelle und Tätigkeit von ihrer Pflichtart.',
         )
       }
 
       if (duty.kind === null) {
-        for (const field of ['label', 'basis', 'sourceNote'] as const) {
+        for (const field of ['label', 'basis', 'sourceNote', 'task'] as const) {
           if (values[field] === null) {
             throw new BadRequestException(
-              'Eine eigene Pflicht behält Bezeichnung, Grundlage und Quelle.',
+              'Eine eigene Pflicht behält Bezeichnung, Grundlage, Quelle und Tätigkeit.',
             )
           }
         }

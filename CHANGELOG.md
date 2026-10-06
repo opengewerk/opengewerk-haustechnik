@@ -712,6 +712,26 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   nennen den Import jetzt, wie die Tafeln es zeichnen. Was nur eine Anlagenart hat, liest der Import nicht; Fristen und alte
   Nachweise kommen mit `#130`
 
+- Eine eigene Pflicht im Büro anlegen (#103): das Formular "Eigene Pflicht" unter `/pflichten/neu` mit Bezeichnung,
+  Tätigkeit, Grundlage und Quelle, Frist und Zählweise, verantwortlicher Person und wer ausführt. Es öffnet sich aus dem
+  Pflichtenverzeichnis und über "Pflicht hinzufügen" aus der Karte "Pflichten" einer Anlagenakte und einer Raumseite und bietet
+  den Ort an, von dem es kommt, und jeden darüber: Anlage, Raum, Gebäude oder Liegenschaft. Aus dem Verzeichnis fragt es
+  nach Liegenschaft und Gebäude. Ohne Quelle sendet es nichts, und der Server lehnt eine eigene Pflicht ohne Quelle
+  ebenso ab. Anlegen kann nur, wer das Pflichtenverzeichnis führt; den anderen Rollen steht der Knopf nicht da. Gebaut,
+  weil ein Betreiber Pflichten hat, die kein Paket kennt: die Vorgabe eines Herstellers, eine Auflage, eine Forderung des
+  Versicherers, eine eigene Festlegung (Abschnitt 4.3 des Konzepts), und weil eine Anlage mit allgemeiner Anlagenart
+  sonst gar keine Pflicht tragen könnte. Eine Aufgabe, die regelmäßig wiederkommt, wird genauso angelegt (4.8)
+- Eine eigene Pflicht nennt ihre Tätigkeit (#103): Prüfung, Wartung, Inspektion, Funktionskontrolle, Sichtkontrolle oder
+  Probenahme, aus derselben Liste wie eine Pflichtart des Katalogs. Die Migration `0023_own_duty_task` gibt `duties` die
+  Spalte `task`. `POST /duties` verlangt sie für eine eigene Pflicht, `PATCH /duties/:id` ändert sie und nimmt sie nicht
+  weg; eine Pflicht aus dem Katalog nennt keine und nimmt sie von ihrer Pflichtart. Gebraucht wird sie, sobald aus einem
+  fälligen Termin ein Vorgang entsteht (#105): der muss wissen, ob er eine Prüfung oder eine Wartung ist. Eine eigene
+  Pflicht aus der Zeit vor der Spalte hat keine Tätigkeit, und ihre Seite nennt dann keine. Das Planungskonzept sagt es
+  seit v0.14 (2.3, 4.3), ADR 0002 in einem Nachtrag
+- Eine Pflicht beenden (#103): der Knopf "Beenden" auf der Seite einer Pflicht, für wen das Pflichtenverzeichnis führt,
+  mit dem Tag, heute oder einem anderen, und auf Wunsch einem Grund. Die Route dafür stand seit #25 ohne Bildschirm. Der
+  Dialog sagt vorher, was ein Ende heißt und dass es nicht zurückgenommen wird
+
 ### Geändert
 
 - Das Pflichtenverzeichnis auf die Pflichten einer Person eingrenzen kann nur, wer es führt, also Leitung und

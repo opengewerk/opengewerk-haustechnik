@@ -7,6 +7,7 @@ import {
   dutyInterval,
   dutyMaximum,
   dutyPerformerLabel,
+  dutyProblems,
   dutyTaskLabel,
   type EvidenceResult,
   evidenceOriginLabel,
@@ -22,13 +23,14 @@ import {
   Column,
   Dialog,
   DialogActions,
+  Field,
   Panel,
   SelectField,
   Status,
   type StatusTone,
   TablePanel,
 } from '@opengewerk/platform-web'
-import { date } from '@opengewerk/platform-web/format'
+import { date, today } from '@opengewerk/platform-web/format'
 import {
   ChangesButton,
   Empty,
@@ -109,6 +111,12 @@ export const dutyPageWords = {
   untilDelegation:
     'Die Pflichtenübertragung mit Unterschrift kommt mit Phase 2. Bis dahin ist verantwortlich, wen die Pflicht nennt; nennt sie niemanden, erinnert ihre Frist die Leitung.',
   nobody: 'Niemand',
+  whatEnds:
+    'Vom Tag des Endes an ruft die Pflicht nach nichts mehr: sie hat keinen Termin und erinnert niemanden. Ihre Nachweise bleiben, und im Verzeichnis steht sie unter „Beendet“.',
+  endsForGood:
+    'Ein Ende wird nicht zurückgenommen. Wird die Pflicht doch wieder gebraucht, wird sie neu angelegt.',
+  noEndDay: 'Der Tag fehlt, an dem die Pflicht endet.',
+  endReasonHint: 'Auf Wunsch, etwa: Anlage zurückgebaut.',
 } as const
 
 /**
@@ -122,16 +130,17 @@ export const dutyPageWords = {
  * its evidence, which never travels to a device. The names of the places
  * come from the device. Its evidence is read with the right of the evidence.
  *
- * Whoever keeps the register says who answers for the duty; nobody else is
- * offered the button. What a duty is changed with beyond that arrives with
- * what makes one: confirming a proposal (#102), a duty of the operator's own
- * and ending it (#103), and the page of an evidence (#109).
+ * Whoever keeps the register says who answers for the duty and ends it;
+ * nobody else is offered the buttons. What a duty is changed with beyond that
+ * arrives with what makes one: confirming a proposal (#102) and the page of
+ * an evidence (#109).
  */
 export function DutyScreen() {
   const { dutyId } = useParams({ strict: false }) as { dutyId?: string }
   const keeps = useRight('duty.write')
   const seesEvidence = useRight('evidence.read')
   const [naming, setNaming] = useState(false)
+  const [ending, setEnding] = useState(false)
   const page = useQuery({ ...dutyQuery(dutyId ?? ''), enabled: dutyId !== undefined })
   const evidence = useQuery({
     ...dutyEvidenceQuery(dutyId ?? ''),
@@ -195,6 +204,8 @@ export function DutyScreen() {
       ? [
           { label: 'Grundlage', value: duty.basis === null ? null : dutyBasisLabel[duty.basis] },
           { label: 'Quelle', value: duty.sourceNote },
+          // A duty entered before it had to name its task names none.
+          ...(duty.task === null ? [] : [{ label: 'Tätigkeit', value: dutyTaskLabel[duty.task] }]),
         ]
       : [
           {
@@ -230,7 +241,20 @@ export function DutyScreen() {
           </>
         }
         sub={target}
-        actions={<ChangesButton table="duties" id={dutyId} />}
+        actions={
+          <>
+            <ChangesButton table="duties" id={dutyId} />
+            {keeps && duty.endsOn === null ? (
+              <Button
+                onClick={() => {
+                  setEnding(true)
+                }}
+              >
+                Beenden
+              </Button>
+            ) : null}
+          </>
+        }
       />
       <div className="grid items-start gap-3.5 lg:grid-cols-[minmax(0,1fr)_320px]">
         <div className="flex min-w-0 flex-col gap-3.5">
@@ -416,6 +440,16 @@ export function DutyScreen() {
           sub={target.replace(/^Pflicht (an der |am |an )/, '')}
           onClose={() => {
             setNaming(false)
+          }}
+        />
+      ) : null}
+      {ending ? (
+        <EndDutyDialog
+          key={duty.id}
+          duty={duty}
+          sub={target.replace(/^Pflicht (an der |am |an )/, '')}
+          onClose={() => {
+            setEnding(false)
           }}
         />
       ) : null}
@@ -617,6 +651,126 @@ export function ResponsibleDialog({
           </Button>
           <Button type="submit" tone="primary" disabled={working}>
             {working ? 'Einen Moment' : 'Speichern'}
+          </Button>
+        </DialogActions>
+      </form>
+    </Dialog>
+  )
+}
+
+/**
+ * The day a duty ends, `pflicht_beenden()` of the boards (4.3 of the
+ * concept): today unless another day is named, with a reason on request.
+ * From that day on the duty has no appointment and reminds nobody; its
+ * evidence stays, and the register lists it among the ended ones.
+ *
+ * Asked of the route of the duty, with a connection. An end is not taken
+ * back, and the dialog says so before it is set.
+ */
+export function EndDutyDialog({
+  duty,
+  sub,
+  onClose,
+}: {
+  readonly duty: DutyDetails
+  readonly sub: string
+  readonly onClose: () => void
+}) {
+  const client = useSync()
+  const queries = useQueryClient()
+  const [endsOn, setEndsOn] = useState<string>(() => today())
+  const [reason, setReason] = useState('')
+  const [problems, setProblems] = useState<Readonly<Record<string, string>>>({})
+  const [working, setWorking] = useState(false)
+  const [trouble, setTrouble] = useState<string | null>(null)
+
+  async function save() {
+    const values = {
+      endsOn: endsOn === '' ? null : endsOn,
+      endReason: reason.trim() === '' ? null : reason.trim(),
+    }
+    const wrong = {
+      ...dutyProblems(values),
+      ...(values.endsOn === null ? { endsOn: dutyPageWords.noEndDay } : {}),
+    }
+
+    setProblems(wrong)
+    setTrouble(null)
+
+    if (Object.keys(wrong).length > 0) {
+      return
+    }
+
+    setWorking(true)
+
+    try {
+      const result = await askAt(client, 'POST', `/duties/${duty.id}/end`, duty.id, values)
+
+      if (result.outcome === 'refused') {
+        setTrouble(refusalFor(result))
+
+        return
+      }
+
+      // The page and the register are read again, and what was read of the
+      // assets is dropped: the file of the asset lists the duties that stand.
+      await queries.invalidateQueries({ queryKey: ['duties'] })
+      queries.removeQueries({ queryKey: ['assets'] })
+      onClose()
+    } finally {
+      setWorking(false)
+    }
+  }
+
+  return (
+    <Dialog
+      title="Pflicht beenden"
+      width={520}
+      onClose={onClose}
+      sub={[duty.title, sub].filter(Boolean).join(', ')}
+    >
+      <form
+        noValidate
+        className="flex flex-col gap-3"
+        onSubmit={(event) => {
+          event.preventDefault()
+          void save()
+        }}
+      >
+        <Field
+          label="Endet am"
+          type="date"
+          required
+          starred
+          value={endsOn}
+          problem={problems['endsOn']}
+          onChange={(event) => {
+            setEndsOn(event.target.value)
+          }}
+        />
+        <Field
+          label="Grund"
+          value={reason}
+          hint={dutyPageWords.endReasonHint}
+          problem={problems['endReason']}
+          onChange={(event) => {
+            setReason(event.target.value)
+          }}
+        />
+        <NoteBox>
+          {dutyPageWords.whatEnds} {dutyPageWords.endsForGood}
+        </NoteBox>
+        {trouble ? (
+          <p role="alert" className="text-[13px] font-semibold text-conflict">
+            {trouble}
+          </p>
+        ) : null}
+        <DialogActions>
+          <Button type="button" disabled={working} onClick={onClose}>
+            Abbrechen
+          </Button>
+          <Button type="submit" tone="primary" disabled={working}>
+            {working ? 'Einen Moment' : 'Pflicht beenden'}
           </Button>
         </DialogActions>
       </form>

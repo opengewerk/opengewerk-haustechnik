@@ -37,6 +37,7 @@ import {
   DutyStandingMark,
   intervalKindWords,
   kindOfDuty,
+  NewDutyButton,
   Nobody,
   nobodyWords,
   performerWords,
@@ -74,8 +75,9 @@ export const dutyRegisterWords = {
  * Narrowing it to one person is for whoever keeps the register, and the list
  * then names no number (4.16 of the concept: no evaluation by person).
  *
- * What the board draws beyond this arrives with what it shows: the proposals
- * of the catalogue (#102) and a duty of the operator's own (#103).
+ * A duty of the operator's own is made from here, by whoever keeps the
+ * register (`duty-form.tsx`). What the board draws beyond this arrives with
+ * what it shows: the proposals of the catalogue (#102).
  */
 export function DutyRegisterScreen() {
   const search = useSearch({ strict: false })
@@ -160,7 +162,20 @@ export function DutyRegisterScreen() {
 
   return (
     <Screen>
-      <PageHead title="Pflichtenverzeichnis" {...countOf(first)} />
+      <PageHead
+        title="Pflichtenverzeichnis"
+        {...countOf(first)}
+        actions={
+          // In the building or on the property the list is narrowed to, where it is.
+          <NewDutyButton
+            primary
+            start={{
+              ...(filter.buildingId === undefined ? {} : { buildingId: filter.buildingId }),
+              ...(filter.propertyId === undefined ? {} : { propertyId: filter.propertyId }),
+            }}
+          />
+        }
+      />
       <Filters
         filter={filter}
         register={first}

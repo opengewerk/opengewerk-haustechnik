@@ -418,6 +418,7 @@ export const syncFieldNames: Readonly<Record<string, string>> = {
   label: 'Bezeichnung',
   basis: 'Grundlage',
   sourceNote: 'Quelle',
+  task: 'Tätigkeit',
   counting: 'Zählweise',
   intervalDays: 'Frist in Tagen',
   intervalMonths: 'Frist in Monaten',
