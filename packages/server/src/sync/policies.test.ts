@@ -135,7 +135,12 @@ describe('the rights of an operation', () => {
       work_orders: { create: false },
       defects: { create: true, change: true },
       activity_signatures: { create: true },
+      // Filed and corrected by everybody, taken out of the records from the
+      // Objektleitung on (section 7 of the concept).
+      attachments: { create: true, change: true, remove: false },
+      attachment_versions: { create: true },
     })
+    expect(site).toContain(permissionFor('attachments', 'delete'))
   })
 
   it('ask for the right of the office once an operation leaves what a device may write', () => {
@@ -150,6 +155,18 @@ describe('the rights of an operation', () => {
     )
     expect(permissionFor('activities', 'update', patch('status', 'done'))).toBe('activity.write')
     expect(permissionFor('defects', 'update', patch('status', 'remedied'))).toBe('defect.write')
+    // A document: filing it, a version and a correction are one right,
+    // taking it out another, and moving it is nothing a device sends.
+    expect(permissionFor('attachments', 'create', patch('title', 'Schaltplan'))).toBe(
+      'document.record',
+    )
+    expect(permissionFor('attachments', 'update', patch('kind', 'concept'))).toBe('document.record')
+    expect(permissionFor('attachments', 'delete')).toBe('document.remove')
+    expect(permissionFor('attachments', 'update', patch('assetId', 'a'))).toBe('document.remove')
+    expect(permissionFor('attachment_versions', 'create', patch('fileName', 'plan.pdf'))).toBe(
+      'document.record',
+    )
+    expect(permissionFor('attachment_versions', 'delete')).toBe('document.remove')
     // The signature is the work's, the countersignature the Objektleitung's.
     expect(permissionFor('activity_signatures', 'create', patch('role', 'signer'))).toBe(
       'activity.perform',

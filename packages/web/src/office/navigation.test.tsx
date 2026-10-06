@@ -90,7 +90,6 @@ describe('what a role is offered once every screen is built', () => {
   it('is nothing that takes a right for somebody who holds none', () => {
     expect(offered(everyPlace, [], () => true).map((place) => place.label)).toEqual([
       'Übersicht',
-      'Dokumente',
       'Aufgaben',
       'Katalog',
     ])
@@ -142,11 +141,19 @@ describe('the navigation of the office as it is built today', () => {
    * the register of assets the second (#87), so the navigation is their two
    * places under "Bestand" over the foot of the frame, and the catalogue
    * stands at the foot since its screen is built (#90). The register of
-   * duties is the first place under "Pflichten" (#101). Every role reads
-   * places, assets and duties, and the catalogue is the same for everybody.
-   * The next screen that arrives changes what stands here.
+   * duties is the first place under "Pflichten" (#101), and the documents
+   * stand under "Bestand" since their screen is built (#97). Every role reads
+   * places, assets, documents and duties, and the catalogue is the same for
+   * everybody. The next screen that arrives changes what stands here.
    */
-  const built = ['Liegenschaften', 'Anlagen', 'Pflichtenverzeichnis', 'Katalog', 'Abgleich']
+  const built = [
+    'Liegenschaften',
+    'Anlagen',
+    'Dokumente',
+    'Pflichtenverzeichnis',
+    'Katalog',
+    'Abgleich',
+  ]
   const today: readonly (readonly [RoleKey, readonly string[]])[] = [
     ['management', [...built, 'Einstellungen']],
     ['technical_management', built],

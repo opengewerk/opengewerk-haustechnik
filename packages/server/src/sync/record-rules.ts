@@ -5,13 +5,20 @@ import {
   assetValueProblems,
   type Catalogue,
   defectProblems,
+  documentProblems,
+  documentTargetProblem,
   meterProblems,
+  operatorDocuments,
   placeTargetProblem,
   roomProblems,
   supplyPlaceProblem,
   workOrderProblems,
 } from '@opengewerk/haustechnik-domain'
-import type { RecordRule, RecordRules } from '@opengewerk/platform-server'
+import {
+  attachmentRecordRules,
+  type RecordRule,
+  type RecordRules,
+} from '@opengewerk/platform-server'
 
 import { dayInGermany } from '../today.js'
 
@@ -78,6 +85,10 @@ function json(value: unknown): unknown {
  * the kind meanwhile.
  */
 export function recordRules(catalogue: Catalogue): RecordRules {
+  // What the foundation asks of a file and of a version: somewhere to hang,
+  // and a hash, a type and a size in their form. Beside it stands what only
+  // this application knows about a document.
+  const filed = attachmentRecordRules(operatorDocuments)
   const kindOf = (key: unknown) =>
     typeof key === 'string' ? (catalogue.assetKind(key, dayInGermany())?.definition ?? null) : null
   const unknownKind = (key: unknown) =>
@@ -178,5 +189,20 @@ export function recordRules(catalogue: Catalogue): RecordRules {
           ),
       },
     ],
+    attachments: [
+      ...(filed['attachments'] ?? []),
+      ...each(documentProblems, ['title', 'kind'], ['title']),
+      {
+        fields: ['assetId', 'roomId', 'buildingId', 'activityId'],
+        problem: (at) =>
+          documentTargetProblem({
+            assetId: at('assetId'),
+            roomId: at('roomId'),
+            buildingId: at('buildingId'),
+            activityId: at('activityId'),
+          }),
+      },
+    ],
+    attachment_versions: filed['attachment_versions'] ?? [],
   }
 }

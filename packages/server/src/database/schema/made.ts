@@ -1,5 +1,7 @@
-import { contactsSchema, deadlinesSchema } from '@opengewerk/platform-server'
+import { attachmentsSchema, contactsSchema, deadlinesSchema } from '@opengewerk/platform-server'
 import {
+  attachmentsGuard,
+  attachmentVersionsGuard,
   contactsGuard,
   deadlinesGuard,
   type MadeByTheApplication,
@@ -25,6 +27,13 @@ const deadlinesOfTheBlocks = deadlinesSchema()
 const contactsOfTheBlocks = contactsSchema()
 
 /**
+ * The documents and their versions as the foundation makes them, without what
+ * this application hangs a document on, its kind, the bound of its name and
+ * the line between the areas on both tables.
+ */
+const attachmentsOfTheBlocks = attachmentsSchema()
+
+/**
  * The tables of the foundation this application makes with lists of its own:
  * their columns and rules are the foundation's, the values of their enums are
  * this application's.
@@ -48,6 +57,15 @@ export const madeWithLists: MadeByTheApplication = {
     deadlineStatus: deadlinesOfTheBlocks.deadlineStatus,
     deadlines: deadlinesOfTheBlocks.deadlines,
     contacts: contactsOfTheBlocks.contacts,
+    attachments: attachmentsOfTheBlocks.attachments,
+    attachmentVersions: attachmentsOfTheBlocks.attachmentVersions,
   },
-  guards: [numberRangesGuard, secretsGuard, deadlinesGuard, contactsGuard],
+  guards: [
+    numberRangesGuard,
+    secretsGuard,
+    deadlinesGuard,
+    contactsGuard,
+    attachmentsGuard,
+    attachmentVersionsGuard,
+  ],
 }

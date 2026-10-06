@@ -84,6 +84,11 @@ const placeEntities = [
   'asset_supplies',
   'duties',
   'duty_dismissals',
+  // The documents of those places, of the assets there and of the work on
+  // them, with their versions: the rows, never the bytes. A document carries
+  // the property it hangs on, whatever else it names.
+  'attachments',
+  'attachment_versions',
 ]
 
 /** The kinds of record of the work on an activity, held with the activity. */

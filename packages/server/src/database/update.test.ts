@@ -146,6 +146,7 @@ describe('an installation that began on the first migration', () => {
     // place and the assets, so they go first, and what an invitation says
     // about areas hangs on the areas; the files, the mail server and the
     // settings of the deadlines hang on nothing of this.
+    await revertMigration(admin, '0019_documents')
     await revertMigration(admin, '0017_building_closures')
     await revertMigration(admin, '0016_contacts')
     await revertMigration(admin, '0014_invitation_areas')
@@ -303,6 +304,7 @@ describe('an installation from before the areas', () => {
 
     // The places hang on the areas and go first, as on the way back of an
     // installation, and so does what an invitation says about areas.
+    await revertMigration(admin, '0019_documents')
     await revertMigration(admin, '0017_building_closures')
     await revertMigration(admin, '0016_contacts')
     await revertMigration(admin, '0014_invitation_areas')
@@ -370,6 +372,7 @@ describe('an installation with places', () => {
       [tenant.id],
     )
 
+    await revertMigration(admin, '0019_documents')
     await revertMigration(admin, '0017_building_closures')
     await revertMigration(admin, '0016_contacts')
     await revertMigration(admin, '0012_evidence_corrections')
@@ -463,6 +466,7 @@ describe('an installation with assets', () => {
       [tenant.id, asset, at.property, at.area, at.building],
     )
 
+    await revertMigration(admin, '0019_documents')
     await revertMigration(admin, '0012_evidence_corrections')
     await revertMigration(admin, '0011_signatures')
     await revertMigration(admin, '0010_evidence_written')
@@ -561,6 +565,7 @@ describe('an installation with assets', () => {
       [tenant.id, at.property, at.area, at.asset],
     )
 
+    await revertMigration(admin, '0019_documents')
     await revertMigration(admin, '0012_evidence_corrections')
     await revertMigration(admin, '0011_signatures')
     await revertMigration(admin, '0010_evidence_written')
@@ -660,6 +665,7 @@ describe('an installation with assets', () => {
       [tenant.id, at.duty, at.property, at.area],
     )
 
+    await revertMigration(admin, '0019_documents')
     await revertMigration(admin, '0012_evidence_corrections')
     await revertMigration(admin, '0011_signatures')
     await revertMigration(admin, '0010_evidence_written')
@@ -762,6 +768,7 @@ describe('an installation with assets', () => {
       [tenant.id, at.property, at.area, at.asset, activityId],
     )
 
+    await revertMigration(admin, '0019_documents')
     await revertMigration(admin, '0012_evidence_corrections')
     await revertMigration(admin, '0011_signatures')
     await revertMigration(admin, '0010_evidence_written')
@@ -1404,5 +1411,111 @@ describe('an installation whose buildings have times they are closed', () => {
     )
 
     expect(removed).toEqual([{ table_name: 'building_closures', reason: 'migration', records: 2 }])
+  })
+})
+
+/**
+ * 0019 brings the documents with their versions (#97). On the way forward it
+ * touches no row. Taken back, the documents and their versions go with their
+ * tables, although a version is otherwise removed by nobody, and the log of
+ * the tenant says that they went and why. The files they named stay, in the
+ * store and as rows, and the triggers on the records a document hangs on go
+ * with their function, so a property is marked afterwards as it was before.
+ */
+describe('an installation with documents', () => {
+  it('loses its documents and their versions and nothing else when the update is taken back', async () => {
+    await applyMigrations()
+
+    const tenant = { id: newId<'tenant'>() }
+    const file = 'c'.repeat(64)
+
+    await admin.query('insert into tenants (id, name) values ($1, $2)', [
+      tenant.id,
+      'Wohnbau Nord eG',
+    ])
+    await members(tenant, { 'user-lead': { roles: ['management'] } })
+
+    const { rows: made } = await admin.query<{ id: string; area_id: string }>(
+      `insert into properties (tenant_id, area_id, name, street, postal_code, city, federal_state)
+       select $1, id, 'Schulzentrum', 'Musterweg 1', '00001', 'Beispielstadt', 'DE-BW'
+         from areas where tenant_id = $1
+       returning id, area_id`,
+      [tenant.id],
+    )
+    const property = made[0]
+
+    await admin.query(
+      `insert into files (tenant_id, sha256, size_bytes, media_type)
+       values ($1, $2, 2048, 'application/pdf')`,
+      [tenant.id, file],
+    )
+
+    const { rows: filed } = await admin.query<{ id: string }>(
+      `insert into attachments (tenant_id, property_id, area_id, title, kind)
+       values ($1, $2, $3, 'Brandschutzkonzept', 'concept') returning id`,
+      [tenant.id, property?.id, property?.area_id],
+    )
+
+    await admin.query(
+      `insert into attachment_versions (tenant_id, attachment_id, sha256, file_name, media_type,
+                                        size_bytes)
+       values ($1, $2, $3, 'konzept-2019.pdf', 'application/pdf', 2048),
+              ($1, $2, $3, 'konzept-2024.pdf', 'application/pdf', 2048)`,
+      [tenant.id, filed[0]?.id, file],
+    )
+
+    await revertMigration(admin, '0019_documents')
+
+    expect(
+      (await tableNames(admin)).filter((table) =>
+        ['attachments', 'attachment_versions'].includes(table),
+      ),
+    ).toEqual([])
+    expect(
+      (await functionNames(admin)).filter((name) =>
+        [
+          'mark_documents_below',
+          'record_attachment_uploader',
+          'attachment_version_stays_as_written',
+        ].includes(name),
+      ),
+    ).toEqual([])
+
+    // The file the versions named stays a file of the tenant.
+    const { rows: files } = await admin.query<{ sha256: string }>(
+      'select sha256 from files where tenant_id = $1',
+      [tenant.id],
+    )
+
+    expect(files).toEqual([{ sha256: file }])
+
+    // The property stays as it was, and marking it asks after no table that is gone.
+    const { rows: kept } = await admin.query<{ name: string; version: number }>(
+      'select name, version from properties where tenant_id = $1',
+      [tenant.id],
+    )
+
+    expect(kept).toEqual([{ name: 'Schulzentrum', version: 1 }])
+    await expect(
+      admin.query('update properties set deleted_at = now() where id = $1', [property?.id]),
+    ).resolves.toMatchObject({ rowCount: 1 })
+
+    // The log of the tenant says that the document and both versions went, and why.
+    const { rows: removed } = await admin.query<{
+      table_name: string
+      reason: string | null
+      records: number
+    }>(
+      `select table_name, reason, count(distinct record_id)::int as records from audit_entries
+        where tenant_id = $1 and operation = 'delete'
+        group by table_name, reason
+        order by table_name`,
+      [tenant.id],
+    )
+
+    expect(removed).toEqual([
+      { table_name: 'attachment_versions', reason: 'migration', records: 2 },
+      { table_name: 'attachments', reason: 'migration', records: 1 },
+    ])
   })
 })

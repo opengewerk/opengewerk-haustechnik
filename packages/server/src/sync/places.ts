@@ -21,6 +21,7 @@ import {
   activities,
   assets,
   assetSupplies,
+  attachments,
   buildings,
   floors,
   properties,
@@ -286,6 +287,41 @@ async function signaturePlace(
   return null
 }
 
+/**
+ * A document at its place: the property, and at most one record on it, a
+ * building, a room, an asset or an activity. The area comes from the
+ * property. Every one of them has to be there for the person asking, so a
+ * document cannot be hung on a record of another area or one that is gone.
+ */
+async function documentPlace(
+  tx: TenantTransaction,
+  values: Record<string, unknown>,
+): Promise<SyncRefusal | null> {
+  const refusal = await targetPlace(tx, values)
+
+  if (refusal || !given(values['activityId'])) {
+    return refusal
+  }
+
+  const activity = await found<Activity>(tx, activities, values['activityId'])
+
+  return activity && activity.propertyId === values['propertyId'] ? null : missing('activityId')
+}
+
+/**
+ * A version of a document: the document has to be there for the person
+ * asking, in one of their areas and not taken out of the records. A version
+ * carries no place of its own.
+ */
+async function versionPlace(
+  tx: TenantTransaction,
+  values: Record<string, unknown>,
+): Promise<SyncRefusal | null> {
+  const document = await found<{ id: string }>(tx, attachments, values['attachmentId'])
+
+  return document ? null : missing('attachmentId')
+}
+
 const placeOf: Readonly<
   Record<
     string,
@@ -299,6 +335,8 @@ const placeOf: Readonly<
   defects: defectPlace,
   work_orders: workOrderPlace,
   activity_signatures: signaturePlace,
+  attachments: documentPlace,
+  attachment_versions: versionPlace,
 }
 
 /**

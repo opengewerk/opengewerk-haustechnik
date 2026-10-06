@@ -30,7 +30,7 @@ guarded_route=/staff
 # The tables counted before the backup and after the restore. The area and
 # the place of the account in it come with the account: a Betreiber gets its
 # first area with its first membership.
-counted_tables='auth_users memberships tenant_roles account_corrections areas member_areas invitations invitation_area_choices invitation_areas properties buildings contacts building_closures assets files mail_settings deadline_settings deadline_runs duties duty_dismissals evidence deadlines activities activity_duties work_orders defects activity_signatures work_order_decisions evidence_voidings'
+counted_tables='auth_users memberships tenant_roles account_corrections areas member_areas invitations invitation_area_choices invitation_areas properties buildings contacts building_closures assets files mail_settings deadline_settings deadline_runs duties duty_dismissals evidence deadlines activities activity_duties work_orders defects activity_signatures work_order_decisions evidence_voidings attachments attachment_versions'
 
 # The migrations, and how many of them make the older state an update starts
 # from: the first, without the sequence for work orders that the second brings.
@@ -157,6 +157,19 @@ records_for_backup() {
   stored=$(value "select count(*) from files where tenant_id = '$first_tenant' and media_type = 'text/plain'")
   echo "Dateien des Betreibers nach dem Ablegen: ${stored}"
   test "${stored}" = 1
+  # A document at the asset whose one version names that file
+  # (opengewerk-haustechnik#97), in the area of the asset. The tables are the
+  # foundation's, what a document hangs on is ours. A device would send both
+  # through the sync; after_restore below asks the server for the file through
+  # the version.
+  sql "
+    insert into attachments (tenant_id, property_id, area_id, asset_id, title, kind)
+    select tenant_id, property_id, area_id, id, 'Bericht Aufzug Haus A', 'test_certificate'
+      from assets where tenant_id = '$first_tenant';
+    insert into attachment_versions (tenant_id, attachment_id, sha256, file_name, media_type, size_bytes)
+    select a.tenant_id, a.id, f.sha256, 'bericht-aufzug.txt', f.media_type, f.size_bytes
+      from attachments a join files f on f.tenant_id = a.tenant_id
+     where a.tenant_id = '$first_tenant';"
   # A mail server, whose table comes with the foundation as well
   # (opengewerk-haustechnik#23). What writes it comes with the notifications
   # of phase 1.
@@ -291,6 +304,19 @@ after_restore() {
   echo "Anmeldung nach dem Rückspielen: ${status}"
   test "${status}" = 200
   echo 'Das Konto von vor der Sicherung meldet sich mit seinem Passwort an.'
+
+  # The document at the asset is back with its version, and the server hands
+  # the file out through the version, to the account that works in the area of
+  # the asset (opengewerk-haustechnik#97): the bytes are those of the store.
+  cookies=$(probe_session)
+  version=$(value "select id from attachment_versions where tenant_id = '$first_tenant'")
+  status=$(curl --silent --output "$temp/probe-document.bin" --write-out '%{http_code}' \
+    --header "Cookie: $cookies" --header "Origin: $base" \
+    "$base/attachments/versions/$version/content")
+  echo "GET /attachments/versions/${version}/content nach dem Rückspielen: ${status}"
+  test "${status}" = 200
+  test "$(sha256sum "$temp/probe-document.bin" | cut -d' ' -f1)" = "${expected}"
+  echo 'Das Dokument an der Anlage ist zurück, und der Server gibt seine Datei über die Fassung aus.'
 }
 
 # The sequence the second migration brings, in its place in the list, the

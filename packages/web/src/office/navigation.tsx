@@ -39,11 +39,10 @@ export interface OfficePlaces {
  * it misses as well, is the frame's own entry and stands for whoever may
  * read one of the settings.
  *
- * "Dokumente" and "Aufgaben" name no right yet. Theirs arrive with the
- * documents and the tasks, and all four roles are to see both (the last
- * point under the table of rights in section 7 of the concept). The overview
- * and the catalogue hold nothing of a tenant that somebody signed in may not
- * see.
+ * "Aufgaben" names no right yet. Its own arrives with the tasks, and all
+ * four roles are to see them (the last point under the table of rights in
+ * section 7 of the concept). The overview and the catalogue hold nothing of
+ * a tenant that somebody signed in may not see.
  */
 export const officeNavigation: readonly OfficePlaces[] = [
   {
@@ -63,7 +62,7 @@ export const officeNavigation: readonly OfficePlaces[] = [
       { to: '/anlagen', label: 'Anlagen', icon: Zap, right: 'asset.read' },
       // A meter is an asset with readings (4.9).
       { to: '/zaehler', label: 'Zähler', icon: Gauge, right: 'asset.read' },
-      { to: '/dokumente', label: 'Dokumente', icon: FileText },
+      { to: '/dokumente', label: 'Dokumente', icon: FileText, right: 'document.read' },
     ],
   },
   {

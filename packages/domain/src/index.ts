@@ -34,6 +34,10 @@ export * from './model/contact.js'
 // The times a building is closed, in which no round is made for it.
 export * from './model/closure.js'
 
+// The documents of an operator: the files of the foundation, with what one
+// hangs on here and what kind of document it is.
+export * from './model/document.js'
+
 // The technology: assets, their components, life cycle and meters.
 export * from './model/asset.js'
 // Whether an asset may already stand in the register, and the general kind

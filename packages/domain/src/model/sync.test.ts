@@ -63,6 +63,10 @@ describe('the policies of the sync', () => {
       defects: [true, 'merge'],
       activity_signatures: [true, 'never'],
       work_order_decisions: [false, 'never'],
+      // Filed in the office and on site, a photo also without a connection
+      // (addendum of 06.10.2026); a version is made and never changed.
+      attachments: [true, 'merge'],
+      attachment_versions: [true, 'never'],
     })
   })
 
@@ -70,10 +74,14 @@ describe('the policies of the sync', () => {
     for (const entity of syncEntities) {
       const policy = syncPolicies[entity]
 
-      if (policy?.create || policy?.change === 'merge') {
+      // A version of a document carries no area: it is a part of its
+      // document and is seen with it (ADR 0003, addendum of #97).
+      if (entity !== 'attachment_versions' && (policy?.create || policy?.change === 'merge')) {
         expect(policy.reserved, entity).toContain('areaId')
       }
     }
+
+    expect(syncPolicies['attachment_versions']?.reserved).toEqual(['createdBy'])
 
     expect(syncPolicies['assets']?.reserved).toEqual(
       expect.arrayContaining(['number', 'propertyId']),

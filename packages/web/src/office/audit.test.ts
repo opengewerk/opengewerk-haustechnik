@@ -51,6 +51,7 @@ describe('the words of the change log in the office', () => {
       properties: 'mit ihren Ansprechpartnern',
       buildings: 'mit seinen Schließzeiten',
       assets: 'mit ihrem Lebenszyklus und dem, was sie versorgt',
+      attachments: 'mit seinen Fassungen',
     })
     expect(Object.keys(auditScreenWords.partsWords ?? {})).toEqual(
       Object.keys(auditVocabulary.parts),
@@ -62,6 +63,7 @@ describe('the words of the change log in the office', () => {
         { table: 'asset_lifecycle', column: 'asset_id' },
         { table: 'asset_supplies', column: 'asset_id' },
       ],
+      attachments: [{ table: 'attachment_versions', column: 'attachment_id' }],
     })
   })
 
@@ -78,7 +80,15 @@ describe('the words of the change log in the office', () => {
       (table) => auditScreenWords.href?.(table, 'x') !== null,
     )
 
-    expect(paged).toEqual(['properties', 'buildings', 'floors', 'rooms', 'assets', 'duties'])
+    expect(paged).toEqual([
+      'properties',
+      'buildings',
+      'floors',
+      'rooms',
+      'assets',
+      'duties',
+      'attachments',
+    ])
     expect(auditVocabulary.records).toEqual([
       'properties',
       'buildings',
@@ -86,6 +96,7 @@ describe('the words of the change log in the office', () => {
       'rooms',
       'assets',
       'duties',
+      'attachments',
     ])
   })
 

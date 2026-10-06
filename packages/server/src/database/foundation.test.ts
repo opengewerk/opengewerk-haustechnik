@@ -32,8 +32,12 @@ describe('the foundation in this database', () => {
     // that keeps a deadline in the areas of the person who asks; and what a
     // contact hangs on (opengewerk-haustechnik#85, migration 0016), its
     // property with its area, the key and the index for it, the bounds of its
-    // texts and the same policy. Only a restrictive policy may be named here;
-    // it takes rows away and opens none.
+    // texts and the same policy; and what a document hangs on
+    // (opengewerk-haustechnik#97, migration 0019), its property with its
+    // area, the record it names there and its kind, their keys, checks and
+    // indexes, the same policy, and on its versions the policy that asks the
+    // document, because a version carries no area. Only a restrictive policy
+    // may be named here; it takes rows away and opens none.
     expect(
       await foundationDeviations(admin, {
         triggers: ['memberships.default_areas'],
@@ -43,6 +47,13 @@ describe('the foundation in this database', () => {
           'deadlines.area_id',
           'contacts.property_id',
           'contacts.area_id',
+          'attachments.property_id',
+          'attachments.area_id',
+          'attachments.building_id',
+          'attachments.room_id',
+          'attachments.asset_id',
+          'attachments.activity_id',
+          'attachments.kind',
         ],
         constraints: [
           'deadlines.deadlines_follow_their_property',
@@ -53,9 +64,27 @@ describe('the foundation in this database', () => {
           'contacts.contacts_role_shaped',
           'contacts.contacts_phone_shaped',
           'contacts.contacts_email_shaped',
+          'attachments.attachments_follow_their_property',
+          'attachments.attachments_at_a_building_of_their_property',
+          'attachments.attachments_at_a_room_of_their_property',
+          'attachments.attachments_at_an_asset_of_their_property',
+          'attachments.attachments_at_an_activity_of_their_property',
+          'attachments.attachments_hang_on_one_record',
+          'attachments.attachments_title_shaped',
         ],
-        indexes: ['deadlines.deadlines_duty_idx', 'contacts.contacts_property_idx'],
-        policies: ['deadlines.within_areas', 'contacts.within_areas'],
+        indexes: [
+          'deadlines.deadlines_duty_idx',
+          'contacts.contacts_property_idx',
+          'attachments.attachments_property_idx',
+          'attachments.attachments_asset_idx',
+          'attachments.attachments_activity_idx',
+        ],
+        policies: [
+          'deadlines.within_areas',
+          'contacts.within_areas',
+          'attachments.within_areas',
+          'attachment_versions.within_areas_of_their_file',
+        ],
       }),
     ).toEqual([])
   })

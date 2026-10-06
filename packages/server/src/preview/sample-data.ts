@@ -1,5 +1,6 @@
 import { dayInGermany } from '../today.js'
 import type { PreviewArea } from './preview-database.js'
+import { plantDocument, type SampleDocument } from './sample-documents.js'
 
 /**
  * The sample operator of the preview: two areas, two properties in each, with
@@ -18,7 +19,10 @@ import type { PreviewArea } from './preview-database.js'
  * room shows what supplies it from elsewhere. Some assets have duties, met a
  * while ago, long ago or never, one rests with its asset and one elevator has
  * an open defect, so that the register of assets and the file of an asset
- * show every condition (#87). Beside the colleagues the
+ * show every condition (#87). The school centre has documents (#97): one of
+ * the property, one of the school house, a plan in its boiler room with
+ * three versions, and at its elevator a manual with two and a photo of the
+ * type plate. Beside the colleagues the
  * preview admits, one person is asked to join and one stands in for another
  * from next week on, so that "Zugänge" shows an invitation and a substitution
  * (#84).
@@ -40,6 +44,7 @@ interface SampleRoom {
   readonly use?: string
   /** Duties that hang on the room itself, of the operator's own. */
   readonly duties?: readonly SampleDuty[]
+  readonly documents?: readonly SampleDocument[]
 }
 
 interface SampleFloor {
@@ -70,6 +75,7 @@ interface SampleAsset {
   readonly duties?: readonly SampleDuty[]
   /** A defect somebody found at it and nobody has set right. */
   readonly defect?: string
+  readonly documents?: readonly SampleDocument[]
 }
 
 /**
@@ -130,6 +136,7 @@ interface SampleBuilding {
   readonly kinds: readonly string[]
   readonly yearBuilt: number
   readonly closures?: readonly SampleClosure[]
+  readonly documents?: readonly SampleDocument[]
   readonly floors: readonly SampleFloor[]
   readonly assets: readonly SampleAsset[]
 }
@@ -176,6 +183,7 @@ interface SampleProperty {
   /** What somebody has to know before going there, in the lines it was typed in. */
   readonly note?: string
   readonly contacts?: readonly SampleContact[]
+  readonly documents?: readonly SampleDocument[]
   readonly buildings: readonly SampleBuilding[]
 }
 
@@ -386,6 +394,19 @@ export const sampleProperties: readonly SampleProperty[] = [
       // A title is typed with the given name: a contact has no field of its own for one.
       { givenName: 'Dr. Ines', familyName: 'Hartmann', role: 'Schulleitung', phone: '0000 4400' },
     ],
+    // A document of the property as a whole.
+    documents: [
+      {
+        title: 'Brandschutzkonzept Schulzentrum',
+        kind: 'concept',
+        versions: [
+          {
+            fileName: 'brandschutzkonzept-2019.pdf',
+            words: 'Brandschutzkonzept Schulzentrum, 2019',
+          },
+        ],
+      },
+    ],
     buildings: [
       {
         name: 'Schulhaus',
@@ -393,6 +414,15 @@ export const sampleProperties: readonly SampleProperty[] = [
         kinds: ['school'],
         yearBuilt: 1975,
         closures: schoolHolidays,
+        documents: [
+          {
+            title: 'Revisionsunterlagen Heizung',
+            kind: 'as_built_documentation',
+            versions: [
+              { fileName: 'revision-heizung.pdf', words: 'Revisionsunterlagen Heizung Schulhaus' },
+            ],
+          },
+        ],
         floors: [
           {
             name: 'Erdgeschoss',
@@ -413,6 +443,27 @@ export const sampleProperties: readonly SampleProperty[] = [
                     intervalMonths: 3,
                     metDaysAgo: [72],
                     ...ownStaff,
+                  },
+                ],
+                // A plan somebody redrew twice: three versions, each readable.
+                documents: [
+                  {
+                    title: 'Schaltplan Heizraum',
+                    kind: 'circuit_diagram',
+                    versions: [
+                      {
+                        fileName: 'schaltplan-heizraum.pdf',
+                        words: 'Schaltplan Heizraum, Stand 2021',
+                      },
+                      {
+                        fileName: 'schaltplan-heizraum.pdf',
+                        words: 'Schaltplan Heizraum, Stand 2024',
+                      },
+                      {
+                        fileName: 'schaltplan-heizraum.pdf',
+                        words: 'Schaltplan Heizraum, Stand 2026',
+                      },
+                    ],
                   },
                 ],
               },
@@ -444,6 +495,25 @@ export const sampleProperties: readonly SampleProperty[] = [
               },
             ],
             defect: 'Notruf im Fahrkorb ohne Verbindung',
+            // What the card "Dokumente" of its file shows: a manual with a
+            // second version laid over the first, and a photo without a kind.
+            documents: [
+              {
+                title: 'Betriebsanleitung BA 630',
+                kind: 'operating_manual',
+                versions: [
+                  {
+                    fileName: 'betriebsanleitung-ba630.pdf',
+                    words: 'Betriebsanleitung BA 630, Ausgabe 2012',
+                  },
+                  {
+                    fileName: 'betriebsanleitung-ba630.pdf',
+                    words: 'Betriebsanleitung BA 630, Ausgabe 2024',
+                  },
+                ],
+              },
+              { title: 'Typenschild', versions: [{ fileName: 'typenschild.png' }] },
+            ],
           },
           waterMeter(
             'Hauptwasserzähler Schulhaus',
@@ -654,6 +724,7 @@ async function plantDuty(
 async function plantAsset(
   address: string,
   path: string,
+  propertyId: string,
   asset: SampleAsset,
   rooms: ReadonlyMap<string, string>,
   supplying: Supplying[],
@@ -665,6 +736,7 @@ async function plantAsset(
     lifecycle = [],
     supplies = [],
     duties = [],
+    documents = [],
     defect,
     ...fields
   } = asset
@@ -691,10 +763,15 @@ async function plantAsset(
     standings.defects.push({ assetId: created.id, description: defect })
   }
 
+  for (const document of documents) {
+    await plantDocument(address, { propertyId, assetId: created.id }, document)
+  }
+
   for (const component of components) {
     await plantAsset(
       address,
       `/assets/${created.id}/components`,
+      propertyId,
       component,
       rooms,
       supplying,
@@ -716,7 +793,7 @@ export async function plantSampleData(
   const standings: PlantedStandings = { evidence: [], defects: [] }
 
   for (const property of sampleProperties) {
-    const { buildings, area, contacts = [], ...fields } = property
+    const { buildings, area, contacts = [], documents = [], ...fields } = property
     const created = await send(address, '/properties', {
       ...fields,
       federalState: 'DE-BW',
@@ -727,11 +804,21 @@ export async function plantSampleData(
       await send(address, '/contacts', { ...contact, propertyId: created.id })
     }
 
+    for (const document of documents) {
+      await plantDocument(address, { propertyId: created.id }, document)
+    }
+
     const buildingIds = new Map<string, string>()
     const supplying: Supplying[] = []
 
     for (const building of buildings) {
-      const { floors, assets, closures = [], ...buildingFields } = building
+      const {
+        floors,
+        assets,
+        closures = [],
+        documents: buildingDocuments = [],
+        ...buildingFields
+      } = building
       const madeBuilding = await send(
         address,
         `/properties/${created.id}/buildings`,
@@ -745,18 +832,30 @@ export async function plantSampleData(
         await send(address, `/buildings/${madeBuilding.id}/closures`, closure)
       }
 
+      for (const document of buildingDocuments) {
+        await plantDocument(
+          address,
+          { propertyId: created.id, buildingId: madeBuilding.id },
+          document,
+        )
+      }
+
       for (const floor of floors) {
         const madeFloor = await send(address, `/buildings/${madeBuilding.id}/floors`, {
           name: floor.name,
           level: floor.level,
         })
 
-        for (const { duties = [], ...room } of floor.rooms) {
+        for (const { duties = [], documents: roomDocuments = [], ...room } of floor.rooms) {
           const madeRoom = await send(address, `/floors/${madeFloor.id}/rooms`, room)
           rooms.set(room.number, madeRoom.id)
 
           for (const duty of duties) {
             await plantDuty(address, { roomId: madeRoom.id }, duty, standings)
+          }
+
+          for (const document of roomDocuments) {
+            await plantDocument(address, { propertyId: created.id, roomId: madeRoom.id }, document)
           }
         }
       }
@@ -765,6 +864,7 @@ export async function plantSampleData(
         await plantAsset(
           address,
           `/buildings/${madeBuilding.id}/assets`,
+          created.id,
           asset,
           rooms,
           supplying,

@@ -16,6 +16,7 @@ import { useCatalogue } from '../../sync/catalogue.js'
 import { AssetState } from '../asset-state.js'
 import { officePlaces, placeForms } from '../place-addresses.js'
 import { PlaceNotFound } from '../place-pages.js'
+import { DocumentsCard } from '../documents.js'
 import { Duties } from './asset.js'
 
 /** The duties that hang on a room itself, with how each stands today. */
@@ -145,9 +146,10 @@ export function RoomScreen() {
           </>
         }
       />
-      {/* The columns of the board. Beside the assets the open defects and the
-          label of the room take their place once there are defects and labels
-          (#116, #98). */}
+      {/* The columns of the board. Beside the assets stand the documents of
+          the room (#97); the open defects and the label of the room take
+          their place above them once there are defects and labels (#116,
+          #98). */}
       <div className="grid gap-3.5 lg:grid-cols-[minmax(0,1fr)_320px]">
         <div className="flex min-w-0 flex-col gap-3.5">
           <AssetsInside assets={inside} states={states} />
@@ -173,6 +175,12 @@ export function RoomScreen() {
               }}
             />
           ) : null}
+        </div>
+        <div className="flex min-w-0 flex-col gap-3.5">
+          <DocumentsCard
+            place={{ propertyId: String(property['id']), roomId }}
+            at={`Raum ${titleOfRoom(room)}`}
+          />
         </div>
       </div>
     </Screen>

@@ -42,6 +42,7 @@
         "$TURBO_ROOT$/docs/verfahrensbeschreibung/Verfahrensbeschreibung.md",
         "$TURBO_ROOT$/docker/.env.example",
         "$TURBO_ROOT$/packages/web/src/office/navigation.test.tsx",
+        "$TURBO_ROOT$/packages/web/src/office/screens/documents.test.tsx",
         "$TURBO_ROOT$/packages/web/src/office/screens/staff.tsx",
         "$TURBO_ROOT$/upstream/opengewerk/packages/platform/web/src/gate/sign-out.test.tsx",
         "$TURBO_ROOT$/upstream/opengewerk/packages/platform/web/src/session/remembered.ts",

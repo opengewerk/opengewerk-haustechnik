@@ -622,6 +622,42 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   (`GET /rooms/:id/duties`), und auf der Seite einer Pflichtart im Katalog die Karte "Bei diesem Betreiber" mit
   der Zahl der bestätigten Pflichten und dem Weg zu ihnen im Pflichtenverzeichnis; die Zahl zählt das
   Verzeichnis selbst, damit sie und die Liste nicht auseinanderlaufen
+- Dokumente mit Fassungen (#97, Abschnitt 4.10 des Konzepts, Migration `0019_documents`): die Ablage des
+  Fundaments (`opengewerk#567`), gebunden an die Datensätze der Haustechnik. Ein Dokument hängt an seiner
+  Liegenschaft und dort an höchstens einem Gebäude, Raum, einer Anlage oder einem Vorgang, hat eine
+  Bezeichnung und auf Wunsch eine der sechs Arten des Konzepts. Eine neue Fassung legt sich über die alte,
+  und jede bleibt abrufbar: eine Fassung wird einmal geschrieben und von niemandem geändert. Entfernt wird
+  markiert, nie gelöscht, und ein entfernter Datensatz nimmt seine Dokumente mit. Vertrag und Fremdfirma als
+  Ort, die Gültigkeit und die Soll-Dokumente kommen mit Phase 2
+- Die Datei einer Fassung gibt der Server über die Fassung aus (`GET /attachments/versions/:id/content` und
+  `/preview`), nie über ihre Prüfsumme, und nur an den, der sieht, woran das Dokument hängt: beim eigenen
+  Betreiber und in den Bereichen der Person. Eine Datei, die nach ihren ersten Bytes weder Bild noch PDF ist,
+  wird als Anhang ausgeliefert und nie in der Seite angezeigt, was auch immer sie zu sein behauptet. Das war
+  der offene Rest aus #96
+- Die Rechte "Dokumente ansehen" (`document.read`) und "Dokumente entfernen" (`document.remove`) neben
+  "Dokumente ablegen": ansehen und ablegen alle vier Rollen, entfernen ab der Objektleitung, wie am 04.10.2026
+  entschieden. Wer ablegen darf, legt auch eine neue Fassung ab und berichtigt Bezeichnung und Art. Planungskonzept
+  v0.13
+- Der Bildschirm "Dokumente" im Büro (`/dokumente`): alle Dokumente mit Art, woran sie hängen, Fassung und Tag
+  der letzten Änderung, eingrenzbar nach Art und nach dem, woran ein Dokument hängt, beides in der Adresse;
+  daneben die Fassungen des gewählten Dokuments, jede zu öffnen. Dazu die Karte "Dokumente" in der Anlagenakte,
+  auf der Raumseite und an der Liegenschaft, und die Dialoge zum Hochladen, Bearbeiten und Entfernen. Die
+  Bildschirme nennen den Tag, an dem eine Fassung abgelegt wurde, und weder die Person noch die Uhrzeit; wer
+  abgelegt hat, steht im Änderungsprotokoll der Leitung, das zu einem Dokument auch seine Fassungen nennt
+- Abgelegt wird im Büro wie vor Ort über den Dateispeicher und den Abgleich: die Datei geht ihrem Datensatz
+  voraus, ein Foto wird auf dem Gerät verkleinert und bekommt eine Vorschau, und was ohne Netz abgelegt wurde,
+  wartet auf dem Gerät und hängt nach dem Abgleich an seiner Anlage. Ein Gerät hält die Dokumente seiner
+  Bereiche mit ihren Fassungen, die Zeilen und nie die Dateien; Unterlagen für unterwegs kommen mit Phase 2.
+  Die Seite einer Anlage vor Ort mit dem Knopf für das Foto kommt mit der Bestandsaufnahme (#99)
+- Eine Fassung trägt keinen Bereich, sondern fragt ihr Dokument (Nachtrag vom 06.10.2026 in ADR 0003): ein
+  Auslöser des Fundaments lehnt jede Änderung an einer Fassung ab, auch die, mit der ein Bereich seiner
+  Liegenschaft folgt, und mit einer Bereichsspalte an der Fassung ließe sich eine Liegenschaft mit Dokumenten
+  nicht mehr verlegen. Die Katalogprüfung der Bereiche kennt diese eine Ausnahme und verlangt dafür die Policy
+  der Fassung
+- Die Vorschau hat Dokumente am Schulzentrum: eines an der Liegenschaft, eines am Schulhaus, einen Schaltplan
+  mit drei Fassungen im Heizraum und am Aufzug eine Betriebsanleitung mit zwei Fassungen und ein Foto vom
+  Typenschild. "Sicherung und Rückspielen" legt ein Dokument an der Anlage an und holt seine Datei nach dem
+  Rückspielen über die Fassung
 
 ### Geändert
 

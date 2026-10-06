@@ -229,11 +229,18 @@ export const auditVocabulary: AuditVocabulary = {
   // The contacts are one as well (#85), and need no entry here: a contact
   // hangs on its property and lies in its area, and both are named below with
   // the fields every row with a place has.
+  // The documents are two more (#97): the property, the area and the place a
+  // document hangs on are named below like those of every row with a place,
+  // and what remains its own is the activity and its kind.
   ownFields: {
     deadlines: {
       duty_id: 'Pflicht',
       property_id: 'Liegenschaft',
       area_id: 'Bereich',
+    },
+    attachments: {
+      activity_id: 'Vorgang',
+      kind: 'Art',
     },
   },
   // Every row with a place carries its area and the levels above it (ADR 0002,
@@ -252,6 +259,8 @@ export const auditVocabulary: AuditVocabulary = {
     tenantParameter: 'Einstellung des Betreibers',
     leads: 'Leitet den Betreiber',
     operator: 'Verwaltung der Instanz',
+    // A file in the records is a document here (section 4.10 of the concept).
+    attachments: { record: 'Dokument', version: 'Fassung eines Dokuments' },
     reasons: {
       'session.switch': 'Wechsel zu einem anderen Betreiber',
       'operator.appoint': 'Zur Verwaltung der Instanz benennen',
@@ -274,9 +283,11 @@ export const auditVocabulary: AuditVocabulary = {
       { table: 'asset_lifecycle', column: 'asset_id' },
       { table: 'asset_supplies', column: 'asset_id' },
     ],
+    // A document with its versions: who filed which, and when.
+    attachments: [{ table: 'attachment_versions', column: 'attachment_id' }],
   },
   // The records the log is opened from, each from the screen that shows it.
-  records: ['properties', 'buildings', 'floors', 'rooms', 'assets', 'duties'],
+  records: ['properties', 'buildings', 'floors', 'rooms', 'assets', 'duties', 'attachments'],
   references: {
     area_id: 'areas',
     property_id: 'properties',

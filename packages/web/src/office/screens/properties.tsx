@@ -51,6 +51,7 @@ import { makeAt } from '../../sync/made-at.js'
 import { AreaBadge } from '../area-badge.js'
 import { officePlaces, placeForms } from '../place-addresses.js'
 import { NotAllowed, RemovePlace } from '../place-forms.js'
+import { DocumentsCard } from '../documents.js'
 import { PropertyContacts } from '../property-contacts.js'
 
 /**
@@ -465,6 +466,7 @@ export function PropertyScreen() {
               />
             </Panel>
             <PropertyContacts propertyId={propertyId} />
+            <DocumentsCard place={{ propertyId }} at={`Liegenschaft ${text(property, 'name')}`} />
           </>
         }
         main={<Buildings buildings={[...buildings].sort(byName)} />}

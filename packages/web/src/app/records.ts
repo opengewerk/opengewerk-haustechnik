@@ -4,6 +4,7 @@ import {
   buildingKindLabel,
   countingLabel,
   defectStatusLabel,
+  documentKindLabel,
   dutyBasisLabel,
   dutyPerformerLabel,
   evidenceResultLabel,
@@ -39,16 +40,20 @@ const titleFields: Readonly<Record<string, readonly string[]>> = {
   activities: ['title'],
   work_orders: ['number'],
   defects: ['description'],
+  // A document by its name, a version of one by the name of its file.
+  attachments: ['title'],
+  attachment_versions: ['fileName'],
 }
 
 /**
  * The words of the values of a field, where the field holds one of a list.
- * Two kinds of record share `kind` and `status`, with values of their own:
- * an activity is a round or a work order, a work order is for a fault, and
- * the words for what both have are the same.
+ * Three kinds of record share `kind`, and two `status`, with values of their
+ * own: an activity is a round or a work order, a work order is for a fault,
+ * a document is a manual or a plan, and the words for what two of them have
+ * are the same.
  */
 const valueWords: Readonly<Record<string, Readonly<Record<string, string>>>> = {
-  kind: { ...activityKindLabel, ...workOrderKindLabel },
+  kind: { ...activityKindLabel, ...workOrderKindLabel, ...documentKindLabel },
   status: { ...activityStatusLabel, ...defectStatusLabel },
   result: evidenceResultLabel,
   state: lifecycleStateLabel,

@@ -2,6 +2,7 @@ import { type DynamicModule, Module } from '@nestjs/common'
 import { APP_FILTER, APP_GUARD } from '@nestjs/core'
 import { auditVocabulary, type Catalogue } from '@opengewerk/haustechnik-domain'
 import {
+  attachmentParts,
   auditLogParts,
   contactParts,
   deadlineParts,
@@ -29,6 +30,7 @@ import { CATALOGUE, shippedCatalogue } from '../catalogue.js'
 import { deadlineRules } from '../deadlines/routes.js'
 import { AreasController, SubstitutionsController } from './areas.controller.js'
 import { AssetsController, BuildingAssetsController } from './assets.controller.js'
+import { attachmentRights, attachmentRoutes } from './attachment-routes.js'
 import { authorization, AuthorizationGuard } from './authorization.js'
 import { BuildingsController } from './buildings.controller.js'
 import { BuildingClosuresController } from './closures.controller.js'
@@ -186,6 +188,15 @@ export class ApiModule {
     // through the record that names it, in the area of that record.
     const storing = fileParts({ access, upload: 'document.record', store: files })
 
+    // The documents of an operator, handed out by version to whoever may look
+    // at documents, out of the store above: found under the policies of the
+    // document, so in the tenant and the areas of the person asking.
+    const filing = attachmentParts({
+      access,
+      rights: attachmentRights,
+      routes: attachmentRoutes,
+    })
+
     return {
       module: ApiModule,
       // The health check first: it answers without an identity, for the
@@ -198,6 +209,7 @@ export class ApiModule {
         ...deadlining.controllers,
         ...contacting.controllers,
         ...storing.controllers,
+        ...filing.controllers,
         // The areas of a tenant, who holds in which, and who stands in for whom.
         AreasController,
         SubstitutionsController,
@@ -226,6 +238,7 @@ export class ApiModule {
         ...deadlining.providers,
         ...contacting.providers,
         ...storing.providers,
+        ...filing.providers,
         // What prints a page, for the routes that hand out a PDF.
         { provide: RENDERER, useValue: renderer },
         { provide: TRUSTED_ORIGINS, useValue: trustedOrigins },
