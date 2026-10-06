@@ -192,7 +192,10 @@ function BuildingForm({
             <>
               <Kinds chosen={kinds} onChange={setKinds} />
               {editing ? null : (
-                <NoteBox>Geschosse und Räume legen Sie danach im Gebäude an.</NoteBox>
+                <NoteBox>
+                  Geschosse und Räume legen Sie danach im Gebäude an, oder Sie übernehmen sie mit
+                  dem Import.
+                </NoteBox>
               )}
             </>
           }

@@ -146,6 +146,7 @@ describe('an installation that began on the first migration', () => {
     // place and the assets, so they go first, and what an invitation says
     // about areas hangs on the areas; the files, the mail server and the
     // settings of the deadlines hang on nothing of this.
+    await revertMigration(admin, '0022_imports')
     await revertMigration(admin, '0021_stock_taking')
     await revertMigration(admin, '0020_labels')
     await revertMigration(admin, '0019_documents')
@@ -306,6 +307,7 @@ describe('an installation from before the areas', () => {
 
     // The places hang on the areas and go first, as on the way back of an
     // installation, and so does what an invitation says about areas.
+    await revertMigration(admin, '0022_imports')
     await revertMigration(admin, '0021_stock_taking')
     await revertMigration(admin, '0020_labels')
     await revertMigration(admin, '0019_documents')
@@ -376,6 +378,7 @@ describe('an installation with places', () => {
       [tenant.id],
     )
 
+    await revertMigration(admin, '0022_imports')
     await revertMigration(admin, '0021_stock_taking')
     await revertMigration(admin, '0020_labels')
     await revertMigration(admin, '0019_documents')
@@ -472,6 +475,7 @@ describe('an installation with assets', () => {
       [tenant.id, asset, at.property, at.area, at.building],
     )
 
+    await revertMigration(admin, '0022_imports')
     await revertMigration(admin, '0021_stock_taking')
     await revertMigration(admin, '0020_labels')
     await revertMigration(admin, '0019_documents')
@@ -573,6 +577,7 @@ describe('an installation with assets', () => {
       [tenant.id, at.property, at.area, at.asset],
     )
 
+    await revertMigration(admin, '0022_imports')
     await revertMigration(admin, '0021_stock_taking')
     await revertMigration(admin, '0020_labels')
     await revertMigration(admin, '0019_documents')
@@ -675,6 +680,7 @@ describe('an installation with assets', () => {
       [tenant.id, at.duty, at.property, at.area],
     )
 
+    await revertMigration(admin, '0022_imports')
     await revertMigration(admin, '0021_stock_taking')
     await revertMigration(admin, '0020_labels')
     await revertMigration(admin, '0019_documents')
@@ -780,6 +786,7 @@ describe('an installation with assets', () => {
       [tenant.id, at.property, at.area, at.asset, activityId],
     )
 
+    await revertMigration(admin, '0022_imports')
     await revertMigration(admin, '0021_stock_taking')
     await revertMigration(admin, '0020_labels')
     await revertMigration(admin, '0019_documents')
@@ -1429,6 +1436,144 @@ describe('an installation whose buildings have times they are closed', () => {
 })
 
 /**
+ * 0022 brings the import from tables (#100): the list of the imports, what
+ * the lists of a tenant call the asset kinds, and the condition under which
+ * the log is silent about a place or an asset, which is while the import that
+ * made it is written. On the way forward it touches no row. Taken back, both
+ * lists go with their tables, and the log of the tenant says that they went
+ * and why; the function goes, and the five triggers of the log write for
+ * every record again. What the imports made stays where it is.
+ */
+describe('an installation that imported from tables', () => {
+  /** The tables whose trigger of the log carries a condition. */
+  async function quietTables(): Promise<string[]> {
+    const { rows } = await admin.query<{ table_name: string }>(
+      `select c.relname as table_name
+         from pg_trigger t
+         join pg_class c on c.oid = t.tgrelid
+         join pg_proc p on p.oid = t.tgfoid
+        where not t.tgisinternal and p.proname = 'record_change' and t.tgqual is not null
+        order by c.relname`,
+    )
+
+    return rows.map((row) => row.table_name)
+  }
+
+  it('loses the list of its imports and the names of its asset kinds, and keeps what the imports made', async () => {
+    await applyMigrations()
+
+    const tenant = { id: newId<'tenant'>() }
+
+    await admin.query('insert into tenants (id, name) values ($1, $2)', [
+      tenant.id,
+      'Wohnbau Nord eG',
+    ])
+    await members(tenant, { 'user-lead': { roles: ['management'] } })
+
+    const { rows: made } = await admin.query<{ id: string; area_id: string }>(
+      `insert into properties (tenant_id, area_id, name, street, postal_code, city, federal_state)
+       select $1, id, 'Schulzentrum', 'Musterweg 1', '00001', 'Beispielstadt', 'DE-BW'
+         from areas where tenant_id = $1
+       returning id, area_id`,
+      [tenant.id],
+    )
+    const property = made[0]
+    const { rows: built } = await admin.query<{ id: string }>(
+      `insert into buildings (tenant_id, property_id, area_id, name, kinds)
+       values ($1, $2, $3, 'Schulhaus', '{school}') returning id`,
+      [tenant.id, property?.id, property?.area_id],
+    )
+
+    await admin.query(
+      `insert into assets (tenant_id, property_id, area_id, building_id, kind, name)
+       values ($1, $2, $3, $4, 'probe.elevator', 'Aufzug')`,
+      [tenant.id, property?.id, property?.area_id, built[0]?.id],
+    )
+    await admin.query(
+      `insert into imports (tenant_id, kind, file_name, lines, summary)
+       values ($1, 'structure', 'bestand.csv', 2, '1 Liegenschaft und 1 Gebäude angelegt'),
+              ($1, 'assets', 'anlagen.xlsx', 1, '1 Anlage angelegt')`,
+      [tenant.id],
+    )
+    await admin.query(
+      `insert into asset_kind_names (tenant_id, name, name_key, kind)
+       values ($1, 'Aufzug', 'aufzug', 'probe.elevator')`,
+      [tenant.id],
+    )
+
+    expect(await quietTables()).toEqual(['assets', 'buildings', 'floors', 'properties', 'rooms'])
+
+    await revertMigration(admin, '0022_imports')
+
+    expect(
+      (await tableNames(admin)).filter((table) => ['imports', 'asset_kind_names'].includes(table)),
+    ).toEqual([])
+    expect((await functionNames(admin)).filter((name) => name === 'import_writing')).toEqual([])
+
+    // The triggers of the log are there as before the update, each without a condition.
+    expect(await quietTables()).toEqual([])
+
+    const { rows: watched } = await admin.query<{ table_name: string }>(
+      `select c.relname as table_name
+         from pg_trigger t
+         join pg_class c on c.oid = t.tgrelid
+         join pg_proc p on p.oid = t.tgfoid
+        where not t.tgisinternal and p.proname = 'record_change' and t.tgname = 'audit_changes'
+          and c.relname in ('assets', 'buildings', 'floors', 'properties', 'rooms')
+        order by c.relname`,
+    )
+
+    expect(watched.map((row) => row.table_name)).toEqual([
+      'assets',
+      'buildings',
+      'floors',
+      'properties',
+      'rooms',
+    ])
+
+    // What the imports made stays, and a change of it is logged.
+    const { rows: kept } = await admin.query<{ property: string; building: string; asset: string }>(
+      `select p.name as property, b.name as building, a.name as asset
+         from properties p
+         join buildings b on b.property_id = p.id
+         join assets a on a.building_id = b.id
+        where p.tenant_id = $1`,
+      [tenant.id],
+    )
+
+    expect(kept).toEqual([{ property: 'Schulzentrum', building: 'Schulhaus', asset: 'Aufzug' }])
+
+    await admin.query(`update assets set name = 'Aufzug Haus A' where tenant_id = $1`, [tenant.id])
+
+    const { rows: renamed } = await admin.query<{ new_value: string | null }>(
+      `select new_value from audit_entries
+        where tenant_id = $1 and table_name = 'assets' and operation = 'update' and field = 'name'`,
+      [tenant.id],
+    )
+
+    expect(renamed).toEqual([{ new_value: 'Aufzug Haus A' }])
+
+    // The log of the tenant says that the rows of both lists went, and why.
+    const { rows: removed } = await admin.query<{
+      table_name: string
+      reason: string | null
+      records: number
+    }>(
+      `select table_name, reason, count(distinct record_id)::int as records from audit_entries
+        where tenant_id = $1 and operation = 'delete'
+        group by table_name, reason
+        order by table_name`,
+      [tenant.id],
+    )
+
+    expect(removed).toEqual([
+      { table_name: 'asset_kind_names', reason: 'migration', records: 1 },
+      { table_name: 'imports', reason: 'migration', records: 2 },
+    ])
+  })
+})
+
+/**
  * 0021 brings what taking stock on site writes (#99): what an asset was found
  * to be distinct from, and a label from a sheet given to an asset. On the way
  * forward it touches no row. Taken back, the lists go, and the log of the
@@ -1483,6 +1628,7 @@ describe('an installation that took stock on site', () => {
       second[0]?.id,
     ])
 
+    await revertMigration(admin, '0022_imports')
     await revertMigration(admin, '0021_stock_taking')
 
     expect(
@@ -1565,6 +1711,7 @@ describe('an installation with labels', () => {
       [tenant.id, property?.id, property?.area_id, stood[0]?.id],
     )
 
+    await revertMigration(admin, '0022_imports')
     await revertMigration(admin, '0021_stock_taking')
     await revertMigration(admin, '0020_labels')
 
@@ -1652,6 +1799,7 @@ describe('an installation with documents', () => {
       [tenant.id, filed[0]?.id, file],
     )
 
+    await revertMigration(admin, '0022_imports')
     await revertMigration(admin, '0021_stock_taking')
     await revertMigration(admin, '0020_labels')
     await revertMigration(admin, '0019_documents')

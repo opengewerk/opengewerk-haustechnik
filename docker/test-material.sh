@@ -30,7 +30,7 @@ guarded_route=/staff
 # The tables counted before the backup and after the restore. The area and
 # the place of the account in it come with the account: a Betreiber gets its
 # first area with its first membership.
-counted_tables='auth_users memberships tenant_roles account_corrections areas member_areas invitations invitation_area_choices invitation_areas properties buildings contacts building_closures assets files mail_settings deadline_settings deadline_runs duties duty_dismissals evidence deadlines activities activity_duties work_orders defects activity_signatures work_order_decisions evidence_voidings attachments attachment_versions labels'
+counted_tables='auth_users memberships tenant_roles account_corrections areas member_areas invitations invitation_area_choices invitation_areas properties buildings contacts building_closures assets files mail_settings deadline_settings deadline_runs duties duty_dismissals evidence deadlines activities activity_duties work_orders defects activity_signatures work_order_decisions evidence_voidings attachments attachment_versions labels imports asset_kind_names'
 
 # The migrations, and how many of them make the older state an update starts
 # from: the first, without the sequence for work orders that the second brings.
@@ -178,6 +178,15 @@ records_for_backup() {
     insert into labels (tenant_id, property_id, area_id, asset_id, code)
     select tenant_id, property_id, area_id, id, '3XQ7M2K9PDH4TA6W'
       from assets where tenant_id = '$first_tenant' order by id limit 1;"
+  # An import and a word for an asset kind (opengewerk-haustechnik#100): the
+  # one row the log shows of a list that was taken over, and what the lists
+  # of this Betreiber call a kind. Rows like the others, counted before the
+  # backup and after the restore.
+  sql "
+    insert into imports (tenant_id, kind, file_name, lines, summary)
+    values ('$first_tenant', 'assets', 'anlagen-werkhof.xlsx', 38, '38 Anlagen angelegt');
+    insert into asset_kind_names (tenant_id, name, name_key, kind)
+    values ('$first_tenant', 'Aufzug', 'aufzug', 'allgemein.conveying_system');"
   # A mail server, whose table comes with the foundation as well
   # (opengewerk-haustechnik#23). What writes it comes with the notifications
   # of phase 1.

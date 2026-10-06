@@ -11,8 +11,11 @@ import { numberRanges } from './schema/index.js'
  * to the sequences of this application, the pattern each starts with, both
  * from `domain`, and the year as it is in Germany.
  */
-export const { assignNumber, numberRangesOf, changeNumberRange } = numberRangeStore(numberRanges, {
-  keys: numberRangeKeys,
-  defaultPatterns: defaultNumberPatterns,
-  yearOf: yearInGermany,
-})
+export const { assignNumber, assignNumbers, numberRangesOf, changeNumberRange } = numberRangeStore(
+  numberRanges,
+  {
+    keys: numberRangeKeys,
+    defaultPatterns: defaultNumberPatterns,
+    yearOf: yearInGermany,
+  },
+)

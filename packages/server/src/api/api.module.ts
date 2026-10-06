@@ -43,6 +43,7 @@ import {
   RoomDutiesController,
 } from './duties.controller.js'
 import { FloorsController } from './floors.controller.js'
+import { ImportsController } from './imports.controller.js'
 import {
   AssetLabelsController,
   LabelsController,
@@ -241,6 +242,8 @@ export class ApiModule {
         DutyDismissalsController,
         // The catalogue of this server, for the devices that work with it.
         CatalogueController,
+        // The import of places and assets from tables.
+        ImportsController,
       ],
       providers: [
         { provide: Database, useValue: database },

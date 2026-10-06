@@ -344,7 +344,11 @@ describe('the form of a new building', () => {
         'Eine oder mehrere. Die Gebäudeart entscheidet mit, welche Pflichten vorgeschlagen werden.',
       ),
     ).toBeTruthy()
-    expect(screen.getByText('Geschosse und Räume legen Sie danach im Gebäude an.')).toBeTruthy()
+    expect(
+      screen.getByText(
+        'Geschosse und Räume legen Sie danach im Gebäude an, oder Sie übernehmen sie mit dem Import.',
+      ),
+    ).toBeTruthy()
     // Nothing to remove yet.
     expect(screen.queryByRole('button', { name: 'Gebäude entfernen' })).toBeNull()
   })
@@ -519,7 +523,7 @@ describe('the form of a building there is', () => {
     expect(field('Kürzel').value).toBe('S')
     expect(field('Baujahr').value).toBe('1975')
     expect(ticked()).toEqual(['Schule oder Hochschule'])
-    expect(screen.queryByText('Geschosse und Räume legen Sie danach im Gebäude an.')).toBeNull()
+    expect(screen.queryByText(/legen Sie danach im Gebäude an/)).toBeNull()
   })
 
   it('sends what changed and nothing else, and leads back to the page of the building', async () => {

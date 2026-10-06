@@ -72,5 +72,6 @@ await checkWidths({
     'Anlage aufnehmen',
     'Raum aufnehmen',
     'Etikett zuordnen',
+    'Importieren',
   ],
 })

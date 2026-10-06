@@ -13,6 +13,7 @@ import {
   redirect,
 } from '@tanstack/react-router'
 
+import { importPlaces } from './import-addresses.js'
 import { InstanceShell } from './instance/shell.js'
 import { AccountScreen } from './screens/account.js'
 import { AreasScreen } from './screens/areas.js'
@@ -28,6 +29,7 @@ import { DutyScreen } from './screens/duty.js'
 import { DutyKindScreen } from './screens/duty-kind.js'
 import { EditFloorScreen, NewFloorScreen } from './screens/floor-form.js'
 import { FloorScreen } from './screens/floors.js'
+import { ImportAssetsScreen, ImportStructureScreen } from './screens/imports.js'
 import { LabelLandingScreen } from './screens/label-landing.js'
 import {
   EditPropertyScreen,
@@ -116,6 +118,12 @@ export function officeRoutes() {
       path: '/liegenschaften/neu',
       component: NewPropertyScreen,
     }),
+    // The import of places from a table, under the list it fills (#100).
+    createRoute({
+      getParentRoute: () => office,
+      path: importPlaces.structure,
+      component: ImportStructureScreen,
+    }),
     createRoute({
       getParentRoute: () => office,
       path: '/liegenschaften/$propertyId',
@@ -172,6 +180,11 @@ export function officeRoutes() {
     // register, before the file: "neu" is no id.
     createRoute({ getParentRoute: () => office, path: '/anlagen', component: AssetRegisterScreen }),
     createRoute({ getParentRoute: () => office, path: '/anlagen/neu', component: NewAssetScreen }),
+    createRoute({
+      getParentRoute: () => office,
+      path: importPlaces.assets,
+      component: ImportAssetsScreen,
+    }),
     createRoute({
       getParentRoute: () => office,
       path: '/anlagen/$assetId',

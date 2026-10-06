@@ -570,6 +570,26 @@ function rowsOf(tenant: Tenant): readonly Row[] {
         code: labelCodeFrom(randomBytes(10)),
       },
     },
+    // An import and what a list calls an asset kind (#100). Neither has a place.
+    {
+      table: 'imports',
+      values: {
+        tenant_id: tenant.id,
+        kind: 'assets',
+        file_name: 'anlagen-werkhof.xlsx',
+        lines: 38,
+        summary: '38 Anlagen angelegt',
+      },
+    },
+    {
+      table: 'asset_kind_names',
+      values: {
+        tenant_id: tenant.id,
+        name: 'Feuerlöscher',
+        name_key: 'feuerlöscher',
+        kind: 'allgemein.other_technical_installation',
+      },
+    },
   ]
 }
 
