@@ -340,6 +340,66 @@ describe('the deadline of a duty', () => {
     ])
   })
 
+  it('keeps the deadline of a duty of the operator own at a building as that of one from the catalogue, and reminds for both', async () => {
+    const at = await placeIn(small)
+    const fromTheCatalogue = await mainTestAt(at)
+    const { rows } = await admin.query<{ id: string }>(
+      `insert into duties (tenant_id, property_id, area_id, building_id, label, basis, source_note, task,
+                           counting, interval_months, responsible_user_id, confirmed_by)
+       values ($1, $2, $3, $4, 'Prüfung der Blitzschutzanlage', 'authority', 'Baugenehmigung, Auflage 7',
+               'inspection', 'betrsichv', 24, 'u-site', 'u-duties')
+       returning id`,
+      [small, at.property, at.area, at.building],
+    )
+    const own = (rows[0] as { id: string }).id
+    /** What a deadline says beyond which duty it belongs to. */
+    const told = async (dutyId: string) =>
+      (await deadlinesOf(dutyId)).map(
+        ({
+          kind,
+          status,
+          anchor_on,
+          due_on,
+          natural_user_id,
+          property_id,
+          area_id,
+          reminded_for,
+        }) => ({
+          kind,
+          status,
+          anchor_on,
+          due_on,
+          natural_user_id,
+          property_id,
+          area_id,
+          reminded_for,
+        }),
+      )
+
+    // Both met on the same day, both due on 2026-11-01, within the lead.
+    for (const duty of [fromTheCatalogue, own]) {
+      await evidenceOf(at, duty, '2024-11-20')
+    }
+
+    expect((await run(small)).reminded).toBe(2)
+    expect(await told(own)).toEqual([
+      {
+        kind: 'duty.due',
+        status: 'open',
+        anchor_on: '2024-11-20',
+        due_on: '2026-11-01',
+        natural_user_id: 'u-site',
+        property_id: at.property,
+        area_id: at.area,
+        reminded_for: '2026-11-01',
+      },
+    ])
+    expect(await told(own)).toEqual(await told(fromTheCatalogue))
+    expect(await deadlinesOf(own)).toMatchObject([
+      { source_label: 'Prüfung der Blitzschutzanlage, Haus A' },
+    ])
+  })
+
   it('reminds within the lead of its kind, on the morning of the day', async () => {
     const at = await placeIn(small)
     const duty = await mainTestAt(at)

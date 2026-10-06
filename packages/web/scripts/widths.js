@@ -73,5 +73,8 @@ await checkWidths({
     'Raum aufnehmen',
     'Etikett zuordnen',
     'Importieren',
+    'Eigene Pflicht',
+    'Pflicht hinzufügen',
+    'Beenden',
   ],
 })

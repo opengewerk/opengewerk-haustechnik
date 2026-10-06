@@ -58,7 +58,7 @@ import { AssetState } from '../asset-state.js'
 import { cataloguePlaces } from '../catalogue-addresses.js'
 import { DocumentsCard } from '../documents.js'
 import { dutyPlaces } from '../duty-addresses.js'
-import { dutySourceWords, kindOfDuty } from '../duty-words.js'
+import { dutySourceWords, kindOfDuty, NewDutyButton } from '../duty-words.js'
 import { LabelCardOf } from '../labels.js'
 import { factLink } from '../links.js'
 import { officePlaces } from '../place-addresses.js'
@@ -231,6 +231,7 @@ export function AssetFileScreen() {
               duties={duties.data}
               catalogue={catalogue}
               resting={restsOn(asset.lifecycleState)}
+              action={<NewDutyButton start={{ assetId: asset.id }} />}
             />
           ) : null}
         </div>
@@ -543,11 +544,14 @@ export function Duties({
   duties,
   catalogue,
   resting,
+  action,
   words,
 }: {
   readonly duties: readonly DutyReading[] | undefined
   readonly catalogue: Catalogue | null
   readonly resting: boolean
+  /** In the head of the card: the way to a duty of the operator's own at this place. */
+  readonly action?: ReactNode
   /** What the card is called and says while it is empty or cannot be read, for a room. */
   readonly words?: {
     readonly title: string
@@ -560,7 +564,7 @@ export function Duties({
 
   if (duties === undefined || duties.length === 0) {
     return (
-      <Panel title={title}>
+      <Panel title={title} action={action}>
         <p className="text-[13px] leading-[1.4] text-ink-muted">
           {duties === undefined
             ? (words?.unread ?? 'Die Pflichten werden geladen.')
@@ -588,6 +592,7 @@ export function Duties({
   return (
     <TablePanel
       title={title}
+      action={action}
       caption={
         words?.caption ??
         'Pflichten dieser Anlage mit letztem Nachweis, nächstem Termin und Zustand'

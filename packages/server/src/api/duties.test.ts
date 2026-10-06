@@ -357,27 +357,41 @@ describe('a duty from the catalogue', () => {
       label: 'Wartung nach Angabe des Herstellers',
       basis: 'manufacturer',
       sourceNote: 'Betriebsanleitung, Abschnitt 7',
+      task: 'maintenance',
       intervalMonths: 12,
     }).expect(201)
 
-    expect(own.body).toMatchObject({ assetId: general, kind: null, intervalMonths: 12 })
+    expect(own.body).toMatchObject({
+      assetId: general,
+      kind: null,
+      task: 'maintenance',
+      intervalMonths: 12,
+    })
   })
 
-  it('takes name, basis, source and counting from its kind', async () => {
+  it('takes name, basis, source, task and counting from its kind', async () => {
     const place = await placeIn()
+    const fromItsKind =
+      'Eine Pflicht aus dem Katalog nimmt Bezeichnung, Grundlage, Quelle, Tätigkeit und Zählweise von ihrer Pflichtart.'
 
+    for (const own of [{ label: 'Hauptprüfung' }, { task: 'inspection' }]) {
+      expect(
+        (
+          await post({
+            assetId: place.elevator,
+            kind: mainTest,
+            intervalMonths: 24,
+            ...own,
+          }).expect(400)
+        ).body.message,
+      ).toBe(fromItsKind)
+    }
+
+    // Confirmed, it names none: what it has somebody do, its kind says.
     expect(
-      (
-        await post({
-          assetId: place.elevator,
-          kind: mainTest,
-          intervalMonths: 24,
-          label: 'Hauptprüfung',
-        }).expect(400)
-      ).body.message,
-    ).toBe(
-      'Eine Pflicht aus dem Katalog nimmt Bezeichnung, Grundlage, Quelle und Zählweise von ihrer Pflichtart.',
-    )
+      (await post({ assetId: place.elevator, kind: mainTest, intervalMonths: 24 }).expect(201))
+        .body,
+    ).toMatchObject({ kind: mainTest, task: null })
   })
 
   it('is confirmed once for an asset while it stands, and again after it ended', async () => {
@@ -534,6 +548,13 @@ describe('the rules of a duty', () => {
                     24, 24, 'u-duties')`,
       ],
       [
+        'duties_task_of_their_own',
+        sql`insert into duties (tenant_id, property_id, area_id, asset_id, kind, kind_version, counting,
+                                interval_months, maximum_months, task, confirmed_by)
+            values (${small}, ${place.property}, ${area}, ${place.elevator}, ${mainTest}, 1, 'betrsichv',
+                    24, 24, 'inspection', 'u-duties')`,
+      ],
+      [
         'duties_from_the_catalogue_or_own',
         sql`insert into duties (tenant_id, property_id, area_id, label, basis, counting, interval_months,
                                 confirmed_by)
@@ -578,13 +599,14 @@ describe('the rules of a duty', () => {
 })
 
 describe('a duty of the operator own', () => {
-  it('hangs on a building, a room or the property, with its name, basis and source', async () => {
+  it('hangs on a building, a room or the property, with its name, basis, source and task', async () => {
     const place = await placeIn()
     const atBuilding = await post({
       buildingId: place.building,
       label: 'Dachrinnen reinigen',
       basis: 'insurer',
       sourceNote: 'Gebäudeversicherung, Vertrag 4711',
+      task: 'maintenance',
       intervalMonths: 12,
     }).expect(201)
 
@@ -595,6 +617,7 @@ describe('a duty of the operator own', () => {
       kindVersion: null,
       label: 'Dachrinnen reinigen',
       basis: 'insurer',
+      task: 'maintenance',
       counting: 'from_performance',
       intervalMonths: 12,
       maximumMonths: null,
@@ -605,6 +628,7 @@ describe('a duty of the operator own', () => {
       label: 'Lüftungsgitter prüfen',
       basis: 'own_decision',
       sourceNote: 'Gefährdungsbeurteilung 2026',
+      task: 'visual_check',
       counting: 'from_due',
       intervalDays: 90,
     }).expect(201)
@@ -613,11 +637,12 @@ describe('a duty of the operator own', () => {
       label: 'Zufahrt freihalten',
       basis: 'authority',
       sourceNote: 'Brandschutzkonzept, Abschnitt 4',
+      task: 'visual_check',
       intervalDays: 7,
     }).expect(201)
   })
 
-  it('is refused without its name, its basis or its source', async () => {
+  it('is refused without its name, its basis, its source or its task', async () => {
     const place = await placeIn()
     const own = { buildingId: place.building, intervalMonths: 12 }
 
@@ -632,6 +657,42 @@ describe('a duty of the operator own', () => {
     expect(
       (await post({ ...own, label: 'Dachrinnen', basis: 'insurer' }).expect(400)).body.message,
     ).toBe('Die Quelle einer eigenen Pflicht fehlt.')
+    expect(
+      (
+        await post({ ...own, label: 'Dachrinnen', basis: 'insurer', sourceNote: 'Vertrag' }).expect(
+          400,
+        )
+      ).body.message,
+    ).toBe(
+      'Die Tätigkeit einer eigenen Pflicht fehlt: Prüfung, Wartung, Inspektion, Funktionskontrolle, Sichtkontrolle, Probenahme.',
+    )
+  })
+
+  it('names what it has somebody do from the list, may change that and never loses it', async () => {
+    const place = await placeIn()
+    const own = {
+      buildingId: place.building,
+      label: 'Dachrinnen reinigen',
+      basis: 'insurer',
+      sourceNote: 'Gebäudeversicherung, Vertrag 4711',
+      intervalMonths: 12,
+    }
+
+    expect((await post({ ...own, task: 'cleaning' }).expect(400)).body.message).toBe(
+      'Die Tätigkeit ist keine von: Prüfung, Wartung, Inspektion, Funktionskontrolle, Sichtkontrolle, Probenahme.',
+    )
+
+    const duty = (await post({ ...own, task: 'maintenance' }).expect(201)).body
+    const change = (body: object) =>
+      http().patch(`/duties/${duty.id}`).set(testIdentityHeader, by('u-duties')).send(body)
+
+    expect((await change({ task: 'visual_check' }).expect(200)).body).toMatchObject({
+      task: 'visual_check',
+      label: 'Dachrinnen reinigen',
+    })
+    expect((await change({ task: null }).expect(400)).body.message).toBe(
+      'Eine eigene Pflicht behält Bezeichnung, Grundlage, Quelle und Tätigkeit.',
+    )
   })
 })
 
@@ -681,7 +742,10 @@ describe('changing a duty', () => {
       'Verantwortlich ist jemand, der für diesen Betreiber arbeitet.',
     )
     expect((await change({ sourceNote: 'Vertrag' }).expect(400)).body.message).toBe(
-      'Eine Pflicht aus dem Katalog nimmt Bezeichnung, Grundlage und Quelle von ihrer Pflichtart.',
+      'Eine Pflicht aus dem Katalog nimmt Bezeichnung, Grundlage, Quelle und Tätigkeit von ihrer Pflichtart.',
+    )
+    expect((await change({ task: 'maintenance' }).expect(400)).body.message).toBe(
+      'Eine Pflicht aus dem Katalog nimmt Bezeichnung, Grundlage, Quelle und Tätigkeit von ihrer Pflichtart.',
     )
   })
 
@@ -736,6 +800,7 @@ describe('the unit of an interval', () => {
         label: 'Dachrinnen reinigen',
         basis: 'insurer',
         sourceNote: 'Gebäudeversicherung, Vertrag 4711',
+        task: 'maintenance',
         intervalMonths: 12,
       }).expect(201)
     ).body

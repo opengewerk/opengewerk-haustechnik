@@ -23,7 +23,38 @@ export const dutyRegisterPlace = {
 
 export const dutyPlaces = {
   duty: (id: string) => `/pflichten/${id}`,
+  /** The form of a duty of the operator's own, before the page of a duty: "neu" is no id. */
+  new: '/pflichten/neu',
 } as const
+
+/**
+ * What a new duty of the operator's own starts at, as the address of its
+ * form names it: an asset, a room, a building or a property. The form offers
+ * that place and every place above it; without any, it asks for the property.
+ */
+export interface NewDutyStart {
+  readonly assetId?: string
+  readonly roomId?: string
+  readonly buildingId?: string
+  readonly propertyId?: string
+}
+
+/** The word of the address for each place a new duty may start at, the nearest first. */
+export const newDutyWords = {
+  assetId: 'anlage',
+  roomId: 'raum',
+  buildingId: 'gebaeude',
+  propertyId: 'liegenschaft',
+} as const satisfies Readonly<Record<keyof NewDutyStart, string>>
+
+const newDutyStarts = ['assetId', 'roomId', 'buildingId', 'propertyId'] as const
+
+/** The search of the address of the form for a place: one word, the nearest place that is named. */
+export function newDutySearch(start: NewDutyStart): Record<string, string> {
+  const name = newDutyStarts.find((each) => start[each] !== undefined)
+
+  return name === undefined ? {} : { [newDutyWords[name]]: start[name] as string }
+}
 
 /**
  * The word of the address for each filter. German, because the address bar is
@@ -49,6 +80,19 @@ function said(search: Readonly<Record<string, unknown>>, word: string): string |
   }
 
   return typeof value === 'string' && value !== '' ? value : undefined
+}
+
+/** The place the address of the form names, the nearest one where it names several. */
+export function newDutyStart(search: Readonly<Record<string, unknown>>): NewDutyStart {
+  for (const name of newDutyStarts) {
+    const value = said(search, newDutyWords[name])
+
+    if (value !== undefined) {
+      return { [name]: value }
+    }
+  }
+
+  return {}
 }
 
 /**

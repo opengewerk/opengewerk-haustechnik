@@ -114,6 +114,7 @@ export const auditVocabulary: AuditVocabulary = {
         label: 'Bezeichnung',
         basis: 'Grundlage',
         source_note: 'Quelle',
+        task: 'Tätigkeit',
         counting: 'Zählweise',
         interval_days: 'Frist in Tagen',
         interval_months: 'Frist in Monaten',

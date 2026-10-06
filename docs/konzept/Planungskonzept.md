@@ -1,6 +1,6 @@
-# OpenGewerk Haustechnik: Planungskonzept (Software für Betreiber und ihre Haustechnik) · v0.13
+# OpenGewerk Haustechnik: Planungskonzept (Software für Betreiber und ihre Haustechnik) · v0.14
 
-2026-10-06 · Eigenständiges Projekt, Repository `opengewerk-haustechnik` in der GitHub-Organisation `opengewerk` · v0.2 trägt die Entscheidungen vom 01.10.2026 ein, v0.3 die Technik, mit der das Fundament eingebunden wird, v0.4 gleicht Abschnitt 5 und die Wortwahl an die ADRs 0002 bis 0006 an, siehe Abschnitt 15; v0.5 sagt in Abschnitt 7, was jede Rolle im Einzelnen darf, v0.6 nennt dort die Rechte für den Abgleich, v0.7 gibt den eigenen Anlagenarten und den Mängelklassen ihre Phase, v0.8 trägt die Entscheidungen vom 04.10.2026 vor dem Bau von Phase 1 ein, v0.9 gibt der Liegenschaft ihre Notiz, v0.10 sagt, wer ihre Ansprechpartner pflegt, v0.11, was eine Schließzeit ist und wer sie einträgt, v0.12 nennt das Recht, Dokumente abzulegen, v0.13 die Rechte, sie anzusehen und zu entfernen, und woran ein Dokument hängt (Vergleich mit openMAINT, Atlas CMMS, eTASK, wave Facilities, pitFM, SPARTACUS, Planon, Lumiform, Wowflow und den Excel-Listen, die vielerorts die eigentliche Software sind)
+2026-10-06 · Eigenständiges Projekt, Repository `opengewerk-haustechnik` in der GitHub-Organisation `opengewerk` · v0.2 trägt die Entscheidungen vom 01.10.2026 ein, v0.3 die Technik, mit der das Fundament eingebunden wird, v0.4 gleicht Abschnitt 5 und die Wortwahl an die ADRs 0002 bis 0006 an, siehe Abschnitt 15; v0.5 sagt in Abschnitt 7, was jede Rolle im Einzelnen darf, v0.6 nennt dort die Rechte für den Abgleich, v0.7 gibt den eigenen Anlagenarten und den Mängelklassen ihre Phase, v0.8 trägt die Entscheidungen vom 04.10.2026 vor dem Bau von Phase 1 ein, v0.9 gibt der Liegenschaft ihre Notiz, v0.10 sagt, wer ihre Ansprechpartner pflegt, v0.11, was eine Schließzeit ist und wer sie einträgt, v0.12 nennt das Recht, Dokumente abzulegen, v0.13 die Rechte, sie anzusehen und zu entfernen, und woran ein Dokument hängt, v0.14, dass eine eigene Pflicht ihre Tätigkeit nennt (Vergleich mit openMAINT, Atlas CMMS, eTASK, wave Facilities, pitFM, SPARTACUS, Planon, Lumiform, Wowflow und den Excel-Listen, die vielerorts die eigentliche Software sind)
 
 Self-hosted Open-Source-System für alle, die Gebäude betreiben und dafür eigene Haustechniker haben. Liegenschaften, Gebäude, Räume und technische Anlagen stehen in einem Datenmodell. Die Betreiberpflichten hängen daran als überwachte Fristen, Rundgänge und Prüfungen laufen auf dem Telefon auch ohne Netz, und zu jeder Pflicht gibt es einen Nachweis, der sich nachträglich nicht ändern lässt.
 
@@ -127,7 +127,7 @@ Der Zustand einer Anlage (in Ordnung, fällig, überfällig, nie geprüft, Mange
 **Pflicht** (beim Betreiber):
 
 - entsteht als **Vorschlag** aus dem Katalog, sobald eine Anlage angelegt oder geändert wird, und wird bestätigt oder mit Begründung verworfen
-- oder wird vom Betreiber selbst angelegt: Vorgabe des Herstellers, Auflage aus Baugenehmigung oder Brandschutzkonzept, Forderung des Versicherers, eigene Festlegung
+- oder wird vom Betreiber selbst angelegt: Vorgabe des Herstellers, Auflage aus Baugenehmigung oder Brandschutzkonzept, Forderung des Versicherers, eigene Festlegung; sie nennt ihre Bezeichnung, ihre Quelle und ihre Tätigkeit aus derselben Liste wie eine Pflichtart
 - trägt die tatsächliche Frist, ihre Begründung, auf Wunsch den Verweis auf das Dokument, das die Frist trägt (4.3), den Verantwortlichen (aus der Pflichtenübertragung, 4.3) und wer ausführt (eigene Leute oder eine Fremdfirma mit Vertrag)
 - ihr Zustand ist abgeleitet: **nie erfasst** (Pflicht bestätigt, aber kein Nachweis und kein Termin), **überfällig**, **fällig**, **erfüllt bis**, **ruht** (Anlage außer Betrieb). „Nie erfasst“ ist ein eigener Zustand vor „überfällig“, weil das eine nach einer Ersterfassung ruft und das andere nach einer Prüfung
 
@@ -253,7 +253,7 @@ Wie dort gilt: jede Abfrage nennt einen Tag, und für einen Tag ohne hinterlegte
 
 - **Pflichtenverzeichnis**: alle Pflichten des Betreibers mit Anlage, Fundstelle, Frist, Verantwortlichem, Ausführendem, letztem Nachweis und nächster Fälligkeit
 - **Vorschläge** aus dem Katalog je Anlage, zum Bestätigen oder Verwerfen mit Begründung; auch im Stapel für viele gleichartige Anlagen
-- **Eigene Pflichten**: Herstellervorgabe, Auflage, Forderung des Versicherers, eigene Festlegung, jeweils mit Quelle
+- **Eigene Pflichten**: Herstellervorgabe, Auflage, Forderung des Versicherers, eigene Festlegung, jeweils mit Quelle und der Tätigkeit, die sie verlangt
 - **Frist festlegen**: innerhalb dessen, was die Pflichtart zulässt, mit Begründung und Verweis auf das Dokument, das sie trägt (Gefährdungsbeurteilung). Der Verweis ist empfohlen und nicht verlangt; er merkt sich die Fassung des Dokuments vom Tag der Bestätigung, und liegt eine neuere vor, sagt die Pflicht „Frist prüfen“
 - **Übersicht Betreiberverantwortung**: über alle Liegenschaften oder einen Bereich, was überfällig ist, was in 30 und 90 Tagen fällig wird, wo eine Pflicht nie erfasst wurde, wo ein Nachweis fehlt, welche Mängel über ihrer Frist sind
 - **Pflichtenübertragung** ⚖: schriftlich, mit Aufgaben, Bereich und Befugnissen, von beiden unterschrieben, mit Beginn und Ende, als eingefrorenes Dokument; die beauftragte Person erhält eine Ausfertigung. Eine Pflicht ohne Verantwortlichen wird angezeigt, statt still weiterzulaufen
@@ -743,6 +743,10 @@ Die offenen Fragen aus v0.1 sind am 01.10.2026 entschieden worden, die Phasen de
 ---
 
 ## 16. Änderungsprotokoll
+
+### v0.13 → v0.14
+
+- Eine eigene Pflicht nennt ihre Tätigkeit, aus derselben Liste wie eine Pflichtart: Prüfung, Wartung, Inspektion, Funktionskontrolle, Sichtkontrolle oder Probenahme. Ein Vorgang, der aus ihrem fälligen Termin entsteht, muss wissen, was er ist (2.3, 4.3)
 
 ### v0.12 → v0.13
 

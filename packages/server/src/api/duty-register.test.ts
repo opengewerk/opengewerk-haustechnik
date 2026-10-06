@@ -470,6 +470,7 @@ describe('the register of duties', () => {
       label: 'Wartung',
       basis: 'manufacturer',
       sourceNote: 'Betriebsanleitung',
+      task: null,
       counting: 'from_performance',
       intervalDays: null,
       intervalMonths: 12,
@@ -535,6 +536,56 @@ describe('the register of duties', () => {
       assets: 1,
       places: 3,
     })
+  })
+
+  it('gives a duty of the operator own at a building the appointment and the state of one from the catalogue', async () => {
+    const place = await placeIn()
+    const lift = await assetIn(place.building, 'Aufzug Haus A')
+    // Through the route, as the form of the office makes it: counted and
+    // as long as the main test of the catalogue beside it.
+    const own: string = (
+      await http()
+        .post('/duties')
+        .set(testIdentityHeader, by('u-duties'))
+        .send({
+          buildingId: place.annex,
+          label: 'Prüfung der Blitzschutzanlage',
+          basis: 'authority',
+          sourceNote: 'Baugenehmigung vom 12.03.2019, Auflage 7',
+          task: 'inspection',
+          counting: 'betrsichv',
+          intervalMonths: 24,
+        })
+        .expect(201)
+    ).body.id
+    const fromTheCatalogue = await dutyAt({ asset: lift }, { mainTest: true })
+    const standing = async () => {
+      const rows = (await register({ propertyId: place.property })).duties
+      const of = (id: string) => {
+        const row = rows.find((each) => each.id === id)
+
+        return { state: row?.state, appointment: row?.appointment, lastMetOn: row?.lastMetOn }
+      }
+
+      return { own: of(own), fromTheCatalogue: of(fromTheCatalogue) }
+    }
+
+    // Never recorded, both of them, and without an appointment.
+    const before = await standing()
+
+    expect(before.own).toEqual({ state: 'never_recorded', appointment: null, lastMetOn: null })
+    expect(before.own).toEqual(before.fromTheCatalogue)
+
+    for (const duty of [own, fromTheCatalogue]) {
+      await evidenceOf(duty, daysAgo(800))
+    }
+
+    // Met on the same day more than two years ago: overdue alike, on the same day.
+    const after = await standing()
+
+    expect(after.own.state).toBe('overdue')
+    expect(after.own.appointment).not.toBeNull()
+    expect(after.own).toEqual(after.fromTheCatalogue)
   })
 
   it('shows a duty nobody answers for without any filter, counts those, and narrows to them', async () => {

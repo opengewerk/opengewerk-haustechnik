@@ -146,6 +146,7 @@ describe('an installation that began on the first migration', () => {
     // place and the assets, so they go first, and what an invitation says
     // about areas hangs on the areas; the files, the mail server and the
     // settings of the deadlines hang on nothing of this.
+    await revertMigration(admin, '0023_own_duty_task')
     await revertMigration(admin, '0022_imports')
     await revertMigration(admin, '0021_stock_taking')
     await revertMigration(admin, '0020_labels')
@@ -307,6 +308,7 @@ describe('an installation from before the areas', () => {
 
     // The places hang on the areas and go first, as on the way back of an
     // installation, and so does what an invitation says about areas.
+    await revertMigration(admin, '0023_own_duty_task')
     await revertMigration(admin, '0022_imports')
     await revertMigration(admin, '0021_stock_taking')
     await revertMigration(admin, '0020_labels')
@@ -378,6 +380,7 @@ describe('an installation with places', () => {
       [tenant.id],
     )
 
+    await revertMigration(admin, '0023_own_duty_task')
     await revertMigration(admin, '0022_imports')
     await revertMigration(admin, '0021_stock_taking')
     await revertMigration(admin, '0020_labels')
@@ -475,6 +478,7 @@ describe('an installation with assets', () => {
       [tenant.id, asset, at.property, at.area, at.building],
     )
 
+    await revertMigration(admin, '0023_own_duty_task')
     await revertMigration(admin, '0022_imports')
     await revertMigration(admin, '0021_stock_taking')
     await revertMigration(admin, '0020_labels')
@@ -577,6 +581,7 @@ describe('an installation with assets', () => {
       [tenant.id, at.property, at.area, at.asset],
     )
 
+    await revertMigration(admin, '0023_own_duty_task')
     await revertMigration(admin, '0022_imports')
     await revertMigration(admin, '0021_stock_taking')
     await revertMigration(admin, '0020_labels')
@@ -680,6 +685,7 @@ describe('an installation with assets', () => {
       [tenant.id, at.duty, at.property, at.area],
     )
 
+    await revertMigration(admin, '0023_own_duty_task')
     await revertMigration(admin, '0022_imports')
     await revertMigration(admin, '0021_stock_taking')
     await revertMigration(admin, '0020_labels')
@@ -786,6 +792,7 @@ describe('an installation with assets', () => {
       [tenant.id, at.property, at.area, at.asset, activityId],
     )
 
+    await revertMigration(admin, '0023_own_duty_task')
     await revertMigration(admin, '0022_imports')
     await revertMigration(admin, '0021_stock_taking')
     await revertMigration(admin, '0020_labels')
@@ -1503,6 +1510,7 @@ describe('an installation that imported from tables', () => {
 
     expect(await quietTables()).toEqual(['assets', 'buildings', 'floors', 'properties', 'rooms'])
 
+    await revertMigration(admin, '0023_own_duty_task')
     await revertMigration(admin, '0022_imports')
 
     expect(
@@ -1628,6 +1636,7 @@ describe('an installation that took stock on site', () => {
       second[0]?.id,
     ])
 
+    await revertMigration(admin, '0023_own_duty_task')
     await revertMigration(admin, '0022_imports')
     await revertMigration(admin, '0021_stock_taking')
 
@@ -1711,6 +1720,7 @@ describe('an installation with labels', () => {
       [tenant.id, property?.id, property?.area_id, stood[0]?.id],
     )
 
+    await revertMigration(admin, '0023_own_duty_task')
     await revertMigration(admin, '0022_imports')
     await revertMigration(admin, '0021_stock_taking')
     await revertMigration(admin, '0020_labels')
@@ -1799,6 +1809,7 @@ describe('an installation with documents', () => {
       [tenant.id, filed[0]?.id, file],
     )
 
+    await revertMigration(admin, '0023_own_duty_task')
     await revertMigration(admin, '0022_imports')
     await revertMigration(admin, '0021_stock_taking')
     await revertMigration(admin, '0020_labels')

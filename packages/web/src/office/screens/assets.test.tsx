@@ -741,6 +741,32 @@ describe('the file of an asset', () => {
     expect(screen.queryByRole('table', { name: dutiesOfTheAsset })).toBeNull()
   })
 
+  it.each(['management', 'technical_management'] as const)(
+    'offers a duty of the operator own in the card of the duties to whoever keeps the register, "%s", and starts at the asset',
+    async (role) => {
+      const { router } = await mount(at, answers(file()), role)
+
+      await screen.findByRole('heading', { level: 1, name: 'Aufzug Schulhaus' })
+      fireEvent.click(await screen.findByRole('button', { name: 'Pflicht hinzufügen' }))
+
+      await waitFor(() => {
+        expect(router.state.location.pathname).toBe('/pflichten/neu')
+      })
+      expect(router.state.location.search).toEqual({ anlage: 'a-lift' })
+    },
+  )
+
+  it.each(['site_management', 'technician'] as const)(
+    'offers it to nobody else: not to "%s"',
+    async (role) => {
+      await mount(at, answers(file()), role)
+      await screen.findByRole('heading', { level: 1, name: 'Aufzug Schulhaus' })
+      await screen.findByRole('heading', { level: 2, name: 'Pflichten' })
+
+      expect(screen.queryByRole('button', { name: 'Pflicht hinzufügen' })).toBeNull()
+    },
+  )
+
   it('says so of an asset that is not there for this person', async () => {
     await mount('/anlagen/a-gone', {})
 

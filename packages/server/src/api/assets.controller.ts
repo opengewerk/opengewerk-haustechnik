@@ -355,6 +355,7 @@ export class AssetsController {
           label: duty.label,
           basis: duty.basis,
           sourceNote: duty.sourceNote,
+          task: duty.task,
           counting: duty.counting,
           intervalDays: duty.intervalDays,
           intervalMonths: duty.intervalMonths,

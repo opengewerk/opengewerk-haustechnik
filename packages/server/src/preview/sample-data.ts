@@ -97,6 +97,8 @@ export interface SampleDuty {
   readonly label?: string
   readonly basis?: 'manufacturer' | 'own_decision'
   readonly sourceNote?: string
+  /** What one of the operator's own has somebody do: a maintenance, unless it names another task. */
+  readonly task?: 'inspection' | 'maintenance' | 'visual_check'
   readonly intervalMonths: number
   readonly metDaysAgo?: readonly number[]
   readonly responsible?: PreviewColleagueId
@@ -303,6 +305,7 @@ export const sampleProperties: readonly SampleProperty[] = [
                 duties: [
                   {
                     ...yearly('Sichtprüfung der Zähleranlage', 350),
+                    task: 'visual_check',
                     responsible: 'preview-lindner',
                     ...ownStaff,
                   },
@@ -314,6 +317,7 @@ export const sampleProperties: readonly SampleProperty[] = [
               duties: [
                 {
                   ...yearly('Sichtprüfung der Zähleranlage', 400),
+                  task: 'visual_check',
                   responsible: 'preview-albrecht',
                   ...ownStaff,
                 },
@@ -352,9 +356,10 @@ export const sampleProperties: readonly SampleProperty[] = [
           // for it. Beside it a duty that ended a month ago.
           waterMeter('Wasserzähler Werkstatt', 'WZ-2001', 'E.01', [], {
             duties: [
-              { ...yearly('Sichtprüfung der Zähleranlage'), ...ownStaff },
+              { ...yearly('Sichtprüfung der Zähleranlage'), task: 'visual_check', ...ownStaff },
               {
                 ...yearly('Eichung des alten Zählers', 500),
+                task: 'inspection',
                 responsible: 'preview-lindner',
                 endedDaysAgo: 30,
               },
@@ -447,6 +452,7 @@ export const sampleProperties: readonly SampleProperty[] = [
                     label: 'Heizraum frei von Brandlasten',
                     basis: 'own_decision',
                     sourceNote: 'Brandschutzordnung Teil C',
+                    task: 'visual_check',
                     intervalMonths: 3,
                     metDaysAgo: [72],
                     ...ownStaff,
@@ -535,6 +541,7 @@ export const sampleProperties: readonly SampleProperty[] = [
                 duties: [
                   {
                     ...yearly('Sichtprüfung der Zähleranlage', 500),
+                    task: 'visual_check',
                     responsible: 'preview-roth',
                     ...ownStaff,
                   },
@@ -693,6 +700,7 @@ async function plantDuty(
     label,
     basis = 'manufacturer',
     sourceNote = 'Betriebsanleitung des Herstellers',
+    task = 'maintenance',
     intervalMonths,
     responsible,
     performer,
@@ -703,7 +711,7 @@ async function plantDuty(
   const made = await send(address, '/duties', {
     ...target,
     intervalMonths,
-    ...(kind === undefined ? { label, basis, sourceNote } : { kind }),
+    ...(kind === undefined ? { label, basis, sourceNote, task } : { kind }),
     ...(responsible === undefined ? {} : { responsibleUserId: responsible }),
     ...(performer === undefined ? {} : { performer }),
     ...(performerNote === undefined ? {} : { performerNote }),

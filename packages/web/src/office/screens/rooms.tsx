@@ -17,6 +17,7 @@ import { AssetState } from '../asset-state.js'
 import { officePlaces, placeForms } from '../place-addresses.js'
 import { PlaceNotFound } from '../place-pages.js'
 import { DocumentsCard } from '../documents.js'
+import { NewDutyButton } from '../duty-words.js'
 import { LabelCardOf } from '../labels.js'
 import { Duties } from './asset.js'
 
@@ -163,6 +164,7 @@ export function RoomScreen() {
               duties={duties.data}
               catalogue={catalogue}
               resting={false}
+              action={<NewDutyButton start={{ roomId }} />}
               words={{
                 title: roomDutyWords.title,
                 caption: roomDutyWords.caption,

@@ -187,6 +187,7 @@ export interface DutyReading extends Pick<
   | 'label'
   | 'basis'
   | 'sourceNote'
+  | 'task'
   | 'counting'
   | 'intervalDays'
   | 'intervalMonths'

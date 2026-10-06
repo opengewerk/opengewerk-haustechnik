@@ -3,6 +3,7 @@ import {
   dutyBases,
   dutyLimits,
   dutyPerformers,
+  dutyTasks,
   longestIntervalDays,
   longestIntervalMonths,
 } from '@opengewerk/haustechnik-domain'
@@ -48,6 +49,9 @@ export const dutyCounting = pgEnum('duty_counting', countings)
 /** Where a duty of the operator's own comes from. */
 export const dutyBasis = pgEnum('duty_basis', dutyBases)
 
+/** What a duty of the operator's own has somebody do, from the list of the catalogue. */
+export const dutyTask = pgEnum('duty_task', dutyTasks)
+
 /** Who performs a duty. */
 export const dutyPerformer = pgEnum('duty_performer', dutyPerformers)
 
@@ -84,6 +88,7 @@ export const duties = pgTable(
     label: text('label'),
     basis: dutyBasis('basis'),
     sourceNote: text('source_note'),
+    task: dutyTask('task'),
     counting: dutyCounting('counting').notNull(),
     intervalDays: integer('interval_days'),
     intervalMonths: integer('interval_months'),
@@ -159,6 +164,10 @@ export const duties = pgTable(
         or (${table.kind} is null and ${table.kindVersion} is null
           and ${table.label} is not null and ${table.basis} is not null and ${table.sourceNote} is not null)`,
     ),
+    // What it has somebody do, a duty from the catalogue takes from its kind.
+    // One of the operator's own names it; the route asks for it, and a row
+    // from before the column has none.
+    check('duties_task_of_their_own', sql`${table.kind} is null or ${table.task} is null`),
     check('duties_kind_shaped', optionalTrimmed(table.kind, dutyLimits.kind)),
     check(
       'duties_kind_version_shaped',

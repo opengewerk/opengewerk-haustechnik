@@ -836,3 +836,86 @@ describe('the duties of a room', () => {
     expect(asked.filter((path) => path.includes('/duties'))).toEqual([])
   })
 })
+
+describe('the way to a duty of the operator own', () => {
+  const room = `/raeume/${boilerRoom.id}`
+
+  it.each(['management', 'technical_management'] as const)(
+    'stands in the head of the register for whoever keeps it: "%s"',
+    async (role) => {
+      const { router } = await mount('/pflichten', { [firstPage]: page([maintenance]) }, role)
+
+      await screen.findByRole('table', { name: register })
+      press('Eigene Pflicht')
+
+      await waitFor(() => {
+        expect(router.state.location.pathname).toBe('/pflichten/neu')
+      })
+      expect(router.state.location.search).toEqual({})
+    },
+  )
+
+  it.each(['site_management', 'technician'] as const)(
+    'stands there for nobody else: not for "%s"',
+    async (role) => {
+      await mount('/pflichten', { [firstPage]: page([maintenance]) }, role)
+      await screen.findByRole('table', { name: register })
+
+      expect(screen.queryByRole('button', { name: 'Eigene Pflicht' })).toBeNull()
+    },
+  )
+
+  it('starts in the building the register is narrowed to', async () => {
+    const { router } = await mount(
+      '/pflichten?gebaeude=b-house',
+      { '/duties/register?buildingId=b-house&offset=0&limit=50': page([maintenance]) },
+      'management',
+    )
+
+    await screen.findByRole('table', { name: register })
+    press('Eigene Pflicht')
+
+    await waitFor(() => {
+      expect(router.state.location.pathname).toBe('/pflichten/neu')
+    })
+    expect(router.state.location.search).toEqual({ gebaeude: 'b-house' })
+  })
+
+  it('starts on the property the register is narrowed to', async () => {
+    const { router } = await mount(
+      '/pflichten?liegenschaft=p-yard',
+      { '/duties/register?propertyId=p-yard&offset=0&limit=50': page([atBuilding]) },
+      'management',
+    )
+
+    await screen.findByRole('table', { name: register })
+    press('Eigene Pflicht')
+
+    await waitFor(() => {
+      expect(router.state.location.search).toEqual({ liegenschaft: 'p-yard' })
+    })
+  })
+
+  it('stands in the card of the duties of a room, and starts at the room', async () => {
+    const { router } = await mount(room, { '/rooms/r-boiler/duties': [] }, 'technical_management')
+
+    await screen.findByRole('heading', { level: 1, name: 'E.14 Heizraum' })
+    fireEvent.click(await screen.findByRole('button', { name: 'Pflicht hinzufügen' }))
+
+    await waitFor(() => {
+      expect(router.state.location.pathname).toBe('/pflichten/neu')
+    })
+    expect(router.state.location.search).toEqual({ raum: 'r-boiler' })
+  })
+
+  it.each(['site_management', 'technician'] as const)(
+    'stands at a room for nobody who does not keep the register: not for "%s"',
+    async (role) => {
+      await mount(room, { '/rooms/r-boiler/duties': [] }, role)
+      await screen.findByRole('heading', { level: 1, name: 'E.14 Heizraum' })
+      await screen.findByText('Pflichten an diesem Raum')
+
+      expect(screen.queryByRole('button', { name: 'Pflicht hinzufügen' })).toBeNull()
+    },
+  )
+})
