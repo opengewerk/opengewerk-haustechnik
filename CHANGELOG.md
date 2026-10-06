@@ -658,6 +658,18 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   mit drei Fassungen im Heizraum und am Aufzug eine Betriebsanleitung mit zwei Fassungen und ein Foto vom
   Typenschild. "Sicherung und Rückspielen" legt ein Dokument an der Anlage an und holt seine Datei nach dem
   Rückspielen über die Fassung
+- Etiketten mit QR-Code für Anlagen und Räume (`#98`, Abschnitte 3 und 4.2 des Konzepts). An der Anlagenakte und an der
+  Raumseite steht die Karte "Etikett": sie legt ein Etikett an, druckt es für den Etikettendrucker oder als Bogen A4 ab
+  einem freien Feld und sperrt es. Am Anlagenverzeichnis und am Gebäude druckt "Etiketten drucken" je gelisteter Anlage
+  oder je Raum ein Etikett und legt fehlende an, höchstens 240 auf einmal, oder einen Bogen ohne Anlage für die
+  Bestandsaufnahme. Vor Ort liest der Reiter "Scannen" ein Etikett mit der Kamera, auch ohne Netz, und im Browser führt die
+  Adresse auf dem Etikett zur Akte oder zur Raumseite; ein Etikett von einer früheren Adresse der Instanz öffnet weiter,
+  weil nur der Pfad zählt. Der Code steht einmal in der ganzen Instanz, eine Anlage und ein Raum haben höchstens ein
+  gültiges Etikett, und ein gesperrtes öffnet nichts mehr, auch nicht für die Leitung. Ein Etikett außerhalb der eigenen
+  Bereiche nennt weder Anlage noch Raum: auf die Frage nach einem Code antwortet der Server mit einem Wort. Gebaut, weil die
+  Bestandsaufnahme vor Ort (`#99`) Etiketten klebt und jede Anlage über ihr Etikett gefunden werden soll; der Baustein
+  dafür liegt seit `opengewerk#570` im Fundament, das Submodul steht auf diesem Stand. Migration `0020_labels`, kein
+  neues Recht (Anlagen und Räume aufnehmen). Das Zuordnen eines Etiketts vom Bogen zu einer Anlage kommt mit `#99`
 
 ### Geändert
 

@@ -67,6 +67,8 @@ describe('the policies of the sync', () => {
       // (addendum of 06.10.2026); a version is made and never changed.
       attachments: [true, 'merge'],
       attachment_versions: [true, 'never'],
+      // Made and blocked in the office; a device reads them for a scan.
+      labels: [false, 'never'],
     })
   })
 

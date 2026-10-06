@@ -59,6 +59,7 @@ import { cataloguePlaces } from '../catalogue-addresses.js'
 import { DocumentsCard } from '../documents.js'
 import { dutyPlaces } from '../duty-addresses.js'
 import { dutySourceWords, kindOfDuty } from '../duty-words.js'
+import { LabelCardOf } from '../labels.js'
 import { factLink } from '../links.js'
 import { officePlaces } from '../place-addresses.js'
 import { kindLabel } from './assets.js'
@@ -108,12 +109,14 @@ export const assetFileWords = {
  * whoever keeps the assets (section 7 of the concept, #88), and neither is
  * offered to anybody else.
  *
- * Its documents stand in the narrow column, after the life cycle (#97): what
- * is filed at this asset, the one changed last first, read from the device.
+ * Its label and its documents stand in the narrow column, after the life
+ * cycle (#98, #97): the label with its QR code, made, printed and blocked
+ * there, and what is filed at this asset, the one changed last first. Both
+ * are read from the device.
  *
  * What the board draws beyond this arrives with what it shows: swapping the
- * asset (#89), confirming duties (#102), evidence (#109), defects (#116),
- * work orders (#117) and the label (#98).
+ * asset (#89), confirming duties (#102), evidence (#109), defects (#116)
+ * and work orders (#117).
  */
 export function AssetFileScreen() {
   const { assetId } = useParams({ strict: false }) as { assetId?: string }
@@ -384,6 +387,7 @@ export function AssetFileScreen() {
                 }
               : {})}
           />
+          <LabelCardOf holder="assets" id={assetId} />
           <DocumentsCard
             place={{ propertyId: asset.propertyId, assetId }}
             at={[asset.number, asset.name].filter(Boolean).join(' ')}

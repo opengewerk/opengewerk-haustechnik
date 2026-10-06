@@ -1,6 +1,7 @@
 import { ConflictScreen } from '@opengewerk/platform-web/site'
 import { createRootRoute, createRoute, createRouter, redirect } from '@tanstack/react-router'
 
+import { SiteScanScreen } from './screens/scan.js'
 import { SiteShell } from './shell.js'
 
 /**
@@ -34,6 +35,8 @@ export function siteRoutes() {
       },
     }),
     createRoute({ getParentRoute: () => root, path: '/konflikte', component: ConflictScreen }),
+    // The tab "Scannen": the label of an asset or a room, read by the camera.
+    createRoute({ getParentRoute: () => root, path: '/scannen', component: SiteScanScreen }),
   ])
 }
 

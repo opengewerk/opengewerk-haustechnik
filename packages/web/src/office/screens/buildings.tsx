@@ -24,6 +24,7 @@ import {
   newAssetSearch,
   registerSearch,
 } from '../asset-addresses.js'
+import { PrintLabelsButton } from '../labels.js'
 import { factLink } from '../links.js'
 import { BuildingClosures } from '../building-closures.js'
 import { officePlaces, placeForms } from '../place-addresses.js'
@@ -57,6 +58,7 @@ export function BuildingScreen() {
   const areas = useAreas()
   const writes = useRight('location.write')
   const records = useRight('asset.record')
+  const recordsRooms = useRight('room.record')
   const navigate = useNavigate()
 
   if (!building || !buildingId || !property) {
@@ -64,6 +66,7 @@ export function BuildingScreen() {
   }
 
   const area = areas.length > 1 ? areaName(areas, building['areaId']) : null
+  const roomsHere = rooms.filter((room) => room['buildingId'] === buildingId).length
   const year = typeof building['yearBuilt'] === 'number' ? building['yearBuilt'] : null
 
   return (
@@ -101,6 +104,40 @@ export function BuildingScreen() {
                 Bearbeiten
               </Button>
             ) : null}
+            {/* The doors of this building, its assets, or a sheet for taking
+                stock on its property. */}
+            <PrintLabelsButton
+              offers={[
+                ...(recordsRooms && roomsHere > 0
+                  ? [
+                      {
+                        key: 'rooms',
+                        label:
+                          roomsHere === 1
+                            ? 'Der eine Raum dieses Gebäudes'
+                            : `Die ${String(roomsHere)} Räume dieses Gebäudes`,
+                        batch: { what: 'rooms' as const, buildingId },
+                        count: roomsHere,
+                      },
+                    ]
+                  : []),
+                ...(assets.length > 0
+                  ? [
+                      {
+                        key: 'assets',
+                        label:
+                          assets.length === 1
+                            ? 'Die eine Anlage dieses Gebäudes'
+                            : `Die ${String(assets.length)} Anlagen dieses Gebäudes`,
+                        batch: { what: 'assets' as const, filter: { buildingId } },
+                        count: assets.length,
+                      },
+                    ]
+                  : []),
+              ]}
+              properties={[{ id: String(property['id']), name: text(property, 'name') }]}
+              propertyId={String(property['id'])}
+            />
             {records ? (
               <Button
                 tone="primary"

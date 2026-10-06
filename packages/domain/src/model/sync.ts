@@ -1,5 +1,6 @@
 import {
   attachmentVersionPolicy,
+  labelPolicy,
   type Operation,
   type SyncPolicy,
   syncRules,
@@ -111,6 +112,10 @@ export const syncPolicies: Readonly<Record<string, SyncPolicy>> = {
   // A version is made and never changed, and who filed it is the server's to
   // write. It carries no place: it is seen with its document.
   attachment_versions: attachmentVersionPolicy,
+  // A label is made and blocked in the office, with a connection: the server
+  // draws its code. A device holds the labels of its places, so that a scan
+  // opens an asset without a network.
+  labels: labelPolicy,
 }
 
 /**
@@ -329,6 +334,7 @@ export const syncEntityNames: Readonly<Record<string, string>> = {
   work_order_decisions: 'Abnahme eines Auftrags',
   attachments: 'Dokument',
   attachment_versions: 'Fassung eines Dokuments',
+  labels: 'Etikett',
 }
 
 /**
@@ -443,4 +449,8 @@ export const syncFieldNames: Readonly<Record<string, string>> = {
   mediaType: 'Dateityp',
   sizeBytes: 'Größe',
   previewSha256: 'Vorschau',
+  // What is said about a label. A device writes none, so neither field ever
+  // stands in a conflict.
+  code: 'Code',
+  blockedAt: 'Gesperrt am',
 }

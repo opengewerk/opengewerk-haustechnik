@@ -1,7 +1,8 @@
-import { randomUUID } from 'node:crypto'
+import { randomBytes, randomUUID } from 'node:crypto'
 
 import {
   firstAreaName,
+  labelCodeFrom,
   rolesSeeingEveryArea,
   shippedRoles,
   type TenantId,
@@ -428,6 +429,12 @@ async function placeIn(where: 'north' | 'south'): Promise<void> {
      values ($1, $2, $3, $4, 'betriebsanleitung.pdf', 'application/pdf', 2048)`,
     [at.version, tenant, at.document, at.file],
   )
+  // The label on the asset.
+  await admin.query(
+    `insert into labels (tenant_id, property_id, area_id, asset_id, code)
+     values ($1, $2, $3, $4, $5)`,
+    [tenant, at.property, areaId, at.asset, labelCodeFrom(randomBytes(10))],
+  )
 }
 
 beforeAll(async () => {
@@ -530,6 +537,7 @@ describe('a person with the north', () => {
       'evidence',
       'evidence_voidings',
       'floors',
+      'labels',
       'properties',
       'rooms',
       'work_order_decisions',
@@ -742,6 +750,7 @@ describe('a property moved to another area', () => {
         'evidence',
         'evidence_voidings',
         'floors',
+        'labels',
         'rooms',
         'work_order_decisions',
         'work_orders',

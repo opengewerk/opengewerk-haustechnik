@@ -45,6 +45,8 @@ interface SampleRoom {
   /** Duties that hang on the room itself, of the operator's own. */
   readonly duties?: readonly SampleDuty[]
   readonly documents?: readonly SampleDocument[]
+  /** A label on its door. */
+  readonly label?: true
 }
 
 interface SampleFloor {
@@ -76,6 +78,8 @@ interface SampleAsset {
   /** A defect somebody found at it and nobody has set right. */
   readonly defect?: string
   readonly documents?: readonly SampleDocument[]
+  /** A label on it: a valid one, or one that was lost and blocked, with no new one made yet. */
+  readonly label?: 'valid' | 'blocked'
 }
 
 /**
@@ -260,6 +264,8 @@ export const sampleProperties: readonly SampleProperty[] = [
           {
             kind: 'probe.elevator',
             name: 'Aufzug Haus A',
+            // Its label was lost and blocked, and nobody has made a new one.
+            label: 'blocked',
             manufacturer: 'Beispiel Aufzüge',
             yearBuilt: 1998,
             values: { firefighters_lift: false, stops: 2 },
@@ -431,6 +437,7 @@ export const sampleProperties: readonly SampleProperty[] = [
               { number: 'E.10', name: 'Hausmeister' },
               {
                 number: 'E.14',
+                label: true,
                 name: 'Heizraum',
                 use: 'Haustechnik',
                 // A duty of the room itself, due within three weeks, and
@@ -479,6 +486,7 @@ export const sampleProperties: readonly SampleProperty[] = [
           {
             kind: 'probe.elevator',
             name: 'Aufzug Schulhaus',
+            label: 'valid',
             manufacturer: 'Beispiel Aufzüge',
             model: 'BA 630',
             // The serial number the form of a new asset is tried with: the
@@ -738,6 +746,7 @@ async function plantAsset(
     duties = [],
     documents = [],
     defect,
+    label,
     ...fields
   } = asset
   const roomId = room === undefined ? undefined : rooms.get(room)
@@ -765,6 +774,15 @@ async function plantAsset(
 
   for (const document of documents) {
     await plantDocument(address, { propertyId, assetId: created.id }, document)
+  }
+
+  // Made as the office makes one, at the route that draws its code (#98).
+  if (label !== undefined) {
+    const made = await send(address, `/assets/${created.id}/labels`, {})
+
+    if (label === 'blocked') {
+      await send(address, `/assets/${created.id}/labels/${made.id}/block`, {})
+    }
   }
 
   for (const component of components) {
@@ -846,9 +864,18 @@ export async function plantSampleData(
           level: floor.level,
         })
 
-        for (const { duties = [], documents: roomDocuments = [], ...room } of floor.rooms) {
+        for (const {
+          duties = [],
+          documents: roomDocuments = [],
+          label: onTheDoor,
+          ...room
+        } of floor.rooms) {
           const madeRoom = await send(address, `/floors/${madeFloor.id}/rooms`, room)
           rooms.set(room.number, madeRoom.id)
+
+          if (onTheDoor) {
+            await send(address, `/rooms/${madeRoom.id}/labels`, {})
+          }
 
           for (const duty of duties) {
             await plantDuty(address, { roomId: madeRoom.id }, duty, standings)
