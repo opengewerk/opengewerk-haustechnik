@@ -148,6 +148,13 @@
       "when": 1791278863414,
       "tag": "0020_labels",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1791284971385,
+      "tag": "0021_stock_taking",
+      "breakpoints": true
     }
   ]
 }

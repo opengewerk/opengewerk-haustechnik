@@ -673,6 +673,8 @@ export interface PlantedStandings {
     readonly corrects?: string
   }[]
   readonly defects: { readonly assetId: string; readonly description: string }[]
+  /** Labels of a sheet printed for a property, which hang on nothing yet. */
+  readonly sheets: { readonly propertyId: string; readonly labels: number }[]
 }
 
 /**
@@ -798,6 +800,9 @@ async function plantAsset(
   }
 }
 
+/** How many labels of a sheet wait at each sample property, to be given to an asset on site (#99). */
+export const sheetLabelsPerProperty = 4
+
 /**
  * Plants the sample operator through the routes of the preview at `address`,
  * as whoever that preview answers as, which has to be somebody who sees every
@@ -808,7 +813,7 @@ export async function plantSampleData(
   address: string,
   areas: ReadonlyMap<PreviewArea, string>,
 ): Promise<PlantedStandings> {
-  const standings: PlantedStandings = { evidence: [], defects: [] }
+  const standings: PlantedStandings = { evidence: [], defects: [], sheets: [] }
 
   for (const property of sampleProperties) {
     const { buildings, area, contacts = [], documents = [], ...fields } = property
@@ -825,6 +830,10 @@ export async function plantSampleData(
     for (const document of documents) {
       await plantDocument(address, { propertyId: created.id }, document)
     }
+
+    // A sheet for taking stock, printed for every property: its labels are
+    // rows behind the routes, because printing one needs the renderer.
+    standings.sheets.push({ propertyId: created.id, labels: sheetLabelsPerProperty })
 
     const buildingIds = new Map<string, string>()
     const supplying: Supplying[] = []

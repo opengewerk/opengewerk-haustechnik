@@ -670,6 +670,22 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   Bestandsaufnahme vor Ort (`#99`) Etiketten klebt und jede Anlage über ihr Etikett gefunden werden soll; der Baustein
   dafür liegt seit `opengewerk#570` im Fundament, das Submodul steht auf diesem Stand. Migration `0020_labels`, kein
   neues Recht (Anlagen und Räume aufnehmen). Das Zuordnen eines Etiketts vom Bogen zu einer Anlage kommt mit `#99`
+- Bestandsaufnahme vor Ort (`#99`, Abschnitte 4.1, 4.2 und 2.7 des Konzepts). Vor Ort gibt es den Reiter "Aufnehmen" und
+  je eine schlichte Seite für Liegenschaft, Gebäude, Geschoss, Raum und Anlage, jede unter dem Pfad wie im Büro und aus den
+  Zeilen des Geräts gelesen, also auch ohne Netz. Ein Raum und eine Anlage werden auf dem Telefon aufgenommen und gehen in
+  den Postausgang: die Anlage mit Anlagenart, Raum, Hersteller, Typ, Seriennummer, Baujahr und den Angaben ihrer Art, ohne
+  Nummer, bis der Server sie gesehen hat. Die Seriennummer liest die Kamera vom Strichcode des Typenschilds, das Typenschild
+  wird fotografiert und wartet ohne Netz auf dem Gerät, und ein Etikett vom Bogen wird der Anlage zugeordnet, einmal und
+  endgültig. Trägt eine Anlage des Geräts schon dieselbe Seriennummer, zeigt das Formular sie, bevor etwas angelegt wird. Der
+  Server prüft beim Abgleich gegen alle Anlagen des Betreibers, auch über die Grenze der Bereiche, und macht eine mögliche
+  Dublette, die die Person nicht gesehen hat, zu einem Konflikt auf dem Gerät: die Karte zeigt die Anlage, die es schon gibt,
+  soweit das Gerät sie hält, und fragt "Ist dieselbe Anlage" oder "Trotzdem anlegen"; Foto und Etikett derselben Aufnahme
+  gehen mit der Entscheidung. Der Scan eines Etiketts führt vor Ort jetzt auf die Seite der Anlage oder des Raums vor Ort
+  statt ins Büro. Gebaut, weil die Bestandserfassung die größte Hürde vor dem ersten Rundgang ist: sie soll im Gebäude
+  geschehen, mit einer Hand und ohne Netz. Migration `0021_stock_taking`, kein neues Recht (Räume und Anlagen aufnehmen,
+  Dokumente ablegen). Das Fundament nimmt dafür seit `opengewerk#571` die Karte eines Konflikts von der Anwendung, das
+  Submodul steht auf diesem Stand. Wie eine Pflicht steht, sagt vor Ort der Server, mit Verbindung; die letzten Nachweise
+  kommen mit `#109`, "Mangel melden" mit `#116`
 
 ### Geändert
 

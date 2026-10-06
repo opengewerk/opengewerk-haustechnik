@@ -13,6 +13,8 @@ import type { PgColumn } from 'drizzle-orm/pg-core'
 
 import { assignNumber } from '../database/number-ranges.js'
 import * as schema from '../database/schema/index.js'
+import { unseenDuplicate } from './duplicates.js'
+import { assigned } from './labels.js'
 import { placed } from './places.js'
 import { recordRules } from './record-rules.js'
 import { followed, type Sender, signed } from './signatures.js'
@@ -116,8 +118,9 @@ async function completed({
  * The order of the checks is behaviour, the first that refuses answers: what
  * may not be written without a connection, then the texts in their form, the
  * rules of `domain` on the fields, the file of a version, the place, the
- * question that reads other records and puts in what the server derives, and
- * last a signature against its activity.
+ * question that reads other records and puts in what the server derives,
+ * then an asset against the ones that are there and a label against the asset
+ * it is given to, and last a signature against its activity.
  */
 export function syncFor(catalogue: Catalogue): ServerSync<Sender> {
   return serverSync<Sender>({
@@ -129,6 +132,8 @@ export function syncFor(catalogue: Catalogue): ServerSync<Sender> {
       recordRulesCheck(recordRules(catalogue)),
       versionFile,
       placed,
+      unseenDuplicate,
+      assigned,
       signed,
     ],
     complete: completed,

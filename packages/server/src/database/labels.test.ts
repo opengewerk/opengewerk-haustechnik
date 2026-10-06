@@ -11,6 +11,7 @@ import {
   applicationDatabaseUrl,
   applyMigrations,
   connect,
+  checkViolation,
   insufficientPrivilege,
   refusedBy,
   resetSchema,
@@ -324,9 +325,11 @@ describe('the application', () => {
     await expect(
       asTheApplication(sql`update labels set code = ${freshCode()} where id = ${label}`),
     ).rejects.toMatchObject({ cause: { code: insufficientPrivilege } })
+    // Taking it off its asset is refused by the trigger since the application
+    // may give a label away (#99): what a label hangs on, it stays on.
     await expect(
       asTheApplication(sql`update labels set asset_id = null where id = ${label}`),
-    ).rejects.toMatchObject({ cause: { code: insufficientPrivilege } })
+    ).rejects.toMatchObject({ cause: { code: checkViolation } })
     await expect(
       asTheApplication(sql`update labels set room_id = ${place.room} where id = ${label}`),
     ).rejects.toMatchObject({ cause: { code: insufficientPrivilege } })
@@ -340,6 +343,68 @@ describe('the application', () => {
     await asTheApplication(sql`update labels set blocked_at = now() where id = ${label}`)
 
     expect(await rowOf(label)).toMatchObject({ blocked: true, marked: false })
+  })
+})
+
+describe('a label from a sheet', () => {
+  /**
+   * Given to an asset on site (#99), by the application, once: a sticker is on
+   * one thing, and a row that moved would open the wrong page for whoever
+   * scans the first.
+   */
+  it('is given to an asset of its property by the application, and stays there', async () => {
+    const place = await placeIn(tenant, 'Nord')
+    const second = await assetIn(tenant, place)
+    const label = await labelAt(place.property)
+
+    await asTheApplication(sql`update labels set asset_id = ${place.asset} where id = ${label}`)
+
+    const { rows } = await admin.query<{ asset_id: string | null }>(
+      'select asset_id from labels where id = $1',
+      [label],
+    )
+
+    expect(rows).toEqual([{ asset_id: place.asset }])
+
+    for (const statement of [
+      sql`update labels set asset_id = ${second} where id = ${label}`,
+      sql`update labels set asset_id = null where id = ${label}`,
+    ]) {
+      await expect(asTheApplication(statement)).rejects.toMatchObject({
+        cause: { code: checkViolation, message: 'Ein Etikett bleibt, woran es hängt.' },
+      })
+    }
+
+    // Whoever asks: the superuser moves it no more than the application.
+    expect(
+      await refusedBy(
+        admin.query('update labels set asset_id = $1 where id = $2', [second, label]),
+      ),
+    ).toMatchObject({ code: checkViolation })
+  })
+
+  it('is given to nothing once it is blocked or gone, and to no asset of another property', async () => {
+    const place = await placeIn(tenant, 'Nord')
+    const blocked = await labelAt(place.property, { blocked: true })
+    const gone = await labelAt(place.property)
+    const free = await labelAt(place.property)
+
+    await admin.query('update labels set deleted_at = now() where id = $1', [gone])
+
+    for (const label of [blocked, gone]) {
+      await expect(
+        asTheApplication(sql`update labels set asset_id = ${place.asset} where id = ${label}`),
+      ).rejects.toMatchObject({
+        cause: {
+          code: checkViolation,
+          message: 'Ein gesperrtes Etikett wird nicht mehr zugeordnet.',
+        },
+      })
+    }
+
+    await expect(
+      asTheApplication(sql`update labels set asset_id = ${beside.asset} where id = ${free}`),
+    ).rejects.toMatchObject({ cause: { constraint: 'labels_on_an_asset_of_their_property' } })
   })
 })
 

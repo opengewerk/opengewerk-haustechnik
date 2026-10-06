@@ -177,29 +177,25 @@ afterEach(() => {
 })
 
 describe('a label the device holds', () => {
-  it('names the asset it hangs on with its number and its place, and leads to its file in the office', async () => {
+  it('names the asset it hangs on with its number and its place, and leads to its page on site', async () => {
     await mount()
     scan(`https://haustechnik.example/a/${onLift.code}`)
 
     const found = await screen.findByRole('link', { name: /Erkannt/ })
 
-    expect(found.textContent).toBe(
-      'ErkanntAN-00012 Aufzug SchulhausSchulhaus, E.14 Heizraum · öffnet die Akte im Büro',
-    )
+    expect(found.textContent).toBe('ErkanntAN-00012 Aufzug SchulhausSchulhaus, E.14 Heizraum')
     expect(found.getAttribute('href')).toBe('/anlagen/a-lift')
     // Asked of the rows on the device, and of nobody else.
     expect(asked).toEqual([])
   })
 
-  it('names the room it hangs on with its building and floor, and leads to its page in the office', async () => {
+  it('names the room it hangs on with its building and floor, and leads to its page on site', async () => {
     await mount()
     scan(`https://haustechnik.example/a/${onBoilerRoom.code}`)
 
     const found = await screen.findByRole('link', { name: /Erkannt/ })
 
-    expect(found.textContent).toBe(
-      'ErkanntE.14 HeizraumSchulhaus, Erdgeschoss · öffnet den Raum im Büro',
-    )
+    expect(found.textContent).toBe('ErkanntE.14 HeizraumSchulhaus, Erdgeschoss')
     expect(found.getAttribute('href')).toBe('/raeume/r-boiler')
   })
 

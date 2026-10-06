@@ -129,6 +129,8 @@ describe('the rights of an operation', () => {
     expect(done).toEqual({
       rooms: { create: true, change: true },
       assets: { create: true, change: true },
+      // A label from a sheet is given to an asset by whoever takes stock.
+      labels: { change: true },
       asset_supplies: { create: true, remove: true },
       activities: { create: false, change: true },
       activity_duties: { change: true },

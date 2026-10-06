@@ -1,7 +1,8 @@
 import { labelCodeFromScan, type RecordState } from '@opengewerk/haustechnik-domain'
 import { Button } from '@opengewerk/platform-web'
 import { SiteHeader, SiteScreen, SiteText, useCodeReading } from '@opengewerk/platform-web/site'
-import { maybeText, text, useRecord } from '@opengewerk/platform-web/sync'
+import { maybeText, useRecord } from '@opengewerk/platform-web/sync'
+import { Link } from '@tanstack/react-router'
 import {
   Ban,
   Info,
@@ -12,16 +13,17 @@ import {
   Tag,
   WifiOff,
 } from 'lucide-react'
-import { type ReactNode, useState } from 'react'
+import { useState } from 'react'
 
 import {
   type LabelLookup,
   type LabelMessage,
   labelMessages,
-  labelOpens,
   useLabelLookup,
 } from '../../app/labels.js'
 import { titleOfRoom } from '../../app/place-records.js'
+import { assetTitle, CameraFrame, CameraPicture } from '../kit.js'
+import { sitePlaces } from '../places.js'
 
 /**
  * The tab "Scannen" (#98), the boards "Scannen" and "Etikett gesperrt, fremd,
@@ -33,9 +35,8 @@ import { titleOfRoom } from '../../app/place-records.js'
  * well. A label that opens nothing says so, and none of the sentences names
  * what it hangs on.
  *
- * The pages of an asset and of a room on site arrive with taking stock (#99).
- * Until then what was recognised is named from the rows of the device and
- * leads to its page in the office.
+ * What was recognised is named from the rows of the device and leads to its
+ * page on site (#99), which stands without a network as well.
  */
 export function SiteScanScreen() {
   const [scanned, setScanned] = useState<string | null>(null)
@@ -78,30 +79,6 @@ const cameraWords = {
 const holdIntoTheFrame =
   'Halten Sie das Etikett in den Rahmen. Ohne Kamera geht es über die Suche im Büro.'
 
-/**
- * The picture of the camera, `camera_view()` of the board: dark, with what is
- * laid over it, and under it the sentence that says what to do.
- */
-function CameraFrame({
-  hint = true,
-  children,
-}: {
-  /** Left out while the picture itself says why there is none. */
-  readonly hint?: boolean
-  readonly children: ReactNode
-}) {
-  return (
-    <div className="flex flex-col gap-3 pb-3.5">
-      <div className="relative h-[min(560px,calc(100dvh-240px))] min-h-[340px] overflow-hidden bg-camera text-camera-ink">
-        {children}
-      </div>
-      {hint ? (
-        <p className="px-4 text-[15px] leading-[1.45] text-ink-muted">{holdIntoTheFrame}</p>
-      ) : null}
-    </div>
-  )
-}
-
 /** The camera while it looks for a label: the square for the QR code and the sentence under it. */
 function ScanCamera({ onCode }: { readonly onCode: (read: string) => void }) {
   const { video, trouble } = useCodeReading(true, onCode, cameraWords)
@@ -109,27 +86,8 @@ function ScanCamera({ onCode }: { readonly onCode: (read: string) => void }) {
   return (
     <>
       <SiteHeader title="Scannen" sub="Etikett an Anlage oder Raum" />
-      <CameraFrame hint={trouble === null}>
-        <video
-          ref={video}
-          muted
-          playsInline
-          aria-label="Bild der Kamera"
-          className="absolute inset-0 size-full object-cover"
-        />
-        {trouble ? (
-          <p
-            role="alert"
-            className="absolute inset-x-0 top-1/2 -translate-y-1/2 px-7 text-center text-[16px] leading-[1.45]"
-          >
-            {trouble}
-          </p>
-        ) : (
-          <div
-            aria-hidden="true"
-            className="absolute top-[46%] left-1/2 aspect-square w-[min(220px,60%)] -translate-x-1/2 -translate-y-1/2 rounded-[12px] border-[3px] border-camera-ink shadow-[0_0_0_2000px_rgb(0_0_0/0.35)]"
-          />
-        )}
+      <CameraFrame hint={trouble === null ? holdIntoTheFrame : null}>
+        <CameraPicture video={video} trouble={trouble} shape="square" />
       </CameraFrame>
     </>
   )
@@ -173,8 +131,8 @@ function placeWords(building: RecordState | null, room: RecordState | null): str
 /**
  * "Erkannt", the card over the picture of the camera on the board "Scannen":
  * the number and the name of the asset, or the room, and where it is, read
- * from the device, so that it stands without a network. It leads to the page
- * in the office until the pages on site are there (#99).
+ * from the device, so that it stands without a network. The card leads to the
+ * page of the asset or the room on site.
  */
 function Recognised({
   lookup,
@@ -197,30 +155,26 @@ function Recognised({
   const opens =
     lookup.state === 'asset'
       ? {
-          href: labelOpens.asset(lookup.assetId),
-          name: asset
-            ? [maybeText(asset, 'number'), text(asset, 'name')].filter(Boolean).join(' ')
-            : 'Eine Anlage',
+          to: sitePlaces.asset(lookup.assetId),
+          name: assetTitle(asset),
           where: placeWords(building, room),
-          what: 'öffnet die Akte im Büro',
         }
       : {
-          href: labelOpens.room(lookup.roomId),
+          to: sitePlaces.room(lookup.roomId),
           name: room ? titleOfRoom(room) : 'Ein Raum',
           where: [maybeText(building, 'name'), maybeText(floor, 'name')]
             .filter((part) => part !== null && part !== '')
             .join(', '),
-          what: 'öffnet den Raum im Büro',
         }
 
   return (
     <>
       <SiteHeader title="Scannen" sub="Etikett an Anlage oder Raum" />
-      <CameraFrame>
+      <CameraFrame hint={holdIntoTheFrame}>
         <div className="absolute inset-x-3 bottom-3 flex flex-col gap-2.5">
-          <a
-            href={opens.href}
-            className="block rounded-[8px] bg-surface px-3.5 py-3 text-ink shadow-[0_4px_16px_rgb(0_0_0/0.3)]"
+          <Link
+            to={opens.to}
+            className="block rounded-[8px] bg-surface px-3.5 py-3 text-ink no-underline shadow-[0_4px_16px_rgb(0_0_0/0.3)]"
           >
             <span className="block font-condensed text-[13px] font-semibold tracking-[1px] text-ink-faint uppercase">
               Erkannt
@@ -228,10 +182,12 @@ function Recognised({
             <span className="block text-[18px] font-bold [overflow-wrap:anywhere]">
               {opens.name}
             </span>
-            <span className="block text-[15px] text-ink-muted [overflow-wrap:anywhere]">
-              {[opens.where, opens.what].filter((part) => part !== '').join(' · ')}
-            </span>
-          </a>
+            {opens.where === '' ? null : (
+              <span className="block text-[15px] text-ink-muted [overflow-wrap:anywhere]">
+                {opens.where}
+              </span>
+            )}
+          </Link>
           <Button wide height={56} icon={ScanLine} onClick={onAgain}>
             Erneut scannen
           </Button>

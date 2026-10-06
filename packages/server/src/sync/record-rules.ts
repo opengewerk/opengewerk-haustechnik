@@ -5,6 +5,7 @@ import {
   assetValueProblems,
   type Catalogue,
   defectProblems,
+  distinctFromProblem,
   documentProblems,
   documentTargetProblem,
   meterProblems,
@@ -149,6 +150,12 @@ export function recordRules(catalogue: Catalogue): RecordRules {
 
           return found['meterNumber'] ?? found['meterUnit'] ?? null
         },
+      },
+      {
+        // What an asset was found to be distinct from: left out, nothing.
+        fields: ['distinctFrom'],
+        problem: (at) =>
+          at('distinctFrom') === undefined ? null : distinctFromProblem(json(at('distinctFrom'))),
       },
     ],
     asset_supplies: [

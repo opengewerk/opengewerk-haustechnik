@@ -32,6 +32,7 @@ import {
   type DocumentSurroundings,
   documentWords,
   fileDocument,
+  documentsAt,
   newestFirst,
   versionWords,
 } from '../app/documents.js'
@@ -534,23 +535,10 @@ export function DocumentsCard({
   const versions = useVersions()
   const [filing, setFiling] = useState(false)
 
-  const here = useMemo(() => {
-    const home = (['assetId', 'roomId', 'buildingId', 'activityId'] as const).find(
-      (field) => place[field] !== undefined && place[field] !== null,
-    )
-
-    return newestFirst(
-      documents.filter((document) =>
-        home === undefined
-          ? document['propertyId'] === place.propertyId &&
-            (['assetId', 'roomId', 'buildingId', 'activityId'] as const).every(
-              (field) => document[field] === null || document[field] === undefined,
-            )
-          : document[home] === place[home],
-      ),
-      versions,
-    )
-  }, [documents, versions, place])
+  const here = useMemo(
+    () => newestFirst(documentsAt(documents, place), versions),
+    [documents, versions, place],
+  )
 
   if (!reads) {
     return null

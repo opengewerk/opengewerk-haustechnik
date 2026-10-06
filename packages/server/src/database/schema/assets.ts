@@ -1,4 +1,5 @@
 import {
+  type AssetId,
   assetLimits,
   type AssetValue,
   lifecycleStates,
@@ -6,6 +7,7 @@ import {
 } from '@opengewerk/haustechnik-domain'
 import {
   primaryId,
+  readableByTheOwner,
   reference,
   syncColumns,
   tenantIsolation,
@@ -25,6 +27,7 @@ import {
   text,
   unique,
   uniqueIndex,
+  uuid,
 } from 'drizzle-orm/pg-core'
 
 import { withinAreas } from './areas.js'
@@ -80,12 +83,23 @@ export const assets = pgTable(
       .default(sql`'{}'::jsonb`),
     meterNumber: text('meter_number'),
     meterUnit: meterUnit('meter_unit'),
+    // The assets this one was held against and found to be another, said by
+    // whoever entered it: ids, and no key behind them. One of them may be
+    // removed later, and what was said about it then stays true.
+    distinctFrom: uuid('distinct_from')
+      .array()
+      .$type<readonly AssetId[]>()
+      .notNull()
+      .default(sql`'{}'::uuid[]`),
     ...timestamps,
     ...syncColumns,
   },
   (table) => [
     tenantIsolation(table.tenantId),
     withinAreas(),
+    // For the one function that looks past the areas for a possible duplicate
+    // (`asset_duplicate_candidates`, ADR 0003, addendum on #99).
+    readableByTheOwner(),
     unique('assets_tenant_id_key').on(table.tenantId, table.id),
     // What an entry of the life cycle and a supply point at.
     unique('assets_place').on(table.tenantId, table.id, table.propertyId),

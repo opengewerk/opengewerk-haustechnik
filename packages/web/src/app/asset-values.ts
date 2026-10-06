@@ -2,9 +2,11 @@ import {
   type AssetField,
   type AssetKind,
   type AssetValue,
+  type Catalogue,
   type Characteristic,
   ruleUnitEntry,
 } from '@opengewerk/haustechnik-domain'
+import { today } from '@opengewerk/platform-web/format'
 
 /**
  * The values of an asset between a form and the data model. A form holds
@@ -144,3 +146,32 @@ export function valuesOf(
 
   return values
 }
+
+/**
+ * The kinds of the catalogue in force today, by package and then by name:
+ * "Trinkwasser: Trinkwassererwärmung", and "Allgemein: Förderanlage" for an
+ * asset whose package is not there yet.
+ */
+export function kindChoices(
+  catalogue: Catalogue,
+): readonly { readonly value: string; readonly label: string }[] {
+  return catalogue.contents(today()).flatMap((contents) =>
+    contents.assetKinds
+      .map((entry) => ({
+        value: entry.key,
+        label: `${contents.title}: ${entry.definition.label}`,
+      }))
+      .sort((left, right) => left.label.localeCompare(right.label, 'de')),
+  )
+}
+
+/** The year as the model wants it: nothing, a whole number, or what was typed for the model to refuse. */
+export function yearOf(typed: string): number | string | null {
+  const said = typed.trim()
+
+  return said === '' ? null : /^\d+$/.test(said) ? Number(said) : said
+}
+
+/** What a screen on site says about a general asset kind, in a line. */
+export const generalKindNote =
+  'Allgemeine Anlagenart: für diese Anlage fehlt noch das Fachpaket, und der Katalog schlägt für sie keine Pflichten vor.'

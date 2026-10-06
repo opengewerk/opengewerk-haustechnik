@@ -11,7 +11,7 @@ import { Status } from '@opengewerk/platform-web'
 import { date } from '@opengewerk/platform-web/format'
 import { TriangleAlert } from 'lucide-react'
 
-import { DutyStateMark } from './asset-marks.js'
+import { DutyStateMark } from '../app/asset-marks.js'
 
 /**
  * What the register of duties, the page of a duty and the file of an asset
