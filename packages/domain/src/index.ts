@@ -77,6 +77,7 @@ export * from './model/signature.js'
 export * from './model/activity.js'
 export * from './model/activity-register.js'
 export * from './model/defect.js'
+export * from './model/defect-register.js'
 
 // What the duties and the defects of an asset say about it, taken together,
 // and the register and the file of an asset as a screen reads them.

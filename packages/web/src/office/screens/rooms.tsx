@@ -20,6 +20,7 @@ import { DocumentsCard } from '../documents.js'
 import { NewDutyButton } from '../duty-words.js'
 import { LabelCardOf } from '../labels.js'
 import { Duties } from './asset.js'
+import { RoomDefectsCard } from './defects.js'
 
 /** The duties that hang on a room itself, with how each stands today. */
 export function roomDutiesQuery(id: string) {
@@ -148,9 +149,9 @@ export function RoomScreen() {
           </>
         }
       />
-      {/* The columns of the board. Beside the assets stand the label of the
-          room, for its door (#98), and its documents (#97); the open defects
-          take their place above them once there are defects (#116). */}
+      {/* The columns of the board. Beside the assets stand the open defects
+          of the room (#116), its label, for its door (#98), and its
+          documents (#97). */}
       <div className="grid gap-3.5 lg:grid-cols-[minmax(0,1fr)_320px]">
         <div className="flex min-w-0 flex-col gap-3.5">
           <AssetsInside assets={inside} states={states} />
@@ -179,6 +180,7 @@ export function RoomScreen() {
           ) : null}
         </div>
         <div className="flex min-w-0 flex-col gap-3.5">
+          <RoomDefectsCard roomId={roomId} />
           <LabelCardOf holder="rooms" id={roomId} />
           <DocumentsCard
             place={{ propertyId: String(property['id']), roomId }}

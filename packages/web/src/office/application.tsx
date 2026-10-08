@@ -7,7 +7,7 @@ import type {
   StaffSentences,
 } from '@opengewerk/platform-web'
 import { auditLogPath } from '@opengewerk/platform-web/office'
-import { CalendarClock, History, Map, ScanLine, Users } from 'lucide-react'
+import { CalendarClock, History, Map, ScanLine, TriangleAlert, Users } from 'lucide-react'
 
 import { application } from '../app/application.js'
 import { auditScreenWords } from './audit.js'
@@ -15,9 +15,10 @@ import { auditScreenWords } from './audit.js'
 /**
  * The screens a tenant sets itself up with, each with the right it takes to
  * read it, in the order of the board: the areas, which are this
- * application's, and the three the foundation brings, who works for the
- * tenant, how early and to whom each kind of deadline reminds, and the change
- * log for its Leitung. The right is one of this application's,
+ * application's, who works for the tenant, which the foundation brings, the
+ * defaults of the classes of defects (#116), this application's again, how
+ * early and to whom each kind of deadline reminds and the change log for its
+ * Leitung, both the foundation's. The right is one of this application's,
  * and the type holds that; the foundation, which draws the list, takes it as
  * a name.
  */
@@ -41,10 +42,19 @@ const settings = [
     right: 'membership.read',
   },
   {
+    key: 'maengelklassen',
+    to: '/einstellungen/maengelklassen',
+    title: 'Mängelklassen',
+    about: 'Welche Frist zur Beseitigung jede Klasse vorgibt. Die Klassen kommen aus den Paketen.',
+    icon: TriangleAlert,
+    right: 'settings.read',
+  },
+  {
     key: 'fristen',
     to: '/einstellungen/fristen',
     title: 'Fristen',
-    about: 'Wie viele Tage vorher an eine fällige Pflicht erinnert wird, und wer erinnert wird.',
+    about:
+      'Wie viele Tage vorher an eine fällige Pflicht und an die Frist eines Mangels erinnert wird, und wer erinnert wird.',
     icon: CalendarClock,
     right: 'deadline.read',
   },

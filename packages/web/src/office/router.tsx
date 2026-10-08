@@ -26,6 +26,8 @@ import { EditBuildingScreen, NewBuildingScreen } from './screens/building-form.j
 import { BuildingScreen } from './screens/buildings.js'
 import { CatalogueScreen } from './screens/catalogue.js'
 import { DeadlineListScreen, DeadlineSettingsScreen } from './screens/deadlines.js'
+import { DefectClassSettingsScreen } from './screens/defect-classes.js'
+import { DefectListScreen, DefectScreen, NewDefectScreen } from './screens/defects.js'
 import { DocumentsScreen } from './screens/documents.js'
 import { DutyRegisterScreen } from './screens/duties.js'
 import { DutyScreen } from './screens/duty.js'
@@ -256,6 +258,22 @@ export function officeRoutes() {
     }),
     // The documents, narrowed by what the address names, and the same list
     // with one document chosen under it, by its id.
+    // The defects (#116): the list, reporting one by hand, and the page of one.
+    createRoute({
+      getParentRoute: () => office,
+      path: '/maengel',
+      component: DefectListScreen,
+    }),
+    createRoute({
+      getParentRoute: () => office,
+      path: '/maengel/neu',
+      component: NewDefectScreen,
+    }),
+    createRoute({
+      getParentRoute: () => office,
+      path: '/maengel/$defectId',
+      component: DefectScreen,
+    }),
     createRoute({
       getParentRoute: () => office,
       path: '/dokumente',
@@ -312,6 +330,11 @@ export function officeRoutes() {
       getParentRoute: () => office,
       path: '/einstellungen/fristen',
       component: DeadlineSettingsScreen,
+    }),
+    createRoute({
+      getParentRoute: () => office,
+      path: '/einstellungen/maengelklassen',
+      component: DefectClassSettingsScreen,
     }),
     createRoute({
       getParentRoute: () => office,

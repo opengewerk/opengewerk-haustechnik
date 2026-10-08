@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { changedVersions } from './versions.js'
+import { changedVersions, removedDefectClasses } from './versions.js'
 
 const bytes = (text: string) => new TextEncoder().encode(text)
 
@@ -57,5 +57,34 @@ describe('a merged version', () => {
         }),
       ),
     ).toEqual([])
+  })
+})
+
+describe('a merged class of defects', () => {
+  const classes = (keys: readonly string[]) =>
+    bytes(JSON.stringify({ classes: keys.map((key) => ({ key, label: key, unsafe: false })) }))
+  const merged = new Map([['allgemein/mangelklassen.json', classes(['minor', 'dangerous'])]])
+
+  it('stays in its package, its word free to change and a new class free to come', () => {
+    expect(
+      removedDefectClasses(merged, () =>
+        bytes(
+          JSON.stringify({
+            classes: [
+              { key: 'minor', label: 'leicht', unsafe: false },
+              { key: 'dangerous', label: 'gefährlich', unsafe: true },
+              { key: 'severe', label: 'schwer', unsafe: false },
+            ],
+          }),
+        ),
+      ),
+    ).toEqual([])
+  })
+
+  it('may not go missing, with its file or alone', () => {
+    expect(removedDefectClasses(merged, () => classes(['minor']))).toEqual([
+      'allgemein/mangelklassen.json: Die Mängelklasse "dangerous" ist auf main gemergt und fehlt hier. Eine gemergte Klasse bleibt stehen, weil Mängel sie nennen, und ihr Schlüssel wird nicht neu vergeben.',
+    ])
+    expect(removedDefectClasses(merged, () => null)).toHaveLength(2)
   })
 })

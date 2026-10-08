@@ -1,7 +1,7 @@
 # OpenGewerk Haustechnik: Verfahrensbeschreibung für den Stand von Phase 1
 
 - **Gilt für:** noch keine veröffentlichte Fassung (Entwicklungsstand von Phase 1 auf dem Zweig `main`)
-- **Geschrieben:** von Hand, am 05.10.2026, aus dem Planungskonzept v0.11 und gegen den Quelltext geprüft; am 06.10.2026 um die Dateien im Speicher ergänzt (Planungskonzept v0.12) und um das Pflichtenverzeichnis, am selben Tag um die Dokumente (Planungskonzept v0.13) und um die Etiketten; am 08.10.2026 um die Prüfungen und Wartungen (Planungskonzept v0.15) und um den Bericht einer Fremdfirma (Planungskonzept v0.16)
+- **Geschrieben:** von Hand, am 05.10.2026, aus dem Planungskonzept v0.11 und gegen den Quelltext geprüft; am 06.10.2026 um die Dateien im Speicher ergänzt (Planungskonzept v0.12) und um das Pflichtenverzeichnis, am selben Tag um die Dokumente (Planungskonzept v0.13) und um die Etiketten; am 08.10.2026 um die Prüfungen und Wartungen (Planungskonzept v0.15) und um den Bericht einer Fremdfirma (Planungskonzept v0.16), am selben Tag um die Mängel (Planungskonzept v0.17)
 - **Abgelöst durch:** die Verfahrensbeschreibung, die die Anwendung ab Phase 2 selbst erzeugt
 
 ---
@@ -121,7 +121,7 @@ Anhang B nennt jedes Feld der Datenbank, das auf eine Person zeigt. Dieser Absch
 
 ### 3.9 Dokumente und ihre Fassungen
 
-- Ein Dokument hängt an einer Liegenschaft, einem Gebäude, einem Raum, einer Anlage oder einem Vorgang, hat eine Bezeichnung und auf Wunsch eine Art, und trägt wie jeder Datensatz seinen Stempel (Abschnitt 3.6). Darüber hinaus nennt ein Dokument keine Person. [K4.10, K2.7]
+- Ein Dokument hängt an einer Liegenschaft, einem Gebäude, einem Raum, einer Anlage, einem Vorgang oder einem Mangel, dessen Foto es ist, hat eine Bezeichnung und auf Wunsch eine Art, und trägt wie jeder Datensatz seinen Stempel (Abschnitt 3.6). Darüber hinaus nennt ein Dokument keine Person. [K4.10, K2.7]
 - Die Datei eines eingetragenen Berichts wird als Dokument der Art „Prüfbescheinigung“ an der Anlage oder dem Ort seiner Pflicht abgelegt, von der Person, die den Bericht einträgt; ihre Fassung nennt diese Person wie jede andere. [K4.4, K4.10]
 - **Zusage:** Eine Fassung eines Dokuments hält fest, wer sie abgelegt hat. Die Datenbank setzt die Person aus der Anmeldung ein und übernimmt sie nicht vom Gerät. [K4.10, B82]
 - Wer eine Fassung abgelegt hat, reist als Kennung des Kontos mit der Fassung: sie steht in den Antworten des Servers und auf den Geräten derer, die das Dokument sehen, wie der Stempel eines Datensatzes. [K2.7, K4.10]
@@ -140,6 +140,14 @@ Anhang B nennt jedes Feld der Datenbank, das auf eine Person zeigt. Dieser Absch
 
 - Wer Liegenschaften oder Anlagen pflegt, übernimmt sie auch aus einer Tabelle. Die Datei wird gelesen und nicht gespeichert. Von einem Import bleiben eine Zeile mit dem Namen der Datei, der Zahl ihrer Zeilen und dem Ergebnis in Worten, und die Datensätze, die er angelegt hat. Die Zeile nennt keine Person. Wer importiert hat und wann, steht im Änderungsprotokoll (Abschnitt 8) und im Stempel der angelegten Datensätze (Abschnitt 3.6), dort wie immer nur, bis jemand den Datensatz ändert. [K11, K3, B92]
 - Wie die Listen eines Betreibers die Anlagenarten nennen, behält die Anwendung für den nächsten Import: ein Wort und die Anlagenart dazu, ohne Person. Wer ein Wort zugeordnet hat, steht im Änderungsprotokoll. [K11]
+
+### 3.12 Mängel
+
+- Ein Mangel hängt an einer Liegenschaft, einem Gebäude, einem Raum oder einer Anlage. Er hält fest, was festgestellt wurde und an welchem Tag, woher er kommt (ein Vorgang, der Nachweis aus dem Bericht einer Fremdfirma oder von Hand), seine Klasse, die Frist zur Beseitigung und seinen Stand, und nach einer Nachprüfung deren Tag und eine Bemerkung. Seine Fotos sind Dokumente an ihm (Abschnitt 3.9). [K4.6, K4.10]
+- Ein Mangel nennt keine Person. Wer ihn gemeldet, eingestuft oder nachgeprüft hat, steht in seinem Stempel (Abschnitt 3.6) und im Änderungsprotokoll; kein anderer Bildschirm zeigt es. Die Bemerkung zur Nachprüfung ist freier Text. [K4.6, K9]
+- Melden können alle vier Rollen, im Büro und vor Ort, dort auch ohne Netz. Klasse, Frist und Nachprüfung setzen die Leitung, die Technische Leitung und die Objektleitung; die Haustechnik meldet ohne Klasse und Frist, und ein Gerät schickt mit einer Meldung keine. [K7, B107, B108]
+- Die Vorgabe der Frist je Mängelklasse stellt ein, wer die Einstellungen ändert, in Phase 1 die Leitung. Sie nennt keine Person. [K4.6, K7]
+- Die Frist eines Mangels steht in der Liste „Fristen“, solange er festgestellt oder beauftragt ist, und erinnert die Leitung, wenn ihr Vorlauf beginnt; ein Mangel nennt niemanden, der für ihn verantwortlich ist. [K2.4, K4.6]
 
 ---
 
@@ -177,7 +185,7 @@ Leitung und Technische Leitung sehen als Vorgabe alle Bereiche.
 
 ## 5. Auswertungen: welche es gibt und welche nicht
 
-- In dieser Fassung gibt es Listen und keine Auswertungen: die Liegenschaften mit ihren Gebäuden, Geschossen und Räumen, das Anlagenverzeichnis, die Dokumente, das Pflichtenverzeichnis, die Fristen, die Prüfungen, den Katalog, die Bereiche, die Zugänge mit den Vertretungen und das Änderungsprotokoll, dazu das eigene Konto und der Abgleich des eigenen Geräts. Was die Navigation darüber hinaus vorsieht, ist nicht gebaut und wird niemandem angeboten. [K4.16, B37]
+- In dieser Fassung gibt es Listen und keine Auswertungen: die Liegenschaften mit ihren Gebäuden, Geschossen und Räumen, das Anlagenverzeichnis, die Dokumente, das Pflichtenverzeichnis, die Fristen, die Prüfungen, die Mängel, den Katalog, die Bereiche, die Zugänge mit den Vertretungen und das Änderungsprotokoll, dazu das eigene Konto und der Abgleich des eigenen Geräts. Was die Navigation darüber hinaus vorsieht, ist nicht gebaut und wird niemandem angeboten. [K4.16, B37]
 - **Zusage:** Anhang C nennt jede Adresse, die der Server beantwortet. Eine Adresse für eine Statistik, eine Rangliste, eine Liste des Verzugs je Person oder einen Export ist nicht darunter. [K4.16, B40]
 - **Zusage:** Eine Adresse, die eine einzelne Person in ihrem Pfad nennt, verlangt ein Recht der Zugänge und ist damit der Leitung vorbehalten. Die einzige Ausnahme ist die Verwaltung der Instanz, die ihre eigenen Verwalter führt. [K9, B16]
 - **Zusage:** Das Pflichtenverzeichnis lässt sich auf die Pflichten einer verantwortlichen Person eingrenzen. Das kann nur, wer es führt, also die Leitung und die Technische Leitung. Objektleitung und Haustechnik werden mit dieser Frage abgelehnt, auch wenn sie nach sich selbst fragen; auf die Pflichten, für die niemand benannt ist, grenzt jede Rolle ein. [K4.3, K7, B80]
@@ -186,6 +194,7 @@ Leitung und Technische Leitung sehen als Vorgabe alle Bereiche.
 - **Zusage:** Die Liste „Fristen“ lässt sich auf die Fristen einer verantwortlichen Person eingrenzen; das kann nur, wer Fristen sieht, also die Leitung und die Technische Leitung. Eingegrenzt auf eine Person nennt sie keine Zahl: weder wie viele Fristen diese Person hat, noch wie viele davon überfällig sind. Sie sagt nur, ob weitere folgen. [K2.4, K4.16, K9, B10, B97]
 - Die Liste zeigt in diesem Fall die Fristen der Person mit ihrem Tag, auch die überfälligen. Wie beim Pflichtenverzeichnis ist das keine Zählung, aber die Stelle, an der die Fristen einer Auswertung je Person am nächsten kommen. [K2.4, K4.16]
 - Die Liste „Prüfungen“ lässt sich nach Stand, Art und Liegenschaft eingrenzen und durchsuchen, aber nicht auf eine Person. Die Zahl über ihr nennt, wie viele Vorgänge sie in dieser Eingrenzung zeigt. [K4.4, K4.16]
+- Die Liste „Mängel“ lässt sich nach Stand, Liegenschaft, Bereich und Klasse eingrenzen, aber nicht auf eine Person; ein Mangel nennt keine. Die Zahlen über ihr und neben „Mängel“ in der Navigation zählen offene Mängel und solche über ihrer Frist, in den Bereichen dessen, der fragt. [K4.6, K4.16]
 - **Zusage:** Anhang B nennt jedes Feld der Datenbank, das auf eine Person zeigt. Kommt eines dazu, wird der Test rot, bis es hier steht. [K9, B41]
 - Das Änderungsprotokoll lässt sich nach Zeitraum, Person, Art des Datensatzes und einzelnem Datensatz filtern. Mit dem Filter nach Person zeigt es, was diese Person wann geändert hat. Das sieht nur die Leitung (Abschnitt 8). [K3, K9, B65]
 - Eine Rangliste, eine Statistik je Person oder einen Vergleich zwischen Personen enthält die Anwendung nicht, und das Planungskonzept schließt sie als Vorgabe aus. Die Auswertungen über die Zeit, die Phase 2 bringt, sind ohne Auswertung je Person geplant. [K4.16, K9, K12]
@@ -236,7 +245,6 @@ Diese Bausteine gehören nach dem Fahrplan zu Phase 1 und sind noch nicht gebaut
 
 - **Rundgänge:** Ein Plan nennt eine zuständige Person oder einen Bereich, zugeteilt wird im Büro. Die Übersicht der Objektleitung zeigt, welcher Rundgang offen, begonnen oder abgegeben ist, nach Gebäude und nicht nach Person. [K4.5]
 - **Aufträge:** Ein Auftrag hat eine verantwortliche Person und weitere Beteiligte. Vor Ort kommen Notizen als eigene Einträge, Fotos und eine Dauer dazu. Die Dauer ist Aufwand des Auftrags und keine Arbeitszeiterfassung. [K4.8]
-- **Mängel:** Ein Mangel wird mit Bemerkung und Foto gemeldet. Wer ihn gemeldet hat, steht nicht am Mangel, sondern in seinem Stempel und im Änderungsprotokoll. [K4.6]
 - **Aufgaben:** mit Fälligkeit und verantwortlicher Person. Jede Person legt eigene an; einer anderen teilt sie zu, wer Vorgänge plant und verteilt. [K3]
 - **Benachrichtigungen:** per E-Mail und Push, gespeist nur aus Fristen und Statuswechseln. Welche Anlässe als Push kommen, wählt jede Person selbst. [K3]
 - **Zähler und Fotos vor Ort:** Ablesungen kommen als eigene Datensätze dazu und tragen wie jeder Datensatz ihren Stempel. Ein Foto vor Ort wird als Dokument abgelegt (Abschnitt 3.9); die Bildschirme dafür kommen mit der Bestandsaufnahme. [K4.9, K4.10]
@@ -386,6 +394,8 @@ Pfade ohne Vorsatz liegen im Repository `opengewerk/opengewerk-haustechnik`. Pfa
 | B104 | Test | `packages/server/src/api/report.test.ts` | `becomes an evidence with the examiner, the organisation, the day, the result and the file as it arrived` |
 | B105 | Test | `packages/server/src/api/report.test.ts` | `stays with the evidence once its document is taken out of the filing, and is nothing by another place` |
 | B106 | Test | `packages/server/src/api/report.test.ts` | `is handed out to nobody who does not see the evidence` |
+| B107 | Test | `packages/server/src/api/defects.test.ts` | `comes with a class and a day only from whoever keeps defects` |
+| B108 | Test | `packages/server/src/sync/policies.test.ts` | `ask for the right of the office once an operation leaves what a device may write` |
 
 ---
 
@@ -446,6 +456,7 @@ Jede Zeile ist der erste Abschnitt einer Adresse, unter der der Server antwortet
 | `catalogue` | Katalog der Pakete, für jeden Betreiber derselbe und ohne Daten eines Betreibers |
 | `contacts` | Ansprechpartner einer Liegenschaft |
 | `deadlines` | Fristen |
+| `defects` | Mängel: das Mängelverzeichnis und seine Zahlen, die Seite eines Mangels, ein Mangel von Hand, seine Klasse und Frist, die Nachprüfung und die Klassen, die ein Mangel von Hand nehmen kann |
 | `duties` | Pflichten, das Pflichtenverzeichnis, die Nachweise einer Pflicht, die Auswahl der verantwortlichen Person und der Bericht einer Fremdfirma, der zum Nachweis einer Pflicht wird |
 | `duty-dismissals` | verworfene Vorschläge für Pflichten |
 | `evidence` | die Seite eines Nachweises, die Dateien, auf die er sich stützt, seine Berichtigung und seine Ungültigerklärung |
@@ -458,7 +469,7 @@ Jede Zeile ist der erste Abschnitt einer Adresse, unter der der Server antwortet
 | `labels` | Etiketten: sagt zu einem gescannten Code in einem Wort, ob er für die fragende Person etwas öffnet, und druckt viele Etiketten auf einmal |
 | `properties` | Liegenschaften |
 | `rooms` | Räume, mit den Pflichten, die an ihnen hängen |
-| `settings` | Vorlauf der Fristen |
+| `settings` | Vorlauf der Fristen und die Vorgabe der Frist je Mängelklasse |
 | `setup` | Ersteinrichtung |
 | `staff` | Zugänge |
 | `substitutions` | Vertretungen |

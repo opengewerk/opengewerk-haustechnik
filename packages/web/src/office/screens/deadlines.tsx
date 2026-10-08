@@ -1,4 +1,4 @@
-import type { DutyDeadlineFacts, RecordState } from '@opengewerk/haustechnik-domain'
+import type { DeadlineFacts, RecordState } from '@opengewerk/haustechnik-domain'
 import {
   type DeadlineKindView,
   type DeadlineListFilter,
@@ -13,22 +13,24 @@ import { Link } from '@tanstack/react-router'
 
 import { titleOfRoom } from '../../app/place-records.js'
 import { useAreas } from '../../session/areas.js'
+import { defectPlaces } from '../defect-addresses.js'
 import { dutyPlaces } from '../duty-addresses.js'
 import { factLink } from '../links.js'
 import { officePlaces } from '../place-addresses.js'
 import { dutyColleaguesQuery } from './duty.js'
 
-/** A deadline of this application as the list reads it: what every one says, and its duty. */
-export interface DutyDeadlineView extends DeadlineView, DutyDeadlineFacts {}
+/** A deadline of this application as the list reads it: what every one says, and its duty or its defect. */
+export type DutyDeadlineView = DeadlineView & DeadlineFacts
 
 /** What the list and the settings say in the words of this application. */
 export const deadlineWords = {
-  sub: 'Was fällig wird, nach Fälligkeit. Eine Frist folgt ihrer Pflicht: mit dem nächsten Nachweis rückt sie weiter, mit der Anlage ruht sie.',
-  searchPlaceholder: 'Pflicht, Anlage, Liegenschaft …',
+  sub: 'Was fällig wird, nach Fälligkeit. Eine Frist folgt ihrer Pflicht oder ihrem Mangel: mit dem nächsten Nachweis rückt sie weiter, mit der Anlage ruht sie, mit der Beseitigung fällt sie weg.',
+  searchPlaceholder: 'Pflicht, Mangel, Anlage, Liegenschaft …',
   emptyOpen:
-    'Gerade ist keine Frist offen. Eine Frist entsteht mit dem ersten Termin einer bestätigten Pflicht.',
+    'Gerade ist keine Frist offen. Eine Frist entsteht mit dem ersten Termin einer bestätigten Pflicht und mit der Frist eines Mangels.',
   responsibleOfTheDuty: 'Wen die Pflicht nennt',
   anchor: 'dem letzten Nachweis',
+  defectAnchor: 'dem Tag der Feststellung',
   settingsNote:
     'Eine Frist entsteht nie von Hand. Hier steht, was jede Art von sich aus tut; eine einzelne Frist ändern Sie in der Liste „Fristen“.',
 } as const
@@ -140,8 +142,12 @@ export function DeadlineListScreen() {
       words={deadlineWords}
       usePeople={usePeople}
       source={{
-        href: (deadline) => dutyPlaces.duty(deadline.dutyId),
-        name: (deadline) => deadline.dutyTitle,
+        href: (deadline) =>
+          deadline.follows === 'defect'
+            ? defectPlaces.defect(deadline.defectId)
+            : dutyPlaces.duty(deadline.dutyId),
+        name: (deadline) =>
+          deadline.follows === 'defect' ? deadline.description : deadline.dutyTitle,
       }}
       columns={[
         {
@@ -180,7 +186,9 @@ export function DeadlineListScreen() {
         )
       }}
       responsibleLabel={responsibleLabel}
-      anchorWords={() => deadlineWords.anchor}
+      anchorWords={(kind) =>
+        kind.source === 'defect' ? deadlineWords.defectAnchor : deadlineWords.anchor
+      }
     />
   )
 }
@@ -197,9 +205,17 @@ export function DeadlineSettingsScreen() {
       rights={{ write: 'deadline.write' }}
       usePeople={usePeople}
       responsibleLabel={responsibleLabel}
-      intervalWords={() => ({ label: 'Frist', hint: 'Die Frist gibt jede Pflicht selbst vor.' })}
-      actionsSentence={() =>
-        'Erinnert die verantwortliche Person und legt bei ihr die Prüfung oder Wartung an, wenn der Vorlauf beginnt. Nennt die Pflicht niemanden, die Leitung.'
+      intervalWords={(kind) => ({
+        label: 'Frist',
+        hint:
+          kind.source === 'defect'
+            ? 'Die Frist nennt jeder Mangel selbst, nach der Vorgabe seiner Klasse.'
+            : 'Die Frist gibt jede Pflicht selbst vor.',
+      })}
+      actionsSentence={(kind) =>
+        kind.source === 'defect'
+          ? 'Erinnert die Leitung, wenn der Vorlauf beginnt. Ist der Mangel behoben, fällt die Frist weg.'
+          : 'Erinnert die verantwortliche Person und legt bei ihr die Prüfung oder Wartung an, wenn der Vorlauf beginnt. Nennt die Pflicht niemanden, die Leitung.'
       }
       badge={() => null}
       note={deadlineWords.settingsNote}

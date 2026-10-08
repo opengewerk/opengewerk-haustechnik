@@ -146,7 +146,8 @@ describe('the navigation of the office as it is built today', () => {
    * places, assets, documents and duties, and the catalogue is the same for
    * everybody. The deadlines follow the register of duties for whoever looks
    * after them (#104), and with their settings so does "Einstellungen". The
-   * next screen that arrives changes what stands here.
+   * defects stand under "Arbeit" for every role (#116). The next screen that
+   * arrives changes what stands here.
    */
   const built = [
     'Liegenschaften',
@@ -155,6 +156,8 @@ describe('the navigation of the office as it is built today', () => {
     'Pflichtenverzeichnis',
     // The inspections and the maintenance, for every role (#105).
     'Prüfungen',
+    // The defects, for every role (#116).
+    'Mängel',
     'Katalog',
     'Abgleich',
   ]
@@ -166,6 +169,7 @@ describe('the navigation of the office as it is built today', () => {
     'Pflichtenverzeichnis',
     'Fristen',
     'Prüfungen',
+    'Mängel',
     'Katalog',
     'Abgleich',
     'Einstellungen',
@@ -188,7 +192,7 @@ describe('the navigation of the office as it is built today', () => {
     }
 
     expect(links()).toEqual(expected)
-    expect(titles()).toEqual(['Bestand', 'Pflichten'])
+    expect(titles()).toEqual(['Bestand', 'Pflichten', 'Arbeit'])
   })
 
   it('offers nobody a place whose screen is not built, the overview first of all', async () => {

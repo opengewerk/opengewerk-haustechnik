@@ -157,6 +157,19 @@ describe('the rights of an operation', () => {
     )
     expect(permissionFor('activities', 'update', patch('status', 'done'))).toBe('activity.write')
     expect(permissionFor('defects', 'update', patch('status', 'remedied'))).toBe('defect.write')
+    // A defect is reported without a class: a class or a day sent with it is
+    // keeping it, which the Haustechnik does not (#116).
+    expect(permissionFor('defects', 'create', patch('description', 'Tür klemmt'))).toBe(
+      'defect.report',
+    )
+    expect(permissionFor('defects', 'create', patch('defectClass', 'allgemein.minor'))).toBe(
+      'defect.write',
+    )
+    expect(permissionFor('defects', 'create', patch('dueOn', '2026-10-20'))).toBe('defect.write')
+    expect(permissionFor('defects', 'update', patch('defectClass', 'allgemein.minor'))).toBe(
+      'defect.write',
+    )
+    expect(permissionFor('attachments', 'create', patch('defectId', 'd'))).toBe('document.record')
     // A document: filing it, a version and a correction are one right,
     // taking it out another, and moving it is nothing a device sends.
     expect(permissionFor('attachments', 'create', patch('title', 'Schaltplan'))).toBe(

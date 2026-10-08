@@ -176,6 +176,13 @@
       "when": 1791451013312,
       "tag": "0024_activity_performer",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1791461202264,
+      "tag": "0025_defects_kept",
+      "breakpoints": true
     }
   ]
 }

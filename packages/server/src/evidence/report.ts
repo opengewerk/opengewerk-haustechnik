@@ -1,4 +1,5 @@
 import {
+  defaultDueOn,
   type ActivityId,
   documentTitleOf,
   type DutyId,
@@ -24,6 +25,7 @@ import {
   type WrittenEvidence,
   writeEvidence,
 } from './write.js'
+import { classTermsOf } from '../defects/reading.js'
 
 /** The states of an activity whose work is still to come or still going on. */
 const underWay = ['open', 'started', 'signed'] as const
@@ -123,23 +125,17 @@ export async function writeReport(
     previewSha256: report.file.previewSha256,
   })
 
-  if (report.defects.length > 0) {
-    await tx.insert(defects).values(
-      report.defects.map((defect) => ({
-        ...place,
-        foundInActivityId: activity,
-        description: defect.description,
-        defectClass: defect.defectClass,
-        foundOn: report.performedOn,
-        dueOn: defect.dueOn,
-      })),
-    )
-  }
-
+  // A class without a day takes the default the operator set for it (#116),
+  // in the defect and in what the evidence states alike.
+  const terms = await classTermsOf(tx)
   const stated: StatedDefect[] = report.defects.map((defect) => ({
     description: defect.description,
     defectClass: defect.defectClass,
-    dueOn: defect.dueOn,
+    dueOn:
+      defect.dueOn ??
+      (defect.defectClass === null
+        ? null
+        : defaultDueOn(report.performedOn, terms.get(defect.defectClass) ?? null)),
   }))
   const written = await writeEvidence(tx, context, {
     dutyId: duty.id,
@@ -156,6 +152,20 @@ export async function writeReport(
     ],
     defects: stated,
   })
+
+  if (stated.length > 0) {
+    await tx.insert(defects).values(
+      stated.map((defect) => ({
+        ...place,
+        foundInActivityId: activity,
+        foundInEvidenceId: written.id,
+        description: defect.description,
+        defectClass: defect.defectClass,
+        foundOn: report.performedOn,
+        dueOn: defect.dueOn,
+      })),
+    )
+  }
 
   if (activity !== null) {
     await settle(tx, context, activity, duty.id, report)

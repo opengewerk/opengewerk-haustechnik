@@ -20,7 +20,7 @@ import type { ApplicationDeadlineColumns } from '../database/schema/deadlines.js
 import { deadlines } from '../database/schema/index.js'
 import { dayInGermany } from '../today.js'
 import { deadlineKindRegistry } from './registry.js'
-import { type DeadlineValues, dutySource } from './sources.js'
+import { type DeadlineValues, defectSource, dutySource } from './sources.js'
 
 export type { DeadlineReport } from '@opengewerk/platform-server'
 
@@ -43,7 +43,8 @@ const sentences = {
  * The engine of the foundation (ADR 0010 in the repository opengewerk) over
  * the kinds, sources and columns of this application: the appointments of
  * the duties, with the reminder of the foundation and the activity that is
- * to meet a duty as the actions (#105).
+ * to meet a duty as the actions (#105), and the days the defects are to be
+ * set right by, with the reminder (#116).
  *
  * A pass works for nobody, and the deadlines and duties carry the areas of
  * their property (ADR 0003): each transaction of a pass therefore opens every
@@ -62,6 +63,7 @@ function bound(
         catalogue: job.catalogue,
         today: () => dayInGermany(job.now?.() ?? new Date()),
       }),
+      defect: defectSource(),
     },
     actions: { activity: activityFromDeadline(job.catalogue) },
     sentences,

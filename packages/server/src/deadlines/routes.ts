@@ -1,15 +1,15 @@
 import {
   type ApplicationDeadlineKind,
   type Catalogue,
+  type DeadlineFacts,
   type DeadlineFilterName,
-  type DutyDeadlineFacts,
 } from '@opengewerk/haustechnik-domain'
 import { type DeadlineRules, isUuid } from '@opengewerk/platform-server'
 import { eq, inArray, type SQL, sql } from 'drizzle-orm'
 
 import { dutyTitle } from '../database/duty-standing.js'
 import type { ApplicationDeadlineColumns } from '../database/schema/deadlines.js'
-import { assets, deadlines, duties, properties } from '../database/schema/index.js'
+import { assets, deadlines, defects, duties, properties, rooms } from '../database/schema/index.js'
 import { deadlineKindRegistry } from './registry.js'
 
 /** A filter by a record, by its id: anything else is no id and is refused. */
@@ -23,10 +23,11 @@ function byId(column: typeof deadlines.propertyId | typeof deadlines.areaId) {
  * kinds, the sentence for a person who does not work for the operator, and
  * for the list "Fristen" (#104, #75):
  *
- * - an entry names its duty by its title and what the duty hangs on, read
- *   in one query for the whole page (`DutyDeadlineFacts`);
- * - the search finds the duty and its asset by the name of the deadline, and
- *   the property by its name;
+ * - an entry names its duty by its title, or its defect by its description
+ *   (#116), and what that hangs on, read in one query each for the whole
+ *   page (`DeadlineFacts`);
+ * - the search finds the duty or the defect and its asset by the name of the
+ *   deadline, and the property by its name;
  * - the list narrows to a property and to an area.
  *
  * Nothing follows a change of a deadline: a reminder makes nothing that
@@ -45,7 +46,10 @@ export function deadlineRulesFor(
     table: deadlines,
     registry: deadlineKindRegistry,
     describe: async (tx, rows) => {
-      const ids = [...new Set(rows.map((row) => row.dutyId))]
+      const ids = [...new Set(rows.flatMap((row) => (row.dutyId === null ? [] : [row.dutyId])))]
+      const defectIds = [
+        ...new Set(rows.flatMap((row) => (row.defectId === null ? [] : [row.defectId]))),
+      ]
       const found =
         ids.length === 0
           ? []
@@ -66,11 +70,56 @@ export function deadlineRulesFor(
               .leftJoin(assets, eq(assets.id, duties.assetId))
               .where(inArray(duties.id, ids))
       const byDuty = new Map<string, (typeof found)[number]>(found.map((duty) => [duty.id, duty]))
+      const foundDefects =
+        defectIds.length === 0
+          ? []
+          : await tx
+              .select({
+                id: defects.id,
+                description: defects.description,
+                buildingId: defects.buildingId,
+                roomId: defects.roomId,
+                assetId: defects.assetId,
+                assetNumber: assets.number,
+                assetName: assets.name,
+                assetBuildingId: assets.buildingId,
+                assetRoomId: assets.roomId,
+                roomBuildingId: rooms.buildingId,
+              })
+              .from(defects)
+              .leftJoin(assets, eq(assets.id, defects.assetId))
+              .leftJoin(rooms, eq(rooms.id, defects.roomId))
+              .where(inArray(defects.id, defectIds))
+      const byDefect = new Map<string, (typeof foundDefects)[number]>(
+        foundDefects.map((defect) => [defect.id, defect]),
+      )
 
       return (row) => {
-        const duty = byDuty.get(row.dutyId)
-        const facts: DutyDeadlineFacts = {
-          dutyId: row.dutyId,
+        if (row.defectId !== null) {
+          const defect = byDefect.get(row.defectId)
+          const facts: DeadlineFacts = {
+            follows: 'defect',
+            defectId: row.defectId,
+            description: defect?.description ?? row.sourceLabel,
+            propertyId: row.propertyId,
+            // An asset stands in its building and its room, a room in its building.
+            buildingId:
+              defect?.buildingId ?? defect?.assetBuildingId ?? defect?.roomBuildingId ?? null,
+            roomId: defect?.roomId ?? defect?.assetRoomId ?? null,
+            asset:
+              defect?.assetId && defect.assetName !== null
+                ? { id: defect.assetId, number: defect.assetNumber, name: defect.assetName }
+                : null,
+          }
+
+          return { ...facts }
+        }
+
+        const dutyId = row.dutyId ?? ''
+        const duty = byDuty.get(dutyId)
+        const facts: DeadlineFacts = {
+          follows: 'duty',
+          dutyId,
           dutyTitle: duty ? dutyTitle(duty, catalogue) : row.sourceLabel,
           propertyId: row.propertyId,
           // An asset stands in its building; a duty at a place names it itself.

@@ -363,6 +363,16 @@ describe('the settings of a kind', () => {
         intervalMonths: null,
         leadDays: 30,
       }),
+      expect.objectContaining({
+        key: 'defect.due',
+        title: 'Frist zur Beseitigung eines Mangels',
+        source: 'defect',
+        actions: ['reminder'],
+        responsible: 'lead',
+        intervalDays: null,
+        intervalMonths: null,
+        leadDays: 7,
+      }),
     ])
 
     await http()

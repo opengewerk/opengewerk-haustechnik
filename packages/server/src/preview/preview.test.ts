@@ -378,6 +378,40 @@ describe('a preview started as the Leitung', () => {
     })
   })
 
+  // What the list of defects and the page of a defect are looked at with (#116).
+  it('shows a defect over its deadline, one within it, one without a class, one remedied and one checked again', async () => {
+    const server = application.getHttpServer()
+    const register = (
+      await request(server).get('/defects').query({ state: 'all', limit: '200' }).expect(200)
+    ).body as {
+      readonly counts: Readonly<Record<string, number>>
+      readonly defects: readonly {
+        readonly description: string
+        readonly status: string
+        readonly defectClass: string | null
+        readonly overdue: boolean
+        readonly origin: { readonly kind: string }
+      }[]
+    }
+
+    expect(register.counts).toEqual({ open: 4, overdue: 1, verified: 1 })
+    expect(
+      register.defects.map((defect) => [
+        defect.description,
+        defect.status,
+        defect.defectClass,
+        defect.overdue,
+        defect.origin.kind,
+      ]),
+    ).toEqual([
+      ['Beleuchtung im Fahrkorb flackert', 'remedied', 'allgemein.significant', false, 'hand'],
+      ['Notruf im Fahrkorb ohne Verbindung', 'found', 'allgemein.dangerous', true, 'hand'],
+      ['Kabine hält zwei Zentimeter unter Bündigkeit', 'found', 'allgemein.minor', false, 'hand'],
+      ['Kratzgeräusch an der Schachttür im 1. OG', 'found', null, false, 'hand'],
+      ['Schild mit der Notrufnummer fehlt', 'verified', 'allgemein.significant', false, 'hand'],
+    ])
+  })
+
   // What the register of duties and the page of a duty are looked at with (#101).
   it('shows a duty in every state the register knows, one at a room, one nobody answers for and one that has ended', async () => {
     const server = application.getHttpServer()

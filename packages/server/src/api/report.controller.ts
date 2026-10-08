@@ -1,6 +1,7 @@
 import { Body, ConflictException, Controller, Inject, Param, Post } from '@nestjs/common'
 import {
   type Catalogue,
+  defectClassChoices,
   type EvidenceLink,
   type EvidenceResult,
   type IsoDate,
@@ -88,16 +89,20 @@ export class DutyReportController {
       ['resultReason'],
     )
 
-    refuse(
-      reportProblems(values, dayInGermany(), (key) => this.catalogue.defectClass(key) !== null),
-    )
-
-    const report = reportOf(values)
     // Accounts are read on the instance and never inside a tenant.
     const accounts = await accountsOf(this.database, [identity.userId], identity.userId)
 
     return this.database.forTenant(identity, async (tx) => {
       const duty = await placeOf<typeof duties.$inferSelect>(tx, duties, id, missing)
+      // A defect named in a report takes the classes of the package of the
+      // duty kind, or the general ones (section 4.6 of the concept, #116).
+      const offered = new Set(
+        defectClassChoices(this.catalogue, [duty.kind]).map((choice) => choice.defectClass.key),
+      )
+
+      refuse(reportProblems(values, dayInGermany(), (key) => offered.has(key)))
+
+      const report = reportOf(values)
 
       try {
         const written = await writeReport(

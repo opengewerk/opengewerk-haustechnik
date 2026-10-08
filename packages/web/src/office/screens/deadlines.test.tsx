@@ -1,4 +1,5 @@
-import type { RoleKey } from '@opengewerk/haustechnik-domain'
+import type { DutyDeadlineFacts, RoleKey } from '@opengewerk/haustechnik-domain'
+import type { DeadlineView } from '@opengewerk/platform-web/office'
 import { TestServer } from '@opengewerk/platform-web/testing'
 import { onlineManager } from '@tanstack/react-query'
 import { fireEvent, screen, waitFor, within } from '@testing-library/react'
@@ -66,7 +67,10 @@ const dutyDue = {
   setting: { intervalDays: null, intervalMonths: null, leadDays: null, responsibleUserId: null },
 }
 
-function deadline(id: string, further: Partial<DutyDeadlineView> = {}): DutyDeadlineView {
+function deadline(
+  id: string,
+  further: Partial<DeadlineView & DutyDeadlineFacts> = {},
+): DutyDeadlineView {
   return {
     id,
     kind: 'duty.due',
@@ -84,6 +88,7 @@ function deadline(id: string, further: Partial<DutyDeadlineView> = {}): DutyDead
     remindedAt: null,
     closedAt: null,
     closedBy: null,
+    follows: 'duty',
     dutyId: 'd-main',
     dutyTitle: 'Hauptprüfung der Aufzugsanlage',
     propertyId: school.id,

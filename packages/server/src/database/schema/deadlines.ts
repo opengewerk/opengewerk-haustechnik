@@ -1,18 +1,21 @@
 import { deadlinesSchema, reference } from '@opengewerk/platform-server'
-import { foreignKey, index } from 'drizzle-orm/pg-core'
+import { sql } from 'drizzle-orm'
+import { check, foreignKey, index } from 'drizzle-orm/pg-core'
 
 import { withinAreas } from './areas.js'
+import { defects } from './defects.js'
 import { duties } from './duties.js'
 import { properties } from './locations.js'
 
 /**
  * What a deadline of this application hangs on, beside its source: the duty
- * it follows, with the property and the area of the duty, so that a deadline
- * stays in the areas of the person who asks, like every row with a place
- * (ADR 0003).
+ * or the defect it follows (#116), with the property and the area of that,
+ * so that a deadline stays in the areas of the person who asks, like every
+ * row with a place (ADR 0003).
  */
 const deadlineColumns = {
-  dutyId: reference<'duty'>('duty_id').notNull(),
+  dutyId: reference<'duty'>('duty_id'),
+  defectId: reference<'defect'>('defect_id'),
   propertyId: reference<'property'>('property_id').notNull(),
   areaId: reference<'area'>('area_id').notNull(),
 }
@@ -47,6 +50,14 @@ export const { deadlineStatus, deadlines } = deadlinesSchema({
       foreignColumns: [duties.tenantId, duties.id, duties.propertyId],
       name: 'deadlines_of_a_duty_of_their_property',
     }),
+    foreignKey({
+      columns: [table.tenantId, table.defectId, table.propertyId],
+      foreignColumns: [defects.tenantId, defects.id, defects.propertyId],
+      name: 'deadlines_of_a_defect_of_their_property',
+    }),
     index('deadlines_duty_idx').on(table.tenantId, table.dutyId),
+    index('deadlines_defect_idx').on(table.tenantId, table.defectId),
+    // Each follows one source: a duty or a defect.
+    check('deadlines_follow_one_source', sql`num_nonnulls(${table.dutyId}, ${table.defectId}) = 1`),
   ],
 })

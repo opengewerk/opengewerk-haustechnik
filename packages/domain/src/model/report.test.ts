@@ -138,7 +138,8 @@ describe('a report of a contractor', () => {
     expect(reportProblems({ ...sound, defects: [sound.defects[0], second] }, today, knows)).toEqual(
       {
         [reportDefectField(1, 'description')]: 'Die Beschreibung fehlt.',
-        [reportDefectField(1, 'defectClass')]: 'Diese Klasse kennt der Katalog nicht.',
+        [reportDefectField(1, 'defectClass')]:
+          'Diese Klasse steht für diesen Mangel nicht zur Wahl.',
         [reportDefectField(1, 'dueOn')]:
           'Die Frist zur Beseitigung liegt nicht vor dem Tag der Feststellung.',
       },

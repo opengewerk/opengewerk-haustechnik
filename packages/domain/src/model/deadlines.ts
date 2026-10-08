@@ -8,7 +8,7 @@ import type { DeadlineKind } from '@opengewerk/platform-domain'
  */
 
 /** The sources the deadlines of this application follow, by the name a kind gives them. */
-export const deadlineSources = ['duty'] as const
+export const deadlineSources = ['duty', 'defect'] as const
 
 export type DeadlineSource = (typeof deadlineSources)[number]
 
@@ -47,19 +47,53 @@ export const dutyDue: ApplicationDeadlineKind = {
   actions: ['reminder', 'activity'],
 }
 
+/**
+ * The day a defect is to be set right by (section 4.6, #116): the source
+ * names the day the defect says, while it waits to be set right; once it is
+ * remedied, the deadline drops. A defect names nobody, so whoever leads the
+ * operator is reminded when the lead begins.
+ */
+export const defectDue: ApplicationDeadlineKind = {
+  key: 'defect.due',
+  title: 'Frist zur Beseitigung eines Mangels',
+  about:
+    'Folgt aus der Frist, die ein Mangel nennt, solange er festgestellt oder beauftragt ist, und fällt weg, sobald er behoben ist.',
+  source: 'defect',
+  intervalDays: null,
+  intervalMonths: null,
+  leadDays: 7,
+  responsible: 'lead',
+  actions: ['reminder'],
+}
+
 /** Every kind this application knows. */
-export const deadlineKinds: readonly ApplicationDeadlineKind[] = [dutyDue]
+export const deadlineKinds: readonly ApplicationDeadlineKind[] = [dutyDue, defectDue]
 
 /**
  * What a deadline of this application says in the list "Fristen" beside what
- * every deadline says (#104): the duty it follows, by its title, and what the
- * duty hangs on, an asset, a room, a building or the property itself.
+ * every deadline says (#104, #116): the duty or the defect it follows, and
+ * what that hangs on, an asset, a room, a building or the property itself.
  */
-export interface DutyDeadlineFacts {
+export type DeadlineFacts = DutyDeadlineFacts | DefectDeadlineFacts
+
+/** A deadline of a duty: the duty by its title. */
+export interface DutyDeadlineFacts extends DeadlinePlaceFacts {
+  readonly follows: 'duty'
   readonly dutyId: string
   readonly dutyTitle: string
+}
+
+/** A deadline of a defect: the defect by its description. */
+export interface DefectDeadlineFacts extends DeadlinePlaceFacts {
+  readonly follows: 'defect'
+  readonly defectId: string
+  readonly description: string
+}
+
+/** What the duty or the defect of a deadline hangs on. */
+export interface DeadlinePlaceFacts {
   readonly propertyId: string
-  /** The building the duty hangs on, or the one its asset stands in. */
+  /** The building it hangs on, or the one its asset stands in. */
   readonly buildingId: string | null
   readonly roomId: string | null
   readonly asset: {

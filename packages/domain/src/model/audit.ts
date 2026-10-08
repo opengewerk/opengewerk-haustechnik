@@ -240,13 +240,21 @@ export const auditVocabulary: AuditVocabulary = {
       label: 'Mangel',
       fields: {
         found_in_activity_id: 'Festgestellt bei',
+        found_in_evidence_id: 'Genannt im Nachweis',
         remedy_work_order_id: 'Beseitigt mit',
         description: 'Beschreibung',
         defect_class: 'Klasse',
         found_on: 'Festgestellt am',
         due_on: 'Zu beseitigen bis',
         status: 'Stand',
+        checked_on: 'Nachgeprüft am',
+        check_note: 'Bemerkung zur Nachprüfung',
       },
+    },
+    // The default of a class of defects, which the operator sets (#116).
+    defect_class_terms: {
+      label: 'Vorgabe einer Mängelklasse',
+      fields: { defect_class: 'Klasse', due_days: 'Tage bis zur Beseitigung' },
     },
   },
   // The deadlines are a table of the foundation (opengewerk-haustechnik#24);
@@ -260,11 +268,13 @@ export const auditVocabulary: AuditVocabulary = {
   ownFields: {
     deadlines: {
       duty_id: 'Pflicht',
+      defect_id: 'Mangel',
       property_id: 'Liegenschaft',
       area_id: 'Bereich',
     },
     attachments: {
       activity_id: 'Vorgang',
+      defect_id: 'Mangel',
       kind: 'Art',
     },
   },
@@ -314,6 +324,8 @@ export const auditVocabulary: AuditVocabulary = {
     attachments: [{ table: 'attachment_versions', column: 'attachment_id' }],
     // An activity with the duties it is to meet and what came of each.
     activities: [{ table: 'activity_duties', column: 'activity_id' }],
+    // A defect with its photos.
+    defects: [{ table: 'attachments', column: 'defect_id' }],
   },
   // The records the log is opened from, each from the screen that shows it.
   records: [
@@ -325,6 +337,7 @@ export const auditVocabulary: AuditVocabulary = {
     'duties',
     'attachments',
     'activities',
+    'defects',
   ],
   references: {
     area_id: 'areas',
@@ -337,7 +350,9 @@ export const auditVocabulary: AuditVocabulary = {
     duty_id: 'duties',
     activity_id: 'activities',
     found_in_activity_id: 'activities',
+    found_in_evidence_id: 'evidence',
     remedy_work_order_id: 'work_orders',
+    defect_id: 'defects',
     work_order_id: 'work_orders',
     evidence_id: 'evidence',
     replaces_evidence_id: 'evidence',
@@ -388,6 +403,7 @@ export const auditVocabulary: AuditVocabulary = {
     activity_duties: ['duty_id'],
     work_orders: ['number'],
     defects: ['description'],
+    defect_class_terms: ['defect_class'],
     // A signature by who gave it, a decision by what it decided.
     activity_signatures: ['signed_by'],
     work_order_decisions: ['decision'],

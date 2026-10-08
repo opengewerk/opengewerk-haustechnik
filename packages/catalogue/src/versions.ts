@@ -39,3 +39,54 @@ export function changedVersions(
 
   return problems.sort()
 }
+
+/** The keys a file of defect classes names, or none for a file that is no list of them. */
+function classKeys(bytes: Uint8Array): readonly string[] {
+  try {
+    const parsed = JSON.parse(new TextDecoder().decode(bytes)) as { classes?: unknown }
+
+    return Array.isArray(parsed.classes)
+      ? parsed.classes.flatMap((each: unknown) =>
+          typeof each === 'object' &&
+          each !== null &&
+          typeof (each as { key?: unknown }).key === 'string'
+            ? [(each as { key: string }).key]
+            : [],
+        )
+      : []
+  } catch {
+    return []
+  }
+}
+
+/**
+ * The classes of defects that are merged and gone (ADR 0005, addendum of #61,
+ * point 4, and of #116): a defect names its class by its key, so a merged
+ * class stays in its package, and its key is never given to another. Its
+ * word and its source may change; the loader checks the file itself.
+ */
+export function removedDefectClasses(
+  base: ReadonlyMap<string, Uint8Array>,
+  head: (path: string) => Uint8Array | null,
+): readonly string[] {
+  const problems: string[] = []
+
+  for (const [path, bytes] of base) {
+    if (!path.endsWith('/mangelklassen.json')) {
+      continue
+    }
+
+    const now = head(path)
+    const kept = new Set(now === null ? [] : classKeys(now))
+
+    for (const key of classKeys(bytes)) {
+      if (!kept.has(key)) {
+        problems.push(
+          `${path}: Die Mängelklasse "${key}" ist auf main gemergt und fehlt hier. Eine gemergte Klasse bleibt stehen, weil Mängel sie nennen, und ihr Schlüssel wird nicht neu vergeben.`,
+        )
+      }
+    }
+  }
+
+  return problems.sort()
+}

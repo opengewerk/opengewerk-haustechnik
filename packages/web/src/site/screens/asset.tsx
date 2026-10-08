@@ -31,7 +31,7 @@ import {
 } from '@opengewerk/platform-web/sync'
 import { useQuery } from '@tanstack/react-query'
 import { useParams } from '@tanstack/react-router'
-import { QrCode } from 'lucide-react'
+import { QrCode, TriangleAlert } from 'lucide-react'
 
 import { DutyStateMark } from '../../app/asset-marks.js'
 import { generalKindNote, kindFields, typedValues, unitOf } from '../../app/asset-values.js'
@@ -42,7 +42,7 @@ import { placeAbove } from '../../app/place-records.js'
 import { useCatalogue } from '../../sync/catalogue.js'
 import { SiteDocuments } from '../documents.js'
 import { GoButton, isOpenDefect, kindWords, NotOnDevice, OpenDefects, PlainRow } from '../kit.js'
-import { sitePlaces, stockTaking } from '../places.js'
+import { siteDefects, sitePlaces, stockTaking } from '../places.js'
 
 export const siteAssetWords = {
   noNumber: 'Nummer folgt nach dem Abgleich',
@@ -129,7 +129,7 @@ function factsOf(asset: RecordState, catalogue: Catalogue | null): readonly Site
  * which never travels to a device, so the server says it, with a connection;
  * without one the duties stand here by their names. The last evidence is the
  * server's as well, and stands here only with a connection. "Mangel melden"
- * arrives with the defects (#116).
+ * reports a defect at it, also without a network (#116).
  */
 export function SiteAssetScreen() {
   const { assetId } = useParams({ strict: false }) as { assetId?: string }
@@ -148,6 +148,7 @@ export function SiteAssetScreen() {
   const seesDuties = useRight('duty.read')
   const seesEvidence = useRight('evidence.read')
   const records = useRight('asset.record')
+  const reports = useRight('defect.report')
   const heldDuties = useRecords('duties').filter((duty) => duty['assetId'] === assetId)
   const defects = useRecords('defects').filter(
     (defect) => defect['assetId'] === assetId && isOpenDefect(defect),
@@ -322,11 +323,18 @@ export function SiteAssetScreen() {
           <SiteDocuments place={{ propertyId, assetId }} empty={siteAssetWords.noDocument} />
         )}
       </SiteScreen>
-      {records && !label ? (
+      {(records && !label) || reports ? (
         <SiteActionBar>
-          <GoButton to={stockTaking.label(assetId)} icon={QrCode}>
-            Etikett zuordnen
-          </GoButton>
+          {records && !label ? (
+            <GoButton to={stockTaking.label(assetId)} icon={QrCode}>
+              Etikett zuordnen
+            </GoButton>
+          ) : null}
+          {reports ? (
+            <GoButton to={siteDefects.atAsset(assetId)} icon={TriangleAlert} tone="primary">
+              Mangel melden
+            </GoButton>
+          ) : null}
         </SiteActionBar>
       ) : null}
     </>

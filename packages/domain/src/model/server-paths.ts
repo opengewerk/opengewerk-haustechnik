@@ -33,6 +33,9 @@ export const serverPaths: readonly string[] = [
   'activities',
   // The page of an evidence, its correction and its declaration of invalidity.
   'evidence',
+  // The defects: the register, the page of one, reporting one by hand, its
+  // further way and checking it again.
+  'defects',
   // The catalogue of the server, which a device fetches and keeps.
   'catalogue',
   // The import of places and assets from tables, and what the lists of a

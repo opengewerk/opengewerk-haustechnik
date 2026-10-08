@@ -13,13 +13,14 @@ import {
 import { offlineEditRefusal, offlineRules } from './sync.js'
 
 describe('a document of an operator', () => {
-  it('hangs on a property, a building, a room, an asset or an activity', () => {
+  it('hangs on a property, a building, a room, an asset, an activity or a defect', () => {
     expect(operatorDocuments.homes).toEqual([
       'propertyId',
       'buildingId',
       'roomId',
       'assetId',
       'activityId',
+      'defectId',
     ])
 
     for (const home of operatorDocuments.homes) {
@@ -30,7 +31,7 @@ describe('a document of an operator', () => {
   it('is told in a sentence where it may hang when it names nothing', () => {
     for (const none of [{}, { propertyId: null }, { propertyId: '', assetId: null }]) {
       expect(operatorDocuments.homeProblem(none)).toBe(
-        'Ein Dokument hängt an einer Liegenschaft, einem Gebäude, einem Raum, einer Anlage oder einem Vorgang.',
+        'Ein Dokument hängt an einer Liegenschaft, einem Gebäude, einem Raum, einer Anlage, einem Vorgang oder einem Mangel.',
       )
     }
   })
@@ -51,7 +52,7 @@ describe('a document of an operator', () => {
       { assetId: 'an-asset', activityId: 'an-activity' },
     ]) {
       expect(documentTargetProblem(two)).toBe(
-        'Ein Dokument hängt an der Liegenschaft oder an genau einem: einer Anlage, einem Raum, einem Gebäude oder einem Vorgang.',
+        'Ein Dokument hängt an der Liegenschaft oder an genau einem: einer Anlage, einem Raum, einem Gebäude, einem Vorgang oder einem Mangel.',
       )
     }
   })

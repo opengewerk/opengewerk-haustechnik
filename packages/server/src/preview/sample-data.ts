@@ -80,11 +80,24 @@ interface SampleAsset {
   /** The buildings of its property it supplies, by name: its own as a whole, or one it does not stand in. */
   readonly supplies?: readonly string[]
   readonly duties?: readonly SampleDuty[]
-  /** A defect somebody found at it and nobody has set right. */
-  readonly defect?: string
+  /** The defects somebody found at it, reported by hand in the office (#116). */
+  readonly defects?: readonly SampleDefect[]
   readonly documents?: readonly SampleDocument[]
   /** A label on it: a valid one, or one that was lost and blocked, with no new one made yet. */
   readonly label?: 'valid' | 'blocked'
+}
+
+/**
+ * A defect at a sample asset, reported by hand through the route (#116), a
+ * class given or not; a class without a day takes the default of the
+ * operator. How far it is beyond found is written behind the routes until the
+ * work orders that set a defect right come (#117).
+ */
+interface SampleDefect {
+  readonly description: string
+  readonly foundDaysAgo: number
+  readonly defectClass?: string
+  readonly status?: 'remedied' | 'verified'
 }
 
 /**
@@ -513,7 +526,35 @@ export const sampleProperties: readonly SampleProperty[] = [
                 ...contractor('Prüfdienst Beispiel GmbH'),
               },
             ],
-            defect: 'Notruf im Fahrkorb ohne Verbindung',
+            // What the list "Mängel" is looked at with (#116): one over its
+            // deadline, as the default of its class is a day; one within
+            // it; one without a class yet; one a work order set right that
+            // waits to be checked again; and one checked again.
+            defects: [
+              {
+                description: 'Notruf im Fahrkorb ohne Verbindung',
+                foundDaysAgo: 4,
+                defectClass: 'allgemein.dangerous',
+              },
+              {
+                description: 'Kabine hält zwei Zentimeter unter Bündigkeit',
+                foundDaysAgo: 9,
+                defectClass: 'allgemein.minor',
+              },
+              { description: 'Kratzgeräusch an der Schachttür im 1. OG', foundDaysAgo: 2 },
+              {
+                description: 'Beleuchtung im Fahrkorb flackert',
+                foundDaysAgo: 20,
+                defectClass: 'allgemein.significant',
+                status: 'remedied',
+              },
+              {
+                description: 'Schild mit der Notrufnummer fehlt',
+                foundDaysAgo: 40,
+                defectClass: 'allgemein.significant',
+                status: 'verified',
+              },
+            ],
             // What the card "Dokumente" of its file shows: a manual with a
             // second version laid over the first, and a photo without a kind.
             documents: [
@@ -693,11 +734,11 @@ interface SampleReport {
 
 /**
  * What no route writes yet and the preview writes behind them once the
- * planting is done (`sample-standings.ts`): the defects of the assets and the
- * labels of a sheet.
+ * planting is done (`sample-standings.ts`): how far a defect is beyond found,
+ * which a work order does (#117), and the labels of a sheet.
  */
 export interface BehindTheRoutes {
-  readonly defects: { readonly assetId: string; readonly description: string }[]
+  readonly defects: { readonly defectId: string; readonly status: 'remedied' | 'verified' }[]
   /** Labels of a sheet printed for a property, which hang on nothing yet. */
   readonly sheets: { readonly propertyId: string; readonly labels: number }[]
 }
@@ -845,7 +886,7 @@ async function plantAsset(
     supplies = [],
     duties = [],
     documents = [],
-    defect,
+    defects = [],
     label,
     ...fields
   } = asset
@@ -868,8 +909,17 @@ async function plantAsset(
     await plantDuty(address, { assetId: created.id }, duty, standings)
   }
 
-  if (defect !== undefined) {
-    standings.defects.push({ assetId: created.id, description: defect })
+  for (const { description, foundDaysAgo, defectClass, status } of defects) {
+    const reported = await send(address, '/defects', {
+      assetId: created.id,
+      description,
+      foundOn: daysAhead(-foundDaysAgo),
+      ...(defectClass === undefined ? {} : { defectClass }),
+    })
+
+    if (status !== undefined) {
+      standings.defects.push({ defectId: reported.id, status })
+    }
   }
 
   for (const document of documents) {
@@ -912,6 +962,16 @@ export async function plantSampleData(
   areas: ReadonlyMap<PreviewArea, string>,
 ): Promise<BehindTheRoutes> {
   const standings: PlantedStandings = { evidence: [], defects: [], sheets: [] }
+
+  // The defaults of the three general classes of defects, which the Leitung
+  // sets under "Einstellungen" (#116).
+  for (const [key, dueDays] of [
+    ['allgemein.dangerous', 1],
+    ['allgemein.significant', 14],
+    ['allgemein.minor', 90],
+  ] as const) {
+    await send(address, `/settings/defect-classes/${key}`, { dueDays }, 'PUT')
+  }
 
   for (const property of sampleProperties) {
     const { buildings, area, contacts = [], documents = [], ...fields } = property

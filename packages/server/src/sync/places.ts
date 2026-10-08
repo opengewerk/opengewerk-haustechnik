@@ -2,6 +2,7 @@ import type {
   Activity,
   Asset,
   Building,
+  Defect,
   Floor,
   Identity,
   Property,
@@ -23,6 +24,7 @@ import {
   assetSupplies,
   attachments,
   buildings,
+  defects,
   floors,
   properties,
   rooms,
@@ -289,9 +291,10 @@ async function signaturePlace(
 
 /**
  * A document at its place: the property, and at most one record on it, a
- * building, a room, an asset or an activity. The area comes from the
- * property. Every one of them has to be there for the person asking, so a
- * document cannot be hung on a record of another area or one that is gone.
+ * building, a room, an asset, an activity or a defect, whose photo it is
+ * (#116). The area comes from the property. Every one of them has to be there
+ * for the person asking, so a document cannot be hung on a record of another
+ * area or one that is gone. A defect made in the same transmission is there.
  */
 async function documentPlace(
   tx: TenantTransaction,
@@ -299,13 +302,23 @@ async function documentPlace(
 ): Promise<SyncRefusal | null> {
   const refusal = await targetPlace(tx, values)
 
-  if (refusal || !given(values['activityId'])) {
+  if (refusal) {
     return refusal
   }
 
-  const activity = await found<Activity>(tx, activities, values['activityId'])
+  if (given(values['activityId'])) {
+    const activity = await found<Activity>(tx, activities, values['activityId'])
 
-  return activity && activity.propertyId === values['propertyId'] ? null : missing('activityId')
+    return activity && activity.propertyId === values['propertyId'] ? null : missing('activityId')
+  }
+
+  if (given(values['defectId'])) {
+    const defect = await found<Defect>(tx, defects, values['defectId'])
+
+    return defect && defect.propertyId === values['propertyId'] ? null : missing('defectId')
+  }
+
+  return null
 }
 
 /**

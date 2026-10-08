@@ -242,14 +242,14 @@ export const offlineEdits: Readonly<Record<string, OfflineEdits>> = {
       pageFingerprint: true,
     },
   },
-  // A defect is reported with its description, where it was found, and on
-  // request its class; afterwards a device completes its description. Its
-  // status, the day to set it right by and the work order that does are its
-  // further way, kept by the office (section 7 of the concept).
+  // A defect is reported with its description and where it was found;
+  // afterwards a device completes its description. Its class, the day to set
+  // it right by, its status and the work order that does are its further way,
+  // kept by whoever keeps defects, with a connection (section 7 of the
+  // concept, #116).
   defects: {
     create: {
       description: true,
-      defectClass: true,
       foundOn: true,
       foundInActivityId: true,
       ...placeTarget,
@@ -268,6 +268,7 @@ export const offlineEdits: Readonly<Record<string, OfflineEdits>> = {
       roomId: true,
       assetId: true,
       activityId: true,
+      defectId: true,
     },
     change: { title: true, kind: true },
     remove: true,
@@ -374,7 +375,9 @@ export const syncFieldNames: Readonly<Record<string, string>> = {
   dutyId: 'Pflicht',
   workOrderId: 'Arbeitsauftrag',
   foundInActivityId: 'Festgestellt bei',
+  foundInEvidenceId: 'Genannt im Nachweis',
   remedyWorkOrderId: 'Beseitigt mit',
+  defectId: 'Mangel',
   // What is said about a place.
   name: 'Bezeichnung',
   street: 'Straße',
@@ -449,6 +452,8 @@ export const syncFieldNames: Readonly<Record<string, string>> = {
   description: 'Beschreibung',
   defectClass: 'Klasse',
   foundOn: 'Festgestellt am',
+  checkedOn: 'Nachgeprüft am',
+  checkNote: 'Bemerkung zur Nachprüfung',
   // A signature, and a decision on a work order.
   signedBy: 'Unterschrieben von',
   role: 'Als',

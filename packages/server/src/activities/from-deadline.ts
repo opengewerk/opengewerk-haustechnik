@@ -35,6 +35,12 @@ export function activityFromDeadline(
   catalogue: Catalogue,
 ): DeadlineActionHandler<ApplicationDeadlineKind, DeadlineRow> {
   return async ({ tx, tenantId, deadline, responsible }) => {
+    // Only the appointment of a duty names this action; a deadline of a
+    // defect follows no duty (#116).
+    if (deadline.dutyId === null) {
+      return
+    }
+
     const [duty] = await tx
       .select()
       .from(duties)

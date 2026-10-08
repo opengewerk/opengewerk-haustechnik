@@ -216,8 +216,10 @@ async function dutyAt(
 /** A defect at an asset in a status, put in past the application. */
 async function defectAt(asset: string, status: string): Promise<void> {
   await admin.query(
-    `insert into defects (tenant_id, property_id, area_id, asset_id, description, found_on, status)
-     select tenant_id, property_id, area_id, id, 'Leck am Antrieb', $2::date, $3::defect_status
+    `insert into defects (tenant_id, property_id, area_id, asset_id, description, found_on, status,
+                          checked_on)
+     select tenant_id, property_id, area_id, id, 'Leck am Antrieb', $2::date, $3::defect_status,
+            case when $3::defect_status = 'verified' then $2::date end
        from assets where id = $1`,
     [asset, daysAgo(3), status],
   )

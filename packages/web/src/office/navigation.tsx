@@ -21,6 +21,7 @@ import {
 } from 'lucide-react'
 
 import { type Offer, useOffered } from '../app/places.js'
+import { defectListPlace, defectSummaryQuery } from './defect-addresses.js'
 import { placeRoots } from './place-addresses.js'
 
 /** A place of the navigation: the entry the frame draws, and what it asks before it stands there. */
@@ -93,7 +94,7 @@ export const officeNavigation: readonly OfficePlaces[] = [
     title: 'Arbeit',
     entries: [
       { to: '/rundgaenge', label: 'Rundgänge', icon: Route, right: 'activity.read' },
-      { to: '/maengel', label: 'Mängel', icon: TriangleAlert, right: 'defect.read' },
+      { to: defectListPlace.to, label: 'Mängel', icon: TriangleAlert, right: 'defect.read' },
       { to: '/auftraege', label: 'Aufträge', icon: Calendar, right: 'activity.read' },
       { to: '/aufgaben', label: 'Aufgaben', icon: SquareCheck },
     ],
@@ -126,10 +127,32 @@ function useLateDeadlines(reads: boolean): number {
 }
 
 /**
+ * How many defects are past the day they were to be set right by, in the
+ * areas of the person (#116): the number beside "Mängel", and nothing for
+ * whoever may not read the defects. It counts the defects and never a
+ * person's.
+ */
+function useLateDefects(reads: boolean): number {
+  const late = useQuery({ ...defectSummaryQuery, enabled: reads, staleTime: 60_000 })
+
+  return reads ? (late.data?.overdue ?? 0) : 0
+}
+
+/** The badge of a number of late ones, in the colour of a conflict. */
+function lateBadge(late: number, word: string): NavigationEntry['badge'] {
+  return {
+    value: late,
+    tone: 'conflict',
+    spoken: late === 1 ? `eine ${word}` : `${String(late)} ${word}`,
+  }
+}
+
+/**
  * What the office offers the person signed in, in the groups of the board. A
  * group nobody is offered a place of goes with its title, which the frame
- * sees to. "Fristen" carries the number of the late ones, as the board
- * counts beside it in the colour of a conflict.
+ * sees to. "Fristen" carries the number of the late ones, and "Mängel" the
+ * number of those over their deadline, as the board counts beside them in
+ * the colour of a conflict.
  */
 export function useNavigation(): {
   readonly groups: readonly NavigationGroup[]
@@ -138,17 +161,13 @@ export function useNavigation(): {
   const every = useOffered([...officeNavigation.flatMap((group) => group.entries), ...officeFoot])
   const stands = (place: OfficePlace) => every.includes(place)
   const late = useLateDeadlines(every.some((place) => place.to === deadlinesPlace))
+  const lateDefects = useLateDefects(every.some((place) => place.to === defectListPlace.to))
   const counted = (place: OfficePlace): NavigationEntry =>
     place.to === deadlinesPlace && late > 0
-      ? {
-          ...place,
-          badge: {
-            value: late,
-            tone: 'conflict',
-            spoken: late === 1 ? 'eine überfällig' : `${String(late)} überfällig`,
-          },
-        }
-      : place
+      ? { ...place, badge: lateBadge(late, 'überfällig') }
+      : place.to === defectListPlace.to && lateDefects > 0
+        ? { ...place, badge: lateBadge(lateDefects, 'über der Frist') }
+        : place
 
   return {
     groups: officeNavigation.map((group) => ({

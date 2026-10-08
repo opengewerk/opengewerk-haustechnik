@@ -642,7 +642,7 @@ describe('the report of a contractor', () => {
     expect(await written()).toEqual(before)
   })
 
-  it('is refused with the first sentence of what is wrong, a class the catalogue does not know among it', async () => {
+  it('is refused with the first sentence of what is wrong, a class the duty does not offer among it', async () => {
     const duty = await ownDutyAt(await elevatorIn())
     const without = await http()
       .post(`/duties/${duty}/report`)
@@ -657,7 +657,7 @@ describe('the report of a contractor', () => {
     })
 
     expect(unknown.status).toBe(400)
-    expect(unknown.body.message).toBe('Diese Klasse kennt der Katalog nicht.')
+    expect(unknown.body.message).toBe('Diese Klasse steht für diesen Mangel nicht zur Wahl.')
   })
 })
 
@@ -773,5 +773,47 @@ describe('the file of an evidence', () => {
     expect(after.defects).toEqual(before.defects)
     expect(after.files).toEqual(before.files)
     expect(after.performedOn).toBe(daysAgo(7))
+  })
+})
+
+describe('the defects of a report', () => {
+  it('name the evidence they come from, and a class without a day takes its default', async () => {
+    const duty = await ownDutyAt(await elevatorIn())
+
+    await http()
+      .put('/settings/defect-classes/allgemein.significant')
+      .set(testIdentityHeader, by('u-lead'))
+      .send({ dueDays: 14 })
+      .expect(200)
+
+    const answer = await entered(duty, by('u-site'), {
+      defects: [{ description: 'Türschließer defekt', defectClass: 'allgemein.significant' }],
+    })
+
+    expect(answer.status).toBe(201)
+
+    const { rows } = await admin.query<{ id: string; due_on: string }>(
+      `select id, to_char(due_on, 'YYYY-MM-DD') as due_on from defects
+        where found_in_evidence_id = $1`,
+      [answer.body.id],
+    )
+
+    expect(rows.map((row) => row.due_on)).toEqual([addDays(daysAgo(6), 14)])
+
+    const reading = (
+      await http()
+        .get(`/defects/${rows[0]?.id ?? ''}`)
+        .set(testIdentityHeader, by('u-lead'))
+        .expect(200)
+    ).body as { origin: unknown }
+
+    expect(reading.origin).toEqual({ kind: 'report', evidenceId: answer.body.id, dutyId: duty })
+    expect((await pageOf(answer.body.id)).state.defects).toEqual([
+      {
+        description: 'Türschließer defekt',
+        defectClass: 'allgemein.significant',
+        dueOn: addDays(daysAgo(6), 14),
+      },
+    ])
   })
 })

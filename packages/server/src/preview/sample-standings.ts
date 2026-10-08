@@ -1,7 +1,7 @@
 import { randomBytes } from 'node:crypto'
 
 import {
-  type AssetId,
+  type DefectId,
   type Identity,
   labelCodeFrom,
   type PropertyId,
@@ -9,17 +9,16 @@ import {
 import type { Database } from '@opengewerk/platform-server'
 import { eq } from 'drizzle-orm'
 
-import { assets, defects, labels, properties } from '../database/schema/index.js'
+import { defects, labels, properties } from '../database/schema/index.js'
 import { dayInGermany } from '../today.js'
 import type { BehindTheRoutes } from './sample-data.js'
 
 /**
- * What the sample operator has that no route writes yet: the defects of its
- * assets (#87), so that the register of assets shows an asset with an open
- * defect, and the labels of a sheet. A defect is a row, found on the day the
- * preview starts. The evidence of the duties goes through the route of a
- * report since #110 (`sendSampleReports` in `sample-data.ts`). Once a route
- * writes a defect, the sample data goes through the route and this file goes.
+ * What the sample operator has that no route writes yet: how far two defects
+ * are beyond found, one set right by a work order and one checked again after
+ * that, which the work orders bring (#117), and the labels of a sheet. The
+ * defects themselves are reported through their route since #116, the
+ * evidence of the duties through the route of a report since #110.
  */
 export async function writeSampleStandings(
   database: Database,
@@ -30,23 +29,18 @@ export async function writeSampleStandings(
 
   await database.forTenant(planter, async (tx) => {
     for (const defect of planted.defects) {
-      const [asset] = await tx
-        .select({ propertyId: assets.propertyId, areaId: assets.areaId })
-        .from(assets)
-        .where(eq(assets.id, defect.assetId as AssetId))
-
-      if (asset === undefined) {
-        throw new Error(`Die Anlage ${defect.assetId} der Beispieldaten gibt es nicht.`)
-      }
-
-      await tx.insert(defects).values({
-        tenantId: planter.tenantId,
-        propertyId: asset.propertyId,
-        areaId: asset.areaId,
-        assetId: defect.assetId as AssetId,
-        description: defect.description,
-        foundOn: dayInGermany(at),
-      })
+      await tx
+        .update(defects)
+        .set(
+          defect.status === 'verified'
+            ? {
+                status: 'verified',
+                checkedOn: dayInGermany(at),
+                checkNote: 'Bei der Nachprüfung in Ordnung.',
+              }
+            : { status: 'remedied' },
+        )
+        .where(eq(defects.id, defect.defectId as DefectId))
     }
 
     // The labels of a sheet: on their property and on nothing else, each with
