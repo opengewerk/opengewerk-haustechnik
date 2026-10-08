@@ -127,6 +127,7 @@ function details(entry: ActivityEntry, further: Partial<ActivityDetails> = {}): 
         appointment: '2099-10-12',
         lastMetOn: '2025-10-12',
         qualification: 'skilled_person',
+        takesReport: true,
         result: null,
         resultReason: null,
       },

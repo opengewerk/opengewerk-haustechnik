@@ -139,8 +139,15 @@ async function refused(path: string, response: Response): Promise<never> {
   throw new Error(`${path} lehnte ab (${String(response.status)}): ${await response.text()}`)
 }
 
-/** Sends the bytes of a file ahead of the version that names them, and hands back their hash. */
-async function store(address: string, bytes: Buffer, mediaType: string): Promise<string> {
+/**
+ * Sends the bytes of a file ahead of the record that names them, a version or
+ * a report, and hands back their hash.
+ */
+export async function storeSampleFile(
+  address: string,
+  bytes: Buffer,
+  mediaType: string,
+): Promise<string> {
   const sha256 = hashOf(bytes)
   const path = `/files/${sha256}`
   const response = await fetch(`${address}${path}`, {
@@ -194,9 +201,9 @@ export async function plantDocument(
     const picture = version.words === undefined
     const bytes = picture ? samplePicture() : samplePdf(version.words ?? '')
     const mediaType = picture ? 'image/png' : 'application/pdf'
-    const sha256 = await store(address, bytes, mediaType)
+    const sha256 = await storeSampleFile(address, bytes, mediaType)
     const previewSha256 = picture
-      ? await store(address, samplePicture(320, 200), 'image/png')
+      ? await storeSampleFile(address, samplePicture(320, 200), 'image/png')
       : null
 
     operations.push(

@@ -12,6 +12,7 @@ import {
   type EvidenceState,
   evidenceStateVersion,
   type IsoDate,
+  type StatedDefect,
   type StatedFile,
   type StatedPerformer,
   type StatedPlace,
@@ -55,6 +56,12 @@ export interface EvidenceToWrite {
   readonly signatures: readonly StatedSignature[]
   /** The files the evidence rests on, by checksum (the documents of phase 1). */
   readonly files: readonly StatedFile[]
+  /**
+   * The defects as the work names them. A report names its own, with or
+   * without an activity; left out, they are the defects found in the
+   * activity, as a signed protocol has them.
+   */
+  readonly defects?: readonly StatedDefect[]
   /**
    * The evidence of the same duty this one corrects, with the reason (ADR
    * 0004, point 14); none for an evidence that corrects nothing.
@@ -185,23 +192,25 @@ export async function writeEvidence(
     address: `${property.street}, ${property.postalCode} ${property.city}`,
   })
   const found =
-    activity === null
-      ? []
-      : await tx
-          .select({
-            description: defects.description,
-            defectClass: defects.defectClass,
-            dueOn: defects.dueOn,
-          })
-          .from(defects)
-          .where(
-            and(
-              eq(defects.tenantId, context.tenantId),
-              eq(defects.foundInActivityId, activity.id),
-              isNull(defects.deletedAt),
-            ),
-          )
-          .orderBy(asc(defects.createdAt), asc(defects.id))
+    input.defects !== undefined
+      ? input.defects
+      : activity === null
+        ? []
+        : await tx
+            .select({
+              description: defects.description,
+              defectClass: defects.defectClass,
+              dueOn: defects.dueOn,
+            })
+            .from(defects)
+            .where(
+              and(
+                eq(defects.tenantId, context.tenantId),
+                eq(defects.foundInActivityId, activity.id),
+                isNull(defects.deletedAt),
+              ),
+            )
+            .orderBy(asc(defects.createdAt), asc(defects.id))
   const number = await assignNumber(tx, context.tenantId, 'evidence', context.at)
   const state: EvidenceState = {
     version: evidenceStateVersion,

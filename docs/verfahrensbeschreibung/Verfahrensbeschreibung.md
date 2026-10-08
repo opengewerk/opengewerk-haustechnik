@@ -1,7 +1,7 @@
 # OpenGewerk Haustechnik: Verfahrensbeschreibung für den Stand von Phase 1
 
 - **Gilt für:** noch keine veröffentlichte Fassung (Entwicklungsstand von Phase 1 auf dem Zweig `main`)
-- **Geschrieben:** von Hand, am 05.10.2026, aus dem Planungskonzept v0.11 und gegen den Quelltext geprüft; am 06.10.2026 um die Dateien im Speicher ergänzt (Planungskonzept v0.12) und um das Pflichtenverzeichnis, am selben Tag um die Dokumente (Planungskonzept v0.13) und um die Etiketten; am 08.10.2026 um die Prüfungen und Wartungen (Planungskonzept v0.15)
+- **Geschrieben:** von Hand, am 05.10.2026, aus dem Planungskonzept v0.11 und gegen den Quelltext geprüft; am 06.10.2026 um die Dateien im Speicher ergänzt (Planungskonzept v0.12) und um das Pflichtenverzeichnis, am selben Tag um die Dokumente (Planungskonzept v0.13) und um die Etiketten; am 08.10.2026 um die Prüfungen und Wartungen (Planungskonzept v0.15) und um den Bericht einer Fremdfirma (Planungskonzept v0.16)
 - **Abgelöst durch:** die Verfahrensbeschreibung, die die Anwendung ab Phase 2 selbst erzeugt
 
 ---
@@ -89,6 +89,8 @@ Anhang B nennt jedes Feld der Datenbank, das auf eine Person zeigt. Dieser Absch
 - Mit der Unterschrift entsteht der Nachweis und friert seinen Stand ein: den Namen der Person, die unterschrieben hat, ihre Rolle dabei und den Zeitpunkt; bei einem eingetragenen Bericht den Namen des Prüfers und seine Organisation; dazu, wer den Nachweis eingetragen hat. Ein späterer Namenswechsel ändert daran nichts. [K2.6, B24, B30]
 - **Zusage:** Eine Unterschrift, die Abnahme eines Auftrags und ein Nachweis werden von niemandem geändert oder gelöscht, auch nicht vom Eigentümer der Tabellen und nicht von einem Administrator der Datenbank. Kein Recht hebt das auf. [K2.6, K7, B26, B27, B39]
 - Eine Berichtigung ist ein neuer Nachweis, der den alten nennt; beide bleiben. Eine Ungültigkeitserklärung nennt die Person und den Grund, und der Nachweis bleibt lesbar. Beides dürfen die Leitung, die Technische Leitung und die Objektleitung. [K2.6, B9, B28, B96]
+- **Zusage:** Den Bericht einer Fremdfirma oder Prüforganisation tragen die Leitung, die Technische Leitung und die Objektleitung ein, in ihren Bereichen. Die Haustechnik bekommt den Weg nicht angeboten, und der Server lehnt sie ab. Mit dem Eintragen entsteht der Nachweis: er nennt den Prüfer und seine Organisation, den Tag der Prüfung und das Ergebnis, trägt die Datei, wie sie hochgeladen wurde, und nennt, wer ihn eingetragen hat. [K4.4, K7, B9, B103, B104]
+- **Zusage:** Die Datei, auf die sich ein Nachweis stützt, gibt der Server nur über den Nachweis aus und nur an den, der ihn sieht: beim eigenen Betreiber und in den Bereichen der Person. Nimmt jemand das Dokument der Datei aus der Ablage, bleibt sie am Nachweis lesbar. [K2.6, K4.10, B105, B106]
 - Die Seite einer Pflicht listet ihre Nachweise mit Nummer, Tag, Ergebnis und Herkunft und sagt zu jedem, ob er für die Frist zählt, ersetzt oder für ungültig erklärt ist. Lesen kann die Liste, wer Nachweise ansieht, das sind alle vier Rollen, jede in ihren Bereichen. [K2.6, K4.3, B78]
 - **Zusage:** Diese Liste nennt keine Person: weder wer geprüft, noch wer unterschrieben, noch wer den Nachweis eingetragen hat. [K2.6, B79]
 - Die Seite eines Nachweises zeigt ihn im Ganzen, aus seinem eingefrorenen Stand: wer die Arbeit ausgeführt oder geprüft hat, wer unterschrieben hat, mit Rolle und Zeitpunkt, und wer den Nachweis eingetragen hat. Ist er für ungültig erklärt, nennt sie dazu die Person, den Zeitpunkt und den Grund. Lesen kann die Seite, wer Nachweise ansieht, das sind alle vier Rollen, jede in ihren Bereichen. [K2.6, B78, B93]
@@ -100,7 +102,7 @@ Anhang B nennt jedes Feld der Datenbank, das auf eine Person zeigt. Dieser Absch
 - Jeder Datensatz, der auf Geräte reist, trägt einen Stempel: wer ihn zuletzt geändert hat, von welchem Gerät, wann, und die wievielte Fassung es ist. Der Abgleich braucht davon die Fassung und die Reihenfolge. [K2.7, K9, B33]
 - Der Stempel reist mit dem Datensatz: er steht in den Antworten des Servers und auf den Geräten derer, die den Datensatz lesen dürfen. Kein Bildschirm zeigt ihn an, außer dem Änderungsprotokoll; eine Liste im Büro lässt sich nach „Zuletzt geändert“ ordnen, ohne den Zeitpunkt zu nennen (Abschnitt 10). [K2.7, K9]
 - Der Server führt eine Quittung je Änderung, die ein Gerät geschickt hat: die Kennung des Geräts und wann sie ankam, ohne Person. Einen Konflikt beim Abgleich sieht nur das Gerät, das ihn zu entscheiden hat; er nennt der Person, wann sie ihre Änderung erfasst hat. [K2.7, B57]
-- Eine Datei im Speicher nennt keine Person: zu ihr stehen der Betreiber, die Prüfsumme, die Größe und die Art der Datei. Wer sie geschickt hat und wann, steht im Änderungsprotokoll, wie bei jedem Datensatz. Schicken kann eine Datei, wer Dokumente ablegen darf, das sind alle vier Rollen. Der Server gibt eine Datei nie nach ihrer Prüfsumme aus, sondern nur über die Fassung eines Dokuments, die sie nennt (Abschnitt 3.9). [K4.10, K7, B72, B73, B74]
+- Eine Datei im Speicher nennt keine Person: zu ihr stehen der Betreiber, die Prüfsumme, die Größe und die Art der Datei. Wer sie geschickt hat und wann, steht im Änderungsprotokoll, wie bei jedem Datensatz. Schicken kann eine Datei, wer Dokumente ablegen darf, das sind alle vier Rollen. Der Server gibt eine Datei nie nach ihrer Prüfsumme aus, sondern nur über den Datensatz, der sie nennt: die Fassung eines Dokuments (Abschnitt 3.9) oder einen Nachweis (Abschnitt 3.5). [K4.10, K7, B72, B73, B74, B105]
 
 ### 3.7 Was auf dem Gerät liegt
 
@@ -120,6 +122,7 @@ Anhang B nennt jedes Feld der Datenbank, das auf eine Person zeigt. Dieser Absch
 ### 3.9 Dokumente und ihre Fassungen
 
 - Ein Dokument hängt an einer Liegenschaft, einem Gebäude, einem Raum, einer Anlage oder einem Vorgang, hat eine Bezeichnung und auf Wunsch eine Art, und trägt wie jeder Datensatz seinen Stempel (Abschnitt 3.6). Darüber hinaus nennt ein Dokument keine Person. [K4.10, K2.7]
+- Die Datei eines eingetragenen Berichts wird als Dokument der Art „Prüfbescheinigung“ an der Anlage oder dem Ort seiner Pflicht abgelegt, von der Person, die den Bericht einträgt; ihre Fassung nennt diese Person wie jede andere. [K4.4, K4.10]
 - **Zusage:** Eine Fassung eines Dokuments hält fest, wer sie abgelegt hat. Die Datenbank setzt die Person aus der Anmeldung ein und übernimmt sie nicht vom Gerät. [K4.10, B82]
 - Wer eine Fassung abgelegt hat, reist als Kennung des Kontos mit der Fassung: sie steht in den Antworten des Servers und auf den Geräten derer, die das Dokument sehen, wie der Stempel eines Datensatzes. [K2.7, K4.10]
 - Der Bildschirm „Dokumente“ und die Karten an Anlage, Raum und Liegenschaft nennen zu einer Fassung den Tag, an dem sie abgelegt wurde, und weder die Person noch die Uhrzeit. Wer eine Fassung abgelegt hat, zeigt das Änderungsprotokoll, das zu einem Dokument auch seine Fassungen nennt (Abschnitt 8). [K4.10, K9, B83]
@@ -379,6 +382,10 @@ Pfade ohne Vorsatz liegen im Repository `opengewerk/opengewerk-haustechnik`. Pfa
 | B100 | Test | `packages/server/src/api/activities.test.ts` | `is not for whoever only performs, and names nobody who could not be named` |
 | B101 | Test | `packages/server/src/api/activities.test.ts` | `shows whoever plans every activity in their areas, and whoever only performs what is given to them or to nobody` |
 | B102 | Test | `packages/server/src/api/activities.test.ts` | `brings the inspection onto the device of whoever performs it with the next sync` |
+| B103 | Test | `packages/server/src/api/report.test.ts` | `is not for whoever only performs, and not for a duty outside the areas of the person` |
+| B104 | Test | `packages/server/src/api/report.test.ts` | `becomes an evidence with the examiner, the organisation, the day, the result and the file as it arrived` |
+| B105 | Test | `packages/server/src/api/report.test.ts` | `stays with the evidence once its document is taken out of the filing, and is nothing by another place` |
+| B106 | Test | `packages/server/src/api/report.test.ts` | `is handed out to nobody who does not see the evidence` |
 
 ---
 
@@ -439,9 +446,9 @@ Jede Zeile ist der erste Abschnitt einer Adresse, unter der der Server antwortet
 | `catalogue` | Katalog der Pakete, für jeden Betreiber derselbe und ohne Daten eines Betreibers |
 | `contacts` | Ansprechpartner einer Liegenschaft |
 | `deadlines` | Fristen |
-| `duties` | Pflichten, das Pflichtenverzeichnis, die Nachweise einer Pflicht und die Auswahl der verantwortlichen Person |
+| `duties` | Pflichten, das Pflichtenverzeichnis, die Nachweise einer Pflicht, die Auswahl der verantwortlichen Person und der Bericht einer Fremdfirma, der zum Nachweis einer Pflicht wird |
 | `duty-dismissals` | verworfene Vorschläge für Pflichten |
-| `evidence` | die Seite eines Nachweises, seine Berichtigung und seine Ungültigerklärung |
+| `evidence` | die Seite eines Nachweises, die Dateien, auf die er sich stützt, seine Berichtigung und seine Ungültigerklärung |
 | `files` | Dateien: nimmt den Inhalt einer Datei an, bevor ein Datensatz sie nennt, und gibt keine aus |
 | `floors` | Geschosse |
 | `health` | Gesundheitsprüfung, ohne Daten |

@@ -172,8 +172,8 @@ export async function openSamplePreview(
 
     const planted = await plantSampleData(`http://127.0.0.1:${String(port)}`, areas)
 
-    // What no route writes yet: the evidence of the duties and the defects.
-    await writeSampleStandings(database, planter, previewCatalogue, planted)
+    // What no route writes yet: the defects and the labels of a sheet.
+    await writeSampleStandings(database, planter, planted)
 
     // One pass of the engine, so that the due days have their inspections
     // before somebody looks, and two of them planned (#105).

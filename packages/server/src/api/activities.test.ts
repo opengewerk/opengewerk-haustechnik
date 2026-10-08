@@ -417,6 +417,7 @@ describe('the page of an activity', () => {
         appointment: null,
         lastMetOn: null,
         qualification: 'approved_body',
+        takesReport: true,
         result: 'not_performed',
         resultReason: 'Anlage abgeschaltet',
       },

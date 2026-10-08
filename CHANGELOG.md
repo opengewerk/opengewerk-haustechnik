@@ -764,9 +764,28 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   ausführt oder welche Fremdfirma, und den Tag, unter Personen, die den Bereich sehen; wer nur ausführt, sieht, was ihm
   oder niemandem zugeteilt ist. Der Termin rückt dabei nicht weiter, erst mit dem Nachweis. Der Vorgang stand seit #26
   im Datenmodell ohne Route. Verfahrensbeschreibung Abschnitte 3, 4 und 5 (B98 bis B102)
+- Den Bericht einer Fremdfirma als Nachweis eintragen (#110): im Büro unter `/nachweise/bericht/<pflicht>`, erreichbar
+  über "Bericht eintragen" auf der Seite einer Pflicht und einer offenen Prüfung, die eine Fremdfirma ausführt. Datei,
+  Prüfer, Organisation, Tag der Prüfung, Ergebnis und die Mängel daraus; mit dem Festschreiben entsteht der Nachweis
+  (`POST /duties/:id/report`), die Datei liegt als Prüfbescheinigung an der Anlage oder dem Ort der Pflicht, die Mängel
+  stehen dort, und eine offene Prüfung der Pflicht ist erledigt. Der nächste Termin zählt vom Tag der Prüfung. Für
+  Leitung, Technische Leitung und Objektleitung. Gebaut, weil Prüfungen durch Sachverständige und Fachfirmen der größte
+  Teil der Nachweise eines Betreibers sind (Planungskonzept v0.16, ADR 0004 in einem Nachtrag)
+- Ein Nachweis gibt die Dateien, auf die er sich stützt, selbst aus (#110): `GET /evidence/:id/files/<n>` für jeden, der
+  ihn sieht, und die Seite eines Nachweises verlinkt sie unter "Belege". So bleibt der Bericht am Nachweis lesbar, auch
+  wenn jemand sein Dokument aus der Ablage nimmt. Verfahrensbeschreibung Abschnitte 3.5, 3.6 und 3.9 (B103 bis B106)
 
 ### Geändert
 
+- Eine Berichtigung nimmt die Mängel aus dem Stand des Nachweises, den sie ersetzt, statt sie beim Vorgang neu zu
+  lesen (#110): ein Bericht ohne Vorgang hat sie nirgends sonst
+- Die Beispieldaten der Vorschau tragen ihre Nachweise als Berichte über die Route ein, mit Berichtigung und
+  Ungültigerklärung über deren Routen, statt sie hinter den Routen zu schreiben (#110, Naht aus #87). Jede Anlage mit
+  Nachweis hat damit ihre Prüfbescheinigung unter den Dokumenten
+- Die Seite einer Prüfung, die eine Fremdfirma ausführt, sagt unter "So geht es weiter", dass ihr Bericht im Büro
+  eingetragen wird, statt vom Gerät und der Unterschrift zu sprechen (#110)
+- Die Seite eines Nachweises nennt die Klasse eines Mangels mit ihrem Wort aus dem Katalog statt mit ihrem Schlüssel
+  (#110): seit dem Bericht nennen Mängel Klassen aus den Paketen
 - Das Pflichtenverzeichnis auf die Pflichten einer Person eingrenzen kann nur, wer es führt, also Leitung und
   Technische Leitung, und es nennt dann keine Zahl, weder im Kopf noch an einem Zustand (#101). Das Konzept
   schließt eine Auswertung je Person aus (Abschnitte 4.16 und 9); eine Liste ist keine, eine Zählung der

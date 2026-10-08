@@ -1,6 +1,11 @@
 import { dayInGermany } from '../today.js'
 import type { PreviewArea } from './preview-database.js'
-import { plantDocument, type SampleDocument } from './sample-documents.js'
+import {
+  plantDocument,
+  type SampleDocument,
+  samplePdf,
+  storeSampleFile,
+} from './sample-documents.js'
 
 /**
  * The sample operator of the preview: two areas, two properties in each, with
@@ -676,23 +681,97 @@ interface Supplying {
   readonly buildings: readonly string[]
 }
 
+/** The report of an examiner a sample duty was met with, on a day. */
+interface SampleReport {
+  readonly dutyId: string
+  readonly performedOn: string
+  readonly result?: 'failed'
+  readonly voidedBecause?: string
+  /** The day of the evidence of the same duty this one corrects. */
+  readonly corrects?: string
+}
+
 /**
  * What no route writes yet and the preview writes behind them once the
- * planting is done (`sample-standings.ts`): the evidence of the duties, each
- * on a day, and the defects of the assets.
+ * planting is done (`sample-standings.ts`): the defects of the assets and the
+ * labels of a sheet.
  */
-export interface PlantedStandings {
-  readonly evidence: {
-    readonly dutyId: string
-    readonly performedOn: string
-    readonly result?: 'failed'
-    readonly voidedBecause?: string
-    /** The day of the evidence of the same duty this one corrects. */
-    readonly corrects?: string
-  }[]
+export interface BehindTheRoutes {
   readonly defects: { readonly assetId: string; readonly description: string }[]
   /** Labels of a sheet printed for a property, which hang on nothing yet. */
   readonly sheets: { readonly propertyId: string; readonly labels: number }[]
+}
+
+/**
+ * What the planting collects on its way: the reports of the duties, sent
+ * through their route once every duty is there, and what goes behind the
+ * routes.
+ */
+interface PlantedStandings extends BehindTheRoutes {
+  readonly evidence: SampleReport[]
+}
+
+/**
+ * The evidence of the sample duties as the office enters it (#110): the
+ * report of an examiner from outside through the route of a report, with a
+ * sample PDF as its file, in the order the work was done, so that the numbers
+ * run with the days. One duty has evidence that does not simply count (#101):
+ * a test that failed, a correction through the route of a correction, after
+ * the evidence it corrects whatever day it names, and an evidence declared
+ * invalid through its own route. Each report files its PDF as a certificate
+ * at the asset or the room of its duty, as every report does.
+ */
+async function sendSampleReports(address: string, reports: readonly SampleReport[]): Promise<void> {
+  const bytes = samplePdf('Prüfbericht der Prüfdienst Beispiel GmbH')
+  const sha256 = await storeSampleFile(address, bytes, 'application/pdf')
+  const byDay = [...reports].sort(
+    (left, right) =>
+      Number(left.corrects !== undefined) - Number(right.corrects !== undefined) ||
+      left.performedOn.localeCompare(right.performedOn),
+  )
+  const written = new Map<string, string>()
+  const keyOf = (dutyId: string, performedOn: string) => `${dutyId} ${performedOn}`
+
+  for (const report of byDay) {
+    const replaced =
+      report.corrects === undefined ? undefined : written.get(keyOf(report.dutyId, report.corrects))
+
+    if (report.corrects !== undefined && replaced === undefined) {
+      throw new Error(
+        `Die Beispieldaten berichtigen einen Nachweis vom ${report.corrects}, den es nicht gibt.`,
+      )
+    }
+
+    const said = {
+      performedOn: report.performedOn,
+      result: report.result ?? 'without_defects',
+      resultReason: null,
+      examiner: 'Erika Beispiel',
+      examinerOrganisation: 'Prüfdienst Beispiel GmbH',
+    }
+    const { id } =
+      replaced === undefined
+        ? await send(address, `/duties/${report.dutyId}/report`, {
+            ...said,
+            file: {
+              sha256,
+              fileName: `Prüfbericht ${report.performedOn}.pdf`,
+              sizeBytes: bytes.length,
+              previewSha256: null,
+            },
+            defects: [],
+          })
+        : await send(address, `/evidence/${replaced}/correction`, {
+            ...said,
+            reason: 'Im Bericht steht ein anderer Tag.',
+          })
+
+    written.set(keyOf(report.dutyId, report.performedOn), id)
+
+    if (report.voidedBecause !== undefined) {
+      await send(address, `/evidence/${id}/voiding`, { reason: report.voidedBecause })
+    }
+  }
 }
 
 /**
@@ -831,7 +910,7 @@ export const sheetLabelsPerProperty = 4
 export async function plantSampleData(
   address: string,
   areas: ReadonlyMap<PreviewArea, string>,
-): Promise<PlantedStandings> {
+): Promise<BehindTheRoutes> {
   const standings: PlantedStandings = { evidence: [], defects: [], sheets: [] }
 
   for (const property of sampleProperties) {
@@ -948,8 +1027,9 @@ export async function plantSampleData(
     additions: { all: false, areaIds: [areas.get(sampleInvitationArea)] },
   })
   await send(address, '/substitutions', sampleSubstitution)
+  await sendSampleReports(address, standings.evidence)
 
-  return standings
+  return { defects: standings.defects, sheets: standings.sheets }
 }
 
 /**
