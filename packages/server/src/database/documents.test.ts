@@ -6,14 +6,7 @@ import { sql } from 'drizzle-orm'
 import type { Pool } from 'pg'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
-import {
-  allowApplicationLogin,
-  applicationDatabaseUrl,
-  applyMigrations,
-  connect,
-  refusedBy,
-  resetSchema,
-} from './test-database.js'
+import { applicationDatabaseUrl, connect, refusedBy, resetToMigrated } from './test-database.js'
 
 /**
  * The documents of an operator in the database (#97, section 4.10 of the
@@ -199,9 +192,7 @@ function asTheApplication(statement: ReturnType<typeof sql>, userId = 'user-lead
 
 beforeAll(async () => {
   admin = await connect()
-  await resetSchema(admin)
-  await applyMigrations()
-  await allowApplicationLogin(admin)
+  await resetToMigrated()
 
   await admin.query('insert into tenants (id, name) values ($1, $2), ($3, $4)', [
     tenant,

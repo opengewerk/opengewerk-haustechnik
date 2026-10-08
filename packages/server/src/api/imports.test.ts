@@ -30,11 +30,9 @@ import request from 'supertest'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 import {
-  allowApplicationLogin,
   applicationDatabaseUrl,
-  applyMigrations,
   connect,
-  resetSchema,
+  resetToMigrated,
   testIdentityHeader,
 } from '../database/test-database.js'
 import { ApiModule } from './api.module.js'
@@ -434,9 +432,7 @@ async function assetsOf(tenant: Tenant) {
 
 beforeAll(async () => {
   admin = await connect()
-  await resetSchema(admin)
-  await applyMigrations()
-  await allowApplicationLogin(admin)
+  await resetToMigrated()
 
   for (const role of roleKeys) {
     await admin.query('insert into auth_users (id, name, email) values ($1, $1, $2)', [

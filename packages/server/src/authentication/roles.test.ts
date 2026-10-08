@@ -17,11 +17,9 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from
 import { ApiModule } from '../api/api.module.js'
 import { as, testIdentities } from '../api/test-identity.js'
 import {
-  allowApplicationLogin,
   applicationDatabaseUrl,
-  applyMigrations,
   connect,
-  resetSchema,
+  resetToMigrated,
   testIdentityHeader,
 } from '../database/test-database.js'
 import { access, addStaffMember, createAuthentication, setUpInstance } from './access.js'
@@ -52,9 +50,7 @@ beforeAll(async () => {
 })
 
 beforeEach(async () => {
-  await resetSchema(admin)
-  await applyMigrations()
-  await allowApplicationLogin(admin)
+  await resetToMigrated()
 
   database = Database.connect(applicationDatabaseUrl())
   authentication = createAuthentication({

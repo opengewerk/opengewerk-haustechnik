@@ -6,14 +6,7 @@ import { sql } from 'drizzle-orm'
 import type { Pool } from 'pg'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
-import {
-  allowApplicationLogin,
-  applicationDatabaseUrl,
-  applyMigrations,
-  connect,
-  refusedBy,
-  resetSchema,
-} from './test-database.js'
+import { applicationDatabaseUrl, connect, refusedBy, resetToMigrated } from './test-database.js'
 
 /**
  * The place in the database (ADR 0002): that every level hangs on the right
@@ -91,9 +84,7 @@ let secondArea: string
 
 beforeAll(async () => {
   admin = await connect()
-  await resetSchema(admin)
-  await applyMigrations()
-  await allowApplicationLogin(admin)
+  await resetToMigrated()
 
   await admin.query('insert into tenants (id, name) values ($1, $2), ($3, $4)', [
     tenant,

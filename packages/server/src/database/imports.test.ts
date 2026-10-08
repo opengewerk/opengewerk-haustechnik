@@ -4,13 +4,7 @@ import { sql } from 'drizzle-orm'
 import type { Pool, PoolClient } from 'pg'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
-import {
-  allowApplicationLogin,
-  applicationDatabaseUrl,
-  applyMigrations,
-  connect,
-  resetSchema,
-} from './test-database.js'
+import { applicationDatabaseUrl, connect, resetToMigrated } from './test-database.js'
 
 /**
  * What migration 0022 does to the log of a tenant (#100, section 11 of the
@@ -78,9 +72,7 @@ async function entriesAbout(recordId: string): Promise<number> {
 
 beforeAll(async () => {
   admin = await connect()
-  await resetSchema(admin)
-  await applyMigrations()
-  await allowApplicationLogin(admin)
+  await resetToMigrated()
 
   await admin.query('insert into tenants (id, name) values ($1, $2), ($3, $4)', [
     tenant,

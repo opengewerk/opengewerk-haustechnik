@@ -17,13 +17,7 @@ import request from 'supertest'
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest'
 
 import { application } from './configuration.js'
-import {
-  allowApplicationLogin,
-  applicationDatabaseUrl,
-  applyMigrations,
-  connect,
-  resetSchema,
-} from './database/test-database.js'
+import { applicationDatabaseUrl, connect, resetToMigrated } from './database/test-database.js'
 import { type OpenInstance, openInstance } from './instance.js'
 
 // An instance of this application as a start puts it together (`main.ts`),
@@ -119,9 +113,7 @@ function http(instance: OpenInstance) {
 
 beforeAll(async () => {
   admin = await connect()
-  await resetSchema(admin)
-  await applyMigrations()
-  await allowApplicationLogin(admin)
+  await resetToMigrated()
   built = interfaceBuild()
   storage = mkdtempSync(join(tmpdir(), 'haustechnik-storage-'))
 })
