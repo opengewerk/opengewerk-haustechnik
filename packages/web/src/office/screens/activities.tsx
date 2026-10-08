@@ -270,7 +270,7 @@ const countWords: Readonly<Record<ActivityListState, string>> = {
 }
 
 /**
- * "Prüfungen" in the office, `pruefungen()` of the boards (4.4 of the
+ * "Prüfungen" in the office, the board "Prüfungen und Wartungen" (4.4 of the
  * concept, #105): the inspections and the maintenance that came of the due
  * days of the duties, the earliest due day first, with where each is, who
  * answers for it, who performs it and how far it is.
@@ -334,11 +334,11 @@ export function ActivityListScreen() {
           : { count: `${first.total.toLocaleString('de-DE')} ${countWords[state]}` })}
       />
       <div className="flex flex-wrap items-end gap-x-2.5 gap-y-2">
-        <label className="sr-only" htmlFor="pruefungen-suche">
+        <label className="sr-only" htmlFor="activity-search">
           {activityWords.searchLabel}
         </label>
         <input
-          id="pruefungen-suche"
+          id="activity-search"
           type="search"
           value={search}
           placeholder={activityWords.searchPlaceholder}
