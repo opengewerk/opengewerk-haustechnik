@@ -2,6 +2,7 @@ import {
   activityClosable,
   activityKindOfTask,
   activityLimits,
+  activityProblems,
   type DefectRegister,
   type DutyDetails,
   type DutyPerson,
@@ -63,7 +64,7 @@ import {
 } from '@opengewerk/platform-web/sync'
 import { keepPreviousData, useInfiniteQuery, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useNavigate, useParams, useSearch } from '@tanstack/react-router'
-import { Check, Pencil, Plus, Signature, TriangleAlert, X } from 'lucide-react'
+import { Ban, Check, Pencil, Plus, Signature, TriangleAlert, X } from 'lucide-react'
 import { type ReactNode, useDeferredValue, useId, useMemo, useState } from 'react'
 
 import { titleOfRoom } from '../../app/place-records.js'
@@ -132,6 +133,9 @@ export const workOrderWords = {
   nobodyFurther: 'Niemand weiter beteiligt.',
   noOrders: 'Kein offener Auftrag.',
   ordersFailed: 'Die Aufträge ließen sich nicht laden. Sie kommen vom Server, mit Verbindung.',
+  closingHint: 'Der Grund steht am Auftrag und bleibt lesbar.',
+  whatClosingDoes:
+    'Der Auftrag ist damit geschlossen, auch auf den Geräten, und lässt sich nicht wieder öffnen. Der Mangel, aus dem er kam, steht wieder auf „Festgestellt“ und braucht einen neuen Auftrag. Der Termin einer Pflicht bleibt, wie er ist.',
 } as const
 
 /** The work orders of the office in the cache: every list and every page. */
@@ -553,6 +557,7 @@ export function WorkOrderScreen() {
   const plans = useRight('activity.write')
   const accepts = useRight('activity.accept')
   const [editing, setEditing] = useState(false)
+  const [closing, setClosing] = useState(false)
 
   if (shown === undefined || orderId === undefined) {
     const gone = page.error instanceof RequestRefused && page.error.status === 404
@@ -608,6 +613,17 @@ export function WorkOrderScreen() {
         actions={
           <>
             <ChangesButton table="activities" id={shown.id} />
+            {/* Closed with the reason before its signature (v0.19 of the concept). */}
+            {changes ? (
+              <Button
+                icon={Ban}
+                onClick={() => {
+                  setClosing(true)
+                }}
+              >
+                Nicht durchgeführt
+              </Button>
+            ) : null}
             {changes ? (
               <Button
                 icon={Pencil}
@@ -663,6 +679,9 @@ export function WorkOrderScreen() {
                 ...(shown.performedOn === null
                   ? []
                   : [{ label: 'Durchgeführt am', value: date(shown.performedOn) }]),
+                ...(shown.closingReason === null
+                  ? []
+                  : [{ label: 'Grund', value: shown.closingReason }]),
               ]}
             />
           </Panel>
@@ -714,6 +733,16 @@ export function WorkOrderScreen() {
           </Panel>
         </div>
       </div>
+      {closing ? (
+        <CloseWorkOrderDialog
+          key={shown.id}
+          order={shown}
+          sub={where.name}
+          onClose={() => {
+            setClosing(false)
+          }}
+        />
+      ) : null}
       {editing ? (
         <EditWorkOrderDialog
           key={shown.id}
@@ -851,6 +880,107 @@ function AcceptancePanel({
         ) : null}
       </div>
     </Panel>
+  )
+}
+
+/**
+ * "Nicht durchgeführt", the board "Auftrag mit Grund schließen (4.8)" (v0.19
+ * of the concept): an open or begun work order closed with the reason. Its
+ * defect is found again and waits for a new order; the appointment of a duty
+ * stays as it is. Asked of the route, with a connection, and not taken back.
+ */
+function CloseWorkOrderDialog({
+  order,
+  sub,
+  onClose,
+}: {
+  readonly order: WorkOrderDetails
+  readonly sub: string
+  readonly onClose: () => void
+}) {
+  const client = useSync()
+  const queries = useQueryClient()
+  const [reason, setReason] = useState('')
+  const [problem, setProblem] = useState<string | undefined>(undefined)
+  const [working, setWorking] = useState(false)
+  const [trouble, setTrouble] = useState<string | null>(null)
+
+  async function save() {
+    const values = { closingReason: reason.trim() }
+    const wrong = activityProblems({ status: 'not_performed', ...values })['closingReason']
+
+    setProblem(wrong)
+    setTrouble(null)
+
+    if (wrong !== undefined) {
+      return
+    }
+
+    setWorking(true)
+
+    try {
+      const result = await askAt(client, 'POST', `/work-orders/${order.id}/close`, order.id, values)
+
+      if (result.outcome === 'refused') {
+        setTrouble(refusalFor(result))
+
+        return
+      }
+
+      // The order, the list, the defect it was to set right and the duty it was to meet.
+      await queries.invalidateQueries({ queryKey: workOrderKey })
+      await queries.invalidateQueries({ queryKey: ['defects'] })
+      await queries.invalidateQueries({ queryKey: ['duties'] })
+      onClose()
+    } finally {
+      setWorking(false)
+    }
+  }
+
+  return (
+    <Dialog
+      title="Nicht durchgeführt"
+      width={520}
+      onClose={onClose}
+      sub={[[order.number, order.title].filter(Boolean).join(' '), sub].filter(Boolean).join(', ')}
+    >
+      <form
+        noValidate
+        className="flex flex-col gap-3"
+        onSubmit={(event) => {
+          event.preventDefault()
+          void save()
+        }}
+      >
+        <TextArea
+          label="Grund"
+          rows={3}
+          required
+          starred
+          maxLength={activityLimits.closingReason}
+          value={reason}
+          hint={workOrderWords.closingHint}
+          problem={problem}
+          onChange={(event) => {
+            setReason(event.target.value)
+          }}
+        />
+        <NoteBox>{workOrderWords.whatClosingDoes}</NoteBox>
+        {trouble ? (
+          <p role="alert" className="text-[13px] font-semibold text-conflict">
+            {trouble}
+          </p>
+        ) : null}
+        <DialogActions>
+          <Button type="button" disabled={working} onClick={onClose}>
+            Abbrechen
+          </Button>
+          <Button type="submit" tone="primary" icon={Ban} disabled={working}>
+            {working ? 'Einen Moment' : 'Als nicht durchgeführt schließen'}
+          </Button>
+        </DialogActions>
+      </form>
+    </Dialog>
   )
 }
 

@@ -14,7 +14,6 @@ import {
 import {
   type Activity,
   type ActivityCandidates,
-  activityClosable,
   type ActivityDetails,
   type ActivityDutyLine,
   type ActivityEntry,
@@ -46,6 +45,7 @@ import {
 } from '@opengewerk/platform-server'
 import { and, asc, count, eq, ilike, inArray, isNull, or, type SQL, sql } from 'drizzle-orm'
 
+import { closeAsNotPerformed } from '../activities/closing.js'
 import { makeActivityForDuty } from '../activities/for-duty.js'
 import { CATALOGUE } from '../catalogue.js'
 import { dutiesOnADay, dutyTitle } from '../database/duty-standing.js'
@@ -490,29 +490,12 @@ export class ActivitiesController {
         )
       }
 
-      const [closed] = await tx
-        .update(activities)
-        .set({
-          status: 'not_performed',
-          closingReason: closingReason as string,
-          updatedAt: new Date(),
-        })
-        .where(
-          and(eq(activities.id, activity.id), inArray(activities.status, [...activityClosable])),
-        )
-        .returning({ id: activities.id })
-
       // Whoever signed it meanwhile waits for the evidence of the signature.
-      if (closed === undefined) {
+      if (!(await closeAsNotPerformed(tx, activity.id, closingReason as string))) {
         throw new ConflictException(
           'Geschlossen wird ein Vorgang, solange er offen oder begonnen ist. Dieser ist schon unterschrieben oder abgeschlossen.',
         )
       }
-
-      await tx
-        .update(activityDuties)
-        .set({ result: 'not_performed', resultReason: closingReason as string })
-        .where(and(eq(activityDuties.activityId, activity.id), isNull(activityDuties.deletedAt)))
     })
 
     return this.read(identity, id)

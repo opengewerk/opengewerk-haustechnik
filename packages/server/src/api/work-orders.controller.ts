@@ -15,6 +15,7 @@ import {
   type Activity,
   activityClosable,
   type ActivityId,
+  activityProblems,
   type Catalogue,
   type Defect,
   type DefectId,
@@ -52,9 +53,11 @@ import {
 } from '@opengewerk/platform-server'
 import { and, asc, count, desc, eq, ilike, inArray, isNull, or, type SQL, sql } from 'drizzle-orm'
 
+import { closeAsNotPerformed } from '../activities/closing.js'
 import { makeActivityForDuty } from '../activities/for-duty.js'
 import {
   decideWorkOrder,
+  defectsFollowTheirOrder,
   SigningRefusal,
   signaturesWithTheirStanding,
 } from '../activities/signing.js'
@@ -399,6 +402,7 @@ export class WorkOrdersController {
       ...entryOf(read.activity, read.order, rejected, named),
       createdAt: read.activity.createdAt.toISOString(),
       performedOn: read.activity.performedOn,
+      closingReason: read.activity.closingReason,
       origin: read.origin,
       participants: read.participants
         .map((userId) => named(userId))
@@ -623,6 +627,42 @@ export class WorkOrdersController {
         before,
         planned.participantUserIds,
       )
+    })
+
+    return this.read(identity, id)
+  }
+
+  /**
+   * A work order closed as not performed, with the reason (section 4.8 of the
+   * concept from v0.19, #117): one that was made by mistake, for instance,
+   * while it is open or begun, by whoever plans and hands out work. It is not
+   * opened again. The defect it was to set right is found again and waits for
+   * a new order, and a duty whose due day it was to meet takes "not
+   * performed" with the same reason, without an evidence and without its due
+   * day moving (`closeAsNotPerformed`).
+   */
+  @Post(':id/close')
+  @RequiresPermission('activity.write')
+  async close(
+    @CurrentIdentity() identity: Asking,
+    @Param('id') id: string,
+    @Body() body: unknown,
+  ): Promise<WorkOrderDetails> {
+    const { closingReason } = fieldsOf(body, ['closingReason'] as const)
+
+    refuse(activityProblems({ status: 'not_performed', closingReason: closingReason ?? null }))
+
+    await this.database.forTenant(identity, async (tx) => {
+      const { activity } = await orderOf(tx, identity, id)
+
+      // Whoever signed it meanwhile signed the order, which waits for its acceptance.
+      if (!(await closeAsNotPerformed(tx, activity.id, closingReason as string))) {
+        throw new ConflictException(
+          'Geschlossen wird ein Auftrag, solange er offen oder begonnen ist. Dieser ist schon unterschrieben oder abgenommen.',
+        )
+      }
+
+      await defectsFollowTheirOrder(tx, identity.tenantId, activity.id, 'found')
     })
 
     return this.read(identity, id)

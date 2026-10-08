@@ -715,6 +715,82 @@ describe('the defect of a work order follows it', () => {
   })
 })
 
+describe('closing a work order with the reason', () => {
+  it('is for whoever plans, before its signature, and finds its defect again', async () => {
+    const { asset } = await elevatorIn()
+    const defect = await defectAt(asset)
+    const page = await made({ ...plan, origin: 'defect', defectId: defect })
+    const close = (header: string, body: object) =>
+      http().post(`/work-orders/${page.id}/close`).set(testIdentityHeader, header).send(body)
+    const reason = 'Doppelt angelegt.'
+
+    const refused = await close(by('u-tech'), { closingReason: reason }).expect(403)
+
+    expect(refused.body.message).toBe(missingRight('activity.write'))
+    await close(by('u-site'), {}).expect(
+      400,
+      /Ein Vorgang, der nicht durchgeführt wurde, nennt den Grund/,
+    )
+    expect((await pageOfOrder(page.id)).status).toBe('open')
+
+    const closed = (await close(by('u-site'), { closingReason: reason }).expect(201))
+      .body as WorkOrderDetails
+
+    expect(closed).toMatchObject({ status: 'not_performed', closingReason: reason })
+    // The defect waits for a new order, and still names the old one until it gets it.
+    expect(await defectRow(defect)).toEqual({
+      status: 'found',
+      remedy_work_order_id: page.workOrderId,
+    })
+    await close(by('u-site'), { closingReason: reason }).expect(
+      409,
+      /Geschlossen wird ein Auftrag, solange er offen oder begonnen ist/,
+    )
+    await made({ ...plan, origin: 'defect', defectId: defect })
+  })
+
+  it('leaves the due day of its duty as it is and gives the duty the reason', async () => {
+    const { asset } = await elevatorIn()
+    const duty = await ownDutyAt(asset)
+    const page = await made({ ...plan, kind: 'inspection', origin: 'duty', dutyId: duty })
+
+    await http()
+      .post(`/work-orders/${page.id}/close`)
+      .set(testIdentityHeader, by('u-site'))
+      .send({ closingReason: 'Die Anlage ist stillgelegt.' })
+      .expect(201)
+
+    const { rows } = await admin.query<{ result: string; result_reason: string }>(
+      'select result, result_reason from activity_duties where activity_id = $1',
+      [page.id],
+    )
+
+    expect(rows).toEqual([
+      { result: 'not_performed', result_reason: 'Die Anlage ist stillgelegt.' },
+    ])
+    expect(
+      (await admin.query('select count(*)::int as n from evidence where duty_id = $1', [duty]))
+        .rows[0].n,
+    ).toBe(0)
+    // Nothing runs for the duty any more: a new order for its due day can be made.
+    await made({ ...plan, kind: 'inspection', origin: 'duty', dutyId: duty })
+  })
+
+  it('is not taken once the order is signed', async () => {
+    const { asset } = await elevatorIn()
+    const defect = await defectAt(asset)
+    const page = await made({ ...plan, origin: 'defect', defectId: defect })
+
+    await signed(page.id)
+    await http()
+      .post(`/work-orders/${page.id}/close`)
+      .set(testIdentityHeader, by('u-site'))
+      .send({ closingReason: 'Zu spät.' })
+      .expect(409)
+    expect((await defectRow(defect)).status).toBe('remedied')
+  })
+})
+
 describe('a defect found not set right', () => {
   it('waits for a new order, whatever becomes of the old one', async () => {
     const { asset } = await elevatorIn()

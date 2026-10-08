@@ -441,7 +441,7 @@ export async function followSignature(
     await defectsFromAnswers(tx, context, activity)
 
     if (activity.kind === 'work_order') {
-      await defectsFollowTheirOrder(tx, context, activity.id, 'remedied')
+      await defectsFollowTheirOrder(tx, context.tenantId, activity.id, 'remedied')
     }
   }
 
@@ -697,40 +697,50 @@ export async function decideWorkOrder(
     .where(and(eq(activities.tenantId, context.tenantId), eq(activities.id, activity.id)))
 
   if (!accepted) {
-    await defectsFollowTheirOrder(tx, context, activity.id, 'ordered')
+    await defectsFollowTheirOrder(tx, context.tenantId, activity.id, 'ordered')
   }
 
   return { id: decision.id, status, written }
 }
 
 /**
- * The defects a work order sets right follow it (sections 4.6 and 4.8 of the
- * concept, #117): set right with the signature of the person who leads the
- * order, and ordered again when its acceptance turns it back, since the
- * signature no longer counts. Only a defect that names this order as the one
- * setting it right now, and only from the state before: a defect the check
- * found not set right waits for a new order, and one that was checked is
- * done and changes no more.
+ * The state a defect comes from when it follows its work order into each
+ * state (sections 4.6 and 4.8 of the concept, #117): set right with the
+ * signature of the person who leads the order, ordered again when its
+ * acceptance turns it back, since the signature no longer counts, and found
+ * again when the order is closed as not performed, so that it gets a new one.
  */
-async function defectsFollowTheirOrder(
+const defectBeforeItsOrder = {
+  remedied: 'ordered',
+  ordered: 'remedied',
+  found: 'ordered',
+} as const
+
+/**
+ * The defects a work order sets right follow it. Only a defect that names
+ * this order as the one setting it right now, and only from the state before:
+ * a defect the check found not set right waits for a new order, and one that
+ * was checked is done and changes no more.
+ */
+export async function defectsFollowTheirOrder(
   tx: TenantTransaction,
-  context: WritingContext,
+  tenantId: TenantId,
   activityId: ActivityId,
-  to: 'remedied' | 'ordered',
+  to: keyof typeof defectBeforeItsOrder,
 ): Promise<void> {
   const orders = tx
     .select({ id: workOrders.id })
     .from(workOrders)
-    .where(and(eq(workOrders.tenantId, context.tenantId), eq(workOrders.activityId, activityId)))
+    .where(and(eq(workOrders.tenantId, tenantId), eq(workOrders.activityId, activityId)))
 
   await tx
     .update(defects)
     .set({ status: to })
     .where(
       and(
-        eq(defects.tenantId, context.tenantId),
+        eq(defects.tenantId, tenantId),
         inArray(defects.remedyWorkOrderId, orders),
-        eq(defects.status, to === 'remedied' ? 'ordered' : 'remedied'),
+        eq(defects.status, defectBeforeItsOrder[to]),
         isNull(defects.deletedAt),
       ),
     )

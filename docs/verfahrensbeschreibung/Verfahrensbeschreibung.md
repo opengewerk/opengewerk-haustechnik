@@ -83,6 +83,7 @@ Anhang B nennt jedes Feld der Datenbank, das auf eine Person zeigt. Dieser Absch
 - Ein Auftrag nennt die Person, die ihn führt (im Büro „Verantwortlich“), und weitere Beteiligte; das Feld der ausführenden Person bleibt bei einem Auftrag aus dem Büro leer. Wer Vorgänge plant und verteilt, legt einen Auftrag an, aus einem festgestellten Mangel, aus dem Termin einer Pflicht oder von Hand, und ändert ihn, bis er unterschrieben ist. Wer einen Auftrag angelegt oder geändert hat, nennt der Auftrag nicht; das steht im Änderungsprotokoll. [K4.8, B111]
 - **Zusage:** Wer einen Auftrag führt und wer an ihm beteiligt ist, legt fest, wer Vorgänge plant und verteilt: die Leitung, die Technische Leitung und die Objektleitung. Zur Wahl stehen nur Personen, die Vorgänge ausführen, den Bereich des Auftrags sehen und nicht gesperrt sind; die Auswahl nennt die Namen und sonst nichts. Die Haustechnik legt keinen Auftrag an, ändert keinen und bekommt die Auswahl nicht. [K4.8, K7, B112, B113, B114, B118]
 - Eine beteiligte Person ist eine Zeile je Auftrag und Person. Wird jemand vom Auftrag genommen, wird die Zeile markiert und nicht gelöscht, und das Gerät dieser Person gibt den Auftrag mit dem nächsten Abgleich ab. Auf der unterschriebenen Seite stehen die Beteiligten nicht. [K4.8, B115]
+- Einen offenen oder begonnenen Auftrag schließt, wer Vorgänge plant und verteilt, mit Grund als nicht durchgeführt, etwa einen irrtümlich angelegten; der Auftrag nennt den Grund und nicht die Person, wer ihn geschlossen hat, steht im Änderungsprotokoll. Die Haustechnik kann es nicht. [K4.8, K7, B120]
 - **Zusage:** Einen unterschriebenen Auftrag abnehmen oder mit Grund zurückweisen kann, wer Aufträge abnimmt: die Leitung, die Technische Leitung und die Objektleitung. Die Haustechnik kann es nicht. [K4.8, K7, B116]
 - Die Abnahme eines Auftrags hält fest, wer abgenommen oder zurückgewiesen hat, wann und mit welcher Begründung. Eine Zurückweisung lässt die Unterschrift stehen und macht sie ungültig. [K4.8, B8, B25]
 - Ein Feld für eine Dauer, eine Arbeitszeit oder einen Standort gibt es in dieser Fassung nicht. [K4.8, K4.14, K9]
@@ -156,7 +157,7 @@ Anhang B nennt jedes Feld der Datenbank, das auf eine Person zeigt. Dieser Absch
 - Melden können alle vier Rollen, im Büro und vor Ort, dort auch ohne Netz. Klasse, Frist und Nachprüfung setzen die Leitung, die Technische Leitung und die Objektleitung; die Haustechnik meldet ohne Klasse und Frist, und ein Gerät schickt mit einer Meldung keine. [K7, B107, B108]
 - Die Vorgabe der Frist je Mängelklasse stellt ein, wer die Einstellungen ändert, in Phase 1 die Leitung. Sie nennt keine Person. [K4.6, K7]
 - Die Frist eines Mangels steht in der Liste „Fristen“, solange er festgestellt oder beauftragt ist, und erinnert die Leitung, wenn ihr Vorlauf beginnt; ein Mangel nennt niemanden, der für ihn verantwortlich ist. [K2.4, K4.6]
-- Ein Mangel folgt seinem Auftrag: beauftragt, sobald aus ihm ein Auftrag angelegt ist, behoben mit der Unterschrift unter dem Auftrag, und wieder beauftragt, wenn die Abnahme den Auftrag zurückweist. Wer das ausgelöst hat, nennt der Mangel nicht. [K4.6, K4.8, B119]
+- Ein Mangel folgt seinem Auftrag: beauftragt, sobald aus ihm ein Auftrag angelegt ist, behoben mit der Unterschrift unter dem Auftrag, wieder beauftragt, wenn die Abnahme den Auftrag zurückweist, und wieder festgestellt, wenn der Auftrag nicht durchgeführt wird. Wer das ausgelöst hat, nennt der Mangel nicht. [K4.6, K4.8, B119, B120]
 
 ---
 
@@ -420,6 +421,7 @@ Pfade ohne Vorsatz liegen im Repository `opengewerk/opengewerk-haustechnik`. Pfa
 | B117 | Test | `packages/server/src/api/work-orders.test.ts` | `whoever only performs sees what they lead, work on, or what is given to nobody, in the office and on the device` |
 | B118 | Test | `packages/server/src/api/work-orders.test.ts` | `changes what it is, how urgent, the day and the people until it is signed` |
 | B119 | Test | `packages/server/src/api/work-orders.test.ts` | `is set right with the signature, ordered again when the order is turned back, and set right with the next` |
+| B120 | Test | `packages/server/src/api/work-orders.test.ts` | `is for whoever plans, before its signature, and finds its defect again` |
 
 ---
 
@@ -499,4 +501,4 @@ Jede Zeile ist der erste Abschnitt einer Adresse, unter der der Server antwortet
 | `staff` | Zugänge |
 | `substitutions` | Vertretungen |
 | `sync` | Abgleich und Konflikte |
-| `work-orders` | Aufträge: die Liste, die Seite eines Auftrags, die Auswahl der Personen, ein neuer Auftrag aus einem Mangel, aus einem Termin oder von Hand, seine Änderung und seine Abnahme oder Zurückweisung |
+| `work-orders` | Aufträge: die Liste, die Seite eines Auftrags, die Auswahl der Personen, ein neuer Auftrag aus einem Mangel, aus einem Termin oder von Hand, seine Änderung, das Schließen mit Grund und seine Abnahme oder Zurückweisung |

@@ -823,10 +823,12 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   haben und nicht abschließen (Migration `0027_work_orders_in_the_office`). Der Mangel folgt
   seinem Auftrag: beauftragt beim Anlegen, behoben mit der Unterschrift, wieder beauftragt mit
   einer Zurückweisung; abgenommen schreibt ein Auftrag für einen Termin den Nachweis seiner
-  Pflicht. Anlegen und ändern kann, wer Vorgänge plant und verteilt, abnehmen, wer Aufträge
-  abnimmt. Mangel, Anlagenakte und Pflicht führen zum Auftrag. Bisher hatten Aufträge nur ihr
-  Datenmodell, und ein Mangel kam über "festgestellt" nicht hinaus. Planungskonzept 4.6 und 4.8,
-  Nachtrag in ADR 0002, Abschnitte 3.4, 3.12, 4, 5 und 9 der Verfahrensbeschreibung
+  Pflicht. Anlegen, ändern und vor der Unterschrift mit Grund als nicht durchgeführt schließen
+  kann, wer Vorgänge plant und verteilt; der Mangel steht dann wieder auf "festgestellt".
+  Abnehmen kann, wer Aufträge abnimmt. Mangel, Anlagenakte und Pflicht führen zum Auftrag. Bisher
+  hatten Aufträge nur ihr Datenmodell, und ein Mangel kam über "festgestellt" nicht hinaus.
+  Planungskonzept v0.19 (4.6, 4.8, 7), Nachträge in ADR 0002 und 0006, Abschnitte 3.4, 3.12, 4, 5
+  und 9 der Verfahrensbeschreibung
 
 ### Geändert
 

@@ -141,12 +141,14 @@ export interface WorkOrderDecisionLine {
 
 /**
  * The page of a work order: what the list says, where it came from, the
- * further people who work on it, when it was made and performed, its
- * signatures and the decisions on it.
+ * further people who work on it, when it was made and performed or why it
+ * was not, its signatures and the decisions on it.
  */
 export interface WorkOrderDetails extends WorkOrderEntry {
   readonly createdAt: string
   readonly performedOn: IsoDate | null
+  /** Why it was not performed; only an order closed with the reason (v0.19 of the concept). */
+  readonly closingReason: string | null
   readonly origin: WorkOrderOrigin
   readonly participants: readonly DutyPerson[]
   readonly signatures: readonly WorkOrderSignatureLine[]

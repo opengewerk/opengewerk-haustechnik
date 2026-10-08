@@ -120,6 +120,7 @@ function details(entry: WorkOrderEntry, further: Partial<WorkOrderDetails> = {})
     ...entry,
     createdAt: '2026-09-28T06:00:00.000Z',
     performedOn: null,
+    closingReason: null,
     origin: {
       kind: 'defect',
       defectId: 'df-door' as never,
@@ -398,6 +399,77 @@ describe('the page of a work order', () => {
     await untilTheRightsAreKnown()
     await screen.findByRole('heading', { name: 'Notausgangstür Saal gängig machen' })
     expect(screen.queryByRole('button', { name: 'Bearbeiten' })).toBeNull()
+  })
+
+  it('is closed with the reason by whoever plans, and only with one', async () => {
+    const { mounted, written } = mount(
+      '/auftraege/ac-remedy',
+      { '/work-orders/ac-remedy': details(remedy) },
+      'site_management',
+      () => ({ status: 201, body: { id: 'ac-remedy' } }),
+    )
+
+    await mounted
+    fireEvent.click(await screen.findByRole('button', { name: 'Nicht durchgeführt' }))
+
+    const dialog = await screen.findByRole('dialog')
+
+    fireEvent.click(
+      within(dialog).getByRole('button', { name: 'Als nicht durchgeführt schließen' }),
+    )
+    await within(dialog).findByText('Ein Vorgang, der nicht durchgeführt wurde, nennt den Grund.')
+    expect(written).toEqual([])
+
+    fireEvent.change(within(dialog).getByRole('textbox', { name: /Grund/ }), {
+      target: { value: 'Doppelt angelegt.' },
+    })
+    fireEvent.click(
+      within(dialog).getByRole('button', { name: 'Als nicht durchgeführt schließen' }),
+    )
+    await waitFor(() => {
+      expect(written).toEqual([
+        {
+          method: 'POST',
+          path: '/work-orders/ac-remedy/close',
+          body: { closingReason: 'Doppelt angelegt.' },
+        },
+      ])
+    })
+  })
+
+  it('is not closed by whoever only performs', async () => {
+    const performing = mount(
+      '/auftraege/ac-remedy',
+      { '/work-orders/ac-remedy': details(remedy) },
+      'technician',
+    )
+
+    await performing.mounted
+    await untilTheRightsAreKnown()
+    await screen.findByRole('heading', { name: 'Notausgangstür Saal gängig machen' })
+    expect(screen.queryByRole('button', { name: 'Nicht durchgeführt' })).toBeNull()
+  })
+
+  it('offers no closing once it is signed', async () => {
+    const { mounted } = mount('/auftraege/ac-waiting', { '/work-orders/ac-waiting': signedPage })
+
+    await mounted
+    await untilTheRightsAreKnown()
+    await screen.findByRole('button', { name: 'Abnehmen' })
+    expect(screen.queryByRole('button', { name: 'Nicht durchgeführt' })).toBeNull()
+  })
+
+  it('names the reason of an order that was not performed', async () => {
+    const { mounted } = mount('/auftraege/ac-remedy', {
+      '/work-orders/ac-remedy': details(
+        { ...remedy, status: 'not_performed' },
+        { closingReason: 'Doppelt angelegt.' },
+      ),
+    })
+
+    await mounted
+    await screen.findByText('Doppelt angelegt.')
+    expect(screen.getByText('Nicht durchgeführt')).toBeTruthy()
   })
 
   it('offers no change once it is signed', async () => {
