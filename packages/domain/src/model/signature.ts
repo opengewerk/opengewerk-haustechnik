@@ -7,6 +7,7 @@ import {
 } from '@opengewerk/platform-domain'
 
 import type { ActivityId, ActivityKind, WorkOrderId } from './activity.js'
+import type { FilledAnswer } from './answer.js'
 import type { AreaId } from './area.js'
 import type { EvidenceResult } from './evidence.js'
 import { oneOf, type Problems } from './fields.js'
@@ -140,10 +141,12 @@ export function signaturesComplete(
  * office adds afterwards: no number drawn by the server, no due day of a
  * class, no interval, no name out of the catalogue, whose version on the
  * device may be older. Its lists are ordered by their keys, which device and
- * server share, and not by a moment either side stamps on its own. When the
- * answers of a protocol come with the filled forms of phase 1, they come in
- * only where there are some, so that a page signed before keeps its
- * fingerprint.
+ * server share, and not by a moment either side stamps on its own.
+ *
+ * An activity with a form shows the form by key and version and every answer
+ * as its row holds it (#106); one without a form has neither on its page, so
+ * that a page signed before keeps its fingerprint. A defect that came of an
+ * answer is not on the page: the answer is.
  */
 export interface SignedPage {
   readonly activity: {
@@ -175,6 +178,20 @@ export interface SignedPage {
     readonly description: string
     readonly defectClass: string | null
   }[]
+  readonly form?: { readonly key: string; readonly version: number }
+  readonly answers?: readonly SignedAnswer[]
+}
+
+/** An answer as the page shows it: its point and what it says, as its row holds it. */
+export type SignedAnswer = FilledAnswer
+
+/** Answers in the order of their points: group, block, field, by their keys. */
+function byPoint(left: SignedAnswer, right: SignedAnswer): number {
+  return (
+    compare(left.groupKey ?? '', right.groupKey ?? '') ||
+    compare(left.blockKey ?? '', right.blockKey ?? '') ||
+    compare(left.fieldKey, right.fieldKey)
+  )
 }
 
 /** The page of an activity from its parts, in the order device and server share. */
@@ -184,6 +201,22 @@ export function signedPageOf(parts: SignedPage): SignedPage {
     place: parts.place,
     duties: [...parts.duties].sort((left, right) => compare(left.dutyId, right.dutyId)),
     defects: [...parts.defects].sort((left, right) => compare(left.id, right.id)),
+    ...(parts.form === undefined
+      ? {}
+      : {
+          form: parts.form,
+          answers: [...(parts.answers ?? [])]
+            .map(({ groupKey, blockKey, fieldKey, value, result, remark, attachmentId }) => ({
+              groupKey,
+              blockKey,
+              fieldKey,
+              value,
+              result,
+              remark,
+              attachmentId,
+            }))
+            .sort(byPoint),
+        }),
   }
 }
 

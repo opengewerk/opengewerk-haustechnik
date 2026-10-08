@@ -1,7 +1,7 @@
 import { documentKinds, documentLimits } from '@opengewerk/haustechnik-domain'
 import { applicationRole, attachmentsSchema, reference } from '@opengewerk/platform-server'
 import { sql } from 'drizzle-orm'
-import { check, foreignKey, index, pgEnum, pgPolicy } from 'drizzle-orm/pg-core'
+import { check, foreignKey, index, pgEnum, pgPolicy, unique } from 'drizzle-orm/pg-core'
 
 import { activities } from './activities.js'
 import { withinAreas } from './areas.js'
@@ -116,6 +116,13 @@ export const { attachments, attachmentVersions } = attachmentsSchema({
       foreignColumns: [defects.tenantId, defects.id, defects.propertyId],
       name: 'attachments_at_a_defect_of_their_property',
     }),
+    // What the photo of an answer points at: a document at its activity (#106).
+    unique('attachments_at_their_activity').on(
+      table.tenantId,
+      table.id,
+      table.propertyId,
+      table.activityId,
+    ),
     index('attachments_property_idx').on(table.tenantId, table.propertyId),
     index('attachments_asset_idx').on(table.tenantId, table.assetId),
     index('attachments_activity_idx').on(table.tenantId, table.activityId),

@@ -9,6 +9,7 @@ import { and, eq, inArray, isNull } from 'drizzle-orm'
 
 import { dutyTitle } from '../database/duty-standing.js'
 import { activities, activityDuties, type deadlines, duties } from '../database/schema/index.js'
+import { dayInGermany } from '../today.js'
 
 /** A deadline of this application as the engine hands it to an action. */
 type DeadlineRow = typeof deadlines.$inferSelect
@@ -34,7 +35,7 @@ const underWay = ['open', 'started', 'signed'] as const
 export function activityFromDeadline(
   catalogue: Catalogue,
 ): DeadlineActionHandler<ApplicationDeadlineKind, DeadlineRow> {
-  return async ({ tx, tenantId, deadline, responsible }) => {
+  return async ({ tx, tenantId, deadline, responsible, now }) => {
     // Only the appointment of a duty names this action; a deadline of a
     // defect follows no duty (#116).
     if (deadline.dutyId === null) {
@@ -76,11 +77,15 @@ export function activityFromDeadline(
 
     // A duty of the operator's own names its task, one from the catalogue
     // takes it from its kind in the version that was confirmed.
-    const task =
-      duty.task ??
-      (duty.kind === null || duty.kindVersion === null
+    const kind =
+      duty.kind === null || duty.kindVersion === null
         ? null
-        : (catalogue.dutyKindVersion(duty.kind, duty.kindVersion)?.definition.task ?? null))
+        : (catalogue.dutyKindVersion(duty.kind, duty.kindVersion)?.definition ?? null)
+    const task = duty.task ?? kind?.task ?? null
+    // The form its kind names as its evidence, in the version in force on the
+    // day the activity is made, which it keeps (#106).
+    const formKey = kind?.evidence.form
+    const form = formKey === undefined ? null : catalogue.form(formKey, dayInGermany(now))
     const place = {
       tenantId,
       propertyId: duty.propertyId,
@@ -100,6 +105,8 @@ export function activityFromDeadline(
         responsibleUserId: responsible,
         performer: duty.performer,
         contractorNote: duty.performer === 'contractor' ? duty.performerNote : null,
+        formKey: form?.key ?? null,
+        formVersion: form?.version ?? null,
       })
       .returning({ id: activities.id })
 

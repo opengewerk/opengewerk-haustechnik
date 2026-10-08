@@ -5,6 +5,7 @@ import {
   ruleScopeNames,
   ruleScopes,
   ruleSet,
+  type RuleSet,
   type RuleUnit,
   scopeOf,
 } from '@opengewerk/platform-domain'
@@ -441,6 +442,13 @@ export interface Catalogue {
   readonly dutyKinds: (on: IsoDate) => readonly CatalogueEntry<DutyKind>[]
   /** The version of a form in force on a day, the one a duty kind names as its evidence. */
   readonly form: (key: string, on: IsoDate) => CatalogueEntry<PackagedForm> | null
+  /**
+   * One version of a form, the one an activity was filled in (#106): a form
+   * stays readable in every version a package ever shipped.
+   */
+  readonly formVersion: (key: string, version: number) => CatalogueEntry<PackagedForm> | null
+  /** Every rule of the bundle, as the form engine judges a measured value by them. */
+  readonly ruleSet: RuleSet
   /** The rule in force on a day, for a federal state or, without one, for the whole country. */
   readonly rule: (key: string, on: IsoDate, state?: FederalState) => CatalogueRule | null
   /** Every record of a rule, the whole country before the states, the earliest first. */
@@ -578,6 +586,9 @@ export function catalogueOf(bundle: CatalogueBundle): Catalogue {
       dutyKinds.get(key)?.find((entry) => entry.version === version) ?? null,
     dutyKinds: (on) => everyKey(dutyKinds, on),
     form: (key, on) => inForce(forms.get(key), on),
+    formVersion: (key, version) =>
+      forms.get(key)?.find((entry) => entry.version === version) ?? null,
+    ruleSet: records,
     rule,
     ruleRecords: (key) => inReadingOrder(rules.filter((entry) => entry.record.key === key)),
     interval: (dutyKind, on, state) =>

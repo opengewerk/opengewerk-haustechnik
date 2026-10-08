@@ -1,6 +1,7 @@
 import { addDays, type Id, type IsoDate, type Synced } from '@opengewerk/platform-domain'
 
 import type { ActivityId, WorkOrderId } from './activity.js'
+import type { ActivityAnswerId } from './answer.js'
 import { generalPackage } from './asset-duplicate.js'
 import type { Catalogue, CatalogueDefectClass } from './catalogue.js'
 import type { EvidenceId } from './evidence.js'
@@ -72,6 +73,12 @@ export interface Defect extends Synced, PlaceTarget {
   readonly foundInActivityId: ActivityId | null
   /** The evidence of the report that named it, if it came from one (#110). */
   readonly foundInEvidenceId: EvidenceId | null
+  /**
+   * The answer it came of, a check point not in order or a measured value
+   * outside its limit, once the activity was signed (#106). The page of the
+   * activity names the answer, and so not the defect a second time.
+   */
+  readonly foundInAnswerId: ActivityAnswerId | null
   /** The work order that sets it right, once there is one. */
   readonly remedyWorkOrderId: WorkOrderId | null
   readonly description: string

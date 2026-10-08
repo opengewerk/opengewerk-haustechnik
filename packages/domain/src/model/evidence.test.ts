@@ -20,8 +20,9 @@ import {
 /**
  * A state of each version as a row carries it, written once and never
  * changed: the first as the server wrote it from the second part of #26, the
- * second with the evidence a correction replaces, from its fourth part. A new
- * version adds its own here, and the test below turns red until it does.
+ * second with the evidence a correction replaces, from its fourth part, the
+ * third with the form of the activity and the answers to its points (#106).
+ * A new version adds its own here, and the test below turns red until it does.
  */
 const storedStates: Readonly<Record<number, unknown>> = {
   1: JSON.parse(
@@ -53,6 +54,29 @@ const storedStates: Readonly<Record<number, unknown>> = {
       '"retention":{"kind":"until_next_inspection","on":"2026-09-30"},' +
       '"signatures":[],' +
       '"version":2,"writtenAt":"2026-10-02T14:05:00.000Z","writtenBy":"Hanna Probe"}',
+  ),
+  3: JSON.parse(
+    '{"activity":{"kind":"inspection","title":"Prüfung Trinkwasser Haus A"},' +
+      '"answers":[{"group":null,"kind":"measurement","label":"Temperatur am Speicheraustritt",' +
+      '"limit":{"source":"DVGW W 551","text":"Außerhalb des Grenzwerts, mindestens 60,0 °C.","within":false},' +
+      '"photo":null,"remark":"Speicher heizt nach.","result":null,"section":"Messwerte","value":"57,5 °C"},' +
+      '{"group":{"block":1,"label":"Abgänge"},"kind":"check_point","label":"Dämmung","limit":null,' +
+      '"photo":{"mediaType":"image/jpeg","name":"daemmung.jpg",' +
+      '"sha256":"9f2c4e1a7b3d5f6081a2c3e4d5f60718293a4b5c6d7e8f90a1b2c3d4e5f60718"},' +
+      '"remark":"Dämmung am Abgang lose.","result":"not_ok","section":"Sichtprüfung","value":null}],' +
+      '"defects":[{"defectClass":null,"description":"Abgänge, Block 1: Dämmung am Abgang lose.","dueOn":null}],' +
+      '"duty":{"counting":"from_due","interval":{"months":12},"kind":"probe.drinking_water_check","kindVersion":1,' +
+      '"label":"Prüfung der Trinkwasseranlage","source":"DVGW W 551"},' +
+      '"files":[],"form":{"key":"probe.drinking_water_protocol","title":"Prüfprotokoll Trinkwasser","version":2},' +
+      '"number":"NW-2026-00003","origin":"protocol","performedOn":"2026-10-07",' +
+      '"performer":{"person":"Hanna Probe"},' +
+      '"place":{"asset":{"kind":"probe.water_heater","kindLabel":"Trinkwassererwärmer","name":"Speicher",' +
+      '"number":"AN-00002","serialNumber":null},"building":{"name":"Haus A","shortCode":null},' +
+      '"property":{"address":"Hauptstraße 1, 68535 Edingen-Neckarhausen","name":"Campus"},"room":null},' +
+      '"replaces":null,"result":"with_defects","resultReason":null,' +
+      '"retention":{"kind":"until_next_inspection","on":"2026-10-07"},' +
+      '"signatures":[{"name":"Hanna Probe","role":"signer","signedAt":"2026-10-07T10:58:00.000Z"}],' +
+      '"version":3,"writtenAt":"2026-10-07T11:00:00.000Z","writtenBy":"Hanna Probe"}',
   ),
 }
 
@@ -109,7 +133,9 @@ describe('the frozen state', () => {
   it('reads a state of the second version, with the evidence a correction replaces', () => {
     const state = readEvidenceState(storedStates[2])
 
-    expect(state.version).toBe(2)
+    // In the newest shape: no evidence of the second version names a form or answers.
+    expect(state.version).toBe(evidenceStateVersion)
+    expect([state.form, state.answers]).toEqual([null, []])
     expect(state.number).toBe('NW-2026-00002')
     expect(state.replaces).toEqual({
       number: 'NW-2026-00001',
@@ -117,6 +143,28 @@ describe('the frozen state', () => {
     })
     expect(state.performer).toEqual({ examiner: 'Erika Muster', organisation: 'Prüfstelle Süd' })
     expect(canonicalForm(storedStates[2])).toBe(JSON.stringify(storedStates[2]))
+  })
+
+  it('reads a state of the third version, with the form and the answers to its points', () => {
+    const state = readEvidenceState(storedStates[3])
+
+    expect(state.version).toBe(3)
+    expect(state.form).toEqual({
+      key: 'probe.drinking_water_protocol',
+      title: 'Prüfprotokoll Trinkwasser',
+      version: 2,
+    })
+    expect(state.answers.map((answer) => [answer.label, answer.value, answer.result])).toEqual([
+      ['Temperatur am Speicheraustritt', '57,5 °C', null],
+      ['Dämmung', null, 'not_ok'],
+    ])
+    expect(state.answers[0]?.limit).toEqual({
+      text: 'Außerhalb des Grenzwerts, mindestens 60,0 °C.',
+      source: 'DVGW W 551',
+      within: false,
+    })
+    expect(state.answers[1]?.group).toEqual({ label: 'Abgänge', block: 1 })
+    expect(canonicalForm(storedStates[3])).toBe(JSON.stringify(storedStates[3]))
   })
 
   it('has a reader and a stored example for every version up to the newest', () => {

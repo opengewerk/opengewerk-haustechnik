@@ -2,7 +2,11 @@ import {
   type ActivityId,
   type ActivitySignatureId,
   type ActivityStatus,
+  answerFindings,
+  answersMissing,
+  type Catalogue,
   type EvidenceOrigin,
+  formOfActivity,
   type SignatureRole,
   type SignedPage,
   signatureLimits,
@@ -22,6 +26,7 @@ import { and, asc, eq, isNull } from 'drizzle-orm'
 
 import {
   activities,
+  activityAnswers,
   activityDuties,
   activitySignatures,
   assets,
@@ -161,6 +166,7 @@ export async function pageOf(tx: TenantTransaction, activity: ActivityRow): Prom
         isNull(activityDuties.deletedAt),
       ),
     )
+  // A defect that came of an answer is on the page as the answer (#106).
   const noticed = await tx
     .select({ id: defects.id, description: defects.description, defectClass: defects.defectClass })
     .from(defects)
@@ -168,9 +174,17 @@ export async function pageOf(tx: TenantTransaction, activity: ActivityRow): Prom
       and(
         eq(defects.tenantId, tenantId),
         eq(defects.foundInActivityId, activity.id),
+        isNull(defects.foundInAnswerId),
         isNull(defects.deletedAt),
       ),
     )
+  const filled =
+    activity.formKey === null || activity.formVersion === null
+      ? {}
+      : {
+          form: { key: activity.formKey, version: activity.formVersion },
+          answers: await answersOf(tx, activity),
+        }
 
   return signedPageOf({
     activity: {
@@ -193,7 +207,23 @@ export async function pageOf(tx: TenantTransaction, activity: ActivityRow): Prom
     },
     duties: lines,
     defects: noticed,
+    ...filled,
   })
+}
+
+/** The answers to the points of the form of an activity, those that are not marked. */
+async function answersOf(tx: TenantTransaction, activity: ActivityRow) {
+  return tx
+    .select()
+    .from(activityAnswers)
+    .where(
+      and(
+        eq(activityAnswers.tenantId, activity.tenantId),
+        eq(activityAnswers.activityId, activity.id),
+        isNull(activityAnswers.deletedAt),
+      ),
+    )
+    .orderBy(asc(activityAnswers.id))
 }
 
 /**
@@ -269,11 +299,16 @@ async function signaturesOf(tx: TenantTransaction, activity: ActivityRow, finger
  * and results the server no longer has signed another page, which is a
  * conflict about that one operation (point 11), and one that showed the page
  * as it is and signed it without them made a mistake its form asks about.
+ *
+ * An activity with a form is signed only once every point of it has its
+ * answer (#106, ADR 0006, point 10). This is the one way to a signature, from
+ * the route and from the sync alike, and nothing switches it off.
  */
 export async function checkSignature(
   tx: TenantTransaction,
   tenantId: TenantId,
   input: SignatureToCheck,
+  catalogue: Pick<Catalogue, 'formVersion' | 'ruleSet'>,
 ): Promise<void> {
   const firstProblem = Object.values(
     signatureProblems({
@@ -316,6 +351,26 @@ export async function checkSignature(
     )
   }
 
+  const form = formOfActivity(catalogue, activity)
+
+  if (form === undefined) {
+    throw new SigningRefusal('Das Formular dieses Vorgangs kennt dieser Stand nicht.')
+  }
+
+  const missing =
+    form === null
+      ? []
+      : answersMissing(form, page.answers ?? [], {
+          rules: catalogue.ruleSet,
+          on: activity.performedOn,
+        })
+
+  if (missing.length > 0) {
+    throw new SigningRefusal(
+      `Jeder Punkt braucht seine Antwort, bevor unterschrieben wird. ${missing.join(' ')}`,
+    )
+  }
+
   const valid = await signaturesOf(tx, activity, fingerprint)
   const has = (role: SignatureRole) => valid.some((signature) => signature.role === role)
 
@@ -352,6 +407,11 @@ export async function followSignature(
 ): Promise<Omit<TakenSignature, 'id'>> {
   const activity = await activityOf(tx, context.tenantId, activityId)
   const valid = await signaturesOf(tx, activity, pageFingerprint(await pageOf(tx, activity)))
+
+  if (valid.some((signature) => signature.role === 'signer')) {
+    await defectsFromAnswers(tx, context, activity)
+  }
+
   const complete = activity.kind !== 'work_order' && signaturesComplete(activity, valid)
   const written = complete
     ? await writeDown(
@@ -373,6 +433,124 @@ export async function followSignature(
 }
 
 /**
+ * What the answers of a signed activity come to (#106, section 4.5 of the
+ * concept): a check point not in order and a measured value outside its
+ * limit become a defect, with the signature and not with the last one an
+ * activity calls for, so that a countersignature days later holds nothing
+ * up. Found on the day the activity was performed, at the asset or the room
+ * the point is about and otherwise at the place of the activity, without a
+ * class, which whoever keeps defects gives it (section 4.6). Once per answer:
+ * a work order signed again after it was turned back adds only what is new.
+ *
+ * The page of the activity names the answer and not the defect, so the
+ * signature stays valid with the defect beside it.
+ */
+async function defectsFromAnswers(
+  tx: TenantTransaction,
+  context: WritingContext,
+  activity: ActivityRow,
+): Promise<void> {
+  const form = formOfActivity(context.catalogue, activity)
+
+  if (!form || activity.performedOn === null) {
+    return
+  }
+
+  const answers = await answersOf(tx, activity)
+  const findings = answerFindings(form, answers, {
+    rules: context.catalogue.ruleSet,
+    on: activity.performedOn,
+  })
+
+  if (findings.length === 0) {
+    return
+  }
+
+  const known = new Set(
+    (
+      await tx
+        .select({ answerId: defects.foundInAnswerId })
+        .from(defects)
+        .where(
+          and(
+            eq(defects.tenantId, context.tenantId),
+            eq(defects.foundInActivityId, activity.id),
+            isNull(defects.deletedAt),
+          ),
+        )
+    ).map((row) => row.answerId),
+  )
+
+  for (const finding of findings) {
+    if (known.has(finding.answer.id)) {
+      continue
+    }
+
+    await tx.insert(defects).values({
+      tenantId: context.tenantId,
+      propertyId: activity.propertyId,
+      areaId: activity.areaId,
+      ...(await placeOfFinding(tx, activity, finding.about)),
+      foundInActivityId: activity.id,
+      foundInAnswerId: finding.answer.id,
+      description: finding.description,
+      foundOn: activity.performedOn,
+    })
+  }
+}
+
+/**
+ * Where a defect of an answer is found: the asset or the room its point is
+ * about, where that is a live one on the property of the activity, and
+ * otherwise the place of the activity.
+ */
+async function placeOfFinding(
+  tx: TenantTransaction,
+  activity: ActivityRow,
+  about: { readonly kind: string; readonly id: string } | null,
+): Promise<Pick<ActivityRow, 'buildingId' | 'roomId' | 'assetId'>> {
+  const atTheActivity = {
+    buildingId: activity.buildingId,
+    roomId: activity.roomId,
+    assetId: activity.assetId,
+  }
+
+  if (about?.kind === 'asset') {
+    const [asset] = await tx
+      .select({ id: assets.id })
+      .from(assets)
+      .where(
+        and(
+          eq(assets.tenantId, activity.tenantId),
+          eq(assets.id, about.id as typeof assets.$inferSelect.id),
+          eq(assets.propertyId, activity.propertyId),
+          isNull(assets.deletedAt),
+        ),
+      )
+
+    return asset ? { buildingId: null, roomId: null, assetId: asset.id } : atTheActivity
+  }
+
+  if (about?.kind === 'room') {
+    const [room] = await tx
+      .select({ id: rooms.id })
+      .from(rooms)
+      .where(
+        and(
+          eq(rooms.tenantId, activity.tenantId),
+          eq(rooms.id, about.id as typeof rooms.$inferSelect.id),
+          eq(rooms.propertyId, activity.propertyId),
+          isNull(rooms.deletedAt),
+        ),
+      )
+
+    return room ? { buildingId: null, roomId: room.id, assetId: null } : atTheActivity
+  }
+
+  return atTheActivity
+}
+
+/**
  * Takes a signature: checked, written in the name of whoever is signed in,
  * and followed by what comes of it, all in the transaction it is given.
  */
@@ -381,7 +559,7 @@ export async function takeSignature(
   context: WritingContext,
   input: SignatureToTake,
 ): Promise<TakenSignature> {
-  await checkSignature(tx, context.tenantId, input)
+  await checkSignature(tx, context.tenantId, input, context.catalogue)
 
   const activity = await activityOf(tx, context.tenantId, input.activityId)
   const [signature] = await tx

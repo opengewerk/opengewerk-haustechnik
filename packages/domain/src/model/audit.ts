@@ -186,6 +186,22 @@ export const auditVocabulary: AuditVocabulary = {
         closing_reason: 'Grund',
         performed_on: 'Durchgeführt am',
         countersignature_required: 'Gegenzeichnung verlangt',
+        form_key: 'Formular',
+        form_version: 'Fassung des Formulars',
+      },
+    },
+    // The answer to a point of the form of an activity (#106).
+    activity_answers: {
+      label: 'Antwort',
+      fields: {
+        activity_id: 'Vorgang',
+        group_key: 'Gruppe',
+        block_key: 'Block',
+        field_key: 'Punkt',
+        value: 'Wert',
+        result: 'Ergebnis',
+        remark: 'Bemerkung',
+        attachment_id: 'Foto',
       },
     },
     activity_duties: {
@@ -241,6 +257,7 @@ export const auditVocabulary: AuditVocabulary = {
       fields: {
         found_in_activity_id: 'Festgestellt bei',
         found_in_evidence_id: 'Genannt im Nachweis',
+        found_in_answer_id: 'Aus der Antwort',
         remedy_work_order_id: 'Beseitigt mit',
         description: 'Beschreibung',
         defect_class: 'Klasse',
@@ -322,8 +339,12 @@ export const auditVocabulary: AuditVocabulary = {
     ],
     // A document with its versions: who filed which, and when.
     attachments: [{ table: 'attachment_versions', column: 'attachment_id' }],
-    // An activity with the duties it is to meet and what came of each.
-    activities: [{ table: 'activity_duties', column: 'activity_id' }],
+    // An activity with the duties it is to meet and what came of each, and
+    // the answers to the points of its form.
+    activities: [
+      { table: 'activity_duties', column: 'activity_id' },
+      { table: 'activity_answers', column: 'activity_id' },
+    ],
     // A defect with its photos.
     defects: [{ table: 'attachments', column: 'defect_id' }],
   },
@@ -397,10 +418,12 @@ export const auditVocabulary: AuditVocabulary = {
     // An evidence by its number, and a declaration of invalidity by its evidence.
     evidence: ['number'],
     evidence_voidings: ['evidence_id'],
-    // An activity by its name, the duty of an activity by the duty, a work
-    // order by its number and a defect by what was noticed.
+    // An activity by its name, the duty of an activity by the duty, an answer
+    // by its point, a work order by its number and a defect by what was
+    // noticed.
     activities: ['title'],
     activity_duties: ['duty_id'],
+    activity_answers: ['field_key'],
     work_orders: ['number'],
     defects: ['description'],
     defect_class_terms: ['defect_class'],

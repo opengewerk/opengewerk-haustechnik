@@ -72,6 +72,13 @@ export const operationRights: Readonly<Record<string, OperationRights>> = {
   duty_dismissals: { otherwise: 'duty.write' },
   activities: { create: 'activity.write', change: 'activity.perform', otherwise: 'activity.write' },
   activity_duties: { change: 'activity.perform', otherwise: 'activity.write' },
+  // An answer to a point of the form is the work on the activity (#106).
+  activity_answers: {
+    create: 'activity.perform',
+    change: 'activity.perform',
+    remove: 'activity.perform',
+    otherwise: 'activity.write',
+  },
   work_orders: { create: 'activity.write', otherwise: 'activity.write' },
   defects: { create: 'defect.report', change: 'defect.report', otherwise: 'defect.write' },
   // The signature is the work's, the countersignature the Objektleitung's,

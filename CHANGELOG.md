@@ -796,6 +796,14 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   Netz, und wird mit ihm markiert, wenn er entfernt wird
 - Der Vergleich der Pakete mit `main` meldet eine gemergte Mängelklasse, die fehlt (#116): Mängel nennen ihre Klasse
   beim Schlüssel, eine entfernte ließe sie ins Leere zeigen (ADR 0005, Nachtrag zu #61)
+- Antworten je Punkt (#106): `activity_answers` hält die Antwort auf jeden Punkt des Formulars eines Vorgangs als
+  eigene Zeile, damit zwei Leute an verschiedenen Punkten nicht kollidieren und am selben Punkt ein Konflikt entsteht
+  (Abschnitt 2.7). Ein Vorgang nennt das Formular, das er ausfüllt, mit seiner Fassung; eine Prüfung aus einem fälligen
+  Termin nimmt das ihrer Pflichtart. Unterschrieben wird erst, wenn jeder Punkt seine Antwort hat, und mit der
+  Unterschrift wird ein Prüfpunkt "nicht in Ordnung" und ein Messwert außerhalb seines Grenzwerts ein Mangel
+  (Abschnitt 4.5). Die Seite, die unterschrieben wird, nennt die Antworten, der Nachweis friert sie in Fassung 3 seines
+  Stands ein, und danach ändert keine Rolle eine Antwort (`HT007`). Migration `0026_answers_per_point`, Nachträge in
+  ADR 0002, 0004 und 0006, zwei Aussagen in Abschnitt 3.5 der Verfahrensbeschreibung
 
 ### Geändert
 

@@ -322,6 +322,8 @@ describe('an evidence written down', () => {
       result: 'with_defects',
       resultReason: null,
       replaces: null,
+      form: null,
+      answers: [],
       duty: {
         label: 'Sichtprüfung der Aufzugsanlage',
         kind: keptTest,

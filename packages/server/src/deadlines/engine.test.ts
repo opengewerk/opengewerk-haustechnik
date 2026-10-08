@@ -479,6 +479,56 @@ describe('the activity of a due day', () => {
     expect(await activitiesOf(duty)).toHaveLength(1)
   })
 
+  it('is filled in the form its duty kind takes as evidence, in the version in force that day', async () => {
+    const at = await placeIn(small)
+    const duty = await mainTestAt(at)
+    // The main test of the probe package, taking a protocol in the reading form.
+    const withAForm = catalogueOf({
+      ...probeCatalogueBundle,
+      packages: probeCatalogueBundle.packages.map((pack) => ({
+        ...pack,
+        dutyKinds: pack.dutyKinds.map((entry) =>
+          entry.key === 'probe.elevator_main_test'
+            ? {
+                ...entry,
+                definition: {
+                  ...entry.definition,
+                  evidence: { kinds: ['protocol', 'report'], form: 'probe.water_meter_reading' },
+                },
+              }
+            : entry,
+        ),
+      })),
+    })
+
+    await evidenceOf(at, duty, '2024-11-20')
+    await runDeadlinesOf({ database, catalogue: withAForm, now: () => october }, small, october)
+
+    const { rows } = await admin.query<{ form_key: string | null; form_version: number | null }>(
+      `select a.form_key, a.form_version from activities a
+         join activity_duties d on d.activity_id = a.id
+        where d.duty_id = $1`,
+      [duty],
+    )
+
+    expect(rows).toEqual([{ form_key: 'probe.water_meter_reading', form_version: 1 }])
+
+    // Without a form named by its kind, an activity has none.
+    const other = await placeIn(small)
+    const plain = await mainTestAt(other)
+
+    await evidenceOf(other, plain, '2024-11-20')
+    await run(small)
+
+    const { rows: none } = await admin.query<{ form_key: string | null }>(
+      `select a.form_key from activities a join activity_duties d on d.activity_id = a.id
+        where d.duty_id = $1`,
+      [plain],
+    )
+
+    expect(none).toEqual([{ form_key: null }])
+  })
+
   it('gives a duty with an activity under way no second one when its due day moves', async () => {
     const at = await placeIn(small)
     const duty = await mainTestAt(at)

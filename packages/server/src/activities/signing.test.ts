@@ -88,6 +88,48 @@ function withAKeptTest(bundle: CatalogueBundle): CatalogueBundle {
 
 const catalogue = catalogueOf(withAKeptTest(probeCatalogueBundle))
 
+/** An asset a point of a form is about, which a test puts beside the asset of the activity. */
+const pointedAsset = randomUUID()
+
+/**
+ * The catalogue with a check of the doors whose first point is about that
+ * asset and whose second is about nothing, as a template of the operator
+ * names a point's asset (#112).
+ */
+const withADoorCheck = catalogueOf({
+  ...withAKeptTest(probeCatalogueBundle),
+  packages: withAKeptTest(probeCatalogueBundle).packages.map((pack) => ({
+    ...pack,
+    forms: [
+      ...pack.forms,
+      {
+        key: 'probe.door_check',
+        version: 1,
+        validFrom: '2015-06-01',
+        definition: {
+          title: 'Türen',
+          sections: [
+            {
+              key: 'doors',
+              title: 'Türen',
+              fields: [
+                {
+                  kind: 'check_point',
+                  key: 'door',
+                  label: 'Tür',
+                  about: { kind: 'asset', id: pointedAsset },
+                },
+                { kind: 'check_point', key: 'frame', label: 'Rahmen' },
+              ],
+            },
+          ],
+        },
+        review: { checkedOn: '2026-10-04', accepted: null },
+      },
+    ],
+  })),
+})
+
 let admin: Pool
 let database: Database
 let area = ''
@@ -465,6 +507,200 @@ describe('a signature on an activity', () => {
     )
 
     expect(taken.written.map((evidence) => evidence.state.origin)).toEqual(['round_point'])
+  })
+})
+
+describe('an activity with a form', () => {
+  /** An answer to a point of the reading form of the probe package, as a row holds it. */
+  interface Given {
+    readonly field: string
+    readonly result?: string
+    readonly value?: string
+    readonly remark?: string
+  }
+
+  /** An activity to sign, filled in the reading form, with these answers. */
+  async function filledIn(given: readonly Given[], countersigned = false): Promise<ActivityId> {
+    const { activity } = await activityToSign('inspection', { countersigned })
+    const { rows } = await admin.query<{ property_id: string }>(
+      `update activities set form_key = 'probe.water_meter_reading', form_version = 1
+        where id = $1 returning property_id`,
+      [activity],
+    )
+
+    for (const answer of given) {
+      await admin.query(
+        `insert into activity_answers (tenant_id, property_id, area_id, activity_id, field_key,
+                                       result, value, remark)
+         values ($1, $2, $3, $4, $5, $6, $7, $8)`,
+        [
+          tenant,
+          rows[0]?.property_id,
+          area,
+          activity,
+          answer.field,
+          answer.result ?? null,
+          answer.value ?? null,
+          answer.remark ?? null,
+        ],
+      )
+    }
+
+    return activity
+  }
+
+  /** The defects that came of the answers of an activity: what they say, and the answer. */
+  async function defectsOf(activity: ActivityId) {
+    const { rows } = await admin.query<{ description: string; answer: string | null }>(
+      `select d.description, a.field_key as answer
+         from defects d left join activity_answers a on a.id = d.found_in_answer_id
+        where d.found_in_activity_id = $1 and d.deleted_at is null`,
+      [activity],
+    )
+
+    return rows
+  }
+
+  const everyPoint: readonly Given[] = [
+    { field: 'seal_intact', result: 'not_ok', remark: 'Plombe fehlt.' },
+    { field: 'no_leak', result: 'ok' },
+    { field: 'reading', value: '1234567' },
+  ]
+
+  it('is signed only once every point has its answer, and the remark each answer asks for', async () => {
+    const activity = await filledIn([
+      { field: 'seal_intact', result: 'ok' },
+      { field: 'no_leak', result: 'not_ok' },
+    ])
+    const input = await signatureFor(activity)
+
+    expect(
+      await refusalOf(as(technician, (tx, context) => takeSignature(tx, context, input))),
+    ).toBe(
+      'Jeder Punkt braucht seine Antwort, bevor unterschrieben wird. ' +
+        'Zähler dicht: zu „nicht in Ordnung“ fehlt die Bemerkung. Zählerstand fehlt.',
+    )
+    expect(await countOf('activity_signatures', 'activity_id', activity)).toBe(0)
+  })
+
+  it('names the form and the answers on its page, so a signature for other answers is refused', async () => {
+    const activity = await filledIn(everyPoint)
+    const shown = await signatureFor(activity)
+
+    await admin.query(
+      `update activity_answers set value = '1234568' where activity_id = $1 and field_key = 'reading'`,
+      [activity],
+    )
+
+    expect(
+      await refusalOf(as(technician, (tx, context) => takeSignature(tx, context, shown))),
+    ).toBe(
+      'Die Seite hat sich geändert, seit sie gezeigt wurde. Sie wird neu gezeigt und neu unterschrieben.',
+    )
+  })
+
+  it('finds the defect of a point at the asset the point is about, and at the activity otherwise', async () => {
+    const { activity } = await activityToSign()
+    const { rows } = await admin.query<{
+      property_id: string
+      asset_id: string
+      building_id: string
+    }>(
+      `select a.property_id, a.asset_id, s.building_id
+         from activities a join assets s on s.id = a.asset_id
+        where a.id = $1`,
+      [activity],
+    )
+    const here = rows[0]
+
+    await admin.query(
+      `insert into assets (id, tenant_id, property_id, area_id, building_id, kind, number, name)
+       values ($1, $2, $3, $4, $5, 'probe.elevator', 'AN-99999', 'Aufzug Haus B')`,
+      [pointedAsset, tenant, here?.property_id, area, here?.building_id],
+    )
+    await admin.query(
+      `update activities set form_key = 'probe.door_check', form_version = 1 where id = $1`,
+      [activity],
+    )
+
+    for (const [field, remark] of [
+      ['door', 'Tür klemmt.'],
+      ['frame', 'Rahmen lose.'],
+    ]) {
+      await admin.query(
+        `insert into activity_answers (tenant_id, property_id, area_id, activity_id, field_key,
+                                       result, remark)
+         values ($1, $2, $3, $4, $5, 'not_ok', $6)`,
+        [tenant, here?.property_id, area, activity, field, remark],
+      )
+    }
+
+    const input = await signatureFor(activity)
+
+    expect(
+      await refusalOf(
+        database.forTenant({ tenantId: tenant, userId: technician }, (tx) =>
+          takeSignature(
+            tx,
+            {
+              tenantId: tenant,
+              writtenBy: technician,
+              at,
+              catalogue: withADoorCheck,
+              nameOf: (id) => names[id] ?? 'Unbekanntes Konto',
+            },
+            input,
+          ),
+        ),
+      ),
+    ).toBe('taken')
+
+    const { rows: found } = await admin.query<{ description: string; asset_id: string }>(
+      `select description, asset_id from defects where found_in_activity_id = $1
+        order by description desc`,
+      [activity],
+    )
+
+    expect(found).toEqual([
+      { description: 'Tür: Tür klemmt.', asset_id: pointedAsset },
+      { description: 'Rahmen: Rahmen lose.', asset_id: here?.asset_id },
+    ])
+  })
+
+  it('makes a defect of an answer not in order with the signature, before the countersignature, and once', async () => {
+    const activity = await filledIn(everyPoint, true)
+    const signer = await signatureFor(activity)
+
+    expect(
+      await refusalOf(as(technician, (tx, context) => takeSignature(tx, context, signer))),
+    ).toBe('taken')
+    expect(await statusOf(activity)).toBe('signed')
+    expect(await defectsOf(activity)).toEqual([
+      { description: 'Plombe unversehrt: Plombe fehlt.', answer: 'seal_intact' },
+    ])
+
+    // The defect is not on the page: the countersignature is for the page the signature was.
+    const countersigner = await signatureFor(activity, 'countersigner')
+
+    expect(countersigner.pageFingerprint).toBe(signer.pageFingerprint)
+    expect(
+      await refusalOf(as(site, (tx, context) => takeSignature(tx, context, countersigner))),
+    ).toBe('taken')
+    expect(await statusOf(activity)).toBe('done')
+    expect(await defectsOf(activity)).toHaveLength(1)
+
+    const { rows } = await admin.query<{
+      state: { answers: { label: string }[]; defects: { description: string }[] }
+    }>('select state from evidence where activity_id = $1', [activity])
+
+    expect(rows[0]?.state.answers.map((answer) => answer.label)).toEqual([
+      'Plombe unversehrt',
+      'Zähler dicht',
+      'Zählerstand',
+    ])
+    expect(rows[0]?.state.defects).toEqual([
+      { description: 'Plombe unversehrt: Plombe fehlt.', defectClass: null, dueOn: null },
+    ])
   })
 })
 

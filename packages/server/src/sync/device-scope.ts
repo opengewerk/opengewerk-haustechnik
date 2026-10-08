@@ -99,6 +99,7 @@ const placeEntities = [
 const workEntities = [
   'activities',
   'activity_duties',
+  'activity_answers',
   'work_orders',
   'activity_signatures',
   'work_order_decisions',
@@ -129,6 +130,7 @@ export function pullScope(scope: DeviceScope): PullScope {
   const narrowing: Readonly<Record<string, SQL>> = {
     activities: sql`${column('activities', 'id')} = any(${activities})`,
     activity_duties: sql`${column('activity_duties', 'activity_id')} = any(${activities})`,
+    activity_answers: sql`${column('activity_answers', 'activity_id')} = any(${activities})`,
     work_orders: sql`${column('work_orders', 'activity_id')} = any(${activities})`,
     activity_signatures: sql`${column('activity_signatures', 'activity_id')} = any(${activities})`,
     work_order_decisions: sql`${column('work_order_decisions', 'work_order_id')} in

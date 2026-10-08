@@ -183,6 +183,13 @@
       "when": 1791461202264,
       "tag": "0025_defects_kept",
       "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1791469916818,
+      "tag": "0026_answers_per_point",
+      "breakpoints": true
     }
   ]
 }

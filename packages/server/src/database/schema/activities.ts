@@ -19,6 +19,7 @@ import {
   date,
   foreignKey,
   index,
+  integer,
   pgEnum,
   pgTable,
   text,
@@ -81,6 +82,9 @@ export const activities = pgTable(
     closingReason: text('closing_reason'),
     performedOn: date('performed_on', { mode: 'string' }),
     countersignatureRequired: boolean('countersignature_required').notNull().default(false),
+    // The form it is filled in, and its version (#106): the server's to write.
+    formKey: text('form_key'),
+    formVersion: integer('form_version'),
     ...timestamps,
     ...syncColumns,
   },
@@ -152,6 +156,15 @@ export const activities = pgTable(
     check(
       'activities_closed_with_a_reason',
       sql`(${table.status} = 'not_performed') = (${table.closingReason} is not null)`,
+    ),
+    // A form with its version, or neither.
+    check(
+      'activities_form_with_its_version',
+      sql`(${table.formKey} is null) = (${table.formVersion} is null)`,
+    ),
+    check(
+      'activities_form_shaped',
+      sql`${table.formKey} is null or (${table.formKey} ~ '^[a-z][a-z0-9_.-]*$' and char_length(${table.formKey}) <= ${sql.raw(String(activityLimits.formKey))} and ${table.formVersion} >= 1)`,
     ),
     // A work order is accepted by whoever handed it out, and not countersigned.
     check(

@@ -78,6 +78,7 @@ describe('the foundation in this database', () => {
           'attachments.attachments_at_an_activity_of_their_property',
           'attachments.attachments_at_a_defect_of_their_property',
           'attachments.attachments_hang_on_one_record',
+          'attachments.attachments_at_their_activity',
           'attachments.attachments_title_shaped',
         ],
         indexes: [

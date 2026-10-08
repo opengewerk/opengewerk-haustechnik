@@ -72,9 +72,10 @@ export * from './model/evidence.js'
 export * from './model/signature.js'
 
 // What is done to meet a duty or to set a fault right, and what is noticed on
-// the way: activities with the duties they meet and their work orders, and
-// defects.
+// the way: activities with the duties they meet, the answers to their forms
+// and their work orders, and defects.
 export * from './model/activity.js'
+export * from './model/answer.js'
 export * from './model/activity-register.js'
 export * from './model/defect.js'
 export * from './model/defect-register.js'

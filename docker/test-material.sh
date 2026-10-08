@@ -30,7 +30,7 @@ guarded_route=/staff
 # The tables counted before the backup and after the restore. The area and
 # the place of the account in it come with the account: a Betreiber gets its
 # first area with its first membership.
-counted_tables='auth_users memberships tenant_roles account_corrections areas member_areas invitations invitation_area_choices invitation_areas properties buildings contacts building_closures assets files mail_settings deadline_settings deadline_runs duties duty_dismissals evidence deadlines activities activity_duties work_orders defects activity_signatures work_order_decisions evidence_voidings attachments attachment_versions labels imports asset_kind_names defect_class_terms'
+counted_tables='auth_users memberships tenant_roles account_corrections areas member_areas invitations invitation_area_choices invitation_areas properties buildings contacts building_closures assets files mail_settings deadline_settings deadline_runs duties duty_dismissals evidence deadlines activities activity_duties activity_answers work_orders defects activity_signatures work_order_decisions evidence_voidings attachments attachment_versions labels imports asset_kind_names defect_class_terms'
 
 # The migrations, and how many of them make the older state an update starts
 # from: the first, without the sequence for work orders that the second brings.
@@ -221,9 +221,10 @@ records_for_backup() {
            'Die Anlage hat keine Notrufeinrichtung.', u.id
       from assets a, auth_users u
      where a.tenant_id = '$first_tenant' and u.email = '$probe_email';"
-  # A work order at the asset to meet the duty, and a defect noticed in it
-  # (opengewerk-haustechnik#26). What writes them comes with the rounds, the
-  # protocols and the work orders of phase 1.
+  # A work order at the asset to meet the duty, a defect noticed in it
+  # (opengewerk-haustechnik#26) and the answer to a point of its form (#106),
+  # given before the signature, which keeps it from then on. What writes them
+  # comes with the rounds, the protocols and the work orders of phase 1.
   sql "
     insert into activities (tenant_id, property_id, area_id, asset_id, kind, title)
     select tenant_id, property_id, area_id, id, 'work_order', 'Hauptprüfung Aufzug Haus A'
@@ -239,6 +240,11 @@ records_for_backup() {
                          description, found_on)
     select tenant_id, property_id, area_id, asset_id, id, 'Notruf im Fahrkorb ohne Verbindung.',
            '2026-10-01'
+      from activities where tenant_id = '$first_tenant';
+    insert into activity_answers (tenant_id, property_id, area_id, activity_id, field_key, result,
+                                  remark)
+    select tenant_id, property_id, area_id, id, 'emergency_call', 'not_ok',
+           'Notruf im Fahrkorb ohne Verbindung.'
       from activities where tenant_id = '$first_tenant';
     insert into activity_signatures (tenant_id, property_id, area_id, activity_id, signed_by, role,
                                      signed_at, path, page_fingerprint)
