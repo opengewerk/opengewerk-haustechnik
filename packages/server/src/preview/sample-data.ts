@@ -1,3 +1,5 @@
+import type { WorkOrderKind, WorkOrderUrgency } from '@opengewerk/haustechnik-domain'
+
 import { dayInGermany } from '../today.js'
 import type { PreviewArea } from './preview-database.js'
 import {
@@ -90,14 +92,14 @@ interface SampleAsset {
 /**
  * A defect at a sample asset, reported by hand through the route (#116), a
  * class given or not; a class without a day takes the default of the
- * operator. How far it is beyond found is written behind the routes until the
- * work orders that set a defect right come (#117).
+ * operator. A defect with an order gets one through the route of the work
+ * orders (#117), and goes as far as the order goes.
  */
 interface SampleDefect {
   readonly description: string
   readonly foundDaysAgo: number
   readonly defectClass?: string
-  readonly status?: 'remedied' | 'verified'
+  readonly order?: SampleOrder
 }
 
 /**
@@ -540,19 +542,29 @@ export const sampleProperties: readonly SampleProperty[] = [
                 description: 'Kabine hält zwei Zentimeter unter Bündigkeit',
                 foundDaysAgo: 9,
                 defectClass: 'allgemein.minor',
+                order: { title: 'Haltegenauigkeit der Kabine nachstellen', leads: 'preview-wendt' },
               },
               { description: 'Kratzgeräusch an der Schachttür im 1. OG', foundDaysAgo: 2 },
               {
                 description: 'Beleuchtung im Fahrkorb flackert',
                 foundDaysAgo: 20,
                 defectClass: 'allgemein.significant',
-                status: 'remedied',
+                order: {
+                  title: 'Leuchtmittel im Fahrkorb tauschen',
+                  leads: 'preview-wendt',
+                  urgency: 'urgent',
+                  goes: 'signed',
+                },
               },
               {
                 description: 'Schild mit der Notrufnummer fehlt',
                 foundDaysAgo: 40,
                 defectClass: 'allgemein.significant',
-                status: 'verified',
+                order: {
+                  title: 'Schild mit der Notrufnummer anbringen',
+                  leads: 'preview-roth',
+                  goes: 'checked',
+                },
               },
             ],
             // What the card "Dokumente" of its file shows: a manual with a
@@ -733,12 +745,65 @@ interface SampleReport {
 }
 
 /**
- * What no route writes yet and the preview writes behind them once the
- * planting is done (`sample-standings.ts`): how far a defect is beyond found,
- * which a work order does (#117), and the labels of a sheet.
+ * A work order of the sample operator (#117): what it is, who leads it, who
+ * else works on it, and how far it goes. Signed is what a device sends, and
+ * the preview writes the signature behind the routes; the acceptance, the
+ * rejection and the check of its defect go through their routes.
+ */
+interface SampleOrder {
+  readonly title: string
+  readonly leads: string
+  readonly kind?: WorkOrderKind
+  readonly urgency?: WorkOrderUrgency
+  readonly participants?: readonly string[]
+  readonly goes?: 'signed' | 'accepted' | 'checked' | 'rejected'
+}
+
+/** A work order made by hand at a property of the sample operator, by its name. */
+interface SampleOrderByHand extends SampleOrder {
+  readonly property: string
+}
+
+/**
+ * What the list "Aufträge" is looked at with beside the orders of the
+ * defects: one at once, for a fault that holds up the running of the
+ * kitchen, and one turned back at its acceptance.
+ */
+const sampleOrdersByHand: readonly SampleOrderByHand[] = [
+  {
+    property: 'Schulzentrum Am Lindenhain',
+    title: 'Heizkessel Mensa entlüften',
+    leads: 'preview-wendt',
+    participants: ['preview-roth'],
+    kind: 'fault',
+    urgency: 'immediate',
+  },
+  {
+    property: 'Werkhof Nord',
+    title: 'Fensterflügel Werkstatt einstellen',
+    leads: 'preview-vogt',
+    participants: ['preview-yilmaz'],
+    kind: 'other',
+    goes: 'rejected',
+  },
+]
+
+/** A work order the planting made, with how far it is to go and the defect it came of. */
+export interface PlantedOrder {
+  readonly activityId: string
+  readonly leads: string
+  readonly goes: NonNullable<SampleOrder['goes']>
+  readonly defectId: string | null
+}
+
+/**
+ * What no route writes and the preview writes behind them once the planting
+ * is done (`sample-standings.ts`): the signature under a work order, which a
+ * device sends, and the labels of a sheet. What follows a signature goes
+ * through the routes again (`decideSampleOrders`).
  */
 export interface BehindTheRoutes {
-  readonly defects: { readonly defectId: string; readonly status: 'remedied' | 'verified' }[]
+  readonly orders: PlantedOrder[]
   /** Labels of a sheet printed for a property, which hang on nothing yet. */
   readonly sheets: { readonly propertyId: string; readonly labels: number }[]
 }
@@ -909,7 +974,7 @@ async function plantAsset(
     await plantDuty(address, { assetId: created.id }, duty, standings)
   }
 
-  for (const { description, foundDaysAgo, defectClass, status } of defects) {
+  for (const { description, foundDaysAgo, defectClass, order } of defects) {
     const reported = await send(address, '/defects', {
       assetId: created.id,
       description,
@@ -917,8 +982,8 @@ async function plantAsset(
       ...(defectClass === undefined ? {} : { defectClass }),
     })
 
-    if (status !== undefined) {
-      standings.defects.push({ defectId: reported.id, status })
+    if (order !== undefined) {
+      await plantOrder(address, standings, order, { origin: 'defect', defectId: reported.id })
     }
   }
 
@@ -961,7 +1026,8 @@ export async function plantSampleData(
   address: string,
   areas: ReadonlyMap<PreviewArea, string>,
 ): Promise<BehindTheRoutes> {
-  const standings: PlantedStandings = { evidence: [], defects: [], sheets: [] }
+  const standings: PlantedStandings = { evidence: [], orders: [], sheets: [] }
+  const propertyIds = new Map<string, string>()
 
   // The defaults of the three general classes of defects, which the Leitung
   // sets under "Einstellungen" (#116).
@@ -980,6 +1046,8 @@ export async function plantSampleData(
       federalState: 'DE-BW',
       areaId: areas.get(area),
     })
+
+    propertyIds.set(fields.name, created.id)
 
     for (const contact of contacts) {
       await send(address, '/contacts', { ...contact, propertyId: created.id })
@@ -1089,7 +1157,75 @@ export async function plantSampleData(
   await send(address, '/substitutions', sampleSubstitution)
   await sendSampleReports(address, standings.evidence)
 
-  return { defects: standings.defects, sheets: standings.sheets }
+  for (const { property, ...order } of sampleOrdersByHand) {
+    await plantOrder(address, standings, order, {
+      origin: 'hand',
+      propertyId: propertyIds.get(property),
+    })
+  }
+
+  return { orders: standings.orders, sheets: standings.sheets }
+}
+
+/**
+ * A work order through its route, as whoever plans makes one (#117), due in
+ * a week, and kept with how far it is to go.
+ */
+async function plantOrder(
+  address: string,
+  standings: PlantedStandings,
+  order: SampleOrder,
+  origin: Readonly<Record<string, unknown>>,
+): Promise<void> {
+  const made = await send(address, '/work-orders', {
+    ...origin,
+    title: order.title,
+    kind: order.kind ?? 'defect_remedy',
+    urgency: order.urgency ?? 'normal',
+    dueOn: daysAhead(7),
+    responsibleUserId: order.leads,
+    participantUserIds: order.participants ?? [],
+  })
+
+  if (order.goes !== undefined) {
+    standings.orders.push({
+      activityId: made.id,
+      leads: order.leads,
+      goes: order.goes,
+      defectId: typeof origin['defectId'] === 'string' ? origin['defectId'] : null,
+    })
+  }
+}
+
+/**
+ * What follows the signature of a sample order, through the routes (#117):
+ * the acceptance, after which the defect of the order is checked again, and
+ * a rejection with its reason.
+ */
+export async function decideSampleOrders(
+  address: string,
+  orders: readonly PlantedOrder[],
+): Promise<void> {
+  for (const order of orders) {
+    if (order.goes === 'accepted' || order.goes === 'checked') {
+      await send(address, `/work-orders/${order.activityId}/decision`, { decision: 'accepted' })
+    }
+
+    if (order.goes === 'rejected') {
+      await send(address, `/work-orders/${order.activityId}/decision`, {
+        decision: 'rejected',
+        reason: 'Der Flügel schleift unten noch am Rahmen.',
+      })
+    }
+
+    if (order.goes === 'checked' && order.defectId !== null) {
+      await send(address, `/defects/${order.defectId}/check`, {
+        outcome: 'verified',
+        checkedOn: daysAhead(0),
+        note: 'Bei der Nachprüfung in Ordnung.',
+      })
+    }
+  }
 }
 
 /**

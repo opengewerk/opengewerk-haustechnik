@@ -146,8 +146,8 @@ describe('the navigation of the office as it is built today', () => {
    * places, assets, documents and duties, and the catalogue is the same for
    * everybody. The deadlines follow the register of duties for whoever looks
    * after them (#104), and with their settings so does "Einstellungen". The
-   * defects stand under "Arbeit" for every role (#116). The next screen that
-   * arrives changes what stands here.
+   * defects stand under "Arbeit" for every role (#116), and the work orders
+   * after them (#117). The next screen that arrives changes what stands here.
    */
   const built = [
     'Liegenschaften',
@@ -158,6 +158,8 @@ describe('the navigation of the office as it is built today', () => {
     'Prüfungen',
     // The defects, for every role (#116).
     'Mängel',
+    // The work orders, for every role (#117).
+    'Aufträge',
     'Katalog',
     'Abgleich',
   ]
@@ -170,6 +172,7 @@ describe('the navigation of the office as it is built today', () => {
     'Fristen',
     'Prüfungen',
     'Mängel',
+    'Aufträge',
     'Katalog',
     'Abgleich',
     'Einstellungen',

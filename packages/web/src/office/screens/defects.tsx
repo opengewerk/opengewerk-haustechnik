@@ -88,6 +88,7 @@ import { evidencePlaces } from '../duty-addresses.js'
 import { factLink } from '../links.js'
 import { officePlaces } from '../place-addresses.js'
 import { RegisterFilter } from '../register-filter.js'
+import { workOrderPlaces, workOrderStartSearch } from '../work-order-addresses.js'
 
 export const defectWords = {
   sub: 'Was festgestellt wurde, an einer Anlage oder einem Ort, bis es nachgeprüft ist.',
@@ -242,7 +243,11 @@ function OrderCell({ defect }: { readonly defect: DefectEntry }) {
     return <span className="text-ink-faint">{defectWords.noOrder}</span>
   }
 
-  return <span>{defect.workOrder.number ?? defect.workOrder.title}</span>
+  return (
+    <Link to={workOrderPlaces.order(defect.workOrder.activityId)} className={factLink}>
+      {defect.workOrder.number ?? defect.workOrder.title}
+    </Link>
+  )
 }
 
 /** A page of the register at a time, narrowed by a filter. */
@@ -821,6 +826,8 @@ export function DefectScreen() {
   const { defectId } = useParams({ strict: false }) as { defectId?: string }
   const page = useQuery({ ...defectQuery(defectId ?? ''), enabled: defectId !== undefined })
   const keeps = useRight('defect.write')
+  const plans = useRight('activity.write')
+  const navigate = useNavigate()
   const classWord = useClassWord()
   const [editing, setEditing] = useState(false)
   const shown = page.data
@@ -868,6 +875,20 @@ export function DefectScreen() {
         actions={
           <>
             <ChangesButton table="defects" id={shown.id} />
+            {/* A found defect gets its work order here (#117). */}
+            {plans && shown.status === 'found' ? (
+              <Button
+                icon={Plus}
+                onClick={() => {
+                  void navigate({
+                    to: workOrderPlaces.new,
+                    search: workOrderStartSearch({ defectId: shown.id }),
+                  })
+                }}
+              >
+                Auftrag anlegen
+              </Button>
+            ) : null}
             {changes && !editing ? (
               <Button
                 icon={Pencil}
@@ -963,7 +984,9 @@ export function DefectScreen() {
               <div className="flex flex-col gap-2">
                 <div className="leading-[1.32]">
                   <div className="font-medium">
-                    {[order.number, order.title].filter(Boolean).join(' ')}
+                    <Link to={workOrderPlaces.order(order.activityId)} className={factLink}>
+                      {[order.number, order.title].filter(Boolean).join(' ')}
+                    </Link>
                   </div>
                   <div className="text-[12px] text-ink-faint">
                     {[

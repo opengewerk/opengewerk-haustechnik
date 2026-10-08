@@ -814,6 +814,19 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   schloss, hatte bisher keinen Weg zu einem neuen, und die Pflicht stand überfällig da, ohne dass
   jemand dran war. Planungskonzept v0.18 (4.4), eine Aussage in Abschnitt 3.4 der
   Verfahrensbeschreibung
+- Aufträge im Büro (#117, #73): die Liste "Aufträge" mit Nummer, Ort oder Anlage, Dringlichkeit,
+  Frist, verantwortlicher Person und Stand, eingegrenzt nach Stand, Art und Bereich und nicht auf
+  eine Person; die Seite eines Auftrags mit Ursprung, Beteiligten, Fotos von vor Ort, Unterschrift
+  und Abnahme; ein neuer Auftrag aus einem festgestellten Mangel, aus dem Termin einer Pflicht oder
+  von Hand, und seine Änderung, bis er unterschrieben ist (`/work-orders`). Ein Auftrag sagt, wie
+  dringend er ist (normal, dringend, sofort), und nennt weitere Beteiligte, die ihn auf ihrem Gerät
+  haben und nicht abschließen (Migration `0027_work_orders_in_the_office`). Der Mangel folgt
+  seinem Auftrag: beauftragt beim Anlegen, behoben mit der Unterschrift, wieder beauftragt mit
+  einer Zurückweisung; abgenommen schreibt ein Auftrag für einen Termin den Nachweis seiner
+  Pflicht. Anlegen und ändern kann, wer Vorgänge plant und verteilt, abnehmen, wer Aufträge
+  abnimmt. Mangel, Anlagenakte und Pflicht führen zum Auftrag. Bisher hatten Aufträge nur ihr
+  Datenmodell, und ein Mangel kam über "festgestellt" nicht hinaus. Planungskonzept 4.6 und 4.8,
+  Nachtrag in ADR 0002, Abschnitte 3.4, 3.12, 4, 5 und 9 der Verfahrensbeschreibung
 
 ### Geändert
 

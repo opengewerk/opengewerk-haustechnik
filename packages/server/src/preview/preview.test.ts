@@ -371,7 +371,7 @@ describe('a preview started as the Leitung', () => {
   })
 
   // What the list of defects and the page of a defect are looked at with (#116).
-  it('shows a defect over its deadline, one within it, one without a class, one remedied and one checked again', async () => {
+  it('shows a defect over its deadline, one within it, one without a class, one ordered, one remedied and one checked again', async () => {
     const server = application.getHttpServer()
     const register = (
       await request(server).get('/defects').query({ state: 'all', limit: '200' }).expect(200)
@@ -398,10 +398,40 @@ describe('a preview started as the Leitung', () => {
     ).toEqual([
       ['Beleuchtung im Fahrkorb flackert', 'remedied', 'allgemein.significant', false, 'hand'],
       ['Notruf im Fahrkorb ohne Verbindung', 'found', 'allgemein.dangerous', true, 'hand'],
-      ['Kabine hält zwei Zentimeter unter Bündigkeit', 'found', 'allgemein.minor', false, 'hand'],
+      ['Kabine hält zwei Zentimeter unter Bündigkeit', 'ordered', 'allgemein.minor', false, 'hand'],
       ['Kratzgeräusch an der Schachttür im 1. OG', 'found', null, false, 'hand'],
       ['Schild mit der Notrufnummer fehlt', 'verified', 'allgemein.significant', false, 'hand'],
     ])
+  })
+
+  // What the list "Aufträge" is looked at with (#117): an order open, one at
+  // once, one waiting for its acceptance, one turned back and one accepted.
+  it('shows a work order open, at once, waiting, turned back and accepted', async () => {
+    const server = application.getHttpServer()
+    const list = (
+      await request(server).get('/work-orders').query({ state: 'all', limit: '200' }).expect(200)
+    ).body as {
+      readonly orders: readonly {
+        readonly title: string
+        readonly status: string
+        readonly urgency: string
+        readonly rejected: boolean
+        readonly number: string | null
+      }[]
+    }
+
+    expect(
+      list.orders
+        .map((order) => [order.title, order.status, order.urgency, order.rejected])
+        .sort((left, right) => String(left[0]).localeCompare(String(right[0]), 'de')),
+    ).toEqual([
+      ['Fensterflügel Werkstatt einstellen', 'started', 'normal', true],
+      ['Haltegenauigkeit der Kabine nachstellen', 'open', 'normal', false],
+      ['Heizkessel Mensa entlüften', 'open', 'immediate', false],
+      ['Leuchtmittel im Fahrkorb tauschen', 'signed', 'urgent', false],
+      ['Schild mit der Notrufnummer anbringen', 'done', 'normal', false],
+    ])
+    expect(list.orders.every((order) => order.number !== null)).toBe(true)
   })
 
   // What the register of duties and the page of a duty are looked at with (#101).

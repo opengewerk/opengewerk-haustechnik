@@ -2,6 +2,7 @@ import type { Id, IsoDate, Synced } from '@opengewerk/platform-domain'
 
 import type { AreaId } from './area.js'
 import type { DutyTask } from './catalogue.js'
+import type { DefectId } from './defect.js'
 import {
   type DutyId,
   type DutyPerformer,
@@ -25,6 +26,7 @@ import type { PlaceTarget } from './target.js'
 export type ActivityId = Id<'activity'>
 export type ActivityDutyId = Id<'activity-duty'>
 export type WorkOrderId = Id<'work-order'>
+export type WorkOrderParticipantId = Id<'work-order-participant'>
 
 /** The kinds of an activity, in the words of section 2.2 of the concept. */
 export const activityKinds = ['round', 'inspection', 'maintenance', 'work_order'] as const
@@ -118,6 +120,22 @@ export const workOrderKindLabel: Readonly<Record<WorkOrderKind, string>> = {
   other: 'Sonstiger Auftrag',
 }
 
+/**
+ * How urgent a work order is (section 4.8 of the concept, #73): normal,
+ * urgent, or at once, for a fault that holds up the running of a building,
+ * which always reaches the person who answers for the order as a push
+ * message (section 3).
+ */
+export const workOrderUrgencies = ['normal', 'urgent', 'immediate'] as const
+
+export type WorkOrderUrgency = (typeof workOrderUrgencies)[number]
+
+export const workOrderUrgencyLabel: Readonly<Record<WorkOrderUrgency, string>> = {
+  normal: 'normal',
+  urgent: 'dringend',
+  immediate: 'sofort',
+}
+
 /** The bounds of the texts of an activity, the same in the form, the sync and the database. */
 export const activityLimits = {
   title: 200,
@@ -186,9 +204,15 @@ export interface ActivityDuty extends Synced {
 
 /**
  * What only a work order has, beside its activity (section 4.8 of the
- * concept): the number from the sequence of the work orders and the kind of
- * the order. The server draws the number, never a device; a work order made
- * on a device without a connection gets it when it arrives, as an asset does.
+ * concept): the number from the sequence of the work orders, the kind of the
+ * order, how urgent it is, and the defect it came of. The server draws the
+ * number, never a device; a work order made on a device without a connection
+ * gets it when it arrives, as an asset does.
+ *
+ * The defect stays with the order it came of (#117): a defect that is found
+ * not set right gets a new order, which the defect then names, and the first
+ * one still names the defect. A work order for the due day of a duty names
+ * the duty among the duties of its activity.
  */
 export interface WorkOrder extends Synced {
   readonly id: WorkOrderId
@@ -197,6 +221,22 @@ export interface WorkOrder extends Synced {
   readonly activityId: ActivityId
   readonly number: string | null
   readonly kind: WorkOrderKind
+  readonly urgency: WorkOrderUrgency
+  readonly originDefectId: DefectId | null
+}
+
+/**
+ * A further person working on a work order (section 4.8 of the concept, #73):
+ * beside the person who answers for it, they have it on their device and add
+ * notes, photos and the time spent. They do not finish it, and the signed
+ * page does not name them, since who works on an order may change.
+ */
+export interface WorkOrderParticipant extends Synced {
+  readonly id: WorkOrderParticipantId
+  readonly propertyId: PropertyId
+  readonly areaId: AreaId
+  readonly activityId: ActivityId
+  readonly userId: string
 }
 
 /**
@@ -309,7 +349,10 @@ export function activityDutyProblems(line: Readonly<Record<string, unknown>>): R
   return problems
 }
 
-/** What is wrong with what only a work order has: its kind. Its number comes from the server. */
+/**
+ * What is wrong with what only a work order has: its kind and how urgent it
+ * is. Its number comes from the server.
+ */
 export function workOrderProblems(order: Readonly<Record<string, unknown>>): Readonly<Problems> {
   const problems: Problems = {}
 
@@ -320,6 +363,81 @@ export function workOrderProblems(order: Readonly<Record<string, unknown>>): Rea
     workOrderKinds,
     `Ein Auftrag ist einer von: ${workOrderKinds.map((kind) => workOrderKindLabel[kind]).join(', ')}.`,
   )
+  oneOf(
+    problems,
+    order,
+    'urgency',
+    workOrderUrgencies,
+    `Die Dringlichkeit ist eine von: ${workOrderUrgencies.map((urgency) => workOrderUrgencyLabel[urgency]).join(', ')}.`,
+  )
+
+  return problems
+}
+
+/** How many further people a work order names at most. */
+export const workOrderLimits = { participants: 20 } as const
+
+/**
+ * A work order as whoever plans and hands out work sets it out in the office
+ * (section 4.8 of the concept, #117): what is to be done, its kind, how urgent
+ * it is, the day it is due on, the person who answers for it and finishes it,
+ * and the further people who work on it.
+ */
+export interface WorkOrderPlan {
+  readonly title: string
+  readonly kind: WorkOrderKind
+  readonly urgency: WorkOrderUrgency
+  readonly dueOn: IsoDate
+  readonly responsibleUserId: string
+  readonly participantUserIds: readonly string[]
+}
+
+/**
+ * What is wrong with the plan of a work order, one sentence per field. Every
+ * field is asked about: a plan is set out whole. Whether the people named may
+ * be named is asked by the server, which knows who sees the area.
+ */
+export function workOrderPlanProblems(plan: Readonly<Record<string, unknown>>): Readonly<Problems> {
+  const problems: Problems = {}
+
+  required(
+    problems,
+    { ...plan, title: plan['title'] ?? null },
+    'title',
+    activityLimits.title,
+    'Die Bezeichnung',
+  )
+  Object.assign(
+    problems,
+    workOrderProblems({ kind: plan['kind'] ?? '', urgency: plan['urgency'] ?? '' }),
+  )
+
+  if (!calendarDay(plan['dueOn'])) {
+    problems['dueOn'] = 'Die Frist ist ein Tag, geschrieben 2026-10-03.'
+  }
+
+  const responsible = plan['responsibleUserId']
+
+  if (typeof responsible !== 'string' || responsible === '') {
+    problems['responsibleUserId'] = 'Ein Auftrag nennt die Person, die ihn führt.'
+  }
+
+  const participants = plan['participantUserIds']
+
+  if (
+    !Array.isArray(participants) ||
+    !participants.every((userId) => typeof userId === 'string' && userId !== '')
+  ) {
+    problems['participantUserIds'] = 'Die weiteren Beteiligten sind eine Liste von Personen.'
+  } else if (participants.length > workOrderLimits.participants) {
+    problems['participantUserIds'] =
+      `Ein Auftrag nennt höchstens ${String(workOrderLimits.participants)} weitere Beteiligte.`
+  } else if (new Set(participants).size !== participants.length) {
+    problems['participantUserIds'] = 'Jede Person steht einmal unter den Beteiligten.'
+  } else if (participants.includes(responsible)) {
+    problems['participantUserIds'] =
+      'Wer den Auftrag führt, steht nicht noch einmal unter den Beteiligten.'
+  }
 
   return problems
 }

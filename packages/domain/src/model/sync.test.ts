@@ -65,6 +65,8 @@ describe('the policies of the sync', () => {
       defects: [true, 'merge'],
       activity_signatures: [true, 'never'],
       work_order_decisions: [false, 'never'],
+      // Who works on an order is handed out in the office (addendum of 08.10.2026, #73).
+      work_order_participants: [false, 'never'],
       // Filed in the office and on site, a photo also without a connection
       // (addendum of 06.10.2026); a version is made and never changed.
       attachments: [true, 'merge'],

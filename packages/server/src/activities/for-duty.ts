@@ -24,6 +24,13 @@ export interface MakingAnActivity {
   /** Who answers for it, or nobody. */
   readonly responsible: string | null
   readonly now: Date
+  /**
+   * A work order for the due day instead of an inspection or a maintenance
+   * (#117, section 4.8 of the concept), under the title the office gave it.
+   * It keeps the form of the duty kind, which its protocol is filled in, and
+   * the own people perform it; who works on it is the office's to say.
+   */
+  readonly workOrder?: { readonly title: string }
 }
 
 /** The activity that was made, or why none was. */
@@ -86,13 +93,21 @@ export async function makeActivityForDuty(
       buildingId: duty.buildingId,
       roomId: duty.roomId,
       assetId: duty.assetId,
-      kind: activityKindOfTask(task),
-      title: dutyTitle(duty, catalogue).trim().slice(0, activityLimits.title).trim(),
+      ...(making.workOrder === undefined
+        ? {
+            kind: activityKindOfTask(task),
+            title: dutyTitle(duty, catalogue).trim().slice(0, activityLimits.title).trim(),
+            performer: duty.performer,
+            contractorNote: duty.performer === 'contractor' ? duty.performerNote : null,
+          }
+        : {
+            kind: 'work_order' as const,
+            title: making.workOrder.title,
+            performer: 'own_staff' as const,
+          }),
       status: 'open',
       dueOn: making.dueOn,
       responsibleUserId: making.responsible,
-      performer: duty.performer,
-      contractorNote: duty.performer === 'contractor' ? duty.performerNote : null,
       formKey: form?.key ?? null,
       formVersion: form?.version ?? null,
     })

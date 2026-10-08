@@ -22,7 +22,7 @@ import {
   type WorkOrderId,
 } from '@opengewerk/haustechnik-domain'
 import type { TenantTransaction } from '@opengewerk/platform-server'
-import { and, asc, eq, isNull } from 'drizzle-orm'
+import { and, asc, eq, inArray, isNull } from 'drizzle-orm'
 
 import {
   activities,
@@ -105,6 +105,7 @@ export function pageFingerprint(page: SignedPage): string {
 }
 
 type ActivityRow = typeof activities.$inferSelect
+type SignatureRow = typeof activitySignatures.$inferSelect
 
 /**
  * What an activity calls for before it is signed, and what the server holds of
@@ -288,6 +289,34 @@ async function signaturesOf(tx: TenantTransaction, activity: ActivityRow, finger
 }
 
 /**
+ * Every signature of an activity, the first first, each with whether it
+ * counts now (#117): the page of a work order shows a signature that a
+ * rejection made invalid beside the one given after it.
+ */
+export async function signaturesWithTheirStanding(
+  tx: TenantTransaction,
+  activity: ActivityRow,
+): Promise<{ readonly signature: SignatureRow; readonly valid: boolean }[]> {
+  const counting = new Set(
+    (await signaturesOf(tx, activity, pageFingerprint(await pageOf(tx, activity)))).map(
+      (signature) => signature.id,
+    ),
+  )
+  const all = await tx
+    .select()
+    .from(activitySignatures)
+    .where(
+      and(
+        eq(activitySignatures.tenantId, activity.tenantId),
+        eq(activitySignatures.activityId, activity.id),
+      ),
+    )
+    .orderBy(asc(activitySignatures.createdAt), asc(activitySignatures.id))
+
+  return all.map((signature) => ({ signature, valid: counting.has(signature.id) }))
+}
+
+/**
  * Checks a signature before it is written (ADR 0004, points 7, 8 and 10):
  * only for the page the server works out itself, only in its turn, and only
  * once the activity says on which day it was performed and what came of each
@@ -410,6 +439,10 @@ export async function followSignature(
 
   if (valid.some((signature) => signature.role === 'signer')) {
     await defectsFromAnswers(tx, context, activity)
+
+    if (activity.kind === 'work_order') {
+      await defectsFollowTheirOrder(tx, context, activity.id, 'remedied')
+    }
   }
 
   const complete = activity.kind !== 'work_order' && signaturesComplete(activity, valid)
@@ -663,7 +696,44 @@ export async function decideWorkOrder(
     .set({ status })
     .where(and(eq(activities.tenantId, context.tenantId), eq(activities.id, activity.id)))
 
+  if (!accepted) {
+    await defectsFollowTheirOrder(tx, context, activity.id, 'ordered')
+  }
+
   return { id: decision.id, status, written }
+}
+
+/**
+ * The defects a work order sets right follow it (sections 4.6 and 4.8 of the
+ * concept, #117): set right with the signature of the person who leads the
+ * order, and ordered again when its acceptance turns it back, since the
+ * signature no longer counts. Only a defect that names this order as the one
+ * setting it right now, and only from the state before: a defect the check
+ * found not set right waits for a new order, and one that was checked is
+ * done and changes no more.
+ */
+async function defectsFollowTheirOrder(
+  tx: TenantTransaction,
+  context: WritingContext,
+  activityId: ActivityId,
+  to: 'remedied' | 'ordered',
+): Promise<void> {
+  const orders = tx
+    .select({ id: workOrders.id })
+    .from(workOrders)
+    .where(and(eq(workOrders.tenantId, context.tenantId), eq(workOrders.activityId, activityId)))
+
+  await tx
+    .update(defects)
+    .set({ status: to })
+    .where(
+      and(
+        eq(defects.tenantId, context.tenantId),
+        inArray(defects.remedyWorkOrderId, orders),
+        eq(defects.status, to === 'remedied' ? 'ordered' : 'remedied'),
+        isNull(defects.deletedAt),
+      ),
+    )
 }
 
 /**

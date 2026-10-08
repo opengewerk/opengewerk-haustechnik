@@ -492,6 +492,16 @@ function rowsOf(tenant: Tenant): readonly Row[] {
       },
     },
     {
+      table: 'work_order_participants',
+      values: {
+        tenant_id: tenant.id,
+        property_id: property,
+        area_id: area,
+        activity_id: activity,
+        user_id: tenant.colleagueId,
+      },
+    },
+    {
       table: 'defects',
       values: {
         tenant_id: tenant.id,

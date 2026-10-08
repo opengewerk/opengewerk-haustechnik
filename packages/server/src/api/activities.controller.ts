@@ -111,7 +111,7 @@ function activityQuestionOf(query: Readonly<Record<string, unknown>>): ActivityQ
 }
 
 /** The search as a pattern for ILIKE: what it says anywhere in the text, taken literally. */
-function containing(search: string): string {
+export function containing(search: string): string {
   return `%${search.replace(/[\\%_]/g, (character) => `\\${character}`)}%`
 }
 
@@ -599,7 +599,7 @@ function entryOf(
  * areas named for each membership; a substitution, which lasts some days,
  * makes nobody a candidate.
  */
-async function candidatesIn(
+export async function candidatesIn(
   tx: TenantTransaction,
   areaId: string,
 ): Promise<{ readonly responsible: readonly string[]; readonly performers: readonly string[] }> {

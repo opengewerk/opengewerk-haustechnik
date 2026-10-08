@@ -19,6 +19,7 @@ import type {
   Room,
   WorkOrder,
   WorkOrderDecision,
+  WorkOrderParticipant,
 } from '@opengewerk/haustechnik-domain'
 
 import type {
@@ -41,6 +42,7 @@ import type {
   properties,
   rooms,
   workOrderDecisions,
+  workOrderParticipants,
   workOrders,
 } from './schema/index.js'
 
@@ -90,6 +92,10 @@ export type WorkOrderMatches = Assert<
 export type ActivitySignatureMatches = Assert<
   Exact<typeof activitySignatures.$inferSelect, ActivitySignature>
 >
+export type WorkOrderParticipantMatches = Assert<
+  Exact<Omit<typeof workOrderParticipants.$inferSelect, 'activityKind'>, WorkOrderParticipant>
+>
+
 export type WorkOrderDecisionMatches = Assert<
   Exact<typeof workOrderDecisions.$inferSelect, WorkOrderDecision>
 >

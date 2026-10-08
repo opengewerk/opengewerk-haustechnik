@@ -56,6 +56,7 @@ import { PropertiesController } from './properties.controller.js'
 import { DutyReportController } from './report.controller.js'
 import { RoomsController } from './rooms.controller.js'
 import { syncRoutesFor } from './sync-routes.js'
+import { WorkOrdersController } from './work-orders.controller.js'
 
 /**
  * What the module needs beyond a database and an identity source.
@@ -246,6 +247,9 @@ export class ApiModule {
         DutyDismissalsController,
         // The inspections and the maintenance that came of the due days.
         ActivitiesController,
+        // The work orders: the list, the page, a new one, its change and
+        // its acceptance.
+        WorkOrdersController,
         // The page of an evidence with the files it rests on, its correction
         // and its declaration of invalidity, the evidence of an asset, and the
         // report of a contractor that becomes the evidence of a duty.

@@ -30,7 +30,7 @@ guarded_route=/staff
 # The tables counted before the backup and after the restore. The area and
 # the place of the account in it come with the account: a Betreiber gets its
 # first area with its first membership.
-counted_tables='auth_users memberships tenant_roles account_corrections areas member_areas invitations invitation_area_choices invitation_areas properties buildings contacts building_closures assets files mail_settings deadline_settings deadline_runs duties duty_dismissals evidence deadlines activities activity_duties activity_answers work_orders defects activity_signatures work_order_decisions evidence_voidings attachments attachment_versions labels imports asset_kind_names defect_class_terms'
+counted_tables='auth_users memberships tenant_roles account_corrections areas member_areas invitations invitation_area_choices invitation_areas properties buildings contacts building_closures assets files mail_settings deadline_settings deadline_runs duties duty_dismissals evidence deadlines activities activity_duties activity_answers work_orders work_order_participants defects activity_signatures work_order_decisions evidence_voidings attachments attachment_versions labels imports asset_kind_names defect_class_terms'
 
 # The migrations, and how many of them make the older state an update starts
 # from: the first, without the sequence for work orders that the second brings.
@@ -233,9 +233,13 @@ records_for_backup() {
     select a.tenant_id, a.property_id, a.area_id, a.id, d.id
       from activities a join duties d on d.tenant_id = a.tenant_id and d.asset_id = a.asset_id
      where a.tenant_id = '$first_tenant';
-    insert into work_orders (tenant_id, property_id, area_id, activity_id, number, kind)
-    select tenant_id, property_id, area_id, id, 'AU-2026-0001', 'inspection'
+    insert into work_orders (tenant_id, property_id, area_id, activity_id, number, kind, urgency)
+    select tenant_id, property_id, area_id, id, 'AU-2026-0001', 'inspection', 'urgent'
       from activities where tenant_id = '$first_tenant';
+    insert into work_order_participants (tenant_id, property_id, area_id, activity_id, user_id)
+    select a.tenant_id, a.property_id, a.area_id, a.id, u.id
+      from activities a, auth_users u
+     where a.tenant_id = '$first_tenant' and u.email = '$probe_email';
     insert into defects (tenant_id, property_id, area_id, asset_id, found_in_activity_id,
                          description, found_on)
     select tenant_id, property_id, area_id, asset_id, id, 'Notruf im Fahrkorb ohne Verbindung.',

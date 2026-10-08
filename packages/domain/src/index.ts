@@ -77,6 +77,7 @@ export * from './model/signature.js'
 export * from './model/activity.js'
 export * from './model/answer.js'
 export * from './model/activity-register.js'
+export * from './model/work-order-register.js'
 export * from './model/defect.js'
 export * from './model/defect-register.js'
 
