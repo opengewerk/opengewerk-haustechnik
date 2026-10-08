@@ -817,6 +817,9 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
 
 ### Geändert
 
+- In der CI laufen die Datenbanktests des Fundaments auf einer eigenen PostgreSQL neben denen der
+  Haustechnik statt vor ihnen (#192). Nacheinander brauchten beide zwölf der dreizehn Minuten des
+  Jobs "Typprüfung, Lint und Tests"; lokal bleibt es bei einer Testdatenbank und der Reihenfolge
 - Eine Berichtigung nimmt die Mängel aus dem Stand des Nachweises, den sie ersetzt, statt sie beim Vorgang neu zu
   lesen (#110): ein Bericht ohne Vorgang hat sie nirgends sonst
 - Die Beispieldaten der Vorschau tragen ihre Nachweise als Berichte über die Route ein, mit Berichtigung und
