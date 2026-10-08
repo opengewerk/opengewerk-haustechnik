@@ -7,7 +7,7 @@ import type {
   StaffSentences,
 } from '@opengewerk/platform-web'
 import { auditLogPath } from '@opengewerk/platform-web/office'
-import { History, Map, ScanLine, Users } from 'lucide-react'
+import { CalendarClock, History, Map, ScanLine, Users } from 'lucide-react'
 
 import { application } from '../app/application.js'
 import { auditScreenWords } from './audit.js'
@@ -15,8 +15,9 @@ import { auditScreenWords } from './audit.js'
 /**
  * The screens a tenant sets itself up with, each with the right it takes to
  * read it, in the order of the board: the areas, which are this
- * application's, and the two the foundation brings, who works for the tenant
- * and the change log for its Leitung. The right is one of this application's,
+ * application's, and the three the foundation brings, who works for the
+ * tenant, how early and to whom each kind of deadline reminds, and the change
+ * log for its Leitung. The right is one of this application's,
  * and the type holds that; the foundation, which draws the list, takes it as
  * a name.
  */
@@ -38,6 +39,14 @@ const settings = [
       'Wer für diesen Betreiber arbeitet, mit welchen Rollen, Bereichen und Vertretungen, und die Einladungen.',
     icon: Users,
     right: 'membership.read',
+  },
+  {
+    key: 'fristen',
+    to: '/einstellungen/fristen',
+    title: 'Fristen',
+    about: 'Wie viele Tage vorher an eine fällige Pflicht erinnert wird, und wer erinnert wird.',
+    icon: CalendarClock,
+    right: 'deadline.read',
   },
   {
     key: 'protokoll',

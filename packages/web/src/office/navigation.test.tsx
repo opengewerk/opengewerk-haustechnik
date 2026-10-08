@@ -144,7 +144,9 @@ describe('the navigation of the office as it is built today', () => {
    * duties is the first place under "Pflichten" (#101), and the documents
    * stand under "Bestand" since their screen is built (#97). Every role reads
    * places, assets, documents and duties, and the catalogue is the same for
-   * everybody. The next screen that arrives changes what stands here.
+   * everybody. The deadlines follow the register of duties for whoever looks
+   * after them (#104), and with their settings so does "Einstellungen". The
+   * next screen that arrives changes what stands here.
    */
   const built = [
     'Liegenschaften',
@@ -154,9 +156,20 @@ describe('the navigation of the office as it is built today', () => {
     'Katalog',
     'Abgleich',
   ]
+  // The deadlines and their settings for whoever looks after them (#104).
+  const withDeadlines = [
+    'Liegenschaften',
+    'Anlagen',
+    'Dokumente',
+    'Pflichtenverzeichnis',
+    'Fristen',
+    'Katalog',
+    'Abgleich',
+    'Einstellungen',
+  ]
   const today: readonly (readonly [RoleKey, readonly string[]])[] = [
-    ['management', [...built, 'Einstellungen']],
-    ['technical_management', built],
+    ['management', withDeadlines],
+    ['technical_management', withDeadlines],
     ['site_management', built],
     ['technician', built],
   ]
@@ -181,7 +194,7 @@ describe('the navigation of the office as it is built today', () => {
     await untilTheRightsAreKnown()
     await screen.findByRole('link', { name: 'Liegenschaften' })
 
-    for (const label of ['Übersicht', 'Zähler', 'Fristen', 'Prüfungen']) {
+    for (const label of ['Übersicht', 'Zähler', 'Prüfungen']) {
       expect(screen.queryByRole('link', { name: label })).toBeNull()
     }
   })
@@ -221,7 +234,7 @@ describe('a place whose screen is built', () => {
     ],
     [
       'technical_management',
-      ['Übersicht', 'Liegenschaften', 'Fristen', 'Katalog', 'Abgleich'],
+      ['Übersicht', 'Liegenschaften', 'Fristen', 'Katalog', 'Abgleich', 'Einstellungen'],
       ['Bestand', 'Pflichten'],
     ],
     // Without the right to the deadlines their place is not there, and the

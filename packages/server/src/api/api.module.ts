@@ -27,7 +27,7 @@ import {
 
 import { access } from '../authentication/access.js'
 import { CATALOGUE, shippedCatalogue } from '../catalogue.js'
-import { deadlineRules } from '../deadlines/routes.js'
+import { deadlineRulesFor } from '../deadlines/routes.js'
 import { AreasController, SubstitutionsController } from './areas.controller.js'
 import { AssetsController, BuildingAssetsController } from './assets.controller.js'
 import { attachmentRights, attachmentRoutes } from './attachment-routes.js'
@@ -183,7 +183,7 @@ export class ApiModule {
         settingsRead: 'deadline.read',
         settingsWrite: 'deadline.write',
       },
-      rules: deadlineRules,
+      rules: deadlineRulesFor(catalogue),
     })
 
     // The people to talk to at a property, on the routes of the foundation,

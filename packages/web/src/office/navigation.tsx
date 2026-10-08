@@ -1,4 +1,9 @@
-import type { NavigationEntry, NavigationGroup } from '@opengewerk/platform-web/office'
+import {
+  deadlinePage,
+  type NavigationEntry,
+  type NavigationGroup,
+} from '@opengewerk/platform-web/office'
+import { useQuery } from '@tanstack/react-query'
 import {
   BookOpen,
   Building2,
@@ -26,6 +31,9 @@ export interface OfficePlaces {
   readonly title?: string
   readonly entries: readonly OfficePlace[]
 }
+
+/** Where the deadlines are, which the navigation counts beside its entry. */
+const deadlinesPlace = '/fristen'
 
 /**
  * The navigation of the office as the board "Navigation mit dem Pfad" draws
@@ -69,7 +77,7 @@ export const officeNavigation: readonly OfficePlaces[] = [
     title: 'Pflichten',
     entries: [
       { to: '/pflichten', label: 'Pflichtenverzeichnis', icon: ClipboardCheck, right: 'duty.read' },
-      { to: '/fristen', label: 'Fristen', icon: CalendarClock, right: 'deadline.read' },
+      { to: deadlinesPlace, label: 'Fristen', icon: CalendarClock, right: 'deadline.read' },
       // The page of an evidence stands under the inspections, as an
       // inspection is the way most evidence comes about.
       {
@@ -101,9 +109,27 @@ export const officeFoot: readonly OfficePlace[] = [
 ]
 
 /**
+ * How many open deadlines are past their day, in the areas of the person
+ * (#104, the badge of the board): the number of a page of one that asks for
+ * the late ones, and nothing for whoever may not read the deadlines. It
+ * counts the deadlines and never a person's.
+ */
+function useLateDeadlines(reads: boolean): number {
+  const late = useQuery({
+    queryKey: ['deadlines', 'late'],
+    queryFn: () => deadlinePage({ status: 'open', late: true, limit: 1 }),
+    enabled: reads,
+    staleTime: 60_000,
+  })
+
+  return reads ? (late.data?.total ?? 0) : 0
+}
+
+/**
  * What the office offers the person signed in, in the groups of the board. A
  * group nobody is offered a place of goes with its title, which the frame
- * sees to.
+ * sees to. "Fristen" carries the number of the late ones, as the board
+ * counts beside it in the colour of a conflict.
  */
 export function useNavigation(): {
   readonly groups: readonly NavigationGroup[]
@@ -111,11 +137,23 @@ export function useNavigation(): {
 } {
   const every = useOffered([...officeNavigation.flatMap((group) => group.entries), ...officeFoot])
   const stands = (place: OfficePlace) => every.includes(place)
+  const late = useLateDeadlines(every.some((place) => place.to === deadlinesPlace))
+  const counted = (place: OfficePlace): NavigationEntry =>
+    place.to === deadlinesPlace && late > 0
+      ? {
+          ...place,
+          badge: {
+            value: late,
+            tone: 'conflict',
+            spoken: late === 1 ? 'eine überfällig' : `${String(late)} überfällig`,
+          },
+        }
+      : place
 
   return {
     groups: officeNavigation.map((group) => ({
       ...(group.title === undefined ? {} : { title: group.title }),
-      entries: group.entries.filter(stands),
+      entries: group.entries.filter(stands).map(counted),
     })),
     foot: officeFoot.filter(stands),
   }
