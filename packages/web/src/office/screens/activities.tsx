@@ -82,7 +82,7 @@ import {
   activityPlaces,
   activitySearch,
 } from '../activity-addresses.js'
-import { dutyPlaces, evidencePlaces } from '../duty-addresses.js'
+import { dutyPlaces, evidencePlaces, reportSearch } from '../duty-addresses.js'
 import { ResultMark } from '../evidence-words.js'
 import { factLink } from '../links.js'
 import { officePlaces } from '../place-addresses.js'
@@ -635,7 +635,11 @@ export function ActivityScreen() {
               <Button
                 icon={Upload}
                 onClick={() => {
-                  void navigate({ to: evidencePlaces.report(reportFor) })
+                  // The form names the contractor planned at this activity (#186).
+                  void navigate({
+                    to: evidencePlaces.report(reportFor),
+                    search: reportSearch(shown.id),
+                  })
                 }}
               >
                 Bericht eintragen

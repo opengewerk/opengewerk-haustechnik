@@ -38,6 +38,21 @@ export const evidencePlaces = {
   report: (dutyId: string) => `/nachweise/bericht/${dutyId}`,
 } as const
 
+/** The word of the address of a report that names the activity it is entered from (#186). */
+const reportActivityWord = 'vorgang'
+
+/** The search of the address of a report entered from an activity. */
+export function reportSearch(activityId: string): Record<string, string> {
+  return { [reportActivityWord]: activityId }
+}
+
+/** The activity the address of a report names, if it names one. */
+export function reportActivity(search: Readonly<Record<string, unknown>>): string | undefined {
+  const value = search[reportActivityWord]
+
+  return typeof value === 'string' && value !== '' ? value : undefined
+}
+
 /**
  * What a new duty of the operator's own starts at, as the address of its
  * form names it: an asset, a room, a building or a property. The form offers

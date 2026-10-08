@@ -1150,3 +1150,7 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   `pnpm run test -- --filter=<paket>`. pnpm reicht das `--` mit weiter, der Filter landet dann
   beim Testläufer jedes Pakets, und der kennt ihn nicht. Richtig ist
   `pnpm run test --filter=<paket>`
+- "Bericht eintragen" nennt die Fremdfirma, die an der Prüfung geplant ist, von der man kommt
+  (#186), auch wenn die Pflicht eigene Durchführung sagt; von der Seite der Pflicht aus bleibt es
+  die Fremdfirma der Pflicht. Das Feld "Organisation" blieb sonst leer, obwohl die Firma am Vorgang
+  stand

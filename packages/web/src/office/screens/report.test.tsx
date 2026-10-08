@@ -88,6 +88,7 @@ function dutyOf(further: Partial<DutyDetails> = {}): DutyDetails {
       roomId: null,
     },
     responsible: null,
+    activity: null,
     ...further,
   } as unknown as DutyDetails
 }
@@ -442,7 +443,54 @@ describe('the way to a report', () => {
         await waitFor(() => {
           expect(router.state.location.pathname).toBe('/nachweise/bericht/d-fire')
         })
+        // The form names the contractor planned at the inspection (#186).
+        expect(router.state.location.search).toEqual({ vorgang: 'v-fire' })
       }
+    },
+  )
+})
+
+describe('the contractor a report comes from (#186)', () => {
+  /** The inspection of the duty under way, planned with a contractor. */
+  const planned = {
+    id: 'v-fire',
+    kind: 'inspection',
+    status: 'open',
+    dueOn: '2026-09-30',
+    performer: 'contractor',
+    contractorNote: 'Löschtechnik Beispiel GmbH',
+  } as const
+
+  async function openedAt(address: string, duty: DutyDetails) {
+    written = signedInOffice('site_management', [sued], {
+      ...servingCatalogue(),
+      [`/duties/${duty.id}`]: duty,
+      [`/duties/${duty.id}/evidence`]: lastTime,
+    })
+    await mountOffice(address, server, everything)
+    await screen.findByRole('heading', { level: 1, name: 'Bericht eintragen' })
+  }
+
+  const organisation = () =>
+    (screen.getByRole('textbox', { name: /^Organisation/ }) as HTMLInputElement).value
+
+  it('is the one planned at the inspection it is entered from, also where the duty says the own people', async () => {
+    await openedAt(
+      '/nachweise/bericht/d-fire?vorgang=v-fire',
+      dutyOf({ performer: 'own_staff', performerNote: null, activity: planned }),
+    )
+
+    expect(organisation()).toBe('Löschtechnik Beispiel GmbH')
+    expect(screen.getByText(/durchgeführt von einer Fremdfirma/)).toBeTruthy()
+    expect(screen.getByText('Löschtechnik Beispiel GmbH')).toBeTruthy()
+  })
+
+  it.each([['/nachweise/bericht/d-fire'], ['/nachweise/bericht/d-fire?vorgang=v-other']])(
+    'is the one the duty names, entered at %s',
+    async (address) => {
+      await openedAt(address, dutyOf({ activity: planned }))
+
+      expect(organisation()).toBe('Brandschutz Beispiel GmbH')
     },
   )
 })

@@ -2,6 +2,7 @@ import {
   countingLabel,
   defectClassChoices,
   type DutyDetails,
+  type DutyPerformer,
   dutyInterval,
   type EvidenceResult,
   evidenceLimits,
@@ -28,7 +29,7 @@ import {
   useSync,
 } from '@opengewerk/platform-web/sync'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { Link, useNavigate, useParams } from '@tanstack/react-router'
+import { Link, useNavigate, useParams, useSearch } from '@tanstack/react-router'
 import { FileText, Lock, Plus, Trash2 } from 'lucide-react'
 import { useRef, useState } from 'react'
 
@@ -36,7 +37,7 @@ import { placePath } from '../../app/place-path.js'
 import { placeAbove, titleOfRoom } from '../../app/place-records.js'
 import { useCatalogue } from '../../sync/catalogue.js'
 import { makeAt } from '../../sync/made-at.js'
-import { dutyPlaces, dutyRegisterPlace, evidencePlaces } from '../duty-addresses.js'
+import { dutyPlaces, dutyRegisterPlace, evidencePlaces, reportActivity } from '../duty-addresses.js'
 import { dutySourceWords, kindOfDuty } from '../duty-words.js'
 import { factLink } from '../links.js'
 import { officePlaces } from '../place-addresses.js'
@@ -89,6 +90,7 @@ interface DefectRow {
  */
 export function ReportScreen() {
   const { dutyId } = useParams({ strict: false }) as { dutyId?: string }
+  const fromActivity = reportActivity(useSearch({ strict: false }))
   const enters = useRight('evidence.write')
   const page = useQuery({ ...dutyQuery(dutyId ?? ''), enabled: dutyId !== undefined })
   const catalogue = useCatalogue()
@@ -124,17 +126,34 @@ export function ReportScreen() {
       ? reportWords.noReport
       : null
 
-  return <ReportForm key={duty.id} duty={duty} unwelcome={unwelcome} />
+  // Entered from the activity of the duty that is under way, the report comes
+  // from whoever is planned at it (#186); from anywhere else, from whoever
+  // the duty names.
+  const { activity } = duty
+  const performedBy =
+    activity !== null && activity.id === fromActivity
+      ? { performer: activity.performer, note: activity.contractorNote }
+      : { performer: duty.performer, note: duty.performerNote }
+
+  return <ReportForm key={duty.id} duty={duty} performedBy={performedBy} unwelcome={unwelcome} />
 }
 
 function ReportForm({
   duty,
+  performedBy,
   unwelcome,
 }: {
   readonly duty: DutyDetails
+  /** Who the report is expected from: the own people or a contractor, and which. */
+  readonly performedBy: {
+    readonly performer: DutyPerformer | null
+    readonly note: string | null
+  }
   /** Why nothing is entered here, or null where a report may be. */
   readonly unwelcome: string | null
 }) {
+  const byContractor = performedBy.performer === 'contractor'
+  const contractor = byContractor ? performedBy.note : null
   const client = useSync()
   const queries = useQueryClient()
   const navigate = useNavigate()
@@ -149,9 +168,7 @@ function ReportForm({
   const picker = useRef<HTMLInputElement>(null)
   const [file, setFile] = useState<File | null>(null)
   const [examiner, setExaminer] = useState('')
-  const [organisation, setOrganisation] = useState(
-    duty.performer === 'contractor' ? (duty.performerNote ?? '') : '',
-  )
+  const [organisation, setOrganisation] = useState(contractor ?? '')
   const [performedOn, setPerformedOn] = useState('')
   const [result, setResult] = useState<EvidenceResult>('without_defects')
   const [resultReason, setResultReason] = useState('')
@@ -195,7 +212,7 @@ function ReportForm({
         : (maybeText(building, 'name') ?? maybeText(property, 'name') ?? '')
   const sub = [
     where === '' ? duty.title : `${duty.title} an ${where}`,
-    duty.performer === 'contractor' ? 'durchgeführt von einer Fremdfirma' : null,
+    byContractor ? 'durchgeführt von einer Fremdfirma' : null,
   ]
     .filter(Boolean)
     .join(', ')
@@ -341,9 +358,7 @@ function ReportForm({
                 date(duty.appointment.dueOn)
               ),
           },
-          ...(duty.performer === 'contractor' && duty.performerNote !== null
-            ? [{ label: 'Fremdfirma', value: duty.performerNote }]
-            : []),
+          ...(contractor === null ? [] : [{ label: 'Fremdfirma', value: contractor }]),
           ...(duty.asset === null
             ? []
             : [
