@@ -26,7 +26,7 @@ import {
  * the maintenance that came of the due days, asked of the server a page at a
  * time and narrowed there; the page of one with the duties it is to meet;
  * and its plan, which whoever plans and hands out work changes while it is
- * open and nobody else.
+ * open and nobody else; and closing one with the reason (#183).
  */
 
 const sued: NamedArea = { id: 'a-sued', name: 'Süd' }
@@ -376,5 +376,116 @@ describe('the plan of an activity', () => {
     expect(screen.queryByRole('button', { name: 'Speichern' })).toBeNull()
     expect(screen.queryByRole('combobox', { name: 'Ausführend' })).toBeNull()
     expect(screen.queryByRole('radio', { name: 'Fremde Durchführung' })).toBeNull()
+  })
+})
+
+describe('closing an activity with the reason (#183)', () => {
+  const reason = 'Das Schulhaus war wegen des Umbaus gesperrt.'
+
+  function closing(answerToWrite?: (write: Written) => { status: number; body: unknown }) {
+    return mount(
+      '/pruefungen/ac-own',
+      { '/activities/ac-own': details(own), '/activities/ac-own/candidates': candidates },
+      'site_management',
+      answerToWrite,
+    )
+  }
+
+  async function dialogOpened() {
+    await untilTheRightsAreKnown()
+    fireEvent.click(await screen.findByRole('button', { name: 'Nicht durchgeführt' }))
+
+    return within(await screen.findByRole('dialog', { name: 'Nicht durchgeführt' }))
+  }
+
+  it('sends the reason for whoever plans, and closes the dialog', async () => {
+    const { mounted, written } = closing(() => ({
+      status: 201,
+      body: details({ ...own, status: 'not_performed' }, { closingReason: reason }),
+    }))
+
+    await mounted
+
+    const dialog = await dialogOpened()
+
+    fireEvent.change(dialog.getByLabelText(/^Grund/), { target: { value: `  ${reason}  ` } })
+    fireEvent.click(dialog.getByRole('button', { name: 'Als nicht durchgeführt schließen' }))
+
+    await waitFor(() => {
+      expect(written).toEqual([
+        { method: 'POST', path: '/activities/ac-own/close', body: { closingReason: reason } },
+      ])
+    })
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog')).toBeNull()
+    })
+  })
+
+  it('sends nothing without a reason, and says so', async () => {
+    const { mounted, written } = closing()
+
+    await mounted
+
+    const dialog = await dialogOpened()
+
+    fireEvent.change(dialog.getByLabelText(/^Grund/), { target: { value: '   ' } })
+    fireEvent.click(dialog.getByRole('button', { name: 'Als nicht durchgeführt schließen' }))
+
+    await dialog.findByText('Ein Vorgang, der nicht durchgeführt wurde, nennt den Grund.')
+    expect(written).toEqual([])
+  })
+
+  it('shows what the server refuses with, and keeps the dialog open', async () => {
+    const refusal = 'Geschlossen wird ein Vorgang, solange er offen oder begonnen ist.'
+    const { mounted } = closing(() => ({ status: 409, body: { message: refusal } }))
+
+    await mounted
+
+    const dialog = await dialogOpened()
+
+    fireEvent.change(dialog.getByLabelText(/^Grund/), { target: { value: reason } })
+    fireEvent.click(dialog.getByRole('button', { name: 'Als nicht durchgeführt schließen' }))
+
+    await dialog.findByText(refusal)
+  })
+
+  it.each([
+    ['site_management', 'started', true],
+    ['technical_management', 'open', true],
+    ['technician', 'open', false],
+    ['site_management', 'signed', false],
+    ['site_management', 'done', false],
+    ['site_management', 'not_performed', false],
+  ] as const)(
+    'is offered to "%s" for an activity that is %s: %s',
+    async (role, status, offered) => {
+      const { mounted } = mount(
+        '/pruefungen/ac-own',
+        {
+          '/activities/ac-own': details({ ...own, status }),
+          '/activities/ac-own/candidates': candidates,
+        },
+        role,
+      )
+
+      await mounted
+      await untilTheRightsAreKnown()
+      await screen.findByRole('heading', { level: 1, name: 'Prüfung der Sicherheitsbeleuchtung' })
+
+      expect(screen.queryByRole('button', { name: 'Nicht durchgeführt' }) !== null).toBe(offered)
+    },
+  )
+
+  it('is not offered for a work order', async () => {
+    const { mounted } = mount('/pruefungen/ac-own', {
+      '/activities/ac-own': details({ ...own, kind: 'work_order' }),
+      '/activities/ac-own/candidates': candidates,
+    })
+
+    await mounted
+    await untilTheRightsAreKnown()
+    await screen.findByRole('heading', { level: 1, name: 'Prüfung der Sicherheitsbeleuchtung' })
+
+    expect(screen.queryByRole('button', { name: 'Nicht durchgeführt' })).toBeNull()
   })
 })

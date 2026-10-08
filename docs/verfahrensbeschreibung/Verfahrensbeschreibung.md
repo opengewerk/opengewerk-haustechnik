@@ -1,7 +1,7 @@
 # OpenGewerk Haustechnik: Verfahrensbeschreibung für den Stand von Phase 1
 
 - **Gilt für:** noch keine veröffentlichte Fassung (Entwicklungsstand von Phase 1 auf dem Zweig `main`)
-- **Geschrieben:** von Hand, am 05.10.2026, aus dem Planungskonzept v0.11 und gegen den Quelltext geprüft; am 06.10.2026 um die Dateien im Speicher ergänzt (Planungskonzept v0.12) und um das Pflichtenverzeichnis, am selben Tag um die Dokumente (Planungskonzept v0.13) und um die Etiketten; am 08.10.2026 um die Prüfungen und Wartungen (Planungskonzept v0.15) und um den Bericht einer Fremdfirma (Planungskonzept v0.16), am selben Tag um die Mängel (Planungskonzept v0.17)
+- **Geschrieben:** von Hand, am 05.10.2026, aus dem Planungskonzept v0.11 und gegen den Quelltext geprüft; am 06.10.2026 um die Dateien im Speicher ergänzt (Planungskonzept v0.12) und um das Pflichtenverzeichnis, am selben Tag um die Dokumente (Planungskonzept v0.13) und um die Etiketten; am 08.10.2026 um die Prüfungen und Wartungen (Planungskonzept v0.15) und um den Bericht einer Fremdfirma (Planungskonzept v0.16), am selben Tag um die Mängel (Planungskonzept v0.17) und um den Vorgang von Hand (Planungskonzept v0.18)
 - **Abgelöst durch:** die Verfahrensbeschreibung, die die Anwendung ab Phase 2 selbst erzeugt
 
 ---
@@ -77,6 +77,7 @@ Anhang B nennt jedes Feld der Datenbank, das auf eine Person zeigt. Dieser Absch
 - Eine Frist nennt, wer für sie verantwortlich ist, wen ihre Quelle als verantwortlich nennt und wer sie geschlossen hat. Fristen sehen die Leitung und die Technische Leitung. [K2.4, B10]
 - Die Liste „Fristen“ nennt zu jeder Frist die verantwortliche Person mit ihrem Namen. Wer einer Frist eine andere Person gibt oder für eine Art von Frist festlegt, wen sie erinnert, bekommt dieselbe Auswahl wie im Pflichtenverzeichnis: die Namen derer, die für den Betreiber arbeiten, und ob jemand gesperrt ist. Neben dem Eintrag „Fristen“ der Navigation steht, wie viele Fristen in den Bereichen der Person überfällig sind; diese Zahl gilt dem Betreiber und keiner Person. [K2.4, K7, B10, B76]
 - Ein Vorgang (Rundgang, Prüfung, Wartung, Auftrag) hat ein Feld für die verantwortliche und eines für die ausführende Person, dazu die Angabe, ob die eigenen Leute oder eine Fremdfirma ihn ausführen, und den Namen der Fremdfirma in Worten. Eine Prüfung oder Wartung entsteht von selbst, wenn der Vorlauf eines Termins beginnt, einmal je Termin. Verantwortlich ist dann, wen die Frist als verantwortlich nennt, und ausführend noch niemand. [K2.4, K4.4, B98]
+- Wer Vorgänge plant und verteilt, legt eine Prüfung oder Wartung auch von Hand an, auf der Seite einer Pflicht, für die gerade keine läuft. Verantwortlich ist dann, wen die Pflicht als verantwortlich nennt, und ausführend noch niemand. Eine offene oder begonnene Prüfung oder Wartung schließt dieselbe Person mit Grund als nicht durchgeführt; der Vorgang nennt den Grund und nicht die Person, wer ihn geschlossen hat, steht im Änderungsprotokoll. Die Haustechnik kann beides nicht. [K4.4, K7, B109, B110]
 - **Zusage:** Wer eine Prüfung oder Wartung verantwortet und wer sie ausführt, legt fest, wer Vorgänge plant und verteilt: die Leitung, die Technische Leitung und die Objektleitung, solange der Vorgang offen ist. Zur Wahl stehen nur Personen, die den Bereich des Vorgangs sehen und nicht gesperrt sind; verantwortlich, wer selbst plant und verteilt, ausführend, wer Vorgänge ausführt. Die Auswahl nennt die Namen und sonst nichts. Die Haustechnik plant nicht und bekommt die Auswahl nicht. [K4.4, K7, B7, B99, B100]
 - Die Bildschirme, auf denen Rundgänge und Aufträge geplant und verteilt werden, kommen in Phase 1 (Abschnitt 9). [K4.5, K4.8]
 - Die Abnahme eines Auftrags hält fest, wer abgenommen oder zurückgewiesen hat, wann und mit welcher Begründung. Eine Zurückweisung lässt die Unterschrift stehen und macht sie ungültig. [K4.8, B8, B25]
@@ -399,6 +400,8 @@ Pfade ohne Vorsatz liegen im Repository `opengewerk/opengewerk-haustechnik`. Pfa
 | B106 | Test | `packages/server/src/api/report.test.ts` | `is handed out to nobody who does not see the evidence` |
 | B107 | Test | `packages/server/src/api/defects.test.ts` | `comes with a class and a day only from whoever keeps defects` |
 | B108 | Test | `packages/server/src/sync/policies.test.ts` | `ask for the right of the office once an operation leaves what a device may write` |
+| B109 | Test | `packages/server/src/api/activities.test.ts` | `makes one for a duty with none under way, as the engine would, due on its appointment` |
+| B110 | Test | `packages/server/src/api/activities.test.ts` | `is for whoever plans, not for whoever only performs, even an activity given to them` |
 
 ---
 

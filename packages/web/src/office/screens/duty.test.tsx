@@ -17,6 +17,7 @@ import {
   onA,
   rowsOf,
   signedInOffice,
+  untilTheRightsAreKnown,
   type WriteAnswer,
   type Written,
 } from '../test-office.js'
@@ -100,6 +101,7 @@ function duty(further: Readonly<Record<string, unknown>> = {}): DutyDetails {
       roomId: boilerRoom.id,
     },
     responsible: { userId: 'u-roth', name: 'Dennis Roth' },
+    activity: null,
     ...further,
   } as unknown as DutyDetails
 }
@@ -251,6 +253,7 @@ describe('the page of a duty', () => {
       'Fristgerecht bis': '30.09.2026',
       'Letzter Nachweis': '12.07.2025',
       Gezählt: 'Nach § 14 Abs. 5 BetrSichV',
+      Vorgang: 'keiner offen',
       Pflichtart: 'Hauptprüfung der Aufzugsanlage',
       Paket: 'Probepaket, Fassung 1 der Pflichtart',
       Fundstelle: '§ 16 der Probeverordnung',
@@ -291,6 +294,7 @@ describe('the page of a duty', () => {
       'Nächster Termin': '28.10.2026',
       'Letzter Nachweis': '28.07.2026',
       Gezählt: 'Ab dem Tag der Durchführung',
+      Vorgang: 'keiner offen',
       Grundlage: 'Eigene Festlegung',
       Quelle: 'Brandschutzordnung Teil C',
       Tätigkeit: 'Sichtkontrolle',
@@ -752,5 +756,93 @@ describe('ending a duty', () => {
       'Diese Pflicht endet schon am 2026-09-05.',
     )
     expect(screen.getByRole('dialog')).toBeTruthy()
+  })
+})
+
+describe('the activity of a duty (#183)', () => {
+  // The package by its title, once the catalogue is known; what an activity
+  // would be is known no earlier, and so is whether one is offered.
+  const fromTheCatalogue = 'Probepaket, Fassung 1 der Pflichtart'
+  const underWay = {
+    id: 'v-lift',
+    kind: 'inspection',
+    status: 'started',
+    dueOn: '2026-07-01',
+    performer: 'contractor',
+    contractorNote: 'Prüfdienst Beispiel GmbH',
+  }
+
+  it('names the activity under way with the way to it, and offers no second one', async () => {
+    const { router } = await opened('site_management', duty({ activity: underWay }))
+
+    await untilTheRightsAreKnown()
+    await screen.findByText(fromTheCatalogue)
+    expect(facts()['Vorgang']).toBe('Prüfung, begonnen, fällig am 01.07.2026')
+    expect(leadsTo('Prüfung, begonnen, fällig am 01.07.2026')).toBe('/pruefungen/v-lift')
+    expect(screen.queryByRole('button', { name: 'Prüfung anlegen' })).toBeNull()
+
+    fireEvent.click(screen.getByRole('link', { name: 'Prüfung, begonnen, fällig am 01.07.2026' }))
+    await waitFor(() => {
+      expect(router.state.location.pathname).toBe('/pruefungen/v-lift')
+    })
+  })
+
+  it('makes one for whoever plans: says what it will be, sends the duty, and opens it', async () => {
+    answerToWrite = answering({ id: 'v-new' }, 201)
+
+    const { router } = await opened('site_management')
+
+    await untilTheRightsAreKnown()
+    expect(facts()['Vorgang']).toBe('keiner offen')
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Prüfung anlegen' }))
+
+    const dialog = within(await screen.findByRole('dialog', { name: 'Prüfung anlegen' }))
+
+    expect(dialog.getByText('01.07.2026, überfällig')).toBeTruthy()
+    expect(dialog.getByText('Fremde Durchführung, Prüfdienst Beispiel GmbH')).toBeTruthy()
+    expect(dialog.getByText('Dennis Roth')).toBeTruthy()
+
+    fireEvent.click(dialog.getByRole('button', { name: 'Prüfung anlegen' }))
+
+    await waitFor(() => {
+      expect(written).toEqual([{ method: 'POST', path: '/activities', body: { dutyId: 'd-1' } }])
+    })
+    await waitFor(() => {
+      expect(router.state.location.pathname).toBe('/pruefungen/v-new')
+    })
+  })
+
+  it('calls the activity of a duty that has something maintained a maintenance', async () => {
+    await opened('site_management', duty({ kind: null, kindVersion: null, task: 'maintenance' }))
+
+    expect(await screen.findByRole('button', { name: 'Wartung anlegen' })).toBeTruthy()
+  })
+
+  it.each([
+    ['technician', {}],
+    ['site_management', { state: 'dormant' }],
+    ['site_management', { ended: true, endsOn: '2026-09-01' }],
+    // Until its kind is known, so is not what its activity would be.
+    ['site_management', { kind: 'probe.unknown_kind', kindVersion: 1 }],
+  ] as const)('offers "%s" no activity for a duty (%#)', async (role, further) => {
+    await opened(role, duty(further))
+    await untilTheRightsAreKnown()
+    await screen.findByText(fromTheCatalogue)
+
+    expect(screen.queryByRole('button', { name: /anlegen$/ })).toBeNull()
+  })
+
+  it('shows what the server refuses with, and keeps the dialog open', async () => {
+    const refusal = 'Für diese Pflicht läuft schon ein Vorgang.'
+
+    answerToWrite = answering({ message: refusal }, 409)
+    await opened('site_management')
+    fireEvent.click(await screen.findByRole('button', { name: 'Prüfung anlegen' }))
+
+    const dialog = within(await screen.findByRole('dialog', { name: 'Prüfung anlegen' }))
+
+    fireEvent.click(dialog.getByRole('button', { name: 'Prüfung anlegen' }))
+    await dialog.findByText(refusal)
   })
 })

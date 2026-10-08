@@ -1096,8 +1096,9 @@ export async function plantSampleData(
  * Two of the inspections the engine made of the due days, planned through
  * the route as whoever plans would (#105): one in the south for Tobias Wendt,
  * who works there, with the Objektleitung of the south answering for it, and
- * another one for a contractor named in words. The rest stay as the engine
- * made them, with nobody performing them yet.
+ * another one for a contractor named in words. A third is closed as not
+ * performed, with the reason, and its duty gets a new one by hand (#183).
+ * The rest stay as the engine made them, with nobody performing them yet.
  */
 export async function planSampleActivities(
   address: string,
@@ -1143,5 +1144,24 @@ export async function planSampleActivities(
       },
       'PUT',
     )
+  }
+
+  const toClose = activities.find(
+    (activity) => activity.id !== forWendt?.id && activity.id !== forContractor?.id,
+  )
+
+  if (toClose) {
+    const { duties } = await read<{ readonly duties: readonly { readonly dutyId: string }[] }>(
+      address,
+      `/activities/${toClose.id}`,
+    )
+
+    await send(address, `/activities/${toClose.id}/close`, {
+      closingReason: 'Der Raum war wegen eines Wasserschadens gesperrt.',
+    })
+
+    for (const { dutyId } of duties) {
+      await send(address, '/activities', { dutyId })
+    }
   }
 }

@@ -804,6 +804,16 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   (Abschnitt 4.5). Die Seite, die unterschrieben wird, nennt die Antworten, der Nachweis friert sie in Fassung 3 seines
   Stands ein, und danach ändert keine Rolle eine Antwort (`HT007`). Migration `0026_answers_per_point`, Nachträge in
   ADR 0002, 0004 und 0006, zwei Aussagen in Abschnitt 3.5 der Verfahrensbeschreibung
+- Eine Prüfung oder Wartung mit Grund schließen und von Hand anlegen (#183): auf der Seite eines
+  Vorgangs "Nicht durchgeführt" mit Grund (`POST /activities/:id/close`), solange er offen oder
+  begonnen ist; jede seiner Pflichten nimmt "nicht durchgeführt" mit demselben Grund als Ergebnis,
+  ein Nachweis entsteht nicht und der Termin bleibt, wie er ist. Auf der Seite einer Pflicht ohne
+  laufenden Vorgang "Prüfung anlegen" oder "Wartung anlegen" (`POST /activities`), angelegt wie aus
+  dem Termin und fällig am nächsten Termin; die Seite einer Pflicht nennt den laufenden Vorgang mit
+  dem Weg zu ihm. Beides kann, wer Vorgänge plant und verteilt. Wer den Vorgang eines Termins
+  schloss, hatte bisher keinen Weg zu einem neuen, und die Pflicht stand überfällig da, ohne dass
+  jemand dran war. Planungskonzept v0.18 (4.4), eine Aussage in Abschnitt 3.4 der
+  Verfahrensbeschreibung
 
 ### Geändert
 
@@ -1092,6 +1102,9 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   Pflichtenverzeichnis und die Fristen pflegen Leitung und Technische Leitung; die
   Objektleitung plant, verteilt und nimmt ab und pflegt die Anlagen ihrer Bereiche. ADR 0002
   nennt im Nachtrag die Namen für den Ort, die Rechte und die Rollen im Code
+- Die Fristen-Engine und das Anlegen von Hand legen einen Vorgang über dieselbe Funktion an und
+  halten dabei die Pflicht fest (#183), damit von zweien zur selben Zeit nur einer einen Vorgang
+  anlegt und eine Pflicht nie zwei laufende hat
 
 ### Behoben
 

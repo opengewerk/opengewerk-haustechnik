@@ -7,12 +7,14 @@ import {
   Inject,
   NotFoundException,
   Param,
+  Post,
   Put,
   Query,
 } from '@nestjs/common'
 import {
   type Activity,
   type ActivityCandidates,
+  activityClosable,
   type ActivityDetails,
   type ActivityDutyLine,
   type ActivityEntry,
@@ -22,10 +24,13 @@ import {
   activityListStates,
   activityListStatuses,
   activityPlanProblems,
+  activityProblems,
   type Catalogue,
   type DueActivityKind,
   dueActivityKinds,
   type Duty,
+  dutyHasEnded,
+  type DutyId,
   dutyInterval,
   type DutyPerson,
   isAllowed,
@@ -41,6 +46,7 @@ import {
 } from '@opengewerk/platform-server'
 import { and, asc, count, eq, ilike, inArray, isNull, or, type SQL, sql } from 'drizzle-orm'
 
+import { makeActivityForDuty } from '../activities/for-duty.js'
 import { CATALOGUE } from '../catalogue.js'
 import { dutiesOnADay, dutyTitle } from '../database/duty-standing.js'
 import {
@@ -56,10 +62,11 @@ import {
 } from '../database/schema/index.js'
 import { dayInGermany } from '../today.js'
 import { RequiresPermission } from './authorization.js'
-import { type Asking, fieldsOf, refuse } from './places.js'
+import { type Asking, fieldsOf, placeOf, refuse } from './places.js'
 import { counted, said } from './register-question.js'
 
 const missing = 'Diesen Vorgang gibt es nicht oder nicht mehr.'
+const missingDuty = 'Diese Pflicht gibt es nicht oder nicht mehr.'
 
 /** What the list is asked, read from the address. */
 interface ActivityQuestion {
@@ -129,7 +136,7 @@ function searching(search: string): SQL | undefined {
  * only performs sees what is given to them or to nobody, as their device
  * holds it (`deviceScope`): the list tells nobody who else works on what.
  */
-function inSight(identity: Asking): SQL | undefined {
+export function inSight(identity: Asking): SQL | undefined {
   if (isAllowed(identity, 'activity.write')) {
     return undefined
   }
@@ -386,6 +393,126 @@ export class ActivitiesController {
           'Geplant wird ein Vorgang, solange er offen ist. Diesen hat schon jemand begonnen.',
         )
       }
+    })
+
+    return this.read(identity, id)
+  }
+
+  /**
+   * An inspection or a maintenance for a duty, made by hand (#183): for a
+   * duty whose due day has none, because the one it had was closed or none
+   * came of it yet. It is made as the engine makes one of a due day
+   * (`makeActivityForDuty`), due on the next appointment of the duty or
+   * today for one that was never recorded, with the person who answers for
+   * the duty; who performs it and on which day is planned afterwards. A duty
+   * with an activity under way gets no second one, and one that has ended or
+   * rests gets none.
+   *
+   * The appointment does not move: the next due day comes of the next
+   * evidence (section 4.4).
+   */
+  @Post()
+  @RequiresPermission('activity.write')
+  async create(
+    @CurrentIdentity() identity: Asking,
+    @Body() body: unknown,
+  ): Promise<ActivityDetails> {
+    const { dutyId } = fieldsOf(body, ['dutyId'] as const)
+
+    if (typeof dutyId !== 'string') {
+      throw new BadRequestException('Ein Vorgang nennt die Pflicht, für die er entsteht.')
+    }
+
+    const today = dayInGermany()
+    const made = await this.database.forTenant(identity, async (tx) => {
+      const duty = await placeOf<Duty>(tx, duties, dutyId, missingDuty)
+
+      if (dutyHasEnded(duty, today)) {
+        throw new ConflictException('Eine beendete Pflicht bekommt keinen Vorgang mehr.')
+      }
+
+      const [registered] = await dutiesOnADay(tx, today, [duty])
+
+      if (registered?.standing.state === 'dormant') {
+        throw new ConflictException(
+          'Solange ihre Anlage nicht in Betrieb ist, ruht die Pflicht und bekommt keinen Vorgang.',
+        )
+      }
+
+      return makeActivityForDuty(tx, this.catalogue, {
+        tenantId: identity.tenantId,
+        dutyId: duty.id as DutyId,
+        dueOn: registered?.standing.appointment?.dueOn ?? today,
+        responsible: duty.responsibleUserId,
+        now: new Date(),
+      })
+    })
+
+    if (made.made === null) {
+      if (made.because === 'missing') {
+        throw new NotFoundException(missingDuty)
+      }
+
+      throw new ConflictException(
+        'Für diese Pflicht läuft schon ein Vorgang. Ein neuer entsteht erst, wenn er erledigt oder geschlossen ist.',
+      )
+    }
+
+    return this.read(identity, made.made)
+  }
+
+  /**
+   * An inspection or a maintenance closed as not performed, with the reason
+   * (#183, section 4.4 of the concept): while it is open or begun, by whoever
+   * plans and hands out work. Each of its duties takes "not performed" with
+   * the same reason as its result. No evidence comes of it, and the
+   * appointment of its duties stays as it is: planned and not performed is
+   * overdue. A device that still holds the activity changes nothing of it
+   * afterwards; its progress is taken only while it is open or begun.
+   */
+  @Post(':id/close')
+  @RequiresPermission('activity.write')
+  async close(
+    @CurrentIdentity() identity: Asking,
+    @Param('id') id: string,
+    @Body() body: unknown,
+  ): Promise<ActivityDetails> {
+    const { closingReason } = fieldsOf(body, ['closingReason'] as const)
+
+    refuse(activityProblems({ status: 'not_performed', closingReason: closingReason ?? null }))
+
+    await this.database.forTenant(identity, async (tx) => {
+      const activity = await this.activityOf(tx, identity, id)
+
+      if (!(dueActivityKinds as readonly string[]).includes(activity.kind)) {
+        throw new BadRequestException(
+          'Mit Grund geschlossen wird hier eine Prüfung oder eine Wartung.',
+        )
+      }
+
+      const [closed] = await tx
+        .update(activities)
+        .set({
+          status: 'not_performed',
+          closingReason: closingReason as string,
+          updatedAt: new Date(),
+        })
+        .where(
+          and(eq(activities.id, activity.id), inArray(activities.status, [...activityClosable])),
+        )
+        .returning({ id: activities.id })
+
+      // Whoever signed it meanwhile waits for the evidence of the signature.
+      if (closed === undefined) {
+        throw new ConflictException(
+          'Geschlossen wird ein Vorgang, solange er offen oder begonnen ist. Dieser ist schon unterschrieben oder abgeschlossen.',
+        )
+      }
+
+      await tx
+        .update(activityDuties)
+        .set({ result: 'not_performed', resultReason: closingReason as string })
+        .where(and(eq(activityDuties.activityId, activity.id), isNull(activityDuties.deletedAt)))
     })
 
     return this.read(identity, id)
