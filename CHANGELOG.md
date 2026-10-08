@@ -731,6 +731,21 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
 - Eine Pflicht beenden (#103): der Knopf "Beenden" auf der Seite einer Pflicht, für wen das Pflichtenverzeichnis führt,
   mit dem Tag, heute oder einem anderen, und auf Wunsch einem Grund. Die Route dafür stand seit #25 ohne Bildschirm. Der
   Dialog sagt vorher, was ein Ende heißt und dass es nicht zurückgenommen wird
+- Die Seite eines Nachweises im Büro (#109) unter `/nachweise/<id>`: der eingefrorene Stand mit Herkunft, Pflicht, Frist,
+  Ort und Anlage, wer die Arbeit ausgeführt oder geprüft hat, Ergebnis, Belege und Aufbewahrung, dazu die Unterschriften, der
+  Fingerabdruck, die Mängel aus dem Stand und was der Nachweis für die Frist heißt. Ein ersetzter oder für ungültig erklärter
+  Nachweis bleibt lesbar und sagt es, mit Person, Zeitpunkt und Grund. Die Nummer eines Nachweises ist überall ein Link
+  dorthin: auf der Seite einer Pflicht, im Pflichtenverzeichnis und in den Karten "Pflichten" an Akte und Raum. Gebaut,
+  weil erst die Seite eines Nachweises zeigt, wer geprüft, unterschrieben und eingetragen hat; die Listen nennen niemanden
+- Einen Nachweis berichtigen und für ungültig erklären (#109): `POST /evidence/:id/correction` mit Grund, Tag, Ergebnis
+  und bei einem Bericht Prüfer und Organisation, und `POST /evidence/:id/voiding` mit Grund, je mit einem Dialog auf der
+  Seite des Nachweises, für Leitung, Technische Leitung und Objektleitung. Eine Berichtigung ist ein neuer Nachweis, der den
+  alten nennt, und trägt keine Unterschrift; nach einer Ungültigerklärung ist die Pflicht fällig, als hätte es den Nachweis
+  nicht gegeben. Beides wird nicht zurückgenommen, und ein ersetzter oder für ungültig erklärter Nachweis bietet keines
+  mehr an. Die Wege standen seit #26 im Server ohne Route; ADR 0004 in einem Nachtrag
+- Die Nachweise einer Anlage (#109): `GET /assets/:id/evidence` listet die Nachweise jeder Pflicht an der Anlage, der
+  jüngste zuerst, mit Pflicht und dem, was er für die Frist heißt, ohne eine Person. Die Akte zeigt sie in der Karte
+  "Nachweise", die Seite der Anlage vor Ort die letzten drei, mit Verbindung
 
 ### Geändert
 
@@ -1003,6 +1018,11 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
 
 ### Behoben
 
+- Eine Berichtigung und eine Ungültigerklärung desselben Nachweises, im selben Moment geschickt, gehen nicht mehr beide
+  durch (#78, Befund T13-2 aus dem Review der Phase 0). Beide prüften, was aus dem Nachweis geworden war, ohne einander zu
+  sehen; so konnte ein für ungültig erklärter Nachweis zugleich berichtigt sein, und eine zweite Berichtigung scheiterte
+  erst am Schlüssel der Datenbank, ohne Satz. Jetzt halten beide zuerst die Zeile der Pflicht, und die zweite findet,
+  was die erste schrieb
 - Wer an einer Pflicht aus dem Katalog nur die verantwortliche Person oder den Ausführenden ändert, wird nicht
   mehr nach einer Begründung der Frist gefragt (#101). `PATCH /duties/:id` prüfte bei jeder Änderung, ob die
   Frist vom Richtwert von heute abweicht; eine Pflicht, die vor einer Änderung des Richtwerts bestätigt wurde,

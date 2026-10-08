@@ -85,7 +85,7 @@ export function dutyRegisterQuestion(
 
 /** A duty with how it stands today, as the file of an asset and the page of a room read it. */
 export function dutyReading(
-  { duty, standing, lastMetOn }: RegisteredDuty,
+  { duty, standing, lastMetOn, lastEvidence }: RegisteredDuty,
   catalogue: Catalogue,
 ): DutyReading {
   return {
@@ -104,6 +104,7 @@ export function dutyReading(
     state: standing.state,
     appointment: standing.appointment,
     lastMetOn,
+    lastEvidence,
   }
 }
 
@@ -131,7 +132,6 @@ export function dutyEntry(
     performerNote: duty.performerNote,
     ended: dutyHasEnded(duty, today),
     asset,
-    lastEvidence: registered.lastEvidence,
   }
 }
 

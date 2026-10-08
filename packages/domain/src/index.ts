@@ -85,6 +85,10 @@ export * from './model/asset-condition.js'
 // the order of the register and what an evidence means for an appointment.
 export * from './model/duty-register.js'
 
+// The page of an evidence, the evidence of an asset and what a correction
+// of an evidence has to say.
+export * from './model/evidence-page.js'
+
 // The deadlines of this application: the kinds the deadline engine of the
 // foundation keeps, with their sources and actions.
 export * from './model/deadlines.js'

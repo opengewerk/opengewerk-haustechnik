@@ -456,7 +456,9 @@ describe('the register of duties', () => {
     )
 
     await evidenceOf(duty, daysAgo(400))
-    await evidenceOf(duty, daysAgo(10))
+
+    const last = await evidenceOf(duty, daysAgo(10))
+
     // What was not carried out met nothing, and is not the last evidence.
     await evidenceOf(duty, daysAgo(1), 'not_performed')
 
@@ -497,7 +499,9 @@ describe('the register of duties', () => {
         roomId: null,
       },
       responsible: { userId: 'u-site', name: 'Dennis Roth' },
+      // The row links to its page (#109).
       lastEvidence: {
+        id: last,
         number: expect.stringMatching(/^NW-TEST-\d{5}$/),
         performedOn: daysAgo(10),
         origin: 'report',

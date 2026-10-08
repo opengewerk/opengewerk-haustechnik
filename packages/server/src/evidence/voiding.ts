@@ -8,7 +8,7 @@ import type { TenantTransaction } from '@opengewerk/platform-server'
 import { and, eq } from 'drizzle-orm'
 
 import { evidence, evidenceVoidings } from '../database/schema/index.js'
-import { EvidenceRefusal, type WritingContext } from './write.js'
+import { EvidenceRefusal, holdTheDuty, type WritingContext } from './write.js'
 
 /** An evidence to declare invalid, and why. */
 export interface VoidingToTake {
@@ -53,6 +53,7 @@ export async function voidEvidence(
     .select({
       id: evidence.id,
       number: evidence.number,
+      dutyId: evidence.dutyId,
       propertyId: evidence.propertyId,
       areaId: evidence.areaId,
     })
@@ -62,6 +63,8 @@ export async function voidEvidence(
   if (!found) {
     throw new EvidenceRefusal('Diesen Nachweis gibt es nicht.')
   }
+
+  await holdTheDuty(tx, context.tenantId, found.dutyId)
 
   const [voided] = await tx
     .select({ id: evidenceVoidings.id })

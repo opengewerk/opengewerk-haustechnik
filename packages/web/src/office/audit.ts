@@ -2,7 +2,7 @@ import { auditVocabulary, buildingKindLabel, ruleScopeNames } from '@opengewerk/
 import type { AuditScreenWords } from '@opengewerk/platform-web/office'
 
 import { documentPlaces } from './document-addresses.js'
-import { dutyPlaces } from './duty-addresses.js'
+import { dutyPlaces, evidencePlaces } from './duty-addresses.js'
 import { officePlaces } from './place-addresses.js'
 
 /**
@@ -23,6 +23,7 @@ const screens: Readonly<Record<string, (id: string) => string>> = {
   rooms: officePlaces.room,
   assets: officePlaces.asset,
   duties: dutyPlaces.duty,
+  evidence: evidencePlaces.evidence,
   attachments: documentPlaces.document,
 }
 
@@ -34,6 +35,7 @@ const links: Words = {
   rooms: 'Zum Raum',
   assets: 'Zur Anlage',
   duties: 'Zur Pflicht',
+  evidence: 'Zum Nachweis',
   attachments: 'Zum Dokument',
 }
 

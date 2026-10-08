@@ -1,6 +1,8 @@
 import {
   type Catalogue,
   type DutyReading,
+  evidenceResultLabel,
+  evidenceStandingLabel,
   isGeneralKind,
   printedLabelCode,
   type RecordState,
@@ -33,6 +35,7 @@ import { QrCode } from 'lucide-react'
 
 import { DutyStateMark } from '../../app/asset-marks.js'
 import { generalKindNote, kindFields, typedValues, unitOf } from '../../app/asset-values.js'
+import { assetEvidenceQuery } from '../../app/evidence.js'
 import { useLabelsOf } from '../../app/labels.js'
 import { placePath } from '../../app/place-path.js'
 import { placeAbove } from '../../app/place-records.js'
@@ -46,6 +49,9 @@ export const siteAssetWords = {
   noDuties: 'Für diese Anlage ist keine Pflicht bestätigt.',
   dutiesFromServer:
     'Wie eine Pflicht steht, sagt der Server. Ohne Verbindung stehen hier die Pflichten, die das Gerät hält, ohne ihren Stand.',
+  noEvidence: 'Für diese Anlage ist noch kein Nachweis festgehalten.',
+  evidenceFromServer:
+    'Die Nachweise einer Anlage liegen auf dem Server. Mit Verbindung stehen hier die letzten.',
   noLabel: 'Diese Anlage hat noch kein Etikett.',
   valid: 'gültig',
   noDefect: 'Kein offener Mangel an dieser Anlage.',
@@ -53,6 +59,9 @@ export const siteAssetWords = {
   waitsForDecision:
     'Diese Anlage ist noch nicht angelegt: der Server kennt eine mögliche Dublette. Unter Konflikte entscheiden Sie, ob es dieselbe ist oder ob sie trotzdem angelegt wird.',
 } as const
+
+/** How many of the evidence of an asset its page on site names, the newest first. */
+const lastEvidence = 3
 
 /** The values of an asset as a device holds them: the text of an object. */
 function valuesOf(asset: RecordState): Readonly<Record<string, never>> {
@@ -118,9 +127,9 @@ function factsOf(asset: RecordState, catalogue: Catalogue | null): readonly Site
  * What the device holds stands without a network: the facts, the defects,
  * the label and the documents. How a duty stands follows from the evidence,
  * which never travels to a device, so the server says it, with a connection;
- * without one the duties stand here by their names. The last evidence arrives
- * with the evidence in the office (#109), "Mangel melden" with the defects
- * (#116).
+ * without one the duties stand here by their names. The last evidence is the
+ * server's as well, and stands here only with a connection. "Mangel melden"
+ * arrives with the defects (#116).
  */
 export function SiteAssetScreen() {
   const { assetId } = useParams({ strict: false }) as { assetId?: string }
@@ -137,6 +146,7 @@ export function SiteAssetScreen() {
   const property = useRecord('properties', propertyId ?? undefined)
   const catalogue = useCatalogue()
   const seesDuties = useRight('duty.read')
+  const seesEvidence = useRight('evidence.read')
   const records = useRight('asset.record')
   const heldDuties = useRecords('duties').filter((duty) => duty['assetId'] === assetId)
   const defects = useRecords('defects').filter(
@@ -148,6 +158,10 @@ export function SiteAssetScreen() {
     queryKey: ['assets', 'duties', assetId],
     queryFn: () => request<DutyReading[]>(`/assets/${assetId ?? ''}/duties`),
     enabled: assetId !== undefined && asset !== null && seesDuties && online && !waiting,
+  })
+  const evidence = useQuery({
+    ...assetEvidenceQuery(assetId ?? ''),
+    enabled: assetId !== undefined && asset !== null && seesEvidence && online && !waiting,
   })
 
   if (!asset || assetId === undefined) {
@@ -256,6 +270,37 @@ export function SiteAssetScreen() {
                   </SiteText>
                 )}
               </div>
+            )}
+          </Panel>
+        ) : null}
+        {seesEvidence ? (
+          <Panel title="Letzte Nachweise">
+            {evidence.data ? (
+              evidence.data.length === 0 ? (
+                <SiteText muted>{siteAssetWords.noEvidence}</SiteText>
+              ) : (
+                <ul aria-label="Letzte Nachweise" className="flex flex-col">
+                  {evidence.data.slice(0, lastEvidence).map((entry) => (
+                    <PlainRow
+                      key={entry.id}
+                      title={`${entry.number}, ${date(entry.performedOn)}`}
+                      meta={[
+                        entry.dutyTitle,
+                        evidenceResultLabel[entry.result],
+                        entry.standing === 'replaced' || entry.standing === 'voided'
+                          ? evidenceStandingLabel[entry.standing].toLowerCase()
+                          : null,
+                      ]
+                        .filter(Boolean)
+                        .join(', ')}
+                    />
+                  ))}
+                </ul>
+              )
+            ) : (
+              <SiteText muted size={15}>
+                {siteAssetWords.evidenceFromServer}
+              </SiteText>
             )}
           </Panel>
         ) : null}

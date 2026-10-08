@@ -222,6 +222,54 @@ describe('an asset on site', () => {
     expect(screen.queryByText('Überfällig')).toBeNull()
   })
 
+  it('names its last evidence from the server, three of them, with the mark of one that counts no more', async () => {
+    const entry = (id: string, performedOn: string, further: object = {}) => ({
+      id,
+      dutyId: 'du-main',
+      dutyTitle: 'Hauptprüfung',
+      number: `NW-2026-${id}`,
+      performedOn,
+      result: 'without_defects',
+      origin: 'report',
+      standing: 'counts',
+      ...further,
+    })
+
+    await mountSite('/anlagen/a-heater', {
+      rights: [...reading, 'evidence.read'],
+      answers: {
+        '/assets/a-heater/evidence': [
+          entry('00131', '2026-10-01', { result: 'with_defects' }),
+          entry('00127', '2026-09-24', { standing: 'voided' }),
+          entry('00098', '2026-09-17', { standing: 'replaced' }),
+          entry('00041', '2026-03-12'),
+        ],
+      },
+    })
+
+    await screen.findByRole('list', { name: 'Letzte Nachweise' })
+
+    expect(rowsOf('Letzte Nachweise')).toEqual([
+      'NW-2026-00131, 01.10.2026Hauptprüfung, Mit Mängeln',
+      'NW-2026-00127, 24.09.2026Hauptprüfung, Ohne Mangel, für ungültig erklärt',
+      'NW-2026-00098, 17.09.2026Hauptprüfung, Ohne Mangel, ersetzt',
+    ])
+  })
+
+  it('says that the server keeps the evidence where it gives no answer', async () => {
+    await mountSite('/anlagen/a-heater', { rights: [...reading, 'evidence.read'] })
+
+    expect(screen.getByRole('region', { name: 'Letzte Nachweise' }).textContent).toContain(
+      'Die Nachweise einer Anlage liegen auf dem Server.',
+    )
+  })
+
+  it('shows no last evidence to whoever does not see evidence', async () => {
+    await mountSite('/anlagen/a-heater', { rights: reading })
+
+    expect(screen.queryByRole('region', { name: 'Letzte Nachweise' })).toBeNull()
+  })
+
   it('shows its valid label, and offers no second one', async () => {
     await mountSite('/anlagen/a-heater', { rights: [...reading, 'asset.record'] })
 

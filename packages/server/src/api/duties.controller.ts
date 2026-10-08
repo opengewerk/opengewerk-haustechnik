@@ -38,7 +38,6 @@ import {
   type DutyRegister,
   dutyTaskLabel,
   dutyTasks,
-  evidenceStandingOf,
   type FederalState,
   type IntervalKind,
   intervalNeedsReason,
@@ -61,7 +60,7 @@ import {
   requireSomething,
   type TenantTransaction,
 } from '@opengewerk/platform-server'
-import { and, asc, desc, eq, inArray, isNull } from 'drizzle-orm'
+import { and, asc, eq, isNull } from 'drizzle-orm'
 
 import { CATALOGUE } from '../catalogue.js'
 import { dutiesOnADay, dutyTitle } from '../database/duty-standing.js'
@@ -70,14 +69,13 @@ import {
   buildings,
   duties,
   dutyDismissals,
-  evidence,
-  evidenceVoidings,
   memberships,
   properties,
   rooms,
 } from '../database/schema/index.js'
 import { dayInGermany } from '../today.js'
 import { RequiresPermission } from './authorization.js'
+import { listedEvidence } from './evidence.controller.js'
 import { dutyReading, dutyRegister, dutyRegisterQuestion } from './duty-register.js'
 import { type Asking, fieldsOf, placeOf, refuse } from './places.js'
 
@@ -480,40 +478,8 @@ export class DutiesController {
   ): Promise<DutyEvidenceEntry[]> {
     return this.database.forTenant(identity, async (tx) => {
       const duty = await placeOf<Duty>(tx, duties, id, missing)
-      const written = await tx
-        .select({
-          id: evidence.id,
-          number: evidence.number,
-          performedOn: evidence.performedOn,
-          result: evidence.result,
-          origin: evidence.origin,
-          replacesEvidenceId: evidence.replacesEvidenceId,
-        })
-        .from(evidence)
-        .where(eq(evidence.dutyId, duty.id))
-        .orderBy(desc(evidence.performedOn), desc(evidence.writtenAt))
-      const voided =
-        written.length === 0
-          ? []
-          : await tx
-              .select({ evidenceId: evidenceVoidings.evidenceId })
-              .from(evidenceVoidings)
-              .where(
-                inArray(
-                  evidenceVoidings.evidenceId,
-                  written.map((row) => row.id),
-                ),
-              )
-      const standing = evidenceStandingOf(
-        written,
-        new Set(voided.map((row) => row.evidenceId as string)),
-      )
 
-      return written.map((row): DutyEvidenceEntry => {
-        const { replacesEvidenceId: _, ...shown } = row
-
-        return { ...shown, standing: standing(row) }
-      })
+      return (await listedEvidence(tx, [duty.id])).map(({ dutyId: _, ...entry }) => entry)
     })
   }
 

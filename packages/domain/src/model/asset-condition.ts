@@ -4,6 +4,7 @@ import type { Asset, AssetSupply, LifecycleEntry, LifecycleState } from './asset
 import type { DefectStatus } from './defect.js'
 import type { Appointment, DutyStanding, DutyState } from './duty.js'
 import type { Duty } from './duty-record.js'
+import type { Evidence } from './evidence.js'
 
 /**
  * The condition of an asset on a day (section 2.2 of the concept, ADR 0002,
@@ -198,4 +199,9 @@ export interface DutyReading extends Pick<
   readonly appointment: Appointment | null
   /** The last day an evidence that stands met it. */
   readonly lastMetOn: IsoDate | null
+  /** That evidence, which the row links to. */
+  readonly lastEvidence: LastEvidence | null
 }
+
+/** The last evidence that met a duty, as a row names it and links to its page. */
+export type LastEvidence = Pick<Evidence, 'id' | 'number' | 'performedOn' | 'origin'>

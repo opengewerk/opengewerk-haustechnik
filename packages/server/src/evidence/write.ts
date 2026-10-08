@@ -268,6 +268,26 @@ export async function writeEvidence(
 }
 
 /**
+ * Holds the row of a duty until the transaction ends, before anything is
+ * asked about what became of one of its evidence (opengewerk-haustechnik#78):
+ * a correction and a declaration of invalidity of the same evidence, or two
+ * corrections, stand in line here, and the second finds what the first
+ * wrote. The row of the evidence itself cannot be held: a lock asks for the
+ * right to update, and the application may not update an evidence.
+ */
+export async function holdTheDuty(
+  tx: TenantTransaction,
+  tenantId: TenantId,
+  dutyId: DutyId,
+): Promise<void> {
+  await tx
+    .select({ id: duties.id })
+    .from(duties)
+    .where(and(eq(duties.tenantId, tenantId), eq(duties.id, dutyId)))
+    .for('no key update')
+}
+
+/**
  * The evidence a correction replaces: one of the same duty, not corrected
  * before and not declared invalid. Its correction is corrected in turn, so
  * the evidence that counts is always the last of a line. The database holds
@@ -289,6 +309,8 @@ async function replacedOf(
   if (problem !== undefined) {
     throw new EvidenceRefusal(problem)
   }
+
+  await holdTheDuty(tx, context.tenantId, dutyId)
 
   const [found] = await tx
     .select({ id: evidence.id, number: evidence.number, dutyId: evidence.dutyId })

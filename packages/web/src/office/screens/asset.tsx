@@ -1,5 +1,6 @@
 import {
   type AssetDetails,
+  type AssetEvidenceEntry,
   type AssetField,
   type AssetValue,
   type Catalogue,
@@ -7,6 +8,7 @@ import {
   type ChoiceOption,
   dutyInterval,
   type DutyReading,
+  evidenceResultLabel,
   intervalWords,
   type LifecycleEntry,
   lifecycleStateLabel,
@@ -42,6 +44,7 @@ import { Link, useNavigate, useParams } from '@tanstack/react-router'
 import { Pencil, Plus, X, Zap } from 'lucide-react'
 import { type ReactNode, useState } from 'react'
 
+import { assetEvidenceQuery } from '../../app/evidence.js'
 import { placePath } from '../../app/place-path.js'
 import { placeAbove, titleOfRoom } from '../../app/place-records.js'
 import { ReviewMarks } from '../../app/review-marks.js'
@@ -59,6 +62,7 @@ import { cataloguePlaces } from '../catalogue-addresses.js'
 import { DocumentsCard } from '../documents.js'
 import { dutyPlaces } from '../duty-addresses.js'
 import { dutySourceWords, kindOfDuty, NewDutyButton } from '../duty-words.js'
+import { EvidenceNumber, ResultMark, StandingMark } from '../evidence-words.js'
 import { LabelCardOf } from '../labels.js'
 import { factLink } from '../links.js'
 import { officePlaces } from '../place-addresses.js'
@@ -87,6 +91,8 @@ export const assetFileWords = {
   loading: 'Die Akte wird geladen.',
   failed: 'Die Akte ließ sich nicht laden. Sie kommt vom Server, mit Verbindung.',
   noDuties: 'Für diese Anlage ist keine Pflicht bestätigt.',
+  noEvidence: 'Für diese Anlage ist noch kein Nachweis festgehalten.',
+  evidenceLoading: 'Die Nachweise werden geladen.',
   resting:
     'Die Anlage ist nicht in Betrieb. Ihre Pflichten ruhen, bis sie wieder in Betrieb geht, und verfallen nicht.',
   noLifecycle: 'Noch kein Eintrag. Ohne Eintrag gilt die Anlage als in Betrieb.',
@@ -122,6 +128,7 @@ export function AssetFileScreen() {
   const { assetId } = useParams({ strict: false }) as { assetId?: string }
   const navigate = useNavigate()
   const seesDuties = useRight('duty.read')
+  const seesEvidence = useRight('evidence.read')
   const records = useRight('asset.record')
   const keeps = useRight('asset.write')
   const [changing, setChanging] = useState<'place' | 'supplies' | 'lifecycle' | null>(null)
@@ -130,6 +137,10 @@ export function AssetFileScreen() {
   const duties = useQuery({
     ...assetDutiesQuery(assetId ?? ''),
     enabled: assetId !== undefined && seesDuties,
+  })
+  const evidence = useQuery({
+    ...assetEvidenceQuery(assetId ?? ''),
+    enabled: assetId !== undefined && seesEvidence,
   })
   const catalogue = useCatalogue()
   const properties = useRecords('properties')
@@ -234,6 +245,7 @@ export function AssetFileScreen() {
               action={<NewDutyButton start={{ assetId: asset.id }} />}
             />
           ) : null}
+          {seesEvidence ? <AssetEvidence evidence={evidence.data} /> : null}
         </div>
         <div className="flex min-w-0 flex-col gap-3.5">
           <Panel
@@ -583,6 +595,27 @@ export function Duties({
   )
   const reviewOf = (duty: DutyReading) => kindOfDuty(duty, catalogue)?.review ?? null
   const lastOf = (duty: DutyReading) => (duty.lastMetOn === null ? null : date(duty.lastMetOn))
+  // The number leads to the page of the evidence, the day stands under it;
+  // one taken over from an earlier application is named by its day.
+  const lastCell = (duty: DutyReading): ReactNode => {
+    const last = duty.lastEvidence
+
+    if (last === null) {
+      return <span className="text-ink-faint">noch keiner</span>
+    }
+
+    return (
+      <div className="leading-[1.32]">
+        <EvidenceNumber
+          id={last.id}
+          number={last.origin === 'legacy' ? date(last.performedOn) : last.number}
+        />
+        <div className="text-[12px] text-ink-faint">
+          {last.origin === 'legacy' ? 'Altbestand' : date(last.performedOn)}
+        </div>
+      </div>
+    )
+  }
   const nextOf = (duty: DutyReading) =>
     resting || duty.appointment === null ? null : date(duty.appointment.dueOn)
   const state = (duty: DutyReading) => (
@@ -635,12 +668,82 @@ export function Duties({
                   ) : null}
                 </div>
               </Cell>
-              <Cell>{lastOf(duty) ?? <span className="text-ink-faint">noch keiner</span>}</Cell>
+              <Cell>{lastCell(duty)}</Cell>
               <Cell numeric>{nextOf(duty)}</Cell>
               <Cell>{state(duty)}</Cell>
             </tr>
           )
         })}
+      </tbody>
+    </TablePanel>
+  )
+}
+
+/**
+ * "Nachweise": every evidence of a duty at the asset, the newest first, with
+ * its duty and what it means for the appointment, its number the way to its
+ * page (2.6 of the concept). One replaced or declared invalid stays in the
+ * list and says so.
+ */
+function AssetEvidence({
+  evidence,
+}: {
+  readonly evidence: readonly AssetEvidenceEntry[] | undefined
+}) {
+  const title = 'Nachweise'
+
+  if (evidence === undefined || evidence.length === 0) {
+    return (
+      <Panel title={title}>
+        <p className="text-[13px] leading-[1.4] text-ink-muted">
+          {evidence === undefined ? assetFileWords.evidenceLoading : assetFileWords.noEvidence}
+        </p>
+      </Panel>
+    )
+  }
+
+  const back = (entry: AssetEvidenceEntry) => (entry.standing === 'counts' ? '' : 'text-ink-muted')
+
+  return (
+    <TablePanel
+      title={title}
+      caption="Nachweise dieser Anlage mit Pflicht, Tag, Ergebnis und Bedeutung für die Frist"
+      cards={evidence.map((entry) => ({
+        key: entry.id,
+        title: <EvidenceNumber id={entry.id} number={entry.number} />,
+        sub: [entry.dutyTitle, date(entry.performedOn), evidenceResultLabel[entry.result]].join(
+          ' · ',
+        ),
+        right: <StandingMark standing={entry.standing} />,
+      }))}
+    >
+      <thead>
+        <tr>
+          {/* Beside a column of 320 pixels the table has 677 at a width of
+              1280: what the columns ask for stays below that. */}
+          <Column className="w-[112px] min-w-[104px]">Nummer</Column>
+          <Column className="min-w-[120px]">Pflicht</Column>
+          <Column className="w-[88px] min-w-[80px]">Tag</Column>
+          <Column className="w-[134px] min-w-[124px]">Ergebnis</Column>
+          <Column className="w-[160px] min-w-[150px]">Für die Frist</Column>
+        </tr>
+      </thead>
+      <tbody>
+        {evidence.map((entry) => (
+          <tr key={entry.id}>
+            <Cell className={back(entry)}>
+              <EvidenceNumber id={entry.id} number={entry.number} />
+            </Cell>
+            <Cell className={back(entry)}>{entry.dutyTitle}</Cell>
+            <Cell className={back(entry)}>{date(entry.performedOn)}</Cell>
+            <Cell>
+              <ResultMark result={entry.result} />
+            </Cell>
+            <Cell>
+              <StandingMark standing={entry.standing} />
+            </Cell>
+          </tr>
+        ))}
       </tbody>
     </TablePanel>
   )

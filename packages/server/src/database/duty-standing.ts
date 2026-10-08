@@ -138,7 +138,7 @@ export async function meetingEvidenceByDuty(
     if (meetsTheDuty(row.result)) {
       performances.set(row.dutyId, [
         ...(performances.get(row.dutyId) ?? []),
-        { number: row.number, performedOn: row.performedOn, origin: row.origin },
+        { id: row.id, number: row.number, performedOn: row.performedOn, origin: row.origin },
       ])
     }
   }
@@ -233,15 +233,14 @@ export function dutyOnADay(
   }
 }
 
-/** A duty at an asset with how it stands today. */
+/** A duty with how it stands on a day and the evidence its appointment is counted from. */
 export interface StandingDuty extends DutyOnADay {
   readonly duty: Duty
-}
-
-/** A duty with how it stands on a day and the evidence its appointment is counted from. */
-export interface RegisteredDuty extends StandingDuty {
   readonly lastEvidence: LastEvidence | null
 }
+
+/** A duty of the register, worked out like the duties in the file of an asset. */
+export type RegisteredDuty = StandingDuty
 
 /**
  * From how many duties on the evidence and the life cycles are read whole
@@ -326,7 +325,7 @@ export async function assetsOnADay(
           .where(and(isNull(duties.deletedAt), isNotNull(duties.assetId), narrowed(duties.assetId)))
           .orderBy(asc(duties.confirmedAt))) as Duty[]
       ).filter((duty) => duty.endsOn === null || duty.endsOn > today)
-  const met = await metDaysByDuty(
+  const met = await meetingEvidenceByDuty(
     tx,
     assetIds === undefined ? undefined : running.map((duty) => duty.id),
   )
@@ -350,15 +349,17 @@ export async function assetsOnADay(
 
   for (const duty of running) {
     const assetId = duty.assetId as string
+    const evidenceOfIt = met.get(duty.id) ?? []
 
     dutiesOf.set(assetId, [
       ...(dutiesOf.get(assetId) ?? []),
       {
         duty,
+        lastEvidence: evidenceOfIt.at(-1) ?? null,
         ...dutyOnADay(duty, {
           today,
           life: lives.get(assetId) ?? [],
-          met: met.get(duty.id) ?? [],
+          met: evidenceOfIt.map((each) => each.performedOn),
           leadDays: leadDays(duty.id),
         }),
       },

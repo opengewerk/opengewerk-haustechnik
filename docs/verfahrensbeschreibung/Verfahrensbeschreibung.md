@@ -85,10 +85,12 @@ Anhang B nennt jedes Feld der Datenbank, das auf eine Person zeigt. Dieser Absch
 - **Zusage:** Unterschrieben wird im Namen des Kontos, das angemeldet ist. Der Server setzt die Person selbst ein und übernimmt sie nicht vom Gerät. [K2.6, B22]
 - Mit der Unterschrift entsteht der Nachweis und friert seinen Stand ein: den Namen der Person, die unterschrieben hat, ihre Rolle dabei und den Zeitpunkt; bei einem eingetragenen Bericht den Namen des Prüfers und seine Organisation; dazu, wer den Nachweis eingetragen hat. Ein späterer Namenswechsel ändert daran nichts. [K2.6, B24, B30]
 - **Zusage:** Eine Unterschrift, die Abnahme eines Auftrags und ein Nachweis werden von niemandem geändert oder gelöscht, auch nicht vom Eigentümer der Tabellen und nicht von einem Administrator der Datenbank. Kein Recht hebt das auf. [K2.6, K7, B26, B27, B39]
-- Eine Berichtigung ist ein neuer Nachweis, der den alten nennt; beide bleiben. Eine Ungültigkeitserklärung nennt die Person und den Grund, und der Nachweis bleibt lesbar. Beides dürfen die Leitung, die Technische Leitung und die Objektleitung. [K2.6, B9, B28]
+- Eine Berichtigung ist ein neuer Nachweis, der den alten nennt; beide bleiben. Eine Ungültigkeitserklärung nennt die Person und den Grund, und der Nachweis bleibt lesbar. Beides dürfen die Leitung, die Technische Leitung und die Objektleitung. [K2.6, B9, B28, B96]
 - Die Seite einer Pflicht listet ihre Nachweise mit Nummer, Tag, Ergebnis und Herkunft und sagt zu jedem, ob er für die Frist zählt, ersetzt oder für ungültig erklärt ist. Lesen kann die Liste, wer Nachweise ansieht, das sind alle vier Rollen, jede in ihren Bereichen. [K2.6, K4.3, B78]
 - **Zusage:** Diese Liste nennt keine Person: weder wer geprüft, noch wer unterschrieben, noch wer den Nachweis eingetragen hat. [K2.6, B79]
-- Einen Bildschirm, der eine Unterschrift oder einen Nachweis im Ganzen zeigt, gibt es in dieser Fassung nicht. Er kommt in Phase 1 (Abschnitt 9). [K12]
+- Die Seite eines Nachweises zeigt ihn im Ganzen, aus seinem eingefrorenen Stand: wer die Arbeit ausgeführt oder geprüft hat, wer unterschrieben hat, mit Rolle und Zeitpunkt, und wer den Nachweis eingetragen hat. Ist er für ungültig erklärt, nennt sie dazu die Person, den Zeitpunkt und den Grund. Lesen kann die Seite, wer Nachweise ansieht, das sind alle vier Rollen, jede in ihren Bereichen. [K2.6, B78, B93]
+- Eine Berichtigung trägt keine Unterschrift. Sie nennt, wer sie eingetragen hat, und die Unterschriften bleiben am Nachweis, den sie ersetzt: sie wurden für dessen Seite gegeben. [K2.6, B94]
+- Die Akte einer Anlage und ihre Seite vor Ort listen die Nachweise der Anlage mit Nummer, Pflicht, Tag, Ergebnis und dem, was er für die Frist heißt. Auch diese Liste nennt keine Person. [K2.6, B95]
 
 ### 3.6 Was jeder Datensatz über seine letzte Änderung trägt
 
@@ -148,6 +150,7 @@ Phase 1 kennt vier Rollen. Was jede darf, steht Recht für Recht in Abschnitt 7 
 | Das Pflichtenverzeichnis auf eine Person eingrenzen; die Namen zur Wahl der verantwortlichen Person | ja | ja | nein | nein |
 | Datensätze mit ihrem Stempel | in ihren Bereichen | in ihren Bereichen | in ihren Bereichen | in ihren Bereichen |
 | Fassungen von Dokumenten mit der Kennung des Kontos, das sie abgelegt hat | in ihren Bereichen | in ihren Bereichen | in ihren Bereichen | in ihren Bereichen |
+| Ein Nachweis im Ganzen: wer ihn ausgeführt, geprüft, unterschrieben, eingetragen oder für ungültig erklärt hat | in ihren Bereichen | in ihren Bereichen | in ihren Bereichen | in ihren Bereichen |
 
 Leitung und Technische Leitung sehen als Vorgabe alle Bereiche.
 
@@ -356,6 +359,10 @@ Pfade ohne Vorsatz liegen im Repository `opengewerk/opengewerk-haustechnik`. Pfa
 | B90 | Test | `packages/server/src/database/imports.test.ts` | `is no for a later transaction that names the row of an import that is done, and its records are logged` |
 | B91 | Test | `packages/server/src/database/imports.test.ts` | `carry the condition on the five tables an import writes, and on no other` |
 | B92 | Test | `packages/server/src/api/imports.test.ts` | `answers with the table in it, and keeps neither the file nor a word about it` |
+| B93 | Test | `packages/server/src/api/evidence.test.ts` | `reads the frozen state with the fingerprint over it, for every role that sees evidence` |
+| B94 | Test | `packages/server/src/api/evidence.test.ts` | `is a new evidence of the duty that names the old one, which stays as it was` |
+| B95 | Test | `packages/server/src/api/evidence.test.ts` | `lists the evidence of every duty at the asset with its duty, the newest first` |
+| B96 | Test | `packages/server/src/api/evidence.test.ts` | `answers %s with %i: correcting and declaring invalid is for whoever enters evidence` |
 
 ---
 
@@ -407,7 +414,7 @@ Jede Zeile ist der erste Abschnitt einer Adresse, unter der der Server antwortet
 | Adresse | Wofür |
 | --- | --- |
 | `areas` | Bereiche und für wen sie genannt sind |
-| `assets` | Anlagen und ihre Komponenten |
+| `assets` | Anlagen und ihre Komponenten, und die Nachweise einer Anlage |
 | `attachments` | Dokumente: gibt die Datei einer Fassung und ihre Vorschau aus, über die Fassung und nie über die Prüfsumme |
 | `audit` | Änderungsprotokoll |
 | `auth` | das eigene Konto: Betreiber wählen, eigene Geräte, eigene Passkeys, abmelden |
@@ -417,6 +424,7 @@ Jede Zeile ist der erste Abschnitt einer Adresse, unter der der Server antwortet
 | `deadlines` | Fristen |
 | `duties` | Pflichten, das Pflichtenverzeichnis, die Nachweise einer Pflicht und die Auswahl der verantwortlichen Person |
 | `duty-dismissals` | verworfene Vorschläge für Pflichten |
+| `evidence` | die Seite eines Nachweises, seine Berichtigung und seine Ungültigerklärung |
 | `files` | Dateien: nimmt den Inhalt einer Datei an, bevor ein Datensatz sie nennt, und gibt keine aus |
 | `floors` | Geschosse |
 | `health` | Gesundheitsprüfung, ohne Daten |

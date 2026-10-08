@@ -101,7 +101,12 @@ function entry(id: string, further: Readonly<Record<string, unknown>> = {}): Dut
       roomId: null,
     },
     responsible: { userId: 'u-roth', name: 'Dennis Roth' },
-    lastEvidence: { number: 'NW-2026-00041', performedOn: '2026-03-12', origin: 'report' },
+    lastEvidence: {
+      id: 'e-41',
+      number: 'NW-2026-00041',
+      performedOn: '2026-03-12',
+      origin: 'report',
+    },
     ...further,
   } as unknown as DutyEntry
 }
@@ -135,7 +140,12 @@ const mainTest = entry('d-main', {
   state: 'overdue',
   appointment: { dueOn: '2026-09-01', onTimeUntil: '2026-11-30' },
   lastMetOn: '2024-09-15',
-  lastEvidence: { number: 'NW-2024-00007', performedOn: '2024-09-15', origin: 'legacy' },
+  lastEvidence: {
+    id: 'e-7',
+    number: 'NW-2024-00007',
+    performedOn: '2024-09-15',
+    origin: 'legacy',
+  },
   performer: 'contractor',
   performerNote: null,
 })
@@ -757,6 +767,12 @@ describe('the duties of a room', () => {
     state: 'due',
     appointment: { dueOn: '2026-10-28', onTimeUntil: '2026-10-28' },
     lastMetOn: '2026-07-28',
+    lastEvidence: {
+      id: 'e-88',
+      number: 'NW-2026-00088',
+      performedOn: '2026-07-28',
+      origin: 'protocol',
+    },
   } as DutyReading
 
   it('stand on the page of the room, each with its last evidence, its appointment and its state, and lead to their page', async () => {
@@ -766,7 +782,7 @@ describe('the duties of a room', () => {
     expect(rowsOf(dutiesOfTheRoom)).toEqual([
       [
         'Heizraum frei von BrandlastenEigene Festlegung, Brandschutzordnung Teil C · alle 3 Monate',
-        '28.07.2026',
+        'NW-2026-0008828.07.2026',
         '28.10.2026',
         'Fällig',
       ],

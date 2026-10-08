@@ -9,11 +9,8 @@ import {
   dutyPerformerLabel,
   dutyProblems,
   dutyTaskLabel,
-  type EvidenceResult,
   evidenceOriginLabel,
   evidenceResultLabel,
-  type EvidenceStanding,
-  evidenceStandingLabel,
   intervalWords,
   type RecordState,
 } from '@opengewerk/haustechnik-domain'
@@ -26,8 +23,6 @@ import {
   Field,
   Panel,
   SelectField,
-  Status,
-  type StatusTone,
   TablePanel,
 } from '@opengewerk/platform-web'
 import { date, today } from '@opengewerk/platform-web/format'
@@ -66,6 +61,7 @@ import {
   Nobody,
   performerWords,
 } from '../duty-words.js'
+import { EvidenceNumber, ResultMark, StandingMark } from '../evidence-words.js'
 import { factLink } from '../links.js'
 import { officePlaces } from '../place-addresses.js'
 
@@ -457,20 +453,6 @@ export function DutyScreen() {
   )
 }
 
-const resultTones: Readonly<Record<EvidenceResult, StatusTone>> = {
-  without_defects: 'done',
-  with_defects: 'conflict',
-  failed: 'conflict',
-  not_performed: 'neutral',
-}
-
-const standingTones: Readonly<Record<EvidenceStanding, StatusTone>> = {
-  counts: 'done',
-  does_not_meet: 'neutral',
-  replaced: 'neutral',
-  voided: 'conflict',
-}
-
 /**
  * "Nachweise": every evidence of the duty, the newest first, each with what
  * it means for the appointment. One a correction replaced and one declared
@@ -489,12 +471,8 @@ function Evidence({ evidence }: { readonly evidence: readonly DutyEvidenceEntry[
     )
   }
 
-  const result = (entry: DutyEvidenceEntry) => (
-    <Status tone={resultTones[entry.result]}>{evidenceResultLabel[entry.result]}</Status>
-  )
-  const standing = (entry: DutyEvidenceEntry) => (
-    <Status tone={standingTones[entry.standing]}>{evidenceStandingLabel[entry.standing]}</Status>
-  )
+  const result = (entry: DutyEvidenceEntry) => <ResultMark result={entry.result} />
+  const standing = (entry: DutyEvidenceEntry) => <StandingMark standing={entry.standing} />
   const back = (entry: DutyEvidenceEntry) => (entry.standing === 'counts' ? '' : 'text-ink-muted')
 
   return (
@@ -504,7 +482,7 @@ function Evidence({ evidence }: { readonly evidence: readonly DutyEvidenceEntry[
       note={dutyPageWords.whatCounts}
       cards={evidence.map((entry) => ({
         key: entry.id,
-        title: entry.number,
+        title: <EvidenceNumber id={entry.id} number={entry.number} />,
         sub: [
           date(entry.performedOn),
           evidenceResultLabel[entry.result],
@@ -528,7 +506,7 @@ function Evidence({ evidence }: { readonly evidence: readonly DutyEvidenceEntry[
         {evidence.map((entry) => (
           <tr key={entry.id}>
             <Cell className={back(entry)}>
-              <span className="numeric">{entry.number}</span>
+              <EvidenceNumber id={entry.id} number={entry.number} />
             </Cell>
             <Cell className={back(entry)}>{date(entry.performedOn)}</Cell>
             <Cell>{result(entry)}</Cell>
