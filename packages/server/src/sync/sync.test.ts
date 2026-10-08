@@ -1265,6 +1265,373 @@ describe('a signature from a device', () => {
     expect(await statusOf(toSign.activity)).toBe('open')
     expect(await signaturesOf(toSign.activity)).toEqual([])
   })
+
+  describe('with the answers to the points of a form', () => {
+    const form = { key: 'probe.water_meter_reading', version: 1 }
+
+    /** An activity to sign that is filled in the reading form of the probe package. */
+    async function withForm(): Promise<ToSign> {
+      const toSign = await activityToSign()
+
+      await admin.query('update activities set form_key = $2, form_version = $3 where id = $1', [
+        toSign.activity,
+        form.key,
+        form.version,
+      ])
+
+      return toSign
+    }
+
+    /** An answer to a point, as a device queues it. */
+    function answer(
+      activity: string,
+      fieldKey: string,
+      values: Readonly<Record<string, SyncValue>>,
+    ) {
+      return operation('activity_answers', 'create', newId<'activity-answer'>(), {
+        activityId: activity,
+        fieldKey,
+        ...values,
+      })
+    }
+
+    /** Every point answered: both check points in order and the reading. */
+    function everyPoint(activity: string): Sent[] {
+      return [
+        answer(activity, 'seal_intact', { result: 'ok' }),
+        answer(activity, 'no_leak', { result: 'ok' }),
+        answer(activity, 'reading', { value: '1234567' }),
+      ]
+    }
+
+    /** The answers as the page shows them, from the operations that gave them. */
+    function shownAnswers(given: readonly Sent[]) {
+      return given.map((sent) => {
+        const value = (field: string) =>
+          (sent.patches.find((patch) => patch.field === field)?.to ?? null) as string | null
+
+        return {
+          groupKey: null,
+          blockKey: null,
+          fieldKey: value('fieldKey') ?? '',
+          value: value('value'),
+          result: value('result') as 'ok' | 'not_ok' | null,
+          remark: value('remark'),
+          attachmentId: null,
+        }
+      })
+    }
+
+    /** The page of an activity with a form as the device shows it, with these answers. */
+    function pageWith(toSign: ToSign, given: readonly Sent[]): string {
+      return pageFingerprint(
+        signedPageOf({
+          activity: {
+            id: toSign.activity,
+            kind: toSign.kind,
+            title: toSign.title,
+            performedOn: '2026-10-01' as IsoDate,
+          },
+          place: {
+            property: {
+              name: 'Schulzentrum Am Neckar',
+              address: 'Neckarstraße 4, 68535 Edingen-Neckarhausen',
+            },
+            building: { name: 'Haus A', shortCode: null },
+            room: null,
+            asset: {
+              id: toSign.asset,
+              name: 'Aufzug Haus A',
+              kind: 'probe.elevator',
+              serialNumber: null,
+            },
+          },
+          duties: toSign.duties.map(({ duty, label }) => ({
+            dutyId: duty,
+            kind: toSign.dutyKind,
+            label,
+            result: 'without_defects',
+            resultReason: null,
+          })),
+          defects: [],
+          form,
+          answers: shownAnswers(given),
+        }),
+      )
+    }
+
+    it('takes the answers to different points from two devices, and a second answer to one point is a conflict', async () => {
+      const toSign = await withForm()
+      const seal = answer(toSign.activity, 'seal_intact', { result: 'ok' })
+
+      expect(await outcomes('u-tech', [seal], small, 'phone')).toEqual([applied])
+      expect(
+        await outcomes(
+          'u-lead',
+          [answer(toSign.activity, 'no_leak', { result: 'ok' })],
+          small,
+          'tablet',
+        ),
+      ).toEqual([applied])
+      // The tablet did not hold the answer of the phone when it answered the same point.
+      expect(
+        await outcomes(
+          'u-lead',
+          [answer(toSign.activity, 'seal_intact', { result: 'not_ok', remark: 'Plombe fehlt.' })],
+          small,
+          'tablet',
+        ),
+      ).toEqual([{ outcome: 'conflict', reason: 'changed_elsewhere', fields: ['fieldKey'] }])
+      // Two devices that change the same answer: the second is a conflict a person decides.
+      expect(
+        await outcomes(
+          'u-tech',
+          [
+            operation(
+              'activity_answers',
+              'update',
+              seal.recordId,
+              { result: 'not_possible', remark: 'Verbaut.' },
+              { result: 'ok' },
+            ),
+          ],
+          small,
+          'phone',
+        ),
+      ).toEqual([applied])
+      expect(
+        (
+          await outcomes(
+            'u-lead',
+            [
+              operation(
+                'activity_answers',
+                'update',
+                seal.recordId,
+                { result: 'not_ok', remark: 'Plombe fehlt.' },
+                { result: 'ok' },
+              ),
+            ],
+            small,
+            'tablet',
+          )
+        )[0],
+      ).toMatchObject({ outcome: 'conflict' })
+      expect(await rowOf('u-lead', 'activity_answers', seal.recordId)).toMatchObject({
+        result: 'not_possible',
+        remark: 'Verbaut.',
+        propertyId: place.property,
+      })
+    })
+
+    it('refuses an answer that does not fit the form of its activity with the sentence of the form', async () => {
+      const toSign = await withForm()
+      const refusal = async (sent: Sent) => {
+        const refused = await send('u-tech', [sent]).expect(400)
+
+        expect(refused.body.operationId).toBe(sent.id)
+
+        return refused.body.message as string
+      }
+
+      expect(await refusal(answer(toSign.activity, 'temperature', { value: '55000' }))).toBe(
+        'Das Feld temperature gibt es in Ablesung Wasserzähler nicht.',
+      )
+      expect(await refusal(answer(toSign.activity, 'reading', { value: '"viel"' }))).toBe(
+        'Zählerstand: eine Zahl.',
+      )
+      expect(await refusal(answer(toSign.activity, 'seal_intact', { result: 'fine' }))).toBe(
+        'Ein Prüfpunkt ist in Ordnung, nicht in Ordnung, entfällt oder ist nicht möglich.',
+      )
+
+      // An activity without a form takes no answer.
+      const without = await activityToSign()
+
+      expect(await refusal(answer(without.activity, 'seal_intact', { result: 'ok' }))).toBe(
+        'Dieser Vorgang hat kein Formular, das Antworten nimmt.',
+      )
+    })
+
+    it('is signed only once every point has its answer, and takes no answer afterwards', async () => {
+      const toSign = await withForm()
+      // Queued in this order on the device: the work, the answers, the signature.
+      const work = workDone(toSign)
+      const given = everyPoint(toSign.activity)
+      const missing = given.slice(0, 2)
+      const early = signature(toSign.activity, pageWith(toSign, missing))
+
+      expect((await send('u-tech', [...work, ...missing, early]).expect(400)).body).toMatchObject({
+        message: 'Jeder Punkt braucht seine Antwort, bevor unterschrieben wird. Zählerstand fehlt.',
+        operationId: early.id,
+      })
+      expect(await signaturesOf(toSign.activity)).toEqual([])
+
+      // Refused whole, the outbox goes again with the reading answered.
+      const signed = signature(toSign.activity, pageWith(toSign, given))
+
+      expect(await outcomes('u-tech', [...work, ...given, signed])).toEqual(
+        Array.from({ length: 6 }, () => applied),
+      )
+      expect(await statusOf(toSign.activity)).toBe('done')
+
+      // Signed, the answers are fixed: nothing new, no change, no removal.
+      const fixed = await outcomes('u-tech', [
+        answer(toSign.activity, 'seal_intact', { result: 'ok' }),
+        operation(
+          'activity_answers',
+          'update',
+          given[2]?.recordId ?? '',
+          { value: '1' },
+          { value: '1234567' },
+        ),
+        operation('activity_answers', 'delete', given[0]?.recordId ?? ''),
+      ])
+
+      expect(fixed.map((each) => [each.outcome, each.reason])).toEqual([
+        ['conflict', 'record_is_fixed'],
+        ['conflict', 'record_is_fixed'],
+        ['conflict', 'record_is_fixed'],
+      ])
+    })
+
+    it('takes the photo of a point only as a document of the same activity', async () => {
+      const toSign = await withForm()
+      const other = await withForm()
+      const documentAt = (activity: string) =>
+        operation('attachments', 'create', newId<'attachment'>(), {
+          title: 'Plombe',
+          propertyId: place.property,
+          activityId: activity,
+        })
+      const atOther = documentAt(other.activity)
+      const atOwn = documentAt(toSign.activity)
+      const withPhoto = (photo: string) =>
+        answer(toSign.activity, 'seal_intact', {
+          result: 'not_ok',
+          remark: 'Plombe fehlt.',
+          attachmentId: photo,
+        })
+
+      expect(await outcomes('u-tech', [atOther, atOwn])).toEqual([applied, applied])
+      expect(await outcomes('u-tech', [withPhoto(atOther.recordId)])).toEqual([
+        { outcome: 'conflict', reason: 'record_missing', fields: ['attachmentId'] },
+      ])
+      expect(await outcomes('u-tech', [withPhoto(atOwn.recordId)])).toEqual([applied])
+    })
+
+    it('goes onto the device with the activity it holds, and with no other', async () => {
+      const held = await withForm()
+      const elsewhere = await withForm()
+      const mine = answer(held.activity, 'seal_intact', { result: 'ok' })
+      const theirs = answer(elsewhere.activity, 'seal_intact', { result: 'ok' })
+
+      expect(await outcomes('u-lead', [mine, theirs], small, 'tablet')).toEqual([applied, applied])
+
+      // The other activity is given to the Objektleitung, and the technician holds it no more.
+      await admin.query(
+        `update activities set performer = 'own_staff', performer_user_id = 'u-site' where id = $1`,
+        [elsewhere.activity],
+      )
+
+      const holding = ((await pulled('u-tech'))['activity_answers'] ?? []).map((row) => row['id'])
+
+      expect(holding).toContain(mine.recordId)
+      expect(holding).not.toContain(theirs.recordId)
+    })
+
+    it('answers a signature for a page with other answers with a conflict about the page', async () => {
+      const toSign = await withForm()
+      const given = everyPoint(toSign.activity)
+
+      expect(await outcomes('u-tech', [...workDone(toSign), ...given])).toEqual(
+        Array.from({ length: 5 }, () => applied),
+      )
+
+      const shown = pageWith(toSign, given)
+
+      // Another device corrects the reading while the page is signed.
+      expect(
+        await outcomes(
+          'u-lead',
+          [
+            operation(
+              'activity_answers',
+              'update',
+              given[2]?.recordId ?? '',
+              { value: '1234568' },
+              { value: '1234567' },
+            ),
+          ],
+          small,
+          'tablet',
+        ),
+      ).toEqual([applied])
+      expect(await outcomes('u-tech', [signature(toSign.activity, shown)])).toEqual([
+        { outcome: 'conflict', reason: 'changed_elsewhere', fields: ['pageFingerprint'] },
+      ])
+      expect(await signaturesOf(toSign.activity)).toEqual([])
+    })
+
+    it('makes a defect of a check point not in order with the signature, and the evidence keeps the answers', async () => {
+      const toSign = await withForm()
+      const given = [
+        answer(toSign.activity, 'seal_intact', { result: 'not_ok', remark: 'Plombe fehlt.' }),
+        answer(toSign.activity, 'no_leak', { result: 'ok' }),
+        answer(toSign.activity, 'reading', { value: '1234567' }),
+      ]
+
+      expect(
+        await outcomes('u-tech', [
+          ...workDone(toSign),
+          ...given,
+          signature(toSign.activity, pageWith(toSign, given)),
+        ]),
+      ).toEqual(Array.from({ length: 6 }, () => applied))
+
+      const { rows: found } = await admin.query<{
+        description: string
+        asset_id: string
+        found_on: string
+        found_in_answer_id: string
+        defect_class: string | null
+      }>(
+        `select description, asset_id, to_char(found_on, 'YYYY-MM-DD') as found_on, found_in_answer_id,
+                defect_class
+           from defects where found_in_activity_id = $1`,
+        [toSign.activity],
+      )
+
+      expect(found).toEqual([
+        {
+          description: 'Plombe unversehrt: Plombe fehlt.',
+          asset_id: toSign.asset,
+          found_on: '2026-10-01',
+          found_in_answer_id: given[0]?.recordId,
+          defect_class: null,
+        },
+      ])
+
+      const { rows: written } = await admin.query<{
+        state: {
+          form: unknown
+          answers: { label: string; value: string | null; result: string | null }[]
+          defects: { description: string }[]
+        }
+      }>('select state from evidence where activity_id = $1', [toSign.activity])
+
+      expect(written[0]?.state.form).toEqual({ ...form, title: 'Ablesung Wasserzähler' })
+      expect(
+        written[0]?.state.answers.map(({ label, value, result }) => [label, value, result]),
+      ).toEqual([
+        ['Plombe unversehrt', null, 'not_ok'],
+        ['Zähler dicht', null, 'ok'],
+        ['Zählerstand', '1.234,567 m³', null],
+      ])
+      expect(written[0]?.state.defects.map((defect) => defect.description)).toEqual([
+        'Plombe unversehrt: Plombe fehlt.',
+      ])
+    })
+  })
 })
 
 describe('a defect', () => {

@@ -1,4 +1,10 @@
-import type { Id, IsoDate, TenantOwned } from '@opengewerk/platform-domain'
+import type {
+  BlockFieldKind,
+  CheckPointResult,
+  Id,
+  IsoDate,
+  TenantOwned,
+} from '@opengewerk/platform-domain'
 
 import type { ActivityId, ActivityKind } from './activity.js'
 import type { AreaId } from './area.js'
@@ -75,9 +81,10 @@ export const evidenceLimits = {
 
 /**
  * The number of the newest shape of the frozen state, counted up when a field
- * comes in: 2 since a correction names the evidence it replaces (#26).
+ * comes in: 2 since a correction names the evidence it replaces (#26), 3
+ * since an evidence keeps the form of its activity and the answers (#106).
  */
-export const evidenceStateVersion = 2
+export const evidenceStateVersion = 3
 
 /** The place of an evidence in words, as it was on the day it was written down. */
 export interface StatedPlace {
@@ -137,6 +144,36 @@ export interface StatedFile {
   readonly mediaType: string
 }
 
+/** The form an activity was filled in: its key, its version and its title, as they were. */
+export interface StatedForm {
+  readonly key: string
+  readonly version: number
+  readonly title: string
+}
+
+/**
+ * The answer to one point of the form (ADR 0004, point 3), as it was signed:
+ * its section and label, the group and the place of its block, counted from
+ * one, the kind of the field, the value in words, a check point with its
+ * result, the remark, a measured value with its limit and where the limit
+ * comes from, and a photo by the hash of its file.
+ */
+export interface StatedAnswer {
+  readonly section: string
+  readonly label: string
+  readonly group: { readonly label: string; readonly block: number } | null
+  readonly kind: BlockFieldKind
+  readonly value: string | null
+  readonly result: CheckPointResult | null
+  readonly remark: string | null
+  readonly limit: {
+    readonly text: string
+    readonly source: string | null
+    readonly within: boolean | null
+  } | null
+  readonly photo: StatedFile | null
+}
+
 /** The evidence a correction replaces: its number, and why it is replaced (ADR 0004, point 14). */
 export interface StatedReplacement {
   readonly number: string
@@ -147,9 +184,7 @@ export interface StatedReplacement {
  * The frozen state of an evidence (ADR 0004, points 3 to 6): everything the
  * page said, as JSON, written by the server when the evidence is written down
  * and never again. Every output reads it and never the current records: the
- * view, the PDF, the register of evidence, an export. The answers and
- * measured values of a protocol with their limits come with the filled
- * forms of phase 1, in a later version.
+ * view, the PDF, the register of evidence, an export.
  *
  * A field that comes in makes a new version; `readEvidenceState` reads every
  * version there ever was and hands out the newest shape.
@@ -167,6 +202,10 @@ export interface EvidenceState {
   readonly duty: StatedDuty
   readonly place: StatedPlace
   readonly activity: { readonly kind: ActivityKind; readonly title: string } | null
+  /** The form the activity was filled in, since version 3; none for an evidence without one. */
+  readonly form: StatedForm | null
+  /** The answers to its points in the order of the form, since version 3. */
+  readonly answers: readonly StatedAnswer[]
   readonly performer: StatedPerformer | null
   readonly defects: readonly StatedDefect[]
   readonly signatures: readonly StatedSignature[]
@@ -194,8 +233,13 @@ export class UnknownEvidenceStateError extends Error {
   }
 }
 
+/** The second version: all of the third but the form and the answers. */
+type EvidenceStateOfVersion2 = Omit<EvidenceState, 'version' | 'form' | 'answers'> & {
+  readonly version: 2
+}
+
 /** The first version: all of the second but the evidence a correction replaces. */
-type EvidenceStateOfVersion1 = Omit<EvidenceState, 'version' | 'replaces'> & {
+type EvidenceStateOfVersion1 = Omit<EvidenceStateOfVersion2, 'version' | 'replaces'> & {
   readonly version: 1
 }
 
@@ -205,13 +249,22 @@ type EvidenceStateOfVersion1 = Omit<EvidenceState, 'version' | 'replaces'> & {
  * as long as the application exists (ADR 0004, point 4).
  */
 const readers: Readonly<Record<number, (stored: StoredEvidenceState) => EvidenceState>> = {
-  // No evidence of the first version corrects another.
+  // No evidence of the first version corrects another, and none before the
+  // third names a form or answers.
   1: (stored) => ({
     ...(stored as unknown as EvidenceStateOfVersion1),
     version: evidenceStateVersion,
     replaces: null,
+    form: null,
+    answers: [],
   }),
-  2: (stored) => stored as unknown as EvidenceState,
+  2: (stored) => ({
+    ...(stored as unknown as EvidenceStateOfVersion2),
+    version: evidenceStateVersion,
+    form: null,
+    answers: [],
+  }),
+  3: (stored) => stored as unknown as EvidenceState,
 }
 
 /** The versions this reader knows. */

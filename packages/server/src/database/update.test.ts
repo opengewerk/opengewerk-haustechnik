@@ -146,6 +146,7 @@ describe('an installation that began on the first migration', () => {
     // place and the assets, so they go first, and what an invitation says
     // about areas hangs on the areas; the files, the mail server and the
     // settings of the deadlines hang on nothing of this.
+    await revertMigration(admin, '0026_answers_per_point')
     await revertMigration(admin, '0025_defects_kept')
     await revertMigration(admin, '0023_own_duty_task')
     await revertMigration(admin, '0022_imports')
@@ -309,6 +310,7 @@ describe('an installation from before the areas', () => {
 
     // The places hang on the areas and go first, as on the way back of an
     // installation, and so does what an invitation says about areas.
+    await revertMigration(admin, '0026_answers_per_point')
     await revertMigration(admin, '0025_defects_kept')
     await revertMigration(admin, '0023_own_duty_task')
     await revertMigration(admin, '0022_imports')
@@ -382,6 +384,7 @@ describe('an installation with places', () => {
       [tenant.id],
     )
 
+    await revertMigration(admin, '0026_answers_per_point')
     await revertMigration(admin, '0025_defects_kept')
     await revertMigration(admin, '0023_own_duty_task')
     await revertMigration(admin, '0022_imports')
@@ -481,6 +484,7 @@ describe('an installation with assets', () => {
       [tenant.id, asset, at.property, at.area, at.building],
     )
 
+    await revertMigration(admin, '0026_answers_per_point')
     await revertMigration(admin, '0025_defects_kept')
     await revertMigration(admin, '0023_own_duty_task')
     await revertMigration(admin, '0022_imports')
@@ -585,6 +589,7 @@ describe('an installation with assets', () => {
       [tenant.id, at.property, at.area, at.asset],
     )
 
+    await revertMigration(admin, '0026_answers_per_point')
     await revertMigration(admin, '0025_defects_kept')
     await revertMigration(admin, '0023_own_duty_task')
     await revertMigration(admin, '0022_imports')
@@ -690,6 +695,7 @@ describe('an installation with assets', () => {
       [tenant.id, at.duty, at.property, at.area],
     )
 
+    await revertMigration(admin, '0026_answers_per_point')
     await revertMigration(admin, '0025_defects_kept')
     await revertMigration(admin, '0023_own_duty_task')
     await revertMigration(admin, '0022_imports')
@@ -798,6 +804,7 @@ describe('an installation with assets', () => {
       [tenant.id, at.property, at.area, at.asset, activityId],
     )
 
+    await revertMigration(admin, '0026_answers_per_point')
     await revertMigration(admin, '0025_defects_kept')
     await revertMigration(admin, '0023_own_duty_task')
     await revertMigration(admin, '0022_imports')
@@ -899,6 +906,7 @@ describe('an installation with assets', () => {
       ],
     )
 
+    await revertMigration(admin, '0026_answers_per_point')
     await revertMigration(admin, '0025_defects_kept')
     await revertMigration(admin, '0012_evidence_corrections')
     await revertMigration(admin, '0011_signatures')
@@ -1000,6 +1008,7 @@ describe('an installation with assets', () => {
       [at.order],
     )
 
+    await revertMigration(admin, '0026_answers_per_point')
     await revertMigration(admin, '0025_defects_kept')
     await revertMigration(admin, '0012_evidence_corrections')
     await revertMigration(admin, '0011_signatures')
@@ -1108,6 +1117,7 @@ describe('an installation with assets', () => {
       [tenant.id, at.property, at.area, correction],
     )
 
+    await revertMigration(admin, '0026_answers_per_point')
     await revertMigration(admin, '0025_defects_kept')
     await revertMigration(admin, '0012_evidence_corrections')
 
@@ -1163,6 +1173,7 @@ describe('an installation with assets', () => {
     expect(await mayCall('public')).toBe(false)
     expect(await mayCall('opengewerk_app')).toBe(true)
 
+    await revertMigration(admin, '0026_answers_per_point')
     await revertMigration(admin, '0025_defects_kept')
     await revertMigration(admin, '0013_sync_counter_grant')
 
@@ -1210,6 +1221,7 @@ describe('an installation whose invitations name areas', () => {
       [tenant.id, invitation],
     )
 
+    await revertMigration(admin, '0026_answers_per_point')
     await revertMigration(admin, '0025_defects_kept')
     await revertMigration(admin, '0014_invitation_areas')
 
@@ -1271,6 +1283,7 @@ describe('an installation whose properties carry notes', () => {
       [tenant.id],
     )
 
+    await revertMigration(admin, '0026_answers_per_point')
     await revertMigration(admin, '0025_defects_kept')
     await revertMigration(admin, '0015_property_note')
 
@@ -1345,6 +1358,7 @@ describe('an installation whose properties have people to talk to', () => {
       [tenant.id, property?.id, property?.area_id],
     )
 
+    await revertMigration(admin, '0026_answers_per_point')
     await revertMigration(admin, '0025_defects_kept')
     await revertMigration(admin, '0016_contacts')
 
@@ -1422,6 +1436,7 @@ describe('an installation whose buildings have times they are closed', () => {
       [tenant.id, building, property?.id, property?.area_id],
     )
 
+    await revertMigration(admin, '0026_answers_per_point')
     await revertMigration(admin, '0025_defects_kept')
     await revertMigration(admin, '0017_building_closures')
 
@@ -1525,6 +1540,7 @@ describe('an installation that imported from tables', () => {
 
     expect(await quietTables()).toEqual(['assets', 'buildings', 'floors', 'properties', 'rooms'])
 
+    await revertMigration(admin, '0026_answers_per_point')
     await revertMigration(admin, '0025_defects_kept')
     await revertMigration(admin, '0023_own_duty_task')
     await revertMigration(admin, '0022_imports')
@@ -1652,6 +1668,7 @@ describe('an installation that took stock on site', () => {
       second[0]?.id,
     ])
 
+    await revertMigration(admin, '0026_answers_per_point')
     await revertMigration(admin, '0025_defects_kept')
     await revertMigration(admin, '0023_own_duty_task')
     await revertMigration(admin, '0022_imports')
@@ -1737,6 +1754,7 @@ describe('an installation with labels', () => {
       [tenant.id, property?.id, property?.area_id, stood[0]?.id],
     )
 
+    await revertMigration(admin, '0026_answers_per_point')
     await revertMigration(admin, '0025_defects_kept')
     await revertMigration(admin, '0023_own_duty_task')
     await revertMigration(admin, '0022_imports')
@@ -1774,6 +1792,102 @@ describe('an installation with labels', () => {
     )
 
     expect(removed).toEqual([{ table_name: 'labels', reason: 'migration', records: 3 }])
+  })
+})
+
+/**
+ * 0026 brings the answers to the points of a form (#106). On the way forward
+ * it touches no row. Taken back, the answers go, also those of a signed
+ * activity, the form of every activity is forgotten and a defect no longer
+ * names the answer it came of; the defect stays, and the log of the tenant
+ * says what went and why.
+ */
+describe('an installation whose activities have answers', () => {
+  it('loses its answers and the forms of its activities, and keeps the defects', async () => {
+    await applyMigrations()
+
+    const tenant = { id: newId<'tenant'>() }
+
+    await admin.query('insert into tenants (id, name) values ($1, $2)', [
+      tenant.id,
+      'Wohnbau Nord eG',
+    ])
+    await members(tenant, { 'user-lead': { roles: ['management'] } })
+
+    const { rows: made } = await admin.query<{ id: string; area_id: string }>(
+      `insert into properties (tenant_id, area_id, name, street, postal_code, city, federal_state)
+       select $1, id, 'Schulzentrum', 'Musterweg 1', '00001', 'Beispielstadt', 'DE-BW'
+         from areas where tenant_id = $1
+       returning id, area_id`,
+      [tenant.id],
+    )
+    const property = made[0]
+    const { rows: planned } = await admin.query<{ id: string }>(
+      `insert into activities (tenant_id, property_id, area_id, kind, title, status, performed_on,
+                               form_key, form_version)
+       values ($1, $2, $3, 'inspection', 'Ablesung', 'started', '2026-10-01',
+               'probe.water_meter_reading', 1)
+       returning id`,
+      [tenant.id, property?.id, property?.area_id],
+    )
+    const activity = planned[0]?.id
+    const { rows: given } = await admin.query<{ id: string }>(
+      `insert into activity_answers (tenant_id, property_id, area_id, activity_id, field_key, result,
+                                     remark)
+       values ($1, $2, $3, $4, 'seal_intact', 'not_ok', 'Plombe fehlt.') returning id`,
+      [tenant.id, property?.id, property?.area_id, activity],
+    )
+
+    await admin.query(
+      `insert into defects (tenant_id, property_id, area_id, description, found_on,
+                            found_in_activity_id, found_in_answer_id)
+       values ($1, $2, $3, 'Plombe unversehrt: Plombe fehlt.', '2026-10-01', $4, $5)`,
+      [tenant.id, property?.id, property?.area_id, activity, given[0]?.id],
+    )
+    // Signed: the answers of the activity are kept from everybody, until the
+    // update is taken back.
+    await admin.query(
+      `insert into activity_signatures (tenant_id, property_id, area_id, activity_id, signed_by,
+                                        role, signed_at, path, page_fingerprint)
+       values ($1, $2, $3, $4, 'user-lead', 'signer', '2026-10-01T09:30:00Z', 'M10,10L200,300', $5)`,
+      [tenant.id, property?.id, property?.area_id, activity, 'a'.repeat(64)],
+    )
+
+    await revertMigration(admin, '0026_answers_per_point')
+
+    expect((await tableNames(admin)).filter((table) => table === 'activity_answers')).toEqual([])
+    expect(
+      (await functionNames(admin)).filter((name) => name === 'answers_kept_once_signed'),
+    ).toEqual([])
+
+    const { rows: kept } = await admin.query<{ description: string; activity: string }>(
+      'select description, found_in_activity_id as activity from defects where tenant_id = $1',
+      [tenant.id],
+    )
+
+    expect(kept).toEqual([{ description: 'Plombe unversehrt: Plombe fehlt.', activity }])
+
+    const { rows: columns } = await admin.query<{ column_name: string }>(
+      `select column_name from information_schema.columns
+        where table_name in ('activities', 'defects')
+          and column_name in ('form_key', 'form_version', 'found_in_answer_id')`,
+    )
+
+    expect(columns).toEqual([])
+
+    // The log of the tenant says that the answer went, and why.
+    const { rows: removed } = await admin.query<{
+      table_name: string
+      reason: string | null
+      records: number
+    }>(
+      `select table_name, reason, count(distinct record_id)::int as records from audit_entries
+        where tenant_id = $1 and operation = 'delete'
+        group by table_name, reason`,
+      [tenant.id],
+    )
+
+    expect(removed).toEqual([{ table_name: 'activity_answers', reason: 'migration', records: 1 }])
   })
 })
 
@@ -1827,6 +1941,7 @@ describe('an installation with documents', () => {
       [tenant.id, filed[0]?.id, file],
     )
 
+    await revertMigration(admin, '0026_answers_per_point')
     await revertMigration(admin, '0025_defects_kept')
     await revertMigration(admin, '0023_own_duty_task')
     await revertMigration(admin, '0022_imports')

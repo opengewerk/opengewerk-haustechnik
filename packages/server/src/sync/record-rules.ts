@@ -1,6 +1,7 @@
 import {
   activityDutyProblems,
   activityProblems,
+  answerProblems,
   assetProblems,
   assetValueProblems,
   type Catalogue,
@@ -179,6 +180,17 @@ export function recordRules(catalogue: Catalogue): RecordRules {
     activity_duties: [
       ...each(activityDutyProblems, ['result', 'resultReason']),
       rule(activityDutyProblems, ['result', 'resultReason']),
+    ],
+    // The shape of an answer; whether it fits the form of its activity reads
+    // the activity (`answered` in `answers.ts`).
+    activity_answers: [
+      ...each(
+        answerProblems,
+        ['fieldKey', 'groupKey', 'blockKey', 'value', 'result', 'remark'],
+        ['fieldKey'],
+      ),
+      rule(answerProblems, ['groupKey', 'blockKey']),
+      rule(answerProblems, ['value', 'result']),
     ],
     work_orders: each(workOrderProblems, ['kind'], ['kind']),
     defects: [

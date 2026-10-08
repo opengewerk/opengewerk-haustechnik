@@ -66,11 +66,26 @@ export const syncPolicies: Readonly<Record<string, SyncPolicy>> = {
     create: true,
     change: 'merge',
     onlyWhile: { field: 'status', values: inProgress },
-    reserved: ['areaId'],
+    // The form it is filled in is the server's, written when it is made (#106).
+    reserved: ['areaId', 'formKey', 'formVersion'],
   },
   // The result of each duty, until the activity is signed.
   activity_duties: {
     create: false,
+    change: 'merge',
+    gateFrom: {
+      reference: 'activityId',
+      entity: 'activities',
+      field: 'status',
+      values: inProgress,
+    },
+    reserved: ['propertyId', 'areaId'],
+  },
+  // The answer to one point of the form of an activity, a row per point (ADR
+  // 0006, point 7): given, changed and taken back on site while the work
+  // goes on, fixed by the signature. Property and area follow the activity.
+  activity_answers: {
+    create: true,
     change: 'merge',
     gateFrom: {
       reference: 'activityId',
@@ -85,7 +100,8 @@ export const syncPolicies: Readonly<Record<string, SyncPolicy>> = {
     change: 'never',
     reserved: ['number', 'activityKind', 'propertyId', 'areaId'],
   },
-  defects: { create: true, change: 'merge', reserved: ['areaId'] },
+  // The answer a defect came of is the server's, written with the signature (#106).
+  defects: { create: true, change: 'merge', reserved: ['areaId', 'foundInAnswerId'] },
   // A signature is given on the device, also without a connection, and never
   // changed (ADR 0004, point 10). Who gave it is the person signed in, and
   // the server writes what comes of it: the evidence, once every signature
@@ -229,6 +245,22 @@ export const offlineEdits: Readonly<Record<string, OfflineEdits>> = {
   // The result of a duty of an activity. Which duties an activity is to meet
   // is its plan.
   activity_duties: { change: { result: true, resultReason: true } },
+  // The answer to a point: where it stands in the form, once, and what it
+  // says, as long as the work goes on. An answer taken back is removed.
+  activity_answers: {
+    create: {
+      activityId: true,
+      groupKey: true,
+      blockKey: true,
+      fieldKey: true,
+      value: true,
+      result: true,
+      remark: true,
+      attachmentId: true,
+    },
+    change: { value: true, result: true, remark: true, attachmentId: true },
+    remove: true,
+  },
   // A work order made on site is one for a fault ("Störung").
   work_orders: { create: { activityId: true, kind: ['fault'] } },
   // A signature, with when, on which device and for which page it was given.
@@ -345,6 +377,7 @@ export const syncEntityNames: Readonly<Record<string, string>> = {
   duty_dismissals: 'Verworfener Vorschlag',
   activities: 'Vorgang',
   activity_duties: 'Pflicht eines Vorgangs',
+  activity_answers: 'Antwort',
   work_orders: 'Arbeitsauftrag',
   defects: 'Mangel',
   activity_signatures: 'Unterschrift',
@@ -448,6 +481,14 @@ export const syncFieldNames: Readonly<Record<string, string>> = {
   countersignatureRequired: 'Gegenzeichnung verlangt',
   result: 'Ergebnis',
   resultReason: 'Grund',
+  // What is said about the answer to a point of a form. Its result shares
+  // its entry with the result of a duty above, its photo with a document
+  // below.
+  groupKey: 'Gruppe',
+  blockKey: 'Block',
+  fieldKey: 'Punkt',
+  value: 'Wert',
+  remark: 'Bemerkung',
   // What is said about a defect.
   description: 'Beschreibung',
   defectClass: 'Klasse',

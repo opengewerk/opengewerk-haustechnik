@@ -374,6 +374,12 @@ async function placeIn(where: 'north' | 'south'): Promise<void> {
      values ($1, $2, $3, $4, $5)`,
     [tenant, at.property, areaId, at.activity, at.duty],
   )
+  // The answer to a point of its form (#106).
+  await admin.query(
+    `insert into activity_answers (tenant_id, property_id, area_id, activity_id, field_key, result)
+     values ($1, $2, $3, $4, 'door_closed', 'ok')`,
+    [tenant, at.property, areaId, at.activity],
+  )
   await admin.query(
     `insert into work_orders (id, tenant_id, property_id, area_id, activity_id, number, kind)
      values ($1, $2, $3, $4, $5, $6, 'inspection')`,
@@ -521,6 +527,7 @@ describe('a person with the north', () => {
 
     expect(tables).toEqual([
       'activities',
+      'activity_answers',
       'activity_duties',
       'activity_signatures',
       'asset_lifecycle',
@@ -734,6 +741,7 @@ describe('a property moved to another area', () => {
 
       expect(tables.map((row) => row.table_name)).toEqual([
         'activities',
+        'activity_answers',
         'activity_duties',
         'activity_signatures',
         'asset_lifecycle',

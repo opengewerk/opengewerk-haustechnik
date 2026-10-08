@@ -353,6 +353,22 @@ describe('the keys of the activities and defects', () => {
         defectRow('found_in_activity_id', besideActivity),
       defects_named_in_an_evidence_of_their_property: () =>
         defectRow('found_in_evidence_id', besideEvidence),
+      // The answer of one activity, named by a defect noticed in another (#106).
+      defects_from_an_answer_of_their_activity: async () => {
+        const { rows: given } = await admin.query<{ id: string }>(
+          `insert into activity_answers (tenant_id, property_id, area_id, activity_id, field_key,
+                                         result)
+           values ($1, $2, $3, $4, 'door_closed', 'not_ok') returning id`,
+          [tenant, here.property, here.area, activity],
+        )
+
+        return tried(
+          `insert into defects (tenant_id, property_id, area_id, description, found_on,
+                                found_in_activity_id, found_in_answer_id)
+           values ($1, $2, $3, 'Tür offen.', '2026-10-01', $4, $5)`,
+          [tenant, here.property, here.area, await activityIn(here), given[0]?.id],
+        )
+      },
       defects_set_right_by_a_work_order_of_their_property: () =>
         defectRow('remedy_work_order_id', besideOrder),
     }

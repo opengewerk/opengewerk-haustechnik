@@ -1,5 +1,6 @@
 import {
   type ActivityId,
+  type AttachmentId,
   type Catalogue,
   type DutyId,
   dutyInterval,
@@ -11,25 +12,31 @@ import {
   type EvidenceResult,
   type EvidenceState,
   evidenceStateVersion,
+  formOfActivity,
   type IsoDate,
+  type StatedAnswer,
   type StatedDefect,
   type StatedFile,
+  type StatedForm,
   type StatedPerformer,
   type StatedPlace,
   type StatedRetention,
   type StatedReplacement,
   type StatedSignature,
+  statedAnswers,
   statedReasonProblem,
   type TenantId,
 } from '@opengewerk/haustechnik-domain'
 import type { TenantTransaction } from '@opengewerk/platform-server'
-import { and, asc, eq, isNull } from 'drizzle-orm'
+import { and, asc, desc, eq, inArray, isNull } from 'drizzle-orm'
 
 import { assignNumber } from '../database/number-ranges.js'
 import {
   activities,
+  activityAnswers,
   activityDuties,
   assets,
+  attachmentVersions,
   buildings,
   defects,
   duties,
@@ -211,6 +218,7 @@ export async function writeEvidence(
               ),
             )
             .orderBy(asc(defects.createdAt), asc(defects.id))
+  const filled = activity === null ? null : await filledFormOf(tx, context, activity, input)
   const number = await assignNumber(tx, context.tenantId, 'evidence', context.at)
   const state: EvidenceState = {
     version: evidenceStateVersion,
@@ -230,6 +238,8 @@ export async function writeEvidence(
     },
     place,
     activity: activity === null ? null : { kind: activity.kind, title: activity.title },
+    form: filled?.form ?? null,
+    answers: filled?.answers ?? [],
     performer: performerOf(input, context),
     defects: found,
     signatures: input.signatures,
@@ -369,9 +379,17 @@ async function activityOf(
   tx: TenantTransaction,
   context: WritingContext,
   input: EvidenceToWrite,
-): Promise<{ id: ActivityId; kind: (typeof activities.$inferSelect)['kind']; title: string }> {
+): Promise<
+  Pick<typeof activities.$inferSelect, 'id' | 'kind' | 'title' | 'formKey' | 'formVersion'>
+> {
   const [found] = await tx
-    .select({ id: activities.id, kind: activities.kind, title: activities.title })
+    .select({
+      id: activities.id,
+      kind: activities.kind,
+      title: activities.title,
+      formKey: activities.formKey,
+      formVersion: activities.formVersion,
+    })
     .from(activities)
     .innerJoin(
       activityDuties,
@@ -395,6 +413,80 @@ async function activityOf(
   }
 
   return found
+}
+
+/**
+ * The form an activity was filled in and the answers to its points, as the
+ * evidence freezes them (#106, ADR 0004, point 3): in the order of the form,
+ * in words, a measured value with its limit on the day it was performed, and
+ * a photo by the newest version of its document. None for an activity
+ * without a form.
+ */
+async function filledFormOf(
+  tx: TenantTransaction,
+  context: WritingContext,
+  activity: Awaited<ReturnType<typeof activityOf>>,
+  input: EvidenceToWrite,
+): Promise<{ form: StatedForm; answers: readonly StatedAnswer[] } | null> {
+  const definition = formOfActivity(context.catalogue, activity)
+
+  if (definition === null) {
+    return null
+  }
+
+  if (definition === undefined) {
+    throw new EvidenceRefusal(
+      `Das Formular ${String(activity.formKey)} in der Fassung ${String(activity.formVersion)} kennt der Katalog nicht.`,
+    )
+  }
+
+  const answers = await tx
+    .select()
+    .from(activityAnswers)
+    .where(
+      and(
+        eq(activityAnswers.tenantId, context.tenantId),
+        eq(activityAnswers.activityId, activity.id),
+        isNull(activityAnswers.deletedAt),
+      ),
+    )
+  const photos = answers
+    .map((answer) => answer.attachmentId)
+    .filter((id): id is AttachmentId => id !== null)
+  const versions =
+    photos.length === 0
+      ? []
+      : await tx
+          .select({
+            attachmentId: attachmentVersions.attachmentId,
+            sha256: attachmentVersions.sha256,
+            name: attachmentVersions.fileName,
+            mediaType: attachmentVersions.mediaType,
+          })
+          .from(attachmentVersions)
+          .where(
+            and(
+              eq(attachmentVersions.tenantId, context.tenantId),
+              inArray(attachmentVersions.attachmentId, photos),
+            ),
+          )
+          .orderBy(desc(attachmentVersions.createdAt), desc(attachmentVersions.id))
+  const newest = new Map<string, StatedFile>()
+
+  for (const { attachmentId, ...file } of versions) {
+    if (!newest.has(attachmentId)) {
+      newest.set(attachmentId, file)
+    }
+  }
+
+  return {
+    form: { key: definition.key, version: definition.version, title: definition.title },
+    answers: statedAnswers(definition, answers, {
+      rules: context.catalogue.ruleSet,
+      on: input.performedOn,
+      fileOf: (id) => newest.get(id) ?? null,
+    }),
+  }
 }
 
 /** The place of a duty in words: its property, and the building, room and asset it hangs on. */

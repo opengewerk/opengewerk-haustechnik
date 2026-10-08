@@ -134,6 +134,8 @@ describe('the rights of an operation', () => {
       asset_supplies: { create: true, remove: true },
       activities: { create: false, change: true },
       activity_duties: { change: true },
+      // The answers to the points of the form, as the work on the activity (#106).
+      activity_answers: { create: true, change: true, remove: true },
       work_orders: { create: false },
       defects: { create: true, change: true },
       activity_signatures: { create: true },

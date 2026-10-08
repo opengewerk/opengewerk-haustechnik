@@ -95,6 +95,8 @@ Anhang B nennt jedes Feld der Datenbank, das auf eine Person zeigt. Dieser Absch
 - **Zusage:** Diese Liste nennt keine Person: weder wer geprüft, noch wer unterschrieben, noch wer den Nachweis eingetragen hat. [K2.6, B79]
 - Die Seite eines Nachweises zeigt ihn im Ganzen, aus seinem eingefrorenen Stand: wer die Arbeit ausgeführt oder geprüft hat, wer unterschrieben hat, mit Rolle und Zeitpunkt, und wer den Nachweis eingetragen hat. Ist er für ungültig erklärt, nennt sie dazu die Person, den Zeitpunkt und den Grund. Lesen kann die Seite, wer Nachweise ansieht, das sind alle vier Rollen, jede in ihren Bereichen. [K2.6, B78, B93]
 - Eine Berichtigung trägt keine Unterschrift. Sie nennt, wer sie eingetragen hat, und die Unterschriften bleiben am Nachweis, den sie ersetzt: sie wurden für dessen Seite gegeben. [K2.6, B94]
+- Die Antworten auf die Punkte eines Formulars, eines Rundgangs oder eines Prüfprotokolls, halten je Punkt fest, was eingetragen wurde: das Ergebnis eines Prüfpunkts, einen Wert, eine Bemerkung und ein Foto, das ein Dokument am Vorgang ist (Abschnitt 3.9). Eine Antwort nennt keine Person; wer sie zuletzt geändert hat, steht in ihrem Stempel (Abschnitt 3.6). Bis zur Unterschrift ändern sie die Personen, die den Vorgang ausführen, auch ohne Netz. [K2.5, K2.7, K4.5]
+- Mit der Unterschrift friert der Nachweis die Antworten ein, in der Reihenfolge des Formulars, einen Messwert mit seinem Grenzwert und dessen Fundstelle; Zeitpunkt und Person einer einzelnen Eingabe hält er nicht fest. Danach ändert niemand eine Antwort, auch nicht der Eigentümer der Tabellen; wird ein Auftrag zurückgewiesen, geht die Arbeit an ihm weiter. [K2.6, K2.7, K4.5, K9]
 - Die Akte einer Anlage und ihre Seite vor Ort listen die Nachweise der Anlage mit Nummer, Pflicht, Tag, Ergebnis und dem, was er für die Frist heißt. Auch diese Liste nennt keine Person. [K2.6, B95]
 
 ### 3.6 Was jeder Datensatz über seine letzte Änderung trägt
@@ -144,6 +146,7 @@ Anhang B nennt jedes Feld der Datenbank, das auf eine Person zeigt. Dieser Absch
 ### 3.12 Mängel
 
 - Ein Mangel hängt an einer Liegenschaft, einem Gebäude, einem Raum oder einer Anlage. Er hält fest, was festgestellt wurde und an welchem Tag, woher er kommt (ein Vorgang, der Nachweis aus dem Bericht einer Fremdfirma oder von Hand), seine Klasse, die Frist zur Beseitigung und seinen Stand, und nach einer Nachprüfung deren Tag und eine Bemerkung. Seine Fotos sind Dokumente an ihm (Abschnitt 3.9). [K4.6, K4.10]
+- Ein Prüfpunkt „nicht in Ordnung“ und ein Messwert außerhalb seines Grenzwerts werden mit der Unterschrift ein Mangel, mit dem Text des Punkts und der Bemerkung, ohne Klasse und ohne Person. [K4.5, K4.6]
 - Ein Mangel nennt keine Person. Wer ihn gemeldet, eingestuft oder nachgeprüft hat, steht in seinem Stempel (Abschnitt 3.6) und im Änderungsprotokoll; kein anderer Bildschirm zeigt es. Die Bemerkung zur Nachprüfung ist freier Text. [K4.6, K9]
 - Melden können alle vier Rollen, im Büro und vor Ort, dort auch ohne Netz. Klasse, Frist und Nachprüfung setzen die Leitung, die Technische Leitung und die Objektleitung; die Haustechnik meldet ohne Klasse und Frist, und ein Gerät schickt mit einer Meldung keine. [K7, B107, B108]
 - Die Vorgabe der Frist je Mängelklasse stellt ein, wer die Einstellungen ändert, in Phase 1 die Leitung. Sie nennt keine Person. [K4.6, K7]

@@ -53,7 +53,7 @@ describe('the words of the change log in the office', () => {
       rooms: 'mit seinen Etiketten',
       assets: 'mit ihrem Lebenszyklus, dem, was sie versorgt, und ihren Etiketten',
       attachments: 'mit seinen Fassungen',
-      activities: 'mit den Pflichten, die er erfüllen soll',
+      activities: 'mit den Pflichten, die er erfüllen soll, und den Antworten auf sein Formular',
       defects: 'mit seinen Fotos',
     })
     expect(Object.keys(auditScreenWords.partsWords ?? {})).toEqual(
@@ -70,8 +70,12 @@ describe('the words of the change log in the office', () => {
         { table: 'labels', column: 'asset_id' },
       ],
       attachments: [{ table: 'attachment_versions', column: 'attachment_id' }],
-      // An activity with the duties it is to meet and what came of each (#105).
-      activities: [{ table: 'activity_duties', column: 'activity_id' }],
+      // An activity with the duties it is to meet and what came of each (#105),
+      // and the answers to the points of its form (#106).
+      activities: [
+        { table: 'activity_duties', column: 'activity_id' },
+        { table: 'activity_answers', column: 'activity_id' },
+      ],
       // A defect with its photos (#116).
       defects: [{ table: 'attachments', column: 'defect_id' }],
     })

@@ -59,6 +59,8 @@ describe('the policies of the sync', () => {
       duty_dismissals: [false, 'never'],
       activities: [true, 'merge'],
       activity_duties: [false, 'merge'],
+      // "Antwort eines Punkts: ja, ja bis zur Unterschrift" (#106).
+      activity_answers: [true, 'merge'],
       work_orders: [true, 'never'],
       defects: [true, 'merge'],
       activity_signatures: [true, 'never'],
@@ -101,6 +103,11 @@ describe('the policies of the sync', () => {
     // there (ADR 0002, point 10); which property, only the device knows.
     expect(syncPolicies['activities']?.reserved).not.toContain('propertyId')
     expect(syncPolicies['defects']?.reserved).not.toContain('propertyId')
+    // The form an activity is filled in, and the answer a defect came of (#106).
+    expect(syncPolicies['activities']?.reserved).toEqual(
+      expect.arrayContaining(['formKey', 'formVersion']),
+    )
+    expect(syncPolicies['defects']?.reserved).toContain('foundInAnswerId')
   })
 
   it('let a device give a label from a sheet to an asset while it is not blocked, and nothing else about a label', () => {
@@ -124,6 +131,38 @@ describe('the policies of the sync', () => {
       field: 'status',
       values: ['open', 'started'],
     })
+  })
+
+  it('take an answer, a change of it and its removal while the work goes on, and none once signed', () => {
+    expect(syncPolicies['activity_answers']?.reserved).toEqual(['propertyId', 'areaId'])
+
+    const given = {
+      ...operation('activity_answers', 'create'),
+      patches: [{ field: 'activityId', from: null, to: 'a' }],
+    }
+    const changed = {
+      ...operation('activity_answers', 'update'),
+      patches: [{ field: 'remark', from: null, to: 'Lose.' }],
+    }
+    const row = { id: 'r', activityId: 'a', remark: null, version: 1, deletedAt: null }
+
+    for (const [status, outcome] of [
+      ['open', 'apply'],
+      ['started', 'apply'],
+      ['signed', 'conflict'],
+      ['done', 'conflict'],
+      ['not_performed', 'conflict'],
+    ] as const) {
+      const activity = { id: 'a', status, deletedAt: null }
+
+      expect(offlineRules.decideMerge(given, null, activity).outcome, status).toBe(outcome)
+      expect(offlineRules.decideMerge(changed, row, activity).outcome, status).toBe(outcome)
+    }
+
+    expect(
+      offlineEditRefusal(operation('activity_answers', 'update', { fieldKey: 'other' })),
+    ).toEqual(['fieldKey'])
+    expect(offlineEditRefusal(operation('activity_answers', 'delete'))).toBeNull()
   })
 
   it('take a signature while the work goes on and once signed, in the name of whoever is signed in', () => {

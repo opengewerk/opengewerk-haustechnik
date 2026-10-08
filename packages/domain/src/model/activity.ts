@@ -105,6 +105,8 @@ export const activityLimits = {
   title: 200,
   contractorNote: 200,
   closingReason: 500,
+  /** The key of a form, `<package>.<key>` like every key of a package. */
+  formKey: 130,
 } as const
 
 /**
@@ -138,6 +140,15 @@ export interface Activity extends Synced, PlaceTarget {
   readonly performedOn: IsoDate | null
   /** Whether the site management countersigns it, as its template asks (section 4.5). */
   readonly countersignatureRequired: boolean
+  /**
+   * The form it is filled in and the version of it (#106): written by the
+   * server when the activity is made, and kept, so that an activity under
+   * way stays on its version (section 4.5). An inspection or a maintenance
+   * takes the form its duty kind names as its evidence; none for an activity
+   * without a form, which has no answers.
+   */
+  readonly formKey: string | null
+  readonly formVersion: number | null
 }
 
 /**

@@ -20,6 +20,7 @@ import type { PgColumn, PgTable } from 'drizzle-orm/pg-core'
 
 import {
   activities,
+  activityAnswers,
   assets,
   assetSupplies,
   attachments,
@@ -290,6 +291,48 @@ async function signaturePlace(
 }
 
 /**
+ * The answer to a point of the form of an activity (#106): property and area
+ * come from the activity, and a photo is a document at the same activity. A
+ * point that has its answer already was answered by somebody else while the
+ * device was away, a conflict about this one operation at the point (ADR
+ * 0006, point 7), which a person decides.
+ */
+async function answerPlace(
+  tx: TenantTransaction,
+  values: Record<string, unknown>,
+): Promise<SyncRefusal | null> {
+  const activity = await found<Activity>(tx, activities, values['activityId'])
+
+  if (!activity) {
+    return missing('activityId')
+  }
+
+  values['propertyId'] = activity.propertyId
+  values['areaId'] = activity.areaId
+
+  const groupKey = values['groupKey']
+  const blockKey = values['blockKey']
+  const [answered] = await tx
+    .select({ id: activityAnswers.id })
+    .from(activityAnswers)
+    .where(
+      and(
+        eq(activityAnswers.activityId, activity.id),
+        typeof groupKey === 'string'
+          ? eq(activityAnswers.groupKey, groupKey)
+          : isNull(activityAnswers.groupKey),
+        typeof blockKey === 'string'
+          ? eq(activityAnswers.blockKey, blockKey)
+          : isNull(activityAnswers.blockKey),
+        eq(activityAnswers.fieldKey, String(values['fieldKey'])),
+        isNull(activityAnswers.deletedAt),
+      ),
+    )
+
+  return answered ? { kind: 'conflict', reason: 'changed_elsewhere', fields: ['fieldKey'] } : null
+}
+
+/**
  * A document at its place: the property, and at most one record on it, a
  * building, a room, an asset, an activity or a defect, whose photo it is
  * (#116). The area comes from the property. Every one of them has to be there
@@ -348,6 +391,7 @@ const placeOf: Readonly<
   defects: defectPlace,
   work_orders: workOrderPlace,
   activity_signatures: signaturePlace,
+  activity_answers: answerPlace,
   attachments: documentPlace,
   attachment_versions: versionPlace,
 }

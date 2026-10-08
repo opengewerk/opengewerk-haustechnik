@@ -13,6 +13,7 @@ import type { PgColumn } from 'drizzle-orm/pg-core'
 
 import { assignNumber } from '../database/number-ranges.js'
 import * as schema from '../database/schema/index.js'
+import { answered } from './answers.js'
 import { unseenDuplicate } from './duplicates.js'
 import { assigned } from './labels.js'
 import { placed } from './places.js'
@@ -119,8 +120,9 @@ async function completed({
  * may not be written without a connection, then the texts in their form, the
  * rules of `domain` on the fields, the file of a version, the place, the
  * question that reads other records and puts in what the server derives,
- * then an asset against the ones that are there and a label against the asset
- * it is given to, and last a signature against its activity.
+ * then an answer against the form of its activity, an asset against the ones
+ * that are there and a label against the asset it is given to, and last a
+ * signature against its activity.
  */
 export function syncFor(catalogue: Catalogue): ServerSync<Sender> {
   return serverSync<Sender>({
@@ -132,9 +134,10 @@ export function syncFor(catalogue: Catalogue): ServerSync<Sender> {
       recordRulesCheck(recordRules(catalogue)),
       versionFile,
       placed,
+      answered(catalogue),
       unseenDuplicate,
       assigned,
-      signed,
+      signed(catalogue),
     ],
     complete: completed,
     afterWrite: followed(catalogue),

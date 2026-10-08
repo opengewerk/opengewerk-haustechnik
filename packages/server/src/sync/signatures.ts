@@ -35,8 +35,9 @@ export type Sender = FoundIdentity<Identity> & {
 
 /**
  * The answer to a refusal of a signature from a device, by what it is about:
- * a signature of another shape, or one for a page without its day or a
- * result, is a mistake its form asks about before anything is queued, and
+ * a signature of another shape, or one for a page without its day, a result
+ * or the answer to a point, is a mistake its form asks about before anything
+ * is queued, and
  * refuses the transmission with its sentence; an activity gone or closed, a
  * page that is not the one the server works out and a signature out of its
  * turn are what changed while the device was away, a conflict about this one
@@ -50,28 +51,39 @@ const answers: Readonly<Record<SigningRefusalAbout, (sentence: string) => SyncRe
   turn: () => ({ kind: 'conflict', reason: 'changed_elsewhere', fields: ['role'] }),
 }
 
-/** A signature from a device, checked against the activity as the server holds it. */
-export const signed: SyncCheck<Sender> = async ({ tx, tenantId, operation, values }) => {
-  if (operation.entity !== 'activity_signatures' || operation.kind !== 'create') {
-    return null
-  }
-
-  try {
-    await checkSignature(tx, tenantId, {
-      activityId: values['activityId'] as ActivityId,
-      role: values['role'] as SignatureRole,
-      deviceInfo: (values['deviceInfo'] ?? null) as string | null,
-      path: String(values['path'] ?? ''),
-      pageFingerprint: String(values['pageFingerprint'] ?? ''),
-    })
-
-    return null
-  } catch (error) {
-    if (error instanceof SigningRefusal) {
-      return answers[error.about](error.message)
+/**
+ * A signature from a device, checked against the activity as the server holds
+ * it, with the catalogue the form of the activity comes from: a point without
+ * its answer is a mistake the form asks about, like a missing result.
+ */
+export function signed(catalogue: Catalogue): SyncCheck<Sender> {
+  return async ({ tx, tenantId, operation, values }) => {
+    if (operation.entity !== 'activity_signatures' || operation.kind !== 'create') {
+      return null
     }
 
-    throw error
+    try {
+      await checkSignature(
+        tx,
+        tenantId,
+        {
+          activityId: values['activityId'] as ActivityId,
+          role: values['role'] as SignatureRole,
+          deviceInfo: (values['deviceInfo'] ?? null) as string | null,
+          path: String(values['path'] ?? ''),
+          pageFingerprint: String(values['pageFingerprint'] ?? ''),
+        },
+        catalogue,
+      )
+
+      return null
+    } catch (error) {
+      if (error instanceof SigningRefusal) {
+        return answers[error.about](error.message)
+      }
+
+      throw error
+    }
   }
 }
 

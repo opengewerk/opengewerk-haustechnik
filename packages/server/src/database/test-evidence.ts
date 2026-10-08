@@ -31,6 +31,8 @@ export function leastState(number: string, performedOn: IsoDate, result: string)
     result: result as EvidenceState['result'],
     resultReason: result === 'not_performed' ? 'Anlage war abgeschaltet.' : null,
     replaces: null,
+    form: null,
+    answers: [],
     duty: {
       label: 'Hauptprüfung der Aufzugsanlage',
       kind: null,

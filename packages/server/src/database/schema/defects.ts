@@ -18,9 +18,11 @@ import {
   pgTable,
   text,
   unique,
+  uniqueIndex,
 } from 'drizzle-orm/pg-core'
 
 import { activities, workOrders } from './activities.js'
+import { activityAnswers } from './answers.js'
 import { withinAreas } from './areas.js'
 import { assets } from './assets.js'
 import { evidence } from './evidence.js'
@@ -56,6 +58,7 @@ export const defects = pgTable(
     assetId: reference<'asset'>('asset_id'),
     foundInActivityId: reference<'activity'>('found_in_activity_id'),
     foundInEvidenceId: reference<'evidence'>('found_in_evidence_id'),
+    foundInAnswerId: reference<'activity-answer'>('found_in_answer_id'),
     remedyWorkOrderId: reference<'work-order'>('remedy_work_order_id'),
     description: text('description').notNull(),
     defectClass: text('defect_class'),
@@ -103,6 +106,25 @@ export const defects = pgTable(
       foreignColumns: [evidence.tenantId, evidence.id, evidence.propertyId],
       name: 'defects_named_in_an_evidence_of_their_property',
     }),
+    // A defect that came of an answer names it, in the activity it was
+    // noticed in (#106); once per answer among the defects that are not marked.
+    foreignKey({
+      columns: [table.tenantId, table.foundInAnswerId, table.propertyId, table.foundInActivityId],
+      foreignColumns: [
+        activityAnswers.tenantId,
+        activityAnswers.id,
+        activityAnswers.propertyId,
+        activityAnswers.activityId,
+      ],
+      name: 'defects_from_an_answer_of_their_activity',
+    }),
+    check(
+      'defects_answer_in_their_activity',
+      sql`${table.foundInAnswerId} is null or ${table.foundInActivityId} is not null`,
+    ),
+    uniqueIndex('defects_once_per_answer')
+      .on(table.tenantId, table.foundInAnswerId)
+      .where(sql`${table.foundInAnswerId} is not null and ${table.deletedAt} is null`),
     foreignKey({
       columns: [table.tenantId, table.remedyWorkOrderId, table.propertyId],
       foreignColumns: [workOrders.tenantId, workOrders.id, workOrders.propertyId],
