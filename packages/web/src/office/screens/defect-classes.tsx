@@ -19,7 +19,7 @@ export const defectClassWords = {
   caption: 'Mängelklassen mit der Vorgabe der Frist und dem Paket, aus dem sie kommen',
   note: 'Die Frist eines Mangels ist die Vorgabe seiner Klasse, gezählt ab dem Tag der Feststellung. Am Mangel lässt sie sich ändern. Ohne Vorgabe setzt die Frist, wer Mängel führt.',
   unsafe: 'macht die Anlage unsicher',
-  safe: 'ohne Folge für den Betrieb der Anlage',
+  safe: 'die Anlage bleibt in Betrieb',
   loading: 'Wird geladen.',
   failed: 'Die Mängelklassen ließen sich nicht laden. Sie kommen vom Server, mit Verbindung.',
   none: 'Kein Paket nennt Mängelklassen.',
