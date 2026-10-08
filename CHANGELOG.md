@@ -746,6 +746,14 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
 - Die Nachweise einer Anlage (#109): `GET /assets/:id/evidence` listet die Nachweise jeder Pflicht an der Anlage, der
   jüngste zuerst, mit Pflicht und dem, was er für die Frist heißt, ohne eine Person. Die Akte zeigt sie in der Karte
   "Nachweise", die Seite der Anlage vor Ort die letzten drei, mit Verbindung
+- Die Liste "Fristen" im Büro (#104, #75) unter `/fristen`: was fällig wird, nach Fälligkeit, mit der Pflicht, der Anlage
+  oder dem Ort samt Liegenschaft, wer verantwortlich ist und wann erinnert wird. Sie blättert auf dem Server und grenzt
+  nach Stand, Art, Liegenschaft, Bereich (für wen mehr als einen sieht), Person und Suche ein. Eingegrenzt auf eine Person
+  nennt sie keine Zahl, wie das Pflichtenverzeichnis. Die Navigation zählt neben "Fristen" die überfälligen. Dazu unter
+  "Einstellungen", "Fristen" Vorlauf und Person je Art. Beides für Leitung und Technische Leitung. Die Fristen liefen seit
+  #25 im Server ohne Bildschirm; ein Betreiber hat vom ersten Tag an ein paar tausend, deshalb blättert das Fundament die
+  Liste jetzt auf dem Server (`opengewerk#575`), und das Submodul ist darauf angehoben. Verfahrensbeschreibung Abschnitte
+  4 und 5 (B97)
 
 ### Geändert
 

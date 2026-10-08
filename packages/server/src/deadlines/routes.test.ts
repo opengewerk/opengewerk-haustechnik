@@ -67,11 +67,39 @@ function by(userId: keyof typeof people & string, tenantId: TenantId = small): s
 
 let places = 0
 
-/** An elevator with its main test, met on a day, in the first area of the operator or the one named. */
+/** One page of the list of deadlines, as the route answers it. */
+interface Page {
+  readonly rows: readonly {
+    readonly dutyId: string
+    readonly responsible: { readonly userId: string } | null
+  }[]
+  readonly total: number | null
+  readonly more: boolean
+}
+
+/** The page of deadlines a person is answered for the question in the address. */
+async function pageOf(
+  userId: keyof typeof people & string,
+  query = '',
+  tenantId: TenantId = small,
+): Promise<Page> {
+  const answer = await http()
+    .get(query === '' ? '/deadlines' : `/deadlines?${query}`)
+    .set(testIdentityHeader, by(userId, tenantId))
+    .expect(200)
+
+  return answer.body as Page
+}
+
+/**
+ * An elevator with its main test, met on a day, in the first area of the
+ * operator or the one named, at a property of the name given.
+ */
 async function dutyWithEvidence(
   tenantId: TenantId,
   performedOn: string,
   areaId?: string,
+  propertyName = 'Schulzentrum Am Neckar',
 ): Promise<{ duty: string; property: string }> {
   places += 1
 
@@ -79,7 +107,7 @@ async function dutyWithEvidence(
     `with property as (
        insert into properties (tenant_id, area_id, name, street, postal_code, city, federal_state)
        select $1, coalesce($2::uuid, (select id from areas where tenant_id = $1 order by name limit 1)),
-              'Schulzentrum Am Neckar', 'Neckarstraße 4', '68535', 'Edingen-Neckarhausen', 'DE-BW'
+              $13, 'Neckarstraße 4', '68535', 'Edingen-Neckarhausen', 'DE-BW'
        returning id, area_id
      ), building as (
        insert into buildings (tenant_id, property_id, area_id, name, kinds)
@@ -109,6 +137,7 @@ async function dutyWithEvidence(
       `AN-${String(places).padStart(5, '0')}`,
       performedOn,
       ...writtenValues('u-duties', performedOn, 'without_defects'),
+      propertyName,
     ],
   )
 
@@ -190,7 +219,8 @@ describe('the list of deadlines', () => {
       .set(testIdentityHeader, by('u-duties'))
       .expect(200)
 
-    expect(answer.body).toEqual([
+    expect(answer.body).toMatchObject({ total: 1, more: false })
+    expect((answer.body as Page).rows).toEqual([
       expect.objectContaining({
         kind: 'duty.due',
         kindTitle: 'Fälligkeit einer Pflicht',
@@ -201,7 +231,11 @@ describe('the list of deadlines', () => {
         remindOn: '2027-01-30',
         source: { label: 'Hauptprüfung der Aufzugsanlage, Aufzug Haus A (AN-00001)' },
         dutyId: duty,
+        dutyTitle: 'Hauptprüfung der Aufzugsanlage',
         propertyId: property,
+        buildingId: expect.any(String) as unknown,
+        roomId: null,
+        asset: { id: expect.any(String), number: 'AN-00001', name: 'Aufzug Haus A' },
       }),
     ])
   })
@@ -213,33 +247,101 @@ describe('the list of deadlines', () => {
     await runDeadlinesOf({ database, catalogue, now: () => october }, large, october)
 
     const seen = async (userId: keyof typeof people & string) =>
-      (
-        (await http().get('/deadlines').set(testIdentityHeader, by(userId, large)).expect(200))
-          .body as { dutyId: string }[]
-      )
-        .map((entry) => entry.dutyId)
-        .sort()
+      (await pageOf(userId, '', large)).rows.map((entry) => entry.dutyId).sort()
 
     expect(await seen('u-duties')).toEqual([inNorth.duty])
     expect(await seen('u-lead')).toEqual([inNorth.duty, inSouth.duty].sort())
   })
 
-  it('is for whoever may look after the deadlines', async () => {
-    for (const userId of ['u-site', 'u-tech'] as const) {
-      expect(
-        (await http().get('/deadlines').set(testIdentityHeader, by(userId)).expect(403)).body
-          .message,
-      ).toBe(missingRight('deadline.read'))
-      expect(
-        (
-          await http()
-            .put('/settings/deadlines/duty.due')
-            .set(testIdentityHeader, by(userId))
-            .send({ leadDays: 14 })
-            .expect(403)
-        ).body.message,
-      ).toBe(missingRight('deadline.write'))
+  // #104, acceptance 1: looking after the deadlines and their settings is
+  // for the Leitung and the Technische Leitung, a test for each role.
+  it.each([
+    ['u-lead', true],
+    ['u-duties', true],
+    ['u-site', false],
+    ['u-tech', false],
+  ] as const)('%s looks after the deadlines and their settings: %s', async (userId, may) => {
+    // One after the other: each request listens and closes on its own.
+    const asked = [
+      () => http().get('/deadlines'),
+      () => http().get('/settings/deadlines'),
+      () => http().patch(`/deadlines/${newId()}`).send({ leadDays: 3 }),
+      () => http().put('/settings/deadlines/duty.unknown').send({ leadDays: 3 }),
+    ]
+    const answers = []
+
+    for (const question of asked) {
+      answers.push(await question().set(testIdentityHeader, by(userId)))
     }
+
+    expect(answers.map((answer) => answer.status)).toEqual(
+      may ? [200, 200, 404, 404] : [403, 403, 403, 403],
+    )
+
+    if (!may) {
+      expect(answers.map((answer) => (answer.body as { message: string }).message)).toEqual([
+        missingRight('deadline.read'),
+        missingRight('deadline.read'),
+        missingRight('deadline.write'),
+        missingRight('deadline.write'),
+      ])
+    }
+  })
+
+  // #75: a property and an area narrow the list, and the search finds a
+  // property by its name, all in the areas of the person.
+  it('narrows to a property and to an area, and finds a property by its name', async () => {
+    const harbour = await dutyWithEvidence(large, '2025-06-02', north, 'Hafenamt Rheinau')
+    const depot = await dutyWithEvidence(large, '2025-06-03', south, 'Betriebshof Seckenheim')
+
+    await runDeadlinesOf({ database, catalogue, now: () => october }, large, october)
+
+    const duties = async (query: string, userId: 'u-lead' | 'u-duties' = 'u-lead') =>
+      (await pageOf(userId, query, large)).rows.map((entry) => entry.dutyId)
+
+    expect(await pageOf('u-lead', `property=${harbour.property}`, large)).toMatchObject({
+      rows: [{ dutyId: harbour.duty }],
+      total: 1,
+    })
+    expect(await duties(`area=${south}`)).toContain(depot.duty)
+    expect(await duties(`area=${south}`)).not.toContain(harbour.duty)
+    expect(await duties('search=hafenamt')).toEqual([harbour.duty])
+    expect(await duties(`property=${depot.property}`, 'u-duties')).toEqual([])
+
+    for (const query of ['property=Hafenamt', 'area=Nord']) {
+      await http()
+        .get(`/deadlines?${query}`)
+        .set(testIdentityHeader, by('u-lead', large))
+        .expect(400)
+    }
+  })
+
+  // Narrowed to a person the list names no number (Moritz, 08.10.2026, as in
+  // the register of duties): neither how many deadlines the person has nor
+  // how many of them are late.
+  it('narrowed to a person, names no number and says all the same whether more follow', async () => {
+    const named = [
+      await dutyWithEvidence(small, '2025-04-01'),
+      await dutyWithEvidence(small, '2025-04-02'),
+    ]
+
+    await admin.query('update duties set responsible_user_id = $1 where id = any($2)', [
+      'u-duties',
+      named.map((one) => one.duty),
+    ])
+    await runDeadlinesOf({ database, catalogue, now: () => october }, small, october)
+
+    const all = await pageOf('u-lead')
+    const theirs = await pageOf('u-lead', 'person=u-duties&limit=1')
+
+    expect(all.total).toBeGreaterThan(2)
+    expect(theirs).toMatchObject({ total: null, more: true })
+    expect(theirs.rows.map((entry) => entry.responsible?.userId)).toEqual(['u-duties'])
+    expect(await pageOf('u-lead', 'person=u-site')).toEqual({
+      rows: [],
+      total: null,
+      more: false,
+    })
   })
 })
 
@@ -283,8 +385,9 @@ describe('the settings of a kind', () => {
       .get('/deadlines')
       .set(testIdentityHeader, by('u-duties'))
       .expect(200)
+    const { rows } = body as { rows: { leadDays: number }[] }
 
-    expect(body as { leadDays: number }[]).not.toHaveLength(0)
-    expect((body as { leadDays: number }[]).every((entry) => entry.leadDays === 14)).toBe(true)
+    expect(rows).not.toHaveLength(0)
+    expect(rows.every((entry) => entry.leadDays === 14)).toBe(true)
   })
 })

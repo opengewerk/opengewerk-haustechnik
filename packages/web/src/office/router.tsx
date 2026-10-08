@@ -24,6 +24,7 @@ import { AssetRegisterScreen } from './screens/assets.js'
 import { EditBuildingScreen, NewBuildingScreen } from './screens/building-form.js'
 import { BuildingScreen } from './screens/buildings.js'
 import { CatalogueScreen } from './screens/catalogue.js'
+import { DeadlineListScreen, DeadlineSettingsScreen } from './screens/deadlines.js'
 import { DocumentsScreen } from './screens/documents.js'
 import { DutyRegisterScreen } from './screens/duties.js'
 import { DutyScreen } from './screens/duty.js'
@@ -213,6 +214,11 @@ export function officeRoutes() {
     }),
     createRoute({
       getParentRoute: () => office,
+      path: '/fristen',
+      component: DeadlineListScreen,
+    }),
+    createRoute({
+      getParentRoute: () => office,
       path: dutyPlaces.new,
       component: NewDutyScreen,
     }),
@@ -281,6 +287,11 @@ export function officeRoutes() {
       getParentRoute: () => office,
       path: '/einstellungen/zugaenge',
       component: StaffScreen,
+    }),
+    createRoute({
+      getParentRoute: () => office,
+      path: '/einstellungen/fristen',
+      component: DeadlineSettingsScreen,
     }),
     createRoute({
       getParentRoute: () => office,

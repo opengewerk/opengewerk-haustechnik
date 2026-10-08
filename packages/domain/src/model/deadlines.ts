@@ -45,3 +45,30 @@ export const dutyDue: ApplicationDeadlineKind = {
 
 /** Every kind this application knows. */
 export const deadlineKinds: readonly ApplicationDeadlineKind[] = [dutyDue]
+
+/**
+ * What a deadline of this application says in the list "Fristen" beside what
+ * every deadline says (#104): the duty it follows, by its title, and what the
+ * duty hangs on, an asset, a room, a building or the property itself.
+ */
+export interface DutyDeadlineFacts {
+  readonly dutyId: string
+  readonly dutyTitle: string
+  readonly propertyId: string
+  /** The building the duty hangs on, or the one its asset stands in. */
+  readonly buildingId: string | null
+  readonly roomId: string | null
+  readonly asset: {
+    readonly id: string
+    readonly number: string | null
+    readonly name: string
+  } | null
+}
+
+/**
+ * The filters of the list "Fristen" beside kind and person, by their names
+ * in the address (#75): the property and the area a deadline lies in.
+ */
+export const deadlineFilters = ['property', 'area'] as const
+
+export type DeadlineFilterName = (typeof deadlineFilters)[number]
