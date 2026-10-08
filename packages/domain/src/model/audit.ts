@@ -180,6 +180,7 @@ export const auditVocabulary: AuditVocabulary = {
         status: 'Stand',
         due_on: 'Fällig am',
         responsible_user_id: 'Verantwortlich',
+        performer: 'Durchführung',
         performer_user_id: 'Ausgeführt von',
         contractor_note: 'Fremdfirma',
         closing_reason: 'Grund',
@@ -311,9 +312,20 @@ export const auditVocabulary: AuditVocabulary = {
     ],
     // A document with its versions: who filed which, and when.
     attachments: [{ table: 'attachment_versions', column: 'attachment_id' }],
+    // An activity with the duties it is to meet and what came of each.
+    activities: [{ table: 'activity_duties', column: 'activity_id' }],
   },
   // The records the log is opened from, each from the screen that shows it.
-  records: ['properties', 'buildings', 'floors', 'rooms', 'assets', 'duties', 'attachments'],
+  records: [
+    'properties',
+    'buildings',
+    'floors',
+    'rooms',
+    'assets',
+    'duties',
+    'attachments',
+    'activities',
+  ],
   references: {
     area_id: 'areas',
     property_id: 'properties',

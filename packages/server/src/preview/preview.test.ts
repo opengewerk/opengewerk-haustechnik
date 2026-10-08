@@ -279,6 +279,26 @@ describe('a preview started as the Leitung', () => {
     }
   })
 
+  it('has inspections that came of the due days, one for a technician of the south, one for a contractor and others for nobody yet', async () => {
+    const list = (
+      await request(application.getHttpServer())
+        .get('/activities')
+        .query({ limit: '200' })
+        .expect(200)
+    ).body as {
+      readonly total: number
+      readonly activities: readonly {
+        readonly performerPerson: { readonly name: string } | null
+        readonly contractorNote: string | null
+      }[]
+    }
+
+    expect(list.total).toBeGreaterThan(2)
+    expect(
+      list.activities.map((each) => each.performerPerson?.name ?? each.contractorNote),
+    ).toEqual(expect.arrayContaining(['Tobias Wendt', 'Brandschutz Beispiel GmbH', null]))
+  })
+
   it('shows every property, with buildings, floors, rooms and assets, a main meter with its sub meter', async () => {
     const server = application.getHttpServer()
     const properties = (await request(server).get('/properties').expect(200)).body as Named[]

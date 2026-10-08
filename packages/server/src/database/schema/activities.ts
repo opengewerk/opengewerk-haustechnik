@@ -28,7 +28,7 @@ import {
 
 import { withinAreas } from './areas.js'
 import { assets } from './assets.js'
-import { duties } from './duties.js'
+import { duties, dutyPerformer } from './duties.js'
 import { evidenceResult } from './evidence-result.js'
 import { buildings, optionalTrimmed, properties, rooms, trimmed } from './locations.js'
 
@@ -54,8 +54,11 @@ export const workOrderKind = pgEnum('work_order_kind', workOrderKinds)
  * An activity at its place: the property always, and at most one of a
  * building, a room or an asset there, as a duty hangs on its place. Who
  * answers for it and who carries it out work for the operator; a contractor
- * is named in words until contracts come (phase 2). Only an activity that was
- * not performed names a reason, and it always does.
+ * is named in words until contracts come (phase 2). Whether the own people or
+ * a contractor perform it is said in `performer`, with the values of a duty
+ * (#105): a person carrying it out is one of the own people, a contractor's
+ * name belongs to a contractor. Only an activity that was not performed names
+ * a reason, and it always does.
  */
 export const activities = pgTable(
   'activities',
@@ -72,6 +75,7 @@ export const activities = pgTable(
     status: activityStatus('status').notNull().default('open'),
     dueOn: date('due_on', { mode: 'string' }),
     responsibleUserId: text('responsible_user_id'),
+    performer: dutyPerformer('performer'),
     performerUserId: text('performer_user_id'),
     contractorNote: text('contractor_note'),
     closingReason: text('closing_reason'),
@@ -134,6 +138,15 @@ export const activities = pgTable(
     check(
       'activities_closing_reason_shaped',
       optionalTrimmed(table.closingReason, activityLimits.closingReason),
+    ),
+    // A person carries it out for the own people, a name stands for a contractor.
+    check(
+      'activities_performed_by_own_staff',
+      sql`${table.performerUserId} is null or ${table.performer} = 'own_staff'`,
+    ),
+    check(
+      'activities_contractor_named_for_a_contractor',
+      sql`${table.contractorNote} is null or ${table.performer} = 'contractor'`,
     ),
     // A reason with "not performed", and only then.
     check(

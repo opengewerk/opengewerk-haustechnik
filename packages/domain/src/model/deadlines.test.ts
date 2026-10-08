@@ -23,7 +23,7 @@ describe('the kinds of deadline of this application', () => {
     ).toThrow(DeadlineRegistryError)
   })
 
-  it('let the duty name its due day, remind ahead of it, and remind whom the duty names', () => {
+  it('let the duty name its due day, remind ahead of it, remind whom the duty names and make the activity', () => {
     // The source names the day (ADR 0002, point 12): the kind has no interval
     // of its own, and an operator can set none.
     expect(dutyDue).toMatchObject({
@@ -32,7 +32,7 @@ describe('the kinds of deadline of this application', () => {
       intervalMonths: null,
       leadDays: 30,
       responsible: 'source',
-      actions: ['reminder'],
+      actions: ['reminder', 'activity'],
     })
   })
 })

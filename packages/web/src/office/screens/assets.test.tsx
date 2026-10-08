@@ -810,7 +810,8 @@ describe('the file of an asset', () => {
     await screen.findByRole('heading', { level: 1, name: 'Aufzug Schulhaus' })
     await screen.findByText('Stammdaten')
 
-    expect(screen.queryByText('Pflichten')).toBeNull()
+    // The card, and not the group of the navigation, which holds "Prüfungen".
+    expect(screen.queryByRole('heading', { name: 'Pflichten' })).toBeNull()
     expect(screen.queryByRole('table', { name: dutiesOfTheAsset })).toBeNull()
   })
 

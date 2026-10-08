@@ -29,6 +29,7 @@ import type { Pool } from 'pg'
 
 import { ApiModule } from '../api/api.module.js'
 import { access } from '../authentication/access.js'
+import { runDeadlineCycle } from '../deadlines/engine.js'
 import {
   admitPreviewPeople,
   previewIdentity,
@@ -38,7 +39,7 @@ import {
   type PreviewViewer,
 } from './preview-database.js'
 import { PreviewIdentitySource, previewSession } from './preview-identity.js'
-import { plantSampleData, sampleOperatorName } from './sample-data.js'
+import { planSampleActivities, plantSampleData, sampleOperatorName } from './sample-data.js'
 import { writeSampleStandings } from './sample-standings.js'
 
 /**
@@ -173,6 +174,11 @@ export async function openSamplePreview(
 
     // What no route writes yet: the evidence of the duties and the defects.
     await writeSampleStandings(database, planter, previewCatalogue, planted)
+
+    // One pass of the engine, so that the due days have their inspections
+    // before somebody looks, and two of them planned (#105).
+    await runDeadlineCycle({ database, catalogue: previewCatalogue })
+    await planSampleActivities(`http://127.0.0.1:${String(port)}`, areas)
   } finally {
     await planting.close()
   }

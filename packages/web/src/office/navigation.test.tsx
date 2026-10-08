@@ -153,6 +153,8 @@ describe('the navigation of the office as it is built today', () => {
     'Anlagen',
     'Dokumente',
     'Pflichtenverzeichnis',
+    // The inspections and the maintenance, for every role (#105).
+    'Prüfungen',
     'Katalog',
     'Abgleich',
   ]
@@ -163,6 +165,7 @@ describe('the navigation of the office as it is built today', () => {
     'Dokumente',
     'Pflichtenverzeichnis',
     'Fristen',
+    'Prüfungen',
     'Katalog',
     'Abgleich',
     'Einstellungen',
@@ -194,7 +197,7 @@ describe('the navigation of the office as it is built today', () => {
     await untilTheRightsAreKnown()
     await screen.findByRole('link', { name: 'Liegenschaften' })
 
-    for (const label of ['Übersicht', 'Zähler', 'Prüfungen']) {
+    for (const label of ['Übersicht', 'Zähler', 'Rundgänge']) {
       expect(screen.queryByRole('link', { name: label })).toBeNull()
     }
   })

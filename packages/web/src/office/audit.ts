@@ -1,6 +1,7 @@
 import { auditVocabulary, buildingKindLabel, ruleScopeNames } from '@opengewerk/haustechnik-domain'
 import type { AuditScreenWords } from '@opengewerk/platform-web/office'
 
+import { activityPlaces } from './activity-addresses.js'
 import { documentPlaces } from './document-addresses.js'
 import { dutyPlaces, evidencePlaces } from './duty-addresses.js'
 import { officePlaces } from './place-addresses.js'
@@ -25,6 +26,7 @@ const screens: Readonly<Record<string, (id: string) => string>> = {
   duties: dutyPlaces.duty,
   evidence: evidencePlaces.evidence,
   attachments: documentPlaces.document,
+  activities: activityPlaces.activity,
 }
 
 /** The label of the link to a record. */
@@ -37,6 +39,7 @@ const links: Words = {
   duties: 'Zur Pflicht',
   evidence: 'Zum Nachweis',
   attachments: 'Zum Dokument',
+  activities: 'Zum Vorgang',
 }
 
 export const auditScreenWords: AuditScreenWords = {
@@ -62,5 +65,6 @@ export const auditScreenWords: AuditScreenWords = {
     rooms: 'mit seinen Etiketten',
     assets: 'mit ihrem Lebenszyklus, dem, was sie versorgt, und ihren Etiketten',
     attachments: 'mit seinen Fassungen',
+    activities: 'mit den Pflichten, die er erfüllen soll',
   },
 }

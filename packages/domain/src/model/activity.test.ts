@@ -3,8 +3,10 @@ import { describe, expect, it } from 'vitest'
 import {
   activityDutyProblems,
   activityKindLabel,
+  activityKindOfTask,
   activityKinds,
   activityLimits,
+  activityPlanProblems,
   activityProblems,
   activityStatusLabel,
   activityStatuses,
@@ -126,5 +128,68 @@ describe('a work order', () => {
     expect(workOrderProblems({ kind: 'repair' })).toEqual({
       kind: 'Ein Auftrag ist einer von: Störung, Mangelbeseitigung, Wartung, Prüfung, Sonstiger Auftrag.',
     })
+  })
+})
+
+describe('the activity of a due day', () => {
+  it('is a maintenance for a maintenance and for a duty without a task, and an inspection for everything else', () => {
+    expect(activityKindOfTask('maintenance')).toBe('maintenance')
+    expect(activityKindOfTask(null)).toBe('maintenance')
+
+    for (const task of [
+      'inspection',
+      'condition_assessment',
+      'function_check',
+      'visual_check',
+      'sampling',
+    ] as const) {
+      expect(activityKindOfTask(task)).toBe('inspection')
+    }
+  })
+})
+
+describe('the plan of an activity', () => {
+  const plan = {
+    responsibleUserId: 'u-lead',
+    performer: 'own_staff',
+    performerUserId: 'u-tech',
+    contractorNote: null,
+    dueOn: '2026-10-12',
+  }
+
+  it('says whether the own people or a contractor perform it, and the day it is due on', () => {
+    expect(activityPlanProblems(plan)).toEqual({})
+    expect(
+      activityPlanProblems({
+        ...plan,
+        performer: 'contractor',
+        performerUserId: null,
+        contractorNote: 'Brandschutz Beispiel GmbH',
+      }),
+    ).toEqual({})
+    expect(activityPlanProblems({ ...plan, performer: null, dueOn: '2026-02-30' })).toEqual({
+      performer: 'Die Durchführung ist eigen oder fremd.',
+      dueOn: 'Die Fälligkeit ist ein Tag, geschrieben 2026-10-03.',
+    })
+    expect(activityPlanProblems({ ...plan, performer: 'neighbour' })).toEqual({
+      performer: 'Die Durchführung ist eine von: Eigene Leute, Fremdfirma.',
+    })
+  })
+
+  it('names a person for the own people and a contractor for a contractor, and not the other way round', () => {
+    expect(activityPlanProblems({ ...plan, performer: 'contractor' })).toEqual({
+      performerUserId: 'Eine Person führt aus, wenn die eigenen Leute es tun.',
+    })
+    expect(activityPlanProblems({ ...plan, contractorNote: 'Aufzug Beispiel GmbH' })).toEqual({
+      contractorNote: 'Eine Fremdfirma steht nur bei fremder Durchführung.',
+    })
+    expect(
+      activityPlanProblems({
+        ...plan,
+        performer: 'contractor',
+        performerUserId: null,
+        contractorNote: 'x'.repeat(activityLimits.contractorNote + 1),
+      }),
+    ).toEqual({ contractorNote: 'Die Angabe zur Fremdfirma hat höchstens 200 Zeichen.' })
   })
 })

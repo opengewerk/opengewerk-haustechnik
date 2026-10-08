@@ -639,6 +639,17 @@ export const sampleSubstitution = {
   endsOn: daysAhead(18),
 } as const
 
+/** What the planting reads from a route, which fails with the answer of the server when it is refused. */
+async function read<Answer>(address: string, path: string): Promise<Answer> {
+  const response = await fetch(`${address}${path}`)
+
+  if (!response.ok) {
+    throw new Error(`${path} lehnte ab (${String(response.status)}): ${await response.text()}`)
+  }
+
+  return (await response.json()) as Answer
+}
+
 /** A request of the planting, which fails with the answer of the server when it is refused. */
 async function send(
   address: string,
@@ -939,4 +950,58 @@ export async function plantSampleData(
   await send(address, '/substitutions', sampleSubstitution)
 
   return standings
+}
+
+/**
+ * Two of the inspections the engine made of the due days, planned through
+ * the route as whoever plans would (#105): one in the south for Tobias Wendt,
+ * who works there, with the Objektleitung of the south answering for it, and
+ * another one for a contractor named in words. The rest stay as the engine
+ * made them, with nobody performing them yet.
+ */
+export async function planSampleActivities(
+  address: string,
+  areas: ReadonlyMap<PreviewArea, string>,
+): Promise<void> {
+  const { activities } = await read<{
+    readonly activities: readonly {
+      readonly id: string
+      readonly areaId: string
+      readonly dueOn: string | null
+      readonly responsible: { readonly userId: string } | null
+    }[]
+  }>(address, '/activities?limit=200')
+  const south = areas.get('Süd')
+  const forWendt = activities.find((activity) => activity.areaId === south)
+  const forContractor = activities.find((activity) => activity.id !== forWendt?.id)
+
+  if (forWendt) {
+    await send(
+      address,
+      `/activities/${forWendt.id}/plan`,
+      {
+        responsibleUserId: 'preview-roth',
+        performer: 'own_staff',
+        performerUserId: 'preview-wendt',
+        contractorNote: null,
+        dueOn: forWendt.dueOn ?? daysAhead(14),
+      },
+      'PUT',
+    )
+  }
+
+  if (forContractor) {
+    await send(
+      address,
+      `/activities/${forContractor.id}/plan`,
+      {
+        responsibleUserId: forContractor.responsible?.userId ?? null,
+        performer: 'contractor',
+        performerUserId: null,
+        contractorNote: 'Brandschutz Beispiel GmbH',
+        dueOn: daysAhead(21),
+      },
+      'PUT',
+    )
+  }
 }

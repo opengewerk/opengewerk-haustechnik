@@ -17,6 +17,7 @@ import { dutyPlaces } from './duty-addresses.js'
 import { importPlaces } from './import-addresses.js'
 import { InstanceShell } from './instance/shell.js'
 import { AccountScreen } from './screens/account.js'
+import { ActivityListScreen, ActivityScreen } from './screens/activities.js'
 import { AreasScreen } from './screens/areas.js'
 import { AssetFileScreen } from './screens/asset.js'
 import { EditAssetScreen, NewAssetScreen, NewComponentScreen } from './screens/asset-form.js'
@@ -226,6 +227,18 @@ export function officeRoutes() {
       getParentRoute: () => office,
       path: '/pflichten/$dutyId',
       component: DutyScreen,
+    }),
+    // The inspections and the maintenance that came of the due days, narrowed
+    // by what the address names, and the page of one under them.
+    createRoute({
+      getParentRoute: () => office,
+      path: '/pruefungen',
+      component: ActivityListScreen,
+    }),
+    createRoute({
+      getParentRoute: () => office,
+      path: '/pruefungen/$activityId',
+      component: ActivityScreen,
     }),
     // The page of an evidence, opened from its duty, the file of its asset
     // and the register.
