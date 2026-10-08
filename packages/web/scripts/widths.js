@@ -76,5 +76,7 @@ await checkWidths({
     'Eigene Pflicht',
     'Pflicht hinzufügen',
     'Beenden',
+    'Berichtigen',
+    'Für ungültig erklären',
   ],
 })

@@ -36,6 +36,7 @@ import { BuildingsController } from './buildings.controller.js'
 import { BuildingClosuresController } from './closures.controller.js'
 import { contactRights, contactRoutes } from './contact-routes.js'
 import { DatabaseExceptionFilter } from './database-errors.js'
+import { AssetEvidenceController, EvidenceController } from './evidence.controller.js'
 import { CatalogueController } from './catalogue.controller.js'
 import {
   DutiesController,
@@ -240,6 +241,10 @@ export class ApiModule {
         DutiesController,
         RoomDutiesController,
         DutyDismissalsController,
+        // The page of an evidence, its correction and its declaration of
+        // invalidity, and the evidence of an asset.
+        EvidenceController,
+        AssetEvidenceController,
         // The catalogue of this server, for the devices that work with it.
         CatalogueController,
         // The import of places and assets from tables.

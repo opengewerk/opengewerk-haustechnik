@@ -28,6 +28,15 @@ export const dutyPlaces = {
 } as const
 
 /**
+ * The page of an evidence, by its id. It belongs to a duty, and it is opened
+ * from the duty, the file of an asset and the register alike, so it stands on
+ * its own beside them.
+ */
+export const evidencePlaces = {
+  evidence: (id: string) => `/nachweise/${id}`,
+} as const
+
+/**
  * What a new duty of the operator's own starts at, as the address of its
  * form names it: an asset, a room, a building or a property. The form offers
  * that place and every place above it; without any, it asks for the property.

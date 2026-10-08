@@ -29,6 +29,7 @@ import { DutyRegisterScreen } from './screens/duties.js'
 import { DutyScreen } from './screens/duty.js'
 import { NewDutyScreen } from './screens/duty-form.js'
 import { DutyKindScreen } from './screens/duty-kind.js'
+import { EvidenceScreen } from './screens/evidence.js'
 import { EditFloorScreen, NewFloorScreen } from './screens/floor-form.js'
 import { FloorScreen } from './screens/floors.js'
 import { ImportAssetsScreen, ImportStructureScreen } from './screens/imports.js'
@@ -219,6 +220,13 @@ export function officeRoutes() {
       getParentRoute: () => office,
       path: '/pflichten/$dutyId',
       component: DutyScreen,
+    }),
+    // The page of an evidence, opened from its duty, the file of its asset
+    // and the register.
+    createRoute({
+      getParentRoute: () => office,
+      path: '/nachweise/$evidenceId',
+      component: EvidenceScreen,
     }),
     // The documents, narrowed by what the address names, and the same list
     // with one document chosen under it, by its id.

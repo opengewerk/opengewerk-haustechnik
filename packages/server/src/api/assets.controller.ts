@@ -348,7 +348,7 @@ export class AssetsController {
       const today = (await assetsOnADay(tx, dayInGermany(), [asset.id]))(asset.id)
 
       return today.duties
-        .map(({ duty, standing, lastMetOn }): DutyReading => ({
+        .map(({ duty, standing, lastMetOn, lastEvidence }): DutyReading => ({
           id: duty.id,
           kind: duty.kind,
           kindVersion: duty.kindVersion,
@@ -364,6 +364,7 @@ export class AssetsController {
           state: standing.state,
           appointment: standing.appointment,
           lastMetOn,
+          lastEvidence,
         }))
         .sort((left, right) => left.title.localeCompare(right.title, 'de'))
     })

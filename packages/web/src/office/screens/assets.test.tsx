@@ -79,6 +79,8 @@ const everything = [
 const register = 'Anlagen mit Anlagenart, Standort, Zustand und Lebenszyklus'
 const dutiesOfTheAsset = 'Pflichten dieser Anlage mit letztem Nachweis, nächstem Termin und Zustand'
 const byCostGroup = 'Anlagen dieses Gebäudes, gezählt nach Kostengruppe'
+const evidenceOfTheAsset =
+  'Nachweise dieser Anlage mit Pflicht, Tag, Ergebnis und Bedeutung für die Frist'
 
 /** The first page of the register without a filter, as the screen asks for it. */
 const firstPage = '/assets?offset=0&limit=50'
@@ -523,6 +525,12 @@ describe('the file of an asset', () => {
       state: 'met',
       appointment: { dueOn: '2027-03-12', onTimeUntil: '2027-03-12' },
       lastMetOn: '2026-03-12',
+      lastEvidence: {
+        id: 'e-41',
+        number: 'NW-2026-00041',
+        performedOn: '2026-03-12',
+        origin: 'report',
+      },
       ...further,
     } as DutyReading
   }
@@ -614,6 +622,7 @@ describe('the file of an asset', () => {
           state: 'never_recorded',
           appointment: null,
           lastMetOn: null,
+          lastEvidence: null,
         }),
         duty({
           id: 'd-3',
@@ -624,6 +633,13 @@ describe('the file of an asset', () => {
           state: 'overdue',
           appointment: { dueOn: '2026-09-30', onTimeUntil: '2026-09-30' },
           lastMetOn: '2026-09-23',
+          // Taken over from an earlier application: named by its day.
+          lastEvidence: {
+            id: 'e-9',
+            number: 'NW-2026-00009',
+            performedOn: '2026-09-23',
+            origin: 'legacy',
+          },
         }),
       ]),
     )
@@ -634,7 +650,8 @@ describe('the file of an asset', () => {
 
     expect(rows[0]).toEqual([
       'WartungVorgabe des Herstellers, Betriebsanleitung · alle 12 Monate',
-      '12.03.2026',
+      // The number of the last evidence leads to its page, its day under it.
+      'NW-2026-0004112.03.2026',
       '12.03.2027',
       'Erfüllt bis 12.03.2027',
     ])
@@ -643,7 +660,7 @@ describe('the file of an asset', () => {
     expect(rows[1]?.[0]).toContain('Seit über einem Jahr nicht geprüft')
     expect(rows[2]).toEqual([
       'SichtprüfungVorgabe des Herstellers, Betriebsanleitung · alle 7 Tage',
-      '23.09.2026',
+      '23.09.2026Altbestand',
       '30.09.2026',
       'Überfällig',
     ])
@@ -655,6 +672,56 @@ describe('the file of an asset', () => {
     expect(screen.getByRole('link', { name: 'Wartung' }).getAttribute('href')).toBe(
       '/pflichten/d-1',
     )
+    expect(screen.getByRole('link', { name: 'NW-2026-00041' }).getAttribute('href')).toBe(
+      '/nachweise/e-41',
+    )
+    expect(screen.getByRole('link', { name: '23.09.2026' }).getAttribute('href')).toBe(
+      '/nachweise/e-9',
+    )
+  })
+
+  it('lists the evidence of its duties with the duty and what each means for the appointment', async () => {
+    const entry = (id: string, further: object) => ({
+      id,
+      dutyId: 'd-1',
+      dutyTitle: 'Wartung',
+      number: `NW-2026-${id}`,
+      result: 'without_defects',
+      origin: 'protocol',
+      standing: 'counts',
+      ...further,
+    })
+
+    await mount(at, {
+      ...answers(file()),
+      '/assets/a-lift/evidence': [
+        entry('00131', { performedOn: '2026-10-01', result: 'with_defects' }),
+        entry('00127', {
+          dutyId: 'd-3',
+          dutyTitle: 'Sichtprüfung',
+          performedOn: '2026-09-24',
+          origin: 'round_point',
+          standing: 'voided',
+        }),
+      ],
+    })
+    await screen.findByRole('table', { name: evidenceOfTheAsset })
+
+    expect(rowsOf(evidenceOfTheAsset)).toEqual([
+      ['NW-2026-00131', 'Wartung', '01.10.2026', 'Mit Mängeln', 'Zählt'],
+      ['NW-2026-00127', 'Sichtprüfung', '24.09.2026', 'Ohne Mangel', 'Für ungültig erklärt'],
+    ])
+    expect(screen.getByRole('link', { name: 'NW-2026-00127' }).getAttribute('href')).toBe(
+      '/nachweise/00127',
+    )
+  })
+
+  it('says so of an asset without evidence', async () => {
+    await mount(at, { ...answers(file()), '/assets/a-lift/evidence': [] })
+
+    expect(
+      await screen.findByText('Für diese Anlage ist noch kein Nachweis festgehalten.'),
+    ).toBeTruthy()
   })
 
   it('keeps the past of a decommissioned asset, and shows its duties as resting', async () => {
@@ -677,6 +744,12 @@ describe('the file of an asset', () => {
             state: 'dormant',
             appointment: { dueOn: '2025-03-12', onTimeUntil: '2025-03-12' },
             lastMetOn: '2024-03-12',
+            lastEvidence: {
+              id: 'e-3',
+              number: 'NW-2024-00003',
+              performedOn: '2024-03-12',
+              origin: 'report',
+            },
           }),
         ],
       ),
@@ -689,7 +762,7 @@ describe('the file of an asset', () => {
     expect(rowsOf(dutiesOfTheAsset)).toEqual([
       [
         'WartungVorgabe des Herstellers, Betriebsanleitung · alle 12 Monate',
-        '12.03.2024',
+        'NW-2024-0000312.03.2024',
         '',
         'Ruht',
       ],

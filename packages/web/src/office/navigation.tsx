@@ -70,7 +70,15 @@ export const officeNavigation: readonly OfficePlaces[] = [
     entries: [
       { to: '/pflichten', label: 'Pflichtenverzeichnis', icon: ClipboardCheck, right: 'duty.read' },
       { to: '/fristen', label: 'Fristen', icon: CalendarClock, right: 'deadline.read' },
-      { to: '/pruefungen', label: 'Prüfungen', icon: SearchCheck, right: 'activity.read' },
+      // The page of an evidence stands under the inspections, as an
+      // inspection is the way most evidence comes about.
+      {
+        to: '/pruefungen',
+        label: 'Prüfungen',
+        icon: SearchCheck,
+        right: 'activity.read',
+        also: ['/nachweise'],
+      },
     ],
   },
   {

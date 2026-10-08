@@ -42,6 +42,7 @@ import {
   nobodyWords,
   performerWords,
 } from '../duty-words.js'
+import { EvidenceNumber } from '../evidence-words.js'
 import { factLink } from '../links.js'
 import { officePlaces } from '../place-addresses.js'
 import { assetKindChoices, PlaceFilter, RegisterFilter } from '../register-filter.js'
@@ -148,12 +149,25 @@ export function DutyRegisterScreen() {
 
     return { name: property, to: officePlaces.property(duty.propertyId), sub: 'Liegenschaft' }
   }
-  const lastOf = (duty: DutyEntry): { main: string; sub: string } | null =>
+  // The number leads to the page of the evidence; one taken over from an
+  // earlier application is named by its day.
+  const lastOf = (duty: DutyEntry): { main: ReactNode; sub: string } | null =>
     duty.lastEvidence === null
       ? null
       : duty.lastEvidence.origin === 'legacy'
-        ? { main: date(duty.lastEvidence.performedOn), sub: 'Altbestand' }
-        : { main: duty.lastEvidence.number, sub: date(duty.lastEvidence.performedOn) }
+        ? {
+            main: (
+              <EvidenceNumber
+                id={duty.lastEvidence.id}
+                number={date(duty.lastEvidence.performedOn)}
+              />
+            ),
+            sub: 'Altbestand',
+          }
+        : {
+            main: <EvidenceNumber id={duty.lastEvidence.id} number={duty.lastEvidence.number} />,
+            sub: date(duty.lastEvidence.performedOn),
+          }
   const nextOf = (duty: DutyEntry) =>
     duty.ended || duty.state === 'dormant' || duty.appointment === null
       ? null

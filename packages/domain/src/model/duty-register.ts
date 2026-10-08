@@ -1,7 +1,7 @@
 import type { IsoDate } from '@opengewerk/platform-domain'
 
 import type { Asset } from './asset.js'
-import type { DutyReading } from './asset-condition.js'
+import type { DutyReading, LastEvidence } from './asset-condition.js'
 import type { Appointment, DutyState } from './duty.js'
 import type { Duty } from './duty-record.js'
 import {
@@ -122,9 +122,6 @@ export interface DutyColleague extends DutyPerson {
 
 /** The asset a duty hangs on, as a row and the page of a duty name it. */
 export type DutyAsset = Pick<Asset, 'id' | 'number' | 'name' | 'kind' | 'buildingId' | 'roomId'>
-
-/** The last evidence that met a duty, as a row names it. */
-export type LastEvidence = Pick<Evidence, 'number' | 'performedOn' | 'origin'>
 
 /**
  * A duty as the register lists it: what it is and how it stands today, what
