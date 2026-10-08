@@ -82,10 +82,11 @@ export function useDocumentSurroundings(): DocumentSurroundings {
   const rooms = useRecords('rooms')
   const assets = useRecords('assets')
   const activities = useRecords('activities')
+  const defects = useRecords('defects')
 
   return useMemo(
-    () => ({ properties, buildings, rooms, assets, activities }),
-    [properties, buildings, rooms, assets, activities],
+    () => ({ properties, buildings, rooms, assets, activities, defects }),
+    [properties, buildings, rooms, assets, activities, defects],
   )
 }
 
@@ -522,11 +523,14 @@ export function RemoveDocumentConfirm({
 export function DocumentsCard({
   place,
   at,
+  title = 'Dokumente',
 }: {
   /** The record the documents hang on: the property alone for those of the property itself. */
   readonly place: DocumentPlace
   /** That record in words, for the dialog that files one here. */
   readonly at: string
+  /** What the card is called: "Fotos" at a defect. */
+  readonly title?: string
 }) {
   const client = useSync()
   const reads = useRight('document.read')
@@ -546,7 +550,7 @@ export function DocumentsCard({
 
   return (
     <Panel
-      title="Dokumente"
+      title={title}
       action={
         files ? (
           <Button

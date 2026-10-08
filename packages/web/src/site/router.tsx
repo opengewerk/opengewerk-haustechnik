@@ -16,6 +16,7 @@ import {
   SiteRoomScreen,
   StockStartScreen,
 } from './screens/places.js'
+import { ReportDefectScreen } from './screens/report-defect.js'
 import { SiteScanScreen } from './screens/scan.js'
 import { TakeAssetScreen } from './screens/take-asset.js'
 import { TakeRoomScreen } from './screens/take-room.js'
@@ -76,6 +77,9 @@ export function siteRoutes() {
     at('/raeume/$roomId', SiteRoomScreen),
     at('/anlagen/$assetId', SiteAssetScreen),
     at('/anlagen/$assetId/etikett', GiveLabelScreen),
+    // A defect reported at an asset or a room, also without a network (#116).
+    at('/anlagen/$assetId/mangel', ReportDefectScreen),
+    at('/raeume/$roomId/mangel', ReportDefectScreen),
   ])
 }
 

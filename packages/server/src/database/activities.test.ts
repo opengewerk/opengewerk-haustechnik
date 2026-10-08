@@ -16,6 +16,7 @@ import {
   refusedBy,
   resetSchema,
 } from './test-database.js'
+import { writtenColumnNames, writtenPlaceholders, writtenValues } from './test-evidence.js'
 
 /**
  * The activities, their duties and work orders, and the defects in the
@@ -274,6 +275,17 @@ describe('the keys of the activities and defects', () => {
     const activity = await activityIn(here)
     const besideActivity = await activityIn(beside)
     const besideOrder = await workOrderFor(beside, await activityIn(beside, { kind: 'work_order' }))
+    // The evidence of a report on the other property, as one that named a defect (#116).
+    const { rows: written } = await admin.query<{ id: string }>(
+      `insert into evidence (tenant_id, property_id, area_id, duty_id, performed_on, result,
+                             ${writtenColumnNames})
+       select tenant_id, property_id, area_id, id, '2026-10-01'::date, 'with_defects',
+              ${writtenPlaceholders(2)}
+         from duties where id = $1
+       returning id`,
+      [beside.duty, ...writtenValues(lead, '2026-10-01', 'with_defects')],
+    )
+    const besideEvidence = written[0]?.id ?? ''
     const activityRow = (column: string, value: unknown) =>
       tried(
         `insert into activities (tenant_id, property_id, area_id, kind, title, ${column})
@@ -339,6 +351,8 @@ describe('the keys of the activities and defects', () => {
       defects_at_an_asset_of_their_property: () => defectRow('asset_id', beside.asset),
       defects_found_in_an_activity_of_their_property: () =>
         defectRow('found_in_activity_id', besideActivity),
+      defects_named_in_an_evidence_of_their_property: () =>
+        defectRow('found_in_evidence_id', besideEvidence),
       defects_set_right_by_a_work_order_of_their_property: () =>
         defectRow('remedy_work_order_id', besideOrder),
     }
@@ -583,6 +597,20 @@ describe('a defect', () => {
     expect(await row('due_on', '2026-09-30')).toEqual({
       code: '23514',
       constraint: 'defects_due_after_found',
+    })
+    // Checked again on the day it was found or later, never without the day,
+    // and what was found within its bounds (#116).
+    expect(await row('checked_on', '2026-09-30')).toEqual({
+      code: '23514',
+      constraint: 'defects_checked_after_found',
+    })
+    expect(await row('status', 'verified')).toEqual({
+      code: '23514',
+      constraint: 'defects_verified_on_a_day',
+    })
+    expect(await row('check_note', ' Tür klemmt ')).toEqual({
+      code: '23514',
+      constraint: 'defects_check_note_shaped',
     })
     expect(
       await tried(

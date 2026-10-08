@@ -1,6 +1,9 @@
 import {
   type AreaId,
+  awaitsRemedy,
   type Catalogue,
+  type DefectId,
+  defectStatuses,
   dutyInterval,
   type DutyId,
   type IsoDate,
@@ -11,20 +14,47 @@ import {
   roomTitle,
 } from '@opengewerk/haustechnik-domain'
 import type { ExpectedDeadline, SourceQuery } from '@opengewerk/platform-server'
-import { eq, isNull } from 'drizzle-orm'
+import { and, eq, inArray, isNotNull, isNull } from 'drizzle-orm'
 
 import { dutyTitle, lifecyclesByAsset, metDaysByDuty } from '../database/duty-standing.js'
-import { assets, buildings, duties, properties, rooms } from '../database/schema/index.js'
+import { assets, buildings, defects, duties, properties, rooms } from '../database/schema/index.js'
 
-/** What a deadline of this application hangs on, written into its own columns. */
+/** What a deadline of this application hangs on, written into its own columns: a duty or a defect. */
 export interface DeadlineValues {
-  readonly dutyId: DutyId
+  readonly dutyId: DutyId | null
+  readonly defectId: DefectId | null
   readonly propertyId: PropertyId
   readonly areaId: AreaId
 }
 
+/** The names of what a duty or a defect hangs on, from the most narrow. */
+interface PlaceNames {
+  readonly assetName: string | null
+  readonly assetNumber: string | null
+  readonly roomNumber: string | null
+  readonly roomName: string | null
+  readonly buildingName: string | null
+  readonly propertyName: string
+}
+
+/** What a deadline names after its subject: the asset, the room, the building or the property. */
+function placeOf(place: PlaceNames): string {
+  const asset =
+    place.assetName === null
+      ? null
+      : place.assetNumber === null
+        ? place.assetName
+        : `${place.assetName} (${place.assetNumber})`
+  const room =
+    place.roomNumber === null && place.roomName === null
+      ? null
+      : roomTitle({ number: place.roomNumber, name: place.roomName })
+
+  return asset ?? room ?? place.buildingName ?? place.propertyName
+}
+
 /** A duty with what its deadline is called after. */
-interface DutyRow {
+interface DutyRow extends PlaceNames {
   readonly id: DutyId
   readonly propertyId: PropertyId
   readonly areaId: AreaId
@@ -37,12 +67,6 @@ interface DutyRow {
   readonly intervalMonths: number | null
   readonly responsibleUserId: string | null
   readonly endsOn: IsoDate | null
-  readonly assetName: string | null
-  readonly assetNumber: string | null
-  readonly roomNumber: string | null
-  readonly roomName: string | null
-  readonly buildingName: string | null
-  readonly propertyName: string
 }
 
 /**
@@ -50,19 +74,7 @@ interface DutyRow {
  * kind in the version that was confirmed, and what it hangs on.
  */
 function labelOf(duty: DutyRow, catalogue: Catalogue): string {
-  const what = dutyTitle(duty, catalogue)
-  const asset =
-    duty.assetName === null
-      ? null
-      : duty.assetNumber === null
-        ? duty.assetName
-        : `${duty.assetName} (${duty.assetNumber})`
-  const room =
-    duty.roomNumber === null && duty.roomName === null
-      ? null
-      : roomTitle({ number: duty.roomNumber, name: duty.roomName })
-
-  return `${what}, ${asset ?? room ?? duty.buildingName ?? duty.propertyName}`
+  return `${dutyTitle(duty, catalogue)}, ${placeOf(duty)}`
 }
 
 /**
@@ -155,10 +167,79 @@ export function dutySource(options: {
         anchorOn: last,
         namedDueOn: appointment.dueOn,
         naturalUserId: duty.responsibleUserId,
-        values: { dutyId: duty.id, propertyId: duty.propertyId, areaId: duty.areaId },
+        values: {
+          dutyId: duty.id,
+          defectId: null,
+          propertyId: duty.propertyId,
+          areaId: duty.areaId,
+        },
       })
     }
 
     return expected
+  }
+}
+
+/** The statuses whose defects wait to be set right, as the database asks for them. */
+const defectStatusesAwaitingRemedy = defectStatuses.filter(awaitsRemedy)
+
+/**
+ * The source `defect` (section 4.6 of the concept, #116): one deadline for
+ * every defect that names a day to be set right by, while it waits for that,
+ * found or ordered. Once it is remedied the deadline drops, and it comes back
+ * when a check finds the defect not set right after all.
+ *
+ * Anchored on the day the defect was found. Asked for every operator on every
+ * pass of the engine, in every area of it.
+ */
+export function defectSource(): SourceQuery<DeadlineValues> {
+  return async (tx) => {
+    const rows = await tx
+      .select({
+        id: defects.id,
+        propertyId: defects.propertyId,
+        areaId: defects.areaId,
+        description: defects.description,
+        foundOn: defects.foundOn,
+        dueOn: defects.dueOn,
+        assetName: assets.name,
+        assetNumber: assets.number,
+        roomNumber: rooms.number,
+        roomName: rooms.name,
+        buildingName: buildings.name,
+        propertyName: properties.name,
+      })
+      .from(defects)
+      .innerJoin(properties, eq(properties.id, defects.propertyId))
+      .leftJoin(assets, eq(assets.id, defects.assetId))
+      .leftJoin(rooms, eq(rooms.id, defects.roomId))
+      .leftJoin(buildings, eq(buildings.id, defects.buildingId))
+      .where(
+        and(
+          isNull(defects.deletedAt),
+          isNotNull(defects.dueOn),
+          inArray(defects.status, defectStatusesAwaitingRemedy),
+        ),
+      )
+
+    return rows.flatMap((defect): ExpectedDeadline<DeadlineValues>[] =>
+      defect.dueOn === null
+        ? []
+        : [
+            {
+              sourceId: defect.id,
+              sourceLabel: `${defect.description}, ${placeOf(defect)}`,
+              anchorOn: defect.foundOn,
+              namedDueOn: defect.dueOn,
+              naturalUserId: null,
+              values: {
+                dutyId: null,
+                defectId: defect.id,
+                propertyId: defect.propertyId,
+                areaId: defect.areaId,
+              },
+            },
+          ],
+    )
   }
 }

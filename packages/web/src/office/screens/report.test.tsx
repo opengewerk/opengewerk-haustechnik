@@ -165,7 +165,12 @@ afterEach(() => {
 
 describe('the form of a report', () => {
   it('sends the file ahead, then the report that names it, and opens the evidence it became', async () => {
-    const { router } = await opened('site_management')
+    // A duty of a kind of the probe, whose package names classes of its own
+    // (#116); a duty of the operator's own takes the general ones.
+    const { router } = await opened(
+      'site_management',
+      dutyOf({ kind: 'probe.elevator_main_test', kindVersion: 1, label: null }),
+    )
 
     // The server finds the file only if it arrived before the report did.
     answerToWrite = (write) =>
@@ -184,7 +189,7 @@ describe('the form of a report', () => {
     fireEvent.change(within(defect).getByRole('textbox', { name: /^Beschreibung/ }), {
       target: { value: 'Wandhalterung locker' },
     })
-    // The classes come with the catalogue of the device.
+    // The classes of the package of the duty kind come with the catalogue of the device.
     await within(defect).findByRole('option', { name: 'leicht' })
     fireEvent.change(within(defect).getByRole('combobox', { name: 'Klasse' }), {
       target: { value: 'probe.slight' },

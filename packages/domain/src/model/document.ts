@@ -8,6 +8,7 @@ import {
 import type { ActivityId } from './activity.js'
 import type { AreaId } from './area.js'
 import type { AssetId } from './asset.js'
+import type { DefectId } from './defect.js'
 import { oneOf, type Problems, required } from './fields.js'
 import type { BuildingId, PropertyId, RoomId } from './location.js'
 
@@ -45,8 +46,9 @@ export const documentKindLabel: Readonly<Record<DocumentKind, string>> = {
  * with what one hangs on here and what kind of document it is.
  *
  * It hangs on its property always, and at most on one record there: a
- * building, a room, an asset or an activity; none of the four is the property
- * itself, like a duty, an activity and a defect (ADR 0002, point 10). Its
+ * building, a room, an asset, an activity or a defect, whose photo it is
+ * (#116); none of the five is the property itself, like a duty, an activity
+ * and a defect (ADR 0002, point 10). Its
  * area is the area of its property, like that of every row with a place
  * (ADR 0003). It is never moved: a document stays where it was filed.
  *
@@ -60,6 +62,7 @@ export interface Document extends AttachmentRecord {
   readonly roomId: RoomId | null
   readonly assetId: AssetId | null
   readonly activityId: ActivityId | null
+  readonly defectId: DefectId | null
   readonly kind: DocumentKind | null
 }
 
@@ -87,29 +90,35 @@ export function documentTitleOf(fileName: string): string {
 
 /**
  * The rules of the documents of this application, as the foundation makes
- * them from its five places and its two sentences: one object for the
+ * them from its six places and its two sentences: one object for the
  * screens and the sync. The property is always named, so "nowhere to hang"
  * is a mistake only a broken client makes.
  */
 export const operatorDocuments = attachmentRules({
-  homes: ['propertyId', 'buildingId', 'roomId', 'assetId', 'activityId'],
+  homes: ['propertyId', 'buildingId', 'roomId', 'assetId', 'activityId', 'defectId'],
   text: {
     noHome:
-      'Ein Dokument hängt an einer Liegenschaft, einem Gebäude, einem Raum, einer Anlage oder einem Vorgang.',
+      'Ein Dokument hängt an einer Liegenschaft, einem Gebäude, einem Raum, einer Anlage, einem Vorgang oder einem Mangel.',
     mediaType: 'Der Typ der Datei ist nicht so angegeben, wie die Ablage ihn festhält.',
   },
 })
 
 /** What a document may hang on besides its property, in the order a form asks them. */
-export const documentTargetFields = ['assetId', 'roomId', 'buildingId', 'activityId'] as const
+export const documentTargetFields = [
+  'assetId',
+  'roomId',
+  'buildingId',
+  'activityId',
+  'defectId',
+] as const
 
 /** One of the places a document hangs on, its property included. */
 export type DocumentHome = 'propertyId' | (typeof documentTargetFields)[number]
 
 /**
  * What is wrong with the record a document hangs on, or null: more than one
- * of an asset, a room, a building and an activity, which the check in the
- * database refuses as well.
+ * of an asset, a room, a building, an activity and a defect, which the check
+ * in the database refuses as well.
  */
 export function documentTargetProblem(target: Readonly<Record<string, unknown>>): string | null {
   const named = documentTargetFields.filter(
@@ -117,7 +126,7 @@ export function documentTargetProblem(target: Readonly<Record<string, unknown>>)
   )
 
   return named.length > 1
-    ? 'Ein Dokument hängt an der Liegenschaft oder an genau einem: einer Anlage, einem Raum, einem Gebäude oder einem Vorgang.'
+    ? 'Ein Dokument hängt an der Liegenschaft oder an genau einem: einer Anlage, einem Raum, einem Gebäude, einem Vorgang oder einem Mangel.'
     : null
 }
 

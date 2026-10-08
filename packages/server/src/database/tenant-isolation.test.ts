@@ -590,6 +590,11 @@ function rowsOf(tenant: Tenant): readonly Row[] {
         kind: 'allgemein.other_technical_installation',
       },
     },
+    // The default of a class of defects (#116). It has no place either.
+    {
+      table: 'defect_class_terms',
+      values: { tenant_id: tenant.id, defect_class: 'allgemein.significant', due_days: 14 },
+    },
   ]
 }
 

@@ -774,6 +774,28 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
 - Ein Nachweis gibt die Dateien, auf die er sich stützt, selbst aus (#110): `GET /evidence/:id/files/<n>` für jeden, der
   ihn sieht, und die Seite eines Nachweises verlinkt sie unter "Belege". So bleibt der Bericht am Nachweis lesbar, auch
   wenn jemand sein Dokument aus der Ablage nimmt. Verfahrensbeschreibung Abschnitte 3.5, 3.6 und 3.9 (B103 bis B106)
+- Mängel im Büro und vor Ort (#116): die Liste "Mängel" unter `/maengel`, auf dem Server geblättert und nach Stand
+  (offen, über der Frist, nachgeprüft), Liegenschaft, Bereich und Klasse eingegrenzt, auch "ohne Klasse"; die Seite eines
+  Mangels mit seinem Stand von festgestellt bis nachgeprüft, Herkunft, Ort, Klasse, Frist, Fotos und dem Auftrag daraus;
+  ein Mangel von Hand unter `/maengel/neu`, auch aus der Akte einer Anlage; "Mangel melden" vor Ort an Anlage und Raum,
+  mit Bemerkung und Foto, ohne Netz über den Postausgang. Melden darf jede Rolle; Klasse, Frist und die Nachprüfung
+  setzen Leitung, Technische Leitung und Objektleitung (`POST /defects`, `PATCH /defects/:id`,
+  `POST /defects/:id/check`). Nachgeprüft wird nur ein behobener Mangel; findet die Nachprüfung ihn nicht behoben, steht
+  er wieder auf "festgestellt". Der Abschnitt "Mängel" in der Akte einer Anlage und "Offene Mängel" auf der Seite eines
+  Raums im Büro. Gebaut, weil ein Mangel bisher nur als Zeile entstand und niemand ihn sah, einstufte oder abschloss
+  (Planungskonzept v0.17, ADR 0002 und 0005 in Nachträgen, Migration `0025_defects_kept`)
+- Die Vorgabe der Frist je Mängelklasse unter "Einstellungen", "Mängelklassen" (#116): je Klasse der Pakete die Tage bis
+  zur Beseitigung, gezählt ab dem Tag der Feststellung, für die Leitung. Eine Klasse ohne Frist nimmt die Vorgabe, im
+  Formular und am Server, auch für einen Mangel aus einem Bericht. Abschnitt 4.6 des Konzepts lässt die Vorgabe den
+  Betreiber einstellen
+- Die Frist zur Beseitigung eines Mangels ist eine Quelle der Fristen (#116): die Art "Frist zur Beseitigung eines
+  Mangels" mit sieben Tagen Vorlauf erinnert die Leitung, solange der Mangel festgestellt oder beauftragt ist, und
+  steht in der Liste "Fristen" mit dem Mangel als Verweis. Die Navigation zählt neben "Mängel", wie viele über ihrer
+  Frist sind. So verlangt es Abschnitt 2.4 des Konzepts
+- Ein Foto hängt an einem Mangel (#116): ein Dokument nennt den Mangel als seinen Ort, im Büro wie vor Ort, auch ohne
+  Netz, und wird mit ihm markiert, wenn er entfernt wird
+- Der Vergleich der Pakete mit `main` meldet eine gemergte Mängelklasse, die fehlt (#116): Mängel nennen ihre Klasse
+  beim Schlüssel, eine entfernte ließe sie ins Leere zeigen (ADR 0005, Nachtrag zu #61)
 
 ### Geändert
 
@@ -786,6 +808,16 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   eingetragen wird, statt vom Gerät und der Unterschrift zu sprechen (#110)
 - Die Seite eines Nachweises nennt die Klasse eines Mangels mit ihrem Wort aus dem Katalog statt mit ihrem Schlüssel
   (#110): seit dem Bericht nennen Mängel Klassen aus den Paketen
+- Ein Bericht nimmt für seine Mängel nur die Klassen des Pakets seiner Pflichtart, sonst die allgemeinen, statt jede
+  Klasse des Katalogs (#116): dieselbe Regel gilt für jeden Mangel (Abschnitt 4.6). Ein Mangel aus einem Bericht nennt
+  den Nachweis, aus dem er kommt, auch ohne Vorgang
+- Ein Gerät schickt mit einer Meldung keine Klasse mehr (#116): Klasse und Frist sind das Führen eines Mangels, das die
+  Haustechnik nicht darf (Abschnitt 7)
+- Die Beispieldaten der Vorschau melden ihre Mängel über die Route, mit Klassen, Vorgaben und je einem Mangel in jedem
+  Stand der Liste (#116, Naht aus #110). Behoben und nachgeprüft stehen weiter hinter den Routen, bis die Aufträge kommen
+- Die Verfahrensbeschreibung nennt die Mängel in einem eigenen Abschnitt 3.12 statt unter dem, was Phase 1 noch bringt
+  (#116): was ein Mangel festhält, dass er keine Person nennt, wer meldet und wer führt (B107, B108), und die Liste
+  "Mängel" in Abschnitt 5
 - Das Pflichtenverzeichnis auf die Pflichten einer Person eingrenzen kann nur, wer es führt, also Leitung und
   Technische Leitung, und es nennt dann keine Zahl, weder im Kopf noch an einem Zustand (#101). Das Konzept
   schließt eine Auswertung je Person aus (Abschnitte 4.16 und 9); eine Liste ist keine, eine Zählung der

@@ -42,6 +42,7 @@ export interface DocumentPlace {
   readonly roomId?: string | null
   readonly assetId?: string | null
   readonly activityId?: string | null
+  readonly defectId?: string | null
 }
 
 /** What somebody says about a document they file. */
@@ -185,6 +186,7 @@ export const documentHomeLabel: Readonly<Record<DocumentHome, string>> = {
   roomId: 'Raum',
   assetId: 'Anlage',
   activityId: 'Vorgang',
+  defectId: 'Mangel',
 }
 
 /** The records a device holds that a document may name. */
@@ -194,6 +196,8 @@ export interface DocumentSurroundings {
   readonly rooms: readonly RecordState[]
   readonly assets: readonly RecordState[]
   readonly activities: readonly RecordState[]
+  /** The defects this device holds; a photo of a defect is named by what was found. */
+  readonly defects?: readonly RecordState[]
 }
 
 /** What a document hangs on, as a list names it, and the kind of place it is. */
@@ -254,12 +258,19 @@ export function hangsOn(document: RecordState, around: DocumentSurroundings): Ha
     case 'activityId':
       return { home, id, words: within(maybeText(byId(around.activities, id), 'title')) }
 
+    case 'defectId':
+      return {
+        home,
+        id,
+        words: within(maybeText(byId(around.defects ?? [], id), 'description')),
+      }
+
     case 'propertyId':
       return { home, id, words: `Liegenschaft ${property ?? ''}`.trim() }
   }
 }
 
-const homes = ['assetId', 'roomId', 'buildingId', 'activityId'] as const
+const homes = ['assetId', 'roomId', 'buildingId', 'activityId', 'defectId'] as const
 
 /**
  * The documents filed at one record: those that name it, or for a property

@@ -37,6 +37,7 @@ import { BuildingsController } from './buildings.controller.js'
 import { BuildingClosuresController } from './closures.controller.js'
 import { contactRights, contactRoutes } from './contact-routes.js'
 import { DatabaseExceptionFilter } from './database-errors.js'
+import { DefectClassSettingsController, DefectsController } from './defects.controller.js'
 import { AssetEvidenceController, EvidenceController } from './evidence.controller.js'
 import { CatalogueController } from './catalogue.controller.js'
 import {
@@ -251,6 +252,10 @@ export class ApiModule {
         EvidenceController,
         AssetEvidenceController,
         DutyReportController,
+        // The defects, their register and their further way, and the
+        // default of each class under the settings.
+        DefectsController,
+        DefectClassSettingsController,
         // The catalogue of this server, for the devices that work with it.
         CatalogueController,
         // The import of places and assets from tables.

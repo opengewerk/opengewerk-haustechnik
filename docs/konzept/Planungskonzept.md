@@ -1,6 +1,6 @@
-# OpenGewerk Haustechnik: Planungskonzept (Software für Betreiber und ihre Haustechnik) · v0.16
+# OpenGewerk Haustechnik: Planungskonzept (Software für Betreiber und ihre Haustechnik) · v0.17
 
-2026-10-08 · Eigenständiges Projekt, Repository `opengewerk-haustechnik` in der GitHub-Organisation `opengewerk` · v0.2 trägt die Entscheidungen vom 01.10.2026 ein, v0.3 die Technik, mit der das Fundament eingebunden wird, v0.4 gleicht Abschnitt 5 und die Wortwahl an die ADRs 0002 bis 0006 an, siehe Abschnitt 15; v0.5 sagt in Abschnitt 7, was jede Rolle im Einzelnen darf, v0.6 nennt dort die Rechte für den Abgleich, v0.7 gibt den eigenen Anlagenarten und den Mängelklassen ihre Phase, v0.8 trägt die Entscheidungen vom 04.10.2026 vor dem Bau von Phase 1 ein, v0.9 gibt der Liegenschaft ihre Notiz, v0.10 sagt, wer ihre Ansprechpartner pflegt, v0.11, was eine Schließzeit ist und wer sie einträgt, v0.12 nennt das Recht, Dokumente abzulegen, v0.13 die Rechte, sie anzusehen und zu entfernen, und woran ein Dokument hängt, v0.14, dass eine eigene Pflicht ihre Tätigkeit nennt, v0.15, welcher Vorgang aus welcher Tätigkeit entsteht, v0.16, wie ein Bericht einer Fremdfirma zum Nachweis wird (Vergleich mit openMAINT, Atlas CMMS, eTASK, wave Facilities, pitFM, SPARTACUS, Planon, Lumiform, Wowflow und den Excel-Listen, die vielerorts die eigentliche Software sind)
+2026-10-08 · Eigenständiges Projekt, Repository `opengewerk-haustechnik` in der GitHub-Organisation `opengewerk` · v0.2 trägt die Entscheidungen vom 01.10.2026 ein, v0.3 die Technik, mit der das Fundament eingebunden wird, v0.4 gleicht Abschnitt 5 und die Wortwahl an die ADRs 0002 bis 0006 an, siehe Abschnitt 15; v0.5 sagt in Abschnitt 7, was jede Rolle im Einzelnen darf, v0.6 nennt dort die Rechte für den Abgleich, v0.7 gibt den eigenen Anlagenarten und den Mängelklassen ihre Phase, v0.8 trägt die Entscheidungen vom 04.10.2026 vor dem Bau von Phase 1 ein, v0.9 gibt der Liegenschaft ihre Notiz, v0.10 sagt, wer ihre Ansprechpartner pflegt, v0.11, was eine Schließzeit ist und wer sie einträgt, v0.12 nennt das Recht, Dokumente abzulegen, v0.13 die Rechte, sie anzusehen und zu entfernen, und woran ein Dokument hängt, v0.14, dass eine eigene Pflicht ihre Tätigkeit nennt, v0.15, welcher Vorgang aus welcher Tätigkeit entsteht, v0.16, wie ein Bericht einer Fremdfirma zum Nachweis wird, v0.17, welche Klassen ein Mangel nehmen kann und was eine Nachprüfung festhält (Vergleich mit openMAINT, Atlas CMMS, eTASK, wave Facilities, pitFM, SPARTACUS, Planon, Lumiform, Wowflow und den Excel-Listen, die vielerorts die eigentliche Software sind)
 
 Self-hosted Open-Source-System für alle, die Gebäude betreiben und dafür eigene Haustechniker haben. Liegenschaften, Gebäude, Räume und technische Anlagen stehen in einem Datenmodell. Die Betreiberpflichten hängen daran als überwachte Fristen, Rundgänge und Prüfungen laufen auf dem Telefon auch ohne Netz, und zu jeder Pflicht gibt es einen Nachweis, der sich nachträglich nicht ändern lässt.
 
@@ -290,8 +290,10 @@ Wie dort gilt: jede Abfrage nennt einen Tag, und für einen Tag ohne hinterlegte
 ### 4.6 Mängel
 
 - Entstehen aus Rundgang, Prüfung, Störmeldung oder von Hand, immer an einer Anlage oder einem Ort, mit Foto
-- Klasse und Frist zur Beseitigung, die Vorgabe je Klasse stellt der Betreiber ein. Die Klassen kommen aus dem Paket: ein Mangel aus einer Prüfung nimmt die des Pakets seiner Pflichtart, jeder andere die drei allgemeinen Stufen des Pakets Allgemein (gering, erheblich, gefährlich). Ein gemeldeter Mangel hat zuerst keine Klasse; vergeben wird sie von dem, der Mängel führt, und bis dahin steht er als „ohne Klasse“ in der Liste
-- Status: festgestellt → beauftragt → behoben → nachgeprüft; „behoben“ kommt aus dem Auftrag, mit der Unterschrift dessen, der ihn führt, und eine Zurückweisung bei der Abnahme setzt den Mangel auf „beauftragt“ zurück; „nachgeprüft“ ist ein eigener Schritt
+- Klasse und Frist zur Beseitigung, die Vorgabe je Klasse stellt der Betreiber ein. Die Klassen kommen aus dem Paket: ein Mangel aus einer Prüfung nimmt die des Pakets seiner Pflichtart, jeder andere die drei allgemeinen Stufen des Pakets Allgemein (gering, erheblich, gefährlich). Nennt das Paket der Pflichtart keine eigenen Klassen, nimmt auch ein Mangel aus einer Prüfung die allgemeinen; als Prüfung zählen hier Prüfung und Wartung und der Bericht einer Fremdfirma. Ein gemeldeter Mangel hat zuerst keine Klasse; vergeben wird sie von dem, der Mängel führt, und bis dahin steht er als „ohne Klasse“ in der Liste
+- Die Frist eines Mangels ist die Vorgabe seiner Klasse, gezählt ab dem Tag der Feststellung; wer Mängel führt, ändert sie am Mangel. Ohne Vorgabe setzt er sie selbst. Solange der Mangel festgestellt oder beauftragt ist, steht sie in der Liste „Fristen“ und erinnert die Leitung (2.4)
+- Status: festgestellt → beauftragt → behoben → nachgeprüft; „behoben“ kommt aus dem Auftrag, mit der Unterschrift dessen, der ihn führt, und eine Zurückweisung bei der Abnahme setzt den Mangel auf „beauftragt“ zurück; „nachgeprüft“ ist ein eigener Schritt, mit Tag und Bemerkung. Findet die Nachprüfung den Mangel nicht behoben, steht er wieder auf „festgestellt“ und braucht einen neuen Auftrag; ein nachgeprüfter Mangel ist erledigt und ändert sich nicht mehr
+- Ein Mangel nennt keine Person: wer ihn gemeldet, eingestuft oder nachgeprüft hat, steht im Änderungsprotokoll (9)
 - Ein Mangel, der eine Anlage unsicher macht, setzt sie außer Betrieb und sagt das an der Anlage, am Raum und im Lagebild
 - Offene Mängel je Anlage, Gebäude und Bereich; Mängelbericht als PDF
 
@@ -744,6 +746,10 @@ Die offenen Fragen aus v0.1 sind am 01.10.2026 entschieden worden, die Phasen de
 ---
 
 ## 16. Änderungsprotokoll
+
+### v0.16 → v0.17
+
+- Welche Klassen ein Mangel aus einer Prüfung nimmt, wenn das Paket seiner Pflichtart keine eigenen nennt, wie seine Frist aus der Vorgabe der Klasse folgt und in der Liste „Fristen“ steht, was eine Nachprüfung festhält und was aus einer folgt, die den Mangel nicht behoben findet, und dass ein Mangel keine Person nennt (4.6)
 
 ### v0.15 → v0.16
 

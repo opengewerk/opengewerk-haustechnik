@@ -67,6 +67,7 @@ import { LabelCardOf } from '../labels.js'
 import { factLink } from '../links.js'
 import { officePlaces } from '../place-addresses.js'
 import { kindLabel } from './assets.js'
+import { AssetDefectsCard } from './defects.js'
 
 /** The file of an asset as the server reads it today. */
 export function assetFileQuery(id: string) {
@@ -246,6 +247,7 @@ export function AssetFileScreen() {
             />
           ) : null}
           {seesEvidence ? <AssetEvidence evidence={evidence.data} /> : null}
+          <AssetDefectsCard assetId={assetId} />
         </div>
         <div className="flex min-w-0 flex-col gap-3.5">
           <Panel

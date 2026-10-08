@@ -14,7 +14,7 @@ import {
 } from '@opengewerk/platform-web/site'
 import { maybeText, text, useRecord, useRecords } from '@opengewerk/platform-web/sync'
 import { useParams } from '@tanstack/react-router'
-import { Plus } from 'lucide-react'
+import { Plus, TriangleAlert } from 'lucide-react'
 
 import { placePath } from '../../app/place-path.js'
 import { byLevel, byNumber, kindsOf, placeAbove, titleOfRoom } from '../../app/place-records.js'
@@ -30,7 +30,7 @@ import {
   NotOnDevice,
   OpenDefects,
 } from '../kit.js'
-import { sitePlaces, stockTaking } from '../places.js'
+import { siteDefects, sitePlaces, stockTaking } from '../places.js'
 
 /**
  * The plain pages of the places on site (#99, 4.1 of the concept: "Vor Ort
@@ -332,6 +332,7 @@ export function SiteRoomScreen() {
   const defects = useRecords('defects')
   const catalogue = useCatalogue()
   const records = useRight('asset.record')
+  const reports = useRight('defect.report')
 
   if (!room || roomId === undefined) {
     return <NotOnDevice what="Diesen Raum" back={backToStart} />
@@ -433,11 +434,18 @@ export function SiteRoomScreen() {
           />
         )}
       </SiteScreen>
-      {records ? (
+      {records || reports ? (
         <SiteActionBar>
-          <GoButton to={stockTaking.assetInRoom(roomId)} icon={Plus} tone="primary">
-            Anlage aufnehmen
-          </GoButton>
+          {records ? (
+            <GoButton to={stockTaking.assetInRoom(roomId)} icon={Plus}>
+              Anlage aufnehmen
+            </GoButton>
+          ) : null}
+          {reports ? (
+            <GoButton to={siteDefects.atRoom(roomId)} icon={TriangleAlert} tone="primary">
+              Mangel melden
+            </GoButton>
+          ) : null}
         </SiteActionBar>
       ) : null}
     </>

@@ -6,6 +6,7 @@ import { check, foreignKey, index, pgEnum, pgPolicy } from 'drizzle-orm/pg-core'
 import { activities } from './activities.js'
 import { withinAreas } from './areas.js'
 import { assets } from './assets.js'
+import { defects } from './defects.js'
 import { buildings, properties, rooms, trimmed } from './locations.js'
 
 /** What kind of document a file is, from the list in `domain`; none for a photo. */
@@ -14,7 +15,7 @@ export const documentKind = pgEnum('document_kind', documentKinds)
 /**
  * What a document of this application hangs on and what it is: its property
  * with the area of that property, at most one record there, a building, a
- * room, an asset or an activity, and its kind.
+ * room, an asset, an activity or a defect, and its kind.
  */
 const documentPlace = {
   propertyId: reference<'property'>('property_id').notNull(),
@@ -23,6 +24,7 @@ const documentPlace = {
   roomId: reference<'room'>('room_id'),
   assetId: reference<'asset'>('asset_id'),
   activityId: reference<'activity'>('activity_id'),
+  defectId: reference<'defect'>('defect_id'),
   kind: documentKind('kind'),
 }
 
@@ -109,13 +111,19 @@ export const { attachments, attachmentVersions } = attachmentsSchema({
       foreignColumns: [activities.tenantId, activities.id, activities.propertyId],
       name: 'attachments_at_an_activity_of_their_property',
     }),
+    foreignKey({
+      columns: [table.tenantId, table.defectId, table.propertyId],
+      foreignColumns: [defects.tenantId, defects.id, defects.propertyId],
+      name: 'attachments_at_a_defect_of_their_property',
+    }),
     index('attachments_property_idx').on(table.tenantId, table.propertyId),
     index('attachments_asset_idx').on(table.tenantId, table.assetId),
     index('attachments_activity_idx').on(table.tenantId, table.activityId),
+    index('attachments_defect_idx').on(table.tenantId, table.defectId),
     // What `documentTargetProblem` asks: the property, or one record on it.
     check(
       'attachments_hang_on_one_record',
-      sql`num_nonnulls(${table.buildingId}, ${table.roomId}, ${table.assetId}, ${table.activityId}) <= 1`,
+      sql`num_nonnulls(${table.buildingId}, ${table.roomId}, ${table.assetId}, ${table.activityId}, ${table.defectId}) <= 1`,
     ),
     // What `documentProblems` asks of the name, held here for every other way in.
     check('attachments_title_shaped', trimmed(table.title, documentLimits.title)),

@@ -2,6 +2,7 @@ import { auditVocabulary, buildingKindLabel, ruleScopeNames } from '@opengewerk/
 import type { AuditScreenWords } from '@opengewerk/platform-web/office'
 
 import { activityPlaces } from './activity-addresses.js'
+import { defectPlaces } from './defect-addresses.js'
 import { documentPlaces } from './document-addresses.js'
 import { dutyPlaces, evidencePlaces } from './duty-addresses.js'
 import { officePlaces } from './place-addresses.js'
@@ -27,6 +28,7 @@ const screens: Readonly<Record<string, (id: string) => string>> = {
   evidence: evidencePlaces.evidence,
   attachments: documentPlaces.document,
   activities: activityPlaces.activity,
+  defects: defectPlaces.defect,
 }
 
 /** The label of the link to a record. */
@@ -40,6 +42,7 @@ const links: Words = {
   evidence: 'Zum Nachweis',
   attachments: 'Zum Dokument',
   activities: 'Zum Vorgang',
+  defects: 'Zum Mangel',
 }
 
 export const auditScreenWords: AuditScreenWords = {
@@ -66,5 +69,6 @@ export const auditScreenWords: AuditScreenWords = {
     assets: 'mit ihrem Lebenszyklus, dem, was sie versorgt, und ihren Etiketten',
     attachments: 'mit seinen Fassungen',
     activities: 'mit den Pflichten, die er erfüllen soll',
+    defects: 'mit seinen Fotos',
   },
 }

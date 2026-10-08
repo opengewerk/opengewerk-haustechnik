@@ -450,6 +450,35 @@ describe('a document filed from a device', () => {
     }
   })
 
+  it('hangs on a defect a device reported, as its photo, filed by whoever reported it', async () => {
+    const tech = by('technician')
+    const defect = newId<'defect'>()
+
+    expect(
+      await outcomes(tech, [
+        operation('defects', 'create', defect, {
+          description: 'Kondensat tropft am Abgasrohr',
+          foundOn: '2026-10-05',
+          propertyId: place.property,
+          assetId: place.asset,
+        }),
+      ]),
+    ).toEqual([applied])
+
+    const photo = await filed(tech, { propertyId: place.property, defectId: defect })
+
+    expect(photo.outcomes).toEqual([applied, applied])
+    expect(await rowOf(tech, 'attachments', photo.document)).toMatchObject({
+      propertyId: place.property,
+      assetId: null,
+      defectId: defect,
+    })
+    // A defect that is not there is no place for a photo.
+    expect(
+      (await filed(tech, { propertyId: place.property, defectId: newId<'defect'>() })).outcomes[0],
+    ).toEqual({ outcome: 'conflict', reason: 'record_missing', fields: ['defectId'] })
+  })
+
   it('waits as a conflict about its one version while the bytes have not arrived', async () => {
     const waiting = await filed(
       by('technician'),
@@ -530,10 +559,10 @@ describe('a document filed from a device', () => {
         roomId: place.room,
       }),
     ).toBe(
-      'Ein Dokument hängt an der Liegenschaft oder an genau einem: einer Anlage, einem Raum, einem Gebäude oder einem Vorgang.',
+      'Ein Dokument hängt an der Liegenschaft oder an genau einem: einer Anlage, einem Raum, einem Gebäude, einem Vorgang oder einem Mangel.',
     )
     expect(await refusal({ title: 'Schaltplan' })).toBe(
-      'Ein Dokument hängt an einer Liegenschaft, einem Gebäude, einem Raum, einer Anlage oder einem Vorgang.',
+      'Ein Dokument hängt an einer Liegenschaft, einem Gebäude, einem Raum, einer Anlage, einem Vorgang oder einem Mangel.',
     )
     expect(await refusal({ title: ' ', propertyId: place.property })).toBe('Die Bezeichnung fehlt.')
     expect(await refusal({ title: 'x'.repeat(121), propertyId: place.property })).toBe(

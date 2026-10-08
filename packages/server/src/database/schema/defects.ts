@@ -1,4 +1,4 @@
-import { defectLimits, defectStatuses } from '@opengewerk/haustechnik-domain'
+import { defectLimits, defectStatuses, defectTermLimits } from '@opengewerk/haustechnik-domain'
 import {
   primaryId,
   reference,
@@ -8,11 +8,22 @@ import {
 } from '@opengewerk/platform-server'
 import { tenantColumn } from '@opengewerk/platform-server/schema'
 import { sql } from 'drizzle-orm'
-import { check, date, foreignKey, index, pgEnum, pgTable, text, unique } from 'drizzle-orm/pg-core'
+import {
+  check,
+  date,
+  foreignKey,
+  index,
+  integer,
+  pgEnum,
+  pgTable,
+  text,
+  unique,
+} from 'drizzle-orm/pg-core'
 
 import { activities, workOrders } from './activities.js'
 import { withinAreas } from './areas.js'
 import { assets } from './assets.js'
+import { evidence } from './evidence.js'
 import { buildings, optionalTrimmed, properties, rooms, trimmed } from './locations.js'
 
 /** The status of a defect, from the list in `domain`. */
@@ -27,9 +38,11 @@ export const defectStatus = pgEnum('defect_status', defectStatuses)
  * `(tenant_id, property_id, area_id)` with ON UPDATE CASCADE and the policy
  * `within_areas` (ADR 0003).
  *
- * Its class is a key that no package names yet (opengewerk-haustechnik#59), so
- * nothing holds it against the catalogue, and a defect may have none until
- * one does.
+ * Its class is a key of a package, `<package>.<key>`, which the routes hold
+ * against the classes it may take (`defectClassChoices` in `domain`); a
+ * reported defect has none until whoever keeps defects gives it one. A defect
+ * named in the report of a contractor names that evidence (#110), and one
+ * that was checked again the day and what was found (#116).
  */
 export const defects = pgTable(
   'defects',
@@ -42,12 +55,15 @@ export const defects = pgTable(
     roomId: reference<'room'>('room_id'),
     assetId: reference<'asset'>('asset_id'),
     foundInActivityId: reference<'activity'>('found_in_activity_id'),
+    foundInEvidenceId: reference<'evidence'>('found_in_evidence_id'),
     remedyWorkOrderId: reference<'work-order'>('remedy_work_order_id'),
     description: text('description').notNull(),
     defectClass: text('defect_class'),
     foundOn: date('found_on', { mode: 'string' }).notNull(),
     dueOn: date('due_on', { mode: 'string' }),
     status: defectStatus('status').notNull().default('found'),
+    checkedOn: date('checked_on', { mode: 'string' }),
+    checkNote: text('check_note'),
     ...timestamps,
     ...syncColumns,
   },
@@ -55,6 +71,8 @@ export const defects = pgTable(
     tenantIsolation(table.tenantId),
     withinAreas(),
     unique('defects_tenant_id_key').on(table.tenantId, table.id),
+    // What a document or a deadline of a defect points at, on its property.
+    unique('defects_place').on(table.tenantId, table.id, table.propertyId),
     foreignKey({
       columns: [table.tenantId, table.propertyId, table.areaId],
       foreignColumns: [properties.tenantId, properties.id, properties.areaId],
@@ -81,6 +99,11 @@ export const defects = pgTable(
       name: 'defects_found_in_an_activity_of_their_property',
     }),
     foreignKey({
+      columns: [table.tenantId, table.foundInEvidenceId, table.propertyId],
+      foreignColumns: [evidence.tenantId, evidence.id, evidence.propertyId],
+      name: 'defects_named_in_an_evidence_of_their_property',
+    }),
+    foreignKey({
       columns: [table.tenantId, table.remedyWorkOrderId, table.propertyId],
       foreignColumns: [workOrders.tenantId, workOrders.id, workOrders.propertyId],
       name: 'defects_set_right_by_a_work_order_of_their_property',
@@ -98,6 +121,45 @@ export const defects = pgTable(
     check(
       'defects_due_after_found',
       sql`${table.dueOn} is null or ${table.dueOn} >= ${table.foundOn}`,
+    ),
+    check('defects_check_note_shaped', optionalTrimmed(table.checkNote, defectLimits.checkNote)),
+    // Checked again on the day it was found or later, and never checked
+    // again without the day it was.
+    check(
+      'defects_checked_after_found',
+      sql`${table.checkedOn} is null or ${table.checkedOn} >= ${table.foundOn}`,
+    ),
+    check(
+      'defects_verified_on_a_day',
+      sql`${table.status} <> 'verified' or ${table.checkedOn} is not null`,
+    ),
+  ],
+)
+
+/**
+ * The default of a class of defects (section 4.6 of the concept, #116): the
+ * days to set a defect of the class right in, counted from the day it was
+ * found, which the operator sets under "Einstellungen". One row per class
+ * that has one; a class without a row has none. The class is a key of a
+ * package, which the route holds against the catalogue.
+ */
+export const defectClassTerms = pgTable(
+  'defect_class_terms',
+  {
+    id: primaryId<'defect-class-term'>(),
+    ...tenantColumn,
+    defectClass: text('defect_class').notNull(),
+    dueDays: integer('due_days').notNull(),
+    ...timestamps,
+  },
+  (table) => [
+    tenantIsolation(table.tenantId),
+    unique('defect_class_terms_tenant_id_key').on(table.tenantId, table.id),
+    unique('defect_class_terms_once').on(table.tenantId, table.defectClass),
+    check('defect_class_terms_class_shaped', trimmed(table.defectClass, defectLimits.defectClass)),
+    check(
+      'defect_class_terms_days',
+      sql`${table.dueDays} between ${sql.raw(String(defectTermLimits.least))} and ${sql.raw(String(defectTermLimits.most))}`,
     ),
   ],
 )

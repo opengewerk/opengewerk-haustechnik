@@ -169,6 +169,8 @@ Nachträge:
 
   Geprüft sind die Nummern der Gruppen und ihr Gegenstand gegen eine frei zugängliche Übersicht der Gliederung, nicht gegen den Text der Norm, und abgenommen hat niemand etwas; beides steht in `pakete/allgemein/README.md`.
 
+- **Nachtrag vom 08.10.2026, welche Klassen ein Mangel nehmen kann (`#116`).** Punkt 6 des Nachtrags zu `#61` ist zur Hälfte beantwortet. **Ein Mangel aus einer Prüfung oder Wartung nimmt die Klassen der Pakete ihrer Pflichtarten, ein Mangel aus dem Bericht einer Fremdfirma die des Pakets der Pflichtart seiner Pflicht; nennt keines davon eigene Klassen, nimmt er die allgemeinen.** Jeder andere Mangel, von Hand, aus einem Rundgang oder aus einem Auftrag, nimmt die allgemeinen (Abschnitt 4.6 des Konzepts). So hat jeder Mangel Klassen zur Wahl, auch solange kein Fachpaket eigene mitbringt. Die Regel steht an einer Stelle (`defectClassChoices` in `packages/domain`), und die Routen halten die Klasse eines Mangels und eines Berichts gegen sie. Dass eine Pflichtart die Klassen ihres Pakets einengt, hat das Format weiter nicht. **Eine gemergte Mängelklasse bleibt stehen**, wie Punkt 4 des Nachtrags zu `#61` es angekündigt hat: der Vergleich mit `main` (`compare` des Laders) meldet eine Klasse, die dort in `mangelklassen.json` steht und hier fehlt. Ihr Wort und ihre Fundstelle dürfen sich ändern. **Die Vorgabe der Frist je Klasse ist keine Angabe des Pakets**, sondern eine Einstellung des Betreibers (Abschnitt 4.6: "die Vorgabe je Klasse stellt der Betreiber ein"); ohne sie setzt die Frist, wer Mängel führt.
+
 ## Bestätigung
 
 Die Entscheidung gilt als umgesetzt, wenn

@@ -12,6 +12,7 @@ import type {
   EvidenceVoiding,
   Floor,
   Import,
+  KeptDefectClassTerm,
   KeptKindName,
   PlaceLabel,
   Property,
@@ -27,6 +28,7 @@ import type {
   buildingClosures,
   buildings,
   contacts,
+  defectClassTerms,
   defects,
   duties,
   dutyDismissals,
@@ -74,6 +76,9 @@ export type EvidenceVoidingMatches = Assert<
 export type ActivityMatches = Assert<Exact<typeof activities.$inferSelect, Activity>>
 export type ActivityDutyMatches = Assert<Exact<typeof activityDuties.$inferSelect, ActivityDuty>>
 export type DefectMatches = Assert<Exact<typeof defects.$inferSelect, Defect>>
+export type DefectClassTermMatches = Assert<
+  Exact<typeof defectClassTerms.$inferSelect, KeptDefectClassTerm>
+>
 
 /**
  * A work order carries the kind of its activity, always `work_order`, only so

@@ -1,6 +1,6 @@
 import { fileHashProblem, type IsoDate } from '@opengewerk/platform-domain'
 
-import { defectProblems } from './defect.js'
+import { classNotOffered, defectProblems } from './defect.js'
 import { evidenceProblems, type EvidenceResult, evidenceResults } from './evidence.js'
 import type { Problems } from './fields.js'
 
@@ -108,12 +108,13 @@ function fileProblem(file: unknown): string | undefined {
  * a report always names the examiner and the organisation (section 4.4).
  * A result with defects names at least one, one without defects and one not
  * performed name none, and a failed test may. Each defect is a defect found
- * on the day of the test, and its class is one the catalogue knows.
+ * on the day of the test, and its class is one the duty offers
+ * (`defectClassChoices`).
  */
 export function reportProblems(
   report: Readonly<Record<string, unknown>>,
   today: IsoDate,
-  knowsClass: (key: string) => boolean,
+  offersClass: (key: string) => boolean,
 ): Readonly<Problems> {
   const problems: Problems = { ...evidenceProblems(report) }
   const file = fileProblem(report['file'])
@@ -202,9 +203,9 @@ export function reportProblems(
       typeof defectClass === 'string' &&
       defectClass !== '' &&
       found['defectClass'] === undefined &&
-      !knowsClass(defectClass)
+      !offersClass(defectClass)
     ) {
-      problems[reportDefectField(index, 'defectClass')] = 'Diese Klasse kennt der Katalog nicht.'
+      problems[reportDefectField(index, 'defectClass')] = classNotOffered
     }
   })
 

@@ -1,5 +1,6 @@
 import {
   countingLabel,
+  defectClassChoices,
   type DutyDetails,
   dutyInterval,
   type EvidenceResult,
@@ -199,11 +200,9 @@ function ReportForm({
     .filter(Boolean)
     .join(', ')
   const counting = lowerFirst(countingLabel[duty.counting])
-  // The classes of a defect, from every package, in the order each package names them.
-  const classes =
-    catalogue === null
-      ? []
-      : catalogue.packages.flatMap((pack) => catalogue.defectClasses(pack.name))
+  // The classes a defect of this duty may take, as the server holds them
+  // (#116): those of the package of its kind, or the general ones.
+  const classes = catalogue === null ? [] : defectClassChoices(catalogue, [duty.kind])
   const namesDefects = resultsWithDefects.includes(result)
   const filled = (value: string) => (value.trim() === '' ? null : value.trim())
 

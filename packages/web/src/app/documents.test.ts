@@ -224,10 +224,10 @@ describe('filing a document', () => {
         { shrink },
       ),
     ).toBe(
-      'Ein Dokument hängt an der Liegenschaft oder an genau einem: einer Anlage, einem Raum, einem Gebäude oder einem Vorgang.',
+      'Ein Dokument hängt an der Liegenschaft oder an genau einem: einer Anlage, einem Raum, einem Gebäude, einem Vorgang oder einem Mangel.',
     )
     expect(await fileDocument(client, { propertyId: '' }, photo, { shrink })).toBe(
-      'Ein Dokument hängt an einer Liegenschaft, einem Gebäude, einem Raum, einer Anlage oder einem Vorgang.',
+      'Ein Dokument hängt an einer Liegenschaft, einem Gebäude, einem Raum, einer Anlage, einem Vorgang oder einem Mangel.',
     )
     expect(await fileDocument(client, atTheLift, photo, { title: '   ', shrink })).toBe(
       'Die Bezeichnung fehlt.',

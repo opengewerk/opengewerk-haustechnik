@@ -25,3 +25,9 @@ export const stockTaking = {
   roomOnFloor: (floorId: string) => `/aufnehmen/geschoss/${floorId}`,
   label: (assetId: string) => `/anlagen/${assetId}/etikett`,
 } as const
+
+/** Where a defect is reported on site (#116): under the page of the asset or the room it is at. */
+export const siteDefects = {
+  atAsset: (assetId: string) => `/anlagen/${assetId}/mangel`,
+  atRoom: (roomId: string) => `/raeume/${roomId}/mangel`,
+} as const
