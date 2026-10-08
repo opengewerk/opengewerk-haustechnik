@@ -14,11 +14,9 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { areaAdditions } from '../areas/additions.js'
 import { access, createAuthentication } from '../authentication/access.js'
 import {
-  allowApplicationLogin,
   applicationDatabaseUrl,
-  applyMigrations,
   connect,
-  resetSchema,
+  resetToMigrated,
   testIdentityHeader,
 } from '../database/test-database.js'
 import { ApiModule } from './api.module.js'
@@ -192,9 +190,7 @@ async function areaNamed(name: string, tenantId: TenantId = large): Promise<stri
 
 beforeAll(async () => {
   admin = await connect()
-  await resetSchema(admin)
-  await applyMigrations()
-  await allowApplicationLogin(admin)
+  await resetToMigrated()
 
   await admin.query('insert into tenants (id, name) values ($1, $2), ($3, $4), ($5, $6)', [
     large,

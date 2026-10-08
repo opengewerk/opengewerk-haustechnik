@@ -15,13 +15,7 @@ import { Database, newId } from '@opengewerk/platform-server'
 import type { Pool } from 'pg'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
-import {
-  allowApplicationLogin,
-  applicationDatabaseUrl,
-  applyMigrations,
-  connect,
-  resetSchema,
-} from '../database/test-database.js'
+import { applicationDatabaseUrl, connect, resetToMigrated } from '../database/test-database.js'
 import { evidenceIntact, stateFingerprint } from './fingerprint.js'
 import { type EvidenceToWrite, EvidenceRefusal, writeEvidence } from './write.js'
 
@@ -251,9 +245,7 @@ async function rowOf(id: string) {
 
 beforeAll(async () => {
   admin = await connect()
-  await resetSchema(admin)
-  await applyMigrations()
-  await allowApplicationLogin(admin)
+  await resetToMigrated()
 
   await admin.query('insert into tenants (id, name) values ($1, $2)', [tenant, 'Wohnbau Nord eG'])
 

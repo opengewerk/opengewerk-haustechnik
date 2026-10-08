@@ -10,13 +10,7 @@ import type { Pool } from 'pg'
 import request from 'supertest'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
-import {
-  allowApplicationLogin,
-  applicationDatabaseUrl,
-  applyMigrations,
-  connect,
-  resetSchema,
-} from '../database/test-database.js'
+import { applicationDatabaseUrl, connect, resetToMigrated } from '../database/test-database.js'
 import { dayInGermany } from '../today.js'
 import {
   defaultPreviewDatabaseUrl,
@@ -121,9 +115,7 @@ async function started(
   database: Database,
   viewer: PreviewViewer,
 ): Promise<{ readonly application: INestApplication; readonly tenantId: TenantId }> {
-  await resetSchema(admin)
-  await applyMigrations()
-  await allowApplicationLogin(admin)
+  await resetToMigrated()
 
   const { application, tenant } = await openSamplePreview(admin, database, viewer, {
     interfaceDirectory: null,

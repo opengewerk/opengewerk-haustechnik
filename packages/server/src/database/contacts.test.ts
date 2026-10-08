@@ -6,14 +6,7 @@ import { sql } from 'drizzle-orm'
 import type { Pool } from 'pg'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
-import {
-  allowApplicationLogin,
-  applicationDatabaseUrl,
-  applyMigrations,
-  connect,
-  refusedBy,
-  resetSchema,
-} from './test-database.js'
+import { applicationDatabaseUrl, connect, refusedBy, resetToMigrated } from './test-database.js'
 
 /**
  * The people to talk to at a property in the database (#85, section 4.1 of
@@ -76,9 +69,7 @@ async function contactAt(property: string, familyName = 'Becker'): Promise<strin
 
 beforeAll(async () => {
   admin = await connect()
-  await resetSchema(admin)
-  await applyMigrations()
-  await allowApplicationLogin(admin)
+  await resetToMigrated()
 
   await admin.query('insert into tenants (id, name) values ($1, $2), ($3, $4)', [
     tenant,

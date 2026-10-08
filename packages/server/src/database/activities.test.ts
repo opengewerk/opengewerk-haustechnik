@@ -8,14 +8,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 import { yearInGermany } from '../today.js'
 import { assignNumber } from './number-ranges.js'
-import {
-  allowApplicationLogin,
-  applicationDatabaseUrl,
-  applyMigrations,
-  connect,
-  refusedBy,
-  resetSchema,
-} from './test-database.js'
+import { applicationDatabaseUrl, connect, refusedBy, resetToMigrated } from './test-database.js'
 import { writtenColumnNames, writtenPlaceholders, writtenValues } from './test-evidence.js'
 
 /**
@@ -221,9 +214,7 @@ async function defectIn(
 
 beforeAll(async () => {
   admin = await connect()
-  await resetSchema(admin)
-  await applyMigrations()
-  await allowApplicationLogin(admin)
+  await resetToMigrated()
 
   await admin.query('insert into tenants (id, name) values ($1, $2), ($3, $4)', [
     tenant,

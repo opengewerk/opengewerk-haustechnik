@@ -8,10 +8,8 @@ import type { Pool } from 'pg'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 import {
-  allowApplicationLogin,
   applicationDatabaseUrl,
   applicationRole,
-  applyMigrations,
   connect,
   foundationDefinerFunctions,
   insufficientPrivilege,
@@ -19,7 +17,7 @@ import {
   readDefinerFunctions,
   readPolicies,
   refusedBy,
-  resetSchema,
+  resetToMigrated,
   tableProtections,
   unprotected,
   withoutTheTenant,
@@ -785,9 +783,7 @@ let database: Database
 
 beforeAll(async () => {
   admin = await connect()
-  await resetSchema(admin)
-  await applyMigrations()
-  await allowApplicationLogin(admin)
+  await resetToMigrated()
 
   // The rows go in past the application: a tenant is not something its role
   // creates, and the accounts are written outside any tenant. What is asked

@@ -7,12 +7,10 @@ import { Pool } from 'pg'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 import {
-  allowApplicationLogin,
   applicationDatabaseUrl,
-  applyMigrations,
   connect,
   ownerDatabaseUrl,
-  resetSchema,
+  resetToMigrated,
 } from './test-database.js'
 
 /**
@@ -168,9 +166,7 @@ function asApplication(work: (tx: TenantTransaction) => Promise<unknown>) {
 
 beforeAll(async () => {
   admin = await connect()
-  await resetSchema(admin)
-  await applyMigrations()
-  await allowApplicationLogin(admin)
+  await resetToMigrated()
   owner = new Pool({ connectionString: ownerDatabaseUrl() })
 
   await admin.query('insert into tenants (id, name) values ($1, $2)', [tenant, 'Wohnbau Nord eG'])

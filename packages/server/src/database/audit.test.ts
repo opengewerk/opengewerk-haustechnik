@@ -6,17 +6,15 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 import { numberRanges, secrets } from './schema/index.js'
 import {
-  allowApplicationLogin,
   applicationDatabaseUrl,
   applicationRole,
-  applyMigrations,
   auditEntryColumns,
   columnNames,
   connect,
   foundationOutsideTheLog,
   instanceLogCoverage,
   logCoverage,
-  resetSchema,
+  resetToMigrated,
   unstampedTables,
 } from './test-database.js'
 
@@ -55,9 +53,7 @@ let database: Database
 
 beforeAll(async () => {
   admin = await connect()
-  await resetSchema(admin)
-  await applyMigrations()
-  await allowApplicationLogin(admin)
+  await resetToMigrated()
 
   // A tenant is not something the application role creates.
   await admin.query('insert into tenants (id, name) values ($1, $2)', [tenant.id, tenant.name])

@@ -820,6 +820,11 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
 - In der CI laufen die Datenbanktests des Fundaments auf einer eigenen PostgreSQL neben denen der
   Haustechnik statt vor ihnen (#192). Nacheinander brauchten beide zwölf der dreizehn Minuten des
   Jobs "Typprüfung, Lint und Tests"; lokal bleibt es bei einer Testdatenbank und der Reihenfolge
+- Die Servertests setzen die Datenbank mit `resetToMigrated` auf den frisch migrierten Stand
+  zurück (`opengewerk#578`, mit dem Fundament angehoben): als Kopie einer Vorlage, in die die
+  Migrationen je Lauf einmal liefen, statt das Schema zu löschen und alle Migrationen neu laufen
+  zu lassen. 44 Testdateien sind umgestellt; die Tests der Migrationen bauen weiter selbst. Das
+  kostete jede Datei rund zwei Sekunden, zwei Dateien sogar vor jedem einzelnen Test
 - Eine Berichtigung nimmt die Mängel aus dem Stand des Nachweises, den sie ersetzt, statt sie beim Vorgang neu zu
   lesen (#110): ein Bericht ohne Vorgang hat sie nirgends sonst
 - Die Beispieldaten der Vorschau tragen ihre Nachweise als Berichte über die Route ein, mit Berichtigung und

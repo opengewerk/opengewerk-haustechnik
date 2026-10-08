@@ -21,14 +21,12 @@ import { inEveryArea } from './every-area.js'
 import { withinAreasExpression, withinAreasOfTheirFileExpression } from './schema/index.js'
 import { areaBoundaryProblems, areaColumnsWithoutTheLine, linesThroughARow } from './test-areas.js'
 import {
-  allowApplicationLogin,
   applicationDatabaseUrl,
-  applyMigrations,
   connect,
   insufficientPrivilege,
   ownerDatabaseUrl,
   refusedBy,
-  resetSchema,
+  resetToMigrated,
 } from './test-database.js'
 import { writtenColumnNames, writtenPlaceholders, writtenValues } from './test-evidence.js'
 
@@ -445,9 +443,7 @@ async function placeIn(where: 'north' | 'south'): Promise<void> {
 
 beforeAll(async () => {
   admin = await connect()
-  await resetSchema(admin)
-  await applyMigrations()
-  await allowApplicationLogin(admin)
+  await resetToMigrated()
   owner = new Pool({ connectionString: ownerDatabaseUrl() })
 
   // The tenant and its people go in past the application. The two areas come

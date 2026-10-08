@@ -10,13 +10,7 @@ import type { Pool } from 'pg'
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 
 import { type TestInstance, testInstance, testOrigin, testSetupCode } from '../api/test-instance.js'
-import {
-  allowApplicationLogin,
-  applicationDatabaseUrl,
-  applyMigrations,
-  connect,
-  resetSchema,
-} from '../database/test-database.js'
+import { applicationDatabaseUrl, connect, resetToMigrated } from '../database/test-database.js'
 import { addStaffMember } from './access.js'
 
 // The way into an instance of this application, from an empty database to
@@ -48,9 +42,7 @@ beforeAll(async () => {
 })
 
 beforeEach(async () => {
-  await resetSchema(admin)
-  await applyMigrations()
-  await allowApplicationLogin(admin)
+  await resetToMigrated()
 })
 
 afterEach(async () => {

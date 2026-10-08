@@ -13,11 +13,9 @@ import request from 'supertest'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 import {
-  allowApplicationLogin,
   applicationDatabaseUrl,
-  applyMigrations,
   connect,
-  resetSchema,
+  resetToMigrated,
   testIdentityHeader,
 } from '../database/test-database.js'
 import { dayInGermany } from '../today.js'
@@ -144,9 +142,7 @@ function give(userId: string, areas: unknown, tenantId: TenantId = large) {
 
 beforeAll(async () => {
   admin = await connect()
-  await resetSchema(admin)
-  await applyMigrations()
-  await allowApplicationLogin(admin)
+  await resetToMigrated()
 
   await admin.query('insert into tenants (id, name) values ($1, $2), ($3, $4), ($5, $6)', [
     small,
