@@ -1105,6 +1105,11 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
 - Die Fristen-Engine und das Anlegen von Hand legen einen Vorgang über dieselbe Funktion an und
   halten dabei die Pflicht fest (#183), damit von zweien zur selben Zeit nur einer einen Vorgang
   anlegt und eine Pflicht nie zwei laufende hat
+- Die Prüfung "Breiten und Auflösungen" misst auf mehreren Seiten des Browsers zugleich
+  (`opengewerk#576`, mit dem Fundament angehoben), hell und dunkel nebeneinander. Nacheinander
+  brauchte der Job 30 Minuten und war der längste der CI. Dazu nennt die Haustechnik eine eigene
+  Grenze von 160 Arten von Seiten: mit 106 stand sie nahe an den 120, bei denen der Gang durch
+  die Seiten abbricht
 
 ### Behoben
 

@@ -79,4 +79,11 @@ await checkWidths({
     'Berichtigen',
     'Für ungültig erklären',
   ],
+
+  /**
+   * More than the 120 the foundation stops at unless told: this application
+   * had 106 kinds of page on 08.10.2026, and every screen of Phase 1 still to
+   * come brings more (opengewerk#576).
+   */
+  mostKinds: 160,
 })
