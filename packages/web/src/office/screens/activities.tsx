@@ -1,5 +1,6 @@
 import {
   type ActivityCandidates,
+  activityClosable,
   type ActivityDetails,
   type ActivityEntry,
   type ActivityList,
@@ -7,7 +8,9 @@ import {
   type ActivityListState,
   activityListStateLabel,
   activityListStates,
+  activityLimits,
   activityPlanProblems,
+  activityProblems,
   type ActivityStatus,
   activityStatusLabel,
   dueActivityKinds,
@@ -23,6 +26,8 @@ import {
   Cell,
   Choice,
   Column,
+  Dialog,
+  DialogActions,
   Field,
   Panel,
   SelectField,
@@ -30,6 +35,7 @@ import {
   statusIcons,
   type StatusTone,
   TablePanel,
+  TextArea,
 } from '@opengewerk/platform-web'
 import { date, today } from '@opengewerk/platform-web/format'
 import {
@@ -53,7 +59,16 @@ import {
 } from '@opengewerk/platform-web/sync'
 import { keepPreviousData, useInfiniteQuery, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useNavigate, useParams, useSearch } from '@tanstack/react-router'
-import { Check, Clock, type LucideIcon, Pencil, SearchCheck, Signature, Upload } from 'lucide-react'
+import {
+  Ban,
+  Check,
+  Clock,
+  type LucideIcon,
+  Pencil,
+  SearchCheck,
+  Signature,
+  Upload,
+} from 'lucide-react'
 import { type ReactNode, useDeferredValue, useId, useMemo, useState } from 'react'
 
 import { DutyStateMark } from '../../app/asset-marks.js'
@@ -67,7 +82,7 @@ import {
   activityPlaces,
   activitySearch,
 } from '../activity-addresses.js'
-import { dutyPlaces, evidencePlaces } from '../duty-addresses.js'
+import { dutyPlaces, evidencePlaces, reportSearch } from '../duty-addresses.js'
 import { ResultMark } from '../evidence-words.js'
 import { factLink } from '../links.js'
 import { officePlaces } from '../place-addresses.js'
@@ -77,7 +92,7 @@ export const activityWords = {
   sub: 'Prüfungen und Wartungen aus den fälligen Terminen der Pflichten, nach dem Tag, an dem sie fällig sind.',
   searchLabel: 'Prüfungen durchsuchen',
   searchPlaceholder: 'Pflicht, Anlage, Liegenschaft …',
-  note: 'Ein Vorgang entsteht, wenn der Vorlauf eines Termins beginnt, einmal je Termin. Der Termin rückt erst mit dem Nachweis weiter, nie mit dem Anlegen oder Planen des Vorgangs.',
+  note: 'Ein Vorgang entsteht, wenn der Vorlauf eines Termins beginnt, einmal je Termin; läuft für eine Pflicht keiner, wird einer auf ihrer Seite angelegt. Der Termin rückt erst mit dem Nachweis weiter, nie mit dem Anlegen oder Planen des Vorgangs.',
   noConnection: 'Die Prüfungen kommen vom Server. Gerade ist keine Verbindung da.',
   loading: 'Die Prüfungen werden geladen.',
   failed: 'Die Prüfungen ließen sich nicht laden. Sie kommen vom Server, mit Verbindung.',
@@ -107,6 +122,9 @@ export const activityWords = {
     'Der Termin rückt erst mit dem Nachweis weiter und nie mit dem Anlegen des Vorgangs: eine Prüfung, die geplant und nicht durchgeführt wurde, bleibt überfällig.',
   peopleFailed: 'Wer zur Wahl steht, ließ sich nicht laden. Das braucht eine Verbindung.',
   noneYet: 'noch keines',
+  closingHint: 'Der Grund steht am Vorgang und bleibt lesbar.',
+  whatClosingDoes:
+    'Der Vorgang ist damit geschlossen, auch auf den Geräten, und lässt sich nicht wieder öffnen. Der Termin der Pflicht bleibt, wie er ist: ohne Nachweis wird sie überfällig. Einen neuen Vorgang legt an, wer plant und verteilt, auf der Seite der Pflicht.',
 } as const
 
 /** The way a state is drawn, `status()` of the boards: in words, in a tone and with a symbol of its own. */
@@ -538,6 +556,7 @@ export function ActivityScreen() {
   const entersEvidence = useRight('evidence.write')
   const navigate = useNavigate()
   const formId = useId()
+  const [closing, setClosing] = useState(false)
 
   if (shown === undefined || activityId === undefined) {
     const gone = page.error instanceof RequestRefused && page.error.status === 404
@@ -564,6 +583,11 @@ export function ActivityScreen() {
 
   const where = whereOf(shown)
   const planning = plans && shown.status === 'open'
+  // Closed with the reason before its signature, by whoever plans (#183).
+  const closable =
+    plans &&
+    (dueActivityKinds as readonly string[]).includes(shown.kind) &&
+    (activityClosable as readonly string[]).includes(shown.status)
   // A report meets one duty (#110): offered while the activity is open and
   // not for the own people, for a duty that takes one.
   const [only] = shown.duties
@@ -611,12 +635,26 @@ export function ActivityScreen() {
               <Button
                 icon={Upload}
                 onClick={() => {
-                  void navigate({ to: evidencePlaces.report(reportFor) })
+                  // The form names the contractor planned at this activity (#186).
+                  void navigate({
+                    to: evidencePlaces.report(reportFor),
+                    search: reportSearch(shown.id),
+                  })
                 }}
               >
                 Bericht eintragen
               </Button>
             )}
+            {closable ? (
+              <Button
+                icon={Ban}
+                onClick={() => {
+                  setClosing(true)
+                }}
+              >
+                Nicht durchgeführt
+              </Button>
+            ) : null}
             {planning ? (
               <Button type="submit" form={formId} tone="primary" icon={Check}>
                 Speichern
@@ -769,7 +807,124 @@ export function ActivityScreen() {
           />
         </Panel>
       </div>
+      {closing ? (
+        <CloseActivityDialog
+          key={shown.id}
+          activity={shown}
+          sub={where.name}
+          onClose={() => {
+            setClosing(false)
+          }}
+        />
+      ) : null}
     </Screen>
+  )
+}
+
+/**
+ * "Nicht durchgeführt", the board "Prüfung mit Grund schließen" (#183, 4.4 of
+ * the concept): an open or begun inspection or maintenance closed with the
+ * reason, which each of its duties takes as its result. The appointment of
+ * its duties stays as it is. Asked of the route, with a connection, and not
+ * taken back: a new activity is made at the page of the duty.
+ */
+function CloseActivityDialog({
+  activity,
+  sub,
+  onClose,
+}: {
+  readonly activity: ActivityDetails
+  readonly sub: string
+  readonly onClose: () => void
+}) {
+  const client = useSync()
+  const queries = useQueryClient()
+  const [reason, setReason] = useState('')
+  const [problem, setProblem] = useState<string | undefined>(undefined)
+  const [working, setWorking] = useState(false)
+  const [trouble, setTrouble] = useState<string | null>(null)
+
+  async function save() {
+    const values = { closingReason: reason.trim() }
+    const wrong = activityProblems({ status: 'not_performed', ...values })['closingReason']
+
+    setProblem(wrong)
+    setTrouble(null)
+
+    if (wrong !== undefined) {
+      return
+    }
+
+    setWorking(true)
+
+    try {
+      const result = await askAt(
+        client,
+        'POST',
+        `/activities/${activity.id}/close`,
+        activity.id,
+        values,
+      )
+
+      if (result.outcome === 'refused') {
+        setTrouble(refusalFor(result))
+
+        return
+      }
+
+      // The page and the list are read again, and the page of each duty.
+      await queries.invalidateQueries({ queryKey: ['activities'] })
+      await queries.invalidateQueries({ queryKey: ['duties'] })
+      onClose()
+    } finally {
+      setWorking(false)
+    }
+  }
+
+  return (
+    <Dialog
+      title="Nicht durchgeführt"
+      width={520}
+      onClose={onClose}
+      sub={[activity.title, sub].filter(Boolean).join(', ')}
+    >
+      <form
+        noValidate
+        className="flex flex-col gap-3"
+        onSubmit={(event) => {
+          event.preventDefault()
+          void save()
+        }}
+      >
+        <TextArea
+          label="Grund"
+          rows={3}
+          required
+          starred
+          maxLength={activityLimits.closingReason}
+          value={reason}
+          hint={activityWords.closingHint}
+          problem={problem}
+          onChange={(event) => {
+            setReason(event.target.value)
+          }}
+        />
+        <NoteBox>{activityWords.whatClosingDoes}</NoteBox>
+        {trouble ? (
+          <p role="alert" className="text-[13px] font-semibold text-conflict">
+            {trouble}
+          </p>
+        ) : null}
+        <DialogActions>
+          <Button type="button" disabled={working} onClick={onClose}>
+            Abbrechen
+          </Button>
+          <Button type="submit" tone="primary" icon={Ban} disabled={working}>
+            {working ? 'Einen Moment' : 'Als nicht durchgeführt schließen'}
+          </Button>
+        </DialogActions>
+      </form>
+    </Dialog>
   )
 }
 

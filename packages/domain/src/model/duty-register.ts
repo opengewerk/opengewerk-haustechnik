@@ -1,9 +1,10 @@
 import type { IsoDate } from '@opengewerk/platform-domain'
 
+import type { ActivityKind, ActivityStatus } from './activity.js'
 import type { Asset } from './asset.js'
 import type { DutyReading, LastEvidence } from './asset-condition.js'
 import type { Appointment, DutyState } from './duty.js'
-import type { Duty } from './duty-record.js'
+import type { Duty, DutyPerformer } from './duty-record.js'
 import {
   type Evidence,
   type EvidenceOrigin,
@@ -211,6 +212,26 @@ export interface DutyDetails extends Duty {
   readonly ended: boolean
   readonly asset: DutyAsset | null
   readonly responsible: DutyPerson | null
+  /**
+   * The inspection or maintenance under way for the duty (#183), as far as
+   * the person asking is shown it, or null: none is, or it is not theirs to
+   * see.
+   */
+  readonly activity: DutyActivity | null
+}
+
+/**
+ * The activity under way for a duty, as the page of the duty names it and
+ * the form of a report reads it (#183, #186): what it is and where it
+ * stands, and who performs it.
+ */
+export interface DutyActivity {
+  readonly id: string
+  readonly kind: ActivityKind
+  readonly status: ActivityStatus
+  readonly dueOn: IsoDate | null
+  readonly performer: DutyPerformer | null
+  readonly contractorNote: string | null
 }
 
 /**

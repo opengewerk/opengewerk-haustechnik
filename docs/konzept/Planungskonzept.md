@@ -1,6 +1,6 @@
-# OpenGewerk Haustechnik: Planungskonzept (Software für Betreiber und ihre Haustechnik) · v0.17
+# OpenGewerk Haustechnik: Planungskonzept (Software für Betreiber und ihre Haustechnik) · v0.18
 
-2026-10-08 · Eigenständiges Projekt, Repository `opengewerk-haustechnik` in der GitHub-Organisation `opengewerk` · v0.2 trägt die Entscheidungen vom 01.10.2026 ein, v0.3 die Technik, mit der das Fundament eingebunden wird, v0.4 gleicht Abschnitt 5 und die Wortwahl an die ADRs 0002 bis 0006 an, siehe Abschnitt 15; v0.5 sagt in Abschnitt 7, was jede Rolle im Einzelnen darf, v0.6 nennt dort die Rechte für den Abgleich, v0.7 gibt den eigenen Anlagenarten und den Mängelklassen ihre Phase, v0.8 trägt die Entscheidungen vom 04.10.2026 vor dem Bau von Phase 1 ein, v0.9 gibt der Liegenschaft ihre Notiz, v0.10 sagt, wer ihre Ansprechpartner pflegt, v0.11, was eine Schließzeit ist und wer sie einträgt, v0.12 nennt das Recht, Dokumente abzulegen, v0.13 die Rechte, sie anzusehen und zu entfernen, und woran ein Dokument hängt, v0.14, dass eine eigene Pflicht ihre Tätigkeit nennt, v0.15, welcher Vorgang aus welcher Tätigkeit entsteht, v0.16, wie ein Bericht einer Fremdfirma zum Nachweis wird, v0.17, welche Klassen ein Mangel nehmen kann und was eine Nachprüfung festhält (Vergleich mit openMAINT, Atlas CMMS, eTASK, wave Facilities, pitFM, SPARTACUS, Planon, Lumiform, Wowflow und den Excel-Listen, die vielerorts die eigentliche Software sind)
+2026-10-08 · Eigenständiges Projekt, Repository `opengewerk-haustechnik` in der GitHub-Organisation `opengewerk` · v0.2 trägt die Entscheidungen vom 01.10.2026 ein, v0.3 die Technik, mit der das Fundament eingebunden wird, v0.4 gleicht Abschnitt 5 und die Wortwahl an die ADRs 0002 bis 0006 an, siehe Abschnitt 15; v0.5 sagt in Abschnitt 7, was jede Rolle im Einzelnen darf, v0.6 nennt dort die Rechte für den Abgleich, v0.7 gibt den eigenen Anlagenarten und den Mängelklassen ihre Phase, v0.8 trägt die Entscheidungen vom 04.10.2026 vor dem Bau von Phase 1 ein, v0.9 gibt der Liegenschaft ihre Notiz, v0.10 sagt, wer ihre Ansprechpartner pflegt, v0.11, was eine Schließzeit ist und wer sie einträgt, v0.12 nennt das Recht, Dokumente abzulegen, v0.13 die Rechte, sie anzusehen und zu entfernen, und woran ein Dokument hängt, v0.14, dass eine eigene Pflicht ihre Tätigkeit nennt, v0.15, welcher Vorgang aus welcher Tätigkeit entsteht, v0.16, wie ein Bericht einer Fremdfirma zum Nachweis wird, v0.17, welche Klassen ein Mangel nehmen kann und was eine Nachprüfung festhält, v0.18, wie ein Vorgang von Hand entsteht und mit Grund geschlossen wird (Vergleich mit openMAINT, Atlas CMMS, eTASK, wave Facilities, pitFM, SPARTACUS, Planon, Lumiform, Wowflow und den Excel-Listen, die vielerorts die eigentliche Software sind)
 
 Self-hosted Open-Source-System für alle, die Gebäude betreiben und dafür eigene Haustechniker haben. Liegenschaften, Gebäude, Räume und technische Anlagen stehen in einem Datenmodell. Die Betreiberpflichten hängen daran als überwachte Fristen, Rundgänge und Prüfungen laufen auf dem Telefon auch ohne Netz, und zu jeder Pflicht gibt es einen Nachweis, der sich nachträglich nicht ändern lässt.
 
@@ -265,6 +265,7 @@ Wie dort gilt: jede Abfrage nennt einen Tag, und für einen Tag ohne hinterlegte
 ### 4.4 Prüfungen und Wartungen
 
 - Aus einem fälligen Termin entsteht ein Vorgang, mit Vorlauf, beim Verantwortlichen oder beim Ausführenden. Aus einer Wartung wird eine Wartung, aus jeder anderen Tätigkeit (Prüfung, Inspektion, Funktionskontrolle, Sichtkontrolle, Probenahme) eine Prüfung; eine eigene Pflicht, die noch keine Tätigkeit nennt, ergibt eine Wartung. Ob die eigenen Leute oder eine Fremdfirma ihn ausführen, übernimmt er von der Pflicht, und wer plant und verteilt, ändert es am Vorgang
+- Läuft für eine Pflicht kein Vorgang, legt ihn von Hand an, wer plant und verteilt, auf der Seite der Pflicht: so, wie er aus dem Termin entstanden wäre, fällig am nächsten Termin, und verantwortlich ist, wen die Pflicht nennt. Neben einem laufenden entsteht kein zweiter, weder von Hand noch aus dem Termin. Einen offenen oder begonnenen Vorgang schließt dieselbe Person mit Grund als nicht durchgeführt, und jede seiner Pflichten nimmt das mit demselben Grund als Ergebnis. Ein Nachweis entsteht daraus nicht, und der Termin bleibt, wie er ist
 - **Eigene Durchführung**: Protokoll aus dem Paket der Anlagenart, Messwerte mit Grenzwertprüfung, Ergebnis, Mängel, Unterschrift. Das letzte Protokoll einer Anlage ist die Vorlage des nächsten, soweit die Definition es zulässt
 - **Fremde Durchführung**: Termin mit der Fremdfirma, Bericht oder Prüfbescheinigung hochladen, Prüfer, Organisation, Datum und Ergebnis eintragen. Ein Bericht kann viele Anlagen abdecken und wird in einem Zug zugeordnet
 - In Phase 1 deckt ein Bericht eine Pflicht ab und wird an ihr eingetragen, mit den Mängeln, die er nennt. Seine Datei liegt als Prüfbescheinigung an der Anlage oder dem Ort der Pflicht, und der Nachweis gibt sie selbst aus, auch wenn das Dokument später aus der Ablage genommen wird. Ist für die Pflicht eine Prüfung offen, ist sie mit dem Bericht erledigt; eine, die jemand begonnen hat, bleibt bei ihm
@@ -746,6 +747,10 @@ Die offenen Fragen aus v0.1 sind am 01.10.2026 entschieden worden, die Phasen de
 ---
 
 ## 16. Änderungsprotokoll
+
+### v0.17 → v0.18
+
+- Wie ein Vorgang von Hand entsteht, wenn für eine Pflicht keiner läuft, und wie ein offener oder begonnener mit Grund als nicht durchgeführt geschlossen wird, ohne dass ein Nachweis entsteht oder der Termin sich ändert (4.4)
 
 ### v0.16 → v0.17
 

@@ -1,6 +1,10 @@
 import {
+  activityKindLabel,
+  activityKindOfTask,
+  activityStatusLabel,
   countingLabel,
   dutyBasisLabel,
+  type DueActivityKind,
   type DutyColleague,
   type DutyDetails,
   type DutyEvidenceEntry,
@@ -47,13 +51,14 @@ import {
 } from '@opengewerk/platform-web/sync'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useNavigate, useParams } from '@tanstack/react-router'
-import { Upload } from 'lucide-react'
+import { Plus, Upload } from 'lucide-react'
 import { useState } from 'react'
 
 import { titleOfRoom } from '../../app/place-records.js'
 import { ReviewMarks } from '../../app/review-marks.js'
 import { useCatalogue } from '../../sync/catalogue.js'
-import { askAt } from '../../sync/made-at.js'
+import { askAt, makeAt } from '../../sync/made-at.js'
+import { activityPlaces } from '../activity-addresses.js'
 import { cataloguePlaces } from '../catalogue-addresses.js'
 import { dutyRegisterPlace, evidencePlaces } from '../duty-addresses.js'
 import {
@@ -115,6 +120,9 @@ export const dutyPageWords = {
     'Ein Ende wird nicht zurückgenommen. Wird die Pflicht doch wieder gebraucht, wird sie neu angelegt.',
   noEndDay: 'Der Tag fehlt, an dem die Pflicht endet.',
   endReasonHint: 'Auf Wunsch, etwa: Anlage zurückgebaut.',
+  noActivity: 'keiner offen',
+  whatMakingDoes:
+    'entsteht, wie sie aus dem Termin entstanden wäre, mit dem Formular der Pflichtart. Wer ausführt und an welchem Tag, wird danach auf ihrer Seite geplant. Der Termin der Pflicht ändert sich dadurch nicht.',
 } as const
 
 /**
@@ -138,9 +146,12 @@ export function DutyScreen() {
   const keeps = useRight('duty.write')
   const seesEvidence = useRight('evidence.read')
   const entersEvidence = useRight('evidence.write')
+  const readsActivities = useRight('activity.read')
+  const plans = useRight('activity.write')
   const navigate = useNavigate()
   const [naming, setNaming] = useState(false)
   const [ending, setEnding] = useState(false)
+  const [making, setMaking] = useState(false)
   const page = useQuery({ ...dutyQuery(dutyId ?? ''), enabled: dutyId !== undefined })
   const evidence = useQuery({
     ...dutyEvidenceQuery(dutyId ?? ''),
@@ -187,7 +198,18 @@ export function DutyScreen() {
           (entry) => entry.name === duty.kind?.slice(0, duty.kind.indexOf('.')),
         )
   const maximum = dutyMaximum(duty)
-  const { appointment } = duty
+  const { appointment, activity } = duty
+  // What a new activity of this duty is, by its task (#183), and whether one
+  // is offered: for whoever plans, while the duty stands, does not rest and
+  // has none under way, and once the task is known, which for a duty from the
+  // catalogue its kind says.
+  const comesOf = activityKindOfTask(duty.task ?? kind?.definition.task ?? null)
+  const makes =
+    plans &&
+    !duty.ended &&
+    duty.state !== 'dormant' &&
+    activity === null &&
+    (duty.kind === null || kind !== null)
 
   /** What the duty hangs on, in a line under its name. */
   const target =
@@ -268,7 +290,22 @@ export function DutyScreen() {
       />
       <div className="grid items-start gap-3.5 lg:grid-cols-[minmax(0,1fr)_320px]">
         <div className="flex min-w-0 flex-col gap-3.5">
-          <Panel title="Termin">
+          <Panel
+            title="Termin"
+            action={
+              makes ? (
+                <Button
+                  size="small"
+                  icon={Plus}
+                  onClick={() => {
+                    setMaking(true)
+                  }}
+                >
+                  {activityKindLabel[comesOf]} anlegen
+                </Button>
+              ) : undefined
+            }
+          >
             <div className="flex flex-col gap-2.5">
               <FactList
                 keyWidth={130}
@@ -300,6 +337,30 @@ export function DutyScreen() {
                       ),
                   },
                   { label: 'Gezählt', value: countingLabel[duty.counting] },
+                  // The activity under way, for whoever reads activities (#183).
+                  ...(readsActivities
+                    ? [
+                        {
+                          label: 'Vorgang',
+                          value:
+                            activity === null ? (
+                              <span className="text-ink-faint">{dutyPageWords.noActivity}</span>
+                            ) : (
+                              <Link to={activityPlaces.activity(activity.id)} className={factLink}>
+                                {[
+                                  activityKindLabel[activity.kind],
+                                  activityStatusLabel[activity.status].toLowerCase(),
+                                  activity.dueOn === null
+                                    ? null
+                                    : `fällig am ${date(activity.dueOn)}`,
+                                ]
+                                  .filter(Boolean)
+                                  .join(', ')}
+                              </Link>
+                            ),
+                        },
+                      ]
+                    : []),
                   ...(duty.endsOn === null
                     ? []
                     : [
@@ -450,6 +511,17 @@ export function DutyScreen() {
           sub={target.replace(/^Pflicht (an der |am |an )/, '')}
           onClose={() => {
             setNaming(false)
+          }}
+        />
+      ) : null}
+      {making ? (
+        <NewActivityDialog
+          key={duty.id}
+          duty={duty}
+          kind={comesOf}
+          sub={target.replace(/^Pflicht (an der |am |an )/, '')}
+          onClose={() => {
+            setMaking(false)
           }}
         />
       ) : null}
@@ -763,6 +835,116 @@ export function EndDutyDialog({
           </Button>
           <Button type="submit" tone="primary" disabled={working}>
             {working ? 'Einen Moment' : 'Pflicht beenden'}
+          </Button>
+        </DialogActions>
+      </form>
+    </Dialog>
+  )
+}
+
+/**
+ * An inspection or a maintenance made by hand, `vorgang_anlegen()` of the
+ * boards (#183, 4.4 of the concept): for a duty with none under way, said
+ * before it is made. It is due on the next appointment, today for a duty
+ * never recorded, performed as the duty says and answered for by the person
+ * the duty names; its page plans the rest, and opens once it is made.
+ */
+function NewActivityDialog({
+  duty,
+  kind,
+  sub,
+  onClose,
+}: {
+  readonly duty: DutyDetails
+  readonly kind: DueActivityKind
+  readonly sub: string
+  readonly onClose: () => void
+}) {
+  const client = useSync()
+  const queries = useQueryClient()
+  const navigate = useNavigate()
+  const [working, setWorking] = useState(false)
+  const [trouble, setTrouble] = useState<string | null>(null)
+  const label = activityKindLabel[kind]
+  const dueOn = duty.appointment?.dueOn ?? today()
+
+  async function make() {
+    setWorking(true)
+    setTrouble(null)
+
+    try {
+      const result = await makeAt(client, '/activities', { dutyId: duty.id })
+
+      if (result.outcome === 'refused') {
+        setTrouble(refusalFor(result))
+
+        return
+      }
+
+      await queries.invalidateQueries({ queryKey: ['duties'] })
+      await queries.invalidateQueries({ queryKey: ['activities'] })
+      void navigate({ to: activityPlaces.activity(result.id) })
+    } finally {
+      setWorking(false)
+    }
+  }
+
+  return (
+    <Dialog
+      title={`${label} anlegen`}
+      width={520}
+      onClose={onClose}
+      sub={[duty.title, sub].filter(Boolean).join(', ')}
+    >
+      <form
+        noValidate
+        className="flex flex-col gap-3"
+        onSubmit={(event) => {
+          event.preventDefault()
+          void make()
+        }}
+      >
+        <Panel>
+          <FactList
+            keyWidth={120}
+            facts={[
+              { label: 'Art', value: label },
+              {
+                label: 'Fällig am',
+                value:
+                  duty.state === 'overdue' ? (
+                    <span className="font-semibold text-conflict">{date(dueOn)}, überfällig</span>
+                  ) : (
+                    date(dueOn)
+                  ),
+              },
+              {
+                label: 'Durchführung',
+                value:
+                  duty.performer === null
+                    ? null
+                    : duty.performer === 'contractor'
+                      ? ['Fremde Durchführung', duty.performerNote].filter(Boolean).join(', ')
+                      : 'Eigene Durchführung',
+              },
+              { label: 'Verantwortlich', value: duty.responsible?.name ?? <Nobody /> },
+            ]}
+          />
+        </Panel>
+        <NoteBox>
+          Die {label} {dutyPageWords.whatMakingDoes}
+        </NoteBox>
+        {trouble ? (
+          <p role="alert" className="text-[13px] font-semibold text-conflict">
+            {trouble}
+          </p>
+        ) : null}
+        <DialogActions>
+          <Button type="button" disabled={working} onClick={onClose}>
+            Abbrechen
+          </Button>
+          <Button type="submit" tone="primary" icon={Plus} disabled={working}>
+            {working ? 'Einen Moment' : `${label} anlegen`}
           </Button>
         </DialogActions>
       </form>

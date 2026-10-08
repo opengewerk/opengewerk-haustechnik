@@ -1,36 +1,24 @@
-import {
-  activityKindOfTask,
-  activityLimits,
-  type ApplicationDeadlineKind,
-  type Catalogue,
-} from '@opengewerk/haustechnik-domain'
+import type { ApplicationDeadlineKind, Catalogue, DutyId } from '@opengewerk/haustechnik-domain'
 import type { DeadlineActionHandler } from '@opengewerk/platform-server'
-import { and, eq, inArray, isNull } from 'drizzle-orm'
 
-import { dutyTitle } from '../database/duty-standing.js'
-import { activities, activityDuties, type deadlines, duties } from '../database/schema/index.js'
-import { dayInGermany } from '../today.js'
+import type { deadlines } from '../database/schema/index.js'
+import { makeActivityForDuty } from './for-duty.js'
 
 /** A deadline of this application as the engine hands it to an action. */
 type DeadlineRow = typeof deadlines.$inferSelect
-
-/** The states of an activity whose work is still to come or still going on. */
-const underWay = ['open', 'started', 'signed'] as const
 
 /**
  * The action "activity" of the appointment of a duty (#105, section 4.4 of
  * the concept): when the lead of a due day begins, an inspection or a
  * maintenance comes of it, with the person who answers for the deadline, due
- * on the due day, at the place of the duty and meeting the duty.
+ * on the due day, at the place of the duty and meeting the duty
+ * (`makeActivityForDuty`).
  *
  * Once for a due day: the engine of the foundation calls an action in the
  * transaction that marks the deadline reminded for that day, and of two runs
- * only one gets the mark. A duty that already has an activity under way gets
- * no second one, so that a due day that moved, because its interval was
- * changed, adds nothing to what is planned.
- *
- * What it makes changes nothing of the deadline: the next due day comes of
- * the next evidence and never of an activity (section 4.4).
+ * only one gets the mark. A duty that already has an activity under way, one
+ * made by hand among them (#183), gets no second one, so that a due day that
+ * moved, because its interval was changed, adds nothing to what is planned.
  */
 export function activityFromDeadline(
   catalogue: Catalogue,
@@ -42,78 +30,12 @@ export function activityFromDeadline(
       return
     }
 
-    const [duty] = await tx
-      .select()
-      .from(duties)
-      .where(and(eq(duties.id, deadline.dutyId), isNull(duties.deletedAt)))
-
-    if (duty === undefined) {
-      return
-    }
-
-    const [underWayAlready] = await tx
-      .select({ id: activityDuties.id })
-      .from(activityDuties)
-      .innerJoin(
-        activities,
-        and(
-          eq(activities.tenantId, activityDuties.tenantId),
-          eq(activities.id, activityDuties.activityId),
-        ),
-      )
-      .where(
-        and(
-          eq(activityDuties.dutyId, duty.id),
-          isNull(activityDuties.deletedAt),
-          isNull(activities.deletedAt),
-          inArray(activities.status, [...underWay]),
-        ),
-      )
-      .limit(1)
-
-    if (underWayAlready !== undefined) {
-      return
-    }
-
-    // A duty of the operator's own names its task, one from the catalogue
-    // takes it from its kind in the version that was confirmed.
-    const kind =
-      duty.kind === null || duty.kindVersion === null
-        ? null
-        : (catalogue.dutyKindVersion(duty.kind, duty.kindVersion)?.definition ?? null)
-    const task = duty.task ?? kind?.task ?? null
-    // The form its kind names as its evidence, in the version in force on the
-    // day the activity is made, which it keeps (#106).
-    const formKey = kind?.evidence.form
-    const form = formKey === undefined ? null : catalogue.form(formKey, dayInGermany(now))
-    const place = {
+    await makeActivityForDuty(tx, catalogue, {
       tenantId,
-      propertyId: duty.propertyId,
-      areaId: duty.areaId,
-    }
-    const [activity] = await tx
-      .insert(activities)
-      .values({
-        ...place,
-        buildingId: duty.buildingId,
-        roomId: duty.roomId,
-        assetId: duty.assetId,
-        kind: activityKindOfTask(task),
-        title: dutyTitle(duty, catalogue).trim().slice(0, activityLimits.title).trim(),
-        status: 'open',
-        dueOn: deadline.dueOn,
-        responsibleUserId: responsible,
-        performer: duty.performer,
-        contractorNote: duty.performer === 'contractor' ? duty.performerNote : null,
-        formKey: form?.key ?? null,
-        formVersion: form?.version ?? null,
-      })
-      .returning({ id: activities.id })
-
-    if (activity === undefined) {
-      throw new Error(`The activity for the duty ${duty.id} was not written`)
-    }
-
-    await tx.insert(activityDuties).values({ ...place, activityId: activity.id, dutyId: duty.id })
+      dutyId: deadline.dutyId as DutyId,
+      dueOn: deadline.dueOn,
+      responsible,
+      now,
+    })
   }
 }

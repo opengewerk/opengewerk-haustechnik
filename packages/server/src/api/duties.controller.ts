@@ -62,6 +62,7 @@ import {
 } from '@opengewerk/platform-server'
 import { and, asc, eq, isNull } from 'drizzle-orm'
 
+import { underWayFor } from '../activities/for-duty.js'
 import { CATALOGUE } from '../catalogue.js'
 import { dutiesOnADay, dutyTitle } from '../database/duty-standing.js'
 import {
@@ -74,6 +75,7 @@ import {
   rooms,
 } from '../database/schema/index.js'
 import { dayInGermany } from '../today.js'
+import { inSight } from './activities.controller.js'
 import { RequiresPermission } from './authorization.js'
 import { listedEvidence } from './evidence.controller.js'
 import { dutyReading, dutyRegister, dutyRegisterQuestion } from './duty-register.js'
@@ -423,6 +425,10 @@ export class DutiesController {
    * The page of a duty: the record whole, how it stands today, the asset it
    * hangs on and who answers for it. One that has ended is read like any
    * other, and says that it has.
+   *
+   * The inspection or maintenance under way for it (#183), for whoever reads
+   * activities and as far as they are shown it: whoever only performs sees
+   * one given to them or to nobody, as in the list of the activities.
    */
   @Get(':id')
   @RequiresPermission('duty.read')
@@ -446,9 +452,18 @@ export class DutiesController {
               .from(assets)
               .where(eq(assets.id, duty.assetId))
 
-      return { duty, registered, asset: (asset ?? null) as DutyAsset | null }
+      const underWay = isAllowed(identity, 'activity.read')
+        ? await underWayFor(tx, [duty.id], inSight(identity))
+        : new Map()
+
+      return {
+        duty,
+        registered,
+        asset: (asset ?? null) as DutyAsset | null,
+        activity: underWay.get(duty.id) ?? null,
+      }
     })
-    const { duty, registered } = read
+    const { duty, registered, activity } = read
     const named = await this.named(identity, [duty.responsibleUserId])
 
     return {
@@ -460,6 +475,17 @@ export class DutiesController {
       ended: dutyHasEnded(duty, today),
       asset: read.asset,
       responsible: named(duty.responsibleUserId),
+      activity:
+        activity === null
+          ? null
+          : {
+              id: activity.id,
+              kind: activity.kind,
+              status: activity.status,
+              dueOn: activity.dueOn,
+              performer: activity.performer,
+              contractorNote: activity.contractorNote,
+            },
     }
   }
 

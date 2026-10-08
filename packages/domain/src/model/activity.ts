@@ -59,6 +59,24 @@ export const activityStatusLabel: Readonly<Record<ActivityStatus, string>> = {
 }
 
 /**
+ * The states of an activity whose work is still to come or still going on. A
+ * duty with an activity in one of them gets no second one, neither from its
+ * due day nor by hand (#105, #183).
+ */
+export const activityUnderWay = [
+  'open',
+  'started',
+  'signed',
+] as const satisfies readonly ActivityStatus[]
+
+/**
+ * The states in which whoever plans and hands out work closes an activity as
+ * not performed, with the reason (#183): before its signature. One that is
+ * signed waits for the evidence its signature makes.
+ */
+export const activityClosable = ['open', 'started'] as const satisfies readonly ActivityStatus[]
+
+/**
  * The kinds an activity takes that comes of the due day of a duty (section
  * 4.4 of the concept): an inspection or a maintenance. A round has a plan of
  * its own and a work order is handed out (sections 4.5 and 4.8).
