@@ -277,6 +277,24 @@ jobs:
           --health-timeout 5s
           --health-retries 10
 
+      # A second one for the database tests of the foundation, so that they
+      # run beside those of the application instead of before them (#192):
+      # on one database each would empty the schema under the other, and one
+      # after the other they took twelve of the job's thirteen minutes.
+      postgres-foundation:
+        image: postgres:18-alpine
+        env:
+          POSTGRES_USER: haustechnik
+          POSTGRES_PASSWORD: haustechnik
+          POSTGRES_DB: haustechnik_test
+        ports:
+          - 5435:5432
+        options: >-
+          --health-cmd "pg_isready -U haustechnik -d haustechnik_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
     steps:
       # The foundation is a submodule on a fixed commit (ADR 0010 in the
       # repository opengewerk). Without it the workspace has no packages of the
@@ -331,6 +349,20 @@ jobs:
       - name: Bauen
         run: pnpm run build
 
+      # The database tests of the foundation on the second PostgreSQL, started
+      # as soon as the build is there and waited for after the other tests.
+      # `--only` leaves out what turbo.json runs before a task: the build has
+      # run, and the order that keeps both test runs off one database is not
+      # needed with two. Locally `pnpm run test` keeps that order on the one
+      # test database.
+      - name: Tests des Fundaments mit Datenbank starten
+        id: foundation-tests
+        env:
+          DATABASE_URL: postgres://haustechnik:haustechnik@127.0.0.1:5435/haustechnik_test
+        run: |
+          nohup sh -c 'pnpm exec turbo run test --only --filter=@opengewerk/platform-server; echo $? > "$RUNNER_TEMP/foundation-tests.status"' \
+            > "$RUNNER_TEMP/foundation-tests.log" 2>&1 &
+
       # A version of an entry that is merged is what a confirmed duty or a
       # filled form names, so it stays as it is, byte for byte (ADR 0005,
       # point 16). Only a pull request has a main to compare with; the base is
@@ -363,7 +395,18 @@ jobs:
         run: pnpm run format:check
 
       - name: Tests
-        run: pnpm run test
+        run: pnpm run test --only '--filter=!@opengewerk/platform-server'
+
+      - name: Tests des Fundaments mit Datenbank
+        if: ${{ !cancelled() && steps.foundation-tests.outcome == 'success' }}
+        timeout-minutes: 20
+        run: |
+          while [ ! -f "$RUNNER_TEMP/foundation-tests.status" ]; do
+            sleep 5
+          done
+
+          cat "$RUNNER_TEMP/foundation-tests.log"
+          exit "$(cat "$RUNNER_TEMP/foundation-tests.status")"
 
   widths:
     name: Breiten und Auflösungen
