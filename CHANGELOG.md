@@ -754,6 +754,16 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   #25 im Server ohne Bildschirm; ein Betreiber hat vom ersten Tag an ein paar tausend, deshalb blättert das Fundament die
   Liste jetzt auf dem Server (`opengewerk#575`), und das Submodul ist darauf angehoben. Verfahrensbeschreibung Abschnitte
   4 und 5 (B97)
+- Prüfungen und Wartungen aus einem fälligen Termin (#105): beginnt der Vorlauf eines Termins, legt die Fristen-Engine
+  einmal je Termin eine Prüfung oder Wartung an, bei der Person, die für die Frist verantwortlich ist, an der Stelle der
+  Pflicht und fällig am Tag des Termins. Aus einer Wartung wird eine Wartung, aus jeder anderen Tätigkeit eine Prüfung;
+  eigene oder fremde Durchführung übernimmt der Vorgang von der Pflicht (Planungskonzept v0.15, Spalte `performer`,
+  Migration `0024_activity_performer`). Im Büro die Liste "Prüfungen" unter `/pruefungen`, auf dem Server geblättert und
+  nach Stand, Art, Liegenschaft und Suche eingegrenzt, und die Seite eines Vorgangs mit seinen Pflichten, ihrem Zustand und
+  Ergebnis. Wer plant und verteilt (Leitung, Technische Leitung, Objektleitung), legt fest, wer verantwortlich ist, wer
+  ausführt oder welche Fremdfirma, und den Tag, unter Personen, die den Bereich sehen; wer nur ausführt, sieht, was ihm
+  oder niemandem zugeteilt ist. Der Termin rückt dabei nicht weiter, erst mit dem Nachweis. Der Vorgang stand seit #26
+  im Datenmodell ohne Route. Verfahrensbeschreibung Abschnitte 3, 4 und 5 (B98 bis B102)
 
 ### Geändert
 

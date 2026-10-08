@@ -28,6 +28,7 @@ import {
 import { access } from '../authentication/access.js'
 import { CATALOGUE, shippedCatalogue } from '../catalogue.js'
 import { deadlineRulesFor } from '../deadlines/routes.js'
+import { ActivitiesController } from './activities.controller.js'
 import { AreasController, SubstitutionsController } from './areas.controller.js'
 import { AssetsController, BuildingAssetsController } from './assets.controller.js'
 import { attachmentRights, attachmentRoutes } from './attachment-routes.js'
@@ -241,6 +242,8 @@ export class ApiModule {
         DutiesController,
         RoomDutiesController,
         DutyDismissalsController,
+        // The inspections and the maintenance that came of the due days.
+        ActivitiesController,
         // The page of an evidence, its correction and its declaration of
         // invalidity, and the evidence of an asset.
         EvidenceController,

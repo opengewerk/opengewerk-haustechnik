@@ -169,6 +169,13 @@
       "when": 1791303660552,
       "tag": "0023_own_duty_task",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1791451013312,
+      "tag": "0024_activity_performer",
+      "breakpoints": true
     }
   ]
 }

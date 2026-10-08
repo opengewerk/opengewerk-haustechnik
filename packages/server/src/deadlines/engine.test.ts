@@ -419,6 +419,125 @@ describe('the deadline of a duty', () => {
   })
 })
 
+/** The activities that are to meet a duty, as the tables keep them, the oldest first. */
+async function activitiesOf(dutyId: string) {
+  const { rows } = await admin.query<Record<string, unknown>>(
+    `select a.kind, a.title, a.status, a.due_on::text, a.responsible_user_id, a.performer,
+            a.performer_user_id, a.contractor_note, a.property_id, a.area_id, a.building_id,
+            a.room_id, a.asset_id, d.property_id as line_property_id, d.area_id as line_area_id
+       from activities a
+       join activity_duties d on d.tenant_id = a.tenant_id and d.activity_id = a.id
+      where d.duty_id = $1
+      order by a.id`,
+    [dutyId],
+  )
+
+  return rows
+}
+
+describe('the activity of a due day', () => {
+  it('comes of the due day once its lead begins, once however often the engine runs, and leaves the due day as it is', async () => {
+    const at = await placeIn(small)
+    const duty = await mainTestAt(at)
+
+    // Due on 2026-11-01, thirty days of lead before it.
+    await evidenceOf(at, duty, '2024-11-20')
+    await run(small, new Date('2026-10-01T10:00:00Z'))
+
+    expect(await activitiesOf(duty)).toEqual([])
+
+    await run(small)
+    await run(small)
+    await runDeadlineCycle({ database, catalogue, now: () => october })
+
+    expect(await activitiesOf(duty)).toEqual([
+      {
+        kind: 'inspection',
+        title: 'Hauptprüfung der Aufzugsanlage',
+        status: 'open',
+        due_on: '2026-11-01',
+        responsible_user_id: 'u-site',
+        performer: null,
+        performer_user_id: null,
+        contractor_note: null,
+        property_id: at.property,
+        area_id: at.area,
+        building_id: null,
+        room_id: null,
+        asset_id: at.elevator,
+        line_property_id: at.property,
+        line_area_id: at.area,
+      },
+    ])
+
+    // Planned and not performed, it stays due on its day and becomes overdue.
+    await run(small, new Date('2026-11-20T10:00:00Z'))
+
+    expect(await deadlinesOf(duty)).toMatchObject([
+      { status: 'open', due_on: '2026-11-01', reminded_for: '2026-11-01' },
+    ])
+    expect(await activitiesOf(duty)).toHaveLength(1)
+  })
+
+  it('gives a duty with an activity under way no second one when its due day moves', async () => {
+    const at = await placeIn(small)
+    const duty = await mainTestAt(at)
+
+    await evidenceOf(at, duty, '2024-11-20')
+    await run(small)
+
+    // A shorter interval moves the due day to 2025-11-01, and the lead of
+    // the new day has long begun.
+    await admin.query('update duties set interval_months = 12 where id = $1', [duty])
+    await run(small)
+
+    expect(await deadlinesOf(duty)).toMatchObject([
+      { due_on: '2025-11-01', reminded_for: '2025-11-01' },
+    ])
+    expect(await activitiesOf(duty)).toMatchObject([{ due_on: '2026-11-01', status: 'open' }])
+  })
+
+  it('makes a maintenance of a maintenance and an inspection of a visual check, and takes the contractor of the duty', async () => {
+    const at = await placeIn(small)
+    const ownDuty = async (task: string, performer: string | null, note: string | null) => {
+      const { rows } = await admin.query<{ id: string }>(
+        `insert into duties (tenant_id, property_id, area_id, building_id, label, basis, source_note, task,
+                             counting, interval_months, responsible_user_id, performer, performer_note,
+                             confirmed_by)
+         values ($1, $2, $3, $4, $5, 'manufacturer', 'Betriebsanleitung', $6, 'from_performance', 12,
+                 'u-site', $7, $8, 'u-duties')
+         returning id`,
+        [small, at.property, at.area, at.building, `Pflicht ${task}`, task, performer, note],
+      )
+
+      return (rows[0] as { id: string }).id
+    }
+    const maintenance = await ownDuty('maintenance', 'contractor', 'Aufzug Beispiel GmbH')
+    const check = await ownDuty('visual_check', 'own_staff', null)
+
+    // Both met a year ago, both due within the lead.
+    for (const duty of [maintenance, check]) {
+      await evidenceOf(at, duty, '2025-10-20')
+    }
+
+    await run(small)
+
+    expect(await activitiesOf(maintenance)).toMatchObject([
+      {
+        kind: 'maintenance',
+        title: 'Pflicht maintenance',
+        performer: 'contractor',
+        contractor_note: 'Aufzug Beispiel GmbH',
+        building_id: at.building,
+        asset_id: null,
+      },
+    ])
+    expect(await activitiesOf(check)).toMatchObject([
+      { kind: 'inspection', performer: 'own_staff', contractor_note: null },
+    ])
+  })
+})
+
 describe('a pass of the engine', () => {
   it('goes through every area of an operator, for nobody in particular', async () => {
     const inNorth = await placeIn(large, north)

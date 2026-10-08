@@ -1,7 +1,13 @@
 import type { Id, IsoDate, Synced } from '@opengewerk/platform-domain'
 
 import type { AreaId } from './area.js'
-import type { DutyId } from './duty-record.js'
+import type { DutyTask } from './catalogue.js'
+import {
+  type DutyId,
+  type DutyPerformer,
+  dutyPerformerLabel,
+  dutyPerformers,
+} from './duty-record.js'
 import { type EvidenceResult, evidenceResultLabel, evidenceResults } from './evidence.js'
 import { calendarDay, oneOf, optional, type Problems, required } from './fields.js'
 import type { PropertyId } from './location.js'
@@ -52,6 +58,29 @@ export const activityStatusLabel: Readonly<Record<ActivityStatus, string>> = {
   not_performed: 'Nicht durchgeführt',
 }
 
+/**
+ * The kinds an activity takes that comes of the due day of a duty (section
+ * 4.4 of the concept): an inspection or a maintenance. A round has a plan of
+ * its own and a work order is handed out (sections 4.5 and 4.8).
+ */
+export const dueActivityKinds = [
+  'inspection',
+  'maintenance',
+] as const satisfies readonly ActivityKind[]
+
+export type DueActivityKind = (typeof dueActivityKinds)[number]
+
+/**
+ * What the due day of a duty becomes, by what the duty has somebody do: a
+ * maintenance for a maintenance, an inspection for everything else that is
+ * looked at, tested, checked or sampled. A duty of the operator's own that was
+ * made before it named its task (`0023_own_duty_task`) has none, and its
+ * activity becomes a maintenance, as the office can tell from its title.
+ */
+export function activityKindOfTask(task: DutyTask | null): DueActivityKind {
+  return task === null || task === 'maintenance' ? 'maintenance' : 'inspection'
+}
+
 /** The kinds of a work order, in the words of section 4.8 of the concept. */
 export const workOrderKinds = [
   'fault',
@@ -94,6 +123,13 @@ export interface Activity extends Synced, PlaceTarget {
   readonly dueOn: IsoDate | null
   /** Who answers for it, and who carries it out: a person of the operator, or a contractor named in words. */
   readonly responsibleUserId: string | null
+  /**
+   * Whether the operator's own people perform it or a contractor (section
+   * 4.4: "eigene" or "fremde Durchführung"), null until somebody says. A
+   * person performing it is one of the own people, a contractor's name
+   * belongs to a contractor.
+   */
+  readonly performer: DutyPerformer | null
   readonly performerUserId: string | null
   readonly contractorNote: string | null
   /** Why it was not performed; only an activity that was not. */
@@ -255,6 +291,75 @@ export function workOrderProblems(order: Readonly<Record<string, unknown>>): Rea
     workOrderKinds,
     `Ein Auftrag ist einer von: ${workOrderKinds.map((kind) => workOrderKindLabel[kind]).join(', ')}.`,
   )
+
+  return problems
+}
+
+/**
+ * The plan of an activity, which whoever plans and hands out work sets in the
+ * office (section 4.4 of the concept): who answers for it, whether the own
+ * people or a contractor perform it, which person or which contractor, and
+ * the day it is due on.
+ */
+export interface ActivityPlan {
+  readonly responsibleUserId: string | null
+  readonly performer: DutyPerformer
+  readonly performerUserId: string | null
+  readonly contractorNote: string | null
+  readonly dueOn: IsoDate
+}
+
+/**
+ * What is wrong with a plan, one sentence per field: the way it is performed
+ * and the day are needed, a person performing it belongs to the own people
+ * and the name of a contractor to a contractor. Whether the people named may
+ * be named is asked by the server, which knows who sees the area.
+ */
+export function activityPlanProblems(plan: Readonly<Record<string, unknown>>): Readonly<Problems> {
+  const problems: Problems = {}
+  const performer = plan['performer']
+
+  if (performer === undefined || performer === null) {
+    problems['performer'] = 'Die Durchführung ist eigen oder fremd.'
+  } else {
+    oneOf(
+      problems,
+      plan,
+      'performer',
+      dutyPerformers,
+      `Die Durchführung ist eine von: ${dutyPerformers.map((key) => dutyPerformerLabel[key]).join(', ')}.`,
+    )
+  }
+
+  optional(
+    problems,
+    plan,
+    'contractorNote',
+    activityLimits.contractorNote,
+    `Die Angabe zur Fremdfirma hat höchstens ${String(activityLimits.contractorNote)} Zeichen.`,
+  )
+
+  const given = (field: string) => {
+    const value = plan[field]
+
+    return value !== undefined && value !== null && value !== ''
+  }
+
+  if (given('performerUserId') && performer === 'contractor') {
+    problems['performerUserId'] = 'Eine Person führt aus, wenn die eigenen Leute es tun.'
+  }
+
+  if (
+    given('contractorNote') &&
+    performer === 'own_staff' &&
+    problems['contractorNote'] === undefined
+  ) {
+    problems['contractorNote'] = 'Eine Fremdfirma steht nur bei fremder Durchführung.'
+  }
+
+  if (!calendarDay(plan['dueOn'])) {
+    problems['dueOn'] = 'Die Fälligkeit ist ein Tag, geschrieben 2026-10-03.'
+  }
 
   return problems
 }

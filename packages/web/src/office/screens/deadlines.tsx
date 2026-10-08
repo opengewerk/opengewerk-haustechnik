@@ -199,7 +199,7 @@ export function DeadlineSettingsScreen() {
       responsibleLabel={responsibleLabel}
       intervalWords={() => ({ label: 'Frist', hint: 'Die Frist gibt jede Pflicht selbst vor.' })}
       actionsSentence={() =>
-        'Erinnert die verantwortliche Person, wenn der Vorlauf beginnt. Nennt die Pflicht niemanden, die Leitung.'
+        'Erinnert die verantwortliche Person und legt bei ihr die Prüfung oder Wartung an, wenn der Vorlauf beginnt. Nennt die Pflicht niemanden, die Leitung.'
       }
       badge={() => null}
       note={deadlineWords.settingsNote}

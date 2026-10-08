@@ -28,6 +28,9 @@ export const serverPaths: readonly string[] = [
   // The duties of an operator and the proposals dismissed.
   'duties',
   'duty-dismissals',
+  // The inspections and the maintenance that came of the due days, the page
+  // of one and its plan.
+  'activities',
   // The page of an evidence, its correction and its declaration of invalidity.
   'evidence',
   // The catalogue of the server, which a device fetches and keeps.

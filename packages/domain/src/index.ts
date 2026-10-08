@@ -75,6 +75,7 @@ export * from './model/signature.js'
 // the way: activities with the duties they meet and their work orders, and
 // defects.
 export * from './model/activity.js'
+export * from './model/activity-register.js'
 export * from './model/defect.js'
 
 // What the duties and the defects of an asset say about it, taken together,

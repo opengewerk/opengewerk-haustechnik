@@ -357,7 +357,7 @@ describe('the settings of a kind', () => {
         key: 'duty.due',
         title: 'Fälligkeit einer Pflicht',
         source: 'duty',
-        actions: ['reminder'],
+        actions: ['reminder', 'activity'],
         responsible: 'source',
         intervalDays: null,
         intervalMonths: null,

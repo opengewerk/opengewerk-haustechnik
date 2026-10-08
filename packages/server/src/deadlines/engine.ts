@@ -14,6 +14,7 @@ import {
   startDeadlineWorker as startFoundationWorker,
 } from '@opengewerk/platform-server'
 
+import { activityFromDeadline } from '../activities/from-deadline.js'
 import { inEveryArea } from '../database/every-area.js'
 import type { ApplicationDeadlineColumns } from '../database/schema/deadlines.js'
 import { deadlines } from '../database/schema/index.js'
@@ -41,7 +42,8 @@ const sentences = {
 /**
  * The engine of the foundation (ADR 0010 in the repository opengewerk) over
  * the kinds, sources and columns of this application: the appointments of
- * the duties, with the reminder of the foundation as the one action.
+ * the duties, with the reminder of the foundation and the activity that is
+ * to meet a duty as the actions (#105).
  *
  * A pass works for nobody, and the deadlines and duties carry the areas of
  * their property (ADR 0003): each transaction of a pass therefore opens every
@@ -61,7 +63,7 @@ function bound(
         today: () => dayInGermany(job.now?.() ?? new Date()),
       }),
     },
-    actions: {},
+    actions: { activity: activityFromDeadline(job.catalogue) },
     sentences,
     inTenant: (actor, work) => inEveryArea(job.database, actor, work),
     ...(job.now ? { now: job.now } : {}),

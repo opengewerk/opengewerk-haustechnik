@@ -1,7 +1,7 @@
 # OpenGewerk Haustechnik: Verfahrensbeschreibung für den Stand von Phase 1
 
 - **Gilt für:** noch keine veröffentlichte Fassung (Entwicklungsstand von Phase 1 auf dem Zweig `main`)
-- **Geschrieben:** von Hand, am 05.10.2026, aus dem Planungskonzept v0.11 und gegen den Quelltext geprüft; am 06.10.2026 um die Dateien im Speicher ergänzt (Planungskonzept v0.12) und um das Pflichtenverzeichnis, am selben Tag um die Dokumente (Planungskonzept v0.13) und um die Etiketten
+- **Geschrieben:** von Hand, am 05.10.2026, aus dem Planungskonzept v0.11 und gegen den Quelltext geprüft; am 06.10.2026 um die Dateien im Speicher ergänzt (Planungskonzept v0.12) und um das Pflichtenverzeichnis, am selben Tag um die Dokumente (Planungskonzept v0.13) und um die Etiketten; am 08.10.2026 um die Prüfungen und Wartungen (Planungskonzept v0.15)
 - **Abgelöst durch:** die Verfahrensbeschreibung, die die Anwendung ab Phase 2 selbst erzeugt
 
 ---
@@ -76,7 +76,9 @@ Anhang B nennt jedes Feld der Datenbank, das auf eine Person zeigt. Dieser Absch
 - **Zusage:** Wer für eine Pflicht verantwortlich ist, legt fest, wer das Pflichtenverzeichnis führt. Zur Wahl bekommt diese Person die Namen derer, die für den Betreiber arbeiten, und ob jemand gesperrt ist; Rolle, E-Mail-Adresse und Anmeldungen nennt die Auswahl nicht. Objektleitung und Haustechnik bekommen die Auswahl nicht. [K4.3, K7, B76, B77]
 - Eine Frist nennt, wer für sie verantwortlich ist, wen ihre Quelle als verantwortlich nennt und wer sie geschlossen hat. Fristen sehen die Leitung und die Technische Leitung. [K2.4, B10]
 - Die Liste „Fristen“ nennt zu jeder Frist die verantwortliche Person mit ihrem Namen. Wer einer Frist eine andere Person gibt oder für eine Art von Frist festlegt, wen sie erinnert, bekommt dieselbe Auswahl wie im Pflichtenverzeichnis: die Namen derer, die für den Betreiber arbeiten, und ob jemand gesperrt ist. Neben dem Eintrag „Fristen“ der Navigation steht, wie viele Fristen in den Bereichen der Person überfällig sind; diese Zahl gilt dem Betreiber und keiner Person. [K2.4, K7, B10, B76]
-- Ein Vorgang (Rundgang, Prüfung, Wartung, Auftrag) hat ein Feld für die verantwortliche und eines für die ausführende Person. In dieser Fassung trägt noch kein Weg der Anwendung dort jemanden ein: die Bildschirme, auf denen Vorgänge geplant und verteilt werden, kommen in Phase 1 (Abschnitt 9). Planen und verteilen werden die Leitung, die Technische Leitung und die Objektleitung. [K4.5, K4.8, B7]
+- Ein Vorgang (Rundgang, Prüfung, Wartung, Auftrag) hat ein Feld für die verantwortliche und eines für die ausführende Person, dazu die Angabe, ob die eigenen Leute oder eine Fremdfirma ihn ausführen, und den Namen der Fremdfirma in Worten. Eine Prüfung oder Wartung entsteht von selbst, wenn der Vorlauf eines Termins beginnt, einmal je Termin. Verantwortlich ist dann, wen die Frist als verantwortlich nennt, und ausführend noch niemand. [K2.4, K4.4, B98]
+- **Zusage:** Wer eine Prüfung oder Wartung verantwortet und wer sie ausführt, legt fest, wer Vorgänge plant und verteilt: die Leitung, die Technische Leitung und die Objektleitung, solange der Vorgang offen ist. Zur Wahl stehen nur Personen, die den Bereich des Vorgangs sehen und nicht gesperrt sind; verantwortlich, wer selbst plant und verteilt, ausführend, wer Vorgänge ausführt. Die Auswahl nennt die Namen und sonst nichts. Die Haustechnik plant nicht und bekommt die Auswahl nicht. [K4.4, K7, B7, B99, B100]
+- Die Bildschirme, auf denen Rundgänge und Aufträge geplant und verteilt werden, kommen in Phase 1 (Abschnitt 9). [K4.5, K4.8]
 - Die Abnahme eines Auftrags hält fest, wer abgenommen oder zurückgewiesen hat, wann und mit welcher Begründung. Eine Zurückweisung lässt die Unterschrift stehen und macht sie ungültig. [K4.8, B8, B25]
 - Ein Feld für eine Dauer, eine Arbeitszeit oder einen Standort gibt es in dieser Fassung nicht. [K4.8, K4.14, K9]
 
@@ -107,6 +109,7 @@ Anhang B nennt jedes Feld der Datenbank, das auf eine Person zeigt. Dieser Absch
 - **Zusage:** Beim Abmelden wird die lokale Ablage des Geräts gelöscht, für jeden Betreiber, bei dem die Person angemeldet war. [K2.7, B58]
 - Bis zum Abmelden merkt sich der Browser das Konto: Name, E-Mail-Adresse, die Betreiber der Person und ihre Rollen und Rechte dort. [K2.7, B68]
 - Ein abgeschlossener Vorgang bleibt dreißig Tage auf dem Gerät der Person, der er zugeteilt war. [K2.7, B23]
+- Eine Prüfung oder Wartung, die jemandem zum Ausführen zugeteilt wird, liegt nach dem nächsten Abgleich auf dem Gerät dieser Person, solange sie offen ist. [K2.7, K4.4, B102]
 
 ### 3.8 Daten über Dritte
 
@@ -149,6 +152,8 @@ Phase 1 kennt vier Rollen. Was jede darf, steht Recht für Recht in Abschnitt 7 
 | Das eigene Konto und die eigenen Geräte | ja | ja | ja | ja |
 | Wer für eine Pflicht verantwortlich ist, mit Namen | in ihren Bereichen | in ihren Bereichen | in ihren Bereichen | in ihren Bereichen |
 | Das Pflichtenverzeichnis auf eine Person eingrenzen; die Namen zur Wahl der verantwortlichen Person | ja | ja | nein | nein |
+| Wer eine Prüfung oder Wartung verantwortet und ausführt, mit Namen | in ihren Bereichen | in ihren Bereichen | in ihren Bereichen | was ihr oder niemandem zugeteilt ist |
+| Die Namen zur Wahl, wer eine Prüfung oder Wartung verantwortet und ausführt | in ihren Bereichen | in ihren Bereichen | in ihren Bereichen | nein |
 | Datensätze mit ihrem Stempel | in ihren Bereichen | in ihren Bereichen | in ihren Bereichen | in ihren Bereichen |
 | Fassungen von Dokumenten mit der Kennung des Kontos, das sie abgelegt hat | in ihren Bereichen | in ihren Bereichen | in ihren Bereichen | in ihren Bereichen |
 | Ein Nachweis im Ganzen: wer ihn ausgeführt, geprüft, unterschrieben, eingetragen oder für ungültig erklärt hat | in ihren Bereichen | in ihren Bereichen | in ihren Bereichen | in ihren Bereichen |
@@ -157,7 +162,8 @@ Leitung und Technische Leitung sehen als Vorgabe alle Bereiche.
 
 - **Zusage:** Jede Adresse des Servers sagt, welches Recht sie verlangt. Ohne Anmeldung antworten nur die Gesundheitsprüfung, die Ersteinrichtung und das Einlösen einer Einladung. [K7, B15, B71]
 - **Zusage:** Die Tabelle der Rechte in Abschnitt 7 des Planungskonzepts und der Katalog im Quelltext sind dieselbe Liste: was dort für eine Rolle steht, darf sie, und nichts anderes. [K7, B17]
-- **Zusage:** Die Zugänge, also wer bei einem Betreiber arbeitet, mit Rollen, Sperre, Anmeldungen und Geräten, sieht und entscheidet nur die Leitung. Technische Leitung, Objektleitung und Haustechnik werden an diesen Adressen abgelehnt. Die eine Stelle daneben ist die Auswahl der verantwortlichen Person im Pflichtenverzeichnis, die Namen nennt und sonst nichts (Abschnitt 3.4). [K7, B1, B2, B12]
+- **Zusage:** Die Zugänge, also wer bei einem Betreiber arbeitet, mit Rollen, Sperre, Anmeldungen und Geräten, sieht und entscheidet nur die Leitung. Technische Leitung, Objektleitung und Haustechnik werden an diesen Adressen abgelehnt. Die Stellen daneben sind die Auswahl der verantwortlichen Person im Pflichtenverzeichnis und die Auswahl, wer eine Prüfung oder Wartung verantwortet und ausführt; beide nennen Namen und sonst nichts (Abschnitt 3.4). [K7, B1, B2, B12]
+- **Zusage:** Die Liste „Prüfungen“ und die Seite eines Vorgangs zeigen der Haustechnik nur, was ihr oder niemandem zugeteilt ist, wie es auf ihrem Gerät liegt, und einen anderen Vorgang auch nicht über seine Adresse. Wer Vorgänge plant und verteilt, sieht jeden in seinen Bereichen. [K4.4, K7, B101]
 - **Zusage:** Die Leitung arbeitet nur mit einem zweiten Faktor. Das ist eine Angabe der Rolle und keine Einstellung. [K7, B36]
 - **Zusage:** Zwei Betreiber auf derselben Instanz sehen nichts voneinander. [K3, B56]
 - Die Übersicht der Bereiche nennt je Bereich, für wen er genannt ist. Sie sieht, wer die Einstellungen sieht, in Phase 1 also die Leitung. [K2.8, B4]
@@ -168,7 +174,7 @@ Leitung und Technische Leitung sehen als Vorgabe alle Bereiche.
 
 ## 5. Auswertungen: welche es gibt und welche nicht
 
-- In dieser Fassung gibt es Listen und keine Auswertungen: die Liegenschaften mit ihren Gebäuden, Geschossen und Räumen, das Anlagenverzeichnis, die Dokumente, das Pflichtenverzeichnis, die Fristen, den Katalog, die Bereiche, die Zugänge mit den Vertretungen und das Änderungsprotokoll, dazu das eigene Konto und der Abgleich des eigenen Geräts. Was die Navigation darüber hinaus vorsieht, ist nicht gebaut und wird niemandem angeboten. [K4.16, B37]
+- In dieser Fassung gibt es Listen und keine Auswertungen: die Liegenschaften mit ihren Gebäuden, Geschossen und Räumen, das Anlagenverzeichnis, die Dokumente, das Pflichtenverzeichnis, die Fristen, die Prüfungen, den Katalog, die Bereiche, die Zugänge mit den Vertretungen und das Änderungsprotokoll, dazu das eigene Konto und der Abgleich des eigenen Geräts. Was die Navigation darüber hinaus vorsieht, ist nicht gebaut und wird niemandem angeboten. [K4.16, B37]
 - **Zusage:** Anhang C nennt jede Adresse, die der Server beantwortet. Eine Adresse für eine Statistik, eine Rangliste, eine Liste des Verzugs je Person oder einen Export ist nicht darunter. [K4.16, B40]
 - **Zusage:** Eine Adresse, die eine einzelne Person in ihrem Pfad nennt, verlangt ein Recht der Zugänge und ist damit der Leitung vorbehalten. Die einzige Ausnahme ist die Verwaltung der Instanz, die ihre eigenen Verwalter führt. [K9, B16]
 - **Zusage:** Das Pflichtenverzeichnis lässt sich auf die Pflichten einer verantwortlichen Person eingrenzen. Das kann nur, wer es führt, also die Leitung und die Technische Leitung. Objektleitung und Haustechnik werden mit dieser Frage abgelehnt, auch wenn sie nach sich selbst fragen; auf die Pflichten, für die niemand benannt ist, grenzt jede Rolle ein. [K4.3, K7, B80]
@@ -176,6 +182,7 @@ Leitung und Technische Leitung sehen als Vorgabe alle Bereiche.
 - Die Liste selbst zeigt in diesem Fall die Pflichten der Person mit ihrem Zustand, auch die überfälligen und die nie erfassten, und sie lässt sich zusätzlich nach dem Zustand eingrenzen. Das ist keine Zählung und kein Vergleich, aber es ist die Stelle, an der das Pflichtenverzeichnis einer Auswertung je Person am nächsten kommt. [K4.3, K4.16]
 - **Zusage:** Die Liste „Fristen“ lässt sich auf die Fristen einer verantwortlichen Person eingrenzen; das kann nur, wer Fristen sieht, also die Leitung und die Technische Leitung. Eingegrenzt auf eine Person nennt sie keine Zahl: weder wie viele Fristen diese Person hat, noch wie viele davon überfällig sind. Sie sagt nur, ob weitere folgen. [K2.4, K4.16, K9, B10, B97]
 - Die Liste zeigt in diesem Fall die Fristen der Person mit ihrem Tag, auch die überfälligen. Wie beim Pflichtenverzeichnis ist das keine Zählung, aber die Stelle, an der die Fristen einer Auswertung je Person am nächsten kommen. [K2.4, K4.16]
+- Die Liste „Prüfungen“ lässt sich nach Stand, Art und Liegenschaft eingrenzen und durchsuchen, aber nicht auf eine Person. Die Zahl über ihr nennt, wie viele Vorgänge sie in dieser Eingrenzung zeigt. [K4.4, K4.16]
 - **Zusage:** Anhang B nennt jedes Feld der Datenbank, das auf eine Person zeigt. Kommt eines dazu, wird der Test rot, bis es hier steht. [K9, B41]
 - Das Änderungsprotokoll lässt sich nach Zeitraum, Person, Art des Datensatzes und einzelnem Datensatz filtern. Mit dem Filter nach Person zeigt es, was diese Person wann geändert hat. Das sieht nur die Leitung (Abschnitt 8). [K3, K9, B65]
 - Eine Rangliste, eine Statistik je Person oder einen Vergleich zwischen Personen enthält die Anwendung nicht, und das Planungskonzept schließt sie als Vorgabe aus. Die Auswertungen über die Zeit, die Phase 2 bringt, sind ohne Auswertung je Person geplant. [K4.16, K9, K12]
@@ -367,6 +374,11 @@ Pfade ohne Vorsatz liegen im Repository `opengewerk/opengewerk-haustechnik`. Pfa
 | B95 | Test | `packages/server/src/api/evidence.test.ts` | `lists the evidence of every duty at the asset with its duty, the newest first` |
 | B96 | Test | `packages/server/src/api/evidence.test.ts` | `answers %s with %i: correcting and declaring invalid is for whoever enters evidence` |
 | B97 | Test | `packages/server/src/deadlines/routes.test.ts` | `narrowed to a person, names no number and says all the same whether more follow` |
+| B98 | Test | `packages/server/src/deadlines/engine.test.ts` | `comes of the due day once its lead begins, once however often the engine runs, and leaves the due day as it is` |
+| B99 | Test | `packages/server/src/api/activities.test.ts` | `offers who plans and who performs among the people who see its area and have not left` |
+| B100 | Test | `packages/server/src/api/activities.test.ts` | `is not for whoever only performs, and names nobody who could not be named` |
+| B101 | Test | `packages/server/src/api/activities.test.ts` | `shows whoever plans every activity in their areas, and whoever only performs what is given to them or to nobody` |
+| B102 | Test | `packages/server/src/api/activities.test.ts` | `brings the inspection onto the device of whoever performs it with the next sync` |
 
 ---
 
@@ -417,6 +429,7 @@ Jede Zeile ist der erste Abschnitt einer Adresse, unter der der Server antwortet
 
 | Adresse | Wofür |
 | --- | --- |
+| `activities` | Prüfungen und Wartungen: die Liste, die Seite eines Vorgangs, die Auswahl der Personen für seinen Plan und der Plan |
 | `areas` | Bereiche und für wen sie genannt sind |
 | `assets` | Anlagen und ihre Komponenten, und die Nachweise einer Anlage |
 | `attachments` | Dokumente: gibt die Datei einer Fassung und ihre Vorschau aus, über die Fassung und nie über die Prüfsumme |
