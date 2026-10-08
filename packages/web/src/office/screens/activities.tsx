@@ -53,7 +53,7 @@ import {
 } from '@opengewerk/platform-web/sync'
 import { keepPreviousData, useInfiniteQuery, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useNavigate, useParams, useSearch } from '@tanstack/react-router'
-import { Check, Clock, type LucideIcon, Pencil, SearchCheck, Signature } from 'lucide-react'
+import { Check, Clock, type LucideIcon, Pencil, SearchCheck, Signature, Upload } from 'lucide-react'
 import { type ReactNode, useDeferredValue, useId, useMemo, useState } from 'react'
 
 import { DutyStateMark } from '../../app/asset-marks.js'
@@ -67,7 +67,7 @@ import {
   activityPlaces,
   activitySearch,
 } from '../activity-addresses.js'
-import { dutyPlaces } from '../duty-addresses.js'
+import { dutyPlaces, evidencePlaces } from '../duty-addresses.js'
 import { ResultMark } from '../evidence-words.js'
 import { factLink } from '../links.js'
 import { officePlaces } from '../place-addresses.js'
@@ -100,6 +100,9 @@ export const activityWords = {
     'Wer ausführt, hat die Prüfung nach dem nächsten Abgleich auf dem Gerät, solange sie offen ist.',
   stepSignature:
     'Mit der Unterschrift entsteht der Nachweis, der Vorgang ist erledigt und der Termin rückt weiter.',
+  stepContractor: 'Die Fremdfirma prüft an dem Tag, der mit ihr vereinbart ist.',
+  stepReport:
+    'Ihren Bericht trägt das Büro unter „Bericht eintragen“ ein. Mit ihm entsteht der Nachweis, der Vorgang ist erledigt und der Termin rückt weiter.',
   stays:
     'Der Termin rückt erst mit dem Nachweis weiter und nie mit dem Anlegen des Vorgangs: eine Prüfung, die geplant und nicht durchgeführt wurde, bleibt überfällig.',
   peopleFailed: 'Wer zur Wahl steht, ließ sich nicht laden. Das braucht eine Verbindung.',
@@ -532,6 +535,8 @@ export function ActivityScreen() {
   const shown = page.data
   const whereOf = usePlaces()
   const plans = useRight('activity.write')
+  const entersEvidence = useRight('evidence.write')
+  const navigate = useNavigate()
   const formId = useId()
 
   if (shown === undefined || activityId === undefined) {
@@ -559,6 +564,19 @@ export function ActivityScreen() {
 
   const where = whereOf(shown)
   const planning = plans && shown.status === 'open'
+  // A report meets one duty (#110): offered while the activity is open and
+  // not for the own people, for a duty that takes one.
+  const [only] = shown.duties
+  const reportFor =
+    entersEvidence &&
+    shown.status === 'open' &&
+    shown.performer !== 'own_staff' &&
+    shown.duties.length === 1 &&
+    only !== undefined &&
+    only.takesReport &&
+    only.result === null
+      ? only.dutyId
+      : null
   const lastMet = shown.duties
     .map((duty) => duty.lastMetOn)
     .filter((day) => day !== null)
@@ -589,6 +607,16 @@ export function ActivityScreen() {
         actions={
           <>
             <ChangesButton table="activities" id={shown.id} />
+            {reportFor === null ? null : (
+              <Button
+                icon={Upload}
+                onClick={() => {
+                  void navigate({ to: evidencePlaces.report(reportFor) })
+                }}
+              >
+                Bericht eintragen
+              </Button>
+            )}
             {planning ? (
               <Button type="submit" form={formId} tone="primary" icon={Check}>
                 Speichern
@@ -710,8 +738,16 @@ export function ActivityScreen() {
           )}
           <Panel title="So geht es weiter">
             <ol className="m-0 list-decimal pl-[18px] text-[13px] leading-[1.5]">
-              <li className="mb-[5px]">{activityWords.stepDevice}</li>
-              <li>{activityWords.stepSignature}</li>
+              <li className="mb-[5px]">
+                {shown.performer === 'contractor'
+                  ? activityWords.stepContractor
+                  : activityWords.stepDevice}
+              </li>
+              <li>
+                {shown.performer === 'contractor'
+                  ? activityWords.stepReport
+                  : activityWords.stepSignature}
+              </li>
             </ol>
           </Panel>
           <NoteBox>{activityWords.stays}</NoteBox>

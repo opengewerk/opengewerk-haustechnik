@@ -13,6 +13,7 @@ import {
   evidenceResultLabel,
   intervalWords,
   type RecordState,
+  takesAReport,
 } from '@opengewerk/haustechnik-domain'
 import {
   Button,
@@ -45,7 +46,8 @@ import {
   useSync,
 } from '@opengewerk/platform-web/sync'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { Link, useParams } from '@tanstack/react-router'
+import { Link, useNavigate, useParams } from '@tanstack/react-router'
+import { Upload } from 'lucide-react'
 import { useState } from 'react'
 
 import { titleOfRoom } from '../../app/place-records.js'
@@ -53,7 +55,7 @@ import { ReviewMarks } from '../../app/review-marks.js'
 import { useCatalogue } from '../../sync/catalogue.js'
 import { askAt } from '../../sync/made-at.js'
 import { cataloguePlaces } from '../catalogue-addresses.js'
-import { dutyRegisterPlace } from '../duty-addresses.js'
+import { dutyRegisterPlace, evidencePlaces } from '../duty-addresses.js'
 import {
   DutyStandingMark,
   intervalKindWords,
@@ -135,6 +137,8 @@ export function DutyScreen() {
   const { dutyId } = useParams({ strict: false }) as { dutyId?: string }
   const keeps = useRight('duty.write')
   const seesEvidence = useRight('evidence.read')
+  const entersEvidence = useRight('evidence.write')
+  const navigate = useNavigate()
   const [naming, setNaming] = useState(false)
   const [ending, setEnding] = useState(false)
   const page = useQuery({ ...dutyQuery(dutyId ?? ''), enabled: dutyId !== undefined })
@@ -240,6 +244,16 @@ export function DutyScreen() {
         actions={
           <>
             <ChangesButton table="duties" id={dutyId} />
+            {entersEvidence && !duty.ended && takesAReport(duty, kind) ? (
+              <Button
+                icon={Upload}
+                onClick={() => {
+                  void navigate({ to: evidencePlaces.report(dutyId) })
+                }}
+              >
+                Bericht eintragen
+              </Button>
+            ) : null}
             {keeps && duty.endsOn === null ? (
               <Button
                 onClick={() => {

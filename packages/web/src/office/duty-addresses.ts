@@ -30,10 +30,12 @@ export const dutyPlaces = {
 /**
  * The page of an evidence, by its id. It belongs to a duty, and it is opened
  * from the duty, the file of an asset and the register alike, so it stands on
- * its own beside them.
+ * its own beside them. The report of a contractor becomes one, and its form
+ * stands beside them by the id of its duty.
  */
 export const evidencePlaces = {
   evidence: (id: string) => `/nachweise/${id}`,
+  report: (dutyId: string) => `/nachweise/bericht/${dutyId}`,
 } as const
 
 /**

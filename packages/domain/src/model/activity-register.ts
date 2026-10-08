@@ -103,6 +103,8 @@ export interface ActivityDutyLine {
   readonly lastMetOn: IsoDate | null
   /** Who may carry it out, as the duty kind of the catalogue says; nothing for a duty of the operator's own. */
   readonly qualification: QualificationLevel | null
+  /** Whether the report of a contractor is evidence of it, as its kind says (#110). */
+  readonly takesReport: boolean
   readonly result: EvidenceResult | null
   readonly resultReason: string | null
 }

@@ -42,6 +42,7 @@ import {
   PropertyListScreen,
   PropertyScreen,
 } from './screens/properties.js'
+import { ReportScreen } from './screens/report.js'
 import { EditRoomScreen, NewRoomScreen } from './screens/room-form.js'
 import { RoomScreen } from './screens/rooms.js'
 import { StaffScreen } from './screens/staff.js'
@@ -241,7 +242,13 @@ export function officeRoutes() {
       component: ActivityScreen,
     }),
     // The page of an evidence, opened from its duty, the file of its asset
-    // and the register.
+    // and the register, and the report of a contractor that becomes the
+    // evidence of a duty, by the id of the duty.
+    createRoute({
+      getParentRoute: () => office,
+      path: '/nachweise/bericht/$dutyId',
+      component: ReportScreen,
+    }),
     createRoute({
       getParentRoute: () => office,
       path: '/nachweise/$evidenceId',

@@ -286,6 +286,21 @@ describe('the page of an evidence', () => {
       Belege: 'pruefbericht-2026-10.pdf',
     })
     expect(screen.queryByRole('region', { name: 'Unterschriften' })).toBeNull()
+    // The evidence hands out its file itself, by its place among the files.
+    expect(leadsTo('pruefbericht-2026-10.pdf')).toBe('/evidence/e-144/files/0')
+  })
+
+  it('names the class of a defect by its word in the catalogue', async () => {
+    await opened(
+      'technician',
+      evidence({
+        state: frozen({
+          defects: [{ description: 'Plombe beschädigt', defectClass: 'probe.slight', dueOn: null }],
+        }),
+      }),
+    )
+
+    expect(await screen.findByText('leicht')).toBeTruthy()
   })
 
   it.each(['management', 'technical_management', 'site_management'] as const)(

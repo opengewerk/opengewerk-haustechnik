@@ -490,8 +490,26 @@ describe('a preview started as the Leitung', () => {
     const hangsOn = (document: Record<string, unknown>) =>
       ['assetId', 'roomId', 'buildingId'].find((field) => document[field] !== null) ?? 'propertyId'
 
+    // Every report of the sample duties filed its PDF as a certificate at
+    // the asset or the room of its duty (#110); the documents planted beside
+    // them are the ones below.
+    const certificates = documents.filter((document) => document['kind'] === 'test_certificate')
+
+    expect(certificates.length).toBeGreaterThan(0)
+    expect(
+      new Set(
+        certificates.map((document) =>
+          [
+            String(document['title']).replace(/\d{4}-\d{2}-\d{2}$/, '<Tag>'),
+            ['assetId', 'roomId'].includes(hangsOn(document)),
+            versions.filter((version) => version['attachmentId'] === document['id']).length,
+          ].join(' | '),
+        ),
+      ),
+    ).toEqual(new Set(['Prüfbericht <Tag> | true | 1']))
     expect(
       documents
+        .filter((document) => document['kind'] !== 'test_certificate')
         .map((document) => ({
           title: document['title'],
           kind: document['kind'],

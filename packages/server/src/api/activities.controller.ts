@@ -30,6 +30,7 @@ import {
   type DutyPerson,
   isAllowed,
   type Right,
+  takesAReport,
 } from '@opengewerk/haustechnik-domain'
 import {
   accountsOf,
@@ -272,6 +273,7 @@ export class ActivitiesController {
         appointment: registered?.standing.appointment?.dueOn ?? null,
         lastMetOn: registered?.lastMetOn ?? null,
         qualification: kind?.definition.qualification.level ?? null,
+        takesReport: takesAReport(duty, kind),
         result: line.result,
         resultReason: line.resultReason,
       }

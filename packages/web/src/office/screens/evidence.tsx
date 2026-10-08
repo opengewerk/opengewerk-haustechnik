@@ -53,6 +53,7 @@ import { useState } from 'react'
 
 import { placePath } from '../../app/place-path.js'
 import { placeAbove } from '../../app/place-records.js'
+import { useCatalogue } from '../../sync/catalogue.js'
 import { askAt, makeAt } from '../../sync/made-at.js'
 import { dutyPlaces, dutyRegisterPlace, evidencePlaces } from '../duty-addresses.js'
 import { ResultMark, StandingMark } from '../evidence-words.js'
@@ -66,6 +67,15 @@ export function evidenceQuery(id: string) {
     queryKey: ['evidence', 'page', id],
     queryFn: () => request<EvidencePage>(`/evidence/${id}`),
   } as const
+}
+
+/**
+ * Where the server hands out a file the evidence rests on, by its place among
+ * the files of the frozen state: the evidence keeps it, whatever becomes of
+ * the document it was filed as (#110).
+ */
+export function evidenceFilePath(evidenceId: string, position: number): string {
+  return `/evidence/${encodeURIComponent(evidenceId)}/files/${String(position)}`
 }
 
 export const evidencePageWords = {
@@ -141,6 +151,7 @@ export function EvidenceScreen() {
   const floors = useRecords('floors')
   const rooms = useRecords('rooms')
   const assets = useRecords('assets')
+  const catalogue = useCatalogue()
 
   if (shown === undefined || evidenceId === undefined) {
     const gone = page.error instanceof RequestRefused && page.error.status === 404
@@ -262,7 +273,26 @@ export function EvidenceScreen() {
         ]),
     ...(state.files.length === 0
       ? []
-      : [{ label: 'Belege', value: state.files.map((file) => file.name).join(', ') }]),
+      : [
+          {
+            label: 'Belege',
+            value: (
+              <span className="flex flex-col gap-0.5">
+                {state.files.map((file, position) => (
+                  <a
+                    key={`${String(position)} ${file.sha256}`}
+                    href={evidenceFilePath(shown.id, position)}
+                    target="_blank"
+                    rel="noopener"
+                    className={factLink}
+                  >
+                    {file.name}
+                  </a>
+                ))}
+              </span>
+            ),
+          },
+        ]),
     { label: 'Aufbewahrung', value: retentionWords(state.retention) },
   ]
   const appointment = duty.data?.appointment ?? null
@@ -383,7 +413,12 @@ export function EvidenceScreen() {
                     <div className="text-[14px] font-medium">{defect.description}</div>
                     <div className="text-[12px] text-ink-muted">
                       {[
-                        defect.defectClass,
+                        // The state keeps the key of the class; its word comes
+                        // from the catalogue, and the key stands where there is none.
+                        defect.defectClass === null
+                          ? null
+                          : (catalogue?.defectClass(defect.defectClass)?.defectClass.label ??
+                            defect.defectClass),
                         defect.dueOn === null ? null : `Frist ${date(defect.dueOn)}`,
                       ]
                         .filter(Boolean)

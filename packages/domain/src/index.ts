@@ -90,6 +90,10 @@ export * from './model/duty-register.js'
 // of an evidence has to say.
 export * from './model/evidence-page.js'
 
+// The report of a contractor or an inspection body, as the office enters it
+// to become the evidence of a duty.
+export * from './model/report.js'
+
 // The deadlines of this application: the kinds the deadline engine of the
 // foundation keeps, with their sources and actions.
 export * from './model/deadlines.js'

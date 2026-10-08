@@ -3,10 +3,12 @@ import {
   ConflictException,
   Controller,
   Get,
+  Header,
   Inject,
   NotFoundException,
   Param,
   Post,
+  StreamableFile,
 } from '@nestjs/common'
 import {
   type Asset,
@@ -29,10 +31,14 @@ import {
   accountsOf,
   CurrentIdentity,
   Database,
+  dispositionFor,
+  FILE_STORE,
+  type FileStorage,
   isUuid,
   type TenantTransaction,
 } from '@opengewerk/platform-server'
-import { desc, eq, inArray } from 'drizzle-orm'
+import { files } from '@opengewerk/platform-server/schema'
+import { and, desc, eq, inArray } from 'drizzle-orm'
 
 import { CATALOGUE } from '../catalogue.js'
 import { dutyTitle } from '../database/duty-standing.js'
@@ -44,6 +50,7 @@ import { RequiresPermission } from './authorization.js'
 import { type Asking, fieldsOf, placeOf, refuse } from './places.js'
 
 const missing = 'Diesen Nachweis gibt es nicht.'
+const missingFile = 'Diese Datei gibt es an diesem Nachweis nicht.'
 const missingAsset = 'Diese Anlage gibt es nicht oder nicht mehr.'
 
 /** What stands for a person whose account is not there any more. */
@@ -136,6 +143,7 @@ export class EvidenceController {
   constructor(
     private readonly database: Database,
     @Inject(CATALOGUE) private readonly catalogue: Catalogue,
+    @Inject(FILE_STORE) private readonly store: FileStorage,
   ) {}
 
   /**
@@ -223,12 +231,62 @@ export class EvidenceController {
   }
 
   /**
+   * A file the evidence rests on, by its place among the files of its frozen
+   * state, as it arrived: the report of a contractor, for one. The evidence
+   * hands it out itself, to whoever sees the evidence, so that it keeps its
+   * file whatever becomes of the document the file was filed as; a document
+   * taken out of the filing is handed out to nobody any more (ADR 0004,
+   * addendum of #110). Never by the hash of the file, which names no record.
+   *
+   * The type is the one the server read off the first bytes when the file was
+   * stored, and anything that is neither a picture nor a PDF is handed out to
+   * be saved, as the foundation does for a document.
+   */
+  @Get(':id/files/:position')
+  @RequiresPermission('evidence.read')
+  @Header('Cache-Control', 'no-store')
+  async file(
+    @CurrentIdentity() identity: Asking,
+    @Param('id') id: string,
+    @Param('position') position: string,
+  ): Promise<StreamableFile> {
+    const found = await this.database.forTenant(identity, async (tx) => {
+      const row = await evidenceOf(tx, id)
+      const named = /^\d{1,3}$/.test(position)
+        ? readEvidenceState(row.state).files[Number(position)]
+        : undefined
+
+      if (named === undefined) {
+        return null
+      }
+
+      const [stored] = await tx
+        .select({ sha256: files.sha256, mediaType: files.mediaType })
+        .from(files)
+        .where(and(eq(files.tenantId, identity.tenantId), eq(files.sha256, named.sha256)))
+
+      return stored === undefined ? null : { ...stored, name: named.name }
+    })
+
+    if (found === null) {
+      throw new NotFoundException(missingFile)
+    }
+
+    const bytes = await this.store.get(found.sha256)
+
+    return new StreamableFile(Buffer.from(bytes), {
+      type: found.mediaType,
+      disposition: dispositionFor(found.mediaType, found.name),
+    })
+  }
+
+  /**
    * A correction (ADR 0004, point 14): a new evidence of the same duty with
    * the corrected day and result, and for a report the examiner, which names
    * the one it replaces and why. Everything else it takes from that one: the
-   * activity, who performed it and the files. Not the signatures: each was
-   * given to the page that was shown then, and stays on the evidence it
-   * signed. The new evidence names who wrote it down, and that is the person
+   * activity, who performed it, the files and the defects as it states them.
+   * Not the signatures: each was given to the page that was shown then, and
+   * stays on the evidence it signed. The new evidence names who wrote it down, and that is the person
    * correcting.
    */
   @Post(':id/correction')
@@ -287,6 +345,10 @@ export class EvidenceController {
                   : { name: known.examiner, organisation: known.examinerOrganisation },
             signatures: [],
             files: state.files,
+            // As the work named them then: a report without an activity has
+            // them nowhere else, and a defect of an activity may have been
+            // set right or given another day since.
+            defects: state.defects,
             replaces: { evidenceId: known.id, reason: values.reason as string },
           },
         )

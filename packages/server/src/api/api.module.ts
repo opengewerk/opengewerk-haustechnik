@@ -52,6 +52,7 @@ import {
   RoomLabelsController,
 } from './labels.controller.js'
 import { PropertiesController } from './properties.controller.js'
+import { DutyReportController } from './report.controller.js'
 import { RoomsController } from './rooms.controller.js'
 import { syncRoutesFor } from './sync-routes.js'
 
@@ -244,10 +245,12 @@ export class ApiModule {
         DutyDismissalsController,
         // The inspections and the maintenance that came of the due days.
         ActivitiesController,
-        // The page of an evidence, its correction and its declaration of
-        // invalidity, and the evidence of an asset.
+        // The page of an evidence with the files it rests on, its correction
+        // and its declaration of invalidity, the evidence of an asset, and the
+        // report of a contractor that becomes the evidence of a duty.
         EvidenceController,
         AssetEvidenceController,
+        DutyReportController,
         // The catalogue of this server, for the devices that work with it.
         CatalogueController,
         // The import of places and assets from tables.
