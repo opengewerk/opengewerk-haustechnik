@@ -115,8 +115,8 @@ function retentionWords(retention: StatedRetention | null): string | null {
 }
 
 /**
- * The page of one evidence, `nachweis()` and `ungueltig()` of the boards (2.6
- * of the concept): the frozen state as it was written down, the signatures,
+ * The page of one evidence, as the boards "Nachweis (2.6)" and "Nachweis für
+ * ungültig erklärt (2.6)" draw it (2.6 of the concept): the frozen state as it was written down, the signatures,
  * the fingerprint, and what became of it since. Everything about the work
  * comes from the frozen state and never from the records as they are today;
  * only the path above the page is drawn from the places on the device.
@@ -448,7 +448,8 @@ export function EvidenceScreen() {
 }
 
 /**
- * "Verlauf" of an evidence declared invalid, `ungueltig()` of the boards:
+ * "Verlauf" of an evidence declared invalid, as the board "Nachweis für
+ * ungültig erklärt (2.6)" draws it:
  * the signatures, the moment it was written down and the declaration, all
  * of them as the evidence and the declaration say.
  */
@@ -701,8 +702,8 @@ export function CorrectEvidenceDialog({
 }
 
 /**
- * "Nachweis für ungültig erklären", `ungueltig_erklaeren()` of the boards
- * (ADR 0004, point 15): with the reason; the person and the moment are the
+ * "Nachweis für ungültig erklären", as its board draws it (ADR 0004, point
+ * 15): with the reason; the person and the moment are the
  * server's. The page shows the declaration afterwards. Asked of the route,
  * with a connection, and not taken back.
  */
