@@ -21,6 +21,20 @@ import { useCallback, useEffect, useMemo, useSyncExternalStore } from 'react'
 /** The name the device keeps the catalogue of its server under. */
 export const catalogueKeep = 'catalogue'
 
+/**
+ * The name the device notes under that it fetched a catalogue this build
+ * cannot read (#160): its checksum, until a catalogue it can read is kept.
+ */
+export const unreadableCatalogueKeep = 'catalogue-unreadable'
+
+/** What a screen says where there is no catalogue to ask. */
+export const catalogueAbsenceWords = {
+  notYet:
+    'Der Katalog ist noch nicht auf diesem Gerät. Er kommt mit der nächsten Verbindung zum Server.',
+  update:
+    'Der Katalog des Servers ist in einem Format, das diese Fassung der Anwendung nicht lesen kann. Er kommt, sobald die neue Fassung übernommen ist.',
+} as const
+
 /** Which catalogue the server computes with, by its checksum. */
 export const catalogueChecksumQuery = {
   queryKey: ['catalogue', 'checksum'],
@@ -66,6 +80,27 @@ export function useCatalogue(): Catalogue | null {
 }
 
 /**
+ * Why a device has no catalogue to ask (#160), the sentence a screen says
+ * then, or nothing while it holds one: not fetched yet, which the next
+ * exchange with the server mends, or fetched in a format this build cannot
+ * read, which only a new version of the interface mends.
+ */
+export function useCatalogueAbsence(): string | null {
+  const client = useSync()
+  const read = useCallback(() => client.kept(unreadableCatalogueKeep), [client])
+  const unreadable = useSyncExternalStore(client.subscribe, read, read)
+  const catalogue = useCatalogue()
+
+  if (catalogue !== null) {
+    return null
+  }
+
+  return unreadable === null || unreadable === ''
+    ? catalogueAbsenceWords.notYet
+    : catalogueAbsenceWords.update
+}
+
+/**
  * Has this device hold the catalogue of its server. Called once by the frame
  * of each entry.
  *
@@ -95,8 +130,13 @@ export function useKeepCatalogue(): void {
 
     const stored = JSON.stringify(fetched)
 
+    // One this build cannot read leaves the one it holds standing; where it
+    // holds none, the screens say that a new version is what brings one.
     if (readable(stored) !== null) {
       void client.keep(catalogueKeep, stored)
+      void client.keep(unreadableCatalogueKeep, null)
+    } else {
+      void client.keep(unreadableCatalogueKeep, fetched.sha256)
     }
   }, [client, fetched, held])
 }

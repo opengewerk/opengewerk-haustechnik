@@ -1265,6 +1265,10 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   (`opengewerk#585`, mit dem Fundament angehoben): Der Titel gibt nach und seine Abzeichen brechen
   um, die Knöpfe bleiben rechts. Bisher rutschten die Knöpfe unter den Titel, sobald nicht alles
   nebeneinander passte, am Nachweis mit "PDF öffnen" (#111) zum ersten Mal sichtbar
+- Ein Gerät ohne Katalog sagt, wenn der Katalog seines Servers in einem Format kommt, das seine
+  Fassung der Anwendung nicht lesen kann (#160): "Er kommt, sobald die neue Fassung übernommen
+  ist", auf dem Bildschirm "Katalog" und bei den Vorlagen aus den Paketen. Bisher hieß es dort, er
+  komme mit der nächsten Verbindung zum Server, und das stimmte in diesem Fall nicht
 - Eine Antwort oder ein Ergebnis, das im selben Augenblick wie eine Unterschrift über den Abgleich kommt,
   wartet auf sie (opengewerk#582). Bisher las das Tor des Fundaments den Vorgang ohne Sperre: Die Antwort sah
   ihn noch als begonnen, landete, nachdem die Unterschrift die Seite gelesen hatte, und der Nachweis hielt eine

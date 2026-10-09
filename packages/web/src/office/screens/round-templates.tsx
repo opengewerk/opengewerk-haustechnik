@@ -11,7 +11,7 @@ import { useMemo } from 'react'
 
 import { ReviewMarks } from '../../app/review-marks.js'
 import { definitionOf } from '../../app/templates.js'
-import { useCatalogue } from '../../sync/catalogue.js'
+import { catalogueAbsenceWords, useCatalogue, useCatalogueAbsence } from '../../sync/catalogue.js'
 import {
   roundsPlace,
   takenFromWord,
@@ -35,8 +35,6 @@ export const templateListWords = {
   none: 'Noch gibt es keine Vorlage. Legen Sie eine an oder übernehmen Sie eine aus einem Paket.',
   stays: 'Ein laufender Rundgang bleibt auf der Fassung, in der er begann.',
   noPackaged: 'Die Pakete dieses Servers bringen keine Vorlagen mit.',
-  noCatalogue:
-    'Der Katalog ist noch nicht auf diesem Gerät. Er kommt mit der nächsten Verbindung zum Server.',
   takeOver: 'Übernehmen und anpassen',
   takenOver:
     'Eine übernommene Vorlage ist Ihre eigene. Ein Paket kennt Ihre Anlagen nicht: das Ziel und die Pflicht setzen Sie an jedem Punkt.',
@@ -82,6 +80,7 @@ export function TemplateListScreen() {
   const keeps = useRight('template.write')
   const navigate = useNavigate()
   const catalogue = useCatalogue()
+  const absence = useCatalogueAbsence()
   const on = today()
   const templates = useRecords('round_templates')
   const versions = useTemplateVersions()
@@ -211,7 +210,9 @@ export function TemplateListScreen() {
             : {}),
         }))}
         cardsEmpty={
-          catalogue === null ? templateListWords.noCatalogue : templateListWords.noPackaged
+          catalogue === null
+            ? (absence ?? catalogueAbsenceWords.notYet)
+            : templateListWords.noPackaged
         }
       >
         <thead>
@@ -228,7 +229,9 @@ export function TemplateListScreen() {
           {packaged.length === 0 ? (
             <tr>
               <Cell colSpan={keeps ? 4 : 3}>
-                {catalogue === null ? templateListWords.noCatalogue : templateListWords.noPackaged}
+                {catalogue === null
+                  ? (absence ?? catalogueAbsenceWords.notYet)
+                  : templateListWords.noPackaged}
               </Cell>
             </tr>
           ) : (

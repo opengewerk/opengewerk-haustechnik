@@ -1,7 +1,7 @@
 import { offlineRules } from '@opengewerk/haustechnik-domain'
 import { SyncClient as Mechanism, type SyncStart } from '@opengewerk/platform-web/sync'
 
-import { catalogueKeep } from './catalogue.js'
+import { catalogueKeep, unreadableCatalogueKeep } from './catalogue.js'
 
 /**
  * The sync client of this application.
@@ -21,6 +21,10 @@ export type SyncClient = Mechanism
 
 export const SyncClient = {
   start(options: Omit<SyncStart, 'rules' | 'keeps'>): Promise<SyncClient> {
-    return Mechanism.start({ ...options, rules: offlineRules, keeps: [catalogueKeep] })
+    return Mechanism.start({
+      ...options,
+      rules: offlineRules,
+      keeps: [catalogueKeep, unreadableCatalogueKeep],
+    })
   },
 }
