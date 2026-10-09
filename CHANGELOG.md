@@ -896,6 +896,16 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   Postausgang; danach sagt der Rundgang, ob er auf die Gegenzeichnung wartet und welche Mängel
   aus ihm folgen. Auf dem Tablet quer stehen Liste und Rundgang nebeneinander. Bisher begann das
   Gerät bei den Konflikten, und einen Rundgang abzugeben ging nicht
+- Die Rundgänge im Büro (#115): jeder Durchgang der Wochenübersicht führt zu seinem Rundgang, und
+  unter der Woche stehen die offenen und begonnenen Rundgänge früherer Wochen, bis sie jemand mit
+  Grund als nicht durchgeführt schließt; das kann, wer Vorgänge plant und verteilt, für einen
+  Rundgang eines vergangenen Tages, und der Rundgang bleibt danach mit dem Grund lesbar und erfüllt
+  keine Pflicht. Die Seite eines Rundgangs zeigt nach der Unterschrift jede Antwort mit dem, was
+  dazu gesagt wurde und was daraus folgt, die Unterschrift, die Pflichten mit ihrem Nachweis und
+  die Mängel. Wer Rundgänge gegenzeichnet, tut es dort im Feld des Fundaments, für die Seite, wie
+  sie gezeigt wurde, über eine eigene Route; erst dann entstehen die Nachweise. Bisher wartete ein
+  Rundgang nach der Unterschrift vor Ort ohne Weg auf die Gegenzeichnung, und ein vergangener blieb
+  nur als Zahl stehen
 
 ### Geändert
 

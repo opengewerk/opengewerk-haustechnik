@@ -1,13 +1,10 @@
 import {
   type FormDefinition,
-  formOfActivity,
   type IsoDate,
   type LimitContext,
   type RecordState,
-  type RoundTemplateId,
   weekdayLabel,
   weekdayOf,
-  withTemplates,
 } from '@opengewerk/haustechnik-domain'
 import { Button, Panel } from '@opengewerk/platform-web'
 import { AnswerMark, AnswerProgress, newBlockKey } from '@opengewerk/platform-web/forms'
@@ -24,14 +21,7 @@ import {
   SiteTrouble,
   type WayBack,
 } from '@opengewerk/platform-web/site'
-import {
-  count,
-  maybeText,
-  text,
-  useRecord,
-  useRecords,
-  useRelated,
-} from '@opengewerk/platform-web/sync'
+import { maybeText, text, useRecord, useRecords, useRelated } from '@opengewerk/platform-web/sync'
 import { useNavigate, useParams } from '@tanstack/react-router'
 import { ChevronLeft, ChevronRight, ClipboardCheck, DoorOpen, Plus, Zap } from 'lucide-react'
 import { useMemo, useState } from 'react'
@@ -48,9 +38,9 @@ import {
   pointsOf,
   pointState,
 } from '../../app/answers.js'
+import { fulfilledDuty, useDutyName, useFormOf } from '../../app/form-of.js'
 import { askedAsQuestion, PointInput } from '../../app/form-points.js'
 import { titleOfRoom } from '../../app/place-records.js'
-import { definitionOf } from '../../app/templates.js'
 import { useCatalogue } from '../../sync/catalogue.js'
 import { assetTitle, NotOffered, NotOnDevice } from '../kit.js'
 import { siteForms, sitePlaces } from '../places.js'
@@ -85,34 +75,6 @@ export const siteFormWords = {
 
 /** The way back from a round and what follows it: the start, where it was chosen. */
 export const toStart: WayBack = { to: '/', label: 'Zurück zum Start' }
-
-/** The duty a point of a round fulfils, if one does (#112): its answer is the evidence of that duty. */
-export function fulfilledDuty(field: object | null): string | null {
-  const fulfils = (field as { readonly fulfils?: unknown } | null)?.fulfils
-
-  return typeof fulfils === 'string' ? fulfils : null
-}
-
-/** What a duty is called: the label of its kind in the catalogue, or the one it was given. */
-export function useDutyName(dutyId: string | null): string | null {
-  const duty = useRecord('duties', dutyId ?? undefined)
-  const catalogue = useCatalogue()
-
-  if (dutyId === null || duty === null) {
-    return null
-  }
-
-  const kind = maybeText(duty, 'kind')
-  const version = typeof duty['kindVersion'] === 'number' ? duty['kindVersion'] : null
-
-  return (
-    (kind === null || version === null
-      ? null
-      : catalogue?.dutyKindVersion(kind, version)?.definition.label) ??
-    maybeText(duty, 'label') ??
-    null
-  )
-}
 
 /** The statuses in which the answers of an activity may still be given (the sync asks the same). */
 export const inProgress = ['open', 'started']
@@ -194,27 +156,11 @@ export function useActivityForm(activityId: string, opened: readonly OpenedBlock
     (signature) => signature['role'] === 'signer',
   )
   const performs = useRight('activity.perform')
-  // A round is filled in the version of its template, which every device
-  // holds (#112); every other form comes out of the catalogue.
-  const versions = useRecords('round_template_versions')
-  const definition: FormDefinition | null | undefined =
-    activity === null || catalogue === null
-      ? null
-      : formOfActivity(
-          withTemplates(
-            catalogue,
-            versions.map((version) => ({
-              templateId: text(version, 'templateId') as RoundTemplateId,
-              formVersion: count(version, 'formVersion'),
-              definition: definitionOf(version),
-            })),
-          ),
-          {
-            formKey: maybeText(activity, 'formKey'),
-            formVersion:
-              typeof activity['formVersion'] === 'number' ? activity['formVersion'] : null,
-          },
-        )
+  const form = useFormOf(
+    maybeText(activity, 'formKey'),
+    typeof activity?.['formVersion'] === 'number' ? activity['formVersion'] : null,
+  )
+  const definition: FormDefinition | null | undefined = activity === null ? null : form
   const filled = useMemo(() => answers.map(filledOf), [answers])
   const points = useMemo(
     () => (definition ? pointsOf(definition, filled, opened) : []),

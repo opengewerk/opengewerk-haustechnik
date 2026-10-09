@@ -2,12 +2,23 @@ import type { Crumb } from '@opengewerk/platform-web'
 
 /**
  * Where the rounds live in the office: "Rundgänge" is the overview of the
- * week (#113), and under it the templates (#112), the list, a new one, empty
- * or taken over from a package, and one template by its id, and the plans
- * (#113), the list, a new one and one plan by its id.
+ * week (#113) with one round by its id (#115), and under it the templates
+ * (#112), the list, a new one, empty or taken over from a package, and one
+ * template by its id, and the plans (#113), the list, a new one and one plan
+ * by its id.
  */
 
 export const roundsPlace = { to: '/rundgaenge', label: 'Rundgänge' } as const satisfies Crumb
+
+/** The overview of the week a Monday begins (#113). */
+export function weekPlace(monday: string): string {
+  return `/rundgaenge?woche=${monday}`
+}
+
+/** The page of one round, by the id of its activity (#115). */
+export const roundPlaces = {
+  round: (id: string) => `/rundgaenge/${id}`,
+} as const
 
 export const templateListPlace = {
   to: '/rundgaenge/vorlagen',

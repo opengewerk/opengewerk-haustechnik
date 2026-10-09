@@ -47,10 +47,12 @@ import { areaName, useAreas } from '../../session/areas.js'
 import {
   planListPlace,
   planPlaces,
+  roundPlaces,
   roundsPlace,
   templateListPlace,
 } from '../round-template-addresses.js'
 import { CountTiles } from './imports.js'
+import { CloseRoundDialog, roundDate } from './round.js'
 import { calendarOf, nameOf, performersQuery, roundPeopleQuery, walkerOf } from './round-plans.js'
 
 /**
@@ -63,6 +65,10 @@ import { calendarOf, nameOf, performersQuery, roundPeopleQuery, walkerOf } from 
  * Read from the server, which knows the state of the signatures; whoever
  * only performs is shown what is given to them or to nobody, as their device
  * holds it. Handing out is for whoever plans and hands out work (section 7).
+ *
+ * Each pass leads to its round (#115). A round of an earlier week that is
+ * still open or begun stands under the week, each with its day, until
+ * whoever plans closes it with the reason: it is not quietly gone.
  */
 
 export const weekWords = {
@@ -77,6 +83,10 @@ export const weekWords = {
   everybody: (area: string | null) =>
     `Alle im Bereich: Der Rundgang liegt auf den Geräten aller im Bereich${area ? ` ${area}` : ''}, die Vorgänge ausführen.`,
   openBefore: 'nicht still verschwunden',
+  before: 'Offen aus vergangenen Wochen',
+  beforeCaption: 'Die Rundgänge früherer Wochen, die noch offen oder begonnen sind',
+  open: 'Öffnen',
+  close: 'Schließen mit Grund',
 } as const
 
 /** How each state of a round looks in its chip, as `ROUND_STATES` of the boards. */
@@ -93,21 +103,22 @@ const chipLook: Readonly<
   not_performed: { className: 'text-ink-muted bg-surface-sunken border-line', icon: Ban },
 }
 
-/** One round of the week: its day and its state. */
+/** One round of the week: its day and its state, a link to the round. */
 function RoundChip({ round }: { readonly round: WeekRound }) {
   const look = chipLook[round.state]
   const Icon = look.icon
   const day = weekdayShort[weekdayOf(round.dueOn)]
 
   return (
-    <span
+    <Link
+      to={roundPlaces.round(round.id)}
       title={`${day}: ${roundStateLabel[round.state]}`}
-      className={`inline-flex h-6 items-center gap-1 whitespace-nowrap rounded-[3px] border px-[7px] text-[12px] font-semibold ${look.className}`}
+      className={`inline-flex h-6 items-center gap-1 whitespace-nowrap rounded-[3px] border px-[7px] text-[12px] font-semibold no-underline ${look.className}`}
     >
       {Icon ? <Icon size={12} strokeWidth={2.4} aria-hidden="true" /> : null}
       {day}
       <span className="font-medium">{roundStateLabel[round.state]}</span>
-    </span>
+    </Link>
   )
 }
 
@@ -139,6 +150,7 @@ export function RoundWeekScreen() {
   const monday = weekNamed(address['woche']) ?? weekNamed(today()) ?? (today() as IsoDate)
   const [area, setArea] = useState<string | null>(null)
   const [handing, setHanding] = useState<WeekRow | null>(null)
+  const [closing, setClosing] = useState<{ round: WeekRound; row: WeekRow } | null>(null)
   const [said, setSaid] = useState<string | null>(null)
   const [working, setWorking] = useState(false)
   const areas = useAreas()
@@ -153,15 +165,9 @@ export function RoundWeekScreen() {
     placeholderData: keepPreviousData,
   })
 
-  const rows = useMemo(() => {
-    const byPlan = new Map<string, WeekRound[]>()
-
-    for (const round of week.data?.rounds ?? []) {
-      byPlan.set(round.planId, [...(byPlan.get(round.planId) ?? []), round])
-    }
-
-    return [...byPlan.entries()]
-      .map(([planId, rounds]): WeekRow => {
+  const rowOf = useMemo(
+    () =>
+      (planId: string, rounds: readonly WeekRound[]): WeekRow => {
         const plan = records.find((each) => each['id'] === planId)
         const building = buildings.find((each) => each['id'] === plan?.['buildingId'])
         const property = properties.find((each) => each['id'] === plan?.['propertyId'])
@@ -180,7 +186,19 @@ export function RoundWeekScreen() {
           areaId: text(plan, 'areaId'),
           rounds,
         }
-      })
+      },
+    [records, templates, buildings, properties],
+  )
+
+  const rows = useMemo(() => {
+    const byPlan = new Map<string, WeekRound[]>()
+
+    for (const round of week.data?.rounds ?? []) {
+      byPlan.set(round.planId, [...(byPlan.get(round.planId) ?? []), round])
+    }
+
+    return [...byPlan.entries()]
+      .map(([planId, rounds]) => rowOf(planId, rounds))
       .filter((row) => area === null || row.areaId === area)
       .sort(
         (left, right) =>
@@ -188,7 +206,16 @@ export function RoundWeekScreen() {
           left.building.localeCompare(right.building, 'de') ||
           left.title.localeCompare(right.title, 'de'),
       )
-  }, [week.data, records, templates, buildings, properties, area])
+  }, [week.data, rowOf, area])
+
+  // Each round from before on a row of its own, the latest first, as the server orders them.
+  const before = useMemo(
+    () =>
+      (week.data?.before ?? [])
+        .map((round) => ({ round, row: rowOf(round.planId, [round]) }))
+        .filter(({ row }) => area === null || row.areaId === area),
+    [week.data, rowOf, area],
+  )
 
   const shown = rows.flatMap((row) => row.rounds)
   const counted = (state: RoundState) => shown.filter((round) => round.state === state).length
@@ -431,7 +458,7 @@ export function RoundWeekScreen() {
           },
           { value: counted('submitted'), label: roundStateLabel.submitted, tone: 'done' },
           {
-            value: week.data?.openBefore ?? 0,
+            value: before.length,
             label: 'Offen aus Vorwochen',
             tone: 'conflict',
             sub: weekWords.openBefore,
@@ -439,6 +466,100 @@ export function RoundWeekScreen() {
         ]}
       />
       {body}
+      {before.length > 0 ? (
+        <TablePanel
+          title={weekWords.before}
+          caption={weekWords.beforeCaption}
+          cards={before.map(({ round, row }) => ({
+            key: round.id,
+            title: <Link to={roundPlaces.round(round.id)}>{row.title}</Link>,
+            sub: (
+              <span className="flex flex-col gap-1">
+                <span>{placeOf(row)}</span>
+                <span>{roundDate(round.dueOn)}</span>
+                <span>
+                  {walkerOf(people.data, round.performerUserId, areaName(areas, row.areaId))}
+                </span>
+              </span>
+            ),
+            ...(plans
+              ? {
+                  actions: (
+                    <Button
+                      size="small"
+                      icon={Ban}
+                      onClick={() => {
+                        setClosing({ round, row })
+                      }}
+                    >
+                      {weekWords.close}
+                    </Button>
+                  ),
+                }
+              : {}),
+          }))}
+        >
+          <thead>
+            <tr>
+              <Column>Rundgang</Column>
+              <Column className="w-[200px]">Fällig war</Column>
+              <Column className="w-[160px]">Zuständig</Column>
+              <Column className="w-[230px]">
+                <span className="sr-only">Öffnen oder schließen</span>
+              </Column>
+            </tr>
+          </thead>
+          <tbody>
+            {before.map(({ round, row }) => (
+              <tr key={round.id}>
+                <Cell>
+                  <div className="leading-[1.32]">
+                    <Link to={roundPlaces.round(round.id)} className="font-medium">
+                      {row.title}
+                    </Link>
+                    <div className="text-[12px] text-ink-faint">{placeOf(row)}</div>
+                  </div>
+                </Cell>
+                <Cell>{roundDate(round.dueOn)}</Cell>
+                <Cell>
+                  {walkerOf(people.data, round.performerUserId, areaName(areas, row.areaId))}
+                </Cell>
+                <Cell>
+                  <div className="flex justify-end gap-[5px]">
+                    <Button
+                      size="small"
+                      onClick={() => {
+                        void navigate({ to: roundPlaces.round(round.id) })
+                      }}
+                    >
+                      {weekWords.open}
+                    </Button>
+                    {plans ? (
+                      <Button
+                        size="small"
+                        onClick={() => {
+                          setClosing({ round, row })
+                        }}
+                      >
+                        {weekWords.close}
+                      </Button>
+                    ) : null}
+                  </div>
+                </Cell>
+              </tr>
+            ))}
+          </tbody>
+        </TablePanel>
+      ) : null}
+      {closing ? (
+        <CloseRoundDialog
+          round={{ id: closing.round.id, title: closing.row.title, dueOn: closing.round.dueOn }}
+          sub={placeOf(closing.row)}
+          onClose={() => {
+            setClosing(null)
+          }}
+        />
+      ) : null}
       {handing ? (
         <HandOutDialog
           row={handing}
@@ -455,6 +576,13 @@ export function RoundWeekScreen() {
       ) : null}
     </Screen>
   )
+}
+
+/** Where the rounds of a row are walked: "Feuerwache Nord, Wache", or the property as a whole. */
+function placeOf(row: WeekRow): string {
+  return row.plan?.['buildingId']
+    ? `${row.property}, ${row.building}`
+    : `${row.building}, ${row.property}`
 }
 
 /** Who walks the rounds of a row, each once: "Murat Yilmaz, Lena Vogt". */

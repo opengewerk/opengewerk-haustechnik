@@ -197,8 +197,10 @@ export async function openSamplePreview(
     await giveSampleForm(database, planter, previewPeople.viewer.id)
     // A template of a round with two versions (#112).
     await giveSampleTemplates(database, planter)
-    // Plans of the rounds with their rounds, one of them begun (#113).
-    await giveSamplePlans(database, planter)
+    // Plans of the rounds with their rounds, one of them begun (#113), one
+    // signed and waiting for its countersignature and two open from before
+    // (#115).
+    await giveSamplePlans(database, planter, previewCatalogue)
   } finally {
     await planting.close()
   }

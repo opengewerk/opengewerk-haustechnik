@@ -385,7 +385,7 @@ describe('a preview started as the Leitung', () => {
   })
 
   // What the list of defects and the page of a defect are looked at with (#116).
-  it('shows a defect over its deadline, one within it, one without a class, one ordered, one remedied and one checked again', async () => {
+  it('shows a defect over its deadline, one within it, one without a class, one ordered, one remedied, one checked again and one of a round', async () => {
     const server = application.getHttpServer()
     const register = (
       await request(server).get('/defects').query({ state: 'all', limit: '200' }).expect(200)
@@ -400,7 +400,7 @@ describe('a preview started as the Leitung', () => {
       }[]
     }
 
-    expect(register.counts).toEqual({ open: 4, overdue: 1, verified: 1 })
+    expect(register.counts).toEqual({ open: 5, overdue: 1, verified: 1 })
     expect(
       register.defects.map((defect) => [
         defect.description,
@@ -414,6 +414,14 @@ describe('a preview started as the Leitung', () => {
       ['Notruf im Fahrkorb ohne Verbindung', 'found', 'allgemein.dangerous', true, 'hand'],
       ['Kabine hält zwei Zentimeter unter Bündigkeit', 'ordered', 'allgemein.minor', false, 'hand'],
       ['Kratzgeräusch an der Schachttür im 1. OG', 'found', null, false, 'hand'],
+      // Of the round that waits for its countersignature (#115).
+      [
+        'Tür schließt selbsttätig: Türschließer ohne Funktion, die Tür bleibt offen stehen.',
+        'found',
+        null,
+        false,
+        'activity',
+      ],
       ['Schild mit der Notrufnummer fehlt', 'verified', 'allgemein.significant', false, 'hand'],
     ])
   })

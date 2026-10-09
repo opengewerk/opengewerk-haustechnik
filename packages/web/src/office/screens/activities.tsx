@@ -88,6 +88,7 @@ import { ResultMark } from '../evidence-words.js'
 import { factLink } from '../links.js'
 import { officePlaces } from '../place-addresses.js'
 import { RegisterFilter } from '../register-filter.js'
+import { roundPlaces } from '../round-template-addresses.js'
 import { workOrderPlaces } from '../work-order-addresses.js'
 
 export const activityWords = {
@@ -590,6 +591,11 @@ export function ActivityScreen() {
   // name it by its activity and lead here.
   if (shown.kind === 'work_order') {
     return <Navigate to={workOrderPlaces.order(shown.id)} replace />
+  }
+
+  // So has a round (#115).
+  if (shown.kind === 'round') {
+    return <Navigate to={roundPlaces.round(shown.id)} replace />
   }
 
   const where = whereOf(shown)

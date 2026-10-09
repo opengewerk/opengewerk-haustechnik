@@ -82,6 +82,9 @@ Anhang B nennt jedes Feld der Datenbank, das auf eine Person zeigt. Dieser Absch
 - Der Plan eines Rundgangs nennt die Person, die seine Rundgänge geht, oder niemanden. Aus dem Plan entsteht jeder Durchgang als eigener Rundgang, einmal, und zwar so weit im Voraus, wie es die Art „Rundgang nach Plan“ unter „Fristen“ sagt, als Vorgabe 14 Tage. Ein Rundgang nennt als ausführend die Person des Plans und als verantwortlich niemanden; nennt der Plan niemanden, nennt der Rundgang auch keine ausführende Person. Die Frist eines Plans nennt keine Person, für sie steht die Leitung ein. [K2.4, K4.5, B121, B124]
 - **Zusage:** Wer einen Rundgang geht, legt fest, wer Vorgänge plant und verteilt: die Leitung, die Technische Leitung und die Objektleitung, im Plan und für einzelne Rundgänge einer Woche, auch „wie letzte Woche“, solange niemand den Rundgang begonnen hat. Zur Wahl stehen nur Personen, die Vorgänge ausführen, den Bereich sehen und nicht gesperrt sind; die Auswahl nennt die Namen und sonst nichts, und nur für einen Bereich, den die fragende Person sieht. Die Haustechnik plant nicht und bekommt die Auswahl nicht. [K4.5, K7, B7, B122, B125, B126, B127]
 - Bekommt ein Plan eine andere Person, gehen die Rundgänge ab heute, die noch niemand begonnen hat, an sie über, außer denen, die jemand anderem zugeteilt wurden. Ändert sich der Plan, ruht er oder endet er, entfallen die Rundgänge ab heute, die noch niemand begonnen hat und die er nicht mehr verlangt; ein begonnener oder vergangener Rundgang bleibt. Wer einen Plan geändert oder einen Rundgang zugeteilt hat, nennt der Plan nicht; das steht im Änderungsprotokoll. [K4.5, B123, B130]
+- Die Seite eines Rundgangs im Büro nennt, wer ihn geht, und erst mit der Unterschrift seine Antworten, dazu die Unterschrift mit dem Namen der Person, ihrer Zeichnung und dem Zeitpunkt. Die Antworten eines Rundgangs, den noch niemand unterschrieben hat, zeigt das Büro nicht: bis zur Unterschrift sind sie die Arbeit der Person, die ihn geht. [K4.5, B131]
+- **Zusage:** Einen Rundgang, dessen Vorlage es verlangt, gegenzeichnen kann, wer Aufträge abnimmt und Rundgänge gegenzeichnet: die Leitung, die Technische Leitung und die Objektleitung, im Büro und für die Seite, wie sie gezeigt wurde. Die Gegenzeichnung hält fest, wer gegengezeichnet hat und wann, mit der Zeichnung; erst mit ihr entstehen die Nachweise. Die Haustechnik kann es nicht. [K4.5, K7, B8, B132]
+- Einen offenen oder begonnenen Rundgang eines vergangenen Tages schließt, wer Vorgänge plant und verteilt, mit Grund als nicht durchgeführt; er bleibt lesbar und erfüllt keine Pflicht. Der Rundgang nennt den Grund und nicht die Person, wer ihn geschlossen hat, steht im Änderungsprotokoll. Die Haustechnik kann es nicht. [K4.5, K7, B133]
 - Ein Auftrag nennt die Person, die ihn führt (im Büro „Verantwortlich“), und weitere Beteiligte; das Feld der ausführenden Person bleibt bei einem Auftrag aus dem Büro leer. Wer Vorgänge plant und verteilt, legt einen Auftrag an, aus einem festgestellten Mangel, aus dem Termin einer Pflicht oder von Hand, und ändert ihn, bis er unterschrieben ist. Wer einen Auftrag angelegt oder geändert hat, nennt der Auftrag nicht; das steht im Änderungsprotokoll. [K4.8, B111]
 - **Zusage:** Wer einen Auftrag führt und wer an ihm beteiligt ist, legt fest, wer Vorgänge plant und verteilt: die Leitung, die Technische Leitung und die Objektleitung. Zur Wahl stehen nur Personen, die Vorgänge ausführen, den Bereich des Auftrags sehen und nicht gesperrt sind; die Auswahl nennt die Namen und sonst nichts. Die Haustechnik legt keinen Auftrag an, ändert keinen und bekommt die Auswahl nicht. [K4.8, K7, B112, B113, B114, B118]
 - Eine beteiligte Person ist eine Zeile je Auftrag und Person. Wird jemand vom Auftrag genommen, wird die Zeile markiert und nicht gelöscht, und das Gerät dieser Person gibt den Auftrag mit dem nächsten Abgleich ab. Auf der unterschriebenen Seite stehen die Beteiligten nicht. [K4.8, B115]
@@ -184,6 +187,7 @@ Phase 1 kennt vier Rollen. Was jede darf, steht Recht für Recht in Abschnitt 7 
 | Wer die Rundgänge eines Plans geht, als Kennung des Kontos auf dem Gerät | in ihren Bereichen | in ihren Bereichen | in ihren Bereichen | in ihren Bereichen |
 | Wer einen Rundgang geht, mit Namen | in ihren Bereichen | in ihren Bereichen | in ihren Bereichen | was ihr oder niemandem zugeteilt ist |
 | Die Namen zur Wahl, wer einen Rundgang geht | in ihren Bereichen | in ihren Bereichen | in ihren Bereichen | nein |
+| Wer einen Rundgang unterschrieben und gegengezeichnet hat, mit Namen, Zeichnung und Zeitpunkt | in ihren Bereichen | in ihren Bereichen | in ihren Bereichen | was ihr oder niemandem zugeteilt ist |
 | Datensätze mit ihrem Stempel | in ihren Bereichen | in ihren Bereichen | in ihren Bereichen | in ihren Bereichen |
 | Fassungen von Dokumenten mit der Kennung des Kontos, das sie abgelegt hat | in ihren Bereichen | in ihren Bereichen | in ihren Bereichen | in ihren Bereichen |
 | Ein Nachweis im Ganzen: wer ihn ausgeführt, geprüft, unterschrieben, eingetragen oder für ungültig erklärt hat | in ihren Bereichen | in ihren Bereichen | in ihren Bereichen | in ihren Bereichen |
@@ -265,7 +269,6 @@ Leitung und Technische Leitung sehen als Vorgabe alle Bereiche.
 
 Diese Bausteine gehören nach dem Fahrplan zu Phase 1 und sind noch nicht gebaut. Mit jedem wird dieses Dokument berichtigt; der Test in Abschnitt 11 erzwingt es, sobald ein Feld mit Personenbezug oder eine Adresse des Servers dazukommt.
 
-- **Rundgänge:** Gegenzeichnen und einen offenen Rundgang mit Grund schließen kommen mit der Übersicht der Woche dazu; was dabei über die Person festgehalten wird, steht dann hier. [K4.5]
 - **Aufträge vor Ort:** Notizen als eigene Einträge, Fotos und eine Dauer kommen dazu. Die Dauer ist Aufwand des Auftrags und keine Arbeitszeiterfassung. [K4.8]
 - **Aufgaben:** mit Fälligkeit und verantwortlicher Person. Jede Person legt eigene an; einer anderen teilt sie zu, wer Vorgänge plant und verteilt. [K3]
 - **Benachrichtigungen:** per E-Mail und Push, gespeist nur aus Fristen und Statuswechseln. Welche Anlässe als Push kommen, wählt jede Person selbst; ein Auftrag mit der Dringlichkeit „sofort“ erreicht die Person, die ihn führt, immer als Push. [K3, K4.8]
@@ -440,6 +443,9 @@ Pfade ohne Vorsatz liegen im Repository `opengewerk/opengewerk-haustechnik`. Pfa
 | B128 | Test | `packages/server/src/api/round-plans.test.ts` | `put a round given to nobody on the device of everybody in the area, and one given to somebody on theirs` |
 | B129 | Test | `packages/server/src/api/round-plans.test.ts` | `show whoever only performs what is given to them or to nobody` |
 | B130 | Test | `packages/server/src/api/round-plans.test.ts` | `hands its rounds on to its new person, except those handed to somebody else` |
+| B131 | Test | `packages/server/src/api/round-plans.test.ts` | `shows no answers before the signature, and the page that was signed after it, waiting for the countersignature` |
+| B132 | Test | `packages/server/src/api/round-plans.test.ts` | `is countersigned by the Objektleitung for the page that was shown, and only then written down` |
+| B133 | Test | `packages/server/src/api/round-plans.test.ts` | `closes a round of a past day as not performed, with the reason, by whoever plans, and it fulfils nothing` |
 
 ---
 
@@ -517,7 +523,7 @@ Jede Zeile ist der erste Abschnitt einer Adresse, unter der der Server antwortet
 | `rooms` | Räume, mit den Pflichten, die an ihnen hängen |
 | `round-plans` | Pläne der Rundgänge: ein neuer Plan und die Änderung eines Plans, auch ruhen lassen und beenden; ein Plan nennt die Person, die seine Rundgänge geht, oder niemanden |
 | `round-templates` | Vorlagen der Rundgänge: eine neue, leer oder aus einem Paket übernommen, und eine neue Fassung einer Vorlage; sie nennen Anlagen, Räume und Pflichten und keine Person |
-| `rounds` | Rundgänge der Pläne: die Übersicht einer Woche, wer einen Rundgang geht, auch „wie letzte Woche“, die Namen der Personen, die Pläne und Rundgänge nennen, und die Auswahl, wer in einem Bereich Rundgänge geht |
+| `rounds` | Rundgänge der Pläne: die Übersicht einer Woche mit den offenen Rundgängen früherer Wochen, wer einen Rundgang geht, auch „wie letzte Woche“, die Namen der Personen, die Pläne und Rundgänge nennen, und die Auswahl, wer in einem Bereich Rundgänge geht; die Seite eines Rundgangs mit seinen Unterschriften, die Gegenzeichnung und das Schließen mit Grund |
 | `settings` | Vorlauf der Fristen und die Vorgabe der Frist je Mängelklasse |
 | `setup` | Ersteinrichtung |
 | `staff` | Zugänge |
