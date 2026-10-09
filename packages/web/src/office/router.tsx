@@ -48,6 +48,7 @@ import { ReportScreen } from './screens/report.js'
 import { NewTemplateScreen, TemplateScreen } from './screens/round-template.js'
 import { NewPlanScreen, PlanListScreen, PlanScreen } from './screens/round-plans.js'
 import { TemplateListScreen } from './screens/round-templates.js'
+import { RoundScreen } from './screens/round.js'
 import { RoundWeekScreen } from './screens/round-week.js'
 import { EditRoomScreen, NewRoomScreen } from './screens/room-form.js'
 import { RoomScreen } from './screens/rooms.js'
@@ -286,6 +287,13 @@ export function officeRoutes() {
       getParentRoute: () => office,
       path: '/rundgaenge/vorlagen/$templateId',
       component: TemplateScreen,
+    }),
+    // One round by the id of its activity (#115): what was signed, the
+    // countersignature, and closing one of a past day with the reason.
+    createRoute({
+      getParentRoute: () => office,
+      path: '/rundgaenge/$roundId',
+      component: RoundScreen,
     }),
     // The work orders (#117): the list, a new one, and the page of one by the
     // id of its activity.

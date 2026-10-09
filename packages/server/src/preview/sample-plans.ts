@@ -1,9 +1,18 @@
-import type { Identity, TemplateDefinition } from '@opengewerk/haustechnik-domain'
-import type { Database } from '@opengewerk/platform-server'
+import {
+  addDays,
+  type Catalogue,
+  type Identity,
+  type IsoDate,
+  type TemplateDefinition,
+  weekOf,
+} from '@opengewerk/haustechnik-domain'
+import type { Database, TenantTransaction } from '@opengewerk/platform-server'
 import { and, asc, eq, isNull } from 'drizzle-orm'
 
+import { pageFingerprint, pageOf, takeSignature } from '../activities/signing.js'
 import {
   activities,
+  activityAnswers,
   buildings,
   roundPlans,
   roundTemplates,
@@ -11,7 +20,7 @@ import {
 } from '../database/schema/index.js'
 import { fillAhead } from '../rounds/plans.js'
 import { dayInGermany } from '../today.js'
-import { previewPeople } from './preview-database.js'
+import { previewColleagues, previewPeople } from './preview-database.js'
 
 /**
  * The plans of the rounds in the preview (#113): a daily round for
@@ -20,10 +29,16 @@ import { previewPeople } from './preview-database.js'
  * rounds made as the routes make them. One round of today is begun and one
  * is handed to somebody else, so that the overview of the week shows more
  * than one state. A daily round of the person the preview answers as stands
- * on the start on site every day (#114). In the database, as a test does,
- * and after the templates (`giveSampleTemplates`).
+ * on the start on site every day (#114). A weekly round of this week is
+ * signed and waits for its countersignature, and two daily rounds of the
+ * week before are still open, one of them begun (#115). In the database, as
+ * a test does, and after the templates (`giveSampleTemplates`).
  */
-export async function giveSamplePlans(database: Database, planter: Identity): Promise<void> {
+export async function giveSamplePlans(
+  database: Database,
+  planter: Identity,
+  catalogue: Catalogue,
+): Promise<void> {
   await database.forTenant(planter, async (tx) => {
     const today = dayInGermany(new Date())
     const places = await tx
@@ -141,5 +156,131 @@ export async function giveSamplePlans(database: Database, planter: Identity): Pr
         .set({ performerUserId: 'preview-yilmaz' })
         .where(eq(activities.id, given.id))
     }
+
+    const [, weekly] = plans
+
+    if (weekly === undefined) {
+      return
+    }
+
+    // Open from the week before: Thursday begun, Friday untouched.
+    const monday = weekOf(today)
+
+    await passOf(tx, daily1, addDays(monday, -4), {
+      status: 'started',
+      performerUserId: 'preview-vogt',
+    })
+    await passOf(tx, daily1, addDays(monday, -3), {})
+
+    // The Wednesday of this week, or of the week before while it is still ahead.
+    const wednesday = addDays(monday, 2) < today ? addDays(monday, 2) : addDays(monday, -5)
+    const signed = await passOf(tx, weekly, wednesday, {
+      status: 'started',
+      performedOn: wednesday,
+    })
+
+    if (signed === undefined) {
+      return
+    }
+
+    const answer = (
+      fieldKey: string,
+      given: { value?: string; result?: string; remark?: string },
+    ) => ({
+      tenantId: planter.tenantId,
+      propertyId: weekly.propertyId,
+      areaId: weekly.areaId,
+      activityId: signed,
+      fieldKey,
+      value: given.value ?? null,
+      result: (given.result ?? null) as 'ok' | 'not_ok' | null,
+      remark: given.remark ?? null,
+    })
+
+    await tx.insert(activityAnswers).values([
+      answer('p1', { value: '61000' }),
+      answer('p2', { value: '56500' }),
+      answer('p3', { result: 'ok' }),
+      answer('p4', {
+        result: 'not_ok',
+        remark: 'Türschließer ohne Funktion, die Tür bleibt offen stehen.',
+      }),
+    ])
+
+    const [row] = await tx.select().from(activities).where(eq(activities.id, signed))
+
+    if (row === undefined) {
+      return
+    }
+
+    const signedAt = new Date(`${wednesday}T05:38:00.000Z`)
+
+    await takeSignature(
+      tx,
+      {
+        tenantId: planter.tenantId,
+        writtenBy: 'preview-yilmaz',
+        at: signedAt,
+        catalogue,
+        nameOf: (userId) =>
+          previewColleagues.find((colleague) => colleague.id === userId)?.name ??
+          'Unbekanntes Konto',
+      },
+      {
+        activityId: signed,
+        role: 'signer',
+        signedAt,
+        deviceInfo: 'Telefon',
+        path: 'M90,250L180,140L250,280L340,130L430,270L520,150L610,250L720,170L840,220L930,190',
+        pageFingerprint: pageFingerprint(await pageOf(tx, row)),
+      },
+    )
   })
+}
+
+/**
+ * A round of a plan for a day its rounds were not made for, as the plan makes
+ * one, in a state: the preview starts today, and its rounds with it.
+ */
+async function passOf(
+  tx: TenantTransaction,
+  plan: typeof roundPlans.$inferSelect,
+  dueOn: IsoDate,
+  state: Partial<
+    Pick<typeof activities.$inferInsert, 'status' | 'performedOn' | 'performerUserId'>
+  >,
+): Promise<(typeof activities.$inferSelect)['id'] | undefined> {
+  const [model] = await tx
+    .select()
+    .from(activities)
+    .where(and(eq(activities.roundPlanId, plan.id), isNull(activities.deletedAt)))
+    .limit(1)
+
+  if (model === undefined) {
+    return undefined
+  }
+
+  const [made] = await tx
+    .insert(activities)
+    .values({
+      tenantId: model.tenantId,
+      propertyId: model.propertyId,
+      areaId: model.areaId,
+      buildingId: model.buildingId,
+      kind: 'round',
+      title: model.title,
+      status: 'open',
+      dueOn,
+      performer: 'own_staff',
+      performerUserId: plan.performerUserId,
+      countersignatureRequired: model.countersignatureRequired,
+      formKey: model.formKey,
+      formVersion: model.formVersion,
+      roundPlanId: plan.id,
+      ...state,
+    })
+    .onConflictDoNothing()
+    .returning({ id: activities.id })
+
+  return made?.id
 }

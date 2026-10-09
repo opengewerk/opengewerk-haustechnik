@@ -61,7 +61,7 @@ export function DefectNote({ children }: { readonly children: string }) {
 }
 
 /** The photo of a point as a small picture, from the device or fetched once. */
-function PhotoThumb({
+export function PhotoThumb({
   attachmentId,
   label,
 }: {

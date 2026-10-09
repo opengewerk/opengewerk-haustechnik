@@ -10,6 +10,7 @@ import {
   passesBetween,
   planStateOn,
   rhythmText,
+  roundClosable,
   roundStateOf,
   type Weekday,
   weekdayOf,
@@ -418,6 +419,27 @@ describe('a round in the overview of the week', () => {
     expect(roundStateOf('signed', false)).toBe('submitted')
     expect(roundStateOf('done', false)).toBe('submitted')
     expect(roundStateOf('not_performed', false)).toBe('not_performed')
+  })
+})
+
+describe('closing a round with a reason', () => {
+  const today = '2026-10-09' as IsoDate
+
+  it('is for a round of a past day that is open or begun', () => {
+    expect(roundClosable({ status: 'open', dueOn: '2026-10-08' as IsoDate }, today)).toBe(true)
+    expect(roundClosable({ status: 'started', dueOn: '2026-09-28' as IsoDate }, today)).toBe(true)
+  })
+
+  it('is not for a round of today or later, which is still to be walked', () => {
+    expect(roundClosable({ status: 'open', dueOn: today }, today)).toBe(false)
+    expect(roundClosable({ status: 'open', dueOn: '2026-10-10' as IsoDate }, today)).toBe(false)
+    expect(roundClosable({ status: 'open', dueOn: null }, today)).toBe(false)
+  })
+
+  it('is not for a round somebody signed, or one that is done or closed already', () => {
+    for (const status of ['signed', 'done', 'not_performed'] as const) {
+      expect(roundClosable({ status, dueOn: '2026-10-01' as IsoDate }, today)).toBe(false)
+    }
   })
 })
 

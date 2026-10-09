@@ -1,11 +1,14 @@
 import { addDays, type Id, type IsoDate, type Synced } from '@opengewerk/platform-domain'
 
-import type { ActivityStatus } from './activity.js'
+import { activityClosable, type ActivityStatus } from './activity.js'
 import type { AreaId } from './area.js'
 import { closureOn } from './closure.js'
+import type { DefectStatus } from './defect.js'
+import type { DutyPerson } from './duty-register.js'
 import { calendarDay, oneOf, type Problems, wholeFromTo } from './fields.js'
 import type { BuildingId, PropertyId } from './location.js'
 import type { RoundTemplateId } from './round-template.js'
+import type { SignatureRole, SignedPage } from './signature.js'
 
 /**
  * The plan of a round (section 4.5 of the concept, #113): which template is
@@ -470,11 +473,93 @@ export interface WeekRound {
   readonly performerUserId: string | null
 }
 
-/** The overview of a week: the rounds of the plans in it, and how many are still open from before. */
+/** The overview of a week: the rounds of the plans in it, and those still open from before. */
 export interface RoundWeek {
   /** The Monday of the week. */
   readonly weekOf: IsoDate
   readonly rounds: readonly WeekRound[]
-  /** Rounds of earlier weeks that are open or begun: not quietly gone. */
-  readonly openBefore: number
+  /**
+   * Rounds of earlier weeks that are open or begun, the latest first: not
+   * quietly gone, until somebody closes them with a reason (#115).
+   */
+  readonly before: readonly WeekRound[]
+}
+
+/**
+ * Whether a round may be closed as not performed (section 4.5 of the
+ * concept, #115): a round of a past day that is still open or begun. One
+ * signed meanwhile waits for what its signature makes, and one of today or
+ * later is still to be walked.
+ */
+export function roundClosable(
+  round: { readonly status: ActivityStatus; readonly dueOn: IsoDate | null },
+  today: IsoDate,
+): boolean {
+  return (
+    (activityClosable as readonly ActivityStatus[]).includes(round.status) &&
+    round.dueOn !== null &&
+    round.dueOn < today
+  )
+}
+
+/** A signature on a round as its page in the office shows it, with the name of whoever gave it. */
+export interface RoundSignature {
+  readonly id: string
+  readonly role: SignatureRole
+  readonly name: string
+  /** The clock of the device at the moment it was confirmed. */
+  readonly signedAt: string
+  readonly deviceInfo: string | null
+  readonly path: string
+  /** Whether it was given for the page as it is now. */
+  readonly valid: boolean
+}
+
+/** A defect that came of an answer of the round, with the state it is in now. */
+export interface RoundDefect {
+  readonly id: string
+  readonly description: string
+  readonly defectClass: string | null
+  readonly status: DefectStatus
+  readonly roomId: string | null
+  readonly assetId: string | null
+}
+
+/** An evidence the round was written down as, for the duty a point of it fulfils. */
+export interface RoundEvidence {
+  readonly id: string
+  readonly dutyId: string
+  readonly number: string
+}
+
+/**
+ * A round as its page in the office shows it (#115, section 4.5 of the
+ * concept): where and when, who walks it, and once it is signed the page
+ * that was signed, with the signatures, the defects that came of its answers
+ * and the evidence it was written down as. The answers of a round nobody has
+ * signed yet are the work of whoever walks it and are not shown here.
+ */
+export interface RoundDetails {
+  readonly id: string
+  readonly planId: string | null
+  readonly title: string
+  readonly status: ActivityStatus
+  readonly state: RoundState
+  readonly dueOn: IsoDate | null
+  readonly performedOn: IsoDate | null
+  readonly propertyId: string
+  readonly buildingId: string | null
+  readonly areaId: string
+  /** Who walks it, none for everybody in the area. */
+  readonly performer: DutyPerson | null
+  readonly countersignatureRequired: boolean
+  readonly formKey: string | null
+  readonly formVersion: number | null
+  /** Why it was not performed; only a round that was not. */
+  readonly closingReason: string | null
+  /** The page as the server works it out, once somebody signed it; what a countersignature is given for. */
+  readonly page: SignedPage | null
+  readonly signatures: readonly RoundSignature[]
+  readonly defects: readonly RoundDefect[]
+  readonly evidence: readonly RoundEvidence[]
 }

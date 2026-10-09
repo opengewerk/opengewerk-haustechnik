@@ -4,27 +4,51 @@ import {
   ConflictException,
   Controller,
   Get,
+  Inject,
   NotFoundException,
+  Param,
   Post,
   Put,
   Query,
 } from '@nestjs/common'
 import {
+  type Activity,
+  type ActivityId,
+  activityProblems,
   addDays,
+  type Catalogue,
   type DutyPerson,
   type IsoDate,
+  type RoundDetails,
   roundStateOf,
   type RoundWeek,
+  signatureLimits,
+  type WeekRound,
   weekNamed,
 } from '@opengewerk/haustechnik-domain'
-import { accountsOf, CurrentIdentity, Database, isUuid } from '@opengewerk/platform-server'
-import { and, between, count, eq, inArray, isNotNull, isNull, lt, sql } from 'drizzle-orm'
+import {
+  accountsOf,
+  CurrentIdentity,
+  Database,
+  isUuid,
+  type TenantTransaction,
+} from '@opengewerk/platform-server'
+import { and, asc, between, desc, eq, inArray, isNotNull, isNull, lt, sql } from 'drizzle-orm'
 
-import { activities, roundPlans } from '../database/schema/index.js'
+import { closeAsNotPerformed } from '../activities/closing.js'
+import {
+  pageOf,
+  SigningRefusal,
+  signaturesWithTheirStanding,
+  takeSignature,
+} from '../activities/signing.js'
+import { CATALOGUE } from '../catalogue.js'
+import { activities, defects, evidence, roundPlans } from '../database/schema/index.js'
+import { EvidenceRefusal } from '../evidence/write.js'
 import { dayInGermany } from '../today.js'
 import { candidatesIn, inSight } from './activities.controller.js'
 import { RequiresPermission } from './authorization.js'
-import type { Asking } from './places.js'
+import { type Asking, fieldsOf, refuse } from './places.js'
 
 /** The rounds the plans made: the rounds the overview of the week is about. */
 const ofAPlan = and(
@@ -73,13 +97,17 @@ const mostAtOnce = 50
  */
 @Controller('rounds')
 export class RoundsController {
-  constructor(private readonly database: Database) {}
+  constructor(
+    private readonly database: Database,
+    @Inject(CATALOGUE) private readonly catalogue: Catalogue,
+  ) {}
 
   /**
-   * The rounds of a week, Monday to Sunday, with their state, and how many
-   * rounds of earlier weeks are still open or begun: those are not quietly
-   * gone (section 4.5). Waiting for the countersignature is a round signed
-   * whose template asks for one that has not been given.
+   * The rounds of a week, Monday to Sunday, with their state, and the rounds
+   * of earlier weeks that are still open or begun: those are not quietly gone
+   * (section 4.5) until somebody closes them with a reason. Waiting for the
+   * countersignature is a round signed whose template asks for one that has
+   * not been given.
    */
   @Get('week')
   @RequiresPermission('activity.read')
@@ -105,8 +133,14 @@ export class RoundsController {
         .from(activities)
         .where(and(ofAPlan, between(activities.dueOn, monday, addDays(monday, 6)), shown))
         .orderBy(activities.dueOn, activities.id)
-      const [before] = await tx
-        .select({ open: count() })
+      const before = await tx
+        .select({
+          id: activities.id,
+          planId: activities.roundPlanId,
+          dueOn: activities.dueOn,
+          status: activities.status,
+          performerUserId: activities.performerUserId,
+        })
         .from(activities)
         .where(
           and(
@@ -116,23 +150,12 @@ export class RoundsController {
             shown,
           ),
         )
+        .orderBy(desc(activities.dueOn), activities.id)
 
       return {
         weekOf: monday,
-        rounds: rows.flatMap((row) =>
-          row.planId === null || row.dueOn === null
-            ? []
-            : [
-                {
-                  id: row.id,
-                  planId: row.planId,
-                  dueOn: row.dueOn,
-                  state: roundStateOf(row.status, row.awaitsCountersignature),
-                  performerUserId: row.performerUserId,
-                },
-              ],
-        ),
-        openBefore: before?.open ?? 0,
+        rounds: rows.flatMap((row) => weekRoundOf(row, row.awaitsCountersignature)),
+        before: before.flatMap((row) => weekRoundOf(row, false)),
       }
     })
   }
@@ -388,4 +411,268 @@ export class RoundsController {
       return { handedOut, kept }
     })
   }
+
+  /**
+   * The page of a round in the office (#115, section 4.5 of the concept):
+   * where and when, who walks it, and once somebody signed it the page that
+   * was signed, with every signature and whether it counts, the defects that
+   * came of its answers and the evidence it was written down as. The answers
+   * of a round nobody signed are not on it: until the signature they are the
+   * work of whoever walks it.
+   */
+  @Get(':id')
+  @RequiresPermission('activity.read')
+  async read(@CurrentIdentity() identity: Asking, @Param('id') id: string): Promise<RoundDetails> {
+    const read = await this.database.forTenant(identity, async (tx) => {
+      const round = await roundOf(tx, identity, id)
+      const standing = await signaturesWithTheirStanding(tx, round)
+      const signed = standing.some(({ signature }) => signature.role === 'signer')
+      const found = signed
+        ? await tx
+            .select({
+              id: defects.id,
+              description: defects.description,
+              defectClass: defects.defectClass,
+              status: defects.status,
+              roomId: defects.roomId,
+              assetId: defects.assetId,
+            })
+            .from(defects)
+            .where(and(eq(defects.foundInActivityId, round.id), isNull(defects.deletedAt)))
+            .orderBy(asc(defects.createdAt), asc(defects.id))
+        : []
+      const written = await tx
+        .select({ id: evidence.id, dutyId: evidence.dutyId, number: evidence.number })
+        .from(evidence)
+        .where(eq(evidence.activityId, round.id))
+        .orderBy(asc(evidence.number))
+
+      return { round, standing, page: signed ? await pageOf(tx, round) : null, found, written }
+    })
+    const { round, standing } = read
+    const accounts = await accountsOf(
+      this.database,
+      [
+        ...new Set([
+          ...standing.map(({ signature }) => signature.signedBy),
+          ...(round.performerUserId === null ? [] : [round.performerUserId]),
+        ]),
+      ],
+      identity.userId,
+    )
+    const nameOf = (userId: string) => accounts.get(userId)?.name ?? unknownAccount
+    const countersigned = standing.some(({ signature }) => signature.role === 'countersigner')
+
+    return {
+      id: round.id,
+      planId: round.roundPlanId,
+      title: round.title,
+      status: round.status,
+      state: roundStateOf(round.status, round.countersignatureRequired && !countersigned),
+      dueOn: round.dueOn,
+      performedOn: round.performedOn,
+      propertyId: round.propertyId,
+      buildingId: round.buildingId,
+      areaId: round.areaId,
+      performer:
+        round.performerUserId === null
+          ? null
+          : { userId: round.performerUserId, name: nameOf(round.performerUserId) },
+      countersignatureRequired: round.countersignatureRequired,
+      formKey: round.formKey,
+      formVersion: round.formVersion,
+      closingReason: round.closingReason,
+      page: read.page,
+      signatures: standing.map(({ signature, valid }) => ({
+        id: signature.id,
+        role: signature.role,
+        name: nameOf(signature.signedBy),
+        signedAt: signature.signedAt.toISOString(),
+        deviceInfo: signature.deviceInfo,
+        path: signature.path,
+        valid,
+      })),
+      defects: read.found,
+      evidence: read.written,
+    }
+  }
+
+  /**
+   * A round of a past day closed as not performed, with the reason (section
+   * 4.5 of the concept, #115): while it is open or begun, by whoever plans
+   * and hands out work. It stays readable with the reason and fulfils no
+   * duty: what its points were to fulfil stays due. A device that still
+   * holds it changes nothing of it afterwards, and its start no longer shows
+   * it.
+   */
+  @Post(':id/close')
+  @RequiresPermission('activity.write')
+  async close(
+    @CurrentIdentity() identity: Asking,
+    @Param('id') id: string,
+    @Body() body: unknown,
+  ): Promise<RoundDetails> {
+    const { closingReason } = fieldsOf(body, ['closingReason'] as const)
+
+    refuse(activityProblems({ status: 'not_performed', closingReason: closingReason ?? null }))
+
+    await this.database.forTenant(identity, async (tx) => {
+      const round = await roundOf(tx, identity, id)
+      const today = dayInGermany()
+
+      if (round.dueOn === null || round.dueOn >= today) {
+        throw new ConflictException(
+          'Mit Grund geschlossen wird ein Rundgang eines vergangenen Tages. Dieser ist noch zu gehen.',
+        )
+      }
+
+      // Whoever signed it meanwhile waits for the evidence of the signature.
+      if (!(await closeAsNotPerformed(tx, round.id, closingReason as string))) {
+        throw new ConflictException(
+          'Geschlossen wird ein Rundgang, solange er offen oder begonnen ist. Dieser ist schon unterschrieben oder abgeschlossen.',
+        )
+      }
+    })
+
+    return this.read(identity, id)
+  }
+
+  /**
+   * The countersignature of the Objektleitung on a signed round whose
+   * template asks for it (section 4.5 of the concept, #115, ADR 0004, points
+   * 7 and 8): given in the office, with a connection, for the page as it was
+   * shown, whose fingerprint has to be the one the server works out. With it
+   * the round is written down, one evidence per duty a point of it fulfils;
+   * without it there is none.
+   */
+  @Post(':id/countersignature')
+  @RequiresPermission('activity.accept')
+  async countersign(
+    @CurrentIdentity() identity: Asking,
+    @Param('id') id: string,
+    @Body() body: unknown,
+  ): Promise<RoundDetails> {
+    const values = fieldsOf(body, ['path', 'pageFingerprint', 'deviceInfo'] as const, [
+      'deviceInfo',
+    ])
+
+    if (typeof values.path !== 'string' || typeof values.pageFingerprint !== 'string') {
+      throw new BadRequestException('Es fehlen die Unterschrift und die Seite, für die sie gilt.')
+    }
+
+    const deviceInfo =
+      typeof values.deviceInfo === 'string'
+        ? values.deviceInfo.slice(0, signatureLimits.deviceInfo)
+        : null
+    // The names the evidence states are asked of the instance, outside a
+    // tenant: of the people who signed, who walked it and who countersigns.
+    const people = await this.database.forTenant(identity, async (tx) => {
+      const round = await roundOf(tx, identity, id)
+      const standing = await signaturesWithTheirStanding(tx, round)
+
+      return [
+        ...standing.map(({ signature }) => signature.signedBy),
+        ...(round.performerUserId === null ? [] : [round.performerUserId]),
+      ]
+    })
+    const accounts = await accountsOf(
+      this.database,
+      [...new Set([identity.userId, ...people])],
+      identity.userId,
+    )
+
+    await this.database.forTenant(identity, async (tx) => {
+      try {
+        await takeSignature(
+          tx,
+          {
+            tenantId: identity.tenantId,
+            writtenBy: identity.userId,
+            at: new Date(),
+            catalogue: this.catalogue,
+            nameOf: (userId) => accounts.get(userId)?.name ?? unknownAccount,
+          },
+          {
+            activityId: id as ActivityId,
+            role: 'countersigner',
+            signedAt: new Date(),
+            deviceInfo,
+            path: values.path as string,
+            pageFingerprint: values.pageFingerprint as string,
+          },
+        )
+      } catch (error) {
+        if (error instanceof SigningRefusal) {
+          throw error.about === 'signature'
+            ? new BadRequestException(error.message)
+            : new ConflictException(error.message)
+        }
+
+        if (error instanceof EvidenceRefusal) {
+          throw new ConflictException(error.message)
+        }
+
+        throw error
+      }
+    })
+
+    return this.read(identity, id)
+  }
+}
+
+const unknownAccount = 'Unbekanntes Konto'
+
+const missingRound = 'Diesen Rundgang gibt es nicht oder nicht mehr.'
+
+/** A round of a plan as the overview of a week shows it, none for one that names no plan or day. */
+function weekRoundOf(
+  row: {
+    readonly id: string
+    readonly planId: WeekRound['planId'] | null
+    readonly dueOn: IsoDate | null
+    readonly status: Activity['status']
+    readonly performerUserId: string | null
+  },
+  awaitsCountersignature: boolean,
+): WeekRound[] {
+  return row.planId === null || row.dueOn === null
+    ? []
+    : [
+        {
+          id: row.id,
+          planId: row.planId,
+          dueOn: row.dueOn,
+          state: roundStateOf(row.status, awaitsCountersignature),
+          performerUserId: row.performerUserId,
+        },
+      ]
+}
+
+/**
+ * The round behind an id, if the person asking is shown it: in their areas,
+ * not marked deleted, and for whoever only performs, given to them or to
+ * nobody. Every other gets the same answer as one that is not there.
+ */
+async function roundOf(tx: TenantTransaction, identity: Asking, id: string): Promise<Activity> {
+  if (!isUuid(id)) {
+    throw new NotFoundException(missingRound)
+  }
+
+  const [row] = await tx
+    .select()
+    .from(activities)
+    .where(
+      and(
+        eq(activities.id, id as Activity['id']),
+        eq(activities.kind, 'round'),
+        isNull(activities.deletedAt),
+        inSight(identity),
+      ),
+    )
+
+  if (row === undefined) {
+    throw new NotFoundException(missingRound)
+  }
+
+  return row as Activity
 }

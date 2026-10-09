@@ -4,20 +4,25 @@ import type { INestApplication } from '@nestjs/common'
 import { Test } from '@nestjs/testing'
 import { probeCatalogueBundle } from '@opengewerk/haustechnik-catalogue/testing'
 import {
+  type ActivityId,
   addDays,
   catalogueOf,
   type IsoDate,
   type RoleKey,
   shippedRoles,
+  type SignedPage,
   type TenantId,
   weekdayOf,
   weekOf,
 } from '@opengewerk/haustechnik-domain'
 import { Database, newId } from '@opengewerk/platform-server'
+import { eq } from 'drizzle-orm'
 import type { Pool } from 'pg'
 import request from 'supertest'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
+import { pageFingerprint, pageOf, takeSignature } from '../activities/signing.js'
+import { activities } from '../database/schema/index.js'
 import {
   applicationDatabaseUrl,
   connect,
@@ -552,9 +557,9 @@ describe('the rounds of a week', () => {
        values ($1, $2, $3, $4, 'u-site', 'countersigner', now(), 'M10,10L200,300', repeat('a', 64))`,
       [tenant, northProperty, north, countersigned?.id],
     )
-    await admin.query(
+    const { rows: late } = await admin.query<{ id: string }>(
       `insert into activities (tenant_id, property_id, area_id, building_id, kind, title, due_on, round_plan_id)
-       values ($1, $2, $3, $4, 'round', 'Wache, täglicher Rundgang', $5, $6)`,
+       values ($1, $2, $3, $4, 'round', 'Wache, täglicher Rundgang', $5, $6) returning id`,
       [tenant, northProperty, north, northBuilding, addDays(monday, -3), id],
     )
 
@@ -574,7 +579,18 @@ describe('the rounds of a week', () => {
     expect(mine.every((round) => round.dueOn >= monday && round.dueOn <= addDays(monday, 6))).toBe(
       true,
     )
-    expect(week.body['openBefore']).toBeGreaterThanOrEqual(1)
+    // Open from before, each of them, until somebody closes it with a reason,
+    // and nothing of this week.
+    expect(
+      (week.body['before'] as { dueOn: string }[]).every((round) => round.dueOn < monday),
+    ).toBe(true)
+    expect(week.body['before']).toContainEqual({
+      id: late[0]?.id,
+      planId: id,
+      dueOn: addDays(monday, -3),
+      state: 'open',
+      performerUserId: null,
+    })
     expect(
       (await answered(http().get('/rounds/week?of=morgen').set(testIdentityHeader, by('u-site'))))
         .message,
@@ -738,6 +754,248 @@ describe('the rounds of a week', () => {
         )
       ).status,
     ).toBe(403)
+  })
+})
+
+describe('a round in the office', () => {
+  const drawing = 'M10,10L200,300'
+
+  /** A live round a plan made for a person, by its id. */
+  async function roundFor(person: Person): Promise<ActivityId> {
+    const plan = await planned('u-site', { performerUserId: person })
+    const [round] = await roundsOf(plan.body['id'])
+
+    return round?.id as ActivityId
+  }
+
+  /** A round of a plan put in past the routes, on a day and in a state. */
+  async function roundInserted(dueOn: IsoDate, status = 'open'): Promise<ActivityId> {
+    const plan = await planned('u-site')
+    const { rows } = await admin.query<{ id: string }>(
+      `insert into activities (tenant_id, property_id, area_id, building_id, kind, title, due_on,
+                               round_plan_id, status, performed_on)
+       values ($1, $2, $3, $4, 'round', 'Wache, täglicher Rundgang', $5, $6, $7, $8) returning id`,
+      [
+        tenant,
+        northProperty,
+        north,
+        northBuilding,
+        dueOn,
+        plan.body['id'],
+        status,
+        status === 'open' ? null : dueOn,
+      ],
+    )
+
+    return rows[0]?.id as ActivityId
+  }
+
+  /** Answers the one point of the round on site and signs it there, as the sync takes it. */
+  async function signedOnSite(round: ActivityId, person: Person = 'u-tech') {
+    await admin.query(`update activities set status = 'started', performed_on = $2 where id = $1`, [
+      round,
+      today,
+    ])
+    await admin.query(
+      `insert into activity_answers (tenant_id, property_id, area_id, activity_id, field_key, result)
+       values ($1, $2, $3, $4, 'p1', 'ok')`,
+      [tenant, northProperty, north, round],
+    )
+    await database.forTenant({ tenantId: tenant, userId: person }, async (tx) => {
+      const [row] = await tx.select().from(activities).where(eq(activities.id, round))
+
+      if (row === undefined) {
+        throw new Error('No such round')
+      }
+
+      await takeSignature(
+        tx,
+        {
+          tenantId: tenant,
+          writtenBy: person,
+          at: new Date(),
+          catalogue,
+          nameOf: (userId) => `Person ${userId}`,
+        },
+        {
+          activityId: round,
+          role: 'signer',
+          signedAt: new Date(),
+          deviceInfo: 'Probe-Telefon',
+          path: drawing,
+          pageFingerprint: pageFingerprint(await pageOf(tx, row)),
+        },
+      )
+    })
+  }
+
+  function page(person: Person, round: ActivityId) {
+    return answered(http().get(`/rounds/${round}`).set(testIdentityHeader, by(person)))
+  }
+
+  function countersigned(person: Person, round: ActivityId, fingerprint: string) {
+    return answered(
+      http()
+        .post(`/rounds/${round}/countersignature`)
+        .set(testIdentityHeader, by(person))
+        .send({ path: 'M20,20L300,200', pageFingerprint: fingerprint, deviceInfo: 'Büro' }),
+    )
+  }
+
+  function closed(person: Person, round: ActivityId, closingReason?: string) {
+    return answered(
+      http()
+        .post(`/rounds/${round}/close`)
+        .set(testIdentityHeader, by(person))
+        .send(closingReason === undefined ? {} : { closingReason }),
+    )
+  }
+
+  async function evidenceOf(round: ActivityId) {
+    const { rows } = await admin.query<{ duty_id: string; origin: string }>(
+      'select duty_id, origin from evidence where activity_id = $1',
+      [round],
+    )
+
+    return rows
+  }
+
+  it('shows no answers before the signature, and the page that was signed after it, waiting for the countersignature', async () => {
+    const round = await roundFor('u-tech')
+    const open = await page('u-site', round)
+
+    expect(open.status).toBe(200)
+    expect(open.body).toMatchObject({
+      state: 'open',
+      performer: { userId: 'u-tech', name: 'Person u-tech' },
+      countersignatureRequired: true,
+      page: null,
+      signatures: [],
+    })
+
+    await signedOnSite(round)
+
+    const signed = await page('u-site', round)
+
+    expect(signed.body).toMatchObject({
+      status: 'signed',
+      state: 'awaiting_countersignature',
+      performedOn: today,
+      evidence: [],
+      defects: [],
+    })
+    expect((signed.body['page'] as SignedPage).answers).toEqual([
+      expect.objectContaining({ fieldKey: 'p1', result: 'ok' }),
+    ])
+    expect(signed.body['signatures']).toEqual([
+      expect.objectContaining({
+        role: 'signer',
+        name: 'Person u-tech',
+        deviceInfo: 'Probe-Telefon',
+        path: drawing,
+        valid: true,
+      }),
+    ])
+    // Without the countersignature the template asks for there is no evidence.
+    expect(await evidenceOf(round)).toEqual([])
+    // A round outside the areas of the person asking is not there for them,
+    // nor one given to somebody else for whoever only performs.
+    expect((await page('u-south', round)).status).toBe(404)
+    expect((await page('u-tech2', round)).status).toBe(404)
+    expect((await page('u-tech', round)).status).toBe(200)
+  })
+
+  it('is countersigned by the Objektleitung for the page that was shown, and only then written down', async () => {
+    const round = await roundFor('u-tech')
+
+    await signedOnSite(round)
+
+    const shown = pageFingerprint((await page('u-site', round)).body['page'] as SignedPage)
+
+    // Whoever only performs does not countersign.
+    expect((await countersigned('u-tech', round, shown)).status).toBe(403)
+
+    const otherPage = await countersigned('u-site', round, 'f'.repeat(64))
+
+    expect(otherPage.status).toBe(409)
+    expect(otherPage.message).toBe(
+      'Die Seite hat sich geändert, seit sie gezeigt wurde. Sie wird neu gezeigt und neu unterschrieben.',
+    )
+    expect(await evidenceOf(round)).toEqual([])
+
+    const given = await countersigned('u-site', round, shown)
+
+    expect(given.status).toBe(201)
+    expect(given.body).toMatchObject({ status: 'done', state: 'submitted' })
+    expect(
+      (given.body['signatures'] as { role: string; name: string; deviceInfo: string }[]).map(
+        (signature) => [signature.role, signature.name, signature.deviceInfo],
+      ),
+    ).toEqual([
+      ['signer', 'Person u-tech', 'Probe-Telefon'],
+      ['countersigner', 'Person u-site', 'Büro'],
+    ])
+    expect(await evidenceOf(round)).toEqual([{ duty_id: duty, origin: 'round_point' }])
+    expect(given.body['evidence']).toEqual([expect.objectContaining({ dutyId: duty })])
+
+    const again = await countersigned('u-site', round, shown)
+
+    expect(again.status).toBe(409)
+    expect(await evidenceOf(round)).toHaveLength(1)
+  })
+
+  it('closes a round of a past day as not performed, with the reason, by whoever plans, and it fulfils nothing', async () => {
+    const round = await roundInserted(plus(-2), 'started')
+    // The week after it, where the round is one open from before.
+    const before = async () =>
+      (
+        (
+          await answered(
+            http()
+              .get(`/rounds/week?of=${plus(7)}`)
+              .set(testIdentityHeader, by('u-site')),
+          )
+        ).body['before'] as { id: string }[]
+      ).map((each) => each.id)
+
+    expect(await before()).toContain(round)
+    expect((await closed('u-tech', round, 'Die Wache war nicht besetzt.')).status).toBe(403)
+
+    const without = await closed('u-site', round)
+
+    expect(without.status).toBe(400)
+    expect(JSON.stringify(without.body)).toContain(
+      'Ein Vorgang, der nicht durchgeführt wurde, nennt den Grund.',
+    )
+
+    const done = await closed('u-site', round, 'Die Wache war nicht besetzt.')
+
+    expect(done.status).toBe(201)
+    expect(done.body).toMatchObject({
+      status: 'not_performed',
+      state: 'not_performed',
+      closingReason: 'Die Wache war nicht besetzt.',
+    })
+    expect(await evidenceOf(round)).toEqual([])
+
+    expect(await before()).not.toContain(round)
+    expect((await closed('u-site', round, 'Noch einmal.')).status).toBe(409)
+  })
+
+  it('closes no round of today, which is still to be walked, and none somebody signed', async () => {
+    const now = await closed('u-site', await roundFor('u-tech'), 'Zu früh.')
+
+    expect(now.status).toBe(409)
+    expect(now.message).toBe(
+      'Mit Grund geschlossen wird ein Rundgang eines vergangenen Tages. Dieser ist noch zu gehen.',
+    )
+
+    const signed = await closed('u-site', await roundInserted(plus(-1), 'signed'), 'Zu spät.')
+
+    expect(signed.status).toBe(409)
+    expect(signed.message).toBe(
+      'Geschlossen wird ein Rundgang, solange er offen oder begonnen ist. Dieser ist schon unterschrieben oder abgeschlossen.',
+    )
   })
 })
 

@@ -21,6 +21,7 @@ import {
   type WriteAnswer,
   type Written,
 } from '../test-office.js'
+import { roundDate, roundWords } from './round.js'
 import { weekWords } from './round-week.js'
 
 /**
@@ -78,7 +79,22 @@ const week = {
       performerUserId: 'u-murat',
     },
   ],
-  openBefore: 2,
+  before: [
+    {
+      id: 'r-late',
+      planId: plan.id,
+      dueOn: addDays(monday, -3),
+      state: 'open',
+      performerUserId: 'u-murat',
+    },
+    {
+      id: 'r-older',
+      planId: plan.id,
+      dueOn: addDays(monday, -7),
+      state: 'started',
+      performerUserId: null,
+    },
+  ],
 }
 
 const everything = ['properties', 'buildings', 'round_templates', 'round_plans']
@@ -159,6 +175,54 @@ describe('the rounds of a week', () => {
     ])
   })
 
+  it('lead from each pass to its round', async () => {
+    await mountOffice('/rundgaenge', server, everything)
+
+    const pass = await screen.findByTitle(`Di: ${roundStateLabel.started}`)
+
+    expect(pass.closest('a')?.getAttribute('href')).toBe('/rundgaenge/r-2')
+  })
+
+  it('list each round still open from an earlier week, to open or to close with the reason', async () => {
+    answerToWrite = () => ({ status: 201, body: {} })
+    await mountOffice('/rundgaenge', server, everything)
+    await screen.findByRole('heading', { name: weekWords.before })
+
+    expect(rowsOf(weekWords.beforeCaption)).toEqual([
+      [
+        'Wache, täglicher RundgangFeuerwache Nord, Wache',
+        roundDate(addDays(monday, -3)),
+        'Murat Yilmaz',
+        `${weekWords.open}${weekWords.close}`,
+      ],
+      [
+        'Wache, täglicher RundgangFeuerwache Nord, Wache',
+        roundDate(addDays(monday, -7)),
+        'Alle im Bereich Nord',
+        `${weekWords.open}${weekWords.close}`,
+      ],
+    ])
+
+    fireEvent.click(screen.getAllByRole('button', { name: weekWords.close })[0] as HTMLElement)
+
+    const dialog = await screen.findByRole('dialog', { name: roundWords.closeTitle })
+
+    fireEvent.change(within(dialog).getByRole('textbox', { name: /Grund/ }), {
+      target: { value: 'Die Wache war nicht besetzt.' },
+    })
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Schließen' }))
+
+    await waitFor(() => {
+      expect(written).toEqual([
+        {
+          method: 'POST',
+          path: '/rounds/r-late/close',
+          body: { closingReason: 'Die Wache war nicht besetzt.' },
+        },
+      ])
+    })
+  })
+
   it('hand out the rounds of a plan nobody has begun, each to a person or to everybody in the area', async () => {
     answerToWrite = () => ({ status: 200, body: { ids: ['r-3', 'r-4'] } })
     await mountOffice('/rundgaenge', server, everything)
@@ -214,6 +278,9 @@ describe('the rounds of a week', () => {
 
     expect(screen.queryByRole('button', { name: 'Zuteilen' })).toBeNull()
     expect(screen.queryByRole('button', { name: weekWords.likeLastWeek })).toBeNull()
+    // What is open from before stands there to open, and is closed by whoever plans.
+    expect(screen.getAllByRole('button', { name: weekWords.open })).toHaveLength(2)
+    expect(screen.queryByRole('button', { name: weekWords.close })).toBeNull()
   })
 
   it('stand on a phone as a card with the passes, handed out only by whoever plans', async () => {
