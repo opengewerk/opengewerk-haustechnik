@@ -251,9 +251,12 @@ records_for_backup() {
                                          asks_countersignature)
     select tenant_id, id, 1, '{\"title\": \"Technikzentrale\", \"sections\": []}', true
       from round_templates where tenant_id = '$first_tenant';
+    -- A plan of a round that rests (#113): a row the backup carries and the
+    -- deadline engine leaves alone. A running plan makes its rounds and moves
+    -- its deadline after the count, and the log after the restore is longer.
     insert into round_plans (tenant_id, property_id, building_id, area_id, template_id, rhythm,
-                             weekdays, starts_on)
-    select b.tenant_id, b.property_id, b.id, b.area_id, t.id, 'weekly', '{3}', '2026-10-07'
+                             weekdays, starts_on, resting)
+    select b.tenant_id, b.property_id, b.id, b.area_id, t.id, 'weekly', '{3}', '2026-10-07', true
       from buildings b, round_templates t
      where b.tenant_id = '$first_tenant' and t.tenant_id = '$first_tenant';
     insert into activity_answers (tenant_id, property_id, area_id, activity_id, field_key, result,
