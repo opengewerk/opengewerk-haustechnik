@@ -1215,6 +1215,59 @@ describe('a signature from a device', () => {
     ])
   })
 
+  it('lets a defect found in an activity wait for a signature being written at the same moment, and then refuses it', async () => {
+    const toSign = await activityToSign()
+    // A signature being written holds its activity to the end of its
+    // transaction (`checkSignature`); this one signs it and has not committed.
+    const signing = await admin.connect()
+
+    try {
+      await signing.query('begin')
+      await signing.query('select id from activities where id = $1 for no key update', [
+        toSign.activity,
+      ])
+      await signing.query(`update activities set status = 'signed' where id = $1`, [
+        toSign.activity,
+      ])
+
+      let settled = false
+      const sent = outcomes('u-tech', [
+        operation('defects', 'create', newId<'defect'>(), {
+          description: 'Seil angerissen',
+          foundOn: '2026-10-01',
+          foundInActivityId: toSign.activity,
+          propertyId: place.property,
+          assetId: toSign.asset,
+        }),
+      ]).finally(() => {
+        settled = true
+      })
+      const waiting = async () => {
+        const { rows } = await admin.query<{ count: number }>(
+          `select count(*)::int as count from pg_stat_activity
+            where wait_event_type = 'Lock' and datname = current_database()`,
+        )
+
+        return (rows[0]?.count ?? 0) > 0
+      }
+
+      // Until the transmission either waits for the signature or is done.
+      for (let tries = 0; tries < 250 && !settled && !(await waiting()); tries += 1) {
+        await new Promise((resolve) => setTimeout(resolve, 20))
+      }
+
+      expect(settled).toBe(false)
+
+      await signing.query('commit')
+
+      expect(await sent).toEqual([
+        { outcome: 'conflict', reason: 'record_is_fixed', fields: ['foundInActivityId'] },
+      ])
+    } finally {
+      signing.release()
+    }
+  })
+
   it('answers a signature for a page the server no longer has with a conflict about it, and keeps nothing of it', async () => {
     const toSign = await activityToSign()
 

@@ -226,6 +226,13 @@ async function targetPlace(
  * property while the work on it goes on (#108). One found in an activity that
  * is signed or closed would change the page that was signed, and its
  * signature would count no more: that activity is fixed.
+ *
+ * The activity is read with a share lock, held to the end of the
+ * transmission. A signature holds the activity for its whole transaction
+ * (`checkSignature`), so a defect sent at the same moment waits for it and
+ * finds the activity signed, and a signature that comes second finds the
+ * defect on its page. Read without the lock, the defect could land between
+ * the page the signature was checked against and its commit.
  */
 async function defectPlace(
   tx: TenantTransaction,
@@ -237,7 +244,15 @@ async function defectPlace(
     return refusal
   }
 
-  const activity = await found<Activity>(tx, activities, values['foundInActivityId'])
+  const id = values['foundInActivityId']
+  const [activity] =
+    typeof id === 'string' && isUuid(id)
+      ? ((await tx
+          .select()
+          .from(activities)
+          .where(and(eq(activities.id, id as Activity['id']), isNull(activities.deletedAt)))
+          .for('share')) as Activity[])
+      : []
 
   if (!activity || activity.propertyId !== values['propertyId']) {
     return missing('foundInActivityId')

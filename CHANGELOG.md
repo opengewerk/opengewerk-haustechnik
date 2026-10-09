@@ -1163,7 +1163,9 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
 - Ein Mangel, der in einem Vorgang gemeldet wird, kommt über den Abgleich nur noch an, solange der Vorgang
   offen oder begonnen ist (#108). Bisher nahm der Server ihn für jeden Stand an; in einem unterschriebenen
   Vorgang änderte er die Seite, für die unterschrieben war, und die Unterschrift zählte danach nicht mehr. Jetzt
-  ist er ein Konflikt "festgeschrieben", und vor Ort ist "Mangel melden" in einem solchen Vorgang gesperrt
+  ist er ein Konflikt "festgeschrieben", und vor Ort ist "Mangel melden" in einem solchen Vorgang gesperrt.
+  Ein Mangel, der im selben Augenblick wie eine Unterschrift ankommt, wartet auf sie, statt zwischen der
+  geprüften Seite und der Unterschrift zu landen
 - Eine Berichtigung und eine Ungültigerklärung desselben Nachweises, im selben Moment geschickt, gehen nicht mehr beide
   durch (#78, Befund T13-2 aus dem Review der Phase 0). Beide prüften, was aus dem Nachweis geworden war, ohne einander zu
   sehen; so konnte ein für ungültig erklärter Nachweis zugleich berichtigt sein, und eine zweite Berichtigung scheiterte
