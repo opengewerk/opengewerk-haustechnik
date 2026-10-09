@@ -106,17 +106,14 @@ let written: Written[]
 
 /**
  * A statutory public holiday of Baden-Württemberg on the first day the
- * daily plan falls on and its building is open (#200): a weekday outside the
- * closure, never the 29th of February, which no rule of a day names.
+ * daily plan falls on (#200): a weekday, never the 29th of February, which
+ * no rule of a day names. The test that shows it moves the closure away, so
+ * that the holiday is among the next passes on any day of the week.
  */
 const holiday = (() => {
   let day = on
 
-  while (
-    weekdayOf(day) > 5 ||
-    (day >= closure.startsOn && day <= closure.endsOn) ||
-    day.endsWith('-02-29')
-  ) {
+  while (weekdayOf(day) > 5 || day.endsWith('-02-29')) {
     day = addDays(day, 1)
   }
 
@@ -234,6 +231,11 @@ describe('the list of the plans', () => {
 describe('the statutory public holidays of a plan (#200)', () => {
   it('are offered to leave out where the catalogue holds them for the state, and the next passes show them', async () => {
     answerToWrite = () => ({ status: 200, body: { id: daily.id } })
+    server.put('building_closures', {
+      ...closure,
+      startsOn: addDays(on, 60),
+      endsOn: addDays(on, 61),
+    })
     signedIn('site_management', withHolidays)
     await mountOffice(`/rundgaenge/plaene/${daily.id}`, server, everything)
     await screen.findByRole('button', { name: 'Speichern' })
