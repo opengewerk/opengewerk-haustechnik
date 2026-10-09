@@ -83,6 +83,8 @@ const placeEntities = [
   'floors',
   'contacts',
   'building_closures',
+  // The plans of the rounds there: a device reads the lead of a round.
+  'round_plans',
   'rooms',
   'assets',
   'asset_lifecycle',

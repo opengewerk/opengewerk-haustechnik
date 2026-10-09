@@ -329,6 +329,7 @@ export async function mountSite(
       'attachment_versions',
       'round_templates',
       'round_template_versions',
+      'round_plans',
     ],
     onSignedOut: () => {},
   })

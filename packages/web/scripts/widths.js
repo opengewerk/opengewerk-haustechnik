@@ -42,10 +42,11 @@ await checkWidths({
    * prints labels (#98), at the register of assets and at a building; and
    * what taking stock on site opens from the page of a place (#99): the form
    * of an asset at a building and a room, the form of a room at a floor, and
-   * the label of an asset, whose camera a browser without one refuses. A
-   * page that has one is checked a second time as a kind of its own, with the
-   * button pressed. Found by its name, so that the next record with the same
-   * button is checked as well.
+   * the label of an asset, whose camera a browser without one refuses; and
+   * the plans of the rounds (#113): a new plan, and the dialog that hands out
+   * the rounds of a plan in a week. A page that has one is checked a second
+   * time as a kind of its own, with the button pressed. Found by its name, so
+   * that the next record with the same button is checked as well.
    */
   openers: [
     'Neue Liegenschaft',
@@ -81,6 +82,8 @@ await checkWidths({
     'Neue Vorlage',
     'Punkt hinzufügen',
     'Kapitel hinzufügen',
+    'Neuer Plan',
+    'Zuteilen',
   ],
 
   /**

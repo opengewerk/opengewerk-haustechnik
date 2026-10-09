@@ -20,7 +20,8 @@ import type { ApplicationDeadlineColumns } from '../database/schema/deadlines.js
 import { deadlines } from '../database/schema/index.js'
 import { dayInGermany } from '../today.js'
 import { deadlineKindRegistry } from './registry.js'
-import { type DeadlineValues, defectSource, dutySource } from './sources.js'
+import { upgradeOpenRounds } from '../rounds/plans.js'
+import { type DeadlineValues, defectSource, dutySource, roundPlanSource } from './sources.js'
 
 export type { DeadlineReport } from '@opengewerk/platform-server'
 
@@ -43,8 +44,9 @@ const sentences = {
  * The engine of the foundation (ADR 0010 in the repository opengewerk) over
  * the kinds, sources and columns of this application: the appointments of
  * the duties, with the reminder of the foundation and the activity that is
- * to meet a duty as the actions (#105), and the days the defects are to be
- * set right by, with the reminder (#116).
+ * to meet a duty as the actions (#105), the days the defects are to be set
+ * right by, with the reminder (#116), and the next pass of the plan of a
+ * round, whose action makes its rounds (#113).
  *
  * A pass works for nobody, and the deadlines and duties carry the areas of
  * their property (ADR 0003): each transaction of a pass therefore opens every
@@ -64,8 +66,13 @@ function bound(
         today: () => dayInGermany(job.now?.() ?? new Date()),
       }),
       defect: defectSource(),
+      round_plan: roundPlanSource({ today: () => dayInGermany(job.now?.() ?? new Date()) }),
     },
     actions: { activity: activityFromDeadline(job.catalogue) },
+    // A round nobody has begun walks the newest version of its template.
+    complete: async (tx, now) => {
+      await upgradeOpenRounds(tx, now)
+    },
     sentences,
     inTenant: (actor, work) => inEveryArea(job.database, actor, work),
     ...(job.now ? { now: job.now } : {}),

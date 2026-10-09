@@ -54,6 +54,8 @@ describe('the policies of the sync', () => {
       // The templates of the rounds and their versions, kept in the office (#112).
       round_templates: [false, 'never'],
       round_template_versions: [false, 'never'],
+      // The plans of the rounds, kept by whoever plans (#113).
+      round_plans: [false, 'never'],
       rooms: [true, 'merge'],
       assets: [true, 'merge'],
       asset_lifecycle: [false, 'never'],
@@ -109,9 +111,10 @@ describe('the policies of the sync', () => {
     expect(syncPolicies['activities']?.reserved).not.toContain('propertyId')
     expect(syncPolicies['defects']?.reserved).not.toContain('propertyId')
     // The form an activity is filled in, the day of the protocol it took as its
-    // template (#108), and the answer a defect came of (#106).
+    // template (#108), the plan that made a round (#113), and the answer a
+    // defect came of (#106).
     expect(syncPolicies['activities']?.reserved).toEqual(
-      expect.arrayContaining(['formKey', 'formVersion', 'templateOn']),
+      expect.arrayContaining(['formKey', 'formVersion', 'templateOn', 'roundPlanId']),
     )
     expect(syncPolicies['defects']?.reserved).toContain('foundInAnswerId')
   })

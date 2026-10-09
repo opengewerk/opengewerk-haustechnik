@@ -38,7 +38,9 @@ describe('the foundation in this database', () => {
     // indexes, the same policy, and on its versions the policy that asks the
     // document, because a version carries no area. A deadline may follow a
     // defect instead of a duty, and a document may hang on a defect
-    // (opengewerk-haustechnik#116, migration 0025), with their keys, checks
+    // (opengewerk-haustechnik#116, migration 0025); a deadline may follow the
+    // plan of a round as well (opengewerk-haustechnik#113, migration 0030),
+    // with their keys, checks
     // and indexes. Only a restrictive policy may be named here; it takes rows
     // away and opens none.
     expect(
@@ -47,6 +49,7 @@ describe('the foundation in this database', () => {
         columns: [
           'deadlines.duty_id',
           'deadlines.defect_id',
+          'deadlines.round_plan_id',
           'deadlines.property_id',
           'deadlines.area_id',
           'contacts.property_id',
@@ -64,6 +67,7 @@ describe('the foundation in this database', () => {
           'deadlines.deadlines_follow_their_property',
           'deadlines.deadlines_of_a_duty_of_their_property',
           'deadlines.deadlines_of_a_defect_of_their_property',
+          'deadlines.deadlines_of_a_plan_of_their_property',
           'deadlines.deadlines_follow_one_source',
           'contacts.contacts_follow_their_property',
           'contacts.contacts_given_name_shaped',
@@ -84,6 +88,7 @@ describe('the foundation in this database', () => {
         indexes: [
           'deadlines.deadlines_duty_idx',
           'deadlines.deadlines_defect_idx',
+          'deadlines.deadlines_round_plan_idx',
           'contacts.contacts_property_idx',
           'attachments.attachments_property_idx',
           'attachments.attachments_asset_idx',

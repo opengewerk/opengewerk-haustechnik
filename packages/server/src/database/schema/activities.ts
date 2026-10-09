@@ -35,6 +35,7 @@ import { defects } from './defects.js'
 import { duties, dutyPerformer } from './duties.js'
 import { evidenceResult } from './evidence-result.js'
 import { buildings, optionalTrimmed, properties, rooms, trimmed } from './locations.js'
+import { roundPlans } from './round-plans.js'
 
 // The activities of an operator (section 2.2 of the concept, ADR 0002, point
 // 13): what is done to meet a due day or to set a fault right, one table for
@@ -93,6 +94,8 @@ export const activities = pgTable(
     formVersion: integer('form_version'),
     // The day of the protocol it took as its template (#108): the server's to write.
     templateOn: date('template_on', { mode: 'string' }),
+    // The plan a round was made by, for its day (#113): the server's to write.
+    roundPlanId: reference<'round_plan'>('round_plan_id'),
     ...timestamps,
     ...syncColumns,
   },
@@ -135,8 +138,19 @@ export const activities = pgTable(
       foreignColumns: [memberships.tenantId, memberships.userId],
       name: 'activities_performer_works_here',
     }),
+    foreignKey({
+      columns: [table.tenantId, table.roundPlanId, table.propertyId],
+      foreignColumns: [roundPlans.tenantId, roundPlans.id, roundPlans.propertyId],
+      name: 'activities_of_a_plan_of_their_property',
+    }),
     index('activities_property_idx').on(table.tenantId, table.propertyId),
     index('activities_asset_idx').on(table.tenantId, table.assetId),
+    // One round for each pass of a plan (section 4.5): two runs of the
+    // deadline engine, or the engine and the office at the same moment, make
+    // it once. A round that was removed makes room for a new one.
+    uniqueIndex('activities_once_per_pass')
+      .on(table.tenantId, table.roundPlanId, table.dueOn)
+      .where(sql`${table.roundPlanId} is not null and ${table.deletedAt} is null`),
     // At most one of building, room and asset; none is the property itself.
     check(
       'activities_one_target',
@@ -173,6 +187,11 @@ export const activities = pgTable(
     check(
       'activities_form_shaped',
       sql`${table.formKey} is null or (${table.formKey} ~ '^[a-z][a-z0-9_.-]*$' and char_length(${table.formKey}) <= ${sql.raw(String(activityLimits.formKey))} and ${table.formVersion} >= 1)`,
+    ),
+    // A plan makes rounds, each for its day.
+    check(
+      'activities_plan_makes_rounds',
+      sql`${table.roundPlanId} is null or (${table.kind} = 'round' and ${table.dueOn} is not null)`,
     ),
     // A work order is accepted by whoever handed it out, and not countersigned.
     check(

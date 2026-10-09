@@ -298,6 +298,16 @@ async function placeIn(where: 'north' | 'south'): Promise<void> {
      values ($1, $2, $3, $4, '2026-12-24', '2027-01-06', 'Weihnachtsferien')`,
     [tenant, at.building, at.property, areaId],
   )
+  // A template lies in no area; the plan that walks it lies in the area of its property.
+  const { rows: templates } = await admin.query<{ id: string }>(
+    `insert into round_templates (tenant_id, title) values ($1, 'Rundgang') returning id`,
+    [tenant],
+  )
+  await admin.query(
+    `insert into round_plans (tenant_id, property_id, building_id, area_id, template_id, rhythm, weekdays, starts_on)
+     values ($1, $2, $3, $4, $5, 'weekly', '{3}', '2026-10-07')`,
+    [tenant, at.property, at.building, areaId, templates[0]?.id],
+  )
   await admin.query(
     `insert into rooms (id, tenant_id, floor_id, building_id, property_id, area_id, number)
      values ($1, $2, $3, $4, $5, $6, '0.01')`,
@@ -549,6 +559,7 @@ describe('a person with the north', () => {
       'labels',
       'properties',
       'rooms',
+      'round_plans',
       'work_order_decisions',
       'work_order_participants',
       'work_orders',
@@ -763,6 +774,7 @@ describe('a property moved to another area', () => {
         'floors',
         'labels',
         'rooms',
+        'round_plans',
         'work_order_decisions',
         'work_order_participants',
         'work_orders',

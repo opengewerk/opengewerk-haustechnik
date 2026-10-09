@@ -50,6 +50,9 @@ export const syncPolicies: Readonly<Record<string, SyncPolicy>> = {
   // names, without a network.
   round_templates: officeOnly,
   round_template_versions: officeOnly,
+  // The plans of the rounds (#113): whoever plans and hands out work keeps
+  // them, and a device holds those of its areas, to read.
+  round_plans: officeOnly,
   // A room is taken stock of on site; its building, property and area follow
   // its floor.
   rooms: { create: true, change: 'merge', reserved: ['buildingId', 'propertyId', 'areaId'] },
@@ -72,8 +75,9 @@ export const syncPolicies: Readonly<Record<string, SyncPolicy>> = {
     change: 'merge',
     onlyWhile: { field: 'status', values: inProgress },
     // The form it is filled in is the server's, written when it is made (#106),
-    // and so is the day of the protocol it took as its template (#108).
-    reserved: ['areaId', 'formKey', 'formVersion', 'templateOn'],
+    // and so is the day of the protocol it took as its template (#108) and
+    // the plan of a round that made it (#113).
+    reserved: ['areaId', 'formKey', 'formVersion', 'templateOn', 'roundPlanId'],
   },
   // The result of each duty, until the activity is signed.
   activity_duties: {
@@ -382,6 +386,7 @@ export const syncEntityNames: Readonly<Record<string, string>> = {
   building_closures: 'Schließzeit',
   round_templates: 'Vorlage eines Rundgangs',
   round_template_versions: 'Fassung einer Vorlage',
+  round_plans: 'Plan eines Rundgangs',
   rooms: 'Raum',
   assets: 'Anlage',
   asset_lifecycle: 'Lebenszyklus einer Anlage',
@@ -543,4 +548,12 @@ export const syncFieldNames: Readonly<Record<string, string>> = {
   formVersion: 'Fassung',
   definition: 'Kapitel und Punkte',
   asksCountersignature: 'Gegenzeichnung verlangt',
+  // What is said about the plan of a round (#113). The office keeps it; a
+  // device holds it to read, and a round names the plan that made it.
+  rhythm: 'Rhythmus',
+  weekdays: 'Wochentage',
+  dayOfMonth: 'Tag',
+  month: 'Monat',
+  leadDays: 'Vorlauf',
+  resting: 'Ruht',
 }

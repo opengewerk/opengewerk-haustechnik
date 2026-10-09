@@ -1,10 +1,10 @@
 import type { Crumb } from '@opengewerk/platform-web'
 
 /**
- * Where the templates of the rounds live in the office (#112): under
- * "Rundgänge", the list, a new one, empty or taken over from a package, and
- * one template by its id. "Rundgänge" shows the list as well until the
- * overview of the week comes with the plans of the rounds.
+ * Where the rounds live in the office: "Rundgänge" is the overview of the
+ * week (#113), and under it the templates (#112), the list, a new one, empty
+ * or taken over from a package, and one template by its id, and the plans
+ * (#113), the list, a new one and one plan by its id.
  */
 
 export const roundsPlace = { to: '/rundgaenge', label: 'Rundgänge' } as const satisfies Crumb
@@ -20,4 +20,11 @@ export const takenFromWord = 'aus'
 export const templatePlaces = {
   template: (id: string) => `/rundgaenge/vorlagen/${id}`,
   new: '/rundgaenge/vorlagen/neu',
+} as const
+
+export const planListPlace = { to: '/rundgaenge/plaene', label: 'Pläne' } as const satisfies Crumb
+
+export const planPlaces = {
+  plan: (id: string) => `/rundgaenge/plaene/${id}`,
+  new: '/rundgaenge/plaene/neu',
 } as const
