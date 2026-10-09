@@ -249,7 +249,7 @@ records_for_backup() {
     select id, 'Technikzentrale' from tenants where id = '$first_tenant';
     insert into round_template_versions (tenant_id, template_id, form_version, definition,
                                          asks_countersignature)
-    select tenant_id, id, 1, '{"title": "Technikzentrale", "sections": []}', true
+    select tenant_id, id, 1, '{\"title\": \"Technikzentrale\", \"sections\": []}', true
       from round_templates where tenant_id = '$first_tenant';
     insert into activity_answers (tenant_id, property_id, area_id, activity_id, field_key, result,
                                   remark)
