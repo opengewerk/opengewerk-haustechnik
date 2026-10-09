@@ -37,7 +37,8 @@ export const siteDefects = {
  * with its points, and each point on a screen of its own, by its field, or
  * by group, block and field. Its result with the signature, and a defect
  * reported in it, stand under it (#108); so do the handing in of a round and
- * its signature (#114).
+ * its signature (#114), and the protocol of a work order, a note on it and
+ * its finishing (#118).
  */
 export const siteForms = {
   form: (activityId: string) => `/vorgaenge/${activityId}`,
@@ -46,4 +47,7 @@ export const siteForms = {
   defect: (activityId: string) => `/vorgaenge/${activityId}/mangel`,
   handIn: (activityId: string) => `/vorgaenge/${activityId}/abgabe`,
   sign: (activityId: string) => `/vorgaenge/${activityId}/unterschrift`,
+  protocol: (activityId: string) => `/vorgaenge/${activityId}/protokoll`,
+  note: (activityId: string) => `/vorgaenge/${activityId}/notiz`,
+  close: (activityId: string) => `/vorgaenge/${activityId}/abschliessen`,
 } as const

@@ -64,18 +64,22 @@ export function DefectNote({ children }: { readonly children: string }) {
 export function PhotoThumb({
   attachmentId,
   label,
+  compact = false,
 }: {
   readonly attachmentId: string
   readonly label: string
+  /** The smaller size of the photos of a work order on site (#118). */
+  readonly compact?: boolean
 }) {
   const newest = useVersions().get(attachmentId)?.[0]
   const href = usePreview(newest)
+  const size = compact ? 'h-16 w-[84px]' : 'h-[72px] w-24'
 
   return href === null ? (
     <span
       role="img"
       aria-label={label}
-      className="flex h-[72px] w-24 shrink-0 items-center justify-center rounded-[5px] border border-line bg-surface-sunken text-ink-faint"
+      className={`flex ${size} shrink-0 items-center justify-center rounded-[5px] border border-line bg-surface-sunken text-ink-faint`}
     >
       <ImageIcon size={22} strokeWidth={1.8} aria-hidden="true" />
     </span>
@@ -83,7 +87,7 @@ export function PhotoThumb({
     <img
       src={href}
       alt={label}
-      className="h-[72px] w-24 shrink-0 rounded-[5px] border border-line object-cover"
+      className={`${size} shrink-0 rounded-[5px] border border-line object-cover`}
     />
   )
 }

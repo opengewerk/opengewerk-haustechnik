@@ -10,7 +10,7 @@ import {
   dutyPerformers,
 } from './duty-record.js'
 import { type EvidenceResult, evidenceResultLabel, evidenceResults } from './evidence.js'
-import { calendarDay, oneOf, optional, type Problems, required } from './fields.js'
+import { calendarDay, oneOf, optional, type Problems, required, wholeFromTo } from './fields.js'
 import type { PropertyId } from './location.js'
 import type { RoundPlanId } from './round-plan.js'
 import type { PlaceTarget } from './target.js'
@@ -28,6 +28,7 @@ export type ActivityId = Id<'activity'>
 export type ActivityDutyId = Id<'activity-duty'>
 export type WorkOrderId = Id<'work-order'>
 export type WorkOrderParticipantId = Id<'work-order-participant'>
+export type WorkOrderNoteId = Id<'work-order-note'>
 
 /** The kinds of an activity, in the words of section 2.2 of the concept. */
 export const activityKinds = ['round', 'inspection', 'maintenance', 'work_order'] as const
@@ -243,6 +244,12 @@ export interface WorkOrder extends Synced {
   readonly kind: WorkOrderKind
   readonly urgency: WorkOrderUrgency
   readonly originDefectId: DefectId | null
+  /**
+   * The time spent on the order in minutes, as the people working on it say
+   * it on site (#118, section 4.8 of the concept): the effort of the order,
+   * one figure for all of them, and no record of anybody's working time.
+   */
+  readonly durationMinutes: number | null
 }
 
 /**
@@ -257,6 +264,25 @@ export interface WorkOrderParticipant extends Synced {
   readonly areaId: AreaId
   readonly activityId: ActivityId
   readonly userId: string
+}
+
+/**
+ * A note on a work order (#118, section 4.8 of the concept): an entry of its
+ * own, written on site by the person who answers for the order or one of the
+ * further people, with the moment of the device it was written on. The
+ * server writes who wrote it, the person signed in, and never what a device
+ * says. Once saved, nothing changes or removes it; what was wrong is said in
+ * a further note.
+ */
+export interface WorkOrderNote extends Synced {
+  readonly id: WorkOrderNoteId
+  readonly propertyId: PropertyId
+  readonly areaId: AreaId
+  readonly activityId: ActivityId
+  readonly text: string
+  /** When it was written, by the clock of the device. */
+  readonly writtenAt: Date
+  readonly writtenBy: string
 }
 
 /**
@@ -377,8 +403,8 @@ export function activityDutyProblems(line: Readonly<Record<string, unknown>>): R
 }
 
 /**
- * What is wrong with what only a work order has: its kind and how urgent it
- * is. Its number comes from the server.
+ * What is wrong with what only a work order has: its kind, how urgent it is,
+ * and the time spent on it. Its number comes from the server.
  */
 export function workOrderProblems(order: Readonly<Record<string, unknown>>): Readonly<Problems> {
   const problems: Problems = {}
@@ -398,11 +424,101 @@ export function workOrderProblems(order: Readonly<Record<string, unknown>>): Rea
     `Die Dringlichkeit ist eine von: ${workOrderUrgencies.map((urgency) => workOrderUrgencyLabel[urgency]).join(', ')}.`,
   )
 
+  const duration = order['durationMinutes']
+
+  if (
+    duration !== undefined &&
+    duration !== null &&
+    !wholeFromTo(duration, 1, workOrderLimits.durationMinutes)
+  ) {
+    problems['durationMinutes'] = durationSentence
+  }
+
   return problems
 }
 
-/** How many further people a work order names at most. */
-export const workOrderLimits = { participants: 20 } as const
+/**
+ * The bounds of a work order: how many further people it names, the longest
+ * time spent on it in minutes, 9999 hours and 59 minutes, and the longest
+ * note.
+ */
+export const workOrderLimits = {
+  participants: 20,
+  durationMinutes: 9999 * 60 + 59,
+  note: 2000,
+} as const
+
+const durationSentence =
+  'Die Dauer sind Stunden und Minuten, etwa 0:45 oder 2:30, höchstens 9999:59.'
+
+/** The time spent on a work order in the words of the site: hours and minutes, `0:45`. */
+export function durationWords(minutes: number): string {
+  return `${String(Math.floor(minutes / 60))}:${String(minutes % 60).padStart(2, '0')}`
+}
+
+/**
+ * The time spent on a work order as somebody types it on site: hours and
+ * minutes (`0:45`, `2:30`) or whole hours (`3`). Nothing typed is no
+ * duration, null; anything else is the sentence that says how it is written.
+ */
+export function durationOf(typed: string): { readonly minutes: number | null } | string {
+  const trimmed = typed.trim()
+
+  if (trimmed === '') {
+    return { minutes: null }
+  }
+
+  const match = /^(\d{1,4})(?::([0-5]\d))?$/.exec(trimmed)
+
+  if (!match) {
+    return durationSentence
+  }
+
+  const minutes = Number(match[1]) * 60 + Number(match[2] ?? '0')
+
+  return minutes === 0 ? durationSentence : { minutes }
+}
+
+/**
+ * What is wrong with a note on a work order: its text, given and not too
+ * long, and the moment it was written, a moment the clock of a device can
+ * name.
+ */
+export function workOrderNoteProblems(note: Readonly<Record<string, unknown>>): Readonly<Problems> {
+  const problems: Problems = {}
+
+  required(problems, note, 'text', workOrderLimits.note, 'Die Notiz')
+
+  const writtenAt = note['writtenAt']
+  const moment =
+    writtenAt instanceof Date
+      ? writtenAt.getTime()
+      : typeof writtenAt === 'string'
+        ? Date.parse(writtenAt)
+        : Number.NaN
+
+  if (writtenAt !== undefined && Number.isNaN(moment)) {
+    problems['writtenAt'] =
+      'Der Zeitpunkt der Notiz ist ein Zeitpunkt, geschrieben 2026-10-05T08:55:00Z.'
+  }
+
+  return problems
+}
+
+/**
+ * Whether a person finishes a work order with the signature (section 4.8 of
+ * the concept, #118): only the one who answers for it, "der Knopf, der etwas
+ * unumkehrbar macht, steht der verantwortlichen Person zu und nicht jedem,
+ * der das Formular sieht". An order nobody answers for is finished by nobody
+ * until the office hands it out. Every other kind of activity is signed by
+ * whoever performs it.
+ */
+export function finishesWorkOrder(
+  activity: { readonly kind: string; readonly responsibleUserId: string | null },
+  userId: string,
+): boolean {
+  return activity.kind !== 'work_order' || activity.responsibleUserId === userId
+}
 
 /**
  * A work order as whoever plans and hands out work sets it out in the office

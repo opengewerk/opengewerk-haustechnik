@@ -400,10 +400,16 @@ async function placeIn(where: 'north' | 'south'): Promise<void> {
       where === 'north' ? 'AU-2026-0001' : 'AU-2026-0002',
     ],
   )
-  // A further person on the work order (#73).
+  // A further person on the work order (#73), and a note on it (#118).
   await admin.query(
     `insert into work_order_participants (tenant_id, property_id, area_id, activity_id, user_id)
      values ($1, $2, $3, $4, $5)`,
+    [tenant, at.property, areaId, at.activity, person.lead],
+  )
+  await admin.query(
+    `insert into work_order_notes (tenant_id, property_id, area_id, activity_id, text,
+                                   written_at, written_by)
+     values ($1, $2, $3, $4, 'Notrufgerät getauscht.', '2026-10-01T09:20:00Z', $5)`,
     [tenant, at.property, areaId, at.activity, person.lead],
   )
   await admin.query(
@@ -561,6 +567,7 @@ describe('a person with the north', () => {
       'rooms',
       'round_plans',
       'work_order_decisions',
+      'work_order_notes',
       'work_order_participants',
       'work_orders',
     ])
@@ -776,6 +783,7 @@ describe('a property moved to another area', () => {
         'rooms',
         'round_plans',
         'work_order_decisions',
+        'work_order_notes',
         'work_order_participants',
         'work_orders',
       ])

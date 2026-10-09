@@ -106,15 +106,37 @@ export const syncPolicies: Readonly<Record<string, SyncPolicy>> = {
     reserved: ['propertyId', 'areaId'],
   },
   // How urgent an order is and the defect it came of are the office's (#117).
+  // The time spent on it is said on site while the work goes on (#118), and
+  // its signature fixes it.
   work_orders: {
     create: true,
-    change: 'never',
+    change: 'merge',
+    gateFrom: {
+      reference: 'activityId',
+      entity: 'activities',
+      field: 'status',
+      values: inProgress,
+    },
     reserved: ['number', 'activityKind', 'propertyId', 'areaId', 'urgency', 'originDefectId'],
   },
   // Who works on a work order besides the person who answers for it (#73):
   // handed out in the office, with a connection, and held by the devices of
   // the people who work on it.
   work_order_participants: { ...officeOnly, reserved: ['activityKind', 'propertyId', 'areaId'] },
+  // A note on a work order (#118): written on site while the work goes on,
+  // also without a connection, and never changed or removed afterwards. Who
+  // wrote it is the person signed in, which the server writes.
+  work_order_notes: {
+    create: true,
+    change: 'never',
+    gateFrom: {
+      reference: 'activityId',
+      entity: 'activities',
+      field: 'status',
+      values: inProgress,
+    },
+    reserved: ['activityKind', 'propertyId', 'areaId', 'writtenBy'],
+  },
   // The answer a defect came of is the server's, written with the signature (#106).
   defects: { create: true, change: 'merge', reserved: ['areaId', 'foundInAnswerId'] },
   // A signature is given on the device, also without a connection, and never
@@ -276,8 +298,14 @@ export const offlineEdits: Readonly<Record<string, OfflineEdits>> = {
     change: { value: true, result: true, remark: true, attachmentId: true },
     remove: true,
   },
-  // A work order made on site is one for a fault ("Störung").
-  work_orders: { create: { activityId: true, kind: ['fault'] } },
+  // A work order made on site is one for a fault ("Störung"); the time spent
+  // on an order is said on site (#118).
+  work_orders: {
+    create: { activityId: true, kind: ['fault'] },
+    change: { durationMinutes: true },
+  },
+  // A note on a work order, with the moment of the device it was written on.
+  work_order_notes: { create: { activityId: true, text: true, writtenAt: true } },
   // A signature, with when, on which device and for which page it was given.
   activity_signatures: {
     create: {
@@ -398,6 +426,7 @@ export const syncEntityNames: Readonly<Record<string, string>> = {
   activity_answers: 'Antwort',
   work_orders: 'Arbeitsauftrag',
   work_order_participants: 'Beteiligte Person',
+  work_order_notes: 'Notiz zu einem Auftrag',
   defects: 'Mangel',
   activity_signatures: 'Unterschrift',
   work_order_decisions: 'Abnahme eines Auftrags',
@@ -494,8 +523,13 @@ export const syncFieldNames: Readonly<Record<string, string>> = {
   status: 'Stand',
   dueOn: 'Fällig am',
   performerUserId: 'Ausgeführt von',
-  // A further person on a work order (#73).
+  // A further person on a work order (#73), the time spent on an order and a
+  // note on it (#118).
   userId: 'Person',
+  durationMinutes: 'Dauer',
+  text: 'Text',
+  writtenAt: 'Geschrieben am',
+  writtenBy: 'Geschrieben von',
   contractorNote: 'Fremdfirma',
   closingReason: 'Grund',
   performedOn: 'Durchgeführt am',

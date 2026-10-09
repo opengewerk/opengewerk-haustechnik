@@ -5,6 +5,7 @@ import type {
   ActivityStatus,
   WorkOrderId,
   WorkOrderKind,
+  WorkOrderNoteId,
   WorkOrderPlan,
   WorkOrderUrgency,
 } from './activity.js'
@@ -140,9 +141,21 @@ export interface WorkOrderDecisionLine {
 }
 
 /**
+ * A note on a work order as its page shows it (#118): what it says, when the
+ * device it was written on said it was, and who wrote it.
+ */
+export interface WorkOrderNoteLine {
+  readonly id: WorkOrderNoteId
+  readonly text: string
+  readonly writtenAt: string
+  readonly name: string
+}
+
+/**
  * The page of a work order: what the list says, where it came from, the
  * further people who work on it, when it was made and performed or why it
- * was not, its signatures and the decisions on it.
+ * was not, the time spent on it and the notes from the site, its signatures
+ * and the decisions on it.
  */
 export interface WorkOrderDetails extends WorkOrderEntry {
   readonly createdAt: string
@@ -151,6 +164,10 @@ export interface WorkOrderDetails extends WorkOrderEntry {
   readonly closingReason: string | null
   readonly origin: WorkOrderOrigin
   readonly participants: readonly DutyPerson[]
+  /** The time spent on it in minutes, as said on site (#118). */
+  readonly durationMinutes: number | null
+  /** The notes from the site, the first written first. */
+  readonly notes: readonly WorkOrderNoteLine[]
   readonly signatures: readonly WorkOrderSignatureLine[]
   readonly decisions: readonly WorkOrderDecisionLine[]
 }

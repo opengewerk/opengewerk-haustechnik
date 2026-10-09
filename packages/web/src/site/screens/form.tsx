@@ -21,7 +21,14 @@ import {
   SiteTrouble,
   type WayBack,
 } from '@opengewerk/platform-web/site'
-import { maybeText, text, useRecord, useRecords, useRelated } from '@opengewerk/platform-web/sync'
+import {
+  maybeText,
+  text,
+  useRecord,
+  useRecords,
+  useRelated,
+  useSync,
+} from '@opengewerk/platform-web/sync'
 import { useNavigate, useParams } from '@tanstack/react-router'
 import { ChevronLeft, ChevronRight, ClipboardCheck, DoorOpen, Plus, Zap } from 'lucide-react'
 import { useMemo, useState } from 'react'
@@ -152,8 +159,17 @@ export function useActivityForm(activityId: string, opened: readonly OpenedBlock
   const activity = useRecord('activities', activityId)
   const catalogue = useCatalogue()
   const answers = useRelated('activity_answers', 'activityId', activityId)
+  const client = useSync()
+  const status = text(activity, 'status')
+  // A work order the office turned back is open again, with its signature
+  // standing and no longer counting (#118): there a signature counts while it
+  // waits in the outbox, or once the server says so with the state.
   const signed = useRelated('activity_signatures', 'activityId', activityId).some(
-    (signature) => signature['role'] === 'signer',
+    (signature) =>
+      signature['role'] === 'signer' &&
+      (text(activity, 'kind') !== 'work_order' ||
+        !inProgress.includes(status) ||
+        client.isPending('activity_signatures', String(signature['id']))),
   )
   const performs = useRight('activity.perform')
   const form = useFormOf(
@@ -170,7 +186,7 @@ export function useActivityForm(activityId: string, opened: readonly OpenedBlock
     catalogue === null
       ? null
       : { rules: catalogue.ruleSet, on: maybeText(activity, 'performedOn') ?? today() }
-  const open = inProgress.includes(text(activity, 'status')) && !signed
+  const open = inProgress.includes(status) && !signed
 
   return {
     activity,

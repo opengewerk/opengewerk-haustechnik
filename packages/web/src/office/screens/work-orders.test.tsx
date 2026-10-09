@@ -128,6 +128,8 @@ function details(entry: WorkOrderEntry, further: Partial<WorkOrderDetails> = {})
       foundOn: '2026-09-28',
     },
     participants: [{ userId: 'u-yilmaz', name: 'Murat Yilmaz' }],
+    durationMinutes: null,
+    notes: [],
     signatures: [],
     decisions: [],
     ...further,
@@ -277,6 +279,40 @@ describe('the page of a work order', () => {
     expect(screen.getByText('Murat Yilmaz')).toBeTruthy()
     expect(screen.getByRole('img', { name: 'Unterschrift von Lena Vogt' })).toBeTruthy()
     expect(screen.queryByText('gilt nicht mehr')).toBeNull()
+  })
+
+  it('names the time spent and the notes from the site, each with who wrote it and when', async () => {
+    const { mounted } = mount('/auftraege/ac-waiting', {
+      '/work-orders/ac-waiting': details(waiting, {
+        durationMinutes: 45,
+        notes: [
+          {
+            id: 'n-1' as never,
+            text: 'Kessel entlüftet, Druck steht bei 1,6 bar.',
+            writtenAt: '2026-10-05T06:55:00.000Z',
+            name: 'Murat Yilmaz',
+          },
+        ],
+      }),
+    })
+
+    await mounted
+    await screen.findByRole('heading', { name: 'Heizkessel Mensa entlüften' })
+    expect(screen.getByText('0:45 Std.')).toBeTruthy()
+
+    const notes = screen.getByRole('list', { name: 'Notizen von vor Ort' })
+
+    expect(within(notes).getByText('Kessel entlüftet, Druck steht bei 1,6 bar.')).toBeTruthy()
+    expect(within(notes).getByText(/Murat Yilmaz$/)).toBeTruthy()
+  })
+
+  it('says when no time spent and no note came from the site yet', async () => {
+    const { mounted } = mount('/auftraege/ac-waiting', { '/work-orders/ac-waiting': signedPage })
+
+    await mounted
+    await screen.findByRole('heading', { name: 'Heizkessel Mensa entlüften' })
+    expect(screen.getByText('Noch nicht angegeben')).toBeTruthy()
+    expect(screen.getByText('Noch keine Notiz von vor Ort.')).toBeTruthy()
   })
 
   it('accepts a signed order for whoever accepts work orders', async () => {

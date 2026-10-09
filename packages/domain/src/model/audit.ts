@@ -261,6 +261,18 @@ export const auditVocabulary: AuditVocabulary = {
         kind: 'Art des Auftrags',
         urgency: 'Dringlichkeit',
         origin_defect_id: 'Aus dem Mangel',
+        duration_minutes: 'Dauer in Minuten',
+      },
+    },
+    // A note on a work order (#118).
+    work_order_notes: {
+      label: 'Notiz zu einem Auftrag',
+      fields: {
+        activity_id: 'Vorgang',
+        activity_kind: 'Art des Vorgangs',
+        text: 'Text',
+        written_at: 'Geschrieben am',
+        written_by: 'Geschrieben von',
       },
     },
     // The further people of a work order (#73).
@@ -392,12 +404,13 @@ export const auditVocabulary: AuditVocabulary = {
     attachments: [{ table: 'attachment_versions', column: 'attachment_id' }],
     // An activity with the duties it is to meet and what came of each, the
     // answers to the points of its form, and for a work order what only it
-    // has and the further people working on it.
+    // has, the further people working on it and the notes written on it.
     activities: [
       { table: 'activity_duties', column: 'activity_id' },
       { table: 'activity_answers', column: 'activity_id' },
       { table: 'work_orders', column: 'activity_id' },
       { table: 'work_order_participants', column: 'activity_id' },
+      { table: 'work_order_notes', column: 'activity_id' },
     ],
     // A defect with its photos.
     defects: [{ table: 'attachments', column: 'defect_id' }],
@@ -491,6 +504,8 @@ export const auditVocabulary: AuditVocabulary = {
     work_orders: ['number'],
     // A further person by who it is.
     work_order_participants: ['user_id'],
+    // A note by what it says.
+    work_order_notes: ['text'],
     defects: ['description'],
     defect_class_terms: ['defect_class'],
     // A signature by who gave it, a decision by what it decided.

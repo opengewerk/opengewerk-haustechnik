@@ -348,6 +348,8 @@ export async function mountSite(
       'round_plans',
       'work_orders',
       'work_order_participants',
+      'work_order_notes',
+      'work_order_decisions',
     ],
     onSignedOut: () => {},
   })

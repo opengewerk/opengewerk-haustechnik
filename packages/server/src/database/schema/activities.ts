@@ -3,6 +3,7 @@ import {
   activityLimits,
   activityStatuses,
   workOrderKinds,
+  workOrderLimits,
   workOrderUrgencies,
 } from '@opengewerk/haustechnik-domain'
 import {
@@ -25,6 +26,7 @@ import {
   pgTable,
   type PgTableExtraConfigValue,
   text,
+  timestamp,
   unique,
   uniqueIndex,
 } from 'drizzle-orm/pg-core'
@@ -259,7 +261,8 @@ export const activityDuties = pgTable(
 
 /**
  * What only a work order has, beside its activity (ADR 0002, point 13): its
- * number, its kind, how urgent it is (#73), and the defect it came of (#117).
+ * number, its kind, how urgent it is (#73), the defect it came of (#117), and
+ * the time spent on it, which the people working on it say on site (#118).
  * It hangs on an activity of the kind "work order" on its property, and the
  * key says so with the kind of the activity in it: a column that is always
  * `work_order`, so that a work order cannot hang on a round, and an activity
@@ -293,6 +296,7 @@ export const workOrders = pgTable(
     kind: workOrderKind('kind').notNull(),
     urgency: workOrderUrgency('urgency').notNull().default('normal'),
     originDefectId: reference<'defect'>('origin_defect_id'),
+    durationMinutes: integer('duration_minutes'),
     ...timestamps,
     ...syncColumns,
   },
@@ -325,6 +329,10 @@ export const workOrders = pgTable(
       .where(sql`${table.number} is not null`),
     check('work_orders_of_a_work_order', sql`${table.activityKind} = 'work_order'`),
     check('work_orders_number_shaped', optionalTrimmed(table.number, 40)),
+    check(
+      'work_orders_duration_shaped',
+      sql`${table.durationMinutes} is null or ${table.durationMinutes} between 1 and ${sql.raw(String(workOrderLimits.durationMinutes))}`,
+    ),
   ],
 )
 
@@ -380,5 +388,59 @@ export const workOrderParticipants = pgTable(
       .on(table.tenantId, table.activityId, table.userId)
       .where(sql`${table.deletedAt} is null`),
     check('work_order_participants_of_a_work_order', sql`${table.activityKind} = 'work_order'`),
+  ],
+)
+
+/**
+ * The notes on a work order (section 4.8 of the concept, #118): each an entry
+ * of its own, written on site by whoever works on the order, with the moment
+ * of the device it was written on and the person signed in, which the server
+ * writes. A note is written once: the application may read and add a row and
+ * nothing else, as a signature.
+ *
+ * A row hangs on the activity of the work order, on its property, with the
+ * kind of the activity in the key as `work_orders` has it: the notes travel
+ * with the work on the order, and the log of the activity names them.
+ */
+export const workOrderNotes = pgTable(
+  'work_order_notes',
+  {
+    id: primaryId<'work-order-note'>(),
+    ...tenantColumn,
+    propertyId: reference<'property'>('property_id').notNull(),
+    areaId: reference<'area'>('area_id').notNull(),
+    activityId: reference<'activity'>('activity_id').notNull(),
+    activityKind: activityKind('activity_kind')
+      .notNull()
+      .default('work_order')
+      .$type<'work_order'>(),
+    text: text('text').notNull(),
+    writtenAt: timestamp('written_at', { withTimezone: true }).notNull(),
+    writtenBy: text('written_by').notNull(),
+    ...timestamps,
+    ...syncColumns,
+  },
+  (table) => [
+    tenantIsolation(table.tenantId),
+    withinAreas(),
+    unique('work_order_notes_tenant_id_key').on(table.tenantId, table.id),
+    foreignKey({
+      columns: [table.tenantId, table.propertyId, table.areaId],
+      foreignColumns: [properties.tenantId, properties.id, properties.areaId],
+      name: 'work_order_notes_follow_their_property',
+    }).onUpdate('cascade'),
+    foreignKey({
+      columns: [table.tenantId, table.activityId, table.propertyId, table.activityKind],
+      foreignColumns: [activities.tenantId, activities.id, activities.propertyId, activities.kind],
+      name: 'work_order_notes_of_a_work_order_of_their_property',
+    }),
+    foreignKey({
+      columns: [table.tenantId, table.writtenBy],
+      foreignColumns: [memberships.tenantId, memberships.userId],
+      name: 'work_order_notes_written_by_somebody_here',
+    }),
+    index('work_order_notes_activity_idx').on(table.tenantId, table.activityId),
+    check('work_order_notes_of_a_work_order', sql`${table.activityKind} = 'work_order'`),
+    check('work_order_notes_text_shaped', trimmed(table.text, workOrderLimits.note)),
   ],
 )

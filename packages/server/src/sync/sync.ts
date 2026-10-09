@@ -81,8 +81,8 @@ const versionFile: Check = attachmentVersionFiles()
  * number of an asset or a work order made on a device, drawn here as the
  * route draws it for one made over it, in the same transaction as the insert,
  * so that a transmission refused afterwards takes the number back with it;
- * and who gave a signature, the person signed in and never what a device
- * says (ADR 0004, addendum on the signature).
+ * and who gave a signature or wrote a note on a work order, the person signed
+ * in and never what a device says (ADR 0004, addendum on the signature).
  */
 async function completed({
   tx,
@@ -97,6 +97,10 @@ async function completed({
 
   if (operation.entity === 'activity_signatures') {
     return { ...values, signedBy: sender.userId }
+  }
+
+  if (operation.entity === 'work_order_notes') {
+    return { ...values, writtenBy: sender.userId }
   }
 
   if (operation.entity === 'assets') {

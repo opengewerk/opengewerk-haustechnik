@@ -109,6 +109,7 @@ const workEntities = [
   'activity_answers',
   'work_orders',
   'work_order_participants',
+  'work_order_notes',
   'activity_signatures',
   'work_order_decisions',
 ]
@@ -141,6 +142,7 @@ export function pullScope(scope: DeviceScope): PullScope {
     activity_answers: sql`${column('activity_answers', 'activity_id')} = any(${activities})`,
     work_orders: sql`${column('work_orders', 'activity_id')} = any(${activities})`,
     work_order_participants: sql`${column('work_order_participants', 'activity_id')} = any(${activities})`,
+    work_order_notes: sql`${column('work_order_notes', 'activity_id')} = any(${activities})`,
     activity_signatures: sql`${column('activity_signatures', 'activity_id')} = any(${activities})`,
     work_order_decisions: sql`${column('work_order_decisions', 'work_order_id')} in
       (select id from work_orders where activity_id = any(${activities}))`,

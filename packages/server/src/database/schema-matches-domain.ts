@@ -22,6 +22,7 @@ import type {
   RoundTemplateVersion,
   WorkOrder,
   WorkOrderDecision,
+  WorkOrderNote,
   WorkOrderParticipant,
 } from '@opengewerk/haustechnik-domain'
 
@@ -48,6 +49,7 @@ import type {
   roundTemplates,
   roundTemplateVersions,
   workOrderDecisions,
+  workOrderNotes,
   workOrderParticipants,
   workOrders,
 } from './schema/index.js'
@@ -100,6 +102,9 @@ export type ActivitySignatureMatches = Assert<
 >
 export type WorkOrderParticipantMatches = Assert<
   Exact<Omit<typeof workOrderParticipants.$inferSelect, 'activityKind'>, WorkOrderParticipant>
+>
+export type WorkOrderNoteMatches = Assert<
+  Exact<Omit<typeof workOrderNotes.$inferSelect, 'activityKind'>, WorkOrderNote>
 >
 
 export type WorkOrderDecisionMatches = Assert<

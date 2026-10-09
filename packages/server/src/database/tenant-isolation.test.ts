@@ -533,6 +533,19 @@ function rowsOf(tenant: Tenant): readonly Row[] {
         user_id: tenant.colleagueId,
       },
     },
+    // A note on the work order (#118).
+    {
+      table: 'work_order_notes',
+      values: {
+        tenant_id: tenant.id,
+        property_id: property,
+        area_id: area,
+        activity_id: activity,
+        text: 'Notrufgerät getauscht, Verbindung steht.',
+        written_at: '2026-10-01T09:20:00Z',
+        written_by: tenant.colleagueId,
+      },
+    },
     {
       table: 'defects',
       values: {

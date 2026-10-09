@@ -21,9 +21,10 @@ import { ReportDefectScreen } from './screens/report-defect.js'
 import { SiteScanScreen } from './screens/scan.js'
 import { TakeAssetScreen } from './screens/take-asset.js'
 import { TakeRoomScreen } from './screens/take-room.js'
-import { SiteActivityScreen } from './screens/protocol.js'
+import { SiteActivityScreen, SiteProtocolScreen } from './screens/protocol.js'
 import { SiteResultScreen } from './screens/result.js'
 import { SiteStartScreen } from './screens/start.js'
+import { SiteCloseOrderScreen, SiteNoteScreen } from './screens/work-order.js'
 import { SiteShell } from './shell.js'
 
 /**
@@ -80,13 +81,19 @@ export function siteRoutes() {
     // An activity: a round point by point (#107), the protocol of an
     // inspection or a maintenance as a list, its result with the signature
     // and a defect reported in it (#108), the handing in of a round and its
-    // signature (#114), also without a network.
+    // signature (#114), and a work order with its notes (#118), also without
+    // a network.
     at('/vorgaenge/$activityId', SiteActivityScreen),
     at('/vorgaenge/$activityId/punkte/$pointKey', SitePointScreen),
     at('/vorgaenge/$activityId/ergebnis', SiteResultScreen),
     at('/vorgaenge/$activityId/mangel', ReportDefectScreen),
     at('/vorgaenge/$activityId/abgabe', RoundHandInScreen),
     at('/vorgaenge/$activityId/unterschrift', RoundSignScreen),
+    // A work order: its protocol where it is an inspection or a maintenance,
+    // a note on it and its finishing with the signature (#118).
+    at('/vorgaenge/$activityId/protokoll', SiteProtocolScreen),
+    at('/vorgaenge/$activityId/notiz', SiteNoteScreen),
+    at('/vorgaenge/$activityId/abschliessen', SiteCloseOrderScreen),
   ])
 }
 

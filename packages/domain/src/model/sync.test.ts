@@ -66,12 +66,15 @@ describe('the policies of the sync', () => {
       activity_duties: [false, 'merge'],
       // "Antwort eines Punkts: ja, ja bis zur Unterschrift" (#106).
       activity_answers: [true, 'merge'],
-      work_orders: [true, 'never'],
+      // The time spent on an order is said on site, until the signature (#118).
+      work_orders: [true, 'merge'],
       defects: [true, 'merge'],
       activity_signatures: [true, 'never'],
       work_order_decisions: [false, 'never'],
       // Who works on an order is handed out in the office (addendum of 08.10.2026, #73).
       work_order_participants: [false, 'never'],
+      // "Notiz an einem Vorgang: ja, nie" (#118).
+      work_order_notes: [true, 'never'],
       // Filed in the office and on site, a photo also without a connection
       // (addendum of 06.10.2026); a version is made and never changed.
       attachments: [true, 'merge'],

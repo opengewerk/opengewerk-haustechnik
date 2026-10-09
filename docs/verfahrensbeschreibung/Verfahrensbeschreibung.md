@@ -36,7 +36,7 @@ Ein Test hält außerdem dieses Dokument selbst gegen den Quelltext: jeder Beleg
 1. Die Anwendung hält zu jeder Änderung fest, wer sie gemacht hat, wann und von welchem Gerät, und zu jeder Unterschrift, wer unterschrieben hat. Nachlesen kann das im Einzelnen nur die Leitung, im Änderungsprotokoll (Abschnitt 8).
 2. Das Änderungsprotokoll enthält auch, wann sich eine Person bei dem Betreiber an- und abgemeldet hat, und es lässt sich nach Person filtern. Unter „Zugänge“ sieht die Leitung, wann eine Person zuletzt angemeldet war und auf welchen Geräten (Abschnitte 3.3 und 8). Das sind die Stellen, an denen die Anwendung einer Überwachung am nächsten kommt. Dazu kommt das Pflichtenverzeichnis: es nennt zu jeder Pflicht, wer für sie verantwortlich ist, und wer es führt, kann es auf die Pflichten einer Person eingrenzen, auch auf die überfälligen (Abschnitte 3.4 und 5).
 3. Es gibt in dieser Fassung keine Auswertung: keine Statistik, keine Rangliste, keine Zahl je Person, keinen Export (Abschnitt 5).
-4. Es gibt keine Erfassung von Arbeitszeit, keinen Standort und kein Feld für eine Dauer (Abschnitt 6).
+4. Es gibt keine Erfassung von Arbeitszeit und keinen Standort. Ein Auftrag trägt eine Dauer als seinen Aufwand, eine Zahl für den ganzen Auftrag und nicht je Person (Abschnitte 3.4 und 6).
 5. Diese Fassung löscht nichts nach Ablauf einer Frist. Das Löschkonzept kommt in Phase 2 (Abschnitte 7 und 10).
 6. Was das Planungskonzept zusagt und diese Fassung noch nicht hält oder noch nicht durch einen Test hält, steht in Abschnitt 10.
 
@@ -91,7 +91,9 @@ Anhang B nennt jedes Feld der Datenbank, das auf eine Person zeigt. Dieser Absch
 - Einen offenen oder begonnenen Auftrag schließt, wer Vorgänge plant und verteilt, mit Grund als nicht durchgeführt, etwa einen irrtümlich angelegten; der Auftrag nennt den Grund und nicht die Person, wer ihn geschlossen hat, steht im Änderungsprotokoll. Die Haustechnik kann es nicht. [K4.8, K7, B120]
 - **Zusage:** Einen unterschriebenen Auftrag abnehmen oder mit Grund zurückweisen kann, wer Aufträge abnimmt: die Leitung, die Technische Leitung und die Objektleitung. Die Haustechnik kann es nicht. [K4.8, K7, B116]
 - Die Abnahme eines Auftrags hält fest, wer abgenommen oder zurückgewiesen hat, wann und mit welcher Begründung. Eine Zurückweisung lässt die Unterschrift stehen und macht sie ungültig. [K4.8, B8, B25]
-- Ein Feld für eine Dauer, eine Arbeitszeit oder einen Standort gibt es in dieser Fassung nicht. [K4.8, K4.14, K9]
+- Ein Auftrag trägt eine Dauer: den Aufwand des Auftrags in Stunden und Minuten, eine Zahl für den ganzen Auftrag und nicht je Person. Eintragen und ändern kann sie vor Ort, wer Vorgänge ausführt, bis der Auftrag unterschrieben ist; sie nennt keine Person und keine Uhrzeit und ist keine Arbeitszeiterfassung. Wer sie eingetragen oder geändert hat, steht nur im Änderungsprotokoll. Ein Feld für eine Arbeitszeit oder einen Standort gibt es nicht. [K4.8, K4.14, K9, B134]
+- **Zusage:** Eine Notiz zu einem Auftrag ist ein eigener Eintrag: ihr Text, die Person, die sie geschrieben hat, und der Zeitpunkt nach der Uhr des Geräts. Die Person setzt der Server selbst ein und übernimmt sie nicht vom Gerät. Nach dem Speichern ändert und löscht niemand eine Notiz, auf dem Gerät nicht, über den Abgleich nicht und in der Datenbank nicht; was nicht stimmt, sagt eine weitere Notiz. Die Seite des Auftrags im Büro und vor Ort zeigt die Notizen mit Namen und Uhrzeit, auf der unterschriebenen Seite stehen nur ihre Texte. [K4.8, B135, B137]
+- **Zusage:** Einen Auftrag abschließen, also unterschreiben, kann nur die Person, die ihn führt. Die weiteren Beteiligten schreiben Notizen, machen Fotos und tragen die Dauer ein; ihre Unterschrift lehnt der Server ab, und solange niemand den Auftrag führt, schließt ihn niemand ab. [K4.8, B136, B138]
 
 ### 3.5 Unterschriften und Nachweise
 
@@ -126,6 +128,7 @@ Anhang B nennt jedes Feld der Datenbank, das auf eine Person zeigt. Dieser Absch
 - Ein abgeschlossener Vorgang bleibt dreißig Tage auf dem Gerät der Person, der er zugeteilt war. [K2.7, B23]
 - Eine Prüfung oder Wartung, die jemandem zum Ausführen zugeteilt wird, liegt nach dem nächsten Abgleich auf dem Gerät dieser Person, solange sie offen ist. [K2.7, K4.4, B102]
 - Ein Rundgang, den der Plan oder das Büro niemandem zugeteilt hat, liegt auf den Geräten aller im Bereich; einer, der jemandem zugeteilt ist, auf dem Gerät dieser Person. Die Pläne der Rundgänge liegen auf den Geräten aller, die ihren Bereich sehen, zum Lesen, mit der Kennung des Kontos, das ein Plan nennt; den Namen dazu nennt der Server der Haustechnik nur für Rundgänge, die ihr oder niemandem zugeteilt sind. Wie bei einer Pflicht, die ihre verantwortliche Person nennt. [K2.7, K4.5, B127, B128]
+- Die Notizen eines Auftrags liegen mit ihm auf den Geräten, die ihn halten, mit der Kennung des Kontos, das sie geschrieben hat. Die Namen dazu hält ein Gerät nicht: mit Verbindung fragt es sie für die Seite des Auftrags beim Server, ohne Verbindung nennt es nur den eigenen. [K2.7, K4.8]
 - Der Start vor Ort zeigt der Person, die das Gerät hält, ihre eigenen Vorgänge von heute und dieser Woche und die, die niemandem zugeteilt sind; was einer anderen Person zugeteilt ist, zeigt er nicht. Ein begonnener Vorgang heißt dort „begonnen“, ohne Uhrzeit: eine eigene Zeit des Beginns hat ein Vorgang nicht, wann er auf „begonnen“ ging, steht nur im Änderungsprotokoll (Abschnitt 8). [K2.7, K4.5]
 
 ### 3.8 Daten über Dritte
@@ -184,6 +187,7 @@ Phase 1 kennt vier Rollen. Was jede darf, steht Recht für Recht in Abschnitt 7 
 | Die Namen zur Wahl, wer eine Prüfung oder Wartung verantwortet und ausführt | in ihren Bereichen | in ihren Bereichen | in ihren Bereichen | nein |
 | Wer einen Auftrag führt und wer an ihm beteiligt ist, mit Namen | in ihren Bereichen | in ihren Bereichen | in ihren Bereichen | was sie führt, woran sie beteiligt ist oder was niemandem zugeteilt ist |
 | Die Namen zur Wahl, wer einen Auftrag führt und wer an ihm beteiligt ist | in ihren Bereichen | in ihren Bereichen | in ihren Bereichen | nein |
+| Notizen zu einem Auftrag, mit Namen und Uhrzeit | in ihren Bereichen | in ihren Bereichen | in ihren Bereichen | was sie führt, woran sie beteiligt ist oder was niemandem zugeteilt ist |
 | Wer die Rundgänge eines Plans geht, als Kennung des Kontos auf dem Gerät | in ihren Bereichen | in ihren Bereichen | in ihren Bereichen | in ihren Bereichen |
 | Wer einen Rundgang geht, mit Namen | in ihren Bereichen | in ihren Bereichen | in ihren Bereichen | was ihr oder niemandem zugeteilt ist |
 | Die Namen zur Wahl, wer einen Rundgang geht | in ihren Bereichen | in ihren Bereichen | in ihren Bereichen | nein |
@@ -269,7 +273,6 @@ Leitung und Technische Leitung sehen als Vorgabe alle Bereiche.
 
 Diese Bausteine gehören nach dem Fahrplan zu Phase 1 und sind noch nicht gebaut. Mit jedem wird dieses Dokument berichtigt; der Test in Abschnitt 11 erzwingt es, sobald ein Feld mit Personenbezug oder eine Adresse des Servers dazukommt.
 
-- **Aufträge vor Ort:** Notizen als eigene Einträge, Fotos und eine Dauer kommen dazu. Die Dauer ist Aufwand des Auftrags und keine Arbeitszeiterfassung. [K4.8]
 - **Aufgaben:** mit Fälligkeit und verantwortlicher Person. Jede Person legt eigene an; einer anderen teilt sie zu, wer Vorgänge plant und verteilt. [K3]
 - **Benachrichtigungen:** per E-Mail und Push, gespeist nur aus Fristen und Statuswechseln. Welche Anlässe als Push kommen, wählt jede Person selbst; ein Auftrag mit der Dringlichkeit „sofort“ erreicht die Person, die ihn führt, immer als Push. [K3, K4.8]
 - **Zähler und Fotos vor Ort:** Ablesungen kommen als eigene Datensätze dazu und tragen wie jeder Datensatz ihren Stempel. Ein Foto vor Ort wird als Dokument abgelegt (Abschnitt 3.9); die Bildschirme dafür kommen mit der Bestandsaufnahme. [K4.9, K4.10]
@@ -446,6 +449,11 @@ Pfade ohne Vorsatz liegen im Repository `opengewerk/opengewerk-haustechnik`. Pfa
 | B131 | Test | `packages/server/src/api/round-plans.test.ts` | `shows no answers before the signature, and the page that was signed after it, waiting for the countersignature` |
 | B132 | Test | `packages/server/src/api/round-plans.test.ts` | `is countersigned by the Objektleitung for the page that was shown, and only then written down` |
 | B133 | Test | `packages/server/src/api/round-plans.test.ts` | `closes a round of a past day as not performed, with the reason, by whoever plans, and it fulfils nothing` |
+| B134 | Test | `packages/server/src/api/work-orders.test.ts` | `takes the time spent from whoever works on it, and nothing else of the order` |
+| B135 | Test | `packages/server/src/api/work-orders.test.ts` | `takes a note from whoever works on it, in the name of whoever is signed in, and never changes or removes one` |
+| B136 | Test | `packages/server/src/activities/signing.test.ts` | `is signed by the person who leads it and by nobody else, nor by anybody while nobody leads it` |
+| B137 | Test | `packages/web/src/site/screens/work-order.test.tsx` | `takes a note as an entry of its own, without a network, which nothing changes afterwards` |
+| B138 | Test | `packages/server/src/api/work-orders.test.ts` | `is finished by the person who leads it, and the signature of anybody else is a conflict` |
 
 ---
 
@@ -487,6 +495,7 @@ Jede Zeile ist ein Feld der Datenbank, das die Kennung eines Kontos hält. Der S
 | `substitutions` | `substitute_user_id` | wer vertritt |
 | `tenant_sessions` | `user_id` | wer sich bei diesem Betreiber an- und abgemeldet hat |
 | `work_order_decisions` | `decided_by` | wer einen Auftrag abgenommen oder zurückgewiesen hat |
+| `work_order_notes` | `written_by` | wer eine Notiz zu einem Auftrag geschrieben hat |
 | `work_order_participants` | `user_id` | wer an einem Auftrag beteiligt ist |
 | `*` | `updated_by` | wer einen Datensatz zuletzt geändert hat |
 

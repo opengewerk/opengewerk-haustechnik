@@ -9,6 +9,7 @@ import {
   missingRight,
   type RoleKey,
   shippedRoles,
+  type SyncValue,
   type TenantId,
   type WorkOrderCandidates,
   type WorkOrderDetails,
@@ -21,7 +22,7 @@ import request from 'supertest'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 import { pageFingerprint, pageOf, takeSignature } from '../activities/signing.js'
-import { activities } from '../database/schema/index.js'
+import { activities, workOrderNotes } from '../database/schema/index.js'
 import {
   applicationDatabaseUrl,
   connect,
@@ -512,7 +513,7 @@ describe('a new work order', () => {
 })
 
 describe('who sees a work order', () => {
-  it('whoever only performs sees what they lead, work on, or what is given to nobody, in the office and on the device', async () => {
+  it('whoever only performs sees what they lead, work on, or what is given to nobody, in the office and on the device, with its notes', async () => {
     const { asset } = await elevatorIn(large, north)
     const theirs = await made(
       { ...plan, origin: 'defect', defectId: await defectAt(asset, large) },
@@ -544,6 +545,24 @@ describe('who sees a work order', () => {
     expect(held).not.toContain(other.id)
     expect((await pulled(lena, 'work_order_participants')).map((row) => row['userId'])).toEqual([
       'u-other',
+    ])
+
+    // The notes travel with their order (#118): hers, and none of the other.
+    for (const [activity, text] of [
+      [theirs.id, 'Seil geprüft.'],
+      [other.id, 'Tür nachgestellt.'],
+    ] as const) {
+      await admin.query(
+        `insert into work_order_notes (tenant_id, property_id, area_id, activity_id, text,
+                                       written_at, written_by)
+         select tenant_id, property_id, area_id, id, $2, now(), 'u-site'
+           from activities where id = $1`,
+        [activity, text],
+      )
+    }
+
+    expect((await pulled(lena, 'work_order_notes')).map((row) => row['text'])).toEqual([
+      'Seil geprüft.',
     ])
   })
 
@@ -865,5 +884,248 @@ describe('the acceptance of a work order', () => {
     )
 
     expect(rows).toEqual([{ origin: 'work_order', activity_id: page.id }])
+  })
+})
+
+describe('the work on an order on site', () => {
+  let recorded = Date.parse('2026-10-05T06:00:00Z')
+
+  /** An operation as a device queues it, each recorded after the one before. */
+  function operation(
+    entity: string,
+    kind: 'create' | 'update' | 'delete',
+    recordId: string,
+    values: Readonly<Record<string, SyncValue>> = {},
+    seen: Readonly<Record<string, SyncValue>> = {},
+  ) {
+    recorded += 1000
+
+    return {
+      id: newId<'operation'>(),
+      entity,
+      recordId,
+      kind,
+      baseVersion: null,
+      patches: Object.entries(values).map(([field, to]) => ({
+        field,
+        from: seen[field] ?? null,
+        to,
+      })),
+      recordedAt: new Date(recorded).toISOString(),
+    }
+  }
+
+  /** What became of each operation a device of somebody sends. */
+  async function outcomes(header: string, operations: readonly ReturnType<typeof operation>[]) {
+    const answer = await http()
+      .post('/sync')
+      .set(testIdentityHeader, header)
+      .send({ deviceId: 'phone', operations })
+      .expect(201)
+
+    return (
+      answer.body.receipts as { outcome: string; reason: string | null; fields: string[] }[]
+    ).map(({ outcome, reason, fields }) => ({ outcome, reason, fields }))
+  }
+
+  const applied = { outcome: 'applied', reason: null, fields: [] }
+
+  /** The page of an order as the server works it out now. */
+  async function pageNow(activityId: string) {
+    return database.forTenant({ tenantId: small, userId: 'u-lead' }, async (tx) => {
+      const [row] = await tx
+        .select()
+        .from(activities)
+        .where(eq(activities.id, activityId as ActivityId))
+
+      if (row === undefined) {
+        throw new Error('No such activity')
+      }
+
+      return pageOf(tx, row)
+    })
+  }
+
+  /** A signature of the person who did the work, for the page as it stands, as a device sends it. */
+  async function signatureFor(activityId: string) {
+    return operation('activity_signatures', 'create', newId<'activity-signature'>(), {
+      activityId,
+      role: 'signer',
+      signedAt: new Date(recorded).toISOString(),
+      deviceInfo: 'Probe-Telefon',
+      path: 'M10,10L200,300',
+      pageFingerprint: pageFingerprint(await pageNow(activityId)),
+    })
+  }
+
+  /** An order of a defect, led by Tobias Wendt with Lena Vogt, begun on site today. */
+  async function begun(): Promise<WorkOrderDetails> {
+    const { asset } = await elevatorIn()
+    const page = await made({ ...plan, origin: 'defect', defectId: await defectAt(asset) })
+
+    await admin.query("update activities set status = 'started', performed_on = $2 where id = $1", [
+      page.id,
+      today,
+    ])
+
+    return page
+  }
+
+  it('takes a note from whoever works on it, in the name of whoever is signed in, and never changes or removes one', async () => {
+    const page = await begun()
+    const note = newId<'work-order-note'>()
+    const said = 'Türblatt ausgehängt, Scharniere geschmiert.'
+
+    // Lena Vogt works on the order; her device says what and when, not who.
+    expect(
+      await outcomes(by('u-other'), [
+        operation('work_order_notes', 'create', note, {
+          activityId: page.id,
+          text: said,
+          writtenAt: '2026-10-05T06:55:00.000Z',
+        }),
+      ]),
+    ).toEqual([applied])
+    expect(
+      await outcomes(by('u-other'), [
+        operation('work_order_notes', 'create', newId<'work-order-note'>(), {
+          activityId: page.id,
+          text: 'Im Namen von jemand anderem.',
+          writtenAt: '2026-10-05T06:56:00.000Z',
+          writtenBy: 'u-tech',
+        }),
+      ]),
+    ).toEqual([{ outcome: 'conflict', reason: 'set_by_server', fields: ['writtenBy'] }])
+
+    // Once saved, nobody changes or removes it: not through the outbox, not
+    // as the application and not past it in the database.
+    expect(
+      await outcomes(by('u-lead'), [
+        operation('work_order_notes', 'update', note, { text: 'Anders.' }),
+        operation('work_order_notes', 'delete', note),
+      ]),
+    ).toEqual([
+      { outcome: 'conflict', reason: 'online_only', fields: [] },
+      { outcome: 'conflict', reason: 'online_only', fields: [] },
+    ])
+    await expect(
+      database.forTenant({ tenantId: small, userId: 'u-lead' }, (tx) =>
+        tx.update(workOrderNotes).set({ text: 'Anders.' }).where(eq(workOrderNotes.id, note)),
+      ),
+    ).rejects.toThrow()
+    await expect(
+      admin.query("update work_order_notes set text = 'Anders.' where id = $1", [note]),
+    ).rejects.toThrow(/Eine Notiz wird nicht geändert und nicht gelöscht/)
+    await expect(admin.query('delete from work_order_notes where id = $1', [note])).rejects.toThrow(
+      /Eine Notiz wird nicht geändert und nicht gelöscht/,
+    )
+
+    // The page of the order names her with the note, and her device holds it.
+    expect((await pageOfOrder(page.id)).notes).toEqual([
+      { id: note, text: said, writtenAt: '2026-10-05T06:55:00.000Z', name: 'Lena Vogt' },
+    ])
+    expect(
+      (await pulled(by('u-other'), 'work_order_notes')).find((row) => row['id'] === note),
+    ).toMatchObject({ text: said, writtenBy: 'u-other' })
+  })
+
+  it('takes the time spent from whoever works on it, and nothing else of the order', async () => {
+    const page = await begun()
+
+    expect(
+      await outcomes(by('u-other'), [
+        operation('work_orders', 'update', page.workOrderId, { durationMinutes: 45 }),
+        operation('work_orders', 'update', page.workOrderId, { urgency: 'immediate' }),
+      ]),
+    ).toEqual([applied, { outcome: 'conflict', reason: 'set_by_server', fields: ['urgency'] }])
+    expect(await pageOfOrder(page.id)).toMatchObject({ durationMinutes: 45, urgency: 'urgent' })
+
+    const wrong = await http()
+      .post('/sync')
+      .set(testIdentityHeader, by('u-other'))
+      .send({
+        deviceId: 'phone',
+        operations: [
+          operation(
+            'work_orders',
+            'update',
+            page.workOrderId,
+            { durationMinutes: 0 },
+            { durationMinutes: 45 },
+          ),
+        ],
+      })
+
+    expect(JSON.stringify(wrong.body)).toContain('Die Dauer sind Stunden und Minuten')
+    expect((await pageOfOrder(page.id)).durationMinutes).toBe(45)
+  })
+
+  it('takes no note and no time spent once the order is signed', async () => {
+    const page = await begun()
+
+    await signed(page.id)
+    expect(
+      await outcomes(by('u-other'), [
+        operation('work_order_notes', 'create', newId<'work-order-note'>(), {
+          activityId: page.id,
+          text: 'Zu spät.',
+          writtenAt: '2026-10-05T07:30:00.000Z',
+        }),
+        operation('work_orders', 'update', page.workOrderId, { durationMinutes: 90 }),
+      ]),
+    ).toEqual([
+      { outcome: 'conflict', reason: 'record_is_fixed', fields: ['status'] },
+      { outcome: 'conflict', reason: 'record_is_fixed', fields: ['status'] },
+    ])
+  })
+
+  it('is finished by the person who leads it, and the signature of anybody else is a conflict', async () => {
+    const page = await begun()
+
+    // Lena Vogt works on the order and does not finish it.
+    expect(await outcomes(by('u-other'), [await signatureFor(page.id)])).toEqual([
+      { outcome: 'conflict', reason: 'changed_elsewhere', fields: ['activityId'] },
+    ])
+    expect((await pageOfOrder(page.id)).status).toBe('started')
+
+    // Nor does anybody while nobody leads it.
+    await admin.query('update activities set responsible_user_id = null where id = $1', [page.id])
+    expect(await outcomes(by('u-tech'), [await signatureFor(page.id)])).toEqual([
+      { outcome: 'conflict', reason: 'changed_elsewhere', fields: ['activityId'] },
+    ])
+
+    // Tobias Wendt leads it and finishes it.
+    await admin.query("update activities set responsible_user_id = 'u-tech' where id = $1", [
+      page.id,
+    ])
+    expect(await outcomes(by('u-tech'), [await signatureFor(page.id)])).toEqual([applied])
+    expect((await pageOfOrder(page.id)).status).toBe('signed')
+  })
+
+  it('puts the time spent and the notes on the page that is signed', async () => {
+    const page = await begun()
+    const before = await signatureFor(page.id)
+    const note = newId<'work-order-note'>()
+
+    expect(
+      await outcomes(by('u-other'), [
+        operation('work_order_notes', 'create', note, {
+          activityId: page.id,
+          text: 'Schließblech nachgestellt.',
+          writtenAt: '2026-10-05T07:10:00.000Z',
+        }),
+        operation('work_orders', 'update', page.workOrderId, { durationMinutes: 50 }),
+      ]),
+    ).toEqual([applied, applied])
+    expect(await pageNow(page.id)).toMatchObject({
+      durationMinutes: 50,
+      notes: [{ id: note, text: 'Schließblech nachgestellt.' }],
+    })
+
+    // Signed for the page before the note came, the signature does not count.
+    expect(await outcomes(by('u-tech'), [before])).toEqual([
+      { outcome: 'conflict', reason: 'changed_elsewhere', fields: ['pageFingerprint'] },
+    ])
+    expect(await outcomes(by('u-tech'), [await signatureFor(page.id)])).toEqual([applied])
   })
 })

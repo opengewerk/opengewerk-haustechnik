@@ -4,6 +4,7 @@ import {
   activityLimits,
   activityProblems,
   type DefectRegister,
+  durationWords,
   type DutyDetails,
   type DutyPerson,
   type RecordState,
@@ -131,6 +132,9 @@ export const workOrderWords = {
   noPlace: 'Ein Auftrag hängt an einer Anlage oder einem Ort.',
   noDefect: 'Ein Auftrag aus einem Mangel nennt den Mangel.',
   nobodyFurther: 'Niemand weiter beteiligt.',
+  noDuration: 'Noch nicht angegeben',
+  duration: (minutes: number) => `${durationWords(minutes)} Std.`,
+  noNotes: 'Noch keine Notiz von vor Ort.',
   noOrders: 'Kein offener Auftrag.',
   ordersFailed: 'Die Aufträge ließen sich nicht laden. Sie kommen vom Server, mit Verbindung.',
   closingHint: 'Der Grund steht am Auftrag und bleibt lesbar.',
@@ -543,7 +547,8 @@ function OriginFact({ order }: { readonly order: WorkOrderDetails }) {
 /**
  * The page of a work order, the board "Auftrag mit Abnahme (4.8)" (#117):
  * what it is, where it came from, where, its day, who leads it and who works
- * on it, the photos from the site, its signature and its acceptance.
+ * on it, the time spent on it, the notes and the photos from the site (#118),
+ * its signature and its acceptance.
  *
  * Whoever plans and hands out work changes it until it is signed. Whoever
  * accepts work orders accepts a signed one or turns it back with the reason,
@@ -676,6 +681,15 @@ export function WorkOrderScreen() {
                       shown.participants.map((person) => person.name).join(', ')
                     ),
                 },
+                {
+                  label: 'Dauer',
+                  value:
+                    shown.durationMinutes === null ? (
+                      <span className="text-ink-faint">{workOrderWords.noDuration}</span>
+                    ) : (
+                      workOrderWords.duration(shown.durationMinutes)
+                    ),
+                },
                 ...(shown.performedOn === null
                   ? []
                   : [{ label: 'Durchgeführt am', value: date(shown.performedOn) }]),
@@ -684,6 +698,25 @@ export function WorkOrderScreen() {
                   : [{ label: 'Grund', value: shown.closingReason }]),
               ]}
             />
+          </Panel>
+          <Panel title="Notizen von vor Ort">
+            {shown.notes.length === 0 ? (
+              <p className="text-[13px] leading-[1.45] text-ink-muted">{workOrderWords.noNotes}</p>
+            ) : (
+              <ul aria-label="Notizen von vor Ort" className="flex flex-col">
+                {shown.notes.map((note) => (
+                  <li
+                    key={note.id}
+                    className="border-b border-row py-2 leading-[1.45] last:border-b-0"
+                  >
+                    <p className="text-[14px] whitespace-pre-line [overflow-wrap:anywhere]">
+                      {note.text}
+                    </p>
+                    <p className="text-[12px] text-ink-faint">{`${moment(note.writtenAt)}, ${note.name}`}</p>
+                  </li>
+                ))}
+              </ul>
+            )}
           </Panel>
           <DocumentsCard
             title="Fotos von vor Ort"

@@ -6,12 +6,13 @@ import {
   type EvidenceResult,
   evidenceLimits,
   evidenceResultLabel,
+  finishesWorkOrder,
   type RecordState,
   resultAgainstFindings,
 } from '@opengewerk/haustechnik-domain'
 import { Button, Field, Panel } from '@opengewerk/platform-web'
 import { clockTime, today } from '@opengewerk/platform-web/format'
-import { useRight, useWho } from '@opengewerk/platform-web/session'
+import { accountQuery, useRight, useWho } from '@opengewerk/platform-web/session'
 import {
   SignaturePad,
   SiteActionBar,
@@ -30,6 +31,7 @@ import {
   useRelated,
   useSync,
 } from '@opengewerk/platform-web/sync'
+import { useQuery } from '@tanstack/react-query'
 import { useNavigate, useParams } from '@tanstack/react-router'
 import { Check, ChevronLeft, Plus, Signature } from 'lucide-react'
 import { useCallback, useId, useMemo, useRef, useState } from 'react'
@@ -64,6 +66,9 @@ export const resultWords = {
   pad: 'Feld für die Unterschrift',
   sign: 'Unterschreiben',
   signNote: 'Mit der Unterschrift entsteht der Nachweis, der Termin rückt weiter.',
+  orderNote: 'Danach wartet der Auftrag auf die Abnahme durch die Objektleitung.',
+  onlyResponsible: 'Abschließen kann einen Auftrag nur, wer ihn führt.',
+  toOrder: 'Zurück zum Auftrag',
   missingNote:
     'Unterschrieben wird, wenn jeder Pflichtpunkt eine Antwort hat. „Entfällt“ und „nicht möglich“ sind Antworten, mit Grund.',
   signed: 'Unterschrieben',
@@ -175,6 +180,7 @@ function ResultOf({ activityId }: { readonly activityId: string }) {
   const client = useSync()
   const navigate = useNavigate()
   const who = useWho()
+  const me = useQuery(accountQuery).data?.userId ?? ''
   const reports = useRight('defect.report')
   const form = useActivityForm(activityId, [])
   const where = useWhere(form.activity)
@@ -183,9 +189,14 @@ function ResultOf({ activityId }: { readonly activityId: string }) {
   const reported = useRelated('defects', 'foundInActivityId', activityId).filter(
     (defect) => live(defect) && maybeText(defect, 'foundInAnswerId') === null,
   )
-  const signature = useRelated('activity_signatures', 'activityId', activityId).find(
-    (each) => each['role'] === 'signer',
-  )
+  // The signature that counts, the latest; one the office turned back on a
+  // work order counts no more (`useActivityForm`, #118).
+  const signatures = useRelated('activity_signatures', 'activityId', activityId)
+  const signature = form.signed
+    ? signatures
+        .filter((each) => each['role'] === 'signer')
+        .sort((left, right) => (text(left, 'signedAt') < text(right, 'signedAt') ? 1 : -1))[0]
+    : undefined
   const first = lines[0]
   const [chosen, setChosen] = useState<EvidenceResult | null>(
     (maybeText(first, 'result') as EvidenceResult | null) ?? null,
@@ -293,9 +304,24 @@ function ResultOf({ activityId }: { readonly activityId: string }) {
   const contradiction = resultAgainstFindings(chosen, found.length)
   const sub = [text(activity, 'title'), maybeText(asset, 'number')].filter(Boolean).join(', ')
   const performedOn = maybeText(activity, 'performedOn')
+  // A work order is finished by the person who leads it (#118), and its
+  // protocol and its page stand under it.
+  const order = text(activity, 'kind') === 'work_order'
+  const finishes =
+    me !== '' &&
+    finishesWorkOrder(
+      { kind: text(activity, 'kind'), responsibleUserId: maybeText(activity, 'responsibleUserId') },
+      me,
+    )
   const back = form.definition
-    ? { to: siteForms.form(activityId), label: 'Zurück zum Protokoll' }
-    : where.back
+    ? {
+        to: order ? siteForms.protocol(activityId) : siteForms.form(activityId),
+        label: 'Zurück zum Protokoll',
+      }
+    : order
+      ? { to: siteForms.form(activityId), label: resultWords.toOrder }
+      : where.back
+  const done = order ? { to: siteForms.form(activityId), label: resultWords.toOrder } : where.back
 
   if (signature !== undefined || text(activity, 'status') === 'done') {
     const pending =
@@ -304,7 +330,7 @@ function ResultOf({ activityId }: { readonly activityId: string }) {
 
     return (
       <>
-        <SiteHeader title={resultWords.title} sub={sub} back={where.back} />
+        <SiteHeader title={resultWords.title} sub={sub} back={done} />
         <SiteScreen>
           <div className="rounded-[8px] border border-done-edge bg-done-fill px-4 py-5 text-center">
             <span className="inline-flex size-14 items-center justify-center rounded-full bg-done text-on-status">
@@ -340,10 +366,10 @@ function ResultOf({ activityId }: { readonly activityId: string }) {
             height={60}
             icon={ChevronLeft}
             onClick={() => {
-              void navigate({ to: where.back.to })
+              void navigate({ to: done.to })
             }}
           >
-            {where.back.label}
+            {done.label}
           </Button>
         </SiteActionBar>
       </>
@@ -354,6 +380,7 @@ function ResultOf({ activityId }: { readonly activityId: string }) {
   const complete = chosen !== null && (chosen !== 'not_performed' || reason.trim() !== '')
   const canSign =
     editable &&
+    finishes &&
     !working &&
     missing.length === 0 &&
     complete &&
@@ -508,7 +535,7 @@ function ResultOf({ activityId }: { readonly activityId: string }) {
             </div>
           ) : null}
         </Panel>
-        {editable ? (
+        {editable && finishes ? (
           <div className="flex flex-col gap-1.5">
             <p className="font-condensed text-[15px] font-semibold tracking-[1.2px] text-ink-faint uppercase">
               {resultWords.signature}
@@ -517,9 +544,18 @@ function ResultOf({ activityId }: { readonly activityId: string }) {
             {who.name === '' ? null : <p className="text-[16px] font-semibold">{who.name}</p>}
           </div>
         ) : null}
+        {editable && !finishes ? <SiteText muted>{resultWords.onlyResponsible}</SiteText> : null}
         {trouble ? <SiteTrouble>{trouble}</SiteTrouble> : null}
       </SiteScreen>
-      <SiteActionBar note={missing.length > 0 ? resultWords.missingNote : resultWords.signNote}>
+      <SiteActionBar
+        note={
+          missing.length > 0
+            ? resultWords.missingNote
+            : order
+              ? resultWords.orderNote
+              : resultWords.signNote
+        }
+      >
         <Button
           tone="primary"
           wide

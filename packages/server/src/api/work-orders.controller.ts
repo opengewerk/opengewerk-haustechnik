@@ -72,6 +72,7 @@ import {
   duties,
   properties,
   workOrderDecisions,
+  workOrderNotes,
   workOrderParticipants,
   workOrders,
 } from '../database/schema/index.js'
@@ -371,6 +372,11 @@ export class WorkOrdersController {
           ),
         )
         .orderBy(asc(workOrderParticipants.createdAt), asc(workOrderParticipants.id))
+      const notes = await tx
+        .select()
+        .from(workOrderNotes)
+        .where(and(eq(workOrderNotes.activityId, activity.id), isNull(workOrderNotes.deletedAt)))
+        .orderBy(asc(workOrderNotes.writtenAt), asc(workOrderNotes.id))
       const signatures = await signaturesWithTheirStanding(tx, activity)
       const decisions = await tx
         .select()
@@ -383,6 +389,7 @@ export class WorkOrdersController {
         order,
         participants: participants.map((row) => row.userId),
         origin: await originOf(tx, this.catalogue, activity, order),
+        notes,
         signatures,
         decisions,
       }
@@ -390,6 +397,7 @@ export class WorkOrdersController {
     const named = await this.named(identity, [
       read.activity.responsibleUserId,
       ...read.participants,
+      ...read.notes.map((note) => note.writtenBy),
       ...read.signatures.map(({ signature }) => signature.signedBy),
       ...read.decisions.map((decision) => decision.decidedBy),
     ])
@@ -407,6 +415,13 @@ export class WorkOrdersController {
       participants: read.participants
         .map((userId) => named(userId))
         .filter((person) => person !== null),
+      durationMinutes: read.order.durationMinutes,
+      notes: read.notes.map((note) => ({
+        id: note.id,
+        text: note.text,
+        writtenAt: note.writtenAt.toISOString(),
+        name: nameOf(note.writtenBy),
+      })),
       signatures: read.signatures.map(({ signature, valid }) => ({
         name: nameOf(signature.signedBy),
         role: signature.role,

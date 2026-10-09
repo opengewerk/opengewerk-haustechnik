@@ -14,6 +14,7 @@ import {
   placeTargetProblem,
   roomProblems,
   supplyPlaceProblem,
+  workOrderNoteProblems,
   workOrderProblems,
 } from '@opengewerk/haustechnik-domain'
 import {
@@ -192,7 +193,12 @@ export function recordRules(catalogue: Catalogue): RecordRules {
       rule(answerProblems, ['groupKey', 'blockKey']),
       rule(answerProblems, ['value', 'result']),
     ],
-    work_orders: each(workOrderProblems, ['kind'], ['kind']),
+    work_orders: [
+      ...each(workOrderProblems, ['kind'], ['kind']),
+      ...each(workOrderProblems, ['durationMinutes']),
+    ],
+    // A note says something, and when the device it was written on said (#118).
+    work_order_notes: each(workOrderNoteProblems, ['text', 'writtenAt'], ['text', 'writtenAt']),
     defects: [
       ...each(
         defectProblems,

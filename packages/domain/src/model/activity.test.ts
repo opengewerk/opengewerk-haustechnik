@@ -10,8 +10,13 @@ import {
   activityProblems,
   activityStatusLabel,
   activityStatuses,
+  durationOf,
+  durationWords,
+  finishesWorkOrder,
   workOrderKindLabel,
   workOrderKinds,
+  workOrderLimits,
+  workOrderNoteProblems,
   workOrderProblems,
 } from './activity.js'
 
@@ -127,6 +132,63 @@ describe('a work order', () => {
     expect(workOrderProblems({ kind: 'defect_remedy' })).toEqual({})
     expect(workOrderProblems({ kind: 'repair' })).toEqual({
       kind: 'Ein Auftrag ist einer von: Störung, Mangelbeseitigung, Wartung, Prüfung, Sonstiger Auftrag.',
+    })
+  })
+
+  it('takes the time spent on it in whole minutes, from one minute to 9999 hours and 59 minutes', () => {
+    const sentence = 'Die Dauer sind Stunden und Minuten, etwa 0:45 oder 2:30, höchstens 9999:59.'
+
+    expect(workOrderProblems({ durationMinutes: null })).toEqual({})
+    expect(workOrderProblems({ durationMinutes: 1 })).toEqual({})
+    expect(workOrderProblems({ durationMinutes: workOrderLimits.durationMinutes })).toEqual({})
+    expect(workOrderProblems({ durationMinutes: 0 })).toEqual({ durationMinutes: sentence })
+    expect(workOrderProblems({ durationMinutes: 45.5 })).toEqual({ durationMinutes: sentence })
+    expect(workOrderProblems({ durationMinutes: '45' })).toEqual({ durationMinutes: sentence })
+    expect(workOrderProblems({ durationMinutes: workOrderLimits.durationMinutes + 1 })).toEqual({
+      durationMinutes: sentence,
+    })
+  })
+
+  it('reads the time spent as hours and minutes or whole hours, and writes it as hours and minutes', () => {
+    const sentence = 'Die Dauer sind Stunden und Minuten, etwa 0:45 oder 2:30, höchstens 9999:59.'
+
+    expect(durationOf('0:45')).toEqual({ minutes: 45 })
+    expect(durationOf(' 2:30 ')).toEqual({ minutes: 150 })
+    expect(durationOf('3')).toEqual({ minutes: 180 })
+    expect(durationOf('')).toEqual({ minutes: null })
+    expect(durationOf('9999:59')).toEqual({ minutes: workOrderLimits.durationMinutes })
+    expect(durationOf('0:00')).toBe(sentence)
+    expect(durationOf('1:75')).toBe(sentence)
+    expect(durationOf('1,5')).toBe(sentence)
+    expect(durationOf('10000')).toBe(sentence)
+    expect(durationWords(45)).toBe('0:45')
+    expect(durationWords(150)).toBe('2:30')
+    expect(durationWords(605)).toBe('10:05')
+  })
+
+  it('is finished by the person who answers for it and nobody else, every other activity by whoever performs it', () => {
+    const order = { kind: 'work_order', responsibleUserId: 'u-lead' }
+
+    expect(finishesWorkOrder(order, 'u-lead')).toBe(true)
+    expect(finishesWorkOrder(order, 'u-helper')).toBe(false)
+    expect(finishesWorkOrder({ kind: 'work_order', responsibleUserId: null }, 'u-lead')).toBe(false)
+    expect(finishesWorkOrder({ kind: 'inspection', responsibleUserId: 'u-lead' }, 'u-helper')).toBe(
+      true,
+    )
+  })
+})
+
+describe('a note on a work order', () => {
+  it('says something, at most 2000 characters, written at a moment a clock can name', () => {
+    expect(
+      workOrderNoteProblems({ text: 'Akku getauscht.', writtenAt: '2026-10-05T06:55:00.000Z' }),
+    ).toEqual({})
+    expect(workOrderNoteProblems({ text: '  ' })).toEqual({ text: 'Die Notiz fehlt.' })
+    expect(workOrderNoteProblems({ text: 'x'.repeat(2001) })).toEqual({
+      text: 'Die Notiz hat höchstens 2000 Zeichen.',
+    })
+    expect(workOrderNoteProblems({ writtenAt: 'gestern' })).toEqual({
+      writtenAt: 'Der Zeitpunkt der Notiz ist ein Zeitpunkt, geschrieben 2026-10-05T08:55:00Z.',
     })
   })
 })
