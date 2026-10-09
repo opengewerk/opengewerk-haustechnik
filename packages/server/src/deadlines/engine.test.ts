@@ -714,6 +714,93 @@ describe('the activity of a due day', () => {
   })
 })
 
+describe('the deadline of the meters of a property (#120)', () => {
+  /** A water meter in the building of a place; its id. */
+  async function meterAt(at: Place, mark: string): Promise<string> {
+    const { rows } = await admin.query<{ id: string }>(
+      `insert into assets (tenant_id, property_id, area_id, building_id, kind, number, name,
+                           mark, meter_number, meter_unit)
+       values ($1, $2, $3, $4, 'probe.water_meter', $5, $6, $5, $7, 'cubic_metres')
+       returning id`,
+      [at.tenantId, at.property, at.area, at.building, mark, `Wasserzähler ${mark}`, `13-${mark}`],
+    )
+
+    return (rows[0] as { id: string }).id
+  }
+
+  async function readingOf(at: Place, meter: string, keyDate: string): Promise<void> {
+    await admin.query(
+      `insert into meter_readings (tenant_id, property_id, area_id, asset_id, key_date, read_on,
+                                   value_milli, source, recorded_by)
+       values ($1, $2, $3, $4, $5, $5, 1000, 'by_hand', 'u-duties')`,
+      [at.tenantId, at.property, at.area, meter, keyDate],
+    )
+  }
+
+  async function meterDeadlinesOf(property: string) {
+    const { rows } = await admin.query<Record<string, unknown>>(
+      `select kind, status, source_id, due_on::text, property_id
+         from deadlines where meter_property_id = $1`,
+      [property],
+    )
+
+    return rows
+  }
+
+  it('is due on the earliest key date there without a reading, once for the property, and moves on with the readings', async () => {
+    const at = await placeIn(small)
+    const first = await meterAt(at, 'WZ-51')
+    const second = await meterAt(at, 'WZ-52')
+
+    await run(small)
+    expect(await meterDeadlinesOf(at.property)).toEqual([
+      {
+        kind: 'meter.due',
+        status: 'open',
+        source_id: at.property,
+        due_on: '2026-10-01',
+        property_id: at.property,
+      },
+    ])
+
+    // One meter read: the other one still holds the key date.
+    await readingOf(at, first, '2026-10-01')
+    await run(small)
+    expect((await meterDeadlinesOf(at.property)).map((row) => row['due_on'])).toEqual([
+      '2026-10-01',
+    ])
+
+    // Both read: the next key date.
+    await readingOf(at, second, '2026-10-01')
+    await run(small)
+    expect((await meterDeadlinesOf(at.property)).map((row) => row['due_on'])).toEqual([
+      '2026-11-01',
+    ])
+  })
+
+  it('leaves out a locked meter and a key date a meter rests on', async () => {
+    const at = await placeIn(small)
+    const locked = await meterAt(at, 'WZ-53')
+    const resting = await meterAt(at, 'WZ-54')
+
+    await admin.query(
+      `insert into meter_points (tenant_id, property_id, area_id, asset_id, lock_reason, locked_on)
+       values ($1, $2, $3, $4, 'Schacht überflutet', '2026-10-02')`,
+      [at.tenantId, at.property, at.area, locked],
+    )
+    await admin.query(
+      `insert into meter_pauses (tenant_id, property_id, area_id, asset_id, starts_on, ends_on, reason)
+       values ($1, $2, $3, $4, '2026-09-20', '2026-11-10', 'Haus leer')`,
+      [at.tenantId, at.property, at.area, resting],
+    )
+
+    await run(small)
+    expect((await meterDeadlinesOf(at.property)).map((row) => row['due_on'])).toEqual([
+      '2026-12-01',
+    ])
+  })
+})
+
 describe('a pass of the engine', () => {
   it('goes through every area of an operator, for nobody in particular', async () => {
     const inNorth = await placeIn(large, north)

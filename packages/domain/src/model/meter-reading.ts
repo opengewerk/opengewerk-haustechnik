@@ -35,7 +35,28 @@ export const meterLimits = {
   factor: 100_000,
   /** The largest figure in thousandths, well inside what a number of JavaScript holds exactly. */
   valueMilli: 999_999_999_999_999,
+  /** The last day of the month a key date may fall on: every month has it. */
+  keyDay: 28,
 } as const
+
+/**
+ * What an operator sets for its meters (section 4.9, #120): the day of the
+ * month every reading is due on, the 1st unless it says otherwise. A
+ * measuring point may have a day of its own.
+ */
+export interface MeterSettings {
+  readonly keyDay: number
+}
+
+export type MeterSettingId = Id<'meter-setting'>
+
+/** The row an operator's settings of its meters are kept in, one per operator. */
+export interface MeterSetting extends Synced, MeterSettings {
+  readonly id: MeterSettingId
+}
+
+/** The key day of an operator that has set none. */
+export const defaultKeyDay = 1
 
 /** How a reading came: typed in the office, read on a round of the meters, in a round or in a protocol. */
 export const meterReadingSources = ['by_hand', 'reading_round', 'round', 'protocol'] as const
@@ -65,6 +86,8 @@ export interface MeterPoint extends Synced {
   readonly conversionFactor: number | null
   readonly mainMeterId: AssetId | null
   readonly controlId: string | null
+  /** The day of the month its readings are due on, where it is not the operator's (#120). */
+  readonly keyDay: number | null
   readonly note: string | null
   readonly noteBy: string | null
   readonly notedOn: IsoDate | null
@@ -92,6 +115,8 @@ export interface MeterReading extends Synced {
   readonly activityId: ActivityId | null
   readonly correctsId: MeterReadingId | null
   readonly correctionReason: string | null
+  /** That whoever read it confirmed a figure far above the reading before (#120). */
+  readonly jumpConfirmed: boolean
   readonly recordedBy: string
 }
 
@@ -149,20 +174,45 @@ export function meterFigure(milli: number, unit: MeterUnit): string {
 }
 
 /**
- * The key date a reading of a day is the reading for (section 4.9): the
- * first day of the month nearest to it, the first of this month up to the
- * 15th, the first of the next one after it. A reading on the 30th of April is
- * the reading for the 1st of May.
+ * The key date a reading of a day is the reading for (section 4.9): the key
+ * day on or before it, if that is at most 14 days back, else the next one.
+ * The operator sets the day, a measuring point may have its own (#120). With
+ * the 1st, a reading up to the 15th is the one for the 1st of its month, and a
+ * reading on the 30th of April the one for the 1st of May.
  */
-export function keyDateFor(readOn: IsoDate): IsoDate {
-  const first = `${readOn.slice(0, 7)}-01` as IsoDate
+export function keyDateFor(readOn: IsoDate, keyDay: number = defaultKeyDay): IsoDate {
+  const own = keyDateIn(readOn, keyDay)
+  const last = own <= readOn ? own : addMonths(own, -1)
 
-  return Number(readOn.slice(8, 10)) <= 15 ? first : addMonths(first, 1)
+  return daysApart(last, readOn) <= 14 ? last : addMonths(last, 1)
 }
 
-/** Whether a day is a key date: the first day of a month. */
+/** The key date in the month a day lies in, for a key day. */
+export function keyDateIn(day: IsoDate, keyDay: number = defaultKeyDay): IsoDate {
+  return `${day.slice(0, 7)}-${String(keyDay).padStart(2, '0')}` as IsoDate
+}
+
+/** The key day that counts for a measuring point: its own, or the operator's. */
+export function keyDayOf(
+  point: { readonly keyDay: number | null } | null,
+  settings: MeterSettings,
+) {
+  return point?.keyDay ?? settings.keyDay
+}
+
+/** Whether a day may be a key date: a day of a month from the 1st to the 28th. */
 export function isKeyDate(day: string): boolean {
-  return calendarDay(day) && day.endsWith('-01')
+  return calendarDay(day) && Number(day.slice(8, 10)) <= meterLimits.keyDay
+}
+
+/** Whether a value is a key day: a whole day of the month from 1 to 28. */
+export function isKeyDay(value: unknown): value is number {
+  return wholeFromTo(value, 1, meterLimits.keyDay)
+}
+
+/** The days from one day to another, negative where the other lies before. */
+function daysApart(from: IsoDate, to: IsoDate): number {
+  return Math.round((Date.parse(`${to}T00:00:00Z`) - Date.parse(`${from}T00:00:00Z`)) / 86_400_000)
 }
 
 /** The key dates from one to another, both included, one a month. */
@@ -341,8 +391,82 @@ export function readingDoubt(
   return null
 }
 
+/** The words for a figure so many times the one before. */
+function timesWords(ratio: number): string {
+  for (const [power, words] of [
+    [10, 'zehnmal'],
+    [100, 'hundertmal'],
+    [1000, 'tausendmal'],
+  ] as const) {
+    if (Math.abs(ratio - power) <= power * 0.15) {
+      return words
+    }
+  }
+
+  return `${Math.round(ratio).toLocaleString('de-DE')}-mal`
+}
+
+/**
+ * A figure that jumps (section 4.9, #120): far above what the meter showed or
+ * ran before. Nine times the reading before and more is most likely a slip of
+ * the comma; a consumption per month ten times the one before it most likely
+ * a slip of a digit. Either may be right, a meter that ran wild or a burst
+ * pipe, so the person is warned and confirms; a right figure is never
+ * refused. Nothing to compare across a replacement of the meter, nor without
+ * a reading before.
+ */
+export function readingJump(
+  figure: { readonly keyDate: IsoDate; readonly readOn: IsoDate; readonly valueMilli: number },
+  before: ConsumptionInput,
+): string | null {
+  const earlier = [...before.readings]
+    .filter((reading) => reading.keyDate < figure.keyDate)
+    .sort((left, right) => (left.keyDate < right.keyDate ? 1 : -1))
+  const last = earlier[0]
+
+  if (last === undefined) {
+    return null
+  }
+
+  const replacedBetween = (from: IsoDate, to: IsoDate) =>
+    before.exchanges.some((exchange) => exchange.exchangedOn > from && exchange.exchangedOn <= to)
+
+  if (replacedBetween(last.readOn, figure.readOn)) {
+    return null
+  }
+
+  if (last.valueMilli > 0 && figure.valueMilli >= last.valueMilli * 9) {
+    return `Etwa ${timesWords(figure.valueMilli / last.valueMilli)} so viel wie im Vormonat. Stimmt das Komma?`
+  }
+
+  const previous = earlier[1]
+
+  if (previous === undefined || replacedBetween(previous.readOn, last.readOn)) {
+    return null
+  }
+
+  const perMonth = (from: IsoDate, to: IsoDate, milli: number) =>
+    milli / Math.max(1, keyDatesBetween(from, to).length - 1)
+  const was = perMonth(previous.keyDate, last.keyDate, last.valueMilli - previous.valueMilli)
+  const is = perMonth(last.keyDate, figure.keyDate, figure.valueMilli - last.valueMilli)
+
+  return was > 0 && is >= was * 10
+    ? `Etwa ${timesWords(is / was)} so viel verbraucht wie im Monat davor. Stimmt der Stand?`
+    : null
+}
+
 function germanDay(day: IsoDate): string {
   return `${day.slice(8, 10)}.${day.slice(5, 7)}.${day.slice(0, 4)}`
+}
+
+/** What is said of a key day that is none. */
+export const keyDayWords = `Der Stichtag ist ein Tag im Monat von 1 bis ${String(meterLimits.keyDay)}.`
+
+/** What is wrong with the settings of the meters of an operator. */
+export function meterSettingsProblems(
+  settings: Readonly<Record<string, unknown>>,
+): Readonly<Problems> {
+  return isKeyDay(settings['keyDay']) ? {} : { keyDay: keyDayWords }
 }
 
 /** What is wrong with a reading as it is entered, one sentence per field. */
@@ -355,7 +479,7 @@ export function meterReadingProblems(
   const value = reading['valueMilli']
 
   if (keyDate !== undefined && (typeof keyDate !== 'string' || !isKeyDate(keyDate))) {
-    problems['keyDate'] = 'Der Stichtag ist der erste Tag eines Monats.'
+    problems['keyDate'] = 'Der Stichtag ist ein Tag eines Monats vom 1. bis zum 28.'
   }
 
   if (readOn !== undefined && !calendarDay(readOn)) {
@@ -455,6 +579,12 @@ export function meterPointProblems(point: Readonly<Record<string, unknown>>): Re
   if (factor !== undefined && factor !== null && !wholeFromTo(factor, 1, meterLimits.factor)) {
     problems['conversionFactor'] =
       `Der Wandlerfaktor ist eine ganze Zahl von 1 bis ${String(meterLimits.factor)}.`
+  }
+
+  const keyDay = point['keyDay']
+
+  if (keyDay !== undefined && keyDay !== null && !isKeyDay(keyDay)) {
+    problems['keyDay'] = keyDayWords
   }
 
   optional(

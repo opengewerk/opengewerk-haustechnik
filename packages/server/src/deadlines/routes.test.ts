@@ -379,6 +379,17 @@ describe('the settings of a kind', () => {
         intervalMonths: null,
         leadDays: 14,
       }),
+      // The meters of a property for their key date (#120).
+      expect.objectContaining({
+        key: 'meter.due',
+        title: 'Zählerablesung zum Stichtag',
+        source: 'meter',
+        actions: ['reminder'],
+        responsible: 'lead',
+        intervalDays: null,
+        intervalMonths: null,
+        leadDays: 3,
+      }),
     ])
 
     await http()

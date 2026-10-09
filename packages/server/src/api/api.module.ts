@@ -59,7 +59,7 @@ import { RoundPlansController } from './round-plans.controller.js'
 import { RoundTemplatesController } from './round-templates.controller.js'
 import { RoundsController } from './rounds.controller.js'
 import { syncRoutesFor } from './sync-routes.js'
-import { MetersController } from './meters.controller.js'
+import { MeterSettingsController, MetersController } from './meters.controller.js'
 import { WorkOrdersController } from './work-orders.controller.js'
 
 /**
@@ -271,6 +271,7 @@ export class ApiModule {
         // default of each class under the settings.
         DefectsController,
         DefectClassSettingsController,
+        MeterSettingsController,
         // The catalogue of this server, for the devices that work with it.
         CatalogueController,
         // The import of places and assets from tables.

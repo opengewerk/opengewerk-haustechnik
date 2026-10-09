@@ -147,6 +147,8 @@ const details: MeterDetails = {
   ...main,
   kind: 'probe.water_meter',
   currentKeyDate: current,
+  keyDay: null,
+  operatorKeyDay: 1,
   conversionFactor: null,
   controlId: 'GLT-SH-WZ01',
   mainMeter: null,
@@ -390,6 +392,54 @@ describe('the page of a measuring point', () => {
         correctsId: right.id,
         correctionReason: 'Schlecht lesbar',
       },
+    })
+  })
+
+  it('asks before it sends a figure that jumps, and sends it confirmed once it is kept (#120)', async () => {
+    await mountOffice(`/zaehler/${main.assetId}`, server, everything)
+    await userEvent.click(await screen.findByRole('button', { name: meterWords.enter }))
+    await userEvent.type(
+      screen.getByLabelText(meterWords.standAt(current), { exact: false }),
+      '48.120',
+    )
+    await userEvent.click(screen.getByRole('button', { name: meterWords.save }))
+
+    expect((await screen.findByRole('alert')).textContent).toBe(
+      'Etwa zehnmal so viel wie im Vormonat. Stimmt das Komma?',
+    )
+    expect(written).toEqual([])
+
+    await userEvent.click(screen.getByRole('button', { name: meterWords.jumpKeep }))
+
+    await waitFor(() => {
+      expect(written).toHaveLength(1)
+    })
+    expect(written[0]).toEqual({
+      method: 'POST',
+      path: `/meters/${main.assetId}/readings`,
+      body: { readOn: today(), valueMilli: 48_120_000, confirmed: true },
+    })
+  })
+
+  it('sets a key day of the measuring point, or takes the one of the operator again (#120)', async () => {
+    await mountOffice(`/zaehler/${main.assetId}`, server, everything)
+    await userEvent.click(await screen.findByRole('button', { name: meterWords.edit }))
+
+    const dialog = await screen.findByRole('dialog', { name: 'Messstelle bearbeiten' })
+
+    await userEvent.selectOptions(
+      within(dialog).getByLabelText(meterWords.keyDay, { exact: false }),
+      '15',
+    )
+    await userEvent.click(within(dialog).getByRole('button', { name: meterWords.save }))
+
+    await waitFor(() => {
+      expect(written).toHaveLength(1)
+    })
+    expect(written[0]).toMatchObject({
+      method: 'PUT',
+      path: `/meters/${main.assetId}`,
+      body: { keyDay: 15 },
     })
   })
 

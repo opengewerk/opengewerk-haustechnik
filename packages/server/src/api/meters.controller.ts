@@ -21,11 +21,11 @@ import {
   type IsoDate,
   isKeyDate,
   keyDateFor,
+  keyDateIn,
   keyDatesBetween,
   type MeterDetails,
   type MeterEntry,
   meterExchangeProblems,
-  type MeterExchange,
   type MeterList,
   type MeterListState,
   meterListStates,
@@ -33,15 +33,17 @@ import {
   meterMedia,
   type MeterPause,
   meterPauseProblems,
-  type MeterPoint,
   meterPointProblems,
   type MeterReading,
   type MeterReadingLine,
   meterReadingProblems,
   meterRestsOn,
   type MeterRow,
+  type MeterSettings,
+  meterSettingsProblems,
   type MeterState,
   readingDoubt,
+  readingJump,
   validReadings,
 } from '@opengewerk/haustechnik-domain'
 import {
@@ -60,7 +62,15 @@ import {
   meterPauses,
   meterPoints,
   meterReadings,
+  meterSettings,
 } from '../database/schema/index.js'
+import {
+  type Held,
+  heldMeter as heldMeterOrNull,
+  heldOf,
+  keyDateDue,
+  operatorKeyDay,
+} from '../database/meter-standing.js'
 import { dayInGermany } from '../today.js'
 import { RequiresPermission } from './authorization.js'
 import { type Asking, fieldsOf, refuse } from './places.js'
@@ -74,20 +84,6 @@ const unknownAccount = 'Unbekanntes Konto'
 /** The day as the screens write it, `01.10.2026`. */
 function germanDay(day: IsoDate): string {
   return `${day.slice(8, 10)}.${day.slice(5, 7)}.${day.slice(0, 4)}`
-}
-
-/** The key date of a month: its first day. The one of today is the current one. */
-function keyDateOfMonth(day: IsoDate): IsoDate {
-  return `${day.slice(0, 7)}-01` as IsoDate
-}
-
-/** What a measuring point holds, as the pages are worked out from it. */
-interface Held {
-  readonly asset: Asset
-  readonly point: MeterPoint | null
-  readonly readings: readonly MeterReading[]
-  readonly exchanges: readonly MeterExchange[]
-  readonly pauses: readonly MeterPause[]
 }
 
 /**
@@ -126,13 +122,13 @@ export class MetersController {
     @Query() query: Readonly<Record<string, unknown>>,
   ): Promise<MeterList> {
     const today = dayInGermany()
-    const keyDate = (said(query, 'keyDate') ?? keyDateOfMonth(today)) as IsoDate
+    const asked = said(query, 'keyDate') ?? null
     const state = (said(query, 'state') ?? 'all') as MeterListState
     const propertyId = said(query, 'property') ?? null
     const medium = said(query, 'medium') ?? null
 
-    if (!isKeyDate(keyDate)) {
-      throw new BadRequestException('Der Stichtag ist der erste Tag eines Monats.')
+    if (asked !== null && !isKeyDate(asked)) {
+      throw new BadRequestException('Der Stichtag ist ein Tag eines Monats vom 1. bis zum 28.')
     }
 
     if (!(meterListStates as readonly string[]).includes(state)) {
@@ -160,10 +156,16 @@ export class MetersController {
         )
         .orderBy(asc(assets.mark), asc(assets.name), asc(assets.id))
 
-      return heldOf(tx, meters as Asset[])
+      const keyDay = await operatorKeyDay(tx)
+
+      return {
+        keyDate: (asked ?? keyDateDue(today, keyDay)) as IsoDate,
+        meters: await heldOf(tx, meters as Asset[], keyDay),
+      }
     })
-    const entries = held
-      .map((each) => this.entryOf(each, keyDate, today))
+    const keyDate = held.keyDate
+    const entries = held.meters
+      .map((each) => this.entryOf(each, keyDateIn(keyDate, each.keyDay), today))
       .filter((entry) => medium === null || entry.medium === medium)
     const counted = (wanted: MeterState) => entries.filter((entry) => entry.state === wanted).length
 
@@ -200,8 +202,8 @@ export class MetersController {
   ): Promise<MeterDetails> {
     const values = fieldsOf(
       body,
-      ['readOn', 'valueMilli', 'correctsId', 'correctionReason'],
-      ['correctsId', 'correctionReason'],
+      ['readOn', 'valueMilli', 'correctsId', 'correctionReason', 'confirmed'],
+      ['correctsId', 'correctionReason', 'confirmed'],
     )
 
     refuse(
@@ -249,7 +251,7 @@ export class MetersController {
         )
       }
 
-      const keyDate = corrected?.keyDate ?? keyDateFor(readOn)
+      const keyDate = corrected?.keyDate ?? keyDateFor(readOn, held.keyDay)
 
       if (corrected === null && valid.some((reading) => reading.keyDate === keyDate)) {
         throw new ConflictException(
@@ -272,6 +274,21 @@ export class MetersController {
         throw new ConflictException(doubt)
       }
 
+      // Far above the reading before: taken once whoever reads it says it is right.
+      const jump = readingJump(
+        { keyDate, readOn, valueMilli },
+        {
+          readings: valid.filter((reading) => reading !== corrected),
+          exchanges: held.exchanges,
+          pauses: held.pauses,
+          conversionFactor: held.point?.conversionFactor ?? null,
+        },
+      )
+
+      if (jump !== null && values.confirmed !== true) {
+        throw new ConflictException(jump)
+      }
+
       await tx.insert(meterReadings).values({
         tenantId: identity.tenantId,
         propertyId: held.asset.propertyId,
@@ -283,6 +300,7 @@ export class MetersController {
         source: 'by_hand',
         correctsId: (correctsId ?? null) as never,
         correctionReason: (values.correctionReason ?? null) as string | null,
+        jumpConfirmed: jump !== null,
         recordedBy: identity.userId,
       })
     })
@@ -538,8 +556,8 @@ export class MetersController {
   ): Promise<MeterDetails> {
     const values = fieldsOf(
       body,
-      ['conversionFactor', 'mainMeterId', 'controlId'],
-      ['mainMeterId', 'controlId'],
+      ['conversionFactor', 'mainMeterId', 'controlId', 'keyDay'],
+      ['mainMeterId', 'controlId', 'keyDay'],
     )
 
     refuse(meterPointProblems(values))
@@ -558,6 +576,7 @@ export class MetersController {
           : { conversionFactor: values.conversionFactor as number | null }),
         ...(values.mainMeterId === undefined ? {} : { mainMeterId }),
         ...(values.controlId === undefined ? {} : { controlId: values.controlId as string | null }),
+        ...(values.keyDay === undefined ? {} : { keyDay: values.keyDay as number | null }),
       })
     })
 
@@ -620,7 +639,7 @@ export class MetersController {
       identity.userId,
     )
     const nameOf = (userId: string) => accounts.get(userId)?.name ?? unknownAccount
-    const current = keyDateOfMonth(today)
+    const current = keyDateDue(today, held.keyDay)
     const valid = validReadings(held.readings)
     const consumption = consumptionByKeyDate({
       readings: valid,
@@ -657,7 +676,7 @@ export class MetersController {
               consumption: null,
             },
           ]
-        : [...keyDatesBetween(first, until)].reverse().map((keyDate) => {
+        : keyDatesOf(held, first, until).map((keyDate) => {
             const reading = valid.find((each) => each.keyDate === keyDate)
 
             return {
@@ -671,17 +690,21 @@ export class MetersController {
               consumption: consumption.get(keyDate) ?? null,
             }
           })
-    const history = [...keyDatesBetween(addMonths(until, -23), until)].reverse().map((keyDate) => ({
-      keyDate,
-      consumption: consumption.get(keyDate) ?? null,
-      previousYear: consumption.get(addMonths(keyDate, -12)) ?? null,
-    }))
+    const history = [...keyDatesBetween(keyDateIn(addMonths(until, -23), held.keyDay), until)]
+      .reverse()
+      .map((keyDate) => ({
+        keyDate,
+        consumption: consumption.get(keyDate) ?? null,
+        previousYear: consumption.get(addMonths(keyDate, -12)) ?? null,
+      }))
     const point = held.point
 
     return {
       ...this.entryOf(held, current, today),
       kind: held.asset.kind,
       currentKeyDate: current,
+      keyDay: point?.keyDay ?? null,
+      operatorKeyDay: held.operatorKeyDay,
       conversionFactor: point?.conversionFactor ?? null,
       controlId: point?.controlId ?? null,
       mainMeter:
@@ -783,59 +806,22 @@ function overlaps(
 }
 
 /**
- * The asset of a measuring point and what it holds, as the person asking
- * sees it: an asset with a meter, not marked, in their areas. Held, the
- * asset is read with the lock of a change, so that two readings for the
- * same key date at the same moment wait for each other.
+ * The key dates of the page of a measuring point, newest first: one a month
+ * on its key day, from the first reading on, and the key date of every
+ * reading. A month whose reading fell on another day, before the day was
+ * changed, is not missing beside it (#120).
  */
-async function heldMeter(tx: TenantTransaction, id: string, lock: boolean): Promise<Held> {
-  if (!isUuid(id)) {
-    throw new NotFoundException(missing)
-  }
+function keyDatesOf(held: Held, first: IsoDate, until: IsoDate): IsoDate[] {
+  const taken = held.readings.map((reading) => reading.keyDate)
+  const near = (day: IsoDate, other: IsoDate) =>
+    Math.abs(Date.parse(day) - Date.parse(other)) <= 14 * 86_400_000
+  const monthly = keyDatesBetween(keyDateIn(first, held.keyDay), until).filter(
+    (day) => day >= first && !taken.some((other) => other !== day && near(day, other)),
+  )
 
-  const query = tx
-    .select()
-    .from(assets)
-    .where(
-      and(eq(assets.id, id as AssetId), isNotNull(assets.meterNumber), isNull(assets.deletedAt)),
-    )
-  const [asset] = lock ? await query.for('no key update') : await query
-
-  if (asset === undefined) {
-    throw new NotFoundException(missing)
-  }
-
-  return (await heldOf(tx, [asset as Asset]))[0] as Held
-}
-
-/** What each of some measuring points holds, read at once. */
-async function heldOf(tx: TenantTransaction, meters: readonly Asset[]): Promise<Held[]> {
-  if (meters.length === 0) {
-    return []
-  }
-
-  const ids = meters.map((meter) => meter.id)
-  const points = await tx.select().from(meterPoints).where(inArray(meterPoints.assetId, ids))
-  const readings = await tx
-    .select()
-    .from(meterReadings)
-    .where(and(inArray(meterReadings.assetId, ids), isNull(meterReadings.deletedAt)))
-  const exchanges = await tx
-    .select()
-    .from(meterExchanges)
-    .where(and(inArray(meterExchanges.assetId, ids), isNull(meterExchanges.deletedAt)))
-  const pauses = await tx
-    .select()
-    .from(meterPauses)
-    .where(and(inArray(meterPauses.assetId, ids), isNull(meterPauses.deletedAt)))
-
-  return meters.map((asset) => ({
-    asset,
-    point: (points.find((point) => point.assetId === asset.id) ?? null) as MeterPoint | null,
-    readings: readings.filter((reading) => reading.assetId === asset.id) as MeterReading[],
-    exchanges: exchanges.filter((exchange) => exchange.assetId === asset.id) as MeterExchange[],
-    pauses: pauses.filter((pause) => pause.assetId === asset.id) as MeterPause[],
-  }))
+  return [...new Set([...monthly, ...taken])]
+    .filter((day) => day <= until)
+    .sort((left, right) => (left < right ? 1 : -1))
 }
 
 /**
@@ -875,4 +861,58 @@ async function mainMeterFor(tx: TenantTransaction, meter: Asset, mainMeterId: As
 
     above = next?.mainMeterId ?? null
   }
+}
+
+/**
+ * The key day of the meters under "Einstellungen" (section 4.9: "Den
+ * Stichtag stellt der Betreiber ein", #120): the day of the month every
+ * reading is due on, unless a measuring point sets its own. Seeing and
+ * changing it is what the settings take, which section 7 gives to the
+ * Leitung.
+ */
+@Controller('settings/meters')
+export class MeterSettingsController {
+  constructor(private readonly database: Database) {}
+
+  @Get()
+  @RequiresPermission('settings.read')
+  read(@CurrentIdentity() identity: Asking): Promise<MeterSettings> {
+    return this.database.forTenant(identity, async (tx) => ({
+      keyDay: await operatorKeyDay(tx),
+    }))
+  }
+
+  /** The day of the month, from 1 to 28. */
+  @Put()
+  @RequiresPermission('settings.write')
+  set(@CurrentIdentity() identity: Asking, @Body() body: unknown): Promise<MeterSettings> {
+    const values = fieldsOf(body, ['keyDay'], [])
+
+    refuse(meterSettingsProblems(values))
+
+    const keyDay = values.keyDay as number
+
+    return this.database.forTenant(identity, async (tx) => {
+      await tx
+        .insert(meterSettings)
+        .values({ tenantId: identity.tenantId, keyDay })
+        .onConflictDoUpdate({
+          target: [meterSettings.tenantId],
+          set: { keyDay, updatedAt: new Date() },
+        })
+
+      return { keyDay }
+    })
+  }
+}
+
+/** A measuring point the person asking sees, or the answer that there is none. */
+async function heldMeter(tx: TenantTransaction, id: string, lock: boolean): Promise<Held> {
+  const held = await heldMeterOrNull(tx, id, lock)
+
+  if (held === null) {
+    throw new NotFoundException(missing)
+  }
+
+  return held
 }

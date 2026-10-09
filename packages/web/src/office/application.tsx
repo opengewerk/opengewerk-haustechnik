@@ -7,7 +7,7 @@ import type {
   StaffSentences,
 } from '@opengewerk/platform-web'
 import { auditLogPath } from '@opengewerk/platform-web/office'
-import { CalendarClock, History, Map, ScanLine, TriangleAlert, Users } from 'lucide-react'
+import { CalendarClock, Gauge, History, Map, ScanLine, TriangleAlert, Users } from 'lucide-react'
 
 import { application } from '../app/application.js'
 import { auditScreenWords } from './audit.js'
@@ -47,6 +47,15 @@ const settings = [
     title: 'Mängelklassen',
     about: 'Welche Frist zur Beseitigung jede Klasse vorgibt. Die Klassen kommen aus den Paketen.',
     icon: TriangleAlert,
+    right: 'settings.read',
+  },
+  {
+    key: 'meters',
+    to: '/einstellungen/zaehler',
+    title: 'Zähler',
+    about:
+      'An welchem Tag im Monat der Stand jedes Zählers fällig ist. Eine Messstelle kann davon abweichen.',
+    icon: Gauge,
     right: 'settings.read',
   },
   {

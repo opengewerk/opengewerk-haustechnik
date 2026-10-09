@@ -1191,6 +1191,78 @@ describe('a round of a template of the operator', () => {
   })
   const said = { kind: 'text', key: 'p2', label: 'Sonst aufgefallen', multiline: true }
 
+  // A point "Zählerstand" about the asset of the round, which is a measuring point (#120).
+  const meterPoint = (asset: string) => ({
+    kind: 'meter_reading',
+    key: 'z1',
+    label: 'Wasserzähler Schulhaus',
+    unit: 'cubic_metres',
+    decimals: 1,
+    required: true,
+    about: { kind: 'asset', id: asset },
+  })
+
+  /** The readings of a measuring point, as the database holds them. */
+  async function readingsAt(asset: string) {
+    return (
+      await admin.query<{
+        value_milli: string
+        source: string
+        activity_id: string
+        recorded_by: string
+        key_date: string
+      }>(
+        `select value_milli, source, activity_id, recorded_by,
+                to_char(key_date, 'YYYY-MM-DD') as key_date
+           from meter_readings where asset_id = $1`,
+        [asset],
+      )
+    ).rows
+  }
+
+  it('writes the reading of a point about a measuring point with the signature, and not before', async () => {
+    const round = await roundOn((asset) => [[meterPoint(asset)]], 1)
+
+    await admin.query(
+      `update assets set meter_number = '13-882914', meter_unit = 'cubic_metres' where id = $1`,
+      [round.asset],
+    )
+    await answer(round, 'z1', { value: '4812000' })
+
+    expect(await readingsAt(round.asset)).toEqual([])
+    expect(await signed(round.activity)).toBe('taken')
+    expect(await readingsAt(round.asset)).toEqual([
+      {
+        value_milli: '4812000',
+        source: 'round',
+        activity_id: round.activity,
+        recorded_by: technician,
+        key_date: '2026-10-01',
+      },
+    ])
+  })
+
+  it('leaves a measuring point whose key date has a reading as it is, and the answer on the page', async () => {
+    const round = await roundOn((asset) => [[meterPoint(asset)]], 1)
+
+    await admin.query(
+      `update assets set meter_number = '13-882915', meter_unit = 'cubic_metres' where id = $1`,
+      [round.asset],
+    )
+    await admin.query(
+      `insert into meter_readings (tenant_id, property_id, area_id, asset_id, key_date, read_on,
+                                   value_milli, source, recorded_by)
+       values ($1, $2, $3, $4, '2026-10-01', '2026-10-01', 4800000, 'by_hand', 'u-lead')`,
+      [tenant, round.property, area, round.asset],
+    )
+    await answer(round, 'z1', { value: '4812000' })
+
+    expect(await signed(round.activity)).toBe('taken')
+    expect((await readingsAt(round.asset)).map((reading) => reading.value_milli)).toEqual([
+      '4800000',
+    ])
+  })
+
   it('stays on the version it began in, whatever was saved after it', async () => {
     const round = await roundOn(
       (asset) => [[door(asset)], [{ ...door(asset), key: 'p9', label: 'Neuer Punkt' }]],

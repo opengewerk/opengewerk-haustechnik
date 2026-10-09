@@ -925,6 +925,17 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   Stilllegung, Sperre, Notiz, Wandlerfaktor, Hauptzähler und die Kennung in der Leittechnik ändert,
   wer Anlagen pflegt. Eine gesperrte Messstelle nimmt keinen Stand an und sagt warum. Bisher war
   ein Zähler nur eine Anlage mit Nummer und Einheit, ohne Stände
+- Ablesung vor Ort (#120): eine eigene Runde liest die Zähler einer Liegenschaft ab, jeder mit
+  dem Stand des Vormonats daneben, und hält jeden Stand sofort auf dem Gerät, auch ohne Netz. Ein
+  Punkt "Zählerstand" eines Rundgangs, der eine Messstelle nennt, zeigt Vormonat und Zählernummer
+  und schreibt den Stand erst mit der Unterschrift an die Messstelle. Ein Stand unter dem letzten
+  wird nicht angenommen; einer, der um ein Vielfaches springt, warnt und wird erst nach "So
+  übernehmen" genommen, auf dem Gerät, im Büro und auf dem Server gleich. Den Stichtag stellt der
+  Betreiber unter "Einstellungen", "Zähler" ein, eine Messstelle kann davon abweichen. Zwei
+  Ablesungen für denselben Stichtag sind ein Konflikt. Die Fristen-Engine kennt die Quelle
+  "Zählerablesung zum Stichtag", eine Frist je Liegenschaft, und der Start vor Ort nennt die
+  Liegenschaften, deren Stände fällig sind. Bisher kam ein Stand nur von Hand im Büro, immer zum
+  Monatsersten
 
 ### Geändert
 

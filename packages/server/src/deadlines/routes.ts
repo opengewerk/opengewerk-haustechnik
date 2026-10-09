@@ -120,6 +120,18 @@ export function deadlineRulesFor(
       )
 
       return (row) => {
+        if (row.meterPropertyId !== null) {
+          const facts: DeadlineFacts = {
+            follows: 'meter',
+            propertyId: row.propertyId,
+            buildingId: null,
+            roomId: null,
+            asset: null,
+          }
+
+          return { ...facts }
+        }
+
         if (row.roundPlanId !== null) {
           const found = byPlan.get(row.roundPlanId)
           const facts: DeadlineFacts = {

@@ -38,6 +38,7 @@ import { EditFloorScreen, NewFloorScreen } from './screens/floor-form.js'
 import { FloorScreen } from './screens/floors.js'
 import { ImportAssetsScreen, ImportStructureScreen } from './screens/imports.js'
 import { LabelLandingScreen } from './screens/label-landing.js'
+import { MeterSettingsScreen } from './screens/meter-settings.js'
 import { MeterListScreen, MeterScreen } from './screens/meters.js'
 import {
   EditPropertyScreen,
@@ -413,6 +414,11 @@ export function officeRoutes() {
       getParentRoute: () => office,
       path: '/einstellungen/maengelklassen',
       component: DefectClassSettingsScreen,
+    }),
+    createRoute({
+      getParentRoute: () => office,
+      path: '/einstellungen/zaehler',
+      component: MeterSettingsScreen,
     }),
     createRoute({
       getParentRoute: () => office,

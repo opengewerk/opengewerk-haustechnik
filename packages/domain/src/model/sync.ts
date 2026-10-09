@@ -164,16 +164,37 @@ export const syncPolicies: Readonly<Record<string, SyncPolicy>> = {
   // A version is made and never changed, and who filed it is the server's to
   // write. It carries no place: it is seen with its document.
   attachment_versions: attachmentVersionPolicy,
-  // A label is made and blocked in the office, with a connection: the server
-  // draws its code. A device holds the labels of its places, so that a scan
   // What a measuring point holds beside its asset (#119): what only it
-  // carries, its readings, the replacements of its meter and the periods it
-  // rests. Kept in the office, with a connection; a device holds them with
-  // the places, to show the reading before and why a meter is not read.
+  // carries, the replacements of its meter and the periods it rests. Kept in
+  // the office, with a connection; a device holds them with the places, to
+  // show the reading before and why a meter is not read.
   meter_points: officeOnly,
-  meter_readings: officeOnly,
   meter_exchanges: officeOnly,
   meter_pauses: officeOnly,
+  // A reading is made on site without a network, on a round of the meters
+  // (#120), and never changed: a wrong one is corrected in the office. Its
+  // place and its key date follow its measuring point, how it came is that
+  // round, and who read it is the server's to write; a reading of a round is
+  // the server's, written with the signature.
+  meter_readings: {
+    create: true,
+    change: 'never',
+    reserved: [
+      'propertyId',
+      'areaId',
+      'keyDate',
+      'source',
+      'activityId',
+      'correctsId',
+      'correctionReason',
+      'recordedBy',
+    ],
+  },
+  // The day of the month the readings of the operator are due on (#120): set
+  // under "Einstellungen", held by every device to name the key date.
+  meter_settings: officeOnly,
+  // A label is made and blocked in the office, with a connection: the server
+  // draws its code. A device holds the labels of its places, so that a scan
   // opens an asset without a network, and it gives a label from a sheet to an
   // asset it takes stock of, also without one. A blocked label takes nothing.
   // Its code, its property and its area are the server's.
@@ -314,6 +335,11 @@ export const offlineEdits: Readonly<Record<string, OfflineEdits>> = {
   },
   // A note on a work order, with the moment of the device it was written on.
   work_order_notes: { create: { activityId: true, text: true, writtenAt: true } },
+  // A reading of a round of the meters: which meter, the day, the figure, and
+  // that a figure far above the one before was confirmed (#120).
+  meter_readings: {
+    create: { assetId: true, readOn: true, valueMilli: true, jumpConfirmed: true },
+  },
   // A signature, with when, on which device and for which page it was given.
   activity_signatures: {
     create: {
@@ -445,6 +471,7 @@ export const syncEntityNames: Readonly<Record<string, string>> = {
   meter_readings: 'Zählerstand',
   meter_exchanges: 'Zählertausch',
   meter_pauses: 'Stilllegung einer Messstelle',
+  meter_settings: 'Stichtag der Zähler',
 }
 
 /**
@@ -605,6 +632,10 @@ export const syncFieldNames: Readonly<Record<string, string>> = {
   lockReason: 'Grund der Sperre',
   lockedOn: 'Gesperrt seit',
   keyDate: 'Stichtag',
+  // The day of the month of the key date, of the operator or of one measuring
+  // point, and the confirmation of a figure that jumps (#120).
+  keyDay: 'Tag des Stichtags',
+  jumpConfirmed: 'Sprung bestätigt',
   readOn: 'Abgelesen am',
   valueMilli: 'Stand',
   source: 'Weg',

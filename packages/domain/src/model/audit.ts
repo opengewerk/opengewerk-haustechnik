@@ -111,6 +111,7 @@ export const auditVocabulary: AuditVocabulary = {
         conversion_factor: 'Wandlerfaktor',
         main_meter_id: 'Hauptzähler',
         control_id: 'Kennung in der Leittechnik',
+        key_day: 'Tag des Stichtags',
         note: 'Notiz',
         note_by: 'Notiz von',
         noted_on: 'Notiz seit',
@@ -128,6 +129,7 @@ export const auditVocabulary: AuditVocabulary = {
         activity_id: 'Vorgang',
         corrects_id: 'Berichtigt',
         correction_reason: 'Grund der Berichtigung',
+        jump_confirmed: 'Sprung bestätigt',
         recorded_by: 'Eingetragen von',
       },
     },
@@ -145,6 +147,8 @@ export const auditVocabulary: AuditVocabulary = {
       label: 'Stilllegung',
       fields: { starts_on: 'Von', ends_on: 'Bis', reason: 'Grund' },
     },
+    // The day of the month the readings of the operator are due on (#120).
+    meter_settings: { label: 'Stichtag der Zähler', fields: { key_day: 'Tag des Stichtags' } },
     // The duties of an operator and the proposals dismissed (ADR 0002, points
     // 10 and 11).
     duties: {
@@ -390,6 +394,7 @@ export const auditVocabulary: AuditVocabulary = {
       duty_id: 'Pflicht',
       defect_id: 'Mangel',
       round_plan_id: 'Plan eines Rundgangs',
+      meter_property_id: 'Zähler der Liegenschaft',
       property_id: 'Liegenschaft',
       area_id: 'Bereich',
     },
@@ -544,6 +549,7 @@ export const auditVocabulary: AuditVocabulary = {
     meter_readings: ['key_date'],
     meter_exchanges: ['exchanged_on'],
     meter_pauses: ['starts_on'],
+    meter_settings: ['key_day'],
     // A duty of the operator's own by its name, one from the catalogue by its
     // kind; a dismissal by the kind it dismissed.
     duties: ['label', 'kind'],

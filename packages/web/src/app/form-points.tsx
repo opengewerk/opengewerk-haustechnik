@@ -6,8 +6,10 @@ import {
   type CheckPointResult,
   forms,
   isStatedLimit,
+  type IsoDate,
   type LimitContext,
   type MeasurementField,
+  meterFigure,
   type RecordState,
 } from '@opengewerk/haustechnik-domain'
 import { Choice, Field, TextArea } from '@opengewerk/platform-web'
@@ -22,12 +24,14 @@ import {
   remarkForCheckPoint,
   remarkForMeasurement,
 } from '@opengewerk/platform-web/forms'
+import { today } from '@opengewerk/platform-web/format'
 import { useSync } from '@opengewerk/platform-web/sync'
 import { ImageIcon, TriangleAlert } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState } from 'react'
 
 import { beginActivity, filledOf, type FormPoint, saveAnswer, unitSign } from './answers.js'
 import { fileDocumentAs } from './documents.js'
+import { judgedFigure, readingStanding, useHeldMeters } from './meters.js'
 
 export const pointWords = {
   /** Under a check point that is not in order: what the signature makes of it. */
@@ -43,6 +47,13 @@ export const pointWords = {
   photoNotFiled: 'Das Foto ließ sich nicht ablegen.',
   yes: 'ja',
   no: 'nein',
+  reading: 'Zählerstand',
+  before: 'Vormonat',
+  meterNumber: 'Zählernummer',
+  noReadingBefore: 'Noch kein Stand',
+  readingOn: (figure: string, day: string) => `${figure} am ${day}`,
+  readingGoes:
+    'Der Stand wird an die Messstelle geschrieben. Ein Stand unter dem letzten wird nicht angenommen.',
 } as const
 
 /** A note under an answer, in the colours of a conflict: what the signature will make of it. */
@@ -195,8 +206,13 @@ export function PointInput(props: PointInputProps) {
     case 'measurement':
       return <MeasurementInput {...props} field={field} />
     case 'number':
-    case 'meter_reading':
       return <FigurePointInput {...props} unit={unitSign(field)} />
+    case 'meter_reading':
+      return field.about?.kind === 'asset' ? (
+        <MeterPointInput {...props} unit={unitSign(field)} assetId={field.about.id} />
+      ) : (
+        <FigurePointInput {...props} unit={unitSign(field)} />
+      )
     case 'text':
       return <TextPointInput {...props} multiline={field.multiline === true} />
     case 'choice':
@@ -454,6 +470,122 @@ function FigurePointInput(props: PointInputProps & { readonly unit: string }) {
         disabled={!editable}
         onChange={figure.put}
       />
+    </div>
+  )
+}
+
+/** A day as the screens write it, `01.09.2026`. */
+function germanDay(day: string): string {
+  return `${day.slice(8, 10)}.${day.slice(5, 7)}.${day.slice(0, 4)}`
+}
+
+/**
+ * The reading of a measuring point as a point of a round (section 4.9 of the
+ * concept, #120, the board "Zählerstand mit Vormonat (4.9)"): the figure with the reading
+ * of the month before and the meter beside it. A figure below the reading
+ * before is not taken, and says why; one that jumps asks whether the comma
+ * is right, and is taken once the person keeps it. The reading reaches the
+ * measuring point with the signature, not before.
+ */
+function MeterPointInput(
+  props: PointInputProps & { readonly unit: string; readonly assetId: string },
+) {
+  const { answer, point, unit, editable, assetId } = props
+  const write = useAnswerWrite(props)
+  const meter = useHeldMeters().get(assetId)
+  const saved = parsedValue(answer)
+  const [shown, setShown] = useState<number | undefined>(
+    typeof saved === 'number' ? saved : undefined,
+  )
+  const [judged, setJudged] = useState<{ refused: string | null; jump: string | null }>({
+    refused: null,
+    jump: null,
+  })
+  const day = today() as IsoDate
+  const standing = meter === undefined ? null : readingStanding(meter, day)
+  const keep = (figure: number | undefined) => {
+    void write({ value: figure === undefined ? null : json(figure) })
+  }
+  const figure = useDeferredWrite((typed: number | undefined) => {
+    if (typed === undefined || meter === undefined) {
+      setJudged({ refused: null, jump: null })
+      keep(typed)
+
+      return
+    }
+
+    const found = judgedFigure(meter, day, typed)
+
+    setJudged(found)
+
+    // Below the reading before is never taken; a jump waits for "So übernehmen".
+    if (found.refused === null && found.jump === null) {
+      keep(typed)
+    }
+  })
+
+  return (
+    <div onBlur={figure.flush} className="flex flex-col gap-3.5">
+      <FigureBlock
+        label={pointWords.reading}
+        unit={unit}
+        value={shown}
+        hint={point.field.hint}
+        disabled={!editable}
+        doubt={
+          judged.refused === null && judged.jump !== null
+            ? {
+                text: judged.jump,
+                onKeep: () => {
+                  setJudged({ refused: null, jump: null })
+                  keep(shown)
+                },
+              }
+            : null
+        }
+        beside={
+          meter === undefined || standing === null ? null : (
+            <div className="rounded-[6px] border border-line bg-surface px-4 py-3.5">
+              <dl className="flex flex-col gap-2.5">
+                <div>
+                  <dt className="font-condensed text-[13px] font-semibold tracking-[1.1px] text-ink-faint uppercase">
+                    {pointWords.before}
+                  </dt>
+                  <dd className="mt-0.5 text-[17px] leading-[1.4]">
+                    {standing.before === null
+                      ? pointWords.noReadingBefore
+                      : pointWords.readingOn(
+                          meterFigure(standing.before.valueMilli, meter.unit),
+                          germanDay(standing.before.keyDate),
+                        )}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="font-condensed text-[13px] font-semibold tracking-[1.1px] text-ink-faint uppercase">
+                    {pointWords.meterNumber}
+                  </dt>
+                  <dd className="mt-0.5 text-[17px] leading-[1.4] [overflow-wrap:anywhere]">
+                    {[
+                      String(meter.asset['meterNumber']),
+                      [meter.asset['mark'], meter.asset['name']].filter(Boolean).join(' '),
+                    ].join(', ')}
+                  </dd>
+                </div>
+              </dl>
+            </div>
+          )
+        }
+        onChange={(typed) => {
+          setShown(typed)
+          figure.put(typed)
+        }}
+      />
+      {judged.refused === null ? null : (
+        <p role="alert" className="text-[16px] leading-[1.4] font-semibold text-conflict">
+          {judged.refused}
+        </p>
+      )}
+      <p className="text-[15px] leading-[1.45] text-ink-muted">{pointWords.readingGoes}</p>
     </div>
   )
 }

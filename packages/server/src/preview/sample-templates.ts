@@ -1,6 +1,6 @@
 import type { Identity, TemplateDefinition } from '@opengewerk/haustechnik-domain'
 import type { Database } from '@opengewerk/platform-server'
-import { and, asc, isNotNull, isNull } from 'drizzle-orm'
+import { and, asc, eq, isNotNull, isNull } from 'drizzle-orm'
 
 import { assets, rooms, roundTemplates, roundTemplateVersions } from '../database/schema/index.js'
 
@@ -50,6 +50,12 @@ export async function giveSampleTemplates(database: Database, planter: Identity)
       return
     }
 
+    // The main water meter of the school, read on the round (#120).
+    const [meter] = await tx
+      .select({ id: assets.id })
+      .from(assets)
+      .where(and(eq(assets.name, 'Hauptwasserzähler Schulhaus'), isNull(assets.deletedAt)))
+
     const first: TemplateDefinition = {
       title: 'Technikzentrale Schulhaus',
       sections: [
@@ -94,6 +100,18 @@ export async function giveSampleTemplates(database: Database, planter: Identity)
               decimals: 1,
               limit: { kind: 'at_most', rule: 'vorschau.cold_water_maximum' },
             },
+            ...(meter === undefined
+              ? []
+              : [
+                  {
+                    kind: 'meter_reading' as const,
+                    key: 'p8',
+                    label: 'Hauptwasserzähler Schulhaus',
+                    unit: 'cubic_metres' as const,
+                    decimals: 1,
+                    about: { kind: 'asset' as const, id: meter.id },
+                  },
+                ]),
             { kind: 'text', key: 'p7', label: 'Sonst aufgefallen', multiline: true },
           ],
         },
