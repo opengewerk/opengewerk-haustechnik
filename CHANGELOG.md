@@ -829,6 +829,16 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   hatten Aufträge nur ihr Datenmodell, und ein Mangel kam über "festgestellt" nicht hinaus.
   Planungskonzept v0.19 (4.6, 4.8, 7), Nachträge in ADR 0002 und 0006, Abschnitte 3.4, 3.12, 4, 5
   und 9 der Verfahrensbeschreibung
+- Das Formular eines Vorgangs vor Ort (#107): eine Übersicht mit den Abschnitten, ihren Punkten,
+  der Antwort je Punkt und den beantworteten Pflichtpunkten (`/m/vorgaenge/<Vorgang>`), und jeder
+  Punkt auf eigener Seite mit der Eingabe seiner Feldart: Prüfpunkt mit Bemerkung oder Grund und
+  Foto, Messwert mit Grenzwert, Urteil und Fundstelle, Zahl, Zählerstand, Auswahl, Ja/Nein, Foto
+  und Text, dazu was die Unterschrift aus der Antwort macht. Jede Eingabe ist sofort auf dem Gerät
+  gesichert, auch ohne Netz und auch, wenn die Seite geschlossen wird; ein Block einer Gruppe wird
+  vor Ort geöffnet. Die Bausteine kommen aus dem Fundament (`@opengewerk/platform-web/forms`).
+  Seit #106 gab es die Antworten je Punkt im Datenmodell und im Abgleich, aber keinen Bildschirm,
+  der sie gibt. In der Vorschau trägt eine Sichtprüfung der Zähleranlage ein Formular mit jeder
+  Feldart aus einem Paket nur der Vorschau
 
 ### Geändert
 

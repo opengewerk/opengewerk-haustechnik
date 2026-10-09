@@ -79,6 +79,21 @@ export async function fileDocument(
   file: File,
   filing: DocumentFiling = {},
 ): Promise<string | null> {
+  const filed = await fileDocumentAs(client, place, file, filing)
+
+  return 'problem' in filed ? filed.problem : null
+}
+
+/**
+ * The same, with the id of the new document where it is queued: the answer
+ * to a point of a form names the photo it took (#106, #107).
+ */
+export async function fileDocumentAs(
+  client: SyncClient,
+  place: DocumentPlace,
+  file: File,
+  filing: DocumentFiling = {},
+): Promise<{ readonly id: string } | { readonly problem: string }> {
   const title = (filing.title ?? documentTitleOf(file.name)).trim()
   const kind = filing.kind ?? null
   const problem =
@@ -87,13 +102,13 @@ export async function fileDocument(
     Object.values(documentProblems({ title, kind }))[0]
 
   if (problem !== undefined) {
-    return problem
+    return { problem }
   }
 
   const prepared = await prepareVersion(client, file, optionsOf(filing))
 
   if ('problem' in prepared) {
-    return prepared.problem
+    return { problem: prepared.problem }
   }
 
   const made = await client.create(attachmentEntity, {
@@ -103,7 +118,7 @@ export async function fileDocument(
   })
 
   if (made.outcome === 'refused') {
-    return refusalFor(made)
+    return { problem: refusalFor(made) }
   }
 
   const version = await client.create(attachmentVersionEntity, {
@@ -111,7 +126,7 @@ export async function fileDocument(
     ...prepared,
   })
 
-  return version.outcome === 'refused' ? refusalFor(version) : null
+  return version.outcome === 'refused' ? { problem: refusalFor(version) } : { id: made.id }
 }
 
 /** A new version of a document, laid over the ones before it. */

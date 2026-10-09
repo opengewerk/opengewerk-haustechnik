@@ -45,6 +45,7 @@ import {
   plantSampleData,
   sampleOperatorName,
 } from './sample-data.js'
+import { giveSampleForm, samplePackage } from './sample-form.js'
 import { writeSampleStandings } from './sample-standings.js'
 
 /**
@@ -113,20 +114,24 @@ function previewFileStore(): FileStorage {
 
 /**
  * The catalogue of the preview as a bundle: the packages this build ships,
- * and beside them the probe package. The build ships the package Allgemein
- * (#61), whose asset kinds carry no duty kind and no field; the packages with
- * duty kinds, measuring points and forms come later in Phase 1, and until
- * then the probe package is the one that shows them.
+ * and beside them the probe package and a package of the preview alone. The
+ * build ships the package Allgemein (#61), whose asset kinds carry no duty
+ * kind and no field; the packages with duty kinds, measuring points and forms
+ * come later in Phase 1, and until then the probe package is the one that
+ * shows them, and the package of the preview a form with every kind of field
+ * (#107).
  *
- * Its checksum is taken over the checksums of both, so that a device tells
- * this catalogue from either of the two alone.
+ * Its checksum is taken over the checksums of the bundles and the package of
+ * the preview, so that a device tells this catalogue from any of them alone.
  */
 export const previewBundle: CatalogueBundle = {
   format: catalogueBundle.format,
   sha256: createHash('sha256')
-    .update(`${catalogueBundle.sha256} ${probeCatalogueBundle.sha256}`)
+    .update(
+      `${catalogueBundle.sha256} ${probeCatalogueBundle.sha256} ${JSON.stringify(samplePackage)}`,
+    )
     .digest('hex'),
-  packages: [...catalogueBundle.packages, ...probeCatalogueBundle.packages],
+  packages: [...catalogueBundle.packages, ...probeCatalogueBundle.packages, samplePackage],
 }
 
 export const previewCatalogue: Catalogue = catalogueOf(previewBundle)
@@ -186,6 +191,8 @@ export async function openSamplePreview(
     // before somebody looks, and two of them planned (#105).
     await runDeadlineCycle({ database, catalogue: previewCatalogue })
     await planSampleActivities(`http://127.0.0.1:${String(port)}`, areas)
+    // A form with every kind of field on the device of the viewer (#107).
+    await giveSampleForm(database, planter, previewPeople.viewer.id)
   } finally {
     await planting.close()
   }
