@@ -58,11 +58,13 @@ import { Fragment, useState } from 'react'
 import { type FormPoint, pointsOf, pointState } from '../../app/answers.js'
 import { dutyNameOf, fulfilledDuty, useFormOf } from '../../app/form-of.js'
 import { PhotoThumb } from '../../app/form-points.js'
+import { roundPdfAddress } from '../../app/prints.js'
 import { fingerprintOf } from '../../app/signing.js'
 import { useCatalogue } from '../../sync/catalogue.js'
 import { askAt } from '../../sync/made-at.js'
 import { defectPlaces } from '../defect-addresses.js'
 import { factLink } from '../links.js'
+import { usePdf } from '../pdf-button.js'
 import { dutyPlaces, evidencePlaces } from '../duty-addresses.js'
 import { roundsPlace, weekPlace } from '../round-template-addresses.js'
 import { DefectStatusMark } from './defects.js'
@@ -154,6 +156,7 @@ export function RoundScreen() {
   const plans = useRight('activity.write')
   const [closing, setClosing] = useState(false)
   const shown = page.data
+  const pdf = usePdf(roundPdfAddress(roundId ?? ''), `Rundgang ${shown?.title ?? ''}`)
 
   if (shown === undefined || roundId === undefined) {
     const gone = page.error instanceof RequestRefused && page.error.status === 404
@@ -210,6 +213,8 @@ export function RoundScreen() {
         }
         actions={
           <>
+            {/* The PDF is made of the state frozen when the round was written down. */}
+            {shown.status === 'done' ? pdf.button : null}
             <ChangesButton table="activities" id={shown.id} />
             {closable ? (
               <Button
@@ -232,6 +237,7 @@ export function RoundScreen() {
               <NoteBox>{roundWords.notPerformed}</NoteBox>
             </Panel>
           ) : null}
+          {pdf.trouble}
           <Answers round={shown} />
         </div>
         <div className="flex min-w-0 flex-col gap-3.5">

@@ -652,6 +652,28 @@ function rowsOf(tenant: Tenant): readonly Row[] {
         voided_by: tenant.colleagueId,
       },
     },
+    // The frozen state of the round as a whole, and the PDF of the evidence (#111).
+    {
+      table: 'round_records',
+      values: {
+        tenant_id: tenant.id,
+        property_id: property,
+        area_id: area,
+        activity_id: activity,
+        state: JSON.stringify({ version: 1, title: 'Aufzug Haus A' }),
+        fingerprint: 'c'.repeat(64),
+      },
+    },
+    {
+      table: 'prints',
+      values: {
+        tenant_id: tenant.id,
+        property_id: property,
+        area_id: area,
+        evidence_id: evidence,
+        sha256: file,
+      },
+    },
     // A document at the asset, and the one version of it, which names the
     // file of the tenant above.
     {

@@ -52,12 +52,14 @@ import { Ban, Lock, Pencil } from 'lucide-react'
 import { useState } from 'react'
 
 import { placePath } from '../../app/place-path.js'
+import { evidencePdfAddress } from '../../app/prints.js'
 import { placeAbove } from '../../app/place-records.js'
 import { useCatalogue } from '../../sync/catalogue.js'
 import { askAt, makeAt } from '../../sync/made-at.js'
 import { dutyPlaces, dutyRegisterPlace, evidencePlaces } from '../duty-addresses.js'
 import { ResultMark, StandingMark } from '../evidence-words.js'
 import { factLink } from '../links.js'
+import { usePdf } from '../pdf-button.js'
 import { officePlaces } from '../place-addresses.js'
 import { dutyQuery } from './duty.js'
 
@@ -152,6 +154,7 @@ export function EvidenceScreen() {
   const rooms = useRecords('rooms')
   const assets = useRecords('assets')
   const catalogue = useCatalogue()
+  const pdf = usePdf(evidencePdfAddress(evidenceId ?? ''), `Nachweis ${shown?.state.number ?? ''}`)
 
   if (shown === undefined || evidenceId === undefined) {
     const gone = page.error instanceof RequestRefused && page.error.status === 404
@@ -321,31 +324,35 @@ export function EvidenceScreen() {
           </>
         }
         actions={
-          keeps && open ? (
-            <>
-              <Button
-                icon={Pencil}
-                onClick={() => {
-                  setDoing('correct')
-                }}
-              >
-                Berichtigen
-              </Button>
-              <Button
-                tone="danger"
-                icon={Ban}
-                onClick={() => {
-                  setDoing('void')
-                }}
-              >
-                Für ungültig erklären
-              </Button>
-            </>
-          ) : null
+          <>
+            {pdf.button}
+            {keeps && open ? (
+              <>
+                <Button
+                  icon={Pencil}
+                  onClick={() => {
+                    setDoing('correct')
+                  }}
+                >
+                  Berichtigen
+                </Button>
+                <Button
+                  tone="danger"
+                  icon={Ban}
+                  onClick={() => {
+                    setDoing('void')
+                  }}
+                >
+                  Für ungültig erklären
+                </Button>
+              </>
+            ) : null}
+          </>
         }
       />
       <div className="grid items-start gap-3.5 lg:grid-cols-[minmax(0,1fr)_310px]">
         <div className="flex min-w-0 flex-col gap-3.5">
+          {pdf.trouble}
           {shown.voiding === null ? null : (
             <NoteBox tone="conflict" icon={Ban}>
               Für ungültig erklärt am {moment(shown.voiding.voidedAt)} von {shown.voiding.voidedBy}.

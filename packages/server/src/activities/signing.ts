@@ -51,7 +51,12 @@ import {
 } from '../database/schema/index.js'
 import { heldMeter } from '../database/meter-standing.js'
 import { stateFingerprint } from '../evidence/fingerprint.js'
-import { type WritingContext, type WrittenEvidence, writeEvidence } from '../evidence/write.js'
+import {
+  type WritingContext,
+  type WrittenEvidence,
+  writeEvidence,
+  writeRoundRecord,
+} from '../evidence/write.js'
 import { formsFor } from './template-forms.js'
 
 /** A signature as it arrives from the device. */
@@ -946,6 +951,8 @@ async function writeDown(
     name: context.nameOf(signature.signedBy),
     role: signature.role,
     signedAt: signature.signedAt.toISOString(),
+    // The drawing goes into the frozen state, which the PDF shows (#111).
+    path: signature.path,
   }))
   const written: WrittenEvidence[] = []
   const form = formOfActivity(await formsFor(tx, context.catalogue, activity), activity)
@@ -987,6 +994,16 @@ async function writeDown(
       }),
     )
   }
+
+  // A round is frozen as a whole as well, with or without a duty (#111).
+  await writeRoundRecord(
+    tx,
+    context,
+    activity.id,
+    stated,
+    activity.performerUserId ?? signer?.signedBy ?? context.writtenBy,
+    written,
+  )
 
   return written
 }

@@ -60,6 +60,7 @@ import { RoundTemplatesController } from './round-templates.controller.js'
 import { RoundsController } from './rounds.controller.js'
 import { syncRoutesFor } from './sync-routes.js'
 import { MeterSettingsController, MetersController } from './meters.controller.js'
+import { EvidencePrintController, Printer, RoundPrintController } from './prints.controller.js'
 import { WorkOrdersController } from './work-orders.controller.js'
 
 /**
@@ -272,6 +273,8 @@ export class ApiModule {
         DefectsController,
         DefectClassSettingsController,
         MeterSettingsController,
+        EvidencePrintController,
+        RoundPrintController,
         // The catalogue of this server, for the devices that work with it.
         CatalogueController,
         // The import of places and assets from tables.
@@ -288,6 +291,7 @@ export class ApiModule {
         ...filing.providers,
         // What prints a page, for the routes that hand out a PDF.
         { provide: RENDERER, useValue: renderer },
+        Printer,
         { provide: TRUSTED_ORIGINS, useValue: trustedOrigins },
         { provide: VERSION, useValue: version },
         { provide: CATALOGUE, useValue: catalogue },

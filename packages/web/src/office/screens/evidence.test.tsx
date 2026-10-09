@@ -10,11 +10,14 @@ import { fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { servingCatalogue } from '../../app/test-catalogue.js'
+import { pdfWords } from '../pdf-button.js'
 import {
   mountOffice,
   type NamedArea,
+  noRenderer,
   onA,
   rowsOf,
+  servingPdf,
   signedInOffice,
   type WriteAnswer,
   type Written,
@@ -312,6 +315,29 @@ describe('the page of an evidence', () => {
       expect(screen.getByRole('button', { name: 'Für ungültig erklären' })).toBeTruthy()
     },
   )
+
+  it('opens the PDF of its frozen state in a tab of its own, for every role (#111)', async () => {
+    await opened('technician')
+
+    const pdf = servingPdf()
+
+    fireEvent.click(screen.getByRole('button', { name: pdfWords.open }))
+
+    await waitFor(() => {
+      expect(pdf.opened).toEqual(['blob:probe'])
+    })
+    expect(pdf.asked).toEqual([`/evidence/${evidence().id}/pdf`])
+  })
+
+  it('says why there is no PDF where the instance makes none, and stays as it is', async () => {
+    await opened('management')
+    servingPdf(noRenderer)
+
+    fireEvent.click(screen.getByRole('button', { name: pdfWords.open }))
+
+    expect(await screen.findByText(noRenderer)).toBeDefined()
+    expect(screen.getByRole('button', { name: pdfWords.open })).toBeDefined()
+  })
 
   it('offers neither to the Haustechnik', async () => {
     await opened('technician')

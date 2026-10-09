@@ -192,7 +192,9 @@ function protocol(duty: DutyId, activity: ActivityId | null): EvidenceToWrite {
     resultReason: null,
     performedBy: technician,
     examiner: null,
-    signatures: [{ name: 'Tom Technik', role: 'signer', signedAt: '2026-10-01T09:30:00.000Z' }],
+    signatures: [
+      { name: 'Tom Technik', role: 'signer', signedAt: '2026-10-01T09:30:00.000Z', path: null },
+    ],
     files: [],
   }
 }
@@ -347,7 +349,9 @@ describe('an evidence written down', () => {
         },
         { description: 'Kabinenbeleuchtung flackert.', defectClass: null, dueOn: null },
       ],
-      signatures: [{ name: 'Tom Technik', role: 'signer', signedAt: '2026-10-01T09:30:00.000Z' }],
+      signatures: [
+        { name: 'Tom Technik', role: 'signer', signedAt: '2026-10-01T09:30:00.000Z', path: null },
+      ],
       files: [],
       retention: {
         kind: 'years',

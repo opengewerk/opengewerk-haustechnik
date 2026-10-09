@@ -6,6 +6,7 @@ import {
   type CatalogueBundle,
   catalogueOf,
   type DutyId,
+  type RoundRecordState,
   type TenantId,
   type WorkOrderId,
 } from '@opengewerk/haustechnik-domain'
@@ -16,6 +17,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 import { activities } from '../database/schema/index.js'
 import { applicationDatabaseUrl, connect, resetToMigrated } from '../database/test-database.js'
+import { stateFingerprint } from '../evidence/fingerprint.js'
 import { EvidenceRefusal } from '../evidence/write.js'
 import {
   decideWorkOrder,
@@ -352,7 +354,7 @@ describe('a signature on an activity', () => {
       new Set([keptTest, null]),
     )
     expect(taken.written[0]?.state.signatures).toEqual([
-      { name: 'Tom Technik', role: 'signer', signedAt: '2026-10-01T09:30:00.000Z' },
+      { name: 'Tom Technik', role: 'signer', signedAt: '2026-10-01T09:30:00.000Z', path: drawing },
     ])
     expect(taken.written[0]?.state.performer).toEqual({ person: 'Tom Technik' })
     expect(taken.written[0]?.state.writtenBy).toBe('Tom Technik')
@@ -562,6 +564,46 @@ describe('a signature on an activity', () => {
     )
 
     expect(taken.written.map((evidence) => evidence.state.origin)).toEqual(['round_point'])
+  })
+
+  it('freezes a round as a whole with the signature, also one that meets no duty (#111)', async () => {
+    const { activity } = await activityToSign('round', { duties: 0 })
+    const taken = await as(technician, async (tx, context) =>
+      takeSignature(tx, context, await signatureFor(activity)),
+    )
+
+    expect(taken.written).toEqual([])
+
+    const { rows } = await admin.query<{ state: RoundRecordState; fingerprint: string }>(
+      'select state, fingerprint from round_records where activity_id = $1',
+      [activity],
+    )
+
+    expect(rows).toHaveLength(1)
+    expect(rows[0]?.fingerprint).toBe(stateFingerprint(rows[0]?.state ?? {}))
+    expect(rows[0]?.state).toMatchObject({
+      version: 1,
+      performedOn: '2026-10-01',
+      evidence: [],
+      signatures: [
+        {
+          name: 'Tom Technik',
+          role: 'signer',
+          signedAt: '2026-10-01T09:30:00.000Z',
+          path: drawing,
+        },
+      ],
+    })
+  })
+
+  it('freezes no other activity than a round as a whole', async () => {
+    const { activity } = await activityToSign()
+
+    await as(technician, async (tx, context) =>
+      takeSignature(tx, context, await signatureFor(activity)),
+    )
+
+    expect(await countOf('round_records', 'activity_id', activity)).toBe(0)
   })
 })
 
@@ -805,8 +847,13 @@ describe('a countersignature', () => {
 
     expect(countersigned.status).toBe('done')
     expect(countersigned.written[0]?.state.signatures).toEqual([
-      { name: 'Tom Technik', role: 'signer', signedAt: '2026-10-01T09:30:00.000Z' },
-      { name: 'Sina Objekt', role: 'countersigner', signedAt: '2026-10-02T07:00:00.000Z' },
+      { name: 'Tom Technik', role: 'signer', signedAt: '2026-10-01T09:30:00.000Z', path: drawing },
+      {
+        name: 'Sina Objekt',
+        role: 'countersigner',
+        signedAt: '2026-10-02T07:00:00.000Z',
+        path: drawing,
+      },
     ])
   })
 
@@ -972,7 +1019,7 @@ describe('a work order', () => {
     )
 
     expect(accepted.written[0]?.state.signatures).toEqual([
-      { name: 'Tom Technik', role: 'signer', signedAt: '2026-10-02T15:00:00.000Z' },
+      { name: 'Tom Technik', role: 'signer', signedAt: '2026-10-02T15:00:00.000Z', path: drawing },
     ])
     expect(await countOf('activity_signatures', 'activity_id', activity)).toBe(2)
     expect(await countOf('work_order_decisions', 'work_order_id', order)).toBe(2)

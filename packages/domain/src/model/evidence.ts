@@ -99,9 +99,10 @@ export const evidenceLimits = {
  * The number of the newest shape of the frozen state, counted up when a field
  * comes in: 2 since a correction names the evidence it replaces (#26), 3
  * since an evidence keeps the form of its activity and the answers (#106), 4
- * since it keeps what was said with the result (#108).
+ * since it keeps what was said with the result (#108), 5 since a signature
+ * keeps its drawing, which the PDF shows (#111).
  */
-export const evidenceStateVersion = 4
+export const evidenceStateVersion = 5
 
 /** The place of an evidence in words, as it was on the day it was written down. */
 export interface StatedPlace {
@@ -153,6 +154,8 @@ export interface StatedSignature {
   readonly role: SignatureRole
   /** The moment of the signature, as an ISO 8601 text in UTC. */
   readonly signedAt: string
+  /** The drawing as an SVG path, since version 5; none for one written before (#111). */
+  readonly path: string | null
 }
 
 export interface StatedFile {
@@ -252,8 +255,14 @@ export class UnknownEvidenceStateError extends Error {
   }
 }
 
+/** The fourth version: all of the fifth but the drawings of the signatures. */
+type EvidenceStateOfVersion4 = Omit<EvidenceState, 'version' | 'signatures'> & {
+  readonly version: 4
+  readonly signatures: readonly Omit<StatedSignature, 'path'>[]
+}
+
 /** The third version: all of the fourth but what was said with the result. */
-type EvidenceStateOfVersion3 = Omit<EvidenceState, 'version' | 'remark'> & {
+type EvidenceStateOfVersion3 = Omit<EvidenceStateOfVersion4, 'version' | 'remark'> & {
   readonly version: 3
 }
 
@@ -274,7 +283,8 @@ type EvidenceStateOfVersion1 = Omit<EvidenceStateOfVersion2, 'version' | 'replac
  */
 const readers: Readonly<Record<number, (stored: StoredEvidenceState) => EvidenceState>> = {
   // No evidence of the first version corrects another, none before the
-  // third names a form or answers, and none before the fourth a remark.
+  // third names a form or answers, none before the fourth a remark, and none
+  // before the fifth keeps the drawing of a signature.
   1: (stored) => ({
     ...(stored as unknown as EvidenceStateOfVersion1),
     version: evidenceStateVersion,
@@ -282,6 +292,7 @@ const readers: Readonly<Record<number, (stored: StoredEvidenceState) => Evidence
     form: null,
     answers: [],
     remark: null,
+    signatures: withoutDrawings(stored as unknown as EvidenceStateOfVersion1),
   }),
   2: (stored) => ({
     ...(stored as unknown as EvidenceStateOfVersion2),
@@ -289,13 +300,27 @@ const readers: Readonly<Record<number, (stored: StoredEvidenceState) => Evidence
     form: null,
     answers: [],
     remark: null,
+    signatures: withoutDrawings(stored as unknown as EvidenceStateOfVersion2),
   }),
   3: (stored) => ({
     ...(stored as unknown as EvidenceStateOfVersion3),
     version: evidenceStateVersion,
     remark: null,
+    signatures: withoutDrawings(stored as unknown as EvidenceStateOfVersion3),
   }),
-  4: (stored) => stored as unknown as EvidenceState,
+  4: (stored) => ({
+    ...(stored as unknown as EvidenceStateOfVersion4),
+    version: evidenceStateVersion,
+    signatures: withoutDrawings(stored as unknown as EvidenceStateOfVersion4),
+  }),
+  5: (stored) => stored as unknown as EvidenceState,
+}
+
+/** The signatures of a state written before version 5, which kept no drawing. */
+function withoutDrawings(state: {
+  readonly signatures: readonly Omit<StatedSignature, 'path'>[]
+}): readonly StatedSignature[] {
+  return state.signatures.map((signature) => ({ ...signature, path: null }))
 }
 
 /** The versions this reader knows. */

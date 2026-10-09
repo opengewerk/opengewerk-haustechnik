@@ -14,7 +14,15 @@ import {
   type RoleKey,
   type TenantId,
 } from '@opengewerk/haustechnik-domain'
-import { Database, newId } from '@opengewerk/platform-server'
+import { createHash } from 'node:crypto'
+
+import {
+  Database,
+  type FileStorage,
+  newId,
+  type PrintJob,
+  RendererUnavailableError,
+} from '@opengewerk/platform-server'
 import type { Pool } from 'pg'
 import request from 'supertest'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
@@ -29,6 +37,7 @@ import { leastState, nextEvidenceNumber } from '../database/test-evidence.js'
 import { stateFingerprint } from '../evidence/fingerprint.js'
 import { dayInGermany } from '../today.js'
 import { ApiModule } from './api.module.js'
+import { noRenderer } from './prints.controller.js'
 import { as, testIdentities } from './test-identity.js'
 
 /**
@@ -82,6 +91,31 @@ function holding(...rights: Right[]): string {
 
 /** The file a report rests on, as its frozen state names it. */
 const report = { sha256: 'a'.repeat(64), name: 'pruefbericht.pdf', mediaType: 'application/pdf' }
+
+/** What the renderer was handed, newest last; each answer is a PDF of its own. */
+const rendered: PrintJob[] = []
+let renderer: (job: PrintJob) => Promise<Uint8Array> = (job) => {
+  rendered.push(job)
+
+  return Promise.resolve(new TextEncoder().encode(`%PDF probe ${String(rendered.length)}`))
+}
+
+/** The content addressed store, in memory. */
+const kept = new Map<string, Uint8Array>()
+const store: FileStorage = {
+  put: (bytes) => {
+    const sha256 = createHash('sha256').update(bytes).digest('hex')
+
+    kept.set(sha256, bytes)
+
+    return Promise.resolve({ sha256, sizeBytes: bytes.byteLength })
+  },
+  get: (sha256) => {
+    const bytes = kept.get(sha256)
+
+    return bytes === undefined ? Promise.reject(new Error('missing')) : Promise.resolve(bytes)
+  },
+}
 
 /** An asset in a building of a property of its own, with a duty of a year at it. */
 async function assetWithDuty(
@@ -157,7 +191,14 @@ async function evidenceOf(
         : { person: people[put.performedBy]?.name ?? '' },
     signatures:
       put.signed === true
-        ? [{ name: 'Erika Muster', role: 'signer', signedAt: '2026-10-01T07:42:00.000Z' }]
+        ? [
+            {
+              name: 'Erika Muster',
+              role: 'signer',
+              signedAt: '2026-10-01T07:42:00.000Z',
+              path: null,
+            },
+          ]
         : [],
     files: [report],
   }
@@ -259,7 +300,13 @@ beforeAll(async () => {
   database = Database.connect(applicationDatabaseUrl())
 
   const built = await Test.createTestingModule({
-    imports: [ApiModule.create(database, testIdentities, { catalogue })],
+    imports: [
+      ApiModule.create(database, testIdentities, {
+        catalogue,
+        files: store,
+        renderer: (job) => renderer(job),
+      }),
+    ],
   }).compile()
 
   app = built.createNestApplication()
@@ -804,5 +851,253 @@ describe('the evidence of an asset', () => {
       .get(`/assets/${southern.asset}/evidence`)
       .set(testIdentityHeader, by('u-tech', large))
       .expect(404)
+  })
+})
+
+describe('the PDF of an evidence (#111)', () => {
+  function pdfOf(evidence: string, header = by('u-lead')) {
+    return http()
+      .get(`/evidence/${evidence}/pdf`)
+      .set(testIdentityHeader, header)
+      .buffer(true)
+      .parse((response, done) => {
+        const chunks: Buffer[] = []
+
+        response.on('data', (chunk: Buffer) => chunks.push(chunk))
+        response.on('end', () => {
+          done(null, Buffer.concat(chunks))
+        })
+      })
+  }
+
+  it('is made from the frozen state the first time, and the same bytes every time after, whatever changed', async () => {
+    const { asset, duty } = await assetWithDuty()
+    const { id, state } = await evidenceOf(duty, daysAgo(3), { signed: true })
+    const before = rendered.length
+    const first = await pdfOf(id).expect(200).expect('Content-Type', 'application/pdf')
+
+    expect(rendered).toHaveLength(before + 1)
+    expect(rendered.at(-1)?.html).toContain(`Nachweis ${state.number}`)
+    expect(rendered.at(-1)?.footerHtml).toContain(stateFingerprint(state))
+
+    // The asset is renamed and the account changes its name: the PDF stays.
+    await admin.query(`update assets set name = 'Aufzug umbenannt' where id = $1`, [asset])
+
+    const second = await pdfOf(id).expect(200)
+
+    expect(rendered).toHaveLength(before + 1)
+    expect(Buffer.compare(first.body as Buffer, second.body as Buffer)).toBe(0)
+  })
+
+  it('is printed once more with the declaration once the evidence is declared invalid', async () => {
+    const { duty } = await assetWithDuty()
+    const { id } = await evidenceOf(duty, daysAgo(3))
+
+    await pdfOf(id).expect(200)
+    await admin.query(
+      `insert into evidence_voidings (tenant_id, property_id, area_id, evidence_id, reason, voided_by)
+       select tenant_id, property_id, area_id, id, 'Falsche Anlage geprüft.', 'u-lead'
+         from evidence where id = $1`,
+      [id],
+    )
+
+    const before = rendered.length
+
+    await pdfOf(id).expect(200)
+    expect(rendered).toHaveLength(before + 1)
+    expect(rendered.at(-1)?.html).toContain('Für ungültig erklärt am')
+    expect(rendered.at(-1)?.html).toContain('Falsche Anlage geprüft.')
+  })
+
+  it('marks the holdings of a predecessor, and prints an older state as it was frozen', async () => {
+    const { duty } = await assetWithDuty()
+    const { id } = await evidenceOf(duty, daysAgo(3), { origin: 'legacy', performedBy: 'u-site' })
+
+    await pdfOf(id).expect(200)
+    expect(rendered.at(-1)?.html).toContain('Altbestand aus einer Vorgängeranwendung')
+
+    // A state of the fourth version kept no drawing of its signature.
+    const older = { ...leastState(nextEvidenceNumber(), daysAgo(2), 'without_defects'), version: 4 }
+    const signed = {
+      ...older,
+      signatures: [{ name: 'Erika Muster', role: 'signer', signedAt: '2026-10-01T07:42:00.000Z' }],
+    }
+    const { rows } = await admin.query<{ id: string }>(
+      `insert into evidence (tenant_id, property_id, area_id, duty_id, performed_on, result,
+                             number, origin, examiner, examiner_organisation, written_by, state,
+                             fingerprint)
+       select tenant_id, property_id, area_id, id, $2::date, 'without_defects', $3, 'report',
+              'Erika Muster', 'Prüfstelle Süd', 'u-duties', $4, $5
+         from duties where id = $1
+       returning id`,
+      [duty, daysAgo(2), signed.number, JSON.stringify(signed), stateFingerprint(signed)],
+    )
+
+    await pdfOf(rows[0]?.id ?? '').expect(200)
+    expect(rendered.at(-1)?.html).toContain('Ohne Zeichnung eingefroren')
+  })
+
+  it('says that no PDF is made where the instance has no renderer, and is made once there is one', async () => {
+    const { duty } = await assetWithDuty()
+    const { id } = await evidenceOf(duty, daysAgo(3))
+    const working = renderer
+
+    renderer = () => Promise.reject(new RendererUnavailableError('Kein Renderer.'))
+
+    try {
+      await http()
+        .get(`/evidence/${id}/pdf`)
+        .set(testIdentityHeader, by('u-lead'))
+        .expect(503, new RegExp(noRenderer.slice(0, 40)))
+    } finally {
+      renderer = working
+    }
+
+    await pdfOf(id).expect(200)
+  })
+
+  it('is for whoever sees the evidence, in their areas', async () => {
+    const { duty } = await assetWithDuty(large, south)
+    const { id } = await evidenceOf(duty, daysAgo(3))
+
+    await pdfOf(id, by('u-tech', large)).expect(404)
+  })
+})
+
+describe('the PDF of a round (#111)', () => {
+  /** A round written down with its frozen state, put in past the application. */
+  async function roundAt(
+    asset: string,
+    evidence: readonly string[],
+    performer: string | null = null,
+  ): Promise<string> {
+    const { rows } = await admin.query<{
+      id: string
+      property_id: string
+      area_id: string
+      tenant_id: string
+    }>(
+      `insert into activities (tenant_id, property_id, area_id, asset_id, kind, title, status,
+                               performed_on, performer, performer_user_id)
+       select tenant_id, property_id, area_id, id, 'round', 'Technikzentrale Schulhaus', 'done',
+              $2::date, case when $3::text is null then null else 'own_staff'::duty_performer end, $3
+         from assets where id = $1
+       returning id, property_id, area_id, tenant_id`,
+      [asset, daysAgo(1), performer],
+    )
+    const round = rows[0]
+    const state = {
+      version: 1,
+      title: 'Technikzentrale Schulhaus',
+      place: {
+        property: {
+          name: 'Schulzentrum Am Neckar',
+          address: 'Neckarstraße 4, 68535 Edingen-Neckarhausen',
+        },
+        building: { name: 'Haus A', shortCode: null },
+        room: null,
+        asset: null,
+      },
+      dueOn: daysAgo(1),
+      performedOn: daysAgo(1),
+      form: { key: 'template-x', version: 3, title: 'Technikzentrale Schulhaus' },
+      answers: [
+        {
+          section: 'Heizraum E.14',
+          label: 'Tür schließt selbsttätig',
+          group: null,
+          kind: 'check_point',
+          value: null,
+          result: 'not_ok',
+          remark: 'Türschließer ohne Funktion.',
+          limit: null,
+          photo: null,
+        },
+      ],
+      performer: { person: 'Tobias Wendt' },
+      defects: [],
+      signatures: [
+        {
+          name: 'Tobias Wendt',
+          role: 'signer',
+          signedAt: '2026-10-05T05:38:00.000Z',
+          path: 'M10,10L200,80',
+        },
+      ],
+      evidence: evidence.map((number) => ({ number, duty: 'Sichtprüfung' })),
+      writtenBy: 'Tobias Wendt',
+      writtenAt: '2026-10-05T05:38:30.000Z',
+    }
+
+    await admin.query(
+      `insert into round_records (tenant_id, property_id, area_id, activity_id, state, fingerprint)
+       values ($1, $2, $3, $4, $5, $6)`,
+      [
+        round?.tenant_id,
+        round?.property_id,
+        round?.area_id,
+        round?.id,
+        JSON.stringify(state),
+        stateFingerprint(state),
+      ],
+    )
+
+    return round?.id ?? ''
+  }
+
+  it('is made from the frozen state of the round, also of one that meets no duty', async () => {
+    const { asset } = await assetWithDuty()
+    const round = await roundAt(asset, [])
+
+    await http().get(`/rounds/${round}/pdf`).set(testIdentityHeader, by('u-tech')).expect(200)
+    expect(rendered.at(-1)?.html).toContain('Rundgang Technikzentrale Schulhaus')
+    expect(rendered.at(-1)?.html).toContain('Dieser Rundgang erfüllt keine Pflicht.')
+    expect(rendered.at(-1)?.html).toContain('nicht in Ordnung')
+    expect(rendered.at(-1)?.html).toContain('M10,10L200,80')
+  })
+
+  it('is for the house technicians only of a round given to them or to nobody, as its page', async () => {
+    const { asset } = await assetWithDuty()
+    const theirs = await roundAt(asset, [], 'u-tech')
+    const another = await roundAt(asset, [], 'u-site')
+
+    await http().get(`/rounds/${theirs}/pdf`).set(testIdentityHeader, by('u-tech')).expect(200)
+    await http()
+      .get(`/rounds/${another}/pdf`)
+      .set(testIdentityHeader, by('u-tech'))
+      .expect(404, /nicht in Ihren Bereichen/)
+    await http().get(`/rounds/${another}/pdf`).set(testIdentityHeader, by('u-site')).expect(200)
+  })
+
+  it('is none for a round not written down yet, which says when there is one', async () => {
+    const { asset } = await assetWithDuty()
+    const { rows } = await admin.query<{ id: string }>(
+      `insert into activities (tenant_id, property_id, area_id, asset_id, kind, title, status)
+       select tenant_id, property_id, area_id, id, 'round', 'Offener Rundgang', 'open'
+         from assets where id = $1
+       returning id`,
+      [asset],
+    )
+
+    await http()
+      .get(`/rounds/${rows[0]?.id ?? ''}/pdf`)
+      .set(testIdentityHeader, by('u-tech'))
+      .expect(404, /sobald der Rundgang abgeschlossen ist/)
+  })
+
+  it('keeps a frozen state and its PDF as they were, also in the database', async () => {
+    const { asset } = await assetWithDuty()
+    const round = await roundAt(asset, ['NW-1'])
+
+    await http().get(`/rounds/${round}/pdf`).set(testIdentityHeader, by('u-tech')).expect(200)
+    await expect(
+      admin.query(`update round_records set fingerprint = $2 where activity_id = $1`, [
+        round,
+        'f'.repeat(64),
+      ]),
+    ).rejects.toThrow(/nicht geändert und nicht gelöscht/)
+    await expect(admin.query('delete from prints where activity_id = $1', [round])).rejects.toThrow(
+      /nicht geändert und nicht gelöscht/,
+    )
   })
 })

@@ -215,6 +215,25 @@ export const auditVocabulary: AuditVocabulary = {
         voided_at: 'Für ungültig erklärt am',
       },
     },
+    // The frozen state of a round as a whole (#111).
+    round_records: {
+      label: 'Eingefrorener Stand eines Rundgangs',
+      fields: {
+        activity_id: 'Rundgang',
+        state: 'Eingefrorener Stand',
+        fingerprint: 'Fingerabdruck',
+      },
+    },
+    // The PDF made of a frozen state (#111).
+    prints: {
+      label: 'PDF eines eingefrorenen Stands',
+      fields: {
+        evidence_id: 'Nachweis',
+        activity_id: 'Rundgang',
+        voided: 'Mit der Ungültigerklärung',
+        sha256: 'Datei',
+      },
+    },
     // The activities with the duties they meet and their work orders, and the
     // defects (ADR 0002, points 13 and 15).
     activities: {
@@ -557,6 +576,10 @@ export const auditVocabulary: AuditVocabulary = {
     // An evidence by its number, and a declaration of invalidity by its evidence.
     evidence: ['number'],
     evidence_voidings: ['evidence_id'],
+    // The frozen state of a round by its round.
+    round_records: ['activity_id'],
+    // A PDF by what it was made of.
+    prints: ['evidence_id', 'activity_id'],
     // An activity by its name, the duty of an activity by the duty, an answer
     // by its point, a work order by its number and a defect by what was
     // noticed.

@@ -30,7 +30,7 @@ guarded_route=/staff
 # The tables counted before the backup and after the restore. The area and
 # the place of the account in it come with the account: a Betreiber gets its
 # first area with its first membership.
-counted_tables='auth_users memberships tenant_roles account_corrections areas member_areas invitations invitation_area_choices invitation_areas properties buildings contacts building_closures assets files mail_settings deadline_settings deadline_runs duties duty_dismissals evidence deadlines activities activity_duties activity_answers work_orders work_order_participants work_order_notes defects meter_points meter_readings meter_exchanges meter_pauses meter_settings activity_signatures work_order_decisions evidence_voidings attachments attachment_versions labels imports asset_kind_names defect_class_terms round_templates round_template_versions round_plans'
+counted_tables='auth_users memberships tenant_roles account_corrections areas member_areas invitations invitation_area_choices invitation_areas properties buildings contacts building_closures assets files mail_settings deadline_settings deadline_runs duties duty_dismissals evidence deadlines activities activity_duties activity_answers work_orders work_order_participants work_order_notes defects meter_points meter_readings meter_exchanges meter_pauses meter_settings activity_signatures work_order_decisions evidence_voidings round_records prints attachments attachment_versions labels imports asset_kind_names defect_class_terms round_templates round_template_versions round_plans'
 
 # The migrations, and how many of them make the older state an update starts
 # from: the first, without the sequence for work orders that the second brings.
@@ -327,7 +327,15 @@ records_for_backup() {
     select e.tenant_id, e.property_id, e.area_id, e.id, 'Der Bericht gehört zu einer anderen Anlage.',
            u.id
       from evidence e, auth_users u
-     where e.number = 'NW-2025-00002' and u.email = '$probe_email';"
+     where e.number = 'NW-2025-00002' and u.email = '$probe_email';
+    insert into round_records (tenant_id, property_id, area_id, activity_id, state, fingerprint)
+    select tenant_id, property_id, area_id, id, '{\"version\": 1, \"title\": \"Rundgang Probe\"}',
+           repeat('0', 64)
+      from activities where tenant_id = '$first_tenant';
+    insert into prints (tenant_id, property_id, area_id, evidence_id, sha256)
+    select e.tenant_id, e.property_id, e.area_id, e.id, f.sha256
+      from evidence e join files f on f.tenant_id = e.tenant_id
+     where e.number = 'NW-2025-00001';"
   waited=0
   # The duty's own deadline; the plan of a round brings one of its own.
   until test "$(value "select count(*) from deadlines where tenant_id = '$first_tenant' and duty_id is not null")" = 1 &&

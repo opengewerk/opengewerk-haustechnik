@@ -16,10 +16,13 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { fingerprintOf } from '../../app/signing.js'
 import { servingCatalogue, testCatalogue } from '../../app/test-catalogue.js'
+import { pdfWords } from '../pdf-button.js'
 import {
   mountOffice,
   type NamedArea,
+  noRenderer,
   rowsOf,
+  servingPdf,
   signedInOffice,
   untilTheRightsAreKnown,
   type WriteAnswer,
@@ -336,6 +339,39 @@ describe('a round that was signed', () => {
 
     expect(counter.textContent).toBe(`Gegenzeichnung${roundWords.counterWaits}`)
     expect(screen.queryByRole('img', { name: roundWords.pad })).toBeNull()
+  })
+})
+
+describe('the PDF of a round (#111)', () => {
+  it('is offered once the round is written down, and opens in a tab of its own', async () => {
+    signedIn('technician', [{ ...awaiting, status: 'done', state: 'submitted' }])
+    await mountOffice('/rundgaenge/r-school', server, everything)
+
+    const pdf = servingPdf()
+
+    fireEvent.click(await screen.findByRole('button', { name: pdfWords.open }))
+
+    await waitFor(() => {
+      expect(pdf.opened).toEqual(['blob:probe'])
+    })
+    expect(pdf.asked).toEqual(['/rounds/r-school/pdf'])
+  })
+
+  it('is not offered before: the state is frozen when the round is written down', async () => {
+    await mountOffice('/rundgaenge/r-school', server, everything)
+    await screen.findByRole('button', { name: roundWords.countersign })
+
+    expect(screen.queryByRole('button', { name: pdfWords.open })).toBeNull()
+  })
+
+  it('says why there is none where the instance makes none', async () => {
+    signedIn('management', [{ ...awaiting, status: 'done', state: 'submitted' }])
+    await mountOffice('/rundgaenge/r-school', server, everything)
+    servingPdf(noRenderer)
+
+    fireEvent.click(await screen.findByRole('button', { name: pdfWords.open }))
+
+    expect(await screen.findByText(noRenderer)).toBeDefined()
   })
 })
 

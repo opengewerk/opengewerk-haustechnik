@@ -23,7 +23,8 @@ import {
  * changed: the first as the server wrote it from the second part of #26, the
  * second with the evidence a correction replaces, from its fourth part, the
  * third with the form of the activity and the answers to its points (#106),
- * the fourth with what was said with the result (#108).
+ * the fourth with what was said with the result (#108), the fifth with the
+ * drawing of each signature (#111).
  * A new version adds its own here, and the test below turns red until it does.
  */
 const storedStates: Readonly<Record<number, unknown>> = {
@@ -95,6 +96,22 @@ const storedStates: Readonly<Record<number, unknown>> = {
       '"retention":{"kind":"until_next_inspection","on":"2026-10-09"},' +
       '"signatures":[{"name":"Hanna Probe","role":"signer","signedAt":"2026-10-09T08:12:00.000Z"}],' +
       '"version":4,"writtenAt":"2026-10-09T08:12:30.000Z","writtenBy":"Hanna Probe"}',
+  ),
+  5: JSON.parse(
+    '{"activity":{"kind":"round","title":"Technikzentrale Schulhaus"},' +
+      '"answers":[],"defects":[],' +
+      '"duty":{"counting":"from_due","interval":{"months":6},"kind":"probe.backwash_filter_check","kindVersion":1,' +
+      '"label":"Sichtkontrolle des Rückspülfilters","source":"DIN EN 806-5"},' +
+      '"files":[],"form":null,"number":"NW-2026-00005","origin":"round_point","performedOn":"2026-10-09",' +
+      '"performer":{"person":"Hanna Probe"},' +
+      '"place":{"asset":{"kind":"probe.backwash_filter","kindLabel":"Rückspülfilter","name":"Filter",' +
+      '"number":"AN-00003","serialNumber":null},"building":{"name":"Haus A","shortCode":null},' +
+      '"property":{"address":"Hauptstraße 1, 68535 Edingen-Neckarhausen","name":"Campus"},"room":null},' +
+      '"remark":null,' +
+      '"replaces":null,"result":"without_defects","resultReason":null,' +
+      '"retention":{"kind":"until_next_inspection","on":"2026-10-09"},' +
+      '"signatures":[{"name":"Hanna Probe","path":"M10,10L200,300","role":"signer","signedAt":"2026-10-09T08:12:00.000Z"}],' +
+      '"version":5,"writtenAt":"2026-10-09T08:12:30.000Z","writtenBy":"Hanna Probe"}',
   ),
 }
 
@@ -202,10 +219,22 @@ describe('the frozen state', () => {
   it('reads a state of the fourth version, with what was said with the result', () => {
     const state = readEvidenceState(storedStates[4])
 
-    expect(state.version).toBe(4)
+    // In the newest shape: no signature kept its drawing before the fifth version.
+    expect(state.version).toBe(5)
     expect(state.remark).toBe('Filter rückgespült, Siebeinsatz sauber.')
     expect([state.form, state.answers, state.result]).toEqual([null, [], 'without_defects'])
+    expect(state.signatures).toEqual([
+      { name: 'Hanna Probe', role: 'signer', signedAt: '2026-10-09T08:12:00.000Z', path: null },
+    ])
     expect(canonicalForm(storedStates[4])).toBe(JSON.stringify(storedStates[4]))
+  })
+
+  it('reads a state of the fifth version, with the drawing of each signature (#111)', () => {
+    const state = readEvidenceState(storedStates[5])
+
+    expect(state.version).toBe(5)
+    expect(state.signatures.map((signature) => signature.path)).toEqual(['M10,10L200,300'])
+    expect(canonicalForm(storedStates[5])).toBe(JSON.stringify(storedStates[5]))
   })
 
   it('has a reader and a stored example for every version up to the newest', () => {
