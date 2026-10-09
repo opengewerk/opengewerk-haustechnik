@@ -42,6 +42,11 @@ export const serverPaths: readonly string[] = [
   // The templates of the rounds: a new one, empty or taken over from a
   // package, and a new version of one.
   'round-templates',
+  // The plans of the rounds: a new one and a change of one (#113).
+  'round-plans',
+  // The rounds the plans made: the overview of a week, who walks each round,
+  // the people they name and who may walk them (#113).
+  'rounds',
   // The catalogue of the server, which a device fetches and keeps.
   'catalogue',
   // The import of places and assets from tables, and what the lists of a

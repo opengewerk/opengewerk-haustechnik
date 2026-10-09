@@ -46,6 +46,7 @@ import {
   sampleOperatorName,
 } from './sample-data.js'
 import { giveSampleForm, samplePackage } from './sample-form.js'
+import { giveSamplePlans } from './sample-plans.js'
 import { giveSampleTemplates } from './sample-templates.js'
 import { writeSampleStandings } from './sample-standings.js'
 
@@ -196,6 +197,8 @@ export async function openSamplePreview(
     await giveSampleForm(database, planter, previewPeople.viewer.id)
     // A template of a round with two versions (#112).
     await giveSampleTemplates(database, planter)
+    // Plans of the rounds with their rounds, one of them begun (#113).
+    await giveSamplePlans(database, planter)
   } finally {
     await planting.close()
   }

@@ -17,6 +17,7 @@ import { defectPlaces } from '../defect-addresses.js'
 import { dutyPlaces } from '../duty-addresses.js'
 import { factLink } from '../links.js'
 import { officePlaces } from '../place-addresses.js'
+import { planPlaces } from '../round-template-addresses.js'
 import { dutyColleaguesQuery } from './duty.js'
 
 /** A deadline of this application as the list reads it: what every one says, and its duty or its defect. */
@@ -24,11 +25,12 @@ export type DutyDeadlineView = DeadlineView & DeadlineFacts
 
 /** What the list and the settings say in the words of this application. */
 export const deadlineWords = {
-  sub: 'Was fällig wird, nach Fälligkeit. Eine Frist folgt ihrer Pflicht oder ihrem Mangel: mit dem nächsten Nachweis rückt sie weiter, mit der Anlage ruht sie, mit der Beseitigung fällt sie weg.',
+  sub: 'Was fällig wird, nach Fälligkeit. Eine Frist folgt ihrer Pflicht, ihrem Mangel oder dem Plan eines Rundgangs: mit dem nächsten Nachweis rückt sie weiter, mit der Anlage ruht sie, mit der Beseitigung fällt sie weg, mit dem nächsten Rundgang rückt sie zum nächsten Durchgang.',
   searchPlaceholder: 'Pflicht, Mangel, Anlage, Liegenschaft …',
   emptyOpen:
-    'Gerade ist keine Frist offen. Eine Frist entsteht mit dem ersten Termin einer bestätigten Pflicht und mit der Frist eines Mangels.',
+    'Gerade ist keine Frist offen. Eine Frist entsteht mit dem ersten Termin einer bestätigten Pflicht, mit der Frist eines Mangels und mit dem Plan eines Rundgangs.',
   responsibleOfTheDuty: 'Wen die Pflicht nennt',
+  responsibleOfThePlan: 'Wen der Plan nennt',
   anchor: 'dem letzten Nachweis',
   defectAnchor: 'dem Tag der Feststellung',
   settingsNote:
@@ -48,7 +50,25 @@ function usePeople(): DeadlinePeople {
 
 /** Who answers for a deadline of a kind when nobody has said otherwise. */
 function responsibleLabel(kind: DeadlineKindView): string {
-  return kind.responsible === 'lead' ? 'Die Leitung' : deadlineWords.responsibleOfTheDuty
+  if (kind.responsible === 'lead') {
+    return 'Die Leitung'
+  }
+
+  return kind.source === 'round_plan'
+    ? deadlineWords.responsibleOfThePlan
+    : deadlineWords.responsibleOfTheDuty
+}
+
+/** What a deadline is called in the list, and where its name leads. */
+function sourceOf(deadline: DutyDeadlineView): { readonly href: string; readonly name: string } {
+  switch (deadline.follows) {
+    case 'defect':
+      return { href: defectPlaces.defect(deadline.defectId), name: deadline.description }
+    case 'round':
+      return { href: planPlaces.plan(deadline.roundPlanId), name: deadline.title }
+    case 'duty':
+      return { href: dutyPlaces.duty(deadline.dutyId), name: deadline.dutyTitle }
+  }
 }
 
 const byId = (records: readonly RecordState[], id: string | null) =>
@@ -142,12 +162,8 @@ export function DeadlineListScreen() {
       words={deadlineWords}
       usePeople={usePeople}
       source={{
-        href: (deadline) =>
-          deadline.follows === 'defect'
-            ? defectPlaces.defect(deadline.defectId)
-            : dutyPlaces.duty(deadline.dutyId),
-        name: (deadline) =>
-          deadline.follows === 'defect' ? deadline.description : deadline.dutyTitle,
+        href: (deadline) => sourceOf(deadline).href,
+        name: (deadline) => sourceOf(deadline).name,
       }}
       columns={[
         {
@@ -210,12 +226,16 @@ export function DeadlineSettingsScreen() {
         hint:
           kind.source === 'defect'
             ? 'Die Frist nennt jeder Mangel selbst, nach der Vorgabe seiner Klasse.'
-            : 'Die Frist gibt jede Pflicht selbst vor.',
+            : kind.source === 'round_plan'
+              ? 'Die Tage nennt jeder Plan selbst.'
+              : 'Die Frist gibt jede Pflicht selbst vor.',
       })}
       actionsSentence={(kind) =>
         kind.source === 'defect'
           ? 'Erinnert die Leitung, wenn der Vorlauf beginnt. Ist der Mangel behoben, fällt die Frist weg.'
-          : 'Erinnert die verantwortliche Person und legt bei ihr die Prüfung oder Wartung an, wenn der Vorlauf beginnt. Nennt die Pflicht niemanden, die Leitung.'
+          : kind.source === 'round_plan'
+            ? 'Legt die Rundgänge eines Plans an, so weit der Vorlauf reicht, jeden Durchgang einmal, damit die Rundgänge der nächsten Woche vorher zugeteilt werden können. Erinnert niemanden.'
+            : 'Erinnert die verantwortliche Person und legt bei ihr die Prüfung oder Wartung an, wenn der Vorlauf beginnt. Nennt die Pflicht niemanden, die Leitung.'
       }
       badge={() => null}
       note={deadlineWords.settingsNote}

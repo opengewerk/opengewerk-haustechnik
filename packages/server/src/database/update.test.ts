@@ -146,6 +146,8 @@ describe('an installation that began on the first migration', () => {
     // place and the assets, so they go first, and what an invitation says
     // about areas hangs on the areas; the files, the mail server and the
     // settings of the deadlines hang on nothing of this.
+    // The plans of the rounds hang on the places and the templates (#113).
+    await revertMigration(admin, '0030_round_plans')
     await revertMigration(admin, '0027_work_orders_in_the_office')
     await revertMigration(admin, '0026_answers_per_point')
     await revertMigration(admin, '0025_defects_kept')
@@ -311,6 +313,8 @@ describe('an installation from before the areas', () => {
 
     // The places hang on the areas and go first, as on the way back of an
     // installation, and so does what an invitation says about areas.
+    // The plans of the rounds hang on the places and the templates (#113).
+    await revertMigration(admin, '0030_round_plans')
     await revertMigration(admin, '0027_work_orders_in_the_office')
     await revertMigration(admin, '0026_answers_per_point')
     await revertMigration(admin, '0025_defects_kept')
@@ -386,6 +390,8 @@ describe('an installation with places', () => {
       [tenant.id],
     )
 
+    // The plans of the rounds hang on the places and the templates (#113).
+    await revertMigration(admin, '0030_round_plans')
     await revertMigration(admin, '0027_work_orders_in_the_office')
     await revertMigration(admin, '0026_answers_per_point')
     await revertMigration(admin, '0025_defects_kept')

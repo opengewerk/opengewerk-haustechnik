@@ -189,6 +189,7 @@ export const auditVocabulary: AuditVocabulary = {
         form_key: 'Formular',
         form_version: 'Fassung des Formulars',
         template_on: 'Vorlage vom',
+        round_plan_id: 'Plan',
       },
     },
     // The answer to a point of the form of an activity (#106).
@@ -222,6 +223,23 @@ export const auditVocabulary: AuditVocabulary = {
         form_version: 'Fassung',
         definition: 'Kapitel und Punkte',
         asks_countersignature: 'Gegenzeichnung verlangt',
+      },
+    },
+    // The plan of a round (#113): which template is walked where, how often
+    // and for whom.
+    round_plans: {
+      label: 'Plan eines Rundgangs',
+      fields: {
+        template_id: 'Vorlage',
+        rhythm: 'Rhythmus',
+        weekdays: 'Wochentage',
+        day_of_month: 'Tag',
+        month: 'Monat',
+        lead_days: 'Vorlauf',
+        starts_on: 'Ab',
+        ends_on: 'Bis',
+        resting: 'Ruht',
+        performer_user_id: 'Zuständig',
       },
     },
     activity_duties: {
@@ -318,6 +336,7 @@ export const auditVocabulary: AuditVocabulary = {
     deadlines: {
       duty_id: 'Pflicht',
       defect_id: 'Mangel',
+      round_plan_id: 'Plan eines Rundgangs',
       property_id: 'Liegenschaft',
       area_id: 'Bereich',
     },
@@ -397,6 +416,7 @@ export const auditVocabulary: AuditVocabulary = {
     'activities',
     'defects',
     'round_templates',
+    'round_plans',
   ],
   references: {
     area_id: 'areas',
@@ -417,6 +437,7 @@ export const auditVocabulary: AuditVocabulary = {
     evidence_id: 'evidence',
     replaces_evidence_id: 'evidence',
     template_id: 'round_templates',
+    round_plan_id: 'round_plans',
   },
   personFields: [
     'substitute_user_id',
@@ -442,8 +463,9 @@ export const auditVocabulary: AuditVocabulary = {
     substitutions: ['absent_user_id'],
     // A closure by what it is for, and by its first day where it says nothing.
     building_closures: ['reason', 'starts_on'],
-    // A version of a template by its number.
+    // A version of a template by its number, a plan by the template it walks.
     round_template_versions: ['form_version'],
+    round_plans: ['template_id'],
     // A room by its number, and by its name where it has none.
     rooms: ['number', 'name'],
     // An import by its file.

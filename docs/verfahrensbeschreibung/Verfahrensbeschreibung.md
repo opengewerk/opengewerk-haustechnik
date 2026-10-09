@@ -79,7 +79,9 @@ Anhang B nennt jedes Feld der Datenbank, das auf eine Person zeigt. Dieser Absch
 - Ein Vorgang (Rundgang, Prüfung, Wartung, Auftrag) hat ein Feld für die verantwortliche und eines für die ausführende Person, dazu die Angabe, ob die eigenen Leute oder eine Fremdfirma ihn ausführen, und den Namen der Fremdfirma in Worten. Eine Prüfung oder Wartung entsteht von selbst, wenn der Vorlauf eines Termins beginnt, einmal je Termin. Verantwortlich ist dann, wen die Frist als verantwortlich nennt, und ausführend noch niemand. [K2.4, K4.4, B98]
 - Wer Vorgänge plant und verteilt, legt eine Prüfung oder Wartung auch von Hand an, auf der Seite einer Pflicht, für die gerade keine läuft. Verantwortlich ist dann, wen die Pflicht als verantwortlich nennt, und ausführend noch niemand. Eine offene oder begonnene Prüfung oder Wartung schließt dieselbe Person mit Grund als nicht durchgeführt; der Vorgang nennt den Grund und nicht die Person, wer ihn geschlossen hat, steht im Änderungsprotokoll. Die Haustechnik kann beides nicht. [K4.4, K7, B109, B110]
 - **Zusage:** Wer eine Prüfung oder Wartung verantwortet und wer sie ausführt, legt fest, wer Vorgänge plant und verteilt: die Leitung, die Technische Leitung und die Objektleitung, solange der Vorgang offen ist. Zur Wahl stehen nur Personen, die den Bereich des Vorgangs sehen und nicht gesperrt sind; verantwortlich, wer selbst plant und verteilt, ausführend, wer Vorgänge ausführt. Die Auswahl nennt die Namen und sonst nichts. Die Haustechnik plant nicht und bekommt die Auswahl nicht. [K4.4, K7, B7, B99, B100]
-- Die Bildschirme, auf denen Rundgänge geplant und verteilt werden, kommen in Phase 1 (Abschnitt 9). [K4.5]
+- Der Plan eines Rundgangs nennt die Person, die seine Rundgänge geht, oder niemanden. Aus dem Plan entsteht jeder Durchgang als eigener Rundgang, einmal, und zwar so weit im Voraus, wie es die Art „Rundgang nach Plan“ unter „Fristen“ sagt, als Vorgabe 14 Tage. Ein Rundgang nennt als ausführend die Person des Plans und als verantwortlich niemanden; nennt der Plan niemanden, nennt der Rundgang auch keine ausführende Person. Die Frist eines Plans nennt keine Person, für sie steht die Leitung ein. [K2.4, K4.5, B121, B124]
+- **Zusage:** Wer einen Rundgang geht, legt fest, wer Vorgänge plant und verteilt: die Leitung, die Technische Leitung und die Objektleitung, im Plan und für einzelne Rundgänge einer Woche, auch „wie letzte Woche“, solange niemand den Rundgang begonnen hat. Zur Wahl stehen nur Personen, die Vorgänge ausführen, den Bereich sehen und nicht gesperrt sind; die Auswahl nennt die Namen und sonst nichts, und nur für einen Bereich, den die fragende Person sieht. Die Haustechnik plant nicht und bekommt die Auswahl nicht. [K4.5, K7, B7, B122, B125, B126, B127]
+- Bekommt ein Plan eine andere Person, gehen die Rundgänge ab heute, die noch niemand begonnen hat, an sie über, außer denen, die jemand anderem zugeteilt wurden. Ändert sich der Plan, ruht er oder endet er, entfallen die Rundgänge ab heute, die noch niemand begonnen hat und die er nicht mehr verlangt; ein begonnener oder vergangener Rundgang bleibt. Wer einen Plan geändert oder einen Rundgang zugeteilt hat, nennt der Plan nicht; das steht im Änderungsprotokoll. [K4.5, B123, B130]
 - Ein Auftrag nennt die Person, die ihn führt (im Büro „Verantwortlich“), und weitere Beteiligte; das Feld der ausführenden Person bleibt bei einem Auftrag aus dem Büro leer. Wer Vorgänge plant und verteilt, legt einen Auftrag an, aus einem festgestellten Mangel, aus dem Termin einer Pflicht oder von Hand, und ändert ihn, bis er unterschrieben ist. Wer einen Auftrag angelegt oder geändert hat, nennt der Auftrag nicht; das steht im Änderungsprotokoll. [K4.8, B111]
 - **Zusage:** Wer einen Auftrag führt und wer an ihm beteiligt ist, legt fest, wer Vorgänge plant und verteilt: die Leitung, die Technische Leitung und die Objektleitung. Zur Wahl stehen nur Personen, die Vorgänge ausführen, den Bereich des Auftrags sehen und nicht gesperrt sind; die Auswahl nennt die Namen und sonst nichts. Die Haustechnik legt keinen Auftrag an, ändert keinen und bekommt die Auswahl nicht. [K4.8, K7, B112, B113, B114, B118]
 - Eine beteiligte Person ist eine Zeile je Auftrag und Person. Wird jemand vom Auftrag genommen, wird die Zeile markiert und nicht gelöscht, und das Gerät dieser Person gibt den Auftrag mit dem nächsten Abgleich ab. Auf der unterschriebenen Seite stehen die Beteiligten nicht. [K4.8, B115]
@@ -120,6 +122,7 @@ Anhang B nennt jedes Feld der Datenbank, das auf eine Person zeigt. Dieser Absch
 - Bis zum Abmelden merkt sich der Browser das Konto: Name, E-Mail-Adresse, die Betreiber der Person und ihre Rollen und Rechte dort. [K2.7, B68]
 - Ein abgeschlossener Vorgang bleibt dreißig Tage auf dem Gerät der Person, der er zugeteilt war. [K2.7, B23]
 - Eine Prüfung oder Wartung, die jemandem zum Ausführen zugeteilt wird, liegt nach dem nächsten Abgleich auf dem Gerät dieser Person, solange sie offen ist. [K2.7, K4.4, B102]
+- Ein Rundgang, den der Plan oder das Büro niemandem zugeteilt hat, liegt auf den Geräten aller im Bereich; einer, der jemandem zugeteilt ist, auf dem Gerät dieser Person. Die Pläne der Rundgänge liegen auf den Geräten aller, die ihren Bereich sehen, zum Lesen, mit der Kennung des Kontos, das ein Plan nennt; den Namen dazu nennt der Server der Haustechnik nur für Rundgänge, die ihr oder niemandem zugeteilt sind. Wie bei einer Pflicht, die ihre verantwortliche Person nennt. [K2.7, K4.5, B127, B128]
 
 ### 3.8 Daten über Dritte
 
@@ -177,6 +180,9 @@ Phase 1 kennt vier Rollen. Was jede darf, steht Recht für Recht in Abschnitt 7 
 | Die Namen zur Wahl, wer eine Prüfung oder Wartung verantwortet und ausführt | in ihren Bereichen | in ihren Bereichen | in ihren Bereichen | nein |
 | Wer einen Auftrag führt und wer an ihm beteiligt ist, mit Namen | in ihren Bereichen | in ihren Bereichen | in ihren Bereichen | was sie führt, woran sie beteiligt ist oder was niemandem zugeteilt ist |
 | Die Namen zur Wahl, wer einen Auftrag führt und wer an ihm beteiligt ist | in ihren Bereichen | in ihren Bereichen | in ihren Bereichen | nein |
+| Wer die Rundgänge eines Plans geht, als Kennung des Kontos auf dem Gerät | in ihren Bereichen | in ihren Bereichen | in ihren Bereichen | in ihren Bereichen |
+| Wer einen Rundgang geht, mit Namen | in ihren Bereichen | in ihren Bereichen | in ihren Bereichen | was ihr oder niemandem zugeteilt ist |
+| Die Namen zur Wahl, wer einen Rundgang geht | in ihren Bereichen | in ihren Bereichen | in ihren Bereichen | nein |
 | Datensätze mit ihrem Stempel | in ihren Bereichen | in ihren Bereichen | in ihren Bereichen | in ihren Bereichen |
 | Fassungen von Dokumenten mit der Kennung des Kontos, das sie abgelegt hat | in ihren Bereichen | in ihren Bereichen | in ihren Bereichen | in ihren Bereichen |
 | Ein Nachweis im Ganzen: wer ihn ausgeführt, geprüft, unterschrieben, eingetragen oder für ungültig erklärt hat | in ihren Bereichen | in ihren Bereichen | in ihren Bereichen | in ihren Bereichen |
@@ -187,6 +193,7 @@ Leitung und Technische Leitung sehen als Vorgabe alle Bereiche.
 - **Zusage:** Die Tabelle der Rechte in Abschnitt 7 des Planungskonzepts und der Katalog im Quelltext sind dieselbe Liste: was dort für eine Rolle steht, darf sie, und nichts anderes. [K7, B17]
 - **Zusage:** Die Zugänge, also wer bei einem Betreiber arbeitet, mit Rollen, Sperre, Anmeldungen und Geräten, sieht und entscheidet nur die Leitung. Technische Leitung, Objektleitung und Haustechnik werden an diesen Adressen abgelehnt. Die Stellen daneben sind die Auswahl der verantwortlichen Person im Pflichtenverzeichnis, die Auswahl, wer eine Prüfung oder Wartung verantwortet und ausführt, und die Auswahl, wer einen Auftrag führt und an ihm beteiligt ist; alle drei nennen Namen und sonst nichts (Abschnitt 3.4). [K7, B1, B2, B12]
 - **Zusage:** Die Liste „Prüfungen“ und die Seite eines Vorgangs zeigen der Haustechnik nur, was ihr oder niemandem zugeteilt ist, wie es auf ihrem Gerät liegt, und einen anderen Vorgang auch nicht über seine Adresse. Wer Vorgänge plant und verteilt, sieht jeden in seinen Bereichen. [K4.4, K7, B101]
+- **Zusage:** Die Übersicht der Rundgänge einer Woche zeigt der Haustechnik nur, was ihr oder niemandem zugeteilt ist, wie es auf ihrem Gerät liegt. Sie ordnet nach Gebäude und nicht nach Person. [K4.5, K7, B129]
 - **Zusage:** Die Liste „Aufträge“ und die Seite eines Auftrags zeigen der Haustechnik nur, was sie führt, woran sie beteiligt ist oder was niemandem zugeteilt ist, wie es auf ihrem Gerät liegt, und einen anderen Auftrag auch nicht über seine Adresse. [K4.8, K7, B117]
 - **Zusage:** Die Leitung arbeitet nur mit einem zweiten Faktor. Das ist eine Angabe der Rolle und keine Einstellung. [K7, B36]
 - **Zusage:** Zwei Betreiber auf derselben Instanz sehen nichts voneinander. [K3, B56]
@@ -257,7 +264,7 @@ Leitung und Technische Leitung sehen als Vorgabe alle Bereiche.
 
 Diese Bausteine gehören nach dem Fahrplan zu Phase 1 und sind noch nicht gebaut. Mit jedem wird dieses Dokument berichtigt; der Test in Abschnitt 11 erzwingt es, sobald ein Feld mit Personenbezug oder eine Adresse des Servers dazukommt.
 
-- **Rundgänge:** Ein Plan nennt eine zuständige Person oder einen Bereich, zugeteilt wird im Büro. Die Übersicht der Objektleitung zeigt, welcher Rundgang offen, begonnen oder abgegeben ist, nach Gebäude und nicht nach Person. [K4.5]
+- **Rundgänge:** Gegenzeichnen und einen offenen Rundgang mit Grund schließen kommen mit der Übersicht der Woche dazu; was dabei über die Person festgehalten wird, steht dann hier. [K4.5]
 - **Aufträge vor Ort:** Notizen als eigene Einträge, Fotos und eine Dauer kommen dazu. Die Dauer ist Aufwand des Auftrags und keine Arbeitszeiterfassung. [K4.8]
 - **Aufgaben:** mit Fälligkeit und verantwortlicher Person. Jede Person legt eigene an; einer anderen teilt sie zu, wer Vorgänge plant und verteilt. [K3]
 - **Benachrichtigungen:** per E-Mail und Push, gespeist nur aus Fristen und Statuswechseln. Welche Anlässe als Push kommen, wählt jede Person selbst; ein Auftrag mit der Dringlichkeit „sofort“ erreicht die Person, die ihn führt, immer als Push. [K3, K4.8]
@@ -422,6 +429,16 @@ Pfade ohne Vorsatz liegen im Repository `opengewerk/opengewerk-haustechnik`. Pfa
 | B118 | Test | `packages/server/src/api/work-orders.test.ts` | `changes what it is, how urgent, the day and the people until it is signed` |
 | B119 | Test | `packages/server/src/api/work-orders.test.ts` | `is set right with the signature, ordered again when the order is turned back, and set right with the next` |
 | B120 | Test | `packages/server/src/api/work-orders.test.ts` | `is for whoever plans, before its signature, and finds its defect again` |
+| B121 | Test | `packages/server/src/api/round-plans.test.ts` | `is made by whoever plans, with a round for every pass as far ahead as rounds are made, and not by whoever only performs` |
+| B122 | Test | `packages/server/src/api/round-plans.test.ts` | `refuses what is wrong with it, a place it does not have and a person who does not walk rounds in its area` |
+| B123 | Test | `packages/server/src/api/round-plans.test.ts` | `takes back the rounds of days it no longer falls on, keeps a begun one and the person of a day it keeps` |
+| B124 | Test | `packages/server/src/api/round-plans.test.ts` | `make each pass of a plan once, however often and however many run at once` |
+| B125 | Test | `packages/server/src/api/round-plans.test.ts` | `are handed out by whoever plans, to somebody who performs in their area, while nobody has begun them` |
+| B126 | Test | `packages/server/src/api/round-plans.test.ts` | `are handed out like the week before, each to whoever had the round of its plan seven days earlier` |
+| B127 | Test | `packages/server/src/api/round-plans.test.ts` | `name the people of the plans, and who may walk the rounds of an area to whoever plans there` |
+| B128 | Test | `packages/server/src/api/round-plans.test.ts` | `put a round given to nobody on the device of everybody in the area, and one given to somebody on theirs` |
+| B129 | Test | `packages/server/src/api/round-plans.test.ts` | `show whoever only performs what is given to them or to nobody` |
+| B130 | Test | `packages/server/src/api/round-plans.test.ts` | `hands its rounds on to its new person, except those handed to somebody else` |
 
 ---
 
@@ -458,6 +475,7 @@ Jede Zeile ist ein Feld der Datenbank, das die Kennung eines Kontos hält. Der S
 | `member_areas` | `user_id` | für wen ein Bereich genannt ist |
 | `member_passkeys` | `user_id` | wessen Passkey bei diesem Betreiber gilt |
 | `memberships` | `user_id` | wer bei diesem Betreiber arbeitet |
+| `round_plans` | `performer_user_id` | wer die Rundgänge eines Plans geht, wenn der Plan jemanden nennt |
 | `substitutions` | `absent_user_id` | wer vertreten wird |
 | `substitutions` | `substitute_user_id` | wer vertritt |
 | `tenant_sessions` | `user_id` | wer sich bei diesem Betreiber an- und abgemeldet hat |
@@ -496,7 +514,9 @@ Jede Zeile ist der erste Abschnitt einer Adresse, unter der der Server antwortet
 | `labels` | Etiketten: sagt zu einem gescannten Code in einem Wort, ob er für die fragende Person etwas öffnet, und druckt viele Etiketten auf einmal |
 | `properties` | Liegenschaften |
 | `rooms` | Räume, mit den Pflichten, die an ihnen hängen |
+| `round-plans` | Pläne der Rundgänge: ein neuer Plan und die Änderung eines Plans, auch ruhen lassen und beenden; ein Plan nennt die Person, die seine Rundgänge geht, oder niemanden |
 | `round-templates` | Vorlagen der Rundgänge: eine neue, leer oder aus einem Paket übernommen, und eine neue Fassung einer Vorlage; sie nennen Anlagen, Räume und Pflichten und keine Person |
+| `rounds` | Rundgänge der Pläne: die Übersicht einer Woche, wer einen Rundgang geht, auch „wie letzte Woche“, die Namen der Personen, die Pläne und Rundgänge nennen, und die Auswahl, wer in einem Bereich Rundgänge geht |
 | `settings` | Vorlauf der Fristen und die Vorgabe der Frist je Mängelklasse |
 | `setup` | Ersteinrichtung |
 | `staff` | Zugänge |

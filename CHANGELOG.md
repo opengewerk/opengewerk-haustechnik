@@ -869,6 +869,22 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   Nachweis das Ergebnis aus der Antwort und hält nur diesen Punkt fest, ohne zweite Erfassung.
   Bisher kannte der Katalog Vorlagen nur als Teil eines Pakets, und ein Betreiber konnte keine
   eigene führen
+- Plan eines Rundgangs, Zuteilung und ein Rundgang je Durchgang (#113): ein Plan nennt Vorlage,
+  Ort (eine Liegenschaft oder ein Gebäude darin), Rhythmus (täglich an den Wochentagen, die er
+  nennt, wöchentlich an einem Wochentag, monatlich oder jährlich an einem Tag), Vorlauf, ersten und
+  letzten Tag und die Person, die seine Rundgänge geht, oder alle im Bereich. Die Fristen-Engine
+  hat die Quelle "Rundgänge nach Plan" (Art `round.due`): sie legt jeden Durchgang als eigenen
+  Rundgang an, einmal, zwei Wochen im Voraus, damit das Büro die nächste Woche vorher zuteilen kann;
+  zwei Läufe zugleich legen keinen zweimal an, das hält auch ein eindeutiger Index. In den
+  Schließzeiten des Gebäudes entsteht kein Rundgang, und eine neue Schließzeit nimmt die Rundgänge
+  ihrer Tage zurück, die noch niemand begonnen hat. Ein Plan ruht und endet, und ändert er sich,
+  entfallen die Rundgänge ab heute, die er nicht mehr verlangt; ein begonnener oder vergangener
+  bleibt. Ein Rundgang nimmt die neueste Fassung seiner Vorlage, mit ihrer Gegenzeichnung und je
+  Punkt, der eine Pflicht erfüllt, diese Pflicht; eine neue Fassung gilt ab dem nächsten Rundgang,
+  der noch nicht begonnen ist. Unter "Rundgänge" steht jetzt die Übersicht der Woche nach Gebäude,
+  mit einem Durchgang je Tag und seinem Stand, dem Zuteilen je Plan und Woche und "Wie letzte Woche
+  zuteilen"; darunter die Pläne. Ein Rundgang, der niemandem zugeteilt ist, liegt auf den Geräten
+  aller im Bereich. Bisher gab es Vorlagen, aber nichts, das aus ihnen Rundgänge machte
 
 ### Geändert
 

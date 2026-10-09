@@ -8,15 +8,16 @@ import type { DeadlineKind } from '@opengewerk/platform-domain'
  */
 
 /** The sources the deadlines of this application follow, by the name a kind gives them. */
-export const deadlineSources = ['duty', 'defect'] as const
+export const deadlineSources = ['duty', 'defect', 'round_plan'] as const
 
 export type DeadlineSource = (typeof deadlineSources)[number]
 
 /**
  * The actions a kind may name. The reminder is the foundation's own. The
  * activity is this application's (#105): when the lead of a due day begins,
- * an inspection or a maintenance comes of it, once for the due day. The task
- * of section 2.4 comes with the tasks.
+ * an inspection or a maintenance comes of it, once for the due day, and of
+ * the plan of a round its rounds (#113), once for each pass. The task of
+ * section 2.4 comes with the tasks.
  */
 export const deadlineActions = ['reminder', 'activity'] as const
 
@@ -66,15 +67,41 @@ export const defectDue: ApplicationDeadlineKind = {
   actions: ['reminder'],
 }
 
+/**
+ * The next pass of the plan of a round (section 4.5, #113): the source names
+ * the first day the plan falls due on that has no round yet. When the lead
+ * begins, the rounds of the plan as far as the lead reaches come into being,
+ * each pass once. Whoever leads the operator answers for the deadline: the
+ * person a plan names walks its rounds and plans nothing. Nobody is reminded: a round is a task of the week, which the
+ * overview of the rounds shows, and a reminder for every daily round would
+ * bury whatever else is due.
+ *
+ * The lead is how far ahead the rounds are made, so that the office can hand
+ * out those of the coming week before it begins.
+ */
+export const roundDue: ApplicationDeadlineKind = {
+  key: 'round.due',
+  title: 'Rundgang nach Plan',
+  about:
+    'Folgt aus dem Plan eines Rundgangs: der nächste Durchgang, für den noch kein Rundgang entstanden ist. Mit dem Vorlauf entstehen die Rundgänge, jeder Durchgang einmal.',
+  source: 'round_plan',
+  intervalDays: null,
+  intervalMonths: null,
+  leadDays: 14,
+  responsible: 'lead',
+  actions: ['activity'],
+}
+
 /** Every kind this application knows. */
-export const deadlineKinds: readonly ApplicationDeadlineKind[] = [dutyDue, defectDue]
+export const deadlineKinds: readonly ApplicationDeadlineKind[] = [dutyDue, defectDue, roundDue]
 
 /**
  * What a deadline of this application says in the list "Fristen" beside what
- * every deadline says (#104, #116): the duty or the defect it follows, and
- * what that hangs on, an asset, a room, a building or the property itself.
+ * every deadline says (#104, #116, #113): the duty, the defect or the plan of
+ * a round it follows, and what that hangs on, an asset, a room, a building or
+ * the property itself.
  */
-export type DeadlineFacts = DutyDeadlineFacts | DefectDeadlineFacts
+export type DeadlineFacts = DutyDeadlineFacts | DefectDeadlineFacts | RoundDeadlineFacts
 
 /** A deadline of a duty: the duty by its title. */
 export interface DutyDeadlineFacts extends DeadlinePlaceFacts {
@@ -90,7 +117,15 @@ export interface DefectDeadlineFacts extends DeadlinePlaceFacts {
   readonly description: string
 }
 
-/** What the duty or the defect of a deadline hangs on. */
+/** A deadline of the plan of a round: the plan, by the title of its template and its rhythm. */
+export interface RoundDeadlineFacts extends DeadlinePlaceFacts {
+  readonly follows: 'round'
+  readonly roundPlanId: string
+  readonly title: string
+  readonly rhythm: string
+}
+
+/** What the duty, the defect or the plan of a deadline hangs on. */
 export interface DeadlinePlaceFacts {
   readonly propertyId: string
   /** The building it hangs on, or the one its asset stands in. */

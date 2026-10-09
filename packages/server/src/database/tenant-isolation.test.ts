@@ -103,6 +103,7 @@ function rowsOf(tenant: Tenant): readonly Row[] {
   const duty = randomUUID()
   const activity = randomUUID()
   const template = randomUUID()
+  const plan = randomUUID()
   const workOrder = randomUUID()
   const evidence = randomUUID()
   const document = randomUUID()
@@ -482,6 +483,21 @@ function rowsOf(tenant: Tenant): readonly Row[] {
         form_version: 1,
         definition: JSON.stringify({ title: 'Technikzentrale', sections: [] }),
         asks_countersignature: false,
+      },
+    },
+    // The plan of a round at the building, and its deadline (#113).
+    {
+      table: 'round_plans',
+      values: {
+        id: plan,
+        tenant_id: tenant.id,
+        property_id: property,
+        building_id: building,
+        area_id: area,
+        template_id: template,
+        rhythm: 'weekly',
+        weekdays: '{3}',
+        starts_on: '2026-10-07',
       },
     },
     {

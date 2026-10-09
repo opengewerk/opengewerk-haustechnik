@@ -1,0 +1,391 @@
+import {
+  BadRequestException,
+  Body,
+  ConflictException,
+  Controller,
+  Get,
+  NotFoundException,
+  Post,
+  Put,
+  Query,
+} from '@nestjs/common'
+import {
+  addDays,
+  type DutyPerson,
+  type IsoDate,
+  roundStateOf,
+  type RoundWeek,
+  weekNamed,
+} from '@opengewerk/haustechnik-domain'
+import { accountsOf, CurrentIdentity, Database, isUuid } from '@opengewerk/platform-server'
+import { and, between, count, eq, inArray, isNotNull, isNull, lt, sql } from 'drizzle-orm'
+
+import { activities, roundPlans } from '../database/schema/index.js'
+import { dayInGermany } from '../today.js'
+import { candidatesIn, inSight } from './activities.controller.js'
+import { RequiresPermission } from './authorization.js'
+import type { Asking } from './places.js'
+
+/** The rounds the plans made: the rounds the overview of the week is about. */
+const ofAPlan = and(
+  eq(activities.kind, 'round'),
+  isNotNull(activities.roundPlanId),
+  isNull(activities.deletedAt),
+)
+
+/** The Monday of the week a body or an address names, refused when it names no day. */
+function mondayOf(value: unknown): IsoDate {
+  const monday = weekNamed(value)
+
+  if (monday === null) {
+    throw new BadRequestException('Die Woche ist ein Tag darin, geschrieben 2026-10-03.')
+  }
+
+  return monday
+}
+
+/** People by their names, in the order of the names. */
+async function named(
+  database: Database,
+  userIds: readonly string[],
+  asking: string,
+): Promise<DutyPerson[]> {
+  const accounts = await accountsOf(database, [...new Set(userIds)], asking)
+
+  return [...new Set(userIds)]
+    .map((userId) => ({ userId, name: accounts.get(userId)?.name ?? 'Unbekanntes Konto' }))
+    .sort((left, right) => left.name.localeCompare(right.name, 'de'))
+}
+
+/** How many rounds a person hands out at once: those of a plan in a week, with room to spare. */
+const mostAtOnce = 50
+
+/**
+ * The rounds of the plans in the office (#113, section 4.5 of the concept):
+ * the overview of a week by building, who walks each round, and the
+ * handing out of a week like the week before.
+ *
+ * Reading is `activity.read`, and whoever only performs is shown what is
+ * given to them or to nobody, as their device holds it (`inSight`). Handing
+ * out is `activity.write` and goes to one of the own people who perform in
+ * the area of the round, or to nobody, which puts the round on the devices
+ * of everybody there. A round that somebody has begun keeps its person.
+ */
+@Controller('rounds')
+export class RoundsController {
+  constructor(private readonly database: Database) {}
+
+  /**
+   * The rounds of a week, Monday to Sunday, with their state, and how many
+   * rounds of earlier weeks are still open or begun: those are not quietly
+   * gone (section 4.5). Waiting for the countersignature is a round signed
+   * whose template asks for one that has not been given.
+   */
+  @Get('week')
+  @RequiresPermission('activity.read')
+  week(@CurrentIdentity() identity: Asking, @Query('of') of: unknown): Promise<RoundWeek> {
+    const monday = mondayOf(of ?? dayInGermany(new Date()))
+
+    return this.database.forTenant(identity, async (tx) => {
+      const shown = inSight(identity)
+      const rows = await tx
+        .select({
+          id: activities.id,
+          planId: activities.roundPlanId,
+          dueOn: activities.dueOn,
+          status: activities.status,
+          performerUserId: activities.performerUserId,
+          // Named in full: in a subquery a bare column would be the signature's own.
+          awaitsCountersignature: sql<boolean>`"activities"."countersignature_required" and not exists (
+            select 1 from "activity_signatures"
+             where "activity_signatures"."activity_id" = "activities"."id"
+               and "activity_signatures"."role" = 'countersigner'
+               and "activity_signatures"."deleted_at" is null)`,
+        })
+        .from(activities)
+        .where(and(ofAPlan, between(activities.dueOn, monday, addDays(monday, 6)), shown))
+        .orderBy(activities.dueOn, activities.id)
+      const [before] = await tx
+        .select({ open: count() })
+        .from(activities)
+        .where(
+          and(
+            ofAPlan,
+            lt(activities.dueOn, monday),
+            inArray(activities.status, ['open', 'started']),
+            shown,
+          ),
+        )
+
+      return {
+        weekOf: monday,
+        rounds: rows.flatMap((row) =>
+          row.planId === null || row.dueOn === null
+            ? []
+            : [
+                {
+                  id: row.id,
+                  planId: row.planId,
+                  dueOn: row.dueOn,
+                  state: roundStateOf(row.status, row.awaitsCountersignature),
+                  performerUserId: row.performerUserId,
+                },
+              ],
+        ),
+        openBefore: before?.open ?? 0,
+      }
+    })
+  }
+
+  /**
+   * The people the plans and their rounds name, by their names and nothing
+   * else, as far as the person asking sees them: whoever only performs, the
+   * rounds given to them or to nobody (`inSight`), and no plan, which names
+   * whoever walks the rounds of others.
+   */
+  @Get('people')
+  @RequiresPermission('activity.read')
+  async people(@CurrentIdentity() identity: Asking): Promise<DutyPerson[]> {
+    const shown = inSight(identity)
+    const userIds = await this.database.forTenant(identity, async (tx) => {
+      const ofRounds = await tx
+        .selectDistinct({ userId: activities.performerUserId })
+        .from(activities)
+        .where(and(ofAPlan, isNotNull(activities.performerUserId), shown))
+      const ofPlans =
+        shown === undefined
+          ? await tx
+              .selectDistinct({ userId: roundPlans.performerUserId })
+              .from(roundPlans)
+              .where(and(isNull(roundPlans.deletedAt), isNotNull(roundPlans.performerUserId)))
+          : []
+
+      return [...ofRounds, ...ofPlans].flatMap((row) => (row.userId === null ? [] : [row.userId]))
+    })
+
+    return named(this.database, userIds, identity.userId)
+  }
+
+  /**
+   * Who may walk the rounds of an area: the own people who perform
+   * activities, see the area and are not shut out (`candidatesIn`). For
+   * whoever plans in that area, and the name and nothing else of each person.
+   */
+  @Get('performers')
+  @RequiresPermission('activity.write')
+  async performers(
+    @CurrentIdentity() identity: Asking,
+    @Query('area') area: unknown,
+  ): Promise<DutyPerson[]> {
+    if (typeof area !== 'string' || !isUuid(area)) {
+      throw new BadRequestException('Es fehlt der Bereich, für den ausgewählt wird.')
+    }
+
+    const performers = await this.database.forTenant(identity, async (tx) => {
+      const { rows } = await tx.execute<{ sees: boolean }>(
+        sql`select (session_sees_all_areas() or ${area}::uuid = any(session_areas())) as sees`,
+      )
+
+      // An area the person does not see names nobody to them.
+      return rows[0]?.sees === true ? (await candidatesIn(tx, area)).performers : []
+    })
+
+    return named(this.database, performers, identity.userId)
+  }
+
+  /**
+   * Hands rounds out, each to a person or to nobody: those of a plan in a
+   * week, as the office hands them out together. Every round named is one of
+   * a plan that nobody has begun; otherwise none of them changes.
+   */
+  @Put('assignment')
+  @RequiresPermission('activity.write')
+  assign(@CurrentIdentity() identity: Asking, @Body() body: unknown): Promise<{ ids: string[] }> {
+    const asked = (body as { readonly rounds?: unknown } | null)?.rounds
+
+    if (
+      !Array.isArray(asked) ||
+      asked.length === 0 ||
+      asked.length > mostAtOnce ||
+      !asked.every(
+        (entry: unknown) =>
+          typeof entry === 'object' &&
+          entry !== null &&
+          isUuid((entry as { id?: unknown }).id) &&
+          ((entry as { performerUserId?: unknown }).performerUserId === null ||
+            typeof (entry as { performerUserId?: unknown }).performerUserId === 'string'),
+      )
+    ) {
+      throw new BadRequestException(
+        `Zugeteilt werden bis zu ${String(mostAtOnce)} Rundgänge, jeder an eine Person oder an niemanden.`,
+      )
+    }
+
+    const wanted = new Map(
+      (asked as { id: string; performerUserId: string | null }[]).map((entry) => [
+        entry.id,
+        entry.performerUserId,
+      ]),
+    )
+
+    return this.database.forTenant(identity, async (tx) => {
+      const rounds = await tx
+        .select({
+          id: activities.id,
+          areaId: activities.areaId,
+          status: activities.status,
+          dueOn: activities.dueOn,
+          performerUserId: activities.performerUserId,
+        })
+        .from(activities)
+        .where(
+          and(
+            ofAPlan,
+            inArray(activities.id, [...wanted.keys()] as (typeof activities.$inferSelect)['id'][]),
+          ),
+        )
+        .for('no key update')
+
+      if (rounds.length !== wanted.size) {
+        throw new NotFoundException('Diesen Rundgang gibt es nicht oder nicht mehr.')
+      }
+
+      const begun = rounds.find((round) => round.status !== 'open')
+
+      if (begun !== undefined) {
+        throw new ConflictException(
+          'Zugeteilt wird ein Rundgang, solange ihn niemand begonnen hat. Einen davon hat schon jemand begonnen.',
+        )
+      }
+
+      const performersOf = new Map<string, readonly string[]>()
+
+      for (const round of rounds) {
+        const person = wanted.get(round.id) ?? null
+
+        if (person === null || person === round.performerUserId) {
+          continue
+        }
+
+        const performers =
+          performersOf.get(round.areaId) ?? (await candidatesIn(tx, round.areaId)).performers
+
+        performersOf.set(round.areaId, performers)
+
+        if (!performers.includes(person)) {
+          throw new BadRequestException(
+            'Zuständig ist jemand, der Vorgänge ausführt und den Bereich sieht.',
+          )
+        }
+      }
+
+      const now = new Date()
+
+      for (const round of rounds) {
+        const person = wanted.get(round.id) ?? null
+
+        if (person !== round.performerUserId) {
+          await tx
+            .update(activities)
+            .set({ performerUserId: person, updatedAt: now })
+            .where(and(eq(activities.id, round.id), eq(activities.status, 'open')))
+        }
+      }
+
+      return { ids: rounds.map((round) => round.id) }
+    })
+  }
+
+  /**
+   * Hands out the rounds of a week like the week before (section 4.5): every
+   * round of a plan that nobody has begun goes to whoever had the round of
+   * the same plan seven days earlier, or to nobody if that one went to
+   * nobody. A round without one a week earlier keeps its person, and so does
+   * one whose person of last week no longer performs in its area.
+   */
+  @Post('like-last-week')
+  @RequiresPermission('activity.write')
+  likeLastWeek(
+    @CurrentIdentity() identity: Asking,
+    @Body() body: unknown,
+  ): Promise<{ handedOut: number; kept: number }> {
+    const monday = mondayOf((body as { readonly weekOf?: unknown } | null)?.weekOf)
+
+    return this.database.forTenant(identity, async (tx) => {
+      const rounds = await tx
+        .select({
+          id: activities.id,
+          planId: activities.roundPlanId,
+          areaId: activities.areaId,
+          dueOn: activities.dueOn,
+          performerUserId: activities.performerUserId,
+        })
+        .from(activities)
+        .where(
+          and(
+            ofAPlan,
+            eq(activities.status, 'open'),
+            between(activities.dueOn, monday, addDays(monday, 6)),
+          ),
+        )
+        .for('no key update')
+      const lastWeek = await tx
+        .select({
+          planId: activities.roundPlanId,
+          dueOn: activities.dueOn,
+          performerUserId: activities.performerUserId,
+        })
+        .from(activities)
+        .where(and(ofAPlan, between(activities.dueOn, addDays(monday, -7), addDays(monday, -1))))
+      const before = new Map(
+        lastWeek.map((round) => [
+          `${String(round.planId)}|${String(round.dueOn)}`,
+          round.performerUserId,
+        ]),
+      )
+      const performersOf = new Map<string, readonly string[]>()
+      const now = new Date()
+      let handedOut = 0
+      let kept = 0
+
+      for (const round of rounds) {
+        if (round.dueOn === null) {
+          continue
+        }
+
+        const key = `${String(round.planId)}|${addDays(round.dueOn, -7)}`
+
+        if (!before.has(key)) {
+          kept += 1
+          continue
+        }
+
+        const person = before.get(key) ?? null
+
+        if (person === round.performerUserId) {
+          continue
+        }
+
+        if (person !== null) {
+          const performers =
+            performersOf.get(round.areaId) ?? (await candidatesIn(tx, round.areaId)).performers
+
+          performersOf.set(round.areaId, performers)
+
+          if (!performers.includes(person)) {
+            kept += 1
+            continue
+          }
+        }
+
+        await tx
+          .update(activities)
+          .set({ performerUserId: person, updatedAt: now })
+          .where(and(eq(activities.id, round.id), eq(activities.status, 'open')))
+        handedOut += 1
+      }
+
+      return { handedOut, kept }
+    })
+  }
+}

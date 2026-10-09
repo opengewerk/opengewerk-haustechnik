@@ -1,7 +1,14 @@
 import { deadlineRegistry, DeadlineRegistryError } from '@opengewerk/platform-domain'
 import { describe, expect, it } from 'vitest'
 
-import { deadlineActions, deadlineKinds, deadlineSources, defectDue, dutyDue } from './deadlines.js'
+import {
+  deadlineActions,
+  deadlineKinds,
+  deadlineSources,
+  defectDue,
+  dutyDue,
+  roundDue,
+} from './deadlines.js'
 
 describe('the kinds of deadline of this application', () => {
   it('pass the registry of the foundation, with the sources and actions this application has', () => {
@@ -10,14 +17,15 @@ describe('the kinds of deadline of this application', () => {
       actions: [...deadlineActions],
     })
 
-    expect(registry.kinds).toEqual([dutyDue, defectDue])
+    expect(registry.kinds).toEqual([dutyDue, defectDue, roundDue])
     expect(registry.kind('duty.due')).toBe(dutyDue)
     expect(registry.kind('defect.due')).toBe(defectDue)
+    expect(registry.kind('round.due')).toBe(roundDue)
   })
 
   it('would stop the start with a source this application does not have', () => {
     expect(() =>
-      deadlineRegistry([{ ...dutyDue, source: 'round' as 'duty' | 'defect' }], {
+      deadlineRegistry([{ ...dutyDue, source: 'round' as (typeof deadlineSources)[number] }], {
         sources: [...deadlineSources],
         actions: [...deadlineActions],
       }),
@@ -46,6 +54,19 @@ describe('the kinds of deadline of this application', () => {
       leadDays: 7,
       responsible: 'lead',
       actions: ['reminder'],
+    })
+  })
+
+  it('let the plan of a round name its next pass, make its rounds two weeks ahead and remind nobody', () => {
+    // A round is a task of the week the overview shows (section 4.5): a
+    // reminder for every daily round would bury what else is due.
+    expect(roundDue).toMatchObject({
+      source: 'round_plan',
+      intervalDays: null,
+      intervalMonths: null,
+      leadDays: 14,
+      responsible: 'lead',
+      actions: ['activity'],
     })
   })
 })

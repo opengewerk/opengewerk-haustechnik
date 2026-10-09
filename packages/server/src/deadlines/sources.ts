@@ -6,23 +6,40 @@ import {
   defectStatuses,
   dutyInterval,
   type DutyId,
+  firstOpenPass,
   type IsoDate,
   lifecycleStateOn,
   nextAppointment,
   type PropertyId,
   restsOn,
   roomTitle,
+  type RoundPlanId,
 } from '@opengewerk/haustechnik-domain'
 import type { ExpectedDeadline, SourceQuery } from '@opengewerk/platform-server'
-import { and, eq, inArray, isNotNull, isNull } from 'drizzle-orm'
+import { and, eq, gte, inArray, isNotNull, isNull, or } from 'drizzle-orm'
 
 import { dutyTitle, lifecyclesByAsset, metDaysByDuty } from '../database/duty-standing.js'
-import { assets, buildings, defects, duties, properties, rooms } from '../database/schema/index.js'
+import {
+  activities,
+  assets,
+  buildingClosures,
+  buildings,
+  defects,
+  duties,
+  properties,
+  rooms,
+  roundPlans,
+  roundTemplates,
+} from '../database/schema/index.js'
 
-/** What a deadline of this application hangs on, written into its own columns: a duty or a defect. */
+/**
+ * What a deadline of this application hangs on, written into its own
+ * columns: a duty, a defect or the plan of a round.
+ */
 export interface DeadlineValues {
   readonly dutyId: DutyId | null
   readonly defectId: DefectId | null
+  readonly roundPlanId: RoundPlanId | null
   readonly propertyId: PropertyId
   readonly areaId: AreaId
 }
@@ -170,6 +187,7 @@ export function dutySource(options: {
         values: {
           dutyId: duty.id,
           defectId: null,
+          roundPlanId: null,
           propertyId: duty.propertyId,
           areaId: duty.areaId,
         },
@@ -235,11 +253,130 @@ export function defectSource(): SourceQuery<DeadlineValues> {
               values: {
                 dutyId: null,
                 defectId: defect.id,
+                roundPlanId: null,
                 propertyId: defect.propertyId,
                 areaId: defect.areaId,
               },
             },
           ],
+    )
+  }
+}
+
+/**
+ * The source `round_plan` (#113, section 4.5 of the concept): one deadline for
+ * every plan that runs, due on its first pass from today on that has no round
+ * yet, passing over the days its building is closed. When the lead begins,
+ * the engine makes the rounds as far ahead as the lead reaches
+ * (`activityFromDeadline`), and the deadline moves on to the first pass after
+ * them.
+ *
+ * None for a plan that rests, that has ended or whose place is gone, and none
+ * for one whose passes all lie in a closure or after its end: the engine lets
+ * its deadline drop and brings it back when the plan runs again. A pass
+ * before today that has no round is not made up for: the rounds of a plan
+ * are made ahead, and a past day without one is what the list of the runs
+ * shows.
+ *
+ * Anchored on the pass, so that a deadline marked done comes back with the
+ * next one. Asked for every operator on every pass of the engine, in every
+ * area of it.
+ */
+export function roundPlanSource(options: {
+  readonly today: () => IsoDate
+}): SourceQuery<DeadlineValues> {
+  return async (tx) => {
+    const today = options.today()
+    const plans = await tx
+      .select({
+        plan: roundPlans,
+        title: roundTemplates.title,
+        buildingName: buildings.name,
+        propertyName: properties.name,
+      })
+      .from(roundPlans)
+      .innerJoin(roundTemplates, eq(roundTemplates.id, roundPlans.templateId))
+      .innerJoin(properties, eq(properties.id, roundPlans.propertyId))
+      .leftJoin(buildings, eq(buildings.id, roundPlans.buildingId))
+      .where(
+        and(
+          isNull(roundPlans.deletedAt),
+          eq(roundPlans.resting, false),
+          or(isNull(roundPlans.endsOn), gte(roundPlans.endsOn, today)),
+        ),
+      )
+
+    if (plans.length === 0) {
+      return []
+    }
+
+    const buildingIds = plans.flatMap(({ plan }) =>
+      plan.buildingId === null ? [] : [plan.buildingId],
+    )
+    const closures =
+      buildingIds.length === 0
+        ? []
+        : await tx
+            .select({
+              buildingId: buildingClosures.buildingId,
+              startsOn: buildingClosures.startsOn,
+              endsOn: buildingClosures.endsOn,
+            })
+            .from(buildingClosures)
+            .where(
+              and(
+                inArray(buildingClosures.buildingId, buildingIds),
+                isNull(buildingClosures.deletedAt),
+                gte(buildingClosures.endsOn, today),
+              ),
+            )
+    const rounds = await tx
+      .select({ planId: activities.roundPlanId, dueOn: activities.dueOn })
+      .from(activities)
+      .where(
+        and(
+          inArray(
+            activities.roundPlanId,
+            plans.map(({ plan }) => plan.id),
+          ),
+          isNull(activities.deletedAt),
+          gte(activities.dueOn, today),
+        ),
+      )
+
+    return plans.flatMap(
+      ({ plan, title, buildingName, propertyName }): ExpectedDeadline<DeadlineValues>[] => {
+        const from = plan.startsOn > today ? plan.startsOn : today
+        const pass = firstOpenPass(
+          plan,
+          from,
+          closures.filter((closure) => closure.buildingId === plan.buildingId),
+          new Set(
+            rounds.flatMap((round) =>
+              round.planId === plan.id && round.dueOn !== null ? [round.dueOn] : [],
+            ),
+          ),
+        )
+
+        return pass === null
+          ? []
+          : [
+              {
+                sourceId: plan.id,
+                sourceLabel: `${title}, ${buildingName ?? propertyName}`,
+                anchorOn: pass,
+                namedDueOn: pass,
+                naturalUserId: null,
+                values: {
+                  dutyId: null,
+                  defectId: null,
+                  roundPlanId: plan.id,
+                  propertyId: plan.propertyId,
+                  areaId: plan.areaId,
+                },
+              },
+            ]
+      },
     )
   }
 }

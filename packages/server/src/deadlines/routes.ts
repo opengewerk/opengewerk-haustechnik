@@ -3,13 +3,23 @@ import {
   type Catalogue,
   type DeadlineFacts,
   type DeadlineFilterName,
+  rhythmText,
 } from '@opengewerk/haustechnik-domain'
 import { type DeadlineRules, isUuid } from '@opengewerk/platform-server'
 import { eq, inArray, type SQL, sql } from 'drizzle-orm'
 
 import { dutyTitle } from '../database/duty-standing.js'
 import type { ApplicationDeadlineColumns } from '../database/schema/deadlines.js'
-import { assets, deadlines, defects, duties, properties, rooms } from '../database/schema/index.js'
+import {
+  assets,
+  deadlines,
+  defects,
+  duties,
+  properties,
+  rooms,
+  roundPlans,
+  roundTemplates,
+} from '../database/schema/index.js'
 import { deadlineKindRegistry } from './registry.js'
 
 /** A filter by a record, by its id: anything else is no id and is refused. */
@@ -23,9 +33,10 @@ function byId(column: typeof deadlines.propertyId | typeof deadlines.areaId) {
  * kinds, the sentence for a person who does not work for the operator, and
  * for the list "Fristen" (#104, #75):
  *
- * - an entry names its duty by its title, or its defect by its description
- *   (#116), and what that hangs on, read in one query each for the whole
- *   page (`DeadlineFacts`);
+ * - an entry names its duty by its title, its defect by its description
+ *   (#116) or the plan of a round by its template and rhythm (#113), and
+ *   what that hangs on, read in one query each for the whole page
+ *   (`DeadlineFacts`);
  * - the search finds the duty or the defect and its asset by the name of the
  *   deadline, and the property by its name;
  * - the list narrows to a property and to an area.
@@ -93,8 +104,38 @@ export function deadlineRulesFor(
       const byDefect = new Map<string, (typeof foundDefects)[number]>(
         foundDefects.map((defect) => [defect.id, defect]),
       )
+      const planIds = [
+        ...new Set(rows.flatMap((row) => (row.roundPlanId === null ? [] : [row.roundPlanId]))),
+      ]
+      const foundPlans =
+        planIds.length === 0
+          ? []
+          : await tx
+              .select({ plan: roundPlans, title: roundTemplates.title })
+              .from(roundPlans)
+              .innerJoin(roundTemplates, eq(roundTemplates.id, roundPlans.templateId))
+              .where(inArray(roundPlans.id, planIds))
+      const byPlan = new Map<string, (typeof foundPlans)[number]>(
+        foundPlans.map((found) => [found.plan.id, found]),
+      )
 
       return (row) => {
+        if (row.roundPlanId !== null) {
+          const found = byPlan.get(row.roundPlanId)
+          const facts: DeadlineFacts = {
+            follows: 'round',
+            roundPlanId: row.roundPlanId,
+            title: found?.title ?? row.sourceLabel,
+            rhythm: found ? rhythmText(found.plan) : '',
+            propertyId: row.propertyId,
+            buildingId: found?.plan.buildingId ?? null,
+            roomId: null,
+            asset: null,
+          }
+
+          return { ...facts }
+        }
+
         if (row.defectId !== null) {
           const defect = byDefect.get(row.defectId)
           const facts: DeadlineFacts = {

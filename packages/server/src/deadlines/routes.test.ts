@@ -369,6 +369,16 @@ describe('the settings of a kind', () => {
         intervalMonths: null,
         leadDays: 7,
       }),
+      expect.objectContaining({
+        key: 'round.due',
+        title: 'Rundgang nach Plan',
+        source: 'round_plan',
+        actions: ['activity'],
+        responsible: 'lead',
+        intervalDays: null,
+        intervalMonths: null,
+        leadDays: 14,
+      }),
     ])
 
     await http()

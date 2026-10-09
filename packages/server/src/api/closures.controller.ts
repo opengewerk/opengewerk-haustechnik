@@ -9,6 +9,8 @@ import { CurrentIdentity, Database } from '@opengewerk/platform-server'
 import { and, asc, eq, isNull } from 'drizzle-orm'
 
 import { buildingClosures, buildings } from '../database/schema/index.js'
+import { followClosures } from '../rounds/plans.js'
+import { dayInGermany } from '../today.js'
 import { RequiresPermission } from './authorization.js'
 import { type Asking, fieldsOf, placeOf, refuse } from './places.js'
 
@@ -26,6 +28,9 @@ const closureFields = ['startsOn', 'endsOn', 'reason'] as const
  * rounds and not to the structure of the building, so the Objektleitung
  * enters the holidays of its school without the right to change the school.
  * None is changed in place; one entered wrongly is removed and entered again.
+ * The rounds of the plans of the building follow at once (#113): a new
+ * closure takes back those on its days that nobody has begun, and one that
+ * is removed lets the plans make the rounds of its days again.
  *
  * The building is looked up first, as the person asking sees it: one outside
  * their areas is not there, and neither are its closures.
@@ -86,6 +91,8 @@ export class BuildingClosuresController {
         })
         .returning()
 
+      await followClosures(tx, building.id, dayInGermany(new Date()), new Date())
+
       return created as BuildingClosure
     })
   }
@@ -116,6 +123,8 @@ export class BuildingClosuresController {
         .set({ deletedAt: new Date() })
         .where(and(eq(buildingClosures.id, closure.id), isNull(buildingClosures.deletedAt)))
         .returning()
+
+      await followClosures(tx, building.id, dayInGermany(new Date()), new Date())
 
       return removed as BuildingClosure
     })

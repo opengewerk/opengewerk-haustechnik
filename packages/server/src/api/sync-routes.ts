@@ -67,6 +67,8 @@ export const operationRights: Readonly<Record<string, OperationRights>> = {
   // The templates of the rounds and their versions are kept in the office.
   round_templates: { otherwise: 'template.write' },
   round_template_versions: { otherwise: 'template.write' },
+  // The plans of the rounds are planning, kept in the office.
+  round_plans: { otherwise: 'activity.write' },
   rooms: { create: 'room.record', change: 'room.record', otherwise: 'location.write' },
   assets: { create: 'asset.record', change: 'asset.record', otherwise: 'asset.write' },
   asset_lifecycle: { otherwise: 'asset.write' },

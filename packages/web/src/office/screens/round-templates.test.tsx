@@ -165,7 +165,7 @@ afterEach(() => {
 
 describe('the list of the templates', () => {
   it('lists the templates with their version and what they ask, and those of the packages to take over', async () => {
-    await mountOffice('/rundgaenge', server, everything)
+    await mountOffice('/rundgaenge/vorlagen', server, everything)
     await screen.findByRole('heading', { name: 'Vorlagen', level: 1 })
 
     await waitFor(() => {

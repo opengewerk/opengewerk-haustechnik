@@ -87,9 +87,9 @@ function refusalOf(error: unknown): string {
     : 'Der Server ist nicht zu erreichen. Ein Import braucht eine Verbindung.'
 }
 
-type Tone = 'neutral' | 'waiting' | 'conflict' | 'done'
+export type Tone = 'neutral' | 'waiting' | 'conflict' | 'done'
 
-interface Tile {
+export interface Tile {
   readonly value: number
   readonly label: string
   readonly tone?: Tone
@@ -111,7 +111,13 @@ const tileInk: Readonly<Record<Tone, string>> = {
 }
 
 /** The numbers of a preview, `count_tile()` of the canvas: a figure, what it counts, and a line under it. */
-function CountTiles({ label, tiles }: { readonly label: string; readonly tiles: readonly Tile[] }) {
+export function CountTiles({
+  label,
+  tiles,
+}: {
+  readonly label: string
+  readonly tiles: readonly Tile[]
+}) {
   return (
     <ul aria-label={label} className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-5">
       {tiles.map(({ value, label: counted, tone = 'neutral', sub }) => (

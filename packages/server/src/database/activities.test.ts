@@ -277,6 +277,18 @@ describe('the keys of the activities and defects', () => {
       [beside.duty, ...writtenValues(lead, '2026-10-01', 'with_defects')],
     )
     const besideEvidence = written[0]?.id ?? ''
+    // A plan of a round on the other property (#113).
+    const { rows: templates } = await admin.query<{ id: string }>(
+      `insert into round_templates (tenant_id, title) values ($1, 'Rundgang') returning id`,
+      [tenant],
+    )
+    const { rows: plans } = await admin.query<{ id: string }>(
+      `insert into round_plans (tenant_id, property_id, area_id, template_id, rhythm, weekdays, starts_on)
+       select $1, id, area_id, $3, 'weekly', '{3}', '2026-10-07' from properties where id = $2
+       returning id`,
+      [tenant, beside.property, templates[0]?.id],
+    )
+    const besidePlan = plans[0]?.id ?? ''
     const activityRow = (column: string, value: unknown) =>
       tried(
         `insert into activities (tenant_id, property_id, area_id, kind, title, ${column})
@@ -301,6 +313,12 @@ describe('the keys of the activities and defects', () => {
       activities_at_an_asset_of_their_property: () => activityRow('asset_id', beside.asset),
       activities_responsible_works_here: () => activityRow('responsible_user_id', 'user-nobody'),
       activities_performer_works_here: () => activityRow('performer_user_id', 'user-nobody'),
+      activities_of_a_plan_of_their_property: () =>
+        tried(
+          `insert into activities (tenant_id, property_id, area_id, kind, title, due_on, round_plan_id)
+           values ($1, $2, $3, 'round', 'Rundgang', '2026-10-07', $4)`,
+          [tenant, here.property, here.area, besidePlan],
+        ),
       activity_duties_follow_their_property: () =>
         tried(
           `insert into activity_duties (tenant_id, property_id, area_id, activity_id, duty_id)

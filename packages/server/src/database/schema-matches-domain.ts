@@ -17,6 +17,7 @@ import type {
   PlaceLabel,
   Property,
   Room,
+  RoundPlan,
   RoundTemplate,
   RoundTemplateVersion,
   WorkOrder,
@@ -43,6 +44,7 @@ import type {
   labels,
   properties,
   rooms,
+  roundPlans,
   roundTemplates,
   roundTemplateVersions,
   workOrderDecisions,
@@ -108,3 +110,4 @@ export type RoundTemplateMatches = Assert<Exact<typeof roundTemplates.$inferSele
 export type RoundTemplateVersionMatches = Assert<
   Exact<typeof roundTemplateVersions.$inferSelect, RoundTemplateVersion>
 >
+export type RoundPlanMatches = Assert<Exact<typeof roundPlans.$inferSelect, RoundPlan>>

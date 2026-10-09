@@ -12,6 +12,7 @@ import {
 import { type EvidenceResult, evidenceResultLabel, evidenceResults } from './evidence.js'
 import { calendarDay, oneOf, optional, type Problems, required } from './fields.js'
 import type { PropertyId } from './location.js'
+import type { RoundPlanId } from './round-plan.js'
 import type { PlaceTarget } from './target.js'
 
 /**
@@ -193,6 +194,12 @@ export interface Activity extends Synced, PlaceTarget {
    * when it makes the activity, none where nothing was taken.
    */
   readonly templateOn: IsoDate | null
+  /**
+   * The plan a round was made by, for the day it is due on (#113): written by
+   * the server, which makes one round for each pass of a plan and no second.
+   * None for a round made otherwise and for every other kind.
+   */
+  readonly roundPlanId: RoundPlanId | null
 }
 
 /**
