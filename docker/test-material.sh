@@ -30,7 +30,7 @@ guarded_route=/staff
 # The tables counted before the backup and after the restore. The area and
 # the place of the account in it come with the account: a Betreiber gets its
 # first area with its first membership.
-counted_tables='auth_users memberships tenant_roles account_corrections areas member_areas invitations invitation_area_choices invitation_areas properties buildings contacts building_closures assets files mail_settings deadline_settings deadline_runs duties duty_dismissals evidence deadlines activities activity_duties activity_answers work_orders work_order_participants defects activity_signatures work_order_decisions evidence_voidings attachments attachment_versions labels imports asset_kind_names defect_class_terms round_templates round_template_versions'
+counted_tables='auth_users memberships tenant_roles account_corrections areas member_areas invitations invitation_area_choices invitation_areas properties buildings contacts building_closures assets files mail_settings deadline_settings deadline_runs duties duty_dismissals evidence deadlines activities activity_duties activity_answers work_orders work_order_participants defects activity_signatures work_order_decisions evidence_voidings attachments attachment_versions labels imports asset_kind_names defect_class_terms round_templates round_template_versions round_plans'
 
 # The migrations, and how many of them make the older state an update starts
 # from: the first, without the sequence for work orders that the second brings.
@@ -251,6 +251,11 @@ records_for_backup() {
                                          asks_countersignature)
     select tenant_id, id, 1, '{\"title\": \"Technikzentrale\", \"sections\": []}', true
       from round_templates where tenant_id = '$first_tenant';
+    insert into round_plans (tenant_id, property_id, building_id, area_id, template_id, rhythm,
+                             weekdays, starts_on)
+    select b.tenant_id, b.property_id, b.id, b.area_id, t.id, 'weekly', '{3}', '2026-10-07'
+      from buildings b, round_templates t
+     where b.tenant_id = '$first_tenant' and t.tenant_id = '$first_tenant';
     insert into activity_answers (tenant_id, property_id, area_id, activity_id, field_key, result,
                                   remark)
     select tenant_id, property_id, area_id, id, 'emergency_call', 'not_ok',

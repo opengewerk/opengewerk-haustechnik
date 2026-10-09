@@ -383,7 +383,7 @@ export function RoundWeekScreen() {
         }
       />
       <div className="flex flex-wrap items-center gap-2">
-        <div className="flex items-center gap-2">
+        <div className="flex min-w-0 items-center gap-2">
           <IconButton
             label="Vorige Woche"
             tone="secondary"
@@ -393,7 +393,7 @@ export function RoundWeekScreen() {
           >
             <ChevronLeft size={16} strokeWidth={2.2} aria-hidden="true" />
           </IconButton>
-          <span className="min-w-[220px] text-center text-[14px] font-semibold">
+          <span className="min-w-0 text-center text-[14px] font-semibold sm:min-w-[220px]">
             {weekTitle(monday)}
           </span>
           <IconButton
