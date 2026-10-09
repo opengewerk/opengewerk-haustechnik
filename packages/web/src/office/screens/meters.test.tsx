@@ -262,7 +262,7 @@ describe('the list of meters', () => {
         'Wasser',
         'm³',
         '13-700001',
-        '—',
+        '',
         'Gesperrt',
       ],
     ])

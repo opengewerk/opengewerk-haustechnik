@@ -124,7 +124,8 @@ export const meterWords = {
   change: 'Veränderung',
   historyNote:
     'Je Stichtag der Verbrauch seit dem Stand davor und derselbe Stichtag ein Jahr früher.',
-  nothing: '—',
+  /** An empty cell: nothing to say there. */
+  nothing: '',
   edit: 'Bearbeiten',
   factor: 'Wandlerfaktor',
   mainMeter: 'Hauptzähler',
