@@ -305,7 +305,8 @@ records_for_backup() {
       from evidence e, auth_users u
      where e.number = 'NW-2025-00002' and u.email = '$probe_email';"
   waited=0
-  until test "$(value "select count(*) from deadlines where tenant_id = '$first_tenant'")" = 1 &&
+  # The duty's own deadline; the plan of a round brings one of its own.
+  until test "$(value "select count(*) from deadlines where tenant_id = '$first_tenant' and duty_id is not null")" = 1 &&
     test "$(value "select count(*) from deadline_runs where succeeded_at is not null")" = \
       "$(value 'select count(*) from tenants')"; do
     waited=$((waited + 1))

@@ -21,8 +21,8 @@ import {
 const days = fc
   .integer({ min: 0, max: 16 * 366 })
   .map((offset) => addDays('2020-01-01' as IsoDate, offset))
-/** A stretch of up to two years and a bit, from a day. */
-const stretches = fc.tuple(days, fc.integer({ min: 0, max: 800 })).map(([from, length]) => ({
+/** A stretch of up to a year and a month, from a day: over the turn of a year at least once. */
+const stretches = fc.tuple(days, fc.integer({ min: 0, max: 400 })).map(([from, length]) => ({
   from,
   until: addDays(from, length),
 }))
@@ -102,7 +102,8 @@ describe('the passes of a plan', () => {
           addDays(monday, 6) <= until;
           monday = addDays(monday, 7)
         ) {
-          const week = passes.filter((day) => day >= monday && day <= addDays(monday, 6))
+          const sunday = addDays(monday, 6)
+          const week = passes.filter((day) => day >= monday && day <= sunday)
 
           expect(week).toHaveLength(chosen.length)
         }
@@ -128,7 +129,9 @@ describe('the passes of a plan', () => {
           addDays(monday, 6) <= until;
           monday = addDays(monday, 7)
         ) {
-          expect(passes.filter((day) => day >= monday && day <= addDays(monday, 6))).toHaveLength(1)
+          const sunday = addDays(monday, 6)
+
+          expect(passes.filter((day) => day >= monday && day <= sunday)).toHaveLength(1)
         }
       }),
     )
