@@ -143,7 +143,9 @@ function lateBadge(late: number, word: string): NavigationEntry['badge'] {
   return {
     value: late,
     tone: 'conflict',
-    spoken: late === 1 ? `eine ${word}` : `${String(late)} ${word}`,
+    // The figure as it stands beside the entry, so that whoever says what they see
+    // finds it in the name (WCAG 2.5.3, #132): "Mängel, 1 über der Frist".
+    spoken: `${String(late)} ${word}`,
   }
 }
 

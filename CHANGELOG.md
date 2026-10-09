@@ -954,6 +954,14 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   verschoben, wie in einer Schließzeit, beim Anlegen, bei einer Änderung und in der Fristen-Engine.
   Für ein Land, für das der Katalog keine Feiertage hält, bietet der Plan die Wahl nicht an, und der
   Server lehnt sie ab. Bisher zählte ein Feiertag wie jeder Tag
+- Barrierefreiheit in der CI (#132): Die Prüfung "Breiten und Auflösungen" hält jede Art von Seite
+  auch an die Regeln der Barrierefreiheit, mit axe-core aus dem Fundament (`opengewerk#587`) nach
+  WCAG 2.1 in den Stufen A und AA und den bewährten Regeln: Beschriftungen, Rollen, Reihenfolge
+  der Überschriften, Landmarks und Kontrast, hell und dunkel, am Telefon und am Desktop. Ein
+  Bedienelement ohne Beschriftung macht sie rot. Was der erste Gang über die 155 Arten von Seiten
+  fand, ist behoben: die Wochentage im Plan heißen für den Bildschirmleser "Montag" und zeigen
+  "Mo", "Mängel" spricht die Zahl so, wie sie dasteht, und die künftigen Schritte eines Mangels
+  haben genug Kontrast. Bisher prüfte nichts davon eine Maschine
 
 ### Geändert
 

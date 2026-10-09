@@ -768,7 +768,7 @@ function DefectSteps({ defect }: { readonly defect: DefectReading }) {
             <div>
               <div
                 className={`text-[13px] font-semibold ${
-                  reached ? 'text-done' : next ? 'text-ink' : 'text-disabled'
+                  reached ? 'text-done' : next ? 'text-ink' : 'text-ink-faint'
                 }`}
               >
                 {defectStatusLabel[status]}

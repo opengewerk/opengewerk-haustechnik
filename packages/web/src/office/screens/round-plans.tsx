@@ -553,7 +553,6 @@ function WeekdayToggles({
             key={day}
             type="button"
             aria-pressed={on}
-            aria-label={weekdayLabel[day]}
             disabled={disabled}
             className={
               on
@@ -564,7 +563,11 @@ function WeekdayToggles({
               onChange(on ? chosen.filter((each) => each !== day) : [...chosen, day])
             }}
           >
-            {weekdayShort[day]}
+            {/* "Mo" to the eye and "Montag" to a screen reader: a name that does not
+                hold the short word on the button leaves a speech user without one to
+                say (WCAG 2.5.3, #132). */}
+            <span aria-hidden="true">{weekdayShort[day]}</span>
+            <span className="sr-only">{weekdayLabel[day]}</span>
           </button>
         )
       })}

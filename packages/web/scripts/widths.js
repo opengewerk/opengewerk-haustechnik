@@ -102,4 +102,12 @@ await checkWidths({
    * come brings more (opengewerk#576).
    */
   mostKinds: 160,
+  /**
+   * Every kind of page is held to the rules of accessibility as well (#132,
+   * section 3 of the concept): labels, roles, the order of the headings and
+   * the contrast, light and dark, at the width of a telephone and of a
+   * desktop. For public bodies this holds for applications for their own
+   * people too (section 8).
+   */
+  accessibility: true,
 })

@@ -416,7 +416,11 @@ jobs:
     # Auflösungen", from 320 to 3840 pixels, light and dark, and the job fails
     # as soon as a page is wider than its window, as in the repository
     # opengewerk (#29). The screens are found by following the links of the
-    # preview, so a new one is checked without anybody adding it here.
+    # preview, so a new one is checked without anybody adding it here. Every
+    # kind of page is held to the rules of accessibility in the same walk
+    # (#132): labels, roles, headings and contrast with axe-core, light and
+    # dark, at a telephone and a desktop. The name of the job stays, since the
+    # protection of main asks for it by name.
     #
     # The browser is the image of the renderer in docker/compose.yaml, the
     # Chromium an installation prints with, on the network of the runner: the
