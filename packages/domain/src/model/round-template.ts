@@ -7,7 +7,7 @@ import {
   type Synced,
 } from '@opengewerk/platform-domain'
 
-import { type AnswerContent, answerVerdict, type LimitContext } from './answer.js'
+import { type AnswerContent, answerLimits, answerVerdict, type LimitContext } from './answer.js'
 import type { DutyId } from './duty-record.js'
 import { evidenceLimits, type EvidenceResult } from './evidence.js'
 import type { Problems } from './fields.js'
@@ -258,7 +258,10 @@ export interface TemplateRecords {
 /** A sentence of the engine about a field, with the field named by its label and not by its key. */
 function engineSentence(sentence: string, prefix: string, field: { key: string; label: string }) {
   const bare = sentence.startsWith(`${prefix}: `) ? sentence.slice(prefix.length + 2) : sentence
-  const named = bare.replace(new RegExp(`\\b${field.key}\\b`, 'g'), `„${field.label}“`)
+  // The key is matched as it is written: one with a character a pattern
+  // reads, a bracket or a dot, makes no pattern of its own.
+  const key = field.key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  const named = bare.replace(new RegExp(`\\b${key}\\b`, 'g'), `„${field.label}“`)
 
   return named.charAt(0).toUpperCase() + named.slice(1)
 }
@@ -272,10 +275,20 @@ function isText(value: unknown): value is string {
 }
 
 /**
+ * The key of a chapter or a point: small letters, digits and underscores, as
+ * the form engine wants a key, and at most as long as an answer keeps one.
+ */
+const templateKeyShape = /^[a-z][a-z0-9_]*$/
+
+function isKey(value: unknown): value is string {
+  return isText(value) && value.length <= answerLimits.key && templateKeyShape.test(value)
+}
+
+/**
  * Whether what arrives at a route has the shape of a definition at all: a
  * title, chapters with a key, a title and their points, each point with a
- * key, a kind and a label. What the points say beyond that is asked by
- * `templateProblems`, and by the engine.
+ * key, a kind and a label, every key in the shape of a key. What the points
+ * say beyond that is asked by `templateProblems`, and by the engine.
  */
 export function isTemplateDefinition(value: unknown): value is TemplateDefinition {
   return (
@@ -285,13 +298,13 @@ export function isTemplateDefinition(value: unknown): value is TemplateDefinitio
     value['sections'].every(
       (section: unknown) =>
         isObject(section) &&
-        isText(section['key']) &&
+        isKey(section['key']) &&
         isText(section['title']) &&
         Array.isArray(section['fields']) &&
         section['fields'].every(
           (field: unknown) =>
             isObject(field) &&
-            isText(field['key']) &&
+            isKey(field['key']) &&
             isText(field['kind']) &&
             isText(field['label']) &&
             (field['fulfils'] === undefined || isText(field['fulfils'])),

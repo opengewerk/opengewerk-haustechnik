@@ -282,6 +282,14 @@ describe('a template of a round', () => {
     )
   })
 
+  it('is refused with a point whose key is no key, before anything reads it as a pattern', async () => {
+    expect(await made('u-lead', templateWith({ ...remark, key: '(' }))).toMatchObject({
+      status: 400,
+      message:
+        'Eine Vorlage hat eine Bezeichnung und Kapitel mit Punkten, jedes mit einem Schlüssel aus kleinen Buchstaben, Ziffern und Unterstrichen.',
+    })
+  })
+
   it('is refused with a point at an asset that is gone', async () => {
     expect(await made('u-lead', templateWith(temperature(goneAsset)))).toMatchObject({
       status: 400,

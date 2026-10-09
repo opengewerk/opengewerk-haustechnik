@@ -9,6 +9,8 @@ import {
   type RoundTemplateId,
   type TemplateDefinition,
   type TemplateField,
+  type TemplateSection,
+  isTemplateDefinition,
   templateFormKey,
   templateOfFormKey,
   templatePointers,
@@ -259,6 +261,28 @@ describe('a version before it is saved', () => {
     expect(
       templateProblems(withPoints(remark, { ...remark, label: 'Noch etwas' }), records),
     ).toEqual({ form: 'Das Feld p3 steht zweimal im Formular.' })
+  })
+})
+
+describe('what arrives at a route', () => {
+  it('has keys of small letters, digits and underscores only, at chapters and points', () => {
+    expect(isTemplateDefinition(sound)).toBe(true)
+
+    for (const key of ['(', 'p1.', 'P1', '1p', `p${'1'.repeat(64)}`]) {
+      expect(isTemplateDefinition(withPoints({ ...remark, key }))).toBe(false)
+      expect(
+        isTemplateDefinition({
+          ...sound,
+          sections: [{ ...(sound.sections[0] as TemplateSection), key }],
+        }),
+      ).toBe(false)
+    }
+  })
+
+  it('names a point whose key reads like a pattern, rather than breaking off', () => {
+    expect(templateProblems(withPoints({ ...remark, key: '(' }), records)).toEqual({
+      'point.(': 'Das Feld ( hat einen Schlüssel der falschen Form.',
+    })
   })
 })
 

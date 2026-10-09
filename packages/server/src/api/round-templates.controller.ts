@@ -70,7 +70,9 @@ function draftOf(body: unknown): Draft {
   const { definition, asksCountersignature } = values
 
   if (!isTemplateDefinition(definition)) {
-    throw new BadRequestException('Eine Vorlage hat eine Bezeichnung und Kapitel mit Punkten.')
+    throw new BadRequestException(
+      'Eine Vorlage hat eine Bezeichnung und Kapitel mit Punkten, jedes mit einem Schlüssel aus kleinen Buchstaben, Ziffern und Unterstrichen.',
+    )
   }
 
   if (JSON.stringify(definition).length > templateLimits.definition) {
