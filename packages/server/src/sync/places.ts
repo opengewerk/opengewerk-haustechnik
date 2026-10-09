@@ -227,12 +227,15 @@ async function targetPlace(
  * is signed or closed would change the page that was signed, and its
  * signature would count no more: that activity is fixed.
  *
- * The activity is read with a share lock, held to the end of the
- * transmission. A signature holds the activity for its whole transaction
- * (`checkSignature`), so a defect sent at the same moment waits for it and
- * finds the activity signed, and a signature that comes second finds the
- * defect on its page. Read without the lock, the defect could land between
- * the page the signature was checked against and its commit.
+ * The activity is locked to the end of the transmission, with the lock the
+ * gate of the foundation takes for answers and results (opengewerk#582). A
+ * signature holds the activity for its whole transaction (`checkSignature`),
+ * so a defect sent at the same moment waits for it and finds the activity
+ * signed, and a signature that comes second finds the defect on its page.
+ * Read without the lock, the defect could land between the page the
+ * signature was checked against and its commit. A shared lock would do for
+ * that, but a signature often follows the defect in the same transmission:
+ * two of them, each holding the activity shared, would wait for each other.
  */
 async function defectPlace(
   tx: TenantTransaction,
@@ -251,7 +254,7 @@ async function defectPlace(
           .select()
           .from(activities)
           .where(and(eq(activities.id, id as Activity['id']), isNull(activities.deletedAt)))
-          .for('share')) as Activity[])
+          .for('no key update')) as Activity[])
       : []
 
   if (!activity || activity.propertyId !== values['propertyId']) {

@@ -1160,6 +1160,12 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
 
 ### Behoben
 
+- Eine Antwort oder ein Ergebnis, das im selben Augenblick wie eine Unterschrift über den Abgleich kommt,
+  wartet auf sie (opengewerk#582). Bisher las das Tor des Fundaments den Vorgang ohne Sperre: Die Antwort sah
+  ihn noch als begonnen, landete, nachdem die Unterschrift die Seite gelesen hatte, und der Nachweis hielt eine
+  andere Antwort als die Zeile. Jetzt findet sie den Vorgang unterschrieben und wird abgelehnt. Ein Mangel in
+  einem Vorgang nimmt dieselbe Sperre statt der geteilten aus #108, damit zwei Geräte, die einen Vorgang
+  zugleich unterschreiben, am Vorgang warten und das zweite einen Konflikt bekommt statt eines Fehlers.
 - Ein Mangel, der in einem Vorgang gemeldet wird, kommt über den Abgleich nur noch an, solange der Vorgang
   offen oder begonnen ist (#108). Bisher nahm der Server ihn für jeden Stand an; in einem unterschriebenen
   Vorgang änderte er die Seite, für die unterschrieben war, und die Unterschrift zählte danach nicht mehr. Jetzt

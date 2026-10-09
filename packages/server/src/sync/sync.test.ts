@@ -28,6 +28,7 @@ import {
   applicationDatabaseUrl,
   connect,
   resetToMigrated,
+  standingInLine,
   testIdentityHeader,
 } from '../database/test-database.js'
 import { deviceScope } from './device-scope.js'
@@ -1266,6 +1267,133 @@ describe('a signature from a device', () => {
     } finally {
       signing.release()
     }
+  })
+
+  it('lets the result of a duty wait for a signature being written at the same moment, and then refuses it', async () => {
+    const toSign = await activityToSign()
+
+    expect(await outcomes('u-tech', workDone(toSign))).toEqual([applied, applied])
+
+    // The gate of the foundation reads the activity with a lock (opengewerk#582):
+    // read without one, the result landed after the signature had read the page.
+    const signing = await admin.connect()
+
+    try {
+      await signing.query('begin')
+      await signing.query('select id from activities where id = $1 for no key update', [
+        toSign.activity,
+      ])
+      await signing.query(`update activities set status = 'signed' where id = $1`, [
+        toSign.activity,
+      ])
+
+      const sent = outcomes('u-tech', [
+        operation(
+          'activity_duties',
+          'update',
+          toSign.duties[0]?.line ?? '',
+          { result: 'with_defects' },
+          { result: 'without_defects' },
+        ),
+      ])
+
+      await standingInLine(admin, 1)
+      await signing.query('commit')
+
+      expect(await sent).toEqual([
+        { outcome: 'conflict', reason: 'record_is_fixed', fields: ['status'] },
+      ])
+    } finally {
+      signing.release()
+    }
+  })
+
+  it('takes one of two signatures sent from two devices at the same moment, and answers the other with a conflict', async () => {
+    const toSign = await activityToSign()
+
+    expect(await outcomes('u-tech', workDone(toSign))).toEqual([applied, applied])
+
+    const shown = pageOnTheDevice(toSign)
+    const holder = await admin.connect()
+    let settled: PromiseSettledResult<Awaited<ReturnType<typeof outcomes>>>[]
+
+    try {
+      await holder.query('begin')
+      await holder.query('select id from activities where id = $1 for update', [toSign.activity])
+
+      // Each transmission passes the gate before its signature is checked. A
+      // gate that held the activity shared let both through, and each then
+      // waited for the other to write the activity down.
+      const both = [
+        outcomes('u-tech', [signature(toSign.activity, shown)], small, 'phone'),
+        outcomes('u-tech', [signature(toSign.activity, shown)], small, 'tablet'),
+      ]
+
+      await standingInLine(admin, 2)
+      await holder.query('commit')
+      settled = await Promise.allSettled(both)
+    } finally {
+      holder.release()
+    }
+
+    expect(settled.map((each) => each.status)).toEqual(['fulfilled', 'fulfilled'])
+    expect(
+      settled
+        .flatMap((each) => (each.status === 'fulfilled' ? each.value : []))
+        .map(({ outcome, reason }) => `${outcome}:${String(reason)}`)
+        .sort(),
+    ).toEqual(['applied:null', 'conflict:record_is_fixed'])
+    expect(await signaturesOf(toSign.activity)).toHaveLength(1)
+    expect(await evidenceOf(toSign.activity)).toHaveLength(1)
+  })
+
+  it('lets two devices that report a defect in an activity and sign it at the same moment wait at the activity, not for each other', async () => {
+    const toSign = await activityToSign()
+
+    expect(await outcomes('u-tech', workDone(toSign))).toEqual([applied, applied])
+
+    // Signed for the page without the defect, which the server no longer has
+    // once a defect is on it: what is asked here is only that both come back.
+    const shown = pageOnTheDevice(toSign)
+    const reportAndSign = (deviceId: string) =>
+      outcomes(
+        'u-tech',
+        [
+          operation('defects', 'create', newId<'defect'>(), {
+            description: 'Seil angerissen',
+            foundOn: '2026-10-01',
+            foundInActivityId: toSign.activity,
+            propertyId: place.property,
+            assetId: toSign.asset,
+          }),
+          signature(toSign.activity, shown),
+        ],
+        small,
+        deviceId,
+      )
+    const holder = await admin.connect()
+    let settled: PromiseSettledResult<Awaited<ReturnType<typeof outcomes>>>[]
+
+    try {
+      await holder.query('begin')
+      await holder.query('select id from activities where id = $1 for update', [toSign.activity])
+
+      // Held shared at the defect, each would wait at the signature for the
+      // other to let go of the activity.
+      const both = [reportAndSign('phone'), reportAndSign('tablet')]
+
+      await standingInLine(admin, 2)
+      await holder.query('commit')
+      settled = await Promise.allSettled(both)
+    } finally {
+      holder.release()
+    }
+
+    expect(settled.map((each) => each.status)).toEqual(['fulfilled', 'fulfilled'])
+    expect(settled.map((each) => (each.status === 'fulfilled' ? each.value : []))).toEqual([
+      [applied, { outcome: 'conflict', reason: 'changed_elsewhere', fields: ['pageFingerprint'] }],
+      [applied, { outcome: 'conflict', reason: 'changed_elsewhere', fields: ['pageFingerprint'] }],
+    ])
   })
 
   it('answers a signature for a page the server no longer has with a conflict about it, and keeps nothing of it', async () => {
