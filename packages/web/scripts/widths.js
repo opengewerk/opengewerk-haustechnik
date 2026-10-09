@@ -78,6 +78,9 @@ await checkWidths({
     'Beenden',
     'Berichtigen',
     'Für ungültig erklären',
+    'Neue Vorlage',
+    'Punkt hinzufügen',
+    'Kapitel hinzufügen',
   ],
 
   /**

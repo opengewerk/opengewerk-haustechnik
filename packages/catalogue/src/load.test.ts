@@ -834,6 +834,12 @@ describe('a form', () => {
       ])
     })
 
+    it('takes no limit of its own, which only the template of an operator states', () => {
+      expect(loaded({ kind: 'stated' }).problems).toEqual([
+        `${formFile}: Der Grenzwert von temperature nennt keine Regel; ein Paket nennt jeden Grenzwert als Regel mit Fundstelle.`,
+      ])
+    })
+
     it('asks the same of a measured value in a group', () => {
       const grouped = (rule: string) =>
         loadCatalogue(

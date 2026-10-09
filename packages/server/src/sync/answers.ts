@@ -8,6 +8,7 @@ import {
 import { isUuid, type SyncCheck, type SyncRefusal } from '@opengewerk/platform-server'
 import { and, eq, isNull } from 'drizzle-orm'
 
+import { formsFor } from '../activities/template-forms.js'
 import { activities, attachments } from '../database/schema/index.js'
 import type { Sender } from './signatures.js'
 
@@ -69,7 +70,7 @@ export function answered(catalogue: Catalogue): SyncCheck<Sender> {
       return { kind: 'conflict', reason: 'record_missing', fields: ['activityId'] }
     }
 
-    const form = formOfActivity(catalogue, activity)
+    const form = formOfActivity(await formsFor(tx, catalogue, activity), activity)
 
     if (form === null) {
       return { kind: 'client', message: 'Dieser Vorgang hat kein Formular, das Antworten nimmt.' }

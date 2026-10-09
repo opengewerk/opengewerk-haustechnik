@@ -76,6 +76,9 @@ export * from './model/signature.js'
 // and their work orders, and defects.
 export * from './model/activity.js'
 export * from './model/answer.js'
+// The templates of the rounds an operator keeps in the office, with their
+// versions, and the point that fulfils a duty.
+export * from './model/round-template.js'
 export * from './model/activity-register.js'
 export * from './model/work-order-register.js'
 export * from './model/defect.js'

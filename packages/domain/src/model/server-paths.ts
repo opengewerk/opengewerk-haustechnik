@@ -39,6 +39,9 @@ export const serverPaths: readonly string[] = [
   // The defects: the register, the page of one, reporting one by hand, its
   // further way and checking it again.
   'defects',
+  // The templates of the rounds: a new one, empty or taken over from a
+  // package, and a new version of one.
+  'round-templates',
   // The catalogue of the server, which a device fetches and keeps.
   'catalogue',
   // The import of places and assets from tables, and what the lists of a

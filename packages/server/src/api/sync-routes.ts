@@ -64,6 +64,9 @@ export const operationRights: Readonly<Record<string, OperationRights>> = {
   contacts: { otherwise: 'location.write' },
   // The times a building is closed belong to the planning of the rounds.
   building_closures: { otherwise: 'activity.write' },
+  // The templates of the rounds and their versions are kept in the office.
+  round_templates: { otherwise: 'template.write' },
+  round_template_versions: { otherwise: 'template.write' },
   rooms: { create: 'room.record', change: 'room.record', otherwise: 'location.write' },
   assets: { create: 'asset.record', change: 'asset.record', otherwise: 'asset.write' },
   asset_lifecycle: { otherwise: 'asset.write' },

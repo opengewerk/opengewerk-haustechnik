@@ -2141,6 +2141,40 @@ describe('what a device holds', () => {
     ).not.toBeNull()
   })
 
+  /**
+   * A round is filled on site in the version of its template (#112). The
+   * templates lie in no area, so every device holds every one of them, with
+   * every version.
+   */
+  it('holds every template of a round with its versions, whatever its areas', async () => {
+    const made = await http()
+      .post('/round-templates')
+      .set(testIdentityHeader, by('u-lead', large))
+      .send({
+        definition: {
+          title: 'Technikzentrale',
+          sections: [
+            {
+              key: 'k1',
+              title: 'Heizraum',
+              fields: [{ kind: 'check_point', key: 'p1', label: 'Tür schließt' }],
+            },
+          ],
+        },
+        asksCountersignature: true,
+      })
+      .expect(201)
+    const id = made.body.id as string
+    const theirs = await pulled('u-tech', large)
+
+    expect(theirs['round_templates']?.map((row) => row['id'])).toContain(id)
+    expect(theirs['round_template_versions']).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ templateId: id, formVersion: 1, asksCountersignature: true }),
+      ]),
+    )
+    expect((await narrowedFor('u-tech'))['round_templates']).toBe('operator')
+  })
   it('hands whoever sees every area the whole operator, and says so for every kind of record', async () => {
     const narrowed = await narrowedFor('u-duties')
 

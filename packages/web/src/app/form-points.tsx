@@ -5,6 +5,7 @@ import {
   answerVerdict,
   type CheckPointResult,
   forms,
+  isStatedLimit,
   type LimitContext,
   type MeasurementField,
   type RecordState,
@@ -373,7 +374,12 @@ function MeasurementInput(props: PointInputProps & { readonly field: Measurement
     }
   })
   const unit = unitSign(field)
-  const bound = field.limit?.kind
+  // A limit an operator states says its bound beside its kind (#112).
+  const bound = isStatedLimit(field.limit)
+    ? field.limit.bound
+    : field.limit?.kind === 'at_least' || field.limit?.kind === 'at_most'
+      ? field.limit.kind
+      : undefined
   const limit =
     verdict === null || verdict.limitMilli === null || bound === undefined
       ? undefined

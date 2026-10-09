@@ -66,6 +66,7 @@ describe('the catalogue of rights', () => {
       reading: ['write'],
       duty: ['read', 'write'],
       deadline: ['read', 'write'],
+      template: ['write'],
       activity: ['read', 'perform', 'write', 'accept'],
       evidence: ['read', 'write'],
       defect: ['read', 'report', 'write'],
@@ -202,6 +203,7 @@ describe('"Technische Leitung"', () => {
       'room.record',
       'sync.read',
       'sync.write',
+      'template.write',
     ])
   })
 
@@ -247,6 +249,7 @@ describe('"Objektleitung"', () => {
       'room.record',
       'sync.read',
       'sync.write',
+      'template.write',
     ])
   })
 
@@ -303,6 +306,7 @@ describe('"Haustechnik"', () => {
       'membership.write',
       'settings.read',
       'settings.write',
+      'template.write',
     ])
   })
 })

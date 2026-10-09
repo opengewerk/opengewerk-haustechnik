@@ -56,6 +56,7 @@ describe('the words of the change log in the office', () => {
       activities:
         'mit den Pflichten, die er erfüllen soll, den Antworten auf sein Formular und bei einem Auftrag dessen Angaben und Beteiligten',
       defects: 'mit seinen Fotos',
+      round_templates: 'mit ihren Fassungen',
     })
     expect(Object.keys(auditScreenWords.partsWords ?? {})).toEqual(
       Object.keys(auditVocabulary.parts),
@@ -81,6 +82,8 @@ describe('the words of the change log in the office', () => {
       ],
       // A defect with its photos (#116).
       defects: [{ table: 'attachments', column: 'defect_id' }],
+      // A template of a round with its versions (#112).
+      round_templates: [{ table: 'round_template_versions', column: 'template_id' }],
     })
   })
 
@@ -107,6 +110,7 @@ describe('the words of the change log in the office', () => {
       'attachments',
       'activities',
       'defects',
+      'round_templates',
     ])
     expect(auditVocabulary.records).toEqual([
       'properties',
@@ -118,6 +122,7 @@ describe('the words of the change log in the office', () => {
       'attachments',
       'activities',
       'defects',
+      'round_templates',
     ])
   })
 

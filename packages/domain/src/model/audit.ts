@@ -205,6 +205,25 @@ export const auditVocabulary: AuditVocabulary = {
         attachment_id: 'Foto',
       },
     },
+    // The template of a round and its versions (#112). A version is never
+    // changed, so its log is the line that says who saved it and when.
+    round_templates: {
+      label: 'Vorlage eines Rundgangs',
+      fields: {
+        title: 'Bezeichnung',
+        source_key: 'Übernommen aus dem Paket',
+        source_version: 'Fassung im Paket',
+      },
+    },
+    round_template_versions: {
+      label: 'Fassung einer Vorlage',
+      fields: {
+        template_id: 'Vorlage',
+        form_version: 'Fassung',
+        definition: 'Kapitel und Punkte',
+        asks_countersignature: 'Gegenzeichnung verlangt',
+      },
+    },
     activity_duties: {
       label: 'Pflicht eines Vorgangs',
       fields: {
@@ -363,6 +382,8 @@ export const auditVocabulary: AuditVocabulary = {
     ],
     // A defect with its photos.
     defects: [{ table: 'attachments', column: 'defect_id' }],
+    // A template with its versions: who saved which, and when.
+    round_templates: [{ table: 'round_template_versions', column: 'template_id' }],
   },
   // The records the log is opened from, each from the screen that shows it.
   records: [
@@ -375,6 +396,7 @@ export const auditVocabulary: AuditVocabulary = {
     'attachments',
     'activities',
     'defects',
+    'round_templates',
   ],
   references: {
     area_id: 'areas',
@@ -394,6 +416,7 @@ export const auditVocabulary: AuditVocabulary = {
     work_order_id: 'work_orders',
     evidence_id: 'evidence',
     replaces_evidence_id: 'evidence',
+    template_id: 'round_templates',
   },
   personFields: [
     'substitute_user_id',
@@ -419,6 +442,8 @@ export const auditVocabulary: AuditVocabulary = {
     substitutions: ['absent_user_id'],
     // A closure by what it is for, and by its first day where it says nothing.
     building_closures: ['reason', 'starts_on'],
+    // A version of a template by its number.
+    round_template_versions: ['form_version'],
     // A room by its number, and by its name where it has none.
     rooms: ['number', 'name'],
     // An import by its file.

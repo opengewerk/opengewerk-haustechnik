@@ -30,6 +30,7 @@ import {
 import type { TenantTransaction } from '@opengewerk/platform-server'
 import { and, asc, desc, eq, inArray, isNull } from 'drizzle-orm'
 
+import { formsFor } from '../activities/template-forms.js'
 import { assignNumber } from '../database/number-ranges.js'
 import {
   activities,
@@ -56,6 +57,13 @@ export interface EvidenceToWrite {
   readonly performedOn: IsoDate
   readonly result: EvidenceResult
   readonly resultReason: string | null
+  /**
+   * The point of a round whose answer this evidence is (#112, section 4.5 of
+   * the concept): its form then holds that one answer and not those of the
+   * whole round, which are the evidence of other duties or of none. None for
+   * every other evidence.
+   */
+  readonly point?: string | null
   /** What was said with the result on site (#108); none for a report. */
   readonly remark?: string | null
   /** A person of the operator who did it, or an examiner with the organisation from outside. */
@@ -431,7 +439,7 @@ async function filledFormOf(
   activity: Awaited<ReturnType<typeof activityOf>>,
   input: EvidenceToWrite,
 ): Promise<{ form: StatedForm; answers: readonly StatedAnswer[] } | null> {
-  const definition = formOfActivity(context.catalogue, activity)
+  const definition = formOfActivity(await formsFor(tx, context.catalogue, activity), activity)
 
   if (definition === null) {
     return null
@@ -443,7 +451,7 @@ async function filledFormOf(
     )
   }
 
-  const answers = await tx
+  const every = await tx
     .select()
     .from(activityAnswers)
     .where(
@@ -453,6 +461,11 @@ async function filledFormOf(
         isNull(activityAnswers.deletedAt),
       ),
     )
+  const point = input.point ?? null
+  const answers =
+    point === null
+      ? every
+      : every.filter((answer) => answer.fieldKey === point && answer.groupKey === null)
   const photos = answers
     .map((answer) => answer.attachmentId)
     .filter((id): id is AttachmentId => id !== null)

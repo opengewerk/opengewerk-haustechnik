@@ -326,6 +326,31 @@ describe('the points of a form on site', () => {
     expect(String(answersOn(client)[0]?.['blockKey'])).toMatch(/^[0-9a-f-]{36}$/)
   })
 
+  it('fills a round in the version of its template that it names, whatever was saved after it (#112)', async () => {
+    const server = serverWith()
+    const template = '0192f0c4-7b4e-7000-8000-0000000000c1'
+    const version = (formVersion: number, label: string) => ({
+      id: `v-${String(formVersion)}`,
+      templateId: template,
+      formVersion,
+      asksCountersignature: false,
+      definition: JSON.stringify({
+        title: 'Technikzentrale',
+        sections: [
+          { key: 'k1', title: 'Heizraum', fields: [{ kind: 'check_point', key: 'p1', label }] },
+        ],
+      }),
+    })
+
+    server.put('round_template_versions', version(1, 'Tür schließt selbsttätig'))
+    server.put('round_template_versions', version(2, 'Tür und Zarge geprüft'))
+    server.put('activities', { ...round, formKey: `template-${template}`, formVersion: 1 })
+    await mountSite(`/vorgaenge/${round.id}`, { server, ...withTheForm })
+
+    expect(await screen.findByText('Tür schließt selbsttätig')).toBeDefined()
+    expect(screen.queryByText('Tür und Zarge geprüft')).toBeNull()
+  })
+
   it('says so where the device does not know the version of the form', async () => {
     const server = serverWith()
 

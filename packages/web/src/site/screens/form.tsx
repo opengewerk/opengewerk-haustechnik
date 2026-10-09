@@ -3,6 +3,8 @@ import {
   formOfActivity,
   type LimitContext,
   type RecordState,
+  type RoundTemplateId,
+  withTemplates,
 } from '@opengewerk/haustechnik-domain'
 import { Button, Panel } from '@opengewerk/platform-web'
 import { AnswerMark, AnswerProgress, newBlockKey } from '@opengewerk/platform-web/forms'
@@ -18,7 +20,14 @@ import {
   SiteTrouble,
   type WayBack,
 } from '@opengewerk/platform-web/site'
-import { maybeText, text, useRecord, useRecords, useRelated } from '@opengewerk/platform-web/sync'
+import {
+  count,
+  maybeText,
+  text,
+  useRecord,
+  useRecords,
+  useRelated,
+} from '@opengewerk/platform-web/sync'
 import { useNavigate, useParams } from '@tanstack/react-router'
 import { ChevronLeft, ChevronRight, DoorOpen, Plus, Zap } from 'lucide-react'
 import { useMemo, useState } from 'react'
@@ -37,6 +46,7 @@ import {
 } from '../../app/answers.js'
 import { askedAsQuestion, PointInput } from '../../app/form-points.js'
 import { titleOfRoom } from '../../app/place-records.js'
+import { definitionOf } from '../../app/templates.js'
 import { useCatalogue } from '../../sync/catalogue.js'
 import { assetTitle, NotOffered, NotOnDevice } from '../kit.js'
 import { siteForms, sitePlaces } from '../places.js'
@@ -145,13 +155,27 @@ export function useActivityForm(activityId: string, opened: readonly OpenedBlock
     (signature) => signature['role'] === 'signer',
   )
   const performs = useRight('activity.perform')
+  // A round is filled in the version of its template, which every device
+  // holds (#112); every other form comes out of the catalogue.
+  const versions = useRecords('round_template_versions')
   const definition: FormDefinition | null | undefined =
     activity === null || catalogue === null
       ? null
-      : formOfActivity(catalogue, {
-          formKey: maybeText(activity, 'formKey'),
-          formVersion: typeof activity['formVersion'] === 'number' ? activity['formVersion'] : null,
-        })
+      : formOfActivity(
+          withTemplates(
+            catalogue,
+            versions.map((version) => ({
+              templateId: text(version, 'templateId') as RoundTemplateId,
+              formVersion: count(version, 'formVersion'),
+              definition: definitionOf(version),
+            })),
+          ),
+          {
+            formKey: maybeText(activity, 'formKey'),
+            formVersion:
+              typeof activity['formVersion'] === 'number' ? activity['formVersion'] : null,
+          },
+        )
   const filled = useMemo(() => answers.map(filledOf), [answers])
   const points = useMemo(
     () => (definition ? pointsOf(definition, filled, opened) : []),

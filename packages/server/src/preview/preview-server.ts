@@ -46,6 +46,7 @@ import {
   sampleOperatorName,
 } from './sample-data.js'
 import { giveSampleForm, samplePackage } from './sample-form.js'
+import { giveSampleTemplates } from './sample-templates.js'
 import { writeSampleStandings } from './sample-standings.js'
 
 /**
@@ -193,6 +194,8 @@ export async function openSamplePreview(
     await planSampleActivities(`http://127.0.0.1:${String(port)}`, areas)
     // A form with every kind of field on the device of the viewer (#107).
     await giveSampleForm(database, planter, previewPeople.viewer.id)
+    // A template of a round with two versions (#112).
+    await giveSampleTemplates(database, planter)
   } finally {
     await planting.close()
   }

@@ -6,6 +6,7 @@ import { defectPlaces } from './defect-addresses.js'
 import { documentPlaces } from './document-addresses.js'
 import { dutyPlaces, evidencePlaces } from './duty-addresses.js'
 import { officePlaces } from './place-addresses.js'
+import { templatePlaces } from './round-template-addresses.js'
 
 /**
  * The change log of a tenant in the words of this application, as the screen
@@ -29,6 +30,7 @@ const screens: Readonly<Record<string, (id: string) => string>> = {
   attachments: documentPlaces.document,
   activities: activityPlaces.activity,
   defects: defectPlaces.defect,
+  round_templates: templatePlaces.template,
 }
 
 /** The label of the link to a record. */
@@ -43,6 +45,7 @@ const links: Words = {
   attachments: 'Zum Dokument',
   activities: 'Zum Vorgang',
   defects: 'Zum Mangel',
+  round_templates: 'Zur Vorlage',
 }
 
 export const auditScreenWords: AuditScreenWords = {
@@ -71,5 +74,6 @@ export const auditScreenWords: AuditScreenWords = {
     activities:
       'mit den Pflichten, die er erfüllen soll, den Antworten auf sein Formular und bei einem Auftrag dessen Angaben und Beteiligten',
     defects: 'mit seinen Fotos',
+    round_templates: 'mit ihren Fassungen',
   },
 }
