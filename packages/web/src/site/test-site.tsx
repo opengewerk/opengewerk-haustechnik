@@ -350,6 +350,11 @@ export async function mountSite(
       'work_order_participants',
       'work_order_notes',
       'work_order_decisions',
+      'meter_points',
+      'meter_readings',
+      'meter_exchanges',
+      'meter_pauses',
+      'meter_settings',
     ],
     onSignedOut: () => {},
   })

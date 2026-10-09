@@ -1,5 +1,7 @@
 import {
+  addMonths,
   type AreaId,
+  type Asset,
   awaitsRemedy,
   type Catalogue,
   type DefectId,
@@ -9,16 +11,19 @@ import {
   firstOpenPass,
   type IsoDate,
   lifecycleStateOn,
+  meterRestsOn,
   nextAppointment,
   type PropertyId,
   restsOn,
   roomTitle,
   type RoundPlanId,
+  validReadings,
 } from '@opengewerk/haustechnik-domain'
 import type { ExpectedDeadline, SourceQuery } from '@opengewerk/platform-server'
 import { and, eq, gte, inArray, isNotNull, isNull, or } from 'drizzle-orm'
 
 import { dutyTitle, lifecyclesByAsset, metDaysByDuty } from '../database/duty-standing.js'
+import { heldOf, keyDateDue, operatorKeyDay } from '../database/meter-standing.js'
 import {
   activities,
   assets,
@@ -40,6 +45,7 @@ export interface DeadlineValues {
   readonly dutyId: DutyId | null
   readonly defectId: DefectId | null
   readonly roundPlanId: RoundPlanId | null
+  readonly meterPropertyId: PropertyId | null
   readonly propertyId: PropertyId
   readonly areaId: AreaId
 }
@@ -188,6 +194,7 @@ export function dutySource(options: {
           dutyId: duty.id,
           defectId: null,
           roundPlanId: null,
+          meterPropertyId: null,
           propertyId: duty.propertyId,
           areaId: duty.areaId,
         },
@@ -254,6 +261,7 @@ export function defectSource(): SourceQuery<DeadlineValues> {
                 dutyId: null,
                 defectId: defect.id,
                 roundPlanId: null,
+                meterPropertyId: null,
                 propertyId: defect.propertyId,
                 areaId: defect.areaId,
               },
@@ -371,6 +379,7 @@ export function roundPlanSource(options: {
                   dutyId: null,
                   defectId: null,
                   roundPlanId: plan.id,
+                  meterPropertyId: null,
                   propertyId: plan.propertyId,
                   areaId: plan.areaId,
                 },
@@ -378,5 +387,91 @@ export function roundPlanSource(options: {
             ]
       },
     )
+  }
+}
+
+/**
+ * The source `meter` (#120, section 4.9 of the concept): one deadline for
+ * the meters of every property that has one, due on the earliest key date
+ * for which a measuring point there has no reading. A measuring point that is
+ * locked is left out, and a key date it rests on passes to the next one. It
+ * looks no further than two years ahead: a measuring point resting without
+ * an end has no key date to read.
+ *
+ * Anchored on the key date itself. Asked for every operator on every pass of
+ * the engine, in every area of it.
+ */
+export function meterSource(options: {
+  readonly today: () => IsoDate
+}): SourceQuery<DeadlineValues> {
+  return async (tx) => {
+    const today = options.today()
+    const keyDay = await operatorKeyDay(tx)
+    const meters = await tx
+      .select()
+      .from(assets)
+      .where(and(isNotNull(assets.meterNumber), isNull(assets.deletedAt)))
+    const held = await heldOf(tx, meters as Asset[], keyDay)
+    const due = new Map<string, { dueOn: IsoDate; areaId: AreaId }>()
+
+    for (const meter of held) {
+      if (meter.point?.lockReason !== null && meter.point?.lockReason !== undefined) {
+        continue
+      }
+
+      const taken = new Set(validReadings(meter.readings).map((reading) => reading.keyDate))
+      let keyDate = keyDateDue(today, meter.keyDay)
+
+      for (
+        let months = 0;
+        months < 24 && (taken.has(keyDate) || meterRestsOn(meter.pauses, keyDate));
+        months += 1
+      ) {
+        keyDate = addMonths(keyDate, 1)
+      }
+
+      if (taken.has(keyDate) || meterRestsOn(meter.pauses, keyDate)) {
+        continue
+      }
+
+      const before = due.get(meter.asset.propertyId)
+
+      if (before === undefined || keyDate < before.dueOn) {
+        due.set(meter.asset.propertyId, { dueOn: keyDate, areaId: meter.asset.areaId })
+      }
+    }
+
+    if (due.size === 0) {
+      return []
+    }
+
+    const names = await tx
+      .select({ id: properties.id, name: properties.name, areaId: properties.areaId })
+      .from(properties)
+      .where(inArray(properties.id, [...due.keys()] as PropertyId[]))
+
+    return names.flatMap((property): ExpectedDeadline<DeadlineValues>[] => {
+      const found = due.get(property.id)
+
+      return found === undefined
+        ? []
+        : [
+            {
+              sourceId: property.id,
+              sourceLabel: `Zähler in ${property.name}`,
+              anchorOn: found.dueOn,
+              namedDueOn: found.dueOn,
+              naturalUserId: null,
+              values: {
+                dutyId: null,
+                defectId: null,
+                roundPlanId: null,
+                meterPropertyId: property.id,
+                propertyId: property.id,
+                areaId: property.areaId,
+              },
+            },
+          ]
+    })
   }
 }

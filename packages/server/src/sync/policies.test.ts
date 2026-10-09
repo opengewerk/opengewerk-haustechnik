@@ -146,6 +146,8 @@ describe('the rights of an operation', () => {
       // Objektleitung on (section 7 of the concept).
       attachments: { create: true, change: true, remove: false },
       attachment_versions: { create: true },
+      // A reading of a round of the meters, without a network (#120).
+      meter_readings: { create: true },
     })
     expect(site).toContain(permissionFor('attachments', 'delete'))
   })

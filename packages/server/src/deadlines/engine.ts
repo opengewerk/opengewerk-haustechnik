@@ -21,7 +21,13 @@ import { deadlines } from '../database/schema/index.js'
 import { dayInGermany } from '../today.js'
 import { deadlineKindRegistry } from './registry.js'
 import { upgradeOpenRounds } from '../rounds/plans.js'
-import { type DeadlineValues, defectSource, dutySource, roundPlanSource } from './sources.js'
+import {
+  type DeadlineValues,
+  defectSource,
+  dutySource,
+  meterSource,
+  roundPlanSource,
+} from './sources.js'
 
 export type { DeadlineReport } from '@opengewerk/platform-server'
 
@@ -67,6 +73,7 @@ function bound(
       }),
       defect: defectSource(),
       round_plan: roundPlanSource({ today: () => dayInGermany(job.now?.() ?? new Date()) }),
+      meter: meterSource({ today: () => dayInGermany(job.now?.() ?? new Date()) }),
     },
     actions: { activity: activityFromDeadline(job.catalogue) },
     // A round nobody has begun walks the newest version of its template.

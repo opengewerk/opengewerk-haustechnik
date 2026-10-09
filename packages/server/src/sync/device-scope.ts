@@ -168,6 +168,8 @@ export function pullScope(scope: DeviceScope): PullScope {
       defects: `defects:${fingerprintOf(scope.defectIds)}`,
       round_templates: operator,
       round_template_versions: operator,
+      // The key day of the meters, which names the key date of a reading on site (#120).
+      meter_settings: operator,
     },
   }
 }

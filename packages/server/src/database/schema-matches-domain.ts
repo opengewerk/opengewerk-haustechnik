@@ -18,6 +18,7 @@ import type {
   MeterPause,
   MeterPoint,
   MeterReading,
+  MeterSetting,
   PlaceLabel,
   Property,
   Room,
@@ -49,6 +50,7 @@ import type {
   labels,
   meterExchanges,
   meterPauses,
+  meterSettings,
   meterPoints,
   meterReadings,
   properties,
@@ -129,3 +131,4 @@ export type MeterPointMatches = Assert<Exact<typeof meterPoints.$inferSelect, Me
 export type MeterReadingMatches = Assert<Exact<typeof meterReadings.$inferSelect, MeterReading>>
 export type MeterExchangeMatches = Assert<Exact<typeof meterExchanges.$inferSelect, MeterExchange>>
 export type MeterPauseMatches = Assert<Exact<typeof meterPauses.$inferSelect, MeterPause>>
+export type MeterSettingMatches = Assert<Exact<typeof meterSettings.$inferSelect, MeterSetting>>

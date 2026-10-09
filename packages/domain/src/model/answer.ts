@@ -558,6 +558,39 @@ export function answerFindings<Answer extends FilledAnswer>(
   return findings
 }
 
+/** A reading a point of a form gives its measuring point. */
+export interface AnswerReading<Answer extends FilledAnswer = FilledAnswer> {
+  readonly answer: Answer
+  readonly assetId: string
+  readonly valueMilli: number
+}
+
+/**
+ * The readings the answers of an activity give (section 4.9 of the concept,
+ * #120): a point "Zählerstand" about an asset, outside a group, answered with
+ * a figure, in thousandths, in the order of the form. Whether the asset is a
+ * measuring point that takes the reading is the server's to ask.
+ */
+export function answerReadings<Answer extends FilledAnswer>(
+  definition: FormDefinition,
+  answers: readonly Answer[],
+): readonly AnswerReading<Answer>[] {
+  return inFormOrder(definition, answers).flatMap((answer) => {
+    const found = answeredField(definition, answer)
+    const value = answer.value === null ? undefined : parsed(answer.value)
+
+    return found !== null &&
+      found.group === null &&
+      found.field.kind === 'meter_reading' &&
+      found.field.about?.kind === 'asset' &&
+      typeof value === 'number' &&
+      Number.isInteger(value) &&
+      value >= 0
+      ? [{ answer, assetId: found.field.about.id, valueMilli: value }]
+      : []
+  })
+}
+
 /** The answers in the order of their form: section by section, field by field, the blocks of a group by their keys. */
 function inFormOrder<Answer extends FilledAnswer>(
   definition: FormDefinition,

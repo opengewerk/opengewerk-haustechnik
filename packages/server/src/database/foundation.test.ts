@@ -40,6 +40,7 @@ describe('the foundation in this database', () => {
     // defect instead of a duty, and a document may hang on a defect
     // (opengewerk-haustechnik#116, migration 0025); a deadline may follow the
     // plan of a round as well (opengewerk-haustechnik#113, migration 0030),
+    // and the meters of a property (opengewerk-haustechnik#120, migration 0033),
     // with their keys, checks
     // and indexes. Only a restrictive policy may be named here; it takes rows
     // away and opens none.
@@ -50,6 +51,7 @@ describe('the foundation in this database', () => {
           'deadlines.duty_id',
           'deadlines.defect_id',
           'deadlines.round_plan_id',
+          'deadlines.meter_property_id',
           'deadlines.property_id',
           'deadlines.area_id',
           'contacts.property_id',
@@ -64,6 +66,7 @@ describe('the foundation in this database', () => {
           'attachments.kind',
         ],
         constraints: [
+          'deadlines.deadlines_meters_of_their_property',
           'deadlines.deadlines_follow_their_property',
           'deadlines.deadlines_of_a_duty_of_their_property',
           'deadlines.deadlines_of_a_defect_of_their_property',

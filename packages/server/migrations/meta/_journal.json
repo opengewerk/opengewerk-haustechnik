@@ -232,6 +232,13 @@
       "when": 1791571580359,
       "tag": "0032_meter_readings",
       "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "7",
+      "when": 1791574797749,
+      "tag": "0033_meter_key_days",
+      "breakpoints": true
     }
   ]
 }

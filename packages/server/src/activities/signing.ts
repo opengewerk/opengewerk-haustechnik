@@ -3,14 +3,18 @@ import {
   type ActivitySignatureId,
   type ActivityStatus,
   answerFindings,
+  answerReadings,
   answersMissing,
   resultAgainstFindings,
   type Catalogue,
   type EvidenceOrigin,
   finishesWorkOrder,
   formOfActivity,
+  keyDateFor,
   pointFulfilling,
   pointOutcome,
+  readingDoubt,
+  readingJump,
   type SignatureRole,
   type SignedPage,
   signatureLimits,
@@ -18,6 +22,7 @@ import {
   signaturesComplete,
   signedPageOf,
   type StatedSignature,
+  validReadings,
   validSignatures,
   type WorkOrderDecisionId,
   type WorkOrderDecisionKind,
@@ -39,10 +44,12 @@ import {
   properties,
   rooms,
   duties,
+  meterReadings,
   workOrderDecisions,
   workOrderNotes,
   workOrders,
 } from '../database/schema/index.js'
+import { heldMeter } from '../database/meter-standing.js'
 import { stateFingerprint } from '../evidence/fingerprint.js'
 import { type WritingContext, type WrittenEvidence, writeEvidence } from '../evidence/write.js'
 import { formsFor } from './template-forms.js'
@@ -513,8 +520,11 @@ export async function followSignature(
   const activity = await activityOf(tx, context.tenantId, activityId)
   const valid = await signaturesOf(tx, activity, pageFingerprint(await pageOf(tx, activity)))
 
-  if (valid.some((signature) => signature.role === 'signer')) {
+  const signer = valid.find((signature) => signature.role === 'signer')
+
+  if (signer !== undefined) {
     await defectsFromAnswers(tx, context, activity)
+    await readingsFromAnswers(tx, context, activity, signer.signedBy ?? context.writtenBy)
 
     if (activity.kind === 'work_order') {
       await defectsFollowTheirOrder(tx, context.tenantId, activity.id, 'remedied')
@@ -604,6 +614,81 @@ async function defectsFromAnswers(
       foundInAnswerId: finding.answer.id,
       description: finding.description,
       foundOn: activity.performedOn,
+    })
+  }
+}
+
+/**
+ * The readings the answers of a signed activity give their measuring points
+ * (section 4.9 of the concept, #120): "Der Zählerstand als Punkt eines
+ * Rundgangs schreibt mit der Unterschrift den Stand an die Messstelle." For
+ * the key date of the day the activity was performed, in the name of whoever
+ * signed it, with the signature and not before. A figure that jumps is
+ * confirmed by the signature, under the page that shows it.
+ *
+ * A reading is written once, and only where the measuring point takes it: a
+ * point that is no measuring point in the areas of the activity, one that is
+ * locked, a key date that has a reading already, from the office or another
+ * device, and a figure below the reading before or above the one after leave
+ * the measuring point as it is. The answer stays on the page and in the
+ * evidence; the office enters or corrects the reading there.
+ */
+async function readingsFromAnswers(
+  tx: TenantTransaction,
+  context: WritingContext,
+  activity: ActivityRow,
+  signedBy: string,
+): Promise<void> {
+  const form = formOfActivity(await formsFor(tx, context.catalogue, activity), activity)
+  const performedOn = activity.performedOn
+
+  if (!form || performedOn === null) {
+    return
+  }
+
+  const readings = answerReadings(form, await answersOf(tx, activity))
+
+  for (const { assetId, valueMilli } of readings) {
+    const held = await heldMeter(tx, assetId, true)
+
+    if (
+      held === null ||
+      held.asset.propertyId !== activity.propertyId ||
+      (held.point?.lockReason !== null && held.point?.lockReason !== undefined) ||
+      held.readings.some((reading) => reading.activityId === activity.id)
+    ) {
+      continue
+    }
+
+    const keyDate = keyDateFor(performedOn, held.keyDay)
+    const valid = validReadings(held.readings)
+    const figure = { keyDate, readOn: performedOn, valueMilli }
+    const before = {
+      readings: valid,
+      exchanges: held.exchanges,
+      pauses: held.pauses,
+      conversionFactor: held.point?.conversionFactor ?? null,
+    }
+
+    if (
+      valid.some((reading) => reading.keyDate === keyDate) ||
+      readingDoubt(figure, before, held.asset.meterUnit ?? 'cubic_metres') !== null
+    ) {
+      continue
+    }
+
+    await tx.insert(meterReadings).values({
+      tenantId: context.tenantId,
+      propertyId: held.asset.propertyId,
+      areaId: held.asset.areaId,
+      assetId: held.asset.id,
+      keyDate,
+      readOn: performedOn,
+      valueMilli,
+      source: activity.kind === 'round' ? 'round' : 'protocol',
+      activityId: activity.id,
+      jumpConfirmed: readingJump(figure, before) !== null,
+      recordedBy: signedBy,
     })
   }
 }

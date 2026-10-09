@@ -118,6 +118,10 @@ export interface MeterReference {
 export interface MeterDetails extends MeterEntry {
   readonly kind: string
   readonly currentKeyDate: IsoDate
+  /** The day of the month its readings are due on, where it has one of its own (#120). */
+  readonly keyDay: number | null
+  /** The day the operator set, which counts where the measuring point has none. */
+  readonly operatorKeyDay: number
   readonly conversionFactor: number | null
   readonly controlId: string | null
   readonly mainMeter: MeterReference | null

@@ -6,11 +6,13 @@ import {
   addMonths,
   catalogueOf,
   type IsoDate,
+  keyDateFor,
   type MeterDetails,
   type MeterList,
   missingRight,
   type RoleKey,
   shippedRoles,
+  type SyncValue,
   type TenantId,
 } from '@opengewerk/haustechnik-domain'
 import { Database, newId } from '@opengewerk/platform-server'
@@ -266,9 +268,9 @@ describe('the list "Zähler"', () => {
     ).toEqual(['missing', 'present', 'paused', 'locked'])
     expect((await listed('?medium=electricity')).meters).toEqual([])
     await http()
-      .get(`/meters?keyDate=${addDays(current, 4)}`)
+      .get(`/meters?keyDate=${current.slice(0, 7)}-29`)
       .set(testIdentityHeader, by('u-lead'))
-      .expect(400, /Der Stichtag ist der erste Tag eines Monats/)
+      .expect(400, /Der Stichtag ist ein Tag eines Monats vom 1. bis zum 28./)
   })
 
   it('shows whoever works in the north the meters of the north and none of the south', async () => {
@@ -630,5 +632,162 @@ describe('what only a measuring point carries', () => {
       400,
       /Der Wandlerfaktor ist eine ganze Zahl/,
     )
+  })
+})
+
+describe('the key date of the meters (#120)', () => {
+  it('is the day the operator sets, which the settings take, and a measuring point may set its own', async () => {
+    const { building } = await buildingIn(large, north)
+    const meter = await meterIn(building, 'WZ-31', large)
+    const other = await meterIn(building, 'WZ-32', large)
+    const month = monthsBack(1).slice(0, 7)
+    const keyDateOf = (page: MeterDetails) => page.rows.find((row) => row.reading !== null)?.keyDate
+
+    await send('put', '/settings/meters', { keyDay: 15 }, by('u-tech', large)).expect(403)
+    await send('put', '/settings/meters', { keyDay: 29 }, by('u-lead', large)).expect(
+      400,
+      /Der Stichtag ist ein Tag im Monat von 1 bis 28/,
+    )
+    await send('put', '/settings/meters', { keyDay: 15 }, by('u-lead', large)).expect(200)
+    expect(
+      (await http().get('/settings/meters').set(testIdentityHeader, by('u-lead', large))).body,
+    ).toEqual({ keyDay: 15 })
+    await send('put', `/meters/${other}`, { keyDay: 10 }, by('u-duties', large)).expect(200)
+
+    // Read on the 20th: five days after the 15th, ten after the 10th.
+    const readOn = `${month}-20`
+    const first = (
+      await readingOf(meter, { readOn, valueMilli: 1 }, by('u-tech', large)).expect(201)
+    ).body as MeterDetails
+    const second = (
+      await readingOf(other, { readOn, valueMilli: 1 }, by('u-tech', large)).expect(201)
+    ).body as MeterDetails
+
+    expect(keyDateOf(first)).toBe(`${month}-15`)
+    expect(keyDateOf(second)).toBe(`${month}-10`)
+    expect([second.keyDay, second.operatorKeyDay]).toEqual([10, 15])
+
+    await send('put', '/settings/meters', { keyDay: 1 }, by('u-lead', large)).expect(200)
+  })
+})
+
+describe('a figure that jumps (#120)', () => {
+  it('is taken only once whoever reads it confirms it, and keeps that it was', async () => {
+    const { building } = await buildingIn()
+    const meter = await meterIn(building, 'WZ-33')
+
+    await read(meter, monthsBack(2), 1_258_000)
+    await read(meter, monthsBack(1), 1_271_020)
+    await readingOf(meter, { readOn: current, valueMilli: 12_843_600 }).expect(
+      409,
+      /Etwa zehnmal so viel wie im Vormonat. Stimmt das Komma\?/,
+    )
+    await readingOf(meter, { readOn: current, valueMilli: 12_843_600, confirmed: true }).expect(201)
+
+    const { rows } = await admin.query<{ jump_confirmed: boolean }>(
+      'select jump_confirmed from meter_readings where asset_id = $1 order by key_date',
+      [meter],
+    )
+
+    expect(rows.map((row) => row.jump_confirmed)).toEqual([false, false, true])
+  })
+})
+
+describe('a reading made on site (#120)', () => {
+  let recorded = Date.parse('2026-10-05T06:00:00Z')
+
+  /** A reading as a device queues it. */
+  function made(values: Readonly<Record<string, SyncValue>>) {
+    recorded += 1000
+
+    return {
+      id: newId<'operation'>(),
+      entity: 'meter_readings',
+      recordId: newId<'meter-reading'>(),
+      kind: 'create' as const,
+      baseVersion: null,
+      patches: Object.entries(values).map(([field, to]) => ({ field, from: null, to })),
+      recordedAt: new Date(recorded).toISOString(),
+    }
+  }
+
+  /** What became of each reading a device of somebody sends. */
+  async function outcomes(header: string, operations: readonly ReturnType<typeof made>[]) {
+    const answer = await http()
+      .post('/sync')
+      .set(testIdentityHeader, header)
+      .send({ deviceId: 'phone', operations })
+      .expect(201)
+
+    return (
+      answer.body.receipts as { outcome: string; reason: string | null; fields: string[] }[]
+    ).map(({ outcome, reason, fields }) => ({ outcome, reason, fields }))
+  }
+
+  const applied = { outcome: 'applied', reason: null, fields: [] }
+
+  it('is taken without a network for the key date of its day, in the name of whoever read it', async () => {
+    const { building } = await buildingIn()
+    const meter = await meterIn(building, 'WZ-34')
+
+    await read(meter, monthsBack(1), 50_000)
+    expect(
+      await outcomes(by('u-tech'), [made({ assetId: meter, readOn: today, valueMilli: 51_000 })]),
+    ).toEqual([applied])
+
+    const { rows } = await admin.query<{ key_date: string; source: string; recorded_by: string }>(
+      `select to_char(key_date, 'YYYY-MM-DD') as key_date, source, recorded_by
+         from meter_readings where asset_id = $1 and value_milli = 51000`,
+      [meter],
+    )
+
+    expect(rows).toEqual([
+      { key_date: keyDateFor(today), source: 'reading_round', recorded_by: 'u-tech' },
+    ])
+  })
+
+  it('is a conflict where the key date has a reading, the meter is locked, the figure is below the one before or jumps unconfirmed', async () => {
+    const { building } = await buildingIn()
+    const taken = await meterIn(building, 'WZ-35')
+    const locked = await meterIn(building, 'WZ-36')
+    const below = await meterIn(building, 'WZ-37')
+
+    await read(taken, today, 10_000)
+    await read(below, monthsBack(2), 79_000)
+    await read(below, monthsBack(1), 80_000)
+    await send('put', `/meters/${locked}/lock`, { lockReason: 'Schacht überflutet' }).expect(200)
+
+    expect(
+      await outcomes(by('u-tech'), [
+        made({ assetId: taken, readOn: today, valueMilli: 11_000 }),
+        made({ assetId: locked, readOn: today, valueMilli: 1_000 }),
+        made({ assetId: below, readOn: today, valueMilli: 70_000 }),
+        made({ assetId: below, readOn: today, valueMilli: 900_000 }),
+        made({ assetId: below, readOn: today, valueMilli: 900_000, jumpConfirmed: true }),
+      ]),
+    ).toEqual([
+      { outcome: 'conflict', reason: 'changed_elsewhere', fields: ['valueMilli'] },
+      { outcome: 'conflict', reason: 'record_is_fixed', fields: ['valueMilli'] },
+      { outcome: 'conflict', reason: 'changed_elsewhere', fields: ['valueMilli'] },
+      { outcome: 'conflict', reason: 'changed_elsewhere', fields: ['jumpConfirmed'] },
+      applied,
+    ])
+  })
+
+  it('takes no key date, way or person from the device', async () => {
+    const { building } = await buildingIn()
+    const meter = await meterIn(building, 'WZ-38')
+
+    expect(
+      await outcomes(by('u-tech'), [
+        made({ assetId: meter, readOn: today, valueMilli: 1, keyDate: current }),
+        made({ assetId: meter, readOn: today, valueMilli: 1, recordedBy: 'u-lead' }),
+        made({ assetId: meter, readOn: today, valueMilli: 1, source: 'by_hand' }),
+      ]),
+    ).toEqual([
+      { outcome: 'conflict', reason: 'set_by_server', fields: ['keyDate'] },
+      { outcome: 'conflict', reason: 'set_by_server', fields: ['recordedBy'] },
+      { outcome: 'conflict', reason: 'set_by_server', fields: ['source'] },
+    ])
   })
 })

@@ -19,6 +19,8 @@ const deadlineColumns = {
   dutyId: reference<'duty'>('duty_id'),
   defectId: reference<'defect'>('defect_id'),
   roundPlanId: reference<'round_plan'>('round_plan_id'),
+  /** The property whose meters are to be read, the source `meter` (#120). */
+  meterPropertyId: reference<'property'>('meter_property_id'),
   propertyId: reference<'property'>('property_id').notNull(),
   areaId: reference<'area'>('area_id').notNull(),
 }
@@ -66,10 +68,16 @@ export const { deadlineStatus, deadlines } = deadlinesSchema({
     index('deadlines_duty_idx').on(table.tenantId, table.dutyId),
     index('deadlines_defect_idx').on(table.tenantId, table.defectId),
     index('deadlines_round_plan_idx').on(table.tenantId, table.roundPlanId),
-    // Each follows one source: a duty, a defect or the plan of a round.
+    // The meters of a property are read for the property they hang on.
+    check(
+      'deadlines_meters_of_their_property',
+      sql`${table.meterPropertyId} is null or ${table.meterPropertyId} = ${table.propertyId}`,
+    ),
+    // Each follows one source: a duty, a defect, the plan of a round or the
+    // meters of a property.
     check(
       'deadlines_follow_one_source',
-      sql`num_nonnulls(${table.dutyId}, ${table.defectId}, ${table.roundPlanId}) = 1`,
+      sql`num_nonnulls(${table.dutyId}, ${table.defectId}, ${table.roundPlanId}, ${table.meterPropertyId}) = 1`,
     ),
   ],
 })

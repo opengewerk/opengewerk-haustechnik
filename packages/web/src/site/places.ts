@@ -27,6 +27,11 @@ export const stockTaking = {
 } as const
 
 /** Where a defect is reported on site (#116): under the page of the asset or the room it is at. */
+/** A round of the meters of a property, without a network (#120). */
+export const siteReadings = {
+  round: (propertyId: string) => `/ablesung/${propertyId}`,
+} as const
+
 export const siteDefects = {
   atAsset: (assetId: string) => `/anlagen/${assetId}/mangel`,
   atRoom: (roomId: string) => `/raeume/${roomId}/mangel`,

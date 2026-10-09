@@ -17,6 +17,7 @@ import { answered } from './answers.js'
 import { unseenDuplicate } from './duplicates.js'
 import { assigned } from './labels.js'
 import { placed } from './places.js'
+import { readOnSite } from './readings.js'
 import { recordRules } from './record-rules.js'
 import { followed, type Sender, signed } from './signatures.js'
 
@@ -103,6 +104,10 @@ async function completed({
     return { ...values, writtenBy: sender.userId }
   }
 
+  if (operation.entity === 'meter_readings') {
+    return { ...values, recordedBy: sender.userId }
+  }
+
   if (operation.entity === 'assets') {
     return { ...values, number: await assignNumber(tx, tenantId, 'asset', new Date()) }
   }
@@ -138,6 +143,7 @@ export function syncFor(catalogue: Catalogue): ServerSync<Sender> {
       recordRulesCheck(recordRules(catalogue)),
       versionFile,
       placed,
+      readOnSite,
       answered(catalogue),
       unseenDuplicate,
       assigned,

@@ -440,6 +440,8 @@ function rowsOf(tenant: Tenant): readonly Row[] {
         reason: 'Sommerferien',
       },
     },
+    // The key day of the meters of an operator (#120).
+    { table: 'meter_settings', values: { tenant_id: tenant.id, key_day: 15 } },
     // A duty from the catalogue at the asset, and a proposal dismissed there.
     {
       table: 'duties',

@@ -211,6 +211,7 @@ describe('what each entry hands to the foundation', () => {
       'bereiche',
       'zugaenge',
       'maengelklassen',
+      'meters',
       'fristen',
       'protokoll',
     ])

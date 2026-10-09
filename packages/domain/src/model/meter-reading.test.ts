@@ -6,12 +6,16 @@ import {
   consumptionByKeyDate,
   isKeyDate,
   keyDateFor,
+  keyDateIn,
+  keyDayOf,
   meterExchangeProblems,
   meterFigure,
   meterPauseProblems,
   meterPointProblems,
   meterReadingProblems,
+  meterSettingsProblems,
   readingDoubt,
+  readingJump,
   meterRestsOn,
   validReadings,
 } from './meter-reading.js'
@@ -35,8 +39,40 @@ describe('the key date of a reading', () => {
     expect(keyDateFor(day('2026-04-30'))).toBe('2026-05-01')
     expect(keyDateFor(day('2026-12-31'))).toBe('2027-01-01')
     expect(isKeyDate('2026-10-01')).toBe(true)
-    expect(isKeyDate('2026-10-02')).toBe(false)
+    expect(isKeyDate('2026-10-28')).toBe(true)
+    expect(isKeyDate('2026-10-29')).toBe(false)
     expect(isKeyDate('2026-13-01')).toBe(false)
+  })
+
+  it('falls on the day the operator sets, or the one of the measuring point, the same up to 14 days after it', () => {
+    expect(keyDateFor(day('2026-10-14'), 15)).toBe('2026-10-15')
+    expect(keyDateFor(day('2026-10-29'), 15)).toBe('2026-10-15')
+    expect(keyDateFor(day('2026-10-30'), 15)).toBe('2026-11-15')
+    expect(keyDateFor(day('2026-12-30'), 28)).toBe('2026-12-28')
+    expect(keyDateFor(day('2027-01-11'), 28)).toBe('2026-12-28')
+    expect(keyDateFor(day('2027-01-12'), 28)).toBe('2027-01-28')
+    expect(keyDateIn(day('2026-02-20'), 28)).toBe('2026-02-28')
+    expect(keyDayOf({ keyDay: 15 }, { keyDay: 1 })).toBe(15)
+    expect(keyDayOf({ keyDay: null }, { keyDay: 10 })).toBe(10)
+    expect(keyDayOf(null, { keyDay: 1 })).toBe(1)
+  })
+
+  it('is never more than 14 days before the day it is read on, nor more than 17 after it', () => {
+    fc.assert(
+      fc.property(
+        fc.date({ min: new Date('2020-01-01'), max: new Date('2035-12-31'), noInvalidDate: true }),
+        fc.integer({ min: 1, max: 28 }),
+        (date, keyDay) => {
+          const readOn = day(date.toISOString().slice(0, 10))
+          const keyDate = keyDateFor(readOn, keyDay)
+          const apart = (Date.parse(keyDate) - Date.parse(readOn)) / 86_400_000
+
+          expect(Number(keyDate.slice(8, 10))).toBe(keyDay)
+          expect(apart).toBeGreaterThanOrEqual(-14)
+          expect(apart).toBeLessThanOrEqual(17)
+        },
+      ),
+    )
   })
 })
 
@@ -214,6 +250,46 @@ describe('a figure in doubt', () => {
   })
 })
 
+describe('a figure that jumps', () => {
+  const history = {
+    ...nothing,
+    readings: [reading('2026-09-01', 1_271_020), reading('2026-08-01', 1_258_000)],
+  }
+  const on = (valueMilli: number) => ({
+    keyDate: day('2026-10-01'),
+    readOn: day('2026-10-05'),
+    valueMilli,
+  })
+
+  it('is nine times the reading before and more, which asks about the comma', () => {
+    expect(readingJump(on(12_843_600), history)).toBe(
+      'Etwa zehnmal so viel wie im Vormonat. Stimmt das Komma?',
+    )
+    expect(readingJump(on(127_000_000), history)).toBe(
+      'Etwa hundertmal so viel wie im Vormonat. Stimmt das Komma?',
+    )
+  })
+
+  it('is a consumption ten times the one of the month before, which asks about the figure', () => {
+    // 13,02 before; 140 now is about 10.8 times as much.
+    expect(readingJump(on(1_411_020), history)).toBe(
+      'Etwa zehnmal so viel verbraucht wie im Monat davor. Stimmt der Stand?',
+    )
+    expect(readingJump(on(1_400_000), history)).toBeNull()
+    expect(readingJump(on(1_284_360), history)).toBeNull()
+  })
+
+  it('is nothing to compare without a reading before or across a replacement', () => {
+    expect(readingJump(on(12_843_600), { ...nothing, readings: [] })).toBeNull()
+    expect(
+      readingJump(on(12_843_600), {
+        ...history,
+        exchanges: [{ exchangedOn: day('2026-09-20'), oldEndMilli: 1_280_000, newStartMilli: 0 }],
+      }),
+    ).toBeNull()
+  })
+})
+
 describe('a figure of a meter', () => {
   it('shows the places of its unit', () => {
     expect(meterFigure(4_812_000, 'cubic_metres')).toBe('4.812,0 m³')
@@ -227,8 +303,8 @@ describe('the rules of what a measuring point holds', () => {
     expect(
       meterReadingProblems({ keyDate: '2026-10-01', readOn: '2026-10-05', valueMilli: 1 }),
     ).toEqual({})
-    expect(meterReadingProblems({ keyDate: '2026-10-05' })).toEqual({
-      keyDate: 'Der Stichtag ist der erste Tag eines Monats.',
+    expect(meterReadingProblems({ keyDate: '2026-10-29' })).toEqual({
+      keyDate: 'Der Stichtag ist ein Tag eines Monats vom 1. bis zum 28.',
     })
     expect(meterReadingProblems({ valueMilli: -1 })).toEqual({
       valueMilli: 'Der Stand ist eine Zahl ab 0.',
@@ -254,10 +330,21 @@ describe('the rules of what a measuring point holds', () => {
     })
   })
 
-  it('ask a measuring point for a whole factor from 1', () => {
-    expect(meterPointProblems({ conversionFactor: 40 })).toEqual({})
-    expect(meterPointProblems({ conversionFactor: 0 })).toEqual({
+  it('ask a measuring point for a whole factor from 1 and a key day from 1 to 28', () => {
+    expect(meterPointProblems({ conversionFactor: 40, keyDay: 15 })).toEqual({})
+    expect(meterPointProblems({ conversionFactor: 0, keyDay: 29 })).toEqual({
       conversionFactor: 'Der Wandlerfaktor ist eine ganze Zahl von 1 bis 100000.',
+      keyDay: 'Der Stichtag ist ein Tag im Monat von 1 bis 28.',
+    })
+  })
+
+  it('ask the operator for a key day from 1 to 28', () => {
+    expect(meterSettingsProblems({ keyDay: 1 })).toEqual({})
+    expect(meterSettingsProblems({ keyDay: 0 })).toEqual({
+      keyDay: 'Der Stichtag ist ein Tag im Monat von 1 bis 28.',
+    })
+    expect(meterSettingsProblems({})).toEqual({
+      keyDay: 'Der Stichtag ist ein Tag im Monat von 1 bis 28.',
     })
   })
 })

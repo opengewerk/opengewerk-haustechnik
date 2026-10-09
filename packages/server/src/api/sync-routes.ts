@@ -78,6 +78,8 @@ export const operationRights: Readonly<Record<string, OperationRights>> = {
   meter_readings: { otherwise: 'reading.write' },
   meter_exchanges: { otherwise: 'asset.write' },
   meter_pauses: { otherwise: 'asset.write' },
+  // The key day of the operator is a setting, changed under "Einstellungen" (#120).
+  meter_settings: { otherwise: 'settings.write' },
   asset_supplies: { create: 'asset.record', remove: 'asset.record', otherwise: 'asset.record' },
   duties: { otherwise: 'duty.write' },
   duty_dismissals: { otherwise: 'duty.write' },

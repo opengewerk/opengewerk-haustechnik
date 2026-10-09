@@ -148,6 +148,7 @@ describe('an installation that began on the first migration', () => {
     // settings of the deadlines hang on nothing of this.
     // The plans of the rounds hang on the places and the templates (#113),
     // the notes on a work order on its activity (#118).
+    await revertMigration(admin, '0033_meter_key_days')
     await revertMigration(admin, '0032_meter_readings')
     await revertMigration(admin, '0031_work_order_notes')
     await revertMigration(admin, '0030_round_plans')
@@ -317,6 +318,7 @@ describe('an installation from before the areas', () => {
     // The places hang on the areas and go first, as on the way back of an
     // installation, and so does what an invitation says about areas.
     // The plans of the rounds hang on the places and the templates (#113).
+    await revertMigration(admin, '0033_meter_key_days')
     await revertMigration(admin, '0032_meter_readings')
     await revertMigration(admin, '0031_work_order_notes')
     await revertMigration(admin, '0030_round_plans')
@@ -396,6 +398,7 @@ describe('an installation with places', () => {
     )
 
     // The plans of the rounds hang on the places and the templates (#113).
+    await revertMigration(admin, '0033_meter_key_days')
     await revertMigration(admin, '0032_meter_readings')
     await revertMigration(admin, '0031_work_order_notes')
     await revertMigration(admin, '0030_round_plans')
@@ -500,6 +503,7 @@ describe('an installation with assets', () => {
       [tenant.id, asset, at.property, at.area, at.building],
     )
 
+    await revertMigration(admin, '0033_meter_key_days')
     await revertMigration(admin, '0032_meter_readings')
     await revertMigration(admin, '0031_work_order_notes')
     await revertMigration(admin, '0027_work_orders_in_the_office')
@@ -608,6 +612,7 @@ describe('an installation with assets', () => {
       [tenant.id, at.property, at.area, at.asset],
     )
 
+    await revertMigration(admin, '0033_meter_key_days')
     await revertMigration(admin, '0032_meter_readings')
     await revertMigration(admin, '0031_work_order_notes')
     await revertMigration(admin, '0027_work_orders_in_the_office')
@@ -717,6 +722,7 @@ describe('an installation with assets', () => {
       [tenant.id, at.duty, at.property, at.area],
     )
 
+    await revertMigration(admin, '0033_meter_key_days')
     await revertMigration(admin, '0032_meter_readings')
     await revertMigration(admin, '0031_work_order_notes')
     await revertMigration(admin, '0027_work_orders_in_the_office')
@@ -829,6 +835,7 @@ describe('an installation with assets', () => {
       [tenant.id, at.property, at.area, at.asset, activityId],
     )
 
+    await revertMigration(admin, '0033_meter_key_days')
     await revertMigration(admin, '0032_meter_readings')
     await revertMigration(admin, '0031_work_order_notes')
     await revertMigration(admin, '0027_work_orders_in_the_office')
@@ -934,6 +941,7 @@ describe('an installation with assets', () => {
       ],
     )
 
+    await revertMigration(admin, '0033_meter_key_days')
     await revertMigration(admin, '0032_meter_readings')
     await revertMigration(admin, '0031_work_order_notes')
     await revertMigration(admin, '0027_work_orders_in_the_office')
@@ -1039,6 +1047,7 @@ describe('an installation with assets', () => {
       [at.order],
     )
 
+    await revertMigration(admin, '0033_meter_key_days')
     await revertMigration(admin, '0032_meter_readings')
     await revertMigration(admin, '0031_work_order_notes')
     await revertMigration(admin, '0027_work_orders_in_the_office')
@@ -1151,6 +1160,7 @@ describe('an installation with assets', () => {
       [tenant.id, at.property, at.area, correction],
     )
 
+    await revertMigration(admin, '0033_meter_key_days')
     await revertMigration(admin, '0032_meter_readings')
     await revertMigration(admin, '0031_work_order_notes')
     await revertMigration(admin, '0027_work_orders_in_the_office')
@@ -1210,6 +1220,7 @@ describe('an installation with assets', () => {
     expect(await mayCall('public')).toBe(false)
     expect(await mayCall('opengewerk_app')).toBe(true)
 
+    await revertMigration(admin, '0033_meter_key_days')
     await revertMigration(admin, '0032_meter_readings')
     await revertMigration(admin, '0031_work_order_notes')
     await revertMigration(admin, '0027_work_orders_in_the_office')
@@ -1261,6 +1272,7 @@ describe('an installation whose invitations name areas', () => {
       [tenant.id, invitation],
     )
 
+    await revertMigration(admin, '0033_meter_key_days')
     await revertMigration(admin, '0032_meter_readings')
     await revertMigration(admin, '0031_work_order_notes')
     await revertMigration(admin, '0027_work_orders_in_the_office')
@@ -1326,6 +1338,7 @@ describe('an installation whose properties carry notes', () => {
       [tenant.id],
     )
 
+    await revertMigration(admin, '0033_meter_key_days')
     await revertMigration(admin, '0032_meter_readings')
     await revertMigration(admin, '0031_work_order_notes')
     await revertMigration(admin, '0027_work_orders_in_the_office')
@@ -1404,6 +1417,7 @@ describe('an installation whose properties have people to talk to', () => {
       [tenant.id, property?.id, property?.area_id],
     )
 
+    await revertMigration(admin, '0033_meter_key_days')
     await revertMigration(admin, '0032_meter_readings')
     await revertMigration(admin, '0031_work_order_notes')
     await revertMigration(admin, '0027_work_orders_in_the_office')
@@ -1485,6 +1499,7 @@ describe('an installation whose buildings have times they are closed', () => {
       [tenant.id, building, property?.id, property?.area_id],
     )
 
+    await revertMigration(admin, '0033_meter_key_days')
     await revertMigration(admin, '0032_meter_readings')
     await revertMigration(admin, '0031_work_order_notes')
     await revertMigration(admin, '0027_work_orders_in_the_office')
@@ -1592,6 +1607,7 @@ describe('an installation that imported from tables', () => {
 
     expect(await quietTables()).toEqual(['assets', 'buildings', 'floors', 'properties', 'rooms'])
 
+    await revertMigration(admin, '0033_meter_key_days')
     await revertMigration(admin, '0032_meter_readings')
     await revertMigration(admin, '0031_work_order_notes')
     await revertMigration(admin, '0027_work_orders_in_the_office')
@@ -1723,6 +1739,7 @@ describe('an installation that took stock on site', () => {
       second[0]?.id,
     ])
 
+    await revertMigration(admin, '0033_meter_key_days')
     await revertMigration(admin, '0032_meter_readings')
     await revertMigration(admin, '0031_work_order_notes')
     await revertMigration(admin, '0027_work_orders_in_the_office')
@@ -1812,6 +1829,7 @@ describe('an installation with labels', () => {
       [tenant.id, property?.id, property?.area_id, stood[0]?.id],
     )
 
+    await revertMigration(admin, '0033_meter_key_days')
     await revertMigration(admin, '0032_meter_readings')
     await revertMigration(admin, '0031_work_order_notes')
     await revertMigration(admin, '0027_work_orders_in_the_office')
@@ -1914,6 +1932,7 @@ describe('an installation whose activities have answers', () => {
       [tenant.id, property?.id, property?.area_id, activity, 'a'.repeat(64)],
     )
 
+    await revertMigration(admin, '0033_meter_key_days')
     await revertMigration(admin, '0032_meter_readings')
     await revertMigration(admin, '0031_work_order_notes')
     await revertMigration(admin, '0027_work_orders_in_the_office')
@@ -2005,6 +2024,7 @@ describe('an installation with documents', () => {
       [tenant.id, filed[0]?.id, file],
     )
 
+    await revertMigration(admin, '0033_meter_key_days')
     await revertMigration(admin, '0032_meter_readings')
     await revertMigration(admin, '0031_work_order_notes')
     await revertMigration(admin, '0027_work_orders_in_the_office')

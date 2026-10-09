@@ -176,6 +176,8 @@ Anhang B nennt jedes Feld der Datenbank, das auf eine Person zeigt. Dieser Absch
 - Die Notiz an einer Messstelle nennt, wer sie geschrieben hat und seit wann. Eine Sperre nennt ihren Grund und seit wann, eine Stilllegung ihren Zeitraum und Grund, ein Zählertausch die Nummern und Stände; wer gesperrt, stillgelegt oder getauscht hat, steht nur im Änderungsprotokoll. [K4.9, B142]
 - **Zusage:** Zähler ablesen dürfen alle vier Rollen. Den Zählertausch, die Stilllegung, die Sperre, die Notiz und was nur die Messstelle trägt, ändert, wer Anlagen pflegt: die Leitung, die Technische Leitung und die Objektleitung. Die Haustechnik kann es nicht. [K4.9, K7, B143, B144]
 - Der Verbrauch wird aus den Ständen abgeleitet und nie gespeichert; er nennt keine Person. [K4.9]
+- Ein Zählerstand entsteht auch vor Ort, ohne Netz: auf einer eigenen Runde der Zähler einer Liegenschaft oder als Punkt eines Rundgangs. Den Stichtag, den Weg und die Person, die ihn eingetragen hat, setzt der Server; ein Stand aus einem Rundgang entsteht erst mit dessen Unterschrift, im Namen der Person, die unterschrieben hat. [K4.9, B145, B146]
+- Ein Stand weit über dem davor wird erst genommen, wenn die ablesende Person ihn bestätigt. Am Stand steht nur, dass er bestätigt wurde, keine weitere Person. [K4.9, B147]
 
 ---
 
@@ -469,6 +471,9 @@ Pfade ohne Vorsatz liegen im Repository `opengewerk/opengewerk-haustechnik`. Pfa
 | B142 | Test | `packages/server/src/api/meters.test.ts` | `a note names who wrote it and since when, and none removes it` |
 | B143 | Test | `packages/server/src/api/meters.test.ts` | `is for whoever takes care of assets, takes the new number, and refuses an end below the last reading and the old number` |
 | B144 | Test | `packages/server/src/api/meters.test.ts` | `a lock is set and lifted by whoever takes care of assets, with its reason and since when` |
+| B145 | Test | `packages/server/src/api/meters.test.ts` | `is taken without a network for the key date of its day, in the name of whoever read it` |
+| B146 | Test | `packages/server/src/activities/signing.test.ts` | `writes the reading of a point about a measuring point with the signature, and not before` |
+| B147 | Test | `packages/server/src/api/meters.test.ts` | `is taken only once whoever reads it confirms it, and keeps that it was` |
 
 ---
 

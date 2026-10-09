@@ -10,6 +10,7 @@ import { memberships, tenantColumn } from '@opengewerk/platform-server/schema'
 import { sql } from 'drizzle-orm'
 import {
   bigint,
+  boolean,
   check,
   date,
   foreignKey,
@@ -18,6 +19,7 @@ import {
   pgEnum,
   pgTable,
   type PgTableExtraConfigValue,
+  smallint,
   text,
   unique,
   uniqueIndex,
@@ -65,6 +67,8 @@ export const meterPoints = pgTable(
     conversionFactor: integer('conversion_factor'),
     mainMeterId: reference<'asset'>('main_meter_id'),
     controlId: text('control_id'),
+    /** The day of the month its readings are due on, where it is not the operator's (#120). */
+    keyDay: smallint('key_day'),
     note: text('note'),
     noteBy: text('note_by'),
     notedOn: date('noted_on', { mode: 'string' }),
@@ -106,6 +110,10 @@ export const meterPoints = pgTable(
     check(
       'meter_points_control_id_shaped',
       optionalTrimmed(table.controlId, meterLimits.controlId),
+    ),
+    check(
+      'meter_points_key_day_in_month',
+      sql`${table.keyDay} is null or ${table.keyDay} between 1 and ${sql.raw(String(meterLimits.keyDay))}`,
     ),
     check('meter_points_note_shaped', optionalTrimmed(table.note, meterLimits.note)),
     check('meter_points_lock_reason_shaped', optionalTrimmed(table.lockReason, meterLimits.reason)),
@@ -152,6 +160,8 @@ export const meterReadings = pgTable(
     activityId: reference<'activity'>('activity_id'),
     correctsId: reference<'meter-reading'>('corrects_id'),
     correctionReason: text('correction_reason'),
+    /** That whoever read it confirmed a figure far above the one before (#120). */
+    jumpConfirmed: boolean('jump_confirmed').notNull().default(false),
     recordedBy: text('recorded_by').notNull(),
     ...timestamps,
     ...syncColumns,
@@ -196,7 +206,11 @@ export const meterReadings = pgTable(
     uniqueIndex('meter_readings_corrected_once')
       .on(table.tenantId, table.correctsId)
       .where(sql`${table.correctsId} is not null`),
-    check('meter_readings_on_a_key_date', sql`extract(day from ${table.keyDate}) = 1`),
+    // The day the operator or the measuring point sets, which every month has (#120).
+    check(
+      'meter_readings_key_day_in_month',
+      sql`extract(day from ${table.keyDate}) <= ${sql.raw(String(meterLimits.keyDay))}`,
+    ),
     check('meter_readings_value_shaped', figureShaped(table.valueMilli)),
     check(
       'meter_readings_correction_reason_shaped',
@@ -297,6 +311,32 @@ export const meterPauses = pgTable(
     check(
       'meter_pauses_end_after_start',
       sql`${table.endsOn} is null or ${table.endsOn} >= ${table.startsOn}`,
+    ),
+  ],
+)
+
+/**
+ * What an operator sets for its meters (section 4.9, #120): the day of the
+ * month a reading is due on, which a measuring point may set otherwise. One
+ * row per operator that has set one; none is the 1st. Every device holds it,
+ * whatever area it sees.
+ */
+export const meterSettings = pgTable(
+  'meter_settings',
+  {
+    id: primaryId<'meter-setting'>(),
+    ...tenantColumn,
+    keyDay: smallint('key_day').notNull(),
+    ...timestamps,
+    // A device reads the day to name the key date of a reading on site.
+    ...syncColumns,
+  },
+  (table) => [
+    tenantIsolation(table.tenantId),
+    unique('meter_settings_once').on(table.tenantId),
+    check(
+      'meter_settings_key_day_in_month',
+      sql`${table.keyDay} between 1 and ${sql.raw(String(meterLimits.keyDay))}`,
     ),
   ],
 )

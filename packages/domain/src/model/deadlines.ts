@@ -8,7 +8,7 @@ import type { DeadlineKind } from '@opengewerk/platform-domain'
  */
 
 /** The sources the deadlines of this application follow, by the name a kind gives them. */
-export const deadlineSources = ['duty', 'defect', 'round_plan'] as const
+export const deadlineSources = ['duty', 'defect', 'round_plan', 'meter'] as const
 
 export type DeadlineSource = (typeof deadlineSources)[number]
 
@@ -92,8 +92,36 @@ export const roundDue: ApplicationDeadlineKind = {
   actions: ['activity'],
 }
 
+/**
+ * The reading of the meters of a property for their key date (section 4.9,
+ * #120, the source "Zählerablesung zum Stichtag" of section 2.4): the source
+ * names the earliest key date for which a measuring point there has no
+ * reading, leaving out one that is locked and a key date it rests on. One
+ * deadline for the meters of a property, not one per meter: they are read on
+ * one round, and a reminder for every meter would bury the rest. Whoever
+ * leads the operator is reminded when the lead begins; once every meter
+ * there has its reading, the deadline moves on to the next key date.
+ */
+export const meterDue: ApplicationDeadlineKind = {
+  key: 'meter.due',
+  title: 'Zählerablesung zum Stichtag',
+  about:
+    'Folgt aus dem Stichtag der Zähler einer Liegenschaft: der früheste Stichtag, für den eine Messstelle dort noch keinen Stand hat, ohne gesperrte und ohne die Tage, an denen eine ruht.',
+  source: 'meter',
+  intervalDays: null,
+  intervalMonths: null,
+  leadDays: 3,
+  responsible: 'lead',
+  actions: ['reminder'],
+}
+
 /** Every kind this application knows. */
-export const deadlineKinds: readonly ApplicationDeadlineKind[] = [dutyDue, defectDue, roundDue]
+export const deadlineKinds: readonly ApplicationDeadlineKind[] = [
+  dutyDue,
+  defectDue,
+  roundDue,
+  meterDue,
+]
 
 /**
  * What a deadline of this application says in the list "Fristen" beside what
@@ -101,7 +129,8 @@ export const deadlineKinds: readonly ApplicationDeadlineKind[] = [dutyDue, defec
  * a round it follows, and what that hangs on, an asset, a room, a building or
  * the property itself.
  */
-export type DeadlineFacts = DutyDeadlineFacts | DefectDeadlineFacts | RoundDeadlineFacts
+export type DeadlineFacts =
+  DutyDeadlineFacts | DefectDeadlineFacts | RoundDeadlineFacts | MeterDeadlineFacts
 
 /** A deadline of a duty: the duty by its title. */
 export interface DutyDeadlineFacts extends DeadlinePlaceFacts {
@@ -123,6 +152,11 @@ export interface RoundDeadlineFacts extends DeadlinePlaceFacts {
   readonly roundPlanId: string
   readonly title: string
   readonly rhythm: string
+}
+
+/** A deadline of the meters of a property: the property, which `propertyId` names. */
+export interface MeterDeadlineFacts extends DeadlinePlaceFacts {
+  readonly follows: 'meter'
 }
 
 /** What the duty, the defect or the plan of a deadline hangs on. */

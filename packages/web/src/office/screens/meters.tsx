@@ -1,8 +1,11 @@
 import {
   addMonths,
   type Consumption,
+  type ConsumptionInput,
+  defaultKeyDay,
   type IsoDate,
   keyDateFor,
+  keyDateIn,
   type MeterDetails,
   type MeterEntry,
   meterFigure,
@@ -16,6 +19,7 @@ import {
   type MeterState,
   meterStateLabel,
   meterUnitSymbol,
+  readingJump,
   type RecordState,
 } from '@opengewerk/haustechnik-domain'
 import {
@@ -46,11 +50,12 @@ import {
 } from '@opengewerk/platform-web/sync'
 import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useNavigate, useParams, useSearch } from '@tanstack/react-router'
-import { ArrowLeftRight, Check, Gauge, Lock, Pause, Plus } from 'lucide-react'
-import { type ReactNode, useMemo, useState } from 'react'
+import { ArrowLeftRight, Check, Gauge, Lock, Pause, Plus, Route, TriangleAlert } from 'lucide-react'
+import { type ReactNode, useMemo, useRef, useState } from 'react'
 
 import { placePath } from '../../app/place-path.js'
 import { placeAbove } from '../../app/place-records.js'
+import { siteReadings } from '../../site/places.js'
 import { useCatalogue } from '../../sync/catalogue.js'
 import { askAt } from '../../sync/made-at.js'
 import { assetForms } from '../asset-addresses.js'
@@ -63,6 +68,13 @@ import { kindLabel } from './assets.js'
 export const meterWords = {
   title: 'Zähler',
   newMeter: 'Neue Messstelle',
+  round: 'Ablesung als Runde',
+  jumpCheck: 'Wert prüfen',
+  jumpKeep: 'So übernehmen',
+  keyDay: 'Stichtag',
+  keyDayOfOperator: (day: number) => `Wie der Betreiber, der ${String(day)}.`,
+  keyDayOn: (day: number) => `Der ${String(day)}. eines Monats`,
+  keyDayHint: 'An welchem Tag im Monat der Stand dieser Messstelle fällig ist.',
   meter: 'Messstelle',
   medium: 'Medium',
   unit: 'Einheit',
@@ -158,6 +170,19 @@ export const meterWords = {
 const firstRows = 6
 const moreRows = 12
 
+/** Where the part for on site begins, which a round of the meters runs in. */
+const siteStart = '/m/'
+
+/** What the consumption of a measuring point is worked out from, as its page shows it. */
+function historyOf(meter: MeterDetails): ConsumptionInput {
+  return {
+    readings: meter.rows.flatMap((row) => (row.reading === null ? [] : [row.reading])),
+    exchanges: meter.exchanges,
+    pauses: meter.pauses,
+    conversionFactor: meter.conversionFactor,
+  }
+}
+
 /** The meters in the cache: every list and every page. */
 const meterKey = ['meters'] as const
 
@@ -168,9 +193,14 @@ function meterQuery(id: string) {
   } as const
 }
 
-/** The key date of this month. */
-function currentKeyDate(): IsoDate {
-  return `${today().slice(0, 7)}-01` as IsoDate
+/** The key date due today for the key day of the operator: the one of this month once it has come. */
+function useCurrentKeyDate(): IsoDate {
+  const settings = useRecords('meter_settings')
+  const keyDay = settings[0] === undefined ? defaultKeyDay : Number(settings[0]['keyDay'])
+  const day = today() as IsoDate
+  const own = keyDateIn(day, keyDay)
+
+  return own <= day ? own : addMonths(own, -1)
 }
 
 /** What an address says after a word, as text. */
@@ -274,10 +304,12 @@ export function MeterListScreen() {
   const properties = useRecords('properties')
   const placeLine = usePlaceLine()
   const writes = useRight('asset.write')
+  const reads = useRight('reading.write')
+  const currentKeyDate = useCurrentKeyDate()
   const state = (said(address, meterListWords.state) ?? 'all') as MeterListState
   const property = said(address, meterListWords.property) ?? ''
   const medium = said(address, meterListWords.medium) ?? ''
-  const keyDate = (said(address, meterListWords.keyDate) ?? currentKeyDate()) as IsoDate
+  const keyDate = (said(address, meterListWords.keyDate) ?? currentKeyDate) as IsoDate
   const parts = new URLSearchParams({
     keyDate,
     ...(state === 'all' ? {} : { state }),
@@ -290,7 +322,7 @@ export function MeterListScreen() {
     placeholderData: keepPreviousData,
     retry: (count, error) => !(error instanceof RequestRefused) && count < 2,
   })
-  const keyDates = Array.from({ length: 13 }, (_, months) => addMonths(currentKeyDate(), -months))
+  const keyDates = Array.from({ length: 13 }, (_, months) => addMonths(currentKeyDate, -months))
 
   /** The address with one part set, or without it for "all". */
   const set = (word: string, value: string) => {
@@ -310,17 +342,35 @@ export function MeterListScreen() {
         title={meterWords.title}
         {...(shown === undefined ? {} : { count: meterWords.count(shown.total, shown.properties) })}
         actions={
-          writes ? (
-            <Button
-              tone="primary"
-              icon={Plus}
-              onClick={() => {
-                void navigate({ to: assetForms.new })
-              }}
-            >
-              {meterWords.newMeter}
-            </Button>
-          ) : null
+          <>
+            {reads ? (
+              <Button
+                icon={Route}
+                onClick={() => {
+                  // The round runs in the part for on site, which works without a
+                  // network: for the property chosen, else from its start (#120).
+                  window.location.assign(
+                    property === ''
+                      ? siteStart
+                      : `${siteStart}${siteReadings.round(property).slice(1)}`,
+                  )
+                }}
+              >
+                {meterWords.round}
+              </Button>
+            ) : null}
+            {writes ? (
+              <Button
+                tone="primary"
+                icon={Plus}
+                onClick={() => {
+                  void navigate({ to: assetForms.new })
+                }}
+              >
+                {meterWords.newMeter}
+              </Button>
+            ) : null}
+          </>
         }
       />
       <div className="flex flex-wrap items-end gap-x-2.5 gap-y-2">
@@ -386,7 +436,7 @@ export function MeterListScreen() {
             className="lg:w-[130px]"
             value={keyDate}
             onChange={(value) => {
-              set(meterListWords.keyDate, value === currentKeyDate() ? '' : value)
+              set(meterListWords.keyDate, value === currentKeyDate ? '' : value)
             }}
           >
             {keyDates.map((each) => (
@@ -1160,13 +1210,15 @@ function ReadingCard({
   readonly onDone: () => Promise<void>
 }) {
   const client = useSync()
+  const box = useRef<HTMLInputElement>(null)
   const [typed, setTyped] = useState('')
   const [readOn, setReadOn] = useState(today())
   const [problem, setProblem] = useState<string | undefined>(undefined)
   const [working, setWorking] = useState(false)
-  const keyDate = keyDateFor(readOn as IsoDate)
+  const keyDate = keyDateFor(readOn as IsoDate, meter.keyDay ?? meter.operatorKeyDay)
+  const [jump, setJump] = useState<string | null>(null)
 
-  async function save() {
+  async function save(confirmed = false) {
     const value = figureOf(typed)
 
     if (typeof value === 'string') {
@@ -1175,6 +1227,19 @@ function ReadingCard({
       return
     }
 
+    // Far above the reading before: asked before it is sent, as on site (#120).
+    const jumps = readingJump(
+      { keyDate, readOn: readOn as IsoDate, valueMilli: value },
+      historyOf(meter),
+    )
+
+    if (jumps !== null && !confirmed) {
+      setJump(jumps)
+
+      return
+    }
+
+    setJump(null)
     setWorking(true)
     setProblem(undefined)
 
@@ -1187,6 +1252,7 @@ function ReadingCard({
         {
           readOn,
           valueMilli: value,
+          ...(jumps === null ? {} : { confirmed: true }),
         },
       )
 
@@ -1214,6 +1280,7 @@ function ReadingCard({
       >
         <div className="w-[230px] max-sm:w-full">
           <Field
+            ref={box}
             label={meterWords.standAt(keyDate)}
             unit={meterUnitSymbol[meter.unit]}
             inputMode="decimal"
@@ -1221,6 +1288,7 @@ function ReadingCard({
             problem={problem}
             onChange={(event) => {
               setTyped(event.target.value)
+              setJump(null)
             }}
           />
         </div>
@@ -1245,12 +1313,44 @@ function ReadingCard({
             type="submit"
             tone="primary"
             icon={Check}
-            disabled={working || typed.trim() === ''}
+            disabled={working || typed.trim() === '' || jump !== null}
           >
             {working ? meterWords.wait : meterWords.save}
           </Button>
         </div>
       </form>
+      {jump === null ? null : (
+        <div className="mt-3.5 flex flex-col gap-2.5 rounded-[6px] border border-waiting-edge bg-waiting-fill px-3.5 py-3">
+          <p
+            role="alert"
+            className="flex gap-2 text-[13px] leading-[1.4] font-semibold text-waiting"
+          >
+            <TriangleAlert size={17} strokeWidth={2.1} aria-hidden="true" className="shrink-0" />
+            {jump}
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              type="button"
+              tone="dark"
+              onClick={() => {
+                setJump(null)
+                box.current?.focus()
+              }}
+            >
+              {meterWords.jumpCheck}
+            </Button>
+            <Button
+              type="button"
+              disabled={working}
+              onClick={() => {
+                void save(true)
+              }}
+            >
+              {meterWords.jumpKeep}
+            </Button>
+          </div>
+        </div>
+      )}
     </Panel>
   )
 }
@@ -1599,15 +1699,15 @@ function MeterDialogs({
       action = meterWords.save
       body = (
         <>
-          <div className="w-[120px]">
-            <Field
-              label={meterWords.factor}
-              inputMode="numeric"
-              hint="Womit das Zählwerk malgenommen wird, bei einem Wandler etwa 40."
-              value={field('factor')}
-              onChange={put('factor')}
-            />
-          </div>
+          {/* The hint runs on beside the field, as the board draws it. */}
+          <Field
+            label={meterWords.factor}
+            inputMode="numeric"
+            className="w-[120px]!"
+            hint="Womit das Zählwerk malgenommen wird, bei einem Wandler etwa 40."
+            value={field('factor')}
+            onChange={put('factor')}
+          />
           <SelectField
             label={meterWords.mainMeter}
             value={field('mainMeterId')}
@@ -1627,6 +1727,21 @@ function MeterDialogs({
             value={field('controlId')}
             onChange={put('controlId')}
           />
+          <SelectField
+            label={meterWords.keyDay}
+            value={field('keyDay')}
+            hint={meterWords.keyDayHint}
+            options={[
+              { value: '', label: meterWords.keyDayOfOperator(meter.operatorKeyDay) },
+              ...Array.from({ length: meterLimits.keyDay }, (_, index) => ({
+                value: String(index + 1),
+                label: meterWords.keyDayOn(index + 1),
+              })),
+            ]}
+            onChange={(value) => {
+              setValues((before) => ({ ...before, keyDay: value }))
+            }}
+          />
           <p className="text-[12px] text-ink-muted">
             Zählernummer und Einheit ändern sich mit einem Zählertausch.
           </p>
@@ -1639,6 +1754,7 @@ function MeterDialogs({
           conversionFactor: factor === '' ? null : Number(factor),
           mainMeterId: field('mainMeterId') === '' ? null : field('mainMeterId'),
           controlId: field('controlId'),
+          keyDay: field('keyDay') === '' ? null : Number(field('keyDay')),
         })
       }
       break
@@ -1710,6 +1826,7 @@ function initialOf(meter: MeterDetails, dialog: MeterDialog): Readonly<Record<st
         factor: String(meter.conversionFactor ?? 1),
         mainMeterId: meter.mainMeter?.assetId ?? '',
         controlId: meter.controlId ?? '',
+        keyDay: meter.keyDay === null ? '' : String(meter.keyDay),
       }
     case 'note':
       return { note: meter.note?.text ?? '' }

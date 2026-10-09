@@ -8,7 +8,7 @@ import {
   workOrderUrgencyLabel,
 } from '@opengewerk/haustechnik-domain'
 import { date, today } from '@opengewerk/platform-web/format'
-import { accountQuery } from '@opengewerk/platform-web/session'
+import { accountQuery, useRight } from '@opengewerk/platform-web/session'
 import {
   SiteLabel,
   SiteScreen,
@@ -29,9 +29,10 @@ import { useQuery } from '@tanstack/react-query'
 import { Link } from '@tanstack/react-router'
 import { useMemo } from 'react'
 
+import { readingStanding, useHeldMeters } from '../../app/meters.js'
 import { titleOfRoom } from '../../app/place-records.js'
 import { assetTitle, useAcross } from '../kit.js'
-import { siteForms } from '../places.js'
+import { siteForms, siteReadings } from '../places.js'
 import { endOfWeek, shortDay, startItems, longDay } from '../start-items.js'
 import { RoundOverview, progressOf, useActivityForm } from './form.js'
 
@@ -54,7 +55,78 @@ export const startWords = {
   onDevice: (waiting: number) =>
     waiting === 1 ? '1 Antwort auf dem Gerät' : `${String(waiting)} Antworten auf dem Gerät`,
   choose: 'Einen Rundgang aus der Liste wählen.',
+  reading: (keyDate: IsoDate) => `Ablesung · Stichtag ${shortDay(keyDate)}`,
+  meters: (count: number) => (count === 1 ? '1 Zähler' : `${String(count)} Zähler`),
+  readingMissing: 'Stand fehlt noch',
 } as const
+
+/** The meters of a property whose reading is due by today and missing, the earliest key date first. */
+interface DueReading {
+  readonly propertyId: string
+  readonly keyDate: IsoDate
+  readonly count: number
+}
+
+/**
+ * The rounds of the meters there are today (section 4.9 of the concept,
+ * #120): for each property this device holds, the meters whose key date has
+ * come and that have no reading for it, leaving out a locked one and one
+ * that rests. Worked out from what the device holds, also without a network.
+ */
+function useDueReadings(day: IsoDate): readonly DueReading[] {
+  const held = useHeldMeters()
+  const reads = useRight('reading.write')
+
+  return useMemo(() => {
+    if (!reads) {
+      return []
+    }
+
+    const due = new Map<string, { keyDate: IsoDate; count: number }>()
+
+    for (const meter of held.values()) {
+      const standing = readingStanding(meter, day)
+
+      if (meter.lockReason !== null || standing.rests || standing.taken || standing.keyDate > day) {
+        continue
+      }
+
+      const propertyId = String(meter.asset['propertyId'])
+      const before = due.get(propertyId)
+
+      due.set(propertyId, {
+        keyDate:
+          before === undefined || standing.keyDate < before.keyDate
+            ? standing.keyDate
+            : before.keyDate,
+        count: (before?.count ?? 0) + 1,
+      })
+    }
+
+    return [...due.entries()].map(([propertyId, found]) => ({ propertyId, ...found }))
+  }, [held, reads, day])
+}
+
+/** The round of the meters of a property, a card as the board draws it: what, where, how many. */
+function ReadingCard({ due }: { readonly due: DueReading }) {
+  const property = useRecord('properties', due.propertyId)
+
+  return (
+    <Link
+      to={siteReadings.round(due.propertyId)}
+      className="block rounded-[6px] border border-l-4 border-line border-l-control bg-surface py-[11px] pr-3.5 pl-4 text-ink no-underline"
+    >
+      <p className="font-condensed text-[14px] font-semibold tracking-[0.9px] text-ink-faint uppercase">
+        {startWords.reading(due.keyDate)}
+      </p>
+      <p className="mt-px text-[18px] leading-[1.25] font-bold [overflow-wrap:anywhere]">
+        {property === null ? '' : text(property, 'name')}
+      </p>
+      <p className="mt-0.5 text-[15px] text-ink-muted">{startWords.meters(due.count)}</p>
+      <p className="mt-0.5 text-[15px] text-ink-muted">{startWords.readingMissing}</p>
+    </Link>
+  )
+}
 
 /** "Rundgang · Mittwoch", "Auftrag AU-2026-0031 · dringend", "Prüfung · fällig 12.10.": over the title of a card. */
 function overOf(activity: RecordState, workOrder: RecordState | undefined, day: IsoDate): string {
@@ -241,7 +313,8 @@ function useStartItems() {
 /** The list of the start, the left of the two on a tablet held across. */
 function StartList({ selected }: { readonly selected: string | null }) {
   const { day, items } = useStartItems()
-  const counted = items.begun.length + items.today.length + items.week.length
+  const readings = useDueReadings(day)
+  const counted = items.begun.length + items.today.length + readings.length + items.week.length
   const cards = (list: readonly RecordState[]) =>
     list.map((activity) => (
       <StartCard
@@ -267,7 +340,15 @@ function StartList({ selected }: { readonly selected: string | null }) {
         right={<TitleCount count={counted} label={startWords.thisWeek} />}
       />
       {cards(items.begun)}
-      {section(startWords.today, items.today)}
+      {items.today.length + readings.length === 0 ? null : (
+        <section aria-label={startWords.today} className="flex flex-col gap-2">
+          <SiteLabel>{startWords.today}</SiteLabel>
+          {cards(items.today)}
+          {readings.map((due) => (
+            <ReadingCard key={due.propertyId} due={due} />
+          ))}
+        </section>
+      )}
       {section(startWords.week, items.week)}
       {section(startWords.later, items.later)}
       {counted + items.later.length === 0 ? <SiteText muted>{startWords.nothing}</SiteText> : null}

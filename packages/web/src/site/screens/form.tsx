@@ -140,6 +140,15 @@ export function useAboutWords(): (point: FormPoint) => string | null {
 
     if (about.kind === 'asset') {
       const asset = assets.find((candidate) => candidate['id'] === about.id)
+      // A reading names its meter beside the figure; above it stands where the meter is (#120).
+      const room =
+        point.field.kind === 'meter_reading' && asset
+          ? rooms.find((candidate) => candidate['id'] === asset['roomId'])
+          : undefined
+
+      if (room) {
+        return `Raum ${titleOfRoom(room)}`
+      }
 
       return asset ? assetTitle(asset) : null
     }
@@ -495,7 +504,10 @@ export function SitePointScreen() {
   const target = aboutWords(point) ?? where.words
   const question = askedAsQuestion(point.field.kind)
   const AboutIcon =
-    point.field.about?.kind === 'asset' || maybeText(form.activity, 'assetId') ? Zap : DoorOpen
+    point.field.kind !== 'meter_reading' &&
+    (point.field.about?.kind === 'asset' || maybeText(form.activity, 'assetId'))
+      ? Zap
+      : DoorOpen
 
   return (
     <>

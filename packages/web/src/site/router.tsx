@@ -17,6 +17,7 @@ import {
   SiteRoomScreen,
   StockStartScreen,
 } from './screens/places.js'
+import { ReadingRoundScreen } from './screens/reading-round.js'
 import { ReportDefectScreen } from './screens/report-defect.js'
 import { SiteScanScreen } from './screens/scan.js'
 import { TakeAssetScreen } from './screens/take-asset.js'
@@ -94,6 +95,8 @@ export function siteRoutes() {
     at('/vorgaenge/$activityId/protokoll', SiteProtocolScreen),
     at('/vorgaenge/$activityId/notiz', SiteNoteScreen),
     at('/vorgaenge/$activityId/abschliessen', SiteCloseOrderScreen),
+    // A round of the meters of a property, also without a network (#120).
+    at('/ablesung/$propertyId', ReadingRoundScreen),
   ])
 }
 
