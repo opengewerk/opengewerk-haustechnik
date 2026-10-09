@@ -184,6 +184,36 @@ export function isDemanded(point: FormPoint): boolean {
   return point.field.kind === 'check_point' || point.field.required === true
 }
 
+/**
+ * What a point still lacks before the signature (#108, #114): an answer where
+ * one is demanded, the remark an answer not in order or outside its limit
+ * asks for, or the reason "entfällt" and "nicht möglich" ask for. The
+ * signature asks `answersMissing`, which says the same in sentences.
+ */
+export type Lack = 'answer' | 'remark' | 'reason'
+
+export function lackOf(
+  point: FormPoint,
+  given: FilledAnswer | undefined,
+  context: LimitContext,
+): Lack | null {
+  if (given === undefined || !isAnswered(point, given)) {
+    return isDemanded(point) ? 'answer' : null
+  }
+
+  const said = (given.remark ?? '').trim() !== ''
+
+  if (point.field.kind === 'check_point' && given.result !== 'ok' && !said) {
+    return given.result === 'not_ok' ? 'remark' : 'reason'
+  }
+
+  return point.field.kind === 'measurement' &&
+    answerVerdict(point.field, given, context).within === false &&
+    !said
+    ? 'remark'
+    : null
+}
+
 /** The sign of the unit of a field with a figure. */
 export function unitSign(field: Extract<BlockField, { readonly unit: unknown }>): string {
   return formUnits[field.unit].sign

@@ -37,6 +37,8 @@ export const pointWords = {
   outsideBecomesDefect: (target: string) =>
     `Mit der Unterschrift wird daraus ein Mangel an ${target}, wie bei „nicht in Ordnung“.`,
   reasonIsAnswer: '„Entfällt“ und „nicht möglich“ sind Antworten und verlangen einen Grund.',
+  /** After it, under a point that fulfils a duty (#114): the evidence then says "nicht durchgeführt". */
+  dutyStaysDue: (duty: string) => `Die Pflicht „${duty}“ bleibt dann fällig.`,
   photoOf: (label: string) => `Foto zu ${label}`,
   photoNotFiled: 'Das Foto ließ sich nicht ablegen.',
   yes: 'ja',
@@ -147,6 +149,8 @@ export interface PointInputProps {
   readonly context: LimitContext
   /** What a finding here becomes a defect at, in words: `Raum E.14 Heizraum`. */
   readonly target: string
+  /** The duty the point fulfils, by its name, where it fulfils one (#112). */
+  readonly duty?: string | null
   /** Whether the answer may still be given or changed: the activity is open and the person performs. */
   readonly editable: boolean
   readonly onTrouble: (sentence: string | null) => void
@@ -259,7 +263,7 @@ function parsedValue(answer: RecordState | undefined): unknown {
  * with it, because an answer to a check point is its result first.
  */
 function CheckPointInput(props: PointInputProps) {
-  const { answer, point, editable, target, propertyId, activityId, onTrouble, layout } = props
+  const { answer, point, editable, target, propertyId, activityId, onTrouble, layout, duty } = props
   const client = useSync()
   const write = useAnswerWrite(props)
   const filled = answer === undefined ? undefined : filledOf(answer)
@@ -345,7 +349,11 @@ function CheckPointInput(props: PointInputProps) {
       ) : null}
       {result === 'not_ok' ? <DefectNote>{pointWords.becomesDefect(target)}</DefectNote> : null}
       {result === 'not_applicable' || result === 'not_possible' ? (
-        <p className="text-[15px] leading-[1.4] text-ink-muted">{pointWords.reasonIsAnswer}</p>
+        <p className="text-[15px] leading-[1.4] text-ink-muted">
+          {duty === undefined || duty === null
+            ? pointWords.reasonIsAnswer
+            : `${pointWords.reasonIsAnswer} ${pointWords.dutyStaysDue(duty)}`}
+        </p>
       ) : null}
     </div>
   )

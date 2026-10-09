@@ -5,15 +5,42 @@ import { SiteHeader, SiteScreen, SiteText, type WayBack } from '@opengewerk/plat
 import { maybeText, text } from '@opengewerk/platform-web/sync'
 import { useNavigate } from '@tanstack/react-router'
 import type { LucideIcon } from 'lucide-react'
-import type { ReactNode, RefObject } from 'react'
+import { type ReactNode, type RefObject, useSyncExternalStore } from 'react'
 
 /**
  * What the screens of this application on site share beyond the kit of the
  * foundation: how an asset is named in one line, a row that leads nowhere,
  * the open defects of a place, a button that goes to another screen, the
- * picture of the camera, and what a screen says about a record the device
- * does not hold.
+ * picture of the camera, what a screen says about a record the device does
+ * not hold, and whether the device is a tablet held across.
  */
+
+/** From here the frame stands the tabs as a rail, as on the board "Tablet quer" (10). */
+const across = '(min-width: 64rem)'
+
+function holdsAcross(): boolean {
+  return globalThis.matchMedia?.(across).matches === true
+}
+
+function onTurn(change: () => void): () => void {
+  const list = globalThis.matchMedia?.(across)
+
+  list?.addEventListener('change', change)
+
+  return () => {
+    list?.removeEventListener('change', change)
+  }
+}
+
+/**
+ * Whether the screen is a tablet held across or wider, from 1024 pixels: the
+ * rail of the frame, and two things side by side where a phone shows one
+ * after the other. Where the window cannot say, it is a phone, the device
+ * every screen on site is drawn for first.
+ */
+export function useAcross(): boolean {
+  return useSyncExternalStore(onTurn, holdsAcross, () => false)
+}
 
 /** "AN-00057 Trinkwassererwärmer": the number the server drew and the name, the name alone until then. */
 export function assetTitle(asset: RecordState | null | undefined): string {

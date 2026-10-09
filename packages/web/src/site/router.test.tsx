@@ -96,17 +96,20 @@ afterEach(() => {
 })
 
 describe('the entry for the work on site', () => {
-  /**
-   * Until the places of phase 1 arrive, the start on site is what the device
-   * holds of the sync: when it last exchanged, what waits, and nothing to
-   * decide.
-   */
-  it('starts at the conflicts, with nothing to decide', async () => {
+  /** The start is what is due today and this week (#114); on a new device nothing is. */
+  it('starts at what is due today and this week', async () => {
     const router = await mount('/m/')
 
     // Under the base path of the entry, which the router keeps out of its own paths.
-    expect(router.history.location.pathname).toBe('/m/konflikte')
-    expect(router.state.location.pathname).toBe('/konflikte')
+    expect(router.history.location.pathname).toBe('/m/')
+    expect(router.state.location.pathname).toBe('/')
+    expect(screen.getByRole('heading', { level: 1, name: 'Start' })).toBeTruthy()
+    expect(screen.getByText('Für heute und diese Woche liegt nichts an.')).toBeTruthy()
+  })
+
+  it('keeps the conflicts at their own address, with nothing to decide', async () => {
+    await mount('/m/konflikte')
+
     expect(screen.getByRole('heading', { level: 1, name: 'Konflikte' })).toBeTruthy()
     expect(await screen.findByText('Keine Konflikte')).toBeTruthy()
     expect(screen.getByRole('button', { name: 'Erneut versuchen' })).toBeTruthy()

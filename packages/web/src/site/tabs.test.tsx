@@ -2,7 +2,7 @@ import { roleKeys, shippedRoles } from '@opengewerk/haustechnik-domain'
 import type { RoleKey } from '@opengewerk/haustechnik-domain'
 import { useWho } from '@opengewerk/platform-web/session'
 import { createRootRoute, createRoute } from '@tanstack/react-router'
-import { screen, within } from '@testing-library/react'
+import { screen, waitFor, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { application } from '../app/application.js'
@@ -74,17 +74,19 @@ afterEach(() => {
 
 describe('the tabs on site as the entry is built today', () => {
   /**
-   * No screen of the board is built yet, so the tabs are those of the frame.
-   * The first screen that arrives changes what stands here.
+   * Every place of the board has its screen: scanning (#98), taking stock
+   * (#99) and the start (#114). The start asks no right; the others stand
+   * once the rights of the role are known, before those of the frame.
    */
-  it.each(roleKeys)('are "Konflikte" and "Menü" alone for %s', async (role) => {
+  it.each(roleKeys)('are those of the board and the frame for %s', async (role) => {
     signedInAs(memberIn(role))
     await mounted({ routeTree: siteRoutes(), at: '/m/konflikte', basepath: '/m', application })
 
-    expect(places()).toEqual([
-      ['Konflikte', 'Menü'],
-      ['Konflikte', 'Menü'],
-    ])
+    const all = ['Start', 'Scannen', 'Aufnehmen', 'Konflikte', 'Menü']
+
+    await waitFor(() => {
+      expect(places()).toEqual([all, all])
+    })
   })
 })
 

@@ -123,6 +123,7 @@ Anhang B nennt jedes Feld der Datenbank, das auf eine Person zeigt. Dieser Absch
 - Ein abgeschlossener Vorgang bleibt dreißig Tage auf dem Gerät der Person, der er zugeteilt war. [K2.7, B23]
 - Eine Prüfung oder Wartung, die jemandem zum Ausführen zugeteilt wird, liegt nach dem nächsten Abgleich auf dem Gerät dieser Person, solange sie offen ist. [K2.7, K4.4, B102]
 - Ein Rundgang, den der Plan oder das Büro niemandem zugeteilt hat, liegt auf den Geräten aller im Bereich; einer, der jemandem zugeteilt ist, auf dem Gerät dieser Person. Die Pläne der Rundgänge liegen auf den Geräten aller, die ihren Bereich sehen, zum Lesen, mit der Kennung des Kontos, das ein Plan nennt; den Namen dazu nennt der Server der Haustechnik nur für Rundgänge, die ihr oder niemandem zugeteilt sind. Wie bei einer Pflicht, die ihre verantwortliche Person nennt. [K2.7, K4.5, B127, B128]
+- Der Start vor Ort zeigt der Person, die das Gerät hält, ihre eigenen Vorgänge von heute und dieser Woche und die, die niemandem zugeteilt sind; was einer anderen Person zugeteilt ist, zeigt er nicht. Ein begonnener Vorgang heißt dort „begonnen“, ohne Uhrzeit: eine eigene Zeit des Beginns hat ein Vorgang nicht, wann er auf „begonnen“ ging, steht nur im Änderungsprotokoll (Abschnitt 8). [K2.7, K4.5]
 
 ### 3.8 Daten über Dritte
 

@@ -22,7 +22,7 @@ import {
   type OpenedBlock,
 } from '../../app/answers.js'
 import { PointInput } from '../../app/form-points.js'
-import { NotOnDevice } from '../kit.js'
+import { NotOnDevice, useAcross } from '../kit.js'
 import { siteForms } from '../places.js'
 import {
   SiteFormScreen,
@@ -33,6 +33,7 @@ import {
   useWhere,
 } from './form.js'
 import { SiteResultScreen } from './result.js'
+import { SiteStartScreen } from './start.js'
 
 export const protocolWords = {
   origin: (packageTitle: string | null, version: number) =>
@@ -47,20 +48,23 @@ export const protocolWords = {
 
 /**
  * An activity on site by what it is (#108): a round shows its chapters and
- * points, one point to a screen (#107, #114); an inspection or a maintenance
+ * points, one point to a screen (#107, #114), beside the list of the start on
+ * a tablet held across; an inspection or a maintenance
  * with a form its protocol as one list, the board "Prüfung: Protokoll"; one
  * without a form its result straight away, since it has nothing else to say.
  */
 export function SiteActivityScreen() {
   const { activityId } = useParams({ strict: false }) as { activityId: string }
   const activity = useRecord('activities', activityId)
+  const across = useAcross()
 
   if (activity === null) {
     return <NotOnDevice what="Diesen Vorgang" back={{ to: '/', label: 'Zum Start' }} />
   }
 
   if (text(activity, 'kind') === 'round') {
-    return <SiteFormScreen />
+    // On a tablet held across, the round stands beside the list of the start.
+    return across ? <SiteStartScreen selected={activityId} /> : <SiteFormScreen />
   }
 
   return maybeText(activity, 'formKey') === null ? <SiteResultScreen /> : <SiteProtocolScreen />
