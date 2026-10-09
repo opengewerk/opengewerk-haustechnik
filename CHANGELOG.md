@@ -885,6 +885,17 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   mit einem Durchgang je Tag und seinem Stand, dem Zuteilen je Plan und Woche und "Wie letzte Woche
   zuteilen"; darunter die Pläne. Ein Rundgang, der niemandem zugeteilt ist, liegt auf den Geräten
   aller im Bereich. Bisher gab es Vorlagen, aber nichts, das aus ihnen Rundgänge machte
+- Der Rundgang vor Ort, ohne Netz von der ersten Antwort bis zur Unterschrift (#114): der Start
+  zeigt der Person, die das Gerät hält, ihre Rundgänge und Aufträge von heute und dieser Woche und
+  die, die niemandem zugeteilt sind, den begonnenen oben mit seinem Fortschritt und ohne Netz mit
+  der Zahl der Antworten, die noch auf dem Gerät liegen; ein Rundgang einer späteren Woche steht ab
+  dem Vorlauf seines Plans unter "Später". Der Kopf eines Rundgangs nennt Tag und Gebäude, ein
+  Punkt, der eine Pflicht erfüllt, sagt es unter seiner Frage, und "entfällt" und "nicht möglich"
+  sagen, dass die Pflicht dann fällig bleibt. Der letzte Punkt führt zur Abgabe, die nennt, was
+  noch fehlt, und erst dann die Unterschrift öffnet, für genau die gezeigte Seite und über den
+  Postausgang; danach sagt der Rundgang, ob er auf die Gegenzeichnung wartet und welche Mängel
+  aus ihm folgen. Auf dem Tablet quer stehen Liste und Rundgang nebeneinander. Bisher begann das
+  Gerät bei den Konflikten, und einen Rundgang abzugeben ging nicht
 
 ### Geändert
 

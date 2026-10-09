@@ -11,6 +11,7 @@ import {
 } from '../database/schema/index.js'
 import { fillAhead } from '../rounds/plans.js'
 import { dayInGermany } from '../today.js'
+import { previewPeople } from './preview-database.js'
 
 /**
  * The plans of the rounds in the preview (#113): a daily round for
@@ -18,8 +19,9 @@ import { dayInGermany } from '../today.js'
  * that rests, at the first buildings of the sample operator, with their
  * rounds made as the routes make them. One round of today is begun and one
  * is handed to somebody else, so that the overview of the week shows more
- * than one state. In the database, as a test does, and after the templates
- * (`giveSampleTemplates`).
+ * than one state. A daily round of the person the preview answers as stands
+ * on the start on site every day (#114). In the database, as a test does,
+ * and after the templates (`giveSampleTemplates`).
  */
 export async function giveSamplePlans(database: Database, planter: Identity): Promise<void> {
   await database.forTenant(planter, async (tx) => {
@@ -97,6 +99,14 @@ export async function giveSamplePlans(database: Database, planter: Identity): Pr
         },
         { ...at(third), templateId: walked.id, rhythm: 'monthly', dayOfMonth: 5, leadDays: 3 },
         { ...at(first), templateId: kept.id, rhythm: 'weekly', weekdays: [4], resting: true },
+        {
+          ...at(third),
+          templateId: kept.id,
+          rhythm: 'daily',
+          weekdays: [1, 2, 3, 4, 5, 6, 7],
+          leadDays: 2,
+          performerUserId: previewPeople.viewer.id,
+        },
       ])
       .returning()
 

@@ -243,10 +243,24 @@ function RightsProbe() {
 }
 
 /**
+ * The width of the window of a test: a phone, or a tablet held across (#114).
+ * The window of happy-dom is 1024 pixels wide unless told, which is already
+ * a tablet held across.
+ */
+function holdAs(across: boolean): void {
+  const { happyDOM } = window as unknown as {
+    readonly happyDOM: { setViewport: (size: { width: number; height: number }) => void }
+  }
+
+  happyDOM.setViewport(across ? { width: 1180, height: 820 } : { width: 390, height: 844 })
+}
+
+/**
  * The entry on site at an address under `/m`, for somebody in a role, on a
  * device that has exchanged once. `rights` narrows what the role holds;
  * `answers` is what the routes past the sync say, by "METHOD path" or by the
- * path alone.
+ * path alone. The device is a phone unless `across` makes it a tablet held
+ * across.
  */
 export async function mountSite(
   at: string,
@@ -257,6 +271,7 @@ export async function mountSite(
     answers = {},
     scanning = {},
     store,
+    across = false,
   }: {
     readonly server?: TestServer
     readonly role?: RoleKey
@@ -265,6 +280,7 @@ export async function mountSite(
     readonly scanning?: Partial<Scanning>
     /** The name of the store on the device, to open one a test opened before, as a page opened again does. */
     readonly store?: string
+    readonly across?: boolean
   } = {},
 ): Promise<Site> {
   const member = memberIn(role)
@@ -330,6 +346,8 @@ export async function mountSite(
       'round_templates',
       'round_template_versions',
       'round_plans',
+      'work_orders',
+      'work_order_participants',
     ],
     onSignedOut: () => {},
   })
@@ -354,6 +372,8 @@ export async function mountSite(
     basepath: '/m',
     history: createMemoryHistory({ initialEntries: [`/m${at}`] }),
   })
+
+  holdAs(across)
 
   render(
     <QueryClientProvider

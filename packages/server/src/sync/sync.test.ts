@@ -1123,6 +1123,147 @@ describe('a signature from a device', () => {
     expect(written[0]?.state.writtenBy).toBe('Tom Haustechnik')
   })
 
+  it('takes a round of a template from its first answer to the signature without a connection: a check point, a measured value, a reading and a photo (#114)', async () => {
+    const toSign = await activityToSign({ kind: 'round' })
+    const duty = toSign.duties[0]?.duty ?? ''
+    const { rows: template } = await admin.query<{ id: string }>(
+      `insert into round_templates (tenant_id, title) values ($1, 'Technikzentrale') returning id`,
+      [small],
+    )
+    const templateId = template[0]?.id ?? ''
+
+    await admin.query(
+      `insert into round_template_versions (tenant_id, template_id, form_version, definition,
+                                            asks_countersignature)
+       values ($1, $2, 1, $3, false)`,
+      [
+        small,
+        templateId,
+        JSON.stringify({
+          title: 'Technikzentrale',
+          sections: [
+            {
+              key: 'k1',
+              title: 'Heizraum',
+              fields: [
+                {
+                  kind: 'check_point',
+                  key: 'tight',
+                  label: 'Speicher dicht',
+                  about: { kind: 'asset', id: toSign.asset },
+                  fulfils: duty,
+                },
+                {
+                  kind: 'measurement',
+                  key: 'outlet',
+                  label: 'Temperatur am Speicheraustritt',
+                  unit: 'degrees_celsius',
+                  decimals: 1,
+                  required: true,
+                },
+                {
+                  kind: 'meter_reading',
+                  key: 'heat_meter',
+                  label: 'Wärmemengenzähler',
+                  unit: 'megawatt_hours',
+                  decimals: 2,
+                  required: true,
+                },
+                { kind: 'photo', key: 'displays', label: 'Foto der Anzeigen', required: true },
+              ],
+            },
+          ],
+        }),
+      ],
+    )
+    await admin.query('update activities set form_key = $2, form_version = 1 where id = $1', [
+      toSign.activity,
+      `template-${templateId}`,
+    ])
+
+    // What the device holds after its last exchange, before the cellar.
+    const held = await pulled('u-tech')
+    const photo = newId<'attachment'>()
+    const answer = (fieldKey: string, values: Readonly<Record<string, SyncValue>>) =>
+      operation('activity_answers', 'create', newId<'activity-answer'>(), {
+        activityId: toSign.activity,
+        fieldKey,
+        ...values,
+      })
+    // The outbox of the round, in the order it was given: begun with the
+    // first answer, the photo filed before the answer that names it.
+    const work: Sent[] = [
+      ...workDone(toSign).slice(0, 1),
+      answer('tight', { result: 'not_ok', remark: 'Dichtung am Flansch tropft.' }),
+      answer('outlet', { value: '61000' }),
+      answer('heat_meter', { value: '1284360' }),
+      operation('attachments', 'create', photo, {
+        title: 'Foto der Anzeigen',
+        propertyId: place.property,
+        activityId: toSign.activity,
+      }),
+      answer('displays', { attachmentId: photo }),
+    ]
+    // The device lays its own work over what it holds and works the page
+    // out from that, before anything is sent.
+    const store = new Map(
+      Object.entries(held).map(([entity, rows]) => [entity, rows.map((row) => ({ ...row }))]),
+    )
+
+    for (const sent of work) {
+      const rows = store.get(sent.entity) ?? []
+      const values = Object.fromEntries(sent.patches.map((patch) => [patch.field, patch.to]))
+      const there = rows.find((row) => row['id'] === sent.recordId)
+
+      if (there === undefined) {
+        rows.push({ id: sent.recordId, ...values })
+      } else {
+        Object.assign(there, values)
+      }
+
+      store.set(sent.entity, rows)
+    }
+
+    const page = heldPageOf(
+      {
+        find: (entity, id) => store.get(entity)?.find((row) => row['id'] === id) ?? null,
+        related: (entity, field, id) =>
+          (store.get(entity) ?? []).filter((row) => row[field] === id),
+      },
+      toSign.activity,
+    )
+
+    if (page === null) {
+      throw new Error('The device holds the round.')
+    }
+
+    const signed = signature(toSign.activity, pageFingerprint(page))
+
+    expect(await outcomes('u-tech', [...work, signed])).toEqual(
+      Array.from({ length: work.length + 1 }, () => applied),
+    )
+    expect(await statusOf(toSign.activity)).toBe('done')
+
+    // "Nicht in Ordnung" is a defect at the asset of the point.
+    const { rows: defects } = await admin.query<{ asset_id: string; description: string }>(
+      'select asset_id, description from defects where found_in_activity_id = $1',
+      [toSign.activity],
+    )
+
+    expect(defects).toEqual([
+      { asset_id: toSign.asset, description: 'Speicher dicht: Dichtung am Flansch tropft.' },
+    ])
+
+    // The point that fulfils the duty wrote its evidence, with its result.
+    const { rows: evidence } = await admin.query<{
+      duty_id: string
+      origin: string
+      result: string
+    }>('select duty_id, origin, result from evidence where activity_id = $1', [toSign.activity])
+
+    expect(evidence).toEqual([{ duty_id: duty, origin: 'round_point', result: 'with_defects' }])
+  })
+
   it('takes an inspection signed without a connection for the page the device works out from what it was sent and what it did', async () => {
     const toSign = await activityToSign()
     // What the device holds after its last exchange: the activity is given to nobody.

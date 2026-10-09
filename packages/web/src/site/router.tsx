@@ -3,13 +3,13 @@ import {
   createRootRoute,
   createRoute,
   createRouter,
-  redirect,
   type RouteComponent,
 } from '@tanstack/react-router'
 
 import { SiteAssetScreen } from './screens/asset.js'
 import { SitePointScreen } from './screens/form.js'
 import { GiveLabelScreen } from './screens/give-label.js'
+import { RoundHandInScreen, RoundSignScreen } from './screens/hand-in.js'
 import {
   SiteBuildingScreen,
   SiteFloorScreen,
@@ -23,6 +23,7 @@ import { TakeAssetScreen } from './screens/take-asset.js'
 import { TakeRoomScreen } from './screens/take-room.js'
 import { SiteActivityScreen } from './screens/protocol.js'
 import { SiteResultScreen } from './screens/result.js'
+import { SiteStartScreen } from './screens/start.js'
 import { SiteShell } from './shell.js'
 
 /**
@@ -33,10 +34,9 @@ import { SiteShell } from './shell.js'
  * which is how the budget for the first load on site can mean anything: the
  * phone never downloads the office.
  *
- * Until the start of phase 1 arrives, with what is due today and this week,
- * the start on site is the screen of the conflicts: deciding one has to be
- * possible on the device that caused it, and it is the screen the foundation
- * brings for that.
+ * The start is what is due today and this week for the person who holds the
+ * device (#114); the conflicts stand at the address the foundation gives
+ * them, among its tabs.
  *
  * A screen the board has among the tabs lives at the address its tab names
  * (`tabs.tsx`). Its route here is all it takes: the tab stands from then on,
@@ -57,13 +57,7 @@ export function siteRoutes() {
     createRoute({ getParentRoute: () => root, path, component })
 
   return root.addChildren([
-    createRoute({
-      getParentRoute: () => root,
-      path: '/',
-      beforeLoad: () => {
-        throw redirect({ to: '/konflikte' })
-      },
-    }),
+    at('/', SiteStartScreen),
     at('/konflikte', ConflictScreen),
     // The tab "Scannen": the label of an asset or a room, read by the camera.
     at('/scannen', SiteScanScreen),
@@ -85,11 +79,14 @@ export function siteRoutes() {
     at('/raeume/$roomId/mangel', ReportDefectScreen),
     // An activity: a round point by point (#107), the protocol of an
     // inspection or a maintenance as a list, its result with the signature
-    // and a defect reported in it (#108), also without a network.
+    // and a defect reported in it (#108), the handing in of a round and its
+    // signature (#114), also without a network.
     at('/vorgaenge/$activityId', SiteActivityScreen),
     at('/vorgaenge/$activityId/punkte/$pointKey', SitePointScreen),
     at('/vorgaenge/$activityId/ergebnis', SiteResultScreen),
     at('/vorgaenge/$activityId/mangel', ReportDefectScreen),
+    at('/vorgaenge/$activityId/abgabe', RoundHandInScreen),
+    at('/vorgaenge/$activityId/unterschrift', RoundSignScreen),
   ])
 }
 

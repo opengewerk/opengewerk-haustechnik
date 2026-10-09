@@ -2,7 +2,6 @@ import {
   activityLimits,
   answeredField,
   answerFindings,
-  answerVerdict,
   answersMissing,
   type EvidenceResult,
   evidenceLimits,
@@ -35,14 +34,7 @@ import { useNavigate, useParams } from '@tanstack/react-router'
 import { Check, ChevronLeft, Plus, Signature } from 'lucide-react'
 import { useCallback, useId, useMemo, useRef, useState } from 'react'
 
-import {
-  answerAt,
-  beginActivity,
-  filledOf,
-  type FormPoint,
-  isAnswered,
-  isDemanded,
-} from '../../app/answers.js'
+import { answerAt, beginActivity, filledOf, type FormPoint, lackOf } from '../../app/answers.js'
 import { useDeferredWrite } from '../../app/form-points.js'
 import { offeredResults, resultNotes } from '../../app/results.js'
 import { signActivity } from '../../app/signing.js'
@@ -280,29 +272,17 @@ function ResultOf({ activityId }: { readonly activityId: string }) {
 
     return record === undefined ? undefined : filledOf(record)
   }
-  /**
-   * What a point still lacks before the signature, in a word, or null: an
-   * answer where one is demanded, and the remark or the reason an answer asks
-   * for. The signature asks `answersMissing`, which says the same in sentences.
-   */
+  /** What a point still lacks before the signature, in a word, or null (`lackOf`). */
   const lacking = (point: FormPoint): string | null => {
-    const given = filledAt(point)
+    const lack = lackOf(point, filledAt(point), context)
 
-    if (given === undefined || !isAnswered(point, given)) {
-      return isDemanded(point) ? point.section.title : null
-    }
-
-    const said = (given.remark ?? '').trim() !== ''
-
-    if (point.field.kind === 'check_point' && given.result !== 'ok' && !said) {
-      return given.result === 'not_ok' ? resultWords.noRemark : resultWords.noReason
-    }
-
-    return point.field.kind === 'measurement' &&
-      answerVerdict(point.field, given, context).within === false &&
-      !said
-      ? resultWords.noRemark
-      : null
+    return lack === null
+      ? null
+      : lack === 'answer'
+        ? point.section.title
+        : lack === 'remark'
+          ? resultWords.noRemark
+          : resultWords.noReason
   }
   const open = form.points.flatMap((point) => {
     const why = lacking(point)
