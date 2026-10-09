@@ -1,0 +1,77 @@
+{
+  "entries": [],
+  "rules": [
+    {
+      "key": "new_year",
+      "scope": "DE-BW",
+      "validFrom": "1995-05-08",
+      "checkedOn": "2026-10-09"
+    },
+    {
+      "key": "epiphany",
+      "scope": "DE-BW",
+      "validFrom": "1995-05-08",
+      "checkedOn": "2026-10-09"
+    },
+    {
+      "key": "good_friday",
+      "scope": "DE-BW",
+      "validFrom": "1995-05-08",
+      "checkedOn": "2026-10-09"
+    },
+    {
+      "key": "easter_monday",
+      "scope": "DE-BW",
+      "validFrom": "1995-05-08",
+      "checkedOn": "2026-10-09"
+    },
+    {
+      "key": "labour_day",
+      "scope": "DE-BW",
+      "validFrom": "1995-05-08",
+      "checkedOn": "2026-10-09"
+    },
+    {
+      "key": "ascension_day",
+      "scope": "DE-BW",
+      "validFrom": "1995-05-08",
+      "checkedOn": "2026-10-09"
+    },
+    {
+      "key": "whit_monday",
+      "scope": "DE-BW",
+      "validFrom": "1995-05-08",
+      "checkedOn": "2026-10-09"
+    },
+    {
+      "key": "corpus_christi",
+      "scope": "DE-BW",
+      "validFrom": "1995-05-08",
+      "checkedOn": "2026-10-09"
+    },
+    {
+      "key": "unity_day",
+      "scope": "DE-BW",
+      "validFrom": "1990-10-03",
+      "checkedOn": "2026-10-09"
+    },
+    {
+      "key": "all_saints_day",
+      "scope": "DE-BW",
+      "validFrom": "1995-05-08",
+      "checkedOn": "2026-10-09"
+    },
+    {
+      "key": "christmas_day",
+      "scope": "DE-BW",
+      "validFrom": "1995-05-08",
+      "checkedOn": "2026-10-09"
+    },
+    {
+      "key": "second_christmas_day",
+      "scope": "DE-BW",
+      "validFrom": "1995-05-08",
+      "checkedOn": "2026-10-09"
+    }
+  ]
+}

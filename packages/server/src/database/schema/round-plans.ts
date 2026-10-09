@@ -66,6 +66,7 @@ export const roundPlans = pgTable(
     startsOn: date('starts_on', { mode: 'string' }).notNull(),
     endsOn: date('ends_on', { mode: 'string' }),
     resting: boolean('resting').notNull().default(false),
+    skipHolidays: boolean('skip_holidays').notNull().default(false),
     performerUserId: text('performer_user_id'),
     ...timestamps,
     ...syncColumns,

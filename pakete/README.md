@@ -154,6 +154,11 @@ ein Land, etwa `"DE-BW"`; fehlt es, gilt die Regel bundesweit. An einem Tag gilt
 bundesweit oder je Land, nicht beides. Für einen Tag ohne Regel gibt es keine Antwort, und eine
 Lücke mitten in einer Reihe lehnt der Bau ab.
 
+Eine Regel kann auch einen Tag nennen, etwa einen gesetzlichen Feiertag (Paket `feiertage`): in
+`month_day` einen Tag, der jedes Jahr wiederkommt, als Monat mal hundert plus Tag (1003 ist der 3.
+Oktober), in `days_from_easter` einen Tag, der mit Ostern wandert, gezählt ab Ostersonntag (-2 ist
+Karfreitag). Einen Tag, den nicht jedes Jahr hat, wie den 29. Februar, lehnt der Bau ab.
+
 ### formulare/ und vorlagen/
 
 ```json

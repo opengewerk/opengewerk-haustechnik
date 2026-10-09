@@ -72,7 +72,10 @@ function bound(
         today: () => dayInGermany(job.now?.() ?? new Date()),
       }),
       defect: defectSource(),
-      round_plan: roundPlanSource({ today: () => dayInGermany(job.now?.() ?? new Date()) }),
+      round_plan: roundPlanSource({
+        today: () => dayInGermany(job.now?.() ?? new Date()),
+        catalogue: job.catalogue,
+      }),
       meter: meterSource({ today: () => dayInGermany(job.now?.() ?? new Date()) }),
     },
     actions: { activity: activityFromDeadline(job.catalogue) },

@@ -1,13 +1,17 @@
 import {
   activityLimits,
   addDays,
+  type Catalogue,
   closureOn,
   type DutyId,
   dutyHasEnded,
+  holidayClosures,
+  holidaysBetween,
   isPassDay,
   type IsoDate,
   leadOf,
   passesBetween,
+  passSearchDays,
   type PlanClosure,
   roundDue,
   type TemplateDefinition,
@@ -23,6 +27,7 @@ import {
   buildingClosures,
   deadlines,
   duties,
+  properties,
   roundPlans,
   roundTemplateVersions,
 } from '../database/schema/index.js'
@@ -97,12 +102,13 @@ export async function fillRounds(
   plan: PlanRow,
   from: IsoDate,
   until: IsoDate,
+  rules: HolidayRules,
 ): Promise<number> {
   if (plan.resting || plan.deletedAt !== null) {
     return 0
   }
 
-  const closures = await closuresOf(tx, plan.buildingId)
+  const closures = await daysOffOf(tx, plan, rules, from, until)
   const passes = passesBetween(plan, from, until, closures)
 
   if (passes.length === 0) {
@@ -261,9 +267,10 @@ export async function replan(
   after: PlanRow,
   today: IsoDate,
   now: Date,
+  rules: HolidayRules,
 ): Promise<void> {
   const rounds = await openRoundsOf(tx, after.id, today)
-  const closures = await closuresOf(tx, after.buildingId)
+  const closures = await daysOffOf(tx, after, rules, today, addDays(today, passSearchDays))
   const every = after.resting || after.deletedAt !== null || before.templateId !== after.templateId
   const gone = rounds.filter(
     (round) =>
@@ -297,7 +304,7 @@ export async function replan(
     }
   }
 
-  await fillAhead(tx, after, today)
+  await fillAhead(tx, after, today, rules)
 }
 
 /**
@@ -311,14 +318,15 @@ export async function followClosures(
   buildingId: NonNullable<PlanRow['buildingId']>,
   today: IsoDate,
   now: Date,
+  rules: HolidayRules,
 ): Promise<void> {
   const plans = await tx
     .select()
     .from(roundPlans)
     .where(and(eq(roundPlans.buildingId, buildingId), isNull(roundPlans.deletedAt)))
-  const closures = await closuresOf(tx, buildingId)
 
   for (const plan of plans) {
+    const closures = await daysOffOf(tx, plan, rules, today, addDays(today, passSearchDays))
     const closed = (await openRoundsOf(tx, plan.id, today)).filter(
       (round) => round.dueOn !== null && closureOn(closures, round.dueOn) !== null,
     )
@@ -328,8 +336,40 @@ export async function followClosures(
       closed.map((round) => round.id),
       now,
     )
-    await fillAhead(tx, plan, today)
+    await fillAhead(tx, plan, today, rules)
   }
+}
+
+/** What a plan asks of the catalogue: the statutory public holidays of a state (#200). */
+export type HolidayRules = Pick<Catalogue, 'ruleSet'>
+
+/**
+ * The days a plan makes no round on from a day to a day (4.1, 4.5): the
+ * closures of its building that stand, and where the plan leaves them out,
+ * the statutory public holidays of the state of its property (#200). A pass
+ * on either is left out and not moved.
+ */
+async function daysOffOf(
+  tx: TenantTransaction,
+  plan: Pick<PlanRow, 'buildingId' | 'propertyId' | 'skipHolidays'>,
+  rules: HolidayRules,
+  from: IsoDate,
+  until: IsoDate,
+): Promise<readonly PlanClosure[]> {
+  const closures = await closuresOf(tx, plan.buildingId)
+
+  if (!plan.skipHolidays) {
+    return closures
+  }
+
+  const [property] = await tx
+    .select({ federalState: properties.federalState })
+    .from(properties)
+    .where(eq(properties.id, plan.propertyId))
+
+  return property === undefined
+    ? closures
+    : [...closures, ...holidayClosures(holidaysBetween(rules, property.federalState, from, until))]
 }
 
 /** The times a building is closed that stand, none for a plan over a whole property. */
@@ -365,10 +405,11 @@ export async function fillAhead(
   tx: TenantTransaction,
   plan: PlanRow,
   today: IsoDate,
+  rules: HolidayRules,
 ): Promise<number> {
   const reach = await roundReach(tx, plan.id)
 
-  return fillRounds(tx, plan, today, addDays(today, reach))
+  return fillRounds(tx, plan, today, addDays(today, reach), rules)
 }
 
 /**

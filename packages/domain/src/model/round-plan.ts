@@ -106,6 +106,12 @@ export interface RoundPlan extends Synced {
   /** Whether the plan rests: no round is made until it runs again. */
   readonly resting: boolean
   /**
+   * Whether a pass on a statutory public holiday of the state of its
+   * property is left out, like one in a closure of its building (4.5, #200);
+   * otherwise a holiday counts like any day.
+   */
+  readonly skipHolidays: boolean
+  /**
    * The person who walks a new round, one of the own people; none hands it
    * to everybody in the area who performs, and whoever begins it walks it.
    */

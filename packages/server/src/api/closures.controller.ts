@@ -1,13 +1,24 @@
-import { Body, Controller, Delete, Get, NotFoundException, Param, Post } from '@nestjs/common'
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Inject,
+  NotFoundException,
+  Param,
+  Post,
+} from '@nestjs/common'
 import {
   type Building,
   type BuildingClosure,
   type BuildingId,
   closureProblems,
+  type Catalogue,
 } from '@opengewerk/haustechnik-domain'
 import { CurrentIdentity, Database } from '@opengewerk/platform-server'
 import { and, asc, eq, isNull } from 'drizzle-orm'
 
+import { CATALOGUE } from '../catalogue.js'
 import { buildingClosures, buildings } from '../database/schema/index.js'
 import { followClosures } from '../rounds/plans.js'
 import { dayInGermany } from '../today.js'
@@ -37,7 +48,10 @@ const closureFields = ['startsOn', 'endsOn', 'reason'] as const
  */
 @Controller('buildings')
 export class BuildingClosuresController {
-  constructor(private readonly database: Database) {}
+  constructor(
+    private readonly database: Database,
+    @Inject(CATALOGUE) private readonly catalogue: Catalogue,
+  ) {}
 
   /** The closures of the building that stand, in the order of the calendar. */
   @Get(':id/closures')
@@ -91,7 +105,7 @@ export class BuildingClosuresController {
         })
         .returning()
 
-      await followClosures(tx, building.id, dayInGermany(new Date()), new Date())
+      await followClosures(tx, building.id, dayInGermany(new Date()), new Date(), this.catalogue)
 
       return created as BuildingClosure
     })
@@ -124,7 +138,7 @@ export class BuildingClosuresController {
         .where(and(eq(buildingClosures.id, closure.id), isNull(buildingClosures.deletedAt)))
         .returning()
 
-      await followClosures(tx, building.id, dayInGermany(new Date()), new Date())
+      await followClosures(tx, building.id, dayInGermany(new Date()), new Date(), this.catalogue)
 
       return removed as BuildingClosure
     })

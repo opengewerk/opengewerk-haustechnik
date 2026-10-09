@@ -126,7 +126,7 @@ export async function giveSamplePlans(
       .returning()
 
     for (const plan of plans) {
-      await fillAhead(tx, plan, today)
+      await fillAhead(tx, plan, today, catalogue)
     }
 
     const [daily1] = plans

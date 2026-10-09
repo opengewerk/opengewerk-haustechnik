@@ -303,6 +303,7 @@ export const auditVocabulary: AuditVocabulary = {
         starts_on: 'Ab',
         ends_on: 'Bis',
         resting: 'Ruht',
+        skip_holidays: 'Gesetzliche Feiertage auslassen',
         performer_user_id: 'Zuständig',
       },
     },

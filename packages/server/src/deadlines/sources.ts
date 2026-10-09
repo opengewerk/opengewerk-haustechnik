@@ -1,4 +1,5 @@
 import {
+  addDays,
   addMonths,
   type AreaId,
   type Asset,
@@ -9,10 +10,13 @@ import {
   dutyInterval,
   type DutyId,
   firstOpenPass,
+  holidayClosures,
+  holidaysBetween,
   type IsoDate,
   lifecycleStateOn,
   meterRestsOn,
   nextAppointment,
+  passSearchDays,
   type PropertyId,
   restsOn,
   roomTitle,
@@ -292,6 +296,8 @@ export function defectSource(): SourceQuery<DeadlineValues> {
  */
 export function roundPlanSource(options: {
   readonly today: () => IsoDate
+  /** The statutory public holidays a plan may leave out (#200). */
+  readonly catalogue: Pick<Catalogue, 'ruleSet'>
 }): SourceQuery<DeadlineValues> {
   return async (tx) => {
     const today = options.today()
@@ -301,6 +307,7 @@ export function roundPlanSource(options: {
         title: roundTemplates.title,
         buildingName: buildings.name,
         propertyName: properties.name,
+        federalState: properties.federalState,
       })
       .from(roundPlans)
       .innerJoin(roundTemplates, eq(roundTemplates.id, roundPlans.templateId))
@@ -353,12 +360,23 @@ export function roundPlanSource(options: {
       )
 
     return plans.flatMap(
-      ({ plan, title, buildingName, propertyName }): ExpectedDeadline<DeadlineValues>[] => {
+      ({
+        plan,
+        title,
+        buildingName,
+        propertyName,
+        federalState,
+      }): ExpectedDeadline<DeadlineValues>[] => {
         const from = plan.startsOn > today ? plan.startsOn : today
+        const holidays = plan.skipHolidays
+          ? holidayClosures(
+              holidaysBetween(options.catalogue, federalState, from, addDays(from, passSearchDays)),
+            )
+          : []
         const pass = firstOpenPass(
           plan,
           from,
-          closures.filter((closure) => closure.buildingId === plan.buildingId),
+          [...closures.filter((closure) => closure.buildingId === plan.buildingId), ...holidays],
           new Set(
             rounds.flatMap((round) =>
               round.planId === plan.id && round.dueOn !== null ? [round.dueOn] : [],

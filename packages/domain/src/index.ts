@@ -33,6 +33,7 @@ export * from './model/contact.js'
 
 // The times a building is closed, in which no round is made for it.
 export * from './model/closure.js'
+export * from './model/holiday.js'
 
 // The documents of an operator: the files of the foundation, with what one
 // hangs on here and what kind of document it is.

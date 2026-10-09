@@ -1,10 +1,17 @@
-import { addDays, type IsoDate, type RoleKey, weekdayOf } from '@opengewerk/haustechnik-domain'
+import {
+  addDays,
+  type CatalogueBundle,
+  type IsoDate,
+  type RoleKey,
+  weekdayOf,
+} from '@opengewerk/haustechnik-domain'
 import { today } from '@opengewerk/platform-web/format'
 import { TestServer } from '@opengewerk/platform-web/testing'
 import { onlineManager } from '@tanstack/react-query'
-import { fireEvent, screen, waitFor, within } from '@testing-library/react'
+import { act, fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { servingCatalogue, testCatalogue, unacceptedReview } from '../../app/test-catalogue.js'
 import {
   mountOffice,
   type NamedArea,
@@ -26,7 +33,12 @@ import { dayWords, planWords } from './round-plans.js'
 const nord: NamedArea = { id: 'a-nord', name: 'Nord' }
 const on = today() as IsoDate
 
-const station = { id: 'p-station', areaId: nord.id, name: 'Feuerwache Nord' }
+const station = {
+  id: 'p-station',
+  areaId: nord.id,
+  name: 'Feuerwache Nord',
+  federalState: 'DE-BW',
+}
 const guard = { id: 'b-guard', propertyId: station.id, areaId: nord.id, name: 'Wache' }
 const template = {
   id: 't-guard',
@@ -92,11 +104,67 @@ let server: TestServer
 let answerToWrite: (write: Written) => WriteAnswer
 let written: Written[]
 
-function signedIn(role: RoleKey) {
+/**
+ * A statutory public holiday of Baden-Württemberg on the first day the
+ * daily plan falls on and its building is open (#200): a weekday outside the
+ * closure, never the 29th of February, which no rule of a day names.
+ */
+const holiday = (() => {
+  let day = on
+
+  while (
+    weekdayOf(day) > 5 ||
+    (day >= closure.startsOn && day <= closure.endsOn) ||
+    day.endsWith('-02-29')
+  ) {
+    day = addDays(day, 1)
+  }
+
+  return day
+})()
+
+/** The catalogue of the screens with a package that holds that holiday. */
+const withHolidays: CatalogueBundle = {
+  ...testCatalogue,
+  sha256: 'f'.repeat(64),
+  packages: [
+    ...testCatalogue.packages,
+    {
+      name: 'feiertage',
+      title: 'Gesetzliche Feiertage',
+      version: '1.0.0',
+      minimumCore: '0.1.0',
+      assetKinds: [],
+      dutyKinds: [],
+      forms: [],
+      roundTemplates: [],
+      rules: [
+        {
+          record: {
+            key: 'feiertage.probe_day',
+            scope: 'DE-BW',
+            validFrom: '1995-05-08',
+            validUntil: null,
+            unit: 'month_day',
+            value: Number(holiday.slice(5, 7)) * 100 + Number(holiday.slice(8, 10)),
+            source: '§ 1 FTG',
+            origin: 'state_law',
+            note: 'Probefeiertag',
+          },
+          review: unacceptedReview,
+        },
+      ],
+      defectClasses: [],
+    },
+  ],
+}
+
+function signedIn(role: RoleKey, catalogue: CatalogueBundle | null = null) {
   written = signedInOffice(
     role,
     [nord],
     {
+      ...(catalogue === null ? {} : servingCatalogue(catalogue)),
       '/rounds/people': [{ userId: 'u-tobias', name: 'Tobias Wendt' }],
       [`/rounds/performers?area=${nord.id}`]: [
         { userId: 'u-tobias', name: 'Tobias Wendt' },
@@ -160,6 +228,64 @@ describe('the list of the plans', () => {
     expect(running?.[4]).toBe('Läuft')
     expect(resting?.slice(2)).toEqual(['Tobias Wendt', 'keiner', 'Ruht'])
     expect(screen.getByRole('button', { name: 'Neuer Plan' })).toBeTruthy()
+  })
+})
+
+describe('the statutory public holidays of a plan (#200)', () => {
+  it('are offered to leave out where the catalogue holds them for the state, and the next passes show them', async () => {
+    answerToWrite = () => ({ status: 200, body: { id: daily.id } })
+    signedIn('site_management', withHolidays)
+    await mountOffice(`/rundgaenge/plaene/${daily.id}`, server, everything)
+    await screen.findByRole('button', { name: 'Speichern' })
+
+    const choice = await screen.findByRole('checkbox', { name: /Gesetzliche Feiertage auslassen/ })
+
+    expect(choice.closest('label')?.textContent).toContain(
+      planWords.holidaysHint('Baden-Württemberg'),
+    )
+    expect((choice as HTMLInputElement).checked).toBe(false)
+
+    fireEvent.click(choice)
+    await waitFor(() => {
+      expect(
+        rowsOf('Die nächsten Durchgänge des Plans mit der Person, die sie geht').find(
+          (row) => row[0] === dayWords(holiday),
+        ),
+      ).toEqual([dayWords(holiday), planWords.holiday('Probefeiertag')])
+    })
+
+    press('Speichern')
+    await waitFor(() => {
+      expect(written).toHaveLength(1)
+    })
+    expect(written[0]).toMatchObject({
+      method: 'PATCH',
+      path: `/round-plans/${daily.id}`,
+      body: { skipHolidays: true },
+    })
+  })
+
+  it('are not offered where the catalogue holds none for the state of the property', async () => {
+    answerToWrite = () => ({ status: 200, body: { id: daily.id } })
+    signedIn('site_management', withHolidays)
+
+    const mounted = await mountOffice(`/rundgaenge/plaene/${daily.id}`, server, everything)
+
+    // Offered in Baden-Württemberg, so the catalogue is on the device; then the property moves.
+    await screen.findByRole('checkbox', { name: /Gesetzliche Feiertage auslassen/ })
+    server.put('properties', { ...station, federalState: 'DE-HE' })
+    await act(async () => {
+      await mounted.client.synchronise()
+    })
+    await waitFor(() => {
+      expect(screen.queryByRole('checkbox', { name: /Gesetzliche Feiertage auslassen/ })).toBeNull()
+    })
+
+    press('Speichern')
+    await waitFor(() => {
+      expect(written).toHaveLength(1)
+    })
+    expect(written[0]?.body).not.toHaveProperty('skipHolidays')
   })
 })
 

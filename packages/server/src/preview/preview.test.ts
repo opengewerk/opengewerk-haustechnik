@@ -602,7 +602,12 @@ describe('a preview started as the Leitung', () => {
       readonly sha256: string
     }
 
-    expect(whole.packages.map((entry) => entry.name)).toEqual(['allgemein', 'probe', 'vorschau'])
+    expect(whole.packages.map((entry) => entry.name)).toEqual([
+      'allgemein',
+      'feiertage',
+      'probe',
+      'vorschau',
+    ])
     expect(whole).toEqual(previewBundle)
     // One catalogue of its own: a device that held either bundle fetches this one.
     expect(checksum.sha256).toBe(previewBundle.sha256)

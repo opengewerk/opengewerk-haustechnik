@@ -1,10 +1,16 @@
 import {
   addDays,
+  type Catalogue,
   closureOn,
   type DutyPerson,
+  type FederalState,
+  hasHolidays,
+  holidayClosures,
+  holidaysBetween,
   type IsoDate,
   isPassDay,
   monthLabel,
+  passSearchDays,
   type PlanCalendar,
   planLimits,
   planProblems,
@@ -15,6 +21,7 @@ import {
   planStateOn,
   type RecordState,
   rhythmText,
+  ruleScopeNames,
   type Weekday,
   weekdayLabel,
   weekdayOf,
@@ -56,6 +63,7 @@ import { Check, Pause, Play, Plus, Square } from 'lucide-react'
 import { type FormEvent, useMemo, useState } from 'react'
 
 import { areaName, useAreas } from '../../session/areas.js'
+import { useCatalogue } from '../../sync/catalogue.js'
 import { askAt, makeAt } from '../../sync/made-at.js'
 import { planListPlace, planPlaces, roundsPlace } from '../round-template-addresses.js'
 import { useTemplateVersions } from './round-templates.js'
@@ -79,6 +87,10 @@ export const planWords = {
   placeHint: 'Eine Liegenschaft oder ein Gebäude darin.',
   placeStays: 'Der Ort eines Plans bleibt. Für einen anderen Ort legen Sie einen neuen Plan an.',
   otherDays: 'An den anderen Tagen entsteht kein Rundgang.',
+  holidays: 'Gesetzliche Feiertage auslassen',
+  holidaysHint: (state: string) =>
+    `Feiertage in ${state}. Ein Durchgang an einem Feiertag fällt aus und wird nicht verschoben.`,
+  holiday: (name: string) => `${name}, Feiertag`,
   dayHint: 'In einem kürzeren Monat am letzten Tag.',
   leadHint: `So viele Tage vorher steht der Rundgang vor Ort unter „Start“, höchstens ${String(planLimits.leadDays)}.`,
   endsHint: 'Leer: Der Plan läuft weiter.',
@@ -227,6 +239,20 @@ function useClosures(): ReadonlyMap<
   }, [closures])
 }
 
+/**
+ * The state of a property, where the catalogue holds its statutory public
+ * holidays (#200): only there may a plan leave them out. None while the
+ * catalogue is not on the device yet.
+ */
+function holidayStateOf(
+  catalogue: Catalogue | null,
+  property: RecordState | undefined,
+): FederalState | null {
+  const state = maybeText(property, 'federalState') as FederalState | undefined
+
+  return catalogue !== null && state !== undefined && hasHolidays(catalogue, state) ? state : null
+}
+
 /** The first pass of a plan from today on that its building is open for. */
 function nextPassOf(
   calendar: PlanCalendar,
@@ -279,6 +305,8 @@ export function PlanListScreen() {
   const placeOf = usePlaceOf()
   const areas = useAreas()
   const people = useQuery(roundPeopleQuery)
+  const catalogue = useCatalogue()
+  const properties = useRecords('properties')
   const rows = useMemo(
     () =>
       records
@@ -294,6 +322,18 @@ export function PlanListScreen() {
             on as IsoDate,
           )
           const start = calendar.startsOn > on ? calendar.startsOn : (on as IsoDate)
+          const holidayState = flag(plan, 'skipHolidays')
+            ? holidayStateOf(
+                catalogue,
+                properties.find((each) => each['id'] === plan['propertyId']),
+              )
+            : null
+          const holidays =
+            catalogue === null || holidayState === null
+              ? []
+              : holidayClosures(
+                  holidaysBetween(catalogue, holidayState, start, addDays(start, passSearchDays)),
+                )
 
           return {
             id: String(plan['id']),
@@ -303,7 +343,11 @@ export function PlanListScreen() {
             place: placeOf(plan),
             next:
               state === 'running' || state === 'upcoming'
-                ? nextPassOf(calendar, closures.get(text(plan, 'buildingId')) ?? [], start)
+                ? nextPassOf(
+                    calendar,
+                    [...(closures.get(text(plan, 'buildingId')) ?? []), ...holidays],
+                    start,
+                  )
                 : null,
           }
         })
@@ -313,7 +357,7 @@ export function PlanListScreen() {
             left.place.name.localeCompare(right.place.name, 'de') ||
             left.title.localeCompare(right.title, 'de'),
         ),
-    [records, templates, closures, placeOf, on],
+    [records, templates, closures, placeOf, on, catalogue, properties],
   )
 
   return (
@@ -422,6 +466,8 @@ interface PlanDraft {
   readonly endsOn: string
   readonly everybody: boolean
   readonly performerUserId: string
+  /** Whether the statutory public holidays of the state are left out (#200). */
+  readonly skipHolidays: boolean
 }
 
 function draftOf(plan: RecordState | null, on: string): PlanDraft {
@@ -439,6 +485,7 @@ function draftOf(plan: RecordState | null, on: string): PlanDraft {
       endsOn: '',
       everybody: false,
       performerUserId: '',
+      skipHolidays: false,
     }
   }
 
@@ -458,6 +505,7 @@ function draftOf(plan: RecordState | null, on: string): PlanDraft {
     endsOn: calendar.endsOn ?? '',
     everybody: typeof plan['performerUserId'] !== 'string',
     performerUserId: typeof plan['performerUserId'] === 'string' ? plan['performerUserId'] : '',
+    skipHolidays: flag(plan, 'skipHolidays'),
   }
 }
 
@@ -596,6 +644,11 @@ function PlanForm({
     properties.find((each) => each['id'] === property),
     'areaId',
   )
+  const catalogue = useCatalogue()
+  const holidayState = holidayStateOf(
+    catalogue,
+    properties.find((each) => each['id'] === property),
+  )
   const area = areaName(areas, areaId)
   const performers = useQuery(performersQuery(plans ? areaId : ''))
   const ended =
@@ -649,6 +702,10 @@ function PlanForm({
     const closed = closures.get(building) ?? []
     const found: { day: IsoDate; closed: string | null }[] = []
     const from = (draft.startsOn > on ? draft.startsOn : on) as IsoDate
+    const holidays =
+      catalogue === null || holidayState === null || !draft.skipHolidays
+        ? []
+        : holidaysBetween(catalogue, holidayState, from, addDays(from, 400))
 
     for (
       let day = from, step = 0;
@@ -661,16 +718,22 @@ function PlanForm({
 
       if (isPassDay(calendar, day)) {
         const closure = closureOn(closed, day)
+        const holiday = holidays.find((each) => each.day === day)
 
         found.push({
           day,
-          closed: closure === null ? null : `${closure.reason ?? 'Schließzeit'}, geschlossen`,
+          closed:
+            closure !== null
+              ? `${closure.reason ?? 'Schließzeit'}, geschlossen`
+              : holiday === undefined
+                ? null
+                : planWords.holiday(holiday.name),
         })
       }
     }
 
     return found
-  }, [draft, closures, on])
+  }, [draft, closures, on, catalogue, holidayState])
 
   const walkerFor = (day: IsoDate) => {
     // A new plan has no rounds yet, and an activity without a plan is none of its rounds.
@@ -725,6 +788,7 @@ function PlanForm({
     const values = {
       ...calendarValues(draft),
       performerUserId: draft.everybody ? null : draft.performerUserId,
+      ...(holidayState === null ? {} : { skipHolidays: draft.skipHolidays }),
     }
     const found: Record<string, string> = { ...planProblems(values) }
 
@@ -949,6 +1013,25 @@ function PlanForm({
                   ) : null}
                 </div>
               ) : null}
+              {holidayState === null ? null : (
+                <label className="flex items-start gap-2.5 text-[14px] leading-[1.4]">
+                  <input
+                    type="checkbox"
+                    className="mt-0.5 size-4 accent-solid"
+                    checked={draft.skipHolidays}
+                    disabled={locked}
+                    onChange={(event) => {
+                      set({ skipHolidays: event.target.checked })
+                    }}
+                  />
+                  <span>
+                    {planWords.holidays}
+                    <span className="block text-[12px] text-ink-muted">
+                      {planWords.holidaysHint(ruleScopeNames[holidayState])}
+                    </span>
+                  </span>
+                </label>
+              )}
               <div className="grid gap-3 sm:grid-cols-3">
                 <Field
                   label="Vorlauf"
