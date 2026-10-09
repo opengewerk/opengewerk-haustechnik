@@ -915,6 +915,16 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   Notizen und Dauer stehen auch auf der Seite des Auftrags im Büro und auf der Seite, die
   unterschrieben wird. Bisher landete ein Auftrag vor Ort auf der Seite des Ergebnisses, ohne
   Notizen und Dauer, und unterschreiben konnte jeder, der ihn sah
+- Zähler im Büro (#119): die Liste "Zähler" nennt je Messstelle den letzten Stand und ob der
+  Stand zum Stichtag vorliegt, fehlt, stillgelegt oder gesperrt ist, mit dem Unterzähler unter
+  seinem Hauptzähler. Die Seite einer Messstelle zeigt die Stände mit dem Verbrauch bis zum
+  Stichtag und den Verlauf über 12 oder 24 Monate neben dem Vorjahr. Ein Stand wird von Hand
+  eingetragen und durch einen neuen mit Grund berichtigt; geändert und gelöscht wird er nie, auch
+  nicht in der Datenbank. Der Verbrauch wird abgeleitet und nie gespeichert und rechnet über einen
+  Zählertausch und eine Stilllegung hinweg. Ablesen dürfen alle Rollen; Zählertausch,
+  Stilllegung, Sperre, Notiz, Wandlerfaktor, Hauptzähler und die Kennung in der Leittechnik ändert,
+  wer Anlagen pflegt. Eine gesperrte Messstelle nimmt keinen Stand an und sagt warum. Bisher war
+  ein Zähler nur eine Anlage mit Nummer und Einheit, ohne Stände
 
 ### Geändert
 

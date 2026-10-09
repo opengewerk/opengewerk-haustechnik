@@ -48,6 +48,7 @@ import {
 import { giveSampleForm, samplePackage } from './sample-form.js'
 import { giveSamplePlans } from './sample-plans.js'
 import { giveSampleTemplates } from './sample-templates.js'
+import { giveSampleMeters } from './sample-meters.js'
 import { giveSampleWork } from './sample-work.js'
 import { writeSampleStandings } from './sample-standings.js'
 
@@ -205,6 +206,9 @@ export async function openSamplePreview(
     // An order the viewer leads, begun on site with notes and the time spent,
     // and one the viewer works on beside its lead (#118).
     await giveSampleWork(database, planter, previewPeople.viewer.id)
+    // Two years of readings, a correction, a replacement, a pause, a lock and
+    // a note on the meters of the sample operator (#119).
+    await giveSampleMeters(database, planter)
   } finally {
     await planting.close()
   }

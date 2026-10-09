@@ -48,6 +48,8 @@ export * from './model/asset.js'
 // of a cost group.
 export * from './model/asset-duplicate.js'
 export * from './model/meter.js'
+export * from './model/meter-reading.js'
+export * from './model/meter-register.js'
 export * from './model/cost-group.js'
 
 // The import of places and assets from a table: the plan of what its lines

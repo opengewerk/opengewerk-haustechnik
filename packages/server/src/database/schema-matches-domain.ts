@@ -14,6 +14,10 @@ import type {
   Import,
   KeptDefectClassTerm,
   KeptKindName,
+  MeterExchange,
+  MeterPause,
+  MeterPoint,
+  MeterReading,
   PlaceLabel,
   Property,
   Room,
@@ -43,6 +47,10 @@ import type {
   assetKindNames,
   imports,
   labels,
+  meterExchanges,
+  meterPauses,
+  meterPoints,
+  meterReadings,
   properties,
   rooms,
   roundPlans,
@@ -116,3 +124,8 @@ export type RoundTemplateVersionMatches = Assert<
   Exact<typeof roundTemplateVersions.$inferSelect, RoundTemplateVersion>
 >
 export type RoundPlanMatches = Assert<Exact<typeof roundPlans.$inferSelect, RoundPlan>>
+
+export type MeterPointMatches = Assert<Exact<typeof meterPoints.$inferSelect, MeterPoint>>
+export type MeterReadingMatches = Assert<Exact<typeof meterReadings.$inferSelect, MeterReading>>
+export type MeterExchangeMatches = Assert<Exact<typeof meterExchanges.$inferSelect, MeterExchange>>
+export type MeterPauseMatches = Assert<Exact<typeof meterPauses.$inferSelect, MeterPause>>

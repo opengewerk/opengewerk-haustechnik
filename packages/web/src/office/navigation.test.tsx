@@ -152,6 +152,7 @@ describe('the navigation of the office as it is built today', () => {
   const built = [
     'Liegenschaften',
     'Anlagen',
+    'Zähler',
     'Dokumente',
     'Pflichtenverzeichnis',
     // The inspections and the maintenance, for every role (#105).
@@ -169,6 +170,7 @@ describe('the navigation of the office as it is built today', () => {
   const withDeadlines = [
     'Liegenschaften',
     'Anlagen',
+    'Zähler',
     'Dokumente',
     'Pflichtenverzeichnis',
     'Fristen',
@@ -207,7 +209,7 @@ describe('the navigation of the office as it is built today', () => {
     await untilTheRightsAreKnown()
     await screen.findByRole('link', { name: 'Liegenschaften' })
 
-    for (const label of ['Übersicht', 'Zähler', 'Aufgaben']) {
+    for (const label of ['Übersicht', 'Aufgaben']) {
       expect(screen.queryByRole('link', { name: label })).toBeNull()
     }
   })

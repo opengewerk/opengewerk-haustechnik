@@ -336,6 +336,29 @@ async function placeIn(where: 'north' | 'south'): Promise<void> {
      values ($1, $2, $3, $4, $5, $6)`,
     [at.supply, tenant, at.asset, at.property, areaId, at.building],
   )
+  // What a measuring point holds beside its asset (#119).
+  await admin.query(
+    `insert into meter_points (tenant_id, asset_id, property_id, area_id, conversion_factor)
+     values ($1, $2, $3, $4, 40)`,
+    [tenant, at.asset, at.property, areaId],
+  )
+  await admin.query(
+    `insert into meter_readings (tenant_id, asset_id, property_id, area_id, key_date, read_on,
+                                 value_milli, source, recorded_by)
+     values ($1, $2, $3, $4, '2026-10-01', '2026-10-05', 4812000, 'by_hand', $5)`,
+    [tenant, at.asset, at.property, areaId, person.lead],
+  )
+  await admin.query(
+    `insert into meter_exchanges (tenant_id, asset_id, property_id, area_id, exchanged_on,
+                                  old_number, old_end_milli, new_number, new_start_milli)
+     values ($1, $2, $3, $4, '2026-10-14', '13-882914', 4839700, '13-920455', 0)`,
+    [tenant, at.asset, at.property, areaId],
+  )
+  await admin.query(
+    `insert into meter_pauses (tenant_id, asset_id, property_id, area_id, starts_on, reason)
+     values ($1, $2, $3, $4, '2026-08-01', 'Sommerferien')`,
+    [tenant, at.asset, at.property, areaId],
+  )
   // A duty of the property itself: the evidence below would keep an asset it
   // hung on from being marked, and with it the room the asset stands in.
   await admin.query(
@@ -563,6 +586,10 @@ describe('a person with the north', () => {
       'evidence_voidings',
       'floors',
       'labels',
+      'meter_exchanges',
+      'meter_pauses',
+      'meter_points',
+      'meter_readings',
       'properties',
       'rooms',
       'round_plans',
@@ -780,6 +807,10 @@ describe('a property moved to another area', () => {
         'evidence_voidings',
         'floors',
         'labels',
+        'meter_exchanges',
+        'meter_pauses',
+        'meter_points',
+        'meter_readings',
         'rooms',
         'round_plans',
         'work_order_decisions',

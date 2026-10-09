@@ -166,6 +166,14 @@ export const syncPolicies: Readonly<Record<string, SyncPolicy>> = {
   attachment_versions: attachmentVersionPolicy,
   // A label is made and blocked in the office, with a connection: the server
   // draws its code. A device holds the labels of its places, so that a scan
+  // What a measuring point holds beside its asset (#119): what only it
+  // carries, its readings, the replacements of its meter and the periods it
+  // rests. Kept in the office, with a connection; a device holds them with
+  // the places, to show the reading before and why a meter is not read.
+  meter_points: officeOnly,
+  meter_readings: officeOnly,
+  meter_exchanges: officeOnly,
+  meter_pauses: officeOnly,
   // opens an asset without a network, and it gives a label from a sheet to an
   // asset it takes stock of, also without one. A blocked label takes nothing.
   // Its code, its property and its area are the server's.
@@ -433,6 +441,10 @@ export const syncEntityNames: Readonly<Record<string, string>> = {
   attachments: 'Dokument',
   attachment_versions: 'Fassung eines Dokuments',
   labels: 'Etikett',
+  meter_points: 'Messstelle',
+  meter_readings: 'Zählerstand',
+  meter_exchanges: 'Zählertausch',
+  meter_pauses: 'Stilllegung einer Messstelle',
 }
 
 /**
@@ -582,6 +594,28 @@ export const syncFieldNames: Readonly<Record<string, string>> = {
   formVersion: 'Fassung',
   definition: 'Kapitel und Punkte',
   asksCountersignature: 'Gegenzeichnung verlangt',
+  // What is said about a measuring point, a reading, a replacement of its
+  // meter and a pause (#119). The office keeps them; a device holds them to
+  // read. A pause shares its days and its reason with a closure above.
+  conversionFactor: 'Wandlerfaktor',
+  mainMeterId: 'Hauptzähler',
+  controlId: 'Kennung in der Leittechnik',
+  noteBy: 'Notiz von',
+  notedOn: 'Notiz seit',
+  lockReason: 'Grund der Sperre',
+  lockedOn: 'Gesperrt seit',
+  keyDate: 'Stichtag',
+  readOn: 'Abgelesen am',
+  valueMilli: 'Stand',
+  source: 'Weg',
+  correctsId: 'Berichtigt',
+  correctionReason: 'Grund der Berichtigung',
+  recordedBy: 'Eingetragen von',
+  exchangedOn: 'Tag des Tauschs',
+  oldNumber: 'Alte Zählernummer',
+  oldEndMilli: 'Endstand',
+  newNumber: 'Neue Zählernummer',
+  newStartMilli: 'Anfangsstand',
   // What is said about the plan of a round (#113). The office keeps it; a
   // device holds it to read, and a round names the plan that made it.
   rhythm: 'Rhythmus',

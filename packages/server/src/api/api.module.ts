@@ -59,6 +59,7 @@ import { RoundPlansController } from './round-plans.controller.js'
 import { RoundTemplatesController } from './round-templates.controller.js'
 import { RoundsController } from './rounds.controller.js'
 import { syncRoutesFor } from './sync-routes.js'
+import { MetersController } from './meters.controller.js'
 import { WorkOrdersController } from './work-orders.controller.js'
 
 /**
@@ -253,6 +254,7 @@ export class ApiModule {
         // The work orders: the list, the page, a new one, its change and
         // its acceptance.
         WorkOrdersController,
+        MetersController,
         // The templates of the rounds: a new one and a new version of one.
         RoundTemplatesController,
         // The plans of the rounds, and the rounds they made: the overview of

@@ -45,7 +45,9 @@ await checkWidths({
    * the label of an asset, whose camera a browser without one refuses; and
    * the plans of the rounds (#113): a new plan, and the dialog that hands out
    * the rounds of a plan in a week; and the handing in of a round on site
-   * (#114), which the last point of a round leads to. A page that has one is
+   * (#114), which the last point of a round leads to; and at the page of a
+   * measuring point (#119) the card a reading is entered with and the
+   * dialogs of the exchange, the pause, the lock and the note. A page that has one is
    * checked a second time as a kind of its own, with the button pressed.
    * Found by its name, so that the next record with the same button is
    * checked as well.
@@ -87,6 +89,11 @@ await checkWidths({
     'Neuer Plan',
     'Zuteilen',
     'Zur Abgabe',
+    'Stand eintragen',
+    'Zählertausch',
+    'Stilllegen',
+    'Sperren',
+    'Ändern',
   ],
 
   /**

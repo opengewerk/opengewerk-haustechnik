@@ -104,6 +104,47 @@ export const auditVocabulary: AuditVocabulary = {
       fields: { state: 'Zustand', valid_from: 'Ab' },
     },
     asset_supplies: { label: 'Versorgt' },
+    // What a measuring point holds beside its asset (#119).
+    meter_points: {
+      label: 'Messstelle',
+      fields: {
+        conversion_factor: 'Wandlerfaktor',
+        main_meter_id: 'Hauptzähler',
+        control_id: 'Kennung in der Leittechnik',
+        note: 'Notiz',
+        note_by: 'Notiz von',
+        noted_on: 'Notiz seit',
+        lock_reason: 'Grund der Sperre',
+        locked_on: 'Gesperrt seit',
+      },
+    },
+    meter_readings: {
+      label: 'Zählerstand',
+      fields: {
+        key_date: 'Stichtag',
+        read_on: 'Abgelesen am',
+        value_milli: 'Stand in Tausendsteln',
+        source: 'Weg',
+        activity_id: 'Vorgang',
+        corrects_id: 'Berichtigt',
+        correction_reason: 'Grund der Berichtigung',
+        recorded_by: 'Eingetragen von',
+      },
+    },
+    meter_exchanges: {
+      label: 'Zählertausch',
+      fields: {
+        exchanged_on: 'Tag des Tauschs',
+        old_number: 'Alte Zählernummer',
+        old_end_milli: 'Endstand in Tausendsteln',
+        new_number: 'Neue Zählernummer',
+        new_start_milli: 'Anfangsstand in Tausendsteln',
+      },
+    },
+    meter_pauses: {
+      label: 'Stilllegung',
+      fields: { starts_on: 'Von', ends_on: 'Bis', reason: 'Grund' },
+    },
     // The duties of an operator and the proposals dismissed (ADR 0002, points
     // 10 and 11).
     duties: {
@@ -399,6 +440,11 @@ export const auditVocabulary: AuditVocabulary = {
       { table: 'asset_lifecycle', column: 'asset_id' },
       { table: 'asset_supplies', column: 'asset_id' },
       { table: 'labels', column: 'asset_id' },
+      // What a measuring point holds beside its asset (#119).
+      { table: 'meter_points', column: 'asset_id' },
+      { table: 'meter_readings', column: 'asset_id' },
+      { table: 'meter_exchanges', column: 'asset_id' },
+      { table: 'meter_pauses', column: 'asset_id' },
     ],
     // A document with its versions: who filed which, and when.
     attachments: [{ table: 'attachment_versions', column: 'attachment_id' }],
@@ -439,6 +485,8 @@ export const auditVocabulary: AuditVocabulary = {
     room_id: 'rooms',
     asset_id: 'assets',
     parent_asset_id: 'assets',
+    main_meter_id: 'assets',
+    corrects_id: 'meter_readings',
     duty_id: 'duties',
     activity_id: 'activities',
     found_in_activity_id: 'activities',
@@ -464,6 +512,8 @@ export const auditVocabulary: AuditVocabulary = {
     'voided_by',
     'confirmed_by',
     'dismissed_by',
+    'note_by',
+    'recorded_by',
   ],
   // Rows without a name of their own are named after the person they are
   // about, and a substitution after the person whose areas it takes over.
@@ -488,6 +538,12 @@ export const auditVocabulary: AuditVocabulary = {
     // An entry of a life cycle by its state, a supply by what is supplied.
     asset_lifecycle: ['state'],
     asset_supplies: ['building_id', 'room_id'],
+    // What a measuring point holds by its asset, a reading by its key date, a
+    // replacement by its day, a pause by its first day.
+    meter_points: ['asset_id'],
+    meter_readings: ['key_date'],
+    meter_exchanges: ['exchanged_on'],
+    meter_pauses: ['starts_on'],
     // A duty of the operator's own by its name, one from the catalogue by its
     // kind; a dismissal by the kind it dismissed.
     duties: ['label', 'kind'],

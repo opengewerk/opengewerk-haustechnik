@@ -51,7 +51,8 @@ describe('the words of the change log in the office', () => {
       properties: 'mit ihren Ansprechpartnern',
       buildings: 'mit seinen Schließzeiten',
       rooms: 'mit seinen Etiketten',
-      assets: 'mit ihrem Lebenszyklus, dem, was sie versorgt, und ihren Etiketten',
+      assets:
+        'mit ihrem Lebenszyklus, dem, was sie versorgt, ihren Etiketten und bei einem Zähler seinen Ständen',
       attachments: 'mit seinen Fassungen',
       activities:
         'mit den Pflichten, die er erfüllen soll, den Antworten auf sein Formular und bei einem Auftrag dessen Angaben und Beteiligten',
@@ -70,6 +71,11 @@ describe('the words of the change log in the office', () => {
         { table: 'asset_lifecycle', column: 'asset_id' },
         { table: 'asset_supplies', column: 'asset_id' },
         { table: 'labels', column: 'asset_id' },
+        // A meter with what its measuring point carries and its readings (#119).
+        { table: 'meter_points', column: 'asset_id' },
+        { table: 'meter_readings', column: 'asset_id' },
+        { table: 'meter_exchanges', column: 'asset_id' },
+        { table: 'meter_pauses', column: 'asset_id' },
       ],
       attachments: [{ table: 'attachment_versions', column: 'attachment_id' }],
       // An activity with the duties it is to meet and what came of each (#105),
