@@ -1,4 +1,5 @@
 import { auditVocabulary } from '@opengewerk/haustechnik-domain'
+import { auditWords } from '@opengewerk/platform-web/office'
 import { describe, expect, it } from 'vitest'
 
 import { auditScreenWords } from './audit.js'
@@ -17,6 +18,24 @@ describe('the words of the change log in the office', () => {
 
     expect(states?.['DE-BW']).toBe('Baden-Württemberg')
     expect(states?.['DE-HE']).toBe('Hessen')
+  })
+
+  it('name a sequence of numbers by what it numbers, not by its key (#176)', () => {
+    const words = auditWords(auditScreenWords)
+    const page = {
+      titles: {
+        'nr-1': { table: 'number_ranges', field: 'key', title: 'asset', kind: null },
+        'nr-2': { table: 'number_ranges', field: 'key', title: 'work_order', kind: null },
+        'nr-3': { table: 'number_ranges', field: 'key', title: 'evidence', kind: null },
+      },
+      people: {},
+      devices: {},
+    }
+
+    expect(
+      ['nr-1', 'nr-2', 'nr-3'].map((id) => words.recordTitle('number_ranges', id, page)),
+    ).toEqual(['Anlagen', 'Aufträge', 'Nachweise'])
+    expect(words.auditValue('number_ranges', 'key', 'asset', page)).toBe('Anlagen')
   })
 
   // The log holds `{school,assembly}`, and the Leitung reads what the form

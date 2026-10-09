@@ -1323,3 +1323,7 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   (#186), auch wenn die Pflicht eigene Durchführung sagt; von der Seite der Pflicht aus bleibt es
   die Fremdfirma der Pflicht. Das Feld "Organisation" blieb sonst leer, obwohl die Firma am Vorgang
   stand
+- Im Änderungsprotokoll heißt ein Nummernkreis nach dem, was er zählt: "Anlagen", "Aufträge",
+  "Nachweise" (#176), als Name des Datensatzes, in seinen Feldern und unter "Nur dieser Datensatz".
+  Bisher stand dort sein Schlüssel, etwa "asset", und jede neue Anlage schrieb einen solchen
+  Eintrag
