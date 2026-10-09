@@ -909,6 +909,9 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
 
 ### Geändert
 
+- Ein Dialog des Büros steht auf breiten Bildschirmen in der Mitte des Fensters, wie die Tafeln ihn
+  zeichnen, statt oben unter dem Kopf (#115, Fundament angehoben auf opengewerk#584). Auf dem
+  Telefon bleibt er oben, wo die Tastatur ihn sichtbar lässt
 - In der CI laufen die Datenbanktests des Fundaments auf einer eigenen PostgreSQL neben denen der
   Haustechnik statt vor ihnen (#192). Nacheinander brauchten beide zwölf der dreizehn Minuten des
   Jobs "Typprüfung, Lint und Tests"; lokal bleibt es bei einer Testdatenbank und der Reihenfolge
