@@ -66,8 +66,9 @@ export const syncPolicies: Readonly<Record<string, SyncPolicy>> = {
     create: true,
     change: 'merge',
     onlyWhile: { field: 'status', values: inProgress },
-    // The form it is filled in is the server's, written when it is made (#106).
-    reserved: ['areaId', 'formKey', 'formVersion'],
+    // The form it is filled in is the server's, written when it is made (#106),
+    // and so is the day of the protocol it took as its template (#108).
+    reserved: ['areaId', 'formKey', 'formVersion', 'templateOn'],
   },
   // The result of each duty, until the activity is signed.
   activity_duties: {
@@ -247,9 +248,9 @@ export const offlineEdits: Readonly<Record<string, OfflineEdits>> = {
     },
     change: { status: ['started'], performedOn: true },
   },
-  // The result of a duty of an activity. Which duties an activity is to meet
-  // is its plan.
-  activity_duties: { change: { result: true, resultReason: true } },
+  // The result of a duty of an activity, with what is said with it (#108).
+  // Which duties an activity is to meet is its plan.
+  activity_duties: { change: { result: true, resultReason: true, remark: true } },
   // The answer to a point: where it stands in the form, once, and what it
   // says, as long as the work goes on. An answer taken back is removed.
   activity_answers: {
@@ -487,6 +488,7 @@ export const syncFieldNames: Readonly<Record<string, string>> = {
   closingReason: 'Grund',
   performedOn: 'Durchgeführt am',
   countersignatureRequired: 'Gegenzeichnung verlangt',
+  templateOn: 'Vorlage vom',
   result: 'Ergebnis',
   resultReason: 'Grund',
   // What is said about the answer to a point of a form. Its result shares

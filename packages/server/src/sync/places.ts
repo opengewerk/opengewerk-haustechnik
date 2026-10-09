@@ -221,7 +221,12 @@ async function targetPlace(
   return null
 }
 
-/** A defect at its place, noticed on request in an activity on the same property. */
+/**
+ * A defect at its place, noticed on request in an activity on the same
+ * property while the work on it goes on (#108). One found in an activity that
+ * is signed or closed would change the page that was signed, and its
+ * signature would count no more: that activity is fixed.
+ */
 async function defectPlace(
   tx: TenantTransaction,
   values: Record<string, unknown>,
@@ -234,9 +239,13 @@ async function defectPlace(
 
   const activity = await found<Activity>(tx, activities, values['foundInActivityId'])
 
-  return activity && activity.propertyId === values['propertyId']
+  if (!activity || activity.propertyId !== values['propertyId']) {
+    return missing('foundInActivityId')
+  }
+
+  return activity.status === 'open' || activity.status === 'started'
     ? null
-    : missing('foundInActivityId')
+    : { kind: 'conflict', reason: 'record_is_fixed', fields: ['foundInActivityId'] }
 }
 
 /**

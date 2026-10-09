@@ -1,4 +1,4 @@
-import type { Id, IsoDate, Synced } from '@opengewerk/platform-domain'
+import { type Id, type IsoDate, longestFormText, type Synced } from '@opengewerk/platform-domain'
 
 import type { AreaId } from './area.js'
 import type { DutyTask } from './catalogue.js'
@@ -143,6 +143,8 @@ export const activityLimits = {
   closingReason: 500,
   /** The key of a form, `<package>.<key>` like every key of a package. */
   formKey: 130,
+  /** What is said with the result of a duty, as long as a remark at a point of a form. */
+  remark: longestFormText,
 } as const
 
 /**
@@ -185,6 +187,12 @@ export interface Activity extends Synced, PlaceTarget {
    */
   readonly formKey: string | null
   readonly formVersion: number | null
+  /**
+   * The day the protocol was performed whose answers this activity took as
+   * its template (#108, section 4.4 of the concept): written by the server
+   * when it makes the activity, none where nothing was taken.
+   */
+  readonly templateOn: IsoDate | null
 }
 
 /**
@@ -200,6 +208,11 @@ export interface ActivityDuty extends Synced {
   /** What came of it for this duty, entered while the activity is performed, with the reason of "not performed". */
   readonly result: EvidenceResult | null
   readonly resultReason: string | null
+  /**
+   * What the person says with the result, in words (#108): what a duty kind
+   * without a form has to say beside its result, and a word on any other.
+   */
+  readonly remark: string | null
 }
 
 /**
@@ -329,6 +342,13 @@ export function activityDutyProblems(line: Readonly<Record<string, unknown>>): R
     'resultReason',
     activityLimits.closingReason,
     `Der Grund hat höchstens ${String(activityLimits.closingReason)} Zeichen.`,
+  )
+  optional(
+    problems,
+    line,
+    'remark',
+    activityLimits.remark,
+    `Die Bemerkung hat höchstens ${String(activityLimits.remark)} Zeichen.`,
   )
 
   const result = line['result']

@@ -12,6 +12,7 @@ import {
   meetsTheDuty,
   readableStateVersions,
   readEvidenceState,
+  resultAgainstFindings,
   standingEvidence,
   statedReasonProblem,
   UnknownEvidenceStateError,
@@ -21,7 +22,8 @@ import {
  * A state of each version as a row carries it, written once and never
  * changed: the first as the server wrote it from the second part of #26, the
  * second with the evidence a correction replaces, from its fourth part, the
- * third with the form of the activity and the answers to its points (#106).
+ * third with the form of the activity and the answers to its points (#106),
+ * the fourth with what was said with the result (#108).
  * A new version adds its own here, and the test below turns red until it does.
  */
 const storedStates: Readonly<Record<number, unknown>> = {
@@ -78,9 +80,37 @@ const storedStates: Readonly<Record<number, unknown>> = {
       '"signatures":[{"name":"Hanna Probe","role":"signer","signedAt":"2026-10-07T10:58:00.000Z"}],' +
       '"version":3,"writtenAt":"2026-10-07T11:00:00.000Z","writtenBy":"Hanna Probe"}',
   ),
+  4: JSON.parse(
+    '{"activity":{"kind":"maintenance","title":"Sichtkontrolle Rückspülfilter Haus A"},' +
+      '"answers":[],"defects":[],' +
+      '"duty":{"counting":"from_due","interval":{"months":6},"kind":"probe.backwash_filter_check","kindVersion":1,' +
+      '"label":"Sichtkontrolle des Rückspülfilters","source":"DIN EN 806-5"},' +
+      '"files":[],"form":null,"number":"NW-2026-00004","origin":"protocol","performedOn":"2026-10-09",' +
+      '"performer":{"person":"Hanna Probe"},' +
+      '"place":{"asset":{"kind":"probe.backwash_filter","kindLabel":"Rückspülfilter","name":"Filter",' +
+      '"number":"AN-00003","serialNumber":null},"building":{"name":"Haus A","shortCode":null},' +
+      '"property":{"address":"Hauptstraße 1, 68535 Edingen-Neckarhausen","name":"Campus"},"room":null},' +
+      '"remark":"Filter rückgespült, Siebeinsatz sauber.",' +
+      '"replaces":null,"result":"without_defects","resultReason":null,' +
+      '"retention":{"kind":"until_next_inspection","on":"2026-10-09"},' +
+      '"signatures":[{"name":"Hanna Probe","role":"signer","signedAt":"2026-10-09T08:12:00.000Z"}],' +
+      '"version":4,"writtenAt":"2026-10-09T08:12:30.000Z","writtenBy":"Hanna Probe"}',
+  ),
 }
 
 describe('the result of a performance', () => {
+  it('is not "ohne Mangel" while the activity holds a finding, and any other result is', () => {
+    expect(resultAgainstFindings('without_defects', 1)).toBe(
+      'Ein Vorgang, der einen Mangel festhält, ist nicht „ohne Mangel“.',
+    )
+    expect(resultAgainstFindings('without_defects', 0)).toBeNull()
+    expect(
+      (['with_defects', 'failed', 'not_performed', null] as const).map((result) =>
+        resultAgainstFindings(result, 2),
+      ),
+    ).toEqual([null, null, null, null])
+  })
+
   it('meets the duty when the work was done, with or without defects, and not otherwise', () => {
     expect(evidenceResults.filter(meetsTheDuty)).toEqual(['without_defects', 'with_defects'])
   })
@@ -148,7 +178,9 @@ describe('the frozen state', () => {
   it('reads a state of the third version, with the form and the answers to its points', () => {
     const state = readEvidenceState(storedStates[3])
 
-    expect(state.version).toBe(3)
+    // In the newest shape: nothing was said with the result before the fourth version.
+    expect(state.version).toBe(evidenceStateVersion)
+    expect(state.remark).toBeNull()
     expect(state.form).toEqual({
       key: 'probe.drinking_water_protocol',
       title: 'Prüfprotokoll Trinkwasser',
@@ -165,6 +197,15 @@ describe('the frozen state', () => {
     })
     expect(state.answers[1]?.group).toEqual({ label: 'Abgänge', block: 1 })
     expect(canonicalForm(storedStates[3])).toBe(JSON.stringify(storedStates[3]))
+  })
+
+  it('reads a state of the fourth version, with what was said with the result', () => {
+    const state = readEvidenceState(storedStates[4])
+
+    expect(state.version).toBe(4)
+    expect(state.remark).toBe('Filter rückgespült, Siebeinsatz sauber.')
+    expect([state.form, state.answers, state.result]).toEqual([null, [], 'without_defects'])
+    expect(canonicalForm(storedStates[4])).toBe(JSON.stringify(storedStates[4]))
   })
 
   it('has a reader and a stored example for every version up to the newest', () => {

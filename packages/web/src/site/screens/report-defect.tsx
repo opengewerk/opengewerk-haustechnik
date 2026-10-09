@@ -9,19 +9,28 @@ import {
   SiteText,
   SiteTrouble,
 } from '@opengewerk/platform-web/site'
-import { maybeText, refusalFor, useRecord, useSync } from '@opengewerk/platform-web/sync'
+import {
+  maybeText,
+  refusalFor,
+  useRecord,
+  useRelated,
+  useSync,
+} from '@opengewerk/platform-web/sync'
 import { useNavigate, useParams } from '@tanstack/react-router'
 import { Camera, Check, DoorOpen, Zap } from 'lucide-react'
 import { type FormEvent, useRef, useState } from 'react'
 
+import { beginActivity } from '../../app/answers.js'
 import { fileDocument } from '../../app/documents.js'
 import { titleOfRoom } from '../../app/place-records.js'
 import { NotOffered, NotOnDevice } from '../kit.js'
-import { sitePlaces } from '../places.js'
+import { siteForms, sitePlaces } from '../places.js'
 
 export const reportDefectWords = {
   sub: 'auch ohne Netz',
   mayNot: 'Mängel melden gehört nicht zu den Rechten dieses Zugangs.',
+  fixed:
+    'Dieser Vorgang ist unterschrieben oder abgeschlossen. Ein Mangel wird jetzt an der Anlage oder am Raum gemeldet.',
   where: 'Woran',
   remark: 'Bemerkung',
   takePhoto: 'Foto aufnehmen',
@@ -39,15 +48,33 @@ export const reportDefectWords = {
  * outbox with the day it was found, the photos after it as documents at the
  * defect; both wait on the device until the next exchange. A class and a
  * deadline come from whoever keeps defects, in the office.
+ *
+ * Reported from the result of an activity (#108), it is found in that
+ * activity, at its asset or its room, on the day it was performed, and it
+ * stands on the page that is signed.
  */
 export function ReportDefectScreen() {
-  const { assetId, roomId } = useParams({ strict: false }) as {
+  const params = useParams({ strict: false }) as {
     assetId?: string
     roomId?: string
+    activityId?: string
   }
   const client = useSync()
   const navigate = useNavigate()
   const reports = useRight('defect.report')
+  const activity = useRecord('activities', params.activityId)
+  // A defect is reported in an activity only while the work on it goes on: in
+  // one signed here or closed it would change the page that was signed (#108).
+  const signedHere = useRelated('activity_signatures', 'activityId', params.activityId ?? '').some(
+    (signature) => signature['role'] === 'signer',
+  )
+  const fixed =
+    params.activityId !== undefined &&
+    (signedHere || !['open', 'started'].includes(maybeText(activity, 'status') ?? ''))
+  const assetId = params.assetId ?? maybeText(activity, 'assetId') ?? undefined
+  const roomId =
+    params.roomId ??
+    (assetId === undefined ? (maybeText(activity, 'roomId') ?? undefined) : undefined)
   const asset = useRecord('assets', assetId)
   const room = useRecord('rooms', roomId ?? maybeText(asset, 'roomId') ?? undefined)
   const building = useRecord(
@@ -76,14 +103,16 @@ export function ReportDefectScreen() {
   }
 
   const back =
-    assetId !== undefined
-      ? { to: sitePlaces.asset(assetId), label: 'Zurück zur Anlage' }
-      : { to: sitePlaces.room(roomId ?? ''), label: 'Zurück zum Raum' }
+    params.activityId !== undefined
+      ? { to: siteForms.result(params.activityId), label: 'Zurück zum Ergebnis' }
+      : assetId !== undefined
+        ? { to: sitePlaces.asset(assetId), label: 'Zurück zur Anlage' }
+        : { to: sitePlaces.room(roomId ?? ''), label: 'Zurück zum Raum' }
 
-  if (!reports) {
+  if (!reports || fixed) {
     return (
       <NotOffered title="Mangel melden" back={back}>
-        {reportDefectWords.mayNot}
+        {reports ? reportDefectWords.fixed : reportDefectWords.mayNot}
       </NotOffered>
     )
   }
@@ -103,7 +132,10 @@ export function ReportDefectScreen() {
     event?.preventDefault()
     setTrouble(null)
 
-    const wanted = { description: remark.trim(), foundOn: today() }
+    const wanted = {
+      description: remark.trim(),
+      foundOn: maybeText(activity, 'performedOn') ?? today(),
+    }
     const wrong = defectProblems(wanted)
 
     setProblems(wrong)
@@ -117,10 +149,20 @@ export function ReportDefectScreen() {
     setWorking(true)
 
     try {
+      const begun =
+        params.activityId === undefined ? null : await beginActivity(client, params.activityId)
+
+      if (begun !== null) {
+        setTrouble(begun)
+
+        return
+      }
+
       const made = await client.create('defects', {
         ...wanted,
         propertyId,
         ...(assetId !== undefined ? { assetId } : { roomId }),
+        ...(params.activityId === undefined ? {} : { foundInActivityId: params.activityId }),
       })
 
       if (made.outcome === 'refused') {

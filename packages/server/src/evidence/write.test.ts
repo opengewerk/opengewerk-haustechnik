@@ -313,6 +313,7 @@ describe('an evidence written down', () => {
       performedOn: '2026-10-01',
       result: 'with_defects',
       resultReason: null,
+      remark: null,
       replaces: null,
       form: null,
       answers: [],

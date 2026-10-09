@@ -839,6 +839,20 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   Seit #106 gab es die Antworten je Punkt im Datenmodell und im Abgleich, aber keinen Bildschirm,
   der sie gibt. In der Vorschau trägt eine Sichtprüfung der Zähleranlage ein Formular mit jeder
   Feldart aus einem Paket nur der Vorschau
+- Die Prüfung vor Ort (#108): die Seite einer Anlage nennt unter "Zu erledigen" ihre offenen und
+  begonnenen Prüfungen und Wartungen, die die eigenen Leute ausführen; eine mit Formular zeigt ihr
+  Protokoll als eine Liste mit jedem Punkt und seiner Eingabe, eine ohne Formular gleich ihr
+  Ergebnis. Das Ergebnis nimmt den Tag der Prüfung, eines der vier Ergebnisse, bei "nicht
+  durchgeführt" den Grund, eine Bemerkung und die Mängel, auch einen hier gemeldeten, dann die
+  Unterschrift für genau die Seite, die das Gerät hält. Alles geht ohne Netz durch den
+  Postausgang, und die erste Eingabe setzt die Prüfung auf "begonnen". Unterschrieben wird erst,
+  wenn jeder Pflichtpunkt eine Antwort hat, und nie "ohne Mangel", solange das Protokoll einen
+  Mangel festhält; beides prüft auch der Server. Eine Unterschrift, die der Server nicht nimmt,
+  hat unter den Konflikten eine eigene Karte. Das letzte Protokoll einer Anlage im selben Formular
+  ist die Vorlage des nächsten: was die Definition übernehmen lässt, steht beim Anlegen schon
+  als Antwort da, und das Protokoll nennt den Tag der Vorlage. Die Bemerkung zum Ergebnis steht
+  im Nachweis (Fassung 4 des eingefrorenen Stands). Bisher gab es die Unterschrift nur über den
+  Abgleich und keinen Bildschirm, der sie gibt
 
 ### Geändert
 
@@ -1146,6 +1160,10 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
 
 ### Behoben
 
+- Ein Mangel, der in einem Vorgang gemeldet wird, kommt über den Abgleich nur noch an, solange der Vorgang
+  offen oder begonnen ist (#108). Bisher nahm der Server ihn für jeden Stand an; in einem unterschriebenen
+  Vorgang änderte er die Seite, für die unterschrieben war, und die Unterschrift zählte danach nicht mehr. Jetzt
+  ist er ein Konflikt "festgeschrieben", und vor Ort ist "Mangel melden" in einem solchen Vorgang gesperrt
 - Eine Berichtigung und eine Ungültigerklärung desselben Nachweises, im selben Moment geschickt, gehen nicht mehr beide
   durch (#78, Befund T13-2 aus dem Review der Phase 0). Beide prüften, was aus dem Nachweis geworden war, ohne einander zu
   sehen; so konnte ein für ungültig erklärter Nachweis zugleich berichtigt sein, und eine zweite Berichtigung scheiterte

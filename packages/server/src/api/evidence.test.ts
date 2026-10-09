@@ -130,6 +130,8 @@ interface Put {
   readonly origin?: 'report' | 'legacy'
   readonly performedBy?: string
   readonly signed?: boolean
+  /** What was said with the result, since the fourth version of the state (#108). */
+  readonly remark?: string
 }
 
 /**
@@ -148,6 +150,7 @@ async function evidenceOf(
   const state: EvidenceState = {
     ...leastState(number, performedOn, 'without_defects'),
     origin,
+    remark: put.remark ?? null,
     performer:
       put.performedBy === undefined
         ? { examiner: 'Erika Muster', organisation: 'Prüfstelle Süd' }
@@ -358,9 +361,13 @@ describe('a correction', () => {
     expect((await dutyPage(duty)).lastMetOn).toBe(corrected.performedOn)
   })
 
-  it('takes who performed it from the evidence it replaces, where that is no report', async () => {
+  it('takes who performed it and what was said with the result from the evidence it replaces, where that is no report', async () => {
     const { duty } = await assetWithDuty()
-    const old = await evidenceOf(duty, daysAgo(40), { origin: 'legacy', performedBy: 'u-tech' })
+    const old = await evidenceOf(duty, daysAgo(40), {
+      origin: 'legacy',
+      performedBy: 'u-tech',
+      remark: 'Filter gespült.',
+    })
     const header = by('u-duties')
     const plain = { reason: 'Falscher Tag übernommen.', performedOn: daysAgo(41), result: 'failed' }
 
@@ -391,6 +398,7 @@ describe('a correction', () => {
       origin: 'legacy',
       result: 'failed',
       performer: { person: 'Tobias Wendt' },
+      remark: 'Filter gespült.',
     })
   })
 

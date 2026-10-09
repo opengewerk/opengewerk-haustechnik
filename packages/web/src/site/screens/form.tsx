@@ -66,10 +66,10 @@ export const siteFormWords = {
 } as const
 
 /** The statuses in which the answers of an activity may still be given (the sync asks the same). */
-const inProgress = ['open', 'started']
+export const inProgress = ['open', 'started']
 
 /** Where an activity is, in words, and the page it is at on site. */
-function useWhere(activity: RecordState | null): {
+export function useWhere(activity: RecordState | null): {
   readonly words: string
   readonly back: WayBack
 } {
@@ -109,7 +109,7 @@ function useWhere(activity: RecordState | null): {
 }
 
 /** What a point is about, in words: the asset or room its field names, or else the place of the activity. */
-function useAboutWords(): (point: FormPoint) => string | null {
+export function useAboutWords(): (point: FormPoint) => string | null {
   const assets = useRecords('assets')
   const rooms = useRecords('rooms')
 
@@ -132,11 +132,18 @@ function useAboutWords(): (point: FormPoint) => string | null {
   }
 }
 
-/** The form of an activity on this device, its answers, and what may be done with them. */
-function useActivityForm(activityId: string, opened: readonly OpenedBlock[]) {
+/**
+ * The form of an activity on this device, its answers, and what may be done
+ * with them: nothing more once it is signed here, before the server has
+ * answered (#108).
+ */
+export function useActivityForm(activityId: string, opened: readonly OpenedBlock[]) {
   const activity = useRecord('activities', activityId)
   const catalogue = useCatalogue()
   const answers = useRelated('activity_answers', 'activityId', activityId)
+  const signed = useRelated('activity_signatures', 'activityId', activityId).some(
+    (signature) => signature['role'] === 'signer',
+  )
   const performs = useRight('activity.perform')
   const definition: FormDefinition | null | undefined =
     activity === null || catalogue === null
@@ -154,7 +161,7 @@ function useActivityForm(activityId: string, opened: readonly OpenedBlock[]) {
     catalogue === null
       ? null
       : { rules: catalogue.ruleSet, on: maybeText(activity, 'performedOn') ?? today() }
-  const open = inProgress.includes(text(activity, 'status'))
+  const open = inProgress.includes(text(activity, 'status')) && !signed
 
   return {
     activity,
@@ -164,13 +171,14 @@ function useActivityForm(activityId: string, opened: readonly OpenedBlock[]) {
     points,
     context,
     open,
+    signed,
     performs,
     editable: open && performs,
   }
 }
 
 /** In place of the form, where the device cannot show it: no catalogue, no form, a version it does not know. */
-function Unshowable({
+export function Unshowable({
   title,
   back,
   catalogue,

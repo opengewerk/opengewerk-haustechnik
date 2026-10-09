@@ -8,6 +8,7 @@ import {
   type IsoDate,
   missingRight,
   type RoleKey,
+  heldPageOf,
   signedPageOf,
   syncEntities,
   type SyncValue,
@@ -1121,6 +1122,99 @@ describe('a signature from a device', () => {
     expect(written[0]?.state.writtenBy).toBe('Tom Haustechnik')
   })
 
+  it('takes an inspection signed without a connection for the page the device works out from what it was sent and what it did', async () => {
+    const toSign = await activityToSign()
+    // What the device holds after its last exchange: the activity is given to nobody.
+    const held = await pulled('u-tech')
+    const defect = newId<'defect'>()
+    const work: Sent[] = [
+      ...workDone(toSign).slice(0, 1),
+      ...toSign.duties.map(({ line }) =>
+        operation('activity_duties', 'update', line, {
+          result: 'with_defects',
+          remark: 'Seil nachgespannt.',
+        }),
+      ),
+      operation('defects', 'create', defect, {
+        description: 'Seil angerissen',
+        foundOn: '2026-10-01',
+        foundInActivityId: toSign.activity,
+        propertyId: place.property,
+        assetId: toSign.asset,
+      }),
+    ]
+    // The device lays its own work over what it holds, as its store does,
+    // and works the page out from that before anything is sent.
+    const store = new Map(
+      Object.entries(held).map(([entity, rows]) => [entity, rows.map((row) => ({ ...row }))]),
+    )
+
+    for (const sent of work) {
+      const rows = store.get(sent.entity) ?? []
+      const values = Object.fromEntries(sent.patches.map((patch) => [patch.field, patch.to]))
+      const there = rows.find((row) => row['id'] === sent.recordId)
+
+      if (there === undefined) {
+        rows.push({ id: sent.recordId, ...values })
+      } else {
+        Object.assign(there, values)
+      }
+
+      store.set(sent.entity, rows)
+    }
+
+    const page = heldPageOf(
+      {
+        find: (entity, id) => store.get(entity)?.find((row) => row['id'] === id) ?? null,
+        related: (entity, field, id) =>
+          (store.get(entity) ?? []).filter((row) => row[field] === id),
+      },
+      toSign.activity,
+    )
+
+    if (page === null) {
+      throw new Error('The device holds the activity.')
+    }
+
+    const signed = signature(toSign.activity, pageFingerprint(page))
+
+    expect(await outcomes('u-tech', [...work, signed])).toEqual([
+      applied,
+      applied,
+      applied,
+      applied,
+    ])
+    expect(await statusOf(toSign.activity)).toBe('done')
+
+    const { rows } = await admin.query<{
+      state: { remark: string | null; defects: { description: string }[] }
+    }>('select state from evidence where activity_id = $1', [toSign.activity])
+
+    expect(
+      rows.map((row) => [row.state.remark, row.state.defects.map((each) => each.description)]),
+    ).toEqual([['Seil nachgespannt.', ['Seil angerissen']]])
+  })
+
+  it('takes a defect found in an activity only while the work on it goes on, so that no signed page changes', async () => {
+    const toSign = await activityToSign()
+    const reported = () =>
+      operation('defects', 'create', newId<'defect'>(), {
+        description: 'Seil angerissen',
+        foundOn: '2026-10-01',
+        foundInActivityId: toSign.activity,
+        propertyId: place.property,
+        assetId: toSign.asset,
+      })
+
+    expect(await outcomes('u-tech', [reported()])).toEqual([applied])
+
+    await admin.query(`update activities set status = 'signed' where id = $1`, [toSign.activity])
+
+    expect(await outcomes('u-tech', [reported()])).toEqual([
+      { outcome: 'conflict', reason: 'record_is_fixed', fields: ['foundInActivityId'] },
+    ])
+  })
+
   it('answers a signature for a page the server no longer has with a conflict about it, and keeps nothing of it', async () => {
     const toSign = await activityToSign()
 
@@ -1319,7 +1413,11 @@ describe('a signature from a device', () => {
     }
 
     /** The page of an activity with a form as the device shows it, with these answers. */
-    function pageWith(toSign: ToSign, given: readonly Sent[]): string {
+    function pageWith(
+      toSign: ToSign,
+      given: readonly Sent[],
+      result: 'without_defects' | 'with_defects' = 'without_defects',
+    ): string {
       return pageFingerprint(
         signedPageOf({
           activity: {
@@ -1346,7 +1444,7 @@ describe('a signature from a device', () => {
             dutyId: duty,
             kind: toSign.dutyKind,
             label,
-            result: 'without_defects',
+            result,
             resultReason: null,
           })),
           defects: [],
@@ -1576,11 +1674,17 @@ describe('a signature from a device', () => {
         answer(toSign.activity, 'reading', { value: '1234567' }),
       ]
 
+      // Not in order, it is a protocol with defects (#108).
+      const withDefects = toSign.duties.map(({ line }) =>
+        operation('activity_duties', 'update', line, { result: 'with_defects' }),
+      )
+
       expect(
         await outcomes('u-tech', [
-          ...workDone(toSign),
+          ...workDone(toSign).slice(0, 1),
+          ...withDefects,
           ...given,
-          signature(toSign.activity, pageWith(toSign, given)),
+          signature(toSign.activity, pageWith(toSign, given, 'with_defects')),
         ]),
       ).toEqual(Array.from({ length: 6 }, () => applied))
 

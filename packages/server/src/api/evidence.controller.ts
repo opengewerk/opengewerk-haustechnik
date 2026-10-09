@@ -347,8 +347,10 @@ export class EvidenceController {
             files: state.files,
             // As the work named them then: a report without an activity has
             // them nowhere else, and a defect of an activity may have been
-            // set right or given another day since.
+            // set right or given another day since. What was said with the
+            // result was said on site, and a correction does not say it again.
             defects: state.defects,
+            remark: state.remark,
             replaces: { evidenceId: known.id, reason: values.reason as string },
           },
         )

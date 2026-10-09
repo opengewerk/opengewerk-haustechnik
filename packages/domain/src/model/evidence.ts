@@ -46,6 +46,22 @@ export function meetsTheDuty(result: EvidenceResult): boolean {
   return result === 'without_defects' || result === 'with_defects'
 }
 
+/**
+ * Why a result does not fit what an activity found, as a sentence, or null
+ * (#108, section 4.4 of the concept): an activity that holds a finding, a
+ * check point not in order, a measured value outside its limit or a defect
+ * reported in it, is not "ohne Mangel", since its signature makes a defect of
+ * each. The device offers nothing else and the server signs nothing else.
+ */
+export function resultAgainstFindings(
+  result: EvidenceResult | null,
+  findings: number,
+): string | null {
+  return result === 'without_defects' && findings > 0
+    ? 'Ein Vorgang, der einen Mangel festhält, ist nicht „ohne Mangel“.'
+    : null
+}
+
 export type EvidenceId = Id<'evidence'>
 
 /**
@@ -82,9 +98,10 @@ export const evidenceLimits = {
 /**
  * The number of the newest shape of the frozen state, counted up when a field
  * comes in: 2 since a correction names the evidence it replaces (#26), 3
- * since an evidence keeps the form of its activity and the answers (#106).
+ * since an evidence keeps the form of its activity and the answers (#106), 4
+ * since it keeps what was said with the result (#108).
  */
-export const evidenceStateVersion = 3
+export const evidenceStateVersion = 4
 
 /** The place of an evidence in words, as it was on the day it was written down. */
 export interface StatedPlace {
@@ -197,6 +214,8 @@ export interface EvidenceState {
   readonly result: EvidenceResult
   /** Why it was not performed; only a result "not performed" has one. */
   readonly resultReason: string | null
+  /** What was said with the result, since version 4; none where nothing was. */
+  readonly remark: string | null
   /** The evidence this one corrects, since version 2; none for one that corrects nothing. */
   readonly replaces: StatedReplacement | null
   readonly duty: StatedDuty
@@ -233,8 +252,13 @@ export class UnknownEvidenceStateError extends Error {
   }
 }
 
+/** The third version: all of the fourth but what was said with the result. */
+type EvidenceStateOfVersion3 = Omit<EvidenceState, 'version' | 'remark'> & {
+  readonly version: 3
+}
+
 /** The second version: all of the third but the form and the answers. */
-type EvidenceStateOfVersion2 = Omit<EvidenceState, 'version' | 'form' | 'answers'> & {
+type EvidenceStateOfVersion2 = Omit<EvidenceStateOfVersion3, 'version' | 'form' | 'answers'> & {
   readonly version: 2
 }
 
@@ -249,22 +273,29 @@ type EvidenceStateOfVersion1 = Omit<EvidenceStateOfVersion2, 'version' | 'replac
  * as long as the application exists (ADR 0004, point 4).
  */
 const readers: Readonly<Record<number, (stored: StoredEvidenceState) => EvidenceState>> = {
-  // No evidence of the first version corrects another, and none before the
-  // third names a form or answers.
+  // No evidence of the first version corrects another, none before the
+  // third names a form or answers, and none before the fourth a remark.
   1: (stored) => ({
     ...(stored as unknown as EvidenceStateOfVersion1),
     version: evidenceStateVersion,
     replaces: null,
     form: null,
     answers: [],
+    remark: null,
   }),
   2: (stored) => ({
     ...(stored as unknown as EvidenceStateOfVersion2),
     version: evidenceStateVersion,
     form: null,
     answers: [],
+    remark: null,
   }),
-  3: (stored) => stored as unknown as EvidenceState,
+  3: (stored) => ({
+    ...(stored as unknown as EvidenceStateOfVersion3),
+    version: evidenceStateVersion,
+    remark: null,
+  }),
+  4: (stored) => stored as unknown as EvidenceState,
 }
 
 /** The versions this reader knows. */

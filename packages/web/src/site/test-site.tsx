@@ -219,7 +219,10 @@ export interface Site {
   readonly server: TestServer
   readonly client: SyncClient
   /** Where the entry stands, without its base path. */
-  readonly router: { readonly state: { readonly location: { readonly pathname: string } } }
+  readonly router: {
+    readonly state: { readonly location: { readonly pathname: string } }
+    readonly navigate: (options: { readonly to: string }) => Promise<void>
+  }
   /** Every request past the sync, in the order it was made. */
   readonly asked: Asked[]
   /** How often the camera was opened. */
@@ -317,7 +320,9 @@ export async function mountSite(
       'contacts',
       'duties',
       'activities',
+      'activity_duties',
       'activity_answers',
+      'activity_signatures',
       'defects',
       'labels',
       'attachments',

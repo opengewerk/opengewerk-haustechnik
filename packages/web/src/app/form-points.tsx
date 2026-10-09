@@ -25,7 +25,7 @@ import { useSync } from '@opengewerk/platform-web/sync'
 import { ImageIcon, TriangleAlert } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState } from 'react'
 
-import { filledOf, type FormPoint, saveAnswer, unitSign } from './answers.js'
+import { beginActivity, filledOf, type FormPoint, saveAnswer, unitSign } from './answers.js'
 import { fileDocumentAs } from './documents.js'
 
 export const pointWords = {
@@ -90,7 +90,7 @@ function PhotoThumb({
  * field is left, the page is hidden or the screen goes: a figure or a remark
  * is not written for every key, and none is lost to a page closed in a hurry.
  */
-function useDeferredWrite<T>(write: (value: T) => void): {
+export function useDeferredWrite<T>(write: (value: T) => void): {
   readonly put: (value: T) => void
   readonly flush: () => void
 } {
@@ -149,6 +149,12 @@ export interface PointInputProps {
   /** Whether the answer may still be given or changed: the activity is open and the person performs. */
   readonly editable: boolean
   readonly onTrouble: (sentence: string | null) => void
+  /**
+   * `page` for a point on a screen of its own, under its question; `list` for
+   * a point among the others of a protocol (#108), which says its label
+   * itself and shows a remark and a photo where its answer asks for them.
+   */
+  readonly layout?: 'page' | 'list'
 }
 
 /**
@@ -201,7 +207,10 @@ export function PointInput(props: PointInputProps) {
   }
 }
 
-/** Writes a change to the answer of a point, one after the other, and says what went wrong. */
+/**
+ * Writes a change to the answer of a point, one after the other, and says
+ * what went wrong. The first one begins the activity (#108).
+ */
 function useAnswerWrite({ activityId, point, onTrouble }: PointInputProps) {
   const client = useSync()
   const queue = useRef<Promise<void>>(Promise.resolve())
@@ -209,7 +218,10 @@ function useAnswerWrite({ activityId, point, onTrouble }: PointInputProps) {
   return useCallback(
     (change: Partial<AnswerContent>) => {
       queue.current = queue.current.then(async () => {
-        onTrouble(await saveAnswer(client, activityId, point, change))
+        onTrouble(
+          (await beginActivity(client, activityId)) ??
+            (await saveAnswer(client, activityId, point, change)),
+        )
       })
 
       return queue.current
@@ -246,7 +258,7 @@ function parsedValue(answer: RecordState | undefined): unknown {
  * with it, because an answer to a check point is its result first.
  */
 function CheckPointInput(props: PointInputProps) {
-  const { answer, point, editable, target, propertyId, activityId, onTrouble } = props
+  const { answer, point, editable, target, propertyId, activityId, onTrouble, layout } = props
   const client = useSync()
   const write = useAnswerWrite(props)
   const filled = answer === undefined ? undefined : filledOf(answer)
@@ -260,12 +272,22 @@ function CheckPointInput(props: PointInputProps) {
     }
   })
   const asked = remarkForCheckPoint(result)
+  const inList = layout === 'list'
+  // In a list a point says more than its answer where the answer asks for a
+  // remark or a reason, or where one was given.
+  const more = !inList || asked.required || remark !== '' || photo !== null
 
   return (
-    <div className="flex min-w-0 flex-col gap-3.5">
+    <div className={`flex min-w-0 flex-col ${inList ? 'gap-2.5' : 'gap-3.5'}`}>
+      {inList ? (
+        <h3 className="text-[17px] leading-[1.3] font-semibold [overflow-wrap:anywhere]">
+          {point.field.label}
+        </h3>
+      ) : null}
       <CheckPointAnswer
         label={point.field.label}
         value={result}
+        layout={inList ? 'row' : 'grid'}
         disabled={!editable}
         onChange={(picked: CheckPointResult) => {
           void write({
@@ -276,46 +298,50 @@ function CheckPointInput(props: PointInputProps) {
           })
         }}
       />
-      <div onBlur={deferred.flush}>
-        <RemarkField
-          asked={asked}
-          value={remark}
-          maxLength={answerLimits.remark}
+      {more ? (
+        <div onBlur={deferred.flush}>
+          <RemarkField
+            asked={asked}
+            value={remark}
+            maxLength={answerLimits.remark}
+            disabled={!editable}
+            onChange={(typed) => {
+              setRemark(typed)
+              deferred.put(typed)
+            }}
+          />
+        </div>
+      ) : null}
+      {more ? (
+        <PhotoTaker
+          label={pointWords.photoOf(point.field.label)}
           disabled={!editable}
-          onChange={(typed) => {
-            setRemark(typed)
-            deferred.put(typed)
+          photo={
+            photo === null ? undefined : (
+              <PhotoThumb attachmentId={photo} label={pointWords.photoOf(point.field.label)} />
+            )
+          }
+          onTake={(file) => {
+            void (async () => {
+              const filed = await fileDocumentAs(client, { propertyId, activityId }, file)
+
+              if ('problem' in filed) {
+                onTrouble(pointWords.photoNotFiled)
+
+                return
+              }
+
+              const id = filed.id as AttachmentId
+
+              if (result === undefined) {
+                setHeldPhoto(id)
+              } else {
+                await write({ attachmentId: id })
+              }
+            })()
           }}
         />
-      </div>
-      <PhotoTaker
-        label={pointWords.photoOf(point.field.label)}
-        disabled={!editable}
-        photo={
-          photo === null ? undefined : (
-            <PhotoThumb attachmentId={photo} label={pointWords.photoOf(point.field.label)} />
-          )
-        }
-        onTake={(file) => {
-          void (async () => {
-            const filed = await fileDocumentAs(client, { propertyId, activityId }, file)
-
-            if ('problem' in filed) {
-              onTrouble(pointWords.photoNotFiled)
-
-              return
-            }
-
-            const id = filed.id as AttachmentId
-
-            if (result === undefined) {
-              setHeldPhoto(id)
-            } else {
-              await write({ attachmentId: id })
-            }
-          })()
-        }}
-      />
+      ) : null}
       {result === 'not_ok' ? <DefectNote>{pointWords.becomesDefect(target)}</DefectNote> : null}
       {result === 'not_applicable' || result === 'not_possible' ? (
         <p className="text-[15px] leading-[1.4] text-ink-muted">{pointWords.reasonIsAnswer}</p>
@@ -363,23 +389,26 @@ function MeasurementInput(props: PointInputProps & { readonly field: Measurement
           verdict={verdict}
           mark={limit}
           hint={field.hint}
-          labelHidden
+          labelHidden={props.layout !== 'list'}
           disabled={!editable}
           onChange={figure.put}
         />
       </div>
-      <div onBlur={words.flush}>
-        <RemarkField
-          asked={remarkForMeasurement(verdict?.within ?? null)}
-          value={remark}
-          maxLength={answerLimits.remark}
-          disabled={!editable}
-          onChange={(typed) => {
-            setRemark(typed)
-            words.put(typed)
-          }}
-        />
-      </div>
+      {/* In a list a measured value asks for its remark outside its limit, or shows the one given. */}
+      {props.layout !== 'list' || verdict?.within === false || remark !== '' ? (
+        <div onBlur={words.flush}>
+          <RemarkField
+            asked={remarkForMeasurement(verdict?.within ?? null)}
+            value={remark}
+            maxLength={answerLimits.remark}
+            disabled={!editable}
+            onChange={(typed) => {
+              setRemark(typed)
+              words.put(typed)
+            }}
+          />
+        </div>
+      ) : null}
       {verdict?.within === false ? (
         <DefectNote>{pointWords.outsideBecomesDefect(target)}</DefectNote>
       ) : null}
@@ -403,7 +432,7 @@ function FigurePointInput(props: PointInputProps & { readonly unit: string }) {
         unit={unit}
         value={typeof value === 'number' ? value : undefined}
         hint={point.field.hint}
-        labelHidden
+        labelHidden={props.layout !== 'list'}
         disabled={!editable}
         onChange={figure.put}
       />

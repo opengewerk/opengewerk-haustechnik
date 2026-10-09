@@ -1,4 +1,6 @@
 import {
+  activityKindLabel,
+  type ActivityKind,
   type Catalogue,
   type DutyReading,
   evidenceResultLabel,
@@ -17,6 +19,8 @@ import {
   SiteFacts,
   SiteHeader,
   SiteLink,
+  SiteRow,
+  SiteRows,
   SiteScreen,
   SiteText,
 } from '@opengewerk/platform-web/site'
@@ -42,7 +46,7 @@ import { placeAbove } from '../../app/place-records.js'
 import { useCatalogue } from '../../sync/catalogue.js'
 import { SiteDocuments } from '../documents.js'
 import { GoButton, isOpenDefect, kindWords, NotOnDevice, OpenDefects, PlainRow } from '../kit.js'
-import { siteDefects, sitePlaces, stockTaking } from '../places.js'
+import { siteDefects, siteForms, sitePlaces, stockTaking } from '../places.js'
 
 export const siteAssetWords = {
   noNumber: 'Nummer folgt nach dem Abgleich',
@@ -58,7 +62,28 @@ export const siteAssetWords = {
   noDocument: 'Noch kein Dokument an dieser Anlage.',
   waitsForDecision:
     'Diese Anlage ist noch nicht angelegt: der Server kennt eine mögliche Dublette. Unter Konflikte entscheiden Sie, ob es dieselbe ist oder ob sie trotzdem angelegt wird.',
+  work: 'Zu erledigen',
+  due: (kind: string, on: string) => `${kind}, fällig am ${date(on)}`,
+  begun: (kind: string, on: string) => `${kind}, begonnen am ${date(on)}`,
+  open: 'offen',
+  started: 'begonnen',
 } as const
+
+/**
+ * The inspections and maintenance of an asset this device holds that are
+ * still to be done or under way, and that the own people perform (#108): what
+ * leads from the asset to its protocol. A contractor's comes into the office
+ * as a report (#110), a round and a work order have pages of their own.
+ */
+function workAt(activities: readonly RecordState[], assetId: string): readonly RecordState[] {
+  return activities.filter(
+    (activity) =>
+      activity['assetId'] === assetId &&
+      (activity['status'] === 'open' || activity['status'] === 'started') &&
+      (activity['kind'] === 'inspection' || activity['kind'] === 'maintenance') &&
+      activity['performer'] !== 'contractor',
+  )
+}
 
 /** How many of the evidence of an asset its page on site names, the newest first. */
 const lastEvidence = 3
@@ -149,6 +174,8 @@ export function SiteAssetScreen() {
   const seesEvidence = useRight('evidence.read')
   const records = useRight('asset.record')
   const reports = useRight('defect.report')
+  const performs = useRight('activity.perform')
+  const work = workAt(useRecords('activities'), assetId ?? '')
   const heldDuties = useRecords('duties').filter((duty) => duty['assetId'] === assetId)
   const defects = useRecords('defects').filter(
     (defect) => defect['assetId'] === assetId && isOpenDefect(defect),
@@ -204,6 +231,38 @@ export function SiteAssetScreen() {
               sitePlaces,
             )}
           />
+        ) : null}
+        {performs && work.length > 0 ? (
+          <Panel title={siteAssetWords.work}>
+            <SiteRows label={siteAssetWords.work}>
+              {work.map((activity) => {
+                const kind = activityKindLabel[activity['kind'] as ActivityKind]
+                const begun = activity['status'] === 'started'
+                const performedOn = maybeText(activity, 'performedOn')
+                const dueOn = maybeText(activity, 'dueOn')
+
+                return (
+                  <SiteRow
+                    key={String(activity['id'])}
+                    to={siteForms.form(String(activity['id']))}
+                    title={text(activity, 'title')}
+                    meta={
+                      begun && performedOn !== null
+                        ? siteAssetWords.begun(kind, performedOn)
+                        : dueOn !== null
+                          ? siteAssetWords.due(kind, dueOn)
+                          : kind
+                    }
+                    right={
+                      <Status tone={begun ? 'neutral' : 'waiting'}>
+                        {begun ? siteAssetWords.started : siteAssetWords.open}
+                      </Status>
+                    }
+                  />
+                )
+              })}
+            </SiteRows>
+          </Panel>
         ) : null}
         <Panel title="Angaben">
           <div className="flex flex-col gap-2.5">

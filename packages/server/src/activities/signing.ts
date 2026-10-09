@@ -4,6 +4,7 @@ import {
   type ActivityStatus,
   answerFindings,
   answersMissing,
+  resultAgainstFindings,
   type Catalogue,
   type EvidenceOrigin,
   formOfActivity,
@@ -154,6 +155,7 @@ export async function pageOf(tx: TenantTransaction, activity: ActivityRow): Prom
       label: duties.label,
       result: activityDuties.result,
       resultReason: activityDuties.resultReason,
+      remark: activityDuties.remark,
     })
     .from(activityDuties)
     .innerJoin(
@@ -398,6 +400,24 @@ export async function checkSignature(
     throw new SigningRefusal(
       `Jeder Punkt braucht seine Antwort, bevor unterschrieben wird. ${missing.join(' ')}`,
     )
+  }
+
+  // What the signature makes a defect of, and what was reported in the
+  // activity: neither is "ohne Mangel" (#108).
+  const findings =
+    page.defects.length +
+    (form === null
+      ? 0
+      : answerFindings(form, page.answers ?? [], {
+          rules: catalogue.ruleSet,
+          on: activity.performedOn,
+        }).length)
+  const contradiction = page.duties
+    .map((line) => resultAgainstFindings(line.result, findings))
+    .find((sentence) => sentence !== null)
+
+  if (contradiction !== undefined) {
+    throw new SigningRefusal(contradiction)
   }
 
   const valid = await signaturesOf(tx, activity, fingerprint)
@@ -786,6 +806,7 @@ async function writeDown(
         performedOn: activity.performedOn ?? '',
         result: line.result ?? 'not_performed',
         resultReason: line.resultReason,
+        remark: line.remark,
         performedBy: activity.performerUserId ?? signer?.signedBy ?? context.writtenBy,
         examiner: null,
         signatures: stated,

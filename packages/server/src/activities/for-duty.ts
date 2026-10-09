@@ -6,13 +6,16 @@ import {
   activityUnderWay,
   type Catalogue,
   type DutyId,
+  type FilledAnswer,
+  type FormDefinition,
   type IsoDate,
+  templateAnswers,
 } from '@opengewerk/haustechnik-domain'
 import type { TenantTransaction } from '@opengewerk/platform-server'
-import { and, asc, eq, inArray, isNull, type SQL } from 'drizzle-orm'
+import { and, asc, desc, eq, inArray, isNull, type SQL } from 'drizzle-orm'
 
 import { dutyTitle } from '../database/duty-standing.js'
-import { activities, activityDuties, duties } from '../database/schema/index.js'
+import { activities, activityAnswers, activityDuties, duties } from '../database/schema/index.js'
 import { dayInGermany } from '../today.js'
 
 /** What an activity for a duty is made with, beside the duty. */
@@ -43,7 +46,9 @@ export type MadeActivity =
  * and hands out work: at the place of the duty, meeting the duty, whether the
  * own people or a contractor perform it as the duty says, and with the form
  * its kind names as its evidence in the version in force on the day it is
- * made, which it keeps (#106).
+ * made, which it keeps (#106). The last protocol of its asset in that form is
+ * its template (#108): what carries stands in it as its answers from the
+ * start, and the activity names the day of that protocol.
  *
  * None while an activity is under way for the duty, so that a due day that
  * moved adds nothing to what is planned. The duty is held until the activity
@@ -86,6 +91,15 @@ export async function makeActivityForDuty(
     propertyId: duty.propertyId,
     areaId: duty.areaId,
   }
+  const template =
+    form === null || duty.assetId === null
+      ? null
+      : await templateOf(tx, duty.assetId, {
+          key: form.key,
+          version: form.version,
+          title: form.definition.title,
+          sections: form.definition.sections,
+        })
   const [activity] = await tx
     .insert(activities)
     .values({
@@ -110,6 +124,7 @@ export async function makeActivityForDuty(
       responsibleUserId: making.responsible,
       formKey: form?.key ?? null,
       formVersion: form?.version ?? null,
+      templateOn: template?.performedOn ?? null,
     })
     .returning({ id: activities.id })
 
@@ -119,7 +134,54 @@ export async function makeActivityForDuty(
 
   await tx.insert(activityDuties).values({ ...place, activityId: activity.id, dutyId: duty.id })
 
+  if (template !== null) {
+    await tx
+      .insert(activityAnswers)
+      .values(template.answers.map((answer) => ({ ...place, activityId: activity.id, ...answer })))
+  }
+
   return { made: activity.id as ActivityId }
+}
+
+/**
+ * The template of a new activity at an asset in a form (#108, section 4.4 of
+ * the concept): the last protocol of the asset in the same form, by the day
+ * it was performed, that is written down, with the answers of it that carry
+ * into the version the new one takes. None where there is no such protocol
+ * or nothing of it carries, so that the activity does not claim a template
+ * it did not take.
+ */
+async function templateOf(
+  tx: TenantTransaction,
+  assetId: NonNullable<(typeof activities.$inferSelect)['assetId']>,
+  definition: FormDefinition,
+): Promise<{ readonly performedOn: IsoDate; readonly answers: readonly FilledAnswer[] } | null> {
+  const [last] = await tx
+    .select({ id: activities.id, performedOn: activities.performedOn })
+    .from(activities)
+    .where(
+      and(
+        eq(activities.assetId, assetId),
+        eq(activities.formKey, definition.key),
+        eq(activities.status, 'done'),
+        isNull(activities.deletedAt),
+      ),
+    )
+    .orderBy(desc(activities.performedOn), desc(activities.createdAt))
+    .limit(1)
+
+  if (last === undefined || last.performedOn === null) {
+    return null
+  }
+
+  const rows = await tx
+    .select()
+    .from(activityAnswers)
+    .where(and(eq(activityAnswers.activityId, last.id), isNull(activityAnswers.deletedAt)))
+    .orderBy(asc(activityAnswers.id))
+  const answers = templateAnswers(definition, rows)
+
+  return answers.length === 0 ? null : { performedOn: last.performedOn, answers }
 }
 
 /**

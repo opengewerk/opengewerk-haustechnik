@@ -462,6 +462,63 @@ describe('a signature on an activity', () => {
     ).toBe('Dieser Vorgang ist abgeschlossen.')
   })
 
+  it('keeps what was said with the result in each evidence, on the page that is signed', async () => {
+    const { activity } = await activityToSign()
+
+    await admin.query(
+      `update activity_duties set remark = 'Bremse nachgestellt.' where activity_id = $1`,
+      [activity],
+    )
+
+    const signature = await signatureFor(activity)
+    const taken = await as(technician, (tx, context) => takeSignature(tx, context, signature))
+
+    expect(taken.written.map((evidence) => evidence.state.remark)).toEqual(['Bremse nachgestellt.'])
+
+    // Said after the signature, it is another page: the signature counts no more.
+    await admin.query(`update activity_duties set remark = 'Anders.' where activity_id = $1`, [
+      activity,
+    ])
+
+    expect(await shownPage(activity)).not.toBe(signature.pageFingerprint)
+  })
+
+  it('is refused as "ohne Mangel" while a defect was reported in the activity, and taken with defects', async () => {
+    const { activity } = await activityToSign()
+    const { rows } = await admin.query<{ property_id: string; asset_id: string }>(
+      'select property_id, asset_id from activities where id = $1',
+      [activity],
+    )
+
+    await admin.query(
+      `insert into defects (tenant_id, property_id, area_id, asset_id, description, found_on,
+                            found_in_activity_id)
+       values ($1, $2, $3, $4, 'Seil angerissen', '2026-10-01', $5)`,
+      [tenant, rows[0]?.property_id, area, rows[0]?.asset_id, activity],
+    )
+
+    expect(
+      await refusalOf(
+        as(technician, async (tx, context) =>
+          takeSignature(tx, context, await signatureFor(activity)),
+        ),
+      ),
+    ).toBe('Ein Vorgang, der einen Mangel festhält, ist nicht „ohne Mangel“.')
+    expect(await countOf('activity_signatures', 'activity_id', activity)).toBe(0)
+
+    await admin.query(`update activity_duties set result = 'with_defects' where activity_id = $1`, [
+      activity,
+    ])
+
+    expect(
+      await refusalOf(
+        as(technician, async (tx, context) =>
+          takeSignature(tx, context, await signatureFor(activity)),
+        ),
+      ),
+    ).toBe('taken')
+  })
+
   it('is refused with a drawing or a fingerprint of another shape', async () => {
     const { activity } = await activityToSign()
 
@@ -535,6 +592,14 @@ describe('an activity with a form', () => {
           answer.value ?? null,
           answer.remark ?? null,
         ],
+      )
+    }
+
+    // A point not in order makes a defect, and an activity with one is not "ohne Mangel".
+    if (given.some((answer) => answer.result === 'not_ok')) {
+      await admin.query(
+        `update activity_duties set result = 'with_defects' where activity_id = $1`,
+        [activity],
       )
     }
 
@@ -614,6 +679,9 @@ describe('an activity with a form', () => {
       `update activities set form_key = 'probe.door_check', form_version = 1 where id = $1`,
       [activity],
     )
+    await admin.query(`update activity_duties set result = 'with_defects' where activity_id = $1`, [
+      activity,
+    ])
 
     for (const [field, remark] of [
       ['door', 'Tür klemmt.'],
