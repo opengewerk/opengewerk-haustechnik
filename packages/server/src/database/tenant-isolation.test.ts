@@ -102,6 +102,7 @@ function rowsOf(tenant: Tenant): readonly Row[] {
   const asset = randomUUID()
   const duty = randomUUID()
   const activity = randomUUID()
+  const template = randomUUID()
   const workOrder = randomUUID()
   const evidence = randomUUID()
   const document = randomUUID()
@@ -466,6 +467,21 @@ function rowsOf(tenant: Tenant): readonly Row[] {
         area_id: area,
         activity_id: activity,
         duty_id: duty,
+      },
+    },
+    // The template of a round with its first version (#112).
+    {
+      table: 'round_templates',
+      values: { id: template, tenant_id: tenant.id, title: 'Technikzentrale' },
+    },
+    {
+      table: 'round_template_versions',
+      values: {
+        tenant_id: tenant.id,
+        template_id: template,
+        form_version: 1,
+        definition: JSON.stringify({ title: 'Technikzentrale', sections: [] }),
+        asks_countersignature: false,
       },
     },
     {

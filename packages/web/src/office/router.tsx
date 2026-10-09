@@ -45,6 +45,8 @@ import {
   PropertyScreen,
 } from './screens/properties.js'
 import { ReportScreen } from './screens/report.js'
+import { NewTemplateScreen, TemplateScreen } from './screens/round-template.js'
+import { TemplateListScreen } from './screens/round-templates.js'
 import { EditRoomScreen, NewRoomScreen } from './screens/room-form.js'
 import { RoomScreen } from './screens/rooms.js'
 import { StaffScreen } from './screens/staff.js'
@@ -243,6 +245,30 @@ export function officeRoutes() {
       getParentRoute: () => office,
       path: '/pruefungen/$activityId',
       component: ActivityScreen,
+    }),
+    // The templates of the rounds (#112): the list, a new one, empty or taken
+    // over from a package, and one template by its id. "Rundgänge" shows the
+    // list as well until the overview of the week comes with the plans and
+    // takes its place.
+    createRoute({
+      getParentRoute: () => office,
+      path: '/rundgaenge',
+      component: TemplateListScreen,
+    }),
+    createRoute({
+      getParentRoute: () => office,
+      path: '/rundgaenge/vorlagen',
+      component: TemplateListScreen,
+    }),
+    createRoute({
+      getParentRoute: () => office,
+      path: '/rundgaenge/vorlagen/neu',
+      component: NewTemplateScreen,
+    }),
+    createRoute({
+      getParentRoute: () => office,
+      path: '/rundgaenge/vorlagen/$templateId',
+      component: TemplateScreen,
     }),
     // The work orders (#117): the list, a new one, and the page of one by the
     // id of its activity.

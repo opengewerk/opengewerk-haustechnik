@@ -145,6 +145,9 @@ export function pullScope(scope: DeviceScope): PullScope {
     defects: sql`${column('defects', 'id')} = any(${idArray(scope.defectIds)})`,
   }
   const places = `properties:${fingerprintOf(scope.propertyIds)}`
+  // The templates of the rounds lie in no area: every device holds them all,
+  // whatever it sees, to fill a round in the version it names.
+  const operator = 'operator'
   const work = `activities:${fingerprintOf(scope.activityIds)}`
 
   return {
@@ -153,6 +156,8 @@ export function pullScope(scope: DeviceScope): PullScope {
       ...Object.fromEntries(placeEntities.map((entity) => [entity, places])),
       ...Object.fromEntries(workEntities.map((entity) => [entity, work])),
       defects: `defects:${fingerprintOf(scope.defectIds)}`,
+      round_templates: operator,
+      round_template_versions: operator,
     },
   }
 }

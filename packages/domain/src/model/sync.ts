@@ -45,6 +45,11 @@ export const syncPolicies: Readonly<Record<string, SyncPolicy>> = {
   // The times a building is closed: whoever plans the rounds enters them, and
   // a device holds them to read.
   building_closures: officeOnly,
+  // The templates of the rounds and their versions (#112): the office keeps
+  // them, and every device holds them to fill a round in the version it
+  // names, without a network.
+  round_templates: officeOnly,
+  round_template_versions: officeOnly,
   // A room is taken stock of on site; its building, property and area follow
   // its floor.
   rooms: { create: true, change: 'merge', reserved: ['buildingId', 'propertyId', 'areaId'] },
@@ -375,6 +380,8 @@ export const syncEntityNames: Readonly<Record<string, string>> = {
   floors: 'Geschoss',
   contacts: 'Ansprechpartner',
   building_closures: 'Schließzeit',
+  round_templates: 'Vorlage eines Rundgangs',
+  round_template_versions: 'Fassung einer Vorlage',
   rooms: 'Raum',
   assets: 'Anlage',
   asset_lifecycle: 'Lebenszyklus einer Anlage',
@@ -528,4 +535,12 @@ export const syncFieldNames: Readonly<Record<string, string>> = {
   // stands in a conflict.
   code: 'Code',
   blockedAt: 'Gesperrt am',
+  // What is said about the template of a round and a version of it (#112).
+  // The office keeps both; a device holds them to read.
+  sourceKey: 'Übernommen aus dem Paket',
+  sourceVersion: 'Fassung im Paket',
+  templateId: 'Vorlage',
+  formVersion: 'Fassung',
+  definition: 'Kapitel und Punkte',
+  asksCountersignature: 'Gegenzeichnung verlangt',
 }

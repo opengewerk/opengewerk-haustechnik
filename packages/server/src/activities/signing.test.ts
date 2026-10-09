@@ -1030,3 +1030,187 @@ describe('two at the same moment', () => {
     expect(await countOf('evidence', 'duty_id', duties[0] as string)).toBe(1)
   })
 })
+
+describe('a round of a template of the operator', () => {
+  interface Round {
+    readonly activity: ActivityId
+    readonly duties: DutyId[]
+    readonly asset: string
+    readonly property: string
+  }
+
+  /**
+   * A round at a new asset with its duties, on one version of a template.
+   * Each version is a list of points in one chapter, written for the asset and
+   * the duties of the round.
+   */
+  async function roundOn(
+    versions: (asset: string, duties: readonly DutyId[]) => readonly object[][],
+    on: number,
+    duties = 1,
+  ): Promise<Round> {
+    const round = await activityToSign('round', { duties })
+    const { rows } = await admin.query<{ asset_id: string; property_id: string }>(
+      'select asset_id, property_id from activities where id = $1',
+      [round.activity],
+    )
+    const asset = rows[0]?.asset_id ?? ''
+    const property = rows[0]?.property_id ?? ''
+    const { rows: made } = await admin.query<{ id: string }>(
+      `insert into round_templates (tenant_id, title) values ($1, 'Technikzentrale') returning id`,
+      [tenant],
+    )
+    const template = made[0]?.id ?? ''
+
+    for (const [index, fields] of versions(asset, round.duties).entries()) {
+      await admin.query(
+        `insert into round_template_versions (tenant_id, template_id, form_version, definition,
+                                              asks_countersignature)
+         values ($1, $2, $3, $4, false)`,
+        [
+          tenant,
+          template,
+          index + 1,
+          JSON.stringify({
+            title: 'Technikzentrale',
+            sections: [{ key: 'k1', title: 'Heizraum', fields }],
+          }),
+        ],
+      )
+    }
+
+    await admin.query('update activities set form_key = $2, form_version = $3 where id = $1', [
+      round.activity,
+      `template-${template}`,
+      on,
+    ])
+
+    return { ...round, asset, property }
+  }
+
+  async function answer(
+    round: Round,
+    field: string,
+    given: { readonly result?: string; readonly value?: string; readonly remark?: string },
+  ) {
+    await admin.query(
+      `insert into activity_answers (tenant_id, property_id, area_id, activity_id, field_key,
+                                     result, value, remark)
+       values ($1, $2, $3, $4, $5, $6, $7, $8)`,
+      [
+        tenant,
+        round.property,
+        area,
+        round.activity,
+        field,
+        given.result ?? null,
+        given.value ?? null,
+        given.remark ?? null,
+      ],
+    )
+  }
+
+  /** The evidence of a round by duty: result, reason, remark, version and the labels of the answers it holds. */
+  async function evidenceOf(activity: ActivityId) {
+    const { rows } = await admin.query<{
+      duty_id: string
+      state: {
+        result: string
+        resultReason: string | null
+        remark: string | null
+        form: { version: number } | null
+        answers: { label: string }[]
+      }
+    }>('select duty_id, state from evidence where activity_id = $1', [activity])
+
+    return new Map(
+      rows.map(({ duty_id, state }) => [
+        duty_id,
+        {
+          result: state.result,
+          reason: state.resultReason,
+          remark: state.remark,
+          version: state.form?.version ?? null,
+          answers: state.answers.map((each) => each.label),
+        },
+      ]),
+    )
+  }
+
+  async function signed(activity: ActivityId) {
+    const input = await signatureFor(activity)
+
+    return refusalOf(as(technician, (tx, context) => takeSignature(tx, context, input)))
+  }
+
+  const door = (asset: string, fulfils?: DutyId) => ({
+    kind: 'check_point',
+    key: 'p1',
+    label: 'Tür schließt selbsttätig',
+    about: { kind: 'asset', id: asset },
+    ...(fulfils === undefined ? {} : { fulfils }),
+  })
+  const said = { kind: 'text', key: 'p2', label: 'Sonst aufgefallen', multiline: true }
+
+  it('stays on the version it began in, whatever was saved after it', async () => {
+    const round = await roundOn(
+      (asset) => [[door(asset)], [{ ...door(asset), key: 'p9', label: 'Neuer Punkt' }]],
+      1,
+    )
+
+    await answer(round, 'p1', { result: 'ok' })
+
+    expect(await signed(round.activity)).toBe('taken')
+    expect([...(await evidenceOf(round.activity)).values()]).toEqual([
+      expect.objectContaining({ version: 1, answers: ['Tür schließt selbsttätig'] }),
+    ])
+  })
+
+  it('takes the result of a duty a point fulfils from its answer, and holds that answer alone', async () => {
+    const round = await roundOn((asset, duties) => [[door(asset, duties[0]), said]], 1, 2)
+    const [fulfilled, other] = round.duties
+
+    // Nobody enters a result for the duty the door fulfils; the other one says what the round found.
+    await admin.query(
+      `update activity_duties
+          set result = case when duty_id = $2 then null else 'with_defects'::evidence_result end
+        where activity_id = $1`,
+      [round.activity, fulfilled],
+    )
+    await answer(round, 'p1', { result: 'not_ok', remark: 'Tür klemmt.' })
+    await answer(round, 'p2', { value: '"Sonst ruhig."' })
+
+    expect(await signed(round.activity)).toBe('taken')
+
+    const written = await evidenceOf(round.activity)
+
+    expect(written.get(fulfilled as string)).toEqual({
+      result: 'with_defects',
+      reason: null,
+      remark: 'Tür klemmt.',
+      version: 1,
+      answers: ['Tür schließt selbsttätig'],
+    })
+    expect(written.get(other as string)).toMatchObject({
+      result: 'with_defects',
+      answers: ['Tür schließt selbsttätig', 'Sonst aufgefallen'],
+    })
+  })
+
+  it('writes a point that could not be checked as not performed, with its remark as the reason', async () => {
+    const round = await roundOn((asset, duties) => [[door(asset, duties[0])]], 1)
+    const [fulfilled] = round.duties
+
+    await admin.query('update activity_duties set result = null where activity_id = $1', [
+      round.activity,
+    ])
+    await answer(round, 'p1', { result: 'not_possible', remark: 'Raum verschlossen.' })
+
+    expect(await signed(round.activity)).toBe('taken')
+    expect((await evidenceOf(round.activity)).get(fulfilled as string)).toMatchObject({
+      result: 'not_performed',
+      reason: 'nicht möglich: Raum verschlossen.',
+      remark: null,
+    })
+  })
+})

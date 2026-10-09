@@ -49,16 +49,63 @@ export const formRecordKinds = ['asset', 'room'] as const
 
 export type FormRecordKind = (typeof formRecordKinds)[number]
 
+/** Whether a measured value has to reach its limit or must not pass it. */
+export const limitBounds = ['at_least', 'at_most'] as const
+
+export type LimitBound = (typeof limitBounds)[number]
+
+/** The largest limit an operator states, in thousandths of its unit: a million of the unit. */
+export const statedLimitMost = 1_000_000_000
+
+/** The longest source an operator names for a limit of their own. */
+export const statedSourceMost = 200
+
+/**
+ * A limit the operator states in the template of a round, with its source,
+ * rather than takes from a rule of a package (section 2.5 of the concept,
+ * decided on 04.10.2026): the value stands in the version of the template, so
+ * a round is judged by the value its version said. In thousandths of the
+ * field's unit, as the engine counts. A package never names one: a limit it
+ * ships is a rule with its source (ADR 0005).
+ */
+export interface StatedLimit {
+  readonly kind: 'stated'
+  readonly bound: LimitBound
+  readonly milli: number
+  readonly source: string
+}
+
+/** Whether a stated limit has the shape it needs, its value and a source among them. */
+export function isStatedLimit(limit: unknown): limit is StatedLimit {
+  if (typeof limit !== 'object' || limit === null) {
+    return false
+  }
+
+  const { kind, bound, milli, source } = limit as Record<string, unknown>
+
+  return (
+    kind === 'stated' &&
+    (limitBounds as readonly unknown[]).includes(bound) &&
+    typeof milli === 'number' &&
+    Number.isInteger(milli) &&
+    Math.abs(milli) <= statedLimitMost &&
+    typeof source === 'string' &&
+    source.trim() !== '' &&
+    source.trim() === source &&
+    source.length <= statedSourceMost
+  )
+}
+
 /**
  * What the forms of this application name: its units, every kind of field
- * the foundation knows, check points and readings included, and as yet no
- * list a group repeats over and no limit worked out instead of taken from a
- * rule.
+ * the foundation knows, check points and readings included, no list a group
+ * repeats over as yet, and beside the limits of the rules the one an operator
+ * states.
  */
 export interface FormTerms {
   readonly unit: FormUnitKey
   readonly list: never
-  readonly limit: never
+  readonly limit: 'stated'
   readonly kind: (typeof blockFieldKinds)[number]
 }
 
@@ -75,7 +122,18 @@ export type MeterReadingField = GeneralMeterReadingField<FormTerms>
 export const forms = formEngine<FormTerms>({
   units: formUnits,
   lists: {},
-  limits: {},
+  limits: {
+    // The value and its source are read from the field; one that lacks either
+    // judges nothing rather than something it does not say.
+    stated: (field) =>
+      isStatedLimit(field.limit)
+        ? {
+            limitMilli: field.limit.milli,
+            atLeast: field.limit.bound === 'at_least',
+            source: field.limit.source,
+          }
+        : { none: 'Der eigene Grenzwert nennt keinen Wert mit Quelle.' },
+  },
   kinds: blockFieldKinds,
   records: formRecordKinds,
 })

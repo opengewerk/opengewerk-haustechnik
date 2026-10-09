@@ -529,7 +529,18 @@ function checkForm(
   const spot = spotIn(version.file)
 
   for (const field of fieldsOfForm(form)) {
-    if (field.kind !== 'measurement' || field.limit === undefined || !('rule' in field.limit)) {
+    if (field.kind !== 'measurement' || field.limit === undefined) {
+      continue
+    }
+
+    // A limit an operator states stands in a template of their own (#112);
+    // one a package ships is a rule with its source, accepted like any other
+    // entry (ADR 0005).
+    if (!('rule' in field.limit)) {
+      findings.say(
+        spot,
+        `Der Grenzwert von ${field.key} nennt keine Regel; ein Paket nennt jeden Grenzwert als Regel mit Fundstelle.`,
+      )
       continue
     }
 

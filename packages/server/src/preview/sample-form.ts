@@ -109,7 +109,47 @@ export const samplePackage: CataloguePackage = {
       review: unchecked,
     },
   ],
-  roundTemplates: [],
+  // A template of a round to take over and adapt (#112, section 5).
+  roundTemplates: [
+    {
+      key: 'vorschau.drinking_water_round',
+      version: 1,
+      validFrom: '2015-06-01',
+      definition: {
+        title: 'Monatsrundgang Trinkwasser',
+        sections: [
+          {
+            key: 'heating',
+            title: 'Trinkwassererwärmung',
+            fields: [
+              {
+                kind: 'measurement',
+                key: 'outlet',
+                label: 'Temperatur am Speicheraustritt',
+                unit: 'degrees_celsius',
+                decimals: 1,
+                required: true,
+              },
+              { kind: 'check_point', key: 'valve', label: 'Sicherheitsventil ohne Tropfen' },
+            ],
+          },
+          {
+            key: 'taps',
+            title: 'Entnahmestellen',
+            fields: [
+              {
+                kind: 'check_point',
+                key: 'flushed',
+                label: 'Selten genutzte Entnahmestellen gespült',
+              },
+              { kind: 'text', key: 'noticed', label: 'Sonst aufgefallen', multiline: true },
+            ],
+          },
+        ],
+      },
+      review: unchecked,
+    },
+  ],
   rules: [
     {
       record: {

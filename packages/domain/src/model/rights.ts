@@ -98,6 +98,14 @@ export const rights = [
    */
   'activity.write',
   /**
+   * The templates of the rounds (#112, section 4.5): their chapters and
+   * points, what a point is about and the duty it fulfils, and whether a
+   * round of it asks for a countersignature. Each change is a new version;
+   * which assets, rooms and duties a template may name, the areas of the
+   * person decide, in the version that stands and in the one that follows.
+   */
+  'template.write',
+  /**
    * The second signature: accepting a work order or sending it back, and
    * countersigning a round whose template asks for it. A right of its own, so
    * that a tenant can have somebody who assigns the work without being the
@@ -201,6 +209,7 @@ export const rightLabel: Readonly<Record<Right, string>> = {
   'activity.read': 'Vorgänge ansehen',
   'activity.perform': 'Vorgänge ausführen',
   'activity.write': 'Vorgänge planen und verteilen',
+  'template.write': 'Vorlagen der Rundgänge führen',
   'activity.accept': 'Aufträge abnehmen und Rundgänge gegenzeichnen',
   'evidence.read': 'Nachweise ansehen',
   'evidence.write': 'Nachweise eintragen, berichtigen und für ungültig erklären',
@@ -279,7 +288,8 @@ const technician: readonly Right[] = [
 
 /**
  * "Objektleitung": plans and hands out the work in its areas and signs it
- * off, and takes care of the assets there. Not the structure of the
+ * off, keeps the templates of the rounds, and takes care of the assets
+ * there. Not the structure of the
  * properties and not the register of duties, which belong to those who see
  * every area.
  */
@@ -287,6 +297,7 @@ const siteManagement: readonly Right[] = [
   ...technician,
   'asset.write',
   'activity.write',
+  'template.write',
   'activity.accept',
   'evidence.write',
   'defect.write',

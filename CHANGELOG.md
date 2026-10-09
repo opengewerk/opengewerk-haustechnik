@@ -853,6 +853,22 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   als Antwort da, und das Protokoll nennt den Tag der Vorlage. Die Bemerkung zum Ergebnis steht
   im Nachweis (Fassung 4 des eingefrorenen Stands). Bisher gab es die Unterschrift nur über den
   Abgleich und keinen Bildschirm, der sie gibt
+- Vorlagen der Rundgänge im Büro (#112): unter "Rundgänge" die Liste der Vorlagen des Betreibers
+  mit Fassung, Gegenzeichnung und Zahl der Rundgänge, darunter die Vorlagen der Pakete zum
+  Übernehmen und Anpassen. Der Editor führt Kapitel und Punkte jeder Art, die Einheit, einen
+  Grenzwert aus einer Regel eines Pakets oder einen eigenen Wert mit Quelle, worauf ein Punkt
+  zeigt und welche Pflicht er erfüllt. Punkte und Kapitel lassen sich am Griff verschieben, mit
+  Maus, Finger oder Tastatur, auch von einem Kapitel in ein anderes. Jede Änderung wird eine neue
+  Fassung, keine gespeicherte ändert sich, und ein Rundgang bleibt auf der Fassung, in der er
+  begann. Editor und Server prüfen eine Fassung mit derselben Funktion und der Formular-Engine;
+  eine abgelehnte nennt den Punkt und den Grund, und ein Punkt an einer Anlage, die es nicht mehr
+  gibt, fällt vor dem Speichern auf. Ändern darf eine Vorlage nur, wer jede Anlage, jeden Raum und
+  jede Pflicht sieht, auf die sie zeigt, mit dem neuen Recht "Vorlagen der Rundgänge führen" für
+  Leitung, Technische Leitung und Objektleitung. Die Vorlagen reisen auf jedes Gerät, damit ein
+  Rundgang ohne Netz in seiner Fassung ausgefüllt wird. Erfüllt ein Punkt eine Pflicht, nimmt ihr
+  Nachweis das Ergebnis aus der Antwort und hält nur diesen Punkt fest, ohne zweite Erfassung.
+  Bisher kannte der Katalog Vorlagen nur als Teil eines Pakets, und ein Betreiber konnte keine
+  eigene führen
 
 ### Geändert
 

@@ -15,7 +15,6 @@ import {
 
 import type { ActivityId } from './activity.js'
 import type { AreaId } from './area.js'
-import type { Catalogue } from './catalogue.js'
 import { defectLimits } from './defect.js'
 import type { StatedAnswer, StatedFile } from './evidence.js'
 import { oneOf, type Problems } from './fields.js'
@@ -28,6 +27,7 @@ import {
   type MeasurementField,
 } from './forms.js'
 import type { PropertyId } from './location.js'
+import type { FormVersions } from './round-template.js'
 
 /**
  * The answers of a round and of a protocol (section 2.7 of the concept, ADR
@@ -661,12 +661,14 @@ export function statedAnswers(
 }
 
 /**
- * The form an activity is filled in, as the catalogue holds the version the
- * activity names: null for an activity without a form, undefined for a
- * version the catalogue does not know, which nobody can fill in or sign.
+ * The form an activity is filled in, in the version the activity names: out
+ * of the catalogue, or for a round the version of its template, which the
+ * caller gives beside the catalogue (`withTemplates`). Null for an activity
+ * without a form, undefined for a version nobody here knows, which nobody can
+ * fill in or sign.
  */
 export function formOfActivity(
-  catalogue: Pick<Catalogue, 'formVersion'>,
+  catalogue: FormVersions,
   activity: { readonly formKey: string | null; readonly formVersion: number | null },
 ): FormDefinition | null | undefined {
   if (activity.formKey === null || activity.formVersion === null) {

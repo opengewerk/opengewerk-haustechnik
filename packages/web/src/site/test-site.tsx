@@ -327,6 +327,8 @@ export async function mountSite(
       'labels',
       'attachments',
       'attachment_versions',
+      'round_templates',
+      'round_template_versions',
     ],
     onSignedOut: () => {},
   })

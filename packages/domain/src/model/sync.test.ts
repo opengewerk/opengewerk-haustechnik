@@ -51,6 +51,9 @@ describe('the policies of the sync', () => {
       // Entered by whoever plans the rounds, with a connection (second
       // addendum of 05.10.2026).
       building_closures: [false, 'never'],
+      // The templates of the rounds and their versions, kept in the office (#112).
+      round_templates: [false, 'never'],
+      round_template_versions: [false, 'never'],
       rooms: [true, 'merge'],
       assets: [true, 'merge'],
       asset_lifecycle: [false, 'never'],

@@ -496,6 +496,7 @@ Jede Zeile ist der erste Abschnitt einer Adresse, unter der der Server antwortet
 | `labels` | Etiketten: sagt zu einem gescannten Code in einem Wort, ob er für die fragende Person etwas öffnet, und druckt viele Etiketten auf einmal |
 | `properties` | Liegenschaften |
 | `rooms` | Räume, mit den Pflichten, die an ihnen hängen |
+| `round-templates` | Vorlagen der Rundgänge: eine neue, leer oder aus einem Paket übernommen, und eine neue Fassung einer Vorlage; sie nennen Anlagen, Räume und Pflichten und keine Person |
 | `settings` | Vorlauf der Fristen und die Vorgabe der Frist je Mängelklasse |
 | `setup` | Ersteinrichtung |
 | `staff` | Zugänge |

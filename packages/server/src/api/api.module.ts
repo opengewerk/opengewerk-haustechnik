@@ -55,6 +55,7 @@ import {
 import { PropertiesController } from './properties.controller.js'
 import { DutyReportController } from './report.controller.js'
 import { RoomsController } from './rooms.controller.js'
+import { RoundTemplatesController } from './round-templates.controller.js'
 import { syncRoutesFor } from './sync-routes.js'
 import { WorkOrdersController } from './work-orders.controller.js'
 
@@ -250,6 +251,8 @@ export class ApiModule {
         // The work orders: the list, the page, a new one, its change and
         // its acceptance.
         WorkOrdersController,
+        // The templates of the rounds: a new one and a new version of one.
+        RoundTemplatesController,
         // The page of an evidence with the files it rests on, its correction
         // and its declaration of invalidity, the evidence of an asset, and the
         // report of a contractor that becomes the evidence of a duty.

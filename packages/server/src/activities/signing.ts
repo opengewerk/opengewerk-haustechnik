@@ -8,6 +8,8 @@ import {
   type Catalogue,
   type EvidenceOrigin,
   formOfActivity,
+  pointFulfilling,
+  pointOutcome,
   type SignatureRole,
   type SignedPage,
   signatureLimits,
@@ -41,6 +43,7 @@ import {
 } from '../database/schema/index.js'
 import { stateFingerprint } from '../evidence/fingerprint.js'
 import { type WritingContext, type WrittenEvidence, writeEvidence } from '../evidence/write.js'
+import { formsFor } from './template-forms.js'
 
 /** A signature as it arrives from the device. */
 export interface SignatureToTake {
@@ -376,16 +379,23 @@ export async function checkSignature(
     throw new SigningRefusal('Der Tag der Durchführung fehlt.')
   }
 
-  if (page.duties.some((line) => line.result === null)) {
-    throw new SigningRefusal(
-      'Jede Pflicht des Vorgangs braucht ein Ergebnis, bevor unterschrieben wird.',
-    )
-  }
-
-  const form = formOfActivity(catalogue, activity)
+  const form = formOfActivity(await formsFor(tx, catalogue, activity), activity)
 
   if (form === undefined) {
     throw new SigningRefusal('Das Formular dieses Vorgangs kennt dieser Stand nicht.')
+  }
+
+  // A duty a point of the round fulfils takes its result from the answer to
+  // that point (#112), so nobody enters one for it; every other duty needs
+  // its result.
+  const entered = page.duties.filter(
+    (line) => form === null || pointFulfilling(form, line.dutyId) === null,
+  )
+
+  if (entered.some((line) => line.result === null)) {
+    throw new SigningRefusal(
+      'Jede Pflicht des Vorgangs braucht ein Ergebnis, bevor unterschrieben wird.',
+    )
   }
 
   const missing =
@@ -412,7 +422,7 @@ export async function checkSignature(
           rules: catalogue.ruleSet,
           on: activity.performedOn,
         }).length)
-  const contradiction = page.duties
+  const contradiction = entered
     .map((line) => resultAgainstFindings(line.result, findings))
     .find((sentence) => sentence !== null)
 
@@ -503,7 +513,7 @@ async function defectsFromAnswers(
   context: WritingContext,
   activity: ActivityRow,
 ): Promise<void> {
-  const form = formOfActivity(context.catalogue, activity)
+  const form = formOfActivity(await formsFor(tx, context.catalogue, activity), activity)
 
   if (!form || activity.performedOn === null) {
     return
@@ -770,6 +780,12 @@ export async function defectsFollowTheirOrder(
  * Writes an activity down: one evidence per duty it was to meet, with the
  * result entered for that duty, the day it was performed on, who did it and
  * the signatures that count (ADR 0002, point 14).
+ *
+ * A duty that a point of the round fulfils (#112, section 4.5) takes its
+ * result from the answer to that point, without a second entry, and its
+ * evidence holds that one answer. Where the answer says nothing a result
+ * could be read from, the result entered for the duty stands, as for every
+ * other duty.
  */
 async function writeDown(
   tx: TenantTransaction,
@@ -796,17 +812,38 @@ async function writeDown(
     signedAt: signature.signedAt.toISOString(),
   }))
   const written: WrittenEvidence[] = []
+  const form = formOfActivity(await formsFor(tx, context.catalogue, activity), activity)
+  const answers = form ? await answersOf(tx, activity) : []
 
   for (const line of lines) {
+    const point = form ? pointFulfilling(form, line.dutyId) : null
+    const answer =
+      point === null
+        ? null
+        : (answers.find((each) => each.fieldKey === point.key && each.groupKey === null) ?? null)
+    const outcome =
+      point === null || activity.performedOn === null
+        ? null
+        : pointOutcome(point, answer, {
+            rules: context.catalogue.ruleSet,
+            on: activity.performedOn,
+          })
+
     written.push(
       await writeEvidence(tx, context, {
         dutyId: line.dutyId,
         activityId: activity.id,
         origin,
         performedOn: activity.performedOn ?? '',
-        result: line.result ?? 'not_performed',
-        resultReason: line.resultReason,
-        remark: line.remark,
+        point: point?.key ?? null,
+        result: outcome?.result ?? line.result ?? 'not_performed',
+        resultReason: outcome === null ? line.resultReason : outcome.reason,
+        remark:
+          outcome === null
+            ? line.remark
+            : outcome.result === 'not_performed'
+              ? null
+              : (answer?.remark ?? null),
         performedBy: activity.performerUserId ?? signer?.signedBy ?? context.writtenBy,
         examiner: null,
         signatures: stated,

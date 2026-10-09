@@ -447,6 +447,11 @@ export interface Catalogue {
    * stays readable in every version a package ever shipped.
    */
   readonly formVersion: (key: string, version: number) => CatalogueEntry<PackagedForm> | null
+  /**
+   * The version of a template of a round in force on a day: the one an
+   * operator takes over as a template of their own (#112, section 5).
+   */
+  readonly roundTemplate: (key: string, on: IsoDate) => CatalogueEntry<PackagedForm> | null
   /** Every rule of the bundle, as the form engine judges a measured value by them. */
   readonly ruleSet: RuleSet
   /** The rule in force on a day, for a federal state or, without one, for the whole country. */
@@ -534,6 +539,7 @@ export function catalogueOf(bundle: CatalogueBundle): Catalogue {
   const assetKinds = versionsByKey(bundle.packages.flatMap((entry) => entry.assetKinds))
   const dutyKinds = versionsByKey(bundle.packages.flatMap((entry) => entry.dutyKinds))
   const forms = versionsByKey(bundle.packages.flatMap((entry) => entry.forms))
+  const roundTemplates = versionsByKey(bundle.packages.flatMap((entry) => entry.roundTemplates))
   const rules = bundle.packages.flatMap((entry) => entry.rules)
   const reviews = new Map<RuleRecord, CatalogueReview>(
     rules.map((rule) => [rule.record, rule.review]),
@@ -588,6 +594,7 @@ export function catalogueOf(bundle: CatalogueBundle): Catalogue {
     form: (key, on) => inForce(forms.get(key), on),
     formVersion: (key, version) =>
       forms.get(key)?.find((entry) => entry.version === version) ?? null,
+    roundTemplate: (key, on) => inForce(roundTemplates.get(key), on),
     ruleSet: records,
     rule,
     ruleRecords: (key) => inReadingOrder(rules.filter((entry) => entry.record.key === key)),
