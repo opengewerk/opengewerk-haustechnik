@@ -14,8 +14,6 @@ import {
   Query,
 } from '@nestjs/common'
 import {
-  type Asset,
-  type Building,
   type Catalogue,
   classNotOffered,
   defaultDueOn,
@@ -32,22 +30,13 @@ import {
   type DefectSummary,
   defectTermProblem,
   type IsoDate,
-  type Property,
-  type Room,
   statusAfterCheck,
 } from '@opengewerk/haustechnik-domain'
 import { CurrentIdentity, Database, type TenantTransaction } from '@opengewerk/platform-server'
 import { eq } from 'drizzle-orm'
 
 import { CATALOGUE } from '../catalogue.js'
-import {
-  assets,
-  buildings,
-  defectClassTerms,
-  defects,
-  properties,
-  rooms,
-} from '../database/schema/index.js'
+import { defectClassTerms, defects } from '../database/schema/index.js'
 import {
   classChoicesFor,
   classTermsOf,
@@ -58,100 +47,9 @@ import {
 } from '../defects/reading.js'
 import { dayInGermany } from '../today.js'
 import { RequiresPermission } from './authorization.js'
-import { type Asking, fieldsOf, placeOf, refuse } from './places.js'
+import { type Asking, fieldsOf, given, placeOf, refuse, targetOf } from './places.js'
 
 const missing = 'Diesen Mangel gibt es nicht oder nicht mehr.'
-
-/** Whether a field of a body names something: neither left out, nor emptied. */
-function given(value: unknown): boolean {
-  return value !== undefined && value !== null && value !== ''
-}
-
-/** What a defect by hand hangs on: the property, and at most one of an asset, a room and a building there. */
-interface Target {
-  readonly propertyId: Defect['propertyId']
-  readonly areaId: Defect['areaId']
-  readonly buildingId: Defect['buildingId']
-  readonly roomId: Defect['roomId']
-  readonly assetId: Defect['assetId']
-}
-
-/**
- * What a defect hangs on (section 4.6: "immer an einer Anlage oder einem
- * Ort"): at most one of an asset, a room or a building, and the property
- * itself where none is named. Each is a row the person asking sees, and a
- * property named beside one of them has to be its property.
- */
-async function targetOf(
-  tx: TenantTransaction,
-  values: Readonly<Record<string, unknown>>,
-): Promise<Target> {
-  const named = (['assetId', 'roomId', 'buildingId'] as const).filter((field) =>
-    given(values[field]),
-  )
-
-  if (named.length > 1) {
-    throw new BadRequestException(
-      'Ein Mangel hängt an genau einem: einer Anlage, einem Raum, einem Gebäude oder der Liegenschaft.',
-    )
-  }
-
-  let place: { readonly propertyId: Defect['propertyId'] } & Partial<Target>
-
-  if (given(values['assetId'])) {
-    const asset = await placeOf<Asset>(
-      tx,
-      assets,
-      String(values['assetId']),
-      'Diese Anlage gibt es nicht oder nicht mehr.',
-    )
-
-    place = { propertyId: asset.propertyId, assetId: asset.id }
-  } else if (given(values['roomId'])) {
-    const room = await placeOf<Room>(
-      tx,
-      rooms,
-      String(values['roomId']),
-      'Diesen Raum gibt es nicht oder nicht mehr.',
-    )
-
-    place = { propertyId: room.propertyId, roomId: room.id }
-  } else if (given(values['buildingId'])) {
-    const building = await placeOf<Building>(
-      tx,
-      buildings,
-      String(values['buildingId']),
-      'Dieses Gebäude gibt es nicht oder nicht mehr.',
-    )
-
-    place = { propertyId: building.propertyId, buildingId: building.id }
-  } else if (given(values['propertyId'])) {
-    place = { propertyId: String(values['propertyId']) as Defect['propertyId'] }
-  } else {
-    throw new BadRequestException(
-      'Ein Mangel hängt an einer Anlage, einem Raum, einem Gebäude oder einer Liegenschaft; keines ist genannt.',
-    )
-  }
-
-  if (given(values['propertyId']) && values['propertyId'] !== place.propertyId) {
-    throw new BadRequestException('Die Liegenschaft ist nicht die, auf der das Genannte steht.')
-  }
-
-  const property = await placeOf<Property>(
-    tx,
-    properties,
-    place.propertyId,
-    'Diese Liegenschaft gibt es nicht oder nicht mehr.',
-  )
-
-  return {
-    propertyId: property.id,
-    areaId: property.areaId,
-    buildingId: place.buildingId ?? null,
-    roomId: place.roomId ?? null,
-    assetId: place.assetId ?? null,
-  }
-}
 
 /** A defect the person asking sees, held until the transaction ends, so that two changes of it come one after the other. */
 async function heldDefect(tx: TenantTransaction, id: string): Promise<Defect> {
@@ -308,7 +206,7 @@ export class DefectsController {
     )
 
     return this.database.forTenant(identity, async (tx) => {
-      const target = await targetOf(tx, values)
+      const target = await targetOf(tx, values, 'Ein Mangel')
       const decided = classAndDay(
         {
           ...(given(values.defectClass) ? { defectClass: values.defectClass } : {}),

@@ -58,6 +58,22 @@ export function takesAReport(
   return duty.kind === null || (kind?.definition.evidence.kinds.includes('report') ?? false)
 }
 
+/**
+ * Whether a duty takes an accepted work order as its evidence (#117): one of
+ * the operator's own takes every way, one from the catalogue the ways its kind
+ * names, and a kind the catalogue at hand does not know none. A work order for
+ * the due day of a duty that takes none would end at its acceptance, after the
+ * work was done and signed.
+ */
+export function takesAWorkOrder(
+  duty: { readonly kind: string | null },
+  kind: {
+    readonly definition: { readonly evidence: { readonly kinds: readonly string[] } }
+  } | null,
+): boolean {
+  return duty.kind === null || (kind?.definition.evidence.kinds.includes('work_order') ?? false)
+}
+
 /** The bounds of a report beside those of every evidence. */
 export const reportLimits = {
   fileName: 255,

@@ -362,6 +362,27 @@ describe('the keys of the activities and defects', () => {
       },
       defects_set_right_by_a_work_order_of_their_property: () =>
         defectRow('remedy_work_order_id', besideOrder),
+      // A work order that came of a defect on another property (#117).
+      work_orders_from_a_defect_of_their_property: async () => {
+        const { rows: found } = await admin.query<{ id: string }>(
+          `insert into defects (tenant_id, property_id, area_id, description, found_on)
+           values ($1, $2, $3, 'Tür klemmt.', '2026-10-01') returning id`,
+          [tenant, beside.property, beside.area],
+        )
+
+        return tried(
+          `insert into work_orders (tenant_id, property_id, area_id, activity_id, kind,
+                                    origin_defect_id)
+           values ($1, $2, $3, $4, 'defect_remedy', $5)`,
+          [
+            tenant,
+            here.property,
+            here.area,
+            await activityIn(here, { kind: 'work_order' }),
+            found[0]?.id,
+          ],
+        )
+      },
     }
 
     const { rows } = await admin.query<{ name: string }>(

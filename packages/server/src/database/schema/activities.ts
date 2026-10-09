@@ -3,6 +3,7 @@ import {
   activityLimits,
   activityStatuses,
   workOrderKinds,
+  workOrderUrgencies,
 } from '@opengewerk/haustechnik-domain'
 import {
   primaryId,
@@ -22,6 +23,7 @@ import {
   integer,
   pgEnum,
   pgTable,
+  type PgTableExtraConfigValue,
   text,
   unique,
   uniqueIndex,
@@ -29,6 +31,7 @@ import {
 
 import { withinAreas } from './areas.js'
 import { assets } from './assets.js'
+import { defects } from './defects.js'
 import { duties, dutyPerformer } from './duties.js'
 import { evidenceResult } from './evidence-result.js'
 import { buildings, optionalTrimmed, properties, rooms, trimmed } from './locations.js'
@@ -50,6 +53,9 @@ export const activityStatus = pgEnum('activity_status', activityStatuses)
 
 /** The kind of a work order, from the list in `domain`. */
 export const workOrderKind = pgEnum('work_order_kind', workOrderKinds)
+
+/** How urgent a work order is, from the list in `domain` (#73). */
+export const workOrderUrgency = pgEnum('work_order_urgency', workOrderUrgencies)
 
 /**
  * An activity at its place: the property always, and at most one of a
@@ -229,14 +235,23 @@ export const activityDuties = pgTable(
 
 /**
  * What only a work order has, beside its activity (ADR 0002, point 13): its
- * number and its kind. It hangs on an activity of the kind "work order" on its
- * property, and the key says so with the kind of the activity in it: a column
- * that is always `work_order`, so that a work order cannot hang on a round,
- * and an activity with a work order cannot become one.
+ * number, its kind, how urgent it is (#73), and the defect it came of (#117).
+ * It hangs on an activity of the kind "work order" on its property, and the
+ * key says so with the kind of the activity in it: a column that is always
+ * `work_order`, so that a work order cannot hang on a round, and an activity
+ * with a work order cannot become one.
  *
  * The number is drawn by the server from the sequence of the work orders,
  * once in a tenant and never again (#26); a work order made on a device
  * without a connection gets it when it arrives, as an asset does.
+ *
+ * The defect it came of is a defect of its property. It stays when the
+ * defect gets a new order: the defect names the order that sets it right
+ * now, the order the defect it came of.
+ *
+ * The callback of the constraints is typed by hand: `defects` points at this
+ * table and this one at `defects`, and in such a circle TypeScript cannot
+ * infer the type of the table (TS7022).
  */
 export const workOrders = pgTable(
   'work_orders',
@@ -252,10 +267,12 @@ export const workOrders = pgTable(
       .$type<'work_order'>(),
     number: text('number'),
     kind: workOrderKind('kind').notNull(),
+    urgency: workOrderUrgency('urgency').notNull().default('normal'),
+    originDefectId: reference<'defect'>('origin_defect_id'),
     ...timestamps,
     ...syncColumns,
   },
-  (table) => [
+  (table): PgTableExtraConfigValue[] => [
     tenantIsolation(table.tenantId),
     withinAreas(),
     unique('work_orders_tenant_id_key').on(table.tenantId, table.id),
@@ -273,10 +290,71 @@ export const workOrders = pgTable(
       foreignColumns: [activities.tenantId, activities.id, activities.propertyId, activities.kind],
       name: 'work_orders_of_a_work_order_of_their_property',
     }),
+    foreignKey({
+      columns: [table.tenantId, table.originDefectId, table.propertyId],
+      foreignColumns: [defects.tenantId, defects.id, defects.propertyId],
+      name: 'work_orders_from_a_defect_of_their_property',
+    }),
+    index('work_orders_origin_defect_idx').on(table.tenantId, table.originDefectId),
     uniqueIndex('work_orders_number_once')
       .on(table.tenantId, table.number)
       .where(sql`${table.number} is not null`),
     check('work_orders_of_a_work_order', sql`${table.activityKind} = 'work_order'`),
     check('work_orders_number_shaped', optionalTrimmed(table.number, 40)),
+  ],
+)
+
+/**
+ * The further people working on a work order (section 4.8 of the concept,
+ * #73): beside the person who answers for it, each a person of the operator,
+ * once per order among the rows that are not marked. A person taken off the
+ * order is marked, as everything the sync carries.
+ *
+ * A row hangs on the activity of the work order, on its property, with the
+ * kind of the activity in the key as `work_orders` has it: the people of an
+ * order travel with the work on it, which a device holds by its activities,
+ * and the log of the activity names them.
+ */
+export const workOrderParticipants = pgTable(
+  'work_order_participants',
+  {
+    id: primaryId<'work-order-participant'>(),
+    ...tenantColumn,
+    propertyId: reference<'property'>('property_id').notNull(),
+    areaId: reference<'area'>('area_id').notNull(),
+    activityId: reference<'activity'>('activity_id').notNull(),
+    activityKind: activityKind('activity_kind')
+      .notNull()
+      .default('work_order')
+      .$type<'work_order'>(),
+    userId: text('user_id').notNull(),
+    ...timestamps,
+    ...syncColumns,
+  },
+  (table) => [
+    tenantIsolation(table.tenantId),
+    withinAreas(),
+    unique('work_order_participants_tenant_id_key').on(table.tenantId, table.id),
+    foreignKey({
+      columns: [table.tenantId, table.propertyId, table.areaId],
+      foreignColumns: [properties.tenantId, properties.id, properties.areaId],
+      name: 'work_order_participants_follow_their_property',
+    }).onUpdate('cascade'),
+    foreignKey({
+      columns: [table.tenantId, table.activityId, table.propertyId, table.activityKind],
+      foreignColumns: [activities.tenantId, activities.id, activities.propertyId, activities.kind],
+      name: 'work_order_participants_of_a_work_order_of_their_property',
+    }),
+    foreignKey({
+      columns: [table.tenantId, table.userId],
+      foreignColumns: [memberships.tenantId, memberships.userId],
+      name: 'work_order_participants_work_here',
+    }),
+    index('work_order_participants_activity_idx').on(table.tenantId, table.activityId),
+    index('work_order_participants_user_idx').on(table.tenantId, table.userId),
+    uniqueIndex('work_order_participants_once')
+      .on(table.tenantId, table.activityId, table.userId)
+      .where(sql`${table.deletedAt} is null`),
+    check('work_order_participants_of_a_work_order', sql`${table.activityKind} = 'work_order'`),
   ],
 )

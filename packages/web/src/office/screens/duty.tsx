@@ -18,6 +18,7 @@ import {
   intervalWords,
   type RecordState,
   takesAReport,
+  takesAWorkOrder,
 } from '@opengewerk/haustechnik-domain'
 import {
   Button,
@@ -71,6 +72,7 @@ import {
 import { EvidenceNumber, ResultMark, StandingMark } from '../evidence-words.js'
 import { factLink } from '../links.js'
 import { officePlaces } from '../place-addresses.js'
+import { workOrderPlaces, workOrderStartSearch } from '../work-order-addresses.js'
 
 /** A duty as the server reads it today. */
 export function dutyQuery(id: string) {
@@ -294,15 +296,32 @@ export function DutyScreen() {
             title="Termin"
             action={
               makes ? (
-                <Button
-                  size="small"
-                  icon={Plus}
-                  onClick={() => {
-                    setMaking(true)
-                  }}
-                >
-                  {activityKindLabel[comesOf]} anlegen
-                </Button>
+                <div className="flex flex-wrap gap-1.5">
+                  {/* Or a work order for the due day, for a duty that takes one (#117). */}
+                  {takesAWorkOrder(duty, kind) ? (
+                    <Button
+                      size="small"
+                      icon={Plus}
+                      onClick={() => {
+                        void navigate({
+                          to: workOrderPlaces.new,
+                          search: workOrderStartSearch({ dutyId }),
+                        })
+                      }}
+                    >
+                      Auftrag anlegen
+                    </Button>
+                  ) : null}
+                  <Button
+                    size="small"
+                    icon={Plus}
+                    onClick={() => {
+                      setMaking(true)
+                    }}
+                  >
+                    {activityKindLabel[comesOf]} anlegen
+                  </Button>
+                </div>
               ) : undefined
             }
           >

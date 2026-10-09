@@ -146,6 +146,7 @@ describe('an installation that began on the first migration', () => {
     // place and the assets, so they go first, and what an invitation says
     // about areas hangs on the areas; the files, the mail server and the
     // settings of the deadlines hang on nothing of this.
+    await revertMigration(admin, '0027_work_orders_in_the_office')
     await revertMigration(admin, '0026_answers_per_point')
     await revertMigration(admin, '0025_defects_kept')
     await revertMigration(admin, '0023_own_duty_task')
@@ -310,6 +311,7 @@ describe('an installation from before the areas', () => {
 
     // The places hang on the areas and go first, as on the way back of an
     // installation, and so does what an invitation says about areas.
+    await revertMigration(admin, '0027_work_orders_in_the_office')
     await revertMigration(admin, '0026_answers_per_point')
     await revertMigration(admin, '0025_defects_kept')
     await revertMigration(admin, '0023_own_duty_task')
@@ -384,6 +386,7 @@ describe('an installation with places', () => {
       [tenant.id],
     )
 
+    await revertMigration(admin, '0027_work_orders_in_the_office')
     await revertMigration(admin, '0026_answers_per_point')
     await revertMigration(admin, '0025_defects_kept')
     await revertMigration(admin, '0023_own_duty_task')
@@ -484,6 +487,7 @@ describe('an installation with assets', () => {
       [tenant.id, asset, at.property, at.area, at.building],
     )
 
+    await revertMigration(admin, '0027_work_orders_in_the_office')
     await revertMigration(admin, '0026_answers_per_point')
     await revertMigration(admin, '0025_defects_kept')
     await revertMigration(admin, '0023_own_duty_task')
@@ -589,6 +593,7 @@ describe('an installation with assets', () => {
       [tenant.id, at.property, at.area, at.asset],
     )
 
+    await revertMigration(admin, '0027_work_orders_in_the_office')
     await revertMigration(admin, '0026_answers_per_point')
     await revertMigration(admin, '0025_defects_kept')
     await revertMigration(admin, '0023_own_duty_task')
@@ -695,6 +700,7 @@ describe('an installation with assets', () => {
       [tenant.id, at.duty, at.property, at.area],
     )
 
+    await revertMigration(admin, '0027_work_orders_in_the_office')
     await revertMigration(admin, '0026_answers_per_point')
     await revertMigration(admin, '0025_defects_kept')
     await revertMigration(admin, '0023_own_duty_task')
@@ -804,6 +810,7 @@ describe('an installation with assets', () => {
       [tenant.id, at.property, at.area, at.asset, activityId],
     )
 
+    await revertMigration(admin, '0027_work_orders_in_the_office')
     await revertMigration(admin, '0026_answers_per_point')
     await revertMigration(admin, '0025_defects_kept')
     await revertMigration(admin, '0023_own_duty_task')
@@ -906,6 +913,7 @@ describe('an installation with assets', () => {
       ],
     )
 
+    await revertMigration(admin, '0027_work_orders_in_the_office')
     await revertMigration(admin, '0026_answers_per_point')
     await revertMigration(admin, '0025_defects_kept')
     await revertMigration(admin, '0012_evidence_corrections')
@@ -1008,6 +1016,7 @@ describe('an installation with assets', () => {
       [at.order],
     )
 
+    await revertMigration(admin, '0027_work_orders_in_the_office')
     await revertMigration(admin, '0026_answers_per_point')
     await revertMigration(admin, '0025_defects_kept')
     await revertMigration(admin, '0012_evidence_corrections')
@@ -1117,6 +1126,7 @@ describe('an installation with assets', () => {
       [tenant.id, at.property, at.area, correction],
     )
 
+    await revertMigration(admin, '0027_work_orders_in_the_office')
     await revertMigration(admin, '0026_answers_per_point')
     await revertMigration(admin, '0025_defects_kept')
     await revertMigration(admin, '0012_evidence_corrections')
@@ -1173,6 +1183,7 @@ describe('an installation with assets', () => {
     expect(await mayCall('public')).toBe(false)
     expect(await mayCall('opengewerk_app')).toBe(true)
 
+    await revertMigration(admin, '0027_work_orders_in_the_office')
     await revertMigration(admin, '0026_answers_per_point')
     await revertMigration(admin, '0025_defects_kept')
     await revertMigration(admin, '0013_sync_counter_grant')
@@ -1221,6 +1232,7 @@ describe('an installation whose invitations name areas', () => {
       [tenant.id, invitation],
     )
 
+    await revertMigration(admin, '0027_work_orders_in_the_office')
     await revertMigration(admin, '0026_answers_per_point')
     await revertMigration(admin, '0025_defects_kept')
     await revertMigration(admin, '0014_invitation_areas')
@@ -1283,6 +1295,7 @@ describe('an installation whose properties carry notes', () => {
       [tenant.id],
     )
 
+    await revertMigration(admin, '0027_work_orders_in_the_office')
     await revertMigration(admin, '0026_answers_per_point')
     await revertMigration(admin, '0025_defects_kept')
     await revertMigration(admin, '0015_property_note')
@@ -1358,6 +1371,7 @@ describe('an installation whose properties have people to talk to', () => {
       [tenant.id, property?.id, property?.area_id],
     )
 
+    await revertMigration(admin, '0027_work_orders_in_the_office')
     await revertMigration(admin, '0026_answers_per_point')
     await revertMigration(admin, '0025_defects_kept')
     await revertMigration(admin, '0016_contacts')
@@ -1436,6 +1450,7 @@ describe('an installation whose buildings have times they are closed', () => {
       [tenant.id, building, property?.id, property?.area_id],
     )
 
+    await revertMigration(admin, '0027_work_orders_in_the_office')
     await revertMigration(admin, '0026_answers_per_point')
     await revertMigration(admin, '0025_defects_kept')
     await revertMigration(admin, '0017_building_closures')
@@ -1540,6 +1555,7 @@ describe('an installation that imported from tables', () => {
 
     expect(await quietTables()).toEqual(['assets', 'buildings', 'floors', 'properties', 'rooms'])
 
+    await revertMigration(admin, '0027_work_orders_in_the_office')
     await revertMigration(admin, '0026_answers_per_point')
     await revertMigration(admin, '0025_defects_kept')
     await revertMigration(admin, '0023_own_duty_task')
@@ -1668,6 +1684,7 @@ describe('an installation that took stock on site', () => {
       second[0]?.id,
     ])
 
+    await revertMigration(admin, '0027_work_orders_in_the_office')
     await revertMigration(admin, '0026_answers_per_point')
     await revertMigration(admin, '0025_defects_kept')
     await revertMigration(admin, '0023_own_duty_task')
@@ -1754,6 +1771,7 @@ describe('an installation with labels', () => {
       [tenant.id, property?.id, property?.area_id, stood[0]?.id],
     )
 
+    await revertMigration(admin, '0027_work_orders_in_the_office')
     await revertMigration(admin, '0026_answers_per_point')
     await revertMigration(admin, '0025_defects_kept')
     await revertMigration(admin, '0023_own_duty_task')
@@ -1853,6 +1871,7 @@ describe('an installation whose activities have answers', () => {
       [tenant.id, property?.id, property?.area_id, activity, 'a'.repeat(64)],
     )
 
+    await revertMigration(admin, '0027_work_orders_in_the_office')
     await revertMigration(admin, '0026_answers_per_point')
 
     expect((await tableNames(admin)).filter((table) => table === 'activity_answers')).toEqual([])
@@ -1941,6 +1960,7 @@ describe('an installation with documents', () => {
       [tenant.id, filed[0]?.id, file],
     )
 
+    await revertMigration(admin, '0027_work_orders_in_the_office')
     await revertMigration(admin, '0026_answers_per_point')
     await revertMigration(admin, '0025_defects_kept')
     await revertMigration(admin, '0023_own_duty_task')

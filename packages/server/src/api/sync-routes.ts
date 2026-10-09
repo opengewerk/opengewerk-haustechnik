@@ -80,6 +80,8 @@ export const operationRights: Readonly<Record<string, OperationRights>> = {
     otherwise: 'activity.write',
   },
   work_orders: { create: 'activity.write', otherwise: 'activity.write' },
+  // Who works on a work order is handed out by whoever plans (#73).
+  work_order_participants: { otherwise: 'activity.write' },
   defects: { create: 'defect.report', change: 'defect.report', otherwise: 'defect.write' },
   // The signature is the work's, the countersignature the Objektleitung's,
   // who accepts work orders and countersigns rounds (ADR 0004, addendum on the

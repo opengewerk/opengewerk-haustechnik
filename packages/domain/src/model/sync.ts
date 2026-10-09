@@ -95,11 +95,16 @@ export const syncPolicies: Readonly<Record<string, SyncPolicy>> = {
     },
     reserved: ['propertyId', 'areaId'],
   },
+  // How urgent an order is and the defect it came of are the office's (#117).
   work_orders: {
     create: true,
     change: 'never',
-    reserved: ['number', 'activityKind', 'propertyId', 'areaId'],
+    reserved: ['number', 'activityKind', 'propertyId', 'areaId', 'urgency', 'originDefectId'],
   },
+  // Who works on a work order besides the person who answers for it (#73):
+  // handed out in the office, with a connection, and held by the devices of
+  // the people who work on it.
+  work_order_participants: { ...officeOnly, reserved: ['activityKind', 'propertyId', 'areaId'] },
   // The answer a defect came of is the server's, written with the signature (#106).
   defects: { create: true, change: 'merge', reserved: ['areaId', 'foundInAnswerId'] },
   // A signature is given on the device, also without a connection, and never
@@ -379,6 +384,7 @@ export const syncEntityNames: Readonly<Record<string, string>> = {
   activity_duties: 'Pflicht eines Vorgangs',
   activity_answers: 'Antwort',
   work_orders: 'Arbeitsauftrag',
+  work_order_participants: 'Beteiligte Person',
   defects: 'Mangel',
   activity_signatures: 'Unterschrift',
   work_order_decisions: 'Abnahme eines Auftrags',
@@ -475,6 +481,8 @@ export const syncFieldNames: Readonly<Record<string, string>> = {
   status: 'Stand',
   dueOn: 'Fällig am',
   performerUserId: 'Ausgeführt von',
+  // A further person on a work order (#73).
+  userId: 'Person',
   contractorNote: 'Fremdfirma',
   closingReason: 'Grund',
   performedOn: 'Durchgeführt am',

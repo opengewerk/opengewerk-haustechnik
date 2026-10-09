@@ -18,7 +18,8 @@ import { type SQL, sql } from 'drizzle-orm'
  * The part of the operator the device of a person holds. Whoever sees every
  * area holds the whole operator. Whoever sees only some holds the places of
  * those, with the assets and duties there, their own activities while they are
- * open (given to them or to nobody) and closed ones for
+ * open (given to them or to nobody, or work orders they work on, #73) and
+ * closed ones for
  * `closedActivitiesStayDays`, with what hangs on them, and the open defects,
  * with every defect found in an activity it holds: the page a device shows
  * for a signature names them, also one set right meanwhile.
@@ -55,7 +56,11 @@ export async function deviceScope(
       select id from activities
        where deleted_at is null
          and (responsible_user_id = ${userId} or performer_user_id = ${userId}
-              or (responsible_user_id is null and performer_user_id is null))
+              or (responsible_user_id is null and performer_user_id is null)
+              or exists (select 1 from work_order_participants
+                          where work_order_participants.activity_id = activities.id
+                            and work_order_participants.user_id = ${userId}
+                            and work_order_participants.deleted_at is null))
          and (status in ('open', 'started', 'signed') or updated_at >= ${since.toISOString()})
        order by id`)
 
@@ -101,6 +106,7 @@ const workEntities = [
   'activity_duties',
   'activity_answers',
   'work_orders',
+  'work_order_participants',
   'activity_signatures',
   'work_order_decisions',
 ]
@@ -132,6 +138,7 @@ export function pullScope(scope: DeviceScope): PullScope {
     activity_duties: sql`${column('activity_duties', 'activity_id')} = any(${activities})`,
     activity_answers: sql`${column('activity_answers', 'activity_id')} = any(${activities})`,
     work_orders: sql`${column('work_orders', 'activity_id')} = any(${activities})`,
+    work_order_participants: sql`${column('work_order_participants', 'activity_id')} = any(${activities})`,
     activity_signatures: sql`${column('activity_signatures', 'activity_id')} = any(${activities})`,
     work_order_decisions: sql`${column('work_order_decisions', 'work_order_id')} in
       (select id from work_orders where activity_id = any(${activities}))`,

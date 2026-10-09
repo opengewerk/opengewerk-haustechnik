@@ -18,6 +18,7 @@ import {
   type DutyPerson,
   intervalWords,
   qualificationLevelLabel,
+  type PlaceTarget,
   type RecordState,
 } from '@opengewerk/haustechnik-domain'
 import {
@@ -58,7 +59,7 @@ import {
   useSync,
 } from '@opengewerk/platform-web/sync'
 import { keepPreviousData, useInfiniteQuery, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Link, useNavigate, useParams, useSearch } from '@tanstack/react-router'
+import { Link, Navigate, useNavigate, useParams, useSearch } from '@tanstack/react-router'
 import {
   Ban,
   Check,
@@ -87,6 +88,7 @@ import { ResultMark } from '../evidence-words.js'
 import { factLink } from '../links.js'
 import { officePlaces } from '../place-addresses.js'
 import { RegisterFilter } from '../register-filter.js'
+import { workOrderPlaces } from '../work-order-addresses.js'
 
 export const activityWords = {
   sub: 'Prüfungen und Wartungen aus den fälligen Terminen der Pflichten, nach dem Tag, an dem sie fällig sind.',
@@ -170,8 +172,11 @@ interface Where {
   readonly line: string
 }
 
-/** Reads the places of an activity from the device, as the places of the person are all there. */
-function usePlaces() {
+/**
+ * Reads the places of an activity or a work order from the device, as the
+ * places of the person are all there.
+ */
+export function usePlaces() {
   const properties = useRecords('properties')
   const buildings = useRecords('buildings')
   const rooms = useRecords('rooms')
@@ -181,7 +186,7 @@ function usePlaces() {
     const byId = (records: readonly RecordState[], id: string | null) =>
       id === null ? null : (records.find((record) => record['id'] === id) ?? null)
 
-    return (activity: ActivityEntry): Where => {
+    return (activity: PlaceTarget): Where => {
       const property = maybeText(byId(properties, activity.propertyId), 'name') ?? 'Liegenschaft'
       const room = byId(rooms, activity.roomId)
       const asset = byId(assets, activity.assetId)
@@ -579,6 +584,12 @@ export function ActivityScreen() {
         </Empty>
       </Screen>
     )
+  }
+
+  // A work order has a page of its own (#117); the duty and the change log
+  // name it by its activity and lead here.
+  if (shown.kind === 'work_order') {
+    return <Navigate to={workOrderPlaces.order(shown.id)} replace />
   }
 
   const where = whereOf(shown)

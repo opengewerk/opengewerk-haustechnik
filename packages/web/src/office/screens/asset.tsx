@@ -68,6 +68,7 @@ import { factLink } from '../links.js'
 import { officePlaces } from '../place-addresses.js'
 import { kindLabel } from './assets.js'
 import { AssetDefectsCard } from './defects.js'
+import { AssetOrdersCard, NewOrderAtAssetButton } from './work-orders.js'
 
 /** The file of an asset as the server reads it today. */
 export function assetFileQuery(id: string) {
@@ -233,6 +234,7 @@ export function AssetFileScreen() {
                 Bearbeiten
               </Button>
             ) : null}
+            <NewOrderAtAssetButton assetId={assetId} />
           </>
         }
       />
@@ -248,6 +250,7 @@ export function AssetFileScreen() {
           ) : null}
           {seesEvidence ? <AssetEvidence evidence={evidence.data} /> : null}
           <AssetDefectsCard assetId={assetId} />
+          <AssetOrdersCard assetId={assetId} />
         </div>
         <div className="flex min-w-0 flex-col gap-3.5">
           <Panel

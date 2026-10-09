@@ -39,7 +39,12 @@ import {
   type PreviewViewer,
 } from './preview-database.js'
 import { PreviewIdentitySource, previewSession } from './preview-identity.js'
-import { planSampleActivities, plantSampleData, sampleOperatorName } from './sample-data.js'
+import {
+  decideSampleOrders,
+  planSampleActivities,
+  plantSampleData,
+  sampleOperatorName,
+} from './sample-data.js'
 import { writeSampleStandings } from './sample-standings.js'
 
 /**
@@ -172,8 +177,10 @@ export async function openSamplePreview(
 
     const planted = await plantSampleData(`http://127.0.0.1:${String(port)}`, areas)
 
-    // What no route writes yet: the defects and the labels of a sheet.
-    await writeSampleStandings(database, planter, planted)
+    // What no route writes: the signatures of the work orders and the
+    // labels of a sheet; and what follows a signature, through the routes.
+    await writeSampleStandings(database, planter, planted, previewCatalogue)
+    await decideSampleOrders(`http://127.0.0.1:${String(port)}`, planted.orders)
 
     // One pass of the engine, so that the due days have their inspections
     // before somebody looks, and two of them planned (#105).

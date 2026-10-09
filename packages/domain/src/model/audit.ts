@@ -220,6 +220,17 @@ export const auditVocabulary: AuditVocabulary = {
         activity_kind: 'Art des Vorgangs',
         number: 'Auftragsnummer',
         kind: 'Art des Auftrags',
+        urgency: 'Dringlichkeit',
+        origin_defect_id: 'Aus dem Mangel',
+      },
+    },
+    // The further people of a work order (#73).
+    work_order_participants: {
+      label: 'Beteiligte Person',
+      fields: {
+        activity_id: 'Vorgang',
+        activity_kind: 'Art des Vorgangs',
+        user_id: 'Person',
       },
     },
     // A signature on an activity and the decision on a work order (ADR 0004,
@@ -339,11 +350,14 @@ export const auditVocabulary: AuditVocabulary = {
     ],
     // A document with its versions: who filed which, and when.
     attachments: [{ table: 'attachment_versions', column: 'attachment_id' }],
-    // An activity with the duties it is to meet and what came of each, and
-    // the answers to the points of its form.
+    // An activity with the duties it is to meet and what came of each, the
+    // answers to the points of its form, and for a work order what only it
+    // has and the further people working on it.
     activities: [
       { table: 'activity_duties', column: 'activity_id' },
       { table: 'activity_answers', column: 'activity_id' },
+      { table: 'work_orders', column: 'activity_id' },
+      { table: 'work_order_participants', column: 'activity_id' },
     ],
     // A defect with its photos.
     defects: [{ table: 'attachments', column: 'defect_id' }],
@@ -373,6 +387,7 @@ export const auditVocabulary: AuditVocabulary = {
     found_in_activity_id: 'activities',
     found_in_evidence_id: 'evidence',
     remedy_work_order_id: 'work_orders',
+    origin_defect_id: 'defects',
     defect_id: 'defects',
     work_order_id: 'work_orders',
     evidence_id: 'evidence',
@@ -425,6 +440,8 @@ export const auditVocabulary: AuditVocabulary = {
     activity_duties: ['duty_id'],
     activity_answers: ['field_key'],
     work_orders: ['number'],
+    // A further person by who it is.
+    work_order_participants: ['user_id'],
     defects: ['description'],
     defect_class_terms: ['defect_class'],
     // A signature by who gave it, a decision by what it decided.

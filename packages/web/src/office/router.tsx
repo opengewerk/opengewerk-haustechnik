@@ -48,6 +48,7 @@ import { ReportScreen } from './screens/report.js'
 import { EditRoomScreen, NewRoomScreen } from './screens/room-form.js'
 import { RoomScreen } from './screens/rooms.js'
 import { StaffScreen } from './screens/staff.js'
+import { NewWorkOrderScreen, WorkOrderListScreen, WorkOrderScreen } from './screens/work-orders.js'
 import { OfficeShell } from './shell.js'
 
 /**
@@ -242,6 +243,23 @@ export function officeRoutes() {
       getParentRoute: () => office,
       path: '/pruefungen/$activityId',
       component: ActivityScreen,
+    }),
+    // The work orders (#117): the list, a new one, and the page of one by the
+    // id of its activity.
+    createRoute({
+      getParentRoute: () => office,
+      path: '/auftraege',
+      component: WorkOrderListScreen,
+    }),
+    createRoute({
+      getParentRoute: () => office,
+      path: '/auftraege/neu',
+      component: NewWorkOrderScreen,
+    }),
+    createRoute({
+      getParentRoute: () => office,
+      path: '/auftraege/$orderId',
+      component: WorkOrderScreen,
     }),
     // The page of an evidence, opened from its duty, the file of its asset
     // and the register, and the report of a contractor that becomes the

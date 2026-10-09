@@ -1,5 +1,14 @@
 import { BadRequestException, NotFoundException } from '@nestjs/common'
-import type { AreaId, Identity, Right } from '@opengewerk/haustechnik-domain'
+import type {
+  AreaId,
+  Asset,
+  Building,
+  Identity,
+  PlaceTarget,
+  Property,
+  Right,
+  Room,
+} from '@opengewerk/haustechnik-domain'
 import {
   isUuid,
   pick,
@@ -9,7 +18,7 @@ import {
 import { and, eq, isNull } from 'drizzle-orm'
 import type { PgColumn, PgTable } from 'drizzle-orm/pg-core'
 
-import { areas } from '../database/schema/index.js'
+import { areas, assets, buildings, properties, rooms } from '../database/schema/index.js'
 
 // What the routes of the place share: how a body becomes the values of a row,
 // how a refusal of the model is answered, and how a row is found that is
@@ -118,4 +127,97 @@ export async function areaFor(tx: TenantTransaction, named: unknown): Promise<Ar
   }
 
   return found[0].id
+}
+
+/** Whether a field of a body names something: neither left out, nor emptied. */
+export function given(value: unknown): boolean {
+  return value !== undefined && value !== null && value !== ''
+}
+
+/**
+ * What a record made by hand hangs on, a defect or a work order: the
+ * property, and at most one of an asset, a room and a building there.
+ */
+export type Target = Pick<
+  PlaceTarget,
+  'propertyId' | 'areaId' | 'buildingId' | 'roomId' | 'assetId'
+>
+
+/**
+ * What a record hangs on (section 4.6: "immer an einer Anlage oder einem
+ * Ort", and 4.8 for a work order): at most one of an asset, a room or a
+ * building, and the property itself where none is named. Each is a row the
+ * person asking sees, and a property named beside one of them has to be its
+ * property. `subject` begins the sentences of a refusal: "Ein Mangel".
+ */
+export async function targetOf(
+  tx: TenantTransaction,
+  values: Readonly<Record<string, unknown>>,
+  subject: string,
+): Promise<Target> {
+  const named = (['assetId', 'roomId', 'buildingId'] as const).filter((field) =>
+    given(values[field]),
+  )
+
+  if (named.length > 1) {
+    throw new BadRequestException(
+      `${subject} hängt an genau einem: einer Anlage, einem Raum, einem Gebäude oder der Liegenschaft.`,
+    )
+  }
+
+  let place: { readonly propertyId: Target['propertyId'] } & Partial<Target>
+
+  if (given(values['assetId'])) {
+    const asset = await placeOf<Asset>(
+      tx,
+      assets,
+      String(values['assetId']),
+      'Diese Anlage gibt es nicht oder nicht mehr.',
+    )
+
+    place = { propertyId: asset.propertyId, assetId: asset.id }
+  } else if (given(values['roomId'])) {
+    const room = await placeOf<Room>(
+      tx,
+      rooms,
+      String(values['roomId']),
+      'Diesen Raum gibt es nicht oder nicht mehr.',
+    )
+
+    place = { propertyId: room.propertyId, roomId: room.id }
+  } else if (given(values['buildingId'])) {
+    const building = await placeOf<Building>(
+      tx,
+      buildings,
+      String(values['buildingId']),
+      'Dieses Gebäude gibt es nicht oder nicht mehr.',
+    )
+
+    place = { propertyId: building.propertyId, buildingId: building.id }
+  } else if (given(values['propertyId'])) {
+    place = { propertyId: String(values['propertyId']) as Target['propertyId'] }
+  } else {
+    throw new BadRequestException(
+      `${subject} hängt an einer Anlage, einem Raum, einem Gebäude oder einer Liegenschaft; keines ist genannt.`,
+    )
+  }
+
+  if (given(values['propertyId']) && values['propertyId'] !== place.propertyId) {
+    throw new BadRequestException('Die Liegenschaft ist nicht die, auf der das Genannte steht.')
+  }
+
+  const property = await placeOf<Property>(
+    tx,
+    properties,
+    place.propertyId,
+    'Diese Liegenschaft gibt es nicht oder nicht mehr.',
+  )
+
+  return {
+    propertyId: property.id,
+    areaId: property.areaId,
+    buildingId: place.buildingId ?? null,
+    roomId: place.roomId ?? null,
+    assetId: place.assetId ?? null,
+  }
 }

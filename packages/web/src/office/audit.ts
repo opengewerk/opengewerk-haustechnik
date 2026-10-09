@@ -68,7 +68,8 @@ export const auditScreenWords: AuditScreenWords = {
     rooms: 'mit seinen Etiketten',
     assets: 'mit ihrem Lebenszyklus, dem, was sie versorgt, und ihren Etiketten',
     attachments: 'mit seinen Fassungen',
-    activities: 'mit den Pflichten, die er erfüllen soll, und den Antworten auf sein Formular',
+    activities:
+      'mit den Pflichten, die er erfüllen soll, den Antworten auf sein Formular und bei einem Auftrag dessen Angaben und Beteiligten',
     defects: 'mit seinen Fotos',
   },
 }

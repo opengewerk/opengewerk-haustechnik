@@ -31,6 +31,9 @@ export const serverPaths: readonly string[] = [
   // The inspections and the maintenance that came of the due days, the page
   // of one and its plan.
   'activities',
+  // The work orders: the list, the page of one, making one from a defect, a
+  // due day or by hand, changing it, and its acceptance or rejection.
+  'work-orders',
   // The page of an evidence, its correction and its declaration of invalidity.
   'evidence',
   // The defects: the register, the page of one, reporting one by hand, its

@@ -79,7 +79,12 @@ Anhang B nennt jedes Feld der Datenbank, das auf eine Person zeigt. Dieser Absch
 - Ein Vorgang (Rundgang, Prüfung, Wartung, Auftrag) hat ein Feld für die verantwortliche und eines für die ausführende Person, dazu die Angabe, ob die eigenen Leute oder eine Fremdfirma ihn ausführen, und den Namen der Fremdfirma in Worten. Eine Prüfung oder Wartung entsteht von selbst, wenn der Vorlauf eines Termins beginnt, einmal je Termin. Verantwortlich ist dann, wen die Frist als verantwortlich nennt, und ausführend noch niemand. [K2.4, K4.4, B98]
 - Wer Vorgänge plant und verteilt, legt eine Prüfung oder Wartung auch von Hand an, auf der Seite einer Pflicht, für die gerade keine läuft. Verantwortlich ist dann, wen die Pflicht als verantwortlich nennt, und ausführend noch niemand. Eine offene oder begonnene Prüfung oder Wartung schließt dieselbe Person mit Grund als nicht durchgeführt; der Vorgang nennt den Grund und nicht die Person, wer ihn geschlossen hat, steht im Änderungsprotokoll. Die Haustechnik kann beides nicht. [K4.4, K7, B109, B110]
 - **Zusage:** Wer eine Prüfung oder Wartung verantwortet und wer sie ausführt, legt fest, wer Vorgänge plant und verteilt: die Leitung, die Technische Leitung und die Objektleitung, solange der Vorgang offen ist. Zur Wahl stehen nur Personen, die den Bereich des Vorgangs sehen und nicht gesperrt sind; verantwortlich, wer selbst plant und verteilt, ausführend, wer Vorgänge ausführt. Die Auswahl nennt die Namen und sonst nichts. Die Haustechnik plant nicht und bekommt die Auswahl nicht. [K4.4, K7, B7, B99, B100]
-- Die Bildschirme, auf denen Rundgänge und Aufträge geplant und verteilt werden, kommen in Phase 1 (Abschnitt 9). [K4.5, K4.8]
+- Die Bildschirme, auf denen Rundgänge geplant und verteilt werden, kommen in Phase 1 (Abschnitt 9). [K4.5]
+- Ein Auftrag nennt die Person, die ihn führt (im Büro „Verantwortlich“), und weitere Beteiligte; das Feld der ausführenden Person bleibt bei einem Auftrag aus dem Büro leer. Wer Vorgänge plant und verteilt, legt einen Auftrag an, aus einem festgestellten Mangel, aus dem Termin einer Pflicht oder von Hand, und ändert ihn, bis er unterschrieben ist. Wer einen Auftrag angelegt oder geändert hat, nennt der Auftrag nicht; das steht im Änderungsprotokoll. [K4.8, B111]
+- **Zusage:** Wer einen Auftrag führt und wer an ihm beteiligt ist, legt fest, wer Vorgänge plant und verteilt: die Leitung, die Technische Leitung und die Objektleitung. Zur Wahl stehen nur Personen, die Vorgänge ausführen, den Bereich des Auftrags sehen und nicht gesperrt sind; die Auswahl nennt die Namen und sonst nichts. Die Haustechnik legt keinen Auftrag an, ändert keinen und bekommt die Auswahl nicht. [K4.8, K7, B112, B113, B114, B118]
+- Eine beteiligte Person ist eine Zeile je Auftrag und Person. Wird jemand vom Auftrag genommen, wird die Zeile markiert und nicht gelöscht, und das Gerät dieser Person gibt den Auftrag mit dem nächsten Abgleich ab. Auf der unterschriebenen Seite stehen die Beteiligten nicht. [K4.8, B115]
+- Einen offenen oder begonnenen Auftrag schließt, wer Vorgänge plant und verteilt, mit Grund als nicht durchgeführt, etwa einen irrtümlich angelegten; der Auftrag nennt den Grund und nicht die Person, wer ihn geschlossen hat, steht im Änderungsprotokoll. Die Haustechnik kann es nicht. [K4.8, K7, B120]
+- **Zusage:** Einen unterschriebenen Auftrag abnehmen oder mit Grund zurückweisen kann, wer Aufträge abnimmt: die Leitung, die Technische Leitung und die Objektleitung. Die Haustechnik kann es nicht. [K4.8, K7, B116]
 - Die Abnahme eines Auftrags hält fest, wer abgenommen oder zurückgewiesen hat, wann und mit welcher Begründung. Eine Zurückweisung lässt die Unterschrift stehen und macht sie ungültig. [K4.8, B8, B25]
 - Ein Feld für eine Dauer, eine Arbeitszeit oder einen Standort gibt es in dieser Fassung nicht. [K4.8, K4.14, K9]
 
@@ -152,6 +157,7 @@ Anhang B nennt jedes Feld der Datenbank, das auf eine Person zeigt. Dieser Absch
 - Melden können alle vier Rollen, im Büro und vor Ort, dort auch ohne Netz. Klasse, Frist und Nachprüfung setzen die Leitung, die Technische Leitung und die Objektleitung; die Haustechnik meldet ohne Klasse und Frist, und ein Gerät schickt mit einer Meldung keine. [K7, B107, B108]
 - Die Vorgabe der Frist je Mängelklasse stellt ein, wer die Einstellungen ändert, in Phase 1 die Leitung. Sie nennt keine Person. [K4.6, K7]
 - Die Frist eines Mangels steht in der Liste „Fristen“, solange er festgestellt oder beauftragt ist, und erinnert die Leitung, wenn ihr Vorlauf beginnt; ein Mangel nennt niemanden, der für ihn verantwortlich ist. [K2.4, K4.6]
+- Ein Mangel folgt seinem Auftrag: beauftragt, sobald aus ihm ein Auftrag angelegt ist, behoben mit der Unterschrift unter dem Auftrag, wieder beauftragt, wenn die Abnahme den Auftrag zurückweist, und wieder festgestellt, wenn der Auftrag nicht durchgeführt wird. Wer das ausgelöst hat, nennt der Mangel nicht. [K4.6, K4.8, B119, B120]
 
 ---
 
@@ -169,6 +175,8 @@ Phase 1 kennt vier Rollen. Was jede darf, steht Recht für Recht in Abschnitt 7 
 | Das Pflichtenverzeichnis auf eine Person eingrenzen; die Namen zur Wahl der verantwortlichen Person | ja | ja | nein | nein |
 | Wer eine Prüfung oder Wartung verantwortet und ausführt, mit Namen | in ihren Bereichen | in ihren Bereichen | in ihren Bereichen | was ihr oder niemandem zugeteilt ist |
 | Die Namen zur Wahl, wer eine Prüfung oder Wartung verantwortet und ausführt | in ihren Bereichen | in ihren Bereichen | in ihren Bereichen | nein |
+| Wer einen Auftrag führt und wer an ihm beteiligt ist, mit Namen | in ihren Bereichen | in ihren Bereichen | in ihren Bereichen | was sie führt, woran sie beteiligt ist oder was niemandem zugeteilt ist |
+| Die Namen zur Wahl, wer einen Auftrag führt und wer an ihm beteiligt ist | in ihren Bereichen | in ihren Bereichen | in ihren Bereichen | nein |
 | Datensätze mit ihrem Stempel | in ihren Bereichen | in ihren Bereichen | in ihren Bereichen | in ihren Bereichen |
 | Fassungen von Dokumenten mit der Kennung des Kontos, das sie abgelegt hat | in ihren Bereichen | in ihren Bereichen | in ihren Bereichen | in ihren Bereichen |
 | Ein Nachweis im Ganzen: wer ihn ausgeführt, geprüft, unterschrieben, eingetragen oder für ungültig erklärt hat | in ihren Bereichen | in ihren Bereichen | in ihren Bereichen | in ihren Bereichen |
@@ -177,8 +185,9 @@ Leitung und Technische Leitung sehen als Vorgabe alle Bereiche.
 
 - **Zusage:** Jede Adresse des Servers sagt, welches Recht sie verlangt. Ohne Anmeldung antworten nur die Gesundheitsprüfung, die Ersteinrichtung und das Einlösen einer Einladung. [K7, B15, B71]
 - **Zusage:** Die Tabelle der Rechte in Abschnitt 7 des Planungskonzepts und der Katalog im Quelltext sind dieselbe Liste: was dort für eine Rolle steht, darf sie, und nichts anderes. [K7, B17]
-- **Zusage:** Die Zugänge, also wer bei einem Betreiber arbeitet, mit Rollen, Sperre, Anmeldungen und Geräten, sieht und entscheidet nur die Leitung. Technische Leitung, Objektleitung und Haustechnik werden an diesen Adressen abgelehnt. Die Stellen daneben sind die Auswahl der verantwortlichen Person im Pflichtenverzeichnis und die Auswahl, wer eine Prüfung oder Wartung verantwortet und ausführt; beide nennen Namen und sonst nichts (Abschnitt 3.4). [K7, B1, B2, B12]
+- **Zusage:** Die Zugänge, also wer bei einem Betreiber arbeitet, mit Rollen, Sperre, Anmeldungen und Geräten, sieht und entscheidet nur die Leitung. Technische Leitung, Objektleitung und Haustechnik werden an diesen Adressen abgelehnt. Die Stellen daneben sind die Auswahl der verantwortlichen Person im Pflichtenverzeichnis, die Auswahl, wer eine Prüfung oder Wartung verantwortet und ausführt, und die Auswahl, wer einen Auftrag führt und an ihm beteiligt ist; alle drei nennen Namen und sonst nichts (Abschnitt 3.4). [K7, B1, B2, B12]
 - **Zusage:** Die Liste „Prüfungen“ und die Seite eines Vorgangs zeigen der Haustechnik nur, was ihr oder niemandem zugeteilt ist, wie es auf ihrem Gerät liegt, und einen anderen Vorgang auch nicht über seine Adresse. Wer Vorgänge plant und verteilt, sieht jeden in seinen Bereichen. [K4.4, K7, B101]
+- **Zusage:** Die Liste „Aufträge“ und die Seite eines Auftrags zeigen der Haustechnik nur, was sie führt, woran sie beteiligt ist oder was niemandem zugeteilt ist, wie es auf ihrem Gerät liegt, und einen anderen Auftrag auch nicht über seine Adresse. [K4.8, K7, B117]
 - **Zusage:** Die Leitung arbeitet nur mit einem zweiten Faktor. Das ist eine Angabe der Rolle und keine Einstellung. [K7, B36]
 - **Zusage:** Zwei Betreiber auf derselben Instanz sehen nichts voneinander. [K3, B56]
 - Die Übersicht der Bereiche nennt je Bereich, für wen er genannt ist. Sie sieht, wer die Einstellungen sieht, in Phase 1 also die Leitung. [K2.8, B4]
@@ -189,7 +198,7 @@ Leitung und Technische Leitung sehen als Vorgabe alle Bereiche.
 
 ## 5. Auswertungen: welche es gibt und welche nicht
 
-- In dieser Fassung gibt es Listen und keine Auswertungen: die Liegenschaften mit ihren Gebäuden, Geschossen und Räumen, das Anlagenverzeichnis, die Dokumente, das Pflichtenverzeichnis, die Fristen, die Prüfungen, die Mängel, den Katalog, die Bereiche, die Zugänge mit den Vertretungen und das Änderungsprotokoll, dazu das eigene Konto und der Abgleich des eigenen Geräts. Was die Navigation darüber hinaus vorsieht, ist nicht gebaut und wird niemandem angeboten. [K4.16, B37]
+- In dieser Fassung gibt es Listen und keine Auswertungen: die Liegenschaften mit ihren Gebäuden, Geschossen und Räumen, das Anlagenverzeichnis, die Dokumente, das Pflichtenverzeichnis, die Fristen, die Prüfungen, die Mängel, die Aufträge, den Katalog, die Bereiche, die Zugänge mit den Vertretungen und das Änderungsprotokoll, dazu das eigene Konto und der Abgleich des eigenen Geräts. Was die Navigation darüber hinaus vorsieht, ist nicht gebaut und wird niemandem angeboten. [K4.16, B37]
 - **Zusage:** Anhang C nennt jede Adresse, die der Server beantwortet. Eine Adresse für eine Statistik, eine Rangliste, eine Liste des Verzugs je Person oder einen Export ist nicht darunter. [K4.16, B40]
 - **Zusage:** Eine Adresse, die eine einzelne Person in ihrem Pfad nennt, verlangt ein Recht der Zugänge und ist damit der Leitung vorbehalten. Die einzige Ausnahme ist die Verwaltung der Instanz, die ihre eigenen Verwalter führt. [K9, B16]
 - **Zusage:** Das Pflichtenverzeichnis lässt sich auf die Pflichten einer verantwortlichen Person eingrenzen. Das kann nur, wer es führt, also die Leitung und die Technische Leitung. Objektleitung und Haustechnik werden mit dieser Frage abgelehnt, auch wenn sie nach sich selbst fragen; auf die Pflichten, für die niemand benannt ist, grenzt jede Rolle ein. [K4.3, K7, B80]
@@ -198,6 +207,7 @@ Leitung und Technische Leitung sehen als Vorgabe alle Bereiche.
 - **Zusage:** Die Liste „Fristen“ lässt sich auf die Fristen einer verantwortlichen Person eingrenzen; das kann nur, wer Fristen sieht, also die Leitung und die Technische Leitung. Eingegrenzt auf eine Person nennt sie keine Zahl: weder wie viele Fristen diese Person hat, noch wie viele davon überfällig sind. Sie sagt nur, ob weitere folgen. [K2.4, K4.16, K9, B10, B97]
 - Die Liste zeigt in diesem Fall die Fristen der Person mit ihrem Tag, auch die überfälligen. Wie beim Pflichtenverzeichnis ist das keine Zählung, aber die Stelle, an der die Fristen einer Auswertung je Person am nächsten kommen. [K2.4, K4.16]
 - Die Liste „Prüfungen“ lässt sich nach Stand, Art und Liegenschaft eingrenzen und durchsuchen, aber nicht auf eine Person. Die Zahl über ihr nennt, wie viele Vorgänge sie in dieser Eingrenzung zeigt. [K4.4, K4.16]
+- Die Liste „Aufträge“ lässt sich nach Stand, Art und Bereich eingrenzen und durchsuchen, aber nicht auf eine Person. Die Zahlen über ihr nennen, wie viele Aufträge sie in dieser Eingrenzung zeigt und wie viele davon auf ihre Abnahme warten. [K4.8, K4.16]
 - Die Liste „Mängel“ lässt sich nach Stand, Liegenschaft, Bereich und Klasse eingrenzen, aber nicht auf eine Person; ein Mangel nennt keine. Die Zahlen über ihr und neben „Mängel“ in der Navigation zählen offene Mängel und solche über ihrer Frist, in den Bereichen dessen, der fragt. [K4.6, K4.16]
 - **Zusage:** Anhang B nennt jedes Feld der Datenbank, das auf eine Person zeigt. Kommt eines dazu, wird der Test rot, bis es hier steht. [K9, B41]
 - Das Änderungsprotokoll lässt sich nach Zeitraum, Person, Art des Datensatzes und einzelnem Datensatz filtern. Mit dem Filter nach Person zeigt es, was diese Person wann geändert hat. Das sieht nur die Leitung (Abschnitt 8). [K3, K9, B65]
@@ -248,9 +258,9 @@ Leitung und Technische Leitung sehen als Vorgabe alle Bereiche.
 Diese Bausteine gehören nach dem Fahrplan zu Phase 1 und sind noch nicht gebaut. Mit jedem wird dieses Dokument berichtigt; der Test in Abschnitt 11 erzwingt es, sobald ein Feld mit Personenbezug oder eine Adresse des Servers dazukommt.
 
 - **Rundgänge:** Ein Plan nennt eine zuständige Person oder einen Bereich, zugeteilt wird im Büro. Die Übersicht der Objektleitung zeigt, welcher Rundgang offen, begonnen oder abgegeben ist, nach Gebäude und nicht nach Person. [K4.5]
-- **Aufträge:** Ein Auftrag hat eine verantwortliche Person und weitere Beteiligte. Vor Ort kommen Notizen als eigene Einträge, Fotos und eine Dauer dazu. Die Dauer ist Aufwand des Auftrags und keine Arbeitszeiterfassung. [K4.8]
+- **Aufträge vor Ort:** Notizen als eigene Einträge, Fotos und eine Dauer kommen dazu. Die Dauer ist Aufwand des Auftrags und keine Arbeitszeiterfassung. [K4.8]
 - **Aufgaben:** mit Fälligkeit und verantwortlicher Person. Jede Person legt eigene an; einer anderen teilt sie zu, wer Vorgänge plant und verteilt. [K3]
-- **Benachrichtigungen:** per E-Mail und Push, gespeist nur aus Fristen und Statuswechseln. Welche Anlässe als Push kommen, wählt jede Person selbst. [K3]
+- **Benachrichtigungen:** per E-Mail und Push, gespeist nur aus Fristen und Statuswechseln. Welche Anlässe als Push kommen, wählt jede Person selbst; ein Auftrag mit der Dringlichkeit „sofort“ erreicht die Person, die ihn führt, immer als Push. [K3, K4.8]
 - **Zähler und Fotos vor Ort:** Ablesungen kommen als eigene Datensätze dazu und tragen wie jeder Datensatz ihren Stempel. Ein Foto vor Ort wird als Dokument abgelegt (Abschnitt 3.9); die Bildschirme dafür kommen mit der Bestandsaufnahme. [K4.9, K4.10]
 - **Listen als Tabelle:** Jede Liste im Büro lässt sich als Tabelle ausgeben, mit dem, was ihr Filter gerade zeigt. Das ist der erste Export der Anwendung. [K3]
 - **Eigene Angaben:** Name, E-Mail-Adresse, Passwort, zweiten Faktor und Geräte ändert jede Person selbst unter „Konto“. [K3]
@@ -402,6 +412,16 @@ Pfade ohne Vorsatz liegen im Repository `opengewerk/opengewerk-haustechnik`. Pfa
 | B108 | Test | `packages/server/src/sync/policies.test.ts` | `ask for the right of the office once an operation leaves what a device may write` |
 | B109 | Test | `packages/server/src/api/activities.test.ts` | `makes one for a duty with none under way, as the engine would, due on its appointment` |
 | B110 | Test | `packages/server/src/api/activities.test.ts` | `is for whoever plans, not for whoever only performs, even an activity given to them` |
+| B111 | Test | `packages/server/src/api/work-orders.test.ts` | `from a defect takes its place, draws a number, and orders the defect` |
+| B112 | Test | `packages/server/src/api/work-orders.test.ts` | `is made by whoever plans and hands out work, and not by whoever only performs` |
+| B113 | Test | `packages/server/src/api/work-orders.test.ts` | `is led and worked on by people who perform and see its area, and nobody twice` |
+| B114 | Test | `packages/server/src/api/work-orders.test.ts` | `offers the people who perform and see the area of the property` |
+| B115 | Test | `packages/server/src/api/work-orders.test.ts` | `a further person taken off the order no longer sees it` |
+| B116 | Test | `packages/server/src/api/work-orders.test.ts` | `is for whoever accepts work orders, of a signed order, and a rejection names its reason` |
+| B117 | Test | `packages/server/src/api/work-orders.test.ts` | `whoever only performs sees what they lead, work on, or what is given to nobody, in the office and on the device` |
+| B118 | Test | `packages/server/src/api/work-orders.test.ts` | `changes what it is, how urgent, the day and the people until it is signed` |
+| B119 | Test | `packages/server/src/api/work-orders.test.ts` | `is set right with the signature, ordered again when the order is turned back, and set right with the next` |
+| B120 | Test | `packages/server/src/api/work-orders.test.ts` | `is for whoever plans, before its signature, and finds its defect again` |
 
 ---
 
@@ -442,6 +462,7 @@ Jede Zeile ist ein Feld der Datenbank, das die Kennung eines Kontos hält. Der S
 | `substitutions` | `substitute_user_id` | wer vertritt |
 | `tenant_sessions` | `user_id` | wer sich bei diesem Betreiber an- und abgemeldet hat |
 | `work_order_decisions` | `decided_by` | wer einen Auftrag abgenommen oder zurückgewiesen hat |
+| `work_order_participants` | `user_id` | wer an einem Auftrag beteiligt ist |
 | `*` | `updated_by` | wer einen Datensatz zuletzt geändert hat |
 
 ---
@@ -480,3 +501,4 @@ Jede Zeile ist der erste Abschnitt einer Adresse, unter der der Server antwortet
 | `staff` | Zugänge |
 | `substitutions` | Vertretungen |
 | `sync` | Abgleich und Konflikte |
+| `work-orders` | Aufträge: die Liste, die Seite eines Auftrags, die Auswahl der Personen, ein neuer Auftrag aus einem Mangel, aus einem Termin oder von Hand, seine Änderung, das Schließen mit Grund und seine Abnahme oder Zurückweisung |

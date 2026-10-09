@@ -476,7 +476,7 @@ describe('closing an activity with the reason (#183)', () => {
     },
   )
 
-  it('is not offered for a work order', async () => {
+  it('is not offered for a work order, which has a page of its own (#117)', async () => {
     const { mounted } = mount('/pruefungen/ac-own', {
       '/activities/ac-own': details({ ...own, kind: 'work_order' }),
       '/activities/ac-own/candidates': candidates,
@@ -484,7 +484,10 @@ describe('closing an activity with the reason (#183)', () => {
 
     await mounted
     await untilTheRightsAreKnown()
-    await screen.findByRole('heading', { level: 1, name: 'Prüfung der Sicherheitsbeleuchtung' })
+    // The page of the work order asks for it at its own address.
+    await screen.findByText(
+      'Diesen Auftrag gibt es nicht, oder er liegt außerhalb dessen, was dieser Zugang sieht.',
+    )
 
     expect(screen.queryByRole('button', { name: 'Nicht durchgeführt' })).toBeNull()
   })
