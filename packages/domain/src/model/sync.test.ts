@@ -83,9 +83,12 @@ describe('the policies of the sync', () => {
       labels: [false, 'merge'],
       // Kept in the office (#119); a device reads them with the places.
       meter_points: [false, 'never'],
-      meter_readings: [false, 'never'],
+      // A reading of a round of the meters is made on site (#120).
+      meter_readings: [true, 'never'],
       meter_exchanges: [false, 'never'],
       meter_pauses: [false, 'never'],
+      // The key day of the operator, a setting (#120).
+      meter_settings: [false, 'never'],
     })
   })
 

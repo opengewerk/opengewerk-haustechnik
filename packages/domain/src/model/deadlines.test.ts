@@ -7,6 +7,7 @@ import {
   deadlineSources,
   defectDue,
   dutyDue,
+  meterDue,
   roundDue,
 } from './deadlines.js'
 
@@ -17,10 +18,11 @@ describe('the kinds of deadline of this application', () => {
       actions: [...deadlineActions],
     })
 
-    expect(registry.kinds).toEqual([dutyDue, defectDue, roundDue])
+    expect(registry.kinds).toEqual([dutyDue, defectDue, roundDue, meterDue])
     expect(registry.kind('duty.due')).toBe(dutyDue)
     expect(registry.kind('defect.due')).toBe(defectDue)
     expect(registry.kind('round.due')).toBe(roundDue)
+    expect(registry.kind('meter.due')).toBe(meterDue)
   })
 
   it('would stop the start with a source this application does not have', () => {
