@@ -48,7 +48,7 @@ import {
   Pencil,
   Signature,
 } from 'lucide-react'
-import { type ReactNode, useEffect, useMemo, useRef, useState } from 'react'
+import { type ReactNode, useMemo, useRef, useState } from 'react'
 
 import { beginActivity } from '../../app/answers.js'
 import { documentsAt, fileDocument } from '../../app/documents.js'
@@ -775,10 +775,9 @@ export function SiteNoteScreen() {
         />
         <div className="flex items-center gap-2.5">
           {photos.map((photo, index) => (
-            <LocalPhoto
+            <PickedPhoto
               key={`${photo.name}-${String(index)}`}
-              file={photo}
-              label={noteWords.photo}
+              label={`${noteWords.photo} ${String(index + 1)}`}
             />
           ))}
           {photos.length === 0 ? (
@@ -859,24 +858,13 @@ export function SiteNoteScreen() {
   )
 }
 
-/** A photo that is only on this device yet, shown from its bytes. */
-function LocalPhoto({ file, label }: { readonly file: File; readonly label: string }) {
-  const href = useMemo(
-    () => (typeof URL.createObjectURL === 'function' ? URL.createObjectURL(file) : null),
-    [file],
-  )
-
-  // The address of the bytes goes with the photo.
-  useEffect(
-    () => () => {
-      if (href !== null) {
-        URL.revokeObjectURL(href)
-      }
-    },
-    [href],
-  )
-
-  return href === null ? (
+/**
+ * A photo taken for a note, which waits on this device until the note is
+ * saved: a tile with its number, as the board draws it. Its bytes are not
+ * shown back from the file field; the photo is seen once it is filed.
+ */
+function PickedPhoto({ label }: { readonly label: string }) {
+  return (
     <span
       role="img"
       aria-label={label}
@@ -884,12 +872,6 @@ function LocalPhoto({ file, label }: { readonly file: File; readonly label: stri
     >
       <ImageIcon size={22} strokeWidth={1.8} aria-hidden="true" />
     </span>
-  ) : (
-    <img
-      src={href}
-      alt={label}
-      className="h-16 w-[84px] shrink-0 rounded-[5px] border border-line object-cover"
-    />
   )
 }
 
