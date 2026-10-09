@@ -8,7 +8,7 @@ import {
 } from '@tanstack/react-router'
 
 import { SiteAssetScreen } from './screens/asset.js'
-import { SiteFormScreen, SitePointScreen } from './screens/form.js'
+import { SitePointScreen } from './screens/form.js'
 import { GiveLabelScreen } from './screens/give-label.js'
 import {
   SiteBuildingScreen,
@@ -21,6 +21,8 @@ import { ReportDefectScreen } from './screens/report-defect.js'
 import { SiteScanScreen } from './screens/scan.js'
 import { TakeAssetScreen } from './screens/take-asset.js'
 import { TakeRoomScreen } from './screens/take-room.js'
+import { SiteActivityScreen } from './screens/protocol.js'
+import { SiteResultScreen } from './screens/result.js'
 import { SiteShell } from './shell.js'
 
 /**
@@ -81,10 +83,13 @@ export function siteRoutes() {
     // A defect reported at an asset or a room, also without a network (#116).
     at('/anlagen/$assetId/mangel', ReportDefectScreen),
     at('/raeume/$roomId/mangel', ReportDefectScreen),
-    // The form of an activity, filled in point by point, also without a
-    // network (#107).
-    at('/vorgaenge/$activityId', SiteFormScreen),
+    // An activity: a round point by point (#107), the protocol of an
+    // inspection or a maintenance as a list, its result with the signature
+    // and a defect reported in it (#108), also without a network.
+    at('/vorgaenge/$activityId', SiteActivityScreen),
     at('/vorgaenge/$activityId/punkte/$pointKey', SitePointScreen),
+    at('/vorgaenge/$activityId/ergebnis', SiteResultScreen),
+    at('/vorgaenge/$activityId/mangel', ReportDefectScreen),
   ])
 }
 

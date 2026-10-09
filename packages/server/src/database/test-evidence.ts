@@ -30,6 +30,7 @@ export function leastState(number: string, performedOn: IsoDate, result: string)
     performedOn,
     result: result as EvidenceState['result'],
     resultReason: result === 'not_performed' ? 'Anlage war abgeschaltet.' : null,
+    remark: null,
     replaces: null,
     form: null,
     answers: [],

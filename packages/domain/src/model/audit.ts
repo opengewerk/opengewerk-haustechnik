@@ -188,6 +188,7 @@ export const auditVocabulary: AuditVocabulary = {
         countersignature_required: 'Gegenzeichnung verlangt',
         form_key: 'Formular',
         form_version: 'Fassung des Formulars',
+        template_on: 'Vorlage vom',
       },
     },
     // The answer to a point of the form of an activity (#106).
@@ -211,6 +212,7 @@ export const auditVocabulary: AuditVocabulary = {
         duty_id: 'Pflicht',
         result: 'Ergebnis',
         result_reason: 'Grund',
+        remark: 'Bemerkung',
       },
     },
     work_orders: {

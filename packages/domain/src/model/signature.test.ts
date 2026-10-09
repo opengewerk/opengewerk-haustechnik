@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest'
 
 import {
+  type HeldRecord,
+  heldPageOf,
   type SignedPage,
   signatureProblems,
   signatureRoleLabel,
@@ -122,5 +124,167 @@ describe('the page that is signed', () => {
     expect(signedPageOf(parts)).toEqual(signedPageOf(turned))
     expect(signedPageOf(parts).duties.map((line) => line.dutyId)).toEqual(['b', 'z'])
     expect(signedPageOf(parts).defects.map((defect) => defect.id)).toEqual(['1', '2'])
+  })
+})
+
+describe('the page a device works out from what it holds', () => {
+  const held: Readonly<Record<string, readonly HeldRecord[]>> = {
+    activities: [
+      {
+        id: 'ac-1',
+        kind: 'inspection',
+        title: 'Prüfung Trinkwasser',
+        performedOn: '2026-10-09',
+        propertyId: 'p-1',
+        buildingId: null,
+        roomId: null,
+        assetId: 'as-1',
+        formKey: 'probe.drinking_water_protocol',
+        formVersion: 2,
+      },
+    ],
+    properties: [
+      {
+        id: 'p-1',
+        name: 'Campus',
+        street: 'Hauptstraße 1',
+        postalCode: '68535',
+        city: 'Edingen-Neckarhausen',
+      },
+    ],
+    assets: [
+      {
+        id: 'as-1',
+        name: 'Speicher',
+        kind: 'probe.water_heater',
+        serialNumber: null,
+        roomId: 'r-1',
+        buildingId: 'b-1',
+      },
+    ],
+    rooms: [{ id: 'r-1', number: 'E.14', name: 'Heizraum', buildingId: 'b-1' }],
+    buildings: [{ id: 'b-1', name: 'Haus A', shortCode: null }],
+    duties: [{ id: 'du-1', kind: 'probe.drinking_water_check', label: null }],
+    activity_duties: [
+      {
+        id: 'ad-1',
+        activityId: 'ac-1',
+        dutyId: 'du-1',
+        result: 'with_defects',
+        resultReason: null,
+        remark: 'Speicher nachgeheizt.',
+      },
+      // Taken off the activity: not on the page.
+      {
+        id: 'ad-2',
+        activityId: 'ac-1',
+        dutyId: 'du-2',
+        result: null,
+        resultReason: null,
+        remark: null,
+        deletedAt: '2026-10-08T10:00:00.000Z',
+      },
+    ],
+    defects: [
+      // Reported on this device a moment ago: it says nothing of an answer.
+      { id: 'd-1', foundInActivityId: 'ac-1', description: 'Ventil tropft', defectClass: null },
+      // Made of an answer by the server: the answer stands on the page.
+      {
+        id: 'd-2',
+        foundInActivityId: 'ac-1',
+        foundInAnswerId: 'an-1',
+        description: 'Dämmung lose',
+        defectClass: null,
+      },
+    ],
+    activity_answers: [
+      {
+        id: 'an-1',
+        activityId: 'ac-1',
+        groupKey: null,
+        blockKey: null,
+        fieldKey: 'insulation',
+        value: null,
+        result: 'not_ok',
+        remark: 'Dämmung lose',
+        attachmentId: null,
+      },
+    ],
+  }
+  const records = {
+    find: (entity: string, id: string) => held[entity]?.find((each) => each['id'] === id) ?? null,
+    related: (entity: string, field: string, id: string) =>
+      (held[entity] ?? []).filter((each) => each[field] === id),
+  }
+
+  it('is the page the server works out from the same rows', () => {
+    expect(heldPageOf(records, 'ac-1')).toEqual(
+      signedPageOf({
+        activity: {
+          id: 'ac-1',
+          kind: 'inspection',
+          title: 'Prüfung Trinkwasser',
+          performedOn: '2026-10-09',
+        },
+        place: {
+          property: { name: 'Campus', address: 'Hauptstraße 1, 68535 Edingen-Neckarhausen' },
+          building: { name: 'Haus A', shortCode: null },
+          room: { number: 'E.14', name: 'Heizraum' },
+          asset: { id: 'as-1', name: 'Speicher', kind: 'probe.water_heater', serialNumber: null },
+        },
+        duties: [
+          {
+            dutyId: 'du-1',
+            kind: 'probe.drinking_water_check',
+            label: null,
+            result: 'with_defects',
+            resultReason: null,
+            remark: 'Speicher nachgeheizt.',
+          },
+        ],
+        defects: [{ id: 'd-1', description: 'Ventil tropft', defectClass: null }],
+        form: { key: 'probe.drinking_water_protocol', version: 2 },
+        answers: [
+          {
+            groupKey: null,
+            blockKey: null,
+            fieldKey: 'insulation',
+            value: null,
+            result: 'not_ok',
+            remark: 'Dämmung lose',
+            attachmentId: null,
+          },
+        ],
+      }),
+    )
+  })
+
+  it('says what was said with a result only where something was, so that a page signed before keeps its fingerprint', () => {
+    const line = {
+      dutyId: 'du-1',
+      kind: null,
+      label: 'Sichtkontrolle',
+      result: 'without_defects' as const,
+      resultReason: null,
+    }
+    const parts = {
+      activity: { id: 'ac-1', kind: 'maintenance' as const, title: 'Wartung', performedOn: null },
+      place: {
+        property: { name: 'Campus', address: 'Hauptstraße 1, 68535 Edingen-Neckarhausen' },
+        building: null,
+        room: null,
+        asset: null,
+      },
+      defects: [],
+    }
+
+    expect(signedPageOf({ ...parts, duties: [{ ...line, remark: null }] }).duties).toEqual([line])
+    expect(signedPageOf({ ...parts, duties: [{ ...line, remark: 'Sauber.' }] }).duties).toEqual([
+      { ...line, remark: 'Sauber.' },
+    ])
+  })
+
+  it('is none for an activity the device does not hold', () => {
+    expect(heldPageOf(records, 'ac-2')).toBeNull()
   })
 })

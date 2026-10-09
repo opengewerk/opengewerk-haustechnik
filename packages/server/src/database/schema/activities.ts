@@ -91,6 +91,8 @@ export const activities = pgTable(
     // The form it is filled in, and its version (#106): the server's to write.
     formKey: text('form_key'),
     formVersion: integer('form_version'),
+    // The day of the protocol it took as its template (#108): the server's to write.
+    templateOn: date('template_on', { mode: 'string' }),
     ...timestamps,
     ...syncColumns,
   },
@@ -195,6 +197,8 @@ export const activityDuties = pgTable(
     dutyId: reference<'duty'>('duty_id').notNull(),
     result: evidenceResult('result'),
     resultReason: text('result_reason'),
+    // What is said with the result (#108).
+    remark: text('remark'),
     ...timestamps,
     ...syncColumns,
   },
@@ -225,6 +229,7 @@ export const activityDuties = pgTable(
       'activity_duties_result_reason_shaped',
       optionalTrimmed(table.resultReason, activityLimits.closingReason),
     ),
+    check('activity_duties_remark_shaped', optionalTrimmed(table.remark, activityLimits.remark)),
     // A reason with "not performed", and only then; no result, no reason.
     check(
       'activity_duties_not_performed_with_a_reason',

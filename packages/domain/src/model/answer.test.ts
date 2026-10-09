@@ -9,6 +9,7 @@ import {
   type FilledAnswer,
   formValuesOf,
   statedAnswers,
+  templateAnswers,
 } from './answer.js'
 import type { FormDefinition } from './forms.js'
 import { type SignedPage, signedPageOf } from './signature.js'
@@ -405,5 +406,60 @@ describe('the page of an activity with a form', () => {
       [null, null, 'sampling'],
       ['branches', 'b-1', 'insulation'],
     ])
+  })
+})
+
+describe('the template the last protocol leaves the next one', () => {
+  // Every field said to carry, as a definition the engine refuses might, and
+  // a text in the group that does.
+  const carrying: FormDefinition = {
+    ...protocol,
+    version: 3,
+    sections: protocol.sections.map((section) => ({
+      ...section,
+      fields: section.fields.map((field) =>
+        field.kind === 'group'
+          ? {
+              ...field,
+              fields: [
+                ...field.fields,
+                { kind: 'text' as const, key: 'name', label: 'Bezeichnung', carry: true },
+              ],
+            }
+          : { ...field, carry: true },
+      ),
+    })),
+  }
+  const last: FilledAnswer[] = [
+    ...complete,
+    answer({ fieldKey: 'plate', attachmentId: photo }),
+    answer({ groupKey: 'branches', blockKey: 'b-1', fieldKey: 'name', value: '"Abgang Nord"' }),
+    answer({ fieldKey: 'gone', value: '"weg"' }),
+  ]
+
+  it('takes what carries, a block keeping its key, and nothing a check point, a measured value or a photo said', () => {
+    expect(templateAnswers(carrying, last)).toEqual([
+      answer({ fieldKey: 'sampling', value: '"taken"' }),
+      answer({ groupKey: 'branches', blockKey: 'b-1', fieldKey: 'name', value: '"Abgang Nord"' }),
+    ])
+  })
+
+  it('takes nothing of a field that does not carry, nor a value the new version no longer takes', () => {
+    const narrower: FormDefinition = {
+      ...carrying,
+      sections: carrying.sections.map((section) => ({
+        ...section,
+        fields: section.fields.map((field) =>
+          field.kind === 'choice'
+            ? { ...field, options: [{ value: 'none', label: 'keine' }] }
+            : field,
+        ),
+      })),
+    }
+
+    expect(templateAnswers(protocol, last)).toEqual([])
+    expect(templateAnswers(narrower, [answer({ fieldKey: 'sampling', value: '"taken"' })])).toEqual(
+      [],
+    )
   })
 })

@@ -221,7 +221,19 @@ async function targetPlace(
   return null
 }
 
-/** A defect at its place, noticed on request in an activity on the same property. */
+/**
+ * A defect at its place, noticed on request in an activity on the same
+ * property while the work on it goes on (#108). One found in an activity that
+ * is signed or closed would change the page that was signed, and its
+ * signature would count no more: that activity is fixed.
+ *
+ * The activity is read with a share lock, held to the end of the
+ * transmission. A signature holds the activity for its whole transaction
+ * (`checkSignature`), so a defect sent at the same moment waits for it and
+ * finds the activity signed, and a signature that comes second finds the
+ * defect on its page. Read without the lock, the defect could land between
+ * the page the signature was checked against and its commit.
+ */
 async function defectPlace(
   tx: TenantTransaction,
   values: Record<string, unknown>,
@@ -232,11 +244,23 @@ async function defectPlace(
     return refusal
   }
 
-  const activity = await found<Activity>(tx, activities, values['foundInActivityId'])
+  const id = values['foundInActivityId']
+  const [activity] =
+    typeof id === 'string' && isUuid(id)
+      ? ((await tx
+          .select()
+          .from(activities)
+          .where(and(eq(activities.id, id as Activity['id']), isNull(activities.deletedAt)))
+          .for('share')) as Activity[])
+      : []
 
-  return activity && activity.propertyId === values['propertyId']
+  if (!activity || activity.propertyId !== values['propertyId']) {
+    return missing('foundInActivityId')
+  }
+
+  return activity.status === 'open' || activity.status === 'started'
     ? null
-    : missing('foundInActivityId')
+    : { kind: 'conflict', reason: 'record_is_fixed', fields: ['foundInActivityId'] }
 }
 
 /**

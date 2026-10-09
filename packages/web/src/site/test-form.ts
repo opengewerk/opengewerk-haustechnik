@@ -6,7 +6,7 @@ import {
 } from '@opengewerk/haustechnik-domain'
 
 import { acceptedReview, testCatalogue } from '../app/test-catalogue.js'
-import { boilerRoom, heater, school } from './test-site.js'
+import { boilerRoom, heater, school, schoolServer } from './test-site.js'
 
 /**
  * What the tests of a form on site share (#107): a form with a field of
@@ -84,6 +84,37 @@ export const technicalRoom: PackagedForm = {
   ],
 }
 
+/**
+ * The protocol of the heater (#108): a check point, a measured value against
+ * the rule of hot water and a text that carries into the next protocol.
+ */
+export const heaterCheck: PackagedForm = {
+  title: 'Prüfprotokoll Speicher',
+  sections: [
+    {
+      key: 'check',
+      title: 'Prüfen',
+      fields: [
+        { kind: 'check_point', key: 'valve', label: 'Sicherheitsventil löst aus' },
+        {
+          kind: 'measurement',
+          key: 'outlet',
+          label: 'Temperatur am Speicheraustritt',
+          unit: 'degrees_celsius',
+          decimals: 1,
+          required: true,
+          limit: { kind: 'at_least', rule: 'probe.hot_water_minimum' },
+        },
+      ],
+    },
+    {
+      key: 'about',
+      title: 'Angaben',
+      fields: [{ kind: 'text', key: 'setting', label: 'Eingestellte Temperatur', carry: true }],
+    },
+  ],
+}
+
 /** The kinds the form above holds, which have to be every kind there is. */
 export const kindsInTheForm = blockFieldKinds.filter((kind) =>
   technicalRoom.sections.some((section) =>
@@ -125,6 +156,13 @@ export const formCatalogue: CatalogueBundle = {
               definition: technicalRoom,
               review: acceptedReview,
             },
+            {
+              key: 'probe.heater_check',
+              version: 1,
+              validFrom: '2018-03-01',
+              definition: heaterCheck,
+              review: acceptedReview,
+            },
           ],
           rules: [...each.rules, hotWater],
         }
@@ -138,11 +176,81 @@ export const round = {
   propertyId: school.id,
   areaId: school.areaId,
   roomId: boilerRoom.id,
-  kind: 'inspection',
+  kind: 'round',
   status: 'open',
   title: 'Rundgang durch den Heizraum',
   formKey: 'probe.technical_room',
   formVersion: 1,
   performedOn: null,
   dueOn: '2026-10-09',
+}
+
+const atTheSchool = { propertyId: school.id, areaId: school.areaId }
+
+/** The duty of the heater an inspection is to meet. */
+export const heaterDuty = {
+  id: 'du-heater',
+  ...atTheSchool,
+  assetId: heater.id,
+  buildingId: null,
+  roomId: null,
+  kind: null,
+  kindVersion: null,
+  label: 'Prüfung des Speichers',
+}
+
+/** The inspection of the heater in its protocol, open, performed by the own people (#108). */
+export const inspection = {
+  id: 'ac-inspection',
+  ...atTheSchool,
+  assetId: heater.id,
+  buildingId: null,
+  roomId: null,
+  kind: 'inspection',
+  status: 'open',
+  title: 'Prüfung des Speichers',
+  formKey: 'probe.heater_check',
+  formVersion: 1,
+  templateOn: null,
+  performer: 'own_staff',
+  performedOn: null,
+  dueOn: '2026-10-20',
+  closingReason: null,
+}
+
+/** A maintenance of the heater whose duty kind names no form: it has a result and nothing else. */
+export const maintenance = {
+  ...inspection,
+  id: 'ac-maintenance',
+  kind: 'maintenance',
+  title: 'Wartung des Speichers',
+  formKey: null,
+  formVersion: null,
+}
+
+/** The line of an activity for the duty of the heater, without a result yet. */
+export function lineOf(activityId: string) {
+  return {
+    id: `ad-${activityId}`,
+    ...atTheSchool,
+    activityId,
+    dutyId: heaterDuty.id,
+    result: null,
+    resultReason: null,
+    remark: null,
+  }
+}
+
+/** The school with the inspection and the maintenance of the heater, and the line of each. */
+export function workServer() {
+  const server = schoolServer()
+
+  server.put('duties', heaterDuty)
+
+  for (const activity of [inspection, maintenance]) {
+    server.put('activities', activity)
+    server.put('activity_duties', lineOf(activity.id))
+  }
+
+  return server
 }

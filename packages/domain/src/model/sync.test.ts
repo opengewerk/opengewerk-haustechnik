@@ -105,9 +105,10 @@ describe('the policies of the sync', () => {
     // there (ADR 0002, point 10); which property, only the device knows.
     expect(syncPolicies['activities']?.reserved).not.toContain('propertyId')
     expect(syncPolicies['defects']?.reserved).not.toContain('propertyId')
-    // The form an activity is filled in, and the answer a defect came of (#106).
+    // The form an activity is filled in, the day of the protocol it took as its
+    // template (#108), and the answer a defect came of (#106).
     expect(syncPolicies['activities']?.reserved).toEqual(
-      expect.arrayContaining(['formKey', 'formVersion']),
+      expect.arrayContaining(['formKey', 'formVersion', 'templateOn']),
     )
     expect(syncPolicies['defects']?.reserved).toContain('foundInAnswerId')
   })

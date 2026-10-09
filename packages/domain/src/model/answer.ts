@@ -361,6 +361,46 @@ export function formValuesOf(
   return values
 }
 
+/**
+ * The answers a new activity starts from when the last protocol of its asset
+ * in the same form is its template (#108, section 4.4 of the concept: "das
+ * letzte Protokoll einer Anlage ist die Vorlage des nächsten, soweit die
+ * Definition es zulässt"): those to the fields of the new version that carry,
+ * as their rows held them, a block keeping its key. What a check point, a
+ * measured value and a reading said belongs to the day it was said, as the
+ * engine has it; a photo stays with the activity it was taken in; an answer
+ * that no longer fits its field is left out.
+ */
+export function templateAnswers(
+  definition: FormDefinition,
+  answers: readonly FilledAnswer[],
+): readonly FilledAnswer[] {
+  return answers
+    .filter((answer) => {
+      const field = answeredField(definition, answer)?.field
+
+      return (
+        field !== undefined &&
+        field.carry === true &&
+        field.kind !== 'check_point' &&
+        field.kind !== 'measurement' &&
+        field.kind !== 'meter_reading' &&
+        field.kind !== 'photo' &&
+        answer.attachmentId === null &&
+        answerFitProblem(definition, answer) === null
+      )
+    })
+    .map(({ groupKey, blockKey, fieldKey, value, result, remark, attachmentId }) => ({
+      groupKey,
+      blockKey,
+      fieldKey,
+      value,
+      result,
+      remark,
+      attachmentId,
+    }))
+}
+
 /** What a measured value is judged by: the rules of the catalogue, on the day the activity was performed. */
 export interface LimitContext {
   readonly rules: RuleSet

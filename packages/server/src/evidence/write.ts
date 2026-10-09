@@ -56,6 +56,8 @@ export interface EvidenceToWrite {
   readonly performedOn: IsoDate
   readonly result: EvidenceResult
   readonly resultReason: string | null
+  /** What was said with the result on site (#108); none for a report. */
+  readonly remark?: string | null
   /** A person of the operator who did it, or an examiner with the organisation from outside. */
   readonly performedBy: string | null
   readonly examiner: { readonly name: string; readonly organisation: string } | null
@@ -227,6 +229,7 @@ export async function writeEvidence(
     performedOn: input.performedOn,
     result: input.result,
     resultReason: input.resultReason,
+    remark: input.remark ?? null,
     replaces: replaced === null ? null : { number: replaced.number, reason: replaced.reason },
     duty: {
       label: kind?.definition.label ?? duty.label ?? duty.kind ?? '',

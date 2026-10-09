@@ -1,8 +1,10 @@
 import { type FilledAnswer, ruleSet } from '@opengewerk/haustechnik-domain'
+import { today } from '@opengewerk/platform-web/format'
 import { describe, expect, it } from 'vitest'
 
 import { technicalRoom } from '../site/test-form.js'
-import { isDemanded, openedBy, pointKey, pointsOf, pointState } from './answers.js'
+import type { SyncClient } from '../sync/client.js'
+import { beginActivity, isDemanded, openedBy, pointKey, pointsOf, pointState } from './answers.js'
 
 /**
  * The points of a form as the device lists them, and what each says of its
@@ -128,5 +130,39 @@ describe('what a point says of its answer', () => {
       text: '55,5 °C',
       outside: true,
     })
+  })
+})
+
+describe('beginning an activity with its first input', () => {
+  /** What a device writes to begin an activity in a state, with or without its day. */
+  async function begun(status: string, performedOn: string | null = null) {
+    const written: unknown[] = []
+    const client = {
+      list: () => [{ id: 'ac-1', status, performedOn }],
+      update: (entity: string, id: string, change: unknown) => {
+        written.push([entity, id, change])
+
+        return Promise.resolve({ outcome: 'applied' })
+      },
+    } as unknown as SyncClient
+
+    expect(await beginActivity(client, 'ac-1')).toBeNull()
+
+    return written
+  }
+
+  it('begins an open one on the day of the device, or keeps the day it names', async () => {
+    expect(await begun('open')).toEqual([
+      ['activities', 'ac-1', { status: 'started', performedOn: today() }],
+    ])
+    expect(await begun('open', '2026-10-08')).toEqual([
+      ['activities', 'ac-1', { status: 'started' }],
+    ])
+  })
+
+  it('writes nothing for one that is begun, signed or closed', async () => {
+    for (const status of ['started', 'signed', 'done', 'not_performed']) {
+      expect(await begun(status)).toEqual([])
+    }
   })
 })

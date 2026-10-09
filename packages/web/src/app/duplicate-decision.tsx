@@ -21,6 +21,7 @@ import { useState } from 'react'
 
 import { makeAt } from '../sync/made-at.js'
 import { titleOfRoom } from './place-records.js'
+import { isSignatureConflict, SignatureDecision } from './signature-decision.js'
 
 /**
  * The possible duplicate of an asset taken stock of on site, as the server
@@ -111,8 +112,16 @@ export function followersOf(
   ]
 }
 
-/** The card of a possible duplicate, nothing for what is decided with one, and the foundation's for the rest. */
+/**
+ * The card of a possible duplicate, nothing for what is decided with one, the
+ * card of a signature the server did not take (#108), and the foundation's
+ * for the rest.
+ */
 export const ownDecision: NonNullable<RecordWords['ownDecision']> = (conflict, conflicts) => {
+  if (isSignatureConflict(conflict)) {
+    return <SignatureDecision conflict={conflict} />
+  }
+
   if (isDuplicateConflict(conflict)) {
     return <DuplicateDecision conflict={conflict} followers={followersOf(conflict, conflicts)} />
   }

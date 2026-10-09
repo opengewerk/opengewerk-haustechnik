@@ -13,6 +13,7 @@ import {
   type LimitContext,
   type RecordState,
 } from '@opengewerk/haustechnik-domain'
+import { today } from '@opengewerk/platform-web/format'
 import type { PointState } from '@opengewerk/platform-web/forms'
 import { maybeText, refusalFor, text } from '@opengewerk/platform-web/sync'
 
@@ -289,4 +290,29 @@ export async function saveAnswer(
   })
 
   return made.outcome === 'refused' ? refusalFor(made) : null
+}
+
+/**
+ * Begins an activity with the first thing entered in it (#108): "begonnen",
+ * on the day of the device where it names none yet. The office sees from
+ * then on that somebody works on it, and a report of a contractor no longer
+ * takes it (#110). The sentence to show when the device turns it down, or
+ * null when it is queued or nothing was to do.
+ */
+export async function beginActivity(
+  client: SyncClient,
+  activityId: string,
+): Promise<string | null> {
+  const activity = client.list('activities').find((record) => record['id'] === activityId)
+
+  if (activity === undefined || text(activity, 'status') !== 'open') {
+    return null
+  }
+
+  const done = await client.update('activities', activityId, {
+    status: 'started',
+    ...(maybeText(activity, 'performedOn') === null ? { performedOn: today() } : {}),
+  })
+
+  return done.outcome === 'refused' ? refusalFor(done) : null
 }

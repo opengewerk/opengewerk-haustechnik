@@ -252,6 +252,8 @@ export function EvidenceScreen() {
     },
     { label: 'Ergebnis', value: <ResultMark result={state.result} /> },
     ...(state.resultReason === null ? [] : [{ label: 'Grund', value: state.resultReason }]),
+    // A state written before the fourth version says nothing of a remark.
+    ...((state.remark ?? null) === null ? [] : [{ label: 'Bemerkung', value: state.remark }]),
     ...(state.replaces === null
       ? []
       : [

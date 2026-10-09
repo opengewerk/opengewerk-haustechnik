@@ -166,13 +166,7 @@ export interface SignedPage {
       readonly serialNumber: string | null
     } | null
   }
-  readonly duties: readonly {
-    readonly dutyId: string
-    readonly kind: string | null
-    readonly label: string | null
-    readonly result: EvidenceResult | null
-    readonly resultReason: string | null
-  }[]
+  readonly duties: readonly SignedDuty[]
   readonly defects: readonly {
     readonly id: string
     readonly description: string
@@ -180,6 +174,34 @@ export interface SignedPage {
   }[]
   readonly form?: { readonly key: string; readonly version: number }
   readonly answers?: readonly SignedAnswer[]
+}
+
+/**
+ * A duty of the activity as the page shows it, with its result. What is said
+ * with the result stands on it only where something is (#108), so that a page
+ * signed before keeps its fingerprint.
+ */
+export interface SignedDuty {
+  readonly dutyId: string
+  readonly kind: string | null
+  readonly label: string | null
+  readonly result: EvidenceResult | null
+  readonly resultReason: string | null
+  readonly remark?: string
+}
+
+/** A duty as the page holds it, from a line that may say null where nothing was said. */
+function signedDuty(line: Omit<SignedDuty, 'remark'> & { readonly remark?: string | null }) {
+  const { dutyId, kind, label, result, resultReason, remark } = line
+
+  return {
+    dutyId,
+    kind,
+    label,
+    result,
+    resultReason,
+    ...(remark === undefined || remark === null ? {} : { remark }),
+  }
 }
 
 /** An answer as the page shows it: its point and what it says, as its row holds it. */
@@ -194,12 +216,17 @@ function byPoint(left: SignedAnswer, right: SignedAnswer): number {
   )
 }
 
+/** The parts of a page, where a duty may say null for a remark it has none of. */
+export type SignedPageParts = Omit<SignedPage, 'duties'> & {
+  readonly duties: readonly (Omit<SignedDuty, 'remark'> & { readonly remark?: string | null })[]
+}
+
 /** The page of an activity from its parts, in the order device and server share. */
-export function signedPageOf(parts: SignedPage): SignedPage {
+export function signedPageOf(parts: SignedPageParts): SignedPage {
   return {
     activity: parts.activity,
     place: parts.place,
-    duties: [...parts.duties].sort((left, right) => compare(left.dutyId, right.dutyId)),
+    duties: parts.duties.map(signedDuty).sort((left, right) => compare(left.dutyId, right.dutyId)),
     defects: [...parts.defects].sort((left, right) => compare(left.id, right.id)),
     ...(parts.form === undefined
       ? {}
@@ -218,6 +245,135 @@ export function signedPageOf(parts: SignedPage): SignedPage {
             .sort(byPoint),
         }),
   }
+}
+
+/** A record as a device holds it: its fields by their names in the sync. */
+export type HeldRecord = Readonly<Record<string, unknown>>
+
+/** What a device holds, asked the way its store answers. */
+export interface HeldRecords {
+  /** The record of a kind under its id, or null. */
+  readonly find: (entity: string, id: string) => HeldRecord | null
+  /** The records of a kind whose field names the id. */
+  readonly related: (entity: string, field: string, id: string) => readonly HeldRecord[]
+}
+
+/** A text of a record, or null for a field that says nothing or is not there. */
+function heldText(record: HeldRecord | null, field: string): string | null {
+  const value = record?.[field]
+
+  return typeof value === 'string' ? value : null
+}
+
+/** Whether a record is still there and not marked. */
+function live(record: HeldRecord): boolean {
+  return record['deletedAt'] === null || record['deletedAt'] === undefined
+}
+
+/**
+ * The page of an activity as a device works it out from what it holds (#108,
+ * ADR 0004, point 7), the same way the server does from its rows: the place
+ * from the asset of the activity, else its room, else its building; the
+ * duties with their results; the defects reported in it, not those an answer
+ * makes; and with a form, the answers to its points. Null when the device
+ * does not hold the activity.
+ */
+export function heldPageOf(held: HeldRecords, activityId: string): SignedPage | null {
+  const activity = held.find('activities', activityId)
+
+  if (activity === null) {
+    return null
+  }
+
+  const find = (entity: string, id: string | null) => (id === null ? null : held.find(entity, id))
+  const property = find('properties', heldText(activity, 'propertyId'))
+  const asset = find('assets', heldText(activity, 'assetId'))
+  const room = find('rooms', heldText(asset, 'roomId') ?? heldText(activity, 'roomId'))
+  const building = find(
+    'buildings',
+    heldText(asset, 'buildingId') ??
+      heldText(room, 'buildingId') ??
+      heldText(activity, 'buildingId'),
+  )
+  const formKey = heldText(activity, 'formKey')
+  const formVersion = activity['formVersion']
+  const form =
+    formKey === null || typeof formVersion !== 'number'
+      ? null
+      : { key: formKey, version: formVersion }
+
+  return signedPageOf({
+    activity: {
+      id: activityId,
+      kind: activity['kind'] as ActivityKind,
+      title: heldText(activity, 'title') ?? '',
+      performedOn: heldText(activity, 'performedOn') as IsoDate | null,
+    },
+    place: {
+      property: {
+        name: heldText(property, 'name') ?? '',
+        address:
+          property === null
+            ? ''
+            : `${heldText(property, 'street') ?? ''}, ${heldText(property, 'postalCode') ?? ''} ${heldText(property, 'city') ?? ''}`,
+      },
+      building:
+        building === null
+          ? null
+          : { name: heldText(building, 'name') ?? '', shortCode: heldText(building, 'shortCode') },
+      room:
+        room === null ? null : { number: heldText(room, 'number'), name: heldText(room, 'name') },
+      asset:
+        asset === null
+          ? null
+          : {
+              id: String(asset['id']),
+              name: heldText(asset, 'name') ?? '',
+              kind: heldText(asset, 'kind') ?? '',
+              serialNumber: heldText(asset, 'serialNumber'),
+            },
+    },
+    duties: held
+      .related('activity_duties', 'activityId', activityId)
+      .filter(live)
+      .map((line) => {
+        const duty = find('duties', heldText(line, 'dutyId'))
+
+        return {
+          dutyId: heldText(line, 'dutyId') ?? '',
+          kind: heldText(duty, 'kind'),
+          label: heldText(duty, 'label'),
+          result: heldText(line, 'result') as EvidenceResult | null,
+          resultReason: heldText(line, 'resultReason'),
+          remark: heldText(line, 'remark'),
+        }
+      }),
+    defects: held
+      .related('defects', 'foundInActivityId', activityId)
+      .filter((defect) => live(defect) && heldText(defect, 'foundInAnswerId') === null)
+      .map((defect) => ({
+        id: String(defect['id']),
+        description: heldText(defect, 'description') ?? '',
+        defectClass: heldText(defect, 'defectClass'),
+      })),
+    ...(form === null
+      ? {}
+      : {
+          form,
+          answers: held
+            .related('activity_answers', 'activityId', activityId)
+            .filter(live)
+            .map((answer) => ({
+              groupKey: heldText(answer, 'groupKey'),
+              blockKey: heldText(answer, 'blockKey'),
+              fieldKey: heldText(answer, 'fieldKey') ?? '',
+              value: heldText(answer, 'value'),
+              result: heldText(answer, 'result') as SignedAnswer['result'],
+              remark: heldText(answer, 'remark'),
+              attachmentId: heldText(answer, 'attachmentId') as SignedAnswer['attachmentId'],
+            })),
+        }),
+  })
 }
 
 /** Code units, the same in every engine. */

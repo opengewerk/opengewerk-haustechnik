@@ -35,6 +35,7 @@ import { useRef, useState } from 'react'
 
 import { placePath } from '../../app/place-path.js'
 import { placeAbove, titleOfRoom } from '../../app/place-records.js'
+import { resultNotes } from '../../app/results.js'
 import { useCatalogue } from '../../sync/catalogue.js'
 import { makeAt } from '../../sync/made-at.js'
 import { dutyPlaces, dutyRegisterPlace, evidencePlaces, reportActivity } from '../duty-addresses.js'
@@ -54,12 +55,7 @@ export const reportWords = {
   noFile: 'Es ist noch keine Datei gewählt.',
   noDefect: 'Der Bericht nennt noch keinen Mangel.',
   withoutClass: 'Ohne Klasse',
-  resultNotes: {
-    without_defects: undefined,
-    with_defects: 'Die Pflicht ist erfüllt, die Mängel werden geführt.',
-    failed: 'Die Pflicht bleibt offen, bis eine Prüfung bestanden ist.',
-    not_performed: 'Mit Grund. Am Termin ändert sich nichts.',
-  } satisfies Readonly<Record<EvidenceResult, string | undefined>>,
+  resultNotes,
 } as const
 
 /** "Ab dem Tag der Durchführung" in the middle of a sentence. */

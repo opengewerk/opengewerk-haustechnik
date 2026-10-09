@@ -521,6 +521,140 @@ describe('the activity of a due day', () => {
     expect(none).toEqual([{ form_key: null }])
   })
 
+  it('takes the last protocol of its asset in the same form as its template: what carries, and the day of it', async () => {
+    // The main test taking a protocol in a form of its own: the car carries, a check point and a remark do not.
+    const elevatorProtocol = {
+      title: 'Protokoll der Hauptprüfung',
+      sections: [
+        {
+          key: 'car',
+          title: 'Fahrkorb',
+          fields: [
+            { kind: 'text' as const, key: 'car', label: 'Fahrkorb', carry: true },
+            { kind: 'check_point' as const, key: 'brakes', label: 'Bremsen' },
+            { kind: 'text' as const, key: 'noticed', label: 'Sonst aufgefallen' },
+          ],
+        },
+      ],
+    }
+    const review = probeCatalogueBundle.packages[0]?.forms[0]?.review
+
+    if (review === undefined) {
+      throw new Error('The probe package has a form with its review.')
+    }
+
+    const withATemplate = catalogueOf({
+      ...probeCatalogueBundle,
+      packages: probeCatalogueBundle.packages.map((pack, index) => ({
+        ...pack,
+        forms:
+          index === 0
+            ? [
+                ...pack.forms,
+                {
+                  key: 'probe.elevator_protocol',
+                  version: 1,
+                  validFrom: '2018-01-01',
+                  definition: elevatorProtocol,
+                  review,
+                },
+              ]
+            : pack.forms,
+        dutyKinds: pack.dutyKinds.map((entry) =>
+          entry.key === 'probe.elevator_main_test'
+            ? {
+                ...entry,
+                definition: {
+                  ...entry.definition,
+                  evidence: { kinds: ['protocol', 'report'], form: 'probe.elevator_protocol' },
+                },
+              }
+            : entry,
+        ),
+      })),
+    })
+    const at = await placeIn(small)
+    const duty = await mainTestAt(at)
+
+    /** A protocol of an elevator, written down on a day unless said otherwise, in a form, with what was said. */
+    async function protocolOn(
+      day: string,
+      form: string,
+      said: readonly [string, string][],
+      { elevator = at, status = 'done' }: { elevator?: typeof at; status?: string } = {},
+    ) {
+      const { rows } = await admin.query<{ id: string }>(
+        `insert into activities (tenant_id, property_id, area_id, asset_id, kind, title, status,
+                                 performed_on, form_key, form_version)
+         values ($1, $2, $3, $4, 'inspection', 'Hauptprüfung', 'started', $5, $6, 1)
+         returning id`,
+        [small, elevator.property, elevator.area, elevator.elevator, day, form],
+      )
+      const id = rows[0]?.id
+
+      for (const [field, value] of said) {
+        await admin.query(
+          `insert into activity_answers (tenant_id, property_id, area_id, activity_id, field_key,
+                                         ${field === 'brakes' ? 'result' : 'value'})
+           values ($1, $2, $3, $4, $5, $6)`,
+          [small, elevator.property, elevator.area, id, field, value],
+        )
+      }
+
+      await admin.query('update activities set status = $2 where id = $1', [id, status])
+    }
+
+    await protocolOn('2022-11-03', 'probe.elevator_protocol', [['car', '"Fahrkorb alt"']])
+    await protocolOn('2024-11-20', 'probe.elevator_protocol', [
+      ['car', '"Fahrkorb A, 8 Personen"'],
+      ['brakes', 'ok'],
+      ['noticed', '"Nichts"'],
+    ])
+    await protocolOn('2025-03-01', 'probe.water_meter_reading', [['reading', '1234567']])
+    // Begun and not written down: no template, however late.
+    await protocolOn('2025-06-02', 'probe.elevator_protocol', [['car', '"Fahrkorb halb"']], {
+      status: 'started',
+    })
+    await evidenceOf(at, duty, '2024-11-20')
+    await runDeadlinesOf({ database, catalogue: withATemplate, now: () => october }, small, october)
+
+    const { rows } = await admin.query<{ template_on: string | null; id: string }>(
+      `select a.template_on::text, a.id from activities a
+         join activity_duties d on d.activity_id = a.id
+        where d.duty_id = $1`,
+      [duty],
+    )
+    const { rows: answers } = await admin.query<{ field_key: string; value: string | null }>(
+      'select field_key, value from activity_answers where activity_id = $1',
+      [rows[0]?.id],
+    )
+
+    expect(rows.map((row) => row.template_on)).toEqual(['2024-11-20'])
+    expect(answers).toEqual([{ field_key: 'car', value: '"Fahrkorb A, 8 Personen"' }])
+
+    // Where the asset has no protocol in the form, or one of which nothing carries, the
+    // activity names no template.
+    const other = await placeIn(small)
+    const first = await mainTestAt(other)
+
+    await protocolOn('2024-11-20', 'probe.elevator_protocol', [['brakes', 'ok']], {
+      elevator: other,
+    })
+
+    await evidenceOf(other, first, '2024-11-20')
+    await runDeadlinesOf({ database, catalogue: withATemplate, now: () => october }, small, october)
+
+    const { rows: none } = await admin.query<{ template_on: string | null; answers: number }>(
+      `select a.template_on::text,
+              (select count(*)::int from activity_answers x where x.activity_id = a.id) as answers
+         from activities a join activity_duties d on d.activity_id = a.id
+        where d.duty_id = $1`,
+      [first],
+    )
+
+    expect(none).toEqual([{ template_on: null, answers: 0 }])
+  })
+
   it('gives a duty with an activity under way no second one when its due day moves', async () => {
     const at = await placeIn(small)
     const duty = await mainTestAt(at)
