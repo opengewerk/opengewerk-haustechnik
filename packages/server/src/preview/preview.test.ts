@@ -7,6 +7,8 @@ import { probeCatalogueBundle } from '@opengewerk/haustechnik-catalogue/testing'
 import {
   blockFieldKinds,
   rightsOfRoles,
+  type MeterDetails,
+  type MeterList,
   type TenantId,
   type WorkOrderDetails,
 } from '@opengewerk/haustechnik-domain'
@@ -38,6 +40,7 @@ import {
   schoolHolidays,
 } from './sample-data.js'
 import { sampleFormKey } from './sample-form.js'
+import { sampleMeters } from './sample-meters.js'
 import { sampleWork } from './sample-work.js'
 
 /**
@@ -460,6 +463,34 @@ describe('a preview started as the Leitung', () => {
       ['Schild mit der Notrufnummer anbringen', 'done', 'normal', false],
     ])
     expect(list.orders.every((order) => order.number !== null)).toBe(true)
+  })
+
+  // What the list "Zähler" and the page of a measuring point are looked at with (#119).
+  it('shows meters read, missing, resting and locked, with a correction, a replacement and a main meter', async () => {
+    const server = application.getHttpServer()
+    const list = (await request(server).get('/meters').expect(200)).body as MeterList
+    const stateOf = (name: string) => list.meters.find((meter) => meter.name === name)?.state
+
+    expect(stateOf(sampleMeters.school)).toBe('missing')
+    expect(stateOf(sampleMeters.gym)).toBe('present')
+    expect(stateOf(sampleMeters.workshop)).toBe('locked')
+    expect(stateOf(sampleMeters.house2)).toBe('paused')
+
+    const school = list.meters.find((meter) => meter.name === sampleMeters.school)
+    const page = (
+      await request(server)
+        .get(`/meters/${school?.assetId ?? ''}`)
+        .expect(200)
+    ).body as MeterDetails
+
+    expect(page.note?.name).toBe('Dennis Roth')
+    expect(page.subMeters.map((meter) => meter.name)).toEqual([sampleMeters.gym])
+    expect(page.rows.some((row) => row.corrected.length === 1)).toBe(true)
+    expect(page.history.some((line) => line.previousYear?.kind === 'consumed')).toBe(true)
+
+    const houseA = list.meters.find((meter) => meter.name === sampleMeters.houseA)
+
+    expect(houseA?.meterNumber).toBe('WZ-1001-N')
   })
 
   // What the page of an order on site and in the office is looked at with

@@ -387,6 +387,59 @@ function rowsOf(tenant: Tenant): readonly Row[] {
         building_id: building,
       },
     },
+    // What a measuring point holds beside its asset (#119).
+    {
+      table: 'meter_points',
+      values: {
+        tenant_id: tenant.id,
+        asset_id: asset,
+        property_id: property,
+        area_id: area,
+        conversion_factor: 40,
+        lock_reason: 'Schacht überflutet',
+        locked_on: '2026-10-06',
+      },
+    },
+    {
+      table: 'meter_readings',
+      values: {
+        tenant_id: tenant.id,
+        asset_id: asset,
+        property_id: property,
+        area_id: area,
+        key_date: '2026-10-01',
+        read_on: '2026-10-05',
+        value_milli: 4_812_000,
+        source: 'by_hand',
+        recorded_by: tenant.userId,
+      },
+    },
+    {
+      table: 'meter_exchanges',
+      values: {
+        tenant_id: tenant.id,
+        asset_id: asset,
+        property_id: property,
+        area_id: area,
+        exchanged_on: '2026-10-14',
+        old_number: '13-882914',
+        old_end_milli: 4_839_700,
+        new_number: '13-920455',
+        new_start_milli: 0,
+      },
+    },
+    {
+      table: 'meter_pauses',
+      values: {
+        tenant_id: tenant.id,
+        asset_id: asset,
+        property_id: property,
+        area_id: area,
+        starts_on: '2026-08-01',
+        ends_on: '2026-09-15',
+        reason: 'Sommerferien',
+      },
+    },
     // A duty from the catalogue at the asset, and a proposal dismissed there.
     {
       table: 'duties',

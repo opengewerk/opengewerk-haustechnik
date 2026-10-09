@@ -72,6 +72,12 @@ export const operationRights: Readonly<Record<string, OperationRights>> = {
   rooms: { create: 'room.record', change: 'room.record', otherwise: 'location.write' },
   assets: { create: 'asset.record', change: 'asset.record', otherwise: 'asset.write' },
   asset_lifecycle: { otherwise: 'asset.write' },
+  // What a measuring point holds is kept in the office (#119): a reading by
+  // whoever reads meters, everything else by whoever takes care of assets.
+  meter_points: { otherwise: 'asset.write' },
+  meter_readings: { otherwise: 'reading.write' },
+  meter_exchanges: { otherwise: 'asset.write' },
+  meter_pauses: { otherwise: 'asset.write' },
   asset_supplies: { create: 'asset.record', remove: 'asset.record', otherwise: 'asset.record' },
   duties: { otherwise: 'duty.write' },
   duty_dismissals: { otherwise: 'duty.write' },

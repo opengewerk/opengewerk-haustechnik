@@ -22,6 +22,10 @@ export const serverPaths: readonly string[] = [
   'rooms',
   // The technology: assets and their components.
   'assets',
+  // The meters: the list for a key date, the page of a measuring point, its
+  // readings, the replacement of its meter, its pauses, its lock and its note
+  // (#119).
+  'meters',
   // What a code on a label is for the person asking, and the prints of many
   // labels at once.
   'labels',

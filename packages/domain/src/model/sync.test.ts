@@ -81,6 +81,11 @@ describe('the policies of the sync', () => {
       attachment_versions: [true, 'never'],
       // Made and blocked in the office; a device reads them for a scan.
       labels: [false, 'merge'],
+      // Kept in the office (#119); a device reads them with the places.
+      meter_points: [false, 'never'],
+      meter_readings: [false, 'never'],
+      meter_exchanges: [false, 'never'],
+      meter_pauses: [false, 'never'],
     })
   })
 

@@ -169,6 +169,14 @@ Anhang B nennt jedes Feld der Datenbank, das auf eine Person zeigt. Dieser Absch
 - Die Frist eines Mangels steht in der Liste „Fristen“, solange er festgestellt oder beauftragt ist, und erinnert die Leitung, wenn ihr Vorlauf beginnt; ein Mangel nennt niemanden, der für ihn verantwortlich ist. [K2.4, K4.6]
 - Ein Mangel folgt seinem Auftrag: beauftragt, sobald aus ihm ein Auftrag angelegt ist, behoben mit der Unterschrift unter dem Auftrag, wieder beauftragt, wenn die Abnahme den Auftrag zurückweist, und wieder festgestellt, wenn der Auftrag nicht durchgeführt wird. Wer das ausgelöst hat, nennt der Mangel nicht. [K4.6, K4.8, B119, B120]
 
+### 3.13 Zähler
+
+- Ein Zählerstand hält fest: den Stichtag, für den er gilt, den Tag der Ablesung, den Stand, auf welchem Weg er kam (von Hand, eigene Runde, Rundgang, Protokoll) und wer ihn eingetragen hat. Die Person setzt der Server selbst ein. Die Seite einer Messstelle im Büro nennt zu jedem Stand den Namen, für alle, die Anlagen ansehen, in ihren Bereichen. Eine Liste der Stände nach Person gibt es nicht. [K4.9, K4.16, B139]
+- **Zusage:** Ein Zählerstand wird nicht geändert und nicht gelöscht, auch nicht in der Datenbank. Berichtigt wird er durch einen neuen Stand für denselben Stichtag, der ihn nennt, mit Grund und der Person, die berichtigt; beide bleiben sichtbar, gerechnet wird mit dem neuen. [K4.9, B140, B141]
+- Die Notiz an einer Messstelle nennt, wer sie geschrieben hat und seit wann. Eine Sperre nennt ihren Grund und seit wann, eine Stilllegung ihren Zeitraum und Grund, ein Zählertausch die Nummern und Stände; wer gesperrt, stillgelegt oder getauscht hat, steht nur im Änderungsprotokoll. [K4.9, B142]
+- **Zusage:** Zähler ablesen dürfen alle vier Rollen. Den Zählertausch, die Stilllegung, die Sperre, die Notiz und was nur die Messstelle trägt, ändert, wer Anlagen pflegt: die Leitung, die Technische Leitung und die Objektleitung. Die Haustechnik kann es nicht. [K4.9, K7, B143, B144]
+- Der Verbrauch wird aus den Ständen abgeleitet und nie gespeichert; er nennt keine Person. [K4.9]
+
 ---
 
 ## 4. Wer was sieht
@@ -188,6 +196,7 @@ Phase 1 kennt vier Rollen. Was jede darf, steht Recht für Recht in Abschnitt 7 
 | Wer einen Auftrag führt und wer an ihm beteiligt ist, mit Namen | in ihren Bereichen | in ihren Bereichen | in ihren Bereichen | was sie führt, woran sie beteiligt ist oder was niemandem zugeteilt ist |
 | Die Namen zur Wahl, wer einen Auftrag führt und wer an ihm beteiligt ist | in ihren Bereichen | in ihren Bereichen | in ihren Bereichen | nein |
 | Notizen zu einem Auftrag, mit Namen und Uhrzeit | in ihren Bereichen | in ihren Bereichen | in ihren Bereichen | was sie führt, woran sie beteiligt ist oder was niemandem zugeteilt ist |
+| Wer einen Zählerstand eingetragen oder berichtigt und wer die Notiz einer Messstelle geschrieben hat, mit Namen | in ihren Bereichen | in ihren Bereichen | in ihren Bereichen | in ihren Bereichen |
 | Wer die Rundgänge eines Plans geht, als Kennung des Kontos auf dem Gerät | in ihren Bereichen | in ihren Bereichen | in ihren Bereichen | in ihren Bereichen |
 | Wer einen Rundgang geht, mit Namen | in ihren Bereichen | in ihren Bereichen | in ihren Bereichen | was ihr oder niemandem zugeteilt ist |
 | Die Namen zur Wahl, wer einen Rundgang geht | in ihren Bereichen | in ihren Bereichen | in ihren Bereichen | nein |
@@ -454,6 +463,12 @@ Pfade ohne Vorsatz liegen im Repository `opengewerk/opengewerk-haustechnik`. Pfa
 | B136 | Test | `packages/server/src/activities/signing.test.ts` | `is signed by the person who leads it and by nobody else, nor by anybody while nobody leads it` |
 | B137 | Test | `packages/web/src/site/screens/work-order.test.tsx` | `takes a note as an entry of its own, without a network, which nothing changes afterwards` |
 | B138 | Test | `packages/server/src/api/work-orders.test.ts` | `is finished by the person who leads it, and the signature of anybody else is a conflict` |
+| B139 | Test | `packages/server/src/api/meters.test.ts` | `is entered by every role, for the key date of its day, in the name of whoever enters it, once a key date` |
+| B140 | Test | `packages/server/src/api/meters.test.ts` | `is corrected by a new one with the reason, which counts in its place, while the one corrected stays` |
+| B141 | Test | `packages/server/src/api/meters.test.ts` | `is changed and removed by nobody, also not in the database` |
+| B142 | Test | `packages/server/src/api/meters.test.ts` | `a note names who wrote it and since when, and none removes it` |
+| B143 | Test | `packages/server/src/api/meters.test.ts` | `is for whoever takes care of assets, takes the new number, and refuses an end below the last reading and the old number` |
+| B144 | Test | `packages/server/src/api/meters.test.ts` | `a lock is set and lifted by whoever takes care of assets, with its reason and since when` |
 
 ---
 
@@ -490,6 +505,8 @@ Jede Zeile ist ein Feld der Datenbank, das die Kennung eines Kontos hält. Der S
 | `member_areas` | `user_id` | für wen ein Bereich genannt ist |
 | `member_passkeys` | `user_id` | wessen Passkey bei diesem Betreiber gilt |
 | `memberships` | `user_id` | wer bei diesem Betreiber arbeitet |
+| `meter_points` | `note_by` | wer die Notiz an einer Messstelle geschrieben hat |
+| `meter_readings` | `recorded_by` | wer einen Zählerstand eingetragen oder berichtigt hat |
 | `round_plans` | `performer_user_id` | wer die Rundgänge eines Plans geht, wenn der Plan jemanden nennt |
 | `substitutions` | `absent_user_id` | wer vertreten wird |
 | `substitutions` | `substitute_user_id` | wer vertritt |
@@ -528,6 +545,7 @@ Jede Zeile ist der erste Abschnitt einer Adresse, unter der der Server antwortet
 | `instance` | Verwaltung der Instanz |
 | `invitation` | Einlösen einer Einladung |
 | `labels` | Etiketten: sagt zu einem gescannten Code in einem Wort, ob er für die fragende Person etwas öffnet, und druckt viele Etiketten auf einmal |
+| `meters` | Zähler: die Liste zum Stichtag, die Seite einer Messstelle mit Ständen, Verbrauch und Verlauf, ein Stand von Hand und seine Berichtigung, der Zählertausch, die Stilllegung, die Sperre, die Notiz und was nur die Messstelle trägt |
 | `properties` | Liegenschaften |
 | `rooms` | Räume, mit den Pflichten, die an ihnen hängen |
 | `round-plans` | Pläne der Rundgänge: ein neuer Plan und die Änderung eines Plans, auch ruhen lassen und beenden; ein Plan nennt die Person, die seine Rundgänge geht, oder niemanden |

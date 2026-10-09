@@ -71,7 +71,8 @@ export const auditScreenWords: AuditScreenWords = {
     properties: 'mit ihren Ansprechpartnern',
     buildings: 'mit seinen Schließzeiten',
     rooms: 'mit seinen Etiketten',
-    assets: 'mit ihrem Lebenszyklus, dem, was sie versorgt, und ihren Etiketten',
+    assets:
+      'mit ihrem Lebenszyklus, dem, was sie versorgt, ihren Etiketten und bei einem Zähler seinen Ständen',
     attachments: 'mit seinen Fassungen',
     activities:
       'mit den Pflichten, die er erfüllen soll, den Antworten auf sein Formular und bei einem Auftrag dessen Angaben und Beteiligten',

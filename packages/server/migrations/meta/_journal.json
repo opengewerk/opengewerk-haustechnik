@@ -225,6 +225,13 @@
       "when": 1791567383607,
       "tag": "0031_work_order_notes",
       "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "7",
+      "when": 1791571580359,
+      "tag": "0032_meter_readings",
+      "breakpoints": true
     }
   ]
 }

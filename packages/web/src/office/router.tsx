@@ -38,6 +38,7 @@ import { EditFloorScreen, NewFloorScreen } from './screens/floor-form.js'
 import { FloorScreen } from './screens/floors.js'
 import { ImportAssetsScreen, ImportStructureScreen } from './screens/imports.js'
 import { LabelLandingScreen } from './screens/label-landing.js'
+import { MeterListScreen, MeterScreen } from './screens/meters.js'
 import {
   EditPropertyScreen,
   NewPropertyScreen,
@@ -213,6 +214,14 @@ export function officeRoutes() {
       getParentRoute: () => office,
       path: '/anlagen/$assetId/komponenten/neu',
       component: NewComponentScreen,
+    }),
+    // The meters on a key date, narrowed by what the address names, and the
+    // page of one measuring point under them, by the id of its asset (#119).
+    createRoute({ getParentRoute: () => office, path: '/zaehler', component: MeterListScreen }),
+    createRoute({
+      getParentRoute: () => office,
+      path: '/zaehler/$meterId',
+      component: MeterScreen,
     }),
     // The register of duties, narrowed by what its address names, and the
     // page of one duty under it. The form of a duty of the operator's own

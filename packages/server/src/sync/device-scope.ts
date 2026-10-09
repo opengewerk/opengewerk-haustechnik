@@ -89,6 +89,12 @@ const placeEntities = [
   'assets',
   'asset_lifecycle',
   'asset_supplies',
+  // What a measuring point holds beside its asset (#119): a device shows the
+  // reading before and why a meter is not read.
+  'meter_points',
+  'meter_readings',
+  'meter_exchanges',
+  'meter_pauses',
   'duties',
   'duty_dismissals',
   // The documents of those places, of the assets there and of the work on
