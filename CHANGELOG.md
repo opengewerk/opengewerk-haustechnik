@@ -1246,6 +1246,11 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
 
 ### Behoben
 
+- Die Rücknahme von Migration 0025 schreibt den Grund "migration" an jede Zeile, die sie ändert oder
+  löscht (#188): Fotos an Mängeln, Fristen von Mängeln, Tag und Bemerkung einer Nachprüfung und die
+  Vorgaben der Mängelklassen. Bisher setzte sie den Grund in einem eigenen Stück zwischen zwei
+  Trennern, und er galt nur bis zum Ende von dessen Transaktion; im Protokoll des Betreibers standen
+  die Zeilen ohne Grund
 - Eine Antwort oder ein Ergebnis, das im selben Augenblick wie eine Unterschrift über den Abgleich kommt,
   wartet auf sie (opengewerk#582). Bisher las das Tor des Fundaments den Vorgang ohne Sperre: Die Antwort sah
   ihn noch als begonnen, landete, nachdem die Unterschrift die Seite gelesen hatte, und der Nachweis hielt eine

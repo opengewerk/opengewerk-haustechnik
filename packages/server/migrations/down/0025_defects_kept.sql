@@ -7,11 +7,11 @@
 -- evidence named a defect. A defect that was checked again goes back to
 -- "remedied", which is the last status the database knew without a check.
 --
--- The rows go first, each with the reason in the same transaction, so that
--- the log of each tenant says what went and why. Dropping a column or a table
--- writes nothing in any log.
+-- The rows go with the reason in the same piece: each piece between the
+-- breakpoints runs as a transaction of its own, and the reason holds only
+-- until its end (#188). So the log of each tenant says what went and why.
+-- Dropping a column or a table writes nothing in any log.
 
-SELECT set_config('app.reason', 'migration', true);--> statement-breakpoint
 DROP TRIGGER "documents_follow_deletion" ON "defects";--> statement-breakpoint
 CREATE OR REPLACE FUNCTION "mark_documents_below"() RETURNS trigger
 	LANGUAGE plpgsql
@@ -42,15 +42,17 @@ BEGIN
 	RETURN NULL;
 END;
 $$;--> statement-breakpoint
-UPDATE "attachments" SET "deleted_at" = now(), "defect_id" = NULL WHERE "defect_id" IS NOT NULL AND "deleted_at" IS NULL;--> statement-breakpoint
-UPDATE "attachments" SET "defect_id" = NULL WHERE "defect_id" IS NOT NULL;--> statement-breakpoint
+SELECT set_config('app.reason', 'migration', true);
+UPDATE "attachments" SET "deleted_at" = now(), "defect_id" = NULL WHERE "defect_id" IS NOT NULL AND "deleted_at" IS NULL;
+UPDATE "attachments" SET "defect_id" = NULL WHERE "defect_id" IS NOT NULL;
 DELETE FROM "deadlines" WHERE "defect_id" IS NOT NULL;--> statement-breakpoint
 ALTER TABLE "defects" DROP CONSTRAINT "defects_verified_on_a_day";--> statement-breakpoint
 ALTER TABLE "defects" DROP CONSTRAINT "defects_checked_after_found";--> statement-breakpoint
 ALTER TABLE "defects" DROP CONSTRAINT "defects_check_note_shaped";--> statement-breakpoint
-UPDATE "defects" SET "status" = 'remedied' WHERE "status" = 'verified';--> statement-breakpoint
+SELECT set_config('app.reason', 'migration', true);
+UPDATE "defects" SET "status" = 'remedied' WHERE "status" = 'verified';
 UPDATE "defects" SET "checked_on" = NULL, "check_note" = NULL, "found_in_evidence_id" = NULL
- WHERE "checked_on" IS NOT NULL OR "check_note" IS NOT NULL OR "found_in_evidence_id" IS NOT NULL;--> statement-breakpoint
+ WHERE "checked_on" IS NOT NULL OR "check_note" IS NOT NULL OR "found_in_evidence_id" IS NOT NULL;
 DELETE FROM "defect_class_terms";--> statement-breakpoint
 ALTER TABLE "attachments" DROP CONSTRAINT "attachments_hang_on_one_record";--> statement-breakpoint
 ALTER TABLE "attachments" ADD CONSTRAINT "attachments_hang_on_one_record" CHECK (num_nonnulls("attachments"."building_id", "attachments"."room_id", "attachments"."asset_id", "attachments"."activity_id") <= 1);--> statement-breakpoint
