@@ -7,6 +7,7 @@ import {
   resultAgainstFindings,
   type Catalogue,
   type EvidenceOrigin,
+  finishesWorkOrder,
   formOfActivity,
   pointFulfilling,
   pointOutcome,
@@ -39,6 +40,7 @@ import {
   rooms,
   duties,
   workOrderDecisions,
+  workOrderNotes,
   workOrders,
 } from '../database/schema/index.js'
 import { stateFingerprint } from '../evidence/fingerprint.js'
@@ -77,20 +79,24 @@ export interface TakenDecision {
   readonly written: readonly WrittenEvidence[]
 }
 
-/** What a signature is checked by before it is written: what it says, without when and in whose name. */
+/**
+ * What a signature is checked by before it is written: what it says, without
+ * when, and the person signed in, in whose name it is written.
+ */
 export type SignatureToCheck = Pick<
   SignatureToTake,
   'activityId' | 'role' | 'deviceInfo' | 'path' | 'pageFingerprint'
->
+> & { readonly signedBy: string }
 
 /**
  * What a refusal of a signature is about, which the sync answers by (ADR
  * 0004, point 11): the signature itself, which its form asks before anything
  * is queued (`signature`); the activity it is for, gone (`activity`) or
  * closed (`closed`); the page, which is not the one the server works out
- * (`page`); or its turn among the signatures already there (`turn`).
+ * (`page`); its turn among the signatures already there (`turn`); or the
+ * person, who does not finish the work order (`person`, #118).
  */
-export type SigningRefusalAbout = 'signature' | 'activity' | 'closed' | 'page' | 'turn'
+export type SigningRefusalAbout = 'signature' | 'activity' | 'closed' | 'page' | 'turn' | 'person'
 
 /** Why a signature or a decision is not taken, in a sentence for the person who gave it. */
 export class SigningRefusal extends Error {
@@ -191,6 +197,7 @@ export async function pageOf(tx: TenantTransaction, activity: ActivityRow): Prom
           form: { key: activity.formKey, version: activity.formVersion },
           answers: await answersOf(tx, activity),
         }
+  const work = activity.kind === 'work_order' ? await workOf(tx, activity) : {}
 
   return signedPageOf({
     activity: {
@@ -214,7 +221,34 @@ export async function pageOf(tx: TenantTransaction, activity: ActivityRow): Prom
     duties: lines,
     defects: noticed,
     ...filled,
+    ...work,
   })
+}
+
+/** The time spent on a work order and the notes on it that are not marked (#118). */
+async function workOf(tx: TenantTransaction, activity: ActivityRow) {
+  const [order] = await tx
+    .select({ durationMinutes: workOrders.durationMinutes })
+    .from(workOrders)
+    .where(
+      and(
+        eq(workOrders.tenantId, activity.tenantId),
+        eq(workOrders.activityId, activity.id),
+        isNull(workOrders.deletedAt),
+      ),
+    )
+  const notes = await tx
+    .select({ id: workOrderNotes.id, text: workOrderNotes.text })
+    .from(workOrderNotes)
+    .where(
+      and(
+        eq(workOrderNotes.tenantId, activity.tenantId),
+        eq(workOrderNotes.activityId, activity.id),
+        isNull(workOrderNotes.deletedAt),
+      ),
+    )
+
+  return { durationMinutes: order?.durationMinutes ?? null, notes }
 }
 
 /** The answers to the points of the form of an activity, those that are not marked. */
@@ -363,6 +397,18 @@ export async function checkSignature(
 
   if (activity.status === 'done' || activity.status === 'not_performed') {
     throw new SigningRefusal('Dieser Vorgang ist abgeschlossen.', 'closed')
+  }
+
+  // A work order is finished by the person who answers for it (4.8, #118);
+  // the further people write notes and say the time spent, and the office
+  // accepts what was signed.
+  if (input.role === 'signer' && !finishesWorkOrder(activity, input.signedBy)) {
+    throw new SigningRefusal(
+      activity.responsibleUserId === null
+        ? 'Diesen Auftrag führt noch niemand. Abschließen kann ihn, wem das Büro ihn gibt.'
+        : 'Abschließen kann einen Auftrag nur, wer ihn führt.',
+      'person',
+    )
   }
 
   const page = await pageOf(tx, activity)
@@ -622,7 +668,12 @@ export async function takeSignature(
   context: WritingContext,
   input: SignatureToTake,
 ): Promise<TakenSignature> {
-  await checkSignature(tx, context.tenantId, input, context.catalogue)
+  await checkSignature(
+    tx,
+    context.tenantId,
+    { ...input, signedBy: context.writtenBy },
+    context.catalogue,
+  )
 
   const activity = await activityOf(tx, context.tenantId, input.activityId)
   const [signature] = await tx

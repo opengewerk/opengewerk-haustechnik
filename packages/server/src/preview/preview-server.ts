@@ -48,6 +48,7 @@ import {
 import { giveSampleForm, samplePackage } from './sample-form.js'
 import { giveSamplePlans } from './sample-plans.js'
 import { giveSampleTemplates } from './sample-templates.js'
+import { giveSampleWork } from './sample-work.js'
 import { writeSampleStandings } from './sample-standings.js'
 
 /**
@@ -201,6 +202,9 @@ export async function openSamplePreview(
     // signed and waiting for its countersignature and two open from before
     // (#115).
     await giveSamplePlans(database, planter, previewCatalogue)
+    // An order the viewer leads, begun on site with notes and the time spent,
+    // and one the viewer works on beside its lead (#118).
+    await giveSampleWork(database, planter, previewPeople.viewer.id)
   } finally {
     await planting.close()
   }

@@ -73,12 +73,14 @@ describe('the words of the change log in the office', () => {
       ],
       attachments: [{ table: 'attachment_versions', column: 'attachment_id' }],
       // An activity with the duties it is to meet and what came of each (#105),
-      // and the answers to the points of its form (#106).
+      // the answers to the points of its form (#106), and the notes on a
+      // work order (#118).
       activities: [
         { table: 'activity_duties', column: 'activity_id' },
         { table: 'activity_answers', column: 'activity_id' },
         { table: 'work_orders', column: 'activity_id' },
         { table: 'work_order_participants', column: 'activity_id' },
+        { table: 'work_order_notes', column: 'activity_id' },
       ],
       // A defect with its photos (#116).
       defects: [{ table: 'attachments', column: 'defect_id' }],

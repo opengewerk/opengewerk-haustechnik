@@ -136,7 +136,10 @@ describe('the rights of an operation', () => {
       activity_duties: { change: true },
       // The answers to the points of the form, as the work on the activity (#106).
       activity_answers: { create: true, change: true, remove: true },
-      work_orders: { create: false },
+      // The time spent on an order is said on site (#118); the order itself is handed out.
+      work_orders: { create: false, change: true },
+      // A note on a work order is written on site (#118).
+      work_order_notes: { create: true },
       defects: { create: true, change: true },
       activity_signatures: { create: true },
       // Filed and corrected by everybody, taken out of the records from the

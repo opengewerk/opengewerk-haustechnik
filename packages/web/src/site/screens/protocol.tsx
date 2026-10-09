@@ -34,6 +34,7 @@ import {
 } from './form.js'
 import { SiteResultScreen } from './result.js'
 import { SiteStartScreen } from './start.js'
+import { SiteWorkOrderScreen } from './work-order.js'
 
 export const protocolWords = {
   origin: (packageTitle: string | null, version: number) =>
@@ -49,9 +50,10 @@ export const protocolWords = {
 /**
  * An activity on site by what it is (#108): a round shows its chapters and
  * points, one point to a screen (#107, #114), beside the list of the start on
- * a tablet held across; an inspection or a maintenance
- * with a form its protocol as one list, the board "Prüfung: Protokoll"; one
- * without a form its result straight away, since it has nothing else to say.
+ * a tablet held across; a work order its page with the notes (#118); an
+ * inspection or a maintenance with a form its protocol as one list, the board
+ * "Prüfung: Protokoll"; one without a form its result straight away, since it
+ * has nothing else to say.
  */
 export function SiteActivityScreen() {
   const { activityId } = useParams({ strict: false }) as { activityId: string }
@@ -65,6 +67,10 @@ export function SiteActivityScreen() {
   if (text(activity, 'kind') === 'round') {
     // On a tablet held across, the round stands beside the list of the start.
     return across ? <SiteStartScreen selected={activityId} /> : <SiteFormScreen />
+  }
+
+  if (text(activity, 'kind') === 'work_order') {
+    return <SiteWorkOrderScreen />
   }
 
   return maybeText(activity, 'formKey') === null ? <SiteResultScreen /> : <SiteProtocolScreen />
@@ -113,6 +119,11 @@ export function SiteProtocolScreen() {
   const definition = form.definition
   const context = form.context
   const activity = form.activity
+  // The protocol of a work order stands under its page (#118).
+  const back =
+    text(activity, 'kind') === 'work_order'
+      ? { to: siteForms.form(activityId), label: 'Zurück zum Auftrag' }
+      : where.back
   const filledAt = (point: FormPoint) => {
     const record = answerAt(form.answers, point)
 
@@ -125,7 +136,7 @@ export function SiteProtocolScreen() {
 
   return (
     <>
-      <SiteHeader title={title} sub={where.words} back={where.back} />
+      <SiteHeader title={title} sub={where.words} back={back} />
       <SiteScreen>
         <AnswerProgress
           done={done}
@@ -228,7 +239,7 @@ export function SiteProtocolScreen() {
             height={60}
             icon={ChevronLeft}
             onClick={() => {
-              void navigate({ to: where.back.to })
+              void navigate({ to: back.to })
             }}
           >
             {protocolWords.back}

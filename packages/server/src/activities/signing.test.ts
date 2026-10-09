@@ -194,6 +194,12 @@ async function activityToSign(
   let workOrder: WorkOrderId | null = null
 
   if (kind === 'work_order') {
+    // The technician leads the order and finishes it with the signature (#118).
+    await admin.query('update activities set responsible_user_id = $2 where id = $1', [
+      activity,
+      technician,
+    ])
+
     const { rows: order } = await admin.query<{ id: WorkOrderId }>(
       `insert into work_orders (tenant_id, property_id, area_id, activity_id, number, kind)
        values ($1, $2, $3, $4, $5, 'inspection') returning id`,
@@ -854,6 +860,39 @@ describe('a countersignature', () => {
 })
 
 describe('a work order', () => {
+  it('is signed by the person who leads it and by nobody else, nor by anybody while nobody leads it', async () => {
+    const { activity } = await activityToSign('work_order')
+
+    expect(
+      await refusalOf(
+        as(site, async (tx, context) => takeSignature(tx, context, await signatureFor(activity))),
+      ),
+    ).toBe('Abschließen kann einen Auftrag nur, wer ihn führt.')
+
+    await admin.query('update activities set responsible_user_id = null where id = $1', [activity])
+    expect(
+      await refusalOf(
+        as(technician, async (tx, context) =>
+          takeSignature(tx, context, await signatureFor(activity)),
+        ),
+      ),
+    ).toBe('Diesen Auftrag führt noch niemand. Abschließen kann ihn, wem das Büro ihn gibt.')
+    expect(await statusOf(activity)).toBe('started')
+
+    await admin.query('update activities set responsible_user_id = $2 where id = $1', [
+      activity,
+      technician,
+    ])
+    expect(
+      await refusalOf(
+        as(technician, async (tx, context) =>
+          takeSignature(tx, context, await signatureFor(activity)),
+        ),
+      ),
+    ).toBe('taken')
+    expect(await statusOf(activity)).toBe('signed')
+  })
+
   it('waits for its acceptance after the signature, and the acceptance writes it down', async () => {
     const { activity, duties, workOrder } = await activityToSign('work_order')
     const signed = await as(technician, async (tx, context) =>

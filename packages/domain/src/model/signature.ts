@@ -147,6 +147,11 @@ export function signaturesComplete(
  * as its row holds it (#106); one without a form has neither on its page, so
  * that a page signed before keeps its fingerprint. A defect that came of an
  * answer is not on the page: the answer is.
+ *
+ * A work order shows the time spent on it and its notes, each by its key and
+ * its text (#118), where it has them: who wrote a note is the server's to
+ * write and the further people do not stand on the page (4.8), and the
+ * moment of a note is one a device stamps.
  */
 export interface SignedPage {
   readonly activity: {
@@ -174,6 +179,14 @@ export interface SignedPage {
   }[]
   readonly form?: { readonly key: string; readonly version: number }
   readonly answers?: readonly SignedAnswer[]
+  readonly durationMinutes?: number
+  readonly notes?: readonly SignedNote[]
+}
+
+/** A note on a work order as the page shows it: its key and what it says. */
+export interface SignedNote {
+  readonly id: string
+  readonly text: string
 }
 
 /**
@@ -216,9 +229,13 @@ function byPoint(left: SignedAnswer, right: SignedAnswer): number {
   )
 }
 
-/** The parts of a page, where a duty may say null for a remark it has none of. */
-export type SignedPageParts = Omit<SignedPage, 'duties'> & {
+/**
+ * The parts of a page, where a duty may say null for a remark it has none of,
+ * and a work order for the time spent on it.
+ */
+export type SignedPageParts = Omit<SignedPage, 'duties' | 'durationMinutes'> & {
   readonly duties: readonly (Omit<SignedDuty, 'remark'> & { readonly remark?: string | null })[]
+  readonly durationMinutes?: number | null
 }
 
 /** The page of an activity from its parts, in the order device and server share. */
@@ -243,6 +260,16 @@ export function signedPageOf(parts: SignedPageParts): SignedPage {
               attachmentId,
             }))
             .sort(byPoint),
+        }),
+    ...(parts.durationMinutes === undefined || parts.durationMinutes === null
+      ? {}
+      : { durationMinutes: parts.durationMinutes }),
+    ...(parts.notes === undefined || parts.notes.length === 0
+      ? {}
+      : {
+          notes: parts.notes
+            .map(({ id, text }) => ({ id, text }))
+            .sort((left, right) => compare(left.id, right.id)),
         }),
   }
 }
@@ -275,8 +302,9 @@ function live(record: HeldRecord): boolean {
  * ADR 0004, point 7), the same way the server does from its rows: the place
  * from the asset of the activity, else its room, else its building; the
  * duties with their results; the defects reported in it, not those an answer
- * makes; and with a form, the answers to its points. Null when the device
- * does not hold the activity.
+ * makes; with a form, the answers to its points; and for a work order the
+ * time spent on it and its notes. Null when the device does not hold the
+ * activity.
  */
 export function heldPageOf(held: HeldRecords, activityId: string): SignedPage | null {
   const activity = held.find('activities', activityId)
@@ -373,7 +401,25 @@ export function heldPageOf(held: HeldRecords, activityId: string): SignedPage | 
               attachmentId: heldText(answer, 'attachmentId') as SignedAnswer['attachmentId'],
             })),
         }),
+    ...(activity['kind'] === 'work_order' ? heldWorkOf(held, activityId) : {}),
   })
+}
+
+/** The time spent on a work order and its notes, as a device holds them. */
+function heldWorkOf(
+  held: HeldRecords,
+  activityId: string,
+): Pick<SignedPageParts, 'durationMinutes' | 'notes'> {
+  const order = held.related('work_orders', 'activityId', activityId).find(live)
+  const duration = order?.['durationMinutes']
+
+  return {
+    durationMinutes: typeof duration === 'number' ? duration : null,
+    notes: held
+      .related('work_order_notes', 'activityId', activityId)
+      .filter(live)
+      .map((note) => ({ id: String(note['id']), text: heldText(note, 'text') ?? '' })),
+  }
 }
 
 /** Code units, the same in every engine. */

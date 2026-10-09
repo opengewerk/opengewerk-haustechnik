@@ -49,6 +49,8 @@ const answers: Readonly<Record<SigningRefusalAbout, (sentence: string) => SyncRe
   closed: () => ({ kind: 'conflict', reason: 'record_is_fixed', fields: ['activityId'] }),
   page: () => ({ kind: 'conflict', reason: 'changed_elsewhere', fields: ['pageFingerprint'] }),
   turn: () => ({ kind: 'conflict', reason: 'changed_elsewhere', fields: ['role'] }),
+  // The office gave the order to somebody else while the device was away.
+  person: () => ({ kind: 'conflict', reason: 'changed_elsewhere', fields: ['activityId'] }),
 }
 
 /**
@@ -57,7 +59,7 @@ const answers: Readonly<Record<SigningRefusalAbout, (sentence: string) => SyncRe
  * its answer is a mistake the form asks about, like a missing result.
  */
 export function signed(catalogue: Catalogue): SyncCheck<Sender> {
-  return async ({ tx, tenantId, operation, values }) => {
+  return async ({ tx, tenantId, operation, values, sender }) => {
     if (operation.entity !== 'activity_signatures' || operation.kind !== 'create') {
       return null
     }
@@ -67,6 +69,7 @@ export function signed(catalogue: Catalogue): SyncCheck<Sender> {
         tx,
         tenantId,
         {
+          signedBy: sender.userId,
           activityId: values['activityId'] as ActivityId,
           role: values['role'] as SignatureRole,
           deviceInfo: (values['deviceInfo'] ?? null) as string | null,

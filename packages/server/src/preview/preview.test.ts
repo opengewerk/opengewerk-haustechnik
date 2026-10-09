@@ -4,7 +4,12 @@ import { readFileSync } from 'node:fs'
 import type { INestApplication } from '@nestjs/common'
 import { catalogueBundle } from '@opengewerk/haustechnik-catalogue'
 import { probeCatalogueBundle } from '@opengewerk/haustechnik-catalogue/testing'
-import { blockFieldKinds, rightsOfRoles, type TenantId } from '@opengewerk/haustechnik-domain'
+import {
+  blockFieldKinds,
+  rightsOfRoles,
+  type TenantId,
+  type WorkOrderDetails,
+} from '@opengewerk/haustechnik-domain'
 import { Database } from '@opengewerk/platform-server'
 import { eq } from 'drizzle-orm'
 import type { Pool } from 'pg'
@@ -33,6 +38,7 @@ import {
   schoolHolidays,
 } from './sample-data.js'
 import { sampleFormKey } from './sample-form.js'
+import { sampleWork } from './sample-work.js'
 
 /**
  * The preview lets every request through as one person of a sample operator
@@ -448,12 +454,34 @@ describe('a preview started as the Leitung', () => {
         .sort((left, right) => String(left[0]).localeCompare(String(right[0]), 'de')),
     ).toEqual([
       ['Fensterflügel Werkstatt einstellen', 'started', 'normal', true],
-      ['Haltegenauigkeit der Kabine nachstellen', 'open', 'normal', false],
+      ['Haltegenauigkeit der Kabine nachstellen', 'started', 'normal', false],
       ['Heizkessel Mensa entlüften', 'open', 'immediate', false],
       ['Leuchtmittel im Fahrkorb tauschen', 'signed', 'urgent', false],
       ['Schild mit der Notrufnummer anbringen', 'done', 'normal', false],
     ])
     expect(list.orders.every((order) => order.number !== null)).toBe(true)
+  })
+
+  // What the page of an order on site and in the office is looked at with
+  // (#118): one the viewer leads, begun, with notes and the time spent.
+  it('shows a work order begun on site, with the notes of two people and the time spent', async () => {
+    const server = application.getHttpServer()
+    const list = (
+      await request(server).get('/work-orders').query({ state: 'all', limit: '200' }).expect(200)
+    ).body as { readonly orders: readonly { readonly id: string; readonly title: string }[] }
+    const led = list.orders.find((order) => order.title === sampleWork.leads)
+    const page = (
+      await request(server)
+        .get(`/work-orders/${led?.id ?? ''}`)
+        .expect(200)
+    ).body as WorkOrderDetails
+
+    expect(page).toMatchObject({
+      status: 'started',
+      responsible: { userId: previewPeople.viewer.id },
+      durationMinutes: 45,
+    })
+    expect(page.notes.map((note) => note.name)).toEqual(['Murat Yilmaz', previewPeople.viewer.name])
   })
 
   // What the register of duties and the page of a duty are looked at with (#101).

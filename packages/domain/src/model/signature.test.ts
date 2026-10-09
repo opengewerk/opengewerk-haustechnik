@@ -287,4 +287,60 @@ describe('the page a device works out from what it holds', () => {
   it('is none for an activity the device does not hold', () => {
     expect(heldPageOf(records, 'ac-2')).toBeNull()
   })
+
+  it('shows the time spent on a work order and its notes by their keys, without who wrote them', () => {
+    const order: Readonly<Record<string, readonly HeldRecord[]>> = {
+      activities: [
+        {
+          id: 'ac-9',
+          kind: 'work_order',
+          title: 'Notleuchte instand setzen',
+          performedOn: '2026-10-05',
+          propertyId: 'p-1',
+          buildingId: null,
+          roomId: null,
+          assetId: null,
+          formKey: null,
+          formVersion: null,
+        },
+      ],
+      properties: held['properties'] ?? [],
+      work_orders: [{ id: 'wo-9', activityId: 'ac-9', durationMinutes: 45 }],
+      work_order_notes: [
+        { id: 'n-2', activityId: 'ac-9', text: 'Batterietest angestoßen.', writtenBy: 'u-2' },
+        { id: 'n-1', activityId: 'ac-9', text: 'Akku getauscht.', writtenBy: null },
+      ],
+    }
+    const page = heldPageOf(
+      {
+        find: (entity, id) => order[entity]?.find((each) => each['id'] === id) ?? null,
+        related: (entity, field, id) => (order[entity] ?? []).filter((each) => each[field] === id),
+      },
+      'ac-9',
+    )
+
+    expect(page?.durationMinutes).toBe(45)
+    expect(page?.notes).toEqual([
+      { id: 'n-1', text: 'Akku getauscht.' },
+      { id: 'n-2', text: 'Batterietest angestoßen.' },
+    ])
+  })
+
+  it('leaves the time spent and the notes off a page that has none, so that a page signed before keeps its fingerprint', () => {
+    const parts = {
+      activity: { id: 'ac-9', kind: 'work_order' as const, title: 'Tür', performedOn: null },
+      place: {
+        property: { name: 'Campus', address: 'Hauptstraße 1, 68535 Edingen-Neckarhausen' },
+        building: null,
+        room: null,
+        asset: null,
+      },
+      duties: [],
+      defects: [],
+    }
+    const page = signedPageOf({ ...parts, durationMinutes: null, notes: [] })
+
+    expect(Object.keys(page)).toEqual(['activity', 'place', 'duties', 'defects'])
+    expect(page).toEqual(signedPageOf(parts))
+  })
 })

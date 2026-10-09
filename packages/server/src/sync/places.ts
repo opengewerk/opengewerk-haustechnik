@@ -297,6 +297,27 @@ async function workOrderPlace(
 }
 
 /**
+ * A note on a work order (#118): property and area come from the activity,
+ * which is a work order. Whether the order still takes a note is the gate of
+ * its policy.
+ */
+async function notePlace(
+  tx: TenantTransaction,
+  values: Record<string, unknown>,
+): Promise<SyncRefusal | null> {
+  const activity = await found<Activity>(tx, activities, values['activityId'])
+
+  if (!activity || activity.kind !== 'work_order') {
+    return missing('activityId')
+  }
+
+  values['propertyId'] = activity.propertyId
+  values['areaId'] = activity.areaId
+
+  return null
+}
+
+/**
  * A signature on its activity: property and area come from the activity.
  * Whether it fits the activity as the server holds it is the next question
  * (`signed` in `signatures.ts`).
@@ -417,6 +438,7 @@ const placeOf: Readonly<
   activities: targetPlace,
   defects: defectPlace,
   work_orders: workOrderPlace,
+  work_order_notes: notePlace,
   activity_signatures: signaturePlace,
   activity_answers: answerPlace,
   attachments: documentPlace,

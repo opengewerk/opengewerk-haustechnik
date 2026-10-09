@@ -906,6 +906,15 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   sie gezeigt wurde, über eine eigene Route; erst dann entstehen die Nachweise. Bisher wartete ein
   Rundgang nach der Unterschrift vor Ort ohne Weg auf die Gegenzeichnung, und ein vergangener blieb
   nur als Zahl stehen
+- Der Auftrag vor Ort (#118): seine Seite nennt Ort, Anlage, Ursprung, Frist und wer ihn führt,
+  dazu Notizen als eigene Einträge mit Person und Uhrzeit, Fotos und die Dauer als Aufwand des
+  Auftrags; ist er eine Prüfung oder Wartung, führt er zu seinem Protokoll. Abschließen mit der
+  Unterschrift kann nur, wer den Auftrag führt, auf dem Gerät wie auf dem Server; die weiteren
+  Beteiligten schreiben Notizen, machen Fotos und tragen die Dauer ein. Eine Notiz ändert und
+  löscht danach niemand, auch nicht in der Datenbank. Alles geht ohne Netz durch den Postausgang.
+  Notizen und Dauer stehen auch auf der Seite des Auftrags im Büro und auf der Seite, die
+  unterschrieben wird. Bisher landete ein Auftrag vor Ort auf der Seite des Ergebnisses, ohne
+  Notizen und Dauer, und unterschreiben konnte jeder, der ihn sah
 
 ### Geändert
 
