@@ -1,3 +1,4 @@
+import { today } from '@opengewerk/platform-web/format'
 import { fireEvent, screen, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it } from 'vitest'
 
@@ -14,12 +15,6 @@ import { reportDefectWords } from './report-defect.js'
 afterEach(afterEachSiteTest)
 
 const reporting = ['asset.read', 'room.read', 'defect.read', 'defect.report']
-
-function today(): string {
-  const now = new Date()
-
-  return `${String(now.getFullYear())}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
-}
 
 describe('a defect reported on site', () => {
   it('goes into the outbox at its asset with the remark and the day, without a class', async () => {
