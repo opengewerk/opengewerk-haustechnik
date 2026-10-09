@@ -1014,10 +1014,10 @@ function PlanForm({
                 </div>
               ) : null}
               {holidayState === null ? null : (
-                <label className="flex items-start gap-2.5 text-[14px] leading-[1.4]">
+                <label className="flex items-start gap-2.5 text-[14px] leading-[1.4] max-lg:min-h-tap">
                   <input
                     type="checkbox"
-                    className="mt-0.5 size-4 accent-solid"
+                    className="mt-0.5 size-4 shrink-0 accent-solid max-lg:size-5"
                     checked={draft.skipHolidays}
                     disabled={locked}
                     onChange={(event) => {
