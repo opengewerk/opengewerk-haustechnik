@@ -4,17 +4,20 @@ import { readFileSync } from 'node:fs'
 import type { INestApplication } from '@nestjs/common'
 import { catalogueBundle } from '@opengewerk/haustechnik-catalogue'
 import { probeCatalogueBundle } from '@opengewerk/haustechnik-catalogue/testing'
-import { rightsOfRoles, type TenantId } from '@opengewerk/haustechnik-domain'
+import { blockFieldKinds, rightsOfRoles, type TenantId } from '@opengewerk/haustechnik-domain'
 import { Database } from '@opengewerk/platform-server'
+import { eq } from 'drizzle-orm'
 import type { Pool } from 'pg'
 import request from 'supertest'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
+import { activities } from '../database/schema/index.js'
 import { applicationDatabaseUrl, connect, resetToMigrated } from '../database/test-database.js'
 import { dayInGermany } from '../today.js'
 import {
   defaultPreviewDatabaseUrl,
   previewDatabaseUrl,
+  previewIdentity,
   previewPeople,
   previewPort,
   PreviewRefused,
@@ -22,13 +25,14 @@ import {
   previewViewer,
   refuseProduction,
 } from './preview-database.js'
-import { openSamplePreview, previewBundle } from './preview-server.js'
+import { openSamplePreview, previewBundle, previewCatalogue } from './preview-server.js'
 import {
   inServiceSince,
   outOfServiceThisYear,
   sampleProperties,
   schoolHolidays,
 } from './sample-data.js'
+import { sampleFormKey } from './sample-form.js'
 
 /**
  * The preview lets every request through as one person of a sample operator
@@ -243,11 +247,15 @@ describe('a preview started as the Leitung', () => {
   let admin: Pool
   let database: Database
   let application: INestApplication
+  let tenantId: TenantId
 
   beforeAll(async () => {
     admin = await connect()
     database = Database.connect(applicationDatabaseUrl())
-    ;({ application } = await started(admin, database, { role: 'management', area: null }))
+    ;({ application, tenantId } = await started(admin, database, {
+      role: 'management',
+      area: null,
+    }))
   })
 
   afterAll(async () => {
@@ -271,7 +279,7 @@ describe('a preview started as the Leitung', () => {
     }
   })
 
-  it('has inspections that came of the due days, one for a technician of the south, one for a contractor and others for nobody yet', async () => {
+  it('has inspections that came of the due days, one for a technician of the south, one for a contractor and one with a form for whoever looks', async () => {
     const list = (
       await request(application.getHttpServer())
         .get('/activities')
@@ -288,7 +296,13 @@ describe('a preview started as the Leitung', () => {
     expect(list.total).toBeGreaterThan(2)
     expect(
       list.activities.map((each) => each.performerPerson?.name ?? each.contractorNote),
-    ).toEqual(expect.arrayContaining(['Tobias Wendt', 'Brandschutz Beispiel GmbH', null]))
+    ).toEqual(
+      expect.arrayContaining([
+        'Tobias Wendt',
+        'Brandschutz Beispiel GmbH',
+        previewPeople.viewer.name,
+      ]),
+    )
   })
 
   it('shows every property, with buildings, floors, rooms and assets, a main meter with its sub meter', async () => {
@@ -511,7 +525,7 @@ describe('a preview started as the Leitung', () => {
 
   // What the catalogue, the choice of an asset kind and the note at a general
   // kind are looked at with (#61).
-  it('hands a device the packages of this build and the probe package beside them, as one catalogue', async () => {
+  it('hands a device the packages of this build, the probe package and the package of the preview beside them, as one catalogue', async () => {
     const server = application.getHttpServer()
     const whole = (await request(server).get('/catalogue').expect(200)).body as {
       readonly sha256: string
@@ -521,14 +535,34 @@ describe('a preview started as the Leitung', () => {
       readonly sha256: string
     }
 
-    expect(whole.packages.map((entry) => entry.name)).toEqual(['allgemein', 'probe'])
+    expect(whole.packages.map((entry) => entry.name)).toEqual(['allgemein', 'probe', 'vorschau'])
     expect(whole).toEqual(previewBundle)
-    // One catalogue of its own: a device that held either of the two fetches this one.
+    // One catalogue of its own: a device that held either bundle fetches this one.
     expect(checksum.sha256).toBe(previewBundle.sha256)
     expect(previewBundle.sha256).toMatch(/^[0-9a-f]{64}$/)
     expect([catalogueBundle.sha256, probeCatalogueBundle.sha256]).not.toContain(
       previewBundle.sha256,
     )
+  })
+
+  // What the form on site is looked at with (#107).
+  it('has an inspection with a form of every kind of field on the device of whoever looks', async () => {
+    const [row] = await database.forTenant(
+      previewIdentity(previewPeople.planter, tenantId, 'management'),
+      (tx) =>
+        tx.select().from(activities).where(eq(activities.performerUserId, previewPeople.viewer.id)),
+    )
+
+    expect(row).toMatchObject({ formKey: sampleFormKey, formVersion: 1, status: 'open' })
+    expect(
+      previewCatalogue
+        .formVersion(sampleFormKey, 1)
+        ?.definition.sections.flatMap((section) =>
+          section.fields.flatMap((field) =>
+            field.kind === 'group' ? field.fields.map((nested) => nested.kind) : [field.kind],
+          ),
+        ),
+    ).toEqual(expect.arrayContaining([...blockFieldKinds]))
   })
 
   // What the screen "Dokumente" and the cards at an asset, a room and a

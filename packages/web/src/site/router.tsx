@@ -8,6 +8,7 @@ import {
 } from '@tanstack/react-router'
 
 import { SiteAssetScreen } from './screens/asset.js'
+import { SiteFormScreen, SitePointScreen } from './screens/form.js'
 import { GiveLabelScreen } from './screens/give-label.js'
 import {
   SiteBuildingScreen,
@@ -80,6 +81,10 @@ export function siteRoutes() {
     // A defect reported at an asset or a room, also without a network (#116).
     at('/anlagen/$assetId/mangel', ReportDefectScreen),
     at('/raeume/$roomId/mangel', ReportDefectScreen),
+    // The form of an activity, filled in point by point, also without a
+    // network (#107).
+    at('/vorgaenge/$activityId', SiteFormScreen),
+    at('/vorgaenge/$activityId/punkte/$pointKey', SitePointScreen),
   ])
 }
 

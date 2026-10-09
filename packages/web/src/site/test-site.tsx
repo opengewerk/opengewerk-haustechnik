@@ -253,12 +253,15 @@ export async function mountSite(
     rights,
     answers = {},
     scanning = {},
+    store,
   }: {
     readonly server?: TestServer
     readonly role?: RoleKey
     readonly rights?: readonly string[]
     readonly answers?: Readonly<Record<string, unknown>>
     readonly scanning?: Partial<Scanning>
+    /** The name of the store on the device, to open one a test opened before, as a page opened again does. */
+    readonly store?: string
   } = {},
 ): Promise<Site> {
   const member = memberIn(role)
@@ -300,7 +303,7 @@ export async function mountSite(
   })
 
   const client = await SyncClient.start({
-    store: await openLocalStore(`site${String((counter += 1))}` as TenantId),
+    store: await openLocalStore((store ?? `site${String((counter += 1))}`) as TenantId),
     transport: server,
     writer: server,
     deviceId: 'phone',
@@ -313,6 +316,8 @@ export async function mountSite(
       'asset_supplies',
       'contacts',
       'duties',
+      'activities',
+      'activity_answers',
       'defects',
       'labels',
       'attachments',

@@ -31,3 +31,13 @@ export const siteDefects = {
   atAsset: (assetId: string) => `/anlagen/${assetId}/mangel`,
   atRoom: (roomId: string) => `/raeume/${roomId}/mangel`,
 } as const
+
+/**
+ * Where the form of an activity is filled in on site (#107): the activity
+ * with its points, and each point on a screen of its own, by its field, or
+ * by group, block and field.
+ */
+export const siteForms = {
+  form: (activityId: string) => `/vorgaenge/${activityId}`,
+  point: (activityId: string, pointKey: string) => `/vorgaenge/${activityId}/punkte/${pointKey}`,
+} as const
