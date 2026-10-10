@@ -1285,6 +1285,14 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   ist er ein Konflikt "festgeschrieben", und vor Ort ist "Mangel melden" in einem solchen Vorgang gesperrt.
   Ein Mangel, der im selben Augenblick wie eine Unterschrift ankommt, wartet auf sie, statt zwischen der
   geprüften Seite und der Unterschrift zu landen
+- Drei Prüfungen im Server, die ein gleichzeitiger Zugriff oder ein Umzug umging (#78): Zwei Anlagen,
+  die im selben Augenblick untereinander gehängt werden, warten jetzt an ihrem Gebäude aufeinander,
+  und die zweite sieht, dass sie unter ihrer eigenen Komponente hinge; bisher prüfte jede die Kette,
+  wie sie vorher war, und beide gingen durch. Ein Ort, auf den ein Datensatz vom Gerät zeigt, wird
+  geteilt gesperrt gelesen, sodass ein Löschen im selben Augenblick abgewartet wird und die
+  Übertragung "fehlt" bekommt statt eines Raums auf einem gelöschten Geschoss. Ein Raum, an dem
+  Pflichten, Vorgänge, Mängel, Dokumente oder Etiketten hängen, zieht mit einem Satz, der sie nennt,
+  nur innerhalb seiner Liegenschaft um; bisher scheiterte der Umzug an der Datenbank ohne Satz
 - Eine Berichtigung und eine Ungültigerklärung desselben Nachweises, im selben Moment geschickt, gehen nicht mehr beide
   durch (#78, Befund T13-2 aus dem Review der Phase 0). Beide prüften, was aus dem Nachweis geworden war, ohne einander zu
   sehen; so konnte ein für ungültig erklärter Nachweis zugleich berichtigt sein, und eine zweite Berichtigung scheiterte

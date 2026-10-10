@@ -1,9 +1,12 @@
+import { randomBytes } from 'node:crypto'
+
 import type { INestApplication } from '@nestjs/common'
 import { Test } from '@nestjs/testing'
 import { catalogueBundle } from '@opengewerk/haustechnik-catalogue'
 import { probeCatalogueBundle } from '@opengewerk/haustechnik-catalogue/testing'
 import {
   catalogueOf,
+  labelCodeFrom,
   missingRight,
   type RoleKey,
   type TenantId,
@@ -683,6 +686,50 @@ describe('a component', () => {
       .expect(200)
       .expect((answer) => expect(answer.body.parentAssetId).toBeNull())
   })
+  it('is not hung under its own component by two changes at the same moment (#78)', async () => {
+    const place = await placeIn()
+    const upper = await assetIn(place.building)
+    const lower = await assetIn(place.building)
+    // A second connection in the middle of hanging the upper asset under the
+    // lower one, holding the building as the route does.
+    const other = await admin.connect()
+
+    try {
+      await other.query('begin')
+      await other.query('select id from buildings where id = $1 for no key update', [
+        place.building,
+      ])
+      await other.query('update assets set parent_asset_id = $2 where id = $1', [
+        upper.id,
+        lower.id,
+      ])
+
+      let answered = false
+      const hanging = http()
+        .put(`/assets/${lower.id}/parent`)
+        .set(testIdentityHeader, by('u-site'))
+        .send({ parentAssetId: upper.id })
+        .then((answer) => {
+          answered = true
+
+          return answer
+        })
+
+      await new Promise((resolve) => setTimeout(resolve, 500))
+      // It waits for the change before it, and then sees what it did.
+      expect(answered).toBe(false)
+      await other.query('commit')
+
+      const answer = await hanging
+
+      expect([answer.status, answer.body.message]).toEqual([
+        409,
+        'Eine Komponente hängt nicht unter sich selbst.',
+      ])
+    } finally {
+      other.release()
+    }
+  })
 })
 
 describe('the life cycle of an asset', () => {
@@ -848,6 +895,102 @@ describe('a room with assets', () => {
           'Diesen Raum versorgen Anlagen, gelöschte Einträge mitgezählt; er zieht deshalb nur innerhalb seiner Liegenschaft um.',
         ),
       )
+  })
+})
+
+describe('a room with what hangs on it with its property', () => {
+  /** A row at the room, put in as the superuser, the way each table takes one. */
+  const hangers: readonly {
+    readonly words: string
+    readonly add: (at: {
+      tenant: string
+      property: string
+      area: string
+      room: string
+    }) => Promise<unknown>
+  }[] = [
+    {
+      words: 'Pflichten',
+      add: (at) =>
+        admin.query(
+          `insert into duties (tenant_id, property_id, area_id, room_id, label, basis, source_note,
+                               counting, interval_months, confirmed_by)
+           values ($1, $2, $3, $4, 'Sichtkontrolle', 'own_decision', 'Hausordnung',
+                   'from_performance', 12, 'u-duties')`,
+          [at.tenant, at.property, at.area, at.room],
+        ),
+    },
+    {
+      words: 'Vorgänge',
+      add: (at) =>
+        admin.query(
+          `insert into activities (tenant_id, property_id, area_id, room_id, kind, title, status)
+           values ($1, $2, $3, $4, 'inspection', 'Sichtkontrolle Technik', 'open')`,
+          [at.tenant, at.property, at.area, at.room],
+        ),
+    },
+    {
+      words: 'Mängel',
+      add: (at) =>
+        admin.query(
+          `insert into defects (tenant_id, property_id, area_id, room_id, description, found_on)
+           values ($1, $2, $3, $4, 'Tür schließt nicht.', '2026-10-01')`,
+          [at.tenant, at.property, at.area, at.room],
+        ),
+    },
+    {
+      words: 'Dokumente',
+      add: (at) =>
+        admin.query(
+          `insert into attachments (tenant_id, property_id, area_id, room_id, title)
+           values ($1, $2, $3, $4, 'Raumbuch')`,
+          [at.tenant, at.property, at.area, at.room],
+        ),
+    },
+    {
+      words: 'Etiketten',
+      add: (at) =>
+        admin.query(
+          `insert into labels (tenant_id, property_id, area_id, room_id, code)
+           values ($1, $2, $3, $4, $5)`,
+          [at.tenant, at.property, at.area, at.room, labelCodeFrom(randomBytes(10))],
+        ),
+    },
+  ]
+
+  it('moves to another property only while nothing hangs on it there, each said by its name (#78)', async () => {
+    const other = await placeIn()
+
+    for (const hanger of hangers) {
+      const place = await placeIn()
+      const { rows } = await admin.query<{ property_id: string; area_id: string }>(
+        'select property_id, area_id from rooms where id = $1',
+        [place.room],
+      )
+
+      await hanger.add({
+        tenant: small,
+        property: rows[0]?.property_id ?? '',
+        area: rows[0]?.area_id ?? '',
+        room: place.room,
+      })
+
+      const moved = await http()
+        .put(`/rooms/${place.room}/floor`)
+        .set(testIdentityHeader, by('u-duties'))
+        .send({ floorId: other.floor })
+
+      expect([moved.status, moved.body.message]).toEqual([
+        400,
+        `An diesem Raum hängen ${hanger.words}, gelöschte mitgezählt; er zieht deshalb nur innerhalb seiner Liegenschaft um.`,
+      ])
+      // Within its property it moves all the same.
+      await http()
+        .put(`/rooms/${place.room}/floor`)
+        .set(testIdentityHeader, by('u-duties'))
+        .send({ floorId: place.annexFloor })
+        .expect(200)
+    }
   })
 })
 
