@@ -1,5 +1,14 @@
-import { BadRequestException, Controller, Get, Inject, Query } from '@nestjs/common'
 import {
+  BadRequestException,
+  Controller,
+  Get,
+  Inject,
+  NotFoundException,
+  Param,
+  Query,
+} from '@nestjs/common'
+import {
+  type BuildingSituation,
   type Catalogue,
   type DutyRegisterFilter,
   isAllowed,
@@ -7,6 +16,7 @@ import {
   type Overview,
   type OverviewDuty,
   overviewShown,
+  type PlacesToDo,
 } from '@opengewerk/haustechnik-domain'
 import {
   CurrentIdentity,
@@ -23,6 +33,7 @@ import { dayInGermany } from '../today.js'
 import { activityListWhere } from './activities.controller.js'
 import { RequiresPermission } from './authorization.js'
 import { registeredEntries, registerPage, type UnnamedDutyEntry } from './duty-register.js'
+import { buildingSituation, placesToDo } from './place-situation.js'
 import type { Asking } from './places.js'
 import { said } from './register-question.js'
 
@@ -66,6 +77,35 @@ export class OverviewController {
 
     return this.database.forTenant(identity, (tx) =>
       this.overview(tx, identity, dayInGermany(), areaId),
+    )
+  }
+
+  /**
+   * What is to do at every property the person asking sees and at each of
+   * its buildings (#121), for the list "Liegenschaften": one answer for the
+   * whole list.
+   */
+  @Get('places')
+  @RequiresPermission('duty.read')
+  places(@CurrentIdentity() identity: Asking): Promise<PlacesToDo> {
+    return this.database.forTenant(identity, (tx) =>
+      placesToDo(tx, this.catalogue, identity, dayInGermany()),
+    )
+  }
+
+  /** The Lagebild of a building (#121): what is to do there, and its last activities. */
+  @Get('buildings/:id')
+  @RequiresPermission('duty.read')
+  building(
+    @CurrentIdentity() identity: Asking,
+    @Param('id') id: string,
+  ): Promise<BuildingSituation> {
+    if (!isUuid(id)) {
+      throw new NotFoundException('Dieses Gebäude gibt es nicht oder nicht mehr.')
+    }
+
+    return this.database.forTenant(identity, (tx) =>
+      buildingSituation(tx, this.catalogue, identity, dayInGermany(), id),
     )
   }
 

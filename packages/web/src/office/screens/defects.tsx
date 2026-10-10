@@ -87,6 +87,7 @@ import { DocumentsCard } from '../documents.js'
 import { evidencePlaces } from '../duty-addresses.js'
 import { factLink } from '../links.js'
 import { officePlaces } from '../place-addresses.js'
+import { NarrowedToBuilding } from '../narrowed-to-building.js'
 import { RegisterFilter } from '../register-filter.js'
 import { workOrderPlaces, workOrderStartSearch } from '../work-order-addresses.js'
 
@@ -497,6 +498,14 @@ export function DefectListScreen() {
           </RegisterFilter>
         </div>
       </div>
+      {filter.buildingId === undefined ? null : (
+        <NarrowedToBuilding
+          buildingId={filter.buildingId}
+          onLift={() => {
+            set('buildingId', '')
+          }}
+        />
+      )}
       {first === undefined ? (
         <Panel>
           <Empty>

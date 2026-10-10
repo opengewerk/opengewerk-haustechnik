@@ -17,6 +17,7 @@ export const meterPlaces = {
 export const meterListWords = {
   state: 'stand',
   property: 'liegenschaft',
+  building: 'gebaeude',
   medium: 'medium',
   keyDate: 'stichtag',
 } as const

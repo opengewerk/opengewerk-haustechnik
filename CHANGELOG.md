@@ -984,6 +984,14 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   und die Prüfungen nach "Bericht fehlt" und Bereich. Die Übersicht nennt keine Person. Bisher
   begann das Büro bei den Liegenschaften, und wer wissen wollte, was ansteht, musste mehrere
   Listen durchgehen
+- Lagebild je Gebäude und die Zahlen über alle Liegenschaften (#121): Die Seite eines Gebäudes
+  zeigt oben, was dort zu tun ist (überfällig, fällig, nie erfasst, offene Mängel, fehlende
+  Zählerstände zum Stichtag), und unten die letzten Vorgänge mit ihrem Ergebnis, ohne Person.
+  Die Liste der Liegenschaften nennt dieselben Zahlen je Liegenschaft und Gebäude, auf Wunsch
+  nach Dringlichkeit geordnet. Jede Zahl führt auf ihre Liste und zählt mit deren Filter
+  (Routen `/overview/places` und `/overview/buildings/:id`); Mängel und Zähler lassen sich dafür
+  auf ein Gebäude eingrenzen. Bisher musste man für ein Gebäude die Listen einzeln öffnen, um
+  zu sehen, was dort ansteht
 
 ### Geändert
 

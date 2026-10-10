@@ -81,6 +81,56 @@ const missingReading = 'Diesen Stand gibt es an dieser Messstelle nicht.'
 const missingPause = 'Diese Stilllegung gibt es an dieser Messstelle nicht.'
 const unknownAccount = 'Unbekanntes Konto'
 
+/** What narrows the meters to a place: a property, a building, or neither. */
+export interface MeterPlace {
+  readonly propertyId: string | null
+  readonly buildingId: string | null
+}
+
+/** A measuring point with the key date that is its own and how it stands for it. */
+export interface MeterStanding {
+  readonly held: Held
+  readonly keyDate: IsoDate
+  readonly state: MeterState
+}
+
+/**
+ * The measuring points the transaction sees at a place, each with how it
+ * stands for the key date asked, the current one unless one is asked, in the
+ * order of the list. The list "Zähler" and the numbers of a Lagebild (#121)
+ * count from the same, so that a number and the list it leads to agree.
+ */
+export async function meterStandings(
+  tx: TenantTransaction,
+  today: IsoDate,
+  asked: IsoDate | null,
+  place: MeterPlace,
+): Promise<{ readonly keyDate: IsoDate; readonly standings: readonly MeterStanding[] }> {
+  const meters = await tx
+    .select()
+    .from(assets)
+    .where(
+      and(
+        isNotNull(assets.meterNumber),
+        isNull(assets.deletedAt),
+        ...(place.propertyId === null ? [] : [eq(assets.propertyId, place.propertyId as never)]),
+        ...(place.buildingId === null ? [] : [eq(assets.buildingId, place.buildingId as never)]),
+      ),
+    )
+    .orderBy(asc(assets.mark), asc(assets.name), asc(assets.id))
+  const keyDay = await operatorKeyDay(tx)
+  const keyDate = (asked ?? keyDateDue(today, keyDay)) as IsoDate
+
+  return {
+    keyDate,
+    standings: (await heldOf(tx, meters as Asset[], keyDay)).map((held) => {
+      const own = keyDateIn(keyDate, held.keyDay)
+
+      return { held, keyDate: own, state: stateOn(held, own, today) }
+    }),
+  }
+}
+
 /** The day as the screens write it, `01.10.2026`. */
 function germanDay(day: IsoDate): string {
   return `${day.slice(8, 10)}.${day.slice(5, 7)}.${day.slice(0, 4)}`
@@ -113,7 +163,7 @@ export class MetersController {
   /**
    * The measuring points the person asking sees, with their last reading and
    * how each stands for the key date asked (the current one unless one is
-   * named), narrowed to a property, a medium and a state.
+   * named), narrowed to a property or a building (#121), a medium and a state.
    */
   @Get()
   @RequiresPermission('asset.read')
@@ -125,6 +175,7 @@ export class MetersController {
     const asked = said(query, 'keyDate') ?? null
     const state = (said(query, 'state') ?? 'all') as MeterListState
     const propertyId = said(query, 'property') ?? null
+    const buildingId = said(query, 'building') ?? null
     const medium = said(query, 'medium') ?? null
 
     if (asked !== null && !isKeyDate(asked)) {
@@ -143,29 +194,16 @@ export class MetersController {
       throw new BadRequestException('Diese Liegenschaft gibt es bei diesem Betreiber nicht.')
     }
 
-    const held = await this.database.forTenant(identity, async (tx) => {
-      const meters = await tx
-        .select()
-        .from(assets)
-        .where(
-          and(
-            isNotNull(assets.meterNumber),
-            isNull(assets.deletedAt),
-            ...(propertyId === null ? [] : [eq(assets.propertyId, propertyId as never)]),
-          ),
-        )
-        .orderBy(asc(assets.mark), asc(assets.name), asc(assets.id))
+    if (buildingId !== null && !isUuid(buildingId)) {
+      throw new BadRequestException('Dieses Gebäude gibt es bei diesem Betreiber nicht.')
+    }
 
-      const keyDay = await operatorKeyDay(tx)
-
-      return {
-        keyDate: (asked ?? keyDateDue(today, keyDay)) as IsoDate,
-        meters: await heldOf(tx, meters as Asset[], keyDay),
-      }
-    })
+    const held = await this.database.forTenant(identity, (tx) =>
+      meterStandings(tx, today, asked as IsoDate | null, { propertyId, buildingId }),
+    )
     const keyDate = held.keyDate
-    const entries = held.meters
-      .map((each) => this.entryOf(each, keyDateIn(keyDate, each.keyDay), today))
+    const entries = held.standings
+      .map((each) => this.entryOf(each.held, each.keyDate, today))
       .filter((entry) => medium === null || entry.medium === medium)
     const counted = (wanted: MeterState) => entries.filter((entry) => entry.state === wanted).length
 

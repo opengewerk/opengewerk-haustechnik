@@ -282,6 +282,19 @@ describe('the list of meters', () => {
     expect(rowsOf(listCaption)[0]?.[0]).toContain('Hauptwasserzähler Schulhaus')
   })
 
+  it('is narrowed to the building the Lagebild leads in with, and says so (#121)', async () => {
+    signedInOffice('management', [sued], {
+      ...servingCatalogue(testCatalogue),
+      [`${listPath}&state=missing&building=${house.id}`]: { ...list, total: 1, meters: [main] },
+    })
+    await mountOffice(`/zaehler?gebaeude=${house.id}&stand=missing`, server, everything)
+
+    await waitFor(() => {
+      expect(rowsOf(listCaption)).toHaveLength(1)
+    })
+    expect(screen.getByText(/Eingegrenzt auf das Gebäude/)).toBeTruthy()
+  })
+
   it('offers a new measuring point to whoever takes care of assets', async () => {
     await mountOffice('/zaehler', server, everything)
 

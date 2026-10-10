@@ -240,6 +240,25 @@ describe('the list "Mängel"', () => {
     ).toBeDefined()
   })
 
+  it('is narrowed to the building the Lagebild leads in with, says so, and lets go of it (#121)', async () => {
+    const { mounted } = mount('/maengel?gebaeude=b-house', {
+      '/defects?buildingId=b-house': register([late]),
+      '/defects': register([remedied, late, unclassed]),
+    })
+    const { router } = await mounted
+
+    await waitFor(() => {
+      expect(rowsOf(caption)).toHaveLength(1)
+    })
+    expect(screen.getByText(/Eingegrenzt auf das Gebäude „Schulhaus“/)).toBeDefined()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Aufheben' }))
+    await waitFor(() => {
+      expect(rowsOf(caption)).toHaveLength(3)
+    })
+    expect(router.state.location.href).toBe('/maengel')
+  })
+
   it('narrows the list to an area once the person has more than one', async () => {
     const nord: NamedArea = { id: 'a-nord', name: 'Nord' }
 
