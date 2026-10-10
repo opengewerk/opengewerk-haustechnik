@@ -936,6 +936,11 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   "Zählerablesung zum Stichtag", eine Frist je Liegenschaft, und der Start vor Ort nennt die
   Liegenschaften, deren Stände fällig sind. Bisher kam ein Stand nur von Hand im Büro, immer zum
   Monatsersten
+- Erinnerung an die Prüfung gegen die Quelle (#95): Der Workflow "Katalog prüfen lassen" läuft
+  jeden Montag, fragt dieselbe Auswertung wie die Bildschirme (`reviewMarks`) einen Monat voraus und
+  hält ein Issue mit allen Einträgen, deren Prüfung bald ein Jahr zurückliegt oder es schon tut; ein
+  späterer Lauf schreibt es fort, statt ein zweites zu öffnen, und ohne fälligen Eintrag tut er
+  nichts. Bisher fiel ein alter Eintrag erst auf, wenn jemand seine Kennzeichnung sah
 - PDF aus dem eingefrorenen Stand (#111): "PDF öffnen" auf der Seite eines Nachweises und eines
   abgeschlossenen Rundgangs. Das PDF entsteht beim ersten Abruf aus dem Stand, der mit der
   Unterschrift eingefroren wurde, liegt danach im inhaltsadressierten Speicher und ist bei jedem
