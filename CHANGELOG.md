@@ -1299,6 +1299,14 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   brauchte der Job 30 Minuten und war der längste der CI. Dazu nennt die Haustechnik eine eigene
   Grenze von 160 Arten von Seiten: mit 106 stand sie nahe an den 120, bei denen der Gang durch
   die Seiten abbricht
+- Das Security-Review jedes Pull Requests läuft in GitHub Actions, mit dem Workflow der
+  Organisation (`opengewerk/.github#27`): für einen Branch dieses Repositorys von einem Mitglied
+  mit Tests und PoCs gegen eine eigene Testdatenbank auf Port 5434, für einen PR von außen nur
+  lesend. Geprüft wird der neueste Commit, ein neuer Push bricht den Lauf davor ab; das Ergebnis
+  steht als Kommentar am PR und als Status `PR-Security-Review`. Der Aufruf heftet einen Commit
+  des Workflows an, damit eine Änderung dort erst mit einem PR hier wirkt. Bisher lief das
+  Review auf dem Rechner von Moritz mit einem kostenlosen Modell, dessen Kontingent am
+  10.10.2026 aufgebraucht war
 
 ### Behoben
 
