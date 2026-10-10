@@ -233,6 +233,8 @@ describe('the people to talk to on the page of a property', () => {
       'Anschrift',
       'Ansprechpartner',
       'Gebäude',
+      // What happened there, under the buildings (#123).
+      'Zeitachse',
     ])
   })
 

@@ -299,24 +299,7 @@ async function lastActivitiesAt(
     )
     .orderBy(desc(day), desc(activities.updatedAt), asc(activities.id))
     .limit(lastActivitiesShown)
-  const ids = rows.map((row) => row.id)
-
-  if (ids.length === 0) {
-    return []
-  }
-
-  const results = await tx
-    .select({ activityId: activityDuties.activityId, result: activityDuties.result })
-    .from(activityDuties)
-    .where(and(inArray(activityDuties.activityId, ids), isNull(activityDuties.deletedAt)))
-  const found = new Set(
-    (
-      await tx
-        .selectDistinct({ activityId: defects.foundInActivityId })
-        .from(defects)
-        .where(and(inArray(defects.foundInActivityId, ids), isNull(defects.deletedAt)))
-    ).map((row) => row.activityId as string),
-  )
+  const outcomes = await outcomesOf(tx, rows)
 
   return rows.map((row) => ({
     id: row.id as string,
@@ -324,13 +307,55 @@ async function lastActivitiesAt(
     title: row.title,
     number: row.number,
     day: row.day as IsoDate,
-    outcome: outcomeOf(
-      row.kind,
-      row.status,
-      results.filter((each) => each.activityId === row.id).map((each) => each.result),
-      found.has(row.id as string),
-    ),
+    outcome: outcomes.get(row.id as string) ?? 'without_defects',
   }))
+}
+
+/**
+ * What came of each of these activities (`outcomeOf`), read in two questions
+ * for all of them: the results of their duties and whether a defect was found
+ * in them. An open one has no outcome yet.
+ */
+export async function outcomesOf(
+  tx: TenantTransaction,
+  rows: readonly {
+    readonly id: string
+    readonly kind: ActivityKind
+    readonly status: ActivityStatus
+  }[],
+): Promise<Map<string, ActivityOutcome>> {
+  const ids = rows.map((row) => row.id)
+
+  if (ids.length === 0) {
+    return new Map()
+  }
+
+  const results = await tx
+    .select({ activityId: activityDuties.activityId, result: activityDuties.result })
+    .from(activityDuties)
+    .where(
+      and(inArray(activityDuties.activityId, ids as never[]), isNull(activityDuties.deletedAt)),
+    )
+  const found = new Set(
+    (
+      await tx
+        .selectDistinct({ activityId: defects.foundInActivityId })
+        .from(defects)
+        .where(and(inArray(defects.foundInActivityId, ids as never[]), isNull(defects.deletedAt)))
+    ).map((row) => row.activityId as string),
+  )
+
+  return new Map(
+    rows.map((row) => [
+      row.id,
+      outcomeOf(
+        row.kind,
+        row.status,
+        results.filter((each) => each.activityId === row.id).map((each) => each.result),
+        found.has(row.id),
+      ),
+    ]),
+  )
 }
 
 /**

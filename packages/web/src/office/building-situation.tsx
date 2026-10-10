@@ -30,6 +30,7 @@ import { defectListPlace, defectSearch } from './defect-addresses.js'
 import { dutyRegisterPlace, dutySearch } from './duty-addresses.js'
 import { meterListPlace, meterListWords } from './meter-addresses.js'
 import { roundPlaces } from './round-template-addresses.js'
+import { TimelineLink } from './timeline.js'
 import { workOrderPlaces } from './work-order-addresses.js'
 
 export const situationWords = {
@@ -217,8 +218,9 @@ function whatOf(activity: LastActivity): string {
  * "Letzte Vorgänge" on the page of a building, the foot of `lagebild()` of
  * the boards: the activities begun, signed, done or not performed there, at
  * its rooms and at the assets in it, the newest first, each with what came
- * of it. No person (decision 42 of phase 1): who did it stands on the page of
- * the activity. Shown only to whoever may read activities.
+ * of it, and the way to the whole timeline of the building (#123). No person
+ * (decision 42 of phase 1): who did it stands on the page of the activity.
+ * Shown only to whoever may read activities.
  */
 export function LastActivities({ buildingId }: { readonly buildingId: string }) {
   const situation = useQuery(buildingSituationQuery(buildingId))
@@ -231,6 +233,7 @@ export function LastActivities({ buildingId }: { readonly buildingId: string }) 
   return (
     <TablePanel
       title={situationWords.last}
+      action={<TimelineLink place={{ buildingId }} />}
       caption="Letzte Vorgänge an diesem Gebäude mit Tag, Art, Gegenstand und Ergebnis"
       cards={last.map((activity) => ({
         key: activity.id,

@@ -21,6 +21,7 @@ import { NewDutyButton } from '../duty-words.js'
 import { LabelCardOf } from '../labels.js'
 import { Duties } from './asset.js'
 import { RoomDefectsCard } from './defects.js'
+import { TimelineButton } from '../timeline.js'
 
 /** The duties that hang on a room itself, with how each stands today. */
 export function roomDutiesQuery(id: string) {
@@ -135,6 +136,7 @@ export function RoomScreen() {
         }
         actions={
           <>
+            <TimelineButton place={{ roomId }} />
             <ChangesButton table="rooms" id={roomId} />
             {records ? (
               <Button
