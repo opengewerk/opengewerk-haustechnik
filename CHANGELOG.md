@@ -1285,6 +1285,12 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
 
 ### Behoben
 
+- Zählweise ab dem fälligen Tag (#77): Eine Durchführung erfüllt den offenen Termin, wenn sie
+  höchstens ein Zwölftel der Frist vor ihm liegt (bei einer jährlichen Pflicht ein Monat), und der
+  Rhythmus bleibt; liegt sie früher, zählt die Frist neu ab ihrem Tag, wie Abschnitt 4.4 des
+  Konzepts es nach § 14 Abs. 5 BetrSichV festlegt. Bisher erfüllte jede Durchführung nach der
+  ersten schon den nächsten Termin, wenn sie nur nach dem letzten lag, und ein ganzes Intervall
+  fiel aus
 - Die Rücknahme von Migration 0025 schreibt den Grund "migration" an jede Zeile, die sie ändert oder
   löscht (#188): Fotos an Mängeln, Fristen von Mängeln, Tag und Bemerkung einer Nachprüfung und die
   Vorgaben der Mängelklassen. Bisher setzte sie den Grund in einem eigenen Stück zwischen zwei
