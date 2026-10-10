@@ -1,0 +1,32 @@
+{
+  "validFrom": "2005-01-01",
+  "label": "Prüfung der elektrischen Anlage (DGUV Vorschrift 4)",
+  "description": "Eine Elektrofachkraft prüft die elektrische Anlage und die ortsfesten Betriebsmittel wiederkehrend auf ihren ordnungsgemäßen Zustand. Die Frist ist so zu bemessen, dass Mängel rechtzeitig auffallen. Die Durchführungsanweisung nennt vier Jahre als Richtwert; eine eigene Frist für Räume besonderer Art wie Vorschrift 3 nennt sie nicht. Der Richtwert gilt für normale Betriebs- und Umgebungsbedingungen; die Elektrofachkraft beurteilt die Bedingungen vor Ort und kann zu einer anderen Frist kommen. Halten Elektrofachkräfte die Anlage ständig instand und prüfen sie im Betrieb messtechnisch, etwa durch Überwachen des Isolationswiderstands, gilt sie als ständig überwacht, und das ersetzt die Wiederholungsprüfung. Vorschrift 4 gilt für Unternehmen und Einrichtungen, die bei einer Unfallkasse versichert sind; wer bei einer Berufsgenossenschaft versichert ist, folgt Vorschrift 3 und verwirft diesen Vorschlag.",
+  "task": "inspection",
+  "origin": "insurer_and_committee_rules",
+  "bindingness": "statute",
+  "source": "§ 5 Abs. 1 Nr. 2 DGUV Vorschrift 4 mit Durchführungsanweisung, Tabelle 1A",
+  "interval": {
+    "kind": "guide",
+    "rule": "dguv_v4_installation_interval"
+  },
+  "counting": "from_due",
+  "qualification": {
+    "level": "skilled_person",
+    "note": "eine Elektrofachkraft"
+  },
+  "evidence": {
+    "kinds": [
+      "report"
+    ]
+  },
+  "retention": {
+    "kind": "until_next_inspection"
+  },
+  "scope": {
+    "assetKinds": [
+      "low_voltage_installation",
+      "fixed_equipment"
+    ]
+  }
+}

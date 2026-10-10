@@ -27,15 +27,20 @@ import { meterUnitSymbol } from './meter.js'
 /**
  * The units a figure of a form is counted in: degrees Celsius for the
  * temperatures the concept wants as measured values with a limit (section 8,
- * drinking water), and the units a meter counts in for its readings. A limit
- * on a temperature is a rule in tenths of a degree, as the rule engine keeps
- * it (section 2.9).
+ * drinking water), the units a meter counts in for its readings, and the
+ * resistances and currents the test of an electrical device measures (package
+ * Elektro, #91). A limit on a temperature is a rule in tenths of a degree, as
+ * the rule engine keeps it (section 2.9), and one on a resistance a rule in
+ * kiloohms; the rule engine has no unit for a current.
  */
 export const formUnits = {
   degrees_celsius: { sign: '°C', fromRule: { decidegrees_celsius: 100 } },
   kilowatt_hours: { sign: meterUnitSymbol.kilowatt_hours },
   megawatt_hours: { sign: meterUnitSymbol.megawatt_hours },
   cubic_metres: { sign: meterUnitSymbol.cubic_metres },
+  ohms: { sign: 'Ω', fromRule: { kiloohms: 1_000_000 } },
+  megaohms: { sign: 'MΩ', fromRule: { kiloohms: 1 } },
+  milliamperes: { sign: 'mA' },
 } as const satisfies Readonly<Record<string, FormUnit>>
 
 export type FormUnitKey = keyof typeof formUnits

@@ -1,0 +1,90 @@
+{
+  "validFrom": "2005-01-01",
+  "title": "Funktionsprüfung der Sicherheitsbeleuchtung",
+  "sections": [
+    {
+      "key": "test",
+      "title": "Prüfung",
+      "fields": [
+        {
+          "key": "test_kind",
+          "label": "Art der Prüfung",
+          "kind": "choice",
+          "options": [
+            {
+              "value": "function",
+              "label": "Funktion"
+            },
+            {
+              "value": "duration",
+              "label": "Betriebsdauer"
+            }
+          ],
+          "required": true
+        },
+        {
+          "kind": "check_point",
+          "key": "switch_over",
+          "label": "Schaltet bei Ausfall der allgemeinen Versorgung um"
+        },
+        {
+          "kind": "check_point",
+          "key": "luminaires",
+          "label": "Alle Leuchten leuchten im Sicherheitsbetrieb"
+        },
+        {
+          "kind": "check_point",
+          "key": "signs",
+          "label": "Rettungszeichen erkennbar"
+        },
+        {
+          "kind": "check_point",
+          "key": "supply",
+          "label": "Versorgung und Überwachung ohne Störung"
+        },
+        {
+          "kind": "yes_no",
+          "key": "duration_reached",
+          "label": "Nennbetriebsdauer erreicht",
+          "hint": "Nur bei der Prüfung der Betriebsdauer."
+        }
+      ]
+    },
+    {
+      "key": "findings",
+      "title": "Leuchten mit Befund",
+      "fields": [
+        {
+          "kind": "group",
+          "key": "luminaire",
+          "label": "Leuchte",
+          "repeat": "free",
+          "fields": [
+            {
+              "kind": "text",
+              "key": "place",
+              "label": "Ort"
+            },
+            {
+              "kind": "text",
+              "key": "finding",
+              "label": "Befund"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "end",
+      "title": "Abschluss",
+      "fields": [
+        {
+          "kind": "signature",
+          "key": "signature",
+          "label": "Unterschrift",
+          "seals": true
+        }
+      ]
+    }
+  ]
+}

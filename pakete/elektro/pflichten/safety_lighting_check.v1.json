@@ -1,0 +1,33 @@
+{
+  "validFrom": "2005-01-01",
+  "label": "Sicherheitsbeleuchtung instand halten und prüfen lassen",
+  "description": "Der Arbeitgeber hält die Sicherheitsbeleuchtung instand und lässt sie in regelmäßigen Abständen auf ihre Funktionsfähigkeit prüfen. Eine Frist nennt die Verordnung nicht; nach der Technischen Regel für Arbeitsstätten ASR A3.4 ergeben sich Abstände, Umfang und Dokumentation aus der Gefährdungsbeurteilung und den Angaben des Herstellers. Mängel werden unverzüglich beseitigt.",
+  "task": "function_check",
+  "origin": "state_law",
+  "bindingness": "statute",
+  "source": "§ 4 Abs. 3 ArbStättV",
+  "interval": {
+    "kind": "none"
+  },
+  "counting": "from_due",
+  "qualification": {
+    "level": "skilled_person",
+    "note": "die Verordnung nennt keine Stufe; wer prüft, legt der Arbeitgeber in der Gefährdungsbeurteilung fest"
+  },
+  "evidence": {
+    "kinds": [
+      "protocol",
+      "report",
+      "round_point"
+    ],
+    "form": "safety_lighting_function_test"
+  },
+  "retention": {
+    "kind": "until_next_inspection"
+  },
+  "scope": {
+    "assetKinds": [
+      "safety_lighting"
+    ]
+  }
+}

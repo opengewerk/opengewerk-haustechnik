@@ -1,0 +1,38 @@
+{
+  "validFrom": "2005-01-01",
+  "label": "Prüfung der elektrischen Anlage in Räumen besonderer Art (DGUV Vorschrift 3)",
+  "description": "Eine Elektrofachkraft prüft die elektrische Anlage und die ortsfesten Betriebsmittel wiederkehrend auf ihren ordnungsgemäßen Zustand. Die Frist ist so zu bemessen, dass Mängel rechtzeitig auffallen. In Betriebsstätten, Räumen und Anlagen besonderer Art nach Gruppe 700 der DIN VDE 0100 nennt die Durchführungsanweisung ein Jahr als Richtwert. Halten Elektrofachkräfte die Anlage ständig instand und prüfen sie im Betrieb messtechnisch, etwa durch Überwachen des Isolationswiderstands, gilt sie als ständig überwacht, und das ersetzt die Wiederholungsprüfung. Vorschrift 3 gilt für Unternehmen, die bei einer Berufsgenossenschaft versichert sind; wer bei einer Unfallkasse versichert ist, folgt Vorschrift 4 und verwirft diesen Vorschlag.",
+  "task": "inspection",
+  "origin": "insurer_and_committee_rules",
+  "bindingness": "statute",
+  "source": "§ 5 Abs. 1 Nr. 2 DGUV Vorschrift 3 mit Durchführungsanweisung, Tabelle 1A",
+  "interval": {
+    "kind": "guide",
+    "rule": "dguv_v3_installation_special_location_interval"
+  },
+  "counting": "from_due",
+  "qualification": {
+    "level": "skilled_person",
+    "note": "eine Elektrofachkraft"
+  },
+  "evidence": {
+    "kinds": [
+      "report"
+    ]
+  },
+  "retention": {
+    "kind": "until_next_inspection"
+  },
+  "scope": {
+    "assetKinds": [
+      "low_voltage_installation",
+      "fixed_equipment"
+    ],
+    "conditions": [
+      {
+        "characteristic": "special_location",
+        "is": true
+      }
+    ]
+  }
+}

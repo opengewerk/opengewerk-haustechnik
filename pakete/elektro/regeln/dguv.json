@@ -1,0 +1,95 @@
+{
+  "note": "Die Richtwerte der Durchführungsanweisungen zu § 5 Abs. 1 Nr. 2 der DGUV Vorschriften 3 und 4 für die Wiederholungsprüfungen. Geprüft an der Durchführungsanweisung zu Vorschrift 3 vom April 1997 in der aktualisierten Nachdruckfassung Januar 2005 und an Vorschrift 4 mit Durchführungsanweisungen vom Oktober 1999 in der aktualisierten Ausgabe 2005. Sie gelten hier ab dem 01.01.2005, der Ausgabe, deren Text geprüft ist; ein früherer Tag bekommt keine Frist statt einer erfundenen. Beide Vorschriften werden überarbeitet.",
+  "records": [
+    {
+      "key": "dguv_v3_installation_interval",
+      "validFrom": "2005-01-01",
+      "validUntil": null,
+      "unit": "years",
+      "value": 4,
+      "source": "Durchführungsanweisung zu § 5 Abs. 1 Nr. 2 DGUV Vorschrift 3, Tabelle 1A",
+      "origin": "insurer_and_committee_rules"
+    },
+    {
+      "key": "dguv_v3_installation_special_location_interval",
+      "validFrom": "2005-01-01",
+      "validUntil": null,
+      "unit": "years",
+      "value": 1,
+      "source": "Durchführungsanweisung zu § 5 Abs. 1 Nr. 2 DGUV Vorschrift 3, Tabelle 1A",
+      "origin": "insurer_and_committee_rules"
+    },
+    {
+      "key": "dguv_v3_rcd_test_button_interval",
+      "validFrom": "2005-01-01",
+      "validUntil": null,
+      "unit": "months",
+      "value": 6,
+      "source": "Durchführungsanweisung zu § 5 Abs. 1 Nr. 2 DGUV Vorschrift 3, Tabelle 1A",
+      "origin": "insurer_and_committee_rules"
+    },
+    {
+      "key": "dguv_v3_portable_equipment_interval",
+      "validFrom": "2005-01-01",
+      "validUntil": null,
+      "unit": "months",
+      "value": 6,
+      "source": "Durchführungsanweisung zu § 5 Abs. 1 Nr. 2 DGUV Vorschrift 3, Tabelle 1B",
+      "origin": "insurer_and_committee_rules"
+    },
+    {
+      "key": "dguv_v3_portable_equipment_construction_site_interval",
+      "validFrom": "2005-01-01",
+      "validUntil": null,
+      "unit": "months",
+      "value": 3,
+      "source": "Durchführungsanweisung zu § 5 Abs. 1 Nr. 2 DGUV Vorschrift 3, Tabelle 1B",
+      "origin": "insurer_and_committee_rules"
+    },
+    {
+      "key": "dguv_v4_installation_interval",
+      "validFrom": "2005-01-01",
+      "validUntil": null,
+      "unit": "years",
+      "value": 4,
+      "source": "Durchführungsanweisung zu § 5 Abs. 1 Nr. 2 DGUV Vorschrift 4, Tabelle 1A",
+      "origin": "insurer_and_committee_rules"
+    },
+    {
+      "key": "dguv_v4_rcd_test_button_interval",
+      "validFrom": "2005-01-01",
+      "validUntil": null,
+      "unit": "months",
+      "value": 6,
+      "source": "Durchführungsanweisung zu § 5 Abs. 1 Nr. 2 DGUV Vorschrift 4, Tabelle 1A",
+      "origin": "insurer_and_committee_rules"
+    },
+    {
+      "key": "dguv_v4_portable_equipment_baths_kitchens_interval",
+      "validFrom": "2005-01-01",
+      "validUntil": null,
+      "unit": "months",
+      "value": 6,
+      "source": "Durchführungsanweisung zu § 5 Abs. 1 Nr. 2 DGUV Vorschrift 4, Tabelle 1B",
+      "origin": "insurer_and_committee_rules"
+    },
+    {
+      "key": "dguv_v4_portable_equipment_workshops_schools_interval",
+      "validFrom": "2005-01-01",
+      "validUntil": null,
+      "unit": "months",
+      "value": 12,
+      "source": "Durchführungsanweisung zu § 5 Abs. 1 Nr. 2 DGUV Vorschrift 4, Tabelle 1B",
+      "origin": "insurer_and_committee_rules"
+    },
+    {
+      "key": "dguv_v4_portable_equipment_offices_care_interval",
+      "validFrom": "2005-01-01",
+      "validUntil": null,
+      "unit": "months",
+      "value": 24,
+      "source": "Durchführungsanweisung zu § 5 Abs. 1 Nr. 2 DGUV Vorschrift 4, Tabelle 1B",
+      "origin": "insurer_and_committee_rules"
+    }
+  ]
+}

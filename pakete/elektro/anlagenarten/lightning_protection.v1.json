@@ -1,0 +1,30 @@
+{
+  "validFrom": "2005-01-01",
+  "label": "Blitzschutzanlage",
+  "costGroup": "446",
+  "fields": [
+    {
+      "key": "lps_class",
+      "label": "Schutzklasse des Blitzschutzsystems",
+      "kind": "choice",
+      "options": [
+        {
+          "value": "one",
+          "label": "I"
+        },
+        {
+          "value": "two",
+          "label": "II"
+        },
+        {
+          "value": "three",
+          "label": "III"
+        },
+        {
+          "value": "four",
+          "label": "IV"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,19 @@
+{
+  "classes": [
+    {
+      "key": "no_immediate_danger",
+      "label": "ohne unmittelbare Gefahr",
+      "unsafe": false
+    },
+    {
+      "key": "danger",
+      "label": "mit Gefahr, umgehend beheben",
+      "unsafe": false
+    },
+    {
+      "key": "immediate_danger",
+      "label": "Gefahr im Verzug, nicht weiter benutzen",
+      "unsafe": true
+    }
+  ]
+}

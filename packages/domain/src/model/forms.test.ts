@@ -119,4 +119,38 @@ describe('the forms of this application', () => {
       source: 'Probe',
     })
   })
+
+  // The units of the test of an electrical device (#91): a limit on a
+  // resistance is a rule in kiloohms, written in the unit of the field.
+  it('judge a resistance in megaohms and in ohms against a rule in kiloohms', () => {
+    const rules = ruleSet([
+      {
+        key: 'probe.insulation_minimum',
+        validFrom: '2015-06-01',
+        validUntil: null,
+        unit: 'kiloohms',
+        value: 1000,
+        source: 'Probe',
+      },
+    ])
+    const field = (unit: 'megaohms' | 'ohms'): MeasurementField => ({
+      kind: 'measurement',
+      key: 'insulation',
+      label: 'Isolationswiderstand',
+      unit,
+      decimals: 2,
+      limit: { kind: 'at_least', rule: 'probe.insulation_minimum' },
+    })
+
+    expect(forms.limitVerdict(field('megaohms'), 990, { rules, on: '2026-10-10' })).toEqual({
+      within: false,
+      limitMilli: 1000,
+      text: 'Außerhalb des Grenzwerts, mindestens 1,00 MΩ.',
+      source: 'Probe',
+    })
+    expect(
+      forms.limitVerdict(field('ohms'), 1_000_000_000, { rules, on: '2026-10-10' }),
+    ).toMatchObject({ within: true, limitMilli: 1_000_000_000 })
+    expect(forms.formatMeasured(120, 'milliamperes', 2)).toBe('0,12 mA')
+  })
 })

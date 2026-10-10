@@ -1,0 +1,53 @@
+{
+  "validFrom": "2005-01-01",
+  "label": "Prüfung ortsveränderlicher Betriebsmittel (DGUV Vorschrift 3)",
+  "description": "Ortsveränderliche Betriebsmittel, Verlängerungs- und Geräteanschlussleitungen werden wiederkehrend auf ihren ordnungsgemäßen Zustand geprüft. Die Durchführungsanweisung nennt sechs Monate als Richtwert. Liegt der Anteil der Geräte, die bei den Prüfungen von den Grenzwerten abweichen, bei höchstens zwei Prozent, gilt die Frist als ausreichend. Dann darf die Frist länger werden, höchstens ein Jahr in Werkstätten, Fertigungsstätten und unter ähnlichen Bedingungen und zwei Jahre in Büros und unter ähnlichen Bedingungen. Vorschrift 3 gilt für Unternehmen, die bei einer Berufsgenossenschaft versichert sind; wer bei einer Unfallkasse versichert ist, folgt Vorschrift 4 und verwirft diesen Vorschlag.",
+  "task": "inspection",
+  "origin": "insurer_and_committee_rules",
+  "bindingness": "statute",
+  "source": "§ 5 Abs. 1 Nr. 2 DGUV Vorschrift 3 mit Durchführungsanweisung, Tabelle 1B",
+  "interval": {
+    "kind": "guide",
+    "rule": "dguv_v3_portable_equipment_interval"
+  },
+  "counting": "from_due",
+  "qualification": {
+    "level": "instructed_person",
+    "note": "elektrotechnisch unterwiesen, mit geeigneten Mess- und Prüfgeräten und unter Leitung und Aufsicht einer Elektrofachkraft; ohne solche Geräte prüft eine Elektrofachkraft"
+  },
+  "evidence": {
+    "kinds": [
+      "protocol",
+      "report"
+    ],
+    "form": "portable_equipment_test"
+  },
+  "retention": {
+    "kind": "until_next_inspection"
+  },
+  "scope": {
+    "assetKinds": [
+      "portable_equipment"
+    ],
+    "conditions": [
+      {
+        "characteristic": "work_area",
+        "oneOf": [
+          "office",
+          "workshop",
+          "bath",
+          "slaughterhouse",
+          "communal_kitchen",
+          "other_kitchen",
+          "fire_brigade",
+          "building_cleaning",
+          "laboratory",
+          "classroom",
+          "laundry",
+          "care",
+          "other"
+        ]
+      }
+    ]
+  }
+}

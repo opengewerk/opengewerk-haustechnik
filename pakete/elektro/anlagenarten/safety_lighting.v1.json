@@ -1,0 +1,32 @@
+{
+  "validFrom": "2005-01-01",
+  "label": "Sicherheitsbeleuchtung",
+  "costGroup": "445",
+  "fields": [
+    {
+      "key": "supply",
+      "label": "Versorgung",
+      "kind": "choice",
+      "options": [
+        {
+          "value": "single_battery",
+          "label": "Einzelbatterie"
+        },
+        {
+          "value": "group_battery",
+          "label": "Gruppenbatterie"
+        },
+        {
+          "value": "central_battery",
+          "label": "Zentralbatterie"
+        }
+      ]
+    }
+  ],
+  "expectedDocuments": [
+    {
+      "key": "test_log",
+      "label": "Prüfbuch"
+    }
+  ]
+}
