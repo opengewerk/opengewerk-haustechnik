@@ -1,0 +1,32 @@
+name: Security-Review
+
+# The security review of the organisation (opengewerk/.github,
+# .github/workflows/security-review.yml) for every pull request: in full on
+# pull_request for a branch of this repository by a member, by reading alone
+# on pull_request_target for anything else. A new push cancels the run of the
+# push before, so only the newest head is reviewed.
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+  pull_request_target:
+    types: [opened, synchronize, reopened, ready_for_review]
+
+concurrency:
+  group: security-review-${{ github.event_name }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+permissions: {}
+
+jobs:
+  security-review:
+    name: Security-Review
+    uses: opengewerk/.github/.github/workflows/security-review.yml@main
+    permissions:
+      contents: read
+      id-token: write
+      pull-requests: write
+      statuses: write
+    with:
+      postgres-user: haustechnik
+      postgres-port: 5434
