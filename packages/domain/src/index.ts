@@ -97,6 +97,10 @@ export * from './model/asset-condition.js'
 // the order of the register and what an evidence means for an appointment.
 export * from './model/duty-register.js'
 
+// The proposals of the catalogue for an asset, worked out each time they are
+// read, and the batch that confirms or dismisses many of them at once.
+export * from './model/duty-proposal.js'
+
 // The overview of the operator's responsibility, the start page of the office.
 export * from './model/overview.js'
 

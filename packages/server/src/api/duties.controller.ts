@@ -15,6 +15,7 @@ import {
 import {
   type Asset,
   type AssetId,
+  batchAssetsProblem,
   type Building,
   type Catalogue,
   type CatalogueEntry,
@@ -34,6 +35,7 @@ import {
   dutyMaximum,
   type DutyPerson,
   dutyProblems,
+  type DutyProposals,
   type DutyReading,
   type DutyRegister,
   dutyTaskLabel,
@@ -81,6 +83,7 @@ import { dayInGermany } from '../today.js'
 import { inSight } from './activities.controller.js'
 import { RequiresPermission } from './authorization.js'
 import { listedEvidence } from './evidence.controller.js'
+import { dutyProposalFilter, dutyProposals } from './duty-proposals.js'
 import { dutyReading, dutyRegister, dutyRegisterQuestion } from './duty-register.js'
 import { type Asking, fieldsOf, placeOf, refuse } from './places.js'
 
@@ -346,6 +349,245 @@ function kindFor(catalogue: Catalogue, key: unknown, assetKind: string | null, o
   return entry
 }
 
+/** What a duty is confirmed with: its kind and version, its counting, the maximum kept beside it and its interval. */
+interface Decided {
+  readonly kind: string | null
+  readonly kindVersion: number | null
+  readonly counting: Counting
+  readonly maximum: DeadlineInterval | null
+  readonly interval: DeadlineInterval
+}
+
+/** The fields a batch may name besides its assets: one duty kind, and what every duty of it takes. */
+const batchFields = [
+  'kind',
+  'intervalDays',
+  'intervalMonths',
+  'intervalReason',
+  'responsibleUserId',
+  'performer',
+  'performerNote',
+] as const
+
+const batchEmptiable = [
+  'intervalReason',
+  'responsibleUserId',
+  'performer',
+  'performerNote',
+] as const
+
+/** A problem of one field as `refuse` takes it, or nothing. */
+function problemOf(field: string, problem: string | null): Record<string, string> {
+  return problem === null ? {} : { [field]: problem }
+}
+
+/**
+ * A duty kind of the catalogue confirmed at an asset on a day: the kind
+ * applies to the kind of the asset, the interval stays within the maximum
+ * and has its reason where one is needed, no duty of the kind stands at the
+ * asset, and a dismissal of it is withdrawn in the same step.
+ *
+ * Where a batch names no interval, each duty takes the one its kind names in
+ * the state of its asset, the maximum or the guide (#102); a kind without a
+ * value leaves the interval to the operator, who names it with a reason.
+ */
+async function confirmedFromTheCatalogue(
+  tx: TenantTransaction,
+  catalogue: Catalogue,
+  values: Values,
+  target: Target,
+  today: IsoDate,
+  { itsKindsInterval = false }: { readonly itsKindsInterval?: boolean } = {},
+): Promise<Decided> {
+  const entry = kindFor(catalogue, values.kind, target.assetKind, today)
+  const { maximum, guide } = kindInterval(catalogue, entry, today, target.federalState)
+  const counting = entry.definition.counting
+  const named = given(values.intervalDays) || given(values.intervalMonths)
+  const itsOwn = maximum ?? guide
+
+  if (itsKindsInterval && !named && itsOwn === null) {
+    throw new BadRequestException(
+      'Die Frist dieser Pflichtart legt der Betreiber fest; der Stapel nennt sie, mit Begründung.',
+    )
+  }
+
+  const asked =
+    itsKindsInterval && !named && itsOwn !== null
+      ? 'days' in itsOwn
+        ? { intervalDays: itsOwn.days }
+        : { intervalMonths: itsOwn.months }
+      : { intervalDays: values.intervalDays, intervalMonths: values.intervalMonths }
+  const problem = dutyIntervalProblem(asked, counting, maximum)
+
+  if (problem !== null) {
+    throw new BadRequestException(problem)
+  }
+
+  const interval = intervalIn(asked)
+
+  if (
+    intervalNeedsReason(entry.definition.interval.kind, interval, guide) &&
+    !given(values.intervalReason)
+  ) {
+    throw new BadRequestException(reasonSentence(entry.definition.interval.kind, guide))
+  }
+
+  const [standing] = await tx
+    .select({ id: duties.id })
+    .from(duties)
+    .where(
+      and(
+        eq(duties.assetId, target.assetId as AssetId),
+        eq(duties.kind, entry.key),
+        isNull(duties.deletedAt),
+        isNull(duties.endsOn),
+      ),
+    )
+
+  if (standing !== undefined) {
+    throw new ConflictException('Diese Pflicht ist an der Anlage schon bestätigt.')
+  }
+
+  await tx
+    .update(dutyDismissals)
+    .set({ deletedAt: new Date() })
+    .where(
+      and(
+        eq(dutyDismissals.assetId, target.assetId as AssetId),
+        eq(dutyDismissals.kind, entry.key),
+        isNull(dutyDismissals.deletedAt),
+      ),
+    )
+
+  return { kind: entry.key, kindVersion: entry.version, counting, maximum, interval }
+}
+
+/** The row of a new duty: where it hangs, what it is, its interval and who answers for it. */
+function dutyRow(identity: Asking, target: Target, decided: Decided, values: Values) {
+  const { interval, maximum } = decided
+
+  return {
+    tenantId: identity.tenantId,
+    propertyId: target.propertyId,
+    areaId: target.areaId,
+    buildingId: target.buildingId,
+    roomId: target.roomId,
+    assetId: target.assetId,
+    kind: decided.kind,
+    kindVersion: decided.kindVersion,
+    label: decided.kind === null ? (values.label as string) : null,
+    basis: decided.kind === null ? (values.basis as Duty['basis']) : null,
+    sourceNote: decided.kind === null ? (values.sourceNote as string) : null,
+    task: decided.kind === null ? (values.task as Duty['task']) : null,
+    counting: decided.counting,
+    intervalDays: 'days' in interval ? interval.days : null,
+    intervalMonths: 'months' in interval ? interval.months : null,
+    intervalReason: (values.intervalReason ?? null) as string | null,
+    maximumDays: maximum !== null && 'days' in maximum ? maximum.days : null,
+    maximumMonths: maximum !== null && 'months' in maximum ? maximum.months : null,
+    responsibleUserId: (values.responsibleUserId ?? null) as string | null,
+    performer: (values.performer ?? null) as Duty['performer'],
+    performerNote: (values.performerNote ?? null) as string | null,
+    confirmedBy: identity.userId,
+  }
+}
+
+/**
+ * The work of a batch at one of its assets. A refusal names the asset, so
+ * that whoever sent many knows which one it was; the transaction is left as
+ * it is, and nothing of the batch is written.
+ */
+async function atTheAsset<Result>(
+  tx: TenantTransaction,
+  assetId: string,
+  work: () => Promise<Result>,
+): Promise<Result> {
+  try {
+    return await work()
+  } catch (error) {
+    if (!(error instanceof BadRequestException || error instanceof ConflictException)) {
+      throw error
+    }
+
+    const [asset] = await tx
+      .select({ number: assets.number, name: assets.name })
+      .from(assets)
+      .where(eq(assets.id, assetId as AssetId))
+    const named = asset ? [asset.number, asset.name].filter(Boolean).join(' ') : 'Eine Anlage'
+
+    throw error instanceof ConflictException
+      ? new ConflictException(`${named}: ${error.message}`)
+      : new BadRequestException(`${named}: ${error.message}`)
+  }
+}
+
+/**
+ * A dismissal of a duty kind of the catalogue at an asset, with its reason:
+ * the kind applies to the kind of the asset, no duty of it stands there,
+ * which would be ended instead, and it is not dismissed already.
+ */
+async function dismissalAt(
+  tx: TenantTransaction,
+  catalogue: Catalogue,
+  identity: Asking,
+  assetId: unknown,
+  kind: unknown,
+  reason: string,
+  today: IsoDate,
+) {
+  if (!given(assetId)) {
+    throw new BadRequestException(
+      'Verworfen wird ein Vorschlag für eine Anlage; sie ist nicht genannt.',
+    )
+  }
+
+  const asset = await placeOf<Asset>(tx, assets, String(assetId), missingAsset)
+  const entry = kindFor(catalogue, kind, asset.kind, today)
+  const [standing] = await tx
+    .select({ id: duties.id })
+    .from(duties)
+    .where(
+      and(
+        eq(duties.assetId, asset.id),
+        eq(duties.kind, entry.key),
+        isNull(duties.deletedAt),
+        isNull(duties.endsOn),
+      ),
+    )
+
+  if (standing !== undefined) {
+    throw new ConflictException(
+      'Diese Pflicht ist an der Anlage bestätigt; beende sie, statt den Vorschlag zu verwerfen.',
+    )
+  }
+
+  const [dismissed] = await tx
+    .select({ id: dutyDismissals.id })
+    .from(dutyDismissals)
+    .where(
+      and(
+        eq(dutyDismissals.assetId, asset.id),
+        eq(dutyDismissals.kind, entry.key),
+        isNull(dutyDismissals.deletedAt),
+      ),
+    )
+
+  if (dismissed !== undefined) {
+    throw new ConflictException('Dieser Vorschlag ist für die Anlage schon verworfen.')
+  }
+
+  return {
+    tenantId: identity.tenantId,
+    propertyId: asset.propertyId,
+    areaId: asset.areaId,
+    assetId: asset.id,
+    kind: entry.key,
+    kindVersion: entry.version,
+    reason,
+    dismissedBy: identity.userId,
+  }
+}
+
 /**
  * The register of duties (section 4.3 of the concept, ADR 0002, points 10 and
  * 11) with the rights of section 7: reading it is `duty.read`, confirming a
@@ -455,6 +697,28 @@ export class DutiesController {
   @RequiresPermission('duty.write')
   colleagues(@CurrentIdentity() identity: Asking): Promise<DutyColleague[]> {
     return listColleagues(this.database, identity)
+  }
+
+  /**
+   * The proposals of the catalogue (#102, section 4.3 of the concept), worked
+   * out today for the assets in the areas of the person asking, of one asset,
+   * one property or one duty kind where the address names it, and the ones
+   * dismissed beside them. Whoever reads duties reads them; deciding on one is
+   * keeping the register.
+   *
+   * Before the page of a duty, like the register.
+   */
+  @Get('proposals')
+  @RequiresPermission('duty.read')
+  proposals(
+    @CurrentIdentity() identity: Asking,
+    @Query() query: Record<string, unknown>,
+  ): Promise<DutyProposals> {
+    const filter = dutyProposalFilter(query)
+
+    return this.database.forTenant(identity, (tx) =>
+      dutyProposals(tx, this.catalogue, dayInGermany(), filter),
+    )
   }
 
   /**
@@ -579,12 +843,7 @@ export class DutiesController {
 
     return this.database.forTenant(identity, async (tx) => {
       const target = await targetOf(tx, values)
-      let decided: {
-        readonly kind: string | null
-        readonly kindVersion: number | null
-        readonly counting: Counting
-        readonly maximum: DeadlineInterval | null
-      }
+      let decided: Decided
 
       if (given(values.kind)) {
         if (ownFields.some((field) => given(values[field]))) {
@@ -593,50 +852,7 @@ export class DutiesController {
           )
         }
 
-        const entry = kindFor(this.catalogue, values.kind, target.assetKind, today)
-        const { maximum, guide } = kindInterval(this.catalogue, entry, today, target.federalState)
-        const counting = entry.definition.counting
-        const problem = dutyIntervalProblem(values, counting, maximum)
-
-        if (problem !== null) {
-          throw new BadRequestException(problem)
-        }
-
-        if (
-          intervalNeedsReason(entry.definition.interval.kind, intervalIn(values), guide) &&
-          !given(values.intervalReason)
-        ) {
-          throw new BadRequestException(reasonSentence(entry.definition.interval.kind, guide))
-        }
-
-        const [standing] = await tx
-          .select({ id: duties.id })
-          .from(duties)
-          .where(
-            and(
-              eq(duties.assetId, target.assetId as AssetId),
-              eq(duties.kind, entry.key),
-              isNull(duties.deletedAt),
-              isNull(duties.endsOn),
-            ),
-          )
-
-        if (standing !== undefined) {
-          throw new ConflictException('Diese Pflicht ist an der Anlage schon bestätigt.')
-        }
-
-        await tx
-          .update(dutyDismissals)
-          .set({ deletedAt: new Date() })
-          .where(
-            and(
-              eq(dutyDismissals.assetId, target.assetId as AssetId),
-              eq(dutyDismissals.kind, entry.key),
-              isNull(dutyDismissals.deletedAt),
-            ),
-          )
-
-        decided = { kind: entry.key, kindVersion: entry.version, counting, maximum }
+        decided = await confirmedFromTheCatalogue(tx, this.catalogue, values, target, today)
       } else {
         if (!given(values.label)) {
           throw new BadRequestException('Die Bezeichnung einer eigenen Pflicht fehlt.')
@@ -665,43 +881,68 @@ export class DutiesController {
           throw new BadRequestException(problem)
         }
 
-        decided = { kind: null, kindVersion: null, counting, maximum: null }
+        decided = {
+          kind: null,
+          kindVersion: null,
+          counting,
+          maximum: null,
+          interval: intervalIn(values),
+        }
       }
 
       await checkResponsible(tx, values.responsibleUserId)
 
-      const interval = intervalIn(values)
       const [created] = await tx
         .insert(duties)
-        .values({
-          tenantId: identity.tenantId,
-          propertyId: target.propertyId,
-          areaId: target.areaId,
-          buildingId: target.buildingId,
-          roomId: target.roomId,
-          assetId: target.assetId,
-          kind: decided.kind,
-          kindVersion: decided.kindVersion,
-          label: decided.kind === null ? (values.label as string) : null,
-          basis: decided.kind === null ? (values.basis as Duty['basis']) : null,
-          sourceNote: decided.kind === null ? (values.sourceNote as string) : null,
-          task: decided.kind === null ? (values.task as Duty['task']) : null,
-          counting: decided.counting,
-          intervalDays: 'days' in interval ? interval.days : null,
-          intervalMonths: 'months' in interval ? interval.months : null,
-          intervalReason: (values.intervalReason ?? null) as string | null,
-          maximumDays:
-            decided.maximum !== null && 'days' in decided.maximum ? decided.maximum.days : null,
-          maximumMonths:
-            decided.maximum !== null && 'months' in decided.maximum ? decided.maximum.months : null,
-          responsibleUserId: (values.responsibleUserId ?? null) as string | null,
-          performer: (values.performer ?? null) as Duty['performer'],
-          performerNote: (values.performerNote ?? null) as string | null,
-          confirmedBy: identity.userId,
-        })
+        .values(dutyRow(identity, target, decided, values))
         .returning()
 
       return created as Duty
+    })
+  }
+
+  /**
+   * One duty kind of the catalogue confirmed at many assets at once (#102,
+   * section 4.3 of the concept: "auch im Stapel für viele gleichartige
+   * Anlagen"), with one person who answers for them and one who performs
+   * them. Each duty is checked as one confirmed alone, at its asset and in the
+   * state of its property; without an interval each takes the one its kind
+   * names there, the maximum or the guide.
+   *
+   * One transaction: exactly as many duties as assets, or none at all where
+   * one of them is refused, and the answer says which.
+   */
+  @Post('batch')
+  @RequiresPermission('duty.write')
+  confirmMany(@CurrentIdentity() identity: Asking, @Body() body: unknown): Promise<Duty[]> {
+    const values: Values = fieldsOf(body, batchFields, batchEmptiable)
+    const assetIds = (body as { assetIds?: unknown } | null)?.assetIds
+    const today = dayInGermany()
+
+    if (!given(values.kind)) {
+      throw new BadRequestException('Ein Stapel bestätigt eine Pflichtart; sie ist nicht genannt.')
+    }
+
+    refuse({ ...dutyProblems(values), ...problemOf('assetIds', batchAssetsProblem(assetIds)) })
+    checkPerformer(values.performer, values.performerNote)
+
+    return this.database.forTenant(identity, async (tx) => {
+      await checkResponsible(tx, values.responsibleUserId)
+
+      const rows = []
+
+      for (const assetId of assetIds as readonly string[]) {
+        const target = await targetOf(tx, { assetId })
+        const decided = await atTheAsset(tx, assetId, () =>
+          confirmedFromTheCatalogue(tx, this.catalogue, values, target, today, {
+            itsKindsInterval: true,
+          }),
+        )
+
+        rows.push(dutyRow(identity, target, decided, values))
+      }
+
+      return (await tx.insert(duties).values(rows).returning()) as Duty[]
     })
   }
 
@@ -945,62 +1186,59 @@ export class DutyDismissalsController {
     refuse(dismissalProblems(values))
 
     return this.database.forTenant(identity, async (tx) => {
-      if (!given(values.assetId)) {
-        throw new BadRequestException(
-          'Verworfen wird ein Vorschlag für eine Anlage; sie ist nicht genannt.',
-        )
-      }
-
-      const asset = await placeOf<Asset>(tx, assets, String(values.assetId), missingAsset)
-      const entry = kindFor(this.catalogue, values.kind, asset.kind, dayInGermany())
-      const [standing] = await tx
-        .select({ id: duties.id })
-        .from(duties)
-        .where(
-          and(
-            eq(duties.assetId, asset.id),
-            eq(duties.kind, entry.key),
-            isNull(duties.deletedAt),
-            isNull(duties.endsOn),
-          ),
-        )
-
-      if (standing !== undefined) {
-        throw new ConflictException(
-          'Diese Pflicht ist an der Anlage bestätigt; beende sie, statt den Vorschlag zu verwerfen.',
-        )
-      }
-
-      const [dismissed] = await tx
-        .select({ id: dutyDismissals.id })
-        .from(dutyDismissals)
-        .where(
-          and(
-            eq(dutyDismissals.assetId, asset.id),
-            eq(dutyDismissals.kind, entry.key),
-            isNull(dutyDismissals.deletedAt),
-          ),
-        )
-
-      if (dismissed !== undefined) {
-        throw new ConflictException('Dieser Vorschlag ist für die Anlage schon verworfen.')
-      }
-
-      const [created] = await tx
-        .insert(dutyDismissals)
-        .values({
-          tenantId: identity.tenantId,
-          propertyId: asset.propertyId,
-          areaId: asset.areaId,
-          assetId: asset.id,
-          kind: entry.key,
-          kindVersion: entry.version,
-          reason: values.reason as string,
-          dismissedBy: identity.userId,
-        })
-        .returning()
+      const row = await dismissalAt(
+        tx,
+        this.catalogue,
+        identity,
+        values.assetId,
+        values.kind,
+        values.reason as string,
+        dayInGermany(),
+      )
+      const [created] = await tx.insert(dutyDismissals).values(row).returning()
 
       return created as DutyDismissal
+    })
+  }
+
+  /**
+   * One proposal dismissed at many assets at once, with one reason (#102,
+   * section 4.3 of the concept). One transaction: exactly as many dismissals
+   * as assets, or none where one of them is refused, and the answer says
+   * which.
+   */
+  @Post('batch')
+  @RequiresPermission('duty.write')
+  dismissMany(
+    @CurrentIdentity() identity: Asking,
+    @Body() body: unknown,
+  ): Promise<DutyDismissal[]> {
+    const values = fieldsOf(body, ['kind', 'reason'] as const)
+    const assetIds = (body as { assetIds?: unknown } | null)?.assetIds
+    const today = dayInGermany()
+
+    refuse({ ...dismissalProblems(values), ...problemOf('assetIds', batchAssetsProblem(assetIds)) })
+
+    return this.database.forTenant(identity, async (tx) => {
+      const rows = []
+
+      for (const assetId of assetIds as readonly string[]) {
+        rows.push(
+          await atTheAsset(tx, assetId, () =>
+            dismissalAt(
+              tx,
+              this.catalogue,
+              identity,
+              assetId,
+              values.kind,
+              values.reason as string,
+              today,
+            ),
+          ),
+        )
+      }
+
+      return (await tx.insert(dutyDismissals).values(rows).returning()) as DutyDismissal[]
     })
   }
 

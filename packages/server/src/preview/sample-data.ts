@@ -32,7 +32,9 @@ import {
  * type plate. Beside the colleagues the
  * preview admits, one person is asked to join and one stands in for another
  * from next week on, so that "Zugänge" shows an invitation and a substitution
- * (#84).
+ * (#84). The hall of the depot has electrical equipment of the package
+ * Elektro that nobody has decided on, and one proposal dismissed, so that
+ * the proposals of the catalogue show (#102).
  *
  * Written for the preview and taken from nowhere: the names, streets and
  * places are made up, the postal codes and the phone numbers begin with 0000,
@@ -64,7 +66,13 @@ interface SampleFloor {
 
 interface SampleAsset {
   readonly kind:
-    'probe.elevator' | 'probe.water_meter' | 'allgemein.ventilation_and_air_conditioning'
+    | 'probe.elevator'
+    | 'probe.water_meter'
+    | 'allgemein.ventilation_and_air_conditioning'
+    | 'elektro.portable_equipment'
+    | 'elektro.low_voltage_installation'
+    | 'elektro.residual_current_device'
+    | 'elektro.safety_lighting'
   readonly name: string
   readonly manufacturer?: string
   readonly model?: string
@@ -82,6 +90,8 @@ interface SampleAsset {
   /** The buildings of its property it supplies, by name: its own as a whole, or one it does not stand in. */
   readonly supplies?: readonly string[]
   readonly duties?: readonly SampleDuty[]
+  /** Proposals of the catalogue dismissed at it, by the key of their kind, with the reason (#102). */
+  readonly dismissed?: readonly { readonly kind: string; readonly reason: string }[]
   /** The defects somebody found at it, reported by hand in the office (#116). */
   readonly defects?: readonly SampleDefect[]
   readonly documents?: readonly SampleDocument[]
@@ -385,6 +395,45 @@ export const sampleProperties: readonly SampleProperty[] = [
               },
             ],
           }),
+          // The electrical equipment of the hall, which nobody has decided on
+          // yet (#102): the catalogue proposes the tests of the package
+          // Elektro, after DGUV Vorschrift 3 and 4 alike, as the package
+          // cannot know which of the two holds for the operator. At the
+          // switch of the hall the one after Vorschrift 4 is dismissed.
+          {
+            kind: 'elektro.portable_equipment',
+            name: 'Betriebsmittel Werkstatt',
+            values: { work_area: 'workshop' },
+            room: 'E.01',
+          },
+          {
+            kind: 'elektro.portable_equipment',
+            name: 'Betriebsmittel Lager',
+            values: { work_area: 'workshop' },
+            room: 'E.02',
+          },
+          {
+            kind: 'elektro.low_voltage_installation',
+            name: 'Elektrische Anlage Halle 1',
+            values: { special_location: false },
+          },
+          {
+            kind: 'elektro.residual_current_device',
+            name: 'Fehlerstrom-Schutzschalter Verteilung Halle 1',
+            values: {},
+            dismissed: [
+              {
+                kind: 'elektro.rcd_test_button_dguv_v4',
+                reason:
+                  'Der Betrieb ist Mitglied einer Berufsgenossenschaft; für ihn gilt DGUV Vorschrift 3.',
+              },
+            ],
+          },
+          {
+            kind: 'elektro.safety_lighting',
+            name: 'Sicherheitsbeleuchtung Halle 1',
+            values: {},
+          },
           // No package describes it yet: the general kind of its cost group,
           // which the catalogue proposes nothing for, and a duty of the
           // operator's own, which such an asset may carry from the start.
@@ -950,6 +999,7 @@ async function plantAsset(
     lifecycle = [],
     supplies = [],
     duties = [],
+    dismissed = [],
     documents = [],
     defects = [],
     label,
@@ -972,6 +1022,10 @@ async function plantAsset(
 
   for (const duty of duties) {
     await plantDuty(address, { assetId: created.id }, duty, standings)
+  }
+
+  for (const { kind, reason } of dismissed) {
+    await send(address, '/duty-dismissals', { assetId: created.id, kind, reason })
   }
 
   for (const { description, foundDaysAgo, defectClass, order } of defects) {
