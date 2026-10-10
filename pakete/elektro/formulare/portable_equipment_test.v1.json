@@ -1,0 +1,133 @@
+{
+  "validFrom": "2005-01-01",
+  "title": "Prüfung eines ortsveränderlichen elektrischen Betriebsmittels",
+  "sections": [
+    {
+      "key": "device",
+      "title": "Gerät",
+      "fields": [
+        {
+          "key": "protection_class",
+          "label": "Schutzklasse",
+          "kind": "choice",
+          "options": [
+            {
+              "value": "one",
+              "label": "I"
+            },
+            {
+              "value": "two",
+              "label": "II"
+            },
+            {
+              "value": "three",
+              "label": "III"
+            }
+          ],
+          "required": true
+        },
+        {
+          "kind": "text",
+          "key": "instrument",
+          "label": "Messgerät",
+          "carry": true,
+          "hint": "Hersteller, Typ und Seriennummer."
+        }
+      ]
+    },
+    {
+      "key": "inspection",
+      "title": "Besichtigen",
+      "fields": [
+        {
+          "kind": "check_point",
+          "key": "housing",
+          "label": "Gehäuse unbeschädigt"
+        },
+        {
+          "kind": "check_point",
+          "key": "cord",
+          "label": "Anschlussleitung und Knickschutz unbeschädigt"
+        },
+        {
+          "kind": "check_point",
+          "key": "plug",
+          "label": "Stecker und Steckvorrichtungen unbeschädigt"
+        },
+        {
+          "kind": "check_point",
+          "key": "strain_relief",
+          "label": "Zugentlastung wirksam"
+        },
+        {
+          "kind": "check_point",
+          "key": "markings",
+          "label": "Aufschriften lesbar"
+        }
+      ]
+    },
+    {
+      "key": "measurement",
+      "title": "Messen",
+      "hint": "Nur die Werte, die für die Schutzklasse des Geräts gemessen werden.",
+      "fields": [
+        {
+          "kind": "measurement",
+          "key": "protective_conductor_resistance",
+          "label": "Schutzleiterwiderstand",
+          "unit": "ohms",
+          "decimals": 2
+        },
+        {
+          "kind": "measurement",
+          "key": "insulation_resistance",
+          "label": "Isolationswiderstand",
+          "unit": "megaohms",
+          "decimals": 2
+        },
+        {
+          "kind": "measurement",
+          "key": "protective_conductor_current",
+          "label": "Schutzleiterstrom",
+          "unit": "milliamperes",
+          "decimals": 2
+        },
+        {
+          "kind": "measurement",
+          "key": "touch_current",
+          "label": "Berührungsstrom",
+          "unit": "milliamperes",
+          "decimals": 2
+        },
+        {
+          "kind": "check_point",
+          "key": "limits_kept",
+          "label": "Grenzwerte eingehalten"
+        }
+      ]
+    },
+    {
+      "key": "function",
+      "title": "Funktion",
+      "fields": [
+        {
+          "kind": "check_point",
+          "key": "works",
+          "label": "Funktion in Ordnung"
+        }
+      ]
+    },
+    {
+      "key": "end",
+      "title": "Abschluss",
+      "fields": [
+        {
+          "kind": "signature",
+          "key": "signature",
+          "label": "Unterschrift",
+          "seals": true
+        }
+      ]
+    }
+  ]
+}

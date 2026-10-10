@@ -1,0 +1,34 @@
+{
+  "validFrom": "2005-01-01",
+  "title": "Prüftaste der Fehlerstrom-Schutzeinrichtung",
+  "sections": [
+    {
+      "key": "test",
+      "title": "Prüftaste",
+      "fields": [
+        {
+          "kind": "check_point",
+          "key": "trips",
+          "label": "Löst beim Betätigen der Prüftaste aus"
+        },
+        {
+          "kind": "check_point",
+          "key": "switched_on",
+          "label": "Wieder eingeschaltet, die Stromkreise sind versorgt"
+        }
+      ]
+    },
+    {
+      "key": "end",
+      "title": "Abschluss",
+      "fields": [
+        {
+          "kind": "signature",
+          "key": "signature",
+          "label": "Unterschrift",
+          "seals": true
+        }
+      ]
+    }
+  ]
+}

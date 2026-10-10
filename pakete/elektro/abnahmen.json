@@ -1,0 +1,162 @@
+{
+  "entries": [
+    {
+      "file": "anlagenarten/fixed_equipment.v1.json",
+      "checkedOn": "2026-10-10"
+    },
+    {
+      "file": "anlagenarten/lightning_protection.v1.json",
+      "checkedOn": "2026-10-10"
+    },
+    {
+      "file": "anlagenarten/low_voltage_installation.v1.json",
+      "checkedOn": "2026-10-10"
+    },
+    {
+      "file": "anlagenarten/portable_equipment.v1.json",
+      "checkedOn": "2026-10-10"
+    },
+    {
+      "file": "anlagenarten/residual_current_device.v1.json",
+      "checkedOn": "2026-10-10"
+    },
+    {
+      "file": "anlagenarten/safety_lighting.v1.json",
+      "checkedOn": "2026-10-10"
+    },
+    {
+      "file": "anlagenarten/safety_power_supply.v1.json",
+      "checkedOn": "2026-10-10"
+    },
+    {
+      "file": "formulare/portable_equipment_test.v1.json",
+      "checkedOn": "2026-10-10"
+    },
+    {
+      "file": "formulare/rcd_test_button.v1.json",
+      "checkedOn": "2026-10-10"
+    },
+    {
+      "file": "formulare/safety_lighting_function_test.v1.json",
+      "checkedOn": "2026-10-10"
+    },
+    {
+      "file": "pflichten/installation_test_dguv_v3.v1.json",
+      "checkedOn": "2026-10-10"
+    },
+    {
+      "file": "pflichten/installation_test_dguv_v4.v1.json",
+      "checkedOn": "2026-10-10"
+    },
+    {
+      "file": "pflichten/installation_test_special_location_dguv_v3.v1.json",
+      "checkedOn": "2026-10-10"
+    },
+    {
+      "file": "pflichten/portable_equipment_test_baths_kitchens_dguv_v4.v1.json",
+      "checkedOn": "2026-10-10"
+    },
+    {
+      "file": "pflichten/portable_equipment_test_construction_site_dguv_v3.v1.json",
+      "checkedOn": "2026-10-10"
+    },
+    {
+      "file": "pflichten/portable_equipment_test_dguv_v3.v1.json",
+      "checkedOn": "2026-10-10"
+    },
+    {
+      "file": "pflichten/portable_equipment_test_offices_care_dguv_v4.v1.json",
+      "checkedOn": "2026-10-10"
+    },
+    {
+      "file": "pflichten/portable_equipment_test_other_areas_dguv_v4.v1.json",
+      "checkedOn": "2026-10-10"
+    },
+    {
+      "file": "pflichten/portable_equipment_test_workshops_schools_dguv_v4.v1.json",
+      "checkedOn": "2026-10-10"
+    },
+    {
+      "file": "pflichten/rcd_test_button_dguv_v3.v1.json",
+      "checkedOn": "2026-10-10"
+    },
+    {
+      "file": "pflichten/rcd_test_button_dguv_v4.v1.json",
+      "checkedOn": "2026-10-10"
+    },
+    {
+      "file": "pflichten/safety_lighting_check.v1.json",
+      "checkedOn": "2026-10-10"
+    },
+    {
+      "file": "pflichten/safety_power_supply_check.v1.json",
+      "checkedOn": "2026-10-10"
+    }
+  ],
+  "rules": [
+    {
+      "key": "dguv_v3_installation_interval",
+      "validFrom": "2005-01-01",
+      "checkedOn": "2026-10-10"
+    },
+    {
+      "key": "dguv_v3_installation_special_location_interval",
+      "validFrom": "2005-01-01",
+      "checkedOn": "2026-10-10"
+    },
+    {
+      "key": "dguv_v3_rcd_test_button_interval",
+      "validFrom": "2005-01-01",
+      "checkedOn": "2026-10-10"
+    },
+    {
+      "key": "dguv_v3_portable_equipment_interval",
+      "validFrom": "2005-01-01",
+      "checkedOn": "2026-10-10"
+    },
+    {
+      "key": "dguv_v3_portable_equipment_construction_site_interval",
+      "validFrom": "2005-01-01",
+      "checkedOn": "2026-10-10"
+    },
+    {
+      "key": "dguv_v4_installation_interval",
+      "validFrom": "2005-01-01",
+      "checkedOn": "2026-10-10"
+    },
+    {
+      "key": "dguv_v4_rcd_test_button_interval",
+      "validFrom": "2005-01-01",
+      "checkedOn": "2026-10-10"
+    },
+    {
+      "key": "dguv_v4_portable_equipment_baths_kitchens_interval",
+      "validFrom": "2005-01-01",
+      "checkedOn": "2026-10-10"
+    },
+    {
+      "key": "dguv_v4_portable_equipment_workshops_schools_interval",
+      "validFrom": "2005-01-01",
+      "checkedOn": "2026-10-10"
+    },
+    {
+      "key": "dguv_v4_portable_equipment_offices_care_interval",
+      "validFrom": "2005-01-01",
+      "checkedOn": "2026-10-10"
+    }
+  ],
+  "classes": [
+    {
+      "key": "no_immediate_danger",
+      "checkedOn": "2026-10-10"
+    },
+    {
+      "key": "danger",
+      "checkedOn": "2026-10-10"
+    },
+    {
+      "key": "immediate_danger",
+      "checkedOn": "2026-10-10"
+    }
+  ]
+}

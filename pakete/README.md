@@ -13,7 +13,8 @@ weil alles in diesem Ordner mit der Anwendung ausgeliefert wird.
 
 Das erste Paket hier ist [`allgemein`](allgemein/README.md): je Kostengruppe der technischen
 Anlagen eine allgemeine Anlagenart für jede Anlage, die kein Fachpaket beschreibt, und die drei
-allgemeinen Mängelklassen.
+allgemeinen Mängelklassen. Das erste Fachpaket ist [`elektro`](elektro/README.md), mit den
+Prüfungen nach den DGUV Vorschriften 3 und 4 und der Arbeitsstättenverordnung.
 
 ## Aufbau
 
@@ -212,9 +213,10 @@ ausgefüllte Formular die Vorlage des nächsten ist). Die Arten:
 - `signature`: eine Unterschrift; mit `seals` schreibt sie das Formular fest
 - `group`: eine Gruppe von Feldern, die sich wiederholt, mit `repeat: "free"` und ihren `fields`
 
-Einheiten sind `degrees_celsius`, `kilowatt_hours`, `megawatt_hours` und `cubic_metres`. Ein
-Messwert, ein Prüfpunkt, ein Zählerstand und eine Unterschrift werden nie übernommen. Ein Feld eines
-Pakets zeigt auf keine Anlage und keinen Raum (`about`), denn welche es gibt, weiß erst eine
+Einheiten sind `degrees_celsius`, `kilowatt_hours`, `megawatt_hours`, `cubic_metres`, `ohms`,
+`megaohms` und `milliamperes`; ein Grenzwert auf einen Widerstand ist eine Regel in `kiloohms`, und
+für einen Strom hat die Regel-Engine keine Einheit. Ein Messwert, ein Prüfpunkt, ein Zählerstand und
+eine Unterschrift werden nie übernommen. Ein Feld eines Pakets zeigt auf keine Anlage und keinen Raum (`about`), denn welche es gibt, weiß erst eine
 Instanz; das kann nur die Vorlage eines Betreibers. Der Bau liest jedes Feld genau und prüft das
 Formular danach mit der Formular-Engine des Fundaments; ein Feld, das er nicht kennt, ist ein
 Befund wie überall im Paket.

@@ -1,0 +1,91 @@
+{
+  "validFrom": "2005-01-01",
+  "label": "Ortsveränderliches elektrisches Betriebsmittel",
+  "costGroup": "610",
+  "characteristics": [
+    {
+      "key": "work_area",
+      "label": "Arbeitsbereich",
+      "kind": "choice",
+      "options": [
+        {
+          "value": "office",
+          "label": "Büro"
+        },
+        {
+          "value": "workshop",
+          "label": "Werkstatt oder Fertigungsstätte"
+        },
+        {
+          "value": "construction_site",
+          "label": "Baustelle"
+        },
+        {
+          "value": "bath",
+          "label": "Bad"
+        },
+        {
+          "value": "slaughterhouse",
+          "label": "Schlachthof"
+        },
+        {
+          "value": "communal_kitchen",
+          "label": "Küche für Gemeinschaftsverpflegung"
+        },
+        {
+          "value": "other_kitchen",
+          "label": "Andere Küche"
+        },
+        {
+          "value": "fire_brigade",
+          "label": "Feuerwehr oder technische Hilfeleistung"
+        },
+        {
+          "value": "building_cleaning",
+          "label": "Gebäudereinigung"
+        },
+        {
+          "value": "laboratory",
+          "label": "Labor"
+        },
+        {
+          "value": "classroom",
+          "label": "Unterrichtsraum einer Schule"
+        },
+        {
+          "value": "laundry",
+          "label": "Wäscherei"
+        },
+        {
+          "value": "care",
+          "label": "Pflegestation oder Heim"
+        },
+        {
+          "value": "other",
+          "label": "Anderer Bereich"
+        }
+      ]
+    }
+  ],
+  "fields": [
+    {
+      "key": "protection_class",
+      "label": "Schutzklasse",
+      "kind": "choice",
+      "options": [
+        {
+          "value": "one",
+          "label": "I"
+        },
+        {
+          "value": "two",
+          "label": "II"
+        },
+        {
+          "value": "three",
+          "label": "III"
+        }
+      ]
+    }
+  ]
+}

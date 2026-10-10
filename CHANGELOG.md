@@ -959,6 +959,18 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   verschoben, wie in einer Schließzeit, beim Anlegen, bei einer Änderung und in der Fristen-Engine.
   Für ein Land, für das der Katalog keine Feiertage hält, bietet der Plan die Wahl nicht an, und der
   Server lehnt sie ab. Bisher zählte ein Feiertag wie jeder Tag
+- Das Paket "Elektro" unter `pakete/elektro/` (#91), das erste Fachpaket des Katalogs: sieben
+  Anlagenarten (elektrische Anlage, ortsfestes und ortsveränderliches Betriebsmittel,
+  Fehlerstrom-Schutzeinrichtung, Sicherheitsbeleuchtung, Sicherheitsstromversorgung,
+  Blitzschutzanlage), 13 Pflichtarten aus § 5 der DGUV Vorschriften 3 und 4 mit den Richtwerten
+  ihrer Durchführungsanweisungen und aus § 4 Abs. 3 ArbStättV, die drei Formulare, die ohne
+  Stromkreis auskommen (ortsveränderliche Betriebsmittel, Prüftaste der
+  Fehlerstrom-Schutzeinrichtung, Sicherheitsbeleuchtung), und drei eigene Mängelklassen. Weil
+  die beiden Vorschriften verschiedene Richtwerte haben, steht jede Prüfung einmal je Vorschrift
+  im Paket, und der Betreiber verwirft die, die für ihn nicht gilt. Formulare messen dafür jetzt
+  auch in Ω, MΩ und mA. Jeder Eintrag ist am 10.10.2026 gegen seine Quelle geprüft und wartet auf
+  die fachkundige Abnahme; Verweise auf private Normen kommen als neue Fassung. Bisher hatte der
+  Katalog keine einzige Pflichtart, und die Vorschläge aus #102 hätten nichts vorschlagen können
 - Barrierefreiheit in der CI (#132): Die Prüfung "Breiten und Auflösungen" hält jede Art von Seite
   auch an die Regeln der Barrierefreiheit, mit axe-core aus dem Fundament (`opengewerk#587`) nach
   WCAG 2.1 in den Stufen A und AA und den bewährten Regeln: Beschriftungen, Rollen, Reihenfolge

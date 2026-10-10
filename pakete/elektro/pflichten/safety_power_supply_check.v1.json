@@ -1,0 +1,31 @@
+{
+  "validFrom": "2005-01-01",
+  "label": "Notaggregat instand halten und prüfen lassen",
+  "description": "Der Arbeitgeber hält die Sicherheitsstromversorgung instand und lässt sie in regelmäßigen Abständen auf ihre Funktionsfähigkeit prüfen. Eine Frist nennt die Verordnung nicht; der Betreiber legt sie fest, etwa nach den Angaben des Herstellers.",
+  "task": "function_check",
+  "origin": "state_law",
+  "bindingness": "statute",
+  "source": "§ 4 Abs. 3 ArbStättV",
+  "interval": {
+    "kind": "none"
+  },
+  "counting": "from_due",
+  "qualification": {
+    "level": "skilled_person",
+    "note": "die Verordnung nennt keine Stufe; wer prüft, legt der Arbeitgeber in der Gefährdungsbeurteilung fest"
+  },
+  "evidence": {
+    "kinds": [
+      "report",
+      "round_point"
+    ]
+  },
+  "retention": {
+    "kind": "until_next_inspection"
+  },
+  "scope": {
+    "assetKinds": [
+      "safety_power_supply"
+    ]
+  }
+}

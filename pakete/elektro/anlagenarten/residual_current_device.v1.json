@@ -1,0 +1,61 @@
+{
+  "validFrom": "2005-01-01",
+  "label": "Fehlerstrom-Schutzeinrichtung",
+  "costGroup": "444",
+  "fields": [
+    {
+      "key": "rated_residual_current",
+      "label": "Bemessungsdifferenzstrom",
+      "kind": "choice",
+      "options": [
+        {
+          "value": "ma_10",
+          "label": "10 mA"
+        },
+        {
+          "value": "ma_30",
+          "label": "30 mA"
+        },
+        {
+          "value": "ma_100",
+          "label": "100 mA"
+        },
+        {
+          "value": "ma_300",
+          "label": "300 mA"
+        },
+        {
+          "value": "ma_500",
+          "label": "500 mA"
+        }
+      ]
+    },
+    {
+      "key": "rcd_type",
+      "label": "Typ",
+      "kind": "choice",
+      "options": [
+        {
+          "value": "ac",
+          "label": "AC"
+        },
+        {
+          "value": "a",
+          "label": "A"
+        },
+        {
+          "value": "f",
+          "label": "F"
+        },
+        {
+          "value": "b",
+          "label": "B"
+        },
+        {
+          "value": "b_plus",
+          "label": "B+"
+        }
+      ]
+    }
+  ]
+}

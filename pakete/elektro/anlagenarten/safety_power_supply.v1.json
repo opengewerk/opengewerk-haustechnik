@@ -1,0 +1,26 @@
+{
+  "validFrom": "2005-01-01",
+  "label": "Sicherheitsstromversorgung",
+  "costGroup": "442",
+  "fields": [
+    {
+      "key": "supply_kind",
+      "label": "Art",
+      "kind": "choice",
+      "options": [
+        {
+          "value": "generator",
+          "label": "Stromerzeugungsaggregat"
+        },
+        {
+          "value": "central_battery",
+          "label": "Zentrales Batteriesystem"
+        },
+        {
+          "value": "ups",
+          "label": "Unterbrechungsfreie Stromversorgung"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,51 @@
+{
+  "validFrom": "2005-01-01",
+  "label": "Elektrische Anlage (Niederspannung)",
+  "costGroup": "444",
+  "characteristics": [
+    {
+      "key": "special_location",
+      "label": "In einer Betriebsstätte, einem Raum oder einer Anlage besonderer Art (DIN VDE 0100 Gruppe 700)",
+      "kind": "flag"
+    }
+  ],
+  "fields": [
+    {
+      "key": "earthing_system",
+      "label": "Netzform",
+      "kind": "choice",
+      "options": [
+        {
+          "value": "tn_c",
+          "label": "TN-C"
+        },
+        {
+          "value": "tn_s",
+          "label": "TN-S"
+        },
+        {
+          "value": "tn_c_s",
+          "label": "TN-C-S"
+        },
+        {
+          "value": "tt",
+          "label": "TT"
+        },
+        {
+          "value": "it",
+          "label": "IT"
+        }
+      ]
+    }
+  ],
+  "expectedDocuments": [
+    {
+      "key": "circuit_diagram",
+      "label": "Übersichtsschaltplan"
+    },
+    {
+      "key": "initial_test_report",
+      "label": "Protokoll der Erstprüfung"
+    }
+  ]
+}

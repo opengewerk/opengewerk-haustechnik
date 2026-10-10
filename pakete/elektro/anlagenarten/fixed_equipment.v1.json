@@ -1,0 +1,12 @@
+{
+  "validFrom": "2005-01-01",
+  "label": "Ortsfestes elektrisches Betriebsmittel",
+  "costGroup": "449",
+  "characteristics": [
+    {
+      "key": "special_location",
+      "label": "In einer Betriebsstätte, einem Raum oder einer Anlage besonderer Art (DIN VDE 0100 Gruppe 700)",
+      "kind": "flag"
+    }
+  ]
+}

@@ -1,0 +1,33 @@
+{
+  "validFrom": "2005-01-01",
+  "label": "Prüftaste der Fehlerstrom-Schutzeinrichtung (DGUV Vorschrift 4)",
+  "description": "Wer die Anlage benutzt, betätigt die Prüftaste der Fehlerstrom-Schutzeinrichtung und sieht nach, ob sie einwandfrei auslöst. In ortsfesten Anlagen nennt die Durchführungsanweisung sechs Monate als Richtwert. Vorschrift 4 gilt für Unternehmen und Einrichtungen, die bei einer Unfallkasse versichert sind; wer bei einer Berufsgenossenschaft versichert ist, folgt Vorschrift 3 und verwirft diesen Vorschlag.",
+  "task": "function_check",
+  "origin": "insurer_and_committee_rules",
+  "bindingness": "statute",
+  "source": "§ 5 Abs. 1 Nr. 2 DGUV Vorschrift 4 mit Durchführungsanweisung, Tabelle 1A",
+  "interval": {
+    "kind": "guide",
+    "rule": "dguv_v4_rcd_test_button_interval"
+  },
+  "counting": "from_due",
+  "qualification": {
+    "level": "instructed_person",
+    "note": "wer die Anlage benutzt"
+  },
+  "evidence": {
+    "kinds": [
+      "protocol",
+      "round_point"
+    ],
+    "form": "rcd_test_button"
+  },
+  "retention": {
+    "kind": "until_next_inspection"
+  },
+  "scope": {
+    "assetKinds": [
+      "residual_current_device"
+    ]
+  }
+}
