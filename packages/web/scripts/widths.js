@@ -103,9 +103,11 @@ await checkWidths({
   /**
    * More than the 120 the foundation stops at unless told: this application
    * had 106 kinds of page on 08.10.2026, and every screen of Phase 1 still to
-   * come brings more (opengewerk#576).
+   * come brings more (opengewerk#576). The package Elektro (#91) passed 160:
+   * the walk takes every page of a catalogue entry for a kind of its own (#227),
+   * since the key in its address is no identifier the foundation knows.
    */
-  mostKinds: 160,
+  mostKinds: 220,
   /**
    * Every kind of page is held to the rules of accessibility as well (#132,
    * section 3 of the concept): labels, roles, the order of the headings and
