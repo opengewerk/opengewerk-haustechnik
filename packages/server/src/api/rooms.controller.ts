@@ -14,10 +14,21 @@ import {
   Database,
   requireFields,
   requireSomething,
+  type TenantTransaction,
 } from '@opengewerk/platform-server'
 import { and, count, eq, isNull } from 'drizzle-orm'
 
-import { assets, assetSupplies, floors, rooms } from '../database/schema/index.js'
+import {
+  activities,
+  assets,
+  assetSupplies,
+  attachments,
+  defects,
+  duties,
+  floors,
+  labels,
+  rooms,
+} from '../database/schema/index.js'
 import { RequiresPermission } from './authorization.js'
 import { type Asking, fieldsOf, placeOf, refuse } from './places.js'
 
@@ -128,6 +139,16 @@ export class RoomsController {
             'Diesen Raum versorgen Anlagen, gelöschte Einträge mitgezählt; er zieht deshalb nur innerhalb seiner Liegenschaft um.',
           )
         }
+
+        // What hangs on the room with its property would hold it there, and the
+        // database would refuse the move without a sentence (#78).
+        const hanging = await hangingOn(tx, room.id)
+
+        if (hanging.length > 0) {
+          throw new BadRequestException(
+            `An diesem Raum hängen ${listed(hanging)}, gelöschte mitgezählt; er zieht deshalb nur innerhalb seiner Liegenschaft um.`,
+          )
+        }
       }
 
       const [moved] = await tx
@@ -160,4 +181,48 @@ export class RoomsController {
       return removed as Room
     })
   }
+}
+
+/** What hangs on a room together with its property, by the word a sentence gives it. */
+async function hangingOn(tx: TenantTransaction, roomId: RoomId): Promise<string[]> {
+  const tables = [
+    {
+      words: 'Pflichten',
+      count: tx.select({ count: count() }).from(duties).where(eq(duties.roomId, roomId)),
+    },
+    {
+      words: 'Vorgänge',
+      count: tx.select({ count: count() }).from(activities).where(eq(activities.roomId, roomId)),
+    },
+    {
+      words: 'Mängel',
+      count: tx.select({ count: count() }).from(defects).where(eq(defects.roomId, roomId)),
+    },
+    {
+      words: 'Dokumente',
+      count: tx.select({ count: count() }).from(attachments).where(eq(attachments.roomId, roomId)),
+    },
+    {
+      words: 'Etiketten',
+      count: tx.select({ count: count() }).from(labels).where(eq(labels.roomId, roomId)),
+    },
+  ]
+  const found: string[] = []
+
+  for (const table of tables) {
+    const [row] = await table.count
+
+    if ((row?.count ?? 0) > 0) {
+      found.push(table.words)
+    }
+  }
+
+  return found
+}
+
+/** "Pflichten", "Pflichten und Mängel", "Pflichten, Vorgänge und Mängel". */
+function listed(words: readonly string[]): string {
+  return words.length < 2
+    ? words.join('')
+    : `${words.slice(0, -1).join(', ')} und ${words.at(-1) ?? ''}`
 }

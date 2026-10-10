@@ -63,10 +63,14 @@ async function found<Row>(
     return null
   }
 
+  // Shared, so that a deletion of the row at the same moment is waited for
+  // and seen (#78, T14-4): read without it, the row as it was before would
+  // let a new record hang on a place that is gone a moment later.
   const [row] = await tx
     .select()
     .from(table)
     .where(and(eq(table.id, id), isNull(table.deletedAt)))
+    .for('share')
 
   return (row as Row | undefined) ?? null
 }

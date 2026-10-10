@@ -522,6 +522,43 @@ describe('taking stock without a connection', () => {
     ])
   })
 
+  it('waits for a place deleted at the same moment, and answers with record_missing once it is gone (#78)', async () => {
+    const doomed = (
+      await http()
+        .post(`/buildings/${place.annex}/floors`)
+        .set(testIdentityHeader, by('u-duties'))
+        .send({ name: 'Dachboden', level: 3 })
+        .expect(201)
+    ).body.id as string
+    // A second connection in the middle of deleting the floor.
+    const other = await admin.connect()
+
+    try {
+      await other.query('begin')
+      await other.query('update floors set deleted_at = now() where id = $1', [doomed])
+
+      let answered = false
+      const sent = outcomes('u-tech', [
+        operation('rooms', 'create', newId<'room'>(), { floorId: doomed, number: '3.01' }),
+      ]).then((result) => {
+        answered = true
+
+        return result
+      })
+
+      await new Promise((resolve) => setTimeout(resolve, 500))
+      // The room waits for the floor, and then sees it gone.
+      expect(answered).toBe(false)
+      await other.query('commit')
+
+      expect(await sent).toEqual([
+        { outcome: 'conflict', reason: 'record_missing', fields: ['floorId'] },
+      ])
+    } finally {
+      other.release()
+    }
+  })
+
   it('keeps what may not be written without a connection to the office, as online_only', async () => {
     const asset = await elevatorIn(place)
 
