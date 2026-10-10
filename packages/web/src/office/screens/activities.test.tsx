@@ -251,6 +251,51 @@ describe('the list "Prüfungen"', () => {
   })
 })
 
+describe('the list "Bericht fehlt" and an area (#122)', () => {
+  it('asks the server for the reports missing in an area, and shows what the list is narrowed to', async () => {
+    const nord: NamedArea = { id: 'a-nord', name: 'Nord' }
+
+    signedInOffice('management', [nord, sued], {
+      ...servingCatalogue(),
+      '/activities?state=report_missing&area=a-nord&offset=0&limit=50': page([late], 1),
+      '/activities?state=report_missing&offset=0&limit=50': page([late, own], 2),
+    })
+
+    const { router } = await mountOffice(
+      '/pruefungen?stand=report_missing&bereich=a-nord',
+      server,
+      everything,
+    )
+
+    await screen.findByRole('link', { name: 'Prüfung der Feuerlöscher' })
+    expect(screen.getByText('1 ohne Bericht')).toBeTruthy()
+    expect(
+      within(screen.getByRole('group', { name: 'Stand' }))
+        .getAllByRole('button')
+        .map(
+          (chip) =>
+            `${chip.textContent}${chip.getAttribute('aria-pressed') === 'true' ? ' *' : ''}`,
+        ),
+    ).toEqual(['Offen', 'Bericht fehlt *', 'Erledigt', 'Nicht durchgeführt', 'Alle'])
+    await waitFor(() => {
+      expect(screen.getByRole('combobox', { name: 'Bereich' })).toHaveProperty('value', 'a-nord')
+    })
+
+    fireEvent.change(screen.getByRole('combobox', { name: 'Bereich' }), { target: { value: '' } })
+    await screen.findByText('2 ohne Bericht')
+    expect(router.state.location.href).toBe('/pruefungen?stand=report_missing')
+  })
+
+  it('offers no area to somebody who sees one', async () => {
+    const { mounted } = mount('/pruefungen', { [firstPage]: page([own]) })
+
+    await mounted
+    await screen.findByRole('link', { name: 'Prüfung der Sicherheitsbeleuchtung' })
+
+    expect(screen.queryByRole('combobox', { name: 'Bereich' })).toBeNull()
+  })
+})
+
 describe('the page of an activity', () => {
   it('shows the duties it is to meet with their state, and where it came from', async () => {
     const { mounted } = mount('/pruefungen/ac-own', {

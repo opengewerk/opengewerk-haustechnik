@@ -50,12 +50,13 @@ const deadlinesPlace = '/fristen'
  *
  * "Aufgaben" names no right yet. Its own arrives with the tasks, and all
  * four roles are to see them (the last point under the table of rights in
- * section 7 of the concept). The overview and the catalogue hold nothing of
- * a tenant that somebody signed in may not see.
+ * section 7 of the concept). The overview counts the duties, and so stands
+ * for whoever reads them, which every role does (#122); the catalogue holds
+ * nothing of a tenant that somebody signed in may not see.
  */
 export const officeNavigation: readonly OfficePlaces[] = [
   {
-    entries: [{ to: '/', label: 'Übersicht', icon: LayoutDashboard }],
+    entries: [{ to: '/', label: 'Übersicht', icon: LayoutDashboard, right: 'duty.read' }],
   },
   {
     title: 'Bestand',

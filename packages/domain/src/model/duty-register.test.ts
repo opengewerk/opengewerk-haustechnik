@@ -4,6 +4,9 @@ import { describe, expect, it } from 'vitest'
 
 import { type DutyState, dutyStateLabel, dutyStates } from './duty.js'
 import {
+  type DutyDueWindow,
+  dutyDueWindowLabel,
+  dutyDueWindows,
   dutyHasEnded,
   type DutyEntry,
   dutyRegisterFilters,
@@ -11,6 +14,7 @@ import {
   dutyRegisterStateLabel,
   dutyRegisterStates,
   evidenceStandingOf,
+  inDueWindow,
   inRegisterOrder,
   namesAPerson,
   withoutResponsible,
@@ -145,12 +149,91 @@ describe('a filter of the register', () => {
   it('reaches the server with the state first and the person last', () => {
     expect(dutyRegisterFilters).toEqual([
       'state',
+      'due',
       'propertyId',
+      'areaId',
       'buildingId',
       'assetKind',
       'dutyKind',
       'responsible',
     ])
+  })
+})
+
+describe('the windows of days the register is narrowed to under "Fällig"', () => {
+  const today = '2026-10-10'
+  const standing = (
+    state: DutyState,
+    dueOn: IsoDate | null,
+    ended = false,
+  ): Pick<DutyEntry, 'state' | 'appointment' | 'ended'> => ({
+    state,
+    appointment: dueOn === null ? null : { dueOn, onTimeUntil: dueOn },
+    ended,
+  })
+  const windows = (entry: Pick<DutyEntry, 'state' | 'appointment' | 'ended'>) =>
+    dutyDueWindows.filter((window) => inDueWindow(entry, window, today))
+
+  it('are called as the select of the register offers them', () => {
+    expect(dutyDueWindows.map((window) => dutyDueWindowLabel[window])).toEqual([
+      'In 30 Tagen',
+      'In 90 Tagen',
+      'Überfällig oder in 30 Tagen',
+    ])
+  })
+
+  it('hold a duty by the day of its appointment, the last day of the window included', () => {
+    expect(windows(standing('due', '2026-11-09'))).toEqual([
+      'in_30_days',
+      'in_90_days',
+      'overdue_or_in_30_days',
+    ])
+    expect(windows(standing('met', '2026-11-10'))).toEqual(['in_90_days'])
+    expect(windows(standing('met', '2027-01-08'))).toEqual(['in_90_days'])
+    expect(windows(standing('met', '2027-01-09'))).toEqual([])
+  })
+
+  it('hold a duty whose lead time has not begun, by its day and not by its state', () => {
+    expect(windows(standing('met', '2026-10-25'))).toContain('in_30_days')
+  })
+
+  it('hold a duty due within its window although its day has passed, which is not overdue', () => {
+    expect(windows(standing('due', '2026-10-01'))).toEqual([
+      'in_30_days',
+      'in_90_days',
+      'overdue_or_in_30_days',
+    ])
+  })
+
+  it('leave an overdue duty out of 30 and 90 days, and hold it where the window says so', () => {
+    expect(windows(standing('overdue', '2026-09-15'))).toEqual(['overdue_or_in_30_days'])
+  })
+
+  it('hold no duty that was never recorded, that rests or that has ended', () => {
+    expect(windows(standing('never_recorded', null))).toEqual([])
+    expect(windows(standing('dormant', '2026-10-20'))).toEqual([])
+    expect(windows(standing('due', '2026-10-20', true))).toEqual([])
+    expect(windows(standing('overdue', '2026-09-15', true))).toEqual([])
+  })
+
+  it('make the window of 90 days hold every duty the one of 30 holds', () => {
+    fc.assert(
+      fc.property(
+        fc.constantFrom(...dutyStates),
+        fc.integer({ min: -400, max: 400 }),
+        fc.boolean(),
+        (state, offset, ended) => {
+          const day = new Date(Date.UTC(2026, 9, 10 + offset)).toISOString().slice(0, 10)
+          const entry = standing(state, state === 'never_recorded' ? null : day, ended)
+          const within = (window: DutyDueWindow) => inDueWindow(entry, window, today)
+
+          expect(!within('in_30_days') || within('in_90_days')).toBe(true)
+          expect(within('overdue_or_in_30_days')).toBe(
+            within('in_30_days') || (state === 'overdue' && !ended),
+          )
+        },
+      ),
+    )
   })
 })
 

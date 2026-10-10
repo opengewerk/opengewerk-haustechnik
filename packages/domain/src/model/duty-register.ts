@@ -1,4 +1,4 @@
-import type { IsoDate } from '@opengewerk/platform-domain'
+import { addDays, type IsoDate } from '@opengewerk/platform-domain'
 
 import type { ActivityKind, ActivityStatus } from './activity.js'
 import type { Asset } from './asset.js'
@@ -66,12 +66,72 @@ export function dutyHasEnded(duty: Pick<Duty, 'endsOn'>, on: IsoDate): boolean {
 export const withoutResponsible = 'none'
 
 /**
+ * What the register is narrowed to under "Fällig" (#122): the duties whose
+ * appointment falls in the next 30 or 90 days, and the overdue ones together
+ * with those of the next 30 days, which is the table of the overview.
+ *
+ * The windows are counted by the day of the appointment and not by the
+ * state: a duty due in 20 days whose lead time has not begun is met until
+ * then, and still falls due within 30 days. The overdue ones are counted in
+ * neither of the first two (decision 40 of phase 1, 10.10.2026), and the
+ * window of 90 days holds the one of 30.
+ */
+export const dutyDueWindows = ['in_30_days', 'in_90_days', 'overdue_or_in_30_days'] as const
+
+export type DutyDueWindow = (typeof dutyDueWindows)[number]
+
+export const dutyDueWindowLabel: Readonly<Record<DutyDueWindow, string>> = {
+  in_30_days: 'In 30 Tagen',
+  in_90_days: 'In 90 Tagen',
+  overdue_or_in_30_days: 'Überfällig oder in 30 Tagen',
+}
+
+/** How many days ahead each window reaches, and whether it holds the overdue duties. */
+const dueWindowReach: Readonly<Record<DutyDueWindow, { days: number; overdue: boolean }>> = {
+  in_30_days: { days: 30, overdue: false },
+  in_90_days: { days: 90, overdue: false },
+  overdue_or_in_30_days: { days: 30, overdue: true },
+}
+
+/**
+ * Whether a duty falls in a window on a day: it has not ended and does not
+ * rest, it has an appointment, the day of that is no further ahead than the
+ * window reaches, and it is overdue only where the window holds those. A duty
+ * never recorded has no appointment, so it falls in none.
+ */
+export function inDueWindow(
+  entry: Pick<DutyEntry, 'state' | 'appointment' | 'ended'>,
+  window: DutyDueWindow,
+  today: IsoDate,
+): boolean {
+  const { days, overdue } = dueWindowReach[window]
+
+  if (entry.ended || entry.appointment === null) {
+    return false
+  }
+
+  if (entry.state === 'overdue') {
+    return overdue
+  }
+
+  // ISO dates sort the same way as the days they name.
+  return (
+    (entry.state === 'due' || entry.state === 'met') &&
+    entry.appointment.dueOn <= addDays(today, days)
+  )
+}
+
+/**
  * What the register of duties is asked for. Every part narrows, and two
  * together give what passes both.
  */
 export interface DutyRegisterFilter {
   readonly state?: DutyRegisterState
+  /** The duties whose appointment falls in a window of days from today (#122). */
+  readonly due?: DutyDueWindow
   readonly propertyId?: string
+  /** An area of the person asking: the duties at the places in it (#122). */
+  readonly areaId?: string
   /** A building: the duties at it, at its rooms and at the assets that stand in it. */
   readonly buildingId?: string
   /** The key of an asset kind, `<package>.<key>`: the duties at assets of the kind. */
@@ -85,7 +145,9 @@ export interface DutyRegisterFilter {
 /** The names of the filters as an address carries them to the server, in the order it reads them. */
 export const dutyRegisterFilters = [
   'state',
+  'due',
   'propertyId',
+  'areaId',
   'buildingId',
   'assetKind',
   'dutyKind',

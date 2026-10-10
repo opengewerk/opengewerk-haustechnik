@@ -44,6 +44,7 @@ import {
 import { type ReactNode, useMemo, useState } from 'react'
 
 import { areaName, useAreas } from '../../session/areas.js'
+import { CountTiles } from '../count-tiles.js'
 import {
   planListPlace,
   planPlaces,
@@ -51,7 +52,6 @@ import {
   roundsPlace,
   templateListPlace,
 } from '../round-template-addresses.js'
-import { CountTiles } from './imports.js'
 import { CloseRoundDialog, roundDate } from './round.js'
 import { calendarOf, nameOf, performersQuery, roundPeopleQuery, walkerOf } from './round-plans.js'
 

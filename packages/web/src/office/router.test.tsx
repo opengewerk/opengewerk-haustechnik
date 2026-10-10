@@ -28,7 +28,7 @@ const nord: TenantChoice = {
   name: 'Gebäudeverwaltung Nord',
   roles: ['management'],
   roleLabels: ['Leitung'],
-  rights: ['membership.read', 'membership.write', 'location.read'],
+  rights: ['membership.read', 'membership.write', 'location.read', 'duty.read'],
   secondFactor: true,
 }
 
@@ -97,15 +97,14 @@ afterEach(() => {
 
 describe('the office of this application', () => {
   /**
-   * Until the overview is built, the office starts at the properties: the
-   * first list there is, and one every role reads. The navigation has that
-   * one place, lit, over its foot.
+   * The office starts at the overview (#122), which every role reads. The
+   * navigation has it first, lit, over its foot.
    */
-  it('starts at the properties, and names itself and the Betreiber in the header', async () => {
+  it('starts at the overview, and names itself and the Betreiber in the header', async () => {
     const router = await mount('/')
 
-    expect(router.state.location.pathname).toBe('/liegenschaften')
-    expect(screen.getByRole('heading', { level: 1, name: 'Liegenschaften' })).toBeTruthy()
+    expect(router.state.location.pathname).toBe('/')
+    expect(screen.getByRole('heading', { level: 1, name: 'Übersicht' })).toBeTruthy()
 
     const header = screen.getByRole('banner')
 
@@ -116,7 +115,7 @@ describe('the office of this application', () => {
 
     expect(within(navigation).getByRole('link', { name: /Abgleich/ })).toBeTruthy()
     expect(
-      (await within(navigation).findByRole('link', { name: 'Liegenschaften' })).getAttribute(
+      (await within(navigation).findByRole('link', { name: 'Übersicht' })).getAttribute(
         'aria-current',
       ),
     ).toBe('page')

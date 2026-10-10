@@ -62,6 +62,7 @@ import { kindChoices } from '../../app/asset-values.js'
 import { useAreas } from '../../session/areas.js'
 import { useCatalogue } from '../../sync/catalogue.js'
 import { assetRegisterPlace } from '../asset-addresses.js'
+import { CountTiles } from '../count-tiles.js'
 import { importRoutes } from '../import-addresses.js'
 import { officePlaces } from '../place-addresses.js'
 
@@ -85,55 +86,6 @@ function refusalOf(error: unknown): string {
   return error instanceof RequestRefused
     ? error.message
     : 'Der Server ist nicht zu erreichen. Ein Import braucht eine Verbindung.'
-}
-
-export type Tone = 'neutral' | 'waiting' | 'conflict' | 'done'
-
-export interface Tile {
-  readonly value: number
-  readonly label: string
-  readonly tone?: Tone
-  readonly sub?: string
-}
-
-const tileEdge: Readonly<Record<Tone, string>> = {
-  neutral: 'border-t-line',
-  waiting: 'border-t-waiting-edge',
-  conflict: 'border-t-conflict',
-  done: 'border-t-done-edge',
-}
-
-const tileInk: Readonly<Record<Tone, string>> = {
-  neutral: 'text-ink',
-  waiting: 'text-waiting',
-  conflict: 'text-conflict',
-  done: 'text-done',
-}
-
-/** The numbers of a preview, `count_tile()` of the canvas: a figure, what it counts, and a line under it. */
-export function CountTiles({
-  label,
-  tiles,
-}: {
-  readonly label: string
-  readonly tiles: readonly Tile[]
-}) {
-  return (
-    <ul aria-label={label} className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-5">
-      {tiles.map(({ value, label: counted, tone = 'neutral', sub }) => (
-        <li
-          key={counted}
-          className={`rounded-[5px] border border-t-[3px] border-line bg-surface px-[13px] py-[11px] ${tileEdge[tone]}`}
-        >
-          <div className={`text-[26px] leading-[1.1] font-semibold tabular-nums ${tileInk[tone]}`}>
-            {value.toLocaleString('de-DE')}
-          </div>
-          <div className="mt-[3px] text-[13px]">{counted}</div>
-          {sub ? <div className="mt-0.5 text-[12px] text-ink-faint">{sub}</div> : null}
-        </li>
-      ))}
-    </ul>
-  )
 }
 
 /** What has to be put right before anything is taken over, with the lines it is about. */

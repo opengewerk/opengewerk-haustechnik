@@ -5,13 +5,7 @@ import {
   InstanceTenantsScreen,
 } from '@opengewerk/platform-web/instance'
 import { AuditLogScreen, SettingsScreen, SyncScreen } from '@opengewerk/platform-web/office'
-import {
-  createRootRoute,
-  createRoute,
-  createRouter,
-  Outlet,
-  redirect,
-} from '@tanstack/react-router'
+import { createRootRoute, createRoute, createRouter, Outlet } from '@tanstack/react-router'
 
 import { dutyPlaces } from './duty-addresses.js'
 import { importPlaces } from './import-addresses.js'
@@ -40,6 +34,7 @@ import { ImportAssetsScreen, ImportStructureScreen } from './screens/imports.js'
 import { LabelLandingScreen } from './screens/label-landing.js'
 import { MeterSettingsScreen } from './screens/meter-settings.js'
 import { MeterListScreen, MeterScreen } from './screens/meters.js'
+import { OverviewScreen } from './screens/overview.js'
 import {
   EditPropertyScreen,
   NewPropertyScreen,
@@ -68,8 +63,7 @@ import { OfficeShell } from './shell.js'
  * navigation stays lit on every one of them, and everything about one
  * property under `/liegenschaften`. A building, a floor and a room live at
  * an address of their own, by their id (`place-addresses.ts`), and light the
- * same entry. Until the overview is built, the office starts at the
- * properties: the first list there is, and one every role reads.
+ * same entry. The office starts at the overview (#122).
  *
  * A screen the board has in the navigation lives at the address its place
  * names (`navigation.tsx`). Its route here is all it takes: the place stands
@@ -117,13 +111,7 @@ export function officeRoutes() {
   ]
 
   const routes = [
-    createRoute({
-      getParentRoute: () => office,
-      path: '/',
-      beforeLoad: () => {
-        throw redirect({ to: '/liegenschaften' })
-      },
-    }),
+    createRoute({ getParentRoute: () => office, path: '/', component: OverviewScreen }),
     createRoute({
       getParentRoute: () => office,
       path: '/liegenschaften',
