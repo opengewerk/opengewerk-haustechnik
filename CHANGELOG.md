@@ -1476,3 +1476,8 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   "Nachweise" (#176), als Name des Datensatzes, in seinen Feldern und unter "Nur dieser Datensatz".
   Bisher stand dort sein Schlüssel, etwa "asset", und jede neue Anlage schrieb einen solchen
   Eintrag
+- Die Prüfung "Breiten und Auflösungen" wird nicht mehr an Seiten rot, die niemand geändert hat
+  (#231): Sie wartet nach dem Laden, bis ein Bildschirm gezeichnet ist, und auf einen Knopf, bevor
+  sie ihn "nicht zu sehen" nennt (`opengewerk#591`, Submodul angehoben). Bisher fragte sie sofort,
+  und ein Bildschirm, dessen Datensätze erst danach auf das Gerät kamen, war noch leer oder ohne
+  seinen Knopf; jedes Mal traf es eine andere Seite, auch auf `main`
