@@ -1,0 +1,49 @@
+name: Katalog prüfen lassen
+
+# "Liegt die Prüfung länger als ein Jahr zurück, ist der Eintrag
+# gekennzeichnet, und ein geplanter Lauf erinnert daran, wie bei den
+# Regelpaketen von OpenGewerk" (section 5 of the concept, #95). The run asks
+# the same reading as the screens (reviewMarks) a month ahead, and keeps one
+# issue: it opens it once and brings it up to date on every later run.
+
+on:
+  schedule:
+    # Monday morning, like the run of the rule packages of the foundation.
+    - cron: "41 5 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  remind:
+    name: An fällige Prüfungen erinnern
+    runs-on: ubuntu-latest
+    steps:
+      # The packages of the foundation are members of the workspace and come
+      # with the submodule.
+      - name: Repository mit dem Fundament auschecken
+        uses: actions/checkout@v7
+        with:
+          submodules: true
+
+      - name: pnpm über Corepack bereitstellen
+        run: corepack enable
+
+      - name: Node einrichten
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Abhängigkeiten installieren
+        run: pnpm install --frozen-lockfile
+
+      - name: Katalog bauen
+        run: pnpm exec turbo run build --filter=@opengewerk/haustechnik-catalogue...
+
+      - name: Fällige Prüfungen nennen
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: pnpm --filter @opengewerk/haustechnik-catalogue run remind

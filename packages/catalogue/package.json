@@ -20,6 +20,7 @@
   "scripts": {
     "build": "tsc -p tsconfig.build.json && node dist/build.js",
     "compare": "node dist/compare.js",
+    "remind": "node dist/remind.js",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
     "test": "vitest run"

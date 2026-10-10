@@ -260,7 +260,11 @@ seiner Pflichtart.
 
 Jede Fassung, jede Regel und jede Mängelklasse hat genau einen Eintrag mit dem Tag, an dem sie
 zuletzt gegen ihre Quelle geprüft wurde; `classes` fehlt in einem Paket ohne Mängelklassen. Liegt
-der Tag mehr als ein Jahr zurück, ist der Eintrag gekennzeichnet. Wer einen Eintrag fachkundig
+der Tag mehr als ein Jahr zurück, ist der Eintrag gekennzeichnet. Einen Monat vorher erinnert der
+Workflow "Katalog prüfen lassen" jeden Montag daran: er hält ein Issue mit allen fälligen Einträgen
+und schreibt es fort, statt ein zweites anzulegen; von Hand mit
+`TODAY=2027-09-20 DRY_RUN=1 pnpm --filter @opengewerk/haustechnik-catalogue run remind` nach dem
+Bau des Katalogs. Wer einen Eintrag fachkundig
 abnimmt, ergänzt `"accepted": { "by": "Name", "on": "2026-10-05", "sha256": "..." }`. Die
 Prüfsumme ist die der Datei, bei einer Regel und bei einer Mängelklasse die ihres Datensatzes;
 fehlt sie oder passt sie nicht, nennt der Bau die richtige. Ein Eintrag ohne Abnahme ist überall
