@@ -89,17 +89,32 @@ describe('the next appointment of a duty', () => {
   describe('counted from the day it was due', () => {
     const yearly: Rhythm = { counting: 'from_due', interval: { months: 12 } }
 
-    it('keeps its rhythm when it was done early or late', () => {
-      // First on 10 March 2025, due on 10 March 2026; done early in February
+    it('keeps its rhythm when it was done at most a twelfth of the interval early, or late (#77)', () => {
+      // First on 10 March 2025, due on 10 March 2026: the twelfth of those 365
+      // days is 30, so from 8 February on a performance meets it. Done then
       // and late in April, the next stays on 10 March.
-      expect(nextAppointment(yearly, ['2025-03-10', '2026-02-01'])?.dueOn).toBe('2027-03-10')
+      expect(nextAppointment(yearly, ['2025-03-10', '2026-02-08'])?.dueOn).toBe('2027-03-10')
       expect(nextAppointment(yearly, ['2025-03-10', '2026-04-20'])?.dueOn).toBe('2027-03-10')
     })
 
-    it('is not moved on by a second time in a period already met', () => {
-      expect(nextAppointment(yearly, ['2025-03-10', '2026-02-01', '2026-02-20'])?.dueOn).toBe(
-        '2027-03-10',
+    it('counts the interval anew from a day earlier than that (#77)', () => {
+      expect(nextAppointment(yearly, ['2025-03-10', '2026-02-07'])?.dueOn).toBe('2027-02-07')
+      // A second time soon after the open appointment was met is far early for the next one.
+      expect(nextAppointment(yearly, ['2025-03-10', '2026-03-10', '2026-04-01'])?.dueOn).toBe(
+        '2027-04-01',
       )
+    })
+
+    it('reckons the twelfth of two years as two months, and of a month as two days', () => {
+      const twoYears: Rhythm = { counting: 'from_due', interval: { months: 24 } }
+      const monthly: Rhythm = { counting: 'from_due', interval: { months: 1 } }
+
+      // 731 days from 10 March 2025 to 10 March 2027: the twelfth is 60.
+      expect(nextAppointment(twoYears, ['2025-03-10', '2027-01-09'])?.dueOn).toBe('2029-03-10')
+      expect(nextAppointment(twoYears, ['2025-03-10', '2027-01-08'])?.dueOn).toBe('2029-01-08')
+      // 31 days from 10 March to 10 April: the twelfth is 2.
+      expect(nextAppointment(monthly, ['2026-03-10', '2026-04-08'])?.dueOn).toBe('2026-05-10')
+      expect(nextAppointment(monthly, ['2026-03-10', '2026-04-07'])?.dueOn).toBe('2026-05-07')
     })
 
     it('leaves appointments behind that were missed, instead of being overdue when it was done', () => {
@@ -117,7 +132,7 @@ describe('the next appointment of a duty', () => {
       ).toBe('2026-04-30')
     })
 
-    it('lies after the last time it was done, a whole number of intervals after the first', () => {
+    it('lies after the last time it was done, never much more than the interval after it (#77)', () => {
       fc.assert(
         fc.property(
           daily,
@@ -128,11 +143,11 @@ describe('the next appointment of a duty', () => {
               { counting: 'from_due', interval },
               sorted,
             ) as Appointment
-            const firstDue = addDays(sorted[0] as IsoDate, interval.days)
-            const apart = (Date.parse(appointment.dueOn) - Date.parse(firstDue)) / 86_400_000
+            const last = sorted.at(-1) as IsoDate
+            const after = (Date.parse(appointment.dueOn) - Date.parse(last)) / 86_400_000
 
-            expect(appointment.dueOn > (sorted.at(-1) as IsoDate)).toBe(true)
-            expect(apart % interval.days).toBe(0)
+            expect(after).toBeGreaterThan(0)
+            expect(after).toBeLessThanOrEqual(interval.days + Math.floor(interval.days / 12))
             expect(appointment.onTimeUntil).toBe(appointment.dueOn)
           },
         ),

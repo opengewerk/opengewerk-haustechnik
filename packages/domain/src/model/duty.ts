@@ -101,13 +101,24 @@ function underBetrSichV(
   return due === null ? null : { dueOn: due, onTimeUntil: endOfMonth(addMonths(due, 2)) }
 }
 
+/** How many days lie from one day to a later one. */
+function daysFrom(earlier: IsoDate, later: IsoDate): number {
+  return Math.round((Date.parse(later) - Date.parse(earlier)) / 86_400_000)
+}
+
 /**
- * From the day it was due: the first performance sets the rhythm, and every
- * appointment after it lies a whole number of intervals later. A performance
- * meets the earliest open appointment once it lies within one interval of
- * it, so a second one in the same period is no reason to skip the next; one
- * that comes later than the appointment after that leaves the missed ones
- * behind instead of making the duty overdue the moment it was done.
+ * From the day it was due (section 4.4 of the concept, #77): a performance
+ * sets the rhythm, and every appointment after it lies a whole number of
+ * intervals later. A later performance meets the open appointment when it
+ * lies at most a twelfth of the interval before it, as § 14 Abs. 5 BetrSichV
+ * reckons, and the rhythm stays; done late, it meets it as well, and leaves
+ * the appointments behind that it came after instead of making the duty
+ * overdue the moment it was done. Done earlier than the twelfth, the interval
+ * counts anew from its day. So no appointment is skipped, no performance is
+ * lost, and two performances never lie much more than the interval apart.
+ *
+ * The twelfth is counted in days, of the period that leads up to the open
+ * appointment: a month for a yearly duty, two for one of two years.
  */
 function fromDue(interval: DeadlineInterval, performances: readonly IsoDate[]): Appointment | null {
   const [first, ...rest] = performances
@@ -116,15 +127,21 @@ function fromDue(interval: DeadlineInterval, performances: readonly IsoDate[]): 
     return null
   }
 
-  // Every appointment is counted from the first day itself: from the end of
-  // a month, a month counted from a clamped appointment would drift to the
-  // 28th and stay there.
-  const appointment = (index: number) => stepped(first, interval, index + 1)
+  // Every appointment of a rhythm is counted from the day that began it: from
+  // the end of a month, a month counted from a clamped appointment would drift
+  // to the 28th and stay there.
+  let start = first
+  const appointment = (index: number) => stepped(start, interval, index + 1)
   // The earliest appointment not met yet, as its number in the rhythm.
   let open = 0
 
   for (const performedOn of rest) {
-    if (performedOn <= appointment(open - 1)) {
+    const due = appointment(open)
+    const twelfth = Math.floor(daysFrom(appointment(open - 1), due) / 12)
+
+    if (performedOn < addDays(due, -twelfth)) {
+      start = performedOn
+      open = 0
       continue
     }
 
