@@ -111,8 +111,21 @@ function frozen(further: Partial<EvidenceState> = {}): EvidenceState {
       },
     ],
     signatures: [
-      { name: 'Tobias Wendt', role: 'signer', signedAt: '2026-10-01T05:42:00.000Z' },
-      { name: 'Dennis Roth', role: 'countersigner', signedAt: '2026-10-02T06:15:00.000Z' },
+      {
+        name: 'Tobias Wendt',
+        role: 'signer',
+        signedAt: '2026-10-01T05:42:00.000Z',
+        path: 'M10,10L200,300',
+        way: 'drawing',
+      },
+      // Countersigned with the typed name (#209).
+      {
+        name: 'Dennis Roth',
+        role: 'countersigner',
+        signedAt: '2026-10-02T06:15:00.000Z',
+        path: null,
+        way: 'name',
+      },
     ],
     files: [],
     retention: { kind: 'until_next_inspection', on: '2026-10-01' },
@@ -249,8 +262,11 @@ describe('the page of an evidence', () => {
 
     const signatures = screen.getByRole('region', { name: 'Unterschriften' }).textContent ?? ''
 
-    expect(signatures).toContain('UnterschriftTobias Wendt')
-    expect(signatures).toContain('GegenzeichnungDennis Roth')
+    expect(signatures).toContain('UnterschriftTobias Wendt01.10.2026, 07:42Gegen')
+    // The evidence says which way somebody signed (#209).
+    expect(signatures).toContain(
+      'GegenzeichnungDennis Roth02.10.2026, 08:15, mit getipptem Namen bestätigt',
+    )
     expect(screen.getByText('f'.repeat(64))).toBeTruthy()
     expect(screen.getByText('Warmwasser am Speicheraustritt 55,5 °C')).toBeTruthy()
     expect(screen.getByText('erheblich · Frist 19.10.2026')).toBeTruthy()

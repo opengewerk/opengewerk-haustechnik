@@ -11,6 +11,7 @@ import {
   type RecordState,
   retentionKindLabel,
   signatureRoleLabel,
+  signatureWayLabel,
   type StatedPlace,
   type StatedRetention,
   statedReasonProblem,
@@ -392,7 +393,9 @@ export function EvidenceScreen() {
                       {signatureRoleLabel[signature.role]}
                     </div>
                     <div className="text-[14px] font-semibold">{signature.name}</div>
-                    <div className="text-[13px] text-ink-muted">{moment(signature.signedAt)}</div>
+                    <div className="text-[13px] text-ink-muted">
+                      {`${moment(signature.signedAt)}${signature.way === 'name' ? `, ${signatureWayLabel.name}` : ''}`}
+                    </div>
                   </li>
                 ))}
               </ul>
