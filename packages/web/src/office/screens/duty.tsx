@@ -70,6 +70,7 @@ import {
   performerWords,
 } from '../duty-words.js'
 import { EvidenceNumber, ResultMark, StandingMark } from '../evidence-words.js'
+import { LinkButton } from '../link-button.js'
 import { factLink } from '../links.js'
 import { officePlaces } from '../place-addresses.js'
 import { workOrderPlaces, workOrderStartSearch } from '../work-order-addresses.js'
@@ -138,11 +139,10 @@ export const dutyPageWords = {
  * its evidence, which never travels to a device. The names of the places
  * come from the device. Its evidence is read with the right of the evidence.
  *
- * Whoever keeps the register says who answers for the duty and ends it, and
- * changes a duty of the operator's own in its form (#178); nobody else is
- * offered the buttons. What a duty from the catalogue is changed with beyond
- * that arrives with what makes one: confirming a proposal (#102) and the page
- * of an evidence (#109).
+ * Whoever keeps the register says who answers for the duty and ends it,
+ * changes a duty of the operator's own in its form (#178) and sets the
+ * interval of a duty from the catalogue in the form that confirmed it
+ * (#102); nobody else is offered the buttons.
  */
 export function DutyScreen() {
   const { dutyId } = useParams({ strict: false }) as { dutyId?: string }
@@ -388,7 +388,19 @@ export function DutyScreen() {
               facts={[...origin, { label: 'Bestätigt', value: `am ${date(duty.confirmedAt)}` }]}
             />
           </Panel>
-          <Panel title="Frist">
+          <Panel
+            title="Frist"
+            action={
+              // The interval of a duty from the catalogue, its reason and who
+              // performs it (#102); a duty of the operator's own changes it in
+              // its form.
+              keeps && !duty.ended && duty.kind !== null ? (
+                <LinkButton to={dutyPlaces.interval(dutyId)} size="small" label="Frist ändern">
+                  Ändern
+                </LinkButton>
+              ) : null
+            }
+          >
             <FactList
               keyWidth={96}
               facts={[

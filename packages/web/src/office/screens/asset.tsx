@@ -68,6 +68,7 @@ import { factLink } from '../links.js'
 import { officePlaces } from '../place-addresses.js'
 import { kindLabel } from './assets.js'
 import { AssetDefectsCard } from './defects.js'
+import { ProposalsNote } from './proposals.js'
 import { AssetOrdersCard, NewOrderAtAssetButton } from './work-orders.js'
 import { TimelineButton } from '../timeline.js'
 
@@ -248,6 +249,7 @@ export function AssetFileScreen() {
               catalogue={catalogue}
               resting={restsOn(asset.lifecycleState)}
               action={<NewDutyButton start={{ assetId: asset.id }} />}
+              proposals={<ProposalsNote assetId={asset.id} />}
             />
           ) : null}
           {seesEvidence ? <AssetEvidence evidence={evidence.data} /> : null}
@@ -564,6 +566,7 @@ export function Duties({
   catalogue,
   resting,
   action,
+  proposals,
   words,
 }: {
   readonly duties: readonly DutyReading[] | undefined
@@ -571,6 +574,8 @@ export function Duties({
   readonly resting: boolean
   /** In the head of the card: the way to a duty of the operator's own at this place. */
   readonly action?: ReactNode
+  /** Under the card of an asset: the line of the proposals of the catalogue (#102). */
+  readonly proposals?: ReactNode
   /** What the card is called and says while it is empty or cannot be read, for a room. */
   readonly words?: {
     readonly title: string
@@ -589,6 +594,9 @@ export function Duties({
             ? (words?.unread ?? 'Die Pflichten werden geladen.')
             : (words?.none ?? assetFileWords.noDuties)}
         </p>
+        {proposals ? (
+          <p className="mt-1.5 text-[13px] leading-[1.4] text-ink-muted">{proposals}</p>
+        ) : null}
       </Panel>
     )
   }
@@ -646,7 +654,16 @@ export function Duties({
         ].join(' · '),
         right: state(duty),
       }))}
-      {...(resting ? { note: assetFileWords.resting } : {})}
+      {...(resting || proposals
+        ? {
+            note: (
+              <>
+                {resting ? <p>{assetFileWords.resting}</p> : null}
+                {proposals ? <p>{proposals}</p> : null}
+              </>
+            ),
+          }
+        : {})}
     >
       <thead>
         <tr>

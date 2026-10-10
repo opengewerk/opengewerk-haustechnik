@@ -8,6 +8,7 @@ import { AuditLogScreen, SettingsScreen, SyncScreen } from '@opengewerk/platform
 import { createRootRoute, createRoute, createRouter, Outlet } from '@tanstack/react-router'
 
 import { dutyPlaces } from './duty-addresses.js'
+import { proposalPlace, proposalPlaces } from './proposal-addresses.js'
 import { importPlaces } from './import-addresses.js'
 import { InstanceShell } from './instance/shell.js'
 import { AccountScreen } from './screens/account.js'
@@ -25,8 +26,10 @@ import { DefectListScreen, DefectScreen, NewDefectScreen } from './screens/defec
 import { DocumentsScreen } from './screens/documents.js'
 import { DutyRegisterScreen } from './screens/duties.js'
 import { DutyScreen } from './screens/duty.js'
+import { ConfirmDutyScreen, DutyIntervalScreen } from './screens/duty-confirm.js'
 import { EditDutyScreen, NewDutyScreen } from './screens/duty-form.js'
 import { DutyKindScreen } from './screens/duty-kind.js'
+import { DismissedProposalsScreen, ProposalsScreen } from './screens/proposals.js'
 import { EvidenceScreen } from './screens/evidence.js'
 import { EditFloorScreen, NewFloorScreen } from './screens/floor-form.js'
 import { FloorScreen } from './screens/floors.js'
@@ -265,6 +268,30 @@ export function officeRoutes() {
       getParentRoute: () => office,
       path: '/pflichten/$dutyId/bearbeiten',
       component: EditDutyScreen,
+    }),
+    // The proposals of the catalogue under the register, the ones dismissed
+    // beside them, the form that confirms one, and the interval of a duty
+    // from the catalogue under its page (#102). Static words before the page
+    // of a duty, as "vorschlaege" and "bestaetigen" are no ids.
+    createRoute({
+      getParentRoute: () => office,
+      path: proposalPlace.to,
+      component: ProposalsScreen,
+    }),
+    createRoute({
+      getParentRoute: () => office,
+      path: proposalPlaces.dismissed,
+      component: DismissedProposalsScreen,
+    }),
+    createRoute({
+      getParentRoute: () => office,
+      path: proposalPlaces.confirm,
+      component: ConfirmDutyScreen,
+    }),
+    createRoute({
+      getParentRoute: () => office,
+      path: '/pflichten/$dutyId/frist',
+      component: DutyIntervalScreen,
     }),
     // The inspections and the maintenance that came of the due days, narrowed
     // by what the address names, and the page of one under them.

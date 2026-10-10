@@ -38,6 +38,8 @@ import { useCatalogue } from '../../sync/catalogue.js'
 import { cataloguePlaces } from '../catalogue-addresses.js'
 import { dutyRegisterPlace, dutyRegisterRequest, dutySearch } from '../duty-addresses.js'
 import { factLink } from '../links.js'
+import { proposalPlace, proposalPlaces, proposalSearch } from '../proposal-addresses.js'
+import { proposalsQuery } from './proposals.js'
 import { appliesWords, NotInCatalogue } from './catalogue.js'
 
 /**
@@ -54,8 +56,8 @@ import { appliesWords, NotInCatalogue } from './catalogue.js'
  * The catalogue is the device's and stands without a network. The one card
  * that asks the server is "Bei diesem Betreiber": how many duties this
  * operator has confirmed from the kind, with the way to them in the register
- * of duties (#101), for whoever reads duties. The proposals open and
- * dismissed arrive beside it with the proposals (#102).
+ * of duties (#101), and how many proposals of it are open and dismissed,
+ * with the way to them (#102), for whoever reads duties.
  */
 export function DutyKindScreen() {
   const { packageName, dutyKey } = useParams({ strict: false }) as {
@@ -194,14 +196,19 @@ export const atThisOperatorWords = {
 /**
  * "Bei diesem Betreiber": the duties confirmed from this kind that have not
  * ended, in the areas of the person, counted by the register of duties
- * itself, so that the number and the list it leads to cannot differ.
+ * itself, so that the number and the list it leads to cannot differ; and the
+ * proposals of the kind open and dismissed (#102), counted by the route of
+ * the proposals the lists they lead to read.
  */
 function AtThisOperator({ dutyKind }: { readonly dutyKind: string }) {
   const confirmed = useQuery({
     queryKey: ['duties', 'register', 'count', dutyKind],
     queryFn: () => request<DutyRegister>(dutyRegisterRequest({ dutyKind }, 0, 1)),
   })
+  const proposed = useQuery(proposalsQuery({ dutyKind }))
   const total = confirmed.data?.total
+  const open = proposed.data?.proposals.length
+  const dismissed = proposed.data?.dismissed.length
 
   return (
     <Panel title="Bei diesem Betreiber">
@@ -226,6 +233,44 @@ function AtThisOperator({ dutyKind }: { readonly dutyKind: string }) {
                   </Link>
                 ),
             },
+            ...(open === undefined || dismissed === undefined
+              ? []
+              : [
+                  {
+                    label: 'Vorgeschlagen',
+                    value:
+                      open === 0 ? (
+                        atThisOperatorWords.none
+                      ) : (
+                        <Link
+                          to={proposalPlace.to}
+                          search={proposalSearch({ dutyKind })}
+                          className={factLink}
+                        >
+                          {open === 1
+                            ? '1 offener Vorschlag'
+                            : `${open.toLocaleString('de-DE')} offene Vorschläge`}
+                        </Link>
+                      ),
+                  },
+                  {
+                    label: 'Verworfen',
+                    value:
+                      dismissed === 0 ? (
+                        atThisOperatorWords.none
+                      ) : (
+                        <Link
+                          to={proposalPlaces.dismissed}
+                          search={proposalSearch({ dutyKind })}
+                          className={factLink}
+                        >
+                          {dismissed === 1
+                            ? '1 verworfener Vorschlag'
+                            : `${dismissed.toLocaleString('de-DE')} verworfene Vorschläge`}
+                        </Link>
+                      ),
+                  },
+                ]),
           ]}
         />
       )}
@@ -279,7 +324,7 @@ function Finding({
 }
 
 /** How long the evidence is kept, with the number of years where the rule has one today. */
-function retentionWords(catalogue: Catalogue, kind: DutyKind, on: string): string {
+export function retentionWords(catalogue: Catalogue, kind: DutyKind, on: string): string {
   if (kind.retention.kind !== 'years') {
     return retentionKindLabel[kind.retention.kind]
   }

@@ -49,6 +49,7 @@ import { EvidenceNumber } from '../evidence-words.js'
 import { factLink } from '../links.js'
 import { officePlaces } from '../place-addresses.js'
 import { assetKindChoices, PlaceFilter, RegisterFilter } from '../register-filter.js'
+import { ProposalsButton } from './proposals.js'
 
 export const dutyRegisterWords = {
   noConnection: 'Das Pflichtenverzeichnis kommt vom Server. Gerade ist keine Verbindung da.',
@@ -80,8 +81,8 @@ export const dutyRegisterWords = {
  * then names no number (4.16 of the concept: no evaluation by person).
  *
  * A duty of the operator's own is made from here, by whoever keeps the
- * register (`duty-form.tsx`). What the board draws beyond this arrives with
- * what it shows: the proposals of the catalogue (#102).
+ * register (`duty-form.tsx`), and the proposals of the catalogue are reached
+ * from here (#102, `proposals.tsx`).
  */
 export function DutyRegisterScreen() {
   const search = useSearch({ strict: false })
@@ -183,14 +184,19 @@ export function DutyRegisterScreen() {
         title="Pflichtenverzeichnis"
         {...countOf(first)}
         actions={
-          // In the building or on the property the list is narrowed to, where it is.
-          <NewDutyButton
-            primary
-            start={{
-              ...(filter.buildingId === undefined ? {} : { buildingId: filter.buildingId }),
-              ...(filter.propertyId === undefined ? {} : { propertyId: filter.propertyId }),
-            }}
-          />
+          <>
+            <ProposalsButton
+              {...(filter.propertyId === undefined ? {} : { propertyId: filter.propertyId })}
+            />
+            {/* In the building or on the property the list is narrowed to, where it is. */}
+            <NewDutyButton
+              primary
+              start={{
+                ...(filter.buildingId === undefined ? {} : { buildingId: filter.buildingId }),
+                ...(filter.propertyId === undefined ? {} : { propertyId: filter.propertyId }),
+              }}
+            />
+          </>
         }
       />
       <Filters

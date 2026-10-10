@@ -47,7 +47,9 @@ await checkWidths({
    * the rounds of a plan in a week; and the handing in of a round on site
    * (#114), which the last point of a round leads to; and at the page of a
    * measuring point (#119) the card a reading is entered with and the
-   * dialogs of the exchange, the pause, the lock and the note. A page that has one is
+   * dialogs of the exchange, the pause, the lock and the note; and the
+   * dialog that dismisses a proposal of the catalogue with its reason, from
+   * the form that confirms it (#102). A page that has one is
    * checked a second time as a kind of its own, with the button pressed.
    * Found by its name, so that the next record with the same button is
    * checked as well.
@@ -94,6 +96,7 @@ await checkWidths({
     'Stilllegen',
     'Sperren',
     'Ändern',
+    'Verwerfen',
     // The longest sentences of the instance stand behind it (#80); the Leitung
     // of the preview is operator and administration in one. The form to name
     // somebody to the administration stands open on its page.
