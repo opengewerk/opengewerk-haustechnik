@@ -50,9 +50,9 @@ import {
   useRecords,
   useSync,
 } from '@opengewerk/platform-web/sync'
-import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useQueryClient, type UseQueryResult } from '@tanstack/react-query'
 import { Link, useNavigate, useParams } from '@tanstack/react-router'
-import { Plus, Upload } from 'lucide-react'
+import { Pencil, Plus, Upload } from 'lucide-react'
 import { useState } from 'react'
 
 import { titleOfRoom } from '../../app/place-records.js'
@@ -61,7 +61,7 @@ import { useCatalogue } from '../../sync/catalogue.js'
 import { askAt, makeAt } from '../../sync/made-at.js'
 import { activityPlaces } from '../activity-addresses.js'
 import { cataloguePlaces } from '../catalogue-addresses.js'
-import { dutyRegisterPlace, evidencePlaces } from '../duty-addresses.js'
+import { dutyPlaces, dutyRegisterPlace, evidencePlaces } from '../duty-addresses.js'
 import {
   DutyStandingMark,
   intervalKindWords,
@@ -138,10 +138,11 @@ export const dutyPageWords = {
  * its evidence, which never travels to a device. The names of the places
  * come from the device. Its evidence is read with the right of the evidence.
  *
- * Whoever keeps the register says who answers for the duty and ends it;
- * nobody else is offered the buttons. What a duty is changed with beyond that
- * arrives with what makes one: confirming a proposal (#102) and the page of
- * an evidence (#109).
+ * Whoever keeps the register says who answers for the duty and ends it, and
+ * changes a duty of the operator's own in its form (#178); nobody else is
+ * offered the buttons. What a duty from the catalogue is changed with beyond
+ * that arrives with what makes one: confirming a proposal (#102) and the page
+ * of an evidence (#109).
  */
 export function DutyScreen() {
   const { dutyId } = useParams({ strict: false }) as { dutyId?: string }
@@ -160,38 +161,13 @@ export function DutyScreen() {
     enabled: dutyId !== undefined && seesEvidence,
   })
   const catalogue = useCatalogue()
-  const properties = useRecords('properties')
-  const buildings = useRecords('buildings')
-  const rooms = useRecords('rooms')
   const duty = page.data
+  const { property, building, room } = useDutyPlaces(duty)
 
   if (duty === undefined || dutyId === undefined) {
-    const gone = page.error instanceof RequestRefused && page.error.status === 404
-
-    return (
-      <Screen>
-        <PageHead title={gone ? 'Nicht gefunden' : 'Pflicht'} crumbs={[dutyRegisterPlace]} />
-        <Empty>
-          {gone
-            ? dutyPageWords.notThere
-            : page.isError
-              ? dutyPageWords.failed
-              : page.fetchStatus === 'paused'
-                ? dutyPageWords.noConnection
-                : dutyPageWords.loading}
-        </Empty>
-      </Screen>
-    )
+    return <DutyUnread page={page} />
   }
 
-  const byId = (records: readonly RecordState[], id: string | null) =>
-    id === null ? null : (records.find((record) => record['id'] === id) ?? null)
-  const property = byId(properties, duty.propertyId)
-  const room = byId(rooms, duty.asset?.roomId ?? duty.roomId)
-  const building = byId(
-    buildings,
-    duty.asset?.buildingId ?? duty.buildingId ?? (room ? String(room['buildingId']) : null),
-  )
   const kind = kindOfDuty(duty, catalogue)
   const itsPackage =
     duty.kind === null
@@ -213,15 +189,7 @@ export function DutyScreen() {
     activity === null &&
     (duty.kind === null || kind !== null)
 
-  /** What the duty hangs on, in a line under its name. */
-  const target =
-    duty.asset !== null
-      ? `Pflicht an ${[duty.asset.number, duty.asset.name].filter(Boolean).join(' ')}`
-      : duty.roomId !== null
-        ? `Pflicht am Raum ${room ? titleOfRoom(room) : ''}`.trim()
-        : duty.buildingId !== null
-          ? `Pflicht am Gebäude ${maybeText(building, 'name') ?? ''}`.trim()
-          : `Pflicht an der Liegenschaft ${maybeText(property, 'name') ?? ''}`.trim()
+  const target = dutyTarget(duty, { property, building, room })
 
   const origin: Fact[] =
     duty.kind === null
@@ -268,6 +236,17 @@ export function DutyScreen() {
         actions={
           <>
             <ChangesButton table="duties" id={dutyId} />
+            {/* What a duty from the catalogue is comes from its kind (#178). */}
+            {keeps && duty.kind === null && !duty.ended ? (
+              <Button
+                icon={Pencil}
+                onClick={() => {
+                  void navigate({ to: dutyPlaces.edit(dutyId) })
+                }}
+              >
+                Bearbeiten
+              </Button>
+            ) : null}
             {entersEvidence && !duty.ended && takesAReport(duty, kind) ? (
               <Button
                 icon={Upload}
@@ -558,6 +537,94 @@ export function DutyScreen() {
   )
 }
 
+/** The property, the building and the room of a duty, as this device holds them. */
+interface DutyPlaceRecords {
+  readonly property: RecordState | null
+  readonly building: RecordState | null
+  readonly room: RecordState | null
+}
+
+/** The places of a duty, read from the device: where its asset stands, or what it hangs on. */
+export function useDutyPlaces(duty: DutyDetails | undefined): DutyPlaceRecords {
+  const properties = useRecords('properties')
+  const buildings = useRecords('buildings')
+  const rooms = useRecords('rooms')
+
+  if (duty === undefined) {
+    return { property: null, building: null, room: null }
+  }
+
+  const byId = (records: readonly RecordState[], id: string | null) =>
+    id === null ? null : (records.find((record) => record['id'] === id) ?? null)
+  const room = byId(rooms, duty.asset?.roomId ?? duty.roomId)
+
+  return {
+    property: byId(properties, duty.propertyId),
+    building: byId(
+      buildings,
+      duty.asset?.buildingId ?? duty.buildingId ?? (room ? String(room['buildingId']) : null),
+    ),
+    room,
+  }
+}
+
+/** What a duty hangs on, in a line under its name: "Pflicht an AN-00057 Trinkwassererwärmer". */
+export function dutyTarget(duty: DutyDetails, { property, building, room }: DutyPlaceRecords) {
+  return duty.asset !== null
+    ? `Pflicht an ${[duty.asset.number, duty.asset.name].filter(Boolean).join(' ')}`
+    : duty.roomId !== null
+      ? `Pflicht am Raum ${room ? titleOfRoom(room) : ''}`.trim()
+      : duty.buildingId !== null
+        ? `Pflicht am Gebäude ${maybeText(building, 'name') ?? ''}`.trim()
+        : `Pflicht an der Liegenschaft ${maybeText(property, 'name') ?? ''}`.trim()
+}
+
+/** In place of a duty that has not come from the server, with why. */
+export function DutyUnread({ page }: { readonly page: UseQueryResult<DutyDetails> }) {
+  const gone = page.error instanceof RequestRefused && page.error.status === 404
+
+  return (
+    <Screen>
+      <PageHead title={gone ? 'Nicht gefunden' : 'Pflicht'} crumbs={[dutyRegisterPlace]} />
+      <Empty>
+        {gone
+          ? dutyPageWords.notThere
+          : page.isError
+            ? dutyPageWords.failed
+            : page.fetchStatus === 'paused'
+              ? dutyPageWords.noConnection
+              : dutyPageWords.loading}
+      </Empty>
+    </Screen>
+  )
+}
+
+/**
+ * Who may be named for a duty: "Niemand", and whoever works for the
+ * operator. Whoever is shut out is offered to nobody anew; the one the duty
+ * names stays in the list all the same, so that the choice shows who it is,
+ * and until the people have come, that one is all there is to show.
+ */
+export function responsibleChoices(
+  colleagues: readonly DutyColleague[] | undefined,
+  named: DutyDetails['responsible'],
+) {
+  const offered = (colleagues ?? []).filter(
+    (person) => person.active || person.userId === named?.userId,
+  )
+
+  return [
+    { value: '', label: dutyPageWords.nobody },
+    ...offered.map((person) => ({
+      value: person.userId,
+      label: person.active ? person.name : `${person.name} (gesperrt)`,
+    })),
+    ...(named && !offered.some((person) => person.userId === named.userId)
+      ? [{ value: named.userId, label: named.name }]
+      : []),
+  ]
+}
+
 /**
  * "Nachweise": every evidence of the duty, the newest first, each with what
  * it means for the appointment. One a correction replaced and one declared
@@ -649,22 +716,7 @@ export function ResponsibleDialog({
   const [chosen, setChosen] = useState(before)
   const [working, setWorking] = useState(false)
   const [trouble, setTrouble] = useState<string | null>(null)
-  // Whoever is shut out is offered to nobody anew. The one the duty names
-  // stays in the list all the same, so that the choice shows who it is.
-  const offered = (colleagues.data ?? []).filter(
-    (person) => person.active || person.userId === before,
-  )
-  const options = [
-    { value: '', label: dutyPageWords.nobody },
-    ...offered.map((person) => ({
-      value: person.userId,
-      label: person.active ? person.name : `${person.name} (gesperrt)`,
-    })),
-    // Until the people have come, the one the duty names is all there is to show.
-    ...(duty.responsible && !offered.some((person) => person.userId === before)
-      ? [{ value: duty.responsible.userId, label: duty.responsible.name }]
-      : []),
-  ]
+  const options = responsibleChoices(colleagues.data, duty.responsible)
 
   async function save() {
     // Nothing changed is nothing to ask the server for.

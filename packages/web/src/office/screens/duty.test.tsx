@@ -92,6 +92,7 @@ function duty(further: Readonly<Record<string, unknown>> = {}): DutyDetails {
     appointment: { dueOn: '2026-07-01', onTimeUntil: '2026-09-30' },
     lastMetOn: '2025-07-12',
     ended: false,
+    removable: false,
     asset: {
       id: 'a-lift',
       number: 'AN-00012',
@@ -756,6 +757,47 @@ describe('ending a duty', () => {
       'Diese Pflicht endet schon am 2026-09-05.',
     )
     expect(screen.getByRole('dialog')).toBeTruthy()
+  })
+})
+
+describe('changing a duty of the operator own (#178)', () => {
+  it.each(['management', 'technical_management'] as const)(
+    'is for whoever keeps the register: "%s" is offered "Bearbeiten", which opens its form',
+    async (role) => {
+      const { router } = await opened(role, atRoom)
+
+      fireEvent.click(screen.getByRole('button', { name: 'Bearbeiten' }))
+
+      await waitFor(() => {
+        expect(router.state.location.pathname).toBe('/pflichten/d-1/bearbeiten')
+      })
+    },
+  )
+
+  it.each(['site_management', 'technician'] as const)(
+    'is offered to nobody else: not to "%s"',
+    async (role) => {
+      await opened(role, atRoom)
+      await untilTheRightsAreKnown()
+
+      expect(screen.queryByRole('button', { name: 'Bearbeiten' })).toBeNull()
+    },
+  )
+
+  it('is not offered for a duty from the catalogue, whose kind says what it is', async () => {
+    await opened('management')
+    await untilTheRightsAreKnown()
+
+    // Whoever keeps the register is offered what there is to change.
+    expect(screen.getByRole('button', { name: 'Beenden' })).toBeTruthy()
+    expect(screen.queryByRole('button', { name: 'Bearbeiten' })).toBeNull()
+  })
+
+  it('is not offered for a duty that has ended', async () => {
+    await opened('management', { ...atRoom, ended: true, endsOn: '2026-09-05' })
+    await untilTheRightsAreKnown()
+
+    expect(screen.queryByRole('button', { name: 'Bearbeiten' })).toBeNull()
   })
 })
 

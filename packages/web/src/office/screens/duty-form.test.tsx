@@ -1,4 +1,9 @@
-import type { AssetDetails, DutyColleague, RoleKey } from '@opengewerk/haustechnik-domain'
+import type {
+  AssetDetails,
+  DutyColleague,
+  DutyDetails,
+  RoleKey,
+} from '@opengewerk/haustechnik-domain'
 import { TestServer } from '@opengewerk/platform-web/testing'
 import { onlineManager } from '@tanstack/react-query'
 import { fireEvent, screen, waitFor, within } from '@testing-library/react'
@@ -513,5 +518,353 @@ describe('the form of a duty of the operator own', () => {
 
     expect(await screen.findByText(dutyFormWords.placeUnread)).toBeTruthy()
     expect(screen.queryByRole('button', { name: 'Pflicht anlegen' })).toBeNull()
+  })
+})
+
+/** A duty of the operator's own at the water heater, as its page reads it, without evidence yet. */
+function ownDuty(further: Readonly<Record<string, unknown>> = {}): DutyDetails {
+  return {
+    id: 'd-own',
+    ...place,
+    buildingId: null,
+    roomId: null,
+    assetId: 'a-heater',
+    kind: null,
+    kindVersion: null,
+    label: 'Wartung des Trinkwassererwärmers',
+    basis: 'manufacturer',
+    sourceNote: 'Betriebsanleitung SW 750, Abschnitt 9',
+    task: 'maintenance',
+    counting: 'from_due',
+    intervalDays: null,
+    intervalMonths: 12,
+    intervalReason: null,
+    maximumDays: null,
+    maximumMonths: null,
+    responsibleUserId: 'u-roth',
+    performer: 'contractor',
+    performerNote: 'Heizungsbau Beispiel GmbH',
+    confirmedBy: 'u-lead',
+    confirmedAt: '2026-10-06T08:00:00.000Z',
+    endsOn: null,
+    endReason: null,
+    title: 'Wartung des Trinkwassererwärmers',
+    state: 'never_recorded',
+    appointment: null,
+    lastMetOn: null,
+    ended: false,
+    removable: true,
+    asset: {
+      id: 'a-heater',
+      number: 'AN-00057',
+      name: 'Trinkwassererwärmer',
+      kind: 'probe.elevator',
+      buildingId: house.id,
+      roomId: boilerRoom.id,
+    },
+    responsible: { userId: 'u-roth', name: 'Dennis Roth' },
+    activity: null,
+    ...further,
+  } as unknown as DutyDetails
+}
+
+const editAt = '/pflichten/d-own/bearbeiten'
+
+/** The form over a duty there is, once it stands. */
+async function editing(details: DutyDetails = ownDuty(), role?: RoleKey) {
+  const router = await mount(editAt, role, { [`/duties/${details.id}`]: details })
+
+  await screen.findByRole('button', { name: 'Speichern' })
+
+  return router
+}
+
+const valueOf = (name: string) => screen.getByLabelText<HTMLInputElement>(name).value
+
+describe('who changes a duty of the operator own (#178)', () => {
+  it.each(['management', 'technical_management'] as const)(
+    'is whoever keeps the register: "%s" is given the form',
+    async (role) => {
+      await editing(ownDuty(), role)
+
+      expect(
+        screen.getByRole('heading', {
+          level: 1,
+          name: 'Wartung des Trinkwassererwärmers bearbeiten',
+        }),
+      ).toBeTruthy()
+    },
+  )
+
+  it.each(['site_management', 'technician'] as const)(
+    'is nobody else: "%s" is told so and given no form',
+    async (role) => {
+      await mount(editAt, role, { '/duties/d-own': ownDuty() })
+
+      expect(await screen.findByText(dutyFormWords.mayNotChange)).toBeTruthy()
+      expect(screen.queryByRole('button', { name: 'Speichern' })).toBeNull()
+      expect(screen.queryByLabelText('Bezeichnung')).toBeNull()
+    },
+  )
+
+  it('offers nothing for a duty from the catalogue, whose kind says its name, basis, source and task', async () => {
+    await mount(editAt, 'management', {
+      '/duties/d-own': ownDuty({
+        kind: 'probe.elevator_main_test',
+        kindVersion: 1,
+        label: null,
+        basis: null,
+        sourceNote: null,
+        task: null,
+        title: 'Hauptprüfung der Aufzugsanlage',
+      }),
+    })
+
+    expect(await screen.findByText(dutyFormWords.fromTheCatalogue)).toBeTruthy()
+    expect(screen.queryByLabelText('Bezeichnung')).toBeNull()
+    expect(screen.queryByLabelText('Quelle')).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Speichern' })).toBeNull()
+  })
+
+  it('offers nothing for a duty that has ended', async () => {
+    await mount(editAt, 'management', {
+      '/duties/d-own': ownDuty({ ended: true, endsOn: '2026-09-05' }),
+    })
+
+    expect(await screen.findByText(dutyFormWords.ended)).toBeTruthy()
+    expect(screen.queryByRole('button', { name: 'Speichern' })).toBeNull()
+  })
+})
+
+describe('the form over a duty of the operator own (#178)', () => {
+  it('starts with what the duty says, offers no place and shows how it counts without offering it', async () => {
+    await editing()
+
+    expect(valueOf('Bezeichnung')).toBe('Wartung des Trinkwassererwärmers')
+    expect(choice('Tätigkeit').value).toBe('maintenance')
+    expect(choice('Grundlage').value).toBe('manufacturer')
+    expect(valueOf('Quelle')).toBe('Betriebsanleitung SW 750, Abschnitt 9')
+    expect(valueOf('Frist')).toBe('12')
+    expect(choice('Einheit').value).toBe('months')
+    expect(valueOf('Angabe zur Fremdfirma')).toBe('Heizungsbau Beispiel GmbH')
+    expect(screen.getByText('Pflicht an AN-00057 Trinkwassererwärmer')).toBeTruthy()
+    // What it hangs on stays, and so does how it counts.
+    expect(screen.queryByRole('group', { name: dutyFormWords.hangsOn })).toBeNull()
+    expect(screen.queryByRole('combobox', { name: 'Liegenschaft' })).toBeNull()
+    expect(screen.queryByRole('combobox', { name: 'Gezählt' })).toBeNull()
+    expect([
+      valueOf('Gezählt'),
+      screen.getByLabelText<HTMLInputElement>('Gezählt').readOnly,
+    ]).toEqual(['Ab dem fälligen Tag', true])
+    expect(screen.getByText(dutyFormWords.countingStays)).toBeTruthy()
+  })
+
+  it('sends what changed and nothing else to the route of the duty, and opens its page again', async () => {
+    const router = await editing()
+
+    answerToWrite = answering({ id: 'd-own' }, 200)
+    type('Quelle', ' Betriebsanleitung SW 750, Abschnitt 9.2 ')
+    type('Frist', '6')
+    press('Speichern')
+
+    await waitFor(() => {
+      expect(router.state.location.pathname).toBe('/pflichten/d-own')
+    })
+    expect(written).toEqual([
+      {
+        method: 'PATCH',
+        path: '/duties/d-own',
+        body: { sourceNote: 'Betriebsanleitung SW 750, Abschnitt 9.2', intervalMonths: 6 },
+      },
+    ])
+  })
+
+  it('sends the interval under the other unit where the unit changes', async () => {
+    await editing()
+
+    answerToWrite = answering({ id: 'd-own' }, 200)
+    type('Frist', '90')
+    choose('Einheit', 'days')
+    press('Speichern')
+
+    await waitFor(() => {
+      expect(written).toHaveLength(1)
+    })
+    expect(written[0]?.body).toEqual({ intervalDays: 90 })
+  })
+
+  it('names no contractor once its own people perform the duty', async () => {
+    await editing()
+
+    answerToWrite = answering({ id: 'd-own' }, 200)
+    pick('Eigene Leute')
+    press('Speichern')
+
+    await waitFor(() => {
+      expect(written).toHaveLength(1)
+    })
+    expect(written[0]?.body).toEqual({ performer: 'own_staff', performerNote: null })
+  })
+
+  it('asks the server nothing where nothing changed, and leads back to the page of the duty', async () => {
+    const router = await editing()
+
+    type('Bezeichnung', ' Wartung des Trinkwassererwärmers ')
+    press('Speichern')
+
+    await waitFor(() => {
+      expect(router.state.location.pathname).toBe('/pflichten/d-own')
+    })
+    expect(written).toEqual([])
+  })
+
+  it('gives a duty entered before it had to name its task the task it lacks', async () => {
+    await editing(ownDuty({ task: null }))
+
+    expect(choice('Tätigkeit').value).toBe('')
+
+    press('Speichern')
+
+    expect(await screen.findByText(dutyFormWords.noTask)).toBeTruthy()
+    expect(written).toEqual([])
+
+    answerToWrite = answering({ id: 'd-own' }, 200)
+    choose('Tätigkeit', 'inspection')
+    press('Speichern')
+
+    await waitFor(() => {
+      expect(written).toHaveLength(1)
+    })
+    expect(written[0]?.body).toEqual({ task: 'inspection' })
+  })
+
+  it('is not sent without its name or its source, and says so at the fields', async () => {
+    await editing()
+
+    type('Bezeichnung', '  ')
+    type('Quelle', '')
+    press('Speichern')
+
+    expect(await screen.findByText(dutyFormWords.noLabel)).toBeTruthy()
+    expect(screen.getByText(dutyFormWords.noSource)).toBeTruthy()
+    expect(screen.getByRole('alert').textContent).toBe(dutyFormWords.check)
+    expect(written).toEqual([])
+  })
+
+  it('keeps the person it names who has since been shut out, and sends nobody anew for them', async () => {
+    await editing(
+      ownDuty({
+        responsibleUserId: 'u-gone',
+        responsible: { userId: 'u-gone', name: 'Gerd Fort' },
+      }),
+    )
+
+    await waitFor(() => {
+      expect([...choice('Verantwortlich').options].map((option) => option.text)).toEqual([
+        'Niemand',
+        'Dennis Roth',
+        'Gerd Fort (gesperrt)',
+        'Petra Lindner',
+      ])
+    })
+    expect(choice('Verantwortlich').value).toBe('u-gone')
+
+    answerToWrite = answering({ id: 'd-own' }, 200)
+    type('Bezeichnung', 'Wartung Trinkwassererwärmer')
+    press('Speichern')
+
+    await waitFor(() => {
+      expect(written).toHaveLength(1)
+    })
+    expect(written[0]?.body).toEqual({ label: 'Wartung Trinkwassererwärmer' })
+  })
+
+  it('shows what the server refuses with, and stays', async () => {
+    const router = await editing()
+
+    answerToWrite = answering(
+      { message: 'Diese Pflicht ist beendet; eine beendete Pflicht ändert sich nicht mehr.' },
+      409,
+    )
+    type('Frist', '6')
+    press('Speichern')
+
+    expect((await screen.findByRole('alert')).textContent).toBe(
+      'Diese Pflicht ist beendet; eine beendete Pflicht ändert sich nicht mehr.',
+    )
+    expect(router.state.location.pathname).toBe(editAt)
+  })
+
+  it('says without a connection that it needs one, and cannot be sent', async () => {
+    await editing()
+
+    window.dispatchEvent(new Event('offline'))
+
+    expect(await screen.findByText(dutyFormWords.noConnectionToChange)).toBeTruthy()
+    expect(screen.getByRole<HTMLButtonElement>('button', { name: 'Speichern' }).disabled).toBe(true)
+  })
+
+  it('leads back to the page of the duty', async () => {
+    const router = await editing()
+
+    press('Abbrechen')
+
+    await waitFor(() => {
+      expect(router.state.location.pathname).toBe('/pflichten/d-own')
+    })
+    expect(written).toEqual([])
+  })
+})
+
+describe('removing a duty entered by mistake (#178)', () => {
+  it('asks first, says what removing means and when to end instead, removes it at the route of the duty and opens the register', async () => {
+    const router = await editing()
+
+    press('Pflicht entfernen')
+
+    const question = within(
+      await screen.findByRole('alertdialog', {
+        name: '„Wartung des Trinkwassererwärmers“ entfernen?',
+      }),
+    )
+
+    expect(question.getByText(dutyFormWords.removeAsks)).toBeTruthy()
+    expect(written).toEqual([])
+
+    answerToWrite = answering({ id: 'd-own' }, 200)
+    fireEvent.click(question.getByRole('button', { name: 'Entfernen' }))
+
+    await waitFor(() => {
+      expect(router.state.location.pathname).toBe('/pflichten')
+    })
+    expect(written).toEqual([{ method: 'DELETE', path: '/duties/d-own', body: undefined }])
+  })
+
+  it('is not offered for a duty with evidence or a signed activity, which is ended instead', async () => {
+    await editing(ownDuty({ removable: false }))
+
+    expect(screen.queryByRole('button', { name: 'Pflicht entfernen' })).toBeNull()
+    expect(screen.getByText(dutyFormWords.removeOrEnd)).toBeTruthy()
+  })
+
+  it('shows what the server refuses with, and stays', async () => {
+    const router = await editing()
+
+    press('Pflicht entfernen')
+    answerToWrite = answering(
+      {
+        message:
+          'Zu dieser Pflicht gibt es Nachweise oder einen unterschriebenen Vorgang. Sie wird nicht entfernt, sondern beendet.',
+      },
+      409,
+    )
+    fireEvent.click(
+      within(await screen.findByRole('alertdialog')).getByRole('button', { name: 'Entfernen' }),
+    )
+
+    expect((await screen.findByRole('alert')).textContent).toBe(
+      'Zu dieser Pflicht gibt es Nachweise oder einen unterschriebenen Vorgang. Sie wird nicht entfernt, sondern beendet.',
+    )
+    expect(router.state.location.pathname).toBe(editAt)
   })
 })

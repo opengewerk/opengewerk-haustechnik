@@ -791,6 +791,78 @@ describe('changing a duty', () => {
       (await change({ intervalMonths: 18, intervalReason: 'Wenig genutzt.' }).expect(200)).body,
     ).toMatchObject({ intervalMonths: 18, intervalReason: 'Wenig genutzt.' })
   })
+
+  it('keeps the evidence and the appointment of a duty of the operator own, how it counts and what it hangs on (#178)', async () => {
+    const place = await placeIn()
+    const duty = (
+      await post({
+        buildingId: place.building,
+        label: 'Dachrinnen reinigen',
+        basis: 'insurer',
+        sourceNote: 'Vertrag 4711',
+        task: 'maintenance',
+        counting: 'from_due',
+        intervalMonths: 12,
+      }).expect(201)
+    ).body as { id: string; propertyId: string; areaId: string }
+
+    await admin.query(
+      `insert into evidence (tenant_id, property_id, area_id, duty_id, performed_on, result,
+                             ${writtenColumnNames})
+       values ($1, $2, $3, $4, '2026-10-01', 'without_defects', ${writtenPlaceholders(5)})`,
+      [
+        small,
+        duty.propertyId,
+        duty.areaId,
+        duty.id,
+        ...writtenValues('u-duties', '2026-10-01' as IsoDate, 'without_defects'),
+      ],
+    )
+
+    const read = async (path: string) =>
+      (await http().get(path).set(testIdentityHeader, by('u-duties')).expect(200)).body
+    const before = await read(`/duties/${duty.id}`)
+
+    // What the form of the office sends, and what it hangs on and how it
+    // counts beside it: the route takes none of the two.
+    expect(
+      (
+        await http()
+          .patch(`/duties/${duty.id}`)
+          .set(testIdentityHeader, by('u-duties'))
+          .send({
+            label: 'Dachrinnen und Fallrohre reinigen',
+            basis: 'own_decision',
+            sourceNote: 'Gebäudeversicherung, Vertrag 4711, Anlage 2',
+            task: 'inspection',
+            intervalMonths: 12,
+            responsibleUserId: 'u-site',
+            performer: 'contractor',
+            performerNote: 'Dachdecker Beispiel GmbH',
+            counting: 'from_performance',
+            buildingId: null,
+            roomId: place.room,
+          })
+          .expect(200)
+      ).body,
+    ).toMatchObject({
+      label: 'Dachrinnen und Fallrohre reinigen',
+      basis: 'own_decision',
+      task: 'inspection',
+      counting: 'from_due',
+      buildingId: place.building,
+      roomId: null,
+    })
+
+    const after = await read(`/duties/${duty.id}`)
+
+    expect([after.state, after.appointment, after.lastMetOn]).toEqual([
+      before.state,
+      before.appointment,
+      '2026-10-01',
+    ])
+    expect(await read(`/duties/${duty.id}/evidence`)).toHaveLength(1)
+  })
 })
 
 describe('the unit of an interval', () => {
@@ -869,11 +941,17 @@ describe('removing a duty', () => {
       }
     const remove = (id: string) =>
       http().delete(`/duties/${id}`).set(testIdentityHeader, by('u-duties'))
+    // What the page of a duty says before it offers removing it (#178).
+    const removable = async (id: string) =>
+      (await http().get(`/duties/${id}`).set(testIdentityHeader, by('u-duties')).expect(200)).body
+        .removable as boolean
     const refusal =
       'Zu dieser Pflicht gibt es Nachweise oder einen unterschriebenen Vorgang. Sie wird nicht entfernt, sondern beendet.'
 
     // Entered by mistake, with an activity not begun: removed, and the activity line with it.
     const mistaken = await made(mainTest)
+
+    expect(await removable(mistaken.id)).toBe(true)
 
     await remove(mistaken.id).expect(200)
 
@@ -893,6 +971,7 @@ describe('removing a duty', () => {
       [small, signed.propertyId, signed.areaId, rows[0]?.id, signed.id],
     )
 
+    expect(await removable(signed.id)).toBe(false)
     expect((await remove(signed.id).expect(409)).body.message).toBe(refusal)
 
     // An evidence was written for it: it was right, and it ends.
@@ -913,6 +992,7 @@ describe('removing a duty', () => {
       ],
     )
 
+    expect(await removable(evidenced.id)).toBe(false)
     expect((await remove(evidenced.id).expect(409)).body.message).toBe(refusal)
 
     const { rows: kept } = await admin.query<{ deleted: number }>(

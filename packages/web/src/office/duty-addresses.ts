@@ -27,6 +27,8 @@ export const dutyPlaces = {
   duty: (id: string) => `/pflichten/${id}`,
   /** The form of a duty of the operator's own, before the page of a duty: "neu" is no id. */
   new: '/pflichten/neu',
+  /** The same form over a duty of the operator's own there is (#178). */
+  edit: (id: string) => `/pflichten/${id}/bearbeiten`,
 } as const
 
 /**

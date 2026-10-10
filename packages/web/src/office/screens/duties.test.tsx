@@ -92,6 +92,7 @@ function entry(id: string, further: Readonly<Record<string, unknown>> = {}): Dut
     performer: 'own_staff',
     performerNote: null,
     ended: false,
+    removable: false,
     asset: {
       id: 'a-lift',
       number: 'AN-00012',

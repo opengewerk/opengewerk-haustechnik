@@ -1014,6 +1014,17 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   Person und reicht 1.500 Einträge zurück; eine Seite weiter hinten lehnt die Route ab, weil
   der Server sonst die ganze Geschichte eines Orts auf einmal läse und sortierte (Befund von
   Strix). Bisher gab es keinen Ort, an dem man sah, was an einem Gebäude über die Zeit geschah
+- Eigene Pflicht im Büro bearbeiten und eine irrtümlich angelegte entfernen (#178): Die Seite
+  einer eigenen Pflicht hat "Bearbeiten" für alle, die das Pflichtenverzeichnis führen. Das
+  Formular ist das von "Eigene Pflicht" ohne die Wahl des Orts; Bezeichnung, Tätigkeit,
+  Grundlage, Quelle, Frist, Verantwortlich und wer ausführt lassen sich ändern, gesendet wird
+  nur, was sich geändert hat. Woran die Pflicht hängt und wie sie zählt, bleibt, und eine
+  Pflicht ohne Tätigkeit bekommt hier ihre. Hat sie keinen Nachweis und keinen unterschriebenen
+  Vorgang, steht dort "Pflicht entfernen" mit einer Rückfrage; die Seite liest das aus derselben
+  Prüfung wie die Route (`removable` an `GET /duties/:id`). Eine Pflicht aus dem Katalog hat
+  kein "Bearbeiten". Bisher ließ sich ein Tippfehler in der Quelle oder eine längere Frist nur
+  beheben, indem man die Pflicht beendete und neu anlegte, und dabei ging der Bezug zu ihren
+  Nachweisen verloren
 
 ### Geändert
 
