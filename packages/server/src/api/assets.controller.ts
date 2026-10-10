@@ -519,18 +519,19 @@ export class AssetsController {
       const asset = await placeOf<Asset>(tx, assets, id, missing)
       const parentId = values.parentAssetId === null ? null : String(values.parentAssetId)
 
-      // The database refuses a circle by reading the chain above the new
-      // parent, as it stands; two assets hung under each other at the same
-      // moment would each read the other's chain from before (#78, T12-1).
-      // So every change of the hierarchy in a building waits for the one
-      // before it, at the row of the building, and then reads what it did.
-      await tx
-        .select({ id: buildings.id })
-        .from(buildings)
-        .where(eq(buildings.id, asset.buildingId))
-        .for('no key update')
-
       if (parentId !== null) {
+        // The database refuses a circle by reading the chain above the new
+        // parent, as it stands; two assets hung under each other at the same
+        // moment would each read the other's chain from before (#78, T12-1).
+        // So every hanging under an asset in a building waits for the one
+        // before it, at the row of the building, and then reads what it did.
+        // Taking an asset out from under another closes no circle.
+        await tx
+          .select({ id: buildings.id })
+          .from(buildings)
+          .where(eq(buildings.id, asset.buildingId))
+          .for('no key update')
+
         const parent = await placeOf<Asset>(tx, assets, parentId, missing)
 
         if (parent.buildingId !== asset.buildingId) {
