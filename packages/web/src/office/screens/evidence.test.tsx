@@ -262,10 +262,11 @@ describe('the page of an evidence', () => {
 
     const signatures = screen.getByRole('region', { name: 'Unterschriften' }).textContent ?? ''
 
-    expect(signatures).toContain('UnterschriftTobias Wendt01.10.2026, 07:42Gegen')
+    // The hour is the one of the clock the test runs on, which the CI keeps in UTC.
+    expect(signatures).toMatch(/UnterschriftTobias Wendt01\.10\.2026, \d\d:\d\dGegen/)
     // The evidence says which way somebody signed (#209).
-    expect(signatures).toContain(
-      'GegenzeichnungDennis Roth02.10.2026, 08:15, mit getipptem Namen bestätigt',
+    expect(signatures).toMatch(
+      /GegenzeichnungDennis Roth02\.10\.2026, \d\d:\d\d, mit getipptem Namen bestätigt/,
     )
     expect(screen.getByText('f'.repeat(64))).toBeTruthy()
     expect(screen.getByText('Warmwasser am Speicheraustritt 55,5 °C')).toBeTruthy()
