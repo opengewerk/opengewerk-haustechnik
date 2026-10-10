@@ -157,8 +157,15 @@ export interface Timeline {
   readonly more: boolean
 }
 
-/** How many entries a page of the timeline holds, and the most one may ask for. */
-export const timelinePage = { size: 30, most: 100 } as const
+/**
+ * How many entries a page of the timeline holds, the most one may ask for,
+ * and how far back the pages reach. Every source is read up to the end of
+ * the page asked for and the whole is sorted on the server, so a page far
+ * back would have it read and sort a place's entire history at once (CWE-400,
+ * Strix on #223). Older entries stand in the lists of activities, defects and
+ * evidence, narrowed to the place.
+ */
+export const timelinePage = { size: 30, most: 100, furthest: 1500 } as const
 
 /** The place a timeline is of: a property, a building, a room or an asset, and everything below it. */
 export type TimelinePlace =

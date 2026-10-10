@@ -10,6 +10,7 @@ import {
   type TenantId,
   type Timeline,
   timelineEventWords,
+  timelinePage,
 } from '@opengewerk/haustechnik-domain'
 import { Database, newId } from '@opengewerk/platform-server'
 import type { Pool } from 'pg'
@@ -564,6 +565,25 @@ describe('the timeline of a place', () => {
     )
     expect(await refused({ building: places.house, category: 'tasks' })).toMatch(
       /Die Art ist eine von/,
+    )
+  })
+
+  // Every source is read up to the end of the page asked for, so a page far
+  // back would have the server read and sort a place's entire history (CWE-400,
+  // Strix on #223).
+  it('reaches back no further than its pages go', async () => {
+    const page = (offset: number) =>
+      http()
+        .get('/overview/timeline')
+        .query({ building: places.house, offset: String(offset) })
+        .set(testIdentityHeader, by('u-lead'))
+
+    await page(timelinePage.furthest).expect(200)
+
+    const refused = await page(timelinePage.furthest + 1).expect(400)
+
+    expect(refused.body.message).toBe(
+      `Eine Seite beginnt bei einer ganzen Zahl von 0 bis ${String(timelinePage.furthest)}; ältere Einträge stehen in den Listen der Vorgänge, Mängel und Nachweise.`,
     )
   })
 })

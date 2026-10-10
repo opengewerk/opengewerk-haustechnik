@@ -147,8 +147,8 @@ export class OverviewController {
       offset: counted(
         said(query, 'offset'),
         0,
-        { least: 0, most: Number.MAX_SAFE_INTEGER },
-        'Eine Seite beginnt bei einer ganzen Zahl ab 0.',
+        { least: 0, most: timelinePage.furthest },
+        `Eine Seite beginnt bei einer ganzen Zahl von 0 bis ${String(timelinePage.furthest)}; ältere Einträge stehen in den Listen der Vorgänge, Mängel und Nachweise.`,
       ),
       limit: counted(
         said(query, 'limit'),

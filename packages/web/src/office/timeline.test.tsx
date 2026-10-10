@@ -1,10 +1,11 @@
-import type { Timeline, TimelineEvent } from '@opengewerk/haustechnik-domain'
+import { type Timeline, type TimelineEvent, timelinePage } from '@opengewerk/haustechnik-domain'
 import { TestServer } from '@opengewerk/platform-web/testing'
 import { fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { servingCatalogue } from '../app/test-catalogue.js'
 import { mountOffice, type NamedArea, onA, signedInOffice } from './test-office.js'
+import { olderPageOf } from './timeline.js'
 
 /**
  * The timeline of a place in the office (#123, 4.1 of the concept): the
@@ -188,6 +189,21 @@ describe('the timeline of a place', () => {
       expect(entries()).toHaveLength(3)
     })
     expect(screen.queryByRole('button', { name: 'Ältere laden' })).toBeNull()
+  })
+
+  it('loads older pages up to where the timeline reaches back, and no further', () => {
+    const page = (size: number, more: boolean) =>
+      timeline(
+        Array.from({ length: size }, () => handedIn),
+        more,
+      )
+    const reached = Array.from({ length: timelinePage.furthest / 30 }, () => page(30, true))
+
+    expect(olderPageOf([page(30, true)])).toBe(30)
+    expect(olderPageOf([page(30, false)])).toBeNull()
+    expect(olderPageOf(reached)).toBe(timelinePage.furthest)
+    expect(olderPageOf([...reached, page(30, true)])).toBe('furthest')
+    expect(olderPageOf([...reached, page(30, false)])).toBeNull()
   })
 
   it('says so where the server does not answer', async () => {

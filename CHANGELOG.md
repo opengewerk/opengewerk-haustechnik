@@ -999,7 +999,9 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   `/overview/timeline`); ein für ungültig erklärter Nachweis steht mit diesem Vermerk darin.
   Die Liegenschaft zeigt die neuesten Einträge in einer Karte, das Lagebild führt von den
   letzten Vorgängen dorthin, Raum und Anlage haben einen Knopf "Zeitachse". Sie nennt keine
-  Person. Bisher gab es keinen Ort, an dem man sah, was an einem Gebäude über die Zeit geschah
+  Person und reicht 1.500 Einträge zurück; eine Seite weiter hinten lehnt die Route ab, weil
+  der Server sonst die ganze Geschichte eines Orts auf einmal läse und sortierte (Befund von
+  Strix). Bisher gab es keinen Ort, an dem man sah, was an einem Gebäude über die Zeit geschah
 
 ### Geändert
 

@@ -64,6 +64,7 @@ export const timelineWords = {
   none: 'Hier ist noch nichts geschehen, was die Zeitachse nennt.',
   nothingPasses: 'Nichts von dieser Art ist hier geschehen.',
   older: 'Ältere laden',
+  furthest: `Weiter als ${timelinePage.furthest.toLocaleString('de-DE')} Einträge reicht die Zeitachse nicht zurück. Ältere stehen in den Listen der Prüfungen, Mängel und Nachweise.`,
   whole: 'Ganze Zeitachse',
   note: 'Dieselbe Zeitachse gibt es an jeder Liegenschaft, jedem Gebäude, jedem Raum und jeder Anlage. Sie nennt keine Person; wer etwas getan hat, steht auf der Seite des Vorgangs.',
 } as const
@@ -116,6 +117,24 @@ export function timelineRequest(
 }
 
 const retry = (count: number, error: unknown) => !(error instanceof RequestRefused) && count < 2
+
+/**
+ * Where the next page of a timeline begins: after the entries loaded so far,
+ * null where the server says nothing older follows, and "furthest" where
+ * older entries follow but lie beyond what the timeline reaches back to
+ * (timelinePage.furthest).
+ */
+export function olderPageOf(pages: readonly Timeline[]): number | 'furthest' | null {
+  const last = pages.at(-1)
+
+  if (last === undefined || !last.more) {
+    return null
+  }
+
+  const loaded = pages.reduce((sum, page) => sum + page.events.length, 0)
+
+  return loaded > timelinePage.furthest ? 'furthest' : loaded
+}
 
 /** The symbol of an entry, as the navigation has it for what it belongs to. */
 const categoryIcons: Readonly<Record<TimelineCategory, LucideIcon>> = {
@@ -300,8 +319,11 @@ export function TimelineScreen() {
     queryFn: ({ pageParam }) =>
       request<Timeline>(timelineRequest(place as TimelinePlace, category, pageParam)),
     initialPageParam: 0,
-    getNextPageParam: (last, all) =>
-      last.more ? all.reduce((sum, page) => sum + page.events.length, 0) : undefined,
+    getNextPageParam: (_last, all) => {
+      const next = olderPageOf(all)
+
+      return typeof next === 'number' ? next : undefined
+    },
     enabled: place !== null,
     retry,
   })
@@ -389,7 +411,9 @@ export function TimelineScreen() {
               </ul>
             </div>
           ))}
-          {pages.hasNextPage ? (
+          {pages.data !== undefined && olderPageOf(pages.data.pages) === 'furthest' ? (
+            <p className="px-3.5 py-[9px] text-[13px] text-ink-muted">{timelineWords.furthest}</p>
+          ) : pages.hasNextPage ? (
             <div className="px-3.5 py-[9px]">
               <button
                 type="button"
