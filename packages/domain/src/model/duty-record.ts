@@ -1,4 +1,6 @@
 import {
+  type AttachmentId,
+  type AttachmentVersionId,
   type DeadlineInterval,
   type Id,
   intervalMonthsProblem,
@@ -85,6 +87,13 @@ export interface Duty extends Synced, PlaceTarget {
   readonly intervalDays: number | null
   readonly intervalMonths: number | null
   readonly intervalReason: string | null
+  /**
+   * The document that bears the interval, on request (section 4.3, #74), and
+   * the version of it the duty points at: the newest on the day the reference
+   * was set. Both or neither.
+   */
+  readonly intervalDocumentId: AttachmentId | null
+  readonly intervalDocumentVersionId: AttachmentVersionId | null
   /** The maximum of its kind on the day it was confirmed: a confirmed duty does not change quietly. */
   readonly maximumDays: number | null
   readonly maximumMonths: number | null

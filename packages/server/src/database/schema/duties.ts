@@ -24,6 +24,7 @@ import {
   integer,
   pgEnum,
   pgTable,
+  type PgTableExtraConfigValue,
   text,
   timestamp,
   unique,
@@ -32,6 +33,7 @@ import {
 
 import { withinAreas } from './areas.js'
 import { assets } from './assets.js'
+import { attachments, attachmentVersions } from './attachments.js'
 import { buildings, optionalTrimmed, properties, rooms, trimmed } from './locations.js'
 
 // The duties of an operator (section 2.3 of the concept, ADR 0002, points 10
@@ -72,6 +74,12 @@ function intervalBounds(days: unknown, months: unknown) {
  * maximum of the day it was confirmed stands beside it, and the database
  * refuses a longer interval: a confirmed duty does not change quietly when the
  * law does (section 2.3), and a maximum may only be shortened.
+ *
+ * The document that bears the interval, on request (section 4.3, #74): a
+ * document of the same property, with the version of the day the reference
+ * was set, both or neither. The keys hold that the document is one of the
+ * property of the duty and that the version is one of that document; which
+ * records of the property the document may hang on, the route asks.
  */
 export const duties = pgTable(
   'duties',
@@ -93,6 +101,8 @@ export const duties = pgTable(
     intervalDays: integer('interval_days'),
     intervalMonths: integer('interval_months'),
     intervalReason: text('interval_reason'),
+    intervalDocumentId: reference<'attachment'>('interval_document_id'),
+    intervalDocumentVersionId: reference<'attachment-version'>('interval_document_version_id'),
     maximumDays: integer('maximum_days'),
     maximumMonths: integer('maximum_months'),
     responsibleUserId: text('responsible_user_id'),
@@ -105,7 +115,9 @@ export const duties = pgTable(
     ...timestamps,
     ...syncColumns,
   },
-  (table) => [
+  // Typed, because the keys onto the documents close a circle: a document may
+  // hang on an activity, and an activity names its duties.
+  (table): PgTableExtraConfigValue[] => [
     tenantIsolation(table.tenantId),
     withinAreas(),
     unique('duties_tenant_id_key').on(table.tenantId, table.id),
@@ -140,6 +152,20 @@ export const duties = pgTable(
       columns: [table.tenantId, table.confirmedBy],
       foreignColumns: [memberships.tenantId, memberships.userId],
       name: 'duties_confirmed_by_somebody_here',
+    }),
+    foreignKey({
+      columns: [table.tenantId, table.intervalDocumentId, table.propertyId],
+      foreignColumns: [attachments.tenantId, attachments.id, attachments.propertyId],
+      name: 'duties_interval_document_of_their_property',
+    }),
+    foreignKey({
+      columns: [table.tenantId, table.intervalDocumentVersionId, table.intervalDocumentId],
+      foreignColumns: [
+        attachmentVersions.tenantId,
+        attachmentVersions.id,
+        attachmentVersions.attachmentId,
+      ],
+      name: 'duties_interval_document_version_of_it',
     }),
     index('duties_property_idx').on(table.tenantId, table.propertyId),
     index('duties_asset_idx').on(table.tenantId, table.assetId),
@@ -186,6 +212,11 @@ export const duties = pgTable(
     check('duties_end_reason_shaped', optionalTrimmed(table.endReason, dutyLimits.endReason)),
     // A reason for an end only with the day it ends.
     check('duties_end_whole', sql`${table.endReason} is null or ${table.endsOn} is not null`),
+    // The document and its version come together, or neither.
+    check(
+      'duties_interval_document_whole',
+      sql`(${table.intervalDocumentId} is null) = (${table.intervalDocumentVersionId} is null)`,
+    ),
     check(
       'duties_interval_one_unit',
       sql`(${table.intervalDays} is null) <> (${table.intervalMonths} is null)`,

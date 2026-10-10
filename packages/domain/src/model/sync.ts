@@ -547,6 +547,8 @@ export const syncFieldNames: Readonly<Record<string, string>> = {
   intervalDays: 'Frist in Tagen',
   intervalMonths: 'Frist in Monaten',
   intervalReason: 'Begründung der Frist',
+  intervalDocumentId: 'Dokument, das die Frist trägt',
+  intervalDocumentVersionId: 'Fassung dieses Dokuments',
   maximumDays: 'Höchstfrist in Tagen',
   maximumMonths: 'Höchstfrist in Monaten',
   responsibleUserId: 'Verantwortlich',

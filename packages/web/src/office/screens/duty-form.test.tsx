@@ -554,6 +554,10 @@ function ownDuty(further: Readonly<Record<string, unknown>> = {}): DutyDetails {
     lastMetOn: null,
     ended: false,
     removable: true,
+    intervalDocumentId: null,
+    intervalDocumentVersionId: null,
+    intervalDocument: null,
+    intervalToCheck: false,
     asset: {
       id: 'a-heater',
       number: 'AN-00057',

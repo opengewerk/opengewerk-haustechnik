@@ -1,5 +1,6 @@
 import {
   type AssetDetails,
+  bearsTheIntervalOf,
   type Catalogue,
   catalogueOriginLabel,
   type CatalogueEntry,
@@ -7,6 +8,7 @@ import {
   countingLabel,
   type DeadlineInterval,
   type DutyDetails,
+  type DutyIntervalDocument,
   dutyIntervalProblem,
   type DutyKind,
   dutyLimits,
@@ -14,6 +16,7 @@ import {
   type DutyPerformer,
   dutyPerformerLabel,
   dutyPerformers,
+  type DutyPlaceChain,
   dutyProblems,
   dutyTaskLabel,
   evidenceKindLabel,
@@ -36,15 +39,17 @@ import {
   SelectField,
   TextArea,
 } from '@opengewerk/platform-web'
+import { useVersions } from '@opengewerk/platform-web/attachments'
 import { date, today } from '@opengewerk/platform-web/format'
 import { Empty, FactList, PageHead, Screen } from '@opengewerk/platform-web/office'
 import { useRight } from '@opengewerk/platform-web/session'
-import { refusalFor, useRecords, useSync, useSyncStatus } from '@opengewerk/platform-web/sync'
+import { refusalFor, text, useRecords, useSync, useSyncStatus } from '@opengewerk/platform-web/sync'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate, useParams, useSearch } from '@tanstack/react-router'
 import { Check, Info, X } from 'lucide-react'
 import { type FormEvent, useState } from 'react'
 
+import { isWaiting } from '../../app/documents.js'
 import { ReviewMarks } from '../../app/review-marks.js'
 import { useCatalogue } from '../../sync/catalogue.js'
 import { askAt, makeAt } from '../../sync/made-at.js'
@@ -77,7 +82,11 @@ import { afterADecision, assetName, DismissProposalDialog } from './proposals.js
  * maximum.
  *
  * The document that bears the interval (#74) comes under the reason, as a
- * reference the operator may give and need not.
+ * reference the operator may give and need not: one filed at the asset, its
+ * room, its building or its property, for whoever may look at documents. The
+ * server keeps the newest version of it; over a duty there is, saving with
+ * the same document takes the newest version again, which is how a duty
+ * that says "Frist prüfen" is checked.
  *
  * Whoever keeps the register fills it in, with a connection.
  */
@@ -112,6 +121,13 @@ export const confirmWords = {
     'Ändert sich die Frist, rechnet der Termin mit ihr neu. Nachweise und Vorgänge bleiben bei der Pflicht.',
   maximumKept:
     'Die Höchstfrist ist die vom Tag der Bestätigung. Eine neue Fassung des Pakets ändert sie nicht still.',
+  document: 'Dokument, das die Frist trägt',
+  noDocument: 'Kein Dokument',
+  documentFrom: 'Aus der Ablage der Anlage, ihres Raums, ihres Gebäudes oder ihrer Liegenschaft.',
+  noDocumentThere:
+    'In der Ablage der Anlage, ihres Raums, ihres Gebäudes und ihrer Liegenschaft liegt kein Dokument.',
+  documentRemoved: 'aus der Ablage entfernt',
+  removedChoose: 'Das Dokument ist aus der Ablage entfernt. Wählen Sie ein anderes oder keines.',
 } as const
 
 /** What the form holds, each field as the text that stands in it. */
@@ -119,6 +135,8 @@ interface Typed {
   readonly interval: string
   readonly unit: 'months' | 'days'
   readonly reason: string
+  /** The document that bears the interval, or nothing. */
+  readonly documentId: string
   readonly responsibleUserId: string
   readonly performer: DutyPerformer | null
   readonly performerNote: string
@@ -173,6 +191,7 @@ function described(typed: Typed) {
   return {
     ...intervalOf(typed),
     intervalReason: typed.reason.trim() === '' ? null : typed.reason.trim(),
+    intervalDocumentId: typed.documentId === '' ? null : typed.documentId,
     responsibleUserId: typed.responsibleUserId === '' ? null : typed.responsibleUserId,
     performer: typed.performer,
     // The note names the contractor, and goes only with one.
@@ -220,6 +239,7 @@ function startingWith(interval: DeadlineInterval | null): Typed {
     interval: interval === null ? '' : String('days' in interval ? interval.days : interval.months),
     unit: interval !== null && 'days' in interval ? 'days' : 'months',
     reason: '',
+    documentId: '',
     responsibleUserId: '',
     performer: null,
     performerNote: '',
@@ -232,6 +252,7 @@ function typedOf(duty: DutyDetails): Typed {
     interval: String(duty.intervalDays ?? duty.intervalMonths ?? ''),
     unit: duty.intervalDays === null ? 'months' : 'days',
     reason: duty.intervalReason ?? '',
+    documentId: duty.intervalDocumentId ?? '',
     responsibleUserId: duty.responsibleUserId ?? '',
     performer: duty.performer,
     performerNote: duty.performerNote ?? '',
@@ -401,6 +422,13 @@ function ConfirmForm({
                 problems={problems}
                 allowed={allowed}
                 named={null}
+                chain={{
+                  propertyId: asset.propertyId,
+                  buildingId: asset.buildingId,
+                  roomId: asset.roomId,
+                  assetId: asset.id,
+                }}
+                pointedAt={null}
               />
             </div>
           </Panel>
@@ -572,6 +600,12 @@ function IntervalForm({
       Object.entries(described(typed)).filter(([field, value]) => was[field] !== value),
     )
 
+    // A newer version lies over the one the duty points at: saving with the
+    // same document is the check, and the duty points at the newest (#74).
+    if (checksTheNewest(duty.intervalDocument, typed.documentId)) {
+      changes['intervalDocumentId'] = typed.documentId
+    }
+
     if (Object.keys(changes).length === 0) {
       back()
 
@@ -626,6 +660,13 @@ function IntervalForm({
                 allowed={allowed}
                 named={duty.responsible}
                 keptMaximum
+                chain={{
+                  propertyId: duty.propertyId,
+                  buildingId: duty.asset?.buildingId ?? duty.buildingId,
+                  roomId: duty.asset?.roomId ?? duty.roomId,
+                  assetId: duty.assetId,
+                }}
+                pointedAt={duty.intervalDocument}
               />
             </div>
           </Panel>
@@ -664,9 +705,110 @@ function IntervalForm({
 }
 
 /**
+ * Whether saving takes the newest version of the document a duty points at:
+ * one lies over it, the document is still in the records, and the form still
+ * names it.
+ */
+function checksTheNewest(pointedAt: DutyIntervalDocument | null, documentId: string): boolean {
+  return (
+    pointedAt !== null &&
+    !pointedAt.removed &&
+    pointedAt.newer !== null &&
+    pointedAt.id === documentId
+  )
+}
+
+/**
+ * The documents that may bear the interval of a duty at a place (#74), as
+ * the choice offers them: those of this device filed at the place or above
+ * it, whose newest version has arrived at the server, by their names. The
+ * one a duty points at stays a choice, also once it was taken out of the
+ * records.
+ */
+function useDocumentChoices(chain: DutyPlaceChain, pointedAt: DutyIntervalDocument | null) {
+  const client = useSync()
+  const documents = useRecords('attachments')
+  const versions = useVersions()
+
+  const offered = documents
+    .filter((document) => bearsTheIntervalOf(document, chain))
+    .flatMap((document) => {
+      const id = String(document['id'])
+      const newest = (versions.get(id) ?? []).find((version) => !isWaiting(client, version))
+
+      return newest === undefined
+        ? []
+        : [{ value: id, label: `${text(document, 'title')} (${text(newest, 'fileName')})` }]
+    })
+    .sort((left, right) => left.label.localeCompare(right.label, 'de'))
+  const kept =
+    pointedAt === null || offered.some((choice) => choice.value === pointedAt.id)
+      ? []
+      : [
+          {
+            value: pointedAt.id,
+            label: pointedAt.removed
+              ? `${pointedAt.title} (${confirmWords.documentRemoved})`
+              : pointedAt.title,
+          },
+        ]
+
+  return [...offered, ...kept]
+}
+
+/**
+ * The field of the document that bears the interval, with what it says
+ * under the choice: where the documents come from, or that the duty points
+ * at an older version and saving takes the newest, or that the document was
+ * taken out of the records.
+ */
+function DocumentField({
+  typed,
+  set,
+  chain,
+  pointedAt,
+}: {
+  readonly typed: Typed
+  readonly set: (values: Partial<Typed>) => void
+  readonly chain: DutyPlaceChain
+  readonly pointedAt: DutyIntervalDocument | null
+}) {
+  const choices = useDocumentChoices(chain, pointedAt)
+  const named = pointedAt !== null && pointedAt.id === typed.documentId ? pointedAt : null
+  const waiting = (words: string) => (
+    <span className="inline-flex items-start gap-1.5 text-waiting">
+      <Info size={15} strokeWidth={2.2} aria-hidden="true" className="mt-px shrink-0" />
+      <span>{words}</span>
+    </span>
+  )
+
+  return (
+    <SelectField
+      label={confirmWords.document}
+      options={[{ value: '', label: confirmWords.noDocument }, ...choices]}
+      value={typed.documentId}
+      hint={
+        named?.removed === true
+          ? waiting(confirmWords.removedChoose)
+          : named !== null && named.newer !== null
+            ? waiting(
+                `Die Pflicht zeigt auf Fassung ${String(named.version.number)} vom ${date(named.version.filedOn)}. Fassung ${String(named.newer.number)} vom ${date(named.newer.filedOn)} liegt vor; mit „Speichern“ zeigt sie auf diese.`,
+              )
+            : choices.length === 0
+              ? confirmWords.noDocumentThere
+              : confirmWords.documentFrom
+      }
+      onChange={(value) => {
+        set({ documentId: value })
+      }}
+    />
+  )
+}
+
+/**
  * The fields of the form: the interval with its unit and what the kind
- * says beside it, how it is counted, its reason, and who answers for the
- * duty and who performs it.
+ * says beside it, how it is counted, its reason and the document that bears
+ * it, and who answers for the duty and who performs it.
  */
 function IntervalFields({
   typed,
@@ -675,6 +817,8 @@ function IntervalFields({
   allowed,
   named,
   keptMaximum = false,
+  chain,
+  pointedAt,
 }: {
   readonly typed: Typed
   readonly set: (values: Partial<Typed>) => void
@@ -684,8 +828,13 @@ function IntervalFields({
   readonly named: DutyDetails['responsible']
   /** The maximum is the one kept at the duty since the day it was confirmed. */
   readonly keptMaximum?: boolean
+  /** Where the duty hangs and what lies above it, where the document that bears its interval may lie. */
+  readonly chain: DutyPlaceChain
+  /** The document a duty there is points at; none for a new one. */
+  readonly pointedAt: DutyIntervalDocument | null
 }) {
   const colleagues = useQuery(dutyColleaguesQuery)
+  const seesDocuments = useRight('document.read')
   const interval = typedInterval(typed)
   const departs =
     allowed.kind === 'guide' &&
@@ -769,7 +918,9 @@ function IntervalFields({
           set({ reason: event.target.value })
         }}
       />
-      {/* The document that bears the interval comes here, with #74. */}
+      {seesDocuments ? (
+        <DocumentField typed={typed} set={set} chain={chain} pointedAt={pointedAt} />
+      ) : null}
       <PanelLabel>Zuständig</PanelLabel>
       <div className="grid items-start gap-3 sm:grid-cols-2">
         <SelectField

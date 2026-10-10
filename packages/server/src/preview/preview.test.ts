@@ -6,6 +6,7 @@ import { catalogueBundle } from '@opengewerk/haustechnik-catalogue'
 import { probeCatalogueBundle } from '@opengewerk/haustechnik-catalogue/testing'
 import {
   blockFieldKinds,
+  type DutyDetails,
   rightsOfRoles,
   type MeterDetails,
   type MeterList,
@@ -590,6 +591,39 @@ describe('a preview started as the Leitung', () => {
     ])
   })
 
+  // What "Frist prüfen" is looked at with (#74).
+  it('has a duty whose interval stands on a document with a newer version, and it says "Frist prüfen"', async () => {
+    const server = application.getHttpServer()
+    const register = (
+      await request(server).get('/duties/register').query({ limit: '200' }).expect(200)
+    ).body as {
+      readonly duties: readonly {
+        readonly id: string
+        readonly title: string
+        readonly intervalToCheck: boolean
+        readonly asset: { readonly name: string } | null
+      }[]
+    }
+    const toCheck = register.duties.filter((duty) => duty.intervalToCheck)
+
+    expect(toCheck.map((duty) => [duty.title, duty.asset?.name])).toEqual([
+      ['Hauptprüfung der Aufzugsanlage', 'Aufzug Schulhaus'],
+    ])
+
+    const page = (
+      await request(server)
+        .get(`/duties/${String(toCheck[0]?.id)}`)
+        .expect(200)
+    ).body as DutyDetails
+
+    expect(page.intervalDocument).toMatchObject({
+      title: 'Gefährdungsbeurteilung Aufzug Schulhaus',
+      removed: false,
+      version: { number: 1 },
+      newer: { number: 2 },
+    })
+  })
+
   // What the catalogue, the choice of an asset kind and the note at a general
   // kind are looked at with (#61).
   it('hands a device the packages of this build, the probe package and the package of the preview beside them, as one catalogue', async () => {
@@ -692,6 +726,12 @@ describe('a preview started as the Leitung', () => {
         kind: 'concept',
         hangsOn: 'propertyId',
         versions: 1,
+      },
+      {
+        title: 'Gefährdungsbeurteilung Aufzug Schulhaus',
+        kind: 'concept',
+        hangsOn: 'assetId',
+        versions: 2,
       },
       {
         title: 'Revisionsunterlagen Heizung',

@@ -17,8 +17,10 @@ import {
   type DutyRegisterState,
   dutyRegisterStates,
   endedDuties,
+  type DutyIntervalDocument,
   inDueWindow,
   inRegisterOrder,
+  intervalToCheck,
   type IsoDate,
   namesAPerson,
   type PropertyId,
@@ -28,6 +30,7 @@ import { isUuid, type TenantTransaction } from '@opengewerk/platform-server'
 import { and, eq, isNotNull, isNull, or } from 'drizzle-orm'
 
 import { dutiesOnADay, dutyTitle, type RegisteredDuty } from '../database/duty-standing.js'
+import { intervalDocumentsOf } from '../database/interval-documents.js'
 import { assets, duties, rooms } from '../database/schema/index.js'
 import { counted, said } from './register-question.js'
 
@@ -124,14 +127,20 @@ export function dutyReading(
 /** A row of the register before anybody is named: the person is an id until the instance is asked. */
 export type UnnamedDutyEntry = Omit<DutyEntry, 'responsible'>
 
-/** A duty as a row of the register, on a day. */
+/**
+ * A duty as a row of the register, on a day, with the document that bears its
+ * interval where it names one: the row says "Frist prüfen" where that has a
+ * newer version or was taken out of the records (#74).
+ */
 export function dutyEntry(
   registered: RegisteredDuty,
   asset: DutyAsset | null,
   catalogue: Catalogue,
   today: IsoDate,
+  intervalDocument: DutyIntervalDocument | null = null,
 ): UnnamedDutyEntry {
   const { duty } = registered
+  const ended = dutyHasEnded(duty, today)
 
   return {
     ...dutyReading(registered, catalogue),
@@ -143,7 +152,8 @@ export function dutyEntry(
     responsibleUserId: duty.responsibleUserId,
     performer: duty.performer,
     performerNote: duty.performerNote,
-    ended: dutyHasEnded(duty, today),
+    ended,
+    intervalToCheck: intervalToCheck(intervalDocument, ended),
     asset,
   }
 }
@@ -230,19 +240,16 @@ export async function registeredEntries(
     )
 
   const assetOf = new Map(rows.map((row) => [row.duty.id as string, row.asset]))
+  const read = rows.map((row) => row.duty as Duty)
+  const documents = await intervalDocumentsOf(tx, read)
 
-  return (
-    await dutiesOnADay(
-      tx,
-      today,
-      rows.map((row) => row.duty as Duty),
-    )
-  ).map((registered) =>
+  return (await dutiesOnADay(tx, today, read)).map((registered) =>
     dutyEntry(
       registered,
       (assetOf.get(registered.duty.id) ?? null) as DutyAsset | null,
       catalogue,
       today,
+      documents.get(registered.duty.id) ?? null,
     ),
   )
 }

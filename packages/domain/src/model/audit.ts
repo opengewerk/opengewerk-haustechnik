@@ -186,6 +186,8 @@ export const auditVocabulary: AuditVocabulary = {
         interval_days: 'Frist in Tagen',
         interval_months: 'Frist in Monaten',
         interval_reason: 'Begründung der Frist',
+        interval_document_id: 'Dokument, das die Frist trägt',
+        interval_document_version_id: 'Fassung dieses Dokuments',
         maximum_days: 'Höchstfrist in Tagen',
         maximum_months: 'Höchstfrist in Monaten',
         responsible_user_id: 'Verantwortlich',

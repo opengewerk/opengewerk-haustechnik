@@ -42,8 +42,10 @@ describe('the foundation in this database', () => {
     // plan of a round as well (opengewerk-haustechnik#113, migration 0030),
     // and the meters of a property (opengewerk-haustechnik#120, migration 0033),
     // with their keys, checks
-    // and indexes. Only a restrictive policy may be named here; it takes rows
-    // away and opens none.
+    // and indexes. A duty points at the document that bears its interval and
+    // at a version of it (opengewerk-haustechnik#74, migration 0037), over a
+    // unique key on each. Only a restrictive policy may be named here; it
+    // takes rows away and opens none.
     expect(
       await foundationDeviations(admin, {
         triggers: ['memberships.default_areas'],
@@ -87,6 +89,8 @@ describe('the foundation in this database', () => {
           'attachments.attachments_hang_on_one_record',
           'attachments.attachments_at_their_activity',
           'attachments.attachments_title_shaped',
+          'attachments.attachments_on_their_property',
+          'attachment_versions.attachment_versions_of_their_document',
         ],
         indexes: [
           'deadlines.deadlines_duty_idx',

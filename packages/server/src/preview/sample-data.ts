@@ -3,6 +3,7 @@ import type { WorkOrderKind, WorkOrderUrgency } from '@opengewerk/haustechnik-do
 import { dayInGermany } from '../today.js'
 import type { PreviewArea } from './preview-database.js'
 import {
+  layLaterVersions,
   plantDocument,
   type SampleDocument,
   samplePdf,
@@ -28,8 +29,10 @@ import {
  * an open defect, so that the register of assets and the file of an asset
  * show every condition (#87). The school centre has documents (#97): one of
  * the property, one of the school house, a plan in its boiler room with
- * three versions, and at its elevator a manual with two and a photo of the
- * type plate. Beside the colleagues the
+ * three versions, and at its elevator a manual with two, a photo of the
+ * type plate and the risk assessment its main test points at, which has a
+ * newer version since, so that the duty says "Frist prüfen" (#74). Beside
+ * the colleagues the
  * preview admits, one person is asked to join and one stands in for another
  * from next week on, so that "Zugänge" shows an invitation and a substitution
  * (#84). The hall of the depot has electrical equipment of the package
@@ -136,6 +139,11 @@ export interface SampleDuty {
   readonly performerNote?: string
   /** It ended this many days ago, and calls for nothing since. */
   readonly endedDaysAgo?: number
+  /**
+   * The title of a document of its asset that bears its interval (#74),
+   * filed before the duty is confirmed.
+   */
+  readonly intervalDocument?: string
   /**
    * Evidence beside what met it, so that the page of a duty shows each thing
    * an evidence can mean for the appointment: a test that failed, an evidence
@@ -575,6 +583,9 @@ export const sampleProperties: readonly SampleProperty[] = [
                 ...mainTest(100),
                 responsible: 'preview-roth',
                 ...contractor('Prüfdienst Beispiel GmbH'),
+                // Its interval stands on the risk assessment, of which a
+                // newer version came since: the duty says "Frist prüfen" (#74).
+                intervalDocument: 'Gefährdungsbeurteilung Aufzug Schulhaus',
               },
             ],
             // What the list "Mängel" is looked at with (#116): one over its
@@ -634,6 +645,22 @@ export const sampleProperties: readonly SampleProperty[] = [
                 ],
               },
               { title: 'Typenschild', versions: [{ fileName: 'typenschild.png' }] },
+              {
+                title: 'Gefährdungsbeurteilung Aufzug Schulhaus',
+                kind: 'concept',
+                versions: [
+                  {
+                    fileName: 'gefaehrdungsbeurteilung-aufzug.pdf',
+                    words: 'Gefährdungsbeurteilung Aufzug Schulhaus, Stand 2024',
+                  },
+                ],
+                laterVersions: [
+                  {
+                    fileName: 'gefaehrdungsbeurteilung-aufzug.pdf',
+                    words: 'Gefährdungsbeurteilung Aufzug Schulhaus, Stand 2026',
+                  },
+                ],
+              },
             ],
           },
           waterMeter(
@@ -938,6 +965,7 @@ async function plantDuty(
   target: { readonly assetId: string } | { readonly roomId: string },
   duty: SampleDuty,
   standings: PlantedStandings,
+  documents: ReadonlyMap<string, string> = new Map(),
 ): Promise<void> {
   const {
     metDaysAgo = [],
@@ -952,7 +980,10 @@ async function plantDuty(
     performerNote,
     endedDaysAgo,
     alsoRecorded = [],
+    intervalDocument,
   } = duty
+  const intervalDocumentId =
+    intervalDocument === undefined ? undefined : documents.get(intervalDocument)
   const made = await send(address, '/duties', {
     ...target,
     intervalMonths,
@@ -960,6 +991,7 @@ async function plantDuty(
     ...(responsible === undefined ? {} : { responsibleUserId: responsible }),
     ...(performer === undefined ? {} : { performer }),
     ...(performerNote === undefined ? {} : { performerNote }),
+    ...(intervalDocumentId === undefined ? {} : { intervalDocumentId }),
   })
 
   for (const days of metDaysAgo) {
@@ -1020,8 +1052,23 @@ async function plantAsset(
     supplying.push({ assetId: created.id, buildings: supplies })
   }
 
+  // The documents first: a duty may point at one that bears its interval
+  // (#74), and a later version of it is laid over once the duties stand.
+  const filed = new Map<string, string>()
+
+  for (const document of documents) {
+    filed.set(
+      document.title,
+      await plantDocument(address, { propertyId, assetId: created.id }, document),
+    )
+  }
+
   for (const duty of duties) {
-    await plantDuty(address, { assetId: created.id }, duty, standings)
+    await plantDuty(address, { assetId: created.id }, duty, standings, filed)
+  }
+
+  for (const document of documents) {
+    await layLaterVersions(address, filed.get(document.title) ?? '', document)
   }
 
   for (const { kind, reason } of dismissed) {
@@ -1039,10 +1086,6 @@ async function plantAsset(
     if (order !== undefined) {
       await plantOrder(address, standings, order, { origin: 'defect', defectId: reported.id })
     }
-  }
-
-  for (const document of documents) {
-    await plantDocument(address, { propertyId, assetId: created.id }, document)
   }
 
   // Made as the office makes one, at the route that draws its code (#98).

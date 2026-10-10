@@ -52,7 +52,7 @@ import {
 } from '@opengewerk/platform-web/sync'
 import { useQuery, useQueryClient, type UseQueryResult } from '@tanstack/react-query'
 import { Link, useNavigate, useParams } from '@tanstack/react-router'
-import { Pencil, Plus, Upload } from 'lucide-react'
+import { Pencil, Plus, TriangleAlert, Upload } from 'lucide-react'
 import { useState } from 'react'
 
 import { titleOfRoom } from '../../app/place-records.js'
@@ -61,9 +61,11 @@ import { useCatalogue } from '../../sync/catalogue.js'
 import { askAt, makeAt } from '../../sync/made-at.js'
 import { activityPlaces } from '../activity-addresses.js'
 import { cataloguePlaces } from '../catalogue-addresses.js'
+import { documentPlaces } from '../document-addresses.js'
 import { dutyPlaces, dutyRegisterPlace, evidencePlaces } from '../duty-addresses.js'
 import {
   DutyStandingMark,
+  IntervalCheckStatus,
   intervalKindWords,
   kindOfDuty,
   Nobody,
@@ -89,6 +91,36 @@ export function dutyEvidenceQuery(id: string) {
     queryKey: ['duties', 'evidence', id],
     queryFn: () => request<DutyEvidenceEntry[]>(`/duties/${id}/evidence`),
   } as const
+}
+
+/**
+ * The document that bears the interval of a duty, as the card "Frist" names
+ * it (#74): a link to it and the version the duty points at, by the day it was
+ * filed. One taken out of the records is named and leads nowhere.
+ */
+function IntervalDocument({ duty }: { readonly duty: DutyDetails }) {
+  const document = duty.intervalDocument
+
+  if (document === null) {
+    return null
+  }
+
+  return (
+    <div className="leading-[1.32]">
+      {document.removed ? (
+        <span>{document.title}</span>
+      ) : (
+        <Link to={documentPlaces.document(document.id)} className={factLink}>
+          {document.title}
+        </Link>
+      )}
+      <div className="text-[12px] text-ink-faint">
+        {document.removed
+          ? dutyPageWords.documentRemoved
+          : `Fassung ${String(document.version.number)} vom ${date(document.version.filedOn)}`}
+      </div>
+    </div>
+  )
 }
 
 /** The people who can be named for a duty, for whoever keeps the register. */
@@ -126,7 +158,35 @@ export const dutyPageWords = {
   noActivity: 'keiner offen',
   whatMakingDoes:
     'entsteht, wie sie aus dem Termin entstanden wäre, mit dem Formular der Pflichtart. Wer ausführt und an welchem Tag, wird danach auf ihrer Seite geplant. Der Termin der Pflicht ändert sich dadurch nicht.',
+  documentRemoved: 'aus der Ablage entfernt',
+  checkWithChange: 'Mit „Ändern“ und „Speichern“ zeigt die Pflicht auf die neue Fassung.',
+  removedCheck:
+    'Das Dokument, das die Frist trägt, ist aus der Ablage entfernt. Prüfen Sie, ob die Frist noch stimmt.',
+  removedWithChange: 'Unter „Ändern“ wählen Sie ein anderes Dokument oder keines.',
 } as const
+
+/**
+ * The note in the card "Frist" of a duty that says "Frist prüfen" (#74): a
+ * newer version of the document lies over the one the duty points at, since
+ * the day it was filed, or the document was taken out of the records. What to
+ * do about it is said to whoever can.
+ */
+function intervalCheckNote(document: NonNullable<DutyDetails['intervalDocument']>, can: boolean) {
+  if (document.removed) {
+    return [dutyPageWords.removedCheck, can ? dutyPageWords.removedWithChange : null]
+      .filter(Boolean)
+      .join(' ')
+  }
+
+  return [
+    document.newer === null
+      ? null
+      : `Seit dem ${date(document.newer.filedOn)} liegt Fassung ${String(document.newer.number)} des Dokuments vor. Prüfen Sie, ob die Frist noch stimmt.`,
+    can ? dutyPageWords.checkWithChange : null,
+  ]
+    .filter(Boolean)
+    .join(' ')
+}
 
 /**
  * The page of a duty in the office, `pflicht()` of the boards (4.3 and 2.3 of
@@ -229,6 +289,7 @@ export function DutyScreen() {
         badges={
           <>
             <DutyStandingMark duty={duty} />
+            {duty.intervalToCheck ? <IntervalCheckStatus /> : null}
             {kind ? <ReviewMarks review={kind.review} /> : null}
           </>
         }
@@ -401,24 +462,39 @@ export function DutyScreen() {
               ) : null
             }
           >
-            <FactList
-              keyWidth={96}
-              facts={[
-                { label: 'Frist', value: intervalWords(dutyInterval(duty)) },
-                { label: 'Art der Frist', value: intervalKindWords(duty, catalogue) },
-                ...(maximum === null
-                  ? []
-                  : [
-                      {
-                        label: 'Höchstfrist',
-                        value: `${intervalWords(maximum)}, am Tag der Bestätigung`,
-                      },
-                    ]),
-                ...(duty.intervalReason === null
-                  ? []
-                  : [{ label: 'Begründung', value: duty.intervalReason }]),
-              ]}
-            />
+            <div className="flex flex-col gap-2.5">
+              <FactList
+                keyWidth={96}
+                facts={[
+                  { label: 'Frist', value: intervalWords(dutyInterval(duty)) },
+                  { label: 'Art der Frist', value: intervalKindWords(duty, catalogue) },
+                  ...(maximum === null
+                    ? []
+                    : [
+                        {
+                          label: 'Höchstfrist',
+                          value: `${intervalWords(maximum)}, am Tag der Bestätigung`,
+                        },
+                      ]),
+                  ...(duty.intervalReason === null
+                    ? []
+                    : [{ label: 'Begründung', value: duty.intervalReason }]),
+                  // The document that bears the interval, with the version the
+                  // duty points at (#74).
+                  ...(duty.intervalDocument === null
+                    ? []
+                    : [{ label: 'Dokument', value: <IntervalDocument duty={duty} /> }]),
+                ]}
+              />
+              {duty.intervalToCheck && duty.intervalDocument !== null ? (
+                <NoteBox tone="waiting" icon={TriangleAlert}>
+                  {intervalCheckNote(
+                    duty.intervalDocument,
+                    keeps && !duty.ended && duty.kind !== null,
+                  )}
+                </NoteBox>
+              ) : null}
+            </div>
           </Panel>
           <Panel
             title="Zuständig"

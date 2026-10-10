@@ -1039,6 +1039,18 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   Katalog, dazu die Wege vom Pflichtenverzeichnis, von der Anlagenakte und von der Pflichtart.
   Bisher ließ sich eine Pflicht aus dem Katalog nur über die Route bestätigen, und niemand sah,
   welche Pflichten eine Anlage nach dem Katalog hätte
+- Verweis auf das Dokument, das die Frist trägt (#74): "Pflicht bestätigen" und "Frist
+  festlegen" bieten unter der Begründung die Dokumente der Anlage, ihres Raums, ihres Gebäudes
+  und ihrer Liegenschaft an, empfohlen und nicht verlangt. Die Pflicht merkt sich die neueste
+  Fassung vom Tag, an dem der Verweis gesetzt wird (Migration `0037_interval_document`, mit
+  Schlüsseln auf ein Dokument derselben Liegenschaft und eine Fassung dieses Dokuments).
+  Kommt eine neuere Fassung dazu oder wird das Dokument aus der Ablage entfernt, sagt die
+  Pflicht "Frist prüfen", auf ihrer Seite neben dem Zustand und im Pflichtenverzeichnis unter
+  der Frist; wer "Frist festlegen" mit demselben Dokument speichert, hat geprüft, und die
+  Pflicht zeigt auf die neueste Fassung. Setzen kann den Verweis, wer das Pflichtenverzeichnis
+  führt und Dokumente ansieht; das Dokument nennt die Seite nur, wer Dokumente ansieht.
+  Bisher stand in der Begründung nur als Text, worauf sich eine Frist stützt, und eine neue
+  Gefährdungsbeurteilung änderte nichts an den Pflichten, deren Frist sie trägt
 
 ### Geändert
 
@@ -1501,3 +1513,6 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   `opengewerk#591` und `#593`, Submodul angehoben). Bisher fragte sie sofort und meldete nur "nicht
   zu sehen": Sie wurde an Seiten rot, die niemand geändert hatte, jedes Mal an einer anderen, auch
   auf `main`, und warum, stand nirgends
+- Der Test der Wochenübersicht der Rundgänge (`round-plans.test.ts`) nimmt die Woche von morgen
+  statt der von heute (gefunden bei #74). An einem Sonntag hält die laufende Woche nur einen
+  Rundgang des Plans, der heute beginnt, und der Test brauchte zwei; er schlug jeden Sonntag fehl

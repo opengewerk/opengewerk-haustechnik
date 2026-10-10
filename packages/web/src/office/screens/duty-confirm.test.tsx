@@ -145,6 +145,10 @@ function duty(further: Readonly<Record<string, unknown>> = {}): DutyDetails {
     lastMetOn: null,
     ended: false,
     removable: false,
+    intervalDocumentId: null,
+    intervalDocumentVersionId: null,
+    intervalDocument: null,
+    intervalToCheck: false,
     asset: {
       id: lift.id,
       number: 'AN-00012',
@@ -267,6 +271,7 @@ describe('confirming a proposal', () => {
           kind: mainTest,
           intervalMonths: 12,
           intervalReason: null,
+          intervalDocumentId: null,
           responsibleUserId: 'u-roth',
           performer: 'own_staff',
           performerNote: null,

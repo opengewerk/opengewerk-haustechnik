@@ -93,6 +93,10 @@ function entry(id: string, further: Readonly<Record<string, unknown>> = {}): Dut
     performerNote: null,
     ended: false,
     removable: false,
+    intervalDocumentId: null,
+    intervalDocumentVersionId: null,
+    intervalDocument: null,
+    intervalToCheck: false,
     asset: {
       id: 'a-lift',
       number: 'AN-00012',

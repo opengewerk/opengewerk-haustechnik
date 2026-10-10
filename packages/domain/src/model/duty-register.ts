@@ -4,6 +4,7 @@ import type { ActivityKind, ActivityStatus } from './activity.js'
 import type { Asset } from './asset.js'
 import type { DutyReading, LastEvidence } from './asset-condition.js'
 import type { Appointment, DutyState } from './duty.js'
+import type { DutyIntervalDocument } from './duty-document.js'
 import type { Duty, DutyPerformer } from './duty-record.js'
 import {
   type Evidence,
@@ -207,6 +208,8 @@ export interface DutyEntry
     > {
   /** Whether it has ended today. Its state then says how it stood when it did, and calls for nothing. */
   readonly ended: boolean
+  /** Whether it says "Frist prüfen" (`intervalToCheck`, #74). */
+  readonly intervalToCheck: boolean
   readonly asset: DutyAsset | null
   readonly responsible: DutyPerson | null
   readonly lastEvidence: LastEvidence | null
@@ -280,6 +283,13 @@ export interface DutyDetails extends Duty {
   readonly removable: boolean
   readonly asset: DutyAsset | null
   readonly responsible: DutyPerson | null
+  /**
+   * The document that bears its interval (#74), for whoever may look at
+   * documents, or null: the duty names none, or it is not theirs to see.
+   */
+  readonly intervalDocument: DutyIntervalDocument | null
+  /** Whether it says "Frist prüfen" (`intervalToCheck`), for whoever reads the duty. */
+  readonly intervalToCheck: boolean
   /**
    * The inspection or maintenance under way for the duty (#183), as far as
    * the person asking is shown it, or null: none is, or it is not theirs to

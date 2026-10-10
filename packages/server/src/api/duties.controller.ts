@@ -15,6 +15,7 @@ import {
 import {
   type Asset,
   type AssetId,
+  type AttachmentVersionId,
   batchAssetsProblem,
   type Building,
   type Catalogue,
@@ -22,6 +23,7 @@ import {
   type Counting,
   type DeadlineInterval,
   dismissalProblems,
+  type Document,
   type Duty,
   type DutyAsset,
   type DutyColleague,
@@ -34,6 +36,7 @@ import {
   type DutyKind,
   dutyMaximum,
   type DutyPerson,
+  type DutyPlaceChain,
   dutyProblems,
   type DutyProposals,
   type DutyReading,
@@ -42,8 +45,10 @@ import {
   dutyTasks,
   type FederalState,
   type IntervalKind,
+  intervalDocumentProblem,
   intervalNeedsReason,
   intervalOfRule,
+  intervalToCheck,
   intervalWords,
   isAllowed,
   type IsoDate,
@@ -62,15 +67,18 @@ import {
   requireSomething,
   type TenantTransaction,
 } from '@opengewerk/platform-server'
-import { and, asc, eq, isNull, notInArray } from 'drizzle-orm'
+import { and, asc, desc, eq, isNull, notInArray } from 'drizzle-orm'
 
 import { underWayFor } from '../activities/for-duty.js'
 import { CATALOGUE } from '../catalogue.js'
 import { dutiesOnADay, dutyTitle } from '../database/duty-standing.js'
+import { intervalDocumentsOf } from '../database/interval-documents.js'
 import {
   activities,
   activityDuties,
   assets,
+  attachments,
+  attachmentVersions,
   buildings,
   duties,
   dutyDismissals,
@@ -93,6 +101,7 @@ const missingAsset = 'Diese Anlage gibt es nicht oder nicht mehr.'
 const missingRoom = 'Diesen Raum gibt es nicht oder nicht mehr.'
 const missingBuilding = 'Dieses Gebäude gibt es nicht oder nicht mehr.'
 const missingProperty = 'Diese Liegenschaft gibt es nicht oder nicht mehr.'
+const missingDocument = 'Dieses Dokument gibt es nicht oder nicht mehr.'
 
 /** What a duty hangs on, with what the routes ask of it. */
 interface Target {
@@ -104,6 +113,8 @@ interface Target {
   readonly federalState: FederalState
   /** The asset kind of an asset, which the scope of a duty kind is asked about. */
   readonly assetKind: string | null
+  /** What it hangs on and what lies above it, where the document that bears its interval may lie (#74). */
+  readonly chain: DutyPlaceChain
 }
 
 /** The fields a new duty may name. */
@@ -121,6 +132,7 @@ const newFields = [
   'intervalDays',
   'intervalMonths',
   'intervalReason',
+  'intervalDocumentId',
   'responsibleUserId',
   'performer',
   'performerNote',
@@ -135,6 +147,7 @@ const changeFields = [
   'intervalDays',
   'intervalMonths',
   'intervalReason',
+  'intervalDocumentId',
   'responsibleUserId',
   'performer',
   'performerNote',
@@ -149,6 +162,7 @@ const emptiable = [
   'kind',
   'counting',
   'intervalReason',
+  'intervalDocumentId',
   'responsibleUserId',
   'performer',
   'performerNote',
@@ -260,15 +274,19 @@ async function targetOf(tx: TenantTransaction, values: Values): Promise<Target> 
   }
 
   let place: { propertyId: Duty['propertyId'] } & Partial<Target>
+  // What lies above an asset or a room: its building, and its room.
+  let above: Partial<Pick<DutyPlaceChain, 'buildingId' | 'roomId'>> = {}
 
   if (given(values.assetId)) {
     const asset = await placeOf<Asset>(tx, assets, String(values.assetId), missingAsset)
 
     place = { propertyId: asset.propertyId, assetId: asset.id, assetKind: asset.kind }
+    above = { buildingId: asset.buildingId, roomId: asset.roomId }
   } else if (given(values.roomId)) {
     const room = await placeOf<Room>(tx, rooms, String(values.roomId), missingRoom)
 
     place = { propertyId: room.propertyId, roomId: room.id }
+    above = { buildingId: room.buildingId }
   } else if (given(values.buildingId)) {
     const building = await placeOf<Building>(
       tx,
@@ -300,6 +318,95 @@ async function targetOf(tx: TenantTransaction, values: Values): Promise<Target> 
     assetId: place.assetId ?? null,
     federalState: property.federalState,
     assetKind: place.assetKind ?? null,
+    chain: {
+      propertyId: property.id,
+      buildingId: place.buildingId ?? above.buildingId ?? null,
+      roomId: place.roomId ?? above.roomId ?? null,
+      assetId: place.assetId ?? null,
+    },
+  }
+}
+
+/** What a duty there is hangs on and what lies above it, as `targetOf` says it for a new one. */
+async function chainOf(tx: TenantTransaction, duty: Duty): Promise<DutyPlaceChain> {
+  const chain = {
+    propertyId: duty.propertyId,
+    buildingId: duty.buildingId,
+    roomId: duty.roomId,
+    assetId: duty.assetId,
+  }
+
+  if (duty.assetId !== null) {
+    const [asset] = await tx
+      .select({ buildingId: assets.buildingId, roomId: assets.roomId })
+      .from(assets)
+      .where(eq(assets.id, duty.assetId))
+
+    return { ...chain, buildingId: asset?.buildingId ?? null, roomId: asset?.roomId ?? null }
+  }
+
+  if (duty.roomId !== null) {
+    const [room] = await tx
+      .select({ buildingId: rooms.buildingId })
+      .from(rooms)
+      .where(eq(rooms.id, duty.roomId))
+
+    return { ...chain, buildingId: room?.buildingId ?? null }
+  }
+
+  return chain
+}
+
+/** The columns of the document that bears the interval of a duty: a document and one of its versions, or neither. */
+interface IntervalDocumentColumns {
+  readonly intervalDocumentId: Duty['intervalDocumentId']
+  readonly intervalDocumentVersionId: Duty['intervalDocumentVersionId']
+}
+
+const noIntervalDocument: IntervalDocumentColumns = {
+  intervalDocumentId: null,
+  intervalDocumentVersionId: null,
+}
+
+/**
+ * The document that bears the interval of a duty, with the version the duty
+ * keeps of it: the newest there is today (section 4.3 of the concept, #74).
+ * Named by whoever may look at documents, and only one in sight that is still
+ * in the records: at the place of the duty or above it, on its property.
+ */
+async function intervalDocumentAt(
+  tx: TenantTransaction,
+  identity: Asking,
+  documentId: unknown,
+  chain: DutyPlaceChain,
+): Promise<IntervalDocumentColumns> {
+  if (!isAllowed(identity, 'document.read')) {
+    throw new ForbiddenException(missingRight('document.read'))
+  }
+
+  const document = await placeOf<Document>(tx, attachments, String(documentId), missingDocument)
+  const problem = intervalDocumentProblem(document, chain)
+
+  if (problem !== null) {
+    throw new BadRequestException(problem)
+  }
+
+  const [newest] = await tx
+    .select({ id: attachmentVersions.id })
+    .from(attachmentVersions)
+    .where(eq(attachmentVersions.attachmentId, document.id))
+    .orderBy(desc(attachmentVersions.id))
+    .limit(1)
+
+  if (newest === undefined) {
+    throw new BadRequestException(
+      'Von diesem Dokument ist noch keine Fassung angekommen; die Datei ist noch unterwegs.',
+    )
+  }
+
+  return {
+    intervalDocumentId: document.id,
+    intervalDocumentVersionId: newest.id as AttachmentVersionId,
   }
 }
 
@@ -463,7 +570,13 @@ async function confirmedFromTheCatalogue(
 }
 
 /** The row of a new duty: where it hangs, what it is, its interval and who answers for it. */
-function dutyRow(identity: Asking, target: Target, decided: Decided, values: Values) {
+function dutyRow(
+  identity: Asking,
+  target: Target,
+  decided: Decided,
+  values: Values,
+  document: IntervalDocumentColumns = noIntervalDocument,
+) {
   const { interval, maximum } = decided
 
   return {
@@ -483,6 +596,7 @@ function dutyRow(identity: Asking, target: Target, decided: Decided, values: Val
     intervalDays: 'days' in interval ? interval.days : null,
     intervalMonths: 'months' in interval ? interval.months : null,
     intervalReason: (values.intervalReason ?? null) as string | null,
+    ...document,
     maximumDays: maximum !== null && 'days' in maximum ? maximum.days : null,
     maximumMonths: maximum !== null && 'months' in maximum ? maximum.months : null,
     responsibleUserId: (values.responsibleUserId ?? null) as string | null,
@@ -729,6 +843,9 @@ export class DutiesController {
    * The inspection or maintenance under way for it (#183), for whoever reads
    * activities and as far as they are shown it: whoever only performs sees
    * one given to them or to nobody, as in the list of the activities.
+   *
+   * The document that bears its interval (#74), for whoever may look at
+   * documents, and whether the duty says "Frist prüfen".
    */
   @Get(':id')
   @RequiresPermission('duty.read')
@@ -762,10 +879,12 @@ export class DutiesController {
         asset: (asset ?? null) as DutyAsset | null,
         activity: underWay.get(duty.id) ?? null,
         removable: !(await leftARecord(tx, identity.tenantId, duty.id)),
+        document: (await intervalDocumentsOf(tx, [duty])).get(duty.id) ?? null,
       }
     })
-    const { duty, registered, activity } = read
+    const { duty, registered, activity, document } = read
     const named = await this.named(identity, [duty.responsibleUserId])
+    const ended = dutyHasEnded(duty, today)
 
     return {
       ...duty,
@@ -773,10 +892,14 @@ export class DutiesController {
       state: registered?.standing.state ?? 'never_recorded',
       appointment: registered?.standing.appointment ?? null,
       lastMetOn: registered?.lastMetOn ?? null,
-      ended: dutyHasEnded(duty, today),
+      ended,
       removable: read.removable,
       asset: read.asset,
       responsible: named(duty.responsibleUserId),
+      // The document itself is for whoever may look at documents; that the
+      // interval wants checking, the duty says to whoever reads it.
+      intervalDocument: isAllowed(identity, 'document.read') ? document : null,
+      intervalToCheck: intervalToCheck(document, ended),
       activity:
         activity === null
           ? null
@@ -892,9 +1015,13 @@ export class DutiesController {
 
       await checkResponsible(tx, values.responsibleUserId)
 
+      const document = given(values.intervalDocumentId)
+        ? await intervalDocumentAt(tx, identity, values.intervalDocumentId, target.chain)
+        : noIntervalDocument
+
       const [created] = await tx
         .insert(duties)
-        .values(dutyRow(identity, target, decided, values))
+        .values(dutyRow(identity, target, decided, values, document))
         .returning()
 
       return created as Duty
@@ -1037,9 +1164,19 @@ export class DutiesController {
       )
       await checkResponsible(tx, values.responsibleUserId)
 
+      // Naming the document again takes its newest version: whoever saves
+      // the interval with it has looked at the interval against that one.
+      const { intervalDocumentId, ...rest } = values
+      const document =
+        intervalDocumentId === undefined
+          ? {}
+          : intervalDocumentId === null
+            ? noIntervalDocument
+            : await intervalDocumentAt(tx, identity, intervalDocumentId, await chainOf(tx, duty))
+
       const [changed] = await tx
         .update(duties)
-        .set({ ...(values as Partial<Duty>), ...interval } as Partial<Duty>)
+        .set({ ...(rest as Partial<Duty>), ...interval, ...document } as Partial<Duty>)
         .where(and(eq(duties.id, duty.id), isNull(duties.deletedAt)))
         .returning()
 
