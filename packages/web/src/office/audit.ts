@@ -1,9 +1,4 @@
-import {
-  auditVocabulary,
-  buildingKindLabel,
-  numberRangeLabel,
-  ruleScopeNames,
-} from '@opengewerk/haustechnik-domain'
+import { auditValues, auditVocabulary, buildingKindLabel } from '@opengewerk/haustechnik-domain'
 import type { AuditScreenWords } from '@opengewerk/platform-web/office'
 
 import { activityPlaces } from './activity-addresses.js'
@@ -17,8 +12,8 @@ import { planPlaces, templatePlaces } from './round-template-addresses.js'
  * The change log of a tenant in the words of this application, as the screen
  * of the foundation reads it (ADR 0010 in the repository opengewerk): the
  * vocabulary its server is told as well, how the values of its fields are
- * written, and where a record is opened. Each table that gets values of its
- * own or a screen adds its words and its way here.
+ * written (`auditValues` of `domain`, beside the vocabulary), and where a
+ * record is opened. Each table that gets a screen adds its way here.
  */
 
 type Words = Readonly<Record<string, string>>
@@ -57,13 +52,9 @@ const links: Words = {
 
 export const auditScreenWords: AuditScreenWords = {
   vocabulary: auditVocabulary,
-  values: {
-    // The log holds `DE-BW`, the Leitung reads "Baden-Württemberg".
-    properties: { federal_state: ruleScopeNames },
-    // A sequence is named by its key, `asset`; the Leitung reads "Anlagen", in the
-    // log, as the name of the record and in "Nur dieser Datensatz" (#176).
-    number_ranges: { key: numberRangeLabel },
-  },
+  // Every value of a list in the words the office reads elsewhere, held
+  // against the columns of the database by a test of the server (#80).
+  values: auditValues,
   // The log holds the kinds of a building as `school`, the Leitung reads
   // "Schule oder Hochschule".
   lists: { kinds: buildingKindLabel },

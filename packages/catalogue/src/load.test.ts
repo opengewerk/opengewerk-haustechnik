@@ -640,6 +640,21 @@ describe('the versions of an entry', () => {
     ])
   })
 
+  it('name the first number missing, however high the last one is (#80)', () => {
+    expect(
+      problems({
+        [third]: dutyKind,
+        'probe/pflichten/elevator_main_test.v999.json': dutyKind,
+        [acceptancesFile]: reviewed(
+          'pflichten/elevator_main_test.v3.json',
+          'pflichten/elevator_main_test.v999.json',
+        ),
+      }),
+    ).toEqual([
+      'probe/pflichten/elevator_main_test: Fassung 2 fehlt. Die Fassungen zählen von 1 an ohne Lücke, und eine gemergte bleibt stehen.',
+    ])
+  })
+
   it('begin no sooner than the version before them, and a correction may begin on the same day', () => {
     expect(
       problems({
@@ -1227,6 +1242,7 @@ describe('a package', () => {
       problems({
         'probe/notizen.txt': new TextEncoder().encode('Notiz'),
         'probe/pflichten/Hauptprüfung.json': dutyKind,
+        'probe/pflichten/elevator_main_test.v1000.json': dutyKind,
         'Probe/manifest.json': contentOf(manifestFile),
         'liesmich.txt': new TextEncoder().encode('Notiz'),
       }),
@@ -1237,6 +1253,8 @@ describe('a package', () => {
       expect.stringMatching(
         /^probe\/pflichten\/Hauptprüfung\.json: Eine Fassung heißt <schlüssel>\.v<fassung>\.json/,
       ),
+      // A number that is no number of versions (#80).
+      'probe/pflichten/elevator_main_test.v1000.json: Eine Fassung hat höchstens die Nummer 999.',
     ])
   })
 

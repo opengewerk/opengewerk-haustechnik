@@ -1,4 +1,26 @@
-import type { AuditVocabulary } from '@opengewerk/platform-domain'
+import {
+  type AuditVocabulary,
+  checkPointResultLabel,
+  ruleScopeNames,
+} from '@opengewerk/platform-domain'
+
+import {
+  activityKindLabel,
+  activityStatusLabel,
+  workOrderKindLabel,
+  workOrderUrgencyLabel,
+} from './activity.js'
+import { lifecycleStateLabel } from './asset.js'
+import { countingLabel, dutyTaskLabel } from './catalogue.js'
+import { defectStatusLabel } from './defect.js'
+import { documentKindLabel } from './document.js'
+import { dutyBasisLabel, dutyPerformerLabel } from './duty-record.js'
+import { evidenceOriginLabel, evidenceResultLabel } from './evidence.js'
+import { meterUnitSymbol } from './meter.js'
+import { meterReadingSourceLabel } from './meter-reading.js'
+import { numberRangeLabel } from './number-range.js'
+import { planRhythmLabel } from './round-plan.js'
+import { signatureRoleLabel, workOrderDecisionLabel } from './signature.js'
 
 import { rightLabel, shippedRoles } from './rights.js'
 
@@ -600,4 +622,51 @@ export const auditVocabulary: AuditVocabulary = {
   reasons: {},
   rights: rightLabel,
   roles: Object.fromEntries(shippedRoles.map((role) => [role.key, role.label])),
+}
+
+/**
+ * How the values of a list are written in the change log (#80): the log
+ * holds `with_defects`, the Leitung reads "Mit Mängeln". By table and column
+ * of the database, as the log names them; a test holds every column the
+ * triggers watch whose type is a list against it.
+ */
+export const auditValues: Readonly<
+  Record<string, Readonly<Record<string, Readonly<Record<string, string>>>>>
+> = {
+  activities: {
+    kind: activityKindLabel,
+    performer: dutyPerformerLabel,
+    status: activityStatusLabel,
+  },
+  activity_answers: { result: checkPointResultLabel },
+  activity_duties: { result: evidenceResultLabel },
+  activity_signatures: { role: signatureRoleLabel },
+  asset_lifecycle: { state: lifecycleStateLabel },
+  assets: { meter_unit: meterUnitSymbol },
+  attachments: { kind: documentKindLabel },
+  // The deadlines of the foundation, in the words of its list of deadlines.
+  deadlines: { status: { open: 'Offen', done: 'Erledigt', dropped: 'Entfallen' } },
+  defects: { status: defectStatusLabel },
+  duties: {
+    basis: dutyBasisLabel,
+    counting: countingLabel,
+    performer: dutyPerformerLabel,
+    task: dutyTaskLabel,
+  },
+  evidence: { origin: evidenceOriginLabel, result: evidenceResultLabel },
+  mail_settings: { security: { starttls: 'STARTTLS', tls: 'TLS', none: 'Ohne Verschlüsselung' } },
+  meter_readings: { source: meterReadingSourceLabel },
+  // A number range by what it counts, not by its key (#176).
+  number_ranges: { key: numberRangeLabel },
+  // The log holds `DE-BW`, the Leitung reads "Baden-Württemberg".
+  properties: { federal_state: ruleScopeNames },
+  round_plans: { rhythm: planRhythmLabel },
+  work_order_decisions: { decision: workOrderDecisionLabel },
+  work_order_notes: { activity_kind: activityKindLabel },
+  work_order_participants: { activity_kind: activityKindLabel },
+  work_orders: {
+    activity_kind: activityKindLabel,
+    kind: workOrderKindLabel,
+    urgency: workOrderUrgencyLabel,
+  },
 }
