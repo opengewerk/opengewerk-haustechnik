@@ -263,6 +263,8 @@ describe('the frozen state', () => {
         signedAt: '2026-10-09T08:12:00.000Z',
         path: null,
         way: 'drawing',
+        // None before the seventh version says when the server took it (#79).
+        receivedAt: null,
       },
     ])
     expect(canonicalForm(storedStates[4])).toBe(JSON.stringify(storedStates[4]))
