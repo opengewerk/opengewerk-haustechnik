@@ -187,7 +187,10 @@ describe('the catalogue on a device', () => {
     await queries.invalidateQueries({ queryKey: catalogueChecksumQuery.queryKey })
     await screen.findByRole('table', { name: packages })
 
-    expect(kept(client)).toEqual(testCatalogue)
+    // Kept on the device a moment after the screen shows it.
+    await waitFor(() => {
+      expect(kept(client)).toEqual(testCatalogue)
+    })
     expect(client.kept(unreadableCatalogueKeep)).toBeNull()
   })
 
