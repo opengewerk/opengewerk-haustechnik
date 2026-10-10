@@ -156,3 +156,42 @@ export function onA(device: Device): (next: Device) => void {
     })
   }
 }
+
+/**
+ * The PDF as the server hands it out, or the sentence it refuses it with;
+ * every other request goes to the answers of the test. Hands back the
+ * addresses asked for and what was opened in a tab.
+ */
+export function servingPdf(refusal: string | null = null): { asked: string[]; opened: unknown[] } {
+  const answered = globalThis.fetch
+  const asked: string[] = []
+  const opened: unknown[] = []
+
+  vi.stubGlobal('fetch', (path: string, init?: RequestInit) => {
+    if (!path.endsWith('/pdf')) {
+      return answered(path, init)
+    }
+
+    asked.push(path)
+
+    return Promise.resolve(
+      refusal === null
+        ? new Response(new Blob(['%PDF probe'], { type: 'application/pdf' }), { status: 200 })
+        : new Response(JSON.stringify({ message: refusal }), {
+            status: 503,
+            headers: { 'Content-Type': 'application/json' },
+          }),
+    )
+  })
+  vi.stubGlobal('URL', Object.assign(URL, { createObjectURL: () => 'blob:probe' }))
+  vi.stubGlobal('open', (address: string) => {
+    opened.push(address)
+
+    return {}
+  })
+
+  return { asked, opened }
+}
+
+export const noRenderer =
+  'Auf dieser Instanz ist kein Dienst eingerichtet, der PDFs erzeugt. Der eingefrorene Stand bleibt unverändert; das PDF entsteht, sobald der Dienst läuft.'

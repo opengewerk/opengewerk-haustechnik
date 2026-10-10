@@ -14,6 +14,8 @@ import {
   evidenceStateVersion,
   formOfActivity,
   type IsoDate,
+  roundRecordVersion,
+  type RoundRecordState,
   type StatedAnswer,
   type StatedDefect,
   type StatedFile,
@@ -45,6 +47,7 @@ import {
   evidenceVoidings,
   properties,
   rooms,
+  roundRecords,
 } from '../database/schema/index.js'
 import { dayInGermany } from '../today.js'
 import { stateFingerprint } from './fingerprint.js'
@@ -298,6 +301,88 @@ export async function writeEvidence(
 }
 
 /**
+ * The frozen state of a round as a whole (section 2.6 of the concept, #111),
+ * written with the evidence it is written down with, in the same transaction:
+ * its place, every answer in the order of the form with the photos by their
+ * hash, the defects that came of it, the signatures with their drawings and
+ * the evidence, with the fingerprint over it. A round that meets no duty has
+ * no evidence, and its PDF is made of this; once written, nothing changes it.
+ */
+export async function writeRoundRecord(
+  tx: TenantTransaction,
+  context: WritingContext,
+  activityId: ActivityId,
+  signatures: readonly StatedSignature[],
+  performedBy: string | null,
+  written: readonly WrittenEvidence[],
+): Promise<void> {
+  const [activity] = await tx
+    .select()
+    .from(activities)
+    .where(and(eq(activities.tenantId, context.tenantId), eq(activities.id, activityId)))
+
+  if (!activity || activity.kind !== 'round' || activity.performedOn === null) {
+    return
+  }
+
+  const [property] = await tx
+    .select()
+    .from(properties)
+    .where(and(eq(properties.tenantId, context.tenantId), eq(properties.id, activity.propertyId)))
+
+  if (!property) {
+    throw new EvidenceRefusal('Die Liegenschaft dieses Rundgangs gibt es nicht.')
+  }
+
+  const filled = await filledFormOf(tx, context, activity, {
+    point: null,
+    performedOn: activity.performedOn,
+  })
+  const found = await tx
+    .select({
+      description: defects.description,
+      defectClass: defects.defectClass,
+      dueOn: defects.dueOn,
+    })
+    .from(defects)
+    .where(
+      and(
+        eq(defects.tenantId, context.tenantId),
+        eq(defects.foundInActivityId, activity.id),
+        isNull(defects.deletedAt),
+      ),
+    )
+    .orderBy(asc(defects.createdAt), asc(defects.id))
+  const state: RoundRecordState = {
+    version: roundRecordVersion,
+    title: activity.title,
+    place: await placeOf(tx, context, activity, {
+      name: property.name,
+      address: `${property.street}, ${property.postalCode} ${property.city}`,
+    }),
+    dueOn: activity.dueOn,
+    performedOn: activity.performedOn,
+    form: filled?.form ?? null,
+    answers: filled?.answers ?? [],
+    performer: performedBy === null ? null : { person: context.nameOf(performedBy) },
+    defects: found,
+    signatures,
+    evidence: written.map((each) => ({ number: each.number, duty: each.state.duty.label })),
+    writtenBy: context.nameOf(context.writtenBy),
+    writtenAt: context.at.toISOString(),
+  }
+
+  await tx.insert(roundRecords).values({
+    tenantId: context.tenantId,
+    propertyId: activity.propertyId,
+    areaId: activity.areaId,
+    activityId: activity.id,
+    state,
+    fingerprint: stateFingerprint(state),
+  })
+}
+
+/**
  * Holds the row of a duty until the transaction ends, before anything is
  * asked about what became of one of its evidence (opengewerk-haustechnik#78):
  * a correction and a declaration of invalidity of the same evidence, or two
@@ -437,7 +522,7 @@ async function filledFormOf(
   tx: TenantTransaction,
   context: WritingContext,
   activity: Awaited<ReturnType<typeof activityOf>>,
-  input: EvidenceToWrite,
+  input: Pick<EvidenceToWrite, 'point' | 'performedOn'>,
 ): Promise<{ form: StatedForm; answers: readonly StatedAnswer[] } | null> {
   const definition = formOfActivity(await formsFor(tx, context.catalogue, activity), activity)
 
@@ -509,7 +594,7 @@ async function filledFormOf(
 async function placeOf(
   tx: TenantTransaction,
   context: WritingContext,
-  duty: typeof duties.$inferSelect,
+  duty: Pick<typeof duties.$inferSelect, 'assetId' | 'roomId' | 'buildingId'>,
   property: StatedPlace['property'],
 ): Promise<StatedPlace> {
   const asset =

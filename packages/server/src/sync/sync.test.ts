@@ -1117,7 +1117,12 @@ describe('a signature from a device', () => {
     expect(written.map((evidence) => evidence.origin)).toEqual(['round_point', 'round_point'])
     // The names of the accounts, read before the transaction.
     expect(written[0]?.state.signatures).toEqual([
-      { name: 'Tom Haustechnik', role: 'signer', signedAt: '2026-10-01T09:30:00.000Z' },
+      {
+        name: 'Tom Haustechnik',
+        role: 'signer',
+        signedAt: '2026-10-01T09:30:00.000Z',
+        path: drawing,
+      },
     ])
     expect(written[0]?.state.performer).toEqual({ person: 'Tom Haustechnik' })
     expect(written[0]?.state.writtenBy).toBe('Tom Haustechnik')

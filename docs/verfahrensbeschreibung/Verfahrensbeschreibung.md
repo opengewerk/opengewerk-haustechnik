@@ -99,7 +99,10 @@ Anhang B nennt jedes Feld der Datenbank, das auf eine Person zeigt. Dieser Absch
 
 - Eine Unterschrift hält fest: wer unterschrieben hat, ob als Unterschrift oder als Gegenzeichnung, den Zeitpunkt nach der Uhr des Geräts, eine Angabe zum Gerät von höchstens 500 Zeichen, den Schriftzug als Linienzug und einen Fingerabdruck der Seite, die gezeigt wurde. Der Linienzug besteht aus Punkten und Linien; Druck und Geschwindigkeit des Schreibens hält er nicht fest. [K2.6, B61, B69]
 - **Zusage:** Unterschrieben wird im Namen des Kontos, das angemeldet ist. Der Server setzt die Person selbst ein und übernimmt sie nicht vom Gerät. [K2.6, B22]
-- Mit der Unterschrift entsteht der Nachweis und friert seinen Stand ein: den Namen der Person, die unterschrieben hat, ihre Rolle dabei und den Zeitpunkt; bei einem eingetragenen Bericht den Namen des Prüfers und seine Organisation; dazu, wer den Nachweis eingetragen hat. Ein späterer Namenswechsel ändert daran nichts. [K2.6, B24, B30]
+- Mit der Unterschrift entsteht der Nachweis und friert seinen Stand ein: den Namen der Person, die unterschrieben hat, ihre Rolle dabei, den Zeitpunkt und den Schriftzug; bei einem eingetragenen Bericht den Namen des Prüfers und seine Organisation; dazu, wer den Nachweis eingetragen hat. Ein späterer Namenswechsel ändert daran nichts. Ein Nachweis, der vor dieser Fassung entstand, hat den Schriftzug nicht eingefroren. [K2.6, B24, B30]
+- Mit der Unterschrift friert der Server auch den Rundgang im Ganzen ein, auch einen, der keine Pflicht erfüllt: seine Antworten mit den Fotos, die Mängel, die aus ihm hervorgingen, die Unterschriften mit Namen, Rolle, Zeitpunkt und Schriftzug, wer ihn gegangen ist und in wessen Namen er eingetragen wurde. [K2.6, B148]
+- **Zusage:** Das PDF eines Nachweises und eines Rundgangs entsteht aus dem eingefrorenen Stand, nie aus den laufenden Daten. Einmal erzeugt, bleibt es dieselbe Datei, auch wenn sich später ein Name ändert; wird ein Nachweis für ungültig erklärt, entsteht es einmal neu, mit der Erklärung. Das PDF eines Nachweises bekommt, wer den Nachweis sieht; das eines Rundgangs, wer seine Seite sieht. [K2.6, B149, B150]
+- **Zusage:** Den eingefrorenen Stand eines Rundgangs und ein erzeugtes PDF ändert und löscht niemand, auch nicht der Eigentümer der Tabellen. [K2.6, B151]
 - **Zusage:** Eine Unterschrift, die Abnahme eines Auftrags und ein Nachweis werden von niemandem geändert oder gelöscht, auch nicht vom Eigentümer der Tabellen und nicht von einem Administrator der Datenbank. Kein Recht hebt das auf. [K2.6, K7, B26, B27, B39]
 - Eine Berichtigung ist ein neuer Nachweis, der den alten nennt; beide bleiben. Eine Ungültigkeitserklärung nennt die Person und den Grund, und der Nachweis bleibt lesbar. Beides dürfen die Leitung, die Technische Leitung und die Objektleitung. [K2.6, B9, B28, B96]
 - **Zusage:** Den Bericht einer Fremdfirma oder Prüforganisation tragen die Leitung, die Technische Leitung und die Objektleitung ein, in ihren Bereichen. Die Haustechnik bekommt den Weg nicht angeboten, und der Server lehnt sie ab. Mit dem Eintragen entsteht der Nachweis: er nennt den Prüfer und seine Organisation, den Tag der Prüfung und das Ergebnis, trägt die Datei, wie sie hochgeladen wurde, und nennt, wer ihn eingetragen hat. [K4.4, K7, B9, B103, B104]
@@ -206,6 +209,8 @@ Phase 1 kennt vier Rollen. Was jede darf, steht Recht für Recht in Abschnitt 7 
 | Datensätze mit ihrem Stempel | in ihren Bereichen | in ihren Bereichen | in ihren Bereichen | in ihren Bereichen |
 | Fassungen von Dokumenten mit der Kennung des Kontos, das sie abgelegt hat | in ihren Bereichen | in ihren Bereichen | in ihren Bereichen | in ihren Bereichen |
 | Ein Nachweis im Ganzen: wer ihn ausgeführt, geprüft, unterschrieben, eingetragen oder für ungültig erklärt hat | in ihren Bereichen | in ihren Bereichen | in ihren Bereichen | in ihren Bereichen |
+| Das PDF eines Nachweises, mit denselben Angaben und dem Schriftzug jeder Unterschrift | in ihren Bereichen | in ihren Bereichen | in ihren Bereichen | in ihren Bereichen |
+| Das PDF eines Rundgangs: wer ihn gegangen ist und wer unterschrieben und gegengezeichnet hat, mit Namen, Schriftzug und Zeitpunkt | in ihren Bereichen | in ihren Bereichen | in ihren Bereichen | was ihr oder niemandem zugeteilt ist |
 
 Leitung und Technische Leitung sehen als Vorgabe alle Bereiche.
 
@@ -474,6 +479,10 @@ Pfade ohne Vorsatz liegen im Repository `opengewerk/opengewerk-haustechnik`. Pfa
 | B145 | Test | `packages/server/src/api/meters.test.ts` | `is taken without a network for the key date of its day, in the name of whoever read it` |
 | B146 | Test | `packages/server/src/activities/signing.test.ts` | `writes the reading of a point about a measuring point with the signature, and not before` |
 | B147 | Test | `packages/server/src/api/meters.test.ts` | `is taken only once whoever reads it confirms it, and keeps that it was` |
+| B148 | Test | `packages/server/src/activities/signing.test.ts` | `freezes a round as a whole with the signature, also one that meets no duty (#111)` |
+| B149 | Test | `packages/server/src/api/evidence.test.ts` | `is made from the frozen state the first time, and the same bytes every time after, whatever changed` |
+| B150 | Test | `packages/server/src/api/evidence.test.ts` | `is for the house technicians only of a round given to them or to nobody, as its page` |
+| B151 | Test | `packages/server/src/api/evidence.test.ts` | `keeps a frozen state and its PDF as they were, also in the database` |
 
 ---
 

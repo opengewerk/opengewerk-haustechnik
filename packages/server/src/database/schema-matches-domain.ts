@@ -23,6 +23,7 @@ import type {
   Property,
   Room,
   RoundPlan,
+  RoundRecord,
   RoundTemplate,
   RoundTemplateVersion,
   WorkOrder,
@@ -56,6 +57,7 @@ import type {
   properties,
   rooms,
   roundPlans,
+  roundRecords,
   roundTemplates,
   roundTemplateVersions,
   workOrderDecisions,
@@ -126,6 +128,7 @@ export type RoundTemplateVersionMatches = Assert<
   Exact<typeof roundTemplateVersions.$inferSelect, RoundTemplateVersion>
 >
 export type RoundPlanMatches = Assert<Exact<typeof roundPlans.$inferSelect, RoundPlan>>
+export type RoundRecordMatches = Assert<Exact<typeof roundRecords.$inferSelect, RoundRecord>>
 
 export type MeterPointMatches = Assert<Exact<typeof meterPoints.$inferSelect, MeterPoint>>
 export type MeterReadingMatches = Assert<Exact<typeof meterReadings.$inferSelect, MeterReading>>

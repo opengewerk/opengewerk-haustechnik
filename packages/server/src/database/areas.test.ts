@@ -461,11 +461,23 @@ async function placeIn(where: 'north' | 'south'): Promise<void> {
        from evidence where duty_id = $1`,
     [at.duty, person.lead],
   )
+  // The frozen state of the work order as a whole (#111).
+  await admin.query(
+    `insert into round_records (tenant_id, property_id, area_id, activity_id, state, fingerprint)
+     values ($1, $2, $3, $4, '{"version": 1}', $5)`,
+    [tenant, at.property, areaId, at.activity, 'c'.repeat(64)],
+  )
   // A document at the asset, with the file its one version names.
   await admin.query(
     `insert into files (tenant_id, sha256, size_bytes, media_type)
      values ($1, $2, 2048, 'application/pdf')`,
     [tenant, at.file],
+  )
+  // The PDF of the evidence, which names that file (#111).
+  await admin.query(
+    `insert into prints (tenant_id, property_id, area_id, evidence_id, sha256)
+     select tenant_id, property_id, area_id, id, $2 from evidence where duty_id = $1`,
+    [at.duty, at.file],
   )
   await admin.query(
     `insert into attachments (id, tenant_id, property_id, area_id, asset_id, title, kind)
@@ -590,9 +602,11 @@ describe('a person with the north', () => {
       'meter_pauses',
       'meter_points',
       'meter_readings',
+      'prints',
       'properties',
       'rooms',
       'round_plans',
+      'round_records',
       'work_order_decisions',
       'work_order_notes',
       'work_order_participants',
@@ -811,8 +825,10 @@ describe('a property moved to another area', () => {
         'meter_pauses',
         'meter_points',
         'meter_readings',
+        'prints',
         'rooms',
         'round_plans',
+        'round_records',
         'work_order_decisions',
         'work_order_notes',
         'work_order_participants',

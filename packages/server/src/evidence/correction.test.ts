@@ -5,6 +5,7 @@ import {
   catalogueOf,
   type DutyId,
   type EvidenceId,
+  evidenceStateVersion,
   type IsoDate,
   readEvidenceState,
   type StoredEvidenceState,
@@ -182,7 +183,7 @@ describe('a correction', () => {
       }),
     )
 
-    expect(correction.state.version).toBe(4)
+    expect(correction.state.version).toBe(evidenceStateVersion)
     expect(correction.state.replaces).toEqual({
       number: first.number,
       reason: 'Der Prüfbericht nennt den 2. September.',

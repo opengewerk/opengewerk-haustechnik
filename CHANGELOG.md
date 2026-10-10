@@ -936,6 +936,16 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   "Zählerablesung zum Stichtag", eine Frist je Liegenschaft, und der Start vor Ort nennt die
   Liegenschaften, deren Stände fällig sind. Bisher kam ein Stand nur von Hand im Büro, immer zum
   Monatsersten
+- PDF aus dem eingefrorenen Stand (#111): "PDF öffnen" auf der Seite eines Nachweises und eines
+  abgeschlossenen Rundgangs. Das PDF entsteht beim ersten Abruf aus dem Stand, der mit der
+  Unterschrift eingefroren wurde, liegt danach im inhaltsadressierten Speicher und ist bei jedem
+  Abruf dieselbe Datei, was auch immer sich an Anlage, Vorlage oder Konto ändert. Ein Nachweis,
+  der danach für ungültig erklärt wird, wird einmal neu gedruckt, mit der Erklärung; Altbestand
+  trägt den Vermerk der Vorgängeranwendung. Ein Rundgang wird dafür mit der Unterschrift im
+  Ganzen eingefroren, auch einer, der keine Pflicht erfüllt, und der Stand eines Nachweises hält
+  seit Fassung 5 die Zeichnung jeder Unterschrift. Hat die Instanz keinen Dienst, der PDFs
+  erzeugt, sagt die Seite das in einem Satz. Bisher gab es kein PDF, und eine spätere Ausgabe
+  hätte die laufenden Daten lesen müssen
 
 ### Geändert
 
@@ -1251,6 +1261,10 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   Vorgaben der Mängelklassen. Bisher setzte sie den Grund in einem eigenen Stück zwischen zwei
   Trennern, und er galt nur bis zum Ende von dessen Transaktion; im Protokoll des Betreibers standen
   die Zeilen ohne Grund
+- Der Kopf einer Seite im Büro bleibt auf dem Desktop eine Zeile, wie auf den Tafeln
+  (`opengewerk#585`, mit dem Fundament angehoben): Der Titel gibt nach und seine Abzeichen brechen
+  um, die Knöpfe bleiben rechts. Bisher rutschten die Knöpfe unter den Titel, sobald nicht alles
+  nebeneinander passte, am Nachweis mit "PDF öffnen" (#111) zum ersten Mal sichtbar
 - Eine Antwort oder ein Ergebnis, das im selben Augenblick wie eine Unterschrift über den Abgleich kommt,
   wartet auf sie (opengewerk#582). Bisher las das Tor des Fundaments den Vorgang ohne Sperre: Die Antwort sah
   ihn noch als begonnen, landete, nachdem die Unterschrift die Seite gelesen hatte, und der Nachweis hielt eine
