@@ -20,6 +20,9 @@ export const keyPattern = /^[a-z][a-z0-9_]*$/
 
 export const keyMaximum = 64
 
+/** The highest number of a version, so that a number in a file name stays a number of versions (#80). */
+export const versionMaximum = 999
+
 /** The folders of the versioned entries, and what each holds. */
 export const entryFolders = {
   anlagenarten: 'assetKinds',
@@ -109,6 +112,13 @@ export function classify(path: string): PackagePath {
         return {
           kind: 'unknown',
           reason: `Ein Schlüssel hat höchstens ${String(keyMaximum)} Zeichen.`,
+        }
+      }
+
+      if (named[2].length > String(versionMaximum).length || Number(named[2]) > versionMaximum) {
+        return {
+          kind: 'unknown',
+          reason: `Eine Fassung hat höchstens die Nummer ${String(versionMaximum)}.`,
         }
       }
 

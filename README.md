@@ -129,6 +129,12 @@ In der Entwicklung liefert `pnpm --filter @opengewerk/haustechnik-web run dev` b
 
 Die Migrationen liegen als SQL-Dateien unter `packages/server/migrations/`. Eine gemergte Migration wird nicht mehr geändert, auch nicht in einem Kommentar: sie ist auf einer Installation gelaufen, und der Migrationslauf lehnt eine Datei ab, die nicht mehr die ist, die er eingespielt hat. Eine Korrektur ist eine neue Migration. Jede Migration hat ihre Rücknahme unter `migrations/down/`.
 
+Eine Rücknahme läuft als Superuser, wie die Sicherung, nicht als Eigentümer der Tabellen: unter `FORCE` sähe dieser keine Zeile. Vorher wird gesichert (oben), dann zum Beispiel:
+
+```bash
+docker compose -f docker/compose.yaml exec -T postgres psql -U postgres -d haustechnik -v ON_ERROR_STOP=1 < packages/server/migrations/down/0034_prints.sql
+```
+
 Alle ausstehenden Migrationen laufen in einer Transaktion. Schlägt eine fehl, steht die Datenbank auf dem Stand davor. Der Preis: nichts in einer Migration darf außerhalb einer Transaktion laufen müssen, `CREATE INDEX CONCURRENTLY` an erster Stelle.
 
 Die erste Migration, `0000_foundation`, legt das Fundament in einer leeren Datenbank an: Betreiber, Konten und Sitzungen, Zugehörigkeiten und Einladungen, Rollen, das Audit-Log mit Hashkette, die Tabellen des Abgleichs, Nummernkreise, versiegelte Zugangsdaten und den Bereich der Instanz. Sie ist nicht abgeschrieben. Die Tabellen hat `drizzle-kit generate` aus den Schema-Modulen des Fundaments erzeugt, und `completeInitialMigrationIn` aus `@opengewerk/platform-server/migration` hat darumgelegt, was drizzle-kit nicht schreibt: die Rolle der Anwendung, `FORCE`, die Rechte je Tabelle, die Funktionen und die Trigger. In der Datenbank heißt ein Betreiber `tenant`, wie das Fundament ihn nennt.
