@@ -53,6 +53,35 @@ import { dayInGermany } from '../today.js'
 import { stateFingerprint } from './fingerprint.js'
 
 /** What is to be written down: the performance of one duty and who did it. */
+/**
+ * What stops a duty from taking an evidence of this origin: a kind of duty
+ * the catalogue does not know, or one that takes its evidence in another way.
+ * Asked when the evidence is written and, for an activity, already when it
+ * is signed (#79), so that the signature is what is refused.
+ */
+export function originProblem(
+  catalogue: Pick<Catalogue, 'dutyKindVersion'>,
+  duty: { readonly kind: string | null; readonly kindVersion: number | null },
+  origin: EvidenceOrigin,
+): string | null {
+  const kind =
+    duty.kind !== null && duty.kindVersion !== null
+      ? catalogue.dutyKindVersion(duty.kind, duty.kindVersion)
+      : null
+
+  if (duty.kind !== null && kind === null) {
+    return `Die Pflichtart ${duty.kind} in der Fassung ${String(duty.kindVersion)} kennt der Katalog nicht.`
+  }
+
+  const allowed = kind?.definition.evidence.kinds
+
+  if (allowed && origin !== 'legacy' && !(allowed as readonly string[]).includes(origin)) {
+    return `Diese Pflichtart nimmt als Nachweis: ${allowed.map((way) => evidenceKindLabel[way]).join(', ')}.`
+  }
+
+  return null
+}
+
 export interface EvidenceToWrite {
   readonly dutyId: DutyId
   readonly activityId: ActivityId | null
@@ -170,28 +199,16 @@ export async function writeEvidence(
     throw new EvidenceRefusal('Diese Pflicht gibt es nicht.')
   }
 
+  const kindProblem = originProblem(context.catalogue, duty, input.origin)
+
+  if (kindProblem !== null) {
+    throw new EvidenceRefusal(kindProblem)
+  }
+
   const kind =
     duty.kind !== null && duty.kindVersion !== null
       ? context.catalogue.dutyKindVersion(duty.kind, duty.kindVersion)
       : null
-
-  if (duty.kind !== null && kind === null) {
-    throw new EvidenceRefusal(
-      `Die Pflichtart ${duty.kind} in der Fassung ${String(duty.kindVersion)} kennt der Katalog nicht.`,
-    )
-  }
-
-  const allowed = kind?.definition.evidence.kinds
-
-  if (
-    allowed &&
-    input.origin !== 'legacy' &&
-    !(allowed as readonly string[]).includes(input.origin)
-  ) {
-    throw new EvidenceRefusal(
-      `Diese Pflichtart nimmt als Nachweis: ${allowed.map((way) => evidenceKindLabel[way]).join(', ')}.`,
-    )
-  }
 
   const replaced =
     input.replaces === undefined || input.replaces === null

@@ -18,6 +18,7 @@ import {
   workOrderKindLabel,
 } from '@opengewerk/haustechnik-domain'
 import type { RecordWords } from '@opengewerk/platform-web'
+import { date } from '@opengewerk/platform-web/format'
 
 import { ownDecision } from './duplicate-decision.js'
 
@@ -104,6 +105,11 @@ export const records: RecordWords = {
   fieldLabel: (field) =>
     (Object.hasOwn(syncFieldNames, field) ? syncFieldNames[field] : undefined) ?? field,
   titleOf: (entity, record) => {
+    // A reading has no name; the day it was read on tells it apart (#79).
+    if (entity === 'meter_readings' && typeof record?.['readOn'] === 'string') {
+      return `Zählerstand vom ${date(record['readOn'])}`
+    }
+
     const fields = Object.hasOwn(titleFields, entity) ? (titleFields[entity] ?? []) : []
     const named = fields
       .map((field) => record?.[field])
@@ -112,7 +118,17 @@ export const records: RecordWords = {
     return typeof named === 'string' ? named : records.entityLabel(entity)
   },
   valueText,
-  settledElsewhere: {},
+  // What a device makes and nobody changes after cannot be taken over in the
+  // version of the device: the card says what happened and what to do (#79).
+  // A signature has a card of its own (#108).
+  settledElsewhere: {
+    attachment_versions:
+      'Die Datei wurde nicht angenommen, weil es das Dokument, zu dem sie gehört, nicht mehr gibt oder es nicht ankam. Bitte das Dokument ansehen und die Datei, wenn nötig, neu ablegen.',
+    meter_readings:
+      'Der Zählerstand wurde nicht angenommen, weil sich am Zähler inzwischen etwas geändert hat: ein Stand für diesen Stichtag, eine Sperre oder ein Tausch. Bitte am Zähler nachsehen und, wenn nötig, neu ablesen.',
+    work_order_notes:
+      'Die Notiz wurde nicht angenommen, weil sich der Auftrag inzwischen geändert hat. Bitte den Auftrag ansehen und die Notiz, wenn sie noch passt, neu schreiben.',
+  },
   // A possible duplicate of an asset taken stock of on site is decided in a
   // card of its own, with what was sent beside the asset (#99).
   ownDecision,

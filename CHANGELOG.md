@@ -1290,6 +1290,24 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   Vorgaben der Mängelklassen. Bisher setzte sie den Grund in einem eigenen Stück zwischen zwei
   Trennern, und er galt nur bis zum Ende von dessen Transaktion; im Protokoll des Betreibers standen
   die Zeilen ohne Grund
+- Was beim Unterschreiben erst am Nachweis auffiel, lehnt der Server jetzt an der Unterschrift ab
+  (#79): einen Tag der Durchführung in der Zukunft und eine Pflicht, deren Art ihren Nachweis
+  anders nimmt. Bisher fiel beides erst mit der letzten Unterschrift auf, beim Schreiben des
+  Nachweises, und dann für die ganze Übertragung eines Geräts statt für die eine Unterschrift
+- Den Zeitpunkt einer Unterschrift nimmt der Server vom Gerät nur noch, wenn er höchstens fünf
+  Minuten nach seiner eigenen Uhr liegt und nicht vor dem Tag der Durchführung (#79), und der Stand
+  eines Nachweises (Fassung 7) hält daneben, wann der Server die Unterschrift bekam. Die Seite eines
+  Nachweises und die PDFs nennen beide Zeitpunkte. Bisher stand die Uhr des Geräts ungeprüft und
+  für immer im Nachweis
+- Die Karte eines Konflikts an einem Zählerstand, einer Notiz zu einem Auftrag oder einer Fassung
+  eines Dokuments sagt, was geschehen ist und was zu tun ist, und schließt nur noch (#79). Bisher
+  bot sie "Fassung vom Gerät übernehmen" an, was bei einem Datensatz, den niemand ändert, nie
+  gelingen konnte. Ein Zählerstand heißt dort nach dem Tag, an dem er abgelesen wurde
+- Eine Pflicht, zu der es einen Nachweis oder einen unterschriebenen oder geschlossenen Vorgang
+  gibt, lässt sich nicht mehr entfernen, nur beenden (#79). Bisher nahm `DELETE /duties/:id` sie
+  weg, und mit ihr ihre Zeile an einem festgeschriebenen Vorgang. Gefunden hat das der Test über
+  alle Routen, der jetzt jede Route auch mit einem Rumpf aufruft, der zurücksetzen will, und
+  Löschung, Fassung und Änderungsfolge des festgeschriebenen Vorgangs mit vergleicht
 - Der Kopf einer Seite im Büro bleibt auf dem Desktop eine Zeile, wie auf den Tafeln
   (`opengewerk#585`, mit dem Fundament angehoben): Der Titel gibt nach und seine Abzeichen brechen
   um, die Knöpfe bleiben rechts. Bisher rutschten die Knöpfe unter den Titel, sobald nicht alles

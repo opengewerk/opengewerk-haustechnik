@@ -117,6 +117,8 @@ function frozen(further: Partial<EvidenceState> = {}): EvidenceState {
         signedAt: '2026-10-01T05:42:00.000Z',
         path: 'M10,10L200,300',
         way: 'drawing',
+        // Signed without a network, and taken by the server later (#79).
+        receivedAt: '2026-10-01T05:51:00.000Z',
       },
       // Countersigned with the typed name (#209).
       {
@@ -125,6 +127,7 @@ function frozen(further: Partial<EvidenceState> = {}): EvidenceState {
         signedAt: '2026-10-02T06:15:00.000Z',
         path: null,
         way: 'name',
+        receivedAt: '2026-10-02T06:15:01.000Z',
       },
     ],
     files: [],
@@ -262,8 +265,11 @@ describe('the page of an evidence', () => {
 
     const signatures = screen.getByRole('region', { name: 'Unterschriften' }).textContent ?? ''
 
-    // The hour is the one of the clock the test runs on, which the CI keeps in UTC.
-    expect(signatures).toMatch(/UnterschriftTobias Wendt01\.10\.2026, \d\d:\d\dGegen/)
+    // The hours are the ones of the clock the test runs on, which the CI keeps in UTC.
+    // The moment of the device, and the one of the server under it (#79).
+    expect(signatures).toMatch(
+      /UnterschriftTobias Wendt01\.10\.2026, \d\d:42beim Server 01\.10\.2026, \d\d:51Gegen/,
+    )
     // The evidence says which way somebody signed (#209).
     expect(signatures).toMatch(
       /GegenzeichnungDennis Roth02\.10\.2026, \d\d:\d\d, mit getipptem Namen bestätigt/,

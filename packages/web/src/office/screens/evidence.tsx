@@ -396,6 +396,12 @@ export function EvidenceScreen() {
                     <div className="text-[13px] text-ink-muted">
                       {`${moment(signature.signedAt)}${signature.way === 'name' ? `, ${signatureWayLabel.name}` : ''}`}
                     </div>
+                    {/* The moment of the device above, the one of the server here (#79). */}
+                    {signature.receivedAt === null ? null : (
+                      <div className="text-[13px] text-ink-muted">
+                        {`beim Server ${moment(signature.receivedAt)}`}
+                      </div>
+                    )}
                   </li>
                 ))}
               </ul>

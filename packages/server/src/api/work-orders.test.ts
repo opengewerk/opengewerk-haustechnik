@@ -952,7 +952,7 @@ describe('the work on an order on site', () => {
     return operation('activity_signatures', 'create', newId<'activity-signature'>(), {
       activityId,
       role: 'signer',
-      signedAt: new Date(recorded).toISOString(),
+      signedAt: new Date().toISOString(),
       deviceInfo: 'Probe-Telefon',
       path: 'M10,10L200,300',
       pageFingerprint: pageFingerprint(await pageNow(activityId)),

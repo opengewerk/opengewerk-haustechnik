@@ -60,16 +60,19 @@ import {
   requireSomething,
   type TenantTransaction,
 } from '@opengewerk/platform-server'
-import { and, asc, eq, isNull } from 'drizzle-orm'
+import { and, asc, eq, isNull, notInArray } from 'drizzle-orm'
 
 import { underWayFor } from '../activities/for-duty.js'
 import { CATALOGUE } from '../catalogue.js'
 import { dutiesOnADay, dutyTitle } from '../database/duty-standing.js'
 import {
+  activities,
+  activityDuties,
   assets,
   buildings,
   duties,
   dutyDismissals,
+  evidence,
   memberships,
   properties,
   rooms,
@@ -798,12 +801,41 @@ export class DutiesController {
     })
   }
 
-  /** A duty entered by mistake is marked deleted. One that was right and ends, is ended. */
+  /**
+   * A duty entered by mistake is marked deleted. One that was right and ends, is ended:
+   * one with an evidence, or with an activity that was signed or closed, was no mistake
+   * (#79). Deleting it would take its line off a page that was signed, as the activities
+   * under a duty follow its deletion.
+   */
   @Delete(':id')
   @RequiresPermission('duty.write')
   remove(@CurrentIdentity() identity: Asking, @Param('id') id: string): Promise<Duty> {
     return this.database.forTenant(identity, async (tx) => {
-      await placeOf<Duty>(tx, duties, id, missing)
+      const duty = await placeOf<Duty>(tx, duties, id, missing)
+      const [written] = await tx
+        .select({ id: evidence.id })
+        .from(evidence)
+        .where(and(eq(evidence.tenantId, identity.tenantId), eq(evidence.dutyId, duty.id)))
+        .limit(1)
+      const [fixed] = await tx
+        .select({ id: activityDuties.id })
+        .from(activityDuties)
+        .innerJoin(activities, eq(activities.id, activityDuties.activityId))
+        .where(
+          and(
+            eq(activityDuties.tenantId, identity.tenantId),
+            eq(activityDuties.dutyId, duty.id),
+            isNull(activityDuties.deletedAt),
+            notInArray(activities.status, ['open', 'started']),
+          ),
+        )
+        .limit(1)
+
+      if (written !== undefined || fixed !== undefined) {
+        throw new ConflictException(
+          'Zu dieser Pflicht gibt es Nachweise oder einen unterschriebenen Vorgang. Sie wird nicht entfernt, sondern beendet.',
+        )
+      }
 
       const [removed] = await tx
         .update(duties)

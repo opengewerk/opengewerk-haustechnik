@@ -101,9 +101,10 @@ export const evidenceLimits = {
  * since an evidence keeps the form of its activity and the answers (#106), 4
  * since it keeps what was said with the result (#108), 5 since a signature
  * keeps its drawing, which the PDF shows (#111), 6 since it says which way
- * somebody signed, with the drawing or with the typed name (#209).
+ * somebody signed, with the drawing or with the typed name (#209), 7 since a
+ * signature keeps when the server took it beside the moment of the device (#79).
  */
-export const evidenceStateVersion = 6
+export const evidenceStateVersion = 7
 
 /** The place of an evidence in words, as it was on the day it was written down. */
 export interface StatedPlace {
@@ -159,6 +160,12 @@ export interface StatedSignature {
   readonly path: string | null
   /** Which way it was signed, since version 6 (#209); every signature before was drawn. */
   readonly way: SignatureWay
+  /**
+   * When the server took the signature, as an ISO 8601 text in UTC, since
+   * version 7 (#79): `signedAt` is the clock of the device, which the server
+   * only bounds; this one is its own. None for a signature stated before.
+   */
+  readonly receivedAt: string | null
 }
 
 export interface StatedFile {
@@ -258,16 +265,22 @@ export class UnknownEvidenceStateError extends Error {
   }
 }
 
+/** The sixth version: all of the seventh but when the server took each signature. */
+type EvidenceStateOfVersion6 = Omit<EvidenceState, 'version' | 'signatures'> & {
+  readonly version: 6
+  readonly signatures: readonly Omit<StatedSignature, 'receivedAt'>[]
+}
+
 /** The fifth version: all of the sixth but the way each signature was made. */
-type EvidenceStateOfVersion5 = Omit<EvidenceState, 'version' | 'signatures'> & {
+type EvidenceStateOfVersion5 = Omit<EvidenceStateOfVersion6, 'version' | 'signatures'> & {
   readonly version: 5
-  readonly signatures: readonly Omit<StatedSignature, 'way'>[]
+  readonly signatures: readonly Omit<StatedSignature, 'way' | 'receivedAt'>[]
 }
 
 /** The fourth version: all of the fifth but the drawings of the signatures. */
 type EvidenceStateOfVersion4 = Omit<EvidenceStateOfVersion5, 'version' | 'signatures'> & {
   readonly version: 4
-  readonly signatures: readonly Omit<StatedSignature, 'path' | 'way'>[]
+  readonly signatures: readonly Omit<StatedSignature, 'path' | 'way' | 'receivedAt'>[]
 }
 
 /** The third version: all of the fourth but what was said with the result. */
@@ -293,8 +306,9 @@ type EvidenceStateOfVersion1 = Omit<EvidenceStateOfVersion2, 'version' | 'replac
 const readers: Readonly<Record<number, (stored: StoredEvidenceState) => EvidenceState>> = {
   // No evidence of the first version corrects another, none before the
   // third names a form or answers, none before the fourth a remark, none
-  // before the fifth keeps the drawing of a signature, and every signature
-  // before the sixth was drawn.
+  // before the fifth keeps the drawing of a signature, every signature
+  // before the sixth was drawn, and none before the seventh says when the
+  // server took it.
   1: (stored) => ({
     ...(stored as unknown as EvidenceStateOfVersion1),
     version: evidenceStateVersion,
@@ -329,16 +343,30 @@ const readers: Readonly<Record<number, (stored: StoredEvidenceState) => Evidence
     signatures: (stored as unknown as EvidenceStateOfVersion5).signatures.map((signature) => ({
       ...signature,
       way: 'drawing' as const,
+      receivedAt: null,
     })),
   }),
-  6: (stored) => stored as unknown as EvidenceState,
+  6: (stored) => ({
+    ...(stored as unknown as EvidenceStateOfVersion6),
+    version: evidenceStateVersion,
+    signatures: (stored as unknown as EvidenceStateOfVersion6).signatures.map((signature) => ({
+      ...signature,
+      receivedAt: null,
+    })),
+  }),
+  7: (stored) => stored as unknown as EvidenceState,
 }
 
 /** The signatures of a state written before version 5, which kept no drawing; all of them drawn. */
 function withoutDrawings(state: {
-  readonly signatures: readonly Omit<StatedSignature, 'path' | 'way'>[]
+  readonly signatures: readonly Omit<StatedSignature, 'path' | 'way' | 'receivedAt'>[]
 }): readonly StatedSignature[] {
-  return state.signatures.map((signature) => ({ ...signature, path: null, way: 'drawing' }))
+  return state.signatures.map((signature) => ({
+    ...signature,
+    path: null,
+    way: 'drawing',
+    receivedAt: null,
+  }))
 }
 
 /** The versions this reader knows. */

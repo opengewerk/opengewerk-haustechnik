@@ -20,6 +20,7 @@ import { applicationDatabaseUrl, connect, resetToMigrated } from '../database/te
 import { stateFingerprint } from '../evidence/fingerprint.js'
 import { EvidenceRefusal } from '../evidence/write.js'
 import {
+  checkSignature,
   decideWorkOrder,
   pageFingerprint,
   pageOf,
@@ -361,6 +362,7 @@ describe('a signature on an activity', () => {
         signedAt: '2026-10-01T09:30:00.000Z',
         path: drawing,
         way: 'drawing',
+        receivedAt: expect.any(String),
       },
     ])
     expect(taken.written[0]?.state.performer).toEqual({ person: 'Tom Technik' })
@@ -563,6 +565,7 @@ describe('a signature on an activity', () => {
         signedAt: '2026-10-01T09:30:00.000Z',
         path: null,
         way: 'name',
+        receivedAt: expect.any(String),
       },
     ])
     expect(await countOf('evidence', 'duty_id', duties[0] as string)).toBe(1)
@@ -573,6 +576,102 @@ describe('a signature on an activity', () => {
     )
 
     expect(rows).toEqual([{ path: null, typed_name: 'tom   technik' }])
+  })
+
+  it('is refused with a moment of the device ahead of the server, or before the day of the performance (#79)', async () => {
+    const { activity } = await activityToSign()
+    const signed = async (signedAt: string) =>
+      refusalOf(
+        as(technician, async (tx, context) =>
+          takeSignature(tx, context, {
+            ...(await signatureFor(activity)),
+            signedAt: new Date(signedAt),
+          }),
+        ),
+      )
+
+    // The server says 08:00 on the third; five minutes ahead is a clock a little off.
+    expect(await signed('2026-10-03T08:06:00.000Z')).toBe(
+      'Der Zeitpunkt der Unterschrift liegt nach jetzt. Die Uhr des Geräts geht vor.',
+    )
+    // 23:59 on the last of September in Germany, before the day it was done on.
+    expect(await signed('2026-09-30T21:59:00.000Z')).toBe(
+      'Der Zeitpunkt der Unterschrift liegt vor dem Tag der Durchführung. Die Uhr des Geräts geht nach.',
+    )
+    expect(await countOf('activity_signatures', 'activity_id', activity)).toBe(0)
+    expect(await signed('2026-10-03T08:04:00.000Z')).toBe('taken')
+  })
+
+  it('keeps the moment of the device and the one of the server in the state (#79)', async () => {
+    const { activity } = await activityToSign()
+    const taken = await as(technician, async (tx, context) =>
+      takeSignature(tx, context, await signatureFor(activity)),
+    )
+    const { rows } = await admin.query<{ created_at: Date }>(
+      'select created_at from activity_signatures where activity_id = $1',
+      [activity],
+    )
+
+    expect(
+      taken.written[0]?.state.signatures.map(({ signedAt, receivedAt }) => [signedAt, receivedAt]),
+    ).toEqual([['2026-10-01T09:30:00.000Z', rows[0]?.created_at.toISOString()]])
+  })
+
+  it('is refused for a day of the performance yet to come, already at the signature (#79)', async () => {
+    const { activity } = await activityToSign()
+
+    await admin.query("update activities set performed_on = '2026-10-04' where id = $1", [activity])
+
+    expect(
+      await refusalOf(
+        as(technician, async (tx, context) =>
+          takeSignature(tx, context, await signatureFor(activity)),
+        ),
+      ),
+    ).toBe(
+      'Der Tag der Durchführung liegt nach heute. Ein Nachweis gilt für einen Tag, der schon war.',
+    )
+    expect(await countOf('activity_signatures', 'activity_id', activity)).toBe(0)
+  })
+
+  it('is refused for a duty whose kind takes its evidence another way, already at the signature (#79)', async () => {
+    // A round writes a point of a round, and the kept kind takes a protocol, a report or a work order.
+    const { activity, duties } = await activityToSign('round')
+
+    await admin.query(
+      'update duties set kind = $2, kind_version = 1, label = null, basis = null, source_note = null where id = $1',
+      [duties[0], keptTest],
+    )
+
+    const sentence =
+      'Diese Pflichtart nimmt als Nachweis: Unterschriebenes Protokoll, Bericht einer Fremdfirma oder Prüforganisation, Abgenommener Arbeitsauftrag.'
+
+    // The check of a signature says it, the one a device's signature goes through first.
+    expect(
+      await refusalOf(
+        as(technician, async (tx) =>
+          checkSignature(
+            tx,
+            tenant,
+            {
+              ...(await signatureFor(activity)),
+              signedBy: technician,
+              accountName: names[technician] ?? '',
+            },
+            catalogue,
+            at,
+          ),
+        ),
+      ),
+    ).toBe(sentence)
+    expect(
+      await refusalOf(
+        as(technician, async (tx, context) =>
+          takeSignature(tx, context, await signatureFor(activity)),
+        ),
+      ),
+    ).toBe(sentence)
+    expect(await countOf('activity_signatures', 'activity_id', activity)).toBe(0)
   })
 
   it('is refused confirmed with a name other than the one of the account, or with a drawing and a name', async () => {
@@ -646,6 +745,7 @@ describe('a signature on an activity', () => {
           signedAt: '2026-10-01T09:30:00.000Z',
           path: drawing,
           way: 'drawing',
+          receivedAt: expect.any(String),
         },
       ],
     })
@@ -908,6 +1008,7 @@ describe('a countersignature', () => {
         signedAt: '2026-10-01T09:30:00.000Z',
         path: drawing,
         way: 'drawing',
+        receivedAt: expect.any(String),
       },
       {
         name: 'Sina Objekt',
@@ -915,6 +1016,7 @@ describe('a countersignature', () => {
         signedAt: '2026-10-02T07:00:00.000Z',
         path: drawing,
         way: 'drawing',
+        receivedAt: expect.any(String),
       },
     ])
   })
@@ -1087,6 +1189,7 @@ describe('a work order', () => {
         signedAt: '2026-10-02T15:00:00.000Z',
         path: drawing,
         way: 'drawing',
+        receivedAt: expect.any(String),
       },
     ])
     expect(await countOf('activity_signatures', 'activity_id', activity)).toBe(2)
