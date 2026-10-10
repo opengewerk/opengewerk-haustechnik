@@ -1,6 +1,7 @@
 import {
   type ActivityId,
   type ActivitySignatureId,
+  type DutyId,
   type ActivityStatus,
   answerFindings,
   answerReadings,
@@ -53,11 +54,13 @@ import {
 import { heldMeter } from '../database/meter-standing.js'
 import { stateFingerprint } from '../evidence/fingerprint.js'
 import {
+  originProblem,
   type WritingContext,
   type WrittenEvidence,
   writeEvidence,
   writeRoundRecord,
 } from '../evidence/write.js'
+import { dayInGermany } from '../today.js'
 import { formsFor } from './template-forms.js'
 
 /** A signature as it arrives from the device. */
@@ -101,7 +104,7 @@ export interface TakenDecision {
  */
 export type SignatureToCheck = Pick<
   SignatureToTake,
-  'activityId' | 'role' | 'deviceInfo' | 'path' | 'typedName' | 'pageFingerprint'
+  'activityId' | 'role' | 'signedAt' | 'deviceInfo' | 'path' | 'typedName' | 'pageFingerprint'
 > & {
   readonly signedBy: string
   /** The name of the account signed in, which a typed name has to be (#209). */
@@ -376,6 +379,47 @@ export async function signaturesWithTheirStanding(
 }
 
 /**
+ * How far the clock of a device may run ahead of the server before the
+ * moment of a signature is refused: five minutes, for clocks that are only
+ * a little off (#79).
+ */
+export const signedAtLeeway = 5 * 60 * 1000
+
+/** The way an activity of this kind writes its evidence, as `followSignature` and the acceptance do. */
+export function originOfActivity(kind: ActivityRow['kind']): EvidenceOrigin {
+  return kind === 'work_order' ? 'work_order' : kind === 'round' ? 'round_point' : 'protocol'
+}
+
+/**
+ * The first duty of an activity whose kind would not take the evidence it
+ * writes, as writing it would say (#79), or null.
+ */
+async function dutyKindProblem(
+  tx: TenantTransaction,
+  tenantId: TenantId,
+  activity: ActivityRow,
+  page: SignedPage,
+  catalogue: Pick<Catalogue, 'dutyKindVersion'>,
+): Promise<string | null> {
+  const ids = page.duties.map((line) => line.dutyId as DutyId)
+
+  if (ids.length === 0) {
+    return null
+  }
+
+  const rows = await tx
+    .select({ kind: duties.kind, kindVersion: duties.kindVersion })
+    .from(duties)
+    .where(and(eq(duties.tenantId, tenantId), inArray(duties.id, ids)))
+    .orderBy(asc(duties.id))
+  const origin = originOfActivity(activity.kind)
+
+  return (
+    rows.map((duty) => originProblem(catalogue, duty, origin)).find((each) => each !== null) ?? null
+  )
+}
+
+/**
  * Checks a signature before it is written (ADR 0004, points 7, 8 and 10):
  * only for the page the server works out itself, only in its turn, and only
  * once the activity says on which day it was performed and what came of each
@@ -396,7 +440,8 @@ export async function checkSignature(
   tx: TenantTransaction,
   tenantId: TenantId,
   input: SignatureToCheck,
-  catalogue: Pick<Catalogue, 'formVersion' | 'ruleSet'>,
+  catalogue: Pick<Catalogue, 'formVersion' | 'ruleSet' | 'dutyKindVersion'>,
+  at: Date = new Date(),
 ): Promise<void> {
   const firstProblem = Object.values(
     signatureProblems({
@@ -410,6 +455,19 @@ export async function checkSignature(
 
   if (firstProblem !== undefined) {
     throw new SigningRefusal(firstProblem)
+  }
+
+  // The clock of the device is taken, and it stands in the evidence for
+  // good (#79): not later than the clock of the server allows, and not
+  // without a moment at all.
+  if (Number.isNaN(input.signedAt.getTime())) {
+    throw new SigningRefusal('Der Zeitpunkt der Unterschrift fehlt.')
+  }
+
+  if (input.signedAt.getTime() > at.getTime() + signedAtLeeway) {
+    throw new SigningRefusal(
+      'Der Zeitpunkt der Unterschrift liegt nach jetzt. Die Uhr des Geräts geht vor.',
+    )
   }
 
   // "Die Person bestätigt mit ihrem getippten Namen" (2.6): the name of the
@@ -452,6 +510,27 @@ export async function checkSignature(
 
   if (activity.performedOn === null) {
     throw new SigningRefusal('Der Tag der Durchführung fehlt.')
+  }
+
+  // What writing the evidence would refuse is refused here, at the
+  // signature it comes with (#79): otherwise it shows only with the last
+  // signature, and then for the whole transmission.
+  if (activity.performedOn > dayInGermany(at)) {
+    throw new SigningRefusal(
+      'Der Tag der Durchführung liegt nach heute. Ein Nachweis gilt für einen Tag, der schon war.',
+    )
+  }
+
+  if (dayInGermany(input.signedAt) < activity.performedOn) {
+    throw new SigningRefusal(
+      'Der Zeitpunkt der Unterschrift liegt vor dem Tag der Durchführung. Die Uhr des Geräts geht nach.',
+    )
+  }
+
+  const kindProblem = await dutyKindProblem(tx, tenantId, activity, page, catalogue)
+
+  if (kindProblem !== null) {
+    throw new SigningRefusal(kindProblem)
   }
 
   const form = formOfActivity(await formsFor(tx, catalogue, activity), activity)
@@ -555,13 +634,7 @@ export async function followSignature(
 
   const complete = activity.kind !== 'work_order' && signaturesComplete(activity, valid)
   const written = complete
-    ? await writeDown(
-        tx,
-        context,
-        activity,
-        valid,
-        activity.kind === 'round' ? 'round_point' : 'protocol',
-      )
+    ? await writeDown(tx, context, activity, valid, originOfActivity(activity.kind))
     : []
   const status: ActivityStatus = complete ? 'done' : 'signed'
 
@@ -780,6 +853,7 @@ export async function takeSignature(
     context.tenantId,
     { ...input, signedBy: context.writtenBy, accountName: context.nameOf(context.writtenBy) },
     context.catalogue,
+    context.at,
   )
 
   const activity = await activityOf(tx, context.tenantId, input.activityId)
@@ -974,6 +1048,8 @@ async function writeDown(
     // which way it was signed (#209).
     path: signature.path,
     way: signature.typedName === null ? 'drawing' : 'name',
+    // The moment of the device beside the one of the server (#79).
+    receivedAt: signature.createdAt.toISOString(),
   }))
   const written: WrittenEvidence[] = []
   const form = formOfActivity(await formsFor(tx, context.catalogue, activity), activity)

@@ -97,8 +97,9 @@ Anhang B nennt jedes Feld der Datenbank, das auf eine Person zeigt. Dieser Absch
 
 ### 3.5 Unterschriften und Nachweise
 
-- Eine Unterschrift hält fest: wer unterschrieben hat, ob als Unterschrift oder als Gegenzeichnung, den Zeitpunkt nach der Uhr des Geräts, eine Angabe zum Gerät von höchstens 500 Zeichen, den Schriftzug als Linienzug oder, wo jemand ohne Schriftzug unterschreibt, den getippten Namen, und einen Fingerabdruck der Seite, die gezeigt wurde. Der Linienzug besteht aus Punkten und Linien; Druck und Geschwindigkeit des Schreibens hält er nicht fest. [K2.6, B61, B69]
+- Eine Unterschrift hält fest: wer unterschrieben hat, ob als Unterschrift oder als Gegenzeichnung, den Zeitpunkt nach der Uhr des Geräts und den, zu dem der Server sie bekam, eine Angabe zum Gerät von höchstens 500 Zeichen, den Schriftzug als Linienzug oder, wo jemand ohne Schriftzug unterschreibt, den getippten Namen, und einen Fingerabdruck der Seite, die gezeigt wurde. Der Linienzug besteht aus Punkten und Linien; Druck und Geschwindigkeit des Schreibens hält er nicht fest. [K2.6, B61, B69]
 - **Zusage:** Wer ohne Schriftzug unterschreibt, bestätigt mit dem eigenen Namen, wie er im Konto steht; einen anderen Namen nimmt der Server nicht, auch nicht von einem Gerät ohne Netz. Eine Unterschrift hat genau einen der beiden Wege. Der Nachweis, der eingefrorene Stand eines Rundgangs und ihr PDF sagen, welcher Weg es war. [K2.6, B152, B153, B154, B155]
+- **Zusage:** Einen Zeitpunkt der Unterschrift, der mehr als fünf Minuten nach der Uhr des Servers liegt oder vor dem Tag der Durchführung, nimmt der Server nicht. Der Nachweis, sein PDF und das PDF eines Rundgangs nennen beide Zeitpunkte: den des Geräts und den, zu dem der Server die Unterschrift bekam. [K2.6, B156, B157]
 - **Zusage:** Unterschrieben wird im Namen des Kontos, das angemeldet ist. Der Server setzt die Person selbst ein und übernimmt sie nicht vom Gerät. [K2.6, B22]
 - Mit der Unterschrift entsteht der Nachweis und friert seinen Stand ein: den Namen der Person, die unterschrieben hat, ihre Rolle dabei, den Zeitpunkt und den Schriftzug oder dass sie mit dem getippten Namen bestätigt hat; bei einem eingetragenen Bericht den Namen des Prüfers und seine Organisation; dazu, wer den Nachweis eingetragen hat. Ein späterer Namenswechsel ändert daran nichts. Ein Nachweis, der vor dieser Fassung entstand, hat den Schriftzug nicht eingefroren. [K2.6, B24, B30]
 - Mit der Unterschrift friert der Server auch den Rundgang im Ganzen ein, auch einen, der keine Pflicht erfüllt: seine Antworten mit den Fotos, die Mängel, die aus ihm hervorgingen, die Unterschriften mit Namen, Rolle, Zeitpunkt und Schriftzug oder dem Weg ohne ihn, wer ihn gegangen ist und in wessen Namen er eingetragen wurde. [K2.6, B148]
@@ -488,6 +489,8 @@ Pfade ohne Vorsatz liegen im Repository `opengewerk/opengewerk-haustechnik`. Pfa
 | B153 | Test | `packages/server/src/sync/sync.test.ts` | `takes a round signed without a connection with the typed name of whoever sends it, and not with another name (#209)` |
 | B154 | Test | `packages/server/src/activities/signing.test.ts` | `is taken confirmed with the typed name of the account, and the state says which way (#209)` |
 | B155 | Test | `packages/server/src/prints/record-page.test.ts` | `shows a drawn signature as its drawing and a typed one as the name with the way (#209)` |
+| B156 | Test | `packages/server/src/activities/signing.test.ts` | `is refused with a moment of the device ahead of the server, or before the day of the performance (#79)` |
+| B157 | Test | `packages/server/src/activities/signing.test.ts` | `keeps the moment of the device and the one of the server in the state (#79)` |
 
 ---
 

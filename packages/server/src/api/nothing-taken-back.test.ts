@@ -34,8 +34,11 @@ import { as, testIdentities } from './test-identity.js'
  *
  * So every route that works in a tenant is called, by the Leitung with every
  * right of the catalogue, with the key of every record of a written down
- * activity in every place of its path and with an empty body, and all of it
- * is what it was, to the byte. Not a list kept by hand: the routes come out
+ * activity in every place of its path, once with an empty body and once with
+ * one that asks to set back what a signature fixes, and all of it is what it
+ * was, to the byte: for the written down activity, its duties and its answers
+ * also whether a row was removed, and its version and place in the changes a
+ * device fetches (#79). Not a list kept by hand: the routes come out
  * of the module, so one added later is called whether or not anybody
  * remembers this file. The routes before a sign-in, of a session alone and of
  * the instance are left out: they reach no record of a tenant.
@@ -60,8 +63,25 @@ async function added(statement: string, values: readonly unknown[]): Promise<str
 }
 
 /**
+ * A body that asks to set back what a signature fixes, in the names the
+ * routes take, which every route gets beside an empty one (#79): a route
+ * that took one of them would show above.
+ */
+const settingBack = {
+  status: 'open',
+  result: null,
+  resultReason: null,
+  remark: null,
+  value: null,
+  performedOn: null,
+  countersignatureRequired: false,
+  deletedAt: null,
+}
+
+/**
  * What is not to change: every evidence, signature, decision and declaration
- * of invalidity whole, and the results and the state of every activity.
+ * of invalidity whole, the results and the state of every activity, and the
+ * written down activity with its duties and answers whole.
  */
 async function signedAndWritten(): Promise<unknown> {
   const { rows } = await admin.query<{ rows: unknown }>(
@@ -85,7 +105,17 @@ async function signedAndWritten(): Promise<unknown> {
                                  'performed_on', performed_on,
                                  'countersignature_required', countersignature_required)
          from activities
+       union all
+       select jsonb_build_object('table', 'written activity') || to_jsonb(a)
+         from activities a where id = $1
+       union all
+       select jsonb_build_object('table', 'written duties') || to_jsonb(d)
+         from activity_duties d where activity_id = $1
+       union all
+       select jsonb_build_object('table', 'written answers') || to_jsonb(w)
+         from activity_answers w where activity_id = $1
      ) entries`,
+    [keys['activity']],
   )
 
   return rows[0]?.rows
@@ -180,6 +210,12 @@ beforeAll(async () => {
      values ($1, $2, $3, $4, $5, 'with_defects')`,
     [...at, keys['activity'], keys['duty']],
   )
+  keys['answer'] = await added(
+    `insert into activity_answers (tenant_id, property_id, area_id, activity_id, field_key, result,
+                                   remark)
+     values ($1, $2, $3, $4, 'emergency_call', 'not_ok', 'Notruf ohne Verbindung.')`,
+    [...at, keys['activity']],
+  )
   keys['signature'] = await added(
     `insert into activity_signatures (tenant_id, property_id, area_id, activity_id, signed_by, role,
                                       signed_at, path, page_fingerprint)
@@ -263,7 +299,9 @@ beforeAll(async () => {
   }).compile()
 
   app = built.createNestApplication()
-  await app.init()
+  // Listening once: supertest opens a port of its own for every call to a
+  // server that does not listen, and the calls below run out of them.
+  await app.listen(0, '127.0.0.1')
 })
 
 afterAll(async () => {
@@ -285,7 +323,10 @@ describe('a written down activity', () => {
     for (const route of routes) {
       const [method = '', path = ''] = route.name.split(' ')
 
-      for (const filled of pathsOf(path)) {
+      for (const [filled, body] of pathsOf(path).flatMap((each) => [
+        [each, {}] as const,
+        [each, settingBack] as const,
+      ])) {
         const call = request(app.getHttpServer())
         const pending =
           method === 'GET'
@@ -297,7 +338,7 @@ describe('a written down activity', () => {
                 : method === 'PATCH'
                   ? call.patch(filled)
                   : call.delete(filled)
-        const response = await pending.set(testIdentityHeader, header).send({})
+        const response = await pending.set(testIdentityHeader, header).send(body)
 
         answered.set(response.status, (answered.get(response.status) ?? 0) + 1)
       }
@@ -309,5 +350,6 @@ describe('a written down activity', () => {
     // above could come from calls that never found a record.
     expect(routes.length).toBeGreaterThanOrEqual(40)
     expect(answered.get(200) ?? 0).toBeGreaterThanOrEqual(20)
-  })
+    // Every route twice over every key there is takes its time.
+  }, 120_000)
 })

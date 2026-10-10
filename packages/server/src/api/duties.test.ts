@@ -8,6 +8,7 @@ import {
   catalogueOf,
   type DutyInterval,
   type DutyKind,
+  type IsoDate,
   missingRight,
   type RoleKey,
   type TenantId,
@@ -24,6 +25,11 @@ import {
   resetToMigrated,
   testIdentityHeader,
 } from '../database/test-database.js'
+import {
+  writtenColumnNames,
+  writtenPlaceholders,
+  writtenValues,
+} from '../database/test-evidence.js'
 import { dayInGermany } from '../today.js'
 import { ApiModule } from './api.module.js'
 import { as, testIdentities } from './test-identity.js'
@@ -848,6 +854,74 @@ describe('ending a duty', () => {
           .expect(409)
       ).body.message,
     ).toBe('Diese Pflicht ist beendet; eine beendete Pflicht ändert sich nicht mehr.')
+  })
+})
+
+describe('removing a duty', () => {
+  it('removes one entered by mistake, and not one with an evidence or a signed activity (#79)', async () => {
+    const place = await placeIn()
+    const made = async (kind: string, extra: object = {}) =>
+      (await post({ assetId: place.elevator, kind, intervalMonths: 24, ...extra }).expect(201))
+        .body as {
+        id: string
+        propertyId: string
+        areaId: string
+      }
+    const remove = (id: string) =>
+      http().delete(`/duties/${id}`).set(testIdentityHeader, by('u-duties'))
+    const refusal =
+      'Zu dieser Pflicht gibt es Nachweise oder einen unterschriebenen Vorgang. Sie wird nicht entfernt, sondern beendet.'
+
+    // Entered by mistake, with an activity not begun: removed, and the activity line with it.
+    const mistaken = await made(mainTest)
+
+    await remove(mistaken.id).expect(200)
+
+    // A signed activity holds its line: the page that was signed would change.
+    const signed = await made(guided)
+    const { rows } = await admin.query<{ id: string }>(
+      `insert into activities (tenant_id, property_id, area_id, asset_id, kind, title, status,
+                               performed_on)
+       values ($1, $2, $3, $4, 'inspection', 'Sichtprüfung Aufzug', 'signed', '2026-10-01')
+       returning id`,
+      [small, signed.propertyId, signed.areaId, place.elevator],
+    )
+
+    await admin.query(
+      `insert into activity_duties (tenant_id, property_id, area_id, activity_id, duty_id, result)
+       values ($1, $2, $3, $4, $5, 'without_defects')`,
+      [small, signed.propertyId, signed.areaId, rows[0]?.id, signed.id],
+    )
+
+    expect((await remove(signed.id).expect(409)).body.message).toBe(refusal)
+
+    // An evidence was written for it: it was right, and it ends.
+    const evidenced = await made(unguided, {
+      intervalReason: 'Gefährdungsbeurteilung vom 01.09.2026',
+    })
+
+    await admin.query(
+      `insert into evidence (tenant_id, property_id, area_id, duty_id, performed_on, result,
+                             ${writtenColumnNames})
+       values ($1, $2, $3, $4, '2026-10-01', 'without_defects', ${writtenPlaceholders(5)})`,
+      [
+        small,
+        evidenced.propertyId,
+        evidenced.areaId,
+        evidenced.id,
+        ...writtenValues('u-duties', '2026-10-01' as IsoDate, 'without_defects'),
+      ],
+    )
+
+    expect((await remove(evidenced.id).expect(409)).body.message).toBe(refusal)
+
+    const { rows: kept } = await admin.query<{ deleted: number }>(
+      `select count(*)::int as deleted from duties
+        where id = any($1::uuid[]) and deleted_at is not null`,
+      [[mistaken.id, signed.id, evidenced.id]],
+    )
+
+    expect(kept[0]?.deleted).toBe(1)
   })
 })
 

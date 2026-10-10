@@ -9,6 +9,7 @@ import {
   type EvidencePage,
   type EvidenceState,
   type IsoDate,
+  type RoundRecordState,
   missingRight,
   type Right,
   type RoleKey,
@@ -198,6 +199,7 @@ async function evidenceOf(
               signedAt: '2026-10-01T07:42:00.000Z',
               path: null,
               way: 'drawing',
+              receivedAt: null,
             },
           ]
         : [],
@@ -987,7 +989,8 @@ describe('the PDF of a round (#111)', () => {
       [asset, daysAgo(1), performer],
     )
     const round = rows[0]
-    const state = {
+    // Of the type of a frozen round, so that a new field of it cannot be left out here (#79).
+    const state: RoundRecordState = {
       version: 1,
       title: 'Technikzentrale Schulhaus',
       place: {
@@ -1023,6 +1026,8 @@ describe('the PDF of a round (#111)', () => {
           role: 'signer',
           signedAt: '2026-10-05T05:38:00.000Z',
           path: 'M10,10L200,80',
+          way: 'drawing',
+          receivedAt: '2026-10-05T05:38:20.000Z',
         },
       ],
       evidence: evidence.map((number) => ({ number, duty: 'Sichtprüfung' })),

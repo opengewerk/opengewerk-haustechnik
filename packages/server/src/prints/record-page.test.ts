@@ -26,6 +26,7 @@ const record: RoundRecordState = {
       signedAt: '2026-10-05T05:38:00.000Z',
       path: 'M10,10L200,80',
       way: 'drawing',
+      receivedAt: '2026-10-05T05:52:00.000Z',
     },
     {
       name: 'Dennis Roth',
@@ -33,6 +34,7 @@ const record: RoundRecordState = {
       signedAt: '2026-10-05T08:14:00.000Z',
       path: null,
       way: 'name',
+      receivedAt: null,
     },
   ],
   evidence: [],
@@ -48,5 +50,15 @@ describe('the PDF of a round', () => {
     expect(html).toContain('<span class="typed-name">Dennis Roth</span>')
     expect(html).toContain('mit getipptem Namen bestätigt')
     expect(html).not.toContain('Ohne Zeichnung eingefroren')
+  })
+
+  it('shows beside the moment of the device the one the server took a signature at (#79)', () => {
+    const { html } = roundPrintJob(record, 'a'.repeat(64), [])
+
+    expect(html).toContain(
+      '<p class="muted">05.10.2026, 07:38</p><p class="muted">beim Server 05.10.2026, 07:52</p>',
+    )
+    // Nothing for a signature stated before the server kept it.
+    expect(html.match(/beim Server/g)).toHaveLength(1)
   })
 })

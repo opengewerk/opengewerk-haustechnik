@@ -165,6 +165,16 @@ function photosOf(photos: readonly PrintedPhoto[]): string {
 }
 
 /** The drawing of a signature, scaled into its box by the points it is made of. */
+/**
+ * When the server took a signature, beside the moment of the device it was
+ * given on (#79); nothing for one stated before it was kept.
+ */
+function receivedOf(signature: StatedSignature): string {
+  return signature.receivedAt === null
+    ? ''
+    : `<p class="muted">beim Server ${text(moment(signature.receivedAt))}</p>`
+}
+
 function drawingOf(signature: StatedSignature): string {
   const { path } = signature
 
@@ -196,7 +206,7 @@ function signaturesOf(signatures: readonly StatedSignature[]): string {
   return `<div class="signatures">${signatures
     .map(
       (signature) =>
-        `<div class="signature"><p class="label">${text(signatureRoleLabel[signature.role])}</p>${drawingOf(signature)}<p class="name">${text(signature.name)}</p><p class="muted">${text(moment(signature.signedAt))}</p></div>`,
+        `<div class="signature"><p class="label">${text(signatureRoleLabel[signature.role])}</p>${drawingOf(signature)}<p class="name">${text(signature.name)}</p><p class="muted">${text(moment(signature.signedAt))}</p>${receivedOf(signature)}</div>`,
     )
     .join('')}</div>`
 }

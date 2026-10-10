@@ -4,6 +4,7 @@ import type { INestApplication } from '@nestjs/common'
 import { Test } from '@nestjs/testing'
 import { probeCatalogueBundle } from '@opengewerk/haustechnik-catalogue/testing'
 import {
+  addDays,
   catalogueOf,
   type IsoDate,
   missingRight,
@@ -31,6 +32,7 @@ import {
   standingInLine,
   testIdentityHeader,
 } from '../database/test-database.js'
+import { dayInGermany } from '../today.js'
 import { deviceScope } from './device-scope.js'
 
 /**
@@ -1040,7 +1042,11 @@ describe('a signature from a device', () => {
    */
   function pageOnTheDevice(
     toSign: ToSign,
-    { title = toSign.title, worked = true }: { title?: string; worked?: boolean } = {},
+    {
+      title = toSign.title,
+      worked = true,
+      performedOn = '2026-10-01' as IsoDate,
+    }: { title?: string; worked?: boolean; performedOn?: IsoDate } = {},
   ): string {
     return pageFingerprint(
       signedPageOf({
@@ -1048,7 +1054,7 @@ describe('a signature from a device', () => {
           id: toSign.activity,
           kind: toSign.kind,
           title,
-          performedOn: worked ? ('2026-10-01' as IsoDate) : null,
+          performedOn: worked ? performedOn : null,
         },
         place: {
           property: {
@@ -1160,6 +1166,7 @@ describe('a signature from a device', () => {
         signedAt: '2026-10-01T09:30:00.000Z',
         path: drawing,
         way: 'drawing',
+        receivedAt: expect.any(String),
       },
     ])
     expect(written[0]?.state.performer).toEqual({ person: 'Tom Haustechnik' })
@@ -1209,8 +1216,55 @@ describe('a signature from a device', () => {
         signedAt: '2026-10-01T09:30:00.000Z',
         path: null,
         way: 'name',
+        receivedAt: expect.any(String),
       },
     ])
+  })
+
+  it('refuses a signature with a moment of the device ahead of the server, with its sentence (#79)', async () => {
+    const toSign = await activityToSign({ kind: 'round', duties: 1 })
+    const work = workDone(toSign)
+
+    expect(await outcomes('u-tech', work)).toEqual(work.map(() => applied))
+
+    // The device's clock an hour ahead of the server.
+    const ahead = signature(toSign.activity, pageOnTheDevice(toSign))
+    const signed = operation('activity_signatures', 'create', ahead.recordId, {
+      ...Object.fromEntries(ahead.patches.map((patch) => [patch.field, patch.to])),
+      signedAt: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+    })
+    const refused = await send('u-tech', [signed]).expect(400)
+
+    expect(refused.body).toMatchObject({
+      operationId: signed.id,
+      message: 'Der Zeitpunkt der Unterschrift liegt nach jetzt. Die Uhr des Geräts geht vor.',
+    })
+    expect(await statusOf(toSign.activity)).not.toBe('done')
+  })
+
+  it('refuses a signature for a day of the performance yet to come at that operation, with its sentence (#79)', async () => {
+    const toSign = await activityToSign({ kind: 'round', duties: 1 })
+    const work = workDone(toSign)
+
+    expect(await outcomes('u-tech', work)).toEqual(work.map(() => applied))
+
+    // A clock that ran ahead when the work began: the day stands, a signature for it does not.
+    const tomorrow = addDays(dayInGermany(), 1)
+
+    await admin.query('update activities set performed_on = $2 where id = $1', [
+      toSign.activity,
+      tomorrow,
+    ])
+
+    const signed = signature(toSign.activity, pageOnTheDevice(toSign, { performedOn: tomorrow }))
+    const refused = await send('u-tech', [signed]).expect(400)
+
+    expect(refused.body).toMatchObject({
+      operationId: signed.id,
+      message:
+        'Der Tag der Durchführung liegt nach heute. Ein Nachweis gilt für einen Tag, der schon war.',
+    })
+    expect(await statusOf(toSign.activity)).not.toBe('done')
   })
 
   it('takes a round of a template from its first answer to the signature without a connection: a check point, a measured value, a reading and a photo (#114)', async () => {

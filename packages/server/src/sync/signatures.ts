@@ -73,6 +73,7 @@ export function signed(catalogue: Catalogue): SyncCheck<Sender> {
           accountName: sender.nameOf(sender.userId),
           activityId: values['activityId'] as ActivityId,
           role: values['role'] as SignatureRole,
+          signedAt: new Date(String(values['signedAt'] ?? '')),
           deviceInfo: (values['deviceInfo'] ?? null) as string | null,
           path: (values['path'] ?? null) as string | null,
           typedName: (values['typedName'] ?? null) as string | null,
