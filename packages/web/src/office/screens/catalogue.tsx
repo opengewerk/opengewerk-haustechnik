@@ -20,7 +20,7 @@ import { Link, useParams } from '@tanstack/react-router'
 import { type ReactNode, useMemo } from 'react'
 
 import { Acceptance, CheckedOn, reviewLine, ReviewMark } from '../../app/review-marks.js'
-import { useCatalogue } from '../../sync/catalogue.js'
+import { catalogueAbsenceWords, useCatalogue, useCatalogueAbsence } from '../../sync/catalogue.js'
 import {
   type CataloguePart,
   catalogueParts,
@@ -47,6 +47,7 @@ export function CatalogueScreen() {
     part?: string
   }
   const catalogue = useCatalogue()
+  const absence = useCatalogueAbsence()
   const on = today()
   const packages = useMemo(() => catalogue?.contents(on) ?? [], [catalogue, on])
 
@@ -54,10 +55,7 @@ export function CatalogueScreen() {
     return (
       <Framed>
         <Panel>
-          <Empty>
-            Der Katalog ist noch nicht auf diesem Gerät. Er kommt mit der nächsten Verbindung zum
-            Server.
-          </Empty>
+          <Empty>{absence ?? catalogueAbsenceWords.notYet}</Empty>
         </Panel>
       </Framed>
     )

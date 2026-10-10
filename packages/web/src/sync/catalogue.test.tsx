@@ -8,7 +8,13 @@ import { servingCatalogue, testCatalogue } from '../app/test-catalogue.js'
 import { mountedWithItsDevice } from '../app/test-entry.js'
 import { mountOffice, onA, signedInOffice } from '../office/test-office.js'
 import { siteRoutes } from '../site/router.js'
-import { catalogueChecksumQuery, catalogueKeep, keptCatalogue } from './catalogue.js'
+import {
+  catalogueAbsenceWords,
+  catalogueChecksumQuery,
+  catalogueKeep,
+  keptCatalogue,
+  unreadableCatalogueKeep,
+} from './catalogue.js'
 import type { SyncClient } from './client.js'
 
 /**
@@ -163,6 +169,33 @@ describe('the catalogue on a device', () => {
     })
 
     expect(kept(client)).toEqual(testCatalogue)
+  })
+
+  it('says on a device that holds none that a new version brings one this build cannot read (#160)', async () => {
+    const unreadable = { ...newer, format: 99 }
+
+    serving({ '/catalogue/checksum': { sha256: unreadable.sha256 }, '/catalogue': unreadable })
+
+    const { client, queries } = await mountOffice('/katalog', new TestServer(), [])
+
+    expect(await screen.findByText(catalogueAbsenceWords.update)).toBeDefined()
+    expect(screen.queryByText(catalogueAbsenceWords.notYet)).toBeNull()
+    expect(kept(client)).toBeNull()
+
+    // The server is updated to a catalogue this build reads: it is kept, and the note goes.
+    serving(servingCatalogue())
+    await queries.invalidateQueries({ queryKey: catalogueChecksumQuery.queryKey })
+    await screen.findByRole('table', { name: packages })
+
+    expect(kept(client)).toEqual(testCatalogue)
+    expect(client.kept(unreadableCatalogueKeep)).toBeNull()
+  })
+
+  it('says on a device that holds none and has not reached the server that the next connection brings it', async () => {
+    signedInOffice('technician', [], {})
+    await mountOffice('/katalog', new TestServer(), [])
+
+    expect(await screen.findByText(catalogueAbsenceWords.notYet)).toBeDefined()
   })
 
   it('is held on site as well, where it is asked without a network', async () => {
