@@ -187,16 +187,14 @@ function checkVersions<Definition>(
 ): void {
   for (const [key, ofKey] of grouped(versions, (version) => version.key)) {
     const ordered = byVersion(ofKey)
-    const highest = ordered.at(-1)?.version ?? 0
-    const present = new Set(ordered.map((version) => version.version))
-    const gaps = Array.from({ length: highest }, (_, index) => index + 1).filter(
-      (number) => !present.has(number),
-    )
+    // The first number missing, named alone (#80): no list as long as the
+    // highest number, whatever a file name says.
+    const first = ordered.findIndex((version, index) => version.version !== index + 1)
 
-    if (gaps.length > 0) {
+    if (first !== -1) {
       findings.say(
         spotIn(`${content.name}/${folder}/${key}`),
-        `Fassung ${gaps.join(', ')} fehlt. Die Fassungen zählen von 1 an ohne Lücke, und eine gemergte bleibt stehen.`,
+        `Fassung ${String(first + 1)} fehlt. Die Fassungen zählen von 1 an ohne Lücke, und eine gemergte bleibt stehen.`,
       )
     }
 

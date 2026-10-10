@@ -94,6 +94,10 @@ await checkWidths({
     'Stilllegen',
     'Sperren',
     'Ändern',
+    // The longest sentences of the instance stand behind it (#80); the Leitung
+    // of the preview is operator and administration in one. The form to name
+    // somebody to the administration stands open on its page.
+    'Betreiber anlegen',
   ],
 
   /**

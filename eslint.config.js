@@ -74,6 +74,29 @@ export default configuration(
     ignores: ['packages/domain/**'],
   },
 
+  // What runs in production on the server never reaches the preview, a test
+  // helper or the parts of better-auth that only a test sets up (#80). Only
+  // the preview, the tests and the helpers themselves may: excluding them from
+  // the image is no fence, a line in a source file is.
+  {
+    ...mayNotImport(
+      ['packages/server/src/**/*.ts'],
+      [
+        ...besideTheFoundation,
+        {
+          group: ['**/preview/**', '**/test-*', 'better-auth/node'],
+          message:
+            'Production code of the server reaches neither the preview nor a test helper; both stay out of the image.',
+        },
+      ],
+    ),
+    ignores: [
+      'packages/server/src/**/*.test.ts',
+      'packages/server/src/preview/**',
+      'packages/server/src/**/test-*.ts',
+    ],
+  },
+
   // The server runs in Node and nowhere else, the interface in a browser. The
   // loader of the catalogue runs in Node as well, at build time.
   runsInNode(['packages/server/**/*.ts', 'packages/catalogue/**/*.ts']),

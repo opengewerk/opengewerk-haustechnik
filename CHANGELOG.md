@@ -1320,6 +1320,15 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   schließt erst, wenn die Route geantwortet hat, also einen Augenblick später; der Test fragte
   sofort und war auf `main` rot, sobald die Maschine die Zeile zuerst zeichnete. An der Karte
   selbst ändert sich nichts
+- Kleinere Befunde an Werkzeugen, Tests und Dokumentation aus dem Review der Phase 0 (#80): Die
+  Nummer einer Fassung im Katalog hat höchstens drei Stellen, und eine Lücke in den Fassungen nennt
+  die erste fehlende Nummer, statt eine Liste bis zur höchsten zu bauen. Produktionscode des Servers
+  bindet weder die Vorschau noch einen Testhelfer ein; das hält jetzt eine Lint-Regel statt nur der
+  Ausschluss aus dem Abbild. Das Änderungsprotokoll schreibt jeden Wert einer Liste in den Wörtern
+  der übrigen Seiten ("Mit Mängeln" statt `with_defects`), und ein Test hält jede überwachte Spalte
+  mit einem Aufzählungstyp dagegen. Die Prüfung der Breiten öffnet "Betreiber anlegen", das
+  Webpaket hat seinen Test der `package.json`, der Schritt der CI zur Sicherung sagt, was er prüft,
+  und die README sagt, dass eine Rücknahme als Superuser und nach einer Sicherung läuft
 - Zwei Unterschriften derselben Seite, die zugleich ankommen, schreiben einen Vorgang nur noch
   einmal fest, und zwei Abnahmen desselben Auftrags nehmen ihn nur einmal ab
   (`opengewerk-haustechnik#31`). Zwei Geräte, die ohne Netz unterschrieben hatten und zugleich
