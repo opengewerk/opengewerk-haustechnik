@@ -1334,6 +1334,10 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   ohne sudo und ohne Netz außer der npm-Registry, kein Schreiben, keine Einstellungen aus dem
   PR, und vorbestehende Lücken als Code-Scanning-Alerts statt im öffentlichen Bericht. Vorher
   lief Code aus dem PR im selben Job wie das Recht auf ein Identity-Token
+- Das Security-Review gibt einen PR frei oder verlangt Änderungen, wie früher der lokale Reviewer,
+  und läuft mit einem zweiten Konto weiter, wenn das Guthaben des ersten aufgebraucht ist
+  (`opengewerk/.github#32` und `#33`, Aufruf angehoben). Ein PR von außen bekommt nie eine
+  Freigabe, nur einen Kommentar: über ihn urteilt ein Modell, das Text aus dem PR lenken kann.
 
 ### Behoben
 
