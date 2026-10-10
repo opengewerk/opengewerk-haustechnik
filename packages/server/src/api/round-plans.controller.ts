@@ -3,12 +3,16 @@ import {
   Body,
   ConflictException,
   Controller,
+  Inject,
   NotFoundException,
   Param,
   Patch,
   Post,
 } from '@nestjs/common'
 import {
+  type Catalogue,
+  type FederalState,
+  hasHolidays,
   type PlanRhythm,
   planProblems,
   type RoundPlanId,
@@ -22,6 +26,7 @@ import {
 } from '@opengewerk/platform-server'
 import { and, eq, isNull } from 'drizzle-orm'
 
+import { CATALOGUE } from '../catalogue.js'
 import { buildings, properties, roundPlans, roundTemplates } from '../database/schema/index.js'
 import { fillAhead, type PlanRow, replan } from '../rounds/plans.js'
 import { dayInGermany } from '../today.js'
@@ -44,7 +49,30 @@ const calendarFields = [
 ] as const
 
 /** The fields a change of a plan may name. The place stays: a plan elsewhere is a new plan. */
-const changeFields = [...calendarFields, 'templateId', 'performerUserId', 'resting'] as const
+const changeFields = [
+  ...calendarFields,
+  'templateId',
+  'performerUserId',
+  'resting',
+  'skipHolidays',
+] as const
+
+/**
+ * Whether a plan may leave out the statutory public holidays (#200): only
+ * where the catalogue holds them for the state of its property. Elsewhere it
+ * is not offered, rather than holidays being made up.
+ */
+function holidaysKnown(catalogue: Catalogue, state: FederalState, skipHolidays: unknown): void {
+  if (skipHolidays !== undefined && typeof skipHolidays !== 'boolean') {
+    throw new BadRequestException('Ein Plan lässt die gesetzlichen Feiertage aus oder nicht.')
+  }
+
+  if (skipHolidays === true && !hasHolidays(catalogue, state)) {
+    throw new BadRequestException(
+      'Für das Land dieser Liegenschaft kennt der Katalog keine gesetzlichen Feiertage. Der Plan zählt einen Feiertag dort wie jeden Tag.',
+    )
+  }
+}
 
 /** The fields of a body that were given, and nothing else. */
 function given<Field extends string>(
@@ -81,7 +109,10 @@ function inOrder(weekdays: unknown): readonly Weekday[] | null {
  */
 @Controller('round-plans')
 export class RoundPlansController {
-  constructor(private readonly database: Database) {}
+  constructor(
+    private readonly database: Database,
+    @Inject(CATALOGUE) private readonly catalogue: Catalogue,
+  ) {}
 
   /**
    * A new plan at a property or at a building there. The template is one of
@@ -98,6 +129,7 @@ export class RoundPlansController {
       'propertyId',
       'buildingId',
       'performerUserId',
+      'skipHolidays',
     ])
     const plan = {
       rhythm: values.rhythm ?? null,
@@ -115,6 +147,9 @@ export class RoundPlansController {
       await this.templateOf(tx, values.templateId)
 
       const property = await this.propertyOf(tx, values.propertyId)
+
+      holidaysKnown(this.catalogue, property.federalState, values.skipHolidays)
+
       const buildingId = await this.buildingOf(tx, values.buildingId, property.id)
 
       await this.mayPerform(tx, values.performerUserId ?? null, property.areaId, null)
@@ -134,6 +169,7 @@ export class RoundPlansController {
           leadDays: plan.leadDays as number,
           startsOn: plan.startsOn as string,
           endsOn: plan.endsOn as string | null,
+          skipHolidays: values.skipHolidays === true,
           performerUserId: (values.performerUserId ?? null) as string | null,
         })
         .returning()
@@ -142,7 +178,7 @@ export class RoundPlansController {
         throw new Error('The plan was not written.')
       }
 
-      await fillAhead(tx, made, dayInGermany(new Date()))
+      await fillAhead(tx, made, dayInGermany(new Date()), this.catalogue)
 
       return { id: made.id }
     })
@@ -218,6 +254,17 @@ export class RoundPlansController {
 
       refuse(planProblems(calendar))
 
+      if (values.skipHolidays !== undefined) {
+        const [property] = await tx
+          .select({ federalState: properties.federalState })
+          .from(properties)
+          .where(eq(properties.id, before.propertyId))
+
+        if (property !== undefined) {
+          holidaysKnown(this.catalogue, property.federalState, values.skipHolidays)
+        }
+      }
+
       if (values.templateId !== undefined && values.templateId !== before.templateId) {
         await this.templateOf(tx, values.templateId)
       }
@@ -241,6 +288,7 @@ export class RoundPlansController {
           startsOn: calendar.startsOn as string,
           endsOn: calendar.endsOn as string | null,
           resting: (values.resting ?? before.resting) as boolean,
+          skipHolidays: (values.skipHolidays ?? before.skipHolidays) as boolean,
           performerUserId,
           updatedAt: new Date(),
         })
@@ -251,7 +299,7 @@ export class RoundPlansController {
         throw new NotFoundException(missing)
       }
 
-      await replan(tx, before, after, today, new Date())
+      await replan(tx, before, after, today, new Date(), this.catalogue)
 
       return { id: after.id }
     })
@@ -281,11 +329,19 @@ export class RoundPlansController {
   private async propertyOf(
     tx: TenantTransaction,
     id: unknown,
-  ): Promise<{ readonly id: PlanRow['propertyId']; readonly areaId: PlanRow['areaId'] }> {
+  ): Promise<{
+    readonly id: PlanRow['propertyId']
+    readonly areaId: PlanRow['areaId']
+    readonly federalState: FederalState
+  }> {
     const [property] =
       typeof id === 'string' && isUuid(id)
         ? await tx
-            .select({ id: properties.id, areaId: properties.areaId })
+            .select({
+              id: properties.id,
+              areaId: properties.areaId,
+              federalState: properties.federalState,
+            })
             .from(properties)
             .where(
               and(eq(properties.id, id as PlanRow['propertyId']), isNull(properties.deletedAt)),

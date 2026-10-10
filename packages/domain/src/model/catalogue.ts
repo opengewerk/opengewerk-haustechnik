@@ -714,8 +714,29 @@ export function ruleValueWords(value: number, unit: RuleUnit): string {
       return `${String(value)} je 100 ml`
     case 'factor':
       return `Faktor ${String(value)}`
+    case 'month_day':
+      return `${String(value % 100)}. ${monthNames[Math.floor(value / 100) - 1] ?? String(Math.floor(value / 100))}`
+    case 'days_from_easter':
+      return value === 0
+        ? 'Ostersonntag'
+        : `${counted(Math.abs(value), 'Tag', 'Tage')} ${value < 0 ? 'vor' : 'nach'} Ostersonntag`
   }
 }
+
+const monthNames = [
+  'Januar',
+  'Februar',
+  'März',
+  'April',
+  'Mai',
+  'Juni',
+  'Juli',
+  'August',
+  'September',
+  'Oktober',
+  'November',
+  'Dezember',
+]
 
 /**
  * How a figure in a unit of the rule engine is typed into a form: what stands
@@ -757,6 +778,8 @@ export function ruleUnitEntry(unit: RuleUnit): {
       return { symbol: 'je 100 ml', places: 0 }
     case 'flag':
     case 'factor':
+    case 'month_day':
+    case 'days_from_easter':
       return { symbol: '', places: 0 }
   }
 }

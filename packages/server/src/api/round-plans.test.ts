@@ -14,6 +14,7 @@ import {
   type TenantId,
   weekdayOf,
   weekOf,
+  ruleSet,
 } from '@opengewerk/haustechnik-domain'
 import { Database, newId } from '@opengewerk/platform-server'
 import { eq } from 'drizzle-orm'
@@ -70,8 +71,6 @@ const people: Readonly<Record<string, RoleKey>> = {
 
 type Person = keyof typeof people & string
 
-const catalogue = catalogueOf(probeCatalogueBundle)
-
 let admin: Pool
 let database: Database
 let app: INestApplication
@@ -79,6 +78,33 @@ let app: INestApplication
 /** Today in Germany, the day the routes count from, and a day from it. */
 const today = dayInGermany(new Date())
 const plus = (days: number) => addDays(today, days)
+
+/**
+ * Two statutory public holidays of Baden-Württemberg within the reach of the
+ * rounds (#200), as rules of a day the way the package of the holidays
+ * writes them; the 29th of February, which no rule of a day names, gives way
+ * to the day after.
+ */
+const holidayDays = [3, 6].map((ahead) =>
+  plus(ahead).endsWith('-02-29') ? plus(ahead + 1) : plus(ahead),
+)
+const probe = catalogueOf(probeCatalogueBundle)
+const catalogue = {
+  ...probe,
+  ruleSet: ruleSet([
+    ...probe.ruleSet.all(),
+    ...holidayDays.map((day, index) => ({
+      key: `probe.holiday_${String(index)}`,
+      scope: 'DE-BW' as const,
+      validFrom: '1995-05-08' as IsoDate,
+      validUntil: null,
+      unit: 'month_day' as const,
+      value: Number(day.slice(5, 7)) * 100 + Number(day.slice(8, 10)),
+      source: '§ 1 FTG',
+      note: `Probefeiertag ${String(index)}`,
+    })),
+  ]),
+}
 
 /** How far ahead the rounds are made, the lead of `round.due`. */
 const reach = 14
@@ -426,6 +452,57 @@ describe('the plan of a round', () => {
 
     expect(back.map((round) => round.due_on)).toEqual(days(today, plus(reach)))
     expect(back.find((round) => round.due_on === plus(3))?.performer_user_id).toBe('u-tech')
+  })
+
+  it('leaves out the statutory public holidays of its state where it is asked to, and counts them like any day otherwise (#200)', async () => {
+    const leaves = await planned('u-site', { skipHolidays: true })
+    const counts = await planned('u-site')
+    const open = days(today, plus(reach)).filter((day) => !holidayDays.includes(day))
+
+    expect(leaves.status).toBe(201)
+    expect((await roundsOf(leaves.body['id'])).map((round) => round.due_on)).toEqual(open)
+    expect((await roundsOf(counts.body['id'])).map((round) => round.due_on)).toEqual(
+      days(today, plus(reach)),
+    )
+
+    // Asked no more, the plan makes the rounds of the holidays; asked again, it takes them back.
+    expect((await changed('u-site', leaves.body['id'], { skipHolidays: false })).status).toBe(200)
+    expect((await roundsOf(leaves.body['id'])).map((round) => round.due_on)).toEqual(
+      days(today, plus(reach)),
+    )
+    expect((await changed('u-site', leaves.body['id'], { skipHolidays: true })).status).toBe(200)
+    expect((await roundsOf(leaves.body['id'])).map((round) => round.due_on)).toEqual(open)
+  })
+
+  it('is not asked to leave out holidays where the catalogue holds none for the state of its property', async () => {
+    const hessen = randomUUID()
+
+    await admin.query(
+      `insert into properties (id, tenant_id, area_id, name, street, postal_code, city, federal_state)
+       values ($1, $2, $3, 'Rathaus Hessen', 'Straße 2', '00002', 'Musterstadt', 'DE-HE')`,
+      [hessen, tenant, north],
+    )
+
+    const refused = await planned('u-site', {
+      propertyId: hessen,
+      buildingId: null,
+      skipHolidays: true,
+    })
+
+    expect(refused).toMatchObject({
+      status: 400,
+      message:
+        'Für das Land dieser Liegenschaft kennt der Katalog keine gesetzlichen Feiertage. Der Plan zählt einen Feiertag dort wie jeden Tag.',
+    })
+
+    const plan = await planned('u-site', { propertyId: hessen, buildingId: null })
+
+    expect(plan.status).toBe(201)
+    expect((await changed('u-site', plan.body['id'], { skipHolidays: true })).status).toBe(400)
+    expect((await changed('u-site', plan.body['id'], { skipHolidays: 'ja' })).status).toBe(400)
+    expect((await roundsOf(plan.body['id'])).map((round) => round.due_on)).toEqual(
+      days(today, plus(reach)),
+    )
   })
 
   it('takes back the rounds of days it no longer falls on, keeps a begun one and the person of a day it keeps', async () => {
@@ -1021,6 +1098,20 @@ describe('the rounds the deadline engine makes', () => {
     )
 
     expect(rows).toEqual([{ due_on: plus(reach + 1), status: 'open' }])
+  })
+
+  it('count the deadline of a plan that leaves out holidays from the first pass after them (#200)', async () => {
+    const plan = await planInserted({ starts_on: holidayDays[0] })
+
+    await admin.query('update round_plans set skip_holidays = true where id = $1', [plan])
+    await engineRun()
+
+    const { rows } = await admin.query<{ anchor_on: string }>(
+      `select to_char(anchor_on, 'YYYY-MM-DD') as anchor_on from deadlines where round_plan_id = $1`,
+      [plan],
+    )
+
+    expect(rows).toEqual([{ anchor_on: plus(4) }])
   })
 
   it('make none for a plan that rests, which has no deadline either', async () => {

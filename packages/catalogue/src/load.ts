@@ -299,6 +299,8 @@ const unitNames: Readonly<Record<RuleUnit, string>> = {
   kilograms_co2e: 'Kilogramm CO2-Äquivalent',
   tonnes_co2e: 'Tonnen CO2-Äquivalent',
   count_per_100_ml: 'Anzahl je 100 ml',
+  month_day: 'einem Tag im Jahr',
+  days_from_easter: 'Tagen ab Ostersonntag',
 }
 
 /** Says so when a reference to a rule leads nowhere or to a rule in another unit. */

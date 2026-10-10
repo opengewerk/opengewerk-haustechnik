@@ -1,0 +1,137 @@
+{
+  "note": "Die gesetzlichen Feiertage in Baden-Württemberg: die elf aus § 1 des Feiertagsgesetzes und der Tag der Deutschen Einheit, den der Einigungsvertrag bundesweit festlegt. Ein Tag, der jedes Jahr wiederkommt, in der Einheit month_day, einer, der mit Ostern wandert, in days_from_easter. Die Notiz ist der Name des Feiertags.",
+  "records": [
+    {
+      "key": "new_year",
+      "scope": "DE-BW",
+      "validFrom": "1995-05-08",
+      "validUntil": null,
+      "unit": "month_day",
+      "value": 101,
+      "source": "§ 1 FTG (Feiertagsgesetz Baden-Württemberg in der Fassung vom 8. Mai 1995, GBl. S. 450)",
+      "origin": "state_law",
+      "note": "Neujahr"
+    },
+    {
+      "key": "epiphany",
+      "scope": "DE-BW",
+      "validFrom": "1995-05-08",
+      "validUntil": null,
+      "unit": "month_day",
+      "value": 106,
+      "source": "§ 1 FTG (Feiertagsgesetz Baden-Württemberg in der Fassung vom 8. Mai 1995, GBl. S. 450)",
+      "origin": "state_law",
+      "note": "Erscheinungsfest"
+    },
+    {
+      "key": "good_friday",
+      "scope": "DE-BW",
+      "validFrom": "1995-05-08",
+      "validUntil": null,
+      "unit": "days_from_easter",
+      "value": -2,
+      "source": "§ 1 FTG (Feiertagsgesetz Baden-Württemberg in der Fassung vom 8. Mai 1995, GBl. S. 450)",
+      "origin": "state_law",
+      "note": "Karfreitag"
+    },
+    {
+      "key": "easter_monday",
+      "scope": "DE-BW",
+      "validFrom": "1995-05-08",
+      "validUntil": null,
+      "unit": "days_from_easter",
+      "value": 1,
+      "source": "§ 1 FTG (Feiertagsgesetz Baden-Württemberg in der Fassung vom 8. Mai 1995, GBl. S. 450)",
+      "origin": "state_law",
+      "note": "Ostermontag"
+    },
+    {
+      "key": "labour_day",
+      "scope": "DE-BW",
+      "validFrom": "1995-05-08",
+      "validUntil": null,
+      "unit": "month_day",
+      "value": 501,
+      "source": "§ 1 FTG (Feiertagsgesetz Baden-Württemberg in der Fassung vom 8. Mai 1995, GBl. S. 450)",
+      "origin": "state_law",
+      "note": "1. Mai"
+    },
+    {
+      "key": "ascension_day",
+      "scope": "DE-BW",
+      "validFrom": "1995-05-08",
+      "validUntil": null,
+      "unit": "days_from_easter",
+      "value": 39,
+      "source": "§ 1 FTG (Feiertagsgesetz Baden-Württemberg in der Fassung vom 8. Mai 1995, GBl. S. 450)",
+      "origin": "state_law",
+      "note": "Christi Himmelfahrt"
+    },
+    {
+      "key": "whit_monday",
+      "scope": "DE-BW",
+      "validFrom": "1995-05-08",
+      "validUntil": null,
+      "unit": "days_from_easter",
+      "value": 50,
+      "source": "§ 1 FTG (Feiertagsgesetz Baden-Württemberg in der Fassung vom 8. Mai 1995, GBl. S. 450)",
+      "origin": "state_law",
+      "note": "Pfingstmontag"
+    },
+    {
+      "key": "corpus_christi",
+      "scope": "DE-BW",
+      "validFrom": "1995-05-08",
+      "validUntil": null,
+      "unit": "days_from_easter",
+      "value": 60,
+      "source": "§ 1 FTG (Feiertagsgesetz Baden-Württemberg in der Fassung vom 8. Mai 1995, GBl. S. 450)",
+      "origin": "state_law",
+      "note": "Fronleichnam"
+    },
+    {
+      "key": "unity_day",
+      "scope": "DE-BW",
+      "validFrom": "1990-10-03",
+      "validUntil": null,
+      "unit": "month_day",
+      "value": 1003,
+      "source": "Art. 2 Abs. 2 Einigungsvertrag",
+      "origin": "state_law",
+      "note": "Tag der Deutschen Einheit"
+    },
+    {
+      "key": "all_saints_day",
+      "scope": "DE-BW",
+      "validFrom": "1995-05-08",
+      "validUntil": null,
+      "unit": "month_day",
+      "value": 1101,
+      "source": "§ 1 FTG (Feiertagsgesetz Baden-Württemberg in der Fassung vom 8. Mai 1995, GBl. S. 450)",
+      "origin": "state_law",
+      "note": "Allerheiligen"
+    },
+    {
+      "key": "christmas_day",
+      "scope": "DE-BW",
+      "validFrom": "1995-05-08",
+      "validUntil": null,
+      "unit": "month_day",
+      "value": 1225,
+      "source": "§ 1 FTG (Feiertagsgesetz Baden-Württemberg in der Fassung vom 8. Mai 1995, GBl. S. 450)",
+      "origin": "state_law",
+      "note": "Erster Weihnachtstag"
+    },
+    {
+      "key": "second_christmas_day",
+      "scope": "DE-BW",
+      "validFrom": "1995-05-08",
+      "validUntil": null,
+      "unit": "month_day",
+      "value": 1226,
+      "source": "§ 1 FTG (Feiertagsgesetz Baden-Württemberg in der Fassung vom 8. Mai 1995, GBl. S. 450)",
+      "origin": "state_law",
+      "note": "Zweiter Weihnachtstag"
+    }
+  ]
+}

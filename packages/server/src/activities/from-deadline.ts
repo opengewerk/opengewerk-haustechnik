@@ -47,7 +47,13 @@ export function activityFromDeadline(
       if (plan !== undefined) {
         const today = berlinClock(now).day
 
-        await fillRounds(tx, plan, today, addDays(today, leadOf(kind, setting, deadline.leadDays)))
+        await fillRounds(
+          tx,
+          plan,
+          today,
+          addDays(today, leadOf(kind, setting, deadline.leadDays)),
+          catalogue,
+        )
       }
 
       return

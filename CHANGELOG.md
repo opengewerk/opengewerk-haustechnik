@@ -946,6 +946,14 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   seit Fassung 5 die Zeichnung jeder Unterschrift. Hat die Instanz keinen Dienst, der PDFs
   erzeugt, sagt die Seite das in einem Satz. Bisher gab es kein PDF, und eine spätere Ausgabe
   hätte die laufenden Daten lesen müssen
+- Gesetzliche Feiertage im Plan eines Rundgangs (#200): Das neue Paket `feiertage` hält die
+  zwölf gesetzlichen Feiertage von Baden-Württemberg als Regeln mit Fundstelle und Gültigkeit, elf
+  aus § 1 FTG und den 3. Oktober aus dem Einigungsvertrag, in den Einheiten `month_day` und
+  `days_from_easter` des Fundaments (`opengewerk#586`). Ein Plan kann sie mit "Gesetzliche
+  Feiertage auslassen" auslassen; ein Durchgang an einem Feiertag fällt dann aus und wird nicht
+  verschoben, wie in einer Schließzeit, beim Anlegen, bei einer Änderung und in der Fristen-Engine.
+  Für ein Land, für das der Katalog keine Feiertage hält, bietet der Plan die Wahl nicht an, und der
+  Server lehnt sie ab. Bisher zählte ein Feiertag wie jeder Tag
 
 ### Geändert
 
