@@ -28,6 +28,12 @@ export interface SampleDocument {
   readonly title: string
   readonly kind?: DocumentKind
   readonly versions: readonly SampleVersion[]
+  /**
+   * Versions laid over the others once the duties of its record are
+   * confirmed, so that a duty that points at the document says "Frist
+   * prüfen" (#74).
+   */
+  readonly laterVersions?: readonly SampleVersion[]
 }
 
 /** What a sample document hangs on: its property, and on request one record there. */
@@ -159,24 +165,13 @@ export async function storeSampleFile(
   return response.ok ? sha256 : refused(path, response)
 }
 
-/**
- * Files one sample document at `home` through the routes of the preview at
- * `address`: every file to the store, then the document and its versions in
- * one transmission, each recorded a moment after the one before, which is the
- * order the server applies them in.
- */
-export async function plantDocument(
-  address: string,
-  home: SampleHome,
-  document: SampleDocument,
-): Promise<void> {
-  const documentId = newId<'attachment'>()
+/** A create as a device queues it, each recorded a moment after the one before. */
+type SampleOperation = ReturnType<ReturnType<typeof operations>>
+
+function operations() {
   let recorded = Date.now()
-  const operation = (
-    entity: string,
-    recordId: string,
-    values: Readonly<Record<string, unknown>>,
-  ) => {
+
+  return (entity: string, recordId: string, values: Readonly<Record<string, unknown>>) => {
     recorded += 1
 
     return {
@@ -189,15 +184,62 @@ export async function plantDocument(
       recordedAt: new Date(recorded).toISOString(),
     }
   }
-  const operations = [
-    operation('attachments', documentId, {
-      title: document.title,
-      ...(document.kind === undefined ? {} : { kind: document.kind }),
-      ...home,
-    }),
-  ]
+}
 
-  for (const version of document.versions) {
+/**
+ * Files one sample document at `home` through the routes of the preview at
+ * `address`: every file to the store, then the document and its versions in
+ * one transmission, each recorded a moment after the one before, which is the
+ * order the server applies them in. Hands back the id of the document.
+ */
+export async function plantDocument(
+  address: string,
+  home: SampleHome,
+  document: SampleDocument,
+): Promise<string> {
+  const documentId = newId<'attachment'>()
+  const operation = operations()
+  const filed = operation('attachments', documentId, {
+    title: document.title,
+    ...(document.kind === undefined ? {} : { kind: document.kind }),
+    ...home,
+  })
+
+  await transmit(address, document.title, [
+    filed,
+    ...(await versionOperations(address, documentId, document.versions, operation)),
+  ])
+
+  return documentId
+}
+
+/** Lays the later versions of a sample document over the ones it was filed with (#74). */
+export async function layLaterVersions(
+  address: string,
+  documentId: string,
+  document: SampleDocument,
+): Promise<void> {
+  const later = document.laterVersions ?? []
+
+  if (later.length > 0) {
+    await transmit(
+      address,
+      document.title,
+      await versionOperations(address, documentId, later, operations()),
+    )
+  }
+}
+
+/** The files of these versions to the store, and the operations of the versions. */
+async function versionOperations(
+  address: string,
+  documentId: string,
+  versions: readonly SampleVersion[],
+  operation: ReturnType<typeof operations>,
+): Promise<SampleOperation[]> {
+  const sent: SampleOperation[] = []
+
+  for (const version of versions) {
     const picture = version.words === undefined
     const bytes = picture ? samplePicture() : samplePdf(version.words ?? '')
     const mediaType = picture ? 'image/png' : 'application/pdf'
@@ -206,7 +248,7 @@ export async function plantDocument(
       ? await storeSampleFile(address, samplePicture(320, 200), 'image/png')
       : null
 
-    operations.push(
+    sent.push(
       operation('attachment_versions', newId<'attachment-version'>(), {
         attachmentId: documentId,
         sha256,
@@ -218,10 +260,19 @@ export async function plantDocument(
     )
   }
 
+  return sent
+}
+
+/** One transmission through the sync, which the server has to apply whole. */
+async function transmit(
+  address: string,
+  title: string,
+  sent: readonly SampleOperation[],
+): Promise<void> {
   const response = await fetch(`${address}/sync`, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ deviceId: 'vorschau', operations }),
+    body: JSON.stringify({ deviceId: 'vorschau', operations: sent }),
   })
 
   if (!response.ok) {
@@ -235,7 +286,7 @@ export async function plantDocument(
 
   if (kept) {
     throw new Error(
-      `Das Beispieldokument „${document.title}“ wurde nicht abgelegt: ${kept.outcome} ${String(kept.reason)}`,
+      `Das Beispieldokument „${title}“ wurde nicht abgelegt: ${kept.outcome} ${String(kept.reason)}`,
     )
   }
 }

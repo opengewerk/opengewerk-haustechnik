@@ -116,6 +116,9 @@ export const { attachments, attachmentVersions } = attachmentsSchema({
       foreignColumns: [defects.tenantId, defects.id, defects.propertyId],
       name: 'attachments_at_a_defect_of_their_property',
     }),
+    // What the document that bears the interval of a duty points at: a
+    // document of the duty's property (#74).
+    unique('attachments_on_their_property').on(table.tenantId, table.id, table.propertyId),
     // What the photo of an answer points at: a document at its activity (#106).
     unique('attachments_at_their_activity').on(
       table.tenantId,
@@ -135,5 +138,13 @@ export const { attachments, attachmentVersions } = attachmentsSchema({
     // What `documentProblems` asks of the name, held here for every other way in.
     check('attachments_title_shaped', trimmed(table.title, documentLimits.title)),
   ],
-  versionConstraints: () => [withinAreasOfTheirFile()],
+  versionConstraints: (table) => [
+    withinAreasOfTheirFile(),
+    // What a duty points at beside its document: a version of that document (#74).
+    unique('attachment_versions_of_their_document').on(
+      table.tenantId,
+      table.id,
+      table.attachmentId,
+    ),
+  ],
 })

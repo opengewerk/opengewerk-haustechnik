@@ -93,6 +93,10 @@ function duty(further: Readonly<Record<string, unknown>> = {}): DutyDetails {
     lastMetOn: '2025-07-12',
     ended: false,
     removable: false,
+    intervalDocumentId: null,
+    intervalDocumentVersionId: null,
+    intervalDocument: null,
+    intervalToCheck: false,
     asset: {
       id: 'a-lift',
       number: 'AN-00012',

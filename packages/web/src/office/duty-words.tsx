@@ -98,6 +98,31 @@ export function Nobody() {
   )
 }
 
+/** What a duty says whose document that bears its interval has a newer version, or was taken out of the records (#74). */
+export const intervalCheckWords = 'Frist prüfen'
+
+/**
+ * "Frist prüfen" beside the state of a duty in the head of its page, in the
+ * tone of what waits (4.3 of the concept, #74).
+ */
+export function IntervalCheckStatus() {
+  return (
+    <Status tone="waiting" icon={TriangleAlert}>
+      {intervalCheckWords}
+    </Status>
+  )
+}
+
+/** The same under the interval of a row of the register: in words and with a symbol. */
+export function IntervalCheck() {
+  return (
+    <span className="inline-flex items-center gap-1 text-[12px] font-semibold text-waiting">
+      <TriangleAlert size={12} strokeWidth={2.2} aria-hidden="true" />
+      {intervalCheckWords}
+    </span>
+  )
+}
+
 /** "Beendet seit 05.09.2026". */
 export function endedWords(duty: Pick<DutyReading, 'endsOn'>): string {
   return duty.endsOn === null ? 'Beendet' : `Beendet seit ${date(duty.endsOn)}`

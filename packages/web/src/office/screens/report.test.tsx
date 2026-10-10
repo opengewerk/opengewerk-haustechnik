@@ -80,6 +80,10 @@ function dutyOf(further: Partial<DutyDetails> = {}): DutyDetails {
     lastMetOn: '2024-09-30',
     ended: false,
     removable: false,
+    intervalDocumentId: null,
+    intervalDocumentVersionId: null,
+    intervalDocument: null,
+    intervalToCheck: false,
     asset: {
       id: extinguisher.id,
       number: extinguisher.number,

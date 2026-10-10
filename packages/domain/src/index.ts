@@ -96,6 +96,9 @@ export * from './model/asset-condition.js'
 // The register of duties and the page of a duty as a screen reads them, with
 // the order of the register and what an evidence means for an appointment.
 export * from './model/duty-register.js'
+// The document that bears the interval of a duty, and when a duty says
+// "Frist prüfen".
+export * from './model/duty-document.js'
 
 // The proposals of the catalogue for an asset, worked out each time they are
 // read, and the batch that confirms or dismisses many of them at once.

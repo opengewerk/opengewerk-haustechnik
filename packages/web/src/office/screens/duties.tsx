@@ -38,6 +38,7 @@ import {
 import {
   dutySourceWords,
   DutyStandingMark,
+  IntervalCheck,
   intervalKindWords,
   kindOfDuty,
   NewDutyButton,
@@ -282,7 +283,14 @@ export function DutyRegisterScreen() {
             ]
               .filter((part) => part !== null && part !== '')
               .join(' · '),
-            right: <DutyStandingMark duty={duty} />,
+            right: duty.intervalToCheck ? (
+              <div className="flex flex-col items-end gap-1">
+                <DutyStandingMark duty={duty} />
+                <IntervalCheck />
+              </div>
+            ) : (
+              <DutyStandingMark duty={duty} />
+            ),
           }))}
           footer={
             <>
@@ -349,6 +357,12 @@ export function DutyRegisterScreen() {
                       main={intervalWords(dutyInterval(duty))}
                       sub={intervalKindWords(duty, catalogue)}
                     />
+                    {/* The document that bears the interval has a newer version (#74). */}
+                    {duty.intervalToCheck ? (
+                      <div className="mt-[3px]">
+                        <IntervalCheck />
+                      </div>
+                    ) : null}
                   </Cell>
                   <Cell>
                     <TwoLines

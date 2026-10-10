@@ -486,6 +486,7 @@ describe('the register of duties', () => {
       performer: 'contractor',
       performerNote: 'Aufzugsdienst Beispiel GmbH',
       ended: false,
+      intervalToCheck: false,
       asset: {
         id: lift,
         number: expect.stringMatching(/^AN-\d{5}$/),
