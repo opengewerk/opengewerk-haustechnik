@@ -1357,6 +1357,11 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   auf `error` statt dauerhaft auf "läuft" (`opengewerk/.github#35` und `#36`, Aufruf angehoben).
   Vorher war Docker ein zweiter Weg zu root, und eine Git-Konfiguration aus der Sandbox hätte nach
   ihr außerhalb laufen können
+- Die Prüfung "Breiten und Auflösungen" misst den Katalog als eine Art von Seite je Bildschirm
+  (#227): ein Paket, jeder Teil eines Pakets und eine Pflichtart, statt jedes Paket und jeden
+  Eintrag für sich (`keys` an `checkWidths`, `opengewerk#592`, Submodul angehoben). Das waren 50 der
+  177 Arten, aus ihnen werden 9; die Grenze des Gangs sinkt von 220 auf 150. Mit jedem Paket wuchs
+  der Gang bisher um Dutzende Seiten, die denselben Bildschirm zeigen
 
 ### Behoben
 
@@ -1476,3 +1481,9 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   "Nachweise" (#176), als Name des Datensatzes, in seinen Feldern und unter "Nur dieser Datensatz".
   Bisher stand dort sein Schlüssel, etwa "asset", und jede neue Anlage schrieb einen solchen
   Eintrag
+- Die Prüfung "Breiten und Auflösungen" wartet nach dem Laden, bis ein Bildschirm gezeichnet ist,
+  und auf einen Knopf, bevor sie ihn "nicht zu sehen" nennt; zu einem solchen Befund legt sie ein
+  Foto der Seite in den Bericht und nennt die Anfragen, die beim Laden scheiterten (#231,
+  `opengewerk#591` und `#593`, Submodul angehoben). Bisher fragte sie sofort und meldete nur "nicht
+  zu sehen": Sie wurde an Seiten rot, die niemand geändert hatte, jedes Mal an einer anderen, auch
+  auf `main`, und warum, stand nirgends
