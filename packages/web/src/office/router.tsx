@@ -25,7 +25,7 @@ import { DefectListScreen, DefectScreen, NewDefectScreen } from './screens/defec
 import { DocumentsScreen } from './screens/documents.js'
 import { DutyRegisterScreen } from './screens/duties.js'
 import { DutyScreen } from './screens/duty.js'
-import { NewDutyScreen } from './screens/duty-form.js'
+import { EditDutyScreen, NewDutyScreen } from './screens/duty-form.js'
 import { DutyKindScreen } from './screens/duty-kind.js'
 import { EvidenceScreen } from './screens/evidence.js'
 import { EditFloorScreen, NewFloorScreen } from './screens/floor-form.js'
@@ -239,7 +239,8 @@ export function officeRoutes() {
     }),
     // The register of duties, narrowed by what its address names, and the
     // page of one duty under it. The form of a duty of the operator's own
-    // stands under the register, before the page: "neu" is no id.
+    // stands under the register, before the page: "neu" is no id. Over a duty
+    // there is, it stands under its page (#178).
     createRoute({
       getParentRoute: () => office,
       path: '/pflichten',
@@ -259,6 +260,11 @@ export function officeRoutes() {
       getParentRoute: () => office,
       path: '/pflichten/$dutyId',
       component: DutyScreen,
+    }),
+    createRoute({
+      getParentRoute: () => office,
+      path: '/pflichten/$dutyId/bearbeiten',
+      component: EditDutyScreen,
     }),
     // The inspections and the maintenance that came of the due days, narrowed
     // by what the address names, and the page of one under them.

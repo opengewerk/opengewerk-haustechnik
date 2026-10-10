@@ -79,6 +79,7 @@ function dutyOf(further: Partial<DutyDetails> = {}): DutyDetails {
     appointment: { dueOn: '2026-09-30', onTimeUntil: '2026-09-30' },
     lastMetOn: '2024-09-30',
     ended: false,
+    removable: false,
     asset: {
       id: extinguisher.id,
       number: extinguisher.number,

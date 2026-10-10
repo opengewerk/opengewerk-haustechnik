@@ -160,6 +160,39 @@ function given(value: unknown): boolean {
   return value !== undefined && value !== null
 }
 
+/**
+ * Whether a duty left a record that removing it would take away: an evidence,
+ * or an activity that was signed or closed (#79). A duty without either may
+ * have been entered by mistake and is removed; one with either was right, and
+ * is ended. The page of a duty asks the same, to offer removing it (#178).
+ */
+async function leftARecord(
+  tx: TenantTransaction,
+  tenantId: Asking['tenantId'],
+  dutyId: DutyId,
+): Promise<boolean> {
+  const [written] = await tx
+    .select({ id: evidence.id })
+    .from(evidence)
+    .where(and(eq(evidence.tenantId, tenantId), eq(evidence.dutyId, dutyId)))
+    .limit(1)
+  const [fixed] = await tx
+    .select({ id: activityDuties.id })
+    .from(activityDuties)
+    .innerJoin(activities, eq(activities.id, activityDuties.activityId))
+    .where(
+      and(
+        eq(activityDuties.tenantId, tenantId),
+        eq(activityDuties.dutyId, dutyId),
+        isNull(activityDuties.deletedAt),
+        notInArray(activities.status, ['open', 'started']),
+      ),
+    )
+    .limit(1)
+
+  return written !== undefined || fixed !== undefined
+}
+
 /** The interval the values name, after `dutyIntervalProblem` has found it whole. */
 function intervalIn(values: {
   intervalDays?: unknown
@@ -464,6 +497,7 @@ export class DutiesController {
         registered,
         asset: (asset ?? null) as DutyAsset | null,
         activity: underWay.get(duty.id) ?? null,
+        removable: !(await leftARecord(tx, identity.tenantId, duty.id)),
       }
     })
     const { duty, registered, activity } = read
@@ -476,6 +510,7 @@ export class DutiesController {
       appointment: registered?.standing.appointment ?? null,
       lastMetOn: registered?.lastMetOn ?? null,
       ended: dutyHasEnded(duty, today),
+      removable: read.removable,
       asset: read.asset,
       responsible: named(duty.responsibleUserId),
       activity:
@@ -812,26 +847,8 @@ export class DutiesController {
   remove(@CurrentIdentity() identity: Asking, @Param('id') id: string): Promise<Duty> {
     return this.database.forTenant(identity, async (tx) => {
       const duty = await placeOf<Duty>(tx, duties, id, missing)
-      const [written] = await tx
-        .select({ id: evidence.id })
-        .from(evidence)
-        .where(and(eq(evidence.tenantId, identity.tenantId), eq(evidence.dutyId, duty.id)))
-        .limit(1)
-      const [fixed] = await tx
-        .select({ id: activityDuties.id })
-        .from(activityDuties)
-        .innerJoin(activities, eq(activities.id, activityDuties.activityId))
-        .where(
-          and(
-            eq(activityDuties.tenantId, identity.tenantId),
-            eq(activityDuties.dutyId, duty.id),
-            isNull(activityDuties.deletedAt),
-            notInArray(activities.status, ['open', 'started']),
-          ),
-        )
-        .limit(1)
 
-      if (written !== undefined || fixed !== undefined) {
+      if (await leftARecord(tx, identity.tenantId, duty.id)) {
         throw new ConflictException(
           'Zu dieser Pflicht gibt es Nachweise oder einen unterschriebenen Vorgang. Sie wird nicht entfernt, sondern beendet.',
         )

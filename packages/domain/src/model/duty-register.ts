@@ -272,6 +272,12 @@ export interface DutyDetails extends Duty {
   readonly appointment: Appointment | null
   readonly lastMetOn: IsoDate | null
   readonly ended: boolean
+  /**
+   * Whether the duty may be removed as one entered by mistake (#178): it has
+   * no evidence and no activity that was signed or closed. Otherwise it was
+   * right, and is ended (#79).
+   */
+  readonly removable: boolean
   readonly asset: DutyAsset | null
   readonly responsible: DutyPerson | null
   /**
