@@ -1975,6 +1975,106 @@ describe('an installation whose activities have answers', () => {
 })
 
 /**
+ * 0025 keeps the defects (#106, #116): photos at a defect, its deadline, the
+ * day and the note of a check, and the defaults of the classes. Taken back,
+ * they go, and the log of the tenant says of every row that the update went
+ * back (#188): the reason holds only in the piece of the migration that sets
+ * it, so it stands in the same piece as the rows.
+ */
+describe('an installation that keeps its defects', () => {
+  it('loses what 0025 brought, and the log names the reason at every row that goes back', async () => {
+    await applyMigrations()
+
+    const tenant = { id: newId<'tenant'>() }
+
+    await admin.query('insert into tenants (id, name) values ($1, $2)', [
+      tenant.id,
+      'Wohnbau Nord eG',
+    ])
+    await members(tenant, { 'user-lead': { roles: ['management'] } })
+
+    const { rows: made } = await admin.query<{ id: string; area_id: string }>(
+      `insert into properties (tenant_id, area_id, name, street, postal_code, city, federal_state)
+       select $1, id, 'Schulzentrum', 'Musterweg 1', '00001', 'Beispielstadt', 'DE-BW'
+         from areas where tenant_id = $1
+       returning id, area_id`,
+      [tenant.id],
+    )
+    const property = made[0]
+    const { rows: found } = await admin.query<{ id: string }>(
+      `insert into defects (tenant_id, property_id, area_id, description, found_on, status,
+                            checked_on, check_note)
+       values ($1, $2, $3, 'Tür schließt nicht selbsttätig.', '2026-10-01', 'verified',
+               '2026-10-03', 'Türschließer getauscht, schließt wieder.')
+       returning id`,
+      [tenant.id, property?.id, property?.area_id],
+    )
+    const defect = found[0]?.id
+    const photo = 'd'.repeat(64)
+
+    await admin.query(
+      `insert into files (tenant_id, sha256, size_bytes, media_type)
+       values ($1, $2, 2048, 'image/jpeg')`,
+      [tenant.id, photo],
+    )
+    await admin.query(
+      `insert into attachments (tenant_id, property_id, area_id, defect_id, title)
+       values ($1, $2, $3, $4, 'Türschließer')`,
+      [tenant.id, property?.id, property?.area_id, defect],
+    )
+    await admin.query(
+      `insert into deadlines (tenant_id, kind, source_id, source_label, anchor_on, due_on,
+                              defect_id, property_id, area_id)
+       values ($1, 'defect.due', $2, 'Tür schließt nicht selbsttätig.', '2026-10-01',
+               '2026-10-15', $2, $3, $4)`,
+      [tenant.id, defect, property?.id, property?.area_id],
+    )
+    await admin.query(
+      `insert into defect_class_terms (tenant_id, defect_class, due_days)
+       values ($1, 'allgemein.significant', 14)`,
+      [tenant.id],
+    )
+
+    await revertMigration(admin, '0033_meter_key_days')
+    await revertMigration(admin, '0032_meter_readings')
+    await revertMigration(admin, '0031_work_order_notes')
+    await revertMigration(admin, '0027_work_orders_in_the_office')
+    await revertMigration(admin, '0026_answers_per_point')
+    await revertMigration(admin, '0025_defects_kept')
+
+    expect((await tableNames(admin)).includes('defect_class_terms')).toBe(false)
+
+    const { rows: kept } = await admin.query<{ status: string }>(
+      'select status from defects where tenant_id = $1',
+      [tenant.id],
+    )
+
+    expect(kept).toEqual([{ status: 'remedied' }])
+
+    // Every row the update took back, with the reason: the photo marked as
+    // removed, the deadline, the check of the defect and the default of its
+    // class. Nothing the setup above wrote changes a row.
+    const { rows: changed } = await admin.query<{
+      table_name: string
+      operation: string
+      reason: string | null
+    }>(
+      `select distinct table_name, operation, reason from audit_entries
+        where tenant_id = $1 and operation <> 'insert'
+        order by table_name, operation`,
+      [tenant.id],
+    )
+
+    expect(changed).toEqual([
+      { table_name: 'attachments', operation: 'update', reason: 'migration' },
+      { table_name: 'deadlines', operation: 'delete', reason: 'migration' },
+      { table_name: 'defect_class_terms', operation: 'delete', reason: 'migration' },
+      { table_name: 'defects', operation: 'update', reason: 'migration' },
+    ])
+  })
+})
+
+/**
  * 0019 brings the documents with their versions (#97). On the way forward it
  * touches no row. Taken back, the documents and their versions go with their
  * tables, although a version is otherwise removed by nobody, and the log of

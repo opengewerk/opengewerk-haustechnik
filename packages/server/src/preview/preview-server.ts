@@ -30,6 +30,7 @@ import type { Pool } from 'pg'
 import { ApiModule } from '../api/api.module.js'
 import { access } from '../authentication/access.js'
 import { runDeadlineCycle } from '../deadlines/engine.js'
+import { dayInGermany } from '../today.js'
 import {
   admitPreviewPeople,
   previewIdentity,
@@ -192,8 +193,12 @@ export async function openSamplePreview(
     await decideSampleOrders(`http://127.0.0.1:${String(port)}`, planted.orders)
 
     // One pass of the engine, so that the due days have their inspections
-    // before somebody looks, and two of them planned (#105).
-    await runDeadlineCycle({ database, catalogue: previewCatalogue })
+    // before somebody looks, and two of them planned (#105). In the morning of
+    // today: at night the engine makes nothing until the morning, and a
+    // preview started then would show no inspection at all.
+    const morning = new Date(`${dayInGermany()}T07:00:00Z`)
+
+    await runDeadlineCycle({ database, catalogue: previewCatalogue, now: () => morning })
     await planSampleActivities(`http://127.0.0.1:${String(port)}`, areas)
     // A form with every kind of field on the device of the viewer (#107).
     await giveSampleForm(database, planter, previewPeople.viewer.id)

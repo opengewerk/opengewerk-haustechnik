@@ -577,10 +577,11 @@ describe('the register of duties', () => {
     expect(before.own).toEqual(before.fromTheCatalogue)
 
     for (const duty of [own, fromTheCatalogue]) {
-      await evidenceOf(duty, daysAgo(800))
+      await evidenceOf(duty, daysAgo(1200))
     }
 
-    // Met on the same day more than two years ago: overdue alike, on the same day.
+    // Met on the same day more than three years ago: overdue alike, on the same day, on any
+    // day of the month (800 days were within the window of the appointment on some).
     const after = await standing()
 
     expect(after.own.state).toBe('overdue')

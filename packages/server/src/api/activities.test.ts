@@ -612,7 +612,9 @@ describe('closing an activity with the reason (#183)', () => {
   it('closes an open or a begun one as not performed, gives each duty the reason, and moves nothing of the duty', async () => {
     const duty = await mainTestAt(await elevatorIn())
 
-    await evidenceOf(duty, addDays(today, -800))
+    // Long enough ago that the appointment is past its window on any day of
+    // the month: 800 days were inside it on the first days of some months.
+    await evidenceOf(duty, addDays(today, -1200))
 
     const before = await dutyPage(duty)
     const open = await activityFor(duty)
