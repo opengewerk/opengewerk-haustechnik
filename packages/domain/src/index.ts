@@ -100,6 +100,9 @@ export * from './model/duty-register.js'
 // The overview of the operator's responsibility, the start page of the office.
 export * from './model/overview.js'
 
+// The timeline of a place: what happened there and below it, the newest first.
+export * from './model/timeline.js'
+
 // The page of an evidence, the evidence of an asset and what a correction
 // of an evidence has to say.
 export * from './model/evidence-page.js'

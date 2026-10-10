@@ -42,7 +42,7 @@ import { countedAssets, countedRooms, PlaceNotFound } from '../place-pages.js'
  * (`building-form.tsx`, `floor-form.tsx`), and whoever plans the rounds keeps
  * the times it is closed (`building-closures.tsx`). Above them stands what is
  * to do there and below them its last activities (#121, `building-situation.tsx`),
- * both counted by the server; the link to the timeline arrives with it (#123).
+ * both counted by the server, with the way to its timeline (#123).
  *
  * The assets of the building are counted by cost group beside the floors, and
  * each count leads into the register of assets, narrowed to this building

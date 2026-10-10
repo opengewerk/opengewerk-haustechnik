@@ -60,6 +60,7 @@ import { officePlaces, placeForms } from '../place-addresses.js'
 import { NotAllowed, RemovePlace } from '../place-forms.js'
 import { DocumentsCard } from '../documents.js'
 import { PropertyContacts } from '../property-contacts.js'
+import { TimelineCard } from '../timeline.js'
 
 /**
  * The properties of a tenant in the office (4.1 of the concept): the list
@@ -754,7 +755,13 @@ export function PropertyScreen() {
             <DocumentsCard place={{ propertyId }} at={`Liegenschaft ${text(property, 'name')}`} />
           </>
         }
-        main={<Buildings buildings={[...buildings].sort(byName)} />}
+        main={
+          <div className="flex min-w-0 flex-col gap-3.5">
+            <Buildings buildings={[...buildings].sort(byName)} />
+            {/* What happened there, the newest first (#123). */}
+            <TimelineCard place={{ propertyId: String(property['id']) }} />
+          </div>
+        }
       />
     </Screen>
   )

@@ -69,6 +69,7 @@ import { officePlaces } from '../place-addresses.js'
 import { kindLabel } from './assets.js'
 import { AssetDefectsCard } from './defects.js'
 import { AssetOrdersCard, NewOrderAtAssetButton } from './work-orders.js'
+import { TimelineButton } from '../timeline.js'
 
 /** The file of an asset as the server reads it today. */
 export function assetFileQuery(id: string) {
@@ -223,6 +224,7 @@ export function AssetFileScreen() {
         }
         actions={
           <>
+            <TimelineButton place={{ assetId }} />
             <ChangesButton table="assets" id={assetId} />
             {records ? (
               <Button

@@ -50,6 +50,7 @@ import { RoundWeekScreen } from './screens/round-week.js'
 import { EditRoomScreen, NewRoomScreen } from './screens/room-form.js'
 import { RoomScreen } from './screens/rooms.js'
 import { StaffScreen } from './screens/staff.js'
+import { TimelineScreen } from './timeline.js'
 import { NewWorkOrderScreen, WorkOrderListScreen, WorkOrderScreen } from './screens/work-orders.js'
 import { OfficeShell } from './shell.js'
 
@@ -138,6 +139,12 @@ export function officeRoutes() {
       path: '/liegenschaften/$propertyId/bearbeiten',
       component: EditPropertyScreen,
     }),
+    // The timeline of the place (#123).
+    createRoute({
+      getParentRoute: () => office,
+      path: '/liegenschaften/$propertyId/zeitachse',
+      component: TimelineScreen,
+    }),
     createRoute({
       getParentRoute: () => office,
       path: '/liegenschaften/$propertyId/gebaeude/neu',
@@ -152,6 +159,12 @@ export function officeRoutes() {
       getParentRoute: () => office,
       path: '/gebaeude/$buildingId/bearbeiten',
       component: EditBuildingScreen,
+    }),
+    // The timeline of the place (#123).
+    createRoute({
+      getParentRoute: () => office,
+      path: '/gebaeude/$buildingId/zeitachse',
+      component: TimelineScreen,
     }),
     createRoute({
       getParentRoute: () => office,
@@ -179,6 +192,12 @@ export function officeRoutes() {
       path: '/raeume/$roomId/bearbeiten',
       component: EditRoomScreen,
     }),
+    // The timeline of the place (#123).
+    createRoute({
+      getParentRoute: () => office,
+      path: '/raeume/$roomId/zeitachse',
+      component: TimelineScreen,
+    }),
     // The register of assets, narrowed by what its address names, and the
     // file of one asset under it. The form of a new asset stands under the
     // register, before the file: "neu" is no id.
@@ -198,6 +217,12 @@ export function officeRoutes() {
       getParentRoute: () => office,
       path: '/anlagen/$assetId/bearbeiten',
       component: EditAssetScreen,
+    }),
+    // The timeline of the place (#123).
+    createRoute({
+      getParentRoute: () => office,
+      path: '/anlagen/$assetId/zeitachse',
+      component: TimelineScreen,
     }),
     createRoute({
       getParentRoute: () => office,

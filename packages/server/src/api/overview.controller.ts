@@ -17,6 +17,11 @@ import {
   type OverviewDuty,
   overviewShown,
   type PlacesToDo,
+  type Timeline,
+  type TimelineCategory,
+  timelineCategories,
+  timelinePage,
+  type TimelinePlace,
 } from '@opengewerk/haustechnik-domain'
 import {
   CurrentIdentity,
@@ -35,7 +40,8 @@ import { RequiresPermission } from './authorization.js'
 import { registeredEntries, registerPage, type UnnamedDutyEntry } from './duty-register.js'
 import { buildingSituation, placesToDo } from './place-situation.js'
 import type { Asking } from './places.js'
-import { said } from './register-question.js'
+import { counted, said } from './register-question.js'
+import { timelineOf } from './timeline.js'
 
 /**
  * The overview of the operator's responsibility (section 4.3 of the concept,
@@ -91,6 +97,68 @@ export class OverviewController {
     return this.database.forTenant(identity, (tx) =>
       placesToDo(tx, this.catalogue, identity, dayInGermany()),
     )
+  }
+
+  /**
+   * The timeline of a place (#123): what happened at a property, a building,
+   * a room or an asset (`?property=`, `?building=`, `?room=`, `?asset=`,
+   * exactly one) and below it, the newest first, narrowed to a category,
+   * a page at a time. Each kind of entry only for whoever may read it.
+   */
+  @Get('timeline')
+  @RequiresPermission('location.read')
+  timeline(
+    @CurrentIdentity() identity: Asking,
+    @Query() query: Readonly<Record<string, unknown>>,
+  ): Promise<Timeline> {
+    const named = (
+      [
+        ['property', 'propertyId'],
+        ['building', 'buildingId'],
+        ['room', 'roomId'],
+        ['asset', 'assetId'],
+      ] as const
+    ).flatMap(([word, key]) => {
+      const id = said(query, word)
+
+      return id === undefined ? [] : [{ key, id }]
+    })
+    const [only] = named
+
+    if (named.length !== 1 || only === undefined) {
+      throw new BadRequestException(
+        'Eine Zeitachse ist die einer Liegenschaft, eines Gebäudes, eines Raums oder einer Anlage.',
+      )
+    }
+
+    if (!isUuid(only.id)) {
+      throw new BadRequestException('Ein Ort wird mit seiner Kennung genannt.')
+    }
+
+    const category = said(query, 'category') ?? null
+
+    if (category !== null && !(timelineCategories as readonly string[]).includes(category)) {
+      throw new BadRequestException(`Die Art ist eine von: ${timelineCategories.join(', ')}.`)
+    }
+
+    const question = {
+      place: { [only.key]: only.id } as TimelinePlace,
+      category: category as TimelineCategory | null,
+      offset: counted(
+        said(query, 'offset'),
+        0,
+        { least: 0, most: timelinePage.furthest },
+        `Eine Seite beginnt bei einer ganzen Zahl von 0 bis ${String(timelinePage.furthest)}; ältere Einträge stehen in den Listen der Vorgänge, Mängel und Nachweise.`,
+      ),
+      limit: counted(
+        said(query, 'limit'),
+        timelinePage.size,
+        { least: 1, most: timelinePage.most },
+        `Eine Seite hält zwischen 1 und ${String(timelinePage.most)} Einträge.`,
+      ),
+    }
+
+    return this.database.forTenant(identity, (tx) => timelineOf(tx, identity, question))
   }
 
   /** The Lagebild of a building (#121): what is to do there, and its last activities. */

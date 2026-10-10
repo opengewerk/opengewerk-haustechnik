@@ -992,6 +992,16 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   (Routen `/overview/places` und `/overview/buildings/:id`); Mängel und Zähler lassen sich dafür
   auf ein Gebäude eingrenzen. Bisher musste man für ein Gebäude die Listen einzeln öffnen, um
   zu sehen, was dort ansteht
+- Zeitachse je Liegenschaft, Gebäude, Raum und Anlage (#123): was an einem Ort und darunter
+  geschah, die neuesten Einträge zuerst, nach Monaten, seitenweise und nach Art eingrenzbar
+  (Rundgänge, Prüfungen und Wartungen, Mängel, Aufträge, Nachweise). Gelesen wird aus
+  Unterschriften, Entscheidungen über Aufträge, Vorgängen, Mängeln und Nachweisen (Route
+  `/overview/timeline`); ein für ungültig erklärter Nachweis steht mit diesem Vermerk darin.
+  Die Liegenschaft zeigt die neuesten Einträge in einer Karte, das Lagebild führt von den
+  letzten Vorgängen dorthin, Raum und Anlage haben einen Knopf "Zeitachse". Sie nennt keine
+  Person und reicht 1.500 Einträge zurück; eine Seite weiter hinten lehnt die Route ab, weil
+  der Server sonst die ganze Geschichte eines Orts auf einmal läse und sortierte (Befund von
+  Strix). Bisher gab es keinen Ort, an dem man sah, was an einem Gebäude über die Zeit geschah
 
 ### Geändert
 
