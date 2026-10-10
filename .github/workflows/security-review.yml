@@ -4,7 +4,9 @@ name: Security-Review
 # .github/workflows/security-review.yml) for every pull request: in full on
 # pull_request for a branch of this repository by a member, by reading alone
 # on pull_request_target for anything else. A new push cancels the run of the
-# push before, so only the newest head is reviewed.
+# push before, so only the newest head is reviewed. The call pins a commit of
+# that workflow on its main: a change there reaches this repository with a
+# pull request here, which moves the commit.
 
 on:
   pull_request:
@@ -21,7 +23,7 @@ permissions: {}
 jobs:
   security-review:
     name: Security-Review
-    uses: opengewerk/.github/.github/workflows/security-review.yml@main
+    uses: opengewerk/.github/.github/workflows/security-review.yml@6e5bf566bd784f01f5542abaef53e83666705882 # main
     permissions:
       contents: read
       id-token: write

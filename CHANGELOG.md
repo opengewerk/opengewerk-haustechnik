@@ -1303,8 +1303,10 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   Organisation (`opengewerk/.github#27`): für einen Branch dieses Repositorys von einem Mitglied
   mit Tests und PoCs gegen eine eigene Testdatenbank auf Port 5434, für einen PR von außen nur
   lesend. Geprüft wird der neueste Commit, ein neuer Push bricht den Lauf davor ab; das Ergebnis
-  steht als Kommentar am PR und als Status `PR-Security-Review`. Bisher lief das Review auf dem
-  Rechner von Moritz mit einem kostenlosen Modell, dessen Kontingent am 10.10.2026 aufgebraucht war
+  steht als Kommentar am PR und als Status `PR-Security-Review`. Der Aufruf heftet einen Commit
+  des Workflows an, damit eine Änderung dort erst mit einem PR hier wirkt. Bisher lief das
+  Review auf dem Rechner von Moritz mit einem kostenlosen Modell, dessen Kontingent am
+  10.10.2026 aufgebraucht war
 
 ### Behoben
 
