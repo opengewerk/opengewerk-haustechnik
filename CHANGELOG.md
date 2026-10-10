@@ -1025,6 +1025,20 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   kein "Bearbeiten". Bisher ließ sich ein Tippfehler in der Quelle oder eine längere Frist nur
   beheben, indem man die Pflicht beendete und neu anlegte, und dabei ging der Bezug zu ihren
   Nachweisen verloren
+- Vorschläge aus dem Katalog bestätigen oder verwerfen, je Anlage und im Stapel, und die Frist
+  festlegen (#102): `GET /duties/proposals` rechnet bei jedem Lesen, welche Pflichtarten für
+  eine Anlage in Frage kommen, nach Anlagenart, Merkmalen, Gebäudeart und Bundesland, ohne die
+  bestätigten und die verworfenen; gespeichert wird kein Vorschlag, ein Berichtigen der
+  Anlagenart wirkt deshalb sofort. Ein fehlendes Merkmal gilt als erfüllt, eine stillgelegte
+  oder zurückgebaute Anlage bekommt keine. `POST /duties/batch` und `POST /duty-dismissals/batch`
+  bestätigen oder verwerfen eine Pflichtart an vielen Anlagen in einer Transaktion: genau so
+  viele Pflichten wie Anlagen oder keine. Im Büro die Liste unter `/pflichten/vorschlaege`
+  nach Pflichtart gruppiert, mit "Nicht abgenommen" am Vorschlag und der Karte "Auswahl", die
+  verworfenen mit "Zurücknehmen", das Formular "Pflicht bestätigen" mit Höchstfrist,
+  Richtwert und Begründung und dasselbe als "Frist festlegen" über einer Pflicht aus dem
+  Katalog, dazu die Wege vom Pflichtenverzeichnis, von der Anlagenakte und von der Pflichtart.
+  Bisher ließ sich eine Pflicht aus dem Katalog nur über die Route bestätigen, und niemand sah,
+  welche Pflichten eine Anlage nach dem Katalog hätte
 
 ### Geändert
 
