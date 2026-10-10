@@ -101,13 +101,21 @@ await checkWidths({
   ],
 
   /**
+   * The catalogue names its packages and its duty kinds by key, not by an
+   * identifier: `/katalog/<package>`, its parts below it, and a duty kind at
+   * `/katalog/<package>/pflichtarten/<key>`. One kind of page each, rather
+   * than one for every package and every entry (#227): those were 50 of the
+   * 177 kinds, and every package added dozens.
+   */
+  keys: [/^\/katalog\/([^/]+)(?:\/[^/]+\/([^/]+))?/],
+
+  /**
    * More than the 120 the foundation stops at unless told: this application
    * had 106 kinds of page on 08.10.2026, and every screen of Phase 1 still to
-   * come brings more (opengewerk#576). The package Elektro (#91) passed 160:
-   * the walk takes every page of a catalogue entry for a kind of its own (#227),
-   * since the key in its address is no identifier the foundation knows.
+   * come brings more (opengewerk#576). With the catalogue as one kind of page
+   * for each of its screens (#227) there were about 136.
    */
-  mostKinds: 220,
+  mostKinds: 150,
   /**
    * Every kind of page is held to the rules of accessibility as well (#132,
    * section 3 of the concept): labels, roles, the order of the headings and

@@ -1357,6 +1357,11 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   auf `error` statt dauerhaft auf "läuft" (`opengewerk/.github#35` und `#36`, Aufruf angehoben).
   Vorher war Docker ein zweiter Weg zu root, und eine Git-Konfiguration aus der Sandbox hätte nach
   ihr außerhalb laufen können
+- Die Prüfung "Breiten und Auflösungen" misst den Katalog als eine Art von Seite je Bildschirm
+  (#227): ein Paket, jeder Teil eines Pakets und eine Pflichtart, statt jedes Paket und jeden
+  Eintrag für sich (`keys` an `checkWidths`, `opengewerk#592`, Submodul angehoben). Das waren 50 der
+  177 Arten, aus ihnen werden 9; die Grenze des Gangs sinkt von 220 auf 150. Mit jedem Paket wuchs
+  der Gang bisher um Dutzende Seiten, die denselben Bildschirm zeigen
 
 ### Behoben
 
