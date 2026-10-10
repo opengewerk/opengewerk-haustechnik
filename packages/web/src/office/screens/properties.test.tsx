@@ -703,6 +703,30 @@ describe('the numbers of the list of the properties (#121)', () => {
     ).toEqual(['Liegenschaft und Gebäude', 'Bereich', 'Überfällig', 'Fällig', 'Nie erfasst'])
   })
 
+  it('stand beside the buildings on the page of a property, each a link to its list', async () => {
+    answers.set('/overview/places', toDo)
+    await mount('/liegenschaften/p-school')
+    await waitFor(() => {
+      expect(rowsOf('Gebäude der Liegenschaft')[0]).toHaveLength(7)
+    })
+
+    expect(rowsOf('Gebäude der Liegenschaft')).toEqual([
+      ['SchulhausSchule oder Hochschule', '1975', '1', '2', '0', '2', '1'],
+      [
+        'SporthalleSchule oder Hochschule, Versammlungs- oder Sportstätte',
+        '',
+        '2',
+        '1',
+        '0',
+        '0',
+        '0',
+      ],
+    ])
+    expect(screen.getByRole('link', { name: '2 Fällig' }).getAttribute('href')).toBe(
+      '/pflichten?zustand=due&gebaeude=b-house',
+    )
+  })
+
   it('stands without its numbers where the server does not answer, and says so', async () => {
     await mount('/liegenschaften')
 

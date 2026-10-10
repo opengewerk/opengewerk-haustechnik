@@ -420,6 +420,11 @@ const columnWidths: Readonly<Record<ToDoKey, string>> = {
   missingReadings: 'w-[140px]',
 }
 
+/** What a number counts, by its key. */
+const toDoLabel = Object.fromEntries(toDoColumns.map(({ key, label }) => [key, label])) as Readonly<
+  Record<ToDoKey, string>
+>
+
 /** The colour of a number of the list where it is not zero, `num_cell()` of the boards. */
 const numberInk: Readonly<Record<ToDoKey, string>> = {
   overdue: 'text-conflict',
@@ -508,7 +513,11 @@ export function byUrgency(left: PlaceToDo | undefined, right: PlaceToDo | undefi
   return 0
 }
 
-/** A number of the list, a link to the list it counts; zero stays quiet and is no link. */
+/**
+ * A number of the list, a link to the list it counts; zero stays quiet and is
+ * no link. The link is named by the number and what it counts, "2 Fällig", so
+ * that a reader moving from link to link hears more than a figure.
+ */
 function NumberCell({
   field,
   numbers,
@@ -529,6 +538,7 @@ function NumberCell({
         <Link
           to={target.to}
           search={target.search}
+          aria-label={`${value.toLocaleString('de-DE')} ${toDoLabel[field]}`}
           className={`font-semibold no-underline ${numberInk[field]}`}
         >
           {value.toLocaleString('de-DE')}
@@ -750,8 +760,25 @@ export function PropertyScreen() {
   )
 }
 
-/** "Gebäude": what stands on the property, by name, with what it is used as. */
+/** What the buildings of a property call each number, shorter than the list has it. */
+const buildingColumnWords: Readonly<Record<ToDoKey, string>> = {
+  overdue: 'Überfällig',
+  due: 'Fällig',
+  neverRecorded: 'Nie erfasst',
+  openDefects: 'Mängel',
+  missingReadings: 'Zähler',
+}
+
+/**
+ * "Gebäude": what stands on the property, by name, with what it is used as,
+ * when it was built and what is to do at it (#121), each number a link to its
+ * list narrowed to the building.
+ */
 function Buildings({ buildings }: { readonly buildings: readonly RecordState[] }) {
+  const toDo = usePlacesToDo()
+  const columns =
+    toDo.numbers === null ? [] : toDoColumns.filter(({ key }) => toDo.offered.includes(key))
+
   if (buildings.length === 0) {
     return (
       <Panel title="Gebäude">
@@ -787,6 +814,11 @@ function Buildings({ buildings }: { readonly buildings: readonly RecordState[] }
           <Column numeric className="w-[64px] min-w-[56px]">
             Baujahr
           </Column>
+          {columns.map(({ key }) => (
+            <Column key={key} numeric className="w-[80px]">
+              {buildingColumnWords[key]}
+            </Column>
+          ))}
         </tr>
       </thead>
       <tbody>
@@ -803,6 +835,14 @@ function Buildings({ buildings }: { readonly buildings: readonly RecordState[] }
               </div>
             </Cell>
             <Cell numeric>{year(building)}</Cell>
+            {columns.map(({ key }) => (
+              <NumberCell
+                key={key}
+                field={key}
+                numbers={toDo.numbers?.get(String(building['id']))}
+                place={{ buildingId: String(building['id']) }}
+              />
+            ))}
           </tr>
         ))}
       </tbody>
