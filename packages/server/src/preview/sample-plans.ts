@@ -232,6 +232,7 @@ export async function giveSamplePlans(
         signedAt,
         deviceInfo: 'Telefon',
         path: 'M90,250L180,140L250,280L340,130L430,270L520,150L610,250L720,170L840,220L930,190',
+        typedName: null,
         pageFingerprint: pageFingerprint(await pageOf(tx, row)),
       },
     )

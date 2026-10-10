@@ -2,6 +2,8 @@ import {
   type Id,
   type IsoDate,
   longestSignaturePath,
+  longestSignerName,
+  signerNameProblem,
   signaturePathIsValid,
   type Synced,
 } from '@opengewerk/platform-domain'
@@ -35,12 +37,42 @@ export type WorkOrderDecisionId = Id<'work-order-decision'>
 export const signatureLimits = {
   deviceInfo: 500,
   decisionReason: 500,
+  /** A typed name is a name of an account, as long as the foundation lets one be (#209). */
+  typedName: longestSignerName,
 } as const
+
+/**
+ * The two ways to sign (section 2.6 of the concept, #209): "mit dem
+ * Schriftzug auf dem Gerät oder, wo das eine Hürde ist, ohne ihn: die Person
+ * bestätigt mit ihrem getippten Namen. Beides ist dieselbe Signatur des
+ * angemeldeten Kontos, und der Nachweis sagt, welcher Weg es war."
+ */
+export const signatureWays = ['drawing', 'name'] as const
+
+export type SignatureWay = (typeof signatureWays)[number]
+
+/** How a page says which way somebody signed. */
+export const signatureWayLabel: Readonly<Record<SignatureWay, string>> = {
+  drawing: 'mit Schriftzug',
+  name: 'mit getipptem Namen bestätigt',
+}
+
+/**
+ * Whether a typed name is the name of the account that signs: the same
+ * words, whatever the case and the spaces between them. Somebody confirms
+ * with their own name, not with any.
+ */
+export function typedNameIsOf(typed: string, accountName: string): boolean {
+  const plain = (name: string) => name.trim().replace(/\s+/g, ' ').toLocaleLowerCase('de')
+
+  return plain(typed) !== '' && plain(typed) === plain(accountName)
+}
 
 /**
  * A signature on an activity (ADR 0004, point 7): a simple electronic
  * signature, bound to the account that is signed in, with the moment and the
- * device, the drawing, and the fingerprint of the page that was shown. It is
+ * device, the drawing or the typed name, and the fingerprint of the page that
+ * was shown. It is
  * made on the device, also without a connection, and written once; nothing
  * changes or removes it, and a work order that is turned back leaves it
  * standing and no longer valid (section 4.8 of the concept).
@@ -55,8 +87,10 @@ export interface ActivitySignature extends Synced {
   /** The clock of the device at the moment the signature was confirmed. */
   readonly signedAt: Date
   readonly deviceInfo: string | null
-  /** The drawing, as a path in the units of `signatureBox` of the foundation. */
-  readonly path: string
+  /** The drawing, as a path in the units of `signatureBox` of the foundation; none for a typed name. */
+  readonly path: string | null
+  /** The name the person typed to confirm, where they signed without a drawing (#209). */
+  readonly typedName: string | null
   /** SHA-256 over the canonical form of the page that was shown, 64 hexadecimal digits. */
   readonly pageFingerprint: string
 }
@@ -436,10 +470,26 @@ export function signatureProblems(
   oneOf(problems, signature, 'role', signatureRoles, 'Unterschrieben wird oder gegengezeichnet.')
 
   const path = signature['path']
+  const typedName = signature['typedName']
+  const drawn = path !== undefined && path !== null
+  const named = typedName !== undefined && typedName !== null
 
-  if (path !== undefined && (typeof path !== 'string' || !signaturePathIsValid(path))) {
+  if (drawn && (typeof path !== 'string' || !signaturePathIsValid(path))) {
     problems['path'] =
       `Die Unterschrift ist ein Linienzug im Feld, höchstens ${String(longestSignaturePath)} Zeichen.`
+  }
+
+  if (named && (typeof typedName !== 'string' || signerNameProblem(typedName) !== null)) {
+    problems['typedName'] =
+      `Der getippte Name hat mindestens ein Zeichen und höchstens ${String(longestSignerName)}.`
+  }
+
+  // One way or the other (#209): a drawing and a typed name are not one signature.
+  if (drawn && named) {
+    problems['path'] =
+      'Unterschrieben wird mit dem Schriftzug oder mit dem getippten Namen, nicht mit beidem.'
+  } else if ((path !== undefined || typedName !== undefined) && !drawn && !named) {
+    problems['path'] = 'Es fehlt die Unterschrift: der Schriftzug im Feld oder der getippte Name.'
   }
 
   const fingerprint = signature['pageFingerprint']

@@ -5,6 +5,7 @@ import {
   heldPageOf,
   type SignedPage,
   signatureProblems,
+  typedNameIsOf,
   signatureRoleLabel,
   signatureRoles,
   signaturesComplete,
@@ -93,6 +94,39 @@ describe('a signature', () => {
         deviceInfo: null,
       }),
     ).toEqual({})
+  })
+
+  it('is given with the drawing or with the typed name, one of the two (#209)', () => {
+    expect(
+      signatureProblems({
+        role: 'signer',
+        path: null,
+        typedName: 'Hanna Probe',
+        pageFingerprint: page,
+      }),
+    ).toEqual({})
+    expect(
+      signatureProblems({
+        role: 'signer',
+        path: 'M10,10L200,300',
+        typedName: 'Hanna Probe',
+        pageFingerprint: page,
+      }),
+    ).toEqual({
+      path: 'Unterschrieben wird mit dem Schriftzug oder mit dem getippten Namen, nicht mit beidem.',
+    })
+    expect(
+      signatureProblems({ role: 'signer', path: null, typedName: null, pageFingerprint: page }),
+    ).toEqual({ path: 'Es fehlt die Unterschrift: der Schriftzug im Feld oder der getippte Name.' })
+    expect(
+      signatureProblems({ role: 'signer', path: null, typedName: '   ', pageFingerprint: page }),
+    ).toEqual({ typedName: 'Der getippte Name hat mindestens ein Zeichen und höchstens 200.' })
+  })
+
+  it('is confirmed with the name of the account that signs, whatever the case and the spaces', () => {
+    expect(typedNameIsOf('  hanna   PROBE ', 'Hanna Probe')).toBe(true)
+    expect(typedNameIsOf('Hanna', 'Hanna Probe')).toBe(false)
+    expect(typedNameIsOf('', '')).toBe(false)
   })
 })
 

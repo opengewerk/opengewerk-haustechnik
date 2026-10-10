@@ -16,7 +16,6 @@ import { Button, Field, Panel, Status, TextArea } from '@opengewerk/platform-web
 import { clockTime, date, moment, today } from '@opengewerk/platform-web/format'
 import { accountQuery, useRight, useWho } from '@opengewerk/platform-web/session'
 import {
-  SignaturePad,
   SiteActionBar,
   SiteFacts,
   SiteHeader,
@@ -55,6 +54,7 @@ import { documentsAt, fileDocument } from '../../app/documents.js'
 import { useDutyName } from '../../app/form-of.js'
 import { PhotoThumb, useDeferredWrite } from '../../app/form-points.js'
 import { titleOfRoom } from '../../app/place-records.js'
+import { type GivenSignature, SignatureWays } from '../../app/signature-ways.js'
 import { signActivity } from '../../app/signing.js'
 import { assetTitle, NotOnDevice, NotOffered } from '../kit.js'
 import { siteForms } from '../places.js'
@@ -888,7 +888,7 @@ export function SiteCloseOrderScreen() {
   const navigate = useNavigate()
   const who = useWho()
   const work = useWorkOrder(activityId)
-  const [path, setPath] = useState<string | null>(null)
+  const [given, setGiven] = useState<GivenSignature | null>(null)
   const [trouble, setTrouble] = useState<string | null>(null)
   const [working, setWorking] = useState(false)
   const back = { to: siteForms.form(activityId), label: 'Zurück zum Auftrag' }
@@ -913,7 +913,7 @@ export function SiteCloseOrderScreen() {
   const minutes = work.order?.['durationMinutes']
 
   async function sign() {
-    if (path === null) {
+    if (given === null) {
       return
     }
 
@@ -923,7 +923,7 @@ export function SiteCloseOrderScreen() {
     try {
       // An order opened only to be finished has no day yet.
       const problem =
-        (await beginActivity(client, activityId)) ?? (await signActivity(client, activityId, path))
+        (await beginActivity(client, activityId)) ?? (await signActivity(client, activityId, given))
 
       if (problem !== null) {
         setTrouble(problem)
@@ -981,7 +981,7 @@ export function SiteCloseOrderScreen() {
             .join(' ')}
         </SiteText>
         <SignedBy name={[who.name, who.roles].filter(Boolean).join(', ')}>
-          <SignaturePad label={closeWords.pad} onChange={setPath} />
+          <SignatureWays label={closeWords.pad} name={who.name} onChange={setGiven} />
         </SignedBy>
         {trouble ? <SiteTrouble>{trouble}</SiteTrouble> : null}
       </SiteScreen>
@@ -991,7 +991,7 @@ export function SiteCloseOrderScreen() {
           wide
           height={60}
           icon={Signature}
-          disabled={working || path === null}
+          disabled={working || given === null}
           onClick={() => {
             void sign()
           }}

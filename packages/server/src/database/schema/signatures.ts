@@ -1,5 +1,6 @@
 import {
   longestSignaturePath,
+  longestSignerName,
   signatureLimits,
   signatureRoles,
   workOrderDecisionKinds,
@@ -54,7 +55,10 @@ export const activitySignatures = pgTable(
     role: signatureRole('role').notNull(),
     signedAt: timestamp('signed_at', { withTimezone: true }).notNull(),
     deviceInfo: text('device_info'),
-    path: text('path').notNull(),
+    /** The drawing; none where the person confirmed with their typed name (#209). */
+    path: text('path'),
+    /** The name typed to confirm, the other way to sign (section 2.6 of the concept). */
+    typedName: text('typed_name'),
     pageFingerprint: text('page_fingerprint').notNull(),
     ...timestamps,
     ...syncColumns,
@@ -85,6 +89,12 @@ export const activitySignatures = pgTable(
       'activity_signatures_path_shaped',
       sql`${table.path} ~ '^(M[0-9]{1,4},[0-9]{1,4}(L[0-9]{1,4},[0-9]{1,4})*)+$'
         and char_length(${table.path}) <= ${sql.raw(String(longestSignaturePath))}`,
+    ),
+    // One way or the other (#209): the drawing or the typed name, never both and never neither.
+    check('activity_signatures_one_way', sql`num_nonnulls(${table.path}, ${table.typedName}) = 1`),
+    check(
+      'activity_signatures_typed_name_shaped',
+      optionalTrimmed(table.typedName, longestSignerName),
     ),
     check(
       'activity_signatures_device_info_shaped',

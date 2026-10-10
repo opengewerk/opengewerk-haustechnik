@@ -12,7 +12,7 @@ import { type Counting, evidenceKindLabel, evidenceKinds } from './catalogue.js'
 import type { DutyId } from './duty-record.js'
 import { calendarDay, oneOf, optional, type Problems } from './fields.js'
 import type { PropertyId } from './location.js'
-import type { SignatureRole } from './signature.js'
+import type { SignatureRole, SignatureWay } from './signature.js'
 
 /**
  * The result of a performance, in the words of section 4.4 of the concept:
@@ -100,9 +100,10 @@ export const evidenceLimits = {
  * comes in: 2 since a correction names the evidence it replaces (#26), 3
  * since an evidence keeps the form of its activity and the answers (#106), 4
  * since it keeps what was said with the result (#108), 5 since a signature
- * keeps its drawing, which the PDF shows (#111).
+ * keeps its drawing, which the PDF shows (#111), 6 since it says which way
+ * somebody signed, with the drawing or with the typed name (#209).
  */
-export const evidenceStateVersion = 5
+export const evidenceStateVersion = 6
 
 /** The place of an evidence in words, as it was on the day it was written down. */
 export interface StatedPlace {
@@ -154,8 +155,10 @@ export interface StatedSignature {
   readonly role: SignatureRole
   /** The moment of the signature, as an ISO 8601 text in UTC. */
   readonly signedAt: string
-  /** The drawing as an SVG path, since version 5; none for one written before (#111). */
+  /** The drawing as an SVG path, since version 5; none for one written before (#111) or a typed name. */
   readonly path: string | null
+  /** Which way it was signed, since version 6 (#209); every signature before was drawn. */
+  readonly way: SignatureWay
 }
 
 export interface StatedFile {
@@ -255,10 +258,16 @@ export class UnknownEvidenceStateError extends Error {
   }
 }
 
+/** The fifth version: all of the sixth but the way each signature was made. */
+type EvidenceStateOfVersion5 = Omit<EvidenceState, 'version' | 'signatures'> & {
+  readonly version: 5
+  readonly signatures: readonly Omit<StatedSignature, 'way'>[]
+}
+
 /** The fourth version: all of the fifth but the drawings of the signatures. */
-type EvidenceStateOfVersion4 = Omit<EvidenceState, 'version' | 'signatures'> & {
+type EvidenceStateOfVersion4 = Omit<EvidenceStateOfVersion5, 'version' | 'signatures'> & {
   readonly version: 4
-  readonly signatures: readonly Omit<StatedSignature, 'path'>[]
+  readonly signatures: readonly Omit<StatedSignature, 'path' | 'way'>[]
 }
 
 /** The third version: all of the fourth but what was said with the result. */
@@ -283,8 +292,9 @@ type EvidenceStateOfVersion1 = Omit<EvidenceStateOfVersion2, 'version' | 'replac
  */
 const readers: Readonly<Record<number, (stored: StoredEvidenceState) => EvidenceState>> = {
   // No evidence of the first version corrects another, none before the
-  // third names a form or answers, none before the fourth a remark, and none
-  // before the fifth keeps the drawing of a signature.
+  // third names a form or answers, none before the fourth a remark, none
+  // before the fifth keeps the drawing of a signature, and every signature
+  // before the sixth was drawn.
   1: (stored) => ({
     ...(stored as unknown as EvidenceStateOfVersion1),
     version: evidenceStateVersion,
@@ -313,14 +323,22 @@ const readers: Readonly<Record<number, (stored: StoredEvidenceState) => Evidence
     version: evidenceStateVersion,
     signatures: withoutDrawings(stored as unknown as EvidenceStateOfVersion4),
   }),
-  5: (stored) => stored as unknown as EvidenceState,
+  5: (stored) => ({
+    ...(stored as unknown as EvidenceStateOfVersion5),
+    version: evidenceStateVersion,
+    signatures: (stored as unknown as EvidenceStateOfVersion5).signatures.map((signature) => ({
+      ...signature,
+      way: 'drawing' as const,
+    })),
+  }),
+  6: (stored) => stored as unknown as EvidenceState,
 }
 
-/** The signatures of a state written before version 5, which kept no drawing. */
+/** The signatures of a state written before version 5, which kept no drawing; all of them drawn. */
 function withoutDrawings(state: {
-  readonly signatures: readonly Omit<StatedSignature, 'path'>[]
+  readonly signatures: readonly Omit<StatedSignature, 'path' | 'way'>[]
 }): readonly StatedSignature[] {
-  return state.signatures.map((signature) => ({ ...signature, path: null }))
+  return state.signatures.map((signature) => ({ ...signature, path: null, way: 'drawing' }))
 }
 
 /** The versions this reader knows. */

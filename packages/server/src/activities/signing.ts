@@ -19,6 +19,7 @@ import {
   type SignedPage,
   signatureLimits,
   signatureProblems,
+  typedNameIsOf,
   signaturesComplete,
   signedPageOf,
   type StatedSignature,
@@ -68,7 +69,10 @@ export interface SignatureToTake {
   /** The clock of the device at the moment the signature was confirmed. */
   readonly signedAt: Date
   readonly deviceInfo: string | null
-  readonly path: string
+  /** The drawing, or none where the person confirmed with their typed name (#209). */
+  readonly path: string | null
+  /** The name typed to confirm, the other way to sign; none beside a drawing. */
+  readonly typedName: string | null
   readonly pageFingerprint: string
 }
 
@@ -97,8 +101,12 @@ export interface TakenDecision {
  */
 export type SignatureToCheck = Pick<
   SignatureToTake,
-  'activityId' | 'role' | 'deviceInfo' | 'path' | 'pageFingerprint'
-> & { readonly signedBy: string }
+  'activityId' | 'role' | 'deviceInfo' | 'path' | 'typedName' | 'pageFingerprint'
+> & {
+  readonly signedBy: string
+  /** The name of the account signed in, which a typed name has to be (#209). */
+  readonly accountName: string
+}
 
 /**
  * What a refusal of a signature is about, which the sync answers by (ADR
@@ -394,6 +402,7 @@ export async function checkSignature(
     signatureProblems({
       role: input.role,
       path: input.path,
+      typedName: input.typedName,
       pageFingerprint: input.pageFingerprint,
       deviceInfo: input.deviceInfo,
     }),
@@ -401,6 +410,14 @@ export async function checkSignature(
 
   if (firstProblem !== undefined) {
     throw new SigningRefusal(firstProblem)
+  }
+
+  // "Die Person bestätigt mit ihrem getippten Namen" (2.6): the name of the
+  // account signed in, not any name.
+  if (input.typedName !== null && !typedNameIsOf(input.typedName, input.accountName)) {
+    throw new SigningRefusal(
+      `Bestätigt wird mit dem eigenen Namen, wie er im Konto steht: ${input.accountName}.`,
+    )
   }
 
   // Held until the signature and what follows it are written, by whichever
@@ -761,7 +778,7 @@ export async function takeSignature(
   await checkSignature(
     tx,
     context.tenantId,
-    { ...input, signedBy: context.writtenBy },
+    { ...input, signedBy: context.writtenBy, accountName: context.nameOf(context.writtenBy) },
     context.catalogue,
   )
 
@@ -779,6 +796,8 @@ export async function takeSignature(
       signedAt: input.signedAt,
       deviceInfo: input.deviceInfo,
       path: input.path,
+      // As typed, as the synchronisation keeps it too, only without the spaces around it.
+      typedName: input.typedName === null ? null : input.typedName.trim(),
       pageFingerprint: input.pageFingerprint,
     })
     .returning({ id: activitySignatures.id })
@@ -951,8 +970,10 @@ async function writeDown(
     name: context.nameOf(signature.signedBy),
     role: signature.role,
     signedAt: signature.signedAt.toISOString(),
-    // The drawing goes into the frozen state, which the PDF shows (#111).
+    // The drawing goes into the frozen state, which the PDF shows (#111), and
+    // which way it was signed (#209).
     path: signature.path,
+    way: signature.typedName === null ? 'drawing' : 'name',
   }))
   const written: WrittenEvidence[] = []
   const form = formOfActivity(await formsFor(tx, context.catalogue, activity), activity)

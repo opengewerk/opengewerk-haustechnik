@@ -967,6 +967,14 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   fand, ist behoben: die Wochentage im Plan heißen für den Bildschirmleser "Montag" und zeigen
   "Mo", "Mängel" spricht die Zahl so, wie sie dasteht, und die künftigen Schritte eines Mangels
   haben genug Kontrast. Bisher prüfte nichts davon eine Maschine
+- Unterschrift ohne Schriftzug (#209): Neben dem Feld zum Unterschreiben steht "Ohne Schriftzug
+  unterschreiben", vor Ort an Rundgang, Prüfung und Auftrag und bei der Gegenzeichnung im Büro.
+  Die Person tippt ihren Namen, wie er im Konto steht, und bestätigt damit die Seite, wie sie
+  gezeigt wurde; einen anderen Namen nimmt der Server nicht, auch nicht vom Gerät ohne Netz. Der
+  Weg geht mit der Tastatur allein. Eine Unterschrift hat genau einen der beiden Wege (Spalte
+  `typed_name`, Migration 0036), und der Stand eines Nachweises (Fassung 6), der eingefrorene
+  Rundgang, ihre Seiten und das PDF sagen, welcher es war. Bisher ging eine Unterschrift nur mit
+  dem Finger oder einem Stift, für manche Menschen eine Hürde, und per Tastatur gar nicht
 
 ### Geändert
 

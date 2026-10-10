@@ -351,6 +351,13 @@ describe('a signature', () => {
         ...signatureAt(here),
         page_fingerprint: 'A'.repeat(64),
       },
+      // The drawing or the typed name, one of the two (#209), and a name as a form takes it.
+      activity_signatures_one_way: { ...signatureAt(here), typed_name: 'Tom Technik' },
+      activity_signatures_typed_name_shaped: {
+        ...signatureAt(here),
+        path: null,
+        typed_name: ' Tom Technik',
+      },
     }
     const refused: Record<string, unknown> = {}
     const expected: Record<string, unknown> = {}
@@ -368,6 +375,11 @@ describe('a signature', () => {
         path: `M1,1${'L2,2'.repeat(10_000)}`,
       }),
     ).toEqual({ code: '23514', constraint: 'activity_signatures_path_shaped' })
+    // Neither a drawing nor a name is no signature either.
+    expect(await triedRow('activity_signatures', { ...signatureAt(here), path: null })).toEqual({
+      code: '23514',
+      constraint: 'activity_signatures_one_way',
+    })
   })
 
   it('hangs on an activity of its property and on somebody here, key by key', async () => {

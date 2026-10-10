@@ -145,6 +145,7 @@ const signedPage = details(waiting, {
       signedAt: '2026-10-05T07:52:00.000Z',
       deviceInfo: 'Telefon',
       path: 'M10,10L200,300',
+      typedName: null,
       valid: true,
     },
   ],

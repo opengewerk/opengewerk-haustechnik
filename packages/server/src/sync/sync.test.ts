@@ -1159,10 +1159,58 @@ describe('a signature from a device', () => {
         role: 'signer',
         signedAt: '2026-10-01T09:30:00.000Z',
         path: drawing,
+        way: 'drawing',
       },
     ])
     expect(written[0]?.state.performer).toEqual({ person: 'Tom Haustechnik' })
     expect(written[0]?.state.writtenBy).toBe('Tom Haustechnik')
+  })
+
+  it('takes a round signed without a connection with the typed name of whoever sends it, and not with another name (#209)', async () => {
+    const toSign = await activityToSign({ kind: 'round', duties: 1 })
+    const work = workDone(toSign)
+    const page = pageOnTheDevice(toSign)
+    const typed = (typedName: string): Sent =>
+      operation('activity_signatures', 'create', newId<'activity-signature'>(), {
+        activityId: toSign.activity,
+        role: 'signer',
+        signedAt: '2026-10-01T09:30:00.000Z',
+        deviceInfo: 'Probe-Telefon',
+        path: null,
+        typedName,
+        pageFingerprint: page,
+      })
+
+    expect(await outcomes('u-tech', work)).toEqual(work.map(() => applied))
+
+    // The name of another account confirms nothing.
+    const other = typed('Lena Leitung')
+    const refused = await send('u-tech', [other]).expect(400)
+
+    expect(refused.body.message).toBe(
+      'Bestätigt wird mit dem eigenen Namen, wie er im Konto steht: Tom Haustechnik.',
+    )
+    expect(await statusOf(toSign.activity)).not.toBe('done')
+
+    const own = typed('  tom haustechnik ')
+
+    expect(await outcomes('u-tech', [own])).toEqual([applied])
+    expect(await statusOf(toSign.activity)).toBe('done')
+    expect(await rowOf('u-tech', 'activity_signatures', own.recordId)).toMatchObject({
+      path: null,
+      typedName: 'tom haustechnik',
+      signedBy: 'u-tech',
+    })
+    // The evidence says which way it was, under the name of the account.
+    expect((await evidenceOf(toSign.activity))[0]?.state.signatures).toEqual([
+      {
+        name: 'Tom Haustechnik',
+        role: 'signer',
+        signedAt: '2026-10-01T09:30:00.000Z',
+        path: null,
+        way: 'name',
+      },
+    ])
   })
 
   it('takes a round of a template from its first answer to the signature without a connection: a check point, a measured value, a reading and a photo (#114)', async () => {

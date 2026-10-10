@@ -2,6 +2,7 @@ import 'fake-indexeddb/auto'
 
 import { today } from '@opengewerk/platform-web/format'
 import { fireEvent, screen, waitFor, within } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it } from 'vitest'
 
 import { servingCatalogue } from '../../app/test-catalogue.js'
@@ -332,6 +333,61 @@ describe('handing in a round', () => {
       values: { activityId: planned.id, role: 'signer' },
     })
     expect(String(sent.at(-1)?.values['pageFingerprint'])).toMatch(/^[0-9a-f]{64}$/)
+  })
+
+  it('is signed without a drawing, with the own name typed and the keyboard alone, and sends which way (#209)', async () => {
+    const user = userEvent.setup()
+    const server = roundServer({
+      tight: { result: 'ok' },
+      outlet: { value: '61000' },
+      heat_meter: { value: '1284360' },
+      displays: { attachmentId: 'at-displays' },
+    })
+
+    await mountSite(`/vorgaenge/${planned.id}/unterschrift`, { server, ...withTheForm })
+
+    const sign = await screen.findByRole<HTMLButtonElement>('button', { name: 'Unterschreiben' })
+
+    // The pad takes a finger or a pen; the keyboard reaches the way beside it.
+    screen.getByRole('button', { name: 'Ohne Schriftzug unterschreiben' }).focus()
+    await user.keyboard('{Enter}')
+
+    const name = screen.getByRole('textbox', { name: 'Ihr Name' })
+
+    expect(document.activeElement).toBe(name)
+    expect(screen.queryByRole('img', { name: 'Feld für die Unterschrift' })).toBeNull()
+
+    // The name of somebody else confirms nothing.
+    await user.keyboard('Tobias Wendt')
+    await user.tab()
+    expect(
+      screen.getByText('Bestätigt wird mit dem eigenen Namen, wie er im Konto steht: Pia Person.'),
+    ).toBeDefined()
+    expect(sign.disabled).toBe(true)
+
+    // Back to the pad and here again, and nothing typed before counts.
+    await user.keyboard('{Enter}')
+    expect(screen.getByRole('img', { name: 'Feld für die Unterschrift' })).toBeDefined()
+    await user.keyboard('{Enter}')
+    expect(screen.getByRole<HTMLInputElement>('textbox', { name: 'Ihr Name' }).value).toBe('')
+
+    await user.keyboard('pia person')
+    expect(sign.disabled).toBe(false)
+    await user.tab()
+    await user.tab()
+    expect(document.activeElement).toBe(sign)
+    await user.keyboard('{Enter}')
+
+    expect(await screen.findByRole('heading', { level: 2, name: 'Abgegeben' })).toBeDefined()
+    await waitFor(() => {
+      expect(queued(server).at(-1)).toMatchObject({
+        entity: 'activity_signatures',
+        kind: 'create',
+        values: { activityId: planned.id, role: 'signer', typedName: 'pia person' },
+      })
+    })
+    // No drawing goes with it; the server takes what is not sent as none.
+    expect(queued(server).at(-1)?.values['path'] ?? null).toBeNull()
   })
 
   it('says a round is done once the server wrote it down, signed where no countersignature is asked', async () => {

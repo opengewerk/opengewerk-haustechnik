@@ -5,6 +5,7 @@ import {
   type IsoDate,
   type RoundRecordState,
   signatureRoleLabel,
+  signatureWayLabel,
   type StatedAnswer,
   type StatedPlace,
   type StatedSignature,
@@ -164,7 +165,14 @@ function photosOf(photos: readonly PrintedPhoto[]): string {
 }
 
 /** The drawing of a signature, scaled into its box by the points it is made of. */
-function drawingOf(path: string | null): string {
+function drawingOf(signature: StatedSignature): string {
+  const { path } = signature
+
+  // Confirmed with the typed name (#209): the name in the box, and the way it says.
+  if (signature.way === 'name') {
+    return `<div class="pad typed"><span class="typed-name">${text(signature.name)}</span><span class="way">${text(signatureWayLabel.name)}</span></div>`
+  }
+
   if (path === null) {
     return '<div class="pad empty">Ohne Zeichnung eingefroren</div>'
   }
@@ -188,7 +196,7 @@ function signaturesOf(signatures: readonly StatedSignature[]): string {
   return `<div class="signatures">${signatures
     .map(
       (signature) =>
-        `<div class="signature"><p class="label">${text(signatureRoleLabel[signature.role])}</p>${drawingOf(signature.path)}<p class="name">${text(signature.name)}</p><p class="muted">${text(moment(signature.signedAt))}</p></div>`,
+        `<div class="signature"><p class="label">${text(signatureRoleLabel[signature.role])}</p>${drawingOf(signature)}<p class="name">${text(signature.name)}</p><p class="muted">${text(moment(signature.signedAt))}</p></div>`,
     )
     .join('')}</div>`
 }
@@ -233,6 +241,9 @@ figcaption { font-size: 8pt; color: #555; }
 .pad { height: 16mm; border: 1px solid #ddd6cc; border-radius: 4px; padding: 2px; }
 .pad svg { width: 100%; height: 100%; }
 .pad.empty { display: flex; align-items: center; justify-content: center; color: #8a8178; font-size: 8pt; }
+.pad.typed { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; }
+.pad.typed .typed-name { font-size: 13pt; font-style: italic; }
+.pad.typed .way { color: #555; font-size: 8pt; }
 .signature .name { margin: 6px 0 0; font-weight: 600; }
 .signature p { margin: 0; }
 </style>

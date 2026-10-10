@@ -113,6 +113,22 @@ const storedStates: Readonly<Record<number, unknown>> = {
       '"signatures":[{"name":"Hanna Probe","path":"M10,10L200,300","role":"signer","signedAt":"2026-10-09T08:12:00.000Z"}],' +
       '"version":5,"writtenAt":"2026-10-09T08:12:30.000Z","writtenBy":"Hanna Probe"}',
   ),
+  6: JSON.parse(
+    '{"activity":{"kind":"round","title":"Technikzentrale Schulhaus"},' +
+      '"answers":[],"defects":[],' +
+      '"duty":{"counting":"from_due","interval":{"months":6},"kind":"probe.backwash_filter_check","kindVersion":1,' +
+      '"label":"Sichtkontrolle des Rückspülfilters","source":"DIN EN 806-5"},' +
+      '"files":[],"form":null,"number":"NW-2026-00006","origin":"round_point","performedOn":"2026-10-10",' +
+      '"performer":{"person":"Hanna Probe"},' +
+      '"place":{"asset":{"kind":"probe.backwash_filter","kindLabel":"Rückspülfilter","name":"Filter",' +
+      '"number":"AN-00003","serialNumber":null},"building":{"name":"Haus A","shortCode":null},' +
+      '"property":{"address":"Hauptstraße 1, 68535 Edingen-Neckarhausen","name":"Campus"},"room":null},' +
+      '"remark":null,' +
+      '"replaces":null,"result":"without_defects","resultReason":null,' +
+      '"retention":{"kind":"until_next_inspection","on":"2026-10-10"},' +
+      '"signatures":[{"name":"Hanna Probe","path":null,"role":"signer","signedAt":"2026-10-10T08:12:00.000Z","way":"name"}],' +
+      '"version":6,"writtenAt":"2026-10-10T08:12:30.000Z","writtenBy":"Hanna Probe"}',
+  ),
 }
 
 describe('the result of a performance', () => {
@@ -220,11 +236,17 @@ describe('the frozen state', () => {
     const state = readEvidenceState(storedStates[4])
 
     // In the newest shape: no signature kept its drawing before the fifth version.
-    expect(state.version).toBe(5)
+    expect(state.version).toBe(evidenceStateVersion)
     expect(state.remark).toBe('Filter rückgespült, Siebeinsatz sauber.')
     expect([state.form, state.answers, state.result]).toEqual([null, [], 'without_defects'])
     expect(state.signatures).toEqual([
-      { name: 'Hanna Probe', role: 'signer', signedAt: '2026-10-09T08:12:00.000Z', path: null },
+      {
+        name: 'Hanna Probe',
+        role: 'signer',
+        signedAt: '2026-10-09T08:12:00.000Z',
+        path: null,
+        way: 'drawing',
+      },
     ])
     expect(canonicalForm(storedStates[4])).toBe(JSON.stringify(storedStates[4]))
   })
@@ -232,9 +254,20 @@ describe('the frozen state', () => {
   it('reads a state of the fifth version, with the drawing of each signature (#111)', () => {
     const state = readEvidenceState(storedStates[5])
 
-    expect(state.version).toBe(5)
-    expect(state.signatures.map((signature) => signature.path)).toEqual(['M10,10L200,300'])
+    // Every signature before the sixth version was drawn.
+    expect(state.version).toBe(evidenceStateVersion)
+    expect(state.signatures.map(({ path, way }) => [path, way])).toEqual([
+      ['M10,10L200,300', 'drawing'],
+    ])
     expect(canonicalForm(storedStates[5])).toBe(JSON.stringify(storedStates[5]))
+  })
+
+  it('reads a state of the sixth version, which says which way each signature was made (#209)', () => {
+    const state = readEvidenceState(storedStates[6])
+
+    expect(state.version).toBe(6)
+    expect(state.signatures.map(({ path, way }) => [path, way])).toEqual([[null, 'name']])
+    expect(canonicalForm(storedStates[6])).toBe(JSON.stringify(storedStates[6]))
   })
 
   it('has a reader and a stored example for every version up to the newest', () => {

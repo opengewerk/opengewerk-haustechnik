@@ -253,6 +253,13 @@
       "when": 1791581678693,
       "tag": "0035_plan_holidays",
       "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "7",
+      "when": 1791589897847,
+      "tag": "0036_typed_signature",
+      "breakpoints": true
     }
   ]
 }

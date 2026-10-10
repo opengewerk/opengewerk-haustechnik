@@ -516,7 +516,10 @@ export interface RoundSignature {
   /** The clock of the device at the moment it was confirmed. */
   readonly signedAt: string
   readonly deviceInfo: string | null
-  readonly path: string
+  /** The drawing; none where the name was typed (#209). */
+  readonly path: string | null
+  /** The name typed to confirm, where it was signed without a drawing. */
+  readonly typedName: string | null
   /** Whether it was given for the page as it is now. */
   readonly valid: boolean
 }

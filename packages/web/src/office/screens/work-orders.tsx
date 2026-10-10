@@ -39,7 +39,6 @@ import {
   NumberBadge,
   Panel,
   SelectField,
-  SignaturePicture,
   Status,
   TablePanel,
   TextArea,
@@ -69,6 +68,7 @@ import { Ban, Check, Pencil, Plus, Signature, TriangleAlert, X } from 'lucide-re
 import { type ReactNode, useDeferredValue, useId, useMemo, useState } from 'react'
 
 import { titleOfRoom } from '../../app/place-records.js'
+import { SignatureMark, typedWay } from '../../app/signature-ways.js'
 import { useAreas } from '../../session/areas.js'
 import { askAt, makeAt } from '../../sync/made-at.js'
 import { defectPlaces } from '../defect-addresses.js'
@@ -738,16 +738,16 @@ export function WorkOrderScreen() {
                     className="flex items-center gap-3"
                   >
                     <div className="w-[180px] shrink-0 rounded-control border border-line bg-surface p-1 max-sm:w-[120px]">
-                      <SignaturePicture
+                      <SignatureMark
+                        name={signature.name}
                         path={signature.path}
-                        label={`Unterschrift von ${signature.name}`}
-                        className="block aspect-[5/2] w-full"
+                        typedName={signature.typedName}
                       />
                     </div>
                     <div className="min-w-0 leading-[1.4]">
                       <div className="font-semibold">{signature.name}</div>
                       <div className="text-[13px] text-ink-muted">
-                        {`abgeschlossen am ${moment(signature.signedAt)}`}
+                        {`abgeschlossen am ${moment(signature.signedAt)}${typedWay(signature.typedName)}`}
                       </div>
                       {signature.valid ? null : (
                         <div className="text-[13px] font-semibold text-conflict">
