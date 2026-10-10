@@ -1,4 +1,9 @@
-import { auditVocabulary, buildingKindLabel, ruleScopeNames } from '@opengewerk/haustechnik-domain'
+import {
+  auditVocabulary,
+  buildingKindLabel,
+  numberRangeLabel,
+  ruleScopeNames,
+} from '@opengewerk/haustechnik-domain'
 import type { AuditScreenWords } from '@opengewerk/platform-web/office'
 
 import { activityPlaces } from './activity-addresses.js'
@@ -55,6 +60,9 @@ export const auditScreenWords: AuditScreenWords = {
   values: {
     // The log holds `DE-BW`, the Leitung reads "Baden-Württemberg".
     properties: { federal_state: ruleScopeNames },
+    // A sequence is named by its key, `asset`; the Leitung reads "Anlagen", in the
+    // log, as the name of the record and in "Nur dieser Datensatz" (#176).
+    number_ranges: { key: numberRangeLabel },
   },
   // The log holds the kinds of a building as `school`, the Leitung reads
   // "Schule oder Hochschule".

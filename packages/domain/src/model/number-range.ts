@@ -29,6 +29,16 @@ export const numberRangeKeys = ['asset', 'work_order', 'evidence'] as const
 export type NumberRangeKey = (typeof numberRangeKeys)[number]
 
 /**
+ * What each sequence is called where a person reads it, by what it numbers:
+ * the change log names a sequence so (#176), and not by its key.
+ */
+export const numberRangeLabel: Readonly<Record<NumberRangeKey, string>> = {
+  asset: 'Anlagen',
+  work_order: 'Aufträge',
+  evidence: 'Nachweise',
+}
+
+/**
  * The pattern each sequence starts with, until a tenant sets its own. The
  * foundation asks for one for every sequence when the store is made, so all
  * three are named here, with the asset (#20): the asset number has no year,
