@@ -27,6 +27,7 @@ import {
 import { PrintLabelsButton } from '../labels.js'
 import { factLink } from '../links.js'
 import { BuildingClosures } from '../building-closures.js'
+import { BuildingToDo, LastActivities } from '../building-situation.js'
 import { officePlaces, placeForms } from '../place-addresses.js'
 import { countedAssets, countedRooms, PlaceNotFound } from '../place-pages.js'
 
@@ -39,9 +40,9 @@ import { countedAssets, countedRooms, PlaceNotFound } from '../place-pages.js'
  * Read from the device, so it stands without a network. Whoever keeps the
  * places changes the building from here and adds a floor to it
  * (`building-form.tsx`, `floor-form.tsx`), and whoever plans the rounds keeps
- * the times it is closed (`building-closures.tsx`). What the board draws beyond this
- * arrives with what it shows: what is to do with the register of duties, the
- * last activities with the activities, and the labels with the labels.
+ * the times it is closed (`building-closures.tsx`). Above them stands what is
+ * to do there and below them its last activities (#121, `building-situation.tsx`),
+ * both counted by the server; the link to the timeline arrives with it (#123).
  *
  * The assets of the building are counted by cost group beside the floors, and
  * each count leads into the register of assets, narrowed to this building
@@ -57,6 +58,7 @@ export function BuildingScreen() {
   const catalogue = useCatalogue()
   const areas = useAreas()
   const writes = useRight('location.write')
+  const readsDuties = useRight('duty.read')
   const records = useRight('asset.record')
   const recordsRooms = useRight('room.record')
   const navigate = useNavigate()
@@ -152,6 +154,8 @@ export function BuildingScreen() {
           </>
         }
       />
+      {/* What is to do there, counted by the server (#121). */}
+      {readsDuties ? <BuildingToDo buildingId={buildingId} /> : null}
       {/* The columns of the board: the floors and the times the building is
           closed, and beside them its assets by cost group. */}
       <div className="grid gap-3.5 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.25fr)]">
@@ -180,6 +184,7 @@ export function BuildingScreen() {
           <AssetsByCostGroup buildingId={buildingId} assets={assets} catalogue={catalogue} />
         </div>
       </div>
+      {readsDuties ? <LastActivities buildingId={buildingId} /> : null}
     </Screen>
   )
 }

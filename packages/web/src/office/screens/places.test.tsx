@@ -1,3 +1,4 @@
+import type { BuildingSituation } from '@opengewerk/haustechnik-domain'
 import { TestServer } from '@opengewerk/platform-web/testing'
 import { screen, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -241,6 +242,114 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.unstubAllGlobals()
+})
+
+/** What the server counts at the school house (#121). */
+const situation: BuildingSituation = {
+  overdue: 1,
+  due: 2,
+  neverRecorded: 0,
+  openDefects: 2,
+  missingReadings: 1,
+  keyDate: '2026-10-01' as BuildingSituation['keyDate'],
+  lastActivities: [
+    {
+      id: 'ac-round',
+      kind: 'round',
+      title: 'Wöchentlicher Rundgang Schulhaus',
+      number: null,
+      day: '2026-10-01' as BuildingSituation['keyDate'],
+      outcome: 'with_defects',
+    },
+    {
+      id: 'ac-order',
+      kind: 'work_order',
+      title: 'Notleuchte Flur 1. OG tauschen',
+      number: 'AU-2026-0031',
+      day: '2026-09-28' as BuildingSituation['keyDate'],
+      outcome: 'started',
+    },
+    {
+      id: 'ac-test',
+      kind: 'inspection',
+      title: 'Brandmeldeanlage',
+      number: null,
+      day: '2026-09-15' as BuildingSituation['keyDate'],
+      outcome: 'without_defects',
+    },
+  ],
+}
+
+const lastActivities = 'Letzte Vorgänge an diesem Gebäude mit Tag, Art, Gegenstand und Ergebnis'
+
+/** The numbers of the Lagebild, each as what it says and where it leads. */
+function toDo(): string[] {
+  return within(screen.getByRole('list', { name: 'Was an diesem Gebäude zu tun ist' }))
+    .getAllByRole('link')
+    .map((link) => `${link.textContent} > ${link.getAttribute('href') ?? ''}`)
+}
+
+describe('the Lagebild of a building (#121)', () => {
+  it('counts what is to do there, each number a link to its list narrowed to the building', async () => {
+    signedInOffice('technician', [nord, sued], { [`/overview/buildings/${house.id}`]: situation })
+    await mount(`/gebaeude/${house.id}`)
+    await screen.findByRole('list', { name: 'Was an diesem Gebäude zu tun ist' })
+
+    expect(toDo()).toEqual([
+      '1Überfällig > /pflichten?zustand=overdue&gebaeude=b-house',
+      '2Fällig > /pflichten?zustand=due&gebaeude=b-house',
+      '0Nie erfasst > /pflichten?zustand=never_recorded&gebaeude=b-house',
+      '2Offene Mängel > /maengel?gebaeude=b-house',
+      '1Zählerstände fehlenStichtag 01.10. > /zaehler?gebaeude=b-house&stand=missing',
+    ])
+    expect(screen.getByRole('heading', { name: 'Zu tun' })).toBeTruthy()
+  })
+
+  it('lists the last activities with the day, the kind, what it is and what came of it, each leading to its page', async () => {
+    signedInOffice('technician', [nord, sued], { [`/overview/buildings/${house.id}`]: situation })
+    await mount(`/gebaeude/${house.id}`)
+    await screen.findByRole('table', { name: lastActivities })
+
+    expect(rowsOf(lastActivities)).toEqual([
+      ['01.10.2026', 'Rundgang', 'Wöchentlicher Rundgang Schulhaus', 'Mit Mängeln'],
+      ['28.09.2026', 'Auftrag', 'AU-2026-0031 Notleuchte Flur 1. OG tauschen', 'Begonnen'],
+      ['15.09.2026', 'Prüfung', 'Brandmeldeanlage', 'Ohne Mangel'],
+    ])
+    expect(
+      within(screen.getByRole('table', { name: lastActivities }))
+        .getAllByRole('link')
+        .map((link) => link.getAttribute('href')),
+    ).toEqual(['/rundgaenge/ac-round', '/auftraege/ac-order', '/pruefungen/ac-test'])
+  })
+
+  it('leaves out what the server counts none of for the person', async () => {
+    signedInOffice('technician', [nord, sued], {
+      [`/overview/buildings/${house.id}`]: {
+        ...situation,
+        openDefects: null,
+        missingReadings: null,
+        lastActivities: null,
+      },
+    })
+    await mount(`/gebaeude/${house.id}`)
+    await screen.findByRole('list', { name: 'Was an diesem Gebäude zu tun ist' })
+
+    expect(toDo().map((tile) => tile.split(' > ')[0])).toEqual([
+      '1Überfällig',
+      '2Fällig',
+      '0Nie erfasst',
+    ])
+    expect(screen.queryByRole('table', { name: lastActivities })).toBeNull()
+  })
+
+  it('says so where the server does not answer, and the rest of the page stands', async () => {
+    await mount(`/gebaeude/${house.id}`)
+
+    await screen.findByText(
+      'Was zu tun ist, ließ sich nicht laden. Es kommt vom Server, mit Verbindung.',
+    )
+    expect(screen.getByRole('table', { name: /Geschoss/ })).toBeTruthy()
+  })
 })
 
 describe('the page of a building', () => {

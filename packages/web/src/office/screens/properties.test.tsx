@@ -1,4 +1,4 @@
-import type { RoleKey } from '@opengewerk/haustechnik-domain'
+import type { PlacesToDo, RoleKey } from '@opengewerk/haustechnik-domain'
 import { RequestRefused } from '@opengewerk/platform-web/sync'
 import { TestServer } from '@opengewerk/platform-web/testing'
 import { focusManager, onlineManager } from '@tanstack/react-query'
@@ -515,6 +515,228 @@ function factsOf(card: HTMLElement): Record<string, string | null> {
 
   return Object.fromEntries(names.map((name, index) => [name, values[index] ?? null]))
 }
+
+/** What the server counts at every property and building (#121). */
+const toDo: PlacesToDo = {
+  keyDate: '2026-10-01' as PlacesToDo['keyDate'],
+  properties: [
+    {
+      propertyId: school.id,
+      overdue: 3,
+      due: 3,
+      neverRecorded: 0,
+      openDefects: 2,
+      missingReadings: 1,
+      buildings: [
+        {
+          buildingId: schoolHouse.id,
+          overdue: 1,
+          due: 2,
+          neverRecorded: 0,
+          openDefects: 2,
+          missingReadings: 1,
+        },
+        {
+          buildingId: gym.id,
+          overdue: 2,
+          due: 1,
+          neverRecorded: 0,
+          openDefects: 0,
+          missingReadings: 0,
+        },
+      ],
+    },
+    {
+      propertyId: yard.id,
+      overdue: 1,
+      due: 1,
+      neverRecorded: 0,
+      openDefects: 1,
+      missingReadings: 1,
+      buildings: [
+        {
+          buildingId: hall.id,
+          overdue: 1,
+          due: 1,
+          neverRecorded: 0,
+          openDefects: 1,
+          missingReadings: 1,
+        },
+      ],
+    },
+    {
+      propertyId: office.id,
+      overdue: 0,
+      due: 0,
+      neverRecorded: 1,
+      openDefects: 0,
+      missingReadings: 0,
+      buildings: [],
+    },
+  ],
+}
+
+const listTable = 'Liegenschaften mit ihren Gebäuden'
+
+describe('the numbers of the list of the properties (#121)', () => {
+  it('stand beside every property and building, each a link to its list, zero quiet', async () => {
+    answers.set('/overview/places', toDo)
+    await mount('/liegenschaften')
+    await screen.findByText('Jede Zahl führt auf die gefilterte Liste.')
+
+    expect(rowsOf(listTable)).toEqual([
+      ['Ämter Am ProbehangAm Probehang 4, 00001 Beispielstadt', 'Nord', '0', '0', '1', '0', '0'],
+      [
+        'Schulzentrum Am LindenhainAm Lindenhain 7, 00003 Musterhausen',
+        'Süd',
+        '3',
+        '3',
+        '0',
+        '2',
+        '1',
+      ],
+      ['Gebäude: Schulhaus', '', '1', '2', '0', '2', '1'],
+      ['Gebäude: Sporthalle', '', '2', '1', '0', '0', '0'],
+      ['Werkhof NordLagerweg 12, 00002 Beispielstadt', 'Nord', '1', '1', '0', '1', '1'],
+      ['Gebäude: Halle 1', '', '1', '1', '0', '1', '1'],
+    ])
+
+    const row = (name: RegExp) =>
+      within(screen.getByRole('table', { name: listTable }))
+        .getAllByRole('row')
+        .find((each) => name.test(each.textContent))
+
+    expect(
+      within(row(/^Schulzentrum/) as HTMLElement)
+        .getAllByRole('link')
+        .map((link) => link.getAttribute('href'))
+        .slice(1),
+    ).toEqual([
+      '/pflichten?zustand=overdue&liegenschaft=p-school',
+      '/pflichten?zustand=due&liegenschaft=p-school',
+      '/maengel?liegenschaft=p-school',
+      '/zaehler?liegenschaft=p-school&stand=missing',
+    ])
+    expect(
+      within(row(/Schulhaus/) as HTMLElement)
+        .getAllByRole('link')
+        .map((link) => link.getAttribute('href'))
+        .slice(1),
+    ).toEqual([
+      '/pflichten?zustand=overdue&gebaeude=b-house',
+      '/pflichten?zustand=due&gebaeude=b-house',
+      '/maengel?gebaeude=b-house',
+      '/zaehler?gebaeude=b-house&stand=missing',
+    ])
+  })
+
+  it('orders the properties and their buildings by urgency on request, and back', async () => {
+    answers.set('/overview/places', toDo)
+    await mount('/liegenschaften')
+    await screen.findByText('Jede Zahl führt auf die gefilterte Liste.')
+
+    const names = () => rowsOf(listTable).map((each) => (each[0] ?? '').split(/\d|Am /)[0])
+
+    await userEvent.click(screen.getByRole('button', { name: 'Nach Dringlichkeit' }))
+    expect(rowsOf(listTable).map((each) => each[0])).toEqual([
+      'Schulzentrum Am LindenhainAm Lindenhain 7, 00003 Musterhausen',
+      'Gebäude: Sporthalle',
+      'Gebäude: Schulhaus',
+      'Werkhof NordLagerweg 12, 00002 Beispielstadt',
+      'Gebäude: Halle 1',
+      'Ämter Am ProbehangAm Probehang 4, 00001 Beispielstadt',
+    ])
+
+    await userEvent.click(screen.getByRole('button', { name: 'Fest' }))
+    expect(names()[0]).toBe('Ämter ')
+  })
+
+  it('has three numbers on a tablet, and on a phone in words on the card, only those that are not zero', async () => {
+    answers.set('/overview/places', toDo)
+    const turn = onA('tablet')
+
+    await mount('/liegenschaften')
+    await screen.findByText('Jede Zahl führt auf die gefilterte Liste.')
+
+    expect(rowsOf(listTable)[1]).toEqual([
+      'Schulzentrum Am LindenhainAm Lindenhain 7, 00003 Musterhausen',
+      'Süd',
+      '3',
+      '3',
+      '0',
+    ])
+
+    turn('phone')
+    await screen.findByText('2 Mängel')
+    expect(
+      within(screen.getByRole('main'))
+        .getAllByRole('link')
+        .map((link) => link.textContent),
+    ).toEqual([
+      'Ämter Am ProbehangBeispielstadt · Bereich Nord · 0 Gebäude1 nie erfasst',
+      'Schulzentrum Am LindenhainMusterhausen · Bereich Süd · 2 Gebäude3 überfällig3 fällig2 Mängel',
+      'Werkhof NordBeispielstadt · Bereich Nord · 1 Gebäude1 überfällig1 fällig1 Mangel',
+    ])
+  })
+
+  it('has no column of a list the person may not read', async () => {
+    answers.set('/overview/places', {
+      ...toDo,
+      properties: toDo.properties.map((property) => ({
+        ...property,
+        openDefects: null,
+        missingReadings: null,
+        buildings: property.buildings.map((building) => ({
+          ...building,
+          openDefects: null,
+          missingReadings: null,
+        })),
+      })),
+    })
+    await mount('/liegenschaften')
+    await screen.findByText('Jede Zahl führt auf die gefilterte Liste.')
+
+    expect(
+      within(screen.getByRole('table', { name: listTable }))
+        .getAllByRole('columnheader')
+        .map((each) => each.textContent),
+    ).toEqual(['Liegenschaft und Gebäude', 'Bereich', 'Überfällig', 'Fällig', 'Nie erfasst'])
+  })
+
+  it('stand beside the buildings on the page of a property, each a link to its list', async () => {
+    answers.set('/overview/places', toDo)
+    await mount('/liegenschaften/p-school')
+    await waitFor(() => {
+      expect(rowsOf('Gebäude der Liegenschaft')[0]).toHaveLength(7)
+    })
+
+    expect(rowsOf('Gebäude der Liegenschaft')).toEqual([
+      ['SchulhausSchule oder Hochschule', '1975', '1', '2', '0', '2', '1'],
+      [
+        'SporthalleSchule oder Hochschule, Versammlungs- oder Sportstätte',
+        '',
+        '2',
+        '1',
+        '0',
+        '0',
+        '0',
+      ],
+    ])
+    expect(screen.getByRole('link', { name: '2 Fällig' }).getAttribute('href')).toBe(
+      '/pflichten?zustand=due&gebaeude=b-house',
+    )
+  })
+
+  it('stands without its numbers where the server does not answer, and says so', async () => {
+    await mount('/liegenschaften')
+
+    await screen.findByText('Die Zahlen ließen sich nicht laden.')
+    expect(rowsOf(listTable)[0]).toEqual([
+      'Ämter Am ProbehangAm Probehang 4, 00001 Beispielstadt',
+      'Nord',
+    ])
+  })
+})
 
 describe('the page of a property', () => {
   it('says where it is and what there is to know before going there', async () => {

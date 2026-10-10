@@ -61,6 +61,7 @@ import { askAt } from '../../sync/made-at.js'
 import { assetForms } from '../asset-addresses.js'
 import { factLink } from '../links.js'
 import { meterListPlace, meterListWords, meterPlaces } from '../meter-addresses.js'
+import { NarrowedToBuilding } from '../narrowed-to-building.js'
 import { officePlaces } from '../place-addresses.js'
 import { RegisterFilter } from '../register-filter.js'
 import { kindLabel } from './assets.js'
@@ -308,12 +309,15 @@ export function MeterListScreen() {
   const currentKeyDate = useCurrentKeyDate()
   const state = (said(address, meterListWords.state) ?? 'all') as MeterListState
   const property = said(address, meterListWords.property) ?? ''
+  // The Lagebild of a building leads in with it (#121); there is no choice of its own for it.
+  const building = said(address, meterListWords.building) ?? ''
   const medium = said(address, meterListWords.medium) ?? ''
   const keyDate = (said(address, meterListWords.keyDate) ?? currentKeyDate) as IsoDate
   const parts = new URLSearchParams({
     keyDate,
     ...(state === 'all' ? {} : { state }),
     ...(property === '' ? {} : { property }),
+    ...(building === '' ? {} : { building }),
     ...(medium === '' ? {} : { medium }),
   })
   const list = useQuery({
@@ -447,6 +451,14 @@ export function MeterListScreen() {
           </RegisterFilter>
         </div>
       </div>
+      {building === '' ? null : (
+        <NarrowedToBuilding
+          buildingId={building}
+          onLift={() => {
+            set(meterListWords.building, '')
+          }}
+        />
+      )}
       {shown === undefined ? (
         <Panel>
           <Empty>

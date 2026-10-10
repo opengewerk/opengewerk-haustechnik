@@ -33,6 +33,8 @@ export interface DefectRegisterFilter {
   readonly state?: DefectRegisterState
   readonly propertyId?: string
   readonly areaId?: string
+  /** A building: the defects at it, at its rooms and at the assets in it (#121). */
+  readonly buildingId?: string
   /** A room: the defects at it and at the assets that stand in it. */
   readonly roomId?: string
   readonly assetId?: string
@@ -45,6 +47,7 @@ export const defectRegisterFilters = [
   'state',
   'propertyId',
   'areaId',
+  'buildingId',
   'roomId',
   'assetId',
   'defectClass',

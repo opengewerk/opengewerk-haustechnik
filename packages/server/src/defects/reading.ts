@@ -69,7 +69,7 @@ export function defectRegisterQuestion(
     throw new BadRequestException('Diese Liste kennen die Mängel nicht.')
   }
 
-  const records = (['propertyId', 'areaId', 'roomId', 'assetId'] as const)
+  const records = (['propertyId', 'areaId', 'buildingId', 'roomId', 'assetId'] as const)
     .map((name) => [name, said(query, name)] as const)
     .filter(([, value]) => value !== undefined)
 
@@ -133,6 +133,13 @@ function narrowedBy(filter: DefectRegisterFilter): SQL[] {
 
   if (filter.areaId !== undefined) {
     parts.push(sql`${defects.areaId} = ${filter.areaId}`)
+  }
+
+  // A building holds the defects at itself, at its rooms and at the assets in it.
+  if (filter.buildingId !== undefined) {
+    parts.push(
+      sql`(${defects.buildingId} = ${filter.buildingId} or exists (select 1 from ${rooms} where ${rooms.id} = ${defects.roomId} and ${rooms.buildingId} = ${filter.buildingId}) or exists (select 1 from ${assets} where ${assets.id} = ${defects.assetId} and ${assets.buildingId} = ${filter.buildingId}))`,
+    )
   }
 
   if (filter.roomId !== undefined) {

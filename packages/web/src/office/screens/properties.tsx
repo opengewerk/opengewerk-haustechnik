@@ -1,6 +1,8 @@
 import {
   type Area,
   federalStates,
+  type PlacesToDo,
+  type PlaceToDo,
   propertyProblems,
   type RecordState,
   ruleScopeNames,
@@ -34,6 +36,8 @@ import {
   type FormField,
   maybeText,
   RecordForm,
+  request,
+  RequestRefused,
   text,
   useRecord,
   useRecords,
@@ -41,6 +45,7 @@ import {
   useSync,
   useSyncStatus,
 } from '@opengewerk/platform-web/sync'
+import { useQuery } from '@tanstack/react-query'
 import { Link, useNavigate, useParams } from '@tanstack/react-router'
 import { Building2, Pencil, Plus, Upload } from 'lucide-react'
 import { type ReactNode, useId, useMemo, useState } from 'react'
@@ -49,6 +54,7 @@ import { kindsOf } from '../../app/place-records.js'
 import { areaName, useAreas, useAreasQuery } from '../../session/areas.js'
 import { makeAt } from '../../sync/made-at.js'
 import { AreaBadge } from '../area-badge.js'
+import { toDoColumns, type ToDoKey, type ToDoPlace, toDoTarget } from '../building-situation.js'
 import { importPlaces } from '../import-addresses.js'
 import { officePlaces, placeForms } from '../place-addresses.js'
 import { NotAllowed, RemovePlace } from '../place-forms.js'
@@ -149,6 +155,8 @@ export function PropertyListScreen() {
   const countId = useId()
   const [pressed, setPressed] = useState<string | null>(null)
   const [typed, setTyped] = useState('')
+  const [urgent, setUrgent] = useState(false)
+  const toDo = usePlacesToDo()
 
   const known = areas.data ?? []
   // An area that is gone, or one the person no longer holds in, narrows nothing.
@@ -158,13 +166,28 @@ export function PropertyListScreen() {
   // The field stands below 1024 pixels only, and a search nobody sees narrows nothing.
   const search = narrow ? typed.trim().toLocaleLowerCase('de') : ''
 
-  const buildingsOf = (property: RecordState) => buildings.get(String(property['id'])) ?? []
+  const numbers = toDo.numbers
+  // Nach Dringlichkeit, where the numbers are there, else by name (#121).
+  const inOrder = (left: RecordState, right: RecordState) =>
+    (urgent && numbers !== null
+      ? byUrgency(numbers.get(String(left['id'])), numbers.get(String(right['id'])))
+      : 0) || byName(left, right)
+  const buildingsOf = (property: RecordState) =>
+    [...(buildings.get(String(property['id'])) ?? [])].sort(inOrder)
   const shown = [...properties]
     .filter((property) => areaId === null || property['areaId'] === areaId)
     .filter(
       (property) => search === '' || searchedIn(property, buildingsOf(property)).includes(search),
     )
-    .sort(byName)
+    .sort(inOrder)
+  // The numbers a width has room for (board "Breiten und Auflösungen"), and
+  // none of a list the person may not read.
+  const columns =
+    numbers === null
+      ? []
+      : toDoColumns
+          .filter(({ key }) => band !== 'M' || tabletColumns.includes(key))
+          .filter(({ key }) => toDo.offered.includes(key))
   const shownBuildings = shown.reduce((sum, property) => sum + buildingsOf(property).length, 0)
   const allBuildings = properties.reduce((sum, property) => sum + buildingsOf(property).length, 0)
 
@@ -200,8 +223,9 @@ export function PropertyListScreen() {
     )
   }
 
+  const ordered = !narrow && numbers !== null
   const filters =
-    narrow || showsAreas ? (
+    narrow || showsAreas || ordered ? (
       <div className={narrow ? 'flex flex-col gap-2' : 'flex flex-wrap items-center gap-2'}>
         {narrow ? (
           <>
@@ -244,6 +268,20 @@ export function PropertyListScreen() {
             ))}
           </div>
         ) : null}
+        {ordered ? (
+          <>
+            <span className="grow" />
+            <span className="text-[13px] text-ink-muted">Reihenfolge</span>
+            <Segmented
+              label="Reihenfolge"
+              options={['Fest', 'Nach Dringlichkeit']}
+              chosen={urgent ? 1 : 0}
+              onChoose={(index) => {
+                setUrgent(index === 1)
+              }}
+            />
+          </>
+        ) : null}
       </div>
     ) : null
 
@@ -285,6 +323,7 @@ export function PropertyListScreen() {
                   ]
                     .filter(Boolean)
                     .join(' · ')}
+                  below={<CardNumbers numbers={numbers?.get(String(property['id']))} />}
                 />
               </li>
             ))}
@@ -292,12 +331,23 @@ export function PropertyListScreen() {
         ) : (
           <TablePanel
             caption="Liegenschaften mit ihren Gebäuden"
-            footer={<span className="numeric">{counted(shown.length, shownBuildings)}</span>}
+            footer={
+              <>
+                <span className="numeric">{counted(shown.length, shownBuildings)}</span>
+                <span className="grow" />
+                <span>{toDo.words}</span>
+              </>
+            }
           >
             <thead>
               <tr>
                 <Column className="min-w-[240px]">Liegenschaft und Gebäude</Column>
                 {showsAreas ? <Column className="w-[140px] min-w-[80px]">Bereich</Column> : null}
+                {columns.map((column) => (
+                  <Column key={column.key} numeric className={columnWidths[column.key]}>
+                    {column.label}
+                  </Column>
+                ))}
               </tr>
             </thead>
             <tbody>
@@ -312,6 +362,14 @@ export function PropertyListScreen() {
                     </div>
                   </Cell>
                   {showsAreas ? <Cell>{areaName(known, property['areaId']) ?? ''}</Cell> : null}
+                  {columns.map(({ key }) => (
+                    <NumberCell
+                      key={key}
+                      field={key}
+                      numbers={numbers?.get(String(property['id']))}
+                      place={{ propertyId: String(property['id']) }}
+                    />
+                  ))}
                 </tr>,
                 ...buildingsOf(property).map((building) => (
                   <tr key={String(building['id'])}>
@@ -333,6 +391,14 @@ export function PropertyListScreen() {
                       </div>
                     </Cell>
                     {showsAreas ? <Cell>{null}</Cell> : null}
+                    {columns.map(({ key }) => (
+                      <NumberCell
+                        key={key}
+                        field={key}
+                        numbers={numbers?.get(String(building['id']))}
+                        place={{ buildingId: String(building['id']) }}
+                      />
+                    ))}
                   </tr>
                 )),
               ])}
@@ -340,6 +406,213 @@ export function PropertyListScreen() {
           </TablePanel>
         ))}
     </Screen>
+  )
+}
+
+/** The numbers a tablet has room for, as the board of 768 pixels draws them. */
+const tabletColumns: readonly ToDoKey[] = ['overdue', 'due', 'neverRecorded']
+
+const columnWidths: Readonly<Record<ToDoKey, string>> = {
+  overdue: 'w-[84px]',
+  due: 'w-[64px]',
+  neverRecorded: 'w-[88px]',
+  openDefects: 'w-[108px]',
+  missingReadings: 'w-[140px]',
+}
+
+/** What a number counts, by its key. */
+const toDoLabel = Object.fromEntries(toDoColumns.map(({ key, label }) => [key, label])) as Readonly<
+  Record<ToDoKey, string>
+>
+
+/** The colour of a number of the list where it is not zero, `num_cell()` of the boards. */
+const numberInk: Readonly<Record<ToDoKey, string>> = {
+  overdue: 'text-conflict',
+  due: 'text-waiting',
+  neverRecorded: 'text-conflict',
+  openDefects: 'text-conflict',
+  missingReadings: 'text-waiting',
+}
+
+/**
+ * What is to do at every property and building, counted by the server in one
+ * answer for the whole list (#121): by the id of a property or a building,
+ * which lists the person may read a number of, and the sentence under the
+ * list. Nothing for somebody who may not read duties, and no numbers while the
+ * server has not answered; the list stands on the device all the same.
+ */
+function usePlacesToDo(): {
+  readonly numbers: ReadonlyMap<string, PlaceToDo> | null
+  readonly offered: readonly ToDoKey[]
+  readonly words: string
+} {
+  const readsDuties = useRight('duty.read')
+  const toDo = useQuery({
+    queryKey: ['overview', 'places'],
+    queryFn: () => request<PlacesToDo>('/overview/places'),
+    enabled: readsDuties,
+    // A refusal is an answer: asking again brings the same one.
+    retry: (count, error) => !(error instanceof RequestRefused) && count < 2,
+  })
+  const numbers = useMemo(() => {
+    if (toDo.data === undefined) {
+      return null
+    }
+
+    const byPlace = new Map<string, PlaceToDo>()
+
+    for (const property of toDo.data.properties) {
+      byPlace.set(property.propertyId, property)
+
+      for (const building of property.buildings) {
+        byPlace.set(building.buildingId, building)
+      }
+    }
+
+    return byPlace
+  }, [toDo.data])
+  const first = toDo.data?.properties[0]
+
+  return {
+    numbers,
+    offered: toDoColumns
+      .map(({ key }) => key)
+      .filter((key) => first === undefined || first[key] !== null),
+    words: !readsDuties
+      ? ''
+      : numbers !== null
+        ? 'Jede Zahl führt auf die gefilterte Liste.'
+        : toDo.isError
+          ? 'Die Zahlen ließen sich nicht laden.'
+          : toDo.fetchStatus === 'paused'
+            ? 'Die Zahlen kommen vom Server. Gerade ist keine Verbindung da.'
+            : 'Die Zahlen werden geladen.',
+  }
+}
+
+/**
+ * The more urgent place first: more overdue, then more never recorded, more
+ * open defects, more due and more readings missing. A place without numbers
+ * counts as nothing to do.
+ */
+export function byUrgency(left: PlaceToDo | undefined, right: PlaceToDo | undefined): number {
+  for (const key of [
+    'overdue',
+    'neverRecorded',
+    'openDefects',
+    'due',
+    'missingReadings',
+  ] as const) {
+    const difference = (right?.[key] ?? 0) - (left?.[key] ?? 0)
+
+    if (difference !== 0) {
+      return difference
+    }
+  }
+
+  return 0
+}
+
+/**
+ * A number of the list, a link to the list it counts; zero stays quiet and is
+ * no link. The link is named by the number and what it counts, "2 Fällig", so
+ * that a reader moving from link to link hears more than a figure.
+ */
+function NumberCell({
+  field,
+  numbers,
+  place,
+}: {
+  readonly field: ToDoKey
+  readonly numbers: PlaceToDo | undefined
+  readonly place: ToDoPlace
+}) {
+  const value = numbers?.[field] ?? null
+  const target = toDoTarget(field, place)
+
+  return (
+    <Cell numeric>
+      {value === null ? null : value === 0 ? (
+        <span className="text-ink-faint">0</span>
+      ) : (
+        <Link
+          to={target.to}
+          search={target.search}
+          aria-label={`${value.toLocaleString('de-DE')} ${toDoLabel[field]}`}
+          className={`font-semibold no-underline ${numberInk[field]}`}
+        >
+          {value.toLocaleString('de-DE')}
+        </Link>
+      )}
+    </Cell>
+  )
+}
+
+/** The numbers of a property on its card on a phone: only those that are not zero, in words. */
+function CardNumbers({ numbers }: { readonly numbers: PlaceToDo | undefined }) {
+  if (numbers === undefined) {
+    return null
+  }
+
+  const said = [
+    numbers.overdue > 0 ? ['overdue', `${String(numbers.overdue)} überfällig`] : null,
+    numbers.due > 0 ? ['due', `${String(numbers.due)} fällig`] : null,
+    numbers.neverRecorded > 0
+      ? ['neverRecorded', `${String(numbers.neverRecorded)} nie erfasst`]
+      : null,
+    numbers.openDefects !== null && numbers.openDefects > 0
+      ? [
+          'openDefects',
+          `${String(numbers.openDefects)} ${numbers.openDefects === 1 ? 'Mangel' : 'Mängel'}`,
+        ]
+      : null,
+  ].filter((each): each is [ToDoKey, string] => each !== null)
+
+  return said.length === 0 ? null : (
+    <>
+      {said.map(([key, words]) => (
+        <span key={key} className={`pr-1 text-[14px] font-semibold ${numberInk[key]}`}>
+          {words}
+        </span>
+      ))}
+    </>
+  )
+}
+
+/** Two or more choices side by side, one of them pressed, `segmented()` of the boards. */
+function Segmented({
+  label,
+  options,
+  chosen,
+  onChoose,
+}: {
+  readonly label: string
+  readonly options: readonly string[]
+  readonly chosen: number
+  readonly onChoose: (index: number) => void
+}) {
+  return (
+    <div
+      role="group"
+      aria-label={label}
+      className="flex gap-0.5 rounded-control border border-line bg-surface-sunken p-[3px]"
+    >
+      {options.map((option, index) => (
+        <button
+          key={option}
+          type="button"
+          aria-pressed={index === chosen}
+          onClick={() => {
+            onChoose(index)
+          }}
+          className={`h-[26px] cursor-pointer whitespace-nowrap rounded-[3px] border-0 px-2.5 text-[13px] ${
+            index === chosen ? 'bg-ink font-semibold text-ground' : 'bg-transparent text-ink'
+          }`}
+        >
+          {option}
+        </button>
+      ))}
+    </div>
   )
 }
 
@@ -487,8 +760,25 @@ export function PropertyScreen() {
   )
 }
 
-/** "Gebäude": what stands on the property, by name, with what it is used as. */
+/** What the buildings of a property call each number, shorter than the list has it. */
+const buildingColumnWords: Readonly<Record<ToDoKey, string>> = {
+  overdue: 'Überfällig',
+  due: 'Fällig',
+  neverRecorded: 'Nie erfasst',
+  openDefects: 'Mängel',
+  missingReadings: 'Zähler',
+}
+
+/**
+ * "Gebäude": what stands on the property, by name, with what it is used as,
+ * when it was built and what is to do at it (#121), each number a link to its
+ * list narrowed to the building.
+ */
 function Buildings({ buildings }: { readonly buildings: readonly RecordState[] }) {
+  const toDo = usePlacesToDo()
+  const columns =
+    toDo.numbers === null ? [] : toDoColumns.filter(({ key }) => toDo.offered.includes(key))
+
   if (buildings.length === 0) {
     return (
       <Panel title="Gebäude">
@@ -524,6 +814,11 @@ function Buildings({ buildings }: { readonly buildings: readonly RecordState[] }
           <Column numeric className="w-[64px] min-w-[56px]">
             Baujahr
           </Column>
+          {columns.map(({ key }) => (
+            <Column key={key} numeric className="w-[80px]">
+              {buildingColumnWords[key]}
+            </Column>
+          ))}
         </tr>
       </thead>
       <tbody>
@@ -540,6 +835,14 @@ function Buildings({ buildings }: { readonly buildings: readonly RecordState[] }
               </div>
             </Cell>
             <Cell numeric>{year(building)}</Cell>
+            {columns.map(({ key }) => (
+              <NumberCell
+                key={key}
+                field={key}
+                numbers={toDo.numbers?.get(String(building['id']))}
+                place={{ buildingId: String(building['id']) }}
+              />
+            ))}
           </tr>
         ))}
       </tbody>

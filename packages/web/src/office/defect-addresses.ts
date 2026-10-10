@@ -69,10 +69,13 @@ export function defectStartOf(search: Readonly<Record<string, unknown>>): Defect
   return {}
 }
 
-/** What the address of the list is narrowed by: the list, the property, the area and the class. */
+/**
+ * What the address of the list is narrowed by: the list, the property, the
+ * area, the building the Lagebild leads in with (#121) and the class.
+ */
 export type DefectListAddress = Pick<
   DefectRegisterFilter,
-  'state' | 'propertyId' | 'areaId' | 'defectClass'
+  'state' | 'propertyId' | 'areaId' | 'buildingId' | 'defectClass'
 >
 
 /**
@@ -83,11 +86,12 @@ export const defectListWords = {
   state: 'liste',
   propertyId: 'liegenschaft',
   areaId: 'bereich',
+  buildingId: 'gebaeude',
   defectClass: 'klasse',
 } as const satisfies Readonly<Record<keyof DefectListAddress, string>>
 
 /** The filters of the address in the order the server reads them. */
-const filterOrder = ['state', 'propertyId', 'areaId', 'defectClass'] as const
+const filterOrder = ['state', 'propertyId', 'areaId', 'buildingId', 'defectClass'] as const
 
 /** What an address says after a word, as text: the router reads digits as a number. */
 function said(search: Readonly<Record<string, unknown>>, word: string): string | undefined {
@@ -109,6 +113,7 @@ export function defectFilterOf(search: Readonly<Record<string, unknown>>): Defec
   const state = said(search, defectListWords.state)
   const propertyId = said(search, defectListWords.propertyId)
   const areaId = said(search, defectListWords.areaId)
+  const buildingId = said(search, defectListWords.buildingId)
   const defectClass = said(search, defectListWords.defectClass)
 
   return {
@@ -117,6 +122,7 @@ export function defectFilterOf(search: Readonly<Record<string, unknown>>): Defec
       : {}),
     ...(propertyId === undefined ? {} : { propertyId }),
     ...(areaId === undefined ? {} : { areaId }),
+    ...(buildingId === undefined ? {} : { buildingId }),
     ...(defectClass === undefined ? {} : { defectClass }),
   }
 }
@@ -148,6 +154,7 @@ export function defectRegisterRequest(
     'state',
     'propertyId',
     'areaId',
+    'buildingId',
     'roomId',
     'assetId',
     'defectClass',
