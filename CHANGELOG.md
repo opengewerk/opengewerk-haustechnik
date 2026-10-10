@@ -1513,3 +1513,6 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   `opengewerk#591` und `#593`, Submodul angehoben). Bisher fragte sie sofort und meldete nur "nicht
   zu sehen": Sie wurde an Seiten rot, die niemand geändert hatte, jedes Mal an einer anderen, auch
   auf `main`, und warum, stand nirgends
+- Der Test der Wochenübersicht der Rundgänge (`round-plans.test.ts`) nimmt die Woche von morgen
+  statt der von heute (gefunden bei #74). An einem Sonntag hält die laufende Woche nur einen
+  Rundgang des Plans, der heute beginnt, und der Test brauchte zwei; er schlug jeden Sonntag fehl

@@ -618,8 +618,13 @@ describe('the rounds of a week', () => {
     const plan = await planned('u-site')
     const id = String(plan.body['id'])
     const rounds = await roundsOf(id)
-    const monday = weekOf(today)
-    const [signed, countersigned] = rounds.filter((round) => round.due_on <= addDays(monday, 6))
+    // The week of tomorrow: on a Sunday the week of today holds a single round
+    // of the plan, which starts today, and the test needs two.
+    const day = plus(1)
+    const monday = weekOf(day)
+    const [signed, countersigned] = rounds.filter(
+      (round) => round.due_on >= monday && round.due_on <= addDays(monday, 6),
+    )
 
     for (const round of [signed, countersigned]) {
       await admin.query(
@@ -641,7 +646,7 @@ describe('the rounds of a week', () => {
     )
 
     const week = await answered(
-      http().get(`/rounds/week?of=${today}`).set(testIdentityHeader, by('u-site')),
+      http().get(`/rounds/week?of=${day}`).set(testIdentityHeader, by('u-site')),
     )
 
     expect(week.status).toBe(200)
