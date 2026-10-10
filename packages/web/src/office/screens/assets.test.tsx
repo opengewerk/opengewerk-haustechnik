@@ -716,6 +716,26 @@ describe('the file of an asset', () => {
     )
   })
 
+  it('says under its duties how many proposals of the catalogue are open and dismissed, with the way to them (#102)', async () => {
+    const proposed = { kind: 'probe.elevator_main_test', asset: { id: 'a-lift' } }
+
+    await mount(at, {
+      ...answers(file()),
+      '/duties/proposals?assetId=a-lift': {
+        proposals: [proposed, { ...proposed, kind: 'probe.interim_check' }],
+        dismissed: [{ id: 'dm-1', kind: 'probe.other', asset: { id: 'a-lift' } }],
+      },
+    })
+
+    expect((await screen.findByRole('link', { name: '2 offene' })).getAttribute('href')).toBe(
+      '/pflichten/vorschlaege?anlage=a-lift',
+    )
+    expect(screen.getByRole('link', { name: '1 verworfener Vorschlag' }).getAttribute('href')).toBe(
+      '/pflichten/vorschlaege/verworfen?anlage=a-lift',
+    )
+    expect(screen.getByText(/^Vorschläge aus dem Katalog:/)).toBeTruthy()
+  })
+
   it('says so of an asset without evidence', async () => {
     await mount(at, { ...answers(file()), '/assets/a-lift/evidence': [] })
 

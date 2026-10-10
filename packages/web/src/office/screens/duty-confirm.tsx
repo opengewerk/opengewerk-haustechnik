@@ -1,0 +1,886 @@
+import {
+  type AssetDetails,
+  type Catalogue,
+  catalogueOriginLabel,
+  type CatalogueEntry,
+  type Counting,
+  countingLabel,
+  type DeadlineInterval,
+  type DutyDetails,
+  dutyIntervalProblem,
+  type DutyKind,
+  dutyLimits,
+  dutyMaximum,
+  type DutyPerformer,
+  dutyPerformerLabel,
+  dutyPerformers,
+  dutyProblems,
+  dutyTaskLabel,
+  evidenceKindLabel,
+  type FederalState,
+  type IntervalKind,
+  intervalKindLabel,
+  intervalNeedsReason,
+  intervalOfRule,
+  intervalWords,
+  type IsoDate,
+  qualificationLevelLabel,
+  type RecordState,
+} from '@opengewerk/haustechnik-domain'
+import {
+  Button,
+  Choice,
+  Field,
+  Panel,
+  PanelLabel,
+  SelectField,
+  TextArea,
+} from '@opengewerk/platform-web'
+import { date, today } from '@opengewerk/platform-web/format'
+import { Empty, FactList, PageHead, Screen } from '@opengewerk/platform-web/office'
+import { useRight } from '@opengewerk/platform-web/session'
+import { refusalFor, useRecords, useSync, useSyncStatus } from '@opengewerk/platform-web/sync'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useNavigate, useParams, useSearch } from '@tanstack/react-router'
+import { Check, Info, X } from 'lucide-react'
+import { type FormEvent, useState } from 'react'
+
+import { ReviewMarks } from '../../app/review-marks.js'
+import { useCatalogue } from '../../sync/catalogue.js'
+import { askAt, makeAt } from '../../sync/made-at.js'
+import { dutyPlaces, dutyRegisterPlace } from '../duty-addresses.js'
+import { kindOfDuty } from '../duty-words.js'
+import { officePlaces } from '../place-addresses.js'
+import { packageOf, proposalFilterOf, proposalPlace } from '../proposal-addresses.js'
+import { assetFileQuery, AssetFileUnread } from './asset.js'
+import {
+  dutyColleaguesQuery,
+  dutyQuery,
+  DutyUnread,
+  responsibleChoices,
+  useDutyPlaces,
+} from './duty.js'
+import { retentionWords } from './duty-kind.js'
+import { afterADecision, assetName, DismissProposalDialog } from './proposals.js'
+
+/**
+ * Confirming a proposal of the catalogue with its interval, `bestaetigen()`
+ * of the boards (#102, 4.3 of the concept), and the same form over a duty
+ * from the catalogue there is, `pflicht_frist()`: the interval within what
+ * the kind allows, its reason, who answers for the duty and who performs it.
+ *
+ * What the kind allows (2.3): a maximum may only be shortened, and needs no
+ * reason for that; a guide is set by the operator, who gives a reason for an
+ * interval that departs from it; without a value the operator determines the
+ * interval and always gives a reason. The maximum stands beside the field.
+ * The route of the duties holds the same rules, and the database the
+ * maximum.
+ *
+ * The document that bears the interval (#74) comes under the reason, as a
+ * reference the operator may give and need not.
+ *
+ * Whoever keeps the register fills it in, with a connection.
+ */
+
+export const confirmWords = {
+  title: 'Pflicht bestätigen',
+  intervalTitle: 'Frist festlegen',
+  mayNot: 'Eine Pflicht bestätigen kann nur, wer das Pflichtenverzeichnis führt.',
+  mayNotChange: 'Die Frist einer Pflicht festlegen kann nur, wer das Pflichtenverzeichnis führt.',
+  unknownKind: 'Diese Pflichtart kennt der Katalog dieses Geräts nicht.',
+  otherKind: 'Diese Pflichtart gilt nicht für Anlagen dieser Art.',
+  notNamed: 'Die Adresse nennt keine Anlage und keine Pflichtart.',
+  ownDuty: 'Eine eigene Pflicht ändern Sie in ihrem Formular, unter „Bearbeiten“ auf ihrer Seite.',
+  ended: 'Diese Pflicht ist beendet; eine beendete Pflicht ändert sich nicht mehr.',
+  noConnection: 'Bestätigt wird eine Pflicht im Büro mit Verbindung. Gerade ist keine da.',
+  noConnectionToChange: 'Geändert wird eine Pflicht im Büro mit Verbindung. Gerade ist keine da.',
+  noInterval: 'Die Frist fehlt.',
+  check: 'Bitte prüfen Sie die markierten Felder.',
+  countingGiven: 'Gibt die Pflichtart vor.',
+  reasonForGuide: 'Pflicht, weil die Frist vom Richtwert abweicht.',
+  reasonForNone: 'Pflicht, weil die Pflichtart keine Frist vorgibt.',
+  reasonForMaximum: 'Auf Wunsch. Eine Höchstfrist zu verkürzen braucht keine Begründung.',
+  reasonAtWill: 'Auf Wunsch.',
+  noColleagues: 'Wer zur Wahl steht, ließ sich nicht laden. Das braucht eine Verbindung.',
+  allows: {
+    maximum:
+      'Die Vorschrift nennt sie. Die Frist lässt sich nur verkürzen, dafür braucht es keine Begründung.',
+    guide: 'Sie legen die Frist fest. Weicht sie vom Richtwert ab, begründen Sie es.',
+    none: 'Sie ermitteln die Frist selbst, etwa in der Gefährdungsbeurteilung, und begründen sie immer.',
+  },
+  intervalCounts:
+    'Ändert sich die Frist, rechnet der Termin mit ihr neu. Nachweise und Vorgänge bleiben bei der Pflicht.',
+  maximumKept:
+    'Die Höchstfrist ist die vom Tag der Bestätigung. Eine neue Fassung des Pakets ändert sie nicht still.',
+} as const
+
+/** What the form holds, each field as the text that stands in it. */
+interface Typed {
+  readonly interval: string
+  readonly unit: 'months' | 'days'
+  readonly reason: string
+  readonly responsibleUserId: string
+  readonly performer: DutyPerformer | null
+  readonly performerNote: string
+}
+
+/** What a kind allows a duty: the kind of its interval, the maximum and the guide. */
+interface Allowed {
+  readonly kind: IntervalKind
+  readonly maximum: DeadlineInterval | null
+  readonly guide: DeadlineInterval | null
+  readonly counting: Counting
+}
+
+/** The interval a kind names on a day, in the state of the place, or nothing. */
+function namedInterval(
+  catalogue: Catalogue,
+  entry: CatalogueEntry<DutyKind>,
+  on: IsoDate,
+  state: FederalState | undefined,
+): DeadlineInterval | null {
+  const rule = catalogue.interval(entry.definition, on, state)
+
+  return rule === null ? null : intervalOfRule(rule.record)
+}
+
+/** The state of the property of a record on this device, if it holds it. */
+function stateOf(property: RecordState | null): FederalState | undefined {
+  return property === null ? undefined : (String(property['federalState']) as FederalState)
+}
+
+/** The interval as the model takes it: a whole number where one was typed, else what was typed, for the model to refuse. */
+function intervalOf(typed: Typed) {
+  const said = typed.interval.trim()
+  const value = /^\d+$/.test(said) ? Number(said) : said
+
+  return typed.unit === 'months' ? { intervalMonths: value } : { intervalDays: value }
+}
+
+/** The interval typed, where it is a whole number. */
+function typedInterval(typed: Typed): DeadlineInterval | null {
+  const said = typed.interval.trim()
+
+  return /^\d+$/.test(said)
+    ? typed.unit === 'months'
+      ? { months: Number(said) }
+      : { days: Number(said) }
+    : null
+}
+
+/** What the form says, as the route takes it. */
+function described(typed: Typed) {
+  return {
+    ...intervalOf(typed),
+    intervalReason: typed.reason.trim() === '' ? null : typed.reason.trim(),
+    responsibleUserId: typed.responsibleUserId === '' ? null : typed.responsibleUserId,
+    performer: typed.performer,
+    // The note names the contractor, and goes only with one.
+    performerNote:
+      typed.performer === 'contractor' && typed.performerNote.trim() !== ''
+        ? typed.performerNote.trim()
+        : null,
+  }
+}
+
+/** Whether the interval typed needs its reason, as the route asks it. */
+function needsReason(typed: Typed, allowed: Allowed): boolean {
+  const interval = typedInterval(typed)
+
+  return (
+    allowed.kind === 'none' ||
+    (interval !== null && intervalNeedsReason(allowed.kind, interval, allowed.guide))
+  )
+}
+
+/** What is wrong with what the form says, by field. */
+function problemsOf(typed: Typed, allowed: Allowed): Record<string, string> {
+  const values = described(typed)
+  const wrong: Record<string, string> = { ...dutyProblems(values) }
+  const intervalWrong =
+    typed.interval.trim() === ''
+      ? confirmWords.noInterval
+      : dutyIntervalProblem(intervalOf(typed), allowed.counting, allowed.maximum)
+
+  if (intervalWrong !== null) {
+    wrong['interval'] = intervalWrong
+  } else if (needsReason(typed, allowed) && values.intervalReason === null) {
+    wrong['reason'] =
+      allowed.kind === 'guide' && allowed.guide !== null
+        ? `Der Richtwert beträgt ${intervalWords(allowed.guide)}; eine Frist, die davon abweicht, braucht eine Begründung.`
+        : 'Die Frist dieser Pflichtart legt der Betreiber fest; sie braucht eine Begründung, etwa den Verweis auf die Gefährdungsbeurteilung.'
+  }
+
+  return wrong
+}
+
+/** A form that starts from an interval the kind names, or from nothing. */
+function startingWith(interval: DeadlineInterval | null): Typed {
+  return {
+    interval: interval === null ? '' : String('days' in interval ? interval.days : interval.months),
+    unit: interval !== null && 'days' in interval ? 'days' : 'months',
+    reason: '',
+    responsibleUserId: '',
+    performer: null,
+    performerNote: '',
+  }
+}
+
+/** The form over a duty there is: what it says, as text. */
+function typedOf(duty: DutyDetails): Typed {
+  return {
+    interval: String(duty.intervalDays ?? duty.intervalMonths ?? ''),
+    unit: duty.intervalDays === null ? 'months' : 'days',
+    reason: duty.intervalReason ?? '',
+    responsibleUserId: duty.responsibleUserId ?? '',
+    performer: duty.performer,
+    performerNote: duty.performerNote ?? '',
+  }
+}
+
+export function ConfirmDutyScreen() {
+  const search = useSearch({ strict: false })
+  const { assetId, dutyKind } = proposalFilterOf(search)
+  const keeps = useRight('duty.write')
+  const catalogue = useCatalogue()
+  const properties = useRecords('properties')
+  const on = today()
+  const file = useQuery({
+    ...assetFileQuery(assetId ?? ''),
+    enabled: keeps && assetId !== undefined,
+  })
+  const asset = file.data
+  const entry = dutyKind === undefined ? null : (catalogue?.dutyKind(dutyKind, on) ?? null)
+
+  const unread = (words: string) => (
+    <Screen>
+      <PageHead title={confirmWords.title} crumbs={[dutyRegisterPlace, proposalPlace]} />
+      <Empty>{words}</Empty>
+    </Screen>
+  )
+
+  if (!keeps) {
+    return unread(confirmWords.mayNot)
+  }
+
+  if (assetId === undefined || dutyKind === undefined) {
+    return unread(confirmWords.notNamed)
+  }
+
+  if (asset === undefined) {
+    return <AssetFileUnread file={file} />
+  }
+
+  if (catalogue === null || entry === null) {
+    return unread(confirmWords.unknownKind)
+  }
+
+  if (!entry.definition.scope.assetKinds.includes(asset.kind)) {
+    return unread(confirmWords.otherKind)
+  }
+
+  const property = properties.find((record) => record['id'] === asset.propertyId) ?? null
+  const state = stateOf(property)
+
+  // A new form once the place of the asset is known: its state may name an
+  // interval of its own.
+  return (
+    <ConfirmForm
+      key={`${asset.id} ${entry.key} ${state ?? ''}`}
+      asset={asset}
+      catalogue={catalogue}
+      entry={entry}
+      state={state}
+    />
+  )
+}
+
+function ConfirmForm({
+  asset,
+  catalogue,
+  entry,
+  state,
+}: {
+  readonly asset: AssetDetails
+  readonly catalogue: Catalogue
+  readonly entry: CatalogueEntry<DutyKind>
+  readonly state: FederalState | undefined
+}) {
+  const client = useSync()
+  const status = useSyncStatus()
+  const queries = useQueryClient()
+  const navigate = useNavigate()
+  const on = today()
+  const kind = entry.definition.interval.kind
+  const named = namedInterval(catalogue, entry, on, state)
+  const allowed: Allowed = {
+    kind,
+    maximum: kind === 'maximum' ? named : null,
+    guide: kind === 'guide' ? named : null,
+    counting: entry.definition.counting,
+  }
+  const [typed, setTyped] = useState<Typed>(() => startingWith(named))
+  const [problems, setProblems] = useState<Readonly<Record<string, string>>>({})
+  const [trouble, setTrouble] = useState<string | null>(null)
+  const [working, setWorking] = useState(false)
+  const [dismissing, setDismissing] = useState(false)
+
+  const set = (values: Partial<Typed>) => {
+    setTyped((current) => ({ ...current, ...values }))
+  }
+  const back = () => {
+    void navigate({ to: proposalPlace.to })
+  }
+
+  async function save(event: FormEvent) {
+    event.preventDefault()
+    setTrouble(null)
+
+    const wrong = problemsOf(typed, allowed)
+
+    setProblems(wrong)
+
+    if (Object.keys(wrong).length > 0) {
+      setTrouble(confirmWords.check)
+
+      return
+    }
+
+    setWorking(true)
+
+    try {
+      const result = await makeAt(client, '/duties', {
+        assetId: asset.id,
+        kind: entry.key,
+        ...described(typed),
+      })
+
+      if (result.outcome === 'refused') {
+        setTrouble(refusalFor(result))
+
+        return
+      }
+
+      await afterADecision(queries)
+      await navigate({ to: dutyPlaces.duty(result.id) })
+    } finally {
+      setWorking(false)
+    }
+  }
+
+  return (
+    <Screen>
+      <PageHead
+        title={confirmWords.title}
+        sub={`${entry.definition.label} an ${assetName(asset)}`}
+        crumbs={[
+          dutyRegisterPlace,
+          proposalPlace,
+          { to: officePlaces.asset(asset.id), label: assetName(asset) },
+        ]}
+        phoneBack={proposalPlace}
+      />
+      <form
+        noValidate
+        className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_360px]"
+        onSubmit={(event) => {
+          void save(event)
+        }}
+      >
+        <div className="flex min-w-0 flex-col gap-3">
+          <Panel roomy>
+            <div className="flex flex-col gap-3">
+              {status.online ? null : (
+                <p role="status" className="text-[13px] font-medium text-ink-muted">
+                  {confirmWords.noConnection}
+                </p>
+              )}
+              <IntervalFields
+                typed={typed}
+                set={set}
+                problems={problems}
+                allowed={allowed}
+                named={null}
+              />
+            </div>
+          </Panel>
+          {trouble ? (
+            <p role="alert" className="text-[13px] font-semibold text-conflict">
+              {trouble}
+            </p>
+          ) : null}
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              icon={X}
+              disabled={working}
+              onClick={() => {
+                setDismissing(true)
+              }}
+            >
+              Verwerfen
+            </Button>
+            <div className="grow" />
+            <Button disabled={working} onClick={back}>
+              Abbrechen
+            </Button>
+            <Button type="submit" tone="primary" icon={Check} disabled={working || !status.online}>
+              {working ? 'Einen Moment' : 'Pflicht bestätigen'}
+            </Button>
+          </div>
+        </div>
+        <div className="flex min-w-0 flex-col gap-3.5">
+          <KindPanel catalogue={catalogue} entry={entry} allowed={allowed} />
+          <Panel title="Was die Pflichtart zulässt">
+            <div className="flex flex-col gap-[7px] text-[13px] leading-[1.45] max-sm:text-[15px]">
+              {(['maximum', 'guide', 'none'] as const).map((each) => (
+                <p key={each}>
+                  <span className="font-semibold">{intervalKindLabel[each]}.</span>{' '}
+                  {confirmWords.allows[each]}
+                </p>
+              ))}
+            </div>
+          </Panel>
+        </div>
+      </form>
+      {dismissing ? (
+        <DismissProposalDialog
+          asset={asset}
+          kind={entry.key}
+          label={entry.definition.label}
+          onClose={() => {
+            setDismissing(false)
+          }}
+          onDismissed={back}
+        />
+      ) : null}
+    </Screen>
+  )
+}
+
+export function DutyIntervalScreen() {
+  const { dutyId } = useParams({ strict: false }) as { dutyId?: string }
+  const keeps = useRight('duty.write')
+  const catalogue = useCatalogue()
+  const page = useQuery({ ...dutyQuery(dutyId ?? ''), enabled: dutyId !== undefined && keeps })
+  const duty = page.data
+  const { property } = useDutyPlaces(duty)
+
+  const unread = (words: string) => (
+    <Screen>
+      <PageHead
+        title={confirmWords.intervalTitle}
+        crumbs={[
+          dutyRegisterPlace,
+          ...(duty ? [{ to: dutyPlaces.duty(duty.id), label: duty.title }] : []),
+        ]}
+      />
+      <Empty>{words}</Empty>
+    </Screen>
+  )
+
+  if (!keeps) {
+    return unread(confirmWords.mayNotChange)
+  }
+
+  if (duty === undefined) {
+    return <DutyUnread page={page} />
+  }
+
+  if (duty.kind === null) {
+    return unread(confirmWords.ownDuty)
+  }
+
+  if (duty.ended) {
+    return unread(confirmWords.ended)
+  }
+
+  const entry = kindOfDuty(duty, catalogue)
+
+  if (catalogue === null || entry === null) {
+    return unread(confirmWords.unknownKind)
+  }
+
+  const state = stateOf(property)
+
+  return (
+    <IntervalForm
+      key={`${duty.id} ${state ?? ''}`}
+      duty={duty}
+      catalogue={catalogue}
+      entry={entry}
+      state={state}
+    />
+  )
+}
+
+function IntervalForm({
+  duty,
+  catalogue,
+  entry,
+  state,
+}: {
+  readonly duty: DutyDetails
+  readonly catalogue: Catalogue
+  readonly entry: CatalogueEntry<DutyKind>
+  readonly state: FederalState | undefined
+}) {
+  const client = useSync()
+  const status = useSyncStatus()
+  const queries = useQueryClient()
+  const navigate = useNavigate()
+  const kind = entry.definition.interval.kind
+  // The maximum is the one kept beside the duty; the guide is the one of
+  // today, which the route holds a reason against.
+  const allowed: Allowed = {
+    kind,
+    maximum: dutyMaximum(duty),
+    guide: kind === 'guide' ? namedInterval(catalogue, entry, today(), state) : null,
+    counting: duty.counting,
+  }
+  const [typed, setTyped] = useState<Typed>(() => typedOf(duty))
+  const [problems, setProblems] = useState<Readonly<Record<string, string>>>({})
+  const [trouble, setTrouble] = useState<string | null>(null)
+  const [working, setWorking] = useState(false)
+  const asset = duty.asset
+
+  const set = (values: Partial<Typed>) => {
+    setTyped((current) => ({ ...current, ...values }))
+  }
+  const back = () => {
+    void navigate({ to: dutyPlaces.duty(duty.id) })
+  }
+
+  async function save(event: FormEvent) {
+    event.preventDefault()
+    setTrouble(null)
+
+    const wrong = problemsOf(typed, allowed)
+
+    setProblems(wrong)
+
+    if (Object.keys(wrong).length > 0) {
+      setTrouble(confirmWords.check)
+
+      return
+    }
+
+    // What differs from what the duty said, field by field: a unit that
+    // changed sends the interval under its own name, and the route lets the
+    // other one go.
+    const was: Readonly<Record<string, unknown>> = described(typedOf(duty))
+    const changes = Object.fromEntries(
+      Object.entries(described(typed)).filter(([field, value]) => was[field] !== value),
+    )
+
+    if (Object.keys(changes).length === 0) {
+      back()
+
+      return
+    }
+
+    setWorking(true)
+
+    try {
+      const result = await askAt(client, 'PATCH', `/duties/${duty.id}`, duty.id, changes)
+
+      if (result.outcome === 'refused') {
+        setTrouble(refusalFor(result))
+
+        return
+      }
+
+      await afterADecision(queries)
+      back()
+    } finally {
+      setWorking(false)
+    }
+  }
+
+  return (
+    <Screen>
+      <PageHead
+        title={confirmWords.intervalTitle}
+        sub={asset ? `${duty.title} an ${assetName(asset)}` : duty.title}
+        crumbs={[dutyRegisterPlace, { to: dutyPlaces.duty(duty.id), label: duty.title }]}
+        phoneBack={{ to: dutyPlaces.duty(duty.id), label: duty.title }}
+      />
+      <form
+        noValidate
+        className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_360px]"
+        onSubmit={(event) => {
+          void save(event)
+        }}
+      >
+        <div className="flex min-w-0 flex-col gap-3">
+          <Panel roomy>
+            <div className="flex flex-col gap-3">
+              {status.online ? null : (
+                <p role="status" className="text-[13px] font-medium text-ink-muted">
+                  {confirmWords.noConnectionToChange}
+                </p>
+              )}
+              <IntervalFields
+                typed={typed}
+                set={set}
+                problems={problems}
+                allowed={allowed}
+                named={duty.responsible}
+                keptMaximum
+              />
+            </div>
+          </Panel>
+          {trouble ? (
+            <p role="alert" className="text-[13px] font-semibold text-conflict">
+              {trouble}
+            </p>
+          ) : null}
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            <Button disabled={working} onClick={back}>
+              Abbrechen
+            </Button>
+            <Button type="submit" tone="primary" icon={Check} disabled={working || !status.online}>
+              {working ? 'Wird gespeichert' : 'Speichern'}
+            </Button>
+          </div>
+        </div>
+        <div className="flex min-w-0 flex-col gap-3.5">
+          <KindPanel
+            catalogue={catalogue}
+            entry={entry}
+            allowed={allowed}
+            version={duty.kindVersion}
+            keptMaximum
+          />
+          <Panel title="Gut zu wissen">
+            <div className="flex flex-col gap-[7px] text-[13px] leading-[1.45] max-sm:text-[15px]">
+              <p>{confirmWords.intervalCounts}</p>
+              {allowed.maximum === null ? null : <p>{confirmWords.maximumKept}</p>}
+            </div>
+          </Panel>
+        </div>
+      </form>
+    </Screen>
+  )
+}
+
+/**
+ * The fields of the form: the interval with its unit and what the kind
+ * says beside it, how it is counted, its reason, and who answers for the
+ * duty and who performs it.
+ */
+function IntervalFields({
+  typed,
+  set,
+  problems,
+  allowed,
+  named,
+  keptMaximum = false,
+}: {
+  readonly typed: Typed
+  readonly set: (values: Partial<Typed>) => void
+  readonly problems: Readonly<Record<string, string>>
+  readonly allowed: Allowed
+  /** Whom the duty names, who stays a choice when shut out; none for a new one. */
+  readonly named: DutyDetails['responsible']
+  /** The maximum is the one kept at the duty since the day it was confirmed. */
+  readonly keptMaximum?: boolean
+}) {
+  const colleagues = useQuery(dutyColleaguesQuery)
+  const interval = typedInterval(typed)
+  const departs =
+    allowed.kind === 'guide' &&
+    allowed.guide !== null &&
+    interval !== null &&
+    intervalNeedsReason('guide', interval, allowed.guide)
+  const reasonNeeded = needsReason(typed, allowed)
+  const beside =
+    allowed.kind === 'maximum' && allowed.maximum !== null
+      ? `Höchstfrist: ${intervalWords(allowed.maximum)}${keptMaximum ? ', am Tag der Bestätigung' : ''}`
+      : allowed.kind === 'guide' && allowed.guide !== null
+        ? departs
+          ? `Weicht vom Richtwert ab: ${intervalWords(allowed.guide)}`
+          : `Richtwert: ${intervalWords(allowed.guide)}`
+        : allowed.kind === 'none'
+          ? 'Die Pflichtart gibt keine Frist vor.'
+          : null
+
+  return (
+    <>
+      <PanelLabel>Frist</PanelLabel>
+      <div className="grid gap-3 sm:grid-cols-[110px_150px_minmax(0,1fr)]">
+        <Field
+          label="Frist"
+          required
+          starred
+          inputMode="numeric"
+          numeric
+          value={typed.interval}
+          problem={problems['interval']}
+          onChange={(event) => {
+            set({ interval: event.target.value })
+          }}
+        />
+        <SelectField
+          label="Einheit"
+          options={[
+            { value: 'months', label: 'Monate' },
+            { value: 'days', label: 'Tage' },
+          ]}
+          value={typed.unit}
+          onChange={(value) => {
+            set({ unit: value === 'days' ? 'days' : 'months' })
+          }}
+        />
+        {beside === null ? null : (
+          <p
+            className={`flex items-center gap-1.5 self-end pb-2 text-[13px] ${departs ? 'text-waiting' : 'text-ink-muted'}`}
+          >
+            <Info size={15} strokeWidth={2.2} aria-hidden="true" className="shrink-0" />
+            {beside}
+          </p>
+        )}
+      </div>
+      <Field
+        label="Gezählt"
+        value={countingLabel[allowed.counting]}
+        readOnly
+        hint={confirmWords.countingGiven}
+        // Grey as the board draws a field that cannot be changed.
+        className="bg-surface-sunken!"
+      />
+      <TextArea
+        label="Begründung der Frist"
+        rows={3}
+        required={reasonNeeded}
+        starred={reasonNeeded}
+        value={typed.reason}
+        maxLength={dutyLimits.intervalReason}
+        hint={
+          allowed.kind === 'none'
+            ? confirmWords.reasonForNone
+            : departs
+              ? confirmWords.reasonForGuide
+              : allowed.kind === 'maximum'
+                ? confirmWords.reasonForMaximum
+                : confirmWords.reasonAtWill
+        }
+        problem={problems['reason']}
+        onChange={(event) => {
+          set({ reason: event.target.value })
+        }}
+      />
+      {/* The document that bears the interval comes here, with #74. */}
+      <PanelLabel>Zuständig</PanelLabel>
+      <div className="grid items-start gap-3 sm:grid-cols-2">
+        <SelectField
+          label="Verantwortlich"
+          options={responsibleChoices(colleagues.data, named)}
+          value={typed.responsibleUserId}
+          onChange={(value) => {
+            set({ responsibleUserId: value })
+          }}
+        />
+        <Choice
+          label="Ausgeführt von"
+          options={dutyPerformers.map((performer) => ({
+            value: performer,
+            label: dutyPerformerLabel[performer],
+          }))}
+          value={typed.performer}
+          onChange={(value) => {
+            set({ performer: value })
+          }}
+        />
+      </div>
+      {colleagues.isError ? (
+        <p role="status" className="text-[13px] font-medium text-ink-muted">
+          {confirmWords.noColleagues}
+        </p>
+      ) : null}
+      {typed.performer === 'contractor' ? (
+        <Field
+          label="Angabe zur Fremdfirma"
+          value={typed.performerNote}
+          maxLength={dutyLimits.performerNote}
+          problem={problems['performerNote']}
+          onChange={(event) => {
+            set({ performerNote: event.target.value })
+          }}
+        />
+      ) : null}
+    </>
+  )
+}
+
+/**
+ * The card "Pflichtart" beside the form: the kind with its marks, where it
+ * comes from, its interval and who performs it, and who accepted it.
+ */
+function KindPanel({
+  catalogue,
+  entry,
+  allowed,
+  version,
+  keptMaximum = false,
+}: {
+  readonly catalogue: Catalogue
+  readonly entry: CatalogueEntry<DutyKind>
+  readonly allowed: Allowed
+  /** The version a duty there is was confirmed in; a new one is the version in force. */
+  readonly version?: number | null
+  readonly keptMaximum?: boolean
+}) {
+  const kind = entry.definition
+  const on = today()
+  const itsPackage = catalogue.packages.find((each) => each.name === packageOf(entry.key))
+  const value =
+    allowed.kind === 'maximum' ? allowed.maximum : allowed.kind === 'guide' ? allowed.guide : null
+
+  return (
+    <Panel title="Pflichtart">
+      <div className="flex flex-col gap-[9px]">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-[14px] font-semibold">{kind.label}</span>
+          <ReviewMarks review={entry.review} />
+        </div>
+        <FactList
+          keyWidth={96}
+          facts={[
+            {
+              label: 'Paket',
+              value: `${itsPackage?.title ?? packageOf(entry.key)}, Fassung ${String(version ?? entry.version)}${version === undefined ? '' : ' der Pflichtart'}`,
+            },
+            { label: 'Herkunft', value: catalogueOriginLabel[kind.origin] },
+            { label: 'Fundstelle', value: kind.source },
+            { label: 'Tätigkeit', value: dutyTaskLabel[kind.task] },
+            { label: 'Art der Frist', value: intervalKindLabel[allowed.kind] },
+            ...(value === null
+              ? []
+              : [
+                  {
+                    label: intervalKindLabel[allowed.kind],
+                    value: `${intervalWords(value)}${keptMaximum && allowed.kind === 'maximum' ? ', am Tag der Bestätigung' : ''}`,
+                  },
+                ]),
+            { label: 'Gezählt', value: countingLabel[allowed.counting] },
+            {
+              label: 'Qualifikation',
+              value: qualificationLevelLabel[kind.qualification.level],
+            },
+            {
+              label: 'Nachweis',
+              value: kind.evidence.kinds.map((each) => evidenceKindLabel[each]).join(', '),
+            },
+            { label: 'Aufbewahrung', value: retentionWords(catalogue, kind, on) },
+          ]}
+        />
+        <p className="border-t border-line pt-[9px] text-[12px] leading-[1.5] text-ink-faint">
+          {entry.review.accepted === null
+            ? 'Die fachkundige Abnahme steht aus.'
+            : `Abgenommen von ${entry.review.accepted.by} am ${date(entry.review.accepted.on)}.`}{' '}
+          Zuletzt gegen die Quelle geprüft am {date(entry.review.checkedOn)}.
+        </p>
+      </div>
+    </Panel>
+  )
+}

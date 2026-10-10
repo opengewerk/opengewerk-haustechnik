@@ -29,6 +29,8 @@ export const dutyPlaces = {
   new: '/pflichten/neu',
   /** The same form over a duty of the operator's own there is (#178). */
   edit: (id: string) => `/pflichten/${id}/bearbeiten`,
+  /** The interval of a duty from the catalogue, with who answers for it and who performs it (#102). */
+  interval: (id: string) => `/pflichten/${id}/frist`,
 } as const
 
 /**
