@@ -571,7 +571,7 @@ function CardNumbers({ numbers }: { readonly numbers: PlaceToDo | undefined }) {
   return said.length === 0 ? null : (
     <>
       {said.map(([key, words]) => (
-        <span key={key} className={`text-[14px] font-semibold ${numberInk[key]}`}>
+        <span key={key} className={`pr-1 text-[14px] font-semibold ${numberInk[key]}`}>
           {words}
         </span>
       ))}
