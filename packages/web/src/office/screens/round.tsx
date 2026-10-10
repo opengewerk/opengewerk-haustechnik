@@ -25,7 +25,6 @@ import {
   Dialog,
   DialogActions,
   Panel,
-  SignaturePicture,
   Status,
   type StatusTone,
   TablePanel,
@@ -41,7 +40,6 @@ import {
   Screen,
 } from '@opengewerk/platform-web/office'
 import { useRight, useWho } from '@opengewerk/platform-web/session'
-import { SignaturePad } from '@opengewerk/platform-web/site'
 import {
   maybeText,
   refusalFor,
@@ -59,6 +57,12 @@ import { type FormPoint, pointsOf, pointState } from '../../app/answers.js'
 import { dutyNameOf, fulfilledDuty, useFormOf } from '../../app/form-of.js'
 import { PhotoThumb } from '../../app/form-points.js'
 import { roundPdfAddress } from '../../app/prints.js'
+import {
+  type GivenSignature,
+  SignatureMark,
+  SignatureWays,
+  typedWay,
+} from '../../app/signature-ways.js'
 import { fingerprintOf } from '../../app/signing.js'
 import { useCatalogue } from '../../sync/catalogue.js'
 import { askAt } from '../../sync/made-at.js'
@@ -106,7 +110,7 @@ export const roundWords = {
   counterClosed: 'Entfällt, der Rundgang wurde nicht durchgeführt.',
   pad: 'Feld für die Gegenzeichnung',
   countersign: 'Gegenzeichnen',
-  noPath: 'Bitte im Feld unterschreiben.',
+  noPath: 'Bitte im Feld unterschreiben oder ohne Schriftzug mit dem eigenen Namen bestätigen.',
   void: 'gilt nicht mehr',
   noDuties: 'Kein Punkt dieses Rundgangs erfüllt eine Pflicht.',
   dutyWritten: (number: string) => `${number}, erfüllt`,
@@ -526,15 +530,17 @@ function Signatures({
       {signatures.map((signature) => (
         <li key={signature.id} className="flex items-center gap-3">
           <div className="w-[150px] shrink-0 rounded-control border border-line bg-surface p-1 max-sm:w-[120px]">
-            <SignaturePicture
+            <SignatureMark
+              name={signature.name}
               path={signature.path}
-              label={`Unterschrift von ${signature.name}`}
-              className="block aspect-[5/2] w-full"
+              typedName={signature.typedName}
             />
           </div>
           <div className="min-w-0 leading-[1.4]">
             <div className="font-semibold">{signature.name}</div>
-            <div className="text-[13px] text-ink-muted">{moment(signature.signedAt)}</div>
+            <div className="text-[13px] text-ink-muted">
+              {`${moment(signature.signedAt)}${typedWay(signature.typedName)}`}
+            </div>
             {signature.valid ? null : (
               <div className="text-[13px] font-semibold text-conflict">{roundWords.void}</div>
             )}
@@ -555,15 +561,15 @@ function Countersignature({ round }: { readonly round: RoundDetails }) {
   const who = useWho()
   const client = useSync()
   const queries = useQueryClient()
-  const [path, setPath] = useState<string | null>(null)
+  const [given, setGiven] = useState<GivenSignature | null>(null)
   const [working, setWorking] = useState(false)
   const [trouble, setTrouble] = useState<string | null>(null)
-  const given = round.signatures.filter((each) => each.role === 'countersigner')
+  const countersigned = round.signatures.filter((each) => each.role === 'countersigner')
 
-  if (given.length > 0) {
+  if (countersigned.length > 0) {
     return (
       <Panel title="Gegenzeichnung">
-        <Signatures signatures={given} none="" />
+        <Signatures signatures={countersigned} none="" />
       </Panel>
     )
   }
@@ -589,7 +595,7 @@ function Countersignature({ round }: { readonly round: RoundDetails }) {
   const page = round.page
 
   async function countersign() {
-    if (path === null) {
+    if (given === null) {
       setTrouble(roundWords.noPath)
 
       return
@@ -600,7 +606,8 @@ function Countersignature({ round }: { readonly round: RoundDetails }) {
 
     try {
       const result = await askAt(client, 'POST', `/rounds/${round.id}/countersignature`, round.id, {
-        path,
+        path: given.path,
+        typedName: given.typedName,
         pageFingerprint: await fingerprintOf(page),
         deviceInfo: globalThis.navigator.userAgent.slice(0, signatureLimits.deviceInfo),
       })
@@ -621,7 +628,7 @@ function Countersignature({ round }: { readonly round: RoundDetails }) {
     <Panel title="Gegenzeichnung">
       <div className="flex flex-col gap-2.5">
         <p className="text-[13px] leading-[1.45] text-ink-muted">{roundWords.counterIntro}</p>
-        <SignaturePad label={roundWords.pad} onChange={setPath} />
+        <SignatureWays label={roundWords.pad} name={who.name} onChange={setGiven} />
         {who.name === '' ? null : <p className="text-[13px] font-semibold">{who.name}</p>}
         {trouble ? (
           <p role="alert" className="text-[13px] font-semibold text-conflict">

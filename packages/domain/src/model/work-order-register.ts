@@ -126,8 +126,10 @@ export interface WorkOrderSignatureLine {
   readonly role: SignatureRole
   readonly signedAt: string
   readonly deviceInfo: string | null
-  /** The drawing, as a path in the units of `signatureBox` of the foundation. */
-  readonly path: string
+  /** The drawing, as a path in the units of `signatureBox` of the foundation; none where the name was typed (#209). */
+  readonly path: string | null
+  /** The name typed to confirm, where it was signed without a drawing. */
+  readonly typedName: string | null
   /** Whether it counts: no rejection came after it, and the page is the one it was given for. */
   readonly valid: boolean
 }

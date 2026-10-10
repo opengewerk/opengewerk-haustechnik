@@ -10,7 +10,6 @@ import { AnswerMark } from '@opengewerk/platform-web/forms'
 import { clockTime, date } from '@opengewerk/platform-web/format'
 import { useWho } from '@opengewerk/platform-web/session'
 import {
-  SignaturePad,
   SiteActionBar,
   SiteFacts,
   SiteHeader,
@@ -36,6 +35,7 @@ import {
   lackOf,
   pointState,
 } from '../../app/answers.js'
+import { type GivenSignature, SignatureWays } from '../../app/signature-ways.js'
 import { signActivity } from '../../app/signing.js'
 import { NotOnDevice, PlainRow } from '../kit.js'
 import { siteForms } from '../places.js'
@@ -313,7 +313,7 @@ function SignOf({ activityId }: { readonly activityId: string }) {
   const who = useWho()
   const end = useRoundEnd(activityId)
   const { form } = end
-  const [path, setPath] = useState<string | null>(null)
+  const [given, setGiven] = useState<GivenSignature | null>(null)
   const [working, setWorking] = useState(false)
   const [trouble, setTrouble] = useState<string | null>(null)
 
@@ -354,7 +354,7 @@ function SignOf({ activityId }: { readonly activityId: string }) {
         : handInWords.evidenceNow
 
   async function sign() {
-    if (path === null) {
+    if (given === null) {
       return
     }
 
@@ -364,7 +364,7 @@ function SignOf({ activityId }: { readonly activityId: string }) {
     try {
       // The day comes with the first answer; a round signed without one has none yet.
       const problem =
-        (await beginActivity(client, activityId)) ?? (await signActivity(client, activityId, path))
+        (await beginActivity(client, activityId)) ?? (await signActivity(client, activityId, given))
 
       if (problem === null) {
         void navigate({ to: siteForms.handIn(activityId), replace: true })
@@ -404,7 +404,7 @@ function SignOf({ activityId }: { readonly activityId: string }) {
         </Panel>
         <div className="flex flex-col gap-1.5">
           <SiteLabel>{handInWords.signature}</SiteLabel>
-          <SignaturePad label={handInWords.pad} onChange={setPath} />
+          <SignatureWays label={handInWords.pad} name={who.name} onChange={setGiven} />
           {who.name === '' ? null : (
             <p className="text-[16px] font-semibold">
               {[who.name, who.roles].filter(Boolean).join(', ')}
@@ -419,7 +419,7 @@ function SignOf({ activityId }: { readonly activityId: string }) {
           wide
           height={60}
           icon={Signature}
-          disabled={path === null || working}
+          disabled={given === null || working}
           onClick={() => {
             void sign()
           }}

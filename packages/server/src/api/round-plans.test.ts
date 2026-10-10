@@ -900,6 +900,7 @@ describe('a round in the office', () => {
           signedAt: new Date(),
           deviceInfo: 'Probe-Telefon',
           path: drawing,
+          typedName: null,
           pageFingerprint: pageFingerprint(await pageOf(tx, row)),
         },
       )
@@ -910,12 +911,17 @@ describe('a round in the office', () => {
     return answered(http().get(`/rounds/${round}`).set(testIdentityHeader, by(person)))
   }
 
-  function countersigned(person: Person, round: ActivityId, fingerprint: string) {
+  function countersigned(
+    person: Person,
+    round: ActivityId,
+    fingerprint: string,
+    way: object = { path: 'M20,20L300,200' },
+  ) {
     return answered(
       http()
         .post(`/rounds/${round}/countersignature`)
         .set(testIdentityHeader, by(person))
-        .send({ path: 'M20,20L300,200', pageFingerprint: fingerprint, deviceInfo: 'Büro' }),
+        .send({ ...way, pageFingerprint: fingerprint, deviceInfo: 'Büro' }),
     )
   }
 
@@ -1019,6 +1025,37 @@ describe('a round in the office', () => {
 
     expect(again.status).toBe(409)
     expect(await evidenceOf(round)).toHaveLength(1)
+  })
+
+  it('is countersigned with the typed name of whoever countersigns, and not with another (#209)', async () => {
+    const round = await roundFor('u-tech')
+
+    await signedOnSite(round)
+
+    const shown = pageFingerprint((await page('u-site', round)).body['page'] as SignedPage)
+    const other = await countersigned('u-site', round, shown, { typedName: 'Person u-tech' })
+
+    expect(other).toMatchObject({
+      status: 400,
+      message: 'Bestätigt wird mit dem eigenen Namen, wie er im Konto steht: Person u-site.',
+    })
+
+    const given = await countersigned('u-site', round, shown, { typedName: 'Person u-site' })
+
+    expect(given.status).toBe(201)
+    expect(
+      (
+        given.body['signatures'] as {
+          role: string
+          path: string | null
+          typedName: string | null
+        }[]
+      ).map((signature) => [signature.role, signature.path === null, signature.typedName]),
+    ).toEqual([
+      ['signer', false, null],
+      ['countersigner', true, 'Person u-site'],
+    ])
+    expect(await evidenceOf(round)).toEqual([{ duty_id: duty, origin: 'round_point' }])
   })
 
   it('closes a round of a past day as not performed, with the reason, by whoever plans, and it fulfils nothing', async () => {

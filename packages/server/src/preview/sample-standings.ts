@@ -69,6 +69,7 @@ export async function writeSampleStandings(
           signedAt: at,
           deviceInfo: 'Telefon',
           path: sampleSignature,
+          typedName: null,
           pageFingerprint: pageFingerprint(await pageOf(tx, row)),
         },
       )

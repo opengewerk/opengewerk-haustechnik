@@ -7,6 +7,7 @@ import {
 import { refusalFor } from '@opengewerk/platform-web/sync'
 
 import type { SyncClient } from '../sync/client.js'
+import type { GivenSignature } from './signature-ways.js'
 
 /**
  * Signing an activity on the device (#108, ADR 0004, points 7 and 10): the
@@ -42,14 +43,14 @@ export const signingWords = {
 } as const
 
 /**
- * Signs an activity as the person who did the work, with the drawing, for
- * the page as it stands now. The sentence to show when the device turns it
- * down, or null when it is queued.
+ * Signs an activity as the person who did the work, with the drawing or the
+ * typed name (#209), for the page as it stands now. The sentence to show
+ * when the device turns it down, or null when it is queued.
  */
 export async function signActivity(
   client: SyncClient,
   activityId: string,
-  path: string,
+  given: GivenSignature,
 ): Promise<string | null> {
   const page = pageOnDevice(client, activityId)
 
@@ -62,7 +63,8 @@ export async function signActivity(
     role: 'signer',
     signedAt: new Date().toISOString(),
     deviceInfo: globalThis.navigator.userAgent.slice(0, signatureLimits.deviceInfo),
-    path,
+    path: given.path,
+    typedName: given.typedName,
     pageFingerprint: await fingerprintOf(page),
   })
 

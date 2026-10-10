@@ -490,6 +490,7 @@ export class RoundsController {
         signedAt: signature.signedAt.toISOString(),
         deviceInfo: signature.deviceInfo,
         path: signature.path,
+        typedName: signature.typedName,
         valid,
       })),
       defects: read.found,
@@ -552,11 +553,17 @@ export class RoundsController {
     @Param('id') id: string,
     @Body() body: unknown,
   ): Promise<RoundDetails> {
-    const values = fieldsOf(body, ['path', 'pageFingerprint', 'deviceInfo'] as const, [
+    const values = fieldsOf(body, ['path', 'typedName', 'pageFingerprint', 'deviceInfo'] as const, [
+      'path',
+      'typedName',
       'deviceInfo',
     ])
 
-    if (typeof values.path !== 'string' || typeof values.pageFingerprint !== 'string') {
+    // The drawing or the typed name (#209), one of the two: `takeSignature` says which is wrong.
+    if (
+      (typeof values.path !== 'string' && typeof values.typedName !== 'string') ||
+      typeof values.pageFingerprint !== 'string'
+    ) {
       throw new BadRequestException('Es fehlen die Unterschrift und die Seite, für die sie gilt.')
     }
 
@@ -597,7 +604,8 @@ export class RoundsController {
             role: 'countersigner',
             signedAt: new Date(),
             deviceInfo,
-            path: values.path as string,
+            path: typeof values.path === 'string' ? values.path : null,
+            typedName: typeof values.typedName === 'string' ? values.typedName : null,
             pageFingerprint: values.pageFingerprint as string,
           },
         )

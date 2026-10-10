@@ -262,6 +262,7 @@ async function signatureFor(
     signedAt: new Date('2026-10-01T09:30:00.000Z'),
     deviceInfo: 'Probe-Telefon',
     path: drawing,
+    typedName: null,
     pageFingerprint: fingerprint ?? (await shownPage(activity)),
   }
 }
@@ -354,7 +355,13 @@ describe('a signature on an activity', () => {
       new Set([keptTest, null]),
     )
     expect(taken.written[0]?.state.signatures).toEqual([
-      { name: 'Tom Technik', role: 'signer', signedAt: '2026-10-01T09:30:00.000Z', path: drawing },
+      {
+        name: 'Tom Technik',
+        role: 'signer',
+        signedAt: '2026-10-01T09:30:00.000Z',
+        path: drawing,
+        way: 'drawing',
+      },
     ])
     expect(taken.written[0]?.state.performer).toEqual({ person: 'Tom Technik' })
     expect(taken.written[0]?.state.writtenBy).toBe('Tom Technik')
@@ -539,6 +546,53 @@ describe('a signature on an activity', () => {
     ).toBe('Die Unterschrift ist ein Linienzug im Feld, höchstens 40000 Zeichen.')
   })
 
+  it('is taken confirmed with the typed name of the account, and the state says which way (#209)', async () => {
+    const { activity, duties } = await activityToSign()
+    const taken = await as(technician, async (tx, context) =>
+      takeSignature(tx, context, {
+        ...(await signatureFor(activity)),
+        path: null,
+        typedName: '  tom   technik ',
+      }),
+    )
+
+    expect(taken.written[0]?.state.signatures).toEqual([
+      {
+        name: 'Tom Technik',
+        role: 'signer',
+        signedAt: '2026-10-01T09:30:00.000Z',
+        path: null,
+        way: 'name',
+      },
+    ])
+    expect(await countOf('evidence', 'duty_id', duties[0] as string)).toBe(1)
+
+    const { rows } = await admin.query<{ path: string | null; typed_name: string | null }>(
+      'select path, typed_name from activity_signatures where activity_id = $1',
+      [activity],
+    )
+
+    expect(rows).toEqual([{ path: null, typed_name: 'tom   technik' }])
+  })
+
+  it('is refused confirmed with a name other than the one of the account, or with a drawing and a name', async () => {
+    const { activity } = await activityToSign()
+    const typed = (typedName: string, path: string | null = null) =>
+      refusalOf(
+        as(technician, async (tx, context) =>
+          takeSignature(tx, context, { ...(await signatureFor(activity)), path, typedName }),
+        ),
+      )
+
+    expect(await typed('Sina Objekt')).toBe(
+      'Bestätigt wird mit dem eigenen Namen, wie er im Konto steht: Tom Technik.',
+    )
+    expect(await typed('Tom Technik', drawing)).toBe(
+      'Unterschrieben wird mit dem Schriftzug oder mit dem getippten Namen, nicht mit beidem.',
+    )
+    expect(await statusOf(activity)).not.toBe('done')
+  })
+
   it('is refused when the kind of a duty takes no protocol, and nothing stays of it', async () => {
     const { activity, duties } = await activityToSign()
 
@@ -591,6 +645,7 @@ describe('a signature on an activity', () => {
           role: 'signer',
           signedAt: '2026-10-01T09:30:00.000Z',
           path: drawing,
+          way: 'drawing',
         },
       ],
     })
@@ -847,12 +902,19 @@ describe('a countersignature', () => {
 
     expect(countersigned.status).toBe('done')
     expect(countersigned.written[0]?.state.signatures).toEqual([
-      { name: 'Tom Technik', role: 'signer', signedAt: '2026-10-01T09:30:00.000Z', path: drawing },
+      {
+        name: 'Tom Technik',
+        role: 'signer',
+        signedAt: '2026-10-01T09:30:00.000Z',
+        path: drawing,
+        way: 'drawing',
+      },
       {
         name: 'Sina Objekt',
         role: 'countersigner',
         signedAt: '2026-10-02T07:00:00.000Z',
         path: drawing,
+        way: 'drawing',
       },
     ])
   })
@@ -1019,7 +1081,13 @@ describe('a work order', () => {
     )
 
     expect(accepted.written[0]?.state.signatures).toEqual([
-      { name: 'Tom Technik', role: 'signer', signedAt: '2026-10-02T15:00:00.000Z', path: drawing },
+      {
+        name: 'Tom Technik',
+        role: 'signer',
+        signedAt: '2026-10-02T15:00:00.000Z',
+        path: drawing,
+        way: 'drawing',
+      },
     ])
     expect(await countOf('activity_signatures', 'activity_id', activity)).toBe(2)
     expect(await countOf('work_order_decisions', 'work_order_id', order)).toBe(2)

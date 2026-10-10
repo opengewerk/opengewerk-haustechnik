@@ -428,6 +428,7 @@ export class WorkOrdersController {
         signedAt: signature.signedAt.toISOString(),
         deviceInfo: signature.deviceInfo,
         path: signature.path,
+        typedName: signature.typedName,
         valid,
       })),
       decisions: read.decisions.map((decision) => ({

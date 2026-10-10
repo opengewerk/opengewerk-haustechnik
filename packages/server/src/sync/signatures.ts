@@ -70,10 +70,12 @@ export function signed(catalogue: Catalogue): SyncCheck<Sender> {
         tenantId,
         {
           signedBy: sender.userId,
+          accountName: sender.nameOf(sender.userId),
           activityId: values['activityId'] as ActivityId,
           role: values['role'] as SignatureRole,
           deviceInfo: (values['deviceInfo'] ?? null) as string | null,
-          path: String(values['path'] ?? ''),
+          path: (values['path'] ?? null) as string | null,
+          typedName: (values['typedName'] ?? null) as string | null,
           pageFingerprint: String(values['pageFingerprint'] ?? ''),
         },
         catalogue,

@@ -131,6 +131,7 @@ const awaiting: RoundDetails = {
       signedAt: '2026-10-05T05:38:00.000Z',
       deviceInfo: 'Telefon',
       path: 'M10,10L200,300',
+      typedName: null,
       valid: true,
     },
   ],
@@ -309,6 +310,94 @@ describe('a round that was signed', () => {
         pageFingerprint: await fingerprintOf(page),
       },
     })
+  })
+
+  it('is countersigned without a drawing, with the own name typed and the keyboard alone (#209)', async () => {
+    const user = userEvent.setup()
+
+    answerToWrite = () => ({
+      status: 201,
+      body: { ...awaiting, status: 'done', state: 'submitted' },
+    })
+    await mountOffice('/rundgaenge/r-school', server, everything)
+
+    const countersign = await screen.findByRole('button', { name: roundWords.countersign })
+
+    // The pad takes a finger or a pen; the keyboard reaches the way beside it.
+    screen.getByRole('button', { name: 'Ohne Schriftzug unterschreiben' }).focus()
+    await user.keyboard('{Enter}')
+
+    const name = screen.getByRole('textbox', { name: 'Ihr Name' })
+
+    // The keyboard that pressed the button types here next.
+    expect(document.activeElement).toBe(name)
+    expect(screen.queryByRole('img', { name: roundWords.pad })).toBeNull()
+
+    // The name of somebody else confirms nothing, and nothing is sent.
+    await user.keyboard('Tobias Wendt')
+    await user.tab()
+    expect(
+      screen.getByText('Bestätigt wird mit dem eigenen Namen, wie er im Konto steht: Pia Person.'),
+    ).toBeDefined()
+    await user.tab()
+    expect(document.activeElement).toBe(countersign)
+    await user.keyboard('{Enter}')
+    expect((await screen.findByRole('alert')).textContent).toBe(roundWords.noPath)
+    expect(written).toEqual([])
+
+    // The own name counts, whatever the case and the spaces.
+    await user.clear(name)
+    await user.keyboard(' pia   Person ')
+    await user.tab()
+    await user.tab()
+    await user.keyboard('{Enter}')
+
+    await waitFor(() => {
+      expect(written).toHaveLength(1)
+    })
+    expect(written[0]).toMatchObject({
+      method: 'POST',
+      path: '/rounds/r-school/countersignature',
+      body: { path: null, typedName: 'pia Person', pageFingerprint: await fingerprintOf(page) },
+    })
+  })
+
+  it('shows a signature confirmed with the typed name as the name, and says so (#209)', async () => {
+    signedIn('site_management', [
+      {
+        ...awaiting,
+        status: 'done',
+        state: 'submitted',
+        signatures: [
+          ...awaiting.signatures,
+          {
+            id: 's-2',
+            role: 'countersigner',
+            name: 'Dennis Roth',
+            signedAt: '2026-10-05T08:14:00.000Z',
+            deviceInfo: 'Firefox',
+            path: null,
+            typedName: 'Dennis Roth',
+            valid: true,
+          },
+        ],
+      },
+    ])
+    await mountOffice('/rundgaenge/r-school', server, everything)
+
+    const counter = await screen.findByRole('region', { name: 'Gegenzeichnung' })
+
+    expect(
+      within(counter).getByRole('img', {
+        name: 'Unterschrift von Dennis Roth, mit getipptem Namen bestätigt',
+      }).textContent,
+    ).toBe('Dennis Roth')
+    expect(counter.textContent).toContain('mit getipptem Namen bestätigt')
+    expect(
+      within(screen.getByRole('region', { name: 'Unterschrift' })).getByRole('img', {
+        name: 'Unterschrift von Tobias Wendt',
+      }),
+    ).toBeDefined()
   })
 
   it('says why the server did not take the countersignature', async () => {

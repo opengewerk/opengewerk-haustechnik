@@ -233,6 +233,7 @@ async function signed(
         signedAt: new Date(),
         deviceInfo: 'Probe-Telefon',
         path: 'M10,10L200,300',
+        typedName: null,
         pageFingerprint: pageFingerprint(await pageOf(tx, row)),
       },
     )

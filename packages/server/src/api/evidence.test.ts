@@ -197,6 +197,7 @@ async function evidenceOf(
               role: 'signer',
               signedAt: '2026-10-01T07:42:00.000Z',
               path: null,
+              way: 'drawing',
             },
           ]
         : [],

@@ -14,7 +14,6 @@ import { Button, Field, Panel } from '@opengewerk/platform-web'
 import { clockTime, today } from '@opengewerk/platform-web/format'
 import { accountQuery, useRight, useWho } from '@opengewerk/platform-web/session'
 import {
-  SignaturePad,
   SiteActionBar,
   SiteHeader,
   SiteRow,
@@ -39,6 +38,7 @@ import { useCallback, useId, useMemo, useRef, useState } from 'react'
 import { answerAt, beginActivity, filledOf, type FormPoint, lackOf } from '../../app/answers.js'
 import { useDeferredWrite } from '../../app/form-points.js'
 import { offeredResults, resultNotes } from '../../app/results.js'
+import { type GivenSignature, SignatureWays } from '../../app/signature-ways.js'
 import { signActivity } from '../../app/signing.js'
 import { NotOnDevice, PlainRow } from '../kit.js'
 import { siteForms } from '../places.js'
@@ -203,7 +203,7 @@ function ResultOf({ activityId }: { readonly activityId: string }) {
   )
   const [reason, setReason] = useState(maybeText(first, 'resultReason') ?? '')
   const [remark, setRemark] = useState(maybeText(first, 'remark') ?? '')
-  const [path, setPath] = useState<string | null>(null)
+  const [given, setGiven] = useState<GivenSignature | null>(null)
   const [trouble, setTrouble] = useState<string | null>(null)
   const [working, setWorking] = useState(false)
   const queue = useRef<Promise<void>>(Promise.resolve())
@@ -385,10 +385,10 @@ function ResultOf({ activityId }: { readonly activityId: string }) {
     missing.length === 0 &&
     complete &&
     contradiction === null &&
-    path !== null
+    given !== null
 
   async function sign() {
-    if (path === null) {
+    if (given === null) {
       return
     }
 
@@ -402,7 +402,7 @@ function ResultOf({ activityId }: { readonly activityId: string }) {
       // The day comes with the first input; one opened only to sign has none yet.
       await enqueue(() => Promise.resolve(null))
 
-      const problem = await signActivity(client, activityId, path)
+      const problem = await signActivity(client, activityId, given)
 
       if (problem !== null) {
         setTrouble(problem)
@@ -540,7 +540,7 @@ function ResultOf({ activityId }: { readonly activityId: string }) {
             <p className="font-condensed text-[15px] font-semibold tracking-[1.2px] text-ink-faint uppercase">
               {resultWords.signature}
             </p>
-            <SignaturePad label={resultWords.pad} onChange={setPath} />
+            <SignatureWays label={resultWords.pad} name={who.name} onChange={setGiven} />
             {who.name === '' ? null : <p className="text-[16px] font-semibold">{who.name}</p>}
           </div>
         ) : null}

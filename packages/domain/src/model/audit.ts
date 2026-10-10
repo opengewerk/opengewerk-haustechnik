@@ -360,6 +360,7 @@ export const auditVocabulary: AuditVocabulary = {
         signed_at: 'Unterschrieben am',
         device_info: 'Gerät',
         path: 'Linienzug',
+        typed_name: 'Getippter Name',
         page_fingerprint: 'Fingerabdruck der Seite',
       },
     },
