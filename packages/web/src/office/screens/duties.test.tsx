@@ -486,6 +486,70 @@ describe('the register of duties', () => {
     })
   })
 
+  it('is narrowed to a window of days and to an area, which go into the address and to the server (#122)', async () => {
+    const nord: NamedArea = { id: 'a-nord', name: 'Nord' }
+
+    signedInOffice('management', [nord, sued], {
+      ...servingCatalogue(),
+      // Only these questions have an answer: any other, and no table stands.
+      '/duties/register?due=overdue_or_in_30_days&areaId=a-nord&offset=0&limit=50': page([
+        mainTest,
+      ]),
+      '/duties/register?due=in_90_days&areaId=a-nord&offset=0&limit=50': page([mainTest, atRoom]),
+      '/duties/register?due=in_90_days&offset=0&limit=50': page([mainTest, atRoom, maintenance]),
+    })
+
+    const { router } = await mountOffice(
+      '/pflichten?termin=overdue_or_in_30_days&bereich=a-nord',
+      server,
+      everything,
+    )
+    const address = () => router.state.location.href
+
+    await screen.findByRole('table', { name: register })
+    expect(titles()).toHaveLength(1)
+    expect(['Fällig', 'Bereich'].map((name) => filter(name).value)).toEqual([
+      'overdue_or_in_30_days',
+      'a-nord',
+    ])
+    expect(
+      within(filter('Fällig'))
+        .getAllByRole('option')
+        .map((option) => option.textContent),
+    ).toEqual(['Alle', 'In 30 Tagen', 'In 90 Tagen', 'Überfällig oder in 30 Tagen'])
+    await waitFor(() => {
+      expect(
+        within(filter('Bereich'))
+          .getAllByRole('option')
+          .map((option) => option.textContent),
+      ).toEqual(['Alle Bereiche', 'Nord', 'Süd'])
+    })
+
+    choose('Fällig', 'in_90_days')
+    await waitFor(() => {
+      expect(address()).toBe('/pflichten?termin=in_90_days&bereich=a-nord')
+    })
+    await waitFor(() => {
+      expect(titles()).toHaveLength(2)
+    })
+
+    choose('Bereich', '')
+    await waitFor(() => {
+      expect(address()).toBe('/pflichten?termin=in_90_days')
+    })
+    await waitFor(() => {
+      expect(titles()).toHaveLength(3)
+    })
+  })
+
+  it('offers no area to somebody who sees one, and asks for no window the address has no word for', async () => {
+    await mount('/pflichten?termin=bald', { [firstPage]: page([maintenance]) })
+    await screen.findByRole('table', { name: register })
+
+    expect(screen.queryByRole('combobox', { name: 'Bereich' })).toBeNull()
+    expect(filter('Fällig').value).toBe('')
+  })
+
   it('offers every state with how many duties are in it, the places, the asset kinds, nobody and the people the server names', async () => {
     await mount('/pflichten', { [firstPage]: page([maintenance], { people }) }, 'management')
     await screen.findByRole('table', { name: register })

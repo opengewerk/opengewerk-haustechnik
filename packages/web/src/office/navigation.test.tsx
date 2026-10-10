@@ -88,8 +88,8 @@ describe('what a role is offered once every screen is built', () => {
   })
 
   it('is nothing that takes a right for somebody who holds none', () => {
+    // The overview counts duties, and asks for the right to read them (#122).
     expect(offered(everyPlace, [], () => true).map((place) => place.label)).toEqual([
-      'Übersicht',
       'Aufgaben',
       'Katalog',
     ])
@@ -150,6 +150,8 @@ describe('the navigation of the office as it is built today', () => {
    * after them (#117). The next screen that arrives changes what stands here.
    */
   const built = [
+    // The overview of the operator's responsibility, for every role (#122).
+    'Übersicht',
     'Liegenschaften',
     'Anlagen',
     'Zähler',
@@ -168,6 +170,7 @@ describe('the navigation of the office as it is built today', () => {
   ]
   // The deadlines and their settings for whoever looks after them (#104).
   const withDeadlines = [
+    'Übersicht',
     'Liegenschaften',
     'Anlagen',
     'Zähler',
@@ -203,15 +206,15 @@ describe('the navigation of the office as it is built today', () => {
     expect(titles()).toEqual(['Bestand', 'Pflichten', 'Arbeit'])
   })
 
-  it('offers nobody a place whose screen is not built, the overview first of all', async () => {
+  it('offers nobody a place whose screen is not built, such as the tasks', async () => {
     signedInAs(memberIn('management'))
     await mounted({ routeTree: officeRoutes(), at: '/konflikte', application: officeApplication })
     await untilTheRightsAreKnown()
     await screen.findByRole('link', { name: 'Liegenschaften' })
 
-    for (const label of ['Übersicht', 'Aufgaben']) {
-      expect(screen.queryByRole('link', { name: label })).toBeNull()
-    }
+    expect(screen.queryByRole('link', { name: 'Aufgaben' })).toBeNull()
+    // The overview is built (#122).
+    expect(screen.getByRole('link', { name: 'Übersicht' })).toBeTruthy()
   })
 })
 

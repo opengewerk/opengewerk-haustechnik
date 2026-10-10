@@ -1,4 +1,6 @@
 import {
+  type DutyDueWindow,
+  dutyDueWindows,
   type DutyRegisterFilter,
   dutyRegisterFilters,
   dutyRegisterPage,
@@ -90,7 +92,9 @@ export function newDutySearch(start: NewDutyStart): Record<string, string> {
  */
 export const dutyRegisterWords = {
   state: 'zustand',
+  due: 'termin',
   propertyId: 'liegenschaft',
+  areaId: 'bereich',
   buildingId: 'gebaeude',
   assetKind: 'art',
   dutyKind: 'pflichtart',
@@ -122,14 +126,15 @@ export function newDutyStart(search: Readonly<Record<string, unknown>>): NewDuty
 }
 
 /**
- * The filters an address names. A state there is none of is no filter: the
- * server would refuse it, and a list that shows everything says more than an
- * error about a word in the address.
+ * The filters an address names. A state or a window of days there is none
+ * of is no filter: the server would refuse it, and a list that shows
+ * everything says more than an error about a word in the address.
  */
 export function dutyFilterOf(search: Readonly<Record<string, unknown>>): DutyRegisterFilter {
   const state = said(search, dutyRegisterWords.state)
+  const due = said(search, dutyRegisterWords.due)
   const plain = (
-    ['propertyId', 'buildingId', 'assetKind', 'dutyKind', 'responsible'] as const
+    ['propertyId', 'areaId', 'buildingId', 'assetKind', 'dutyKind', 'responsible'] as const
   ).flatMap((name) => {
     const value = said(search, dutyRegisterWords[name])
 
@@ -139,6 +144,9 @@ export function dutyFilterOf(search: Readonly<Record<string, unknown>>): DutyReg
   return {
     ...((dutyRegisterStates as readonly (string | undefined)[]).includes(state)
       ? { state: state as DutyRegisterState }
+      : {}),
+    ...((dutyDueWindows as readonly (string | undefined)[]).includes(due)
+      ? { due: due as DutyDueWindow }
       : {}),
     ...Object.fromEntries(plain),
   }

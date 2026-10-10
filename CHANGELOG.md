@@ -975,6 +975,15 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   `typed_name`, Migration 0036), und der Stand eines Nachweises (Fassung 6), der eingefrorene
   Rundgang, ihre Seiten und das PDF sagen, welcher es war. Bisher ging eine Unterschrift nur mit
   dem Finger oder einem Stift, für manche Menschen eine Hürde, und per Tastatur gar nicht
+- Übersicht der Betreiberverantwortung (#122) als Startseite des Büros: über alle Liegenschaften
+  oder einen Bereich, wie viele Pflichten überfällig, in 30 und in 90 Tagen fällig und nie
+  erfasst sind, wie vielen Prüfungen und Wartungen einer Fremdfirma der Bericht fehlt und wie
+  viele Mängel über ihrer Frist sind, dazu die ersten davon. Jede Zahl führt auf ihre Liste und
+  zählt mit deren Filter (Route `/overview`). Dafür lässt sich das Pflichtenverzeichnis nach
+  "Fällig" (in 30 Tagen, in 90 Tagen, überfällig oder in 30 Tagen) und nach Bereich eingrenzen,
+  und die Prüfungen nach "Bericht fehlt" und Bereich. Die Übersicht nennt keine Person. Bisher
+  begann das Büro bei den Liegenschaften, und wer wissen wollte, was ansteht, musste mehrere
+  Listen durchgehen
 
 ### Geändert
 

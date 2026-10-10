@@ -232,7 +232,8 @@ Leitung und Technische Leitung sehen als Vorgabe alle Bereiche.
 
 ## 5. Auswertungen: welche es gibt und welche nicht
 
-- In dieser Fassung gibt es Listen und keine Auswertungen: die Liegenschaften mit ihren Gebäuden, Geschossen und Räumen, das Anlagenverzeichnis, die Dokumente, das Pflichtenverzeichnis, die Fristen, die Prüfungen, die Mängel, die Aufträge, den Katalog, die Bereiche, die Zugänge mit den Vertretungen und das Änderungsprotokoll, dazu das eigene Konto und der Abgleich des eigenen Geräts. Was die Navigation darüber hinaus vorsieht, ist nicht gebaut und wird niemandem angeboten. [K4.16, B37]
+- In dieser Fassung gibt es Listen und keine Auswertungen: die Liegenschaften mit ihren Gebäuden, Geschossen und Räumen, das Anlagenverzeichnis, die Dokumente, das Pflichtenverzeichnis, die Fristen, die Prüfungen, die Mängel, die Aufträge, den Katalog, die Bereiche, die Zugänge mit den Vertretungen und das Änderungsprotokoll, dazu das eigene Konto und der Abgleich des eigenen Geräts. Die Übersicht am Anfang des Büros zählt, was in diesen Listen steht. Was die Navigation darüber hinaus vorsieht, ist nicht gebaut und wird niemandem angeboten. [K4.16, B37]
+- **Zusage:** Die Übersicht zählt Pflichten, Prüfungen und Mängel über alle Bereiche der fragenden Person oder über einen davon: überfällig, in 30 und in 90 Tagen fällig, nie erfasst, Bericht einer Fremdfirma fehlt, Mängel über der Frist. Sie nennt keine Person, weder wer für eine Pflicht verantwortlich ist noch wer eine Prüfung ausführt, und zählt nichts je Person. [K4.3, K4.16, B158]
 - **Zusage:** Anhang C nennt jede Adresse, die der Server beantwortet. Eine Adresse für eine Statistik, eine Rangliste, eine Liste des Verzugs je Person oder einen Export ist nicht darunter. [K4.16, B40]
 - **Zusage:** Eine Adresse, die eine einzelne Person in ihrem Pfad nennt, verlangt ein Recht der Zugänge und ist damit der Leitung vorbehalten. Die einzige Ausnahme ist die Verwaltung der Instanz, die ihre eigenen Verwalter führt. [K9, B16]
 - **Zusage:** Das Pflichtenverzeichnis lässt sich auf die Pflichten einer verantwortlichen Person eingrenzen. Das kann nur, wer es führt, also die Leitung und die Technische Leitung. Objektleitung und Haustechnik werden mit dieser Frage abgelehnt, auch wenn sie nach sich selbst fragen; auf die Pflichten, für die niemand benannt ist, grenzt jede Rolle ein. [K4.3, K7, B80]
@@ -370,7 +371,7 @@ Pfade ohne Vorsatz liegen im Repository `opengewerk/opengewerk-haustechnik`. Pfa
 | B34 | Test | `packages/server/src/database/tenant-isolation.test.ts` | `keep a row that is removed by marking out of reach of DELETE` |
 | B35 | Test | `packages/server/src/api/contacts.test.ts` | `let whoever keeps the properties keep their contacts, and everybody else read them` |
 | B36 | Test | `packages/domain/src/model/rights.test.ts` | `have exactly one that leads, and it is the one that needs a second factor` |
-| B37 | Test | `packages/web/src/office/navigation.test.tsx` | `offers nobody a place whose screen is not built, the overview first of all` |
+| B37 | Test | `packages/web/src/office/navigation.test.tsx` | `offers nobody a place whose screen is not built, such as the tasks` |
 | B38 | Test | `packages/server/src/deadlines/routes.test.ts` | `give the lead of the kind and take a lead of the operator own, and no interval` |
 | B39 | Test | `packages/server/src/api/nothing-taken-back.test.ts` | `keeps its answers, signatures, decisions and evidence through every route there is` |
 | B40 | Test | `packages/server/src/processing-description.test.ts` | `names every address the server answers, and no other` |
@@ -491,6 +492,7 @@ Pfade ohne Vorsatz liegen im Repository `opengewerk/opengewerk-haustechnik`. Pfa
 | B155 | Test | `packages/server/src/prints/record-page.test.ts` | `shows a drawn signature as its drawing and a typed one as the name with the way (#209)` |
 | B156 | Test | `packages/server/src/activities/signing.test.ts` | `is refused with a moment of the device ahead of the server, or before the day of the performance (#79)` |
 | B157 | Test | `packages/server/src/activities/signing.test.ts` | `keeps the moment of the device and the one of the server in the state (#79)` |
+| B158 | Test | `packages/server/src/api/overview.test.ts` | `names nobody: neither who answers for a duty nor who performs an inspection` |
 
 ---
 
@@ -567,6 +569,7 @@ Jede Zeile ist der erste Abschnitt einer Adresse, unter der der Server antwortet
 | `instance` | Verwaltung der Instanz |
 | `invitation` | Einlösen einer Einladung |
 | `labels` | Etiketten: sagt zu einem gescannten Code in einem Wort, ob er für die fragende Person etwas öffnet, und druckt viele Etiketten auf einmal |
+| `overview` | Übersicht der Betreiberverantwortung: wie viele Pflichten überfällig, in 30 und in 90 Tagen fällig und nie erfasst sind, wie vielen Prüfungen der Bericht einer Fremdfirma fehlt und wie viele Mängel über ihrer Frist sind, mit den ersten davon; über alle Bereiche der fragenden Person oder einen, ohne eine Person zu nennen |
 | `meters` | Zähler: die Liste zum Stichtag, die Seite einer Messstelle mit Ständen, Verbrauch und Verlauf, ein Stand von Hand und seine Berichtigung, der Zählertausch, die Stilllegung, die Sperre, die Notiz und was nur die Messstelle trägt |
 | `properties` | Liegenschaften |
 | `rooms` | Räume, mit den Pflichten, die an ihnen hängen |

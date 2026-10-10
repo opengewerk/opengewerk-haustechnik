@@ -33,6 +33,7 @@ import {
   dutyInterval,
   type DutyPerson,
   isAllowed,
+  type IsoDate,
   type Right,
   takesAReport,
 } from '@opengewerk/haustechnik-domain'
@@ -43,7 +44,7 @@ import {
   isUuid,
   type TenantTransaction,
 } from '@opengewerk/platform-server'
-import { and, asc, count, eq, ilike, inArray, isNull, or, type SQL, sql } from 'drizzle-orm'
+import { and, asc, count, eq, ilike, inArray, isNull, lt, or, type SQL, sql } from 'drizzle-orm'
 
 import { closeAsNotPerformed } from '../activities/closing.js'
 import { makeActivityForDuty } from '../activities/for-duty.js'
@@ -69,16 +70,17 @@ const missing = 'Diesen Vorgang gibt es nicht oder nicht mehr.'
 const missingDuty = 'Diese Pflicht gibt es nicht oder nicht mehr.'
 
 /** What the list is asked, read from the address. */
-interface ActivityQuestion {
+export interface ActivityQuestion {
   readonly state: ActivityListState
   readonly kind: DueActivityKind | null
   readonly propertyId: string | null
+  readonly areaId: string | null
   readonly search: string | null
   readonly offset: number
   readonly limit: number
 }
 
-function activityQuestionOf(query: Readonly<Record<string, unknown>>): ActivityQuestion {
+export function activityQuestionOf(query: Readonly<Record<string, unknown>>): ActivityQuestion {
   const state = said(query, 'state') ?? 'pending'
   const kind = said(query, 'kind') ?? null
 
@@ -94,6 +96,7 @@ function activityQuestionOf(query: Readonly<Record<string, unknown>>): ActivityQ
     state: state as ActivityListState,
     kind: kind as DueActivityKind | null,
     propertyId: said(query, 'property') ?? null,
+    areaId: said(query, 'area') ?? null,
     search: said(query, 'search')?.trim() || null,
     offset: counted(
       said(query, 'offset'),
@@ -148,6 +151,45 @@ export function inSight(identity: Asking): SQL | undefined {
   )
 }
 
+/**
+ * What of the list a question narrows to on a day, for the person asking: the
+ * kinds and the states it names, the property and the area, the search, and
+ * what the person is shown (`inSight`). Undefined where it names a property
+ * or an area by something that is no id, which names nothing they could see.
+ *
+ * "Bericht fehlt" holds the inspections and the maintenance a contractor
+ * performs whose day has passed and that nothing settled yet: neither the
+ * report of the contractor nor a signature (decision 39 of phase 1).
+ */
+export function activityListWhere(
+  identity: Asking,
+  question: Pick<ActivityQuestion, 'state' | 'kind' | 'propertyId' | 'areaId' | 'search'>,
+  today: IsoDate,
+): SQL | undefined | null {
+  if ([question.propertyId, question.areaId].some((id) => id !== null && !isUuid(id))) {
+    return null
+  }
+
+  const statuses = activityListStatuses[question.state]
+
+  return and(
+    isNull(activities.deletedAt),
+    inArray(activities.kind, question.kind === null ? [...dueActivityKinds] : [question.kind]),
+    statuses === null ? undefined : inArray(activities.status, [...statuses]),
+    question.state === 'report_missing'
+      ? and(eq(activities.performer, 'contractor'), lt(activities.dueOn, today))
+      : undefined,
+    question.propertyId === null
+      ? undefined
+      : eq(activities.propertyId, question.propertyId as Activity['propertyId']),
+    question.areaId === null
+      ? undefined
+      : eq(activities.areaId, question.areaId as Activity['areaId']),
+    question.search === null ? undefined : searching(question.search),
+    inSight(identity),
+  )
+}
+
 /** The fields of the plan of an activity, and those that may be left empty. */
 const planFields = [
   'responsibleUserId',
@@ -182,8 +224,8 @@ export class ActivitiesController {
 
   /**
    * A page of the inspections and the maintenance the person asking sees,
-   * the earliest due day first, narrowed by state, kind, property and a
-   * search through the title, the asset and the property. There is no
+   * the earliest due day first, narrowed by state, kind, property, area and
+   * a search through the title, the asset and the property. There is no
    * narrowing to a person: a list about somebody would be a count of their
    * work (sections 4.16 and 9 of the concept).
    */
@@ -194,22 +236,11 @@ export class ActivitiesController {
     @Query() query: Record<string, unknown>,
   ): Promise<ActivityList> {
     const question = activityQuestionOf(query)
-    const statuses = activityListStatuses[question.state]
+    const where = activityListWhere(identity, question, dayInGermany())
 
-    if (question.propertyId !== null && !isUuid(question.propertyId)) {
+    if (where === null) {
       return { total: 0, more: false, activities: [] }
     }
-
-    const where = and(
-      isNull(activities.deletedAt),
-      inArray(activities.kind, question.kind === null ? [...dueActivityKinds] : [question.kind]),
-      statuses === null ? undefined : inArray(activities.status, [...statuses]),
-      question.propertyId === null
-        ? undefined
-        : eq(activities.propertyId, question.propertyId as Activity['propertyId']),
-      question.search === null ? undefined : searching(question.search),
-      inSight(identity),
-    )
 
     const read = await this.database.forTenant(identity, async (tx) => {
       const [counted] = await tx.select({ total: count() }).from(activities).where(where)

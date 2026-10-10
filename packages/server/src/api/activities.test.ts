@@ -127,6 +127,8 @@ interface Made {
   readonly dueOn?: IsoDate
   readonly responsible?: string | null
   readonly performerUserId?: string | null
+  /** A contractor named in words, who performs it instead of the own people. */
+  readonly contractor?: string
 }
 
 /** An activity that is to meet a duty, at the place of the duty, as the engine makes one. */
@@ -135,9 +137,12 @@ async function activityFor(duty: string, made: Made = {}): Promise<string> {
     `with activity as (
        insert into activities (tenant_id, property_id, area_id, building_id, room_id, asset_id, kind,
                                title, status, due_on, responsible_user_id, performer,
-                               performer_user_id)
+                               performer_user_id, contractor_note)
        select tenant_id, property_id, area_id, building_id, room_id, asset_id, $2, $3, $4, $5, $6,
-              case when $7::text is null then null else 'own_staff'::duty_performer end, $7
+              case when $8::text is not null then 'contractor'::duty_performer
+                   when $7::text is null then null
+                   else 'own_staff'::duty_performer end,
+              $7, $8
          from duties where id = $1
        returning id, tenant_id, property_id, area_id
      ), line as (
@@ -153,6 +158,7 @@ async function activityFor(duty: string, made: Made = {}): Promise<string> {
       made.dueOn ?? inDays(20),
       made.responsible === undefined ? 'u-duties' : made.responsible,
       made.performerUserId ?? null,
+      made.contractor ?? null,
     ],
   )
 
@@ -375,6 +381,64 @@ describe('the list "Prüfungen"', () => {
       .get('/activities?kind=round')
       .set(testIdentityHeader, header)
       .expect(400, /Die Art ist eine von/)
+  })
+})
+
+describe('the list "Bericht fehlt" (#122)', () => {
+  it('holds what a contractor performs whose day has passed and that nothing settled yet', async () => {
+    const lift = async (name: string) => mainTestAt(await elevatorIn(small, null, name))
+    const contractor = 'Prüfdienst Beispiel GmbH'
+    const late = { dueOn: inDays(-3), contractor }
+    const missing = [
+      await activityFor(await lift('Bericht fehlt 1'), late),
+      await activityFor(await lift('Bericht fehlt 2'), { ...late, status: 'started' }),
+      await activityFor(await lift('Bericht fehlt 3'), { ...late, kind: 'maintenance' }),
+    ]
+    const notMissing = [
+      // Its day is today, and the contractor may still come.
+      await activityFor(await lift('Heute'), { dueOn: today, contractor }),
+      // The own people perform it, or nobody said who does.
+      await activityFor(await lift('Eigene Leute'), {
+        dueOn: inDays(-3),
+        performerUserId: 'u-tech',
+      }),
+      await activityFor(await lift('Niemand gesagt'), { dueOn: inDays(-3) }),
+      // A report or a signature settled it.
+      await activityFor(await lift('Erledigt'), { ...late, status: 'done' }),
+      await activityFor(await lift('Unterschrieben'), { ...late, status: 'signed' }),
+    ]
+    const header = by('u-lead')
+    const listedThere = await listed(header, '?state=report_missing&limit=200')
+    const ids = listedThere.activities.map((entry) => entry.id)
+
+    expect(ids).toEqual(expect.arrayContaining(missing))
+
+    for (const id of notMissing) {
+      expect(ids).not.toContain(id)
+    }
+
+    expect(listedThere.total).toBe(ids.length)
+    // Each of them is open as well: "Bericht fehlt" is a part of what is to be done.
+    expect((await listed(header, '?limit=200')).activities.map((entry) => entry.id)).toEqual(
+      expect.arrayContaining(missing),
+    )
+  })
+})
+
+describe('the list narrowed to an area (#122)', () => {
+  it('holds the activities of that area, and nothing of an area that is not the person', async () => {
+    const northern = await activityFor(await mainTestAt(await elevatorIn(large, north, 'Nordhaus')))
+    const southern = await activityFor(await mainTestAt(await elevatorIn(large, south, 'Südhaus')))
+    const ids = async (header: string, address: string) =>
+      (await listed(header, address)).activities.map((entry) => entry.id)
+    const lead = by('u-lead', large)
+
+    expect(await ids(lead, `?state=all&limit=200&area=${north}`)).toContain(northern)
+    expect(await ids(lead, `?state=all&limit=200&area=${north}`)).not.toContain(southern)
+    expect(await ids(lead, `?state=all&limit=200&area=${south}`)).toContain(southern)
+    // The Objektleitung of the north asks for the south and gets nothing.
+    expect(await ids(by('u-site', large), `?state=all&area=${south}`)).toEqual([])
+    expect(await ids(lead, '?state=all&area=keine-kennung')).toEqual([])
   })
 })
 

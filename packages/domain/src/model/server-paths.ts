@@ -32,6 +32,9 @@ export const serverPaths: readonly string[] = [
   // The duties of an operator and the proposals dismissed.
   'duties',
   'duty-dismissals',
+  // The overview of the operator's responsibility, the start page of the
+  // office (#122).
+  'overview',
   // The inspections and the maintenance that came of the due days, the page
   // of one and its plan.
   'activities',

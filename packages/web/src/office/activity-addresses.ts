@@ -22,9 +22,9 @@ export const activityPlaces = {
 } as const
 
 /**
- * What the address of the list is narrowed by: the state, the kind and the
- * property. The search is typed into the list and stays there, as in the
- * list "Fristen".
+ * What the address of the list is narrowed by: the state, the kind, the
+ * property and the area. The search is typed into the list and stays there,
+ * as in the list "Fristen".
  */
 export interface ActivityListAddress extends Omit<ActivityListFilter, 'search'> {
   readonly state?: ActivityListState
@@ -38,16 +38,18 @@ export const activityListWords = {
   state: 'stand',
   kind: 'art',
   propertyId: 'liegenschaft',
+  areaId: 'bereich',
 } as const satisfies Readonly<Record<keyof ActivityListAddress, string>>
 
 /** The filters of the address in the order the server reads them, the search last. */
-const filterOrder = ['state', 'kind', 'propertyId'] as const
+const filterOrder = ['state', 'kind', 'propertyId', 'areaId'] as const
 
 /** The name the server knows each filter by. */
 const serverNames = {
   state: 'state',
   kind: 'kind',
   propertyId: 'property',
+  areaId: 'area',
 } as const satisfies Readonly<Record<keyof ActivityListAddress, string>>
 
 /** What an address says after a word, as text: the router reads digits as a number. */
@@ -70,6 +72,7 @@ export function activityFilterOf(search: Readonly<Record<string, unknown>>): Act
   const state = said(search, activityListWords.state)
   const kind = said(search, activityListWords.kind)
   const propertyId = said(search, activityListWords.propertyId)
+  const areaId = said(search, activityListWords.areaId)
 
   return {
     ...((activityListStates as readonly (string | undefined)[]).includes(state)
@@ -79,6 +82,7 @@ export function activityFilterOf(search: Readonly<Record<string, unknown>>): Act
       ? { kind: kind as DueActivityKind }
       : {}),
     ...(propertyId === undefined ? {} : { propertyId }),
+    ...(areaId === undefined ? {} : { areaId }),
   }
 }
 

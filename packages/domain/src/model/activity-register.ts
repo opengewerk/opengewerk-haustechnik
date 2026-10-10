@@ -27,25 +27,43 @@ import type { PlaceTarget } from './target.js'
 
 /**
  * What the list is narrowed to under "Stand": what is still to be done (open,
- * begun, or signed and waiting), what is done, what was not performed, or
- * everything.
+ * begun, or signed and waiting), what of that waits for the report of a
+ * contractor, what is done, what was not performed, or everything.
+ *
+ * "Bericht fehlt" (#122) is derived, because the application does not hold
+ * the day a contractor came: an inspection or a maintenance a contractor
+ * performs, whose day has passed and which is neither signed nor settled by
+ * a report (decision 39 of phase 1, 10.10.2026). It is what the overview
+ * counts as "Nachweis fehlt".
  */
-export const activityListStates = ['pending', 'done', 'not_performed', 'all'] as const
+export const activityListStates = [
+  'pending',
+  'report_missing',
+  'done',
+  'not_performed',
+  'all',
+] as const
 
 export type ActivityListState = (typeof activityListStates)[number]
 
 export const activityListStateLabel: Readonly<Record<ActivityListState, string>> = {
   pending: 'Offen',
+  report_missing: 'Bericht fehlt',
   done: 'Erledigt',
   not_performed: 'Nicht durchgeführt',
   all: 'Alle',
 }
 
-/** The states of an activity each choice of the list holds. */
+/**
+ * The states of an activity each choice of the list holds. "Bericht fehlt"
+ * holds more than a state: the server narrows it to a contractor and to a
+ * day that has passed.
+ */
 export const activityListStatuses: Readonly<
   Record<ActivityListState, readonly ActivityStatus[] | null>
 > = {
   pending: ['open', 'started', 'signed'],
+  report_missing: ['open', 'started'],
   done: ['done'],
   not_performed: ['not_performed'],
   all: null,
@@ -58,6 +76,8 @@ export const activityListPage = { size: 50, most: 200 } as const
 export interface ActivityListFilter {
   readonly kind?: DueActivityKind
   readonly propertyId?: string
+  /** An area of the person asking: the activities at the places in it (#122). */
+  readonly areaId?: string
   /** A part of the title of the activity or of the name of its property. */
   readonly search?: string
 }

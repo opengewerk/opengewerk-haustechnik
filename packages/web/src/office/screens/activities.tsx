@@ -74,6 +74,7 @@ import { type ReactNode, useDeferredValue, useId, useMemo, useState } from 'reac
 
 import { DutyStateMark } from '../../app/asset-marks.js'
 import { titleOfRoom } from '../../app/place-records.js'
+import { useAreas } from '../../session/areas.js'
 import { askAt } from '../../sync/made-at.js'
 import {
   activityFilterOf,
@@ -291,6 +292,7 @@ function TwoLines({
 /** "14 offen", "3 erledigt": how many the list holds in the state it shows. */
 const countWords: Readonly<Record<ActivityListState, string>> = {
   pending: 'offen',
+  report_missing: 'ohne Bericht',
   done: 'erledigt',
   not_performed: 'nicht durchgeführt',
   all: 'insgesamt',
@@ -313,6 +315,7 @@ export function ActivityListScreen() {
   const filter = useMemo(() => activityFilterOf(address), [address])
   const navigate = useNavigate()
   const properties = useRecords('properties')
+  const areas = useAreas()
   const whereOf = usePlaces()
   const [search, setSearch] = useState('')
   const wanted = useDeferredValue(search.trim())
@@ -423,6 +426,27 @@ export function ActivityListScreen() {
               <option value={filter.propertyId}>Eine Liegenschaft</option>
             ) : null}
           </RegisterFilter>
+          {/* Somebody who sees one area is told nothing by its name (#122). */}
+          {areas.length > 1 || filter.areaId !== undefined ? (
+            <RegisterFilter
+              label="Bereich"
+              className="lg:w-[130px]"
+              value={filter.areaId ?? ''}
+              onChange={(value) => {
+                set('areaId', value)
+              }}
+            >
+              <option value="">Alle Bereiche</option>
+              {areas.map((area) => (
+                <option key={area.id} value={area.id}>
+                  {area.name}
+                </option>
+              ))}
+              {filter.areaId !== undefined && !areas.some((area) => area.id === filter.areaId) ? (
+                <option value={filter.areaId}>Ein Bereich</option>
+              ) : null}
+            </RegisterFilter>
+          ) : null}
         </div>
       </div>
       {first === undefined ? (

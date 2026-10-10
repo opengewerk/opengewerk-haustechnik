@@ -52,6 +52,7 @@ import {
   LabelsController,
   RoomLabelsController,
 } from './labels.controller.js'
+import { OverviewController } from './overview.controller.js'
 import { PropertiesController } from './properties.controller.js'
 import { DutyReportController } from './report.controller.js'
 import { RoomsController } from './rooms.controller.js'
@@ -250,6 +251,9 @@ export class ApiModule {
         DutiesController,
         RoomDutiesController,
         DutyDismissalsController,
+        // The overview of the operator's responsibility, the start page of
+        // the office.
+        OverviewController,
         // The inspections and the maintenance that came of the due days.
         ActivitiesController,
         // The work orders: the list, the page, a new one, its change and

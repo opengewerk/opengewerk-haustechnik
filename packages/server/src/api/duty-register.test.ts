@@ -654,6 +654,44 @@ describe('the register of duties', () => {
     }
   })
 
+  it('narrows to the duties whose appointment falls in the next 30 or 90 days, the overdue ones only where the window says so (#122)', async () => {
+    const place = await placeIn()
+    const metForDueIn = (days: number) => addDays(addMonths(today, -12), days)
+
+    await oneOfEachState(place)
+    await dutyAt(
+      { asset: await assetIn(place.annex, 'Aufzug G') },
+      { label: 'In 60 Tagen', metOn: [metForDueIn(60)] },
+    )
+    await dutyAt(
+      { asset: await assetIn(place.annex, 'Aufzug H') },
+      { label: 'In 100 Tagen', metOn: [metForDueIn(100)] },
+    )
+    await dutyAt(
+      { asset: await assetIn(place.annex, 'Aufzug I') },
+      { label: 'Beendet', metOn: [dueInTenDays], endsOn: daysAgo(1) },
+    )
+
+    const within = (due: string, state?: string) =>
+      titlesOf({ propertyId: place.property, due, ...(state === undefined ? {} : { state }) })
+
+    expect(await within('in_30_days')).toEqual(['Fällig'])
+    expect(await within('in_90_days')).toEqual(['Fällig', 'In 60 Tagen'])
+    expect(await within('overdue_or_in_30_days')).toEqual(['Überfällig', 'Fällig'])
+
+    // The window narrows like a place: the state within it, and the counts are those in it.
+    expect(await within('in_90_days', 'met')).toEqual(['In 60 Tagen'])
+    expect(await within('in_30_days', 'overdue')).toEqual([])
+    expect((await register({ propertyId: place.property, due: 'in_90_days' })).counts).toEqual({
+      never_recorded: 0,
+      overdue: 0,
+      due: 1,
+      met: 1,
+      dormant: 0,
+      ended: 0,
+    })
+  })
+
   it('keeps the duties that have ended in a list of their own, the newest end first', async () => {
     const place = await placeIn()
     const lift = await assetIn(place.building, 'Aufzug Haus A')
@@ -785,12 +823,16 @@ describe('the register of duties', () => {
     expect(await refused({ state: 'late' })).toBe(
       'Diesen Zustand kennt das Pflichtenverzeichnis nicht.',
     )
+    expect(await refused({ due: 'next_week' })).toBe(
+      '„Fällig“ ist eines von: in_30_days, in_90_days, overdue_or_in_30_days.',
+    )
     expect(await refused({ offset: '-1' })).toBe('Eine Seite beginnt bei einer ganzen Zahl ab 0.')
     expect(await refused({ limit: '0' })).toBe('Eine Seite hält zwischen 1 und 200 Pflichten.')
     expect(await refused({ limit: '201' })).toBe('Eine Seite hält zwischen 1 und 200 Pflichten.')
 
     expect(await register({ propertyId: 'keine-kennung' })).toMatchObject({ total: 0, duties: [] })
     expect(await register({ buildingId: 'keine-kennung' })).toMatchObject({ total: 0, duties: [] })
+    expect(await register({ areaId: 'keine-kennung' })).toMatchObject({ total: 0, duties: [] })
   })
 })
 
@@ -954,6 +996,33 @@ describe('the register in a tenant with two areas', () => {
       total: 3,
       withoutResponsible: 2,
     })
+  })
+})
+
+describe('the register narrowed to an area (#122)', () => {
+  it('holds the duties of that area, and nothing of an area that is not the person', async () => {
+    const inNorth = await placeIn(large, { areaId: north, name: 'Werkhof Nord' })
+    const inSouth = await placeIn(large, { areaId: south, name: 'Werkhof Süd' })
+    const northern = await dutyAt({ building: inNorth.building }, { label: 'Gebäude im Norden' })
+    const southern = await dutyAt({ building: inSouth.building }, { label: 'Gebäude im Süden' })
+    const lead = by('u-duties', large)
+    const ids = (page: DutyRegister) => page.duties.map((row) => row.id)
+    const all = await register({}, lead)
+    const ofNorth = await register({ areaId: north }, lead)
+    const ofSouth = await register({ areaId: south }, lead)
+
+    expect(ids(ofNorth)).toContain(northern)
+    expect(ids(ofNorth)).not.toContain(southern)
+    expect(ids(ofSouth)).toContain(southern)
+    expect(ids(ofSouth)).not.toContain(northern)
+    expect((ofNorth.total ?? 0) + (ofSouth.total ?? 0)).toBe(all.total)
+
+    // The technician works in the north: the south names nothing for them.
+    expect(await register({ areaId: south }, by('u-tech', large))).toMatchObject({
+      total: 0,
+      duties: [],
+    })
+    expect(ids(await register({ areaId: north }, by('u-tech', large)))).toContain(northern)
   })
 })
 

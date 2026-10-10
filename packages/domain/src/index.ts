@@ -97,6 +97,9 @@ export * from './model/asset-condition.js'
 // the order of the register and what an evidence means for an appointment.
 export * from './model/duty-register.js'
 
+// The overview of the operator's responsibility, the start page of the office.
+export * from './model/overview.js'
+
 // The page of an evidence, the evidence of an asset and what a correction
 // of an evidence has to say.
 export * from './model/evidence-page.js'

@@ -1,5 +1,6 @@
 import { BadRequestException } from '@nestjs/common'
 import {
+  type AreaId,
   type BuildingId,
   type Catalogue,
   type Duty,
@@ -11,9 +12,12 @@ import {
   type DutyRegisterFilter,
   dutyRegisterOrder,
   dutyRegisterPage,
+  type DutyDueWindow,
+  dutyDueWindows,
   type DutyRegisterState,
   dutyRegisterStates,
   endedDuties,
+  inDueWindow,
   inRegisterOrder,
   type IsoDate,
   namesAPerson,
@@ -59,13 +63,22 @@ export function dutyRegisterQuestion(
     throw new BadRequestException('Diesen Zustand kennt das Pflichtenverzeichnis nicht.')
   }
 
-  const plain = (['propertyId', 'buildingId', 'assetKind', 'dutyKind', 'responsible'] as const)
+  const due = said(query, 'due')
+
+  if (due !== undefined && !(dutyDueWindows as readonly string[]).includes(due)) {
+    throw new BadRequestException(`„Fällig“ ist eines von: ${dutyDueWindows.join(', ')}.`)
+  }
+
+  const plain = (
+    ['propertyId', 'areaId', 'buildingId', 'assetKind', 'dutyKind', 'responsible'] as const
+  )
     .map((name) => [name, said(query, name)] as const)
     .filter(([, value]) => value !== undefined)
 
   return {
     filter: {
       ...(state === undefined ? {} : { state: state as DutyRegisterState }),
+      ...(due === undefined ? {} : { due: due as DutyDueWindow }),
       ...(Object.fromEntries(plain) as DutyRegisterFilter),
     },
     offset: counted(
@@ -151,43 +164,33 @@ function placeKey(entry: UnnamedDutyEntry): string {
       : `p:${entry.propertyId}`
 }
 
+/** What narrows the register in the database: where a duty is and what kind it is. */
+export type DutyPlaceFilter = Pick<
+  DutyRegisterFilter,
+  'propertyId' | 'areaId' | 'buildingId' | 'assetKind' | 'dutyKind'
+>
+
 /**
- * A page of the register on a day: the duties that pass every filter, in the
- * order of the register, each with how it stands on that day, and how many
- * there are behind the page.
+ * Every duty the transaction sees that is where the filter says and of the
+ * kind it says, as a row of the register with how it stands on a day, in no
+ * order. Null where the filter names a place by something that is no id: it
+ * names nothing the person could see.
  *
- * Without a state the page holds the duties that have not ended; the ones
- * that have are a list of their own, the newest end first. The counts say
- * how many there are of each, whatever state the page is narrowed to.
- *
- * Narrowed to one person, the page comes without a number (`namesAPerson`):
- * neither how many duties that person answers for nor how many of them are
- * overdue is counted anywhere.
- *
- * The transaction is the person's, so the register holds the duties of their
- * areas and no other, whatever the address names.
+ * The transaction is the person's, so the rows are the duties of their
+ * areas and no other, whatever the filter names.
  */
-export async function dutyRegister(
+export async function registeredEntries(
   tx: TenantTransaction,
   catalogue: Catalogue,
   today: IsoDate,
-  question: DutyRegisterQuestion,
-): Promise<UnnamedDutyRegister> {
-  const { filter } = question
-  const nothing: UnnamedDutyRegister = {
-    total: namesAPerson(filter) ? null : 0,
-    assets: namesAPerson(filter) ? null : 0,
-    places: namesAPerson(filter) ? null : 0,
-    counts: namesAPerson(filter) ? null : countsOf([]),
-    withoutResponsible: 0,
-    more: false,
-    duties: [],
-    people: [],
-  }
-
-  // An id that is no id names nothing the person could see.
-  if ([filter.propertyId, filter.buildingId].some((id) => id !== undefined && !isUuid(id))) {
-    return { ...nothing, people: await peopleNamed(tx) }
+  filter: DutyPlaceFilter,
+): Promise<UnnamedDutyEntry[] | null> {
+  if (
+    [filter.propertyId, filter.areaId, filter.buildingId].some(
+      (id) => id !== undefined && !isUuid(id),
+    )
+  ) {
+    return null
   }
 
   const building = filter.buildingId as BuildingId | undefined
@@ -212,6 +215,7 @@ export async function dutyRegister(
         filter.propertyId === undefined
           ? undefined
           : eq(duties.propertyId, filter.propertyId as PropertyId),
+        filter.areaId === undefined ? undefined : eq(duties.areaId, filter.areaId as AreaId),
         // A building holds the duties at itself, at its rooms and at the assets in it.
         building === undefined
           ? undefined
@@ -226,7 +230,8 @@ export async function dutyRegister(
     )
 
   const assetOf = new Map(rows.map((row) => [row.duty.id as string, row.asset]))
-  const seen = (
+
+  return (
     await dutiesOnADay(
       tx,
       today,
@@ -240,8 +245,34 @@ export async function dutyRegister(
       today,
     ),
   )
+}
 
-  const ofThePerson = seen.filter(
+/**
+ * A page of the register out of the rows `registeredEntries` read: the
+ * duties that pass the rest of the filter, in the order of the register, and
+ * how many there are behind the page.
+ *
+ * The window of days narrows like a place: the counts of the states and of
+ * the duties nobody answers for are those within it. Without a state the
+ * page holds the duties that have not ended; the ones that have are a list
+ * of their own, the newest end first. The counts say how many there are of
+ * each, whatever state the page is narrowed to.
+ *
+ * Narrowed to one person, the page comes without a number (`namesAPerson`):
+ * neither how many duties that person answers for nor how many of them are
+ * overdue is counted anywhere.
+ */
+export function registerPage(
+  seen: readonly UnnamedDutyEntry[],
+  filter: DutyRegisterFilter,
+  today: IsoDate,
+  offset: number,
+  limit: number,
+): Omit<UnnamedDutyRegister, 'people'> {
+  const inWindow = seen.filter(
+    (entry) => filter.due === undefined || inDueWindow(entry, filter.due, today),
+  )
+  const ofThePerson = inWindow.filter(
     (entry) =>
       filter.responsible === undefined ||
       (filter.responsible === withoutResponsible
@@ -261,7 +292,7 @@ export async function dutyRegister(
           .filter((entry) => !entry.ended)
           .filter((entry) => filter.state === undefined || entry.state === filter.state)
           .sort(inRegisterOrder)
-  const page = passing.slice(question.offset, question.offset + question.limit)
+  const page = passing.slice(offset, offset + limit)
   const atAssets = passing.filter((entry) => entry.assetId !== null)
   const numbers = namesAPerson(filter)
     ? { total: null, assets: null, places: null, counts: null }
@@ -274,10 +305,32 @@ export async function dutyRegister(
 
   return {
     ...numbers,
-    withoutResponsible: seen.filter((entry) => !entry.ended && entry.responsibleUserId === null)
+    withoutResponsible: inWindow.filter((entry) => !entry.ended && entry.responsibleUserId === null)
       .length,
-    more: question.offset + page.length < passing.length,
+    more: offset + page.length < passing.length,
     duties: page,
+  }
+}
+
+/**
+ * A page of the register on a day: the duties that pass every filter, in the
+ * order of the register, each with how it stands on that day, and how many
+ * there are behind the page (`registerPage`).
+ *
+ * The transaction is the person's, so the register holds the duties of their
+ * areas and no other, whatever the address names.
+ */
+export async function dutyRegister(
+  tx: TenantTransaction,
+  catalogue: Catalogue,
+  today: IsoDate,
+  question: DutyRegisterQuestion,
+): Promise<UnnamedDutyRegister> {
+  const { filter } = question
+  const seen = await registeredEntries(tx, catalogue, today, filter)
+
+  return {
+    ...registerPage(seen ?? [], filter, today, question.offset, question.limit),
     people: await peopleNamed(tx),
   }
 }

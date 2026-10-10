@@ -1232,9 +1232,10 @@ export async function decideSampleOrders(
  * Two of the inspections the engine made of the due days, planned through
  * the route as whoever plans would (#105): one in the south for Tobias Wendt,
  * who works there, with the Objektleitung of the south answering for it, and
- * another one for a contractor named in words. A third is closed as not
- * performed, with the reason, and its duty gets a new one by hand (#183).
- * The rest stay as the engine made them, with nobody performing them yet.
+ * another one for a contractor named in words, whose day has passed without
+ * its report (#122). A third is closed as not performed, with the reason, and
+ * its duty gets a new one by hand (#183). The rest stay as the engine made
+ * them, with nobody performing them yet.
  */
 export async function planSampleActivities(
   address: string,
@@ -1276,7 +1277,8 @@ export async function planSampleActivities(
         performer: 'contractor',
         performerUserId: null,
         contractorNote: 'Brandschutz Beispiel GmbH',
-        dueOn: daysAhead(21),
+        // Three days ago, and no report yet: "Nachweis fehlt" on the overview (#122).
+        dueOn: daysAhead(-3),
       },
       'PUT',
     )

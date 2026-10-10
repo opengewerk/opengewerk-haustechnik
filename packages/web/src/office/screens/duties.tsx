@@ -1,5 +1,7 @@
 import {
   type Catalogue,
+  dutyDueWindowLabel,
+  dutyDueWindows,
   type DutyEntry,
   dutyInterval,
   type DutyRegister,
@@ -24,6 +26,7 @@ import { type ReactNode, useMemo } from 'react'
 
 import { titleOfRoom } from '../../app/place-records.js'
 import { ReviewMarks } from '../../app/review-marks.js'
+import { useAreas } from '../../session/areas.js'
 import { useCatalogue } from '../../sync/catalogue.js'
 import {
   dutyFilterOf,
@@ -434,7 +437,9 @@ function countOf(register: DutyRegister | undefined): { readonly count?: string 
 
 /**
  * The filters over the list: the states as chips, each with how many duties
- * are in it, and beside them the place, the asset kind and who answers.
+ * are in it, and beside them the place, the area for whoever sees more than
+ * one, the asset kind, the window of days "Fällig" the overview leads to
+ * (#122) and who answers.
  *
  * The people to choose from are the ones the server hands whoever keeps the
  * register; anybody else narrows to the duties of nobody and to no person.
@@ -471,6 +476,11 @@ function Filters({
       ? (filter.responsible ?? null)
       : null
   const counts = register?.counts ?? null
+  const areas = useAreas()
+  // Somebody who sees one area is told nothing by its name; an area the
+  // address names stays a choice, so that the filter shows what the list is
+  // narrowed by.
+  const showsAreas = areas.length > 1 || filter.areaId !== undefined
   const chip = (state: DutyRegisterState | null, label: string) => (
     <Chip
       key={state ?? 'all'}
@@ -502,6 +512,26 @@ function Filters({
           buildings={buildings}
           onPlace={onPlace}
         />
+        {showsAreas ? (
+          <RegisterFilter
+            label="Bereich"
+            className="lg:w-[130px]"
+            value={filter.areaId ?? ''}
+            onChange={(value) => {
+              onSet('areaId', value)
+            }}
+          >
+            <option value="">Alle Bereiche</option>
+            {areas.map((area) => (
+              <option key={area.id} value={area.id}>
+                {area.name}
+              </option>
+            ))}
+            {filter.areaId !== undefined && !areas.some((area) => area.id === filter.areaId) ? (
+              <option value={filter.areaId}>Ein Bereich</option>
+            ) : null}
+          </RegisterFilter>
+        ) : null}
         <RegisterFilter
           label="Anlagenart"
           className="lg:w-[170px]"
@@ -517,6 +547,21 @@ function Filters({
             </option>
           ))}
           {unknownKind === null ? null : <option value={unknownKind}>{unknownKind}</option>}
+        </RegisterFilter>
+        <RegisterFilter
+          label="Fällig"
+          className="lg:w-[190px]"
+          value={filter.due ?? ''}
+          onChange={(value) => {
+            onSet('due', value)
+          }}
+        >
+          <option value="">Alle</option>
+          {dutyDueWindows.map((window) => (
+            <option key={window} value={window}>
+              {dutyDueWindowLabel[window]}
+            </option>
+          ))}
         </RegisterFilter>
         <RegisterFilter
           label="Verantwortlich"
