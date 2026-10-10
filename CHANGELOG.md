@@ -1307,6 +1307,11 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   des Workflows an, damit eine Änderung dort erst mit einem PR hier wirkt. Bisher lief das
   Review auf dem Rechner von Moritz mit einem kostenlosen Modell, dessen Kontingent am
   10.10.2026 aufgebraucht war
+- Das Security-Review läuft gehärtet (`opengewerk/.github#31`, Aufruf angehoben auf dessen
+  Commit): die Shell des Agenten in der Sandbox von Claude Code ohne Zugang zum Identity-Token,
+  ohne sudo und ohne Netz außer der npm-Registry, kein Schreiben, keine Einstellungen aus dem
+  PR, und vorbestehende Lücken als Code-Scanning-Alerts statt im öffentlichen Bericht. Vorher
+  lief Code aus dem PR im selben Job wie das Recht auf ein Identity-Token
 
 ### Behoben
 
