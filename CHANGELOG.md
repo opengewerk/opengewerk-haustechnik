@@ -1307,6 +1307,9 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   des Workflows an, damit eine Änderung dort erst mit einem PR hier wirkt. Bisher lief das
   Review auf dem Rechner von Moritz mit einem kostenlosen Modell, dessen Kontingent am
   10.10.2026 aufgebraucht war
+- Das Security-Review baut die Pakete, bevor es testet (`opengewerk/.github#30`, Aufruf
+  angehoben auf dessen Commit). Die ersten Reviews mit Tests blieben statisch, weil die Tests
+  die Pakete des Arbeitsbereichs aus ihren Builds importieren und diese fehlten
 
 ### Behoben
 
