@@ -1099,8 +1099,11 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   Exporte in Abschnitt 5 (B176 bis B183), die übrigen Listen folgen mit #236. Bisher ließ sich
   keine Liste des Büros in eine Tabellenkalkulation übernehmen
 - Die übrigen Listen im Büro als Tabelle (#236, mit den Tabellen der Fristen, der Zugänge und des
-  Änderungsprotokolls aus opengewerk/opengewerk#600, Submodul `upstream/opengewerk` von `26908ae`
-  auf `e63a09e`): den Knopf "Als Tabelle" mit Excel (.xlsx) und CSV haben jetzt auch die Zähler,
+  Änderungsprotokolls aus opengewerk/opengewerk#600; das Submodul `upstream/opengewerk` geht von
+  `26908ae` auf `e63a09e`, dazwischen liegt genau ein Commit, `e63a09e`, der Merge von #600 auf
+  `main` des Fundaments, nachzuprüfen mit
+  `git -C upstream/opengewerk log --oneline 26908ae..e63a09e`): den Knopf "Als Tabelle" mit
+  Excel (.xlsx) und CSV haben jetzt auch die Zähler,
   die Dokumente, das Pflichtenverzeichnis, die offenen und die verworfenen Vorschläge aus dem
   Katalog, die Fristen, die Prüfungen, die Rundgänge einer Woche, ihre Pläne und die eigenen
   Vorlagen, die Mängel, die Aufträge, die Aufgaben und unter den Einstellungen die Bereiche, die
