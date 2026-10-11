@@ -2,7 +2,9 @@ import { BadRequestException } from '@nestjs/common'
 import {
   type InvitationAreas,
   type MemberAreas,
+  memberAreasInWords,
   memberAreasProblem,
+  memberAreaWords,
   seesEveryArea,
 } from '@opengewerk/haustechnik-domain'
 import {
@@ -13,7 +15,7 @@ import {
 import { and, eq } from 'drizzle-orm'
 
 import { invitationAreaChoices, invitationAreas, invitations } from '../database/schema/index.js'
-import { areasFrom, requireAreas, setMemberAreas } from './areas.js'
+import { areasFrom, areasInSight, memberAreasOf, requireAreas, setMemberAreas } from './areas.js'
 
 // What this application keeps beside a membership: the areas somebody holds
 // in (section 2.8 of the concept, ADR 0003). The foundation knows a membership
@@ -142,6 +144,24 @@ export const areaAdditions: MembershipAdditions = {
     } else if (seesEveryArea(roles)) {
       await setMemberAreas(tx, tenantId, userId, everyArea)
     }
+  },
+
+  /**
+   * The column "Bereiche" of the staff as a table (#236), as the list shows it:
+   * "alle", the names of the areas, or that somebody holds in none.
+   */
+  inTable: {
+    title: memberAreaWords.title,
+    async cells(tx, tenantId, userIds) {
+      const held = await memberAreasOf(tx, tenantId)
+      const areas = await areasInSight(tx)
+
+      return new Map(
+        held
+          .filter((member) => userIds.includes(member.userId))
+          .map((member) => [member.userId, memberAreasInWords(member, areas)]),
+      )
+    },
   },
 }
 

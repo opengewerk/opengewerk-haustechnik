@@ -4,12 +4,14 @@ import {
   ConflictException,
   Controller,
   Get,
+  Header,
   Inject,
   NotFoundException,
   Param,
   Post,
   Put,
   Query,
+  StreamableFile,
 } from '@nestjs/common'
 import {
   type Activity,
@@ -49,6 +51,8 @@ import {
   CurrentIdentity,
   Database,
   isUuid,
+  tableAnswer,
+  tableFormatOf,
   type TenantTransaction,
 } from '@opengewerk/platform-server'
 import { and, asc, count, desc, eq, ilike, inArray, isNull, or, type SQL, sql } from 'drizzle-orm'
@@ -82,6 +86,7 @@ import { candidatesIn, containing, inSight } from './activities.controller.js'
 import { RequiresPermission } from './authorization.js'
 import { type Asking, fieldsOf, given, placeOf, refuse, type Target, targetOf } from './places.js'
 import { counted, said } from './register-question.js'
+import { wholeList, workOrderTable } from './office-tables.js'
 
 const missing = 'Diesen Auftrag gibt es nicht oder nicht mehr.'
 const missingDefect = 'Diesen Mangel gibt es nicht oder nicht mehr.'
@@ -246,11 +251,40 @@ export class WorkOrdersController {
    */
   @Get()
   @RequiresPermission('activity.read')
-  async list(
+  list(
     @CurrentIdentity() identity: Asking,
     @Query() query: Record<string, unknown>,
   ): Promise<WorkOrderList> {
-    const question = questionOf(query)
+    return this.page(identity, questionOf(query))
+  }
+
+  /**
+   * The list as a table (#236): every order the filter of the list passes, and
+   * not a page, in the order of the list, as a workbook or as text
+   * (`?format=xlsx` or `csv`). Whoever reads the list reads its table, with
+   * what the list shows the person; the places and the assets only for whoever
+   * reads them, the people only for the Leitung.
+   *
+   * Before an order, or its address would be read as an id.
+   */
+  @Get('table')
+  @RequiresPermission('activity.read')
+  @Header('Cache-Control', 'no-store')
+  async table(
+    @CurrentIdentity() identity: Asking,
+    @Query() query: Record<string, unknown>,
+  ): Promise<StreamableFile> {
+    const format = tableFormatOf(query)
+    const today = dayInGermany()
+    const { orders } = await this.page(identity, { ...questionOf(query), ...wholeList })
+
+    return this.database.forTenant(identity, async (tx) =>
+      tableAnswer(await workOrderTable(tx, identity, orders, today), format, today),
+    )
+  }
+
+  /** A page of the list, or all of it for its table. */
+  private async page(identity: Asking, question: WorkOrderQuestion): Promise<WorkOrderList> {
     const statuses = workOrderListStatuses[question.state]
 
     if (

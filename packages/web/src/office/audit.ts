@@ -1,4 +1,4 @@
-import { auditValues, auditVocabulary, buildingKindLabel } from '@opengewerk/haustechnik-domain'
+import { auditValueWords, auditVocabulary } from '@opengewerk/haustechnik-domain'
 import type { AuditScreenWords } from '@opengewerk/platform-web/office'
 
 import { activityPlaces } from './activity-addresses.js'
@@ -53,11 +53,10 @@ const links: Words = {
 export const auditScreenWords: AuditScreenWords = {
   vocabulary: auditVocabulary,
   // Every value of a list in the words the office reads elsewhere, held
-  // against the columns of the database by a test of the server (#80).
-  values: auditValues,
-  // The log holds the kinds of a building as `school`, the Leitung reads
-  // "Schule oder Hochschule".
-  lists: { kinds: buildingKindLabel },
+  // against the columns of the database by a test of the server (#80), and
+  // the kinds of a building; the server writes the log as a table with the
+  // same words (#236).
+  ...auditValueWords,
   href: (table, id) => {
     const page = Object.hasOwn(screens, table) ? screens[table] : undefined
 

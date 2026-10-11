@@ -2,6 +2,25 @@ import type { IsoDate } from '@opengewerk/platform-domain'
 
 import { assetConditionLabel, type AssetEntry, type AssetStanding } from './asset-condition.js'
 import { lifecycleStateLabel } from './asset.js'
+import {
+  type ActivityStatus,
+  activityKindLabel,
+  activityStatusLabel,
+  workOrderKindLabel,
+  workOrderUrgencyLabel,
+} from './activity.js'
+import type { ActivityEntry } from './activity-register.js'
+import type { DeadlineFacts } from './deadlines.js'
+import { defectStatusLabel } from './defect.js'
+import type {
+  DefectClassSetting,
+  DefectEntry,
+  DefectOrigin,
+  DefectPlace,
+} from './defect-register.js'
+import { roomTitle } from './location.js'
+import type { PlaceTarget } from './target.js'
+import type { WorkOrderEntry } from './work-order-register.js'
 import type { PlaceToDo } from './overview.js'
 
 /**
@@ -17,8 +36,11 @@ import type { PlaceToDo } from './overview.js'
  * stamp of the last change, which stays on the server (#157).
  */
 
-/** A row of a table as it goes out: text, a number, or nothing. */
-export type TableRow = readonly (string | number | null)[]
+/** A cell of a table as it goes out: text, a number, a day, or nothing. */
+export type TableValue = string | number | { readonly day: IsoDate } | null
+
+/** A row of a table as it goes out. */
+export type TableRow = readonly TableValue[]
 
 /** A day as the office writes it: 24.09.2028. */
 export function dayInWords(day: IsoDate): string {
@@ -149,3 +171,435 @@ export const propertyTableColumns = {
   address: 'Adresse',
   area: 'Bereich',
 } as const
+
+// --- The deadlines ----------------------------------------------------------------------------
+
+/** What a deadline of the meters of a property is called in the list (#120). */
+export const meterDeadlineSubject = 'Zähler ablesen'
+
+/** What a deadline is called in the column "Betrifft": its defect, its plan, its duty, or the meters. */
+export function deadlineSubject(facts: DeadlineFacts): string {
+  switch (facts.follows) {
+    case 'defect':
+      return facts.description
+    case 'round':
+      return facts.title
+    case 'duty':
+      return facts.dutyTitle
+    case 'meter':
+      return meterDeadlineSubject
+  }
+}
+
+/** The column of this application in the list "Fristen", between "Betrifft" and "Verantwortlich". */
+export const deadlineTableColumns = { where: 'Anlage und Ort' } as const
+
+/** The names of the places a deadline can hang on, by their ids, as the person reads them. */
+export interface PlaceNames {
+  readonly property: (id: string) => string | null
+  readonly building: (id: string) => string | null
+  readonly room: (id: string) => {
+    readonly number: string | null
+    readonly name: string | null
+    readonly buildingId: string
+  } | null
+}
+
+/**
+ * "Anlage und Ort" of a deadline as two parts: the asset or the place it
+ * hangs on, and where that stands. A place whose name the person does not
+ * read is named by what it is, as the list names it without the record.
+ */
+export function deadlineWhere(
+  facts: DeadlineFacts,
+  names: PlaceNames | null,
+): { readonly name: string; readonly sub: string } {
+  const property = names?.property(facts.propertyId) ?? 'Liegenschaft'
+  const building = facts.buildingId === null ? null : (names?.building(facts.buildingId) ?? null)
+  const place = placeWords([property, building])
+
+  if (facts.asset !== null) {
+    const asset = [facts.asset.number, facts.asset.name].filter(
+      (part) => part !== null && part !== '',
+    )
+
+    return { name: asset.join(' '), sub: place }
+  }
+
+  if (facts.roomId !== null) {
+    const room = names?.room(facts.roomId) ?? null
+    // A duty at a room names no building; the room stands in one.
+    const itsBuilding = building ?? (room === null ? null : names?.building(room.buildingId))
+
+    return {
+      name: room === null ? 'Raum' : roomTitle(room),
+      sub: placeWords([property, itsBuilding]),
+    }
+  }
+
+  if (facts.buildingId !== null) {
+    return { name: building ?? 'Gebäude', sub: property }
+  }
+
+  return { name: property, sub: 'Liegenschaft' }
+}
+
+/** "Anlage und Ort" in one cell: "Aufzug 1, Schulzentrum Am Lindenhain, Schulhaus". */
+export function deadlineWhereWords(facts: DeadlineFacts, names: PlaceNames | null): string {
+  const { name, sub } = deadlineWhere(facts, names)
+
+  return `${name}, ${sub}`
+}
+
+// --- The classes of defects -----------------------------------------------------------------------
+
+/** The columns of "Mängelklassen" under "Einstellungen", as the list heads them (#116). */
+export const defectClassTableColumns = {
+  label: 'Klasse',
+  effect: 'Wirkung',
+  term: 'Vorgabe der Frist',
+  from: 'Woher',
+} as const
+
+/** What a class does to the asset, the line under its name. */
+export const defectClassEffectWords = {
+  unsafe: 'macht die Anlage unsicher',
+  safe: 'die Anlage bleibt in Betrieb',
+} as const
+
+/** A class as a row of its table: its name, what it does, the days of its default, its package. */
+export function defectClassTableRow(setting: DefectClassSetting): TableRow {
+  return [
+    setting.label,
+    setting.unsafe ? defectClassEffectWords.unsafe : defectClassEffectWords.safe,
+    setting.dueDays,
+    setting.packageTitle,
+  ]
+}
+
+// --- Where a record hangs -----------------------------------------------------------------------
+
+/** An asset by its id, as the person reads it: its number and name where they read assets. */
+export type AssetLookup = (id: string) => {
+  readonly number: string | null
+  readonly name: string | null
+  readonly buildingId: string | null
+} | null
+
+/**
+ * Where an activity or a work order hangs (#236): the asset, the room, the
+ * building or the property, and below it where that is, as the lists name
+ * it. A name the person does not read is said by what it is.
+ */
+export function targetWhere(
+  target: Pick<PlaceTarget, 'propertyId' | 'buildingId' | 'roomId' | 'assetId'>,
+  names: PlaceNames | null,
+  assets: AssetLookup | null,
+): { readonly name: string; readonly sub: string; readonly line: string } {
+  const property = names?.property(target.propertyId) ?? 'Liegenschaft'
+  const room = target.roomId === null ? null : (names?.room(target.roomId) ?? null)
+  const asset = target.assetId === null ? null : (assets?.(target.assetId) ?? null)
+  const buildingId = target.buildingId ?? asset?.buildingId ?? room?.buildingId ?? null
+  const building = buildingId === null ? null : (names?.building(buildingId) ?? null)
+  const line = placeWords([property, building])
+
+  if (target.assetId !== null) {
+    const named = [asset?.number, asset?.name].filter(
+      (part): part is string => part !== null && part !== undefined && part !== '',
+    )
+
+    return { name: named.join(' ') || 'Anlage', sub: line, line }
+  }
+
+  if (target.roomId !== null) {
+    return {
+      name: roomTitle({ number: room?.number ?? null, name: room?.name ?? null }),
+      sub: line,
+      line,
+    }
+  }
+
+  if (target.buildingId !== null) {
+    return { name: building ?? 'Gebäude', sub: property, line }
+  }
+
+  return { name: property, sub: 'Liegenschaft', line }
+}
+
+/** Where something is in one cell: the thing, and after a comma where it stands. */
+export function whereWords(where: { readonly name: string; readonly sub: string }): string {
+  return placeWords([where.name, where.sub])
+}
+
+/** Whether something still to be done is past the day it is due on. */
+function pastItsDay(
+  record: { readonly dueOn: IsoDate | null; readonly status: ActivityStatus },
+  today: IsoDate,
+): boolean {
+  return (
+    record.dueOn !== null &&
+    record.dueOn < today &&
+    (record.status === 'open' || record.status === 'started' || record.status === 'signed')
+  )
+}
+
+// --- The activities -----------------------------------------------------------------------------
+
+/** The columns of "Prüfungen", as the list heads them (4.4); the day past due has its own column. */
+export const activityTableColumns = {
+  due: 'Fällig am',
+  late: 'Überfällig',
+  title: 'Vorgang',
+  kind: 'Art',
+  where: 'Anlage und Ort',
+  responsible: 'Verantwortlich',
+  performer: 'Ausführend',
+  status: 'Stand',
+} as const
+
+/** What the list "Prüfungen" says in its cells. */
+export const activityTableWords = {
+  nobody: 'noch niemand',
+  contractor: 'Fremdfirma',
+  late: 'überfällig',
+} as const
+
+/** Whether an activity still to be done is past the day it is due on. */
+export function activityIsLate(
+  activity: Pick<ActivityEntry, 'dueOn' | 'status'>,
+  today: IsoDate,
+): boolean {
+  return pastItsDay(activity, today)
+}
+
+/** Who performs an activity in words: the person, the contractor, or nobody yet. */
+export function activityPerformerWords(
+  activity: Pick<ActivityEntry, 'performer' | 'performerPerson' | 'contractorNote'>,
+): string {
+  if (activity.performer === 'contractor') {
+    return activity.contractorNote ?? activityTableWords.contractor
+  }
+
+  return activity.performerPerson?.name ?? activityTableWords.nobody
+}
+
+/** The columns of the table of activities, with the people only where it names them. */
+export function activityTableHeads(names: boolean): readonly string[] {
+  const columns = activityTableColumns
+
+  return [
+    columns.due,
+    columns.late,
+    columns.title,
+    columns.kind,
+    columns.where,
+    ...(names ? [columns.responsible] : []),
+    columns.performer,
+    columns.status,
+  ]
+}
+
+/**
+ * An activity as a row of its table. Who answers for it stands only where
+ * `names` says so, and who performs it as well; a contractor is no person
+ * and stands for everybody, as its note or "Fremdfirma".
+ */
+export function activityTableRow(
+  activity: ActivityEntry,
+  where: string,
+  names: boolean,
+  today: IsoDate,
+): TableRow {
+  const performer =
+    activity.performer === 'contractor' || names ? activityPerformerWords(activity) : null
+
+  return [
+    activity.dueOn === null ? null : { day: activity.dueOn },
+    activityIsLate(activity, today) ? activityTableWords.late : null,
+    activity.title,
+    activityKindLabel[activity.kind],
+    where,
+    ...(names ? [activity.responsible?.name ?? activityTableWords.nobody] : []),
+    performer,
+    activityStatusLabel[activity.status],
+  ]
+}
+
+// --- The work orders ----------------------------------------------------------------------------
+
+/** The columns of "Aufträge", as the list heads them (4.8); the day past due has its own column. */
+export const workOrderTableColumns = {
+  number: 'Nummer',
+  title: 'Auftrag',
+  kind: 'Art',
+  where: 'Ort oder Anlage',
+  urgency: 'Dringlichkeit',
+  due: 'Frist',
+  late: 'Überschritten',
+  responsible: 'Verantwortlich',
+  status: 'Stand',
+} as const
+
+/** What the list "Aufträge" says in its cells. */
+export const workOrderTableWords = {
+  nobody: 'noch niemand',
+  late: 'überschritten',
+  rejected: 'Zurückgewiesen',
+  waiting: 'Wartet auf Abnahme',
+  accepted: 'Abgenommen',
+} as const
+
+/** The state of an order in words: turned back, waiting for its acceptance, accepted, or that of its activity. */
+export function workOrderStatusWords(order: Pick<WorkOrderEntry, 'status' | 'rejected'>): string {
+  if (order.rejected) {
+    return workOrderTableWords.rejected
+  }
+
+  if (order.status === 'signed') {
+    return workOrderTableWords.waiting
+  }
+
+  return order.status === 'done' ? workOrderTableWords.accepted : activityStatusLabel[order.status]
+}
+
+/** Whether an order still to be done is past its day. */
+export function workOrderIsLate(
+  order: Pick<WorkOrderEntry, 'dueOn' | 'status'>,
+  today: IsoDate,
+): boolean {
+  return pastItsDay(order, today)
+}
+
+/** The columns of the table of work orders, with "Verantwortlich" only where it names people. */
+export function workOrderTableHeads(names: boolean): readonly string[] {
+  const columns = workOrderTableColumns
+
+  return [
+    columns.number,
+    columns.title,
+    columns.kind,
+    columns.where,
+    columns.urgency,
+    columns.due,
+    columns.late,
+    ...(names ? [columns.responsible] : []),
+    columns.status,
+  ]
+}
+
+/** A work order as a row of its table; who answers for it only where `names` says so. */
+export function workOrderTableRow(
+  order: WorkOrderEntry,
+  where: string,
+  names: boolean,
+  today: IsoDate,
+): TableRow {
+  return [
+    order.number,
+    order.title,
+    workOrderKindLabel[order.kind],
+    where,
+    workOrderUrgencyLabel[order.urgency],
+    order.dueOn === null ? null : { day: order.dueOn },
+    workOrderIsLate(order, today) ? workOrderTableWords.late : null,
+    ...(names ? [order.responsible?.name ?? workOrderTableWords.nobody] : []),
+    workOrderStatusWords(order),
+  ]
+}
+
+// --- The defects --------------------------------------------------------------------------------
+
+/** The columns of "Mängel", as the list heads them (4.6); the day found and past due have their own. */
+export const defectTableColumns = {
+  description: 'Mangel',
+  where: 'Anlage oder Ort',
+  defectClass: 'Klasse',
+  due: 'Frist',
+  late: 'Über der Frist',
+  status: 'Stand',
+  origin: 'Herkunft',
+  found: 'Festgestellt am',
+  order: 'Auftrag',
+} as const
+
+/** What the list "Mängel" says in its cells. */
+export const defectTableWords = {
+  withoutClass: 'ohne Klasse',
+  noOrder: 'keiner',
+  late: 'über der Frist',
+} as const
+
+/** Where a defect comes from, in a word: the kind of its activity, "Bericht" or "von Hand". */
+export function defectOriginWord(origin: DefectOrigin): string {
+  switch (origin.kind) {
+    case 'activity':
+      return activityKindLabel[origin.activityKind]
+    case 'report':
+      return 'Bericht'
+    case 'hand':
+      return 'von Hand'
+  }
+}
+
+/**
+ * Where a defect is: the asset, the room, the building or the property, and
+ * below it where that is. The server names them; `reads` leaves out what the
+ * person does not read, the names of the places and those of the asset.
+ */
+export function defectWhere(
+  place: DefectPlace,
+  reads: { readonly places: boolean; readonly assets: boolean } = { places: true, assets: true },
+): { readonly name: string; readonly sub: string } {
+  const propertyName = reads.places ? place.propertyName : 'Liegenschaft'
+  const buildingName = reads.places ? place.buildingName : null
+  const roomLabel = reads.places ? place.roomLabel : null
+  const line = placeWords([propertyName, buildingName])
+
+  if (place.asset !== null) {
+    const named = reads.assets
+      ? [place.asset.number, place.asset.name].filter(
+          (part): part is string => part !== null && part !== '',
+        )
+      : []
+
+    return { name: named.join(' ') || 'Anlage', sub: placeWords([line, roomLabel]) }
+  }
+
+  if (place.roomId !== null) {
+    return { name: roomLabel ?? 'Raum', sub: line }
+  }
+
+  if (place.buildingId !== null) {
+    return { name: buildingName ?? 'Gebäude', sub: propertyName }
+  }
+
+  return { name: propertyName, sub: 'Liegenschaft' }
+}
+
+/**
+ * A defect as a row of its table, with its class named as the catalogue
+ * names it. Its work order stands only for whoever reads work orders.
+ */
+export function defectTableRow(
+  defect: DefectEntry,
+  where: string,
+  defectClass: string | null,
+  readsOrders: boolean,
+): TableRow {
+  const order =
+    defect.workOrder === null
+      ? defectTableWords.noOrder
+      : (defect.workOrder.number ?? defect.workOrder.title)
+
+  return [
+    defect.description,
+    where,
+    defectClass ?? defectTableWords.withoutClass,
+    defect.dueOn === null ? null : { day: defect.dueOn },
+    defect.overdue ? defectTableWords.late : null,
+    defectStatusLabel[defect.status],
+    defectOriginWord(defect.origin),
+    { day: defect.foundOn },
+    readsOrders ? order : null,
+  ]
+}

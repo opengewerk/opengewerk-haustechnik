@@ -1,6 +1,6 @@
 import { type DynamicModule, Module } from '@nestjs/common'
 import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core'
-import { auditVocabulary, type Catalogue } from '@opengewerk/haustechnik-domain'
+import { auditValueWords, auditVocabulary, type Catalogue } from '@opengewerk/haustechnik-domain'
 import {
   attachmentParts,
   auditLogParts,
@@ -184,7 +184,7 @@ export class ApiModule {
     const syncing = syncParts({ access, routes: syncRoutesFor(catalogue, database) })
     // The change log of a tenant for its Leitung, read by the foundation in
     // the words of this application.
-    const auditing = auditLogParts({ access, vocabulary: auditVocabulary })
+    const auditing = auditLogParts({ access, vocabulary: auditVocabulary, words: auditValueWords })
     // The deadlines the engine keeps, and what an operator sets for a kind:
     // section 7 of the concept gives both to whoever may look after the
     // deadlines, and the routes see what the person sees.

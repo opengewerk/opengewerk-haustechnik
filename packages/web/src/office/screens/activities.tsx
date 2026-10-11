@@ -3,23 +3,26 @@ import {
   activityClosable,
   type ActivityDetails,
   type ActivityEntry,
-  type ActivityList,
   activityKindLabel,
+  activityLimits,
+  type ActivityList,
   type ActivityListState,
   activityListStateLabel,
   activityListStates,
-  activityLimits,
   activityPlanProblems,
   activityProblems,
   type ActivityStatus,
   activityStatusLabel,
+  type AssetLookup,
   dueActivityKinds,
   type DutyPerformer,
   type DutyPerson,
   intervalWords,
-  qualificationLevelLabel,
+  type PlaceNames,
   type PlaceTarget,
+  qualificationLevelLabel,
   type RecordState,
+  targetWhere,
 } from '@opengewerk/haustechnik-domain'
 import {
   Button,
@@ -48,6 +51,7 @@ import {
   PageHead,
   Saved,
   Screen,
+  useTableExport,
 } from '@opengewerk/platform-web/office'
 import { useRight } from '@opengewerk/platform-web/session'
 import {
@@ -73,7 +77,6 @@ import {
 import { type ReactNode, useDeferredValue, useId, useMemo, useState } from 'react'
 
 import { DutyStateMark } from '../../app/asset-marks.js'
-import { titleOfRoom } from '../../app/place-records.js'
 import { useAreas } from '../../session/areas.js'
 import { askAt } from '../../sync/made-at.js'
 import {
@@ -92,6 +95,7 @@ import { RegisterFilter } from '../register-filter.js'
 import { roundPlaces } from '../round-template-addresses.js'
 import { workOrderPlaces } from '../work-order-addresses.js'
 import { TasksCard } from '../tasks.js'
+import { asTableAddress } from '../table-address.js'
 
 export const activityWords = {
   sub: 'Prüfungen und Wartungen aus den fälligen Terminen der Pflichten, nach dem Tag, an dem sie fällig sind.',
@@ -188,48 +192,46 @@ export function usePlaces() {
   return useMemo(() => {
     const byId = (records: readonly RecordState[], id: string | null) =>
       id === null ? null : (records.find((record) => record['id'] === id) ?? null)
+    const names: PlaceNames = {
+      property: (id) => maybeText(byId(properties, id), 'name'),
+      building: (id) => maybeText(byId(buildings, id), 'name'),
+      room: (id) => {
+        const room = byId(rooms, id)
 
+        return room === null
+          ? null
+          : {
+              number: maybeText(room, 'number'),
+              name: maybeText(room, 'name'),
+              buildingId: maybeText(room, 'buildingId') ?? '',
+            }
+      },
+    }
+    const assetOf: AssetLookup = (id) => {
+      const asset = byId(assets, id)
+
+      return asset === null
+        ? null
+        : {
+            number: maybeText(asset, 'number'),
+            name: maybeText(asset, 'name'),
+            buildingId: maybeText(asset, 'buildingId'),
+          }
+    }
+
+    // The words of the table as well (#236).
     return (activity: PlaceTarget): Where => {
-      const property = maybeText(byId(properties, activity.propertyId), 'name') ?? 'Liegenschaft'
-      const room = byId(rooms, activity.roomId)
-      const asset = byId(assets, activity.assetId)
-      const buildingId =
-        activity.buildingId ??
-        (asset ? maybeText(asset, 'buildingId') : null) ??
-        (room ? maybeText(room, 'buildingId') : null)
-      const building = maybeText(byId(buildings, buildingId), 'name')
-      const line = [property, building].filter(Boolean).join(', ')
+      const { name, sub, line } = targetWhere(activity, names, assetOf)
+      const to =
+        activity.assetId !== null
+          ? officePlaces.asset(activity.assetId)
+          : activity.roomId !== null
+            ? officePlaces.room(activity.roomId)
+            : activity.buildingId !== null
+              ? officePlaces.building(activity.buildingId)
+              : officePlaces.property(activity.propertyId)
 
-      if (activity.assetId !== null) {
-        return {
-          name:
-            [maybeText(asset, 'number'), maybeText(asset, 'name')].filter(Boolean).join(' ') ||
-            'Anlage',
-          to: officePlaces.asset(activity.assetId),
-          sub: line,
-          line,
-        }
-      }
-
-      if (activity.roomId !== null) {
-        return { name: titleOfRoom(room), to: officePlaces.room(activity.roomId), sub: line, line }
-      }
-
-      if (activity.buildingId !== null) {
-        return {
-          name: building ?? 'Gebäude',
-          to: officePlaces.building(activity.buildingId),
-          sub: property,
-          line,
-        }
-      }
-
-      return {
-        name: property,
-        to: officePlaces.property(activity.propertyId),
-        sub: 'Liegenschaft',
-        line,
-      }
+      return { name, to, sub, line }
     }
   }, [properties, buildings, rooms, assets])
 }
@@ -321,6 +323,8 @@ export function ActivityListScreen() {
   const [search, setSearch] = useState('')
   const wanted = useDeferredValue(search.trim())
   const state = filter.state ?? 'pending'
+  // What the list shows under its filter, whole and not a page, as a table (#236).
+  const table = useTableExport(asTableAddress(activityListRequest(filter, wanted, 0)))
 
   const pages = useInfiniteQuery({
     queryKey: ['activities', 'list', filter, wanted],
@@ -363,7 +367,9 @@ export function ActivityListScreen() {
         {...(first === undefined
           ? {}
           : { count: `${first.total.toLocaleString('de-DE')} ${countWords[state]}` })}
+        actions={table.button}
       />
+      {table.trouble}
       <div className="flex flex-wrap items-end gap-x-2.5 gap-y-2">
         <label className="sr-only" htmlFor="activity-search">
           {activityWords.searchLabel}

@@ -11,6 +11,7 @@ import {
   workOrderUrgencyLabel,
 } from './activity.js'
 import { lifecycleStateLabel } from './asset.js'
+import { buildingKindLabel } from './location.js'
 import { countingLabel, dutyTaskLabel } from './catalogue.js'
 import { defectStatusLabel } from './defect.js'
 import { documentKindLabel } from './document.js'
@@ -688,3 +689,14 @@ export const auditValues: Readonly<
     urgency: workOrderUrgencyLabel,
   },
 }
+
+/**
+ * What the change log says about the values of this application, on the
+ * screen and in the log as a table the server writes (#236): the values of
+ * a list by table and column, and the kinds of a building, which the log
+ * holds as `school` and the Leitung reads as "Schule oder Hochschule".
+ */
+export const auditValueWords = {
+  values: auditValues,
+  lists: { kinds: buildingKindLabel },
+} as const

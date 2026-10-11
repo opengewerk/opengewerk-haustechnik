@@ -1,4 +1,12 @@
-import type { DeadlineFacts, RecordState } from '@opengewerk/haustechnik-domain'
+import {
+  type DeadlineFacts,
+  deadlineSubject,
+  deadlineTableColumns,
+  deadlineWhere,
+  meterDeadlineSubject,
+  type PlaceNames,
+  type RecordState,
+} from '@opengewerk/haustechnik-domain'
 import {
   type DeadlineKindView,
   type DeadlineListFilter,
@@ -11,7 +19,6 @@ import { maybeText, useRecords } from '@opengewerk/platform-web/sync'
 import { useQuery } from '@tanstack/react-query'
 import { Link } from '@tanstack/react-router'
 
-import { titleOfRoom } from '../../app/place-records.js'
 import { useAreas } from '../../session/areas.js'
 import { defectPlaces } from '../defect-addresses.js'
 import { dutyPlaces } from '../duty-addresses.js'
@@ -26,7 +33,7 @@ export type DutyDeadlineView = DeadlineView & DeadlineFacts
 
 /** What the list and the settings say in the words of this application. */
 export const deadlineWords = {
-  meters: 'Zähler ablesen',
+  meters: meterDeadlineSubject,
   sub: 'Was fällig wird, nach Fälligkeit. Eine Frist folgt ihrer Pflicht, ihrem Mangel, dem Plan eines Rundgangs oder den Zählern einer Liegenschaft: mit dem nächsten Nachweis rückt sie weiter, mit der Anlage ruht sie, mit der Beseitigung fällt sie weg, mit dem nächsten Rundgang rückt sie zum nächsten Durchgang, mit den Ständen zum nächsten Stichtag.',
   searchPlaceholder: 'Pflicht, Mangel, Anlage, Liegenschaft …',
   emptyOpen:
@@ -61,20 +68,22 @@ function responsibleLabel(kind: DeadlineKindView): string {
     : deadlineWords.responsibleOfTheDuty
 }
 
-/** What a deadline is called in the list, and where its name leads. */
+/** What a deadline is called in the list, as its table names it (#236), and where its name leads. */
 function sourceOf(deadline: DutyDeadlineView): { readonly href: string; readonly name: string } {
+  const name = deadlineSubject(deadline)
+
   switch (deadline.follows) {
     case 'defect':
-      return { href: defectPlaces.defect(deadline.defectId), name: deadline.description }
+      return { href: defectPlaces.defect(deadline.defectId), name }
     case 'round':
-      return { href: planPlaces.plan(deadline.roundPlanId), name: deadline.title }
+      return { href: planPlaces.plan(deadline.roundPlanId), name }
     case 'duty':
-      return { href: dutyPlaces.duty(deadline.dutyId), name: deadline.dutyTitle }
+      return { href: dutyPlaces.duty(deadline.dutyId), name }
     case 'meter':
       // The meters of the property whose reading is missing (#120).
       return {
         href: `${meterListPlace.to}?${meterListWords.property}=${deadline.propertyId}&${meterListWords.state}=missing`,
-        name: deadlineWords.meters,
+        name,
       }
   }
 }
@@ -82,47 +91,43 @@ function sourceOf(deadline: DutyDeadlineView): { readonly href: string; readonly
 const byId = (records: readonly RecordState[], id: string | null) =>
   id === null ? null : (records.find((record) => record['id'] === id) ?? null)
 
-/** What a duty hangs on, as two lines: the asset or the place, and where it stands. */
+/**
+ * What a duty hangs on, as two lines: the asset or the place, and where it
+ * stands, in the words its table writes (#236), with the names of the places
+ * this device holds.
+ */
 function useWhere(): (deadline: DutyDeadlineView) => { name: string; to: string; sub: string } {
   const properties = useRecords('properties')
   const buildings = useRecords('buildings')
   const rooms = useRecords('rooms')
+  const names: PlaceNames = {
+    property: (id) => maybeText(byId(properties, id), 'name'),
+    building: (id) => maybeText(byId(buildings, id), 'name'),
+    room: (id) => {
+      const room = byId(rooms, id)
+
+      return room === null
+        ? null
+        : {
+            number: maybeText(room, 'number'),
+            name: maybeText(room, 'name'),
+            buildingId: maybeText(room, 'buildingId') ?? '',
+          }
+    },
+  }
 
   return (deadline) => {
-    const property = maybeText(byId(properties, deadline.propertyId), 'name') ?? 'Liegenschaft'
-    const building = maybeText(byId(buildings, deadline.buildingId), 'name')
-    const place = [property, building].filter(Boolean).join(', ')
+    const { name, sub } = deadlineWhere(deadline, names)
+    const to =
+      deadline.asset !== null
+        ? officePlaces.asset(deadline.asset.id)
+        : deadline.roomId !== null
+          ? officePlaces.room(deadline.roomId)
+          : deadline.buildingId !== null
+            ? officePlaces.building(deadline.buildingId)
+            : officePlaces.property(deadline.propertyId)
 
-    if (deadline.asset !== null) {
-      return {
-        name: [deadline.asset.number, deadline.asset.name].filter(Boolean).join(' '),
-        to: officePlaces.asset(deadline.asset.id),
-        sub: place,
-      }
-    }
-
-    if (deadline.roomId !== null) {
-      const room = byId(rooms, deadline.roomId)
-      // A duty at a room names no building; the room stands in one.
-      const itsBuilding =
-        building ?? maybeText(byId(buildings, maybeText(room, 'buildingId')), 'name')
-
-      return {
-        name: room ? titleOfRoom(room) : 'Raum',
-        to: officePlaces.room(deadline.roomId),
-        sub: [property, itsBuilding].filter(Boolean).join(', '),
-      }
-    }
-
-    if (deadline.buildingId !== null) {
-      return {
-        name: building ?? 'Gebäude',
-        to: officePlaces.building(deadline.buildingId),
-        sub: property,
-      }
-    }
-
-    return { name: property, to: officePlaces.property(deadline.propertyId), sub: 'Liegenschaft' }
+    return { name, to, sub }
   }
 }
 
@@ -175,7 +180,7 @@ export function DeadlineListScreen() {
       }}
       columns={[
         {
-          header: 'Anlage und Ort',
+          header: deadlineTableColumns.where,
           className: 'w-[236px] min-w-[180px]',
           text: (deadline) => {
             const { name, sub } = where(deadline)
@@ -197,6 +202,7 @@ export function DeadlineListScreen() {
         },
       ]}
       filters={filters}
+      table
       cardFacts={(deadline) => {
         const { name, to, sub } = where(deadline)
 

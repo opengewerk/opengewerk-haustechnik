@@ -52,6 +52,7 @@ import {
   NoteBox,
   PageHead,
   Screen,
+  useTableExport,
 } from '@opengewerk/platform-web/office'
 import { useRight } from '@opengewerk/platform-web/session'
 import {
@@ -89,6 +90,7 @@ import {
 } from '../work-order-addresses.js'
 import { TasksCard } from '../tasks.js'
 import { ActivityStatusMark, usePlaces } from './activities.js'
+import { asTableAddress } from '../table-address.js'
 
 export const workOrderWords = {
   sub: 'Aufträge aus Mängeln, aus Terminen der Pflichten und von Hand, der neueste zuerst.',
@@ -287,6 +289,8 @@ export function WorkOrderListScreen() {
   const [search, setSearch] = useState('')
   const wanted = useDeferredValue(search.trim())
   const state = filter.state ?? 'open'
+  // What the list shows under its filter, whole and not a page, as a table (#236).
+  const table = useTableExport(asTableAddress(workOrderListRequest(filter, wanted, 0)))
 
   const pages = useInfiniteQuery({
     queryKey: [...workOrderKey, 'list', filter, wanted],
@@ -322,19 +326,23 @@ export function WorkOrderListScreen() {
         sub={workOrderWords.sub}
         {...(first === undefined ? {} : { count: countOf(first, state) })}
         actions={
-          plans ? (
-            <Button
-              tone="primary"
-              icon={Plus}
-              onClick={() => {
-                void navigate({ to: workOrderPlaces.new })
-              }}
-            >
-              Neuer Auftrag
-            </Button>
-          ) : null
+          <>
+            {table.button}
+            {plans ? (
+              <Button
+                tone="primary"
+                icon={Plus}
+                onClick={() => {
+                  void navigate({ to: workOrderPlaces.new })
+                }}
+              >
+                Neuer Auftrag
+              </Button>
+            ) : null}
+          </>
         }
       />
+      {table.trouble}
       <div className="flex flex-wrap items-end gap-x-2.5 gap-y-2">
         <label className="sr-only" htmlFor="work-order-search">
           {workOrderWords.searchLabel}

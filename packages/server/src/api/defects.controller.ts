@@ -5,6 +5,7 @@ import {
   Controller,
   ForbiddenException,
   Get,
+  Header,
   Inject,
   NotFoundException,
   Param,
@@ -12,6 +13,7 @@ import {
   Post,
   Put,
   Query,
+  StreamableFile,
 } from '@nestjs/common'
 import {
   type Catalogue,
@@ -19,11 +21,13 @@ import {
   defaultDueOn,
   type Defect,
   defectChangeRefusal,
+  type DefectCheckOutcome,
   defectCheckProblems,
   defectCheckRefusal,
-  type DefectCheckOutcome,
   type DefectClassChoice,
   type DefectClassSetting,
+  defectClassTableColumns,
+  defectClassTableRow,
   defectProblems,
   type DefectReading,
   type DefectRegister,
@@ -32,7 +36,13 @@ import {
   type IsoDate,
   statusAfterCheck,
 } from '@opengewerk/haustechnik-domain'
-import { CurrentIdentity, Database, type TenantTransaction } from '@opengewerk/platform-server'
+import {
+  CurrentIdentity,
+  Database,
+  tableAnswer,
+  tableFormatOf,
+  type TenantTransaction,
+} from '@opengewerk/platform-server'
 import { eq } from 'drizzle-orm'
 
 import { CATALOGUE } from '../catalogue.js'
@@ -47,6 +57,7 @@ import {
 } from '../defects/reading.js'
 import { dayInGermany } from '../today.js'
 import { RequiresPermission } from './authorization.js'
+import { defectTable, wholeList } from './office-tables.js'
 import { type Asking, fieldsOf, given, placeOf, refuse, targetOf } from './places.js'
 
 const missing = 'Diesen Mangel gibt es nicht oder nicht mehr.'
@@ -128,6 +139,33 @@ export class DefectsController {
     const question = defectRegisterQuestion(query)
 
     return this.database.forTenant(identity, (tx) => defectRegister(tx, question, dayInGermany()))
+  }
+
+  /**
+   * The register as a table (#236): every defect the filter of the list passes, and
+   * not a page, in the order of the list, as a workbook or as text
+   * (`?format=xlsx` or `csv`). Whoever reads the list reads its table, with
+   * what the list shows the person; the places and the assets only for whoever
+   * reads them, the people only for the Leitung.
+   *
+   * Before a defect, or its address would be read as an id.
+   */
+  @Get('table')
+  @RequiresPermission('defect.read')
+  @Header('Cache-Control', 'no-store')
+  table(
+    @CurrentIdentity() identity: Asking,
+    @Query() query: Readonly<Record<string, unknown>>,
+  ): Promise<StreamableFile> {
+    const format = tableFormatOf(query)
+    const question = { ...defectRegisterQuestion(query), ...wholeList }
+    const today = dayInGermany()
+
+    return this.database.forTenant(identity, async (tx) => {
+      const { defects: rows } = await defectRegister(tx, question, today)
+
+      return tableAnswer(defectTable(this.catalogue, identity, rows), format, today)
+    })
   }
 
   /** How many are open and over their deadline, for the navigation. */
@@ -331,20 +369,51 @@ export class DefectClassSettingsController {
   @Get()
   @RequiresPermission('settings.read')
   list(@CurrentIdentity() identity: Asking): Promise<readonly DefectClassSetting[]> {
-    return this.database.forTenant(identity, async (tx) => {
-      const terms = await classTermsOf(tx)
+    return this.database.forTenant(identity, (tx) => this.settings(tx))
+  }
 
-      return this.catalogue.packages.flatMap((pack) =>
-        this.catalogue.defectClasses(pack.name).map(({ defectClass }) => ({
-          key: defectClass.key,
-          label: defectClass.label,
-          unsafe: defectClass.unsafe,
-          packageName: pack.name,
-          packageTitle: pack.title,
-          dueDays: terms.get(defectClass.key) ?? null,
-        })),
-      )
-    })
+  /**
+   * The classes as a table (#236), as the list shows them, as a workbook or
+   * as text (`?format=xlsx` or `csv`). For whoever sees the settings.
+   *
+   * Before a class, or its address would be read as a key.
+   */
+  @Get('table')
+  @RequiresPermission('settings.read')
+  @Header('Cache-Control', 'no-store')
+  table(
+    @CurrentIdentity() identity: Asking,
+    @Query() query: Readonly<Record<string, unknown>>,
+  ): Promise<StreamableFile> {
+    const format = tableFormatOf(query)
+
+    return this.database.forTenant(identity, async (tx) =>
+      tableAnswer(
+        {
+          name: 'Mängelklassen',
+          columns: Object.values(defectClassTableColumns),
+          rows: (await this.settings(tx)).map(defectClassTableRow),
+        },
+        format,
+        dayInGermany(),
+      ),
+    )
+  }
+
+  /** Every class the packages name, with the days the operator set for it. */
+  private async settings(tx: TenantTransaction): Promise<DefectClassSetting[]> {
+    const terms = await classTermsOf(tx)
+
+    return this.catalogue.packages.flatMap((pack) =>
+      this.catalogue.defectClasses(pack.name).map(({ defectClass }) => ({
+        key: defectClass.key,
+        label: defectClass.label,
+        unsafe: defectClass.unsafe,
+        packageName: pack.name,
+        packageTitle: pack.title,
+        dueDays: terms.get(defectClass.key) ?? null,
+      })),
+    )
   }
 
   /** The default of one class: whole days, or none, which takes it away. */

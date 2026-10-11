@@ -1,27 +1,42 @@
 import { BadRequestException } from '@nestjs/common'
 import {
+  type ActivityEntry,
+  activityTableHeads,
+  activityTableRow,
   addressWords,
+  type AssetLookup,
   type AssetRegisterFilter,
   assetTableColumns,
   assetTableRow,
   byNameIn,
   byUrgency,
   type Catalogue,
-  type IsoDate,
+  type DefectEntry,
+  defectTableColumns,
+  defectTableRow,
+  defectWhere,
   isAllowed,
+  type IsoDate,
+  type PlaceNames,
   type PlaceToDo,
   placeWords,
   propertySearchText,
   propertyTableColumns,
   searchedFor,
+  tableNamesPeople,
   type TableRow,
+  targetWhere,
   toDoNumbers,
+  whereWords,
+  type WorkOrderEntry,
+  workOrderTableHeads,
+  workOrderTableRow,
 } from '@opengewerk/haustechnik-domain'
 import { type OutgoingTable, type TenantTransaction } from '@opengewerk/platform-server'
 import { isNull } from 'drizzle-orm'
 
 import { areasInSight } from '../areas/areas.js'
-import { buildings, properties, rooms } from '../database/schema/index.js'
+import { assets, buildings, properties, rooms } from '../database/schema/index.js'
 import { assetsPassing } from './asset-register.js'
 import { placesToDo } from './place-situation.js'
 import type { Asking } from './places.js'
@@ -68,6 +83,53 @@ async function namesOf(tx: TenantTransaction): Promise<{
         row.number !== null && row.number !== '' ? row.number : row.name,
       ]),
     ),
+  }
+}
+
+/**
+ * The names of the places a person reads, for a column that names where a
+ * record hangs: of whoever reads places, and of nobody else, so that a
+ * column of a place stays as empty as the list without the records of the
+ * places (#237). Null without `location.read`.
+ */
+export async function placeNamesFor(
+  tx: TenantTransaction,
+  identity: Asking,
+): Promise<PlaceNames | null> {
+  if (!isAllowed(identity, 'location.read')) {
+    return null
+  }
+
+  const propertyRows = await tx
+    .select({ id: properties.id, name: properties.name })
+    .from(properties)
+    .where(isNull(properties.deletedAt))
+  const buildingRows = await tx
+    .select({ id: buildings.id, name: buildings.name })
+    .from(buildings)
+    .where(isNull(buildings.deletedAt))
+  const roomRows = await tx
+    .select({
+      id: rooms.id,
+      number: rooms.number,
+      name: rooms.name,
+      buildingId: rooms.buildingId,
+    })
+    .from(rooms)
+    .where(isNull(rooms.deletedAt))
+  const property = new Map(propertyRows.map((row) => [row.id as string, row.name]))
+  const building = new Map(buildingRows.map((row) => [row.id as string, row.name]))
+  const room = new Map(
+    roomRows.map((row) => [
+      row.id as string,
+      { number: row.number, name: row.name, buildingId: row.buildingId as string },
+    ]),
+  )
+
+  return {
+    property: (id) => property.get(id) ?? null,
+    building: (id) => building.get(id) ?? null,
+    room: (id) => room.get(id) ?? null,
   }
 }
 
@@ -244,5 +306,120 @@ export async function propertyTable(
         .sort(inOrder)
         .map((building) => row(property, building)),
     ]),
+  }
+}
+
+/** What a list asks for to be read whole for its table: from its first row, and no page. */
+export const wholeList = { offset: 0, limit: 1_000_000_000 } as const
+
+/**
+ * The assets a person reads, for a column that names where a record hangs:
+ * the number and the name for whoever reads assets, and for everybody the
+ * building an asset stands in, which says where it is to whoever reads the
+ * places. Null for whoever reads neither.
+ */
+export async function assetLookupFor(
+  tx: TenantTransaction,
+  identity: Asking,
+): Promise<AssetLookup | null> {
+  const named = isAllowed(identity, 'asset.read')
+
+  if (!named && !isAllowed(identity, 'location.read')) {
+    return null
+  }
+
+  const rows = await tx
+    .select({
+      id: assets.id,
+      number: assets.number,
+      name: assets.name,
+      buildingId: assets.buildingId,
+    })
+    .from(assets)
+    .where(isNull(assets.deletedAt))
+  const byId = new Map(
+    rows.map((row) => [
+      row.id as string,
+      {
+        number: named ? row.number : null,
+        name: named ? row.name : null,
+        buildingId: row.buildingId as string | null,
+      },
+    ]),
+  )
+
+  return (id) => byId.get(id) ?? null
+}
+
+/** "Prüfungen" as a table: the activities of the list, with the people only for the Leitung. */
+export async function activityTable(
+  tx: TenantTransaction,
+  identity: Asking,
+  rows: readonly ActivityEntry[],
+  today: IsoDate,
+): Promise<OutgoingTable> {
+  const names = await placeNamesFor(tx, identity)
+  const assetNames = await assetLookupFor(tx, identity)
+  const people = tableNamesPeople(identity)
+
+  return {
+    name: 'Prüfungen',
+    columns: activityTableHeads(people),
+    rows: rows.map((row) =>
+      activityTableRow(row, whereWords(targetWhere(row, names, assetNames)), people, today),
+    ),
+  }
+}
+
+/** "Aufträge" as a table: the orders of the list, with who answers for each only for the Leitung. */
+export async function workOrderTable(
+  tx: TenantTransaction,
+  identity: Asking,
+  rows: readonly WorkOrderEntry[],
+  today: IsoDate,
+): Promise<OutgoingTable> {
+  const names = await placeNamesFor(tx, identity)
+  const assetNames = await assetLookupFor(tx, identity)
+  const people = tableNamesPeople(identity)
+
+  return {
+    name: 'Aufträge',
+    columns: workOrderTableHeads(people),
+    rows: rows.map((row) =>
+      workOrderTableRow(row, whereWords(targetWhere(row, names, assetNames)), people, today),
+    ),
+  }
+}
+
+/**
+ * "Mängel" as a table: the defects of the register with their class as the
+ * catalogue of the server names it. The server names where a defect is; the
+ * names of the places and of the asset stand only for whoever reads them,
+ * and the work order only for whoever reads work orders.
+ */
+export function defectTable(
+  catalogue: Catalogue,
+  identity: Asking,
+  rows: readonly DefectEntry[],
+): OutgoingTable {
+  const reads = {
+    places: isAllowed(identity, 'location.read'),
+    assets: isAllowed(identity, 'asset.read'),
+  }
+  const orders = isAllowed(identity, 'activity.read')
+
+  return {
+    name: 'Mängel',
+    columns: Object.values(defectTableColumns),
+    rows: rows.map((row) =>
+      defectTableRow(
+        row,
+        whereWords(defectWhere(row.place, reads)),
+        row.defectClass === null
+          ? null
+          : (catalogue.defectClass(row.defectClass)?.defectClass.label ?? row.defectClass),
+        orders,
+      ),
+    ),
   }
 }

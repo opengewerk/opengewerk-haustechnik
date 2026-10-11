@@ -3,11 +3,16 @@ import {
   type Catalogue,
   type DeadlineFacts,
   type DeadlineFilterName,
+  deadlineSubject,
+  deadlineTableColumns,
+  deadlineWhereWords,
   rhythmText,
 } from '@opengewerk/haustechnik-domain'
 import { type DeadlineRules, isUuid } from '@opengewerk/platform-server'
 import { eq, inArray, type SQL, sql } from 'drizzle-orm'
 
+import { placeNamesFor } from '../api/office-tables.js'
+import type { Asking } from '../api/places.js'
 import { dutyTitle } from '../database/duty-standing.js'
 import type { ApplicationDeadlineColumns } from '../database/schema/deadlines.js'
 import {
@@ -193,6 +198,23 @@ export function deadlineRulesFor(
     filters,
     sentences: {
       notAColleague: 'Verantwortlich ist jemand, der für diesen Betreiber arbeitet.',
+    },
+    // The list as a table (#236): what a deadline is called and what it hangs
+    // on, as the list names them; the places only for whoever reads them.
+    listAsTable: {
+      name: 'Fristen',
+      columns: [deadlineTableColumns.where],
+      cells: async (tx, identity) => {
+        const names = await placeNamesFor(tx, identity as Asking)
+
+        return (row) => {
+          const facts = row as unknown as DeadlineFacts
+
+          return { subject: deadlineSubject(facts), cells: [deadlineWhereWords(facts, names)] }
+        }
+      },
+      narrowedToAPerson:
+        'Auf eine Person eingegrenzt gibt es die Fristen als Tabelle nur für die Leitung.',
     },
   }
 }
