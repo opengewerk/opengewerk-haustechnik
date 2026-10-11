@@ -1125,6 +1125,20 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   B219), und nennt die Listen in Abschnitt 9 nicht mehr als offen. Mit #138 hatten nur die
   Liegenschaften und das Anlagenverzeichnis den Knopf; Abschnitt 3 des Konzepts verlangt ihn
   für jede Liste des Büros
+- Irrtümlich bestätigte Pflicht aus dem Katalog entfernen (#241): Auf der Seite einer Pflicht
+  aus dem Katalog steht für wen das Pflichtenverzeichnis führt "Entfernen" hinter "Beenden",
+  solange die Pflicht keinen Nachweis und keinen unterschriebenen oder geschlossenen Vorgang
+  hat und nicht beendet ist (`removable` an `GET /duties/:id`, dieselbe Prüfung wie
+  `DELETE /duties/:id`). Die Rückfrage sagt, was mitgeht, dass der Katalog die Pflichtart für
+  die Anlage wieder vorschlägt und wann stattdessen beendet wird; lehnt der Server ab, bleibt
+  sie mit seinem Satz offen. Danach öffnet sich die Akte der Anlage, und was über Pflichten und
+  Anlagen gelesen war, wird neu gelesen. Die Route gab es seit #79; neu sind die Tests dafür,
+  dass nur entfernt, wer das Pflichtenverzeichnis führt (`duty.write`), dass die Pflichtart
+  danach wieder Vorschlag ist und sich neu bestätigen lässt und dass das Änderungsprotokoll
+  nennt, wer bestätigt und wer entfernt hat. Das Planungskonzept (v0.23) sagt in 4.3, wann eine
+  Pflicht entfernt und wann sie beendet wird. Bisher ließ sich eine Pflicht aus dem Katalog nur
+  beenden: wer einen Vorschlag irrtümlich bestätigt hatte, behielt einen beendeten Eintrag, der
+  nie hätte entstehen sollen
 
 ### Geändert
 

@@ -3,6 +3,7 @@ import { Test } from '@nestjs/testing'
 import { catalogueBundle } from '@opengewerk/haustechnik-catalogue'
 import { probeCatalogueBundle } from '@opengewerk/haustechnik-catalogue/testing'
 import {
+  type AuditPage,
   type CatalogueBundle,
   type CatalogueEntry,
   catalogueOf,
@@ -400,6 +401,44 @@ describe('the proposals of the catalogue', () => {
       .expect(201)
 
     expect(await proposedFor(elevator)).toContain(mainTest)
+  })
+
+  it('take a kind in again once its duty, confirmed by mistake, is removed, and the log keeps who removed it (#241)', async () => {
+    const place = await placeIn()
+    const elevator = await assetIn(place.building)
+    const confirm = () =>
+      http()
+        .post('/duties')
+        .set(testIdentityHeader, by('u-duties'))
+        .send({ assetId: elevator, kind: mainTest, intervalMonths: 24 })
+    const duty = (await confirm().expect(201)).body.id as string
+
+    expect(await proposedFor(elevator)).not.toContain(mainTest)
+    expect(await standing(mainTest, [elevator])).toBe(1)
+
+    await http().delete(`/duties/${duty}`).set(testIdentityHeader, by('u-lead')).expect(200)
+
+    // No duty of the kind stands at the asset any more: it is a proposal as before.
+    expect(await proposedFor(elevator)).toContain(mainTest)
+    expect(await standing(mainTest, [elevator])).toBe(0)
+
+    // Who confirmed it and who removed it, the newest first.
+    const log = (
+      await http()
+        .get(`/audit/changes?table=duties&record=${duty}`)
+        .set(testIdentityHeader, by('u-lead'))
+        .expect(200)
+    ).body as AuditPage
+
+    expect(log.changes.map((change) => [change.operation, change.userId])).toEqual([
+      ['update', 'u-lead'],
+      ['insert', 'u-duties'],
+    ])
+    expect(log.changes[0]?.fields.map((moved) => moved.field)).toContain('deleted_at')
+
+    // And it is confirmed anew like any proposal.
+    await confirm().expect(201)
+    expect(await proposedFor(elevator)).not.toContain(mainTest)
   })
 
   it('leave out an asset decommissioned or removed, and keep them for one out of service', async () => {

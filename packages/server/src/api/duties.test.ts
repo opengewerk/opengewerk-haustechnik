@@ -1003,6 +1003,32 @@ describe('removing a duty', () => {
 
     expect(kept[0]?.deleted).toBe(1)
   })
+
+  it('is for whoever keeps the register, and nobody else takes a duty away (#241)', async () => {
+    const place = await placeIn()
+    const duty = (
+      await post({ assetId: place.elevator, kind: mainTest, intervalMonths: 24 }).expect(201)
+    ).body.id as string
+    const remove = (userId: keyof typeof people & string) =>
+      http().delete(`/duties/${duty}`).set(testIdentityHeader, by(userId))
+    const standing = async () =>
+      (
+        await admin.query<{ standing: boolean }>(
+          'select deleted_at is null as standing from duties where id = $1',
+          [duty],
+        )
+      ).rows[0]?.standing
+
+    for (const userId of ['u-site', 'u-tech'] as const) {
+      expect((await remove(userId).expect(403)).body.message).toBe(missingRight('duty.write'))
+    }
+
+    expect(await standing()).toBe(true)
+
+    await remove('u-lead').expect(200)
+
+    expect(await standing()).toBe(false)
+  })
 })
 
 describe('a dismissed proposal', () => {

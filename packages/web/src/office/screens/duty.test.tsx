@@ -21,6 +21,7 @@ import {
   type WriteAnswer,
   type Written,
 } from '../test-office.js'
+import { dutyPageWords } from './duty.js'
 
 /**
  * The page of a duty in the office and the dialog that says who answers for
@@ -761,6 +762,137 @@ describe('ending a duty', () => {
       'Diese Pflicht endet schon am 2026-09-05.',
     )
     expect(screen.getByRole('dialog')).toBeTruthy()
+  })
+})
+
+describe('removing a duty from the catalogue confirmed by mistake (#241)', () => {
+  /** Confirmed a moment ago: no evidence and no activity that was signed, as the server says it. */
+  const mistaken = duty({
+    removable: true,
+    state: 'never_recorded',
+    appointment: null,
+    lastMetOn: null,
+  })
+  const question = '„Hauptprüfung der Aufzugsanlage“ entfernen?'
+  const refusal =
+    'Zu dieser Pflicht gibt es Nachweise oder einen unterschriebenen Vorgang. Sie wird nicht entfernt, sondern beendet.'
+
+  /** The question, opened by whoever keeps the register. */
+  async function asking(role: RoleKey = 'technical_management') {
+    const mounted = await opened(role, mistaken)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Entfernen' }))
+
+    return { ...mounted, asked: within(await screen.findByRole('alertdialog', { name: question })) }
+  }
+
+  it.each(['management', 'technical_management'] as const)(
+    'is for whoever keeps the register: "%s" is offered the button',
+    async (role) => {
+      await opened(role, mistaken)
+
+      expect(screen.getByRole('button', { name: 'Entfernen' })).toBeTruthy()
+    },
+  )
+
+  it.each(['site_management', 'technician'] as const)(
+    'is offered to nobody else: not to "%s"',
+    async (role) => {
+      await opened(role, mistaken)
+      await untilTheRightsAreKnown()
+
+      expect(screen.queryByRole('button', { name: 'Entfernen' })).toBeNull()
+    },
+  )
+
+  it('is not offered for a duty with an evidence or a signed activity, which is ended', async () => {
+    await opened('management', duty({ removable: false }))
+    await untilTheRightsAreKnown()
+
+    // Whoever keeps the register is offered what there is to do about it.
+    expect(screen.getByRole('button', { name: 'Beenden' })).toBeTruthy()
+    expect(screen.queryByRole('button', { name: 'Entfernen' })).toBeNull()
+  })
+
+  it('is not offered on the page of a duty of the operator own, which is removed in its form', async () => {
+    await opened('management', { ...atRoom, removable: true })
+    await untilTheRightsAreKnown()
+
+    expect(screen.getByRole('button', { name: 'Bearbeiten' })).toBeTruthy()
+    expect(screen.queryByRole('button', { name: 'Entfernen' })).toBeNull()
+  })
+
+  it('is not offered for a duty that has ended', async () => {
+    await opened('management', { ...mistaken, ended: true, endsOn: '2026-09-05' })
+    await untilTheRightsAreKnown()
+
+    expect(screen.queryByRole('button', { name: 'Entfernen' })).toBeNull()
+  })
+
+  it('asks first, says what removing means and when to end instead, and sends nothing on the way out', async () => {
+    const { asked } = await asking()
+
+    expect(asked.getByText(dutyPageWords.removeAsks)).toBeTruthy()
+    expect(dutyPageWords.removeAsks).toContain(
+      'schlägt ihre Pflichtart für die Anlage danach wieder vor',
+    )
+    expect(dutyPageWords.removeAsks).toContain('beenden Sie sie stattdessen')
+    expect(written).toEqual([])
+
+    fireEvent.click(asked.getByRole('button', { name: 'Abbrechen' }))
+
+    await waitFor(() => {
+      expect(screen.queryByRole('alertdialog')).toBeNull()
+    })
+    expect(written).toEqual([])
+  })
+
+  it('removes the duty at its route, and opens the file of its asset, where its kind is proposed again', async () => {
+    const { router, asked } = await asking()
+
+    answerToWrite = answering({ id: 'd-1' }, 200)
+    fireEvent.click(asked.getByRole('button', { name: 'Entfernen' }))
+
+    await waitFor(() => {
+      expect(router.state.location.pathname).toBe('/anlagen/a-lift')
+    })
+    expect(written).toEqual([{ method: 'DELETE', path: '/duties/d-1', body: undefined }])
+  })
+
+  it('keeps nothing it read of the duties and of the assets, which named the duty', async () => {
+    const { router, queries, asked } = await asking('management')
+    const readBefore = [
+      ['duties', 'register', 'read-before'],
+      ['assets', 'duties', 'read-before'],
+      ['assets', 'proposals', 'read-before'],
+    ]
+
+    for (const key of readBefore) {
+      queries.setQueryData(key, { read: 'before' })
+    }
+
+    answerToWrite = answering({ id: 'd-1' }, 200)
+    fireEvent.click(asked.getByRole('button', { name: 'Entfernen' }))
+
+    await waitFor(() => {
+      expect(router.state.location.pathname).toBe('/anlagen/a-lift')
+    })
+    expect(readBefore.map((key) => queries.getQueryData(key))).toEqual([
+      undefined,
+      undefined,
+      undefined,
+    ])
+  })
+
+  it('shows what the server refuses with, keeps the question open and stays on the page', async () => {
+    const { router, asked } = await asking()
+
+    answerToWrite = answering({ message: refusal }, 409)
+    fireEvent.click(asked.getByRole('button', { name: 'Entfernen' }))
+
+    expect((await asked.findByRole('alert')).textContent).toBe(refusal)
+    expect(screen.getByRole('alertdialog', { name: question })).toBeTruthy()
+    expect(router.state.location.pathname).toBe('/pflichten/d-1')
   })
 })
 
