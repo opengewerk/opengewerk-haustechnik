@@ -2,6 +2,7 @@ import {
   type AssetCondition,
   assetConditionLabel,
   type AssetStanding,
+  conditionWords,
   type DutyState,
   dutyStateLabel,
   type IsoDate,
@@ -60,13 +61,6 @@ const conditionLooks: Readonly<Record<Exclude<AssetCondition, 'no_duties'>, Look
   due: { tone: 'waiting' },
   in_order: { tone: 'done' },
   resting: { tone: 'neutral', icon: Pause },
-}
-
-/** The condition of an asset in words: "In Ordnung bis 24.09.2028" for one in order with a day. */
-export function conditionWords(standing: AssetStanding): string {
-  return standing.condition === 'in_order' && standing.until !== null
-    ? `${assetConditionLabel.in_order} bis ${date(standing.until)}`
-    : assetConditionLabel[standing.condition]
 }
 
 /**

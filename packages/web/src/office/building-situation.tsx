@@ -5,6 +5,7 @@ import {
   type BuildingSituation,
   type LastActivity,
   type PlaceToDo,
+  toDoNumbers,
 } from '@opengewerk/haustechnik-domain'
 import {
   cardLink,
@@ -94,18 +95,24 @@ export function toDoTarget(
   }
 }
 
-/** What each number is called and in which tone it stands where it is not zero. */
+/** In which tone each number stands where it is not zero. */
+const toDoTones: Readonly<Record<ToDoKey, Tile['tone']>> = {
+  overdue: 'conflict',
+  due: 'waiting',
+  neverRecorded: 'neutral',
+  openDefects: 'conflict',
+  missingReadings: 'waiting',
+}
+
+/**
+ * What each number is called and in which tone it stands where it is not
+ * zero. The names are those of the table of the list as well (#138).
+ */
 export const toDoColumns: readonly {
   readonly key: ToDoKey
   readonly label: string
   readonly tone: Tile['tone']
-}[] = [
-  { key: 'overdue', label: 'Überfällig', tone: 'conflict' },
-  { key: 'due', label: 'Fällig', tone: 'waiting' },
-  { key: 'neverRecorded', label: 'Nie erfasst', tone: 'neutral' },
-  { key: 'openDefects', label: 'Offene Mängel', tone: 'conflict' },
-  { key: 'missingReadings', label: 'Zählerstände fehlen', tone: 'waiting' },
-]
+}[] = toDoNumbers.map(({ key, label }) => ({ key, label, tone: toDoTones[key] }))
 
 /**
  * The numbers of what is to do at a place, `count_tile()` of the boards, each
