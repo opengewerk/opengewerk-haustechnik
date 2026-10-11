@@ -267,6 +267,13 @@
       "when": 1791671140976,
       "tag": "0037_interval_document",
       "breakpoints": true
+    },
+    {
+      "idx": 38,
+      "version": "7",
+      "when": 1791693255712,
+      "tag": "0038_device_scope_indexes",
+      "breakpoints": true
     }
   ]
 }

@@ -52,15 +52,19 @@ export async function deviceScope(
   const since = new Date(now.getTime() - closedActivitiesStayDays * 24 * 60 * 60 * 1000)
   const ids = async (query: SQL) =>
     (await tx.execute<{ id: string }>(query)).rows.map((row) => row.id)
+  // The two halves of the last condition are what `activities_open_idx` and
+  // `activities_changed_idx` carry, word for word: whoever changes one changes
+  // the index with it. The work orders the person works on are read once, as
+  // a list. Asked for each activity, the database reckoned with one question
+  // per row, estimated the whole far too high and compiled the query before
+  // running it, which took longer than reading every activity (#80).
   const activityIds = await ids(sql`
       select id from activities
        where deleted_at is null
          and (responsible_user_id = ${userId} or performer_user_id = ${userId}
               or (responsible_user_id is null and performer_user_id is null)
-              or exists (select 1 from work_order_participants
-                          where work_order_participants.activity_id = activities.id
-                            and work_order_participants.user_id = ${userId}
-                            and work_order_participants.deleted_at is null))
+              or id = any(array(select activity_id from work_order_participants
+                                 where user_id = ${userId} and deleted_at is null)))
          and (status in ('open', 'started', 'signed') or updated_at >= ${since.toISOString()})
        order by id`)
 

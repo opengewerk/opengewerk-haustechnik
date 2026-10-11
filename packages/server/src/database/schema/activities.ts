@@ -147,6 +147,18 @@ export const activities = pgTable(
     }),
     index('activities_property_idx').on(table.tenantId, table.propertyId),
     index('activities_asset_idx').on(table.tenantId, table.assetId),
+    // What the device of a person who does not see every area holds of the
+    // activities (`deviceScope`, ADR 0006): the open ones and those changed in
+    // the last days. Each index carries one half of that condition word for
+    // word, so that the database reads those rows and not every activity of
+    // the years before (#80). Whoever changes the condition there changes it
+    // here as well.
+    index('activities_open_idx')
+      .on(table.tenantId)
+      .where(sql`${table.deletedAt} is null and ${table.status} in ('open', 'started', 'signed')`),
+    index('activities_changed_idx')
+      .on(table.tenantId, table.updatedAt)
+      .where(sql`${table.deletedAt} is null`),
     // One round for each pass of a plan (section 4.5): two runs of the
     // deadline engine, or the engine and the office at the same moment, make
     // it once. A round that was removed makes room for a new one.

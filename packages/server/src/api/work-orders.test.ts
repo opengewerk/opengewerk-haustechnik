@@ -526,12 +526,14 @@ describe('who sees a work order', () => {
         origin: 'defect',
         defectId: await defectAt(asset, large),
         responsibleUserId: 'u-site',
-        participantUserIds: [],
+        participantUserIds: ['u-tech'],
       },
       by('u-site', large),
     )
 
-    // Lena Vogt works on the first and has nothing to do with the second.
+    // Lena Vogt works on the first and has nothing to do with the second,
+    // which Tobias Wendt works on (#80): somebody else's part in an order
+    // puts it on nobody else's device.
     const lena = by('u-other', large)
     const shown = (await listed(lena, '?state=all')).orders.map((each) => each.id)
 
