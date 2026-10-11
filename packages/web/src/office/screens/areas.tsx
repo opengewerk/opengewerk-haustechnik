@@ -2,7 +2,10 @@ import {
   type Area,
   areaNameMaxLength,
   areaNameProblem,
+  areaTableColumns,
+  areaTableWords,
   type MemberAreas,
+  whatLiesIn,
 } from '@opengewerk/haustechnik-domain'
 import {
   Button,
@@ -16,7 +19,12 @@ import {
   type TableCard,
   TablePanel,
 } from '@opengewerk/platform-web'
-import { NoteBox, SettingsPage, SettingsText } from '@opengewerk/platform-web/office'
+import {
+  NoteBox,
+  SettingsPage,
+  SettingsText,
+  useTableExport,
+} from '@opengewerk/platform-web/office'
 import { useRight } from '@opengewerk/platform-web/session'
 import { request, RequestRefused, useSync } from '@opengewerk/platform-web/sync'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
@@ -66,8 +74,8 @@ export const areaScreenWords = {
   rule:
     'Leitung und Technische Leitung sehen alle Bereiche. Eine Liegenschaft gehört zu genau einem ' +
     'Bereich. Entfernen lässt sich ein Bereich erst, wenn keine Liegenschaft mehr in ihm liegt.',
-  noProperty: 'keine',
-  nobody: 'niemand',
+  noProperty: areaTableWords.noProperty,
+  nobody: areaTableWords.nobody,
   moving:
     'Eine Liegenschaft wechselt den Bereich über ihre Seite, „Bearbeiten“. Alles an ihr wechselt ' +
     'mit: Gebäude, Räume, Anlagen, Pflichten und Vorgänge. Wer den Bereich nicht hat, sieht sie ' +
@@ -108,23 +116,9 @@ function saidWhy(error: unknown, fallback: string): string {
   return error instanceof RequestRefused ? error.message : fallback
 }
 
-/** "7 Liegenschaften, 12 Gebäude" under the name of an area, or that nothing lies in it. */
-export function whatLiesIn(area: Pick<AreaEntry, 'properties' | 'buildings'>): string {
-  const properties = area.properties.length
-
-  if (properties === 0) {
-    return 'keine Liegenschaft'
-  }
-
-  const buildings =
-    area.buildings === 0
-      ? 'kein Gebäude'
-      : area.buildings === 1
-        ? '1 Gebäude'
-        : `${String(area.buildings)} Gebäude`
-
-  return `${properties === 1 ? '1 Liegenschaft' : `${String(properties)} Liegenschaften`}, ${buildings}`
-}
+// "7 Liegenschaften, 12 Gebäude" under the name of an area: said in `domain`,
+// where the areas as a table read it as well (#236).
+export { whatLiesIn }
 
 /** The first names of a list and how many more there are: "A", "B", "2 weitere". */
 export function firstOf(names: readonly string[], most: number): string[] {
@@ -226,6 +220,8 @@ export function AreasScreen() {
   const seesStaff = useRight('membership.read')
   const overview = useQuery(areaOverviewQuery)
   const held = useQuery({ ...memberAreasQuery, enabled: seesStaff })
+  // The areas as the list shows them, as a table (#236).
+  const table = useTableExport('/areas/overview/table')
   const [open, setOpen] = useState<Open | null>(null)
 
   /**
@@ -326,7 +322,13 @@ export function AreasScreen() {
   }))
 
   return (
-    <SettingsPage active="bereiche" title={areaScreenWords.title} sub={areaScreenWords.what}>
+    <SettingsPage
+      active="bereiche"
+      title={areaScreenWords.title}
+      sub={areaScreenWords.what}
+      actions={table.button}
+    >
+      {table.trouble}
       {overview.isPending ? (
         <SettingsText muted>Wird geladen.</SettingsText>
       ) : overview.isError ? (
@@ -341,9 +343,9 @@ export function AreasScreen() {
         >
           <thead>
             <tr>
-              <Column className="w-[170px]">Bereich</Column>
-              <Column>Liegenschaften</Column>
-              <Column className="w-[190px]">Zugänge mit diesem Bereich</Column>
+              <Column className="w-[170px]">{areaTableColumns.area}</Column>
+              <Column>{areaTableColumns.properties}</Column>
+              <Column className="w-[190px]">{areaTableColumns.members}</Column>
               <Column numeric className="w-[196px]">
                 <span className="sr-only">Ändern</span>
               </Column>

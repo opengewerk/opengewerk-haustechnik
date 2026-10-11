@@ -41,6 +41,7 @@ import { DatabaseExceptionFilter } from './database-errors.js'
 import { DefectClassSettingsController, DefectsController } from './defects.controller.js'
 import { AssetEvidenceController, EvidenceController } from './evidence.controller.js'
 import { CatalogueController } from './catalogue.controller.js'
+import { DocumentsController } from './documents.controller.js'
 import {
   DutiesController,
   DutyDismissalsController,
@@ -250,6 +251,9 @@ export class ApiModule {
         AssetLabelsController,
         RoomLabelsController,
         LabelsController,
+        // The list of the documents as a table; the documents themselves
+        // are the foundation's.
+        DocumentsController,
         // The duties of an operator and the proposals dismissed.
         DutiesController,
         RoomDutiesController,

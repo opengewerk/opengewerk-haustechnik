@@ -4,12 +4,20 @@ import {
   type DocumentKind,
   documentKindLabel,
   documentKinds,
+  documentTableColumns,
   type RecordState,
 } from '@opengewerk/haustechnik-domain'
 import { Button, cardLink, Cell, Column, Panel, TablePanel } from '@opengewerk/platform-web'
 import { openVersion, useVersions } from '@opengewerk/platform-web/attachments'
 import { fileSize } from '@opengewerk/platform-web/format'
-import { ChangesButton, Chip, Empty, PageHead, Screen } from '@opengewerk/platform-web/office'
+import {
+  ChangesButton,
+  Chip,
+  Empty,
+  PageHead,
+  Screen,
+  useTableExport,
+} from '@opengewerk/platform-web/office'
 import { useRight } from '@opengewerk/platform-web/session'
 import { count, text, useRecords, useSync } from '@opengewerk/platform-web/sync'
 import { Link, useNavigate, useParams, useSearch } from '@tanstack/react-router'
@@ -32,6 +40,7 @@ import {
   documentPlaces,
   documentRegisterPlace,
   documentSearch,
+  documentTableRequest,
 } from '../document-addresses.js'
 import {
   EditDocumentDialog,
@@ -119,6 +128,8 @@ export function DocumentsScreen() {
 
   const filter = documentFilterOf(search)
   const narrowed = filter.kind !== undefined || filter.home !== undefined
+  // What the list shows under its filter, as a table (#236).
+  const table = useTableExport(documentTableRequest(filter))
   const listed = useMemo(
     () =>
       newestFirst(
@@ -184,19 +195,23 @@ export function DocumentsScreen() {
               },
             })}
         actions={
-          files ? (
-            <Button
-              tone="primary"
-              icon={Upload}
-              onClick={() => {
-                setDoing('file')
-              }}
-            >
-              Hochladen
-            </Button>
-          ) : null
+          <>
+            {table.button}
+            {files ? (
+              <Button
+                tone="primary"
+                icon={Upload}
+                onClick={() => {
+                  setDoing('file')
+                }}
+              >
+                Hochladen
+              </Button>
+            ) : null}
+          </>
         }
       />
+      {table.trouble}
       <div className="flex flex-wrap items-end gap-x-2.5 gap-y-2">
         <div role="group" aria-label="Art" className="flex flex-wrap gap-1.5">
           <Chip
@@ -284,10 +299,10 @@ export function DocumentsScreen() {
                 <tr>
                   {/* Beside the versions the list has 683 pixels at 1280: the
                       four narrow columns leave the name of a document the rest. */}
-                  <Column className="min-w-[160px]">Dokument</Column>
-                  <Column className="w-[132px] min-w-[104px]">Art</Column>
-                  <Column className="w-[176px] min-w-[128px]">Hängt an</Column>
-                  <Column className="w-[82px] min-w-[76px]">Fassung</Column>
+                  <Column className="min-w-[160px]">{documentTableColumns.title}</Column>
+                  <Column className="w-[132px] min-w-[104px]">{documentTableColumns.kind}</Column>
+                  <Column className="w-[176px] min-w-[128px]">{documentTableColumns.home}</Column>
+                  <Column className="w-[82px] min-w-[76px]">{documentTableColumns.versions}</Column>
                   <Column className="w-[98px] min-w-[88px]">Geändert</Column>
                 </tr>
               </thead>

@@ -17,6 +17,13 @@ import {
   defectWhere,
   dismissedTableColumns,
   dismissedTableRows,
+  type DocumentHome,
+  documentHomeLabel,
+  documentHomeOf,
+  documentHomeWords,
+  type DocumentLine,
+  documentTableColumns,
+  documentTableRow,
   type DutyEntry,
   type DutyProposals,
   dutyTableHeads,
@@ -35,21 +42,43 @@ import {
   propertyTableColumns,
   proposalTableColumns,
   proposalTableRows,
+  roomTitle,
   searchedFor,
   tableNamesPeople,
   type TableRow,
   targetWhere,
+  type TaskLine,
+  taskTableHeads,
+  taskTableRows,
   toDoNumbers,
   whereWords,
   type WorkOrderEntry,
   workOrderTableHeads,
   workOrderTableRow,
 } from '@opengewerk/haustechnik-domain'
-import { type OutgoingTable, type TenantTransaction } from '@opengewerk/platform-server'
-import { isNull } from 'drizzle-orm'
+import {
+  accountsOf,
+  type Database,
+  type OutgoingTable,
+  type TenantTransaction,
+} from '@opengewerk/platform-server'
+import { and, desc, eq, inArray, isNull } from 'drizzle-orm'
 
 import { areasInSight } from '../areas/areas.js'
-import { assets, buildings, properties, rooms } from '../database/schema/index.js'
+import {
+  activities,
+  assets,
+  attachments,
+  attachmentVersions,
+  buildings,
+  defects,
+  properties,
+  rooms,
+  tasks,
+} from '../database/schema/index.js'
+import { deviceScope } from '../sync/device-scope.js'
+import { dayInGermany } from '../today.js'
+import { inSight } from './activities.controller.js'
 import { assetsPassing } from './asset-register.js'
 import { placesToDo } from './place-situation.js'
 import type { Asking } from './places.js'
@@ -517,4 +546,222 @@ export async function proposalTable(
         columns: Object.values(proposalTableColumns),
         rows: proposalTableRows(within(read.proposals), catalogue, today, reads),
       }
+}
+
+/** The titles of the activities with these ids, as far as the person reads activities and is shown them. */
+async function activityTitlesFor(
+  tx: TenantTransaction,
+  identity: Asking,
+  ids: readonly string[],
+): Promise<ReadonlyMap<string, string>> {
+  if (ids.length === 0 || !isAllowed(identity, 'activity.read')) {
+    return new Map()
+  }
+
+  const rows = await tx
+    .select({ id: activities.id, title: activities.title })
+    .from(activities)
+    .where(
+      and(inArray(activities.id, ids as never[]), isNull(activities.deletedAt), inSight(identity)),
+    )
+
+  return new Map(rows.map((row) => [row.id as string, row.title]))
+}
+
+/**
+ * "Aufgaben" as a table: the open tasks a device of the person holds, their
+ * own first and then those open with the others, as the list shows them.
+ * Whoever sees every area holds every task; everybody else those for them
+ * and those they wrote (`deviceScope`). Who a task is for stands only for
+ * whoever may see the staff.
+ */
+export async function taskTable(
+  database: Database,
+  tx: TenantTransaction,
+  identity: Asking,
+  today: IsoDate,
+): Promise<OutgoingTable> {
+  const scope = await deviceScope(tx, identity.userId)
+  const held =
+    !scope.everyArea && scope.taskIds.length === 0
+      ? []
+      : await tx
+          .select()
+          .from(tasks)
+          .where(
+            and(
+              isNull(tasks.deletedAt),
+              eq(tasks.status, 'open'),
+              ...(scope.everyArea ? [] : [inArray(tasks.id, scope.taskIds as never[])]),
+            ),
+          )
+  const names = await placeNamesFor(tx, identity)
+  const assetNames = await assetLookupFor(tx, identity)
+  const titles = await activityTitlesFor(
+    tx,
+    identity,
+    held.flatMap((task) => (task.activityId === null ? [] : [task.activityId as string])),
+  )
+  const people = tableNamesPeople(identity)
+  // Nobody is looked up by name for a table that names nobody.
+  const accounts = people
+    ? await accountsOf(
+        database,
+        [...new Set(held.map((task) => task.assigneeUserId))],
+        identity.userId,
+      )
+    : new Map<string, { readonly name: string }>()
+
+  const lines: TaskLine[] = held.map((task) => {
+    const where = targetWhere(task, names, assetNames)
+
+    return {
+      id: task.id as string,
+      status: task.status,
+      dueOn: task.dueOn as IsoDate,
+      title: task.title,
+      assigneeUserId: task.assigneeUserId,
+      responsible: people ? (accounts.get(task.assigneeUserId)?.name ?? 'Unbekanntes Konto') : null,
+      where:
+        task.activityId === null
+          ? whereWords(where)
+          : placeWords([
+              titles.get(task.activityId as string) ?? documentHomeLabel.activityId,
+              where.line,
+            ]),
+    }
+  })
+
+  return {
+    name: 'Aufgaben',
+    columns: taskTableHeads(people),
+    rows: taskTableRows(lines, identity.userId, today, people),
+  }
+}
+
+/**
+ * "Dokumente" as a table: the documents of the places in the areas of the
+ * person, as a device of theirs holds them, the one changed last first.
+ * What a document hangs on is named for whoever reads that record: a place
+ * with `location.read`, an asset with `asset.read`, an activity with
+ * `activity.read` as far as the person is shown it, a defect with
+ * `defect.read`; otherwise it is named by its kind.
+ */
+export async function documentTable(
+  tx: TenantTransaction,
+  identity: Asking,
+  asked: { readonly kind: string | null; readonly home: DocumentHome | null },
+): Promise<OutgoingTable> {
+  const filed = (await tx.select().from(attachments).where(isNull(attachments.deletedAt)))
+    .map((document) => ({ ...document, home: documentHomeOf(document) }))
+    .filter(
+      (document) =>
+        (asked.kind === null || document.kind === asked.kind) &&
+        (asked.home === null || document.home === asked.home),
+    )
+  // The newest first: the id of a version is minted when it is made.
+  const versions = await tx
+    .select({
+      id: attachmentVersions.id,
+      attachmentId: attachmentVersions.attachmentId,
+      fileName: attachmentVersions.fileName,
+      mediaType: attachmentVersions.mediaType,
+      createdAt: attachmentVersions.createdAt,
+    })
+    .from(attachmentVersions)
+    .where(isNull(attachmentVersions.deletedAt))
+    .orderBy(desc(attachmentVersions.id))
+  const versionsOf = new Map<string, (typeof versions)[number][]>()
+
+  for (const version of versions) {
+    const of = version.attachmentId as string
+
+    versionsOf.set(of, [...(versionsOf.get(of) ?? []), version])
+  }
+
+  const names = await placeNamesFor(tx, identity)
+  const assetNames = isAllowed(identity, 'asset.read') ? await assetLookupFor(tx, identity) : null
+  const titles = await activityTitlesFor(
+    tx,
+    identity,
+    filed.flatMap((document) =>
+      document.activityId === null ? [] : [document.activityId as string],
+    ),
+  )
+  const defectIds = filed.flatMap((document) =>
+    document.defectId === null ? [] : [document.defectId as string],
+  )
+  const found =
+    defectIds.length === 0 || !isAllowed(identity, 'defect.read')
+      ? new Map<string, string>()
+      : new Map(
+          (
+            await tx
+              .select({ id: defects.id, description: defects.description })
+              .from(defects)
+              .where(and(inArray(defects.id, defectIds as never[]), isNull(defects.deletedAt)))
+          ).map((row) => [row.id as string, row.description]),
+        )
+
+  /** What a document hangs on by its name, as far as the person reads it. */
+  const named = (document: (typeof filed)[number]): string | null => {
+    switch (document.home) {
+      case 'assetId': {
+        const asset = assetNames?.(document.assetId as string) ?? null
+        const words = [asset?.number, asset?.name].filter(Boolean).join(' ')
+
+        return words === '' ? null : words
+      }
+
+      case 'roomId': {
+        const room = names?.room(document.roomId as string) ?? null
+
+        return room === null ? null : roomTitle(room)
+      }
+
+      case 'buildingId':
+        return names?.building(document.buildingId as string) ?? null
+      case 'activityId':
+        return titles.get(document.activityId as string) ?? null
+      case 'defectId':
+        return found.get(document.defectId as string) ?? null
+      case 'propertyId':
+        return null
+    }
+  }
+  const stampOf = (document: (typeof filed)[number]) =>
+    (versionsOf.get(document.id as string)?.[0]?.id as string | undefined) ??
+    (document.id as string)
+
+  const lines: DocumentLine[] = [...filed]
+    .sort((left, right) => stampOf(right).localeCompare(stampOf(left)))
+    .map((document) => {
+      const all = versionsOf.get(document.id as string) ?? []
+      const newest = all[0] ?? null
+
+      return {
+        title: document.title,
+        kind: document.kind,
+        home: documentHomeWords(
+          document.home,
+          named(document),
+          names?.property(document.propertyId as string) ?? null,
+        ),
+        versions: all.length,
+        newest:
+          newest === null
+            ? null
+            : {
+                fileName: newest.fileName,
+                mediaType: newest.mediaType,
+                filedOn: dayInGermany(newest.createdAt),
+              },
+      }
+    })
+
+  return {
+    name: 'Dokumente',
+    columns: Object.values(documentTableColumns),
+    rows: lines.map(documentTableRow),
+  }
 }

@@ -6,6 +6,7 @@ import {
   addDays,
   catalogueOf,
   dayInWords,
+  documentKindLabel,
   type DutyProposals,
   type DutyRegister,
   dutyTableWords,
@@ -48,8 +49,12 @@ import { stampIn, stampsOf, tableReaders } from './test-tables.js'
 const small = newId<'tenant'>() as TenantId
 /** Two areas, north and south. */
 const large = newId<'tenant'>() as TenantId
+/** Two areas, north and south, for the table of the areas and nothing else. */
+const estate = newId<'tenant'>() as TenantId
 let north = ''
 let south = ''
+let estateNorth = ''
+let estateSouth = ''
 
 const people: Readonly<Record<string, { readonly role: RoleKey; readonly name: string }>> = {
   'u-lead': { role: 'management', name: 'Lena Leitung' },
@@ -192,15 +197,17 @@ beforeAll(async () => {
   admin = await connect()
   await resetToMigrated()
 
-  await admin.query('insert into tenants (id, name) values ($1, $2), ($3, $4)', [
+  await admin.query('insert into tenants (id, name) values ($1, $2), ($3, $4), ($5, $6)', [
     small,
     'Wohnbau Nord eG',
     large,
     'Gebäudeverwaltung Süd',
+    estate,
+    'Liegenschaften Probe',
   ])
 
   // The roles as rows, with the rights each ships with, as a real operator has them.
-  for (const tenantId of [small, large]) {
+  for (const tenantId of [small, large, estate]) {
     for (const role of shippedRoles) {
       await admin.query(
         `insert into tenant_roles (tenant_id, key, label, rights, leads, second_factor)
@@ -210,15 +217,20 @@ beforeAll(async () => {
     }
   }
 
-  // The tenant with two areas has them before anybody works for it, so that
-  // it does not begin with the one a tenant gets with its first membership.
-  const { rows } = await admin.query<{ id: string; name: string }>(
-    `insert into areas (tenant_id, name) values ($1, 'Nord'), ($1, 'Süd') returning id, name`,
-    [large],
+  // The tenants with two areas have them before anybody works for them, so
+  // that they do not begin with the one a tenant gets with its first membership.
+  const { rows } = await admin.query<{ id: string; name: string; tenant_id: string }>(
+    `insert into areas (tenant_id, name) values ($1, 'Nord'), ($1, 'Süd'), ($2, 'Nord'), ($2, 'Süd')
+     returning id, name, tenant_id`,
+    [large, estate],
   )
+  const area = (tenantId: TenantId, name: string) =>
+    rows.find((row) => row.tenant_id === tenantId && row.name === name)?.id ?? ''
 
-  north = rows.find((row) => row.name === 'Nord')?.id ?? ''
-  south = rows.find((row) => row.name === 'Süd')?.id ?? ''
+  north = area(large, 'Nord')
+  south = area(large, 'Süd')
+  estateNorth = area(estate, 'Nord')
+  estateSouth = area(estate, 'Süd')
 
   for (const [userId, person] of Object.entries(people)) {
     // Called by a name that is not the id, which is what a stamp would hold.
@@ -228,7 +240,7 @@ beforeAll(async () => {
       `${userId}@beispiel.example`,
     ])
 
-    for (const tenantId of [small, large]) {
+    for (const tenantId of [small, large, estate]) {
       await admin.query('insert into memberships (tenant_id, user_id, roles) values ($1, $2, $3)', [
         tenantId,
         userId,
@@ -237,12 +249,11 @@ beforeAll(async () => {
     }
   }
 
-  // In the tenant with two areas the technician works in the north.
-  await admin.query('insert into member_areas (tenant_id, user_id, area_id) values ($1, $2, $3)', [
-    large,
-    'u-tech',
-    north,
-  ])
+  // In the tenants with two areas the technician works in the north.
+  await admin.query(
+    'insert into member_areas (tenant_id, user_id, area_id) values ($1, $2, $3), ($4, $2, $5)',
+    [large, 'u-tech', north, estate, estateNorth],
+  )
 
   database = Database.connect(applicationDatabaseUrl())
 
@@ -919,6 +930,527 @@ describe('the proposals of the catalogue as a table (#236)', () => {
         expect(table[1]?.at(-1)).toBe(dayInWords(addDays(today, days)))
         expect(stampIn(table, stamps)).toEqual([])
       }
+    }
+  })
+})
+
+describe('the areas as a table (#236)', () => {
+  /** Somebody of the Leitung in the tenant of these tests, with exactly these rights. */
+  const holding = (...rights: Right[]) =>
+    JSON.stringify({ userId: 'u-lead', tenantId: estate, roles: ['management'], rights })
+  /** The rows of the table by the name of their area, the properties of each in the order of their names. */
+  async function byArea(header: string, format: 'xlsx' | 'csv' = 'xlsx') {
+    const [heads, ...rows] = await tableOf('/areas/overview/table', {}, header, format)
+
+    return {
+      heads,
+      rows: Object.fromEntries(
+        rows.map((row) => [
+          row[0],
+          row.slice(1).map((cell, at) => (at === 1 ? cell.split(', ').sort().join(', ') : cell)),
+        ]),
+      ),
+    }
+  }
+
+  it('holds every area with what lies in it and who it is named for, as the list shows them', async () => {
+    await propertyIn('Hof A', estate, { areaId: estateNorth })
+    await propertyIn('Hof B', estate, { areaId: estateNorth })
+
+    for (const format of ['xlsx', 'csv'] as const) {
+      expect(await byArea(by('u-lead', estate), format)).toEqual({
+        heads: ['Bereich', 'Umfang', 'Liegenschaften', 'Zugänge mit diesem Bereich'],
+        rows: {
+          Nord: ['2 Liegenschaften, 2 Gebäude', 'Hof A, Hof B', 'Hana Haus'],
+          Süd: ['keine Liegenschaft', 'keine', 'niemand'],
+        },
+      })
+    }
+  })
+
+  it('names who an area is for only for whoever may see the staff, and the properties only for whoever reads places', async () => {
+    expect(await byArea(holding('settings.read', 'location.read'))).toEqual({
+      heads: ['Bereich', 'Umfang', 'Liegenschaften'],
+      rows: {
+        Nord: ['2 Liegenschaften, 2 Gebäude', 'Hof A, Hof B'],
+        Süd: ['keine Liegenschaft', 'keine'],
+      },
+    })
+
+    const nameless = await tableOf('/areas/overview/table', {}, holding('settings.read'))
+
+    expect(nameless.flat().join(' ')).not.toMatch(/Hana Haus|Hof A|Hof B/)
+    expect(nameless[0]).toEqual(['Bereich', 'Umfang', 'Liegenschaften'])
+  })
+
+  it('is only for whoever sees the settings', async () => {
+    expect(await refusalOf('/areas/overview/table', {}, holding('location.read'))).toEqual({
+      status: 403,
+      message: missingRight('settings.read'),
+    })
+    expect((await refusalOf('/areas/overview/table', {}, by('u-tech', estate))).status).toBe(403)
+  })
+
+  it('writes a name that begins like a formula so that no spreadsheet runs it', async () => {
+    await propertyIn('=HYPERLINK("http://x.example")', estate, { areaId: estateSouth })
+
+    const csv = await rawOf('/areas/overview/table', {}, by('u-lead', estate), 'csv')
+    const sheet = await rawOf('/areas/overview/table', {}, by('u-lead', estate), 'xlsx')
+
+    expect(csv).toContain(`;"'=HYPERLINK(""http://x.example"")";`)
+    expect(sheet).not.toMatch(/<f[ >]/)
+  })
+
+  it('holds no part of the stamp of the last change, in neither format', async () => {
+    const stamps = await stampsOf(admin, estate, ['properties', 'buildings'])
+
+    expect(stamps.length).toBeGreaterThan(2)
+
+    for (const format of ['xlsx', 'csv'] as const) {
+      const table = await tableOf('/areas/overview/table', {}, by('u-lead', estate), format)
+
+      expect(table).toHaveLength(3)
+      expect(stampIn(table, stamps)).toEqual([])
+    }
+  })
+})
+
+describe('the tasks as a table (#236)', () => {
+  const heads = ['Liste', 'Aufgabe', 'Fällig am', 'Überfällig', 'Hängt an', 'Verantwortlich']
+
+  /** A task at an asset, a property or an activity, for somebody and written by somebody. */
+  async function taskAt(
+    at: { readonly asset?: string; readonly property?: string; readonly activity?: string },
+    title: string,
+    assignee: Person,
+    dueOn: string,
+    more: { readonly author?: Person; readonly status?: 'open' | 'done' } = {},
+  ): Promise<void> {
+    const from = at.asset ? 'assets' : at.activity ? 'activities' : 'properties'
+    const place =
+      from === 'properties' ? 'id, area_id, null::uuid, null::uuid' : 'property_id, area_id, $6, $7'
+
+    const { rows } = await admin.query<{ id: string }>(
+      `insert into tasks (tenant_id, title, due_on, assignee_user_id, status,
+                          property_id, area_id, asset_id, activity_id)
+       select tenant_id, $2, $3, $4, $5, ${place}
+         from ${from} where id = $1
+       returning id`,
+      [
+        at.asset ?? at.activity ?? at.property,
+        title,
+        dueOn,
+        assignee,
+        more.status ?? 'open',
+        ...(from === 'properties' ? [] : [at.asset ?? null, at.activity ?? null]),
+      ],
+    )
+
+    // Who wrote a task is taken from the session when it is made; said here afterwards.
+    await admin.query('update tasks set created_by = $2 where id = $1', [
+      rows[0]?.id,
+      more.author ?? assignee,
+    ])
+  }
+
+  it('holds the open tasks of the two lists, the own ones first, each with its day and what it hangs on', async () => {
+    const { property, asset, number } = await liftIn('Aufgabenhaus West')
+
+    await taskAt({ asset }, 'Plaketten bestellen', 'u-lead', addDays(today, 5))
+    await taskAt({ property }, 'Schlüssel abholen', 'u-tech', addDays(today, -2), {
+      author: 'u-duties',
+    })
+    await taskAt({ property }, 'Erledigtes', 'u-lead', addDays(today, 1), { status: 'done' })
+
+    const atAsset = `${number} Aufzug Aufgabenhaus West, Aufgabenhaus West, Haus A`
+    const own = ['Plaketten bestellen', dayInWords(addDays(today, 5)), '', atAsset]
+    const others = [
+      'Schlüssel abholen',
+      dayInWords(addDays(today, -2)),
+      'überfällig',
+      'Aufgabenhaus West, Liegenschaft',
+    ]
+
+    for (const format of ['xlsx', 'csv'] as const) {
+      expect(await tableOf('/tasks/table', {}, by('u-lead'), format)).toEqual([
+        heads,
+        ['Ihre Aufgaben', ...own, 'Lena Leitung'],
+        ['Offen bei anderen', ...others, 'Hana Haus'],
+      ])
+      // Without the right of the staff: whose a task is, by its list alone.
+      expect(await tableOf('/tasks/table', {}, by('u-duties'), format)).toEqual([
+        heads.slice(0, 5),
+        ['Offen bei anderen', ...others],
+        ['Offen bei anderen', ...own],
+      ])
+    }
+
+    const nameless = await tableOf('/tasks/table', {}, by('u-duties'))
+
+    expect(nameless.flat().join(' ')).not.toMatch(/Hana Haus|Tom Technik|Lena Leitung/)
+  })
+
+  it('holds for whoever sees only some areas their own tasks, and none of an area they do not see', async () => {
+    const inNorth = await liftIn('Aufgabenhof Nord', large, { areaId: north })
+    const inSouth = await liftIn('Aufgabenhof Süd', large, { areaId: south })
+
+    await taskAt({ asset: inNorth.asset }, 'Nordtür ölen', 'u-tech', addDays(today, 3))
+    await taskAt({ asset: inNorth.asset }, 'Nordlicht tauschen', 'u-lead', addDays(today, 4))
+    await taskAt({ asset: inNorth.asset }, 'Nordschild richten', 'u-lead', addDays(today, 6), {
+      author: 'u-tech',
+    })
+    await taskAt({ asset: inSouth.asset }, 'Südtür ölen', 'u-lead', addDays(today, 3))
+
+    const titles = async (header: string) =>
+      (await tableOf('/tasks/table', {}, header)).slice(1).map((row) => `${row[0]}: ${row[1]}`)
+
+    // Their own and those they wrote, as their device holds them.
+    expect(await titles(by('u-tech', large))).toEqual([
+      'Ihre Aufgaben: Nordtür ölen',
+      'Offen bei anderen: Nordschild richten',
+    ])
+    expect(await titles(by('u-lead', large))).toEqual([
+      'Ihre Aufgaben: Südtür ölen',
+      'Ihre Aufgaben: Nordlicht tauschen',
+      'Ihre Aufgaben: Nordschild richten',
+      'Offen bei anderen: Nordtür ölen',
+    ])
+  })
+
+  it('is only for whoever looks at tasks', async () => {
+    expect(await refusalOf('/tasks/table', {}, leading('asset.read'))).toEqual({
+      status: 403,
+      message: missingRight('task.read'),
+    })
+  })
+
+  it('names the place, the asset and the activity a task hangs on only for whoever reads them', async () => {
+    const tenant = newId<'tenant'>() as TenantId
+
+    await admin.query('insert into tenants (id, name) values ($1, $2)', [tenant, 'Aufgaben Probe'])
+    await admin.query(
+      `insert into memberships (tenant_id, user_id, roles) values ($1, 'u-lead', '{management}'),
+                                                                   ($1, 'u-duties', '{technical_management}')`,
+      [tenant],
+    )
+
+    const { asset, number } = await liftIn('Aufgabenhaus Nord', tenant)
+    const activity = (
+      await http()
+        .post('/activities')
+        .set(testIdentityHeader, by('u-duties', tenant))
+        .send({ dutyId: await dutyAt(asset, 'Türen prüfen') })
+        .expect(201)
+    ).body.id as string
+
+    await taskAt({ asset }, 'An der Anlage', 'u-lead', addDays(today, 1))
+    await taskAt({ activity }, 'Am Vorgang', 'u-lead', addDays(today, 2))
+
+    const where = async (...rights: Right[]) =>
+      (
+        await tableOf(
+          '/tasks/table',
+          {},
+          JSON.stringify({
+            userId: 'u-lead',
+            tenantId: tenant,
+            roles: ['management'],
+            rights: ['task.read', ...rights],
+          }),
+        )
+      )
+        .slice(1)
+        .map((row) => row[4])
+
+    expect(await where()).toEqual(['Anlage, Liegenschaft', 'Vorgang, Liegenschaft'])
+    expect(await where('asset.read', 'location.read', 'activity.read')).toEqual([
+      `${number} Aufzug Aufgabenhaus Nord, Aufgabenhaus Nord, Haus A`,
+      'Türen prüfen, Aufgabenhaus Nord',
+    ])
+    expect(await where('location.read')).toEqual([
+      'Anlage, Aufgabenhaus Nord, Haus A',
+      'Vorgang, Aufgabenhaus Nord',
+    ])
+  })
+
+  it('writes a task that begins like a formula so that no spreadsheet runs it, and nothing of the stamp', async () => {
+    const tenant = newId<'tenant'>() as TenantId
+
+    await admin.query('insert into tenants (id, name) values ($1, $2)', [
+      tenant,
+      'Aufgaben Stempel',
+    ])
+    await admin.query(
+      `insert into memberships (tenant_id, user_id, roles) values ($1, 'u-lead', '{management}'),
+                                                                   ($1, 'u-duties', '{technical_management}')`,
+      [tenant],
+    )
+
+    const { asset } = await liftIn('Aufgabenhaus Stempel', tenant)
+
+    await taskAt({ asset }, '=HYPERLINK("http://x.example")', 'u-lead', addDays(today, 9))
+    const csv = await rawOf('/tasks/table', {}, by('u-lead', tenant), 'csv')
+    const sheet = await rawOf('/tasks/table', {}, by('u-lead', tenant), 'xlsx')
+    const stamps = await stampsOf(admin, tenant, ['tasks', 'assets', 'properties'])
+
+    expect(csv).toContain(`;"'=HYPERLINK(""http://x.example"")";`)
+    expect(sheet).not.toMatch(/<f[ >]/)
+    expect(stamps.length).toBeGreaterThan(2)
+
+    for (const format of ['xlsx', 'csv'] as const) {
+      const table = await tableOf('/tasks/table', {}, by('u-lead', tenant), format)
+
+      expect(table).toHaveLength(2)
+      expect(stampIn(table, stamps)).toEqual([])
+    }
+  })
+})
+
+describe('the documents as a table (#236)', () => {
+  const heads = ['Dokument', 'Datei', 'Art', 'Hängt an', 'Fassung', 'Abgelegt am']
+  let files = 0
+
+  /** A document at an asset, a property, an activity or a defect, with as many versions as it has files. */
+  async function documentAt(
+    at: {
+      readonly asset?: string
+      readonly property?: string
+      readonly activity?: string
+      readonly defect?: string
+    },
+    title: string,
+    kind: string | null,
+    fileNames: readonly (readonly [name: string, mediaType: string])[],
+    /** A version is never changed: the day it was filed is said as it is made. */
+    daysAgo = 10,
+  ): Promise<string> {
+    const from = at.asset
+      ? 'assets'
+      : at.activity
+        ? 'activities'
+        : at.defect
+          ? 'defects'
+          : 'properties'
+    const column = at.asset
+      ? 'asset_id'
+      : at.activity
+        ? 'activity_id'
+        : at.defect
+          ? 'defect_id'
+          : null
+    const { rows } = await admin.query<{ id: string }>(
+      `insert into attachments (tenant_id, property_id, area_id, title, kind${column ? `, ${column}` : ''})
+       select tenant_id, ${from === 'properties' ? 'id' : 'property_id'}, area_id, $2, $3${column ? ', id' : ''}
+         from ${from} where id = $1
+       returning id`,
+      [at.asset ?? at.activity ?? at.defect ?? at.property, title, kind],
+    )
+    const id = rows[0]?.id ?? ''
+
+    for (const [name, mediaType] of fileNames) {
+      files += 1
+
+      const sha256 = String(files).padStart(64, '0')
+
+      await admin.query(
+        `insert into files (tenant_id, sha256, size_bytes, media_type)
+         select tenant_id, $2, 2048, $3 from attachments where id = $1`,
+        [id, sha256, mediaType],
+      )
+      await admin.query(
+        `insert into attachment_versions (tenant_id, attachment_id, sha256, file_name, media_type,
+                                          size_bytes, created_by, created_at)
+         select tenant_id, id, $2, $3, $4, 2048, 'u-duties', now() - make_interval(days => $5)
+           from attachments where id = $1`,
+        [id, sha256, name, mediaType, daysAgo],
+      )
+    }
+
+    return id
+  }
+
+  it('holds each document with its newest file, its kind, what it hangs on, its versions and the day it was filed, the newest first', async () => {
+    const { property, asset, number } = await liftIn('Dokumentenhaus West')
+    await documentAt(
+      { asset },
+      'Betriebsanleitung Aufzug',
+      'operating_manual',
+      [
+        ['anleitung-alt.pdf', 'application/pdf'],
+        ['anleitung-neu.pdf', 'application/pdf'],
+      ],
+      12,
+    )
+    await documentAt({ property }, 'Eingang', null, [['eingang.jpg', 'image/jpeg']], 3)
+
+    const kindOf = (await tableOf('/attachments/table', { home: 'assetId' }, by('u-lead')))[1]?.[2]
+
+    for (const format of ['xlsx', 'csv'] as const) {
+      const table = await tableOf('/attachments/table', {}, by('u-lead'), format)
+
+      expect(table[0]).toEqual(heads)
+      expect(table.slice(1).filter((row) => /Dokumentenhaus West/.test(row[3] ?? ''))).toEqual([
+        [
+          'Eingang',
+          'eingang.jpg',
+          'Foto',
+          'Liegenschaft Dokumentenhaus West',
+          '1',
+          dayInWords(addDays(today, -3)),
+        ],
+        [
+          'Betriebsanleitung Aufzug',
+          'anleitung-neu.pdf',
+          kindOf,
+          `${number} Aufzug Dokumentenhaus West`,
+          '2',
+          dayInWords(addDays(today, -12)),
+        ],
+      ])
+    }
+
+    expect(kindOf).toBe(documentKindLabel.operating_manual)
+  })
+
+  it('narrows by what the list is narrowed by', async () => {
+    const titles = async (query: Readonly<Record<string, string>>) =>
+      (await tableOf('/attachments/table', query, by('u-lead'))).slice(1).map((row) => row[0])
+
+    expect(await titles({ kind: 'operating_manual' })).toEqual(['Betriebsanleitung Aufzug'])
+    expect(await titles({ home: 'propertyId' })).toEqual(['Eingang'])
+    expect(await titles({ kind: 'permit' })).toEqual([])
+    expect(await refusalOf('/attachments/table', { kind: 'gedicht' }, by('u-lead'))).toEqual({
+      status: 400,
+      message: 'Diese Art von Dokument gibt es nicht.',
+    })
+    expect((await refusalOf('/attachments/table', { home: 'userId' }, by('u-lead'))).status).toBe(
+      400,
+    )
+  })
+
+  it('holds no document of an area the person does not see', async () => {
+    const inNorth = await liftIn('Dokumentenhof Nord', large, { areaId: north })
+    const inSouth = await liftIn('Dokumentenhof Süd', large, { areaId: south })
+
+    await documentAt({ asset: inNorth.asset }, 'Nordplan', 'circuit_diagram', [
+      ['nord.pdf', 'application/pdf'],
+    ])
+    await documentAt({ asset: inSouth.asset }, 'Südplan', 'circuit_diagram', [
+      ['sued.pdf', 'application/pdf'],
+    ])
+
+    const titles = async (header: string) =>
+      (await tableOf('/attachments/table', {}, header)).slice(1).map((row) => row[0])
+
+    expect(await titles(by('u-tech', large))).toEqual(['Nordplan'])
+    expect((await titles(by('u-lead', large))).sort()).toEqual(['Nordplan', 'Südplan'])
+  })
+
+  it('is only for whoever looks at documents', async () => {
+    expect(await refusalOf('/attachments/table', {}, leading('asset.read'))).toEqual({
+      status: 403,
+      message: missingRight('document.read'),
+    })
+  })
+
+  it('names what a document hangs on only for whoever reads that record', async () => {
+    const tenant = newId<'tenant'>() as TenantId
+
+    await admin.query('insert into tenants (id, name) values ($1, $2)', [tenant, 'Dokumente Probe'])
+    await admin.query(
+      `insert into memberships (tenant_id, user_id, roles) values ($1, 'u-lead', '{management}'),
+                                                                   ($1, 'u-duties', '{technical_management}')`,
+      [tenant],
+    )
+
+    const { property, asset, number } = await liftIn('Dokumentenhaus Nord', tenant)
+    const activity = (
+      await http()
+        .post('/activities')
+        .set(testIdentityHeader, by('u-duties', tenant))
+        .send({ dutyId: await dutyAt(asset, 'Türen prüfen') })
+        .expect(201)
+    ).body.id as string
+    const defect = (
+      await http()
+        .post('/defects')
+        .set(testIdentityHeader, by('u-duties', tenant))
+        .send({ assetId: asset, description: 'Tür klemmt', foundOn: addDays(today, -3) })
+        .expect(201)
+    ).body.id as string
+
+    await documentAt({ property }, 'D Liegenschaft', null, [])
+    await documentAt({ asset }, 'C Anlage', null, [])
+    await documentAt({ activity }, 'B Vorgang', null, [])
+    await documentAt({ defect }, 'A Mangel', null, [])
+
+    const homes = async (...rights: Right[]) =>
+      Object.fromEntries(
+        (
+          await tableOf(
+            '/attachments/table',
+            {},
+            JSON.stringify({
+              userId: 'u-lead',
+              tenantId: tenant,
+              roles: ['management'],
+              rights: ['document.read', ...rights],
+            }),
+          )
+        )
+          .slice(1)
+          .map((row) => [row[0]?.slice(2), row[3]]),
+      )
+
+    expect(await homes()).toEqual({
+      Liegenschaft: 'Liegenschaft',
+      Anlage: 'Anlage',
+      Vorgang: 'Vorgang',
+      Mangel: 'Mangel',
+    })
+    expect(await homes('location.read')).toEqual({
+      Liegenschaft: 'Liegenschaft Dokumentenhaus Nord',
+      Anlage: 'Anlage, Dokumentenhaus Nord',
+      Vorgang: 'Vorgang, Dokumentenhaus Nord',
+      Mangel: 'Mangel, Dokumentenhaus Nord',
+    })
+    expect(await homes('asset.read', 'activity.read', 'defect.read')).toEqual({
+      Liegenschaft: 'Liegenschaft',
+      Anlage: `${number} Aufzug Dokumentenhaus Nord`,
+      Vorgang: 'Türen prüfen',
+      Mangel: 'Tür klemmt',
+    })
+  })
+
+  it('writes a name that begins like a formula so that no spreadsheet runs it', async () => {
+    const { property } = await propertyIn('Dokumentenhaus Formel')
+
+    await documentAt({ property }, '=HYPERLINK("http://x.example")', null, [
+      ['=1+1.pdf', 'application/pdf'],
+    ])
+
+    const csv = await rawOf('/attachments/table', {}, by('u-lead'), 'csv')
+    const sheet = await rawOf('/attachments/table', {}, by('u-lead'), 'xlsx')
+
+    expect(csv).toContain(`"'=HYPERLINK(""http://x.example"")";'=1+1.pdf;`)
+    expect(sheet).not.toMatch(/<f[ >]/)
+  })
+
+  it('holds the day a version was filed and no part of the stamp of the last change, in neither format', async () => {
+    // Every version of these tests was filed before today; who filed it is named nowhere.
+    const stamps = [
+      ...(await stampsOf(admin, small, ['attachments', 'attachment_versions'])),
+      'u-duties',
+    ]
+
+    expect(stamps.length).toBeGreaterThan(2)
+
+    for (const format of ['xlsx', 'csv'] as const) {
+      const table = await tableOf('/attachments/table', {}, by('u-lead'), format)
+
+      expect(table.length).toBeGreaterThan(3)
+      expect(table.flat()).toContain(dayInWords(addDays(today, -12)))
+      expect(stampIn(table, stamps)).toEqual([])
     }
   })
 })

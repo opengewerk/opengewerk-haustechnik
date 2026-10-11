@@ -1,12 +1,13 @@
 import { type RoleKey, taskEntity } from '@opengewerk/haustechnik-domain'
 import { TestServer } from '@opengewerk/platform-web/testing'
 import { onlineManager } from '@tanstack/react-query'
-import { screen, waitFor, within } from '@testing-library/react'
+import { fireEvent, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { memberIn, mountedWithItsDevice, tenantName } from '../app/test-entry.js'
 import { officeApplication } from './application.js'
+import { servingTables } from './test-office.js'
 import { officeRoutes } from './router.js'
 
 /**
@@ -302,5 +303,24 @@ describe('the card "Aufgaben" on the page of a property', () => {
       },
     ])
     expect(server.queued()[0]?.values).not.toHaveProperty('buildingId')
+  })
+})
+
+describe('the tasks as a table (#236)', () => {
+  it('are asked for by whoever looks at tasks', async () => {
+    await mount('/aufgaben')
+    await waitFor(() => {
+      expect(rows('Ihre Aufgaben')).toHaveLength(1)
+    })
+
+    // After the answers of the test, which it hands every other request to.
+    const tables = servingTables()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Als Tabelle' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: 'CSV (.csv)' }))
+
+    await waitFor(() => {
+      expect(tables.asked).toEqual(['/tasks/table?format=csv'])
+    })
   })
 })

@@ -69,3 +69,16 @@ export function documentSearch(filter: DocumentFilter): Record<string, string> {
     ...(filter.home === undefined ? {} : { [documentFilterWords.home]: filter.home }),
   }
 }
+
+/**
+ * Where the list of the documents is read as a table (#236): narrowed to a
+ * kind and to what a document hangs on, as the list is.
+ */
+export function documentTableRequest(filter: DocumentFilter): string {
+  const asked = new URLSearchParams({
+    ...(filter.kind === undefined ? {} : { kind: filter.kind }),
+    ...(filter.home === undefined ? {} : { home: filter.home }),
+  }).toString()
+
+  return asked === '' ? '/attachments/table' : `/attachments/table?${asked}`
+}

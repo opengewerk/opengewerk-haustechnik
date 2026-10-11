@@ -2,11 +2,12 @@ import {
   type RecordState,
   taskEntity,
   taskLimits,
+  taskListWords,
   type TaskTargetField,
   taskWords,
 } from '@opengewerk/haustechnik-domain'
 import { Button, Panel } from '@opengewerk/platform-web'
-import { PageHead, Screen } from '@opengewerk/platform-web/office'
+import { PageHead, Screen, useTableExport } from '@opengewerk/platform-web/office'
 import { useRight } from '@opengewerk/platform-web/session'
 import { maybeText, text, useRecords, useRelated } from '@opengewerk/platform-web/sync'
 import { NewTaskForm, TaskList } from '@opengewerk/platform-web/tasks'
@@ -275,6 +276,8 @@ export function TaskListScreen() {
   const mine = open.filter((task) => text(task, 'assigneeUserId') === people.me)
   const others = open.filter((task) => text(task, 'assigneeUserId') !== people.me)
   const targetOf = taskTargetOf(homeOf)
+  // The open tasks the two lists show, as a table (#236).
+  const table = useTableExport('/tasks/table')
 
   return (
     <Screen>
@@ -283,20 +286,24 @@ export function TaskListScreen() {
         sub={taskCardWords.pageSub}
         wideActions
         actions={
-          reads && people.records ? (
-            <Button
-              tone="primary"
-              icon={Plus}
-              disabled={adding}
-              onClick={() => {
-                setAdding(true)
-              }}
-            >
-              Aufgabe anlegen
-            </Button>
-          ) : null
+          <>
+            {reads ? table.button : null}
+            {reads && people.records ? (
+              <Button
+                tone="primary"
+                icon={Plus}
+                disabled={adding}
+                onClick={() => {
+                  setAdding(true)
+                }}
+              >
+                Aufgabe anlegen
+              </Button>
+            ) : null}
+          </>
         }
       />
+      {reads ? table.trouble : null}
       {!reads ? (
         <p className="text-[13px] leading-[1.4] text-ink-muted">{taskCardWords.mayNotRead}</p>
       ) : (
@@ -318,7 +325,7 @@ export function TaskListScreen() {
             </Panel>
           ) : null}
           <div className="grid gap-3.5 lg:grid-cols-2">
-            <Panel title="Ihre Aufgaben">
+            <Panel title={taskListWords.mine}>
               <TaskList
                 tasks={mine}
                 me={people.me}
@@ -329,7 +336,7 @@ export function TaskListScreen() {
                 empty={taskCardWords.mineNone}
               />
             </Panel>
-            <Panel title="Offen bei anderen">
+            <Panel title={taskListWords.others}>
               <TaskList
                 tasks={others}
                 me={people.me}

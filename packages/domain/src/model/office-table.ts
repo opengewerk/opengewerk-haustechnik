@@ -1,4 +1,10 @@
-import type { IsoDate } from '@opengewerk/platform-domain'
+import {
+  compareTasksForWork,
+  isPicture,
+  type IsoDate,
+  isTaskOverdue,
+  type TaskStanding,
+} from '@opengewerk/platform-domain'
 
 import { assetConditionLabel, type AssetEntry, type AssetStanding } from './asset-condition.js'
 import { lifecycleStateLabel } from './asset.js'
@@ -35,6 +41,7 @@ import {
   nobodyWords,
   performerWords,
 } from './duty-words.js'
+import { type DocumentHome, type DocumentKind, documentKindLabel } from './document.js'
 import { roomTitle } from './location.js'
 import { meterMediumLabel, meterUnitSymbol } from './meter.js'
 import { type MeterEntry, meterStateLabel } from './meter-register.js'
@@ -894,4 +901,239 @@ export function dismissedTableRows(
     each.reason,
     { day: each.dismissedOn },
   ])
+}
+
+// --- The areas --------------------------------------------------------------------------------------
+
+/** The columns of "Bereiche" under "Einstellungen" as a table; what lies in an area has its own. */
+export const areaTableColumns = {
+  area: 'Bereich',
+  extent: 'Umfang',
+  properties: 'Liegenschaften',
+  members: 'Zugänge mit diesem Bereich',
+} as const
+
+/** What the list of the areas says where an area holds nothing or is named for nobody. */
+export const areaTableWords = { noProperty: 'keine', nobody: 'niemand' } as const
+
+/** "7 Liegenschaften, 12 Gebäude" under the name of an area, or that nothing lies in it. */
+export function whatLiesIn(area: {
+  readonly properties: readonly unknown[]
+  readonly buildings: number
+}): string {
+  const properties = area.properties.length
+
+  if (properties === 0) {
+    return 'keine Liegenschaft'
+  }
+
+  const buildings =
+    area.buildings === 0
+      ? 'kein Gebäude'
+      : area.buildings === 1
+        ? '1 Gebäude'
+        : `${String(area.buildings)} Gebäude`
+
+  return `${properties === 1 ? '1 Liegenschaft' : `${String(properties)} Liegenschaften`}, ${buildings}`
+}
+
+/** The columns of the table of the areas, with who an area is named for only where it names people. */
+export function areaTableHeads(names: boolean): readonly string[] {
+  const { members, ...columns } = areaTableColumns
+
+  return [...Object.values(columns), ...(names ? [members] : [])]
+}
+
+/**
+ * An area as a row of its table: every property in it by name, and not the
+ * first few as the list shows them. The names of the properties stand for
+ * whoever reads places, the people an area is named for only where `people`
+ * says so.
+ */
+export function areaTableRow(
+  area: {
+    readonly name: string
+    readonly properties: readonly { readonly name: string }[]
+    readonly buildings: number
+    readonly members: readonly { readonly name: string }[]
+  },
+  reads: { readonly places: boolean; readonly people: boolean },
+): TableRow {
+  const names = (named: readonly { readonly name: string }[]) =>
+    named.map((each) => each.name).join(', ')
+
+  return [
+    area.name,
+    whatLiesIn(area),
+    !reads.places
+      ? null
+      : area.properties.length === 0
+        ? areaTableWords.noProperty
+        : names(area.properties),
+    ...(reads.people
+      ? [area.members.length === 0 ? areaTableWords.nobody : names(area.members)]
+      : []),
+  ]
+}
+
+// --- The tasks ----------------------------------------------------------------------------------------
+
+/** The columns of "Aufgaben" as a table: the two lists of the screen are a column of it (#124). */
+export const taskTableColumns = {
+  list: 'Liste',
+  title: 'Aufgabe',
+  due: 'Fällig am',
+  late: 'Überfällig',
+  where: 'Hängt an',
+  responsible: 'Verantwortlich',
+} as const
+
+/** What the two lists of "Aufgaben" are called, and what a task past its day says. */
+export const taskListWords = {
+  mine: 'Ihre Aufgaben',
+  others: 'Offen bei anderen',
+  late: 'überfällig',
+} as const
+
+/** An open task as its table reads it: what it hangs on in words, and who it is for by name. */
+export interface TaskLine extends TaskStanding {
+  readonly title: string
+  readonly assigneeUserId: string
+  /** Who it is for, by name; null where the table names nobody. */
+  readonly responsible: string | null
+  readonly where: string
+}
+
+/** The columns of the table of tasks, with who a task is for only where it names people. */
+export function taskTableHeads(names: boolean): readonly string[] {
+  const { responsible, ...columns } = taskTableColumns
+
+  return [...Object.values(columns), ...(names ? [responsible] : [])]
+}
+
+/**
+ * The open tasks as the rows of their table: the person's own first, then
+ * those open with the others, each list in the order somebody works through
+ * it. Who a task is for stands only where `names` says so; that it is one's
+ * own or somebody else's is said by its list.
+ */
+export function taskTableRows(
+  tasks: readonly TaskLine[],
+  me: string,
+  today: IsoDate,
+  names: boolean,
+): readonly TableRow[] {
+  const own = (task: TaskLine) => task.assigneeUserId === me
+
+  return [...tasks]
+    .sort(
+      (left, right) => Number(own(right)) - Number(own(left)) || compareTasksForWork(left, right),
+    )
+    .map((task) => [
+      own(task) ? taskListWords.mine : taskListWords.others,
+      task.title,
+      { day: task.dueOn },
+      isTaskOverdue(task, today) ? taskListWords.late : null,
+      task.where,
+      ...(names ? [task.responsible] : []),
+    ])
+}
+
+// --- The documents ------------------------------------------------------------------------------------
+
+/**
+ * The columns of "Dokumente" as a table; the file under the name of a
+ * document has its own (4.10). The last one holds the day the newest version
+ * was filed. The list heads it "Geändert"; a table says what the day is, so
+ * that nobody takes it for the stamp of the last change (#157).
+ */
+export const documentTableColumns = {
+  title: 'Dokument',
+  file: 'Datei',
+  kind: 'Art',
+  home: 'Hängt an',
+  versions: 'Fassung',
+  filedOn: 'Abgelegt am',
+} as const
+
+/** What a list says of a document without a kind: "Foto" for a picture, which a photo of a type plate is. */
+export const documentKindWords = { photo: 'Foto', noKind: 'Ohne Art' } as const
+
+/** What a kind of place a document can hang on is called. */
+export const documentHomeLabel: Readonly<Record<DocumentHome, string>> = {
+  propertyId: 'Liegenschaft',
+  buildingId: 'Gebäude',
+  roomId: 'Raum',
+  assetId: 'Anlage',
+  activityId: 'Vorgang',
+  defectId: 'Mangel',
+}
+
+/**
+ * The kind of a document as a list says it: its kind, or "Foto" for a
+ * picture without one.
+ */
+export function documentKindOf(kind: string | null, newestMediaType: string | null): string {
+  if (kind !== null && Object.hasOwn(documentKindLabel, kind)) {
+    return documentKindLabel[kind as DocumentKind]
+  }
+
+  return newestMediaType !== null && isPicture(newestMediaType)
+    ? documentKindWords.photo
+    : documentKindWords.noKind
+}
+
+/**
+ * What a document hangs on, in words: an asset by its number and name, a
+ * room, a building, an activity and a defect by what they are called with
+ * their property behind, the property by its name. A record the person does
+ * not read, `named` null, is named by its kind alone.
+ */
+export function documentHomeWords(
+  home: DocumentHome,
+  named: string | null,
+  property: string | null,
+): string {
+  if (home === 'propertyId') {
+    return `${documentHomeLabel.propertyId} ${property ?? ''}`.trim()
+  }
+
+  if (home === 'assetId' && named !== null) {
+    return named
+  }
+
+  const kind = home === 'roomId' || home === 'buildingId' ? `${documentHomeLabel[home]} ` : ''
+
+  return placeWords([named === null ? documentHomeLabel[home] : `${kind}${named}`, property])
+}
+
+/** A document as its table reads it: what it hangs on in words, and its newest version. */
+export interface DocumentLine {
+  readonly title: string
+  readonly kind: string | null
+  readonly home: string
+  /** How many versions it has. */
+  readonly versions: number
+  readonly newest: {
+    readonly fileName: string
+    readonly mediaType: string
+    /** The day it was filed. */
+    readonly filedOn: IsoDate
+  } | null
+}
+
+/**
+ * A document as a row of its table. The day is the one its newest version
+ * was filed on, as the list shows it: the day and never the time, and never
+ * who filed it (section 9 of the concept).
+ */
+export function documentTableRow(document: DocumentLine): TableRow {
+  return [
+    document.title,
+    document.newest?.fileName ?? null,
+    documentKindOf(document.kind, document.newest?.mediaType ?? null),
+    document.home,
+    Math.max(document.versions, 1),
+    document.newest === null ? null : { day: document.newest.filedOn },
+  ]
 }
