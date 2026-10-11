@@ -417,6 +417,30 @@ describe('a task for somebody else', () => {
   })
 })
 
+describe('a task out of sight', () => {
+  it('is changed by nobody who does not see its area, also not by whoever hands tasks out', async () => {
+    const southernTask = newTask({
+      assigneeUserId: 'u-south',
+      propertyId: southern.property,
+      assetId: southern.asset,
+    })
+
+    expect(await outcomes('u-lead', [southernTask.sent])).toEqual([applied])
+
+    const fromTheNorth = operation(
+      'update',
+      southernTask.id,
+      { status: 'done' },
+      { status: 'open' },
+      1,
+    )
+    const [outcome] = await outcomes('u-site', [fromTheNorth])
+
+    expect(outcome).toEqual({ outcome: 'conflict', reason: 'record_missing', fields: [] })
+    expect((await row(southernTask.id))?.status).toBe('open')
+  })
+})
+
 describe('where a task lies', () => {
   it('is the area of its property: a task at an asset is seen by whoever sees the asset', async () => {
     const northernTask = newTask({ assigneeUserId: 'u-tech' })
