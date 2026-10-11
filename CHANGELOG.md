@@ -1051,8 +1051,9 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   führt und Dokumente ansieht; das Dokument nennt die Seite nur, wer Dokumente ansieht.
   Bisher stand in der Begründung nur als Text, worauf sich eine Frist stützt, und eine neue
   Gefährdungsbeurteilung änderte nichts an den Pflichten, deren Frist sie trägt
-- Suche nach Name, Nummer und Kennzeichen (#125, Fundament angehoben auf das Suchfeld aus
-  opengewerk/opengewerk#596): `GET /search?q=` findet Liegenschaften nach Name, Gebäude nach
+- Suche nach Name, Nummer und Kennzeichen (#125, Submodul `upstream/opengewerk` von `d22fbab` auf
+  `98b2bae`, den Merge des Suchfelds aus opengewerk/opengewerk#596 auf `main`; dazwischen liegt
+  nur opengewerk/opengewerk#595, `23990c5`, der Schreiber für xlsx und CSV): `GET /search?q=` findet Liegenschaften nach Name, Gebäude nach
   Name und Kürzel, Räume nach Nummer und Bezeichnung, Anlagen nach Anlagennummer, Name,
   Kennzeichen, Seriennummer und Zählernummer, Vorgänge nach Titel und Auftragsnummer und
   Nachweise nach ihrer Nummer, in der Transaktion der fragenden Person und damit nur in ihren
