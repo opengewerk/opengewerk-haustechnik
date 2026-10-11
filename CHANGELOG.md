@@ -1051,6 +1051,20 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   führt und Dokumente ansieht; das Dokument nennt die Seite nur, wer Dokumente ansieht.
   Bisher stand in der Begründung nur als Text, worauf sich eine Frist stützt, und eine neue
   Gefährdungsbeurteilung änderte nichts an den Pflichten, deren Frist sie trägt
+- Suche nach Name, Nummer und Kennzeichen (#125, Fundament angehoben auf das Suchfeld aus
+  opengewerk/opengewerk#596): `GET /search?q=` findet Liegenschaften nach Name, Gebäude nach
+  Name und Kürzel, Räume nach Nummer und Bezeichnung, Anlagen nach Anlagennummer, Name,
+  Kennzeichen, Seriennummer und Zählernummer, Vorgänge nach Titel und Auftragsnummer und
+  Nachweise nach ihrer Nummer, in der Transaktion der fragenden Person und damit nur in ihren
+  Bereichen. Wer nur ausführt, findet von den Vorgängen, was ihm oder niemandem gegeben ist.
+  Je Art höchstens fünf Treffer, das Genaueste zuerst; ob es mehr gibt, sagt die Antwort ohne
+  Zahl, und kein Treffer nennt eine Person. Im Büro steht die Suche in der Kopfleiste (das
+  Feld des Fundaments), vor Ort über dem Start: mit Netz fragt das Gerät den Server und findet
+  im eigenen Bereich auch, was es nicht hält, das dann im Büro öffnet; ohne Netz sucht es in
+  seinem Bestand und sagt es. "Scannen" verweist ohne Kamera auf die Suche am Start statt auf
+  das Büro. Gemessen bei 6000 Anlagen, 1200 Räumen und 600 Aufträgen: 19 bis 28 ms je Anfrage
+  im Mittel, ohne eigenen Index. Bisher fand man einen Ort, eine Anlage oder einen Auftrag nur
+  über die Listen und ihre Filter, vor Ort gar nicht ohne Etikett
 
 ### Geändert
 
