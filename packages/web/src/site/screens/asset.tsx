@@ -47,6 +47,7 @@ import { useCatalogue } from '../../sync/catalogue.js'
 import { SiteDocuments } from '../documents.js'
 import { GoButton, isOpenDefect, kindWords, NotOnDevice, OpenDefects, PlainRow } from '../kit.js'
 import { siteDefects, siteForms, sitePlaces, stockTaking } from '../places.js'
+import { SiteTasksCard } from '../tasks.js'
 
 export const siteAssetWords = {
   noNumber: 'Nummer folgt nach dem Abgleich',
@@ -264,6 +265,8 @@ export function SiteAssetScreen() {
             </SiteRows>
           </Panel>
         ) : null}
+        {/* The own tasks of the asset, under what is to be done here (#124). */}
+        <SiteTasksCard field="assetId" id={String(asset['id'])} propertyId={propertyId} />
         <Panel title="Angaben">
           <div className="flex flex-col gap-2.5">
             <SiteFacts facts={factsOf(asset, catalogue)} />

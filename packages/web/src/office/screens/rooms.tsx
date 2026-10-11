@@ -17,6 +17,7 @@ import { AssetState } from '../asset-state.js'
 import { officePlaces, placeForms } from '../place-addresses.js'
 import { PlaceNotFound } from '../place-pages.js'
 import { DocumentsCard } from '../documents.js'
+import { TasksCard } from '../tasks.js'
 import { NewDutyButton } from '../duty-words.js'
 import { LabelCardOf } from '../labels.js'
 import { Duties } from './asset.js'
@@ -187,6 +188,12 @@ export function RoomScreen() {
           <DocumentsCard
             place={{ propertyId: String(property['id']), roomId }}
             at={`Raum ${titleOfRoom(room)}`}
+          />
+          <TasksCard
+            field="roomId"
+            id={roomId}
+            propertyId={String(property['id'])}
+            areaId={maybeText(property, 'areaId')}
           />
         </div>
       </div>

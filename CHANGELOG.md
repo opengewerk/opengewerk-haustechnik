@@ -1067,7 +1067,7 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   im Mittel, ohne eigenen Index. Bisher fand man einen Ort, eine Anlage oder einen Auftrag nur
   über die Listen und ihre Filter, vor Ort gar nicht ohne Etikett
 - Aufgaben an Ort, Anlage und Vorgang (#124, Submodul `upstream/opengewerk` von `98b2bae` auf
-  `a725392`, den Merge des Bausteins der Aufgaben aus opengewerk/opengewerk#598): eine
+  `26908ae`, die Merges des Bausteins der Aufgaben aus opengewerk/opengewerk#598 und #599): eine
   Aufgabe hält fest, was zu tun ist, bis zu welchem Tag, wer für sie verantwortlich ist und ob
   sie erledigt ist. Sie hängt an einer Liegenschaft und auf Wunsch an einem Gebäude, einem Raum,
   einer Anlage oder einem Vorgang dort, liegt im Bereich ihrer Liegenschaft und reist über den
@@ -1079,9 +1079,10 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   der zuteilt. Wer sie anlegte, schreibt die Datenbank, nie das Gerät. Ein Gerät hält die
   Aufgaben seiner Person und die, die sie anlegte; wer alle Bereiche sieht, hält alle. Im Büro
   stehen die Liste "Aufgaben" mit "Ihre Aufgaben" und "Offen bei anderen" und die Karte
-  "Aufgaben" an Liegenschaft, Gebäude, Raum, Anlage, Prüfung, Rundgang und Auftrag; die
-  Bildschirme vor Ort kommen mit dem zweiten Teil. Bisher gab es keine Stelle, an der etwas
-  festgehalten werden konnte, das zu tun ist und zu keinem Vorgang gehört.
+  "Aufgaben" an Liegenschaft, Gebäude, Raum, Anlage, Prüfung, Rundgang und Auftrag, vor Ort
+  "Meine Aufgaben" im Menü und die Karte an Raum, Anlage und Auftrag, wo eine Aufgabe auch ohne
+  Netz notiert und abgehakt wird. Bisher gab es keine Stelle, an der etwas festgehalten werden
+  konnte, das zu tun ist und zu keinem Vorgang gehört.
 
 ### Geändert
 

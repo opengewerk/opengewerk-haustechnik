@@ -24,6 +24,7 @@ import { DeadlineListScreen, DeadlineSettingsScreen } from './screens/deadlines.
 import { DefectClassSettingsScreen } from './screens/defect-classes.js'
 import { DefectListScreen, DefectScreen, NewDefectScreen } from './screens/defects.js'
 import { DocumentsScreen } from './screens/documents.js'
+import { TaskListScreen } from './tasks.js'
 import { DutyRegisterScreen } from './screens/duties.js'
 import { DutyScreen } from './screens/duty.js'
 import { ConfirmDutyScreen, DutyIntervalScreen } from './screens/duty-confirm.js'
@@ -409,6 +410,8 @@ export function officeRoutes() {
       path: '/dokumente/$documentId',
       component: DocumentsScreen,
     }),
+    // The tasks of the person and the open ones of the others on this device (#124).
+    createRoute({ getParentRoute: () => office, path: '/aufgaben', component: TaskListScreen }),
     // The catalogue: the packages, one of them with one of its parts, and
     // the page of a duty kind under the package it comes from.
     createRoute({ getParentRoute: () => office, path: '/katalog', component: CatalogueScreen }),

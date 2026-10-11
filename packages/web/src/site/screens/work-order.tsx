@@ -59,6 +59,7 @@ import { signActivity } from '../../app/signing.js'
 import { assetTitle, NotOnDevice, NotOffered } from '../kit.js'
 import { siteForms } from '../places.js'
 import { toStart } from './form.js'
+import { SiteTasksCard } from '../tasks.js'
 
 export const workOrderWords = {
   number: 'Auftrag',
@@ -453,6 +454,12 @@ function WorkOrderOf({ activityId }: { readonly activityId: string }) {
             </div>
           ) : null}
         </Panel>
+        {/* The own tasks of the order, under its notes (#124). */}
+        <SiteTasksCard
+          field="activityId"
+          id={activityId}
+          propertyId={maybeText(activity, 'propertyId')}
+        />
         <Panel title={workOrderWords.photos}>
           <div className="flex flex-wrap items-stretch gap-2">
             {work.photos.length === 0 && !work.files ? (

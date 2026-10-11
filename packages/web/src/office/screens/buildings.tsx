@@ -8,7 +8,7 @@ import { Button, cardLink, Cell, Column, Panel, Status, TablePanel } from '@open
 import { today } from '@opengewerk/platform-web/format'
 import { ChangesButton, PageHead, Screen } from '@opengewerk/platform-web/office'
 import { useRight } from '@opengewerk/platform-web/session'
-import { text, useRecord, useRecords, useRelated } from '@opengewerk/platform-web/sync'
+import { maybeText, text, useRecord, useRecords, useRelated } from '@opengewerk/platform-web/sync'
 import { Link, useNavigate, useParams } from '@tanstack/react-router'
 import { Building2, Pencil, Plus } from 'lucide-react'
 import { type ReactNode, useMemo } from 'react'
@@ -30,6 +30,7 @@ import { BuildingClosures } from '../building-closures.js'
 import { BuildingToDo, LastActivities } from '../building-situation.js'
 import { officePlaces, placeForms } from '../place-addresses.js'
 import { countedAssets, countedRooms, PlaceNotFound } from '../place-pages.js'
+import { TasksCard } from '../tasks.js'
 
 /**
  * The page of a building in the office, `lagebild()` of the boards (4.1 of
@@ -182,6 +183,12 @@ export function BuildingScreen() {
         </div>
         <div className="flex min-w-0 flex-col gap-3.5">
           <AssetsByCostGroup buildingId={buildingId} assets={assets} catalogue={catalogue} />
+          <TasksCard
+            field="buildingId"
+            id={buildingId}
+            propertyId={String(property['id'])}
+            areaId={maybeText(building, 'areaId')}
+          />
         </div>
       </div>
       {readsDuties ? <LastActivities buildingId={buildingId} /> : null}

@@ -59,6 +59,7 @@ import { importPlaces } from '../import-addresses.js'
 import { officePlaces, placeForms } from '../place-addresses.js'
 import { NotAllowed, RemovePlace } from '../place-forms.js'
 import { DocumentsCard } from '../documents.js'
+import { TasksCard } from '../tasks.js'
 import { PropertyContacts } from '../property-contacts.js'
 import { TimelineCard } from '../timeline.js'
 
@@ -760,6 +761,13 @@ export function PropertyScreen() {
             <Buildings buildings={[...buildings].sort(byName)} />
             {/* What happened there, the newest first (#123). */}
             <TimelineCard place={{ propertyId: String(property['id']) }} />
+            {/* What is to be done there, on the property and at its records (#124). */}
+            <TasksCard
+              field="propertyId"
+              id={propertyId}
+              propertyId={propertyId}
+              areaId={maybeText(property, 'areaId')}
+            />
           </div>
         }
       />

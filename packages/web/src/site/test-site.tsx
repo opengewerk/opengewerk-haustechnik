@@ -355,6 +355,7 @@ export async function mountSite(
       'meter_exchanges',
       'meter_pauses',
       'meter_settings',
+      'tasks',
     ],
     onSignedOut: () => {},
   })

@@ -60,6 +60,7 @@ import { AssetConditionMark, DutyStateMark } from '../../app/asset-marks.js'
 import { AssetState } from '../asset-state.js'
 import { cataloguePlaces } from '../catalogue-addresses.js'
 import { DocumentsCard } from '../documents.js'
+import { TasksCard } from '../tasks.js'
 import { dutyPlaces } from '../duty-addresses.js'
 import { dutySourceWords, kindOfDuty, NewDutyButton } from '../duty-words.js'
 import { EvidenceNumber, ResultMark, StandingMark } from '../evidence-words.js'
@@ -413,6 +414,12 @@ export function AssetFileScreen() {
           <DocumentsCard
             place={{ propertyId: asset.propertyId, assetId }}
             at={[asset.number, asset.name].filter(Boolean).join(' ')}
+          />
+          <TasksCard
+            field="assetId"
+            id={assetId}
+            propertyId={asset.propertyId}
+            areaId={asset.areaId}
           />
         </div>
       </div>

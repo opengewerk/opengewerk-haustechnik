@@ -31,6 +31,7 @@ import {
   OpenDefects,
 } from '../kit.js'
 import { siteDefects, sitePlaces, stockTaking } from '../places.js'
+import { SiteTasksCard } from '../tasks.js'
 
 /**
  * The plain pages of the places on site (#99, 4.1 of the concept: "Vor Ort
@@ -404,6 +405,12 @@ export function SiteRoomScreen() {
             </SiteRows>
           )}
         </Panel>
+        {/* The own tasks of the room, under what stands in it (#124). */}
+        <SiteTasksCard
+          field="roomId"
+          id={String(room['id'])}
+          propertyId={maybeText(room, 'propertyId')}
+        />
         {suppliers.length === 0 ? null : (
           <Panel title="Versorgt von">
             <SiteRows label="Versorgt von">

@@ -48,9 +48,8 @@ const deadlinesPlace = '/fristen'
  * it misses as well, is the frame's own entry and stands for whoever may
  * read one of the settings.
  *
- * "Aufgaben" names no right yet. Its own arrives with the tasks, and all
- * four roles are to see them (the last point under the table of rights in
- * section 7 of the concept). The overview counts the duties, and so stands
+ * "Aufgaben" stands for whoever looks at tasks, which every role does
+ * (#124). The overview counts the duties, and so stands
  * for whoever reads them, which every role does (#122); the catalogue holds
  * nothing of a tenant that somebody signed in may not see.
  */
@@ -97,7 +96,7 @@ export const officeNavigation: readonly OfficePlaces[] = [
       { to: '/rundgaenge', label: 'Rundgänge', icon: Route, right: 'activity.read' },
       { to: defectListPlace.to, label: 'Mängel', icon: TriangleAlert, right: 'defect.read' },
       { to: '/auftraege', label: 'Aufträge', icon: Calendar, right: 'activity.read' },
-      { to: '/aufgaben', label: 'Aufgaben', icon: SquareCheck },
+      { to: '/aufgaben', label: 'Aufgaben', icon: SquareCheck, right: 'task.read' },
     ],
   },
 ]
