@@ -1083,6 +1083,21 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   "Meine Aufgaben" im Menü und die Karte an Raum, Anlage und Auftrag, wo eine Aufgabe auch ohne
   Netz notiert und abgehakt wird. Bisher gab es keine Stelle, an der etwas festgehalten werden
   konnte, das zu tun ist und zu keinem Vorgang gehört.
+- Listen im Büro als Tabelle (#138, mit dem Schreiber aus opengewerk#595, `23990c5`, den das
+  Fundament seit #238 auf `98b2bae` mitbringt): die Liegenschaften
+  und das Anlagenverzeichnis haben im Kopf den Knopf "Als Tabelle", ab der Breite eines Tablets,
+  mit Excel (.xlsx) und CSV. Ausgegeben wird, was die Liste unter ihrem Filter zeigt, in ihrer
+  Reihenfolge und mit ihren Spalten: beim Anlagenverzeichnis jede Anlage, die der Filter
+  durchlässt, auch über die erste Seite hinaus, bei den Liegenschaften der gedrückte Bereich,
+  die Suche und die Reihenfolge nach Dringlichkeit, jede Liegenschaft mit ihren Gebäuden in
+  eigenen Zeilen und mit den Zahlen, die die Person lesen darf. Die Tabelle schreibt der Server
+  (`GET /assets/table`, `GET /properties/table`), unter den Rechten und in den Bereichen der
+  Person, den Standort einer Anlage nur für wen auch Liegenschaften, Gebäude und Räume sieht;
+  ein Wert, der wie eine Formel beginnt, wird nicht ausgeführt, und nichts vom Stempel der
+  letzten Änderung steht darin. Spalten und Wörter stehen in `domain` (`office-table.ts`)
+  und gelten für Liste und Tabelle zugleich. Die Verfahrensbeschreibung nennt die beiden
+  Exporte in Abschnitt 5 (B176 bis B183), die übrigen Listen folgen mit #236. Bisher ließ sich
+  keine Liste des Büros in eine Tabellenkalkulation übernehmen
 
 ### Geändert
 

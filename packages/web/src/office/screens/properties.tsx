@@ -1,11 +1,16 @@
 import {
+  addressWords,
   type Area,
+  byNameIn,
+  byUrgency,
   federalStates,
   type PlacesToDo,
   type PlaceToDo,
   propertyProblems,
+  propertySearchText,
   type RecordState,
   ruleScopeNames,
+  searchedFor,
 } from '@opengewerk/haustechnik-domain'
 import {
   Button,
@@ -28,6 +33,7 @@ import {
   PageHead,
   RecordColumns,
   Screen,
+  useTableExport,
 } from '@opengewerk/platform-web/office'
 import { useRight } from '@opengewerk/platform-web/session'
 import {
@@ -56,7 +62,7 @@ import { makeAt } from '../../sync/made-at.js'
 import { AreaBadge } from '../area-badge.js'
 import { toDoColumns, type ToDoKey, type ToDoPlace, toDoTarget } from '../building-situation.js'
 import { importPlaces } from '../import-addresses.js'
-import { officePlaces, placeForms } from '../place-addresses.js'
+import { officePlaces, placeForms, propertyTableRequest } from '../place-addresses.js'
 import { NotAllowed, RemovePlace } from '../place-forms.js'
 import { DocumentsCard } from '../documents.js'
 import { TasksCard } from '../tasks.js'
@@ -87,7 +93,7 @@ const listPath = list.to
 const pageOf = officePlaces.property
 
 function byName(left: RecordState, right: RecordState): number {
-  return text(left, 'name').localeCompare(text(right, 'name'), 'de')
+  return byNameIn(text(left, 'name'), text(right, 'name'))
 }
 
 /** "12 Liegenschaften, 31 Gebäude", "1 Liegenschaft, 1 Gebäude". */
@@ -98,9 +104,18 @@ export function counted(properties: number, buildings: number): string {
   ].join(', ')
 }
 
+/** Where a property is, as the device holds it. */
+function addressPartsOf(property: RecordState) {
+  return {
+    street: text(property, 'street'),
+    postalCode: text(property, 'postalCode'),
+    city: text(property, 'city'),
+  }
+}
+
 /** "Musterweg 1, 00001 Beispielstadt". */
 function addressOf(property: RecordState): string {
-  return `${text(property, 'street')}, ${placeOf(property)}`
+  return addressWords(addressPartsOf(property))
 }
 
 /** "00001 Beispielstadt". */
@@ -125,17 +140,12 @@ function useBuildingsByProperty(): ReadonlyMap<string, readonly RecordState[]> {
   }, [buildings])
 }
 
-/** What is searched in a property: its name, where it is, and its buildings. */
+/** What is searched in a property: its name, where it is, and its buildings, as its table is (#138). */
 function searchedIn(property: RecordState, buildings: readonly RecordState[]): string {
-  return [
-    text(property, 'name'),
-    text(property, 'street'),
-    text(property, 'postalCode'),
-    text(property, 'city'),
-    ...buildings.map((building) => text(building, 'name')),
-  ]
-    .join(' ')
-    .toLocaleLowerCase('de')
+  return propertySearchText(
+    { name: text(property, 'name'), ...addressPartsOf(property) },
+    buildings.map((building) => text(building, 'name')),
+  )
 }
 
 /**
@@ -166,7 +176,7 @@ export function PropertyListScreen() {
   // Somebody who sees one area is told nothing by its name.
   const showsAreas = known.length > 1
   // The field stands below 1024 pixels only, and a search nobody sees narrows nothing.
-  const search = narrow ? typed.trim().toLocaleLowerCase('de') : ''
+  const search = narrow ? searchedFor(typed) : ''
 
   const numbers = toDo.numbers
   // Nach Dringlichkeit, where the numbers are there, else by name (#121).
@@ -191,6 +201,14 @@ export function PropertyListScreen() {
           .filter(({ key }) => band !== 'M' || tabletColumns.includes(key))
           .filter(({ key }) => toDo.offered.includes(key))
   const shownBuildings = shown.reduce((sum, property) => sum + buildingsOf(property).length, 0)
+  // What the list shows, as a table: the server reads it the same way (#138).
+  const table = useTableExport(
+    propertyTableRequest({
+      areaId,
+      search: narrow ? typed : '',
+      urgent: urgent && numbers !== null,
+    }),
+  )
   const allBuildings = properties.reduce((sum, property) => sum + buildingsOf(property).length, 0)
 
   // Whoever keeps the places makes one by hand or takes a list over (#100).
@@ -301,8 +319,19 @@ export function PropertyListScreen() {
       <PageHead
         title="Liegenschaften"
         count={counted(properties.length, allBuildings)}
-        actions={create}
+        {...(table.button !== null || create !== null
+          ? {
+              // The list as a table beside what makes a property, where there is a list.
+              actions: (
+                <>
+                  {table.button}
+                  {create}
+                </>
+              ),
+            }
+          : {})}
       />
+      {table.trouble}
       {filters}
       {/* What the search or the area left, said to whoever does not see the list change. */}
       <p id={countId} role="status" className="sr-only">
@@ -490,29 +519,6 @@ function usePlacesToDo(): {
             ? 'Die Zahlen kommen vom Server. Gerade ist keine Verbindung da.'
             : 'Die Zahlen werden geladen.',
   }
-}
-
-/**
- * The more urgent place first: more overdue, then more never recorded, more
- * open defects, more due and more readings missing. A place without numbers
- * counts as nothing to do.
- */
-export function byUrgency(left: PlaceToDo | undefined, right: PlaceToDo | undefined): number {
-  for (const key of [
-    'overdue',
-    'neverRecorded',
-    'openDefects',
-    'due',
-    'missingReadings',
-  ] as const) {
-    const difference = (right?.[key] ?? 0) - (left?.[key] ?? 0)
-
-    if (difference !== 0) {
-      return difference
-    }
-  }
-
-  return 0
 }
 
 /**

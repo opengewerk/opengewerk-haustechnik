@@ -2,6 +2,7 @@ import {
   assetConditionLabel,
   assetConditions,
   type AssetEntry,
+  assetTableColumns,
   type AssetRegister,
   type AssetRegisterFilter,
   type Catalogue,
@@ -10,12 +11,13 @@ import {
   type LifecycleState,
   lifecycleStateLabel,
   lifecycleStates,
+  placeWords,
   type RecordState,
   withoutLifecycle,
 } from '@opengewerk/haustechnik-domain'
 import { Button, cardLink, Cell, Column, Panel, TablePanel } from '@opengewerk/platform-web'
 import { today } from '@opengewerk/platform-web/format'
-import { Empty, PageHead, Screen } from '@opengewerk/platform-web/office'
+import { Empty, PageHead, Screen, useTableExport } from '@opengewerk/platform-web/office'
 import { useRight } from '@opengewerk/platform-web/session'
 import { maybeText, request, text, useRecords } from '@opengewerk/platform-web/sync'
 import { useInfiniteQuery } from '@tanstack/react-query'
@@ -31,6 +33,7 @@ import {
   registerFilterOf,
   registerRequest,
   registerSearch,
+  registerTableRequest,
 } from '../asset-addresses.js'
 import { importPlaces } from '../import-addresses.js'
 import { PrintLabelsButton } from '../labels.js'
@@ -70,6 +73,8 @@ export function AssetRegisterScreen() {
   const properties = useRecords('properties')
   const buildings = useRecords('buildings')
   const rooms = useRecords('rooms')
+  // What the register shows under its filter, whole and not a page, as a table (#138).
+  const table = useTableExport(registerTableRequest(filter))
 
   const pages = useInfiniteQuery({
     queryKey: ['assets', 'register', filter],
@@ -102,13 +107,11 @@ export function AssetRegisterScreen() {
   const placeOf = (asset: AssetEntry): string => {
     const room = rooms.find((record) => record['id'] === asset.roomId)
 
-    return [
+    return placeWords([
       nameOf(properties, asset.propertyId),
       nameOf(buildings, asset.buildingId),
       room ? (maybeText(room, 'number') ?? maybeText(room, 'name')) : null,
-    ]
-      .filter((part) => part !== null && part !== '')
-      .join(', ')
+    ])
   }
   const kindOf = (asset: AssetEntry) => kindLabel(catalogue, asset.kind)
 
@@ -121,6 +124,7 @@ export function AssetRegisterScreen() {
           ? {
               actions: (
                 <>
+                  {table.button}
                   {/* A list taken over whole, for whoever keeps the assets (#100). */}
                   {imports ? (
                     <Button
@@ -176,8 +180,9 @@ export function AssetRegisterScreen() {
                 </>
               ),
             }
-          : {})}
+          : { actions: table.button })}
       />
+      {table.trouble}
       <Filters
         filter={filter}
         catalogue={catalogue}
@@ -259,12 +264,12 @@ export function AssetRegisterScreen() {
         >
           <thead>
             <tr>
-              <Column className="w-[96px] min-w-[84px]">Nummer</Column>
-              <Column className="min-w-[180px]">Anlage</Column>
-              <Column className="w-[230px] min-w-[150px]">Anlagenart</Column>
-              <Column className="w-[270px] min-w-[170px]">Standort</Column>
-              <Column className="w-[190px] min-w-[150px]">Zustand</Column>
-              <Column className="w-[140px] min-w-[120px]">Lebenszyklus</Column>
+              {/* The headings of the table "Als Tabelle" writes as well. */}
+              {assetTableColumns.map((heading, index) => (
+                <Column key={heading} className={columnWidths[index]}>
+                  {heading}
+                </Column>
+              ))}
             </tr>
           </thead>
           <tbody>
@@ -292,6 +297,16 @@ export function AssetRegisterScreen() {
     </Screen>
   )
 }
+
+/** The widths of the columns, in the order of `assetTableColumns`. */
+const columnWidths = [
+  'w-[96px] min-w-[84px]',
+  'min-w-[180px]',
+  'w-[230px] min-w-[150px]',
+  'w-[270px] min-w-[170px]',
+  'w-[190px] min-w-[150px]',
+  'w-[140px] min-w-[120px]',
+] as const
 
 /** What an asset kind is called, or its key where this device has no catalogue that knows it. */
 export function kindLabel(catalogue: Catalogue | null, key: string): string {

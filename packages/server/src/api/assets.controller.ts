@@ -5,12 +5,14 @@ import {
   Controller,
   Delete,
   Get,
+  Header,
   Inject,
   Param,
   Patch,
   Post,
   Put,
   Query,
+  StreamableFile,
 } from '@nestjs/common'
 import {
   type Asset,
@@ -39,6 +41,8 @@ import {
   isUuid,
   requireFields,
   requireSomething,
+  tableAnswer,
+  tableFormatOf,
   type TenantTransaction,
 } from '@opengewerk/platform-server'
 import { and, asc, eq, inArray, isNull, sql } from 'drizzle-orm'
@@ -57,6 +61,7 @@ import {
 import { dayInGermany } from '../today.js'
 import { assetRegister, registerQuestion } from './asset-register.js'
 import { RequiresPermission } from './authorization.js'
+import { assetTable } from './office-tables.js'
 import { type Asking, fieldsOf, placeOf, refuse } from './places.js'
 
 const missing = 'Diese Anlage gibt es nicht oder nicht mehr.'
@@ -262,6 +267,31 @@ export class AssetsController {
 
     return this.database.forTenant(identity, (tx) =>
       assetRegister(tx, this.catalogue, dayInGermany(), question),
+    )
+  }
+
+  /**
+   * The register as a table (#138): every asset that passes the filter the
+   * address names, and not a page of them, with the columns of the list, as
+   * a workbook or as text (`?format=xlsx` or `csv`). Whoever reads the
+   * register reads its table, in their areas; the place in it only whoever
+   * reads places as well.
+   *
+   * Before the file of an asset, or its address would be read as an id.
+   */
+  @Get('table')
+  @RequiresPermission('asset.read')
+  @Header('Cache-Control', 'no-store')
+  table(
+    @CurrentIdentity() identity: Asking,
+    @Query() query: Record<string, unknown>,
+  ): Promise<StreamableFile> {
+    const format = tableFormatOf(query)
+    const { filter } = registerQuestion(query)
+    const today = dayInGermany()
+
+    return this.database.forTenant(identity, async (tx) =>
+      tableAnswer(await assetTable(tx, this.catalogue, identity, today, filter), format, today),
     )
   }
 

@@ -10,6 +10,7 @@ import { memberIn, mountedWithItsDevice, tenantName } from '../../app/test-entry
 import type { SyncClient } from '../../sync/client.js'
 import { officeApplication } from '../application.js'
 import { officeRoutes } from '../router.js'
+import { servingTables } from '../test-office.js'
 
 /**
  * The properties in the office (#85): the list with the buildings under each
@@ -240,6 +241,7 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.unstubAllGlobals()
+  vi.restoreAllMocks()
   // One manager for every test of the file: a test that took the network
   // away would leave the questions of all that follow waiting for one.
   onlineManager.setOnline(true)
@@ -577,6 +579,61 @@ const toDo: PlacesToDo = {
 }
 
 const listTable = 'Liegenschaften mit ihren Gebäuden'
+
+describe('the list of the properties as a table (#138)', () => {
+  it('is asked for as it stands: the area pressed and the order chosen', async () => {
+    const user = userEvent.setup()
+
+    answers.set('/overview/places', toDo)
+
+    const tables = servingTables()
+
+    await mount('/liegenschaften')
+    await screen.findByText('Jede Zahl führt auf die gefilterte Liste.')
+    await user.click(screen.getByRole('button', { name: 'Als Tabelle' }))
+    await user.click(screen.getByRole('menuitem', { name: 'Excel (.xlsx)' }))
+    await waitFor(() => {
+      expect(tables.saved).toEqual(['Liste für heute.csv'])
+    })
+
+    await user.click(
+      within(screen.getByRole('group', { name: 'Bereich' })).getByRole('button', { name: 'Süd' }),
+    )
+    await user.click(screen.getByRole('button', { name: 'Nach Dringlichkeit' }))
+    await user.click(screen.getByRole('button', { name: 'Als Tabelle' }))
+    await user.click(screen.getByRole('menuitem', { name: 'CSV (.csv)' }))
+
+    await waitFor(() => {
+      expect(tables.asked).toEqual([
+        '/properties/table?format=xlsx',
+        '/properties/table?area=a-sued&order=urgency&format=csv',
+      ])
+    })
+  })
+
+  it('is asked for with what the search of the list looks for, where the list has one', async () => {
+    const user = userEvent.setup()
+    const tables = servingTables()
+
+    onA('tablet')
+    await mount('/liegenschaften')
+    await user.type(screen.getByRole('searchbox', { name: 'Liegenschaften durchsuchen' }), 'sporth')
+    await user.click(screen.getByRole('button', { name: 'Als Tabelle' }))
+    await user.click(screen.getByRole('menuitem', { name: 'CSV (.csv)' }))
+
+    await waitFor(() => {
+      expect(tables.asked).toEqual(['/properties/table?search=sporth&format=csv'])
+    })
+  })
+
+  it('is not offered on a phone, where the list is a card per property', async () => {
+    onA('phone')
+    await mount('/liegenschaften')
+    await screen.findByRole('button', { name: 'Neue Liegenschaft' })
+
+    expect(screen.queryByRole('button', { name: 'Als Tabelle' })).toBeNull()
+  })
+})
 
 describe('the numbers of the list of the properties (#121)', () => {
   it('stand beside every property and building, each a link to its list, zero quiet', async () => {

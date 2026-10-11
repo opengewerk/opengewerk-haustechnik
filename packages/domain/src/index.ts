@@ -111,6 +111,10 @@ export * from './model/duty-proposal.js'
 // The overview of the operator's responsibility, the start page of the office.
 export * from './model/overview.js'
 
+// The lists of the office as tables: their columns and the words in them,
+// shared by the list on the screen and the route that writes its table.
+export * from './model/office-table.js'
+
 // The timeline of a place: what happened there and below it, the newest first.
 export * from './model/timeline.js'
 

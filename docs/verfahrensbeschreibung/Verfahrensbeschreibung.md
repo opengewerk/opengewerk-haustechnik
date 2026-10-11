@@ -1,7 +1,7 @@
 # OpenGewerk Haustechnik: Verfahrensbeschreibung für den Stand von Phase 1
 
 - **Gilt für:** noch keine veröffentlichte Fassung (Entwicklungsstand von Phase 1 auf dem Zweig `main`)
-- **Geschrieben:** von Hand, am 05.10.2026, aus dem Planungskonzept v0.11 und gegen den Quelltext geprüft; am 06.10.2026 um die Dateien im Speicher ergänzt (Planungskonzept v0.12) und um das Pflichtenverzeichnis, am selben Tag um die Dokumente (Planungskonzept v0.13) und um die Etiketten; am 08.10.2026 um die Prüfungen und Wartungen (Planungskonzept v0.15) und um den Bericht einer Fremdfirma (Planungskonzept v0.16), am selben Tag um die Mängel (Planungskonzept v0.17) und um den Vorgang von Hand (Planungskonzept v0.18)
+- **Geschrieben:** von Hand, am 05.10.2026, aus dem Planungskonzept v0.11 und gegen den Quelltext geprüft; am 06.10.2026 um die Dateien im Speicher ergänzt (Planungskonzept v0.12) und um das Pflichtenverzeichnis, am selben Tag um die Dokumente (Planungskonzept v0.13) und um die Etiketten; am 08.10.2026 um die Prüfungen und Wartungen (Planungskonzept v0.15) und um den Bericht einer Fremdfirma (Planungskonzept v0.16), am selben Tag um die Mängel (Planungskonzept v0.17) und um den Vorgang von Hand (Planungskonzept v0.18); am 11.10.2026 um die Liegenschaften und das Anlagenverzeichnis als Tabelle
 - **Abgelöst durch:** die Verfahrensbeschreibung, die die Anwendung ab Phase 2 selbst erzeugt
 
 ---
@@ -35,7 +35,7 @@ Ein Test hält außerdem dieses Dokument selbst gegen den Quelltext: jeder Beleg
 
 1. Die Anwendung hält zu jeder Änderung fest, wer sie gemacht hat, wann und von welchem Gerät, und zu jeder Unterschrift, wer unterschrieben hat. Nachlesen kann das im Einzelnen nur die Leitung, im Änderungsprotokoll (Abschnitt 8).
 2. Das Änderungsprotokoll enthält auch, wann sich eine Person bei dem Betreiber an- und abgemeldet hat, und es lässt sich nach Person filtern. Unter „Zugänge“ sieht die Leitung, wann eine Person zuletzt angemeldet war und auf welchen Geräten (Abschnitte 3.3 und 8). Das sind die Stellen, an denen die Anwendung einer Überwachung am nächsten kommt. Dazu kommt das Pflichtenverzeichnis: es nennt zu jeder Pflicht, wer für sie verantwortlich ist, und wer es führt, kann es auf die Pflichten einer Person eingrenzen, auch auf die überfälligen (Abschnitte 3.4 und 5).
-3. Es gibt in dieser Fassung keine Auswertung: keine Statistik, keine Rangliste, keine Zahl je Person, keinen Export (Abschnitt 5).
+3. Es gibt in dieser Fassung keine Auswertung: keine Statistik, keine Rangliste, keine Zahl je Person. Als Tabelle ausgeben lassen sich die Liegenschaften und das Anlagenverzeichnis, mit dem, was die Liste zeigt; keine der beiden nennt eine Person (Abschnitt 5).
 4. Es gibt keine Erfassung von Arbeitszeit und keinen Standort. Ein Auftrag trägt eine Dauer als seinen Aufwand, eine Zahl für den ganzen Auftrag und nicht je Person (Abschnitte 3.4 und 6).
 5. Diese Fassung löscht nichts nach Ablauf einer Frist. Das Löschkonzept kommt in Phase 2 (Abschnitte 7 und 10).
 6. Was das Planungskonzept zusagt und diese Fassung noch nicht hält oder noch nicht durch einen Test hält, steht in Abschnitt 10.
@@ -249,7 +249,9 @@ Leitung und Technische Leitung sehen als Vorgabe alle Bereiche.
 - **Zusage:** Die Übersicht zählt Pflichten, Prüfungen und Mängel über alle Bereiche der fragenden Person oder über einen davon: überfällig, in 30 und in 90 Tagen fällig, nie erfasst, Bericht einer Fremdfirma fehlt, Mängel über der Frist. Sie nennt keine Person, weder wer für eine Pflicht verantwortlich ist noch wer eine Prüfung ausführt, und zählt nichts je Person. [K4.3, K4.16, B158]
 - **Zusage:** Das Lagebild eines Gebäudes und die Liste der Liegenschaften zählen je Ort und nie je Person: was überfällig, fällig und nie erfasst ist, die offenen Mängel und die fehlenden Zählerstände. Die letzten Vorgänge eines Gebäudes nennen den Tag, die Art, den Gegenstand und das Ergebnis, aber keine Person; wer einen Vorgang ausgeführt hat, steht auf seiner Seite. [K4.1, K4.16, B159]
 - **Zusage:** Die Zeitachse einer Liegenschaft, eines Gebäudes, eines Raums oder einer Anlage nennt, was dort wann geschah (begonnen, unterschrieben, gegengezeichnet, nicht durchgeführt, angelegt, abgenommen, zurückgewiesen, festgestellt, nachgeprüft, eingetragen, für ungültig erklärt), aber keine Person; wer etwas getan hat, steht auf der Seite des Vorgangs, des Mangels oder des Nachweises. Sie wird aus dem gelesen, was ohnehin gespeichert ist, und nichts wird für sie aufgehoben. [K4.1, K4.16, B160]
-- **Zusage:** Anhang C nennt jede Adresse, die der Server beantwortet. Eine Adresse für eine Statistik, eine Rangliste, eine Liste des Verzugs je Person oder einen Export ist nicht darunter. [K4.16, B40]
+- **Zusage:** Anhang C nennt jede Adresse, die der Server beantwortet. Eine Adresse für eine Statistik, eine Rangliste oder eine Liste des Verzugs je Person ist nicht darunter. [K4.16, B40]
+- **Zusage:** Die Liegenschaften und das Anlagenverzeichnis lassen sich als Tabelle ausgeben, als Excel oder als CSV. Die Tabelle enthält, was die Liste unter ihrem Filter zeigt, mit ihren Spalten und nur aus den Bereichen der Person, und sie bekommt nur, wer die Liste sehen darf. Den Standort einer Anlage enthält sie nur für eine Person, die auch Liegenschaften, Gebäude und Räume ansehen darf. Keine der beiden nennt eine Person, und keine enthält etwas vom Stempel der letzten Änderung (Abschnitt 3.6). [K3, K4.1, K4.2, B176, B177, B178, B179, B180, B181, B182, B183]
+- Das sind die einzigen Exporte dieser Fassung. Die übrigen Listen des Büros bekommen die Ausgabe als Tabelle mit `opengewerk-haustechnik#236`; eine Liste, die eine Person nennt, gibt die Spalte der Person dann nur der Leitung aus (Abschnitt 9). [K3]
 - **Zusage:** Eine Adresse, die eine einzelne Person in ihrem Pfad nennt, verlangt ein Recht der Zugänge und ist damit der Leitung vorbehalten. Die einzige Ausnahme ist die Verwaltung der Instanz, die ihre eigenen Verwalter führt. [K9, B16]
 - **Zusage:** Das Pflichtenverzeichnis lässt sich auf die Pflichten einer verantwortlichen Person eingrenzen. Das kann nur, wer es führt, also die Leitung und die Technische Leitung. Objektleitung und Haustechnik werden mit dieser Frage abgelehnt, auch wenn sie nach sich selbst fragen; auf die Pflichten, für die niemand benannt ist, grenzt jede Rolle ein. [K4.3, K7, B80]
 - **Zusage:** Eingegrenzt auf eine Person nennt das Pflichtenverzeichnis keine Zahl: weder wie viele Pflichten diese Person hat, noch wie viele davon überfällig, fällig oder nie erfasst sind. [K4.16, K9, B81]
@@ -308,10 +310,10 @@ Leitung und Technische Leitung sehen als Vorgabe alle Bereiche.
 
 Diese Bausteine gehören nach dem Fahrplan zu Phase 1 und sind noch nicht gebaut. Mit jedem wird dieses Dokument berichtigt; der Test in Abschnitt 11 erzwingt es, sobald ein Feld mit Personenbezug oder eine Adresse des Servers dazukommt.
 
-- **Aufgaben aus der Fristen-Engine:** eine Frist soll eine Aufgabe für die verantwortliche Person anlegen können; eine solche Aufgabe nennt niemanden, der sie angelegt hat. Gebaut sind die Aufgaben selbst (Abschnitt 3.14), welche Frist eine anlegt, ist noch offen. [K2.4, K3]
+- **Aufgaben aus der Fristen-Engine:** eine Frist soll eine Aufgabe für die verantwortliche Person anlegen können; eine solche Aufgabe nennt niemanden, der sie angelegt hat. Gebaut sind die Aufgaben selbst (Abschnitt 3.14); anlegen wird eine die fällige Zählerablesung (`opengewerk-haustechnik#242`). [K2.4, K3]
 - **Benachrichtigungen:** per E-Mail und Push, gespeist nur aus Fristen und Statuswechseln, auch wenn eine Aufgabe fällig wird. Welche Anlässe als Push kommen, wählt jede Person selbst; ein Auftrag mit der Dringlichkeit „sofort“ erreicht die Person, die ihn führt, immer als Push. [K3, K4.8]
 - **Zähler und Fotos vor Ort:** Ablesungen kommen als eigene Datensätze dazu und tragen wie jeder Datensatz ihren Stempel. Ein Foto vor Ort wird als Dokument abgelegt (Abschnitt 3.9); die Bildschirme dafür kommen mit der Bestandsaufnahme. [K4.9, K4.10]
-- **Listen als Tabelle:** Jede Liste im Büro lässt sich als Tabelle ausgeben, mit dem, was ihr Filter gerade zeigt. Das ist der erste Export der Anwendung. [K3]
+- **Listen als Tabelle:** Jede Liste im Büro lässt sich als Tabelle ausgeben, mit dem, was ihr Filter gerade zeigt. Gebaut ist das für die Liegenschaften und das Anlagenverzeichnis (Abschnitt 5); die übrigen Listen folgen. Nennt eine Liste eine Person, bekommt nur die Leitung die Spalte der Person, alle anderen die Tabelle ohne sie (`opengewerk-haustechnik#236`). [K3]
 - **Eigene Angaben:** Name, E-Mail-Adresse, Passwort, zweiten Faktor und Geräte ändert jede Person selbst unter „Konto“. [K3]
 - **Übernahme aus einer Vorgängeranwendung:** Jedes Konto wird eingeladen, niemand bekommt ein übernommenes Passwort. Ein übernommener Nachweis sagt, dass er nicht in dieser Anwendung unterschrieben wurde. [K11]
 - **Vertrag zur Auftragsverarbeitung:** Die Vorlage dafür ist für Phase 1 vorgesehen. [K9, K12]
@@ -525,6 +527,14 @@ Pfade ohne Vorsatz liegen im Repository `opengewerk/opengewerk-haustechnik`. Pfa
 | B173 | Test | `packages/server/src/api/tasks.test.ts` | `is the area of its property: a task at an asset is seen by whoever sees the asset` |
 | B174 | Test | `packages/server/src/api/tasks.test.ts` | `goes with the record it hangs on when that is removed` |
 | B175 | Test | `packages/server/src/api/tasks.test.ts` | `are those for its person and those its person wrote; whoever sees every area holds all` |
+| B176 | Test | `packages/server/src/api/office-tables.test.ts` | `holds every asset the filter passes, in the order of the list, also beyond its first page` |
+| B177 | Test | `packages/server/src/api/office-tables.test.ts` | `holds no asset of an area the person does not see` |
+| B178 | Test | `packages/server/src/api/office-tables.test.ts` | `holds no property of an area the person does not see, and no column of the area for one area` |
+| B179 | Test | `packages/server/src/api/office-tables.test.ts` | `is only for whoever reads the register` |
+| B180 | Test | `packages/server/src/api/office-tables.test.ts` | `holds no part of the stamp of the last change, in neither format` |
+| B181 | Test | `packages/server/src/api/office-tables.test.ts` | `holds nothing of the stamp of the last change, in neither format` |
+| B182 | Test | `packages/server/src/api/office-tables.test.ts` | `is only for whoever reads places` |
+| B183 | Test | `packages/server/src/api/office-tables.test.ts` | `names the place only for whoever reads places as well` |
 
 ---
 
@@ -584,7 +594,7 @@ Jede Zeile ist der erste Abschnitt einer Adresse, unter der der Server antwortet
 | --- | --- |
 | `activities` | Prüfungen und Wartungen: die Liste, die Seite eines Vorgangs, die Auswahl der Personen für seinen Plan und der Plan |
 | `areas` | Bereiche und für wen sie genannt sind |
-| `assets` | Anlagen und ihre Komponenten, und die Nachweise einer Anlage |
+| `assets` | Anlagen und ihre Komponenten, und die Nachweise einer Anlage; das Anlagenverzeichnis auch als Tabelle |
 | `attachments` | Dokumente: gibt die Datei einer Fassung und ihre Vorschau aus, über die Fassung und nie über die Prüfsumme |
 | `audit` | Änderungsprotokoll |
 | `auth` | das eigene Konto: Betreiber wählen, eigene Geräte, eigene Passkeys, abmelden |
@@ -605,7 +615,7 @@ Jede Zeile ist der erste Abschnitt einer Adresse, unter der der Server antwortet
 | `labels` | Etiketten: sagt zu einem gescannten Code in einem Wort, ob er für die fragende Person etwas öffnet, und druckt viele Etiketten auf einmal |
 | `overview` | Übersicht der Betreiberverantwortung: wie viele Pflichten überfällig, in 30 und in 90 Tagen fällig und nie erfasst sind, wie vielen Prüfungen der Bericht einer Fremdfirma fehlt und wie viele Mängel über ihrer Frist sind, mit den ersten davon; über alle Bereiche der fragenden Person oder einen. Dazu die Zahlen je Liegenschaft und Gebäude, das Lagebild eines Gebäudes mit seinen letzten Vorgängen und die Zeitachse eines Orts. Keine dieser Antworten nennt eine Person |
 | `meters` | Zähler: die Liste zum Stichtag, die Seite einer Messstelle mit Ständen, Verbrauch und Verlauf, ein Stand von Hand und seine Berichtigung, der Zählertausch, die Stilllegung, die Sperre, die Notiz und was nur die Messstelle trägt |
-| `properties` | Liegenschaften |
+| `properties` | Liegenschaften, ihre Liste auch als Tabelle |
 | `rooms` | Räume, mit den Pflichten, die an ihnen hängen |
 | `round-plans` | Pläne der Rundgänge: ein neuer Plan und die Änderung eines Plans, auch ruhen lassen und beenden; ein Plan nennt die Person, die seine Rundgänge geht, oder niemanden |
 | `round-templates` | Vorlagen der Rundgänge: eine neue, leer oder aus einem Paket übernommen, und eine neue Fassung einer Vorlage; sie nennen Anlagen, Räume und Pflichten und keine Person |

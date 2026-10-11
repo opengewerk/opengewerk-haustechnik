@@ -40,3 +40,32 @@ export const placeForms = {
 
 /** The addresses below "Liegenschaften" that are not under its own. */
 export const placeRoots = ['/gebaeude', '/geschosse', '/raeume'] as const
+
+/**
+ * The address of the list "Liegenschaften" as a table (#138): narrowed to
+ * the area of the chip that is pressed and to what the search of the list
+ * looks for, and in its order, as the list shows it.
+ */
+export function propertyTableRequest(shown: {
+  readonly areaId: string | null
+  readonly search: string
+  readonly urgent: boolean
+}): string {
+  const query = new URLSearchParams()
+
+  if (shown.areaId !== null) {
+    query.set('area', shown.areaId)
+  }
+
+  if (shown.search !== '') {
+    query.set('search', shown.search)
+  }
+
+  if (shown.urgent) {
+    query.set('order', 'urgency')
+  }
+
+  const asked = query.toString()
+
+  return asked === '' ? '/properties/table' : `/properties/table?${asked}`
+}
