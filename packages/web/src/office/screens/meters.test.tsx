@@ -20,6 +20,7 @@ import {
   mountOffice,
   type NamedArea,
   rowsOf,
+  servingTables,
   signedInOffice,
   untilTheRightsAreKnown,
   type WriteAnswer,
@@ -280,6 +281,24 @@ describe('the list of meters', () => {
       expect(rowsOf(listCaption)).toHaveLength(1)
     })
     expect(rowsOf(listCaption)[0]?.[0]).toContain('Hauptwasserzähler Schulhaus')
+  })
+
+  it('gives what it shows as a table, for its key date and under what it is narrowed by (#236)', async () => {
+    await mountOffice('/zaehler', server, everything)
+    fireEvent.click(await screen.findByRole('button', { name: meterWords.missingCount(1) }))
+    await waitFor(() => {
+      expect(rowsOf(listCaption)).toHaveLength(1)
+    })
+
+    // After the answers of the test, which it hands every other request to.
+    const tables = servingTables()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Als Tabelle' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: 'CSV (.csv)' }))
+
+    await waitFor(() => {
+      expect(tables.asked).toEqual([`/meters/table?keyDate=${current}&state=missing&format=csv`])
+    })
   })
 
   it('is narrowed to the building the Lagebild leads in with, and says so (#121)', async () => {

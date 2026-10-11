@@ -1,6 +1,33 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Put, Query } from '@nestjs/common'
-import type { Area, InvitationAreas, MemberAreas } from '@opengewerk/haustechnik-domain'
-import { CurrentIdentity, Database, listColleagues, pick } from '@opengewerk/platform-server'
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Header,
+  Param,
+  Patch,
+  Post,
+  Put,
+  Query,
+  StreamableFile,
+} from '@nestjs/common'
+import {
+  type Area,
+  areaTableHeads,
+  areaTableRow,
+  type InvitationAreas,
+  isAllowed,
+  type MemberAreas,
+  tableNamesPeople,
+} from '@opengewerk/haustechnik-domain'
+import {
+  CurrentIdentity,
+  Database,
+  listColleagues,
+  pick,
+  tableAnswer,
+  tableFormatOf,
+} from '@opengewerk/platform-server'
 
 import { openInvitationAreas } from '../areas/additions.js'
 import {
@@ -65,6 +92,44 @@ export class AreasController {
         .map((userId) => ({ userId, name: names.get(userId) ?? 'Unbekanntes Konto' }))
         .sort((left, right) => left.name.localeCompare(right.name, 'de')),
     }))
+  }
+
+  /**
+   * The areas as a table (#236), as the list under "Einstellungen" shows
+   * them, as a workbook or as text (`?format=xlsx` or `csv`): what lies in
+   * each, with every property by name for whoever reads places, and who it
+   * is named for only for whoever may see the staff. For whoever sees the
+   * settings.
+   */
+  @Get('overview/table')
+  @RequiresPermission('settings.read')
+  @Header('Cache-Control', 'no-store')
+  async overviewTable(
+    @CurrentIdentity() identity: Asking,
+    @Query() query: Readonly<Record<string, unknown>>,
+  ): Promise<StreamableFile> {
+    const format = tableFormatOf(query)
+    const reads = {
+      places: isAllowed(identity, 'location.read'),
+      people: tableNamesPeople(identity),
+    }
+    // Nobody is looked up by name for a table that names nobody.
+    const areas = reads.people
+      ? await this.overview(identity)
+      : (await this.database.forTenant(identity, (tx) => areaOverview(tx))).map((area) => ({
+          ...area,
+          members: [],
+        }))
+
+    return tableAnswer(
+      {
+        name: 'Bereiche',
+        columns: areaTableHeads(reads.people),
+        rows: areas.map((area) => areaTableRow(area, reads)),
+      },
+      format,
+      dayInGermany(),
+    )
   }
 
   /** The areas everybody who works for the tenant holds in. */

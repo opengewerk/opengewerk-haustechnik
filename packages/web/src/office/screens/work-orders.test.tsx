@@ -19,6 +19,7 @@ import {
   type NamedArea,
   onA,
   rowsOf,
+  servingTables,
   signedInOffice,
   untilTheRightsAreKnown,
   type Written,
@@ -697,5 +698,34 @@ describe('the way from a defect to its order', () => {
       ).getAttribute('href'),
     ).toBe('/auftraege/ac-remedy')
     expect(screen.queryByRole('button', { name: 'Auftrag anlegen' })).toBeNull()
+  })
+})
+
+describe('the list "Aufträge" as a table (#236)', () => {
+  it('is asked for with what the list is narrowed by, whole and not a page', async () => {
+    const { mounted } = mount('/auftraege', {
+      [firstPage]: page([remedy]),
+      '/work-orders?state=waiting&offset=0&limit=50': page([waiting]),
+      '/work-orders?state=waiting&kind=other&offset=0&limit=50': page([waiting]),
+    })
+
+    await mounted
+    await screen.findByRole('link', { name: 'Notausgangstür Saal gängig machen' })
+    fireEvent.click(screen.getByRole('button', { name: 'Wartet auf Abnahme' }))
+    await screen.findByRole('link', { name: 'Heizkessel Mensa entlüften' })
+    fireEvent.change(screen.getByRole('combobox', { name: 'Art' }), { target: { value: 'other' } })
+    await waitFor(() => {
+      expect(screen.getByRole('combobox', { name: 'Art' })).toHaveProperty('value', 'other')
+    })
+
+    // After the answers of the test, which it hands every other request to.
+    const tables = servingTables()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Als Tabelle' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: 'CSV (.csv)' }))
+
+    await waitFor(() => {
+      expect(tables.asked).toEqual(['/work-orders/table?state=waiting&kind=other&format=csv'])
+    })
   })
 })

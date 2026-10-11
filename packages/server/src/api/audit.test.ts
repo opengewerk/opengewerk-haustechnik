@@ -1,6 +1,11 @@
 import type { INestApplication } from '@nestjs/common'
 import { Test } from '@nestjs/testing'
-import { type AuditPage, missingRight, type TenantId } from '@opengewerk/haustechnik-domain'
+import {
+  type AuditPage,
+  auditTableNamesPeople,
+  missingRight,
+  type TenantId,
+} from '@opengewerk/haustechnik-domain'
 import { Database, newId } from '@opengewerk/platform-server'
 import { memberships } from '@opengewerk/platform-server/schema'
 import type { Pool } from 'pg'
@@ -15,6 +20,7 @@ import {
 } from '../database/test-database.js'
 import { ApiModule } from './api.module.js'
 import { as, testIdentities } from './test-identity.js'
+import { tableReaders } from './test-tables.js'
 
 // The change log of a tenant is the foundation's, read and checked there with
 // an application that is nobody's (ADR 0010 in the repository opengewerk).
@@ -31,6 +37,8 @@ let app: INestApplication
 function http() {
   return request(app.getHttpServer())
 }
+
+const { tableOf, refusalOf } = tableReaders(http)
 
 beforeAll(async () => {
   admin = await connect()
@@ -92,6 +100,60 @@ describe('the change log of this application', () => {
         missingRight('audit.read'),
       ])
     }
+  })
+
+  it('goes out as a table in the words of this application (#236)', async () => {
+    const lea = as(tenantId, 'u-lea', 'management')
+    const made = async (path: string, body: object): Promise<string> =>
+      (await http().post(path).set(testIdentityHeader, lea).send(body).expect(201)).body.id
+    const property = await made('/properties', {
+      name: 'Rathaus Nord',
+      street: 'Marktplatz 1',
+      postalCode: '68535',
+      city: 'Edingen-Neckarhausen',
+      federalState: 'DE-BW',
+    })
+
+    await made(`/properties/${property}/buildings`, { name: 'Altbau', kinds: ['school'] })
+
+    for (const format of ['xlsx', 'csv'] as const) {
+      const table = await tableOf('/audit/table', { table: 'buildings' }, lea, format)
+      const kinds = table.find((row) => row.includes('Schule oder Hochschule'))
+
+      expect(table[0]).toEqual([
+        'Zeitpunkt',
+        'Datensatz',
+        'Art',
+        'Änderung',
+        'Feld',
+        'Vorher',
+        'Nachher',
+        'Person',
+        'Gerät',
+        'Weg',
+      ])
+      // The kind of a building as the Leitung reads it, and not as the log keeps it.
+      expect(kinds?.[1]).toBe('Altbau')
+      expect(kinds?.[6]).toBe('Schule oder Hochschule')
+      expect(kinds?.[7]).toBe('Lea Leitung')
+      expect(table.flat()).not.toContain('school')
+    }
+  })
+
+  it('is no table for whoever reads the log and may not see the staff (#236)', async () => {
+    const readsTheLog = JSON.stringify({
+      userId: 'u-lea',
+      tenantId,
+      roles: ['management'],
+      rights: ['audit.read'],
+    })
+
+    expect(await refusalOf('/audit/table', {}, readsTheLog)).toEqual({
+      status: 403,
+      message: auditTableNamesPeople,
+    })
+    // The list itself is theirs to read; only the file that leaves is not.
+    await http().get('/audit/changes').set(testIdentityHeader, readsTheLog).expect(200)
   })
 
   it('checks the chain of its tenant', async () => {

@@ -2,13 +2,15 @@ import {
   attachmentEntity,
   attachmentVersionEntity,
   type DocumentHome,
+  documentHomeLabel,
   documentHomeOf,
+  documentHomeWords,
   type DocumentKind,
-  documentKindLabel,
+  documentKindOf,
+  documentKindWords,
   documentProblems,
   documentTargetProblem,
   documentTitleOf,
-  isPicture,
   operatorDocuments,
   type RecordState,
   untitledDocument,
@@ -141,8 +143,9 @@ export function fileVersion(
 
 /** What a document is called where it has no kind: a picture is a photo. */
 export const documentWords = {
-  photo: 'Foto',
-  noKind: 'Ohne Art',
+  // Said in `domain`, where the documents as a table read them as well (#236).
+  photo: documentKindWords.photo,
+  noKind: documentKindWords.noKind,
   onItsWay: 'Die Datei ist noch unterwegs.',
   notSentYet: 'noch nicht übertragen',
 } as const
@@ -183,26 +186,14 @@ export function versionWords(client: SyncClient, version: RecordState, versions:
  * without one, which is what a photo of a type plate is.
  */
 export function kindWordsOf(document: RecordState, newest: RecordState | undefined): string {
-  const kind = maybeText(document, 'kind')
-
-  if (kind !== null && Object.hasOwn(documentKindLabel, kind)) {
-    return documentKindLabel[kind as DocumentKind]
-  }
-
-  return newest !== undefined && isPicture(text(newest, 'mediaType'))
-    ? documentWords.photo
-    : documentWords.noKind
+  return documentKindOf(
+    maybeText(document, 'kind'),
+    newest === undefined ? null : text(newest, 'mediaType'),
+  )
 }
 
-/** What a kind of place a document can hang on is called. */
-export const documentHomeLabel: Readonly<Record<DocumentHome, string>> = {
-  propertyId: 'Liegenschaft',
-  buildingId: 'Gebäude',
-  roomId: 'Raum',
-  assetId: 'Anlage',
-  activityId: 'Vorgang',
-  defectId: 'Mangel',
-}
+// What a kind of place a document can hang on is called: said in `domain` (#236).
+export { documentHomeLabel }
 
 /** The records a device holds that a document may name. */
 export interface DocumentSurroundings {
@@ -238,50 +229,36 @@ export function hangsOn(document: RecordState, around: DocumentSurroundings): Ha
   const home = documentHomeOf(document)
   const id = String(document[home])
   const property = maybeText(byId(around.properties, document['propertyId']), 'name')
-  const within = (words: string | null) =>
-    [words ?? documentHomeLabel[home], property].filter(Boolean).join(', ')
+  // The words of the documents as a table as well (#236).
+  const as = (named: string | null) => ({
+    home,
+    id,
+    words: documentHomeWords(home, named, property),
+  })
 
   switch (home) {
     case 'assetId': {
       const asset = byId(around.assets, id)
 
-      return {
-        home,
-        id,
-        words: asset
-          ? [maybeText(asset, 'number'), text(asset, 'name')].filter(Boolean).join(' ')
-          : within(null),
-      }
+      return as(
+        asset ? [maybeText(asset, 'number'), text(asset, 'name')].filter(Boolean).join(' ') : null,
+      )
     }
 
     case 'roomId': {
       const room = byId(around.rooms, id)
 
-      return { home, id, words: within(room ? `Raum ${titleOfRoom(room)}` : null) }
+      return as(room ? titleOfRoom(room) : null)
     }
 
-    case 'buildingId': {
-      const building = byId(around.buildings, id)
-
-      return {
-        home,
-        id,
-        words: within(building ? `Gebäude ${text(building, 'name')}` : null),
-      }
-    }
-
+    case 'buildingId':
+      return as(maybeText(byId(around.buildings, id), 'name'))
     case 'activityId':
-      return { home, id, words: within(maybeText(byId(around.activities, id), 'title')) }
-
+      return as(maybeText(byId(around.activities, id), 'title'))
     case 'defectId':
-      return {
-        home,
-        id,
-        words: within(maybeText(byId(around.defects ?? [], id), 'description')),
-      }
-
+      return as(maybeText(byId(around.defects ?? [], id), 'description'))
     case 'propertyId':
-      return { home, id, words: `Liegenschaft ${property ?? ''}`.trim() }
+      return as(null)
   }
 }
 

@@ -3,6 +3,7 @@ import { Test } from '@nestjs/testing'
 import {
   everyAreaSentence,
   type InvitationId,
+  missingRight,
   type RoleKey,
   type TenantId,
 } from '@opengewerk/haustechnik-domain'
@@ -21,6 +22,7 @@ import {
 } from '../database/test-database.js'
 import { ApiModule } from './api.module.js'
 import { as, testIdentities } from './test-identity.js'
+import { tableReaders } from './test-tables.js'
 
 /**
  * The areas somebody holds in, said with their role (#84, section 2.8 of the
@@ -268,6 +270,49 @@ afterAll(async () => {
   await app.close()
   await database.close()
   await admin.end()
+})
+
+/**
+ * The staff as a table (#236): the foundation writes it and asks this
+ * application for the column it keeps beside a membership, the areas, in the
+ * words of the list.
+ */
+describe('the staff as a table', () => {
+  const { tableOf, refusalOf } = tableReaders(http)
+
+  it('names the areas somebody holds in, in the column of this application', async () => {
+    // One of the Haustechnik holds in no area for the length of this test.
+    await admin.query(`delete from member_areas where tenant_id = $1 and user_id = 'u-back'`, [
+      large,
+    ])
+
+    try {
+      for (const format of ['xlsx', 'csv'] as const) {
+        const [heads, ...rows] = await tableOf('/staff/table', {}, lead(), format)
+        const column = heads?.indexOf('Bereiche') ?? -1
+
+        expect(heads?.slice(0, 4)).toEqual(['Zugang', 'E-Mail', 'Rolle', 'Bereiche'])
+        expect(Object.fromEntries(rows.map((row) => [row[0], row[column]]))).toEqual({
+          'Sabine Krämer': 'alle',
+          'Jörg Albrecht': 'alle',
+          'Petra Lindner': 'Nord',
+          'Murat Yilmaz': 'Nord',
+          'Lena Vogt': 'ohne Bereich',
+        })
+      }
+    } finally {
+      await admin.query(
+        `insert into member_areas (tenant_id, user_id, area_id) values ($1, 'u-back', $2)`,
+        [large, north],
+      )
+    }
+  })
+
+  it('is only for whoever sees the staff', async () => {
+    expect(
+      await refusalOf('/staff/table', {}, as(large, 'u-duties', 'technical_management')),
+    ).toEqual({ status: 403, message: missingRight('membership.read') })
+  })
 })
 
 describe('an invitation', () => {

@@ -2,6 +2,8 @@ import {
   type Area,
   type InvitationAreas,
   type MemberAreas,
+  memberAreasInWords,
+  memberAreaWords,
   seesEveryArea,
 } from '@opengewerk/haustechnik-domain'
 import { Choice } from '@opengewerk/platform-web'
@@ -31,9 +33,9 @@ export interface AreaChoice {
 }
 
 export const areaWords = {
-  title: 'Bereiche',
-  all: 'alle',
-  none: 'ohne Bereich',
+  title: memberAreaWords.title,
+  all: memberAreaWords.all,
+  none: memberAreaWords.none,
   which: 'Alle oder genannte Bereiche',
   every: 'Alle Bereiche',
   named: 'Genannte Bereiche',
@@ -72,18 +74,14 @@ export function areasToBeginWith(roles: readonly string[], areas: readonly Area[
   return { all: false, areaIds: only !== undefined && more.length === 0 ? [only.id] : [] }
 }
 
-/** The areas somebody holds in as a cell says them: "alle", their names, or that there is none. */
+/** The areas somebody holds in as a cell says them, the words of the table as well (#236). */
 export function areasInWords(choice: AreaChoice, areas: readonly Area[]): ReactNode {
-  if (choice.all) {
-    return areaWords.all
-  }
+  const words = memberAreasInWords(choice, areas)
 
-  const names = areas.filter((area) => choice.areaIds.includes(area.id)).map((area) => area.name)
-
-  return names.length === 0 ? (
-    <span className="font-semibold text-waiting">{areaWords.none}</span>
+  return words === memberAreaWords.none && !choice.all ? (
+    <span className="font-semibold text-waiting">{words}</span>
   ) : (
-    names.join(', ')
+    words
   )
 }
 

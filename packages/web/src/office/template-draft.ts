@@ -1,11 +1,12 @@
 import {
   type Catalogue,
+  forms,
   type FormUnitKey,
   formUnits,
-  forms,
   type MeasurementField,
   type TemplateDefinition,
   type TemplateField,
+  templateSizeWords,
 } from '@opengewerk/haustechnik-domain'
 
 /**
@@ -276,12 +277,8 @@ export function withoutChapter(draft: TemplateDefinition, key: string): Template
   return { ...draft, sections: draft.sections.filter((section) => section.key !== key) }
 }
 
-/** "2 Kapitel, 8 Punkte". */
-export function sizeWords(draft: TemplateDefinition): string {
-  const points = draft.sections.reduce((sum, section) => sum + section.fields.length, 0)
-
-  return `${String(draft.sections.length)} Kapitel, ${String(points)} ${points === 1 ? 'Punkt' : 'Punkte'}`
-}
+// "2 Kapitel, 8 Punkte": said in `domain`, where the templates as a table read it as well (#236).
+export const sizeWords: (draft: TemplateDefinition) => string = templateSizeWords
 
 /** The sign of a unit: °C, kWh. */
 export function unitSign(unit: FormUnitKey): string {

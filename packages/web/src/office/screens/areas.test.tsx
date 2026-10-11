@@ -1,6 +1,6 @@
 import { type AreaId, areaNameProblem } from '@opengewerk/haustechnik-domain'
 import { TestServer } from '@opengewerk/platform-web/testing'
-import { screen, waitFor, within } from '@testing-library/react'
+import { fireEvent, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -10,6 +10,7 @@ import {
   mountOffice,
   onA,
   rowsOf,
+  servingTables,
   signedInOffice,
   untilTheRightsAreKnown,
   type WriteAnswer,
@@ -555,5 +556,22 @@ describe('an area that goes', () => {
         'In „Ost“ liegt noch 1 Liegenschaft: Werkhof Ost. Sie wird vorher',
       ),
     ).toBe(true)
+  })
+})
+
+describe('the areas as a table (#236)', () => {
+  it('are asked for as the list shows them', async () => {
+    signedIn()
+    await mount()
+
+    // After the answers of the test, which it hands every other request to.
+    const tables = servingTables()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Als Tabelle' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Excel (.xlsx)' }))
+
+    await waitFor(() => {
+      expect(tables.asked).toEqual(['/areas/overview/table?format=xlsx'])
+    })
   })
 })

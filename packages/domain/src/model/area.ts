@@ -83,6 +83,23 @@ export function seesEveryArea(roles: readonly string[]): boolean {
 /** Said to whoever names areas for a role that holds in all of them. */
 export const everyAreaSentence = 'Leitung und Technische Leitung haben immer alle Bereiche.'
 
+/** What the column "Bereiche" under "Zugänge" says, on the screen and in its table (#236). */
+export const memberAreaWords = { title: 'Bereiche', all: 'alle', none: 'ohne Bereich' } as const
+
+/** The areas somebody holds in, as a cell says them: "alle", their names, or that there is none. */
+export function memberAreasInWords(
+  choice: { readonly all: boolean; readonly areaIds: readonly string[] },
+  areas: readonly { readonly id: string; readonly name: string }[],
+): string {
+  if (choice.all) {
+    return memberAreaWords.all
+  }
+
+  const names = areas.filter((area) => choice.areaIds.includes(area.id)).map((area) => area.name)
+
+  return names.length === 0 ? memberAreaWords.none : names.join(', ')
+}
+
 /**
  * What is wrong with the areas somebody with these roles is to hold in, as a
  * sentence for the screen, or null when nothing is.

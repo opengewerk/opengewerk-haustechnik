@@ -7,7 +7,7 @@ import {
   type RoleKey,
   type TenantId,
 } from '@opengewerk/haustechnik-domain'
-import { Database, newId } from '@opengewerk/platform-server'
+import { Database, newId, tableFileOf } from '@opengewerk/platform-server'
 import type { Pool } from 'pg'
 import request from 'supertest'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
@@ -338,6 +338,130 @@ describe('the list of deadlines', () => {
       total: null,
       more: false,
     })
+  })
+})
+
+/**
+ * The list as a table (#236): what a deadline is called and what it hangs on
+ * in the words of the list, the places only for whoever reads them, the
+ * person who answers for it only for the Leitung, and nothing of the stamp
+ * of the last change.
+ */
+describe('the list of deadlines as a table', () => {
+  /** The table at the address as its rows, read back as an import reads it; the header first. */
+  async function tableOf(header: string, query: string, format = 'xlsx'): Promise<string[][]> {
+    const answer = await http()
+      .get(`/deadlines/table?format=${format}&${query}`)
+      .set(testIdentityHeader, header)
+      .buffer(true)
+      .parse((response, done) => {
+        const chunks: Buffer[] = []
+
+        response.on('data', (chunk: Buffer) => chunks.push(chunk))
+        response.on('end', () => {
+          done(null, Buffer.concat(chunks))
+        })
+      })
+      .expect(200)
+
+    return (
+      tableFileOf(new Uint8Array(answer.body as Buffer), `Fristen.${format}`).sheets[0]?.rows.map(
+        (row) => [...row],
+      ) ?? []
+    )
+  }
+
+  it('names what a deadline is called and what it hangs on, as the list does, and who answers only for the Leitung', async () => {
+    const { duty } = await dutyWithEvidence(large, '2025-05-02', north, 'Tabellenschule Nord')
+
+    await admin.query('update duties set responsible_user_id = $1 where id = $2', ['u-site', duty])
+    await runDeadlinesOf({ database, catalogue, now: () => october }, large, october)
+
+    const named = await tableOf(by('u-lead', large), 'search=Tabellenschule')
+    const nameless = await tableOf(by('u-duties', large), 'search=Tabellenschule')
+
+    expect(named).toEqual([
+      [
+        'Fällig am',
+        'Überfällig',
+        'Betrifft',
+        'Art',
+        'Anlage und Ort',
+        'Verantwortlich',
+        'Erinnerung',
+      ],
+      [
+        '01.05.2027',
+        '',
+        'Hauptprüfung der Aufzugsanlage',
+        'Fälligkeit einer Pflicht',
+        expect.stringMatching(/^AN-\d{5} Aufzug Haus A, Tabellenschule Nord, Haus A$/),
+        'u-site',
+        'am 01.04.2027',
+      ],
+    ])
+    expect(nameless[0]).not.toContain('Verantwortlich')
+    expect(nameless.flat()).not.toContain('u-site')
+  })
+
+  it('names the places and the asset only for whoever reads them as well', async () => {
+    await dutyWithEvidence(large, '2025-05-03', north, 'Tabellenschule Ort')
+    await runDeadlinesOf({ database, catalogue, now: () => october }, large, october)
+
+    const holding = (...rights: string[]) =>
+      JSON.stringify({ userId: 'u-lead', tenantId: large, roles: ['management'], rights })
+    const where = async (...rights: string[]) =>
+      (await tableOf(holding('deadline.read', ...rights), 'search=Tabellenschule Ort'))[1]?.[4]
+
+    expect(await where()).toBe('Anlage, Liegenschaft')
+    expect(await where('asset.read')).toMatch(/^AN-\d{5} Aufzug Haus A, Liegenschaft$/)
+    expect(await where('location.read')).toBe('Anlage, Tabellenschule Ort, Haus A')
+    expect(await where('asset.read', 'location.read')).toMatch(
+      /^AN-\d{5} Aufzug Haus A, Tabellenschule Ort, Haus A$/,
+    )
+  })
+
+  it('is narrowed to one person only by the Leitung', async () => {
+    const refused = await http()
+      .get('/deadlines/table?format=csv&person=u-site')
+      .set(testIdentityHeader, by('u-duties', large))
+      .expect(403)
+
+    expect(refused.body.message).toBe(
+      'Auf eine Person eingegrenzt gibt es die Fristen als Tabelle nur für die Leitung.',
+    )
+    await http()
+      .get('/deadlines/table?format=csv&person=u-site')
+      .set(testIdentityHeader, by('u-lead', large))
+      .expect(200)
+    await http()
+      .get('/deadlines/table?format=csv')
+      .set(testIdentityHeader, by('u-tech', large))
+      .expect(403)
+  })
+
+  it('holds nothing of the stamp of the last change, in neither format', async () => {
+    await dutyWithEvidence(large, '2025-05-04', north, 'Tabellenschule Stempel')
+    await runDeadlinesOf({ database, catalogue, now: () => october }, large, october)
+
+    const { rows } = await admin.query<{ updated_by: string | null; device_id: string | null }>(
+      `select updated_by, device_id from duties where tenant_id = $1
+       union select updated_by, device_id from assets where tenant_id = $1
+       union select updated_by, device_id from properties where tenant_id = $1`,
+      [large],
+    )
+    const stamps = [
+      ...new Set(rows.flatMap((row) => [row.updated_by, row.device_id]).filter(Boolean)),
+    ] as string[]
+
+    for (const format of ['xlsx', 'csv']) {
+      const table = await tableOf(by('u-duties', large), 'search=Tabellenschule Stempel', format)
+
+      expect(table[0]?.filter((column) => /geändert|gerät|stempel/i.test(column))).toEqual([])
+      expect(table.flat().filter((cell) => stamps.some((stamp) => cell.includes(stamp)))).toEqual(
+        [],
+      )
+    }
   })
 })
 

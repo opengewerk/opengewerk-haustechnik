@@ -1,12 +1,13 @@
 import {
   activityKindLabel,
   activityStatusLabel,
+  defaultDueOn,
   type DefectCheckOutcome,
   defectCheckProblems,
   type DefectClassChoice,
   type DefectEntry,
   defectLimits,
-  type DefectOrigin,
+  defectOriginWord,
   defectProblems,
   type DefectReading,
   type DefectRegister,
@@ -17,7 +18,7 @@ import {
   type DefectStatus,
   defectStatuses,
   defectStatusLabel,
-  defaultDueOn,
+  defectWhere,
   type RecordState,
   withoutClass,
 } from '@opengewerk/haustechnik-domain'
@@ -43,6 +44,7 @@ import {
   FactList,
   PageHead,
   Screen,
+  useTableExport,
 } from '@opengewerk/platform-web/office'
 import { useRight } from '@opengewerk/platform-web/session'
 import {
@@ -89,6 +91,7 @@ import { factLink } from '../links.js'
 import { officePlaces } from '../place-addresses.js'
 import { NarrowedToBuilding } from '../narrowed-to-building.js'
 import { RegisterFilter } from '../register-filter.js'
+import { asTableAddress } from '../table-address.js'
 import { workOrderPlaces, workOrderStartSearch } from '../work-order-addresses.js'
 
 export const defectWords = {
@@ -165,53 +168,28 @@ function useClassWord(): (key: string | null) => string {
       : (catalogue?.defectClass(key)?.defectClass.label ?? key)
 }
 
-/** Where a defect is, as two lines and a link: the asset, the room, the building or the property, and below it where that is. */
+/**
+ * Where a defect is, as two lines and a link: the asset, the room, the
+ * building or the property, and below it where that is, in the words of its
+ * table (#236).
+ */
 function whereOf(defect: DefectEntry): { name: string; to: string; sub: string } {
   const { place } = defect
-  const line = [place.propertyName, place.buildingName].filter(Boolean).join(', ')
+  const { name, sub } = defectWhere(place)
+  const to =
+    place.asset !== null
+      ? officePlaces.asset(place.asset.id)
+      : place.roomId !== null
+        ? officePlaces.room(place.roomId)
+        : place.buildingId !== null
+          ? officePlaces.building(place.buildingId)
+          : officePlaces.property(place.propertyId)
 
-  if (place.asset !== null) {
-    return {
-      name: [place.asset.number, place.asset.name].filter(Boolean).join(' '),
-      to: officePlaces.asset(place.asset.id),
-      sub: [line, place.roomLabel].filter(Boolean).join(', '),
-    }
-  }
-
-  if (place.roomId !== null) {
-    return {
-      name: place.roomLabel ?? 'Raum',
-      to: officePlaces.room(place.roomId),
-      sub: line,
-    }
-  }
-
-  if (place.buildingId !== null) {
-    return {
-      name: place.buildingName ?? 'Gebäude',
-      to: officePlaces.building(place.buildingId),
-      sub: place.propertyName,
-    }
-  }
-
-  return {
-    name: place.propertyName,
-    to: officePlaces.property(place.propertyId),
-    sub: 'Liegenschaft',
-  }
+  return { name, to, sub }
 }
 
-/** Where a defect comes from, in a word: "Rundgang", "Prüfung", "Bericht", "von Hand". */
-function originWord(origin: DefectOrigin): string {
-  switch (origin.kind) {
-    case 'activity':
-      return activityKindLabel[origin.activityKind]
-    case 'report':
-      return 'Bericht'
-    case 'hand':
-      return 'von Hand'
-  }
-}
+/** Where a defect comes from, in a word, as its table says it (#236). */
+const originWord = defectOriginWord
 
 function DueCell({ defect }: { readonly defect: DefectEntry }) {
   if (defect.dueOn === null) {
@@ -387,6 +365,8 @@ export function DefectListScreen() {
   const reports = useRight('defect.report')
   const state = filter.state ?? 'open'
   const pages = useRegister(filter)
+  // What the register shows under its filter, whole and not a page, as a table (#236).
+  const table = useTableExport(asTableAddress(defectRegisterRequest(filter, 0)))
   const first = pages.data?.pages[0]
   const defects = pages.data?.pages.flatMap((page) => page.defects) ?? []
   const narrowed = Object.keys(filter).some((name) => name !== 'state')
@@ -417,19 +397,23 @@ export function DefectListScreen() {
         sub={defectWords.sub}
         {...(first === undefined ? {} : { count: countOf(first) })}
         actions={
-          reports ? (
-            <Button
-              tone="primary"
-              icon={Plus}
-              onClick={() => {
-                void navigate({ to: defectPlaces.report })
-              }}
-            >
-              Mangel melden
-            </Button>
-          ) : null
+          <>
+            {table.button}
+            {reports ? (
+              <Button
+                tone="primary"
+                icon={Plus}
+                onClick={() => {
+                  void navigate({ to: defectPlaces.report })
+                }}
+              >
+                Mangel melden
+              </Button>
+            ) : null}
+          </>
         }
       />
+      {table.trouble}
       <div className="flex flex-wrap items-end gap-x-2.5 gap-y-2">
         <div role="group" aria-label="Liste" className="flex flex-wrap gap-1.5">
           {defectRegisterStates.map((each) => (

@@ -9,6 +9,7 @@ import {
   type NamedArea,
   onA,
   rowsOf,
+  servingTables,
   signedInOffice,
   untilTheRightsAreKnown,
 } from '../test-office.js'
@@ -727,5 +728,23 @@ describe('what is done to the chosen document', () => {
     expect(
       screen.getByText('Kein Dokument passt zu dem, wonach die Liste eingegrenzt ist.'),
     ).toBeTruthy()
+  })
+})
+
+describe('the documents as a table (#236)', () => {
+  it('are asked for with what the list is narrowed by', async () => {
+    await mount('management', '/dokumente?art=concept&an=propertyId')
+
+    expect(rowsOf(tableName).map((row) => row[1])).toEqual(['Konzept'])
+
+    // After the answers of the test, which it hands every other request to.
+    const tables = servingTables()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Als Tabelle' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: 'CSV (.csv)' }))
+
+    await waitFor(() => {
+      expect(tables.asked).toEqual(['/attachments/table?kind=concept&home=propertyId&format=csv'])
+    })
   })
 })

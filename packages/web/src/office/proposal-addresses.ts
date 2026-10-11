@@ -85,12 +85,32 @@ export function proposalRequest(filter: ProposalFilter): string {
   return asked === '' ? '/duties/proposals' : `/duties/proposals?${asked}`
 }
 
+/**
+ * Where the proposals are read as a table (#236): what the route narrows
+ * to, the package the list is narrowed to on the screen, and which of the
+ * two lists, the open ones unless the dismissed are asked for.
+ */
+export function proposalTableRequest(filter: ProposalFilter, list: 'open' | 'dismissed'): string {
+  const [path = '', query = ''] = proposalRequest(filter).split('?')
+  const asked = new URLSearchParams(query)
+
+  if (filter.package !== undefined) {
+    asked.set('package', filter.package)
+  }
+
+  if (list === 'dismissed') {
+    asked.set('list', list)
+  }
+
+  const rest = asked.toString()
+
+  return `${path}/table${rest === '' ? '' : `?${rest}`}`
+}
+
 /** The search of the form that confirms the proposal of a duty kind for an asset. */
 export function confirmSearch(assetId: string, dutyKind: string): Record<string, string> {
   return { [proposalWords.assetId]: assetId, [proposalWords.dutyKind]: dutyKind }
 }
 
-/** The package a duty kind belongs to, the part of its key before the dot. */
-export function packageOf(dutyKind: string): string {
-  return dutyKind.slice(0, dutyKind.indexOf('.'))
-}
+// The package a duty kind belongs to is said once, for the list and its table (#236).
+export { packageOf } from '@opengewerk/haustechnik-domain'

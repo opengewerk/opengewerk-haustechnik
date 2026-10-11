@@ -121,6 +121,11 @@ export function proposedKinds(
     )
 }
 
+/** The package a duty kind belongs to, the part of its key before the dot. */
+export function packageOf(dutyKind: string): string {
+  return dutyKind.slice(0, dutyKind.indexOf('.'))
+}
+
 /** An asset as a proposal names it, with what the office shows of it in a row. */
 export interface ProposedAsset {
   readonly id: AssetId

@@ -1098,6 +1098,33 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   und gelten für Liste und Tabelle zugleich. Die Verfahrensbeschreibung nennt die beiden
   Exporte in Abschnitt 5 (B176 bis B183), die übrigen Listen folgen mit #236. Bisher ließ sich
   keine Liste des Büros in eine Tabellenkalkulation übernehmen
+- Die übrigen Listen im Büro als Tabelle (#236, mit den Tabellen der Fristen, der Zugänge und des
+  Änderungsprotokolls aus opengewerk/opengewerk#600; das Submodul `upstream/opengewerk` geht von
+  `26908ae` auf `e63a09e`, dazwischen liegt genau ein Commit, `e63a09e`, der Merge von #600 auf
+  `main` des Fundaments, nachzuprüfen mit
+  `git -C upstream/opengewerk log --oneline 26908ae..e63a09e`): den Knopf "Als Tabelle" mit
+  Excel (.xlsx) und CSV haben jetzt auch die Zähler,
+  die Dokumente, das Pflichtenverzeichnis, die offenen und die verworfenen Vorschläge aus dem
+  Katalog, die Fristen, die Prüfungen, die Rundgänge einer Woche, ihre Pläne und die eigenen
+  Vorlagen, die Mängel, die Aufträge, die Aufgaben und unter den Einstellungen die Bereiche, die
+  Mängelklassen, die Zugänge und das Änderungsprotokoll. Je Liste eine Route `GET …/table`, die
+  liest wie die Liste: alle Zeilen unter ihrem Filter und nicht nur eine Seite, unter den
+  Rechten und in den Bereichen der Person, höchstens 50.000 Zeilen, sonst lehnt der Server mit
+  einem Satz ab. Eine Person nennt eine Tabelle nur der Leitung (`membership.read`): allen
+  anderen fehlt die Spalte "Zuständig" oder "Verantwortlich", in den Prüfungen steht unter
+  "Ausführend" nur eine Fremdfirma, und in den Rundgängen bleibt die Zelle leer, wo eine Person
+  stünde. Auf eine Person eingegrenzt gibt es das Pflichtenverzeichnis und die Fristen als
+  Tabelle nur für die Leitung. Auch die Zugänge und das Änderungsprotokoll bekommt als Tabelle
+  nur sie, das Protokoll nur mit `audit.read` und `membership.read` zusammen. Namen von
+  Liegenschaft, Gebäude und Raum,
+  Nummer und Name einer Anlage und der Titel eines Vorgangs stehen nur, wo die Person sie lesen
+  darf. Das Pflichtenverzeichnis hat "Frist prüfen" als eigene Spalte (Naht aus #74), die
+  Tabelle der Dokumente nennt den Tag der neuesten Fassung als "Abgelegt am". Spalten und Wörter
+  stehen in `domain` (`office-table.ts`, `duty-words.ts`) und gelten für Liste und Tabelle. Die
+  Verfahrensbeschreibung sagt in Abschnitt 5, was hinausgeht, an wen und was nie (B184 bis
+  B219), und nennt die Listen in Abschnitt 9 nicht mehr als offen. Mit #138 hatten nur die
+  Liegenschaften und das Anlagenverzeichnis den Knopf; Abschnitt 3 des Konzepts verlangt ihn
+  für jede Liste des Büros
 
 ### Geändert
 

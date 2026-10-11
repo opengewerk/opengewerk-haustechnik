@@ -1,10 +1,18 @@
 import type { TaskCandidates } from '@opengewerk/haustechnik-domain'
-import { Controller, Get } from '@nestjs/common'
-import { accountsOf, CurrentIdentity, Database } from '@opengewerk/platform-server'
+import { Controller, Get, Header, Query, StreamableFile } from '@nestjs/common'
+import {
+  accountsOf,
+  CurrentIdentity,
+  Database,
+  tableAnswer,
+  tableFormatOf,
+} from '@opengewerk/platform-server'
 
 import { areasInSight } from '../areas/areas.js'
 import { taskCandidatesIn } from '../tasks/candidates.js'
+import { dayInGermany } from '../today.js'
 import { RequiresPermission } from './authorization.js'
+import { taskTable } from './office-tables.js'
 import type { Asking } from './places.js'
 
 /**
@@ -17,6 +25,28 @@ import type { Asking } from './places.js'
 @Controller('tasks')
 export class TasksController {
   constructor(private readonly database: Database) {}
+
+  /**
+   * The list "Aufgaben" as a table (#236), as a workbook or as text
+   * (`?format=xlsx` or `csv`): the open tasks a device of the person holds,
+   * their own first and then those open with the others, each with its day
+   * and what it hangs on. Whoever looks at tasks reads it; who a task is for
+   * stands in it only for whoever may see the staff.
+   */
+  @Get('table')
+  @RequiresPermission('task.read')
+  @Header('Cache-Control', 'no-store')
+  table(
+    @CurrentIdentity() identity: Asking,
+    @Query() query: Readonly<Record<string, unknown>>,
+  ): Promise<StreamableFile> {
+    const format = tableFormatOf(query)
+    const today = dayInGermany()
+
+    return this.database.forTenant(identity, async (tx) =>
+      tableAnswer(await taskTable(this.database, tx, identity, today), format, today),
+    )
+  }
 
   /**
    * Who a task may go to, in each area of the person asking: the people who

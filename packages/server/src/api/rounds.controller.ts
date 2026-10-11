@@ -4,12 +4,14 @@ import {
   ConflictException,
   Controller,
   Get,
+  Header,
   Inject,
   NotFoundException,
   Param,
   Post,
   Put,
   Query,
+  StreamableFile,
 } from '@nestjs/common'
 import {
   type Activity,
@@ -31,6 +33,8 @@ import {
   CurrentIdentity,
   Database,
   isUuid,
+  tableAnswer,
+  tableFormatOf,
   type TenantTransaction,
 } from '@opengewerk/platform-server'
 import { and, asc, between, desc, eq, inArray, isNotNull, isNull, lt, sql } from 'drizzle-orm'
@@ -48,7 +52,9 @@ import { EvidenceRefusal } from '../evidence/write.js'
 import { dayInGermany } from '../today.js'
 import { candidatesIn, inSight } from './activities.controller.js'
 import { RequiresPermission } from './authorization.js'
+import { roundWeekTable } from './office-tables.js'
 import { type Asking, fieldsOf, refuse } from './places.js'
+import { said } from './register-question.js'
 
 /** The rounds the plans made: the rounds the overview of the week is about. */
 const ofAPlan = and(
@@ -112,8 +118,41 @@ export class RoundsController {
   @Get('week')
   @RequiresPermission('activity.read')
   week(@CurrentIdentity() identity: Asking, @Query('of') of: unknown): Promise<RoundWeek> {
-    const monday = mondayOf(of ?? dayInGermany(new Date()))
+    return this.readWeek(identity, mondayOf(of ?? dayInGermany(new Date())))
+  }
 
+  /**
+   * The overview of a week as a table (#236), as a workbook or as text
+   * (`?format=xlsx` or `csv`): a row for each round of the week and for each
+   * one left open from earlier weeks, narrowed to an area (`area`) as the
+   * screen narrows them. Whoever reads activities reads it, with the rounds
+   * they are shown; who walks a round is named only for whoever may see the
+   * staff.
+   */
+  @Get('week/table')
+  @RequiresPermission('activity.read')
+  @Header('Cache-Control', 'no-store')
+  async weekTable(
+    @CurrentIdentity() identity: Asking,
+    @Query() query: Readonly<Record<string, unknown>>,
+  ): Promise<StreamableFile> {
+    const format = tableFormatOf(query)
+    const today = dayInGermany(new Date())
+    const area = said(query, 'area') ?? null
+
+    if (area !== null && !isUuid(area)) {
+      throw new BadRequestException('Diesen Bereich gibt es bei diesem Betreiber nicht.')
+    }
+
+    const week = await this.readWeek(identity, mondayOf(said(query, 'of') ?? today))
+
+    return this.database.forTenant(identity, async (tx) =>
+      tableAnswer(await roundWeekTable(this.database, tx, identity, week, area), format, today),
+    )
+  }
+
+  /** The rounds of the week of a Monday and those left open before it, as the person is shown them. */
+  private readWeek(identity: Asking, monday: IsoDate): Promise<RoundWeek> {
     return this.database.forTenant(identity, async (tx) => {
       const shown = inSight(identity)
       const rows = await tx

@@ -6,11 +6,13 @@ import {
   Delete,
   ForbiddenException,
   Get,
+  Header,
   Inject,
   Param,
   Patch,
   Post,
   Query,
+  StreamableFile,
 } from '@nestjs/common'
 import {
   type Asset,
@@ -41,6 +43,7 @@ import {
   type DutyProposals,
   type DutyReading,
   type DutyRegister,
+  dutyTableWords,
   dutyTaskLabel,
   dutyTasks,
   type FederalState,
@@ -57,6 +60,7 @@ import {
   type Property,
   type Room,
   type RoomId,
+  tableNamesPeople,
 } from '@opengewerk/haustechnik-domain'
 import {
   accountsOf,
@@ -65,6 +69,8 @@ import {
   isUuid,
   listColleagues,
   requireSomething,
+  tableAnswer,
+  tableFormatOf,
   type TenantTransaction,
 } from '@opengewerk/platform-server'
 import { and, asc, desc, eq, isNull, notInArray } from 'drizzle-orm'
@@ -93,6 +99,8 @@ import { RequiresPermission } from './authorization.js'
 import { listedEvidence } from './evidence.controller.js'
 import { dutyProposalFilter, dutyProposals } from './duty-proposals.js'
 import { dutyReading, dutyRegister, dutyRegisterQuestion } from './duty-register.js'
+import { dutyTable, proposalTable, wholeList } from './office-tables.js'
+import { said } from './register-question.js'
 import { type Asking, fieldsOf, placeOf, refuse } from './places.js'
 
 const missing = 'Diese Pflicht gibt es nicht oder nicht mehr.'
@@ -832,6 +840,111 @@ export class DutiesController {
 
     return this.database.forTenant(identity, (tx) =>
       dutyProposals(tx, this.catalogue, dayInGermany(), filter),
+    )
+  }
+
+  /**
+   * The register as a table (#236): every duty the filters of the list pass,
+   * and not a page, in the order of the register, as a workbook or as text
+   * (`?format=xlsx` or `csv`). Whoever reads the register reads its table,
+   * with what each duty hangs on named for whoever reads it.
+   *
+   * Who answers for a duty stands in it only for whoever may see the staff
+   * (`tableNamesPeople`), and narrowed to one person the register is a table
+   * only for them: a list about somebody leaves with nobody else (sections
+   * 4.16 and 9 of the concept).
+   *
+   * Before the page of a duty, like the register.
+   */
+  @Get('register/table')
+  @RequiresPermission('duty.read')
+  @Header('Cache-Control', 'no-store')
+  async table(
+    @CurrentIdentity() identity: Asking,
+    @Query() query: Record<string, unknown>,
+  ): Promise<StreamableFile> {
+    const format = tableFormatOf(query)
+    const question = { ...dutyRegisterQuestion(query), ...wholeList }
+    const people = tableNamesPeople(identity)
+
+    if (namesAPerson(question.filter)) {
+      if (!isAllowed(identity, 'duty.write')) {
+        throw new ForbiddenException(missingRight('duty.write'))
+      }
+
+      if (!people) {
+        throw new ForbiddenException(dutyTableWords.narrowedToAPerson)
+      }
+    }
+
+    const today = dayInGermany()
+    const read = await this.database.forTenant(identity, (tx) =>
+      dutyRegister(tx, this.catalogue, today, question),
+    )
+    // Nobody is looked up by name for a table that names nobody.
+    const named = people
+      ? await this.named(
+          identity,
+          read.duties.map((duty) => duty.responsibleUserId),
+        )
+      : () => null
+
+    return this.database.forTenant(identity, async (tx) =>
+      tableAnswer(
+        await dutyTable(
+          tx,
+          this.catalogue,
+          identity,
+          read.duties.map((duty) => ({ ...duty, responsible: named(duty.responsibleUserId) })),
+        ),
+        format,
+        today,
+      ),
+    )
+  }
+
+  /**
+   * The proposals as a table (#236), as a workbook or as text
+   * (`?format=xlsx` or `csv`): the open ones, a row for each duty kind at
+   * each asset in the order of the list, or with `list=dismissed` those
+   * dismissed, each with its reason and its day. Narrowed as the list is,
+   * and to a package (`package`), which the list narrows to on the screen.
+   * Whoever reads duties reads it; the asset is named for whoever reads
+   * assets, its place for whoever reads places.
+   *
+   * Before the page of a duty, like the register.
+   */
+  @Get('proposals/table')
+  @RequiresPermission('duty.read')
+  @Header('Cache-Control', 'no-store')
+  proposalsTable(
+    @CurrentIdentity() identity: Asking,
+    @Query() query: Record<string, unknown>,
+  ): Promise<StreamableFile> {
+    const format = tableFormatOf(query)
+    const filter = dutyProposalFilter(query)
+    const list = said(query, 'list') ?? 'open'
+
+    if (list !== 'open' && list !== 'dismissed') {
+      throw new BadRequestException('Die Vorschläge gibt es offen oder verworfen.')
+    }
+
+    const today = dayInGermany()
+
+    return this.database.forTenant(identity, async (tx) =>
+      tableAnswer(
+        await proposalTable(
+          tx,
+          this.catalogue,
+          identity,
+          today,
+          await dutyProposals(tx, this.catalogue, today, filter),
+          list,
+          said(query, 'package') ?? null,
+        ),
+        format,
+        today,
+      ),
     )
   }
 

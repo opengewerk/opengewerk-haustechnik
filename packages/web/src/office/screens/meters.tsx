@@ -14,11 +14,16 @@ import {
   type MeterListState,
   meterMedia,
   meterMediumLabel,
+  meterPlaceWords,
   meterReadingSourceLabel,
   type MeterRow,
+  metersNested,
   type MeterState,
   meterStateLabel,
+  meterTableColumns,
+  meterTitle,
   meterUnitSymbol,
+  type PlaceNames,
   readingJump,
   type RecordState,
 } from '@opengewerk/haustechnik-domain'
@@ -38,7 +43,15 @@ import {
   TextArea,
 } from '@opengewerk/platform-web'
 import { date, scaledNumber, today } from '@opengewerk/platform-web/format'
-import { Chip, Empty, FactList, NoteBox, PageHead, Screen } from '@opengewerk/platform-web/office'
+import {
+  Chip,
+  Empty,
+  FactList,
+  NoteBox,
+  PageHead,
+  Screen,
+  useTableExport,
+} from '@opengewerk/platform-web/office'
 import { useRight } from '@opengewerk/platform-web/session'
 import {
   maybeText,
@@ -76,12 +89,13 @@ export const meterWords = {
   keyDayOfOperator: (day: number) => `Wie der Betreiber, der ${String(day)}.`,
   keyDayOn: (day: number) => `Der ${String(day)}. eines Monats`,
   keyDayHint: 'An welchem Tag im Monat der Stand dieser Messstelle fällig ist.',
-  meter: 'Messstelle',
-  medium: 'Medium',
-  unit: 'Einheit',
-  meterNumber: 'Zählernummer',
-  lastReading: 'Letzter Stand',
-  atKeyDate: 'Stand zum Stichtag',
+  // The heads the list shares with its table (#236).
+  meter: meterTableColumns.meter,
+  medium: meterTableColumns.medium,
+  unit: meterTableColumns.unit,
+  meterNumber: meterTableColumns.meterNumber,
+  lastReading: meterTableColumns.lastReading,
+  atKeyDate: meterTableColumns.atKeyDate,
   keyDate: 'Stichtag',
   property: 'Liegenschaft',
   allProperties: 'Alle Liegenschaften',
@@ -233,10 +247,8 @@ export function MeterStateMark({ state }: { readonly state: MeterState }) {
   }
 }
 
-/** A measuring point in words: its mark and its name. */
-function titleOf(meter: Pick<MeterEntry, 'mark' | 'name'>): string {
-  return [meter.mark, meter.name].filter(Boolean).join(' ')
-}
+// A measuring point in words, as its table names it as well (#236).
+const titleOf = meterTitle
 
 /** Where a measuring point is, in a line: the property, the building and the room. */
 function usePlaceLine(): (meter: MeterEntry) => string {
@@ -248,14 +260,24 @@ function usePlaceLine(): (meter: MeterEntry) => string {
     const byId = (records: readonly RecordState[], id: string | null) =>
       id === null ? null : (records.find((record) => record['id'] === id) ?? null)
 
-    return (meter: MeterEntry) =>
-      [
-        maybeText(byId(properties, meter.propertyId), 'name'),
-        maybeText(byId(buildings, meter.buildingId), 'name'),
-        maybeText(byId(rooms, meter.roomId), 'number'),
-      ]
-        .filter(Boolean)
-        .join(', ')
+    const names: PlaceNames = {
+      property: (id) => maybeText(byId(properties, id), 'name'),
+      building: (id) => maybeText(byId(buildings, id), 'name'),
+      room: (id) => {
+        const room = byId(rooms, id)
+
+        return room === null
+          ? null
+          : {
+              number: maybeText(room, 'number'),
+              name: maybeText(room, 'name'),
+              buildingId: maybeText(room, 'buildingId') ?? '',
+            }
+      },
+    }
+
+    // The words of the table as well (#236).
+    return (meter: MeterEntry) => meterPlaceWords(meter, names)
   }, [properties, buildings, rooms])
 }
 
@@ -279,19 +301,8 @@ function TwoLines({
   )
 }
 
-/** The measuring points with each sub meter under its main meter, as far as both are listed. */
-function nested(
-  meters: readonly MeterEntry[],
-): { readonly meter: MeterEntry; readonly sub: boolean }[] {
-  const listed = new Set(meters.map((meter) => meter.assetId))
-  const top = meters.filter((meter) => meter.mainMeterId === null || !listed.has(meter.mainMeterId))
-  const below = (main: MeterEntry) => meters.filter((meter) => meter.mainMeterId === main.assetId)
-
-  return top.flatMap((meter) => [
-    { meter, sub: false },
-    ...below(meter).map((each) => ({ meter: each, sub: true })),
-  ])
-}
+// A sub meter under its main meter, in the order its table has as well (#236).
+const nested = metersNested
 
 /**
  * "Zähler" in the office, the board "Zähler, Stand zum Stichtag (4.9)"
@@ -327,6 +338,8 @@ export function MeterListScreen() {
     retry: (count, error) => !(error instanceof RequestRefused) && count < 2,
   })
   const keyDates = Array.from({ length: 13 }, (_, months) => addMonths(currentKeyDate, -months))
+  // What the list shows for its key date under what it is narrowed by, as a table (#236).
+  const table = useTableExport(`/meters/table?${parts.toString()}`)
 
   /** The address with one part set, or without it for "all". */
   const set = (word: string, value: string) => {
@@ -347,6 +360,7 @@ export function MeterListScreen() {
         {...(shown === undefined ? {} : { count: meterWords.count(shown.total, shown.properties) })}
         actions={
           <>
+            {table.button}
             {reads ? (
               <Button
                 icon={Route}
@@ -377,6 +391,7 @@ export function MeterListScreen() {
           </>
         }
       />
+      {table.trouble}
       <div className="flex flex-wrap items-end gap-x-2.5 gap-y-2">
         <div role="group" aria-label="Stand" className="flex flex-wrap gap-1.5">
           {(

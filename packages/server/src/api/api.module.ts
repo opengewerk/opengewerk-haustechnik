@@ -1,6 +1,6 @@
 import { type DynamicModule, Module } from '@nestjs/common'
 import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core'
-import { auditVocabulary, type Catalogue } from '@opengewerk/haustechnik-domain'
+import { auditValueWords, auditVocabulary, type Catalogue } from '@opengewerk/haustechnik-domain'
 import {
   attachmentParts,
   auditLogParts,
@@ -41,6 +41,7 @@ import { DatabaseExceptionFilter } from './database-errors.js'
 import { DefectClassSettingsController, DefectsController } from './defects.controller.js'
 import { AssetEvidenceController, EvidenceController } from './evidence.controller.js'
 import { CatalogueController } from './catalogue.controller.js'
+import { DocumentsController } from './documents.controller.js'
 import {
   DutiesController,
   DutyDismissalsController,
@@ -184,7 +185,7 @@ export class ApiModule {
     const syncing = syncParts({ access, routes: syncRoutesFor(catalogue, database) })
     // The change log of a tenant for its Leitung, read by the foundation in
     // the words of this application.
-    const auditing = auditLogParts({ access, vocabulary: auditVocabulary })
+    const auditing = auditLogParts({ access, vocabulary: auditVocabulary, words: auditValueWords })
     // The deadlines the engine keeps, and what an operator sets for a kind:
     // section 7 of the concept gives both to whoever may look after the
     // deadlines, and the routes see what the person sees.
@@ -250,6 +251,9 @@ export class ApiModule {
         AssetLabelsController,
         RoomLabelsController,
         LabelsController,
+        // The list of the documents as a table; the documents themselves
+        // are the foundation's.
+        DocumentsController,
         // The duties of an operator and the proposals dismissed.
         DutiesController,
         RoomDutiesController,

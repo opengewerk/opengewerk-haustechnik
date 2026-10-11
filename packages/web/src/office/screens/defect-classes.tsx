@@ -1,10 +1,12 @@
 import {
+  defectClassEffectWords,
   type DefectClassSetting,
+  defectClassTableColumns,
   defectTermLimits,
   defectTermProblem,
 } from '@opengewerk/haustechnik-domain'
 import { Button, Cell, Column, TablePanel } from '@opengewerk/platform-web'
-import { SettingsPage, SettingsText } from '@opengewerk/platform-web/office'
+import { SettingsPage, SettingsText, useTableExport } from '@opengewerk/platform-web/office'
 import { useRight } from '@opengewerk/platform-web/session'
 import { refusalFor, request, RequestRefused, useSync } from '@opengewerk/platform-web/sync'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
@@ -18,8 +20,8 @@ export const defectClassWords = {
   from: 'Die Klassen kommen aus den Paketen; der Betreiber stellt nur die Vorgabe der Frist ein.',
   caption: 'Mängelklassen mit der Vorgabe der Frist und dem Paket, aus dem sie kommen',
   note: 'Die Frist eines Mangels ist die Vorgabe seiner Klasse, gezählt ab dem Tag der Feststellung. Am Mangel lässt sie sich ändern. Ohne Vorgabe setzt die Frist, wer Mängel führt.',
-  unsafe: 'macht die Anlage unsicher',
-  safe: 'die Anlage bleibt in Betrieb',
+  unsafe: defectClassEffectWords.unsafe,
+  safe: defectClassEffectWords.safe,
   loading: 'Wird geladen.',
   failed: 'Die Mängelklassen ließen sich nicht laden. Sie kommen vom Server, mit Verbindung.',
   none: 'Kein Paket nennt Mängelklassen.',
@@ -45,13 +47,17 @@ export function DefectClassSettingsScreen() {
     retry: (count, error) => !(error instanceof RequestRefused) && count < 2,
   })
   const changes = useRight('settings.write')
+  // The classes as the list shows them, as a table (#236).
+  const table = useTableExport('/settings/defect-classes/table')
 
   return (
     <SettingsPage
       active="maengelklassen"
       title={defectClassWords.title}
       sub={defectClassWords.what}
+      actions={table.button}
     >
+      {table.trouble}
       <SettingsText>{defectClassWords.from}</SettingsText>
       {settings.data === undefined ? (
         <SettingsText muted>
@@ -77,9 +83,9 @@ export function DefectClassSettingsScreen() {
         >
           <thead>
             <tr>
-              <Column>Klasse</Column>
-              <Column className="w-[220px] min-w-[200px]">Vorgabe der Frist</Column>
-              <Column className="w-[160px] min-w-[120px]">Woher</Column>
+              <Column>{defectClassTableColumns.label}</Column>
+              <Column className="w-[220px] min-w-[200px]">{defectClassTableColumns.term}</Column>
+              <Column className="w-[160px] min-w-[120px]">{defectClassTableColumns.from}</Column>
             </tr>
           </thead>
           <tbody>
