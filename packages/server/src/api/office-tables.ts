@@ -707,7 +707,8 @@ export async function documentTable(
   }
 
   const names = await placeNamesFor(tx, identity)
-  const assetNames = isAllowed(identity, 'asset.read') ? await assetLookupFor(tx, identity) : null
+  // The number and the name of an asset come only to whoever reads assets.
+  const assetNames = await assetLookupFor(tx, identity)
   const titles = await activityTitlesFor(
     tx,
     identity,

@@ -1175,6 +1175,16 @@ describe('the tasks as a table (#236)', () => {
       'Anlage, Aufgabenhaus Nord, Haus A',
       'Vorgang, Aufgabenhaus Nord',
     ])
+
+    // Given to somebody else, the activity is not shown to whoever only performs, and its title is not either.
+    await admin.query(`update activities set performer_user_id = 'u-duties' where id = $1`, [
+      activity,
+    ])
+
+    expect((await where('location.read', 'activity.read'))[1]).toBe('Vorgang, Aufgabenhaus Nord')
+    expect((await where('location.read', 'activity.read', 'activity.write'))[1]).toBe(
+      'Türen prüfen, Aufgabenhaus Nord',
+    )
   })
 
   it('writes a task that begins like a formula so that no spreadsheet runs it, and nothing of the stamp', async () => {
@@ -1792,5 +1802,49 @@ describe('the rounds as tables (#236)', () => {
       expect(csv).toContain(`"'=HYPERLINK(""http://x.example"")";`)
       expect(sheet).not.toMatch(/<f[ >]/)
     }
+  })
+
+  it('hold no round and no plan of an area the person does not see, and count no round of it', async () => {
+    // A second area, made after everybody began: the Haustechnik stays in the first one.
+    const { rows: added } = await admin.query<{ id: string }>(
+      `insert into areas (tenant_id, name) values ($1, 'Außenstelle') returning id`,
+      [tenant],
+    )
+    const far = await propertyIn('Außenhaus', tenant, { areaId: added[0]?.id ?? '' })
+
+    await http()
+      .post('/round-plans')
+      .set(testIdentityHeader, by('u-duties', tenant))
+      .send({
+        templateId: template,
+        propertyId: far.property,
+        buildingId: far.building,
+        rhythm: 'daily',
+        weekdays: [1, 2, 3, 4, 5, 6, 7],
+        leadDays: 0,
+        startsOn: today,
+      })
+      .expect(201)
+
+    const propertiesIn = (rows: readonly string[][], column: number) =>
+      [...new Set(rows.slice(1).map((row) => row[column] ?? ''))].sort()
+    const roundsOf = async (header: string) =>
+      Number((await tableOf('/round-templates/table', {}, header))[1]?.[5])
+
+    expect(propertiesIn(await weekTable(by('u-lead', tenant)), 2)).toEqual([
+      'Außenhaus',
+      'Rundenhaus',
+    ])
+    expect(propertiesIn(await weekTable(by('u-tech', tenant)), 2)).toEqual(['Rundenhaus'])
+    expect(propertiesIn(await tableOf('/round-plans/table', {}, by('u-lead', tenant)), 3)).toEqual([
+      'Außenhaus',
+      'Rundenhaus',
+    ])
+    expect(propertiesIn(await tableOf('/round-plans/table', {}, by('u-tech', tenant)), 3)).toEqual([
+      'Rundenhaus',
+    ])
+    // The rounds of a template are counted in the areas of the person, as the list counts them.
+    expect(await roundsOf(by('u-tech', tenant))).toBeGreaterThan(0)
+    expect(await roundsOf(by('u-tech', tenant))).toBeLessThan(await roundsOf(by('u-lead', tenant)))
   })
 })
