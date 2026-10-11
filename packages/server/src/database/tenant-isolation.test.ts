@@ -736,6 +736,19 @@ function rowsOf(tenant: Tenant): readonly Row[] {
       table: 'defect_class_terms',
       values: { tenant_id: tenant.id, defect_class: 'allgemein.significant', due_days: 14 },
     },
+    // A task at the asset, for whoever leads the tenant (#124).
+    {
+      table: 'tasks',
+      values: {
+        tenant_id: tenant.id,
+        property_id: property,
+        area_id: area,
+        asset_id: asset,
+        title: 'Typenschild fotografieren',
+        due_on: '2026-10-20',
+        assignee_user_id: tenant.userId,
+      },
+    },
   ]
 }
 

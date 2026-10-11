@@ -125,6 +125,12 @@ export const operationRights: Readonly<Record<string, OperationRights>> = {
     otherwise: 'document.remove',
   },
   attachment_versions: { create: 'document.record', otherwise: 'document.remove' },
+  // A task for oneself and the own ones done are "anlegen und erledigen"; one
+  // for somebody else, or another's done, asks to hand tasks out as well,
+  // which the sync asks of each task (#124). Nothing else of a task is
+  // changed anywhere, so what a device may not send of one is a conflict
+  // about it and not a right it lacks.
+  tasks: { create: 'task.record', change: 'task.record', otherwise: 'task.record' },
   // A label is made and blocked at its routes, with a connection, by whoever
   // takes assets into the register, and the same right gives one from a sheet
   // to an asset on site.

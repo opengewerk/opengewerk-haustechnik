@@ -496,6 +496,13 @@ async function placeIn(where: 'north' | 'south'): Promise<void> {
      values ($1, $2, $3, $4, $5)`,
     [tenant, at.property, areaId, at.asset, labelCodeFrom(randomBytes(10))],
   )
+  // A task at the asset, for somebody who works for the tenant (#124).
+  await admin.query(
+    `insert into tasks (tenant_id, property_id, area_id, asset_id, title, due_on, assignee_user_id)
+     select $1, $2, $3, $4, 'Typenschild fotografieren', date '2026-10-20', user_id
+       from memberships where tenant_id = $1 order by user_id limit 1`,
+    [tenant, at.property, areaId, at.asset],
+  )
 }
 
 beforeAll(async () => {
@@ -607,6 +614,7 @@ describe('a person with the north', () => {
       'rooms',
       'round_plans',
       'round_records',
+      'tasks',
       'work_order_decisions',
       'work_order_notes',
       'work_order_participants',
@@ -829,6 +837,7 @@ describe('a property moved to another area', () => {
         'rooms',
         'round_plans',
         'round_records',
+        'tasks',
         'work_order_decisions',
         'work_order_notes',
         'work_order_participants',

@@ -148,6 +148,8 @@ describe('the rights of an operation', () => {
       attachment_versions: { create: true },
       // A reading of a round of the meters, without a network (#120).
       meter_readings: { create: true },
+      // A task for oneself, and one's own done, without a network (#124).
+      tasks: { create: true, change: true },
     })
     expect(site).toContain(permissionFor('attachments', 'delete'))
   })

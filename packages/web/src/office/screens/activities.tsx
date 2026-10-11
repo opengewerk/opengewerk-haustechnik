@@ -91,6 +91,7 @@ import { officePlaces } from '../place-addresses.js'
 import { RegisterFilter } from '../register-filter.js'
 import { roundPlaces } from '../round-template-addresses.js'
 import { workOrderPlaces } from '../work-order-addresses.js'
+import { TasksCard } from '../tasks.js'
 
 export const activityWords = {
   sub: 'Prüfungen und Wartungen aus den fälligen Terminen der Pflichten, nach dem Tag, an dem sie fällig sind.',
@@ -831,22 +832,30 @@ export function ActivityScreen() {
           </Panel>
           <NoteBox>{activityWords.stays}</NoteBox>
         </div>
-        <Panel title="Woher">
-          <FactList
-            keyWidth={110}
-            facts={[
-              { label: 'Angelegt', value: `am ${date(shown.createdAt.slice(0, 10))}` },
-              { label: 'Ort', value: where.line },
-              {
-                label: 'Letzter Nachweis',
-                value: lastMet === undefined ? 'keiner' : date(lastMet),
-              },
-              ...(qualifications.length === 0
-                ? []
-                : [{ label: 'Qualifikation', value: qualifications.join(', ') }]),
-            ]}
+        <div className="flex min-w-0 flex-col gap-3.5">
+          <Panel title="Woher">
+            <FactList
+              keyWidth={110}
+              facts={[
+                { label: 'Angelegt', value: `am ${date(shown.createdAt.slice(0, 10))}` },
+                { label: 'Ort', value: where.line },
+                {
+                  label: 'Letzter Nachweis',
+                  value: lastMet === undefined ? 'keiner' : date(lastMet),
+                },
+                ...(qualifications.length === 0
+                  ? []
+                  : [{ label: 'Qualifikation', value: qualifications.join(', ') }]),
+              ]}
+            />
+          </Panel>
+          <TasksCard
+            field="activityId"
+            id={shown.id}
+            propertyId={shown.propertyId}
+            areaId={shown.areaId}
           />
-        </Panel>
+        </div>
       </div>
       {closing ? (
         <CloseActivityDialog

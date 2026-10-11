@@ -89,6 +89,8 @@ describe('the policies of the sync', () => {
       meter_pauses: [false, 'never'],
       // The key day of the operator, a setting (#120).
       meter_settings: [false, 'never'],
+      // A task, written and done in the office and on site (#124).
+      tasks: [true, 'merge'],
     })
   })
 

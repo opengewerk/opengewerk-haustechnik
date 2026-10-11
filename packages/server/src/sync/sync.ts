@@ -20,6 +20,7 @@ import { placed } from './places.js'
 import { readOnSite } from './readings.js'
 import { recordRules } from './record-rules.js'
 import { followed, type Sender, signed } from './signatures.js'
+import { handedOut } from './tasks.js'
 
 // The sync on the server is the foundation's (ADR 0010 in the repository
 // opengewerk): applying an operation, recording what became of it, the pull
@@ -128,6 +129,7 @@ async function completed({
  * The order of the checks is behaviour, the first that refuses answers: what
  * may not be written without a connection, then the texts in their form, the
  * rules of `domain` on the fields, the file of a version, the place, the
+ * person a task goes to and who may change one, the
  * question that reads other records and puts in what the server derives,
  * then an answer against the form of its activity, an asset against the ones
  * that are there and a label against the asset it is given to, and last a
@@ -143,6 +145,7 @@ export function syncFor(catalogue: Catalogue): ServerSync<Sender> {
       recordRulesCheck(recordRules(catalogue)),
       versionFile,
       placed,
+      handedOut,
       readOnSite,
       answered(catalogue),
       unseenDuplicate,

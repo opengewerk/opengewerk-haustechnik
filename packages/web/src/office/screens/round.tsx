@@ -71,6 +71,7 @@ import { factLink } from '../links.js'
 import { usePdf } from '../pdf-button.js'
 import { dutyPlaces, evidencePlaces } from '../duty-addresses.js'
 import { roundsPlace, weekPlace } from '../round-template-addresses.js'
+import { TasksCard } from '../tasks.js'
 import { DefectStatusMark } from './defects.js'
 
 /**
@@ -254,6 +255,12 @@ export function RoundScreen() {
           {shown.countersignatureRequired ? <Countersignature round={shown} /> : null}
           <Duties round={shown} />
           <Defects round={shown} />
+          <TasksCard
+            field="activityId"
+            id={shown.id}
+            propertyId={shown.propertyId}
+            areaId={shown.areaId}
+          />
         </div>
       </div>
       {closing ? (

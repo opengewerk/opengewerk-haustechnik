@@ -2,6 +2,7 @@ import { SiteFrame } from '@opengewerk/platform-web/site'
 
 import { useKeepCatalogue } from '../sync/catalogue.js'
 import { useTabs } from './tabs.js'
+import { MyTasksMenuRow } from './tasks.js'
 
 /**
  * What every screen on site sits in. The frame is the foundation's (ADR 0010
@@ -19,5 +20,5 @@ import { useTabs } from './tabs.js'
 export function SiteShell() {
   useKeepCatalogue()
 
-  return <SiteFrame tabs={useTabs()} />
+  return <SiteFrame tabs={useTabs()} menu={<MyTasksMenuRow />} />
 }

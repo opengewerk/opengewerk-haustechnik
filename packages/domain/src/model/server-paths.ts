@@ -62,4 +62,6 @@ export const serverPaths: readonly string[] = [
   // The search by name, number and mark over places, assets, activities and
   // the evidence (#125).
   'search',
+  // Who a task may go to (#124).
+  'tasks',
 ]

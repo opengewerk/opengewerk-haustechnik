@@ -87,6 +87,7 @@ import {
   workOrderStartOf,
   workOrderStartSearch,
 } from '../work-order-addresses.js'
+import { TasksCard } from '../tasks.js'
 import { ActivityStatusMark, usePlaces } from './activities.js'
 
 export const workOrderWords = {
@@ -761,6 +762,12 @@ export function WorkOrderScreen() {
             )}
           </Panel>
           <AcceptancePanel order={shown} accepts={accepts} />
+          <TasksCard
+            field="activityId"
+            id={shown.id}
+            propertyId={shown.propertyId}
+            areaId={shown.areaId}
+          />
           <Panel title="Später">
             <p className="text-[12px] leading-[1.4] text-ink-muted">{workOrderWords.later}</p>
           </Panel>
