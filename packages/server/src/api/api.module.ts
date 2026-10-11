@@ -1,5 +1,5 @@
 import { type DynamicModule, Module } from '@nestjs/common'
-import { APP_FILTER, APP_GUARD } from '@nestjs/core'
+import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core'
 import { auditVocabulary, type Catalogue } from '@opengewerk/haustechnik-domain'
 import {
   attachmentParts,
@@ -20,6 +20,7 @@ import {
   type Renderer,
   rendererFor,
   SameOriginGuard,
+  StampInterceptor,
   syncParts,
   TRUSTED_ORIGINS,
   VERSION,
@@ -309,6 +310,10 @@ export class ApiModule {
         // A refusal of the database becomes an answer that gives nothing away
         // about a row somebody may not see.
         { provide: APP_FILTER, useClass: DatabaseExceptionFilter },
+        // No answer says when a record last changed, who changed it or from
+        // which device: that stays on the row and in the change log, which
+        // only the Leitung reads (section 9 of the concept).
+        { provide: APP_INTERCEPTOR, useClass: StampInterceptor },
       ],
     }
   }

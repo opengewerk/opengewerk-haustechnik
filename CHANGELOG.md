@@ -1054,6 +1054,15 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
 
 ### Geändert
 
+- Wann ein Datensatz zuletzt geändert wurde, von wem und von welchem Gerät, verlässt den Server
+  nicht mehr (#157, Fundament angehoben auf opengewerk#594). Bisher lagen die drei Angaben auf
+  jedem Gerät, das den Datensatz lesen darf, und standen in jeder Antwort, die ihn ausgab, obwohl
+  kein Gerät und kein Bildschirm sie las; Abschnitt 9 des Planungskonzepts sagt, dass Zeitpunkte
+  einzelner Eingaben nicht angezeigt und nicht ausgewertet werden. Der Abruf lässt sie weg, und
+  das Modul meldet den `StampInterceptor` des Fundaments für jede Route an. In der Zeile und im
+  Änderungsprotokoll der Leitung bleiben sie. `api/stamp.test.ts` hält es für jede Art von
+  Datensatz, die reist, und für jede Route, die liest; die Verfahrensbeschreibung führt es als
+  Zusage statt unter dem, was diese Fassung noch nicht hält
 - Ein Dialog des Büros steht auf breiten Bildschirmen in der Mitte des Fensters, wie die Tafeln ihn
   zeichnen, statt oben unter dem Kopf (#115, Fundament angehoben auf opengewerk#584). Auf dem
   Telefon bleibt er oben, wo die Tastatur ihn sichtbar lässt

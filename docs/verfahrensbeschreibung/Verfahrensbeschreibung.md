@@ -120,7 +120,8 @@ Anhang B nennt jedes Feld der Datenbank, das auf eine Person zeigt. Dieser Absch
 ### 3.6 Was jeder Datensatz über seine letzte Änderung trägt
 
 - Jeder Datensatz, der auf Geräte reist, trägt einen Stempel: wer ihn zuletzt geändert hat, von welchem Gerät, wann, und die wievielte Fassung es ist. Der Abgleich braucht davon die Fassung und die Reihenfolge. [K2.7, K9, B33]
-- Der Stempel reist mit dem Datensatz: er steht in den Antworten des Servers und auf den Geräten derer, die den Datensatz lesen dürfen. Kein Bildschirm zeigt ihn an, außer dem Änderungsprotokoll; eine Liste im Büro lässt sich nach „Zuletzt geändert“ ordnen, ohne den Zeitpunkt zu nennen (Abschnitt 10). [K2.7, K9]
+- **Zusage:** Wer einen Datensatz zuletzt geändert hat, von welchem Gerät und wann, bleibt auf dem Server: in der Zeile des Datensatzes und im Änderungsprotokoll, das nur die Leitung liest (Abschnitt 8). [K9, B161]
+- **Zusage:** Kein Gerät bekommt diese drei Angaben mit dem Abgleich, für keine Art von Datensatz, und keine Antwort des Servers gibt sie heraus. Auf die Geräte und in die Antworten kommen vom Stempel nur die Fassung und die Nummer, nach der ein Gerät weiter fragt; beide nennen weder eine Person noch ein Gerät noch eine Zeit. [K2.7, K9, B162, B163]
 - Der Server führt eine Quittung je Änderung, die ein Gerät geschickt hat: die Kennung des Geräts und wann sie ankam, ohne Person. Einen Konflikt beim Abgleich sieht nur das Gerät, das ihn zu entscheiden hat; er nennt der Person, wann sie ihre Änderung erfasst hat. [K2.7, B57]
 - Eine Datei im Speicher nennt keine Person: zu ihr stehen der Betreiber, die Prüfsumme, die Größe und die Art der Datei. Wer sie geschickt hat und wann, steht im Änderungsprotokoll, wie bei jedem Datensatz. Schicken kann eine Datei, wer Dokumente ablegen darf, das sind alle vier Rollen. Der Server gibt eine Datei nie nach ihrer Prüfsumme aus, sondern nur über den Datensatz, der sie nennt: die Fassung eines Dokuments (Abschnitt 3.9) oder einen Nachweis (Abschnitt 3.5). [K4.10, K7, B72, B73, B74, B105]
 
@@ -147,7 +148,7 @@ Anhang B nennt jedes Feld der Datenbank, das auf eine Person zeigt. Dieser Absch
 - Ein Dokument hängt an einer Liegenschaft, einem Gebäude, einem Raum, einer Anlage, einem Vorgang oder einem Mangel, dessen Foto es ist, hat eine Bezeichnung und auf Wunsch eine Art, und trägt wie jeder Datensatz seinen Stempel (Abschnitt 3.6). Darüber hinaus nennt ein Dokument keine Person. [K4.10, K2.7]
 - Die Datei eines eingetragenen Berichts wird als Dokument der Art „Prüfbescheinigung“ an der Anlage oder dem Ort seiner Pflicht abgelegt, von der Person, die den Bericht einträgt; ihre Fassung nennt diese Person wie jede andere. [K4.4, K4.10]
 - **Zusage:** Eine Fassung eines Dokuments hält fest, wer sie abgelegt hat. Die Datenbank setzt die Person aus der Anmeldung ein und übernimmt sie nicht vom Gerät. [K4.10, B82]
-- Wer eine Fassung abgelegt hat, reist als Kennung des Kontos mit der Fassung: sie steht in den Antworten des Servers und auf den Geräten derer, die das Dokument sehen, wie der Stempel eines Datensatzes. [K2.7, K4.10]
+- Wer eine Fassung abgelegt hat, reist als Kennung des Kontos mit der Fassung: sie steht in den Antworten des Servers und auf den Geräten derer, die das Dokument sehen. Anders als der Stempel eines Datensatzes (Abschnitt 3.6) gehört sie zur Fassung selbst. [K2.7, K4.10]
 - Der Bildschirm „Dokumente“ und die Karten an Anlage, Raum und Liegenschaft nennen zu einer Fassung den Tag, an dem sie abgelegt wurde, und weder die Person noch die Uhrzeit. Wer eine Fassung abgelegt hat, zeigt das Änderungsprotokoll, das zu einem Dokument auch seine Fassungen nennt (Abschnitt 8). [K4.10, K9, B83]
 - **Zusage:** Die Datei einer Fassung gibt der Server nur an den aus, der sieht, woran das Dokument hängt: beim eigenen Betreiber und in den Bereichen der Person. Wer außerhalb steht, bekommt dieselbe Antwort wie auf eine Fassung, die es nie gab. [K4.10, K2.8, B84]
 - Dokumente ansehen und ablegen können alle vier Rollen, jede in ihren Bereichen; dazu gehören eine neue Fassung und die Berichtigung von Bezeichnung und Art. Aus der Ablage nehmen können ein Dokument die Leitung, die Technische Leitung und die Objektleitung. [K7, B85, B72, B86]
@@ -208,7 +209,7 @@ Phase 1 kennt vier Rollen. Was jede darf, steht Recht für Recht in Abschnitt 7 
 | Wer einen Rundgang geht, mit Namen | in ihren Bereichen | in ihren Bereichen | in ihren Bereichen | was ihr oder niemandem zugeteilt ist |
 | Die Namen zur Wahl, wer einen Rundgang geht | in ihren Bereichen | in ihren Bereichen | in ihren Bereichen | nein |
 | Wer einen Rundgang unterschrieben und gegengezeichnet hat, mit Namen, Zeichnung oder getipptem Namen und Zeitpunkt | in ihren Bereichen | in ihren Bereichen | in ihren Bereichen | was ihr oder niemandem zugeteilt ist |
-| Datensätze mit ihrem Stempel | in ihren Bereichen | in ihren Bereichen | in ihren Bereichen | in ihren Bereichen |
+| Datensätze mit Fassung und Nummer im Abgleich, ohne wer sie zuletzt geändert hat, wann und von welchem Gerät | in ihren Bereichen | in ihren Bereichen | in ihren Bereichen | in ihren Bereichen |
 | Fassungen von Dokumenten mit der Kennung des Kontos, das sie abgelegt hat | in ihren Bereichen | in ihren Bereichen | in ihren Bereichen | in ihren Bereichen |
 | Ein Nachweis im Ganzen: wer ihn ausgeführt, geprüft, unterschrieben, eingetragen oder für ungültig erklärt hat | in ihren Bereichen | in ihren Bereichen | in ihren Bereichen | in ihren Bereichen |
 | Das PDF eines Nachweises, mit denselben Angaben und dem Schriftzug oder getippten Namen jeder Unterschrift | in ihren Bereichen | in ihren Bereichen | in ihren Bereichen | in ihren Bereichen |
@@ -309,7 +310,6 @@ Diese Bausteine gehören nach dem Fahrplan zu Phase 1 und sind noch nicht gebaut
 - **Schwärzen im Änderungsprotokoll.** Das Planungskonzept sagt, dass ein personenbezogener Wert im Änderungsprotokoll geschwärzt wird und die Kette ganz bleibt. Gebaut ist das nicht: die Werte stehen im Klartext, und kein Eintrag lässt sich ändern. Es gehört zu den Datenschutzfunktionen von Phase 2. [K9, K12]
 - **Löschen mit dem Ende der Aufbewahrung.** Das Planungskonzept sagt, dass ein Nachweis mit dem Ende seiner Aufbewahrung gelöscht wird und der Name mit ihm, nach einem Vorschlag, den die Leitung bestätigt. Gebaut ist das nicht; es kommt in Phase 2. [K2.6, K9, K12]
 - **Ende einer Zugehörigkeit.** Das Planungskonzept sagt, dass nach einer einstellbaren Frist die Angaben eines Kontos entfernt werden, die kein Nachweis mehr braucht. Gebaut ist die Sperre; das Entfernen kommt in Phase 2. [K9, K12]
-- **Zeitpunkte einzelner Eingaben.** Das Planungskonzept sagt, dass sie nicht angezeigt und nicht ausgewertet werden. Angezeigt werden sie nur im Änderungsprotokoll. Aber der Stempel eines Datensatzes reist mit jeder Antwort mit (Abschnitt 3.6), und kein Test hält, dass kein Bildschirm ihn zeigt. Offen als `opengewerk/opengewerk-haustechnik#157`. [K9]
 - **Netzadresse der Anmeldung.** Sie steht in der Zeile der Sitzung, sobald der vorgeschaltete Webserver sie durchreicht (Abschnitt 3.3). Das Planungskonzept nennt sie nicht, die Anwendung braucht sie dort nicht, und kein Test hält, dass sie nirgends ausgegeben wird. Offen als `opengewerk/opengewerk#563`. [K9]
 - **Eigene Angaben unter „Konto“.** Das Planungskonzept sagt, dass jede Person Name und E-Mail-Adresse selbst ändert. Gebaut ist bisher nur die Berichtigung durch die Leitung. Offen als `opengewerk/opengewerk-haustechnik#128`. [K3]
 - **Erzeugte Unterlagen.** Das Verzeichnis der Verarbeitungstätigkeiten, die Beschreibung der technischen und organisatorischen Maßnahmen und die erzeugte Verfahrensbeschreibung kommen in Phase 2, ebenso die Vorlage für eine Betriebs- oder Dienstvereinbarung. [K9, K12]
@@ -497,6 +497,9 @@ Pfade ohne Vorsatz liegen im Repository `opengewerk/opengewerk-haustechnik`. Pfa
 | B158 | Test | `packages/server/src/api/overview.test.ts` | `names nobody: neither who answers for a duty nor who performs an inspection` |
 | B159 | Test | `packages/server/src/api/place-situation.test.ts` | `lists the last activities at the building, the newest first, with what came of them, and names nobody` |
 | B160 | Test | `packages/server/src/api/timeline.test.ts` | `names nobody` |
+| B161 | Test | `packages/server/src/api/stamp.test.ts` | `stays on the row, for the change log` |
+| B162 | Test | `packages/server/src/api/stamp.test.ts` | `reaches no device, for any kind of record that travels` |
+| B163 | Test | `packages/server/src/api/stamp.test.ts` | `is handed out on no route that reads` |
 
 ---
 
