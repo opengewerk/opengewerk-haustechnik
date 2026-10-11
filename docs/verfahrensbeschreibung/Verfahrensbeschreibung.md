@@ -1,7 +1,7 @@
 # OpenGewerk Haustechnik: Verfahrensbeschreibung für den Stand von Phase 1
 
 - **Gilt für:** noch keine veröffentlichte Fassung (Entwicklungsstand von Phase 1 auf dem Zweig `main`)
-- **Geschrieben:** von Hand, am 05.10.2026, aus dem Planungskonzept v0.11 und gegen den Quelltext geprüft; am 06.10.2026 um die Dateien im Speicher ergänzt (Planungskonzept v0.12) und um das Pflichtenverzeichnis, am selben Tag um die Dokumente (Planungskonzept v0.13) und um die Etiketten; am 08.10.2026 um die Prüfungen und Wartungen (Planungskonzept v0.15) und um den Bericht einer Fremdfirma (Planungskonzept v0.16), am selben Tag um die Mängel (Planungskonzept v0.17) und um den Vorgang von Hand (Planungskonzept v0.18); am 11.10.2026 um die Liegenschaften und das Anlagenverzeichnis als Tabelle
+- **Geschrieben:** von Hand, am 05.10.2026, aus dem Planungskonzept v0.11 und gegen den Quelltext geprüft; am 06.10.2026 um die Dateien im Speicher ergänzt (Planungskonzept v0.12) und um das Pflichtenverzeichnis, am selben Tag um die Dokumente (Planungskonzept v0.13) und um die Etiketten; am 08.10.2026 um die Prüfungen und Wartungen (Planungskonzept v0.15) und um den Bericht einer Fremdfirma (Planungskonzept v0.16), am selben Tag um die Mängel (Planungskonzept v0.17) und um den Vorgang von Hand (Planungskonzept v0.18); am 11.10.2026 um die Liegenschaften und das Anlagenverzeichnis als Tabelle und am selben Tag um die übrigen Listen des Büros als Tabelle, mit der Spalte der Person nur für die Leitung
 - **Abgelöst durch:** die Verfahrensbeschreibung, die die Anwendung ab Phase 2 selbst erzeugt
 
 ---
@@ -35,7 +35,7 @@ Ein Test hält außerdem dieses Dokument selbst gegen den Quelltext: jeder Beleg
 
 1. Die Anwendung hält zu jeder Änderung fest, wer sie gemacht hat, wann und von welchem Gerät, und zu jeder Unterschrift, wer unterschrieben hat. Nachlesen kann das im Einzelnen nur die Leitung, im Änderungsprotokoll (Abschnitt 8).
 2. Das Änderungsprotokoll enthält auch, wann sich eine Person bei dem Betreiber an- und abgemeldet hat, und es lässt sich nach Person filtern. Unter „Zugänge“ sieht die Leitung, wann eine Person zuletzt angemeldet war und auf welchen Geräten (Abschnitte 3.3 und 8). Das sind die Stellen, an denen die Anwendung einer Überwachung am nächsten kommt. Dazu kommt das Pflichtenverzeichnis: es nennt zu jeder Pflicht, wer für sie verantwortlich ist, und wer es führt, kann es auf die Pflichten einer Person eingrenzen, auch auf die überfälligen (Abschnitte 3.4 und 5).
-3. Es gibt in dieser Fassung keine Auswertung: keine Statistik, keine Rangliste, keine Zahl je Person. Als Tabelle ausgeben lassen sich die Liegenschaften und das Anlagenverzeichnis, mit dem, was die Liste zeigt; keine der beiden nennt eine Person (Abschnitt 5).
+3. Es gibt in dieser Fassung keine Auswertung: keine Statistik, keine Rangliste, keine Zahl je Person. Jede Liste des Büros lässt sich als Tabelle ausgeben, als Excel oder als CSV, mit dem, was sie unter ihrem Filter zeigt. Eine solche Datei verlässt die Anwendung. Wer in einer Liste als verantwortlich, zuständig oder ausführend genannt ist, steht in ihrer Tabelle nur für die Leitung; alle anderen bekommen die Tabelle ohne die Person. Die Zugänge und das Änderungsprotokoll gibt es als Tabelle nur für die Leitung. Die Leitung kann damit als Datei mitnehmen, was ihr die Listen am Bildschirm zeigen, auch wer wofür verantwortlich ist und was eine Person wann geändert hat (Abschnitt 5).
 4. Es gibt keine Erfassung von Arbeitszeit und keinen Standort. Ein Auftrag trägt eine Dauer als seinen Aufwand, eine Zahl für den ganzen Auftrag und nicht je Person (Abschnitte 3.4 und 6).
 5. Diese Fassung löscht nichts nach Ablauf einer Frist. Das Löschkonzept kommt in Phase 2 (Abschnitte 7 und 10).
 6. Was das Planungskonzept zusagt und diese Fassung noch nicht hält oder noch nicht durch einen Test hält, steht in Abschnitt 10.
@@ -74,6 +74,7 @@ Anhang B nennt jedes Feld der Datenbank, das auf eine Person zeigt. Dieser Absch
 - Eine Pflicht nennt, wer für sie verantwortlich ist und wer sie bestätigt hat; ein verworfener Vorschlag nennt, wer ihn verworfen hat, mit Grund. Das Pflichtenverzeichnis führen die Leitung und die Technische Leitung. [K4.3, B11]
 - Das Pflichtenverzeichnis und die Seite einer Pflicht nennen die verantwortliche Person mit ihrem Namen, und sie sagen es, wenn für eine Pflicht niemand benannt ist. Lesen kann beides, wer Pflichten ansieht, das sind alle vier Rollen, jede in ihren Bereichen. Wer eine Pflicht bestätigt hat, zeigt kein Bildschirm außer dem Änderungsprotokoll. [K4.3, K7, B75]
 - **Zusage:** Wer für eine Pflicht verantwortlich ist, legt fest, wer das Pflichtenverzeichnis führt. Zur Wahl bekommt diese Person die Namen derer, die für den Betreiber arbeiten, und ob jemand gesperrt ist; Rolle, E-Mail-Adresse und Anmeldungen nennt die Auswahl nicht. Objektleitung und Haustechnik bekommen die Auswahl nicht. [K4.3, K7, B76, B77]
+- Wer in einer Liste als verantwortlich, zuständig oder ausführend genannt ist, steht in der Tabelle dieser Liste nur für die Leitung; die Liste am Bildschirm nennt die Person weiter jedem, der sie sehen darf (Abschnitt 5). [K3, K9, B186]
 - Eine Frist nennt, wer für sie verantwortlich ist, wen ihre Quelle als verantwortlich nennt und wer sie geschlossen hat. Fristen sehen die Leitung und die Technische Leitung. [K2.4, B10]
 - Die Liste „Fristen“ nennt zu jeder Frist die verantwortliche Person mit ihrem Namen. Wer einer Frist eine andere Person gibt oder für eine Art von Frist festlegt, wen sie erinnert, bekommt dieselbe Auswahl wie im Pflichtenverzeichnis: die Namen derer, die für den Betreiber arbeiten, und ob jemand gesperrt ist. Neben dem Eintrag „Fristen“ der Navigation steht, wie viele Fristen in den Bereichen der Person überfällig sind; diese Zahl gilt dem Betreiber und keiner Person. [K2.4, K7, B10, B76]
 - Ein Vorgang (Rundgang, Prüfung, Wartung, Auftrag) hat ein Feld für die verantwortliche und eines für die ausführende Person, dazu die Angabe, ob die eigenen Leute oder eine Fremdfirma ihn ausführen, und den Namen der Fremdfirma in Worten. Eine Prüfung oder Wartung entsteht von selbst, wenn der Vorlauf eines Termins beginnt, einmal je Termin. Verantwortlich ist dann, wen die Frist als verantwortlich nennt, und ausführend noch niemand. [K2.4, K4.4, B98]
@@ -152,6 +153,7 @@ Anhang B nennt jedes Feld der Datenbank, das auf eine Person zeigt. Dieser Absch
 - Wer eine Fassung abgelegt hat, reist als Kennung des Kontos mit der Fassung: sie steht in den Antworten des Servers und auf den Geräten derer, die das Dokument sehen. Anders als der Stempel eines Datensatzes (Abschnitt 3.6) gehört sie zur Fassung selbst. [K2.7, K4.10]
 - Der Bildschirm „Dokumente“ und die Karten an Anlage, Raum und Liegenschaft nennen zu einer Fassung den Tag, an dem sie abgelegt wurde, und weder die Person noch die Uhrzeit. Wer eine Fassung abgelegt hat, zeigt das Änderungsprotokoll, das zu einem Dokument auch seine Fassungen nennt (Abschnitt 8). [K4.10, K9, B83]
 - **Zusage:** Die Datei einer Fassung gibt der Server nur an den aus, der sieht, woran das Dokument hängt: beim eigenen Betreiber und in den Bereichen der Person. Wer außerhalb steht, bekommt dieselbe Antwort wie auf eine Fassung, die es nie gab. [K4.10, K2.8, B84]
+- Die Tabelle der Dokumente (Abschnitt 5) nennt zu jedem Dokument die Datei, die Zahl seiner Fassungen und den Tag, an dem die neueste abgelegt wurde („Abgelegt am“), aber weder die Person, die sie abgelegt hat, noch die Uhrzeit. [K3, K4.10, B206]
 - Dokumente ansehen und ablegen können alle vier Rollen, jede in ihren Bereichen; dazu gehören eine neue Fassung und die Berichtigung von Bezeichnung und Art. Aus der Ablage nehmen können ein Dokument die Leitung, die Technische Leitung und die Objektleitung. [K7, B85, B72, B86]
 - **Zusage:** Ein Dokument, das jemand aus der Ablage nimmt, wird markiert und nicht gelöscht, und ausgegeben wird es danach niemandem mehr. Seine Fassungen und ihre Dateien bleiben aufbewahrt, und mit ihnen, wer sie abgelegt hat (Abschnitt 7). [K4.10, B87]
 
@@ -192,7 +194,7 @@ Anhang B nennt jedes Feld der Datenbank, das auf eine Person zeigt. Dieser Absch
 - **Zusage:** Aufgaben für sich selbst anlegen und die eigenen erledigen dürfen alle vier Rollen, im Büro und vor Ort, dort auch ohne Netz. Einer anderen Person eine Aufgabe zuteilen und die Aufgabe einer anderen Person erledigen oder wieder öffnen darf nur, wer auch Vorgänge plant und verteilt: die Leitung, die Technische Leitung und die Objektleitung. Die Haustechnik wird damit abgelehnt. [K3, K7, B164, B165, B166, B168, B170, B172]
 - **Zusage:** Eine Aufgabe geht nur an jemanden, der beim Betreiber arbeitet, nicht gesperrt ist, Aufgaben erledigen darf und den Bereich der Aufgabe sieht. [K3, K7, B171]
 - **Zusage:** Eine Aufgabe liegt im Bereich ihrer Liegenschaft: sie sieht nur, wer ihren Ort sieht. [K2.8, K3, B173]
-- Eine Aufgabe nennt ihre verantwortliche Person mit Namen, in der Liste „Aufgaben“ und an dem Datensatz, an dem sie hängt; die eigene heißt dort „Sie“. Nach dem Anlegen wird eine Aufgabe nur noch erledigt oder wieder geöffnet. Wann das geschah und wer es tat, steht in ihrem Stempel (Abschnitt 3.6) und im Änderungsprotokoll, an der Aufgabe selbst nicht. [K3, K9]
+- Eine Aufgabe nennt ihre verantwortliche Person mit Namen, in der Liste „Aufgaben“ und an dem Datensatz, an dem sie hängt; die eigene heißt dort „Sie“. Als Tabelle enthält die Liste die verantwortliche Person nur für die Leitung (Abschnitt 5). Nach dem Anlegen wird eine Aufgabe nur noch erledigt oder wieder geöffnet. Wann das geschah und wer es tat, steht in ihrem Stempel (Abschnitt 3.6) und im Änderungsprotokoll, an der Aufgabe selbst nicht. [K3, K9]
 - Wird der Datensatz entfernt, an dem eine Aufgabe hängt, wird die Aufgabe mit ihm entfernt. [K3, B174]
 
 ---
@@ -250,8 +252,18 @@ Leitung und Technische Leitung sehen als Vorgabe alle Bereiche.
 - **Zusage:** Das Lagebild eines Gebäudes und die Liste der Liegenschaften zählen je Ort und nie je Person: was überfällig, fällig und nie erfasst ist, die offenen Mängel und die fehlenden Zählerstände. Die letzten Vorgänge eines Gebäudes nennen den Tag, die Art, den Gegenstand und das Ergebnis, aber keine Person; wer einen Vorgang ausgeführt hat, steht auf seiner Seite. [K4.1, K4.16, B159]
 - **Zusage:** Die Zeitachse einer Liegenschaft, eines Gebäudes, eines Raums oder einer Anlage nennt, was dort wann geschah (begonnen, unterschrieben, gegengezeichnet, nicht durchgeführt, angelegt, abgenommen, zurückgewiesen, festgestellt, nachgeprüft, eingetragen, für ungültig erklärt), aber keine Person; wer etwas getan hat, steht auf der Seite des Vorgangs, des Mangels oder des Nachweises. Sie wird aus dem gelesen, was ohnehin gespeichert ist, und nichts wird für sie aufgehoben. [K4.1, K4.16, B160]
 - **Zusage:** Anhang C nennt jede Adresse, die der Server beantwortet. Eine Adresse für eine Statistik, eine Rangliste oder eine Liste des Verzugs je Person ist nicht darunter. [K4.16, B40]
-- **Zusage:** Die Liegenschaften und das Anlagenverzeichnis lassen sich als Tabelle ausgeben, als Excel oder als CSV. Die Tabelle enthält, was die Liste unter ihrem Filter zeigt, mit ihren Spalten und nur aus den Bereichen der Person, und sie bekommt nur, wer die Liste sehen darf. Den Standort einer Anlage enthält sie nur für eine Person, die auch Liegenschaften, Gebäude und Räume ansehen darf. Keine der beiden nennt eine Person, und keine enthält etwas vom Stempel der letzten Änderung (Abschnitt 3.6). [K3, K4.1, K4.2, B176, B177, B178, B179, B180, B181, B182, B183]
-- Das sind die einzigen Exporte dieser Fassung. Die übrigen Listen des Büros bekommen die Ausgabe als Tabelle mit `opengewerk-haustechnik#236`; eine Liste, die eine Person nennt, gibt die Spalte der Person dann nur der Leitung aus (Abschnitt 9). [K3]
+- **Zusage:** Jede Liste des Büros lässt sich als Tabelle ausgeben, als Excel oder als CSV: die Liegenschaften, das Anlagenverzeichnis, die Zähler, die Dokumente, das Pflichtenverzeichnis, die offenen und die verworfenen Vorschläge aus dem Katalog, die Fristen, die Prüfungen, die Rundgänge einer Woche, ihre Pläne und die eigenen Vorlagen, die Mängel, die Aufträge, die Aufgaben und unter den Einstellungen die Bereiche, die Mängelklassen, die Zugänge und das Änderungsprotokoll. Die Tabelle schreibt der Server. Sie enthält, was die Liste unter ihrem Filter zeigt, und zwar alle Zeilen und nicht nur die Seite, die der Bildschirm gerade zeigt. [K3, K4.1, K4.2, B176, B184, B194]
+- **Zusage:** Eine Tabelle bekommt nur, wer die Liste sehen darf, und sie enthält nur Zeilen aus den Bereichen der Person, auch wenn die Adresse einen anderen Bereich nennt. Bei den Aufgaben sind es die Aufgaben, die das Gerät der Person hält: die eigenen und die selbst angelegten, und alle für eine Person, die alle Bereiche sieht. [K2.8, K3, K7, B177, B178, B179, B182, B185, B187, B189, B190, B191, B192, B193, B195, B196, B199, B201, B202, B204, B205, B209, B210, B212]
+- Die Namen von Liegenschaft, Gebäude und Raum enthält eine Tabelle nur für eine Person, die Liegenschaften, Gebäude und Räume ansehen darf, die Nummer und den Namen einer Anlage nur für eine, die Anlagen ansehen darf. Den Vorgang, an dem eine Aufgabe oder ein Dokument hängt, nennt sie nur einer Person, die Vorgänge ansehen darf und diesen Vorgang gezeigt bekommt, den Auftrag zu einem Mangel nur einer, die Vorgänge ansehen darf, und den Mangel, an dem ein Dokument hängt, nur einer, die Mängel ansehen darf. Sonst steht dort das Wort der Art, etwa „Anlage“, oder nichts. Die vier mitgelieferten Rollen haben diese Rechte; betroffen ist eine Rolle, die ein Betrieb selbst zusammenstellt. [K3, K7, B183, B218]
+- **Zusage:** Keine Tabelle außer der des Änderungsprotokolls enthält etwas vom Stempel der letzten Änderung (Abschnitt 3.6): weder wer einen Datensatz zuletzt geändert hat, noch von welchem Gerät, noch wann. Die Tabelle der Dokumente nennt den Tag, an dem die neueste Fassung abgelegt wurde; er gehört zur Fassung und nicht zum Stempel (Abschnitt 3.9). [K2.7, K3, B180, B181, B206, B211, B215, B219]
+- **Zusage:** Eine Person nennt eine Tabelle nur der Leitung. Maßgeblich ist das Recht, Zugänge anzusehen, und das hat nur die Leitung. Für alle anderen fehlt die Spalte der Person: „Zuständig“ im Pflichtenverzeichnis, „Verantwortlich“ in den Fristen, den Prüfungen, den Aufträgen und den Aufgaben, „Zugänge mit diesem Bereich“ in den Bereichen. In den Prüfungen bleibt die Spalte „Ausführend“ stehen und nennt für sie nur eine Fremdfirma, nie eine Person. In den Rundgängen einer Woche und in ihren Plänen bleibt die Spalte „Zuständig“ stehen, weil dort auch „Alle im Bereich“ steht, was keine Person ist; den Namen einer Person enthält sie nur für die Leitung, für alle anderen bleibt die Zelle leer. Die Liste am Bildschirm ändert sich dadurch nicht: sie nennt die Person weiter jedem, der die Liste sehen darf (Abschnitt 3.4). [K3, K9, B1, B186, B188, B197, B200, B203, B207, B208, B213]
+- Keine Spalte für eine Person haben die Tabellen der Liegenschaften, des Anlagenverzeichnisses, der Zähler, der Dokumente, der Vorschläge, der Mängel, der Mängelklassen und der Vorlagen der Rundgänge, für niemanden; ihre Listen nennen auch keine. [K3, K9]
+- **Zusage:** Eingegrenzt auf eine Person verlassen das Pflichtenverzeichnis und die Fristen die Anwendung nur für die Leitung. Die Technische Leitung, die beide Listen am Bildschirm auf eine Person eingrenzen darf, bekommt in dieser Eingrenzung keine Tabelle: eine Tabelle der Pflichten einer Person nennt diese Person auch ohne ihre Spalte. Der Server lehnt mit einem Satz ab, und im Pflichtenverzeichnis fehlt ihr dann der Knopf. Auf die Pflichten, für die niemand benannt ist, grenzt jede Rolle auch die Tabelle ein. [K2.4, K4.3, K9, B198, B214]
+- Für die Leitung enthält eine Tabelle damit, was die Liste ihr zeigt: zu jeder Pflicht, Frist, Prüfung und Aufgabe und zu jedem Auftrag die Person, und auf eine Person eingegrenzt deren Pflichten oder Fristen mit ihrem Zustand, auch die überfälligen. Die Anwendung zählt und vergleicht darin weiterhin nichts. Eine Tabelle lässt sich aber außerhalb der Anwendung nach Person ordnen und zählen, und was mit einer ausgegebenen Datei geschieht, liegt nicht mehr in der Hand der Anwendung. Das ist die Stelle, an der die Tabellen einer Auswertung je Person am nächsten kommen. [K3, K4.16, K9]
+- **Zusage:** Die Zugänge als Tabelle bekommt nur die Leitung: je Person Name, E-Mail-Adresse, Rollen, Bereiche, ob sie gesperrt ist und seit wann, ob ein zweiter Faktor eingerichtet ist und wann sie zuletzt bei diesem Betreiber angemeldet war, mit Tag und Uhrzeit, wie die Liste (Abschnitt 3.3). Geräte, Sitzungen und Passkeys stehen nicht darin. [K7, K9, B1, B216]
+- **Zusage:** Das Änderungsprotokoll als Tabelle bekommt nur, wer das Protokoll einsehen und Zugänge ansehen darf; beides hat nur die Leitung. Die Tabelle enthält die Einträge, die das Protokoll unter seinem Filter zeigt, Feld für Feld mit dem Wert davor und danach, und zu jedem die Person, das Gerät und den Weg, auch die An- und Abmeldungen und auch mit dem Filter nach Person (Abschnitt 8). Damit kann die Leitung als Datei mitnehmen, was eine Person wann geändert hat. Ein Protokoll ohne die Personen gibt es als Tabelle für niemanden. [K3, K9, B3, B217]
+- Eine Tabelle endet bei 50.000 Zeilen. Hält eine Liste mehr, lehnt der Server mit einem Satz ab und gibt keine gekürzte Tabelle aus. [K3]
+- Die Tabellen der Listen sind die einzigen Exporte dieser Fassung. Der Katalog und die Vorlagen der Rundgänge aus den Paketen sind für jeden Betreiber gleich und haben keine Tabelle. Der Server hebt eine ausgegebene Tabelle nicht auf. Dass jemand eine Tabelle ausgegeben hat, hält die Anwendung nicht fest: das Änderungsprotokoll hält Änderungen, und eine Tabelle ändert nichts. [K3]
 - **Zusage:** Eine Adresse, die eine einzelne Person in ihrem Pfad nennt, verlangt ein Recht der Zugänge und ist damit der Leitung vorbehalten. Die einzige Ausnahme ist die Verwaltung der Instanz, die ihre eigenen Verwalter führt. [K9, B16]
 - **Zusage:** Das Pflichtenverzeichnis lässt sich auf die Pflichten einer verantwortlichen Person eingrenzen. Das kann nur, wer es führt, also die Leitung und die Technische Leitung. Objektleitung und Haustechnik werden mit dieser Frage abgelehnt, auch wenn sie nach sich selbst fragen; auf die Pflichten, für die niemand benannt ist, grenzt jede Rolle ein. [K4.3, K7, B80]
 - **Zusage:** Eingegrenzt auf eine Person nennt das Pflichtenverzeichnis keine Zahl: weder wie viele Pflichten diese Person hat, noch wie viele davon überfällig, fällig oder nie erfasst sind. [K4.16, K9, B81]
@@ -299,7 +311,7 @@ Leitung und Technische Leitung sehen als Vorgabe alle Bereiche.
 - Im Änderungsprotokoll stehen damit auch die An- und Abmeldungen bei dem Betreiber, die Zuteilung von Rollen und Bereichen, die Vertretungen, der Linienzug jeder Unterschrift, die Angaben der Ansprechpartner und jede Berichtigung von Name oder E-Mail-Adresse. Die Werte stehen dort im Klartext. [K9, B45]
 - **Zusage:** Das Änderungsprotokoll liest nur die Leitung. Technische Leitung, Objektleitung und Haustechnik werden abgelehnt. [K9, B3, B14]
 - **Zusage:** Das Änderungsprotokoll wird nur ergänzt. Einen Eintrag ändert oder löscht niemand, auch nicht der Eigentümer der Tabellen; jeder Eintrag verweist über einen Fingerabdruck auf seinen Vorgänger, und eine Prüfung der Kette findet einen Eintrag, der an der Anwendung vorbei verändert wurde. [K3, B54, B55]
-- Dass die Leitung das Änderungsprotokoll gelesen hat, wird nicht festgehalten. [K3, B66]
+- Dass die Leitung das Änderungsprotokoll gelesen hat, wird nicht festgehalten, auch nicht, dass sie es als Tabelle ausgegeben hat (Abschnitt 5). [K3, B66]
 - **Zusage:** Geheime Werte, etwa der Schlüssel einer Einladung, verlassen den Server im Änderungsprotokoll nicht. [K9, B53]
 - Die Instanz hat ein eigenes Protokoll für das, was ihre Verwaltung ändert. Es steht außerhalb jedes Betreibers, und lesen kann es, wer die Instanz verwaltet. [K3]
 - Geschwärzt wird im Änderungsprotokoll in dieser Fassung nichts (Abschnitt 10). [K9]
@@ -313,7 +325,6 @@ Diese Bausteine gehören nach dem Fahrplan zu Phase 1 und sind noch nicht gebaut
 - **Aufgaben aus der Fristen-Engine:** eine Frist soll eine Aufgabe für die verantwortliche Person anlegen können; eine solche Aufgabe nennt niemanden, der sie angelegt hat. Gebaut sind die Aufgaben selbst (Abschnitt 3.14); anlegen wird eine die fällige Zählerablesung (`opengewerk-haustechnik#242`). [K2.4, K3]
 - **Benachrichtigungen:** per E-Mail und Push, gespeist nur aus Fristen und Statuswechseln, auch wenn eine Aufgabe fällig wird. Welche Anlässe als Push kommen, wählt jede Person selbst; ein Auftrag mit der Dringlichkeit „sofort“ erreicht die Person, die ihn führt, immer als Push. [K3, K4.8]
 - **Zähler und Fotos vor Ort:** Ablesungen kommen als eigene Datensätze dazu und tragen wie jeder Datensatz ihren Stempel. Ein Foto vor Ort wird als Dokument abgelegt (Abschnitt 3.9); die Bildschirme dafür kommen mit der Bestandsaufnahme. [K4.9, K4.10]
-- **Listen als Tabelle:** Jede Liste im Büro lässt sich als Tabelle ausgeben, mit dem, was ihr Filter gerade zeigt. Gebaut ist das für die Liegenschaften und das Anlagenverzeichnis (Abschnitt 5); die übrigen Listen folgen. Nennt eine Liste eine Person, bekommt nur die Leitung die Spalte der Person, alle anderen die Tabelle ohne sie (`opengewerk-haustechnik#236`). [K3]
 - **Eigene Angaben:** Name, E-Mail-Adresse, Passwort, zweiten Faktor und Geräte ändert jede Person selbst unter „Konto“. [K3]
 - **Übernahme aus einer Vorgängeranwendung:** Jedes Konto wird eingeladen, niemand bekommt ein übernommenes Passwort. Ein übernommener Nachweis sagt, dass er nicht in dieser Anwendung unterschrieben wurde. [K11]
 - **Vertrag zur Auftragsverarbeitung:** Die Vorlage dafür ist für Phase 1 vorgesehen. [K9, K12]
@@ -535,6 +546,42 @@ Pfade ohne Vorsatz liegen im Repository `opengewerk/opengewerk-haustechnik`. Pfa
 | B181 | Test | `packages/server/src/api/office-tables.test.ts` | `holds nothing of the stamp of the last change, in neither format` |
 | B182 | Test | `packages/server/src/api/office-tables.test.ts` | `is only for whoever reads places` |
 | B183 | Test | `packages/server/src/api/office-tables.test.ts` | `names the place only for whoever reads places as well` |
+| B184 | Test | `packages/server/src/api/office-tables.test.ts` | `holds every activity the filter passes, in the order of the list, also beyond a page` |
+| B185 | Test | `packages/server/src/api/office-tables.test.ts` | `holds no activity of an area the person does not see` |
+| B186 | Test | `packages/server/src/api/office-tables.test.ts` | `names its columns and fills them as the list does, and the people only for the Leitung` |
+| B187 | Test | `packages/server/src/api/office-tables.test.ts` | `holds no order of an area the person does not see` |
+| B188 | Test | `packages/server/src/api/office-tables.test.ts` | `names its columns and fills them as the list does, and who answers only for the Leitung` |
+| B189 | Test | `packages/server/src/api/office-tables.test.ts` | `holds no defect of an area the person does not see` |
+| B190 | Test | `packages/server/src/api/office-tables.test.ts` | `is only for whoever reads defects` |
+| B191 | Test | `packages/server/src/api/office-tables.test.ts` | `is only for whoever sees the settings` |
+| B192 | Test | `packages/server/src/api/office-tables-rest.test.ts` | `holds no measuring point of an area the person does not see` |
+| B193 | Test | `packages/server/src/api/office-tables-rest.test.ts` | `is only for whoever reads assets` |
+| B194 | Test | `packages/server/src/api/office-tables-rest.test.ts` | `holds every duty the filter passes, in the order of the register, also beyond a page` |
+| B195 | Test | `packages/server/src/api/office-tables-rest.test.ts` | `holds no duty of an area the person does not see` |
+| B196 | Test | `packages/server/src/api/office-tables-rest.test.ts` | `is only for whoever reads duties` |
+| B197 | Test | `packages/server/src/api/office-tables-rest.test.ts` | `names its columns and fills them as the register does, and who answers only for the Leitung` |
+| B198 | Test | `packages/server/src/api/office-tables-rest.test.ts` | `narrowed to a person, is a table only for whoever may see the staff` |
+| B199 | Test | `packages/server/src/api/office-tables-rest.test.ts` | `holds no proposal of an area the person does not see` |
+| B200 | Test | `packages/server/src/api/office-tables-rest.test.ts` | `names who an area is for only for whoever may see the staff, and the properties only for whoever reads places` |
+| B201 | Test | `packages/server/src/api/office-tables-rest.test.ts` | `holds for whoever sees only some areas their own tasks, and none of an area they do not see` |
+| B202 | Test | `packages/server/src/api/office-tables-rest.test.ts` | `is only for whoever looks at tasks` |
+| B203 | Test | `packages/server/src/api/office-tables-rest.test.ts` | `holds the open tasks of the two lists, the own ones first, each with its day and what it hangs on` |
+| B204 | Test | `packages/server/src/api/office-tables-rest.test.ts` | `holds no document of an area the person does not see` |
+| B205 | Test | `packages/server/src/api/office-tables-rest.test.ts` | `is only for whoever looks at documents` |
+| B206 | Test | `packages/server/src/api/office-tables-rest.test.ts` | `holds the day a version was filed and no part of the stamp of the last change, in neither format` |
+| B207 | Test | `packages/server/src/api/office-tables-rest.test.ts` | `hold a row for each round of the week in the order of its days, and who walks one only for the Leitung` |
+| B208 | Test | `packages/server/src/api/office-tables-rest.test.ts` | `hold the plans with their place, who walks their rounds, their next pass and whether they run` |
+| B209 | Test | `packages/server/src/api/office-tables-rest.test.ts` | `hold no round and no plan of an area the person does not see, and count no round of it` |
+| B210 | Test | `packages/server/src/api/office-tables-rest.test.ts` | `are only for whoever reads activities` |
+| B211 | Test | `packages/server/src/api/office-tables-rest.test.ts` | `hold no part of the stamp of the last change, in neither format` |
+| B212 | Test | `packages/server/src/api/office-tables.test.ts` | `is only for whoever reads activities` |
+| B213 | Test | `packages/server/src/deadlines/routes.test.ts` | `names what a deadline is called and what it hangs on, as the list does, and who answers only for the Leitung` |
+| B214 | Test | `packages/server/src/deadlines/routes.test.ts` | `is narrowed to one person only by the Leitung` |
+| B215 | Test | `packages/server/src/deadlines/routes.test.ts` | `holds nothing of the stamp of the last change, in neither format` |
+| B216 | Test | `packages/server/src/api/area-additions.test.ts` | `is only for whoever sees the staff` |
+| B217 | Test | `packages/server/src/api/audit.test.ts` | `is no table for whoever reads the log and may not see the staff (#236)` |
+| B218 | Test | `packages/server/src/api/office-tables-rest.test.ts` | `names what a document hangs on only for whoever reads that record` |
+| B219 | Test | `packages/server/src/api/office-tables-rest.test.ts` | `holds no part of the stamp of the last change, in neither format` |
 
 ---
 
@@ -592,18 +639,18 @@ Jede Zeile ist der erste Abschnitt einer Adresse, unter der der Server antwortet
 
 | Adresse | Wofür |
 | --- | --- |
-| `activities` | Prüfungen und Wartungen: die Liste, die Seite eines Vorgangs, die Auswahl der Personen für seinen Plan und der Plan |
-| `areas` | Bereiche und für wen sie genannt sind |
+| `activities` | Prüfungen und Wartungen: die Liste, auch als Tabelle, die Seite eines Vorgangs, die Auswahl der Personen für seinen Plan und der Plan |
+| `areas` | Bereiche und für wen sie genannt sind; ihre Liste auch als Tabelle |
 | `assets` | Anlagen und ihre Komponenten, und die Nachweise einer Anlage; das Anlagenverzeichnis auch als Tabelle |
-| `attachments` | Dokumente: gibt die Datei einer Fassung und ihre Vorschau aus, über die Fassung und nie über die Prüfsumme |
-| `audit` | Änderungsprotokoll |
+| `attachments` | Dokumente: gibt die Datei einer Fassung und ihre Vorschau aus, über die Fassung und nie über die Prüfsumme; die Liste der Dokumente auch als Tabelle |
+| `audit` | Änderungsprotokoll, für die Leitung auch als Tabelle |
 | `auth` | das eigene Konto: Betreiber wählen, eigene Geräte, eigene Passkeys, abmelden |
 | `buildings` | Gebäude mit ihren Schließzeiten |
 | `catalogue` | Katalog der Pakete, für jeden Betreiber derselbe und ohne Daten eines Betreibers |
 | `contacts` | Ansprechpartner einer Liegenschaft |
-| `deadlines` | Fristen |
-| `defects` | Mängel: das Mängelverzeichnis und seine Zahlen, die Seite eines Mangels, ein Mangel von Hand, seine Klasse und Frist, die Nachprüfung und die Klassen, die ein Mangel von Hand nehmen kann |
-| `duties` | Pflichten, das Pflichtenverzeichnis, die Nachweise einer Pflicht, die Auswahl der verantwortlichen Person und der Bericht einer Fremdfirma, der zum Nachweis einer Pflicht wird |
+| `deadlines` | Fristen, ihre Liste auch als Tabelle |
+| `defects` | Mängel: das Mängelverzeichnis, auch als Tabelle, und seine Zahlen, die Seite eines Mangels, ein Mangel von Hand, seine Klasse und Frist, die Nachprüfung und die Klassen, die ein Mangel von Hand nehmen kann |
+| `duties` | Pflichten, das Pflichtenverzeichnis und die Vorschläge aus dem Katalog, beide auch als Tabelle, die Nachweise einer Pflicht, die Auswahl der verantwortlichen Person und der Bericht einer Fremdfirma, der zum Nachweis einer Pflicht wird |
 | `duty-dismissals` | verworfene Vorschläge für Pflichten |
 | `evidence` | die Seite eines Nachweises, die Dateien, auf die er sich stützt, seine Berichtigung und seine Ungültigerklärung |
 | `files` | Dateien: nimmt den Inhalt einer Datei an, bevor ein Datensatz sie nennt, und gibt keine aus |
@@ -614,17 +661,17 @@ Jede Zeile ist der erste Abschnitt einer Adresse, unter der der Server antwortet
 | `invitation` | Einlösen einer Einladung |
 | `labels` | Etiketten: sagt zu einem gescannten Code in einem Wort, ob er für die fragende Person etwas öffnet, und druckt viele Etiketten auf einmal |
 | `overview` | Übersicht der Betreiberverantwortung: wie viele Pflichten überfällig, in 30 und in 90 Tagen fällig und nie erfasst sind, wie vielen Prüfungen der Bericht einer Fremdfirma fehlt und wie viele Mängel über ihrer Frist sind, mit den ersten davon; über alle Bereiche der fragenden Person oder einen. Dazu die Zahlen je Liegenschaft und Gebäude, das Lagebild eines Gebäudes mit seinen letzten Vorgängen und die Zeitachse eines Orts. Keine dieser Antworten nennt eine Person |
-| `meters` | Zähler: die Liste zum Stichtag, die Seite einer Messstelle mit Ständen, Verbrauch und Verlauf, ein Stand von Hand und seine Berichtigung, der Zählertausch, die Stilllegung, die Sperre, die Notiz und was nur die Messstelle trägt |
+| `meters` | Zähler: die Liste zum Stichtag, auch als Tabelle, die Seite einer Messstelle mit Ständen, Verbrauch und Verlauf, ein Stand von Hand und seine Berichtigung, der Zählertausch, die Stilllegung, die Sperre, die Notiz und was nur die Messstelle trägt |
 | `properties` | Liegenschaften, ihre Liste auch als Tabelle |
 | `rooms` | Räume, mit den Pflichten, die an ihnen hängen |
-| `round-plans` | Pläne der Rundgänge: ein neuer Plan und die Änderung eines Plans, auch ruhen lassen und beenden; ein Plan nennt die Person, die seine Rundgänge geht, oder niemanden |
-| `round-templates` | Vorlagen der Rundgänge: eine neue, leer oder aus einem Paket übernommen, und eine neue Fassung einer Vorlage; sie nennen Anlagen, Räume und Pflichten und keine Person |
-| `rounds` | Rundgänge der Pläne: die Übersicht einer Woche mit den offenen Rundgängen früherer Wochen, wer einen Rundgang geht, auch „wie letzte Woche“, die Namen der Personen, die Pläne und Rundgänge nennen, und die Auswahl, wer in einem Bereich Rundgänge geht; die Seite eines Rundgangs mit seinen Unterschriften, die Gegenzeichnung und das Schließen mit Grund |
+| `round-plans` | Pläne der Rundgänge: ihre Liste als Tabelle, ein neuer Plan und die Änderung eines Plans, auch ruhen lassen und beenden; ein Plan nennt die Person, die seine Rundgänge geht, oder niemanden |
+| `round-templates` | Vorlagen der Rundgänge: die eigenen als Tabelle, eine neue, leer oder aus einem Paket übernommen, und eine neue Fassung einer Vorlage; sie nennen Anlagen, Räume und Pflichten und keine Person |
+| `rounds` | Rundgänge der Pläne: die Übersicht einer Woche mit den offenen Rundgängen früherer Wochen, auch als Tabelle, wer einen Rundgang geht, auch „wie letzte Woche“, die Namen der Personen, die Pläne und Rundgänge nennen, und die Auswahl, wer in einem Bereich Rundgänge geht; die Seite eines Rundgangs mit seinen Unterschriften, die Gegenzeichnung und das Schließen mit Grund |
 | `search` | Suche über Liegenschaften, Gebäude, Räume, Anlagen und Vorgänge nach Name, Nummer und Kennzeichen und über Nachweise nach ihrer Nummer, in den Bereichen der fragenden Person; höchstens fünf Treffer je Art, und ob es mehr gibt, ohne Zahl. Sie sucht nicht nach Personen, und kein Treffer nennt jemanden |
-| `settings` | Vorlauf der Fristen und die Vorgabe der Frist je Mängelklasse |
+| `settings` | Vorlauf der Fristen und die Vorgabe der Frist je Mängelklasse; die Mängelklassen auch als Tabelle |
 | `setup` | Ersteinrichtung |
-| `staff` | Zugänge |
+| `staff` | Zugänge, für die Leitung auch als Tabelle |
 | `substitutions` | Vertretungen |
 | `sync` | Abgleich und Konflikte |
-| `tasks` | Aufgaben: wem eine Aufgabe zugeteilt werden kann, je Bereich der fragenden Person, mit Namen und sonst nichts, für alle, die Aufgaben zuteilen. Die Aufgaben selbst kommen über den Abgleich |
-| `work-orders` | Aufträge: die Liste, die Seite eines Auftrags, die Auswahl der Personen, ein neuer Auftrag aus einem Mangel, aus einem Termin oder von Hand, seine Änderung, das Schließen mit Grund und seine Abnahme oder Zurückweisung |
+| `tasks` | Aufgaben: wem eine Aufgabe zugeteilt werden kann, je Bereich der fragenden Person, mit Namen und sonst nichts, für alle, die Aufgaben zuteilen. Die Aufgaben selbst kommen über den Abgleich; ihre Liste gibt es auch als Tabelle |
+| `work-orders` | Aufträge: die Liste, auch als Tabelle, die Seite eines Auftrags, die Auswahl der Personen, ein neuer Auftrag aus einem Mangel, aus einem Termin oder von Hand, seine Änderung, das Schließen mit Grund und seine Abnahme oder Zurückweisung |
