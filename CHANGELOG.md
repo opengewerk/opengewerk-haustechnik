@@ -1083,7 +1083,8 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   "Meine Aufgaben" im Menü und die Karte an Raum, Anlage und Auftrag, wo eine Aufgabe auch ohne
   Netz notiert und abgehakt wird. Bisher gab es keine Stelle, an der etwas festgehalten werden
   konnte, das zu tun ist und zu keinem Vorgang gehört.
-- Listen im Büro als Tabelle (#138, Fundament angehoben auf opengewerk#595): die Liegenschaften
+- Listen im Büro als Tabelle (#138, mit dem Schreiber aus opengewerk#595, `23990c5`, den das
+  Fundament seit #238 auf `98b2bae` mitbringt): die Liegenschaften
   und das Anlagenverzeichnis haben im Kopf den Knopf "Als Tabelle", ab der Breite eines Tablets,
   mit Excel (.xlsx) und CSV. Ausgegeben wird, was die Liste unter ihrem Filter zeigt, in ihrer
   Reihenfolge und mit ihren Spalten: beim Anlagenverzeichnis jede Anlage, die der Filter
