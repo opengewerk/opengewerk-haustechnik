@@ -100,9 +100,11 @@ function idsIn(answer: unknown): string[] {
 
 /**
  * The routes that hand out bytes and not JSON: a PDF, the file of a document
- * or of an evidence. Nothing in them is a field.
+ * or of an evidence, a list as a table. Nothing in them is a field; that a
+ * table holds no part of the stamp either, `office-tables.test.ts` reads in
+ * the file itself (#138).
  */
-const bytes = /\/(pdf|content|preview)$|\/files\/:position$/
+const bytes = /\/(pdf|content|preview|table)$|\/files\/:position$/
 
 /** Where the ids for a path come from when the segment before it is no kind of record. */
 const kindOf: Readonly<Record<string, string>> = {

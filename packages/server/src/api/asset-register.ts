@@ -107,12 +107,32 @@ export async function assetRegister(
   today: IsoDate,
   question: RegisterQuestion,
 ): Promise<AssetRegister> {
-  const { filter } = question
-  const nothing: AssetRegister = { total: 0, properties: 0, assets: [] }
+  const passing = await assetsPassing(tx, catalogue, today, question.filter)
 
+  return {
+    total: passing.length,
+    properties: new Set(passing.map((entry) => entry.propertyId)).size,
+    assets: passing.slice(question.offset, question.offset + question.limit),
+  }
+}
+
+/**
+ * Every asset of the register that passes the filter on a day, in the order
+ * of their numbers, each with the state of its life cycle and its condition:
+ * the whole list a page is cut from, and what its table holds (#138).
+ *
+ * The transaction is the person's, so these are the assets of their areas
+ * and no other, whatever the filter names.
+ */
+export async function assetsPassing(
+  tx: TenantTransaction,
+  catalogue: Catalogue,
+  today: IsoDate,
+  filter: AssetRegisterFilter,
+): Promise<AssetEntry[]> {
   // An id that is no id names nothing the person could see.
   if ([filter.propertyId, filter.buildingId].some((id) => id !== undefined && !isUuid(id))) {
-    return nothing
+    return []
   }
 
   // The cost group is said by the kind, and the kinds are the catalogue's. A
@@ -127,7 +147,7 @@ export async function assetRegister(
           .map((kind) => kind.key)
 
   if (ofTheGroup?.length === 0) {
-    return nothing
+    return []
   }
 
   const rows = await tx
@@ -158,7 +178,8 @@ export async function assetRegister(
     .orderBy(asc(assets.number), asc(assets.name), asc(assets.id))
 
   const onThisDay = await assetsOnADay(tx, today)
-  const passing = (rows as Omit<AssetEntry, 'lifecycleState' | 'condition' | 'until'>[])
+
+  return (rows as Omit<AssetEntry, 'lifecycleState' | 'condition' | 'until'>[])
     .map((row): AssetEntry => {
       const { lifecycleState, condition, until } = onThisDay(row.id)
 
@@ -172,10 +193,4 @@ export async function assetRegister(
           ? entry.lifecycleState === null
           : entry.lifecycleState === filter.lifecycle),
     )
-
-  return {
-    total: passing.length,
-    properties: new Set(passing.map((entry) => entry.propertyId)).size,
-    assets: passing.slice(question.offset, question.offset + question.limit),
-  }
 }

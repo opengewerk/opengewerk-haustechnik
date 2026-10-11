@@ -4,22 +4,36 @@ import {
   Controller,
   Delete,
   Get,
+  Header,
+  Inject,
   Param,
   Patch,
   Post,
+  Query,
+  StreamableFile,
 } from '@nestjs/common'
 import {
   type Building,
   buildingProblems,
+  type Catalogue,
   type Property,
   type PropertyId,
   propertyProblems,
 } from '@opengewerk/haustechnik-domain'
-import { CurrentIdentity, Database, requireSomething } from '@opengewerk/platform-server'
+import {
+  CurrentIdentity,
+  Database,
+  requireSomething,
+  tableAnswer,
+  tableFormatOf,
+} from '@opengewerk/platform-server'
 import { and, asc, eq, isNull } from 'drizzle-orm'
 
+import { CATALOGUE } from '../catalogue.js'
 import { buildings, properties } from '../database/schema/index.js'
+import { dayInGermany } from '../today.js'
 import { RequiresPermission } from './authorization.js'
+import { propertyTable, propertyTableQuestion } from './office-tables.js'
 import { areaFor, type Asking, fieldsOf, placeOf, refuse } from './places.js'
 
 const missing = 'Diese Liegenschaft gibt es nicht oder nicht mehr.'
@@ -44,7 +58,10 @@ const buildingFields = ['name', 'shortCode', 'kinds', 'yearBuilt'] as const
  */
 @Controller('properties')
 export class PropertiesController {
-  constructor(private readonly database: Database) {}
+  constructor(
+    private readonly database: Database,
+    @Inject(CATALOGUE) private readonly catalogue: Catalogue,
+  ) {}
 
   @Get()
   @RequiresPermission('location.read')
@@ -57,6 +74,32 @@ export class PropertiesController {
           .from(properties)
           .where(isNull(properties.deletedAt))
           .orderBy(asc(properties.name)) as Promise<Property[]>,
+    )
+  }
+
+  /**
+   * The list "Liegenschaften" as a table (#138): the properties with their
+   * buildings, narrowed to the area and the search of the list
+   * (`?area=`, `?search=`) and in its order (`?order=urgency`), as a
+   * workbook or as text (`?format=xlsx` or `csv`). Whoever reads places reads
+   * it, in their areas, and the numbers of what is to do stand in it for
+   * whoever may read the duties, as on the list.
+   *
+   * Before a property, or its address would be read as an id.
+   */
+  @Get('table')
+  @RequiresPermission('location.read')
+  @Header('Cache-Control', 'no-store')
+  table(
+    @CurrentIdentity() identity: Asking,
+    @Query() query: Record<string, unknown>,
+  ): Promise<StreamableFile> {
+    const format = tableFormatOf(query)
+    const asked = propertyTableQuestion(query)
+    const today = dayInGermany()
+
+    return this.database.forTenant(identity, async (tx) =>
+      tableAnswer(await propertyTable(tx, this.catalogue, identity, today, asked), format, today),
     )
   }
 
