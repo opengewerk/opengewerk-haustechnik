@@ -26,6 +26,7 @@ import type {
   RoundRecord,
   RoundTemplate,
   RoundTemplateVersion,
+  Task,
   WorkOrder,
   WorkOrderDecision,
   WorkOrderNote,
@@ -49,6 +50,7 @@ import type {
   assetKindNames,
   imports,
   labels,
+  tasks,
   meterExchanges,
   meterPauses,
   meterSettings,
@@ -98,6 +100,7 @@ export type EvidenceVoidingMatches = Assert<
 export type ActivityMatches = Assert<Exact<typeof activities.$inferSelect, Activity>>
 export type ActivityDutyMatches = Assert<Exact<typeof activityDuties.$inferSelect, ActivityDuty>>
 export type DefectMatches = Assert<Exact<typeof defects.$inferSelect, Defect>>
+export type TaskMatches = Assert<Exact<typeof tasks.$inferSelect, Task>>
 export type DefectClassTermMatches = Assert<
   Exact<typeof defectClassTerms.$inferSelect, KeptDefectClassTerm>
 >

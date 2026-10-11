@@ -14,6 +14,9 @@ import {
   placeTargetProblem,
   roomProblems,
   supplyPlaceProblem,
+  taskLimits,
+  taskTargetProblem,
+  taskTitleProblem,
   workOrderNoteProblems,
   workOrderProblems,
 } from '@opengewerk/haustechnik-domain'
@@ -229,5 +232,21 @@ export function recordRules(catalogue: Catalogue): RecordRules {
       },
     ],
     attachment_versions: filed['attachment_versions'] ?? [],
+    // A task says what is to be done, and hangs on its property and on at
+    // most one record there (#124).
+    tasks: [
+      { fields: ['title'], problem: (at) => taskTitleProblem(at('title'), taskLimits.title) },
+      {
+        fields: ['propertyId', 'assetId', 'roomId', 'buildingId', 'activityId'],
+        problem: (at) =>
+          taskTargetProblem({
+            propertyId: at('propertyId'),
+            assetId: at('assetId'),
+            roomId: at('roomId'),
+            buildingId: at('buildingId'),
+            activityId: at('activityId'),
+          }),
+      },
+    ],
   }
 }

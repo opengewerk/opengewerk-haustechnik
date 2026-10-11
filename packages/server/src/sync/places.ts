@@ -447,6 +447,9 @@ const placeOf: Readonly<
   activity_answers: answerPlace,
   attachments: documentPlace,
   attachment_versions: versionPlace,
+  // A task hangs where a document may, a defect aside, which `offlineEdits`
+  // does not let a task name (#124).
+  tasks: documentPlace,
 }
 
 /**

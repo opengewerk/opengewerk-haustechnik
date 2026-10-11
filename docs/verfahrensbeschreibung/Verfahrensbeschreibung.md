@@ -134,6 +134,7 @@ Anhang B nennt jedes Feld der Datenbank, das auf eine Person zeigt. Dieser Absch
 - Ein abgeschlossener Vorgang bleibt dreißig Tage auf dem Gerät der Person, der er zugeteilt war. [K2.7, B23]
 - Eine Prüfung oder Wartung, die jemandem zum Ausführen zugeteilt wird, liegt nach dem nächsten Abgleich auf dem Gerät dieser Person, solange sie offen ist. [K2.7, K4.4, B102]
 - Ein Rundgang, den der Plan oder das Büro niemandem zugeteilt hat, liegt auf den Geräten aller im Bereich; einer, der jemandem zugeteilt ist, auf dem Gerät dieser Person. Die Pläne der Rundgänge liegen auf den Geräten aller, die ihren Bereich sehen, zum Lesen, mit der Kennung des Kontos, das ein Plan nennt; den Namen dazu nennt der Server der Haustechnik nur für Rundgänge, die ihr oder niemandem zugeteilt sind. Wie bei einer Pflicht, die ihre verantwortliche Person nennt. [K2.7, K4.5, B127, B128]
+- **Zusage:** Ein Gerät hält die Aufgaben, die seiner Person zugeteilt sind, und die, die sie angelegt hat, offene und erledigte für dreißig Tage; wer alle Bereiche sieht, hält alle. Die Namen der anderen Personen hält ein Gerät nicht: wer Aufgaben zuteilt, fragt sie mit Verbindung beim Server, je Bereich die Personen, denen eine Aufgabe dort zugeteilt werden kann. Ohne Verbindung nennt es nur die eigene Person. [K2.7, K3, B167, B175]
 - Die Notizen eines Auftrags liegen mit ihm auf den Geräten, die ihn halten, mit der Kennung des Kontos, das sie geschrieben hat. Die Namen dazu hält ein Gerät nicht: mit Verbindung fragt es sie für die Seite des Auftrags beim Server, ohne Verbindung nennt es nur den eigenen. [K2.7, K4.8]
 - Der Start vor Ort zeigt der Person, die das Gerät hält, ihre eigenen Vorgänge von heute und dieser Woche und die, die niemandem zugeteilt sind; was einer anderen Person zugeteilt ist, zeigt er nicht. Ein begonnener Vorgang heißt dort „begonnen“, ohne Uhrzeit: eine eigene Zeit des Beginns hat ein Vorgang nicht, wann er auf „begonnen“ ging, steht nur im Änderungsprotokoll (Abschnitt 8). [K2.7, K4.5]
 
@@ -185,6 +186,15 @@ Anhang B nennt jedes Feld der Datenbank, das auf eine Person zeigt. Dieser Absch
 - Ein Zählerstand entsteht auch vor Ort, ohne Netz: auf einer eigenen Runde der Zähler einer Liegenschaft oder als Punkt eines Rundgangs. Den Stichtag, den Weg und die Person, die ihn eingetragen hat, setzt der Server; ein Stand aus einem Rundgang entsteht erst mit dessen Unterschrift, im Namen der Person, die unterschrieben hat. [K4.9, B145, B146]
 - Ein Stand weit über dem davor wird erst genommen, wenn die ablesende Person ihn bestätigt. Am Stand steht nur, dass er bestätigt wurde, keine weitere Person. [K4.9, B147]
 
+### 3.14 Aufgaben
+
+- Eine Aufgabe hält fest, was zu tun ist, bis zu welchem Tag, wer für sie verantwortlich ist, ob sie erledigt ist und wer sie angelegt hat. Sie hängt an einer Liegenschaft und auf Wunsch an einem Gebäude, einem Raum, einer Anlage oder einem Vorgang dort. Wer sie angelegt hat, setzt der Server selbst ein, nie das Gerät; eine Aufgabe, die keine Person angelegt hat, nennt dort niemanden. [K3, B169]
+- **Zusage:** Aufgaben für sich selbst anlegen und die eigenen erledigen dürfen alle vier Rollen; eine Aufgabe reist über den Abgleich, auch ohne Netz. Einer anderen Person eine Aufgabe zuteilen und die Aufgabe einer anderen Person erledigen oder wieder öffnen darf nur, wer auch Vorgänge plant und verteilt: die Leitung, die Technische Leitung und die Objektleitung. Die Haustechnik wird damit abgelehnt. [K3, K7, B164, B165, B166, B168, B170, B172]
+- **Zusage:** Eine Aufgabe geht nur an jemanden, der beim Betreiber arbeitet, nicht gesperrt ist, Aufgaben erledigen darf und den Bereich der Aufgabe sieht. [K3, K7, B171]
+- **Zusage:** Eine Aufgabe liegt im Bereich ihrer Liegenschaft: sie sieht nur, wer ihren Ort sieht. [K2.8, K3, B173]
+- Eine Aufgabe nennt ihre verantwortliche Person mit Namen, in der Liste „Aufgaben“ und an dem Datensatz, an dem sie hängt; die eigene heißt dort „Sie“. Nach dem Anlegen wird eine Aufgabe nur noch erledigt oder wieder geöffnet. Wann das geschah und wer es tat, steht in ihrem Stempel (Abschnitt 3.6) und im Änderungsprotokoll, an der Aufgabe selbst nicht. [K3, K9]
+- Wird der Datensatz entfernt, an dem eine Aufgabe hängt, wird die Aufgabe mit ihm entfernt. [K3, B174]
+
 ---
 
 ## 4. Wer was sieht
@@ -209,6 +219,8 @@ Phase 1 kennt vier Rollen. Was jede darf, steht Recht für Recht in Abschnitt 7 
 | Wer einen Rundgang geht, mit Namen | in ihren Bereichen | in ihren Bereichen | in ihren Bereichen | was ihr oder niemandem zugeteilt ist |
 | Die Namen zur Wahl, wer einen Rundgang geht | in ihren Bereichen | in ihren Bereichen | in ihren Bereichen | nein |
 | Wer einen Rundgang unterschrieben und gegengezeichnet hat, mit Namen, Zeichnung oder getipptem Namen und Zeitpunkt | in ihren Bereichen | in ihren Bereichen | in ihren Bereichen | was ihr oder niemandem zugeteilt ist |
+| Aufgaben mit der verantwortlichen Person, mit Namen | in ihren Bereichen | in ihren Bereichen | die ihr zugeteilten und die sie angelegt hat; wer alle Bereiche sieht, alle | die ihr zugeteilten und die sie angelegt hat; wer alle Bereiche sieht, alle |
+| Die Namen zur Wahl, wem eine Aufgabe zugeteilt wird | in ihren Bereichen | in ihren Bereichen | in ihren Bereichen | nein |
 | Datensätze mit Fassung und Nummer im Abgleich, ohne wer sie zuletzt geändert hat, wann und von welchem Gerät | in ihren Bereichen | in ihren Bereichen | in ihren Bereichen | in ihren Bereichen |
 | Fassungen von Dokumenten mit der Kennung des Kontos, das sie abgelegt hat | in ihren Bereichen | in ihren Bereichen | in ihren Bereichen | in ihren Bereichen |
 | Ein Nachweis im Ganzen: wer ihn ausgeführt, geprüft, unterschrieben, eingetragen oder für ungültig erklärt hat | in ihren Bereichen | in ihren Bereichen | in ihren Bereichen | in ihren Bereichen |
@@ -247,6 +259,7 @@ Leitung und Technische Leitung sehen als Vorgabe alle Bereiche.
 - Die Liste „Prüfungen“ lässt sich nach Stand, Art und Liegenschaft eingrenzen und durchsuchen, aber nicht auf eine Person. Die Zahl über ihr nennt, wie viele Vorgänge sie in dieser Eingrenzung zeigt. [K4.4, K4.16]
 - Die Liste „Aufträge“ lässt sich nach Stand, Art und Bereich eingrenzen und durchsuchen, aber nicht auf eine Person. Die Zahlen über ihr nennen, wie viele Aufträge sie in dieser Eingrenzung zeigt und wie viele davon auf ihre Abnahme warten. [K4.8, K4.16]
 - Die Liste „Mängel“ lässt sich nach Stand, Liegenschaft, Bereich und Klasse eingrenzen, aber nicht auf eine Person; ein Mangel nennt keine. Die Zahlen über ihr und neben „Mängel“ in der Navigation zählen offene Mängel und solche über ihrer Frist, in den Bereichen dessen, der fragt. [K4.6, K4.16]
+- Die Liste „Aufgaben“ zeigt unter „Ihre Aufgaben“ die der fragenden Person und unter „Offen bei anderen“ die offenen der übrigen Personen, die das Gerät hält, jede mit ihrem Tag, „überfällig“ und dem Namen der verantwortlichen Person. Sie lässt sich nicht auf eine Person eingrenzen und zählt nichts. Das ist keine Zählung, aber die Stelle, an der die Aufgaben einer Auswertung je Person am nächsten kommen. [K3, K9]
 - **Zusage:** Anhang B nennt jedes Feld der Datenbank, das auf eine Person zeigt. Kommt eines dazu, wird der Test rot, bis es hier steht. [K9, B41]
 - Das Änderungsprotokoll lässt sich nach Zeitraum, Person, Art des Datensatzes und einzelnem Datensatz filtern. Mit dem Filter nach Person zeigt es, was diese Person wann geändert hat. Das sieht nur die Leitung (Abschnitt 8). [K3, K9, B65]
 - Eine Rangliste, eine Statistik je Person oder einen Vergleich zwischen Personen enthält die Anwendung nicht, und das Planungskonzept schließt sie als Vorgabe aus. Die Auswertungen über die Zeit, die Phase 2 bringt, sind ohne Auswertung je Person geplant. [K4.16, K9, K12]
@@ -295,8 +308,8 @@ Leitung und Technische Leitung sehen als Vorgabe alle Bereiche.
 
 Diese Bausteine gehören nach dem Fahrplan zu Phase 1 und sind noch nicht gebaut. Mit jedem wird dieses Dokument berichtigt; der Test in Abschnitt 11 erzwingt es, sobald ein Feld mit Personenbezug oder eine Adresse des Servers dazukommt.
 
-- **Aufgaben:** mit Fälligkeit und verantwortlicher Person. Jede Person legt eigene an; einer anderen teilt sie zu, wer Vorgänge plant und verteilt. [K3]
-- **Benachrichtigungen:** per E-Mail und Push, gespeist nur aus Fristen und Statuswechseln. Welche Anlässe als Push kommen, wählt jede Person selbst; ein Auftrag mit der Dringlichkeit „sofort“ erreicht die Person, die ihn führt, immer als Push. [K3, K4.8]
+- **Aufgaben aus der Fristen-Engine:** eine Frist soll eine Aufgabe für die verantwortliche Person anlegen können; eine solche Aufgabe nennt niemanden, der sie angelegt hat. Gebaut sind die Aufgaben selbst (Abschnitt 3.14), welche Frist eine anlegt, ist noch offen. [K2.4, K3]
+- **Benachrichtigungen:** per E-Mail und Push, gespeist nur aus Fristen und Statuswechseln, auch wenn eine Aufgabe fällig wird. Welche Anlässe als Push kommen, wählt jede Person selbst; ein Auftrag mit der Dringlichkeit „sofort“ erreicht die Person, die ihn führt, immer als Push. [K3, K4.8]
 - **Zähler und Fotos vor Ort:** Ablesungen kommen als eigene Datensätze dazu und tragen wie jeder Datensatz ihren Stempel. Ein Foto vor Ort wird als Dokument abgelegt (Abschnitt 3.9); die Bildschirme dafür kommen mit der Bestandsaufnahme. [K4.9, K4.10]
 - **Listen als Tabelle:** Jede Liste im Büro lässt sich als Tabelle ausgeben, mit dem, was ihr Filter gerade zeigt. Das ist der erste Export der Anwendung. [K3]
 - **Eigene Angaben:** Name, E-Mail-Adresse, Passwort, zweiten Faktor und Geräte ändert jede Person selbst unter „Konto“. [K3]
@@ -500,6 +513,18 @@ Pfade ohne Vorsatz liegen im Repository `opengewerk/opengewerk-haustechnik`. Pfa
 | B161 | Test | `packages/server/src/api/stamp.test.ts` | `stays on the row, for the change log` |
 | B162 | Test | `packages/server/src/api/stamp.test.ts` | `reaches no device, for any kind of record that travels` |
 | B163 | Test | `packages/server/src/api/stamp.test.ts` | `is handed out on no route that reads` |
+| B164 | Recht | `task.read` | Aufgaben ansehen: Leitung, Technische Leitung, Objektleitung, Haustechnik |
+| B165 | Recht | `task.record` | Eigene Aufgaben anlegen und erledigen: Leitung, Technische Leitung, Objektleitung, Haustechnik |
+| B166 | Recht | `task.assign` | Aufgaben anderen zuteilen: Leitung, Technische Leitung, Objektleitung |
+| B167 | Test | `packages/server/src/api/tasks.test.ts` | `is not said to whoever only writes tasks for themselves` |
+| B168 | Test | `packages/server/src/api/tasks.test.ts` | `is written by every role and done by its person, also as Haustechnik` |
+| B169 | Test | `packages/server/src/api/tasks.test.ts` | `names who wrote it from the request, never from the device` |
+| B170 | Test | `packages/server/src/api/tasks.test.ts` | `is handed out only by whoever may, Haustechnik is refused with the right it lacks` |
+| B171 | Test | `packages/server/src/api/tasks.test.ts` | `goes to somebody who works for the operator, is not shut out and sees the area of the task` |
+| B172 | Test | `packages/server/src/api/tasks.test.ts` | `is done by its person or by whoever hands tasks out, and by nobody else` |
+| B173 | Test | `packages/server/src/api/tasks.test.ts` | `is the area of its property: a task at an asset is seen by whoever sees the asset` |
+| B174 | Test | `packages/server/src/api/tasks.test.ts` | `goes with the record it hangs on when that is removed` |
+| B175 | Test | `packages/server/src/api/tasks.test.ts` | `are those for its person and those its person wrote; whoever sees every area holds all` |
 
 ---
 
@@ -541,6 +566,8 @@ Jede Zeile ist ein Feld der Datenbank, das die Kennung eines Kontos hält. Der S
 | `round_plans` | `performer_user_id` | wer die Rundgänge eines Plans geht, wenn der Plan jemanden nennt |
 | `substitutions` | `absent_user_id` | wer vertreten wird |
 | `substitutions` | `substitute_user_id` | wer vertritt |
+| `tasks` | `assignee_user_id` | wer für eine Aufgabe verantwortlich ist |
+| `tasks` | `created_by` | wer eine Aufgabe angelegt hat |
 | `tenant_sessions` | `user_id` | wer sich bei diesem Betreiber an- und abgemeldet hat |
 | `work_order_decisions` | `decided_by` | wer einen Auftrag abgenommen oder zurückgewiesen hat |
 | `work_order_notes` | `written_by` | wer eine Notiz zu einem Auftrag geschrieben hat |
@@ -589,4 +616,5 @@ Jede Zeile ist der erste Abschnitt einer Adresse, unter der der Server antwortet
 | `staff` | Zugänge |
 | `substitutions` | Vertretungen |
 | `sync` | Abgleich und Konflikte |
+| `tasks` | Aufgaben: wem eine Aufgabe zugeteilt werden kann, je Bereich der fragenden Person, mit Namen und sonst nichts, für alle, die Aufgaben zuteilen. Die Aufgaben selbst kommen über den Abgleich |
 | `work-orders` | Aufträge: die Liste, die Seite eines Auftrags, die Auswahl der Personen, ein neuer Auftrag aus einem Mangel, aus einem Termin oder von Hand, seine Änderung, das Schließen mit Grund und seine Abnahme oder Zurückweisung |

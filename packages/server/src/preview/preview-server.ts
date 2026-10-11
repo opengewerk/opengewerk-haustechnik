@@ -46,6 +46,7 @@ import {
   plantSampleData,
   sampleOperatorName,
 } from './sample-data.js'
+import { plantSampleTasks } from './sample-tasks.js'
 import { giveSampleForm, samplePackage } from './sample-form.js'
 import { giveSamplePlans } from './sample-plans.js'
 import { giveSampleTemplates } from './sample-templates.js'
@@ -200,6 +201,8 @@ export async function openSamplePreview(
 
     await runDeadlineCycle({ database, catalogue: previewCatalogue, now: () => morning })
     await planSampleActivities(`http://127.0.0.1:${String(port)}`, areas)
+    // Tasks for whoever looks and for colleagues, at places and assets (#124).
+    await plantSampleTasks(`http://127.0.0.1:${String(port)}`)
     // A form with every kind of field on the device of the viewer (#107).
     await giveSampleForm(database, planter, previewPeople.viewer.id)
     // A template of a round with two versions (#112).

@@ -204,6 +204,11 @@ export const syncPolicies: Readonly<Record<string, SyncPolicy>> = {
     onlyWhile: { field: 'blockedAt', values: [null] },
     reserved: ['code', 'propertyId', 'areaId'],
   },
+  // A task is written and done in the office and on site, also without a
+  // connection (#124). Its area follows its property, and who wrote it is the
+  // server's to say: a device that set it could put its task under somebody
+  // else's name, and no person wrote one the deadline engine makes.
+  tasks: { create: true, change: 'merge', reserved: ['areaId', 'createdBy'] },
 }
 
 /**
@@ -386,6 +391,23 @@ export const offlineEdits: Readonly<Record<string, OfflineEdits>> = {
   // A label from a sheet is given to an asset. Blocking it, and giving one to
   // a room, is done at the routes of the office.
   labels: { change: { assetId: true } },
+  // A task with its text, its day and its person, open, at its property and
+  // on request at one record there (#124). Afterwards it is marked done and
+  // opened again, and nothing else of it changes.
+  tasks: {
+    create: {
+      title: true,
+      dueOn: true,
+      assigneeUserId: true,
+      status: ['open'],
+      propertyId: true,
+      buildingId: true,
+      roomId: true,
+      assetId: true,
+      activityId: true,
+    },
+    change: { status: true },
+  },
   // A version of a document, with the file it names by its hash.
   attachment_versions: {
     create: {
@@ -473,6 +495,7 @@ export const syncEntityNames: Readonly<Record<string, string>> = {
   meter_exchanges: 'Zählertausch',
   meter_pauses: 'Stilllegung einer Messstelle',
   meter_settings: 'Stichtag der Zähler',
+  tasks: 'Aufgabe',
 }
 
 /**
@@ -552,6 +575,7 @@ export const syncFieldNames: Readonly<Record<string, string>> = {
   maximumDays: 'Höchstfrist in Tagen',
   maximumMonths: 'Höchstfrist in Monaten',
   responsibleUserId: 'Verantwortlich',
+  assigneeUserId: 'Verantwortlich',
   performer: 'Ausgeführt von',
   performerNote: 'Fremdfirma',
   confirmedBy: 'Bestätigt von',

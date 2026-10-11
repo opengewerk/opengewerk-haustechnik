@@ -274,6 +274,13 @@
       "when": 1791693255712,
       "tag": "0038_device_scope_indexes",
       "breakpoints": true
+    },
+    {
+      "idx": 39,
+      "version": "7",
+      "when": 1791696342588,
+      "tag": "0039_tasks",
+      "breakpoints": true
     }
   ]
 }

@@ -22,7 +22,9 @@ import { type SQL, sql } from 'drizzle-orm'
  * closed ones for
  * `closedActivitiesStayDays`, with what hangs on them, and the open defects,
  * with every defect found in an activity it holds: the page a device shows
- * for a signature names them, also one set right meanwhile.
+ * for a signature names them, also one set right meanwhile. Of the tasks, its
+ * own (#124): those for the person and those the person wrote, open ones and
+ * done ones for `closedActivitiesStayDays`.
  */
 export interface DeviceScope {
   readonly everyArea: boolean
@@ -30,6 +32,7 @@ export interface DeviceScope {
   readonly propertyIds: readonly string[]
   readonly activityIds: readonly string[]
   readonly defectIds: readonly string[]
+  readonly taskIds: readonly string[]
 }
 
 /**
@@ -46,7 +49,7 @@ export async function deviceScope(
   )
 
   if (seen[0]?.every === true) {
-    return { everyArea: true, propertyIds: [], activityIds: [], defectIds: [] }
+    return { everyArea: true, propertyIds: [], activityIds: [], defectIds: [], taskIds: [] }
   }
 
   const since = new Date(now.getTime() - closedActivitiesStayDays * 24 * 60 * 60 * 1000)
@@ -76,6 +79,12 @@ export async function deviceScope(
       select id from defects
        where deleted_at is null
          and (status in ('found', 'ordered') or found_in_activity_id = any(${idArray(activityIds)}))
+       order by id`),
+    taskIds: await ids(sql`
+      select id from tasks
+       where deleted_at is null
+         and (assignee_user_id = ${userId} or created_by = ${userId})
+         and (status = 'open' or updated_at >= ${since.toISOString()})
        order by id`),
   }
 }
@@ -157,6 +166,7 @@ export function pullScope(scope: DeviceScope): PullScope {
     work_order_decisions: sql`${column('work_order_decisions', 'work_order_id')} in
       (select id from work_orders where activity_id = any(${activities}))`,
     defects: sql`${column('defects', 'id')} = any(${idArray(scope.defectIds)})`,
+    tasks: sql`${column('tasks', 'id')} = any(${idArray(scope.taskIds)})`,
   }
   const places = `properties:${fingerprintOf(scope.propertyIds)}`
   // The templates of the rounds lie in no area: every device holds them all,
@@ -170,6 +180,9 @@ export function pullScope(scope: DeviceScope): PullScope {
       ...Object.fromEntries(placeEntities.map((entity) => [entity, places])),
       ...Object.fromEntries(workEntities.map((entity) => [entity, work])),
       defects: `defects:${fingerprintOf(scope.defectIds)}`,
+      // The own tasks, by a fingerprint over those held: one that went to
+      // somebody else or was done long enough ago leaves the device.
+      tasks: `tasks:${fingerprintOf(scope.taskIds)}`,
       round_templates: operator,
       round_template_versions: operator,
       // The key day of the meters, which names the key date of a reading on site (#120).

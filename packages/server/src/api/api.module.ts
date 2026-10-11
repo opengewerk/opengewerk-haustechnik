@@ -61,6 +61,7 @@ import { RoundPlansController } from './round-plans.controller.js'
 import { RoundTemplatesController } from './round-templates.controller.js'
 import { RoundsController } from './rounds.controller.js'
 import { SearchController } from './search.controller.js'
+import { TasksController } from './tasks.controller.js'
 import { syncRoutesFor } from './sync-routes.js'
 import { MeterSettingsController, MetersController } from './meters.controller.js'
 import { EvidencePrintController, Printer, RoundPrintController } from './prints.controller.js'
@@ -287,6 +288,8 @@ export class ApiModule {
         ImportsController,
         // The search by name, number and mark (#125).
         SearchController,
+        // Who a task may go to (#124); the tasks themselves travel through the sync.
+        TasksController,
       ],
       providers: [
         { provide: Database, useValue: database },

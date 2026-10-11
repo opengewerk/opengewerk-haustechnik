@@ -1066,6 +1066,22 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   das Büro. Gemessen bei 6000 Anlagen, 1200 Räumen und 600 Aufträgen: 19 bis 28 ms je Anfrage
   im Mittel, ohne eigenen Index. Bisher fand man einen Ort, eine Anlage oder einen Auftrag nur
   über die Listen und ihre Filter, vor Ort gar nicht ohne Etikett
+- Aufgaben an Ort, Anlage und Vorgang (#124, Submodul `upstream/opengewerk` von `98b2bae` auf
+  `a725392`, den Merge des Bausteins der Aufgaben aus opengewerk/opengewerk#598): eine
+  Aufgabe hält fest, was zu tun ist, bis zu welchem Tag, wer für sie verantwortlich ist und ob
+  sie erledigt ist. Sie hängt an einer Liegenschaft und auf Wunsch an einem Gebäude, einem Raum,
+  einer Anlage oder einem Vorgang dort, liegt im Bereich ihrer Liegenschaft und reist über den
+  Abgleich, im Büro wie vor Ort, auch ohne Netz (Migration `0039_tasks` mit Rücknahme). Drei
+  neue Rechte in Abschnitt 7 des Konzepts (v0.22): "Aufgaben ansehen" und "Eigene Aufgaben
+  anlegen und erledigen" für alle vier Rollen, "Aufgaben anderen zuteilen" ab der
+  Objektleitung. Eine Aufgabe geht nur an jemanden, der Aufgaben erledigen darf, nicht gesperrt
+  ist und den Bereich sieht; wen das in jedem Bereich ist, sagt `GET /tasks/candidates` dem,
+  der zuteilt. Wer sie anlegte, schreibt die Datenbank, nie das Gerät. Ein Gerät hält die
+  Aufgaben seiner Person und die, die sie anlegte; wer alle Bereiche sieht, hält alle. Im Büro
+  stehen die Liste "Aufgaben" mit "Ihre Aufgaben" und "Offen bei anderen" und die Karte
+  "Aufgaben" an Liegenschaft, Gebäude, Raum, Anlage, Prüfung, Rundgang und Auftrag; die
+  Bildschirme vor Ort kommen mit dem zweiten Teil. Bisher gab es keine Stelle, an der etwas
+  festgehalten werden konnte, das zu tun ist und zu keinem Vorgang gehört.
 
 ### Geändert
 

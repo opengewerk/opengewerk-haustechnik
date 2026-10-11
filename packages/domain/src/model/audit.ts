@@ -420,6 +420,19 @@ export const auditVocabulary: AuditVocabulary = {
         check_note: 'Bemerkung zur Nachprüfung',
       },
     },
+    // The tasks of an operator (#124). What a task hangs on is named below
+    // with the fields every row with a place has.
+    tasks: {
+      label: 'Aufgabe',
+      fields: {
+        title: 'Was zu tun ist',
+        due_on: 'Fällig am',
+        assignee_user_id: 'Verantwortlich',
+        status: 'Stand',
+        activity_id: 'Vorgang',
+        created_by: 'Angelegt von',
+      },
+    },
     // The default of a class of defects, which the operator sets (#116).
     defect_class_terms: {
       label: 'Vorgabe einer Mängelklasse',
@@ -651,6 +664,7 @@ export const auditValues: Readonly<
   // The deadlines of the foundation, in the words of its list of deadlines.
   deadlines: { status: { open: 'Offen', done: 'Erledigt', dropped: 'Entfallen' } },
   defects: { status: defectStatusLabel },
+  tasks: { status: { open: 'Offen', done: 'Erledigt' } },
   duties: {
     basis: dutyBasisLabel,
     counting: countingLabel,

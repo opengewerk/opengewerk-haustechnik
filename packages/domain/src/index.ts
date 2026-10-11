@@ -39,6 +39,10 @@ export * from './model/holiday.js'
 // hangs on here and what kind of document it is.
 export * from './model/document.js'
 
+// The tasks of an operator: the task of the foundation, at a place, an asset
+// or an activity (#124).
+export * from './model/task.js'
+
 // The labels with a QR code on assets and rooms: the label of the foundation,
 // with what one hangs on here and what a scan of one says.
 export * from './model/label.js'

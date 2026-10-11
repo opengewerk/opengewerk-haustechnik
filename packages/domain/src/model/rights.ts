@@ -149,6 +149,24 @@ export const rights = [
    */
   'document.remove',
   /**
+   * Looking at the tasks of a place, an asset or an activity (#124): those a
+   * device holds, which are the person's own, and in the areas of the person.
+   */
+  'task.read',
+  /**
+   * Writing a task for oneself and doing one's own: marking it done and
+   * opening it again, also without a network. A task one has written and that
+   * went to somebody else is theirs from then on.
+   */
+  'task.record',
+  /**
+   * Handing a task to somebody else, and changing or doing a task of
+   * somebody else's. Whoever plans and hands out the work does this, in the
+   * areas of the person, and only to somebody who may do tasks and sees the
+   * area of the task.
+   */
+  'task.assign',
+  /**
    * Taking what has changed onto a device, and sending what it queued up
    * without a network. The rights the foundation asks for on the routes of the
    * sync (ADR 0006). A different way in, not a different thing to do: what an
@@ -219,6 +237,9 @@ export const rightLabel: Readonly<Record<Right, string>> = {
   'document.read': 'Dokumente ansehen',
   'document.record': 'Dokumente ablegen',
   'document.remove': 'Dokumente entfernen',
+  'task.read': 'Aufgaben ansehen',
+  'task.record': 'Eigene Aufgaben anlegen und erledigen',
+  'task.assign': 'Aufgaben anderen zuteilen',
   'sync.read': 'Daten abgleichen',
   'sync.write': 'Änderungen senden',
   'membership.read': 'Zugänge ansehen',
@@ -281,6 +302,9 @@ const technician: readonly Right[] = [
   // defect, which is filed like any other document.
   'document.read',
   'document.record',
+  // Their own tasks: written for themselves or handed to them (#124).
+  'task.read',
+  'task.record',
   // Every device takes and sends; what it may touch the rights above decide.
   'sync.read',
   'sync.write',
@@ -302,6 +326,7 @@ const siteManagement: readonly Right[] = [
   'evidence.write',
   'defect.write',
   'document.remove',
+  'task.assign',
 ]
 
 /**
