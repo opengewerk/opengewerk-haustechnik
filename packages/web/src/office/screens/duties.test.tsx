@@ -6,7 +6,15 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { servingCatalogue } from '../../app/test-catalogue.js'
 import { memberIn } from '../../app/test-entry.js'
-import { mountOffice, type NamedArea, onA, rowsOf, signedInOffice } from '../test-office.js'
+import {
+  mountOffice,
+  type NamedArea,
+  onA,
+  rowsOf,
+  servingTables,
+  signedInOffice,
+  untilTheRightsAreKnown,
+} from '../test-office.js'
 
 /**
  * The register of duties in the office and the duties of a room (#101, 4.3
@@ -1003,4 +1011,57 @@ describe('the way to a duty of the operator own', () => {
       expect(screen.queryByRole('button', { name: 'Pflicht hinzufügen' })).toBeNull()
     },
   )
+})
+
+describe('the register as a table (#236)', () => {
+  const byPerson = '/duties/register?responsible=u-roth&offset=0&limit=50'
+
+  it('is asked for with what the register is narrowed by, whole and not a page', async () => {
+    await mount('/pflichten?zustand=overdue&gebaeude=b-house', {
+      '/duties/register?state=overdue&buildingId=b-house&offset=0&limit=50': page([mainTest]),
+    })
+    await screen.findByRole('table', { name: register })
+
+    // After the answers of the test, which it hands every other request to.
+    const tables = servingTables()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Als Tabelle' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Excel (.xlsx)' }))
+
+    await waitFor(() => {
+      expect(tables.asked).toEqual([
+        '/duties/register/table?state=overdue&buildingId=b-house&format=xlsx',
+      ])
+    })
+  })
+
+  it('is not offered for a register narrowed to a person to whoever may not see the staff', async () => {
+    await mount(
+      '/pflichten?verantwortlich=u-roth',
+      { [byPerson]: page([mainTest], { people }) },
+      'technical_management',
+    )
+    await screen.findByRole('table', { name: register })
+    await untilTheRightsAreKnown()
+
+    expect(screen.queryByRole('button', { name: 'Als Tabelle' })).toBeNull()
+  })
+
+  it('is offered for a register narrowed to a person to the Leitung, with the person in its address', async () => {
+    await mount(
+      '/pflichten?verantwortlich=u-roth',
+      { [byPerson]: page([mainTest], { people }) },
+      'management',
+    )
+    await screen.findByRole('table', { name: register })
+
+    const tables = servingTables()
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Als Tabelle' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: 'CSV (.csv)' }))
+
+    await waitFor(() => {
+      expect(tables.asked).toEqual(['/duties/register/table?responsible=u-roth&format=csv'])
+    })
+  })
 })

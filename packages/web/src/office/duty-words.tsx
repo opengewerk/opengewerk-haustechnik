@@ -1,14 +1,10 @@
 import {
-  type Catalogue,
-  type Duty,
-  dutyBasisLabel,
   type DutyEntry,
-  dutyPerformerLabel,
-  type DutyReading,
-  intervalKindLabel,
+  endedWords,
+  intervalCheckWords,
+  nobodyWords,
 } from '@opengewerk/haustechnik-domain'
 import { Button, Status } from '@opengewerk/platform-web'
-import { date } from '@opengewerk/platform-web/format'
 import { useRight } from '@opengewerk/platform-web/session'
 import { useNavigate } from '@tanstack/react-router'
 import { Plus, TriangleAlert } from 'lucide-react'
@@ -22,67 +18,19 @@ import { dutyPlaces, type NewDutyStart, newDutySearch } from './duty-addresses.j
  * interval it has, who performs it, and how it stands.
  */
 
-/** The version of the duty kind a duty was confirmed in, where this device has a catalogue that knows it. */
-export function kindOfDuty(
-  duty: Pick<DutyReading, 'kind' | 'kindVersion'>,
-  catalogue: Catalogue | null,
-) {
-  return duty.kind === null || duty.kindVersion === null
-    ? null
-    : (catalogue?.dutyKindVersion(duty.kind, duty.kindVersion) ?? null)
-}
-
-/**
- * Where a duty comes from, in a line: the source its kind names, or for one
- * of the operator's own its basis and the source it names.
- */
-export function dutySourceWords(
-  duty: Pick<DutyReading, 'kind' | 'kindVersion' | 'basis' | 'sourceNote'>,
-  catalogue: Catalogue | null,
-): string {
-  return (
-    kindOfDuty(duty, catalogue)?.definition.source ??
-    [duty.basis === null ? null : dutyBasisLabel[duty.basis], duty.sourceNote]
-      .filter(Boolean)
-      .join(', ')
-  )
-}
-
-export const ownDutyWords = 'Eigene Pflicht'
-
-/**
- * What kind of interval a duty has, in the words of its kind: a maximum, a
- * guide or none of either; a duty of the operator's own says that it is one.
- * Nothing for a kind this device has no catalogue for.
- */
-export function intervalKindWords(
-  duty: Pick<DutyReading, 'kind' | 'kindVersion'>,
-  catalogue: Catalogue | null,
-): string {
-  if (duty.kind === null) {
-    return ownDutyWords
-  }
-
-  const kind = kindOfDuty(duty, catalogue)
-
-  return kind === null ? '' : intervalKindLabel[kind.definition.interval.kind]
-}
-
-/**
- * Who performs a duty: the operator's own people, or a contractor, by the
- * name the duty notes where it notes one. Nothing where nobody said.
- */
-export function performerWords(duty: Pick<Duty, 'performer' | 'performerNote'>): string | null {
-  if (duty.performer === null) {
-    return null
-  }
-
-  return duty.performer === 'contractor' && duty.performerNote !== null
-    ? duty.performerNote
-    : dutyPerformerLabel[duty.performer]
-}
-
-export const nobodyWords = 'Niemand benannt'
+// The words themselves are said in `domain` (`duty-words.ts`), where the
+// register as a table reads them as well (#236); here they are handed on, and
+// what a screen draws around them is added.
+export {
+  dutySourceWords,
+  endedWords,
+  intervalCheckWords,
+  intervalKindWords,
+  kindOfDuty,
+  nobodyWords,
+  ownDutyWords,
+  performerWords,
+} from '@opengewerk/haustechnik-domain'
 
 /**
  * In the place of a name where nobody answers for a duty (4.3 of the
@@ -97,9 +45,6 @@ export function Nobody() {
     </span>
   )
 }
-
-/** What a duty says whose document that bears its interval has a newer version, or was taken out of the records (#74). */
-export const intervalCheckWords = 'Frist prüfen'
 
 /**
  * "Frist prüfen" beside the state of a duty in the head of its page, in the
@@ -121,11 +66,6 @@ export function IntervalCheck() {
       {intervalCheckWords}
     </span>
   )
-}
-
-/** "Beendet seit 05.09.2026". */
-export function endedWords(duty: Pick<DutyReading, 'endsOn'>): string {
-  return duty.endsOn === null ? 'Beendet' : `Beendet seit ${date(duty.endsOn)}`
 }
 
 /**

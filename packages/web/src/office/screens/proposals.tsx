@@ -1,6 +1,8 @@
 import {
+  byProposedKind,
   type Catalogue,
   type CatalogueEntry,
+  dismissedTableColumns,
   dutyIntervalProblem,
   type DutyKind,
   dutyLimits,
@@ -13,6 +15,7 @@ import {
   intervalLine,
   type IsoDate,
   type ProposedAsset,
+  proposedAssetName,
   qualificationLevelLabel,
   type RecordState,
   ruleValueWords,
@@ -32,7 +35,7 @@ import {
   TextArea,
 } from '@opengewerk/platform-web'
 import { date, today } from '@opengewerk/platform-web/format'
-import { Empty, NoteBox, PageHead, Screen } from '@opengewerk/platform-web/office'
+import { Empty, NoteBox, PageHead, Screen, useTableExport } from '@opengewerk/platform-web/office'
 import { useRight } from '@opengewerk/platform-web/session'
 import {
   maybeText,
@@ -62,6 +65,7 @@ import {
   proposalPlaces,
   proposalRequest,
   proposalSearch,
+  proposalTableRequest,
 } from '../proposal-addresses.js'
 import { LinkButton } from '../link-button.js'
 import { factLink } from '../links.js'
@@ -132,10 +136,8 @@ export async function afterADecision(queries: ReturnType<typeof useQueryClient>)
   queries.removeQueries({ queryKey: ['assets'] })
 }
 
-/** "AN-00015 Betriebsmittel Werkstatt": an asset by its number and its name. */
-export function assetName(asset: Pick<ProposedAsset, 'number' | 'name'>): string {
-  return [asset.number, asset.name].filter(Boolean).join(' ')
-}
+// "AN-00015 Betriebsmittel Werkstatt", as the table of the proposals names an asset as well (#236).
+export const assetName = proposedAssetName
 
 /** "12 Anlagen", "1 Anlage". */
 function assetsWords(count: number): string {
@@ -163,7 +165,8 @@ function groupsOf(
   catalogue: Catalogue | null,
   on: IsoDate,
 ): ProposalGroup[] {
-  const order = new Map((catalogue?.dutyKinds(on) ?? []).map((entry, index) => [entry.key, index]))
+  // The order of the table as well (#236).
+  const inOrder = byProposedKind(catalogue, on)
   const byKind = new Map<string, ProposedAsset[]>()
 
   for (const proposal of proposals) {
@@ -172,11 +175,7 @@ function groupsOf(
 
   return [...byKind.entries()]
     .map(([kind, assets]) => ({ kind, entry: catalogue?.dutyKind(kind, on) ?? null, assets }))
-    .sort(
-      (left, right) =>
-        (order.get(left.kind) ?? Number.MAX_SAFE_INTEGER) -
-          (order.get(right.kind) ?? Number.MAX_SAFE_INTEGER) || left.kind.localeCompare(right.kind),
-    )
+    .sort((left, right) => inOrder(left.kind, right.kind))
 }
 
 /** "Brandschutz · ASR A2.2 · Höchstfrist 24 Monate · Fachkraft": what a group of a kind is. */
@@ -238,6 +237,8 @@ export function ProposalsScreen() {
     group: ProposalGroup
   } | null>(null)
   const [done, setDone] = useState<string | null>(null)
+  // The open proposals the list shows under what it is narrowed by, as a table (#236).
+  const table = useTableExport(proposalTableRequest(filter, 'open'))
 
   const proposals = (read.data?.proposals ?? []).filter(
     (proposal) => filter.package === undefined || packageOf(proposal.kind) === filter.package,
@@ -287,6 +288,7 @@ export function ProposalsScreen() {
         {...(sub === undefined ? {} : { sub })}
         actions={
           <>
+            {table.button}
             {dismissed.length > 0 ? (
               <Link
                 to={proposalPlaces.dismissed}
@@ -302,6 +304,7 @@ export function ProposalsScreen() {
           </>
         }
       />
+      {table.trouble}
       <div className="flex flex-wrap items-end gap-2.5">
         <RegisterFilter
           label="Liegenschaft"
@@ -1066,6 +1069,8 @@ export function DismissedProposalsScreen() {
   const [trouble, setTrouble] = useState<string | null>(null)
   const [working, setWorking] = useState<string | null>(null)
   const on = today()
+  // The proposals dismissed, under what the list is narrowed by, as a table (#236).
+  const table = useTableExport(proposalTableRequest(filter, 'dismissed'))
 
   const dismissed = (read.data?.dismissed ?? []).filter(
     (each) => filter.package === undefined || packageOf(each.kind) === filter.package,
@@ -1132,11 +1137,15 @@ export function DismissedProposalsScreen() {
             }
           : {})}
         actions={
-          <LinkButton to={proposalPlace.to} search={proposalSearch(filter)} icon={BookOpen}>
-            Zu den Vorschlägen
-          </LinkButton>
+          <>
+            {table.button}
+            <LinkButton to={proposalPlace.to} search={proposalSearch(filter)} icon={BookOpen}>
+              Zu den Vorschlägen
+            </LinkButton>
+          </>
         }
       />
+      {table.trouble}
       {trouble ? (
         <p role="alert" className="text-[13px] font-semibold text-conflict">
           {trouble}
@@ -1174,9 +1183,9 @@ export function DismissedProposalsScreen() {
         >
           <thead>
             <tr>
-              <Column className="w-[210px]">Anlage</Column>
-              <Column className="w-[250px]">Pflichtart</Column>
-              <Column>Begründung</Column>
+              <Column className="w-[210px]">{dismissedTableColumns.asset}</Column>
+              <Column className="w-[250px]">{dismissedTableColumns.kind}</Column>
+              <Column>{dismissedTableColumns.reason}</Column>
               <Column className="w-[92px]">Verworfen</Column>
               {keeps ? (
                 <Column className="w-[140px]">

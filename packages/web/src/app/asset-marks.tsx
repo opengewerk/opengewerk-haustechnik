@@ -4,11 +4,10 @@ import {
   type AssetStanding,
   conditionWords,
   type DutyState,
-  dutyStateLabel,
+  dutyStateWords,
   type IsoDate,
 } from '@opengewerk/haustechnik-domain'
 import { Status, statusIcons, type StatusTone } from '@opengewerk/platform-web'
-import { date } from '@opengewerk/platform-web/format'
 import { type LucideIcon, Pause } from 'lucide-react'
 
 /**
@@ -45,11 +44,7 @@ export function DutyStateMark({
 
   return (
     <Status tone={look.tone} {...(look.icon ? { icon: look.icon } : {})}>
-      {state === 'met' && (until === null || until === undefined)
-        ? 'Erfüllt'
-        : state === 'met'
-          ? `${dutyStateLabel.met} ${date(until)}`
-          : dutyStateLabel[state]}
+      {dutyStateWords(state, until)}
     </Status>
   )
 }

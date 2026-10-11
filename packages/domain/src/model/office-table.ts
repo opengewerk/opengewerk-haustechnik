@@ -10,6 +10,7 @@ import {
   workOrderUrgencyLabel,
 } from './activity.js'
 import type { ActivityEntry } from './activity-register.js'
+import type { Catalogue } from './catalogue.js'
 import type { DeadlineFacts } from './deadlines.js'
 import { defectStatusLabel } from './defect.js'
 import type {
@@ -18,7 +19,25 @@ import type {
   DefectOrigin,
   DefectPlace,
 } from './defect-register.js'
+import {
+  type DismissedProposal,
+  type DutyProposal,
+  packageOf,
+  type ProposedAsset,
+} from './duty-proposal.js'
+import { dutyInterval, intervalWords } from './duty-record.js'
+import type { DutyEntry } from './duty-register.js'
+import {
+  dutySourceWords,
+  dutyStandingWords,
+  intervalCheckWords,
+  intervalKindWords,
+  nobodyWords,
+  performerWords,
+} from './duty-words.js'
 import { roomTitle } from './location.js'
+import { meterMediumLabel, meterUnitSymbol } from './meter.js'
+import { type MeterEntry, meterStateLabel } from './meter-register.js'
 import type { PlaceTarget } from './target.js'
 import type { WorkOrderEntry } from './work-order-register.js'
 import type { PlaceToDo } from './overview.js'
@@ -608,4 +627,271 @@ export function defectTableRow(
     { day: defect.foundOn },
     readsOrders ? order : null,
   ]
+}
+
+// --- The meters -----------------------------------------------------------------------------------
+
+/** The columns of "Zähler" as a table; the list heads its own with the same words (4.9). */
+export const meterTableColumns = {
+  meter: 'Messstelle',
+  main: 'Hauptzähler',
+  place: 'Ort',
+  medium: 'Medium',
+  unit: 'Einheit',
+  meterNumber: 'Zählernummer',
+  lastReading: 'Letzter Stand',
+  readOn: 'Abgelesen am',
+  atKeyDate: 'Stand zum Stichtag',
+} as const
+
+/** A measuring point in words: its mark and its name. */
+export function meterTitle(meter: Pick<MeterEntry, 'mark' | 'name'>): string {
+  return [meter.mark, meter.name].filter(Boolean).join(' ')
+}
+
+/** The measuring points with each sub meter under its main meter, as far as both are listed. */
+export function metersNested(
+  meters: readonly MeterEntry[],
+): { readonly meter: MeterEntry; readonly sub: boolean }[] {
+  const listed = new Set(meters.map((meter) => meter.assetId))
+  const top = meters.filter((meter) => meter.mainMeterId === null || !listed.has(meter.mainMeterId))
+  const below = (main: MeterEntry) => meters.filter((meter) => meter.mainMeterId === main.assetId)
+
+  return top.flatMap((meter) => [
+    { meter, sub: false },
+    ...below(meter).map((each) => ({ meter: each, sub: true })),
+  ])
+}
+
+/** Where a measuring point is, in a line: the property, the building and the number of the room. */
+export function meterPlaceWords(
+  meter: Pick<MeterEntry, 'propertyId' | 'buildingId' | 'roomId'>,
+  names: PlaceNames,
+): string {
+  return placeWords([
+    names.property(meter.propertyId),
+    meter.buildingId === null ? null : names.building(meter.buildingId),
+    meter.roomId === null ? null : (names.room(meter.roomId)?.number ?? null),
+  ])
+}
+
+/**
+ * The measuring points of the list as the rows of its table, a sub meter
+ * under its main meter as in the list and with the main meter named in a
+ * column of its own. The place stands for whoever reads places; the last
+ * reading is a number in the unit of the column beside it.
+ */
+export function meterTableRows(
+  meters: readonly MeterEntry[],
+  names: PlaceNames | null,
+): readonly TableRow[] {
+  const byId = new Map<string, MeterEntry>(meters.map((meter) => [meter.assetId, meter]))
+
+  return metersNested(meters).map(({ meter, sub }) => {
+    const main = sub && meter.mainMeterId !== null ? (byId.get(meter.mainMeterId) ?? null) : null
+
+    return [
+      meterTitle(meter),
+      main === null ? null : meterTitle(main),
+      names === null ? null : meterPlaceWords(meter, names),
+      meter.medium === null ? null : meterMediumLabel[meter.medium],
+      meterUnitSymbol[meter.unit],
+      meter.meterNumber,
+      meter.lastReading === null ? null : meter.lastReading.valueMilli / 1000,
+      meter.lastReading === null ? null : { day: meter.lastReading.readOn },
+      meterStateLabel[meter.state],
+    ]
+  })
+}
+
+// --- The register of duties -------------------------------------------------------------------------
+
+/** The columns of "Pflichtenverzeichnis" as a table; what the list shows in two lines has two columns (4.3). */
+export const dutyTableColumns = {
+  where: 'Anlage oder Ort',
+  duty: 'Pflicht',
+  source: 'Grundlage',
+  interval: 'Frist',
+  intervalKind: 'Art der Frist',
+  intervalCheck: 'Frist prüfen',
+  responsible: 'Zuständig',
+  performer: 'Ausführung',
+  lastEvidence: 'Letzter Nachweis',
+  evidenceOn: 'Nachweis vom',
+  next: 'Nächster Termin',
+  state: 'Zustand',
+} as const
+
+/** What the register says in its cells beside the words of a duty. */
+export const dutyTableWords = {
+  none: 'keiner',
+  legacy: 'Altbestand',
+  /** Why the register narrowed to a person is no table for whoever may not see the staff. */
+  narrowedToAPerson:
+    'Auf eine Person eingegrenzt gibt es das Pflichtenverzeichnis als Tabelle nur für die Leitung.',
+} as const
+
+/** The columns of the table of duties, with who answers for each only where it names people. */
+export function dutyTableHeads(names: boolean): readonly string[] {
+  const { responsible, ...columns } = dutyTableColumns
+
+  return Object.values(columns).flatMap((column) =>
+    column === columns.performer && names ? [responsible, column] : [column],
+  )
+}
+
+/** The day a duty is due on next, as the register shows it: none for one that has ended, rests or has none. */
+export function dutyNextDay(
+  duty: Pick<DutyEntry, 'ended' | 'state' | 'appointment'>,
+): IsoDate | null {
+  return duty.ended || duty.state === 'dormant' || duty.appointment === null
+    ? null
+    : duty.appointment.dueOn
+}
+
+/**
+ * A duty of the register as a row of its table. Who answers for it stands
+ * only where `names` says so; who performs it is the operator's own people
+ * or a contractor, and no person. "Frist prüfen" has its own column (#74).
+ */
+export function dutyTableRow(
+  duty: DutyEntry,
+  where: string,
+  catalogue: Catalogue | null,
+  names: boolean,
+): TableRow {
+  const next = dutyNextDay(duty)
+  const last = duty.lastEvidence
+
+  return [
+    where,
+    duty.title,
+    dutySourceWords(duty, catalogue),
+    intervalWords(dutyInterval(duty)),
+    intervalKindWords(duty, catalogue),
+    duty.intervalToCheck ? intervalCheckWords : null,
+    ...(names ? [duty.responsible?.name ?? nobodyWords] : []),
+    performerWords(duty),
+    last === null
+      ? dutyTableWords.none
+      : last.origin === 'legacy'
+        ? dutyTableWords.legacy
+        : last.number,
+    last === null ? null : { day: last.performedOn },
+    next === null ? null : { day: next },
+    dutyStandingWords(duty),
+  ]
+}
+
+// --- The proposals of the catalogue -----------------------------------------------------------------
+
+/** The columns of "Vorschläge" as a table: a row for each duty kind at each asset (#102). */
+export const proposalTableColumns = {
+  kind: 'Pflichtart',
+  package: 'Paket',
+  asset: 'Anlage',
+  place: 'Ort',
+  enteredOn: 'Angelegt am',
+} as const
+
+/** The columns of the proposals dismissed as a table, each with its reason and its day. */
+export const dismissedTableColumns = {
+  asset: 'Anlage',
+  place: 'Ort',
+  kind: 'Pflichtart',
+  package: 'Paket',
+  reason: 'Begründung',
+  dismissedOn: 'Verworfen am',
+} as const
+
+/** "AN-00015 Betriebsmittel Werkstatt": an asset by its number and its name. */
+export function proposedAssetName(asset: Pick<ProposedAsset, 'number' | 'name'>): string {
+  return [asset.number, asset.name].filter(Boolean).join(' ')
+}
+
+/** Where a proposed asset stands: "Feuerwache Nord, Wache". */
+export function proposedAssetPlace(
+  asset: Pick<ProposedAsset, 'propertyId' | 'buildingId'>,
+  names: PlaceNames,
+): string {
+  return placeWords([names.property(asset.propertyId), names.building(asset.buildingId)])
+}
+
+/**
+ * Two duty kinds in the order of the proposals: that of the catalogue, and
+ * a kind the catalogue at hand does not know last, by its key.
+ */
+export function byProposedKind(
+  catalogue: Pick<Catalogue, 'dutyKinds'> | null,
+  on: IsoDate,
+): (left: string, right: string) => number {
+  const order = new Map((catalogue?.dutyKinds(on) ?? []).map((entry, index) => [entry.key, index]))
+  const rank = (kind: string) => order.get(kind) ?? Number.MAX_SAFE_INTEGER
+
+  return (left, right) => rank(left) - rank(right) || left.localeCompare(right)
+}
+
+/** What a duty kind and its package are called, as far as the catalogue at hand knows them. */
+function kindAndPackage(
+  catalogue: Pick<Catalogue, 'dutyKind' | 'packages'> | null,
+  kind: string,
+  on: IsoDate,
+): readonly [string, string | null] {
+  return [
+    catalogue?.dutyKind(kind, on)?.definition.label ?? kind,
+    catalogue?.packages.find((each) => each.name === packageOf(kind))?.title ?? null,
+  ]
+}
+
+/** What a table says of the asset of a proposal: its name and its place, each for whoever reads it. */
+export interface ProposalReads {
+  readonly assets: boolean
+  readonly names: PlaceNames | null
+}
+
+function assetCells(asset: ProposedAsset, reads: ProposalReads): readonly [string, string | null] {
+  return [
+    reads.assets ? proposedAssetName(asset) : 'Anlage',
+    reads.names === null ? null : proposedAssetPlace(asset, reads.names),
+  ]
+}
+
+/**
+ * The open proposals as the rows of their table, in the order of the list:
+ * by duty kind as the catalogue orders them, the assets of a kind as they
+ * were read.
+ */
+export function proposalTableRows(
+  proposals: readonly DutyProposal[],
+  catalogue: Pick<Catalogue, 'dutyKind' | 'dutyKinds' | 'packages'> | null,
+  on: IsoDate,
+  reads: ProposalReads,
+): readonly TableRow[] {
+  const inOrder = byProposedKind(catalogue, on)
+
+  return proposals
+    .map((proposal, index) => ({ proposal, index }))
+    .sort(
+      (left, right) => inOrder(left.proposal.kind, right.proposal.kind) || left.index - right.index,
+    )
+    .map(({ proposal }) => [
+      ...kindAndPackage(catalogue, proposal.kind, on),
+      ...assetCells(proposal.asset, reads),
+      { day: proposal.asset.enteredOn },
+    ])
+}
+
+/** The proposals dismissed as the rows of their table, in the order they were read. */
+export function dismissedTableRows(
+  dismissed: readonly DismissedProposal[],
+  catalogue: Pick<Catalogue, 'dutyKind' | 'packages'> | null,
+  on: IsoDate,
+  reads: ProposalReads,
+): readonly TableRow[] {
+  return dismissed.map((each) => [
+    ...assetCells(each.asset, reads),
+    ...kindAndPackage(catalogue, each.kind, on),
+    each.reason,
+    { day: each.dismissedOn },
+  ])
 }

@@ -16,6 +16,7 @@ import {
   mountOffice,
   type NamedArea,
   onA,
+  servingTables,
   signedInOffice,
   type WriteAnswer,
   type Written,
@@ -491,5 +492,40 @@ describe('the way to the proposals', () => {
     expect(screen.getByRole('link', { name: '1 verworfener Vorschlag' }).getAttribute('href')).toBe(
       `/pflichten/vorschlaege/verworfen?pflichtart=${interimCheck}`,
     )
+  })
+})
+
+describe('the proposals as a table (#236)', () => {
+  it('are asked for with what the list is narrowed by, the package of the screen included', async () => {
+    await mount(`/pflichten/vorschlaege?liegenschaft=${depot.id}&paket=probe`, undefined, {
+      [`/duties/proposals?propertyId=${depot.id}`]: proposals,
+    })
+    await screen.findByRole('heading', { level: 2, name: 'Hauptprüfung der Aufzugsanlage' })
+
+    // After the answers of the test, which it hands every other request to.
+    const tables = servingTables()
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Als Tabelle' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Excel (.xlsx)' }))
+
+    await waitFor(() => {
+      expect(tables.asked).toEqual([
+        `/duties/proposals/table?propertyId=${depot.id}&package=probe&format=xlsx`,
+      ])
+    })
+  })
+
+  it('are asked for as the dismissed ones from the list of the dismissed', async () => {
+    await mount('/pflichten/vorschlaege/verworfen')
+    await screen.findByText('1 verworfener Vorschlag an 1 Anlage')
+
+    const tables = servingTables()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Als Tabelle' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: 'CSV (.csv)' }))
+
+    await waitFor(() => {
+      expect(tables.asked).toEqual(['/duties/proposals/table?list=dismissed&format=csv'])
+    })
   })
 })

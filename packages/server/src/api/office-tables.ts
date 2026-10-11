@@ -15,14 +15,26 @@ import {
   defectTableColumns,
   defectTableRow,
   defectWhere,
+  dismissedTableColumns,
+  dismissedTableRows,
+  type DutyEntry,
+  type DutyProposals,
+  dutyTableHeads,
+  dutyTableRow,
   isAllowed,
   type IsoDate,
+  type MeterEntry,
+  meterTableColumns,
+  meterTableRows,
   outgoingTableRows,
+  packageOf,
   type PlaceNames,
   type PlaceToDo,
   placeWords,
   propertySearchText,
   propertyTableColumns,
+  proposalTableColumns,
+  proposalTableRows,
   searchedFor,
   tableNamesPeople,
   type TableRow,
@@ -427,4 +439,82 @@ export function defectTable(
       ),
     ),
   }
+}
+
+/**
+ * "Zähler" as a table: the measuring points of the list, a sub meter under
+ * its main meter. Where each is stands for whoever reads places.
+ */
+export async function meterTable(
+  tx: TenantTransaction,
+  identity: Asking,
+  meters: readonly MeterEntry[],
+): Promise<OutgoingTable> {
+  return {
+    name: 'Zähler',
+    columns: Object.values(meterTableColumns),
+    rows: meterTableRows(meters, await placeNamesFor(tx, identity)),
+  }
+}
+
+/**
+ * "Pflichtenverzeichnis" as a table: the duties of the register, with what
+ * each hangs on named for whoever reads it, and who answers for each only
+ * for the Leitung. A duty arrives here without that person where the table
+ * names nobody.
+ */
+export async function dutyTable(
+  tx: TenantTransaction,
+  catalogue: Catalogue,
+  identity: Asking,
+  rows: readonly DutyEntry[],
+): Promise<OutgoingTable> {
+  const names = await placeNamesFor(tx, identity)
+  const assetNames = await assetLookupFor(tx, identity)
+  const people = tableNamesPeople(identity)
+
+  return {
+    name: 'Pflichtenverzeichnis',
+    columns: dutyTableHeads(people),
+    rows: rows.map((row) =>
+      dutyTableRow(row, whereWords(targetWhere(row, names, assetNames)), catalogue, people),
+    ),
+  }
+}
+
+/** Which of the two lists of proposals a table holds: the open ones, or those dismissed. */
+export type ProposalList = 'open' | 'dismissed'
+
+/**
+ * The proposals of the catalogue as a table, the open ones or those
+ * dismissed, narrowed to a package as the list narrows them. The asset is
+ * named for whoever reads assets, its place for whoever reads places.
+ */
+export async function proposalTable(
+  tx: TenantTransaction,
+  catalogue: Catalogue,
+  identity: Asking,
+  today: IsoDate,
+  read: DutyProposals,
+  list: ProposalList,
+  inPackage: string | null,
+): Promise<OutgoingTable> {
+  const reads = {
+    assets: isAllowed(identity, 'asset.read'),
+    names: await placeNamesFor(tx, identity),
+  }
+  const within = <Row extends { readonly kind: string }>(rows: readonly Row[]) =>
+    rows.filter((row) => inPackage === null || packageOf(row.kind) === inPackage)
+
+  return list === 'dismissed'
+    ? {
+        name: 'Verworfene Vorschläge',
+        columns: Object.values(dismissedTableColumns),
+        rows: dismissedTableRows(within(read.dismissed), catalogue, today, reads),
+      }
+    : {
+        name: 'Vorschläge',
+        columns: Object.values(proposalTableColumns),
+        rows: proposalTableRows(within(read.proposals), catalogue, today, reads),
+      }
 }

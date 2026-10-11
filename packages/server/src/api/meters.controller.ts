@@ -5,12 +5,14 @@ import {
   Controller,
   Delete,
   Get,
+  Header,
   Inject,
   NotFoundException,
   Param,
   Post,
   Put,
   Query,
+  StreamableFile,
 } from '@nestjs/common'
 import {
   addMonths,
@@ -51,6 +53,8 @@ import {
   CurrentIdentity,
   Database,
   isUuid,
+  tableAnswer,
+  tableFormatOf,
   type TenantTransaction,
 } from '@opengewerk/platform-server'
 import { and, asc, eq, inArray, isNotNull, isNull } from 'drizzle-orm'
@@ -73,6 +77,7 @@ import {
 } from '../database/meter-standing.js'
 import { dayInGermany } from '../today.js'
 import { RequiresPermission } from './authorization.js'
+import { meterTable } from './office-tables.js'
 import { type Asking, fieldsOf, refuse } from './places.js'
 import { said } from './register-question.js'
 
@@ -167,9 +172,41 @@ export class MetersController {
    */
   @Get()
   @RequiresPermission('asset.read')
-  async list(
+  list(
     @CurrentIdentity() identity: Asking,
     @Query() query: Readonly<Record<string, unknown>>,
+  ): Promise<MeterList> {
+    return this.listed(identity, query)
+  }
+
+  /**
+   * The list as a table (#236): the measuring points the list shows for its
+   * key date under what it is narrowed by, a sub meter under its main meter,
+   * as a workbook or as text (`?format=xlsx` or `csv`). Whoever reads the
+   * list reads its table; where a measuring point is stands for whoever
+   * reads places.
+   *
+   * Before the page of a measuring point, or its address would be read as an id.
+   */
+  @Get('table')
+  @RequiresPermission('asset.read')
+  @Header('Cache-Control', 'no-store')
+  async table(
+    @CurrentIdentity() identity: Asking,
+    @Query() query: Readonly<Record<string, unknown>>,
+  ): Promise<StreamableFile> {
+    const format = tableFormatOf(query)
+    const { meters } = await this.listed(identity, query)
+
+    return this.database.forTenant(identity, async (tx) =>
+      tableAnswer(await meterTable(tx, identity, meters), format, dayInGermany()),
+    )
+  }
+
+  /** The list for what an address asks, or the refusal. */
+  private async listed(
+    identity: Asking,
+    query: Readonly<Record<string, unknown>>,
   ): Promise<MeterList> {
     const today = dayInGermany()
     const asked = said(query, 'keyDate') ?? null

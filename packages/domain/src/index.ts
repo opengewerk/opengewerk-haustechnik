@@ -100,6 +100,9 @@ export * from './model/asset-condition.js'
 // The register of duties and the page of a duty as a screen reads them, with
 // the order of the register and what an evidence means for an appointment.
 export * from './model/duty-register.js'
+// What the register, the page of a duty and the register as a table say
+// about a duty in the same words.
+export * from './model/duty-words.js'
 // The document that bears the interval of a duty, and when a duty says
 // "Frist prüfen".
 export * from './model/duty-document.js'

@@ -4,11 +4,14 @@ import {
   dutyDueWindows,
   type DutyEntry,
   dutyInterval,
+  dutyNextDay,
   type DutyRegister,
   type DutyRegisterFilter,
   type DutyRegisterState,
   dutyRegisterStateLabel,
   dutyRegisterStates,
+  dutyTableColumns,
+  dutyTableWords,
   endedDuties,
   intervalWords,
   namesAPerson,
@@ -17,7 +20,14 @@ import {
 } from '@opengewerk/haustechnik-domain'
 import { Button, cardLink, Cell, Column, Panel, TablePanel } from '@opengewerk/platform-web'
 import { date, today } from '@opengewerk/platform-web/format'
-import { Chip, Empty, NoteBox, PageHead, Screen } from '@opengewerk/platform-web/office'
+import {
+  Chip,
+  Empty,
+  NoteBox,
+  PageHead,
+  Screen,
+  useTableExport,
+} from '@opengewerk/platform-web/office'
 import { maybeText, request, RequestRefused, useRecords } from '@opengewerk/platform-web/sync'
 import { useInfiniteQuery } from '@tanstack/react-query'
 import { Link, useNavigate, useSearch } from '@tanstack/react-router'
@@ -50,7 +60,9 @@ import { EvidenceNumber } from '../evidence-words.js'
 import { factLink } from '../links.js'
 import { officePlaces } from '../place-addresses.js'
 import { assetKindChoices, PlaceFilter, RegisterFilter } from '../register-filter.js'
+import { asTableAddress } from '../table-address.js'
 import { ProposalsButton } from './proposals.js'
+import { useRight } from '@opengewerk/platform-web/session'
 
 export const dutyRegisterWords = {
   noConnection: 'Das Pflichtenverzeichnis kommt vom Server. Gerade ist keine Verbindung da.',
@@ -103,6 +115,12 @@ export function DutyRegisterScreen() {
     // A refusal is an answer: asking again brings the same one.
     retry: (count, error) => !(error instanceof RequestRefused) && count < 2,
   })
+
+  // What the register shows under its filter, whole and not a page, as a table
+  // (#236). Narrowed to a person it leaves only with whoever may see the staff.
+  const seesStaff = useRight('membership.read')
+  const table = useTableExport(asTableAddress(dutyRegisterRequest(filter, 0)))
+  const asTable = !namesAPerson(filter) || seesStaff
 
   const narrowed = Object.keys(filter).length > 0
   const first = pages.data?.pages[0]
@@ -167,17 +185,18 @@ export function DutyRegisterScreen() {
                 number={date(duty.lastEvidence.performedOn)}
               />
             ),
-            sub: 'Altbestand',
+            sub: dutyTableWords.legacy,
           }
         : {
             main: <EvidenceNumber id={duty.lastEvidence.id} number={duty.lastEvidence.number} />,
             sub: date(duty.lastEvidence.performedOn),
           }
-  const nextOf = (duty: DutyEntry) =>
-    duty.ended || duty.state === 'dormant' || duty.appointment === null
-      ? null
-      : date(duty.appointment.dueOn)
-  const none = <span className="text-ink-faint">keiner</span>
+  const nextOf = (duty: DutyEntry) => {
+    const next = dutyNextDay(duty)
+
+    return next === null ? null : date(next)
+  }
+  const none = <span className="text-ink-faint">{dutyTableWords.none}</span>
 
   return (
     <Screen>
@@ -186,6 +205,7 @@ export function DutyRegisterScreen() {
         {...countOf(first)}
         actions={
           <>
+            {asTable ? table.button : null}
             <ProposalsButton
               {...(filter.propertyId === undefined ? {} : { propertyId: filter.propertyId })}
             />
@@ -200,6 +220,7 @@ export function DutyRegisterScreen() {
           </>
         }
       />
+      {asTable ? table.trouble : null}
       <Filters
         filter={filter}
         register={first}
@@ -317,15 +338,16 @@ export function DutyRegisterScreen() {
         >
           <thead>
             <tr>
-              <Column className="w-[190px] min-w-[140px]">Anlage oder Ort</Column>
-              <Column className="min-w-[180px]">Pflicht</Column>
-              <Column className="w-[104px] min-w-[88px]">Frist</Column>
-              <Column className="w-[168px] min-w-[124px]">Zuständig</Column>
-              <Column className="w-[122px] min-w-[104px]">Letzter Nachweis</Column>
+              {/* The heads the register shares with its table (#236). */}
+              <Column className="w-[190px] min-w-[140px]">{dutyTableColumns.where}</Column>
+              <Column className="min-w-[180px]">{dutyTableColumns.duty}</Column>
+              <Column className="w-[104px] min-w-[88px]">{dutyTableColumns.interval}</Column>
+              <Column className="w-[168px] min-w-[124px]">{dutyTableColumns.responsible}</Column>
+              <Column className="w-[122px] min-w-[104px]">{dutyTableColumns.lastEvidence}</Column>
               <Column numeric className="w-[96px] min-w-[88px]">
-                Nächster Termin
+                {dutyTableColumns.next}
               </Column>
-              <Column className="w-[176px] min-w-[148px]">Zustand</Column>
+              <Column className="w-[176px] min-w-[148px]">{dutyTableColumns.state}</Column>
             </tr>
           </thead>
           <tbody>
