@@ -17,6 +17,7 @@ import {
   type NamedArea,
   onA,
   rowsOf,
+  servingTables,
   signedInOffice,
   untilTheRightsAreKnown,
   type Written,
@@ -536,5 +537,70 @@ describe('the navigation', () => {
     expect(
       await within(screen.getByRole('navigation', { name: 'Hauptbereiche' })).findByText('2'),
     ).toBeDefined()
+  })
+})
+
+describe('the list "Mängel" as a table (#236)', () => {
+  it('is asked for with the list a chip names and what the filter narrows it by', async () => {
+    const { mounted } = mount('/maengel', {
+      '/defects': register([remedied, late, unclassed]),
+      '/defects?state=overdue': register([late]),
+      '/defects?state=overdue&defectClass=none': register([]),
+    })
+
+    await mounted
+    await waitFor(() => {
+      expect(rowsOf(caption)).toHaveLength(3)
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Über der Frist 1' }))
+    await waitFor(() => {
+      expect(rowsOf(caption)).toHaveLength(1)
+    })
+    fireEvent.change(screen.getByLabelText('Klasse'), { target: { value: 'none' } })
+    await screen.findByText('Kein Mangel passt zu dem, wonach die Liste eingegrenzt ist.')
+
+    // After the answers of the test, which it hands every other request to.
+    const tables = servingTables()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Als Tabelle' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Excel (.xlsx)' }))
+
+    await waitFor(() => {
+      expect(tables.asked).toEqual(['/defects/table?state=overdue&defectClass=none&format=xlsx'])
+    })
+  })
+})
+
+describe('the classes of defects as a table (#236)', () => {
+  it('are asked for as the settings list them', async () => {
+    const { mounted } = mount(
+      '/einstellungen/maengelklassen',
+      {
+        '/settings/defect-classes': [
+          {
+            key: 'allgemein.minor',
+            label: 'gering',
+            unsafe: false,
+            packageName: 'allgemein',
+            packageTitle: 'Allgemein',
+            dueDays: null,
+          },
+        ],
+      },
+      'management',
+    )
+
+    await mounted
+    await screen.findByLabelText('Vorgabe der Frist für gering in Tagen')
+
+    // After the answers of the test, which it hands every other request to.
+    const tables = servingTables()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Als Tabelle' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: 'CSV (.csv)' }))
+
+    await waitFor(() => {
+      expect(tables.asked).toEqual(['/settings/defect-classes/table?format=csv'])
+    })
   })
 })

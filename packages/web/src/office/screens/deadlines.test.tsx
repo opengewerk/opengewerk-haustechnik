@@ -11,6 +11,7 @@ import {
   type NamedArea,
   onA,
   rowsOf,
+  servingTables,
   signedInOffice,
   untilTheRightsAreKnown,
 } from '../test-office.js'
@@ -273,5 +274,39 @@ describe('the settings of the deadlines', () => {
 
     expect(await screen.findByText('Fälligkeit einer Pflicht')).toBeTruthy()
     expect(screen.queryByText(/\(du\)/)).toBeNull()
+  })
+})
+
+describe('the deadlines as a table (#236)', () => {
+  it('are asked for with what the list is narrowed by, whole and not a page', async () => {
+    await mount('/fristen', {
+      [firstPage]: page([lift, yardDuty]),
+      '/deadlines?status=open&property=p-yard&limit=50': page([yardDuty]),
+    })
+    await waitFor(() => {
+      expect(rowsOf('Fristen')).toHaveLength(2)
+    })
+    fireEvent.change(filter('Nach Liegenschaft filtern'), { target: { value: yard.id } })
+    await waitFor(() => {
+      expect(rowsOf('Fristen')).toHaveLength(1)
+    })
+
+    // After the answers of the test, which it hands every other request to.
+    const tables = servingTables()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Als Tabelle' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Excel (.xlsx)' }))
+
+    await waitFor(() => {
+      expect(tables.asked).toEqual(['/deadlines/table?status=open&property=p-yard&format=xlsx'])
+    })
+  })
+
+  it('are not offered to whoever may not read the deadlines', async () => {
+    await mount('/fristen', { [firstPage]: page([lift]) }, 'site_management')
+    await untilTheRightsAreKnown()
+    await screen.findByText('Fristen sehen darf dieser Zugang nicht.')
+
+    expect(screen.queryByRole('button', { name: 'Als Tabelle' })).toBeNull()
   })
 })

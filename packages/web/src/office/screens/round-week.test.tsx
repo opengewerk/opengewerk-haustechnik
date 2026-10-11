@@ -319,4 +319,27 @@ describe('the rounds of a week as a table (#236)', () => {
       expect(tables.asked).toEqual([`/rounds/week/table?of=${monday}&format=csv`])
     })
   })
+
+  it('are asked for in the area of the chip, by whoever sees more than one', async () => {
+    signedInOffice('management', [nord, { id: 'a-sued', name: 'Süd' }], {
+      [`/rounds/week?of=${monday}`]: week,
+      '/rounds/people': [],
+    })
+    await mountOffice('/rundgaenge', server, everything)
+    fireEvent.click(
+      within(await screen.findByRole('group', { name: 'Bereiche' })).getByRole('button', {
+        name: 'Nord',
+      }),
+    )
+
+    // After the answers of the test, which it hands every other request to.
+    const tables = servingTables()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Als Tabelle' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: 'CSV (.csv)' }))
+
+    await waitFor(() => {
+      expect(tables.asked).toEqual([`/rounds/week/table?of=${monday}&area=${nord.id}&format=csv`])
+    })
+  })
 })

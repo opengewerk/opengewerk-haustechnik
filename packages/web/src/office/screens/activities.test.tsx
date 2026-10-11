@@ -16,6 +16,7 @@ import {
   type NamedArea,
   onA,
   rowsOf,
+  servingTables,
   signedInOffice,
   untilTheRightsAreKnown,
   type Written,
@@ -535,5 +536,36 @@ describe('closing an activity with the reason (#183)', () => {
     )
 
     expect(screen.queryByRole('button', { name: 'Nicht durchgeführt' })).toBeNull()
+  })
+})
+
+describe('the list "Prüfungen" as a table (#236)', () => {
+  it('is asked for with what the list is narrowed by, whole and not a page', async () => {
+    const { mounted } = mount('/pruefungen', {
+      [firstPage]: page([own]),
+      '/activities?state=done&offset=0&limit=50': page([nobodys]),
+      '/activities?state=done&kind=maintenance&offset=0&limit=50': page([nobodys]),
+    })
+
+    await mounted
+    await screen.findByRole('link', { name: 'Prüfung der Sicherheitsbeleuchtung' })
+    fireEvent.click(screen.getByRole('button', { name: 'Erledigt' }))
+    await screen.findByRole('link', { name: 'Wartung der Brandmeldeanlage' })
+    fireEvent.change(screen.getByRole('combobox', { name: 'Art' }), {
+      target: { value: 'maintenance' },
+    })
+    await waitFor(() => {
+      expect(screen.getByRole('combobox', { name: 'Art' })).toHaveProperty('value', 'maintenance')
+    })
+
+    // After the answers of the test, which it hands every other request to.
+    const tables = servingTables()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Als Tabelle' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Excel (.xlsx)' }))
+
+    await waitFor(() => {
+      expect(tables.asked).toEqual(['/activities/table?state=done&kind=maintenance&format=xlsx'])
+    })
   })
 })
