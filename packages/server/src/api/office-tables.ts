@@ -17,6 +17,7 @@ import {
   defectWhere,
   isAllowed,
   type IsoDate,
+  outgoingTableRows,
   type PlaceNames,
   type PlaceToDo,
   placeWords,
@@ -309,8 +310,12 @@ export async function propertyTable(
   }
 }
 
-/** What a list asks for to be read whole for its table: from its first row, and no page. */
-export const wholeList = { offset: 0, limit: 1_000_000_000 } as const
+/**
+ * What a list asks for to be read whole for its table: from its first row,
+ * and no page. One row more than a table goes out with, so that a list
+ * longer than that is refused by `tableAnswer` and never cut short.
+ */
+export const wholeList = { offset: 0, limit: outgoingTableRows + 1 } as const
 
 /**
  * The assets a person reads, for a column that names where a record hangs:
