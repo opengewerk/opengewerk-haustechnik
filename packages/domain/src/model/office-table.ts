@@ -208,22 +208,24 @@ export interface PlaceNames {
 /**
  * "Anlage und Ort" of a deadline as two parts: the asset or the place it
  * hangs on, and where that stands. A place whose name the person does not
- * read is named by what it is, as the list names it without the record.
+ * read is named by what it is, as the list names it without the record, and
+ * so is an asset where `readsAssets` says the person does not read assets.
  */
 export function deadlineWhere(
   facts: DeadlineFacts,
   names: PlaceNames | null,
+  readsAssets = true,
 ): { readonly name: string; readonly sub: string } {
   const property = names?.property(facts.propertyId) ?? 'Liegenschaft'
   const building = facts.buildingId === null ? null : (names?.building(facts.buildingId) ?? null)
   const place = placeWords([property, building])
 
   if (facts.asset !== null) {
-    const asset = [facts.asset.number, facts.asset.name].filter(
-      (part) => part !== null && part !== '',
-    )
+    const asset = readsAssets
+      ? [facts.asset.number, facts.asset.name].filter((part) => part !== null && part !== '')
+      : []
 
-    return { name: asset.join(' '), sub: place }
+    return { name: asset.join(' ') || 'Anlage', sub: place }
   }
 
   if (facts.roomId !== null) {
@@ -245,8 +247,12 @@ export function deadlineWhere(
 }
 
 /** "Anlage und Ort" in one cell: "Aufzug 1, Schulzentrum Am Lindenhain, Schulhaus". */
-export function deadlineWhereWords(facts: DeadlineFacts, names: PlaceNames | null): string {
-  const { name, sub } = deadlineWhere(facts, names)
+export function deadlineWhereWords(
+  facts: DeadlineFacts,
+  names: PlaceNames | null,
+  readsAssets = true,
+): string {
+  const { name, sub } = deadlineWhere(facts, names, readsAssets)
 
   return `${name}, ${sub}`
 }

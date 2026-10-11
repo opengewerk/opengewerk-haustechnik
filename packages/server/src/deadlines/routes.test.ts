@@ -404,20 +404,21 @@ describe('the list of deadlines as a table', () => {
     expect(nameless.flat()).not.toContain('u-site')
   })
 
-  it('names the places only for whoever reads places as well', async () => {
+  it('names the places and the asset only for whoever reads them as well', async () => {
     await dutyWithEvidence(large, '2025-05-03', north, 'Tabellenschule Ort')
     await runDeadlinesOf({ database, catalogue, now: () => october }, large, october)
 
-    const header = JSON.stringify({
-      userId: 'u-lead',
-      tenantId: large,
-      roles: ['management'],
-      rights: ['deadline.read'],
-    })
-    const rows = await tableOf(header, 'search=Tabellenschule Ort')
+    const holding = (...rights: string[]) =>
+      JSON.stringify({ userId: 'u-lead', tenantId: large, roles: ['management'], rights })
+    const where = async (...rights: string[]) =>
+      (await tableOf(holding('deadline.read', ...rights), 'search=Tabellenschule Ort'))[1]?.[4]
 
-    expect(rows[1]?.[4]).toMatch(/^AN-\d{5} Aufzug Haus A, Liegenschaft$/)
-    expect(rows.flat().join(' ')).not.toContain('Haus A,')
+    expect(await where()).toBe('Anlage, Liegenschaft')
+    expect(await where('asset.read')).toMatch(/^AN-\d{5} Aufzug Haus A, Liegenschaft$/)
+    expect(await where('location.read')).toBe('Anlage, Tabellenschule Ort, Haus A')
+    expect(await where('asset.read', 'location.read')).toMatch(
+      /^AN-\d{5} Aufzug Haus A, Tabellenschule Ort, Haus A$/,
+    )
   })
 
   it('is narrowed to one person only by the Leitung', async () => {

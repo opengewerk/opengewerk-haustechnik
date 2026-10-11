@@ -6,6 +6,7 @@ import {
   deadlineSubject,
   deadlineTableColumns,
   deadlineWhereWords,
+  isAllowed,
   rhythmText,
 } from '@opengewerk/haustechnik-domain'
 import { type DeadlineRules, isUuid } from '@opengewerk/platform-server'
@@ -200,17 +201,22 @@ export function deadlineRulesFor(
       notAColleague: 'Verantwortlich ist jemand, der für diesen Betreiber arbeitet.',
     },
     // The list as a table (#236): what a deadline is called and what it hangs
-    // on, as the list names them; the places only for whoever reads them.
+    // on, as the list names them; the places only for whoever reads them, and
+    // the number and the name of an asset only for whoever reads assets.
     listAsTable: {
       name: 'Fristen',
       columns: [deadlineTableColumns.where],
       cells: async (tx, identity) => {
         const names = await placeNamesFor(tx, identity as Asking)
+        const assets = isAllowed(identity as Asking, 'asset.read')
 
         return (row) => {
           const facts = row as unknown as DeadlineFacts
 
-          return { subject: deadlineSubject(facts), cells: [deadlineWhereWords(facts, names)] }
+          return {
+            subject: deadlineSubject(facts),
+            cells: [deadlineWhereWords(facts, names, assets)],
+          }
         }
       },
       narrowedToAPerson:
