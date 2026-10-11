@@ -274,7 +274,8 @@ export class AssetsController {
    * The register as a table (#138): every asset that passes the filter the
    * address names, and not a page of them, with the columns of the list, as
    * a workbook or as text (`?format=xlsx` or `csv`). Whoever reads the
-   * register reads its table, in their areas.
+   * register reads its table, in their areas; the place in it only whoever
+   * reads places as well.
    *
    * Before the file of an asset, or its address would be read as an id.
    */
@@ -290,7 +291,7 @@ export class AssetsController {
     const today = dayInGermany()
 
     return this.database.forTenant(identity, async (tx) =>
-      tableAnswer(await assetTable(tx, this.catalogue, today, filter), format, today),
+      tableAnswer(await assetTable(tx, this.catalogue, identity, today, filter), format, today),
     )
   }
 

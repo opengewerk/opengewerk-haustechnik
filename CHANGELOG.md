@@ -1092,10 +1092,11 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   die Suche und die Reihenfolge nach Dringlichkeit, jede Liegenschaft mit ihren Gebäuden in
   eigenen Zeilen und mit den Zahlen, die die Person lesen darf. Die Tabelle schreibt der Server
   (`GET /assets/table`, `GET /properties/table`), unter den Rechten und in den Bereichen der
-  Person; ein Wert, der wie eine Formel beginnt, wird nicht ausgeführt, und nichts vom Stempel
-  der letzten Änderung steht darin. Spalten und Wörter stehen in `domain` (`office-table.ts`)
+  Person, den Standort einer Anlage nur für wen auch Liegenschaften, Gebäude und Räume sieht;
+  ein Wert, der wie eine Formel beginnt, wird nicht ausgeführt, und nichts vom Stempel der
+  letzten Änderung steht darin. Spalten und Wörter stehen in `domain` (`office-table.ts`)
   und gelten für Liste und Tabelle zugleich. Die Verfahrensbeschreibung nennt die beiden
-  Exporte in Abschnitt 5 (B176 bis B182), die übrigen Listen folgen mit #236. Bisher ließ sich
+  Exporte in Abschnitt 5 (B176 bis B183), die übrigen Listen folgen mit #236. Bisher ließ sich
   keine Liste des Büros in eine Tabellenkalkulation übernehmen
 
 ### Geändert

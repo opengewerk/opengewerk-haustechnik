@@ -400,6 +400,30 @@ describe('the register of assets as a table', () => {
     expect(JSON.parse(String(refused.body)).message).toBe(missingRight('asset.read'))
   })
 
+  it('names the place only for whoever reads places as well', async () => {
+    const { property, building } = await propertyIn(small, 'Rathaus Nord')
+    await assetIn(building, { ...elevator, name: 'Aufzug Nord' })
+
+    for (const format of ['xlsx', 'csv'] as const) {
+      const [, row] = await tableOf(
+        '/assets/table',
+        { propertyId: property },
+        holding(small, 'asset.read'),
+        format,
+      )
+
+      expect(row?.slice(1, 4)).toEqual(['Aufzug Nord', 'Aufzugsanlage', ''])
+    }
+
+    const [, named] = await tableOf(
+      '/assets/table',
+      { propertyId: property },
+      holding(small, 'asset.read', 'location.read'),
+    )
+
+    expect(named?.[3]).toBe('Rathaus Nord, Haus A')
+  })
+
   it('is asked for as a workbook or as text, and refused in words otherwise', async () => {
     const refused = await asked('/assets/table', { format: 'pdf' }, by('u-tech')).expect(400)
 

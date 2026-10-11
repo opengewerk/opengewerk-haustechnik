@@ -75,16 +75,18 @@ async function namesOf(tx: TenantTransaction): Promise<{
  * The register of assets as a table: every asset that passes the filter, and
  * not a page of them, with the columns of the list (4.2). The kind is named
  * as the catalogue of the server names it, the place by its property,
- * building and room.
+ * building and room. Those names are what `location.read` reads: whoever
+ * reads the assets and not the places gets the column of the place empty.
  */
 export async function assetTable(
   tx: TenantTransaction,
   catalogue: Catalogue,
+  identity: Asking,
   today: IsoDate,
   filter: AssetRegisterFilter,
 ): Promise<OutgoingTable> {
   const entries = await assetsPassing(tx, catalogue, today, filter)
-  const names = await namesOf(tx)
+  const names = isAllowed(identity, 'location.read') ? await namesOf(tx) : null
 
   return {
     name: 'Anlagen',
@@ -93,11 +95,13 @@ export async function assetTable(
       assetTableRow(
         entry,
         catalogue.assetKind(entry.kind, today)?.definition.label ?? entry.kind,
-        placeWords([
-          names.property.get(entry.propertyId),
-          names.building.get(entry.buildingId),
-          entry.roomId === null ? null : names.room.get(entry.roomId),
-        ]),
+        names === null
+          ? ''
+          : placeWords([
+              names.property.get(entry.propertyId),
+              names.building.get(entry.buildingId),
+              entry.roomId === null ? null : names.room.get(entry.roomId),
+            ]),
       ),
     ),
   }
