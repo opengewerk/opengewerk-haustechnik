@@ -24,6 +24,7 @@ import {
   Button,
   Cell,
   Column,
+  Confirm,
   Dialog,
   DialogActions,
   Field,
@@ -52,7 +53,7 @@ import {
 } from '@opengewerk/platform-web/sync'
 import { useQuery, useQueryClient, type UseQueryResult } from '@tanstack/react-query'
 import { Link, useNavigate, useParams } from '@tanstack/react-router'
-import { Pencil, Plus, TriangleAlert, Upload } from 'lucide-react'
+import { Pencil, Plus, Trash2, TriangleAlert, Upload } from 'lucide-react'
 import { useState } from 'react'
 
 import { titleOfRoom } from '../../app/place-records.js'
@@ -158,6 +159,8 @@ export const dutyPageWords = {
   noActivity: 'keiner offen',
   whatMakingDoes:
     'entsteht, wie sie aus dem Termin entstanden wäre, mit dem Formular der Pflichtart. Wer ausführt und an welchem Tag, wird danach auf ihrer Seite geplant. Der Termin der Pflicht ändert sich dadurch nicht.',
+  removeAsks:
+    'Die Pflicht verschwindet aus dem Pflichtenverzeichnis und von ihrer Anlage und erinnert niemanden mehr. Was zu ihr geplant und nicht unterschrieben ist, geht mit. Der Katalog schlägt ihre Pflichtart für die Anlage danach wieder vor; gilt sie dort nicht, verwerfen Sie den Vorschlag. Im Änderungsprotokoll bleibt stehen, wer sie bestätigt und wer sie entfernt hat. War sie kein Irrtum und gilt nur nicht mehr, beenden Sie sie stattdessen.',
   documentRemoved: 'aus der Ablage entfernt',
   checkWithChange: 'Mit „Ändern“ und „Speichern“ zeigt die Pflicht auf die neue Fassung.',
   removedCheck:
@@ -202,7 +205,9 @@ function intervalCheckNote(document: NonNullable<DutyDetails['intervalDocument']
  * Whoever keeps the register says who answers for the duty and ends it,
  * changes a duty of the operator's own in its form (#178) and sets the
  * interval of a duty from the catalogue in the form that confirmed it
- * (#102); nobody else is offered the buttons.
+ * (#102); nobody else is offered the buttons. A duty from the catalogue that
+ * was confirmed by mistake is removed here, while it has left no record
+ * (#241): it has no form, where one of the operator's own is removed.
  */
 export function DutyScreen() {
   const { dutyId } = useParams({ strict: false }) as { dutyId?: string }
@@ -214,6 +219,7 @@ export function DutyScreen() {
   const navigate = useNavigate()
   const [naming, setNaming] = useState(false)
   const [ending, setEnding] = useState(false)
+  const [removing, setRemoving] = useState(false)
   const [making, setMaking] = useState(false)
   const page = useQuery({ ...dutyQuery(dutyId ?? ''), enabled: dutyId !== undefined })
   const evidence = useQuery({
@@ -325,6 +331,19 @@ export function DutyScreen() {
                 }}
               >
                 Beenden
+              </Button>
+            ) : null}
+            {/* Confirmed by mistake: no evidence and no activity that was signed
+                or closed, which the server says as the route asks it (#241). */}
+            {keeps && duty.kind !== null && !duty.ended && duty.removable ? (
+              <Button
+                tone="danger"
+                icon={Trash2}
+                onClick={() => {
+                  setRemoving(true)
+                }}
+              >
+                Entfernen
               </Button>
             ) : null}
           </>
@@ -618,6 +637,15 @@ export function DutyScreen() {
           sub={target.replace(/^Pflicht (an der |am |an )/, '')}
           onClose={() => {
             setEnding(false)
+          }}
+        />
+      ) : null}
+      {removing ? (
+        <RemoveDutyConfirm
+          key={duty.id}
+          duty={duty}
+          onClose={() => {
+            setRemoving(false)
           }}
         />
       ) : null}
@@ -998,6 +1026,79 @@ export function EndDutyDialog({
         </DialogActions>
       </form>
     </Dialog>
+  )
+}
+
+/**
+ * The question before a duty from the catalogue that was confirmed by mistake
+ * is removed, `pflicht_katalog_entfernen()` of the boards (#241, 4.3 of the
+ * concept): what removing means, that the catalogue proposes its kind for the
+ * asset again, and when to end the duty instead.
+ *
+ * Asked of the route of the duty, with a connection. What the server refuses
+ * with stands in the question, which stays open. Once the duty is gone, the
+ * file of its asset opens, where its proposal stands again.
+ */
+function RemoveDutyConfirm({
+  duty,
+  onClose,
+}: {
+  readonly duty: DutyDetails
+  readonly onClose: () => void
+}) {
+  const client = useSync()
+  const queries = useQueryClient()
+  const navigate = useNavigate()
+  const [working, setWorking] = useState(false)
+  const [trouble, setTrouble] = useState<string | null>(null)
+
+  async function remove() {
+    setWorking(true)
+    setTrouble(null)
+
+    try {
+      const result = await askAt(client, 'DELETE', `/duties/${duty.id}`, duty.id)
+
+      if (result.outcome === 'refused') {
+        setTrouble(refusalFor(result))
+
+        return
+      }
+
+      // Nothing read of the duties and of the assets holds any more: the
+      // register and the file of the asset list the duty, and the proposals
+      // of the asset leave its kind out.
+      queries.removeQueries({ queryKey: ['duties'] })
+      queries.removeQueries({ queryKey: ['assets'] })
+      await navigate({
+        to: duty.asset === null ? dutyRegisterPlace.to : officePlaces.asset(duty.asset.id),
+      })
+    } finally {
+      setWorking(false)
+    }
+  }
+
+  return (
+    <Confirm
+      open
+      title={`„${duty.title}“ entfernen?`}
+      confirm="Entfernen"
+      tone="danger"
+      busy={working}
+      onConfirm={() => {
+        void remove()
+      }}
+      onCancel={onClose}
+    >
+      <div className="flex flex-col gap-2">
+        <p>{dutyPageWords.removeAsks}</p>
+        {trouble ? (
+          <p role="alert" className="text-[13px] font-semibold text-conflict">
+            {trouble}
+          </p>
+        ) : null}
+      </div>
+    </Confirm>
   )
 }
 
