@@ -12,6 +12,7 @@ import { accountQuery, useRight } from '@opengewerk/platform-web/session'
 import {
   SiteLabel,
   SiteScreen,
+  SiteSearch,
   SiteText,
   TitleCount,
   TopTitle,
@@ -33,6 +34,7 @@ import { readingStanding, useHeldMeters } from '../../app/meters.js'
 import { titleOfRoom } from '../../app/place-records.js'
 import { assetTitle, useAcross } from '../kit.js'
 import { siteForms, siteReadings } from '../places.js'
+import { useSiteSearch } from '../search-source.js'
 import { endOfWeek, shortDay, startItems, longDay } from '../start-items.js'
 import { RoundOverview, progressOf, useActivityForm } from './form.js'
 
@@ -310,8 +312,13 @@ function useStartItems() {
   }
 }
 
-/** The list of the start, the left of the two on a tablet held across. */
+/**
+ * The list of the start, the left of the two on a tablet held across. Over it
+ * the search (#125): while words stand in it, its hits take the place of the
+ * list.
+ */
 function StartList({ selected }: { readonly selected: string | null }) {
+  const search = useSiteSearch()
   const { day, items } = useStartItems()
   const readings = useDueReadings(day)
   const counted = items.begun.length + items.today.length + readings.length + items.week.length
@@ -339,19 +346,23 @@ function StartList({ selected }: { readonly selected: string | null }) {
         title={startWords.title}
         right={<TitleCount count={counted} label={startWords.thisWeek} />}
       />
-      {cards(items.begun)}
-      {items.today.length + readings.length === 0 ? null : (
-        <section aria-label={startWords.today} className="flex flex-col gap-2">
-          <SiteLabel>{startWords.today}</SiteLabel>
-          {cards(items.today)}
-          {readings.map((due) => (
-            <ReadingCard key={due.propertyId} due={due} />
-          ))}
-        </section>
-      )}
-      {section(startWords.week, items.week)}
-      {section(startWords.later, items.later)}
-      {counted + items.later.length === 0 ? <SiteText muted>{startWords.nothing}</SiteText> : null}
+      <SiteSearch source={search}>
+        {cards(items.begun)}
+        {items.today.length + readings.length === 0 ? null : (
+          <section aria-label={startWords.today} className="flex flex-col gap-2">
+            <SiteLabel>{startWords.today}</SiteLabel>
+            {cards(items.today)}
+            {readings.map((due) => (
+              <ReadingCard key={due.propertyId} due={due} />
+            ))}
+          </section>
+        )}
+        {section(startWords.week, items.week)}
+        {section(startWords.later, items.later)}
+        {counted + items.later.length === 0 ? (
+          <SiteText muted>{startWords.nothing}</SiteText>
+        ) : null}
+      </SiteSearch>
     </SiteScreen>
   )
 }

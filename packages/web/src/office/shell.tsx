@@ -2,6 +2,7 @@ import { OfficeFrame } from '@opengewerk/platform-web/office'
 
 import { useKeepCatalogue } from '../sync/catalogue.js'
 import { useNavigation } from './navigation.js'
+import { useOfficeSearch } from './search-source.js'
 
 /**
  * What every office screen sits in. The frame is the foundation's (ADR 0010
@@ -17,11 +18,16 @@ import { useNavigation } from './navigation.js'
  *
  * The frame is also where the device sees to it that it holds the catalogue
  * of its server (`useKeepCatalogue`): every screen under it may ask one.
+ *
+ * The search in its header is the foundation's field with the sources of this
+ * application (#125, ADR 0010): what it finds, how its kinds are called and
+ * where a hit opens (`useOfficeSearch`).
  */
 export function OfficeShell() {
   const { groups, foot } = useNavigation()
+  const search = useOfficeSearch()
 
   useKeepCatalogue()
 
-  return <OfficeFrame navigation={groups} foot={foot} />
+  return <OfficeFrame navigation={groups} foot={foot} search={search} />
 }

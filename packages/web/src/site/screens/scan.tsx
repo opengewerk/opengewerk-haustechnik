@@ -71,13 +71,13 @@ export function SiteScanScreen() {
 }
 
 const cameraWords = {
-  noReader: 'Dieses Gerät liest keine QR-Codes. Ohne Kamera geht es über die Suche im Büro.',
+  noReader: 'Dieses Gerät liest keine QR-Codes. Ohne Kamera geht es über die Suche am Start.',
   noCamera:
-    'Die Kamera lässt sich nicht öffnen, sie ist nicht freigegeben oder nicht da. Ohne Kamera geht es über die Suche im Büro.',
+    'Die Kamera lässt sich nicht öffnen, sie ist nicht freigegeben oder nicht da. Ohne Kamera geht es über die Suche am Start.',
 }
 
 const holdIntoTheFrame =
-  'Halten Sie das Etikett in den Rahmen. Ohne Kamera geht es über die Suche im Büro.'
+  'Halten Sie das Etikett in den Rahmen. Ohne Kamera geht es über die Suche am Start.'
 
 /** The camera while it looks for a label: the square for the QR code and the sentence under it. */
 function ScanCamera({ onCode }: { readonly onCode: (read: string) => void }) {

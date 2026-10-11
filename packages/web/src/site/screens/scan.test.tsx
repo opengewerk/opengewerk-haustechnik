@@ -309,7 +309,7 @@ describe('the camera', () => {
 
     await waitFor(() => {
       expect(screen.getByRole('alert').textContent).toBe(
-        'Die Kamera lässt sich nicht öffnen, sie ist nicht freigegeben oder nicht da. Ohne Kamera geht es über die Suche im Büro.',
+        'Die Kamera lässt sich nicht öffnen, sie ist nicht freigegeben oder nicht da. Ohne Kamera geht es über die Suche am Start.',
       )
     })
   })

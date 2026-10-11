@@ -139,7 +139,7 @@ function questionOf(query: Readonly<Record<string, unknown>>): WorkOrderQuestion
  * performs sees what is given to them or to nobody, as for every activity,
  * and the orders they work on, as their device holds them (`deviceScope`).
  */
-function ordersInSight(identity: Asking): SQL | undefined {
+export function ordersInSight(identity: Asking): SQL | undefined {
   const given = inSight(identity)
 
   return given === undefined

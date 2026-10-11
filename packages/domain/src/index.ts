@@ -110,6 +110,10 @@ export * from './model/overview.js'
 // The timeline of a place: what happened there and below it, the newest first.
 export * from './model/timeline.js'
 
+// The search by name, number and mark over places, assets, activities and
+// the evidence, on the server and on the device.
+export * from './model/search.js'
+
 // The page of an evidence, the evidence of an asset and what a correction
 // of an evidence has to say.
 export * from './model/evidence-page.js'
