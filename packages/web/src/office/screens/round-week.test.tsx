@@ -16,6 +16,7 @@ import {
   type NamedArea,
   onA,
   rowsOf,
+  servingTables,
   signedInOffice,
   untilTheRightsAreKnown,
   type WriteAnswer,
@@ -300,5 +301,22 @@ describe('the rounds of a week', () => {
     await screen.findByTitle(`Fr: ${roundStateLabel.awaiting_countersignature}`)
 
     expect(screen.queryByRole('button', { name: 'Zuteilen' })).toBeNull()
+  })
+})
+
+describe('the rounds of a week as a table (#236)', () => {
+  it('are asked for with the week that is shown', async () => {
+    await mountOffice('/rundgaenge', server, everything)
+
+    const button = await screen.findByRole('button', { name: 'Als Tabelle' })
+    // After the answers of the test, which it hands every other request to.
+    const tables = servingTables()
+
+    fireEvent.click(button)
+    fireEvent.click(screen.getByRole('menuitem', { name: 'CSV (.csv)' }))
+
+    await waitFor(() => {
+      expect(tables.asked).toEqual([`/rounds/week/table?of=${monday}&format=csv`])
+    })
   })
 })

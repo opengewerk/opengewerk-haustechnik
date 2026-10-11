@@ -3,6 +3,7 @@ import {
   type Catalogue,
   closureOn,
   type DutyPerson,
+  everybodyIn,
   type FederalState,
   hasHolidays,
   holidayClosures,
@@ -13,12 +14,14 @@ import {
   passSearchDays,
   type PlanCalendar,
   planLimits,
+  planNextPass,
   planProblems,
   type PlanRhythm,
   planRhythmLabel,
   planRhythms,
   type PlanState,
   planStateOn,
+  planStateText,
   type RecordState,
   rhythmText,
   ruleScopeNames,
@@ -44,7 +47,14 @@ import {
   TablePanel,
 } from '@opengewerk/platform-web'
 import { date, today } from '@opengewerk/platform-web/format'
-import { ChangesButton, Empty, NoteBox, PageHead, Screen } from '@opengewerk/platform-web/office'
+import {
+  ChangesButton,
+  Empty,
+  NoteBox,
+  PageHead,
+  Screen,
+  useTableExport,
+} from '@opengewerk/platform-web/office'
 import { useRight } from '@opengewerk/platform-web/session'
 import {
   count,
@@ -143,7 +153,7 @@ export function walkerOf(
   userId: string | null,
   area: string | null,
 ): string {
-  return userId === null ? `Alle im Bereich${area ? ` ${area}` : ''}` : nameOf(people, userId)
+  return userId === null ? everybodyIn(area) : nameOf(people, userId)
 }
 
 /** A day with its day of the week: "Mittwoch, 07.10.2026". */
@@ -187,26 +197,21 @@ export function planStateWords(
   plan: RecordState,
   on: string,
 ): { readonly text: string; readonly tone: StatusTone } {
-  const state: PlanState = planStateOn(
-    {
-      startsOn: text(plan, 'startsOn') as IsoDate,
-      endsOn: (maybeText(plan, 'endsOn') ?? null) as IsoDate | null,
-      resting: flag(plan, 'resting'),
-    },
-    on as IsoDate,
-  )
-  const endsOn = maybeText(plan, 'endsOn')
-
-  switch (state) {
-    case 'ended':
-      return { text: `Beendet am ${date(endsOn)}`, tone: 'neutral' }
-    case 'resting':
-      return { text: 'Ruht', tone: 'waiting' }
-    case 'upcoming':
-      return { text: `Beginnt am ${date(text(plan, 'startsOn'))}`, tone: 'neutral' }
-    case 'running':
-      return { text: endsOn ? `Läuft bis ${date(endsOn)}` : 'Läuft', tone: 'done' }
+  const standing = {
+    startsOn: text(plan, 'startsOn') as IsoDate,
+    endsOn: (maybeText(plan, 'endsOn') ?? null) as IsoDate | null,
+    resting: flag(plan, 'resting'),
   }
+  const state: PlanState = planStateOn(standing, on as IsoDate)
+  const tones = {
+    ended: 'neutral',
+    resting: 'waiting',
+    upcoming: 'neutral',
+    running: 'done',
+  } as const
+
+  // The words of the plans as a table as well (#236).
+  return { text: planStateText(standing, on as IsoDate), tone: tones[state] }
 }
 
 /** The closures that stand, by building. */
@@ -253,24 +258,9 @@ function holidayStateOf(
   return catalogue !== null && state !== undefined && hasHolidays(catalogue, state) ? state : null
 }
 
-/** The first pass of a plan from today on that its building is open for. */
-function nextPassOf(
-  calendar: PlanCalendar,
-  closures: readonly { startsOn: IsoDate; endsOn: IsoDate }[],
-  from: IsoDate,
-): IsoDate | null {
-  for (let day = from, step = 0; step < 2 * 366 + 1; day = addDays(day, 1), step += 1) {
-    if (calendar.endsOn !== null && day > calendar.endsOn) {
-      return null
-    }
-
-    if (isPassDay(calendar, day) && closureOn(closures, day) === null) {
-      return day
-    }
-  }
-
-  return null
-}
+// The first pass of a plan from today on that its building is open for: worked
+// out in `domain`, where the plans as a table work it out as well (#236).
+const nextPassOf = planNextPass
 
 /** The place of a plan in two lines: the building, or the property, and the property under it. */
 function usePlaceOf(): (plan: RecordState) => { readonly name: string; readonly sub: string } {
@@ -307,6 +297,8 @@ export function PlanListScreen() {
   const people = useQuery(roundPeopleQuery)
   const catalogue = useCatalogue()
   const properties = useRecords('properties')
+  // The plans as the list shows them, as a table (#236).
+  const table = useTableExport('/round-plans/table')
   const rows = useMemo(
     () =>
       records
@@ -367,19 +359,23 @@ export function PlanListScreen() {
         crumbs={[roundsPlace]}
         count={counted(rows.length)}
         actions={
-          plans ? (
-            <Button
-              tone="primary"
-              icon={Plus}
-              onClick={() => {
-                void navigate({ to: planPlaces.new })
-              }}
-            >
-              Neuer Plan
-            </Button>
-          ) : null
+          <>
+            {table.button}
+            {plans ? (
+              <Button
+                tone="primary"
+                icon={Plus}
+                onClick={() => {
+                  void navigate({ to: planPlaces.new })
+                }}
+              >
+                Neuer Plan
+              </Button>
+            ) : null}
+          </>
         }
       />
+      {table.trouble}
       {rows.length === 0 ? (
         <Panel>
           <Empty>{planWords.none}</Empty>

@@ -10,14 +10,17 @@ import {
   type DutyProposals,
   type DutyRegister,
   dutyTableWords,
+  type IsoDate,
   type MeterList,
   meterMediumLabel,
   meterStateLabel,
   missingRight,
   type Right,
   type RoleKey,
+  type RoundWeek,
   shippedRoles,
   type TenantId,
+  weekNamed,
 } from '@opengewerk/haustechnik-domain'
 import { Database, newId } from '@opengewerk/platform-server'
 import type { Pool } from 'pg'
@@ -32,6 +35,7 @@ import {
 } from '../database/test-database.js'
 import { dayInGermany } from '../today.js'
 import { ApiModule } from './api.module.js'
+import type { TemplateRounds } from './round-templates.controller.js'
 import { as, testIdentities } from './test-identity.js'
 import { stampIn, stampsOf, tableReaders } from './test-tables.js'
 
@@ -1451,6 +1455,342 @@ describe('the documents as a table (#236)', () => {
       expect(table.length).toBeGreaterThan(3)
       expect(table.flat()).toContain(dayInWords(addDays(today, -12)))
       expect(stampIn(table, stamps)).toEqual([])
+    }
+  })
+})
+
+describe('the rounds as tables (#236)', () => {
+  const tenant = newId<'tenant'>() as TenantId
+  /** The Monday of the week after this one, every day of which has a round. */
+  const monday = weekNamed(addDays(today, 7)) as IsoDate
+  const title = 'Wache, täglicher Rundgang'
+  let area = ''
+  let areaName = ''
+  let building = ''
+  let plan = ''
+  let template = ''
+
+  /** Somebody of the Leitung in the tenant of these tests, with exactly these rights. */
+  const holding = (...rights: Right[]) =>
+    JSON.stringify({ userId: 'u-lead', tenantId: tenant, roles: ['management'], rights })
+  const weekTable = (
+    header: string,
+    query: Readonly<Record<string, string>> = {},
+    format: 'xlsx' | 'csv' = 'xlsx',
+  ) => tableOf('/rounds/week/table', { of: monday, ...query }, header, format)
+  const ofTheWeek = (rows: readonly string[][]) => rows.filter((row) => row[0] === 'In der Woche')
+
+  beforeAll(async () => {
+    await admin.query('insert into tenants (id, name) values ($1, $2)', [tenant, 'Rundgänge Probe'])
+
+    for (const role of shippedRoles) {
+      await admin.query(
+        `insert into tenant_roles (tenant_id, key, label, rights, leads, second_factor)
+         values ($1, $2, $3, $4, $5, $6)`,
+        [tenant, role.key, role.label, [...role.rights], role.leads, role.secondFactor],
+      )
+    }
+
+    for (const [userId, person] of Object.entries(people)) {
+      await admin.query('insert into memberships (tenant_id, user_id, roles) values ($1, $2, $3)', [
+        tenant,
+        userId,
+        [person.role],
+      ])
+    }
+
+    const { rows: areas } = await admin.query<{ id: string; name: string }>(
+      'select id, name from areas where tenant_id = $1',
+      [tenant],
+    )
+
+    area = areas[0]?.id ?? ''
+    areaName = areas[0]?.name ?? ''
+
+    const { property, ...place } = await propertyIn('Rundenhaus', tenant)
+
+    building = place.building
+
+    const asset = await made(
+      `/buildings/${building}/assets`,
+      { kind: 'probe.elevator', name: 'Aufzug Rundenhaus' },
+      tenant,
+    )
+    const { rows: templates } = await admin.query<{ id: string }>(
+      'insert into round_templates (tenant_id, title) values ($1, $2) returning id',
+      [tenant, title],
+    )
+
+    template = templates[0]?.id ?? ''
+    // Its version was made twenty days ago: a version is never changed.
+    await admin.query(
+      `insert into round_template_versions (tenant_id, template_id, form_version, definition,
+                                            asks_countersignature, created_at)
+       values ($1, $2, 1, $3, true, now() - interval '20 days')`,
+      [
+        tenant,
+        template,
+        JSON.stringify({
+          title,
+          sections: [
+            {
+              key: 'k1',
+              title: 'Fahrzeughalle',
+              fields: [
+                {
+                  kind: 'check_point',
+                  key: 'p1',
+                  label: 'Aufzug ohne Störung',
+                  required: true,
+                  about: { kind: 'asset', id: asset },
+                },
+              ],
+            },
+          ],
+        }),
+      ],
+    )
+    plan = (
+      await http()
+        .post('/round-plans')
+        .set(testIdentityHeader, by('u-duties', tenant))
+        .send({
+          templateId: template,
+          propertyId: property,
+          buildingId: building,
+          rhythm: 'daily',
+          weekdays: [1, 2, 3, 4, 5, 6, 7],
+          leadDays: 0,
+          startsOn: today,
+        })
+        .expect(201)
+    ).body.id as string
+  })
+
+  it('hold a row for each round of the week in the order of its days, and who walks one only for the Leitung', async () => {
+    // The round of the Tuesday is given to one of the Haustechnik.
+    await admin.query(
+      `update activities set performer_user_id = 'u-tech' where round_plan_id = $1 and due_on = $2`,
+      [plan, addDays(monday, 1)],
+    )
+
+    const row = (days: number, walker: string) => [
+      'In der Woche',
+      'Haus A',
+      'Rundenhaus',
+      title,
+      'täglich',
+      dayInWords(addDays(monday, days)),
+      walker,
+      'Offen',
+    ]
+    const everybody = `Alle im Bereich ${areaName}`
+
+    expect(areaName).not.toBe('')
+
+    for (const format of ['xlsx', 'csv'] as const) {
+      const named = await weekTable(by('u-lead', tenant), {}, format)
+
+      expect(named[0]).toEqual([
+        'Liste',
+        'Gebäude',
+        'Liegenschaft',
+        'Rundgang',
+        'Rhythmus',
+        'Fällig am',
+        'Zuständig',
+        'Stand',
+      ])
+      expect(ofTheWeek(named)).toEqual(
+        [0, 1, 2, 3, 4, 5, 6].map((days) => row(days, days === 1 ? 'Hana Haus' : everybody)),
+      )
+      // Everybody in the area is no person and stands for everybody; a person only for the Leitung.
+      expect(ofTheWeek(await weekTable(by('u-duties', tenant), {}, format))).toEqual(
+        [0, 1, 2, 3, 4, 5, 6].map((days) => row(days, days === 1 ? '' : everybody)),
+      )
+    }
+
+    const nameless = await weekTable(by('u-duties', tenant))
+
+    expect(nameless.flat().join(' ')).not.toMatch(/Hana Haus|Tom Technik|Lena Leitung/)
+  })
+
+  it('hold the rounds left open from earlier weeks after those of the week, as the overview lists them', async () => {
+    const week = (
+      await http()
+        .get('/rounds/week')
+        .query({ of: monday })
+        .set(testIdentityHeader, by('u-lead', tenant))
+        .expect(200)
+    ).body as RoundWeek
+    const table = await weekTable(by('u-lead', tenant))
+    const before = table.slice(1).filter((row) => row[0] === 'Offen aus vergangenen Wochen')
+
+    // The round of today is open, and today lies before the week asked for.
+    expect(week.before.length).toBeGreaterThan(0)
+    expect(before.map((row) => row[5])).toEqual(week.before.map((round) => dayInWords(round.dueOn)))
+    expect(table.slice(1).map((row) => row[0])).toEqual([
+      ...week.rounds.map(() => 'In der Woche'),
+      ...week.before.map(() => 'Offen aus vergangenen Wochen'),
+    ])
+  })
+
+  it('are narrowed to the area of the screen', async () => {
+    expect(ofTheWeek(await weekTable(by('u-lead', tenant), { area }))).toHaveLength(7)
+    expect(await weekTable(by('u-lead', tenant), { area: newId<'area'>() })).toHaveLength(1)
+    expect(
+      (await refusalOf('/rounds/week/table', { of: monday, area: 'nord' }, by('u-lead', tenant)))
+        .status,
+    ).toBe(400)
+  })
+
+  it('are only for whoever reads activities', async () => {
+    for (const path of ['/rounds/week/table', '/round-plans/table', '/round-templates/table']) {
+      expect(await refusalOf(path, {}, holding('location.read'))).toEqual({
+        status: 403,
+        message: missingRight('activity.read'),
+      })
+    }
+  })
+
+  it('name where a plan is walked only for whoever reads places', async () => {
+    const places = async (...rights: Right[]) =>
+      ofTheWeek(await weekTable(holding('activity.read', 'activity.write', ...rights)))[0]?.slice(
+        1,
+        3,
+      )
+
+    expect(await places()).toEqual(['Gebäude', 'Liegenschaft'])
+    expect(await places('location.read')).toEqual(['Haus A', 'Rundenhaus'])
+  })
+
+  it('hold the templates of the operator with their newest version and the rounds made of them', async () => {
+    const counted = (
+      (
+        await http()
+          .get('/round-templates/rounds')
+          .set(testIdentityHeader, by('u-lead', tenant))
+          .expect(200)
+      ).body as readonly TemplateRounds[]
+    ).reduce((sum, each) => sum + (each.templateId === template ? each.rounds : 0), 0)
+
+    expect(counted).toBeGreaterThan(7)
+
+    for (const format of ['xlsx', 'csv'] as const) {
+      expect(await tableOf('/round-templates/table', {}, by('u-lead', tenant), format)).toEqual([
+        ['Vorlage', 'Umfang', 'Fassung', 'Seit', 'Gegenzeichnung', 'Rundgänge'],
+        [
+          title,
+          '1 Kapitel, 1 Punkt',
+          '1',
+          dayInWords(addDays(today, -20)),
+          'verlangt',
+          String(counted),
+        ],
+      ])
+    }
+  })
+
+  it('hold the plans with their place, who walks their rounds, their next pass and whether they run', async () => {
+    const heads = [
+      'Rundgang',
+      'Rhythmus',
+      'Gebäude',
+      'Liegenschaft',
+      'Zuständig',
+      'Nächster Durchgang',
+      'Stand',
+    ]
+    const row = (walker: string, next: string) => [
+      title,
+      'täglich',
+      'Haus A',
+      'Rundenhaus',
+      walker,
+      next,
+      'Läuft',
+    ]
+    const plans = (header: string, format: 'xlsx' | 'csv' = 'xlsx') =>
+      tableOf('/round-plans/table', {}, header, format)
+
+    for (const format of ['xlsx', 'csv'] as const) {
+      expect(await plans(by('u-lead', tenant), format)).toEqual([
+        heads,
+        row(`Alle im Bereich ${areaName}`, dayInWords(today)),
+      ])
+    }
+
+    // The building is closed today and tomorrow: the next pass is the day after, as in the list.
+    await admin.query(
+      `insert into building_closures (tenant_id, building_id, property_id, area_id, starts_on, ends_on)
+       select tenant_id, id, property_id, area_id, $2, $3 from buildings where id = $1`,
+      [building, today, addDays(today, 1)],
+    )
+    await admin.query(`update round_plans set performer_user_id = 'u-tech' where id = $1`, [plan])
+
+    const next = dayInWords(addDays(today, 2))
+
+    expect(await plans(by('u-lead', tenant))).toEqual([heads, row('Hana Haus', next)])
+    // A person only for whoever may see the staff.
+    expect(await plans(by('u-duties', tenant))).toEqual([heads, row('', next)])
+    expect((await plans(holding('activity.read')))[1]?.slice(2, 4)).toEqual([
+      'Gebäude',
+      'Liegenschaft',
+    ])
+  })
+
+  it('hold no part of the stamp of the last change, in neither format', async () => {
+    // No round of these tables is due today: the one of today was due three days ago.
+    await admin.query(
+      `update activities set due_on = $2 where round_plan_id = $1 and due_on = $3`,
+      [plan, addDays(today, -3), today],
+    )
+
+    const stamps = await stampsOf(admin, tenant, [
+      'activities',
+      'round_plans',
+      'round_templates',
+      'round_template_versions',
+      'building_closures',
+      'properties',
+      'buildings',
+    ])
+
+    expect(stamps.length).toBeGreaterThan(2)
+
+    for (const format of ['xlsx', 'csv'] as const) {
+      const week = await weekTable(by('u-lead', tenant), {}, format)
+      const templates = await tableOf('/round-templates/table', {}, by('u-lead', tenant), format)
+
+      expect(week.length).toBeGreaterThan(7)
+      expect(week.flat()).toContain(dayInWords(addDays(today, -3)))
+      expect(stampIn(week, stamps)).toEqual([])
+      expect(templates).toHaveLength(2)
+      expect(stampIn(templates, stamps)).toEqual([])
+
+      const plans = await tableOf('/round-plans/table', {}, by('u-lead', tenant), format)
+
+      expect(plans).toHaveLength(2)
+      expect(stampIn(plans, stamps)).toEqual([])
+    }
+  })
+
+  it('write a name that begins like a formula so that no spreadsheet runs it', async () => {
+    await admin.query('update round_templates set title = $2 where id = $1', [
+      template,
+      '=HYPERLINK("http://x.example")',
+    ])
+
+    for (const [path, query] of [
+      ['/rounds/week/table', { of: monday }],
+      ['/round-plans/table', {}],
+      ['/round-templates/table', {}],
+    ] as const) {
+      const csv = await rawOf(path, query, by('u-lead', tenant), 'csv')
+      const sheet = await rawOf(path, query, by('u-lead', tenant), 'xlsx')
+
+      expect(csv).toContain(`"'=HYPERLINK(""http://x.example"")";`)
+      expect(sheet).not.toMatch(/<f[ >]/)
     }
   })
 })

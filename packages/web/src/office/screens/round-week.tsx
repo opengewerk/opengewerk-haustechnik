@@ -1,11 +1,13 @@
 import {
   addDays,
+  everybodyIn,
   type IsoDate,
   type RecordState,
+  rhythmText,
   type RoundState,
   roundStateLabel,
   type RoundWeek,
-  rhythmText,
+  roundWeekWords,
   weekdayOf,
   weekdayShort,
   weekNamed,
@@ -23,7 +25,7 @@ import {
   TablePanel,
 } from '@opengewerk/platform-web'
 import { date, today } from '@opengewerk/platform-web/format'
-import { Empty, PageHead, Screen } from '@opengewerk/platform-web/office'
+import { Empty, PageHead, Screen, useTableExport } from '@opengewerk/platform-web/office'
 import { useRight } from '@opengewerk/platform-web/session'
 import { maybeText, request, RequestRefused, text, useRecords } from '@opengewerk/platform-web/sync'
 import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-query'
@@ -83,7 +85,7 @@ export const weekWords = {
   everybody: (area: string | null) =>
     `Alle im Bereich: Der Rundgang liegt auf den Geräten aller im Bereich${area ? ` ${area}` : ''}, die Vorgänge ausführen.`,
   openBefore: 'nicht still verschwunden',
-  before: 'Offen aus vergangenen Wochen',
+  before: roundWeekWords.before,
   beforeCaption: 'Die Rundgänge früherer Wochen, die noch offen oder begonnen sind',
   open: 'Öffnen',
   close: 'Schließen mit Grund',
@@ -164,6 +166,10 @@ export function RoundWeekScreen() {
     queryFn: () => request<RoundWeek>(`/rounds/week?of=${monday}`),
     placeholderData: keepPreviousData,
   })
+  // The rounds of the week shown and those left open, in the area chosen, as a table (#236).
+  const table = useTableExport(
+    `/rounds/week/table?of=${monday}${area === null ? '' : `&area=${area}`}`,
+  )
 
   const rowOf = useMemo(
     () =>
@@ -179,10 +185,10 @@ export function RoundWeekScreen() {
             maybeText(
               templates.find((each) => each['id'] === plan?.['templateId']),
               'title',
-            ) ?? 'Rundgang',
+            ) ?? roundWeekWords.round,
           rhythm: plan ? rhythmText(calendarOf(plan)) : '',
           building: maybeText(building, 'name') ?? maybeText(property, 'name') ?? 'Ort',
-          property: building ? (maybeText(property, 'name') ?? '') : 'ganze Liegenschaft',
+          property: building ? (maybeText(property, 'name') ?? '') : roundWeekWords.wholeProperty,
           areaId: text(plan, 'areaId'),
           rounds,
         }
@@ -378,6 +384,7 @@ export function RoundWeekScreen() {
         sub={weekWords.sub}
         actions={
           <>
+            {table.button}
             <Button
               icon={FileText}
               onClick={() => {
@@ -409,6 +416,7 @@ export function RoundWeekScreen() {
           </>
         }
       />
+      {table.trouble}
       <div className="flex flex-wrap items-center gap-2">
         <div className="flex min-w-0 items-center gap-2">
           <IconButton
@@ -621,7 +629,7 @@ function HandOutDialog({
   )
   const [trouble, setTrouble] = useState<string | null>(null)
   const [working, setWorking] = useState(false)
-  const everybody = `Alle im Bereich${area ? ` ${area}` : ''}`
+  const everybody = everybodyIn(area)
 
   async function save() {
     const changed = row.rounds.filter(

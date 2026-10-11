@@ -1,7 +1,7 @@
 import type { CatalogueEntry, PackagedForm, RecordState } from '@opengewerk/haustechnik-domain'
 import { Button, Cell, Column, Panel, TablePanel } from '@opengewerk/platform-web'
 import { date, today } from '@opengewerk/platform-web/format'
-import { Empty, PageHead, Screen } from '@opengewerk/platform-web/office'
+import { Empty, PageHead, Screen, useTableExport } from '@opengewerk/platform-web/office'
 import { useRight } from '@opengewerk/platform-web/session'
 import { count, flag, request, text, useRecords } from '@opengewerk/platform-web/sync'
 import { useQuery } from '@tanstack/react-query'
@@ -18,6 +18,7 @@ import {
   templateListPlace,
   templatePlaces,
 } from '../round-template-addresses.js'
+import { countersignatureWords, roundTemplateTableColumns } from '@opengewerk/haustechnik-domain'
 import { sizeWords } from '../template-draft.js'
 
 /**
@@ -85,6 +86,8 @@ export function TemplateListScreen() {
   const templates = useRecords('round_templates')
   const versions = useTemplateVersions()
   const rounds = useQuery(templateRoundsQuery)
+  // The operator's own templates as the list shows them, as a table (#236).
+  const table = useTableExport('/round-templates/table')
   const packaged = useMemo(
     () =>
       (catalogue?.contents(on) ?? []).flatMap((pack) =>
@@ -119,19 +122,23 @@ export function TemplateListScreen() {
         crumbs={[roundsPlace]}
         count={counted(rows.length)}
         actions={
-          keeps ? (
-            <Button
-              tone="primary"
-              icon={Plus}
-              onClick={() => {
-                void navigate({ to: templatePlaces.new })
-              }}
-            >
-              Neue Vorlage
-            </Button>
-          ) : null
+          <>
+            {table.button}
+            {keeps ? (
+              <Button
+                tone="primary"
+                icon={Plus}
+                onClick={() => {
+                  void navigate({ to: templatePlaces.new })
+                }}
+              >
+                Neue Vorlage
+              </Button>
+            ) : null}
+          </>
         }
       />
+      {table.trouble}
       {rows.length === 0 ? (
         <Panel>
           <Empty>{templateListWords.none}</Empty>
@@ -149,11 +156,11 @@ export function TemplateListScreen() {
         >
           <thead>
             <tr>
-              <Column>Vorlage</Column>
-              <Column className="w-[190px]">Fassung</Column>
-              <Column className="w-[150px]">Gegenzeichnung</Column>
+              <Column>{roundTemplateTableColumns.title}</Column>
+              <Column className="w-[190px]">{roundTemplateTableColumns.version}</Column>
+              <Column className="w-[150px]">{roundTemplateTableColumns.countersignature}</Column>
               <Column numeric className="w-[100px]">
-                Rundgänge
+                {roundTemplateTableColumns.rounds}
               </Column>
             </tr>
           </thead>
@@ -180,7 +187,11 @@ export function TemplateListScreen() {
                     </div>
                   </div>
                 </Cell>
-                <Cell>{flag(row.newest, 'asksCountersignature') ? 'verlangt' : 'nein'}</Cell>
+                <Cell>
+                  {flag(row.newest, 'asksCountersignature')
+                    ? countersignatureWords.asked
+                    : countersignatureWords.none}
+                </Cell>
                 <Cell numeric>{rounds.data === undefined ? '' : String(row.rounds)}</Cell>
               </tr>
             ))}

@@ -1,4 +1,5 @@
 import {
+  addDays,
   compareTasksForWork,
   isPicture,
   type IsoDate,
@@ -48,6 +49,16 @@ import { type MeterEntry, meterStateLabel } from './meter-register.js'
 import type { PlaceTarget } from './target.js'
 import type { WorkOrderEntry } from './work-order-register.js'
 import type { PlaceToDo } from './overview.js'
+import { closureOn } from './closure.js'
+import {
+  isPassDay,
+  passSearchDays,
+  type PlanCalendar,
+  planStateOn,
+  type RoundPlan,
+  type RoundState,
+  roundStateLabel,
+} from './round-plan.js'
 
 /**
  * The lists of the office as tables (#138, section 3 of the concept): "Als
@@ -1136,4 +1147,214 @@ export function documentTableRow(document: DocumentLine): TableRow {
     Math.max(document.versions, 1),
     document.newest === null ? null : { day: document.newest.filedOn },
   ]
+}
+
+// --- The rounds ---------------------------------------------------------------------------------------
+
+/** The columns of "Rundgänge" as a table: a row for each round of the week, and of those left open (4.5). */
+export const roundWeekTableColumns = {
+  list: 'Liste',
+  place: 'Gebäude',
+  within: 'Liegenschaft',
+  title: 'Rundgang',
+  rhythm: 'Rhythmus',
+  due: 'Fällig am',
+  walker: 'Zuständig',
+  state: 'Stand',
+} as const
+
+/** What the overview of a week says in its cells. */
+export const roundWeekWords = {
+  week: 'In der Woche',
+  before: 'Offen aus vergangenen Wochen',
+  wholeProperty: 'ganze Liegenschaft',
+  round: 'Rundgang',
+} as const
+
+/** Who walks a round that is given to nobody: everybody in its area, which is no person. */
+export function everybodyIn(area: string | null): string {
+  return `Alle im Bereich${area ? ` ${area}` : ''}`
+}
+
+/**
+ * Where the rounds of a plan are walked, as the overview shows it in two
+ * lines: the building and its property, or the property as a whole. A name
+ * the person does not read is said by what it is.
+ */
+export function roundPlace(
+  plan: { readonly propertyId: string; readonly buildingId: string | null },
+  names: PlaceNames | null,
+): { readonly place: string; readonly within: string } {
+  const property = names?.property(plan.propertyId) ?? 'Liegenschaft'
+
+  return plan.buildingId === null
+    ? { place: property, within: roundWeekWords.wholeProperty }
+    : { place: names?.building(plan.buildingId) ?? 'Gebäude', within: property }
+}
+
+/** A round of the overview as its table reads it: its plan in words, and who walks it. */
+export interface RoundLine {
+  readonly before: boolean
+  readonly place: string
+  readonly within: string
+  readonly title: string
+  readonly rhythm: string
+  readonly dueOn: IsoDate
+  /** Who walks it: a person by name where the table names people, everybody in the area, or nothing. */
+  readonly walker: string | null
+  readonly state: RoundState
+}
+
+/**
+ * The rounds of the overview as the rows of their table: those of the week
+ * by property, building and round as the list orders its rows, each plan
+ * with its rounds in the order of their days, then those left open from
+ * earlier weeks as they were read, the latest first.
+ */
+export function roundWeekTableRows(rounds: readonly RoundLine[]): readonly TableRow[] {
+  const inOrder = (left: RoundLine, right: RoundLine) =>
+    byNameIn(left.within, right.within) ||
+    byNameIn(left.place, right.place) ||
+    byNameIn(left.title, right.title) ||
+    left.dueOn.localeCompare(right.dueOn)
+
+  return [
+    ...rounds.filter((round) => !round.before).sort(inOrder),
+    ...rounds.filter((round) => round.before),
+  ].map((round) => [
+    round.before ? roundWeekWords.before : roundWeekWords.week,
+    round.place,
+    round.within,
+    round.title,
+    round.rhythm,
+    { day: round.dueOn },
+    round.walker,
+    roundStateLabel[round.state],
+  ])
+}
+
+/** The columns of the operator's own templates of rounds as a table (#112). */
+export const roundTemplateTableColumns = {
+  title: 'Vorlage',
+  size: 'Umfang',
+  version: 'Fassung',
+  since: 'Seit',
+  countersignature: 'Gegenzeichnung',
+  rounds: 'Rundgänge',
+} as const
+
+/** Whether a round of a template asks for a countersignature, as the list says it. */
+export const countersignatureWords = { asked: 'verlangt', none: 'nein' } as const
+
+/** "2 Kapitel, 8 Punkte". */
+export function templateSizeWords(definition: {
+  readonly sections: readonly { readonly fields: readonly unknown[] }[]
+}): string {
+  const points = definition.sections.reduce((sum, section) => sum + section.fields.length, 0)
+
+  return `${String(definition.sections.length)} Kapitel, ${String(points)} ${points === 1 ? 'Punkt' : 'Punkte'}`
+}
+
+/** A template of the operator as its table reads it: its newest version and the rounds made of it. */
+export interface TemplateLine {
+  readonly title: string
+  readonly size: string
+  readonly formVersion: number
+  /** The day its newest version was made. */
+  readonly since: IsoDate
+  readonly asksCountersignature: boolean
+  readonly rounds: number
+}
+
+/** The templates as the rows of their table, by their names. */
+export function roundTemplateTableRows(templates: readonly TemplateLine[]): readonly TableRow[] {
+  return [...templates]
+    .sort((left, right) => byNameIn(left.title, right.title))
+    .map((template) => [
+      template.title,
+      template.size,
+      template.formVersion,
+      { day: template.since },
+      template.asksCountersignature ? countersignatureWords.asked : countersignatureWords.none,
+      template.rounds,
+    ])
+}
+
+/** The columns of "Pläne" as a table: every plan with its place, who walks its rounds and its next pass. */
+export const roundPlanTableColumns = {
+  title: 'Rundgang',
+  rhythm: 'Rhythmus',
+  place: 'Gebäude',
+  within: 'Liegenschaft',
+  walker: 'Zuständig',
+  next: 'Nächster Durchgang',
+  state: 'Stand',
+} as const
+
+/** Where a plan stands, by its state and its days: "Läuft bis 31.12.2026", "Ruht", "Beendet am 30.09.2026". */
+export function planStateText(
+  plan: Pick<RoundPlan, 'startsOn' | 'endsOn' | 'resting'>,
+  on: IsoDate,
+): string {
+  switch (planStateOn(plan, on)) {
+    case 'ended':
+      return `Beendet am ${plan.endsOn === null ? '' : dayInWords(plan.endsOn)}`
+    case 'resting':
+      return 'Ruht'
+    case 'upcoming':
+      return `Beginnt am ${dayInWords(plan.startsOn)}`
+    case 'running':
+      return plan.endsOn === null ? 'Läuft' : `Läuft bis ${dayInWords(plan.endsOn)}`
+  }
+}
+
+/** The first pass of a plan from a day on that its building is open for, or none. */
+export function planNextPass(
+  calendar: PlanCalendar,
+  closures: readonly { readonly startsOn: IsoDate; readonly endsOn: IsoDate }[],
+  from: IsoDate,
+): IsoDate | null {
+  for (let day = from, step = 0; step < passSearchDays; day = addDays(day, 1), step += 1) {
+    if (calendar.endsOn !== null && day > calendar.endsOn) {
+      return null
+    }
+
+    if (isPassDay(calendar, day) && closureOn(closures, day) === null) {
+      return day
+    }
+  }
+
+  return null
+}
+
+/** A plan as its table reads it: its template and its place in words, who walks its rounds, its next pass. */
+export interface PlanLine {
+  readonly title: string
+  readonly rhythm: string
+  readonly place: string
+  readonly within: string
+  /** Who walks its rounds: a person by name where the table names people, everybody in the area, or nothing. */
+  readonly walker: string | null
+  readonly next: IsoDate | null
+  readonly state: string
+}
+
+/** The plans as the rows of their table, by property, building and round as the list orders them. */
+export function roundPlanTableRows(plans: readonly PlanLine[]): readonly TableRow[] {
+  return [...plans]
+    .sort(
+      (left, right) =>
+        byNameIn(left.within, right.within) ||
+        byNameIn(left.place, right.place) ||
+        byNameIn(left.title, right.title),
+    )
+    .map((plan) => [
+      plan.title,
+      plan.rhythm,
+      plan.place,
+      plan.within,
+      plan.walker,
+      plan.next === null ? null : { day: plan.next },
+      plan.state,
+    ])
 }

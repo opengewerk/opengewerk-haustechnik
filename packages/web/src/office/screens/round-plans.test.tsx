@@ -16,6 +16,7 @@ import {
   mountOffice,
   type NamedArea,
   rowsOf,
+  servingTables,
   signedInOffice,
   untilTheRightsAreKnown,
   type WriteAnswer,
@@ -467,5 +468,22 @@ describe('a plan that runs', () => {
     expect(screen.getByRole('combobox', { name: 'Vorlage' }).closest('fieldset')?.disabled).toBe(
       true,
     )
+  })
+})
+
+describe('the plans as a table (#236)', () => {
+  it('are asked for as the list shows them', async () => {
+    await mountOffice('/rundgaenge/plaene', server, everything)
+
+    const button = await screen.findByRole('button', { name: 'Als Tabelle' })
+    // After the answers of the test, which it hands every other request to.
+    const tables = servingTables()
+
+    fireEvent.click(button)
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Excel (.xlsx)' }))
+
+    await waitFor(() => {
+      expect(tables.asked).toEqual(['/round-plans/table?format=xlsx'])
+    })
   })
 })

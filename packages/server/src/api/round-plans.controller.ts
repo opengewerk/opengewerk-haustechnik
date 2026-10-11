@@ -3,11 +3,15 @@ import {
   Body,
   ConflictException,
   Controller,
+  Get,
+  Header,
   Inject,
   NotFoundException,
   Param,
   Patch,
   Post,
+  Query,
+  StreamableFile,
 } from '@nestjs/common'
 import {
   type Catalogue,
@@ -22,6 +26,8 @@ import {
   CurrentIdentity,
   Database,
   isUuid,
+  tableAnswer,
+  tableFormatOf,
   type TenantTransaction,
 } from '@opengewerk/platform-server'
 import { and, eq, isNull } from 'drizzle-orm'
@@ -32,6 +38,7 @@ import { fillAhead, type PlanRow, replan } from '../rounds/plans.js'
 import { dayInGermany } from '../today.js'
 import { candidatesIn } from './activities.controller.js'
 import { RequiresPermission } from './authorization.js'
+import { roundPlanTable } from './office-tables.js'
 import { type Asking, refuse } from './places.js'
 
 const missing = 'Diesen Plan gibt es nicht oder nicht mehr.'
@@ -113,6 +120,31 @@ export class RoundPlansController {
     private readonly database: Database,
     @Inject(CATALOGUE) private readonly catalogue: Catalogue,
   ) {}
+
+  /**
+   * The plans as a table (#236), as the list "Pläne" shows them, as a
+   * workbook or as text (`?format=xlsx` or `csv`). For whoever reads
+   * activities, with the plans of their areas; who walks the rounds of a
+   * plan is named only for whoever may see the staff.
+   */
+  @Get('table')
+  @RequiresPermission('activity.read')
+  @Header('Cache-Control', 'no-store')
+  table(
+    @CurrentIdentity() identity: Asking,
+    @Query() query: Readonly<Record<string, unknown>>,
+  ): Promise<StreamableFile> {
+    const format = tableFormatOf(query)
+    const today = dayInGermany(new Date())
+
+    return this.database.forTenant(identity, async (tx) =>
+      tableAnswer(
+        await roundPlanTable(this.database, tx, this.catalogue, identity, today),
+        format,
+        today,
+      ),
+    )
+  }
 
   /**
    * A new plan at a property or at a building there. The template is one of

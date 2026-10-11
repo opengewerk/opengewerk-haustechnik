@@ -5,10 +5,13 @@ import {
   Controller,
   ForbiddenException,
   Get,
+  Header,
   Inject,
   NotFoundException,
   Param,
   Post,
+  Query,
+  StreamableFile,
 } from '@nestjs/common'
 import {
   type Catalogue,
@@ -30,6 +33,8 @@ import {
   CurrentIdentity,
   Database,
   isUuid,
+  tableAnswer,
+  tableFormatOf,
   type TenantTransaction,
 } from '@opengewerk/platform-server'
 import { and, count, desc, eq, inArray, isNull, like } from 'drizzle-orm'
@@ -46,6 +51,7 @@ import {
 } from '../database/schema/index.js'
 import { dayInGermany } from '../today.js'
 import { RequiresPermission } from './authorization.js'
+import { roundTemplateTable } from './office-tables.js'
 import type { Asking } from './places.js'
 
 const missing = 'Diese Vorlage gibt es nicht.'
@@ -109,6 +115,31 @@ async function present(
   return new Set(rows.map((row) => row.id))
 }
 
+/** The rounds on each version of each template, in the areas of the transaction. */
+async function roundsOfTemplates(tx: TenantTransaction): Promise<TemplateRounds[]> {
+  const rows = await tx
+    .select({
+      formKey: activities.formKey,
+      formVersion: activities.formVersion,
+      rounds: count(),
+    })
+    .from(activities)
+    .where(
+      and(
+        eq(activities.kind, 'round'),
+        like(activities.formKey, 'template-%'),
+        isNull(activities.deletedAt),
+      ),
+    )
+    .groupBy(activities.formKey, activities.formVersion)
+
+  return rows.flatMap(({ formKey, formVersion, rounds }) => {
+    const templateId = formKey === null ? null : templateOfFormKey(formKey)
+
+    return templateId === null || formVersion === null ? [] : [{ templateId, formVersion, rounds }]
+  })
+}
+
 /**
  * The templates of the rounds (#112, sections 2.5 and 4.5 of the concept).
  * The office reads them where every device does, out of the sync; here a new
@@ -132,31 +163,31 @@ export class RoundTemplatesController {
   @Get('rounds')
   @RequiresPermission('activity.read')
   rounds(@CurrentIdentity() identity: Asking): Promise<TemplateRounds[]> {
-    return this.database.forTenant(identity, async (tx) => {
-      const rows = await tx
-        .select({
-          formKey: activities.formKey,
-          formVersion: activities.formVersion,
-          rounds: count(),
-        })
-        .from(activities)
-        .where(
-          and(
-            eq(activities.kind, 'round'),
-            like(activities.formKey, 'template-%'),
-            isNull(activities.deletedAt),
-          ),
-        )
-        .groupBy(activities.formKey, activities.formVersion)
+    return this.database.forTenant(identity, (tx) => roundsOfTemplates(tx))
+  }
 
-      return rows.flatMap(({ formKey, formVersion, rounds }) => {
-        const templateId = formKey === null ? null : templateOfFormKey(formKey)
+  /**
+   * The operator's own templates as a table (#236), as the list shows them,
+   * as a workbook or as text (`?format=xlsx` or `csv`). For whoever reads
+   * activities, who is shown the list; the rounds of a template are counted
+   * in the areas of the person asking, as for the list.
+   */
+  @Get('table')
+  @RequiresPermission('activity.read')
+  @Header('Cache-Control', 'no-store')
+  table(
+    @CurrentIdentity() identity: Asking,
+    @Query() query: Readonly<Record<string, unknown>>,
+  ): Promise<StreamableFile> {
+    const format = tableFormatOf(query)
 
-        return templateId === null || formVersion === null
-          ? []
-          : [{ templateId, formVersion, rounds }]
-      })
-    })
+    return this.database.forTenant(identity, async (tx) =>
+      tableAnswer(
+        await roundTemplateTable(tx, await roundsOfTemplates(tx)),
+        format,
+        dayInGermany(new Date()),
+      ),
+    )
   }
 
   /**

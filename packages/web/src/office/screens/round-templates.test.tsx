@@ -1,7 +1,7 @@
 import type { CatalogueBundle } from '@opengewerk/haustechnik-domain'
 import { TestServer } from '@opengewerk/platform-web/testing'
 import { onlineManager } from '@tanstack/react-query'
-import { screen, waitFor, within } from '@testing-library/react'
+import { fireEvent, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -10,6 +10,7 @@ import {
   mountOffice,
   type NamedArea,
   rowsOf,
+  servingTables,
   signedInOffice,
   untilTheRightsAreKnown,
   type WriteAnswer,
@@ -367,6 +368,23 @@ describe('a template taken over from a package', () => {
         asksCountersignature: false,
         definition: { title: 'Technik, wöchentlich' },
       },
+    })
+  })
+})
+
+describe('the templates as a table (#236)', () => {
+  it('are asked for as the list shows them', async () => {
+    await mountOffice('/rundgaenge/vorlagen', server, everything)
+
+    const button = await screen.findByRole('button', { name: 'Als Tabelle' })
+    // After the answers of the test, which it hands every other request to.
+    const tables = servingTables()
+
+    fireEvent.click(button)
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Excel (.xlsx)' }))
+
+    await waitFor(() => {
+      expect(tables.asked).toEqual(['/round-templates/table?format=xlsx'])
     })
   })
 })

@@ -3,6 +3,7 @@ import {
   type ActivityEntry,
   activityTableHeads,
   activityTableRow,
+  addDays,
   addressWords,
   type AssetLookup,
   type AssetRegisterFilter,
@@ -28,6 +29,10 @@ import {
   type DutyProposals,
   dutyTableHeads,
   dutyTableRow,
+  everybodyIn,
+  hasHolidays,
+  holidayClosures,
+  holidaysBetween,
   isAllowed,
   type IsoDate,
   type MeterEntry,
@@ -35,14 +40,30 @@ import {
   meterTableRows,
   outgoingTableRows,
   packageOf,
+  passSearchDays,
   type PlaceNames,
   type PlaceToDo,
   placeWords,
+  type PlanLine,
+  planNextPass,
+  planStateOn,
+  planStateText,
   propertySearchText,
   propertyTableColumns,
   proposalTableColumns,
   proposalTableRows,
+  rhythmText,
   roomTitle,
+  type RoundLine,
+  roundPlace,
+  roundPlanTableColumns,
+  roundPlanTableRows,
+  roundTemplateTableColumns,
+  roundTemplateTableRows,
+  type RoundWeek,
+  roundWeekTableColumns,
+  roundWeekTableRows,
+  roundWeekWords,
   searchedFor,
   tableNamesPeople,
   type TableRow,
@@ -50,6 +71,8 @@ import {
   type TaskLine,
   taskTableHeads,
   taskTableRows,
+  type TemplateLine,
+  templateSizeWords,
   toDoNumbers,
   whereWords,
   type WorkOrderEntry,
@@ -70,10 +93,14 @@ import {
   assets,
   attachments,
   attachmentVersions,
+  buildingClosures,
   buildings,
   defects,
   properties,
   rooms,
+  roundPlans,
+  roundTemplates,
+  roundTemplateVersions,
   tasks,
 } from '../database/schema/index.js'
 import { deviceScope } from '../sync/device-scope.js'
@@ -763,5 +790,248 @@ export async function documentTable(
     name: 'Dokumente',
     columns: Object.values(documentTableColumns),
     rows: lines.map(documentTableRow),
+  }
+}
+
+/**
+ * "Rundgänge" as a table: every round of the week the overview shows, and
+ * every one left open from earlier weeks, narrowed to an area as the screen
+ * narrows them. The rounds are those the person is shown, read as the
+ * overview reads them. Where a plan is walked is named for whoever reads
+ * places; who walks a round is a person only for whoever may see the staff,
+ * and everybody in the area, which is no person, for everybody.
+ */
+export async function roundWeekTable(
+  database: Database,
+  tx: TenantTransaction,
+  identity: Asking,
+  week: RoundWeek,
+  areaId: string | null,
+): Promise<OutgoingTable> {
+  const shown = [
+    ...week.rounds.map((round) => ({ round, before: false })),
+    ...week.before.map((round) => ({ round, before: true })),
+  ]
+  const planIds = [...new Set(shown.map(({ round }) => round.planId as string))]
+  const plans =
+    planIds.length === 0
+      ? []
+      : await tx
+          .select()
+          .from(roundPlans)
+          .where(inArray(roundPlans.id, planIds as never[]))
+  const planOf = new Map(plans.map((plan) => [plan.id as string, plan]))
+  const titleOf = new Map(
+    planIds.length === 0
+      ? []
+      : (
+          await tx
+            .select({ id: roundTemplates.id, title: roundTemplates.title })
+            .from(roundTemplates)
+        ).map((template) => [template.id as string, template.title]),
+  )
+  const names = await placeNamesFor(tx, identity)
+  const areaNames = new Map((await areasInSight(tx)).map((area) => [area.id as string, area.name]))
+  const people = tableNamesPeople(identity)
+  // Nobody is looked up by name for a table that names nobody.
+  const accounts = people
+    ? await accountsOf(
+        database,
+        [...new Set(shown.flatMap(({ round }) => round.performerUserId ?? []))],
+        identity.userId,
+      )
+    : new Map<string, { readonly name: string }>()
+
+  const lines: RoundLine[] = shown.flatMap(({ round, before }) => {
+    const plan = planOf.get(round.planId as string)
+
+    if (plan === undefined || (areaId !== null && plan.areaId !== areaId)) {
+      return []
+    }
+
+    return [
+      {
+        before,
+        ...roundPlace(
+          { propertyId: plan.propertyId as string, buildingId: plan.buildingId as string | null },
+          names,
+        ),
+        title: titleOf.get(plan.templateId as string) ?? roundWeekWords.round,
+        rhythm: rhythmText(plan),
+        dueOn: round.dueOn,
+        walker:
+          round.performerUserId === null
+            ? everybodyIn(areaNames.get(plan.areaId as string) ?? null)
+            : people
+              ? (accounts.get(round.performerUserId)?.name ?? 'Unbekannte Person')
+              : null,
+        state: round.state,
+      },
+    ]
+  })
+
+  return {
+    name: 'Rundgänge',
+    columns: Object.values(roundWeekTableColumns),
+    rows: roundWeekTableRows(lines),
+  }
+}
+
+/**
+ * The operator's own templates of rounds as a table: each with the size and
+ * the day of its newest version, whether a round of it asks for a
+ * countersignature, and how many rounds were made of it, counted as the
+ * list counts them.
+ */
+export async function roundTemplateTable(
+  tx: TenantTransaction,
+  counted: readonly { readonly templateId: string; readonly rounds: number }[],
+): Promise<OutgoingTable> {
+  const templates = await tx
+    .select({ id: roundTemplates.id, title: roundTemplates.title })
+    .from(roundTemplates)
+    .where(isNull(roundTemplates.deletedAt))
+  const versions = await tx
+    .select({
+      templateId: roundTemplateVersions.templateId,
+      formVersion: roundTemplateVersions.formVersion,
+      definition: roundTemplateVersions.definition,
+      asksCountersignature: roundTemplateVersions.asksCountersignature,
+      createdAt: roundTemplateVersions.createdAt,
+    })
+    .from(roundTemplateVersions)
+    .orderBy(desc(roundTemplateVersions.formVersion))
+  const newestOf = new Map<string, (typeof versions)[number]>()
+
+  for (const version of versions) {
+    if (!newestOf.has(version.templateId as string)) {
+      newestOf.set(version.templateId as string, version)
+    }
+  }
+
+  const lines: TemplateLine[] = templates.flatMap((template) => {
+    const newest = newestOf.get(template.id as string)
+
+    return newest === undefined
+      ? []
+      : [
+          {
+            title: template.title,
+            size: templateSizeWords(newest.definition),
+            formVersion: newest.formVersion,
+            since: dayInGermany(newest.createdAt),
+            asksCountersignature: newest.asksCountersignature,
+            rounds: counted
+              .filter((each) => each.templateId === template.id)
+              .reduce((sum, each) => sum + each.rounds, 0),
+          },
+        ]
+  })
+
+  return {
+    name: 'Vorlagen der Rundgänge',
+    columns: Object.values(roundTemplateTableColumns),
+    rows: roundTemplateTableRows(lines),
+  }
+}
+
+/**
+ * "Pläne" as a table: every plan of the rounds the person sees, with its
+ * template and rhythm, where it is walked, who walks its rounds, its next
+ * pass and whether it runs. The next pass is worked out as the list works
+ * it out: the first day of its calendar from today on that its building is
+ * open for, the statutory public holidays left out where the plan says so.
+ * Who walks the rounds is a person only for whoever may see the staff.
+ */
+export async function roundPlanTable(
+  database: Database,
+  tx: TenantTransaction,
+  catalogue: Catalogue,
+  identity: Asking,
+  today: IsoDate,
+): Promise<OutgoingTable> {
+  const plans = await tx.select().from(roundPlans).where(isNull(roundPlans.deletedAt))
+  const titleOf = new Map(
+    (
+      await tx.select({ id: roundTemplates.id, title: roundTemplates.title }).from(roundTemplates)
+    ).map((template) => [template.id as string, template.title]),
+  )
+  const closed = await tx
+    .select({
+      buildingId: buildingClosures.buildingId,
+      startsOn: buildingClosures.startsOn,
+      endsOn: buildingClosures.endsOn,
+    })
+    .from(buildingClosures)
+    .where(isNull(buildingClosures.deletedAt))
+  const stateOf = new Map(
+    (
+      await tx
+        .select({ id: properties.id, federalState: properties.federalState })
+        .from(properties)
+        .where(isNull(properties.deletedAt))
+    ).map((property) => [property.id as string, property.federalState]),
+  )
+  const names = await placeNamesFor(tx, identity)
+  const areaNames = new Map((await areasInSight(tx)).map((area) => [area.id as string, area.name]))
+  const people = tableNamesPeople(identity)
+  // Nobody is looked up by name for a table that names nobody.
+  const accounts = people
+    ? await accountsOf(
+        database,
+        [...new Set(plans.flatMap((plan) => plan.performerUserId ?? []))],
+        identity.userId,
+      )
+    : new Map<string, { readonly name: string }>()
+
+  const lines: PlanLine[] = plans.map((plan) => {
+    const calendar = {
+      rhythm: plan.rhythm,
+      weekdays: plan.weekdays,
+      dayOfMonth: plan.dayOfMonth,
+      month: plan.month,
+      startsOn: plan.startsOn as IsoDate,
+      endsOn: plan.endsOn as IsoDate | null,
+    }
+    const standing = { startsOn: calendar.startsOn, endsOn: calendar.endsOn, resting: plan.resting }
+    const state = planStateOn(standing, today)
+    const start = calendar.startsOn > today ? calendar.startsOn : today
+    const federalState = stateOf.get(plan.propertyId as string) ?? null
+    const holidays =
+      plan.skipHolidays && federalState !== null && hasHolidays(catalogue, federalState)
+        ? holidayClosures(
+            holidaysBetween(catalogue, federalState, start, addDays(start, passSearchDays)),
+          )
+        : []
+
+    return {
+      title: titleOf.get(plan.templateId as string) ?? 'Vorlage',
+      rhythm: rhythmText(calendar),
+      ...roundPlace(
+        { propertyId: plan.propertyId as string, buildingId: plan.buildingId as string | null },
+        names,
+      ),
+      walker:
+        plan.performerUserId === null
+          ? everybodyIn(areaNames.get(plan.areaId as string) ?? null)
+          : people
+            ? (accounts.get(plan.performerUserId)?.name ?? 'Unbekannte Person')
+            : null,
+      next:
+        state === 'running' || state === 'upcoming'
+          ? planNextPass(
+              calendar,
+              [...closed.filter((closure) => closure.buildingId === plan.buildingId), ...holidays],
+              start,
+            )
+          : null,
+      state: planStateText(standing, today),
+    }
+  })
+
+  return {
+    name: 'Pläne der Rundgänge',
+    columns: Object.values(roundPlanTableColumns),
+    rows: roundPlanTableRows(lines),
   }
 }
