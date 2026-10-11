@@ -1069,6 +1069,16 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
 
 ### Geändert
 
+- Ein Gerät, das nicht jeden Bereich sieht, findet beim Abruf seine Vorgänge über zwei Teilindizes,
+  und die Aufträge, an denen seine Person mitarbeitet, liest der Server einmal als Liste statt je
+  Vorgang (#80, T14-3 aus dem Review der Phase 0, Migration `0038_device_scope_indexes`). Bisher
+  las `deviceScope` bei jedem Abruf jeden Vorgang des Betreibers, die abgeschlossenen aller Jahre
+  eingeschlossen, und die Frage je Vorgang ließ die Datenbank den Aufwand so hoch schätzen, dass
+  sie die Abfrage vor jedem Lauf übersetzte (JIT), was länger dauerte als das Lesen selbst.
+  Gemessen bei 5.000 Anlagen, 50.000 Vorgängen und 20.000 Mängeln braucht `deviceScope` 11 statt
+  27 bis 31 Millisekunden, bei 200.000 Vorgängen 21 bis 33 statt 167 bis 183. Die Mängel bekommen
+  keinen Index: unter der Zeilensicherheit kennt die Datenbank die Verteilung ihres Status nicht
+  und nahm einen Index ab 80.000 Mängeln nicht mehr
 - Wann ein Datensatz zuletzt geändert wurde, von wem und von welchem Gerät, verlässt den Server
   nicht mehr (#157, Fundament angehoben auf opengewerk#594). Bisher lagen die drei Angaben auf
   jedem Gerät, das den Datensatz lesen darf, und standen in jeder Antwort, die ihn ausgab, obwohl
