@@ -60,6 +60,7 @@ import { RoomsController } from './rooms.controller.js'
 import { RoundPlansController } from './round-plans.controller.js'
 import { RoundTemplatesController } from './round-templates.controller.js'
 import { RoundsController } from './rounds.controller.js'
+import { SearchController } from './search.controller.js'
 import { syncRoutesFor } from './sync-routes.js'
 import { MeterSettingsController, MetersController } from './meters.controller.js'
 import { EvidencePrintController, Printer, RoundPrintController } from './prints.controller.js'
@@ -284,6 +285,8 @@ export class ApiModule {
         CatalogueController,
         // The import of places and assets from tables.
         ImportsController,
+        // The search by name, number and mark (#125).
+        SearchController,
       ],
       providers: [
         { provide: Database, useValue: database },

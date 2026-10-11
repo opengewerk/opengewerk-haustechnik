@@ -59,4 +59,7 @@ export const serverPaths: readonly string[] = [
   // The import of places and assets from tables, and what the lists of a
   // tenant call the asset kinds.
   'imports',
+  // The search by name, number and mark over places, assets, activities and
+  // the evidence (#125).
+  'search',
 ]
