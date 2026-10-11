@@ -118,6 +118,26 @@ export function registerRequest(
 }
 
 /**
+ * The address of the register as a table (#138): every asset that passes the
+ * filter, with what the register is narrowed by and no page.
+ */
+export function registerTableRequest(filter: AssetRegisterFilter): string {
+  const query = new URLSearchParams()
+
+  for (const name of assetRegisterFilters) {
+    const value = filter[name]
+
+    if (value !== undefined) {
+      query.set(name, value)
+    }
+  }
+
+  const asked = query.toString()
+
+  return asked === '' ? '/assets/table' : `/assets/table?${asked}`
+}
+
+/**
  * Where the forms of an asset live: a new one under the register, a
  * component under the asset it will be one of, and the form of an asset that
  * is there under its file. The page of a building opens the form of a new

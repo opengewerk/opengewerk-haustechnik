@@ -1,9 +1,10 @@
-import type {
-  AssetDetails,
-  AssetEntry,
-  AssetRegister,
-  DutyReading,
-  RoleKey,
+import {
+  type AssetDetails,
+  type AssetEntry,
+  type AssetRegister,
+  assetTableColumns,
+  type DutyReading,
+  type RoleKey,
 } from '@opengewerk/haustechnik-domain'
 import { TestServer } from '@opengewerk/platform-web/testing'
 import { fireEvent, screen, waitFor, within } from '@testing-library/react'
@@ -11,7 +12,14 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { servingCatalogue } from '../../app/test-catalogue.js'
 import { memberIn } from '../../app/test-entry.js'
-import { mountOffice, type NamedArea, onA, rowsOf, signedInOffice } from '../test-office.js'
+import {
+  mountOffice,
+  type NamedArea,
+  onA,
+  rowsOf,
+  servingTables,
+  signedInOffice,
+} from '../test-office.js'
 
 /**
  * The register of assets and the file of an asset in the office (#87, 4.2 of
@@ -203,6 +211,7 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.unstubAllGlobals()
+  vi.restoreAllMocks()
 })
 
 describe('the register of assets', () => {
@@ -421,6 +430,35 @@ describe('the register of assets', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Filter zurücksetzen' }))
     await screen.findByText('Noch ist keine Anlage aufgenommen.')
+  })
+
+  it('gives what it shows as a table, whole and under the filter of its address (#138)', async () => {
+    await mount('/anlagen?gebaeude=b-house&zustand=overdue', {
+      '/assets?buildingId=b-house&condition=overdue&offset=0&limit=50': page([lift], 51),
+    })
+    await screen.findByRole('table', { name: register })
+
+    // After the answers of the test, which it hands every other request to.
+    const tables = servingTables()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Als Tabelle' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Excel (.xlsx)' }))
+
+    await waitFor(() => {
+      expect(tables.saved).toEqual(['Liste für heute.csv'])
+    })
+    expect(tables.asked).toEqual(['/assets/table?buildingId=b-house&condition=overdue&format=xlsx'])
+  })
+
+  it('heads its table with the columns its table goes out with', async () => {
+    await mount('/anlagen', { [firstPage]: page([lift]) })
+    await screen.findByRole('table', { name: register })
+
+    expect(
+      within(screen.getByRole('table', { name: register }))
+        .getAllByRole('columnheader')
+        .map((heading) => heading.textContent),
+    ).toEqual([...assetTableColumns])
   })
 })
 

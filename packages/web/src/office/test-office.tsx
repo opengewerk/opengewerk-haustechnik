@@ -193,5 +193,44 @@ export function servingPdf(refusal: string | null = null): { asked: string[]; op
   return { asked, opened }
 }
 
+/**
+ * A list as a table, as the server hands it out (#138); every other request
+ * goes to the answers of the test. Hands back the addresses asked for and
+ * the names of the files handed to the browser to save.
+ */
+export function servingTables(): { asked: string[]; saved: string[] } {
+  const answered = globalThis.fetch
+  const asked: string[] = []
+  const saved: string[] = []
+
+  vi.stubGlobal('fetch', (path: string, init?: RequestInit) => {
+    if (!/\/table(\?|$)/.test(path)) {
+      return answered(path, init)
+    }
+
+    asked.push(path)
+
+    return Promise.resolve(
+      new Response(new Blob(['probe'], { type: 'text/csv' }), {
+        status: 200,
+        headers: {
+          'Content-Disposition': `attachment; filename="Liste.csv"; filename*=UTF-8''Liste%20f%C3%BCr%20heute.csv`,
+        },
+      }),
+    )
+  })
+  vi.stubGlobal(
+    'URL',
+    Object.assign(URL, { createObjectURL: () => 'blob:tabelle', revokeObjectURL: () => {} }),
+  )
+  vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(function (
+    this: HTMLAnchorElement,
+  ) {
+    saved.push(this.download)
+  })
+
+  return { asked, saved }
+}
+
 export const noRenderer =
   'Auf dieser Instanz ist kein Dienst eingerichtet, der PDFs erzeugt. Der eingefrorene Stand bleibt unverändert; das PDF entsteht, sobald der Dienst läuft.'
