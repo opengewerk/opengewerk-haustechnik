@@ -182,7 +182,14 @@ export interface AssetDetails extends Asset, AssetStanding {
   readonly distinctFromAssets: readonly DistinctAsset[]
   /** How many more of them there are that whoever reads does not see. */
   readonly distinctFromElsewhere: number
+  /** The asset it took the place of in an exchange (#89), which its file names. */
+  readonly replaces: ExchangedAsset | null
+  /** The asset that took its place, which its file names as well. */
+  readonly replacedBy: ExchangedAsset | null
 }
+
+/** The other asset of an exchange, as a file names it: by number and name, with the way to its file. */
+export type ExchangedAsset = Pick<Asset, 'id' | 'number' | 'name'>
 
 /**
  * An asset another one was found to be distinct from, as a file names it. One

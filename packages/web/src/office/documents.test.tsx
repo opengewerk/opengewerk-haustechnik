@@ -307,6 +307,9 @@ describe('the documents of an asset', () => {
     parent: null,
     distinctFromAssets: [],
     distinctFromElsewhere: 0,
+    replacesAssetId: null,
+    replaces: null,
+    replacedBy: null,
   } as unknown as AssetDetails
   const answers = { [`/assets/${lift.id}`]: file, [`/assets/${lift.id}/duties`]: [] }
 

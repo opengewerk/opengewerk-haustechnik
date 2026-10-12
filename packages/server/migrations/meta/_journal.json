@@ -295,6 +295,13 @@
       "when": 1791795457422,
       "tag": "0041_duty_updates",
       "breakpoints": true
+    },
+    {
+      "idx": 42,
+      "version": "7",
+      "when": 1791818765598,
+      "tag": "0042_asset_exchange",
+      "breakpoints": true
     }
   ]
 }

@@ -2,8 +2,10 @@ import type {
   AssetDetails,
   AssetDuplicate,
   CatalogueBundle,
+  ExchangeStanding,
   RoleKey,
 } from '@opengewerk/haustechnik-domain'
+import { today } from '@opengewerk/platform-web/format'
 import { TestServer } from '@opengewerk/platform-web/testing'
 import { onlineManager } from '@tanstack/react-query'
 import { fireEvent, screen, waitFor, within } from '@testing-library/react'
@@ -11,6 +13,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { acceptedReview, servingCatalogue, testCatalogue } from '../../app/test-catalogue.js'
 import { memberIn } from '../../app/test-entry.js'
+import { exchangeWords } from '../asset-exchange.js'
 import {
   mountOffice,
   type NamedArea,
@@ -115,6 +118,9 @@ function file(further: Readonly<Record<string, unknown>> = {}): AssetDetails {
     parent: null,
     distinctFromAssets: [],
     distinctFromElsewhere: 0,
+    replacesAssetId: null,
+    replaces: null,
+    replacedBy: null,
     ...further,
   } as unknown as AssetDetails
 }
@@ -1200,5 +1206,381 @@ describe('"Neue Anlage"', () => {
     await waitFor(() => {
       expect(router.state.location.href).toBe('/anlagen/neu')
     })
+  })
+})
+
+describe('the exchange of an asset', () => {
+  const at = '/anlagen/a-lift'
+  const standingAt = '/assets/a-lift/exchange'
+  const nothingOpen: ExchangeStanding = {
+    duties: 0,
+    ownDuties: [],
+    defects: 0,
+    openDefects: [],
+    activities: 0,
+    openActivities: [],
+  }
+  const muchOpen = {
+    duties: 3,
+    ownDuties: [
+      { id: 'd-own', label: 'Wartung nach Hersteller', intervalDays: null, intervalMonths: 12 },
+    ],
+    defects: 1,
+    openDefects: [{ id: 'm-1', description: 'Notruf ohne Funktion.', status: 'found' }],
+    activities: 2,
+    openActivities: [
+      { id: 'v-1', kind: 'inspection', title: 'Hauptprüfung', status: 'open' },
+      { id: 'v-2', kind: 'work_order', title: 'Notruf instand setzen', status: 'started' },
+    ],
+  } as unknown as ExchangeStanding
+
+  /** The file with its exchange open, as a role sees it. */
+  async function exchanging(
+    role: RoleKey,
+    standing: ExchangeStanding = nothingOpen,
+    further: Readonly<Record<string, unknown>> = {},
+    catalogue: CatalogueBundle = testCatalogue,
+  ) {
+    const router = await mount(
+      at,
+      { '/assets/a-lift': file(), '/assets/a-lift/duties': [], [standingAt]: standing, ...further },
+      role,
+      catalogue,
+    )
+
+    await screen.findByRole('heading', { level: 1, name: 'Aufzug Schulhaus' })
+    press('Tauschen')
+
+    return {
+      router,
+      dialog: within(await screen.findByRole('dialog', { name: 'Anlage tauschen' })),
+    }
+  }
+
+  it.each([
+    // Whoever only takes stock may not exchange; whoever keeps the assets may.
+    ['technician', {}, 'Versorgung ändern', false],
+    ['site_management', {}, 'Verlegen', true],
+    // An asset is replaced once, one that was removed is gone, and a meter is exchanged at its point.
+    [
+      'site_management',
+      { replacedBy: { id: 'a-new', number: 'AN-00400', name: 'Aufzug neu' } },
+      'Verlegen',
+      false,
+    ],
+    ['site_management', { lifecycleState: 'removed' }, 'Verlegen', false],
+    [
+      'site_management',
+      { meterNumber: '9WAT1234567', meterUnit: 'cubic_metres' },
+      'Verlegen',
+      false,
+    ],
+  ] as const)(
+    'is offered to whoever keeps the assets, once, and not for a measuring point (%s, %j)',
+    async (role, further, there, offered) => {
+      await mount(at, { '/assets/a-lift': file(further), '/assets/a-lift/duties': [] }, role)
+
+      // What this role is offered at the file stands there once its rights are known.
+      await screen.findByRole('button', { name: there })
+
+      expect(screen.queryByRole('button', { name: 'Tauschen' }) !== null).toBe(offered)
+    },
+  )
+
+  it('sends the day, the new asset and what goes along, and opens the file of the new asset', async () => {
+    const { router, dialog } = await exchanging('site_management', nothingOpen, {
+      [duplicatesOf('serialNumber=BL-2026-10233')]: theseDuplicates(),
+    })
+
+    // It begins with today, the name and the kind of the asset that goes.
+    expect((dialog.getByLabelText(/^Tag des Tauschs/) as HTMLInputElement).value).toBe(today())
+    expect((dialog.getByLabelText(/^Neue Anlage: Bezeichnung/) as HTMLInputElement).value).toBe(
+      'Aufzug Schulhaus',
+    )
+    expect(choice('Anlagenart').value).toBe('probe.elevator')
+    // What is known of the old device is not said of the new one.
+    expect((dialog.getByLabelText('Hersteller') as HTMLInputElement).value).toBe('')
+    expect((dialog.getByLabelText('Seriennummer') as HTMLInputElement).value).toBe('')
+
+    fireEvent.change(dialog.getByLabelText(/^Tag des Tauschs/), { target: { value: '2026-10-01' } })
+    fireEvent.change(dialog.getByLabelText(/^Neue Anlage: Bezeichnung/), {
+      target: { value: 'Aufzug neu' },
+    })
+    fireEvent.change(dialog.getByLabelText('Hersteller'), { target: { value: 'Beispiellift' } })
+    fireEvent.change(dialog.getByLabelText('Seriennummer'), {
+      target: { value: 'BL-2026-10233' },
+    })
+    fireEvent.click(dialog.getByRole('checkbox', { name: /^Antrieb/ }))
+
+    answerToWrite = answering({ id: 'a-new' }, 201)
+    fireEvent.click(dialog.getByRole('button', { name: 'Tauschen' }))
+
+    await waitFor(() => {
+      expect(router.state.location.pathname).toBe('/anlagen/a-new')
+    })
+    expect(written).toEqual([
+      {
+        method: 'POST',
+        path: '/assets/a-lift/exchange',
+        body: {
+          on: '2026-10-01',
+          asset: {
+            kind: 'probe.elevator',
+            name: 'Aufzug neu',
+            manufacturer: 'Beispiellift',
+            serialNumber: 'BL-2026-10233',
+          },
+          components: ['a-drive'],
+          duties: [],
+        },
+      },
+    ])
+  })
+
+  it('says what ends with the old asset before anybody says yes', async () => {
+    const { dialog } = await exchanging('technical_management', muchOpen)
+
+    const group = within(await dialog.findByRole('group', { name: 'Endet mit AN-00012' }))
+
+    expect(group.getAllByRole('listitem').map((item) => item.textContent)).toEqual([
+      '3 Pflichten enden am Tag des Tauschs.',
+      '1 offener Mangel gilt als behoben und wartet auf die Nachprüfung: Notruf ohne Funktion.',
+      '2 offene Vorgänge werden als nicht durchgeführt geschlossen: Hauptprüfung; Notruf instand setzen',
+    ])
+    expect(dialog.getByText(exchangeWords.removed('AN-00012'))).toBeTruthy()
+    expect(dialog.getByText(exchangeWords.componentsStay('AN-00012'))).toBeTruthy()
+  })
+
+  it('names nothing that ends where nothing is open', async () => {
+    const { dialog } = await exchanging('site_management')
+
+    await waitFor(() => {
+      expect(dialog.getByRole('group', { name: exchangeWords.components })).toBeTruthy()
+    })
+    expect(dialog.queryByRole('group', { name: 'Endet mit AN-00012' })).toBeNull()
+    expect(dialog.queryByRole('group', { name: exchangeWords.ownDuties })).toBeNull()
+  })
+
+  it('takes a duty of the operator own along where whoever keeps the register of duties ticks it', async () => {
+    const { router, dialog } = await exchanging('technical_management', muchOpen)
+
+    const own = within(await dialog.findByRole('group', { name: exchangeWords.ownDuties }))
+    const box = own.getByRole('checkbox', { name: /^Wartung nach Hersteller/ }) as HTMLInputElement
+
+    // Nothing goes along by itself.
+    expect(box.checked).toBe(false)
+    expect(own.getByText('alle 12 Monate')).toBeTruthy()
+    fireEvent.click(box)
+
+    answerToWrite = answering({ id: 'a-new' }, 201)
+    fireEvent.click(dialog.getByRole('button', { name: 'Tauschen' }))
+
+    await waitFor(() => {
+      expect(router.state.location.pathname).toBe('/anlagen/a-new')
+    })
+    expect(written.map((write) => write.body)).toEqual([
+      {
+        on: today(),
+        asset: {
+          kind: 'probe.elevator',
+          name: 'Aufzug Schulhaus',
+          manufacturer: '',
+          serialNumber: '',
+        },
+        components: [],
+        duties: ['d-own'],
+      },
+    ])
+  })
+
+  it('reads a duty of the operator own to whoever keeps the assets and not the duties, without a box', async () => {
+    // The Objektleitung keeps the assets, and not the register of duties.
+    const { dialog } = await exchanging('site_management', muchOpen)
+
+    const own = within(await dialog.findByRole('group', { name: exchangeWords.ownDutiesEnd }))
+
+    expect(own.queryByRole('checkbox')).toBeNull()
+    expect(own.getByText('Wartung nach Hersteller, alle 12 Monate')).toBeTruthy()
+    expect(own.getByText(exchangeWords.needsDutyRight)).toBeTruthy()
+    expect(dialog.queryByRole('group', { name: exchangeWords.ownDuties })).toBeNull()
+  })
+
+  it('asks before it exchanges for an asset whose serial number another one carries', async () => {
+    const { router, dialog } = await exchanging('site_management', nothingOpen, {
+      [duplicatesOf('serialNumber=SN-4711')]: theseDuplicates([twin], ['serialNumber']),
+    })
+
+    fireEvent.change(dialog.getByLabelText('Seriennummer'), { target: { value: 'SN-4711' } })
+    fireEvent.click(dialog.getByRole('button', { name: 'Tauschen' }))
+
+    const found = within(await dialog.findByRole('group', { name: 'Mögliche Dublette' }))
+
+    expect(found.getByText('Gleiche Seriennummer wie AN-00057 Aufzug Sporthalle.')).toBeTruthy()
+    expect(found.getByText(`Gleiche Seriennummer wie ${exchangeWords.elsewhere}.`)).toBeTruthy()
+    expect(written).toEqual([])
+    expect(dialog.queryByRole('button', { name: 'Tauschen' })).toBeNull()
+
+    answerToWrite = answering({ id: 'a-new' }, 201)
+    fireEvent.click(dialog.getByRole('button', { name: 'Trotzdem tauschen' }))
+
+    await waitFor(() => {
+      expect(router.state.location.pathname).toBe('/anlagen/a-new')
+    })
+    // What was shown and passed goes with the new asset; one beyond the areas was not shown.
+    expect(written.map((write) => write.body)).toEqual([
+      {
+        on: today(),
+        asset: {
+          kind: 'probe.elevator',
+          name: 'Aufzug Schulhaus',
+          manufacturer: '',
+          serialNumber: 'SN-4711',
+          distinctFrom: ['a-twin'],
+        },
+        components: [],
+        duties: [],
+      },
+    ])
+  })
+
+  it('asks as well where the only asset that carries it lies beyond the areas of the person', async () => {
+    const { dialog } = await exchanging('site_management', nothingOpen, {
+      [duplicatesOf('serialNumber=SN-4711')]: theseDuplicates([], ['serialNumber']),
+    })
+
+    fireEvent.change(dialog.getByLabelText('Seriennummer'), { target: { value: 'SN-4711' } })
+    fireEvent.click(dialog.getByRole('button', { name: 'Tauschen' }))
+
+    const found = within(await dialog.findByRole('group', { name: 'Mögliche Dublette' }))
+
+    expect(found.getByText(`Gleiche Seriennummer wie ${exchangeWords.elsewhere}.`)).toBeTruthy()
+    expect(written).toEqual([])
+
+    answerToWrite = answering({ id: 'a-new' }, 201)
+    fireEvent.click(dialog.getByRole('button', { name: 'Trotzdem tauschen' }))
+
+    await waitFor(() => {
+      expect(written).toHaveLength(1)
+    })
+    // It was not shown, so the new asset is not said to be another than it.
+    expect(written[0]?.body).toEqual({
+      on: today(),
+      asset: {
+        kind: 'probe.elevator',
+        name: 'Aufzug Schulhaus',
+        manufacturer: '',
+        serialNumber: 'SN-4711',
+      },
+      components: [],
+      duties: [],
+    })
+  })
+
+  it('asks again once the serial number is another one', async () => {
+    const { dialog } = await exchanging('site_management', nothingOpen, {
+      [duplicatesOf('serialNumber=SN-4711')]: theseDuplicates([twin]),
+    })
+
+    fireEvent.change(dialog.getByLabelText('Seriennummer'), { target: { value: 'SN-4711' } })
+    fireEvent.click(dialog.getByRole('button', { name: 'Tauschen' }))
+    await dialog.findByRole('group', { name: 'Mögliche Dublette' })
+
+    fireEvent.change(dialog.getByLabelText('Seriennummer'), { target: { value: 'SN-4712' } })
+
+    // The decision was about the other number: the box goes, and "Tauschen" asks anew.
+    expect(dialog.queryByRole('group', { name: 'Mögliche Dublette' })).toBeNull()
+    expect(dialog.queryByRole('button', { name: 'Trotzdem tauschen' })).toBeNull()
+    expect(dialog.getByRole('button', { name: 'Tauschen' })).toBeTruthy()
+  })
+
+  it('exchanges nothing while the server does not say whether the new asset is there already', async () => {
+    const { dialog } = await exchanging('site_management')
+
+    fireEvent.change(dialog.getByLabelText('Seriennummer'), { target: { value: 'SN-0000' } })
+    fireEvent.click(dialog.getByRole('button', { name: 'Tauschen' }))
+
+    expect((await dialog.findByRole('alert')).textContent).toBe(exchangeWords.noAnswer)
+    expect(written).toEqual([])
+  })
+
+  it('sends nothing without a name, or with a day that lies ahead', async () => {
+    const { dialog } = await exchanging('site_management')
+
+    fireEvent.change(dialog.getByLabelText(/^Neue Anlage: Bezeichnung/), { target: { value: ' ' } })
+    fireEvent.change(dialog.getByLabelText(/^Tag des Tauschs/), { target: { value: '2999-01-01' } })
+    fireEvent.click(dialog.getByRole('button', { name: 'Tauschen' }))
+
+    expect((await dialog.findByRole('alert')).textContent).toBe(exchangeWords.check)
+    expect(dialog.getByText('Die Bezeichnung fehlt.')).toBeTruthy()
+    expect(
+      dialog.getByText(
+        'Der Tag des Tauschs ist heute oder ein Tag davor: eingetragen wird ein Tausch, der stattgefunden hat.',
+      ),
+    ).toBeTruthy()
+    expect(written).toEqual([])
+  })
+
+  it('shows what the server refused with, and stays open', async () => {
+    const { router, dialog } = await exchanging('site_management')
+
+    answerToWrite = answering({ message: 'Diese Anlage ist schon getauscht.' }, 409)
+    fireEvent.click(dialog.getByRole('button', { name: 'Tauschen' }))
+
+    expect((await dialog.findByRole('alert')).textContent).toBe('Diese Anlage ist schon getauscht.')
+    expect(router.state.location.pathname).toBe(at)
+  })
+
+  it('offers no measuring point as the asset that comes', async () => {
+    const [probe, ...others] = testCatalogue.packages
+    const [first] = probe?.assetKinds ?? []
+    const withAMeter = {
+      ...testCatalogue,
+      sha256: '4'.repeat(64),
+      packages: [
+        {
+          ...probe,
+          assetKinds: [
+            ...(probe?.assetKinds ?? []),
+            {
+              ...first,
+              key: 'probe.water_meter',
+              definition: {
+                ...first?.definition,
+                label: 'Wasserzähler',
+                meter: { units: ['cubic_metres'] },
+              },
+            },
+          ],
+        },
+        ...others,
+      ],
+    } as unknown as CatalogueBundle
+
+    await exchanging('site_management', nothingOpen, {}, withAMeter)
+
+    await waitFor(() => {
+      expect(offered('Anlagenart')).toContain('Probepaket: Aufzugsanlage')
+    })
+    expect(offered('Anlagenart').some((kind) => kind.includes('Wasserzähler'))).toBe(false)
+  })
+})
+
+describe('the two assets of an exchange', () => {
+  it('name each other in their files, each with the way to the other', async () => {
+    await mount('/anlagen/a-lift', {
+      '/assets/a-lift': file({
+        replaces: { id: 'a-old', number: 'AN-00007', name: 'Aufzug alt' },
+        replacedBy: { id: 'a-new', number: 'AN-00400', name: 'Aufzug neu' },
+      }),
+      '/assets/a-lift/duties': [],
+    })
+
+    const replaces = await screen.findByRole('link', { name: 'AN-00007 Aufzug alt' })
+    const replacedBy = screen.getByRole('link', { name: 'AN-00400 Aufzug neu' })
+
+    expect(replaces.getAttribute('href')).toBe('/anlagen/a-old')
+    expect(replacedBy.getAttribute('href')).toBe('/anlagen/a-new')
+    expect(screen.getByText('Ersetzt')).toBeTruthy()
+    expect(screen.getByText('Ersetzt durch')).toBeTruthy()
   })
 })

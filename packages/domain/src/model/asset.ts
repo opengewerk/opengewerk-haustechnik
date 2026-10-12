@@ -81,6 +81,12 @@ export interface Asset extends Synced {
    * when the server looks again (section 2.7).
    */
   readonly distinctFrom: readonly AssetId[]
+  /**
+   * The asset this one took the place of in an exchange (section 4.2 of the
+   * concept, #89): that one was removed on the day, and this one stands where
+   * it stood. Only the exchange says it, and an asset is replaced once.
+   */
+  readonly replacesAssetId: AssetId | null
 }
 
 /**

@@ -30,6 +30,9 @@ import {
   type DistinctAsset,
   distinctFromProblem,
   type DutyReading,
+  exchangeProblems,
+  exchangeRefusals,
+  type ExchangeStanding,
   type LifecycleEntry,
   lifecycleEntryProblems,
   type LifecycleState,
@@ -49,6 +52,7 @@ import {
 } from '@opengewerk/platform-server'
 import { and, asc, eq, inArray, isNull, sql } from 'drizzle-orm'
 
+import { exchangeAsset, exchangeStanding } from '../assets/exchange.js'
 import { CATALOGUE } from '../catalogue.js'
 import { assetDuplicates, duplicateQuestion } from '../database/asset-duplicates.js'
 import { assetsOnADay, dutyTitle } from '../database/duty-standing.js'
@@ -162,11 +166,15 @@ async function roomIn(
   return room.id
 }
 
-/** Inserts an asset with its number from the sequence of the tenant. */
+/**
+ * Inserts an asset with its number from the sequence of the tenant. An asset
+ * that takes the place of another in an exchange says which (#89).
+ */
 async function insertAsset(
   tx: TenantTransaction,
   identity: Asking,
-  place: Pick<Asset, 'propertyId' | 'areaId' | 'buildingId' | 'roomId' | 'parentAssetId'>,
+  place: Pick<Asset, 'propertyId' | 'areaId' | 'buildingId' | 'roomId' | 'parentAssetId'> &
+    Partial<Pick<Asset, 'replacesAssetId'>>,
   values: NewAssetValues,
 ): Promise<Asset> {
   const number = await assignNumber(tx, identity.tenantId, 'asset', new Date())
@@ -402,11 +410,28 @@ export class AssetsController {
             ]
           : []
       })
+      // The other asset of an exchange, either way (#89). The two stand on
+      // one property, so whoever reads the one reads the other; one that was
+      // marked since has no file to open and is not named.
+      const other = { id: assets.id, number: assets.number, name: assets.name }
+      const [replaces] =
+        asset.replacesAssetId === null
+          ? []
+          : await tx
+              .select(other)
+              .from(assets)
+              .where(and(eq(assets.id, asset.replacesAssetId), isNull(assets.deletedAt)))
+      const [replacedBy] = await tx
+        .select(other)
+        .from(assets)
+        .where(and(eq(assets.replacesAssetId, asset.id), isNull(assets.deletedAt)))
 
       return {
         ...asset,
         distinctFromAssets,
         distinctFromElsewhere: asset.distinctFrom.length - distinctFromAssets.length,
+        replaces: replaces ?? null,
+        replacedBy: replacedBy ?? null,
         lifecycle,
         lifecycleState,
         condition,
@@ -722,6 +747,80 @@ export class AssetsController {
 
       return removed as LifecycleEntry
     })
+  }
+
+  /**
+   * What an exchange would end at the asset today (section 4.2 of the
+   * concept, #89): how many of its duties, defects and activities, and each
+   * by what it is called for whoever reads them. The dialog asks before
+   * anybody says yes, under the right the exchange itself needs.
+   */
+  @Get(':id/exchange')
+  @RequiresPermission('asset.write')
+  exchangeOf(
+    @CurrentIdentity() identity: Asking,
+    @Param('id') id: string,
+  ): Promise<ExchangeStanding> {
+    return this.database.forTenant(identity, async (tx) =>
+      exchangeStanding(tx, identity, await placeOf<Asset>(tx, assets, id, missing), dayInGermany()),
+    )
+  }
+
+  /**
+   * Exchanges the asset for a new one (section 4.2 of the concept, #89), in
+   * one step: the old one is removed from the day on, the new one stands
+   * where it stood and supplies what it supplied, with a number of its own,
+   * and each names the other. What is open at the old one ends with it. Its
+   * duties end, and the catalogue proposes them anew for the new asset; a
+   * defect nobody set right yet counts as remedied; an activity that is open
+   * or begun is closed as not performed. Components stay with the old asset,
+   * except those named, and a duty of the operator's own goes along only when
+   * it is named, by whoever keeps the register of duties.
+   *
+   * For whoever keeps the assets ("pflegen", section 7). Answers with the new
+   * asset.
+   */
+  @Post(':id/exchange')
+  @RequiresPermission('asset.write')
+  exchange(
+    @CurrentIdentity() identity: Asking,
+    @Param('id') id: string,
+    @Body() body: unknown,
+  ): Promise<Asset> {
+    const today = dayInGermany()
+    const said = fieldsOf(body, ['on', 'asset', 'components', 'duties'] as const)
+
+    refuse(exchangeProblems(said, today))
+
+    if (typeof said.asset !== 'object' || said.asset === null) {
+      throw new BadRequestException('Die neue Anlage fehlt.')
+    }
+
+    // Before the asset is held against its kind: a measuring point without
+    // its meter number would be refused for the number, which is not the point.
+    const named = (said.asset as { readonly kind?: unknown }).kind
+    const kind = typeof named === 'string' ? this.catalogue.assetKind(named, today) : null
+
+    if (kind && kind.definition.meter !== null) {
+      throw new BadRequestException(exchangeRefusals.newMeter)
+    }
+
+    const values = newAsset(this.catalogue, said.asset)
+    const exchange = {
+      on: said.on as string,
+      components: (said.components ?? []) as readonly string[],
+      duties: (said.duties ?? []) as readonly string[],
+    }
+
+    return this.database.forTenant(identity, async (tx) =>
+      exchangeAsset(
+        tx,
+        identity,
+        await placeOf<Asset>(tx, assets, id, missing),
+        exchange,
+        (place) => insertAsset(tx, identity, place, values),
+      ),
+    )
   }
 
   /**

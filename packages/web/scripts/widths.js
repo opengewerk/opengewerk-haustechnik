@@ -71,6 +71,7 @@ await checkWidths({
     'Komponente hinzufügen',
     'Verlegen',
     'Versorgung ändern',
+    'Tauschen',
     'Eintragen',
     'Verantwortliche Person ändern',
     'Verantwortliche Person benennen',

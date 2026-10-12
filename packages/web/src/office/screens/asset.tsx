@@ -41,7 +41,7 @@ import { useRight } from '@opengewerk/platform-web/session'
 import { request, RequestRefused, text, useRecords } from '@opengewerk/platform-web/sync'
 import { useQuery, type UseQueryResult } from '@tanstack/react-query'
 import { Link, useNavigate, useParams } from '@tanstack/react-router'
-import { Pencil, Plus, X, Zap } from 'lucide-react'
+import { ArrowLeftRight, Pencil, Plus, X, Zap } from 'lucide-react'
 import { type ReactNode, useState } from 'react'
 
 import { assetEvidenceQuery } from '../../app/evidence.js'
@@ -57,6 +57,7 @@ import {
   TakeBackLifecycleEntry,
 } from '../asset-dialogs.js'
 import { AssetConditionMark, DutyStateMark } from '../../app/asset-marks.js'
+import { ExchangeAssetDialog, mayBeExchanged } from '../asset-exchange.js'
 import { AssetState } from '../asset-state.js'
 import { cataloguePlaces } from '../catalogue-addresses.js'
 import { DocumentsCard } from '../documents.js'
@@ -105,6 +106,8 @@ export const assetFileWords = {
   distinctFrom: 'Keine Dublette von',
   removed: '(entfernt)',
   shownOnEntry: 'Beim Anlegen als mögliche Dublette gezeigt.',
+  replaces: 'Ersetzt',
+  replacedBy: 'Ersetzt durch',
 } as const
 
 /**
@@ -121,16 +124,17 @@ export const assetFileWords = {
  * Whoever takes assets into the register changes what is known about it, adds
  * a component and says what it supplies; its life cycle and moving it are for
  * whoever keeps the assets (section 7 of the concept, #88), and neither is
- * offered to anybody else.
+ * offered to anybody else. So is its exchange (#89): offered once, and not
+ * for a measuring point, whose meter is exchanged at the point. Afterwards
+ * the two files name each other.
  *
  * Its label and its documents stand in the narrow column, after the life
  * cycle (#98, #97): the label with its QR code, made, printed and blocked
  * there, and what is filed at this asset, the one changed last first. Both
  * are read from the device.
  *
- * What the board draws beyond this arrives with what it shows: swapping the
- * asset (#89), confirming duties (#102), evidence (#109), defects (#116)
- * and work orders (#117).
+ * What the board draws beyond this arrives with what it shows: confirming
+ * duties (#102), evidence (#109), defects (#116) and work orders (#117).
  */
 export function AssetFileScreen() {
   const { assetId } = useParams({ strict: false }) as { assetId?: string }
@@ -139,7 +143,9 @@ export function AssetFileScreen() {
   const seesEvidence = useRight('evidence.read')
   const records = useRight('asset.record')
   const keeps = useRight('asset.write')
-  const [changing, setChanging] = useState<'place' | 'supplies' | 'lifecycle' | null>(null)
+  const [changing, setChanging] = useState<'place' | 'supplies' | 'lifecycle' | 'exchange' | null>(
+    null,
+  )
   const [takingBack, setTakingBack] = useState<LifecycleEntry | null>(null)
   const file = useQuery({ ...assetFileQuery(assetId ?? ''), enabled: assetId !== undefined })
   const duties = useQuery({
@@ -239,6 +245,16 @@ export function AssetFileScreen() {
                 }}
               >
                 Bearbeiten
+              </Button>
+            ) : null}
+            {keeps && mayBeExchanged(asset) ? (
+              <Button
+                icon={ArrowLeftRight}
+                onClick={() => {
+                  setChanging('exchange')
+                }}
+              >
+                Tauschen
               </Button>
             ) : null}
             <NewOrderAtAssetButton assetId={assetId} />
@@ -433,6 +449,9 @@ export function AssetFileScreen() {
       {changing === 'lifecycle' ? (
         <LifecycleEntryDialog asset={asset} onClose={stopChanging} />
       ) : null}
+      {changing === 'exchange' ? (
+        <ExchangeAssetDialog asset={asset} onClose={stopChanging} />
+      ) : null}
       {takingBack ? (
         <TakeBackLifecycleEntry
           asset={asset}
@@ -527,6 +546,20 @@ function masterData(asset: AssetDetails, catalogue: Catalogue | null): Fact[] {
     : []
   const known = (label: string, value: string | number | null): Fact[] =>
     value === null || value === '' ? [] : [{ label, value: String(value) }]
+  /** The other asset of an exchange (#89), by number and name and the way to its file. */
+  const exchanged = (label: string, other: AssetDetails['replaces']): Fact[] =>
+    other === null
+      ? []
+      : [
+          {
+            label,
+            value: (
+              <Link to={officePlaces.asset(other.id)} className={factLink}>
+                {[other.number, other.name].filter(Boolean).join(' ')}
+              </Link>
+            ),
+          },
+        ]
 
   return [
     {
@@ -555,6 +588,8 @@ function masterData(asset: AssetDetails, catalogue: Catalogue | null): Fact[] {
       'Gewährleistung bis',
       asset.warrantyEndsOn === null ? null : date(asset.warrantyEndsOn),
     ),
+    ...exchanged(assetFileWords.replaces, asset.replaces),
+    ...exchanged(assetFileWords.replacedBy, asset.replacedBy),
     ...(asset.distinctFromAssets.length + asset.distinctFromElsewhere > 0
       ? [{ label: assetFileWords.distinctFrom, value: <DistinctFrom asset={asset} /> }]
       : []),

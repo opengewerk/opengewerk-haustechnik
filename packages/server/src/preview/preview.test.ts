@@ -5,6 +5,7 @@ import type { INestApplication } from '@nestjs/common'
 import { catalogueBundle } from '@opengewerk/haustechnik-catalogue'
 import { probeCatalogueBundle } from '@opengewerk/haustechnik-catalogue/testing'
 import {
+  addDays,
   blockFieldKinds,
   type DutyDetails,
   type DutyUpdates,
@@ -36,6 +37,7 @@ import {
 } from './preview-database.js'
 import { openSamplePreview, previewBundle, previewCatalogue } from './preview-server.js'
 import {
+  exchangedSample,
   inServiceSince,
   outOfServiceThisYear,
   sampleProperties,
@@ -955,7 +957,14 @@ describe('a preview started as the Leitung', () => {
           standing[asset.name] = building.name
           expect([asset.name, asset.lifecycle[0]]).toEqual([
             asset.name,
-            expect.objectContaining({ state: 'in_service', validFrom: inServiceSince }),
+            expect.objectContaining({
+              state: 'in_service',
+              // The asset that came by the exchange is in service from that day (#89).
+              validFrom:
+                asset.name === exchangedSample.successor.name
+                  ? addDays(dayInGermany(), -exchangedSample.daysAgo)
+                  : inServiceSince,
+            }),
           ])
 
           if (asset.supplies.length > 0) {
@@ -973,11 +982,13 @@ describe('a preview started as the Leitung', () => {
 
     expect(Object.keys(states).length).toBeGreaterThan(4)
     expect(outOfService).toEqual(['Unterzähler Sporthalle'])
+    // One asset was exchanged (#89): it is removed, and the one that came is in service.
     expect(
-      Object.keys(states).filter(
-        (name) => states[name] !== 'in_service' && states[name] !== 'out_of_service',
+      Object.entries(states).filter(
+        ([, state]) => state !== 'in_service' && state !== 'out_of_service',
       ),
-    ).toEqual([])
+    ).toEqual([['Sicherheitsleuchte Treppenhaus', 'removed']])
+    expect(states[exchangedSample.successor.name]).toBe('in_service')
     expect(outOfServiceThisYear).toEqual([
       { state: 'out_of_service', validFrom: `${dayInGermany().slice(0, 4)}-01-01` },
     ])

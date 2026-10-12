@@ -193,6 +193,12 @@ describe('the keys of the technology', () => {
            values ($1, $2, $3, $4, $5, 'probe.elevator', 'Antrieb')`,
           [tenant, here.property, here.area, here.annex, asset],
         ),
+      assets_replace_one_of_their_property: () =>
+        tried(
+          `insert into assets (tenant_id, property_id, area_id, building_id, replaces_asset_id, kind, name)
+           values ($1, $2, $3, $4, $5, 'probe.elevator', 'Aufzug neu')`,
+          [tenant, here.property, here.area, here.building, besideAsset],
+        ),
       asset_lifecycle_of_an_asset: () =>
         tried(
           `insert into asset_lifecycle (tenant_id, asset_id, property_id, area_id, state, valid_from)

@@ -52,6 +52,9 @@ export * from './model/asset.js'
 // Whether an asset may already stand in the register, and the general kind
 // of a cost group.
 export * from './model/asset-duplicate.js'
+// The exchange of an asset: what it asks, when it is refused and what ends
+// with the asset that goes.
+export * from './model/asset-exchange.js'
 export * from './model/meter.js'
 export * from './model/meter-reading.js'
 export * from './model/meter-register.js'
