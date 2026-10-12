@@ -1139,6 +1139,20 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   Pflicht entfernt und wann sie beendet wird. Bisher ließ sich eine Pflicht aus dem Katalog nur
   beenden: wer einen Vorschlag irrtümlich bestätigt hatte, behielt einen beendeten Eintrag, der
   nie hätte entstehen sollen
+- Eine fällige Zählerablesung legt eine Aufgabe an (#242): Die Fristen-Engine kennt die Aktion
+  "Aufgabe". Beginnt der Vorlauf der Ablesung einer Liegenschaft, bekommt die Person, die für
+  die Frist verantwortlich ist, die Aufgabe "Zähler ablesen", eine je Liegenschaft und
+  Stichtag, an der Liegenschaft und fällig am Stichtag. Die Frist nennt ihre Aufgabe
+  (`deadlines.task_id`, Migration `0040_deadline_task`): sie hat immer nur eine, und rückt ihr
+  Tag nach vorn, folgt die offene Aufgabe, statt dass eine zweite entsteht. Erledigt ist die
+  Aufgabe mit dem Lauf, in dem die Frist weitergeht, also sobald jede Messstelle dort ihren
+  Stand für den Stichtag hat, oder wenn dort nichts mehr abzulesen ist. Die Engine fragt wie
+  der Abgleich, ob die Person nicht gesperrt ist, Aufgaben erledigen darf und den Bereich
+  sieht; sonst entsteht keine Aufgabe, und der Lauf geht trotzdem durch. Ein fälliger Mangel
+  legt keine an. Das Planungskonzept (v0.24) sagt in 2.4, welche Frist welche Aktion auslöst,
+  die Verfahrensbeschreibung nennt die Aufgabe aus der Engine in Abschnitt 3.14 (B220 bis
+  B224). Bisher erinnerte die fällige Ablesung nur: wer sie machen sollte, hatte nichts in
+  seiner Liste, das mit den Ständen von selbst verschwindet
 
 ### Geändert
 

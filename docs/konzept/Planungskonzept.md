@@ -1,6 +1,6 @@
-# OpenGewerk Haustechnik: Planungskonzept (Software für Betreiber und ihre Haustechnik) · v0.23
+# OpenGewerk Haustechnik: Planungskonzept (Software für Betreiber und ihre Haustechnik) · v0.24
 
-2026-10-11 · Eigenständiges Projekt, Repository `opengewerk-haustechnik` in der GitHub-Organisation `opengewerk` · v0.2 trägt die Entscheidungen vom 01.10.2026 ein, v0.3 die Technik, mit der das Fundament eingebunden wird, v0.4 gleicht Abschnitt 5 und die Wortwahl an die ADRs 0002 bis 0006 an, siehe Abschnitt 15; v0.5 sagt in Abschnitt 7, was jede Rolle im Einzelnen darf, v0.6 nennt dort die Rechte für den Abgleich, v0.7 gibt den eigenen Anlagenarten und den Mängelklassen ihre Phase, v0.8 trägt die Entscheidungen vom 04.10.2026 vor dem Bau von Phase 1 ein, v0.9 gibt der Liegenschaft ihre Notiz, v0.10 sagt, wer ihre Ansprechpartner pflegt, v0.11, was eine Schließzeit ist und wer sie einträgt, v0.12 nennt das Recht, Dokumente abzulegen, v0.13 die Rechte, sie anzusehen und zu entfernen, und woran ein Dokument hängt, v0.14, dass eine eigene Pflicht ihre Tätigkeit nennt, v0.15, welcher Vorgang aus welcher Tätigkeit entsteht, v0.16, wie ein Bericht einer Fremdfirma zum Nachweis wird, v0.17, welche Klassen ein Mangel nehmen kann und was eine Nachprüfung festhält, v0.18, wie ein Vorgang von Hand entsteht und mit Grund geschlossen wird, v0.19, dass auch ein Auftrag mit Grund geschlossen wird, v0.20 nennt das Recht, die Vorlagen der Rundgänge zu führen, und wie ein Punkt eine Pflicht erfüllt, v0.21, welche Dokumente eine Frist tragen und wann eine Pflicht „Frist prüfen“ sagt, v0.22 nennt die Rechte an Aufgaben und woran eine Aufgabe hängt, v0.23, wann eine irrtümlich bestätigte oder angelegte Pflicht entfernt und nicht beendet wird (Vergleich mit openMAINT, Atlas CMMS, eTASK, wave Facilities, pitFM, SPARTACUS, Planon, Lumiform, Wowflow und den Excel-Listen, die vielerorts die eigentliche Software sind)
+2026-10-12 · Eigenständiges Projekt, Repository `opengewerk-haustechnik` in der GitHub-Organisation `opengewerk` · v0.2 trägt die Entscheidungen vom 01.10.2026 ein, v0.3 die Technik, mit der das Fundament eingebunden wird, v0.4 gleicht Abschnitt 5 und die Wortwahl an die ADRs 0002 bis 0006 an, siehe Abschnitt 15; v0.5 sagt in Abschnitt 7, was jede Rolle im Einzelnen darf, v0.6 nennt dort die Rechte für den Abgleich, v0.7 gibt den eigenen Anlagenarten und den Mängelklassen ihre Phase, v0.8 trägt die Entscheidungen vom 04.10.2026 vor dem Bau von Phase 1 ein, v0.9 gibt der Liegenschaft ihre Notiz, v0.10 sagt, wer ihre Ansprechpartner pflegt, v0.11, was eine Schließzeit ist und wer sie einträgt, v0.12 nennt das Recht, Dokumente abzulegen, v0.13 die Rechte, sie anzusehen und zu entfernen, und woran ein Dokument hängt, v0.14, dass eine eigene Pflicht ihre Tätigkeit nennt, v0.15, welcher Vorgang aus welcher Tätigkeit entsteht, v0.16, wie ein Bericht einer Fremdfirma zum Nachweis wird, v0.17, welche Klassen ein Mangel nehmen kann und was eine Nachprüfung festhält, v0.18, wie ein Vorgang von Hand entsteht und mit Grund geschlossen wird, v0.19, dass auch ein Auftrag mit Grund geschlossen wird, v0.20 nennt das Recht, die Vorlagen der Rundgänge zu führen, und wie ein Punkt eine Pflicht erfüllt, v0.21, welche Dokumente eine Frist tragen und wann eine Pflicht „Frist prüfen“ sagt, v0.22 nennt die Rechte an Aufgaben und woran eine Aufgabe hängt, v0.23, wann eine irrtümlich bestätigte oder angelegte Pflicht entfernt und nicht beendet wird, v0.24, welche Frist welche Aktion auslöst (Vergleich mit openMAINT, Atlas CMMS, eTASK, wave Facilities, pitFM, SPARTACUS, Planon, Lumiform, Wowflow und den Excel-Listen, die vielerorts die eigentliche Software sind)
 
 Self-hosted Open-Source-System für alle, die Gebäude betreiben und dafür eigene Haustechniker haben. Liegenschaften, Gebäude, Räume und technische Anlagen stehen in einem Datenmodell. Die Betreiberpflichten hängen daran als überwachte Fristen, Rundgänge und Prüfungen laufen auf dem Telefon auch ohne Netz, und zu jeder Pflicht gibt es einen Nachweis, der sich nachträglich nicht ändern lässt.
 
@@ -148,7 +148,7 @@ Die Fristen-Engine von OpenGewerk, mit den Quellen dieser Anwendung. Eine Frist 
 - Zählerablesung zum Stichtag
 - Aufbewahrungs- und Löschfristen
 
-Aktionen: Erinnerung per E-Mail oder Push, Aufgabe, Vorgang anlegen (Prüfung, Wartung, Rundgang). Die Liste „Fristen“ zeigt alles, was ansteht, filterbar nach Art, Ort, Bereich und Person. Ein Lauf, der nicht stattgefunden hat, ist im Büro sichtbar und kein Eintrag in einer Datei auf dem Server.
+Aktionen: Erinnerung per E-Mail oder Push, Aufgabe, Vorgang anlegen (Prüfung, Wartung, Rundgang). Welche Frist was auslöst, steht fest und wird nicht eingestellt: die fällige Pflicht legt ihren Vorgang an, der Plan eines Rundgangs seine Rundgänge, und die fällige Zählerablesung gibt der Person, die für die Frist verantwortlich ist, die Aufgabe „Zähler ablesen“, eine je Liegenschaft und Stichtag, erledigt, sobald jede Messstelle dort ihren Stand hat. Ein fälliger Mangel erinnert nur: mit Status, Frist und Auftrag hat er schon, was eine Aufgabe täte. Die Liste „Fristen“ zeigt alles, was ansteht, filterbar nach Art, Ort, Bereich und Person. Ein Lauf, der nicht stattgefunden hat, ist im Büro sichtbar und kein Eintrag in einer Datei auf dem Server.
 
 ### 2.5 Formular- und Protokoll-Engine
 
@@ -324,7 +324,7 @@ Wie dort gilt: jede Abfrage nennt einen Tag, und für einen Tag ohne hinterlegte
 ### 4.9 Zähler und Energie
 
 - Messstellen als Anlagen: Medium (Strom, Wasser, Wärme, Fernwärme, Gas, Kälte), Einheit, Zählernummer, Wandlerfaktor, Haupt- und Unterzähler, Kennung in der Leittechnik
-- **Ablesung** zum Stichtag auf dem Telefon, als Punkt eines Rundgangs oder als eigene Runde, mit dem Vormonatswert daneben und einer Prüfung auf Unmögliches (kleiner als der letzte Stand, Sprung um ein Vielfaches). Den Stichtag stellt der Betreiber ein, eine einzelne Messstelle kann davon abweichen
+- **Ablesung** zum Stichtag auf dem Telefon, als Punkt eines Rundgangs oder als eigene Runde, mit dem Vormonatswert daneben und einer Prüfung auf Unmögliches (kleiner als der letzte Stand, Sprung um ein Vielfaches). Den Stichtag stellt der Betreiber ein, eine einzelne Messstelle kann davon abweichen. Ist die Ablesung fällig, bekommt die verantwortliche Person die Aufgabe „Zähler ablesen“ (2.4)
 - Ein Stand wird nie überschrieben: berichtigt wird durch einen neuen Eintrag, der den alten nennt, mit Grund und Person
 - **Verbrauch** wird abgeleitet und nie gespeichert
 - **Zählertausch** als Eintrag an der Messstelle (Endstand alt, Anfangsstand neu, beide Nummern, Tag); der Verbrauch des Tauschmonats rechnet über beide Geräte
@@ -748,6 +748,7 @@ Die offenen Fragen aus v0.1 sind am 01.10.2026 entschieden worden, die Phasen de
 | Verfahrensbeschreibung für den Parallelbetrieb | Von Hand geschrieben für den Stand von Phase 1; die erzeugte löst sie in Phase 2 ab | 9, 12 |
 | Vorlage für eine Betriebs- oder Dienstvereinbarung | Phase 2 | 9, 12 |
 | Eine irrtümlich bestätigte Pflicht aus dem Katalog (11.10.2026) | Wird entfernt wie eine eigene: ohne Nachweis und ohne unterschriebenen Vorgang, auf ihrer Seite; danach ist ihre Pflichtart wieder ein Vorschlag | 4.3 |
+| Aktionen der Fristen | Die fällige Pflicht legt ihren Vorgang an, der Plan eines Rundgangs seine Rundgänge, die fällige Zählerablesung die Aufgabe „Zähler ablesen“ für die verantwortliche Person; ein fälliger Mangel erinnert nur | 2.4, 4.9 |
 
 **Noch offen**
 
@@ -757,6 +758,10 @@ Die offenen Fragen aus v0.1 sind am 01.10.2026 entschieden worden, die Phasen de
 ---
 
 ## 16. Änderungsprotokoll
+
+### v0.23 → v0.24
+
+- Welche Frist welche Aktion auslöst, steht in 2.4: die fällige Pflicht legt ihren Vorgang an, der Plan eines Rundgangs seine Rundgänge, die fällige Zählerablesung die Aufgabe „Zähler ablesen“ für die verantwortliche Person der Frist, eine je Liegenschaft und Stichtag, erledigt mit den Ständen. Ein fälliger Mangel erinnert nur. Entschieden am 11.10.2026 (2.4, 4.9, 15)
 
 ### v0.22 → v0.23
 
