@@ -143,6 +143,10 @@ const instance = {
     what: 'Was für alle Betreiber auf dieser Instanz gilt.',
     mailOwnServer: 'Ein Betreiber verschickt seine E-Mails über seinen eigenen Mailserver.',
     mailNoWayIn: 'So greift kein Betreiber über die Instanz in das Netz dahinter.',
+    accountMail:
+      'Über diesen Mailserver gehen die E-Mails an ein Konto: der Link zu einem neuen Passwort und der Hinweis auf einen neuen Passkey. Ein Konto gehört der Instanz und keinem Betreiber, deshalb gehen diese E-Mails nie über den Mailserver eines Betreibers.',
+    accountMailMissing:
+      'Es ist kein Mailserver eingerichtet. Wer sein Passwort vergessen hat, bekommt keinen Link; den Weg zurück in ein Konto gibt es dann nur über die Leitung oder den Befehl reset-password auf dem Server.',
   },
   log: {
     what: 'Jede Änderung an der Instanz. Was bei einem Betreiber geändert wird, steht in dessen Änderungsprotokoll.',
