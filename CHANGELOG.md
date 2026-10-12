@@ -1756,3 +1756,14 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   Formular eines Vorgangs, die Klasse eines Mangels und die Vorlage, aus der ein Rundgang
   übernommen wurde. Die Bezeichnung kommt aus dem Katalog, auf dem Server aus seinem, im Büro
   aus dem des Geräts. Kennt der Katalog einen Schlüssel nicht mehr, bleibt der Schlüssel stehen
+- Im Änderungsprotokoll stehen Namen, wo Kennungen standen (#259): an einer Pflicht das Dokument,
+  das die Frist trägt, und seine Fassung; am Mangel die Antwort, aus der er kommt; an einer Frist
+  die Aufgabe und die Liegenschaft, deren Zähler abzulesen sind; an einer Aufgabe die Person, die
+  sie erledigt; am Vorgang eines Rundgangs die Vorlage, wo `template-` mit ihrer Kennung stand;
+  am Plan eines Rundgangs die Wochentage, wo `{1,3}` stand. Dem Vokabular fehlte bei diesen
+  Spalten, dass sie auf einen Datensatz oder eine Person zeigen. Die "Quelle" einer Frist, eine
+  bloße Kennung, zeigt das Protokoll nicht mehr: dieselbe Frist nennt in einer eigenen Spalte die
+  Pflicht, den Mangel, den Plan, die Aufgabe oder die Liegenschaft beim Namen. Ein Test hält jetzt
+  jede Spalte einer überwachten Tabelle, die auf einen Datensatz zeigt oder eine Person nennt,
+  gegen das Vokabular. Das Fundament liest dafür einen Wert als Datensatz, wo er hinter einer
+  Vorsilbe auf einen zeigt (`opengewerk#608`, Submodul angehoben)
