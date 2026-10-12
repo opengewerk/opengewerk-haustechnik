@@ -559,7 +559,7 @@ export function readAssetKind(
       below(spot, 'costGroup'),
       costGroup === undefined
         ? 'Die Kostengruppe nach DIN 276 fehlt.'
-        : 'Die Kostengruppe nach DIN 276 hat drei Ziffern, etwa "461" für Aufzugsanlagen.',
+        : 'Die Kostengruppe nach DIN 276 hat drei Ziffern, etwa "461" für einen Aufzug.',
     )
   }
 

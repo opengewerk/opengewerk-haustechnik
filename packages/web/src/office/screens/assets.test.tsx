@@ -3,6 +3,7 @@ import {
   type AssetEntry,
   type AssetRegister,
   assetTableColumns,
+  type CatalogueBundle,
   type DutyReading,
   type RoleKey,
 } from '@opengewerk/haustechnik-domain'
@@ -10,7 +11,7 @@ import { TestServer } from '@opengewerk/platform-web/testing'
 import { fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { servingCatalogue } from '../../app/test-catalogue.js'
+import { acceptedReview, servingCatalogue, testCatalogue } from '../../app/test-catalogue.js'
 import { memberIn } from '../../app/test-entry.js'
 import {
   mountOffice,
@@ -143,14 +144,55 @@ function page(assets: readonly AssetEntry[], total = assets.length, properties =
   return { total, properties, assets }
 }
 
+/**
+ * The catalogue with the package that stands in for a missing specialist
+ * package, here with the general kind of one cost group: 460 has a name by
+ * it, and 410 goes by its number alone (#163).
+ */
+const withGeneralKind: CatalogueBundle = {
+  ...testCatalogue,
+  sha256: '2'.repeat(64),
+  packages: [
+    ...testCatalogue.packages,
+    {
+      name: 'allgemein',
+      title: 'Allgemein',
+      version: '1.0.0',
+      minimumCore: '0.1.0',
+      assetKinds: [
+        {
+          key: 'allgemein.conveying_system',
+          version: 1,
+          validFrom: '2018-12-01',
+          definition: {
+            label: 'Förderanlage',
+            costGroup: '460',
+            characteristics: [],
+            fields: [],
+            expectedDocuments: [],
+            meter: null,
+          },
+          review: acceptedReview,
+        },
+      ],
+      dutyKinds: [],
+      forms: [],
+      roundTemplates: [],
+      rules: [],
+      defectClasses: [],
+    },
+  ],
+}
+
 let server: TestServer
 
 async function mount(
   at: string,
   answers: Readonly<Record<string, unknown>>,
   role: RoleKey = 'technician',
+  catalogue: CatalogueBundle = testCatalogue,
 ) {
-  signedInOffice(role, [sued], { ...servingCatalogue(), ...answers })
+  signedInOffice(role, [sued], { ...servingCatalogue(catalogue), ...answers })
 
   return mountOffice(at, server, everything)
 }
@@ -345,6 +387,22 @@ describe('the register of assets', () => {
     expect(address()).toBe('/anlagen')
   })
 
+  it('names a cost group by its number and by the general asset kind the catalogue has for it (#163)', async () => {
+    await mount('/anlagen', { [firstPage]: page([lift]) }, 'technician', withGeneralKind)
+    await screen.findByRole('table', { name: register })
+
+    const choices = () =>
+      within(filter('Kostengruppe'))
+        .getAllByRole('option')
+        .map((option) => option.textContent)
+
+    // What the general kind of 460 is called stands behind the number; 410
+    // has none in this catalogue, and the elevator of 461 names no group.
+    await waitFor(() => {
+      expect(choices()).toEqual(['Alle', 'KG 410', 'KG 460 Förderanlage'])
+    })
+  })
+
   it('offers the properties with their buildings, the cost groups of the kinds, the kinds, every condition and every state', async () => {
     await mount('/anlagen', { [firstPage]: page([lift]) })
     await screen.findByRole('table', { name: register })
@@ -371,12 +429,9 @@ describe('the register of assets', () => {
       'Werkhof Nord, alle Gebäude',
       'Halle 1',
     ])
-    // The groups a building is read by: 412 lies in 410, 461 in 460.
-    expect(choices('Kostengruppe')).toEqual([
-      'Alle',
-      'KG 410 Abwasser-, Wasser-, Gasanlagen',
-      'KG 460 Förderanlagen',
-    ])
+    // The groups a building is read by: 412 lies in 410, 461 in 460. This
+    // catalogue has no general asset kind, so each goes by its number alone.
+    expect(choices('Kostengruppe')).toEqual(['Alle', 'KG 410', 'KG 460'])
     expect(choices('Zustand')).toEqual([
       'Alle Zustände',
       'Mangel offen',
@@ -484,22 +539,28 @@ describe('the assets of a building by cost group', () => {
       server.put('assets', asset)
     }
 
-    await mount(`/gebaeude/${house.id}`, {})
-    await screen.findByText('Förderanlagen')
+    await mount(`/gebaeude/${house.id}`, {}, 'technician', withGeneralKind)
+    await screen.findByText('Förderanlage')
 
+    // A group goes by what the general asset kind of the catalogue is called
+    // (#163); 410 has none here and stands as a cost group with its number.
     expect(rowsOf(byCostGroup)).toEqual([
-      ['410 Abwasser-, Wasser-, Gasanlagen', '2'],
-      ['460 Förderanlagen', '1'],
+      ['410 Kostengruppe', '2'],
+      ['460 Förderanlage', '1'],
       // After the groups: what no catalogue of this device knows.
       ['Anlagenart nicht im Katalog', '1'],
     ])
 
     const leadsTo = (name: string) => screen.getByRole('link', { name }).getAttribute('href')
 
-    expect(leadsTo('Förderanlagen')).toBe('/anlagen?gebaeude=b-house&kostengruppe=460')
-    expect(leadsTo('Abwasser-, Wasser-, Gasanlagen')).toBe(
-      '/anlagen?gebaeude=b-house&kostengruppe=410',
+    expect(leadsTo('Förderanlage')).toBe('/anlagen?gebaeude=b-house&kostengruppe=460')
+    expect(leadsTo('Kostengruppe')).toBe('/anlagen?gebaeude=b-house&kostengruppe=410')
+    // The count of a group leads where its name leads, and says what it counts.
+    expect(leadsTo('1 Anlage, KG 460 Förderanlage')).toBe(
+      '/anlagen?gebaeude=b-house&kostengruppe=460',
     )
+    expect(leadsTo('2 Anlagen, KG 410')).toBe('/anlagen?gebaeude=b-house&kostengruppe=410')
+    expect(leadsTo('1 Anlage, Anlagenart nicht im Katalog')).toBe('/anlagen?gebaeude=b-house')
     expect(leadsTo('Anlagenart nicht im Katalog')).toBe('/anlagen?gebaeude=b-house')
     expect(leadsTo('Alle Anlagen')).toBe('/anlagen?gebaeude=b-house')
   })

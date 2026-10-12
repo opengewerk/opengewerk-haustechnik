@@ -4,7 +4,8 @@ import { fileURLToPath } from 'node:url'
 import {
   type CataloguePackage,
   catalogueOf,
-  costGroupNames,
+  costGroupName,
+  costGroupWords,
   dutyKindsNaming,
   generalPackage,
   isGeneralKind,
@@ -33,6 +34,10 @@ const options = {
   today: new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Berlin' }).format(new Date()),
 }
 
+// The cost groups of the technical installations on the second level, by
+// number: the application holds no list of them, and none of their headings.
+const groups = Array.from({ length: 9 }, (_, index) => String(410 + index * 10))
+
 function general(): CataloguePackage {
   const { bundle, problems } = loadCatalogue(shipped, options)
   const found = bundle?.packages.find((entry) => entry.name === generalPackage)
@@ -52,13 +57,27 @@ describe('the package Allgemein', () => {
 
   it('has exactly one general asset kind for every cost group of the technical installations', () => {
     const kinds = general().assetKinds
-    const groups = Object.keys(costGroupNames)
 
     // Nine groups on the second level, 410 to 490: the level the register
     // and the picture of a building sort by.
-    expect(groups).toHaveLength(9)
     expect(kinds.map((entry) => entry.definition.costGroup).sort()).toEqual(groups)
     expect(kinds.every((entry) => entry.version === 1 && isGeneralKind(entry.key))).toBe(true)
+  })
+
+  it('gives each of these cost groups the name it goes by on a screen (#163)', () => {
+    const { bundle } = loadCatalogue(new Map([...shipped, ...probe]), options)
+    const kinds = catalogueOf(bundle as NonNullable<typeof bundle>).assetKinds(options.today)
+    const labels = new Map(
+      general().assetKinds.map((entry) => [entry.definition.costGroup, entry.definition.label]),
+    )
+
+    // The label of the general kind and of no kind beside it: the probe
+    // package has an elevator in 461, which names neither 461 nor 460.
+    expect(groups.map((group) => costGroupName(group, kinds))).toEqual(
+      groups.map((group) => labels.get(group)),
+    )
+    expect(costGroupWords('460', kinds)).toBe(`KG 460 ${labels.get('460') ?? ''}`)
+    expect(costGroupWords('461', kinds)).toBe('KG 461')
   })
 
   it('describes a general kind by its name and its cost group and by nothing else', () => {

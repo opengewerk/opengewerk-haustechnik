@@ -1,7 +1,8 @@
 import {
   type Catalogue,
   costGroupAbove,
-  costGroupNames,
+  costGroupName,
+  costGroupWords,
   type RecordState,
 } from '@opengewerk/haustechnik-domain'
 import { Button, cardLink, Cell, Column, Panel, Status, TablePanel } from '@opengewerk/platform-web'
@@ -359,6 +360,7 @@ function AssetsByCostGroup({
         )
     )
   }, [assets, catalogue])
+  const named = useMemo(() => catalogue?.assetKinds(today()) ?? [], [catalogue])
 
   if (assets.length === 0) {
     return (
@@ -370,12 +372,12 @@ function AssetsByCostGroup({
     )
   }
 
+  // A group goes by what the catalogue calls an asset of that group no
+  // package describes more closely, the general asset kind (#163).
   const nameOf = (group: string) =>
     group === unknownGroup
       ? 'Anlagenart nicht im Katalog'
-      : Object.hasOwn(costGroupNames, group)
-        ? (costGroupNames[group] ?? '')
-        : 'Kostengruppe'
+      : (costGroupName(group, named) ?? 'Kostengruppe')
   const leadsTo = (group: string) =>
     registerSearch(group === unknownGroup ? { buildingId } : { buildingId, costGroup: group })
 
@@ -423,7 +425,20 @@ function AssetsByCostGroup({
                 {nameOf(group)}
               </Link>
             </Cell>
-            <Cell numeric>{count.toLocaleString('de-DE')}</Cell>
+            {/* Like every number of a list that leads to the list it counts
+                (properties.tsx): a link named by the number and what it counts. */}
+            <Cell numeric>
+              <Link
+                to={assetRegisterPlace.to}
+                search={leadsTo(group)}
+                aria-label={`${countedAssets(count)}, ${
+                  group === unknownGroup ? nameOf(group) : costGroupWords(group, named)
+                }`}
+                className="font-semibold no-underline"
+              >
+                {count.toLocaleString('de-DE')}
+              </Link>
+            </Cell>
           </tr>
         ))}
       </tbody>

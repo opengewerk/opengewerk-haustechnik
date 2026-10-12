@@ -1558,6 +1558,16 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   Eintrag für sich (`keys` an `checkWidths`, `opengewerk#592`, Submodul angehoben). Das waren 50 der
   177 Arten, aus ihnen werden 9; die Grenze des Gangs sinkt von 220 auf 150. Mit jedem Paket wuchs
   der Gang bisher um Dutzende Seiten, die denselben Bildschirm zeigen
+- Kostengruppen ohne die Überschriften der DIN 276 (#163): im Filter des Anlagenverzeichnisses
+  und in der Karte "Anlagen nach Kostengruppe" eines Gebäudes steht eine Kostengruppe jetzt als
+  Nummer und dahinter die Bezeichnung der allgemeinen Anlagenart aus dem Paket Allgemein, etwa
+  "KG 460 Förderanlage". Die Liste der neun Überschriften in `packages/domain`
+  (`costGroupNames`) ist entfernt; `costGroupName` und `costGroupWords` lesen die Bezeichnung
+  aus dem Katalog des Geräts, und eine Gruppe ohne allgemeine Anlagenart steht als Nummer
+  allein. Die Überschriften standen im Wortlaut der Norm da, und Abschnitt 5 des Konzepts lässt
+  von einer privaten Norm nur den Verweis und die Sache in eigenen Worten zu (Konzept v0.28,
+  Nachtrag in ADR 0005). Die Zahl je Kostengruppe auf der Seite eines Gebäudes führt jetzt wie
+  ihre Bezeichnung in die gefilterte Liste, wie die Tafel sie zeigt
 
 ### Behoben
 

@@ -1262,8 +1262,8 @@ const choices: readonly KindChoice[] = [
   { key: 'probe.elevator', label: 'Aufzugsanlage', costGroup: '461' },
   { key: 'further.elevator', label: 'Aufzugsanlage', costGroup: '461' },
   { key: 'probe.heating', label: 'Heizung', costGroup: '420' },
-  { key: 'allgemein.kg_420', label: 'Wärmeversorgungsanlagen', costGroup: '420' },
-  { key: 'allgemein.kg_460', label: 'Förderanlagen', costGroup: '460' },
+  { key: 'allgemein.kg_420', label: 'Anlage der Wärmeversorgung', costGroup: '420' },
+  { key: 'allgemein.kg_460', label: 'Förderanlage', costGroup: '460' },
 ]
 
 describe('the kind a word is offered before anybody has chosen', () => {
@@ -1278,9 +1278,9 @@ describe('the kind a word is offered before anybody has chosen', () => {
   })
 
   it('is never a general kind by what that is called', () => {
-    expect(suggested('Förderanlagen')).toBeNull()
+    expect(suggested('Förderanlage')).toBeNull()
     // By the cost group of its lines it is the general kind of that group, whatever the word.
-    expect(suggested('Förderanlagen', '421')).toBe('allgemein.kg_420')
+    expect(suggested('Förderanlage', '421')).toBe('allgemein.kg_420')
   })
 
   it('is none of two kinds that are called the same', () => {
