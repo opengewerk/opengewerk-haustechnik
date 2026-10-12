@@ -454,6 +454,7 @@ export const auditVocabulary: AuditVocabulary = {
       defect_id: 'Mangel',
       round_plan_id: 'Plan eines Rundgangs',
       meter_property_id: 'Zähler der Liegenschaft',
+      task_id: 'Aufgabe',
       property_id: 'Liegenschaft',
       area_id: 'Bereich',
     },

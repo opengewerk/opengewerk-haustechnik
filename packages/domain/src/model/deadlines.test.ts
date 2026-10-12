@@ -5,6 +5,7 @@ import {
   deadlineActions,
   deadlineKinds,
   deadlineSources,
+  deadlineTaskTitles,
   defectDue,
   dutyDue,
   meterDue,
@@ -70,5 +71,26 @@ describe('the kinds of deadline of this application', () => {
       responsible: 'lead',
       actions: ['activity'],
     })
+  })
+
+  it('let the meters of a property name their key date, remind whoever leads and give them the task to read them', () => {
+    // One deadline for the meters of a property (section 4.9), and so one task.
+    expect(meterDue).toMatchObject({
+      source: 'meter',
+      intervalDays: null,
+      intervalMonths: null,
+      leadDays: 3,
+      responsible: 'lead',
+      actions: ['reminder', 'task'],
+    })
+  })
+
+  it('give the task to the reading of the meters alone, and say what it is', () => {
+    // A defect only reminds: with its state, its day and its work order it
+    // already has what a task would be (#242).
+    const withTask = deadlineKinds.filter((kind) => kind.actions.includes('task'))
+
+    expect(withTask).toEqual([meterDue])
+    expect(withTask.map((kind) => deadlineTaskTitles[kind.source])).toEqual(['Zähler ablesen'])
   })
 })

@@ -7,6 +7,7 @@ import { defects } from './defects.js'
 import { duties } from './duties.js'
 import { properties } from './locations.js'
 import { roundPlans } from './round-plans.js'
+import { tasks } from './tasks.js'
 
 /**
  * What a deadline of this application hangs on, beside its source: the duty,
@@ -14,6 +15,10 @@ import { roundPlans } from './round-plans.js'
  * property and the area of that,
  * so that a deadline stays in the areas of the person who asks, like every
  * row with a place (ADR 0003).
+ *
+ * `taskId` is no source: it names the task the engine made of the deadline
+ * (#242), so that a deadline has one task at a time, however often its due
+ * day comes or moves. No source writes it, and so no pass takes it away.
  */
 const deadlineColumns = {
   dutyId: reference<'duty'>('duty_id'),
@@ -21,6 +26,8 @@ const deadlineColumns = {
   roundPlanId: reference<'round_plan'>('round_plan_id'),
   /** The property whose meters are to be read, the source `meter` (#120). */
   meterPropertyId: reference<'property'>('meter_property_id'),
+  /** The task the engine made of this deadline, the action `task` (#242). */
+  taskId: reference<'task'>('task_id'),
   propertyId: reference<'property'>('property_id').notNull(),
   areaId: reference<'area'>('area_id').notNull(),
 }
@@ -64,6 +71,13 @@ export const { deadlineStatus, deadlines } = deadlinesSchema({
       columns: [table.tenantId, table.roundPlanId, table.propertyId],
       foreignColumns: [roundPlans.tenantId, roundPlans.id, roundPlans.propertyId],
       name: 'deadlines_of_a_plan_of_their_property',
+    }),
+    // Over the tenant and the property, like every key to a row with a place:
+    // a deadline cannot name a task of another operator or of another property.
+    foreignKey({
+      columns: [table.tenantId, table.taskId, table.propertyId],
+      foreignColumns: [tasks.tenantId, tasks.id, tasks.propertyId],
+      name: 'deadlines_with_a_task_of_their_property',
     }),
     index('deadlines_duty_idx').on(table.tenantId, table.dutyId),
     index('deadlines_defect_idx').on(table.tenantId, table.defectId),
