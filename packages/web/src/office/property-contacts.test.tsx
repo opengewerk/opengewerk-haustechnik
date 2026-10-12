@@ -409,6 +409,23 @@ describe('whoever keeps the properties', () => {
     expect(written).toEqual([])
   })
 
+  it('fills the form in with one thing to a row, as the board draws it in the narrow column', async () => {
+    const user = userEvent.setup()
+
+    await mount()
+    await user.click(await card().findByRole('button', { name: 'Ines Hartmann bearbeiten' }))
+
+    // Two fields beside each other cut an address off in the 340 pixels of the column (#147).
+    expect(
+      card()
+        .getByLabelText(/Telefon/)
+        .closest('.grid')?.className,
+    ).not.toContain('grid-cols')
+    expect(card().getByRole('button', { name: 'Entfernen' }).parentElement?.className).toContain(
+      'basis-full',
+    )
+  })
+
   it('takes a connection to correct one and to take one away', async () => {
     const user = userEvent.setup()
 
