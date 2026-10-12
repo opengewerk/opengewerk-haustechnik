@@ -16,6 +16,7 @@ import {
   nextAppointment,
   restsOn,
   type Rhythm,
+  withinCeiling,
 } from './duty.js'
 
 /** A day between 2000 and 2049, as fast-check draws it. */
@@ -213,6 +214,92 @@ describe('the next appointment of a duty', () => {
       expect(() =>
         nextAppointment({ counting: 'betrsichv', interval: { days: 365 } }, ['2026-03-14']),
       ).toThrow('Nach § 14 Abs. 5 BetrSichV zählt eine Frist in Monaten, nicht in Tagen.')
+    })
+  })
+
+  describe('where a regulation shortens the maximum from a day (#139)', () => {
+    /** Two years until the end of 2026, one from the first day of 2027. */
+    const maximum = (day: IsoDate): DeadlineInterval =>
+      day < '2027-01-01' ? { months: 24 } : { months: 12 }
+    const asked = (
+      counting: Rhythm['counting'],
+      today: IsoDate,
+      interval: DeadlineInterval = { months: 24 },
+    ): Rhythm => ({ counting, interval, ceiling: { on: maximum, today } })
+
+    it('counts with the shorter maximum from its day, and with the interval of the duty until then', () => {
+      expect(nextAppointment(asked('from_performance', '2026-12-31'), ['2026-06-10'])?.dueOn).toBe(
+        '2028-06-10',
+      )
+      expect(nextAppointment(asked('from_performance', '2027-01-01'), ['2026-06-10'])?.dueOn).toBe(
+        '2027-06-10',
+      )
+    })
+
+    it('leaves an interval within the maximum alone', () => {
+      expect(
+        nextAppointment(asked('from_performance', '2027-01-01', { months: 6 }), ['2026-06-10'])
+          ?.dueOn,
+      ).toBe('2026-12-10')
+    })
+
+    it('judges an appointment that was met by the maximum of the day it was met, under § 14 Abs. 5 BetrSichV', () => {
+      // Tested in 2021, two months late in 2023 and on time in 2025, each time under two years.
+      const performed = ['2021-03-10', '2023-05-20', '2025-03-12']
+
+      expect(nextAppointment(asked('betrsichv', '2026-12-31'), performed)?.dueOn).toBe('2027-03-01')
+      // One year after the last due month, and not a year after a due month the
+      // new maximum would have named for 2023.
+      expect(nextAppointment(asked('betrsichv', '2027-01-01'), performed)?.dueOn).toBe('2026-03-01')
+    })
+
+    it('counts on from the last appointment that was met, where it counts from the day it was due', () => {
+      const performed = ['2023-06-15', '2025-06-10']
+
+      expect(nextAppointment(asked('from_due', '2026-12-31'), performed)?.dueOn).toBe('2027-06-15')
+      expect(nextAppointment(asked('from_due', '2027-01-01'), performed)?.dueOn).toBe('2026-06-15')
+    })
+
+    it('takes a maximum in another unit as the interval wherever the interval may lie beyond it', () => {
+      expect(withinCeiling({ months: 6 }, null)).toEqual({ months: 6 })
+      expect(withinCeiling({ months: 6 }, { days: 186 })).toEqual({ months: 6 })
+      expect(withinCeiling({ months: 6 }, { days: 180 })).toEqual({ days: 180 })
+      expect(withinCeiling({ days: 168 }, { months: 6 })).toEqual({ days: 168 })
+      expect(withinCeiling({ days: 180 }, { months: 6 })).toEqual({ months: 6 })
+      // § 14 Abs. 5 BetrSichV counts in months: a maximum in days as whole months, rounded down.
+      expect(
+        nextAppointment(
+          {
+            counting: 'betrsichv',
+            interval: { months: 24 },
+            ceiling: { on: () => ({ days: 400 }), today: '2027-01-01' },
+          },
+          ['2026-03-14'],
+        )?.dueOn,
+      ).toBe('2027-03-01')
+    })
+
+    it('changes nothing where no maximum is shorter than the interval', () => {
+      fc.assert(
+        fc.property(
+          rhythms,
+          fc.array(days, { minLength: 1, maxLength: 8 }),
+          days,
+          (rhythm, performed, today) => {
+            const plain = nextAppointment(rhythm, performed)
+
+            expect(
+              nextAppointment(
+                { ...rhythm, ceiling: { on: () => rhythm.interval, today } },
+                performed,
+              ),
+            ).toEqual(plain)
+            expect(
+              nextAppointment({ ...rhythm, ceiling: { on: () => null, today } }, performed),
+            ).toEqual(plain)
+          },
+        ),
+      )
     })
   })
 })

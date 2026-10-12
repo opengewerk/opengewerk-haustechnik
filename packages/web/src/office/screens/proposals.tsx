@@ -71,6 +71,7 @@ import { LinkButton } from '../link-button.js'
 import { factLink } from '../links.js'
 import { RegisterFilter } from '../register-filter.js'
 import { dutyColleaguesQuery, responsibleChoices } from './duty.js'
+import { DutyUpdatesNote } from './duty-updates.js'
 
 /**
  * The proposals of the catalogue in the office, `vorschlaege()` of the boards
@@ -305,6 +306,8 @@ export function ProposalsScreen() {
         }
       />
       {table.trouble}
+      {/* A new version of a package, for the duties that are confirmed already (#139). */}
+      <DutyUpdatesNote />
       <div className="flex flex-wrap items-end gap-2.5">
         <RegisterFilter
           label="Liegenschaft"
@@ -461,7 +464,7 @@ function Tick({
           element.indeterminate = mixed
         }
       }}
-      className="size-4 shrink-0 cursor-pointer accent-solid max-lg:size-5"
+      className="size-4 shrink-0 cursor-pointer accent-copper-solid max-lg:size-5"
       onChange={(event) => {
         onChange(event.target.checked)
       }}

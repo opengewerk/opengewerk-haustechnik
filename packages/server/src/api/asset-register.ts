@@ -177,7 +177,7 @@ export async function assetsPassing(
     )
     .orderBy(asc(assets.number), asc(assets.name), asc(assets.id))
 
-  const onThisDay = await assetsOnADay(tx, today)
+  const onThisDay = await assetsOnADay(tx, today, catalogue)
 
   return (rows as Omit<AssetEntry, 'lifecycleState' | 'condition' | 'until'>[])
     .map((row): AssetEntry => {

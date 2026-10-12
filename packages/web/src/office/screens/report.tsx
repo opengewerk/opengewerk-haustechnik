@@ -225,10 +225,12 @@ function ReportForm({
     .map((entry) => entry.performedOn)
   const next =
     counted !== undefined && performedOn !== '' && meetsTheDuty(result) && !duty.ended
-      ? nextAppointment({ counting: duty.counting, interval: dutyInterval(duty) }, [
-          ...counted,
-          performedOn,
-        ])
+      ? // With the interval the duty counts with today: its own, or the
+        // maximum a regulation cut it short to (#139).
+        nextAppointment(
+          { counting: duty.counting, interval: duty.shortened ?? dutyInterval(duty) },
+          [...counted, performedOn],
+        )
       : null
 
   function choose(chosen: File | undefined) {

@@ -30,6 +30,7 @@ import { DutyScreen } from './screens/duty.js'
 import { ConfirmDutyScreen, DutyIntervalScreen } from './screens/duty-confirm.js'
 import { EditDutyScreen, NewDutyScreen } from './screens/duty-form.js'
 import { DutyKindScreen } from './screens/duty-kind.js'
+import { dutyUpdatesPlace, DutyUpdatesScreen } from './screens/duty-updates.js'
 import { DismissedProposalsScreen, ProposalsScreen } from './screens/proposals.js'
 import { EvidenceScreen } from './screens/evidence.js'
 import { EditFloorScreen, NewFloorScreen } from './screens/floor-form.js'
@@ -278,6 +279,13 @@ export function officeRoutes() {
       getParentRoute: () => office,
       path: proposalPlace.to,
       component: ProposalsScreen,
+    }),
+    // What a new version of a package changes for the duties that are
+    // confirmed (#139), before the page of a duty like the proposals.
+    createRoute({
+      getParentRoute: () => office,
+      path: dutyUpdatesPlace,
+      component: DutyUpdatesScreen,
     }),
     createRoute({
       getParentRoute: () => office,

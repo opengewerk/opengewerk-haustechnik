@@ -439,6 +439,12 @@ export interface Catalogue {
   readonly dutyKind: (key: string, on: IsoDate) => CatalogueEntry<DutyKind> | null
   /** One version of a duty kind, the one a confirmed duty names (ADR 0005, point 10). */
   readonly dutyKindVersion: (key: string, version: number) => CatalogueEntry<DutyKind> | null
+  /**
+   * The newest version of a duty kind the catalogue holds, whether its first
+   * day has come or not: what a confirmed duty is held against, so that a
+   * version to come announces itself before it applies (#139).
+   */
+  readonly newestDutyKind: (key: string) => CatalogueEntry<DutyKind> | null
   readonly dutyKinds: (on: IsoDate) => readonly CatalogueEntry<DutyKind>[]
   /** The version of a form in force on a day, the one a duty kind names as its evidence. */
   readonly form: (key: string, on: IsoDate) => CatalogueEntry<PackagedForm> | null
@@ -590,6 +596,7 @@ export function catalogueOf(bundle: CatalogueBundle): Catalogue {
     dutyKind: (key, on) => inForce(dutyKinds.get(key), on),
     dutyKindVersion: (key, version) =>
       dutyKinds.get(key)?.find((entry) => entry.version === version) ?? null,
+    newestDutyKind: (key) => dutyKinds.get(key)?.at(-1) ?? null,
     dutyKinds: (on) => everyKey(dutyKinds, on),
     form: (key, on) => inForce(forms.get(key), on),
     formVersion: (key, version) =>

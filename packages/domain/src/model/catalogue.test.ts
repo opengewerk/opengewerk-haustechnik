@@ -188,6 +188,9 @@ describe('the catalogue', () => {
     expect(catalogue.dutyKind('probe.elevator_main_test', '2027-01-01')?.definition).toEqual(later)
     expect(catalogue.dutyKindVersion('probe.elevator_main_test', 1)?.definition).toEqual(mainTest)
     expect(catalogue.dutyKindVersion('probe.elevator_main_test', 4)).toBeNull()
+    // The newest version is the one a confirmed duty is held against, before its day has come.
+    expect(catalogue.newestDutyKind('probe.elevator_main_test')?.version).toBe(3)
+    expect(catalogue.newestDutyKind('probe.unknown')).toBeNull()
     expect(catalogue.dutyKinds('2026-10-03').map((each) => each.version)).toEqual([2])
     expect(catalogue.dutyKinds('2015-05-31')).toEqual([])
   })

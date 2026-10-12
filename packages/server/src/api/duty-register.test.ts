@@ -503,6 +503,9 @@ describe('the register of duties', () => {
         performedOn: daysAgo(10),
         origin: 'report',
       },
+      // Nothing cuts its interval short, and the catalogue says nothing new about it (#139).
+      shortened: null,
+      updated: false,
     } satisfies Record<keyof DutyEntry, unknown>)
   })
 

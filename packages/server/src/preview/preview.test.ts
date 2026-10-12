@@ -7,6 +7,7 @@ import { probeCatalogueBundle } from '@opengewerk/haustechnik-catalogue/testing'
 import {
   blockFieldKinds,
   type DutyDetails,
+  type DutyUpdates,
   rightsOfRoles,
   type MeterDetails,
   type MeterList,
@@ -41,6 +42,7 @@ import {
   schoolHolidays,
 } from './sample-data.js'
 import { sampleFormKey } from './sample-form.js'
+import { announcedFrom } from './sample-update.js'
 import { sampleMeters } from './sample-meters.js'
 import { sampleWork } from './sample-work.js'
 
@@ -650,6 +652,42 @@ describe('a preview started as the Leitung', () => {
     expect([catalogueBundle.sha256, probeCatalogueBundle.sha256]).not.toContain(
       previewBundle.sha256,
     )
+  })
+
+  // What the report of a new version of a package is looked at with (#139).
+  it('has two duties a version to come says something new about, one beyond its maximum and one within it', async () => {
+    const report = (await request(application.getHttpServer()).get('/duties/updates').expect(200))
+      .body as DutyUpdates
+    const from = announcedFrom()
+
+    expect(
+      report.entries
+        .map((entry) => ({
+          asset: entry.asset?.name,
+          months: entry.intervalMonths,
+          version: [entry.update.held, entry.update.newest, entry.update.from],
+          shorter: entry.update.shorter,
+          keepable: entry.update.keepable,
+        }))
+        .sort((left, right) => (left.asset ?? '').localeCompare(right.asset ?? '')),
+    ).toEqual([
+      {
+        asset: 'Aufzug Haus A',
+        months: 24,
+        version: [1, 2, from],
+        shorter: { interval: { months: 12 }, from },
+        keepable: false,
+      },
+      {
+        asset: 'Aufzug Schulhaus',
+        months: 12,
+        version: [1, 2, from],
+        shorter: null,
+        keepable: true,
+      },
+    ])
+    // To come, so that the sample is confirmed under the first version.
+    expect(from > dayInGermany()).toBe(true)
   })
 
   // What the form on site is looked at with (#107).

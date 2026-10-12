@@ -1153,6 +1153,22 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   die Verfahrensbeschreibung nennt die Aufgabe aus der Engine in Abschnitt 3.14 (B220 bis
   B224). Bisher erinnerte die fällige Ablesung nur: wer sie machen sollte, hatte nichts in
   seiner Liste, das mit den Ständen von selbst verschwindet
+- Eine neue Fassung eines Pakets meldet sich an bestätigten Pflichten (#139): Sagt der Katalog
+  nach einem Update etwas anderes als das, womit eine Pflicht bestätigt wurde, eine neuere
+  Fassung ihrer Pflichtart oder einen anderen Wert der Regel ihrer Frist, steht die Pflicht
+  unter "Neue Fassung im Katalog", mit dem, was sich ändert und ab wann. Wer das
+  Pflichtenverzeichnis führt, übernimmt die neue Fassung oder lässt die Pflicht mit
+  Begründung, wie sie ist, einzeln oder im Stapel; beides steht im Änderungsprotokoll. Bis
+  dahin ändert sich an der Pflicht nichts, und sie sagt "Neue Fassung" im
+  Pflichtenverzeichnis und auf ihrer Seite; ein Hinweis steht über den Vorschlägen, dem
+  Pflichtenverzeichnis, der Übersicht und am Paket im Katalog. Eine Höchstfrist, die eine
+  Vorschrift verkürzt, gilt ab ihrem Stichtag von selbst: der Termin rechnet mit ihr, die
+  Pflicht sagt "Durch Vorschrift verkürzt", und so lassen lässt sie sich dann nicht
+  (Entscheidung vom 11.10.2026, Planungskonzept v0.25, Abschnitt 2.3, Nachtrag in ADR 0005).
+  Eine Pflicht trägt dafür auch den Richtwert vom Tag ihrer Bestätigung und, wogegen sie so
+  gelassen wurde (Migration `0041_duty_updates`); die Verfahrensbeschreibung nennt die
+  Entscheidung in Abschnitt 3.4 (B225, B226). Bisher blieb eine bestätigte Pflicht bei ihrer
+  Fassung, ohne dass jemand erfuhr, dass der Katalog inzwischen etwas anderes sagt
 
 ### Geändert
 
@@ -1637,3 +1653,6 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
 - Der Test der Wochenübersicht der Rundgänge (`round-plans.test.ts`) nimmt die Woche von morgen
   statt der von heute (gefunden bei #74). An einem Sonntag hält die laufende Woche nur einen
   Rundgang des Plans, der heute beginnt, und der Test brauchte zwei; er schlug jeden Sonntag fehl
+- Die Auswahlkästchen in den Vorschlägen aus dem Katalog, in den Plänen der Rundgänge und in den
+  Vorlagen sind kupferfarben wie auf den Tafeln (gefunden bei #139). Ihre Klasse nannte eine Farbe,
+  die es nicht gibt, und der Browser zeichnete sie in seinem Blau

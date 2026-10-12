@@ -326,6 +326,7 @@ export class ActivitiesController {
         tx,
         today,
         lines.map(({ duty }) => duty as Duty),
+        this.catalogue,
       )
 
       return { activity, lines, standing }
@@ -343,7 +344,9 @@ export class ActivitiesController {
         dutyId: duty.id,
         title: dutyTitle(duty, this.catalogue),
         source: kind?.definition.source ?? duty.sourceNote,
-        interval: dutyInterval(duty),
+        // The interval the duty counts with today: its own, or the maximum
+        // a regulation cuts it short to (#139).
+        interval: registered?.shortened ?? dutyInterval(duty),
         state: registered?.standing.state ?? 'never_recorded',
         appointment: registered?.standing.appointment?.dueOn ?? null,
         lastMetOn: registered?.lastMetOn ?? null,
@@ -499,7 +502,7 @@ export class ActivitiesController {
         throw new ConflictException('Eine beendete Pflicht bekommt keinen Vorgang mehr.')
       }
 
-      const [registered] = await dutiesOnADay(tx, today, [duty])
+      const [registered] = await dutiesOnADay(tx, today, [duty], this.catalogue)
 
       if (registered?.standing.state === 'dormant') {
         throw new ConflictException(
