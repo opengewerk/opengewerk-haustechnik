@@ -1356,7 +1356,10 @@ describe('what an asset was held against (#171)', () => {
 
     expect(JSON.parse(held?.after ?? 'null')).toEqual([first.id])
     // Nothing else on the page points at the first asset: its name came with the list.
-    expect(page.titles[first.id]).toMatchObject({ table: 'assets', title: 'Aufzug Altbau' })
+    expect(page.titles[first.id]).toMatchObject({
+      table: 'assets',
+      title: `${String(first['number'])} Aufzug Altbau`,
+    })
   })
 })
 

@@ -29,6 +29,37 @@ describe('the change log in the words of this application', () => {
     expect(way('session.start')).toBe('Anmeldung')
   })
 
+  it('tells a duty apart by what it stands at: its asset, else its room, its building or its property (#258)', () => {
+    const place = { property_id: 'p-1', building_id: 'b-1', room_id: 'r-1', asset_id: 'a-1' }
+
+    expect(audit.standsAt('duties', place)).toEqual({ table: 'assets', id: 'a-1' })
+    expect(audit.standsAt('duties', { ...place, asset_id: null })).toEqual({
+      table: 'rooms',
+      id: 'r-1',
+    })
+    expect(audit.standsAt('duties', { ...place, asset_id: null, room_id: null })).toEqual({
+      table: 'buildings',
+      id: 'b-1',
+    })
+    expect(audit.standsAt('duties', { property_id: 'p-1' })).toEqual({
+      table: 'properties',
+      id: 'p-1',
+    })
+    // A dismissed proposal is one at an asset.
+    expect(audit.standsAt('duty_dismissals', place)).toEqual({ table: 'assets', id: 'a-1' })
+    // And nothing else is told apart that way.
+    expect(audit.standsAt('assets', place)).toBeNull()
+  })
+
+  it('names an asset by its number and its name, and by its name alone where it has no number', () => {
+    expect(audit.titleFrom('assets', { number: 'AN-00012', name: 'Aufzug Schulhaus' })).toBe(
+      'AN-00012 Aufzug Schulhaus',
+    )
+    expect(audit.titleFrom('assets', { number: null, name: 'Aufzug Schulhaus' })).toBe(
+      'Aufzug Schulhaus',
+    )
+  })
+
   it('names the areas, who sees which and who stands in for whom', () => {
     expect(audit.tableLabel('areas')).toBe('Bereich')
     expect(audit.fieldLabel('member_areas', 'area_id')).toBe('Bereich einer Person, Bereich')

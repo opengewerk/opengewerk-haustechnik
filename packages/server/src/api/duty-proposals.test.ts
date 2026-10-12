@@ -438,10 +438,20 @@ describe('the proposals of the catalogue', () => {
       ['insert', 'u-duties'],
     ])
     expect(log.changes[0]?.fields.map((moved) => moved.field)).toContain('deleted_at')
+    // The same kind stands at many an asset, so the duty says at which (#258),
+    // and the asset is named by its number and its name.
+    expect(log.titles[duty]).toMatchObject({
+      table: 'duties',
+      field: 'kind',
+      title: mainTest,
+      at: { table: 'assets', id: elevator },
+    })
+    expect(log.titles[elevator]?.title).toMatch(/^AN-\d{5} Aufzug$/)
 
     // As a table the log names the duty by its kind, which the catalogue of
-    // the server names, and not by the key of the kind (#245): the log is the
-    // one place a removed duty still stands in.
+    // the server names, and not by the key of the kind (#245), and by the
+    // asset it stood at (#258): the log is the one place a removed duty still
+    // stands in.
     const table = await tableOf(
       '/audit/table',
       { table: 'duties', record: duty },
@@ -451,7 +461,11 @@ describe('the proposals of the catalogue', () => {
     const rows = table.slice(1)
 
     expect(rows.length).toBeGreaterThan(0)
-    expect(new Set(rows.map((row) => row[1]))).toEqual(new Set(['Hauptprüfung der Aufzugsanlage']))
+
+    for (const row of rows) {
+      expect(row[1]).toMatch(/^Hauptprüfung der Aufzugsanlage, AN-\d{5} Aufzug$/)
+    }
+
     expect(rows.find((row) => row[4] === 'Pflichtart')?.[6]).toBe('Hauptprüfung der Aufzugsanlage')
     expect(table.flat()).not.toContain(mainTest)
 
