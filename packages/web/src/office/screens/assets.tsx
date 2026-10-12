@@ -368,6 +368,9 @@ function Filters({
       ].sort(),
     [kinds, filter.costGroup],
   )
+  // A group goes by its number, and behind it by what the catalogue calls an
+  // asset of that group no package describes more closely (#163).
+  const named = useMemo(() => catalogue?.assetKinds(today()) ?? [], [catalogue])
   const unknownKind =
     filter.kind !== undefined && !kinds.some((kind) => kind.key === filter.kind)
       ? filter.kind
@@ -393,7 +396,7 @@ function Filters({
         <option value="">Alle</option>
         {costGroups.map((group) => (
           <option key={group} value={group}>
-            {costGroupWords(group)}
+            {costGroupWords(group, named)}
           </option>
         ))}
       </Filter>

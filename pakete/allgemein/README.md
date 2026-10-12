@@ -21,6 +21,11 @@ Das Paket verweist auf Norm, Ausgabe und Nummer der Gruppe. Die Bezeichnungen si
 für eine einzelne Anlage und nicht die Überschriften der Norm, und das Paket gibt keine Tabelle
 der Norm wieder (Abschnitt 5 des Planungskonzepts, § 5 Abs. 3 UrhG).
 
+Unter ihrer Bezeichnung steht auch die Kostengruppe selbst in der Oberfläche: der Filter des
+Anlagenverzeichnisses und die Karte "Anlagen nach Kostengruppe" eines Gebäudes zeigen die Nummer
+und dahinter die Bezeichnung der allgemeinen Anlagenart, etwa "KG 460 Förderanlage" (`#163`). Wer
+eine Bezeichnung ändert, ändert sie auch dort.
+
 | Schlüssel | Kostengruppe |
 | --- | --- |
 | `water_wastewater_gas` | 410 |

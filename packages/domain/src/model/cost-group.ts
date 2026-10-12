@@ -1,22 +1,16 @@
+import { isGeneralKind } from './asset-duplicate.js'
+import type { AssetKind, CatalogueEntry } from './catalogue.js'
+
 /**
  * The cost groups of DIN 276 as far as the register of assets needs them: an
  * asset kind names the group of its assets with three digits (ADR 0002,
  * point 9), and a building is read by the groups one level above, 410 to
- * 490 under "Bauwerk, Technische Anlagen".
+ * 490, the technical installations of a building.
+ *
+ * A group is its number here and nothing else. What DIN 276 heads a group
+ * with stands nowhere in the application: a private norm is referred to and
+ * said in words of one's own (section 5 of the concept, #163).
  */
-
-/** What the groups of the second level under 400 are called in DIN 276. */
-export const costGroupNames: Readonly<Record<string, string>> = {
-  '410': 'Abwasser-, Wasser-, Gasanlagen',
-  '420': 'Wärmeversorgungsanlagen',
-  '430': 'Raumlufttechnische Anlagen',
-  '440': 'Elektrische Anlagen',
-  '450': 'Kommunikations-, sicherheits- und informationstechnische Anlagen',
-  '460': 'Förderanlagen',
-  '470': 'Nutzungsspezifische und verfahrenstechnische Anlagen',
-  '480': 'Gebäude- und Anlagenautomation',
-  '490': 'Sonstige Maßnahmen für technische Anlagen',
-}
 
 /** The group of the second level a cost group lies in: 461 lies in 460, and 460 in itself. */
 export function costGroupAbove(costGroup: string): string {
@@ -49,9 +43,26 @@ export function inCostGroup(costGroup: string, group: string): boolean {
   return stem !== '' && costGroup.startsWith(stem)
 }
 
-/** "KG 460 Förderanlagen", and "KG 461" for a group this list has no name for. */
-export function costGroupWords(group: string): string {
-  const name = Object.hasOwn(costGroupNames, group) ? costGroupNames[group] : undefined
+/**
+ * What a cost group goes by beside its number: the label of the general asset
+ * kind of exactly this group, the words the package Allgemein has for an asset
+ * of the group that no package describes more closely (section 4.2). Null for
+ * a group no general kind stands for, 461 or one outside the technical
+ * installations, and on a device whose catalogue has no such kind.
+ */
+export function costGroupName(
+  group: string,
+  kinds: readonly CatalogueEntry<AssetKind>[],
+): string | null {
+  return (
+    kinds.find((kind) => isGeneralKind(kind.key) && kind.definition.costGroup === group)?.definition
+      .label ?? null
+  )
+}
 
-  return name === undefined ? `KG ${group}` : `KG ${group} ${name}`
+/** "KG 460 Förderanlage", and "KG 461" for a group that goes by its number alone. */
+export function costGroupWords(group: string, kinds: readonly CatalogueEntry<AssetKind>[]): string {
+  const name = costGroupName(group, kinds)
+
+  return name === null ? `KG ${group}` : `KG ${group} ${name}`
 }
