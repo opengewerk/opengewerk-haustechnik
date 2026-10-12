@@ -1,5 +1,6 @@
 import type { RoleKey } from '@opengewerk/haustechnik-domain'
 import type { TestServer } from '@opengewerk/platform-web/testing'
+import type { QueryClient } from '@tanstack/react-query'
 import { act, screen, within } from '@testing-library/react'
 import { vi } from 'vitest'
 
@@ -93,14 +94,24 @@ export function signedInOffice(
   return written
 }
 
-/** The office at an address, around a device that holds these kinds of record. */
-export function mountOffice(at: string, server: TestServer, entities: readonly string[]) {
+/**
+ * The office at an address, around a device that holds these kinds of record.
+ * With a cache of its own for the test that is about what the cache of the
+ * application does; every other test asks once and takes the answer.
+ */
+export function mountOffice(
+  at: string,
+  server: TestServer,
+  entities: readonly string[],
+  queries?: QueryClient,
+) {
   return mountedWithItsDevice({
     routeTree: officeRoutes(),
     at,
     application: officeApplication,
     server,
     entities,
+    ...(queries === undefined ? {} : { queries }),
   })
 }
 

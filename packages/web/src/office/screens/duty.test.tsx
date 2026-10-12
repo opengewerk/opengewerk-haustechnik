@@ -5,7 +5,9 @@ import type {
   RoleKey,
 } from '@opengewerk/haustechnik-domain'
 import { today } from '@opengewerk/platform-web/format'
+import { queries as applicationQueries } from '@opengewerk/platform-web/session'
 import { TestServer } from '@opengewerk/platform-web/testing'
+import { focusManager, QueryClient } from '@tanstack/react-query'
 import { fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -172,12 +174,13 @@ async function mount(
   answers: Readonly<Record<string, unknown>>,
   role: RoleKey = 'technician',
   address: string = at,
+  queries?: QueryClient,
 ) {
   written = signedInOffice(role, [sued], { ...servingCatalogue(), ...answers }, (write) =>
     answerToWrite(write),
   )
 
-  return mountOffice(address, server, everything)
+  return mountOffice(address, server, everything, queries)
 }
 
 /** Every question a screen asks the server from here on, in order. */
@@ -243,6 +246,7 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.unstubAllGlobals()
+  focusManager.setFocused(undefined)
 })
 
 describe('the page of a duty', () => {
@@ -456,6 +460,24 @@ describe('the page of a duty', () => {
         'Diese Pflicht gibt es nicht mehr, oder sie liegt in einem Bereich, den dieser Zugang nicht sieht.',
       ),
     ).toBeTruthy()
+  })
+
+  it('says so in a window nobody looks at too, and takes no missing connection for it (#246)', async () => {
+    // A tab behind another, with the cache as the application sets it up:
+    // asked a second time, the question would wait there for the window, and
+    // the page read that wait as a missing connection.
+    focusManager.setFocused(false)
+
+    await mount(
+      {},
+      'technician',
+      '/pflichten/d-gone',
+      new QueryClient({ defaultOptions: applicationQueries.getDefaultOptions() }),
+    )
+
+    await screen.findByRole('heading', { level: 1, name: 'Nicht gefunden' })
+    expect(screen.getByText(dutyPageWords.notThere)).toBeTruthy()
+    expect(screen.queryByText(dutyPageWords.noConnection)).toBeNull()
   })
 
   it('lights "Pflichtenverzeichnis" in the navigation, and the log is opened from it by the Leitung', async () => {
