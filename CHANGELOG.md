@@ -1599,6 +1599,15 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   von einer privaten Norm nur den Verweis und die Sache in eigenen Worten zu (Konzept v0.28,
   Nachtrag in ADR 0005). Die Zahl je Kostengruppe auf der Seite eines Gebäudes führt jetzt wie
   ihre Bezeichnung in die gefilterte Liste, wie die Tafel sie zeigt
+- Im Änderungsprotokoll steht hinter einer Pflicht, woran sie hängt (#258): "Hauptprüfung der
+  Aufzugsanlage, AN-00011 Aufzug Schulhaus". Dieselbe Pflichtart steht an vielen Anlagen, und
+  ihre Einträge standen gleich untereinander; welche Anlage gemeint war, zeigte erst der
+  geöffnete Eintrag. Genannt wird die Anlage, ohne Anlage der Raum, das Gebäude oder die
+  Liegenschaft, auch bei einem verworfenen Vorschlag: in der Liste, hinter "Änderungen" auf der
+  Seite der Pflicht, wo ein Feld auf die Pflicht zeigt, und im Protokoll als Tabelle. Eine Anlage
+  heißt im Protokoll jetzt mit Nummer und Bezeichnung, weil zwei Anlagen dieselbe Bezeichnung
+  tragen können. Das Fundament bringt dafür `standsAt` im Vokabular des Protokolls mit
+  (`opengewerk#607`, Submodul angehoben)
 
 ### Behoben
 

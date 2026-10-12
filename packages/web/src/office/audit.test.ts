@@ -77,6 +77,34 @@ describe('the words of the change log in the office', () => {
       )
     })
 
+    // The same kind stands at many an asset, and the log says at which (#258).
+    it('follow the name of a duty with what it stands at', () => {
+      const withPlaces = {
+        ...page,
+        titles: {
+          ...page.titles,
+          'd-1': { ...page.titles['d-1'], at: { table: 'assets', id: 'a-1' } },
+          'x-1': { ...page.titles['x-1'], at: { table: 'assets', id: 'a-1' } },
+          'a-1': {
+            table: 'assets',
+            field: null,
+            title: 'AN-00012 Aufzug Schulhaus',
+            kind: 'probe.elevator',
+          },
+        },
+      }
+
+      expect(words.recordTitle('duties', 'd-1', withPlaces)).toBe(
+        'Hauptprüfung der Aufzugsanlage, AN-00012 Aufzug Schulhaus',
+      )
+      expect(words.recordTitle('duty_dismissals', 'x-1', withPlaces)).toBe(
+        'Zwischenprüfung, AN-00012 Aufzug Schulhaus',
+      )
+      expect(words.auditValue('evidence', 'duty_id', 'd-1', withPlaces)).toBe(
+        'Hauptprüfung der Aufzugsanlage, AN-00012 Aufzug Schulhaus',
+      )
+    })
+
     it('write every other key of the catalogue as what it is called', () => {
       expect(words.auditValue('assets', 'kind', 'probe.pump', page)).toBe('Druckerhöhungsanlage')
       expect(words.auditValue('asset_kind_names', 'kind', 'probe.pump', page)).toBe(

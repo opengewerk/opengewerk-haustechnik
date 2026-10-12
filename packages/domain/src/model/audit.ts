@@ -648,6 +648,17 @@ export const auditVocabulary: AuditVocabulary = {
     // A signature by who gave it, a decision by what it decided.
     activity_signatures: ['signed_by'],
     work_order_decisions: ['decision'],
+    // An asset by its number and its name: the number tells apart what
+    // shares a name, and the name says what the number stands on.
+    assets: { joined: ['number', 'name'] },
+  },
+  // A duty from the catalogue is called like its kind, and so is the same
+  // duty at the next asset. Both are told apart by what they stand at (#258):
+  // the asset where there is one, the room, the building or the property
+  // otherwise. A dismissed proposal is always one at an asset.
+  standsAt: {
+    duties: ['asset_id', 'room_id', 'building_id', 'property_id'],
+    duty_dismissals: ['asset_id'],
   },
   reasons: {},
   rights: rightLabel,
