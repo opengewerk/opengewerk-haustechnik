@@ -1,17 +1,36 @@
 import {
+  columnName,
   dayOfCell,
   type Id,
+  tableColumns,
   type TableField,
   type TableRecord,
   tableNameKey,
   wholeNumberOfCell,
 } from '@opengewerk/platform-domain'
 
-import { type Asset, type AssetId, assetLimits, assetProblems, meterProblems } from './asset.js'
+import {
+  type Asset,
+  type AssetId,
+  assetLimits,
+  assetProblems,
+  type AssetValue,
+  assetValueProblems,
+  meterProblems,
+} from './asset.js'
 import { isGeneralKind, possibleDuplicates, sameWords } from './asset-duplicate.js'
+import { kindFields } from './asset-values.js'
 import type { AssetKind } from './catalogue.js'
 import { costGroupAbove } from './cost-group.js'
-import { counted, type ImportProblem, ImportProblems, nameKey } from './import.js'
+import {
+  counted,
+  type ImportNote,
+  ImportNotes,
+  type ImportProblem,
+  ImportProblems,
+  nameKey,
+} from './import.js'
+import { cellValue, type KindCells } from './import-kind-fields.js'
 import type { Building, Floor, Property, Room } from './location.js'
 import { meterUnits, meterUnitSymbol } from './meter.js'
 
@@ -33,8 +52,10 @@ import { meterUnits, meterUnitSymbol } from './meter.js'
  * left out. Without that answer nothing is taken over: a duplicate is
  * neither made quietly nor dropped quietly.
  *
- * What only an asset kind has, its characteristics and fields, is not read
- * from the table. Somebody enters it at the asset afterwards.
+ * What only an asset kind has, its characteristics and fields, is read from
+ * the columns somebody gave to the fields of that kind (#172,
+ * `import-kind-fields.ts`). A field without a column stays empty, and
+ * somebody enters it at the asset afterwards.
  */
 
 /** The fields a column of such a table can be, with what lists call them. */
@@ -261,6 +282,7 @@ export type NewAsset = Pick<
   | 'meterNumber'
   | 'meterUnit'
   | 'distinctFrom'
+  | 'values'
 > & { readonly line: number }
 
 /** What a line shares its serial number or its mark with: an asset that is there, or an earlier line. */
@@ -290,6 +312,8 @@ export interface AssetImportPlan {
   readonly lines: number
   readonly counts: AssetImportCounts
   readonly problems: readonly ImportProblem[]
+  /** What a column holds in a line of a kind it was given no field of: left out, and nothing waits for it. */
+  readonly notes: readonly ImportNote[]
   readonly duplicates: readonly ImportDuplicate[]
   /** What taking over writes, in the order of the lines. Empty while there is a problem or an open answer. */
   readonly create: readonly NewAsset[]
@@ -322,13 +346,28 @@ function meterUnitOf(value: string | undefined): string | null {
 /**
  * What the lines of a table would make of assets, against what is there and
  * what whoever imports has decided about the lines that may be duplicates.
+ * With `cells`, what only an asset kind has is read from the columns given
+ * to its fields.
  */
 export function planAssets(
   records: readonly TableRecord[],
   decisions: ReadonlyMap<number, DuplicateDecision>,
   stock: AssetImportStock,
+  cells?: KindCells,
 ): AssetImportPlan {
   const problems = new ImportProblems()
+  const notes = new ImportNotes()
+  const columnsOfKind = new Map(
+    Object.entries(cells?.columns ?? {}).map(([kind, fields]) => [
+      kind,
+      new Map(Object.entries(fields)),
+    ]),
+  )
+  /** Every column a field of some kind is read from, and what the file calls each column. */
+  const given = new Set([...columnsOfKind.values()].flatMap((fields) => [...fields.values()]))
+  const called = new Map(
+    (cells ? tableColumns(cells.sheet) : []).map((column) => [column.index, columnName(column)]),
+  )
   const duplicates: ImportDuplicate[] = []
   const create: NewAsset[] = []
   const kindOfName = new Map(stock.kindNames.map((entry) => [kindNameKey(entry.name), entry.kind]))
@@ -365,10 +404,56 @@ export function planAssets(
       meterUnit: meterUnitOf(cell('meterUnit')),
     }
     const about = `Anlage „${cell('name') === '' ? `Zeile ${line}` : cell('name')}“`
+    // What only the kind of this line has (#172), from the columns given to
+    // its fields. The line stands in the sheet where the table counts it.
+    const row = cells?.sheet.rows[line - 1] ?? []
+    const written = (column: number) => row[column] ?? ''
+    const own =
+      (kindKey === null ? undefined : columnsOfKind.get(kindKey)) ?? new Map<string, number>()
+    const ofKind: Record<string, AssetValue> = {}
+    const read = new Set<number>()
+
+    for (const entry of kind ? kindFields(kind) : []) {
+      const column = own.get(entry.field.key)
+
+      if (column === undefined) {
+        continue
+      }
+
+      read.add(column)
+
+      if (written(column) === '') {
+        continue
+      }
+
+      const held = cellValue(entry, written(column))
+
+      if ('problem' in held) {
+        problems.addSentence(line, about, held.problem)
+      } else {
+        ofKind[entry.field.key] = held.value
+      }
+    }
+
+    // A column given to a field of another kind, with something in it here:
+    // left out and said, and the line is made all the same.
+    if (kind) {
+      for (const column of given) {
+        if (!read.has(column) && written(column) !== '') {
+          notes.add(
+            line,
+            called.get(column) ?? '',
+            `Für ${kind.label} ist die Spalte keinem Feld zugeordnet`,
+          )
+        }
+      }
+    }
+
     // The kind has said its own sentence above, so the rule is asked with a kind that is there.
     const sentences = {
       ...assetProblems({ ...fields, kind: kindKey ?? 'allgemein' }),
       ...(kind ? meterProblems(kind, fields) : {}),
+      ...(kind ? assetValueProblems(kind, ofKind) : {}),
     }
 
     for (const sentence of Object.values(sentences)) {
@@ -415,6 +500,7 @@ export function planAssets(
         kind: kindKey,
         name: cell('name'),
         distinctFrom: passed,
+        values: ofKind,
       })
     }
   }
@@ -426,6 +512,7 @@ export function planAssets(
     lines: records.length,
     counts: { assets: create.length, skipped, undecided },
     problems: listedProblems,
+    notes: notes.list(),
     duplicates,
     create: open ? [] : create,
   }

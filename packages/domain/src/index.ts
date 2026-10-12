@@ -64,6 +64,10 @@ export * from './model/floor-level.js'
 export * from './model/import.js'
 export * from './model/import-structure.js'
 export * from './model/import-assets.js'
+// What only an asset kind has, between a form or a column of a list and the
+// asset: the fields a kind brings, and a cell read as one of them.
+export * from './model/asset-values.js'
+export * from './model/import-kind-fields.js'
 
 // The catalogue the packages under pakete/ make up: asset kinds, duty kinds
 // and their rules, each with its review, and the questions asked of it.

@@ -18,6 +18,9 @@ import {
   type Catalogue,
   decisionsOf,
   importLimits,
+  type KindCells,
+  type KindColumns,
+  kindColumnsProblem,
   kindNameKey,
   kindNamesProblem,
   planAssets,
@@ -239,20 +242,25 @@ export class ImportsController {
   @AcceptsTable()
   async assetsPreview(@CurrentIdentity() identity: Asking, @Req() request: Request) {
     const { given, records } = recordsOf(await tableBodyOf(request), assetImportFields)
+    const cells = this.kindCellsOf(given)
 
     return this.database.readingTenant(identity, async (tx) => {
       const plan = planAssets(
         records,
         decisionsOf(given['decisions']),
         await assetImportStock(tx, this.catalogue),
+        cells,
       )
       const problems = cut(plan.problems)
+      const notes = cut(plan.notes)
 
       return {
         lines: plan.lines,
         counts: plan.counts,
         problems: problems.shown,
         moreProblems: problems.more,
+        notes: notes.shown,
+        moreNotes: notes.more,
         // Every one of them, however many: each waits for an answer.
         duplicates: plan.duplicates,
       }
@@ -264,12 +272,14 @@ export class ImportsController {
   @AcceptsTable()
   async takeAssets(@CurrentIdentity() identity: Asking, @Req() request: Request) {
     const { given, records } = recordsOf(await tableBodyOf(request), assetImportFields)
+    const cells = this.kindCellsOf(given)
 
     return this.database.forTenant(identity, async (tx) => {
       const plan = planAssets(
         records,
         decisionsOf(given['decisions']),
         await assetImportStock(tx, this.catalogue),
+        cells,
       )
 
       if (plan.problems.length > 0) {
@@ -315,7 +325,8 @@ export class ImportsController {
           throw new Error('Fewer numbers were drawn than the import makes assets')
         }
 
-        return { tenantId: identity.tenantId, ...asset, parentAssetId: null, number, values: {} }
+        // With what only its kind has (#172), as the plan read it from the columns of the kind.
+        return { tenantId: identity.tenantId, ...asset, parentAssetId: null, number }
       })
 
       for (const part of inParts(rows)) {
@@ -384,6 +395,29 @@ export class ImportsController {
           .orderBy(asc(assetKindNames.name)),
       }
     })
+  }
+
+  /**
+   * The columns a request gives to the fields of asset kinds (#172), with
+   * the sheet they are read from, or the sentence about what is wrong with
+   * them. Held against the catalogue of today, which is the one the plan
+   * reads the kinds of its lines from.
+   */
+  private kindCellsOf(given: Given): KindCells {
+    const today = dayInGermany()
+    const sheet = given['sheet'] as TableSheet
+    const problem = kindColumnsProblem(
+      given['kindColumns'],
+      (key) => this.catalogue.assetKind(key, today)?.definition ?? null,
+      given['mapping'] as ColumnMapping,
+      sheet,
+    )
+
+    if (problem) {
+      throw new BadRequestException(problem)
+    }
+
+    return { sheet, columns: (given['kindColumns'] ?? {}) as KindColumns }
   }
 
   /**

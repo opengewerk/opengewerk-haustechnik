@@ -3,6 +3,11 @@ import { fileURLToPath } from 'node:url'
 
 import {
   assetImportFields,
+  type AssetKind,
+  assetLimits,
+  assetValueProblems,
+  cellValue,
+  kindFields,
   levelOfFloorName,
   structureFields,
   type TableField,
@@ -128,5 +133,71 @@ describe('the page about the format of the tables', () => {
     expect(named.length).toBeGreaterThanOrEqual(8)
     expect(named.filter((name) => levelOfFloorName(name) === null)).toEqual([])
     expect(['Dachgeschoss', 'Zwischengeschoss'].map(levelOfFloorName)).toEqual([null, null])
+  })
+
+  it('shows for every sort of field of an asset kind cells the import reads, and cells it does not (#172)', () => {
+    // A kind with one field of every sort a package can give one.
+    const kind: AssetKind = {
+      label: 'Feuerlöscher',
+      costGroup: '474',
+      characteristics: [],
+      fields: [
+        {
+          key: 'choice',
+          label: 'Löschmittel',
+          kind: 'choice',
+          options: [
+            { value: 'abc', label: 'ABC-Pulver' },
+            { value: 'co2', label: 'CO₂' },
+          ],
+        },
+        { key: 'number', label: 'Füllmenge', kind: 'number', unit: 'kg' },
+        { key: 'flag', label: 'Frostsicher', kind: 'flag' },
+        { key: 'date', label: 'Hergestellt', kind: 'date' },
+        { key: 'text', label: 'Platz im Raum', kind: 'text' },
+      ],
+      expectedDocuments: [],
+      meter: null,
+    }
+    const sorts: Readonly<Record<string, string>> = {
+      Auswahl: 'choice',
+      Zahl: 'number',
+      'Ja oder Nein': 'flag',
+      Tag: 'date',
+      Text: 'text',
+    }
+    /** Whether the import takes a cell for the field of a sort: read, and right by the rule of the asset. */
+    const taken = (sort: string, cell: string) => {
+      const key = sorts[sort] ?? ''
+      const entry = kindFields(kind).find((each) => each.field.key === key)
+      const held = entry
+        ? cellValue(entry, cell)
+        : { problem: 'The page names a sort no field has' }
+
+      return (
+        'value' in held && Object.keys(assetValueProblems(kind, { [key]: held.value })).length === 0
+      )
+    }
+    const listed = (cell: string) =>
+      cell
+        .split(';')
+        .map((each) => each.trim())
+        .filter((each) => each !== '')
+    const start = lines.findIndex((line) => line.startsWith('## Felder der Anlagenart'))
+    const end = lines.findIndex((line, at) => at > start && line.startsWith('## '))
+    const rows = (start < 0 ? [] : lines.slice(start + 1, end < 0 ? undefined : end))
+      .filter((line) => line.trim().startsWith('|'))
+      .map(cells)
+      .filter(([first = '']) => first !== 'Art des Felds' && !/^-+$/.test(first))
+
+    expect(rows.map(([sort]) => sort)).toEqual(Object.keys(sorts))
+
+    for (const [sort = '', , read = '', refused = ''] of rows) {
+      expect([sort, listed(read).length > 0]).toEqual([sort, true])
+      expect([sort, listed(read).filter((cell) => !taken(sort, cell))]).toEqual([sort, []])
+      expect([sort, listed(refused).filter((cell) => taken(sort, cell))]).toEqual([sort, []])
+    }
+
+    expect(document).toContain(`höchstens ${String(assetLimits.textValue)} Zeichen |`)
   })
 })

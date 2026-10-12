@@ -1,10 +1,11 @@
 import {
-  type AssetField,
   type AssetKind,
   type AssetValue,
   type Catalogue,
-  type Characteristic,
-  ruleUnitEntry,
+  type KindField,
+  kindFields,
+  stepPlacesOf as placesOf,
+  stepsOf,
 } from '@opengewerk/haustechnik-domain'
 import { today } from '@opengewerk/platform-web/format'
 
@@ -17,59 +18,14 @@ import { today } from '@opengewerk/platform-web/format'
  *
  * What cannot be read as what the kind asks for is handed on as it was typed:
  * the model in `domain` then says the sentence, the same one the server would.
+ *
+ * Which fields a kind brings and how a figure counts in the steps of its
+ * unit stands in `domain`, where the import of a list reads them as well
+ * (#172); the screens take them from here as before.
  */
-
-/** One of the fields a kind brings, a characteristic or a field of its own. */
-export type KindField =
-  | { readonly of: 'characteristic'; readonly field: Characteristic }
-  | { readonly of: 'field'; readonly field: AssetField }
-
-/** The fields of a kind in the order a form shows them: what a duty may ask about first. */
-export function kindFields(kind: AssetKind): readonly KindField[] {
-  return [
-    ...kind.characteristics.map((field) => ({ of: 'characteristic', field }) as const),
-    ...kind.fields.map((field) => ({ of: 'field', field }) as const),
-  ]
-}
-
-/** How many decimal places a person types of a figure: those of its unit for a characteristic. */
-function placesOf(entry: KindField): number | null {
-  return entry.of === 'characteristic' && entry.field.kind === 'number'
-    ? ruleUnitEntry(entry.field.unit).places
-    : null
-}
-
-/** What stands behind the field of a figure, "kW" or "l", or nothing. */
-export function unitOf(entry: KindField): string | undefined {
-  if (entry.field.kind !== 'number') {
-    return undefined
-  }
-
-  const unit =
-    entry.of === 'characteristic' ? ruleUnitEntry(entry.field.unit).symbol : entry.field.unit
-
-  return unit === undefined || unit === '' ? undefined : unit
-}
+export { type KindField, kindFields, stepsOf, unitOf } from '@opengewerk/haustechnik-domain'
 
 const figure = /^-?\d+(?:[.,]\d+)?$/
-
-/**
- * A figure as it is typed in German, "7,5" as well as "7.5", in whole steps
- * of so many decimal places: "60,0" in tenths is 600. Worked out on the
- * digits, because 0.07 times 100 is not 7 in a computer. A figure with more
- * places than the unit has is no whole number of steps, and is handed back as
- * the fraction it is.
- */
-export function stepsOf(typed: string, places: number): number {
-  const [whole = '', fraction = ''] = typed.replace('-', '').split(/[.,]/)
-  const sign = typed.startsWith('-') ? -1 : 1
-
-  if (fraction.length > places && /[1-9]/.test(fraction.slice(places))) {
-    return sign * Number(`${whole}${fraction.slice(0, places)}.${fraction.slice(places)}`)
-  }
-
-  return sign * Number(`${whole}${fraction.slice(0, places).padEnd(places, '0')}`)
-}
 
 /** A whole number of steps as a person reads it: 600 tenths are "60,0". */
 function typedSteps(value: number, places: number): string {

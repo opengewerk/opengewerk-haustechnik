@@ -90,6 +90,39 @@ export class ImportProblems {
   }
 }
 
+/**
+ * Something a table says that is not taken over, and that holds nothing
+ * back (#172): what a column holds in a line it does not apply to. It is
+ * said so that nobody finds out at the asset, weeks later.
+ */
+export interface ImportNote {
+  /** The lines of the file it is about. */
+  readonly lines: readonly number[]
+  /** The column it stands in, as the file calls it. */
+  readonly column: string
+  readonly why: string
+}
+
+/** The notes of a table while a plan is worked out; the same about many lines is one note with all of them. */
+export class ImportNotes {
+  private readonly found = new Map<string, { lines: number[]; column: string; why: string }>()
+
+  add(line: number, column: string, why: string): void {
+    const key = `${column}\u0000${why}`
+    const known = this.found.get(key) ?? { lines: [], column, why }
+
+    known.lines.push(line)
+    this.found.set(key, known)
+  }
+
+  /** In the order of the lines they were first found in. */
+  list(): ImportNote[] {
+    return [...this.found.values()]
+      .map((note) => ({ ...note, lines: [...new Set(note.lines)].sort((a, b) => a - b) }))
+      .sort((one, other) => (one.lines[0] ?? 0) - (other.lines[0] ?? 0))
+  }
+}
+
 /** How a name is compared with another: without its spaces and in lower case, as a serial number is. */
 export function nameKey(name: string): string {
   return name.replace(/\s+/gu, '').toLowerCase()
