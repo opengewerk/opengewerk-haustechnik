@@ -5,11 +5,19 @@ import {
   type AssetKindName,
   buildingKindLabel,
   buildingKinds,
+  cellHint,
+  counted,
   type DuplicateDecision,
   federalStates,
+  freeColumns,
   type ImportDuplicate,
+  type ImportNote,
   type ImportProblem,
   isGeneralKind,
+  kindColumnFields,
+  type KindColumns,
+  type KindField,
+  kindFields,
   kindNameKey,
   kindNamesIn,
   type KnownPlace,
@@ -20,6 +28,7 @@ import {
   structureTotal,
   suggestedKind,
   type ColumnMapping,
+  columnName,
   fieldsWithoutColumn,
   lineWords,
   suggestedMapping,
@@ -28,6 +37,8 @@ import {
   type TableFile,
   tableLineCount,
   tableRecords,
+  type TableSheet,
+  withColumn,
 } from '@opengewerk/haustechnik-domain'
 import {
   Button,
@@ -74,8 +85,9 @@ import { officePlaces } from '../place-addresses.js'
  * are given to fields; the server says what the lines would make, which of
  * them have to be put right and which name something that is there already,
  * and writes nothing while it does; and one press takes all of it over or
- * none of it. The assets go one step more in between, which gives the words
- * a list uses for kinds the asset kinds of the catalogue.
+ * none of it. The assets go two steps more in between: one gives the words
+ * a list uses for kinds the asset kinds of the catalogue, and one gives the
+ * columns left over to the fields those kinds bring (#172).
  *
  * What is chosen and decided lives in the screen and nowhere else: a table
  * that was looked at and left has left nothing behind.
@@ -126,6 +138,57 @@ function ProblemsPanel({
             <Cell numeric>{lineWords(problem.lines)}</Cell>
             <Cell className="font-medium">{problem.what}</Cell>
             <Cell>{problem.next}</Cell>
+          </tr>
+        ))}
+      </tbody>
+    </TablePanel>
+  )
+}
+
+/**
+ * What a column holds in a line of a kind it was given no field of (#172):
+ * left out, said with line and column, and nothing waits for it.
+ */
+function NotesPanel({
+  notes,
+  more,
+}: {
+  readonly notes: readonly ImportNote[]
+  readonly more: number
+}) {
+  if (notes.length === 0) {
+    return null
+  }
+
+  return (
+    <TablePanel
+      title="Was nicht übernommen wird"
+      caption="Werte der Datei, die nicht übernommen werden"
+      cards={notes.map((note) => ({
+        key: `${note.column}${note.why}`,
+        title: <code className="text-[14px] [overflow-wrap:anywhere]">{note.column}</code>,
+        sub: `Zeile ${lineWords(note.lines)} · ${note.why}`,
+      }))}
+      note="Diese Werte bleiben draußen. Die Zeilen werden trotzdem angelegt."
+      {...(more > 0 ? { footer: `und ${more.toLocaleString('de-DE')} weitere` } : {})}
+    >
+      <thead>
+        <tr>
+          <Column numeric className="w-[110px]">
+            Zeile
+          </Column>
+          <Column className="w-[220px]">Spalte</Column>
+          <Column>Warum</Column>
+        </tr>
+      </thead>
+      <tbody>
+        {notes.map((note) => (
+          <tr key={`${note.column}${note.why}`}>
+            <Cell numeric>{lineWords(note.lines)}</Cell>
+            <Cell>
+              <code className="text-[13px] [overflow-wrap:anywhere]">{note.column}</code>
+            </Cell>
+            <Cell>{note.why}</Cell>
           </tr>
         ))}
       </tbody>
@@ -621,10 +684,12 @@ interface AssetsPreview {
   readonly counts: AssetImportCounts
   readonly problems: readonly ImportProblem[]
   readonly moreProblems: number
+  readonly notes: readonly ImportNote[]
+  readonly moreNotes: number
   readonly duplicates: readonly ImportDuplicate[]
 }
 
-const assetSteps = ['Datei und Spalten', 'Anlagenarten', 'Vorschau'] as const
+const assetSteps = ['Datei und Spalten', 'Anlagenarten', 'Felder', 'Vorschau'] as const
 
 const kindNamesQuery = {
   queryKey: ['imports', 'asset-kinds'],
@@ -687,8 +752,15 @@ export function ImportAssetsScreen() {
   const navigate = useNavigate()
   const table = useTable(assetImportFields, importRoutes.assets)
   const kept = useQuery({ ...kindNamesQuery, enabled: may })
-  const [step, setStep] = useState<'columns' | 'kinds' | 'preview' | 'done'>('columns')
+  const [step, setStep] = useState<'columns' | 'kinds' | 'fields' | 'preview' | 'done'>('columns')
   const [chosen, setChosen] = useState<Readonly<Record<string, string>>>({})
+  // The columns somebody gave to the fields of a kind, with the sheet they
+  // were chosen in: a column is a place in one sheet, and means another
+  // thing in the next file.
+  const [fieldChoice, setFieldChoice] = useState<{
+    readonly sheet: TableSheet | null
+    readonly columns: KindColumns
+  }>({ sheet: null, columns: {} })
   const [decisions, setDecisions] = useState<Readonly<Record<number, DuplicateDecision>>>({})
   const [preview, setPreview] = useState<AssetsPreview | null>(null)
   const [busy, setBusy] = useState(false)
@@ -696,6 +768,10 @@ export function ImportAssetsScreen() {
   const [made, setMade] = useState<AssetImportCounts | null>(null)
   const names = useMemo(
     () => (table.sheet ? kindNamesIn(tableRecords(table.sheet, table.mapping)) : []),
+    [table.sheet, table.mapping],
+  )
+  const free = useMemo(
+    () => (table.sheet ? freeColumns(table.sheet, table.mapping) : []),
     [table.sheet, table.mapping],
   )
   const kinds = useMemo(() => {
@@ -752,25 +828,84 @@ export function ImportAssetsScreen() {
         setBusy(false)
       })
   }
-  const asked = { sheet: table.sheet, mapping: table.mapping }
-  const keepAndPreview = () => {
+  /** The kinds the words of this file were given that bring fields of their own, with the lines that mean each. */
+  const kindsWithFields = (() => {
+    const day = today()
+    const lines = new Map<string, number>()
+
+    for (const name of names) {
+      const key = kindOf(name)
+
+      if (key !== '') {
+        lines.set(key, (lines.get(key) ?? 0) + name.count)
+      }
+    }
+
+    return [...lines].flatMap(([key, count]) => {
+      const definition = catalogue?.assetKind(key, day)?.definition
+
+      return definition && kindFields(definition).length > 0
+        ? [
+            {
+              key,
+              count,
+              definition,
+              label: kinds.find((kind) => kind.key === key)?.label ?? definition.label,
+            },
+          ]
+        : []
+    })
+  })()
+  const fieldColumns = fieldChoice.sheet === table.sheet ? fieldChoice.columns : {}
+  /**
+   * The column of each field of a kind: what somebody chose here, or else
+   * what the names of the columns propose, and never a column the first step
+   * has given a field since.
+   */
+  const columnsOf = (kind: (typeof kindsWithFields)[number]): ColumnMapping => {
+    const open = new Set(free.map((column) => column.index))
+    const columns =
+      fieldColumns[kind.key] ?? suggestedMapping(free, kindColumnFields(kind.definition))
+
+    return Object.fromEntries(Object.entries(columns).filter(([, column]) => open.has(column)))
+  }
+  /** Whether there is anything to give: a column left over and a kind that brings a field. */
+  const fieldsToGive = free.length > 0 && kindsWithFields.length > 0
+  const asked = {
+    sheet: table.sheet,
+    mapping: table.mapping,
+    kindColumns: Object.fromEntries(
+      kindsWithFields
+        .map((kind) => [kind.key, columnsOf(kind)] as const)
+        .filter(([, columns]) => Object.keys(columns).length > 0),
+    ),
+  }
+  const askPreview = () =>
+    sendTable<AssetsPreview>(`${importRoutes.assets}/preview`, asked).then((answer) => {
+      setPreview(answer)
+      setDecisions({})
+      setStep('preview')
+    })
+  const keepKinds = () => {
     working(
       request<{ names: AssetKindName[] }>(importRoutes.kindNames, {
         method: 'PUT',
         body: JSON.stringify({
           names: names.map((name) => ({ name: name.name, kind: kindOf(name) })),
         }),
-      })
-        .then((answer) => {
-          queries.setQueryData(kindNamesQuery.queryKey, answer)
+      }).then((answer) => {
+        queries.setQueryData(kindNamesQuery.queryKey, answer)
 
-          return sendTable<AssetsPreview>(`${importRoutes.assets}/preview`, asked)
-        })
-        .then((answer) => {
-          setPreview(answer)
-          setDecisions({})
-          setStep('preview')
-        }),
+        // A file without a column left over, or kinds without a field of
+        // their own, has nothing to give in the next step.
+        if (!fieldsToGive) {
+          return askPreview()
+        }
+
+        setStep('fields')
+
+        return undefined
+      }),
     )
   }
   const taken = Object.values(decisions).filter((decision) => decision === 'take').length
@@ -800,7 +935,9 @@ export function ImportAssetsScreen() {
       ? 'Anlagen aus einer Tabelle (CSV oder Excel), in Gebäude und Räume, die es schon gibt'
       : step === 'kinds'
         ? 'Bezeichnungen aus der Datei, einmal zugeordnet und bei jedem weiteren Import genommen'
-        : `${table.file.name}, ${linesWords(preview?.lines ?? table.lines)}`
+        : step === 'fields'
+          ? 'Was nur eine Anlagenart hat: Spalten der Datei für die Felder der gewählten Anlagenarten'
+          : `${table.file.name}, ${linesWords(preview?.lines ?? table.lines)}`
   const head = (
     <>
       <PageHead
@@ -812,7 +949,7 @@ export function ImportAssetsScreen() {
       <Steps
         label="Schritte des Imports"
         names={assetSteps}
-        current={step === 'columns' ? 0 : step === 'kinds' ? 1 : step === 'preview' ? 2 : 3}
+        current={['columns', 'kinds', 'fields', 'preview', 'done'].indexOf(step)}
       />
     </>
   )
@@ -827,7 +964,7 @@ export function ImportAssetsScreen() {
           Änderungsprotokoll.
         </NoteBox>
         <NoteBox>
-          Was nur eine Anlagenart hat, etwa Löschmittel oder Nennleistung, tragen Sie an der Anlage
+          Was nur eine Anlagenart hat und in der Datei keine Spalte hatte, tragen Sie an der Anlage
           nach. Für jede Anlage schlägt der Katalog die Pflichten ihrer Anlagenart vor; der Import
           bestätigt keine.
         </NoteBox>
@@ -865,6 +1002,8 @@ export function ImportAssetsScreen() {
         {head}
         <CountTiles
           label="Was die Tabelle anlegen würde"
+          // Three figures over the whole width, as the board has them; the five columns are for five.
+          className="grid-cols-2 sm:grid-cols-3"
           tiles={[
             { value: counts.assets, label: 'Anlagen neu' },
             {
@@ -973,6 +1112,7 @@ export function ImportAssetsScreen() {
             </tbody>
           </TablePanel>
         ) : null}
+        <NotesPanel notes={preview.notes} more={preview.moreNotes} />
         <NoteBox tone={open > 0 || counts.undecided > 0 ? 'waiting' : 'neutral'}>
           Übernommen wird ganz oder gar nicht.{' '}
           {open > 0
@@ -987,7 +1127,7 @@ export function ImportAssetsScreen() {
         {refusal}
         <StepActions
           back={() => {
-            setStep('kinds')
+            setStep(fieldsToGive ? 'fields' : 'kinds')
           }}
           onCancel={leave}
         >
@@ -1000,6 +1140,114 @@ export function ImportAssetsScreen() {
             {counts.assets === 1
               ? '1 Anlage anlegen'
               : `${counts.assets.toLocaleString('de-DE')} Anlagen anlegen`}
+          </Button>
+        </StepActions>
+      </Screen>
+    )
+  }
+
+  if (step === 'fields') {
+    const options = [
+      { value: '', label: 'Keine Spalte' },
+      ...free.map((column) => ({ value: String(column.index), label: columnName(column) })),
+    ]
+
+    return (
+      <Screen>
+        {head}
+        {kindsWithFields.map((kind) => {
+          const columns = columnsOf(kind)
+          const choice = (entry: KindField) => {
+            const { [entry.field.key]: column, ...others } = columns
+
+            return (
+              <FilterSelect
+                label={`Spalte für ${entry.field.label}, ${kind.definition.label}`}
+                width="lg:w-[280px]"
+                value={column === undefined ? '' : String(column)}
+                options={options}
+                onChange={(value) => {
+                  setFieldChoice({
+                    sheet: table.sheet,
+                    columns: {
+                      ...fieldColumns,
+                      // A column is one field of a kind: given to this one, it leaves the one it had.
+                      [kind.key]:
+                        value === '' ? others : withColumn(columns, Number(value), entry.field.key),
+                    },
+                  })
+                }}
+              />
+            )
+          }
+
+          return (
+            <TablePanel
+              key={kind.key}
+              title={kind.label}
+              caption={`Felder der Anlagenart ${kind.definition.label} und ihre Spalten`}
+              action={
+                <span className="text-[12px] text-ink-faint">
+                  {counted(kind.count, 'Anlage', 'Anlagen')}
+                </span>
+              }
+              cards={kindFields(kind.definition).map((entry) => ({
+                key: entry.field.key,
+                title: null,
+                form: (
+                  <div className="flex flex-col gap-1.5">
+                    <span className="font-medium">{entry.field.label}</span>
+                    <span className="text-[13px] text-ink-faint [overflow-wrap:anywhere]">
+                      {cellHint(entry)}
+                    </span>
+                    {choice(entry)}
+                  </div>
+                ),
+              }))}
+            >
+              <thead>
+                <tr>
+                  <Column className="w-[240px]">Feld</Column>
+                  <Column>Was darin steht</Column>
+                  <Column className="w-[310px]">Spalte der Datei</Column>
+                </tr>
+              </thead>
+              <tbody>
+                {kindFields(kind.definition).map((entry) => (
+                  <tr key={entry.field.key}>
+                    <Cell className="font-medium">{entry.field.label}</Cell>
+                    <Cell className="text-ink-faint [overflow-wrap:anywhere]">
+                      {cellHint(entry)}
+                    </Cell>
+                    <Cell>{choice(entry)}</Cell>
+                  </tr>
+                ))}
+              </tbody>
+            </TablePanel>
+          )
+        })}
+        <NoteBox>
+          Eine Spalte gilt oft nur für einen Teil der Zeilen. Steht in einer Zeile ein Wert, für
+          deren Anlagenart die Spalte keinem Feld zugeordnet ist, wird er nicht übernommen; die
+          Vorschau nennt Zeile und Spalte. Ein Feld ohne Spalte tragen Sie nach dem Import an der
+          Anlage ein.
+        </NoteBox>
+        {refusal}
+        <StepActions
+          back={() => {
+            setStep('kinds')
+          }}
+          onCancel={leave}
+        >
+          <Button
+            tone="primary"
+            icon={ChevronRight}
+            disabled={busy}
+            onClick={() => {
+              working(askPreview())
+            }}
+          >
+            Weiter zur Vorschau
           </Button>
         </StepActions>
       </Screen>
@@ -1083,7 +1331,7 @@ export function ImportAssetsScreen() {
             tone="primary"
             icon={Check}
             disabled={busy || open > 0 || names.length === 0}
-            onClick={keepAndPreview}
+            onClick={keepKinds}
           >
             Zuordnung speichern
           </Button>
@@ -1116,7 +1364,7 @@ export function ImportAssetsScreen() {
           fields={assetImportFields}
           mapping={table.mapping}
           onChange={table.setMapping}
-          note="Was nur eine Anlagenart hat, etwa Löschmittel oder Nennleistung, tragen Sie nach dem Import an der Anlage ein."
+          note="Was nur eine Anlagenart hat, etwa Löschmittel oder Nennleistung, ordnen Sie im Schritt „Felder“ zu. Hier bleibt eine solche Spalte auf „Nicht übernehmen“."
         />
       ) : null}
       {refusal}

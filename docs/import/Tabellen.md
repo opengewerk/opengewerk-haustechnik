@@ -123,16 +123,57 @@ Was dabei gilt:
   Eine Anlage, die trotzdem angelegt wird, hält fest, von welchen vorhandenen Anlagen sie dabei
   für verschieden befunden wurde; ihre Akte nennt sie unter "Keine Dublette von".
 - **Was nur eine Anlagenart hat**, etwa das Löschmittel eines Feuerlöschers oder eine
-  Nennleistung, liest der Import nicht. Es wird danach an der Anlage eingetragen.
+  Nennleistung, steht nicht unter diesen Feldern. Seine Spalte bleibt im ersten Schritt auf
+  "Nicht übernehmen" und wird im dritten Schritt zugeordnet, siehe "Felder der Anlagenart".
 - **Die Nummer der Anlage** (AN-00031) vergibt die Anwendung aus dem Nummernkreis des Betreibers,
   in der Reihenfolge der Zeilen.
 - Nach dem Import schlägt der Katalog für jede Anlage die Pflichten ihrer Anlagenart vor. Der
   Import bestätigt keine.
 
+## Felder der Anlagenart
+
+Eine Anlagenart bringt Felder mit, die nur sie hat: das Löschmittel eines Feuerlöschers, die
+Nennleistung eines Wärmeerzeugers. Welche Anlagenart eine Zeile meint, steht erst nach dem
+Schritt "Anlagenarten" fest. Deshalb folgt darauf der Schritt **"Felder"**: die Spalten, die im
+ersten Schritt kein Feld bekommen haben, werden den Feldern der gewählten Anlagenarten
+zugeordnet, je Anlagenart einmal.
+
+- Der Import schlägt die Spalte vor, die heißt wie das Feld, bei einer Zahl auch mit der Einheit
+  dahinter: "Füllmenge", "Füllmenge kg" und "Füllmenge in kg".
+- Eine Spalte kann mehreren Anlagenarten dienen, wenn jede von ihnen ein solches Feld hat. Je
+  Anlagenart ist eine Spalte ein Feld.
+- Ein Feld ohne Spalte und eine leere Zelle bleiben leer; das Feld wird danach an der Anlage
+  eingetragen.
+- Hat keine der gewählten Anlagenarten ein eigenes Feld, oder ist keine Spalte übrig, entfällt
+  der Schritt.
+
+Was in der Zelle steht, hängt von der Art des Felds ab. Der Schritt nennt sie bei jedem Feld.
+
+| Art des Felds | So steht es in der Zelle | Beispiele | Wird nicht gelesen |
+|---|---|---|---|
+| Auswahl | die Bezeichnung einer der Möglichkeiten, wie die Anlagenart sie nennt; Großschreibung und Leerzeichen zählen nicht, Satzzeichen zählen | ABC-Pulver; abc-pulver | Pulver |
+| Zahl | Ziffern, mit Komma und ohne Tausenderpunkt; dahinter darf die Einheit des Felds stehen | 1200; 7,5; 6 kg | 7.5; 1.200; 6000 g |
+| Ja oder Nein | ja oder nein | ja; Nein | x; vorhanden |
+| Tag | wie bei der Inbetriebnahme | 02.10.2026; 2026-10-02 | 2.10.26; Oktober 2026 |
+| Text | höchstens 500 Zeichen | Im Keller links | |
+
+Was dabei gilt:
+
+- **Ein Wert wird gegen sein Feld geprüft wie im Formular.** Passt er nicht, ist die Zeile offen
+  und steht in der Vorschau unter "Was vor der Übernahme zu klären ist".
+- **Eine Zahl wird nicht umgerechnet und nicht gedeutet.** "1.200" kann tausendzweihundert oder
+  eins Komma zwei heißen, "6000 g" ist keine Zahl in kg: beides ist eine offene Zeile. Eine Zahl
+  mit mehr Nachkommastellen, als ihre Einheit hat, ebenso.
+- **Eine Spalte gilt oft nur für einen Teil der Zeilen.** Steht in einer Zeile ein Wert, für deren
+  Anlagenart die Spalte keinem Feld zugeordnet ist, wird er nicht übernommen. Die Vorschau nennt
+  ihn unter "Was nicht übernommen wird" mit Zeile und Spalte; die Zeile wird trotzdem angelegt,
+  und der Import läuft.
+
 ## Vorschau und Übernahme
 
-Vor der Übernahme zeigt die Vorschau, was die Tabelle anlegen würde, welche Zeilen zu klären sind
-und was es schon gibt. Dabei wird nichts geschrieben und die Datei nicht gespeichert.
+Vor der Übernahme zeigt die Vorschau, was die Tabelle anlegen würde, welche Zeilen zu klären sind,
+was es schon gibt und, bei Anlagen, welche Werte nicht übernommen werden. Dabei wird nichts
+geschrieben und die Datei nicht gespeichert.
 
 **Übernommen wird ganz oder gar nicht.** Solange eine Zeile zu klären ist, bleibt der Knopf aus:
 die Datei wird berichtigt und im ersten Schritt neu gewählt. Scheitert die Übernahme, ist nichts

@@ -394,6 +394,8 @@ interface AssetsPreview {
   readonly counts: Readonly<Record<string, number>>
   readonly problems: readonly { lines: number[]; what: string; next: string }[]
   readonly moreProblems: number
+  readonly notes: readonly { lines: number[]; column: string; why: string }[]
+  readonly moreNotes: number
   readonly duplicates: readonly {
     line: number
     name: string
@@ -1633,6 +1635,218 @@ describe('the assets of an import', () => {
         values: {},
       },
     ])
+  })
+})
+
+describe('what only the kind of an imported asset has (#172)', () => {
+  const header = [...assetHeader, 'Haltestellen', 'Feuerwehraufzug']
+  /** The two columns behind those of every asset, given to the fields of an elevator. */
+  const kindColumns = { 'probe.elevator': { stops: 7, firefighters_lift: 8 } }
+
+  it('is written with the asset, from the columns given to the fields of its kind', async () => {
+    const tenant = await tenantWith()
+
+    await placeIn(tenant)
+    await elevatorsNamed(tenant)
+
+    const listed = {
+      ...table(
+        assetImportFields,
+        header,
+        [...assetLine('Aufzug Nord'), '6', 'ja'],
+        [...assetLine('Aufzug Süd'), '', 'Nein'],
+        [...assetLine('Aufzug West'), '', ''],
+      ),
+      kindColumns,
+    }
+    const keeper = by('site_management', tenant)
+    const preview = await assetsPreview(keeper, listed)
+
+    expect(preview.problems).toEqual([])
+    expect(preview.notes).toEqual([])
+    expect(preview.counts).toEqual({ assets: 3, skipped: 0, undecided: 0 })
+
+    await sendTable('/imports/assets', keeper, {
+      ...listed,
+      fileName: 'anlagen.csv',
+      expected: { assets: 3, skipped: 0, undecided: 0 },
+    }).expect(201)
+
+    const { rows } = await admin.query(
+      'select name, "values" from assets where tenant_id = $1 order by number',
+      [tenant.id],
+    )
+
+    expect(rows).toEqual([
+      { name: 'Aufzug Nord', values: { stops: 6, firefighters_lift: true } },
+      { name: 'Aufzug Süd', values: { firefighters_lift: false } },
+      { name: 'Aufzug West', values: {} },
+    ])
+  })
+
+  it('stays out of a table whose columns nobody gave to a kind', async () => {
+    const tenant = await tenantWith()
+
+    await placeIn(tenant)
+    await elevatorsNamed(tenant)
+
+    await sendTable('/imports/assets', by('site_management', tenant), {
+      ...table(assetImportFields, header, [...assetLine('Aufzug Nord'), '6', 'ja']),
+      fileName: 'anlagen.csv',
+      expected: { assets: 1, skipped: 0, undecided: 0 },
+    }).expect(201)
+
+    const { rows } = await admin.query('select "values" from assets where tenant_id = $1', [
+      tenant.id,
+    ])
+
+    expect(rows).toEqual([{ values: {} }])
+  })
+
+  it('holds the table back while a value does not fit its field: the preview names the line, and the take-over writes nothing', async () => {
+    const tenant = await tenantWith()
+
+    await placeIn(tenant)
+    await elevatorsNamed(tenant)
+
+    const listed = {
+      ...table(
+        assetImportFields,
+        header,
+        [...assetLine('Aufzug Nord'), 'sechs', 'ja'],
+        [...assetLine('Aufzug Süd'), '4', 'vielleicht'],
+        [...assetLine('Aufzug West'), '2', 'nein'],
+      ),
+      kindColumns,
+    }
+    const keeper = by('site_management', tenant)
+    const preview = await assetsPreview(keeper, listed)
+    const next = 'In der Datei berichtigen und neu hochladen'
+
+    expect(preview.problems).toEqual([
+      {
+        lines: [2],
+        what: 'Anlage „Aufzug Nord“: Haltestellen ist eine Zahl, geschrieben mit Komma und ohne Tausenderpunkt wie 1200 oder 7,5, und nicht „sechs“',
+        next,
+      },
+      { lines: [3], what: 'Anlage „Aufzug Süd“: Feuerwehraufzug ist ja oder nein', next },
+    ])
+
+    const before = await rowCounts()
+    const refused = await sendTable('/imports/assets', keeper, {
+      ...listed,
+      fileName: 'anlagen.csv',
+      expected: preview.counts,
+    }).expect(422)
+
+    expect((refused.body as Refusal).message).toBe(planHasProblems)
+    expect(await rowCounts()).toEqual(before)
+  })
+
+  it('leaves out what a column holds in a line of a kind it was given no field of, says so, and makes the line all the same', async () => {
+    const tenant = await tenantWith()
+
+    await placeIn(tenant)
+    await http()
+      .put('/imports/asset-kinds')
+      .set(testIdentityHeader, by('site_management', tenant))
+      .send({
+        names: [
+          { name: 'Aufzug', kind: 'probe.elevator' },
+          { name: 'Wasseruhr', kind: 'probe.water_meter' },
+        ],
+      })
+      .expect(200)
+
+    const listed = {
+      ...table(
+        assetImportFields,
+        [...assetHeader, 'Zählernummer', 'Einheit', 'Haltestellen'],
+        [...assetLine('Aufzug Nord'), '', '', '6'],
+        [...assetLine('Zähler Keller', { kind: 'Wasseruhr' }), 'WZ-0042', 'm³', '3'],
+      ),
+      kindColumns: { 'probe.elevator': { stops: 9 } },
+    }
+    const keeper = by('site_management', tenant)
+    const preview = await assetsPreview(keeper, listed)
+
+    expect(preview.problems).toEqual([])
+    expect(preview.notes).toEqual([
+      {
+        lines: [3],
+        column: 'Haltestellen',
+        why: 'Für Wasserzähler ist die Spalte keinem Feld zugeordnet',
+      },
+    ])
+    expect(preview.moreNotes).toBe(0)
+    expect(preview.counts).toEqual({ assets: 2, skipped: 0, undecided: 0 })
+
+    await sendTable('/imports/assets', keeper, {
+      ...listed,
+      fileName: 'anlagen.csv',
+      expected: preview.counts,
+    }).expect(201)
+
+    const { rows } = await admin.query(
+      'select name, "values" from assets where tenant_id = $1 order by number',
+      [tenant.id],
+    )
+
+    expect(rows).toEqual([
+      { name: 'Aufzug Nord', values: { stops: 6 } },
+      { name: 'Zähler Keller', values: {} },
+    ])
+  })
+
+  it('takes the columns of a kind only as a choice among its fields and the columns the first step left free', async () => {
+    const tenant = await tenantWith()
+
+    await placeIn(tenant)
+    await elevatorsNamed(tenant)
+
+    const listed = table(assetImportFields, header, [...assetLine('Aufzug Nord'), '6', 'ja'])
+    const wrong: readonly (readonly [columns: unknown, sentence: string])[] = [
+      [
+        [['probe.elevator', { stops: 7 }]],
+        'Die Felder einer Anlagenart stehen als Anlagenart mit ihren Feldern und deren Spalten.',
+      ],
+      [
+        { 'probe.escalator': { stops: 7 } },
+        'Die Anlagenart probe.escalator kennt kein Paket des Katalogs.',
+      ],
+      [
+        { 'probe.elevator': { hot_water: 7 } },
+        'Das Feld hot_water hat die Anlagenart Aufzugsanlage nicht.',
+      ],
+      [
+        { 'probe.elevator': { stops: 12 } },
+        'Die Spalte für „Haltestellen“ gibt es in der Datei nicht.',
+      ],
+      [
+        { 'probe.elevator': { stops: 4 } },
+        'Die Spalte E ist schon im ersten Schritt einem Feld zugeordnet.',
+      ],
+      [
+        { 'probe.elevator': { stops: 7, firefighters_lift: 7 } },
+        'Die Spalte H ist zwei Feldern der Anlagenart Aufzugsanlage zugeordnet.',
+      ],
+    ]
+    const before = await rowCounts()
+
+    for (const path of ['/imports/assets/preview', '/imports/assets']) {
+      for (const [columns, sentence] of wrong) {
+        const answer = await sendTable(path, by('site_management', tenant), {
+          ...listed,
+          kindColumns: columns,
+          fileName: 'anlagen.csv',
+          expected: { assets: 1, skipped: 0, undecided: 0 },
+        }).expect(400)
+
+        expect([path, (answer.body as Refusal).message]).toEqual([path, sentence])
+      }
+    }
+
+    expect(await rowCounts()).toEqual(before)
   })
 })
 

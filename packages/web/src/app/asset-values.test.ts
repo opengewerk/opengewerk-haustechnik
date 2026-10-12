@@ -1,7 +1,7 @@
 import { type AssetKind, assetValueProblems } from '@opengewerk/haustechnik-domain'
 import { describe, expect, it } from 'vitest'
 
-import { kindFields, stepsOf, typedValues, unitOf, valuesOf } from './asset-values.js'
+import { typedValues, valuesOf } from './asset-values.js'
 
 const heater: AssetKind = {
   label: 'Trinkwassererwärmung',
@@ -29,38 +29,6 @@ const heater: AssetKind = {
   expectedDocuments: [],
   meter: null,
 }
-
-describe('the fields a kind brings to a form', () => {
-  it('are its characteristics, then its own fields, each figure with its unit', () => {
-    expect(kindFields(heater).map((entry) => [entry.field.label, unitOf(entry)])).toEqual([
-      ['Nennleistung', 'kW'],
-      ['Austrittstemperatur', '°C'],
-      ['Zirkulation', undefined],
-      ['Energieträger', undefined],
-      ['Inhalt', 'l'],
-      ['Zapfstellen', undefined],
-      ['Bemerkung', undefined],
-      ['Zuletzt entkalkt', undefined],
-    ])
-  })
-})
-
-describe('a figure as it is typed', () => {
-  it('is counted in the steps of its unit, on its digits', () => {
-    expect(stepsOf('60', 1)).toBe(600)
-    expect(stepsOf('60,5', 1)).toBe(605)
-    expect(stepsOf('60.5', 1)).toBe(605)
-    expect(stepsOf('0,07', 2)).toBe(7)
-    expect(stepsOf('-2,5', 1)).toBe(-25)
-    expect(stepsOf('70', 0)).toBe(70)
-    expect(stepsOf('70,0', 0)).toBe(70)
-  })
-
-  it('is no whole number of steps with more places than its unit has', () => {
-    expect(Number.isInteger(stepsOf('60,05', 1))).toBe(false)
-    expect(Number.isInteger(stepsOf('70,5', 0))).toBe(false)
-  })
-})
 
 describe('the values of an asset from a form', () => {
   const typed = {

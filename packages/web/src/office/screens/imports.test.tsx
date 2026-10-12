@@ -77,6 +77,23 @@ const assetsFile: TableFile = {
 }
 const assetsMapping = { property: 0, building: 1, kind: 2, name: 3, serialNumber: 4, costGroup: 5 }
 
+/** A list with two columns for what only an elevator has, and one nobody takes (#172). */
+const fieldsFile: TableFile = {
+  name: 'aufzuege.xlsx',
+  sheets: [
+    {
+      name: 'Anlagen',
+      rows: [
+        ['Standort', 'Gebäude', 'Art', 'Bezeichnung', 'Haltestellen', 'Feuerwehr', 'Prüfer'],
+        ['Schulzentrum', 'Schulhaus', 'Aufzugsanlage', 'Aufzug Nord', '6', 'ja', 'Müller'],
+        ['Schulzentrum', 'Schulhaus', 'Aufzugsanlage', 'Aufzug Süd', '4', 'nein', 'Müller'],
+        ['Schulzentrum', 'Schulhaus', 'Pumpe', 'Pumpe Keller', '2', '', 'Schmidt'],
+      ],
+    },
+  ],
+}
+const fieldsMapping = { property: 0, building: 1, kind: 2, name: 3 }
+
 /** The catalogue of the tests with a general kind for the conveying systems, as the package "Allgemein" has one. */
 const catalogue: CatalogueBundle = {
   ...testCatalogue,
@@ -629,6 +646,8 @@ describe('the import of assets', () => {
     counts: { assets: 5, skipped: 0, undecided: 0 },
     problems: [],
     moreProblems: 0,
+    notes: [],
+    moreNotes: 0,
     duplicates: [],
   }
   const withDuplicates = {
@@ -636,6 +655,8 @@ describe('the import of assets', () => {
     counts: { assets: 3, skipped: 0, undecided: 2 },
     problems: [],
     moreProblems: 0,
+    notes: [],
+    moreNotes: 0,
     duplicates: [
       {
         line: 3,
@@ -818,12 +839,13 @@ describe('the import of assets', () => {
     expect(bodyOf('/imports/assets/preview')).toEqual({
       sheet: assetsFile.sheets[0],
       mapping: assetsMapping,
+      kindColumns: {},
     })
     expect(sent.slice(1).map((request) => request.type)).toEqual([
       'application/json',
       tableBodyType,
     ])
-    expect(step()).toBe('3Vorschau')
+    expect(step()).toBe('4Vorschau')
     expect(screen.getByText('anlagen.xlsx, 5 Zeilen')).toBeTruthy()
   })
 
@@ -865,6 +887,7 @@ describe('the import of assets', () => {
     expect(bodyOf('/imports/assets')).toEqual({
       sheet: assetsFile.sheets[0],
       mapping: assetsMapping,
+      kindColumns: {},
       decisions: {},
       fileName: 'anlagen.xlsx',
       expected: { assets: 5, skipped: 0, undecided: 0 },
@@ -936,6 +959,7 @@ describe('the import of assets', () => {
     expect(bodyOf('/imports/assets')).toEqual({
       sheet: assetsFile.sheets[0],
       mapping: assetsMapping,
+      kindColumns: {},
       decisions: { 3: 'skip', 5: 'take' },
       fileName: 'anlagen.xlsx',
       expected: { assets: 4, skipped: 1, undecided: 0 },
@@ -1008,6 +1032,8 @@ describe('the import of assets', () => {
         },
       ],
       moreProblems: 0,
+      notes: [],
+      moreNotes: 0,
       duplicates: [],
     })
 
@@ -1033,13 +1059,314 @@ describe('the import of assets', () => {
     await user.click(button('5 Anlagen anlegen'))
 
     expect(await screen.findByText(planChanged)).toBeTruthy()
-    expect(step()).toBe('3Vorschau')
+    expect(step()).toBe('4Vorschau')
     expect(screen.queryByText(/^Übernommen:/)).toBeNull()
 
     await user.click(button('Zurück'))
 
     expect(step()).toBe('2Anlagenarten')
     expect(select('Anlagenart für Feuerlöscher').value).toBe('fertig.pump')
+  })
+
+  describe('the fields of the asset kinds (#172)', () => {
+    const elevatorTable = 'Felder der Anlagenart Aufzugsanlage und ihre Spalten'
+    const notesTable = 'Werte der Datei, die nicht übernommen werden'
+    const stops = 'Spalte für Haltestellen, Aufzugsanlage'
+    const firefighters = 'Spalte für Feuerwehraufzug, Aufzugsanlage'
+    const threeAssets = { ...clean, lines: 3, counts: { assets: 3, skipped: 0, undecided: 0 } }
+
+    /** As far as the kinds of a list that keeps columns for what only an elevator has. */
+    async function withTheKindsOf(file: TableFile) {
+      const user = userEvent.setup()
+
+      answers['/imports/assets/table'] = ok(file)
+      answers['/imports/asset-kinds'] = ok({ names: [] })
+
+      const mounted = await mount(assetsPlace, 'site_management')
+
+      await chooseFile(user, file.name)
+      await screen.findByRole('table', { name: columnsTable })
+      await user.click(button('Weiter zu den Anlagenarten'))
+      await screen.findByRole('table', { name: kindsTable })
+      choose('Anlagenart für Pumpe', 'probe.pump')
+
+      return { user, ...mounted }
+    }
+
+    /** As far as the step that gives the columns left over to the fields of the kinds. */
+    async function withTheFields() {
+      const at = await withTheKindsOf(fieldsFile)
+
+      await at.user.click(button('Zuordnung speichern'))
+      await screen.findByRole('table', { name: elevatorTable })
+
+      return at
+    }
+
+    it('says in the first step where such a column is given its field', async () => {
+      const user = userEvent.setup()
+
+      answers['/imports/assets/table'] = ok(fieldsFile)
+      await mount(assetsPlace, 'site_management')
+      await chooseFile(user, 'aufzuege.xlsx')
+      await screen.findByRole('table', { name: columnsTable })
+
+      expect(
+        ['Haltestellen', 'Feuerwehr', 'Prüfer'].map((column) => select(`Feld für ${column}`).value),
+      ).toEqual(['', '', ''])
+      expect(
+        screen.getByText(
+          'Was nur eine Anlagenart hat, etwa Löschmittel oder Nennleistung, ordnen Sie im Schritt „Felder“ zu. Hier bleibt eine solche Spalte auf „Nicht übernehmen“.',
+        ),
+      ).toBeTruthy()
+    })
+
+    it('comes after the words are saved, with the fields of every kind that brings some and the columns the first step left', async () => {
+      await withTheFields()
+
+      expect(step()).toBe('3Felder')
+      // The words are saved, and nothing was asked of the preview yet.
+      expect(written.slice(1).map((write) => `${write.method} ${write.path}`)).toEqual([
+        'PUT /imports/asset-kinds',
+      ])
+      expect(rowsOf(elevatorTable).map(([field, holds]) => [field, holds])).toEqual([
+        ['Feuerwehraufzug', 'ja oder nein'],
+        ['Haltestellen', 'Zahl'],
+      ])
+      expect(screen.getByText('2 Anlagen')).toBeTruthy()
+      // A pump brings no field of its own, and has no card.
+      expect(screen.getAllByRole('table')).toHaveLength(1)
+      expect([...select(stops).options].map((option) => option.textContent)).toEqual([
+        'Keine Spalte',
+        'Haltestellen',
+        'Feuerwehr',
+        'Prüfer',
+      ])
+      // The column that is called what the field is called is proposed, and no other.
+      expect([select(stops).value, select(firefighters).value]).toEqual(['4', ''])
+    })
+
+    it('sends the columns of the kinds with the sheet, to the preview and to the take-over', async () => {
+      const { user } = await withTheFields()
+
+      choose(firefighters, '5')
+      answers['/imports/assets/preview'] = ok(threeAssets)
+      await user.click(button('Weiter zur Vorschau'))
+      await screen.findByRole('list', { name: 'Was die Tabelle anlegen würde' })
+
+      const asked = {
+        sheet: fieldsFile.sheets[0],
+        mapping: fieldsMapping,
+        kindColumns: { 'probe.elevator': { stops: 4, firefighters_lift: 5 } },
+      }
+
+      expect(step()).toBe('4Vorschau')
+      expect(bodyOf('/imports/assets/preview')).toEqual(asked)
+
+      answers['/imports/assets'] = ok({ id: 'i-1', counts: threeAssets.counts, summary: '' }, 201)
+      await user.click(button('3 Anlagen anlegen'))
+      await screen.findByText(/^Übernommen:/)
+
+      expect(bodyOf('/imports/assets')).toEqual({
+        ...asked,
+        decisions: {},
+        fileName: 'aufzuege.xlsx',
+        expected: { assets: 3, skipped: 0, undecided: 0 },
+      })
+      expect(
+        screen.getByText(/^Was nur eine Anlagenart hat und in der Datei keine Spalte hatte/),
+      ).toBeTruthy()
+    })
+
+    it('gives a column to one field of a kind: given to a second it leaves the first, and a field may stay without one', async () => {
+      const { user } = await withTheFields()
+
+      choose(firefighters, '4')
+      expect([select(stops).value, select(firefighters).value]).toEqual(['', '4'])
+
+      choose(stops, '6')
+      expect([select(stops).value, select(firefighters).value]).toEqual(['6', '4'])
+
+      choose(firefighters, '')
+      choose(stops, '')
+      expect([select(stops).value, select(firefighters).value]).toEqual(['', ''])
+
+      answers['/imports/assets/preview'] = ok(threeAssets)
+      await user.click(button('Weiter zur Vorschau'))
+      await screen.findByRole('list', { name: 'Was die Tabelle anlegen würde' })
+
+      // What nobody gave a column is not sent, even where a name proposed one.
+      expect(bodyOf('/imports/assets/preview')).toEqual({
+        sheet: fieldsFile.sheets[0],
+        mapping: fieldsMapping,
+        kindColumns: {},
+      })
+    })
+
+    it('shows what the preview says is not taken over, with line and column, and lets the table through all the same', async () => {
+      const { user } = await withTheFields()
+
+      answers['/imports/assets/preview'] = ok({
+        ...threeAssets,
+        notes: [
+          {
+            lines: [4],
+            column: 'Haltestellen',
+            why: 'Für Druckerhöhungsanlage ist die Spalte keinem Feld zugeordnet',
+          },
+        ],
+        moreNotes: 2,
+      })
+      await user.click(button('Weiter zur Vorschau'))
+      await screen.findByRole('table', { name: notesTable })
+
+      expect(rowsOf(notesTable)).toEqual([
+        ['4', 'Haltestellen', 'Für Druckerhöhungsanlage ist die Spalte keinem Feld zugeordnet'],
+      ])
+      expect(screen.getByText('und 2 weitere')).toBeTruthy()
+      expect(
+        screen.getByText('Diese Werte bleiben draußen. Die Zeilen werden trotzdem angelegt.'),
+      ).toBeTruthy()
+      expect(tiles('Was die Tabelle anlegen würde')[2]).toBe(
+        '0Zeilen offenvor der Übernahme zu klären',
+      )
+      expect(button('3 Anlagen anlegen').disabled).toBe(false)
+    })
+
+    it('says nothing of the kind where the preview has no such value', async () => {
+      const { user } = await withTheFields()
+
+      answers['/imports/assets/preview'] = ok(threeAssets)
+      await user.click(button('Weiter zur Vorschau'))
+      await screen.findByRole('list', { name: 'Was die Tabelle anlegen würde' })
+
+      expect(screen.queryByRole('table', { name: notesTable })).toBeNull()
+    })
+
+    it('goes back from the preview to the fields with what was chosen, and from there to the kinds', async () => {
+      const { user } = await withTheFields()
+
+      choose(firefighters, '5')
+      answers['/imports/assets/preview'] = ok(threeAssets)
+      await user.click(button('Weiter zur Vorschau'))
+      await screen.findByRole('list', { name: 'Was die Tabelle anlegen würde' })
+      await user.click(button('Zurück'))
+
+      expect(step()).toBe('3Felder')
+      expect([select(stops).value, select(firefighters).value]).toEqual(['4', '5'])
+
+      await user.click(button('Zurück'))
+
+      expect(step()).toBe('2Anlagenarten')
+      expect(select('Anlagenart für Pumpe').value).toBe('probe.pump')
+    })
+
+    it('stays at the fields where the server refuses the preview, and says why', async () => {
+      const { user } = await withTheFields()
+
+      answers['/imports/assets/preview'] = refused(
+        400,
+        'Die Spalte E ist schon im ersten Schritt einem Feld zugeordnet.',
+      )
+      await user.click(button('Weiter zur Vorschau'))
+
+      expect(
+        await screen.findByText('Die Spalte E ist schon im ersten Schritt einem Feld zugeordnet.'),
+      ).toBeTruthy()
+      expect(step()).toBe('3Felder')
+    })
+
+    it('takes a column out of the kinds once the first step has given it a field', async () => {
+      const { user } = await withTheFields()
+
+      // Somebody gives the column to a field of the kind by hand, so that it is a choice and no proposal.
+      choose(firefighters, '4')
+      await user.click(button('Zurück'))
+      await user.click(button('Zurück'))
+      await screen.findByRole('table', { name: columnsTable })
+      // The stops are the serial number after all, says somebody.
+      choose('Feld für Haltestellen', 'serialNumber')
+      await user.click(button('Weiter zu den Anlagenarten'))
+      await user.click(button('Zuordnung speichern'))
+      await screen.findByRole('table', { name: elevatorTable })
+
+      expect([...select(stops).options].map((option) => option.textContent)).toEqual([
+        'Keine Spalte',
+        'Feuerwehr',
+        'Prüfer',
+      ])
+      expect([select(stops).value, select(firefighters).value]).toEqual(['', ''])
+
+      answers['/imports/assets/preview'] = ok(threeAssets)
+      await user.click(button('Weiter zur Vorschau'))
+      await screen.findByRole('list', { name: 'Was die Tabelle anlegen würde' })
+
+      expect(bodyOf('/imports/assets/preview')).toEqual({
+        sheet: fieldsFile.sheets[0],
+        mapping: { ...fieldsMapping, serialNumber: 4 },
+        kindColumns: {},
+      })
+    })
+
+    it('forgets what was chosen with the file it was chosen in: a column is a place in one sheet', async () => {
+      const { user } = await withTheFields()
+
+      choose(stops, '6')
+      choose(firefighters, '5')
+      await user.click(button('Zurück'))
+      await user.click(button('Zurück'))
+      await screen.findByRole('table', { name: columnsTable })
+
+      // The next list keeps its columns in another order.
+      const [names = [], ...lines] = fieldsFile.sheets[0]?.rows ?? []
+      const turned = (row: readonly string[]) => [...row.slice(0, 4), row[6], row[5], row[4]]
+      const next: TableFile = {
+        name: 'aufzuege-2.xlsx',
+        sheets: [{ name: 'Anlagen', rows: [turned(names), ...lines.map(turned)] as string[][] }],
+      }
+
+      answers['/imports/assets/table'] = ok(next)
+      await chooseFile(user, 'aufzuege-2.xlsx')
+      await screen.findByText('aufzuege-2.xlsx')
+      await user.click(button('Weiter zu den Anlagenarten'))
+      choose('Anlagenart für Pumpe', 'probe.pump')
+      await user.click(button('Zuordnung speichern'))
+      await screen.findByRole('table', { name: elevatorTable })
+
+      // Proposed anew from the names of this sheet, and nothing of the old choice.
+      expect([select(stops).value, select(firefighters).value]).toEqual(['6', ''])
+    })
+
+    it('is passed over where no kind of the list brings a field of its own', async () => {
+      const pumps: TableFile = {
+        name: 'pumpen.xlsx',
+        sheets: [
+          {
+            name: 'Anlagen',
+            rows: [
+              ['Standort', 'Gebäude', 'Art', 'Bezeichnung', 'Haltestellen'],
+              ['Schulzentrum', 'Schulhaus', 'Pumpe', 'Pumpe Keller', '2'],
+            ],
+          },
+        ],
+      }
+      const { user } = await withTheKindsOf(pumps)
+
+      answers['/imports/assets/preview'] = ok({ ...threeAssets, lines: 1 })
+      await user.click(button('Zuordnung speichern'))
+      await screen.findByRole('list', { name: 'Was die Tabelle anlegen würde' })
+
+      expect(step()).toBe('4Vorschau')
+      expect(bodyOf('/imports/assets/preview')).toEqual({
+        sheet: pumps.sheets[0],
+        mapping: fieldsMapping,
+        kindColumns: {},
+      })
+
+      // And the way back leads to the kinds, not to a step with nothing in it.
+      await user.click(button('Zurück'))
+      expect(step()).toBe('2Anlagenarten')
+    })
   })
 })
 

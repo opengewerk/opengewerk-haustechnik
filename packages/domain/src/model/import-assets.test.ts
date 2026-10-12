@@ -3,6 +3,8 @@ import {
   type TableField,
   tableNameKey,
   type TableRecord,
+  tableRecords,
+  type TableSheet,
 } from '@opengewerk/platform-domain'
 import { describe, expect, it } from 'vitest'
 
@@ -25,6 +27,7 @@ import {
   planAssets,
   suggestedKind,
 } from './import-assets.js'
+import type { KindColumns } from './import-kind-fields.js'
 import type { BuildingId, FloorId, PropertyId, RoomId } from './location.js'
 import { meterUnitSymbol } from './meter.js'
 
@@ -144,6 +147,7 @@ const made = (line: number, other: Readonly<Record<string, unknown>> = {}) => ({
   meterNumber: null,
   meterUnit: null,
   distinctFrom: [],
+  values: {},
   ...other,
 })
 
@@ -238,6 +242,7 @@ describe('where the asset of a line stands', () => {
       lines: 1,
       counts: { assets: 1, skipped: 0, undecided: 0 },
       problems: [],
+      notes: [],
       duplicates: [],
       create: [made(2)],
     })
@@ -884,6 +889,269 @@ describe('the answer to a line that may be a duplicate', () => {
   })
 })
 
+describe('what only the kind of a line has (#172)', () => {
+  const extinguisher: AssetKind = {
+    ...kind('Feuerlöscher', '474'),
+    fields: [
+      {
+        key: 'agent',
+        label: 'Löschmittel',
+        kind: 'choice',
+        options: [
+          { value: 'abc', label: 'ABC-Pulver' },
+          { value: 'co2', label: 'CO₂' },
+          { value: 'foam', label: 'Schaum' },
+        ],
+      },
+      { key: 'charge', label: 'Füllmenge', kind: 'number', unit: 'kg' },
+    ],
+  }
+  const tank: AssetKind = {
+    ...kind('Warmwasserspeicher', '421'),
+    characteristics: [
+      { key: 'output', label: 'Nennleistung', kind: 'number', unit: 'kilowatts' },
+      { key: 'outlet', label: 'Austrittstemperatur', kind: 'number', unit: 'decidegrees_celsius' },
+      { key: 'circulation', label: 'Zirkulation', kind: 'flag' },
+    ],
+    fields: [
+      { key: 'charge', label: 'Inhalt', kind: 'number', unit: 'l' },
+      { key: 'descaled', label: 'Zuletzt entkalkt', kind: 'date' },
+    ],
+  }
+  const withFields: AssetImportStock = {
+    ...stock,
+    kinds: new Map([...kinds, ['probe.extinguisher', extinguisher], ['probe.storage_tank', tank]]),
+  }
+  /** The columns of every asset, and behind them what only a kind has. */
+  const mapping = { property: 0, building: 1, kind: 2, name: 3 }
+  const header = [
+    'Objekt',
+    'Haus',
+    'Art',
+    'Name',
+    'Löschmittel',
+    'Füllmenge kg',
+    'Leistung',
+    'Austritt',
+    'Zirkulation',
+    'Entkalkt',
+    '',
+  ]
+  const both: KindColumns = {
+    'probe.extinguisher': { agent: 4, charge: 5 },
+    'probe.storage_tank': { output: 6, outlet: 7, circulation: 8, descaled: 9 },
+  }
+  const fire = (...cells: string[]) => [
+    'Schulzentrum',
+    'Schulhaus',
+    'Feuerlöscher',
+    'Löscher',
+    ...cells,
+  ]
+  const water = (...cells: string[]) => [
+    'Schulzentrum',
+    'Schulhaus',
+    'WW-Speicher',
+    'Speicher',
+    ...cells,
+  ]
+  /** The plan of the rows under the header, with the columns of the kinds as a request gives them. */
+  const planWith = (rows: readonly string[][], columns: KindColumns | null = both) => {
+    const sheet: TableSheet = { name: '', rows: [header, ...rows] }
+
+    return planAssets(
+      tableRecords(sheet, mapping),
+      decided(),
+      withFields,
+      columns === null ? undefined : { sheet, columns },
+    )
+  }
+  const valuesOf = (plan: ReturnType<typeof planWith>) => plan.create.map((asset) => asset.values)
+
+  it('is read from the columns given to the fields of its kind, each as its field keeps it', () => {
+    const plan = planWith([
+      fire('ABC-Pulver', '6 kg'),
+      water('', '', '24', '60,5', 'ja', '03.10.2026'),
+    ])
+
+    expect(plan.problems).toEqual([])
+    expect(plan.notes).toEqual([])
+    expect(valuesOf(plan)).toEqual([
+      { agent: 'abc', charge: 6 },
+      { output: 24, outlet: 605, circulation: true, descaled: '2026-10-03' },
+    ])
+  })
+
+  it('is left out where a field has no column or its cell is empty', () => {
+    const plan = planWith([fire('', '6'), water('', '', '', '', 'nein', '')], {
+      'probe.extinguisher': { charge: 5 },
+      'probe.storage_tank': { output: 6, circulation: 8 },
+    })
+
+    expect(plan.problems).toEqual([])
+    expect(valuesOf(plan)).toEqual([{ charge: 6 }, { circulation: false }])
+  })
+
+  it('is not read at all by a plan that was given no columns for kinds', () => {
+    const plan = planWith([fire('ABC-Pulver', '6'), water('', '', '24')], null)
+
+    expect(plan.problems).toEqual([])
+    expect(plan.notes).toEqual([])
+    expect(valuesOf(plan)).toEqual([{}, {}])
+  })
+
+  it('is held against its field as a form is, and a value that does not fit is a problem of its line', () => {
+    const plan = planWith([
+      fire('Halon', '6'),
+      water('', '', '7,5', '60', 'vielleicht', '3.10.26'),
+      fire('Schaum', '9'),
+    ])
+
+    expect(plan.problems).toEqual([
+      {
+        lines: [2],
+        what: 'Anlage „Löscher“: Löschmittel ist eine von ABC-Pulver, CO₂, Schaum',
+        next: correctTheFile,
+      },
+      {
+        lines: [3],
+        what: 'Anlage „Speicher“: Nennleistung ist eine ganze Zahl',
+        next: correctTheFile,
+      },
+      {
+        lines: [3],
+        what: 'Anlage „Speicher“: Zirkulation ist ja oder nein',
+        next: correctTheFile,
+      },
+      {
+        lines: [3],
+        what: 'Anlage „Speicher“: Zuletzt entkalkt ist ein Tag, geschrieben 03.10.2026',
+        next: correctTheFile,
+      },
+    ])
+    // Whole or not at all: the line nothing is wrong with is counted and not written.
+    expect(plan.counts.assets).toBe(1)
+    expect(plan.create).toEqual([])
+  })
+
+  it('says how a figure stands where a cell holds none that can be read', () => {
+    const plan = planWith([fire('Schaum', '1.200'), water('', '', '24 PS')])
+
+    expect(plan.problems.map((problem) => [problem.lines, problem.what])).toEqual([
+      [
+        [2],
+        'Anlage „Löscher“: Füllmenge ist eine Zahl in kg, geschrieben mit Komma und ohne Tausenderpunkt wie 1200 oder 7,5, und nicht „1.200“',
+      ],
+      [
+        [3],
+        'Anlage „Speicher“: Nennleistung ist eine Zahl in kW, geschrieben mit Komma und ohne Tausenderpunkt wie 1200, und nicht „24 PS“',
+      ],
+    ])
+    expect(plan.create).toEqual([])
+  })
+
+  it('takes no value in a line whose kind was given no field for the column, names line and column, and makes the line all the same', () => {
+    const plan = planWith([
+      fire('Schaum', '6'),
+      // An extinguishing agent and a charge at a tank: the list keeps the columns for its extinguishers.
+      water('CO₂', '300', '24'),
+    ])
+
+    expect(plan.problems).toEqual([])
+    expect(plan.notes).toEqual([
+      {
+        lines: [3],
+        column: 'Löschmittel',
+        why: 'Für Warmwasserspeicher ist die Spalte keinem Feld zugeordnet',
+      },
+      {
+        lines: [3],
+        column: 'Füllmenge kg',
+        why: 'Für Warmwasserspeicher ist die Spalte keinem Feld zugeordnet',
+      },
+    ])
+    expect(plan.counts).toEqual({ assets: 2, skipped: 0, undecided: 0 })
+    expect(valuesOf(plan)).toEqual([{ agent: 'foam', charge: 6 }, { output: 24 }])
+  })
+
+  it('gathers the lines of one column and one kind into one note, in the order of the lines', () => {
+    const plan = planWith([
+      water('', '', '24'),
+      fire('Schaum', '6', '2'),
+      fire('Schaum', '6', '', '', 'ja'),
+      fire('Schaum', '6', '3'),
+      fire('Schaum', '6'),
+    ])
+
+    expect(plan.notes).toEqual([
+      {
+        lines: [3, 5],
+        column: 'Leistung',
+        why: 'Für Feuerlöscher ist die Spalte keinem Feld zugeordnet',
+      },
+      {
+        lines: [4],
+        column: 'Zirkulation',
+        why: 'Für Feuerlöscher ist die Spalte keinem Feld zugeordnet',
+      },
+    ])
+    expect(plan.create).toHaveLength(5)
+  })
+
+  it('reads one column for every kind that was given it', () => {
+    const plan = planWith([fire('', '6'), water('', '300')], {
+      'probe.extinguisher': { charge: 5 },
+      'probe.storage_tank': { charge: 5 },
+    })
+
+    expect(plan.notes).toEqual([])
+    expect(valuesOf(plan)).toEqual([{ charge: 6 }, { charge: 300 }])
+  })
+
+  it('says nothing about a column nobody gave a field, and names one without a name by its letters', () => {
+    const plan = planWith([fire('Schaum', '6', '', '', '', '', 'geprüft')], {
+      'probe.extinguisher': { agent: 4 },
+      'probe.storage_tank': { output: 10 },
+    })
+
+    expect(plan.notes).toEqual([
+      {
+        lines: [2],
+        column: 'Spalte K',
+        why: 'Für Feuerlöscher ist die Spalte keinem Feld zugeordnet',
+      },
+    ])
+    expect(valuesOf(plan)).toEqual([{ agent: 'foam' }])
+  })
+
+  it('leaves a line whose kind is not known to the problem of its kind', () => {
+    const plan = planWith([
+      ['Schulzentrum', 'Schulhaus', 'Hebebühne', 'Bühne', 'Schaum', '6', '24'],
+    ])
+
+    expect(plan.problems.map((problem) => problem.what)).toEqual([
+      'Die Anlagenart „Hebebühne“ ist keiner Anlagenart des Katalogs zugeordnet',
+    ])
+    expect(plan.notes).toEqual([])
+  })
+
+  it('reads the line a record names, however many lines above it hold nothing', () => {
+    const sheet: TableSheet = {
+      name: '',
+      rows: [[], header, [], fire('CO₂', '2'), [], [], fire('Schaum', '9')],
+    }
+    const plan = planAssets(tableRecords(sheet, mapping), decided(), withFields, {
+      sheet,
+      columns: both,
+    })
+
+    expect(plan.create.map((asset) => [asset.line, asset.values])).toEqual([
+      [4, { agent: 'co2', charge: 2 }],
+      [7, { agent: 'foam', charge: 9 }],
+    ])
+  })
+})
+
 describe('a plan of assets', () => {
   const mixed: readonly Row[] = [
     { ...hall, serialNumber: 'S-2' },
@@ -937,6 +1205,7 @@ describe('a plan of assets', () => {
       lines: 0,
       counts: { assets: 0, skipped: 0, undecided: 0 },
       problems: [],
+      notes: [],
       duplicates: [],
       create: [],
     })

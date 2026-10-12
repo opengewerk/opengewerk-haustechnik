@@ -1183,6 +1183,19 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   und im Abgleich jetzt "Keine Dublette von". Bisher schrieb
   nur die Bestandsaufnahme vor Ort die Entscheidung, und wer im Büro den Bestand zweier Bereiche
   erfasste, legte dieselbe Anlage doppelt an, ohne es zu erfahren
+- Import von Anlagen (#172): der Import liest jetzt auch, was nur eine Anlagenart hat, etwa das
+  Löschmittel eines Feuerlöschers. Nach "Anlagenarten" folgt der Schritt "Felder": die Spalten,
+  die der erste Schritt nicht genommen hat, werden den Feldern der gewählten Anlagenarten
+  zugeordnet, je Anlagenart einmal, vorgeschlagen am Namen der Spalte. Der Plan liest eine Zelle,
+  wie eine Liste sie schreibt (eine Auswahl an ihrer Bezeichnung, eine Zahl mit Komma und auf
+  Wunsch mit ihrer Einheit, ja oder nein, ein Tag), und prüft sie gegen ihr Feld wie das Formular;
+  was nicht passt, ist eine offene Zeile. Ein Wert in einer Zeile, deren Anlagenart die Spalte
+  keinem Feld zugeordnet hat, wird nicht übernommen und steht in der Vorschau unter "Was nicht
+  übernommen wird" mit Zeile und Spalte; der Import läuft trotzdem (Entscheidung vom 11.10.2026,
+  Planungskonzept v0.27, Abschnitt 11, Nachtrag in ADR 0002). `docs/import/Tabellen.md` sagt, wie
+  eine solche Zelle steht, und ein Test hält die Beispiele dort gegen den Import. Hat die Datei
+  keine Spalte übrig oder keine der Anlagenarten ein eigenes Feld, entfällt der Schritt. Bisher
+  trug, wer eine Liste mit solchen Spalten importierte, sie an jeder Anlage von Hand nach
 
 ### Geändert
 
