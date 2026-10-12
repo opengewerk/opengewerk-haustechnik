@@ -126,6 +126,13 @@ describe('a cell of a list as the value of a field', () => {
     }
   })
 
+  it('reads the unit behind a figure across whatever space lies between them', () => {
+    expect(read('output', '12   kW')).toEqual({ value: 12, rule: [] })
+    expect(read('output', '12\n kW')).toEqual({ value: 12, rule: [] })
+    expect(read('output', '12 \t ')).toEqual({ value: 12, rule: [] })
+    expect('problem' in read('output', '12\n!')).toBe(true)
+  })
+
   it('leaves a figure with more places than its unit has to the rule a form is held against', () => {
     expect(read('output', '7,5')).toEqual({
       value: 7.5,

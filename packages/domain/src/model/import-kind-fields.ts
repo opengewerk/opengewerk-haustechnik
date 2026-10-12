@@ -98,8 +98,14 @@ export function cellHint(entry: KindField): string {
 /** What a cell holds for a field: the value as an asset keeps it, or the sentence about a cell that cannot be read. */
 export type CellValue = { readonly value: AssetValue } | { readonly problem: string }
 
-/** A figure as a list writes it, with what stands behind it: "7,5", "1200", "6 kg". */
-const figure = /^(-?\d+(?:,\d+)?)\s*(.*)$/
+/**
+ * The figure a cell begins with, as a list writes it: "7,5" or "1200". What
+ * stands behind it, as in "6 kg", is cut off by the length of the figure and
+ * not matched. An expression that takes the rest as well tries a run of
+ * spaces before a line break once for every space in it, and a cell is
+ * whatever a request sends.
+ */
+const figure = /^-?\d+(?:,\d+)?/
 
 /** A unit as it is compared: "m3" is "m³" to whoever typed it. */
 const unitKey = (unit: string) => nameKey(unit).replace('²', '2').replace('³', '3')
@@ -125,7 +131,8 @@ export function cellValue(entry: KindField, cell: string): CellValue {
     case 'number': {
       const unit = unitOf(entry)
       const places = stepPlacesOf(entry)
-      const [, digits, behind = ''] = figure.exec(cell) ?? []
+      const [digits] = figure.exec(cell) ?? []
+      const behind = digits === undefined ? '' : cell.slice(digits.length).trim()
 
       if (
         digits === undefined ||
