@@ -117,7 +117,11 @@ export const templateLimits = {
   definition: 400_000,
 } as const
 
-const templateKeyPrefix = 'template-'
+/**
+ * What the key of the form of a round begins with, before the id of its
+ * template. The change log reads such a key as the template (#259).
+ */
+export const templateKeyPrefix = 'template-'
 const uuidShape = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 
 /**

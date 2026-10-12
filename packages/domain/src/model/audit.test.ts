@@ -2,6 +2,7 @@ import { applicationRoleName, auditLanguage } from '@opengewerk/platform-domain'
 import { describe, expect, it } from 'vitest'
 
 import { auditVocabulary } from './audit.js'
+import { type RoundTemplateId, templateFormKey } from './round-template.js'
 
 // The change log in the words of this application (ADR 0010 in the repository
 // opengewerk). Whether every table and column has a name the server holds
@@ -58,6 +59,27 @@ describe('the change log in the words of this application', () => {
     expect(audit.titleFrom('assets', { number: null, name: 'Aufzug Schulhaus' })).toBe(
       'Aufzug Schulhaus',
     )
+  })
+
+  it('reads every field that points at a record or a person by a name and not by a key (#259)', () => {
+    expect(audit.referenceOf('interval_document_id')).toBe('attachments')
+    expect(audit.referenceOf('interval_document_version_id')).toBe('attachment_versions')
+    expect(audit.referenceOf('found_in_answer_id')).toBe('activity_answers')
+    expect(audit.referenceOf('task_id')).toBe('tasks')
+    expect(audit.referenceOf('meter_property_id')).toBe('properties')
+    expect(audit.isPersonField('assignee_user_id')).toBe(true)
+    // What a deadline came from is said by the column that names it, not by its bare id.
+    expect(audit.isQuiet('source_id')).toBe(true)
+  })
+
+  it('reads the form of a round as its template, and the form of a package as a key of the catalogue', () => {
+    const template = '0199aaaa-0000-7000-8000-000000000001' as RoundTemplateId
+
+    expect(audit.prefixedReferenceOf('form_key', templateFormKey(template))).toEqual({
+      table: 'round_templates',
+      id: template,
+    })
+    expect(audit.prefixedReferenceOf('form_key', 'probe.interim_protocol')).toBeNull()
   })
 
   it('names the areas, who sees which and who stands in for whom', () => {

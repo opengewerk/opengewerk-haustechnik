@@ -20,7 +20,8 @@ import { evidenceOriginLabel, evidenceResultLabel } from './evidence.js'
 import { meterUnitSymbol } from './meter.js'
 import { meterReadingSourceLabel } from './meter-reading.js'
 import { numberRangeLabel } from './number-range.js'
-import { planRhythmLabel } from './round-plan.js'
+import { planRhythmLabel, weekdayLabel } from './round-plan.js'
+import { templateKeyPrefix } from './round-template.js'
 import { signatureRoleLabel, workOrderDecisionLabel } from './signature.js'
 
 import { rightLabel, shippedRoles } from './rights.js'
@@ -564,6 +565,7 @@ export const auditVocabulary: AuditVocabulary = {
     activity_id: 'activities',
     found_in_activity_id: 'activities',
     found_in_evidence_id: 'evidence',
+    found_in_answer_id: 'activity_answers',
     remedy_work_order_id: 'work_orders',
     origin_defect_id: 'defects',
     defect_id: 'defects',
@@ -572,6 +574,19 @@ export const auditVocabulary: AuditVocabulary = {
     replaces_evidence_id: 'evidence',
     template_id: 'round_templates',
     round_plan_id: 'round_plans',
+    // The document that bears an interval of the operator's own, and the
+    // version of it that was read (#259).
+    interval_document_id: 'attachments',
+    interval_document_version_id: 'attachment_versions',
+    // What a deadline of this application hangs on beside the above.
+    task_id: 'tasks',
+    meter_property_id: 'properties',
+  },
+  // The form of a round is its template, named by a key that begins with a
+  // word and ends with the id of the template; the form of an inspection is a
+  // key of the catalogue, which its words name (#259).
+  prefixedReferences: {
+    form_key: { prefix: templateKeyPrefix, table: 'round_templates' },
   },
   // What an asset was found to be distinct from: several assets in one
   // field, each read by its name (#171).
@@ -581,6 +596,7 @@ export const auditVocabulary: AuditVocabulary = {
     'absent_user_id',
     'responsible_user_id',
     'performer_user_id',
+    'assignee_user_id',
     'performed_by',
     'written_by',
     'signed_by',
@@ -660,6 +676,11 @@ export const auditVocabulary: AuditVocabulary = {
     duties: ['asset_id', 'room_id', 'building_id', 'property_id'],
     duty_dismissals: ['asset_id'],
   },
+  // What a deadline came from, the foundation holds as a bare id, whatever
+  // sort of thing it is. Every deadline of this application names it in a
+  // column of its own as well, the duty, the defect, the plan, the task or
+  // the property, and that one reads as a name (#259).
+  quietFields: ['source_id'],
   reasons: {},
   rights: rightLabel,
   roles: Object.fromEntries(shippedRoles.map((role) => [role.key, role.label])),
@@ -721,7 +742,8 @@ export const auditValues: Readonly<
  */
 export const auditValueWords = {
   values: auditValues,
-  lists: { kinds: buildingKindLabel },
+  // The days a plan walks its round on, which the log holds as `{1,3}`.
+  lists: { kinds: buildingKindLabel, weekdays: weekdayLabel },
 } as const
 
 /**

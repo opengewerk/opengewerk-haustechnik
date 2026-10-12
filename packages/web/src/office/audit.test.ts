@@ -105,6 +105,31 @@ describe('the words of the change log in the office', () => {
       )
     })
 
+    // The form of a round is its template; the form of an inspection is a
+    // key of the catalogue (#259).
+    it('read the form of a round as its template, beside the forms of the catalogue', () => {
+      const template = '0199aaaa-0000-7000-8000-000000000001'
+      const withTemplate = {
+        ...page,
+        titles: {
+          ...page.titles,
+          [template]: {
+            table: 'round_templates',
+            field: 'title',
+            title: 'Technikzentrale Schulhaus',
+            kind: null,
+          },
+        },
+      }
+
+      expect(words.auditValue('activities', 'form_key', `template-${template}`, withTemplate)).toBe(
+        'Technikzentrale Schulhaus',
+      )
+      expect(
+        words.auditValue('activities', 'form_key', 'probe.interim_protocol', withTemplate),
+      ).toBe('Protokoll der Zwischenprüfung')
+    })
+
     it('write every other key of the catalogue as what it is called', () => {
       expect(words.auditValue('assets', 'kind', 'probe.pump', page)).toBe('Druckerhöhungsanlage')
       expect(words.auditValue('asset_kind_names', 'kind', 'probe.pump', page)).toBe(
@@ -160,6 +185,15 @@ describe('the words of the change log in the office', () => {
         'probe.elevator_main_test',
       )
     })
+  })
+
+  // The log holds `{1,3}`, and the Leitung reads the days.
+  it('write the days a plan walks its round on by their names (#259)', () => {
+    const words = auditWords(auditScreenWords)
+
+    expect(
+      words.auditValue('round_plans', 'weekdays', '{1,3}', { titles: {}, people: {}, devices: {} }),
+    ).toBe('Montag, Mittwoch')
   })
 
   // The log holds `{school,assembly}`, and the Leitung reads what the form
