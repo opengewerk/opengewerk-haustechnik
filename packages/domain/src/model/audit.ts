@@ -12,7 +12,7 @@ import {
 } from './activity.js'
 import { lifecycleStateLabel } from './asset.js'
 import { buildingKindLabel } from './location.js'
-import { countingLabel, dutyTaskLabel } from './catalogue.js'
+import { type Catalogue, type CatalogueEntry, countingLabel, dutyTaskLabel } from './catalogue.js'
 import { defectStatusLabel } from './defect.js'
 import { documentKindLabel } from './document.js'
 import { dutyBasisLabel, dutyPerformerLabel } from './duty-record.js'
@@ -712,3 +712,87 @@ export const auditValueWords = {
   values: auditValues,
   lists: { kinds: buildingKindLabel },
 } as const
+
+/**
+ * What each key is called, in the newest version the catalogue holds of it.
+ * The log holds a key and no version beside it, and a name read today is the
+ * name of today.
+ */
+function namesByKey<Definition>(
+  entries: readonly CatalogueEntry<Definition>[],
+  name: (definition: Definition) => string,
+): Readonly<Record<string, string>> {
+  const newest = new Map<string, CatalogueEntry<Definition>>()
+
+  for (const entry of entries) {
+    const held = newest.get(entry.key)
+
+    if (held === undefined || entry.version > held.version) {
+      newest.set(entry.key, entry)
+    }
+  }
+
+  return Object.fromEntries([...newest].map(([key, entry]) => [key, name(entry.definition)]))
+}
+
+/**
+ * What the change log says about the values of this application with a
+ * catalogue at hand (#245): the words above, and the keys of the catalogue
+ * by what they are called. The log holds `probe.elevator_main_test`, and
+ * the Leitung reads "Hauptprüfung der Aufzugsanlage": as the name of a duty
+ * from the catalogue and of a dismissed proposal, which have no name of
+ * their own, and wherever a field holds such a key, the kind of an asset,
+ * the form of an activity, the class of a defect and the template a round
+ * was taken from.
+ *
+ * A key the catalogue at hand does not hold has no word here and stays as it
+ * is written: a key says more than a record without a name. Without a
+ * catalogue, on a device that has not fetched one yet, these are the words
+ * above.
+ */
+export function auditValueWordsWith(catalogue: Catalogue | null): {
+  readonly values: typeof auditValues
+  readonly lists: (typeof auditValueWords)['lists']
+} {
+  if (catalogue === null) {
+    return auditValueWords
+  }
+
+  const packages = catalogue.bundle.packages
+  const assetKinds = namesByKey(
+    packages.flatMap((entry) => entry.assetKinds),
+    (kind) => kind.label,
+  )
+  const dutyKinds = namesByKey(
+    packages.flatMap((entry) => entry.dutyKinds),
+    (kind) => kind.label,
+  )
+  const forms = namesByKey(
+    packages.flatMap((entry) => entry.forms),
+    (form) => form.title,
+  )
+  const roundTemplates = namesByKey(
+    packages.flatMap((entry) => entry.roundTemplates),
+    (form) => form.title,
+  )
+  const defectClasses = Object.fromEntries(
+    packages.flatMap((entry) =>
+      entry.defectClasses.map(({ defectClass }) => [defectClass.key, defectClass.label]),
+    ),
+  )
+
+  return {
+    ...auditValueWords,
+    values: {
+      ...auditValues,
+      activities: { ...auditValues['activities'], form_key: forms },
+      asset_kind_names: { kind: assetKinds },
+      assets: { ...auditValues['assets'], kind: assetKinds },
+      defect_class_terms: { defect_class: defectClasses },
+      defects: { ...auditValues['defects'], defect_class: defectClasses },
+      duties: { ...auditValues['duties'], kind: dutyKinds },
+      duty_dismissals: { kind: dutyKinds },
+      round_templates: { source_key: roundTemplates },
+    },
+  }
+}

@@ -1,8 +1,9 @@
-import { auditVocabulary } from '@opengewerk/haustechnik-domain'
+import { auditValues, auditVocabulary, catalogueOf } from '@opengewerk/haustechnik-domain'
 import { auditWords } from '@opengewerk/platform-web/office'
 import { describe, expect, it } from 'vitest'
 
-import { auditScreenWords } from './audit.js'
+import { testCatalogue } from '../app/test-catalogue.js'
+import { auditScreenWords, auditScreenWordsWith } from './audit.js'
 
 /**
  * What the change log says in the office beyond the vocabulary the server is
@@ -36,6 +37,89 @@ describe('the words of the change log in the office', () => {
       ['nr-1', 'nr-2', 'nr-3'].map((id) => words.recordTitle('number_ranges', id, page)),
     ).toEqual(['Anlagen', 'Aufträge', 'Nachweise'])
     expect(words.auditValue('number_ranges', 'key', 'asset', page)).toBe('Anlagen')
+  })
+
+  describe('with the catalogue of the device at hand (#245)', () => {
+    const words = auditWords(auditScreenWordsWith(catalogueOf(testCatalogue)))
+    const page = {
+      titles: {
+        'd-1': { table: 'duties', field: 'kind', title: 'probe.elevator_main_test', kind: null },
+        'd-2': { table: 'duties', field: 'label', title: 'Dachrinnen reinigen', kind: null },
+        'd-3': { table: 'duties', field: 'kind', title: 'probe.long_gone', kind: null },
+        'x-1': {
+          table: 'duty_dismissals',
+          field: 'kind',
+          title: 'probe.interim_check',
+          kind: null,
+        },
+        't-1': {
+          table: 'defect_class_terms',
+          field: 'defect_class',
+          title: 'probe.severe',
+          kind: null,
+        },
+      },
+      people: {},
+      devices: {},
+    }
+
+    it('name a duty from the catalogue and a dismissed proposal by the kind, not by its key', () => {
+      expect(words.recordTitle('duties', 'd-1', page)).toBe('Hauptprüfung der Aufzugsanlage')
+      expect(words.recordTitle('duty_dismissals', 'x-1', page)).toBe('Zwischenprüfung')
+      // A duty of the operator's own keeps the name it was given.
+      expect(words.recordTitle('duties', 'd-2', page)).toBe('Dachrinnen reinigen')
+      // Wherever another record points at the duty, it reads the same.
+      expect(words.auditValue('evidence', 'duty_id', 'd-1', page)).toBe(
+        'Hauptprüfung der Aufzugsanlage',
+      )
+      expect(words.auditValue('duties', 'kind', 'probe.interim_check', page)).toBe(
+        'Zwischenprüfung',
+      )
+    })
+
+    it('write every other key of the catalogue as what it is called', () => {
+      expect(words.auditValue('assets', 'kind', 'probe.pump', page)).toBe('Druckerhöhungsanlage')
+      expect(words.auditValue('asset_kind_names', 'kind', 'probe.pump', page)).toBe(
+        'Druckerhöhungsanlage',
+      )
+      expect(words.auditValue('activities', 'form_key', 'probe.interim_protocol', page)).toBe(
+        'Protokoll der Zwischenprüfung',
+      )
+      expect(words.auditValue('round_templates', 'source_key', 'probe.weekly_round', page)).toBe(
+        'Rundgang durch die Technikzentrale',
+      )
+      expect(words.auditValue('defects', 'defect_class', 'probe.severe', page)).toBe('schwer')
+      expect(words.recordTitle('defect_class_terms', 't-1', page)).toBe('schwer')
+    })
+
+    // The log holds a key and no version beside it.
+    it('call a key by its newest version', () => {
+      expect(words.auditValue('assets', 'kind', 'probe.elevator', page)).toBe('Aufzug')
+    })
+
+    it('leave a key standing that the catalogue does not hold', () => {
+      expect(words.recordTitle('duties', 'd-3', page)).toBe('probe.long_gone')
+      expect(words.auditValue('assets', 'kind', 'probe.long_gone', page)).toBe('probe.long_gone')
+    })
+
+    it('keep the words of the lists on the same tables', () => {
+      const values = auditScreenWordsWith(catalogueOf(testCatalogue)).values
+
+      for (const table of ['activities', 'assets', 'defects', 'duties'] as const) {
+        expect(values?.[table]).toMatchObject(auditValues[table] ?? {})
+      }
+
+      expect(words.auditValue('duties', 'basis', 'manufacturer', page)).toBe(
+        'Vorgabe des Herstellers',
+      )
+    })
+
+    it('are the words without it on a device that holds no catalogue yet', () => {
+      expect(auditScreenWordsWith(null)).toBe(auditScreenWords)
+      expect(auditWords(auditScreenWords).recordTitle('duties', 'd-1', page)).toBe(
+        'probe.elevator_main_test',
+      )
+    })
   })
 
   // The log holds `{school,assembly}`, and the Leitung reads what the form

@@ -1738,3 +1738,12 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   galt für die Akte einer Anlage, die Seite eines Nachweises, den Bericht, die Seite eines Raums
   und das Anlagenverzeichnis; Mangel, Auftrag und Zeitachse legten ihr Wiederholen schon selbst
   fest. Ein Test stellt den Reiter im Hintergrund an der Seite der Pflicht nach
+- Im Änderungsprotokoll heißt eine Pflicht aus dem Katalog wie auf ihrer Seite: mit der
+  Bezeichnung ihrer Pflichtart (#245). Dort stand der Schlüssel, etwa
+  `elektro.installation_test_dguv_v3`, weil eine solche Pflicht keine eigene Bezeichnung hat und
+  das Protokoll nur den Schlüssel festhält. Das gilt in der Liste, hinter "Änderungen" auf der
+  Seite der Pflicht, für einen verworfenen Vorschlag und im Protokoll als Tabelle. Auch die
+  übrigen Schlüssel des Katalogs stehen jetzt mit ihrer Bezeichnung da: die Anlagenart, das
+  Formular eines Vorgangs, die Klasse eines Mangels und die Vorlage, aus der ein Rundgang
+  übernommen wurde. Die Bezeichnung kommt aus dem Katalog, auf dem Server aus seinem, im Büro
+  aus dem des Geräts. Kennt der Katalog einen Schlüssel nicht mehr, bleibt der Schlüssel stehen
