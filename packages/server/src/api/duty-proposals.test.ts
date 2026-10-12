@@ -27,6 +27,7 @@ import {
 import { dayInGermany } from '../today.js'
 import { ApiModule } from './api.module.js'
 import { as, testIdentities } from './test-identity.js'
+import { tableReaders } from './test-tables.js'
 
 /**
  * The proposals of the catalogue (#102, section 4.3 of the concept, ADR 0002,
@@ -128,6 +129,8 @@ function http() {
 function by(userId: keyof typeof people & string, tenantId: TenantId = small): string {
   return as(tenantId, userId, people[userId] as RoleKey)
 }
+
+const { tableOf } = tableReaders(http)
 
 let numbered = 0
 
@@ -435,6 +438,22 @@ describe('the proposals of the catalogue', () => {
       ['insert', 'u-duties'],
     ])
     expect(log.changes[0]?.fields.map((moved) => moved.field)).toContain('deleted_at')
+
+    // As a table the log names the duty by its kind, which the catalogue of
+    // the server names, and not by the key of the kind (#245): the log is the
+    // one place a removed duty still stands in.
+    const table = await tableOf(
+      '/audit/table',
+      { table: 'duties', record: duty },
+      by('u-lead'),
+      'csv',
+    )
+    const rows = table.slice(1)
+
+    expect(rows.length).toBeGreaterThan(0)
+    expect(new Set(rows.map((row) => row[1]))).toEqual(new Set(['Hauptprüfung der Aufzugsanlage']))
+    expect(rows.find((row) => row[4] === 'Pflichtart')?.[6]).toBe('Hauptprüfung der Aufzugsanlage')
+    expect(table.flat()).not.toContain(mainTest)
 
     // And it is confirmed anew like any proposal.
     await confirm().expect(201)

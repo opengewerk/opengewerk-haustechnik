@@ -1,4 +1,9 @@
-import { auditValueWords, auditVocabulary } from '@opengewerk/haustechnik-domain'
+import {
+  auditValueWords,
+  auditValueWordsWith,
+  auditVocabulary,
+  type Catalogue,
+} from '@opengewerk/haustechnik-domain'
 import type { AuditScreenWords } from '@opengewerk/platform-web/office'
 
 import { activityPlaces } from './activity-addresses.js'
@@ -77,4 +82,18 @@ export const auditScreenWords: AuditScreenWords = {
     defects: 'mit seinen Fotos',
     round_templates: 'mit ihren Fassungen',
   },
+}
+
+/**
+ * The same words with the catalogue of this device at hand (#245): a duty
+ * from the catalogue, which has no name of its own, is named by its kind,
+ * and a field that holds a key of the catalogue says what the key is called,
+ * as the server writes it into the log as a table. Without a catalogue, on a
+ * device that has not fetched one yet, the words above, and the keys stay
+ * until it has.
+ */
+export function auditScreenWordsWith(catalogue: Catalogue | null): AuditScreenWords {
+  return catalogue === null
+    ? auditScreenWords
+    : { ...auditScreenWords, ...auditValueWordsWith(catalogue) }
 }

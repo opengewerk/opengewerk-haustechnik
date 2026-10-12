@@ -4,7 +4,7 @@ import {
   InstanceSettingsScreen,
   InstanceTenantsScreen,
 } from '@opengewerk/platform-web/instance'
-import { AuditLogScreen, SettingsScreen, SyncScreen } from '@opengewerk/platform-web/office'
+import { SettingsScreen, SyncScreen } from '@opengewerk/platform-web/office'
 import { createRootRoute, createRoute, createRouter, Outlet } from '@tanstack/react-router'
 
 import { dutyPlaces } from './duty-addresses.js'
@@ -20,6 +20,7 @@ import { AssetRegisterScreen } from './screens/assets.js'
 import { EditBuildingScreen, NewBuildingScreen } from './screens/building-form.js'
 import { BuildingScreen } from './screens/buildings.js'
 import { CatalogueScreen } from './screens/catalogue.js'
+import { ChangeLogScreen } from './screens/change-log.js'
 import { DeadlineListScreen, DeadlineSettingsScreen } from './screens/deadlines.js'
 import { DefectClassSettingsScreen } from './screens/defect-classes.js'
 import { DefectListScreen, DefectScreen, NewDefectScreen } from './screens/defects.js'
@@ -480,7 +481,7 @@ export function officeRoutes() {
     createRoute({
       getParentRoute: () => office,
       path: '/einstellungen/protokoll',
-      component: AuditLogScreen,
+      component: ChangeLogScreen,
     }),
   ]
 
