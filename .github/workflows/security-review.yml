@@ -23,7 +23,9 @@ permissions: {}
 jobs:
   security-review:
     name: Security-Review
-    uses: opengewerk/.github/.github/workflows/security-review.yml@450efc1cfc82dc559043db1fb667d12eac2f0446 # main
+    uses: opengewerk/.github/.github/workflows/security-review.yml@17ec2f3b9db19af33c039692494d2c8b52179e9b # security-review-datenbank
+    with:
+      database: postgres://haustechnik:haustechnik@127.0.0.1:5434/haustechnik_test
     permissions:
       contents: read
       id-token: write
