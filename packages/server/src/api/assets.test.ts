@@ -1017,7 +1017,8 @@ describe('a possible duplicate', () => {
     await ask({ serialNumber: 'dup -750- 22' })
       .expect(200)
       .expect((answer) => {
-        expect(answer.body).toEqual([
+        expect(answer.body.elsewhere).toEqual([])
+        expect(answer.body.assets).toEqual([
           {
             id: there.id,
             number: there['number'],
@@ -1038,7 +1039,7 @@ describe('a possible duplicate', () => {
       .expect(200)
       .expect((answer) => {
         expect(
-          answer.body.map((found: { id: string; same: string[] }) => [found.id, found.same]),
+          answer.body.assets.map((found: { id: string; same: string[] }) => [found.id, found.same]),
         ).toEqual([
           [there.id, ['serialNumber', 'mark']],
           [marked.id, ['mark']],
@@ -1047,7 +1048,7 @@ describe('a possible duplicate', () => {
     // A serial number is not held against a mark.
     await ask({ serialNumber: 'DUP-A1' })
       .expect(200)
-      .expect((answer) => expect(answer.body).toEqual([]))
+      .expect((answer) => expect(answer.body).toEqual({ assets: [], elsewhere: [] }))
   })
 
   it('is never the asset that is being changed, nor one that was removed', async () => {
@@ -1056,7 +1057,7 @@ describe('a possible duplicate', () => {
     const asset = await assetIn(place.building, { ...elevator, serialNumber })
     const twin = await assetIn(place.building, { ...elevator, name: 'Zwilling', serialNumber })
     const found = async (query: object): Promise<string[]> =>
-      (await ask(query).expect(200)).body.map((each: { id: string }) => each.id)
+      (await ask(query).expect(200)).body.assets.map((each: { id: string }) => each.id)
 
     expect(await found({ serialNumber })).toEqual([asset.id, twin.id])
     expect(await found({ serialNumber, except: asset.id })).toEqual([twin.id])
@@ -1110,11 +1111,252 @@ describe('a possible duplicate', () => {
       large,
     )
     const found = async (header: string): Promise<string[]> =>
-      (await ask({ serialNumber }, header).expect(200)).body.map((each: { id: string }) => each.id)
+      (await ask({ serialNumber }, header).expect(200)).body.assets.map(
+        (each: { id: string }) => each.id,
+      )
 
     expect(await found(by('u-duties', large))).toEqual([northern.id, southern.id])
     expect(await found(by('u-tech', large))).toEqual([northern.id])
     expect(await found(by('u-duties', small))).toEqual([])
+  })
+
+  it('is found beyond the areas of whoever asks, and not shown (#171)', async () => {
+    const serialNumber = 'DUP-BEYOND-1'
+    const mark = 'DUP-B 7'
+    const inNorth = await placeIn(large, { areaId: north, name: 'Jenseits Nord' })
+    const inSouth = await placeIn(large, { areaId: south, name: 'Jenseits Süd' })
+    const southern = await assetIn(
+      inSouth.building,
+      { ...elevator, name: 'Aufzug im Süden', serialNumber, mark },
+      'u-duties',
+      large,
+    )
+    const answered = async (query: object, header: string) =>
+      (await ask(query, header).expect(200)).body as {
+        assets: { id: string }[]
+        elsewhere: string[]
+      }
+    const technician = by('u-tech', large)
+
+    // The technician works in the north. Of the asset in the south the answer
+    // says the field it shares, which was typed, and nothing else.
+    expect(await answered({ serialNumber: 'dup-beyond-1' }, technician)).toEqual({
+      assets: [],
+      elsewhere: ['serialNumber'],
+    })
+    expect(await answered({ mark: 'dup-b7' }, technician)).toEqual({
+      assets: [],
+      elsewhere: ['mark'],
+    })
+    expect(await answered({ serialNumber, mark }, technician)).toEqual({
+      assets: [],
+      elsewhere: ['serialNumber', 'mark'],
+    })
+    // A serial number is not held against a mark beyond the areas either.
+    expect(await answered({ serialNumber: mark }, technician)).toEqual({
+      assets: [],
+      elsewhere: [],
+    })
+
+    // Past the areas looks only whoever may enter assets. Somebody who reads
+    // them and no more is told nothing of an asset they do not see.
+    const reader = JSON.stringify({ ...JSON.parse(technician), rights: ['asset.read'] })
+
+    expect(await answered({ serialNumber, mark }, reader)).toEqual({ assets: [], elsewhere: [] })
+
+    // One the person sees is named, and the one beyond is still only said to be there.
+    const northern = await assetIn(inNorth.building, { ...elevator, serialNumber }, 'u-tech', large)
+    const both = await answered({ serialNumber }, technician)
+
+    expect(both.assets.map((each) => each.id)).toEqual([northern.id])
+    expect(both.elsewhere).toEqual(['serialNumber'])
+    expect(JSON.stringify(both)).not.toContain(southern.id)
+    expect(JSON.stringify(both)).not.toContain('Aufzug im Süden')
+    // The reader is named the one in their area as well, and no more than that.
+    expect(await answered({ serialNumber }, reader)).toEqual({ assets: both.assets, elsewhere: [] })
+
+    // Whoever sees every area is named both, and nothing is beyond.
+    const whole = await answered({ serialNumber }, by('u-duties', large))
+
+    expect(whole.assets.map((each) => each.id).sort()).toEqual([northern.id, southern.id].sort())
+    expect(whole.elsewhere).toEqual([])
+
+    // Another tenant is told nothing, and nobody of one that was removed.
+    expect(await answered({ serialNumber }, by('u-duties', small))).toEqual({
+      assets: [],
+      elsewhere: [],
+    })
+    await http()
+      .delete(`/assets/${southern.id}`)
+      .set(testIdentityHeader, by('u-duties', large))
+      .expect(200)
+
+    expect((await answered({ serialNumber }, technician)).elsewhere).toEqual([])
+  })
+})
+
+describe('what an asset was held against (#171)', () => {
+  /**
+   * "Trotzdem anlegen" in the office keeps the assets that were shown, as an
+   * asset taken stock of on a device brings them (section 4.2 of the concept),
+   * and the file names them by number and name.
+   */
+  const sentence = 'Wovon eine Anlage verschieden ist, steht als Liste von höchstens 20 Anlagen.'
+  const changing = (id: string, body: object) =>
+    http().patch(`/assets/${id}`).set(testIdentityHeader, by('u-tech')).send(body)
+
+  it('is kept as whoever enters the asset says, for an asset and a component, and taken by no change', async () => {
+    const place = await placeIn()
+    const serialNumber = 'HELD-1'
+    const first = await assetIn(place.building, { ...elevator, serialNumber })
+    const second = await assetIn(place.building, {
+      ...elevator,
+      name: 'Zweiter',
+      serialNumber,
+      distinctFrom: [first.id],
+    })
+
+    // Said by nobody, it is nothing.
+    expect(first['distinctFrom']).toEqual([])
+    expect(second['distinctFrom']).toEqual([first.id])
+
+    const part = await componentOf(second.id, {
+      ...elevator,
+      name: 'Antrieb',
+      serialNumber,
+      distinctFrom: [first.id, second.id],
+    })
+
+    expect(part['distinctFrom']).toEqual([first.id, second.id])
+
+    // A change to an asset that is there does not take it, alone or beside a field.
+    await changing(second.id, { distinctFrom: [] }).expect(400)
+
+    const changed = (
+      await changing(second.id, { name: 'Zweiter Aufzug', distinctFrom: [] }).expect(200)
+    ).body
+
+    expect(changed.name).toBe('Zweiter Aufzug')
+    expect(changed.distinctFrom).toEqual([first.id])
+  })
+
+  it('is a list of ids, each once, or the asset is not made', async () => {
+    const place = await placeIn()
+    const first = await assetIn(place.building, elevator)
+    const refused = async (distinctFrom: unknown): Promise<string> =>
+      (
+        await http()
+          .post(`/buildings/${place.building}/assets`)
+          .set(testIdentityHeader, by('u-tech'))
+          .send({ ...elevator, name: 'Abgelehnt', distinctFrom })
+          .expect(400)
+      ).body.message
+
+    expect(await refused(first.id)).toBe(sentence)
+    expect(await refused([first['number']])).toBe(sentence)
+    expect(await refused([first.id, first.id])).toBe(sentence)
+
+    const names = (
+      await http()
+        .get(`/buildings/${place.building}/assets`)
+        .set(testIdentityHeader, by('u-tech'))
+        .expect(200)
+    ).body.map((each: { name: string }) => each.name)
+
+    expect(names).not.toContain('Abgelehnt')
+  })
+
+  it('is named in the file by number and name, as far as whoever reads sees it', async () => {
+    const serialNumber = 'HELD-AREA-1'
+    const inNorth = await placeIn(large, { areaId: north, name: 'Gehalten Nord' })
+    const inSouth = await placeIn(large, { areaId: south, name: 'Gehalten Süd' })
+    const northern = await assetIn(
+      inNorth.building,
+      { ...elevator, name: 'Aufzug Nord', serialNumber },
+      'u-tech',
+      large,
+    )
+    const southern = await assetIn(
+      inSouth.building,
+      { ...elevator, name: 'Aufzug Süd', serialNumber },
+      'u-duties',
+      large,
+    )
+    // Whoever sees every area was shown both and passed them.
+    const made = await assetIn(
+      inNorth.building,
+      { ...elevator, name: 'Dritter', serialNumber, distinctFrom: [southern.id, northern.id] },
+      'u-duties',
+      large,
+    )
+    const fileFor = async (id: string, header: string) =>
+      (await http().get(`/assets/${id}`).set(testIdentityHeader, header).expect(200)).body
+    const inTheNorth = { id: northern.id, number: northern['number'], name: 'Aufzug Nord' }
+
+    // In the order they were passed.
+    const whole = await fileFor(made.id, by('u-duties', large))
+
+    expect(whole.distinctFromAssets).toEqual([
+      { id: southern.id, number: southern['number'], name: 'Aufzug Süd', removed: false },
+      { ...inTheNorth, removed: false },
+    ])
+    expect(whole.distinctFromElsewhere).toBe(0)
+
+    // The technician works in the north: the one in the south is counted and not named.
+    const narrow = await fileFor(made.id, by('u-tech', large))
+
+    expect(narrow.distinctFromAssets).toEqual([{ ...inTheNorth, removed: false }])
+    expect(narrow.distinctFromElsewhere).toBe(1)
+    expect(JSON.stringify(narrow)).not.toContain('Aufzug Süd')
+    expect(JSON.stringify(narrow)).not.toContain(String(southern['number']))
+
+    // One that was removed since is named still, and said to be gone.
+    await http()
+      .delete(`/assets/${northern.id}`)
+      .set(testIdentityHeader, by('u-duties', large))
+      .expect(200)
+
+    expect((await fileFor(made.id, by('u-tech', large))).distinctFromAssets).toEqual([
+      { ...inTheNorth, removed: true },
+    ])
+
+    // An asset that was held against nothing says so.
+    const plain = await fileFor(southern.id, by('u-duties', large))
+
+    expect([plain.distinctFromAssets, plain.distinctFromElsewhere]).toEqual([[], 0])
+  })
+
+  it('is read in the change log by the names of the assets', async () => {
+    const place = await placeIn()
+    const serialNumber = 'HELD-LOG-1'
+    const first = await assetIn(place.building, {
+      ...elevator,
+      name: 'Aufzug Altbau',
+      serialNumber,
+    })
+    const second = await assetIn(place.building, {
+      ...elevator,
+      name: 'Aufzug Neubau',
+      serialNumber,
+      distinctFrom: [first.id],
+    })
+    const page = (
+      await http()
+        .get('/audit/changes')
+        .query({ table: 'assets', record: second.id })
+        .set(testIdentityHeader, by('u-lead'))
+        .expect(200)
+    ).body as {
+      changes: { fields: { field: string; after: string | null }[] }[]
+      titles: Record<string, { table: string; title: string | null }>
+    }
+    const held = page.changes
+      .flatMap((change) => change.fields)
+      .find((field) => field.field === 'distinct_from')
+
+    expect(JSON.parse(held?.after ?? 'null')).toEqual([first.id])
+    // Nothing else on the page points at the first asset: its name came with the list.
+    expect(page.titles[first.id]).toMatchObject({ table: 'assets', title: 'Aufzug Altbau' })
   })
 })
 

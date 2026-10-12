@@ -174,6 +174,23 @@ export interface AssetDetails extends Asset, AssetStanding {
   readonly components: readonly Pick<Asset, 'id' | 'number' | 'name' | 'kind'>[]
   /** The asset it is a component of. */
   readonly parent: Pick<Asset, 'id' | 'number' | 'name'> | null
+  /**
+   * The assets it was found to be another than when it was entered
+   * (`distinctFrom`), by number and name and in that order, as far as whoever
+   * reads sees them.
+   */
+  readonly distinctFromAssets: readonly DistinctAsset[]
+  /** How many more of them there are that whoever reads does not see. */
+  readonly distinctFromElsewhere: number
+}
+
+/**
+ * An asset another one was found to be distinct from, as a file names it. One
+ * that was removed since is still named: what was said about it then stays
+ * true, and it has no file to open any more.
+ */
+export interface DistinctAsset extends Pick<Asset, 'id' | 'number' | 'name'> {
+  readonly removed: boolean
 }
 
 /**

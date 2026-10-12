@@ -120,6 +120,8 @@ Was dabei gilt:
   oder einer früheren Zeile, nennt die Vorschau sie unter "Gibt es vielleicht schon". Wer
   importiert, entscheidet für jede: nicht anlegen oder trotzdem anlegen. Ohne diese Entscheidung
   wird nichts übernommen. Verglichen wird ohne Rücksicht auf Leerzeichen und Großschreibung.
+  Eine Anlage, die trotzdem angelegt wird, hält fest, von welchen vorhandenen Anlagen sie dabei
+  für verschieden befunden wurde; ihre Akte nennt sie unter "Keine Dublette von".
 - **Was nur eine Anlagenart hat**, etwa das Löschmittel eines Feuerlöschers oder eine
   Nennleistung, liest der Import nicht. Es wird danach an der Anlage eingetragen.
 - **Die Nummer der Anlage** (AN-00031) vergibt die Anwendung aus dem Nummernkreis des Betreibers,

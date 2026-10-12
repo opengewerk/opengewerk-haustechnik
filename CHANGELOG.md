@@ -1169,6 +1169,20 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   gelassen wurde (Migration `0041_duty_updates`); die Verfahrensbeschreibung nennt die
   Entscheidung in Abschnitt 3.4 (B225, B226). Bisher blieb eine bestätigte Pflicht bei ihrer
   Fassung, ohne dass jemand erfuhr, dass der Katalog inzwischen etwas anderes sagt
+- Dubletten im Büro (#171): "Trotzdem anlegen" hält jetzt auch im Büro fest, welche Anlagen dabei
+  gezeigt wurden (`assets.distinct_from`), im Formular einer Anlage und einer Komponente, auf der
+  Karte einer Dublette aus dem Abgleich und im Import für die vorhandenen Anlagen, auf die eine
+  Zeile zeigt. Die Akte nennt sie unter "Keine Dublette von" mit Nummer und Namen, eine inzwischen
+  entfernte bleibt genannt, eine außerhalb der eigenen Bereiche wird gezählt; das
+  Änderungsprotokoll schreibt die Namen statt der Kennungen (`opengewerk/opengewerk#603`, Submodul
+  angehoben). Das Formular fragt beim Anlegen wie der Abgleich auch über die Grenze der Bereiche
+  und sagt dann nur, dass es eine Anlage außerhalb der eigenen Bereiche gibt, ohne sie zu zeigen
+  (Entscheidung vom 11.10.2026, Planungskonzept v0.26, Abschnitt 4.2, Nachträge in ADR 0002 und
+  0003). `GET /assets/duplicates` antwortet dafür mit `assets` und `elsewhere` statt mit einer
+  Liste und sieht über die Grenze nur für wen Anlagen aufnehmen darf. Das Feld heißt im Protokoll
+  und im Abgleich jetzt "Keine Dublette von". Bisher schrieb
+  nur die Bestandsaufnahme vor Ort die Entscheidung, und wer im Büro den Bestand zweier Bereiche
+  erfasste, legte dieselbe Anlage doppelt an, ohne es zu erfahren
 
 ### Geändert
 

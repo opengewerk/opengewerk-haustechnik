@@ -543,6 +543,8 @@ describe('the file of an asset', () => {
       ],
       components: [{ id: 'a-drive', number: 'AN-00013', name: 'Antrieb', kind: 'probe.pump' }],
       parent: null,
+      distinctFromAssets: [],
+      distinctFromElsewhere: 0,
       ...further,
     } as unknown as AssetDetails
   }
@@ -641,6 +643,45 @@ describe('the file of an asset', () => {
     expect(facts()['Gehört zu']).toBe('Förderanlage')
     expect(facts()['Versorgt']).toBe('nur den eigenen Standort')
     expect(screen.getByText('Diese Anlage hat keine Komponenten.')).toBeTruthy()
+    // Held against nothing when it was entered, the file says nothing about it.
+    expect(facts()['Keine Dublette von']).toBeUndefined()
+  })
+
+  it('says which assets it was found to be another than, by number and name (#171)', async () => {
+    await mount(
+      at,
+      answers(
+        file({
+          distinctFromAssets: [
+            { id: 'a-twin', number: 'AN-00057', name: 'Aufzug Sporthalle', removed: false },
+            { id: 'a-gone', number: 'AN-00031', name: 'Aufzug Altbau', removed: true },
+          ],
+          distinctFromElsewhere: 1,
+        }),
+      ),
+    )
+    await screen.findByRole('heading', { level: 1, name: 'Aufzug Schulhaus' })
+
+    expect(facts()['Keine Dublette von']?.replaceAll(/\s+/g, ' ')).toBe(
+      'AN-00057 Aufzug Sporthalle' +
+        'AN-00031 Aufzug Altbau (entfernt)' +
+        'eine weitere Anlage außerhalb Ihrer Bereiche' +
+        'Beim Anlegen als mögliche Dublette gezeigt.',
+    )
+    // The one that is there leads to its file, the one that was removed has none.
+    expect(
+      screen.getByRole('link', { name: 'AN-00057 Aufzug Sporthalle' }).getAttribute('href'),
+    ).toBe('/anlagen/a-twin')
+    expect(screen.queryByRole('link', { name: /Aufzug Altbau/ })).toBeNull()
+  })
+
+  it('counts what it was held against beyond the areas of whoever reads, and names none of it', async () => {
+    await mount(at, answers(file({ distinctFromElsewhere: 2 })))
+    await screen.findByRole('heading', { level: 1, name: 'Aufzug Schulhaus' })
+
+    expect(facts()['Keine Dublette von']?.replaceAll(/\s+/g, ' ')).toBe(
+      '2 Anlagen außerhalb Ihrer Bereiche' + 'Beim Anlegen als mögliche Dublette gezeigt.',
+    )
   })
 
   it('lists its duties, each with its last evidence, its next appointment and its state', async () => {

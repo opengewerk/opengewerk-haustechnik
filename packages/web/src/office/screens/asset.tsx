@@ -102,6 +102,9 @@ export const assetFileWords = {
     'Die Anlage ist nicht in Betrieb. Ihre Pflichten ruhen, bis sie wieder in Betrieb geht, und verfallen nicht.',
   noLifecycle: 'Noch kein Eintrag. Ohne Eintrag gilt die Anlage als in Betrieb.',
   noComponents: 'Diese Anlage hat keine Komponenten.',
+  distinctFrom: 'Keine Dublette von',
+  removed: '(entfernt)',
+  shownOnEntry: 'Beim Anlegen als mögliche Dublette gezeigt.',
 } as const
 
 /**
@@ -552,7 +555,53 @@ function masterData(asset: AssetDetails, catalogue: Catalogue | null): Fact[] {
       'Gewährleistung bis',
       asset.warrantyEndsOn === null ? null : date(asset.warrantyEndsOn),
     ),
+    ...(asset.distinctFromAssets.length + asset.distinctFromElsewhere > 0
+      ? [{ label: assetFileWords.distinctFrom, value: <DistinctFrom asset={asset} /> }]
+      : []),
   ]
+}
+
+/**
+ * "Keine Dublette von" (#171): the assets this one was held against when it
+ * was entered and found to be another, each by number and name and the way
+ * to its file. One that was removed since has no file to open, and one
+ * beyond the areas of whoever reads is counted and not named.
+ */
+function DistinctFrom({ asset }: { readonly asset: AssetDetails }) {
+  const named = asset.distinctFromAssets
+  const more = asset.distinctFromElsewhere
+  const further = named.length > 0
+
+  return (
+    <ul className="flex flex-col gap-0.5">
+      {named.map((other) => {
+        const title = [other.number, other.name].filter(Boolean).join(' ')
+
+        return (
+          <li key={other.id}>
+            {other.removed ? (
+              <>
+                {title} <span className="text-ink-faint">{assetFileWords.removed}</span>
+              </>
+            ) : (
+              <Link to={officePlaces.asset(other.id)} className={factLink}>
+                {title}
+              </Link>
+            )}
+          </li>
+        )
+      })}
+      {more === 0 ? null : (
+        <li>
+          {more === 1
+            ? `eine ${further ? 'weitere ' : ''}Anlage`
+            : `${String(more)} ${further ? 'weitere ' : ''}Anlagen`}{' '}
+          außerhalb Ihrer Bereiche
+        </li>
+      )}
+      <li className="text-[12px] text-ink-faint">{assetFileWords.shownOnEntry}</li>
+    </ul>
+  )
 }
 
 /** Under the name of a duty: where it comes from and how often it falls due. */

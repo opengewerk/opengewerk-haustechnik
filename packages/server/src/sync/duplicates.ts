@@ -5,7 +5,8 @@ import {
   possibleDuplicates,
 } from '@opengewerk/haustechnik-domain'
 import type { FoundIdentity, SyncCheck } from '@opengewerk/platform-server'
-import { sql } from 'drizzle-orm'
+
+import { duplicateCandidates } from '../database/asset-duplicates.js'
 
 // The possible duplicate of an asset taken stock of on a device (sections 2.7
 // and 4.2 of the concept). The device has asked the assets it holds and shown
@@ -58,21 +59,10 @@ export const unseenDuplicate: Check = async ({ tx, operation, values }) => {
     return null
   }
 
-  const said = (field: (typeof duplicateFields)[number]) =>
-    duplicateKey(candidate[field]) === null ? null : String(candidate[field])
-  const { rows } = await tx.execute<{
-    id: string
-    serial_number: string | null
-    mark: string | null
-  }>(
-    sql`select id, serial_number, mark
-          from asset_duplicate_candidates(${said('serialNumber')}::text, ${said('mark')}::text)`,
-  )
   const passed = new Set(listed(values['distinctFrom']).map(String))
-  const unseen = possibleDuplicates(
-    candidate,
-    rows.map((row) => ({ id: row.id, serialNumber: row.serial_number, mark: row.mark })),
-  ).filter(({ asset }) => !passed.has(asset.id))
+  const unseen = possibleDuplicates(candidate, await duplicateCandidates(tx, candidate)).filter(
+    ({ asset }) => !passed.has(asset.id),
+  )
 
   return unseen.length === 0
     ? null
