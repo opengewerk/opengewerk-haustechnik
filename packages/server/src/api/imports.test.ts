@@ -860,6 +860,20 @@ describe('the acceptance of the import from tables (#100)', () => {
       'Aufzug Altbau Haus A',
       'Aufzug Altbau Haus B',
     ])
+
+    // Each keeps what it was held against (#171): the asset that was there.
+    // The line before it has no id to be named by until it is made.
+    const { rows: held } = await admin.query<{ name: string; distinct_from: string[] }>(
+      `select a.name, array(select o.name from assets o where o.id = any(a.distinct_from)) as distinct_from
+         from assets a where a.tenant_id = $1 order by a.number`,
+      [tenant.id],
+    )
+
+    expect(held.map((asset) => [asset.name, asset.distinct_from])).toEqual([
+      ['Aufzug Altbau', []],
+      ['Aufzug Altbau Haus A', ['Aufzug Altbau']],
+      ['Aufzug Altbau Haus B', ['Aufzug Altbau']],
+    ])
   })
 
   it('acceptance 4, "Wer nur einen Bereich sieht, importiert nicht in einen anderen": places go into no area but theirs, and a property beyond it is not found', async () => {

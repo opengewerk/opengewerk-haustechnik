@@ -557,7 +557,7 @@ export const syncFieldNames: Readonly<Record<string, string>> = {
   values: 'Angaben der Anlagenart',
   meterNumber: 'Zählernummer',
   meterUnit: 'Einheit des Zählers',
-  distinctFrom: 'Für eine andere befunden als',
+  distinctFrom: 'Keine Dublette von',
   state: 'Zustand',
   validFrom: 'Ab',
   // What is said about a duty.

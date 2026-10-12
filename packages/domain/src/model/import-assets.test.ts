@@ -143,6 +143,7 @@ const made = (line: number, other: Readonly<Record<string, unknown>> = {}) => ({
   warrantyEndsOn: null,
   meterNumber: null,
   meterUnit: null,
+  distinctFrom: [],
   ...other,
 })
 
@@ -839,7 +840,8 @@ describe('the answer to a line that may be a duplicate', () => {
     const plan = planOf(rows, { decisions: { 3: 'take' } })
 
     expect(plan.counts).toEqual({ assets: 2, skipped: 0, undecided: 0 })
-    expect(plan.create).toEqual([made(2), kessel])
+    // With what it was held against: the asset that is there (#171).
+    expect(plan.create).toEqual([made(2), { ...kessel, distinctFrom: ['a-1'] }])
     // The line stays named, with what was said about it.
     expect(plan.duplicates.map(({ line, decision }) => [line, decision])).toEqual([[3, 'take']])
   })
@@ -848,7 +850,25 @@ describe('the answer to a line that may be a duplicate', () => {
     const plan = planOf(rows, { decisions: { 2: 'skip', 3: 'take', 9: 'skip' } })
 
     expect(plan.counts).toEqual({ assets: 2, skipped: 0, undecided: 0 })
-    expect(plan.create).toEqual([made(2), kessel])
+    expect(plan.create).toEqual([made(2), { ...kessel, distinctFrom: ['a-1'] }])
+  })
+
+  it('keeps what a line was held against: the assets that are there, and no earlier line (#171)', () => {
+    const plan = planOf(
+      [...rows, { ...hall, name: 'Kessel drei', serialNumber: 'bt-750-22-0193' }],
+      { decisions: { 3: 'take', 4: 'take' } },
+    )
+
+    expect(plan.duplicates.map(({ line, of }) => [line, of.length])).toEqual([
+      [3, 1],
+      [4, 2],
+    ])
+    expect(plan.create.map((asset) => [asset.line, asset.distinctFrom])).toEqual([
+      [2, []],
+      [3, ['a-1']],
+      // Held against the asset that is there and against line 3, which has no id yet.
+      [4, ['a-1']],
+    ])
   })
 
   it('does not take over a line that has a problem, whatever was said about it', () => {

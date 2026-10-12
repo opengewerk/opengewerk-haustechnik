@@ -287,7 +287,8 @@ describe('the card of a possible duplicate', () => {
         method: 'POST',
         path: '/buildings/b-house/assets',
         // As the route takes an asset: its values as an object, its room, and
-        // neither the building of the address nor what it was held against.
+        // what it was held against, the asset this card shows (#171). Not the
+        // building, which is in the address.
         body: {
           kind: 'probe.elevator',
           name: 'Aufzug Lager',
@@ -295,6 +296,7 @@ describe('the card of a possible duplicate', () => {
           yearBuilt: 2024,
           values: { stops: 2 },
           roomId: 'r-store',
+          distinctFrom: ['a-heater'],
         },
       },
     ])
@@ -309,6 +311,46 @@ describe('the card of a possible duplicate', () => {
     expect(sent[0]?.values).toMatchObject({ propertyId: 'p-school', assetId: 'a-made' })
     expect(sent[2]?.values).toEqual({ assetId: 'a-made' })
     expect(server.operations()[2]?.recordId).toBe(fromASheet.id)
+  })
+
+  it('keeps with "Trotzdem anlegen" what the device had shown as well as what the card shows, each once (#171)', async () => {
+    const passed = {
+      ...aboutTheAsset,
+      // Passed on the device when the asset was taken stock of: one asset the
+      // card shows as well, and one the device holds no longer.
+      wanted: { ...aboutTheAsset.wanted, distinctFrom: '["a-old","a-heater"]' },
+    }
+    const { asked } = await deciding([passed], {
+      'POST /buildings/b-house/assets': { id: 'a-made' },
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Trotzdem anlegen' }))
+
+    await waitFor(() => {
+      expect(asked.filter((request) => request.method === 'POST')).toHaveLength(1)
+    })
+    expect(asked.find((request) => request.method === 'POST')?.body).toMatchObject({
+      distinctFrom: ['a-old', 'a-heater'],
+    })
+  })
+
+  it('says nothing about what the asset was held against where the device shows no other one (#171)', async () => {
+    const elsewhere = {
+      ...aboutTheAsset,
+      wanted: { ...aboutTheAsset.wanted, serialNumber: 'SN-IN-ANOTHER-AREA' },
+    }
+    const { asked } = await deciding([elsewhere], {
+      'POST /buildings/b-house/assets': { id: 'a-made' },
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Trotzdem anlegen' }))
+
+    await waitFor(() => {
+      expect(asked.filter((request) => request.method === 'POST')).toHaveLength(1)
+    })
+    expect(asked.find((request) => request.method === 'POST')?.body).not.toHaveProperty(
+      'distinctFrom',
+    )
   })
 
   it('closes nothing where the route refuses the asset, and says why', async () => {

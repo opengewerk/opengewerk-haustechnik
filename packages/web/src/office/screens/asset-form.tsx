@@ -1,6 +1,7 @@
 import {
   type AssetDetails,
   type AssetDuplicate,
+  type AssetDuplicates,
   type AssetKind,
   assetProblems,
   assetValueProblems,
@@ -14,6 +15,7 @@ import {
   meterMediumLabel,
   meterProblems,
   meterUnitSymbol,
+  passedDuplicates,
   type RecordState,
   sameWords,
 } from '@opengewerk/haustechnik-domain'
@@ -73,7 +75,10 @@ import { assetFileQuery, AssetFileUnread } from './asset.js'
  * register and the file it leads to come from there, and so does the answer
  * to whether the asset may be one that is there already. An asset with the
  * same serial number or the same mark is named, and made all the same if
- * whoever enters it says so.
+ * whoever enters it says so. The asset then keeps what it was held against
+ * (`distinctFrom`, #171), as one taken stock of on a device does. One beyond
+ * the areas of the person is found as well and not shown: the form says
+ * that there is one (ADR 0003, addendum on #171).
  *
  * Moving an asset reaches beyond its record and is done at its file. Removing
  * it stands in the form of the asset, as in every form, for whoever keeps the
@@ -92,6 +97,10 @@ export const assetFormWords = {
   noBuilding: 'Das Gebäude fehlt.',
   check: 'Bitte prüfen Sie die markierten Felder.',
   decide: 'Eine Anlage mit diesen Angaben gibt es schon. Entscheiden Sie oben, ob es dieselbe ist.',
+  decideElsewhere:
+    'Eine Anlage mit diesen Angaben gibt es schon, außerhalb Ihrer Bereiche. Oben steht, wie es weitergeht.',
+  elsewhere: 'eine Anlage außerhalb Ihrer Bereiche',
+  notShown: 'Sie wird hier nicht gezeigt. Ob es dieselbe Anlage ist, kann die Leitung prüfen.',
   noAnswer:
     'Ob es die Anlage schon gibt, ließ sich nicht prüfen. Das beantwortet der Server, mit Verbindung.',
   noValue: 'Keine Angabe',
@@ -229,6 +238,9 @@ interface Choice {
   readonly label: string
 }
 
+/** The answer before there is one. */
+const noDuplicates: AssetDuplicates = { assets: [], elsewhere: [] }
+
 function AssetForm({
   catalogue,
   asset,
@@ -299,10 +311,14 @@ function AssetForm({
     duplicateFields.some((field) => duplicateKey(question[field]) !== null)
   const duplicatesQuery = (question: DuplicateAsked) => ({
     queryKey: ['assets', 'duplicates', question.serialNumber.trim(), question.mark.trim(), except],
-    queryFn: () => request<AssetDuplicate[]>(duplicatesRequest(question, except)),
+    queryFn: () => request<AssetDuplicates>(duplicatesRequest(question, except)),
   })
-  const duplicates = useQuery({ ...duplicatesQuery(asked), enabled: asks(asked) }).data ?? []
-  const shown = asks(asked) ? duplicates : []
+  const answered =
+    useQuery({ ...duplicatesQuery(asked), enabled: asks(asked) }).data ?? noDuplicates
+  /** The assets that may be this one, which the person sees. */
+  const shown = asks(asked) ? answered.assets : []
+  /** The fields it shares with an asset beyond the areas of the person, which is not shown. */
+  const elsewhere = asks(asked) ? answered.elsewhere : []
 
   const building = byId(buildings, typed.buildingId)
   const here = (records: readonly RecordState[]) =>
@@ -437,7 +453,7 @@ function AssetForm({
         )
 
       if (!decided && changed && asks(question)) {
-        let there: AssetDuplicate[]
+        let there: AssetDuplicates
 
         try {
           there = await queries.fetchQuery({ ...duplicatesQuery(question), staleTime: 0 })
@@ -449,25 +465,30 @@ function AssetForm({
 
         setAsked(question)
 
-        if (there.length > 0) {
-          setTrouble(assetFormWords.decide)
+        if (there.assets.length > 0 || there.elsewhere.length > 0) {
+          setTrouble(
+            there.assets.length > 0 ? assetFormWords.decide : assetFormWords.decideElsewhere,
+          )
           found.current?.focus()
 
           return
         }
       }
 
+      // What was shown and passed goes with a new asset, as from a device: of
+      // the assets in the box, those that share a field with what is entered
+      // now. One beyond the areas was not shown and is not among them.
+      const passed = decided ? passedDuplicates(question, shown) : []
+      const made = {
+        ...values,
+        roomId: typed.roomId === '' ? null : typed.roomId,
+        ...(passed.length === 0 ? {} : { distinctFrom: passed }),
+      }
       const result: EditResult = editing
         ? await askAt(client, 'PATCH', `/assets/${asset.id}`, asset.id, values)
         : parent
-          ? await makeAt(client, `/assets/${parent.id}/components`, {
-              ...values,
-              roomId: typed.roomId === '' ? null : typed.roomId,
-            })
-          : await makeAt(client, `/buildings/${typed.buildingId}/assets`, {
-              ...values,
-              roomId: typed.roomId === '' ? null : typed.roomId,
-            })
+          ? await makeAt(client, `/assets/${parent.id}/components`, made)
+          : await makeAt(client, `/buildings/${typed.buildingId}/assets`, made)
 
       if (result.outcome === 'refused') {
         setTrouble(refusalFor(result))
@@ -504,14 +525,20 @@ function AssetForm({
     const sharing = shown.filter((each) => each.same.includes(field))
     const [first] = sharing
 
-    if (first === undefined || duplicateKey(typed[field]) !== duplicateKey(asked[field])) {
+    const carries = `${field === 'mark' ? 'Dieses Kennzeichen' : 'Diese Seriennummer'} trägt schon`
+
+    if (duplicateKey(typed[field]) !== duplicateKey(asked[field])) {
       return undefined
+    }
+
+    if (first === undefined) {
+      return elsewhere.includes(field) ? `${carries} ${assetFormWords.elsewhere}.` : undefined
     }
 
     const where = maybeText(byId(buildings, first.buildingId), 'name')
     const more = sharing.length - 1
 
-    return `${field === 'mark' ? 'Dieses Kennzeichen' : 'Diese Seriennummer'} trägt schon ${nameOf(first)}${
+    return `${carries} ${nameOf(first)}${
       where === null ? '' : `, ${where}`
     }${more === 0 ? '' : more === 1 ? ' und eine weitere Anlage' : ` und ${String(more)} weitere Anlagen`}.`
   }
@@ -689,7 +716,7 @@ function AssetForm({
                   }}
                 />
               </div>
-              {shown.length > 0 ? (
+              {shown.length > 0 || elsewhere.length > 0 ? (
                 <div ref={found} tabIndex={-1} role="group" aria-label="Mögliche Dublette">
                   {/* The buttons stand in the sentence and not in the action of the
                       box: beside two buttons a phone leaves the sentence the width
@@ -706,11 +733,19 @@ function AssetForm({
                             {placeOf(duplicate) === '' ? '' : `, ${placeOf(duplicate)}`}.
                           </span>
                         ))}
-                        <span className="block">
-                          {editing
-                            ? 'Ist es dieselbe Anlage, steht sie zweimal im Verzeichnis.'
-                            : 'Ist es dieselbe Anlage, öffnen Sie diese, statt eine zweite anzulegen.'}
-                        </span>
+                        {elsewhere.length > 0 ? (
+                          <span className="block">
+                            {sameWords(elsewhere)} wie {assetFormWords.elsewhere}.{' '}
+                            {assetFormWords.notShown}
+                          </span>
+                        ) : null}
+                        {shown.length > 0 ? (
+                          <span className="block">
+                            {editing
+                              ? 'Ist es dieselbe Anlage, steht sie zweimal im Verzeichnis.'
+                              : 'Ist es dieselbe Anlage, öffnen Sie diese, statt eine zweite anzulegen.'}
+                          </span>
+                        ) : null}
                       </span>
                       <span className="flex flex-wrap gap-1.5">
                         {shown.length === 1 && shown[0] ? (

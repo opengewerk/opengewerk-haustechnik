@@ -113,6 +113,8 @@ function file(further: Readonly<Record<string, unknown>> = {}): AssetDetails {
     ],
     components: [{ id: 'a-drive', number: 'AN-00013', name: 'Antrieb', kind: 'probe.pump' }],
     parent: null,
+    distinctFromAssets: [],
+    distinctFromElsewhere: 0,
     ...further,
   } as unknown as AssetDetails
 }
@@ -202,6 +204,12 @@ async function untilTheKindsAreThere(): Promise<void> {
 }
 
 const duplicatesOf = (query: string) => `/assets/duplicates?${query}`
+
+/** The answer of the route: the assets the person sees, and the fields shared with one beyond their areas. */
+const theseDuplicates = (
+  assets: readonly AssetDuplicate[] = [],
+  elsewhere: readonly string[] = [],
+) => ({ assets, elsewhere })
 
 beforeEach(() => {
   localStorage.clear()
@@ -530,7 +538,7 @@ describe('a possible duplicate', () => {
   }
 
   it('is named once the field is left: at the field, and with where the other asset stands', async () => {
-    await filledIn({ [asked]: [twin] })
+    await filledIn({ [asked]: theseDuplicates([twin]) })
 
     const field = type('Seriennummer', ' SN-4711 ')
 
@@ -556,7 +564,7 @@ describe('a possible duplicate', () => {
   })
 
   it('keeps the asset from being made until somebody says it is another one', async () => {
-    const router = await filledIn({ [asked]: [twin] })
+    const router = await filledIn({ [asked]: theseDuplicates([twin]) })
 
     answerToWrite = answering({ id: 'a-new' }, 201)
     // The field is never left: saving asks all the same.
@@ -583,11 +591,79 @@ describe('a possible duplicate', () => {
     expect(written.map((write) => [write.method, write.path])).toEqual([
       ['POST', '/buildings/b-house/assets'],
     ])
-    expect(written[0]?.body).toMatchObject({ serialNumber: 'SN-4711' })
+    // With what was shown and passed, as an asset from a device brings it (#171).
+    expect(written[0]?.body).toMatchObject({ serialNumber: 'SN-4711', distinctFrom: ['a-twin'] })
+  })
+
+  it('says that there is one beyond the areas of the person, and shows nothing of it (#171)', async () => {
+    const router = await filledIn({ [asked]: theseDuplicates([], ['serialNumber']) })
+
+    answerToWrite = answering({ id: 'a-new' }, 201)
+    fireEvent.blur(type('Seriennummer', 'SN-4711'))
+
+    const found = within(await screen.findByRole('group', { name: 'Mögliche Dublette' }))
+
+    expect(found.getByText(/Gleiche Seriennummer wie/).textContent?.replaceAll(/\s+/g, ' ')).toBe(
+      'Gleiche Seriennummer wie eine Anlage außerhalb Ihrer Bereiche. Sie wird hier nicht gezeigt. Ob es dieselbe Anlage ist, kann die Leitung prüfen.',
+    )
+    expect(found.queryByRole('link')).toBeNull()
+    expect(found.queryByRole('button', { name: 'Zur vorhandenen Anlage' })).toBeNull()
+    expect(found.queryByText(/öffnen Sie diese/)).toBeNull()
+    expect(
+      screen.getByText('Diese Seriennummer trägt schon eine Anlage außerhalb Ihrer Bereiche.'),
+    ).toBeTruthy()
+
+    press('Anlage anlegen')
+
+    expect((await screen.findByRole('alert')).textContent).toBe(
+      'Eine Anlage mit diesen Angaben gibt es schon, außerhalb Ihrer Bereiche. Oben steht, wie es weitergeht.',
+    )
+    expect(written).toEqual([])
+
+    press('Trotzdem anlegen')
+
+    await waitFor(() => {
+      expect(router.state.location.pathname).toBe('/anlagen/a-new')
+    })
+    // Nothing was shown, so the asset names nothing it was held against.
+    expect(written[0]?.body).not.toHaveProperty('distinctFrom')
+  })
+
+  it('names one it sees and says of another that it lies beyond the areas (#171)', async () => {
+    await filledIn({ [asked]: theseDuplicates([twin], ['serialNumber']) })
+
+    fireEvent.blur(type('Seriennummer', 'SN-4711'))
+
+    const found = within(await screen.findByRole('group', { name: 'Mögliche Dublette' }))
+
+    expect(found.getByRole('link', { name: 'AN-00057 Aufzug Sporthalle' })).toBeTruthy()
+    expect(found.getByText(/außerhalb Ihrer Bereiche/)).toBeTruthy()
+    expect(found.getByRole('button', { name: 'Zur vorhandenen Anlage' })).toBeTruthy()
+    // At the field stands the one that can be opened.
+    expect(
+      screen.getByText('Diese Seriennummer trägt schon AN-00057 Aufzug Sporthalle, Sporthalle.'),
+    ).toBeTruthy()
+  })
+
+  it('keeps only what the asset was held against as it is entered now (#171)', async () => {
+    const router = await filledIn({ [asked]: theseDuplicates([twin]) })
+
+    answerToWrite = answering({ id: 'a-new' }, 201)
+    fireEvent.blur(type('Seriennummer', 'SN-4711'))
+    await screen.findByRole('group', { name: 'Mögliche Dublette' })
+    // Typed over and not left: the box still shows the asset of the number before.
+    type('Seriennummer', 'SN-5')
+    press('Trotzdem anlegen')
+
+    await waitFor(() => {
+      expect(router.state.location.pathname).toBe('/anlagen/a-new')
+    })
+    expect(written[0]?.body).toMatchObject({ serialNumber: 'SN-5' })
+    expect(written[0]?.body).not.toHaveProperty('distinctFrom')
   })
 
   it('leads to the asset that is there', async () => {
-    const router = await filledIn({ [asked]: [twin] })
+    const router = await filledIn({ [asked]: theseDuplicates([twin]) })
 
     fireEvent.blur(type('Seriennummer', 'SN-4711'))
     await screen.findByRole('group', { name: 'Mögliche Dublette' })
@@ -601,7 +677,7 @@ describe('a possible duplicate', () => {
 
   it('is asked about with the serial number and the mark, and is none where the server names none', async () => {
     const router = await filledIn({
-      [duplicatesOf('serialNumber=SN-1&mark=K+7')]: [],
+      [duplicatesOf('serialNumber=SN-1&mark=K+7')]: theseDuplicates(),
     })
 
     answerToWrite = answering({ id: 'a-new' }, 201)
@@ -613,6 +689,8 @@ describe('a possible duplicate', () => {
       expect(router.state.location.pathname).toBe('/anlagen/a-new')
     })
     expect(screen.queryByRole('group', { name: 'Mögliche Dublette' })).toBeNull()
+    // Nothing was shown, so the asset says nothing about what it was held against.
+    expect(written[0]?.body).not.toHaveProperty('distinctFrom')
   })
 
   it('is not asked about for an asset without a serial number and without a mark', async () => {
@@ -677,6 +755,30 @@ describe('a new component', () => {
       roomId: boilerRoom.id,
     })
   })
+
+  it('keeps what it was held against, as an asset does (#171)', async () => {
+    const router = await mount(at, {
+      '/assets/a-lift': file(),
+      [duplicatesOf('serialNumber=SN-4711')]: theseDuplicates([twin]),
+    })
+
+    await screen.findByRole('heading', { level: 1, name: 'Neue Komponente' })
+    await untilTheKindsAreThere()
+    answerToWrite = answering({ id: 'a-part' }, 201)
+    choose('Anlagenart', 'probe.pump')
+    type('Bezeichnung', 'Antrieb')
+    fireEvent.blur(type('Seriennummer', 'SN-4711'))
+    await screen.findByRole('group', { name: 'Mögliche Dublette' })
+    press('Trotzdem anlegen')
+
+    await waitFor(() => {
+      expect(router.state.location.pathname).toBe('/anlagen/a-part')
+    })
+    expect(written.map((write) => [write.method, write.path])).toEqual([
+      ['POST', '/assets/a-lift/components'],
+    ])
+    expect(written[0]?.body).toMatchObject({ distinctFrom: ['a-twin'] })
+  })
 })
 
 describe('the form of an asset that is there', () => {
@@ -684,7 +786,7 @@ describe('the form of an asset that is there', () => {
   const itself = duplicatesOf('serialNumber=SN-4711&mark=A-1&except=a-lift')
 
   it('starts with what the asset holds and sends the whole of it to the asset, without its place', async () => {
-    const router = await mount(at, { '/assets/a-lift': file(), [itself]: [] })
+    const router = await mount(at, { '/assets/a-lift': file(), [itself]: theseDuplicates() })
 
     await screen.findByRole('heading', { level: 1, name: 'Aufzug Schulhaus bearbeiten' })
     await untilTheKindsAreThere()
@@ -735,7 +837,7 @@ describe('the form of an asset that is there', () => {
   })
 
   it('leaves out what only the kind it had carried, once the kind is corrected', async () => {
-    await mount(at, { '/assets/a-lift': file(), [itself]: [] })
+    await mount(at, { '/assets/a-lift': file(), [itself]: theseDuplicates() })
     await untilTheKindsAreThere()
     answerToWrite = answering({ id: 'a-lift' })
 
@@ -751,8 +853,8 @@ describe('the form of an asset that is there', () => {
   it('asks again only about what was changed, and never names the asset itself', async () => {
     const router = await mount(at, {
       '/assets/a-lift': file(),
-      [itself]: [twin],
-      [duplicatesOf('serialNumber=SN-9&mark=A-1&except=a-lift')]: [twin],
+      [itself]: theseDuplicates([twin]),
+      [duplicatesOf('serialNumber=SN-9&mark=A-1&except=a-lift')]: theseDuplicates([twin]),
     })
 
     await untilTheKindsAreThere()
@@ -782,15 +884,44 @@ describe('the form of an asset that is there', () => {
     expect(written.map((write) => write.method)).toEqual(['PATCH'])
   })
 
+  it('says nothing about what it was held against when it is saved all the same (#171)', async () => {
+    const router = await mount(at, {
+      '/assets/a-lift': file(),
+      [itself]: theseDuplicates(),
+      [duplicatesOf('serialNumber=SN-9&mark=A-1&except=a-lift')]: theseDuplicates([
+        { ...twin, serialNumber: 'SN-9' },
+      ]),
+    })
+
+    await untilTheKindsAreThere()
+    answerToWrite = answering({ id: 'a-lift' })
+    type('Seriennummer', 'SN-9')
+    press('Speichern')
+    await screen.findByRole('alert')
+    press('Trotzdem speichern')
+
+    await waitFor(() => {
+      expect(router.state.location.pathname).toBe('/anlagen/a-lift')
+    })
+    // Only an asset that is made says what it was held against.
+    expect(written.map((write) => write.method)).toEqual(['PATCH'])
+    expect(written[0]?.body).toMatchObject({ serialNumber: 'SN-9' })
+    expect(written[0]?.body).not.toHaveProperty('distinctFrom')
+  })
+
   it('offers removing the asset only to whoever keeps the assets, with a question first', async () => {
-    await mount(at, { '/assets/a-lift': file(), [itself]: [] })
+    await mount(at, { '/assets/a-lift': file(), [itself]: theseDuplicates() })
     await untilTheKindsAreThere()
 
     expect(screen.queryByRole('button', { name: 'Anlage entfernen' })).toBeNull()
   })
 
   it('removes the asset at its route and leads back to the register', async () => {
-    const router = await mount(at, { '/assets/a-lift': file(), [itself]: [] }, 'site_management')
+    const router = await mount(
+      at,
+      { '/assets/a-lift': file(), [itself]: theseDuplicates() },
+      'site_management',
+    )
 
     await untilTheKindsAreThere()
     answerToWrite = answering({ id: 'a-lift' })

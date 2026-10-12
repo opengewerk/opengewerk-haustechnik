@@ -1,9 +1,11 @@
 import fc from 'fast-check'
 import { describe, expect, it } from 'vitest'
 
+import { assetLimits } from './asset.js'
 import {
   duplicateKey,
   isGeneralKind,
+  passedDuplicates,
   possibleDuplicates,
   sameIn,
   sameWords,
@@ -94,6 +96,35 @@ describe('a possible duplicate', () => {
         }
       }),
     )
+  })
+})
+
+describe('what somebody passed as no duplicate (#171)', () => {
+  const shown = [
+    { id: 'a-1', serialNumber: 'BT 750', mark: null },
+    { id: 'a-2', serialNumber: null, mark: 'TW-01' },
+    { id: 'a-3', serialNumber: 'BT 999', mark: null },
+  ]
+
+  it('is what was shown and shares a field with the asset as it is entered now', () => {
+    expect(passedDuplicates({ serialNumber: 'bt750', mark: 'tw-01' }, shown)).toEqual([
+      'a-1',
+      'a-2',
+    ])
+    // Shown for a number that was typed over since: nobody held the asset against it.
+    expect(passedDuplicates({ serialNumber: 'BT 999', mark: '' }, shown)).toEqual(['a-3'])
+    expect(passedDuplicates({ serialNumber: 'BT 1000', mark: '' }, shown)).toEqual([])
+    expect(passedDuplicates({ serialNumber: 'bt750' }, [])).toEqual([])
+  })
+
+  it('is no longer than an asset names', () => {
+    const many = Array.from({ length: assetLimits.distinctFrom + 5 }, (_, index) => ({
+      id: `a-${String(index)}`,
+      serialNumber: 'S-1',
+      mark: null,
+    }))
+
+    expect(passedDuplicates({ serialNumber: 'S-1' }, many)).toHaveLength(assetLimits.distinctFrom)
   })
 })
 

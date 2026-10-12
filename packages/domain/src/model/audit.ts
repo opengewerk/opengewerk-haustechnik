@@ -119,7 +119,7 @@ export const auditVocabulary: AuditVocabulary = {
         values: 'Angaben der Anlagenart',
         meter_number: 'Zählernummer',
         meter_unit: 'Einheit des Zählers',
-        distinct_from: 'Für eine andere befunden als',
+        distinct_from: 'Keine Dublette von',
       },
     },
     asset_lifecycle: {
@@ -571,6 +571,9 @@ export const auditVocabulary: AuditVocabulary = {
     template_id: 'round_templates',
     round_plan_id: 'round_plans',
   },
+  // What an asset was found to be distinct from: several assets in one
+  // field, each read by its name (#171).
+  referenceLists: { distinct_from: 'assets' },
   personFields: [
     'substitute_user_id',
     'absent_user_id',

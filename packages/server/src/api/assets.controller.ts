@@ -17,7 +17,7 @@ import {
 import {
   type Asset,
   type AssetDetails,
-  type AssetDuplicate,
+  type AssetDuplicates,
   type AssetId,
   assetProblems,
   type AssetRegister,
@@ -27,6 +27,8 @@ import {
   type Building,
   type BuildingId,
   type Catalogue,
+  type DistinctAsset,
+  distinctFromProblem,
   type DutyReading,
   type LifecycleEntry,
   lifecycleEntryProblems,
@@ -108,12 +110,21 @@ function kindOf(catalogue: Catalogue, key: unknown) {
   return kind.definition
 }
 
-/** What a body says about an asset that is to be made, checked against its kind. */
-function newAsset(
-  catalogue: Catalogue,
-  body: unknown,
-): Partial<Record<(typeof assetFields)[number], unknown>> {
+/** What a body says about an asset that is to be made: its fields, and what it was held against. */
+type NewAssetValues = Partial<Record<(typeof assetFields)[number], unknown>> & {
+  readonly distinctFrom: readonly AssetId[]
+}
+
+/**
+ * What a body says about an asset that is to be made, checked against its
+ * kind. With it the assets whoever enters it was shown as possible
+ * duplicates and passed (`distinctFrom`, #171), as an asset taken stock of on
+ * a device brings them: a list of ids, kept as it is said. Only an asset that
+ * is made says it; a change to one that is there does not take the field.
+ */
+function newAsset(catalogue: Catalogue, body: unknown): NewAssetValues {
   const values = fieldsOf(body, assetFields, emptiable)
+  const { distinctFrom } = fieldsOf(body, ['distinctFrom'] as const)
 
   refuse(assetProblems({ kind: null, name: null, ...values }))
 
@@ -122,7 +133,14 @@ function newAsset(
   refuse(assetValueProblems(kind, values.values ?? {}))
   refuse(meterProblems(kind, values))
 
-  return values
+  const passed = distinctFrom ?? []
+  const problem = distinctFromProblem(passed)
+
+  if (problem !== null) {
+    throw new BadRequestException(problem)
+  }
+
+  return { ...values, distinctFrom: passed as readonly AssetId[] }
 }
 
 /** The room an asset is to stand in, which has to be one of its building. */
@@ -149,7 +167,7 @@ async function insertAsset(
   tx: TenantTransaction,
   identity: Asking,
   place: Pick<Asset, 'propertyId' | 'areaId' | 'buildingId' | 'roomId' | 'parentAssetId'>,
-  values: Partial<Record<(typeof assetFields)[number], unknown>>,
+  values: NewAssetValues,
 ): Promise<Asset> {
   const number = await assignNumber(tx, identity.tenantId, 'asset', new Date())
   const [created] = await tx
@@ -170,6 +188,7 @@ async function insertAsset(
       values: (values.values ?? {}) as Readonly<Record<string, AssetValue>>,
       meterNumber: (values.meterNumber ?? null) as string | null,
       meterUnit: (values.meterUnit ?? null) as Asset['meterUnit'],
+      distinctFrom: values.distinctFrom,
     })
     .returning()
 
@@ -300,7 +319,8 @@ export class AssetsController {
    * 4.2 of the concept): those with the same serial number or the same mark.
    * A question and never a refusal, the asset is made all the same if whoever
    * enters it says so. Whoever reads assets may ask, and is named those of
-   * their areas.
+   * their areas; of one beyond them the answer says only that it is there
+   * (ADR 0003, addendum on #171).
    *
    * Before the file of an asset, or its address would be read as an id.
    */
@@ -309,7 +329,7 @@ export class AssetsController {
   duplicates(
     @CurrentIdentity() identity: Asking,
     @Query() query: Record<string, unknown>,
-  ): Promise<AssetDuplicate[]> {
+  ): Promise<AssetDuplicates> {
     const question = duplicateQuestion(query)
 
     return this.database.forTenant(identity, (tx) => assetDuplicates(tx, question))
@@ -350,9 +370,40 @@ export class AssetsController {
         .from(assetSupplies)
         .where(and(eq(assetSupplies.assetId, asset.id), isNull(assetSupplies.deletedAt)))
         .orderBy(asc(assetSupplies.createdAt))) as AssetSupply[]
+      // What it was found to be another than, by number and name. Read under
+      // the areas of whoever asks: an asset they do not see is counted and
+      // not named. One that was removed since is named still.
+      const held =
+        asset.distinctFrom.length === 0
+          ? []
+          : await tx
+              .select({
+                id: assets.id,
+                number: assets.number,
+                name: assets.name,
+                deletedAt: assets.deletedAt,
+              })
+              .from(assets)
+              .where(inArray(assets.id, [...asset.distinctFrom]))
+      const distinctFromAssets = asset.distinctFrom.flatMap((id): DistinctAsset[] => {
+        const found = held.find((each) => each.id === id)
+
+        return found
+          ? [
+              {
+                id: found.id,
+                number: found.number,
+                name: found.name,
+                removed: found.deletedAt !== null,
+              },
+            ]
+          : []
+      })
 
       return {
         ...asset,
+        distinctFromAssets,
+        distinctFromElsewhere: asset.distinctFrom.length - distinctFromAssets.length,
         lifecycle,
         lifecycleState,
         condition,

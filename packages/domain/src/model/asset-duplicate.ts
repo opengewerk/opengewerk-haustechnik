@@ -1,4 +1,4 @@
-import type { Asset } from './asset.js'
+import { type Asset, assetLimits } from './asset.js'
 
 /**
  * Whether an asset may already stand in the register (section 4.2 of the
@@ -106,6 +106,36 @@ export interface AssetDuplicate extends Pick<
   | 'mark'
 > {
   readonly same: readonly DuplicateField[]
+}
+
+/**
+ * What the route answers whoever enters or changes an asset in the office:
+ * the assets that may be it, as far as the person sees them, and the fields
+ * it shares with an asset beyond their areas (ADR 0003, addendum on #171).
+ * Such an asset is found and not shown, as on a device (section 2.7 of the
+ * concept): the answer says that there is one, and neither which nor how
+ * many.
+ */
+export interface AssetDuplicates {
+  readonly assets: readonly AssetDuplicate[]
+  readonly elsewhere: readonly DuplicateField[]
+}
+
+/**
+ * The assets whoever passes possible duplicates has seen and found to be
+ * others, as an asset keeps them (`distinctFrom`): of those shown, the ones
+ * that share a field with the asset as it is entered now, no more than an
+ * asset names. One shown for a number that was typed over since is not among
+ * them: nobody held the asset against it.
+ */
+export function passedDuplicates(
+  candidate: DuplicateCandidate,
+  shown: readonly DuplicateCandidate[],
+): readonly string[] {
+  return possibleDuplicates(candidate, shown)
+    .map(({ asset }) => asset.id)
+    .filter((id): id is string => typeof id === 'string')
+    .slice(0, assetLimits.distinctFrom)
 }
 
 /** The package whose asset kinds stand in for a missing specialist package, one per cost group. */

@@ -260,6 +260,7 @@ export type NewAsset = Pick<
   | 'warrantyEndsOn'
   | 'meterNumber'
   | 'meterUnit'
+  | 'distinctFrom'
 > & { readonly line: number }
 
 /** What a line shares its serial number or its mark with: an asset that is there, or an earlier line. */
@@ -377,6 +378,12 @@ export function planAssets(
     const candidate = { serialNumber: fields.serialNumber, mark: fields.mark }
     const found = possibleDuplicates(candidate, [...stock.assets, ...earlier])
     const decision = decisions.get(line) ?? null
+    // What a line that is taken all the same was held against (#171): the
+    // assets that are there, as the form in the office keeps them. An
+    // earlier line of the list has no id to be named by before it is made.
+    const passed = found
+      .flatMap(({ asset }) => ('id' in asset ? [asset.id] : []))
+      .slice(0, assetLimits.distinctFrom)
 
     earlier.push({ line, ...candidate })
 
@@ -407,6 +414,7 @@ export function planAssets(
         ...(fields as Pick<NewAsset, keyof typeof fields>),
         kind: kindKey,
         name: cell('name'),
+        distinctFrom: passed,
       })
     }
   }

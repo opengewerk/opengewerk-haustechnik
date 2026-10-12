@@ -131,6 +131,8 @@ const fileOf = (of: typeof lift) =>
     supplies: [],
     components: [],
     parent: null,
+    distinctFromAssets: [],
+    distinctFromElsewhere: 0,
   }) as unknown as AssetDetails
 
 const entry = (of: typeof lift) => ({

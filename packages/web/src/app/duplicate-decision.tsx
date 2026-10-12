@@ -1,4 +1,5 @@
 import {
+  assetLimits,
   type DuplicateField,
   duplicateFields,
   labelAssignmentRefusal,
@@ -36,7 +37,8 @@ import { isSignatureConflict, SignatureDecision } from './signature-decision.js'
  * its own: the photo of its type plate hangs on an asset that is not there,
  * and so does the label it was given. They are decided with the asset and
  * show no card. "Trotzdem anlegen" makes the asset at its route, with a
- * connection, and hangs both on it; "Ist dieselbe Anlage" hangs them on the
+ * connection, with what it was held against on the device and on this card
+ * (`distinctFrom`, #171), and hangs both on it; "Ist dieselbe Anlage" hangs them on the
  * one that is there, so that the photo and the sticker of the same thing are
  * not lost; "Nicht anlegen" lets all of it go.
  */
@@ -66,6 +68,21 @@ export const duplicateDecisionWords = {
   goWith: 'Sie gehen mit der Entscheidung.',
   notDecided: 'Die Entscheidung ließ sich nicht übertragen. Ohne Verbindung geht das nicht.',
 } as const
+
+/** The ids an asset was sent with as passed, which travel as the text of a list. */
+function passedOf(value: unknown): readonly string[] {
+  if (typeof value !== 'string') {
+    return []
+  }
+
+  try {
+    const read: unknown = JSON.parse(value)
+
+    return Array.isArray(read) ? read.map(String) : []
+  } catch {
+    return []
+  }
+}
 
 /**
  * Whether a conflict is the possible duplicate of an asset that was to be
@@ -264,6 +281,14 @@ function DuplicateDecision({
       const parent = maybeText(wanted, 'parentAssetId')
       const values: unknown =
         typeof wanted['values'] === 'string' ? JSON.parse(wanted['values']) : undefined
+      // What the person passed when the asset was taken stock of, and the
+      // assets this card shows: the asset keeps both, each once.
+      const passed = [
+        ...new Set([
+          ...passedOf(wanted['distinctFrom']),
+          ...there.map(({ asset }) => String(asset['id'])),
+        ]),
+      ].slice(0, assetLimits.distinctFrom)
       const made = await makeAt(
         client,
         parent === null
@@ -279,6 +304,7 @@ function DuplicateDecision({
           ...(parent === null && maybeText(wanted, 'roomId') !== null
             ? { roomId: wanted['roomId'] }
             : {}),
+          ...(passed.length === 0 ? {} : { distinctFrom: passed }),
         },
       )
 
