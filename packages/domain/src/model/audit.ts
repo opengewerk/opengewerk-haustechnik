@@ -1,4 +1,5 @@
 import {
+  type AuditFormat,
   type AuditVocabulary,
   checkPointResultLabel,
   ruleScopeNames,
@@ -11,6 +12,7 @@ import {
   workOrderUrgencyLabel,
 } from './activity.js'
 import { lifecycleStateLabel } from './asset.js'
+import { assetValuesWords } from './asset-value-words.js'
 import { buildingKindLabel } from './location.js'
 import { type Catalogue, type CatalogueEntry, countingLabel, dutyTaskLabel } from './catalogue.js'
 import { defectStatusLabel } from './defect.js'
@@ -681,6 +683,15 @@ export const auditVocabulary: AuditVocabulary = {
   // column of its own as well, the duty, the defect, the plan, the task or
   // the property, and that one reads as a name (#259).
   quietFields: ['source_id'],
+  // What a record holds as one column of JSON and shows whole on a screen of
+  // its own: the state an evidence and a round were frozen in, and the
+  // chapters and points of a version of a template. The log says that it was
+  // set, and the page of the record says what (#263).
+  secretFields: {
+    evidence: ['state'],
+    round_records: ['state'],
+    round_template_versions: ['definition'],
+  },
   reasons: {},
   rights: rightLabel,
   roles: Object.fromEntries(shippedRoles.map((role) => [role.key, role.label])),
@@ -804,6 +815,12 @@ function namesByKey<Definition>(
 export function auditValueWordsWith(catalogue: Catalogue | null): {
   readonly values: typeof auditValues
   readonly lists: (typeof auditValueWords)['lists']
+  readonly written?: (
+    table: string,
+    field: string,
+    raw: string,
+    format: Pick<AuditFormat, 'date'>,
+  ) => string | null
 } {
   if (catalogue === null) {
     return auditValueWords
@@ -832,8 +849,14 @@ export function auditValueWordsWith(catalogue: Catalogue | null): {
     ),
   )
 
+  const assetValues = assetValuesWords(catalogue)
+
   return {
     ...auditValueWords,
+    // What an asset holds beyond the fields every asset has, as its file
+    // writes it: "Feuerwehraufzug: Nein, Haltestellen: 5" (#263).
+    written: (table, field, raw, format) =>
+      table === 'assets' && field === 'values' ? assetValues(raw, format.date) : null,
     values: {
       ...auditValues,
       activities: { ...auditValues['activities'], form_key: forms },

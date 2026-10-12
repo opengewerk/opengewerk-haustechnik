@@ -170,6 +170,7 @@ export * from './model/sync.js'
 
 // What the change log calls the tables of this application, and the words the
 // foundation takes from it for its own.
+export * from './model/asset-value-words.js'
 export * from './model/audit.js'
 
 // The paths the server of this application answers itself.

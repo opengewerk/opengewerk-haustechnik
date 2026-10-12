@@ -82,6 +82,15 @@ describe('the change log in the words of this application', () => {
     expect(audit.prefixedReferenceOf('form_key', 'probe.interim_protocol')).toBeNull()
   })
 
+  it('says of a column that holds a whole record as JSON only that it was set (#263)', () => {
+    expect(audit.isSecret('evidence', 'state')).toBe(true)
+    expect(audit.isSecret('round_records', 'state')).toBe(true)
+    expect(audit.isSecret('round_template_versions', 'definition')).toBe(true)
+    // What an asset holds is read, in words.
+    expect(audit.isSecret('assets', 'values')).toBe(false)
+    expect(audit.isSecret('evidence', 'number')).toBe(false)
+  })
+
   it('names the areas, who sees which and who stands in for whom', () => {
     expect(audit.tableLabel('areas')).toBe('Bereich')
     expect(audit.fieldLabel('member_areas', 'area_id')).toBe('Bereich einer Person, Bereich')

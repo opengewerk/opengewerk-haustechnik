@@ -130,6 +130,21 @@ describe('the words of the change log in the office', () => {
       ).toBe('Protokoll der Zwischenprüfung')
     })
 
+    // The log holds `{"stops": 5, "firefighters_lift": false}` (#263).
+    it('write what an asset holds beyond its fields as its file does', () => {
+      expect(
+        words.auditValue('assets', 'values', '{"stops": 5, "firefighters_lift": false}', page),
+      ).toBe('Feuerwehraufzug: Nein, Haltestellen: 5')
+      // A key no kind names stays a key, and an asset that holds nothing has no value.
+      expect(words.auditValue('assets', 'values', '{"stops": 2, "colour": "rot"}', page)).toBe(
+        'colour: rot, Haltestellen: 2',
+      )
+      expect(words.auditValue('assets', 'values', '{}', page)).toBeNull()
+      // Another column of the asset, and the same name on another table, are left alone.
+      expect(words.auditValue('assets', 'name', '{"stops": 5}', page)).toBe('{"stops": 5}')
+      expect(words.auditValue('rooms', 'values', '{"stops": 5}', page)).toBe('{"stops": 5}')
+    })
+
     it('write every other key of the catalogue as what it is called', () => {
       expect(words.auditValue('assets', 'kind', 'probe.pump', page)).toBe('Druckerhöhungsanlage')
       expect(words.auditValue('asset_kind_names', 'kind', 'probe.pump', page)).toBe(
