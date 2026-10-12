@@ -326,7 +326,7 @@ export class AssetsController {
     return this.database.forTenant(identity, async (tx) => {
       const asset = await placeOf<Asset>(tx, assets, id, missing)
       const { lifecycleState, condition, until } = (
-        await assetsOnADay(tx, dayInGermany(), [asset.id])
+        await assetsOnADay(tx, dayInGermany(), this.catalogue, [asset.id])
       )(asset.id)
       const components = await tx
         .select({ id: assets.id, number: assets.number, name: assets.name, kind: assets.kind })
@@ -375,10 +375,10 @@ export class AssetsController {
   duties(@CurrentIdentity() identity: Asking, @Param('id') id: string): Promise<DutyReading[]> {
     return this.database.forTenant(identity, async (tx) => {
       const asset = await placeOf<Asset>(tx, assets, id, missing)
-      const today = (await assetsOnADay(tx, dayInGermany(), [asset.id]))(asset.id)
+      const today = (await assetsOnADay(tx, dayInGermany(), this.catalogue, [asset.id]))(asset.id)
 
       return today.duties
-        .map(({ duty, standing, lastMetOn, lastEvidence }): DutyReading => ({
+        .map(({ duty, standing, lastMetOn, lastEvidence, shortened, updated }): DutyReading => ({
           id: duty.id,
           kind: duty.kind,
           kindVersion: duty.kindVersion,
@@ -395,6 +395,8 @@ export class AssetsController {
           appointment: standing.appointment,
           lastMetOn,
           lastEvidence,
+          shortened,
+          updated,
         }))
         .sort((left, right) => left.title.localeCompare(right.title, 'de'))
     })

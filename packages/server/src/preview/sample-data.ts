@@ -581,6 +581,9 @@ export const sampleProperties: readonly SampleProperty[] = [
             duties: [
               {
                 ...mainTest(100),
+                // Every year, as its risk assessment says: within the maximum
+                // of the version to come, so it may be left as it is (#139).
+                intervalMonths: 12,
                 responsible: 'preview-roth',
                 ...contractor('Prüfdienst Beispiel GmbH'),
                 // Its interval stands on the risk assessment, of which a

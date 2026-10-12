@@ -33,12 +33,67 @@ export interface Rhythm {
   readonly counting: Counting
   readonly interval: DeadlineInterval
   /**
+   * The maximum a regulation sets for the duty on a day, and the day of
+   * asking (section 2.3 of the concept, #139): from the day a shorter maximum
+   * begins, the duty counts with it, whether anybody took the new maximum
+   * over or not. The appointment that is open is judged on the day of asking;
+   * one that was met, on the day it was met, so that a maximum of today does
+   * not rewrite the rhythm of the years before it. Without it the interval
+   * is the same on every day.
+   */
+  readonly ceiling?: {
+    readonly on: (day: IsoDate) => DeadlineInterval | null
+    readonly today: IsoDate
+  }
+  /**
    * Whether the asset of the duty was out of service on a day. Asked by the
    * counting of § 14 Abs. 5 BetrSichV on a due day that passed; a duty of a
    * place is never out of service, and that is the default.
    */
   readonly outOfServiceOn?: (day: IsoDate) => boolean
 }
+
+/**
+ * An interval within the maximum a regulation sets: the shorter of the two.
+ * In one unit that is plain. Across units nothing compares to the day, so the
+ * interval stays only where it lies within the maximum however the months
+ * fall, a month taken as its longest against a maximum in days and as its
+ * shortest against one in months; in doubt the maximum is the interval,
+ * because the operator overrides no regulation (Leitentscheidung 3).
+ */
+export function withinCeiling(
+  interval: DeadlineInterval,
+  ceiling: DeadlineInterval | null,
+): DeadlineInterval {
+  if (ceiling === null) {
+    return interval
+  }
+
+  if ('months' in interval) {
+    const within =
+      'months' in ceiling ? interval.months <= ceiling.months : interval.months * 31 <= ceiling.days
+
+    return within ? interval : ceiling
+  }
+
+  const within =
+    'days' in ceiling ? interval.days <= ceiling.days : interval.days <= ceiling.months * 28
+
+  return within ? interval : ceiling
+}
+
+/** Whether two intervals are the same count of the same unit. */
+export function sameInterval(left: DeadlineInterval, right: DeadlineInterval): boolean {
+  return 'days' in left
+    ? 'days' in right && left.days === right.days
+    : 'months' in right && left.months === right.months
+}
+
+/**
+ * The interval of a rhythm for the appointment a performance opens: judged on
+ * the day the appointment was met, or on the day of asking where it is open.
+ */
+type IntervalFor = (metOn: IsoDate | undefined) => DeadlineInterval
 
 /** The first day of the month of a day. */
 function monthOf(day: IsoDate): IsoDate {
@@ -74,12 +129,13 @@ function stepped(from: IsoDate, interval: DeadlineInterval, steps: number): IsoD
  */
 function underBetrSichV(
   rhythm: Rhythm,
-  months: number,
+  monthsFor: (metOn: IsoDate | undefined) => number,
   performances: readonly IsoDate[],
 ): Appointment | null {
   let due: IsoDate | null = null
+  let months = 0
 
-  for (const performedOn of performances) {
+  for (const [index, performedOn] of performances.entries()) {
     const performedMonth = monthOf(performedOn)
     let start: IsoDate
 
@@ -95,6 +151,7 @@ function underBetrSichV(
       start = due
     }
 
+    months = monthsFor(performances[index + 1])
     due = addMonths(start, months)
   }
 
@@ -120,7 +177,7 @@ function daysFrom(earlier: IsoDate, later: IsoDate): number {
  * The twelfth is counted in days, of the period that leads up to the open
  * appointment: a month for a yearly duty, two for one of two years.
  */
-function fromDue(interval: DeadlineInterval, performances: readonly IsoDate[]): Appointment | null {
+function fromDue(intervalFor: IntervalFor, performances: readonly IsoDate[]): Appointment | null {
   const [first, ...rest] = performances
 
   if (first === undefined) {
@@ -131,24 +188,34 @@ function fromDue(interval: DeadlineInterval, performances: readonly IsoDate[]): 
   // the end of a month, a month counted from a clamped appointment would drift
   // to the 28th and stay there.
   let start = first
+  let interval = intervalFor(rest[0])
   const appointment = (index: number) => stepped(start, interval, index + 1)
   // The earliest appointment not met yet, as its number in the rhythm.
   let open = 0
 
-  for (const performedOn of rest) {
+  for (const [index, performedOn] of rest.entries()) {
     const due = appointment(open)
     const twelfth = Math.floor(daysFrom(appointment(open - 1), due) / 12)
 
     if (performedOn < addDays(due, -twelfth)) {
       start = performedOn
       open = 0
-      continue
+    } else {
+      open += 1
+
+      while (appointment(open) <= performedOn) {
+        open += 1
+      }
     }
 
-    open += 1
+    // Where a regulation gives the next appointment another interval, the
+    // rhythm counts on from the last appointment that was met or left behind.
+    const next = intervalFor(rest[index + 1])
 
-    while (appointment(open) <= performedOn) {
-      open += 1
+    if (!sameInterval(next, interval)) {
+      start = appointment(open - 1)
+      open = 0
+      interval = next
     }
   }
 
@@ -171,17 +238,32 @@ export function nextAppointment(
   performances: readonly IsoDate[],
 ): Appointment | null {
   const days = [...performances].sort()
+  const { ceiling } = rhythm
+  const intervalFor: IntervalFor = (metOn) =>
+    ceiling === undefined
+      ? rhythm.interval
+      : withinCeiling(rhythm.interval, ceiling.on(metOn ?? ceiling.today))
 
   if (rhythm.counting === 'betrsichv') {
     if ('days' in rhythm.interval) {
       throw new Error('Nach § 14 Abs. 5 BetrSichV zählt eine Frist in Monaten, nicht in Tagen.')
     }
 
-    return underBetrSichV(rhythm, rhythm.interval.months, days)
+    return underBetrSichV(
+      rhythm,
+      (metOn) => {
+        const interval = intervalFor(metOn)
+
+        // A maximum in days cuts an interval in months short as whole months,
+        // rounded down, because the appointment of this counting is a month.
+        return 'months' in interval ? interval.months : Math.max(1, Math.floor(interval.days / 31))
+      },
+      days,
+    )
   }
 
   if (rhythm.counting === 'from_due') {
-    return fromDue(rhythm.interval, days)
+    return fromDue(intervalFor, days)
   }
 
   const last = days.at(-1)
@@ -190,7 +272,7 @@ export function nextAppointment(
     return null
   }
 
-  const dueOn = addInterval(last, rhythm.interval)
+  const dueOn = addInterval(last, intervalFor(undefined))
 
   return { dueOn, onTimeUntil: dueOn }
 }

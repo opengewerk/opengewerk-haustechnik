@@ -38,6 +38,7 @@ import { titleOfRoom } from '../../app/place-records.js'
 import { ReviewMarks } from '../../app/review-marks.js'
 import { useAreas } from '../../session/areas.js'
 import { useCatalogue } from '../../sync/catalogue.js'
+import { DutyUpdatesNote, UpdateMark } from './duty-updates.js'
 import {
   dutyFilterOf,
   dutyPlaces,
@@ -254,6 +255,8 @@ export function DutyRegisterScreen() {
           </InlineButton>
         </NoteBox>
       )}
+      {/* A new version of a package is said above the list, whatever it is narrowed by (#139). */}
+      <DutyUpdatesNote />
       {first !== undefined &&
       first.withoutResponsible > 0 &&
       filter.responsible !== withoutResponsible ? (
@@ -299,19 +302,23 @@ export function DutyRegisterScreen() {
             sub: [
               whereOf(duty).name,
               propertyOf(duty),
-              intervalWords(dutyInterval(duty)),
+              intervalWords(duty.shortened ?? dutyInterval(duty)),
               duty.responsible?.name ?? nobodyWords,
             ]
               .filter((part) => part !== null && part !== '')
               .join(' · '),
-            right: duty.intervalToCheck ? (
-              <div className="flex flex-col items-end gap-1">
+            right:
+              duty.intervalToCheck || duty.updated || duty.shortened ? (
+                <div className="flex flex-col items-end gap-1">
+                  <DutyStandingMark duty={duty} />
+                  {duty.intervalToCheck ? <IntervalCheck /> : null}
+                  {duty.updated || duty.shortened ? (
+                    <UpdateMark shortened={Boolean(duty.shortened)} />
+                  ) : null}
+                </div>
+              ) : (
                 <DutyStandingMark duty={duty} />
-                <IntervalCheck />
-              </div>
-            ) : (
-              <DutyStandingMark duty={duty} />
-            ),
+              ),
           }))}
           footer={
             <>
@@ -375,14 +382,20 @@ export function DutyRegisterScreen() {
                     </div>
                   </Cell>
                   <Cell>
+                    {/* The interval the duty counts with: its own, or the maximum a regulation cut it to (#139). */}
                     <TwoLines
-                      main={intervalWords(dutyInterval(duty))}
+                      main={intervalWords(duty.shortened ?? dutyInterval(duty))}
                       sub={intervalKindWords(duty, catalogue)}
                     />
                     {/* The document that bears the interval has a newer version (#74). */}
                     {duty.intervalToCheck ? (
                       <div className="mt-[3px]">
                         <IntervalCheck />
+                      </div>
+                    ) : null}
+                    {duty.updated || duty.shortened ? (
+                      <div className="mt-[3px]">
+                        <UpdateMark shortened={Boolean(duty.shortened)} />
                       </div>
                     ) : null}
                   </Cell>

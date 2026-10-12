@@ -1,7 +1,7 @@
 # OpenGewerk Haustechnik: Verfahrensbeschreibung für den Stand von Phase 1
 
 - **Gilt für:** noch keine veröffentlichte Fassung (Entwicklungsstand von Phase 1 auf dem Zweig `main`)
-- **Geschrieben:** von Hand, am 05.10.2026, aus dem Planungskonzept v0.11 und gegen den Quelltext geprüft; am 06.10.2026 um die Dateien im Speicher ergänzt (Planungskonzept v0.12) und um das Pflichtenverzeichnis, am selben Tag um die Dokumente (Planungskonzept v0.13) und um die Etiketten; am 08.10.2026 um die Prüfungen und Wartungen (Planungskonzept v0.15) und um den Bericht einer Fremdfirma (Planungskonzept v0.16), am selben Tag um die Mängel (Planungskonzept v0.17) und um den Vorgang von Hand (Planungskonzept v0.18); am 11.10.2026 um die Liegenschaften und das Anlagenverzeichnis als Tabelle und am selben Tag um die übrigen Listen des Büros als Tabelle, mit der Spalte der Person nur für die Leitung; am 12.10.2026 um die Aufgabe, die eine fällige Zählerablesung anlegt (Planungskonzept v0.24)
+- **Geschrieben:** von Hand, am 05.10.2026, aus dem Planungskonzept v0.11 und gegen den Quelltext geprüft; am 06.10.2026 um die Dateien im Speicher ergänzt (Planungskonzept v0.12) und um das Pflichtenverzeichnis, am selben Tag um die Dokumente (Planungskonzept v0.13) und um die Etiketten; am 08.10.2026 um die Prüfungen und Wartungen (Planungskonzept v0.15) und um den Bericht einer Fremdfirma (Planungskonzept v0.16), am selben Tag um die Mängel (Planungskonzept v0.17) und um den Vorgang von Hand (Planungskonzept v0.18); am 11.10.2026 um die Liegenschaften und das Anlagenverzeichnis als Tabelle und am selben Tag um die übrigen Listen des Büros als Tabelle, mit der Spalte der Person nur für die Leitung; am 12.10.2026 um die Aufgabe, die eine fällige Zählerablesung anlegt (Planungskonzept v0.24), und am selben Tag um die neue Fassung eines Pakets an bestätigten Pflichten (Planungskonzept v0.25)
 - **Abgelöst durch:** die Verfahrensbeschreibung, die die Anwendung ab Phase 2 selbst erzeugt
 
 ---
@@ -73,6 +73,7 @@ Anhang B nennt jedes Feld der Datenbank, das auf eine Person zeigt. Dieser Absch
 
 - Eine Pflicht nennt, wer für sie verantwortlich ist und wer sie bestätigt hat; ein verworfener Vorschlag nennt, wer ihn verworfen hat, mit Grund. Das Pflichtenverzeichnis führen die Leitung und die Technische Leitung. [K4.3, B11]
 - Das Pflichtenverzeichnis und die Seite einer Pflicht nennen die verantwortliche Person mit ihrem Namen, und sie sagen es, wenn für eine Pflicht niemand benannt ist. Lesen kann beides, wer Pflichten ansieht, das sind alle vier Rollen, jede in ihren Bereichen. Wer eine Pflicht bestätigt hat, zeigt kein Bildschirm außer dem Änderungsprotokoll. [K4.3, K7, B75]
+- Sagt der Katalog nach einem Update etwas anderes über eine bestätigte Pflicht, entscheidet, wer das Pflichtenverzeichnis führt: die neue Fassung übernehmen, oder die Pflicht mit Begründung lassen, wie sie ist. An der Pflicht stehen danach die Fassung, gegen die entschieden wurde, und die Begründung. Wer entschieden hat, zeigt kein Bildschirm außer dem Änderungsprotokoll, und die Meldung selbst nennt keine Person. [K2.3, K7, B11, B225, B226]
 - **Zusage:** Wer für eine Pflicht verantwortlich ist, legt fest, wer das Pflichtenverzeichnis führt. Zur Wahl bekommt diese Person die Namen derer, die für den Betreiber arbeiten, und ob jemand gesperrt ist; Rolle, E-Mail-Adresse und Anmeldungen nennt die Auswahl nicht. Objektleitung und Haustechnik bekommen die Auswahl nicht. [K4.3, K7, B76, B77]
 - Wer in einer Liste als verantwortlich, zuständig oder ausführend genannt ist, steht in der Tabelle dieser Liste nur für die Leitung; die Liste am Bildschirm nennt die Person weiter jedem, der sie sehen darf (Abschnitt 5). [K3, K9, B186]
 - Eine Frist nennt, wer für sie verantwortlich ist, wen ihre Quelle als verantwortlich nennt und wer sie geschlossen hat. Fristen sehen die Leitung und die Technische Leitung. [K2.4, B10]
@@ -589,6 +590,8 @@ Pfade ohne Vorsatz liegen im Repository `opengewerk/opengewerk-haustechnik`. Pfa
 | B222 | Test | `packages/server/src/api/tasks.test.ts` | `is done once every meter there has its reading for the key date, in the pass in which the deadline moves on` |
 | B223 | Test | `packages/server/src/api/tasks.test.ts` | `is done when nothing there is to be read any more` |
 | B224 | Test | `packages/domain/src/model/deadlines.test.ts` | `give the task to the reading of the meters alone, and say what it is` |
+| B225 | Test | `packages/server/src/api/duty-updates.test.ts` | `asks for the reason, keeps what the catalogue said, and is silent until it says something else` |
+| B226 | Test | `packages/server/src/api/duty-updates.test.ts` | `says who took a new version over and who left a duty as it is, with what was written` |
 
 ---
 

@@ -22,6 +22,7 @@ import { defectListPlace, defectPlaces, defectSearch } from '../defect-addresses
 import { dutyPlaces, dutyRegisterPlace, dutySearch } from '../duty-addresses.js'
 import { officePlaces } from '../place-addresses.js'
 import { DefectStatusMark } from './defects.js'
+import { DutyUpdatesNote } from './duty-updates.js'
 
 export const overviewWords = {
   noConnection: 'Die Übersicht kommt vom Server. Gerade ist keine Verbindung da.',
@@ -190,6 +191,8 @@ export function OverviewScreen() {
             className="grid-cols-2 sm:grid-cols-3 lg:grid-cols-6"
             tiles={tilesOf(read, inArea)}
           />
+          {/* A new version of a package, between the numbers and the lists (#139). */}
+          <DutyUpdatesNote />
           <div className="grid items-start gap-3.5 lg:grid-cols-[minmax(0,1fr)_330px]">
             <SoonTable read={read} inArea={inArea} whereOf={whereOf} />
             <div className="flex min-w-0 flex-col gap-3.5">

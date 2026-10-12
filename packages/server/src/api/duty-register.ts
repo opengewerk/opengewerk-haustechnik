@@ -101,7 +101,7 @@ export function dutyRegisterQuestion(
 
 /** A duty with how it stands today, as the file of an asset and the page of a room read it. */
 export function dutyReading(
-  { duty, standing, lastMetOn, lastEvidence }: RegisteredDuty,
+  { duty, standing, lastMetOn, lastEvidence, shortened, updated }: RegisteredDuty,
   catalogue: Catalogue,
 ): DutyReading {
   return {
@@ -121,6 +121,8 @@ export function dutyReading(
     appointment: standing.appointment,
     lastMetOn,
     lastEvidence,
+    shortened,
+    updated,
   }
 }
 
@@ -243,7 +245,7 @@ export async function registeredEntries(
   const read = rows.map((row) => row.duty as Duty)
   const documents = await intervalDocumentsOf(tx, read)
 
-  return (await dutiesOnADay(tx, today, read)).map((registered) =>
+  return (await dutiesOnADay(tx, today, read, catalogue)).map((registered) =>
     dutyEntry(
       registered,
       (assetOf.get(registered.duty.id) ?? null) as DutyAsset | null,

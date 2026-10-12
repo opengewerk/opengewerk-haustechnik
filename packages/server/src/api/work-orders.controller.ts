@@ -919,7 +919,7 @@ async function dutyTakesAnActivity(
     throw new ConflictException('Eine beendete Pflicht bekommt keinen Vorgang mehr.')
   }
 
-  const [registered] = await dutiesOnADay(tx, today, [duty])
+  const [registered] = await dutiesOnADay(tx, today, [duty], catalogue)
 
   if (registered?.standing.state === 'dormant') {
     throw new ConflictException(

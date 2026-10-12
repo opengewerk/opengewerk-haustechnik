@@ -2,12 +2,17 @@ import {
   type AssetStanding,
   assetStandingOn,
   type Catalogue,
+  ceilingOf,
+  cutShortTo,
+  type DeadlineInterval,
   defectIsOpen,
   type Duty,
   dutyDue,
   dutyInterval,
   type DutyStanding,
   dutyStateOn,
+  dutyUpdate,
+  type FederalState,
   type IsoDate,
   type LastEvidence,
   leadOf,
@@ -28,6 +33,7 @@ import {
   duties,
   evidence,
   evidenceVoidings,
+  properties,
 } from './schema/index.js'
 
 /**
@@ -179,6 +185,61 @@ export async function leadDaysByDuty(tx: TenantTransaction): Promise<(dutyId: st
   return (dutyId) => leadOf(dutyDue, setting, own.get(dutyId) ?? null)
 }
 
+/** The maximum a regulation sets for the interval of a duty on a day, or nothing. */
+export type Ceiling = (day: IsoDate) => DeadlineInterval | null
+
+/**
+ * The maximum the catalogue sets for each duty kind in each federal state on
+ * a day (section 2.3 of the concept, #139), asked of the catalogue once for a
+ * kind, a state and a day: a register asks it for some thousand duties of a
+ * few kinds.
+ */
+export function ceilingsOf(
+  catalogue: Catalogue,
+): (kind: string | null, state: FederalState) => Ceiling {
+  const known = new Map<string, Map<IsoDate, DeadlineInterval | null>>()
+
+  return (kind, state) => {
+    if (kind === null) {
+      return () => null
+    }
+
+    const days = known.get(`${state} ${kind}`) ?? new Map<IsoDate, DeadlineInterval | null>()
+    const ask = ceilingOf(catalogue, kind, state)
+
+    known.set(`${state} ${kind}`, days)
+
+    return (day) => {
+      const found = days.get(day)
+
+      if (found !== undefined) {
+        return found
+      }
+
+      const asked = ask(day)
+
+      days.set(day, asked)
+
+      return asked
+    }
+  }
+}
+
+/**
+ * The federal state of every property the transaction sees: the state the
+ * rules of a duty are read in. A duty is seen with its property, so each
+ * duty finds its own.
+ */
+export async function statesByProperty(
+  tx: TenantTransaction,
+): Promise<ReadonlyMap<string, FederalState>> {
+  return new Map(
+    (
+      await tx.select({ id: properties.id, federalState: properties.federalState }).from(properties)
+    ).map((row) => [row.id as string, row.federalState]),
+  )
+}
+
 /** What the standing of a duty is worked out from. */
 export type CountedDuty = Pick<
   Duty,
@@ -189,6 +250,11 @@ export type CountedDuty = Pick<
 export interface DutyOnADay {
   readonly standing: DutyStanding
   readonly lastMetOn: IsoDate | null
+  /**
+   * The interval it counts with on the day where a regulation cuts its own
+   * short (#139), or nothing: its own interval is within the maximum.
+   */
+  readonly shortened: DeadlineInterval | null
 }
 
 /**
@@ -207,16 +273,25 @@ export function dutyOnADay(
     readonly life: readonly LifeEntry[]
     readonly met: readonly IsoDate[]
     readonly leadDays: number
+    /** The maximum of its kind on a day; without one the duty counts with its own interval on every day. */
+    readonly ceiling?: Ceiling
   },
 ): DutyOnADay {
   const restingOn = (day: IsoDate) =>
     duty.assetId !== null && restsOn(lifecycleStateOn(on.life, day))
   const resting = restingOn(on.today)
+  const { ceiling } = on
   const appointment = nextAppointment(
-    { counting: duty.counting, interval: dutyInterval(duty), outOfServiceOn: restingOn },
+    {
+      counting: duty.counting,
+      interval: dutyInterval(duty),
+      outOfServiceOn: restingOn,
+      ...(ceiling === undefined ? {} : { ceiling: { on: ceiling, today: on.today } }),
+    },
     on.met,
   )
   const lastMetOn = on.met.at(-1) ?? null
+  const shortened = ceiling === undefined ? null : cutShortTo(duty, ceiling(on.today))
 
   if (
     !resting &&
@@ -224,19 +299,40 @@ export function dutyOnADay(
     duty.endsOn !== null &&
     appointment.dueOn >= duty.endsOn
   ) {
-    return { standing: { state: 'met', appointment: null }, lastMetOn }
+    return { standing: { state: 'met', appointment: null }, lastMetOn, shortened }
   }
 
   return {
     standing: dutyStateOn({ appointment, resting, leadDays: on.leadDays, on: on.today }),
     lastMetOn,
+    shortened,
   }
+}
+
+/**
+ * Whether the catalogue says something new about a duty that still stands
+ * (#139): the mark "Neue Fassung" of a row. Asked without the asset, because
+ * a version that no longer takes the asset in is a newer version already.
+ */
+function isUpdated(
+  catalogue: Catalogue,
+  duty: Duty,
+  state: FederalState | undefined,
+  today: IsoDate,
+): boolean {
+  return (
+    state !== undefined &&
+    (duty.endsOn === null || duty.endsOn > today) &&
+    dutyUpdate(catalogue, duty, { state, subject: null }, today) !== null
+  )
 }
 
 /** A duty with how it stands on a day and the evidence its appointment is counted from. */
 export interface StandingDuty extends DutyOnADay {
   readonly duty: Duty
   readonly lastEvidence: LastEvidence | null
+  /** Whether the catalogue says something new about it that nobody decided on yet (#139). */
+  readonly updated: boolean
 }
 
 /** A duty of the register, worked out like the duties in the file of an asset. */
@@ -263,6 +359,7 @@ export async function dutiesOnADay(
   tx: TenantTransaction,
   today: IsoDate,
   rows: readonly Duty[],
+  catalogue: Catalogue,
 ): Promise<RegisteredDuty[]> {
   if (rows.length === 0) {
     return []
@@ -275,18 +372,23 @@ export async function dutiesOnADay(
   const lives = await lifecyclesByAsset(tx, whole ? undefined : assetIds)
   const met = await meetingEvidenceByDuty(tx, whole ? undefined : rows.map((duty) => duty.id))
   const leadDays = await leadDaysByDuty(tx)
+  const states = await statesByProperty(tx)
+  const ceilings = ceilingsOf(catalogue)
 
   return rows.map((duty) => {
     const evidenceOfIt = met.get(duty.id) ?? []
+    const state = states.get(duty.propertyId)
 
     return {
       duty,
       lastEvidence: evidenceOfIt.at(-1) ?? null,
+      updated: isUpdated(catalogue, duty, state, today),
       ...dutyOnADay(duty, {
         today,
         life: duty.assetId === null ? [] : (lives.get(duty.assetId) ?? []),
         met: evidenceOfIt.map((each) => each.performedOn),
         leadDays: leadDays(duty.id),
+        ...(state === undefined ? {} : { ceiling: ceilings(duty.kind, state) }),
       }),
     }
   })
@@ -310,6 +412,7 @@ export interface AssetOnADay extends AssetStanding {
 export async function assetsOnADay(
   tx: TenantTransaction,
   today: IsoDate,
+  catalogue: Catalogue,
   assetIds?: readonly string[],
 ): Promise<(assetId: string) => AssetOnADay> {
   const nothing = assetIds?.length === 0
@@ -330,6 +433,8 @@ export async function assetsOnADay(
     assetIds === undefined ? undefined : running.map((duty) => duty.id),
   )
   const leadDays = await leadDaysByDuty(tx)
+  const states = await statesByProperty(tx)
+  const ceilings = ceilingsOf(catalogue)
   const open = new Map<string, number>()
 
   if (!nothing) {
@@ -350,17 +455,20 @@ export async function assetsOnADay(
   for (const duty of running) {
     const assetId = duty.assetId as string
     const evidenceOfIt = met.get(duty.id) ?? []
+    const state = states.get(duty.propertyId)
 
     dutiesOf.set(assetId, [
       ...(dutiesOf.get(assetId) ?? []),
       {
         duty,
         lastEvidence: evidenceOfIt.at(-1) ?? null,
+        updated: isUpdated(catalogue, duty, state, today),
         ...dutyOnADay(duty, {
           today,
           life: lives.get(assetId) ?? [],
           met: evidenceOfIt.map((each) => each.performedOn),
           leadDays: leadDays(duty.id),
+          ...(state === undefined ? {} : { ceiling: ceilings(duty.kind, state) }),
         }),
       },
     ])

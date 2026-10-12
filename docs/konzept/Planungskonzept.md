@@ -1,6 +1,6 @@
-# OpenGewerk Haustechnik: Planungskonzept (Software für Betreiber und ihre Haustechnik) · v0.24
+# OpenGewerk Haustechnik: Planungskonzept (Software für Betreiber und ihre Haustechnik) · v0.25
 
-2026-10-12 · Eigenständiges Projekt, Repository `opengewerk-haustechnik` in der GitHub-Organisation `opengewerk` · v0.2 trägt die Entscheidungen vom 01.10.2026 ein, v0.3 die Technik, mit der das Fundament eingebunden wird, v0.4 gleicht Abschnitt 5 und die Wortwahl an die ADRs 0002 bis 0006 an, siehe Abschnitt 15; v0.5 sagt in Abschnitt 7, was jede Rolle im Einzelnen darf, v0.6 nennt dort die Rechte für den Abgleich, v0.7 gibt den eigenen Anlagenarten und den Mängelklassen ihre Phase, v0.8 trägt die Entscheidungen vom 04.10.2026 vor dem Bau von Phase 1 ein, v0.9 gibt der Liegenschaft ihre Notiz, v0.10 sagt, wer ihre Ansprechpartner pflegt, v0.11, was eine Schließzeit ist und wer sie einträgt, v0.12 nennt das Recht, Dokumente abzulegen, v0.13 die Rechte, sie anzusehen und zu entfernen, und woran ein Dokument hängt, v0.14, dass eine eigene Pflicht ihre Tätigkeit nennt, v0.15, welcher Vorgang aus welcher Tätigkeit entsteht, v0.16, wie ein Bericht einer Fremdfirma zum Nachweis wird, v0.17, welche Klassen ein Mangel nehmen kann und was eine Nachprüfung festhält, v0.18, wie ein Vorgang von Hand entsteht und mit Grund geschlossen wird, v0.19, dass auch ein Auftrag mit Grund geschlossen wird, v0.20 nennt das Recht, die Vorlagen der Rundgänge zu führen, und wie ein Punkt eine Pflicht erfüllt, v0.21, welche Dokumente eine Frist tragen und wann eine Pflicht „Frist prüfen“ sagt, v0.22 nennt die Rechte an Aufgaben und woran eine Aufgabe hängt, v0.23, wann eine irrtümlich bestätigte oder angelegte Pflicht entfernt und nicht beendet wird, v0.24, welche Frist welche Aktion auslöst (Vergleich mit openMAINT, Atlas CMMS, eTASK, wave Facilities, pitFM, SPARTACUS, Planon, Lumiform, Wowflow und den Excel-Listen, die vielerorts die eigentliche Software sind)
+2026-10-12 · Eigenständiges Projekt, Repository `opengewerk-haustechnik` in der GitHub-Organisation `opengewerk` · v0.2 trägt die Entscheidungen vom 01.10.2026 ein, v0.3 die Technik, mit der das Fundament eingebunden wird, v0.4 gleicht Abschnitt 5 und die Wortwahl an die ADRs 0002 bis 0006 an, siehe Abschnitt 15; v0.5 sagt in Abschnitt 7, was jede Rolle im Einzelnen darf, v0.6 nennt dort die Rechte für den Abgleich, v0.7 gibt den eigenen Anlagenarten und den Mängelklassen ihre Phase, v0.8 trägt die Entscheidungen vom 04.10.2026 vor dem Bau von Phase 1 ein, v0.9 gibt der Liegenschaft ihre Notiz, v0.10 sagt, wer ihre Ansprechpartner pflegt, v0.11, was eine Schließzeit ist und wer sie einträgt, v0.12 nennt das Recht, Dokumente abzulegen, v0.13 die Rechte, sie anzusehen und zu entfernen, und woran ein Dokument hängt, v0.14, dass eine eigene Pflicht ihre Tätigkeit nennt, v0.15, welcher Vorgang aus welcher Tätigkeit entsteht, v0.16, wie ein Bericht einer Fremdfirma zum Nachweis wird, v0.17, welche Klassen ein Mangel nehmen kann und was eine Nachprüfung festhält, v0.18, wie ein Vorgang von Hand entsteht und mit Grund geschlossen wird, v0.19, dass auch ein Auftrag mit Grund geschlossen wird, v0.20 nennt das Recht, die Vorlagen der Rundgänge zu führen, und wie ein Punkt eine Pflicht erfüllt, v0.21, welche Dokumente eine Frist tragen und wann eine Pflicht „Frist prüfen“ sagt, v0.22 nennt die Rechte an Aufgaben und woran eine Aufgabe hängt, v0.23, wann eine irrtümlich bestätigte oder angelegte Pflicht entfernt und nicht beendet wird, v0.24, welche Frist welche Aktion auslöst, v0.25, was eine neue Fassung eines Pakets für eine bestätigte Pflicht heißt (Vergleich mit openMAINT, Atlas CMMS, eTASK, wave Facilities, pitFM, SPARTACUS, Planon, Lumiform, Wowflow und den Excel-Listen, die vielerorts die eigentliche Software sind)
 
 Self-hosted Open-Source-System für alle, die Gebäude betreiben und dafür eigene Haustechniker haben. Liegenschaften, Gebäude, Räume und technische Anlagen stehen in einem Datenmodell. Die Betreiberpflichten hängen daran als überwachte Fristen, Rundgänge und Prüfungen laufen auf dem Telefon auch ohne Netz, und zu jeder Pflicht gibt es einen Nachweis, der sich nachträglich nicht ändern lässt.
 
@@ -131,7 +131,12 @@ Der Zustand einer Anlage (in Ordnung, fällig, überfällig, nie geprüft, Mange
 - trägt die tatsächliche Frist, ihre Begründung, auf Wunsch den Verweis auf das Dokument, das die Frist trägt (4.3), den Verantwortlichen (aus der Pflichtenübertragung, 4.3) und wer ausführt (eigene Leute oder eine Fremdfirma mit Vertrag)
 - ihr Zustand ist abgeleitet: **nie erfasst** (Pflicht bestätigt, aber kein Nachweis und kein Termin), **überfällig**, **fällig**, **erfüllt bis**, **ruht** (Anlage außer Betrieb). „Nie erfasst“ ist ein eigener Zustand vor „überfällig“, weil das eine nach einer Ersterfassung ruft und das andere nach einer Prüfung
 
-Eine neue Fassung eines Pakets ändert bestätigte Pflichten nicht still. Sie meldet sich: „Für 12 Anlagen gilt ab dem 01.01. eine kürzere Frist“, und der Betreiber übernimmt. Je betroffener Pflicht übernimmt er die neue Fassung oder lässt die Pflicht, wie sie ist, mit Begründung.
+Eine neue Fassung eines Pakets ändert bestätigte Pflichten nicht still. Sie meldet sich: „Für 12 Pflichten gilt ab dem 01.01. eine kürzere Frist“, und der Betreiber entscheidet je betroffener Pflicht, auch im Stapel für gleichartige: er übernimmt die neue Fassung, oder er lässt die Pflicht, wie sie ist, mit Begründung. Bis dahin gilt die bestätigte Pflicht weiter und ist gekennzeichnet, im Pflichtenverzeichnis, an der Pflicht und in der Übersicht.
+
+- Gemeldet wird eine neuere Fassung der Pflichtart und ein anderer Wert der Regel ihrer Frist, auch ein berichtigter, mit dem, was sich ändert (Bezeichnung, Fundstelle, Art der Frist, Frist der Vorschrift, Zählweise, Qualifikation) und ab wann
+- **Eine kürzere Höchstfrist gilt ab ihrem Stichtag von selbst, und zwar sichtbar**: von diesem Tag an rechnet der Termin mit ihr, die Pflicht sagt „Durch Vorschrift verkürzt“ und nennt weiter die Frist, mit der sie bestätigt wurde, und die Meldung bleibt, bis jemand übernimmt. Der Betreiber überschreibt keine Vorschrift (Leitentscheidung 3)
+- Lassen mit Begründung gibt es deshalb nur, wo die Frist der Pflicht innerhalb der neuen Höchstfrist liegt. Eine so gelassene Pflicht wird erst wieder gemeldet, wenn der Katalog erneut etwas anderes sagt
+- Gilt eine Pflichtart nach der neuen Fassung für eine Anlage nicht mehr, wird das gemeldet, und nichts wird gelöscht: die Pflicht bleibt, bis jemand sie beendet oder mit Begründung lässt
 
 ### 2.4 Fristen-Engine
 
@@ -740,7 +745,7 @@ Die offenen Fragen aus v0.1 sind am 01.10.2026 entschieden worden, die Phasen de
 | Verweis auf das Dokument, das eine Frist trägt | In Phase 1, empfohlen und nicht verlangt | 4.3 |
 | Unterschrift ohne Schriftzug | Name tippen und bestätigen; der Nachweis sagt, welcher Weg es war | 2.6 |
 | Export | Jede Liste im Büro in Phase 1, der Datenexport eines Rundgangs und der Export für Auswertungen in Phase 2 | 3, 12 |
-| Neue Fassung eines Pakets | Die Meldung an bestätigte Pflichten kommt am Ende von Phase 1 | 2.3, 12 |
+| Neue Fassung eines Pakets | Die Meldung an bestätigte Pflichten kommt am Ende von Phase 1. Eine kürzere Höchstfrist gilt ab ihrem Stichtag von selbst und sichtbar; lassen mit Begründung nur, wo die Frist der Pflicht innerhalb der neuen Höchstfrist liegt (11.10.2026) | 2.3, 12 |
 | Unterlagen für unterwegs | Phase 2 | 2.7, 12 |
 | Altbestand | Je Pflicht ein Nachweis mit der Herkunft „Altbestand“; offene Aufträge bleiben in der Vorgängeranwendung | 2.6, 11 |
 | Mögliche Dublette bei der Bestandsaufnahme | Ein Konflikt auf dem Gerät | 2.7, 4.2 |
@@ -758,6 +763,10 @@ Die offenen Fragen aus v0.1 sind am 01.10.2026 entschieden worden, die Phasen de
 ---
 
 ## 16. Änderungsprotokoll
+
+### v0.24 → v0.25
+
+- Was eine neue Fassung eines Pakets für eine bestätigte Pflicht heißt, steht in 2.3: gemeldet werden eine neuere Fassung der Pflichtart und ein anderer Wert der Regel ihrer Frist, der Betreiber übernimmt oder lässt mit Begründung, und eine kürzere Höchstfrist gilt ab ihrem Stichtag von selbst und sichtbar; lassen gibt es dann nur, wo die Frist der Pflicht innerhalb der neuen Höchstfrist liegt. Entschieden am 11.10.2026 (2.3, 15)
 
 ### v0.23 → v0.24
 

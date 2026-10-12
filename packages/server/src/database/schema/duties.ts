@@ -75,6 +75,13 @@ function intervalBounds(days: unknown, months: unknown) {
  * refuses a longer interval: a confirmed duty does not change quietly when the
  * law does (section 2.3), and a maximum may only be shortened.
  *
+ * A new version of a package does not change a confirmed duty quietly either
+ * (ADR 0005, point 10, #139). Beside the maximum stands the guide of the day
+ * the duty was confirmed, so that a guide corrected later is noticed, and
+ * what the catalogue said when the operator left the duty as it is: the
+ * newest version of its kind, the value of the rule of its interval, and the
+ * reason. Who decided and when, the log of changes says.
+ *
  * The document that bears the interval, on request (section 4.3, #74): a
  * document of the same property, with the version of the day the reference
  * was set, both or neither. The keys hold that the document is one of the
@@ -105,6 +112,12 @@ export const duties = pgTable(
     intervalDocumentVersionId: reference<'attachment-version'>('interval_document_version_id'),
     maximumDays: integer('maximum_days'),
     maximumMonths: integer('maximum_months'),
+    guideDays: integer('guide_days'),
+    guideMonths: integer('guide_months'),
+    keptVersion: integer('kept_version'),
+    keptDays: integer('kept_days'),
+    keptMonths: integer('kept_months'),
+    keptReason: text('kept_reason'),
     responsibleUserId: text('responsible_user_id'),
     performer: dutyPerformer('performer'),
     performerNote: text('performer_note'),
@@ -237,6 +250,40 @@ export const duties = pgTable(
       sql`(${table.maximumDays} is null or ${table.intervalDays} <= ${table.maximumDays})
         and (${table.maximumMonths} is null or ${table.intervalMonths} <= ${table.maximumMonths})`,
     ),
+    check('duties_guide_one_unit', sql`${table.guideDays} is null or ${table.guideMonths} is null`),
+    check(
+      'duties_guide_in_bounds',
+      sql`(${table.guideDays} is null or ${table.guideDays} >= 1)
+      and (${table.guideMonths} is null or ${table.guideMonths} >= 1)`,
+    ),
+    // A maximum or a guide, never both: a kind names one kind of interval.
+    check(
+      'duties_maximum_or_guide',
+      sql`num_nonnulls(${table.maximumDays}, ${table.maximumMonths}) = 0
+        or num_nonnulls(${table.guideDays}, ${table.guideMonths}) = 0`,
+    ),
+    // Left as it is: against a version of its kind, with the reason, and the
+    // value of the rule only beside both.
+    check(
+      'duties_kept_whole',
+      sql`(${table.keptVersion} is null) = (${table.keptReason} is null)
+        and (${table.keptVersion} is not null or num_nonnulls(${table.keptDays}, ${table.keptMonths}) = 0)`,
+    ),
+    check(
+      'duties_kept_from_the_catalogue',
+      sql`${table.keptVersion} is null or ${table.kind} is not null`,
+    ),
+    check(
+      'duties_kept_version_shaped',
+      sql`${table.keptVersion} is null or ${table.keptVersion} >= 1`,
+    ),
+    check('duties_kept_one_unit', sql`${table.keptDays} is null or ${table.keptMonths} is null`),
+    check(
+      'duties_kept_in_bounds',
+      sql`(${table.keptDays} is null or ${table.keptDays} >= 1)
+      and (${table.keptMonths} is null or ${table.keptMonths} >= 1)`,
+    ),
+    check('duties_kept_reason_shaped', optionalTrimmed(table.keptReason, dutyLimits.keptReason)),
     // § 14 Abs. 5 BetrSichV gives the appointment as a month.
     check(
       'duties_betrsichv_in_months',

@@ -1,4 +1,4 @@
-import type { IsoDate } from '@opengewerk/platform-domain'
+import type { DeadlineInterval, IsoDate } from '@opengewerk/platform-domain'
 
 import type { Asset, AssetSupply, LifecycleEntry, LifecycleState } from './asset.js'
 import type { DefectStatus } from './defect.js'
@@ -201,6 +201,13 @@ export interface DutyReading extends Pick<
   readonly lastMetOn: IsoDate | null
   /** That evidence, which the row links to. */
   readonly lastEvidence: LastEvidence | null
+  /**
+   * The interval it counts with today where a regulation cuts its own short
+   * (section 2.3, #139), or null: "durch Vorschrift verkürzt".
+   */
+  readonly shortened: DeadlineInterval | null
+  /** Whether the catalogue says something new about it that nobody decided on yet: "Neue Fassung". */
+  readonly updated: boolean
 }
 
 /** The last evidence that met a duty, as a row names it and links to its page. */

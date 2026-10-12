@@ -443,6 +443,22 @@ describe('an evidence written down', () => {
     expect(written.state.retention).toEqual({ kind: 'while_in_use', on: '2026-10-01' })
   })
 
+  it('states the interval the duty counted with on the day, where a regulation cut its own short (#139)', async () => {
+    const place = await placeIn()
+    // Three years at the duty; the catalogue allows two on the day.
+    const duty = await dutyOfKind(place, mainTest, 36)
+    const written = await write({
+      ...protocol(duty, null),
+      origin: 'report',
+      result: 'without_defects',
+      performedBy: null,
+      examiner: { name: 'Erika Muster', organisation: 'Prüfstelle Süd' },
+      signatures: [],
+    })
+
+    expect(written.state.duty.interval).toEqual({ months: 24 })
+  })
+
   it('stands with its fingerprint in the log', async () => {
     const place = await placeIn()
     const duty = await dutyOfKind(place, keptTest)

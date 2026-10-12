@@ -19,9 +19,11 @@ import {
   type AssetId,
   type AttachmentVersionId,
   batchAssetsProblem,
+  batchDutiesProblem,
   type Building,
   type Catalogue,
   type CatalogueEntry,
+  ceilingOf,
   type Counting,
   type DeadlineInterval,
   dismissalProblems,
@@ -44,6 +46,8 @@ import {
   type DutyReading,
   type DutyRegister,
   dutyTableWords,
+  dutyUpdate,
+  type DutyUpdates,
   dutyTaskLabel,
   dutyTasks,
   type FederalState,
@@ -55,6 +59,7 @@ import {
   intervalWords,
   isAllowed,
   type IsoDate,
+  keepingProblems,
   missingRight,
   namesAPerson,
   type Property,
@@ -99,6 +104,7 @@ import { RequiresPermission } from './authorization.js'
 import { listedEvidence } from './evidence.controller.js'
 import { dutyProposalFilter, dutyProposals } from './duty-proposals.js'
 import { dutyReading, dutyRegister, dutyRegisterQuestion } from './duty-register.js'
+import { decideUpdates, dutyUpdates, updatePlaceOf } from './duty-updates.js'
 import { dutyTable, proposalTable, wholeList } from './office-tables.js'
 import { said } from './register-question.js'
 import { type Asking, fieldsOf, placeOf, refuse } from './places.js'
@@ -464,12 +470,16 @@ function kindFor(catalogue: Catalogue, key: unknown, assetKind: string | null, o
   return entry
 }
 
-/** What a duty is confirmed with: its kind and version, its counting, the maximum kept beside it and its interval. */
+/**
+ * What a duty is confirmed with: its kind and version, its counting, the
+ * maximum or the guide kept beside it (#139) and its interval.
+ */
 interface Decided {
   readonly kind: string | null
   readonly kindVersion: number | null
   readonly counting: Counting
   readonly maximum: DeadlineInterval | null
+  readonly guide: DeadlineInterval | null
   readonly interval: DeadlineInterval
 }
 
@@ -574,7 +584,7 @@ async function confirmedFromTheCatalogue(
       ),
     )
 
-  return { kind: entry.key, kindVersion: entry.version, counting, maximum, interval }
+  return { kind: entry.key, kindVersion: entry.version, counting, maximum, guide, interval }
 }
 
 /** The row of a new duty: where it hangs, what it is, its interval and who answers for it. */
@@ -585,7 +595,7 @@ function dutyRow(
   values: Values,
   document: IntervalDocumentColumns = noIntervalDocument,
 ) {
-  const { interval, maximum } = decided
+  const { interval, maximum, guide } = decided
 
   return {
     tenantId: identity.tenantId,
@@ -607,6 +617,8 @@ function dutyRow(
     ...document,
     maximumDays: maximum !== null && 'days' in maximum ? maximum.days : null,
     maximumMonths: maximum !== null && 'months' in maximum ? maximum.months : null,
+    guideDays: guide !== null && 'days' in guide ? guide.days : null,
+    guideMonths: guide !== null && 'months' in guide ? guide.months : null,
     responsibleUserId: (values.responsibleUserId ?? null) as string | null,
     performer: (values.performer ?? null) as Duty['performer'],
     performerNote: (values.performerNote ?? null) as string | null,
@@ -844,6 +856,60 @@ export class DutiesController {
   }
 
   /**
+   * The duties the catalogue of this server says something new about (#139,
+   * section 2.3 of the concept): a newer version of their kind, or another
+   * value of the rule of their interval, with what changes and from when.
+   * Whoever reads duties reads it; deciding on one is keeping the register.
+   *
+   * Before the page of a duty, like the register.
+   */
+  @Get('updates')
+  @RequiresPermission('duty.read')
+  updates(@CurrentIdentity() identity: Asking): Promise<DutyUpdates> {
+    return this.database.forTenant(identity, (tx) =>
+      dutyUpdates(tx, this.catalogue, dayInGermany()),
+    )
+  }
+
+  /**
+   * The newest version of their kind taken over by many duties at once: each
+   * names it, counts as it says and carries the value of its rule, and its
+   * interval is cut to a new maximum where it lay beyond. One transaction,
+   * all of them or none.
+   */
+  @Post('updates/adopt')
+  @RequiresPermission('duty.write')
+  adopt(@CurrentIdentity() identity: Asking, @Body() body: unknown): Promise<Duty[]> {
+    const dutyIds = (body as { dutyIds?: unknown } | null)?.dutyIds
+
+    refuse(problemOf('dutyIds', batchDutiesProblem(dutyIds)))
+
+    return this.database.forTenant(identity, (tx) =>
+      decideUpdates(tx, this.catalogue, dayInGermany(), dutyIds as readonly string[], 'adopt'),
+    )
+  }
+
+  /**
+   * Many duties left as they are against what the catalogue says, with one
+   * reason. Refused for a duty whose interval lies beyond a new maximum: the
+   * operator overrides no regulation. One transaction, all of them or none.
+   */
+  @Post('updates/keep')
+  @RequiresPermission('duty.write')
+  keep(@CurrentIdentity() identity: Asking, @Body() body: unknown): Promise<Duty[]> {
+    const values = fieldsOf(body, ['reason'] as const)
+    const dutyIds = (body as { dutyIds?: unknown } | null)?.dutyIds
+
+    refuse({ ...keepingProblems(values), ...problemOf('dutyIds', batchDutiesProblem(dutyIds)) })
+
+    return this.database.forTenant(identity, (tx) =>
+      decideUpdates(tx, this.catalogue, dayInGermany(), dutyIds as readonly string[], {
+        keep: values.reason as string,
+      }),
+    )
+  }
+
+  /**
    * The register as a table (#236): every duty the filters of the list pass,
    * and not a page, in the order of the register, as a workbook or as text
    * (`?format=xlsx` or `csv`). Whoever reads the register reads its table,
@@ -966,7 +1032,7 @@ export class DutiesController {
     const today = dayInGermany()
     const read = await this.database.forTenant(identity, async (tx) => {
       const duty = await placeOf<Duty>(tx, duties, id, missing)
-      const [registered] = await dutiesOnADay(tx, today, [duty])
+      const [registered] = await dutiesOnADay(tx, today, [duty], this.catalogue)
       const [asset] =
         duty.assetId === null
           ? []
@@ -993,6 +1059,7 @@ export class DutiesController {
         activity: underWay.get(duty.id) ?? null,
         removable: !(await leftARecord(tx, identity.tenantId, duty.id)),
         document: (await intervalDocumentsOf(tx, [duty])).get(duty.id) ?? null,
+        place: await updatePlaceOf(tx, duty),
       }
     })
     const { duty, registered, activity, document } = read
@@ -1005,6 +1072,11 @@ export class DutiesController {
       state: registered?.standing.state ?? 'never_recorded',
       appointment: registered?.standing.appointment ?? null,
       lastMetOn: registered?.lastMetOn ?? null,
+      shortened: registered?.shortened ?? null,
+      // What the catalogue says differently, until somebody decides (#139);
+      // nothing for a duty that has ended, which changes no more.
+      update:
+        ended || read.place === null ? null : dutyUpdate(this.catalogue, duty, read.place, today),
       ended,
       removable: read.removable,
       asset: read.asset,
@@ -1122,6 +1194,7 @@ export class DutiesController {
           kindVersion: null,
           counting,
           maximum: null,
+          guide: null,
           interval: intervalIn(values),
         }
       }
@@ -1245,6 +1318,20 @@ export class DutiesController {
 
       if (problem !== null) {
         throw new BadRequestException(problem)
+      }
+
+      // A regulation that shortened the maximum since the duty was confirmed
+      // holds for an interval set now as well (#139): no interval is saved
+      // that the appointment would not count with.
+      if (intervalChanged && duty.kind !== null) {
+        const property = await placeOf<Property>(tx, properties, duty.propertyId, missingProperty)
+        const inForce = ceilingOf(this.catalogue, duty.kind, property.federalState)(today)
+        const beyond =
+          inForce === null ? null : dutyIntervalProblem(interval, duty.counting, inForce)
+
+        if (beyond !== null) {
+          throw new BadRequestException(beyond)
+        }
       }
 
       // Asked where the interval or its reason is what changes. A duty that
@@ -1389,7 +1476,7 @@ export class RoomDutiesController {
           .where(and(eq(duties.roomId, room.id as RoomId), isNull(duties.deletedAt)))) as Duty[]
       ).filter((duty) => !dutyHasEnded(duty, today))
 
-      return (await dutiesOnADay(tx, today, running))
+      return (await dutiesOnADay(tx, today, running, this.catalogue))
         .map((registered) => dutyReading(registered, this.catalogue))
         .sort((left, right) => left.title.localeCompare(right.title, 'de'))
     })
