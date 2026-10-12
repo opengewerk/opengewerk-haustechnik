@@ -1,0 +1,4 @@
+ALTER TABLE "assets" ADD COLUMN "replaces_asset_id" uuid;--> statement-breakpoint
+ALTER TABLE "assets" ADD CONSTRAINT "assets_replace_one_of_their_property" FOREIGN KEY ("tenant_id","replaces_asset_id","property_id") REFERENCES "public"."assets"("tenant_id","id","property_id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+CREATE UNIQUE INDEX "assets_replaced_once" ON "assets" USING btree ("tenant_id","replaces_asset_id") WHERE "assets"."replaces_asset_id" is not null and "assets"."deleted_at" is null;--> statement-breakpoint
+ALTER TABLE "assets" ADD CONSTRAINT "assets_not_their_own_successor" CHECK ("assets"."replaces_asset_id" is distinct from "assets"."id");

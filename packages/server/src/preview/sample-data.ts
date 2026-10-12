@@ -100,6 +100,19 @@ interface SampleAsset {
   readonly documents?: readonly SampleDocument[]
   /** A label on it: a valid one, or one that was lost and blocked, with no new one made yet. */
   readonly label?: 'valid' | 'blocked'
+  /**
+   * Exchanged some days ago for a new asset of its kind, as the office does
+   * it (#89): this one is removed and keeps its file, the new one stands
+   * where it stood, and each names the other.
+   */
+  readonly exchanged?: {
+    readonly daysAgo: number
+    readonly successor: {
+      readonly name: string
+      readonly manufacturer?: string
+      readonly serialNumber?: string
+    }
+  }
 }
 
 /**
@@ -268,6 +281,19 @@ const waterMeter = (
   components,
   ...further,
 })
+
+/**
+ * The exchange among the sample assets (#89): the luminaire in the staircase
+ * of the residential building went three weeks ago, and an LED one came.
+ */
+export const exchangedSample = {
+  daysAgo: 21,
+  successor: {
+    name: 'Sicherheitsleuchte Treppenhaus LED',
+    manufacturer: 'Beispiellicht',
+    serialNumber: 'SL-2026-0907',
+  },
+} as const
 
 export const sampleProperties: readonly SampleProperty[] = [
   {
@@ -735,6 +761,20 @@ export const sampleProperties: readonly SampleProperty[] = [
             values: { firefighters_lift: false, stops: 5 },
           },
           waterMeter('Hauptwasserzähler Haus 2', 'WZ-4001', 'K.01'),
+          // Exchanged three weeks ago (#89): the old luminaire is removed and
+          // keeps its file, the new one stands in the staircase and names
+          // it, and the catalogue proposes its duties anew. The last asset of
+          // the sample, so that no number before it moves.
+          {
+            kind: 'elektro.safety_lighting',
+            name: 'Sicherheitsleuchte Treppenhaus',
+            manufacturer: 'Beispiellicht',
+            serialNumber: 'SL-2011-0412',
+            yearBuilt: 2011,
+            values: {},
+            room: 'E.01',
+            exchanged: exchangedSample,
+          },
         ],
       },
     ],
@@ -1038,6 +1078,7 @@ async function plantAsset(
     documents = [],
     defects = [],
     label,
+    exchanged,
     ...fields
   } = asset
   const roomId = room === undefined ? undefined : rooms.get(room)
@@ -1110,6 +1151,15 @@ async function plantAsset(
       supplying,
       standings,
     )
+  }
+
+  // Last, at the route of the exchange: what was planted at the old asset
+  // ends with it, as it does in the office.
+  if (exchanged !== undefined) {
+    await send(address, `/assets/${created.id}/exchange`, {
+      on: daysAhead(-exchanged.daysAgo),
+      asset: { kind: asset.kind, ...exchanged.successor },
+    })
   }
 }
 

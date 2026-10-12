@@ -91,6 +91,9 @@ export const assets = pgTable(
       .$type<readonly AssetId[]>()
       .notNull()
       .default(sql`'{}'::uuid[]`),
+    // The asset this one took the place of in an exchange (section 4.2 of the
+    // concept, #89). Said once, by the exchange, and never by a device.
+    replacesAssetId: reference<'asset'>('replaces_asset_id'),
     ...timestamps,
     ...syncColumns,
   },
@@ -133,11 +136,23 @@ export const assets = pgTable(
       foreignColumns: [table.tenantId, table.id, table.buildingId, table.propertyId],
       name: 'components_in_the_building_of_their_asset',
     }).onUpdate('cascade'),
+    // An asset takes the place of one of its property: the new one stands
+    // where the old one stood, and an asset never leaves its property.
+    foreignKey({
+      columns: [table.tenantId, table.replacesAssetId, table.propertyId],
+      foreignColumns: [table.tenantId, table.id, table.propertyId],
+      name: 'assets_replace_one_of_their_property',
+    }),
     index('assets_building_idx').on(table.tenantId, table.buildingId),
     index('assets_parent_idx').on(table.tenantId, table.parentAssetId),
     uniqueIndex('assets_number_once')
       .on(table.tenantId, table.number)
       .where(sql`${table.number} is not null`),
+    // An asset is replaced once. A successor entered by mistake and marked
+    // makes room for the one that is meant.
+    uniqueIndex('assets_replaced_once')
+      .on(table.tenantId, table.replacesAssetId)
+      .where(sql`${table.replacesAssetId} is not null and ${table.deletedAt} is null`),
     check('assets_kind_shaped', trimmed(table.kind, assetLimits.kind)),
     check('assets_name_shaped', trimmed(table.name, assetLimits.name)),
     check('assets_number_shaped', optionalTrimmed(table.number, 40)),
@@ -169,6 +184,10 @@ export const assets = pgTable(
     check(
       'assets_not_their_own_component',
       sql`${table.parentAssetId} is distinct from ${table.id}`,
+    ),
+    check(
+      'assets_not_their_own_successor',
+      sql`${table.replacesAssetId} is distinct from ${table.id}`,
     ),
   ],
 )

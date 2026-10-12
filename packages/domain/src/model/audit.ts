@@ -120,6 +120,7 @@ export const auditVocabulary: AuditVocabulary = {
         meter_number: 'Zählernummer',
         meter_unit: 'Einheit des Zählers',
         distinct_from: 'Keine Dublette von',
+        replaces_asset_id: 'Ersetzt',
       },
     },
     asset_lifecycle: {
@@ -556,6 +557,7 @@ export const auditVocabulary: AuditVocabulary = {
     room_id: 'rooms',
     asset_id: 'assets',
     parent_asset_id: 'assets',
+    replaces_asset_id: 'assets',
     main_meter_id: 'assets',
     corrects_id: 'meter_readings',
     duty_id: 'duties',

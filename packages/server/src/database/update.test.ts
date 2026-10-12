@@ -148,6 +148,7 @@ describe('an installation that began on the first migration', () => {
     // settings of the deadlines hang on nothing of this.
     // The plans of the rounds hang on the places and the templates (#113),
     // the notes on a work order on its activity (#118).
+    await revertMigration(admin, '0042_asset_exchange')
     await revertMigration(admin, '0041_duty_updates')
     await revertMigration(admin, '0040_deadline_task')
     await revertMigration(admin, '0039_tasks')
@@ -326,6 +327,7 @@ describe('an installation from before the areas', () => {
     // The places hang on the areas and go first, as on the way back of an
     // installation, and so does what an invitation says about areas.
     // The plans of the rounds hang on the places and the templates (#113).
+    await revertMigration(admin, '0042_asset_exchange')
     await revertMigration(admin, '0041_duty_updates')
     await revertMigration(admin, '0040_deadline_task')
     await revertMigration(admin, '0039_tasks')
@@ -414,6 +416,7 @@ describe('an installation with places', () => {
     )
 
     // The plans of the rounds hang on the places and the templates (#113).
+    await revertMigration(admin, '0042_asset_exchange')
     await revertMigration(admin, '0041_duty_updates')
     await revertMigration(admin, '0040_deadline_task')
     await revertMigration(admin, '0039_tasks')
@@ -527,6 +530,7 @@ describe('an installation with assets', () => {
       [tenant.id, asset, at.property, at.area, at.building],
     )
 
+    await revertMigration(admin, '0042_asset_exchange')
     await revertMigration(admin, '0041_duty_updates')
     await revertMigration(admin, '0040_deadline_task')
     await revertMigration(admin, '0039_tasks')
@@ -647,6 +651,7 @@ describe('an installation with assets', () => {
       [tenant.id, at.property, at.area, at.asset],
     )
 
+    await revertMigration(admin, '0042_asset_exchange')
     await revertMigration(admin, '0041_duty_updates')
     await revertMigration(admin, '0040_deadline_task')
     await revertMigration(admin, '0039_tasks')
@@ -768,6 +773,7 @@ describe('an installation with assets', () => {
       [tenant.id, at.duty, at.property, at.area],
     )
 
+    await revertMigration(admin, '0042_asset_exchange')
     await revertMigration(admin, '0041_duty_updates')
     await revertMigration(admin, '0040_deadline_task')
     await revertMigration(admin, '0039_tasks')
@@ -892,6 +898,7 @@ describe('an installation with assets', () => {
       [tenant.id, at.property, at.area, at.asset, activityId],
     )
 
+    await revertMigration(admin, '0042_asset_exchange')
     await revertMigration(admin, '0041_duty_updates')
     await revertMigration(admin, '0040_deadline_task')
     await revertMigration(admin, '0039_tasks')
@@ -1009,6 +1016,7 @@ describe('an installation with assets', () => {
       ],
     )
 
+    await revertMigration(admin, '0042_asset_exchange')
     await revertMigration(admin, '0041_duty_updates')
     await revertMigration(admin, '0040_deadline_task')
     await revertMigration(admin, '0039_tasks')
@@ -1126,6 +1134,7 @@ describe('an installation with assets', () => {
       [at.order],
     )
 
+    await revertMigration(admin, '0042_asset_exchange')
     await revertMigration(admin, '0041_duty_updates')
     await revertMigration(admin, '0040_deadline_task')
     await revertMigration(admin, '0039_tasks')
@@ -1250,6 +1259,7 @@ describe('an installation with assets', () => {
       [tenant.id, at.property, at.area, correction],
     )
 
+    await revertMigration(admin, '0042_asset_exchange')
     await revertMigration(admin, '0041_duty_updates')
     await revertMigration(admin, '0040_deadline_task')
     await revertMigration(admin, '0039_tasks')
@@ -1321,6 +1331,7 @@ describe('an installation with assets', () => {
     expect(await mayCall('public')).toBe(false)
     expect(await mayCall('opengewerk_app')).toBe(true)
 
+    await revertMigration(admin, '0042_asset_exchange')
     await revertMigration(admin, '0041_duty_updates')
     await revertMigration(admin, '0040_deadline_task')
     await revertMigration(admin, '0039_tasks')
@@ -1384,6 +1395,7 @@ describe('an installation whose invitations name areas', () => {
       [tenant.id, invitation],
     )
 
+    await revertMigration(admin, '0042_asset_exchange')
     await revertMigration(admin, '0041_duty_updates')
     await revertMigration(admin, '0040_deadline_task')
     await revertMigration(admin, '0039_tasks')
@@ -1461,6 +1473,7 @@ describe('an installation whose properties carry notes', () => {
       [tenant.id],
     )
 
+    await revertMigration(admin, '0042_asset_exchange')
     await revertMigration(admin, '0041_duty_updates')
     await revertMigration(admin, '0040_deadline_task')
     await revertMigration(admin, '0039_tasks')
@@ -1551,6 +1564,7 @@ describe('an installation whose properties have people to talk to', () => {
       [tenant.id, property?.id, property?.area_id],
     )
 
+    await revertMigration(admin, '0042_asset_exchange')
     await revertMigration(admin, '0041_duty_updates')
     await revertMigration(admin, '0040_deadline_task')
     await revertMigration(admin, '0039_tasks')
@@ -1644,6 +1658,7 @@ describe('an installation whose buildings have times they are closed', () => {
       [tenant.id, building, property?.id, property?.area_id],
     )
 
+    await revertMigration(admin, '0042_asset_exchange')
     await revertMigration(admin, '0041_duty_updates')
     await revertMigration(admin, '0040_deadline_task')
     await revertMigration(admin, '0039_tasks')
@@ -1763,6 +1778,7 @@ describe('an installation that imported from tables', () => {
 
     expect(await quietTables()).toEqual(['assets', 'buildings', 'floors', 'properties', 'rooms'])
 
+    await revertMigration(admin, '0042_asset_exchange')
     await revertMigration(admin, '0041_duty_updates')
     await revertMigration(admin, '0040_deadline_task')
     await revertMigration(admin, '0039_tasks')
@@ -1906,6 +1922,7 @@ describe('an installation that took stock on site', () => {
       second[0]?.id,
     ])
 
+    await revertMigration(admin, '0042_asset_exchange')
     await revertMigration(admin, '0041_duty_updates')
     await revertMigration(admin, '0040_deadline_task')
     await revertMigration(admin, '0039_tasks')
@@ -2007,6 +2024,7 @@ describe('an installation with labels', () => {
       [tenant.id, property?.id, property?.area_id, stood[0]?.id],
     )
 
+    await revertMigration(admin, '0042_asset_exchange')
     await revertMigration(admin, '0041_duty_updates')
     await revertMigration(admin, '0040_deadline_task')
     await revertMigration(admin, '0039_tasks')
@@ -2121,6 +2139,7 @@ describe('an installation whose activities have answers', () => {
       [tenant.id, property?.id, property?.area_id, activity, 'a'.repeat(64)],
     )
 
+    await revertMigration(admin, '0042_asset_exchange')
     await revertMigration(admin, '0041_duty_updates')
     await revertMigration(admin, '0040_deadline_task')
     await revertMigration(admin, '0039_tasks')
@@ -2324,6 +2343,7 @@ describe('an installation with documents', () => {
       [tenant.id, filed[0]?.id, file],
     )
 
+    await revertMigration(admin, '0042_asset_exchange')
     await revertMigration(admin, '0041_duty_updates')
     await revertMigration(admin, '0040_deadline_task')
     await revertMigration(admin, '0039_tasks')
@@ -2398,5 +2418,89 @@ describe('an installation with documents', () => {
       { table_name: 'attachment_versions', reason: 'migration', records: 2 },
       { table_name: 'attachments', reason: 'migration', records: 1 },
     ])
+  })
+})
+
+/**
+ * An installation on which an asset was exchanged (#89): taking 0042 back
+ * costs it which asset took the place of which, and nothing else. Both assets
+ * stay, and the log of the tenant says what went.
+ */
+describe('an installation that exchanged an asset', () => {
+  it('loses which asset took the place of which, and keeps both', async () => {
+    await applyMigrations()
+
+    const tenant = { id: newId<'tenant'>() }
+
+    await admin.query('insert into tenants (id, name) values ($1, $2)', [
+      tenant.id,
+      'Wohnbau Nord eG',
+    ])
+    await members(tenant, { 'user-lead': { roles: ['management'] } })
+
+    const { rows: made } = await admin.query<{ id: string; area_id: string }>(
+      `insert into properties (tenant_id, area_id, name, street, postal_code, city, federal_state)
+       select $1, id, 'Schulzentrum', 'Musterweg 1', '00001', 'Beispielstadt', 'DE-BW'
+         from areas where tenant_id = $1
+       returning id, area_id`,
+      [tenant.id],
+    )
+    const property = made[0]
+    const { rows: built } = await admin.query<{ id: string }>(
+      `insert into buildings (tenant_id, property_id, area_id, name, kinds)
+       values ($1, $2, $3, 'Schulhaus', '{school}') returning id`,
+      [tenant.id, property?.id, property?.area_id],
+    )
+    const { rows: old } = await admin.query<{ id: string }>(
+      `insert into assets (tenant_id, property_id, area_id, building_id, kind, name)
+       values ($1, $2, $3, $4, 'probe.elevator', 'Aufzug') returning id`,
+      [tenant.id, property?.id, property?.area_id, built[0]?.id],
+    )
+
+    await admin.query(
+      `insert into assets (tenant_id, property_id, area_id, building_id, kind, name,
+                           replaces_asset_id)
+       values ($1, $2, $3, $4, 'probe.elevator', 'Aufzug neu', $5)`,
+      [tenant.id, property?.id, property?.area_id, built[0]?.id, old[0]?.id],
+    )
+
+    // An asset is replaced once, on its property, and never by itself.
+    await expect(
+      admin.query(
+        `insert into assets (tenant_id, property_id, area_id, building_id, kind, name,
+                             replaces_asset_id)
+         values ($1, $2, $3, $4, 'probe.elevator', 'Aufzug zum zweiten', $5)`,
+        [tenant.id, property?.id, property?.area_id, built[0]?.id, old[0]?.id],
+      ),
+    ).rejects.toMatchObject({ constraint: 'assets_replaced_once' })
+    await expect(
+      admin.query('update assets set replaces_asset_id = id where id = $1', [old[0]?.id]),
+    ).rejects.toMatchObject({ constraint: 'assets_not_their_own_successor' })
+
+    await revertMigration(admin, '0042_asset_exchange')
+
+    const { rows: columns } = await admin.query<{ column_name: string }>(
+      `select column_name from information_schema.columns
+        where table_name = 'assets' and column_name = 'replaces_asset_id'`,
+    )
+
+    expect(columns).toEqual([])
+
+    const { rows: kept } = await admin.query<{ name: string }>(
+      'select name from assets where tenant_id = $1 order by name',
+      [tenant.id],
+    )
+
+    expect(kept).toEqual([{ name: 'Aufzug' }, { name: 'Aufzug neu' }])
+
+    // The log of the tenant says that one reference went, and why.
+    const { rows: emptied } = await admin.query<{ reason: string | null; records: number }>(
+      `select reason, count(distinct record_id)::int as records from audit_entries
+        where tenant_id = $1 and table_name = 'assets' and operation = 'update'
+        group by reason`,
+      [tenant.id],
+    )
+
+    expect(emptied).toEqual([{ reason: 'migration', records: 1 }])
   })
 })

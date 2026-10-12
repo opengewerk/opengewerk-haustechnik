@@ -606,6 +606,9 @@ describe('the file of an asset', () => {
       parent: null,
       distinctFromAssets: [],
       distinctFromElsewhere: 0,
+      replacesAssetId: null,
+      replaces: null,
+      replacedBy: null,
       ...further,
     } as unknown as AssetDetails
   }

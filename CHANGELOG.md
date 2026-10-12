@@ -1196,6 +1196,23 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   eine solche Zelle steht, und ein Test hält die Beispiele dort gegen den Import. Hat die Datei
   keine Spalte übrig oder keine der Anlagenarten ein eigenes Feld, entfällt der Schritt. Bisher
   trug, wer eine Liste mit solchen Spalten importierte, sie an jeder Anlage von Hand nach
+- Tausch einer Anlage (#89): an der Akte einer Anlage steht für wer Anlagen pflegt "Tauschen". Der
+  Dialog fragt nach dem Tag und nach Bezeichnung, Anlagenart, Hersteller und Seriennummer der neuen
+  Anlage und zeigt vorher, was mit der alten endet: ihre Pflichten, ein Mangel, den noch niemand
+  behoben hat, und ein Vorgang, der offen oder begonnen ist. In einem Schritt wird die alte Anlage
+  ab dem Tag zurückgebaut, die neue entsteht am selben Ort mit demselben Versorgungsbereich und
+  eigener Nummer, die Pflichten der alten enden und werden für die neue vom Katalog neu
+  vorgeschlagen, offene Mängel gelten als behoben und warten auf die Nachprüfung, offene Vorgänge
+  werden mit dem Tausch als Grund als nicht durchgeführt geschlossen. Eigene Pflichten und einzelne
+  Komponenten gehen mit, wenn sie angekreuzt sind; eine eigene Pflicht übernimmt, wer das
+  Pflichtenverzeichnis führt. Die Nachweise der alten Anlage bleiben bei ihr und unverändert, ihre
+  Nummer wird nicht neu vergeben, und scheitert ein Teil, bleibt alles, wie es war. Beide Akten
+  nennen einander ("Ersetzt", "Ersetzt durch"). Eine Anlage wird einmal getauscht, eine Messstelle
+  gar nicht (dafür gibt es den Zählertausch), und der Tag liegt nicht in der Zukunft
+  (Planungskonzept v0.29, Abschnitt 4.2, Nachtrag in ADR 0002, Migration `0042_asset_exchange`).
+  Bisher musste, wer ein Gerät ersetzte, die alte Anlage von Hand stilllegen, eine neue anlegen,
+  jede Pflicht beenden und jeden Vorgang und Mangel einzeln schließen, und nichts hielt fest, welche
+  Anlage welche ersetzt hat
 
 ### Geändert
 

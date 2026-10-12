@@ -57,8 +57,13 @@ export const syncPolicies: Readonly<Record<string, SyncPolicy>> = {
   // its floor.
   rooms: { create: true, change: 'merge', reserved: ['buildingId', 'propertyId', 'areaId'] },
   // An asset and its components: taken stock of and completed on site, with
-  // the number the server draws.
-  assets: { create: true, change: 'merge', reserved: ['number', 'propertyId', 'areaId'] },
+  // the number the server draws. Which asset it took the place of says the
+  // exchange in the office (#89), and no device.
+  assets: {
+    create: true,
+    change: 'merge',
+    reserved: ['number', 'propertyId', 'areaId', 'replacesAssetId'],
+  },
   // Its life cycle has consequences beyond the record: its duties rest while
   // it is out of service.
   asset_lifecycle: officeOnly,
