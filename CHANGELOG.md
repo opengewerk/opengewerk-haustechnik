@@ -1216,6 +1216,16 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
 
 ### Geändert
 
+- Die Formulare der Ansprechpartner an einer Liegenschaft fragen nach einer Sache je Zeile, und
+  "Entfernen" steht in einer eigenen Zeile über "Abbrechen" und "Speichern" (#147, mit dem Fundament
+  `opengewerk/opengewerk#605`). In der Spalte von 340 Pixeln standen zwei Felder nebeneinander: von
+  einer E-Mail-Adresse war beim Berichtigen nur der Anfang zu lesen, der Hinweis unter "Funktion"
+  brach in drei Zeilen um, und "Speichern" rutschte allein in die nächste Zeile, weil drei Knöpfe ein
+  paar Pixel breiter sind als die Karte.
+- Die Frage vor etwas, das sich nicht zurücknehmen lässt (entfernen, sperren, beenden, abmelden),
+  steht in der Mitte des Fensters (#147, mit dem Fundament `opengewerk/opengewerk#605`). Sie stand
+  ein Fünftel der Höhe von oben und damit auf einem hohen Bildschirm weit über dem, worauf sie sich
+  bezieht; der Dialog mit einem Formular steht seit #115 in der Mitte.
 - Ein Gerät, das nicht jeden Bereich sieht, findet beim Abruf seine Vorgänge über zwei Teilindizes,
   und die Aufträge, an denen seine Person mitarbeitet, liest der Server einmal als Liste statt je
   Vorgang (#80, T14-3 aus dem Review der Phase 0, Migration `0038_device_scope_indexes`). Bisher
