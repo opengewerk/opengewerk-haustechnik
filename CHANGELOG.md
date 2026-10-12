@@ -1613,6 +1613,15 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   während das Büro eine Anlage überall sonst "AN-00012 Aufzug Schulhaus" schreibt; im
   Änderungsprotokoll standen seit #258 beide Formen untereinander. Die Bezeichnung wird bei jedem
   Lauf der Fristen neu geschrieben, bestehende Fristen ziehen also von selbst nach
+- Im Änderungsprotokoll stehen die Spalten, die die Datenbank als JSON hält, nicht mehr roh da
+  (#263). Die Angaben der Anlagenart liest es wie die Akte der Anlage, "Feuerwehraufzug: Nein,
+  Haltestellen: 5", wo `{"stops": 5, "firefighters_lift": false}` stand; die Bezeichnungen kommen
+  aus dem Katalog, auf dem Server aus seinem, im Büro aus dem des Geräts. Vom eingefrorenen Stand
+  eines Nachweises und eines Rundgangs und von den Kapiteln und Punkten einer Fassung einer
+  Vorlage sagt das Protokoll nur noch, dass sie gesetzt wurden: der Server schickt den Wert nicht
+  mehr mit, zu lesen ist er auf der Seite des Nachweises, des Rundgangs und der Vorlage. Das
+  Fundament fragt dafür die Anwendung, wie ein Wert zu schreiben ist (`opengewerk#609`, Submodul
+  angehoben)
 
 ### Behoben
 

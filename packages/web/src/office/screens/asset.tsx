@@ -2,10 +2,10 @@ import {
   type AssetDetails,
   type AssetEvidenceEntry,
   type AssetField,
+  assetFieldValueWords,
   type AssetValue,
   type Catalogue,
-  type Characteristic,
-  type ChoiceOption,
+  characteristicValueWords,
   dutyInterval,
   type DutyReading,
   evidenceResultLabel,
@@ -15,7 +15,6 @@ import {
   meterUnitSymbol,
   type RecordState,
   restsOn,
-  ruleValueWords,
 } from '@opengewerk/haustechnik-domain'
 import {
   Button,
@@ -493,36 +492,9 @@ export function AssetFileUnread({
   )
 }
 
-/** Yes or no, the label of a choice, or the value as it is. */
-function plainWords(
-  of: { readonly kind: string; readonly options?: readonly ChoiceOption[] },
-  value: AssetValue,
-): string {
-  if (typeof value === 'boolean') {
-    return value ? 'Ja' : 'Nein'
-  }
-
-  return of.options?.find((option) => option.value === value)?.label ?? String(value)
-}
-
-/** The value of a characteristic: a number counts in a unit of the rule engine. */
-function characteristicWords(of: Characteristic, value: AssetValue): string {
-  return of.kind === 'number' && typeof value === 'number'
-    ? ruleValueWords(value, of.unit)
-    : plainWords(of, value)
-}
-
-/**
- * The value of a field of the kind: a number with the unit the field names, a
- * day as a day. A number without a unit is written as it is: it may be a year
- * or a count, and "2.021" is neither.
- */
+/** The value of a field of the kind, a day as this screen writes a day. */
 function fieldWords(of: AssetField, value: AssetValue): string {
-  if (of.kind === 'number' && typeof value === 'number') {
-    return of.unit === undefined ? String(value) : `${value.toLocaleString('de-DE')} ${of.unit}`
-  }
-
-  return of.kind === 'date' ? date(value) : plainWords(of, value)
+  return assetFieldValueWords(of, value, date)
 }
 
 /** "Stammdaten": the kind and its package, then what is known, each only where it is. */
@@ -540,7 +512,9 @@ function masterData(asset: AssetDetails, catalogue: Catalogue | null): Fact[] {
   }
   const own = kind
     ? [
-        ...kind.definition.characteristics.flatMap((each) => valued(each, characteristicWords)),
+        ...kind.definition.characteristics.flatMap((each) =>
+          valued(each, characteristicValueWords),
+        ),
         ...kind.definition.fields.flatMap((each) => valued(each, fieldWords)),
       ]
     : []

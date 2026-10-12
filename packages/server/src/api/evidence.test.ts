@@ -4,6 +4,7 @@ import { probeCatalogueBundle } from '@opengewerk/haustechnik-catalogue/testing'
 import {
   addDays,
   type AssetEvidenceEntry,
+  type AuditPage,
   catalogueOf,
   type DutyDetails,
   type EvidencePage,
@@ -14,6 +15,7 @@ import {
   type Right,
   type RoleKey,
   type TenantId,
+  withheldAuditValue,
 } from '@opengewerk/haustechnik-domain'
 import { createHash } from 'node:crypto'
 
@@ -1105,5 +1107,35 @@ describe('the PDF of a round (#111)', () => {
     await expect(admin.query('delete from prints where activity_id = $1', [round])).rejects.toThrow(
       /nicht geändert und nicht gelöscht/,
     )
+  })
+})
+
+/**
+ * The change log says of the frozen state only that it was set (#263). The
+ * state is the evidence itself, and its page shows it whole; the log held it
+ * as one cell of JSON.
+ */
+describe('the frozen state in the change log', () => {
+  it('is kept to the page of the evidence', async () => {
+    const { duty } = await assetWithDuty()
+    const { id } = await evidenceOf(duty, daysAgo(20), { signed: true })
+    const log = (
+      await http()
+        .get('/audit/changes')
+        .query({ table: 'evidence' })
+        .set(testIdentityHeader, by('u-lead'))
+        .expect(200)
+    ).body as AuditPage
+    const fields = log.changes
+      .filter((change) => change.recordId === id)
+      .flatMap((change) => change.fields)
+
+    expect(fields.find((field) => field.field === 'state')).toEqual({
+      field: 'state',
+      before: null,
+      after: withheldAuditValue,
+    })
+    // What else the log says about the evidence it says as before.
+    expect(fields.find((field) => field.field === 'duty_id')?.after).toBe(duty)
   })
 })
