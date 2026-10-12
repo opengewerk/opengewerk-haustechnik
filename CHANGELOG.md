@@ -1608,6 +1608,11 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   heißt im Protokoll jetzt mit Nummer und Bezeichnung, weil zwei Anlagen dieselbe Bezeichnung
   tragen können. Das Fundament bringt dafür `standsAt` im Vokabular des Protokolls mit
   (`opengewerk#607`, Submodul angehoben)
+- Die Bezeichnung einer Frist nennt eine Anlage mit der Nummer zuerst: "Hauptprüfung der
+  Aufzugsanlage, AN-00012 Aufzug Schulhaus" (#264). Dort stand "Aufzug Schulhaus (AN-00012)",
+  während das Büro eine Anlage überall sonst "AN-00012 Aufzug Schulhaus" schreibt; im
+  Änderungsprotokoll standen seit #258 beide Formen untereinander. Die Bezeichnung wird bei jedem
+  Lauf der Fristen neu geschrieben, bestehende Fristen ziehen also von selbst nach
 
 ### Behoben
 

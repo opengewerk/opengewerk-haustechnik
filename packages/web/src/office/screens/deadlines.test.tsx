@@ -84,7 +84,7 @@ function deadline(
     ownLeadDays: null,
     responsible: { userId: 'u-roth', name: 'Dennis Roth' },
     ownResponsibleUserId: null,
-    source: { label: 'Hauptprüfung der Aufzugsanlage, Aufzug Schulhaus (AN-00012)' },
+    source: { label: 'Hauptprüfung der Aufzugsanlage, AN-00012 Aufzug Schulhaus' },
     remindedFor: null,
     remindedAt: null,
     closedAt: null,

@@ -70,14 +70,19 @@ interface PlaceNames {
   readonly propertyName: string
 }
 
-/** What a deadline names after its subject: the asset, the room, the building or the property. */
+/**
+ * What a deadline names after its subject: the asset, the room, the building
+ * or the property. An asset by its number and its name, "AN-00012 Aufzug
+ * Schulhaus", as the office writes an asset everywhere (#264), and by its
+ * name alone until it has a number.
+ */
 function placeOf(place: PlaceNames): string {
   const asset =
     place.assetName === null
       ? null
       : place.assetNumber === null
         ? place.assetName
-        : `${place.assetName} (${place.assetNumber})`
+        : `${place.assetNumber} ${place.assetName}`
   const room =
     place.roomNumber === null && place.roomName === null
       ? null
