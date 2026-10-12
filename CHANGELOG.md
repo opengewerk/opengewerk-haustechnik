@@ -1699,3 +1699,11 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
 - Die Auswahlkästchen in den Vorschlägen aus dem Katalog, in den Plänen der Rundgänge und in den
   Vorlagen sind kupferfarben wie auf den Tafeln (gefunden bei #139). Ihre Klasse nannte eine Farbe,
   die es nicht gibt, und der Browser zeichnete sie in seinem Blau
+- Die Seite einer entfernten Pflicht sagt "Nicht gefunden", auch in einem Reiter im Hintergrund
+  (#246). Dort stand "Gerade ist keine Verbindung da", obwohl der Server mit 404 geantwortet
+  hatte: der Abfrage-Client des Fundaments stellte eine abgelehnte Anfrage ein zweites Mal, und
+  dieser Versuch wartet auf ein Fenster, das jemand ansieht. Das Fundament wiederholt jetzt nur,
+  was sich durch erneutes Fragen ändern kann (`opengewerk#604`, Submodul angehoben). Dasselbe
+  galt für die Akte einer Anlage, die Seite eines Nachweises, den Bericht, die Seite eines Raums
+  und das Anlagenverzeichnis; Mangel, Auftrag und Zeitachse legten ihr Wiederholen schon selbst
+  fest. Ein Test stellt den Reiter im Hintergrund an der Seite der Pflicht nach

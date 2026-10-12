@@ -92,6 +92,7 @@ export async function mountedWithItsDevice({
   server = new TestServer(),
   entities = [],
   holds = {},
+  queries = new QueryClient({ defaultOptions: { queries: { retry: false } } }),
 }: {
   readonly routeTree: AnyRoute
   readonly at: string
@@ -104,6 +105,12 @@ export async function mountedWithItsDevice({
   readonly entities?: readonly string[]
   /** What the device kept on an earlier day, by the name it keeps it under. */
   readonly holds?: Readonly<Record<string, string>>
+  /**
+   * The cache of the entry. A test asks once and takes the answer; the one
+   * that is about what the cache of the application does with a question
+   * that failed brings a cache with the application's own options.
+   */
+  readonly queries?: QueryClient
 }) {
   const client = await SyncClient.start({
     store: await openLocalStore(`entry${String((counter += 1))}` as TenantId),
@@ -125,8 +132,6 @@ export async function mountedWithItsDevice({
     ...(basepath === undefined ? {} : { basepath }),
     history: createMemoryHistory({ initialEntries: [at] }),
   })
-
-  const queries = new QueryClient({ defaultOptions: { queries: { retry: false } } })
 
   render(
     <QueryClientProvider client={queries}>
