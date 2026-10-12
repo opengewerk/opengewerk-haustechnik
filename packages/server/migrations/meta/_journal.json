@@ -288,6 +288,13 @@
       "when": 1791791515590,
       "tag": "0040_deadline_task",
       "breakpoints": true
+    },
+    {
+      "idx": 41,
+      "version": "7",
+      "when": 1791795457422,
+      "tag": "0041_duty_updates",
+      "breakpoints": true
     }
   ]
 }

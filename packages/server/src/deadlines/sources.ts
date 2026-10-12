@@ -9,6 +9,7 @@ import {
   defectStatuses,
   dutyInterval,
   type DutyId,
+  type FederalState,
   firstOpenPass,
   holidayClosures,
   holidaysBetween,
@@ -26,7 +27,12 @@ import {
 import type { ExpectedDeadline, SourceQuery } from '@opengewerk/platform-server'
 import { and, eq, gte, inArray, isNotNull, isNull, or } from 'drizzle-orm'
 
-import { dutyTitle, lifecyclesByAsset, metDaysByDuty } from '../database/duty-standing.js'
+import {
+  ceilingsOf,
+  dutyTitle,
+  lifecyclesByAsset,
+  metDaysByDuty,
+} from '../database/duty-standing.js'
 import { heldOf, keyDateDue, operatorKeyDay } from '../database/meter-standing.js'
 import {
   activities,
@@ -94,6 +100,7 @@ interface DutyRow extends PlaceNames {
   readonly intervalMonths: number | null
   readonly responsibleUserId: string | null
   readonly endsOn: IsoDate | null
+  readonly federalState: FederalState
 }
 
 /**
@@ -142,6 +149,7 @@ export function dutySource(options: {
         intervalMonths: duties.intervalMonths,
         responsibleUserId: duties.responsibleUserId,
         endsOn: duties.endsOn,
+        federalState: properties.federalState,
         assetName: assets.name,
         assetNumber: assets.number,
         roomNumber: rooms.number,
@@ -158,6 +166,7 @@ export function dutySource(options: {
 
     const performances = await metDaysByDuty(tx)
     const lives = await lifecyclesByAsset(tx)
+    const ceilings = ceilingsOf(options.catalogue)
     const expected: ExpectedDeadline<DeadlineValues>[] = []
 
     for (const duty of rows) {
@@ -174,8 +183,15 @@ export function dutySource(options: {
       }
 
       const days = performances.get(duty.id) ?? []
+      // With the maximum of the day: a regulation that shortens it counts
+      // from its day, whether anybody took it over or not (#139).
       const appointment = nextAppointment(
-        { counting: duty.counting, interval: dutyInterval(duty), outOfServiceOn: restingOn },
+        {
+          counting: duty.counting,
+          interval: dutyInterval(duty),
+          outOfServiceOn: restingOn,
+          ceiling: { on: ceilings(duty.kind, duty.federalState), today },
+        },
         days,
       )
       const last = days.at(-1)

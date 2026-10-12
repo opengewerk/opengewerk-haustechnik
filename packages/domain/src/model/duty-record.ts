@@ -68,6 +68,7 @@ export const dutyLimits = {
   intervalReason: 500,
   performerNote: 200,
   endReason: 300,
+  keptReason: 500,
   dismissalReason: 500,
 } as const
 
@@ -97,6 +98,23 @@ export interface Duty extends Synced, PlaceTarget {
   /** The maximum of its kind on the day it was confirmed: a confirmed duty does not change quietly. */
   readonly maximumDays: number | null
   readonly maximumMonths: number | null
+  /**
+   * The guide of its kind on the day it was confirmed or took a new version
+   * over (#139): what a guide that changed later is held against. Empty for a
+   * kind without a guide, and for a duty from before the column.
+   */
+  readonly guideDays: number | null
+  readonly guideMonths: number | null
+  /**
+   * What the catalogue said when the operator left the duty as it is, with a
+   * reason (section 2.3, #139): the newest version of its kind and the value
+   * of the rule of its interval. The duty is reported again only when the
+   * catalogue says something else than this.
+   */
+  readonly keptVersion: number | null
+  readonly keptDays: number | null
+  readonly keptMonths: number | null
+  readonly keptReason: string | null
   readonly responsibleUserId: string | null
   readonly performer: DutyPerformer | null
   readonly performerNote: string | null

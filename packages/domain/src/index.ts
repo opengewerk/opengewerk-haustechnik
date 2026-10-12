@@ -110,6 +110,9 @@ export * from './model/duty-document.js'
 // The proposals of the catalogue for an asset, worked out each time they are
 // read, and the batch that confirms or dismisses many of them at once.
 export * from './model/duty-proposal.js'
+// What a new version of a package means for a duty that is confirmed, and
+// the two decisions about it: taking it over, or leaving the duty as it is.
+export * from './model/duty-update.js'
 
 // The overview of the operator's responsibility, the start page of the office.
 export * from './model/overview.js'

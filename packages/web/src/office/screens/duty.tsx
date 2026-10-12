@@ -77,6 +77,7 @@ import { LinkButton } from '../link-button.js'
 import { factLink } from '../links.js'
 import { officePlaces } from '../place-addresses.js'
 import { workOrderPlaces, workOrderStartSearch } from '../work-order-addresses.js'
+import { shorterNote, UpdateMark, UpdatePanel, UpdateStatus } from './duty-updates.js'
 
 /** A duty as the server reads it today. */
 export function dutyQuery(id: string) {
@@ -296,6 +297,7 @@ export function DutyScreen() {
           <>
             <DutyStandingMark duty={duty} />
             {duty.intervalToCheck ? <IntervalCheckStatus /> : null}
+            {duty.update ? <UpdateStatus /> : null}
             {kind ? <ReviewMarks review={kind.review} /> : null}
           </>
         }
@@ -462,6 +464,8 @@ export function DutyScreen() {
           {seesEvidence ? <Evidence evidence={evidence.data} /> : null}
         </div>
         <div className="flex min-w-0 flex-col gap-3.5">
+          {/* What the catalogue says differently, until somebody decides (#139). */}
+          {duty.update ? <UpdatePanel update={duty.update} /> : null}
           <Panel title="Herkunft">
             <FactList
               keyWidth={96}
@@ -485,7 +489,19 @@ export function DutyScreen() {
               <FactList
                 keyWidth={96}
                 facts={[
-                  { label: 'Frist', value: intervalWords(dutyInterval(duty)) },
+                  {
+                    label: 'Frist',
+                    // The interval it was confirmed with, and below it what a
+                    // regulation cut it short to (#139).
+                    value: duty.shortened ? (
+                      <span className="flex flex-col gap-[3px]">
+                        <span>{intervalWords(dutyInterval(duty))}</span>
+                        <UpdateMark shortened counts={duty.shortened} />
+                      </span>
+                    ) : (
+                      intervalWords(dutyInterval(duty))
+                    ),
+                  },
                   { label: 'Art der Frist', value: intervalKindWords(duty, catalogue) },
                   ...(maximum === null
                     ? []
@@ -511,6 +527,11 @@ export function DutyScreen() {
                     duty.intervalDocument,
                     keeps && !duty.ended && duty.kind !== null,
                   )}
+                </NoteBox>
+              ) : null}
+              {duty.update?.shorter ? (
+                <NoteBox tone="waiting">
+                  {shorterNote(duty.update.shorter, dutyInterval(duty), today())}
                 </NoteBox>
               ) : null}
             </div>

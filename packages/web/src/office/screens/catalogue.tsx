@@ -27,6 +27,7 @@ import {
   cataloguePlaces,
   isCataloguePart,
 } from '../catalogue-addresses.js'
+import { DutyUpdatesNote } from './duty-updates.js'
 
 /**
  * "Katalog" in the office, `katalog()` of the boards (section 5 of the
@@ -259,6 +260,8 @@ function Chosen({
             benötigt Kernfassung {contents.minimumCore}
           </span>
         </div>
+        {/* What the package changes for the duties that are confirmed, where it does (#139). */}
+        <DutyUpdatesNote packageName={contents.name} />
         {/* Links and no tabs: each part has an address of its own. */}
         <nav
           aria-label="Teile des Pakets"

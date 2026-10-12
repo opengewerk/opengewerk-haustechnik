@@ -48,6 +48,7 @@ import {
 } from './sample-data.js'
 import { plantSampleTasks } from './sample-tasks.js'
 import { giveSampleForm, samplePackage } from './sample-form.js'
+import { withAnAnnouncedVersion } from './sample-update.js'
 import { giveSamplePlans } from './sample-plans.js'
 import { giveSampleTemplates } from './sample-templates.js'
 import { giveSampleMeters } from './sample-meters.js'
@@ -125,19 +126,24 @@ function previewFileStore(): FileStorage {
  * kind and no field; the packages with duty kinds, measuring points and forms
  * come later in Phase 1, and until then the probe package is the one that
  * shows them, and the package of the preview a form with every kind of field
- * (#107).
+ * (#107). The probe package stands in it with a second version of its main
+ * test announced, so that the preview shows what a new version means for the
+ * duties that are confirmed (#139, `sample-update.ts`).
  *
- * Its checksum is taken over the checksums of the bundles and the package of
- * the preview, so that a device tells this catalogue from any of them alone.
+ * Its checksum is taken over the checksums of the bundles, the package of the
+ * preview and the probe package as it stands here, so that a device tells
+ * this catalogue from any of them alone, and from the one of another day.
  */
+const probePackages = probeCatalogueBundle.packages.map((pack) => withAnAnnouncedVersion(pack))
+
 export const previewBundle: CatalogueBundle = {
   format: catalogueBundle.format,
   sha256: createHash('sha256')
     .update(
-      `${catalogueBundle.sha256} ${probeCatalogueBundle.sha256} ${JSON.stringify(samplePackage)}`,
+      `${catalogueBundle.sha256} ${probeCatalogueBundle.sha256} ${JSON.stringify(samplePackage)} ${JSON.stringify(probePackages)}`,
     )
     .digest('hex'),
-  packages: [...catalogueBundle.packages, ...probeCatalogueBundle.packages, samplePackage],
+  packages: [...catalogueBundle.packages, ...probePackages, samplePackage],
 }
 
 export const previewCatalogue: Catalogue = catalogueOf(previewBundle)

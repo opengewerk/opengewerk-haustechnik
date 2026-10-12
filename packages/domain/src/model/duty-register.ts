@@ -1,4 +1,4 @@
-import { addDays, type IsoDate } from '@opengewerk/platform-domain'
+import { addDays, type DeadlineInterval, type IsoDate } from '@opengewerk/platform-domain'
 
 import type { ActivityKind, ActivityStatus } from './activity.js'
 import type { Asset } from './asset.js'
@@ -6,6 +6,7 @@ import type { DutyReading, LastEvidence } from './asset-condition.js'
 import type { Appointment, DutyState } from './duty.js'
 import type { DutyIntervalDocument } from './duty-document.js'
 import type { Duty, DutyPerformer } from './duty-record.js'
+import type { DutyUpdate } from './duty-update.js'
 import {
   type Evidence,
   type EvidenceOrigin,
@@ -274,6 +275,10 @@ export interface DutyDetails extends Duty {
   readonly state: DutyState
   readonly appointment: Appointment | null
   readonly lastMetOn: IsoDate | null
+  /** The interval it counts with today where a regulation cuts its own short (#139), or null. */
+  readonly shortened: DeadlineInterval | null
+  /** What the catalogue says differently about it, until somebody decides (#139), or null. */
+  readonly update: DutyUpdate | null
   readonly ended: boolean
   /**
    * Whether the duty may be removed as one entered by mistake (#178): it has

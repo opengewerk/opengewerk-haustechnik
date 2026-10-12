@@ -618,7 +618,7 @@ function TemplateEditor({
               <label className="flex items-start gap-2.5 text-[14px] leading-[1.4]">
                 <input
                   type="checkbox"
-                  className="mt-0.5 size-4 accent-solid"
+                  className="mt-0.5 size-4 accent-copper-solid"
                   checked={asks}
                   disabled={!keeps}
                   onChange={(event) => {

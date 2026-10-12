@@ -2,6 +2,8 @@ import {
   type ActivityId,
   type AttachmentId,
   type Catalogue,
+  ceilingOf,
+  cutShortTo,
   type DutyId,
   dutyInterval,
   type EvidenceId,
@@ -264,7 +266,13 @@ export async function writeEvidence(
       kind: duty.kind,
       kindVersion: duty.kindVersion,
       source: kind?.definition.source ?? duty.sourceNote ?? '',
-      interval: dutyInterval(duty),
+      // The interval the duty counted with on the day: its own, or the
+      // maximum a regulation cut it short to (#139).
+      interval:
+        cutShortTo(
+          duty,
+          ceilingOf(context.catalogue, duty.kind, property.federalState)(input.performedOn),
+        ) ?? dutyInterval(duty),
       counting: duty.counting,
     },
     place,
