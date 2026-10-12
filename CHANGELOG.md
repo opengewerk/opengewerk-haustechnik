@@ -1226,6 +1226,10 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   steht in der Mitte des Fensters (#147, mit dem Fundament `opengewerk/opengewerk#605`). Sie stand
   ein Fünftel der Höhe von oben und damit auf einem hohen Bildschirm weit über dem, worauf sie sich
   bezieht; der Dialog mit einem Formular steht seit #115 in der Mitte.
+- Der Dialog mit einem Formular steht auch auf dem Telefon in der Mitte des Fensters (#147, mit dem
+  Fundament `opengewerk/opengewerk#606`). Unter 640 Pixeln stand er am oberen Rand, dieselbe Karte
+  also je nach Breite an zwei Stellen. Ein Dialog, der höher ist als das Fenster, beginnt weiter an
+  seinem oberen Rand und lässt sich schieben.
 - Ein Gerät, das nicht jeden Bereich sieht, findet beim Abruf seine Vorgänge über zwei Teilindizes,
   und die Aufträge, an denen seine Person mitarbeitet, liest der Server einmal als Liste statt je
   Vorgang (#80, T14-3 aus dem Review der Phase 0, Migration `0038_device_scope_indexes`). Bisher
