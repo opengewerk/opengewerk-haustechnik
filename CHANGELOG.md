@@ -1522,9 +1522,10 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   ihr außerhalb laufen können.
 - Das Security-Review kann Tests ausführen, auch mit Datenbank: es startet die Testdatenbank dieses
   Repositorys als PostgreSQL 18 in seiner Sandbox, erreicht die Registry über deren Proxy, findet
-  `pnpm` im Pfad und installiert in einer Kopie des Checkouts (`opengewerk/.github#38`, Aufruf
-  angehoben, mit der Eingabe `database`). Vorher ließ sich in der Sandbox nichts installieren, und
-  was erst die Datenbank durchsetzt, Policies, Trigger und die Rechte der Rollen, blieb nur gelesen.
+  `pnpm` im Pfad und installiert in einer Kopie des Checkouts (`opengewerk/.github#38` und `#40`,
+  Aufruf angehoben, mit der Eingabe `database`). Vorher ließ sich in der Sandbox nichts
+  installieren, und was erst die Datenbank durchsetzt, Policies, Trigger und die Rechte der Rollen,
+  blieb nur gelesen.
 - Die Prüfung "Breiten und Auflösungen" misst den Katalog als eine Art von Seite je Bildschirm
   (#227): ein Paket, jeder Teil eines Pakets und eine Pflichtart, statt jedes Paket und jeden
   Eintrag für sich (`keys` an `checkWidths`, `opengewerk#592`, Submodul angehoben). Das waren 50 der
