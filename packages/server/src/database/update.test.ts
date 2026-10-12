@@ -148,6 +148,7 @@ describe('an installation that began on the first migration', () => {
     // settings of the deadlines hang on nothing of this.
     // The plans of the rounds hang on the places and the templates (#113),
     // the notes on a work order on its activity (#118).
+    await revertMigration(admin, '0043_instance_mail_server')
     await revertMigration(admin, '0042_asset_exchange')
     await revertMigration(admin, '0041_duty_updates')
     await revertMigration(admin, '0040_deadline_task')
@@ -327,6 +328,7 @@ describe('an installation from before the areas', () => {
     // The places hang on the areas and go first, as on the way back of an
     // installation, and so does what an invitation says about areas.
     // The plans of the rounds hang on the places and the templates (#113).
+    await revertMigration(admin, '0043_instance_mail_server')
     await revertMigration(admin, '0042_asset_exchange')
     await revertMigration(admin, '0041_duty_updates')
     await revertMigration(admin, '0040_deadline_task')
@@ -416,6 +418,7 @@ describe('an installation with places', () => {
     )
 
     // The plans of the rounds hang on the places and the templates (#113).
+    await revertMigration(admin, '0043_instance_mail_server')
     await revertMigration(admin, '0042_asset_exchange')
     await revertMigration(admin, '0041_duty_updates')
     await revertMigration(admin, '0040_deadline_task')
@@ -530,6 +533,7 @@ describe('an installation with assets', () => {
       [tenant.id, asset, at.property, at.area, at.building],
     )
 
+    await revertMigration(admin, '0043_instance_mail_server')
     await revertMigration(admin, '0042_asset_exchange')
     await revertMigration(admin, '0041_duty_updates')
     await revertMigration(admin, '0040_deadline_task')
@@ -651,6 +655,7 @@ describe('an installation with assets', () => {
       [tenant.id, at.property, at.area, at.asset],
     )
 
+    await revertMigration(admin, '0043_instance_mail_server')
     await revertMigration(admin, '0042_asset_exchange')
     await revertMigration(admin, '0041_duty_updates')
     await revertMigration(admin, '0040_deadline_task')
@@ -773,6 +778,7 @@ describe('an installation with assets', () => {
       [tenant.id, at.duty, at.property, at.area],
     )
 
+    await revertMigration(admin, '0043_instance_mail_server')
     await revertMigration(admin, '0042_asset_exchange')
     await revertMigration(admin, '0041_duty_updates')
     await revertMigration(admin, '0040_deadline_task')
@@ -898,6 +904,7 @@ describe('an installation with assets', () => {
       [tenant.id, at.property, at.area, at.asset, activityId],
     )
 
+    await revertMigration(admin, '0043_instance_mail_server')
     await revertMigration(admin, '0042_asset_exchange')
     await revertMigration(admin, '0041_duty_updates')
     await revertMigration(admin, '0040_deadline_task')
@@ -1016,6 +1023,7 @@ describe('an installation with assets', () => {
       ],
     )
 
+    await revertMigration(admin, '0043_instance_mail_server')
     await revertMigration(admin, '0042_asset_exchange')
     await revertMigration(admin, '0041_duty_updates')
     await revertMigration(admin, '0040_deadline_task')
@@ -1134,6 +1142,7 @@ describe('an installation with assets', () => {
       [at.order],
     )
 
+    await revertMigration(admin, '0043_instance_mail_server')
     await revertMigration(admin, '0042_asset_exchange')
     await revertMigration(admin, '0041_duty_updates')
     await revertMigration(admin, '0040_deadline_task')
@@ -1259,6 +1268,7 @@ describe('an installation with assets', () => {
       [tenant.id, at.property, at.area, correction],
     )
 
+    await revertMigration(admin, '0043_instance_mail_server')
     await revertMigration(admin, '0042_asset_exchange')
     await revertMigration(admin, '0041_duty_updates')
     await revertMigration(admin, '0040_deadline_task')
@@ -1331,6 +1341,7 @@ describe('an installation with assets', () => {
     expect(await mayCall('public')).toBe(false)
     expect(await mayCall('opengewerk_app')).toBe(true)
 
+    await revertMigration(admin, '0043_instance_mail_server')
     await revertMigration(admin, '0042_asset_exchange')
     await revertMigration(admin, '0041_duty_updates')
     await revertMigration(admin, '0040_deadline_task')
@@ -1395,6 +1406,7 @@ describe('an installation whose invitations name areas', () => {
       [tenant.id, invitation],
     )
 
+    await revertMigration(admin, '0043_instance_mail_server')
     await revertMigration(admin, '0042_asset_exchange')
     await revertMigration(admin, '0041_duty_updates')
     await revertMigration(admin, '0040_deadline_task')
@@ -1473,6 +1485,7 @@ describe('an installation whose properties carry notes', () => {
       [tenant.id],
     )
 
+    await revertMigration(admin, '0043_instance_mail_server')
     await revertMigration(admin, '0042_asset_exchange')
     await revertMigration(admin, '0041_duty_updates')
     await revertMigration(admin, '0040_deadline_task')
@@ -1564,6 +1577,7 @@ describe('an installation whose properties have people to talk to', () => {
       [tenant.id, property?.id, property?.area_id],
     )
 
+    await revertMigration(admin, '0043_instance_mail_server')
     await revertMigration(admin, '0042_asset_exchange')
     await revertMigration(admin, '0041_duty_updates')
     await revertMigration(admin, '0040_deadline_task')
@@ -1658,6 +1672,7 @@ describe('an installation whose buildings have times they are closed', () => {
       [tenant.id, building, property?.id, property?.area_id],
     )
 
+    await revertMigration(admin, '0043_instance_mail_server')
     await revertMigration(admin, '0042_asset_exchange')
     await revertMigration(admin, '0041_duty_updates')
     await revertMigration(admin, '0040_deadline_task')
@@ -1778,6 +1793,7 @@ describe('an installation that imported from tables', () => {
 
     expect(await quietTables()).toEqual(['assets', 'buildings', 'floors', 'properties', 'rooms'])
 
+    await revertMigration(admin, '0043_instance_mail_server')
     await revertMigration(admin, '0042_asset_exchange')
     await revertMigration(admin, '0041_duty_updates')
     await revertMigration(admin, '0040_deadline_task')
@@ -1922,6 +1938,7 @@ describe('an installation that took stock on site', () => {
       second[0]?.id,
     ])
 
+    await revertMigration(admin, '0043_instance_mail_server')
     await revertMigration(admin, '0042_asset_exchange')
     await revertMigration(admin, '0041_duty_updates')
     await revertMigration(admin, '0040_deadline_task')
@@ -2024,6 +2041,7 @@ describe('an installation with labels', () => {
       [tenant.id, property?.id, property?.area_id, stood[0]?.id],
     )
 
+    await revertMigration(admin, '0043_instance_mail_server')
     await revertMigration(admin, '0042_asset_exchange')
     await revertMigration(admin, '0041_duty_updates')
     await revertMigration(admin, '0040_deadline_task')
@@ -2139,6 +2157,7 @@ describe('an installation whose activities have answers', () => {
       [tenant.id, property?.id, property?.area_id, activity, 'a'.repeat(64)],
     )
 
+    await revertMigration(admin, '0043_instance_mail_server')
     await revertMigration(admin, '0042_asset_exchange')
     await revertMigration(admin, '0041_duty_updates')
     await revertMigration(admin, '0040_deadline_task')
@@ -2343,6 +2362,7 @@ describe('an installation with documents', () => {
       [tenant.id, filed[0]?.id, file],
     )
 
+    await revertMigration(admin, '0043_instance_mail_server')
     await revertMigration(admin, '0042_asset_exchange')
     await revertMigration(admin, '0041_duty_updates')
     await revertMigration(admin, '0040_deadline_task')
@@ -2477,6 +2497,7 @@ describe('an installation that exchanged an asset', () => {
       admin.query('update assets set replaces_asset_id = id where id = $1', [old[0]?.id]),
     ).rejects.toMatchObject({ constraint: 'assets_not_their_own_successor' })
 
+    await revertMigration(admin, '0043_instance_mail_server')
     await revertMigration(admin, '0042_asset_exchange')
 
     const { rows: columns } = await admin.query<{ column_name: string }>(
@@ -2502,5 +2523,54 @@ describe('an installation that exchanged an asset', () => {
     )
 
     expect(emptied).toEqual([{ reason: 'migration', records: 1 }])
+  })
+
+  /**
+   * The mail server of the instance (#81) is seven columns on the one row of
+   * the settings of the instance. Taken back, they go, the sealed password
+   * with them, and everything else that row says stays.
+   */
+  it('loses the mail server of the instance and nothing else of its settings when the update is taken back', async () => {
+    await applyMigrations()
+    await admin.query(
+      `update instance_settings
+          set backup_time = '04:15', mail_internal_hosts = '{mail.intern.example}',
+              mail_server_host = 'smtp.example.de', mail_server_port = 587,
+              mail_server_security = 'starttls', mail_server_username = 'instanz',
+              mail_server_from = 'instanz@example.de', mail_server_password = 'v1:sealed',
+              mail_server_password_set_at = now()`,
+    )
+
+    // The trigger of the log of the instance leaves the sealed password out.
+    const logged = async () =>
+      (
+        await admin.query<{ field: string }>(
+          `select distinct field from instance_changes
+            where table_name = 'instance_settings' and field like 'mail_server_%' order by field`,
+        )
+      ).rows.map((row) => row.field)
+
+    expect(await logged()).toEqual([
+      'mail_server_from',
+      'mail_server_host',
+      'mail_server_password_set_at',
+      'mail_server_port',
+      'mail_server_security',
+      'mail_server_username',
+    ])
+
+    await revertMigration(admin, '0043_instance_mail_server')
+
+    const { rows } = await admin.query<Record<string, unknown>>('select * from instance_settings')
+
+    expect(
+      Object.keys(rows[0] ?? {}).filter((column) => column.startsWith('mail_server_')),
+    ).toEqual([])
+    expect(rows[0]).toMatchObject({
+      backup_time: '04:15:00',
+      mail_internal_hosts: ['mail.intern.example'],
+    })
+    // What the log said about the columns it keeps.
+    expect(await logged()).toHaveLength(6)
   })
 })

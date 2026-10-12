@@ -1213,6 +1213,17 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   Bisher musste, wer ein Gerät ersetzte, die alte Anlage von Hand stilllegen, eine neue anlegen,
   jede Pflicht beenden und jeden Vorgang und Mangel einzeln schließen, und nichts hielt fest, welche
   Anlage welche ersetzt hat
+- Mailserver der Instanz (#81): im Bereich der Instanz steht unter "Einstellungen" die Karte
+  "Mailserver der Instanz". Über ihn gehen die E-Mails an ein Konto, der Link zu einem neuen
+  Passwort und der Hinweis auf einen neuen Passkey, und nie über den Mailserver eines Betreibers:
+  ein Konto gehört der Instanz, und die Leitung eines Betreibers könnte sonst ein Konto zu sich
+  holen und den Link über einen eigenen Mailserver lesen. Eintragen kann ihn nur die Verwaltung
+  der Instanz, das Passwort steht versiegelt in der Datenbank, und das Protokoll der Instanz hält
+  fest, wann es gesetzt wurde, nie das Passwort. Das Fundament bringt ihn mit (`opengewerk#610`,
+  Submodul angehoben); hier kommen die Migration `0043_instance_mail_server`, die Sätze der Karte
+  in den Wörtern der Haustechnik und Abschnitt 9 des Konzepts (v0.30). Die Haustechnik verschickt
+  noch keine E-Mails, und die Karte sagt das, bis die Benachrichtigungen (#126) den Versand
+  binden
 
 ### Geändert
 

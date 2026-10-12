@@ -302,6 +302,13 @@
       "when": 1791818765598,
       "tag": "0042_asset_exchange",
       "breakpoints": true
+    },
+    {
+      "idx": 43,
+      "version": "7",
+      "when": 1791845430208,
+      "tag": "0043_instance_mail_server",
+      "breakpoints": true
     }
   ]
 }
