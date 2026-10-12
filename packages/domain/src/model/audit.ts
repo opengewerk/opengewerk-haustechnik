@@ -714,6 +714,24 @@ export const auditValueWords = {
 } as const
 
 /**
+ * Words by key with nothing in them but their entries. The log holds whatever
+ * was written, and a value called `constructor` or `toString` is looked up
+ * here like any other: a list that is an ordinary object would answer it with
+ * what every object carries, and this one has no word for it.
+ */
+function wordsOf(
+  entries: readonly (readonly [string, string])[],
+): Readonly<Record<string, string>> {
+  const words = Object.create(null) as Record<string, string>
+
+  for (const [key, word] of entries) {
+    words[key] = word
+  }
+
+  return words
+}
+
+/**
  * What each key is called, in the newest version the catalogue holds of it.
  * The log holds a key and no version beside it, and a name read today is the
  * name of today.
@@ -732,7 +750,7 @@ function namesByKey<Definition>(
     }
   }
 
-  return Object.fromEntries([...newest].map(([key, entry]) => [key, name(entry.definition)]))
+  return wordsOf([...newest].map(([key, entry]) => [key, name(entry.definition)]))
 }
 
 /**
@@ -775,9 +793,9 @@ export function auditValueWordsWith(catalogue: Catalogue | null): {
     packages.flatMap((entry) => entry.roundTemplates),
     (form) => form.title,
   )
-  const defectClasses = Object.fromEntries(
+  const defectClasses = wordsOf(
     packages.flatMap((entry) =>
-      entry.defectClasses.map(({ defectClass }) => [defectClass.key, defectClass.label]),
+      entry.defectClasses.map(({ defectClass }) => [defectClass.key, defectClass.label] as const),
     ),
   )
 

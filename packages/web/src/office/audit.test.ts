@@ -102,6 +102,18 @@ describe('the words of the change log in the office', () => {
       expect(words.auditValue('assets', 'kind', 'probe.long_gone', page)).toBe('probe.long_gone')
     })
 
+    // The log holds whatever was written, and the words of the catalogue
+    // hold nothing but their entries.
+    it('have no word for a value called like what every object carries', () => {
+      for (const raw of ['constructor', 'toString', '__proto__', 'hasOwnProperty']) {
+        expect(words.auditValue('duties', 'kind', raw, page)).toBe(raw)
+        expect(words.auditValue('assets', 'kind', raw, page)).toBe(raw)
+        expect(words.auditValue('activities', 'form_key', raw, page)).toBe(raw)
+        expect(words.auditValue('round_templates', 'source_key', raw, page)).toBe(raw)
+        expect(words.auditValue('defects', 'defect_class', raw, page)).toBe(raw)
+      }
+    })
+
     it('keep the words of the lists on the same tables', () => {
       const values = auditScreenWordsWith(catalogueOf(testCatalogue)).values
 
