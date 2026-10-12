@@ -23,6 +23,7 @@ import {
   resetToMigrated,
   testIdentityHeader,
 } from '../database/test-database.js'
+import { runDeadlinesOf } from '../deadlines/engine.js'
 import { ApiModule } from './api.module.js'
 import { as, testIdentities } from './test-identity.js'
 
@@ -563,5 +564,296 @@ describe('who a task may go to', () => {
       .expect(403)
 
     expect(answer.body).toMatchObject({ message: missingRight('task.assign') })
+  })
+})
+
+/**
+ * The action "Aufgabe" of the deadline engine (#242, section 2.4 of the
+ * concept): when the reading of the meters of a property falls due, whoever
+ * answers for the deadline gets the task to read them, one for the property
+ * and its key date, and it is done once the deadline no longer waits for
+ * that day. Whoever leads the operator answers for it, here the Leitung.
+ */
+describe('the task of a due reading', () => {
+  const catalogue = catalogueOf(probeCatalogueBundle)
+
+  /** A morning in October: the key date of the 1st is due and its lead has long begun. */
+  const october = new Date('2026-10-05T10:00:00Z')
+  /** A morning two days before the key date of November: its lead has begun. */
+  const beforeNovember = new Date('2026-10-30T10:00:00Z')
+
+  /** One pass of the engine over the operator at a moment. */
+  function run(now: Date = october) {
+    return runDeadlinesOf({ database, catalogue, now: () => now }, operator, now)
+  }
+
+  /** A water meter beside the asset of a place, in its building; its id. */
+  async function meterAt(at: { asset: string }, mark: string): Promise<string> {
+    const { rows } = await admin.query<{ id: string }>(
+      `insert into assets (tenant_id, property_id, area_id, building_id, kind, number, name,
+                           mark, meter_number, meter_unit)
+       select tenant_id, property_id, area_id, building_id, 'probe.water_meter', $2, $3, $2, $4,
+              'cubic_metres'
+         from assets where id = $1
+       returning id`,
+      [at.asset, mark, `Wasserzähler ${mark}`, `13-${mark}`],
+    )
+
+    return (rows[0] as { id: string }).id
+  }
+
+  /** A reading of a meter for a key date, taken that day. */
+  async function readingOf(meter: string, keyDate: string): Promise<void> {
+    await admin.query(
+      `insert into meter_readings (tenant_id, property_id, area_id, asset_id, key_date, read_on,
+                                   value_milli, source, recorded_by)
+       select tenant_id, property_id, area_id, id, $2, $2, 1000, 'by_hand', 'u-duties'
+         from assets where id = $1`,
+      [meter, keyDate],
+    )
+  }
+
+  /** The tasks at a property as the database holds them, past the policies. */
+  async function tasksAt(property: string) {
+    const { rows } = await admin.query<{
+      id: string
+      title: string
+      due_on: string
+      status: string
+      assignee_user_id: string
+      created_by: string | null
+    }>(
+      `select id, title, due_on::text, status::text, assignee_user_id, created_by
+         from tasks where property_id = $1 and deleted_at is null
+        order by created_at, id`,
+      [property],
+    )
+
+    return rows
+  }
+
+  /** The deadline of the meters of a property. */
+  async function deadlineOf(property: string) {
+    const { rows } = await admin.query<{
+      id: string
+      status: string
+      due_on: string
+      reminded_for: string | null
+      task_id: string | null
+    }>(
+      `select id, status::text, due_on::text, reminded_for::text, task_id
+         from deadlines where meter_property_id = $1`,
+      [property],
+    )
+
+    return rows[0]
+  }
+
+  it('comes of the key date once its lead begins: one for whoever answers for the deadline, at the property, however often the engine runs', async () => {
+    const at = await assetIn(north)
+
+    await meterAt(at, 'WZ-61')
+    await meterAt(at, 'WZ-62')
+    await run()
+    await run()
+
+    const made = await tasksAt(at.property)
+
+    // Two meters, one deadline for the property, and so one task.
+    expect(made).toEqual([
+      {
+        id: expect.any(String),
+        title: 'Zähler ablesen',
+        due_on: '2026-10-01',
+        status: 'open',
+        assignee_user_id: 'u-lead',
+        created_by: null,
+      },
+    ])
+    expect(await deadlineOf(at.property)).toMatchObject({
+      due_on: '2026-10-01',
+      reminded_for: '2026-10-01',
+      task_id: made[0]?.id,
+    })
+
+    // It hangs on the property and on nothing there, and lies in its area.
+    const { rows: places } = await admin.query(
+      `select area_id, building_id, room_id, asset_id, activity_id from tasks where id = $1`,
+      [made[0]?.id],
+    )
+
+    expect(places).toEqual([
+      { area_id: north, building_id: null, room_id: null, asset_id: null, activity_id: null },
+    ])
+
+    // The device of its person holds it, like any task of theirs.
+    expect(await pulled('u-lead')).toContain(made[0]?.id)
+  })
+
+  it('is done once every meter there has its reading for the key date, in the pass in which the deadline moves on', async () => {
+    const at = await assetIn(north)
+    const first = await meterAt(at, 'WZ-63')
+    const second = await meterAt(at, 'WZ-64')
+
+    await run()
+    expect((await tasksAt(at.property)).map((task) => task.status)).toEqual(['open'])
+
+    // One meter read: the other one still holds the key date.
+    await readingOf(first, '2026-10-01')
+    await run()
+    expect((await tasksAt(at.property)).map((task) => task.status)).toEqual(['open'])
+
+    await readingOf(second, '2026-10-01')
+    await run()
+    expect(await deadlineOf(at.property)).toMatchObject({ status: 'open', due_on: '2026-11-01' })
+    expect(await tasksAt(at.property)).toMatchObject([{ due_on: '2026-10-01', status: 'done' }])
+
+    // The next key date gets a task of its own once its lead begins.
+    await run(beforeNovember)
+    expect(await tasksAt(at.property)).toMatchObject([
+      { due_on: '2026-10-01', status: 'done' },
+      { due_on: '2026-11-01', status: 'open' },
+    ])
+  })
+
+  it('is done at the same moment when somebody gave it another day by hand', async () => {
+    const at = await assetIn(north)
+    const meter = await meterAt(at, 'WZ-65')
+
+    await run()
+    await admin.query(`update tasks set due_on = '2026-12-24' where property_id = $1`, [
+      at.property,
+    ])
+
+    // Not read yet: the day somebody gave it changes nothing.
+    await run()
+    expect((await tasksAt(at.property)).map((task) => task.status)).toEqual(['open'])
+
+    await readingOf(meter, '2026-10-01')
+    await run()
+    expect((await tasksAt(at.property)).map((task) => task.status)).toEqual(['done'])
+  })
+
+  it('is done when nothing there is to be read any more', async () => {
+    const at = await assetIn(north)
+    const meter = await meterAt(at, 'WZ-66')
+
+    await run()
+    expect((await tasksAt(at.property)).map((task) => task.status)).toEqual(['open'])
+
+    await admin.query(
+      `insert into meter_points (tenant_id, property_id, area_id, asset_id, lock_reason, locked_on)
+       select tenant_id, property_id, area_id, id, 'Schacht überflutet', '2026-10-02'
+         from assets where id = $1`,
+      [meter],
+    )
+    await run()
+
+    expect(await deadlineOf(at.property)).toMatchObject({ status: 'dropped' })
+    expect((await tasksAt(at.property)).map((task) => task.status)).toEqual(['done'])
+  })
+
+  it('follows its deadline to an earlier day and gets no second one beside it', async () => {
+    const at = await assetIn(north)
+    const read = await meterAt(at, 'WZ-67')
+
+    await readingOf(read, '2026-10-01')
+    await run(beforeNovember)
+    expect(await tasksAt(at.property)).toMatchObject([{ due_on: '2026-11-01', status: 'open' }])
+
+    // A meter that was not read for October: the deadline goes back to it.
+    await meterAt(at, 'WZ-68')
+    await run(beforeNovember)
+
+    expect(await deadlineOf(at.property)).toMatchObject({
+      due_on: '2026-10-01',
+      reminded_for: '2026-10-01',
+    })
+    expect(await tasksAt(at.property)).toMatchObject([{ due_on: '2026-10-01', status: 'open' }])
+  })
+
+  it('is made for nobody who does not see the area of the deadline, and the pass goes through all the same', async () => {
+    const at = await assetIn(north)
+    const meter = await meterAt(at, 'WZ-69')
+
+    // Read for October, so the deadline stands before its lead begins.
+    await readingOf(meter, '2026-10-01')
+    await run()
+
+    // The office names a technician of the south for the meters in the north.
+    await admin.query(
+      `update deadlines set responsible_user_id = 'u-south' where meter_property_id = $1`,
+      [at.property],
+    )
+    await run(beforeNovember)
+
+    expect(await deadlineOf(at.property)).toMatchObject({
+      due_on: '2026-11-01',
+      reminded_for: '2026-11-01',
+      task_id: null,
+    })
+    expect(await tasksAt(at.property)).toEqual([])
+  })
+
+  it('is none for a defect that is due: a defect only reminds', async () => {
+    const at = await assetIn(north)
+
+    await admin.query(
+      `insert into defects (tenant_id, property_id, area_id, asset_id, description, found_on, due_on)
+       select tenant_id, property_id, area_id, id, 'Leck am Antrieb', '2026-10-01', '2026-10-06'
+         from assets where id = $1`,
+      [at.asset],
+    )
+    await run()
+
+    const { rows } = await admin.query(
+      `select kind, reminded_for::text from deadlines where property_id = $1`,
+      [at.property],
+    )
+
+    expect(rows).toEqual([{ kind: 'defect.due', reminded_for: '2026-10-06' }])
+    expect(await tasksAt(at.property)).toEqual([])
+  })
+
+  it('names a task of its own operator and of its own property only', async () => {
+    const at = await assetIn(north)
+
+    await meterAt(at, 'WZ-70')
+    await run()
+
+    const { rows: foreign } = await admin.query<{ id: string }>(
+      `with property as (
+         insert into properties (tenant_id, area_id, name, street, postal_code, city, federal_state)
+         select $1, (select id from areas where tenant_id = $1 limit 1), 'Nachbarhaus', 'Weg 1',
+                '00002', 'Beispielstadt', 'DE-BW'
+         returning id, area_id
+       )
+       insert into tasks (tenant_id, property_id, area_id, title, due_on, assignee_user_id)
+       select $1, id, area_id, 'Zähler ablesen', '2026-10-01', 'u-next' from property
+       returning id`,
+      [neighbour],
+    )
+
+    await expect(
+      admin.query(`update deadlines set task_id = $2 where meter_property_id = $1`, [
+        at.property,
+        foreign[0]?.id,
+      ]),
+    ).rejects.toThrow(/deadlines_with_a_task_of_their_property/)
+
+    // Nor a task of the same operator at another property.
+    const elsewhere = await assetIn(north)
+
+    await meterAt(elsewhere, 'WZ-71')
+    await run()
+
+    const [other] = await tasksAt(elsewhere.property)
+
+    await expect(
+      admin.query(`update deadlines set task_id = $2 where meter_property_id = $1`, [
+        at.property,
+        other?.id,
+      ]),
+    ).rejects.toThrow(/deadlines_with_a_task_of_their_property/)
   })
 })

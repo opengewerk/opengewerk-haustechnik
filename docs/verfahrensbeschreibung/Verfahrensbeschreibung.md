@@ -1,7 +1,7 @@
 # OpenGewerk Haustechnik: Verfahrensbeschreibung für den Stand von Phase 1
 
 - **Gilt für:** noch keine veröffentlichte Fassung (Entwicklungsstand von Phase 1 auf dem Zweig `main`)
-- **Geschrieben:** von Hand, am 05.10.2026, aus dem Planungskonzept v0.11 und gegen den Quelltext geprüft; am 06.10.2026 um die Dateien im Speicher ergänzt (Planungskonzept v0.12) und um das Pflichtenverzeichnis, am selben Tag um die Dokumente (Planungskonzept v0.13) und um die Etiketten; am 08.10.2026 um die Prüfungen und Wartungen (Planungskonzept v0.15) und um den Bericht einer Fremdfirma (Planungskonzept v0.16), am selben Tag um die Mängel (Planungskonzept v0.17) und um den Vorgang von Hand (Planungskonzept v0.18); am 11.10.2026 um die Liegenschaften und das Anlagenverzeichnis als Tabelle und am selben Tag um die übrigen Listen des Büros als Tabelle, mit der Spalte der Person nur für die Leitung
+- **Geschrieben:** von Hand, am 05.10.2026, aus dem Planungskonzept v0.11 und gegen den Quelltext geprüft; am 06.10.2026 um die Dateien im Speicher ergänzt (Planungskonzept v0.12) und um das Pflichtenverzeichnis, am selben Tag um die Dokumente (Planungskonzept v0.13) und um die Etiketten; am 08.10.2026 um die Prüfungen und Wartungen (Planungskonzept v0.15) und um den Bericht einer Fremdfirma (Planungskonzept v0.16), am selben Tag um die Mängel (Planungskonzept v0.17) und um den Vorgang von Hand (Planungskonzept v0.18); am 11.10.2026 um die Liegenschaften und das Anlagenverzeichnis als Tabelle und am selben Tag um die übrigen Listen des Büros als Tabelle, mit der Spalte der Person nur für die Leitung; am 12.10.2026 um die Aufgabe, die eine fällige Zählerablesung anlegt (Planungskonzept v0.24)
 - **Abgelöst durch:** die Verfahrensbeschreibung, die die Anwendung ab Phase 2 selbst erzeugt
 
 ---
@@ -196,6 +196,9 @@ Anhang B nennt jedes Feld der Datenbank, das auf eine Person zeigt. Dieser Absch
 - **Zusage:** Eine Aufgabe liegt im Bereich ihrer Liegenschaft: sie sieht nur, wer ihren Ort sieht. [K2.8, K3, B173]
 - Eine Aufgabe nennt ihre verantwortliche Person mit Namen, in der Liste „Aufgaben“ und an dem Datensatz, an dem sie hängt; die eigene heißt dort „Sie“. Als Tabelle enthält die Liste die verantwortliche Person nur für die Leitung (Abschnitt 5). Nach dem Anlegen wird eine Aufgabe nur noch erledigt oder wieder geöffnet. Wann das geschah und wer es tat, steht in ihrem Stempel (Abschnitt 3.6) und im Änderungsprotokoll, an der Aufgabe selbst nicht. [K3, K9]
 - Wird der Datensatz entfernt, an dem eine Aufgabe hängt, wird die Aufgabe mit ihm entfernt. [K3, B174]
+- Eine Aufgabe legt auch die Fristen-Engine an, ohne dass eine Person sie zuteilt: ist die Ablesung der Zähler einer Liegenschaft fällig, bekommt die Person, die für die Frist verantwortlich ist, mit dem Beginn des Vorlaufs die Aufgabe „Zähler ablesen“, eine je Liegenschaft und Stichtag. Verantwortlich ist, wen das Büro an der Frist oder für ihre Art nennt, sonst die Leitung. Eine solche Aufgabe nennt niemanden, der sie angelegt hat. Keine andere Frist legt eine Aufgabe an. [K2.4, K4.9, B220, B224]
+- **Zusage:** Auch die Engine gibt eine Aufgabe nur einer Person, die nicht gesperrt ist, Aufgaben erledigen darf und den Bereich der Liegenschaft sieht. Sonst entsteht keine Aufgabe, und die Frist steht weiter in der Liste „Fristen“. [K2.4, K7, B221]
+- Die Aufgabe „Zähler ablesen“ ist erledigt, sobald jede Messstelle der Liegenschaft ihren Stand für den Stichtag hat oder dort nichts mehr abzulesen ist. Das setzt die Engine mit dem Lauf, in dem die Frist weitergeht, und keine Person: der Stempel der Aufgabe nennt dann niemanden, und wer die Stände eingetragen hat, steht an den Ständen (Abschnitt 3.13). [K2.4, K4.9, B222, B223]
 
 ---
 
@@ -322,7 +325,6 @@ Leitung und Technische Leitung sehen als Vorgabe alle Bereiche.
 
 Diese Bausteine gehören nach dem Fahrplan zu Phase 1 und sind noch nicht gebaut. Mit jedem wird dieses Dokument berichtigt; der Test in Abschnitt 11 erzwingt es, sobald ein Feld mit Personenbezug oder eine Adresse des Servers dazukommt.
 
-- **Aufgaben aus der Fristen-Engine:** eine Frist soll eine Aufgabe für die verantwortliche Person anlegen können; eine solche Aufgabe nennt niemanden, der sie angelegt hat. Gebaut sind die Aufgaben selbst (Abschnitt 3.14); anlegen wird eine die fällige Zählerablesung (`opengewerk-haustechnik#242`). [K2.4, K3]
 - **Benachrichtigungen:** per E-Mail und Push, gespeist nur aus Fristen und Statuswechseln, auch wenn eine Aufgabe fällig wird. Welche Anlässe als Push kommen, wählt jede Person selbst; ein Auftrag mit der Dringlichkeit „sofort“ erreicht die Person, die ihn führt, immer als Push. [K3, K4.8]
 - **Zähler und Fotos vor Ort:** Ablesungen kommen als eigene Datensätze dazu und tragen wie jeder Datensatz ihren Stempel. Ein Foto vor Ort wird als Dokument abgelegt (Abschnitt 3.9); die Bildschirme dafür kommen mit der Bestandsaufnahme. [K4.9, K4.10]
 - **Eigene Angaben:** Name, E-Mail-Adresse, Passwort, zweiten Faktor und Geräte ändert jede Person selbst unter „Konto“. [K3]
@@ -582,6 +584,11 @@ Pfade ohne Vorsatz liegen im Repository `opengewerk/opengewerk-haustechnik`. Pfa
 | B217 | Test | `packages/server/src/api/audit.test.ts` | `is no table for whoever reads the log and may not see the staff (#236)` |
 | B218 | Test | `packages/server/src/api/office-tables-rest.test.ts` | `names what a document hangs on only for whoever reads that record` |
 | B219 | Test | `packages/server/src/api/office-tables-rest.test.ts` | `holds no part of the stamp of the last change, in neither format` |
+| B220 | Test | `packages/server/src/api/tasks.test.ts` | `comes of the key date once its lead begins: one for whoever answers for the deadline, at the property, however often the engine runs` |
+| B221 | Test | `packages/server/src/api/tasks.test.ts` | `is made for nobody who does not see the area of the deadline, and the pass goes through all the same` |
+| B222 | Test | `packages/server/src/api/tasks.test.ts` | `is done once every meter there has its reading for the key date, in the pass in which the deadline moves on` |
+| B223 | Test | `packages/server/src/api/tasks.test.ts` | `is done when nothing there is to be read any more` |
+| B224 | Test | `packages/domain/src/model/deadlines.test.ts` | `give the task to the reading of the meters alone, and say what it is` |
 
 ---
 

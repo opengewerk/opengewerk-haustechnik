@@ -62,6 +62,8 @@ export const tasks = pgTable(
     tenantIsolation(table.tenantId),
     withinAreas(),
     unique('tasks_tenant_id_key').on(table.tenantId, table.id),
+    // For the key of a deadline that names the task made of it (#242).
+    unique('tasks_place').on(table.tenantId, table.id, table.propertyId),
     foreignKey({
       columns: [table.tenantId, table.propertyId, table.areaId],
       foreignColumns: [properties.tenantId, properties.id, properties.areaId],

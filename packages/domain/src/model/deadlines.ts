@@ -16,10 +16,17 @@ export type DeadlineSource = (typeof deadlineSources)[number]
  * The actions a kind may name. The reminder is the foundation's own. The
  * activity is this application's (#105): when the lead of a due day begins,
  * an inspection or a maintenance comes of it, once for the due day, and of
- * the plan of a round its rounds (#113), once for each pass. The task of
- * section 2.4 comes with the tasks.
+ * the plan of a round its rounds (#113), once for each pass. The task is this
+ * application's as well (#242): when the lead begins, the person who answers
+ * for the deadline gets something to do by the due day, at the place of the
+ * deadline, and it is done once the deadline no longer waits for that day.
+ *
+ * Which kind names which action is decided, not open to an operator: the
+ * appointment of a duty makes its activity, the plan of a round its rounds,
+ * the reading of the meters its task, and a defect only reminds, because with
+ * its state, its day and its work order it already has what a task would be.
  */
-export const deadlineActions = ['reminder', 'activity'] as const
+export const deadlineActions = ['reminder', 'activity', 'task'] as const
 
 export type DeadlineAction = (typeof deadlineActions)[number]
 
@@ -99,8 +106,10 @@ export const roundDue: ApplicationDeadlineKind = {
  * reading, leaving out one that is locked and a key date it rests on. One
  * deadline for the meters of a property, not one per meter: they are read on
  * one round, and a reminder for every meter would bury the rest. Whoever
- * leads the operator is reminded when the lead begins; once every meter
- * there has its reading, the deadline moves on to the next key date.
+ * leads the operator is reminded when the lead begins and gets the task to
+ * read them (#242), one for the property and its key date; once every meter
+ * there has its reading, the deadline moves on to the next key date and the
+ * task is done.
  */
 export const meterDue: ApplicationDeadlineKind = {
   key: 'meter.due',
@@ -112,7 +121,16 @@ export const meterDue: ApplicationDeadlineKind = {
   intervalMonths: null,
   leadDays: 3,
   responsible: 'lead',
-  actions: ['reminder'],
+  actions: ['reminder', 'task'],
+}
+
+/**
+ * What the task of a deadline says, by the source of its kind (#242). Only a
+ * source that stands here can name the action: the engine refuses a kind
+ * that names the task without a text for it.
+ */
+export const deadlineTaskTitles: Readonly<Partial<Record<DeadlineSource, string>>> = {
+  meter: 'Zähler ablesen',
 }
 
 /** Every kind this application knows. */

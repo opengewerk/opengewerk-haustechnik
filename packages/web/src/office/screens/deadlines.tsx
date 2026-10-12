@@ -250,7 +250,7 @@ export function DeadlineSettingsScreen() {
         kind.source === 'defect'
           ? 'Erinnert die Leitung, wenn der Vorlauf beginnt. Ist der Mangel behoben, fällt die Frist weg.'
           : kind.source === 'meter'
-            ? 'Erinnert die Leitung, wenn der Vorlauf beginnt, einmal je Liegenschaft. Hat jede Messstelle dort ihren Stand, geht die Frist zum nächsten Stichtag.'
+            ? 'Erinnert die Leitung, wenn der Vorlauf beginnt, und gibt ihr die Aufgabe „Zähler ablesen“, einmal je Liegenschaft. Hat jede Messstelle dort ihren Stand, ist die Aufgabe erledigt und die Frist geht zum nächsten Stichtag.'
             : kind.source === 'round_plan'
               ? 'Legt die Rundgänge eines Plans an, so weit der Vorlauf reicht, jeden Durchgang einmal, damit die Rundgänge der nächsten Woche vorher zugeteilt werden können. Erinnert niemanden.'
               : 'Erinnert die verantwortliche Person und legt bei ihr die Prüfung oder Wartung an, wenn der Vorlauf beginnt. Nennt die Pflicht niemanden, die Leitung.'

@@ -21,6 +21,7 @@ import { deadlines } from '../database/schema/index.js'
 import { dayInGermany } from '../today.js'
 import { deadlineKindRegistry } from './registry.js'
 import { upgradeOpenRounds } from '../rounds/plans.js'
+import { settleDeadlineTasks, taskFromDeadline } from '../tasks/from-deadline.js'
 import {
   type DeadlineValues,
   defectSource,
@@ -51,8 +52,9 @@ const sentences = {
  * the kinds, sources and columns of this application: the appointments of
  * the duties, with the reminder of the foundation and the activity that is
  * to meet a duty as the actions (#105), the days the defects are to be set
- * right by, with the reminder (#116), and the next pass of the plan of a
- * round, whose action makes its rounds (#113).
+ * right by, with the reminder (#116), the next pass of the plan of a round,
+ * whose action makes its rounds (#113), and the reading of the meters of a
+ * property, whose action gives whoever answers for it the task (#242).
  *
  * A pass works for nobody, and the deadlines and duties carry the areas of
  * their property (ADR 0003): each transaction of a pass therefore opens every
@@ -78,10 +80,12 @@ function bound(
       }),
       meter: meterSource({ today: () => dayInGermany(job.now?.() ?? new Date()) }),
     },
-    actions: { activity: activityFromDeadline(job.catalogue) },
-    // A round nobody has begun walks the newest version of its template.
+    actions: { activity: activityFromDeadline(job.catalogue), task: taskFromDeadline() },
+    // A round nobody has begun walks the newest version of its template, and
+    // a task whose deadline no longer waits for its day is done.
     complete: async (tx, now) => {
       await upgradeOpenRounds(tx, now)
+      await settleDeadlineTasks(tx, now)
     },
     sentences,
     inTenant: (actor, work) => inEveryArea(job.database, actor, work),

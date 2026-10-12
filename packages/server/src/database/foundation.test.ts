@@ -42,7 +42,8 @@ describe('the foundation in this database', () => {
     // plan of a round as well (opengewerk-haustechnik#113, migration 0030),
     // and the meters of a property (opengewerk-haustechnik#120, migration 0033),
     // with their keys, checks
-    // and indexes. A duty points at the document that bears its interval and
+    // and indexes; and a deadline names the task the engine made of it
+    // (opengewerk-haustechnik#242, migration 0040), over its property. A duty points at the document that bears its interval and
     // at a version of it (opengewerk-haustechnik#74, migration 0037), over a
     // unique key on each. Only a restrictive policy may be named here; it
     // takes rows away and opens none.
@@ -54,6 +55,7 @@ describe('the foundation in this database', () => {
           'deadlines.defect_id',
           'deadlines.round_plan_id',
           'deadlines.meter_property_id',
+          'deadlines.task_id',
           'deadlines.property_id',
           'deadlines.area_id',
           'contacts.property_id',
@@ -73,6 +75,7 @@ describe('the foundation in this database', () => {
           'deadlines.deadlines_of_a_duty_of_their_property',
           'deadlines.deadlines_of_a_defect_of_their_property',
           'deadlines.deadlines_of_a_plan_of_their_property',
+          'deadlines.deadlines_with_a_task_of_their_property',
           'deadlines.deadlines_follow_one_source',
           'contacts.contacts_follow_their_property',
           'contacts.contacts_given_name_shaped',
