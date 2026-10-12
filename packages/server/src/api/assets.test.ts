@@ -1158,6 +1158,12 @@ describe('a possible duplicate', () => {
       elsewhere: [],
     })
 
+    // Past the areas looks only whoever may enter assets. Somebody who reads
+    // them and no more is told nothing of an asset they do not see.
+    const reader = JSON.stringify({ ...JSON.parse(technician), rights: ['asset.read'] })
+
+    expect(await answered({ serialNumber, mark }, reader)).toEqual({ assets: [], elsewhere: [] })
+
     // One the person sees is named, and the one beyond is still only said to be there.
     const northern = await assetIn(inNorth.building, { ...elevator, serialNumber }, 'u-tech', large)
     const both = await answered({ serialNumber }, technician)
@@ -1166,6 +1172,8 @@ describe('a possible duplicate', () => {
     expect(both.elsewhere).toEqual(['serialNumber'])
     expect(JSON.stringify(both)).not.toContain(southern.id)
     expect(JSON.stringify(both)).not.toContain('Aufzug im Süden')
+    // The reader is named the one in their area as well, and no more than that.
+    expect(await answered({ serialNumber }, reader)).toEqual({ assets: both.assets, elsewhere: [] })
 
     // Whoever sees every area is named both, and nothing is beyond.
     const whole = await answered({ serialNumber }, by('u-duties', large))

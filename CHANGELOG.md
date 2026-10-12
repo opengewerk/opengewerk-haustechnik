@@ -1179,7 +1179,8 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   und sagt dann nur, dass es eine Anlage außerhalb der eigenen Bereiche gibt, ohne sie zu zeigen
   (Entscheidung vom 11.10.2026, Planungskonzept v0.26, Abschnitt 4.2, Nachträge in ADR 0002 und
   0003). `GET /assets/duplicates` antwortet dafür mit `assets` und `elsewhere` statt mit einer
-  Liste, und das Feld heißt im Protokoll und im Abgleich jetzt "Keine Dublette von". Bisher schrieb
+  Liste und sieht über die Grenze nur für wen Anlagen aufnehmen darf. Das Feld heißt im Protokoll
+  und im Abgleich jetzt "Keine Dublette von". Bisher schrieb
   nur die Bestandsaufnahme vor Ort die Entscheidung, und wer im Büro den Bestand zweier Bereiche
   erfasste, legte dieselbe Anlage doppelt an, ohne es zu erfahren
 

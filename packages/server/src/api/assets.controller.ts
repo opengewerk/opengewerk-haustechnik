@@ -319,8 +319,10 @@ export class AssetsController {
    * 4.2 of the concept): those with the same serial number or the same mark.
    * A question and never a refusal, the asset is made all the same if whoever
    * enters it says so. Whoever reads assets may ask, and is named those of
-   * their areas; of one beyond them the answer says only that it is there
-   * (ADR 0003, addendum on #171).
+   * their areas. Of one beyond them the answer says only that it is there
+   * (ADR 0003, addendum on #171), and says so only to whoever may enter
+   * assets ("aufnehmen", section 7): the form asks for them, and the exchange
+   * with a device looks past the areas under the same right.
    *
    * Before the file of an asset, or its address would be read as an id.
    */
@@ -331,8 +333,9 @@ export class AssetsController {
     @Query() query: Record<string, unknown>,
   ): Promise<AssetDuplicates> {
     const question = duplicateQuestion(query)
+    const enters = identity.rights.includes('asset.record')
 
-    return this.database.forTenant(identity, (tx) => assetDuplicates(tx, question))
+    return this.database.forTenant(identity, (tx) => assetDuplicates(tx, question, enters))
   }
 
   /**

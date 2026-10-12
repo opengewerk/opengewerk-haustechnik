@@ -123,10 +123,16 @@ export async function duplicateCandidates(
  * easily as two in one. Of such an asset the answer says the field it
  * shares, which whoever asks typed, and nothing else: not which asset, not
  * where, not how many.
+ *
+ * Past the areas looks only whoever enters assets (`pastAreas`), which the
+ * route decides by their right: the question is there for the form that makes
+ * an asset, and the exchange with a device asks it under the same right.
+ * Somebody who reads assets and no more is named what they see, as before.
  */
 export async function assetDuplicates(
   tx: TenantTransaction,
   question: DuplicateQuestion,
+  pastAreas: boolean,
 ): Promise<AssetDuplicates> {
   const asked = duplicateFields.filter((field) => duplicateKey(question[field]) !== null)
 
@@ -159,7 +165,8 @@ export async function assetDuplicates(
   // Every asset the person sees that carries one of the two fields. What the
   // function finds beside them lies beyond their areas.
   const seen = new Set<string>(known.map((asset) => asset.id))
-  const beyond = possibleDuplicates(candidate, await duplicateCandidates(tx, question)).filter(
+  const everywhere = pastAreas ? await duplicateCandidates(tx, question) : []
+  const beyond = possibleDuplicates(candidate, everywhere).filter(
     ({ asset }) => !seen.has(asset.id),
   )
 
