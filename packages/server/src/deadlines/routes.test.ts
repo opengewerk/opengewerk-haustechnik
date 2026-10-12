@@ -225,7 +225,7 @@ describe('the list of deadlines', () => {
         dueOn: '2027-03-01',
         leadDays: 30,
         remindOn: '2027-01-30',
-        source: { label: 'Hauptprüfung der Aufzugsanlage, Aufzug Haus A (AN-00001)' },
+        source: { label: 'Hauptprüfung der Aufzugsanlage, AN-00001 Aufzug Haus A' },
         dutyId: duty,
         dutyTitle: 'Hauptprüfung der Aufzugsanlage',
         propertyId: property,

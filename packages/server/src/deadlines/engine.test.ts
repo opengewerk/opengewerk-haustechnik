@@ -216,7 +216,7 @@ describe('the deadline of a duty', () => {
         kind: 'duty.due',
         status: 'open',
         source_id: duty,
-        source_label: `Hauptprüfung der Aufzugsanlage, Aufzug Haus A (${at.number})`,
+        source_label: `Hauptprüfung der Aufzugsanlage, ${at.number} Aufzug Haus A`,
         anchor_on: '2025-03-14',
         due_on: '2027-03-01',
         natural_user_id: 'u-site',
