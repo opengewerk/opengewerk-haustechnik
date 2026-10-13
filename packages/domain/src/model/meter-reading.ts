@@ -58,8 +58,19 @@ export interface MeterSetting extends Synced, MeterSettings {
 /** The key day of an operator that has set none. */
 export const defaultKeyDay = 1
 
-/** How a reading came: typed in the office, read on a round of the meters, in a round or in a protocol. */
-export const meterReadingSources = ['by_hand', 'reading_round', 'round', 'protocol'] as const
+/**
+ * How a reading came: typed in the office, read on a round of the meters, in
+ * a round or in a protocol, or taken over from a predecessor application
+ * with the list of its readings (#130). One taken over was read by nobody
+ * here, and says so wherever it stands.
+ */
+export const meterReadingSources = [
+  'by_hand',
+  'reading_round',
+  'round',
+  'protocol',
+  'taken_over',
+] as const
 
 export type MeterReadingSource = (typeof meterReadingSources)[number]
 
@@ -68,6 +79,7 @@ export const meterReadingSourceLabel: Readonly<Record<MeterReadingSource, string
   reading_round: 'Eigene Runde',
   round: 'Rundgang',
   protocol: 'Protokoll',
+  taken_over: 'Übernommen',
 }
 
 /**
@@ -341,6 +353,9 @@ function daysBetween(from: IsoDate, to: IsoDate): readonly IsoDate[] {
   return days
 }
 
+/** What a figure below the one before is told beside the reason, where a reading is typed in. */
+export const replacedMeterAdvice = 'Wurde der Zähler getauscht, dann über „Zählertausch“.'
+
 /**
  * Why a figure for a key date is in doubt, in a sentence, or null (section
  * 4.9: "kleiner als der letzte Stand"): smaller than the reading that counts
@@ -370,7 +385,7 @@ export function readingDoubt(
   }
 
   if (earlier !== undefined && figure.valueMilli < earlier.valueMilli) {
-    return `Kleiner als der letzte Stand vom ${germanDay(earlier.keyDate)}, ${meterFigure(earlier.valueMilli, unit)}. Wurde der Zähler getauscht, dann über „Zählertausch“.`
+    return `Kleiner als der letzte Stand vom ${germanDay(earlier.keyDate)}, ${meterFigure(earlier.valueMilli, unit)}. ${replacedMeterAdvice}`
   }
 
   // A reading entered after a later one, or a correction of an older one,

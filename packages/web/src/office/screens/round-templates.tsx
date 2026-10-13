@@ -6,12 +6,13 @@ import { useRight } from '@opengewerk/platform-web/session'
 import { count, flag, request, text, useRecords } from '@opengewerk/platform-web/sync'
 import { useQuery } from '@tanstack/react-query'
 import { Link, useNavigate } from '@tanstack/react-router'
-import { Copy, Plus } from 'lucide-react'
+import { Copy, Plus, Upload } from 'lucide-react'
 import { useMemo } from 'react'
 
 import { ReviewMarks } from '../../app/review-marks.js'
 import { definitionOf } from '../../app/templates.js'
 import { catalogueAbsenceWords, useCatalogue, useCatalogueAbsence } from '../../sync/catalogue.js'
+import { importPlaces } from '../import-addresses.js'
 import {
   roundsPlace,
   takenFromWord,
@@ -124,6 +125,16 @@ export function TemplateListScreen() {
         actions={
           <>
             {table.button}
+            {keeps ? (
+              <Button
+                icon={Upload}
+                onClick={() => {
+                  void navigate({ to: importPlaces.templates })
+                }}
+              >
+                Importieren
+              </Button>
+            ) : null}
             {keeps ? (
               <Button
                 tone="primary"

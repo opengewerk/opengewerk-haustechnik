@@ -1,0 +1,11 @@
+Vorlage;Kapitel;Punkt;Art;Hinweis;Einheit;Möglichkeiten;Mindestens;Quelle des Grenzwerts;Gegenzeichnung
+Technikrundgang Schulhaus;Heizung;Kessel ohne Störmeldung;Prüfpunkt;Anzeige am Kesselregler;;;;;ja
+Technikrundgang Schulhaus;Heizung;Vorlauftemperatur;Messwert;;°C;;60;Betriebsanweisung Heizung;
+Technikrundgang Schulhaus;Heizung;Anlagendruck;Auswahl;Manometer am Verteiler;;"im grünen Bereich; zu niedrig; zu hoch";;;
+Technikrundgang Schulhaus;Wasser;Hauptwasserzähler;Zählerstand;;m³;;;;
+Technikrundgang Schulhaus;Wasser;Warmwasser am Speicheraustritt;Messwert;;°C;;60;Betriebsanweisung Trinkwasser;
+Technikrundgang Schulhaus;Wasser;Auffälligkeiten;Bemerkung;;;;;;
+Wochenrundgang Sporthalle;Halle;Notausgänge frei;Prüfpunkt;;;;;;
+Wochenrundgang Sporthalle;Halle;Geräteraum aufgeräumt;Ja oder nein;;;;;;
+Wochenrundgang Sporthalle;Technik;Lüftung läuft;Prüfpunkt;;;;;;
+Wochenrundgang Sporthalle;Technik;Foto des Filters;Foto;;;;;;

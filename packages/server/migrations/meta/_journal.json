@@ -337,6 +337,13 @@
       "when": 1791915070755,
       "tag": "0047_taken_over_deadlines",
       "breakpoints": true
+    },
+    {
+      "idx": 48,
+      "version": "7",
+      "when": 1791920895939,
+      "tag": "0048_taken_over_readings",
+      "breakpoints": true
     }
   ]
 }

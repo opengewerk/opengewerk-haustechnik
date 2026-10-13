@@ -10,9 +10,11 @@ import {
   deadlineImportFields,
   kindFields,
   levelOfFloorName,
+  meterImportFields,
   structureFields,
   type TableField,
   tableLimits,
+  templateImportFields,
 } from '@opengewerk/haustechnik-domain'
 import { describe, expect, it } from 'vitest'
 
@@ -119,6 +121,30 @@ describe('the page about the format of the tables', () => {
     }
 
     expect(rows.map((row) => row.field)).toEqual(deadlineImportFields.map((field) => field.label))
+  })
+
+  it('lists every field of the import of the history of meters, none of which every line needs, with every name it is known by (#130)', () => {
+    const rows = fieldsUnder('Zählerstände')
+
+    for (const field of expected(meterImportFields)) {
+      expect(rows.find((row) => row.field === field.field) ?? { missing: field.field }).toEqual(
+        field,
+      )
+    }
+
+    expect(rows.map((row) => row.field)).toEqual(meterImportFields.map((field) => field.label))
+  })
+
+  it('lists every field of the import of templates of rounds, with what makes it required and every name it is known by (#130)', () => {
+    const rows = fieldsUnder('Vorlagen der Rundgänge')
+
+    for (const field of expected(templateImportFields)) {
+      expect(rows.find((row) => row.field === field.field) ?? { missing: field.field }).toEqual(
+        field,
+      )
+    }
+
+    expect(rows.map((row) => row.field)).toEqual(templateImportFields.map((field) => field.label))
   })
 
   it('names the limits a file is read within', () => {

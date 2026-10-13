@@ -31,14 +31,20 @@ import {
   kindColumnsProblem,
   kindNameKey,
   kindNamesProblem,
+  meterImportFields,
+  meterImportSummary,
+  meterImportTotal,
   missingRight,
   planAssets,
   planChanged,
   planDeadlines,
   planHasProblems,
   planMakesNothing,
+  planMeters,
   planStructure,
+  planTemplates,
   sameCounts,
+  storedTemplate,
   structureDefaultsOf,
   structureFields,
   structureSummary,
@@ -52,6 +58,8 @@ import {
   tableRecords,
   type TableSheet,
   tableSheetProblem,
+  templateImportFields,
+  templateImportSummary,
 } from '@opengewerk/haustechnik-domain'
 import {
   AcceptsTable,
@@ -78,8 +86,13 @@ import {
   duties,
   dutyDismissals,
   floors,
+  meterExchanges,
+  meterPauses,
+  meterReadings,
   properties,
   rooms,
+  roundTemplates,
+  roundTemplateVersions,
 } from '../database/schema/index.js'
 import {
   EvidenceRefusal,
@@ -92,7 +105,9 @@ import {
   beginImport,
   deadlineImportStock,
   inParts,
+  meterImportStock,
   structureStock,
+  templateImportStock,
 } from '../imports/stock.js'
 import { dayInGermany } from '../today.js'
 import { RequiresPermission } from './authorization.js'
@@ -751,6 +766,238 @@ export class ImportsController {
     if (!identity.rights.includes('evidence.write')) {
       throw new ForbiddenException(missingRight('evidence.write'))
     }
+  }
+
+  @Post('meters/table')
+  @HttpCode(200)
+  @RequiresPermission('asset.write')
+  @AcceptsTableFile()
+  metersTable(@CurrentIdentity() identity: Asking, @Req() request: Request): Promise<TableFile> {
+    this.entersReadings(identity)
+
+    return uploadedTable(request)
+  }
+
+  @Post('meters/preview')
+  @HttpCode(200)
+  @RequiresPermission('asset.write')
+  @AcceptsTable()
+  async metersPreview(@CurrentIdentity() identity: Asking, @Req() request: Request) {
+    this.entersReadings(identity)
+
+    const { records } = recordsOf(await tableBodyOf(request), meterImportFields)
+
+    return this.database.readingTenant(identity, async (tx) => {
+      const { stock } = await meterImportStock(tx, dayInGermany())
+      const plan = planMeters(records, stock)
+      const problems = cut(plan.problems)
+      const notes = cut(plan.notes)
+      const jumps = cut(plan.jumps)
+      const rows = cut(plan.rows)
+
+      return {
+        lines: plan.lines,
+        counts: plan.counts,
+        problems: problems.shown,
+        moreProblems: problems.more,
+        notes: notes.shown,
+        moreNotes: notes.more,
+        jumps: jumps.shown,
+        moreJumps: jumps.more,
+        rows: rows.shown,
+        moreRows: rows.more,
+      }
+    })
+  }
+
+  /**
+   * Takes the history of the meters of a predecessor application over (#130,
+   * section 11 of the concept), whole or not at all: the readings, each for
+   * the key date of its day and marked as taken over, the replacements of
+   * meters and the periods a measuring point rested.
+   *
+   * A replacement and a period of rest are the care of the assets, a reading
+   * is reading meters: the route asks for both rights. The number of the
+   * meter at the asset is not touched: a list whose last replacement does
+   * not end in it is a line to clear up. Every reading, replacement and
+   * period makes its own entry in the change log beside the one of the
+   * import, as section 8 of the processing description promises.
+   */
+  @Post('meters')
+  @RequiresPermission('asset.write')
+  @AcceptsTable()
+  async takeMeters(@CurrentIdentity() identity: Asking, @Req() request: Request) {
+    this.entersReadings(identity)
+
+    const { given, records } = recordsOf(await tableBodyOf(request), meterImportFields)
+    const tenantId = identity.tenantId
+
+    return this.database.forTenant(identity, async (tx) => {
+      const { stock, places } = await meterImportStock(tx, dayInGermany())
+      const plan = planMeters(records, stock)
+
+      if (plan.problems.length > 0) {
+        throw new UnprocessableEntityException(planHasProblems)
+      }
+
+      if (meterImportTotal(plan.counts) === 0) {
+        throw new UnprocessableEntityException(planMakesNothing)
+      }
+
+      if (!sameCounts(given['expected'], { ...plan.counts })) {
+        throw new ConflictException(planChanged)
+      }
+
+      const summary = meterImportSummary(plan.counts)
+      const id = await beginImport(tx, tenantId, {
+        kind: 'meters',
+        fileName: fileNameOf(given),
+        lines: plan.lines,
+        summary,
+      })
+      const placeOf = (assetId: string) => {
+        const place = places.get(assetId)
+
+        if (place === undefined) {
+          throw new Error('The plan names an asset the stock does not hold')
+        }
+
+        return { tenantId, ...place, assetId: assetId as (typeof assets.$inferSelect)['id'] }
+      }
+
+      for (const part of inParts(plan.create.exchanges)) {
+        await tx
+          .insert(meterExchanges)
+          .values(
+            part.map(({ line: _, assetId, ...exchange }) => ({ ...placeOf(assetId), ...exchange })),
+          )
+      }
+
+      for (const part of inParts(plan.create.pauses)) {
+        await tx
+          .insert(meterPauses)
+          .values(part.map(({ line: _, assetId, ...pause }) => ({ ...placeOf(assetId), ...pause })))
+      }
+
+      for (const part of inParts(plan.create.readings)) {
+        await tx.insert(meterReadings).values(
+          part.map(({ line: _, assetId, ...reading }) => ({
+            ...placeOf(assetId),
+            ...reading,
+            // Nobody here read it: it says where it comes from, beside who took the list over.
+            source: 'taken_over' as const,
+            recordedBy: identity.userId,
+          })),
+        )
+      }
+
+      return { id, counts: plan.counts, summary }
+    })
+  }
+
+  /** Taking readings over is entering readings, whatever else a route asks for. */
+  private entersReadings(identity: Asking): void {
+    if (!identity.rights.includes('reading.write')) {
+      throw new ForbiddenException(missingRight('reading.write'))
+    }
+  }
+
+  @Post('templates/table')
+  @HttpCode(200)
+  @RequiresPermission('template.write')
+  @AcceptsTableFile()
+  templatesTable(@Req() request: Request): Promise<TableFile> {
+    return uploadedTable(request)
+  }
+
+  @Post('templates/preview')
+  @HttpCode(200)
+  @RequiresPermission('template.write')
+  @AcceptsTable()
+  async templatesPreview(@CurrentIdentity() identity: Asking, @Req() request: Request) {
+    const { records } = recordsOf(await tableBodyOf(request), templateImportFields)
+
+    return this.database.readingTenant(identity, async (tx) => {
+      const plan = planTemplates(records, await templateImportStock(tx))
+      const problems = cut(plan.problems)
+      const notes = cut(plan.notes)
+      const rows = cut(plan.rows)
+
+      return {
+        lines: plan.lines,
+        counts: plan.counts,
+        problems: problems.shown,
+        moreProblems: problems.more,
+        notes: notes.shown,
+        moreNotes: notes.more,
+        rows: rows.shown,
+        moreRows: rows.more,
+      }
+    })
+  }
+
+  /**
+   * Takes the templates of the rounds of a predecessor application over
+   * (#130, section 11 of the concept), whole or not at all: each as a
+   * template of the operator with its first version, as if it had been begun
+   * in the office. A point of a list is about no asset and fulfils no duty;
+   * both are said afterwards in the editor, as the next version.
+   */
+  @Post('templates')
+  @RequiresPermission('template.write')
+  @AcceptsTable()
+  async takeTemplates(@CurrentIdentity() identity: Asking, @Req() request: Request) {
+    const { given, records } = recordsOf(await tableBodyOf(request), templateImportFields)
+    const tenantId = identity.tenantId
+
+    return this.database.forTenant(identity, async (tx) => {
+      const plan = planTemplates(records, await templateImportStock(tx))
+
+      if (plan.problems.length > 0) {
+        throw new UnprocessableEntityException(planHasProblems)
+      }
+
+      if (plan.counts.templates === 0) {
+        throw new UnprocessableEntityException(planMakesNothing)
+      }
+
+      if (!sameCounts(given['expected'], { ...plan.counts })) {
+        throw new ConflictException(planChanged)
+      }
+
+      const summary = templateImportSummary(plan.counts)
+      const id = await beginImport(tx, tenantId, {
+        kind: 'templates',
+        fileName: fileNameOf(given),
+        lines: plan.lines,
+        summary,
+      })
+      const made = plan.create.templates.map((template) => ({
+        id: newId<'round_template'>(),
+        ...template,
+      }))
+
+      for (const part of inParts(made)) {
+        await tx.insert(roundTemplates).values(
+          part.map((template) => ({
+            id: template.id,
+            tenantId,
+            title: template.definition.title,
+          })),
+        )
+        await tx.insert(roundTemplateVersions).values(
+          part.map((template) => ({
+            tenantId,
+            templateId: template.id,
+            formVersion: 1,
+            definition: storedTemplate(template.definition),
+            asksCountersignature: template.asksCountersignature,
+          })),
+        )
+      }
+
+      return { id, counts: plan.counts, summary }
+    })
   }
 
   /** What the lists of this tenant call the asset kinds, for the step that gives words a kind. */

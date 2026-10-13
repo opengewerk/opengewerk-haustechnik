@@ -34,12 +34,16 @@ import {
 import { ceilingOf } from './duty-update.js'
 import { type EvidenceResult, evidenceResultLabel } from './evidence.js'
 import {
+  type AssetNaming,
+  assetWords,
   counted,
+  grouped,
   type ImportNote,
   ImportNotes,
   type ImportProblem,
   ImportProblems,
   listed,
+  namedAsset,
   nameKey,
 } from './import.js'
 
@@ -146,6 +150,8 @@ export interface DeadlineImportStock {
   readonly catalogue: Pick<Catalogue, 'dutyKind' | 'dutyKinds' | 'interval'>
   readonly today: IsoDate
 }
+
+const missingAsset = 'Die Anlage fehlt: Anlagennummer, Kennzeichen oder Seriennummer'
 
 /** A duty the import confirms: one of the catalogue with its kind, or one of the operator's own. */
 export interface PlannedDuty {
@@ -363,6 +369,11 @@ export function planDeadlines(
   const byNumber = grouped(stock.assets, (asset) => duplicateKey(asset.number))
   const byMark = grouped(stock.assets, (asset) => duplicateKey(asset.mark))
   const bySerial = grouped(stock.assets, (asset) => duplicateKey(asset.serialNumber))
+  const namings: readonly AssetNaming<DeadlineImportAsset>[] = [
+    { field: 'assetNumber', word: 'Anlagennummer', article: 'der', index: byNumber },
+    { field: 'mark', word: 'Kennzeichen', article: 'dem', index: byMark },
+    { field: 'serialNumber', word: 'Seriennummer', article: 'der', index: bySerial },
+  ]
   const files = new Map(stock.files.map((name) => [fileNameKey(name), name]))
   const takenOver = new Set(
     stock.takenOver.map((each) => `${each.assetId}\u0000${fileNameKey(each.fileName)}`),
@@ -423,7 +434,7 @@ export function planDeadlines(
   for (const { line, values } of records) {
     const cell = (field: string) => values[field] ?? ''
     const before = problems.added
-    const asset = assetOf(line, cell, { byNumber, byMark, bySerial }, problems)
+    const asset = namedAsset(line, cell, namings, problems, missingAsset)
     const file = fileOf(line, cell('file'))
     const title = cell('title')
 
@@ -511,7 +522,7 @@ export function planDeadlines(
 
       problems.add(
         [first?.line ?? each.line, each.line],
-        `${each.named.label} an ${wordsOf(each.asset)} steht für den ${written(each.performedOn)} zweimal in der Datei`,
+        `${each.named.label} an ${assetWords(each.asset)} steht für den ${written(each.performedOn)} zweimal in der Datei`,
         'Eine der Zeilen streichen und neu hochladen',
       )
     }
@@ -648,99 +659,6 @@ export function planDeadlines(
     rows: rows.sort((one, other) => one.line - other.line),
     create: clear ? { duties, evidence, documents } : { duties: [], evidence: [], documents: [] },
   }
-}
-
-function grouped<Item>(
-  items: readonly Item[],
-  key: (item: Item) => string | null,
-): Map<string, Item[]> {
-  const groups = new Map<string, Item[]>()
-
-  for (const item of items) {
-    const group = key(item)
-
-    if (group !== null) {
-      groups.set(group, [...(groups.get(group) ?? []), item])
-    }
-  }
-
-  return groups
-}
-
-/** An asset in a few words, for a line of the preview: its number, else its name. */
-function wordsOf(asset: Pick<DeadlineImportAsset, 'number' | 'name'>): string {
-  return asset.number ?? asset.name
-}
-
-/**
- * The asset a line names: by its number here, its mark or its serial number.
- * Whatever of the three a line gives has to mean the same asset, and one
- * only; a mark that several assets carry names none of them.
- */
-function assetOf(
-  line: number,
-  cell: (field: string) => string,
-  assets: {
-    readonly byNumber: Map<string, DeadlineImportAsset[]>
-    readonly byMark: Map<string, DeadlineImportAsset[]>
-    readonly bySerial: Map<string, DeadlineImportAsset[]>
-  },
-  problems: ImportProblems,
-): DeadlineImportAsset | null {
-  const given = (
-    [
-      ['assetNumber', 'Anlagennummer', assets.byNumber],
-      ['mark', 'Kennzeichen', assets.byMark],
-      ['serialNumber', 'Seriennummer', assets.bySerial],
-    ] as const
-  ).flatMap(([field, word, index]) => {
-    const key = duplicateKey(cell(field))
-
-    return key === null ? [] : [{ word, value: cell(field), found: index.get(key) ?? [] }]
-  })
-
-  if (given.length === 0) {
-    problems.add(line, 'Die Anlage fehlt: Anlagennummer, Kennzeichen oder Seriennummer')
-
-    return null
-  }
-
-  for (const each of given) {
-    if (each.found.length === 0) {
-      problems.add(
-        line,
-        `Eine Anlage mit ${each.word === 'Kennzeichen' ? 'dem' : 'der'} ${each.word} „${each.value}“ gibt es in Ihren Bereichen nicht`,
-        'Die Anlagen zuerst importieren oder die Datei berichtigen',
-      )
-
-      return null
-    }
-  }
-
-  const common = (given[0]?.found ?? []).filter((asset) =>
-    given.every((each) => each.found.includes(asset)),
-  )
-
-  if (common.length === 0) {
-    problems.add(
-      line,
-      `${listed(given.map((each) => `${each.word} „${each.value}“`))} gehören zu verschiedenen Anlagen`,
-    )
-
-    return null
-  }
-
-  if (common.length > 1) {
-    problems.add(
-      line,
-      `${listed(given.map((each) => `${each.word} „${each.value}“`))} ${given.length === 1 ? 'trägt' : 'tragen'} mehr als eine Anlage: ${listed(common.map(wordsOf))}`,
-      'Die Anlagennummer nennen und neu hochladen',
-    )
-
-    return null
-  }
-
-  return common[0] ?? null
 }
 
 function performedOnOf(
@@ -962,8 +880,8 @@ function dutyOf(
     problems.add(
       line,
       applying.length === 0
-        ? `Für ${wordsOf(asset)} kennt der Katalog keine Pflicht „${name}“: für Anlagen dieser Art nennt er keine`
-        : `Für ${wordsOf(asset)} kennt der Katalog keine Pflicht „${name}“, er nennt: ${listed(applying.map((each) => each.definition.label))}`,
+        ? `Für ${assetWords(asset)} kennt der Katalog keine Pflicht „${name}“: für Anlagen dieser Art nennt er keine`
+        : `Für ${assetWords(asset)} kennt der Katalog keine Pflicht „${name}“, er nennt: ${listed(applying.map((each) => each.definition.label))}`,
       'Die Pflicht nennen, wie der Katalog sie nennt, oder mit Grundlage, Quelle, Tätigkeit und Frist als eigene Pflicht übernehmen',
     )
 
