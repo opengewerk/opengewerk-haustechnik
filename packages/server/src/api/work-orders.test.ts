@@ -1132,3 +1132,56 @@ describe('the work on an order on site', () => {
     expect(await outcomes(by('u-tech'), [await signatureFor(page.id)])).toEqual([applied])
   })
 })
+
+/** A device of this person that takes push (#126), as the row a browser left. */
+async function aPushDevice(userId: string, tenantId: TenantId): Promise<void> {
+  await admin.query(
+    `insert into push_subscriptions (tenant_id, user_id, entry, label, endpoint, p256dh, auth)
+     values ($1, $2, 'site', 'Chrome auf Android', $3, 'BPublic', 'Secret')`,
+    [tenantId, userId, `https://push.example.com/${userId}/${newId()}`],
+  )
+}
+
+/** Who was told about an activity, with what the message is called and why it was written. */
+async function toldAbout(activityId: string) {
+  const { rows } = await admin.query<{ user: string; title: string; cause: string }>(
+    `select s.user_id as user, o.title, o.cause
+       from push_outbox o join push_subscriptions s on s.id = o.subscription_id
+      where o.cause like '%:' || $1 || ':%'
+      order by s.user_id, o.cause`,
+    [activityId],
+  )
+
+  return rows
+}
+
+describe('a work order handed to somebody (#126)', () => {
+  it('tells whoever leads it and whoever takes part, and says "sofort" to whoever leads one that is', async () => {
+    const { asset } = await elevatorIn()
+
+    await aPushDevice('u-tech', small)
+    await aPushDevice('u-other', small)
+    // Whoever leads it switched the ordinary message off; "sofort" comes all the same.
+    await admin.query(
+      "insert into push_opt_outs (tenant_id, user_id, occasion) values ($1, 'u-tech', 'assigned')",
+      [small],
+    )
+
+    const page = await made({ ...plan, origin: 'defect', defectId: await defectAt(asset) })
+
+    expect(await toldAbout(page.id)).toEqual([
+      { user: 'u-other', title: 'Neu zugeteilt', cause: `assigned:${page.id}:u-other` },
+    ])
+
+    await http()
+      .put(`/work-orders/${page.id}`)
+      .set(testIdentityHeader, by('u-site'))
+      .send({ ...plan, urgency: 'immediate' })
+      .expect(200)
+
+    expect(await toldAbout(page.id)).toEqual([
+      { user: 'u-other', title: 'Neu zugeteilt', cause: `assigned:${page.id}:u-other` },
+      { user: 'u-tech', title: 'Auftrag: sofort', cause: `immediate:${page.id}:u-tech` },
+    ])
+  })
+})

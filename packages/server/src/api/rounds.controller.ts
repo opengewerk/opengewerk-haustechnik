@@ -49,6 +49,7 @@ import {
 import { CATALOGUE } from '../catalogue.js'
 import { activities, defects, evidence, roundPlans } from '../database/schema/index.js'
 import { EvidenceRefusal } from '../evidence/write.js'
+import { type Handed, tellHandedOut } from '../notifications/tell.js'
 import { dayInGermany } from '../today.js'
 import { candidatesIn, inSight } from './activities.controller.js'
 import { RequiresPermission } from './authorization.js'
@@ -262,7 +263,10 @@ export class RoundsController {
    */
   @Put('assignment')
   @RequiresPermission('activity.write')
-  assign(@CurrentIdentity() identity: Asking, @Body() body: unknown): Promise<{ ids: string[] }> {
+  async assign(
+    @CurrentIdentity() identity: Asking,
+    @Body() body: unknown,
+  ): Promise<{ ids: string[] }> {
     const asked = (body as { readonly rounds?: unknown } | null)?.rounds
 
     if (
@@ -290,7 +294,8 @@ export class RoundsController {
       ]),
     )
 
-    return this.database.forTenant(identity, async (tx) => {
+    const handed: Handed[] = []
+    const answer = await this.database.forTenant(identity, async (tx) => {
       const rounds = await tx
         .select({
           id: activities.id,
@@ -351,11 +356,17 @@ export class RoundsController {
             .update(activities)
             .set({ performerUserId: person, updatedAt: now })
             .where(and(eq(activities.id, round.id), eq(activities.status, 'open')))
+          handed.push({ activityId: round.id, userId: person, dueOn: round.dueOn })
         }
       }
 
       return { ids: rounds.map((round) => round.id) }
     })
+
+    // Whoever a round went to is told, once for all that went to them (#126).
+    await tellHandedOut(this.database, identity.tenantId, identity.userId, handed)
+
+    return answer
   }
 
   /**
@@ -367,13 +378,14 @@ export class RoundsController {
    */
   @Post('like-last-week')
   @RequiresPermission('activity.write')
-  likeLastWeek(
+  async likeLastWeek(
     @CurrentIdentity() identity: Asking,
     @Body() body: unknown,
   ): Promise<{ handedOut: number; kept: number }> {
     const monday = mondayOf((body as { readonly weekOf?: unknown } | null)?.weekOf)
+    const handed: Handed[] = []
 
-    return this.database.forTenant(identity, async (tx) => {
+    const answer = await this.database.forTenant(identity, async (tx) => {
       const rounds = await tx
         .select({
           id: activities.id,
@@ -444,11 +456,16 @@ export class RoundsController {
           .update(activities)
           .set({ performerUserId: person, updatedAt: now })
           .where(and(eq(activities.id, round.id), eq(activities.status, 'open')))
+        handed.push({ activityId: round.id, userId: person, dueOn: round.dueOn })
         handedOut += 1
       }
 
       return { handedOut, kept }
     })
+
+    await tellHandedOut(this.database, identity.tenantId, identity.userId, handed)
+
+    return answer
   }
 
   /**

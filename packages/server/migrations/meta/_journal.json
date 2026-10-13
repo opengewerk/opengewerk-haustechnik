@@ -309,6 +309,13 @@
       "when": 1791845430208,
       "tag": "0043_instance_mail_server",
       "breakpoints": true
+    },
+    {
+      "idx": 44,
+      "version": "7",
+      "when": 1791849450331,
+      "tag": "0044_mail_outbox_and_push",
+      "breakpoints": true
     }
   ]
 }

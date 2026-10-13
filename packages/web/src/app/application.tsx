@@ -4,6 +4,7 @@ import {
   tenantNameProblem,
 } from '@opengewerk/haustechnik-domain'
 import type { InterfaceApplication } from '@opengewerk/platform-web'
+import { leavePush } from '@opengewerk/platform-web/session'
 import { directWrite, httpTransport } from '@opengewerk/platform-web/sync'
 
 import { SyncClient } from '../sync/client.js'
@@ -126,4 +127,8 @@ export const application: InterfaceApplication = {
 
   // What the screens of the conflicts say about a record, in both entries.
   records,
+
+  // Before signing out, the device lets go of push: the next person on it
+  // gets nothing of the last one's (#126).
+  beforeSignOut: leavePush,
 }

@@ -1,5 +1,6 @@
 import { serverPaths } from '@opengewerk/haustechnik-domain'
 import {
+  accountMails,
   authenticationHandler,
   ClosedIdentitySource,
   type Configuration,
@@ -7,20 +8,32 @@ import {
   createServer,
   Database,
   FileStore,
+  httpsPost,
   InstanceSettingsCache,
+  type MailContext,
+  type PushContext,
+  reachableOnly,
   readRendererConfiguration,
   rendererFor,
+  SecretKey,
   type Server,
+  smtpTransport,
+  vapidKeysFrom,
 } from '@opengewerk/platform-server'
 
 import { ApiModule } from './api/api.module.js'
 import { createAuthentication, SessionIdentitySource } from './authentication/access.js'
+import { accountMessages } from './mail/account-messages.js'
 
 /** A running instance, before it listens, and what stops it again. */
 export interface OpenInstance extends Server {
   readonly database: Database
   /** Stops reading the settings of the instance again, before the database closes. */
   readonly stopSettings: () => void
+  /** What the mail job needs, or null on a closed instance, which sends nothing. */
+  readonly mail: MailContext | null
+  /** What the push job needs, or null without a key to sign with and on a closed instance. */
+  readonly push: PushContext | null
 }
 
 /**
@@ -37,6 +50,15 @@ export interface OpenInstance extends Server {
  * one that recognises nobody, and the instance runs, reports its health and
  * hands out nothing, the sign in and the first run included. Migrations do not
  * run from here; they run as another role, before this process starts.
+ *
+ * Each operator sets up its own mail server in the office, so there is
+ * nothing to ask at startup: the key its password is sealed with is all the
+ * instance brings. The mails to an account go out through the mail server of
+ * the instance (#81). Push goes out where the environment holds a key to sign
+ * with (`VAPID_PRIVATE_KEY`), which the setup script makes. A closed instance
+ * sends neither: it is closed for a restore or a migration window, and a
+ * message out of a database that is being put back is a message about a state
+ * that may not survive the hour.
  *
  * The file store lies where the configuration says (`STORAGE_PATH`, the volume
  * the backup takes along), and the renderer is the service the environment
@@ -67,10 +89,41 @@ export async function openInstance(
   const instanceSettings = await InstanceSettingsCache.load(database)
   const stopSettings = instanceSettings.every(30_000)
 
+  // The first trusted origin is the address the instance is reached at, the
+  // one a link in a message has to point to.
+  const origin = configuration.trustedOrigins[0] ?? ''
+
+  // The connection reaches mail servers on the internet and the ones whoever
+  // runs the instance allows in its settings, nothing else in the network
+  // the instance runs in; the check in the office and the job that sends
+  // alike.
+  const mail: MailContext | null = configuration.closed
+    ? null
+    : {
+        origin,
+        key: SecretKey.from(configuration.sessionSecret),
+        connect: reachableOnly(smtpTransport, {
+          get internalHosts() {
+            return instanceSettings.current().mailInternalHosts
+          },
+        }),
+      }
+
+  // The first trusted origin is also who runs the instance, for whoever
+  // runs a push service and wants to reach them.
+  const push: PushContext | null =
+    !configuration.closed && configuration.vapidPrivateKey
+      ? { vapid: vapidKeysFrom(configuration.vapidPrivateKey, origin), post: httpsPost() }
+      : null
+
+  // After the mail, because the link to a new password and the notice of a
+  // new passkey go out through the mail server of the instance, and through
+  // the one of no operator (#81).
   const authentication = createAuthentication({
     database,
     secret: configuration.sessionSecret,
     trustedOrigins: configuration.trustedOrigins,
+    ...(mail ? accountMails(database, mail, accountMessages) : {}),
   })
 
   const identities = configuration.closed
@@ -98,6 +151,8 @@ export async function openInstance(
         : {
             ...output,
             authentication,
+            mail,
+            push,
             setupCode: configuration.setupCode,
             instance: { settings: instanceSettings },
           },
@@ -111,5 +166,5 @@ export async function openInstance(
     },
   )
 
-  return { ...server, database, stopSettings }
+  return { ...server, database, stopSettings, mail, push }
 }

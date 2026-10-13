@@ -13,6 +13,11 @@ export * from '@opengewerk/platform-domain'
 export * from './model/number-range.js'
 export * from './model/secret.js'
 
+// What a message of an operator is signed with, and the occasions a person
+// gets as push on their devices.
+export * from './model/mail-signature.js'
+export * from './model/push.js'
+
 // What somebody may do with what a tenant keeps, the roles a tenant starts
 // with, and what a tenant may be called.
 export * from './model/rights.js'

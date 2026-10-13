@@ -1,5 +1,7 @@
 import type { RoleKey } from '@opengewerk/haustechnik-domain'
 import { StaffDialogsScreen } from '@opengewerk/platform-web/office'
+import { mailStatus } from '@opengewerk/platform-web/session'
+import { useQuery } from '@tanstack/react-query'
 
 import { useAreaAdditions } from '../staff-areas.js'
 import { Substitutions } from '../substitutions.js'
@@ -40,17 +42,19 @@ export const staffScreenWords = {
  * accounts and the invitations the substitutions (section 2.8 of the
  * concept).
  *
- * An invitation goes as a link to pass on: sending one by mail needs the mail
- * server of a tenant, which arrives with its mail. A new colleague works in
+ * Whether the tenant sends mail is asked at the route of its mail settings
+ * (#126): with a mail server an invitation can go out by mail instead of as a
+ * link to pass on. A new colleague works in
  * the building services more often than anything else, so a new access starts
  * with that role.
  */
 export function StaffScreen() {
   const areas = useAreaAdditions()
+  const mail = useQuery({ queryKey: ['mail-status'], queryFn: mailStatus })
 
   return (
     <StaffDialogsScreen
-      byMail={false}
+      byMail={mail.data?.configured === true}
       suggestedRole="technician"
       roleNotes={roleNotes}
       sentences={staffScreenWords}

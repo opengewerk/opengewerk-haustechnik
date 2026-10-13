@@ -9,7 +9,7 @@ import {
   TenantScreen,
 } from '@opengewerk/platform-web/gate'
 import { SettingsScreen } from '@opengewerk/platform-web/office'
-import { useWho } from '@opengewerk/platform-web/session'
+import { leavePush, useWho } from '@opengewerk/platform-web/session'
 import { EntrySuggestion } from '@opengewerk/platform-web/shell'
 import { InRouter } from '@opengewerk/platform-web/testing'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
@@ -213,8 +213,12 @@ describe('what each entry hands to the foundation', () => {
       'maengelklassen',
       'meters',
       'fristen',
+      'e-mail',
       'protokoll',
     ])
+    // Both entries let go of push on the device before somebody signs out (#126).
+    expect(application.beforeSignOut).toBe(leavePush)
+    expect(officeApplication.beforeSignOut).toBe(leavePush)
     expect(application.ownTenant).toBeUndefined()
     expect(officeApplication.ownTenant).toBeUndefined()
     expect(application.sentences.staff).toBeUndefined()

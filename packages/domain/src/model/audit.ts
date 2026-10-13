@@ -22,6 +22,7 @@ import { evidenceOriginLabel, evidenceResultLabel } from './evidence.js'
 import { meterUnitSymbol } from './meter.js'
 import { meterReadingSourceLabel } from './meter-reading.js'
 import { numberRangeLabel } from './number-range.js'
+import { pushOccasionWords } from './push.js'
 import { planRhythmLabel, weekdayLabel } from './round-plan.js'
 import { templateKeyPrefix } from './round-template.js'
 import { signatureRoleLabel, workOrderDecisionLabel } from './signature.js'
@@ -697,6 +698,13 @@ export const auditVocabulary: AuditVocabulary = {
   roles: Object.fromEntries(shippedRoles.map((role) => [role.key, role.label])),
 }
 
+/** How a message stands in its outbox, by mail or by push (#126). */
+const messageStatusLabel = {
+  pending: 'Wartet',
+  sent: 'Gesendet',
+  failed: 'Nicht zugestellt',
+} as const
+
 /**
  * How the values of a list are written in the change log (#80): the log
  * holds `with_defects`, the Leitung reads "Mit Mängeln". By table and column
@@ -728,12 +736,30 @@ export const auditValues: Readonly<
     task: dutyTaskLabel,
   },
   evidence: { origin: evidenceOriginLabel, result: evidenceResultLabel },
+  // What a message is about and how it stands (#126): the log holds the key
+  // of the occasion, the Leitung reads what the account calls it.
+  mail_outbox: {
+    kind: { deadline_due: 'Erinnerung an eine Frist', invitation: 'Einladung' },
+    status: messageStatusLabel,
+  },
   mail_settings: { security: { starttls: 'STARTTLS', tls: 'TLS', none: 'Ohne Verschlüsselung' } },
   meter_readings: { source: meterReadingSourceLabel },
   // A number range by what it counts, not by its key (#176).
   number_ranges: { key: numberRangeLabel },
   // The log holds `DE-BW`, the Leitung reads "Baden-Württemberg".
   properties: { federal_state: ruleScopeNames },
+  push_outbox: {
+    kind: {
+      deadline_due: pushOccasionWords.deadline_due.label,
+      assigned: pushOccasionWords.assigned.label,
+      task_due: pushOccasionWords.task_due.label,
+      waiting: pushOccasionWords.waiting.label,
+      work_order_rejected: pushOccasionWords.work_order_rejected.label,
+      test: 'Probenachricht',
+    },
+    status: messageStatusLabel,
+  },
+  push_subscriptions: { entry: { office: 'Büro', site: 'Vor Ort' } },
   round_plans: { rhythm: planRhythmLabel },
   work_order_decisions: { decision: workOrderDecisionLabel },
   work_order_notes: { activity_kind: activityKindLabel },

@@ -121,6 +121,9 @@ services:
       # The code the first run asks for. Optional here on purpose: an instance
       # that has been set up never needs it again and starts without it.
       SETUP_CODE: ${SETUP_CODE:-}
+      # The key push messages are signed with. Optional: without it the
+      # instance sends no push and says so under "Konto".
+      VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY:-}
       # Recognises nobody while this is on, the sign in included.
       CLOSED: ${CLOSED:-false}
       # The version the image above runs, from the same expression, for the

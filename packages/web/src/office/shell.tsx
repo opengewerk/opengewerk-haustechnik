@@ -1,4 +1,5 @@
 import { OfficeFrame } from '@opengewerk/platform-web/office'
+import { usePushRefresh } from '@opengewerk/platform-web/session'
 
 import { useKeepCatalogue } from '../sync/catalogue.js'
 import { useNavigation } from './navigation.js'
@@ -22,12 +23,16 @@ import { useOfficeSearch } from './search-source.js'
  * The search in its header is the foundation's field with the sources of this
  * application (#125, ADR 0010): what it finds, how its kinds are called and
  * where a hit opens (`useOfficeSearch`).
+ *
+ * A device with push on writes its row again at every start, bound to the
+ * session of now (#126, `usePushRefresh`).
  */
 export function OfficeShell() {
   const { groups, foot } = useNavigation()
   const search = useOfficeSearch()
 
   useKeepCatalogue()
+  usePushRefresh('office')
 
   return <OfficeFrame navigation={groups} foot={foot} search={search} />
 }

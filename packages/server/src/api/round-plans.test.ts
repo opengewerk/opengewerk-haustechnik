@@ -1273,3 +1273,50 @@ describe('the rounds the deadline engine makes', () => {
     expect(met[0]?.open).toBe(0)
   })
 })
+
+/** A device of this person that takes push (#126), as the row a browser left. */
+async function aPushDevice(userId: string, tenantId: TenantId): Promise<void> {
+  await admin.query(
+    `insert into push_subscriptions (tenant_id, user_id, entry, label, endpoint, p256dh, auth)
+     values ($1, $2, 'site', 'Chrome auf Android', $3, 'BPublic', 'Secret')`,
+    [tenantId, userId, `https://push.example.com/${userId}/${newId()}`],
+  )
+}
+
+describe('rounds handed to somebody (#126)', () => {
+  it('tell whoever they went to once, however many of them', async () => {
+    const plan = await planned('u-site')
+    const rounds = (await roundsOf(plan.body['id'])).filter((round) => round.due_on >= plus(1))
+
+    expect(rounds.length).toBeGreaterThan(1)
+
+    await aPushDevice('u-tech2', tenant)
+
+    expect(
+      (
+        await answered(
+          http()
+            .put('/rounds/assignment')
+            .set(testIdentityHeader, by('u-site'))
+            .send({
+              rounds: rounds.map((round) => ({ id: round.id, performerUserId: 'u-tech2' })),
+            }),
+        )
+      ).status,
+    ).toBe(200)
+
+    const { rows } = await admin.query<{ title: string; cause: string }>(
+      `select o.title, o.cause
+         from push_outbox o join push_subscriptions s on s.id = o.subscription_id
+        where s.user_id = 'u-tech2'`,
+    )
+    const first = rounds.map((round) => round.due_on).sort()[0]
+
+    expect(rows).toEqual([
+      {
+        title: 'Neu zugeteilt',
+        cause: `assigned:${String(rounds.find((round) => round.due_on === first)?.id)}:u-tech2`,
+      },
+    ])
+  })
+})

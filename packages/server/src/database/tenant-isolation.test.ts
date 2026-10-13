@@ -95,6 +95,7 @@ const tomorrow = new Date(Date.now() + 24 * 60 * 60 * 1000)
  */
 function rowsOf(tenant: Tenant): readonly Row[] {
   const invitation = randomUUID()
+  const device = randomUUID()
   const area = randomUUID()
   const property = randomUUID()
   const building = randomUUID()
@@ -747,6 +748,50 @@ function rowsOf(tenant: Tenant): readonly Row[] {
         title: 'Typenschild fotografieren',
         due_on: '2026-10-20',
         assignee_user_id: tenant.userId,
+      },
+    },
+    // A message by mail, a device that takes push, an occasion its person
+    // switched off and a push message to that device (#126).
+    {
+      table: 'mail_outbox',
+      values: {
+        tenant_id: tenant.id,
+        kind: 'deadline_due',
+        cause: 'deadline_due:probe:2027-03-01',
+        sender_name: tenant.name,
+        recipient_address: tenant.email,
+        subject: 'Frist am 01.03.2027: Fälligkeit einer Pflicht',
+        body: 'Guten Tag',
+      },
+    },
+    {
+      table: 'push_subscriptions',
+      values: {
+        id: device,
+        tenant_id: tenant.id,
+        user_id: tenant.userId,
+        entry: 'office',
+        label: 'Firefox auf Windows',
+        endpoint: `https://push.example.com/${tenant.id}`,
+        p256dh: 'BPublic',
+        auth: 'Secret',
+      },
+    },
+    {
+      table: 'push_opt_outs',
+      values: { tenant_id: tenant.id, user_id: tenant.userId, occasion: 'task_due' },
+    },
+    {
+      table: 'push_outbox',
+      values: {
+        tenant_id: tenant.id,
+        kind: 'deadline_due',
+        cause: 'deadline_due:probe:2027-03-01',
+        subscription_id: device,
+        title: 'Frist am 01.03.2027',
+        body: 'Fälligkeit einer Pflicht',
+        url: '/fristen',
+        expires_at: '2038-01-01T00:00:00Z',
       },
     },
   ]

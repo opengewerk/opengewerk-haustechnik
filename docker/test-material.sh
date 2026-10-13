@@ -30,7 +30,7 @@ guarded_route=/staff
 # The tables counted before the backup and after the restore. The area and
 # the place of the account in it come with the account: a Betreiber gets its
 # first area with its first membership.
-counted_tables='auth_users memberships tenant_roles account_corrections areas member_areas invitations invitation_area_choices invitation_areas properties buildings contacts building_closures assets files mail_settings deadline_settings deadline_runs duties duty_dismissals evidence deadlines activities activity_duties activity_answers work_orders work_order_participants work_order_notes defects meter_points meter_readings meter_exchanges meter_pauses meter_settings activity_signatures work_order_decisions evidence_voidings round_records prints attachments attachment_versions labels imports asset_kind_names defect_class_terms round_templates round_template_versions round_plans tasks'
+counted_tables='auth_users memberships tenant_roles account_corrections areas member_areas invitations invitation_area_choices invitation_areas properties buildings contacts building_closures assets files mail_settings deadline_settings deadline_runs duties duty_dismissals evidence deadlines activities activity_duties activity_answers work_orders work_order_participants work_order_notes defects meter_points meter_readings meter_exchanges meter_pauses meter_settings activity_signatures work_order_decisions evidence_voidings round_records prints attachments attachment_versions labels imports asset_kind_names defect_class_terms round_templates round_template_versions round_plans tasks mail_outbox push_subscriptions push_opt_outs push_outbox'
 
 # The migrations, and how many of them make the older state an update starts
 # from: the first, without the sequence for work orders that the second brings.
@@ -202,9 +202,29 @@ records_for_backup() {
     select a.tenant_id, a.property_id, a.area_id, a.id, 'Typenschild fotografieren', date '2026-10-20', m.user_id
       from assets a join memberships m on m.tenant_id = a.tenant_id
      where a.tenant_id = '$first_tenant' order by a.id, m.user_id limit 1;"
+  # A message by mail, a device that takes push, an occasion its person
+  # switched off and a push message to that device
+  # (opengewerk-haustechnik#126). Both messages are gone already: the jobs of
+  # a running instance leave them as they are, and no address here is asked.
+  # The device has no session, so the job that takes signed out devices off
+  # keeps it.
+  sql "
+    insert into mail_outbox (tenant_id, kind, cause, sender_name, recipient_address, subject, body, status, sent_at)
+    values ('$first_tenant', 'deadline_due', 'deadline_due:probe:2027-03-01', 'Probe', '$probe_email',
+            'Frist am 01.03.2027', 'Guten Tag', 'sent', now());
+    insert into push_subscriptions (tenant_id, user_id, entry, label, endpoint, p256dh, auth)
+    select m.tenant_id, m.user_id, 'office', 'Firefox auf Windows', 'https://push.probe.example.de/a', 'BPublic', 'Secret'
+      from memberships m where m.tenant_id = '$first_tenant' order by m.user_id limit 1;
+    insert into push_opt_outs (tenant_id, user_id, occasion)
+    select m.tenant_id, m.user_id, 'task_due'
+      from memberships m where m.tenant_id = '$first_tenant' order by m.user_id limit 1;
+    insert into push_outbox (tenant_id, kind, cause, subscription_id, title, body, url, status, sent_at, expires_at)
+    select s.tenant_id, 'deadline_due', 'deadline_due:probe:2027-03-01', s.id, 'Frist am 01.03.2027',
+           'Fälligkeit einer Pflicht', '/fristen', 'sent', now(), now() + interval '1 day'
+      from push_subscriptions s where s.tenant_id = '$first_tenant';"
   # A mail server, whose table comes with the foundation as well
-  # (opengewerk-haustechnik#23). What writes it comes with the notifications
-  # of phase 1.
+  # (opengewerk-haustechnik#23). The Leitung sets it under
+  # "E-Mail-Einstellungen" (opengewerk-haustechnik#126).
   sql "
     insert into mail_settings (tenant_id, host, port, security, from_address) values
       ('$first_tenant', 'mail.probe.example.de', 587, 'starttls', 'technik@probe.example.de');"

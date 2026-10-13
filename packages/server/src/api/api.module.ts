@@ -20,6 +20,12 @@ import {
   IDENTITY_SOURCE,
   type IdentitySource,
   type InstanceSettingsCache,
+  MAIL,
+  type MailContext,
+  mailSettingsParts,
+  PUSH,
+  type PushContext,
+  pushParts,
   RENDERER,
   type Renderer,
   rendererFor,
@@ -33,6 +39,9 @@ import {
 import { access } from '../authentication/access.js'
 import { CATALOGUE, shippedCatalogue } from '../catalogue.js'
 import { deadlineRulesFor } from '../deadlines/routes.js'
+import { mailServersOfOperators } from '../mail/server-settings.js'
+import { invitationMailing } from '../notifications/invitation-mail.js'
+import { pushRules } from '../notifications/push.js'
 import { ActivitiesController } from './activities.controller.js'
 import { AreasController, SubstitutionsController } from './areas.controller.js'
 import { AssetsController, BuildingAssetsController } from './assets.controller.js'
@@ -125,6 +134,18 @@ export interface ApiOptions {
    * so instead of a crash.
    */
   readonly renderer?: Renderer
+  /**
+   * What the routes around mail need (#126). Left out, the instance sends
+   * none: the mail server of an operator can be read and removed but neither
+   * set nor tried, an invitation is handed over as a link, and the mail
+   * server of the instance takes no entry.
+   */
+  readonly mail?: MailContext | null
+  /**
+   * What push needs (#126). Left out, the instance sends no push: "Konto"
+   * says so, and no device subscribes.
+   */
+  readonly push?: PushContext | null
 }
 
 /**
@@ -145,8 +166,9 @@ export interface ApiOptions {
  * What the foundation brings: signing in, the account of the person signed
  * in, who works for a tenant, the area of the instance, the change log and the
  * sync of a device with the rules of this application. An invitation is
- * handed over as a link; sending one by mail arrives with the mail server of a
- * tenant. The people to talk to at a property are on routes of the foundation
+ * handed over as a link, or goes out by mail where the tenant has set up its
+ * mail server (#126); that mail server and push on one's own devices are on
+ * routes of the foundation as well. The people to talk to at a property are on routes of the foundation
  * as well, with the rights of the property. The bytes of a file go into the
  * store through the route of the foundation, under the right this application
  * names for filing a document, and the renderer is handed to whatever prints;
@@ -172,6 +194,8 @@ export class ApiModule {
       version = null,
       files,
       renderer = rendererFor({ url: undefined, token: undefined }),
+      mail = null,
+      push = null,
     } = options
     const catalogue = options.catalogue ?? shippedCatalogue()
 
@@ -181,6 +205,8 @@ export class ApiModule {
       access,
       authentication,
       setupCode,
+      // An invitation by mail goes out the way every mail of an operator does.
+      invitationMailing: invitationMailing(database, mail),
       instanceSettings: options.instance?.settings,
     })
     // The routes a device syncs through, with the rules of this application
@@ -208,6 +234,17 @@ export class ApiModule {
       },
       rules: deadlineRulesFor(catalogue),
     })
+
+    // The mail server of an operator, set up by whoever may write in its name
+    // (#126, section 7 of the concept); whether it sends at all, for whoever
+    // reads the settings.
+    const mailing = mailSettingsParts({
+      access,
+      rights: { status: 'settings.read', read: 'mail.read', write: 'mail.write' },
+      servers: mailServersOfOperators,
+    })
+    // Push on one's own devices, and which occasions come as push.
+    const pushing = pushParts({ access, rights: { write: 'push.write' }, rules: pushRules })
 
     // The people to talk to at a property, on the routes of the foundation,
     // with the rights of the property.
@@ -242,6 +279,8 @@ export class ApiModule {
         ...contacting.controllers,
         ...storing.controllers,
         ...filing.controllers,
+        ...mailing.controllers,
+        ...pushing.controllers,
         // The areas of a tenant, who holds in which, and who stands in for whom.
         AreasController,
         SubstitutionsController,
@@ -313,6 +352,11 @@ export class ApiModule {
         ...contacting.providers,
         ...storing.providers,
         ...filing.providers,
+        ...mailing.providers,
+        ...pushing.providers,
+        // What sends: null on a closed instance, and for push without a key.
+        { provide: MAIL, useValue: mail },
+        { provide: PUSH, useValue: push },
         // What prints a page, for the routes that hand out a PDF.
         { provide: RENDERER, useValue: renderer },
         Printer,
