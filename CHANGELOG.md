@@ -1916,3 +1916,12 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   einem Betreiber von vor `0046` wird ohne sie rot und nennt Rolle und Recht. Er ersetzt
   `roles-of-a-version.test.ts`, der damit bis zur ersten Fassung warten wollte; der Pilotbetrieb
   soll sein erstes Update nicht ohne diese Regel bekommen
+- Raum im Büro: "Anlagen in diesem Raum" zeigt die Anlagenart (#284), wie die Tafel sie zeichnet:
+  die Bezeichnung aus dem Katalog des Geräts, bei der allgemeinen Anlagenart einer Kostengruppe
+  mit der Kostengruppe dahinter ("Anlage der Wärmeversorgung (KG 420)"), wie der Import sie nennt.
+  Auf dem Telefon steht sie in der Karte der Anlage. Bisher sah, wer einen Raum öffnete, nur am
+  Namen einer Anlage, was dort steht. Zwei weitere Unterschiede zur Tafel sind mit behoben: der
+  Name einer Anlage führt in beiden Tabellen des Raums in ihre Akte, und im Kopf steht "Neue
+  Anlage" für alle, die Anlagen aufnehmen. Das Formular beginnt dann im Gebäude und im Raum
+  (`/anlagen/neu?gebaeude=…&raum=…`); einen Raum, den das Gebäude der Adresse nicht hat, zeigt
+  und sendet es nicht

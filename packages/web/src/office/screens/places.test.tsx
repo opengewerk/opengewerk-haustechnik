@@ -1,8 +1,10 @@
-import type { BuildingSituation } from '@opengewerk/haustechnik-domain'
+import type { BuildingSituation, CatalogueBundle } from '@opengewerk/haustechnik-domain'
 import { TestServer } from '@opengewerk/platform-web/testing'
-import { screen, within } from '@testing-library/react'
+import { fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { acceptedReview, servingCatalogue, testCatalogue } from '../../app/test-catalogue.js'
+import { memberIn } from '../../app/test-entry.js'
 import {
   mountOffice,
   type NamedArea,
@@ -98,15 +100,27 @@ const meter = {
   number: 'AN-00009',
   name: 'Hauptwasserzähler',
 }
+/** An asset whose package is still missing: it carries the general kind of its cost group. */
 const boiler = {
   id: 's-boiler',
   ...asset,
+  kind: 'allgemein.heat_supply',
   roomId: boilerRoom.id,
   number: 'AN-00010',
   name: 'Heizkessel',
 }
-/** Taken stock of a moment ago: the server has not numbered it, and the office has given it no state. */
-const pump = { id: 's-pump', ...asset, roomId: boilerRoom.id, number: null, name: 'Neue Pumpe' }
+/**
+ * Taken stock of a moment ago: the server has not numbered it, and the office
+ * has given it no state. Its kind is one no catalogue of the tests knows.
+ */
+const pump = {
+  id: 's-pump',
+  ...asset,
+  kind: 'fremd.pump',
+  roomId: boilerRoom.id,
+  number: null,
+  name: 'Neue Pumpe',
+}
 const lamp = {
   id: 's-lamp',
   ...asset,
@@ -627,8 +641,55 @@ describe('the page of a floor', () => {
 })
 
 describe('the page of a room', () => {
-  const inside = 'Anlagen, die in diesem Raum stehen, mit ihrem Zustand am heutigen Tag'
+  const inside =
+    'Anlagen, die in diesem Raum stehen, mit Anlagenart und ihrem Zustand am heutigen Tag'
   const supplying = 'Anlagen, die diesen Raum versorgen, mit dem Ort, an dem sie stehen'
+
+  /**
+   * The catalogue of the tests with the general kind of one cost group, as the
+   * package "Allgemein" has one for every group (4.2 of the concept).
+   */
+  const withGeneralKind: CatalogueBundle = {
+    ...testCatalogue,
+    sha256: '4'.repeat(64),
+    packages: [
+      ...testCatalogue.packages,
+      {
+        name: 'allgemein',
+        title: 'Allgemein',
+        version: '1.0.0',
+        minimumCore: '0.1.0',
+        assetKinds: [
+          {
+            key: 'allgemein.heat_supply',
+            version: 1,
+            validFrom: '2018-12-01',
+            definition: {
+              label: 'Anlage der Wärmeversorgung',
+              costGroup: '420',
+              characteristics: [],
+              fields: [],
+              expectedDocuments: [],
+              meter: null,
+            },
+            review: acceptedReview,
+          },
+        ],
+        dutyKinds: [],
+        forms: [],
+        roundTemplates: [],
+        rules: [],
+        defectClasses: [],
+      },
+    ],
+  }
+
+  /** The page on a device whose server has a catalogue, once the kinds of the assets are named by it. */
+  async function mountWithCatalogue(at: string) {
+    signedInOffice('technician', [nord, sued], servingCatalogue(withGeneralKind))
+    await mount(at)
+    await screen.findByText(/Aufzugsanlage/)
+  }
 
   it('is called by its number and its name, says what it is used for and stands under its floor', async () => {
     await mount(`/raeume/${boilerRoom.id}`)
@@ -657,17 +718,56 @@ describe('the page of a room', () => {
     expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('E.20')
   })
 
-  it('lists the assets standing in it by their numbers, each with the state it is in today', async () => {
-    await mount(`/raeume/${boilerRoom.id}`)
+  it('lists the assets standing in it by their numbers, each with its kind and the state it is in today', async () => {
+    await mountWithCatalogue(`/raeume/${boilerRoom.id}`)
 
     expect(rowsOf(inside)).toEqual([
       // Out of service since the first of January; what it was before does not show.
-      ['AN-00009', 'Hauptwasserzähler', 'Außer Betrieb'],
-      // In service: its decommissioning lies ahead.
-      ['AN-00010', 'Heizkessel', 'In Betrieb'],
-      // Not numbered yet, and no state yet: after the others, and neither is made up.
-      ['', 'Neue Pumpe', ''],
+      ['AN-00009', 'Hauptwasserzähler', 'Aufzugsanlage', 'Außer Betrieb'],
+      // The general kind of a cost group, with the group behind it (#284). In
+      // service: its decommissioning lies ahead.
+      ['AN-00010', 'Heizkessel', 'Anlage der Wärmeversorgung (KG 420)', 'In Betrieb'],
+      // A kind the catalogue does not know goes by its key. Not numbered yet,
+      // and no state yet: after the others, and neither is made up.
+      ['', 'Neue Pumpe', 'fremd.pump', ''],
     ])
+  })
+
+  it('leads from every asset to its file', async () => {
+    await mount(`/raeume/${boilerRoom.id}`)
+
+    const leadsTo = (name: string) => screen.getByRole('link', { name }).getAttribute('href')
+
+    // One that stands in the room, and one that supplies it from the room beside.
+    expect(leadsTo('Heizkessel')).toBe('/anlagen/s-boiler')
+    expect(leadsTo('Notleuchte Flur')).toBe('/anlagen/s-lamp')
+  })
+
+  it('starts a new asset in the room, for whoever takes assets into the register', async () => {
+    const { router } = await mount(`/raeume/${boilerRoom.id}`)
+
+    await untilTheRightsAreKnown()
+    fireEvent.click(screen.getByRole('button', { name: 'Neue Anlage' }))
+
+    await waitFor(() => {
+      expect(router.state.location.href).toBe('/anlagen/neu?gebaeude=b-house&raum=r-boiler')
+    })
+  })
+
+  it('offers a new asset to nobody who may not take assets into the register', async () => {
+    const technician = memberIn('technician')
+
+    signedInOffice('technician', [nord, sued], {
+      '/auth/tenants': [
+        { ...technician, rights: technician.rights.filter((right) => right !== 'asset.record') },
+      ],
+    })
+    await mount(`/raeume/${boilerRoom.id}`)
+    await untilTheRightsAreKnown()
+
+    // The rights have arrived: the room is corrected from here, and no asset is started.
+    expect(screen.getByRole('button', { name: 'Bearbeiten' })).toBeTruthy()
+    expect(screen.queryByRole('button', { name: 'Neue Anlage' })).toBeNull()
   })
 
   it('lists the assets that supply it without standing in it, each with where it stands', async () => {
@@ -687,7 +787,10 @@ describe('the page of a room', () => {
   it('shows an asset that supplies the building of the room as a whole, and one that stands in the building and in no room', async () => {
     await mount(`/raeume/${caretaker.id}`)
 
-    expect(rowsOf(inside)).toEqual([['AN-00012', 'Notleuchte Flur', 'In Betrieb']])
+    // This device has no catalogue yet: the kind goes by its key until one arrives.
+    expect(rowsOf(inside)).toEqual([
+      ['AN-00012', 'Notleuchte Flur', 'probe.elevator', 'In Betrieb'],
+    ])
     expect(rowsOf(supplying)).toEqual([
       // In the building and in no room of it: by the building.
       ['AN-00003', 'Aufzug', 'Schulhaus'],
@@ -716,9 +819,9 @@ describe('the page of a room', () => {
     expect(screen.queryByRole('table')).toBeNull()
   })
 
-  it('shows its assets as cards on a phone, with number, state and where they stand', async () => {
+  it('shows its assets as cards on a phone, with number, kind, state and where they stand', async () => {
     onA('phone')
-    await mount(`/raeume/${boilerRoom.id}`)
+    await mountWithCatalogue(`/raeume/${boilerRoom.id}`)
 
     expect(screen.queryByRole('table')).toBeNull()
     expect(
@@ -727,9 +830,9 @@ describe('the page of a room', () => {
         .map((item) => item.textContent)
         .filter((text) => /Hauptwasserzähler|Heizkessel|Pumpe|Notleuchte|Lüftung/.test(text)),
     ).toEqual([
-      'HauptwasserzählerAN-00009Außer Betrieb',
-      'HeizkesselAN-00010In Betrieb',
-      'Neue Pumpe',
+      'HauptwasserzählerAN-00009 · AufzugsanlageAußer Betrieb',
+      'HeizkesselAN-00010 · Anlage der Wärmeversorgung (KG 420)In Betrieb',
+      'Neue Pumpefremd.pump',
       'Notleuchte FlurAN-00012 · Steht in E.10 Hausmeister',
       'Lüftung SporthalleAN-00020 · Steht in Sporthalle',
     ])

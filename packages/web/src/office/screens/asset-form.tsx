@@ -57,6 +57,7 @@ import {
   type DuplicateAsked,
   duplicatesRequest,
   newAssetBuilding,
+  newAssetRoom,
 } from '../asset-addresses.js'
 import { cataloguePlaces } from '../catalogue-addresses.js'
 import { factLink } from '../links.js'
@@ -153,11 +154,16 @@ export function NewAssetScreen() {
   const records = useRight('asset.record')
   const search = useSearch({ strict: false })
   const buildingId = newAssetBuilding(search)
+  const roomId = newAssetRoom(search)
 
   return records ? (
     <WithCatalogue title="Neue Anlage">
       {(catalogue) => (
-        <AssetForm catalogue={catalogue} {...(buildingId === undefined ? {} : { buildingId })} />
+        <AssetForm
+          catalogue={catalogue}
+          {...(buildingId === undefined ? {} : { buildingId })}
+          {...(roomId === undefined ? {} : { roomId })}
+        />
       )}
     </WithCatalogue>
   ) : (
@@ -246,6 +252,7 @@ function AssetForm({
   asset,
   parent,
   buildingId: startsIn,
+  roomId: startsInRoom,
 }: {
   readonly catalogue: Catalogue
   /** The asset that is changed. */
@@ -254,6 +261,8 @@ function AssetForm({
   readonly parent?: AssetDetails
   /** The building a new asset starts in, as the address says. */
   readonly buildingId?: string
+  /** The room of that building a new asset starts in, as the address says. */
+  readonly roomId?: string
 }) {
   const client = useSync()
   const status = useSyncStatus()
@@ -278,7 +287,7 @@ function AssetForm({
       kind: asset?.kind ?? '',
       buildingId: fixed?.buildingId ?? startsIn ?? '',
       floorId: '',
-      roomId: '',
+      roomId: startsInRoom ?? '',
       name: asset?.name ?? '',
       mark: asset?.mark ?? '',
       manufacturer: asset?.manufacturer ?? '',
@@ -323,6 +332,12 @@ function AssetForm({
   const building = byId(buildings, typed.buildingId)
   const here = (records: readonly RecordState[]) =>
     records.filter((record) => record['buildingId'] === typed.buildingId)
+  /**
+   * The room the asset stands in: the one chosen, as long as the chosen
+   * building has it. An address may name a room this device does not know or
+   * a room of another building, and such a room is neither shown nor sent.
+   */
+  const roomId = here(rooms).some((each) => each['id'] === typed.roomId) ? typed.roomId : ''
 
   const buildingChoices = useMemo((): readonly Choice[] => {
     const nameOf = new Map(properties.map((each) => [String(each['id']), text(each, 'name')]))
@@ -481,7 +496,7 @@ function AssetForm({
       const passed = decided ? passedDuplicates(question, shown) : []
       const made = {
         ...values,
-        roomId: typed.roomId === '' ? null : typed.roomId,
+        roomId: roomId === '' ? null : roomId,
         ...(passed.length === 0 ? {} : { distinctFrom: passed }),
       }
       const result: EditResult = editing
@@ -618,18 +633,18 @@ function AssetForm({
                     options={floorChoices}
                     value={typed.floorId}
                     onChange={(value) => {
-                      const room = byId(rooms, typed.roomId)
+                      const room = byId(rooms, roomId)
 
                       set({
                         floorId: value,
-                        roomId: value === '' || room?.['floorId'] === value ? typed.roomId : '',
+                        roomId: value === '' || room?.['floorId'] === value ? roomId : '',
                       })
                     }}
                   />
                   <SelectField
                     label="Raum"
                     options={roomChoices}
-                    value={typed.roomId}
+                    value={roomId}
                     onChange={(value) => {
                       const room = byId(rooms, value)
 

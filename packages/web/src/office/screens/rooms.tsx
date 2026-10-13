@@ -1,18 +1,24 @@
-import type { DutyReading, LifecycleState, RecordState } from '@opengewerk/haustechnik-domain'
-import { Button, Cell, Column, Panel, Status, TablePanel } from '@opengewerk/platform-web'
+import type {
+  Catalogue,
+  DutyReading,
+  LifecycleState,
+  RecordState,
+} from '@opengewerk/haustechnik-domain'
+import { Button, cardLink, Cell, Column, Panel, Status, TablePanel } from '@opengewerk/platform-web'
 import { today } from '@opengewerk/platform-web/format'
 import { ChangesButton, PageHead, Screen } from '@opengewerk/platform-web/office'
 import { useRight } from '@opengewerk/platform-web/session'
 import { maybeText, request, text, useRecord, useRecords } from '@opengewerk/platform-web/sync'
 import { useQuery } from '@tanstack/react-query'
-import { useNavigate, useParams } from '@tanstack/react-router'
-import { DoorOpen, Pencil } from 'lucide-react'
+import { Link, useNavigate, useParams } from '@tanstack/react-router'
+import { DoorOpen, Pencil, Plus } from 'lucide-react'
 import { useMemo } from 'react'
 
 import { statesOn } from '../../app/asset-records.js'
 import { placePath } from '../../app/place-path.js'
 import { byNumber, placeAbove, titleOfRoom } from '../../app/place-records.js'
 import { useCatalogue } from '../../sync/catalogue.js'
+import { assetForms, newAssetSearch } from '../asset-addresses.js'
 import { AssetState } from '../asset-state.js'
 import { officePlaces, placeForms } from '../place-addresses.js'
 import { PlaceNotFound } from '../place-pages.js'
@@ -21,6 +27,7 @@ import { TasksCard } from '../tasks.js'
 import { NewDutyButton } from '../duty-words.js'
 import { LabelCardOf } from '../labels.js'
 import { Duties } from './asset.js'
+import { generalKindGroup, kindLabel } from './assets.js'
 import { RoomDefectsCard } from './defects.js'
 import { TimelineButton } from '../timeline.js'
 
@@ -44,20 +51,18 @@ export const roomDutyWords = {
 
 /**
  * The page of a room in the office, `raum()` of the boards (4.1 of the
- * concept): the assets that stand in it, each with the state it is in today,
- * and the assets that supply it without standing there, each with where it
- * stands. An asset supplies a room by naming it, or by naming its building
- * as a whole: the fire alarm system of a school supplies every room of it.
+ * concept): the assets that stand in it, each with its kind and the state it
+ * is in today, and the assets that supply it without standing there, each
+ * with where it stands. An asset supplies a room by naming it, or by naming
+ * its building as a whole: the fire alarm system of a school supplies every
+ * room of it. Each asset leads to its file, and whoever takes assets into the
+ * register starts a new one in this room from here.
  *
  * Read from the device, so it stands without a network. Whoever takes stock
  * of rooms corrects this one from here (`room-form.tsx`). The one card that
  * needs a connection is the duties that hang on the room itself (#101): how
  * a duty stands follows from its evidence, which never travels to a device,
  * and without a connection the card says so while the rest stands.
- *
- * What the board draws beyond this arrives with what it shows: the kind of an
- * asset with the catalogue, the way to an asset with its page, the open
- * defects with the defects and the label of the room with the labels.
  */
 export function RoomScreen() {
   const { roomId } = useParams({ strict: false }) as { roomId?: string }
@@ -72,6 +77,7 @@ export function RoomScreen() {
   const buildings = useRecords('buildings')
   const buildingId = building ? String(building['id']) : undefined
   const records = useRight('room.record')
+  const recordsAssets = useRight('asset.record')
   const seesDuties = useRight('duty.read')
   const catalogue = useCatalogue()
   const duties = useQuery({
@@ -149,6 +155,21 @@ export function RoomScreen() {
                 Bearbeiten
               </Button>
             ) : null}
+            {/* A new asset that starts in this room, as the head of a building starts one there. */}
+            {recordsAssets ? (
+              <Button
+                tone="primary"
+                icon={Plus}
+                onClick={() => {
+                  void navigate({
+                    to: assetForms.new,
+                    search: newAssetSearch(String(building['id']), roomId),
+                  })
+                }}
+              >
+                Neue Anlage
+              </Button>
+            ) : null}
           </>
         }
       />
@@ -157,7 +178,7 @@ export function RoomScreen() {
           documents (#97). */}
       <div className="grid gap-3.5 lg:grid-cols-[minmax(0,1fr)_320px]">
         <div className="flex min-w-0 flex-col gap-3.5">
-          <AssetsInside assets={inside} states={states} />
+          <AssetsInside assets={inside} states={states} catalogue={catalogue} />
           <AssetsSupplying
             assets={supplying}
             standsIn={standsIn}
@@ -206,15 +227,44 @@ function AssetNumber({ asset }: { readonly asset: RecordState }) {
   return <span className="numeric text-ink-faint">{maybeText(asset, 'number')}</span>
 }
 
-/** "Anlagen in diesem Raum": what stands here, with the state it is in today. */
+/** The name of an asset, as the way to its file. */
+function AssetName({
+  asset,
+  className,
+}: {
+  readonly asset: RecordState
+  readonly className?: string
+}) {
+  return (
+    <Link to={officePlaces.asset(String(asset['id']))} {...(className ? { className } : {})}>
+      {text(asset, 'name')}
+    </Link>
+  )
+}
+
+/**
+ * "Anlagen in diesem Raum": what stands here, each with its kind and the
+ * state it is in today. The kind is what the catalogue of this device calls
+ * it; the general kind of a cost group has the group behind it (#284).
+ */
 function AssetsInside({
   assets,
   states,
+  catalogue,
 }: {
   readonly assets: readonly RecordState[]
   readonly states: ReadonlyMap<string, LifecycleState>
+  readonly catalogue: Catalogue | null
 }) {
   const title = 'Anlagen in diesem Raum'
+  const kindOf = (asset: RecordState) => kindLabel(catalogue, text(asset, 'kind'))
+  const groupOf = (asset: RecordState) => generalKindGroup(catalogue, text(asset, 'kind'))
+  /** "Anlage der Wärmeversorgung (KG 420)", in a line. */
+  const kindWords = (asset: RecordState) => {
+    const group = groupOf(asset)
+
+    return group === null ? kindOf(asset) : `${kindOf(asset)} (${group})`
+  }
 
   if (assets.length === 0) {
     return (
@@ -229,33 +279,44 @@ function AssetsInside({
   return (
     <TablePanel
       title={title}
-      caption="Anlagen, die in diesem Raum stehen, mit ihrem Zustand am heutigen Tag"
+      caption="Anlagen, die in diesem Raum stehen, mit Anlagenart und ihrem Zustand am heutigen Tag"
       cards={assets.map((asset) => ({
         key: String(asset['id']),
-        title: text(asset, 'name'),
-        sub: maybeText(asset, 'number') ?? undefined,
+        title: <AssetName asset={asset} className={cardLink} />,
+        sub: [maybeText(asset, 'number'), kindWords(asset)].filter(Boolean).join(' · '),
         right: <AssetState state={states.get(String(asset['id']))} />,
       }))}
     >
       <thead>
         <tr>
           <Column className="w-[96px] min-w-[84px]">Nummer</Column>
-          <Column className="min-w-[180px]">Anlage</Column>
+          <Column className="min-w-[160px]">Anlage</Column>
+          <Column className="w-[250px] min-w-[150px]">Anlagenart</Column>
           <Column className="w-[150px] min-w-[120px]">Zustand</Column>
         </tr>
       </thead>
       <tbody>
-        {assets.map((asset) => (
-          <tr key={String(asset['id'])}>
-            <Cell>
-              <AssetNumber asset={asset} />
-            </Cell>
-            <Cell>{text(asset, 'name')}</Cell>
-            <Cell>
-              <AssetState state={states.get(String(asset['id']))} />
-            </Cell>
-          </tr>
-        ))}
+        {assets.map((asset) => {
+          const group = groupOf(asset)
+
+          return (
+            <tr key={String(asset['id'])}>
+              <Cell>
+                <AssetNumber asset={asset} />
+              </Cell>
+              <Cell>
+                <AssetName asset={asset} />
+              </Cell>
+              <Cell>
+                {kindOf(asset)}
+                {group === null ? null : <span className="text-ink-faint"> ({group})</span>}
+              </Cell>
+              <Cell>
+                <AssetState state={states.get(String(asset['id']))} />
+              </Cell>
+            </tr>
+          )
+        })}
       </tbody>
     </TablePanel>
   )
@@ -297,7 +358,7 @@ function AssetsSupplying({
       caption="Anlagen, die diesen Raum versorgen, mit dem Ort, an dem sie stehen"
       cards={assets.map((asset) => ({
         key: String(asset['id']),
-        title: text(asset, 'name'),
+        title: <AssetName asset={asset} className={cardLink} />,
         sub: [maybeText(asset, 'number'), `Steht in ${where(asset)}`].filter(Boolean).join(' · '),
       }))}
     >
@@ -314,7 +375,9 @@ function AssetsSupplying({
             <Cell>
               <AssetNumber asset={asset} />
             </Cell>
-            <Cell>{text(asset, 'name')}</Cell>
+            <Cell>
+              <AssetName asset={asset} />
+            </Cell>
             <Cell>{where(asset)}</Cell>
           </tr>
         ))}
