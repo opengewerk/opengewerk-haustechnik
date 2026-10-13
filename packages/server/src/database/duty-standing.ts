@@ -22,6 +22,8 @@ import {
   nextAppointment,
   restsOn,
   standingEvidence,
+  type TakenOverAppointment,
+  takenOverFrom,
 } from '@opengewerk/haustechnik-domain'
 import { deadlineSettingsOf, type TenantTransaction } from '@opengewerk/platform-server'
 import { and, asc, eq, inArray, isNotNull, isNull } from 'drizzle-orm'
@@ -101,6 +103,9 @@ export async function lifecyclesByAsset(
   return lives
 }
 
+/** An evidence a duty was met by, with the next due day a list named where it was taken over (#130). */
+export type MeetingEvidence = LastEvidence & { readonly nextDueOn: IsoDate | null }
+
 /**
  * The evidence each duty was met by, the earliest day first, of these duties
  * or of every one. Only the evidence that stands: neither replaced by a
@@ -110,8 +115,8 @@ export async function lifecyclesByAsset(
 export async function meetingEvidenceByDuty(
   tx: TenantTransaction,
   dutyIds?: readonly string[],
-): Promise<ReadonlyMap<string, readonly LastEvidence[]>> {
-  const performances = new Map<string, LastEvidence[]>()
+): Promise<ReadonlyMap<string, readonly MeetingEvidence[]>> {
+  const performances = new Map<string, MeetingEvidence[]>()
 
   if (dutyIds?.length === 0) {
     return performances
@@ -131,6 +136,7 @@ export async function meetingEvidenceByDuty(
       result: evidence.result,
       number: evidence.number,
       origin: evidence.origin,
+      nextDueOn: evidence.nextDueOn,
     })
     .from(evidence)
     .where(
@@ -144,7 +150,13 @@ export async function meetingEvidenceByDuty(
     if (meetsTheDuty(row.result)) {
       performances.set(row.dutyId, [
         ...(performances.get(row.dutyId) ?? []),
-        { id: row.id, number: row.number, performedOn: row.performedOn, origin: row.origin },
+        {
+          id: row.id,
+          number: row.number,
+          performedOn: row.performedOn,
+          origin: row.origin,
+          nextDueOn: row.nextDueOn,
+        },
       ])
     }
   }
@@ -152,17 +164,16 @@ export async function meetingEvidenceByDuty(
   return performances
 }
 
-/** The days each duty was met on, earliest first, of these duties or of every one. */
-export async function metDaysByDuty(
-  tx: TenantTransaction,
-  dutyIds?: readonly string[],
-): Promise<ReadonlyMap<string, readonly IsoDate[]>> {
-  return new Map(
-    [...(await meetingEvidenceByDuty(tx, dutyIds))].map(([dutyId, met]) => [
-      dutyId,
-      met.map((each) => each.performedOn),
-    ]),
-  )
+/**
+ * The last of the evidence a duty was met by, as a list shows it: without the
+ * due day a list named for it, which only the counting asks for.
+ */
+export function lastOf(met: readonly MeetingEvidence[]): LastEvidence | null {
+  const last = met.at(-1)
+
+  return last === undefined
+    ? null
+    : { id: last.id, number: last.number, performedOn: last.performedOn, origin: last.origin }
 }
 
 /**
@@ -272,6 +283,8 @@ export function dutyOnADay(
     readonly today: IsoDate
     readonly life: readonly LifeEntry[]
     readonly met: readonly IsoDate[]
+    /** The appointment its evidence was taken over with from a predecessor application (#130), if it was. */
+    readonly takenOver?: TakenOverAppointment | null
     readonly leadDays: number
     /** The maximum of its kind on a day; without one the duty counts with its own interval on every day. */
     readonly ceiling?: Ceiling
@@ -286,6 +299,7 @@ export function dutyOnADay(
       counting: duty.counting,
       interval: dutyInterval(duty),
       outOfServiceOn: restingOn,
+      takenOver: on.takenOver ?? null,
       ...(ceiling === undefined ? {} : { ceiling: { on: ceiling, today: on.today } }),
     },
     on.met,
@@ -381,12 +395,13 @@ export async function dutiesOnADay(
 
     return {
       duty,
-      lastEvidence: evidenceOfIt.at(-1) ?? null,
+      lastEvidence: lastOf(evidenceOfIt),
       updated: isUpdated(catalogue, duty, state, today),
       ...dutyOnADay(duty, {
         today,
         life: duty.assetId === null ? [] : (lives.get(duty.assetId) ?? []),
         met: evidenceOfIt.map((each) => each.performedOn),
+        takenOver: takenOverFrom(evidenceOfIt),
         leadDays: leadDays(duty.id),
         ...(state === undefined ? {} : { ceiling: ceilings(duty.kind, state) }),
       }),
@@ -461,12 +476,13 @@ export async function assetsOnADay(
       ...(dutiesOf.get(assetId) ?? []),
       {
         duty,
-        lastEvidence: evidenceOfIt.at(-1) ?? null,
+        lastEvidence: lastOf(evidenceOfIt),
         updated: isUpdated(catalogue, duty, state, today),
         ...dutyOnADay(duty, {
           today,
           life: lives.get(assetId) ?? [],
           met: evidenceOfIt.map((each) => each.performedOn),
+          takenOver: takenOverFrom(evidenceOfIt),
           leadDays: leadDays(duty.id),
           ...(state === undefined ? {} : { ceiling: ceilings(duty.kind, state) }),
         }),

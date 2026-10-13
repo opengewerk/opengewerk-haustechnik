@@ -31,7 +31,7 @@ import {
 import { maybeText, request, RequestRefused, useRecords } from '@opengewerk/platform-web/sync'
 import { useInfiniteQuery } from '@tanstack/react-query'
 import { Link, useNavigate, useSearch } from '@tanstack/react-router'
-import { TriangleAlert } from 'lucide-react'
+import { TriangleAlert, Upload } from 'lucide-react'
 import { type ReactNode, useMemo } from 'react'
 
 import { titleOfRoom } from '../../app/place-records.js'
@@ -58,6 +58,7 @@ import {
   performerWords,
 } from '../duty-words.js'
 import { EvidenceNumber } from '../evidence-words.js'
+import { importPlaces } from '../import-addresses.js'
 import { factLink } from '../links.js'
 import { officePlaces } from '../place-addresses.js'
 import { assetKindChoices, PlaceFilter, RegisterFilter } from '../register-filter.js'
@@ -120,6 +121,10 @@ export function DutyRegisterScreen() {
   // What the register shows under its filter, whole and not a page, as a table
   // (#236). Narrowed to a person it leaves only with whoever may see the staff.
   const seesStaff = useRight('membership.read')
+  // The running deadlines of a predecessor application, for whoever keeps the
+  // register and enters evidence (#130).
+  const keepsDuties = useRight('duty.write')
+  const entersEvidence = useRight('evidence.write')
   const table = useTableExport(asTableAddress(dutyRegisterRequest(filter, 0)))
   const asTable = !namesAPerson(filter) || seesStaff
 
@@ -207,6 +212,16 @@ export function DutyRegisterScreen() {
         actions={
           <>
             {asTable ? table.button : null}
+            {keepsDuties && entersEvidence ? (
+              <Button
+                icon={Upload}
+                onClick={() => {
+                  void navigate({ to: importPlaces.deadlines })
+                }}
+              >
+                Importieren
+              </Button>
+            ) : null}
             <ProposalsButton
               {...(filter.propertyId === undefined ? {} : { propertyId: filter.propertyId })}
             />

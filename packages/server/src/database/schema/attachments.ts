@@ -1,7 +1,7 @@
 import { documentKinds, documentLimits } from '@opengewerk/haustechnik-domain'
 import { applicationRole, attachmentsSchema, reference } from '@opengewerk/platform-server'
 import { sql } from 'drizzle-orm'
-import { check, foreignKey, index, pgEnum, pgPolicy, unique } from 'drizzle-orm/pg-core'
+import { boolean, check, foreignKey, index, pgEnum, pgPolicy, unique } from 'drizzle-orm/pg-core'
 
 import { activities } from './activities.js'
 import { withinAreas } from './areas.js'
@@ -16,6 +16,11 @@ export const documentKind = pgEnum('document_kind', documentKinds)
  * What a document of this application hangs on and what it is: its property
  * with the area of that property, at most one record there, a building, a
  * room, an asset, an activity or a defect, and its kind.
+ *
+ * `legacy` marks a document taken over from a predecessor application
+ * (section 11 of the concept, #130): an old evidence with its original file,
+ * neither signed anew nor rewritten. Only the import of the server sets it;
+ * no route and no device does.
  */
 const documentPlace = {
   propertyId: reference<'property'>('property_id').notNull(),
@@ -26,6 +31,7 @@ const documentPlace = {
   activityId: reference<'activity'>('activity_id'),
   defectId: reference<'defect'>('defect_id'),
   kind: documentKind('kind'),
+  legacy: boolean('legacy').notNull().default(false),
 }
 
 /** The columns this application gives its documents, for the routes of the foundation. */

@@ -395,6 +395,8 @@ describe('an evidence', () => {
         replaces_evidence_id: itself,
         replacement_reason: 'Falscher Tag.',
       },
+      // The next due day of a list stands at the holdings of a predecessor alone (#130).
+      evidence_next_due_of_the_holdings: { ...report, next_due_on: '2028-09-30' },
     }
     const refused: Record<string, unknown> = {}
     const expected: Record<string, unknown> = {}
@@ -423,8 +425,24 @@ describe('an evidence', () => {
       constraint: 'evidence_replacement_with_a_reason',
     })
 
+    // What was taken over names no due day that is not after its own.
+    expect(await triedRow({ ...byNobody, origin: 'legacy', next_due_on: '2026-09-30' })).toEqual({
+      code: '23514',
+      constraint: 'evidence_next_due_of_the_holdings',
+    })
+
     // And the rows they let through, each with a number of its own.
     expect(await written({ ...byNobody, origin: 'legacy' })).not.toBe('')
+    expect(
+      await written({
+        ...byNobody,
+        ...writtenColumns(lead, '2026-09-30', 'without_defects'),
+        examiner: null,
+        examiner_organisation: null,
+        origin: 'legacy',
+        next_due_on: '2028-09-30',
+      }),
+    ).not.toBe('')
     expect(
       await written({
         ...rowAt(here),

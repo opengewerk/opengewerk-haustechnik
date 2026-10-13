@@ -330,6 +330,13 @@
       "when": 1791897079423,
       "tag": "0046_rights_of_shipped_roles",
       "breakpoints": true
+    },
+    {
+      "idx": 47,
+      "version": "7",
+      "when": 1791915070755,
+      "tag": "0047_taken_over_deadlines",
+      "breakpoints": true
     }
   ]
 }

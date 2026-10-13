@@ -1068,7 +1068,12 @@ export const documentTableColumns = {
 } as const
 
 /** What a list says of a document without a kind: "Foto" for a picture, which a photo of a type plate is. */
-export const documentKindWords = { photo: 'Foto', noKind: 'Ohne Art' } as const
+export const documentKindWords = {
+  photo: 'Foto',
+  noKind: 'Ohne Art',
+  /** Behind the kind of a document taken over from a predecessor application (#130). */
+  legacy: 'Altbestand',
+} as const
 
 /** What a kind of place a document can hang on is called. */
 export const documentHomeLabel: Readonly<Record<DocumentHome, string>> = {
@@ -1082,16 +1087,23 @@ export const documentHomeLabel: Readonly<Record<DocumentHome, string>> = {
 
 /**
  * The kind of a document as a list says it: its kind, or "Foto" for a
- * picture without one.
+ * picture without one. A document taken over from a predecessor application
+ * says so behind its kind, wherever its kind is said (section 11 of the
+ * concept, #130).
  */
-export function documentKindOf(kind: string | null, newestMediaType: string | null): string {
-  if (kind !== null && Object.hasOwn(documentKindLabel, kind)) {
-    return documentKindLabel[kind as DocumentKind]
-  }
+export function documentKindOf(
+  kind: string | null,
+  newestMediaType: string | null,
+  legacy = false,
+): string {
+  const words =
+    kind !== null && Object.hasOwn(documentKindLabel, kind)
+      ? documentKindLabel[kind as DocumentKind]
+      : newestMediaType !== null && isPicture(newestMediaType)
+        ? documentKindWords.photo
+        : documentKindWords.noKind
 
-  return newestMediaType !== null && isPicture(newestMediaType)
-    ? documentKindWords.photo
-    : documentKindWords.noKind
+  return legacy ? `${words}, ${documentKindWords.legacy}` : words
 }
 
 /**
@@ -1122,6 +1134,8 @@ export function documentHomeWords(
 export interface DocumentLine {
   readonly title: string
   readonly kind: string | null
+  /** Whether it was taken over from a predecessor application (#130). */
+  readonly legacy?: boolean
   readonly home: string
   /** How many versions it has. */
   readonly versions: number
@@ -1142,7 +1156,7 @@ export function documentTableRow(document: DocumentLine): TableRow {
   return [
     document.title,
     document.newest?.fileName ?? null,
-    documentKindOf(document.kind, document.newest?.mediaType ?? null),
+    documentKindOf(document.kind, document.newest?.mediaType ?? null, document.legacy === true),
     document.home,
     Math.max(document.versions, 1),
     document.newest === null ? null : { day: document.newest.filedOn },

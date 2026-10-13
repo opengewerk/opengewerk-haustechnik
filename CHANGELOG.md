@@ -1273,6 +1273,28 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   Schublade und der Leser für Markdown sind Bausteine des Fundaments (`opengewerk/opengewerk#612`
   und `#613`). Die Seiten der Hilfe stehen in der Prüfung der Breiten, auch die, zu denen nur die
   Schublade oder das Menü führt.
+- **Laufende Fristen und alte Nachweise aus Listen oder einer Vorgängeranwendung (`#130`, erster
+  Teil).** Unter "Importieren" im Pflichtenverzeichnis steht ein dritter Import, für alle, die
+  das Pflichtenverzeichnis führen und Nachweise eintragen. Eine Zeile nennt ihre Anlage
+  (Anlagennummer, Kennzeichen oder Seriennummer), die Pflicht, den Tag des letzten Nachweises und
+  auf Wunsch die nächste Fälligkeit; die Dateien der alten Nachweise werden daneben gewählt und
+  gehen dem Import voraus wie die Datei eines Berichts. Steht die Pflicht an der Anlage noch
+  nicht, bestätigt der Import sie, aus dem Katalog oder mit Grundlage, Quelle, Tätigkeit und
+  Frist als eigene. Die jüngste Zeile einer Pflicht wird ein Nachweis mit der Herkunft
+  "Altbestand": er zählt für die Frist, nennt niemanden, der ihn unterschrieben hat, und sagt
+  überall, auch im PDF, dass er nicht in dieser Anwendung unterschrieben wurde. Ältere Zeilen
+  und Zeilen ohne Pflicht werden Dokumente an der Anlage mit dem Kennzeichen "Altbestand".
+  **Keine Frist beginnt beim Wechsel neu zu laufen:** die nächste Fälligkeit gilt, wie die Liste
+  sie nennt, nach § 14 Abs. 5 BetrSichV als Monat, und was danach durchgeführt wird, zählt von
+  dort weiter; hinter der Höchstfrist ihrer Pflicht liegt sie nie, eine solche Zeile ist zu
+  klären. Dafür hält ein übernommener Nachweis den Tag seiner Liste (Migration
+  `0047_taken_over_deadlines`, Fassung 8 des eingefrorenen Stands), und der Termin einer Pflicht
+  wird weiter bei jedem Lesen gerechnet. Übernommen wird ganz oder gar nicht, und dieselbe Liste
+  lässt sich ein zweites Mal importieren, ohne etwas doppelt anzulegen. Der Import steht im
+  Änderungsprotokoll, dazu jede Pflicht, jeder Nachweis und jedes Dokument mit eigenem Eintrag,
+  weil ein Nachweis Beweiswert hat. Das Format steht in `docs/import/Tabellen.md`, Nachträge in
+  ADR 0002 und 0004, Konzept v0.33. Zählerstände, Vorlagen der Rundgänge und das Dokument zum
+  Importpaket folgen mit dem zweiten Teil.
 
 ### Geändert
 

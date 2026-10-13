@@ -120,14 +120,18 @@ let server: TestServer
 let written: Written[]
 let answerToWrite: (write: Written) => WriteAnswer
 
-async function opened(role: RoleKey, duty: DutyDetails = dutyOf()) {
+async function opened(
+  role: RoleKey,
+  duty: DutyDetails = dutyOf(),
+  evidence: readonly DutyEvidenceEntry[] = lastTime,
+) {
   written = signedInOffice(
     role,
     [sued],
     {
       ...servingCatalogue(),
       [`/duties/${duty.id}`]: duty,
-      [`/duties/${duty.id}/evidence`]: lastTime,
+      [`/duties/${duty.id}/evidence`]: evidence,
     },
     (write) => answerToWrite(write),
   )
@@ -309,6 +313,22 @@ describe('the form of a report', () => {
       'Für diese Pflicht hat jemand eine Prüfung begonnen.',
     )
     expect(router.state.location.pathname).toBe('/nachweise/bericht/d-fire')
+  })
+
+  it('keeps the rhythm of the day a list named for an evidence that was taken over (#130)', async () => {
+    // Counted from the day it was due, and the list of the predecessor said: due on 15.08.2026.
+    await opened('site_management', dutyOf({ counting: 'from_due' }), [
+      { ...lastTime[0], origin: 'legacy', nextDueOn: '2026-08-15' } as DutyEvidenceEntry,
+    ])
+
+    fireEvent.change(screen.getByLabelText(/^Tag der Durchführung/), {
+      target: { value: '2026-10-02' },
+    })
+
+    // Done late: two years after the day of the list, and not after the evidence of 2024.
+    expect(document.body.textContent).toContain(
+      'Der Termin rückt auf den 15.08.2028, ab dem fälligen Tag.',
+    )
   })
 
   it('says where the due day goes from the day of the test', async () => {

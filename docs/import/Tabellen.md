@@ -1,15 +1,16 @@
 # Import aus Tabellen: das Format
 
-OpenGewerk Haustechnik übernimmt Liegenschaften, Gebäude, Geschosse, Räume und Anlagen aus
-Tabellen, wie sie in einer Tabellenkalkulation geführt werden (Abschnitte 3 und 11 des
-Planungskonzepts). Diese Seite beschreibt, wie eine solche Tabelle aussieht und was der Import
-aus ihr liest. Sie gilt für die Listen eines Betreibers genauso wie für den Weg aus einer
-Vorgängeranwendung.
+OpenGewerk Haustechnik übernimmt Liegenschaften, Gebäude, Geschosse, Räume, Anlagen und
+laufende Fristen mit ihren alten Nachweisen aus Tabellen, wie sie in einer Tabellenkalkulation
+geführt werden (Abschnitte 3 und 11 des Planungskonzepts). Diese Seite beschreibt, wie eine
+solche Tabelle aussieht und was der Import aus ihr liest. Sie gilt für die Listen eines
+Betreibers genauso wie für den Weg aus einer Vorgängeranwendung.
 
-Zwei Importe gibt es, jeder unter der Liste, die er füllt: "Importieren" unter Liegenschaften
+Drei Importe gibt es, jeder unter der Liste, die er füllt: "Importieren" unter Liegenschaften
 für den Bestand vom Standort bis zum Raum, "Importieren" unter Anlagen für die Anlagen in
-Gebäuden und Räumen, die es schon gibt. Wer beides aus Listen übernimmt, importiert zuerst den
-Bestand.
+Gebäuden und Räumen, die es schon gibt, und "Importieren" im Pflichtenverzeichnis für die
+laufenden Fristen dieser Anlagen. Wer alles aus Listen übernimmt, importiert in dieser
+Reihenfolge.
 
 ## Die Datei
 
@@ -174,19 +175,95 @@ Was dabei gilt:
   ihn unter "Was nicht übernommen wird" mit Zeile und Spalte; die Zeile wird trotzdem angelegt,
   und der Import läuft.
 
+## Laufende Fristen und alte Nachweise
+
+Wer von Listen oder aus einer Vorgängeranwendung kommt, hat für jede Anlage Prüfungen und
+Wartungen, die laufen: zuletzt durchgeführt an einem Tag, fällig wieder an einem anderen. Dieser
+Import übernimmt beides, damit keine Frist beim Wechsel neu zu laufen beginnt (Abschnitt 11 des
+Planungskonzepts). Er steht unter "Importieren" im Pflichtenverzeichnis und kommt nach dem Import
+der Anlagen: eine Zeile nennt eine Anlage, die es hier gibt.
+
+Eine Zeile ist ein Nachweis: an einer Anlage wurde eine Pflicht an einem Tag erfüllt. Neben der
+Tabelle werden die Dateien der alten Nachweise gewählt, meist PDF; eine Zeile nennt ihre Datei
+beim Namen.
+
+| Feld | Pflicht | Wird auch erkannt als | Was darin steht |
+|---|---|---|---|
+| Anlagennummer | | Anlagen-Nr., Anlagennr, Nummer der Anlage | die Nummer der Anlage in dieser Anwendung, etwa AN-00031 |
+| Kennzeichen | | Inventar-Nr., Inventarnummer, Anlagenkennzeichen, Kennzeichnung, AKS | das Kennzeichen der Anlage, wie es beim Import der Anlagen kam |
+| Seriennummer | | Serien-Nr., Seriennr, Fabriknummer, Fabrik-Nr., SN | die Seriennummer der Anlage |
+| Pflicht | | Pflichtart, Prüfung, Prüfart, Art der Prüfung, Prüfpflicht | die Bezeichnung einer Pflicht aus dem Katalog oder einer eigenen; leer für ein Dokument |
+| Letzter Nachweis | | Letzte Prüfung, Letzte Durchführung, Geprüft am, Durchgeführt am | Tag, 02.10.2026 oder 2026-10-02; nicht in der Zukunft |
+| Nächste Fälligkeit | | Nächste Prüfung, Fällig am, Fälligkeit, Nächster Termin | Tag nach dem letzten Nachweis; leer heißt, die Anwendung rechnet |
+| Ergebnis | | Prüfergebnis, Befund | Ohne Mangel oder Mit Mängeln; leer heißt ohne Mangel |
+| Vermerk | | Bemerkung, Anmerkung, Hinweis | höchstens 500 Zeichen, etwa "ohne prüfbare Unterschrift" |
+| Datei | | Dateiname, PDF, Prüfbericht, Bericht | der Name einer der gewählten Dateien |
+| Bezeichnung des Dokuments | | Dokumentname, Titel | höchstens 120 Zeichen; sonst der Name der Datei |
+| Grundlage | | Grundlage der Pflicht | nur für eine eigene Pflicht: Hersteller, Auflage, Versicherer oder Eigene Festlegung |
+| Quelle | | Fundstelle, Rechtsgrundlage | nur für eine eigene Pflicht, dort nötig: worauf sie sich stützt, höchstens 300 Zeichen |
+| Tätigkeit | | Art der Tätigkeit | nur für eine eigene Pflicht, dort nötig: Prüfung, Wartung, Inspektion, Funktionskontrolle, Sichtkontrolle oder Probenahme |
+| Frist | | Intervall, Turnus, Prüffrist, Prüfintervall | eine Zahl mit Monaten, Jahren, Wochen oder Tagen, etwa "24 Monate"; eine bloße Zahl sind Monate |
+| Zählweise | | Zählung | nur für eine eigene Pflicht: Ab dem Tag der Durchführung, Ab dem fälligen Tag oder Nach § 14 Abs. 5 BetrSichV; leer heißt ab dem Tag der Durchführung |
+| Begründung der Frist | | Begründung | höchstens 500 Zeichen; nötig, wo eine Frist vom Richtwert abweicht oder der Betreiber sie festlegt |
+
+Was dabei gilt:
+
+- **Die Anlage** nennt eine Zeile mit ihrer Anlagennummer, ihrem Kennzeichen oder ihrer
+  Seriennummer. Was davon dasteht, muss dieselbe Anlage meinen. Tragen mehrere Anlagen dasselbe
+  Kennzeichen, braucht die Zeile die Anlagennummer. Eine Anlage außerhalb der eigenen Bereiche
+  findet der Import nicht.
+- **Eine Pflicht aus dem Katalog** steht mit ihrer Bezeichnung in der Zeile, wie der Katalog sie
+  für die Anlagenart nennt, oder mit ihrem Schlüssel. Kennt der Katalog sie für diese Anlage
+  nicht, nennt die Vorschau die Pflichten, die er kennt. Ihre Frist ist die ihrer Pflichtart;
+  eine Spalte "Frist" kann sie verkürzen. Länger als die Höchstfrist wird sie nicht.
+- **Eine eigene Pflicht** ist eine Zeile, die eine Grundlage nennt. Sie braucht dazu Quelle,
+  Tätigkeit und Frist. Was kein Fachpaket des Katalogs beschreibt, kommt so.
+- **Steht die Pflicht an der Anlage noch nicht, bestätigt der Import sie.** Steht sie schon,
+  bleibt sie, wie sie ist, und bekommt den Nachweis dazu. Wer für eine Pflicht verantwortlich
+  ist und wer sie ausführt, wird danach im Pflichtenverzeichnis eingetragen.
+- **Die jüngste Zeile einer Pflicht wird ihr Nachweis**, mit der Herkunft "Altbestand". Er zählt
+  für die Frist wie jeder Nachweis. Er nennt niemanden, der ihn unterschrieben hat, und trägt
+  überall den Vermerk, dass er nicht in dieser Anwendung unterschrieben wurde, auch im PDF. Was
+  eine Vorgängeranwendung nicht belegen kann, steht in der Spalte "Vermerk" und damit am
+  Nachweis.
+- **Die nächste Fälligkeit gilt, wie die Liste sie nennt.** Nach § 14 Abs. 5 BetrSichV ist ein
+  Termin ein Monat; dort gilt der Monat des genannten Tags. Liegt der Tag hinter der Höchstfrist
+  der Pflicht, gerechnet vom letzten Nachweis, ist die Zeile offen: eine Höchstfrist verlängert
+  kein Import. Ohne diese Spalte rechnet die Anwendung vom letzten Nachweis mit der Frist der
+  Pflicht. Was nach der Übernahme durchgeführt wird, zählt von dort weiter.
+- **Ältere Zeilen derselben Pflicht** werden Dokumente an der Anlage, mit ihrer Datei und dem
+  Kennzeichen "Altbestand". Eine ältere Zeile ohne Datei wird nicht übernommen; die Vorschau
+  nennt sie. Dasselbe gilt für eine Zeile, deren Pflicht hier schon einen jüngeren Nachweis hat.
+- **Eine Zeile ohne Pflicht** ist ein Dokument an ihrer Anlage und nennt ihre Datei.
+- **Die Dateien** werden im ersten Schritt neben der Tabelle gewählt, höchstens 2.000 je Liste.
+  Zwei Dateien desselben Namens gehen nicht, weil eine Zeile ihre Datei beim Namen nennt. Eine
+  Datei kann zu mehreren Zeilen gehören, etwa ein Prüfbericht über alle Feuerlöscher eines
+  Gebäudes. Hochgeladen werden nur die Dateien, die eine Zeile nennt. Eine Datei wird nicht
+  umgeschrieben und nicht verkleinert.
+- **Was es schon gibt, wird nicht doppelt übernommen:** ein Nachweis derselben Pflicht vom
+  selben Tag und ein übernommenes Dokument mit demselben Dateinamen an derselben Anlage. Dieselbe
+  Liste lässt sich also ein zweites Mal importieren.
+- **Offene Aufträge und Mängel** übernimmt der Import nicht. Offene Aufträge werden in der
+  Vorgängeranwendung zu Ende geführt; was am Stichtag offen ist, wird hier neu angelegt.
+- Eine Pflicht an einem Raum, einem Gebäude oder der Liegenschaft wird im Büro angelegt; ihren
+  letzten Nachweis trägt dort der Bericht einer Fremdfirma oder Prüforganisation ein.
+
 ## Vorschau und Übernahme
 
 Vor der Übernahme zeigt die Vorschau, was die Tabelle anlegen würde, welche Zeilen zu klären sind,
-was es schon gibt und, bei Anlagen, welche Werte nicht übernommen werden. Dabei wird nichts
-geschrieben und die Datei nicht gespeichert.
+was es schon gibt und was nicht übernommen wird: bei Anlagen einzelne Werte, bei den Fristen
+ältere Zeilen ohne Datei. Dabei wird nichts geschrieben und die Datei nicht gespeichert.
 
 **Übernommen wird ganz oder gar nicht.** Solange eine Zeile zu klären ist, bleibt der Knopf aus:
 die Datei wird berichtigt und im ersten Schritt neu gewählt. Scheitert die Übernahme, ist nichts
 angelegt.
 
 Ein Import steht als **ein Eintrag im Änderungsprotokoll**, mit dem Namen der Datei, der Zahl
-ihrer Zeilen und dem, was angelegt wurde, und nicht als ein Eintrag je Raum oder Anlage.
+ihrer Zeilen und dem, was angelegt wurde, und nicht als ein Eintrag je Raum oder Anlage. Beim
+Import der Fristen kommt zu diesem Eintrag je einer für jede bestätigte Pflicht, jeden Nachweis
+und jedes Dokument: ein Nachweis hat Beweiswert, und sein Eintrag bleibt.
 
 Den Bestand importiert, wer Liegenschaften, Gebäude und Geschosse pflegt (Leitung und Technische
 Leitung). Anlagen importiert und Anlagenarten ordnet zu, wer Anlagen pflegt (ab der
-Objektleitung).
+Objektleitung). Laufende Fristen und alte Nachweise importiert, wer das Pflichtenverzeichnis
+führt und Nachweise einträgt (Leitung und Technische Leitung).

@@ -39,6 +39,7 @@ import { EvidenceScreen } from './screens/evidence.js'
 import { EditFloorScreen, NewFloorScreen } from './screens/floor-form.js'
 import { FloorScreen } from './screens/floors.js'
 import { GuideScreen, HelpScreen } from './screens/help.js'
+import { ImportDeadlinesScreen } from './screens/import-deadlines.js'
 import { ImportAssetsScreen, ImportStructureScreen } from './screens/imports.js'
 import { LabelLandingScreen } from './screens/label-landing.js'
 import { MeterSettingsScreen } from './screens/meter-settings.js'
@@ -261,6 +262,12 @@ export function officeRoutes() {
       getParentRoute: () => office,
       path: '/pflichten',
       component: DutyRegisterScreen,
+    }),
+    // The import of running deadlines stands under the register, before the page of a duty (#130).
+    createRoute({
+      getParentRoute: () => office,
+      path: importPlaces.deadlines,
+      component: ImportDeadlinesScreen,
     }),
     createRoute({
       getParentRoute: () => office,

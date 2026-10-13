@@ -316,6 +316,72 @@ describe('the page of an evidence', () => {
     expect(leadsTo('pruefbericht-2026-10.pdf')).toBe('/evidence/e-144/files/0')
   })
 
+  it('says of an evidence taken over from a predecessor application that nobody signed it here, and what its list named (#130)', async () => {
+    const takenOver = (files: EvidenceState['files']) =>
+      evidence({
+        id: 'e-old',
+        number: 'NW-2026-00150',
+        state: frozen({
+          number: 'NW-2026-00150',
+          origin: 'legacy',
+          performedOn: '2024-09-14',
+          nextDueOn: '2026-09-30',
+          remark: 'ohne prüfbare Unterschrift',
+          activity: null,
+          performer: null,
+          defects: [],
+          signatures: [],
+          files,
+        }),
+      })
+
+    await opened(
+      'technician',
+      takenOver([
+        { sha256: 'b'.repeat(64), name: 'pruefung-2024-09.pdf', mediaType: 'application/pdf' },
+      ]),
+    )
+
+    expect(
+      screen.getByText(
+        'Altbestand aus einer Vorgängeranwendung: nicht in dieser Anwendung unterschrieben. Das ursprüngliche Dokument liegt am Nachweis.',
+      ),
+    ).toBeTruthy()
+    expect(factsIn('Eingefrorener Stand, Fassung 2')).toMatchObject({
+      Herkunft: 'Altbestand aus einer Vorgängeranwendung',
+      Bemerkung: 'ohne prüfbare Unterschrift',
+      'Nächste Fälligkeit': '30.09.2026, aus der Vorgängeranwendung übernommen',
+      'Ursprüngliches Dokument': 'pruefung-2024-09.pdf',
+    })
+    expect(screen.queryByRole('region', { name: 'Unterschriften' })).toBeNull()
+  })
+
+  it('says of one taken over without its document that none came along', async () => {
+    await opened(
+      'technician',
+      evidence({
+        id: 'e-bare',
+        state: frozen({
+          origin: 'legacy',
+          activity: null,
+          performer: null,
+          defects: [],
+          signatures: [],
+          files: [],
+        }),
+      }),
+    )
+
+    expect(
+      screen.getByText(
+        'Altbestand aus einer Vorgängeranwendung: nicht in dieser Anwendung unterschrieben. Ein ursprüngliches Dokument wurde nicht übernommen.',
+      ),
+    ).toBeTruthy()
+    expect(Object.keys(factsIn('Eingefrorener Stand, Fassung 2'))).not.toContain(
+      'Nächste Fälligkeit',
+    )
+  })
+
   it('names the class of a defect by its word in the catalogue', async () => {
     await opened(
       'technician',

@@ -51,6 +51,46 @@ export interface Rhythm {
    * place is never out of service, and that is the default.
    */
   readonly outOfServiceOn?: (day: IsoDate) => boolean
+  /**
+   * The appointment a list named when the evidence of the duty was taken over
+   * from a predecessor application (section 11 of the concept, #130): the day
+   * of that evidence, and the day the list says the duty is due next.
+   *
+   * No deadline begins anew with the change of application. So this
+   * appointment stands as the list names it, and what is done after the
+   * evidence counts on from it as from any other appointment; what was done
+   * before that evidence no longer counts. A maximum of a regulation holds
+   * all the same: an appointment later than the maximum allows, counted from
+   * the day of the evidence, is cut short to it, because the operator
+   * overrides no regulation (Leitentscheidung 3).
+   */
+  readonly takenOver?: TakenOverAppointment | null
+}
+
+/** The day of an evidence taken over from a list, and the next due day the list names with it. */
+export interface TakenOverAppointment {
+  readonly performedOn: IsoDate
+  readonly dueOn: IsoDate
+}
+
+/**
+ * The appointment a duty was taken over with: that of the latest evidence
+ * which names one, among the evidence that met the duty and stands. An
+ * evidence that came about here names none, so a duty nothing was taken over
+ * for has none.
+ */
+export function takenOverFrom(
+  met: readonly { readonly performedOn: IsoDate; readonly nextDueOn: IsoDate | null }[],
+): TakenOverAppointment | null {
+  let found: TakenOverAppointment | null = null
+
+  for (const each of met) {
+    if (each.nextDueOn !== null && (found === null || each.performedOn >= found.performedOn)) {
+      found = { performedOn: each.performedOn, dueOn: each.nextDueOn }
+    }
+  }
+
+  return found
 }
 
 /**
@@ -131,9 +171,13 @@ function underBetrSichV(
   rhythm: Rhythm,
   monthsFor: (metOn: IsoDate | undefined) => number,
   performances: readonly IsoDate[],
+  takenOverDueOn?: IsoDate,
 ): Appointment | null {
-  let due: IsoDate | null = null
-  let months = 0
+  // An appointment taken over is the due month the rhythm goes on from, as
+  // `keptAppointment` hands it over, with the interval that leads up to it as
+  // the duty has it when it is met.
+  let due: IsoDate | null = takenOverDueOn ?? null
+  let months = takenOverDueOn === undefined ? 0 : monthsFor(performances[0])
 
   for (const [index, performedOn] of performances.entries()) {
     const performedMonth = monthOf(performedOn)
@@ -177,19 +221,27 @@ function daysFrom(earlier: IsoDate, later: IsoDate): number {
  * The twelfth is counted in days, of the period that leads up to the open
  * appointment: a month for a yearly duty, two for one of two years.
  */
-function fromDue(intervalFor: IntervalFor, performances: readonly IsoDate[]): Appointment | null {
-  const [first, ...rest] = performances
+function fromDue(
+  intervalFor: IntervalFor,
+  performances: readonly IsoDate[],
+  takenOverDueOn?: IsoDate,
+): Appointment | null {
+  const [first, ...others] = performances
 
-  if (first === undefined) {
+  if (takenOverDueOn === undefined && first === undefined) {
     return null
   }
 
   // Every appointment of a rhythm is counted from the day that began it: from
   // the end of a month, a month counted from a clamped appointment would drift
-  // to the 28th and stay there.
-  let start = first
+  // to the 28th and stay there. A performance begins a rhythm with the
+  // appointment one interval after it; an appointment taken over begins one
+  // with itself.
+  let start = takenOverDueOn ?? (first as IsoDate)
+  let ahead = takenOverDueOn === undefined ? 1 : 0
+  const rest = takenOverDueOn === undefined ? others : performances
   let interval = intervalFor(rest[0])
-  const appointment = (index: number) => stepped(start, interval, index + 1)
+  const appointment = (index: number) => stepped(start, interval, index + ahead)
   // The earliest appointment not met yet, as its number in the rhythm.
   let open = 0
 
@@ -199,6 +251,7 @@ function fromDue(intervalFor: IntervalFor, performances: readonly IsoDate[]): Ap
 
     if (performedOn < addDays(due, -twelfth)) {
       start = performedOn
+      ahead = 1
       open = 0
     } else {
       open += 1
@@ -214,6 +267,7 @@ function fromDue(intervalFor: IntervalFor, performances: readonly IsoDate[]): Ap
 
     if (!sameInterval(next, interval)) {
       start = appointment(open - 1)
+      ahead = 1
       open = 0
       interval = next
     }
@@ -222,6 +276,37 @@ function fromDue(intervalFor: IntervalFor, performances: readonly IsoDate[]): Ap
   const dueOn = appointment(open)
 
   return { dueOn, onTimeUntil: dueOn }
+}
+
+/**
+ * The appointment a list named, as the duty keeps it: the day itself, the
+ * first day of its month under § 14 Abs. 5 BetrSichV, and never later than
+ * the maximum of a regulation allows from the day of the evidence. The
+ * maximum is judged like that of any appointment: on the day it was met, or
+ * on the day of asking while it is open.
+ */
+function keptAppointment(
+  rhythm: Rhythm,
+  takenOver: TakenOverAppointment,
+  metOn: IsoDate | undefined,
+): IsoDate {
+  const { ceiling, counting } = rhythm
+  const maximum = ceiling === undefined ? null : ceiling.on(metOn ?? ceiling.today)
+  const named = counting === 'betrsichv' ? monthOf(takenOver.dueOn) : takenOver.dueOn
+
+  if (maximum === null) {
+    return named
+  }
+
+  const latest =
+    counting === 'betrsichv'
+      ? addMonths(
+          monthOf(takenOver.performedOn),
+          'months' in maximum ? maximum.months : Math.max(1, Math.floor(maximum.days / 31)),
+        )
+      : addInterval(takenOver.performedOn, maximum)
+
+  return named > latest ? latest : named
 }
 
 /**
@@ -237,8 +322,14 @@ export function nextAppointment(
   rhythm: Rhythm,
   performances: readonly IsoDate[],
 ): Appointment | null {
-  const days = [...performances].sort()
   const { ceiling } = rhythm
+  const takenOver = rhythm.takenOver ?? null
+  // What was done before the evidence a list was taken over with counts no
+  // longer: the list has said where the rhythm stands.
+  const days = [...performances]
+    .sort()
+    .filter((day) => takenOver === null || day > takenOver.performedOn)
+  const kept = takenOver === null ? undefined : keptAppointment(rhythm, takenOver, days[0])
   const intervalFor: IntervalFor = (metOn) =>
     ceiling === undefined
       ? rhythm.interval
@@ -259,17 +350,18 @@ export function nextAppointment(
         return 'months' in interval ? interval.months : Math.max(1, Math.floor(interval.days / 31))
       },
       days,
+      kept,
     )
   }
 
   if (rhythm.counting === 'from_due') {
-    return fromDue(intervalFor, days)
+    return fromDue(intervalFor, days, kept)
   }
 
   const last = days.at(-1)
 
   if (last === undefined) {
-    return null
+    return kept === undefined ? null : { dueOn: kept, onTimeUntil: kept }
   }
 
   const dueOn = addInterval(last, intervalFor(undefined))

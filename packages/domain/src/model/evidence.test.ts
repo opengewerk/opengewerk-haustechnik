@@ -146,6 +146,23 @@ const storedStates: Readonly<Record<number, unknown>> = {
       '"role":"signer","signedAt":"2026-10-10T08:12:00.000Z","way":"drawing"}],' +
       '"version":7,"writtenAt":"2026-10-10T09:41:07.500Z","writtenBy":"Hanna Probe"}',
   ),
+  8: JSON.parse(
+    '{"activity":null,"answers":[],"defects":[],' +
+      '"duty":{"counting":"from_performance","interval":{"months":24},"kind":null,"kindVersion":null,' +
+      '"label":"Prüfung der Feuerlöscher","source":"Herstellerangabe"},' +
+      '"files":[{"mediaType":"application/pdf","name":"pruefung-2024-09.pdf",' +
+      '"sha256":"3f1c8a0d5b7e9c2a4f6d8b0e1c3a5d7f9b2e4c6a8d0f1b3c5e7a9d2f4b6c8e0a"}],' +
+      '"form":null,"nextDueOn":"2026-09-30","number":"NW-2026-00008","origin":"legacy","performedOn":"2024-09-14",' +
+      '"performer":null,' +
+      '"place":{"asset":{"kind":"probe.elevator","kindLabel":"Aufzugsanlage","name":"Aufzug","number":"AN-00001",' +
+      '"serialNumber":null},"building":{"name":"Haus A","shortCode":null},' +
+      '"property":{"address":"Hauptstraße 1, 68535 Edingen-Neckarhausen","name":"Campus"},"room":null},' +
+      '"remark":"ohne prüfbare Unterschrift",' +
+      '"replaces":null,"result":"without_defects","resultReason":null,' +
+      '"retention":null,' +
+      '"signatures":[],' +
+      '"version":8,"writtenAt":"2026-10-13T18:02:11.000Z","writtenBy":"Hanna Probe"}',
+  ),
 }
 
 describe('the result of a performance', () => {
@@ -295,11 +312,31 @@ describe('the frozen state', () => {
   it('reads a state of the seventh version, with the moment the server took each signature (#79)', () => {
     const state = readEvidenceState(storedStates[7])
 
-    expect(state.version).toBe(7)
+    // In the newest shape: no evidence before the eighth version was taken over with a due day.
+    expect(state.version).toBe(evidenceStateVersion)
+    expect(state.nextDueOn).toBeNull()
     expect(state.signatures.map(({ signedAt, receivedAt }) => [signedAt, receivedAt])).toEqual([
       ['2026-10-10T08:12:00.000Z', '2026-10-10T09:41:07.000Z'],
     ])
     expect(canonicalForm(storedStates[7])).toBe(JSON.stringify(storedStates[7]))
+  })
+
+  it('reads a state of the eighth version, taken over with the next due day its list named (#130)', () => {
+    const state = readEvidenceState(storedStates[8])
+
+    expect(state.version).toBe(8)
+    expect([state.origin, state.performedOn, state.nextDueOn]).toEqual([
+      'legacy',
+      '2024-09-14',
+      '2026-09-30',
+    ])
+    // It names nobody who did it and no signature: it claims none it cannot show.
+    expect([state.performer, state.signatures, state.remark]).toEqual([
+      null,
+      [],
+      'ohne prüfbare Unterschrift',
+    ])
+    expect(canonicalForm(storedStates[8])).toBe(JSON.stringify(storedStates[8]))
   })
 
   it('has a reader and a stored example for every version up to the newest', () => {

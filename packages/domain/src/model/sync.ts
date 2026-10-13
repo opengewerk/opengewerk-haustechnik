@@ -164,8 +164,9 @@ export const syncPolicies: Readonly<Record<string, SyncPolicy>> = {
   // A document is filed in the office and on site, also without a connection:
   // a photo of a type plate waits on the device with its bytes. Its name and
   // its kind are corrected afterwards; what it hangs on stays. The area
-  // follows its property.
-  attachments: { create: true, change: 'merge', reserved: ['areaId'] },
+  // follows its property. That it was taken over from a predecessor
+  // application only the import of the server says (#130).
+  attachments: { create: true, change: 'merge', reserved: ['areaId', 'legacy'] },
   // A version is made and never changed, and who filed it is the server's to
   // write. It carries no place: it is seen with its document.
   attachment_versions: attachmentVersionPolicy,

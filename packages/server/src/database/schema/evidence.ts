@@ -65,6 +65,7 @@ export const evidence = pgTable(
     number: text('number').notNull(),
     origin: evidenceOrigin('origin').notNull(),
     activityId: reference<'activity'>('activity_id'),
+    nextDueOn: date('next_due_on', { mode: 'string' }),
     performedBy: text('performed_by'),
     examiner: text('examiner'),
     examinerOrganisation: text('examiner_organisation'),
@@ -164,6 +165,13 @@ export const evidence = pgTable(
       'evidence_activity_as_its_origin_says',
       sql`(${table.origin} not in ('protocol', 'round_point', 'work_order') or ${table.activityId} is not null)
         and (${table.origin} <> 'legacy' or ${table.activityId} is null)`,
+    ),
+    // The next due day a list named: only what was taken over from a
+    // predecessor has one, and it lies after the day of the evidence (#130).
+    check(
+      'evidence_next_due_of_the_holdings',
+      sql`${table.nextDueOn} is null
+        or (${table.origin} = 'legacy' and ${table.nextDueOn} > ${table.performedOn})`,
     ),
     // An object with its version. Without the coalesce a state without a
     // version would pass: the comparison is null then, and a check that is

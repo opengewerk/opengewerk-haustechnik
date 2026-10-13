@@ -324,6 +324,7 @@ describe('an evidence written down', () => {
       resultReason: null,
       remark: null,
       replaces: null,
+      nextDueOn: null,
       form: null,
       answers: [],
       duty: {
@@ -470,6 +471,45 @@ describe('an evidence written down', () => {
     )
 
     expect(rows).toEqual([{ new_value: written.fingerprint, user_id: lead }])
+  })
+
+  it('keeps the due day of a list for what was taken over from a predecessor, and for nothing else (#130)', async () => {
+    const place = await placeIn()
+    const kept = await dutyOfKind(place, keptTest)
+    const takenOver: EvidenceToWrite = {
+      ...protocol(kept, null),
+      origin: 'legacy',
+      performedBy: null,
+      signatures: [],
+    }
+    const written = await write({ ...takenOver, nextDueOn: '2027-03-01', number: 'NW-ALT-00001' })
+
+    // With the number drawn ahead for it, and nobody who did it or signed it.
+    expect(written.number).toBe('NW-ALT-00001')
+    expect(written.state).toMatchObject({
+      number: 'NW-ALT-00001',
+      origin: 'legacy',
+      nextDueOn: '2027-03-01',
+      performer: null,
+      signatures: [],
+    })
+    expect(
+      (
+        await admin.query('select origin, next_due_on::text from evidence where id = $1', [
+          written.id,
+        ])
+      ).rows,
+    ).toEqual([{ origin: 'legacy', next_due_on: '2027-03-01' }])
+
+    expect(await refusalOf({ ...takenOver, nextDueOn: '2026-10-01' })).toBe(
+      'Die nächste Fälligkeit liegt nach dem Tag des Nachweises.',
+    )
+    expect(
+      await refusalOf({
+        ...protocol(kept, await activityFor(place, kept)),
+        nextDueOn: '2027-03-01',
+      }),
+    ).toBe('Eine übernommene Fälligkeit nennt nur ein Altbestand aus einer Vorgängeranwendung.')
   })
 
   it('is refused, and leaves no number behind, where it may not be written', async () => {

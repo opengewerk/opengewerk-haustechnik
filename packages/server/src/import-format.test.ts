@@ -7,6 +7,7 @@ import {
   assetLimits,
   assetValueProblems,
   cellValue,
+  deadlineImportFields,
   kindFields,
   levelOfFloorName,
   structureFields,
@@ -106,6 +107,18 @@ describe('the page about the format of the tables', () => {
     }
 
     expect(rows.map((row) => row.field)).toEqual(assetImportFields.map((field) => field.label))
+  })
+
+  it('lists every field of the import of running deadlines, none of which every line needs, with every name it is known by (#130)', () => {
+    const rows = fieldsUnder('Laufende Fristen')
+
+    for (const field of expected(deadlineImportFields)) {
+      expect(rows.find((row) => row.field === field.field) ?? { missing: field.field }).toEqual(
+        field,
+      )
+    }
+
+    expect(rows.map((row) => row.field)).toEqual(deadlineImportFields.map((field) => field.label))
   })
 
   it('names the limits a file is read within', () => {

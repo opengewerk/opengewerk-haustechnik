@@ -78,6 +78,20 @@ export const evidenceOriginLabel: Readonly<Record<EvidenceOrigin, string>> = {
   legacy: 'Altbestand aus einer Vorgängeranwendung',
 }
 
+/**
+ * What an evidence taken over from a predecessor application says of itself
+ * wherever it is shown, in print as well (section 11 of the concept, #130):
+ * that it was not signed here, and whether its original document came along.
+ * It claims no signature it cannot show.
+ */
+export function legacyNote(withDocument: boolean): string {
+  return `Altbestand aus einer Vorgängeranwendung: nicht in dieser Anwendung unterschrieben. ${
+    withDocument
+      ? 'Das ursprüngliche Dokument liegt am Nachweis.'
+      : 'Ein ursprüngliches Dokument wurde nicht übernommen.'
+  }`
+}
+
 /** The origins that come from an activity and always name it. */
 export const originsFromAnActivity: readonly EvidenceOrigin[] = [
   'protocol',
@@ -102,9 +116,11 @@ export const evidenceLimits = {
  * since it keeps what was said with the result (#108), 5 since a signature
  * keeps its drawing, which the PDF shows (#111), 6 since it says which way
  * somebody signed, with the drawing or with the typed name (#209), 7 since a
- * signature keeps when the server took it beside the moment of the device (#79).
+ * signature keeps when the server took it beside the moment of the device
+ * (#79), 8 since an evidence taken over from a predecessor application keeps
+ * the next due day its list named (#130).
  */
-export const evidenceStateVersion = 7
+export const evidenceStateVersion = 8
 
 /** The place of an evidence in words, as it was on the day it was written down. */
 export interface StatedPlace {
@@ -231,6 +247,13 @@ export interface EvidenceState {
   readonly remark: string | null
   /** The evidence this one corrects, since version 2; none for one that corrects nothing. */
   readonly replaces: StatedReplacement | null
+  /**
+   * The day the duty is due next as the list named it that this evidence was
+   * taken over with, since version 8 (#130, section 11 of the concept). None
+   * for an evidence that came about here, and for one whose list named none:
+   * its duty then counts on from the day of the evidence.
+   */
+  readonly nextDueOn: IsoDate | null
   readonly duty: StatedDuty
   readonly place: StatedPlace
   readonly activity: { readonly kind: ActivityKind; readonly title: string } | null
@@ -265,8 +288,13 @@ export class UnknownEvidenceStateError extends Error {
   }
 }
 
+/** The seventh version: all of the eighth but the next due day a list named. */
+type EvidenceStateOfVersion7 = Omit<EvidenceState, 'version' | 'nextDueOn'> & {
+  readonly version: 7
+}
+
 /** The sixth version: all of the seventh but when the server took each signature. */
-type EvidenceStateOfVersion6 = Omit<EvidenceState, 'version' | 'signatures'> & {
+type EvidenceStateOfVersion6 = Omit<EvidenceStateOfVersion7, 'version' | 'signatures'> & {
   readonly version: 6
   readonly signatures: readonly Omit<StatedSignature, 'receivedAt'>[]
 }
@@ -307,11 +335,12 @@ const readers: Readonly<Record<number, (stored: StoredEvidenceState) => Evidence
   // No evidence of the first version corrects another, none before the
   // third names a form or answers, none before the fourth a remark, none
   // before the fifth keeps the drawing of a signature, every signature
-  // before the sixth was drawn, and none before the seventh says when the
-  // server took it.
+  // before the sixth was drawn, none before the seventh says when the server
+  // took it, and none before the eighth was taken over with a due day.
   1: (stored) => ({
     ...(stored as unknown as EvidenceStateOfVersion1),
     version: evidenceStateVersion,
+    nextDueOn: null,
     replaces: null,
     form: null,
     answers: [],
@@ -321,6 +350,7 @@ const readers: Readonly<Record<number, (stored: StoredEvidenceState) => Evidence
   2: (stored) => ({
     ...(stored as unknown as EvidenceStateOfVersion2),
     version: evidenceStateVersion,
+    nextDueOn: null,
     form: null,
     answers: [],
     remark: null,
@@ -329,17 +359,20 @@ const readers: Readonly<Record<number, (stored: StoredEvidenceState) => Evidence
   3: (stored) => ({
     ...(stored as unknown as EvidenceStateOfVersion3),
     version: evidenceStateVersion,
+    nextDueOn: null,
     remark: null,
     signatures: withoutDrawings(stored as unknown as EvidenceStateOfVersion3),
   }),
   4: (stored) => ({
     ...(stored as unknown as EvidenceStateOfVersion4),
     version: evidenceStateVersion,
+    nextDueOn: null,
     signatures: withoutDrawings(stored as unknown as EvidenceStateOfVersion4),
   }),
   5: (stored) => ({
     ...(stored as unknown as EvidenceStateOfVersion5),
     version: evidenceStateVersion,
+    nextDueOn: null,
     signatures: (stored as unknown as EvidenceStateOfVersion5).signatures.map((signature) => ({
       ...signature,
       way: 'drawing' as const,
@@ -349,12 +382,18 @@ const readers: Readonly<Record<number, (stored: StoredEvidenceState) => Evidence
   6: (stored) => ({
     ...(stored as unknown as EvidenceStateOfVersion6),
     version: evidenceStateVersion,
+    nextDueOn: null,
     signatures: (stored as unknown as EvidenceStateOfVersion6).signatures.map((signature) => ({
       ...signature,
       receivedAt: null,
     })),
   }),
-  7: (stored) => stored as unknown as EvidenceState,
+  7: (stored) => ({
+    ...(stored as unknown as EvidenceStateOfVersion7),
+    version: evidenceStateVersion,
+    nextDueOn: null,
+  }),
+  8: (stored) => stored as unknown as EvidenceState,
 }
 
 /** The signatures of a state written before version 5, which kept no drawing; all of them drawn. */
@@ -404,6 +443,12 @@ export interface Evidence extends TenantOwned {
   readonly number: string
   readonly origin: EvidenceOrigin
   readonly activityId: ActivityId | null
+  /**
+   * The day the duty is due next as the list named it that this evidence was
+   * taken over with (#130); only an evidence of the origin `legacy` has one,
+   * and it lies after the day of the evidence.
+   */
+  readonly nextDueOn: IsoDate | null
   /** A person of the operator who did it, or an examiner with the organisation from outside. */
   readonly performedBy: string | null
   readonly examiner: string | null

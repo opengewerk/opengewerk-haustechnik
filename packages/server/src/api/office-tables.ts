@@ -770,6 +770,7 @@ export async function documentTable(
       return {
         title: document.title,
         kind: document.kind,
+        legacy: document.legacy,
         home: documentHomeWords(
           document.home,
           named(document),

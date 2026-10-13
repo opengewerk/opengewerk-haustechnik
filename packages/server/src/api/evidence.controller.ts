@@ -99,6 +99,7 @@ export async function listedEvidence(
       performedOn: evidence.performedOn,
       result: evidence.result,
       origin: evidence.origin,
+      nextDueOn: evidence.nextDueOn,
       replacesEvidenceId: evidence.replacesEvidenceId,
     })
     .from(evidence)
@@ -122,9 +123,10 @@ export async function listedEvidence(
   )
 
   return written.map((row) => {
-    const { replacesEvidenceId: _, ...shown } = row
+    const { replacesEvidenceId: _, nextDueOn, ...shown } = row
 
-    return { ...shown, standing: standing(row) }
+    // The due day of a list only where an evidence was taken over with one (#130).
+    return { ...shown, standing: standing(row), ...(nextDueOn === null ? {} : { nextDueOn }) }
   })
 }
 
@@ -351,6 +353,12 @@ export class EvidenceController {
             // result was said on site, and a correction does not say it again.
             defects: state.defects,
             remark: state.remark,
+            // What a list named for the holdings of a predecessor stays with
+            // them (#130), as long as it still lies after their day.
+            nextDueOn:
+              state.nextDueOn !== null && state.nextDueOn > (values.performedOn as IsoDate)
+                ? state.nextDueOn
+                : null,
             replaces: { evidenceId: known.id, reason: values.reason as string },
           },
         )

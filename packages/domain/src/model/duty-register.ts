@@ -369,4 +369,9 @@ export interface DutyEvidenceEntry extends Pick<
 > {
   readonly origin: EvidenceOrigin
   readonly standing: EvidenceStanding
+  /**
+   * The next due day its list named, for an evidence taken over from a
+   * predecessor application that names one (#130); left out for every other.
+   */
+  readonly nextDueOn?: IsoDate
 }

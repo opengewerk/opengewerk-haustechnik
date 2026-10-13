@@ -1,20 +1,28 @@
-import type {
-  AssetImportStock,
-  Catalogue,
-  DuplicateField,
-  ImportKind,
-  StructureStock,
-  TableRecord,
-  TenantId,
+import {
+  type AssetImportStock,
+  type Catalogue,
+  type DeadlineImportStock,
+  type DuplicateField,
+  type ImportKind,
+  type IsoDate,
+  standingEvidence,
+  type StructureStock,
+  type TableRecord,
+  type TenantId,
 } from '@opengewerk/haustechnik-domain'
 import type { TenantTransaction } from '@opengewerk/platform-server'
-import { asc, isNotNull, isNull, or, sql } from 'drizzle-orm'
+import { and, asc, eq, gt, isNotNull, isNull, or, sql } from 'drizzle-orm'
 
 import { duplicateCandidatesOfList } from '../database/asset-duplicates.js'
 import {
   assetKindNames,
   assets,
+  attachments,
+  attachmentVersions,
   buildings,
+  duties,
+  evidence,
+  evidenceVoidings,
   floors,
   imports,
   properties,
@@ -110,6 +118,131 @@ export async function assetImportStock(
       .orderBy(asc(assetKindNames.name)),
     kinds: new Map(
       catalogue.assetKinds(dayInGermany()).map((entry) => [entry.key, entry.definition]),
+    ),
+  }
+}
+
+/** The property and the area of an asset, which a duty and a document at it carry. */
+export interface AssetPlace {
+  readonly propertyId: (typeof assets.$inferSelect)['propertyId']
+  readonly areaId: (typeof assets.$inferSelect)['areaId']
+}
+
+/**
+ * What a list of running deadlines is held against (#130): the assets the
+ * person importing sees, the duties that stand at them with the days of the
+ * evidence that stands for each, and the documents taken over before. Read
+ * inside their transaction, under the policies of their tenant and their
+ * areas: a line can name no asset beyond them.
+ *
+ * Read once for the whole table, like the stock of every import. The places
+ * of the assets come back beside it, for what the take-over writes.
+ */
+export async function deadlineImportStock(
+  tx: TenantTransaction,
+  catalogue: Catalogue,
+  files: readonly string[],
+  today: IsoDate,
+): Promise<{ stock: DeadlineImportStock; places: ReadonlyMap<string, AssetPlace> }> {
+  const seen = await tx
+    .select({
+      id: assets.id,
+      number: assets.number,
+      name: assets.name,
+      mark: assets.mark,
+      serialNumber: assets.serialNumber,
+      kind: assets.kind,
+      federalState: properties.federalState,
+      propertyId: assets.propertyId,
+      areaId: assets.areaId,
+    })
+    .from(assets)
+    .innerJoin(properties, eq(properties.id, assets.propertyId))
+    .where(isNull(assets.deletedAt))
+    .orderBy(asc(assets.number))
+  const standing = await tx
+    .select({
+      id: duties.id,
+      assetId: duties.assetId,
+      kind: duties.kind,
+      label: duties.label,
+      counting: duties.counting,
+      intervalDays: duties.intervalDays,
+      intervalMonths: duties.intervalMonths,
+    })
+    .from(duties)
+    .where(
+      and(
+        isNull(duties.deletedAt),
+        isNotNull(duties.assetId),
+        or(isNull(duties.endsOn), gt(duties.endsOn, today)),
+      ),
+    )
+  const voided = new Set(
+    (await tx.select({ evidenceId: evidenceVoidings.evidenceId }).from(evidenceVoidings)).map(
+      (row) => row.evidenceId as string,
+    ),
+  )
+  const days = new Map<string, IsoDate[]>()
+
+  for (const row of standingEvidence(
+    await tx
+      .select({
+        id: evidence.id,
+        replacesEvidenceId: evidence.replacesEvidenceId,
+        dutyId: evidence.dutyId,
+        performedOn: evidence.performedOn,
+      })
+      .from(evidence),
+    voided,
+  )) {
+    days.set(row.dutyId, [...(days.get(row.dutyId) ?? []), row.performedOn])
+  }
+
+  const takenOver = await tx
+    .select({ assetId: attachments.assetId, fileName: attachmentVersions.fileName })
+    .from(attachments)
+    .innerJoin(
+      attachmentVersions,
+      and(
+        eq(attachmentVersions.tenantId, attachments.tenantId),
+        eq(attachmentVersions.attachmentId, attachments.id),
+      ),
+    )
+    .where(
+      and(
+        eq(attachments.legacy, true),
+        isNull(attachments.deletedAt),
+        isNotNull(attachments.assetId),
+      ),
+    )
+
+  return {
+    stock: {
+      assets: seen.map(({ id, number, name, mark, serialNumber, kind, federalState }) => ({
+        id,
+        number,
+        name,
+        mark,
+        serialNumber,
+        kind,
+        federalState,
+      })),
+      duties: standing.map((duty) => ({
+        ...duty,
+        assetId: duty.assetId as string,
+        evidenceDays: days.get(duty.id) ?? [],
+      })),
+      takenOver: takenOver.map((each) => ({
+        assetId: each.assetId as string,
+        fileName: each.fileName,
+      })),
+      files,
+      catalogue,
+      today,
+    },
+    places: new Map(
+      seen.map(({ id, propertyId, areaId }) => [id as string, { propertyId, areaId }]),
     ),
   }
 }

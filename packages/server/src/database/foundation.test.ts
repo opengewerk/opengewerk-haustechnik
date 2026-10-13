@@ -68,6 +68,7 @@ describe('the foundation in this database', () => {
           'attachments.activity_id',
           'attachments.defect_id',
           'attachments.kind',
+          'attachments.legacy',
         ],
         constraints: [
           'deadlines.deadlines_meters_of_their_property',

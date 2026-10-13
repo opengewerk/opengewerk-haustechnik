@@ -64,6 +64,12 @@ export interface Document extends AttachmentRecord {
   readonly activityId: ActivityId | null
   readonly defectId: DefectId | null
   readonly kind: DocumentKind | null
+  /**
+   * Whether it was taken over from a predecessor application (section 11 of
+   * the concept, #130): an old evidence with its original file, neither
+   * signed anew nor rewritten. Set by the import and by nothing else.
+   */
+  readonly legacy: boolean
 }
 
 /**

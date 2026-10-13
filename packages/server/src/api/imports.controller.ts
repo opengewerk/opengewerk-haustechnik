@@ -3,6 +3,7 @@ import {
   Body,
   ConflictException,
   Controller,
+  ForbiddenException,
   Get,
   HttpCode,
   Inject,
@@ -16,15 +17,24 @@ import {
   assetImportSummary,
   type AssetKindName,
   type Catalogue,
+  deadlineImportFields,
+  deadlineImportLimits,
+  deadlineImportSummary,
+  deadlineImportTotal,
   decisionsOf,
+  documentTitleOf,
+  type DutyId,
+  fileNameKey,
   importLimits,
   type KindCells,
   type KindColumns,
   kindColumnsProblem,
   kindNameKey,
   kindNamesProblem,
+  missingRight,
   planAssets,
   planChanged,
+  planDeadlines,
   planHasProblems,
   planMakesNothing,
   planStructure,
@@ -46,13 +56,15 @@ import {
 import {
   AcceptsTable,
   AcceptsTableFile,
+  accountsOf,
   CurrentIdentity,
   Database,
   newId,
   tableBodyOf,
   uploadedTable,
 } from '@opengewerk/platform-server'
-import { asc, sql } from 'drizzle-orm'
+import { files } from '@opengewerk/platform-server/schema'
+import { and, asc, eq, isNull, sql } from 'drizzle-orm'
 
 import { areasInSight } from '../areas/areas.js'
 import { CATALOGUE } from '../catalogue.js'
@@ -60,12 +72,28 @@ import { assignNumbers } from '../database/number-ranges.js'
 import {
   assetKindNames,
   assets,
+  attachments,
+  attachmentVersions,
   buildings,
+  duties,
+  dutyDismissals,
   floors,
   properties,
   rooms,
 } from '../database/schema/index.js'
-import { assetImportStock, beginImport, inParts, structureStock } from '../imports/stock.js'
+import {
+  EvidenceRefusal,
+  holdTheDuty,
+  writeEvidence,
+  type WritingContext,
+} from '../evidence/write.js'
+import {
+  assetImportStock,
+  beginImport,
+  deadlineImportStock,
+  inParts,
+  structureStock,
+} from '../imports/stock.js'
 import { dayInGermany } from '../today.js'
 import { RequiresPermission } from './authorization.js'
 import type { Asking } from './places.js'
@@ -114,6 +142,87 @@ function fileNameOf(given: Given): string {
   // Cut where a space stands, the name would end in one, and the table takes no such name.
   return name === '' ? 'Tabelle ohne Namen' : name.slice(0, importLimits.fileName).trimEnd()
 }
+
+/** The most files one list of running deadlines may come with. */
+const mostFiles = 2_000
+
+/** A file that went up ahead of a list: the hash and the size of its bytes, and of its preview. */
+interface SentFile {
+  readonly name: string
+  readonly sha256: string
+  readonly sizeBytes: number
+  readonly previewSha256: string | null
+}
+
+/** A file chosen beside a list: its name, and its bytes where they went up ahead. */
+type ChosenFile = SentFile | { readonly name: string; readonly sha256: null }
+
+const isHash = (value: unknown): value is string =>
+  typeof value === 'string' && /^[0-9a-f]{64}$/.test(value)
+
+/**
+ * The files a request names beside its list. The preview needs their names
+ * and nothing else; the take-over names each file a line rests on by the hash
+ * of its bytes, which went up ahead of it. Two files of one name are refused:
+ * a line names its file by that name.
+ */
+function chosenFilesOf(value: unknown): ChosenFile[] {
+  if (value === undefined || value === null) {
+    return []
+  }
+
+  if (!Array.isArray(value) || value.length > mostFiles) {
+    throw new BadRequestException(
+      `Zu einer Liste gehören höchstens ${mostFiles.toLocaleString('de-DE')} Dateien; wer mehr hat, teilt die Liste.`,
+    )
+  }
+
+  const seen = new Set<string>()
+
+  return value.map((entry: unknown) => {
+    const said = (typeof entry === 'object' && entry !== null ? entry : {}) as Given
+    const name = typeof said['name'] === 'string' ? cellText(said['name']) : ''
+
+    if (name === '' || name.length > deadlineImportLimits.fileName) {
+      throw new BadRequestException(
+        `Jede Datei hat einen Namen mit höchstens ${String(deadlineImportLimits.fileName)} Zeichen.`,
+      )
+    }
+
+    if (seen.has(fileNameKey(name))) {
+      throw new BadRequestException(
+        `Die Datei „${name}“ ist zweimal gewählt. Eine Zeile nennt ihre Datei beim Namen, also hat jede ihren eigenen.`,
+      )
+    }
+
+    seen.add(fileNameKey(name))
+
+    const sha256 = said['sha256'] ?? null
+    const sizeBytes = said['sizeBytes']
+    const previewSha256 = said['previewSha256'] ?? null
+
+    if (sha256 === null) {
+      return { name, sha256: null }
+    }
+
+    if (
+      !isHash(sha256) ||
+      typeof sizeBytes !== 'number' ||
+      !Number.isSafeInteger(sizeBytes) ||
+      sizeBytes < 1 ||
+      (previewSha256 !== null && !isHash(previewSha256))
+    ) {
+      throw new BadRequestException(
+        `Zur Datei „${name}“ gehören ihre Prüfsumme und ihre Größe: sie geht dem Import voraus.`,
+      )
+    }
+
+    return { name, sha256, sizeBytes, previewSha256 }
+  })
+}
+
+/** A name for an account the instance does not know any more. */
+const unknownAccount = 'Unbekanntes Konto'
 
 /**
  * The import of places and assets from tables (#100, sections 3 and 11 of
@@ -340,6 +449,308 @@ export class ImportsController {
 
       return { id, counts: plan.counts, summary }
     })
+  }
+
+  @Post('deadlines/table')
+  @HttpCode(200)
+  @RequiresPermission('duty.write')
+  @AcceptsTableFile()
+  deadlinesTable(@CurrentIdentity() identity: Asking, @Req() request: Request): Promise<TableFile> {
+    this.entersEvidence(identity)
+
+    return uploadedTable(request)
+  }
+
+  @Post('deadlines/preview')
+  @HttpCode(200)
+  @RequiresPermission('duty.write')
+  @AcceptsTable()
+  async deadlinesPreview(@CurrentIdentity() identity: Asking, @Req() request: Request) {
+    this.entersEvidence(identity)
+
+    const { given, records } = recordsOf(await tableBodyOf(request), deadlineImportFields)
+    const chosen = chosenFilesOf(given['files'])
+    const named = new Set(records.map(({ values }) => fileNameKey(values['file'] ?? '')))
+
+    return this.database.readingTenant(identity, async (tx) => {
+      const { stock } = await deadlineImportStock(
+        tx,
+        this.catalogue,
+        chosen.map((file) => file.name),
+        dayInGermany(),
+      )
+      const plan = planDeadlines(records, stock)
+      const problems = cut(plan.problems)
+      const notes = cut(plan.notes)
+      const rows = cut(plan.rows)
+
+      return {
+        lines: plan.lines,
+        counts: plan.counts,
+        problems: problems.shown,
+        moreProblems: problems.more,
+        notes: notes.shown,
+        moreNotes: notes.more,
+        rows: rows.shown,
+        moreRows: rows.more,
+        // What goes up before the take-over, and how many of the chosen files no line names.
+        files: [
+          ...new Set(
+            [...plan.create.evidence, ...plan.create.documents].flatMap((each) =>
+              each.file === null ? [] : [each.file],
+            ),
+          ),
+        ],
+        unusedFiles: chosen.filter((file) => !named.has(fileNameKey(file.name))).length,
+      }
+    })
+  }
+
+  /**
+   * Takes the running deadlines of a predecessor application over (#130,
+   * section 11 of the concept), whole or not at all: the duties that do not
+   * stand yet are confirmed, the latest line of each duty is written down as
+   * an evidence of the origin "Altbestand" with the next due day its list
+   * names, and what lies before it is filed as a document, marked as taken
+   * over. The files went up ahead and are named by their hash, like the file
+   * of a report.
+   *
+   * Confirming a duty is keeping the register of duties, and writing an
+   * evidence down is entering evidence: the route asks for both rights. Every
+   * duty, evidence and document it writes makes its own entry in the change
+   * log beside the one of the import, because an evidence has the weight of
+   * proof and section 8 of the processing description promises its entry.
+   */
+  @Post('deadlines')
+  @RequiresPermission('duty.write')
+  @AcceptsTable()
+  async takeDeadlines(@CurrentIdentity() identity: Asking, @Req() request: Request) {
+    this.entersEvidence(identity)
+
+    const { given, records } = recordsOf(await tableBodyOf(request), deadlineImportFields)
+    const chosen = chosenFilesOf(given['files'])
+    // Accounts are read on the instance and never inside a tenant.
+    const accounts = await accountsOf(this.database, [identity.userId], identity.userId)
+    const tenantId = identity.tenantId
+
+    return this.database.forTenant(identity, async (tx) => {
+      const { stock, places } = await deadlineImportStock(
+        tx,
+        this.catalogue,
+        chosen.map((file) => file.name),
+        dayInGermany(),
+      )
+      const plan = planDeadlines(records, stock)
+
+      if (plan.problems.length > 0) {
+        throw new UnprocessableEntityException(planHasProblems)
+      }
+
+      if (deadlineImportTotal(plan.counts) === 0) {
+        throw new UnprocessableEntityException(planMakesNothing)
+      }
+
+      if (!sameCounts(given['expected'], { ...plan.counts })) {
+        throw new ConflictException(planChanged)
+      }
+
+      // What a line names lies on the server, with the size the page saw.
+      const sent = new Map(chosen.map((file) => [file.name, file]))
+      const stored = new Map<string, SentFile & { readonly mediaType: string }>()
+      const held = async (sha256: string) => {
+        const [row] = await tx
+          .select({ sizeBytes: files.sizeBytes, mediaType: files.mediaType })
+          .from(files)
+          .where(and(eq(files.tenantId, tenantId), eq(files.sha256, sha256)))
+
+        return row ?? null
+      }
+
+      for (const name of new Set(
+        [...plan.create.evidence, ...plan.create.documents].flatMap((each) =>
+          each.file === null ? [] : [each.file],
+        ),
+      )) {
+        const file = sent.get(name)
+        const found = file === undefined || file.sha256 === null ? null : await held(file.sha256)
+
+        if (
+          file === undefined ||
+          file.sha256 === null ||
+          found === null ||
+          found.sizeBytes !== file.sizeBytes ||
+          (file.previewSha256 !== null && (await held(file.previewSha256)) === null)
+        ) {
+          throw new ConflictException(
+            `Die Datei „${name}“ ist nicht auf dem Server. Wählen Sie die Dateien noch einmal.`,
+          )
+        }
+
+        stored.set(name, { ...file, mediaType: found.mediaType })
+      }
+
+      const summary = deadlineImportSummary(plan.counts)
+      const id = await beginImport(tx, tenantId, {
+        kind: 'deadlines',
+        fileName: fileNameOf(given),
+        lines: plan.lines,
+        summary,
+      })
+      const placeOf = (assetId: string) => {
+        const place = places.get(assetId)
+
+        if (place === undefined) {
+          throw new Error('The plan names an asset the stock does not hold')
+        }
+
+        return { tenantId, ...place, assetId: assetId as (typeof assets.$inferSelect)['id'] }
+      }
+      const confirmed = plan.create.duties.map((duty) => ({ id: newId<'duty'>(), duty }))
+
+      for (const part of inParts(confirmed)) {
+        await tx.insert(duties).values(
+          part.map(({ id: dutyId, duty }) => ({
+            id: dutyId,
+            ...placeOf(duty.assetId),
+            kind: duty.kind,
+            kindVersion: duty.kindVersion,
+            label: duty.label,
+            basis: duty.basis,
+            sourceNote: duty.sourceNote,
+            task: duty.task,
+            counting: duty.counting,
+            intervalDays: 'days' in duty.interval ? duty.interval.days : null,
+            intervalMonths: 'months' in duty.interval ? duty.interval.months : null,
+            intervalReason: duty.intervalReason,
+            maximumDays: duty.maximum !== null && 'days' in duty.maximum ? duty.maximum.days : null,
+            maximumMonths:
+              duty.maximum !== null && 'months' in duty.maximum ? duty.maximum.months : null,
+            guideDays: duty.guide !== null && 'days' in duty.guide ? duty.guide.days : null,
+            guideMonths: duty.guide !== null && 'months' in duty.guide ? duty.guide.months : null,
+            confirmedBy: identity.userId,
+          })),
+        )
+      }
+
+      // Confirming a duty of the catalogue takes a dismissal of it back, as in the register.
+      for (const { duty } of confirmed) {
+        if (duty.kind !== null) {
+          await tx
+            .update(dutyDismissals)
+            .set({ deletedAt: new Date() })
+            .where(
+              and(
+                eq(dutyDismissals.assetId, placeOf(duty.assetId).assetId),
+                eq(dutyDismissals.kind, duty.kind),
+                isNull(dutyDismissals.deletedAt),
+              ),
+            )
+        }
+      }
+
+      // Every file a line rests on becomes a document at the asset, marked
+      // as taken over: that is where it is found among its documents.
+      const filed = [
+        ...plan.create.evidence.flatMap((each) =>
+          each.file === null
+            ? []
+            : [{ assetId: each.assetId, title: documentTitleOf(each.file), file: each.file }],
+        ),
+        ...plan.create.documents,
+      ].map((each) => ({ id: newId<'attachment'>(), ...each }))
+
+      for (const part of inParts(filed)) {
+        await tx.insert(attachments).values(
+          part.map((each) => ({
+            id: each.id,
+            ...placeOf(each.assetId),
+            title: each.title,
+            kind: 'test_certificate' as const,
+            legacy: true,
+          })),
+        )
+        await tx.insert(attachmentVersions).values(
+          part.map((each) => {
+            const file = stored.get(each.file) as SentFile & { readonly mediaType: string }
+
+            return {
+              tenantId,
+              attachmentId: each.id,
+              sha256: file.sha256,
+              fileName: file.name,
+              mediaType: file.mediaType,
+              sizeBytes: file.sizeBytes,
+              previewSha256: file.previewSha256,
+            }
+          }),
+        )
+      }
+
+      const context: WritingContext = {
+        tenantId,
+        writtenBy: identity.userId,
+        at: new Date(),
+        catalogue: this.catalogue,
+        nameOf: (userId) => accounts.get(userId)?.name ?? unknownAccount,
+      }
+      // The numbers in the order of the lines, drawn in one step: the counter
+      // moves once, and an import that is refused takes them back with it.
+      const numbers = await assignNumbers(
+        tx,
+        tenantId,
+        'evidence',
+        context.at,
+        plan.create.evidence.length,
+      )
+
+      try {
+        for (const [index, each] of plan.create.evidence.entries()) {
+          const dutyId = (
+            'id' in each.duty ? each.duty.id : confirmed[each.duty.planned]?.id
+          ) as DutyId
+          const number = numbers[index]
+          const file = each.file === null ? undefined : stored.get(each.file)
+
+          if (number === undefined) {
+            throw new Error('Fewer numbers were drawn than the import writes evidence')
+          }
+
+          // A report or a correction of the same duty stands in line.
+          await holdTheDuty(tx, tenantId, dutyId)
+          await writeEvidence(tx, context, {
+            dutyId,
+            activityId: null,
+            origin: 'legacy',
+            performedOn: each.performedOn,
+            result: each.result,
+            resultReason: null,
+            remark: each.remark,
+            // It names nobody who did it and no signature: it claims none it cannot show.
+            performedBy: null,
+            examiner: null,
+            signatures: [],
+            files:
+              file === undefined
+                ? []
+                : [{ sha256: file.sha256, name: file.name, mediaType: file.mediaType }],
+            defects: [],
+            nextDueOn: each.nextDueOn,
+            number,
+          })
+        }
+      } catch (error) {
+        throw error instanceof EvidenceRefusal ? new ConflictException(error.message) : error
+      }
+
+      return { id, counts: plan.counts, summary }
+    })
+  }
+
+  /** Writing an evidence down is entering evidence, whatever else a route asks for. */
+  private entersEvidence(identity: Asking): void {
+    if (!identity.rights.includes('evidence.write')) {
+      throw new ForbiddenException(missingRight('evidence.write'))
+    }
   }
 
   /** What the lists of this tenant call the asset kinds, for the step that gives words a kind. */
