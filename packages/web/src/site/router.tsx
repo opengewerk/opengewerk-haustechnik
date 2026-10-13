@@ -26,6 +26,7 @@ import { SiteActivityScreen, SiteProtocolScreen } from './screens/protocol.js'
 import { SiteResultScreen } from './screens/result.js'
 import { SiteStartScreen } from './screens/start.js'
 import { SiteCloseOrderScreen, SiteNoteScreen } from './screens/work-order.js'
+import { SiteGuideScreen, SiteHelpScreen, SiteScreenHelpScreen } from './help.js'
 import { SiteShell } from './shell.js'
 import { MyTasksScreen } from './tasks.js'
 
@@ -100,6 +101,11 @@ export function siteRoutes() {
     at('/ablesung/$propertyId', ReadingRoundScreen),
     // The tasks of the person holding the device, from the menu (#124).
     at('/aufgaben', MyTasksScreen),
+    // The help, from the menu (#131): a text for each screen and the quick
+    // guides, read without a network.
+    at('/hilfe', SiteHelpScreen),
+    at('/hilfe/bildschirm/$screen', SiteScreenHelpScreen),
+    at('/hilfe/$guide', SiteGuideScreen),
   ])
 }
 

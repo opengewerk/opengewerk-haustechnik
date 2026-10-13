@@ -2,6 +2,7 @@ import { usePushRefresh } from '@opengewerk/platform-web/session'
 import { SiteFrame, SitePush } from '@opengewerk/platform-web/site'
 
 import { useKeepCatalogue } from '../sync/catalogue.js'
+import { HelpMenuRow } from './help.js'
 import { useTabs } from './tabs.js'
 import { MyTasksMenuRow } from './tasks.js'
 
@@ -20,7 +21,8 @@ import { MyTasksMenuRow } from './tasks.js'
  *
  * The menu carries the tasks of the person and, under them, push on this
  * device with the occasions (#126, the board "Menü"); a device with push on
- * writes its row again at every start (`usePushRefresh`).
+ * writes its row again at every start (`usePushRefresh`). Its last row is the
+ * help, which is read without a network (#131).
  */
 export function SiteShell() {
   useKeepCatalogue()
@@ -33,6 +35,7 @@ export function SiteShell() {
         <>
           <MyTasksMenuRow />
           <SitePush entry="site" />
+          <HelpMenuRow />
         </>
       }
     />

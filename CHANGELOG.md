@@ -1258,6 +1258,19 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
 - Die Verfahrensbeschreibung hat den Abschnitt 3.15 "Benachrichtigungen" mit den Belegen B227 bis
   B255: was eine Nachricht sagt, wer sie bekommt, was ein Gerät für Push hinterlegt und dass seine
   Adresse und seine Schlüssel den Server im Änderungsprotokoll nicht verlassen
+- Hilfe an den Bildschirmen, Kurzanleitungen und Handbuch (#131): das Fragezeichen in der
+  Kopfleiste des Büros öffnet neben der Seite ihren Hilfetext, unter 1024 Pixeln steht "Hilfe
+  zu dieser Seite" im Menü. Jede Seite der Navigation, jede Einstellung, das Konto und die Akte
+  einer Anlage haben einen eigenen Text, was darunter liegt, liest den seiner Liste. Unter
+  "Hilfe" stehen die Kurzanleitungen zu den fünf Kernabläufen (Rundgang, Bestandsaufnahme,
+  Prüfung mit Bericht, vom Mangel zum Auftrag, Ablesung), vor Ort als Zeile im Menü mit einem
+  Text je Bildschirm, und im Bereich der Instanz das Handbuch für ihre Verwaltung
+  (Installation, Update, Sicherung und Rückspielen, Betreiber anlegen). Die Texte liegen als
+  Markdown unter `packages/web/help` und sind in die Anwendung gebaut, damit sie vor Ort ohne
+  Netz lesbar sind; geladen werden sie erst, wenn jemand die Hilfe öffnet, das Bündel vor Ort
+  bleibt mit 247,6 von 300 kB unter seiner Grenze. Ein Test wird rot, wenn eine Seite der
+  Navigation keinen Text hat oder ein Text etwas benutzt, das die Anwendung nicht liest. Knopf,
+  Schublade und der Leser für Markdown sind Bausteine des Fundaments (`opengewerk/opengewerk#612`).
 
 ### Geändert
 

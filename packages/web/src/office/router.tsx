@@ -10,6 +10,7 @@ import { createRootRoute, createRoute, createRouter, Outlet } from '@tanstack/re
 import { dutyPlaces } from './duty-addresses.js'
 import { proposalPlace, proposalPlaces } from './proposal-addresses.js'
 import { importPlaces } from './import-addresses.js'
+import { ManualChapterScreen, ManualScreen } from './instance/manual.js'
 import { InstanceShell } from './instance/shell.js'
 import { AccountScreen } from './screens/account.js'
 import { ActivityListScreen, ActivityScreen } from './screens/activities.js'
@@ -37,6 +38,7 @@ import { DismissedProposalsScreen, ProposalsScreen } from './screens/proposals.j
 import { EvidenceScreen } from './screens/evidence.js'
 import { EditFloorScreen, NewFloorScreen } from './screens/floor-form.js'
 import { FloorScreen } from './screens/floors.js'
+import { GuideScreen, HelpScreen } from './screens/help.js'
 import { ImportAssetsScreen, ImportStructureScreen } from './screens/imports.js'
 import { LabelLandingScreen } from './screens/label-landing.js'
 import { MeterSettingsScreen } from './screens/meter-settings.js'
@@ -115,6 +117,13 @@ export function officeRoutes() {
       getParentRoute: () => instance,
       path: '/protokoll',
       component: InstanceLogScreen,
+    }),
+    // The manual for whoever runs the instance (#131).
+    createRoute({ getParentRoute: () => instance, path: '/handbuch', component: ManualScreen }),
+    createRoute({
+      getParentRoute: () => instance,
+      path: '/handbuch/$chapter',
+      component: ManualChapterScreen,
     }),
   ]
 
@@ -447,6 +456,10 @@ export function officeRoutes() {
       path: '/a/$code',
       component: LabelLandingScreen,
     }),
+    // The quick guides to the core flows (#131); the help of a single page
+    // stands beside it, behind the question mark of the header.
+    createRoute({ getParentRoute: () => office, path: '/hilfe', component: HelpScreen }),
+    createRoute({ getParentRoute: () => office, path: '/hilfe/$guide', component: GuideScreen }),
     createRoute({ getParentRoute: () => office, path: '/konflikte', component: SyncScreen }),
     createRoute({ getParentRoute: () => office, path: '/konto', component: AccountScreen }),
     createRoute({

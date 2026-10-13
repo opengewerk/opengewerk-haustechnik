@@ -2,6 +2,7 @@ import { OfficeFrame } from '@opengewerk/platform-web/office'
 import { usePushRefresh } from '@opengewerk/platform-web/session'
 
 import { useKeepCatalogue } from '../sync/catalogue.js'
+import { useOfficeHelp } from './help.js'
 import { useNavigation } from './navigation.js'
 import { useOfficeSearch } from './search-source.js'
 
@@ -26,13 +27,18 @@ import { useOfficeSearch } from './search-source.js'
  *
  * A device with push on writes its row again at every start, bound to the
  * session of now (#126, `usePushRefresh`).
+ *
+ * The question mark in its header opens the text of the page that stands
+ * (#131): the button and the drawer are the foundation's, the texts this
+ * application's (`useOfficeHelp`).
  */
 export function OfficeShell() {
   const { groups, foot } = useNavigation()
   const search = useOfficeSearch()
+  const help = useOfficeHelp()
 
   useKeepCatalogue()
   usePushRefresh('office')
 
-  return <OfficeFrame navigation={groups} foot={foot} search={search} />
+  return <OfficeFrame navigation={groups} foot={foot} search={search} help={help} />
 }

@@ -330,6 +330,14 @@ Was von selbst fällig wird (eine Frist, eine Aufgabe am Morgen ihres Tages, ein
 
 Den Mailserver eines Betreibers trägt die Leitung unter "Einstellungen", "E-Mail-Einstellungen" ein, sein Passwort liegt versiegelt in `secrets` (`secrets/store.ts` ist die eine Stelle, die die Tabelle nennt). E-Mails an ein Konto gehen über den Mailserver der Instanz (#81). Push braucht `VAPID_PRIVATE_KEY` in `docker/.env`, den `sh docker/start.sh` anlegt; ohne ihn verschickt die Instanz kein Push und sagt das unter "Konto". Die Vorschau hat beides zum Ansehen und verschickt nichts.
 
+### Hilfe
+
+Die Hilfetexte liegen als Markdown unter `packages/web/help` (#131): `office/` hält je Seite des Büros einen Text, benannt nach ihrer Adresse (`liegenschaften.md` für `/liegenschaften`, `index.md` für die Übersicht, `einstellungen/e-mail.md` für eine Einstellung), `site/` je Bildschirm vor Ort, `guides/` die Kurzanleitungen zu den Kernabläufen und `manual/` das Handbuch für die Verwaltung der Instanz. Sie liegen im Paket und nicht unter `docs/`, weil der Bau des Abbilds `docs/` auslässt und ein Text, den der Bau nicht findet, ohne ein Wort fehlt.
+
+Ein Text beginnt mit `# Titel`, dann folgen Absätze, auf Wunsch `## Kurzanleitung` mit einer nummerierten Liste. Gelesen wird ein fester Teil von Markdown: Überschriften in drei Ebenen, Absätze, Listen mit Bindestrich oder Nummer, fett, Code und Verweise. Tabellen, Zitate, Bilder, Codeblöcke, HTML und verschachtelte Listen gibt es nicht, und ein Verweis steht nur in einem Text des Büros und führt zu einer Seite, die selbst einen Text hat. Ein Platzhalter in einem Befehl steht in Großbuchstaben, nicht in spitzen Klammern.
+
+Wer eine Seite in die Navigation hängt, schreibt ihren Text im selben Pull Request: `packages/web/src/help/texts.test.ts` geht die Navigation des Büros, seine Einstellungen und die Reiter vor Ort durch und wird rot, wenn einer Seite der Text fehlt oder ein Text mehr benutzt, als gelesen wird. Was unter einer Seite liegt, liest ihren Text mit; eine Seite darunter mit eigenem Text, wie die Akte einer Anlage, steht in `records` in `packages/web/src/office/help.ts`. Der Knopf in der Kopfleiste, die Schublade und der Leser sind Bausteine des Fundaments. Die Texte sind eigene Module des Baus: sie werden geladen, wenn jemand die Hilfe öffnet, liegen im Vorrat des Service Workers und sind so vor Ort ohne Netz lesbar.
+
 ### Die Pakete
 
 Welche Anlagenarten es gibt, welche Pflichten für sie in Frage kommen und nach welcher Regel ihre Frist läuft, steht als JSON unter `pakete/<name>/` (ADR 0005), mit dem Tag der letzten Prüfung gegen die Quelle und der Abnahme je Eintrag in `abnahmen.json`. Wie ein Paket aufgebaut ist und was ein Beitrag beachten muss, steht in [`pakete/README.md`](pakete/README.md); ein vollständiges Beispiel ist das Probepaket unter `packages/catalogue/test/pakete/probe/`.
