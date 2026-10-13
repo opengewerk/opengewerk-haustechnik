@@ -1826,6 +1826,10 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   dazu eine Warnung; der Job lädt die Fotos dann auch hoch, wenn er grün ist. Warum eine Seite
   manchmal nicht startet, klärt das nicht; dafür nennt der Befund jetzt, ob ihr Skript lief und
   was es meldete
+- Der Test zum Katalog, den diese Fassung nicht lesen kann (`sync/catalogue.test.tsx`, #160), wartet
+  auf beide Schreibungen des Geräts (#272). Kommt ein lesbarer Katalog, schreibt das Gerät erst ihn
+  und danach, dass der Vermerk über den unlesbaren geht. Der Test wartete auf das Erste und prüfte
+  das Zweite sofort; unter Last war er deshalb in einem von drei ganzen Läufen rot
 - Der Test der Wochenübersicht der Rundgänge (`round-plans.test.ts`) nimmt die Woche von morgen
   statt der von heute (gefunden bei #74). An einem Sonntag hält die laufende Woche nur einen
   Rundgang des Plans, der heute beginnt, und der Test brauchte zwei; er schlug jeden Sonntag fehl

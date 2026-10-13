@@ -187,11 +187,13 @@ describe('the catalogue on a device', () => {
     await queries.invalidateQueries({ queryKey: catalogueChecksumQuery.queryKey })
     await screen.findByRole('table', { name: packages })
 
-    // Kept on the device a moment after the screen shows it.
+    // Two writes to the device, one after the other: the catalogue, which the
+    // screen shows as soon as it is kept, and after it the note going. Waited
+    // for both, since the first being there says nothing of the second (#272).
     await waitFor(() => {
       expect(kept(client)).toEqual(testCatalogue)
+      expect(client.kept(unreadableCatalogueKeep)).toBeNull()
     })
-    expect(client.kept(unreadableCatalogueKeep)).toBeNull()
   })
 
   it('says on a device that holds none and has not reached the server that the next connection brings it', async () => {
