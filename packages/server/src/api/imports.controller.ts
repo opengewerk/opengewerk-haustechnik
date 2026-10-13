@@ -131,6 +131,11 @@ function fileNameOf(given: Given): string {
  * whoever keeps assets (`asset.write`), and both only into what they see: the
  * policy of the areas refuses a row beyond it, and the plan finds no place
  * there to put one into (ADR 0003).
+ *
+ * A possible duplicate of an asset is asked about past the areas all the
+ * same (#255, ADR 0003, addendum on #255), as the form in the office asks:
+ * the preview and the take-over name the line and the field it shares with
+ * an asset the person does not see, and nothing of that asset.
  */
 @Controller('imports')
 export class ImportsController {
@@ -248,7 +253,7 @@ export class ImportsController {
       const plan = planAssets(
         records,
         decisionsOf(given['decisions']),
-        await assetImportStock(tx, this.catalogue),
+        await assetImportStock(tx, this.catalogue, records),
         cells,
       )
       const problems = cut(plan.problems)
@@ -278,7 +283,7 @@ export class ImportsController {
       const plan = planAssets(
         records,
         decisionsOf(given['decisions']),
-        await assetImportStock(tx, this.catalogue),
+        await assetImportStock(tx, this.catalogue, records),
         cells,
       )
 

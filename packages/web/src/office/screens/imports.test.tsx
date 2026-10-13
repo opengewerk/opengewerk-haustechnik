@@ -22,6 +22,8 @@ import {
   type WriteAnswer,
   type Written,
 } from '../test-office.js'
+import { assetFormWords } from './asset-form.js'
+import { elsewhereWords } from './imports.js'
 
 /**
  * The two imports from a table in the office (#100, sections 3 and 11 of the
@@ -663,6 +665,7 @@ describe('the import of assets', () => {
         name: 'Aufzug Süd',
         same: 'Gleiche Seriennummer',
         of: [{ id: 'a-lift', number: 'AN-00012', name: 'Aufzug Schulhaus' }],
+        elsewhere: [],
         decision: null,
       },
       {
@@ -670,6 +673,7 @@ describe('the import of assets', () => {
         name: 'Speicher Keller',
         same: 'Gleiches Kennzeichen',
         of: [{ line: 3 }, { id: 'a-old', number: null, name: 'Speicher alt' }],
+        elsewhere: [],
         decision: null,
       },
     ],
@@ -920,6 +924,8 @@ describe('the import of assets', () => {
       ['AN-00012', '/anlagen/a-lift'],
       ['Anlage', '/anlagen/a-old'],
     ])
+    // Every one of them is an asset the person sees: nothing is said about another.
+    expect(screen.queryByText(elsewhereWords.notShown)).toBeNull()
 
     const answer = (line: number, name: string) =>
       within(screen.getByRole('group', { name: `Zeile ${String(line)}` })).getByRole('button', {
@@ -964,6 +970,108 @@ describe('the import of assets', () => {
       fileName: 'anlagen.xlsx',
       expected: { assets: 4, skipped: 1, undecided: 0 },
     })
+  })
+
+  /** A line that shares a field with an asset the person sees and another with one they do not, and a line that shares both with one they do not. */
+  const beyondTheAreas = {
+    ...withDuplicates,
+    duplicates: [
+      {
+        line: 3,
+        name: 'Aufzug Süd',
+        same: 'Gleiche Seriennummer',
+        of: [{ id: 'a-lift', number: 'AN-00012', name: 'Aufzug Schulhaus' }],
+        elsewhere: ['mark'],
+        decision: null,
+      },
+      {
+        line: 5,
+        name: 'Speicher Keller',
+        same: '',
+        of: [],
+        elsewhere: ['serialNumber', 'mark'],
+        decision: null,
+      },
+    ],
+  }
+
+  it('says the same of it in the box of a line on a phone (#255)', async () => {
+    const turn = onA('desktop')
+
+    await withThePreview(beyondTheAreas)
+    turn('phone')
+
+    const boxes = await screen.findByRole('list', { name: duplicatesTable })
+
+    expect(
+      within(boxes)
+        .getAllByRole('listitem')
+        .map((box) => box.textContent.split('Nicht anlegen')[0]),
+    ).toEqual([
+      'Aufzug SüdZeile 3 · AN-00012 Aufzug Schulhaus · Gleiche Seriennummer · Eine Anlage außerhalb Ihrer Bereiche · Gleiches Kennzeichen',
+      'Speicher KellerZeile 5 · Eine Anlage außerhalb Ihrer Bereiche · Gleiche Seriennummer und gleiches Kennzeichen',
+    ])
+    expect(screen.getByText(elsewhereWords.notShown)).toBeTruthy()
+  })
+
+  it('names a possible duplicate beyond the areas of whoever imports by the field it shares, with no asset to open, and waits for its answer like any other (#255)', async () => {
+    const { user } = await withThePreview(beyondTheAreas)
+
+    expect(rowsOf(duplicatesTable).map((row) => row.slice(0, 3))).toEqual([
+      [
+        '3',
+        'Aufzug Süd',
+        'AN-00012 Aufzug SchulhausGleiche SeriennummerEine Anlage außerhalb Ihrer BereicheGleiches Kennzeichen',
+      ],
+      [
+        '5',
+        'Speicher Keller',
+        'Eine Anlage außerhalb Ihrer BereicheGleiche Seriennummer und gleiches Kennzeichen',
+      ],
+    ])
+    // The one asset to open is the one the person sees.
+    expect(
+      within(screen.getByRole('table', { name: duplicatesTable }))
+        .getAllByRole('link')
+        .map((link) => [link.textContent, link.getAttribute('href')]),
+    ).toEqual([['AN-00012', '/anlagen/a-lift']])
+    expect(screen.getByText(elsewhereWords.notShown)).toBeTruthy()
+
+    const answer = (line: number, name: string) =>
+      within(screen.getByRole('group', { name: `Zeile ${String(line)}` })).getByRole('button', {
+        name,
+      })
+
+    expect(button('3 Anlagen anlegen').disabled).toBe(true)
+
+    await user.click(answer(3, 'Nicht anlegen'))
+
+    expect(button('3 Anlagen anlegen').disabled).toBe(true)
+
+    await user.click(answer(5, 'Trotzdem anlegen'))
+
+    expect(button('4 Anlagen anlegen').disabled).toBe(false)
+
+    answers['/imports/assets'] = ok(
+      { id: 'i-1', counts: { assets: 4, skipped: 1, undecided: 0 }, summary: 'unread' },
+      201,
+    )
+    await user.click(button('4 Anlagen anlegen'))
+    await screen.findByText(
+      /^Übernommen: 4 Anlagen angelegt, 1 Zeile als Dublette nicht angelegt\./,
+    )
+
+    expect(bodyOf('/imports/assets')).toMatchObject({
+      decisions: { 3: 'skip', 5: 'take' },
+      expected: { assets: 4, skipped: 1, undecided: 0 },
+    })
+  })
+
+  it('says of an asset beyond the areas what the form of an asset says of it (#171)', () => {
+    expect(elsewhereWords.asset.toLowerCase()).toBe(assetFormWords.elsewhere.toLowerCase())
+    expect(elsewhereWords.notShown).toBe(
+      `${elsewhereWords.asset} ${assetFormWords.notShown.replace(/^Sie /, '')}`,
+    )
   })
 
   it('answers all of them at once, either way, and an answer is changed by giving the other', async () => {

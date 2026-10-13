@@ -122,6 +122,11 @@ Was dabei gilt:
   wird nichts übernommen. Verglichen wird ohne Rücksicht auf Leerzeichen und Großschreibung.
   Eine Anlage, die trotzdem angelegt wird, hält fest, von welchen vorhandenen Anlagen sie dabei
   für verschieden befunden wurde; ihre Akte nennt sie unter "Keine Dublette von".
+  Gefragt wird auch über die Grenze der eigenen Bereiche: liegt die mögliche Dublette in einem
+  Bereich, den Sie nicht sehen, steht bei der Zeile "Eine Anlage außerhalb Ihrer Bereiche" mit dem
+  Feld, das sie teilt. Die Anlage selbst wird nicht gezeigt; ob es dieselbe ist, kann die Leitung
+  prüfen. Entschieden wird über eine solche Zeile wie über jede andere, und eine trotzdem
+  angelegte Anlage nennt die nicht gezeigte nicht unter "Keine Dublette von".
 - **Was nur eine Anlagenart hat**, etwa das Löschmittel eines Feuerlöschers oder eine
   Nennleistung, steht nicht unter diesen Feldern. Seine Spalte bleibt im ersten Schritt auf
   "Nicht übernehmen" und wird im dritten Schritt zugeordnet, siehe "Felder der Anlagenart".

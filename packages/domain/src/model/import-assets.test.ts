@@ -107,6 +107,7 @@ const stock: AssetImportStock = {
     },
     { id: 'a-2' as AssetId, number: null, name: 'Pumpe Nord', serialNumber: null, mark: 'P-07' },
   ],
+  beyond: [],
   kindNames: [
     { name: 'Feuerlöscher', kind: 'probe.extinguisher' },
     { name: 'WW-Speicher', kind: 'probe.storage_tank' },
@@ -728,6 +729,7 @@ describe('a line that may be an asset that is there', () => {
         name: 'Feuerlöscher Flur',
         same: 'Gleiche Seriennummer',
         of: [{ id: 'a-1', number: 'A-0001', name: 'Kessel 1' }],
+        elsewhere: [],
         decision: null,
       },
     ])
@@ -742,6 +744,7 @@ describe('a line that may be an asset that is there', () => {
         name: 'Feuerlöscher Flur',
         same: 'Gleiches Kennzeichen',
         of: [{ id: 'a-2', number: null, name: 'Pumpe Nord' }],
+        elsewhere: [],
         decision: null,
       },
     ])
@@ -778,6 +781,7 @@ describe('a line that may be an asset that is there', () => {
         name: 'Feuerlöscher Keller',
         same: 'Gleiche Seriennummer',
         of: [{ line: 2 }],
+        elsewhere: [],
         decision: null,
       },
       {
@@ -785,6 +789,7 @@ describe('a line that may be an asset that is there', () => {
         name: 'Feuerlöscher Dach',
         same: 'Gleiche Seriennummer',
         of: [{ line: 2 }, { line: 3 }],
+        elsewhere: [],
         decision: null,
       },
     ])
@@ -802,6 +807,7 @@ describe('a line that may be an asset that is there', () => {
         name: 'Kessel neu',
         same: 'Gleiche Seriennummer und gleiches Kennzeichen',
         of: [{ id: 'a-1', number: 'A-0001', name: 'Kessel 1' }, { line: 2 }],
+        elsewhere: [],
         decision: null,
       },
     ])
@@ -818,6 +824,84 @@ describe('a line that may be an asset that is there', () => {
 
     expect(plan.duplicates).toEqual([])
     expect(plan.create.map((asset) => asset.line)).toEqual([2, 3, 4, 5])
+  })
+})
+
+describe('a line that may be an asset beyond the areas of whoever imports (#255)', () => {
+  /** Two assets in an area the person does not hold in: all a plan is given of them. */
+  const withBeyond: AssetImportStock = {
+    ...stock,
+    beyond: [
+      { serialNumber: 'KX-90817-A', mark: 'F-12' },
+      { serialNumber: 'KX-90817-A', mark: null },
+    ],
+  }
+  const rows = [hall, { ...hall, name: 'Klappe Lager', mark: 'f -12' }]
+
+  it('stands with the duplicates by the field it shares, with nothing of the asset and not how many', () => {
+    const plan = planOf([{ ...hall, serialNumber: 'kx-90817- a' }], { stock: withBeyond })
+
+    expect(plan.duplicates).toEqual([
+      {
+        line: 2,
+        name: 'Feuerlöscher Flur',
+        same: '',
+        of: [],
+        elsewhere: ['serialNumber'],
+        decision: null,
+      },
+    ])
+  })
+
+  it('is named beside an asset that is seen, each with the field it shares', () => {
+    const plan = planOf([{ ...hall, serialNumber: 'BT-750-22-0193', mark: 'F-12' }], {
+      stock: withBeyond,
+    })
+
+    expect(plan.duplicates).toEqual([
+      {
+        line: 2,
+        name: 'Feuerlöscher Flur',
+        same: 'Gleiche Seriennummer',
+        of: [{ id: 'a-1', number: 'A-0001', name: 'Kessel 1' }],
+        elsewhere: ['mark'],
+        decision: null,
+      },
+    ])
+  })
+
+  it('is waited for like any other: without an answer nothing is taken over', () => {
+    const plan = planOf(rows, { stock: withBeyond })
+
+    expect(plan.problems).toEqual([])
+    expect(plan.counts).toEqual({ assets: 1, skipped: 0, undecided: 1 })
+    expect(plan.create).toEqual([])
+  })
+
+  it('is left out where somebody says so', () => {
+    const plan = planOf(rows, { stock: withBeyond, decisions: { 3: 'skip' } })
+
+    expect(plan.counts).toEqual({ assets: 1, skipped: 1, undecided: 0 })
+    expect(plan.create).toEqual([made(2)])
+  })
+
+  it('is made all the same where somebody says so, held against nothing: nobody was shown the other asset (#171)', () => {
+    const plan = planOf(rows, { stock: withBeyond, decisions: { 3: 'take' } })
+
+    expect(plan.counts).toEqual({ assets: 2, skipped: 0, undecided: 0 })
+    expect(plan.create).toEqual([made(2), made(3, { name: 'Klappe Lager', mark: 'f -12' })])
+  })
+
+  it('is no line that carries other numbers, and a serial number is never held against a mark', () => {
+    const plan = planOf(
+      [
+        { ...hall, serialNumber: 'KX-90818-A', mark: 'F-13' },
+        { ...hall, name: 'Zweiter', serialNumber: 'F-12', mark: 'KX-90817-A' },
+      ],
+      { stock: withBeyond },
+    )
+
+    expect(plan.duplicates).toEqual([])
   })
 })
 

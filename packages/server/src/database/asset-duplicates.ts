@@ -89,28 +89,57 @@ export interface DuplicateCandidateRow {
 }
 
 /**
- * The assets of the tenant whose digits fit a serial number or a mark, past
- * the areas, through the one function that may look there
- * (`asset_duplicate_candidates`, ADR 0003, addenda on #99 and #171). What a
- * duplicate is, `domain` says of what comes back; the question stands here
- * once, for the exchange with a device and for the route of the office.
+ * The assets of the tenant whose digits fit one of the serial numbers or one
+ * of the marks asked, past the areas, through the one function that may look
+ * there (`asset_duplicate_candidates`, ADR 0003, addenda on #99, #171 and
+ * #255). What a duplicate is, `domain` says of what comes back.
+ *
+ * Asked with lists (#255): a table that is imported has up to ten thousand
+ * lines, and asked line by line each question would read every asset again.
+ * Each list goes as one parameter. A text with a zero byte in it is left
+ * out: the database holds no such text, so no asset carries it.
  */
-export async function duplicateCandidates(
+export async function duplicateCandidatesOfList(
   tx: TenantTransaction,
-  asked: Readonly<Record<DuplicateField, unknown>>,
+  asked: Readonly<Record<DuplicateField, readonly string[]>>,
 ): Promise<DuplicateCandidateRow[]> {
   const said = (field: DuplicateField) =>
-    duplicateKey(asked[field]) === null ? null : String(asked[field])
+    asked[field].filter((value) => duplicateKey(value) !== null && !value.includes('\u0000'))
+  const serialNumbers = said('serialNumber')
+  const marks = said('mark')
+
+  if (serialNumbers.length === 0 && marks.length === 0) {
+    return []
+  }
+
   const { rows } = await tx.execute<{
     id: string
     serial_number: string | null
     mark: string | null
   }>(
     sql`select id, serial_number, mark
-          from asset_duplicate_candidates(${said('serialNumber')}::text, ${said('mark')}::text)`,
+          from asset_duplicate_candidates(
+            ${sql.param(serialNumbers)}::text[], ${sql.param(marks)}::text[])`,
   )
 
   return rows.map((row) => ({ id: row.id, serialNumber: row.serial_number, mark: row.mark }))
+}
+
+/**
+ * The same for one asset: the question of the exchange with a device and of
+ * the route of the office, asked with lists of one.
+ */
+export function duplicateCandidates(
+  tx: TenantTransaction,
+  asked: Readonly<Record<DuplicateField, unknown>>,
+): Promise<DuplicateCandidateRow[]> {
+  const said = (field: DuplicateField) => {
+    const value = asked[field]
+
+    return typeof value === 'string' ? [value] : []
+  }
+
+  return duplicateCandidatesOfList(tx, { serialNumber: said('serialNumber'), mark: said('mark') })
 }
 
 /**

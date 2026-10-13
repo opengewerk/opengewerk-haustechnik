@@ -22,6 +22,7 @@ import {
   kindNamesIn,
   type KnownPlace,
   ruleScopeNames,
+  sameWords,
   type StructureCounts,
   structureFields,
   structureSummary,
@@ -696,6 +697,17 @@ const kindNamesQuery = {
   queryFn: () => request<{ names: AssetKindName[] }>(importRoutes.kindNames),
 } as const
 
+/**
+ * What the preview says of a possible duplicate beyond the areas of whoever
+ * imports (#255), in the words the form of an asset has for it (#171): that
+ * there is one, and never which.
+ */
+export const elsewhereWords = {
+  asset: 'Eine Anlage außerhalb Ihrer Bereiche',
+  notShown:
+    'Eine Anlage außerhalb Ihrer Bereiche wird hier nicht gezeigt. Ob es dieselbe Anlage ist, kann die Leitung prüfen.',
+} as const
+
 const duplicateChoices: readonly { readonly value: DuplicateDecision; readonly label: string }[] = [
   { value: 'skip', label: 'Nicht anlegen' },
   { value: 'take', label: 'Trotzdem anlegen' },
@@ -1025,6 +1037,11 @@ export function ImportAssetsScreen() {
           <TablePanel
             title="Gibt es vielleicht schon"
             caption="Zeilen, die eine Anlage nennen, die es vielleicht schon gibt"
+            note={
+              preview.duplicates.some((duplicate) => duplicate.elsewhere.length > 0)
+                ? elsewhereWords.notShown
+                : null
+            }
             // On a phone a row is a box with its decision under it: a table
             // that scrolls sideways would hide the one thing that is asked.
             cards={preview.duplicates.map((duplicate) => ({
@@ -1037,7 +1054,11 @@ export function ImportAssetsScreen() {
                     ? `${other.number ?? 'Anlage'} ${other.name}`
                     : `Zeile ${other.line} dieser Datei`,
                 ),
-                duplicate.same,
+                ...(duplicate.of.length > 0 ? [duplicate.same] : []),
+                // One beyond the areas of whoever imports (#255): the field, and nothing of the asset.
+                ...(duplicate.elsewhere.length > 0
+                  ? [elsewhereWords.asset, sameWords(duplicate.elsewhere)]
+                  : []),
               ].join(' · '),
               actions: (
                 <DecisionSwitch
@@ -1096,7 +1117,18 @@ export function ImportAssetsScreen() {
                         <div key={`line-${other.line}`}>Zeile {other.line} dieser Datei</div>
                       ),
                     )}
-                    <div className="text-[12px] text-ink-faint">{duplicate.same}</div>
+                    {duplicate.of.length > 0 ? (
+                      <div className="text-[12px] text-ink-faint">{duplicate.same}</div>
+                    ) : null}
+                    {duplicate.elsewhere.length > 0 ? (
+                      // Set off from what stands above it: the field under it is its own.
+                      <div className={duplicate.of.length > 0 ? 'mt-1.5' : undefined}>
+                        <div>{elsewhereWords.asset}</div>
+                        <div className="text-[12px] text-ink-faint">
+                          {sameWords(duplicate.elsewhere)}
+                        </div>
+                      </div>
+                    ) : null}
                   </Cell>
                   <Cell>
                     <DecisionSwitch

@@ -1,13 +1,16 @@
 import type {
   AssetImportStock,
   Catalogue,
+  DuplicateField,
   ImportKind,
   StructureStock,
+  TableRecord,
   TenantId,
 } from '@opengewerk/haustechnik-domain'
 import type { TenantTransaction } from '@opengewerk/platform-server'
 import { asc, isNotNull, isNull, or, sql } from 'drizzle-orm'
 
+import { duplicateCandidatesOfList } from '../database/asset-duplicates.js'
 import {
   assetKindNames,
   assets,
@@ -24,7 +27,8 @@ import { dayInGermany } from '../today.js'
  * person importing can see. Read inside their transaction, so under the
  * policies of their tenant and their areas (ADR 0003): a line can name
  * nothing in an area they do not hold in, and nothing there is counted as
- * known or as a duplicate.
+ * known. An asset there may still be a duplicate of a line, which
+ * `assetImportStock` asks about on its own way.
  *
  * Read once for the whole table. A question per line would be thousands of
  * them for a list of a few thousand lines, each reading the same rows.
@@ -56,26 +60,50 @@ export async function structureStock(tx: TenantTransaction): Promise<StructureSt
   }
 }
 
-/** The same, with the assets a line may be a duplicate of, the words for kinds and the catalogue of today. */
+/**
+ * The same, with the assets a line may be a duplicate of, the words for kinds
+ * and the catalogue of today.
+ *
+ * A duplicate is asked about past the areas as well (#255, ADR 0003, addendum
+ * on #255), as the form in the office asks: once for the whole table, with
+ * the serial numbers and the marks of its lines, through the one door there
+ * is. What comes back from beyond the areas of the person is handed on
+ * without its id. The plan says of such an asset the field a line shares
+ * with it, and it is given nothing else it could say.
+ */
 export async function assetImportStock(
   tx: TenantTransaction,
   catalogue: Catalogue,
+  records: readonly TableRecord[],
 ): Promise<AssetImportStock> {
+  const seen = await tx
+    .select({
+      id: assets.id,
+      number: assets.number,
+      name: assets.name,
+      serialNumber: assets.serialNumber,
+      mark: assets.mark,
+    })
+    .from(assets)
+    .where(
+      sql`${isNull(assets.deletedAt)} and ${or(isNotNull(assets.serialNumber), isNotNull(assets.mark))}`,
+    )
+    .orderBy(asc(assets.number))
+  const inSight = new Set<string>(seen.map((asset) => asset.id))
+  const asked = (field: DuplicateField) => [
+    ...new Set(records.map(({ values }) => values[field] ?? '')),
+  ]
+  const everywhere = await duplicateCandidatesOfList(tx, {
+    serialNumber: asked('serialNumber'),
+    mark: asked('mark'),
+  })
+
   return {
     ...(await structureStock(tx)),
-    assets: await tx
-      .select({
-        id: assets.id,
-        number: assets.number,
-        name: assets.name,
-        serialNumber: assets.serialNumber,
-        mark: assets.mark,
-      })
-      .from(assets)
-      .where(
-        sql`${isNull(assets.deletedAt)} and ${or(isNotNull(assets.serialNumber), isNotNull(assets.mark))}`,
-      )
-      .orderBy(asc(assets.number)),
+    assets: seen,
+    beyond: everywhere
+      .filter((asset) => !inSight.has(asset.id))
+      .map(({ serialNumber, mark }) => ({ serialNumber, mark })),
     kindNames: await tx
       .select({ name: assetKindNames.name, kind: assetKindNames.kind })
       .from(assetKindNames)

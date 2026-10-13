@@ -18,7 +18,13 @@ import {
   assetValueProblems,
   meterProblems,
 } from './asset.js'
-import { isGeneralKind, possibleDuplicates, sameWords } from './asset-duplicate.js'
+import {
+  type DuplicateField,
+  duplicateFields,
+  isGeneralKind,
+  possibleDuplicates,
+  sameWords,
+} from './asset-duplicate.js'
 import { kindFields } from './asset-values.js'
 import type { AssetKind } from './catalogue.js'
 import { costGroupAbove } from './cost-group.js'
@@ -50,7 +56,9 @@ import { meterUnits, meterUnitSymbol } from './meter.js'
  * or of an earlier line, may be the same asset. The plan names every such
  * line, and whoever imports says for each whether it is made all the same or
  * left out. Without that answer nothing is taken over: a duplicate is
- * neither made quietly nor dropped quietly.
+ * neither made quietly nor dropped quietly. One that stands beyond the areas
+ * of whoever imports is asked about in the same way and never shown (#255):
+ * its line says which field it shares, and no more.
  *
  * What only an asset kind has, its characteristics and fields, is read from
  * the columns somebody gave to the fields of that kind (#172,
@@ -258,6 +266,13 @@ export interface AssetImportStock {
   readonly rooms: readonly Pick<Room, 'id' | 'floorId' | 'buildingId' | 'number' | 'name'>[]
   /** The assets that carry a serial number or a mark. */
   readonly assets: readonly Pick<Asset, 'id' | 'number' | 'name' | 'serialNumber' | 'mark'>[]
+  /**
+   * What assets beyond the areas of the person carry in the two fields
+   * (#255, ADR 0003): two areas that each read their list in would make the
+   * same asset twice. Held here without anything that names such an asset,
+   * so that a plan has nothing of it to hand on but the field a line shares.
+   */
+  readonly beyond: readonly Pick<Asset, 'serialNumber' | 'mark'>[]
   readonly kindNames: readonly AssetKindName[]
   /** The asset kinds of the catalogue as it stands on the day of the import, by their key. */
   readonly kinds: ReadonlyMap<string, AssetKind>
@@ -293,9 +308,16 @@ export type DuplicateOf =
 export interface ImportDuplicate {
   readonly line: number
   readonly name: string
-  /** "Gleiche Seriennummer", "Gleiches Kennzeichen" or both. */
+  /** "Gleiche Seriennummer", "Gleiches Kennzeichen" or both: what it shares with those in `of`, empty where there are none. */
   readonly same: string
   readonly of: readonly DuplicateOf[]
+  /**
+   * The fields it shares with an asset beyond the areas of whoever imports
+   * (#255). Such an asset is found and not shown, as the form in the office
+   * has it (`AssetDuplicates.elsewhere`): said is the field, and neither
+   * which asset nor how many.
+   */
+  readonly elsewhere: readonly DuplicateField[]
   readonly decision: DuplicateDecision | null
 }
 
@@ -462,17 +484,25 @@ export function planAssets(
 
     const candidate = { serialNumber: fields.serialNumber, mark: fields.mark }
     const found = possibleDuplicates(candidate, [...stock.assets, ...earlier])
+    // Beyond the areas of whoever imports (#255): asked as the form asks, and
+    // answered with the fields alone.
+    const beyond = possibleDuplicates(candidate, stock.beyond)
+    const elsewhere = duplicateFields.filter((field) =>
+      beyond.some(({ same }) => same.includes(field)),
+    )
     const decision = decisions.get(line) ?? null
     // What a line that is taken all the same was held against (#171): the
     // assets that are there, as the form in the office keeps them. An
-    // earlier line of the list has no id to be named by before it is made.
+    // earlier line of the list has no id to be named by before it is made,
+    // and an asset beyond the areas was shown to nobody: nobody held the new
+    // asset against it.
     const passed = found
       .flatMap(({ asset }) => ('id' in asset ? [asset.id] : []))
       .slice(0, assetLimits.distinctFrom)
 
     earlier.push({ line, ...candidate })
 
-    if (found.length > 0) {
+    if (found.length > 0 || elsewhere.length > 0) {
       duplicates.push({
         line,
         name: cell('name'),
@@ -482,6 +512,7 @@ export function planAssets(
             ? { id: asset.id, number: asset.number, name: asset.name }
             : { line: asset.line },
         ),
+        elsewhere,
         decision,
       })
       skipped += decision === 'skip' ? 1 : 0

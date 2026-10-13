@@ -2856,7 +2856,7 @@ describe('a possible duplicate of an asset taken stock of', () => {
 
     const { rows } = await database.forTenant({ tenantId: small, userId: 'u-nobody' }, (tx) =>
       tx.execute<{ serial_number: string }>(
-        sql`select serial_number from asset_duplicate_candidates('kx 90817 b', null)`,
+        sql`select serial_number from asset_duplicate_candidates(array['kx 90817 b'], array[]::text[])`,
       ),
     )
 
