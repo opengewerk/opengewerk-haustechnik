@@ -7,6 +7,7 @@ import {
   evidenceResultLabel,
   evidenceResults,
   intervalWords,
+  legacyNote,
   originsFromAnActivity,
   type RecordState,
   retentionKindLabel,
@@ -49,7 +50,7 @@ import {
 } from '@opengewerk/platform-web/sync'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useNavigate, useParams } from '@tanstack/react-router'
-import { Ban, Lock, Pencil } from 'lucide-react'
+import { Ban, History as TakenOver, Lock, Pencil } from 'lucide-react'
 import { useState } from 'react'
 
 import { placePath } from '../../app/place-path.js'
@@ -277,11 +278,20 @@ export function EvidenceScreen() {
             ),
           },
         ]),
+    // What its list named, for an evidence taken over from a predecessor application (#130).
+    ...((state.nextDueOn ?? null) === null
+      ? []
+      : [
+          {
+            label: 'Nächste Fälligkeit',
+            value: `${date(state.nextDueOn as string)}, aus der Vorgängeranwendung übernommen`,
+          },
+        ]),
     ...(state.files.length === 0
       ? []
       : [
           {
-            label: 'Belege',
+            label: state.origin === 'legacy' ? 'Ursprüngliches Dokument' : 'Belege',
             value: (
               <span className="flex flex-col gap-0.5">
                 {state.files.map((file, position) => (
@@ -360,6 +370,9 @@ export function EvidenceScreen() {
               Grund: {shown.voiding.reason} {evidencePageWords.countsNoMore}
             </NoteBox>
           )}
+          {state.origin === 'legacy' ? (
+            <NoteBox icon={TakenOver}>{legacyNote(state.files.length > 0)}</NoteBox>
+          ) : null}
           {shown.replacedBy === null ? null : (
             <NoteBox>
               Berichtigt mit{' '}

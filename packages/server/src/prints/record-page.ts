@@ -1,5 +1,6 @@
 import {
   evidenceOriginLabel,
+  legacyNote,
   evidenceResultLabel,
   type EvidenceState,
   type IsoDate,
@@ -332,7 +333,7 @@ export function evidencePrintJob(
       ? ''
       : `<p class="mark">Für ungültig erklärt am ${text(day(voiding.on))}: ${text(voiding.reason)}</p>`,
     state.origin === 'legacy'
-      ? '<p class="mark neutral">Altbestand aus einer Vorgängeranwendung: nicht in dieser Anwendung unterschrieben. Das ursprüngliche Dokument liegt am Nachweis.</p>'
+      ? `<p class="mark neutral">${text(legacyNote(state.files.length > 0))}</p>`
       : '',
   ].join('')
   const body = `
@@ -362,9 +363,15 @@ export function evidencePrintJob(
       'Mängel',
       state.defects.length === 0 ? null : state.defects.map((each) => each.description).join('; '),
     ],
+    [
+      'Nächste Fälligkeit',
+      state.nextDueOn === null
+        ? null
+        : `${day(state.nextDueOn)}, aus der Vorgängeranwendung übernommen`,
+    ],
     // A report rests on its file, which lies at the evidence and is not printed with it.
     [
-      'Bericht',
+      state.origin === 'legacy' ? 'Ursprüngliches Dokument' : 'Bericht',
       state.files.length === 0
         ? null
         : `${state.files.map((file) => file.name).join('; ')}, liegt am Nachweis`,

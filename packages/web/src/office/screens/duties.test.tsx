@@ -930,6 +930,32 @@ describe('the duties of a room', () => {
   })
 })
 
+describe('the way to the import of running deadlines (#130)', () => {
+  it.each(['management', 'technical_management'] as const)(
+    'stands in the head of the register for whoever keeps it and enters evidence: "%s"',
+    async (role) => {
+      const { router } = await mount('/pflichten', { [firstPage]: page([maintenance]) }, role)
+
+      await screen.findByRole('table', { name: register })
+      press('Importieren')
+
+      await waitFor(() => {
+        expect(router.state.location.pathname).toBe('/pflichten/importieren')
+      })
+    },
+  )
+
+  it.each(['site_management', 'technician'] as const)(
+    'stands there for nobody else: not for "%s"',
+    async (role) => {
+      await mount('/pflichten', { [firstPage]: page([maintenance]) }, role)
+      await screen.findByRole('table', { name: register })
+
+      expect(screen.queryByRole('button', { name: 'Importieren' })).toBeNull()
+    },
+  )
+})
+
 describe('the way to a duty of the operator own', () => {
   const room = `/raeume/${boilerRoom.id}`
 

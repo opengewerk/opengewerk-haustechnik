@@ -118,6 +118,19 @@ export interface EvidenceToWrite {
    * 0004, point 14); none for an evidence that corrects nothing.
    */
   readonly replaces?: { readonly evidenceId: EvidenceId; readonly reason: string } | null
+  /**
+   * The day the duty is due next as the list named it that the evidence is
+   * taken over with (#130, section 11 of the concept). Only the holdings of a
+   * predecessor application have one, and it lies after their day.
+   */
+  readonly nextDueOn?: IsoDate | null
+  /**
+   * A number drawn ahead from the sequence of the evidence, in this
+   * transaction: an import draws all of its numbers in one step, so that the
+   * counter moves once and not once per evidence. Without it the evidence
+   * draws its own.
+   */
+  readonly number?: string
 }
 
 /** Who writes it down, when, and what the state needs from outside the tenant. */
@@ -186,6 +199,18 @@ export async function writeEvidence(
     throw new EvidenceRefusal('Ein Nachweis gilt für einen Tag, der schon war.')
   }
 
+  const nextDueOn = input.nextDueOn ?? null
+
+  if (nextDueOn !== null && input.origin !== 'legacy') {
+    throw new EvidenceRefusal(
+      'Eine übernommene Fälligkeit nennt nur ein Altbestand aus einer Vorgängeranwendung.',
+    )
+  }
+
+  if (nextDueOn !== null && nextDueOn <= input.performedOn) {
+    throw new EvidenceRefusal('Die nächste Fälligkeit liegt nach dem Tag des Nachweises.')
+  }
+
   const [duty] = await tx
     .select()
     .from(duties)
@@ -251,7 +276,7 @@ export async function writeEvidence(
             )
             .orderBy(asc(defects.createdAt), asc(defects.id))
   const filled = activity === null ? null : await filledFormOf(tx, context, activity, input)
-  const number = await assignNumber(tx, context.tenantId, 'evidence', context.at)
+  const number = input.number ?? (await assignNumber(tx, context.tenantId, 'evidence', context.at))
   const state: EvidenceState = {
     version: evidenceStateVersion,
     number,
@@ -261,6 +286,7 @@ export async function writeEvidence(
     resultReason: input.resultReason,
     remark: input.remark ?? null,
     replaces: replaced === null ? null : { number: replaced.number, reason: replaced.reason },
+    nextDueOn,
     duty: {
       label: kind?.definition.label ?? duty.label ?? duty.kind ?? '',
       kind: duty.kind,
@@ -306,6 +332,7 @@ export async function writeEvidence(
       number,
       origin: input.origin,
       activityId: activity?.id ?? null,
+      nextDueOn,
       performedBy: input.performedBy,
       examiner: input.examiner?.name ?? null,
       examinerOrganisation: input.examiner?.organisation ?? null,

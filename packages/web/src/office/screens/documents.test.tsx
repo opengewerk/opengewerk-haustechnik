@@ -317,6 +317,37 @@ describe('the list of documents', () => {
     )
   })
 
+  it('says of a document taken over from a predecessor application that it is one, behind its kind (#130)', async () => {
+    server.put('attachments', {
+      id: 'd-old',
+      ...place,
+      ...nowhere,
+      assetId: lift.id,
+      title: 'Hauptprüfung 2024',
+      kind: 'test_certificate',
+      legacy: true,
+    })
+    server.put(
+      'attachment_versions',
+      version(versionId(40), 'd-old', 'hauptpruefung-2024.pdf', 410_000, '2025-12-01'),
+    )
+    await mount()
+
+    expect(rowsOf(tableName).at(-1)).toEqual([
+      'Hauptprüfung 2024hauptpruefung-2024.pdf, 410 kB',
+      'Prüfbescheinigung, Altbestand',
+      'AN-00012 Aufzug Schulhaus',
+      'Fassung 1',
+      '01.12.2025',
+    ])
+    // And nothing that was filed here says so.
+    expect(
+      rowsOf(tableName)
+        .slice(0, -1)
+        .filter((row) => row[1]?.includes('Altbestand')),
+    ).toEqual([])
+  })
+
   it('says so while nothing is filed', async () => {
     server = new TestServer()
     await mount()

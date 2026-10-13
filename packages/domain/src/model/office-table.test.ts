@@ -12,6 +12,8 @@ import {
   conditionWords,
   dayInWords,
   dismissedTableRows,
+  documentKindOf,
+  documentTableRow,
   dutyTableHeads,
   dutyTableRow,
   meterTableRows,
@@ -326,5 +328,29 @@ describe('the proposals as the rows of their table (#236)', () => {
         { assets: false, names: null },
       ),
     ).toEqual([['Anlage', null, 'Erste Prüfung', 'Probepaket', 'Entfällt.', { day: '2026-09-30' }]])
+  })
+})
+
+describe('the kind of a document in words', () => {
+  it('says behind it that a document was taken over from a predecessor application (#130)', () => {
+    expect(documentKindOf('test_certificate', 'application/pdf')).toBe('Prüfbescheinigung')
+    expect(documentKindOf('test_certificate', 'application/pdf', true)).toBe(
+      'Prüfbescheinigung, Altbestand',
+    )
+    expect(documentKindOf(null, 'image/jpeg', true)).toBe('Foto, Altbestand')
+    expect(
+      documentTableRow({
+        title: 'Hauptprüfung 2024',
+        kind: 'test_certificate',
+        legacy: true,
+        home: 'AN-00014 Aufzug Haus 2',
+        versions: 1,
+        newest: {
+          fileName: 'aufzug-2024.pdf',
+          mediaType: 'application/pdf',
+          filedOn: '2026-10-13',
+        },
+      })[2],
+    ).toBe('Prüfbescheinigung, Altbestand')
   })
 })

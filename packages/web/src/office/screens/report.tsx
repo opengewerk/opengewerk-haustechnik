@@ -9,6 +9,7 @@ import {
   evidenceResultLabel,
   meetsTheDuty,
   nextAppointment,
+  takenOverFrom,
   type RecordState,
   reportDefectField,
   reportProblems,
@@ -220,15 +221,24 @@ function ReportForm({
   const filled = (value: string) => (value.trim() === '' ? null : value.trim())
 
   /** Where the next due day goes, once the report meets the duty: from what counts, and this day. */
-  const counted = evidence.data
-    ?.filter((entry) => entry.standing === 'counts')
-    .map((entry) => entry.performedOn)
+  const standing = evidence.data?.filter((entry) => entry.standing === 'counts')
+  const counted = standing?.map((entry) => entry.performedOn)
   const next =
     counted !== undefined && performedOn !== '' && meetsTheDuty(result) && !duty.ended
       ? // With the interval the duty counts with today: its own, or the
         // maximum a regulation cut it short to (#139).
         nextAppointment(
-          { counting: duty.counting, interval: duty.shortened ?? dutyInterval(duty) },
+          {
+            counting: duty.counting,
+            interval: duty.shortened ?? dutyInterval(duty),
+            // The rhythm goes on from the due day a list named for what was taken over (#130).
+            takenOver: takenOverFrom(
+              (standing ?? []).map((entry) => ({
+                performedOn: entry.performedOn,
+                nextDueOn: entry.nextDueOn ?? null,
+              })),
+            ),
+          },
           [...counted, performedOn],
         )
       : null

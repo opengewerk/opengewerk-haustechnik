@@ -15,14 +15,19 @@ import type { Id } from '@opengewerk/platform-domain'
 
 export type ImportId = Id<'import'>
 
-/** What an import takes over: the places from the property down to the room, or assets into them. */
-export const importKinds = ['structure', 'assets'] as const
+/**
+ * What an import takes over: the places from the property down to the room,
+ * assets into them, or the running deadlines of a predecessor application
+ * with its old evidence (#130).
+ */
+export const importKinds = ['structure', 'assets', 'deadlines'] as const
 
 export type ImportKind = (typeof importKinds)[number]
 
 export const importKindLabel: Readonly<Record<ImportKind, string>> = {
   structure: 'Liegenschaften, Gebäude, Geschosse und Räume',
   assets: 'Anlagen',
+  deadlines: 'Laufende Fristen und alte Nachweise',
 }
 
 /**

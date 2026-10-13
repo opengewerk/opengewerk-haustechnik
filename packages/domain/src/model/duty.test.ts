@@ -16,6 +16,7 @@ import {
   nextAppointment,
   restsOn,
   type Rhythm,
+  takenOverFrom,
   withinCeiling,
 } from './duty.js'
 
@@ -297,6 +298,172 @@ describe('the next appointment of a duty', () => {
             expect(
               nextAppointment({ ...rhythm, ceiling: { on: () => null, today } }, performed),
             ).toEqual(plain)
+          },
+        ),
+      )
+    })
+  })
+
+  describe('where a list named the appointment its evidence was taken over with (#130)', () => {
+    /** Tested on 14.09.2025, and the list says: due again on 30.09.2026. */
+    const takenOver = { performedOn: '2025-09-14', dueOn: '2026-09-30' } as const
+    const yearly = (counting: Rhythm['counting']): Rhythm => ({
+      counting,
+      interval: { months: 12 },
+      takenOver,
+    })
+
+    it('is due on the day the list names, and not one interval after the evidence', () => {
+      for (const counting of ['from_performance', 'from_due'] as const) {
+        expect(nextAppointment(yearly(counting), ['2025-09-14'])).toEqual({
+          dueOn: '2026-09-30',
+          onTimeUntil: '2026-09-30',
+        })
+      }
+    })
+
+    it('is due in the month the list names under § 14 Abs. 5 BetrSichV, on time until two months after', () => {
+      expect(nextAppointment(yearly('betrsichv'), ['2025-09-14'])).toEqual({
+        dueOn: '2026-09-01',
+        onTimeUntil: '2026-11-30',
+      })
+    })
+
+    it('no longer counts what was done before that evidence', () => {
+      fc.assert(
+        fc.property(
+          fc.constantFrom(...countings),
+          fc.array(days, { maxLength: 6 }),
+          (counting, performed) => {
+            const before = performed.filter((day) => day <= takenOver.performedOn)
+
+            expect(nextAppointment(yearly(counting), before)).toEqual(
+              nextAppointment(yearly(counting), []),
+            )
+          },
+        ),
+      )
+    })
+
+    it('starts over with what is done after it, where the duty counts from the day it was done', () => {
+      expect(nextAppointment(yearly('from_performance'), ['2025-09-14', '2026-08-03'])?.dueOn).toBe(
+        '2027-08-03',
+      )
+    })
+
+    it('keeps the rhythm of the day the list names, where the duty counts from the day it was due', () => {
+      // On time, a few days early and late: the next lies a year after the day of the list.
+      for (const done of ['2026-09-30', '2026-09-05', '2026-11-20']) {
+        expect(nextAppointment(yearly('from_due'), ['2025-09-14', done])?.dueOn).toBe('2027-09-30')
+      }
+
+      // More than a twelfth of the year early: the year counts anew from that day.
+      expect(nextAppointment(yearly('from_due'), ['2025-09-14', '2026-06-01'])?.dueOn).toBe(
+        '2027-06-01',
+      )
+    })
+
+    it('counts on from the month the list names under § 14 Abs. 5 BetrSichV', () => {
+      expect(nextAppointment(yearly('betrsichv'), ['2025-09-14', '2026-10-20'])?.dueOn).toBe(
+        '2027-09-01',
+      )
+      // A test before the due month begins the year with its own month.
+      expect(nextAppointment(yearly('betrsichv'), ['2025-09-14', '2026-07-08'])?.dueOn).toBe(
+        '2027-07-01',
+      )
+    })
+
+    it('holds an interval of more than two years to its due month for a test within the two months before it', () => {
+      const fourYears: Rhythm = {
+        counting: 'betrsichv',
+        interval: { months: 48 },
+        takenOver: { performedOn: '2022-09-14', dueOn: '2026-09-30' },
+      }
+
+      // A month before the due month: the four years count on from the month of the list.
+      expect(nextAppointment(fourYears, ['2022-09-14', '2026-08-10'])?.dueOn).toBe('2030-09-01')
+      // More than two months before it: they count from the month of the test.
+      expect(nextAppointment(fourYears, ['2022-09-14', '2026-06-10'])?.dueOn).toBe('2030-06-01')
+    })
+
+    it('is cut short to the maximum of a regulation, counted from the day of the evidence', () => {
+      const within = (counting: Rhythm['counting'], dueOn: IsoDate): Rhythm => ({
+        counting,
+        interval: { months: 12 },
+        ceiling: { on: () => ({ months: 12 }), today: '2026-01-10' },
+        takenOver: { performedOn: '2025-09-14', dueOn },
+      })
+
+      // The list names a day beyond the year the regulation allows.
+      expect(nextAppointment(within('from_performance', '2026-12-31'), [])?.dueOn).toBe(
+        '2026-09-14',
+      )
+      expect(nextAppointment(within('from_due', '2026-12-31'), [])?.dueOn).toBe('2026-09-14')
+      expect(nextAppointment(within('betrsichv', '2026-12-31'), [])?.dueOn).toBe('2026-09-01')
+      // A day within it stands as the list names it, and so does any day of the due month.
+      expect(nextAppointment(within('from_performance', '2026-06-30'), [])?.dueOn).toBe(
+        '2026-06-30',
+      )
+      expect(nextAppointment(within('betrsichv', '2026-09-30'), [])?.dueOn).toBe('2026-09-01')
+    })
+
+    it('judges the maximum on the day the appointment was met, once it was', () => {
+      /** One year from 2027 on, none before. */
+      const rhythm: Rhythm = {
+        counting: 'from_due',
+        interval: { months: 24 },
+        ceiling: {
+          on: (day) => (day < '2027-01-01' ? null : { months: 12 }),
+          today: '2027-06-01',
+        },
+        takenOver: { performedOn: '2025-09-14', dueOn: '2026-12-15' },
+      }
+
+      // Met in 2026, when nothing cut it short: the rhythm goes on from the day of the list.
+      expect(nextAppointment(rhythm, ['2026-12-10'])?.dueOn).toBe('2027-12-15')
+      // Still open in 2027: the year of the regulation counts from the evidence.
+      expect(nextAppointment(rhythm, [])?.dueOn).toBe('2026-09-14')
+    })
+
+    it('is that of the latest evidence that names one, among those a duty was met by', () => {
+      expect(takenOverFrom([])).toBeNull()
+      expect(takenOverFrom([{ performedOn: '2025-09-14', nextDueOn: null }])).toBeNull()
+      expect(
+        takenOverFrom([
+          { performedOn: '2022-09-20', nextDueOn: '2024-09-30' },
+          { performedOn: '2024-09-14', nextDueOn: '2026-09-30' },
+          // Done here since: it names none, and the counting goes on from the one before it.
+          { performedOn: '2026-08-03', nextDueOn: null },
+        ]),
+      ).toEqual({ performedOn: '2024-09-14', dueOn: '2026-09-30' })
+    })
+
+    it('changes nothing where no list named an appointment', () => {
+      fc.assert(
+        fc.property(rhythms, fc.array(days, { maxLength: 8 }), (rhythm, performed) => {
+          expect(nextAppointment({ ...rhythm, takenOver: null }, performed)).toEqual(
+            nextAppointment(rhythm, performed),
+          )
+        }),
+      )
+    })
+
+    it('never lies before the day the list names without something done since, nor after it', () => {
+      fc.assert(
+        fc.property(
+          rhythms,
+          days,
+          fc.integer({ min: 1, max: 2000 }),
+          (rhythm, performedOn, ahead) => {
+            const dueOn = addDays(performedOn, ahead)
+            const appointment = nextAppointment({ ...rhythm, takenOver: { performedOn, dueOn } }, [
+              performedOn,
+            ]) as Appointment
+
+            expect(appointment.dueOn).toBe(
+              rhythm.counting === 'betrsichv' ? `${dueOn.slice(0, 7)}-01` : dueOn,
+            )
+            expect(appointment.onTimeUntil >= dueOn).toBe(true)
           },
         ),
       )

@@ -189,6 +189,8 @@ export function kindWordsOf(document: RecordState, newest: RecordState | undefin
   return documentKindOf(
     maybeText(document, 'kind'),
     newest === undefined ? null : text(newest, 'mediaType'),
+    // Taken over from a predecessor application, which a list says behind the kind (#130).
+    document['legacy'] === true,
   )
 }
 

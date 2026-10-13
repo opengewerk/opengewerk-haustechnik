@@ -22,6 +22,7 @@ import {
   restsOn,
   roomTitle,
   type RoundPlanId,
+  takenOverFrom,
   validReadings,
 } from '@opengewerk/haustechnik-domain'
 import type { ExpectedDeadline, SourceQuery } from '@opengewerk/platform-server'
@@ -31,7 +32,7 @@ import {
   ceilingsOf,
   dutyTitle,
   lifecyclesByAsset,
-  metDaysByDuty,
+  meetingEvidenceByDuty,
 } from '../database/duty-standing.js'
 import { heldOf, keyDateDue, operatorKeyDay } from '../database/meter-standing.js'
 import {
@@ -169,7 +170,7 @@ export function dutySource(options: {
       .leftJoin(buildings, eq(buildings.id, duties.buildingId))
       .where(isNull(duties.deletedAt))
 
-    const performances = await metDaysByDuty(tx)
+    const performances = await meetingEvidenceByDuty(tx)
     const lives = await lifecyclesByAsset(tx)
     const ceilings = ceilingsOf(options.catalogue)
     const expected: ExpectedDeadline<DeadlineValues>[] = []
@@ -187,7 +188,8 @@ export function dutySource(options: {
         continue
       }
 
-      const days = performances.get(duty.id) ?? []
+      const met = performances.get(duty.id) ?? []
+      const days = met.map((each) => each.performedOn)
       // With the maximum of the day: a regulation that shortens it counts
       // from its day, whether anybody took it over or not (#139).
       const appointment = nextAppointment(
@@ -196,6 +198,8 @@ export function dutySource(options: {
           interval: dutyInterval(duty),
           outOfServiceOn: restingOn,
           ceiling: { on: ceilings(duty.kind, duty.federalState), today },
+          // What a list named for an evidence taken over stands (#130).
+          takenOver: takenOverFrom(met),
         },
         days,
       )

@@ -32,6 +32,7 @@ export function leastState(number: string, performedOn: IsoDate, result: string)
     resultReason: result === 'not_performed' ? 'Anlage war abgeschaltet.' : null,
     remark: null,
     replaces: null,
+    nextDueOn: null,
     form: null,
     answers: [],
     duty: {

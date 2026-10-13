@@ -95,14 +95,14 @@ import { officePlaces } from '../place-addresses.js'
  */
 
 /** What a refusal says, or that the server was not reached: an import needs a connection. */
-function refusalOf(error: unknown): string {
+export function refusalOf(error: unknown): string {
   return error instanceof RequestRefused
     ? error.message
     : 'Der Server ist nicht zu erreichen. Ein Import braucht eine Verbindung.'
 }
 
 /** What has to be put right before anything is taken over, with the lines it is about. */
-function ProblemsPanel({
+export function ProblemsPanel({
   problems,
   more,
 }: {
@@ -150,12 +150,15 @@ function ProblemsPanel({
  * What a column holds in a line of a kind it was given no field of (#172):
  * left out, said with line and column, and nothing waits for it.
  */
-function NotesPanel({
+export function NotesPanel({
   notes,
   more,
+  note = 'Diese Werte bleiben draußen. Die Zeilen werden trotzdem angelegt.',
 }: {
   readonly notes: readonly ImportNote[]
   readonly more: number
+  /** What the panel says under its lines about what is left out. */
+  readonly note?: string
 }) {
   if (notes.length === 0) {
     return null
@@ -170,7 +173,7 @@ function NotesPanel({
         title: <code className="text-[14px] [overflow-wrap:anywhere]">{note.column}</code>,
         sub: `Zeile ${lineWords(note.lines)} · ${note.why}`,
       }))}
-      note="Diese Werte bleiben draußen. Die Zeilen werden trotzdem angelegt."
+      note={note}
       {...(more > 0 ? { footer: `und ${more.toLocaleString('de-DE')} weitere` } : {})}
     >
       <thead>
@@ -198,7 +201,7 @@ function NotesPanel({
 }
 
 /** The buttons under a step: the way back at the left, giving up and going on at the right. */
-function StepActions({
+export function StepActions({
   back,
   onCancel,
   children,
@@ -222,7 +225,7 @@ function StepActions({
 }
 
 /** A file with the names of the fields as its first line, for whoever starts a list for the import. */
-function TemplateButton({
+export function TemplateButton({
   fields,
   name,
 }: {
@@ -260,7 +263,7 @@ function TemplateButton({
  * by the server, with the columns the names of which say what they are given
  * to their fields already.
  */
-function useTable(fields: readonly TableField[], route: string) {
+export function useTable(fields: readonly TableField[], route: string) {
   const [file, setFile] = useState<TableFile | null>(null)
   const [sheetIndex, setSheetIndex] = useState(0)
   const [mapping, setMapping] = useState<ColumnMapping>({})
@@ -307,11 +310,11 @@ function useTable(fields: readonly TableField[], route: string) {
   }
 }
 
-const linesWords = (count: number) =>
+export const linesWords = (count: number) =>
   count === 1 ? '1 Zeile' : `${count.toLocaleString('de-DE')} Zeilen`
 
 /** In place of an import, for whoever may not run it. */
-function MayNot({
+export function MayNot({
   title,
   crumb,
   children,
