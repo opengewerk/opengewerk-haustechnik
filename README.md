@@ -198,6 +198,8 @@ WIDTHS_BROWSER="ws://127.0.0.1:3998?token=probe" WIDTHS_ADDRESS=http://host.dock
 
 Ein Befund zählt, wenn eine zweite Messung derselben Seite ihn wieder findet; was nur eine der beiden fand, steht im Bericht davor und lässt den Lauf grün. Unter der Adresse oben läuft die Seite ohne Service Worker, weil `http://host.docker.internal` für den Browser kein sicherer Ursprung ist; in der CI heißt die Adresse `http://127.0.0.1:23800`, und dort läuft er.
 
+Mit demselben Browser und derselben Adresse fragt `pnpm --filter @opengewerk/haustechnik-web run entries`, was eine Seite tut, deren Skript nicht ankommt: einmal abgeschnitten, lädt sie sich von selbst neu und die Anwendung steht; fehlt es auf Dauer, lädt sie einmal neu und zeigt dann einen Satz mit dem Knopf "Neu laden", statt leer zu bleiben.
+
 ### Rechte und Rollen
 
 Was jemand darf, steht an drei Stellen, und zwei Tests halten sie zusammen:

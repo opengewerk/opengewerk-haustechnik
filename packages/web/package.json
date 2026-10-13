@@ -10,6 +10,7 @@
     "budget": "node scripts/budget.js",
     "words": "node scripts/words.js",
     "widths": "node scripts/widths.js",
+    "entries": "node scripts/entries.js",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
     "test": "vitest run"

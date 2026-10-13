@@ -1870,3 +1870,26 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   jede Spalte einer überwachten Tabelle, die auf einen Datensatz zeigt oder eine Person nennt,
   gegen das Vokabular. Das Fundament liest dafür einen Wert als Datensatz, wo er hinter einer
   Vorsilbe auf einen zeigt (`opengewerk#608`, Submodul angehoben)
+- Startet das Skript eines Einstiegs nicht, lädt sich die Seite einmal von selbst neu und sagt es
+  danach, statt leer zu bleiben (#279). Kam das Skript oder einer seiner Teile nicht an, weil die
+  Verbindung riss, weil eine Seite aus einem Zwischenspeicher Teile nannte, die es nach einem Update
+  nicht mehr gibt, oder weil der Browser die Anfrage selbst abbrach (#275), blieb die Seite in ihrer
+  Grundfarbe stehen und sagte nichts; erst ein neues Laden half, und das wusste niemand. Jetzt steht
+  vor dem Skript beider Einstiege, `/` und `/m/`, eine kleine eigene Datei des Fundaments
+  (`entryGuard`). Sie hört den Fehlschlag, lädt die Seite einmal neu, und zeigt beim nächsten
+  Fehlschlag: "OpenGewerk Haustechnik ist nicht gestartet, ein Teil der Anwendung ist nicht
+  angekommen", mit dem Knopf "Neu laden". Verloren geht beim Neuladen nichts, die Anwendung lief
+  noch nicht. Ein Teil, der auf Dauer fehlt, lädt die Seite nicht ohne Ende neu: dass schon neu
+  geladen wurde, hält der Reiter fest. Der Service Worker hält die Datei wie jedes andere Skript
+  vor. Die CI fragt im Lauf "Breiten und Auflösungen" einen echten Browser danach, an beiden
+  Einstiegen (`pnpm --filter @opengewerk/haustechnik-web run entries`). Die Zeilen
+  `<link rel="modulepreload">` bleiben in der gebauten Seite: der Browser brach auch die Anfrage
+  nach dem Skript des Einstiegs selbst ab, sie zu streichen hätte also nicht gereicht
+  (`opengewerk#615`, Submodul angehoben)
+- Die Prüfung "Breiten und Auflösungen" fotografiert einen Befund bei der Breite, bei der er stand,
+  und misst nach einem Wechsel der Breite erst, wenn die Seite ihm gefolgt ist (#280). Jedes Foto
+  war 1280 mal 720 Pixel groß und zeigte damit nicht, was bei 320 Pixeln zu breit war. Und die
+  Prüfung maß 150 ms nach dem Wechsel der Breite: eine Seite, die bis dahin kein Bild gezeichnet
+  hatte, stand noch im Zuschnitt der Breite davor und galt als "bei 320 px 150 px zu breit". Seit
+  #231 zählte ein solcher Befund nicht mehr, er kostete aber eine zweite Messung und eine Warnung
+  am Lauf, die niemand mehr ernst nimmt, wenn sie oft ohne Grund kommt (`opengewerk#615`)
