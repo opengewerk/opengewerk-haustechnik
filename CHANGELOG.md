@@ -1682,6 +1682,16 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   mehr mit, zu lesen ist er auf der Seite des Nachweises, des Rundgangs und der Vorlage. Das
   Fundament fragt dafür die Anwendung, wie ein Wert zu schreiben ist (`opengewerk#609`, Submodul
   angehoben)
+- Der Import von Anlagen fragt bei Dubletten wie das Formular über die Grenze der Bereiche (#255,
+  Konzept v0.32). Bisher zählte nur als Dublette, was die Person sieht: zwei Bereiche, die je ihre
+  Liste einlasen, legten dieselbe Anlage unbemerkt doppelt an, und auffallen konnte das erst der
+  Leitung. Eine Zeile, deren mögliche Dublette außerhalb der eigenen Bereiche liegt, steht jetzt
+  in der Vorschau unter "Gibt es vielleicht schon" mit dem Feld, das sie teilt, und wartet auf
+  ihre Entscheidung wie jede andere. Von der anderen Anlage verlässt den Server nichts als dieses
+  Feld: keine Kennung, keine Nummer, kein Name, kein Ort, keine Zahl. Die Funktion der Datenbank,
+  die dafür über die Bereiche hinaussieht, nimmt Listen entgegen (Migration
+  `0045_duplicates_of_a_list`), damit eine Tabelle mit bis zu 10.000 Zeilen in einem Durchgang
+  gefragt wird; es bleibt die eine Funktion (ADR 0003, Nachtrag vom 13.10.2026)
 
 ### Behoben
 

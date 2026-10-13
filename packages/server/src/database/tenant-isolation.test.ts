@@ -1048,8 +1048,8 @@ describe('the tables', () => {
     expect(
       await readDefinerFunctions(admin, {
         ...foundationDefinerFunctions,
-        'asset_duplicate_candidates(asked_serial text, asked_mark text)':
-          'an asset taken stock of in one area may stand in another already, and the policy of the areas hides it from whoever enters it; handed over are the few assets of the tenant of the transaction whose digits fit, and the server alone compares them',
+        'asset_duplicate_candidates(asked_serials text[], asked_marks text[])':
+          'an asset taken stock of in one area, entered in the office or read in from a table may stand in another area already, and the policy of the areas hides it from whoever enters it; asked with lists, so that a table is one pass over the assets and not one per line, handed over are the few assets of the tenant of the transaction whose digits fit, and the server alone compares them',
         'label_state_in_tenant(asked text)':
           'a scan of a label in another area is told that it lies outside the areas of the person, not that no such label exists; one word, and the tenant is read from the transaction',
       }),

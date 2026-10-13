@@ -401,6 +401,7 @@ interface AssetsPreview {
     name: string
     same: string
     of: readonly Record<string, unknown>[]
+    elsewhere: readonly string[]
     decision: string | null
   }[]
 }
@@ -766,6 +767,7 @@ describe('the acceptance of the import from tables (#100)', () => {
         name: 'Aufzug Altbau Haus A',
         same: 'Gleiche Seriennummer',
         of: [{ id: there['id'], number: there['number'], name: 'Aufzug Altbau' }],
+        elsewhere: [],
         decision: null,
       },
     ])
@@ -983,7 +985,7 @@ describe('the acceptance of the import from tables (#100)', () => {
     ).toEqual(southBefore.rows)
   })
 
-  it('acceptance 4 for assets: a line that names a building in an area that is not theirs finds no such place, and an asset there is no duplicate for them', async () => {
+  it('acceptance 4 for assets: a line that names a building in an area that is not theirs finds no such place, and an asset there is shown only to whoever sees it', async () => {
     const tenant = await tenantWith('Nord', 'Süd')
     const site = by('site_management', tenant)
 
@@ -1028,18 +1030,243 @@ describe('the acceptance of the import from tables (#100)', () => {
     // The same line is an asset for whoever sees the south.
     await sendTable('/imports/assets', by('technical_management', tenant), listed).expect(201)
 
-    // And that asset is no duplicate for somebody who does not see it: a line
-    // of theirs with its serial number is named to nobody but whoever sees both.
+    // A line of theirs with the serial number of that asset may be it all the
+    // same (#255). Whoever sees both is shown the asset; whoever does not is
+    // told the field, as the tests below hold.
     const sameNumber = table(
       assetImportFields,
       assetHeader,
       assetLine('Aufzug Altbau', { property: 'Rathaus Nord', building: 'Altbau', serial: 'SN-1' }),
     )
 
-    expect((await assetsPreview(site, sameNumber)).duplicates).toEqual([])
     expect(
-      (await assetsPreview(by('technical_management', tenant), sameNumber)).duplicates,
-    ).toHaveLength(1)
+      (await assetsPreview(site, sameNumber)).duplicates.map(({ of, elsewhere }) => [
+        of,
+        elsewhere,
+      ]),
+    ).toEqual([[[], ['serialNumber']]])
+    expect(
+      (await assetsPreview(by('technical_management', tenant), sameNumber)).duplicates.map(
+        ({ of, elsewhere }) => [of.map((other) => other['name']), elsewhere],
+      ),
+    ).toEqual([[['Aufzug Halle'], []]])
+  })
+
+  /**
+   * Two areas of one operator (#255): the Objektleitung holds in the north,
+   * and in the south stand two elevators with one serial number and a third
+   * with a mark. Their list for the north carries both, typed differently,
+   * and a line that shares nothing.
+   */
+  async function acrossAreas() {
+    const tenant = await tenantWith('Nord', 'Süd')
+    const south = await placeIn(tenant, {
+      property: 'Werkhof Süd',
+      building: 'Halle',
+      areaId: tenant.areas['Süd'] ?? '',
+    })
+
+    await placeIn(tenant, {
+      property: 'Rathaus Nord',
+      building: 'Altbau',
+      areaId: tenant.areas['Nord'] ?? '',
+    })
+    await elevatorsNamed(tenant)
+
+    const hidden = [
+      await assetIn(tenant, south.building, { name: 'Aufzug Halle', serialNumber: 'SN-4711' }),
+      await assetIn(tenant, south.building, {
+        name: 'Aufzug Halle Ersatz',
+        serialNumber: 'sn 4711',
+      }),
+      await assetIn(tenant, south.building, { name: 'Lastenaufzug Halle', mark: 'AKS 461-01' }),
+    ]
+    const north = { property: 'Rathaus Nord', building: 'Altbau' }
+    const listed = table(
+      assetImportFields,
+      assetHeader,
+      assetLine('Aufzug Altbau', { ...north, serial: 'sn-4711' }),
+      assetLine('Aufzug Anbau', { ...north, mark: 'aks461-01' }),
+      assetLine('Aufzug Foyer', { ...north, serial: 'SN-0815', mark: 'AKS 461-02' }),
+    )
+
+    return { tenant, site: by('site_management', tenant), south, hidden, listed }
+  }
+
+  const waitsForAnAnswer =
+    'Zu einer möglichen Dublette fehlt die Entscheidung. Es wurde nichts übernommen.'
+
+  it('acceptance 1 and 2 of #255: a line with the serial number or the mark of an asset in an area the person does not see is a possible duplicate, and nothing is taken over before it has its answer', async () => {
+    const { tenant, site, listed } = await acrossAreas()
+    const shown = await assetsPreview(site, listed)
+
+    expect(shown.duplicates).toEqual([
+      {
+        line: 2,
+        name: 'Aufzug Altbau',
+        same: '',
+        of: [],
+        elsewhere: ['serialNumber'],
+        decision: null,
+      },
+      { line: 3, name: 'Aufzug Anbau', same: '', of: [], elsewhere: ['mark'], decision: null },
+    ])
+    expect(shown.counts).toEqual({ assets: 1, skipped: 0, undecided: 2 })
+    expect(shown.problems).toEqual([])
+
+    const before = await rowCounts()
+    const waiting = await sendTable('/imports/assets', site, {
+      ...listed,
+      fileName: 'nord.csv',
+      expected: shown.counts,
+    }).expect(422)
+
+    expect((waiting.body as Refusal).message).toBe(waitsForAnAnswer)
+    expect(await rowCounts()).toEqual(before)
+
+    // One left out and one made all the same.
+    const taken = (
+      await sendTable('/imports/assets', site, {
+        ...listed,
+        decisions: { 2: 'skip', 3: 'take' },
+        fileName: 'nord.csv',
+        expected: { assets: 2, skipped: 1, undecided: 0 },
+      }).expect(201)
+    ).body as Taken
+
+    expect(taken.summary).toBe('2 Anlagen angelegt, 1 Zeile als Dublette nicht angelegt')
+
+    // Nobody was shown the asset in the south, so nobody held the new one
+    // against it (#171): it names none it is distinct from.
+    const { rows: made } = await admin.query<{ name: string; distinct_from: string[] }>(
+      `select name, distinct_from from assets
+        where tenant_id = $1 and created_at >= (select created_at from imports where id = $2)
+        order by number`,
+      [tenant.id, taken.id],
+    )
+
+    expect(made).toEqual([
+      { name: 'Aufzug Anbau', distinct_from: [] },
+      { name: 'Aufzug Foyer', distinct_from: [] },
+    ])
+  })
+
+  it('acceptance 3 of #255: of an asset beyond the areas the server hands out the field a line shares with it and nothing else, no id, no number, no name, no place and not how many', async () => {
+    const { tenant, site, south, hidden, listed } = await acrossAreas()
+    const preview = await sendTable('/imports/assets/preview', site, listed).expect(200)
+    const waiting = await sendTable('/imports/assets', site, {
+      ...listed,
+      fileName: 'nord.csv',
+      expected: { assets: 1, skipped: 0, undecided: 2 },
+    }).expect(422)
+    const taken = await sendTable('/imports/assets', site, {
+      ...listed,
+      decisions: { 2: 'take', 3: 'skip' },
+      fileName: 'nord.csv',
+      expected: { assets: 2, skipped: 1, undecided: 0 },
+    }).expect(201)
+
+    // Each asset there has an id and a number that could be handed out.
+    expect(hidden.map((asset) => [typeof asset['id'], typeof asset['number']])).toEqual(
+      hidden.map(() => ['string', 'string']),
+    )
+
+    const said = [preview.text, waiting.text, taken.text].join(' ')
+    const ofTheSouth = [
+      ...hidden.flatMap((asset) => [asset['id'], asset['number'], asset['name']]),
+      south.property,
+      south.building,
+      south.floor,
+      south.room,
+      tenant.areas['Süd'],
+      'Werkhof Süd',
+      'Halle',
+    ].map(String)
+
+    expect(ofTheSouth.filter((word) => said.includes(word))).toEqual([])
+    // Two assets there carry the serial number, and the field is said once.
+    expect((preview.body as AssetsPreview).duplicates.map(({ elsewhere }) => elsewhere)).toEqual([
+      ['serialNumber'],
+      ['mark'],
+    ])
+  })
+
+  it('asks again when it takes over (#255): an asset entered beyond the areas after the preview makes the take-over wait', async () => {
+    const tenant = await tenantWith('Nord', 'Süd')
+    const site = by('site_management', tenant)
+    const south = await placeIn(tenant, {
+      property: 'Werkhof Süd',
+      building: 'Halle',
+      areaId: tenant.areas['Süd'] ?? '',
+    })
+
+    await placeIn(tenant, {
+      property: 'Rathaus Nord',
+      building: 'Altbau',
+      areaId: tenant.areas['Nord'] ?? '',
+    })
+    await elevatorsNamed(tenant)
+
+    const listed = table(
+      assetImportFields,
+      assetHeader,
+      assetLine('Aufzug Altbau', { property: 'Rathaus Nord', building: 'Altbau', serial: 'SN-77' }),
+    )
+    const shown = await assetsPreview(site, listed)
+
+    expect(shown.duplicates).toEqual([])
+
+    await assetIn(tenant, south.building, { name: 'Aufzug Halle', serialNumber: 'SN-77' })
+
+    const before = await rowCounts()
+    const waiting = await sendTable('/imports/assets', site, {
+      ...listed,
+      fileName: 'nord.csv',
+      expected: shown.counts,
+    }).expect(422)
+
+    expect((waiting.body as Refusal).message).toBe(waitsForAnAnswer)
+    expect(await rowCounts()).toEqual(before)
+  })
+
+  it('asks past the areas and never past the operator (#255): the serial number of an asset of another operator, or of one that was removed, is no duplicate', async () => {
+    const other = await tenantWith()
+    const theirs = await placeIn(other)
+
+    await assetIn(other, theirs.building, { name: 'Aufzug nebenan', serialNumber: 'SN-4711' })
+
+    const tenant = await tenantWith('Nord', 'Süd')
+    const south = await placeIn(tenant, {
+      property: 'Werkhof Süd',
+      building: 'Halle',
+      areaId: tenant.areas['Süd'] ?? '',
+    })
+
+    await placeIn(tenant, {
+      property: 'Rathaus Nord',
+      building: 'Altbau',
+      areaId: tenant.areas['Nord'] ?? '',
+    })
+    await elevatorsNamed(tenant)
+
+    // In the south stood an elevator with a mark, and it is gone.
+    const gone = await assetIn(tenant, south.building, { name: 'Aufzug Halle', mark: 'AKS 9' })
+
+    await admin.query('update assets set deleted_at = now() where id = $1', [gone['id']])
+
+    const north = { property: 'Rathaus Nord', building: 'Altbau' }
+    const shown = await assetsPreview(
+      by('site_management', tenant),
+      table(
+        assetImportFields,
+        assetHeader,
+        assetLine('Aufzug Altbau', { ...north, serial: 'SN-4711' }),
+        assetLine('Aufzug Anbau', { ...north, mark: 'AKS 9' }),
+      ),
+    )
+
+    expect(shown.duplicates).toEqual([])
+    expect(shown.counts).toEqual({ assets: 2, skipped: 0, undecided: 0 })
   })
 })
 
