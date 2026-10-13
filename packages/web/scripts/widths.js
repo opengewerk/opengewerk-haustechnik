@@ -18,9 +18,11 @@ await checkWidths({
    * and the area of the instance, which are behind the menu under the name
    * and not behind a link on any page, and the address on a label with a QR
    * code (#98), which only a scan reaches: with a code no label carries, it
-   * is the page that says so.
+   * is the page that says so. The help (#131) stands behind the drawer of a
+   * page in the office and behind the menu on site, and its quick guides
+   * behind it.
    */
-  entries: ['/', '/m/', '/konto', '/instanz', `/a/${'0'.repeat(16)}`],
+  entries: ['/', '/m/', '/konto', '/instanz', '/hilfe', '/m/hilfe', `/a/${'0'.repeat(16)}`],
 
   /**
    * The buttons that lead to a form no link leads to: the form a property is
@@ -110,16 +112,29 @@ await checkWidths({
    * `/katalog/<package>/pflichtarten/<key>`. One kind of page each, rather
    * than one for every package and every entry (#227): those were 50 of the
    * 177 kinds, and every package added dozens.
+   *
+   * The texts of the help are named by a word as well (#131): a quick guide
+   * in the office and on site, the text of a screen on site and a chapter of
+   * the manual. Each is one kind of page, drawn by one screen from a text
+   * that keeps to the same part of Markdown (`help/texts.test.ts`); as kinds
+   * of their own they were nineteen.
    */
-  keys: [/^\/katalog\/([^/]+)(?:\/[^/]+\/([^/]+))?/],
+  keys: [
+    /^\/katalog\/([^/]+)(?:\/[^/]+\/([^/]+))?/,
+    /^\/hilfe\/([^/]+)$/,
+    /^\/instanz\/handbuch\/([^/]+)$/,
+    /^\/m\/hilfe\/bildschirm\/([^/]+)$/,
+    /^\/m\/hilfe\/([^/]+)$/,
+  ],
 
   /**
    * More than the 120 the foundation stops at unless told: this application
    * had 106 kinds of page on 08.10.2026, and every screen of Phase 1 still to
    * come brings more (opengewerk#576). With the catalogue as one kind of page
-   * for each of its screens (#227) there were about 136.
+   * for each of its screens (#227) there were about 136, and with the help
+   * (#131) the walk stood at the 150 that were the limit until then.
    */
-  mostKinds: 150,
+  mostKinds: 180,
   /**
    * Every kind of page is held to the rules of accessibility as well (#132,
    * section 3 of the concept): labels, roles, the order of the headings and
