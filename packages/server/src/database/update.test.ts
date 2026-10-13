@@ -148,6 +148,7 @@ describe('an installation that began on the first migration', () => {
     // settings of the deadlines hang on nothing of this.
     // The plans of the rounds hang on the places and the templates (#113),
     // the notes on a work order on its activity (#118).
+    await revertMigration(admin, '0046_rights_of_shipped_roles')
     await revertMigration(admin, '0045_duplicates_of_a_list')
     await revertMigration(admin, '0044_mail_outbox_and_push')
     await revertMigration(admin, '0043_instance_mail_server')
@@ -330,6 +331,7 @@ describe('an installation from before the areas', () => {
     // The places hang on the areas and go first, as on the way back of an
     // installation, and so does what an invitation says about areas.
     // The plans of the rounds hang on the places and the templates (#113).
+    await revertMigration(admin, '0046_rights_of_shipped_roles')
     await revertMigration(admin, '0045_duplicates_of_a_list')
     await revertMigration(admin, '0044_mail_outbox_and_push')
     await revertMigration(admin, '0043_instance_mail_server')
@@ -422,6 +424,7 @@ describe('an installation with places', () => {
     )
 
     // The plans of the rounds hang on the places and the templates (#113).
+    await revertMigration(admin, '0046_rights_of_shipped_roles')
     await revertMigration(admin, '0045_duplicates_of_a_list')
     await revertMigration(admin, '0044_mail_outbox_and_push')
     await revertMigration(admin, '0043_instance_mail_server')
@@ -539,6 +542,7 @@ describe('an installation with assets', () => {
       [tenant.id, asset, at.property, at.area, at.building],
     )
 
+    await revertMigration(admin, '0046_rights_of_shipped_roles')
     await revertMigration(admin, '0045_duplicates_of_a_list')
     await revertMigration(admin, '0044_mail_outbox_and_push')
     await revertMigration(admin, '0043_instance_mail_server')
@@ -663,6 +667,7 @@ describe('an installation with assets', () => {
       [tenant.id, at.property, at.area, at.asset],
     )
 
+    await revertMigration(admin, '0046_rights_of_shipped_roles')
     await revertMigration(admin, '0045_duplicates_of_a_list')
     await revertMigration(admin, '0044_mail_outbox_and_push')
     await revertMigration(admin, '0043_instance_mail_server')
@@ -788,6 +793,7 @@ describe('an installation with assets', () => {
       [tenant.id, at.duty, at.property, at.area],
     )
 
+    await revertMigration(admin, '0046_rights_of_shipped_roles')
     await revertMigration(admin, '0045_duplicates_of_a_list')
     await revertMigration(admin, '0044_mail_outbox_and_push')
     await revertMigration(admin, '0043_instance_mail_server')
@@ -916,6 +922,7 @@ describe('an installation with assets', () => {
       [tenant.id, at.property, at.area, at.asset, activityId],
     )
 
+    await revertMigration(admin, '0046_rights_of_shipped_roles')
     await revertMigration(admin, '0045_duplicates_of_a_list')
     await revertMigration(admin, '0044_mail_outbox_and_push')
     await revertMigration(admin, '0043_instance_mail_server')
@@ -1037,6 +1044,7 @@ describe('an installation with assets', () => {
       ],
     )
 
+    await revertMigration(admin, '0046_rights_of_shipped_roles')
     await revertMigration(admin, '0045_duplicates_of_a_list')
     await revertMigration(admin, '0044_mail_outbox_and_push')
     await revertMigration(admin, '0043_instance_mail_server')
@@ -1158,6 +1166,7 @@ describe('an installation with assets', () => {
       [at.order],
     )
 
+    await revertMigration(admin, '0046_rights_of_shipped_roles')
     await revertMigration(admin, '0045_duplicates_of_a_list')
     await revertMigration(admin, '0044_mail_outbox_and_push')
     await revertMigration(admin, '0043_instance_mail_server')
@@ -1286,6 +1295,7 @@ describe('an installation with assets', () => {
       [tenant.id, at.property, at.area, correction],
     )
 
+    await revertMigration(admin, '0046_rights_of_shipped_roles')
     await revertMigration(admin, '0045_duplicates_of_a_list')
     await revertMigration(admin, '0044_mail_outbox_and_push')
     await revertMigration(admin, '0043_instance_mail_server')
@@ -1361,6 +1371,7 @@ describe('an installation with assets', () => {
     expect(await mayCall('public')).toBe(false)
     expect(await mayCall('opengewerk_app')).toBe(true)
 
+    await revertMigration(admin, '0046_rights_of_shipped_roles')
     await revertMigration(admin, '0045_duplicates_of_a_list')
     await revertMigration(admin, '0044_mail_outbox_and_push')
     await revertMigration(admin, '0043_instance_mail_server')
@@ -1428,6 +1439,7 @@ describe('an installation whose invitations name areas', () => {
       [tenant.id, invitation],
     )
 
+    await revertMigration(admin, '0046_rights_of_shipped_roles')
     await revertMigration(admin, '0045_duplicates_of_a_list')
     await revertMigration(admin, '0044_mail_outbox_and_push')
     await revertMigration(admin, '0043_instance_mail_server')
@@ -1509,6 +1521,7 @@ describe('an installation whose properties carry notes', () => {
       [tenant.id],
     )
 
+    await revertMigration(admin, '0046_rights_of_shipped_roles')
     await revertMigration(admin, '0045_duplicates_of_a_list')
     await revertMigration(admin, '0044_mail_outbox_and_push')
     await revertMigration(admin, '0043_instance_mail_server')
@@ -1603,6 +1616,7 @@ describe('an installation whose properties have people to talk to', () => {
       [tenant.id, property?.id, property?.area_id],
     )
 
+    await revertMigration(admin, '0046_rights_of_shipped_roles')
     await revertMigration(admin, '0045_duplicates_of_a_list')
     await revertMigration(admin, '0044_mail_outbox_and_push')
     await revertMigration(admin, '0043_instance_mail_server')
@@ -1700,6 +1714,7 @@ describe('an installation whose buildings have times they are closed', () => {
       [tenant.id, building, property?.id, property?.area_id],
     )
 
+    await revertMigration(admin, '0046_rights_of_shipped_roles')
     await revertMigration(admin, '0045_duplicates_of_a_list')
     await revertMigration(admin, '0044_mail_outbox_and_push')
     await revertMigration(admin, '0043_instance_mail_server')
@@ -1823,6 +1838,7 @@ describe('an installation that imported from tables', () => {
 
     expect(await quietTables()).toEqual(['assets', 'buildings', 'floors', 'properties', 'rooms'])
 
+    await revertMigration(admin, '0046_rights_of_shipped_roles')
     await revertMigration(admin, '0045_duplicates_of_a_list')
     await revertMigration(admin, '0044_mail_outbox_and_push')
     await revertMigration(admin, '0043_instance_mail_server')
@@ -1970,6 +1986,7 @@ describe('an installation that took stock on site', () => {
       second[0]?.id,
     ])
 
+    await revertMigration(admin, '0046_rights_of_shipped_roles')
     await revertMigration(admin, '0045_duplicates_of_a_list')
     await revertMigration(admin, '0044_mail_outbox_and_push')
     await revertMigration(admin, '0043_instance_mail_server')
@@ -2053,6 +2070,7 @@ describe('an installation that took stock on site', () => {
       { takes: 'asked_serials text[], asked_marks text[]', open: false, application: true },
     ])
 
+    await revertMigration(admin, '0046_rights_of_shipped_roles')
     await revertMigration(admin, '0045_duplicates_of_a_list')
 
     expect(await asking()).toEqual([
@@ -2108,6 +2126,7 @@ describe('an installation with labels', () => {
       [tenant.id, property?.id, property?.area_id, stood[0]?.id],
     )
 
+    await revertMigration(admin, '0046_rights_of_shipped_roles')
     await revertMigration(admin, '0045_duplicates_of_a_list')
     await revertMigration(admin, '0044_mail_outbox_and_push')
     await revertMigration(admin, '0043_instance_mail_server')
@@ -2226,6 +2245,7 @@ describe('an installation whose activities have answers', () => {
       [tenant.id, property?.id, property?.area_id, activity, 'a'.repeat(64)],
     )
 
+    await revertMigration(admin, '0046_rights_of_shipped_roles')
     await revertMigration(admin, '0045_duplicates_of_a_list')
     await revertMigration(admin, '0044_mail_outbox_and_push')
     await revertMigration(admin, '0043_instance_mail_server')
@@ -2433,6 +2453,7 @@ describe('an installation with documents', () => {
       [tenant.id, filed[0]?.id, file],
     )
 
+    await revertMigration(admin, '0046_rights_of_shipped_roles')
     await revertMigration(admin, '0045_duplicates_of_a_list')
     await revertMigration(admin, '0044_mail_outbox_and_push')
     await revertMigration(admin, '0043_instance_mail_server')
@@ -2570,6 +2591,7 @@ describe('an installation that exchanged an asset', () => {
       admin.query('update assets set replaces_asset_id = id where id = $1', [old[0]?.id]),
     ).rejects.toMatchObject({ constraint: 'assets_not_their_own_successor' })
 
+    await revertMigration(admin, '0046_rights_of_shipped_roles')
     await revertMigration(admin, '0045_duplicates_of_a_list')
     await revertMigration(admin, '0044_mail_outbox_and_push')
     await revertMigration(admin, '0043_instance_mail_server')
@@ -2634,6 +2656,7 @@ describe('an installation that exchanged an asset', () => {
       'mail_server_username',
     ])
 
+    await revertMigration(admin, '0046_rights_of_shipped_roles')
     await revertMigration(admin, '0045_duplicates_of_a_list')
     await revertMigration(admin, '0044_mail_outbox_and_push')
     await revertMigration(admin, '0043_instance_mail_server')
@@ -2707,6 +2730,7 @@ describe('an installation that exchanged an asset', () => {
       'push_subscriptions',
     ])
 
+    await revertMigration(admin, '0046_rights_of_shipped_roles')
     await revertMigration(admin, '0045_duplicates_of_a_list')
     await revertMigration(admin, '0044_mail_outbox_and_push')
 
@@ -2819,6 +2843,52 @@ describe('a tenant whose roles are from before a right', () => {
 
     return rows[0]?.problem ?? null
   }
+
+  /** Whether the application may change the roles of a tenant or remove one. */
+  async function applicationMay(): Promise<{ change: boolean; remove: boolean }> {
+    const { rows } = await admin.query<{ change: boolean; remove: boolean }>(
+      `select has_any_column_privilege('opengewerk_app', 'tenant_roles', 'UPDATE') as change,
+              has_table_privilege('opengewerk_app', 'tenant_roles', 'DELETE')
+                or has_table_privilege('opengewerk_app', 'tenant_roles', 'TRUNCATE') as remove`,
+    )
+
+    return rows[0] ?? { change: true, remove: true }
+  }
+
+  /** The functions of the database whose text names the roles of a tenant. */
+  async function functionsNamingRoles(): Promise<string[]> {
+    const { rows } = await admin.query<{ name: string }>(
+      `select proname as name
+         from pg_proc
+         join pg_namespace on pg_namespace.oid = pg_proc.pronamespace
+        where pg_namespace.nspname = 'public' and prosrc ilike '%tenant_roles%'
+        order by proname`,
+    )
+
+    return rows.map((row) => row.name)
+  }
+
+  it('cannot have taken a right from one of the four: the application reads and adds roles and nothing else', async () => {
+    // 0046 cannot tell a right a row never had from one a tenant took from
+    // it. Up to 0046 there is no second kind: the application may neither
+    // change nor remove a role, and the one function that names the table
+    // reads who leads. So what a row lacks never was there, and giving it
+    // hands nothing back that somebody decided against.
+    await runMigrations(ownerDatabaseUrl(), kept(migrationsFolderUpTo(before)))
+
+    expect(await applicationMay()).toEqual({ change: false, remove: false })
+    expect(await functionsNamingRoles()).toEqual(['tenants_with_leads'])
+
+    await runMigrations(ownerDatabaseUrl())
+
+    // And it is so still. The day the application may change a role, a
+    // tenant can take a right from one, and this is red: from then on a
+    // migration gives a role only a right that is new in the catalogue,
+    // which nobody can have taken, or says what it does about one that was.
+    // Whoever grants that changes this test and the rule in the README.
+    expect(await applicationMay()).toEqual({ change: false, remove: false })
+    expect(await functionsNamingRoles()).toEqual(['tenants_with_leads'])
+  })
 
   it('gets every right the code gives the four roles, right for right', async () => {
     await runMigrations(ownerDatabaseUrl(), kept(migrationsFolderUpTo(before)))

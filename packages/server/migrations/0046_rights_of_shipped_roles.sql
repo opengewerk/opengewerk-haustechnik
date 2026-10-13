@@ -23,6 +23,15 @@
 -- the catalogue. A row that lacks nothing is not touched and gets no entry in
 -- the log. A role under a key of the tenant's own is none of the four.
 --
+-- **It gives nothing back that a tenant took.** A row cannot say whether it
+-- lacks a right because the right came later or because the tenant took it
+-- from the role. Up to this migration there is no second kind: the
+-- application may read `tenant_roles` and insert into it and nothing else
+-- (0000), and no function of the database writes it, so no tenant can have
+-- changed a role. The same test holds that, here and for the day it stops
+-- being true: from then on a migration gives a role only a right that is new
+-- in the catalogue, or says what it does about one that was taken.
+--
 -- **Nothing beyond section 7 of the concept.** The lists are those of
 -- `shippedRoles` on this day, which a test holds against the table there.
 --

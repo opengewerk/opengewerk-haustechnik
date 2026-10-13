@@ -1899,7 +1899,9 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   die Rechte an Dokumenten, Aufgaben und Vorlagen, an Push und am Mailserver hatte deshalb nur,
   wer nach ihnen angelegt wurde. Die Migration `0046_rights_of_shipped_roles` gibt den Zeilen der
   vier Rollen, was ihnen fehlt, nimmt nichts weg, lässt eigene Rollen eines Betreibers, wie sie
-  sind, und steht im Änderungsprotokoll mit dem Grund `migration`. Von hier an gehört zu jedem
+  sind, und steht im Änderungsprotokoll mit dem Grund `migration`. Sie gibt nichts zurück, was ein
+  Betreiber einer Rolle genommen hätte: die Anwendung darf Rollen bisher nur lesen und anlegen,
+  nicht ändern, und ein Test hält das. Von hier an gehört zu jedem
   Recht, das eine der vier Rollen bekommt oder verliert, eine solche Migration: ein Test mit
   einem Betreiber von vor `0046` wird ohne sie rot und nennt Rolle und Recht. Er ersetzt
   `roles-of-a-version.test.ts`, der damit bis zur ersten Fassung warten wollte; der Pilotbetrieb
