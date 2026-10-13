@@ -419,8 +419,9 @@ jobs:
     # preview, so a new one is checked without anybody adding it here. Every
     # kind of page is held to the rules of accessibility in the same walk
     # (#132): labels, roles, headings and contrast with axe-core, light and
-    # dark, at a telephone and a desktop. The name of the job stays, since the
-    # protection of main asks for it by name.
+    # dark, at a telephone and a desktop. A finding counts when a second
+    # measurement of the page finds it again (#231). The name of the job
+    # stays, since the protection of main asks for it by name.
     #
     # The browser is the image of the renderer in docker/compose.yaml, the
     # Chromium an installation prints with, on the network of the runner: the
@@ -507,8 +508,11 @@ jobs:
           WIDTHS_BROWSER: ws://127.0.0.1:3000?token=probe&timeout=1800000
           WIDTHS_ADDRESS: http://127.0.0.1:23800
 
-      - name: Aufnahmen bei einem Fehlschlag
-        if: failure()
+      # Also after a green run that left photographs: of what only one of two
+      # measurements of a page found (#231), which fails nothing and is the
+      # only trace of a page that did not start.
+      - name: Aufnahmen bei einem Befund
+        if: failure() || hashFiles('packages/web/widths-report/**') != ''
         uses: actions/upload-artifact@v7
         with:
           name: widths-report

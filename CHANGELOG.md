@@ -1817,6 +1817,15 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   `opengewerk#591` und `#593`, Submodul angehoben). Bisher fragte sie sofort und meldete nur "nicht
   zu sehen": Sie wurde an Seiten rot, die niemand geändert hatte, jedes Mal an einer anderen, auch
   auf `main`, und warum, stand nirgends
+- Ein Befund der Prüfung "Breiten und Auflösungen" zählt erst, wenn eine zweite Messung derselben
+  Seite ihn wieder findet, und eine Seite, die nach zehn Sekunden nichts gezeichnet hat, ist ein
+  eigener Befund mit dem, was sie dabei meldete (#231, `opengewerk#614`, Submodul angehoben). Trotz
+  des Wartens oben war die Prüfung am 13.10.2026 in drei von vier Läufen an einer Seite rot, die
+  der Pull Request nicht anfasste: die Seite hatte gar nicht gezeichnet und stand beim nächsten
+  Lauf. Was nur eine der beiden Messungen fand, steht im Bericht, zählt nicht, und der Lauf zeigt
+  dazu eine Warnung; der Job lädt die Fotos dann auch hoch, wenn er grün ist. Warum eine Seite
+  manchmal nicht startet, klärt das nicht; dafür nennt der Befund jetzt, ob ihr Skript lief und
+  was es meldete
 - Der Test der Wochenübersicht der Rundgänge (`round-plans.test.ts`) nimmt die Woche von morgen
   statt der von heute (gefunden bei #74). An einem Sonntag hält die laufende Woche nur einen
   Rundgang des Plans, der heute beginnt, und der Test brauchte zwei; er schlug jeden Sonntag fehl
