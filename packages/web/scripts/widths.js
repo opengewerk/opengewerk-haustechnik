@@ -18,9 +18,11 @@ await checkWidths({
    * and the area of the instance, which are behind the menu under the name
    * and not behind a link on any page, and the address on a label with a QR
    * code (#98), which only a scan reaches: with a code no label carries, it
-   * is the page that says so.
+   * is the page that says so. The help (#131) stands behind the drawer of a
+   * page in the office and behind the menu on site, and its quick guides
+   * behind it.
    */
-  entries: ['/', '/m/', '/konto', '/instanz', `/a/${'0'.repeat(16)}`],
+  entries: ['/', '/m/', '/konto', '/instanz', '/hilfe', '/m/hilfe', `/a/${'0'.repeat(16)}`],
 
   /**
    * The buttons that lead to a form no link leads to: the form a property is

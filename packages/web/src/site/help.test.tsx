@@ -67,6 +67,7 @@ describe('"Hilfe" on site', () => {
 
     expect(await screen.findByRole('heading', { name: 'Scannen' })).toBeTruthy()
     expect(screen.getByText(/Halten Sie die Kamera auf das Etikett/)).toBeTruthy()
+    expect(screen.getByRole('heading', { name: 'Scannen' }).tagName).toBe('H1')
     expect(screen.getAllByRole('listitem')).toHaveLength(4)
     expect(screen.getByRole('link', { name: siteHelpWords.title }).getAttribute('href')).toBe(
       '/m/hilfe',
@@ -90,6 +91,7 @@ describe('"Hilfe" on site', () => {
 
     expect(await screen.findByRole('heading', { name: 'Ablesung' })).toBeTruthy()
     expect(screen.getByText(/„So übernehmen“ bestätigt ihn/)).toBeTruthy()
+    expect(screen.getByRole('heading', { level: 2, name: 'Schritt für Schritt' })).toBeTruthy()
   })
 
   it('says so at an address no text has', async () => {

@@ -1270,7 +1270,9 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   Netz lesbar sind; geladen werden sie erst, wenn jemand die Hilfe öffnet, das Bündel vor Ort
   bleibt mit 247,6 von 300 kB unter seiner Grenze. Ein Test wird rot, wenn eine Seite der
   Navigation keinen Text hat oder ein Text etwas benutzt, das die Anwendung nicht liest. Knopf,
-  Schublade und der Leser für Markdown sind Bausteine des Fundaments (`opengewerk/opengewerk#612`).
+  Schublade und der Leser für Markdown sind Bausteine des Fundaments (`opengewerk/opengewerk#612`
+  und `#613`). Die Seiten der Hilfe stehen in der Prüfung der Breiten, auch die, zu denen nur die
+  Schublade oder das Menü führt.
 
 ### Geändert
 

@@ -111,7 +111,7 @@ function HelpText({ texts, name }: { readonly texts: 'site' | 'guides'; readonly
           <SiteText muted>{siteHelpWords.unknown}</SiteText>
         ) : (
           <Panel>
-            <Markdown source={text} withoutTitle large />
+            <Markdown source={text} withoutTitle large level={1} />
           </Panel>
         )}
       </SiteScreen>

@@ -134,6 +134,9 @@ describe('"Hilfe" in the office', () => {
     ).toBeTruthy()
     // The title stands once: the text is drawn without its own.
     expect(screen.getAllByRole('heading', { name: 'Vom Mangel zum Auftrag' })).toHaveLength(1)
+    // No level is left out between the head of the screen and a section
+    // of the text, for a reader who goes through a screen by its headings.
+    expect(screen.getByRole('heading', { level: 2, name: 'Schritt für Schritt' })).toBeTruthy()
     expect(screen.getByText(/„Nachgeprüft“ schließt ihn/)).toBeTruthy()
     expect(
       screen
@@ -180,6 +183,9 @@ describe('the manual in the area of the instance', () => {
 
     expect(await screen.findByRole('heading', { level: 1, name: 'Update' })).toBeTruthy()
     expect(screen.getByText('sh docker/start.sh', { selector: 'code' })).toBeTruthy()
+    expect(
+      screen.getAllByRole('heading').map((heading) => `${heading.tagName} ${heading.textContent}`),
+    ).toEqual(['H1 Update', 'H2 Schritt für Schritt', 'H2 Auf den Geräten'])
     expect(screen.getByRole('link', { name: manualWords.back }).getAttribute('href')).toBe(
       '/instanz/handbuch',
     )

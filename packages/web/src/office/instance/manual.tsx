@@ -90,7 +90,9 @@ export function ManualChapterScreen() {
         ) : text === undefined ? (
           <Empty>{manualWords.unknown}</Empty>
         ) : (
-          <Markdown source={text} withoutTitle />
+          // The head of the page is the first heading, the sections of
+          // the chapter follow it as the second.
+          <Markdown source={text} withoutTitle level={1} />
         )}
       </Panel>
     </InstancePage>

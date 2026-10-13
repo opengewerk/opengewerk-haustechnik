@@ -97,7 +97,9 @@ export function GuideScreen() {
         {text === undefined ? (
           <Empty>{helpWords.loading}</Empty>
         ) : (
-          <Markdown source={text} withoutTitle />
+          // The head of the screen is the first heading, the sections of
+          // the text follow it as the second.
+          <Markdown source={text} withoutTitle level={1} />
         )}
       </Panel>
     </Screen>
