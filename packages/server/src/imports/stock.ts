@@ -5,15 +5,20 @@ import {
   type DuplicateField,
   type ImportKind,
   type IsoDate,
+  keyDayOf,
+  type MeterImportStock,
   standingEvidence,
   type StructureStock,
   type TableRecord,
+  type TemplateImportStock,
   type TenantId,
+  validReadings,
 } from '@opengewerk/haustechnik-domain'
 import type { TenantTransaction } from '@opengewerk/platform-server'
 import { and, asc, eq, gt, isNotNull, isNull, or, sql } from 'drizzle-orm'
 
 import { duplicateCandidatesOfList } from '../database/asset-duplicates.js'
+import { operatorKeyDay } from '../database/meter-standing.js'
 import {
   assetKindNames,
   assets,
@@ -25,8 +30,13 @@ import {
   evidenceVoidings,
   floors,
   imports,
+  meterExchanges,
+  meterPauses,
+  meterPoints,
+  meterReadings,
   properties,
   rooms,
+  roundTemplates,
 } from '../database/schema/index.js'
 import { dayInGermany } from '../today.js'
 
@@ -244,6 +254,146 @@ export async function deadlineImportStock(
     places: new Map(
       seen.map(({ id, propertyId, areaId }) => [id as string, { propertyId, areaId }]),
     ),
+  }
+}
+
+/** Rows by the asset they hang at. */
+function byAsset<Row extends { readonly assetId: string }>(
+  rows: readonly Row[],
+): Map<string, Row[]> {
+  const found = new Map<string, Row[]>()
+
+  for (const row of rows) {
+    found.set(row.assetId, [...(found.get(row.assetId) ?? []), row])
+  }
+
+  return found
+}
+
+/**
+ * What a list of the history of meters is held against (#130): the assets
+ * the person importing sees, and for each measuring point among them the
+ * readings that count, the replacements of its meter, the periods it rests
+ * and the day of the month its readings are due on. Read inside their
+ * transaction, under the policies of their tenant and their areas: a line
+ * can name no asset beyond them.
+ *
+ * Every asset is in it, a measuring point or not, so that a line that names
+ * a pump is told it names no meter rather than nothing at all. Read once for
+ * the whole table; the places of the assets come back beside it, for what
+ * the take-over writes.
+ */
+export async function meterImportStock(
+  tx: TenantTransaction,
+  today: IsoDate,
+): Promise<{ stock: MeterImportStock; places: ReadonlyMap<string, AssetPlace> }> {
+  const seen = await tx
+    .select({
+      id: assets.id,
+      number: assets.number,
+      name: assets.name,
+      mark: assets.mark,
+      serialNumber: assets.serialNumber,
+      meterNumber: assets.meterNumber,
+      meterUnit: assets.meterUnit,
+      propertyId: assets.propertyId,
+      areaId: assets.areaId,
+    })
+    .from(assets)
+    .where(isNull(assets.deletedAt))
+    .orderBy(asc(assets.number))
+  const operatorDay = await operatorKeyDay(tx)
+  const points = new Map(
+    (
+      await tx
+        .select({
+          assetId: meterPoints.assetId,
+          keyDay: meterPoints.keyDay,
+          conversionFactor: meterPoints.conversionFactor,
+        })
+        .from(meterPoints)
+        .where(isNull(meterPoints.deletedAt))
+    ).map((point) => [point.assetId as string, point]),
+  )
+  const readings = byAsset(
+    validReadings(
+      await tx
+        .select({
+          id: meterReadings.id,
+          assetId: meterReadings.assetId,
+          keyDate: meterReadings.keyDate,
+          readOn: meterReadings.readOn,
+          valueMilli: meterReadings.valueMilli,
+          correctsId: meterReadings.correctsId,
+        })
+        .from(meterReadings)
+        .where(isNull(meterReadings.deletedAt)),
+    ),
+  )
+  const exchanges = byAsset(
+    await tx
+      .select({
+        assetId: meterExchanges.assetId,
+        exchangedOn: meterExchanges.exchangedOn,
+        oldNumber: meterExchanges.oldNumber,
+        oldEndMilli: meterExchanges.oldEndMilli,
+        newNumber: meterExchanges.newNumber,
+        newStartMilli: meterExchanges.newStartMilli,
+      })
+      .from(meterExchanges)
+      .where(isNull(meterExchanges.deletedAt)),
+  )
+  const pauses = byAsset(
+    await tx
+      .select({
+        assetId: meterPauses.assetId,
+        startsOn: meterPauses.startsOn,
+        endsOn: meterPauses.endsOn,
+      })
+      .from(meterPauses)
+      .where(isNull(meterPauses.deletedAt)),
+  )
+
+  return {
+    stock: {
+      meters: seen.map(({ id, number, name, mark, serialNumber, meterNumber, meterUnit }) => {
+        const point = points.get(id) ?? null
+
+        return {
+          id,
+          number,
+          name,
+          mark,
+          serialNumber,
+          meterNumber,
+          // A measuring point without a unit is none the forms make; its figures are read as the page writes them.
+          unit: meterUnit ?? 'cubic_metres',
+          keyDay: keyDayOf(point, { keyDay: operatorDay }),
+          conversionFactor: point?.conversionFactor ?? null,
+          readings: readings.get(id) ?? [],
+          exchanges: exchanges.get(id) ?? [],
+          pauses: pauses.get(id) ?? [],
+        }
+      }),
+      today,
+    },
+    places: new Map(
+      seen.map(({ id, propertyId, areaId }) => [id as string, { propertyId, areaId }]),
+    ),
+  }
+}
+
+/**
+ * What a list of templates of rounds is held against (#130): the titles of
+ * the templates the operator has. A template belongs to the operator and to
+ * no area, so every one of them is in it.
+ */
+export async function templateImportStock(tx: TenantTransaction): Promise<TemplateImportStock> {
+  return {
+    templates: await tx
+      .select({ title: roundTemplates.title })
+      .from(roundTemplates)
+      .where(isNull(roundTemplates.deletedAt)),
   }
 }
 

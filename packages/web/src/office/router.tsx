@@ -40,6 +40,7 @@ import { EditFloorScreen, NewFloorScreen } from './screens/floor-form.js'
 import { FloorScreen } from './screens/floors.js'
 import { GuideScreen, HelpScreen } from './screens/help.js'
 import { ImportDeadlinesScreen } from './screens/import-deadlines.js'
+import { ImportMetersScreen, ImportTemplatesScreen } from './screens/import-history.js'
 import { ImportAssetsScreen, ImportStructureScreen } from './screens/imports.js'
 import { LabelLandingScreen } from './screens/label-landing.js'
 import { MeterSettingsScreen } from './screens/meter-settings.js'
@@ -249,6 +250,12 @@ export function officeRoutes() {
     // The meters on a key date, narrowed by what the address names, and the
     // page of one measuring point under them, by the id of its asset (#119).
     createRoute({ getParentRoute: () => office, path: '/zaehler', component: MeterListScreen }),
+    // The import of the history of the meters stands under their list, before the page of a meter (#130).
+    createRoute({
+      getParentRoute: () => office,
+      path: importPlaces.meters,
+      component: ImportMetersScreen,
+    }),
     createRoute({
       getParentRoute: () => office,
       path: '/zaehler/$meterId',
@@ -365,6 +372,12 @@ export function officeRoutes() {
       getParentRoute: () => office,
       path: '/rundgaenge/vorlagen/neu',
       component: NewTemplateScreen,
+    }),
+    // The import of templates stands under their list, before the page of a template (#130).
+    createRoute({
+      getParentRoute: () => office,
+      path: importPlaces.templates,
+      component: ImportTemplatesScreen,
     }),
     createRoute({
       getParentRoute: () => office,

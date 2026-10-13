@@ -193,6 +193,17 @@ describe('the list of the templates', () => {
 
     expect(screen.queryByRole('button', { name: 'Neue Vorlage' })).toBeNull()
     expect(screen.queryByRole('button', { name: 'Übernehmen und anpassen' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Importieren' })).toBeNull()
+  })
+
+  it('leads whoever keeps the templates to their import (#130)', async () => {
+    const { router } = await mountOffice('/rundgaenge/vorlagen', server, everything)
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Importieren' }))
+
+    await waitFor(() => {
+      expect(router.state.location.pathname).toBe('/rundgaenge/vorlagen/importieren')
+    })
   })
 })
 

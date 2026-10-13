@@ -1,16 +1,19 @@
 # Import aus Tabellen: das Format
 
-OpenGewerk Haustechnik übernimmt Liegenschaften, Gebäude, Geschosse, Räume, Anlagen und
-laufende Fristen mit ihren alten Nachweisen aus Tabellen, wie sie in einer Tabellenkalkulation
-geführt werden (Abschnitte 3 und 11 des Planungskonzepts). Diese Seite beschreibt, wie eine
-solche Tabelle aussieht und was der Import aus ihr liest. Sie gilt für die Listen eines
-Betreibers genauso wie für den Weg aus einer Vorgängeranwendung.
+OpenGewerk Haustechnik übernimmt Liegenschaften, Gebäude, Geschosse, Räume, Anlagen,
+laufende Fristen mit ihren alten Nachweisen, den Verlauf der Zähler und die Vorlagen der
+Rundgänge aus Tabellen, wie sie in einer Tabellenkalkulation geführt werden (Abschnitte 3 und 11
+des Planungskonzepts). Diese Seite beschreibt, wie eine solche Tabelle aussieht und was der
+Import aus ihr liest. Sie gilt für die Listen eines Betreibers genauso wie für den Weg aus einer
+Vorgängeranwendung. Wie die Tabellen einer Vorgängeranwendung zu einem Paket zusammengehören,
+steht in [Importpaket.md](Importpaket.md), mit einem Beispielpaket aus erfundenen Daten.
 
-Drei Importe gibt es, jeder unter der Liste, die er füllt: "Importieren" unter Liegenschaften
+Fünf Importe gibt es, jeder unter der Liste, die er füllt: "Importieren" unter Liegenschaften
 für den Bestand vom Standort bis zum Raum, "Importieren" unter Anlagen für die Anlagen in
-Gebäuden und Räumen, die es schon gibt, und "Importieren" im Pflichtenverzeichnis für die
-laufenden Fristen dieser Anlagen. Wer alles aus Listen übernimmt, importiert in dieser
-Reihenfolge.
+Gebäuden und Räumen, die es schon gibt, "Importieren" im Pflichtenverzeichnis für die laufenden
+Fristen dieser Anlagen, "Importieren" unter Zähler für Stände, Tausche und Stilllegungen der
+Messstellen und "Importieren" unter den Vorlagen der Rundgänge. Wer alles aus Listen übernimmt,
+importiert in dieser Reihenfolge; die Vorlagen brauchen nichts davon und gehen jederzeit.
 
 ## Die Datei
 
@@ -248,11 +251,122 @@ Was dabei gilt:
 - Eine Pflicht an einem Raum, einem Gebäude oder der Liegenschaft wird im Büro angelegt; ihren
   letzten Nachweis trägt dort der Bericht einer Fremdfirma oder Prüforganisation ein.
 
+## Zählerstände, Zählertausche und Stilllegungen
+
+Die Messstellen selbst sind Anlagen und kommen mit dem Import der Anlagen, mit Zählernummer und
+Einheit. Dieser Import übernimmt, was an ihnen hängt (Abschnitt 11 des Planungskonzepts:
+"Messstellen und Stände mit Tauschen und Stilllegungen"). Er steht unter "Importieren" in der
+Liste "Zähler".
+
+Eine Zeile ist ein Eintrag an einer Messstelle: ein Stand mit dem Tag der Ablesung, der Tausch
+des Zählers oder eine Zeit, in der die Messstelle ruhte.
+
+| Feld | Pflicht | Wird auch erkannt als | Was darin steht |
+|---|---|---|---|
+| Zählernummer | | Zähler-Nr., Zählernr, Zähler, Nummer des Zählers | die Nummer, die der Zähler der Messstelle heute trägt |
+| Anlagennummer | | Anlagen-Nr., Anlagennr, Nummer der Anlage | die Nummer der Messstelle in dieser Anwendung, etwa AN-00101 |
+| Kennzeichen | | Inventar-Nr., Inventarnummer, Anlagenkennzeichen, Kennzeichnung, AKS | das Kennzeichen der Messstelle, wie es beim Import der Anlagen kam |
+| Seriennummer | | Serien-Nr., Seriennr, Fabriknummer, Fabrik-Nr., SN | die Seriennummer der Messstelle |
+| Eintrag | | Art, Art des Eintrags, Vorgang | Stand, Tausch oder Stilllegung; leer heißt Stand |
+| Tag | | Datum, Abgelesen am, Ablesedatum, Ablesetag, Tag der Ablesung | Tag der Ablesung, des Tauschs oder erster Tag der Stilllegung, 02.10.2026 oder 2026-10-02 |
+| Stand | | Zählerstand, Ablesewert, Wert | nur für einen Stand: die Zahl in der Einheit des Zählers, etwa 4812,5 |
+| Alte Zählernummer | | Alter Zähler, Zählernummer alt, Ausgebauter Zähler | nur für einen Tausch: die Nummer des ausgebauten Zählers |
+| Endstand alt | | Endstand, Endstand des alten Zählers | nur für einen Tausch: der letzte Stand des ausgebauten Zählers |
+| Neue Zählernummer | | Neuer Zähler, Zählernummer neu, Eingebauter Zähler | nur für einen Tausch: die Nummer des eingebauten Zählers |
+| Anfangsstand neu | | Anfangsstand, Anfangsstand des neuen Zählers | nur für einen Tausch: der erste Stand des eingebauten Zählers |
+| Bis | | Letzter Tag, Stillgelegt bis, Ende | nur für eine Stilllegung: ihr letzter Tag; leer heißt, sie dauert an |
+| Grund | | Begründung, Grund der Stilllegung | nur für eine Stilllegung, dort nötig, höchstens 500 Zeichen |
+
+Was dabei gilt:
+
+- **Die Messstelle** nennt eine Zeile mit der Zählernummer, die sie heute trägt, ihrer
+  Anlagennummer, ihrem Kennzeichen oder ihrer Seriennummer. Was davon dasteht, muss dieselbe
+  Anlage meinen, und die Anlage muss eine Messstelle sein. Eine Messstelle außerhalb der eigenen
+  Bereiche findet der Import nicht.
+- **Was eine Zeile ist**, sagt die Spalte "Eintrag". Ohne sie ist eine Zeile mit einer neuen
+  Zählernummer ein Tausch, eine mit einem Grund eine Stilllegung und jede andere ein Stand: eine
+  reine Liste von Ständen braucht die Spalte nicht. Was in einer Zeile für eine andere Art von
+  Eintrag steht, wird nicht übernommen; die Vorschau nennt es.
+- **Eine Zahl** steht in der Einheit des Zählers, mit Komma und ohne Tausenderpunkt, mit
+  höchstens drei Stellen hinter dem Komma: 4812 oder 4812,5. Die Einheit darf dahinter stehen,
+  wenn es die des Zählers ist.
+- **Ein Stand gilt für den Stichtag seines Tags**, wie eine Ablesung im Büro: für den Stichtag
+  am oder vor dem Tag der Ablesung, wenn er höchstens 14 Tage zurückliegt, sonst für den
+  nächsten. Den Stichtag stellt der Betreiber unter "Einstellungen" ein, eine Messstelle kann
+  einen eigenen haben; beides steht vor dem Import. Ein Stichtag hat einen Stand: nennt die
+  Liste für einen Stichtag zwei, ist das zu klären.
+- **Ein Stand wird geprüft wie jeder andere.** Kleiner als der Stand davor oder größer als der
+  danach ist zu klären, es sei denn, ein Tausch liegt dazwischen. Ein Stand weit über dem davor
+  wird übernommen: die Vorschau nennt ihn, und wer die Liste übernimmt, bestätigt ihn damit.
+- **Ein übernommener Stand sagt das.** Seine Quelle heißt "Übernommen", daneben steht, wer die
+  Liste übernommen hat: abgelesen hat ihn hier niemand. Berichtigt wird er wie jeder Stand,
+  durch einen neuen Eintrag mit Grund.
+- **Ein Tausch** nennt beide Zählernummern und beide Stände. Die Tausche einer Messstelle
+  schließen aneinander an: ausgebaut wird der Zähler, den der Tausch davor eingebaut hat, und
+  der jüngste Tausch baut den Zähler ein, den die Anlage heute trägt. Die Zählernummer der
+  Anlage ändert der Import nicht. Der Endstand liegt nicht unter dem letzten Stand des alten
+  Zählers.
+- **Eine Stilllegung** hat einen ersten Tag, einen Grund und auf Wunsch einen letzten Tag. Zwei
+  Stilllegungen einer Messstelle überschneiden sich nicht.
+- **Was es schon gibt, wird nicht doppelt übernommen:** ein Stand mit derselben Zahl für
+  denselben Stichtag, ein Tausch am selben Tag mit denselben Angaben und eine Stilllegung mit
+  denselben Tagen. Dieselbe Liste lässt sich also ein zweites Mal importieren. Steht für einen
+  Stichtag schon ein anderer Stand, ist die Zeile zu klären: berichtigt wird an der Messstelle.
+- Wandlerfaktor, Hauptzähler, Kennung in der Leittechnik, Notiz und Sperre einer Messstelle
+  stehen in keiner Liste; sie werden an der Messstelle eingetragen. Eine Sperre hält den Import
+  nicht auf: übernommen wird, was früher abgelesen wurde.
+
+## Vorlagen der Rundgänge
+
+Die eigenen Vorlagen eines Betreibers kommen als Formulare in seine Instanz (Abschnitt 11 des
+Planungskonzepts). Sie gehören ihm und bleiben dort. Der Import steht unter "Importieren" in der
+Liste der Vorlagen und braucht keinen der anderen.
+
+Eine Zeile ist ein Punkt: sie nennt ihre Vorlage, ihr Kapitel und was geprüft, gemessen oder
+gefragt wird.
+
+| Feld | Pflicht | Wird auch erkannt als | Was darin steht |
+|---|---|---|---|
+| Vorlage | ja | Rundgang, Checkliste, Formular, Name der Vorlage | die Bezeichnung der Vorlage, höchstens 120 Zeichen |
+| Kapitel | | Abschnitt, Gruppe, Bereich | höchstens 120 Zeichen; leer heißt das Kapitel der Zeile darüber, sonst "Kapitel 1" |
+| Punkt | ja | Prüfpunkt, Kontrollpunkt, Frage, Aufgabe | was geprüft, gemessen oder gefragt wird, höchstens 200 Zeichen |
+| Art | | Art des Punkts, Feldart, Typ | Prüfpunkt, Messwert, Zählerstand, Foto, Bemerkung, Text, Zahl, Auswahl oder Ja oder nein; leer heißt Prüfpunkt |
+| Hinweis | | Erläuterung, Beschreibung, Hilfetext | höchstens 300 Zeichen |
+| Pflichtfeld | | Pflicht, Erforderlich | ja oder nein; leer heißt ja bei Messwert und Zählerstand, sonst nein |
+| Einheit | | | für Messwert, Zählerstand und Zahl: °C, kWh, MWh, m³, Ω, MΩ oder mA |
+| Nachkommastellen | | Stellen, Kommastellen | 0 bis 3; leer heißt 1 beim Messwert, 0 bei der Zahl, beim Zählerstand nach seiner Einheit |
+| Möglichkeiten | | Auswahl, Optionen, Antworten | für eine Auswahl: mindestens zwei, durch Semikolon getrennt |
+| Mindestens | | Mindestwert, Untergrenze, Min | für einen Messwert: der Wert, den er erreichen muss |
+| Höchstens | | Höchstwert, Obergrenze, Max | für einen Messwert: der Wert, den er nicht überschreiten darf |
+| Quelle des Grenzwerts | | Quelle | zu einem Grenzwert nötig: worauf er sich stützt, höchstens 200 Zeichen |
+| Gegenzeichnung | | Gegenzeichnen | ja oder nein, für die ganze Vorlage |
+
+Was dabei gilt:
+
+- **Die Zeilen einer Vorlage werden eine Vorlage** mit ihrer ersten Fassung, Kapitel und Punkte
+  in der Reihenfolge der Liste. Eine Vorlage hat höchstens 30 Kapitel und 200 Punkte.
+- **Die Arten** heißen wie im Editor der Vorlagen. Was eine Zeile nennt und ihre Art nicht
+  braucht, etwa eine Einheit an einem Prüfpunkt, wird nicht übernommen; die Vorschau nennt es.
+- **Ein Grenzwert** kommt als eigener Wert des Betreibers mit seiner Quelle: eine Zahl in der
+  Einheit des Punkts, mit Komma und ohne Tausenderpunkt, als Mindestens oder als Höchstens. Ein
+  Grenzwert aus einer Regel eines Pakets wird nach der Übernahme im Editor gewählt und folgt
+  dann den Fassungen der Regel.
+- **Worauf ein Punkt zeigt**, eine Anlage oder ein Raum, und welche Pflicht er erfüllt, sagt
+  keine Liste. Beides wird nach der Übernahme im Editor eingetragen, als nächste Fassung der
+  Vorlage.
+- **Die Gegenzeichnung** gilt für die ganze Vorlage: nennt eine ihrer Zeilen "ja", verlangt die
+  Vorlage sie. "ja" in einer Zeile und "nein" in einer anderen ist zu klären.
+- **Eine Vorlage, die es unter ihrer Bezeichnung schon gibt, bleibt, wie sie ist.** Ihre Zeilen
+  werden nicht übernommen. Geändert wird eine Vorlage im Editor, als neue Fassung.
+- Pläne übernimmt der Import nicht: wo, wie oft und von wem ein Rundgang gegangen wird, wird im
+  Büro angelegt.
+
 ## Vorschau und Übernahme
 
 Vor der Übernahme zeigt die Vorschau, was die Tabelle anlegen würde, welche Zeilen zu klären sind,
 was es schon gibt und was nicht übernommen wird: bei Anlagen einzelne Werte, bei den Fristen
-ältere Zeilen ohne Datei. Dabei wird nichts geschrieben und die Datei nicht gespeichert.
+ältere Zeilen ohne Datei, bei Zählern und Vorlagen, was eine Zeile nennt und nicht braucht. Dabei
+wird nichts geschrieben und die Datei nicht gespeichert.
 
 **Übernommen wird ganz oder gar nicht.** Solange eine Zeile zu klären ist, bleibt der Knopf aus:
 die Datei wird berichtigt und im ersten Schritt neu gewählt. Scheitert die Übernahme, ist nichts
@@ -261,9 +375,13 @@ angelegt.
 Ein Import steht als **ein Eintrag im Änderungsprotokoll**, mit dem Namen der Datei, der Zahl
 ihrer Zeilen und dem, was angelegt wurde, und nicht als ein Eintrag je Raum oder Anlage. Beim
 Import der Fristen kommt zu diesem Eintrag je einer für jede bestätigte Pflicht, jeden Nachweis
-und jedes Dokument: ein Nachweis hat Beweiswert, und sein Eintrag bleibt.
+und jedes Dokument: ein Nachweis hat Beweiswert, und sein Eintrag bleibt. Ebenso beim Import der
+Zähler und der Vorlagen: jeder Stand, jeder Tausch, jede Stilllegung und jede Vorlage hat dort
+ihren eigenen Eintrag.
 
 Den Bestand importiert, wer Liegenschaften, Gebäude und Geschosse pflegt (Leitung und Technische
 Leitung). Anlagen importiert und Anlagenarten ordnet zu, wer Anlagen pflegt (ab der
 Objektleitung). Laufende Fristen und alte Nachweise importiert, wer das Pflichtenverzeichnis
-führt und Nachweise einträgt (Leitung und Technische Leitung).
+führt und Nachweise einträgt (Leitung und Technische Leitung). Zählerstände, Tausche und
+Stilllegungen importiert, wer Anlagen pflegt und Zähler abliest, Vorlagen der Rundgänge, wer sie
+führt (beides ab der Objektleitung).

@@ -154,11 +154,16 @@ export function NotesPanel({
   notes,
   more,
   note = 'Diese Werte bleiben draußen. Die Zeilen werden trotzdem angelegt.',
+  title = 'Was nicht übernommen wird',
+  caption = 'Werte der Datei, die nicht übernommen werden',
 }: {
   readonly notes: readonly ImportNote[]
   readonly more: number
   /** What the panel says under its lines about what is left out. */
   readonly note?: string
+  /** What the panel is called, where it says something else of its lines than that they are left out (#130). */
+  readonly title?: string
+  readonly caption?: string
 }) {
   if (notes.length === 0) {
     return null
@@ -166,8 +171,8 @@ export function NotesPanel({
 
   return (
     <TablePanel
-      title="Was nicht übernommen wird"
-      caption="Werte der Datei, die nicht übernommen werden"
+      title={title}
+      caption={caption}
       cards={notes.map((note) => ({
         key: `${note.column}${note.why}`,
         title: <code className="text-[14px] [overflow-wrap:anywhere]">{note.column}</code>,

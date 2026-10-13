@@ -1295,6 +1295,29 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   weil ein Nachweis Beweiswert hat. Das Format steht in `docs/import/Tabellen.md`, Nachträge in
   ADR 0002 und 0004, Konzept v0.33. Zählerstände, Vorlagen der Rundgänge und das Dokument zum
   Importpaket folgen mit dem zweiten Teil.
+- **Zählerstände und Vorlagen der Rundgänge aus Listen, und das Importpaket (`#130`, zweiter
+  Teil).** Unter "Importieren" in der Liste "Zähler" steht ein Import für Stände, Zählertausche
+  und Stilllegungen, für alle, die Anlagen pflegen und Zähler ablesen. Eine Zeile nennt ihre
+  Messstelle mit Zählernummer, Anlagennummer, Kennzeichen oder Seriennummer und ist ein Stand,
+  ein Tausch oder eine Stilllegung. Ein übernommener Stand gilt für den Stichtag seines Tags
+  und wird geprüft wie jeder andere, gegen die Stände davor und danach und gegen die Tausche;
+  er trägt die Quelle "Übernommen" (Migration `0048_taken_over_readings`), weil ihn hier
+  niemand abgelesen hat. Die Tausche einer Liste schließen aneinander an und enden in der
+  Zählernummer, die die Anlage trägt; der Import ändert sie nicht. Unter "Importieren" in der
+  Liste der Vorlagen steht ein Import für die Vorlagen der Rundgänge, für alle, die sie führen:
+  eine Zeile ist ein Punkt mit Vorlage, Kapitel und Art, ein Grenzwert kommt als eigener Wert
+  mit Quelle, und worauf ein Punkt zeigt, wird danach im Editor eingetragen. Beide gehen den Weg
+  jedes Imports: Vorschau, die nichts schreibt, Übernahme ganz oder gar nicht, und dieselbe
+  Liste lässt sich ein zweites Mal importieren. **Wie die Tabellen einer Vorgängeranwendung zu
+  einem Paket zusammengehören, steht jetzt in `docs/import/Importpaket.md`**: der Ordner, die
+  Reihenfolge, was die Tabellen verbindet, was nicht im Paket steht (Zugänge werden eingeladen,
+  ein Paket hält kein Konto und kein Passwort) und was ein Probelauf vergleicht. Daneben liegt
+  ein Beispielpaket aus erfundenen Daten, das ein Test bei jedem Lauf in eine leere Datenbank
+  importiert und gegen die Seite hält, damit Format, Seite und Beispiel nicht
+  auseinanderlaufen. Das Formular einer eigenen Pflicht sagt wieder, dass ein Nachweis aus der
+  Zeit davor mit dem Import als Altbestand kommt. Format in `docs/import/Tabellen.md`, Nachtrag
+  in ADR 0002, Konzept v0.34. Eine Anlagenart für Messstellen bringt noch kein mitgeliefertes
+  Paket; das ist `#287`.
 
 ### Geändert
 

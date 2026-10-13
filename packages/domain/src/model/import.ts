@@ -1,5 +1,7 @@
 import type { Id } from '@opengewerk/platform-domain'
 
+import { duplicateKey } from './asset-duplicate.js'
+
 /**
  * What every import from a table has in common (#100, section 11 of the
  * concept): a plan before anything is written, and one line in the log
@@ -17,10 +19,11 @@ export type ImportId = Id<'import'>
 
 /**
  * What an import takes over: the places from the property down to the room,
- * assets into them, or the running deadlines of a predecessor application
- * with its old evidence (#130).
+ * assets into them, the running deadlines of a predecessor application with
+ * its old evidence, the history of its meters, or the templates of its
+ * rounds (#130).
  */
-export const importKinds = ['structure', 'assets', 'deadlines'] as const
+export const importKinds = ['structure', 'assets', 'deadlines', 'meters', 'templates'] as const
 
 export type ImportKind = (typeof importKinds)[number]
 
@@ -28,6 +31,8 @@ export const importKindLabel: Readonly<Record<ImportKind, string>> = {
   structure: 'Liegenschaften, Gebäude, Geschosse und Räume',
   assets: 'Anlagen',
   deadlines: 'Laufende Fristen und alte Nachweise',
+  meters: 'Zählerstände, Zählertausche und Stilllegungen',
+  templates: 'Vorlagen der Rundgänge',
 }
 
 /**
@@ -171,3 +176,102 @@ export const planHasProblems =
 
 /** What a route says to a table that would make nothing. */
 export const planMakesNothing = 'In der Tabelle steht nichts, was es nicht schon gibt.'
+
+/** Items by a key of theirs; an item whose key is null stands in no group. */
+export function grouped<Item>(
+  items: readonly Item[],
+  key: (item: Item) => string | null,
+): Map<string, Item[]> {
+  const groups = new Map<string, Item[]>()
+
+  for (const item of items) {
+    const group = key(item)
+
+    if (group !== null) {
+      groups.set(group, [...(groups.get(group) ?? []), item])
+    }
+  }
+
+  return groups
+}
+
+/** An asset in a few words, for a line of the preview: its number, else its name. */
+export function assetWords(asset: {
+  readonly number: string | null
+  readonly name: string
+}): string {
+  return asset.number ?? asset.name
+}
+
+/** A way a line names its asset: the field of the table, the word for it and the assets by it. */
+export interface AssetNaming<Asset> {
+  readonly field: string
+  readonly word: string
+  /** The article the word takes behind "mit". */
+  readonly article: 'dem' | 'der'
+  /** The assets by `duplicateKey` of what the field holds. */
+  readonly index: ReadonlyMap<string, readonly Asset[]>
+}
+
+/**
+ * The asset a line names (#130): by its number here, its mark, its serial
+ * number, or whatever else a list may name one by. Whatever of them a line
+ * gives has to mean the same asset, and one only; a mark that several assets
+ * carry names none of them.
+ */
+export function namedAsset<Asset extends { readonly number: string | null; readonly name: string }>(
+  line: number,
+  cell: (field: string) => string,
+  namings: readonly AssetNaming<Asset>[],
+  problems: ImportProblems,
+  missing: string,
+): Asset | null {
+  const given = namings.flatMap(({ field, word, article, index }) => {
+    const key = duplicateKey(cell(field))
+
+    return key === null ? [] : [{ word, article, value: cell(field), found: index.get(key) ?? [] }]
+  })
+
+  if (given.length === 0) {
+    problems.add(line, missing)
+
+    return null
+  }
+
+  for (const each of given) {
+    if (each.found.length === 0) {
+      problems.add(
+        line,
+        `Eine Anlage mit ${each.article} ${each.word} „${each.value}“ gibt es in Ihren Bereichen nicht`,
+        'Die Anlagen zuerst importieren oder die Datei berichtigen',
+      )
+
+      return null
+    }
+  }
+
+  const common = (given[0]?.found ?? []).filter((asset) =>
+    given.every((each) => each.found.includes(asset)),
+  )
+
+  if (common.length === 0) {
+    problems.add(
+      line,
+      `${listed(given.map((each) => `${each.word} „${each.value}“`))} gehören zu verschiedenen Anlagen`,
+    )
+
+    return null
+  }
+
+  if (common.length > 1) {
+    problems.add(
+      line,
+      `${listed(given.map((each) => `${each.word} „${each.value}“`))} ${given.length === 1 ? 'trägt' : 'tragen'} mehr als eine Anlage: ${listed(common.map(assetWords))}`,
+      'Die Anlagennummer nennen und neu hochladen',
+    )
+
+    return null
+  }
+
+  return common[0] ?? null
+}

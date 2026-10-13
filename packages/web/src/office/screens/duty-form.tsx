@@ -104,7 +104,8 @@ export const dutyFormWords = {
   noColleagues: 'Wer zur Wahl steht, ließ sich nicht laden. Das braucht eine Verbindung.',
   likeTheCatalogue:
     'Eine eigene Pflicht steht im Pflichtenverzeichnis wie eine aus dem Katalog und erinnert wie sie. Sie trägt keine Kennzeichnung „Nicht abgenommen“: für sie steht die Quelle, die Sie nennen.',
-  neverRecorded: 'Bis der erste Nachweis eingetragen ist, ist sie nie erfasst.',
+  neverRecorded:
+    'Bis der erste Nachweis eingetragen ist, ist sie nie erfasst. Einen Nachweis aus der Zeit davor übernimmt der Import als Altbestand.',
   recurring:
     'Auch eine Aufgabe, die regelmäßig wiederkommt, wird so angelegt: als eigene Pflicht mit der Grundlage „Eigene Festlegung“.',
   generalKind:

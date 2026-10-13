@@ -63,7 +63,17 @@ import {
 } from '@opengewerk/platform-web/sync'
 import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useNavigate, useParams, useSearch } from '@tanstack/react-router'
-import { ArrowLeftRight, Check, Gauge, Lock, Pause, Plus, Route, TriangleAlert } from 'lucide-react'
+import {
+  ArrowLeftRight,
+  Check,
+  Gauge,
+  Lock,
+  Pause,
+  Plus,
+  Route,
+  TriangleAlert,
+  Upload,
+} from 'lucide-react'
 import { type ReactNode, useMemo, useRef, useState } from 'react'
 
 import { placePath } from '../../app/place-path.js'
@@ -72,6 +82,7 @@ import { siteReadings } from '../../site/places.js'
 import { useCatalogue } from '../../sync/catalogue.js'
 import { askAt } from '../../sync/made-at.js'
 import { assetForms } from '../asset-addresses.js'
+import { importPlaces } from '../import-addresses.js'
 import { factLink } from '../links.js'
 import { meterListPlace, meterListWords, meterPlaces } from '../meter-addresses.js'
 import { NarrowedToBuilding } from '../narrowed-to-building.js'
@@ -82,6 +93,7 @@ import { kindLabel } from './assets.js'
 export const meterWords = {
   title: 'Zähler',
   newMeter: 'Neue Messstelle',
+  importList: 'Importieren',
   round: 'Ablesung als Runde',
   jumpCheck: 'Wert prüfen',
   jumpKeep: 'So übernehmen',
@@ -361,6 +373,16 @@ export function MeterListScreen() {
         actions={
           <>
             {table.button}
+            {writes && reads ? (
+              <Button
+                icon={Upload}
+                onClick={() => {
+                  void navigate({ to: importPlaces.meters })
+                }}
+              >
+                {meterWords.importList}
+              </Button>
+            ) : null}
             {reads ? (
               <Button
                 icon={Route}

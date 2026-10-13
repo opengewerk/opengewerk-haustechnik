@@ -330,6 +330,29 @@ describe('the list of meters', () => {
 
     expect(screen.queryByRole('button', { name: meterWords.newMeter })).toBeNull()
   })
+
+  it('leads whoever keeps assets and reads meters to the import of their history (#130)', async () => {
+    const { router } = await mountOffice('/zaehler', server, everything)
+
+    fireEvent.click(await screen.findByRole('button', { name: meterWords.importList }))
+
+    await waitFor(() => {
+      expect(router.state.location.pathname).toBe('/zaehler/importieren')
+    })
+  })
+
+  it('offers no import to the Haustechnik, which keeps no assets (#130)', async () => {
+    signedIn('technician')
+    await mountOffice('/zaehler', server, everything)
+    await untilTheRightsAreKnown()
+    await waitFor(() => {
+      expect(rowsOf(listCaption)).toHaveLength(3)
+    })
+
+    // What the Haustechnik may do stands there, so the head has been drawn.
+    expect(screen.getByRole('button', { name: meterWords.round })).toBeTruthy()
+    expect(screen.queryByRole('button', { name: meterWords.importList })).toBeNull()
+  })
 })
 
 describe('the page of a measuring point', () => {

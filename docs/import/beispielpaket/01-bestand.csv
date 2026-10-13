@@ -1,0 +1,7 @@
+Liegenschaft;Straße und Hausnummer;Postleitzahl;Ort;Bundesland;Gebäude;Gebäudeart;Baujahr des Gebäudes;Geschoss;Raumnummer;Raumbezeichnung;Nutzung
+Grundschule Am Mühlbach;Am Mühlbach 3;12345;Beispielstadt;Baden-Württemberg;Schulhaus;Schule oder Hochschule;1998;UG;U.01;Heizraum;Technik
+Grundschule Am Mühlbach;Am Mühlbach 3;12345;Beispielstadt;Baden-Württemberg;Schulhaus;Schule oder Hochschule;1998;UG;U.02;Hausanschlussraum;Technik
+Grundschule Am Mühlbach;Am Mühlbach 3;12345;Beispielstadt;Baden-Württemberg;Schulhaus;Schule oder Hochschule;1998;EG;E.01;Foyer;Verkehrsfläche
+Grundschule Am Mühlbach;Am Mühlbach 3;12345;Beispielstadt;Baden-Württemberg;Schulhaus;Schule oder Hochschule;1998;EG;E.14;Lehrerzimmer;Büro
+Grundschule Am Mühlbach;Am Mühlbach 3;12345;Beispielstadt;Baden-Württemberg;Sporthalle;Versammlungs- oder Sportstätte;2006;EG;S.01;Halle;Sport
+Grundschule Am Mühlbach;Am Mühlbach 3;12345;Beispielstadt;Baden-Württemberg;Sporthalle;Versammlungs- oder Sportstätte;2006;EG;S.05;Technikraum;Technik

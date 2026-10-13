@@ -169,6 +169,7 @@ Anhang B nennt jedes Feld der Datenbank, das auf eine Person zeigt. Dieser Absch
 
 - Wer Liegenschaften oder Anlagen pflegt, übernimmt sie auch aus einer Tabelle. Die Datei wird gelesen und nicht gespeichert. Von einem Import bleiben eine Zeile mit dem Namen der Datei, der Zahl ihrer Zeilen und dem Ergebnis in Worten, und die Datensätze, die er angelegt hat. Die Zeile nennt keine Person. Wer importiert hat und wann, steht im Änderungsprotokoll (Abschnitt 8) und im Stempel der angelegten Datensätze (Abschnitt 3.6), dort wie immer nur, bis jemand den Datensatz ändert. [K11, K3, B92]
 - Wie die Listen eines Betreibers die Anlagenarten nennen, behält die Anwendung für den nächsten Import: ein Wort und die Anlagenart dazu, ohne Person. Wer ein Wort zugeordnet hat, steht im Änderungsprotokoll. [K11]
+- Aus Tabellen kommen auch laufende Fristen mit ihren alten Nachweisen, der Verlauf der Zähler und die Vorlagen der Rundgänge, jeweils für die, die sie auch von Hand führen. Bei diesen drei Importen steht neben der Zeile des Imports jeder angelegte Datensatz mit eigenem Eintrag im Änderungsprotokoll. Ein übernommener Nachweis nennt niemanden, der ihn durchgeführt oder unterschrieben hat; ein übernommener Zählerstand nennt, wer die Liste übernommen hat. [K11]
 
 ### 3.12 Mängel
 
@@ -182,13 +183,13 @@ Anhang B nennt jedes Feld der Datenbank, das auf eine Person zeigt. Dieser Absch
 
 ### 3.13 Zähler
 
-- Ein Zählerstand hält fest: den Stichtag, für den er gilt, den Tag der Ablesung, den Stand, auf welchem Weg er kam (von Hand, eigene Runde, Rundgang, Protokoll) und wer ihn eingetragen hat. Die Person setzt der Server selbst ein. Die Seite einer Messstelle im Büro nennt zu jedem Stand den Namen, für alle, die Anlagen ansehen, in ihren Bereichen. Eine Liste der Stände nach Person gibt es nicht. [K4.9, K4.16, B139]
+- Ein Zählerstand hält fest: den Stichtag, für den er gilt, den Tag der Ablesung, den Stand, auf welchem Weg er kam (von Hand, eigene Runde, Rundgang, Protokoll oder aus einer Liste übernommen) und wer ihn eingetragen hat. Die Person setzt der Server selbst ein. Die Seite einer Messstelle im Büro nennt zu jedem Stand den Namen, für alle, die Anlagen ansehen, in ihren Bereichen. Eine Liste der Stände nach Person gibt es nicht. [K4.9, K4.16, B139]
 - **Zusage:** Ein Zählerstand wird nicht geändert und nicht gelöscht, auch nicht in der Datenbank. Berichtigt wird er durch einen neuen Stand für denselben Stichtag, der ihn nennt, mit Grund und der Person, die berichtigt; beide bleiben sichtbar, gerechnet wird mit dem neuen. [K4.9, B140, B141]
 - Die Notiz an einer Messstelle nennt, wer sie geschrieben hat und seit wann. Eine Sperre nennt ihren Grund und seit wann, eine Stilllegung ihren Zeitraum und Grund, ein Zählertausch die Nummern und Stände; wer gesperrt, stillgelegt oder getauscht hat, steht nur im Änderungsprotokoll. [K4.9, B142]
 - **Zusage:** Zähler ablesen dürfen alle vier Rollen. Den Zählertausch, die Stilllegung, die Sperre, die Notiz und was nur die Messstelle trägt, ändert, wer Anlagen pflegt: die Leitung, die Technische Leitung und die Objektleitung. Die Haustechnik kann es nicht. [K4.9, K7, B143, B144]
 - Der Verbrauch wird aus den Ständen abgeleitet und nie gespeichert; er nennt keine Person. [K4.9]
 - Ein Zählerstand entsteht auch vor Ort, ohne Netz: auf einer eigenen Runde der Zähler einer Liegenschaft oder als Punkt eines Rundgangs. Den Stichtag, den Weg und die Person, die ihn eingetragen hat, setzt der Server; ein Stand aus einem Rundgang entsteht erst mit dessen Unterschrift, im Namen der Person, die unterschrieben hat. [K4.9, B145, B146]
-- Ein Stand weit über dem davor wird erst genommen, wenn die ablesende Person ihn bestätigt. Am Stand steht nur, dass er bestätigt wurde, keine weitere Person. [K4.9, B147]
+- Ein Stand weit über dem davor wird erst genommen, wenn die ablesende Person ihn bestätigt. Am Stand steht nur, dass er bestätigt wurde, keine weitere Person. Einen solchen Stand aus einer Liste nennt die Vorschau des Imports; ihn bestätigt, wer die Liste übernimmt. [K4.9, K11, B147]
 
 ### 3.14 Aufgaben
 
@@ -675,7 +676,7 @@ Jede Zeile ist ein Feld der Datenbank, das die Kennung eines Kontos hält. Der S
 | `member_passkeys` | `user_id` | wessen Passkey bei diesem Betreiber gilt |
 | `memberships` | `user_id` | wer bei diesem Betreiber arbeitet |
 | `meter_points` | `note_by` | wer die Notiz an einer Messstelle geschrieben hat |
-| `meter_readings` | `recorded_by` | wer einen Zählerstand eingetragen oder berichtigt hat |
+| `meter_readings` | `recorded_by` | wer einen Zählerstand eingetragen, berichtigt oder aus einer Liste übernommen hat |
 | `push_opt_outs` | `user_id` | wer einen Anlass als Push abgeschaltet hat |
 | `push_subscriptions` | `user_id` | wessen Gerät Push empfängt |
 | `round_plans` | `performer_user_id` | wer die Rundgänge eines Plans geht, wenn der Plan jemanden nennt |
@@ -714,7 +715,7 @@ Jede Zeile ist der erste Abschnitt einer Adresse, unter der der Server antwortet
 | `files` | Dateien: nimmt den Inhalt einer Datei an, bevor ein Datensatz sie nennt, und gibt keine aus |
 | `floors` | Geschosse |
 | `health` | Gesundheitsprüfung, ohne Daten |
-| `imports` | Import aus Tabellen: liest die Datei einer Liste, ohne sie zu speichern, zeigt, was ihre Zeilen anlegen würden, übernimmt Liegenschaften, Gebäude, Geschosse, Räume und Anlagen ganz oder gar nicht, und hält, wie die Listen des Betreibers die Anlagenarten nennen |
+| `imports` | Import aus Tabellen: liest die Datei einer Liste, ohne sie zu speichern, zeigt, was ihre Zeilen anlegen würden, übernimmt Liegenschaften, Gebäude, Geschosse, Räume und Anlagen, laufende Fristen mit alten Nachweisen, den Verlauf der Zähler und Vorlagen der Rundgänge, jede Liste ganz oder gar nicht, und hält, wie die Listen des Betreibers die Anlagenarten nennen |
 | `instance` | Verwaltung der Instanz |
 | `invitation` | Einlösen einer Einladung |
 | `labels` | Etiketten: sagt zu einem gescannten Code in einem Wort, ob er für die fragende Person etwas öffnet, und druckt viele Etiketten auf einmal |

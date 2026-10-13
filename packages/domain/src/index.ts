@@ -73,6 +73,8 @@ export * from './model/import.js'
 export * from './model/import-structure.js'
 export * from './model/import-assets.js'
 export * from './model/import-deadlines.js'
+export * from './model/import-meters.js'
+export * from './model/import-templates.js'
 // What only an asset kind has, between a form or a column of a list and the
 // asset: the fields a kind brings, and a cell read as one of them.
 export * from './model/asset-values.js'
