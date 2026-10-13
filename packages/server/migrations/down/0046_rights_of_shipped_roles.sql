@@ -1,0 +1,7 @@
+-- Nothing to take back.
+--
+-- 0046 gave the rows of the four shipped roles the rights they lacked. Which
+-- of them a row held before, nothing records, and the version before this
+-- migration gets along with the rows as they are: it reads the same rows,
+-- every right in them is in its catalogue, and a tenant it sets up today is
+-- given exactly these.

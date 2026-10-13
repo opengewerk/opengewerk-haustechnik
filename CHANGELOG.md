@@ -1893,3 +1893,14 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   hatte, stand noch im Zuschnitt der Breite davor und galt als "bei 320 px 150 px zu breit". Seit
   #231 zählte ein solcher Befund nicht mehr, er kostete aber eine zweite Messung und eine Warnung
   am Lauf, die niemand mehr ernst nimmt, wenn sie oft ohne Grund kommt (`opengewerk#615`)
+- Ein Recht, das eine der vier mitgelieferten Rollen nach dem Anlegen eines Betreibers bekommen
+  hat, erreicht jetzt auch diesen Betreiber (#270). Die Rollen eines Betreibers sind Zeilen,
+  geschrieben an dem Tag, an dem er angelegt wird, und was jemand darf, wird aus ihnen gelesen:
+  die Rechte an Dokumenten, Aufgaben und Vorlagen, an Push und am Mailserver hatte deshalb nur,
+  wer nach ihnen angelegt wurde. Die Migration `0046_rights_of_shipped_roles` gibt den Zeilen der
+  vier Rollen, was ihnen fehlt, nimmt nichts weg, lässt eigene Rollen eines Betreibers, wie sie
+  sind, und steht im Änderungsprotokoll mit dem Grund `migration`. Von hier an gehört zu jedem
+  Recht, das eine der vier Rollen bekommt oder verliert, eine solche Migration: ein Test mit
+  einem Betreiber von vor `0046` wird ohne sie rot und nennt Rolle und Recht. Er ersetzt
+  `roles-of-a-version.test.ts`, der damit bis zur ersten Fassung warten wollte; der Pilotbetrieb
+  soll sein erstes Update nicht ohne diese Regel bekommen

@@ -323,6 +323,13 @@
       "when": 1791865077659,
       "tag": "0045_duplicates_of_a_list",
       "breakpoints": true
+    },
+    {
+      "idx": 46,
+      "version": "7",
+      "when": 1791897079423,
+      "tag": "0046_rights_of_shipped_roles",
+      "breakpoints": true
     }
   ]
 }
