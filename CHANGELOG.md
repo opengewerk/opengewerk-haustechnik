@@ -1692,6 +1692,16 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   die dafür über die Bereiche hinaussieht, nimmt Listen entgegen (Migration
   `0045_duplicates_of_a_list`), damit eine Tabelle mit bis zu 10.000 Zeilen in einem Durchgang
   gefragt wird; es bleibt die eine Funktion (ADR 0003, Nachtrag vom 13.10.2026)
+- Das Änderungsprotokoll nennt in der Spalte "Änderung" die Werte, wenn sich ein oder zwei Felder
+  geändert haben: "Frist in Monaten: 6 → 12" statt "Frist in Monaten" (#260). Wer das Protokoll
+  las, sah bisher nur, welches Feld sich geändert hatte, und musste jede Zeile öffnen, um zu
+  sehen, wie. Ab drei Feldern bleibt es bei den Namen; ein Wert mit mehr als 24 Zeichen wird nicht
+  ausgeschrieben, die Zeile sagt dann "Begründung der Frist neu", "geändert" oder "entfernt".
+  Dasselbe steht in der Tabelle, die das Protokoll hinausgibt. Die Tafel der Haustechnik zeigte
+  den Bildschirm an mehreren Stellen anders als das Fundament ihn baut; entschieden ist, dass der
+  Bildschirm bleibt und nur dieser eine Punkt der Tafel gebaut wird. Die Tafel
+  `HT-Einst-Protokoll` ist nach dem Bildschirm neu gezeichnet (`opengewerk#616`, Submodul
+  angehoben)
 
 ### Behoben
 
