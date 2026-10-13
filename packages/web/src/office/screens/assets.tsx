@@ -8,6 +8,7 @@ import {
   type Catalogue,
   costGroupAbove,
   costGroupWords,
+  isGeneralKind,
   type LifecycleState,
   lifecycleStateLabel,
   lifecycleStates,
@@ -311,6 +312,20 @@ const columnWidths = [
 /** What an asset kind is called, or its key where this device has no catalogue that knows it. */
 export function kindLabel(catalogue: Catalogue | null, key: string): string {
   return catalogue?.assetKind(key, today())?.definition.label ?? key
+}
+
+/**
+ * "KG 420" for the general kind of a cost group, and nothing for a kind of a
+ * package. A general kind is called like the group it stands for, and the
+ * number tells it from the kinds of a package, as the import of assets names
+ * it (4.2 of the concept).
+ */
+export function generalKindGroup(catalogue: Catalogue | null, key: string): string | null {
+  const costGroup = isGeneralKind(key)
+    ? catalogue?.assetKind(key, today())?.definition.costGroup
+    : undefined
+
+  return costGroup === undefined ? null : `KG ${costGroup}`
 }
 
 /** "412 Anlagen in 11 Liegenschaften". */

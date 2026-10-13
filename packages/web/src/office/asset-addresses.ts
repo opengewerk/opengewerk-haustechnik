@@ -141,8 +141,9 @@ export function registerTableRequest(filter: AssetRegisterFilter): string {
  * Where the forms of an asset live: a new one under the register, a
  * component under the asset it will be one of, and the form of an asset that
  * is there under its file. The page of a building opens the form of a new
- * asset with itself in the address, so that the form starts there; the form
- * asks for the building all the same, because the register opens it without.
+ * asset with itself in the address, so that the form starts there, and the
+ * page of a room names the room as well; the form asks for both all the same,
+ * because the register opens it without.
  */
 export const assetForms = {
   new: '/anlagen/neu',
@@ -153,14 +154,32 @@ export const assetForms = {
 /** The word of the address for the building a new asset starts in. */
 export const newAssetWord = 'gebaeude'
 
-/** The search of the address of a new asset that starts in a building, or in none. */
-export function newAssetSearch(buildingId?: string): Record<string, string> {
-  return buildingId === undefined ? {} : { [newAssetWord]: buildingId }
+/** The word of the address for the room of that building a new asset starts in. */
+export const newAssetRoomWord = 'raum'
+
+/**
+ * The search of the address of a new asset that starts in a building, in a
+ * room of it, or in none. A room is named with its building: the form starts
+ * from the address alone, before the device has read a record.
+ */
+export function newAssetSearch(buildingId?: string, roomId?: string): Record<string, string> {
+  if (buildingId === undefined) {
+    return {}
+  }
+
+  return roomId === undefined
+    ? { [newAssetWord]: buildingId }
+    : { [newAssetWord]: buildingId, [newAssetRoomWord]: roomId }
 }
 
 /** The building the address of a new asset names, if it names one. */
 export function newAssetBuilding(search: Readonly<Record<string, unknown>>): string | undefined {
   return said(search, newAssetWord)
+}
+
+/** The room the address of a new asset names, if it names one. */
+export function newAssetRoom(search: Readonly<Record<string, unknown>>): string | undefined {
+  return said(search, newAssetRoomWord)
 }
 
 /** What the route of the duplicates is asked with. */

@@ -382,6 +382,48 @@ describe('the form of a new asset', () => {
     ).toEqual(['Liegenschaften', 'Schulzentrum Am Lindenhain', 'Schulhaus'])
   })
 
+  it('starts in the room its address names, and sends that room', async () => {
+    const router = await mount('/anlagen/neu?gebaeude=b-house&raum=r-boiler')
+
+    await untilTheKindsAreThere()
+    answerToWrite = answering({ id: 'a-new' }, 201)
+
+    expect(choice('Gebäude').value).toBe(house.id)
+    expect(choice('Raum').value).toBe(boilerRoom.id)
+
+    choose('Anlagenart', 'probe.pump')
+    type('Bezeichnung', 'Pumpe')
+    press('Anlage anlegen')
+
+    await waitFor(() => {
+      expect(router.state.location.pathname).toBe('/anlagen/a-new')
+    })
+    expect(
+      written.map((write) => [write.path, (write.body as { roomId: unknown }).roomId]),
+    ).toEqual([['/buildings/b-house/assets', boilerRoom.id]])
+  })
+
+  it('starts in no room where the address names one its building does not have, and sends none', async () => {
+    // The hall is a room of the gym.
+    const router = await mount('/anlagen/neu?gebaeude=b-house&raum=r-hall')
+
+    await untilTheKindsAreThere()
+    answerToWrite = answering({ id: 'a-new' }, 201)
+
+    expect(choice('Raum').value).toBe('')
+
+    choose('Anlagenart', 'probe.pump')
+    type('Bezeichnung', 'Pumpe')
+    press('Anlage anlegen')
+
+    await waitFor(() => {
+      expect(router.state.location.pathname).toBe('/anlagen/a-new')
+    })
+    expect(
+      written.map((write) => [write.path, (write.body as { roomId: unknown }).roomId]),
+    ).toEqual([['/buildings/b-house/assets', null]])
+  })
+
   it('offers the floors and rooms of the chosen building, the rooms narrowed to a floor', async () => {
     await mount('/anlagen/neu')
     await untilTheKindsAreThere()
