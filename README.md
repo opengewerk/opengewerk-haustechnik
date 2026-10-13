@@ -196,6 +196,8 @@ docker run -d --rm --name widths-browser -p 127.0.0.1:3998:3000 -e TOKEN=probe -
 WIDTHS_BROWSER="ws://127.0.0.1:3998?token=probe" WIDTHS_ADDRESS=http://host.docker.internal:23800 pnpm --filter @opengewerk/haustechnik-web run widths
 ```
 
+Ein Befund zählt, wenn eine zweite Messung derselben Seite ihn wieder findet; was nur eine der beiden fand, steht im Bericht davor und lässt den Lauf grün. Unter der Adresse oben läuft die Seite ohne Service Worker, weil `http://host.docker.internal` für den Browser kein sicherer Ursprung ist; in der CI heißt die Adresse `http://127.0.0.1:23800`, und dort läuft er.
+
 ### Rechte und Rollen
 
 Was jemand darf, steht an drei Stellen, und zwei Tests halten sie zusammen:
