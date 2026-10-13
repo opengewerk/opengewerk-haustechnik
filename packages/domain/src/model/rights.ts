@@ -380,6 +380,12 @@ export type ShippedRole = RoleDefinition<Right> & { readonly key: RoleKey }
  * a right: the last one who leads a tenant neither loses the role nor is shut
  * out, and whoever leads signs in with a second factor (sections 3 and 7 of
  * the concept).
+ *
+ * These are what a tenant is given on the day it comes into being. A tenant
+ * that is already there has its rows, so a right given to one of the four
+ * here is owed a migration that writes it into those rows, like
+ * `0046_rights_of_shipped_roles.sql`, and so is one that is taken away. A
+ * test in the server package is red without it (opengewerk-haustechnik#270).
  */
 export const shippedRoles: readonly ShippedRole[] = [
   { key: 'management', label: 'Leitung', rights, leads: true, secondFactor: true },
