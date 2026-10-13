@@ -1224,6 +1224,40 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   in den Wörtern der Haustechnik und Abschnitt 9 des Konzepts (v0.30). Die Haustechnik verschickt
   noch keine E-Mails, und die Karte sagt das, bis die Benachrichtigungen (#126) den Versand
   binden
+- Benachrichtigungen per E-Mail und Push (#126, Abschnitt 3 des Konzepts, v0.31). Eine Frist
+  erinnert die verantwortliche Person per E-Mail, sobald der Betreiber unter "Einstellungen",
+  "E-Mail-Einstellungen" seinen Mailserver eingetragen hat, und per Push. Als Push kommen
+  außerdem: ein Rundgang, eine Prüfung, eine Wartung oder ein Auftrag wird jemandem zugeteilt;
+  ein Auftrag wird zurückgewiesen; ein Rundgang wartet auf die Gegenzeichnung, ein Auftrag auf
+  die Abnahme; eine Aufgabe wird fällig. Jede Person schaltet Push unter "Konto" und im Menü vor
+  Ort auf ihrem Gerät ein und wählt die Anlässe; ein Auftrag der Dringlichkeit "sofort" erreicht
+  die Person, die ihn führt, auch wenn sie Zuteilungen abgeschaltet hat. Eine Nachricht nennt,
+  was ansteht, und den Tag, keinen Namen, keinen Ort und kein eingetipptes Wort: sie geht durch
+  fremde Mailserver und durch den Push-Dienst des Browser-Herstellers, und was dahinter steht,
+  zeigt die Anwendung erst nach der Anmeldung. Jede Nachricht fragt vor dem Schreiben, ob es noch
+  etwas zu sagen gibt und wem, und geht je Anlass und Person einmal hinaus
+- Der Mailserver des Betreibers (#126): die Leitung trägt ihn unter "E-Mail-Einstellungen" ein,
+  mit einer Signatur, die `{benutzer}` kennt. Das Passwort steht versiegelt in der Datenbank und
+  wird nie wieder angezeigt. Dafür gibt es die Rechte "Den Mailserver ansehen" und "Den Mailserver
+  einrichten", beide nur bei der Leitung, weil die Anmeldung an einem Postfach ein Weg ist, im
+  Namen des Betreibers an jeden zu schreiben, und das Recht "Push auf den eigenen Geräten
+  einrichten" für alle vier Rollen. Ein Betreiber, den es schon gibt, behält seine Rollen, wie
+  sie sind, und hat die drei Rechte nach dem Update noch nicht (#270)
+- Eine Einladung geht per E-Mail hinaus, wenn der Betreiber einen Mailserver hat (#126). Ihr Link
+  entsteht erst, wenn die E-Mail hinausgeht: im Postausgang und im Änderungsprotokoll steht
+  keiner, der funktioniert
+- Der Link zu einem neuen Passwort und der Hinweis auf einen neuen Passkey gehen über den
+  Mailserver der Instanz hinaus (#81, #126), in den Wörtern der Haustechnik
+- Migration `0044_mail_outbox_and_push` mit Rücknahme: der Postausgang der E-Mails und die drei
+  Tabellen für Push (Geräte, abgeschaltete Anlässe, Nachrichten). Der Postausgang trägt keinen
+  Schlüssel auf eine Frist: ein Schlüssel auf eine Zeile mit Ort läuft über die Liegenschaft
+  (ADR 0003), und der Postausgang hat keinen Ort
+- `docker/.env.example` und `docker/compose.yaml` kennen `VAPID_PRIVATE_KEY`, den Schlüssel, mit
+  dem Push-Nachrichten signiert werden. `sh docker/start.sh` legt ihn an; ohne ihn verschickt die
+  Instanz kein Push und sagt das unter "Konto"
+- Die Verfahrensbeschreibung hat den Abschnitt 3.15 "Benachrichtigungen" mit den Belegen B227 bis
+  B255: was eine Nachricht sagt, wer sie bekommt, was ein Gerät für Push hinterlegt und dass seine
+  Adresse und seine Schlüssel den Server im Änderungsprotokoll nicht verlassen
 
 ### Geändert
 

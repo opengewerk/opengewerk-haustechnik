@@ -1,3 +1,5 @@
+import { randomUUID } from 'node:crypto'
+
 import type { WorkOrderKind, WorkOrderUrgency } from '@opengewerk/haustechnik-domain'
 
 import { dayInGermany } from '../today.js'
@@ -1188,6 +1190,24 @@ export async function plantSampleData(
   ] as const) {
     await send(address, `/settings/defect-classes/${key}`, { dueDays }, 'PUT')
   }
+
+  // The mail server of the operator, as the board "E-Mail-Einstellungen"
+  // draws it (#126). The connection of the preview takes it and sends nothing.
+  await send(
+    address,
+    '/settings/mail/server',
+    {
+      host: 'smtp.beispielstadt.example',
+      port: null,
+      security: 'starttls',
+      username: 'haustechnik@beispielstadt.example',
+      // Made up at every start: the connection of the preview takes any.
+      password: randomUUID(),
+      fromAddress: 'haustechnik@beispielstadt.example',
+      signature: `Viele Grüße\n{benutzer}\n\n${sampleOperatorName}\nHaustechnik, Am Probehang 4, 00001 Beispielstadt`,
+    },
+    'PUT',
+  )
 
   for (const property of sampleProperties) {
     const { buildings, area, contacts = [], documents = [], ...fields } = property

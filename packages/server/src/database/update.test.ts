@@ -148,6 +148,7 @@ describe('an installation that began on the first migration', () => {
     // settings of the deadlines hang on nothing of this.
     // The plans of the rounds hang on the places and the templates (#113),
     // the notes on a work order on its activity (#118).
+    await revertMigration(admin, '0044_mail_outbox_and_push')
     await revertMigration(admin, '0043_instance_mail_server')
     await revertMigration(admin, '0042_asset_exchange')
     await revertMigration(admin, '0041_duty_updates')
@@ -328,6 +329,7 @@ describe('an installation from before the areas', () => {
     // The places hang on the areas and go first, as on the way back of an
     // installation, and so does what an invitation says about areas.
     // The plans of the rounds hang on the places and the templates (#113).
+    await revertMigration(admin, '0044_mail_outbox_and_push')
     await revertMigration(admin, '0043_instance_mail_server')
     await revertMigration(admin, '0042_asset_exchange')
     await revertMigration(admin, '0041_duty_updates')
@@ -418,6 +420,7 @@ describe('an installation with places', () => {
     )
 
     // The plans of the rounds hang on the places and the templates (#113).
+    await revertMigration(admin, '0044_mail_outbox_and_push')
     await revertMigration(admin, '0043_instance_mail_server')
     await revertMigration(admin, '0042_asset_exchange')
     await revertMigration(admin, '0041_duty_updates')
@@ -533,6 +536,7 @@ describe('an installation with assets', () => {
       [tenant.id, asset, at.property, at.area, at.building],
     )
 
+    await revertMigration(admin, '0044_mail_outbox_and_push')
     await revertMigration(admin, '0043_instance_mail_server')
     await revertMigration(admin, '0042_asset_exchange')
     await revertMigration(admin, '0041_duty_updates')
@@ -655,6 +659,7 @@ describe('an installation with assets', () => {
       [tenant.id, at.property, at.area, at.asset],
     )
 
+    await revertMigration(admin, '0044_mail_outbox_and_push')
     await revertMigration(admin, '0043_instance_mail_server')
     await revertMigration(admin, '0042_asset_exchange')
     await revertMigration(admin, '0041_duty_updates')
@@ -778,6 +783,7 @@ describe('an installation with assets', () => {
       [tenant.id, at.duty, at.property, at.area],
     )
 
+    await revertMigration(admin, '0044_mail_outbox_and_push')
     await revertMigration(admin, '0043_instance_mail_server')
     await revertMigration(admin, '0042_asset_exchange')
     await revertMigration(admin, '0041_duty_updates')
@@ -904,6 +910,7 @@ describe('an installation with assets', () => {
       [tenant.id, at.property, at.area, at.asset, activityId],
     )
 
+    await revertMigration(admin, '0044_mail_outbox_and_push')
     await revertMigration(admin, '0043_instance_mail_server')
     await revertMigration(admin, '0042_asset_exchange')
     await revertMigration(admin, '0041_duty_updates')
@@ -1023,6 +1030,7 @@ describe('an installation with assets', () => {
       ],
     )
 
+    await revertMigration(admin, '0044_mail_outbox_and_push')
     await revertMigration(admin, '0043_instance_mail_server')
     await revertMigration(admin, '0042_asset_exchange')
     await revertMigration(admin, '0041_duty_updates')
@@ -1142,6 +1150,7 @@ describe('an installation with assets', () => {
       [at.order],
     )
 
+    await revertMigration(admin, '0044_mail_outbox_and_push')
     await revertMigration(admin, '0043_instance_mail_server')
     await revertMigration(admin, '0042_asset_exchange')
     await revertMigration(admin, '0041_duty_updates')
@@ -1268,6 +1277,7 @@ describe('an installation with assets', () => {
       [tenant.id, at.property, at.area, correction],
     )
 
+    await revertMigration(admin, '0044_mail_outbox_and_push')
     await revertMigration(admin, '0043_instance_mail_server')
     await revertMigration(admin, '0042_asset_exchange')
     await revertMigration(admin, '0041_duty_updates')
@@ -1341,6 +1351,7 @@ describe('an installation with assets', () => {
     expect(await mayCall('public')).toBe(false)
     expect(await mayCall('opengewerk_app')).toBe(true)
 
+    await revertMigration(admin, '0044_mail_outbox_and_push')
     await revertMigration(admin, '0043_instance_mail_server')
     await revertMigration(admin, '0042_asset_exchange')
     await revertMigration(admin, '0041_duty_updates')
@@ -1406,6 +1417,7 @@ describe('an installation whose invitations name areas', () => {
       [tenant.id, invitation],
     )
 
+    await revertMigration(admin, '0044_mail_outbox_and_push')
     await revertMigration(admin, '0043_instance_mail_server')
     await revertMigration(admin, '0042_asset_exchange')
     await revertMigration(admin, '0041_duty_updates')
@@ -1485,6 +1497,7 @@ describe('an installation whose properties carry notes', () => {
       [tenant.id],
     )
 
+    await revertMigration(admin, '0044_mail_outbox_and_push')
     await revertMigration(admin, '0043_instance_mail_server')
     await revertMigration(admin, '0042_asset_exchange')
     await revertMigration(admin, '0041_duty_updates')
@@ -1577,6 +1590,7 @@ describe('an installation whose properties have people to talk to', () => {
       [tenant.id, property?.id, property?.area_id],
     )
 
+    await revertMigration(admin, '0044_mail_outbox_and_push')
     await revertMigration(admin, '0043_instance_mail_server')
     await revertMigration(admin, '0042_asset_exchange')
     await revertMigration(admin, '0041_duty_updates')
@@ -1672,6 +1686,7 @@ describe('an installation whose buildings have times they are closed', () => {
       [tenant.id, building, property?.id, property?.area_id],
     )
 
+    await revertMigration(admin, '0044_mail_outbox_and_push')
     await revertMigration(admin, '0043_instance_mail_server')
     await revertMigration(admin, '0042_asset_exchange')
     await revertMigration(admin, '0041_duty_updates')
@@ -1793,6 +1808,7 @@ describe('an installation that imported from tables', () => {
 
     expect(await quietTables()).toEqual(['assets', 'buildings', 'floors', 'properties', 'rooms'])
 
+    await revertMigration(admin, '0044_mail_outbox_and_push')
     await revertMigration(admin, '0043_instance_mail_server')
     await revertMigration(admin, '0042_asset_exchange')
     await revertMigration(admin, '0041_duty_updates')
@@ -1938,6 +1954,7 @@ describe('an installation that took stock on site', () => {
       second[0]?.id,
     ])
 
+    await revertMigration(admin, '0044_mail_outbox_and_push')
     await revertMigration(admin, '0043_instance_mail_server')
     await revertMigration(admin, '0042_asset_exchange')
     await revertMigration(admin, '0041_duty_updates')
@@ -2041,6 +2058,7 @@ describe('an installation with labels', () => {
       [tenant.id, property?.id, property?.area_id, stood[0]?.id],
     )
 
+    await revertMigration(admin, '0044_mail_outbox_and_push')
     await revertMigration(admin, '0043_instance_mail_server')
     await revertMigration(admin, '0042_asset_exchange')
     await revertMigration(admin, '0041_duty_updates')
@@ -2157,6 +2175,7 @@ describe('an installation whose activities have answers', () => {
       [tenant.id, property?.id, property?.area_id, activity, 'a'.repeat(64)],
     )
 
+    await revertMigration(admin, '0044_mail_outbox_and_push')
     await revertMigration(admin, '0043_instance_mail_server')
     await revertMigration(admin, '0042_asset_exchange')
     await revertMigration(admin, '0041_duty_updates')
@@ -2362,6 +2381,7 @@ describe('an installation with documents', () => {
       [tenant.id, filed[0]?.id, file],
     )
 
+    await revertMigration(admin, '0044_mail_outbox_and_push')
     await revertMigration(admin, '0043_instance_mail_server')
     await revertMigration(admin, '0042_asset_exchange')
     await revertMigration(admin, '0041_duty_updates')
@@ -2497,6 +2517,7 @@ describe('an installation that exchanged an asset', () => {
       admin.query('update assets set replaces_asset_id = id where id = $1', [old[0]?.id]),
     ).rejects.toMatchObject({ constraint: 'assets_not_their_own_successor' })
 
+    await revertMigration(admin, '0044_mail_outbox_and_push')
     await revertMigration(admin, '0043_instance_mail_server')
     await revertMigration(admin, '0042_asset_exchange')
 
@@ -2559,6 +2580,7 @@ describe('an installation that exchanged an asset', () => {
       'mail_server_username',
     ])
 
+    await revertMigration(admin, '0044_mail_outbox_and_push')
     await revertMigration(admin, '0043_instance_mail_server')
 
     const { rows } = await admin.query<Record<string, unknown>>('select * from instance_settings')
@@ -2572,5 +2594,78 @@ describe('an installation that exchanged an asset', () => {
     })
     // What the log said about the columns it keeps.
     expect(await logged()).toHaveLength(6)
+  })
+
+  /**
+   * The mail outbox and push (#126) are four tables. Taken back, the messages
+   * and the devices go; the mail server of an operator, which has been a
+   * table since the mail settings came, stays with its sealed password, and
+   * so does the deadline a message was about.
+   */
+  it('loses the messages and the devices and keeps the mail server of an operator when the update is taken back', async () => {
+    await applyMigrations()
+
+    const tenant = { id: newId<'tenant'>() }
+
+    await admin.query('insert into tenants (id, name) values ($1, $2)', [
+      tenant.id,
+      'Liegenschaften Beispielstadt',
+    ])
+    await members(tenant, { 'u-lead': { roles: ['management'] } })
+    await admin.query(
+      `insert into mail_settings (tenant_id, host, port, security, from_address)
+       values ($1, 'smtp.beispielstadt.example', 587, 'starttls', 'haustechnik@beispielstadt.example')`,
+      [tenant.id],
+    )
+    await admin.query(
+      `insert into mail_outbox (tenant_id, kind, cause, sender_name, recipient_address, subject, body)
+       values ($1, 'deadline_due', 'deadline_due:probe:2026-10-16', 'Liegenschaften Beispielstadt',
+               's@beispielstadt.example', 'Frist am 16.10.2026', 'Guten Tag')`,
+      [tenant.id],
+    )
+    await admin.query(
+      `insert into push_subscriptions (tenant_id, user_id, entry, label, endpoint, p256dh, auth)
+       values ($1, 'u-lead', 'office', 'Firefox auf Windows', 'https://push.example.com/a', 'BPublic', 'Secret')`,
+      [tenant.id],
+    )
+    await admin.query(
+      "insert into push_opt_outs (tenant_id, user_id, occasion) values ($1, 'u-lead', 'task_due')",
+      [tenant.id],
+    )
+
+    const tables = async () =>
+      (
+        await admin.query<{ name: string }>(
+          `select table_name as name from information_schema.tables
+            where table_schema = 'public'
+              and table_name in ('mail_outbox', 'push_subscriptions', 'push_opt_outs', 'push_outbox',
+                                 'mail_settings')
+            order by table_name`,
+        )
+      ).rows.map((row) => row.name)
+
+    expect(await tables()).toEqual([
+      'mail_outbox',
+      'mail_settings',
+      'push_opt_outs',
+      'push_outbox',
+      'push_subscriptions',
+    ])
+
+    await revertMigration(admin, '0044_mail_outbox_and_push')
+
+    expect(await tables()).toEqual(['mail_settings'])
+    expect(
+      (await admin.query('select host from mail_settings where tenant_id = $1', [tenant.id])).rows,
+    ).toEqual([{ host: 'smtp.beispielstadt.example' }])
+
+    const { rows: types } = await admin.query<{ name: string }>(
+      `select typname as name from pg_type
+        where typname in ('mail_kind', 'mail_status', 'push_kind', 'push_entry', 'push_status',
+                          'mail_security')`,
+    )
+
+    // The connection of a mail server keeps its type, which the settings use.
+    expect(types.map((row) => row.name)).toEqual(['mail_security'])
   })
 })

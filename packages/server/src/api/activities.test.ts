@@ -1005,3 +1005,53 @@ describe('the page of a duty names the activity under way (#183)', () => {
     expect((await dutyPage(duty, readsDutiesOnly)).activity).toBeNull()
   })
 })
+
+/** A device of this person that takes push (#126), as the row a browser left. */
+async function aPushDevice(userId: string, tenantId: TenantId): Promise<void> {
+  await admin.query(
+    `insert into push_subscriptions (tenant_id, user_id, entry, label, endpoint, p256dh, auth)
+     values ($1, $2, 'site', 'Chrome auf Android', $3, 'BPublic', 'Secret')`,
+    [tenantId, userId, `https://push.example.com/${userId}/${newId()}`],
+  )
+}
+
+/** Who was told about an activity, with what the message is called and why it was written. */
+async function toldAbout(activityId: string) {
+  const { rows } = await admin.query<{ user: string; title: string; cause: string }>(
+    `select s.user_id as user, o.title, o.cause
+       from push_outbox o join push_subscriptions s on s.id = o.subscription_id
+      where o.cause like '%:' || $1 || ':%'
+      order by s.user_id, o.cause`,
+    [activityId],
+  )
+
+  return rows
+}
+
+describe('an inspection or a maintenance handed to somebody (#126)', () => {
+  it('tells whoever is named anew once the plan stands, and not whoever planned it', async () => {
+    const id = await activityFor(await mainTestAt(await elevatorIn()))
+
+    await aPushDevice('u-tech', small)
+    await aPushDevice('u-site', small)
+    await http()
+      .put(`/activities/${id}/plan`)
+      .set(testIdentityHeader, by('u-site'))
+      .send(ownPlan)
+      .expect(200)
+
+    // The Objektleitung named itself as the one who answers: no message about that.
+    expect(await toldAbout(id)).toEqual([
+      { user: 'u-tech', title: 'Neu zugeteilt', cause: `assigned:${id}:u-tech` },
+    ])
+
+    // The same plan again names nobody anew.
+    await http()
+      .put(`/activities/${id}/plan`)
+      .set(testIdentityHeader, by('u-site'))
+      .send({ ...ownPlan, dueOn: inDays(31) })
+      .expect(200)
+
+    expect(await toldAbout(id)).toHaveLength(1)
+  })
+})

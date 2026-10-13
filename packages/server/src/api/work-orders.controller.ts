@@ -81,6 +81,7 @@ import {
   workOrders,
 } from '../database/schema/index.js'
 import { EvidenceRefusal } from '../evidence/write.js'
+import { tellHandedOut } from '../notifications/tell.js'
 import { dayInGermany } from '../today.js'
 import { candidatesIn, containing, inSight } from './activities.controller.js'
 import { RequiresPermission } from './authorization.js'
@@ -601,6 +602,23 @@ export class WorkOrdersController {
       return activityId
     })
 
+    // Whoever leads the order and whoever takes part are told, once it
+    // stands (#126); one of the urgency "sofort" reaches whoever leads it
+    // whatever they switched off (section 4.8 of the concept).
+    await tellHandedOut(
+      this.database,
+      identity.tenantId,
+      identity.userId,
+      [planned.responsibleUserId, ...planned.participantUserIds].map((userId) => ({
+        activityId: made,
+        userId,
+        dueOn: planned.dueOn,
+      })),
+      planned.urgency === 'immediate'
+        ? { activityId: made, userId: planned.responsibleUserId }
+        : null,
+    )
+
     return this.read(identity, made)
   }
 
@@ -625,7 +643,7 @@ export class WorkOrdersController {
 
     const planned = plan as unknown as WorkOrderPlan
 
-    await this.database.forTenant(identity, async (tx) => {
+    const was = await this.database.forTenant(identity, async (tx) => {
       const { activity, order } = await orderOf(tx, identity, id)
       const before = await participantsOf(tx, activity.id)
       const { performers } = await candidatesIn(tx, activity.areaId)
@@ -677,7 +695,31 @@ export class WorkOrdersController {
         before,
         planned.participantUserIds,
       )
+
+      return {
+        activityId: activity.id,
+        responsibleUserId: activity.responsibleUserId,
+        participants: before,
+        urgency: order.urgency,
+      }
     })
+
+    // Whoever is named anew is told, and whoever leads an order that is
+    // "sofort" from now on, or leads one that is from now on (#126).
+    const leadsAnew = planned.responsibleUserId !== was.responsibleUserId
+
+    await tellHandedOut(
+      this.database,
+      identity.tenantId,
+      identity.userId,
+      [
+        ...(leadsAnew ? [planned.responsibleUserId] : []),
+        ...planned.participantUserIds.filter((userId) => !was.participants.includes(userId)),
+      ].map((userId) => ({ activityId: was.activityId, userId, dueOn: planned.dueOn })),
+      planned.urgency === 'immediate' && (leadsAnew || was.urgency !== 'immediate')
+        ? { activityId: was.activityId, userId: planned.responsibleUserId }
+        : null,
+    )
 
     return this.read(identity, id)
   }

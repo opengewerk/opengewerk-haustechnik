@@ -20,6 +20,14 @@ const allowed = [
   // The deadline engine: a pass works for nobody and goes through every area
   // of an operator (opengewerk-haustechnik#25).
   'deadlines/engine.ts',
+  // The notifications (opengewerk-haustechnik#126): what the jobs of mail and
+  // push raise, and what a writer asks before it writes a message, whether
+  // there is still something to tell and to whom. Both work for nobody. A
+  // route that handed an activity to somebody asks the same writer after its
+  // transaction (`notifications/tell.ts`), and gets nothing back from it: the
+  // writer answers the outbox and never the person who asked.
+  'notifications/notify.ts',
+  'notifications/push.ts',
 ]
 
 const source = fileURLToPath(new URL('..', import.meta.url))

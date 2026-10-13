@@ -55,7 +55,8 @@ Anhang B nennt jedes Feld der Datenbank, das auf eine Person zeigt. Dieser Absch
 ### 3.2 Zugehörigkeit, Rollen, Bereiche, Vertretung
 
 - Wer bei einem Betreiber arbeitet, hat dort eine Zugehörigkeit mit einer oder mehreren Rollen. Verlässt jemand den Betreiber, wird die Zugehörigkeit gesperrt und nicht gelöscht: die Person bleibt in der Liste und in allem, was sie unterschrieben hat. [K7, B50]
-- Eine Einladung hält Name, E-Mail-Adresse, Rollen und Bereiche der eingeladenen Person und wer eingeladen hat. Ihr Link gilt sieben Tage. In dieser Fassung verschickt die Anwendung keine E-Mail; die Leitung gibt den Link selbst weiter. [K7, B63, B67]
+- Eine Einladung hält Name, E-Mail-Adresse, Rollen und Bereiche der eingeladenen Person und wer eingeladen hat. Ihr Link gilt sieben Tage. Hat der Betreiber einen Mailserver eingerichtet, kann die Leitung die Einladung per E-Mail schicken; sonst gibt sie den Link selbst weiter. [K7, B63, B67]
+- **Zusage:** Der Link einer Einladung per E-Mail entsteht erst, wenn die E-Mail hinausgeht. Im Postausgang und im Änderungsprotokoll steht keiner, der funktioniert. [K9, B227]
 - **Zusage:** Name und E-Mail-Adresse eines Kontos berichtigt die Leitung und keine andere Rolle, und die Berichtigung steht mit dem Wert davor und danach im Änderungsprotokoll. [K3, B13, B70]
 - **Zusage:** Für jede Person steht fest, ob sie alle Bereiche sieht oder welche. Festlegen und ändern kann das nur die Leitung. [K2.8, B18]
 - **Zusage:** Eine Vertretung hält fest, wer wen von welchem Tag bis zu welchem Tag vertritt. An diesen Tagen sieht die vertretende Person zusätzlich die Bereiche der abwesenden, davor und danach nicht. [K2.8, B20]
@@ -201,6 +202,22 @@ Anhang B nennt jedes Feld der Datenbank, das auf eine Person zeigt. Dieser Absch
 - **Zusage:** Auch die Engine gibt eine Aufgabe nur einer Person, die nicht gesperrt ist, Aufgaben erledigen darf und den Bereich der Liegenschaft sieht. Sonst entsteht keine Aufgabe, und die Frist steht weiter in der Liste „Fristen“. [K2.4, K7, B221]
 - Die Aufgabe „Zähler ablesen“ ist erledigt, sobald jede Messstelle der Liegenschaft ihren Stand für den Stichtag hat oder dort nichts mehr abzulesen ist. Das setzt die Engine mit dem Lauf, in dem die Frist weitergeht, und keine Person: der Stempel der Aufgabe nennt dann niemanden, und wer die Stände eingetragen hat, steht an den Ständen (Abschnitt 3.13). [K2.4, K4.9, B222, B223]
 
+### 3.15 Benachrichtigungen
+
+- Die Anwendung sagt Beschäftigten, was für sie ansteht, per E-Mail und per Push auf ihre Geräte. Anlässe sind nur Fristen und Statuswechsel: eine Frist erinnert; ein Rundgang, eine Prüfung, eine Wartung oder ein Auftrag wird jemandem zugeteilt; ein Auftrag wird zurückgewiesen; ein Rundgang wartet auf die Gegenzeichnung; ein Auftrag wartet auf die Abnahme; eine Aufgabe wird fällig. [K3, B228]
+- **Zusage:** Eine Nachricht nennt, was ansteht, und den Tag. Sie nennt keinen Namen, keinen Ort und kein Wort, das jemand eingetippt hat: nicht den Titel einer Aufgabe, nicht den Grund einer Zurückweisung, nicht die Anlage oder die Liegenschaft einer Frist. Was dahinter steht, zeigt die Anwendung nach der Anmeldung. [K3, K9, B229, B230, B231, B232]
+- **Zusage:** Per E-Mail geht nur die Erinnerung an eine Frist, an die Person, die für die Frist verantwortlich ist, und die Einladung eines Zugangs. Alles andere kommt als Push. [K3, B229, B233]
+- **Zusage:** Push kommt nur auf ein Gerät, auf dem die Person es selbst eingeschaltet hat und noch angemeldet ist. Welche Anlässe als Push kommen, wählt jede Person für sich, und niemand wählt es für eine andere. Die eine Ausnahme ist ein Auftrag der Dringlichkeit „sofort“: er erreicht die Person, die ihn führt, auch wenn sie Zuteilungen abgeschaltet hat. [K3, K4.8, B234, B235, B236, B237, B253]
+- **Zusage:** Eine Zuteilung erfährt die Person, der etwas zugeteilt wurde, und niemand sonst. Wer sich selbst etwas zuteilt, bekommt keine Nachricht, und gehen mehrere Vorgänge auf einmal an eine Person, bekommt sie eine. [K3, B238, B239]
+- **Zusage:** Dass ein Rundgang auf die Gegenzeichnung oder ein Auftrag auf die Abnahme wartet, erfährt, wer im Bereich des Vorgangs gegenzeichnen und abnehmen darf, bei einem Auftrag zuerst die Person, die ihn führt; nie die Person, die unterschrieben hat, und niemand aus einem anderen Bereich. Dass ein Auftrag zurückgewiesen wurde, erfährt die Person, die ihn unterschrieben hat. [K2.8, K3, B231, B240, B241, B242, B243]
+- **Zusage:** Jede Nachricht fragt vor dem Schreiben, ob es noch etwas zu sagen gibt und wem: ist die Frist oder die Aufgabe erledigt, der Rundgang gegengezeichnet, der Auftrag neu unterschrieben oder die Person gesperrt, geht nichts hinaus. Je Anlass und Person geht eine Nachricht einmal hinaus. [K3, B229, B244, B245, B246, B247]
+- Eine Aufgabe, die die Fristen-Engine angelegt hat (Abschnitt 3.14), meldet sich am Tag ihrer Fälligkeit nicht noch einmal: die Person hat die Erinnerung der Frist schon bekommen. Auch ein Vorgang, den die Engine anlegt, meldet keine Zuteilung. [K2.4, K3]
+- Zu einem Gerät, das Push empfängt, stehen die Person, die Sitzung, ob es im Büro oder vor Ort arbeitet, die Bezeichnung des Browsers und die Adresse und die Schlüssel, die der Browser für Push ausgibt. Die Adresse gehört dem Push-Dienst des Browser-Herstellers; über ihn geht jede Push-Nachricht verschlüsselt an das Gerät. Endet die Sitzung, wird das Gerät entfernt. [K3, K9, B248]
+- **Zusage:** Die Adresse und die Schlüssel eines Push-Geräts verlassen den Server im Änderungsprotokoll nicht. [K9, B53, B249]
+- Jede E-Mail steht mit Empfänger, Betreff, Text und Stand im Postausgang des Betreibers, jede Push-Nachricht mit Titel, Text und Stand bei ihrem Gerät. Beides steht im Änderungsprotokoll, das nur die Leitung liest (Abschnitt 8). Eine Auswertung, wer wann welche Nachricht bekommen hat, gibt es nicht, und ob eine Nachricht gelesen wurde, erfährt die Anwendung nicht. [K3, K9]
+- E-Mails eines Betreibers gehen über seinen eigenen Mailserver. Den trägt die Leitung unter „E-Mail-Einstellungen“ ein; das Passwort steht versiegelt in der Datenbank und wird nie wieder angezeigt. [K7, K9, B250, B251, B252]
+- **Zusage:** E-Mails an ein Konto, der Link zu einem neuen Passwort und der Hinweis auf einen neuen Passkey, gehen über den Mailserver der Instanz und nie über den eines Betreibers. Ohne ihn geht keine hinaus. [K9, B254, B255]
+
 ---
 
 ## 4. Wer was sieht
@@ -286,11 +303,11 @@ Leitung und Technische Leitung sehen als Vorgabe alle Bereiche.
 
 ## 6. Was sich einschalten lässt und was aus ist
 
-- In dieser Fassung gibt es keinen Schalter, der etwas über Beschäftigte ein- oder ausschaltet. [K4.14, K9]
+- Der Betreiber hat keinen Schalter, der etwas über Beschäftigte ein- oder ausschaltet. Jede Person schaltet für sich selbst Push auf ihren Geräten ein und aus und wählt die Anlässe (Abschnitt 3.15). [K3, K4.14, K9]
 - Eine Erfassung der Arbeitszeit enthält die Anwendung nicht. Das Planungskonzept sieht sie für Phase 5 als eigenes Modul vor, das ausgeschaltet ausgeliefert wird und beim Einschalten auf die Mitbestimmung hinweist. [K4.14, K12]
 - Einen Standort erhebt die Anwendung nicht. Das Planungskonzept lässt ihn nur mit Einwilligung zu und schließt eine Auswertung von Bewegungen aus. [K9]
 - Namen und Uhrzeiten der Ausführenden auf einem Leistungsnachweis kommen frühestens mit dem Leistungsnachweis in Phase 2, und nur, wenn der Betreiber es einschaltet; es steht dann in der Verfahrensbeschreibung. [K4.8, K12]
-- Einstellen lässt sich der Vorlauf, mit dem eine Frist erinnert. Das dürfen die Leitung und die Technische Leitung. Eine Nachricht verschickt die Anwendung dabei in dieser Fassung nicht. [K2.4, B38]
+- Einstellen lässt sich der Vorlauf, mit dem eine Frist erinnert. Das dürfen die Leitung und die Technische Leitung. Mit dem Beginn des Vorlaufs geht die Erinnerung an die verantwortliche Person hinaus (Abschnitt 3.15). [K2.4, B38]
 - Die sicherheitsrelevanten Zusagen sind nicht einstellbar: die Unterschrift vor einem Nachweis, die Abnahme eines Auftrags und die Unveränderlichkeit lassen sich verschärfen und nie abschalten. [K7]
 
 ---
@@ -326,7 +343,6 @@ Leitung und Technische Leitung sehen als Vorgabe alle Bereiche.
 
 Diese Bausteine gehören nach dem Fahrplan zu Phase 1 und sind noch nicht gebaut. Mit jedem wird dieses Dokument berichtigt; der Test in Abschnitt 11 erzwingt es, sobald ein Feld mit Personenbezug oder eine Adresse des Servers dazukommt.
 
-- **Benachrichtigungen:** per E-Mail und Push, gespeist nur aus Fristen und Statuswechseln, auch wenn eine Aufgabe fällig wird. Welche Anlässe als Push kommen, wählt jede Person selbst; ein Auftrag mit der Dringlichkeit „sofort“ erreicht die Person, die ihn führt, immer als Push. [K3, K4.8]
 - **Zähler und Fotos vor Ort:** Ablesungen kommen als eigene Datensätze dazu und tragen wie jeder Datensatz ihren Stempel. Ein Foto vor Ort wird als Dokument abgelegt (Abschnitt 3.9); die Bildschirme dafür kommen mit der Bestandsaufnahme. [K4.9, K4.10]
 - **Eigene Angaben:** Name, E-Mail-Adresse, Passwort, zweiten Faktor und Geräte ändert jede Person selbst unter „Konto“. [K3]
 - **Übernahme aus einer Vorgängeranwendung:** Jedes Konto wird eingeladen, niemand bekommt ein übernommenes Passwort. Ein übernommener Nachweis sagt, dass er nicht in dieser Anwendung unterschrieben wurde. [K11]
@@ -432,7 +448,7 @@ Pfade ohne Vorsatz liegen im Repository `opengewerk/opengewerk-haustechnik`. Pfa
 | B64 | Stelle | `docker/.env.example` | `BACKUP_KEEP=14` |
 | B65 | Stelle | `upstream/opengewerk/packages/platform/server/src/audit/controller.ts` | `one(query, 'person')` |
 | B66 | Stelle | `upstream/opengewerk/packages/platform/server/src/audit/controller.ts` | `Reading the log is not written to the log.` |
-| B67 | Stelle | `packages/web/src/office/screens/staff.tsx` | `byMail={false}` |
+| B67 | Stelle | `packages/web/src/office/screens/staff.tsx` | `byMail={mail.data?.configured === true}` |
 | B68 | Stelle | `upstream/opengewerk/packages/platform/web/src/session/remembered.ts` | `opengewerk.account` |
 | B69 | Stelle | `packages/domain/src/model/signature.ts` | `deviceInfo: 500` |
 | B70 | Test | `packages/server/src/authentication/roles.test.ts` | `are not for "%s" to put right` |
@@ -592,6 +608,35 @@ Pfade ohne Vorsatz liegen im Repository `opengewerk/opengewerk-haustechnik`. Pfa
 | B224 | Test | `packages/domain/src/model/deadlines.test.ts` | `give the task to the reading of the meters alone, and say what it is` |
 | B225 | Test | `packages/server/src/api/duty-updates.test.ts` | `asks for the reason, keeps what the catalogue said, and is silent until it says something else` |
 | B226 | Test | `packages/server/src/api/duty-updates.test.ts` | `says who took a new version over and who left a duty as it is, with what was written` |
+| B227 | Test | `upstream/opengewerk/packages/platform/server/src/mail/worker.test.ts` | `carries a link made as it goes out, and the outbox never holds one that works` |
+| B228 | Test | `packages/domain/src/model/push.test.ts` | `are these five, in the order the account lists them` |
+| B229 | Test | `packages/server/src/notifications/notify.test.ts` | `goes by mail to whoever answers for it, once, and names the kind and the day and nothing of the place` |
+| B230 | Test | `packages/server/src/notifications/notify.test.ts` | `is told on the morning of its day to the person it is for, and names nothing of it` |
+| B231 | Test | `packages/server/src/notifications/notify.test.ts` | `is told to whoever signed it, by its kind and nothing else` |
+| B232 | Test | `packages/server/src/notifications/notify.test.ts` | `goes by push to the same person, with the kind and the day` |
+| B233 | Stelle | `packages/server/src/database/schema/mail.ts` | `mailKinds = ['deadline_due', 'invitation']` |
+| B234 | Test | `upstream/opengewerk/packages/platform/server/src/push/push.controller.test.ts` | `is switched off and on for the person asking and nobody else` |
+| B235 | Test | `packages/server/src/notifications/notify.test.ts` | `goes to nobody who switched it off as push, and still by mail` |
+| B236 | Test | `packages/server/src/notifications/notify.test.ts` | `goes to nobody who switched it off, unless it is a work order of the urgency "sofort"` |
+| B237 | Test | `upstream/opengewerk/packages/platform/server/src/push/outbox.test.ts` | `writes nothing for a device whose session has ended, and to one without a session` |
+| B238 | Test | `packages/server/src/notifications/notify.test.ts` | `is told to them by its kind and its day, and not to whoever handed it out` |
+| B239 | Test | `packages/server/src/notifications/notify.test.ts` | `is told once where several go to one person at once, about the one that is due first` |
+| B240 | Test | `packages/server/src/notifications/notify.test.ts` | `is told to everybody who may countersign in its area, and not to whoever signed it` |
+| B241 | Test | `packages/server/src/notifications/notify.test.ts` | `waits for nobody when it asks for no second signature, was signed long ago or is in another area` |
+| B242 | Test | `packages/server/src/notifications/notify.test.ts` | `is told to whoever leads it, and to nobody else` |
+| B243 | Test | `packages/server/src/notifications/notify.test.ts` | `is told to nobody once it is signed again, and not to whoever sent their own order back` |
+| B244 | Test | `packages/server/src/notifications/notify.test.ts` | `is told to nobody once it is done, and not at all when it was reminded long ago` |
+| B245 | Test | `packages/server/src/notifications/notify.test.ts` | `is told to nobody once it is done, or once its person no longer works here` |
+| B246 | Test | `packages/server/src/notifications/notify.test.ts` | `is told to nobody once somebody has countersigned it` |
+| B247 | Test | `packages/server/src/notifications/notify.test.ts` | `is told to nobody the activity no longer names, and to nobody once the work is signed` |
+| B248 | Test | `upstream/opengewerk/packages/platform/server/src/push/outbox.test.ts` | `signed out is taken off, with its messages, and one without a session stays` |
+| B249 | Test | `upstream/opengewerk/packages/platform/domain/src/model/audit-log.test.ts` | `keeps the foundation's secret values to itself, and the application's, each on its own table` |
+| B250 | Recht | `mail.read` | Den Mailserver ansehen: Leitung |
+| B251 | Recht | `mail.write` | Den Mailserver einrichten: Leitung |
+| B252 | Test | `upstream/opengewerk/packages/platform/server/src/mail/settings.controller.test.ts` | `is set up, and the password never comes back` |
+| B253 | Recht | `push.write` | Push auf den eigenen Geräten einrichten: Leitung, Technische Leitung, Objektleitung, Haustechnik |
+| B254 | Test | `upstream/opengewerk/packages/platform/server/src/instance/mail-server.test.ts` | `goes out through the mail server of the instance, under the name of the application` |
+| B255 | Test | `upstream/opengewerk/packages/platform/server/src/instance/mail-server.test.ts` | `takes the login with it, and after it no mail goes to an account` |
 
 ---
 
@@ -624,12 +669,15 @@ Jede Zeile ist ein Feld der Datenbank, das die Kennung eines Kontos hält. Der S
 | `instance_changes` | `user_id` | wer etwas an der Instanz geändert hat |
 | `instance_operators` | `user_id` | wer die Instanz verwaltet |
 | `invitations` | `invited_by` | wer eingeladen hat |
+| `mail_outbox` | `requested_by` | wer eine Einladung per E-Mail geschickt hat; bei einer Erinnerung an eine Frist niemand |
 | `member_all_areas` | `user_id` | wessen Zugehörigkeit für alle Bereiche gilt |
 | `member_areas` | `user_id` | für wen ein Bereich genannt ist |
 | `member_passkeys` | `user_id` | wessen Passkey bei diesem Betreiber gilt |
 | `memberships` | `user_id` | wer bei diesem Betreiber arbeitet |
 | `meter_points` | `note_by` | wer die Notiz an einer Messstelle geschrieben hat |
 | `meter_readings` | `recorded_by` | wer einen Zählerstand eingetragen oder berichtigt hat |
+| `push_opt_outs` | `user_id` | wer einen Anlass als Push abgeschaltet hat |
+| `push_subscriptions` | `user_id` | wessen Gerät Push empfängt |
 | `round_plans` | `performer_user_id` | wer die Rundgänge eines Plans geht, wenn der Plan jemanden nennt |
 | `substitutions` | `absent_user_id` | wer vertreten wird |
 | `substitutions` | `substitute_user_id` | wer vertritt |
@@ -673,12 +721,13 @@ Jede Zeile ist der erste Abschnitt einer Adresse, unter der der Server antwortet
 | `overview` | Übersicht der Betreiberverantwortung: wie viele Pflichten überfällig, in 30 und in 90 Tagen fällig und nie erfasst sind, wie vielen Prüfungen der Bericht einer Fremdfirma fehlt und wie viele Mängel über ihrer Frist sind, mit den ersten davon; über alle Bereiche der fragenden Person oder einen. Dazu die Zahlen je Liegenschaft und Gebäude, das Lagebild eines Gebäudes mit seinen letzten Vorgängen und die Zeitachse eines Orts. Keine dieser Antworten nennt eine Person |
 | `meters` | Zähler: die Liste zum Stichtag, auch als Tabelle, die Seite einer Messstelle mit Ständen, Verbrauch und Verlauf, ein Stand von Hand und seine Berichtigung, der Zählertausch, die Stilllegung, die Sperre, die Notiz und was nur die Messstelle trägt |
 | `properties` | Liegenschaften, ihre Liste auch als Tabelle |
+| `push` | Push auf den eigenen Geräten: ob die Instanz Push verschickt, die eigenen Geräte, ein Gerät an- und abmelden, die Anlässe ein- und ausschalten und eine Probenachricht |
 | `rooms` | Räume, mit den Pflichten, die an ihnen hängen |
 | `round-plans` | Pläne der Rundgänge: ihre Liste als Tabelle, ein neuer Plan und die Änderung eines Plans, auch ruhen lassen und beenden; ein Plan nennt die Person, die seine Rundgänge geht, oder niemanden |
 | `round-templates` | Vorlagen der Rundgänge: die eigenen als Tabelle, eine neue, leer oder aus einem Paket übernommen, und eine neue Fassung einer Vorlage; sie nennen Anlagen, Räume und Pflichten und keine Person |
 | `rounds` | Rundgänge der Pläne: die Übersicht einer Woche mit den offenen Rundgängen früherer Wochen, auch als Tabelle, wer einen Rundgang geht, auch „wie letzte Woche“, die Namen der Personen, die Pläne und Rundgänge nennen, und die Auswahl, wer in einem Bereich Rundgänge geht; die Seite eines Rundgangs mit seinen Unterschriften, die Gegenzeichnung und das Schließen mit Grund |
 | `search` | Suche über Liegenschaften, Gebäude, Räume, Anlagen und Vorgänge nach Name, Nummer und Kennzeichen und über Nachweise nach ihrer Nummer, in den Bereichen der fragenden Person; höchstens fünf Treffer je Art, und ob es mehr gibt, ohne Zahl. Sie sucht nicht nach Personen, und kein Treffer nennt jemanden |
-| `settings` | Vorlauf der Fristen und die Vorgabe der Frist je Mängelklasse; die Mängelklassen auch als Tabelle |
+| `settings` | Vorlauf der Fristen und die Vorgabe der Frist je Mängelklasse; die Mängelklassen auch als Tabelle; ob der Betreiber E-Mails verschickt, und für die Leitung sein Mailserver |
 | `setup` | Ersteinrichtung |
 | `staff` | Zugänge, für die Leitung auch als Tabelle |
 | `substitutions` | Vertretungen |

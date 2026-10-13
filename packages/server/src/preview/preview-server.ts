@@ -1,4 +1,4 @@
-import { createHash } from 'node:crypto'
+import { createHash, generateKeyPairSync } from 'node:crypto'
 import { mkdtempSync } from 'node:fs'
 import type { AddressInfo } from 'node:net'
 import { tmpdir } from 'node:os'
@@ -21,9 +21,13 @@ import {
   type Database,
   type FileStorage,
   FileStore,
+  type MailContext,
   newId,
+  type PushContext,
   readRendererConfiguration,
   rendererFor,
+  SecretKey,
+  vapidKeysFrom,
 } from '@opengewerk/platform-server'
 import type { Pool } from 'pg'
 
@@ -72,6 +76,12 @@ import { writeSampleStandings } from './sample-standings.js'
  * environment names (`RENDERER_URL`, `RENDERER_TOKEN`), as on an instance;
  * without them a PDF gets the sentence saying that none is set up.
  *
+ * Mail and push are there to look at and send nothing (#126): the mail
+ * server of the sample operator is taken by a transport that keeps to
+ * itself, and a push message goes to a post that answers without asking
+ * anybody. So the screens stand as on an instance that sends both, and no
+ * address a preview invents is ever written to.
+ *
  * Not listening yet. The entry point listens on 127.0.0.1, the planting of
  * the sample data and the test on a port the system picks.
  */
@@ -101,6 +111,8 @@ export async function openPreview(
       catalogue,
       files: options.files ?? previewFileStore(),
       renderer: rendererFor(readRendererConfiguration()),
+      mail: previewMail(port),
+      push: previewPush(port),
     }),
     {
       authenticationHandler: previewSession(identity, person),
@@ -112,6 +124,45 @@ export async function openPreview(
   )
 
   return application
+}
+
+/**
+ * The key of this start, made once: the sample data are planted through one
+ * opening of the preview and looked at through another, and a password sealed
+ * by the first has to open for the second.
+ */
+const previewKey = SecretKey.from(newId().replaceAll('-', '').repeat(2))
+
+/** The key push is signed with in this start, made once for the same reason. */
+const previewVapidKey = generateKeyPairSync('ec', { namedCurve: 'prime256v1' })
+  .privateKey.export({ format: 'der', type: 'pkcs8' })
+  .toString('base64')
+
+/**
+ * Mail in the preview: the key of this start, and a connection that takes
+ * every login and every message and sends none.
+ */
+function previewMail(port: number): MailContext {
+  return {
+    origin: `http://127.0.0.1:${String(port)}`,
+    key: previewKey,
+    connect: () => ({
+      send: () => Promise.resolve(),
+      verify: () => Promise.resolve(),
+      close: () => undefined,
+    }),
+  }
+}
+
+/**
+ * Push in the preview: the key of this start, and a push service that says
+ * yes to everything without being one.
+ */
+function previewPush(port: number): PushContext {
+  return {
+    vapid: vapidKeysFrom(previewVapidKey, `http://127.0.0.1:${String(port)}`),
+    post: () => Promise.resolve({ status: 201, retryAfter: null }),
+  }
 }
 
 /** A file store for one start of the preview, in a folder of its own. */

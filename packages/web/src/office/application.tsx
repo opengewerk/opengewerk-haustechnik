@@ -7,7 +7,16 @@ import type {
   StaffSentences,
 } from '@opengewerk/platform-web'
 import { auditLogPath } from '@opengewerk/platform-web/office'
-import { CalendarClock, Gauge, History, Map, ScanLine, TriangleAlert, Users } from 'lucide-react'
+import {
+  CalendarClock,
+  Gauge,
+  History,
+  Mail,
+  Map,
+  ScanLine,
+  TriangleAlert,
+  Users,
+} from 'lucide-react'
 
 import { application } from '../app/application.js'
 import { auditScreenWords } from './audit.js'
@@ -68,6 +77,14 @@ const settings = [
     right: 'deadline.read',
   },
   {
+    key: 'e-mail',
+    to: '/einstellungen/e-mail',
+    title: 'E-Mail-Einstellungen',
+    about: 'Der Mailserver des Betreibers und die Signatur unter jeder E-Mail.',
+    icon: Mail,
+    right: 'settings.read',
+  },
+  {
     key: 'protokoll',
     to: auditLogPath,
     title: 'Änderungsprotokoll',
@@ -79,15 +96,15 @@ const settings = [
 
 /**
  * What "Zugänge" says in the words of this application: its word for a
- * tenant, and that an invitation goes as a link until a mail server is set
- * up, which arrives with the mail of a tenant.
+ * tenant, and that an invitation goes as a link until the tenant has set up
+ * its mail server (#126).
  */
 const staff = {
   what: 'Wer für diesen Betreiber arbeitet, und womit.',
   accounts: 'Konten dieses Betreibers',
   noMail:
-    'Per E-Mail einladen geht, sobald für diesen Betreiber ein Mailserver eingerichtet ist; bis ' +
-    'dahin geht der Link von Hand hinaus.',
+    'Per E-Mail einladen geht, sobald für diesen Betreiber unter „E-Mail-Einstellungen“ ein ' +
+    'Mailserver eingerichtet ist; bis dahin geht der Link von Hand hinaus.',
   mailedLinkUnseen: 'im Büro sieht ihn niemand.',
   noDevices: 'Bei diesem Betreiber ist gerade kein Gerät angemeldet.',
   devicesOf: (name) => `Geräte, auf denen ${name} bei diesem Betreiber angemeldet ist`,

@@ -22,6 +22,7 @@ import { BuildingScreen } from './screens/buildings.js'
 import { CatalogueScreen } from './screens/catalogue.js'
 import { ChangeLogScreen } from './screens/change-log.js'
 import { DeadlineListScreen, DeadlineSettingsScreen } from './screens/deadlines.js'
+import { MailSettingsScreen } from './screens/mail-settings.js'
 import { DefectClassSettingsScreen } from './screens/defect-classes.js'
 import { DefectListScreen, DefectScreen, NewDefectScreen } from './screens/defects.js'
 import { DocumentsScreen } from './screens/documents.js'
@@ -467,6 +468,11 @@ export function officeRoutes() {
       getParentRoute: () => office,
       path: '/einstellungen/fristen',
       component: DeadlineSettingsScreen,
+    }),
+    createRoute({
+      getParentRoute: () => office,
+      path: '/einstellungen/e-mail',
+      component: MailSettingsScreen,
     }),
     createRoute({
       getParentRoute: () => office,

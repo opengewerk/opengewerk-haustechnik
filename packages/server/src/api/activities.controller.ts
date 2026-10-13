@@ -54,6 +54,7 @@ import { closeAsNotPerformed } from '../activities/closing.js'
 import { makeActivityForDuty } from '../activities/for-duty.js'
 import { CATALOGUE } from '../catalogue.js'
 import { dutiesOnADay, dutyTitle } from '../database/duty-standing.js'
+import { tellHandedOut } from '../notifications/tell.js'
 import {
   activities,
   activityDuties,
@@ -421,7 +422,7 @@ export class ActivitiesController {
 
     refuse(activityPlanProblems(plan))
 
-    await this.database.forTenant(identity, async (tx) => {
+    const handed = await this.database.forTenant(identity, async (tx) => {
       const activity = await this.activityOf(tx, identity, id)
       const { responsible, performers } = await candidatesIn(tx, activity.areaId)
       const anew = (value: unknown, before: string | null) =>
@@ -464,7 +465,20 @@ export class ActivitiesController {
           'Geplant wird ein Vorgang, solange er offen ist. Diesen hat schon jemand begonnen.',
         )
       }
+
+      // Whoever is named anew is told, once the plan stands (#126).
+      return [plan.performerUserId, plan.responsibleUserId]
+        .filter((userId, index) =>
+          anew(userId, index === 0 ? activity.performerUserId : activity.responsibleUserId),
+        )
+        .map((userId) => ({
+          activityId: activity.id,
+          userId: userId as string,
+          dueOn: plan.dueOn as string | null,
+        }))
     })
+
+    await tellHandedOut(this.database, identity.tenantId, identity.userId, handed)
 
     return this.read(identity, id)
   }

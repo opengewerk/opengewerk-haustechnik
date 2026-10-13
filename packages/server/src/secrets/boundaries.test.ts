@@ -11,17 +11,16 @@ import { describe, expect, it } from 'vitest'
  * could keep one without the seal; this names such a file before it happens.
  * How the files are found is the foundation's and tested there.
  *
- * So far nothing in this application touches the table: it exists since the
- * first migration, and its store is bound with the first credential that is
- * kept, the password of a tenant's mail server. From then on this list names
- * that one file, and a second entry is a second place that reaches the sealed
- * values.
+ * The table exists since the first migration, and its store is bound since
+ * the first credential that is kept, the password of a tenant's mail server
+ * (opengewerk-haustechnik#126). This list names that one file, and a second
+ * entry is a second place that reaches the sealed values.
  */
 
 const source = fileURLToPath(new URL('..', import.meta.url))
 
 describe('the sealed credentials', () => {
-  it('are touched by no file of this application yet', () => {
-    expect(secretsTouchedIn(source)).toEqual([])
+  it('are touched by the store and by no other file', () => {
+    expect(secretsTouchedIn(source)).toEqual(['secrets/store.ts'])
   })
 })

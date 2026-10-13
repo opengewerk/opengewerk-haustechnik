@@ -1,4 +1,5 @@
-import { SiteFrame } from '@opengewerk/platform-web/site'
+import { usePushRefresh } from '@opengewerk/platform-web/session'
+import { SiteFrame, SitePush } from '@opengewerk/platform-web/site'
 
 import { useKeepCatalogue } from '../sync/catalogue.js'
 import { useTabs } from './tabs.js'
@@ -16,9 +17,24 @@ import { MyTasksMenuRow } from './tasks.js'
  *
  * The frame is also where the device sees to it that it holds the catalogue
  * of its server (`useKeepCatalogue`): on site it is asked without a network.
+ *
+ * The menu carries the tasks of the person and, under them, push on this
+ * device with the occasions (#126, the board "Menü"); a device with push on
+ * writes its row again at every start (`usePushRefresh`).
  */
 export function SiteShell() {
   useKeepCatalogue()
+  usePushRefresh('site')
 
-  return <SiteFrame tabs={useTabs()} menu={<MyTasksMenuRow />} />
+  return (
+    <SiteFrame
+      tabs={useTabs()}
+      menu={
+        <>
+          <MyTasksMenuRow />
+          <SitePush entry="site" />
+        </>
+      }
+    />
+  )
 }

@@ -264,6 +264,38 @@ describe('a new access', () => {
     })
   })
 
+  it('goes out by mail where the operator has set up its mail server', async () => {
+    const user = userEvent.setup()
+
+    signedIn({
+      '/settings/mail': { configured: true, from: 'haustechnik@beispielstadt.example' },
+    })
+
+    const dialog = await open(user)
+
+    await user.click(within(areasPart()).getByRole('checkbox', { name: 'Süd' }))
+    await user.click(await within(dialog).findByRole('button', { name: 'Per E-Mail einladen' }))
+
+    await waitFor(() => {
+      expect(sent('POST', '/staff')).toMatchObject([
+        { email: 'k.neumann@beispielstadt.example', send: 'mail' },
+      ])
+    })
+  })
+
+  it('goes out as a link alone while the operator has no mail server, and says where one is set up', async () => {
+    const user = userEvent.setup()
+
+    signedIn({ '/settings/mail': { configured: false, from: null } })
+
+    const dialog = await open(user)
+
+    expect(within(dialog).queryByRole('button', { name: 'Per E-Mail einladen' })).toBeNull()
+    expect(
+      within(dialog).getByText(/unter „E-Mail-Einstellungen“ ein Mailserver eingerichtet ist/),
+    ).toBeTruthy()
+  })
+
   it('goes out with every area where somebody picks that', async () => {
     const user = userEvent.setup()
 

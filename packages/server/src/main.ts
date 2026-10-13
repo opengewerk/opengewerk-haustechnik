@@ -3,6 +3,7 @@ import 'reflect-metadata'
 import {
   completeRoles,
   instanceIsEmpty,
+  invitationLinks,
   readConfiguration,
   runInstance,
   startupLine,
@@ -14,6 +15,8 @@ import { shippedCatalogue } from './catalogue.js'
 import { application } from './configuration.js'
 import { startDeadlineWorker } from './deadlines/engine.js'
 import { openInstance } from './instance.js'
+import { startMailWorker } from './mail/worker.js'
+import { startPushWorker } from './push/worker.js'
 
 /**
  * Starts an instance: puts it together (`openInstance`), gives every tenant
@@ -28,13 +31,20 @@ async function start(): Promise<void> {
   const configuration = readConfiguration(application)
   const instance = await openInstance(configuration)
 
-  // Stopped in this order when the container runtime asks. The deadlines
-  // first: a pass that is running finishes, so that a reminder that has its
-  // mark is not cut off before its transaction ends.
+  // Stopped in this order when the container runtime asks. The mail job
+  // first: a pass that is running finishes, so that a message is not sent
+  // and then forgotten because the pool closed before the row could say so.
+  // The deadlines likewise: a reminder that has its mark is not cut off
+  // before its transaction ends; and push, whose pass writes down what
+  // became of each message.
+  let mailWorker: { readonly stop: () => Promise<void> } | null = null
   let deadlineWorker: { readonly stop: () => Promise<void> } | null = null
+  let pushWorker: { readonly stop: () => Promise<void> } | null = null
 
   stopOnSignals(application.name, [
+    () => mailWorker?.stop(),
     () => deadlineWorker?.stop(),
+    () => pushWorker?.stop(),
     instance.stopSettings,
     () => instance.application.close(),
     () => instance.database.close(),
@@ -68,6 +78,28 @@ async function start(): Promise<void> {
     deadlineWorker = startDeadlineWorker({
       database: instance.database,
       catalogue: shippedCatalogue(),
+    })
+  }
+
+  // The jobs that tell people what is due (#126). Neither runs on a closed
+  // instance, and push only where the environment holds a key to sign with.
+  // An operator without a mail server gets no mail written for it: the
+  // deadline reminds all the same, as an activity and in the list.
+  if (instance.push) {
+    pushWorker = startPushWorker({
+      database: instance.database,
+      vapid: instance.push.vapid,
+      post: instance.push.post,
+    })
+  }
+
+  if (instance.mail) {
+    mailWorker = startMailWorker({
+      database: instance.database,
+      connect: instance.mail.connect,
+      key: instance.mail.key,
+      origin: instance.mail.origin,
+      invitationLinks: invitationLinks(instance.database, instance.mail.origin),
     })
   }
 

@@ -176,6 +176,13 @@ export const rights = [
   'sync.read',
   'sync.write',
   /**
+   * Push on one's own devices, and which occasions come as push (#126,
+   * section 3 of the concept). The right the foundation asks for on its
+   * routes of push. Every role holds it: a message goes to the person it is
+   * about and to nobody else, and what it says is decided on the server.
+   */
+  'push.write',
+  /**
    * Who works for this tenant, what they may do, and whether they still get
    * in. The rights the foundation asks for on its own routes; only the role
    * that leads holds them, because somebody who can hand out roles can hand
@@ -187,6 +194,14 @@ export const rights = [
   /** What the tenant has set for itself. Not what a regulation says, that is nobody's to set. */
   'settings.read',
   'settings.write',
+  /**
+   * The mail server of the tenant (#126). The login to a mailbox is a way of
+   * writing in the tenant's name to anybody, so only the role that leads sees
+   * the connection and sets it; whether the tenant sends mail at all, anybody
+   * who reads the settings learns.
+   */
+  'mail.read',
+  'mail.write',
   /**
    * Reading the change log: every field before and after, with who and when.
    * Only the role that leads holds it, which is also what a works council is
@@ -242,10 +257,13 @@ export const rightLabel: Readonly<Record<Right, string>> = {
   'task.assign': 'Aufgaben anderen zuteilen',
   'sync.read': 'Daten abgleichen',
   'sync.write': 'Änderungen senden',
+  'push.write': 'Push auf den eigenen Geräten einrichten',
   'membership.read': 'Zugänge ansehen',
   'membership.write': 'Zugänge verwalten',
   'settings.read': 'Einstellungen ansehen',
   'settings.write': 'Einstellungen ändern',
+  'mail.read': 'Den Mailserver ansehen',
+  'mail.write': 'Den Mailserver einrichten',
   'audit.read': 'Das Änderungsprotokoll einsehen',
 }
 
@@ -308,6 +326,8 @@ const technician: readonly Right[] = [
   // Every device takes and sends; what it may touch the rights above decide.
   'sync.read',
   'sync.write',
+  // Push on one's own devices: what is due for oneself, and nothing else.
+  'push.write',
 ]
 
 /**
