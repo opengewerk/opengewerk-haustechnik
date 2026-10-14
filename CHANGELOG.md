@@ -1807,6 +1807,12 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   Bildschirm bleibt und nur dieser eine Punkt der Tafel gebaut wird. Die Tafel
   `HT-Einst-Protokoll` ist nach dem Bildschirm neu gezeichnet (`opengewerk#616`, Submodul
   angehoben)
+- Die Verfahrensbeschreibung ist auf den Stand von Phase 1 gebracht (#140): der Tausch einer Anlage
+  mit einer eigenen Pflicht (wer als bestätigend und als verantwortlich an der neuen steht) und die
+  Importe aus einer Vorgängeranwendung (Altbestand ohne Person, übernommene Zählerstände, ein
+  Eintrag im Änderungsprotokoll je Datensatz, keine übernommenen Konten) sind Zusagen mit Tests.
+  Abschnitt 9 nennt nicht mehr, was gebaut ist, sondern was Phase 1 noch bringt. Eine
+  Arbeitnehmervertretung soll vor dem Parallelbetrieb lesen, was die Fassung tut, die sie bekommt.
 
 ### Behoben
 
