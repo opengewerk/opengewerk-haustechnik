@@ -402,10 +402,11 @@ function MeasurementInput(props: PointInputProps & { readonly field: Measurement
     }
   })
   const unit = unitSign(field)
-  // A limit an operator states says its bound beside its kind (#112).
+  // A limit an operator states says its bound beside its kind (#112); one
+  // from a rule is its kind, at least, at most or below (#93).
   const bound = isStatedLimit(field.limit)
     ? field.limit.bound
-    : field.limit?.kind === 'at_least' || field.limit?.kind === 'at_most'
+    : field.limit !== undefined && 'rule' in field.limit
       ? field.limit.kind
       : undefined
   const limit =

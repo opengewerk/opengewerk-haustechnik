@@ -1,0 +1,41 @@
+{
+  "note": "Die Werte der Trinkwasserverordnung vom 20. Juni 2023 (BGBl. 2023 I Nr. 159), in Kraft seit dem 24. Juni 2023, geprüft am Text auf gesetze-im-internet.de. Die Verordnung von 2001, die sie ersetzt hat, steht nicht im Paket. Der technische Maßnahmenwert ist schon erreicht, wenn ein Befund ihn erreicht; das Formular misst deshalb mit below gegen ihn.",
+  "records": [
+    {
+      "key": "legionella_sampling_interval_public",
+      "validFrom": "2023-06-24",
+      "validUntil": null,
+      "unit": "years",
+      "value": 1,
+      "source": "§ 31 Abs. 2 Nr. 2 Buchst. b TrinkwV",
+      "origin": "state_law"
+    },
+    {
+      "key": "legionella_sampling_interval_commercial",
+      "validFrom": "2023-06-24",
+      "validUntil": null,
+      "unit": "years",
+      "value": 3,
+      "source": "§ 31 Abs. 2 Nr. 2 Buchst. a TrinkwV",
+      "origin": "state_law"
+    },
+    {
+      "key": "legionella_technical_action_value",
+      "validFrom": "2023-06-24",
+      "validUntil": null,
+      "unit": "count_per_100_ml",
+      "value": 100,
+      "source": "§ 51 Abs. 1 TrinkwV mit Anlage 3 Teil II",
+      "origin": "state_law"
+    },
+    {
+      "key": "legionella_record_retention",
+      "validFrom": "2023-06-24",
+      "validUntil": null,
+      "unit": "years",
+      "value": 10,
+      "source": "§ 44 Abs. 3 TrinkwV",
+      "origin": "state_law"
+    }
+  ]
+}

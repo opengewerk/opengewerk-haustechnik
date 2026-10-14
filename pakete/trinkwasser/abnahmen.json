@@ -1,0 +1,72 @@
+{
+  "entries": [
+    {
+      "file": "anlagenarten/backflow_preventer.v1.json",
+      "checkedOn": "2026-10-14"
+    },
+    {
+      "file": "anlagenarten/drinking_water_filter.v1.json",
+      "checkedOn": "2026-10-14"
+    },
+    {
+      "file": "anlagenarten/drinking_water_installation.v1.json",
+      "checkedOn": "2026-10-14"
+    },
+    {
+      "file": "anlagenarten/water_heater.v1.json",
+      "checkedOn": "2026-10-14"
+    },
+    {
+      "file": "formulare/legionella_findings.v1.json",
+      "checkedOn": "2026-10-14"
+    },
+    {
+      "file": "pflichten/legionella_sampling_commercial.v1.json",
+      "checkedOn": "2026-10-14"
+    },
+    {
+      "file": "pflichten/legionella_sampling_public.v1.json",
+      "checkedOn": "2026-10-14"
+    },
+    {
+      "file": "vorlagen/hot_water_temperatures.v1.json",
+      "checkedOn": "2026-10-14"
+    }
+  ],
+  "rules": [
+    {
+      "key": "legionella_sampling_interval_public",
+      "validFrom": "2023-06-24",
+      "checkedOn": "2026-10-14"
+    },
+    {
+      "key": "legionella_sampling_interval_commercial",
+      "validFrom": "2023-06-24",
+      "checkedOn": "2026-10-14"
+    },
+    {
+      "key": "legionella_technical_action_value",
+      "validFrom": "2023-06-24",
+      "checkedOn": "2026-10-14"
+    },
+    {
+      "key": "legionella_record_retention",
+      "validFrom": "2023-06-24",
+      "checkedOn": "2026-10-14"
+    }
+  ],
+  "classes": [
+    {
+      "key": "no_hygienic_impact",
+      "checkedOn": "2026-10-14"
+    },
+    {
+      "key": "hygienic_concern",
+      "checkedOn": "2026-10-14"
+    },
+    {
+      "key": "health_hazard",
+      "checkedOn": "2026-10-14"
+    }
+  ]
+}

@@ -1,0 +1,32 @@
+{
+  "validFrom": "2005-01-01",
+  "label": "Trinkwassererwärmer",
+  "costGroup": "412",
+  "fields": [
+    {
+      "key": "design",
+      "label": "Bauart",
+      "kind": "choice",
+      "options": [
+        {
+          "value": "storage",
+          "label": "Speicher-Trinkwassererwärmer"
+        },
+        {
+          "value": "central_flow",
+          "label": "Zentraler Durchfluss-Trinkwassererwärmer"
+        },
+        {
+          "value": "local",
+          "label": "Dezentraler Trinkwassererwärmer"
+        }
+      ]
+    },
+    {
+      "key": "volume",
+      "label": "Inhalt",
+      "kind": "number",
+      "unit": "l"
+    }
+  ]
+}

@@ -1,0 +1,12 @@
+{
+  "validFrom": "2005-01-01",
+  "label": "Sicherungseinrichtung gegen Rückfließen",
+  "costGroup": "412",
+  "fields": [
+    {
+      "key": "design",
+      "label": "Bauart",
+      "kind": "text"
+    }
+  ]
+}

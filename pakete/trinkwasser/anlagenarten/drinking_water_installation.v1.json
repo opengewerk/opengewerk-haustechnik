@@ -1,0 +1,48 @@
+{
+  "validFrom": "2005-01-01",
+  "label": "Trinkwasserinstallation",
+  "costGroup": "412",
+  "characteristics": [
+    {
+      "key": "large_water_heating",
+      "label": "Trinkwassererwärmung über 400 Liter oder mehr als 3 Liter in einer Leitung",
+      "kind": "flag"
+    },
+    {
+      "key": "aerosol_outlets",
+      "label": "Duschen oder andere Stellen, an denen Wasser vernebelt wird",
+      "kind": "flag"
+    },
+    {
+      "key": "one_or_two_family_house",
+      "label": "In einem Ein- oder Zweifamilienhaus",
+      "kind": "flag"
+    },
+    {
+      "key": "supply",
+      "label": "Abgabe des Trinkwassers",
+      "kind": "choice",
+      "options": [
+        {
+          "value": "public",
+          "label": "Öffentlich, auch neben einer gewerblichen Abgabe"
+        },
+        {
+          "value": "commercial",
+          "label": "Nur gewerblich, etwa an Mieter"
+        },
+        {
+          "value": "none",
+          "label": "Weder gewerblich noch öffentlich"
+        }
+      ]
+    }
+  ],
+  "fields": [
+    {
+      "key": "sampling_points",
+      "label": "Probennahmestellen",
+      "kind": "number"
+    }
+  ]
+}
