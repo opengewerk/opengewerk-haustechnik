@@ -1,0 +1,103 @@
+{
+  "entries": [
+    {
+      "file": "anlagenarten/alarm_system.v1.json",
+      "checkedOn": "2026-10-14"
+    },
+    {
+      "file": "anlagenarten/extinguishing_system.v1.json",
+      "checkedOn": "2026-10-14"
+    },
+    {
+      "file": "anlagenarten/fire_alarm_system.v1.json",
+      "checkedOn": "2026-10-14"
+    },
+    {
+      "file": "anlagenarten/fire_damper.v1.json",
+      "checkedOn": "2026-10-14"
+    },
+    {
+      "file": "anlagenarten/fire_door.v1.json",
+      "checkedOn": "2026-10-14"
+    },
+    {
+      "file": "anlagenarten/fire_extinguisher.v1.json",
+      "checkedOn": "2026-10-14"
+    },
+    {
+      "file": "anlagenarten/hold_open_device.v1.json",
+      "checkedOn": "2026-10-14"
+    },
+    {
+      "file": "anlagenarten/smoke_extraction.v1.json",
+      "checkedOn": "2026-10-14"
+    },
+    {
+      "file": "anlagenarten/wall_hydrant.v1.json",
+      "checkedOn": "2026-10-14"
+    },
+    {
+      "file": "formulare/hold_open_device_function_check.v1.json",
+      "checkedOn": "2026-10-14"
+    },
+    {
+      "file": "pflichten/fire_detection_and_hydrant_check.v1.json",
+      "checkedOn": "2026-10-14"
+    },
+    {
+      "file": "pflichten/fire_door_check.v1.json",
+      "checkedOn": "2026-10-14"
+    },
+    {
+      "file": "pflichten/fire_extinguisher_maintenance.v1.json",
+      "checkedOn": "2026-10-14"
+    },
+    {
+      "file": "pflichten/hold_open_device_annual_check.v1.json",
+      "checkedOn": "2026-10-14"
+    },
+    {
+      "file": "pflichten/hold_open_device_monthly_check.v1.json",
+      "checkedOn": "2026-10-14"
+    },
+    {
+      "file": "pflichten/safety_device_check.v1.json",
+      "checkedOn": "2026-10-14"
+    },
+    {
+      "file": "vorlagen/fire_extinguisher_visual_check.v1.json",
+      "checkedOn": "2026-10-14"
+    }
+  ],
+  "rules": [
+    {
+      "key": "fire_extinguisher_maintenance_interval",
+      "validFrom": "2018-05-01",
+      "checkedOn": "2026-10-14"
+    },
+    {
+      "key": "hold_open_device_operator_check_interval",
+      "validFrom": "2009-11-01",
+      "checkedOn": "2026-10-14"
+    },
+    {
+      "key": "hold_open_device_expert_check_interval",
+      "validFrom": "2009-11-01",
+      "checkedOn": "2026-10-14"
+    }
+  ],
+  "classes": [
+    {
+      "key": "no_impairment",
+      "checkedOn": "2026-10-14"
+    },
+    {
+      "key": "impaired",
+      "checkedOn": "2026-10-14"
+    },
+    {
+      "key": "not_functional",
+      "checkedOn": "2026-10-14"
+    }
+  ]
+}

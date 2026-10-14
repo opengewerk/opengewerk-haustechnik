@@ -1,0 +1,22 @@
+{
+  "validFrom": "2005-01-01",
+  "label": "Alarmierungsanlage",
+  "costGroup": "456",
+  "fields": [
+    {
+      "key": "kind",
+      "label": "Art",
+      "kind": "choice",
+      "options": [
+        {
+          "value": "house_alarm",
+          "label": "Hausalarm mit Signalgebern"
+        },
+        {
+          "value": "voice_alarm",
+          "label": "Sprachalarmanlage"
+        }
+      ]
+    }
+  ]
+}

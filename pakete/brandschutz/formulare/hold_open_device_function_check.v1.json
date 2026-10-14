@@ -1,0 +1,49 @@
+{
+  "validFrom": "2009-11-01",
+  "title": "Funktionsprüfung der Feststellanlage",
+  "sections": [
+    {
+      "key": "check",
+      "title": "Feststellanlage",
+      "fields": [
+        {
+          "kind": "check_point",
+          "key": "releases",
+          "label": "Löst über den Handtaster aus und gibt die Tür frei"
+        },
+        {
+          "kind": "check_point",
+          "key": "closes",
+          "label": "Die Tür schließt selbsttätig und vollständig"
+        },
+        {
+          "kind": "check_point",
+          "key": "detectors",
+          "label": "Melder vorhanden, nicht beschädigt und nicht abgedeckt"
+        },
+        {
+          "kind": "check_point",
+          "key": "clear",
+          "label": "Schließbereich frei, nichts hält die Tür zusätzlich auf"
+        },
+        {
+          "kind": "check_point",
+          "key": "reset",
+          "label": "Wieder in Betrieb genommen, die Tür steht wie vorher offen"
+        }
+      ]
+    },
+    {
+      "key": "end",
+      "title": "Abschluss",
+      "fields": [
+        {
+          "kind": "signature",
+          "key": "signature",
+          "label": "Unterschrift",
+          "seals": true
+        }
+      ]
+    }
+  ]
+}

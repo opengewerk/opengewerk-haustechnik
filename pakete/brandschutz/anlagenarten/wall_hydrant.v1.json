@@ -1,0 +1,22 @@
+{
+  "validFrom": "2005-01-01",
+  "label": "Wandhydrant",
+  "costGroup": "474",
+  "fields": [
+    {
+      "key": "hose",
+      "label": "Schlauch",
+      "kind": "choice",
+      "options": [
+        {
+          "value": "semi_rigid",
+          "label": "formbeständig"
+        },
+        {
+          "value": "flat",
+          "label": "flachzusammenlegbar"
+        }
+      ]
+    }
+  ]
+}

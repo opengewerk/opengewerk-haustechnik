@@ -1,0 +1,19 @@
+{
+  "classes": [
+    {
+      "key": "no_impairment",
+      "label": "ohne Einfluss auf die Funktion",
+      "unsafe": false
+    },
+    {
+      "key": "impaired",
+      "label": "Funktion eingeschränkt, umgehend beheben",
+      "unsafe": false
+    },
+    {
+      "key": "not_functional",
+      "label": "nicht funktionsfähig, instand setzen oder austauschen",
+      "unsafe": true
+    }
+  ]
+}

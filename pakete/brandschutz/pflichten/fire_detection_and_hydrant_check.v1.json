@@ -1,0 +1,31 @@
+{
+  "validFrom": "2018-05-01",
+  "label": "Brandmeldeanlage oder Wandhydrant instand halten und prüfen lassen (ASR A2.2)",
+  "description": "Der Arbeitgeber hält Brandmelde- und Feuerlöscheinrichtungen, zu denen die Regel auch Wandhydranten zählt, nach den Angaben des Herstellers in regelmäßigen Abständen instand und lässt ihre Funktionsfähigkeit prüfen. Die Ergebnisse werden dokumentiert. Eine Frist nennt die Regel nicht, sie folgt aus den Angaben des Herstellers. Ist die Funktion nicht mehr gewährleistet, wird die Einrichtung unverzüglich instand gesetzt oder ausgetauscht.",
+  "task": "function_check",
+  "origin": "insurer_and_committee_rules",
+  "bindingness": "technical_rule",
+  "source": "ASR A2.2 Nr. 7.4.1 (bis Mai 2025 Nr. 7.5.1)",
+  "interval": {
+    "kind": "none"
+  },
+  "counting": "from_due",
+  "qualification": {
+    "level": "skilled_person",
+    "note": "die Regel nennt keine Stufe; maßgeblich sind die Angaben des Herstellers"
+  },
+  "evidence": {
+    "kinds": [
+      "report"
+    ]
+  },
+  "retention": {
+    "kind": "until_next_inspection"
+  },
+  "scope": {
+    "assetKinds": [
+      "fire_alarm_system",
+      "wall_hydrant"
+    ]
+  }
+}

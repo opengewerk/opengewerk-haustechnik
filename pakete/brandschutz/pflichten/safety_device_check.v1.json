@@ -1,0 +1,33 @@
+{
+  "validFrom": "2005-01-01",
+  "label": "Sicherheitseinrichtung instand halten und prüfen lassen",
+  "description": "Der Arbeitgeber hält Sicherheitseinrichtungen instand und lässt sie in regelmäßigen Abständen auf ihre Funktionsfähigkeit prüfen. Die Verordnung nennt unter anderem Brandmelde- und Feuerlöscheinrichtungen, Signalanlagen und raumlufttechnische Anlagen; eine Frist nennt sie nicht. Abstände und Umfang legt der Arbeitgeber in der Gefährdungsbeurteilung fest, nach den Angaben des Herstellers und den Prüfungen, die das Bauordnungsrecht des Landes verlangt.",
+  "task": "function_check",
+  "origin": "state_law",
+  "bindingness": "statute",
+  "source": "§ 4 Abs. 3 ArbStättV",
+  "interval": {
+    "kind": "none"
+  },
+  "counting": "from_due",
+  "qualification": {
+    "level": "skilled_person",
+    "note": "die Verordnung nennt keine Stufe; wer prüft, legt der Arbeitgeber in der Gefährdungsbeurteilung fest"
+  },
+  "evidence": {
+    "kinds": [
+      "report"
+    ]
+  },
+  "retention": {
+    "kind": "until_next_inspection"
+  },
+  "scope": {
+    "assetKinds": [
+      "alarm_system",
+      "smoke_extraction",
+      "extinguishing_system",
+      "fire_damper"
+    ]
+  }
+}

@@ -1,0 +1,33 @@
+{
+  "validFrom": "2009-11-01",
+  "label": "Feststellanlage monatlich prüfen (ASR A1.7)",
+  "description": "Damit eine offen gehaltene Brandschutztür im Brandfall schließt, prüft der Betreiber ihre Feststellanlage regelmäßig auf ihre Funktion. Die Regel nennt einmal im Monat als Beispiel; maßgeblich ist die Zulassung der Feststellanlage.",
+  "task": "function_check",
+  "origin": "insurer_and_committee_rules",
+  "bindingness": "technical_rule",
+  "source": "ASR A1.7 Nr. 10.2 Abs. 3",
+  "interval": {
+    "kind": "guide",
+    "rule": "hold_open_device_operator_check_interval"
+  },
+  "counting": "from_due",
+  "qualification": {
+    "level": "instructed_person",
+    "note": "die Regel nennt den Betreiber"
+  },
+  "evidence": {
+    "kinds": [
+      "protocol",
+      "round_point"
+    ],
+    "form": "hold_open_device_function_check"
+  },
+  "retention": {
+    "kind": "until_next_inspection"
+  },
+  "scope": {
+    "assetKinds": [
+      "hold_open_device"
+    ]
+  }
+}

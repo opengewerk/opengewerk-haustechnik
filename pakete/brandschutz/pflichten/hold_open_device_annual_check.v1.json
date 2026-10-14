@@ -1,0 +1,31 @@
+{
+  "validFrom": "2009-11-01",
+  "label": "Feststellanlage jährlich prüfen lassen (ASR A1.7)",
+  "description": "Neben der Prüfung durch den Betreiber lässt er die Feststellanlage regelmäßig von einer sachkundigen Person prüfen. Die Regel nennt einmal im Jahr als Beispiel; maßgeblich ist die Zulassung der Feststellanlage.",
+  "task": "inspection",
+  "origin": "insurer_and_committee_rules",
+  "bindingness": "technical_rule",
+  "source": "ASR A1.7 Nr. 10.2 Abs. 3",
+  "interval": {
+    "kind": "guide",
+    "rule": "hold_open_device_expert_check_interval"
+  },
+  "counting": "from_due",
+  "qualification": {
+    "level": "skilled_person",
+    "note": "Sachkundige"
+  },
+  "evidence": {
+    "kinds": [
+      "report"
+    ]
+  },
+  "retention": {
+    "kind": "until_next_inspection"
+  },
+  "scope": {
+    "assetKinds": [
+      "hold_open_device"
+    ]
+  }
+}
