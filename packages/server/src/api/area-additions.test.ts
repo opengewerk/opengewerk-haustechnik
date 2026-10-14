@@ -341,6 +341,44 @@ describe('an invitation', () => {
     expect((await said()).get(invitation.id)).toEqual({ all: false, areaIds: [] })
   })
 
+  /**
+   * Whoever opens the link is signed in as nobody. What it says about areas is
+   * read in the tenant its token names, by the names of the areas, and only
+   * while it can still be used (opengewerk#623).
+   */
+  it('says at the far end of its link the role and the areas it names, by their names', async () => {
+    const offer = async (invitation: Invited) =>
+      (await http().get(`/invitation/${invitation.token}`).expect(200)).body as Record<
+        string,
+        unknown
+      >
+
+    expect(await offer(await invite('technician', { all: false, areaIds: [south] }))).toMatchObject(
+      { state: 'open', roles: ['Haustechnik'], beside: 'im Bereich Süd' },
+    )
+    expect(
+      (await offer(await invite('technician', { all: false, areaIds: [south, north] }))).beside,
+    ).toBe('in den Bereichen Nord und Süd')
+    expect((await offer(await invite('technician', { all: true, areaIds: [] }))).beside).toBe(
+      'in allen Bereichen',
+    )
+    expect((await offer(await invite('technician', { all: false, areaIds: [] }))).beside).toBe(
+      'noch ohne Bereich',
+    )
+    expect((await offer(await invite('technician', undefined))).beside).toBeNull()
+    expect(await offer(await invite('technical_management', undefined))).toMatchObject({
+      roles: ['Technische Leitung'],
+      beside: 'in allen Bereichen',
+    })
+
+    // Taken up, the link says that and nothing about what it gave.
+    const used = await invite('technician', { all: false, areaIds: [south] })
+
+    await join(used)
+
+    expect(await offer(used)).toMatchObject({ state: 'redeemed', roles: [], beside: null })
+  })
+
   it.each([
     ['nothing', undefined],
     ['null', null],

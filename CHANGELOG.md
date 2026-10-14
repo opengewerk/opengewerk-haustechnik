@@ -1355,6 +1355,11 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   mehrere Betreiber arbeitet oder zur Verwaltung der Instanz gehört, ließ sich bisher gar nicht
   berichtigen. Baustein und Route kommen aus dem Fundament (Submodul angehoben); die
   Verfahrensbeschreibung nennt es als Zusage, mit zwei Tests als Beleg.
+- Die Einladung sagt, wofür der Zugang ist (opengewerk/opengewerk#623): "..., Rolle Haustechnik
+  im Bereich Süd.", wie die Tafel "Einladung einlösen" es zeigt. Die Rollen mit den Namen des
+  Betreibers kommen aus dem Fundament, die Bereiche sagt die Haustechnik selbst (`offered` in
+  `areas/additions.ts`). Beides nur, solange der Link gilt; die Verfahrensbeschreibung nennt es
+  als Zusage, weil die Route ohne Anmeldung antwortet.
 
 ### Geändert
 

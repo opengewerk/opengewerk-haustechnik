@@ -11,6 +11,19 @@ import { SyncClient } from '../sync/client.js'
 import { applicationName } from './name.js'
 import { records } from './records.js'
 
+/** The roles an invitation gives, after the address: ", Rolle Haustechnik" or ", Rollen A und B". */
+function rolesInWords(roles: readonly string[]): string {
+  const last = roles.at(-1)
+
+  if (last === undefined) {
+    return ''
+  }
+
+  return roles.length === 1
+    ? `, Rolle ${last}`
+    : `, Rollen ${roles.slice(0, -1).join(', ')} und ${last}`
+}
+
 /**
  * What this application says and does where a screen of the foundation needs
  * it (ADR 0010 in the repository opengewerk): what it is called, what it says
@@ -102,10 +115,15 @@ export const application: InterfaceApplication = {
       },
       tenantIsAdded: 'Sie behalten Ihr Passwort; der Betreiber kommt einfach dazu.',
       join: 'Betreiber übernehmen',
-      newAccount: (name, email) => (
+      // With the roles as the Betreiber names them and the areas the
+      // invitation names (opengewerk#623): "..., Rolle Haustechnik im Bereich
+      // Süd."
+      newAccount: (name, email, held) => (
         <>
-          Der Betreiber hat einen Zugang für {name} angelegt, mit der Adresse {email}. Fehlt nur
-          noch ein Passwort, und das wählen Sie selbst: niemand beim Betreiber bekommt es zu sehen.
+          Der Betreiber hat einen Zugang für {name} angelegt, mit der Adresse {email}
+          {rolesInWords(held.roles)}
+          {held.beside === null ? '' : ` ${held.beside}`}. Fehlt nur noch ein Passwort, und das
+          wählen Sie selbst: niemand beim Betreiber bekommt es zu sehen.
         </>
       ),
     },
