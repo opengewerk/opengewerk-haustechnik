@@ -1329,6 +1329,16 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   über ihren Namen vor. Das Beispielpaket aus `#130` hat einen Stromzähler dazubekommen und wird
   im Test nur noch mit den Paketen des Baus importiert, und die Zähler der Vorschau tragen die
   neuen Anlagenarten. Konzept v0.35.
+- **Nummernkreise und Sicherung unter "Einstellungen" (`#127`).** "Nummernkreise" zeigt Muster
+  und nächste Nummer für Anlagen, Aufträge und Nachweise, mit der Nummer, die als nächste
+  vergeben wird; die Leitung ändert ein Muster und setzt die nächste Nummer hinauf, nie hinab,
+  damit keine vergebene Nummer ein zweites Mal vorkommt. "Sicherung" zeigt, wann die Instanz
+  zuletzt gesichert wurde, mit Archiv und ob es verschlüsselt ist, und über jedem Bildschirm
+  des Büros steht eine rote Leiste, wenn die letzte Sicherung älter als zwei Tage ist. Bisher
+  ließen sich die Nummernkreise nur mit SQL ändern, und ob die nächtliche Sicherung lief, sah
+  niemand in der Anwendung. Beides sieht nur die Leitung. Routen, Bildschirme und Leiste
+  kommen aus dem Fundament (Submodul angehoben); der Lauf "Sicherung und Rückspielen" fragt
+  die Route jetzt nach jeder Sicherung mit einem Konto der Leitung (`#80`).
 
 ### Geändert
 

@@ -4,6 +4,7 @@ import {
   auditValueWordsWith,
   auditVocabulary,
   type Catalogue,
+  numberRangeKeys,
 } from '@opengewerk/haustechnik-domain'
 import {
   attachmentParts,
@@ -13,6 +14,7 @@ import {
   type Authentication,
   authenticationParts,
   AUTHORIZATION,
+  backupStatusParts,
   Database,
   fileParts,
   type FileStorage,
@@ -23,6 +25,7 @@ import {
   MAIL,
   type MailContext,
   mailSettingsParts,
+  numberRangeParts,
   PUSH,
   type PushContext,
   pushParts,
@@ -38,6 +41,7 @@ import {
 
 import { access } from '../authentication/access.js'
 import { CATALOGUE, shippedCatalogue } from '../catalogue.js'
+import { changeNumberRange, numberRangesOf } from '../database/number-ranges.js'
 import { deadlineRulesFor } from '../deadlines/routes.js'
 import { mailServersOfOperators } from '../mail/server-settings.js'
 import { invitationMailing } from '../notifications/invitation-mail.js'
@@ -146,6 +150,12 @@ export interface ApiOptions {
    * says so, and no device subscribes.
    */
   readonly push?: PushContext | null
+  /**
+   * Where the backups record their last run (`BACKUP_STATUS_PATH`, #127).
+   * Left out, the office is told that nothing is known about backups, which
+   * is the truth on a machine that makes none.
+   */
+  readonly backupStatus?: string | null
 }
 
 /**
@@ -196,6 +206,7 @@ export class ApiModule {
       renderer = rendererFor({ url: undefined, token: undefined }),
       mail = null,
       push = null,
+      backupStatus = null,
     } = options
     const catalogue = options.catalogue ?? shippedCatalogue()
 
@@ -243,6 +254,18 @@ export class ApiModule {
       rights: { status: 'settings.read', read: 'mail.read', write: 'mail.write' },
       servers: mailServersOfOperators,
     })
+    // How assets, work orders and evidence are numbered, and when the last
+    // backup ran (#127): both under "Einstellungen", read by whoever reads the
+    // settings, and the number ranges changed by whoever writes them, which
+    // section 7 of the concept gives to the Leitung alone.
+    const numbering = numberRangeParts({
+      access,
+      read: 'settings.read',
+      write: 'settings.write',
+      keys: numberRangeKeys,
+      store: { numberRangesOf, changeNumberRange },
+    })
+    const backingUp = backupStatusParts({ access, read: 'settings.read', directory: backupStatus })
     // Push on one's own devices, and which occasions come as push.
     const pushing = pushParts({ access, rights: { write: 'push.write' }, rules: pushRules })
 
@@ -281,6 +304,8 @@ export class ApiModule {
         ...filing.controllers,
         ...mailing.controllers,
         ...pushing.controllers,
+        ...numbering.controllers,
+        ...backingUp.controllers,
         // The areas of a tenant, who holds in which, and who stands in for whom.
         AreasController,
         SubstitutionsController,
@@ -354,6 +379,7 @@ export class ApiModule {
         ...filing.providers,
         ...mailing.providers,
         ...pushing.providers,
+        ...backingUp.providers,
         // What sends: null on a closed instance, and for push without a key.
         { provide: MAIL, useValue: mail },
         { provide: PUSH, useValue: push },

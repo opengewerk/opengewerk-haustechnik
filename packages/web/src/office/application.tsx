@@ -11,9 +11,11 @@ import {
   CalendarClock,
   Gauge,
   History,
+  List,
   Mail,
   Map,
   ScanLine,
+  Server,
   TriangleAlert,
   Users,
 } from 'lucide-react'
@@ -68,6 +70,14 @@ const settings = [
     right: 'settings.read',
   },
   {
+    key: 'nummernkreise',
+    to: '/einstellungen/nummernkreise',
+    title: 'Nummernkreise',
+    about: 'Wie Anlagen, Aufträge und Nachweise nummeriert werden.',
+    icon: List,
+    right: 'settings.read',
+  },
+  {
     key: 'fristen',
     to: '/einstellungen/fristen',
     title: 'Fristen',
@@ -82,6 +92,14 @@ const settings = [
     title: 'E-Mail-Einstellungen',
     about: 'Der Mailserver des Betreibers und die Signatur unter jeder E-Mail.',
     icon: Mail,
+    right: 'settings.read',
+  },
+  {
+    key: 'sicherung',
+    to: '/einstellungen/sicherung',
+    title: 'Sicherung',
+    about: 'Wann die Instanz zuletzt gesichert wurde. Das geschieht jede Nacht von selbst.',
+    icon: Server,
     right: 'settings.read',
   },
   {

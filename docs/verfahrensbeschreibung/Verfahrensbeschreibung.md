@@ -728,7 +728,7 @@ Jede Zeile ist der erste Abschnitt einer Adresse, unter der der Server antwortet
 | `round-templates` | Vorlagen der Rundgänge: die eigenen als Tabelle, eine neue, leer oder aus einem Paket übernommen, und eine neue Fassung einer Vorlage; sie nennen Anlagen, Räume und Pflichten und keine Person |
 | `rounds` | Rundgänge der Pläne: die Übersicht einer Woche mit den offenen Rundgängen früherer Wochen, auch als Tabelle, wer einen Rundgang geht, auch „wie letzte Woche“, die Namen der Personen, die Pläne und Rundgänge nennen, und die Auswahl, wer in einem Bereich Rundgänge geht; die Seite eines Rundgangs mit seinen Unterschriften, die Gegenzeichnung und das Schließen mit Grund |
 | `search` | Suche über Liegenschaften, Gebäude, Räume, Anlagen und Vorgänge nach Name, Nummer und Kennzeichen und über Nachweise nach ihrer Nummer, in den Bereichen der fragenden Person; höchstens fünf Treffer je Art, und ob es mehr gibt, ohne Zahl. Sie sucht nicht nach Personen, und kein Treffer nennt jemanden |
-| `settings` | Vorlauf der Fristen und die Vorgabe der Frist je Mängelklasse; die Mängelklassen auch als Tabelle; ob der Betreiber E-Mails verschickt, und für die Leitung sein Mailserver |
+| `settings` | Vorlauf der Fristen und die Vorgabe der Frist je Mängelklasse; die Mängelklassen auch als Tabelle; ob der Betreiber E-Mails verschickt, und für die Leitung sein Mailserver; die Nummernkreise und wann die Instanz zuletzt gesichert wurde, beides ohne eine Person |
 | `setup` | Ersteinrichtung |
 | `staff` | Zugänge, für die Leitung auch als Tabelle |
 | `substitutions` | Vertretungen |

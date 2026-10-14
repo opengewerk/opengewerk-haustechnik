@@ -18,6 +18,7 @@ import { AreasScreen } from './screens/areas.js'
 import { AssetFileScreen } from './screens/asset.js'
 import { EditAssetScreen, NewAssetScreen, NewComponentScreen } from './screens/asset-form.js'
 import { AssetRegisterScreen } from './screens/assets.js'
+import { BackupScreen } from './screens/backup.js'
 import { EditBuildingScreen, NewBuildingScreen } from './screens/building-form.js'
 import { BuildingScreen } from './screens/buildings.js'
 import { CatalogueScreen } from './screens/catalogue.js'
@@ -45,6 +46,7 @@ import { ImportAssetsScreen, ImportStructureScreen } from './screens/imports.js'
 import { LabelLandingScreen } from './screens/label-landing.js'
 import { MeterSettingsScreen } from './screens/meter-settings.js'
 import { MeterListScreen, MeterScreen } from './screens/meters.js'
+import { NumberRangesScreen } from './screens/number-ranges.js'
 import { OverviewScreen } from './screens/overview.js'
 import {
   EditPropertyScreen,
@@ -516,6 +518,16 @@ export function officeRoutes() {
       getParentRoute: () => office,
       path: '/einstellungen/zaehler',
       component: MeterSettingsScreen,
+    }),
+    createRoute({
+      getParentRoute: () => office,
+      path: '/einstellungen/nummernkreise',
+      component: NumberRangesScreen,
+    }),
+    createRoute({
+      getParentRoute: () => office,
+      path: '/einstellungen/sicherung',
+      component: BackupScreen,
     }),
     createRoute({
       getParentRoute: () => office,

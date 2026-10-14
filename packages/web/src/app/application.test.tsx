@@ -212,8 +212,10 @@ describe('what each entry hands to the foundation', () => {
       'zugaenge',
       'maengelklassen',
       'meters',
+      'nummernkreise',
       'fristen',
       'e-mail',
+      'sicherung',
       'protokoll',
     ])
     // Both entries let go of push on the device before somebody signs out (#126).
