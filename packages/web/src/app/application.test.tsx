@@ -138,6 +138,33 @@ describe('the gate of this application', () => {
     ).toBeTruthy()
   })
 
+  it('says in the invitation who the account is for, with the roles and the areas the link names', () => {
+    const { newAccount } = application.sentences.invitation
+    const said = (roles: readonly string[], beside: string | null) =>
+      render(
+        <p>
+          {newAccount(
+            <strong>Kai Neumann</strong>,
+            <strong>k.neumann@beispielstadt.example</strong>,
+            {
+              roles,
+              beside,
+            },
+          )}
+        </p>,
+      ).container.textContent
+
+    // The sentence of the board "Einladung einlösen".
+    expect(said(['Haustechnik'], 'im Bereich Süd')).toBe(
+      'Der Betreiber hat einen Zugang für Kai Neumann angelegt, mit der Adresse ' +
+        'k.neumann@beispielstadt.example, Rolle Haustechnik im Bereich Süd. Fehlt nur noch ein ' +
+        'Passwort, und das wählen Sie selbst: niemand beim Betreiber bekommt es zu sehen.',
+    )
+    expect(said(['Objektleitung', 'Haustechnik'], null)).toContain(
+      'k.neumann@beispielstadt.example, Rollen Objektleitung und Haustechnik. Fehlt',
+    )
+  })
+
   it('calls what is chosen a Betreiber: in the heading, for an account without one, and when one could not be chosen', async () => {
     const first = render(
       inApplication(

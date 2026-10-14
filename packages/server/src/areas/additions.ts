@@ -1,5 +1,6 @@
 import { BadRequestException } from '@nestjs/common'
 import {
+  invitedAreasInWords,
   type InvitationAreas,
   type MemberAreas,
   memberAreasInWords,
@@ -14,14 +15,20 @@ import {
 } from '@opengewerk/platform-server'
 import { and, eq } from 'drizzle-orm'
 
-import { invitationAreaChoices, invitationAreas, invitations } from '../database/schema/index.js'
+import {
+  areas,
+  invitationAreaChoices,
+  invitationAreas,
+  invitations,
+} from '../database/schema/index.js'
 import { areasFrom, areasInSight, memberAreasOf, requireAreas, setMemberAreas } from './areas.js'
 
 // What this application keeps beside a membership: the areas somebody holds
 // in (section 2.8 of the concept, ADR 0003). The foundation knows a membership
 // by its roles alone and calls the three functions below inside the
 // transaction that writes an invitation, the membership an invitation becomes,
-// or a change of roles (ADR 0010 in the repository opengewerk). So a role and
+// or a change of roles (ADR 0010 in the repository opengewerk); a fourth says
+// what an open invitation names, for the screen its link opens. So a role and
 // the areas that go with it are written together or not at all: the Leitung
 // invites with both in one step, and saves both with one "Speichern".
 //
@@ -128,6 +135,54 @@ export const areaAdditions: MembershipAdditions = {
       all: choice.everyArea,
       areaIds: named.map((row) => row.areaId),
     })
+  },
+
+  /**
+   * What an open invitation says about areas, for the sentence at the far end
+   * of its link (opengewerk#623): every area, or the ones named by their
+   * names. Asked by nobody, in the tenant the token names; the tables read
+   * here are kept apart by tenant alone.
+   *
+   * One that says nothing says nothing here either, unless its roles hold in
+   * every area anyway: what the membership then begins with is the
+   * database's to give, and depends on how many areas the tenant has on the
+   * day the link is used.
+   */
+  async offered(tx, invitation) {
+    const { tenantId, invitationId, roles } = invitation
+    const [choice] = await tx
+      .select({ everyArea: invitationAreaChoices.everyArea })
+      .from(invitationAreaChoices)
+      .where(
+        and(
+          eq(invitationAreaChoices.tenantId, tenantId),
+          eq(invitationAreaChoices.invitationId, invitationId),
+        ),
+      )
+
+    if (seesEveryArea(roles) || choice?.everyArea === true) {
+      return invitedAreasInWords(true, [])
+    }
+
+    if (choice === undefined) {
+      return null
+    }
+
+    const named = await tx
+      .select({ name: areas.name })
+      .from(invitationAreas)
+      .innerJoin(
+        areas,
+        and(eq(areas.tenantId, invitationAreas.tenantId), eq(areas.id, invitationAreas.areaId)),
+      )
+      .where(
+        and(eq(invitationAreas.tenantId, tenantId), eq(invitationAreas.invitationId, invitationId)),
+      )
+
+    return invitedAreasInWords(
+      false,
+      named.map((row) => row.name).sort((left, right) => left.localeCompare(right, 'de')),
+    )
   },
 
   /**

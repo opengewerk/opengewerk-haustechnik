@@ -86,6 +86,28 @@ export const everyAreaSentence = 'Leitung und Technische Leitung haben immer all
 /** What the column "Bereiche" under "Zugänge" says, on the screen and in its table (#236). */
 export const memberAreaWords = { title: 'Bereiche', all: 'alle', none: 'ohne Bereich' } as const
 
+/**
+ * The areas an invitation names, as the sentence at the far end of its link
+ * says them after the roles (board "Einladung einlösen"): "in allen
+ * Bereichen", "im Bereich Süd", "in den Bereichen Nord und Süd", or that it
+ * names none. The names come in the order they are to be read in.
+ */
+export function invitedAreasInWords(all: boolean, names: readonly string[]): string {
+  if (all) {
+    return 'in allen Bereichen'
+  }
+
+  const last = names.at(-1)
+
+  if (last === undefined) {
+    return 'noch ohne Bereich'
+  }
+
+  return names.length === 1
+    ? `im Bereich ${last}`
+    : `in den Bereichen ${names.slice(0, -1).join(', ')} und ${last}`
+}
+
 /** The areas somebody holds in, as a cell says them: "alle", their names, or that there is none. */
 export function memberAreasInWords(
   choice: { readonly all: boolean; readonly areaIds: readonly string[] },

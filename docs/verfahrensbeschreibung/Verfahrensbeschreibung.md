@@ -57,6 +57,7 @@ Anhang B nennt jedes Feld der Datenbank, das auf eine Person zeigt. Dieser Absch
 - Wer bei einem Betreiber arbeitet, hat dort eine Zugehörigkeit mit einer oder mehreren Rollen. Verlässt jemand den Betreiber, wird die Zugehörigkeit gesperrt und nicht gelöscht: die Person bleibt in der Liste und in allem, was sie unterschrieben hat. [K7, B50]
 - Eine Einladung hält Name, E-Mail-Adresse, Rollen und Bereiche der eingeladenen Person und wer eingeladen hat. Ihr Link gilt sieben Tage. Hat der Betreiber einen Mailserver eingerichtet, kann die Leitung die Einladung per E-Mail schicken; sonst gibt sie den Link selbst weiter. [K7, B63, B67]
 - **Zusage:** Der Link einer Einladung per E-Mail entsteht erst, wenn die E-Mail hinausgeht. Im Postausgang und im Änderungsprotokoll steht keiner, der funktioniert. [K9, B227]
+- **Zusage:** Wer den Link einer Einladung öffnet, sieht ohne Anmeldung den Betreiber, Name und Adresse der eingeladenen Person, ihre Rollen und ihre Bereiche, damit sie vor dem Passwort weiß, wofür der Zugang ist. Das gilt nur, solange der Link gilt: ein benutzter, zurückgezogener oder abgelaufener nennt Rollen und Bereiche nicht mehr. Den Link hat die eingeladene Person, oder die Leitung, solange sie ihn nicht weitergegeben hat. [K7, B258, B259]
 - **Zusage:** Name und E-Mail-Adresse eines Kontos berichtigt die Leitung und keine andere Rolle, und die Berichtigung steht mit dem Wert davor und danach im Änderungsprotokoll. [K3, B13, B70]
 - **Zusage:** Name und E-Mail-Adresse des eigenen Kontos ändert jede Person selbst unter „Konto“, und erst nach der Bestätigung mit Passwort und, wo eingerichtet, Code aus der App. Die Änderung steht mit dem Wert davor und danach im Änderungsprotokoll jedes Betreibers, für den das Konto arbeitet. [K3, B256, B257]
 - **Zusage:** Für jede Person steht fest, ob sie alle Bereiche sieht oder welche. Festlegen und ändern kann das nur die Leitung. [K2.8, B18]
@@ -640,6 +641,8 @@ Pfade ohne Vorsatz liegen im Repository `opengewerk/opengewerk-haustechnik`. Pfa
 | B255 | Test | `upstream/opengewerk/packages/platform/server/src/instance/mail-server.test.ts` | `takes the login with it, and after it no mail goes to an account` |
 | B256 | Test | `upstream/opengewerk/packages/platform/server/src/authentication/own-account.test.ts` | `is refused without confirming again, and changes nothing` |
 | B257 | Test | `upstream/opengewerk/packages/platform/server/src/authentication/own-account.test.ts` | `works after confirming, and goes into the log of every tenant of the account` |
+| B258 | Test | `upstream/opengewerk/packages/platform/server/src/authentication/redemption.test.ts` | `names the roles as the tenant calls them, only while the link can still be used` |
+| B259 | Test | `packages/server/src/api/area-additions.test.ts` | `says at the far end of its link the role and the areas it names, by their names` |
 
 ---
 
@@ -719,7 +722,7 @@ Jede Zeile ist der erste Abschnitt einer Adresse, unter der der Server antwortet
 | `health` | Gesundheitsprüfung, ohne Daten |
 | `imports` | Import aus Tabellen: liest die Datei einer Liste, ohne sie zu speichern, zeigt, was ihre Zeilen anlegen würden, übernimmt Liegenschaften, Gebäude, Geschosse, Räume und Anlagen, laufende Fristen mit alten Nachweisen, den Verlauf der Zähler und Vorlagen der Rundgänge, jede Liste ganz oder gar nicht, und hält, wie die Listen des Betreibers die Anlagenarten nennen |
 | `instance` | Verwaltung der Instanz, mit ihren Rechtstexten und wer sie zuletzt geändert hat |
-| `invitation` | Einlösen einer Einladung |
+| `invitation` | Einlösen einer Einladung; solange ihr Link gilt, nennt sie vorher Betreiber, Name, Adresse, Rollen und Bereiche der eingeladenen Person |
 | `labels` | Etiketten: sagt zu einem gescannten Code in einem Wort, ob er für die fragende Person etwas öffnet, und druckt viele Etiketten auf einmal |
 | `legal-texts` | Impressum und Datenschutzhinweise der Instanz, wie die Verwaltung der Instanz sie hinterlegt, ohne Anmeldung lesbar und für jeden Betreiber gleich; sonst nichts über die Instanz |
 | `overview` | Übersicht der Betreiberverantwortung: wie viele Pflichten überfällig, in 30 und in 90 Tagen fällig und nie erfasst sind, wie vielen Prüfungen der Bericht einer Fremdfirma fehlt und wie viele Mängel über ihrer Frist sind, mit den ersten davon; über alle Bereiche der fragenden Person oder einen. Dazu die Zahlen je Liegenschaft und Gebäude, das Lagebild eines Gebäudes mit seinen letzten Vorgängen und die Zeitachse eines Orts. Keine dieser Antworten nennt eine Person |
