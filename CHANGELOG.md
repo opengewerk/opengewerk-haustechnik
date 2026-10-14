@@ -1358,6 +1358,9 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
 
 ### Geändert
 
+- Wer genau einem Betreiber angehört, sieht nach der Anmeldung keine Wahl mit einer einzigen
+  Kachel mehr; die Anwendung öffnet ihn selbst (opengewerk/opengewerk#624, aus dem Fundament).
+  Gefunden beim Durchgang auf einem lokalen Stapel für `#128`, gleich nach der Ersteinrichtung.
 - Was das Fundament mitbringt, folgt seinen Tafeln (`#128`): die Bildschirme vor der Anmeldung
   mit "OpenGewerk" und "Haustechnik" in Kupfer darunter, dem Satz der Tafel daneben und dem
   Schlüssel für die Authenticator-App in Vierergruppen; der Bereich der Instanz mit den

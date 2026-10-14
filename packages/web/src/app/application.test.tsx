@@ -160,12 +160,13 @@ describe('the gate of this application', () => {
     first.unmount()
 
     answers.set('POST /auth/tenant', 'down')
+    // Two of them: a single Betreiber is opened without asking.
     render(
       inApplication(
         <TenantScreen
           entry="office"
           deviceId="geraet"
-          tenants={[nord]}
+          tenants={[nord, { ...nord, id: 't-sued' as TenantId, name: 'Wohnbau Süd' }]}
           onChosen={vi.fn()}
           onSignedOut={vi.fn()}
         />,
