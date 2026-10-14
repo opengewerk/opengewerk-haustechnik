@@ -266,7 +266,7 @@ Leitung und Technische Leitung sehen als Vorgabe alle Bereiche.
 - **Zusage:** Zwei Betreiber auf derselben Instanz sehen nichts voneinander. [K3, B56]
 - Die Übersicht der Bereiche nennt je Bereich, für wen er genannt ist. Sie sieht, wer die Einstellungen sieht, in Phase 1 also die Leitung. [K2.8, B4]
 - **Zusage:** Wer die Instanz verwaltet, sieht je Betreiber den Namen, wer ihn leitet, und wie viele dort arbeiten, und nichts von dem, was in ihm steht. [K3, B59]
-- Wer den Server betreibt, auf dem die Instanz läuft, kann mit Zugriff auf die Datenbank oder eine Sicherung alles lesen, was in diesem Dokument genannt ist. Wer das ist und unter welchen Bedingungen, regelt der Betreiber: im eigenen Haus organisatorisch, bei einem Dienstleister im Vertrag zur Auftragsverarbeitung. [K9]
+- Wer den Server betreibt, auf dem die Instanz läuft, kann mit Zugriff auf die Datenbank oder eine Sicherung alles lesen, was in diesem Dokument genannt ist. Wer das ist und unter welchen Bedingungen, regelt der Betreiber: im eigenen Haus organisatorisch, bei einem Dienstleister im Vertrag zur Auftragsverarbeitung. Eine Vorlage dafür liegt auf [opengewerk.de](https://opengewerk.de/haustechnik/auftragsverarbeitung/), mit den technischen und organisatorischen Maßnahmen der Anwendung als Anlage; rechtlich geprüft ist sie noch nicht. [K9, K15]
 
 ---
 
@@ -349,7 +349,6 @@ Diese Bausteine gehören nach dem Fahrplan zu Phase 1 und sind noch nicht gebaut
 
 - **Zähler und Fotos vor Ort:** Ablesungen kommen als eigene Datensätze dazu und tragen wie jeder Datensatz ihren Stempel. Ein Foto vor Ort wird als Dokument abgelegt (Abschnitt 3.9); die Bildschirme dafür kommen mit der Bestandsaufnahme. [K4.9, K4.10]
 - **Übernahme aus einer Vorgängeranwendung:** Jedes Konto wird eingeladen, niemand bekommt ein übernommenes Passwort. Ein übernommener Nachweis sagt, dass er nicht in dieser Anwendung unterschrieben wurde. [K11]
-- **Vertrag zur Auftragsverarbeitung:** Die Vorlage dafür ist für Phase 1 vorgesehen. [K9, K12]
 
 ---
 
@@ -374,7 +373,7 @@ Das Dokument wird wie Quelltext über einen Pull Request geändert. Der Test `pa
 - Anhang C nennt jede Adresse, die der Server beantwortet, und keine andere.
 - Die Zeile „Gilt für“ nennt die neueste veröffentlichte Fassung aus `CHANGELOG.md`, und bis es eine gibt, sagt sie das.
 
-Wer einen Baustein baut, der etwas an den Aussagen ändert, berichtigt das Dokument im selben Pull Request. Für eine Arbeitnehmervertretung wird es als PDF ausgegeben; maßgeblich ist die Fassung im Repository.
+Wer einen Baustein baut, der etwas an den Aussagen ändert, berichtigt das Dokument im selben Pull Request. Ändert er eine der Maßnahmen, die Teil A der Anlage 1 der [Vorlage zur Auftragsverarbeitung](https://opengewerk.de/haustechnik/auftragsverarbeitung/) beschreibt, zieht er die Vorlage mit einem Pull Request an der Website nach. Für eine Arbeitnehmervertretung wird es als PDF ausgegeben; maßgeblich ist die Fassung im Repository.
 
 ---
 

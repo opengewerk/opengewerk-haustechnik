@@ -1360,6 +1360,13 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   Betreibers kommen aus dem Fundament, die Bereiche sagt die Haustechnik selbst (`offered` in
   `areas/additions.ts`). Beides nur, solange der Link gilt; die Verfahrensbeschreibung nennt es
   als Zusage, weil die Route ohne Anmeldung antwortet.
+- Eine Vorlage für den Vertrag zur Auftragsverarbeitung nach Art. 28 DSGVO liegt auf
+  opengewerk.de (https://opengewerk.de/haustechnik/auftragsverarbeitung/, #133), weil ein Betreiber mit echten Daten
+  auf einer Instanz, die ein Dienstleister für ihn betreibt, einen solchen Vertrag braucht.
+  Anlage 1 beschreibt die technischen und organisatorischen Maßnahmen, die die Anwendung
+  mitbringt, und was der Dienstleister beim Betrieb ausfüllt. Die Vorlage ist als nicht
+  rechtlich geprüft gekennzeichnet, bis der Fachanwalt sie gesehen hat. README und
+  Verfahrensbeschreibung verweisen auf sie.
 
 ### Geändert
 
