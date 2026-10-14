@@ -396,10 +396,6 @@ records_for_update() {
     insert into memberships (tenant_id, user_id, roles) values ('$first_tenant', 'u-probe', '{technician}');"
 }
 
-# After the restore the file the account sent is back where the store looks
-# for it, with the contents its name promises and the row that makes it a file
-# of the Betreiber (opengewerk-haustechnik#96). And the account signs in with
-# the password it had before the backup (opengewerk-haustechnik#15). The
 # What the application makes of the record the backup just left: the route
 # behind "Einstellungen", "Sicherung" names it, with its archive, encrypted,
 # and not overdue (opengewerk-haustechnik#127, #80).
@@ -407,6 +403,15 @@ after_record() {
   HAUSTECHNIK_PASSWORD=$probe_password compose exec -T -e HAUSTECHNIK_PASSWORD app \
     node dist/add-staff.js "$first_tenant" "$lead_email" 'Lea Leitung' management
   cookies=$(probe_session "$lead_email")
+
+  # The Leitung needs a second factor (ADR 0006), and a sign in with one asks
+  # for a code from an app. So the account signs in with its password first
+  # and is then given the flag the setup of an app leaves, which the check
+  # reads afresh on every request.
+  sql "update auth_users set two_factor_enabled = true where email = '$lead_email';"
+  [ "$(value "select two_factor_enabled from auth_users where email = '$lead_email'")" = t ] ||
+    fail 'Das Konto der Leitung hat keinen zweiten Faktor bekommen.'
+
   status=$(curl --silent --output "$temp/backup-status.json" --write-out '%{http_code}' \
     --header "Cookie: $cookies" --header "Origin: $base" "$base/settings/backup")
   echo "GET /settings/backup: ${status}"
@@ -419,6 +424,10 @@ after_record() {
   echo 'Die Route hinter "Einstellungen", "Sicherung" nennt die Sicherung, die eben fertig wurde.'
 }
 
+# After the restore the file the account sent is back where the store looks
+# for it, with the contents its name promises and the row that makes it a file
+# of the Betreiber (opengewerk-haustechnik#96). And the account signs in with
+# the password it had before the backup (opengewerk-haustechnik#15). The
 # answer is a session, which also means its sign in was written to the
 # restored database.
 after_restore() {
