@@ -174,6 +174,24 @@ afterEach(() => {
 })
 
 describe('the form of a report', () => {
+  /**
+   * Without an encrypted connection the browser offers no SHA-256, and the
+   * file has no fingerprint. Before #294 the button did nothing visible.
+   */
+  it('says why nothing was written over a connection that is not encrypted, and keeps what was typed', async () => {
+    await opened('site_management', dutyOf())
+    filledIn()
+    vi.stubGlobal('crypto', { getRandomValues: crypto.getRandomValues.bind(crypto) })
+    saved()
+
+    expect((await screen.findByRole('alert')).textContent).toBe(
+      'Dateien und Unterschriften brauchen eine verschlüsselte Verbindung. Diese ist es nicht: ' +
+        'bitte die Adresse mit https öffnen. Die Eingaben stehen noch da.',
+    )
+    expect(screen.getByRole('textbox', { name: /^Prüfer/ })).toHaveProperty('value', 'Klaus Berger')
+    expect(written).toEqual([])
+  })
+
   it('sends the file ahead, then the report that names it, and opens the evidence it became', async () => {
     // A duty of a kind of the probe, whose package names classes of its own
     // (#116); a duty of the operator's own takes the general ones.

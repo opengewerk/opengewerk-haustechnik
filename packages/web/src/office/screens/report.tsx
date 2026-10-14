@@ -34,6 +34,7 @@ import { Link, useNavigate, useParams, useSearch } from '@tanstack/react-router'
 import { FileText, Lock, Plus, Trash2 } from 'lucide-react'
 import { useRef, useState } from 'react'
 
+import { failureSentence } from '../../app/failure.js'
 import { placePath } from '../../app/place-path.js'
 import { placeAbove, titleOfRoom } from '../../app/place-records.js'
 import { resultNotes } from '../../app/results.js'
@@ -334,6 +335,8 @@ function ReportForm({
       await queries.invalidateQueries({ queryKey: ['activities'] })
       queries.removeQueries({ queryKey: ['assets'] })
       await navigate({ to: evidencePlaces.evidence(made.id) })
+    } catch {
+      setTrouble(failureSentence())
     } finally {
       setWorking(false)
     }

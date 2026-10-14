@@ -2023,3 +2023,11 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   Anlage" für alle, die Anlagen aufnehmen. Das Formular beginnt dann im Gebäude und im Raum
   (`/anlagen/neu?gebaeude=…&raum=…`); einen Raum, den das Gebäude der Adresse nicht hat, zeigt
   und sendet es nicht
+- Nach dem Lesen der Seriennummer mit der Kamera, auch nach "Von Hand", steht der Fokus wieder
+  im Feld "Seriennummer" (`#132`). Der Leser steht an der Stelle des Formulars, und als er
+  schloss, stand die Tastatur auf der Seite: was danach getippt wurde, ging verloren. Gefunden
+  beim Durchspielen der Kernabläufe nur mit der Tastatur.
+- Ein Fehler beim Festschreiben eines Berichts oder einer Unterschrift wird gesagt (#294), statt
+  dass der Knopf nichts tut: unter einer Verbindung ohne Verschlüsselung, dass Dateien und
+  Unterschriften https brauchen, sonst, dass es auf diesem Gerät nicht ging. Die Eingaben
+  bleiben stehen.

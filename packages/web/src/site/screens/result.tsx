@@ -39,6 +39,7 @@ import { answerAt, beginActivity, filledOf, type FormPoint, lackOf } from '../..
 import { useDeferredWrite } from '../../app/form-points.js'
 import { offeredResults, resultNotes } from '../../app/results.js'
 import { type GivenSignature, SignatureWays } from '../../app/signature-ways.js'
+import { failureSentence } from '../../app/failure.js'
 import { signActivity } from '../../app/signing.js'
 import { NotOnDevice, PlainRow } from '../kit.js'
 import { siteForms } from '../places.js'
@@ -407,6 +408,8 @@ function ResultOf({ activityId }: { readonly activityId: string }) {
       if (problem !== null) {
         setTrouble(problem)
       }
+    } catch {
+      setTrouble(failureSentence())
     } finally {
       setWorking(false)
     }
