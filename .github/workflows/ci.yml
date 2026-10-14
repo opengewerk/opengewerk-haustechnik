@@ -806,3 +806,127 @@ jobs:
         run: |
           docker compose -f docker/compose.yaml --profile '*' down --volumes --remove-orphans
           docker compose -f upstream/opengewerk/docker/compose.yaml --profile '*' down --volumes --remove-orphans
+
+  # The kit of a release (#136), packed as the workflow "Release" packs it and
+  # started as an operator starts it: unpacked where no source lies beside it,
+  # with the one command its page names, and the images of the version it
+  # names. They are built here first under a version that no registry holds,
+  # so that nothing is pulled and nothing built from the kit.
+  kit:
+    name: Installationspaket
+    runs-on: ubuntu-latest
+    env:
+      VERSION: 0.0.0
+
+    steps:
+      - name: Repository mit dem Fundament auschecken
+        uses: actions/checkout@v7
+        with:
+          submodules: true
+
+      # As the release PR turns [Unreleased] into the section of a version:
+      # the page takes the whole section where it fits and its introduction
+      # with a link where it does not, and the page itself stays under the
+      # 125000 characters GitHub takes.
+      - name: Release-Seite aus dem CHANGELOG schreiben
+        run: |
+          python3 - <<'PYTHON'
+          import importlib.util
+          import sys
+
+          spec = importlib.util.spec_from_file_location("notes", ".github/release-notes.py")
+          notes = importlib.util.module_from_spec(spec)
+          spec.loader.exec_module(notes)
+
+          changelog = open("CHANGELOG.md", encoding="utf-8").read().replace(
+              "## [Unreleased]",
+              "## [Unreleased]\n\n## [0.0.0] - 2026-01-01\n\nDie Einleitung einer Probefassung.",
+              1,
+          )
+          page = notes.page(changelog, "0.0.0", "sha256:app", "sha256:backup")
+          problems = [
+              problem
+              for problem, broken in [
+                  ("länger als 125000 Zeichen", len(page) > 125_000),
+                  ("ohne die Einleitung", "Die Einleitung einer Probefassung." not in page),
+                  ("ohne den Abschnitt zur Installation", "## Installieren und aktualisieren" not in page),
+                  ("ohne die Prüfung beider Signaturen", page.count("cosign verify") != 2),
+              ]
+              if broken
+          ]
+
+          if problems:
+              print("Die Release-Seite ist " + ", ".join(problems) + ".")
+              sys.exit(1)
+
+          print(f"Release-Seite mit {len(page)} Zeichen.")
+          PYTHON
+
+      - name: Abbilder unter der Probefassung bauen
+        run: |
+          set -eu
+          docker build -t "ghcr.io/opengewerk/opengewerk-haustechnik:$VERSION" -f Dockerfile .
+          docker build -t "ghcr.io/opengewerk/opengewerk-haustechnik-backup:$VERSION" upstream/opengewerk/docker/backup
+
+      - name: Paket packen
+        run: sh docker/pack-kit.sh "$VERSION" "$RUNNER_TEMP/kit"
+
+      - name: Paket ohne Quelltext daneben entpacken
+        run: |
+          set -eu
+          cd "$RUNNER_TEMP/kit"
+          sha256sum -c "opengewerk-haustechnik-$VERSION.tar.gz.sha256"
+          mkdir "$RUNNER_TEMP/install"
+          tar --no-same-owner -xzf "opengewerk-haustechnik-$VERSION.tar.gz" -C "$RUNNER_TEMP/install"
+
+          # Nothing to build from: no source, no package, no Dockerfile of the
+          # application.
+          found=$(find "$RUNNER_TEMP/install" -name package.json -o -name '*.ts' -o -path '*/packages/*' -o -name Dockerfile -not -path '*/docker/backup/*')
+          if [ -n "$found" ]; then
+            echo "Im Paket liegt, was zum Bauen gehört:" >&2
+            echo "$found" >&2
+            exit 1
+          fi
+
+      - name: Mit einem Befehl starten
+        working-directory: ${{ runner.temp }}/install/opengewerk-haustechnik
+        env:
+          HAUSTECHNIK_ADDRESS: http://127.0.0.1:23800
+        run: sh docker/start.sh
+
+      - name: Die Instanz läuft mit der Fassung des Pakets
+        working-directory: ${{ runner.temp }}/install/opengewerk-haustechnik
+        run: |
+          set -eu
+          health=$(curl --silent --fail http://127.0.0.1:23800/health)
+          echo "Health: $health"
+          test "$health" = "{\"status\":\"bereit\",\"database\":true,\"version\":\"$VERSION\"}"
+
+          # Without a session a route with data refuses, here as from source.
+          status=$(curl --silent --output /dev/null --write-out '%{http_code}' http://127.0.0.1:23800/staff)
+          echo "GET /staff: $status"
+          test "$status" = 401
+
+          # Every image of this application is the one of the version.
+          images=$(docker compose -f docker/compose.yaml images --format json | python3 -c '
+          import json, sys
+          rows = json.load(sys.stdin)
+          names = {row["Repository"] + ":" + row["Tag"] for row in rows if "opengewerk-haustechnik" in row["Repository"]}
+          print("\n".join(sorted(names)))
+          ')
+          echo "$images"
+          test -n "$images"
+          if echo "$images" | grep -v ":$VERSION\$"; then
+            echo "Ein Abbild der Anwendung läuft nicht mit der Fassung $VERSION." >&2
+            exit 1
+          fi
+
+      - name: Protokolle bei einem Fehlschlag
+        if: failure()
+        working-directory: ${{ runner.temp }}/install/opengewerk-haustechnik
+        run: docker compose -f docker/compose.yaml logs
+
+      - name: Aufräumen
+        if: always()
+        working-directory: ${{ runner.temp }}/install/opengewerk-haustechnik
+        run: docker compose -f docker/compose.yaml --profile '*' down --volumes --remove-orphans || true
