@@ -1,0 +1,38 @@
+{
+  "validFrom": "2004-07-01",
+  "label": "Blitzschutz einer Versammlungsstätte prüfen lassen (VStättVO BW)",
+  "description": "Die Blitzschutzanlage einer Versammlungsstätte in Baden-Württemberg, die auch die sicherheitstechnischen Einrichtungen schützen muss, lässt der Betreiber von einer sachkundigen Person prüfen: vor der ersten Inbetriebnahme, gleich nach einer wesentlichen Änderung und danach spätestens alle drei Jahre. Sachkundig ist, wer das Fachgebiet aus Ausbildung und Erfahrung kennt und mit den Vorschriften und den anerkannten Regeln der Technik vertraut ist; ein anerkannter Sachverständiger muss es nicht sein. Die Verordnung gilt für Versammlungsräume, die allein oder mit gemeinsamen Rettungswegen zusammen mehr als 200 Besucher fassen, für Versammlungsstätten im Freien mit Szenenflächen für mehr als 1000 und für Sportstadien für mehr als 5000 Besucher. Gefundene Mängel lässt der Betreiber sofort beheben, die Berichte der wiederkehrenden Prüfungen hebt er mindestens fünf Jahre auf.",
+  "task": "inspection",
+  "origin": "state_law",
+  "bindingness": "statute",
+  "source": "§ 37 Abs. 4 VStättVO BW",
+  "interval": {
+    "kind": "maximum",
+    "rule": "assembly_inspection_interval"
+  },
+  "counting": "from_performance",
+  "qualification": {
+    "level": "skilled_person",
+    "note": "Sachkundige nach § 37 Abs. 4 Satz 2 VStättVO BW"
+  },
+  "evidence": {
+    "kinds": [
+      "report"
+    ]
+  },
+  "retention": {
+    "kind": "years",
+    "rule": "assembly_report_retention"
+  },
+  "scope": {
+    "assetKinds": [
+      "elektro.lightning_protection"
+    ],
+    "buildingKinds": [
+      "assembly"
+    ],
+    "states": [
+      "DE-BW"
+    ]
+  }
+}

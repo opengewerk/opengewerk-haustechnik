@@ -17,7 +17,9 @@ allgemeinen Mängelklassen. Das erste Fachpaket ist [`elektro`](elektro/README.m
 Prüfungen nach den DGUV Vorschriften 3 und 4 und der Arbeitsstättenverordnung, das zweite
 [`brandschutz`](brandschutz/README.md), mit der Arbeitsstättenverordnung und den Technischen Regeln
 für Arbeitsstätten A2.2 und A1.7, das dritte [`trinkwasser`](trinkwasser/README.md), mit der
-Untersuchung auf Legionellen nach der Trinkwasserverordnung. Daneben steht
+Untersuchung auf Legionellen nach der Trinkwasserverordnung. [`landesrecht`](landesrecht/README.md)
+bringt je Land die Prüfung technischer Anlagen in Sonderbauten, zuerst für Baden-Württemberg, und
+nennt dafür die Anlagenarten der Fachpakete. Daneben steht
 [`messstellen`](messstellen/README.md): je Medium eine Anlagenart, die eine Messstelle ist.
 
 ## Aufbau

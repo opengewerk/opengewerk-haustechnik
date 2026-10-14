@@ -1,0 +1,42 @@
+{
+  "validFrom": "2021-02-01",
+  "label": "Anlagen einer Garage prüfen lassen (GaVO BW)",
+  "description": "In einer geschlossenen Mittel- oder Großgarage in Baden-Württemberg, also einer mit mehr als 100 m² Nutzfläche ohne die großen ständig offenen Wände einer offenen Garage, lässt der Betreiber die maschinellen Rauchabzugsanlagen, die Feuerlöschanlagen samt den Löschwasseranlagen mit Wandhydranten an den Treppenräumen und die Sicherheitsbeleuchtung mit ihrer Sicherheitsstromversorgung von einem anerkannten Sachverständigen darauf prüfen, ob sie wirken und sicher betrieben werden. Geprüft wird vor der ersten Inbetriebnahme, nach einer wesentlichen Änderung und danach alle drei Jahre. Ein Rauchabzug über bloße Öffnungen oder Schächte fällt nicht darunter, eine Kleingarage bis 100 m² und eine offene Garage ebenso wenig. Was der Sachverständige an Mängeln findet, lässt der Betreiber sofort beheben und sagt es ihm; die Berichte hebt er mindestens fünf Jahre auf und legt sie der Baurechtsbehörde vor, wenn sie danach fragt.",
+  "task": "inspection",
+  "origin": "state_law",
+  "bindingness": "statute",
+  "source": "§ 16 Abs. 1 GaVO BW",
+  "interval": {
+    "kind": "maximum",
+    "rule": "garage_inspection_interval"
+  },
+  "counting": "from_performance",
+  "qualification": {
+    "level": "certified_expert",
+    "note": "ein nach § 1 BauSVO anerkannter Sachverständiger seiner Fachrichtung"
+  },
+  "evidence": {
+    "kinds": [
+      "report"
+    ]
+  },
+  "retention": {
+    "kind": "years",
+    "rule": "garage_report_retention"
+  },
+  "scope": {
+    "assetKinds": [
+      "brandschutz.smoke_extraction",
+      "brandschutz.extinguishing_system",
+      "brandschutz.wall_hydrant",
+      "elektro.safety_lighting",
+      "elektro.safety_power_supply"
+    ],
+    "buildingKinds": [
+      "garage"
+    ],
+    "states": [
+      "DE-BW"
+    ]
+  }
+}

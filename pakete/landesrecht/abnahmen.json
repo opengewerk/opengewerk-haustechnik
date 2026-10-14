@@ -1,0 +1,58 @@
+{
+  "entries": [
+    {
+      "file": "pflichten/bw_assembly_inspection.v1.json",
+      "checkedOn": "2026-10-14"
+    },
+    {
+      "file": "pflichten/bw_assembly_lightning_protection_inspection.v1.json",
+      "checkedOn": "2026-10-14"
+    },
+    {
+      "file": "pflichten/bw_garage_inspection.v1.json",
+      "checkedOn": "2026-10-14"
+    },
+    {
+      "file": "pflichten/bw_retail_inspection.v1.json",
+      "checkedOn": "2026-10-14"
+    }
+  ],
+  "rules": [
+    {
+      "key": "assembly_inspection_interval",
+      "scope": "DE-BW",
+      "validFrom": "2004-07-01",
+      "checkedOn": "2026-10-14"
+    },
+    {
+      "key": "assembly_report_retention",
+      "scope": "DE-BW",
+      "validFrom": "2004-07-01",
+      "checkedOn": "2026-10-14"
+    },
+    {
+      "key": "retail_inspection_interval",
+      "scope": "DE-BW",
+      "validFrom": "1997-04-01",
+      "checkedOn": "2026-10-14"
+    },
+    {
+      "key": "retail_report_retention",
+      "scope": "DE-BW",
+      "validFrom": "1997-04-01",
+      "checkedOn": "2026-10-14"
+    },
+    {
+      "key": "garage_inspection_interval",
+      "scope": "DE-BW",
+      "validFrom": "2021-02-01",
+      "checkedOn": "2026-10-14"
+    },
+    {
+      "key": "garage_report_retention",
+      "scope": "DE-BW",
+      "validFrom": "2021-02-01",
+      "checkedOn": "2026-10-14"
+    }
+  ]
+}
