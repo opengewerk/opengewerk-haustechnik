@@ -59,10 +59,11 @@ describe('push under "Konto"', () => {
       'Wartet auf Gegenzeichnung oder AbnahmeWenn ein Rundgang oder ein Auftrag in Ihren Bereichen auf Sie wartet.',
       'Zurückgewiesene AufträgeWenn ein Auftrag, den Sie unterschrieben haben, zurückgewiesen wird.',
     ])
-    // The reminder of a deadline comes by mail whatever is ticked here.
+    // The reminder of a deadline comes by mail whatever is ticked here, as the
+    // settings of the deadlines say for its kind (#269).
     expect(
       within(card).getByText(
-        'Die Anlässe gelten für jedes Gerät, auf dem Push eingeschaltet ist. Per E-Mail kommen Erinnerungen an Fristen immer, unabhängig davon.',
+        'Die Anlässe gelten für jedes Gerät, auf dem Push eingeschaltet ist. Per E-Mail kommen Erinnerungen an Fristen unabhängig davon, so wie es die Einstellungen der Fristen je Art sagen.',
       ),
     ).toBeDefined()
     expect(within(card).getByRole('button', { name: 'Auf diesem Gerät einschalten' })).toBeDefined()

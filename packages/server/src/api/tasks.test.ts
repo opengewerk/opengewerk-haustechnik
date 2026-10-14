@@ -416,6 +416,26 @@ describe('a task for somebody else', () => {
     expect(await outcomes('u-tech', [reopened])).toEqual([applied])
     expect((await row(task.id))?.status).toBe('open')
   })
+
+  it('done on two ways is no conflict: by whoever hands it out, then on the device of its person', async () => {
+    // opengewerk#601. The device of its person still holds the task open and
+    // ticks it off after the Objektleitung did. Both want the same, so there
+    // is nothing to put in front of anybody.
+    const task = newTask({ assigneeUserId: 'u-tech' })
+
+    expect(await outcomes('u-site', [task.sent])).toEqual([applied])
+
+    const byPlanner = operation('update', task.id, { status: 'done' }, { status: 'open' }, 1)
+
+    expect(await outcomes('u-site', [byPlanner])).toEqual([applied])
+
+    const onTheDevice = operation('update', task.id, { status: 'done' }, { status: 'open' }, 1)
+
+    expect(await outcomes('u-tech', [onTheDevice])).toEqual([
+      { outcome: 'skipped', reason: 'nothing_to_do', fields: [] },
+    ])
+    expect((await row(task.id))?.status).toBe('done')
+  })
 })
 
 describe('a task out of sight', () => {

@@ -2,6 +2,7 @@ import {
   type AuditFormat,
   type AuditVocabulary,
   checkPointResultLabel,
+  deadlineReminderLabel,
   ruleScopeNames,
 } from '@opengewerk/platform-domain'
 
@@ -729,6 +730,7 @@ export const auditValues: Readonly<
   attachments: { kind: documentKindLabel },
   // The deadlines of the foundation, in the words of its list of deadlines.
   deadlines: { status: { open: 'Offen', done: 'Erledigt', dropped: 'Entfallen' } },
+  deadline_settings: { reminder: deadlineReminderLabel },
   defects: { status: defectStatusLabel },
   tasks: { status: { open: 'Offen', done: 'Erledigt' } },
   duties: {

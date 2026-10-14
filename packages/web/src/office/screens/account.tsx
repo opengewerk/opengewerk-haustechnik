@@ -16,7 +16,9 @@ export const pushWords: PushPanelWords = {
     'ansteht; Namen und Orte stehen erst in der Anwendung.',
   keyMissing:
     'Wer die Instanz betreibt, bekommt ihn mit dem nächsten Start über „sh docker/start.sh“.',
-  footnote: 'Per E-Mail kommen Erinnerungen an Fristen immer, unabhängig davon.',
+  // Unless the settings of the deadlines say otherwise for a kind (#269).
+  footnote:
+    'Per E-Mail kommen Erinnerungen an Fristen unabhängig davon, so wie es die Einstellungen der Fristen je Art sagen.',
 }
 
 /**
