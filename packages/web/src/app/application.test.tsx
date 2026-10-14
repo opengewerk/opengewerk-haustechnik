@@ -97,9 +97,11 @@ describe('the gate of this application', () => {
     render(inApplication(<SignInScreen onSignedIn={vi.fn()} onSecondFactor={vi.fn()} />))
 
     expect(screen.getByRole('complementary').textContent).toBe(
-      'OpenGewerk Haustechnik' +
-        'Liegenschaft, Anlage, Pflicht, Nachweis. Die Betreiberverantwortung an einer Stelle.' +
-        'Diese Instanz läuft auf Ihrem eigenen Server. Die Daten verlassen ihn nicht, und niemand außer Ihnen kann sie abschalten.' +
+      // The family and the line of the name, as the boards of the gate draw them.
+      'OpenGewerk' +
+        'Haustechnik' +
+        'Liegenschaft, Anlage, Pflicht, Nachweis. Was fällig ist, und womit es belegt ist.' +
+        'Diese Instanz läuft auf einem Server Ihres Hauses. Die Daten verlassen ihn nicht, und niemand außer Ihnen kann sie abschalten.' +
         'AGPL-3.0',
     )
   })
@@ -193,7 +195,7 @@ describe('the gate of this application', () => {
     const tenant = screen.getByLabelText('Betreiber') as HTMLInputElement
 
     expect(tenant.maxLength).toBe(120)
-    expect(screen.getByText('Der Name, unter dem der Betreiber seine Gebäude führt.')).toBeTruthy()
+    expect(screen.getByText('So, wie der Betreiber nach außen heißt.')).toBeTruthy()
     expect(screen.getByRole('button', { name: 'Betreiber anlegen' })).toBeTruthy()
   })
 })

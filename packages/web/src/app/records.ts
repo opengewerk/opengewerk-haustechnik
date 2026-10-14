@@ -110,6 +110,14 @@ export const records: RecordWords = {
       return `Zählerstand vom ${date(record['readOn'])}`
     }
 
+    // An asset by its number and its name, as the boards of the conflicts write
+    // it (#128): two pumps in one plant room are told apart by the number.
+    if (entity === 'assets' && typeof record?.['number'] === 'string') {
+      const name = typeof record['name'] === 'string' ? record['name'].trim() : ''
+
+      return name === '' ? record['number'] : `${record['number']} ${name}`
+    }
+
     const fields = Object.hasOwn(titleFields, entity) ? (titleFields[entity] ?? []) : []
     const named = fields
       .map((field) => record?.[field])

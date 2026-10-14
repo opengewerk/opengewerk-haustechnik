@@ -1349,8 +1349,22 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   Migration `0049_instance_legal_texts`; jede Änderung steht im Protokoll der Instanz. Die
   Zusage K7 der Verfahrensbeschreibung nennt die Rechtstexte unter dem, was ohne Anmeldung
   antwortet, und die Navigation des Bereichs heißt "Verwaltung der Instanz" wie auf der Tafel.
+- **Eigene Angaben unter "Konto" (`#128`).** Name und E-Mail-Adresse des eigenen Kontos ändert
+  jede Person selbst, nach der Bestätigung mit Passwort und Code aus der App, und die Änderung
+  steht im Änderungsprotokoll jedes Betreibers, für den das Konto arbeitet. Ein Konto, das für
+  mehrere Betreiber arbeitet oder zur Verwaltung der Instanz gehört, ließ sich bisher gar nicht
+  berichtigen. Baustein und Route kommen aus dem Fundament (Submodul angehoben); die
+  Verfahrensbeschreibung nennt es als Zusage, mit zwei Tests als Beleg.
 
 ### Geändert
+
+- Was das Fundament mitbringt, folgt seinen Tafeln (`#128`): die Bildschirme vor der Anmeldung
+  mit "OpenGewerk" und "Haustechnik" in Kupfer darunter, dem Satz der Tafel daneben und dem
+  Schlüssel für die Authenticator-App in Vierergruppen; der Bereich der Instanz mit den
+  Überschriften der Tabellen und "Sie" am eigenen Konto; "Konto" in der Anordnung der Tafel;
+  vor Ort kein Streifen über den Konflikten. Eine Anlage heißt in einem Konflikt mit Nummer und
+  Namen, wie auf der Tafel. Gegen die gebaute Oberfläche gehalten hatte die Tafeln seit ihrer
+  Freigabe niemand.
 
 - Die Formulare der Ansprechpartner an einer Liegenschaft fragen nach einer Sache je Zeile, und
   "Entfernen" steht in einer eigenen Zeile über "Abbrechen" und "Speichern" (#147, mit dem Fundament
