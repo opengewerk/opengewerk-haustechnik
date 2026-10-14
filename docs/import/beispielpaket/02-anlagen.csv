@@ -2,5 +2,6 @@ Liegenschaft;Gebäude;Raum;Anlagenart;Bezeichnung;Kennzeichen;Hersteller;Typ;Ser
 Grundschule Am Mühlbach;Schulhaus;U.01;Heizkessel;Gaskessel Schulhaus;GS-HZ-01;Beispielwerke;BK 120;BW-448812;2014;;;421
 Grundschule Am Mühlbach;Schulhaus;E.01;Aufzug;Personenaufzug Foyer;GS-AUF-01;Beispiellift;PL 630;PL-2009-117;2009;;;461
 Grundschule Am Mühlbach;Schulhaus;U.02;Wasserzähler;Hauptwasserzähler Schulhaus;GS-WZ-01;;;;;W-2001;m³;412
+Grundschule Am Mühlbach;Schulhaus;U.02;Stromzähler;Stromzähler Schulhaus;GS-SZ-01;;;;;S-4410;kWh;444
 Grundschule Am Mühlbach;Sporthalle;S.05;Wasserzähler;Wasserzähler Sporthalle;GS-WZ-02;;;;;W-3105;m³;412
 Grundschule Am Mühlbach;Sporthalle;S.05;Lüftungsgerät;Lüftung Sporthalle;GS-RLT-01;Beispielluft;RL 4000;RL-77120;2006;;;431

@@ -14,7 +14,8 @@ weil alles in diesem Ordner mit der Anwendung ausgeliefert wird.
 Das erste Paket hier ist [`allgemein`](allgemein/README.md): je Kostengruppe der technischen
 Anlagen eine allgemeine Anlagenart für jede Anlage, die kein Fachpaket beschreibt, und die drei
 allgemeinen Mängelklassen. Das erste Fachpaket ist [`elektro`](elektro/README.md), mit den
-Prüfungen nach den DGUV Vorschriften 3 und 4 und der Arbeitsstättenverordnung.
+Prüfungen nach den DGUV Vorschriften 3 und 4 und der Arbeitsstättenverordnung. Daneben steht
+[`messstellen`](messstellen/README.md): je Medium eine Anlagenart, die eine Messstelle ist.
 
 ## Aufbau
 

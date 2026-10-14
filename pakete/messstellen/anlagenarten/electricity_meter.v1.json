@@ -1,0 +1,9 @@
+{
+  "validFrom": "2018-12-01",
+  "label": "Stromzähler",
+  "costGroup": "444",
+  "meter": {
+    "medium": "electricity",
+    "units": ["kilowatt_hours", "megawatt_hours"]
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "validFrom": "2018-12-01",
+  "label": "Kältezähler",
+  "costGroup": "434",
+  "meter": {
+    "medium": "cooling",
+    "units": ["kilowatt_hours", "megawatt_hours"]
+  }
+}

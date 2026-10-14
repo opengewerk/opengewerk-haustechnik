@@ -1,0 +1,9 @@
+{
+  "validFrom": "2018-12-01",
+  "label": "Wärmezähler",
+  "costGroup": "422",
+  "meter": {
+    "medium": "heat",
+    "units": ["kilowatt_hours", "megawatt_hours"]
+  }
+}

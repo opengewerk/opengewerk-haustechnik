@@ -1318,6 +1318,17 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   Zeit davor mit dem Import als Altbestand kommt. Format in `docs/import/Tabellen.md`, Nachtrag
   in ADR 0002, Konzept v0.34. Eine Anlagenart für Messstellen bringt noch kein mitgeliefertes
   Paket; das ist `#287`.
+- **Paket Messstellen (`#287`).** Unter `pakete/messstellen/` steht je Medium aus Abschnitt 4.9
+  eine Anlagenart, die eine Messstelle ist: Stromzähler, Wasserzähler, Wärmezähler,
+  Fernwärmezähler, Gaszähler und Kältezähler, mit Kostengruppe und den Einheiten, in denen ein
+  Zähler der Art zählt. Bis dahin hatte kein mitgeliefertes Paket eine solche Anlagenart, und
+  in einer Instanz ohne das Probepaket der Tests ließ sich kein Zähler anlegen, ablesen oder
+  importieren. Das Paket steht neben dem Paket Allgemein und nicht darin, weil eine allgemeine
+  Anlagenart für ein fehlendes Fachpaket steht und keine Pflichtart trägt; die Fachpakete für
+  Heizung, Raumluft und Kälte kommen erst in Phase 2. Der Import der Anlagen schlägt die Arten
+  über ihren Namen vor. Das Beispielpaket aus `#130` hat einen Stromzähler dazubekommen und wird
+  im Test nur noch mit den Paketen des Baus importiert, und die Zähler der Vorschau tragen die
+  neuen Anlagenarten. Konzept v0.35.
 
 ### Geändert
 

@@ -5,15 +5,16 @@ import { fileURLToPath } from 'node:url'
 import type { INestApplication } from '@nestjs/common'
 import { Test } from '@nestjs/testing'
 import { catalogueBundle } from '@opengewerk/haustechnik-catalogue'
-import { probeCatalogueBundle } from '@opengewerk/haustechnik-catalogue/testing'
 import {
   assetImportFields,
   catalogueOf,
   type ColumnMapping,
   deadlineImportFields,
   type DutyDetails,
+  type IsoDate,
   fieldOfColumn,
   type MeterDetails,
+  type MeterList,
   meterImportFields,
   type RoleKey,
   roleKeys,
@@ -187,13 +188,10 @@ beforeAll(async () => {
   const built = await Test.createTestingModule({
     imports: [
       ApiModule.create(database, testIdentities, {
-        // The packages the build ships. No one of them has an asset kind that
-        // is a measuring point yet (#287); until one has, the meters of the
-        // example take the kind of the probe package.
-        catalogue: catalogueOf({
-          ...probeCatalogueBundle,
-          packages: [...catalogueBundle.packages, ...probeCatalogueBundle.packages],
-        }),
+        // The packages the build ships and nothing beside them: the meters of
+        // the example take the asset kinds of the package Messstellen, as
+        // in an instance that holds no probe package (#287).
+        catalogue: catalogueOf(catalogueBundle),
       }),
     ],
   }).compile()
@@ -248,7 +246,8 @@ describe('the example package of the import', () => {
           { name: 'Heizkessel', kind: 'allgemein.heat_supply' },
           { name: 'Aufzug', kind: 'allgemein.conveying_system' },
           { name: 'Lüftungsgerät', kind: 'allgemein.ventilation_and_air_conditioning' },
-          { name: 'Wasserzähler', kind: 'probe.water_meter' },
+          { name: 'Wasserzähler', kind: 'messstellen.water_meter' },
+          { name: 'Stromzähler', kind: 'messstellen.electricity_meter' },
         ],
       })
       .expect(200)
@@ -361,9 +360,62 @@ describe('the example package of the import', () => {
       ['W-1187', 'W-2001'],
     ])
     expect(read('GS-WZ-02')).toHaveLength(3)
+    // The electricity meter beside them, in kWh.
+    expect(read('GS-SZ-01')).toEqual([
+      ['2026-03-01', 63_611_000, 'taken_over'],
+      ['2026-02-01', 61_027_000, 'taken_over'],
+      ['2026-01-01', 58_214_000, 'taken_over'],
+    ])
     expect(pages['GS-WZ-02']?.pauses.map((each) => [each.startsOn, each.endsOn])).toEqual([
       ['2025-12-01', '2026-02-28'],
     ])
+  })
+
+  // The acceptance of #287: in an instance with only the packages of the
+  // build, a water meter and an electricity meter come by the import and by
+  // the form, stand in the list "Zähler" and take a reading.
+  it('holds a water meter and an electricity meter of the packages the build ships, by the form too, and reads them', async () => {
+    const [hall] = await rows<{ id: string }>(
+      `select id from buildings where tenant_id = $1 and name = 'Sporthalle'`,
+    )
+    const today = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Berlin' }).format(
+      new Date(),
+    ) as IsoDate
+
+    for (const [kind, mark, meterUnit] of [
+      ['messstellen.water_meter', 'GS-WZ-03', 'cubic_metres'],
+      ['messstellen.electricity_meter', 'GS-SZ-02', 'kilowatt_hours'],
+    ] as const) {
+      const made = await http()
+        .post(`/buildings/${hall?.id ?? ''}/assets`)
+        .set(testIdentityHeader, keeper)
+        .send({ kind, name: `Unterzähler ${mark}`, mark, meterNumber: `N-${mark}`, meterUnit })
+        .expect(201)
+
+      await http()
+        .post(`/meters/${(made.body as { id: string }).id}/readings`)
+        .set(testIdentityHeader, keeper)
+        .send({ readOn: today, valueMilli: 1_250 })
+        .expect(201)
+    }
+
+    const list = (await http().get('/meters').set(testIdentityHeader, keeper).expect(200))
+      .body as MeterList
+
+    expect(
+      Object.fromEntries(
+        list.meters.map((meter) => [
+          meter.mark,
+          [meter.medium, meter.unit, meter.lastReading?.valueMilli ?? null],
+        ]),
+      ),
+    ).toEqual({
+      'GS-SZ-01': ['electricity', 'kilowatt_hours', 63_611_000],
+      'GS-WZ-01': ['water', 'cubic_metres', 31_300],
+      'GS-WZ-02': ['water', 'cubic_metres', 827_100],
+      'GS-SZ-02': ['electricity', 'kilowatt_hours', 1_250],
+      'GS-WZ-03': ['water', 'cubic_metres', 1_250],
+    })
   })
 
   it('makes nothing when it is taken over a second time', async () => {
