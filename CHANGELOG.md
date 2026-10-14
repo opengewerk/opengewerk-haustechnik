@@ -1385,6 +1385,11 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   (`opengewerk#630`), weil die Verordnung schon beim Erreichen von 100 je 100 ml Maßnahmen verlangt;
   die Formulare und der Import von Vorlagen kennen dafür die Einheit "je 100 ml". Jede Fundstelle
   ist am 14.10.2026 am Text geprüft.
+- Ein Messwert in einer eigenen Vorlage kann "unter" seinem Grenzwert bleiben müssen (#299), aus
+  einer Regel eines Pakets wie als eigener Wert mit Quelle; der Dialog des Punkts bietet die dritte
+  Grenze an, ein eigener Wert nutzt dafür `under` des Fundaments (`opengewerk#631`). Wer den
+  technischen Maßnahmenwert für Legionellen in seine eigene Vorlage nahm, konnte nur "höchstens"
+  wählen, und ein Befund von genau 100 je 100 ml stand dann als innerhalb da.
 
 
 ### Geändert
@@ -2063,3 +2068,7 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   dass der Knopf nichts tut: unter einer Verbindung ohne Verschlüsselung, dass Dateien und
   Unterschriften https brauchen, sonst, dass es auf diesem Gerät nicht ging. Die Eingaben
   bleiben stehen.
+- Ein Punkt einer Vorlage, dessen Grenzwert aus einer Regel kommt, behält beim erneuten Öffnen
+  seine Grenze (#299). Der Dialog begann dort immer bei "mindestens", und wer ihn nur mit
+  "Übernehmen" schloss, machte aus einem Punkt "höchstens" einen zum Erreichen. Gefunden beim
+  Einbau von "unter".

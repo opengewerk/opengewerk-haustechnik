@@ -148,6 +148,28 @@ describe('a limit the operator states', () => {
     expect(forms.limitVerdict(most, 26_000, context).within).toBe(false)
   })
 
+  it('holds a value under a limit it must not reach, as an action value asks (#299)', () => {
+    const under = {
+      ...field,
+      unit: 'count_per_100_ml',
+      decimals: 0,
+      limit: { kind: 'stated', bound: 'below', milli: 100_000, source: '§ 51 Abs. 1 TrinkwV' },
+    } as MeasurementField
+
+    expect(forms.limitVerdict(under, 99_000, context)).toEqual({
+      within: true,
+      limitMilli: 100_000,
+      text: 'Innerhalb des Grenzwerts, unter 100 je 100 ml.',
+      source: '§ 51 Abs. 1 TrinkwV',
+    })
+    expect(forms.limitVerdict(under, 100_000, context)).toEqual({
+      within: false,
+      limitMilli: 100_000,
+      text: 'Außerhalb des Grenzwerts, unter 100 je 100 ml.',
+      source: '§ 51 Abs. 1 TrinkwV',
+    })
+  })
+
   it('judges nothing by one that lacks its source', () => {
     const bare = { ...field, limit: { kind: 'stated', bound: 'at_least', milli: 60_000 } }
 
@@ -223,6 +245,11 @@ describe('a version before it is saved', () => {
       templateProblems(withPoints({ ...temperature, limit } as TemplateField), records)
 
     expect(limited({ kind: 'at_least', rule: 'probe.hot_water_minimum' })).toEqual({})
+    // A value may also have to stay under a rule or a value of its own (#299).
+    expect(limited({ kind: 'below', rule: 'probe.hot_water_minimum' })).toEqual({})
+    expect(
+      limited({ kind: 'stated', bound: 'below', milli: 60_000, source: 'DVGW W 551' }),
+    ).toEqual({})
     expect(limited({ kind: 'at_least', rule: 'probe.cold_water' })).toEqual({
       'point.p1': 'Diese Regel kennt der Katalog nicht.',
     })

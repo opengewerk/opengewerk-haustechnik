@@ -10,6 +10,9 @@ import {
   forms,
   type MeasurementField,
   type ScopeCondition,
+  type TemplateField,
+  templateProblems,
+  type TemplateRecords,
 } from '@opengewerk/haustechnik-domain'
 import { describe, expect, it } from 'vitest'
 
@@ -195,6 +198,46 @@ describe('the package Trinkwasser', () => {
     expect(
       forms.limitVerdict(legionella, 100_000, { ...context, on: '2023-06-23' }).within,
     ).toBeNull()
+  })
+
+  it('lends the technical action value to a template of its own with "unter", where 100 is outside (#299)', () => {
+    const catalogue = drinkingWater()
+    const point: TemplateField = {
+      kind: 'measurement',
+      key: 'legionella',
+      label: 'Legionellen',
+      unit: 'count_per_100_ml',
+      decimals: 0,
+      limit: { kind: 'below', rule: 'trinkwasser.legionella_technical_action_value' },
+    }
+    const records: TemplateRecords = {
+      record: () => true,
+      duty: () => null,
+      ruleUnits: (key) => {
+        const rule = catalogue.rule(key, options.today)
+
+        return rule ? [rule.record.unit] : null
+      },
+    }
+    const context = { rules: catalogue.ruleSet, on: options.today }
+
+    expect(
+      templateProblems(
+        {
+          title: 'Eigene Probennahme',
+          sections: [{ key: 'w', title: 'Warmwasser', fields: [point] }],
+        },
+        records,
+      ),
+    ).toEqual({})
+    expect(forms.limitVerdict(point as MeasurementField, 99_000, context)).toMatchObject({
+      within: true,
+      text: 'Innerhalb des Grenzwerts, unter 100 je 100 ml.',
+    })
+    expect(forms.limitVerdict(point as MeasurementField, 100_000, context)).toMatchObject({
+      within: false,
+      text: 'Außerhalb des Grenzwerts, unter 100 je 100 ml.',
+    })
   })
 
   it('brings three defect classes of its own, of which the last makes an asset unsafe', () => {

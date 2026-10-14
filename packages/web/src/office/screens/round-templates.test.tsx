@@ -1,4 +1,4 @@
-import type { CatalogueBundle } from '@opengewerk/haustechnik-domain'
+import type { CatalogueBundle, CatalogueRule } from '@opengewerk/haustechnik-domain'
 import { TestServer } from '@opengewerk/platform-web/testing'
 import { onlineManager } from '@tanstack/react-query'
 import { fireEvent, screen, waitFor, within } from '@testing-library/react'
@@ -94,6 +94,22 @@ function versionOf(formVersion: number, of: object, asks = true) {
   }
 }
 
+const someRule = testCatalogue.packages.flatMap((pack) => pack.rules)[0]!
+
+/** A rule a point in degrees can be measured by, to choose in the dialog. */
+const hotWaterMaximum: CatalogueRule = {
+  ...someRule,
+  record: {
+    ...someRule.record,
+    key: 'probe.hot_water_maximum',
+    validFrom: '2015-06-01',
+    validUntil: null,
+    unit: 'decidegrees_celsius',
+    value: 700,
+    source: 'DVGW W 551',
+  },
+}
+
 /** The test catalogue with a template of a round that has points, to take over. */
 const catalogue: CatalogueBundle = {
   ...testCatalogue,
@@ -101,6 +117,7 @@ const catalogue: CatalogueBundle = {
     index === 0
       ? {
           ...pack,
+          rules: [...pack.rules, hotWaterMaximum],
           roundTemplates: pack.roundTemplates.map((entry) => ({
             ...entry,
             definition: {
@@ -337,6 +354,71 @@ describe('the editor of a template', () => {
       (screen.getByRole('button', { name: 'Als neue Fassung speichern' }) as HTMLButtonElement)
         .disabled,
     ).toBe(false)
+  })
+
+  /** Opens the dialog of the point that measures the temperature. */
+  async function editTemperature(user: ReturnType<typeof userEvent.setup>) {
+    const row = document.querySelector('[data-point="p1"]') as HTMLElement
+
+    await user.click(within(row).getByRole('button', { name: 'Bearbeiten' }))
+
+    return screen.findByRole('dialog', { name: 'Punkt bearbeiten' })
+  }
+
+  /** Saves the draft and hands back the limit the point that measures the temperature was sent with. */
+  async function savedLimit(user: ReturnType<typeof userEvent.setup>) {
+    answerToWrite = () => ({ status: 201, body: { id: template.id, formVersion: 3 } })
+    await user.click(screen.getByRole('button', { name: 'Als neue Fassung speichern' }))
+    await waitFor(() => {
+      expect(written).toHaveLength(1)
+    })
+
+    const sent = (written[0]?.body as { definition: typeof definition }).definition
+
+    return (sent.sections[0]?.fields[0] as { limit?: unknown }).limit
+  }
+
+  it('sends a value of its own a value has to stay under, and says it so in the list (#299)', async () => {
+    await opened()
+
+    const user = userEvent.setup()
+    const dialog = await editTemperature(user)
+
+    await user.selectOptions(within(dialog).getByRole('combobox', { name: /^Grenze/ }), 'unter')
+    await user.click(within(dialog).getByRole('button', { name: 'Übernehmen' }))
+
+    expect(await screen.findByText(/Grenzwert unter 60,0 °C, DVGW W 551/)).toBeTruthy()
+    expect(await savedLimit(user)).toEqual({
+      kind: 'stated',
+      bound: 'below',
+      milli: 60_000,
+      source: 'DVGW W 551',
+    })
+  })
+
+  it('keeps the bound of a limit from a rule when its point is opened again (#299)', async () => {
+    await opened()
+
+    const user = userEvent.setup()
+    const first = await editTemperature(user)
+
+    await user.click(within(first).getByRole('radio', { name: 'Regel eines Pakets' }))
+    await user.selectOptions(
+      within(first).getByRole('combobox', { name: /^Regel/ }),
+      'probe.hot_water_maximum, DVGW W 551',
+    )
+    await user.selectOptions(within(first).getByRole('combobox', { name: /^Grenze/ }), 'unter')
+    await user.click(within(first).getByRole('button', { name: 'Übernehmen' }))
+
+    // Opened again and taken as it stands, the point still has to stay under the rule.
+    const again = await editTemperature(user)
+
+    expect(
+      (within(again).getByRole('combobox', { name: /^Grenze/ }) as HTMLSelectElement).value,
+    ).toBe('below')
+    await user.click(within(again).getByRole('button', { name: 'Übernehmen' }))
+
+    expect(await savedLimit(user)).toEqual({ kind: 'below', rule: 'probe.hot_water_maximum' })
   })
 
   it('shows a template to read to whoever only performs, without a handle or a way to change it', async () => {

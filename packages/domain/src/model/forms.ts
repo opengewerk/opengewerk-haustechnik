@@ -57,8 +57,12 @@ export const formRecordKinds = ['asset', 'room'] as const
 
 export type FormRecordKind = (typeof formRecordKinds)[number]
 
-/** Whether a measured value has to reach its limit or must not pass it. */
-export const limitBounds = ['at_least', 'at_most'] as const
+/**
+ * Whether a measured value has to reach its limit, must not pass it, or has
+ * to stay under it, where reaching the limit is outside already (#299), as
+ * the kinds of a limit taken from a rule say.
+ */
+export const limitBounds = ['at_least', 'at_most', 'below'] as const
 
 export type LimitBound = (typeof limitBounds)[number]
 
@@ -138,6 +142,7 @@ export const forms = formEngine<FormTerms>({
         ? {
             limitMilli: field.limit.milli,
             atLeast: field.limit.bound === 'at_least',
+            under: field.limit.bound === 'below',
             source: field.limit.source,
           }
         : { none: 'Der eigene Grenzwert nennt keinen Wert mit Quelle.' },

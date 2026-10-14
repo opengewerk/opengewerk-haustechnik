@@ -33,7 +33,7 @@ import { newPoint, type PointKind, pointKindOf, pointKinds, withPoint } from './
 export const pointWords = {
   saved: 'Gespeichert wird mit „Als neue Fassung speichern“.',
   limitHint:
-    'Ein eigener Wert steht in der Fassung der Vorlage. Eine Regel eines Pakets folgt dessen Fassungen.',
+    'Ein eigener Wert steht in der Fassung der Vorlage. Eine Regel eines Pakets folgt dessen Fassungen. Bei „unter“ ist schon der Grenzwert selbst außerhalb, wie bei einem Maßnahmenwert.',
   aboutHint:
     'Was hier festgestellt wird, steht in der Akte der Anlage oder des Raums; „nicht in Ordnung“ und ein Wert außerhalb des Grenzwerts werden dort ein Mangel.',
   dutyHint:
@@ -120,16 +120,18 @@ export function PointDialog({
   const [chapterKey, setChapterKey] = useState(chapter)
   const [limit, setLimit] = useState<LimitChoice>(limitChoiceOf(point))
   const stated = point.kind === 'measurement' && isStatedLimit(point.limit) ? point.limit : null
-  const [bound, setBound] = useState<LimitBound>(stated?.bound ?? 'at_least')
+  const fromRule =
+    point.kind === 'measurement' && point.limit !== undefined && 'rule' in point.limit
+      ? point.limit
+      : null
+  // A limit from a rule says its bound as its kind; begun at "mindestens", a
+  // point "höchstens" or "unter" a rule would turn into one to reach (#299).
+  const [bound, setBound] = useState<LimitBound>(stated?.bound ?? fromRule?.kind ?? 'at_least')
   const [valueText, setValueText] = useState(
     stated === null || point.kind !== 'measurement' ? '' : milliText(stated.milli, point.decimals),
   )
   const [source, setSource] = useState(stated?.source ?? '')
-  const [rule, setRule] = useState(
-    point.kind === 'measurement' && point.limit !== undefined && 'rule' in point.limit
-      ? point.limit.rule
-      : '',
-  )
+  const [rule, setRule] = useState(fromRule?.rule ?? '')
   const [problem, setProblem] = useState<string | null>(null)
 
   const kind = pointKindOf(field)
@@ -351,6 +353,7 @@ export function PointDialog({
                 options={[
                   { value: 'at_least', label: 'mindestens' },
                   { value: 'at_most', label: 'höchstens' },
+                  { value: 'below', label: 'unter' },
                 ]}
                 onChange={(value) => {
                   setBound(value as LimitBound)
