@@ -29,8 +29,8 @@ im Paket `messstellen`, und nicht am Text der Norm geprüft. Ein natürlicher Ra
 der Fassade kann in einer Kostenplanung auch unter der Baukonstruktion stehen. Brandschutztür und
 Feststellanlage sind Bauteile einer Innenwand und stehen deshalb unter 344 und nicht unter 400.
 
-Das Paket für das Landesrecht nennt diese Anlagenarten für die Prüfungen, die eine Prüfverordnung des
-Landes verlangt, etwa `brandschutz.smoke_extraction`.
+Das Paket für das Landesrecht nennt diese Anlagenarten für die Prüfungen, die das Bauordnungsrecht
+eines Landes verlangt, etwa `brandschutz.smoke_extraction`.
 
 ## Pflichtarten
 
@@ -70,8 +70,8 @@ eine solche Einrichtung unverzüglich instand gesetzt oder ausgetauscht.
 - Fristen und Prüfungen aus privaten Normen und Richtlinien, etwa für Brandmeldeanlagen, die
   Instandhaltung von Feuerlöschern, Wandhydranten, Rauch- und Wärmeabzug, Feststellanlagen und
   Löschanlagen. Bis die rechtliche Prüfung sie trägt, trägt der Betreiber die Frist ein.
-- Die Prüfungen nach den Prüfverordnungen der Länder in Sonderbauten und die Rauchwarnmelder in
-  Wohnungen: sie gehören in das Paket für das Landesrecht.
+- Die Prüfungen nach dem Bauordnungsrecht der Länder in Sonderbauten: sie stehen im Paket
+  [`landesrecht`](../landesrecht/README.md). Rauchwarnmelder in Wohnungen hat noch kein Paket.
 - Die wiederkehrende Druckprüfung von Feuerlöschern und Behältern einer Gaslöschanlage nach der
   Betriebssicherheitsverordnung.
 - Brandschutzklappen nach ihrer Zulassung und den Angaben des Herstellers; das Paket schlägt für sie

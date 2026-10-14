@@ -1,0 +1,42 @@
+{
+  "validFrom": "1997-04-01",
+  "label": "Anlagen einer Verkaufsstätte prüfen lassen (VkVO BW)",
+  "description": "In einer Verkaufsstätte in Baden-Württemberg, deren Verkaufsräume und Ladenstraßen zusammen mehr als 2000 m² haben, lässt der Betreiber die Sprinkleranlagen, die Rauchabzugsanlagen und -vorrichtungen, die Sicherheitsbeleuchtung, die Brandmeldeanlagen und die Sicherheitsstromversorgung von einem anerkannten Sachverständigen darauf prüfen, ob sie wirken und sicher betrieben werden. Geprüft wird vor der ersten Inbetriebnahme, gleich nach einer wesentlichen Änderung und danach mindestens alle drei Jahre. Eine kleinere Verkaufsstätte fällt nicht darunter, ebenso wenig eine Feuerlöschanlage, die keine Sprinkleranlage ist. Was der Sachverständige an Mängeln findet, lässt der Betreiber sofort beheben und sagt es ihm; die Berichte hebt er mindestens fünf Jahre auf und legt sie der Baurechtsbehörde vor, wenn sie danach fragt.",
+  "task": "inspection",
+  "origin": "state_law",
+  "bindingness": "statute",
+  "source": "§ 30 Abs. 1 VkVO BW",
+  "interval": {
+    "kind": "maximum",
+    "rule": "retail_inspection_interval"
+  },
+  "counting": "from_performance",
+  "qualification": {
+    "level": "certified_expert",
+    "note": "ein nach § 1 BauSVO anerkannter Sachverständiger seiner Fachrichtung"
+  },
+  "evidence": {
+    "kinds": [
+      "report"
+    ]
+  },
+  "retention": {
+    "kind": "years",
+    "rule": "retail_report_retention"
+  },
+  "scope": {
+    "assetKinds": [
+      "brandschutz.extinguishing_system",
+      "brandschutz.smoke_extraction",
+      "elektro.safety_lighting",
+      "brandschutz.fire_alarm_system",
+      "elektro.safety_power_supply"
+    ],
+    "buildingKinds": [
+      "retail"
+    ],
+    "states": [
+      "DE-BW"
+    ]
+  }
+}

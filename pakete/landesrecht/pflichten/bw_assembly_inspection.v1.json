@@ -1,0 +1,44 @@
+{
+  "validFrom": "2004-07-01",
+  "label": "Anlagen einer Versammlungsstätte prüfen lassen (VStättVO BW)",
+  "description": "In einer Versammlungsstätte in Baden-Württemberg lässt der Betreiber die Rauchabzugsanlagen, die selbsttätigen Feuerlöschanlagen, die Wandhydranten an nassen Steigleitungen samt Druckerhöhung und Anschluss an die Wasserversorgung, die Brandmelde- und Alarmierungsanlagen und die Sicherheitsstromversorgung mit allem, was an ihr hängt, etwa der Sicherheitsbeleuchtung, von einem anerkannten Sachverständigen darauf prüfen, ob sie wirken und sicher betrieben werden. Geprüft wird vor der ersten Inbetriebnahme, gleich nach einer wesentlichen Änderung und danach spätestens alle drei Jahre. Die Verordnung gilt für Versammlungsräume, die allein oder mit gemeinsamen Rettungswegen zusammen mehr als 200 Besucher fassen, für Versammlungsstätten im Freien mit Szenenflächen für mehr als 1000 und für Sportstadien für mehr als 5000 Besucher; ein kleineres Haus fällt nicht darunter. Was der Sachverständige an Mängeln findet, lässt der Betreiber sofort beheben und sagt es ihm. Die Berichte der ersten Prüfung und der Prüfung nach einer wesentlichen Änderung schickt er der Baurechtsbehörde, die der wiederkehrenden Prüfungen hebt er mindestens fünf Jahre auf.",
+  "task": "inspection",
+  "origin": "state_law",
+  "bindingness": "statute",
+  "source": "§ 37 Abs. 1 Nr. 2 bis 6 VStättVO BW",
+  "interval": {
+    "kind": "maximum",
+    "rule": "assembly_inspection_interval"
+  },
+  "counting": "from_performance",
+  "qualification": {
+    "level": "certified_expert",
+    "note": "ein nach § 1 BauSVO anerkannter Sachverständiger seiner Fachrichtung"
+  },
+  "evidence": {
+    "kinds": [
+      "report"
+    ]
+  },
+  "retention": {
+    "kind": "years",
+    "rule": "assembly_report_retention"
+  },
+  "scope": {
+    "assetKinds": [
+      "brandschutz.smoke_extraction",
+      "brandschutz.extinguishing_system",
+      "brandschutz.wall_hydrant",
+      "brandschutz.fire_alarm_system",
+      "brandschutz.alarm_system",
+      "elektro.safety_power_supply",
+      "elektro.safety_lighting"
+    ],
+    "buildingKinds": [
+      "assembly"
+    ],
+    "states": [
+      "DE-BW"
+    ]
+  }
+}

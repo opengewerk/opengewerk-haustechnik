@@ -653,6 +653,7 @@ describe('a preview started as the Leitung', () => {
       'brandschutz',
       'elektro',
       'feiertage',
+      'landesrecht',
       'messstellen',
       'trinkwasser',
       'probe',

@@ -1,0 +1,65 @@
+{
+  "note": "Die Fristen und die Aufbewahrung der Prüfungen technischer Anlagen in Sonderbauten nach dem Recht von Baden-Württemberg. Geprüft am 14.10.2026 an der aktuellen Gesamtausgabe auf landesrecht-bw.de: Versammlungsstättenverordnung vom 28. April 2004 (GBl. S. 311), Verkaufsstättenverordnung vom 11. Februar 1997 (GBl. S. 84) und Garagenverordnung vom 7. Juli 1997 (GBl. S. 332), alle drei zuletzt geändert am 12. Juni 2025 (GBl. 2025 Nr. 53). Ihre Paragrafen über die Prüfungen stehen so seit dem 1. Juli 2004, dem 1. April 1997 und dem 1. Februar 2021. Bis zum 31. Januar 2021 verlangte die Garagenverordnung die Prüfung von Sprinkler- und CO-Warnanlagen jährlich und die der übrigen Anlagen alle zwei Jahre; diese Fassung steht nicht im Paket.",
+  "records": [
+    {
+      "key": "assembly_inspection_interval",
+      "scope": "DE-BW",
+      "validFrom": "2004-07-01",
+      "validUntil": null,
+      "unit": "years",
+      "value": 3,
+      "source": "§ 37 Abs. 3 VStättVO BW",
+      "origin": "state_law"
+    },
+    {
+      "key": "assembly_report_retention",
+      "scope": "DE-BW",
+      "validFrom": "2004-07-01",
+      "validUntil": null,
+      "unit": "years",
+      "value": 5,
+      "source": "§ 37 Abs. 6 VStättVO BW",
+      "origin": "state_law"
+    },
+    {
+      "key": "retail_inspection_interval",
+      "scope": "DE-BW",
+      "validFrom": "1997-04-01",
+      "validUntil": null,
+      "unit": "years",
+      "value": 3,
+      "source": "§ 30 Abs. 1 VkVO BW",
+      "origin": "state_law"
+    },
+    {
+      "key": "retail_report_retention",
+      "scope": "DE-BW",
+      "validFrom": "1997-04-01",
+      "validUntil": null,
+      "unit": "years",
+      "value": 5,
+      "source": "§ 30 Abs. 2 Nr. 4 VkVO BW",
+      "origin": "state_law"
+    },
+    {
+      "key": "garage_inspection_interval",
+      "scope": "DE-BW",
+      "validFrom": "2021-02-01",
+      "validUntil": null,
+      "unit": "years",
+      "value": 3,
+      "source": "§ 16 Abs. 1 Satz 2 GaVO BW",
+      "origin": "state_law"
+    },
+    {
+      "key": "garage_report_retention",
+      "scope": "DE-BW",
+      "validFrom": "2021-02-01",
+      "validUntil": null,
+      "unit": "years",
+      "value": 5,
+      "source": "§ 16 Abs. 2 Nr. 4 GaVO BW",
+      "origin": "state_law"
+    }
+  ]
+}

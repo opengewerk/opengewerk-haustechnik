@@ -1390,6 +1390,15 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   Grenze an, ein eigener Wert nutzt dafür `under` des Fundaments (`opengewerk#631`). Wer den
   technischen Maßnahmenwert für Legionellen in seine eigene Vorlage nahm, konnte nur "höchstens"
   wählen, und ein Befund von genau 100 je 100 ml stand dann als innerhalb da.
+- Paket Landesrecht mit Baden-Württemberg (#94), weil der Pilotbetrieb die Prüfungen nach dem
+  Bauordnungsrecht des Landes vor dem Parallelbetrieb im Katalog braucht. Das Land hat keine
+  Prüfverordnung; geprüft wird nach § 37 VStättVO, § 30 VkVO und § 16 GaVO. Vier Pflichtarten für
+  die Anlagenarten der Pakete Brandschutz und Elektro, je mit `states: ["DE-BW"]` und der
+  Gebäudeart ihrer Verordnung: die Anlagen einer Versammlungsstätte und ihr Blitzschutz, die einer
+  Verkaufsstätte und die einer Garage, alle drei Jahre durch einen anerkannten Sachverständigen,
+  der Blitzschutz durch Sachkundige. Die Fristen und die fünf Jahre Aufbewahrung stehen als Regeln
+  mit `scope: "DE-BW"`. Lüftung und CO-Warnanlagen kommen mit dem Paket Raumluft in Phase 2. Jede
+  Fundstelle ist am 14.10.2026 an der Gesamtausgabe auf landesrecht-bw.de geprüft.
 
 
 ### Geändert
