@@ -114,24 +114,25 @@ Export: was es schon gibt, wird nicht doppelt angelegt.
 ## Das Beispielpaket
 
 Unter [`beispielpaket/`](beispielpaket/) liegt ein Paket aus erfundenen Daten: eine Grundschule
-mit Schulhaus und Sporthalle, fünf Anlagen, darunter zwei Wasserzähler, ihre Wartungen mit vier
-Dateien, der Verlauf der beiden Zähler über ein halbes Jahr mit einem Tausch und einer
+mit Schulhaus und Sporthalle, sechs Anlagen, darunter zwei Wasserzähler und ein Stromzähler,
+ihre Wartungen mit vier Dateien, der Verlauf der drei Zähler mit einem Tausch und einer
 Stilllegung, und zwei Vorlagen für Rundgänge. Es lässt sich in eine leere Instanz importieren,
 Schritt für Schritt wie oben.
 
 | Datei | Was der Import daraus macht |
 |---|---|
 | `01-bestand.csv` | 1 Liegenschaft, 2 Gebäude, 3 Geschosse und 6 Räume angelegt |
-| `02-anlagen.csv` | 5 Anlagen angelegt |
+| `02-anlagen.csv` | 6 Anlagen angelegt |
 | `03-fristen.csv` | 3 Nachweise als Altbestand übernommen, 3 Pflichten bestätigt, 2 Dokumente als Altbestand abgelegt |
-| `04-zaehler.csv` | 8 Zählerstände, 1 Zählertausch und 1 Stilllegung übernommen |
+| `04-zaehler.csv` | 11 Zählerstände, 1 Zählertausch und 1 Stilllegung übernommen |
 | `05-vorlagen.csv` | 2 Vorlagen mit 10 Punkten übernommen |
 
 Was dabei zu sehen ist:
 
-- Die Anlagenarten der Liste ("Heizkessel", "Aufzug", "Lüftungsgerät", "Wasserzähler") werden im
-  zweiten Schritt des Imports der Anlagen einer Anlagenart des Katalogs zugeordnet; die beiden
-  Wasserzähler brauchen eine Anlagenart, die eine Messstelle ist.
+- Die Anlagenarten der Liste ("Heizkessel", "Aufzug", "Lüftungsgerät", "Wasserzähler",
+  "Stromzähler") werden im zweiten Schritt des Imports der Anlagen einer Anlagenart des Katalogs
+  zugeordnet. Für die Zähler schlägt der Import die Anlagenarten des Pakets Messstellen vor, die
+  genauso heißen, für die übrigen die allgemeine Anlagenart ihrer Kostengruppe.
 - Die Pflichten in `03-fristen.csv` sind eigene Pflichten des Betreibers, mit Grundlage, Quelle,
   Tätigkeit und Frist. Die Wartung des Aufzugs steht zweimal darin: die jüngere Zeile wird der
   Nachweis, die ältere ein Dokument an der Anlage. Die letzte Zeile nennt keine Pflicht und wird

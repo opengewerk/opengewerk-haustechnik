@@ -72,7 +72,7 @@ interface SampleFloor {
 interface SampleAsset {
   readonly kind:
     | 'probe.elevator'
-    | 'probe.water_meter'
+    | 'messstellen.water_meter'
     | 'allgemein.ventilation_and_air_conditioning'
     | 'elektro.portable_equipment'
     | 'elektro.low_voltage_installation'
@@ -275,9 +275,9 @@ const waterMeter = (
   components: readonly SampleAsset[] = [],
   further: Pick<SampleAsset, 'lifecycle' | 'supplies' | 'duties'> = {},
 ): SampleAsset => ({
-  kind: 'probe.water_meter',
+  kind: 'messstellen.water_meter',
   name,
-  values: { hot_water: false, calibration_year: 2021 },
+  values: {},
   meterNumber,
   room,
   components,

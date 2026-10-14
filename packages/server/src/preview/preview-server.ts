@@ -174,10 +174,10 @@ function previewFileStore(): FileStorage {
  * The catalogue of the preview as a bundle: the packages this build ships,
  * and beside them the probe package and a package of the preview alone. The
  * build ships the package Allgemein (#61), whose asset kinds carry no duty
- * kind and no field; the packages with duty kinds, measuring points and forms
- * come later in Phase 1, and until then the probe package is the one that
- * shows them, and the package of the preview a form with every kind of field
- * (#107). The probe package stands in it with a second version of its main
+ * kind and no field, the package Elektro and the measuring points of the
+ * package Messstellen (#287), which the sample meters take; the probe package
+ * shows the elevator with its main test and its fields, and the package of
+ * the preview a form with every kind of field (#107). The probe package stands in it with a second version of its main
  * test announced, so that the preview shows what a new version means for the
  * duties that are confirmed (#139, `sample-update.ts`).
  *

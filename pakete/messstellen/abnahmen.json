@@ -1,0 +1,29 @@
+{
+  "entries": [
+    {
+      "file": "anlagenarten/cooling_meter.v1.json",
+      "checkedOn": "2026-10-14"
+    },
+    {
+      "file": "anlagenarten/district_heating_meter.v1.json",
+      "checkedOn": "2026-10-14"
+    },
+    {
+      "file": "anlagenarten/electricity_meter.v1.json",
+      "checkedOn": "2026-10-14"
+    },
+    {
+      "file": "anlagenarten/gas_meter.v1.json",
+      "checkedOn": "2026-10-14"
+    },
+    {
+      "file": "anlagenarten/heat_meter.v1.json",
+      "checkedOn": "2026-10-14"
+    },
+    {
+      "file": "anlagenarten/water_meter.v1.json",
+      "checkedOn": "2026-10-14"
+    }
+  ],
+  "rules": []
+}

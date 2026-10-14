@@ -357,9 +357,9 @@ describe('a preview started as the Leitung', () => {
     const sub = assets.find((asset) => asset.name === 'Unterzähler Teeküche')
 
     expect(assets.map((asset) => asset.kind).sort()).toEqual([
+      'messstellen.water_meter',
+      'messstellen.water_meter',
       'probe.elevator',
-      'probe.water_meter',
-      'probe.water_meter',
     ])
     expect(sub?.parentAssetId).toBe(main?.id)
   })
@@ -644,6 +644,7 @@ describe('a preview started as the Leitung', () => {
       'allgemein',
       'elektro',
       'feiertage',
+      'messstellen',
       'probe',
       'vorschau',
     ])
