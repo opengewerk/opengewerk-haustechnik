@@ -344,6 +344,13 @@
       "when": 1791920895939,
       "tag": "0048_taken_over_readings",
       "breakpoints": true
+    },
+    {
+      "idx": 49,
+      "version": "7",
+      "when": 1791962612931,
+      "tag": "0049_instance_legal_texts",
+      "breakpoints": true
     }
   ]
 }

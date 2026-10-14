@@ -108,6 +108,13 @@ export const application: InterfaceApplication = {
         </>
       ),
     },
+    // The page of the legal texts of the instance (#129), the board
+    // "Rechtstexte der Instanz" of the page "Vor der Anmeldung".
+    legal: {
+      keptBy:
+        'Den Text pflegt die Verwaltung der Instanz unter „Instanz verwalten“, „Rechtstexte“. Er steht nicht im Quelltext der Anwendung.',
+      missing: 'Diesen Text hat die Verwaltung der Instanz noch nicht hinterlegt.',
+    },
   },
 
   /**

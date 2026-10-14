@@ -156,6 +156,13 @@ export interface ApiOptions {
    * is the truth on a machine that makes none.
    */
   readonly backupStatus?: string | null
+  /**
+   * Whether the legal texts of the instance are handed out to anybody (#129).
+   * Left out, they are wherever the authentication is handed in, and on a
+   * closed instance not; the preview, which signs everybody in without it,
+   * says yes, so that the page of the texts shows there.
+   */
+  readonly legalTexts?: boolean
 }
 
 /**
@@ -219,6 +226,7 @@ export class ApiModule {
       // An invitation by mail goes out the way every mail of an operator does.
       invitationMailing: invitationMailing(database, mail),
       instanceSettings: options.instance?.settings,
+      legalTexts: options.legalTexts,
     })
     // The routes a device syncs through, with the rules of this application
     // and the catalogue its asset kinds come from: the bar of the sync on

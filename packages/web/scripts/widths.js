@@ -20,9 +20,20 @@ await checkWidths({
    * code (#98), which only a scan reaches: with a code no label carries, it
    * is the page that says so. The help (#131) stands behind the drawer of a
    * page in the office and behind the menu on site, and its quick guides
-   * behind it.
+   * behind it. The legal texts of the instance (#129) are linked in the
+   * foot of the sign in, which the preview, signed in, never shows.
    */
-  entries: ['/', '/m/', '/konto', '/instanz', '/hilfe', '/m/hilfe', `/a/${'0'.repeat(16)}`],
+  entries: [
+    '/',
+    '/m/',
+    '/konto',
+    '/instanz',
+    '/hilfe',
+    '/m/hilfe',
+    `/a/${'0'.repeat(16)}`,
+    '/rechtliches',
+    '/rechtliches/datenschutz',
+  ],
 
   /**
    * The buttons that lead to a form no link leads to: the form a property is

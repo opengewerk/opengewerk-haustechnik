@@ -113,6 +113,9 @@ export async function openPreview(
       renderer: rendererFor(readRendererConfiguration()),
       mail: previewMail(port),
       push: previewPush(port),
+      // The page of the legal texts shows, signed in or not (#129), and the
+      // preview has its sample texts.
+      legalTexts: true,
     }),
     {
       authenticationHandler: previewSession(identity, person),

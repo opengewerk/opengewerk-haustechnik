@@ -1339,6 +1339,16 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   niemand in der Anwendung. Beides sieht nur die Leitung. Routen, Bildschirme und Leiste
   kommen aus dem Fundament (Submodul angehoben); der Lauf "Sicherung und Rückspielen" fragt
   die Route jetzt nach jeder Sicherung mit einem Konto der Leitung (`#80`).
+- **Rechtstexte der Instanz (`#129`).** Impressum und Datenschutzhinweise pflegt die
+  Verwaltung der Instanz in deren Bereich unter "Rechtstexte", mit Vorschau, und jeder liest
+  sie ohne Anmeldung unter `/rechtliches`. Der Fuß der Anmeldung verlinkt nur einen Text, der
+  hinterlegt ist, und fehlt das Impressum, sagt es der Bereich der Instanz. Ein Text kennt
+  Überschriften, Absätze, Listen, fett und Verweise und wird nie zu HTML. Bisher stand ein
+  Impressum nirgends, und im Quelltext hätte es für jede Instanz falsch gestanden. Baustein,
+  Route und Bildschirme kommen aus dem Fundament (Submodul angehoben), die Spalten mit der
+  Migration `0049_instance_legal_texts`; jede Änderung steht im Protokoll der Instanz. Die
+  Zusage K7 der Verfahrensbeschreibung nennt die Rechtstexte unter dem, was ohne Anmeldung
+  antwortet, und die Navigation des Bereichs heißt "Verwaltung der Instanz" wie auf der Tafel.
 
 ### Geändert
 
