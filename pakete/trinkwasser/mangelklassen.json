@@ -1,0 +1,19 @@
+{
+  "classes": [
+    {
+      "key": "no_hygienic_impact",
+      "label": "ohne Einfluss auf die Güte des Trinkwassers",
+      "unsafe": false
+    },
+    {
+      "key": "hygienic_concern",
+      "label": "Güte des Trinkwassers gefährdet, umgehend beheben",
+      "unsafe": false
+    },
+    {
+      "key": "health_hazard",
+      "label": "Gefahr für die Gesundheit, Nutzung einschränken",
+      "unsafe": true
+    }
+  ]
+}

@@ -1,0 +1,54 @@
+{
+  "validFrom": "2023-06-24",
+  "label": "Auf Legionellen untersuchen lassen (nur gewerbliche Abgabe)",
+  "description": "Gibt der Betreiber das Trinkwasser nur gewerblich ab, etwa als Vermieter, lässt er es mindestens alle drei Jahre systemisch auf Legionellen untersuchen. Das gilt für eine Trinkwasserinstallation mit großer Trinkwassererwärmung und mit Duschen oder anderer Vernebelung, nicht im Ein- oder Zweifamilienhaus. Eine neue Anlage wird zum ersten Mal drei bis zwölf Monate nach der Inbetriebnahme untersucht. Erreicht ein Befund den technischen Maßnahmenwert, meldet der Betreiber das dem Gesundheitsamt, klärt die Ursache vor Ort, schreibt eine Risikoabschätzung und trifft Maßnahmen.",
+  "task": "sampling",
+  "origin": "state_law",
+  "bindingness": "statute",
+  "source": "§ 31 Abs. 1 und Abs. 2 Nr. 2 Buchst. a TrinkwV",
+  "interval": {
+    "kind": "maximum",
+    "rule": "legionella_sampling_interval_commercial"
+  },
+  "counting": "from_performance",
+  "qualification": {
+    "level": "accredited_laboratory",
+    "note": "eine dafür zugelassene Untersuchungsstelle, die auch die Proben nimmt (§ 39 Abs. 1 und 3 TrinkwV)"
+  },
+  "evidence": {
+    "kinds": [
+      "report",
+      "protocol"
+    ],
+    "form": "legionella_findings"
+  },
+  "retention": {
+    "kind": "years",
+    "rule": "legionella_record_retention"
+  },
+  "scope": {
+    "assetKinds": [
+      "drinking_water_installation"
+    ],
+    "conditions": [
+      {
+        "characteristic": "large_water_heating",
+        "is": true
+      },
+      {
+        "characteristic": "aerosol_outlets",
+        "is": true
+      },
+      {
+        "characteristic": "one_or_two_family_house",
+        "is": false
+      },
+      {
+        "characteristic": "supply",
+        "oneOf": [
+          "commercial"
+        ]
+      }
+    ]
+  }
+}

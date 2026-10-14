@@ -16,7 +16,8 @@ Anlagen eine allgemeine Anlagenart für jede Anlage, die kein Fachpaket beschrei
 allgemeinen Mängelklassen. Das erste Fachpaket ist [`elektro`](elektro/README.md), mit den
 Prüfungen nach den DGUV Vorschriften 3 und 4 und der Arbeitsstättenverordnung, das zweite
 [`brandschutz`](brandschutz/README.md), mit der Arbeitsstättenverordnung und den Technischen Regeln
-für Arbeitsstätten A2.2 und A1.7. Daneben steht
+für Arbeitsstätten A2.2 und A1.7, das dritte [`trinkwasser`](trinkwasser/README.md), mit der
+Untersuchung auf Legionellen nach der Trinkwasserverordnung. Daneben steht
 [`messstellen`](messstellen/README.md): je Medium eine Anlagenart, die eine Messstelle ist.
 
 ## Aufbau
@@ -205,7 +206,9 @@ ausgefüllte Formular die Vorlage des nächsten ist). Die Arten:
 - `measurement`: ein Messwert mit `unit` und `decimals`, auf Wunsch mit `limit`, etwa
   `{ "kind": "at_least", "rule": "hot_water_minimum" }`. Ein Grenzwert ist immer eine Regel aus
   `regeln/`, nie eine Zahl im Formular, und die Regel muss in einer Einheit zählen, in die sich der
-  Messwert umrechnen lässt: Grad Celsius gegen eine Regel in Zehntelgrad.
+  Messwert umrechnen lässt: Grad Celsius gegen eine Regel in Zehntelgrad. `at_least` und `at_most`
+  nehmen den Wert der Regel selbst als innerhalb, `below` nicht: dort ist schon das Erreichen
+  außerhalb, wie beim technischen Maßnahmenwert für Legionellen.
 - `choice`: eine Auswahl mit mindestens zwei `options`, je mit `value` und `label`
 - `yes_no` und `photo`
 - `check_point`: ein Prüfpunkt mit den Antworten "in Ordnung", "nicht in Ordnung", "entfällt"
@@ -216,9 +219,10 @@ ausgefüllte Formular die Vorlage des nächsten ist). Die Arten:
 - `signature`: eine Unterschrift; mit `seals` schreibt sie das Formular fest
 - `group`: eine Gruppe von Feldern, die sich wiederholt, mit `repeat: "free"` und ihren `fields`
 
-Einheiten sind `degrees_celsius`, `kilowatt_hours`, `megawatt_hours`, `cubic_metres`, `ohms`,
-`megaohms` und `milliamperes`; ein Grenzwert auf einen Widerstand ist eine Regel in `kiloohms`, und
-für einen Strom hat die Regel-Engine keine Einheit. Ein Messwert, ein Prüfpunkt, ein Zählerstand und
+Einheiten sind `degrees_celsius`, `count_per_100_ml`, `kilowatt_hours`, `megawatt_hours`,
+`cubic_metres`, `ohms`, `megaohms` und `milliamperes`; ein Grenzwert auf einen Widerstand ist eine
+Regel in `kiloohms`, einer auf eine Anzahl je 100 ml eine Regel in derselben Einheit, und für einen
+Strom hat die Regel-Engine keine Einheit. Ein Messwert, ein Prüfpunkt, ein Zählerstand und
 eine Unterschrift werden nie übernommen. Ein Feld eines Pakets zeigt auf keine Anlage und keinen Raum (`about`), denn welche es gibt, weiß erst eine
 Instanz; das kann nur die Vorlage eines Betreibers. Der Bau liest jedes Feld genau und prüft das
 Formular danach mit der Formular-Engine des Fundaments; ein Feld, das er nicht kennt, ist ein

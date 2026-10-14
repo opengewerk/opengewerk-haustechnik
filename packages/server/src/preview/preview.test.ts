@@ -654,6 +654,7 @@ describe('a preview started as the Leitung', () => {
       'elektro',
       'feiertage',
       'messstellen',
+      'trinkwasser',
       'probe',
       'vorschau',
     ])

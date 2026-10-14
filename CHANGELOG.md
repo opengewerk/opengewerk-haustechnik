@@ -1375,6 +1375,16 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   Vorlage für die Sichtkontrolle der Feuerlöscher auf einem Rundgang und drei Mängelklassen. Jede
   Fundstelle ist am 14.10.2026 am Text geprüft; was private Normen sagen, kommt nach der
   rechtlichen Prüfung als neue Fassung.
+- Paket Trinkwasser (#93), weil der Pilotbetrieb die Untersuchung auf Legionellen vor dem
+  Parallelbetrieb im Katalog braucht. Vier Anlagenarten (Trinkwasserinstallation,
+  Trinkwassererwärmer, Sicherungseinrichtung, Filter), zwei Pflichtarten nach § 31 TrinkwV
+  (jährlich bei öffentlicher, alle drei Jahre bei nur gewerblicher Abgabe), die Regeln für beide
+  Fristen, die zehn Jahre Aufbewahrung und den technischen Maßnahmenwert, ein Formular für den
+  Befund der Untersuchungsstelle, eine Vorlage für die Temperaturen auf einem Rundgang und drei
+  Mängelklassen. Gemessen wird gegen den Maßnahmenwert mit dem neuen `below` des Fundaments
+  (`opengewerk#630`), weil die Verordnung schon beim Erreichen von 100 je 100 ml Maßnahmen verlangt;
+  die Formulare und der Import von Vorlagen kennen dafür die Einheit "je 100 ml". Jede Fundstelle
+  ist am 14.10.2026 am Text geprüft.
 
 
 ### Geändert

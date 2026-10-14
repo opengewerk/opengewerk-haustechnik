@@ -1,0 +1,94 @@
+{
+  "validFrom": "2023-06-24",
+  "title": "Befund der Untersuchung auf Legionellen",
+  "sections": [
+    {
+      "key": "examination",
+      "title": "Untersuchung",
+      "hint": "Aus der Niederschrift der Untersuchungsstelle",
+      "fields": [
+        {
+          "kind": "text",
+          "key": "laboratory",
+          "label": "Untersuchungsstelle",
+          "required": true,
+          "carry": true
+        },
+        {
+          "kind": "text",
+          "key": "report",
+          "label": "Nummer der Niederschrift"
+        },
+        {
+          "kind": "text",
+          "key": "sampled_at",
+          "label": "Zeitpunkt der Probennahme",
+          "required": true
+        },
+        {
+          "kind": "text",
+          "key": "examined_at",
+          "label": "Zeitpunkt der Untersuchung"
+        },
+        {
+          "kind": "text",
+          "key": "method",
+          "label": "Untersuchungsverfahren",
+          "carry": true
+        }
+      ]
+    },
+    {
+      "key": "samples",
+      "title": "Probennahmestellen",
+      "fields": [
+        {
+          "kind": "group",
+          "key": "points",
+          "label": "Probennahmestellen",
+          "repeat": "free",
+          "fields": [
+            {
+              "kind": "text",
+              "key": "point",
+              "label": "Bezeichnung der Probennahmestelle",
+              "required": true,
+              "carry": true
+            },
+            {
+              "kind": "measurement",
+              "key": "legionella",
+              "label": "Legionella spec.",
+              "unit": "count_per_100_ml",
+              "decimals": 0,
+              "required": true,
+              "limit": {
+                "kind": "below",
+                "rule": "legionella_technical_action_value"
+              }
+            },
+            {
+              "kind": "measurement",
+              "key": "temperature",
+              "label": "Wassertemperatur bei der Probennahme",
+              "unit": "degrees_celsius",
+              "decimals": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "end",
+      "title": "Abschluss",
+      "fields": [
+        {
+          "kind": "signature",
+          "key": "signature",
+          "label": "Unterschrift",
+          "seals": true
+        }
+      ]
+    }
+  ]
+}

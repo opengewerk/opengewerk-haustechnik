@@ -1,0 +1,79 @@
+{
+  "validFrom": "2023-06-24",
+  "title": "Temperaturen der Trinkwassererwärmung",
+  "sections": [
+    {
+      "key": "heater",
+      "title": "Trinkwassererwärmer",
+      "hint": "Am Thermometer der Anlage abgelesen oder am Auslauf gemessen",
+      "fields": [
+        {
+          "kind": "measurement",
+          "key": "outlet",
+          "label": "Austritt des Trinkwassererwärmers",
+          "hint": "Einen Grenzwert mit seiner Quelle trägt der Betreiber in seiner Vorlage ein",
+          "unit": "degrees_celsius",
+          "decimals": 1,
+          "required": true
+        },
+        {
+          "kind": "measurement",
+          "key": "circulation_return",
+          "label": "Rücklauf der Zirkulation",
+          "hint": "Einen Grenzwert mit seiner Quelle trägt der Betreiber in seiner Vorlage ein",
+          "unit": "degrees_celsius",
+          "decimals": 1,
+          "required": true
+        }
+      ]
+    },
+    {
+      "key": "cold",
+      "title": "Kaltwasser",
+      "fields": [
+        {
+          "kind": "measurement",
+          "key": "cold_water",
+          "label": "Kaltwasser an einer Entnahmestelle",
+          "hint": "Einen Grenzwert mit seiner Quelle trägt der Betreiber in seiner Vorlage ein",
+          "unit": "degrees_celsius",
+          "decimals": 1
+        }
+      ]
+    },
+    {
+      "key": "look",
+      "title": "Sichtkontrolle",
+      "fields": [
+        {
+          "kind": "check_point",
+          "key": "tight",
+          "label": "Speicher, Leitungen und Armaturen dicht"
+        },
+        {
+          "kind": "check_point",
+          "key": "insulation",
+          "label": "Dämmung der Leitungen unversehrt"
+        },
+        {
+          "kind": "text",
+          "key": "noticed",
+          "label": "Was sonst auffiel",
+          "multiline": true
+        }
+      ]
+    },
+    {
+      "key": "end",
+      "title": "Abschluss",
+      "fields": [
+        {
+          "kind": "signature",
+          "key": "signature",
+          "label": "Unterschrift",
+          "seals": true
+        }
+      ]
+    }
+  ]
+}

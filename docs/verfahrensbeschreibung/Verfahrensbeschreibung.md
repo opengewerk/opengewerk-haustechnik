@@ -353,7 +353,7 @@ Leitung und Technische Leitung sehen als Vorgabe alle Bereiche.
 Diese Bausteine gehören nach dem Fahrplan zu Phase 1 und sind noch nicht gebaut. Mit jedem wird dieses Dokument berichtigt; der Test in Abschnitt 11 erzwingt es, sobald ein Feld mit Personenbezug oder eine Adresse des Servers dazukommt.
 
 - **Erinnerung je Art der Frist:** Die Einstellungen der Fristen sollen je Art sagen, ob eine Frist per E-Mail, per Push oder auf beiden Wegen erinnert. Dann stellt der Betreiber etwas ein, das Beschäftigte betrifft, und die Abschnitte 3.15 und 6 werden berichtigt. Welche Wahl es gibt, ist noch nicht entschieden. [K2.4, K3]
-- **Pakete:** Trinkwasser und das Landesrecht von Baden-Württemberg bringen Pflichtarten, Anlagenarten und Vorlagen, aber keine Angaben über Personen, wie schon das Paket Brandschutz. [K5, K12]
+- **Pakete:** Das Landesrecht von Baden-Württemberg bringt Pflichtarten, Anlagenarten und Vorlagen, aber keine Angaben über Personen, wie schon die Pakete Brandschutz und Trinkwasser. [K5, K12]
 - **Erste Fassung:** Mit ihr nennt die Zeile „Gilt für“ ihre Nummer. [K12]
 
 ---
