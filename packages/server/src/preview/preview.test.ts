@@ -654,8 +654,8 @@ describe('a preview started as the Leitung', () => {
       'elektro',
       'feiertage',
       'messstellen',
-      'probe',
       'trinkwasser',
+      'probe',
       'vorschau',
     ])
     expect(whole).toEqual(previewBundle)
