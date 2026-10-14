@@ -77,6 +77,7 @@ Anhang B nennt jedes Feld der Datenbank, das auf eine Person zeigt. Dieser Absch
 - Eine Pflicht nennt, wer für sie verantwortlich ist und wer sie bestätigt hat; ein verworfener Vorschlag nennt, wer ihn verworfen hat, mit Grund. Das Pflichtenverzeichnis führen die Leitung und die Technische Leitung. [K4.3, B11]
 - Das Pflichtenverzeichnis und die Seite einer Pflicht nennen die verantwortliche Person mit ihrem Namen, und sie sagen es, wenn für eine Pflicht niemand benannt ist. Lesen kann beides, wer Pflichten ansieht, das sind alle vier Rollen, jede in ihren Bereichen. Wer eine Pflicht bestätigt hat, zeigt kein Bildschirm außer dem Änderungsprotokoll. [K4.3, K7, B75]
 - Sagt der Katalog nach einem Update etwas anderes über eine bestätigte Pflicht, entscheidet, wer das Pflichtenverzeichnis führt: die neue Fassung übernehmen, oder die Pflicht mit Begründung lassen, wie sie ist. An der Pflicht stehen danach die Fassung, gegen die entschieden wurde, und die Begründung. Wer entschieden hat, zeigt kein Bildschirm außer dem Änderungsprotokoll, und die Meldung selbst nennt keine Person. [K2.3, K7, B11, B225, B226]
+- **Zusage:** Nimmt der Tausch einer Anlage eine eigene Pflicht der alten mit, entsteht an der neuen Anlage eine neue Pflicht. Als bestätigend nennt sie, wer getauscht hat, und nicht, wer die alte bestätigt hat. Verantwortlich bleibt, wer es an der alten war, solange die Person für den Betreiber arbeitet und nicht gesperrt ist; sonst ist für die neue Pflicht niemand benannt. Eine eigene Pflicht mitnehmen kann beim Tausch nur, wer auch das Pflichtenverzeichnis führt. [K4.2, K4.3, B260, B261, B262]
 - **Zusage:** Wer für eine Pflicht verantwortlich ist, legt fest, wer das Pflichtenverzeichnis führt. Zur Wahl bekommt diese Person die Namen derer, die für den Betreiber arbeiten, und ob jemand gesperrt ist; Rolle, E-Mail-Adresse und Anmeldungen nennt die Auswahl nicht. Objektleitung und Haustechnik bekommen die Auswahl nicht. [K4.3, K7, B76, B77]
 - Wer in einer Liste als verantwortlich, zuständig oder ausführend genannt ist, steht in der Tabelle dieser Liste nur für die Leitung; die Liste am Bildschirm nennt die Person weiter jedem, der sie sehen darf (Abschnitt 5). [K3, K9, B186]
 - Eine Frist nennt, wer für sie verantwortlich ist, wen ihre Quelle als verantwortlich nennt und wer sie geschlossen hat. Fristen sehen die Leitung und die Technische Leitung. [K2.4, B10]
@@ -172,6 +173,10 @@ Anhang B nennt jedes Feld der Datenbank, das auf eine Person zeigt. Dieser Absch
 - Wer Liegenschaften oder Anlagen pflegt, übernimmt sie auch aus einer Tabelle. Die Datei wird gelesen und nicht gespeichert. Von einem Import bleiben eine Zeile mit dem Namen der Datei, der Zahl ihrer Zeilen und dem Ergebnis in Worten, und die Datensätze, die er angelegt hat. Die Zeile nennt keine Person. Wer importiert hat und wann, steht im Änderungsprotokoll (Abschnitt 8) und im Stempel der angelegten Datensätze (Abschnitt 3.6), dort wie immer nur, bis jemand den Datensatz ändert. [K11, K3, B92]
 - Wie die Listen eines Betreibers die Anlagenarten nennen, behält die Anwendung für den nächsten Import: ein Wort und die Anlagenart dazu, ohne Person. Wer ein Wort zugeordnet hat, steht im Änderungsprotokoll. [K11]
 - Aus Tabellen kommen auch laufende Fristen mit ihren alten Nachweisen, der Verlauf der Zähler und die Vorlagen der Rundgänge, jeweils für die, die sie auch von Hand führen. Bei diesen drei Importen steht neben der Zeile des Imports jeder angelegte Datensatz mit eigenem Eintrag im Änderungsprotokoll. Ein übernommener Nachweis nennt niemanden, der ihn durchgeführt oder unterschrieben hat; ein übernommener Zählerstand nennt, wer die Liste übernommen hat. [K11]
+- **Zusage:** Ein Nachweis aus einer Liste laufender Fristen trägt die Herkunft „Altbestand“ und nennt niemanden, der ihn durchgeführt oder unterschrieben hat; eine Unterschrift hat er nicht. Als die Person, die ihn eingetragen hat, nennt er, wer die Liste übernommen hat. [K2.6, K11, B263]
+- **Zusage:** Ein Zählerstand aus einer Liste nennt als Person, wer die Liste übernommen hat, mit dem Weg „Übernommen“, und die Seite der Messstelle zeigt den Namen wie bei jedem Stand. Abgelesen hat ihn in dieser Anwendung niemand. [K4.9, K11, B264]
+- **Zusage:** Was eine Liste laufender Fristen oder der Verlauf der Zähler anlegt, steht Datensatz für Datensatz mit eigenem Eintrag im Änderungsprotokoll, neben dem Eintrag des Imports. [K3, K11, B265, B266]
+- Konten übernimmt kein Import. Wer aus einer Vorgängeranwendung kommt, wird eingeladen und vergibt sein Passwort selbst; ein übernommenes Passwort gibt es nicht. [K11]
 
 ### 3.12 Mängel
 
@@ -347,8 +352,9 @@ Leitung und Technische Leitung sehen als Vorgabe alle Bereiche.
 
 Diese Bausteine gehören nach dem Fahrplan zu Phase 1 und sind noch nicht gebaut. Mit jedem wird dieses Dokument berichtigt; der Test in Abschnitt 11 erzwingt es, sobald ein Feld mit Personenbezug oder eine Adresse des Servers dazukommt.
 
-- **Zähler und Fotos vor Ort:** Ablesungen kommen als eigene Datensätze dazu und tragen wie jeder Datensatz ihren Stempel. Ein Foto vor Ort wird als Dokument abgelegt (Abschnitt 3.9); die Bildschirme dafür kommen mit der Bestandsaufnahme. [K4.9, K4.10]
-- **Übernahme aus einer Vorgängeranwendung:** Jedes Konto wird eingeladen, niemand bekommt ein übernommenes Passwort. Ein übernommener Nachweis sagt, dass er nicht in dieser Anwendung unterschrieben wurde. [K11]
+- **Erinnerung je Art der Frist:** Die Einstellungen der Fristen sollen je Art sagen, ob eine Frist per E-Mail, per Push oder auf beiden Wegen erinnert. Dann stellt der Betreiber etwas ein, das Beschäftigte betrifft, und die Abschnitte 3.15 und 6 werden berichtigt. Welche Wahl es gibt, ist noch nicht entschieden. [K2.4, K3]
+- **Pakete:** Brandschutz, Trinkwasser und das Landesrecht von Baden-Württemberg bringen Pflichtarten, Anlagenarten und Vorlagen, aber keine Angaben über Personen. [K5, K12]
+- **Erste Fassung:** Mit ihr nennt die Zeile „Gilt für“ ihre Nummer. [K12]
 
 ---
 
@@ -642,6 +648,13 @@ Pfade ohne Vorsatz liegen im Repository `opengewerk/opengewerk-haustechnik`. Pfa
 | B257 | Test | `upstream/opengewerk/packages/platform/server/src/authentication/own-account.test.ts` | `works after confirming, and goes into the log of every tenant of the account` |
 | B258 | Test | `upstream/opengewerk/packages/platform/server/src/authentication/redemption.test.ts` | `names the roles as the tenant calls them, only while the link can still be used` |
 | B259 | Test | `packages/server/src/api/area-additions.test.ts` | `says at the far end of its link the role and the areas it names, by their names` |
+| B260 | Test | `packages/server/src/api/asset-exchange.test.ts` | `takes a duty of the operator own over where it is named, by whoever keeps the register of duties` |
+| B261 | Test | `packages/server/src/api/asset-exchange.test.ts` | `leaves somebody who no longer works here out of the duty it takes over` |
+| B262 | Test | `packages/server/src/api/asset-exchange.test.ts` | `takes a duty of the operator own over only with the right to keep the register of duties` |
+| B263 | Test | `packages/server/src/api/import-deadlines.test.ts` | `confirms the duty, writes the evidence as taken over and files its document, due as the list says` |
+| B264 | Test | `packages/server/src/api/import-history.test.ts` | `shows a reading taken over as one, with who took the list over, and counts across the replacement` |
+| B265 | Test | `packages/server/src/api/import-deadlines.test.ts` | `writes every number of the evidence in one step, and every record with its own entry in the log` |
+| B266 | Test | `packages/server/src/api/import-history.test.ts` | `writes every reading, replacement and rest with its own entry in the log, beside the one of the import` |
 
 ---
 
