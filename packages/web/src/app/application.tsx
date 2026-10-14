@@ -30,9 +30,11 @@ import { records } from './records.js'
  */
 export const application: InterfaceApplication = {
   name: applicationName,
-  claim: 'Liegenschaft, Anlage, Pflicht, Nachweis. Die Betreiberverantwortung an einer Stelle.',
+  // As the boards of the gate draw it: the family beside the mark, the line under it.
+  brand: { family: 'OpenGewerk', line: 'Haustechnik' },
+  claim: 'Liegenschaft, Anlage, Pflicht, Nachweis. Was fällig ist, und womit es belegt ist.',
   hosting:
-    'Diese Instanz läuft auf Ihrem eigenen Server. Die Daten verlassen ihn nicht, und niemand außer Ihnen kann sie abschalten.',
+    'Diese Instanz läuft auf einem Server Ihres Hauses. Die Daten verlassen ihn nicht, und niemand außer Ihnen kann sie abschalten.',
   licence: 'AGPL-3.0',
   tenantNameMaxLength,
   tenantNameProblem,
@@ -64,7 +66,7 @@ export const application: InterfaceApplication = {
       whatIsMade: 'Hier entstehen der Betreiber und das erste Konto.',
       whereTheCodeIs: 'Steht auf dem Server in der Datei docker/.env.',
       tenantLabel: 'Betreiber',
-      tenantHint: 'Der Name, unter dem der Betreiber seine Gebäude führt.',
+      tenantHint: 'So, wie der Betreiber nach außen heißt.',
       create: 'Betreiber anlegen',
     },
     tenants: {
@@ -102,9 +104,8 @@ export const application: InterfaceApplication = {
       join: 'Betreiber übernehmen',
       newAccount: (name, email) => (
         <>
-          Die Leitung des Betreibers hat einen Zugang für {name} angelegt, mit der Adresse {email}.
-          Fehlt nur noch ein Passwort, und das wählen Sie selbst: niemand beim Betreiber bekommt es
-          zu sehen.
+          Der Betreiber hat einen Zugang für {name} angelegt, mit der Adresse {email}. Fehlt nur
+          noch ein Passwort, und das wählen Sie selbst: niemand beim Betreiber bekommt es zu sehen.
         </>
       ),
     },

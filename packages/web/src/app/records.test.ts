@@ -22,6 +22,12 @@ describe('the words of a conflict', () => {
     expect(records.titleOf('rooms', { number: ' ', name: 'Heizraum' })).toBe('Heizraum')
     expect(records.titleOf('work_orders', { number: null })).toBe('Arbeitsauftrag')
     expect(records.titleOf('defects', null)).toBe('Mangel')
+    // An asset by its number and its name, as the boards of the conflicts write it.
+    expect(
+      records.titleOf('assets', { number: 'AN-00140', name: 'Trinkwassererwärmer Mensa' }),
+    ).toBe('AN-00140 Trinkwassererwärmer Mensa')
+    expect(records.titleOf('assets', { number: 'AN-00141', name: ' ' })).toBe('AN-00141')
+    expect(records.titleOf('assets', { number: null, name: 'Pumpe' })).toBe('Pumpe')
     expect(records.titleOf('meter_readings', { readOn: '2026-10-10' })).toBe(
       'Zählerstand vom 10.10.2026',
     )

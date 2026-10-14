@@ -58,6 +58,7 @@ Anhang B nennt jedes Feld der Datenbank, das auf eine Person zeigt. Dieser Absch
 - Eine Einladung hält Name, E-Mail-Adresse, Rollen und Bereiche der eingeladenen Person und wer eingeladen hat. Ihr Link gilt sieben Tage. Hat der Betreiber einen Mailserver eingerichtet, kann die Leitung die Einladung per E-Mail schicken; sonst gibt sie den Link selbst weiter. [K7, B63, B67]
 - **Zusage:** Der Link einer Einladung per E-Mail entsteht erst, wenn die E-Mail hinausgeht. Im Postausgang und im Änderungsprotokoll steht keiner, der funktioniert. [K9, B227]
 - **Zusage:** Name und E-Mail-Adresse eines Kontos berichtigt die Leitung und keine andere Rolle, und die Berichtigung steht mit dem Wert davor und danach im Änderungsprotokoll. [K3, B13, B70]
+- **Zusage:** Name und E-Mail-Adresse des eigenen Kontos ändert jede Person selbst unter „Konto“, und erst nach der Bestätigung mit Passwort und, wo eingerichtet, Code aus der App. Die Änderung steht mit dem Wert davor und danach im Änderungsprotokoll jedes Betreibers, für den das Konto arbeitet. [K3, B256, B257]
 - **Zusage:** Für jede Person steht fest, ob sie alle Bereiche sieht oder welche. Festlegen und ändern kann das nur die Leitung. [K2.8, B18]
 - **Zusage:** Eine Vertretung hält fest, wer wen von welchem Tag bis zu welchem Tag vertritt. An diesen Tagen sieht die vertretende Person zusätzlich die Bereiche der abwesenden, davor und danach nicht. [K2.8, B20]
 
@@ -346,7 +347,6 @@ Leitung und Technische Leitung sehen als Vorgabe alle Bereiche.
 Diese Bausteine gehören nach dem Fahrplan zu Phase 1 und sind noch nicht gebaut. Mit jedem wird dieses Dokument berichtigt; der Test in Abschnitt 11 erzwingt es, sobald ein Feld mit Personenbezug oder eine Adresse des Servers dazukommt.
 
 - **Zähler und Fotos vor Ort:** Ablesungen kommen als eigene Datensätze dazu und tragen wie jeder Datensatz ihren Stempel. Ein Foto vor Ort wird als Dokument abgelegt (Abschnitt 3.9); die Bildschirme dafür kommen mit der Bestandsaufnahme. [K4.9, K4.10]
-- **Eigene Angaben:** Name, E-Mail-Adresse, Passwort, zweiten Faktor und Geräte ändert jede Person selbst unter „Konto“. [K3]
 - **Übernahme aus einer Vorgängeranwendung:** Jedes Konto wird eingeladen, niemand bekommt ein übernommenes Passwort. Ein übernommener Nachweis sagt, dass er nicht in dieser Anwendung unterschrieben wurde. [K11]
 - **Vertrag zur Auftragsverarbeitung:** Die Vorlage dafür ist für Phase 1 vorgesehen. [K9, K12]
 
@@ -358,7 +358,6 @@ Diese Bausteine gehören nach dem Fahrplan zu Phase 1 und sind noch nicht gebaut
 - **Löschen mit dem Ende der Aufbewahrung.** Das Planungskonzept sagt, dass ein Nachweis mit dem Ende seiner Aufbewahrung gelöscht wird und der Name mit ihm, nach einem Vorschlag, den die Leitung bestätigt. Gebaut ist das nicht; es kommt in Phase 2. [K2.6, K9, K12]
 - **Ende einer Zugehörigkeit.** Das Planungskonzept sagt, dass nach einer einstellbaren Frist die Angaben eines Kontos entfernt werden, die kein Nachweis mehr braucht. Gebaut ist die Sperre; das Entfernen kommt in Phase 2. [K9, K12]
 - **Netzadresse der Anmeldung.** Sie steht in der Zeile der Sitzung, sobald der vorgeschaltete Webserver sie durchreicht (Abschnitt 3.3). Das Planungskonzept nennt sie nicht, die Anwendung braucht sie dort nicht, und kein Test hält, dass sie nirgends ausgegeben wird. Offen als `opengewerk/opengewerk#563`. [K9]
-- **Eigene Angaben unter „Konto“.** Das Planungskonzept sagt, dass jede Person Name und E-Mail-Adresse selbst ändert. Gebaut ist bisher nur die Berichtigung durch die Leitung. Offen als `opengewerk/opengewerk-haustechnik#128`. [K3]
 - **Erzeugte Unterlagen.** Das Verzeichnis der Verarbeitungstätigkeiten, die Beschreibung der technischen und organisatorischen Maßnahmen und die erzeugte Verfahrensbeschreibung kommen in Phase 2, ebenso die Vorlage für eine Betriebs- oder Dienstvereinbarung. [K9, K12]
 
 ---
@@ -639,6 +638,8 @@ Pfade ohne Vorsatz liegen im Repository `opengewerk/opengewerk-haustechnik`. Pfa
 | B253 | Recht | `push.write` | Push auf den eigenen Geräten einrichten: Leitung, Technische Leitung, Objektleitung, Haustechnik |
 | B254 | Test | `upstream/opengewerk/packages/platform/server/src/instance/mail-server.test.ts` | `goes out through the mail server of the instance, under the name of the application` |
 | B255 | Test | `upstream/opengewerk/packages/platform/server/src/instance/mail-server.test.ts` | `takes the login with it, and after it no mail goes to an account` |
+| B256 | Test | `upstream/opengewerk/packages/platform/server/src/authentication/own-account.test.ts` | `is refused without confirming again, and changes nothing` |
+| B257 | Test | `upstream/opengewerk/packages/platform/server/src/authentication/own-account.test.ts` | `works after confirming, and goes into the log of every tenant of the account` |
 
 ---
 
@@ -648,7 +649,7 @@ Jede Zeile ist ein Feld der Datenbank, das die Kennung eines Kontos hält. Der S
 
 | Tabelle | Feld | Bedeutung |
 | --- | --- | --- |
-| `account_corrections` | `user_id` | das Konto, dessen Name oder E-Mail-Adresse die Leitung berichtigt hat |
+| `account_corrections` | `user_id` | das Konto, dessen Name oder E-Mail-Adresse die Leitung berichtigt oder die Person selbst geändert hat |
 | `activities` | `performer_user_id` | wer einen Vorgang ausführt |
 | `activities` | `responsible_user_id` | wer für einen Vorgang verantwortlich ist |
 | `activity_signatures` | `signed_by` | wer unterschrieben oder gegengezeichnet hat |
@@ -704,7 +705,7 @@ Jede Zeile ist der erste Abschnitt einer Adresse, unter der der Server antwortet
 | `assets` | Anlagen und ihre Komponenten, und die Nachweise einer Anlage; das Anlagenverzeichnis auch als Tabelle |
 | `attachments` | Dokumente: gibt die Datei einer Fassung und ihre Vorschau aus, über die Fassung und nie über die Prüfsumme; die Liste der Dokumente auch als Tabelle |
 | `audit` | Änderungsprotokoll, für die Leitung auch als Tabelle |
-| `auth` | das eigene Konto: Betreiber wählen, eigene Geräte, eigene Passkeys, abmelden |
+| `auth` | das eigene Konto: Betreiber wählen, eigene Angaben, eigene Geräte, eigene Passkeys, abmelden |
 | `buildings` | Gebäude mit ihren Schließzeiten |
 | `catalogue` | Katalog der Pakete, für jeden Betreiber derselbe und ohne Daten eines Betreibers |
 | `contacts` | Ansprechpartner einer Liegenschaft |
