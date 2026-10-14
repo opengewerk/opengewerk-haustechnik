@@ -1,7 +1,7 @@
 # OpenGewerk Haustechnik: Verfahrensbeschreibung für den Stand von Phase 1
 
 - **Gilt für:** noch keine veröffentlichte Fassung (Entwicklungsstand von Phase 1 auf dem Zweig `main`)
-- **Geschrieben:** von Hand, am 05.10.2026, aus dem Planungskonzept v0.11 und gegen den Quelltext geprüft; am 06.10.2026 um die Dateien im Speicher ergänzt (Planungskonzept v0.12) und um das Pflichtenverzeichnis, am selben Tag um die Dokumente (Planungskonzept v0.13) und um die Etiketten; am 08.10.2026 um die Prüfungen und Wartungen (Planungskonzept v0.15) und um den Bericht einer Fremdfirma (Planungskonzept v0.16), am selben Tag um die Mängel (Planungskonzept v0.17) und um den Vorgang von Hand (Planungskonzept v0.18); am 11.10.2026 um die Liegenschaften und das Anlagenverzeichnis als Tabelle und am selben Tag um die übrigen Listen des Büros als Tabelle, mit der Spalte der Person nur für die Leitung; am 12.10.2026 um die Aufgabe, die eine fällige Zählerablesung anlegt (Planungskonzept v0.24), und am selben Tag um die neue Fassung eines Pakets an bestätigten Pflichten (Planungskonzept v0.25)
+- **Geschrieben:** von Hand, am 05.10.2026, aus dem Planungskonzept v0.11 und gegen den Quelltext geprüft; am 06.10.2026 um die Dateien im Speicher ergänzt (Planungskonzept v0.12) und um das Pflichtenverzeichnis, am selben Tag um die Dokumente (Planungskonzept v0.13) und um die Etiketten; am 08.10.2026 um die Prüfungen und Wartungen (Planungskonzept v0.15) und um den Bericht einer Fremdfirma (Planungskonzept v0.16), am selben Tag um die Mängel (Planungskonzept v0.17) und um den Vorgang von Hand (Planungskonzept v0.18); am 11.10.2026 um die Liegenschaften und das Anlagenverzeichnis als Tabelle und am selben Tag um die übrigen Listen des Büros als Tabelle, mit der Spalte der Person nur für die Leitung; am 12.10.2026 um die Aufgabe, die eine fällige Zählerablesung anlegt (Planungskonzept v0.24), und am selben Tag um die neue Fassung eines Pakets an bestätigten Pflichten (Planungskonzept v0.25); am 14.10.2026 um die Rechtstexte der Instanz, die ohne Anmeldung zu lesen sind
 - **Abgelöst durch:** die Verfahrensbeschreibung, die die Anwendung ab Phase 2 selbst erzeugt
 
 ---
@@ -253,7 +253,8 @@ Phase 1 kennt vier Rollen. Was jede darf, steht Recht für Recht in Abschnitt 7 
 
 Leitung und Technische Leitung sehen als Vorgabe alle Bereiche.
 
-- **Zusage:** Jede Adresse des Servers sagt, welches Recht sie verlangt. Ohne Anmeldung antworten nur die Gesundheitsprüfung, die Ersteinrichtung und das Einlösen einer Einladung. [K7, B15, B71]
+- **Zusage:** Jede Adresse des Servers sagt, welches Recht sie verlangt. Ohne Anmeldung antworten nur die Gesundheitsprüfung, die Ersteinrichtung, das Einlösen einer Einladung und die Rechtstexte der Instanz: Impressum und Datenschutzhinweise, wie die Verwaltung der Instanz sie hinterlegt, und sonst nichts. [K3, K7, B15, B71]
+- Impressum und Datenschutzhinweise schreibt die Verwaltung der Instanz selbst. Was darin steht, auch der Name einer Person wie unter „Vertreten durch“, liest jeder ohne Anmeldung; die Anwendung setzt dort nichts von selbst ein. [K3]
 - **Zusage:** Die Tabelle der Rechte in Abschnitt 7 des Planungskonzepts und der Katalog im Quelltext sind dieselbe Liste: was dort für eine Rolle steht, darf sie, und nichts anderes. [K7, B17]
 - **Zusage:** Die Zugänge, also wer bei einem Betreiber arbeitet, mit Rollen, Sperre, Anmeldungen und Geräten, sieht und entscheidet nur die Leitung. Technische Leitung, Objektleitung und Haustechnik werden an diesen Adressen abgelehnt. Die Stellen daneben sind die Auswahl der verantwortlichen Person im Pflichtenverzeichnis, die Auswahl, wer eine Prüfung oder Wartung verantwortet und ausführt, und die Auswahl, wer einen Auftrag führt und an ihm beteiligt ist; alle drei nennen Namen und sonst nichts (Abschnitt 3.4). [K7, B1, B2, B12]
 - **Zusage:** Die Liste „Prüfungen“ und die Seite eines Vorgangs zeigen der Haustechnik nur, was ihr oder niemandem zugeteilt ist, wie es auf ihrem Gerät liegt, und einen anderen Vorgang auch nicht über seine Adresse. Wer Vorgänge plant und verteilt, sieht jeden in seinen Bereichen. [K4.4, K7, B101]
@@ -453,7 +454,7 @@ Pfade ohne Vorsatz liegen im Repository `opengewerk/opengewerk-haustechnik`. Pfa
 | B68 | Stelle | `upstream/opengewerk/packages/platform/web/src/session/remembered.ts` | `opengewerk.account` |
 | B69 | Stelle | `packages/domain/src/model/signature.ts` | `deviceInfo: 500` |
 | B70 | Test | `packages/server/src/authentication/roles.test.ts` | `are not for "%s" to put right` |
-| B71 | Test | `packages/server/src/api/route-coverage.test.ts` | `that answers without an identity is the health check, the first run or a one time link` |
+| B71 | Test | `packages/server/src/api/route-coverage.test.ts` | `that answers without an identity is the health check, the first run, a one time link or the legal texts` |
 | B72 | Recht | `document.record` | Dokumente ablegen: Leitung, Technische Leitung, Objektleitung, Haustechnik |
 | B73 | Test | `packages/server/src/api/files.test.ts` | `stands in the change log of the tenant with who sent it` |
 | B74 | Test | `packages/server/src/api/files.test.ts` | `is handed out by no route under its hash, not even to "Leitung"` |
@@ -716,9 +717,10 @@ Jede Zeile ist der erste Abschnitt einer Adresse, unter der der Server antwortet
 | `floors` | Geschosse |
 | `health` | Gesundheitsprüfung, ohne Daten |
 | `imports` | Import aus Tabellen: liest die Datei einer Liste, ohne sie zu speichern, zeigt, was ihre Zeilen anlegen würden, übernimmt Liegenschaften, Gebäude, Geschosse, Räume und Anlagen, laufende Fristen mit alten Nachweisen, den Verlauf der Zähler und Vorlagen der Rundgänge, jede Liste ganz oder gar nicht, und hält, wie die Listen des Betreibers die Anlagenarten nennen |
-| `instance` | Verwaltung der Instanz |
+| `instance` | Verwaltung der Instanz, mit ihren Rechtstexten und wer sie zuletzt geändert hat |
 | `invitation` | Einlösen einer Einladung |
 | `labels` | Etiketten: sagt zu einem gescannten Code in einem Wort, ob er für die fragende Person etwas öffnet, und druckt viele Etiketten auf einmal |
+| `legal-texts` | Impressum und Datenschutzhinweise der Instanz, wie die Verwaltung der Instanz sie hinterlegt, ohne Anmeldung lesbar und für jeden Betreiber gleich; sonst nichts über die Instanz |
 | `overview` | Übersicht der Betreiberverantwortung: wie viele Pflichten überfällig, in 30 und in 90 Tagen fällig und nie erfasst sind, wie vielen Prüfungen der Bericht einer Fremdfirma fehlt und wie viele Mängel über ihrer Frist sind, mit den ersten davon; über alle Bereiche der fragenden Person oder einen. Dazu die Zahlen je Liegenschaft und Gebäude, das Lagebild eines Gebäudes mit seinen letzten Vorgängen und die Zeitachse eines Orts. Keine dieser Antworten nennt eine Person |
 | `meters` | Zähler: die Liste zum Stichtag, auch als Tabelle, die Seite einer Messstelle mit Ständen, Verbrauch und Verlauf, ein Stand von Hand und seine Berichtigung, der Zählertausch, die Stilllegung, die Sperre, die Notiz und was nur die Messstelle trägt |
 | `properties` | Liegenschaften, ihre Liste auch als Tabelle |

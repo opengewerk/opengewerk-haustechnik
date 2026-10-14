@@ -54,7 +54,9 @@ export const siteHelpOrder = ['index', 'scannen', 'aufnehmen', 'konflikte', 'auf
 export function firstParagraph(source: string): string {
   const paragraph = readMarkdown(source).find((block) => block.kind === 'paragraph')
 
-  return paragraph?.kind === 'paragraph' ? paragraph.line.map((piece) => piece.text).join('') : ''
+  return paragraph?.kind === 'paragraph'
+    ? paragraph.line.map((piece) => (piece.kind === 'break' ? ' ' : piece.text)).join('')
+    : ''
 }
 
 /** The texts of a folder in their order, each with its key; one that is missing is left out. */

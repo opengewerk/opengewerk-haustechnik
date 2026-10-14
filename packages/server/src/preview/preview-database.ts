@@ -174,6 +174,32 @@ export const previewPeople = {
   viewer: { id: 'preview', name: 'Vorschau', email: 'vorschau@vorschau.invalid' },
 } as const satisfies Readonly<Record<string, PreviewPerson>>
 
+/**
+ * The legal notice and the notice on data protection of the sample instance
+ * (#129), in the words of the board "Rechtstexte der Instanz". Nobody of
+ * these exists; the address is one no post office knows.
+ */
+export const previewLegalTexts = [
+  [
+    '**Liegenschaften Beispielstadt**',
+    'Am Probehang 4',
+    '00001 Beispielstadt',
+    '',
+    'Vertreten durch: Sabine Krämer, Leitung Haustechnik',
+    'Kontakt: haustechnik@beispielstadt.example',
+  ].join('\n'),
+  [
+    '## Verantwortliche Stelle',
+    '',
+    'Verantwortlich für die Verarbeitung auf dieser Instanz ist die im Impressum genannte Stelle.',
+    '',
+    '## Was verarbeitet wird',
+    '',
+    '- die Angaben, die zur Anmeldung nötig sind: Name, E-Mail-Adresse, Passwort und zweiter Faktor',
+    '- was bei der Arbeit mit der Anwendung entsteht: Nachweise, Unterschriften und das Änderungsprotokoll',
+  ].join('\n'),
+] as const
+
 /** Somebody else who works for the sample operator: a role, and the areas named for it. */
 export interface PreviewColleague extends PreviewPerson {
   readonly role: RoleKey
@@ -339,6 +365,14 @@ export async function admitPreviewPeople(
     await client.query('insert into instance_operators (user_id) values ($1)', [
       previewPeople.viewer.id,
     ])
+    // The legal texts of the instance (#129), as its Verwaltung keeps them:
+    // the foot of the sign in links to them and their page shows them.
+    await client.query("select set_config('app.reason', 'instance.legal', true)")
+    await client.query("select set_config('app.user_id', $1, true)", [previewPeople.viewer.id])
+    await client.query(
+      'update instance_settings set imprint = $1, privacy_notice = $2 where id = 1',
+      [...previewLegalTexts],
+    )
     await client.query('commit')
 
     return new Map(rows.map((row) => [row.name as PreviewArea, row.id]))

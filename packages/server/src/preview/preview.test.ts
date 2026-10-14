@@ -28,6 +28,7 @@ import {
   defaultPreviewDatabaseUrl,
   previewDatabaseUrl,
   previewIdentity,
+  previewLegalTexts,
   previewPeople,
   previewPort,
   PreviewRefused,
@@ -276,6 +277,13 @@ describe('a preview started as the Leitung', () => {
     await application.close()
     await database.close()
     await admin.end()
+  })
+
+  it('hands out the legal texts of the sample instance, for the page that shows them (#129)', async () => {
+    const texts = (await request(application.getHttpServer()).get('/legal-texts').expect(200))
+      .body as { readonly imprint: string | null; readonly privacy: string | null }
+
+    expect([texts.imprint, texts.privacy]).toEqual([...previewLegalTexts])
   })
 
   it('names the Leitung for no area, as the routes keep whoever holds in every area', async () => {

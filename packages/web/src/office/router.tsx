@@ -1,4 +1,5 @@
 import {
+  InstanceLegalTextsScreen,
   InstanceLogScreen,
   InstanceOperatorsScreen,
   InstanceSettingsScreen,
@@ -116,6 +117,12 @@ export function officeRoutes() {
       getParentRoute: () => instance,
       path: '/verwaltung',
       component: InstanceOperatorsScreen,
+    }),
+    // Impressum and Datenschutzhinweise of the instance (#129).
+    createRoute({
+      getParentRoute: () => instance,
+      path: '/rechtstexte',
+      component: InstanceLegalTextsScreen,
     }),
     createRoute({
       getParentRoute: () => instance,
