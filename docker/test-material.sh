@@ -55,13 +55,21 @@ probe_password='ein-ordentlich-langes-probepasswort'
 # (opengewerk-haustechnik#96). The store keeps it under the hash of this text.
 probe_file='Prüfbericht Aufzug Haus A'
 
-# Signs the probe account in and has it work for the first Betreiber, the way
-# a browser does. Prints the cookies of the session and nothing else: the
-# password goes to curl in the body of the request and into no output.
+# An account of the Leitung of the first Betreiber, made after the backup with
+# the same command and password, to ask the route of the last backup, which
+# only the Leitung sees (opengewerk-haustechnik#127). It is in no backup, so
+# the comparison after the restore does not know it.
+lead_email='leitung@probe.example.de'
+
+# Signs the probe account in, or the account whose address is handed in, and
+# has it work for the first Betreiber, the way a browser does. Prints the
+# cookies of the session and nothing else: the password goes to curl in the
+# body of the request and into no output.
 probe_session() {
+  email=${1:-$probe_email}
   status=$(curl --silent --output /dev/null --dump-header "$temp/probe-sign-in.txt" --write-out '%{http_code}' \
     --header 'Content-Type: application/json' --header "Origin: $base" \
-    --data "{\"email\":\"$probe_email\",\"password\":\"$probe_password\"}" \
+    --data "{\"email\":\"$email\",\"password\":\"$probe_password\"}" \
     "$base/api/auth/sign-in/email")
   [ "$status" = 200 ] || fail "Die Anmeldung des Probekontos ist gescheitert: ${status}"
 
@@ -392,6 +400,25 @@ records_for_update() {
 # for it, with the contents its name promises and the row that makes it a file
 # of the Betreiber (opengewerk-haustechnik#96). And the account signs in with
 # the password it had before the backup (opengewerk-haustechnik#15). The
+# What the application makes of the record the backup just left: the route
+# behind "Einstellungen", "Sicherung" names it, with its archive, encrypted,
+# and not overdue (opengewerk-haustechnik#127, #80).
+after_record() {
+  HAUSTECHNIK_PASSWORD=$probe_password compose exec -T -e HAUSTECHNIK_PASSWORD app \
+    node dist/add-staff.js "$first_tenant" "$lead_email" 'Lea Leitung' management
+  cookies=$(probe_session "$lead_email")
+  status=$(curl --silent --output "$temp/backup-status.json" --write-out '%{http_code}' \
+    --header "Cookie: $cookies" --header "Origin: $base" "$base/settings/backup")
+  echo "GET /settings/backup: ${status}"
+  cat "$temp/backup-status.json"
+  echo
+  test "${status}" = 200
+  grep -q '"state":"recorded"' "$temp/backup-status.json"
+  grep -q '"encrypted":true' "$temp/backup-status.json"
+  grep -q '"overdue":false' "$temp/backup-status.json"
+  echo 'Die Route hinter "Einstellungen", "Sicherung" nennt die Sicherung, die eben fertig wurde.'
+}
+
 # answer is a session, which also means its sign in was written to the
 # restored database.
 after_restore() {

@@ -669,10 +669,10 @@ jobs:
         working-directory: docker
         run: sh ../upstream/opengewerk/docker/test-stack.sh backup
 
-      # The container of the application reads the record of the last backup;
-      # no route of this application shows it yet (#80, #127). Once one does,
-      # this step takes the name of the foundation and calls the route.
-      - name: Das Volumen mit dem Stand der Sicherung ist lesbar eingehängt
+      # The container of the application reads the record of the last backup,
+      # and the route behind "Einstellungen", "Sicherung" names it, asked by
+      # an account of the Leitung (#80, #127; after_record in test-material.sh).
+      - name: Die Anwendung liest, wann die Sicherung fertig wurde
         working-directory: docker
         run: sh ../upstream/opengewerk/docker/test-stack.sh record
 

@@ -140,6 +140,7 @@ export async function openInstance(
     version: configuration.version,
     files: new FileStore(configuration.storagePath),
     renderer: rendererFor(readRendererConfiguration()),
+    backupStatus: configuration.backupStatusPath,
   }
 
   const server = await createServer(
