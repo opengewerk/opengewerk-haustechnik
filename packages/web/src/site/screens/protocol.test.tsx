@@ -8,7 +8,7 @@ import {
 } from '@opengewerk/haustechnik-domain'
 import { today } from '@opengewerk/platform-web/format'
 import { fireEvent, screen, waitFor, within } from '@testing-library/react'
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { servingCatalogue } from '../../app/test-catalogue.js'
 import { memberIn } from '../../app/test-entry.js'
@@ -395,6 +395,37 @@ describe('the result and the signature on site', () => {
         .getAllByRole<HTMLButtonElement>('button')
         .every((button) => button.disabled),
     ).toBe(true)
+  })
+
+  /** As at the handing in of a round (#294): a failing device is said, not swallowed. */
+  it('says so where the device cannot sign the result, and signs nothing', async () => {
+    const { server } = await mountSite(`/vorgaenge/${maintenance.id}`, {
+      server: workServer(),
+      ...withTheForm,
+    })
+
+    await screen.findByRole('group', { name: 'Ergebnis' })
+    choose('Ohne Mangel')
+    await waitFor(() => {
+      expect(queued(server)).toHaveLength(2)
+    })
+    draw()
+    vi.stubGlobal('crypto', {
+      getRandomValues: crypto.getRandomValues.bind(crypto),
+      randomUUID: crypto.randomUUID.bind(crypto),
+      subtle: { digest: () => Promise.reject(new Error('Der Speicher ist voll.')) },
+    })
+
+    try {
+      fireEvent.click(signButton())
+
+      expect((await screen.findByRole('alert')).textContent).toBe(
+        'Auf diesem Gerät ließ sich das nicht festschreiben. Die Eingaben stehen noch da.',
+      )
+      expect(queued(server).some((write) => write.entity === 'activity_signatures')).toBe(false)
+    } finally {
+      vi.unstubAllGlobals()
+    }
   })
 
   it('has nothing but its result for an activity without a form, with a remark', async () => {

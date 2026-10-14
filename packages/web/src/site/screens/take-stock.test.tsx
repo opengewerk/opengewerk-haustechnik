@@ -314,9 +314,10 @@ describe('the serial number read by the camera', () => {
     expect(screen.getByText(/^Erkannt: FL-2026-10233\./)).toBeTruthy()
     fireEvent.click(screen.getByRole('button', { name: 'Übernehmen' }))
 
-    expect((await screen.findByLabelText<HTMLInputElement>('Seriennummer')).value).toBe(
-      'FL-2026-10233',
-    )
+    const field = await screen.findByLabelText<HTMLInputElement>('Seriennummer')
+
+    expect(field.value).toBe('FL-2026-10233')
+    expect(document.activeElement).toBe(field)
     // What was typed before the camera opened is still there.
     expect(screen.getByLabelText<HTMLInputElement>('Bezeichnung').value).toBe('Feuerlöscher Tür')
   })
@@ -335,7 +336,11 @@ describe('the serial number read by the camera', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Von Hand' }))
 
-    expect((await screen.findByLabelText<HTMLInputElement>('Seriennummer')).value).toBe('von Hand')
+    const field = await screen.findByLabelText<HTMLInputElement>('Seriennummer')
+
+    expect(field.value).toBe('von Hand')
+    // The keyboard goes on in the field, not on the page (#132).
+    expect(document.activeElement).toBe(field)
   })
 })
 

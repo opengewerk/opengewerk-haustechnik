@@ -213,6 +213,11 @@ function TakeAssetForm({
   })
   const [photo, setPhoto] = useState<File | null>(null)
   const [reading, setReading] = useState(false)
+  // The reader stands in place of the form, so the form comes back anew when
+  // it closes. Its field takes the focus then, as the button that opened the
+  // reader is gone with it (#132): without this the keyboard stood on the
+  // page, and what it typed next went nowhere.
+  const [readerClosed, setReaderClosed] = useState(false)
   const [problems, setProblems] = useState<Readonly<Record<string, string>>>({})
   const [trouble, setTrouble] = useState<string | null>(null)
   const [working, setWorking] = useState(false)
@@ -251,9 +256,11 @@ function TakeAssetForm({
         onTake={(serialNumber) => {
           set({ serialNumber })
           setReading(false)
+          setReaderClosed(true)
         }}
         onClose={() => {
           setReading(false)
+          setReaderClosed(true)
         }}
       />
     )
@@ -442,6 +449,7 @@ function TakeAssetForm({
             <Field
               label="Seriennummer"
               value={typed.serialNumber}
+              autoFocus={readerClosed}
               {...(problems['serialNumber']
                 ? { problem: problems['serialNumber'] }
                 : first

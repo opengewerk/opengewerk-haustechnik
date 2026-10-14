@@ -36,6 +36,7 @@ import {
   pointState,
 } from '../../app/answers.js'
 import { type GivenSignature, SignatureWays } from '../../app/signature-ways.js'
+import { failureSentence } from '../../app/failure.js'
 import { signActivity } from '../../app/signing.js'
 import { NotOnDevice, PlainRow } from '../kit.js'
 import { siteForms } from '../places.js'
@@ -371,6 +372,8 @@ function SignOf({ activityId }: { readonly activityId: string }) {
       } else {
         setTrouble(problem)
       }
+    } catch {
+      setTrouble(failureSentence())
     } finally {
       setWorking(false)
     }

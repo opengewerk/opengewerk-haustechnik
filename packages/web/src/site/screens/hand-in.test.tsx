@@ -3,7 +3,7 @@ import 'fake-indexeddb/auto'
 import { today } from '@opengewerk/platform-web/format'
 import { fireEvent, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { servingCatalogue } from '../../app/test-catalogue.js'
 import { memberIn } from '../../app/test-entry.js'
@@ -388,6 +388,45 @@ describe('handing in a round', () => {
     })
     // No drawing goes with it; the server takes what is not sent as none.
     expect(queued(server).at(-1)?.values['path'] ?? null).toBeNull()
+  })
+
+  /**
+   * A signature needs the fingerprint of its page, and the device can fail
+   * at it. Before #294 nothing was said, and the round stood there unsigned.
+   */
+  it('says so where the device cannot sign, and keeps the round as it was', async () => {
+    const user = userEvent.setup()
+    const server = roundServer({
+      tight: { result: 'ok' },
+      outlet: { value: '61000' },
+      heat_meter: { value: '1284360' },
+      displays: { attachmentId: 'at-displays' },
+    })
+
+    await mountSite(`/vorgaenge/${planned.id}/unterschrift`, { server, ...withTheForm })
+
+    const sign = await screen.findByRole<HTMLButtonElement>('button', { name: 'Unterschreiben' })
+
+    screen.getByRole('button', { name: 'Ohne Schriftzug unterschreiben' }).focus()
+    await user.keyboard('{Enter}')
+    await user.keyboard('Pia Person')
+    vi.stubGlobal('crypto', {
+      getRandomValues: crypto.getRandomValues.bind(crypto),
+      randomUUID: crypto.randomUUID.bind(crypto),
+      subtle: { digest: () => Promise.reject(new Error('Der Speicher ist voll.')) },
+    })
+
+    try {
+      fireEvent.click(sign)
+
+      expect((await screen.findByRole('alert')).textContent).toBe(
+        'Auf diesem Gerät ließ sich das nicht festschreiben. Die Eingaben stehen noch da.',
+      )
+      expect(queued(server).some((write) => write.entity === 'activity_signatures')).toBe(false)
+      expect(sign.disabled).toBe(false)
+    } finally {
+      vi.unstubAllGlobals()
+    }
   })
 
   it('says a round is done once the server wrote it down, signed where no countersignature is asked', async () => {
