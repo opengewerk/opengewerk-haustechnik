@@ -1,0 +1,32 @@
+{
+  "note": "Die Fristen der Technischen Regeln für Arbeitsstätten in diesem Paket. ASR A2.2 geprüft am Text der BAuA in der Fassung GMBl 2025, S. 365, ASR A1.7 in der Fassung GMBl 2022, S. 244. Bis zur Änderung von 2025 stand die Frist der Feuerlöscher in der ASR A2.2 unter Nr. 7.5.2. Jede Regel beginnt mit der Ausgabe ihrer ASR, Mai 2018 und November 2009. Die Beispiele der ASR A1.7 sind Richtwerte; maßgeblich ist die Zulassung der Feststellanlage.",
+  "records": [
+    {
+      "key": "fire_extinguisher_maintenance_interval",
+      "validFrom": "2018-05-01",
+      "validUntil": null,
+      "unit": "years",
+      "value": 2,
+      "source": "ASR A2.2 Nr. 7.4.2 Abs. 1 (bis Mai 2025 Nr. 7.5.2)",
+      "origin": "insurer_and_committee_rules"
+    },
+    {
+      "key": "hold_open_device_operator_check_interval",
+      "validFrom": "2009-11-01",
+      "validUntil": null,
+      "unit": "months",
+      "value": 1,
+      "source": "ASR A1.7 Nr. 10.2 Abs. 3, als Beispiel",
+      "origin": "insurer_and_committee_rules"
+    },
+    {
+      "key": "hold_open_device_expert_check_interval",
+      "validFrom": "2009-11-01",
+      "validUntil": null,
+      "unit": "years",
+      "value": 1,
+      "source": "ASR A1.7 Nr. 10.2 Abs. 3, als Beispiel",
+      "origin": "insurer_and_committee_rules"
+    }
+  ]
+}

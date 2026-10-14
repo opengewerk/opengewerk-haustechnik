@@ -1,0 +1,51 @@
+{
+  "validFrom": "2018-05-01",
+  "title": "Sichtkontrolle der Feuerlöscher",
+  "sections": [
+    {
+      "key": "extinguishers",
+      "title": "Feuerlöscher",
+      "hint": "Jeder Feuerlöscher auf dem Weg des Rundgangs",
+      "fields": [
+        {
+          "kind": "check_point",
+          "key": "in_place",
+          "label": "Am vorgesehenen Platz, frei zugänglich und gut zu sehen"
+        },
+        {
+          "kind": "check_point",
+          "key": "sign",
+          "label": "Standort gekennzeichnet"
+        },
+        {
+          "kind": "check_point",
+          "key": "intact",
+          "label": "Ohne Beschädigung, Sicherung und Plombe unversehrt"
+        },
+        {
+          "kind": "check_point",
+          "key": "maintained",
+          "label": "Nachweis der Wartung vorhanden, die nächste Wartung ist nicht überschritten"
+        },
+        {
+          "kind": "text",
+          "key": "noticed",
+          "label": "Feuerlöscher, an denen etwas auffiel",
+          "multiline": true
+        }
+      ]
+    },
+    {
+      "key": "end",
+      "title": "Abschluss",
+      "fields": [
+        {
+          "kind": "signature",
+          "key": "signature",
+          "label": "Unterschrift",
+          "seals": true
+        }
+      ]
+    }
+  ]
+}

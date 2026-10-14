@@ -1,0 +1,49 @@
+{
+  "validFrom": "2005-01-01",
+  "label": "Feuerlöscher",
+  "costGroup": "474",
+  "fields": [
+    {
+      "key": "agent",
+      "label": "Löschmittel",
+      "kind": "choice",
+      "options": [
+        {
+          "value": "powder",
+          "label": "Pulver"
+        },
+        {
+          "value": "foam",
+          "label": "Schaum"
+        },
+        {
+          "value": "water",
+          "label": "Wasser"
+        },
+        {
+          "value": "carbon_dioxide",
+          "label": "Kohlendioxid"
+        },
+        {
+          "value": "fat_fire",
+          "label": "Fettbrand"
+        }
+      ]
+    },
+    {
+      "key": "pressure",
+      "label": "Bauart",
+      "kind": "choice",
+      "options": [
+        {
+          "value": "stored_pressure",
+          "label": "Dauerdrucklöscher"
+        },
+        {
+          "value": "cartridge",
+          "label": "Auflade-Feuerlöscher"
+        }
+      ]
+    }
+  ]
+}

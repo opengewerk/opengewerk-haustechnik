@@ -1,0 +1,11 @@
+{
+  "validFrom": "2005-01-01",
+  "label": "Feststellanlage",
+  "costGroup": "344",
+  "expectedDocuments": [
+    {
+      "key": "approval",
+      "label": "Zulassung der Feststellanlage"
+    }
+  ]
+}

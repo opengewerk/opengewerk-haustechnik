@@ -1,0 +1,31 @@
+{
+  "validFrom": "2009-11-01",
+  "label": "Brandschutztür oder -tor prüfen (ASR A1.7)",
+  "description": "Brandschutztüren und -tore werden regelmäßig geprüft, damit sie im Brandfall einwandfrei schließen. Wie oft und in welchem Umfang, sagt die allgemeine bauaufsichtliche Zulassung oder das Prüfzeugnis der Tür; eine Frist nennt die Regel für die Tür selbst nicht. Eine Feststellanlage an der Tür hat eigene Prüfungen.",
+  "task": "inspection",
+  "origin": "insurer_and_committee_rules",
+  "bindingness": "technical_rule",
+  "source": "ASR A1.7 Nr. 10.2 Abs. 3",
+  "interval": {
+    "kind": "none"
+  },
+  "counting": "from_due",
+  "qualification": {
+    "level": "skilled_person",
+    "note": "nach der allgemeinen bauaufsichtlichen Zulassung oder dem Prüfzeugnis"
+  },
+  "evidence": {
+    "kinds": [
+      "report",
+      "round_point"
+    ]
+  },
+  "retention": {
+    "kind": "until_next_inspection"
+  },
+  "scope": {
+    "assetKinds": [
+      "fire_door"
+    ]
+  }
+}

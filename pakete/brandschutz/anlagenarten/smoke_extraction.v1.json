@@ -1,0 +1,22 @@
+{
+  "validFrom": "2005-01-01",
+  "label": "Rauch- und Wärmeabzugsanlage",
+  "costGroup": "431",
+  "fields": [
+    {
+      "key": "kind",
+      "label": "Art",
+      "kind": "choice",
+      "options": [
+        {
+          "value": "natural",
+          "label": "natürlicher Rauchabzug"
+        },
+        {
+          "value": "mechanical",
+          "label": "maschineller Rauchabzug"
+        }
+      ]
+    }
+  ]
+}

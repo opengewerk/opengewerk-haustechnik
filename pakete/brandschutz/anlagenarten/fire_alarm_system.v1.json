@@ -1,0 +1,18 @@
+{
+  "validFrom": "2005-01-01",
+  "label": "Brandmeldeanlage",
+  "costGroup": "456",
+  "fields": [
+    {
+      "key": "fire_brigade_connection",
+      "label": "Auf die Feuerwehr aufgeschaltet",
+      "kind": "flag"
+    }
+  ],
+  "expectedDocuments": [
+    {
+      "key": "log_book",
+      "label": "Betriebsbuch"
+    }
+  ]
+}

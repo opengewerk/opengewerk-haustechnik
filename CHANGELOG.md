@@ -1367,6 +1367,15 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   mitbringt, und was der Dienstleister beim Betrieb ausfüllt. Die Vorlage ist als nicht
   rechtlich geprüft gekennzeichnet, bis der Fachanwalt sie gesehen hat. README und
   Verfahrensbeschreibung verweisen auf sie.
+- Paket Brandschutz (#92), weil der Pilotbetrieb seine Feuerlöscher, Brandmeldeanlagen und
+  Brandschutztüren vor dem Parallelbetrieb im Katalog braucht. Neun Anlagenarten von Feuerlöscher
+  bis Feststellanlage, sechs Pflichtarten aus § 4 Abs. 3 ArbStättV, ASR A2.2 Nr. 7.4 und ASR A1.7
+  Nr. 10.2 Abs. 3, die Fristen als Regeln (Feuerlöscher zwei Jahre, Feststellanlage monatlich und
+  jährlich, jeweils Richtwert), ein Formular für die monatliche Prüfung der Feststellanlage, eine
+  Vorlage für die Sichtkontrolle der Feuerlöscher auf einem Rundgang und drei Mängelklassen. Jede
+  Fundstelle ist am 14.10.2026 am Text geprüft; was private Normen sagen, kommt nach der
+  rechtlichen Prüfung als neue Fassung.
+
 
 ### Geändert
 

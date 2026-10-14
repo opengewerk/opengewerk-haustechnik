@@ -1,0 +1,31 @@
+{
+  "validFrom": "2018-05-01",
+  "label": "Feuerlöscher warten lassen (ASR A2.2)",
+  "description": "Bauteile und Löschmittel eines Feuerlöschers können am Aufstellungsort mit der Zeit unbrauchbar werden, deshalb lässt der Arbeitgeber jeden Feuerlöscher alle zwei Jahre von einer fachkundigen Person warten. Lässt der Hersteller eine längere Frist zu, darf sie gelten; eine kürzere des Herstellers geht vor, und bei starker Beanspruchung können kürzere Abstände nötig sein. Das Ergebnis wird dokumentiert und am Feuerlöscher kenntlich gemacht. Die wiederkehrende Druckprüfung nach der Betriebssicherheitsverordnung ist eine eigene Prüfung und hier nicht enthalten.",
+  "task": "maintenance",
+  "origin": "insurer_and_committee_rules",
+  "bindingness": "technical_rule",
+  "source": "ASR A2.2 Nr. 7.4.2 Abs. 1 (bis Mai 2025 Nr. 7.5.2)",
+  "interval": {
+    "kind": "guide",
+    "rule": "fire_extinguisher_maintenance_interval"
+  },
+  "counting": "from_due",
+  "qualification": {
+    "level": "skilled_person",
+    "note": "Fachkundige, nach der Regel insbesondere Sachkundige für die Instandhaltung tragbarer Feuerlöscher"
+  },
+  "evidence": {
+    "kinds": [
+      "report"
+    ]
+  },
+  "retention": {
+    "kind": "until_next_inspection"
+  },
+  "scope": {
+    "assetKinds": [
+      "fire_extinguisher"
+    ]
+  }
+}
