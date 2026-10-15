@@ -7,6 +7,16 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
 
 ## [Unreleased]
 
+## [0.1.3] - 2026-10-15
+
+Die dritte Nachlieferung für den Pilotbetrieb, aus dem Anlegen der Pläne und dem ersten Blick auf
+die Liste der Liegenschaften. Ein Plan eines Rundgangs, der am falschen Ort angelegt wurde, lässt
+sich entfernen, solange von ihm nichts gegangen ist, und Namen mit Zahlen stehen in jeder Liste nach
+dem Wert der Zahl, Hausnummer 2 vor 10. Dazu steht im Planungskonzept (v0.40), was vor dem Bau von
+Phase 2 entschieden wurde.
+
+Aktualisiert wird wie bei jeder Fassung in zwei Schritten; 0.1.3 bringt keine Migration mit.
+
 ### Hinzugefügt
 
 - Ein Plan eines Rundgangs, der irrtümlich angelegt wurde, lässt sich entfernen (#320), solange von
