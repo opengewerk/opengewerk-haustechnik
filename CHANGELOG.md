@@ -9,6 +9,13 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
 
 ### Behoben
 
+- Der Plan eines Rundgangs bietet bei einem Gebäude mit eigenem Bereich die Leute dieses Bereichs an
+  (#316). Das Formular fragte nach den Personen im Bereich der Liegenschaft, auch wenn der Ort ein
+  Gebäude war, und nannte unter "Alle im Bereich" diesen Bereich; der Plan selbst liegt aber im
+  Bereich des Gebäudes, und nur dessen Leute nimmt der Server an. So stand bei einem Betreiber, der
+  seine Gebäude auf die Bereiche seiner Teams verteilt hat, unter "Eine Person" nur noch, wer alle
+  Bereiche sieht.
+
 - Eine Migration, die einen Fremdschlüssel an eine Tabelle mit Zeilen hängt, prüft ihn gegen alle
   Zeilen (#315). Eine Instanz migriert als Eigentümer der Tabellen, und unter `FORCE ROW LEVEL
   SECURITY` sah die Prüfung nur, was die Policies ihm zeigen: an `0051_building_areas` hielt sie eine

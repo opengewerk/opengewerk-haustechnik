@@ -637,13 +637,13 @@ function PlanForm({
     setDraft((before) => ({ ...before, ...changes }))
   }
 
-  const property = draft.place.startsWith('b:')
-    ? buildings.find((each) => `b:${String(each['id'])}` === draft.place)?.['propertyId']
-    : draft.place.slice(2)
-  const areaId = text(
-    properties.find((each) => each['id'] === property),
-    'areaId',
-  )
+  const building = draft.place.startsWith('b:')
+    ? buildings.find((each) => `b:${String(each['id'])}` === draft.place)
+    : undefined
+  const property = draft.place.startsWith('b:') ? building?.['propertyId'] : draft.place.slice(2)
+  // A plan at a building lies in the area of the building, which may be one of its own
+  // (#306), as the route puts it there: the people offered and the area named are its (#316).
+  const areaId = text(building ?? properties.find((each) => each['id'] === property), 'areaId')
   const catalogue = useCatalogue()
   const holidayState = holidayStateOf(
     catalogue,
