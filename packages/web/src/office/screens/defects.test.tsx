@@ -484,6 +484,30 @@ describe('reporting a defect by hand', () => {
     expect(await screen.findByText('Die Beschreibung fehlt.')).toBeDefined()
     expect(written).toEqual([])
   })
+
+  it('offers as its place only a property whose area the person holds, and the buildings of the others all the same (#310)', async () => {
+    const nord: NamedArea = { id: 'a-nord', name: 'Nord' }
+
+    server.put('properties', { ...school, id: 'p-yard', areaId: nord.id, name: 'Werkhof Nord' })
+
+    const { mounted } = mount('/maengel/neu', { '/areas': [nord] })
+    const offered = (name: string) =>
+      within(screen.getByRole('combobox', { name }))
+        .getAllByRole('option')
+        .map((option) => option.textContent)
+
+    await mounted
+    await untilTheRightsAreKnown()
+    fireEvent.click(await screen.findByRole('radio', { name: 'Gebäude' }))
+    await waitFor(() => {
+      expect(offered('Gebäude')).toContain('Schulhaus, Schulzentrum Am Lindenhain')
+    })
+
+    fireEvent.click(screen.getByRole('radio', { name: 'Liegenschaft' }))
+    await waitFor(() => {
+      expect(offered('Liegenschaft')).toEqual(['Bitte wählen', 'Werkhof Nord'])
+    })
+  })
 })
 
 describe('the defaults of the classes', () => {

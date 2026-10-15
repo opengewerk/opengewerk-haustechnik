@@ -72,7 +72,7 @@ import { type ReactNode, useId, useMemo, useRef, useState } from 'react'
 import { fileDocument } from '../../app/documents.js'
 import { titleOfRoom } from '../../app/place-records.js'
 import { askAt, makeAt } from '../../sync/made-at.js'
-import { useAreas } from '../../session/areas.js'
+import { useAreas, useHeldArea } from '../../session/areas.js'
 import { useCatalogue } from '../../sync/catalogue.js'
 import { activityPlaces } from '../activity-addresses.js'
 import {
@@ -1267,6 +1267,7 @@ export function NewDefectScreen() {
   const buildings = useRecords('buildings')
   const rooms = useRecords('rooms')
   const assets = useRecords('assets')
+  const held = useHeldArea()
   const picker = useRef<HTMLInputElement>(null)
   const formId = useId()
   const startHome = (Object.keys(homeLabel) as Home[]).find((home) => start[home] !== undefined)
@@ -1286,7 +1287,8 @@ export function NewDefectScreen() {
     assetId: assets,
     roomId: rooms,
     buildingId: buildings,
-    propertyId: properties,
+    // The property itself only for whoever holds its area (#310).
+    propertyId: properties.filter((each) => held(each['areaId'])),
   }
   const propertyName = (id: unknown) =>
     maybeText(properties.find((property) => property['id'] === id) ?? null, 'name') ?? ''

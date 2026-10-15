@@ -387,6 +387,35 @@ describe('a new plan', () => {
     expect(screen.getByText('Der Vorlauf ist eine Zahl von 0 bis 14 Tagen.')).toBeTruthy()
     expect(written).toEqual([])
   })
+
+  it('offers a whole property as its place only where the person holds its area, and its buildings all the same (#310)', async () => {
+    // The school lies in an area the person does not hold, its gym in one of its own they do.
+    const school = { ...station, id: 'p-school', areaId: 'a-sued', name: 'Schulzentrum' }
+
+    server.put('properties', school)
+    server.put('buildings', {
+      ...guard,
+      id: 'b-gym',
+      propertyId: school.id,
+      ownAreaId: nord.id,
+      name: 'Turnhalle',
+    })
+    await mountOffice('/rundgaenge/plaene/neu', server, everything)
+    await screen.findByRole('button', { name: 'Plan anlegen' })
+
+    const places = () =>
+      within(screen.getByRole('combobox', { name: 'Ort' }))
+        .getAllByRole('option')
+        .map((option) => option.textContent)
+
+    await waitFor(() => {
+      expect(places()).toContain('Schulzentrum, Turnhalle')
+    })
+    await waitFor(() => {
+      expect(places()).not.toContain('Schulzentrum, ganze Liegenschaft')
+    })
+    expect(places()).toContain('Feuerwache Nord, ganze Liegenschaft')
+  })
 })
 
 describe('a plan that runs', () => {

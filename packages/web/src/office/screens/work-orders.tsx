@@ -70,7 +70,7 @@ import { type ReactNode, useDeferredValue, useId, useMemo, useState } from 'reac
 
 import { titleOfRoom } from '../../app/place-records.js'
 import { SignatureMark, typedWay } from '../../app/signature-ways.js'
-import { useAreas } from '../../session/areas.js'
+import { useAreas, useHeldArea } from '../../session/areas.js'
 import { askAt, makeAt } from '../../sync/made-at.js'
 import { defectPlaces } from '../defect-addresses.js'
 import { DocumentsCard } from '../documents.js'
@@ -1388,6 +1388,7 @@ export function NewWorkOrderScreen() {
   const buildings = useRecords('buildings')
   const rooms = useRecords('rooms')
   const assets = useRecords('assets')
+  const held = useHeldArea()
   const [origin, setOrigin] = useState<WorkOrderOriginKind>(
     start.dutyId !== undefined ? 'duty' : start.assetId !== undefined ? 'hand' : 'defect',
   )
@@ -1417,7 +1418,8 @@ export function NewWorkOrderScreen() {
     assetId: assets,
     roomId: rooms,
     buildingId: buildings,
-    propertyId: properties,
+    // The property itself only for whoever holds its area (#310).
+    propertyId: properties.filter((each) => held(each['areaId'])),
   }
   const propertyName = (id: unknown) =>
     maybeText(properties.find((property) => property['id'] === id) ?? null, 'name') ?? ''

@@ -318,6 +318,64 @@ describe('the form of a duty of the operator own', () => {
     expect(written[0]?.body).toEqual({ propertyId: school.id, ...filledIn })
   })
 
+  it('made from the register, hangs on the property itself only for whoever holds its area, and asks everybody else for a building (#310)', async () => {
+    await opened('/pflichten/neu', 'technical_management', {
+      '/areas': [{ id: 'a-nord', name: 'Nord' }],
+    })
+
+    await waitFor(() => {
+      expect([...choice('Gebäude').options].map((option) => option.text)).toEqual([
+        'Bitte wählen',
+        'Schulhaus',
+        'Turnhalle',
+      ])
+    })
+
+    fillIn()
+    press('Pflicht anlegen')
+
+    expect(
+      await screen.findByText(
+        'An der Liegenschaft selbst legt nur etwas an, wer ihren Bereich hat. Wählen Sie ein Gebäude.',
+      ),
+    ).toBeTruthy()
+    expect(written).toEqual([])
+
+    answerToWrite = answering({ id: 'd-new' })
+    choose('Gebäude', gym.id)
+    press('Pflicht anlegen')
+
+    await waitFor(() => {
+      expect(written).toHaveLength(1)
+    })
+    expect(written[0]?.body).toEqual({ buildingId: gym.id, ...filledIn })
+  })
+
+  it('opened from a building, offers its property only to whoever holds the area of the property (#310)', async () => {
+    await opened(`/pflichten/neu?gebaeude=${house.id}`, 'technical_management', {
+      '/areas': [{ id: 'a-nord', name: 'Nord' }],
+    })
+
+    await waitFor(() => {
+      expect(offeredPlaces()).toEqual({ names: ['Gebäude'], picked: 'Gebäude' })
+    })
+  })
+
+  it('opened from the register of a property it reads only over a building, asks for one of its buildings (#310)', async () => {
+    await opened(`/pflichten/neu?liegenschaft=${school.id}`, 'technical_management', {
+      '/areas': [{ id: 'a-nord', name: 'Nord' }],
+    })
+
+    await waitFor(() => {
+      expect([...choice('Gebäude').options].map((option) => option.text)).toEqual([
+        'Bitte wählen',
+        'Schulhaus',
+        'Turnhalle',
+      ])
+    })
+    expect(choice('Liegenschaft').value).toBe(school.id)
+  })
+
   it('asks which property where the operator has more than one, and sends nothing before it is said', async () => {
     server.put('properties', depot)
     await opened('/pflichten/neu')

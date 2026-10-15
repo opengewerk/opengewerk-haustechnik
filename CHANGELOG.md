@@ -28,6 +28,10 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   Aufgaben an der Liegenschaft nur noch an, wer ihren Bereich hat (#309). Wer sie nur über ein
   Gebäude in seinem Bereich sieht, kann dort nichts ändern; bisher kam die Absage des Servers erst
   nach dem Klick.
+- Die Formulare bieten die Liegenschaft selbst als Ort nur noch an, wer ihren Bereich hat (#310):
+  Aufgabe, Dokument, Mangel, Auftrag, Pflicht, Plan eines Rundgangs und der Bogen mit Etiketten.
+  Ihre Gebäude im eigenen Bereich bleiben zur Wahl; wo nur ein Gebäude geht, fragt das Formular nach
+  einem. Bisher sagte erst der Server beim Speichern nein.
 
 ## [0.1.0] - 2026-10-15
 

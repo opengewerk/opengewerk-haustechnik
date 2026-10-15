@@ -139,7 +139,13 @@ export function BuildingScreen() {
                     ]
                   : []),
               ]}
-              properties={[{ id: String(property['id']), name: text(property, 'name') }]}
+              properties={[
+                {
+                  id: String(property['id']),
+                  name: text(property, 'name'),
+                  areaId: property['areaId'],
+                },
+              ]}
               propertyId={String(property['id'])}
             />
             {records ? (

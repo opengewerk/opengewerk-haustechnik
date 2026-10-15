@@ -619,6 +619,47 @@ describe('filing a document from the list', () => {
     expect(server.uploaded.size).toBe(0)
   })
 
+  it('files at the property itself only for whoever holds its area, and asks everybody else for a building (#310)', async () => {
+    // The depot lies in an area the person does not hold, its store in one of its own they do.
+    const depot = { ...school, id: 'p-depot', areaId: 'a-nord', name: 'Bauhof' }
+
+    server.put('properties', depot)
+    server.put('buildings', {
+      ...hall,
+      id: 'b-store',
+      propertyId: depot.id,
+      ownAreaId: sued.id,
+      name: 'Lagerhalle',
+    })
+
+    const { client } = await mount()
+    const dialog = await opened()
+    const buildingsOffered = () =>
+      within(dialog.getByRole('combobox', { name: 'Gebäude' }))
+        .getAllByRole('option')
+        .map((option) => option.textContent)
+
+    fireEvent.change(dialog.getByLabelText('Datei wählen'), { target: { files: [scan()] } })
+    fireEvent.change(dialog.getByRole('combobox', { name: /Liegenschaft/ }), {
+      target: { value: depot.id },
+    })
+
+    await waitFor(() => {
+      expect(buildingsOffered()).toEqual(['Bitte wählen', 'Lagerhalle'])
+    })
+
+    fireEvent.click(dialog.getByRole('button', { name: 'Hochladen' }))
+    await waitFor(() => {
+      expect(dialog.getByRole('alert').textContent).toBe(
+        'An der Liegenschaft selbst legt nur etwas an, wer ihren Bereich hat. Wählen Sie ein Gebäude.',
+      )
+    })
+
+    await client.synchronise()
+    expect(server.operations()).toEqual([])
+    expect(server.uploaded.size).toBe(0)
+  })
+
   it('works without a connection, and says of the version that it has not gone up yet', async () => {
     const { client } = await mount()
 

@@ -155,6 +155,7 @@ export function AssetRegisterScreen() {
                     properties={properties.map((property) => ({
                       id: String(property['id']),
                       name: text(property, 'name'),
+                      areaId: property['areaId'],
                     }))}
                     propertyId={
                       filter.propertyId ??

@@ -256,6 +256,35 @@ describe('the list "Aufgaben"', () => {
     expect(asked).not.toContain('/tasks/candidates')
   })
 
+  it('offers the property itself as what a new task hangs on only to whoever holds its area, and its buildings all the same (#310)', async () => {
+    // Pia holds a hall of the school in an area of its own, not the area of the school.
+    answers.set('/areas', [{ id: 'a-nord', name: 'Nord' }])
+    server.put('buildings', {
+      ...hall,
+      id: 'b-gym',
+      propertyId: school.id,
+      areaId: 'a-nord',
+      ownAreaId: 'a-nord',
+      name: 'Turnhalle',
+    })
+    await mount('/aufgaben')
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Aufgabe anlegen' }))
+
+    const places = () =>
+      Array.from((screen.getByLabelText(/Woran/) as HTMLSelectElement).options).map(
+        (option) => option.text,
+      )
+
+    await waitFor(() => {
+      expect(places()).toContain('Gebäude Turnhalle, Schulzentrum Am Lindenhain')
+    })
+    await waitFor(() => {
+      expect(places()).not.toContain('Liegenschaft Schulzentrum Am Lindenhain')
+    })
+    expect(places()).toContain('Liegenschaft Werkhof Nord')
+  })
+
   it('lets Haustechnik mark its own task done and not the task of somebody else', async () => {
     signedIn('technician')
     const client = await mount('/aufgaben')
