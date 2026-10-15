@@ -40,6 +40,7 @@ const whole = [
   'Mängel',
   'Aufträge',
   'Aufgaben',
+  'Lager',
   'Katalog',
 ]
 
@@ -55,7 +56,7 @@ describe('the navigation of the board', () => {
       ['Übersicht'],
       ['Liegenschaften', 'Anlagen', 'Zähler', 'Dokumente'],
       ['Pflichtenverzeichnis', 'Fristen', 'Prüfungen'],
-      ['Rundgänge', 'Mängel', 'Aufträge', 'Aufgaben'],
+      ['Rundgänge', 'Mängel', 'Aufträge', 'Aufgaben', 'Lager'],
     ])
     expect(officeFoot.map((place) => place.label)).toEqual(['Katalog'])
   })
@@ -144,8 +145,8 @@ describe('the navigation of the office as it is built today', () => {
    * everybody. The deadlines follow the register of duties for whoever looks
    * after them (#104), and with their settings so does "Einstellungen". The
    * defects stand under "Arbeit" for every role (#116), the work orders
-   * after them (#117), and the tasks last (#124), which is every place of the
-   * board.
+   * after them (#117), the tasks (#124), and the stores last (#325), which is
+   * every place of the board.
    */
   const built = [
     // The overview of the operator's responsibility, for every role (#122).
@@ -165,6 +166,8 @@ describe('the navigation of the office as it is built today', () => {
     'Aufträge',
     // The tasks, for every role (#124).
     'Aufgaben',
+    // The stores, for every role to look at (#325).
+    'Lager',
     'Katalog',
     'Abgleich',
   ]
@@ -182,6 +185,7 @@ describe('the navigation of the office as it is built today', () => {
     'Mängel',
     'Aufträge',
     'Aufgaben',
+    'Lager',
     'Katalog',
     'Abgleich',
     'Einstellungen',

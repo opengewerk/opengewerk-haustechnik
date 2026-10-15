@@ -66,4 +66,8 @@ export const serverPaths: readonly string[] = [
   'tasks',
   // The PDF of the service report of a work order (#324).
   'service-reports',
+  // The stores with their stock and bookings, the articles and the suppliers (#325).
+  'articles',
+  'suppliers',
+  'stores',
 ]

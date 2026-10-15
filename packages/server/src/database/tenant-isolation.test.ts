@@ -108,6 +108,9 @@ function rowsOf(tenant: Tenant): readonly Row[] {
   const workOrder = randomUUID()
   const evidence = randomUUID()
   const serviceReport = randomUUID()
+  const article = randomUUID()
+  const supplier = randomUUID()
+  const store = randomUUID()
   const document = randomUUID()
   const file = randomUUID().replaceAll('-', '').repeat(2)
 
@@ -446,6 +449,37 @@ function rowsOf(tenant: Tenant): readonly Row[] {
     { table: 'meter_settings', values: { tenant_id: tenant.id, key_day: 15 } },
     // Whether the service report names the people who did the work (#324).
     { table: 'work_order_settings', values: { tenant_id: tenant.id, names_and_times: true } },
+    // The stores, without an area (#325): an article, a supplier, a store,
+    // its minimum of the article and a receipt.
+    {
+      table: 'articles',
+      values: {
+        id: article,
+        tenant_id: tenant.id,
+        number: 'A-1002',
+        designation: 'Akku Notleuchte',
+        unit: 'piece',
+        price_cents: 890,
+      },
+    },
+    { table: 'suppliers', values: { id: supplier, tenant_id: tenant.id, name: 'Großhandel' } },
+    { table: 'stores', values: { id: store, tenant_id: tenant.id, name: 'Hauptlager' } },
+    {
+      table: 'store_articles',
+      values: { tenant_id: tenant.id, store_id: store, article_id: article, minimum_milli: 10000 },
+    },
+    {
+      table: 'stock_movements',
+      values: {
+        tenant_id: tenant.id,
+        store_id: store,
+        article_id: article,
+        kind: 'receipt',
+        quantity_milli: 6000,
+        supplier_id: supplier,
+        booked_by: tenant.userId,
+      },
+    },
     // A duty from the catalogue at the asset, and a proposal dismissed there.
     {
       table: 'duties',

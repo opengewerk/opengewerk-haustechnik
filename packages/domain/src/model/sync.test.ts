@@ -93,6 +93,12 @@ describe('the policies of the sync', () => {
       work_order_settings: [false, 'never'],
       // A task, written and done in the office and on site (#124).
       tasks: [true, 'merge'],
+      // The stores, kept in the office (#325); a withdrawal comes with #326.
+      articles: [false, 'never'],
+      suppliers: [false, 'never'],
+      stores: [false, 'never'],
+      store_articles: [false, 'never'],
+      stock_movements: [false, 'never'],
     })
   })
 

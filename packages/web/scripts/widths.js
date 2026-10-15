@@ -111,6 +111,13 @@ await checkWidths({
     'Sperren',
     'Ändern',
     'Verwerfen',
+    // The dialogs of the stores (#325): a receipt and a count, a new store,
+    // article and supplier.
+    'Wareneingang',
+    'Zählung',
+    'Lager anlegen',
+    'Artikel anlegen',
+    'Lieferant anlegen',
     // The longest sentences of the instance stand behind it (#80); the Leitung
     // of the preview is operator and administration in one. The form to name
     // somebody to the administration stands open on its page.

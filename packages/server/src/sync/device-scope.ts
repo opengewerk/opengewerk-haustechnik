@@ -207,6 +207,13 @@ export function pullScope(scope: DeviceScope): PullScope {
       meter_settings: operator,
       // Whether names and times stand on a service report, which its page says (#324).
       work_order_settings: operator,
+      // The stores of the operator, without an area (#325): a device takes
+      // from them at a work order (#326).
+      articles: operator,
+      suppliers: operator,
+      stores: operator,
+      store_articles: operator,
+      stock_movements: operator,
     },
   }
 }

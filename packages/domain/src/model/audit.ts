@@ -4,6 +4,8 @@ import {
   checkPointResultLabel,
   deadlineReminderLabel,
   ruleScopeNames,
+  stockMovementKindLabel,
+  stockUnitLabel,
 } from '@opengewerk/platform-domain'
 
 import {
@@ -184,6 +186,55 @@ export const auditVocabulary: AuditVocabulary = {
     },
     // The day of the month the readings of the operator are due on (#120).
     meter_settings: { label: 'Stichtag der Zähler', fields: { key_day: 'Tag des Stichtags' } },
+    // The stores of the operator, on the building block of the foundation (#325).
+    articles: {
+      label: 'Artikel',
+      fields: {
+        number: 'Nummer',
+        designation: 'Bezeichnung',
+        description: 'Beschreibung',
+        ean: 'EAN',
+        unit: 'Einheit',
+        price_cents: 'Preis in Cent',
+      },
+    },
+    suppliers: {
+      label: 'Lieferant',
+      fields: {
+        name: 'Name',
+        customer_number: 'Kundennummer',
+        email: 'E-Mail',
+        phone: 'Telefon',
+        street: 'Straße',
+        house_number: 'Hausnummer',
+        postal_code: 'Postleitzahl',
+        city: 'Ort',
+        country: 'Land',
+        notes: 'Notiz',
+      },
+    },
+    stores: { label: 'Lager', fields: { name: 'Name', location: 'Wo' } },
+    store_articles: {
+      label: 'Artikel eines Lagers',
+      fields: {
+        store_id: 'Lager',
+        article_id: 'Artikel',
+        minimum_milli: 'Mindestbestand in Tausendsteln',
+      },
+    },
+    stock_movements: {
+      label: 'Buchung im Lager',
+      fields: {
+        store_id: 'Lager',
+        article_id: 'Artikel',
+        kind: 'Art',
+        quantity_milli: 'Menge in Tausendsteln',
+        supplier_id: 'Lieferant',
+        reason: 'Grund',
+        booked_by: 'Gebucht von',
+        booked_at: 'Gebucht am',
+      },
+    },
     // Whether the service report names the people who did the work (#324).
     work_order_settings: {
       label: 'Einstellungen der Aufträge',
@@ -620,6 +671,10 @@ export const auditVocabulary: AuditVocabulary = {
     replaces_evidence_id: 'evidence',
     // The service report a frozen state and a print are of (#324).
     service_report_id: 'service_reports',
+    // What the stores hold (#325).
+    store_id: 'stores',
+    article_id: 'articles',
+    supplier_id: 'suppliers',
     template_id: 'round_templates',
     round_plan_id: 'round_plans',
     // The document that bears an interval of the operator's own, and the
@@ -654,6 +709,7 @@ export const auditVocabulary: AuditVocabulary = {
     'dismissed_by',
     'note_by',
     'recorded_by',
+    'booked_by',
   ],
   // Rows without a name of their own are named after the person they are
   // about, and a substitution after the person whose areas it takes over.
@@ -686,6 +742,13 @@ export const auditVocabulary: AuditVocabulary = {
     meter_pauses: ['starts_on'],
     meter_settings: ['key_day'],
     work_order_settings: ['names_and_times'],
+    // An article by its number and its name, a supplier and a store by their
+    // names, what a store keeps by its article, a booking by its kind.
+    articles: { joined: ['number', 'designation'] },
+    suppliers: ['name'],
+    stores: ['name'],
+    store_articles: ['article_id'],
+    stock_movements: ['kind'],
     // A duty of the operator's own by its name, one from the catalogue by its
     // kind; a dismissal by the kind it dismissed.
     duties: ['label', 'kind'],
@@ -772,6 +835,9 @@ export const auditValues: Readonly<
   activity_answers: { result: checkPointResultLabel },
   activity_duties: { result: evidenceResultLabel },
   activity_signatures: { role: signatureRoleLabel },
+  // The kind of a booking and the unit of an article in words (#325).
+  stock_movements: { kind: stockMovementKindLabel },
+  articles: { unit: stockUnitLabel },
   asset_lifecycle: { state: lifecycleStateLabel },
   assets: { meter_unit: meterUnitSymbol },
   attachments: { kind: documentKindLabel },

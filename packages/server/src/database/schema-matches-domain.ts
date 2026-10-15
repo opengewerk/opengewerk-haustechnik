@@ -1,5 +1,6 @@
 import type {
   Activity,
+  Article,
   ActivityDuty,
   ActivitySignature,
   Building,
@@ -28,6 +29,10 @@ import type {
   RoundTemplateVersion,
   ServiceReport,
   ServiceReportRecord,
+  StockMovement,
+  StockSupplier,
+  Store,
+  StoreArticle,
   Task,
   WorkOrder,
   WorkOrderDecision,
@@ -38,6 +43,7 @@ import type {
 
 import type {
   activities,
+  articles,
   activityDuties,
   activitySignatures,
   buildingClosures,
@@ -65,6 +71,10 @@ import type {
   roundRecords,
   serviceReportRecords,
   serviceReports,
+  stockMovements,
+  storeArticles,
+  stores,
+  suppliers,
   workOrderSettings,
   roundTemplates,
   roundTemplateVersions,
@@ -154,6 +164,15 @@ export type MeterSettingMatches = Assert<Exact<typeof meterSettings.$inferSelect
 export type ServiceReportMatches = Assert<Exact<typeof serviceReports.$inferSelect, ServiceReport>>
 export type ServiceReportRecordMatches = Assert<
   Exact<typeof serviceReportRecords.$inferSelect, ServiceReportRecord>
+>
+export type ArticleMatches = Assert<
+  Exact<Omit<typeof articles.$inferSelect, 'unit'>, Omit<Article, 'unit'>>
+>
+export type SupplierMatches = Assert<Exact<typeof suppliers.$inferSelect, StockSupplier>>
+export type StoreMatches = Assert<Exact<typeof stores.$inferSelect, Store>>
+export type StoreArticleMatches = Assert<Exact<typeof storeArticles.$inferSelect, StoreArticle>>
+export type StockMovementMatches = Assert<
+  Exact<Omit<typeof stockMovements.$inferSelect, 'kind'>, Omit<StockMovement, 'kind'>>
 >
 export type WorkOrderSettingMatches = Assert<
   Exact<typeof workOrderSettings.$inferSelect, WorkOrderSetting>
