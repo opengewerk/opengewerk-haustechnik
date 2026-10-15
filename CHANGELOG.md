@@ -23,6 +23,16 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   Leitung unter „Zugänge“ sieht sie nicht (Moritz, 14.10.2026). Die Verfahrensbeschreibung sagt es
   in Abschnitt 3.3 als Zusage, der offene Punkt in Abschnitt 10 entfällt, und das Planungskonzept
   nennt die Adresse unter den personenbezogenen Daten.
+- Releases (#136): ein Tag `v<fassung>` auf `main` startet den Workflow "Release". Er baut die
+  Abbilder der Anwendung und der Sicherung für x86_64 und ARM64, legt sie unter der Fassung in
+  ghcr.io ab, signiert sie ohne Schlüssel über Sigstore und schreibt die Seite des Releases mit dem
+  Abschnitt des CHANGELOG und dem Installationspaket, das `docker/pack-kit.sh` packt: der Ordner
+  `docker` mit der Fassung in seiner `compose.yaml` und die Skripte des Fundaments, mit denen er
+  startet, jeder Eintrag root gehörig. Ist der Abschnitt für die Seite zu lang, wie bei der ersten
+  Fassung, bleibt seine Einleitung stehen und der Rest ist ein Verweis. Der Lauf "Installationspaket"
+  der CI packt das Paket bei jedem Pull Request, entpackt es ohne Quelltext daneben und startet es
+  mit einem Befehl; die Instanz meldet dann die Fassung des Pakets. So wie in der
+  Handwerkersoftware, damit eine Installation ohne Checkout und ohne Bauen auskommt.
 - Initiales Repository-Gerüst: README, Lizenz, Vorlagen für Issues und Pull Requests
 - Planungskonzept v0.1 unter `docs/konzept/`: Leitentscheidungen, Datenmodell vom Ort bis
   zum Nachweis, Funktionsumfang, Pflichtenpakete, rechtliche Anforderungen mit Fundstellen,
