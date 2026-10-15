@@ -13,6 +13,7 @@ import {
   FileText,
   Gauge,
   LayoutDashboard,
+  Package,
   Route,
   SearchCheck,
   SquareCheck,
@@ -97,6 +98,8 @@ export const officeNavigation: readonly OfficePlaces[] = [
       { to: defectListPlace.to, label: 'Mängel', icon: TriangleAlert, right: 'defect.read' },
       { to: '/auftraege', label: 'Aufträge', icon: Calendar, right: 'activity.read' },
       { to: '/aufgaben', label: 'Aufgaben', icon: SquareCheck, right: 'task.read' },
+      // The stores of the operator, tenant-wide (#325).
+      { to: '/lager', label: 'Lager', icon: Package, right: 'store.read' },
     ],
   },
 ]

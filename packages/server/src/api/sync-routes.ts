@@ -82,6 +82,12 @@ export const operationRights: Readonly<Record<string, OperationRights>> = {
   meter_settings: { otherwise: 'settings.write' },
   // Whether the service report names the people who did the work (#324).
   work_order_settings: { otherwise: 'settings.write' },
+  // The stores are kept in the office, with a connection (#325).
+  articles: { otherwise: 'store.write' },
+  suppliers: { otherwise: 'store.write' },
+  stores: { otherwise: 'store.write' },
+  store_articles: { otherwise: 'store.write' },
+  stock_movements: { otherwise: 'store.write' },
   asset_supplies: { create: 'asset.record', remove: 'asset.record', otherwise: 'asset.record' },
   duties: { otherwise: 'duty.write' },
   duty_dismissals: { otherwise: 'duty.write' },

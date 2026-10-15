@@ -20,6 +20,16 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   „Einstellungen“, „Aufträge“ einschaltet; die Vorgabe ist aus, weil die Dauer Aufwand des Auftrags
   und keine Arbeitszeiterfassung ist. Die Verfahrensbeschreibung nennt den Namen des Auftraggebers
   als Angabe eines Dritten und die Einstellung. Migration `0053_service_reports`.
+- Das Lager (#325): Artikel mit Nummer, Bezeichnung, EAN des Herstellers, Einheit und Preis,
+  Lieferanten und mehrere ortsfeste Lager. Der Bestand je Lager ist die Summe seiner Buchungen, ein
+  Wareneingang erhöht ihn, eine Zählung setzt ihn mit ihrem Grund auf das Gezählte, und keine Buchung
+  wird geändert oder gelöscht. Unter dem Mindestbestand steht ein Artikel in der Bestellliste des
+  Lagers, als Filter und als Tabelle, ohne Benachrichtigung. Die Vorgängeranwendung beim
+  Pilotbetrieb führt heute ein Lager, und vor ihrer Abschaltung braucht es eines in der Anwendung.
+  Gebaut auf dem Baustein des Fundaments (ADR 0011 in `opengewerk`), dessen Submodul dafür
+  angehoben ist. Ansehen kann das Lager jede Rolle (`store.read`), führen ab der Objektleitung
+  (`store.write`); Planungskonzept v0.41. Die Verfahrensbeschreibung nennt, dass eine Buchung
+  festhält, wer gebucht hat. Migration `0054_stock`.
 
 ## [0.1.3] - 2026-10-15
 

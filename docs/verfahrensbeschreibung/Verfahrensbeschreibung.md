@@ -1,7 +1,7 @@
 # OpenGewerk Haustechnik: Verfahrensbeschreibung für den Stand von Phase 1
 
 - **Gilt für:** Fassung 0.1.3, mit dem Stand von Phase 1 und dem eigenen Bereich eines Gebäudes
-- **Geschrieben:** von Hand, am 05.10.2026, aus dem Planungskonzept v0.11 und gegen den Quelltext geprüft; am 06.10.2026 um die Dateien im Speicher ergänzt (Planungskonzept v0.12) und um das Pflichtenverzeichnis, am selben Tag um die Dokumente (Planungskonzept v0.13) und um die Etiketten; am 08.10.2026 um die Prüfungen und Wartungen (Planungskonzept v0.15) und um den Bericht einer Fremdfirma (Planungskonzept v0.16), am selben Tag um die Mängel (Planungskonzept v0.17) und um den Vorgang von Hand (Planungskonzept v0.18); am 11.10.2026 um die Liegenschaften und das Anlagenverzeichnis als Tabelle und am selben Tag um die übrigen Listen des Büros als Tabelle, mit der Spalte der Person nur für die Leitung; am 12.10.2026 um die Aufgabe, die eine fällige Zählerablesung anlegt (Planungskonzept v0.24), und am selben Tag um die neue Fassung eines Pakets an bestätigten Pflichten (Planungskonzept v0.25); am 14.10.2026 um die Rechtstexte der Instanz, die ohne Anmeldung zu lesen sind, und am selben Tag um die Netzadresse unter „Angemeldete Geräte“ und die Erinnerung je Fristart; am 15.10.2026 der Fassung 0.1.0 zugeordnet, ohne dass seit dem Tag davor etwas dazukam, das Daten über Beschäftigte betrifft, und am selben Tag um den eigenen Bereich eines Gebäudes (Planungskonzept v0.37); am selben Tag der Fassung 0.1.1 zugeordnet, ohne dass danach etwas dazukam, das Daten über Beschäftigte betrifft: ein verlegtes Gebäude nimmt seine Daten mit, und wer sie sieht, folgt wie bisher dem Bereich (Planungskonzept v0.38); am selben Tag der Fassung 0.1.2 zugeordnet, ohne dass danach etwas dazukam, das Daten über Beschäftigte betrifft: im Plan eines Rundgangs stehen bei einem Gebäude mit eigenem Bereich die Personen dieses Bereichs zur Wahl, wie es die Zusage zu den Rundgängen schon sagte; am selben Tag um das Entfernen eines irrtümlich angelegten Plans (Planungskonzept v0.39); am selben Tag der Fassung 0.1.3 zugeordnet, ohne dass danach etwas dazukam, das Daten über Beschäftigte betrifft: Namen stehen in jeder Liste nach dem Wert ihrer Zahlen, und niemand sieht dadurch mehr als vorher; am selben Tag um den Leistungsnachweis eines Auftrags mit dem Namen des Auftraggebers und die Einstellung, die Namen und Uhrzeiten der Ausführenden darauf nennt (Planungskonzept v0.40)
+- **Geschrieben:** von Hand, am 05.10.2026, aus dem Planungskonzept v0.11 und gegen den Quelltext geprüft; am 06.10.2026 um die Dateien im Speicher ergänzt (Planungskonzept v0.12) und um das Pflichtenverzeichnis, am selben Tag um die Dokumente (Planungskonzept v0.13) und um die Etiketten; am 08.10.2026 um die Prüfungen und Wartungen (Planungskonzept v0.15) und um den Bericht einer Fremdfirma (Planungskonzept v0.16), am selben Tag um die Mängel (Planungskonzept v0.17) und um den Vorgang von Hand (Planungskonzept v0.18); am 11.10.2026 um die Liegenschaften und das Anlagenverzeichnis als Tabelle und am selben Tag um die übrigen Listen des Büros als Tabelle, mit der Spalte der Person nur für die Leitung; am 12.10.2026 um die Aufgabe, die eine fällige Zählerablesung anlegt (Planungskonzept v0.24), und am selben Tag um die neue Fassung eines Pakets an bestätigten Pflichten (Planungskonzept v0.25); am 14.10.2026 um die Rechtstexte der Instanz, die ohne Anmeldung zu lesen sind, und am selben Tag um die Netzadresse unter „Angemeldete Geräte“ und die Erinnerung je Fristart; am 15.10.2026 der Fassung 0.1.0 zugeordnet, ohne dass seit dem Tag davor etwas dazukam, das Daten über Beschäftigte betrifft, und am selben Tag um den eigenen Bereich eines Gebäudes (Planungskonzept v0.37); am selben Tag der Fassung 0.1.1 zugeordnet, ohne dass danach etwas dazukam, das Daten über Beschäftigte betrifft: ein verlegtes Gebäude nimmt seine Daten mit, und wer sie sieht, folgt wie bisher dem Bereich (Planungskonzept v0.38); am selben Tag der Fassung 0.1.2 zugeordnet, ohne dass danach etwas dazukam, das Daten über Beschäftigte betrifft: im Plan eines Rundgangs stehen bei einem Gebäude mit eigenem Bereich die Personen dieses Bereichs zur Wahl, wie es die Zusage zu den Rundgängen schon sagte; am selben Tag um das Entfernen eines irrtümlich angelegten Plans (Planungskonzept v0.39); am selben Tag der Fassung 0.1.3 zugeordnet, ohne dass danach etwas dazukam, das Daten über Beschäftigte betrifft: Namen stehen in jeder Liste nach dem Wert ihrer Zahlen, und niemand sieht dadurch mehr als vorher; am selben Tag um den Leistungsnachweis eines Auftrags mit dem Namen des Auftraggebers und die Einstellung, die Namen und Uhrzeiten der Ausführenden darauf nennt (Planungskonzept v0.40); am selben Tag um das Lager, dessen Buchungen festhalten, wer gebucht hat (Planungskonzept v0.41)
 - **Abgelöst durch:** die Verfahrensbeschreibung, die die Anwendung ab Phase 2 selbst erzeugt
 
 ---
@@ -239,6 +239,12 @@ Anhang B nennt jedes Feld der Datenbank, das auf eine Person zeigt. Dieser Absch
 
 ---
 
+### 3.16 Lager
+
+- Eine Buchung im Lager, ein Wareneingang oder eine Zählung, hält fest, wer sie gebucht hat. Die Person setzt der Server selbst ein und übernimmt sie nicht aus der Anfrage. Der Bestand eines Lagers, die Seite eines Artikels darin und die Bestellliste nennen keine Person; wer gebucht hat, steht mit Namen im Änderungsprotokoll. Die Buchungen liegen auf jedem Gerät des Betreibers, weil das Lager keinen Bereich hat, mit der Kennung des Kontos, das gebucht hat; den Namen dazu hält ein Gerät nicht, und kein Bildschirm zeigt die Kennung. [K4.12, K9, B283]
+- Das Lager gehört dem Betreiber, ohne Bereich: ansehen können es alle vier Rollen, Artikel, Lieferanten und Lager anlegen, Wareneingang und Zählung buchen und den Mindestbestand setzen die Leitung, die Technische Leitung und die Objektleitung. [K2.8, K4.12, K7, B280, B281, B282]
+- **Zusage:** Eine Buchung im Lager ändert und löscht niemand, auch nicht der Eigentümer der Tabellen. Was nicht stimmt, berichtigt eine Zählung mit ihrem Grund. [K4.12, B284]
+
 ## 4. Wer was sieht
 
 Phase 1 kennt vier Rollen. Was jede darf, steht Recht für Recht in Abschnitt 7 des Planungskonzepts. Für die Daten über Beschäftigte heißt das:
@@ -258,6 +264,8 @@ Phase 1 kennt vier Rollen. Was jede darf, steht Recht für Recht in Abschnitt 7 
 | Notizen zu einem Auftrag, mit Namen und Uhrzeit | in ihren Bereichen | in ihren Bereichen | in ihren Bereichen | was sie führt, woran sie beteiligt ist oder was niemandem zugeteilt ist |
 | Der Leistungsnachweis eines Auftrags, mit dem Konto, auf dessen Gerät der Auftraggeber unterschrieben hat | in ihren Bereichen | in ihren Bereichen | in ihren Bereichen | was sie führt, woran sie beteiligt ist oder was niemandem zugeteilt ist |
 | Wer einen Zählerstand eingetragen oder berichtigt und wer die Notiz einer Messstelle geschrieben hat, mit Namen | in ihren Bereichen | in ihren Bereichen | in ihren Bereichen | in ihren Bereichen |
+| Wer im Lager gebucht hat, mit Namen | im Änderungsprotokoll | nein | nein | nein |
+| Wer im Lager gebucht hat, als Kennung des Kontos auf dem Gerät | ja | ja | ja | ja |
 | Wer die Rundgänge eines Plans geht, als Kennung des Kontos auf dem Gerät | in ihren Bereichen | in ihren Bereichen | in ihren Bereichen | in ihren Bereichen |
 | Wer einen Rundgang geht, mit Namen | in ihren Bereichen | in ihren Bereichen | in ihren Bereichen | was ihr oder niemandem zugeteilt ist |
 | Die Namen zur Wahl, wer einen Rundgang geht | in ihren Bereichen | in ihren Bereichen | in ihren Bereichen | nein |
@@ -678,6 +686,11 @@ Pfade ohne Vorsatz liegen im Repository `opengewerk/opengewerk-haustechnik`. Pfa
 | B277 | Test | `packages/server/src/api/service-reports.test.ts` | `and its frozen state are changed and removed by no role, the owner of the tables included` |
 | B278 | Test | `packages/server/src/api/service-reports.test.ts` | `are off until the Leitung switches names and times on, and only the Leitung changes them` |
 | B279 | Recht | `settings.write` | Einstellungen ändern: Leitung |
+| B280 | Recht | `store.read` | Lager ansehen: Leitung, Technische Leitung, Objektleitung, Haustechnik |
+| B281 | Recht | `store.write` | Lager führen: Leitung, Technische Leitung, Objektleitung |
+| B282 | Test | `packages/server/src/api/stock.test.ts` | `every role looks at them, and only the Leitung, the Technische Leitung and the Objektleitung keep them` |
+| B283 | Test | `packages/server/src/api/stock.test.ts` | `keeps on a booking who booked, from the request and never from the body, and names them on no page` |
+| B284 | Test | `packages/server/src/api/stock.test.ts` | `is changed and removed by no role, the owner of the tables included` |
 
 ---
 
@@ -721,6 +734,7 @@ Jede Zeile ist ein Feld der Datenbank, das die Kennung eines Kontos hält. Der S
 | `push_subscriptions` | `user_id` | wessen Gerät Push empfängt |
 | `round_plans` | `performer_user_id` | wer die Rundgänge eines Plans geht, wenn der Plan jemanden nennt |
 | `service_reports` | `signed_by` | auf wessen Gerät der Auftraggeber einen Leistungsnachweis unterschrieben hat |
+| `stock_movements` | `booked_by` | wer im Lager einen Wareneingang oder eine Zählung gebucht hat |
 | `substitutions` | `absent_user_id` | wer vertreten wird |
 | `substitutions` | `substitute_user_id` | wer vertritt |
 | `tasks` | `assignee_user_id` | wer für eine Aufgabe verantwortlich ist |
@@ -741,6 +755,7 @@ Jede Zeile ist der erste Abschnitt einer Adresse, unter der der Server antwortet
 | --- | --- |
 | `activities` | Prüfungen und Wartungen: die Liste, auch als Tabelle, die Seite eines Vorgangs, die Auswahl der Personen für seinen Plan und der Plan |
 | `areas` | Bereiche und für wen sie genannt sind; ihre Liste auch als Tabelle |
+| `articles` | Artikel des Lagers: die Liste, auch als Tabelle, ein neuer Artikel, seine Änderung und dass er entfällt; ohne Person |
 | `assets` | Anlagen und ihre Komponenten, und die Nachweise einer Anlage; das Anlagenverzeichnis auch als Tabelle |
 | `attachments` | Dokumente: gibt die Datei einer Fassung und ihre Vorschau aus, über die Fassung und nie über die Prüfsumme; die Liste der Dokumente auch als Tabelle |
 | `audit` | Änderungsprotokoll, für die Leitung auch als Tabelle |
@@ -774,7 +789,9 @@ Jede Zeile ist der erste Abschnitt einer Adresse, unter der der Server antwortet
 | `settings` | Vorlauf der Fristen und die Vorgabe der Frist je Mängelklasse; die Mängelklassen auch als Tabelle; ob der Betreiber E-Mails verschickt, und für die Leitung sein Mailserver; die Nummernkreise und wann die Instanz zuletzt gesichert wurde, beides ohne eine Person; ob der Leistungsnachweis Namen und Uhrzeiten der Ausführenden nennt |
 | `setup` | Ersteinrichtung |
 | `staff` | Zugänge, für die Leitung auch als Tabelle |
+| `stores` | Lager: ihre Liste, der Bestand eines Lagers mit Mindestbestand, auch als Tabelle und als Bestellliste, die Seite eines Artikels in einem Lager mit seinen Buchungen, der Mindestbestand und die Buchung eines Wareneingangs oder einer Zählung; keine Antwort nennt, wer gebucht hat |
 | `substitutions` | Vertretungen |
+| `suppliers` | Lieferanten des Lagers |
 | `sync` | Abgleich und Konflikte |
 | `tasks` | Aufgaben: wem eine Aufgabe zugeteilt werden kann, je Bereich der fragenden Person, mit Namen und sonst nichts, für alle, die Aufgaben zuteilen. Die Aufgaben selbst kommen über den Abgleich; ihre Liste gibt es auch als Tabelle |
 | `work-orders` | Aufträge: die Liste, auch als Tabelle, die Seite eines Auftrags mit seinen Leistungsnachweisen, die Auswahl der Personen, ein neuer Auftrag aus einem Mangel, aus einem Termin oder von Hand, seine Änderung, das Schließen mit Grund und seine Abnahme oder Zurückweisung |

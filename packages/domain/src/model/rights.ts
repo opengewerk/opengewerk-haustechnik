@@ -167,6 +167,18 @@ export const rights = [
    */
   'task.assign',
   /**
+   * The stores of the tenant (#325, section 4.12 of the concept): its
+   * articles, suppliers and stores, the stock of each and every booking.
+   * Tenant-wide and without an area, like the catalogue.
+   */
+  'store.read',
+  /**
+   * Keeping the stores: articles, suppliers and stores, a receipt, a count
+   * and the minimum a store keeps. A withdrawal at a work order is the work on
+   * it and needs no further right (#326).
+   */
+  'store.write',
+  /**
    * Taking what has changed onto a device, and sending what it queued up
    * without a network. The rights the foundation asks for on the routes of the
    * sync (ADR 0006). A different way in, not a different thing to do: what an
@@ -255,6 +267,8 @@ export const rightLabel: Readonly<Record<Right, string>> = {
   'task.read': 'Aufgaben ansehen',
   'task.record': 'Eigene Aufgaben anlegen und erledigen',
   'task.assign': 'Aufgaben anderen zuteilen',
+  'store.read': 'Lager ansehen',
+  'store.write': 'Lager führen',
   'sync.read': 'Daten abgleichen',
   'sync.write': 'Änderungen senden',
   'push.write': 'Push auf den eigenen Geräten einrichten',
@@ -323,6 +337,8 @@ const technician: readonly Right[] = [
   // Their own tasks: written for themselves or handed to them (#124).
   'task.read',
   'task.record',
+  // What lies in the stores, to take from them at a work order (#325, #326).
+  'store.read',
   // Every device takes and sends; what it may touch the rights above decide.
   'sync.read',
   'sync.write',
@@ -347,6 +363,8 @@ const siteManagement: readonly Right[] = [
   'defect.write',
   'document.remove',
   'task.assign',
+  // Articles, suppliers, stores, receipts and counts (#325).
+  'store.write',
 ]
 
 /**

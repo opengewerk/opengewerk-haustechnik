@@ -858,6 +858,87 @@ async function send(
   return (await response.json()) as { id: string }
 }
 
+/**
+ * The stores of the sample operator (#325), as the board "Lager" draws them:
+ * two stores, articles with and without a barcode, two suppliers, the
+ * minimums of the main store, receipts and a count with its reason, so that
+ * three articles stand below their minimum.
+ */
+async function plantSampleStores(address: string): Promise<void> {
+  const main = await send(address, '/stores', {
+    name: 'Hauptlager Betriebshof',
+    location: 'Betriebshof, Halle 2',
+  })
+
+  await send(address, '/stores', {
+    name: 'Werkstatt Schulzentrum',
+    location: 'Schulhaus, Raum U.03',
+  })
+
+  const wholesaler = await send(address, '/suppliers', {
+    name: 'Elektro-Großhandel Beispiel GmbH',
+    customerNumber: '10458',
+    email: 'bestellung@elektro-beispiel.example',
+    phone: '0621 123456',
+  })
+
+  await send(address, '/suppliers', {
+    name: 'Filtertechnik Süd',
+    email: 'service@filter-sued.example',
+  })
+
+  // Number, designation, barcode, unit, price in cents, stock and minimum.
+  const stock: readonly (readonly [
+    string,
+    string,
+    string | null,
+    string,
+    number | null,
+    number,
+    number | null,
+  ])[] = [
+    ['A-1001', 'LED-Röhre T8 18 W, 4000 K', '4006381333931', 'piece', 640, 24, 20],
+    ['A-1002', 'Akku Notleuchte 3,6 V 1,6 Ah', null, 'piece', 890, 3, 10],
+    ['A-1010', 'Leitungsschutzschalter B16', null, 'piece', 315, 12, 6],
+    ['A-1011', 'FI-Schutzschalter 40 A 30 mA', null, 'piece', 4200, 1, 2],
+    ['A-1020', 'Mantelleitung NYM-J 3×1,5', null, 'metre', 98, 85.5, 50],
+    ['A-1030', 'Taschenfilter G4 592×592', null, 'piece', 1150, 0, 8],
+    ['A-1040', 'Kugelhahn DN 20', null, 'piece', null, 4, null],
+  ]
+
+  for (const [number, designation, ean, unit, priceCents, level, minimum] of stock) {
+    const article = await send(address, '/articles', { number, designation, ean, unit, priceCents })
+
+    await send(
+      address,
+      `/stores/${main.id}/movements`,
+      level > 0
+        ? {
+            articleId: article.id,
+            kind: 'receipt',
+            quantityMilli: Math.round(level * 1000),
+            supplierId: wholesaler.id,
+            reason: 'Lieferschein 4690-11',
+          }
+        : {
+            articleId: article.id,
+            kind: 'count',
+            quantityMilli: 0,
+            reason: 'Inventur, Regal leer',
+          },
+    )
+
+    if (minimum !== null) {
+      await send(
+        address,
+        `/stores/${main.id}/articles/${article.id}/minimum`,
+        { minimumMilli: minimum * 1000 },
+        'PUT',
+      )
+    }
+  }
+}
+
 /** What an asset supplies, kept until every building of its property is there to be named. */
 interface Supplying {
   readonly assetId: string
@@ -1199,6 +1280,9 @@ export async function plantSampleData(
   ] as const) {
     await send(address, `/settings/defect-classes/${key}`, { dueDays }, 'PUT')
   }
+
+  // The stores of the operator (#325).
+  await plantSampleStores(address)
 
   // The mail server of the operator, as the board "E-Mail-Einstellungen"
   // draws it (#126). The connection of the preview takes it and sends nothing.

@@ -66,6 +66,12 @@ import { EditRoomScreen, NewRoomScreen } from './screens/room-form.js'
 import { RoomScreen } from './screens/rooms.js'
 import { StaffScreen } from './screens/staff.js'
 import { TimelineScreen } from './timeline.js'
+import {
+  ArticleListScreen,
+  StoreArticleScreen,
+  StoreStockScreen,
+  SupplierListScreen,
+} from './screens/stores.js'
 import { NewWorkOrderScreen, WorkOrderListScreen, WorkOrderScreen } from './screens/work-orders.js'
 import { OfficeShell } from './shell.js'
 
@@ -461,6 +467,24 @@ export function officeRoutes() {
     }),
     // The tasks of the person and the open ones of the others on this device (#124).
     createRoute({ getParentRoute: () => office, path: '/aufgaben', component: TaskListScreen }),
+    // The stores (#325): the stock of a store, the articles, the suppliers,
+    // and one article in one store.
+    createRoute({ getParentRoute: () => office, path: '/lager', component: StoreStockScreen }),
+    createRoute({
+      getParentRoute: () => office,
+      path: '/lager/artikel',
+      component: ArticleListScreen,
+    }),
+    createRoute({
+      getParentRoute: () => office,
+      path: '/lager/lieferanten',
+      component: SupplierListScreen,
+    }),
+    createRoute({
+      getParentRoute: () => office,
+      path: '/lager/$storeId/artikel/$articleId',
+      component: StoreArticleScreen,
+    }),
     // The catalogue: the packages, one of them with one of its parts, and
     // the page of a duty kind under the package it comes from.
     createRoute({ getParentRoute: () => office, path: '/katalog', component: CatalogueScreen }),

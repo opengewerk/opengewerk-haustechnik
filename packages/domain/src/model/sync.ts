@@ -230,6 +230,14 @@ export const syncPolicies: Readonly<Record<string, SyncPolicy>> = {
   // times of their notes (#324): set under "Einstellungen", held by every
   // device, whose page of a report says what will stand on it.
   work_order_settings: officeOnly,
+  // The stores of the operator (#325): kept in the office, with a
+  // connection, and held by every device, which takes from them at a work
+  // order (#326). Tenant-wide, without an area.
+  articles: officeOnly,
+  suppliers: officeOnly,
+  stores: officeOnly,
+  store_articles: officeOnly,
+  stock_movements: officeOnly,
   // A label is made and blocked in the office, with a connection: the server
   // draws its code. A device holds the labels of its places, so that a scan
   // opens an asset without a network, and it gives a label from a sheet to an
@@ -546,6 +554,11 @@ export const syncEntityNames: Readonly<Record<string, string>> = {
   meter_pauses: 'Stilllegung einer Messstelle',
   meter_settings: 'Stichtag der Zähler',
   work_order_settings: 'Einstellungen der Aufträge',
+  articles: 'Artikel',
+  suppliers: 'Lieferant',
+  stores: 'Lager',
+  store_articles: 'Artikel eines Lagers',
+  stock_movements: 'Buchung im Lager',
   tasks: 'Aufgabe',
 }
 
@@ -690,6 +703,23 @@ export const syncFieldNames: Readonly<Record<string, string>> = {
   // The client's signature under a service report (#324), and the setting
   // whether it names the people who did the work.
   clientName: 'Name des Auftraggebers',
+  // An article, a supplier, a store and a booking in it (#325).
+  designation: 'Bezeichnung',
+  ean: 'EAN',
+  unit: 'Einheit',
+  priceCents: 'Preis',
+  customerNumber: 'Kundennummer',
+  houseNumber: 'Hausnummer',
+  country: 'Land',
+  notes: 'Notiz',
+  location: 'Wo',
+  storeId: 'Lager',
+  articleId: 'Artikel',
+  minimumMilli: 'Mindestbestand',
+  quantityMilli: 'Menge',
+  supplierId: 'Lieferant',
+  bookedBy: 'Gebucht von',
+  bookedAt: 'Gebucht am',
   namesAndTimes: 'Namen und Uhrzeiten auf dem Leistungsnachweis',
   // What is said about a document and a version of it. Its name and its kind
   // share their entries with an activity and an asset above.
