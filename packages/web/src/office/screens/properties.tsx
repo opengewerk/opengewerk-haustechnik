@@ -57,7 +57,7 @@ import { Building2, Pencil, Plus, Upload } from 'lucide-react'
 import { type ReactNode, useId, useMemo, useState } from 'react'
 
 import { kindsOf } from '../../app/place-records.js'
-import { areaName, useAreas, useAreasQuery } from '../../session/areas.js'
+import { areaName, useAreas, useAreasQuery, useHoldsArea } from '../../session/areas.js'
 import { makeAt } from '../../sync/made-at.js'
 import { AreaBadge } from '../area-badge.js'
 import { toDoColumns, type ToDoKey, type ToDoPlace, toDoTarget } from '../building-situation.js'
@@ -694,7 +694,10 @@ export function PropertyScreen() {
   const property = useRecord('properties', propertyId)
   const buildings = useRelated('buildings', 'propertyId', propertyId)
   const areas = useAreas()
-  const writes = useRight('location.write')
+  // Whoever holds only the area of a building on it reads the property and
+  // changes nothing there (#306, #309).
+  const atTheProperty = useHoldsArea(property?.['areaId'])
+  const writes = useRight('location.write') && atTheProperty
   const navigate = useNavigate()
 
   if (!property || !propertyId) {
@@ -774,8 +777,12 @@ export function PropertyScreen() {
                 ]}
               />
             </Panel>
-            <PropertyContacts propertyId={propertyId} />
-            <DocumentsCard place={{ propertyId }} at={`Liegenschaft ${text(property, 'name')}`} />
+            <PropertyContacts propertyId={propertyId} areaId={property['areaId']} />
+            <DocumentsCard
+              place={{ propertyId }}
+              at={`Liegenschaft ${text(property, 'name')}`}
+              files={atTheProperty}
+            />
           </>
         }
         main={
@@ -792,6 +799,7 @@ export function PropertyScreen() {
               id={propertyId}
               propertyId={propertyId}
               areaId={maybeText(property, 'areaId')}
+              adds={atTheProperty}
             />
           </div>
         }

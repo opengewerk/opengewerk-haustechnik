@@ -3,6 +3,7 @@ import { ContactsPanel, type ContactsPanelWords } from '@opengewerk/platform-web
 import { useRight } from '@opengewerk/platform-web/session'
 import { useSync } from '@opengewerk/platform-web/sync'
 
+import { useHoldsArea } from '../session/areas.js'
 import { makeAt } from '../sync/made-at.js'
 
 /**
@@ -36,9 +37,17 @@ export const noPropertyContact = 'An dieser Liegenschaft ist noch kein Ansprechp
  * outbox, and the card says before anybody fills it in when there is no
  * connection. Whoever only reads sees neither the button nor a pencil.
  */
-export function PropertyContacts({ propertyId }: { readonly propertyId: string }) {
+export function PropertyContacts({
+  propertyId,
+  areaId,
+}: {
+  readonly propertyId: string
+  /** The area of the property: whoever does not hold it reads the contacts only (#309). */
+  readonly areaId: unknown
+}) {
   const client = useSync()
-  const keeps = useRight('location.write')
+  const holds = useHoldsArea(areaId)
+  const keeps = useRight('location.write') && holds
 
   return (
     <ContactsPanel

@@ -70,6 +70,11 @@ export interface TasksCardProps {
   readonly propertyId: string
   /** The area of that property: who a task here may go to. */
   readonly areaId: string | null
+  /**
+   * Whether a task may be written here at all: not on a property whose area
+   * the person does not hold (#309).
+   */
+  readonly adds?: boolean
 }
 
 /**
@@ -81,7 +86,7 @@ export interface TasksCardProps {
  * property every task on the property stands, with the record it hangs on
  * where that is more than the property.
  */
-export function TasksCard({ field, id, propertyId, areaId }: TasksCardProps) {
+export function TasksCard({ field, id, propertyId, areaId, adds = true }: TasksCardProps) {
   const reads = useRight('task.read')
   const people = useTaskPeople()
   const tasks = useRelated(taskEntity, field, id)
@@ -108,7 +113,7 @@ export function TasksCard({ field, id, propertyId, areaId }: TasksCardProps) {
     <Panel
       title="Aufgaben"
       action={
-        people.records && !adding ? (
+        people.records && adds && !adding ? (
           <Button
             size="small"
             icon={Plus}

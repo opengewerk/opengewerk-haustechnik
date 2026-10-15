@@ -22,6 +22,13 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   dem Bereich auch über die Gebäude, „Bereiche“ nennt die Gebäude mit eigenem Bereich, und ein Bereich
   wird erst entfernt, wenn auch sie verlegt sind.
 
+### Geändert
+
+- Die Seite einer Liegenschaft bietet Bearbeiten, „Neues Gebäude“, Ansprechpartner, Dokumente und
+  Aufgaben an der Liegenschaft nur noch an, wer ihren Bereich hat (#309). Wer sie nur über ein
+  Gebäude in seinem Bereich sieht, kann dort nichts ändern; bisher kam die Absage des Servers erst
+  nach dem Klick.
+
 ## [0.1.0] - 2026-10-15
 
 Die erste Fassung von OpenGewerk Haustechnik: Phase 1 des Planungskonzepts, der Stand, mit dem der
