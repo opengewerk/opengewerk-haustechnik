@@ -5241,12 +5241,39 @@
         "within_areas_or_a_building": {
           "name": "within_areas_or_a_building",
           "as": "RESTRICTIVE",
-          "for": "ALL",
+          "for": "SELECT",
           "to": [
             "opengewerk_app"
           ],
-          "using": "(SELECT session_sees_all_areas()) OR area_id = ANY ((SELECT session_areas())::uuid[]) OR EXISTS (SELECT 1 FROM buildings WHERE buildings.tenant_id = properties.tenant_id AND buildings.property_id = properties.id AND buildings.deleted_at IS NULL)",
+          "using": "(SELECT session_sees_all_areas()) OR area_id = ANY ((SELECT session_areas())::uuid[]) OR EXISTS (SELECT 1 FROM buildings WHERE buildings.tenant_id = properties.tenant_id AND buildings.property_id = properties.id AND buildings.deleted_at IS NULL)"
+        },
+        "within_areas_insert": {
+          "name": "within_areas_insert",
+          "as": "RESTRICTIVE",
+          "for": "INSERT",
+          "to": [
+            "opengewerk_app"
+          ],
           "withCheck": "(SELECT session_sees_all_areas()) OR area_id = ANY ((SELECT session_areas())::uuid[])"
+        },
+        "within_areas_update": {
+          "name": "within_areas_update",
+          "as": "RESTRICTIVE",
+          "for": "UPDATE",
+          "to": [
+            "opengewerk_app"
+          ],
+          "using": "(SELECT session_sees_all_areas()) OR area_id = ANY ((SELECT session_areas())::uuid[])",
+          "withCheck": "(SELECT session_sees_all_areas()) OR area_id = ANY ((SELECT session_areas())::uuid[])"
+        },
+        "within_areas_delete": {
+          "name": "within_areas_delete",
+          "as": "RESTRICTIVE",
+          "for": "DELETE",
+          "to": [
+            "opengewerk_app"
+          ],
+          "using": "(SELECT session_sees_all_areas()) OR area_id = ANY ((SELECT session_areas())::uuid[])"
         }
       },
       "checkConstraints": {
@@ -5711,12 +5738,39 @@
         "within_areas_or_a_building": {
           "name": "within_areas_or_a_building",
           "as": "RESTRICTIVE",
-          "for": "ALL",
+          "for": "SELECT",
           "to": [
             "opengewerk_app"
           ],
-          "using": "(SELECT session_sees_all_areas()) OR area_id = ANY ((SELECT session_areas())::uuid[]) OR EXISTS (SELECT 1 FROM buildings WHERE buildings.tenant_id = contacts.tenant_id AND buildings.property_id = contacts.property_id AND buildings.deleted_at IS NULL)",
+          "using": "(SELECT session_sees_all_areas()) OR area_id = ANY ((SELECT session_areas())::uuid[]) OR EXISTS (SELECT 1 FROM buildings WHERE buildings.tenant_id = contacts.tenant_id AND buildings.property_id = contacts.property_id AND buildings.deleted_at IS NULL)"
+        },
+        "within_areas_insert": {
+          "name": "within_areas_insert",
+          "as": "RESTRICTIVE",
+          "for": "INSERT",
+          "to": [
+            "opengewerk_app"
+          ],
           "withCheck": "(SELECT session_sees_all_areas()) OR area_id = ANY ((SELECT session_areas())::uuid[])"
+        },
+        "within_areas_update": {
+          "name": "within_areas_update",
+          "as": "RESTRICTIVE",
+          "for": "UPDATE",
+          "to": [
+            "opengewerk_app"
+          ],
+          "using": "(SELECT session_sees_all_areas()) OR area_id = ANY ((SELECT session_areas())::uuid[])",
+          "withCheck": "(SELECT session_sees_all_areas()) OR area_id = ANY ((SELECT session_areas())::uuid[])"
+        },
+        "within_areas_delete": {
+          "name": "within_areas_delete",
+          "as": "RESTRICTIVE",
+          "for": "DELETE",
+          "to": [
+            "opengewerk_app"
+          ],
+          "using": "(SELECT session_sees_all_areas()) OR area_id = ANY ((SELECT session_areas())::uuid[])"
         }
       },
       "checkConstraints": {

@@ -77,7 +77,7 @@ export const properties = pgTable(
   (table) => [
     tenantIsolation(table.tenantId),
     // Seen also by whoever holds only the area of a building on it (#306).
-    withinAreasOrABuilding('properties', 'id'),
+    ...withinAreasOrABuilding('properties', 'id'),
     unique('properties_tenant_id_key').on(table.tenantId, table.id),
     // What every row with a place points at: the property and its area
     // together, so that the area of the row follows the property.

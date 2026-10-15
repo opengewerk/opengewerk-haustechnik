@@ -15,7 +15,8 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   seiner Liegenschaft, bis es im Formular einen eigenen bekommt, und alles darin folgt ihm: Geschosse,
   Räume, Anlagen, Pflichten, Nachweise, Mängel, Vorgänge, Aufgaben, Dokumente, Zähler und Etiketten.
   Was an der Liegenschaft selbst hängt, bleibt bei ihrem Bereich. Wer nur den Bereich eines Gebäudes
-  hat, sieht die Liegenschaft mit Anschrift, Notiz und Ansprechpartnern und darin seine Gebäude. Die
+  hat, sieht die Liegenschaft mit Anschrift, Notiz und Ansprechpartnern und darin seine Gebäude,
+  ändert an der Liegenschaft aber nichts. Die
   Datenbank hält das wie bisher mit Schlüsseln: jede Zeile folgt dem Bereich dessen, woran sie hängt
   (Migration `0051_building_areas`, Nachtrag zu ADR 0003). Die Liste der Liegenschaften filtert nach
   dem Bereich auch über die Gebäude, „Bereiche“ nennt die Gebäude mit eigenem Bereich, und ein Bereich

@@ -25,8 +25,14 @@ SELECT set_config('app.reason', '', true);--> statement-breakpoint
 ALTER TABLE "buildings" FORCE ROW LEVEL SECURITY;--> statement-breakpoint
 ALTER TABLE "properties" FORCE ROW LEVEL SECURITY;--> statement-breakpoint
 DROP POLICY "within_areas_or_a_building" ON "properties";--> statement-breakpoint
+DROP POLICY "within_areas_insert" ON "properties";--> statement-breakpoint
+DROP POLICY "within_areas_update" ON "properties";--> statement-breakpoint
+DROP POLICY "within_areas_delete" ON "properties";--> statement-breakpoint
 CREATE POLICY "within_areas" ON "properties" AS RESTRICTIVE FOR ALL TO "opengewerk_app" USING ((SELECT session_sees_all_areas()) OR area_id = ANY ((SELECT session_areas())::uuid[])) WITH CHECK ((SELECT session_sees_all_areas()) OR area_id = ANY ((SELECT session_areas())::uuid[]));--> statement-breakpoint
 DROP POLICY "within_areas_or_a_building" ON "contacts";--> statement-breakpoint
+DROP POLICY "within_areas_insert" ON "contacts";--> statement-breakpoint
+DROP POLICY "within_areas_update" ON "contacts";--> statement-breakpoint
+DROP POLICY "within_areas_delete" ON "contacts";--> statement-breakpoint
 CREATE POLICY "within_areas" ON "contacts" AS RESTRICTIVE FOR ALL TO "opengewerk_app" USING ((SELECT session_sees_all_areas()) OR area_id = ANY ((SELECT session_areas())::uuid[])) WITH CHECK ((SELECT session_sees_all_areas()) OR area_id = ANY ((SELECT session_areas())::uuid[]));--> statement-breakpoint
 DROP TRIGGER "area_from_the_property" ON "buildings";--> statement-breakpoint
 DROP TRIGGER "area_from_the_property" ON "duties";--> statement-breakpoint

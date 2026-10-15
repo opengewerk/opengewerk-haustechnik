@@ -87,31 +87,42 @@ function withinAreasOrABuildingAsStored(table: string, propertyColumn: string): 
 
 /** A table that is read also by whoever sees a building on its property. */
 export interface LineThroughABuilding {
+  /** The policy that reads, for SELECT alone. */
   readonly policy: string
-  /** How the policy reads and how it writes, as PostgreSQL writes them back. */
+  /** How it reads, as PostgreSQL writes it back. */
   readonly reads: string
-  readonly writes: string
   readonly reason: string
 }
+
+/**
+ * The policies with which such a table writes, one for each command, as
+ * `pg_policy` names the command, and which of their halves ask
+ * `within_areas`: the rows a statement finds, the rows it leaves, or both.
+ */
+export const writesWithinAreas = [
+  { policy: 'within_areas_insert', command: 'a', finds: false, leaves: true },
+  { policy: 'within_areas_update', command: 'w', finds: true, leaves: true },
+  { policy: 'within_areas_delete', command: 'd', finds: true, leaves: false },
+] as const
 
 /**
  * Tables that are read also by whoever holds only the area of a building on
  * their property (section 2.8 of the concept, ADR 0003, addendum of #306):
  * they draw the line with `within_areas_or_a_building` in place of
  * `within_areas`, which reads like it and lets a row through besides whose
- * property has a building the person sees, and writes like it.
+ * property has a building the person sees, and with the policies of
+ * `writesWithinAreas`, which write like it. A policy for every command would
+ * lend what it lets be read to UPDATE and DELETE as well.
  */
 export const linesThroughABuilding: Readonly<Record<string, LineThroughABuilding>> = {
   properties: {
     policy: 'within_areas_or_a_building',
     reads: withinAreasOrABuildingAsStored('properties', 'id'),
-    writes: withinAreasAsStored,
     reason: 'the property a building stands on, with its address and its note',
   },
   contacts: {
     policy: 'within_areas_or_a_building',
     reads: withinAreasOrABuildingAsStored('contacts', 'property_id'),
-    writes: withinAreasAsStored,
     reason: 'the people to talk to at the property a building stands on',
   },
 }
@@ -170,9 +181,12 @@ export interface AreaBoundaryOptions {
  * - A key that points at a row with an area runs over the tenant and the
  *   property, or holds the area itself, so that a row cannot hang itself on a
  *   place of another area.
- * - A table on the list `linesThroughABuilding` draws the line with its policy
- *   in place of `within_areas`, restrictive, for every command and the
- *   application role, with the expressions of the building block.
+ * - A table on the list `linesThroughABuilding` draws the line in place of
+ *   `within_areas` with its policy for reading, restrictive, for SELECT alone
+ *   and the application role, with the expression of the building block, and
+ *   with the policies of `writesWithinAreas` for writing, each restrictive,
+ *   for its command alone and the application role, with the expression of
+ *   `within_areas`.
  * - The one exception is a table on the list `linesThroughARow`: its key onto
  *   the row it is a part of is let through, and in exchange it has the
  *   restrictive policy that asks that row, for every command, for the
@@ -278,6 +292,7 @@ export async function areaBoundaryProblems(
       [
         ...Object.values(linesThroughARow).map((through) => through.policy),
         ...Object.values(linesThroughABuilding).map((through) => through.policy),
+        ...writesWithinAreas.map((writes) => writes.policy),
       ],
     ],
   )
@@ -516,32 +531,48 @@ export async function areaBoundaryProblems(
       continue
     }
 
-    const where = `table ${table}, policy ${through.policy}`
-    const policy = throughPolicies.find(
-      (found) => found.table_name === table && found.name === through.policy,
-    )
+    // The wide policy reads and nothing else; each way of writing has its
+    // own, as narrow as `within_areas`.
+    const wanted = [
+      { policy: through.policy, command: 'r', using: through.reads, checking: null },
+      ...writesWithinAreas.map((writes) => ({
+        policy: writes.policy,
+        command: writes.command,
+        using: writes.finds ? withinAreasAsStored : null,
+        checking: writes.leaves ? withinAreasAsStored : null,
+      })),
+    ]
 
-    if (!policy) {
-      problems.push(`table ${table}: is read over a building and has no policy ${through.policy}`)
-      continue
-    }
+    for (const want of wanted) {
+      const where = `table ${table}, policy ${want.policy}`
+      const policy = throughPolicies.find(
+        (found) => found.table_name === table && found.name === want.policy,
+      )
 
-    if (policy.permissive || policy.command !== '*') {
-      problems.push(`${where}: not restrictive for every command, so another policy can widen it`)
-    }
+      if (!policy) {
+        problems.push(`table ${table}: is read over a building and has no policy ${want.policy}`)
+        continue
+      }
 
-    if (policy.roles.length !== 1 || policy.roles[0] !== applicationRoleName) {
-      problems.push(`${where}: for ${policy.roles.join(', ')} and not for ${applicationRoleName}`)
-    }
-
-    for (const [half, expression, wanted] of [
-      ['reads', policy.using, through.reads],
-      ['writes', policy.checking, through.writes],
-    ] as const) {
-      if (expression !== wanted) {
+      if (policy.permissive || policy.command !== want.command) {
         problems.push(
-          `${where} ${half} through something else than the building block: ${String(expression)}`,
+          `${where}: not restrictive for ${want.command} alone, so it widens or is widened by another command`,
         )
+      }
+
+      if (policy.roles.length !== 1 || policy.roles[0] !== applicationRoleName) {
+        problems.push(`${where}: for ${policy.roles.join(', ')} and not for ${applicationRoleName}`)
+      }
+
+      for (const [half, expression, expected] of [
+        ['reads', policy.using, want.using],
+        ['writes', policy.checking, want.checking],
+      ] as const) {
+        if (expression !== expected) {
+          problems.push(
+            `${where} ${half} through something else than the building block: ${String(expression)}`,
+          )
+        }
       }
     }
   }

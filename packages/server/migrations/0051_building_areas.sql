@@ -40,9 +40,12 @@
 --
 -- **Whoever holds only the area of a building** sees the property it stands
 -- on and the contacts there. `properties` and `contacts` trade `within_areas`
--- for `within_areas_or_a_building`, which reads like it and lets a row
--- through besides whose property has a building the person sees and that is
--- not removed; writing stays where `within_areas` draws the line.
+-- for four policies: `within_areas_or_a_building` for reading, which reads
+-- like it and lets a row through besides whose property has a building the
+-- person sees and that is not removed, and `within_areas_insert`, `_update`
+-- and `_delete`, which write like it. One policy for every command would lend
+-- what it lets be read to UPDATE as well, and whoever holds only a building
+-- could move the property into their area with everything below it.
 --
 -- Everything is filled before a key or a check is added. Today every row has
 -- the area of its property, so every new key holds for every row as it is,
@@ -246,7 +249,13 @@ ALTER TABLE "defects" ADD CONSTRAINT "defects_area_from_the_property" CHECK ("de
 ALTER TABLE "attachments" ADD CONSTRAINT "attachments_area_from_the_property" CHECK ("attachments"."area_from_property_id" is not distinct from (case when num_nonnulls("attachments"."building_id", "attachments"."room_id", "attachments"."asset_id", "attachments"."activity_id", "attachments"."defect_id") = 0 then "attachments"."property_id" end));--> statement-breakpoint
 ALTER TABLE "labels" ADD CONSTRAINT "labels_area_from_the_property" CHECK ("labels"."area_from_property_id" is not distinct from (case when num_nonnulls("labels"."asset_id", "labels"."room_id") = 0 then "labels"."property_id" end));--> statement-breakpoint
 ALTER TABLE "tasks" ADD CONSTRAINT "tasks_area_from_the_property" CHECK ("tasks"."area_from_property_id" is not distinct from (case when num_nonnulls("tasks"."building_id", "tasks"."room_id", "tasks"."asset_id", "tasks"."activity_id") = 0 then "tasks"."property_id" end));--> statement-breakpoint
-CREATE POLICY "within_areas_or_a_building" ON "contacts" AS RESTRICTIVE FOR ALL TO "opengewerk_app" USING ((SELECT session_sees_all_areas()) OR area_id = ANY ((SELECT session_areas())::uuid[]) OR EXISTS (SELECT 1 FROM buildings WHERE buildings.tenant_id = contacts.tenant_id AND buildings.property_id = contacts.property_id AND buildings.deleted_at IS NULL)) WITH CHECK ((SELECT session_sees_all_areas()) OR area_id = ANY ((SELECT session_areas())::uuid[]));--> statement-breakpoint
-CREATE POLICY "within_areas_or_a_building" ON "properties" AS RESTRICTIVE FOR ALL TO "opengewerk_app" USING ((SELECT session_sees_all_areas()) OR area_id = ANY ((SELECT session_areas())::uuid[]) OR EXISTS (SELECT 1 FROM buildings WHERE buildings.tenant_id = properties.tenant_id AND buildings.property_id = properties.id AND buildings.deleted_at IS NULL)) WITH CHECK ((SELECT session_sees_all_areas()) OR area_id = ANY ((SELECT session_areas())::uuid[]));--> statement-breakpoint
+CREATE POLICY "within_areas_or_a_building" ON "contacts" AS RESTRICTIVE FOR SELECT TO "opengewerk_app" USING ((SELECT session_sees_all_areas()) OR area_id = ANY ((SELECT session_areas())::uuid[]) OR EXISTS (SELECT 1 FROM buildings WHERE buildings.tenant_id = contacts.tenant_id AND buildings.property_id = contacts.property_id AND buildings.deleted_at IS NULL));--> statement-breakpoint
+CREATE POLICY "within_areas_or_a_building" ON "properties" AS RESTRICTIVE FOR SELECT TO "opengewerk_app" USING ((SELECT session_sees_all_areas()) OR area_id = ANY ((SELECT session_areas())::uuid[]) OR EXISTS (SELECT 1 FROM buildings WHERE buildings.tenant_id = properties.tenant_id AND buildings.property_id = properties.id AND buildings.deleted_at IS NULL));--> statement-breakpoint
+CREATE POLICY "within_areas_insert" ON "properties" AS RESTRICTIVE FOR INSERT TO "opengewerk_app" WITH CHECK ((SELECT session_sees_all_areas()) OR area_id = ANY ((SELECT session_areas())::uuid[]));--> statement-breakpoint
+CREATE POLICY "within_areas_update" ON "properties" AS RESTRICTIVE FOR UPDATE TO "opengewerk_app" USING ((SELECT session_sees_all_areas()) OR area_id = ANY ((SELECT session_areas())::uuid[])) WITH CHECK ((SELECT session_sees_all_areas()) OR area_id = ANY ((SELECT session_areas())::uuid[]));--> statement-breakpoint
+CREATE POLICY "within_areas_delete" ON "properties" AS RESTRICTIVE FOR DELETE TO "opengewerk_app" USING ((SELECT session_sees_all_areas()) OR area_id = ANY ((SELECT session_areas())::uuid[]));--> statement-breakpoint
+CREATE POLICY "within_areas_insert" ON "contacts" AS RESTRICTIVE FOR INSERT TO "opengewerk_app" WITH CHECK ((SELECT session_sees_all_areas()) OR area_id = ANY ((SELECT session_areas())::uuid[]));--> statement-breakpoint
+CREATE POLICY "within_areas_update" ON "contacts" AS RESTRICTIVE FOR UPDATE TO "opengewerk_app" USING ((SELECT session_sees_all_areas()) OR area_id = ANY ((SELECT session_areas())::uuid[])) WITH CHECK ((SELECT session_sees_all_areas()) OR area_id = ANY ((SELECT session_areas())::uuid[]));--> statement-breakpoint
+CREATE POLICY "within_areas_delete" ON "contacts" AS RESTRICTIVE FOR DELETE TO "opengewerk_app" USING ((SELECT session_sees_all_areas()) OR area_id = ANY ((SELECT session_areas())::uuid[]));--> statement-breakpoint
 DROP POLICY "within_areas" ON "contacts" CASCADE;--> statement-breakpoint
 DROP POLICY "within_areas" ON "properties" CASCADE;

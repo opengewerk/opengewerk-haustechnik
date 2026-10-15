@@ -324,15 +324,44 @@ export function withinAreasOrABuildingExpression(table: string, propertyColumn: 
  * address, its note and its contacts, and nothing else that hangs on the
  * property itself. Reading reaches that far; writing stays where
  * `within_areas` draws the line, so such a person changes nothing at the
- * property. Restrictive, like `within_areas`, so that no other policy widens
- * it.
+ * property.
+ *
+ * That takes four policies and not one. A policy for every command lends
+ * the rows it lets be read to UPDATE and DELETE as well, and its check only
+ * asks where a row ends up: whoever holds only the area of a building could
+ * move the property into that area, and every row below it would follow by
+ * the keys. Restrictive policies are joined per command, so the wide one
+ * reads only, and one for each way of writing asks `within_areas`. All of
+ * them restrictive, so that no other policy widens them.
  */
 export function withinAreasOrABuilding(table: string, propertyColumn: string) {
-  return pgPolicy('within_areas_or_a_building', {
-    as: 'restrictive',
-    for: 'all',
-    to: applicationRole,
-    using: sql.raw(withinAreasOrABuildingExpression(table, propertyColumn)),
-    withCheck: sql.raw(withinAreasExpression),
-  })
+  const inReach = sql.raw(withinAreasExpression)
+
+  return [
+    pgPolicy('within_areas_or_a_building', {
+      as: 'restrictive',
+      for: 'select',
+      to: applicationRole,
+      using: sql.raw(withinAreasOrABuildingExpression(table, propertyColumn)),
+    }),
+    pgPolicy('within_areas_insert', {
+      as: 'restrictive',
+      for: 'insert',
+      to: applicationRole,
+      withCheck: inReach,
+    }),
+    pgPolicy('within_areas_update', {
+      as: 'restrictive',
+      for: 'update',
+      to: applicationRole,
+      using: inReach,
+      withCheck: inReach,
+    }),
+    pgPolicy('within_areas_delete', {
+      as: 'restrictive',
+      for: 'delete',
+      to: applicationRole,
+      using: inReach,
+    }),
+  ]
 }

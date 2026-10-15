@@ -37,7 +37,7 @@ export const { contacts } = contactsSchema({
   columns: contactPlace,
   constraints: (table) => [
     // Seen also by whoever holds only the area of a building on the property (#306).
-    withinAreasOrABuilding('contacts', 'property_id'),
+    ...withinAreasOrABuilding('contacts', 'property_id'),
     foreignKey({
       columns: [table.tenantId, table.propertyId, table.areaId],
       foreignColumns: [properties.tenantId, properties.id, properties.areaId],

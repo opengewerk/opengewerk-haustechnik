@@ -169,10 +169,13 @@ async function removedByMarking(table: string): Promise<boolean> {
   return rows[0]?.marked === true
 }
 
-/** Whether the application may change the rows of a table at all. */
+/**
+ * Whether the application may change the area of the rows of a table at all,
+ * by a grant on the table or on the column alone, as on `labels` (#306).
+ */
 async function changeable(table: string): Promise<boolean> {
   const { rows } = await admin.query<{ changeable: boolean }>(
-    `select has_table_privilege('opengewerk_app', format('public.%I', $1::text), 'UPDATE')
+    `select has_column_privilege('opengewerk_app', format('public.%I', $1::text), 'area_id', 'UPDATE')
               as changeable`,
     [table],
   )
@@ -958,6 +961,51 @@ describe('a building with an area of its own', () => {
 
     expect(back).toEqual([{ rows: 1 }])
     expect(await propertiesSeen('properties', person.south)).toEqual(['south'])
+  })
+
+  /**
+   * Reading over a building lends nothing to writing: whoever holds only the
+   * south and a building of the north in it could otherwise move the property
+   * into the south, and every row below it would follow by the keys.
+   */
+  it('lets whoever holds only the building read the property and change nothing at it', async () => {
+    await own(area.south)
+
+    try {
+      const property = place.north.property
+      const changed = await triedAs(person.south, async (tx) => ({
+        moved: (
+          await tx.execute(
+            sql`update properties set area_id = ${area.south} where id = ${property}`,
+          )
+        ).rowCount,
+        renamed: (await tx.execute(sql`update properties set name = name where id = ${property}`))
+          .rowCount,
+        removed: (
+          await tx.execute(sql`update properties set deleted_at = now() where id = ${property}`)
+        ).rowCount,
+        contacts: (
+          await tx.execute(sql`update contacts set phone = phone where property_id = ${property}`)
+        ).rowCount,
+      }))
+
+      expect(changed).toEqual({ moved: 0, renamed: 0, removed: 0, contacts: 0 })
+      expect(await propertiesSeen('properties', person.south)).toEqual(['north', 'south'])
+      expect(await propertiesSeen('contacts', person.south)).toEqual(['north', 'south'])
+
+      // The same statements reach the property for whoever holds the north.
+      const reached = await triedAs(person.north, async (tx) => ({
+        renamed: (await tx.execute(sql`update properties set name = name where id = ${property}`))
+          .rowCount,
+        contacts: (
+          await tx.execute(sql`update contacts set phone = phone where property_id = ${property}`)
+        ).rowCount,
+      }))
+
+      expect(reached).toEqual({ renamed: 1, contacts: 1 })
+    } finally {
+      await own(null)
+    }
   })
 
   it('follows a property that moves only without an area of its own', async () => {

@@ -123,6 +123,9 @@ describe('the foundation in this database', () => {
         policies: [
           'deadlines.within_areas',
           'contacts.within_areas_or_a_building',
+          'contacts.within_areas_insert',
+          'contacts.within_areas_update',
+          'contacts.within_areas_delete',
           'attachments.within_areas',
           'attachment_versions.within_areas_of_their_file',
         ],
