@@ -30,6 +30,20 @@ export function useAreas(): readonly Area[] {
   return useAreasQuery().data ?? none
 }
 
+/**
+ * Whether the person holds an area, as far as the server has said: yes until
+ * it has answered, so that nothing a person may do flickers away. Whoever
+ * holds only the area of a building reads the property it stands on and
+ * changes nothing there (#306); a screen asks this before it offers a change
+ * at the property itself (#309). The server refuses such a change all the
+ * same.
+ */
+export function useHoldsArea(areaId: unknown): boolean {
+  const { data } = useAreasQuery()
+
+  return data === undefined || data.some((area) => area.id === areaId)
+}
+
 /** The name of an area by its id, or nothing while the areas are not known. */
 export function areaName(areas: readonly Area[], id: unknown): string | null {
   return areas.find((area) => area.id === id)?.name ?? null

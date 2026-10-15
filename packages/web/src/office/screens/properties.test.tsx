@@ -976,6 +976,36 @@ describe('the page of a property', () => {
     expect(screen.queryByRole('link', { name: 'Änderungen' })).toBeNull()
   })
 
+  /** What the page offers to change at the property itself, by the words on its buttons. */
+  const changes = ['Bearbeiten', 'Neues Gebäude', 'Hinzufügen', 'Hochladen', 'Aufgabe anlegen']
+
+  it('offers whoever holds the area of the property every change at it', async () => {
+    await mount('/liegenschaften/p-school')
+    await untilTheRightsAreKnown()
+    await screen.findByRole('region', { name: 'Anschrift' })
+
+    for (const name of changes) {
+      expect((await screen.findAllByRole('button', { name })).length).toBeGreaterThan(0)
+    }
+  })
+
+  it('offers none to whoever reads it only over a building in an area of their own (#309)', async () => {
+    signedIn('management', [nord])
+    await mount('/liegenschaften/p-school')
+    await untilTheRightsAreKnown()
+    await screen.findByRole('region', { name: 'Anschrift' })
+
+    // Offered until the server has said which areas the person holds, and
+    // gone once it has.
+    await waitFor(() => {
+      expect(screen.queryByRole('button', { name: 'Bearbeiten' })).toBeNull()
+    })
+
+    for (const name of changes) {
+      expect(screen.queryByRole('button', { name })).toBeNull()
+    }
+  })
+
   it('says so when the device holds no such property', async () => {
     await mount('/liegenschaften/p-gone')
 

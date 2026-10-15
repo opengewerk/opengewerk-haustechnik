@@ -524,6 +524,7 @@ export function DocumentsCard({
   place,
   at,
   title = 'Dokumente',
+  files: filesHere = true,
 }: {
   /** The record the documents hang on: the property alone for those of the property itself. */
   readonly place: DocumentPlace
@@ -531,10 +532,15 @@ export function DocumentsCard({
   readonly at: string
   /** What the card is called: "Fotos" at a defect. */
   readonly title?: string
+  /**
+   * Whether a document may be filed here at all, besides the right: not at a
+   * property whose area the person does not hold (#309).
+   */
+  readonly files?: boolean
 }) {
   const client = useSync()
   const reads = useRight('document.read')
-  const files = useRight('document.record')
+  const files = useRight('document.record') && filesHere
   const documents = useRecords('attachments')
   const versions = useVersions()
   const [filing, setFiling] = useState(false)
