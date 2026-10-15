@@ -16,6 +16,7 @@ import {
   type Building,
   type BuildingId,
   buildingProblems,
+  byNameIn,
   type Floor,
   floorProblems,
   type Property,
@@ -27,7 +28,7 @@ import {
   requireSomething,
   type TenantTransaction,
 } from '@opengewerk/platform-server'
-import { and, asc, eq, isNull } from 'drizzle-orm'
+import { and, eq, isNull } from 'drizzle-orm'
 
 import { buildings, floors, properties } from '../database/schema/index.js'
 import { RequiresPermission } from './authorization.js'
@@ -188,11 +189,16 @@ export class BuildingsController {
     return this.database.forTenant(identity, async (tx) => {
       await placeOf<Building>(tx, buildings, id, missing)
 
-      return tx
+      const found = (await tx
         .select()
         .from(floors)
-        .where(and(eq(floors.buildingId, id as BuildingId), isNull(floors.deletedAt)))
-        .orderBy(asc(floors.level), asc(floors.name)) as Promise<Floor[]>
+        .where(and(eq(floors.buildingId, id as BuildingId), isNull(floors.deletedAt)))) as Floor[]
+
+      // From the lowest level up, two on one level by name as a list reads
+      // them, a number in it by its value (#322).
+      return found.sort(
+        (left, right) => left.level - right.level || byNameIn(left.name, right.name),
+      )
     })
   }
 

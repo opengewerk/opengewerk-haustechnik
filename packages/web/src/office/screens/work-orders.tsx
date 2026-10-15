@@ -3,6 +3,7 @@ import {
   activityKindOfTask,
   activityLimits,
   activityProblems,
+  byNameIn,
   type DefectRegister,
   durationWords,
   type DutyDetails,
@@ -1437,7 +1438,7 @@ export function NewWorkOrderScreen() {
   }
   const targets = recordsOf[home]
     .map((record) => ({ value: String(record['id']), label: labelOf(record) }))
-    .sort((left, right) => left.label.localeCompare(right.label, 'de'))
+    .sort((left, right) => byNameIn(left.label, right.label))
   const chosen = recordsOf[home].find((record) => record['id'] === target)
 
   // The property the people to choose from are asked by.

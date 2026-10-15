@@ -34,6 +34,7 @@ import {
 } from './duty-proposal.js'
 import { dutyInterval, intervalWords } from './duty-record.js'
 import type { DutyEntry } from './duty-register.js'
+import { byNameIn } from './name-order.js'
 import {
   dutySourceWords,
   dutyStandingWords,
@@ -160,11 +161,6 @@ export function byUrgency(left: PlaceToDo | undefined, right: PlaceToDo | undefi
   }
 
   return 0
-}
-
-/** Two names in the order a German list sorts them. */
-export function byNameIn(left: string, right: string): number {
-  return left.localeCompare(right, 'de')
 }
 
 /** Where a property is, as the list writes it under its name. */

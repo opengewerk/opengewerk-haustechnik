@@ -1,5 +1,6 @@
 import {
   type AssetDetails,
+  byNameIn,
   type LifecycleEntry,
   type LifecycleState,
   lifecycleStateLabel,
@@ -136,7 +137,7 @@ export function MoveAssetDialog({
       component ? each['id'] === asset.buildingId : each['propertyId'] === asset.propertyId,
     )
     .map((each) => ({ value: String(each['id']), label: text(each, 'name') }))
-    .sort((left, right) => left.label.localeCompare(right.label, 'de'))
+    .sort((left, right) => byNameIn(left.label, right.label))
   const here = (records: readonly RecordState[]) =>
     records.filter((each) => each['buildingId'] === buildingId)
 
@@ -282,7 +283,7 @@ export function AssetSuppliesDialog({
     }
   }, [buildings, floors])
 
-  const byLabel = (left: Choice, right: Choice) => left.label.localeCompare(right.label, 'de')
+  const byLabel = (left: Choice, right: Choice) => byNameIn(left.label, right.label)
   const onProperty = (records: readonly RecordState[]) =>
     records.filter((each) => each['propertyId'] === asset.propertyId)
   const buildingChoices = onProperty(buildings)

@@ -6,6 +6,7 @@ import { maybeText, text } from '@opengewerk/platform-web/sync'
 import { useNavigate } from '@tanstack/react-router'
 import type { LucideIcon } from 'lucide-react'
 import { type ReactNode, type RefObject, useSyncExternalStore } from 'react'
+import { byNameIn } from '@opengewerk/haustechnik-domain'
 
 /**
  * What the screens of this application on site share beyond the kit of the
@@ -60,7 +61,7 @@ export function countWords(count: number, one: string, many: string, none: strin
 }
 
 export const byName = (left: RecordState, right: RecordState) =>
-  text(left, 'name').localeCompare(text(right, 'name'), 'de')
+  byNameIn(text(left, 'name'), text(right, 'name'))
 
 /**
  * In place of a page whose record the device does not hold: removed, outside

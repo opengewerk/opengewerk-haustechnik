@@ -1,5 +1,6 @@
 import { BadRequestException } from '@nestjs/common'
 import {
+  byNameIn,
   invitedAreasInWords,
   type InvitationAreas,
   type MemberAreas,
@@ -181,7 +182,7 @@ export const areaAdditions: MembershipAdditions = {
 
     return invitedAreasInWords(
       false,
-      named.map((row) => row.name).sort((left, right) => left.localeCompare(right, 'de')),
+      named.map((row) => row.name).sort((left, right) => byNameIn(left, right)),
     )
   },
 

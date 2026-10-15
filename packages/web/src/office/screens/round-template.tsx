@@ -1,4 +1,5 @@
 import {
+  byNameIn,
   type Catalogue,
   canonicalForm,
   formUnits,
@@ -208,10 +209,10 @@ function useTemplateRecords(catalogue: Catalogue | null): {
       choices: {
         assets: [...liveAssets.values()]
           .map((asset) => ({ value: String(asset['id']), label: assetLabel(asset) }))
-          .sort((left, right) => left.label.localeCompare(right.label, 'de')),
+          .sort((left, right) => byNameIn(left.label, right.label)),
         rooms: [...liveRooms.values()]
           .map((room) => ({ value: String(room['id']), label: roomLabel(room) }))
-          .sort((left, right) => left.label.localeCompare(right.label, 'de')),
+          .sort((left, right) => byNameIn(left.label, right.label)),
         duties: (kind, id) =>
           openDuties
             .filter(

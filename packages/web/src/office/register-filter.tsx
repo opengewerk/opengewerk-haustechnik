@@ -3,6 +3,7 @@ import { today } from '@opengewerk/platform-web/format'
 import { text } from '@opengewerk/platform-web/sync'
 import { ChevronDown } from 'lucide-react'
 import { type ReactNode, useId } from 'react'
+import { byNameIn } from '@opengewerk/haustechnik-domain'
 
 /**
  * What the registers of the office are narrowed with, `select_filter()` of
@@ -79,7 +80,7 @@ export function PlaceFilter({
   readonly className: string
 }) {
   const byName = (left: RecordState, right: RecordState) =>
-    text(left, 'name').localeCompare(text(right, 'name'), 'de')
+    byNameIn(text(left, 'name'), text(right, 'name'))
   const value =
     place.buildingId !== undefined
       ? `b:${place.buildingId}`
@@ -152,5 +153,5 @@ export function assetKindChoices(catalogue: Catalogue | null): KindChoice[] {
           ? `${entry.definition.label} (${packageOf(entry.key)})`
           : entry.definition.label,
     }))
-    .sort((left, right) => left.label.localeCompare(right.label, 'de'))
+    .sort((left, right) => byNameIn(left.label, right.label))
 }

@@ -1,5 +1,6 @@
 import {
   addDays,
+  byNameIn,
   type IsoDate,
   monthLabel,
   type RecordState,
@@ -102,7 +103,7 @@ function byDay(left: RecordState, right: RecordState): number {
   const rightDay = maybeText(right, 'dueOn') ?? '9999-12-31'
 
   return leftDay === rightDay
-    ? text(left, 'title').localeCompare(text(right, 'title'), 'de')
+    ? byNameIn(text(left, 'title'), text(right, 'title'))
     : leftDay.localeCompare(rightDay)
 }
 

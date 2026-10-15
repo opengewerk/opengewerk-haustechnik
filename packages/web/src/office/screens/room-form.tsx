@@ -1,4 +1,4 @@
-import { type RecordState, roomProblems } from '@opengewerk/haustechnik-domain'
+import { byNameIn, type RecordState, roomProblems } from '@opengewerk/haustechnik-domain'
 import { Button, Confirm, Panel, SelectField } from '@opengewerk/platform-web'
 import { NoteBox, PageHead, Screen } from '@opengewerk/platform-web/office'
 import { useRight } from '@opengewerk/platform-web/session'
@@ -242,7 +242,7 @@ function MoveRoom({
       ...inBuilding(here).map((each) => ({ value: String(each['id']), label: text(each, 'name') })),
       ...[...nameOf.entries()]
         .filter(([id]) => id !== here)
-        .sort((left, right) => left[1].localeCompare(right[1], 'de'))
+        .sort((left, right) => byNameIn(left[1], right[1]))
         .flatMap(([id, name]) =>
           inBuilding(id).map((each) => ({
             value: String(each['id']),

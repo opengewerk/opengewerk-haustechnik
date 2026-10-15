@@ -18,6 +18,7 @@ import {
   activityClosable,
   type ActivityId,
   activityProblems,
+  byNameIn,
   type Catalogue,
   type Defect,
   type DefectId,
@@ -385,7 +386,7 @@ export class WorkOrdersController {
       people: found.performers
         .map((userId) => named(userId))
         .filter((person) => person !== null)
-        .sort((left, right) => left.name.localeCompare(right.name, 'de')),
+        .sort((left, right) => byNameIn(left.name, right.name)),
     }
   }
 

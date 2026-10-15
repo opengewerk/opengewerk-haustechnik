@@ -2,6 +2,7 @@ import type { INestApplication } from '@nestjs/common'
 import { Test } from '@nestjs/testing'
 import { probeCatalogueBundle } from '@opengewerk/haustechnik-catalogue/testing'
 import {
+  byNameIn,
   catalogueOf,
   missingRight,
   type RoleKey,
@@ -556,7 +557,7 @@ describe('who a task may go to', () => {
           // The Leitung and the Technische Leitung see every area.
           { userId: 'u-duties', name: 'Jörg Albrecht' },
           { userId: 'u-lead', name: 'Sabine Krämer' },
-        ].sort((left, right) => left.name.localeCompare(right.name, 'de')),
+        ].sort((left, right) => byNameIn(left.name, right.name)),
       },
     ])
   })

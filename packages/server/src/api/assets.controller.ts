@@ -26,6 +26,7 @@ import {
   assetValueProblems,
   type Building,
   type BuildingId,
+  byNameIn,
   type Catalogue,
   type DistinctAsset,
   distinctFromProblem,
@@ -477,7 +478,7 @@ export class AssetsController {
           shortened,
           updated,
         }))
-        .sort((left, right) => left.title.localeCompare(right.title, 'de'))
+        .sort((left, right) => byNameIn(left.title, right.title))
     })
   }
 

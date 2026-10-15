@@ -1,6 +1,7 @@
 import {
   activityKindLabel,
   activityStatusLabel,
+  byNameIn,
   defaultDueOn,
   type DefectCheckOutcome,
   defectCheckProblems,
@@ -384,7 +385,7 @@ export function DefectListScreen() {
   const named = (records: readonly RecordState[]) =>
     records
       .map((record) => ({ value: String(record['id']), label: maybeText(record, 'name') ?? '' }))
-      .sort((left, right) => left.label.localeCompare(right.label, 'de'))
+      .sort((left, right) => byNameIn(left.label, right.label))
   const classes =
     catalogue === null
       ? []
@@ -1306,7 +1307,7 @@ export function NewDefectScreen() {
   }
   const targets = recordsOf[home]
     .map((record) => ({ value: String(record['id']), label: labelOf(record) }))
-    .sort((left, right) => left.label.localeCompare(right.label, 'de'))
+    .sort((left, right) => byNameIn(left.label, right.label))
   const chosen = recordsOf[home].find((record) => record['id'] === target)
 
   async function report() {

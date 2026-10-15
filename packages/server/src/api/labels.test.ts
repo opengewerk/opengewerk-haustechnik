@@ -797,6 +797,34 @@ describe('a print of the labels of the rooms of a building', () => {
     expect(page).toContain('1.07 Lager')
   })
 
+  /** As text, E.10 would come before E.2 (#322). */
+  it('prints the rooms of a floor by their numbers as a person counts them', async () => {
+    const fresh = await placeIn()
+    const lead = by('technical_management')
+    const floor = await made(lead, `/buildings/${fresh.building}/floors`, {
+      name: 'Obergeschoss',
+      level: 1,
+    })
+    const rooms = new Map<string, string>()
+
+    for (const number of ['E.10', 'E.2', 'E.9']) {
+      rooms.set(number, await made(lead, `/floors/${floor}/rooms`, { number }))
+    }
+
+    await post('/labels/print/rooms', by('technician'), { buildingId: fresh.building }).expect(200)
+
+    const labels = await labelsIn(fresh.property)
+    const page = lastPage()
+    const places = ['E.2', 'E.9', 'E.10'].map((number) =>
+      page.indexOf(
+        printedLabelCode(labels.find((label) => label.room_id === rooms.get(number))?.code ?? ''),
+      ),
+    )
+
+    expect(places.every((at) => at >= 0)).toBe(true)
+    expect([...places].sort((a, b) => a - b)).toEqual(places)
+  })
+
   it('is not there for a building outside the areas of whoever asks', async () => {
     await post('/labels/print/rooms', by('technician', large), {
       buildingId: inSouth.building,

@@ -7,6 +7,7 @@ import {
   tableAnswer,
   tableFormatOf,
 } from '@opengewerk/platform-server'
+import { byNameIn } from '@opengewerk/haustechnik-domain'
 
 import { areasInSight } from '../areas/areas.js'
 import { taskCandidatesIn } from '../tasks/candidates.js'
@@ -78,7 +79,7 @@ export class TasksController {
         areaId: area.areaId,
         people: area.userIds
           .map((userId) => ({ userId, name: accounts.get(userId)?.name ?? 'Unbekanntes Konto' }))
-          .sort((left, right) => left.name.localeCompare(right.name, 'de')),
+          .sort((left, right) => byNameIn(left.name, right.name)),
       })),
     }
   }

@@ -2,6 +2,8 @@ import {
   type AssetId,
   type BuildingId,
   buildingKindLabel,
+  byNameIn,
+  byNumberIn,
   type FloorId,
   type PropertyId,
   type RecordState,
@@ -64,24 +66,17 @@ export function titleOfRoom(room: RecordState | null | undefined): string {
 export function byLevel(left: RecordState, right: RecordState): number {
   const level = (floor: RecordState) => (typeof floor['level'] === 'number' ? floor['level'] : 0)
 
-  return level(left) - level(right) || text(left, 'name').localeCompare(text(right, 'name'), 'de')
+  return level(left) - level(right) || byNameIn(text(left, 'name'), text(right, 'name'))
 }
 
-/**
- * Rooms and assets by their number as a person counts them, E.2 before E.10
- * and AN-00009 before AN-00010, two with the same number by name. Those
- * without a number come after them, by name: a room that has only a name,
- * and an asset the server has not numbered yet.
- */
+/** Rooms and assets by their number as a person counts them, as `byNumberIn` of the domain orders them. */
 export function byNumber(left: RecordState, right: RecordState): number {
-  const [first, second] = [maybeText(left, 'number'), maybeText(right, 'number')]
-  const byName = () => text(left, 'name').localeCompare(text(right, 'name'), 'de')
+  const numbered = (record: RecordState) => ({
+    number: maybeText(record, 'number'),
+    name: text(record, 'name'),
+  })
 
-  if (first === null || second === null) {
-    return first === second ? byName() : first === null ? 1 : -1
-  }
-
-  return first.localeCompare(second, 'de', { numeric: true }) || byName()
+  return byNumberIn(numbered(left), numbered(right))
 }
 
 /**

@@ -5,6 +5,7 @@ import {
   type AssetKind,
   assetProblems,
   assetValueProblems,
+  byNameIn,
   type Catalogue,
   type DuplicateField,
   duplicateFields,
@@ -348,8 +349,8 @@ function AssetForm({
     return [...buildings]
       .sort(
         (left, right) =>
-          propertyOf(left).localeCompare(propertyOf(right), 'de') ||
-          text(left, 'name').localeCompare(text(right, 'name'), 'de'),
+          byNameIn(propertyOf(left), propertyOf(right)) ||
+          byNameIn(text(left, 'name'), text(right, 'name')),
       )
       .map((each) => ({
         value: String(each['id']),

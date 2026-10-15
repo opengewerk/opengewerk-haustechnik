@@ -1,6 +1,7 @@
 import {
   type AssetDetails,
   bearsTheIntervalOf,
+  byNameIn,
   type Catalogue,
   catalogueOriginLabel,
   type CatalogueEntry,
@@ -740,7 +741,7 @@ function useDocumentChoices(chain: DutyPlaceChain, pointedAt: DutyIntervalDocume
         ? []
         : [{ value: id, label: `${text(document, 'title')} (${text(newest, 'fileName')})` }]
     })
-    .sort((left, right) => left.label.localeCompare(right.label, 'de'))
+    .sort((left, right) => byNameIn(left.label, right.label))
   const kept =
     pointedAt === null || offered.some((choice) => choice.value === pointedAt.id)
       ? []

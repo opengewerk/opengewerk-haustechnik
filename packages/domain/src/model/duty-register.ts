@@ -1,4 +1,5 @@
 import { addDays, type DeadlineInterval, type IsoDate } from '@opengewerk/platform-domain'
+import { byNameIn } from './name-order.js'
 
 import type { ActivityKind, ActivityStatus } from './activity.js'
 import type { Asset } from './asset.js'
@@ -261,7 +262,7 @@ export function inRegisterOrder(
     rank(left) - rank(right) ||
     day(left).localeCompare(day(right)) ||
     number(left).localeCompare(number(right)) ||
-    left.title.localeCompare(right.title, 'de') ||
+    byNameIn(left.title, right.title) ||
     left.id.localeCompare(right.id)
   )
 }

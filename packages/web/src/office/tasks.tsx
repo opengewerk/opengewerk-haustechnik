@@ -1,4 +1,5 @@
 import {
+  byNameIn,
   type RecordState,
   taskEntity,
   taskLimits,
@@ -180,7 +181,7 @@ function usePlaceField(): {
     const building = new Map(buildings.map((each) => [String(each['id']), each]))
     const name = (record: RecordState | undefined) => maybeText(record ?? null, 'name') ?? ''
     const byLabel = (left: { label: string }, right: { label: string }) =>
-      left.label.localeCompare(right.label, 'de')
+      byNameIn(left.label, right.label)
     const options = [
       ...properties
         .filter((each) => held(each['areaId']))

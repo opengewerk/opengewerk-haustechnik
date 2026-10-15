@@ -1,3 +1,5 @@
+import { byNameIn } from './name-order.js'
+
 import type { AssetValue } from './asset.js'
 import {
   type AssetField,
@@ -136,7 +138,7 @@ export function assetValuesWords(
 
         return known ? `${known.label}: ${known.words(value, day)}` : `${key}: ${String(value)}`
       })
-      .sort((one, other) => one.localeCompare(other, 'de'))
+      .sort((one, other) => byNameIn(one, other))
       .join(', ')
   }
 }

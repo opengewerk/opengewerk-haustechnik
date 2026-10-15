@@ -1,4 +1,5 @@
 import {
+  byNameIn,
   type DeadlineFacts,
   deadlineSubject,
   deadlineTableColumns,
@@ -154,7 +155,7 @@ export function DeadlineListScreen() {
           value: String(property['id']),
           label: maybeText(property, 'name') ?? 'Liegenschaft',
         }))
-        .sort((left, right) => left.label.localeCompare(right.label, 'de')),
+        .sort((left, right) => byNameIn(left.label, right.label)),
     },
     ...(areas.length > 1
       ? [

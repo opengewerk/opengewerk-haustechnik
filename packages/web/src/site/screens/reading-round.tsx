@@ -1,4 +1,5 @@
 import {
+  byNameIn,
   defaultKeyDay,
   type IsoDate,
   keyDateFor,
@@ -101,7 +102,7 @@ export function ReadingRoundScreen() {
             .join(', '),
         }
       })
-      .sort((left, right) => left.title.localeCompare(right.title, 'de'))
+      .sort((left, right) => byNameIn(left.title, right.title))
   }, [held, propertyId, buildings, rooms, day])
 
   if (property === null) {

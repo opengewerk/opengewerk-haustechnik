@@ -1,5 +1,6 @@
 import {
   addDays,
+  byNameIn,
   everybodyIn,
   type IsoDate,
   type RecordState,
@@ -208,9 +209,9 @@ export function RoundWeekScreen() {
       .filter((row) => area === null || row.areaId === area)
       .sort(
         (left, right) =>
-          left.property.localeCompare(right.property, 'de') ||
-          left.building.localeCompare(right.building, 'de') ||
-          left.title.localeCompare(right.title, 'de'),
+          byNameIn(left.property, right.property) ||
+          byNameIn(left.building, right.building) ||
+          byNameIn(left.title, right.title),
       )
   }, [week.data, rowOf, area])
 

@@ -53,6 +53,19 @@ const besideTheFoundation = [
   },
 ]
 
+// A list of names sorts a number in a name by its value, Musterstraße 2 before
+// Musterstraße 10 (#322). `byNameIn` of the domain package does; a comparison
+// as German text puts 10 first, because its first digit decides.
+const namesInOrder = {
+  selector: "CallExpression[callee.property.name='localeCompare'][arguments.1.value='de']",
+  message:
+    'Names are compared with byNameIn from the domain package, which sorts a number in a name by its value (#322).',
+}
+
+// The domain package keeps the clock rules of the foundation under the same
+// key, so the rule on names joins them there instead of replacing them.
+const computing = computesOnly(['packages/domain/**/*.ts'], [...above, ...besideTheFoundation])
+
 export default configuration(
   generated,
 
@@ -64,7 +77,19 @@ export default configuration(
   ...everywhere,
 
   // The domain package computes; it does not talk to the outside world.
-  computesOnly(['packages/domain/**/*.ts'], [...above, ...besideTheFoundation]),
+  {
+    ...computing,
+    rules: {
+      ...computing.rules,
+      'no-restricted-syntax': [...computing.rules['no-restricted-syntax'], namesInOrder],
+    },
+  },
+
+  // Every other package sorts names the same way.
+  {
+    files: ['packages/{catalogue,server,web}/**/*.{ts,tsx}'],
+    rules: { 'no-restricted-syntax': ['error', namesInOrder] },
+  },
 
   // Every other package of the application: nothing reaches past the
   // foundation. The domain package is left out because the block above

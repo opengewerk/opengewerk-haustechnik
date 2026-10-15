@@ -32,6 +32,10 @@ export * from './model/area.js'
 export * from './model/location.js'
 export * from './model/target.js'
 
+// Names in the order a German list sorts them, a number in a name by its
+// value, for every list of the interface and the server alike.
+export * from './model/name-order.js'
+
 // The people to talk to at a property: the contacts of the foundation, with
 // what one hangs on here and how long its texts may be.
 export * from './model/contact.js'

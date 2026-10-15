@@ -3,6 +3,7 @@ import {
   type ActivityStatus,
   activityStatusLabel,
   assetMarkLabel,
+  byNameIn,
   closeness,
   type RecordState,
   type Right,
@@ -186,7 +187,7 @@ function ranked(rows: readonly Ranked[]): {
 
     for (const [index, key] of a.order.entries()) {
       const other = b.order[index] ?? ''
-      const compared = key.localeCompare(other, 'de')
+      const compared = byNameIn(key, other)
 
       if (compared !== 0) {
         return compared

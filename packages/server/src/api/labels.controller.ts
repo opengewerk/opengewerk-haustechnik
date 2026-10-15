@@ -21,6 +21,7 @@ import {
   type Asset,
   type Building,
   type BuildingId,
+  byNumberIn,
   type Catalogue,
   isLabelCode,
   labelBatchMost,
@@ -679,13 +680,18 @@ export class LabelsController extends LabelPrinting {
           missingBuilding,
         )
         const found = await tx
-          .select({ room: rooms })
+          .select({ room: rooms, level: floors.level })
           .from(rooms)
           .innerJoin(floors, eq(floors.id, rooms.floorId))
           .where(and(eq(rooms.buildingId, building.id as BuildingId), isNull(rooms.deletedAt)))
-          .orderBy(asc(floors.level), asc(rooms.number), asc(rooms.name), asc(rooms.id))
+          .orderBy(asc(rooms.id))
           .for('share', { of: rooms })
-        const inOrder = found.map((row) => row.room as Room)
+        // Floor by floor from the lowest up, on a floor by number as a person
+        // counts them, E.2 before E.10 (#322); the database would sort as text.
+        const inOrder = found
+          .map((row) => ({ level: row.level, room: row.room as Room }))
+          .sort((left, right) => left.level - right.level || byNumberIn(left.room, right.room))
+          .map((row) => row.room)
 
         if (inOrder.length === 0) {
           throw new UnprocessableEntityException(

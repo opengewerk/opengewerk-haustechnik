@@ -26,6 +26,7 @@ import {
   activityListStatuses,
   activityPlanProblems,
   activityProblems,
+  byNameIn,
   type Catalogue,
   type DueActivityKind,
   dueActivityKinds,
@@ -392,7 +393,7 @@ export class ActivitiesController {
     const people = (userIds: readonly string[]): DutyPerson[] =>
       userIds
         .map((userId) => ({ userId, name: accounts.get(userId)?.name ?? 'Unbekanntes Konto' }))
-        .sort((left, right) => left.name.localeCompare(right.name, 'de'))
+        .sort((left, right) => byNameIn(left.name, right.name))
 
     return { responsible: people(found.responsible), performers: people(found.performers) }
   }

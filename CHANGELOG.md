@@ -17,6 +17,15 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   seine Frist entfällt; das Änderungsprotokoll nennt, wer ihn angelegt und wer ihn entfernt hat. Ist
   schon ein Rundgang gegangen, wird der Plan beendet, wie eine Pflicht mit Nachweis.
 
+### Behoben
+
+- Namen mit Zahlen stehen in jeder Liste nach dem Wert der Zahl (#322): Musterstraße 2 vor
+  Musterstraße 10, 2.1 zwischen 2 und 3, Raum E.2 vor E.10. Bisher sortierten die Listen als Text,
+  und bei einer Liegenschaft, deren Gebäude nach Straße und Hausnummer heißen, stand 10 vor 2. Das
+  gilt im Büro und auf dem Telefon, in den Auswahlfeldern und Filtern und auf dem Server: in der
+  Tabelle der Liegenschaften, in den Routen, die Liegenschaften, Gebäude, Geschosse und Räume
+  liefern, und auf dem Bogen mit den Etiketten der Räume eines Gebäudes.
+
 ## [0.1.2] - 2026-10-15
 
 Die zweite Nachlieferung für den Pilotbetrieb, aus dem ersten Tag mit den übernommenen Daten. Im Plan

@@ -1,4 +1,5 @@
 import {
+  byNameIn,
   type DocumentKind,
   documentKindLabel,
   documentKinds,
@@ -171,7 +172,7 @@ export function UploadDocumentDialog({
 
   const held = useHeldArea()
   const byName = (records: readonly RecordState[]) =>
-    [...records].sort((left, right) => text(left, 'name').localeCompare(text(right, 'name'), 'de'))
+    [...records].sort((left, right) => byNameIn(text(left, 'name'), text(right, 'name')))
   const itsBuildings = byName(buildings.filter((building) => building['propertyId'] === propertyId))
   // At the property itself only for whoever holds its area (#310).
   const wholeProperty =

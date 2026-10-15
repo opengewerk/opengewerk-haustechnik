@@ -1,5 +1,6 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post } from '@nestjs/common'
 import {
+  byNumberIn,
   type Floor,
   type FloorId,
   floorProblems,
@@ -7,7 +8,7 @@ import {
   roomProblems,
 } from '@opengewerk/haustechnik-domain'
 import { CurrentIdentity, Database, requireSomething } from '@opengewerk/platform-server'
-import { and, asc, eq, isNull } from 'drizzle-orm'
+import { and, eq, isNull } from 'drizzle-orm'
 
 import { floors, rooms } from '../database/schema/index.js'
 import { RequiresPermission } from './authorization.js'
@@ -81,11 +82,14 @@ export class FloorsController {
     return this.database.forTenant(identity, async (tx) => {
       await placeOf<Floor>(tx, floors, id, missing)
 
-      return tx
+      const found = (await tx
         .select()
         .from(rooms)
-        .where(and(eq(rooms.floorId, id as FloorId), isNull(rooms.deletedAt)))
-        .orderBy(asc(rooms.number), asc(rooms.name)) as Promise<Room[]>
+        .where(and(eq(rooms.floorId, id as FloorId), isNull(rooms.deletedAt)))) as Room[]
+
+      // By number as a person counts them, E.2 before E.10 (#322), the rooms
+      // with only a name after them.
+      return found.sort(byNumberIn)
     })
   }
 
