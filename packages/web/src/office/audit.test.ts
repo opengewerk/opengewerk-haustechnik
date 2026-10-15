@@ -280,6 +280,8 @@ describe('the words of the change log in the office', () => {
         { table: 'work_order_participants', column: 'activity_id' },
         { table: 'work_order_notes', column: 'activity_id' },
         { table: 'service_reports', column: 'activity_id' },
+        // The material taken for a work order (#326).
+        { table: 'work_order_materials', column: 'activity_id' },
       ],
       // A defect with its photos (#116).
       defects: [{ table: 'attachments', column: 'defect_id' }],
