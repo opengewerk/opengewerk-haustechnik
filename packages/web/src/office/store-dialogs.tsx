@@ -202,8 +202,8 @@ function ArticleChoice({
 }
 
 /**
- * A booking of the office in a store, `eingang()` and `zaehlung()` of the
- * boards: a receipt, how much and from which supplier where it is said, with
+ * A booking of the office in a store, as the boards "Wareneingang" and
+ * "Zählung" draw it: a receipt, how much and from which supplier where it is said, with
  * a note such as the delivery note; or a count, the stock found, with its
  * reason. Both say what they do to the stock before they are booked.
  */
