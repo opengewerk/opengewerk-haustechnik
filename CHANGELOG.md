@@ -17,6 +17,21 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   seine Frist entfällt; das Änderungsprotokoll nennt, wer ihn angelegt und wer ihn entfernt hat. Ist
   schon ein Rundgang gegangen, wird der Plan beendet, wie eine Pflicht mit Nachweis.
 
+### Geändert
+
+- Planungskonzept v0.40: die Entscheidungen vom 15.10.2026 vor dem Bau von Phase 2 stehen an ihrer
+  Stelle und in der Tabelle in Abschnitt 15 (#324 bis #361). Die Issues von Phase 2 hatten unter
+  "Zu klären vor dem Bau" offen, was das Konzept nicht sagte. Entschieden ist unter anderem: der
+  Leistungsnachweis entsteht auf Wunsch beim Abschließen vor Ort, einer je Auftrag, und eine Person
+  ohne Konto unterschreibt mit Schriftzug und Namen unter der Signatur des Kontos, das das Gerät
+  hält; Lager und Qualifikationen entstehen im Fundament, weil die Handwerkersoftware beides auch
+  plant; eine neue Störmeldung kommt als Push an die, die sie annehmen, und die Seite ohne
+  Anmeldung ist ausgeliefert aus; die Auswertungen zählen rechtzeitig erfüllte Termine je Monat bis
+  zur Ebene Gebäude; ein Sammelvorgang hat eine Unterschrift und einen Nachweis je Pflicht; außer
+  Betrieb durch Mangel ist ein Zustand bis "behoben", die Pflichten laufen weiter; von einem
+  Nachweis, dessen Aufbewahrung abgelaufen ist, bleibt eine leere Hülle; das Änderungsprotokoll
+  bleibt auch mit eigenen Rollen der Leitung vorbehalten.
+
 ### Behoben
 
 - Namen mit Zahlen stehen in jeder Liste nach dem Wert der Zahl (#322): Musterstraße 2 vor
