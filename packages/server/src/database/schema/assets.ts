@@ -125,12 +125,12 @@ export const assets = pgTable(
       columns: [table.tenantId, table.buildingId, table.propertyId],
       foreignColumns: [buildings.tenantId, buildings.id, buildings.propertyId],
       name: 'assets_in_a_building_of_their_property',
-    }),
+    }).onUpdate('cascade'),
     foreignKey({
       columns: [table.tenantId, table.roomId, table.buildingId, table.propertyId],
       foreignColumns: [rooms.tenantId, rooms.id, rooms.buildingId, rooms.propertyId],
       name: 'assets_in_a_room_of_their_building',
-    }),
+    }).onUpdate('cascade'),
     // A component stands in the building of its asset, and moves with it:
     // when the asset moves to another building, the cascade takes every
     // component along, at any depth.
@@ -228,7 +228,7 @@ export const assetLifecycle = pgTable(
       columns: [table.tenantId, table.assetId, table.propertyId],
       foreignColumns: [assets.tenantId, assets.id, assets.propertyId],
       name: 'asset_lifecycle_of_an_asset',
-    }),
+    }).onUpdate('cascade'),
     // The area of what the row hangs on (ADR 0003, addendum of #306).
     foreignKey({
       columns: [table.tenantId, table.assetId, table.areaId],
@@ -267,7 +267,7 @@ export const assetSupplies = pgTable(
       columns: [table.tenantId, table.assetId, table.propertyId],
       foreignColumns: [assets.tenantId, assets.id, assets.propertyId],
       name: 'asset_supplies_of_an_asset',
-    }),
+    }).onUpdate('cascade'),
     // The area of what the row hangs on (ADR 0003, addendum of #306).
     foreignKey({
       columns: [table.tenantId, table.assetId, table.areaId],

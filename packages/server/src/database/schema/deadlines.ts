@@ -77,17 +77,17 @@ export const { deadlineStatus, deadlines } = deadlinesSchema({
       columns: [table.tenantId, table.dutyId, table.propertyId],
       foreignColumns: [duties.tenantId, duties.id, duties.propertyId],
       name: 'deadlines_of_a_duty_of_their_property',
-    }),
+    }).onUpdate('cascade'),
     foreignKey({
       columns: [table.tenantId, table.defectId, table.propertyId],
       foreignColumns: [defects.tenantId, defects.id, defects.propertyId],
       name: 'deadlines_of_a_defect_of_their_property',
-    }),
+    }).onUpdate('cascade'),
     foreignKey({
       columns: [table.tenantId, table.roundPlanId, table.propertyId],
       foreignColumns: [roundPlans.tenantId, roundPlans.id, roundPlans.propertyId],
       name: 'deadlines_of_a_plan_of_their_property',
-    }),
+    }).onUpdate('cascade'),
     // Over the tenant and the property, like every key to a row with a place:
     // a deadline cannot name a task of another operator or of another property.
     foreignKey({

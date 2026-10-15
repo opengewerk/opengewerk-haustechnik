@@ -509,9 +509,10 @@ describe('a work order', () => {
 
     await workOrderFor(here, order)
 
+    // The kind follows into the work order (#307), and its check refuses it there.
     expect(
       await tried(`update activities set kind = 'maintenance' where id = $1`, [order]),
-    ).toEqual({ code: '23503', constraint: 'work_orders_of_a_work_order_of_their_property' })
+    ).toEqual({ code: '23514', constraint: 'work_orders_of_a_work_order' })
     // Without a work order the kind may be put right.
     expect(
       (await admin.query(`update activities set kind = 'maintenance' where id = $1`, [round]))

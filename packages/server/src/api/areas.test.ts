@@ -18,6 +18,11 @@ import {
   resetToMigrated,
   testIdentityHeader,
 } from '../database/test-database.js'
+import {
+  writtenColumnNames,
+  writtenPlaceholders,
+  writtenValues,
+} from '../database/test-evidence.js'
 import { dayInGermany } from '../today.js'
 import { ApiModule } from './api.module.js'
 import { as, testIdentities } from './test-identity.js'
@@ -1237,5 +1242,253 @@ describe('a building with an area of its own', () => {
     )
 
     expect(rows).toEqual([{ area: north, removed: false, buildings: 1 }])
+  })
+})
+
+/**
+ * A building that moves to another property (#307, section 4.1 of the
+ * concept, ADR 0002, addendum of 15.10.2026): everything in it goes along,
+ * into the area of the new property; what is written once, and what ties it
+ * to something outside, keeps it where it is, each with a sentence.
+ */
+describe('a building moved to another property', () => {
+  let numbered = 0
+
+  const moved = (building: string, propertyId: string, header: string = by('u-duties')) =>
+    http()
+      .put(`/buildings/${building}/property`)
+      .set(testIdentityHeader, header)
+      .send({ propertyId })
+
+  /** A floor and a room in a building, put in past the application. */
+  async function roomIn(property: string, building: string, areaId: string) {
+    const floor =
+      (
+        await admin.query<{ id: string }>(
+          `insert into floors (tenant_id, building_id, property_id, area_id, name, level)
+           values ($1, $2, $3, $4, 'Erdgeschoss', 0) returning id`,
+          [large, building, property, areaId],
+        )
+      ).rows[0]?.id ?? ''
+    const room =
+      (
+        await admin.query<{ id: string }>(
+          `insert into rooms (tenant_id, floor_id, building_id, property_id, area_id, number)
+           values ($1, $2, $3, $4, $5, '0.01') returning id`,
+          [large, floor, building, property, areaId],
+        )
+      ).rows[0]?.id ?? ''
+
+    return { floor, room }
+  }
+
+  /** An asset in a room, with a component under it. */
+  async function assetIn(property: string, building: string, room: string, areaId: string) {
+    const made = async (parent: string | null) =>
+      (
+        await admin.query<{ id: string }>(
+          `insert into assets (tenant_id, property_id, area_id, building_id, room_id, parent_asset_id,
+                               kind, number, name)
+           values ($1, $2, $3, $4, $5, $6, 'probe.elevator', $7, 'Aufzug')
+           returning id`,
+          [large, property, areaId, building, room, parent, `AN-307-${String((numbered += 1))}`],
+        )
+      ).rows[0]?.id ?? ''
+    const asset = await made(null)
+
+    return { asset, component: await made(asset) }
+  }
+
+  const dutyAt = (place: object) =>
+    http()
+      .post('/duties')
+      .set(testIdentityHeader, by('u-duties'))
+      .send({
+        ...place,
+        label: 'Fluchtwege prüfen',
+        basis: 'authority',
+        sourceNote: 'Brandschutzkonzept',
+        task: 'inspection',
+        intervalMonths: 12,
+      })
+      .expect(201)
+
+  /** Property and area of rows, as `table:property:area`. */
+  async function whereThey(rows: readonly (readonly [string, string])[]) {
+    const found: string[] = []
+
+    for (const [table, id] of rows) {
+      const { rows: row } = await admin.query<{ property: string; area: string }>(
+        `select property_id::text as property, area_id::text as area from ${table} where id = $1`,
+        [id],
+      )
+
+      found.push(`${table}:${row[0]?.property ?? ''}:${row[0]?.area ?? ''}`)
+    }
+
+    return found
+  }
+
+  it('takes everything in it along, into the area of the new property, and leaves what hangs on the old one', async () => {
+    const from = await propertyIn(north)
+    const to = await propertyIn(south)
+    const { floor, room } = await roomIn(from.id, from.buildingId, north)
+    const { asset, component } = await assetIn(from.id, from.buildingId, room, north)
+    const duty = await dutyAt({ buildingId: from.buildingId })
+    const onTheProperty = await dutyAt({ propertyId: from.id })
+    const defect = await http()
+      .post('/defects')
+      .set(testIdentityHeader, by('u-duties'))
+      .send({ description: 'Tür schließt nicht.', roomId: room })
+      .expect(201)
+
+    const answer = await moved(from.buildingId, to.id).expect(200)
+
+    expect(answer.body).toMatchObject({ propertyId: to.id, areaId: south, ownAreaId: null })
+    expect(
+      await whereThey([
+        ['buildings', from.buildingId],
+        ['floors', floor],
+        ['rooms', room],
+        ['assets', asset],
+        ['assets', component],
+        ['duties', duty.body.id as string],
+        ['defects', defect.body.id as string],
+        ['duties', onTheProperty.body.id as string],
+      ]),
+    ).toEqual([
+      ...['buildings', 'floors', 'rooms', 'assets', 'assets', 'duties', 'defects'].map(
+        (table) => `${table}:${to.id}:${south}`,
+      ),
+      `duties:${from.id}:${north}`,
+    ])
+  })
+
+  it('keeps an area of its own, and gives up one that is the area of the new property', async () => {
+    const from = await propertyIn(north)
+    const to = await propertyIn(south)
+    const back = await propertyIn(north)
+
+    await http()
+      .patch(`/buildings/${from.buildingId}`)
+      .set(testIdentityHeader, by('u-duties'))
+      .send({ ownAreaId: south })
+      .expect(200)
+
+    expect((await moved(from.buildingId, back.id).expect(200)).body).toMatchObject({
+      areaId: south,
+      ownAreaId: south,
+    })
+    expect((await moved(from.buildingId, to.id).expect(200)).body).toMatchObject({
+      areaId: south,
+      ownAreaId: null,
+    })
+  })
+
+  it('stays where it is while evidence hangs on something in it, and says so', async () => {
+    const from = await propertyIn(north)
+    const to = await propertyIn(north)
+    const duty = await dutyAt({ buildingId: from.buildingId })
+
+    await admin.query(
+      `insert into evidence (tenant_id, property_id, area_id, duty_id, performed_on, result,
+                             ${writtenColumnNames})
+       values ($1, $2, $3, $4, '2025-03-14', 'without_defects', ${writtenPlaceholders(5)})`,
+      [
+        large,
+        from.id,
+        north,
+        duty.body.id as string,
+        ...writtenValues('u-duties', '2025-03-14', 'without_defects'),
+      ],
+    )
+
+    expect((await moved(from.buildingId, to.id).expect(400)).body.message).toBe(
+      'An diesem Gebäude hängt ein Nachweis. Das ist festgeschrieben und nennt seinen Ort; das Gebäude bleibt deshalb, wo es ist.',
+    )
+    expect(await whereThey([['buildings', from.buildingId]])).toEqual([
+      `buildings:${from.id}:${north}`,
+    ])
+  })
+
+  it('stays where it is while something in it ties it to the rest of its property, and says what', async () => {
+    const from = await propertyIn(north)
+    const to = await propertyIn(north)
+    const other = await http()
+      .post(`/properties/${from.id}/buildings`)
+      .set(testIdentityHeader, by('u-duties'))
+      .send({ name: 'Haus B', kinds: ['office'] })
+      .expect(201)
+    const elsewhere = await roomIn(from.id, other.body.id as string, north)
+    const here = await roomIn(from.id, from.buildingId, north)
+    const { asset } = await assetIn(from.id, from.buildingId, here.room, north)
+
+    // The asset supplies a room of the other building.
+    await admin.query(
+      `insert into asset_supplies (tenant_id, asset_id, property_id, area_id, room_id)
+       values ($1, $2, $3, $4, $5)`,
+      [large, asset, from.id, north, elsewhere.room],
+    )
+
+    expect((await moved(from.buildingId, to.id).expect(400)).body.message).toBe(
+      'Etwas in diesem Gebäude hängt mit etwas außerhalb zusammen: eine Anlage mit einem Raum, den sie versorgt. Das Gebäude bleibt deshalb, wo es ist.',
+    )
+    expect(await whereThey([['assets', asset]])).toEqual([`assets:${from.id}:${north}`])
+  })
+
+  it('goes only where the person holds the area, of this tenant, and not where it is', async () => {
+    const from = await propertyIn(south)
+    const inTheNorth = await propertyIn(north)
+    const inTheSouth = await propertyIn(south)
+    const inBavaria = await http()
+      .post('/properties')
+      .set(testIdentityHeader, by('u-duties'))
+      .send({
+        name: 'Liegenschaft in Bayern',
+        street: 'Musterweg 3',
+        postalCode: '00003',
+        city: 'Beispielstadt',
+        federalState: 'DE-BY',
+        areaId: south,
+      })
+      .expect(201)
+
+    // Somebody of the south reads the property of the north over a building
+    // of the south on it, and moves nothing there.
+    await http()
+      .patch(`/buildings/${inTheNorth.buildingId}`)
+      .set(testIdentityHeader, by('u-duties'))
+      .send({ ownAreaId: south })
+      .expect(200)
+    const fromTheSouth = JSON.stringify({
+      userId: 'u-south',
+      tenantId: large,
+      roles: ['technician'],
+      rights: ['location.read', 'location.write'],
+    })
+    const { rows } = await admin.query<{ id: string }>(
+      `insert into properties (tenant_id, area_id, name, street, postal_code, city, federal_state)
+       values ($1, $2, 'Nebenan', 'Musterweg 2', '00002', 'Beispielstadt', 'DE-BW') returning id`,
+      [nextDoor, theirs],
+    )
+
+    expect(
+      (await moved(from.buildingId, inTheNorth.id, fromTheSouth).expect(403)).body.message,
+    ).toBe('In eine Liegenschaft verlegt nur, wer ihren Bereich hat.')
+    expect((await moved(from.buildingId, rows[0]?.id ?? '').expect(404)).body.message).toBe(
+      'Diese Liegenschaft gibt es nicht oder nicht mehr.',
+    )
+    expect((await moved(from.buildingId, from.id).expect(400)).body.message).toBe(
+      'Das Gebäude steht schon auf dieser Liegenschaft.',
+    )
+    expect(
+      (await moved(from.buildingId, inBavaria.body.id as string).expect(400)).body.message,
+    ).toBe(
+      'Die neue Liegenschaft liegt in einem anderen Bundesland, und dort gelten für die Anlagen andere Pflichten. Das Gebäude bleibt deshalb, wo es ist.',
+    )
+    expect(
+      (await moved(from.buildingId, inTheSouth.id, by('u-tech')).expect(403)).body.message,
+    ).toBe(missingRight('location.write'))
+    await moved(from.buildingId, inTheSouth.id, fromTheSouth).expect(200)
   })
 })

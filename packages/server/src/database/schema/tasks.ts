@@ -101,22 +101,22 @@ export const tasks = pgTable(
       columns: [table.tenantId, table.buildingId, table.propertyId],
       foreignColumns: [buildings.tenantId, buildings.id, buildings.propertyId],
       name: 'tasks_at_a_building_of_their_property',
-    }),
+    }).onUpdate('cascade'),
     foreignKey({
       columns: [table.tenantId, table.roomId, table.propertyId],
       foreignColumns: [rooms.tenantId, rooms.id, rooms.propertyId],
       name: 'tasks_at_a_room_of_their_property',
-    }),
+    }).onUpdate('cascade'),
     foreignKey({
       columns: [table.tenantId, table.assetId, table.propertyId],
       foreignColumns: [assets.tenantId, assets.id, assets.propertyId],
       name: 'tasks_at_an_asset_of_their_property',
-    }),
+    }).onUpdate('cascade'),
     foreignKey({
       columns: [table.tenantId, table.activityId, table.propertyId],
       foreignColumns: [activities.tenantId, activities.id, activities.propertyId],
       name: 'tasks_at_an_activity_of_their_property',
-    }),
+    }).onUpdate('cascade'),
     foreignKey({
       columns: [table.tenantId, table.assigneeUserId],
       foreignColumns: [memberships.tenantId, memberships.userId],

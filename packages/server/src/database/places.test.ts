@@ -6,7 +6,9 @@ import { sql } from 'drizzle-orm'
 import type { Pool } from 'pg'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
+import { holdingTheBuilding } from '../api/building-moves.js'
 import { applicationDatabaseUrl, connect, refusedBy, resetToMigrated } from './test-database.js'
+import { buildingMoveProblems } from './test-areas.js'
 
 /**
  * The place in the database (ADR 0002): that every level hangs on the right
@@ -309,6 +311,28 @@ describe('a place marked deleted', () => {
     expect(await deletedAt('buildings', doomed.building)).not.toBe(floorMoment)
     expect(await deletedAt('floors', doomed.floor)).toBe(floorMoment)
     expect(await deletedAt('rooms', doomed.room)).toBe(floorMoment)
+  })
+})
+
+/**
+ * A building moves to another property with everything in it (#307, ADR
+ * 0002, addendum of 15.10.2026): every key over the property onto what a row
+ * hangs on follows it, and every other one holds a move up with a sentence.
+ */
+describe('a building moved to another property', () => {
+  it('takes along what hangs on it, key by key, and says what holds it up', async () => {
+    expect(await buildingMoveProblems(admin, holdingTheBuilding)).toEqual([])
+  })
+
+  it('is refused by the catalogue without a sentence for a key, and for a key that is not there', async () => {
+    const { defects_found_in_an_activity_of_their_property: _, ...without } = holdingTheBuilding
+
+    expect(
+      await buildingMoveProblems(admin, { ...without, probe_of_their_property: 'Probe' }),
+    ).toEqual([
+      'table defects, key defects_found_in_an_activity_of_their_property: names found_in_activity_id, which the row does not hang on, and has no sentence for a move it holds up',
+      'sentence for probe_of_their_property: no such key over the property that holds a move up',
+    ])
   })
 })
 

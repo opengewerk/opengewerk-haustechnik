@@ -108,16 +108,21 @@ export async function refuseOutsideItsArea(
   tx: TenantTransaction,
   property: Pick<Property, 'areaId'>,
 ): Promise<void> {
-  const { rows } = await tx.execute<{ held: boolean }>(
-    sql`select (select session_sees_all_areas())
-               or ${property.areaId}::uuid = any ((select session_areas())::uuid[]) as held`,
-  )
-
-  if (rows[0]?.held !== true) {
+  if (!(await holdsTheArea(tx, property.areaId))) {
     throw new ForbiddenException(
       'An der Liegenschaft selbst ändert nur etwas, wer ihren Bereich hat. Sie sehen sie über ein Gebäude in Ihrem Bereich.',
     )
   }
+}
+
+/** Whether the person asking holds an area, or sees every area. */
+export async function holdsTheArea(tx: TenantTransaction, areaId: AreaId): Promise<boolean> {
+  const { rows } = await tx.execute<{ held: boolean }>(
+    sql`select (select session_sees_all_areas())
+               or ${areaId}::uuid = any ((select session_areas())::uuid[]) as held`,
+  )
+
+  return rows[0]?.held === true
 }
 
 /**

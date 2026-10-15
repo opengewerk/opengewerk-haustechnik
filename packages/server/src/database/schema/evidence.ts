@@ -101,7 +101,7 @@ export const evidence = pgTable(
       columns: [table.tenantId, table.dutyId, table.propertyId],
       foreignColumns: [duties.tenantId, duties.id, duties.propertyId],
       name: 'evidence_of_a_duty_of_its_property',
-    }),
+    }).onUpdate('cascade'),
     foreignKey({
       columns: [table.tenantId, table.activityId, table.propertyId],
       foreignColumns: [activities.tenantId, activities.id, activities.propertyId],
@@ -238,7 +238,7 @@ export const evidenceVoidings = pgTable(
       columns: [table.tenantId, table.evidenceId, table.propertyId],
       foreignColumns: [evidence.tenantId, evidence.id, evidence.propertyId],
       name: 'evidence_voidings_of_an_evidence_of_their_property',
-    }),
+    }).onUpdate('cascade'),
     foreignKey({
       columns: [table.tenantId, table.voidedBy],
       foreignColumns: [memberships.tenantId, memberships.userId],

@@ -7,6 +7,7 @@ import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { memberIn } from '../../app/test-entry.js'
+import { areasQuery } from '../../session/areas.js'
 import {
   mountOffice,
   type NamedArea,
@@ -15,11 +16,12 @@ import {
   type WriteAnswer,
   type Written,
 } from '../test-office.js'
+import { buildingMoveWords } from './building-form.js'
 
 /**
  * The forms a building, a floor and a room are made, changed and removed
- * with in the office (#86, 4.1 of the concept), and the question a room is
- * moved to another floor with.
+ * with in the office (#86, 4.1 of the concept), and the questions a building
+ * is moved to another property and a room to another floor with.
  *
  * A building and a floor are kept by the office and with a connection: made
  * at the route of the place above, changed and removed at their own. A room
@@ -845,6 +847,143 @@ describe('the form of a building there is', () => {
 
     expect(await screen.findByText('Gebäude ändern darf dieser Zugang nicht.')).toBeTruthy()
     expect(screen.queryByRole('textbox', { name: 'Bezeichnung' })).toBeNull()
+  })
+})
+
+describe('a building moved to another property', () => {
+  const address = `/gebaeude/${house.id}/bearbeiten`
+  /** In the area the person holds; its id stands before the one of the yard, its name after it. */
+  const townHall = { ...school, id: 'p-town', name: 'Rathaus' }
+  /** In the other area. */
+  const yard = { ...school, id: 'p-yard', areaId: nord.id, name: 'Betriebshof Nord' }
+
+  const offered = (question: HTMLElement) =>
+    [
+      ...(within(question).getByRole('combobox', { name: 'Liegenschaft' }) as HTMLSelectElement)
+        .options,
+    ].map((option) => option.textContent)
+
+  /** Two properties more on the device, which comes to hold them in another order than their names. */
+  function twoPropertiesMore() {
+    server.put('properties', townHall)
+    server.put('properties', yard)
+  }
+
+  /** A route that moves the building, and puts it where the next exchange finds it. */
+  function moving(building: { readonly id: string }) {
+    return (write: Written): WriteAnswer => {
+      const moved = { ...building, ...(write.body as object) }
+
+      server.put('buildings', moved)
+
+      return { status: 200, body: moved }
+    }
+  }
+
+  it('moves the building to another property in an area the person holds (#307)', async () => {
+    const user = userEvent.setup()
+
+    twoPropertiesMore()
+
+    const router = await mount(address)
+
+    answerToWrite = moving(house)
+
+    await user.click(
+      await screen.findByRole('button', { name: 'In eine andere Liegenschaft verlegen' }),
+    )
+
+    const question = screen.getByRole('alertdialog', { name: 'Schulhaus verlegen' })
+
+    // By name, without the property it stands on.
+    expect(offered(question)).toEqual(['Betriebshof Nord', 'Rathaus'])
+    expect(question.textContent).toContain(buildingMoveWords.sub)
+    expect(question.textContent).toContain(buildingMoveWords.along)
+    expect(written).toEqual([])
+
+    await user.selectOptions(
+      within(question).getByRole('combobox', { name: 'Liegenschaft' }),
+      'Rathaus',
+    )
+    await user.click(within(question).getByRole('button', { name: 'Verlegen' }))
+
+    await waitFor(() => {
+      expect(router.state.location.pathname).toBe('/gebaeude/b-house')
+    })
+    expect(written).toEqual([
+      { method: 'PUT', path: '/buildings/b-house/property', body: { propertyId: 'p-town' } },
+    ])
+    // The page of the building stands under the property it moved to.
+    await waitFor(() => {
+      expect(path()).toEqual(['Liegenschaften', 'Rathaus'])
+    })
+  })
+
+  // Whoever holds a building in an area of its own reads the property it
+  // stands on, so a device may hold a property of an area the person does not
+  // hold (#306). A building goes onto no such property.
+  it('offers no property outside the areas the person holds (#307)', async () => {
+    const user = userEvent.setup()
+
+    twoPropertiesMore()
+    written = signedInOffice('technical_management', [sued], {}, (write) => answerToWrite(write))
+
+    const { client, queries } = await mountOffice(address, server, everything)
+
+    expect(client.list('properties').map((each) => each['id'])).toContain(yard.id)
+    await waitFor(() => {
+      expect(queries.getQueryData(areasQuery.queryKey)).toEqual([sued])
+    })
+
+    await user.click(
+      await screen.findByRole('button', { name: 'In eine andere Liegenschaft verlegen' }),
+    )
+
+    expect(offered(screen.getByRole('alertdialog', { name: 'Schulhaus verlegen' }))).toEqual([
+      'Rathaus',
+    ])
+  })
+
+  // What the device cannot know: evidence in the building, which is fixed and names its place.
+  it('shows the sentence of the server when it refuses, and keeps the question open (#307)', async () => {
+    const user = userEvent.setup()
+    const sentence =
+      'An diesem Gebäude hängt ein Nachweis. Das ist festgeschrieben und nennt seinen Ort; das Gebäude bleibt deshalb, wo es ist.'
+
+    twoPropertiesMore()
+
+    const router = await mount(address)
+
+    answerToWrite = () => ({ status: 400, body: { message: sentence } })
+
+    await user.click(
+      await screen.findByRole('button', { name: 'In eine andere Liegenschaft verlegen' }),
+    )
+
+    const question = screen.getByRole('alertdialog', { name: 'Schulhaus verlegen' })
+
+    await user.click(within(question).getByRole('button', { name: 'Verlegen' }))
+
+    expect((await within(question).findByRole('alert')).textContent).toBe(sentence)
+    expect(screen.getByRole('alertdialog', { name: 'Schulhaus verlegen' })).toBeTruthy()
+    expect(written).toHaveLength(1)
+    expect(router.state.location.pathname).toBe(address)
+  })
+
+  it('says so where there is no other property to go to, and asks nothing (#307)', async () => {
+    const user = userEvent.setup()
+
+    await mount(address)
+
+    expect(screen.queryByText(buildingMoveWords.nowhere)).toBeNull()
+
+    await user.click(
+      await screen.findByRole('button', { name: 'In eine andere Liegenschaft verlegen' }),
+    )
+
+    expect((await screen.findByText(buildingMoveWords.nowhere)).getAttribute('role')).toBe('status')
+    expect(screen.queryByRole('alertdialog')).toBeNull()
+    expect(written).toEqual([])
   })
 })
 

@@ -77,7 +77,7 @@ export const activitySignatures = pgTable(
       columns: [table.tenantId, table.activityId, table.propertyId],
       foreignColumns: [activities.tenantId, activities.id, activities.propertyId],
       name: 'activity_signatures_of_an_activity_of_their_property',
-    }),
+    }).onUpdate('cascade'),
     foreignKey({
       columns: [table.tenantId, table.signedBy],
       foreignColumns: [memberships.tenantId, memberships.userId],
@@ -141,7 +141,7 @@ export const workOrderDecisions = pgTable(
       columns: [table.tenantId, table.workOrderId, table.propertyId],
       foreignColumns: [workOrders.tenantId, workOrders.id, workOrders.propertyId],
       name: 'work_order_decisions_of_a_work_order_of_their_property',
-    }),
+    }).onUpdate('cascade'),
     foreignKey({
       columns: [table.tenantId, table.decidedBy],
       foreignColumns: [memberships.tenantId, memberships.userId],

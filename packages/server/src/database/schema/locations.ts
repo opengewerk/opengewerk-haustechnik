@@ -198,7 +198,7 @@ export const floors = pgTable(
       columns: [table.tenantId, table.buildingId, table.propertyId],
       foreignColumns: [buildings.tenantId, buildings.id, buildings.propertyId],
       name: 'floors_in_their_building',
-    }),
+    }).onUpdate('cascade'),
     // The area of what the row hangs on (ADR 0003, addendum of #306).
     foreignKey({
       columns: [table.tenantId, table.buildingId, table.areaId],
@@ -256,7 +256,7 @@ export const rooms = pgTable(
       columns: [table.tenantId, table.floorId, table.buildingId, table.propertyId],
       foreignColumns: [floors.tenantId, floors.id, floors.buildingId, floors.propertyId],
       name: 'rooms_on_a_floor_of_their_building',
-    }),
+    }).onUpdate('cascade'),
     // The area of what the row hangs on (ADR 0003, addendum of #306).
     foreignKey({
       columns: [table.tenantId, table.buildingId, table.areaId],

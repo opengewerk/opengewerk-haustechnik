@@ -89,12 +89,12 @@ export const labels = pgTable(
       columns: [table.tenantId, table.assetId, table.propertyId],
       foreignColumns: [assets.tenantId, assets.id, assets.propertyId],
       name: 'labels_on_an_asset_of_their_property',
-    }),
+    }).onUpdate('cascade'),
     foreignKey({
       columns: [table.tenantId, table.roomId, table.propertyId],
       foreignColumns: [rooms.tenantId, rooms.id, rooms.propertyId],
       name: 'labels_on_a_room_of_their_property',
-    }),
+    }).onUpdate('cascade'),
     uniqueIndex(labelCodeIndex).on(table.code),
     // A row that names no asset stands in neither index twice: null is never
     // equal to null, so the labels of a sheet do not get in each other's way.

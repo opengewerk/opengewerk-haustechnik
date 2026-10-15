@@ -109,17 +109,17 @@ export const defects = pgTable(
       columns: [table.tenantId, table.buildingId, table.propertyId],
       foreignColumns: [buildings.tenantId, buildings.id, buildings.propertyId],
       name: 'defects_at_a_building_of_their_property',
-    }),
+    }).onUpdate('cascade'),
     foreignKey({
       columns: [table.tenantId, table.roomId, table.propertyId],
       foreignColumns: [rooms.tenantId, rooms.id, rooms.propertyId],
       name: 'defects_at_a_room_of_their_property',
-    }),
+    }).onUpdate('cascade'),
     foreignKey({
       columns: [table.tenantId, table.assetId, table.propertyId],
       foreignColumns: [assets.tenantId, assets.id, assets.propertyId],
       name: 'defects_at_an_asset_of_their_property',
-    }),
+    }).onUpdate('cascade'),
     foreignKey({
       columns: [table.tenantId, table.foundInActivityId, table.propertyId],
       foreignColumns: [activities.tenantId, activities.id, activities.propertyId],

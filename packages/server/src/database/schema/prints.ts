@@ -53,7 +53,7 @@ export const roundRecords = pgTable(
       columns: [table.tenantId, table.activityId, table.propertyId],
       foreignColumns: [activities.tenantId, activities.id, activities.propertyId],
       name: 'round_records_of_an_activity_of_their_property',
-    }),
+    }).onUpdate('cascade'),
     check('round_records_fingerprint_shaped', sql`${table.fingerprint} ~ '^[0-9a-f]{64}$'`),
   ],
 )
@@ -99,12 +99,12 @@ export const prints = pgTable(
       columns: [table.tenantId, table.evidenceId, table.propertyId],
       foreignColumns: [evidence.tenantId, evidence.id, evidence.propertyId],
       name: 'prints_of_an_evidence_of_their_property',
-    }),
+    }).onUpdate('cascade'),
     foreignKey({
       columns: [table.tenantId, table.activityId, table.propertyId],
       foreignColumns: [activities.tenantId, activities.id, activities.propertyId],
       name: 'prints_of_an_activity_of_their_property',
-    }),
+    }).onUpdate('cascade'),
     foreignKey({
       columns: [table.tenantId, table.sha256],
       foreignColumns: [files.tenantId, files.sha256],
