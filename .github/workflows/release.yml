@@ -40,6 +40,9 @@ jobs:
         with:
           fetch-depth: 0
           submodules: true
+          # Nothing after this step talks to git, and gh gets its token
+          # through GH_TOKEN; the build does not need a write token on disk.
+          persist-credentials: false
 
       - name: Fassung aus dem Tag lesen
         id: version
