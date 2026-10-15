@@ -7,6 +7,28 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
 
 ## [Unreleased]
 
+## [0.1.2] - 2026-10-15
+
+Die zweite Nachlieferung für den Pilotbetrieb, aus dem ersten Tag mit den übernommenen Daten. Im Plan
+eines Rundgangs stehen bei einem Gebäude mit eigenem Bereich die Leute dieses Bereichs zur Wahl, und
+eine künftige Migration prüft einen neuen Fremdschlüssel gegen alle Zeilen statt gegen die, die der
+Eigentümer der Tabellen sieht.
+
+Aktualisiert wird wie bei jeder Fassung in zwei Schritten; 0.1.2 bringt keine Migration mit. Wer noch
+auf 0.1.0 steht und schon Anlagen in Gebäuden oder Etiketten an Räumen hat, kommt über
+`0051_building_areas` nur, wenn der Eigentümer der Tabellen für den einen Lauf an den Policies vorbei
+darf (#315). Hält `sh docker/start.sh` dort mit dem Fehler 23503 an `assets_follow_their_building` oder
+`labels_follow_their_room` an, ist nichts eingespielt, und es geht im Ordner der Instanz so weiter; die
+vierte Zeile gehört auch dann dazu, wenn die dritte scheitert:
+
+```sh
+docker compose -f docker/compose.yaml stop app
+docker compose -f docker/compose.yaml exec postgres sh -c 'psql -U "$POSTGRES_USER" -d postgres -c "ALTER ROLE opengewerk_owner BYPASSRLS"'
+docker compose -f docker/compose.yaml run --rm migrate
+docker compose -f docker/compose.yaml exec postgres sh -c 'psql -U "$POSTGRES_USER" -d postgres -c "ALTER ROLE opengewerk_owner NOBYPASSRLS"'
+sh docker/start.sh
+```
+
 ### Behoben
 
 - Der Plan eines Rundgangs bietet bei einem Gebäude mit eigenem Bereich die Leute dieses Bereichs an
