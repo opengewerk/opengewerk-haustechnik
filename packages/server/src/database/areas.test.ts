@@ -438,6 +438,28 @@ async function placeIn(where: 'north' | 'south'): Promise<void> {
      values ($1, $2, $3, $4, 'Notrufgerät getauscht.', '2026-10-01T09:20:00Z', $5)`,
     [tenant, at.property, areaId, at.activity, person.lead],
   )
+  // Material taken for the work order, from a store of the tenant (#326).
+  const stock = await admin.query<{ store: string; article: string }>(
+    `with store as (insert into stores (tenant_id, name) values ($1, $2) returning id),
+          article as (insert into articles (tenant_id, number, designation, unit)
+                      values ($1, $3, 'Akku Notleuchte', 'piece') returning id)
+     select store.id as store, article.id as article from store, article`,
+    [tenant, `Lager ${where}`, `A-${randomUUID().slice(0, 8)}`],
+  )
+  await admin.query(
+    `insert into work_order_materials (tenant_id, property_id, area_id, activity_id, store_id,
+                                       article_id, quantity_milli, taken_at, taken_by)
+     values ($1, $2, $3, $4, $5, $6, 1000, '2026-10-01T09:20:00Z', $7)`,
+    [
+      tenant,
+      at.property,
+      areaId,
+      at.activity,
+      stock.rows[0]?.store,
+      stock.rows[0]?.article,
+      person.lead,
+    ],
+  )
   await admin.query(
     `insert into defects (tenant_id, property_id, area_id, asset_id, found_in_activity_id,
                           description, found_on)
@@ -636,6 +658,7 @@ describe('a person with the north', () => {
       'service_reports',
       'tasks',
       'work_order_decisions',
+      'work_order_materials',
       'work_order_notes',
       'work_order_participants',
       'work_orders',
@@ -861,6 +884,7 @@ describe('a property moved to another area', () => {
         'service_reports',
         'tasks',
         'work_order_decisions',
+        'work_order_materials',
         'work_order_notes',
         'work_order_participants',
         'work_orders',

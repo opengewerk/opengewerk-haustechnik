@@ -1,3 +1,4 @@
+import type { WorkOrderMaterialLine } from './material.js'
 import type { IsoDate } from '@opengewerk/platform-domain'
 
 import type {
@@ -175,6 +176,8 @@ export interface WorkOrderDetails extends WorkOrderEntry {
   readonly decisions: readonly WorkOrderDecisionLine[]
   /** The service reports the client signed on site (#324), the first first; at most one counts. */
   readonly serviceReports: readonly ServiceReportLine[]
+  /** The material taken for it on site (#326), the first taken first. */
+  readonly materials: readonly WorkOrderMaterialLine[]
 }
 
 /**

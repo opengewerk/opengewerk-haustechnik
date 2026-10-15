@@ -140,6 +140,7 @@ describe('the rights of an operation', () => {
       work_orders: { create: false, change: true },
       // A note on a work order is written on site (#118).
       work_order_notes: { create: true },
+      work_order_materials: { create: true },
       defects: { create: true, change: true },
       activity_signatures: { create: true },
       // The client's signature under a service report, before the own one (#324).

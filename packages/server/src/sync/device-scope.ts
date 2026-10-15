@@ -146,6 +146,8 @@ const workEntities = [
   'work_order_decisions',
   // The client's signature under the service report of a work order (#324).
   'service_reports',
+  // The material taken for a work order (#326).
+  'work_order_materials',
 ]
 
 /**
@@ -179,6 +181,7 @@ export function pullScope(scope: DeviceScope): PullScope {
     work_orders: sql`${column('work_orders', 'activity_id')} = any(${activities})`,
     work_order_participants: sql`${column('work_order_participants', 'activity_id')} = any(${activities})`,
     work_order_notes: sql`${column('work_order_notes', 'activity_id')} = any(${activities})`,
+    work_order_materials: sql`${column('work_order_materials', 'activity_id')} = any(${activities})`,
     activity_signatures: sql`${column('activity_signatures', 'activity_id')} = any(${activities})`,
     work_order_decisions: sql`${column('work_order_decisions', 'work_order_id')} in
       (select id from work_orders where activity_id = any(${activities}))`,
@@ -214,6 +217,8 @@ export function pullScope(scope: DeviceScope): PullScope {
       stores: operator,
       store_articles: operator,
       stock_movements: operator,
+      // The labels on the shelves, which a scan reads like a barcode (#326).
+      store_labels: operator,
     },
   }
 }

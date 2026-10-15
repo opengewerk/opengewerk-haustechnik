@@ -26,6 +26,7 @@ import {
 import { stateFingerprint } from '../evidence/fingerprint.js'
 import { placeOf, type WritingContext } from '../evidence/write.js'
 import { dayInGermany } from '../today.js'
+import { reportedMaterialsOf } from './materials.js'
 import { activityOf, pageOf, signedAtLeeway, SigningRefusal } from './signing.js'
 
 // The service report of a work order (section 4.8 of the concept, #324): the
@@ -173,6 +174,7 @@ export async function checkServiceReport(
     await pageOf(tx, activity),
     input.clientName,
     settings.namesAndTimes,
+    await reportedMaterialsOf(tx, activity.id),
   )
 
   if (input.pageFingerprint !== stateFingerprint(page)) {
@@ -260,6 +262,10 @@ export async function freezeServiceReport(
         : { text: note.text },
     ),
     durationMinutes: order.durationMinutes,
+    // The material, as the client saw it on the page, without a price (#326).
+    materials: (await reportedMaterialsOf(tx, activity.id)).map(
+      ({ quantityMilli, unit, designation }) => ({ quantityMilli, unit, designation }),
+    ),
     client: {
       name: report.clientName,
       path: report.path,
@@ -292,6 +298,11 @@ export async function serviceReportFingerprint(
   const settings = await workOrderSettingsOf(tx)
 
   return stateFingerprint(
-    serviceReportPageOf(await pageOf(tx, activity), clientName, settings.namesAndTimes),
+    serviceReportPageOf(
+      await pageOf(tx, activity),
+      clientName,
+      settings.namesAndTimes,
+      await reportedMaterialsOf(tx, activity.id),
+    ),
   )
 }

@@ -75,6 +75,7 @@ import { useAreas, useHeldArea } from '../../session/areas.js'
 import { askAt, makeAt } from '../../sync/made-at.js'
 import { defectPlaces } from '../defect-addresses.js'
 import { DocumentsCard } from '../documents.js'
+import { MaterialPanel } from '../material-panel.js'
 import { dutyPlaces, dutyRegisterPlace } from '../duty-addresses.js'
 import { factLink } from '../links.js'
 import { RegisterFilter } from '../register-filter.js'
@@ -755,6 +756,8 @@ export function WorkOrderScreen() {
             place={{ propertyId: shown.propertyId, activityId: shown.id }}
             at={`Auftrag „${shown.title}“`}
           />
+          {/* The material taken on site (#326). */}
+          <MaterialPanel materials={shown.materials} />
         </div>
         <div className="flex min-w-0 flex-col gap-3.5">
           <Panel title="Unterschrift">

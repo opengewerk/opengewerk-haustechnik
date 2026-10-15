@@ -56,4 +56,5 @@ export const siteForms = {
   note: (activityId: string) => `/vorgaenge/${activityId}/notiz`,
   close: (activityId: string) => `/vorgaenge/${activityId}/abschliessen`,
   report: (activityId: string) => `/vorgaenge/${activityId}/leistungsnachweis`,
+  material: (activityId: string) => `/vorgaenge/${activityId}/material`,
 } as const

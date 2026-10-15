@@ -118,6 +118,8 @@ await checkWidths({
     'Lager anlegen',
     'Artikel anlegen',
     'Lieferant anlegen',
+    // Taking material for a work order on site (#326).
+    'Material entnehmen',
     // The longest sentences of the instance stand behind it (#80); the Leitung
     // of the preview is operator and administration in one. The form to name
     // somebody to the administration stands open on its page.

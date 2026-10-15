@@ -21,6 +21,7 @@ import type { PgColumn, PgTable } from 'drizzle-orm/pg-core'
 import {
   activities,
   activityAnswers,
+  articles,
   assets,
   assetSupplies,
   attachments,
@@ -29,6 +30,7 @@ import {
   floors,
   properties,
   rooms,
+  stores,
   workOrders,
 } from '../database/schema/index.js'
 
@@ -328,6 +330,28 @@ async function notePlace(
 }
 
 /**
+ * Material on its work order (#326): property and area come from the order,
+ * as for a note. The store and the article are tenant-wide and have to be
+ * there: an article no longer kept, or a store, is not taken from any more.
+ */
+async function materialPlace(
+  tx: TenantTransaction,
+  values: Record<string, unknown>,
+): Promise<SyncRefusal | null> {
+  const refused = await notePlace(tx, values)
+
+  if (refused !== null) {
+    return refused
+  }
+
+  if (!(await found(tx, stores, values['storeId']))) {
+    return missing('storeId')
+  }
+
+  return (await found(tx, articles, values['articleId'])) ? null : missing('articleId')
+}
+
+/**
  * A signature on its activity: property and area come from the activity.
  * Whether it fits the activity as the server holds it is the next question
  * (`signed` in `signatures.ts`).
@@ -463,6 +487,8 @@ const placeOf: Readonly<
   defects: defectPlace,
   work_orders: workOrderPlace,
   work_order_notes: notePlace,
+  // Material at a work order hangs on it as a note does (#326).
+  work_order_materials: materialPlace,
   activity_signatures: signaturePlace,
   // The client's signature under a service report hangs on its work order
   // as a signature does (#324).

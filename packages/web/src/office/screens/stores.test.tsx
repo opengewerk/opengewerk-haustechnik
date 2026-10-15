@@ -96,7 +96,8 @@ const answers = {
         levelAfterMilli: 3000,
         bookedOn: '2026-10-13',
         supplier: null,
-        reason: 'AU-2026-0031',
+        reason: null,
+        workOrder: { id: 'ac-1', number: 'AU-2026-0031', title: 'Notleuchte Flur instand setzen' },
       },
       {
         id: 'm-2',
@@ -106,6 +107,7 @@ const answers = {
         bookedOn: '2026-10-01',
         supplier: null,
         reason: 'Inventur, ein Akku defekt ausgesondert',
+        workOrder: null,
       },
       {
         id: 'm-1',
@@ -115,6 +117,7 @@ const answers = {
         bookedOn: '2026-09-22',
         supplier: 'Elektro-Großhandel Beispiel GmbH',
         reason: 'Lieferschein 4690-11',
+        workOrder: null,
       },
     ],
   },
@@ -133,6 +136,14 @@ afterEach(() => {
   vi.unstubAllGlobals()
   onlineManager.setOnline(true)
 })
+
+/** The stock with one line taken below zero on site (#326). */
+const negative = {
+  storeId: 's-main',
+  name: 'Hauptlager Betriebshof',
+  lines: [{ ...lines[1], levelMilli: -2000 }],
+  belowCount: 0,
+}
 
 const stockTable =
   'Bestand im Lager Hauptlager Betriebshof mit Nummer, Artikel, Einheit, Bestand und Mindestbestand'
@@ -247,6 +258,58 @@ describe('the stock of a store', () => {
   })
 })
 
+describe('the stock below zero and the labels of the shelves', () => {
+  it('says a stock below zero, which two devices without a network can bring', async () => {
+    signedInOffice('technician', [nord], { ...answers, '/stores/s-main/stock': negative })
+    await mountOffice('/lager', new TestServer(), [])
+    await untilTheRightsAreKnown()
+    await screen.findByRole('table', { name: stockTable })
+
+    expect(rowsOf(stockTable)).toEqual([
+      ['A-1020', 'Mantelleitung NYM-J 3×1,5', 'm', '-2', 'keiner', 'negativ, bitte zählen'],
+    ])
+  })
+
+  it('prints the labels for the shelves without a barcode, for whoever keeps the stores', async () => {
+    vi.stubGlobal('URL', Object.assign(URL, { createObjectURL: () => 'blob:etiketten' }))
+    URL.revokeObjectURL = () => undefined
+
+    const { written, done } = mounted('site_management')
+
+    await done
+    await untilTheRightsAreKnown()
+    await userEvent.click(await screen.findByRole('button', { name: 'Etiketten drucken' }))
+
+    const dialog = await screen.findByRole('dialog', { name: 'Etiketten drucken' })
+
+    // The cable has no barcode; the battery has one.
+    expect(
+      within(dialog).getByRole('option', { name: 'Die 1 Artikel dieses Lagers ohne EAN' }),
+    ).toBeDefined()
+    await userEvent.click(within(dialog).getByRole('button', { name: 'PDF erzeugen' }))
+
+    await waitFor(() => {
+      expect(written).toEqual([
+        {
+          method: 'POST',
+          path: '/stores/s-main/labels/print',
+          body: { which: 'withoutEan', format: 'sheet', start: 1 },
+        },
+      ])
+    })
+    expect(await within(dialog).findByRole('link', { name: 'PDF öffnen' })).toBeDefined()
+  })
+
+  it('offers no labels to the Haustechnik, which only looks', async () => {
+    const { done } = mounted('technician')
+
+    await done
+    await untilTheRightsAreKnown()
+    await screen.findByRole('table', { name: stockTable })
+    expect(screen.queryByRole('button', { name: 'Etiketten drucken' })).toBeNull()
+  })
+})
+
 describe('an article', () => {
   it('is made with its price in cents, and not with a barcode whose check digit is wrong', async () => {
     const { written, done } = mounted('site_management', '/lager/artikel')
@@ -295,7 +358,7 @@ describe('an article', () => {
 
     await screen.findByRole('table', { name })
     expect(rowsOf(name)).toEqual([
-      ['13.10.2026', 'Entnahme', '−2', '3', 'AU-2026-0031'],
+      ['13.10.2026', 'Entnahme', '−2', '3', 'AU-2026-0031 Notleuchte Flur instand setzen'],
       ['01.10.2026', 'Zählung', '−1', '5', 'Inventur, ein Akku defekt ausgesondert'],
       [
         '22.09.2026',

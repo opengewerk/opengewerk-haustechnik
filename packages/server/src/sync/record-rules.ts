@@ -18,6 +18,7 @@ import {
   taskTargetProblem,
   taskTitleProblem,
   serviceReportProblems,
+  workOrderMaterialProblems,
   workOrderNoteProblems,
   workOrderProblems,
 } from '@opengewerk/haustechnik-domain'
@@ -203,6 +204,12 @@ export function recordRules(catalogue: Catalogue): RecordRules {
     ],
     // A note says something, and when the device it was written on said (#118).
     work_order_notes: each(workOrderNoteProblems, ['text', 'writtenAt'], ['text', 'writtenAt']),
+    // Material names its store and article, how much, and when (#326).
+    work_order_materials: each(
+      workOrderMaterialProblems,
+      ['storeId', 'articleId', 'quantityMilli', 'takenAt'],
+      ['storeId', 'articleId', 'quantityMilli', 'takenAt'],
+    ),
     // The client's signature under a service report names the client and
     // carries the drawing and the page it was given for (#324).
     service_reports: each(

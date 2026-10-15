@@ -25,6 +25,7 @@ import { TakeRoomScreen } from './screens/take-room.js'
 import { SiteActivityScreen, SiteProtocolScreen } from './screens/protocol.js'
 import { SiteResultScreen } from './screens/result.js'
 import { SiteStartScreen } from './screens/start.js'
+import { SiteMaterialScreen } from './screens/material.js'
 import {
   SiteCloseOrderScreen,
   SiteNoteScreen,
@@ -102,6 +103,8 @@ export function siteRoutes() {
     at('/vorgaenge/$activityId/notiz', SiteNoteScreen),
     at('/vorgaenge/$activityId/abschliessen', SiteCloseOrderScreen),
     at('/vorgaenge/$activityId/leistungsnachweis', SiteServiceReportScreen),
+    // Material from the stores for a work order, by scan or search (#326).
+    at('/vorgaenge/$activityId/material', SiteMaterialScreen),
     // A round of the meters of a property, also without a network (#120).
     at('/ablesung/$propertyId', ReadingRoundScreen),
     // The tasks of the person holding the device, from the menu (#124).

@@ -4,6 +4,7 @@ import type {
   Identity,
   ServiceReportId,
   SignatureRole,
+  WorkOrderMaterialId,
 } from '@opengewerk/haustechnik-domain'
 import type {
   FoundIdentity,
@@ -18,6 +19,7 @@ import {
   SigningRefusal,
   type SigningRefusalAbout,
 } from '../activities/signing.js'
+import { bookWithdrawal } from '../activities/materials.js'
 import { checkServiceReport, freezeServiceReport } from '../activities/service-reports.js'
 
 // A signature given on a device, also without a connection (ADR 0004, points
@@ -157,6 +159,13 @@ export function followed(
         { tenantId, writtenBy: sender.userId, at: new Date(), catalogue, nameOf: sender.nameOf },
         operation.recordId as ServiceReportId,
       )
+
+      return
+    }
+
+    // Material taken for a work order is booked in its store at once (#326).
+    if (operation.entity === 'work_order_materials') {
+      await bookWithdrawal(tx, tenantId, operation.recordId as WorkOrderMaterialId)
 
       return
     }

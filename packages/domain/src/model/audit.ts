@@ -233,7 +233,25 @@ export const auditVocabulary: AuditVocabulary = {
         reason: 'Grund',
         booked_by: 'Gebucht von',
         booked_at: 'Gebucht am',
+        material_id: 'Material am Auftrag',
       },
+    },
+    // Material taken for a work order (#326), and the labels on the shelves.
+    work_order_materials: {
+      label: 'Material am Auftrag',
+      fields: {
+        activity_id: 'Vorgang',
+        activity_kind: 'Art des Vorgangs',
+        store_id: 'Lager',
+        article_id: 'Artikel',
+        quantity_milli: 'Menge in Tausendsteln',
+        taken_at: 'Entnommen am',
+        taken_by: 'Entnommen von',
+      },
+    },
+    store_labels: {
+      label: 'Etikett eines Lagerfachs',
+      fields: { store_article_id: 'Artikel eines Lagers', code: 'Code', blocked_at: 'Gesperrt am' },
     },
     // Whether the service report names the people who did the work (#324).
     work_order_settings: {
@@ -625,6 +643,7 @@ export const auditVocabulary: AuditVocabulary = {
       { table: 'work_order_participants', column: 'activity_id' },
       { table: 'work_order_notes', column: 'activity_id' },
       { table: 'service_reports', column: 'activity_id' },
+      { table: 'work_order_materials', column: 'activity_id' },
     ],
     // A defect with its photos.
     defects: [{ table: 'attachments', column: 'defect_id' }],
@@ -675,6 +694,9 @@ export const auditVocabulary: AuditVocabulary = {
     store_id: 'stores',
     article_id: 'articles',
     supplier_id: 'suppliers',
+    // A withdrawal and the shelf a label is stuck on (#326).
+    material_id: 'work_order_materials',
+    store_article_id: 'store_articles',
     template_id: 'round_templates',
     round_plan_id: 'round_plans',
     // The document that bears an interval of the operator's own, and the
@@ -710,6 +732,7 @@ export const auditVocabulary: AuditVocabulary = {
     'note_by',
     'recorded_by',
     'booked_by',
+    'taken_by',
   ],
   // Rows without a name of their own are named after the person they are
   // about, and a substitution after the person whose areas it takes over.
@@ -749,6 +772,8 @@ export const auditVocabulary: AuditVocabulary = {
     stores: ['name'],
     store_articles: ['article_id'],
     stock_movements: ['kind'],
+    work_order_materials: ['article_id'],
+    store_labels: ['code'],
     // A duty of the operator's own by its name, one from the catalogue by its
     // kind; a dismissal by the kind it dismissed.
     duties: ['label', 'kind'],
@@ -880,6 +905,7 @@ export const auditValues: Readonly<
   round_plans: { rhythm: planRhythmLabel },
   work_order_decisions: { decision: workOrderDecisionLabel },
   work_order_notes: { activity_kind: activityKindLabel },
+  work_order_materials: { activity_kind: activityKindLabel },
   work_order_participants: { activity_kind: activityKindLabel },
   work_orders: {
     activity_kind: activityKindLabel,

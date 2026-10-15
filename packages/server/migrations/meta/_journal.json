@@ -386,6 +386,13 @@
       "when": 1792095391437,
       "tag": "0054_stock",
       "breakpoints": true
+    },
+    {
+      "idx": 55,
+      "version": "7",
+      "when": 1792099636159,
+      "tag": "0055_work_order_materials",
+      "breakpoints": true
     }
   ]
 }

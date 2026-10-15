@@ -57,6 +57,7 @@ import {
   tableFormatOf,
   type TenantTransaction,
 } from '@opengewerk/platform-server'
+import { materialsOf } from '../activities/materials.js'
 import { and, asc, count, desc, eq, ilike, inArray, isNull, or, type SQL, sql } from 'drizzle-orm'
 
 import { closeAsNotPerformed } from '../activities/closing.js'
@@ -438,6 +439,7 @@ export class WorkOrdersController {
         signatures,
         decisions,
         reports: await serviceReportsOf(tx, identity.tenantId, activity.id),
+        materials: await materialsOf(tx, activity.id),
       }
     })
     const named = await this.named(identity, [
@@ -492,6 +494,7 @@ export class WorkOrdersController {
         valid,
         voidedAt: voidedBy === null ? null : voidedBy.decidedAt.toISOString(),
       })),
+      materials: read.materials,
     }
   }
 

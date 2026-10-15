@@ -5,6 +5,7 @@ import {
   type IsoDate,
   type RecordState,
   serviceReportLimits,
+  stockUnitLabel,
   workOrderKindLabel,
   type WorkOrderDetails,
   type WorkOrderKind,
@@ -14,7 +15,7 @@ import {
   workOrderUrgencyLabel,
 } from '@opengewerk/haustechnik-domain'
 import { Button, Field, Panel, Status, TextArea } from '@opengewerk/platform-web'
-import { clockTime, date, moment, today } from '@opengewerk/platform-web/format'
+import { amount, clockTime, date, moment, today } from '@opengewerk/platform-web/format'
 import { accountQuery, useRight, useWho } from '@opengewerk/platform-web/session'
 import {
   SignaturePad,
@@ -57,11 +58,13 @@ import { useDutyName } from '../../app/form-of.js'
 import { PhotoThumb, useDeferredWrite } from '../../app/form-points.js'
 import { titleOfRoom } from '../../app/place-records.js'
 import { type GivenSignature, SignatureWays } from '../../app/signature-ways.js'
+import { materialsOnDevice } from '../../app/materials.js'
 import { namesAndTimesOnDevice, signActivity, takeServiceReport } from '../../app/signing.js'
 import { assetTitle, NotOnDevice, NotOffered } from '../kit.js'
 import { siteForms } from '../places.js'
 import { toStart } from './form.js'
 import { SiteTasksCard } from '../tasks.js'
+import { MaterialCard, materialWords } from './material.js'
 
 export const workOrderWords = {
   number: 'Auftrag',
@@ -191,7 +194,7 @@ const underWay = ['open', 'started']
  * so with its state, and this device with a signature still in its outbox. A
  * signature the office turned back leaves the order open again.
  */
-function useWorkOrder(activityId: string) {
+export function useWorkOrder(activityId: string) {
   const client = useSync()
   const activity = useRecord('activities', activityId)
   const order = useRelated('work_orders', 'activityId', activityId).find(live) ?? null
@@ -577,6 +580,8 @@ function WorkOrderOf({ activityId }: { readonly activityId: string }) {
             ) : null}
           </div>
         </Panel>
+        {/* The material from the stores, between the photos and the time spent (#326). */}
+        <MaterialCard activityId={activityId} editable={work.editable} />
         <Panel>
           {work.editable && work.order !== null ? (
             <DurationField
@@ -1138,6 +1143,9 @@ export function SiteServiceReportScreen() {
   const navigate = useNavigate()
   const who = useWho()
   const work = useWorkOrder(activityId)
+  // Read so that the page follows the material as it arrives.
+  useRecords('work_order_materials')
+  const materials = materialsOnDevice(client, activityId)
   const placeWords = usePlaceWords(work.activity)
   const asset = useRecord('assets', maybeText(work.activity, 'assetId') ?? undefined)
   const [clientName, setClientName] = useState('')
@@ -1236,6 +1244,21 @@ export function SiteServiceReportScreen() {
             </div>
           </div>
         </Panel>
+        {/* The material, without a price, as the page the client signs carries it (#326). */}
+        {materials.length === 0 ? null : (
+          <Panel title={materialWords.title}>
+            <div className="flex flex-col">
+              {materials.map((material) => (
+                <p
+                  key={material.id}
+                  className="border-b border-row py-2.5 text-[17px] leading-[1.4] last:border-b-0"
+                >
+                  {`${amount(material.quantityMilli)} ${stockUnitLabel[material.unit]} ${material.designation}`}
+                </p>
+              ))}
+            </div>
+          </Panel>
+        )}
         <SiteText muted>
           {namesAndTimesOnDevice(client) ? reportWords.withNames : reportWords.withoutNames}
         </SiteText>

@@ -20,11 +20,12 @@ import { useRight } from '@opengewerk/platform-web/session'
 import { refusalFor, RequestRefused, useSync } from '@opengewerk/platform-web/sync'
 import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useNavigate, useParams, useSearch } from '@tanstack/react-router'
-import { Check, List, Plus } from 'lucide-react'
+import { Check, List, Plus, Printer } from 'lucide-react'
 import { type ReactNode, useDeferredValue, useState } from 'react'
 
 import { askAt } from '../../sync/made-at.js'
 import { RegisterFilter } from '../register-filter.js'
+import { workOrderPlaces } from '../work-order-addresses.js'
 import {
   articleListQuery,
   stockAddressOf,
@@ -39,6 +40,7 @@ import {
   ArticleDialog,
   BookingDialog,
   quantityOf,
+  ShelfLabelsDialog,
   StoreDialog,
   SupplierDialog,
 } from '../store-dialogs.js'
@@ -65,6 +67,7 @@ export const storeWords = {
   stockNote:
     'Ein Bestand ändert sich nur durch eine Buchung: Wareneingang, Zählung oder Entnahme am Auftrag.',
   below: 'unter Mindestbestand',
+  negative: 'negativ, bitte zählen',
   removed: 'entfällt',
   noMinimum: 'keiner',
   onlyBelow: (count: number) => `Nur unter Mindestbestand (${String(count)})`,
@@ -85,6 +88,7 @@ export const storeWords = {
   minimumProblem: 'Der Mindestbestand ist eine Zahl ab null, oder leer für keinen.',
   saved: 'Gespeichert.',
   priceNote: 'Angabe für die Kostensicht',
+  atAnOrder: 'Entnahme an einem Auftrag außerhalb Ihrer Bereiche',
 } as const
 
 const tabs = [
@@ -130,14 +134,21 @@ const refusedOnce = (count: number, error: Error) => !(error instanceof RequestR
 /** The stock of a line, in the colour of a conflict while it is below its minimum. */
 function Level({ line }: { readonly line: StockLine }) {
   return (
-    <span className={line.below ? 'font-semibold text-conflict' : 'font-semibold'}>
+    <span
+      className={
+        line.below || line.levelMilli < 0 ? 'font-semibold text-conflict' : 'font-semibold'
+      }
+    >
       {amount(line.levelMilli)}
     </span>
   )
 }
 
 function LineMark({ line }: { readonly line: StockLine }) {
-  return line.below ? (
+  // Two devices without a network took more than lay there (#326).
+  return line.levelMilli < 0 ? (
+    <Status tone="conflict">{storeWords.negative}</Status>
+  ) : line.below ? (
     <Status tone="conflict">{storeWords.below}</Status>
   ) : line.removed ? (
     <Status tone="locked">{storeWords.removed}</Status>
@@ -153,7 +164,7 @@ export function StoreStockScreen() {
   const address = stockAddressOf(useSearch({ strict: false }))
   const navigate = useNavigate()
   const keeps = useRight('store.write')
-  const [open, setOpen] = useState<'receipt' | 'count' | 'store' | null>(null)
+  const [open, setOpen] = useState<'receipt' | 'count' | 'store' | 'labels' | null>(null)
   const stores = useQuery({ ...storeListQuery, retry: refusedOnce })
   const chosen =
     stores.data?.find((store) => store.id === address.lager) ?? stores.data?.[0] ?? null
@@ -180,14 +191,26 @@ export function StoreStockScreen() {
         sub={storeWords.sub}
         actions={
           keeps ? (
-            <Button
-              icon={Plus}
-              onClick={() => {
-                setOpen('store')
-              }}
-            >
-              Lager anlegen
-            </Button>
+            <>
+              {chosen === null ? null : (
+                <Button
+                  icon={Printer}
+                  onClick={() => {
+                    setOpen('labels')
+                  }}
+                >
+                  Etiketten drucken
+                </Button>
+              )}
+              <Button
+                icon={Plus}
+                onClick={() => {
+                  setOpen('store')
+                }}
+              >
+                Lager anlegen
+              </Button>
+            </>
           ) : null
         }
       />
@@ -334,6 +357,15 @@ export function StoreStockScreen() {
           }}
           onMade={(id) => {
             go({ lager: id })
+          }}
+        />
+      ) : null}
+      {open === 'labels' && chosen !== null ? (
+        <ShelfLabelsDialog
+          storeId={chosen.id}
+          lines={lines}
+          onClose={() => {
+            setOpen(null)
           }}
         />
       ) : null}
@@ -605,6 +637,27 @@ function changeOf(movement: StockMovementLine, before: number): string {
   return by > 0 ? `+${amount(by)}` : by < 0 ? `−${amount(-by)}` : '±0'
 }
 
+/**
+ * Where a booking came from, what it was for, or why: the supplier and the
+ * note of a receipt, the reason of a count, and the work order a withdrawal
+ * was taken for (#326), with a link where the person sees the order.
+ */
+function MovementWhy({ movement }: { readonly movement: StockMovementLine }) {
+  const order = movement.workOrder
+
+  if (order === null) {
+    return <>{[movement.supplier, movement.reason].filter((part) => part !== null).join(', ')}</>
+  }
+
+  return order.id === null || order.title === null ? (
+    <span className="text-ink-muted">{storeWords.atAnOrder}</span>
+  ) : (
+    <Link to={workOrderPlaces.order(order.id)}>
+      {[order.number, order.title].filter(Boolean).join(' ')}
+    </Link>
+  )
+}
+
 const kindTone = { receipt: 'done', count: 'waiting', withdrawal: 'neutral' } as const
 
 /**
@@ -686,9 +739,7 @@ export function StoreArticleScreen() {
               cards={movements.map((movement, index) => ({
                 key: movement.id,
                 title: `${date(movement.bookedOn)} · ${stockMovementKindLabel[movement.kind]}`,
-                sub: [movement.supplier, movement.reason]
-                  .filter((part) => part !== null)
-                  .join(', '),
+                sub: <MovementWhy movement={movement} />,
                 right: `${changeOf(movement, movements[index + 1]?.levelAfterMilli ?? 0)} → ${amount(movement.levelAfterMilli)}`,
               }))}
             >
@@ -724,9 +775,7 @@ export function StoreArticleScreen() {
                       {amount(movement.levelAfterMilli)}
                     </Cell>
                     <Cell>
-                      {[movement.supplier, movement.reason]
-                        .filter((part) => part !== null)
-                        .join(', ')}
+                      <MovementWhy movement={movement} />
                     </Cell>
                   </tr>
                 ))}

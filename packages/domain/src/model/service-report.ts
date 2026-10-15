@@ -1,5 +1,6 @@
 import {
   type Id,
+  type StockUnit,
   type IsoDate,
   longestSignaturePath,
   longestSignerName,
@@ -112,21 +113,51 @@ export interface ServiceReportPage {
   readonly place: SignedPage['place']
   readonly durationMinutes?: number
   readonly notes?: readonly SignedNote[]
+  /** The material taken for the order (#326), by key; absent while nothing was taken. */
+  readonly materials?: readonly ReportedMaterial[]
   readonly clientName: string
   readonly namesAndTimes: boolean
 }
 
-/** The page of a service report from the page of its work order, the name and the setting. */
+/**
+ * Material as the page of a service report shows it (#326): how much of what,
+ * by the key of the withdrawal, without a price and without the store.
+ */
+export interface ReportedMaterial {
+  readonly id: string
+  readonly quantityMilli: number
+  readonly unit: StockUnit
+  readonly designation: string
+}
+
+/**
+ * The page of a service report from the page of its work order, the name, the
+ * setting and the material. Without material the page is the one from before
+ * #326, so that a report signed then keeps its fingerprint.
+ */
 export function serviceReportPageOf(
   page: SignedPage,
   clientName: string,
   namesAndTimes: boolean,
+  materials: readonly ReportedMaterial[] = [],
 ): ServiceReportPage {
   return {
     activity: { id: page.activity.id, title: page.activity.title },
     place: page.place,
     ...(page.durationMinutes === undefined ? {} : { durationMinutes: page.durationMinutes }),
     ...(page.notes === undefined ? {} : { notes: page.notes }),
+    ...(materials.length === 0
+      ? {}
+      : {
+          materials: [...materials]
+            .sort((left, right) => (left.id < right.id ? -1 : left.id > right.id ? 1 : 0))
+            .map(({ id, quantityMilli, unit, designation }) => ({
+              id,
+              quantityMilli,
+              unit,
+              designation,
+            })),
+        }),
     clientName: clientName.trim(),
     namesAndTimes,
   }
@@ -220,8 +251,11 @@ export function serviceReportVoidedBy<
   )
 }
 
-/** The number of the newest shape of the frozen state of a service report. */
-export const serviceReportStateVersion = 1
+/**
+ * The number of the newest shape of the frozen state of a service report: 2
+ * carries the material (#326); one of 1 has none.
+ */
+export const serviceReportStateVersion = 2
 
 /**
  * A note as the report states it: what it says, and only where the operator
@@ -243,7 +277,7 @@ export interface StatedWork {
  * the client's signature its time; otherwise the day only.
  */
 export interface ServiceReportState {
-  readonly version: typeof serviceReportStateVersion
+  readonly version: 1 | typeof serviceReportStateVersion
   readonly workOrder: {
     readonly number: string | null
     readonly kind: WorkOrderKind
@@ -252,6 +286,8 @@ export interface ServiceReportState {
   readonly place: StatedPlace
   readonly work: readonly StatedWork[]
   readonly durationMinutes: number | null
+  /** The material taken for the order, as the client saw it; from version 2 on. */
+  readonly materials?: readonly Omit<ReportedMaterial, 'id'>[]
   readonly client: {
     readonly name: string
     readonly path: string

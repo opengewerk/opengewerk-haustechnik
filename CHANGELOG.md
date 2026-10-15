@@ -40,6 +40,15 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   eine, gilt die Zeile. Eine Raum- oder Anlagenliste gilt oft für ein Haus und nennt es nur im
   Dateinamen, und bisher musste dafür vor dem Import eine Spalte eingefügt und gleich gefüllt werden.
   Zur Wahl steht, was die Person sieht.
+- Material am Auftrag (#326): vor Ort entnimmt, wer den Auftrag ausführt, Material aus einem
+  Lager, per Scan des Strichcodes des Herstellers oder eines eigenen Etiketts am Fach, sonst über
+  die Suche, auch ohne Netz. Der Server bucht jede Entnahme genau einmal im Lager; liegt weniger da,
+  wird trotzdem gebucht und der Bestand sagt, dass er unter null steht, bis eine Zählung ihn
+  berichtigt. Das Material steht am Auftrag im Büro, auf der Seite, die der Auftraggeber für den
+  Leistungsnachweis unterschreibt, und auf dessen PDF, jeweils ohne Preis und ohne Person. Für
+  Artikel ohne EAN druckt das Büro Etiketten der Fächer. So ersetzt die Anwendung die Erfassung
+  des Verbrauchs in der Vorgängeranwendung beim Pilotbetrieb. Das Submodul liest dafür auch EAN-8
+  (opengewerk/opengewerk#646). Migration `0055_work_order_materials`.
 
 ### Geändert
 

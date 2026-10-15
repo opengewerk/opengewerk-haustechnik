@@ -21,6 +21,7 @@ import {
   type Asset,
   type Building,
   type BuildingId,
+  byNameIn,
   byNumberIn,
   type Catalogue,
   isLabelCode,
@@ -34,6 +35,7 @@ import {
   type Property,
   type PropertyId,
   type Room,
+  type StoreId,
 } from '@opengewerk/haustechnik-domain'
 import {
   CurrentIdentity,
@@ -63,6 +65,10 @@ import {
   oneValidLabelIndexes,
   properties,
   rooms,
+  storeArticles,
+  storeLabels,
+  stores,
+  articles,
 } from '../database/schema/index.js'
 import { assetFaces, blankFace, keeperOf, roomFaces } from '../labels/faces.js'
 import { dayInGermany } from '../today.js'
@@ -804,5 +810,146 @@ export class LabelsController extends LabelPrinting {
         standing: state === 'valid' ? 'outside' : state === 'blocked' ? 'blocked' : 'unknown',
       }
     })
+  }
+}
+
+const storeLabelCodeIndex = 'store_labels_code_once'
+const missingStore = 'Dieses Lager gibt es nicht oder nicht mehr.'
+
+/**
+ * The labels on the shelves of a store (#326, the board "Etiketten für die
+ * Fächer eines Lagers"): one for each article the store keeps, the one it has
+ * or a new one, by number. Without anything said, the articles without the
+ * barcode of their manufacturer, which the scan on site could not tell
+ * otherwise; with `which: "all"` every article of the store. What stands on
+ * one: the store, what the article is called, its number, and the code.
+ * Tenant-wide like the stores, made by whoever keeps them.
+ */
+@Controller('stores/:storeId/labels')
+export class StoreLabelsController extends LabelPrinting {
+  constructor(
+    database: Database,
+    @Inject(RENDERER) render: Renderer,
+    @Inject(TRUSTED_ORIGINS) origins: readonly string[],
+  ) {
+    super(database, render, origins)
+  }
+
+  @Post('print')
+  @HttpCode(200)
+  @RequiresPermission('store.write')
+  async print(
+    @CurrentIdentity() identity: Asking,
+    @Param('storeId') storeId: string,
+    @Body() body: unknown,
+    @Res({ passthrough: true }) response: Response,
+  ): Promise<StreamableFile> {
+    const said = saidIn(body)
+    const every = said['which'] === 'all'
+    const format = formatOf(said['format'])
+    const start = whole(said['start'], 1)
+
+    this.origin()
+
+    const { name, faces } = await this.makingOnShelves((draw) =>
+      this.database.forTenant(identity, async (tx) => {
+        const [store] = isUuid(storeId)
+          ? await tx
+              .select()
+              .from(stores)
+              .where(and(eq(stores.id, storeId as StoreId), isNull(stores.deletedAt)))
+          : []
+
+        if (store === undefined) {
+          throw new NotFoundException(missingStore)
+        }
+
+        const shelves = (
+          await tx
+            .select({ shelf: storeArticles.id, article: articles })
+            .from(storeArticles)
+            .innerJoin(articles, eq(articles.id, storeArticles.articleId))
+            .where(
+              and(
+                eq(storeArticles.storeId, store.id),
+                isNull(storeArticles.deletedAt),
+                isNull(articles.deletedAt),
+                every ? undefined : isNull(articles.ean),
+              ),
+            )
+            .for('share')
+        ).sort((left, right) => byNameIn(left.article.number, right.article.number))
+
+        if (shelves.length === 0) {
+          throw new UnprocessableEntityException(
+            every
+              ? 'In diesem Lager liegt noch kein Artikel, es gibt kein Etikett zu drucken.'
+              : 'Jeder Artikel dieses Lagers trägt eine EAN, es gibt kein Etikett zu drucken.',
+          )
+        }
+
+        this.checked(format, shelves.length, start, labelBatchMost)
+
+        const held = await tx
+          .select({ shelf: storeLabels.storeArticleId, code: storeLabels.code })
+          .from(storeLabels)
+          .where(
+            and(
+              inArray(
+                storeLabels.storeArticleId,
+                shelves.map(({ shelf }) => shelf),
+              ),
+              isNull(storeLabels.blockedAt),
+              isNull(storeLabels.deletedAt),
+            ),
+          )
+        const codes = new Map(held.map((row) => [row.shelf, row.code]))
+
+        for (const { shelf } of shelves) {
+          if (!codes.has(shelf)) {
+            const code = draw()
+
+            await tx.insert(storeLabels).values({
+              tenantId: identity.tenantId,
+              storeArticleId: shelf,
+              code,
+            })
+            codes.set(shelf, code)
+          }
+        }
+
+        return {
+          name: store.name,
+          faces: shelves.map(
+            ({ shelf, article }) =>
+              ({
+                keeper: store.name,
+                name: article.designation,
+                place: article.number,
+                code: codes.get(shelf),
+              }) as LabelFace,
+          ),
+        }
+      }),
+    )
+
+    return this.pdf(response, faces, format, start, `Etiketten ${name}`)
+  }
+
+  /** As `making`, for the labels of the shelves and their own index. */
+  private async makingOnShelves<Written>(write: (draw: () => string) => Promise<Written>) {
+    try {
+      return await withLabelCode(storeLabelCodeIndex, write)
+    } catch (error) {
+      if (isUniqueViolation(error, 'store_labels_one_valid_per_shelf')) {
+        throw new ConflictException(madeMeanwhile)
+      }
+
+      if (error instanceof LabelCodeUnavailableError) {
+        throw new ServiceUnavailableException(error.message)
+      }
+
+      throw error
+    }
   }
 }

@@ -238,6 +238,24 @@ export const syncPolicies: Readonly<Record<string, SyncPolicy>> = {
   stores: officeOnly,
   store_articles: officeOnly,
   stock_movements: officeOnly,
+  // The labels on the shelves of a store (#326): made in the office, held by
+  // every device, which reads them like the barcode of an article.
+  store_labels: officeOnly,
+  // Material taken for a work order (#326): taken on site while the work goes
+  // on, also without a connection, and never changed or removed afterwards.
+  // The server books it once in its store. Who took it is the person signed
+  // in, which the server writes.
+  work_order_materials: {
+    create: true,
+    change: 'never',
+    gateFrom: {
+      reference: 'activityId',
+      entity: 'activities',
+      field: 'status',
+      values: inProgress,
+    },
+    reserved: ['activityKind', 'propertyId', 'areaId', 'takenBy'],
+  },
   // A label is made and blocked in the office, with a connection: the server
   // draws its code. A device holds the labels of its places, so that a scan
   // opens an asset without a network, and it gives a label from a sheet to an
@@ -385,6 +403,17 @@ export const offlineEdits: Readonly<Record<string, OfflineEdits>> = {
   },
   // A note on a work order, with the moment of the device it was written on.
   work_order_notes: { create: { activityId: true, text: true, writtenAt: true } },
+  // Material for a work order: which store, which article, how much, and
+  // the moment of the device it was taken on (#326).
+  work_order_materials: {
+    create: {
+      activityId: true,
+      storeId: true,
+      articleId: true,
+      quantityMilli: true,
+      takenAt: true,
+    },
+  },
   // A reading of a round of the meters: which meter, the day, the figure, and
   // that a figure far above the one before was confirmed (#120).
   meter_readings: {
@@ -559,6 +588,8 @@ export const syncEntityNames: Readonly<Record<string, string>> = {
   stores: 'Lager',
   store_articles: 'Artikel eines Lagers',
   stock_movements: 'Buchung im Lager',
+  store_labels: 'Etikett eines Lagerfachs',
+  work_order_materials: 'Material am Auftrag',
   tasks: 'Aufgabe',
 }
 
@@ -667,6 +698,10 @@ export const syncFieldNames: Readonly<Record<string, string>> = {
   durationMinutes: 'Dauer',
   text: 'Text',
   writtenAt: 'Geschrieben am',
+  takenAt: 'Entnommen am',
+  takenBy: 'Entnommen von',
+  materialId: 'Material am Auftrag',
+  storeArticleId: 'Artikel eines Lagers',
   writtenBy: 'Geschrieben von',
   contractorNote: 'Fremdfirma',
   closingReason: 'Grund',
