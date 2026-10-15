@@ -7,6 +7,18 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-10-15
+
+Die erste Nachlieferung für den Pilotbetrieb, aus dem, was beim Einrichten seiner Instanz auffiel. Ein
+Gebäude kann einen eigenen Bereich haben, sodass an einer Liegenschaft mehrere Objektleiter je ihre
+Gebäude führen, und ein Gebäude, das in der falschen Liegenschaft angelegt wurde, lässt sich mit allem
+darin in die richtige verlegen. An einer Liegenschaft, deren Bereich man nicht hat, bietet die
+Oberfläche nur noch an, was der Server auch annimmt.
+
+Aktualisiert wird wie bei jeder Fassung in zwei Schritten. Die Migrationen `0051_building_areas` und
+`0052_building_moves` laufen dabei von selbst; wer was sieht, ändert sich erst, wenn jemand einem
+Gebäude einen eigenen Bereich gibt oder eines verlegt.
+
 ### Hinzugefügt
 
 - Ein Gebäude kann einen eigenen Bereich haben (#306). An einer Liegenschaft mit mehreren Gebäuden
