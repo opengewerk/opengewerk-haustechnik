@@ -130,7 +130,7 @@ export async function pushDeadlineDue(
 ): Promise<readonly string[]> {
   const registry = context.deadlineKinds ?? deadlineKindRegistry
   const due = await ask(database, tenantId, (tx) =>
-    deadlineStillDue(tx, tenantId, notification, registry),
+    deadlineStillDue(tx, tenantId, notification, registry, 'push'),
   )
 
   if (!due) {

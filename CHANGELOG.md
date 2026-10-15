@@ -9,6 +9,20 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
 
 ### Hinzugefügt
 
+- Je Fristart lässt sich unter „Einstellungen“, „Fristen“ einstellen, wie eine Frist erinnert:
+  per E-Mail und Push, nur per E-Mail oder mit keiner Nachricht (#269), wie es die Tafel
+  `HT-Einst-Fristen` zeigte. Ohne Nachricht steht die Frist weiter in der Liste und legt ihre
+  Aufgabe oder ihren Vorgang an; nur per Push gibt es nicht, weil Push nur die erreicht, die es für
+  sich eingeschaltet haben (Moritz, 14.10.2026). Die Spalte kommt aus dem Fundament
+  (`opengewerk/opengewerk#643`) mit Migration 0050; E-Mail und Push fragen die Einstellung vor dem
+  Schreiben und vor dem Senden, und der Satz unter „Konto“ sagt es. Verfahrensbeschreibung
+  (Abschnitte 3.15 und 6) und Planungskonzept v0.36 ziehen mit.
+- „Angemeldete Geräte“ unter „Konto“ nennt an jedem Gerät die Netzadresse, von der es sich
+  angemeldet hat, aus dem Fundament (`opengewerk/opengewerk#563`). Die Zeile der Sitzung hielt sie
+  schon; jetzt sieht die Person selbst sie und erkennt eine Anmeldung, die nicht ihre ist, die
+  Leitung unter „Zugänge“ sieht sie nicht (Moritz, 14.10.2026). Die Verfahrensbeschreibung sagt es
+  in Abschnitt 3.3 als Zusage, der offene Punkt in Abschnitt 10 entfällt, und das Planungskonzept
+  nennt die Adresse unter den personenbezogenen Daten.
 - Releases (#136): ein Tag `v<fassung>` auf `main` startet den Workflow "Release". Er baut die
   Abbilder der Anwendung und der Sicherung für x86_64 und ARM64, legt sie unter der Fassung in
   ghcr.io ab, signiert sie ohne Schlüssel über Sigstore und schreibt die Seite des Releases mit dem
@@ -1859,6 +1873,21 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
 
 ### Behoben
 
+- Ein Test der Vorschau wurde an einem Donnerstag rot (die Liste der Mängel in den Beispieldaten):
+  der Mangel aus dem Rundgang hat den letzten Mittwoch, der Mangel "Kratzgeräusch" war zwei Tage
+  alt, und ab Donnerstag stand der eine vor dem anderen. Das Kratzgeräusch ist jetzt von heute, und
+  die Reihenfolge hängt nicht mehr am Wochentag.
+- Die Befunde im Fundament vor der ersten Fassung, mit dem Anheben des Submoduls
+  (`opengewerk/opengewerk`, Meilenstein "Phase 0: Fundament (schlank)", entschieden am 14.10.2026):
+  eine Aufgabe, die auf zwei Wegen erledigt wird, im Büro und danach auf einem Gerät, das sie noch
+  offen hielt, ist kein Konflikt mehr (`opengewerk/opengewerk#601`; ein Test hält es an der Aufgabe "Zähler ablesen");
+  eine Runde des Abgleichs, die das Netz während eines scheiternden Austauschs anstößt, findet
+  statt (`opengewerk/opengewerk#572`); ein Knopf, der nach dem Drücken gesperrt wird, behält den Fokus der Tastatur
+  (`opengewerk/opengewerk#629`); die Anmeldung startet ohne die Warnung von better-auth, und die Tests laufen mit
+  derselben Prüfung der Herkunft wie eine Instanz (`opengewerk/opengewerk#551`); in „Zugänge“ stehen die Knöpfe einer
+  Zeile bei 1280 Pixeln auch neben „Alle Liegenschaften“ nebeneinander (`opengewerk/opengewerk#562`); ein Hinweiskasten
+  mit zwei Knöpfen lässt dem Satz auf dem Telefon seine Breite (`opengewerk/opengewerk#564`), und der Kasten "Mögliche
+  Dublette" im Formular einer Anlage gibt seine Knöpfe wieder in die Aktion des Bausteins.
 - Zählweise ab dem fälligen Tag (#77): Eine Durchführung erfüllt den offenen Termin, wenn sie
   höchstens ein Zwölftel der Frist vor ihm liegt (bei einer jährlichen Pflicht ein Monat), und der
   Rhythmus bleibt; liegt sie früher, zählt die Frist neu ab ihrem Tag, wie Abschnitt 4.4 des

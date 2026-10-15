@@ -351,6 +351,13 @@
       "when": 1791962612931,
       "tag": "0049_instance_legal_texts",
       "breakpoints": true
+    },
+    {
+      "idx": 50,
+      "version": "7",
+      "when": 1792015998002,
+      "tag": "0050_deadline_reminder",
+      "breakpoints": true
     }
   ]
 }

@@ -635,7 +635,11 @@ export const sampleProperties: readonly SampleProperty[] = [
                 defectClass: 'allgemein.minor',
                 order: { title: 'Haltegenauigkeit der Kabine nachstellen', leads: 'preview-wendt' },
               },
-              { description: 'Kratzgeräusch an der Schachttür im 1. OG', foundDaysAgo: 2 },
+              // Today: newer than the defect of the round, which has the last
+              // Wednesday before today. Two days ago it was older on most days
+              // and newer on a Thursday, and the list changed its order with the
+              // day of the week.
+              { description: 'Kratzgeräusch an der Schachttür im 1. OG', foundDaysAgo: 0 },
               {
                 description: 'Beleuchtung im Fahrkorb flackert',
                 foundDaysAgo: 20,

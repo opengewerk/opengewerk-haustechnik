@@ -65,7 +65,8 @@ Anhang B nennt jedes Feld der Datenbank, das auf eine Person zeigt. Dieser Absch
 
 ### 3.3 Geräte und Sitzungen
 
-- Zu jeder Anmeldung gibt es eine Sitzung: die Kennung des Browsers, eine zufällige Kennung des Geräts, die der Browser selbst erzeugt, der Beginn, der Ablauf und der Weg der Anmeldung (Passwort oder Passkey). Reicht der vorgeschaltete Webserver die Netzadresse der Anmeldung durch, steht auch sie in der Zeile der Sitzung; die Anwendung liest sie nicht und zeigt sie nirgends an (Abschnitt 10). [K9, B62]
+- Zu jeder Anmeldung gibt es eine Sitzung: die Kennung des Browsers, eine zufällige Kennung des Geräts, die der Browser selbst erzeugt, der Beginn, der Ablauf und der Weg der Anmeldung (Passwort oder Passkey). Reicht der vorgeschaltete Webserver die Netzadresse der Anmeldung durch, steht auch sie in der Zeile der Sitzung. [K9, B62]
+- **Zusage:** Die Netzadresse einer Anmeldung sieht nur die Person selbst, unter „Konto“ an jedem ihrer Geräte, damit sie eine Anmeldung erkennt, die nicht ihre ist. Die Leitung sieht sie unter „Zugänge“ nicht. Hängt ein Browser selbst eine Adresse an, steht keine da, die er gewählt hat. [K9, B49, B267, B268]
 - **Zusage:** Eine Sitzung endet nach zwölf Stunden. Ein Gerät, das sich für den Abgleich angemeldet hat, bleibt dreißig Tage angemeldet. [K9, B44]
 - **Zusage:** Jede Person sieht unter „Konto“ die Geräte, auf denen sie angemeldet ist, und meldet sie dort ab. Die Geräte eines anderen Kontos sieht sie nicht und meldet sie nicht ab. [K3, B42, B43]
 - Die Leitung sieht unter „Zugänge“, auf welchen Geräten eine Person bei diesem Betreiber angemeldet ist, seit wann und bis wann, und kann ein Gerät abmelden. [K9, B49]
@@ -215,6 +216,7 @@ Anhang B nennt jedes Feld der Datenbank, das auf eine Person zeigt. Dieser Absch
 - Die Anwendung sagt Beschäftigten, was für sie ansteht, per E-Mail und per Push auf ihre Geräte. Anlässe sind nur Fristen und Statuswechsel: eine Frist erinnert; ein Rundgang, eine Prüfung, eine Wartung oder ein Auftrag wird jemandem zugeteilt; ein Auftrag wird zurückgewiesen; ein Rundgang wartet auf die Gegenzeichnung; ein Auftrag wartet auf die Abnahme; eine Aufgabe wird fällig. [K3, B228]
 - **Zusage:** Eine Nachricht nennt, was ansteht, und den Tag. Sie nennt keinen Namen, keinen Ort und kein Wort, das jemand eingetippt hat: nicht den Titel einer Aufgabe, nicht den Grund einer Zurückweisung, nicht die Anlage oder die Liegenschaft einer Frist. Was dahinter steht, zeigt die Anwendung nach der Anmeldung. [K3, K9, B229, B230, B231, B232]
 - **Zusage:** Per E-Mail geht nur die Erinnerung an eine Frist, an die Person, die für die Frist verantwortlich ist, und die Einladung eines Zugangs. Alles andere kommt als Push. [K3, B229, B233]
+- **Zusage:** Wie eine Frist erinnert, stellt der Betreiber je Fristart ein: per E-Mail und Push, nur per E-Mail oder mit keiner Nachricht. Bei „Nur E-Mail“ geht kein Push hinaus, bei „Keine Nachricht“ weder E-Mail noch Push; die Frist steht weiter in der Liste und legt weiter ihren Vorgang oder ihre Aufgabe an. Nur per Push gibt es nicht, weil Push nur die erreicht, die es für sich eingeschaltet haben. [K3, B269, B270]
 - **Zusage:** Push kommt nur auf ein Gerät, auf dem die Person es selbst eingeschaltet hat und noch angemeldet ist. Welche Anlässe als Push kommen, wählt jede Person für sich, und niemand wählt es für eine andere. Die eine Ausnahme ist ein Auftrag der Dringlichkeit „sofort“: er erreicht die Person, die ihn führt, auch wenn sie Zuteilungen abgeschaltet hat. [K3, K4.8, B234, B235, B236, B237, B253]
 - **Zusage:** Eine Zuteilung erfährt die Person, der etwas zugeteilt wurde, und niemand sonst. Wer sich selbst etwas zuteilt, bekommt keine Nachricht, und gehen mehrere Vorgänge auf einmal an eine Person, bekommt sie eine. [K3, B238, B239]
 - **Zusage:** Dass ein Rundgang auf die Gegenzeichnung oder ein Auftrag auf die Abnahme wartet, erfährt, wer im Bereich des Vorgangs gegenzeichnen und abnehmen darf, bei einem Auftrag zuerst die Person, die ihn führt; nie die Person, die unterschrieben hat, und niemand aus einem anderen Bereich. Dass ein Auftrag zurückgewiesen wurde, erfährt die Person, die ihn unterschrieben hat. [K2.8, K3, B231, B240, B241, B242, B243]
@@ -312,11 +314,11 @@ Leitung und Technische Leitung sehen als Vorgabe alle Bereiche.
 
 ## 6. Was sich einschalten lässt und was aus ist
 
-- Der Betreiber hat keinen Schalter, der etwas über Beschäftigte ein- oder ausschaltet. Jede Person schaltet für sich selbst Push auf ihren Geräten ein und aus und wählt die Anlässe (Abschnitt 3.15). [K3, K4.14, K9]
+- Der Betreiber hat keinen Schalter, der etwas über Beschäftigte ein- oder ausschaltet. Was er einstellt und Beschäftigte betrifft, ist, ob und wie eine Frist sie erinnert (unten). Jede Person schaltet für sich selbst Push auf ihren Geräten ein und aus und wählt die Anlässe (Abschnitt 3.15). [K3, K4.14, K9]
 - Eine Erfassung der Arbeitszeit enthält die Anwendung nicht. Das Planungskonzept sieht sie für Phase 5 als eigenes Modul vor, das ausgeschaltet ausgeliefert wird und beim Einschalten auf die Mitbestimmung hinweist. [K4.14, K12]
 - Einen Standort erhebt die Anwendung nicht. Das Planungskonzept lässt ihn nur mit Einwilligung zu und schließt eine Auswertung von Bewegungen aus. [K9]
 - Namen und Uhrzeiten der Ausführenden auf einem Leistungsnachweis kommen frühestens mit dem Leistungsnachweis in Phase 2, und nur, wenn der Betreiber es einschaltet; es steht dann in der Verfahrensbeschreibung. [K4.8, K12]
-- Einstellen lässt sich der Vorlauf, mit dem eine Frist erinnert. Das dürfen die Leitung und die Technische Leitung. Mit dem Beginn des Vorlaufs geht die Erinnerung an die verantwortliche Person hinaus (Abschnitt 3.15). [K2.4, B38]
+- Einstellen lassen sich je Fristart der Vorlauf, mit dem eine Frist erinnert, und ob sie per E-Mail und Push, nur per E-Mail oder mit keiner Nachricht erinnert. Das dürfen die Leitung und die Technische Leitung. Mit dem Beginn des Vorlaufs geht die Erinnerung an die verantwortliche Person hinaus, so wie es eingestellt ist (Abschnitt 3.15). [K2.4, K3, B38, B270]
 - Die sicherheitsrelevanten Zusagen sind nicht einstellbar: die Unterschrift vor einem Nachweis, die Abnahme eines Auftrags und die Unveränderlichkeit lassen sich verschärfen und nie abschalten. [K7]
 
 ---
@@ -362,7 +364,6 @@ Diese Bausteine gehören nach dem Fahrplan zu Phase 1 und sind noch nicht gebaut
 - **Schwärzen im Änderungsprotokoll.** Das Planungskonzept sagt, dass ein personenbezogener Wert im Änderungsprotokoll geschwärzt wird und die Kette ganz bleibt. Gebaut ist das nicht: die Werte stehen im Klartext, und kein Eintrag lässt sich ändern. Es gehört zu den Datenschutzfunktionen von Phase 2. [K9, K12]
 - **Löschen mit dem Ende der Aufbewahrung.** Das Planungskonzept sagt, dass ein Nachweis mit dem Ende seiner Aufbewahrung gelöscht wird und der Name mit ihm, nach einem Vorschlag, den die Leitung bestätigt. Gebaut ist das nicht; es kommt in Phase 2. [K2.6, K9, K12]
 - **Ende einer Zugehörigkeit.** Das Planungskonzept sagt, dass nach einer einstellbaren Frist die Angaben eines Kontos entfernt werden, die kein Nachweis mehr braucht. Gebaut ist die Sperre; das Entfernen kommt in Phase 2. [K9, K12]
-- **Netzadresse der Anmeldung.** Sie steht in der Zeile der Sitzung, sobald der vorgeschaltete Webserver sie durchreicht (Abschnitt 3.3). Das Planungskonzept nennt sie nicht, die Anwendung braucht sie dort nicht, und kein Test hält, dass sie nirgends ausgegeben wird. Offen als `opengewerk/opengewerk#563`. [K9]
 - **Erzeugte Unterlagen.** Das Verzeichnis der Verarbeitungstätigkeiten, die Beschreibung der technischen und organisatorischen Maßnahmen und die erzeugte Verfahrensbeschreibung kommen in Phase 2, ebenso die Vorlage für eine Betriebs- oder Dienstvereinbarung. [K9, K12]
 
 ---
@@ -654,6 +655,10 @@ Pfade ohne Vorsatz liegen im Repository `opengewerk/opengewerk-haustechnik`. Pfa
 | B264 | Test | `packages/server/src/api/import-history.test.ts` | `shows a reading taken over as one, with who took the list over, and counts across the replacement` |
 | B265 | Test | `packages/server/src/api/import-deadlines.test.ts` | `writes every number of the evidence in one step, and every record with its own entry in the log` |
 | B266 | Test | `packages/server/src/api/import-history.test.ts` | `writes every reading, replacement and rest with its own entry in the log, beside the one of the import` |
+| B267 | Test | `upstream/opengewerk/packages/platform/server/src/authentication/authentication.test.ts` | `name the address a device signed in from to its own account (#563)` |
+| B268 | Test | `upstream/opengewerk/packages/platform/server/src/authentication/authentication.test.ts` | `name no address that a client added to the one of the web server` |
+| B269 | Test | `packages/server/src/notifications/notify.test.ts` | `goes only by mail where the operator set its kind so, and not at all where it set no message (#269)` |
+| B270 | Test | `upstream/opengewerk/packages/platform/server/src/deadlines/deadlines.controller.test.ts` | `take how a kind that reminds does so, and refuse it for one that does not (opengewerk-haustechnik#269)` |
 
 ---
 
