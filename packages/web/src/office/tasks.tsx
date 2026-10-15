@@ -15,6 +15,7 @@ import type { NewTaskPlace } from '@opengewerk/platform-web/tasks'
 import { Plus } from 'lucide-react'
 import { useMemo, useState } from 'react'
 
+import { useHeldArea } from '../session/areas.js'
 import { titleOfRoom } from '../app/place-records.js'
 import { type TaskAddresses, taskTargetOf, useTaskHomes, useTaskPeople } from '../app/tasks.js'
 import { activityPlaces } from './activity-addresses.js'
@@ -172,6 +173,7 @@ function usePlaceField(): {
   const buildings = useRecords('buildings')
   const rooms = useRecords('rooms')
   const assets = useRecords('assets')
+  const held = useHeldArea()
 
   return useMemo(() => {
     const property = new Map(properties.map((each) => [String(each['id']), each]))
@@ -181,6 +183,7 @@ function usePlaceField(): {
       left.label.localeCompare(right.label, 'de')
     const options = [
       ...properties
+        .filter((each) => held(each['areaId']))
         .map((each) => ({
           value: placeValue('propertyId', each),
           label: `Liegenschaft ${name(each)}`,
@@ -259,7 +262,7 @@ function usePlaceField(): {
           : (maybeText(property.get(propertyId) ?? null, 'areaId') ?? null)
       },
     }
-  }, [properties, buildings, rooms, assets])
+  }, [properties, buildings, rooms, assets, held])
 }
 
 /**

@@ -33,6 +33,7 @@ import { useNavigate, useParams, useSearch } from '@tanstack/react-router'
 import { Check } from 'lucide-react'
 import { type FormEvent, useMemo, useState } from 'react'
 
+import { onlyInABuilding, useHeldArea } from '../../session/areas.js'
 import { placePath } from '../../app/place-path.js'
 import { placeAbove, titleOfRoom } from '../../app/place-records.js'
 import { askAt, makeAt } from '../../sync/made-at.js'
@@ -145,6 +146,7 @@ export function NewDutyScreen() {
   const buildings = useRecords('buildings')
   const floors = useRecords('floors')
   const rooms = useRecords('rooms')
+  const held = useHeldArea()
   const file = useQuery({
     ...assetFileQuery(start.assetId ?? ''),
     enabled: start.assetId !== undefined && keeps,
@@ -200,6 +202,12 @@ export function NewDutyScreen() {
     (start.buildingId !== undefined && building === null)
   ) {
     return unread(dutyFormWords.placeUnread)
+  }
+
+  // Named by a property alone that the person reads only over a building on
+  // it: the form asks for one of its buildings, as from the register (#310).
+  if (asset === null && room === null && building === null && !held(property['areaId'])) {
+    return <DutyForm key={`anywhere:${named}`} at={null} propertyId={String(property['id'])} />
   }
 
   return (
@@ -358,13 +366,21 @@ function problemsOf(typed: Typed, counting: Counting): Record<string, string> {
   return wrong
 }
 
-function DutyForm({ at }: { readonly at: Places | null }) {
+function DutyForm({
+  at,
+  propertyId: startProperty = '',
+}: {
+  readonly at: Places | null
+  /** The property the form starts with when it asks where. */
+  readonly propertyId?: string
+}) {
   const client = useSync()
   const status = useSyncStatus()
   const queries = useQueryClient()
   const navigate = useNavigate()
   const properties = useRecords('properties')
   const buildings = useRecords('buildings')
+  const held = useHeldArea()
 
   const offered: readonly ChoiceOption<Target>[] =
     at === null
@@ -379,11 +395,20 @@ function DutyForm({ at }: { readonly at: Places | null }) {
           ...(at.building
             ? [{ value: 'building' as const, label: 'Gebäude', note: text(at.building, 'name') }]
             : []),
-          { value: 'property' as const, label: 'Liegenschaft', note: text(at.property, 'name') },
+          // The property itself only for whoever holds its area (#310).
+          ...(held(at.property['areaId'])
+            ? [
+                {
+                  value: 'property' as const,
+                  label: 'Liegenschaft',
+                  note: text(at.property, 'name'),
+                },
+              ]
+            : []),
         ]
 
   const [target, setTarget] = useState<Target>(offered[0]?.value ?? 'property')
-  const [typed, setTyped] = useState<Typed>(blank)
+  const [typed, setTyped] = useState<Typed>({ ...blank, propertyId: startProperty })
   const [problems, setProblems] = useState<Readonly<Record<string, string>>>({})
   const [trouble, setTrouble] = useState<string | null>(null)
   const [working, setWorking] = useState(false)
@@ -401,8 +426,10 @@ function DutyForm({ at }: { readonly at: Places | null }) {
   const propertyChoices = [...properties]
     .sort(byName)
     .map((each) => ({ value: idOf(each), label: text(each, 'name') }))
+  const wholeProperty =
+    propertyId === '' || held(properties.find((each) => idOf(each) === propertyId)?.['areaId'])
   const buildingChoices = [
-    { value: '', label: dutyFormWords.wholeProperty },
+    { value: '', label: wholeProperty ? dutyFormWords.wholeProperty : 'Bitte wählen' },
     ...buildings
       .filter((each) => each['propertyId'] === propertyId)
       .sort(byName)
@@ -467,6 +494,9 @@ function DutyForm({ at }: { readonly at: Places | null }) {
       ...dutyProblems(values),
       ...problemsOf(typed, typed.counting),
       ...(at === null && propertyId === '' ? { propertyId: dutyFormWords.noProperty } : {}),
+      ...(at === null && typed.buildingId === '' && !wholeProperty
+        ? { buildingId: onlyInABuilding }
+        : {}),
     }
 
     setProblems(wrong)
@@ -537,6 +567,7 @@ function DutyForm({ at }: { readonly at: Places | null }) {
                       label="Gebäude"
                       options={buildingChoices}
                       value={typed.buildingId}
+                      problem={problems['buildingId']}
                       onChange={(value) => {
                         set({ buildingId: value })
                       }}

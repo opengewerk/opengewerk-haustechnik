@@ -27,6 +27,7 @@ import {
   printLabels,
   useLabelsOf,
 } from '../app/labels.js'
+import { useHeldArea } from '../session/areas.js'
 
 /**
  * The labels in the office (#98, board "Etikett: Karte und Druck"): the card
@@ -114,6 +115,8 @@ export const printLabelWords = {
   title: 'Etiketten drucken',
   sub: 'Je Anlage oder Raum ein Etikett. Wo es noch keines gibt, wird eines angelegt; ein gültiges wird noch einmal gedruckt.',
   blank: 'Bogen ohne Anlage, für die Bestandsaufnahme',
+  noSheet:
+    'Ein Bogen ohne Anlage hängt an einer Liegenschaft, und Sie haben den Bereich keiner Liegenschaft. Gedruckt werden die Etiketten von Anlagen und Räumen.',
   whatBlankIs:
     'Etiketten, die noch an nichts hängen. Vor Ort werden sie geklebt und ihrer Anlage zugeordnet. Jeder Druck legt neue an.',
   startNote: 'Für einen angefangenen Bogen: 1 ist oben links, gezählt wird Zeile für Zeile.',
@@ -126,6 +129,13 @@ export const printLabelWords = {
 /** A whole number from a field, or NaN for anything else, which the check refuses. */
 function whole(value: string): number {
   return /^\d{1,3}$/.test(value.trim()) ? Number(value.trim()) : Number.NaN
+}
+
+/** A property a sheet may be printed for, with its area. */
+export interface SheetProperty {
+  readonly id: string
+  readonly name: string
+  readonly areaId: unknown
 }
 
 /**
@@ -143,7 +153,7 @@ export function PrintLabelsDialog({
 }: {
   readonly offers: readonly PrintOffer[]
   /** The properties a sheet without an asset may be printed for. */
-  readonly properties: readonly { readonly id: string; readonly name: string }[]
+  readonly properties: readonly SheetProperty[]
   /** The property the page stands in, chosen from the start. */
   readonly propertyId?: string | undefined
   readonly onClose: () => void
@@ -154,7 +164,12 @@ export function PrintLabelsDialog({
   const [format, setFormat] = useState<LabelFormat>('sheet')
   const [start, setStart] = useState('1')
   const [count, setCount] = useState('24')
-  const [property, setProperty] = useState(propertyId ?? properties[0]?.id ?? '')
+  // The labels of a sheet hang on the property, so only on one whose area
+  // the person holds (#310).
+  const held = useHeldArea()
+  const sheetable = properties.filter((each) => held(each.areaId))
+  const [picked, setProperty] = useState(propertyId ?? '')
+  const property = sheetable.some((each) => each.id === picked) ? picked : (sheetable[0]?.id ?? '')
   const [working, setWorking] = useState(false)
   const [trouble, setTrouble] = useState<string | null>(null)
   const [href, setHref] = useState<string | null>(null)
@@ -176,7 +191,9 @@ export function PrintLabelsDialog({
     !blank && offer.count !== undefined && offer.count > labelBatchMost
       ? printLabelWords.tooMany(offer.count)
       : blank && property === ''
-        ? 'Die Liegenschaft fehlt.'
+        ? sheetable.length === 0
+          ? printLabelWords.noSheet
+          : 'Die Liegenschaft fehlt.'
         : labelPrintProblem(format, labels, format === 'sheet' ? whole(start) : 1, labelBatchMost)
 
   const changed = () => {
@@ -221,7 +238,7 @@ export function PrintLabelsDialog({
           label="Gedruckt wird"
           options={[
             ...offers.map((each) => ({ value: each.key, label: each.label })),
-            { value: blankKey, label: printLabelWords.blank },
+            ...(sheetable.length > 0 ? [{ value: blankKey, label: printLabelWords.blank }] : []),
           ]}
           value={chosen}
           onChange={(value) => {
@@ -229,12 +246,12 @@ export function PrintLabelsDialog({
             changed()
           }}
         />
-        {blank ? (
+        {blank && sheetable.length > 0 ? (
           <>
             <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_120px]">
               <SelectField
                 label="Liegenschaft"
-                options={properties.map((each) => ({ value: each.id, label: each.name }))}
+                options={sheetable.map((each) => ({ value: each.id, label: each.name }))}
                 value={property}
                 onChange={(value) => {
                   setProperty(value)
@@ -327,7 +344,7 @@ export function PrintLabelsDialog({
  */
 export function PrintLabelsButton(props: {
   readonly offers: readonly PrintOffer[]
-  readonly properties: readonly { readonly id: string; readonly name: string }[]
+  readonly properties: readonly SheetProperty[]
   readonly propertyId?: string | undefined
 }) {
   const records = useRight('asset.record')

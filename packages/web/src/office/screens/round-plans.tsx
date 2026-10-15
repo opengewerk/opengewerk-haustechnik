@@ -72,7 +72,7 @@ import { Link, useNavigate, useParams } from '@tanstack/react-router'
 import { Check, Pause, Play, Plus, Square } from 'lucide-react'
 import { type FormEvent, useMemo, useState } from 'react'
 
-import { areaName, useAreas } from '../../session/areas.js'
+import { areaName, useAreas, useHeldArea } from '../../session/areas.js'
 import { useCatalogue } from '../../sync/catalogue.js'
 import { askAt, makeAt } from '../../sync/made-at.js'
 import { planListPlace, planPlaces, roundsPlace } from '../round-template-addresses.js'
@@ -623,6 +623,7 @@ function PlanForm({
   const versions = useTemplateVersions()
   const properties = useRecords('properties')
   const buildings = useRecords('buildings')
+  const held = useHeldArea()
   const closures = useClosures()
   const areas = useAreas()
   const rounds = useRecords('activities')
@@ -670,7 +671,10 @@ function PlanForm({
     .sort((left, right) => left.label.localeCompare(right.label, 'de'))
   const placeChoices = properties
     .flatMap((each) => [
-      { value: `p:${String(each['id'])}`, label: `${text(each, 'name')}, ganze Liegenschaft` },
+      // The whole property only for whoever holds its area (#310).
+      ...(held(each['areaId'])
+        ? [{ value: `p:${String(each['id'])}`, label: `${text(each, 'name')}, ganze Liegenschaft` }]
+        : []),
       ...buildings
         .filter((building) => building['propertyId'] === each['id'])
         .map((building) => ({

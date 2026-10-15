@@ -644,6 +644,33 @@ describe('a new work order', () => {
       ])
     })
   })
+
+  it('by hand offers as its place only a property whose area the person holds, and the buildings of the others all the same (#310)', async () => {
+    const nord: NamedArea = { id: 'a-nord', name: 'Nord' }
+
+    server.put('properties', { ...school, id: 'p-yard', areaId: nord.id, name: 'Werkhof Nord' })
+
+    const { mounted } = mount('/auftraege/neu?anlage=as-door', { '/areas': [nord] })
+    const offered = (name: string) =>
+      within(screen.getByRole('combobox', { name }))
+        .getAllByRole('option')
+        .map((option) => option.textContent)
+
+    await mounted
+    fireEvent.change(await screen.findByRole('combobox', { name: 'Woran' }), {
+      target: { value: 'buildingId' },
+    })
+    await waitFor(() => {
+      expect(offered('Gebäude')).toContain('Schulhaus, Schulzentrum Am Lindenhain')
+    })
+
+    fireEvent.change(screen.getByRole('combobox', { name: 'Woran' }), {
+      target: { value: 'propertyId' },
+    })
+    await waitFor(() => {
+      expect(offered('Liegenschaft')).toEqual(['Bitte wählen', 'Werkhof Nord'])
+    })
+  })
 })
 
 /** The page of the found defect, as the server reads it. */

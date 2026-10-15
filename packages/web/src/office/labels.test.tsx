@@ -459,6 +459,26 @@ describe('the dialog that prints labels, at the register of assets', () => {
     expect(shown.queryByRole('link', { name: 'PDF öffnen' })).toBeNull()
   })
 
+  it('prints a sheet only for a property whose area the person holds (#310)', async () => {
+    // The depot lies in an area the person does not hold.
+    server.put('properties', { ...school, id: 'p-depot', areaId: 'a-nord', name: 'Bauhof' })
+    await mount(at, 'technician', [], listing(2))
+
+    const shown = await dialog()
+
+    fireEvent.change(shown.getByRole('combobox', { name: 'Gedruckt wird' }), {
+      target: { value: 'blank' },
+    })
+
+    await waitFor(() => {
+      expect(
+        within(shown.getByRole('combobox', { name: 'Liegenschaft' }))
+          .getAllByRole('option')
+          .map((option) => option.textContent),
+      ).toEqual(['Schulzentrum Am Lindenhain'])
+    })
+  })
+
   it('is offered to nobody who may not take assets into the register: a print makes labels', async () => {
     await mount(at, 'technician', ['asset.record'], listing(2))
     await screen.findByRole('heading', { level: 1, name: 'Anlagen' })
@@ -529,6 +549,39 @@ describe('the dialog that prints labels, at a building', () => {
 
     expect(shown.queryByRole('option', { name: /Räume dieses Gebäudes/ })).toBeNull()
     expect(shown.getByRole('option', { name: 'Die 2 Anlagen dieses Gebäudes' })).toBeDefined()
+  })
+
+  it('offers no sheet to somebody who holds the building in an area of its own and not the area of its property (#310)', async () => {
+    const nord: NamedArea = { id: 'a-nord', name: 'Nord' }
+
+    server.put('buildings', { ...house, areaId: nord.id, ownAreaId: nord.id })
+    await mount(at, 'technician', [], { '/areas': [nord] })
+
+    const shown = await dialog()
+
+    expect(shown.getByRole('option', { name: 'Die 2 Anlagen dieses Gebäudes' })).toBeDefined()
+    await waitFor(() => {
+      expect(
+        shown.queryByRole('option', { name: 'Bogen ohne Anlage, für die Bestandsaufnahme' }),
+      ).toBeNull()
+    })
+  })
+
+  it('says why there is nothing to print at a building with nothing in it whose property is out of reach (#310)', async () => {
+    const nord: NamedArea = { id: 'a-nord', name: 'Nord' }
+    const garage = { ...house, id: 'b-garage', name: 'Garage', areaId: nord.id, ownAreaId: nord.id }
+
+    server.put('buildings', garage)
+    await mount(officePlaces.building(garage.id), 'technician', [], { '/areas': [nord] })
+
+    const shown = await dialog()
+
+    expect(
+      await shown.findByText(
+        'Ein Bogen ohne Anlage hängt an einer Liegenschaft, und Sie haben den Bereich keiner Liegenschaft. Gedruckt werden die Etiketten von Anlagen und Räumen.',
+      ),
+    ).toBeDefined()
+    expect(shown.queryByRole('combobox', { name: 'Liegenschaft' })).toBeNull()
   })
 })
 

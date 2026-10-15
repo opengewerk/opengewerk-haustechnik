@@ -36,6 +36,7 @@ import {
   newestFirst,
   versionWords,
 } from '../app/documents.js'
+import { onlyInABuilding, useHeldArea } from '../session/areas.js'
 import { documentPlaces } from './document-addresses.js'
 import { factLink } from './links.js'
 
@@ -168,9 +169,14 @@ export function UploadDocumentDialog({
   const [trouble, setTrouble] = useState<string | null>(null)
   const [asked, setAsked] = useState(false)
 
+  const held = useHeldArea()
   const byName = (records: readonly RecordState[]) =>
     [...records].sort((left, right) => text(left, 'name').localeCompare(text(right, 'name'), 'de'))
   const itsBuildings = byName(buildings.filter((building) => building['propertyId'] === propertyId))
+  // At the property itself only for whoever holds its area (#310).
+  const wholeProperty =
+    propertyId === '' ||
+    held(properties.find((property) => String(property['id']) === propertyId)?.['areaId'])
   const nameProblem = asked ? documentProblems({ title })['title'] : undefined
   const photo = file !== null && isPhoto(fileMediaType(file.type))
 
@@ -202,6 +208,12 @@ export function UploadDocumentDialog({
 
     if (place === undefined && propertyId === '') {
       setTrouble(documentCardWords.noProperty)
+
+      return
+    }
+
+    if (place === undefined && buildingId === '' && !wholeProperty) {
+      setTrouble(onlyInABuilding)
 
       return
     }
@@ -327,7 +339,10 @@ export function UploadDocumentDialog({
               <SelectField
                 label="Gebäude"
                 options={[
-                  { value: '', label: documentCardWords.wholeProperty },
+                  {
+                    value: '',
+                    label: wholeProperty ? documentCardWords.wholeProperty : 'Bitte wählen',
+                  },
                   ...itsBuildings.map((building) => ({
                     value: String(building['id']),
                     label: text(building, 'name'),
