@@ -7,6 +7,26 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-10-15
+
+Die erste Fassung von OpenGewerk Haustechnik: Phase 1 des Planungskonzepts, der Stand, mit dem der
+Pilotbetrieb in den Parallelbetrieb geht. Ein Betreiber führt damit seine Liegenschaften bis zum
+Raum, seine Anlagen mit Akte, Etikett und Zählern, das Pflichtenverzeichnis mit den Vorschlägen aus
+den Paketen Elektro, Brandschutz, Trinkwasser, Messstellen, Allgemein und Landesrecht
+(Baden-Württemberg), die Nachweise aus Protokoll oder Bericht, die Rundgänge vor Ort auch ohne Netz,
+Mängel, Aufträge, Dokumente und die Erinnerungen an Fristen per E-Mail und Push, je Fristart
+einstellbar. Die Daten der Vorgängeranwendung kommen über den Importweg herein, und eine von Hand
+geschriebene Verfahrensbeschreibung liegt für eine Arbeitnehmervertretung bei.
+
+Installiert wird aus dem Paket dieser Seite mit einem Befehl, ohne Quelltext; die Abbilder sind
+signiert. Neben OpenGewerk auf demselben Server läuft die Haustechnik mit eigenem Port, eigenem
+Hostnamen und eigener Datenbank.
+
+Was noch fehlt, steht in Phase 2 des Planungskonzepts: unter anderem die Pakete Raumluft und Kälte,
+Heizung, Förderanlagen und Arbeitsmittel, Störmeldungen, eigene Rollen, die Aufbewahrung der
+Nachweise mit Löschvorschlag und die erzeugte Verfahrensbeschreibung. Die externe Sicherheitsprüfung
+kommt vor der Fassung mit der ersten Seite ohne Anmeldung, der Störmeldung über das Etikett.
+
 ### Hinzugefügt
 
 - Je Fristart lässt sich unter „Einstellungen“, „Fristen“ einstellen, wie eine Frist erinnert:
