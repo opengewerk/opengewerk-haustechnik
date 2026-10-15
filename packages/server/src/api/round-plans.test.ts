@@ -147,6 +147,14 @@ function planned(person: Person, fields: object = {}) {
   )
 }
 
+function removed(person: Person, id: unknown) {
+  return answered(
+    http()
+      .delete(`/round-plans/${String(id)}`)
+      .set(testIdentityHeader, by(person)),
+  )
+}
+
 function changed(person: Person, id: unknown, fields: object) {
   return answered(
     http()
@@ -610,6 +618,65 @@ describe('the plan of a round', () => {
         .filter((round) => round.id !== other?.id)
         .every((round) => round.performer_user_id === 'u-tech2'),
     ).toBe(true)
+  })
+
+  it('is removed by whoever plans while nobody walked a round of it, with its open rounds and its deadline (#320)', async () => {
+    const plan = await planned('u-site')
+    const id = plan.body['id']
+
+    // An open round of yesterday that nobody walked goes with it.
+    await admin.query(
+      `insert into activities (tenant_id, property_id, area_id, building_id, kind, title, due_on, round_plan_id)
+       values ($1, $2, $3, $4, 'round', 'Wache, täglicher Rundgang', $5, $6)`,
+      [tenant, northProperty, north, northBuilding, plus(-1), id],
+    )
+    await engineRun()
+
+    const deadlines = async () =>
+      (
+        await admin.query<{ id: string }>(
+          `select id from deadlines where round_plan_id = $1 and status = 'open'`,
+          [id],
+        )
+      ).rows
+
+    expect(await deadlines()).toHaveLength(1)
+    expect((await removed('u-tech', id)).status).toBe(403)
+    expect(await removed('u-site', id)).toMatchObject({ status: 200, body: { id } })
+    expect(await roundsOf(id)).toEqual([])
+
+    const { rows: marked } = await admin.query<{ gone: boolean }>(
+      'select deleted_at is not null as gone from round_plans where id = $1',
+      [id],
+    )
+
+    expect(marked).toEqual([{ gone: true }])
+
+    await engineRun()
+
+    expect(await deadlines()).toEqual([])
+    // Marked, it is no plan any more: not to remove again, and not to change.
+    expect((await removed('u-site', id)).status).toBe(404)
+    expect((await changed('u-site', id, { resting: true })).status).toBe(404)
+  })
+
+  it('is not removed once a round of it was begun, and keeps every round; it ends instead (#320)', async () => {
+    const plan = await planned('u-site')
+    const id = plan.body['id']
+    const rounds = await roundsOf(id)
+
+    await admin.query(`update activities set status = 'started', performed_on = $2 where id = $1`, [
+      rounds[0]?.id,
+      today,
+    ])
+
+    expect(await removed('u-site', id)).toMatchObject({
+      status: 409,
+      message:
+        'Von diesem Plan ist schon ein Rundgang begonnen, gegangen oder geschlossen. Er wird nicht entfernt, sondern beendet.',
+    })
+    expect((await roundsOf(id)).map((round) => round.id)).toEqual(rounds.map((round) => round.id))
+    expect((await changed('u-site', id, { endsOn: today })).status).toBe(200)
   })
 })
 

@@ -7,6 +7,16 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
 
 ## [Unreleased]
 
+### Hinzugefügt
+
+- Ein Plan eines Rundgangs, der irrtümlich angelegt wurde, lässt sich entfernen (#320), solange von
+  ihm kein Rundgang begonnen, unterschrieben, abgegeben oder als nicht durchgeführt geschlossen ist.
+  Bisher blieb nur, ihn zu beenden, und weil sich der Ort eines Plans nicht ändern lässt, stand nach
+  jedem Plan am falschen Gebäude ein beendeter in der Liste. Der Plan wird markiert und nie gelöscht,
+  mit ihm jeder seiner Rundgänge, den noch niemand begonnen hat, auch auf den Geräten vor Ort, und
+  seine Frist entfällt; das Änderungsprotokoll nennt, wer ihn angelegt und wer ihn entfernt hat. Ist
+  schon ein Rundgang gegangen, wird der Plan beendet, wie eine Pflicht mit Nachweis.
+
 ## [0.1.2] - 2026-10-15
 
 Die zweite Nachlieferung für den Pilotbetrieb, aus dem ersten Tag mit den übernommenen Daten. Im Plan
