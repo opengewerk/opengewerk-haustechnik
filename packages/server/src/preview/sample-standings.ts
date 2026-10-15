@@ -10,8 +10,9 @@ import {
 import type { Database } from '@opengewerk/platform-server'
 import { eq } from 'drizzle-orm'
 
+import { freezeServiceReport, serviceReportFingerprint } from '../activities/service-reports.js'
 import { pageFingerprint, pageOf, takeSignature } from '../activities/signing.js'
-import { activities, labels, properties } from '../database/schema/index.js'
+import { activities, labels, properties, serviceReports } from '../database/schema/index.js'
 import { dayInGermany } from '../today.js'
 import { previewColleagues } from './preview-database.js'
 import type { BehindTheRoutes } from './sample-data.js'
@@ -20,10 +21,14 @@ import type { BehindTheRoutes } from './sample-data.js'
 const sampleSignature =
   'M80,260L170,150L240,290L330,120L420,280L510,140L600,260L700,180L820,230L920,200'
 
+/** The clients who sign the service reports of the sample orders, one after the other. */
+const sampleClients = ['Petra Lang', 'Jonas Albrecht', 'Miriam Okafor']
+
 /**
  * What the sample operator has that no route writes: the signatures under
  * the work orders, which a device sends with the day the work was done
- * (#117), and the labels of a sheet. The defects are reported through their
+ * (#117), the client's signature under the service report of each, which a
+ * device sends before it (#324), and the labels of a sheet. The defects are reported through their
  * route since #116, the evidence of the duties through the route of a report
  * since #110, and a work order follows its signature through its routes
  * (`decideSampleOrders`).
@@ -38,7 +43,7 @@ export async function writeSampleStandings(
 
   await database.forTenant(planter, async (tx) => {
     // Signed by the person who leads the order, on the day of the planting.
-    for (const order of planted.orders) {
+    for (const [index, order] of planted.orders.entries()) {
       const id = order.activityId as ActivityId
 
       await tx
@@ -52,27 +57,47 @@ export async function writeSampleStandings(
         throw new Error(`Den Auftrag ${order.activityId} der Beispieldaten gibt es nicht.`)
       }
 
-      await takeSignature(
-        tx,
-        {
+      const context = {
+        tenantId: planter.tenantId,
+        writtenBy: order.leads,
+        at,
+        catalogue,
+        nameOf: (userId: string) =>
+          previewColleagues.find((colleague) => colleague.id === userId)?.name ??
+          'Unbekanntes Konto',
+      }
+      // The client signs the service report first, on the device of the
+      // person who leads the order, and the server freezes it.
+      const clientName = sampleClients[index % sampleClients.length] ?? 'Petra Lang'
+      const [report] = await tx
+        .insert(serviceReports)
+        .values({
           tenantId: planter.tenantId,
-          writtenBy: order.leads,
-          at,
-          catalogue,
-          nameOf: (userId) =>
-            previewColleagues.find((colleague) => colleague.id === userId)?.name ??
-            'Unbekanntes Konto',
-        },
-        {
+          propertyId: row.propertyId,
+          areaId: row.areaId,
           activityId: id,
-          role: 'signer',
+          clientName,
+          path: sampleSignature,
+          signedBy: order.leads,
           signedAt: at,
           deviceInfo: 'Telefon',
-          path: sampleSignature,
-          typedName: null,
-          pageFingerprint: pageFingerprint(await pageOf(tx, row)),
-        },
-      )
+          pageFingerprint: await serviceReportFingerprint(tx, id, planter.tenantId, clientName),
+        })
+        .returning({ id: serviceReports.id })
+
+      if (report !== undefined) {
+        await freezeServiceReport(tx, context, report.id)
+      }
+
+      await takeSignature(tx, context, {
+        activityId: id,
+        role: 'signer',
+        signedAt: at,
+        deviceInfo: 'Telefon',
+        path: sampleSignature,
+        typedName: null,
+        pageFingerprint: pageFingerprint(await pageOf(tx, row)),
+      })
     }
 
     // The labels of a sheet: on their property and on nothing else, each with

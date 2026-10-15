@@ -30,7 +30,7 @@ guarded_route=/staff
 # The tables counted before the backup and after the restore. The area and
 # the place of the account in it come with the account: a Betreiber gets its
 # first area with its first membership.
-counted_tables='auth_users memberships tenant_roles account_corrections areas member_areas invitations invitation_area_choices invitation_areas properties buildings contacts building_closures assets files mail_settings deadline_settings deadline_runs duties duty_dismissals evidence deadlines activities activity_duties activity_answers work_orders work_order_participants work_order_notes defects meter_points meter_readings meter_exchanges meter_pauses meter_settings activity_signatures work_order_decisions evidence_voidings round_records prints attachments attachment_versions labels imports asset_kind_names defect_class_terms round_templates round_template_versions round_plans tasks mail_outbox push_subscriptions push_opt_outs push_outbox'
+counted_tables='auth_users memberships tenant_roles account_corrections areas member_areas invitations invitation_area_choices invitation_areas properties buildings contacts building_closures assets files mail_settings deadline_settings deadline_runs duties duty_dismissals evidence deadlines activities activity_duties activity_answers work_orders work_order_participants work_order_notes defects meter_points meter_readings meter_exchanges meter_pauses meter_settings work_order_settings activity_signatures work_order_decisions service_reports service_report_records evidence_voidings round_records prints attachments attachment_versions labels imports asset_kind_names defect_class_terms round_templates round_template_versions round_plans tasks mail_outbox push_subscriptions push_opt_outs push_outbox'
 
 # The migrations, and how many of them make the older state an update starts
 # from: the first, without the sequence for work orders that the second brings.
@@ -372,7 +372,19 @@ records_for_backup() {
     insert into prints (tenant_id, property_id, area_id, evidence_id, sha256)
     select e.tenant_id, e.property_id, e.area_id, e.id, f.sha256
       from evidence e join files f on f.tenant_id = e.tenant_id
-     where e.number = 'NW-2025-00001';"
+     where e.number = 'NW-2025-00001';
+    insert into work_order_settings (tenant_id, names_and_times) values ('$first_tenant', true);
+    insert into service_reports (tenant_id, property_id, area_id, activity_id, client_name, path,
+                                 signed_by, signed_at, page_fingerprint)
+    select a.tenant_id, a.property_id, a.area_id, a.id, 'Petra Probe', 'M10,10L200,300', u.id,
+           '2026-10-01T09:20:00Z', repeat('d', 64)
+      from activities a, auth_users u
+     where a.tenant_id = '$first_tenant' and u.email = '$probe_email';
+    insert into service_report_records (tenant_id, property_id, area_id, service_report_id,
+                                        state, fingerprint)
+    select tenant_id, property_id, area_id, id,
+           '{\"version\": 1, \"holder\": \"Probe\"}', repeat('0', 64)
+      from service_reports where tenant_id = '$first_tenant';"
   waited=0
   # The duty's own deadline; the plan of a round brings one of its own.
   until test "$(value "select count(*) from deadlines where tenant_id = '$first_tenant' and duty_id is not null")" = 1 &&

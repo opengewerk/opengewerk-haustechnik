@@ -470,6 +470,21 @@ async function placeIn(where: 'north' | 'south'): Promise<void> {
      values ($1, $2, $3, $4, '{"version": 1}', $5)`,
     [tenant, at.property, areaId, at.activity, 'c'.repeat(64)],
   )
+  // The client's signature under the service report of the work order and
+  // its frozen state (#324).
+  await admin.query(
+    `insert into service_reports (tenant_id, property_id, area_id, activity_id, client_name, path,
+                                  signed_by, signed_at, page_fingerprint)
+     values ($1, $2, $3, $4, 'Petra Lang', 'M10,10L200,300', $5, '2026-10-01T09:20:00Z', $6)`,
+    [tenant, at.property, areaId, at.activity, person.lead, 'd'.repeat(64)],
+  )
+  await admin.query(
+    `insert into service_report_records (tenant_id, property_id, area_id, service_report_id,
+                                         state, fingerprint)
+     select tenant_id, property_id, area_id, id, '{"version": 1}', $2
+       from service_reports where activity_id = $1`,
+    [at.activity, 'e'.repeat(64)],
+  )
   // A document at the asset, with the file its one version names.
   await admin.query(
     `insert into files (tenant_id, sha256, size_bytes, media_type)
@@ -617,6 +632,8 @@ describe('a person with the north', () => {
       'rooms',
       'round_plans',
       'round_records',
+      'service_report_records',
+      'service_reports',
       'tasks',
       'work_order_decisions',
       'work_order_notes',
@@ -840,6 +857,8 @@ describe('a property moved to another area', () => {
         'rooms',
         'round_plans',
         'round_records',
+        'service_report_records',
+        'service_reports',
         'tasks',
         'work_order_decisions',
         'work_order_notes',

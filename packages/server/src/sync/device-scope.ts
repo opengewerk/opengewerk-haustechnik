@@ -144,6 +144,8 @@ const workEntities = [
   'work_order_notes',
   'activity_signatures',
   'work_order_decisions',
+  // The client's signature under the service report of a work order (#324).
+  'service_reports',
 ]
 
 /**
@@ -180,6 +182,7 @@ export function pullScope(scope: DeviceScope): PullScope {
     activity_signatures: sql`${column('activity_signatures', 'activity_id')} = any(${activities})`,
     work_order_decisions: sql`${column('work_order_decisions', 'work_order_id')} in
       (select id from work_orders where activity_id = any(${activities}))`,
+    service_reports: sql`${column('service_reports', 'activity_id')} = any(${activities})`,
     defects: sql`${column('defects', 'id')} = any(${idArray(scope.defectIds)})`,
     tasks: sql`${column('tasks', 'id')} = any(${idArray(scope.taskIds)})`,
   }
@@ -202,6 +205,8 @@ export function pullScope(scope: DeviceScope): PullScope {
       round_template_versions: operator,
       // The key day of the meters, which names the key date of a reading on site (#120).
       meter_settings: operator,
+      // Whether names and times stand on a service report, which its page says (#324).
+      work_order_settings: operator,
     },
   }
 }

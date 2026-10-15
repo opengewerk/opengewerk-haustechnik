@@ -142,6 +142,8 @@ describe('the rights of an operation', () => {
       work_order_notes: { create: true },
       defects: { create: true, change: true },
       activity_signatures: { create: true },
+      // The client's signature under a service report, before the own one (#324).
+      service_reports: { create: true },
       // Filed and corrected by everybody, taken out of the records from the
       // Objektleitung on (section 7 of the concept).
       attachments: { create: true, change: true, remove: false },

@@ -89,6 +89,7 @@ import {
   workOrderStartOf,
   workOrderStartSearch,
 } from '../work-order-addresses.js'
+import { ServiceReportsPanel } from '../service-reports.js'
 import { TasksCard } from '../tasks.js'
 import { ActivityStatusMark, usePlaces } from './activities.js'
 import { asTableAddress } from '../table-address.js'
@@ -115,7 +116,6 @@ export const workOrderWords = {
   reasonPlaceholder: 'Nur beim Zurückweisen, Pflicht',
   notSigned:
     'Noch nicht unterschrieben. Abschließen kann den Auftrag nur, wer ihn führt, mit der Unterschrift vor Ort.',
-  later: 'Der Leistungsnachweis für den Auftraggeber kommt mit Phase 2 (4.8).',
   laterMaterial: 'Material aus dem Lager am Auftrag kommt mit Phase 2 (4.12).',
   peopleFailed: 'Wer zur Wahl steht, ließ sich nicht laden. Das braucht eine Verbindung.',
   fromDefect:
@@ -792,6 +792,7 @@ export function WorkOrderScreen() {
               </ul>
             )}
           </Panel>
+          <ServiceReportsPanel reports={shown.serviceReports} number={shown.number} />
           <AcceptancePanel order={shown} accepts={accepts} />
           <TasksCard
             field="activityId"
@@ -799,9 +800,6 @@ export function WorkOrderScreen() {
             propertyId={shown.propertyId}
             areaId={shown.areaId}
           />
-          <Panel title="Später">
-            <p className="text-[12px] leading-[1.4] text-ink-muted">{workOrderWords.later}</p>
-          </Panel>
         </div>
       </div>
       {closing ? (

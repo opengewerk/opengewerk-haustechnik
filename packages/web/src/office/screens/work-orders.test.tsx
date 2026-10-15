@@ -3,6 +3,7 @@ import type {
   DefectReading,
   DefectRegister,
   RoleKey,
+  ServiceReportId,
   WorkOrderCandidates,
   WorkOrderDetails,
   WorkOrderEntry,
@@ -133,6 +134,7 @@ function details(entry: WorkOrderEntry, further: Partial<WorkOrderDetails> = {})
     notes: [],
     signatures: [],
     decisions: [],
+    serviceReports: [],
     ...further,
   }
 }
@@ -281,6 +283,57 @@ describe('the page of a work order', () => {
     expect(screen.getByText('Murat Yilmaz')).toBeTruthy()
     expect(screen.getByRole('img', { name: 'Unterschrift von Lena Vogt' })).toBeTruthy()
     expect(screen.queryByText('gilt nicht mehr')).toBeNull()
+  })
+
+  it('names the service report the client signed, with its PDF, and one a rejection made invalid (#324)', async () => {
+    const { mounted } = mount('/auftraege/ac-waiting', {
+      '/work-orders/ac-waiting': details(waiting, {
+        serviceReports: [
+          {
+            id: 'sr-old' as ServiceReportId,
+            clientName: 'Jonas Albrecht',
+            signedAt: '2026-10-02T08:00:00.000Z',
+            holder: 'Lena Vogt',
+            valid: false,
+            voidedAt: '2026-10-03T09:00:00.000Z',
+          },
+          {
+            id: 'sr-new' as ServiceReportId,
+            clientName: 'Petra Lang',
+            signedAt: '2026-10-05T07:50:00.000Z',
+            holder: 'Lena Vogt',
+            valid: true,
+            voidedAt: null,
+          },
+        ],
+      }),
+    })
+
+    await mounted
+
+    const card = await screen.findByRole('region', { name: 'Leistungsnachweis' })
+
+    expect(within(card).getByText('Gilt')).toBeTruthy()
+    expect(within(card).getByText('Petra Lang')).toBeTruthy()
+    expect(within(card).getByText('am 05.10.2026, mit Schriftzug')).toBeTruthy()
+    expect(within(card).getAllByText('auf dem Gerät von Lena Vogt')).toHaveLength(2)
+    expect(
+      within(card).getByText('gilt nicht mehr, Auftrag am 03.10.2026 zurückgewiesen'),
+    ).toBeTruthy()
+    expect(within(card).getAllByRole('button', { name: 'PDF öffnen' })).toHaveLength(2)
+  })
+
+  it('says that no service report was signed yet', async () => {
+    const { mounted } = mount('/auftraege/ac-waiting', {
+      '/work-orders/ac-waiting': details(waiting),
+    })
+
+    await mounted
+
+    const card = await screen.findByRole('region', { name: 'Leistungsnachweis' })
+
+    expect(within(card).queryByText('Gilt')).toBeNull()
+    expect(within(card).queryByRole('button', { name: 'PDF öffnen' })).toBeNull()
   })
 
   it('names the time spent and the notes from the site, each with who wrote it and when', async () => {

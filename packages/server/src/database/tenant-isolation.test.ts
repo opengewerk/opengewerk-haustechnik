@@ -107,6 +107,7 @@ function rowsOf(tenant: Tenant): readonly Row[] {
   const plan = randomUUID()
   const workOrder = randomUUID()
   const evidence = randomUUID()
+  const serviceReport = randomUUID()
   const document = randomUUID()
   const file = randomUUID().replaceAll('-', '').repeat(2)
 
@@ -443,6 +444,8 @@ function rowsOf(tenant: Tenant): readonly Row[] {
     },
     // The key day of the meters of an operator (#120).
     { table: 'meter_settings', values: { tenant_id: tenant.id, key_day: 15 } },
+    // Whether the service report names the people who did the work (#324).
+    { table: 'work_order_settings', values: { tenant_id: tenant.id, names_and_times: true } },
     // A duty from the catalogue at the asset, and a proposal dismissed there.
     {
       table: 'duties',
@@ -673,6 +676,34 @@ function rowsOf(tenant: Tenant): readonly Row[] {
         area_id: area,
         evidence_id: evidence,
         sha256: file,
+      },
+    },
+    // The client's signature under the service report of the work order and
+    // its frozen state (#324).
+    {
+      table: 'service_reports',
+      values: {
+        id: serviceReport,
+        tenant_id: tenant.id,
+        property_id: property,
+        area_id: area,
+        activity_id: activity,
+        client_name: 'Petra Lang',
+        path: 'M10,10L200,300',
+        signed_by: tenant.userId,
+        signed_at: '2026-10-01T09:20:00Z',
+        page_fingerprint: 'd'.repeat(64),
+      },
+    },
+    {
+      table: 'service_report_records',
+      values: {
+        tenant_id: tenant.id,
+        property_id: property,
+        area_id: area,
+        service_report_id: serviceReport,
+        state: JSON.stringify({ version: 1, holder: 'Tobias Wendt' }),
+        fingerprint: 'e'.repeat(64),
       },
     },
     // A document at the asset, and the one version of it, which names the

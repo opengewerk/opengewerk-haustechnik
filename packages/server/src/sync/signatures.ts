@@ -1,4 +1,10 @@
-import type { ActivityId, Catalogue, Identity, SignatureRole } from '@opengewerk/haustechnik-domain'
+import type {
+  ActivityId,
+  Catalogue,
+  Identity,
+  ServiceReportId,
+  SignatureRole,
+} from '@opengewerk/haustechnik-domain'
 import type {
   FoundIdentity,
   SyncCheck,
@@ -12,6 +18,7 @@ import {
   SigningRefusal,
   type SigningRefusalAbout,
 } from '../activities/signing.js'
+import { checkServiceReport, freezeServiceReport } from '../activities/service-reports.js'
 
 // A signature given on a device, also without a connection (ADR 0004, points
 // 10 and 11). It travels as a record of its own, and the server checks it
@@ -94,6 +101,42 @@ export function signed(catalogue: Catalogue): SyncCheck<Sender> {
 }
 
 /**
+ * The client's signature under a service report from a device (#324),
+ * checked against the work order as the server holds it, as a signature is:
+ * a report of another shape is a mistake its form asks about, and what
+ * changed while the device was away is a conflict about this one operation.
+ */
+export const reported: SyncCheck<Sender> = async ({ tx, tenantId, operation, values, sender }) => {
+  if (operation.entity !== 'service_reports' || operation.kind !== 'create') {
+    return null
+  }
+
+  try {
+    await checkServiceReport(tx, tenantId, {
+      signedBy: sender.userId,
+      activityId: values['activityId'] as ActivityId,
+      clientName: String(values['clientName'] ?? ''),
+      path: (values['path'] ?? null) as string | null,
+      signedAt: new Date(String(values['signedAt'] ?? '')),
+      deviceInfo: (values['deviceInfo'] ?? null) as string | null,
+      pageFingerprint: String(values['pageFingerprint'] ?? ''),
+    })
+
+    return null
+  } catch (error) {
+    if (error instanceof SigningRefusal) {
+      // A report out of its turn is one for an order that has one already:
+      // the conflict is about the order, a report has no role.
+      return error.about === 'turn'
+        ? { kind: 'conflict', reason: 'changed_elsewhere', fields: ['activityId'] }
+        : answers[error.about](error.message)
+    }
+
+    throw error
+  }
+}
+
+/**
  * What follows a signature from a device once it is written, with the
  * catalogue the kinds of duty come from: the activity written down when every
  * signature it calls for is there, and its state, in the name of whoever sent
@@ -103,7 +146,22 @@ export function followed(
   catalogue: Catalogue,
 ): (context: SyncCheckContext<Sender>) => Promise<void> {
   return async ({ tx, tenantId, operation, values, sender }) => {
-    if (operation.entity !== 'activity_signatures' || operation.kind !== 'create') {
+    if (operation.kind !== 'create') {
+      return
+    }
+
+    // A service report is frozen the moment it is written (#324).
+    if (operation.entity === 'service_reports') {
+      await freezeServiceReport(
+        tx,
+        { tenantId, writtenBy: sender.userId, at: new Date(), catalogue, nameOf: sender.nameOf },
+        operation.recordId as ServiceReportId,
+      )
+
+      return
+    }
+
+    if (operation.entity !== 'activity_signatures') {
       return
     }
 

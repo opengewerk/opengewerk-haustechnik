@@ -350,6 +350,8 @@ export async function mountSite(
       'work_order_participants',
       'work_order_notes',
       'work_order_decisions',
+      'service_reports',
+      'work_order_settings',
       'meter_points',
       'meter_readings',
       'meter_exchanges',

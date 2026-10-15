@@ -136,6 +136,9 @@ export const records: RecordWords = {
       'Der Zählerstand wurde nicht angenommen, weil sich am Zähler inzwischen etwas geändert hat: ein Stand für diesen Stichtag, eine Sperre oder ein Tausch. Bitte am Zähler nachsehen und, wenn nötig, neu ablesen.',
     work_order_notes:
       'Die Notiz wurde nicht angenommen, weil sich der Auftrag inzwischen geändert hat. Bitte den Auftrag ansehen und die Notiz, wenn sie noch passt, neu schreiben.',
+    // The client's signature under a service report (#324).
+    service_reports:
+      'Der Leistungsnachweis wurde nicht angenommen, weil sich der Auftrag inzwischen geändert hat oder schon einen hat. Bitte den Auftrag ansehen und den Auftraggeber, wenn nötig, neu unterschreiben lassen.',
   },
   // A possible duplicate of an asset taken stock of on site is decided in a
   // card of its own, with what was sent beside the asset (#99).

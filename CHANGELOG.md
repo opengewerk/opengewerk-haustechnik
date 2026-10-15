@@ -7,6 +7,20 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
 
 ## [Unreleased]
 
+### Hinzugefügt
+
+- Der Leistungsnachweis eines Auftrags (#324): wo ein Auftraggeber da ist und es möchte,
+  unterschreibt er vor dem Abschließen auf dem Gerät die geleistete Arbeit und die Dauer, mit
+  Schriftzug und seinem Namen in Druckschrift, auch ohne Netz. Der Pilotbetrieb führt seinen Rapport
+  heute täglich; damit gibt es ihn in der Anwendung. Die Signatur des Kontos, das das Gerät hält,
+  deckt die Seite, der Server nimmt sie nur für genau diese Seite und von der Person, die den Auftrag
+  führt, einer zählt je Auftrag, und eine Zurückweisung macht ihn ungültig. Der Server friert ihn ein,
+  das PDF entsteht aus diesem Stand und trägt keine Preise; er steht am Auftrag im Büro und auf der
+  Zeitachse des Orts. Namen und Uhrzeiten der Ausführenden nennt er nur, wenn die Leitung es unter
+  „Einstellungen“, „Aufträge“ einschaltet; die Vorgabe ist aus, weil die Dauer Aufwand des Auftrags
+  und keine Arbeitszeiterfassung ist. Die Verfahrensbeschreibung nennt den Namen des Auftraggebers
+  als Angabe eines Dritten und die Einstellung. Migration `0053_service_reports`.
+
 ## [0.1.3] - 2026-10-15
 
 Die dritte Nachlieferung für den Pilotbetrieb, aus dem Anlegen der Pläne und dem ersten Blick auf

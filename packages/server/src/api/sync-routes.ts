@@ -80,6 +80,8 @@ export const operationRights: Readonly<Record<string, OperationRights>> = {
   meter_pauses: { otherwise: 'asset.write' },
   // The key day of the operator is a setting, changed under "Einstellungen" (#120).
   meter_settings: { otherwise: 'settings.write' },
+  // Whether the service report names the people who did the work (#324).
+  work_order_settings: { otherwise: 'settings.write' },
   asset_supplies: { create: 'asset.record', remove: 'asset.record', otherwise: 'asset.record' },
   duties: { otherwise: 'duty.write' },
   duty_dismissals: { otherwise: 'duty.write' },
@@ -114,6 +116,9 @@ export const operationRights: Readonly<Record<string, OperationRights>> = {
     otherwise: 'activity.perform',
   },
   work_order_decisions: { otherwise: 'activity.accept' },
+  // The client's signature under a service report is a step of finishing
+  // the order, the work on it (#324): no right of its own.
+  service_reports: { create: 'activity.perform', otherwise: 'activity.perform' },
   // Filing a document and correcting its name and its kind is "ablegen"; so
   // is a new version, which is filed like a first one. Taking a document out
   // of the records is a right of its own, from the Objektleitung on (section
@@ -200,7 +205,13 @@ async function senderOf(
   identity: FoundIdentity<Identity>,
   operations: readonly Operation[],
 ): Promise<Sender> {
-  if (!operations.some((operation) => operation.entity === 'activity_signatures')) {
+  // A service report freezes the names of the people who wrote its notes (#324).
+  if (
+    !operations.some(
+      (operation) =>
+        operation.entity === 'activity_signatures' || operation.entity === 'service_reports',
+    )
+  ) {
     return { ...identity, nameOf: () => unknownAccount }
   }
 

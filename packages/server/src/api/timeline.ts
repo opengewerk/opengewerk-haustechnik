@@ -26,6 +26,7 @@ import {
   evidence,
   evidenceVoidings,
   rooms,
+  serviceReports,
   workOrderDecisions,
   workOrders,
 } from '../database/schema/index.js'
@@ -285,6 +286,18 @@ async function activityEntries(
     .where(and(where, isNull(workOrderDecisions.deletedAt)))
     .orderBy(desc(workOrderDecisions.decidedAt))
     .limit(reach)
+  // The service report the client signed on site (#324), in the timeline of
+  // the place and so in the file of its asset.
+  const reported = await from({
+    key: serviceReports.id,
+    role: sql<null>`null`,
+    day: dayOf(serviceReports.signedAt),
+    at: isoOf(serviceReports.signedAt),
+  })
+    .innerJoin(serviceReports, eq(serviceReports.activityId, activities.id))
+    .where(and(where, isNull(serviceReports.deletedAt)))
+    .orderBy(desc(serviceReports.signedAt))
+    .limit(reach)
 
   const entry = (row: ActivityRow, kind: TimelineEventKind): Raw => ({
     id: `${kind}:${String(row.key)}`,
@@ -304,6 +317,7 @@ async function activityEntries(
     ...decided.map((row) =>
       entry(row, row.role === 'accepted' ? 'order_accepted' : 'order_rejected'),
     ),
+    ...reported.map((row) => entry(row, 'service_report')),
   ]
 }
 
