@@ -120,13 +120,11 @@ export async function giveSampleWork(
         .where(and(eq(storeArticles.storeId, store.id), eq(storeArticles.articleId, battery.id)))
 
       if (shelf !== undefined) {
-        await tx
-          .insert(storeLabels)
-          .values({
-            tenantId: planter.tenantId,
-            storeArticleId: shelf.id,
-            code: labelCodeFrom(randomBytes(10)),
-          })
+        await tx.insert(storeLabels).values({
+          tenantId: planter.tenantId,
+          storeArticleId: shelf.id,
+          code: labelCodeFrom(randomBytes(10)),
+        })
       }
     }
 
