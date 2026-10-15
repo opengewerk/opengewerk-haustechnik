@@ -178,9 +178,11 @@ beforeAll(async () => {
     { interfaceDirectory: null },
   ))
   await application.init()
-  // The one kind that travels and that the preview plants nothing of: the
-  // key day of the meters, which an operator sets once.
+  // The kinds that travel and that the preview plants nothing of: the key
+  // day of the meters, which an operator sets once, and whether the service
+  // report names the people who did the work (#324).
   await http().put('/settings/meters').send({ keyDay: 15 }).expect(200)
+  await http().put('/settings/work-orders').send({ namesAndTimes: false }).expect(200)
 }, 120_000)
 
 afterAll(async () => {

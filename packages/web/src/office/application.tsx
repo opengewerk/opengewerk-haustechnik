@@ -17,6 +17,7 @@ import {
   ScanLine,
   Server,
   TriangleAlert,
+  Signature,
   Users,
 } from 'lucide-react'
 
@@ -67,6 +68,15 @@ const settings = [
     about:
       'An welchem Tag im Monat der Stand jedes Zählers fällig ist. Eine Messstelle kann davon abweichen.',
     icon: Gauge,
+    right: 'settings.read',
+  },
+  {
+    key: 'work-orders',
+    to: '/einstellungen/auftraege',
+    title: 'Aufträge',
+    about:
+      'Ob auf dem Leistungsnachweis eines Auftrags die Namen und Uhrzeiten der Ausführenden stehen.',
+    icon: Signature,
     right: 'settings.read',
   },
   {

@@ -96,6 +96,7 @@ export * from './model/duty-record.js'
 export * from './model/canonical.js'
 export * from './model/evidence.js'
 export * from './model/signature.js'
+export * from './model/service-report.js'
 
 // What is done to meet a duty or to set a fault right, and what is noticed on
 // the way: activities with the duties they meet, the answers to their forms

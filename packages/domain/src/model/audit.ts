@@ -184,6 +184,11 @@ export const auditVocabulary: AuditVocabulary = {
     },
     // The day of the month the readings of the operator are due on (#120).
     meter_settings: { label: 'Stichtag der Zähler', fields: { key_day: 'Tag des Stichtags' } },
+    // Whether the service report names the people who did the work (#324).
+    work_order_settings: {
+      label: 'Einstellungen der Aufträge',
+      fields: { names_and_times: 'Namen und Uhrzeiten auf dem Leistungsnachweis' },
+    },
     // The duties of an operator and the proposals dismissed (ADR 0002, points
     // 10 and 11).
     duties: {
@@ -268,14 +273,37 @@ export const auditVocabulary: AuditVocabulary = {
         fingerprint: 'Fingerabdruck',
       },
     },
-    // The PDF made of a frozen state (#111).
+    // The PDF made of a frozen state (#111), also of a service report (#324).
     prints: {
       label: 'PDF eines eingefrorenen Stands',
       fields: {
         evidence_id: 'Nachweis',
         activity_id: 'Rundgang',
+        service_report_id: 'Leistungsnachweis',
         voided: 'Mit der Ungültigerklärung',
         sha256: 'Datei',
+      },
+    },
+    // The client's signature under the service report of a work order and
+    // its frozen state (#324).
+    service_reports: {
+      label: 'Leistungsnachweis',
+      fields: {
+        activity_id: 'Vorgang',
+        client_name: 'Name des Auftraggebers',
+        path: 'Linienzug',
+        signed_by: 'Aufgenommen von',
+        signed_at: 'Unterschrieben am',
+        device_info: 'Gerät',
+        page_fingerprint: 'Fingerabdruck der Seite',
+      },
+    },
+    service_report_records: {
+      label: 'Eingefrorener Stand eines Leistungsnachweises',
+      fields: {
+        service_report_id: 'Leistungsnachweis',
+        state: 'Eingefrorener Stand',
+        fingerprint: 'Fingerabdruck',
       },
     },
     // The activities with the duties they meet and their work orders, and the
@@ -545,6 +573,7 @@ export const auditVocabulary: AuditVocabulary = {
       { table: 'work_orders', column: 'activity_id' },
       { table: 'work_order_participants', column: 'activity_id' },
       { table: 'work_order_notes', column: 'activity_id' },
+      { table: 'service_reports', column: 'activity_id' },
     ],
     // A defect with its photos.
     defects: [{ table: 'attachments', column: 'defect_id' }],
@@ -589,6 +618,8 @@ export const auditVocabulary: AuditVocabulary = {
     work_order_id: 'work_orders',
     evidence_id: 'evidence',
     replaces_evidence_id: 'evidence',
+    // The service report a frozen state and a print are of (#324).
+    service_report_id: 'service_reports',
     template_id: 'round_templates',
     round_plan_id: 'round_plans',
     // The document that bears an interval of the operator's own, and the
@@ -654,6 +685,7 @@ export const auditVocabulary: AuditVocabulary = {
     meter_exchanges: ['exchanged_on'],
     meter_pauses: ['starts_on'],
     meter_settings: ['key_day'],
+    work_order_settings: ['names_and_times'],
     // A duty of the operator's own by its name, one from the catalogue by its
     // kind; a dismissal by the kind it dismissed.
     duties: ['label', 'kind'],
@@ -664,7 +696,10 @@ export const auditVocabulary: AuditVocabulary = {
     // The frozen state of a round by its round.
     round_records: ['activity_id'],
     // A PDF by what it was made of.
-    prints: ['evidence_id', 'activity_id'],
+    prints: ['evidence_id', 'activity_id', 'service_report_id'],
+    // A service report by its client, its frozen state by the report.
+    service_reports: ['client_name'],
+    service_report_records: ['service_report_id'],
     // An activity by its name, the duty of an activity by the duty, an answer
     // by its point, a work order by its number and a defect by what was
     // noticed.
@@ -705,6 +740,7 @@ export const auditVocabulary: AuditVocabulary = {
   secretFields: {
     evidence: ['state'],
     round_records: ['state'],
+    service_report_records: ['state'],
     round_template_versions: ['definition'],
   },
   reasons: {},

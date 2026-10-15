@@ -39,7 +39,8 @@ export const timelineCategoryLabel: Readonly<Record<TimelineCategory, string>> =
 /**
  * What happened. An activity is begun, signed (a round handed in), signed
  * again by whoever countersigns, or closed as not performed; a work order is
- * made and accepted or turned back; a defect is found and checked again; the
+ * made and accepted or turned back, and its service report signed by the
+ * client (#324); a defect is found and checked again; the
  * report of a contractor or an evidence taken over is entered; an evidence is
  * declared invalid. An evidence that came of a signature in the application
  * is the signature's own entry and stands no second time.
@@ -52,6 +53,7 @@ export const timelineEventKinds = [
   'order_made',
   'order_accepted',
   'order_rejected',
+  'service_report',
   'defect_found',
   'defect_checked',
   'evidence_entered',
@@ -87,6 +89,8 @@ export function timelineEventWords(kind: TimelineEventKind, activity: ActivityKi
       return 'Auftrag abgenommen'
     case 'order_rejected':
       return 'Auftrag zurückgewiesen'
+    case 'service_report':
+      return 'Leistungsnachweis unterschrieben'
     case 'defect_found':
       return 'Mangel festgestellt'
     case 'defect_checked':

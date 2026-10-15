@@ -301,7 +301,7 @@ async function answersOf(tx: TenantTransaction, activity: ActivityRow) {
  * activity down: two evidences per duty, which nobody can change or delete.
  * Held, the second waits for the first and finds what it wrote.
  */
-async function activityOf(
+export async function activityOf(
   tx: TenantTransaction,
   tenantId: TenantId,
   id: ActivityId,

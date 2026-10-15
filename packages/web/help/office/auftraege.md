@@ -4,6 +4,8 @@ Ein Auftrag ist Arbeit, die jemand zugeteilt bekommt, aus einem Mangel oder für
 
 Der Auftrag wird vor Ort erledigt, mit Notizen und Unterschrift, auch ohne Netz. Danach wartet er auf die Abnahme.
 
+Wo ein Auftraggeber da ist und es möchte, unterschreibt er vor dem Abschließen den Leistungsnachweis auf dem Gerät: die geleistete Arbeit und die Dauer, ohne Preise, mit seinem Namen in Druckschrift. Am Auftrag steht er danach mit seinem PDF. Wird der Auftrag zurückgewiesen, gilt er nicht mehr, und beim nächsten Abschluss entsteht ein neuer.
+
 ## Kurzanleitung
 
 1. „Neuer Auftrag“ anlegen oder ihn aus einem Mangel anlegen: Ort, Art, Dringlichkeit und wer ihn ausführt.

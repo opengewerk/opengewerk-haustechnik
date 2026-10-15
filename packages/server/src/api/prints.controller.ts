@@ -15,6 +15,7 @@ import {
   type EvidenceId,
   type IsoDate,
   readEvidenceState,
+  type ServiceReportId,
   type StatedAnswer,
 } from '@opengewerk/haustechnik-domain'
 import {
@@ -38,8 +39,17 @@ import {
   evidenceVoidings,
   prints,
   roundRecords,
+  serviceReportRecords,
+  serviceReports,
 } from '../database/schema/index.js'
-import { evidencePrintJob, type PrintedPhoto, roundPrintJob } from '../prints/record-page.js'
+import { serviceReportsOf } from '../activities/service-reports.js'
+import { dayInGermany } from '../today.js'
+import {
+  evidencePrintJob,
+  type PrintedPhoto,
+  roundPrintJob,
+  serviceReportPrintJob,
+} from '../prints/record-page.js'
 import { inSight } from './activities.controller.js'
 import { RequiresPermission } from './authorization.js'
 import type { Asking } from './places.js'
@@ -49,10 +59,14 @@ interface Response {
   setHeader(name: string, value: string): void
 }
 
-/** What a print is of: an evidence, as it is or declared invalid, or a round. */
+/**
+ * What a print is of: an evidence, as it is or declared invalid, a round, or
+ * a service report, as it is or made invalid by a rejection (#324).
+ */
 type PrintOf =
   | { readonly evidenceId: EvidenceId; readonly voided: boolean }
   | { readonly activityId: ActivityId }
+  | { readonly serviceReportId: ServiceReportId; readonly voided: boolean }
 
 /** The sentence when the instance has no renderer: the page says so instead of failing. */
 export const noRenderer =
@@ -119,7 +133,9 @@ export class Printer {
           areaId: place.areaId as never,
           ...('evidenceId' in of
             ? { evidenceId: of.evidenceId, voided: of.voided }
-            : { activityId: of.activityId }),
+            : 'serviceReportId' in of
+              ? { serviceReportId: of.serviceReportId, voided: of.voided }
+              : { activityId: of.activityId }),
           sha256: blob.sha256,
         })
         .onConflictDoNothing()
@@ -283,6 +299,80 @@ export class RoundPrintController {
   }
 }
 
+/**
+ * The PDF of a service report (#324), of its frozen state: who sees the work
+ * order sees it, in the areas of the person asking. One a rejection made
+ * invalid is printed once more, with that on it.
+ */
+@Controller('service-reports')
+export class ServiceReportPrintController {
+  constructor(
+    private readonly database: Database,
+    private readonly printer: Printer,
+  ) {}
+
+  @Get(':id/pdf')
+  @RequiresPermission('activity.read')
+  async serviceReportPdf(
+    @CurrentIdentity() identity: Asking,
+    @Param('id') id: string,
+    @Res({ passthrough: true }) response: Response,
+  ): Promise<StreamableFile> {
+    if (!isUuid(id)) {
+      throw new NotFoundException(missingServiceReport)
+    }
+
+    const held = await this.database.forTenant(identity, async (tx) => {
+      // A work order the person sees: for the house technicians one given to
+      // them or to nobody, as on its page.
+      const [found] = await tx
+        .select({ record: serviceReportRecords, activityId: serviceReports.activityId })
+        .from(serviceReportRecords)
+        .innerJoin(serviceReports, eq(serviceReports.id, serviceReportRecords.serviceReportId))
+        .innerJoin(activities, eq(activities.id, serviceReports.activityId))
+        .where(
+          and(
+            eq(serviceReportRecords.serviceReportId, id as ServiceReportId),
+            isNull(activities.deletedAt),
+            inSight(identity),
+          ),
+        )
+
+      if (found === undefined) {
+        return null
+      }
+
+      const standing = (await serviceReportsOf(tx, identity.tenantId, found.activityId)).find(
+        ({ report }) => report.id === found.record.serviceReportId,
+      )
+
+      return { record: found.record, voidedBy: standing?.voidedBy ?? null }
+    })
+
+    if (held === null) {
+      throw new NotFoundException(missingServiceReport)
+    }
+
+    const { record, voidedBy } = held
+    const bytes = await this.printer.printed(
+      identity,
+      { serviceReportId: record.serviceReportId, voided: voidedBy !== null },
+      { propertyId: record.propertyId, areaId: record.areaId },
+      () =>
+        Promise.resolve(
+          serviceReportPrintJob(
+            record.state,
+            record.fingerprint,
+            voidedBy === null ? null : { on: dayInGermany(voidedBy.decidedAt) },
+          ),
+        ),
+    )
+
+    return pdf(response, bytes, `Leistungsnachweis ${record.state.workOrder.number ?? ''}`.trim())
+  }
+}
+
+const missingServiceReport = 'Diesen Leistungsnachweis gibt es nicht oder nicht in Ihren Bereichen.'
 const missingEvidence = 'Diesen Nachweis gibt es nicht oder nicht in Ihren Bereichen.'
 const missingRound = 'Diesen Rundgang gibt es nicht oder nicht in Ihren Bereichen.'
 
@@ -294,7 +384,9 @@ async function keptPrint(tx: TenantTransaction, of: PrintOf): Promise<string | n
     .where(
       'evidenceId' in of
         ? and(eq(prints.evidenceId, of.evidenceId), eq(prints.voided, of.voided))
-        : eq(prints.activityId, of.activityId),
+        : 'serviceReportId' in of
+          ? and(eq(prints.serviceReportId, of.serviceReportId), eq(prints.voided, of.voided))
+          : eq(prints.activityId, of.activityId),
     )
 
   return row?.sha256 ?? null

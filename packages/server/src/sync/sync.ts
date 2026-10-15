@@ -19,7 +19,7 @@ import { assigned } from './labels.js'
 import { placed } from './places.js'
 import { readOnSite } from './readings.js'
 import { recordRules } from './record-rules.js'
-import { followed, type Sender, signed } from './signatures.js'
+import { followed, reported, type Sender, signed } from './signatures.js'
 import { handedOut } from './tasks.js'
 
 // The sync on the server is the foundation's (ADR 0010 in the repository
@@ -97,7 +97,7 @@ async function completed({
     return values
   }
 
-  if (operation.entity === 'activity_signatures') {
+  if (operation.entity === 'activity_signatures' || operation.entity === 'service_reports') {
     return { ...values, signedBy: sender.userId }
   }
 
@@ -133,7 +133,8 @@ async function completed({
  * question that reads other records and puts in what the server derives,
  * then an answer against the form of its activity, an asset against the ones
  * that are there and a label against the asset it is given to, and last a
- * signature against its activity.
+ * signature against its activity and the client's signature under a service
+ * report against its work order.
  */
 export function syncFor(catalogue: Catalogue): ServerSync<Sender> {
   return serverSync<Sender>({
@@ -151,6 +152,7 @@ export function syncFor(catalogue: Catalogue): ServerSync<Sender> {
       unseenDuplicate,
       assigned,
       signed(catalogue),
+      reported,
     ],
     complete: completed,
     afterWrite: followed(catalogue),

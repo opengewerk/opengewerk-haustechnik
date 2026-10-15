@@ -17,6 +17,7 @@ import {
 import { activities } from './activities.js'
 import { withinAreas } from './areas.js'
 import { evidence } from './evidence.js'
+import { serviceReports } from './service-reports.js'
 
 /**
  * The frozen state of a round as a whole (section 2.6 of the concept, #111):
@@ -76,7 +77,9 @@ export const prints = pgTable(
     areaId: reference<'area'>('area_id').notNull(),
     evidenceId: reference<'evidence'>('evidence_id'),
     activityId: reference<'activity'>('activity_id'),
-    /** Printed with the declaration that the evidence is invalid. */
+    /** The service report of a work order (#324). */
+    serviceReportId: reference<'service-report'>('service_report_id'),
+    /** Printed with the declaration that the evidence or the service report is invalid. */
     voided: boolean('voided').notNull().default(false),
     sha256: text('sha256').notNull(),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
@@ -106,15 +109,31 @@ export const prints = pgTable(
       name: 'prints_of_an_activity_of_their_property',
     }).onUpdate('cascade'),
     foreignKey({
+      columns: [table.tenantId, table.serviceReportId, table.areaId],
+      foreignColumns: [serviceReports.tenantId, serviceReports.id, serviceReports.areaId],
+      name: 'prints_follow_their_service_report',
+    }).onUpdate('cascade'),
+    foreignKey({
       columns: [table.tenantId, table.sha256],
       foreignColumns: [files.tenantId, files.sha256],
       name: 'prints_in_a_file_of_the_tenant',
     }),
     uniqueIndex('prints_of_an_evidence_once').on(table.tenantId, table.evidenceId, table.voided),
     uniqueIndex('prints_of_a_round_once').on(table.tenantId, table.activityId),
-    // Of an evidence or of a round, never both.
-    check('prints_of_one_record', sql`num_nonnulls(${table.evidenceId}, ${table.activityId}) = 1`),
-    // Only an evidence is declared invalid.
-    check('prints_voided_evidence', sql`not ${table.voided} or ${table.evidenceId} is not null`),
+    uniqueIndex('prints_of_a_service_report_once').on(
+      table.tenantId,
+      table.serviceReportId,
+      table.voided,
+    ),
+    // Of an evidence, a round or a service report, never two.
+    check(
+      'prints_of_one_record',
+      sql`num_nonnulls(${table.evidenceId}, ${table.activityId}, ${table.serviceReportId}) = 1`,
+    ),
+    // Only an evidence and a service report are declared invalid.
+    check(
+      'prints_voided_evidence',
+      sql`not ${table.voided} or ${table.evidenceId} is not null or ${table.serviceReportId} is not null`,
+    ),
   ],
 )

@@ -4,6 +4,7 @@ import {
   finishesWorkOrder,
   type IsoDate,
   type RecordState,
+  serviceReportLimits,
   workOrderKindLabel,
   type WorkOrderDetails,
   type WorkOrderKind,
@@ -16,6 +17,7 @@ import { Button, Field, Panel, Status, TextArea } from '@opengewerk/platform-web
 import { clockTime, date, moment, today } from '@opengewerk/platform-web/format'
 import { accountQuery, useRight, useWho } from '@opengewerk/platform-web/session'
 import {
+  SignaturePad,
   SiteActionBar,
   SiteFacts,
   SiteHeader,
@@ -55,7 +57,7 @@ import { useDutyName } from '../../app/form-of.js'
 import { PhotoThumb, useDeferredWrite } from '../../app/form-points.js'
 import { titleOfRoom } from '../../app/place-records.js'
 import { type GivenSignature, SignatureWays } from '../../app/signature-ways.js'
-import { signActivity } from '../../app/signing.js'
+import { namesAndTimesOnDevice, signActivity, takeServiceReport } from '../../app/signing.js'
 import { assetTitle, NotOnDevice, NotOffered } from '../kit.js'
 import { siteForms } from '../places.js'
 import { toStart } from './form.js'
@@ -139,6 +141,41 @@ export const closeWords = {
   sign: 'Abschließen und unterschreiben',
 } as const
 
+/** The words of the service report (#324), on the page that finishes an order and the page the client signs. */
+export const reportWords = {
+  title: 'Leistungsnachweis',
+  offer:
+    'Wenn ein Auftraggeber da ist und ihn möchte: er unterschreibt die geleistete Arbeit hier auf dem Gerät, vor Ihrer eigenen Unterschrift.',
+  toReport: 'Vom Auftraggeber unterschreiben lassen',
+  client: 'Auftraggeber',
+  signedAt: 'Unterschrieben',
+  signedWith: (day: string) => `${day}, mit Schriftzug`,
+  todayWord: 'heute',
+  waitsForTransmission:
+    'Der Leistungsnachweis entsteht als PDF, sobald die Unterschrift übertragen ist.',
+  kept: 'Der Leistungsnachweis liegt als PDF am Auftrag.',
+  order: 'Auftrag',
+  what: 'Was',
+  where: 'Wo',
+  asset: 'Anlage',
+  work: 'Geleistete Arbeit',
+  noWork: 'Noch keine Notiz.',
+  withoutNames:
+    'Ohne Preise. Namen und Uhrzeiten der Ausführenden stehen nicht darauf, nur der Tag.',
+  withNames:
+    'Ohne Preise. Auf dem Leistungsnachweis steht auch, wer jede Notiz geschrieben hat und um welche Uhrzeit, und die Uhrzeit der Unterschrift.',
+  name: 'Name in Druckschrift',
+  nameHint: 'Der Name des Auftraggebers, wie er auf dem Leistungsnachweis steht.',
+  signature: 'Unterschrift des Auftraggebers',
+  pad: 'Feld für die Unterschrift des Auftraggebers',
+  covered: (name: string) =>
+    `Aufgenommen auf dem Gerät von ${name}. Die Signatur dieses Kontos deckt diese Seite mit Schriftzug und Namen.`,
+  back: 'Zurück',
+  confirm: 'Unterschrift bestätigen',
+  then: 'Danach unterschreiben Sie selbst und schließen den Auftrag ab.',
+  had: 'Dieser Auftrag hat schon einen Leistungsnachweis.',
+} as const
+
 /** Whether a record is there and not marked. */
 function live(record: RecordState): boolean {
   return record['deletedAt'] === null || record['deletedAt'] === undefined
@@ -160,6 +197,7 @@ function useWorkOrder(activityId: string) {
   const order = useRelated('work_orders', 'activityId', activityId).find(live) ?? null
   const notes = useRelated('work_order_notes', 'activityId', activityId).filter(live)
   const signatures = useRelated('activity_signatures', 'activityId', activityId)
+  const reports = useRelated('service_reports', 'activityId', activityId)
   const decisions = useRelated('work_order_decisions', 'workOrderId', String(order?.['id'] ?? ''))
   const documents = useRecords('attachments')
   const me = useQuery(accountQuery).data?.userId ?? ''
@@ -188,6 +226,19 @@ function useWorkOrder(activityId: string) {
   const rejection = [...decisions]
     .filter((decision) => decision['decision'] === 'rejected')
     .sort((left, right) => (text(left, 'decidedAt') < text(right, 'decidedAt') ? 1 : -1))[0]
+  // The service report that counts (#324): one still in the outbox, or one the
+  // server took after the last rejection, by the moments the server stamped.
+  const rejectedAt = decisions
+    .filter((decision) => decision['decision'] === 'rejected')
+    .map((decision) => text(decision, 'createdAt'))
+  const report =
+    reports
+      .filter(
+        (each) =>
+          client.isPending('service_reports', String(each['id'])) ||
+          !rejectedAt.some((at) => at >= text(each, 'createdAt')),
+      )
+      .at(-1) ?? null
 
   return {
     activity,
@@ -205,6 +256,8 @@ function useWorkOrder(activityId: string) {
       finishesWorkOrder({ kind: 'work_order', responsibleUserId: responsible }, me),
     responsible,
     rejected: underWay.includes(status) && !sent && rejection !== undefined ? rejection : null,
+    report,
+    reportPending: report !== null && client.isPending('service_reports', String(report['id'])),
   }
 }
 
@@ -979,6 +1032,7 @@ export function SiteCloseOrderScreen() {
             ]}
           />
         </Panel>
+        <ReportCard activityId={activityId} report={work.report} pending={work.reportPending} />
         <SiteText>
           {[
             closeWords.waits,
@@ -1004,6 +1058,224 @@ export function SiteCloseOrderScreen() {
           }}
         >
           {closeWords.sign}
+        </Button>
+      </SiteActionBar>
+    </>
+  )
+}
+
+/**
+ * The service report on the page that finishes an order (#324), the board
+ * "Auftrag abschließen": until the client has signed, the way to the page
+ * the client signs; afterwards who signed and when, and none a second time.
+ */
+function ReportCard({
+  activityId,
+  report,
+  pending,
+}: {
+  readonly activityId: string
+  readonly report: RecordState | null
+  readonly pending: boolean
+}) {
+  const navigate = useNavigate()
+
+  if (report === null) {
+    return (
+      <Panel title={reportWords.title}>
+        <div className="flex flex-col gap-2.5">
+          <SiteText>{reportWords.offer}</SiteText>
+          <Button
+            icon={Signature}
+            height={52}
+            wide
+            onClick={() => {
+              void navigate({ to: siteForms.report(activityId) })
+            }}
+          >
+            {reportWords.toReport}
+          </Button>
+        </div>
+      </Panel>
+    )
+  }
+
+  const signedAt = text(report, 'signedAt')
+
+  return (
+    <Panel title={reportWords.title}>
+      <div className="flex flex-col gap-2">
+        <SiteFacts
+          facts={[
+            { label: reportWords.client, value: text(report, 'clientName') },
+            {
+              label: reportWords.signedAt,
+              value: reportWords.signedWith(
+                date(signedAt) === date(new Date().toISOString())
+                  ? reportWords.todayWord
+                  : date(signedAt),
+              ),
+            },
+          ]}
+        />
+        <SiteText muted>{pending ? reportWords.waitsForTransmission : reportWords.kept}</SiteText>
+      </div>
+    </Panel>
+  )
+}
+
+/**
+ * The page the client signs (#324), the board "Leistungsnachweis": what was
+ * done and how long it took, nothing priced, whether names and times will
+ * stand on it, the name in block letters and the drawing. The page as this
+ * device holds it is what the signature is about; the signature of the
+ * account signed in covers it (2.6). It goes through the outbox, also
+ * without a network, and leads back to finishing the order.
+ */
+export function SiteServiceReportScreen() {
+  const { activityId } = useParams({ strict: false }) as { activityId: string }
+  const client = useSync()
+  const navigate = useNavigate()
+  const who = useWho()
+  const work = useWorkOrder(activityId)
+  const placeWords = usePlaceWords(work.activity)
+  const asset = useRecord('assets', maybeText(work.activity, 'assetId') ?? undefined)
+  const [clientName, setClientName] = useState('')
+  const [path, setPath] = useState<string | null>(null)
+  const [trouble, setTrouble] = useState<string | null>(null)
+  const [working, setWorking] = useState(false)
+  const back = { to: siteForms.close(activityId), label: 'Zurück zum Abschließen' }
+
+  if (work.activity === null) {
+    return <NotOnDevice what="Diesen Auftrag" back={{ to: '/', label: 'Zum Start' }} />
+  }
+
+  if (!work.editable || !work.finishes || work.report !== null) {
+    return (
+      <NotOffered title={reportWords.title} back={back}>
+        {work.report !== null
+          ? reportWords.had
+          : !work.editable
+            ? workOrderWords.closed
+            : work.responsible === null
+              ? workOrderWords.nobodyCloses
+              : workOrderWords.onlyResponsible}
+      </NotOffered>
+    )
+  }
+
+  const minutes = work.order?.['durationMinutes']
+  const named = clientName.trim() !== ''
+
+  async function confirm() {
+    if (path === null || !named) {
+      return
+    }
+
+    setWorking(true)
+    setTrouble(null)
+
+    try {
+      const problem = await takeServiceReport(client, activityId, clientName, path)
+
+      if (problem !== null) {
+        setTrouble(problem)
+
+        return
+      }
+
+      void navigate({ to: back.to })
+    } finally {
+      setWorking(false)
+    }
+  }
+
+  return (
+    <>
+      <SiteHeader
+        title={reportWords.title}
+        sub={maybeText(work.order, 'number') ?? undefined}
+        back={back}
+      />
+      <SiteScreen>
+        <Panel title={reportWords.order}>
+          <SiteFacts
+            facts={[
+              { label: reportWords.what, value: text(work.activity, 'title') },
+              ...(placeWords === '' ? [] : [{ label: reportWords.where, value: placeWords }]),
+              ...(asset === null ? [] : [{ label: reportWords.asset, value: text(asset, 'name') }]),
+            ]}
+          />
+        </Panel>
+        <Panel title={reportWords.work}>
+          <div className="flex flex-col">
+            {work.notes.length === 0 ? (
+              <SiteText muted>{reportWords.noWork}</SiteText>
+            ) : (
+              work.notes.map((note) => (
+                <p
+                  key={String(note['id'])}
+                  className="border-b border-row py-2.5 text-[17px] leading-[1.4] whitespace-pre-line [overflow-wrap:anywhere]"
+                >
+                  {text(note, 'text')}
+                </p>
+              ))
+            )}
+            <div className="pt-2.5">
+              <SiteFacts
+                facts={[
+                  {
+                    label: workOrderWords.duration,
+                    value:
+                      typeof minutes === 'number'
+                        ? workOrderWords.durationShown(minutes)
+                        : workOrderWords.noDuration,
+                  },
+                ]}
+              />
+            </div>
+          </div>
+        </Panel>
+        <SiteText muted>
+          {namesAndTimesOnDevice(client) ? reportWords.withNames : reportWords.withoutNames}
+        </SiteText>
+        <Field
+          label={reportWords.name}
+          hint={reportWords.nameHint}
+          value={clientName}
+          maxLength={serviceReportLimits.clientName}
+          autoComplete="off"
+          spellCheck={false}
+          onChange={(event) => {
+            setClientName(event.target.value)
+          }}
+        />
+        <div className="flex flex-col gap-2">
+          <SiteLabel>{reportWords.signature}</SiteLabel>
+          <SignaturePad label={reportWords.pad} onChange={setPath} />
+        </div>
+        <SiteText muted>{reportWords.covered(who.name)}</SiteText>
+        {trouble ? <SiteTrouble>{trouble}</SiteTrouble> : null}
+      </SiteScreen>
+      <SiteActionBar note={reportWords.then}>
+        <Button
+          height={60}
+          onClick={() => {
+            void navigate({ to: back.to })
+          }}
+        >
+          {reportWords.back}
+        </Button>
+        <Button
+          tone="primary"
+          height={60}
+          icon={Signature}
+          disabled={working || path === null || !named}
+          onClick={() => {
+            void confirm()
+          }}
+        >
+          {reportWords.confirm}
         </Button>
       </SiteActionBar>
     </>

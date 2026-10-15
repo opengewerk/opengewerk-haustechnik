@@ -55,4 +55,5 @@ export const siteForms = {
   protocol: (activityId: string) => `/vorgaenge/${activityId}/protokoll`,
   note: (activityId: string) => `/vorgaenge/${activityId}/notiz`,
   close: (activityId: string) => `/vorgaenge/${activityId}/abschliessen`,
+  report: (activityId: string) => `/vorgaenge/${activityId}/leistungsnachweis`,
 } as const

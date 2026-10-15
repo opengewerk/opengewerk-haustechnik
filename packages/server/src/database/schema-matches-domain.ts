@@ -26,11 +26,14 @@ import type {
   RoundRecord,
   RoundTemplate,
   RoundTemplateVersion,
+  ServiceReport,
+  ServiceReportRecord,
   Task,
   WorkOrder,
   WorkOrderDecision,
   WorkOrderNote,
   WorkOrderParticipant,
+  WorkOrderSetting,
 } from '@opengewerk/haustechnik-domain'
 
 import type {
@@ -60,6 +63,9 @@ import type {
   rooms,
   roundPlans,
   roundRecords,
+  serviceReportRecords,
+  serviceReports,
+  workOrderSettings,
   roundTemplates,
   roundTemplateVersions,
   workOrderDecisions,
@@ -145,3 +151,10 @@ export type MeterReadingMatches = Assert<Exact<typeof meterReadings.$inferSelect
 export type MeterExchangeMatches = Assert<Exact<typeof meterExchanges.$inferSelect, MeterExchange>>
 export type MeterPauseMatches = Assert<Exact<typeof meterPauses.$inferSelect, MeterPause>>
 export type MeterSettingMatches = Assert<Exact<typeof meterSettings.$inferSelect, MeterSetting>>
+export type ServiceReportMatches = Assert<Exact<typeof serviceReports.$inferSelect, ServiceReport>>
+export type ServiceReportRecordMatches = Assert<
+  Exact<typeof serviceReportRecords.$inferSelect, ServiceReportRecord>
+>
+export type WorkOrderSettingMatches = Assert<
+  Exact<typeof workOrderSettings.$inferSelect, WorkOrderSetting>
+>

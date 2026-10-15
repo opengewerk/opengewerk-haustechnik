@@ -46,6 +46,7 @@ import { ImportMetersScreen, ImportTemplatesScreen } from './screens/import-hist
 import { ImportAssetsScreen, ImportStructureScreen } from './screens/imports.js'
 import { LabelLandingScreen } from './screens/label-landing.js'
 import { MeterSettingsScreen } from './screens/meter-settings.js'
+import { WorkOrderSettingsScreen } from './screens/work-order-settings.js'
 import { MeterListScreen, MeterScreen } from './screens/meters.js'
 import { NumberRangesScreen } from './screens/number-ranges.js'
 import { OverviewScreen } from './screens/overview.js'
@@ -525,6 +526,11 @@ export function officeRoutes() {
       getParentRoute: () => office,
       path: '/einstellungen/zaehler',
       component: MeterSettingsScreen,
+    }),
+    createRoute({
+      getParentRoute: () => office,
+      path: '/einstellungen/auftraege',
+      component: WorkOrderSettingsScreen,
     }),
     createRoute({
       getParentRoute: () => office,

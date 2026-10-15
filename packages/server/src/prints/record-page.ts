@@ -2,9 +2,11 @@ import {
   evidenceOriginLabel,
   legacyNote,
   evidenceResultLabel,
+  workOrderKindLabel,
   type EvidenceState,
   type IsoDate,
   type RoundRecordState,
+  type ServiceReportState,
   signatureRoleLabel,
   signatureWayLabel,
   type StatedAnswer,
@@ -257,6 +259,8 @@ figcaption { font-size: 8pt; color: #555; }
 .pad.typed .way { color: #555; font-size: 8pt; }
 .signature .name { margin: 6px 0 0; font-weight: 600; }
 .signature p { margin: 0; }
+.work p { margin: 0; padding: 5px 0; border-bottom: 1px solid #ddd6cc; }
+.work .muted { display: block; font-size: 8pt; }
 </style>
 </head>
 <body>${body}</body>
@@ -381,6 +385,66 @@ export function evidencePrintJob(
   ${chapters(state.answers)}
   ${photosOf(photos)}
   ${signaturesOf(state.signatures)}`
+
+  return { html: page(body), footerHtml: footer(fingerprint), margin }
+}
+
+/** The time spent in hours and minutes, `0:45 Std.`, as the pages of a work order say it. */
+function hours(minutes: number): string {
+  return `${String(Math.floor(minutes / 60))}:${String(minutes % 60).padStart(2, '0')} Std.`
+}
+
+/**
+ * The PDF of a service report (#324, 4.8): what was done and how long it
+ * took, from the state frozen when the server took the client's signature,
+ * with no price; who wrote each note and when, and the moment of the
+ * client's signature, only where the operator had them switched on, the day
+ * otherwise. A report a rejection made invalid is printed with that on it.
+ */
+export function serviceReportPrintJob(
+  state: ServiceReportState,
+  fingerprint: string,
+  voiding: { readonly on: IsoDate } | null,
+): PrintJob {
+  const number = state.workOrder.number ?? ''
+  const work =
+    state.work.length === 0
+      ? '<p class="muted">Ohne Notizen von vor Ort.</p>'
+      : `<div class="work">${state.work
+          .map(
+            (entry) =>
+              `<p>${text(entry.text)}${
+                entry.writtenBy === undefined || entry.writtenAt === undefined
+                  ? ''
+                  : `<span class="muted">${text(moment(entry.writtenAt))}, ${text(entry.writtenBy)}</span>`
+              }</p>`,
+          )
+          .join('')}</div>`
+  const client = {
+    role: 'signer' as const,
+    name: state.client.name,
+    signedAt: state.client.signedAt ?? state.client.signedOn,
+    receivedAt: null,
+    path: state.client.path,
+    way: 'drawing' as const,
+  }
+  const signed = `<div class="signatures"><div class="signature"><p class="label">Auftraggeber</p>${drawingOf(client)}<p class="name">${text(state.client.name)}</p><p class="muted">${text(state.client.signedAt === undefined ? day(state.client.signedOn) : moment(state.client.signedAt))}</p></div></div>`
+  const body = `
+  <header><h1>Leistungsnachweis ${text(number)}</h1><div class="over">${text(state.workOrder.title)}<br>vom ${text(day(state.client.signedOn))}</div></header>
+  ${voiding === null ? '' : `<p class="mark">Ungültig: der Auftrag wurde am ${text(day(voiding.on))} zurückgewiesen.</p>`}
+  ${factsOf([
+    ['Auftrag', [number, state.workOrder.title].filter(Boolean).join(' ')],
+    ['Art', workOrderKindLabel[state.workOrder.kind]],
+    ['Ort', placeWords(state.place)],
+    ['Dauer', state.durationMinutes === null ? null : hours(state.durationMinutes)],
+    [
+      'Aufgenommen',
+      `auf dem Gerät von ${state.holder}; die Signatur dieses Kontos deckt die Seite mit Schriftzug und Namen`,
+    ],
+  ])}
+  <h2>Geleistete Arbeit</h2>
+  ${work}
+  ${signed}`
 
   return { html: page(body), footerHtml: footer(fingerprint), margin }
 }

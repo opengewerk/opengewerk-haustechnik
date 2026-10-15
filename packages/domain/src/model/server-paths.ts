@@ -64,4 +64,6 @@ export const serverPaths: readonly string[] = [
   'search',
   // Who a task may go to (#124).
   'tasks',
+  // The PDF of the service report of a work order (#324).
+  'service-reports',
 ]

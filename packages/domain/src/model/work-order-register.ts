@@ -15,6 +15,7 @@ import type { DutyId } from './duty-record.js'
 import type { DutyPerson } from './duty-register.js'
 import type { BuildingId, PropertyId, RoomId } from './location.js'
 import type { SignatureRole, WorkOrderDecisionKind } from './signature.js'
+import type { ServiceReportLine } from './service-report.js'
 import type { PlaceTarget } from './target.js'
 
 /**
@@ -172,6 +173,8 @@ export interface WorkOrderDetails extends WorkOrderEntry {
   readonly notes: readonly WorkOrderNoteLine[]
   readonly signatures: readonly WorkOrderSignatureLine[]
   readonly decisions: readonly WorkOrderDecisionLine[]
+  /** The service reports the client signed on site (#324), the first first; at most one counts. */
+  readonly serviceReports: readonly ServiceReportLine[]
 }
 
 /**

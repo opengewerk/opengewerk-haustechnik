@@ -464,6 +464,9 @@ const placeOf: Readonly<
   work_orders: workOrderPlace,
   work_order_notes: notePlace,
   activity_signatures: signaturePlace,
+  // The client's signature under a service report hangs on its work order
+  // as a signature does (#324).
+  service_reports: signaturePlace,
   activity_answers: answerPlace,
   attachments: documentPlace,
   attachment_versions: versionPlace,

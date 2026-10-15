@@ -643,7 +643,7 @@ async function filledFormOf(
 }
 
 /** The place of a duty in words: its property, and the building, room and asset it hangs on. */
-async function placeOf(
+export async function placeOf(
   tx: TenantTransaction,
   context: WritingContext,
   duty: Pick<typeof duties.$inferSelect, 'assetId' | 'roomId' | 'buildingId'>,

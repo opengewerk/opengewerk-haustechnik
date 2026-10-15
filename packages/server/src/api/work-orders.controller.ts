@@ -45,6 +45,8 @@ import {
   workOrderPlanProblems,
   signatureLimits,
   takesAWorkOrder,
+  type WorkOrderSettings,
+  workOrderSettingsProblems,
 } from '@opengewerk/haustechnik-domain'
 import {
   accountsOf,
@@ -58,6 +60,7 @@ import {
 import { and, asc, count, desc, eq, ilike, inArray, isNull, or, type SQL, sql } from 'drizzle-orm'
 
 import { closeAsNotPerformed } from '../activities/closing.js'
+import { serviceReportsOf, workOrderSettingsOf } from '../activities/service-reports.js'
 import { makeActivityForDuty } from '../activities/for-duty.js'
 import {
   decideWorkOrder,
@@ -79,6 +82,7 @@ import {
   workOrderNotes,
   workOrderParticipants,
   workOrders,
+  workOrderSettings,
 } from '../database/schema/index.js'
 import { EvidenceRefusal } from '../evidence/write.js'
 import { tellHandedOut } from '../notifications/tell.js'
@@ -433,6 +437,7 @@ export class WorkOrdersController {
         notes,
         signatures,
         decisions,
+        reports: await serviceReportsOf(tx, identity.tenantId, activity.id),
       }
     })
     const named = await this.named(identity, [
@@ -441,6 +446,7 @@ export class WorkOrdersController {
       ...read.notes.map((note) => note.writtenBy),
       ...read.signatures.map(({ signature }) => signature.signedBy),
       ...read.decisions.map((decision) => decision.decidedBy),
+      ...read.reports.map(({ report }) => report.signedBy),
     ])
     const nameOf = (userId: string) => named(userId)?.name ?? unknownAccount
     const rejected =
@@ -477,6 +483,14 @@ export class WorkOrdersController {
         reason: decision.reason,
         decidedAt: decision.decidedAt.toISOString(),
         name: nameOf(decision.decidedBy),
+      })),
+      serviceReports: read.reports.map(({ report, valid, voidedBy }) => ({
+        id: report.id,
+        clientName: report.clientName,
+        signedAt: report.signedAt.toISOString(),
+        holder: nameOf(report.signedBy),
+        valid,
+        voidedAt: voidedBy === null ? null : voidedBy.decidedAt.toISOString(),
       })),
     }
   }
@@ -1124,4 +1138,44 @@ async function originOf(
   }
 
   return { kind: 'hand' }
+}
+
+/**
+ * What an operator sets for its work orders under "Einstellungen" (section 15
+ * of the concept, #324): whether the service report names the people who did
+ * the work and the times of their notes. Seeing and changing it is what the
+ * settings take, which section 7 gives to the Leitung. A report already
+ * signed keeps what it froze.
+ */
+@Controller('settings/work-orders')
+export class WorkOrderSettingsController {
+  constructor(private readonly database: Database) {}
+
+  @Get()
+  @RequiresPermission('settings.read')
+  read(@CurrentIdentity() identity: Asking): Promise<WorkOrderSettings> {
+    return this.database.forTenant(identity, (tx) => workOrderSettingsOf(tx))
+  }
+
+  @Put()
+  @RequiresPermission('settings.write')
+  set(@CurrentIdentity() identity: Asking, @Body() body: unknown): Promise<WorkOrderSettings> {
+    const values = fieldsOf(body, ['namesAndTimes'], [])
+
+    refuse(workOrderSettingsProblems(values))
+
+    const namesAndTimes = values.namesAndTimes as boolean
+
+    return this.database.forTenant(identity, async (tx) => {
+      await tx
+        .insert(workOrderSettings)
+        .values({ tenantId: identity.tenantId, namesAndTimes })
+        .onConflictDoUpdate({
+          target: [workOrderSettings.tenantId],
+          set: { namesAndTimes, updatedAt: new Date() },
+        })
+
+      return { namesAndTimes }
+    })
+  }
 }

@@ -1,6 +1,10 @@
 import {
   canonicalForm,
+  defaultWorkOrderSettings,
   heldPageOf,
+  type ServiceReportPage,
+  serviceReportLimits,
+  serviceReportPageOf,
   type SignedPage,
   signatureLimits,
 } from '@opengewerk/haustechnik-domain'
@@ -29,7 +33,7 @@ export function pageOnDevice(client: SyncClient, activityId: string): SignedPage
 }
 
 /** SHA-256 over the canonical form of a page, as the server takes it: 64 hexadecimal digits. */
-export async function fingerprintOf(page: SignedPage): Promise<string> {
+export async function fingerprintOf(page: SignedPage | ServiceReportPage): Promise<string> {
   const digest = await crypto.subtle.digest(
     'SHA-256',
     new TextEncoder().encode(canonicalForm(page)),
@@ -65,6 +69,58 @@ export async function signActivity(
     deviceInfo: globalThis.navigator.userAgent.slice(0, signatureLimits.deviceInfo),
     path: given.path,
     typedName: given.typedName,
+    pageFingerprint: await fingerprintOf(page),
+  })
+
+  return made.outcome === 'refused' ? refusalFor(made) : null
+}
+
+/**
+ * Whether the service report names the people who did the work and the times
+ * of their notes (#324), as this device holds the setting of the operator.
+ */
+export function namesAndTimesOnDevice(client: SyncClient): boolean {
+  const [setting] = client.list('work_order_settings')
+  const value = setting?.['namesAndTimes']
+
+  return typeof value === 'boolean' ? value : defaultWorkOrderSettings.namesAndTimes
+}
+
+/** The page of the service report of a work order as this device holds it, for a name. */
+export function reportPageOnDevice(
+  client: SyncClient,
+  activityId: string,
+  clientName: string,
+): ServiceReportPage | null {
+  const page = pageOnDevice(client, activityId)
+
+  return page === null ? null : serviceReportPageOf(page, clientName, namesAndTimesOnDevice(client))
+}
+
+/**
+ * The client's signature under the service report of a work order (#324):
+ * the name in block letters and the drawing, for the page as this device
+ * holds it now, through the outbox and so also without a network. The
+ * sentence to show when the device turns it down, or null when it is queued.
+ */
+export async function takeServiceReport(
+  client: SyncClient,
+  activityId: string,
+  clientName: string,
+  path: string,
+): Promise<string | null> {
+  const page = reportPageOnDevice(client, activityId, clientName)
+
+  if (page === null) {
+    return signingWords.notHeld
+  }
+
+  const made = await client.create('service_reports', {
+    activityId,
+    clientName: clientName.trim(),
+    path,
+    signedAt: new Date().toISOString(),
+    deviceInfo: globalThis.navigator.userAgent.slice(0, serviceReportLimits.deviceInfo),
     pageFingerprint: await fingerprintOf(page),
   })
 
