@@ -19,7 +19,11 @@ import {
   templateListPlace,
   templatePlaces,
 } from '../round-template-addresses.js'
-import { countersignatureWords, roundTemplateTableColumns } from '@opengewerk/haustechnik-domain'
+import {
+  byNameIn,
+  countersignatureWords,
+  roundTemplateTableColumns,
+} from '@opengewerk/haustechnik-domain'
 import { sizeWords } from '../template-draft.js'
 
 /**
@@ -112,7 +116,7 @@ export function TemplateListScreen() {
               .reduce((sum, each) => sum + each.rounds, 0),
           }
         })
-        .sort((left, right) => left.title.localeCompare(right.title, 'de')),
+        .sort((left, right) => byNameIn(left.title, right.title)),
     [templates, versions, rounds.data],
   )
 

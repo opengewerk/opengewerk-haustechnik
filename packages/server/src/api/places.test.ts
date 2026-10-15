@@ -214,6 +214,62 @@ describe('a place', () => {
       .expect((answer) => expect(answer.body).toHaveLength(1))
   })
 
+  /**
+   * Names and numbers as a person counts them (#322). The database alone
+   * sorts them as text: Musterstraße 10 before Musterstraße 2, room E.10
+   * before E.2.
+   */
+  it('is read back level by level by its numbers as a person counts them, not as text', async () => {
+    const place = await wholePlace()
+    const header = by('u-duties')
+    const make = (path: string, body: object) =>
+      http().post(path).set(testIdentityHeader, header).send(body).expect(201)
+    const read = async (path: string, key: string) =>
+      (await http().get(path).set(testIdentityHeader, header).expect(200)).body.map(
+        (each: Record<string, unknown>) => each[key],
+      )
+    const building = String(place.building['id'])
+    const floor = String(place.floor['id'])
+
+    for (const name of ['Musterpark 10', 'Musterpark 2']) {
+      await make('/properties', { ...property, name })
+    }
+    for (const name of [
+      'Musterstraße 10',
+      'Musterstraße 2.1',
+      'Musterstraße 2',
+      'Musterstraße 9',
+    ]) {
+      await make(`/properties/${String(place.property['id'])}/buildings`, {
+        name,
+        kinds: ['school'],
+      })
+    }
+    for (const name of ['Ebene 10', 'Ebene 2']) {
+      await make(`/buildings/${building}/floors`, { name, level: 1 })
+    }
+    for (const room of [{ number: 'E.10' }, { name: 'Flur' }, { number: 'E.2' }]) {
+      await make(`/floors/${floor}/rooms`, room)
+    }
+
+    expect(
+      (await read('/properties', 'name')).filter((name: string) => name.startsWith('Musterpark')),
+    ).toEqual(['Musterpark 2', 'Musterpark 10'])
+    expect(await read(`/properties/${String(place.property['id'])}/buildings`, 'name')).toEqual([
+      'Haus A',
+      'Musterstraße 2',
+      'Musterstraße 2.1',
+      'Musterstraße 9',
+      'Musterstraße 10',
+    ])
+    expect(await read(`/buildings/${building}/floors`, 'name')).toEqual([
+      'Erdgeschoss',
+      'Ebene 2',
+      'Ebene 10',
+    ])
+    expect(await read(`/floors/${floor}/rooms`, 'number')).toEqual(['0.01', 'E.2', 'E.10', null])
+  })
+
   it('is changed level by level, and a room keeps a number or a name', async () => {
     const place = await wholePlace()
 

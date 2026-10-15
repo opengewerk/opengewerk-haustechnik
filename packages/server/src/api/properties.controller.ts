@@ -15,6 +15,7 @@ import {
 import {
   type Building,
   buildingProblems,
+  byNameIn,
   type Catalogue,
   type Property,
   type PropertyId,
@@ -27,7 +28,7 @@ import {
   tableAnswer,
   tableFormatOf,
 } from '@opengewerk/platform-server'
-import { and, asc, eq, isNull } from 'drizzle-orm'
+import { and, eq, isNull } from 'drizzle-orm'
 
 import { CATALOGUE } from '../catalogue.js'
 import { buildings, properties } from '../database/schema/index.js'
@@ -74,15 +75,16 @@ export class PropertiesController {
   @Get()
   @RequiresPermission('location.read')
   list(@CurrentIdentity() identity: Asking): Promise<Property[]> {
-    return this.database.forTenant(
-      identity,
-      (tx) =>
-        tx
-          .select()
-          .from(properties)
-          .where(isNull(properties.deletedAt))
-          .orderBy(asc(properties.name)) as Promise<Property[]>,
-    )
+    return this.database.forTenant(identity, async (tx) => {
+      const found = (await tx
+        .select()
+        .from(properties)
+        .where(isNull(properties.deletedAt))) as Property[]
+
+      // As a list reads them, a number in a name by its value (#322); the
+      // database would sort them as text, Musterstraße 10 before 2.
+      return found.sort((left, right) => byNameIn(left.name, right.name))
+    })
   }
 
   /**
@@ -213,11 +215,15 @@ export class PropertiesController {
     return this.database.forTenant(identity, async (tx) => {
       await placeOf<Property>(tx, properties, id, missing)
 
-      return tx
+      const found = (await tx
         .select()
         .from(buildings)
-        .where(and(eq(buildings.propertyId, id as PropertyId), isNull(buildings.deletedAt)))
-        .orderBy(asc(buildings.name)) as Promise<Building[]>
+        .where(
+          and(eq(buildings.propertyId, id as PropertyId), isNull(buildings.deletedAt)),
+        )) as Building[]
+
+      // Musterstraße 2 before Musterstraße 10 (#322), which the database would not.
+      return found.sort((left, right) => byNameIn(left.name, right.name))
     })
   }
 

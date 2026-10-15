@@ -18,6 +18,7 @@ import {
   type ActivityId,
   activityProblems,
   addDays,
+  byNameIn,
   type Catalogue,
   type DutyPerson,
   type IsoDate,
@@ -85,7 +86,7 @@ async function named(
 
   return [...new Set(userIds)]
     .map((userId) => ({ userId, name: accounts.get(userId)?.name ?? 'Unbekanntes Konto' }))
-    .sort((left, right) => left.name.localeCompare(right.name, 'de'))
+    .sort((left, right) => byNameIn(left.name, right.name))
 }
 
 /** How many rounds a person hands out at once: those of a plan in a week, with room to spare. */

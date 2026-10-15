@@ -4,6 +4,7 @@ import {
   type AreaId,
   type BuildingId,
   areaNameProblem,
+  byNameIn,
   type MemberAreas,
   memberAreasProblem,
   type PropertyId,
@@ -44,7 +45,7 @@ const propertyNamesAnArea = 'properties_in_an_area_of_the_tenant'
 const buildingNamesAnArea = 'buildings_in_an_own_area_of_the_tenant'
 
 const inGerman = (left: { name: string }, right: { name: string }) =>
-  left.name.localeCompare(right.name, 'de')
+  byNameIn(left.name, right.name)
 
 /** An area with what a tenant sees of it where the areas are kept. */
 export interface AreaOverview extends Area {
@@ -138,8 +139,7 @@ export async function areaOverview(tx: TenantTransaction): Promise<AreaOverview[
       .map(({ id, name, propertyName }) => ({ id, name, propertyName }))
       .sort(
         (left, right) =>
-          left.propertyName.localeCompare(right.propertyName, 'de') ||
-          left.name.localeCompare(right.name, 'de'),
+          byNameIn(left.propertyName, right.propertyName) || byNameIn(left.name, right.name),
       ),
     memberIds: named.filter((row) => row.areaId === area.id).map((row) => row.userId),
   }))

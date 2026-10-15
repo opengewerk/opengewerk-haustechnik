@@ -1,5 +1,6 @@
 import {
   acceptanceTally,
+  byNameIn,
   type Catalogue,
   catalogueOriginLabel,
   type CatalogueReview,
@@ -444,7 +445,7 @@ function byCostGroup(
 ): number {
   return (
     left.definition.costGroup.localeCompare(right.definition.costGroup) ||
-    left.definition.label.localeCompare(right.definition.label, 'de')
+    byNameIn(left.definition.label, right.definition.label)
   )
 }
 

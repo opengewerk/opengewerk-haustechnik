@@ -21,6 +21,7 @@ import {
   batchAssetsProblem,
   batchDutiesProblem,
   type Building,
+  byNameIn,
   type Catalogue,
   type CatalogueEntry,
   ceilingOf,
@@ -821,7 +822,7 @@ export class DutiesController {
       people: keeps
         ? read.people
             .flatMap((userId) => named(userId) ?? [])
-            .sort((left, right) => left.name.localeCompare(right.name, 'de'))
+            .sort((left, right) => byNameIn(left.name, right.name))
         : null,
     }
   }
@@ -1484,7 +1485,7 @@ export class RoomDutiesController {
 
       return (await dutiesOnADay(tx, today, running, this.catalogue))
         .map((registered) => dutyReading(registered, this.catalogue))
-        .sort((left, right) => left.title.localeCompare(right.title, 'de'))
+        .sort((left, right) => byNameIn(left.title, right.title))
     })
   }
 }

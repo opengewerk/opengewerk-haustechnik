@@ -1,5 +1,6 @@
 import {
   type AssetDetails,
+  byNameIn,
   type Counting,
   countingLabel,
   countings,
@@ -422,7 +423,7 @@ function DutyForm({
   const propertyId =
     typed.propertyId !== '' ? typed.propertyId : properties.length === 1 && only ? idOf(only) : ''
   const byName = (left: RecordState, right: RecordState) =>
-    text(left, 'name').localeCompare(text(right, 'name'), 'de')
+    byNameIn(text(left, 'name'), text(right, 'name'))
   const propertyChoices = [...properties]
     .sort(byName)
     .map((each) => ({ value: idOf(each), label: text(each, 'name') }))

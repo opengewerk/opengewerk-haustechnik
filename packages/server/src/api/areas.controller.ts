@@ -15,6 +15,7 @@ import {
   type Area,
   areaTableHeads,
   areaTableRow,
+  byNameIn,
   type InvitationAreas,
   isAllowed,
   type MemberAreas,
@@ -90,7 +91,7 @@ export class AreasController {
       ...area,
       members: memberIds
         .map((userId) => ({ userId, name: names.get(userId) ?? 'Unbekanntes Konto' }))
-        .sort((left, right) => left.name.localeCompare(right.name, 'de')),
+        .sort((left, right) => byNameIn(left.name, right.name)),
     }))
   }
 

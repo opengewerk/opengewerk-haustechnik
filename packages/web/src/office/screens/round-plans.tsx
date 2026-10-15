@@ -1,5 +1,6 @@
 import {
   addDays,
+  byNameIn,
   type Catalogue,
   closureOn,
   type DutyPerson,
@@ -348,9 +349,9 @@ export function PlanListScreen() {
         })
         .sort(
           (left, right) =>
-            left.place.sub.localeCompare(right.place.sub, 'de') ||
-            left.place.name.localeCompare(right.place.name, 'de') ||
-            left.title.localeCompare(right.title, 'de'),
+            byNameIn(left.place.sub, right.place.sub) ||
+            byNameIn(left.place.name, right.place.name) ||
+            byNameIn(left.title, right.title),
         ),
     [records, templates, closures, placeOf, on, catalogue, properties],
   )
@@ -678,7 +679,7 @@ function PlanForm({
       value: String(template['id']),
       label: `${text(template, 'title')}, Fassung ${String(count(versions.get(String(template['id']))?.[0], 'formVersion'))}`,
     }))
-    .sort((left, right) => left.label.localeCompare(right.label, 'de'))
+    .sort((left, right) => byNameIn(left.label, right.label))
   const placeChoices = properties
     .flatMap((each) => [
       // The whole property only for whoever holds its area (#310).
@@ -692,7 +693,7 @@ function PlanForm({
           label: `${text(each, 'name')}, ${text(building, 'name')}`,
         })),
     ])
-    .sort((left, right) => left.label.localeCompare(right.label, 'de'))
+    .sort((left, right) => byNameIn(left.label, right.label))
   const named = maybeText(plan, 'performerUserId') ?? null
   const personChoices = [
     { value: '', label: 'Person wählen' },

@@ -920,7 +920,7 @@ function Buildings({
 /** The sixteen states by their names, as a form offers them. */
 const states = federalStates
   .map((state) => ({ value: state as string, label: ruleScopeNames[state] }))
-  .sort((left, right) => left.label.localeCompare(right.label, 'de'))
+  .sort((left, right) => byNameIn(left.label, right.label))
 
 function stateName(state: unknown): string {
   return states.find((known) => known.value === state)?.label ?? ''

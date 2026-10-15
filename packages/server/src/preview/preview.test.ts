@@ -7,6 +7,7 @@ import { probeCatalogueBundle } from '@opengewerk/haustechnik-catalogue/testing'
 import {
   addDays,
   blockFieldKinds,
+  byNameIn,
   type DutyDetails,
   type DutyUpdates,
   rightsOfRoles,
@@ -482,7 +483,7 @@ describe('a preview started as the Leitung', () => {
     expect(
       list.orders
         .map((order) => [order.title, order.status, order.urgency, order.rejected])
-        .sort((left, right) => String(left[0]).localeCompare(String(right[0]), 'de')),
+        .sort((left, right) => byNameIn(String(left[0]), String(right[0]))),
     ).toEqual([
       ['Fensterflügel Werkstatt einstellen', 'started', 'normal', true],
       ['Haltegenauigkeit der Kabine nachstellen', 'started', 'normal', false],
@@ -880,7 +881,7 @@ describe('a preview started as the Leitung', () => {
           phone,
           email,
         }))
-        .sort((left, right) => left.familyName.localeCompare(right.familyName, 'de'))
+        .sort((left, right) => byNameIn(left.familyName, right.familyName))
     }
 
     expect(at('Schulzentrum Am Lindenhain')).toEqual([

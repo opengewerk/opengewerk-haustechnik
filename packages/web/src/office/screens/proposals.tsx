@@ -1,4 +1,5 @@
 import {
+  byNameIn,
   byProposedKind,
   type Catalogue,
   type CatalogueEntry,
@@ -322,7 +323,7 @@ export function ProposalsScreen() {
           <option value="">Alle Liegenschaften</option>
           {[...properties]
             .sort((left, right) =>
-              (maybeText(left, 'name') ?? '').localeCompare(maybeText(right, 'name') ?? '', 'de'),
+              byNameIn(maybeText(left, 'name') ?? '', maybeText(right, 'name') ?? ''),
             )
             .map((property) => (
               <option key={String(property['id'])} value={String(property['id'])}>

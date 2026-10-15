@@ -14,6 +14,7 @@ import {
   type ActivityStatus,
   activityStatusLabel,
   type AssetLookup,
+  byNameIn,
   dueActivityKinds,
   type DutyPerformer,
   type DutyPerson,
@@ -357,7 +358,7 @@ export function ActivityListScreen() {
       value: String(property['id']),
       label: maybeText(property, 'name') ?? '',
     }))
-    .sort((left, right) => left.label.localeCompare(right.label, 'de'))
+    .sort((left, right) => byNameIn(left.label, right.label))
 
   return (
     <Screen>

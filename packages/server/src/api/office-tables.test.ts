@@ -663,6 +663,47 @@ describe('the properties as a table', () => {
       expect(stampIn(table, stamps)).toEqual([])
     }
   })
+
+  /** As text, Musterstraße 10 would stand before Musterstraße 2 (#322). */
+  it('holds the buildings of a property by their house numbers as a person counts them', async () => {
+    const lead = by('u-lead', estate)
+    const { property } = await propertyIn(
+      estate,
+      'Wohnpark',
+      { areaId: estateNorth },
+      'Musterstraße 10',
+    )
+
+    try {
+      for (const name of [
+        'Musterstraße 2.1',
+        'Musterstraße 1',
+        'Musterstraße 2',
+        'Musterstraße 9',
+      ]) {
+        await made(`/properties/${property}/buildings`, { name, kinds: ['school'] }, estate)
+      }
+
+      expect(
+        (await tableOf('/properties/table', { search: 'wohnpark' }, lead))
+          .slice(1)
+          .map((row) => row[1]),
+      ).toEqual([
+        '',
+        'Musterstraße 1',
+        'Musterstraße 2',
+        'Musterstraße 2.1',
+        'Musterstraße 9',
+        'Musterstraße 10',
+      ])
+    } finally {
+      // The other tests of the list count its rows.
+      await admin.query('update buildings set deleted_at = now() where property_id = $1', [
+        property,
+      ])
+      await admin.query('update properties set deleted_at = now() where id = $1', [property])
+    }
+  })
 })
 
 // --- The lists that got their table with #236 ------------------------------------------------------

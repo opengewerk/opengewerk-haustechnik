@@ -1,5 +1,6 @@
 import {
   addMonths,
+  byNameIn,
   type Consumption,
   type ConsumptionInput,
   defaultKeyDay,
@@ -448,9 +449,7 @@ export function MeterListScreen() {
             <option value="">{meterWords.allProperties}</option>
             {[...properties]
               .filter((each) => each['deletedAt'] === null || each['deletedAt'] === undefined)
-              .sort((left, right) =>
-                String(left['name']).localeCompare(String(right['name']), 'de'),
-              )
+              .sort((left, right) => byNameIn(String(left['name']), String(right['name'])))
               .map((each) => (
                 <option key={String(each['id'])} value={String(each['id'])}>
                   {String(each['name'])}

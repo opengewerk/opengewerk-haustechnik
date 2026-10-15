@@ -278,6 +278,34 @@ describe('the list of the properties', () => {
     expect(screen.getAllByText('1 Liegenschaft, 1 Gebäude').length).toBeGreaterThan(0)
   })
 
+  /** As text, Musterstraße 10 would stand before Musterstraße 2 (#322). */
+  it('has the buildings of a property by their house numbers as a person counts them', async () => {
+    server = new TestServer()
+    server.put('properties', yard)
+
+    for (const [index, name] of [
+      'Musterstraße 10',
+      'Musterstraße 2.1',
+      'Musterstraße 1',
+      'Musterstraße 2',
+      'Musterstraße 9',
+    ].entries()) {
+      server.put('buildings', { ...hall, id: `b-${String(index)}`, name })
+    }
+
+    await mount('/liegenschaften')
+    await screen.findAllByText('1 Liegenschaft, 5 Gebäude')
+
+    expect(rowsOf('Liegenschaften mit ihren Gebäuden').map((row) => row[0])).toEqual([
+      'Werkhof NordLagerweg 12, 00002 Beispielstadt',
+      'Gebäude: Musterstraße 1',
+      'Gebäude: Musterstraße 2',
+      'Gebäude: Musterstraße 2.1',
+      'Gebäude: Musterstraße 9',
+      'Gebäude: Musterstraße 10',
+    ])
+  })
+
   it('is narrowed to an area by whoever sees more than one', async () => {
     const user = userEvent.setup()
 

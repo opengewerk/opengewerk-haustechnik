@@ -5,6 +5,7 @@ import {
   type AssetKindName,
   buildingKindLabel,
   buildingKinds,
+  byNameIn,
   cellHint,
   counted,
   type DuplicateDecision,
@@ -351,7 +352,7 @@ const states = [
   { value: '', label: 'Bitte wählen' },
   ...federalStates
     .map((state) => ({ value: state as string, label: ruleScopeNames[state] }))
-    .sort((left, right) => left.label.localeCompare(right.label, 'de')),
+    .sort((left, right) => byNameIn(left.label, right.label)),
 ]
 
 const kindsOfBuildings = [

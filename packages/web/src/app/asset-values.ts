@@ -1,6 +1,7 @@
 import {
   type AssetKind,
   type AssetValue,
+  byNameIn,
   type Catalogue,
   type KindField,
   kindFields,
@@ -117,7 +118,7 @@ export function kindChoices(
         value: entry.key,
         label: `${contents.title}: ${entry.definition.label}`,
       }))
-      .sort((left, right) => left.label.localeCompare(right.label, 'de')),
+      .sort((left, right) => byNameIn(left.label, right.label)),
   )
 }
 

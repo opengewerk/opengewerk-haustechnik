@@ -3,6 +3,7 @@ import {
   buildingKindLabel,
   buildingKinds,
   buildingProblems,
+  byNameIn,
   type RecordState,
 } from '@opengewerk/haustechnik-domain'
 import { Button, Confirm, Panel, SelectField } from '@opengewerk/platform-web'
@@ -323,7 +324,7 @@ function MoveBuilding({
     () =>
       properties
         .filter((each) => each['id'] !== property['id'] && held(each['areaId']))
-        .sort((left, right) => text(left, 'name').localeCompare(text(right, 'name'), 'de'))
+        .sort((left, right) => byNameIn(text(left, 'name'), text(right, 'name')))
         .map((each) => ({ value: String(each['id']), label: text(each, 'name') })),
     [properties, property, held],
   )
