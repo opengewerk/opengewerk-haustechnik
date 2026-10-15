@@ -1320,3 +1320,58 @@ describe('rounds handed to somebody (#126)', () => {
     ])
   })
 })
+
+/**
+ * A plan for a building with an area of its own (section 2.8 of the concept,
+ * #306): it lies in the area of the building, and only somebody who walks
+ * rounds there is named for it. Last in the file, and taken away again, so
+ * that the weeks of the tests above stay as they are.
+ */
+describe('a plan for a building with an area of its own', () => {
+  it('lies in the area of the building and is walked by somebody of that area', async () => {
+    await admin.query('update buildings set own_area_id = $2, area_id = $2 where id = $1', [
+      otherBuilding,
+      south,
+    ])
+
+    try {
+      const northern = await planned('u-lead', {
+        buildingId: otherBuilding,
+        performerUserId: 'u-tech',
+      })
+
+      // Whoever walks rounds in the north does not see the building.
+      expect(northern).toMatchObject({
+        status: 400,
+        message: 'Zuständig ist jemand, der Vorgänge ausführt und den Bereich sieht.',
+      })
+
+      const southern = await planned('u-lead', {
+        buildingId: otherBuilding,
+        performerUserId: 'u-south',
+      })
+
+      expect(southern.status).toBe(201)
+
+      const { rows } = await admin.query<{ building: string; area: string }>(
+        'select building_id as building, area_id as area from round_plans where id = $1',
+        [southern.body['id']],
+      )
+
+      expect(rows).toEqual([{ building: otherBuilding, area: south }])
+    } finally {
+      await admin.query(
+        `update activities set deleted_at = now()
+          where round_plan_id in (select id from round_plans where building_id = $1)`,
+        [otherBuilding],
+      )
+      await admin.query('update round_plans set deleted_at = now() where building_id = $1', [
+        otherBuilding,
+      ])
+      await admin.query('update buildings set own_area_id = null, area_id = $2 where id = $1', [
+        otherBuilding,
+        north,
+      ])
+    }
+  })
+})

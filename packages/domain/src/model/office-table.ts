@@ -920,21 +920,26 @@ export function dismissedTableRows(
 export const areaTableColumns = {
   area: 'Bereich',
   extent: 'Umfang',
-  properties: 'Liegenschaften',
+  properties: 'Liegenschaften und Gebäude',
   members: 'Zugänge mit diesem Bereich',
 } as const
 
 /** What the list of the areas says where an area holds nothing or is named for nobody. */
 export const areaTableWords = { noProperty: 'keine', nobody: 'niemand' } as const
 
-/** "7 Liegenschaften, 12 Gebäude" under the name of an area, or that nothing lies in it. */
+/**
+ * "7 Liegenschaften, 12 Gebäude" under the name of an area, or that nothing
+ * lies in it. The buildings count those with the area of their own beside
+ * those on its properties (#306), so an area may hold buildings and no
+ * property.
+ */
 export function whatLiesIn(area: {
   readonly properties: readonly unknown[]
   readonly buildings: number
 }): string {
   const properties = area.properties.length
 
-  if (properties === 0) {
+  if (properties === 0 && area.buildings === 0) {
     return 'keine Liegenschaft'
   }
 
@@ -945,7 +950,26 @@ export function whatLiesIn(area: {
         ? '1 Gebäude'
         : `${String(area.buildings)} Gebäude`
 
-  return `${properties === 1 ? '1 Liegenschaft' : `${String(properties)} Liegenschaften`}, ${buildings}`
+  const held =
+    properties === 0
+      ? 'keine Liegenschaft'
+      : properties === 1
+        ? '1 Liegenschaft'
+        : `${String(properties)} Liegenschaften`
+
+  return `${held}, ${buildings}`
+}
+
+/**
+ * The buildings with an area of their own, as the list of the areas names
+ * them: "Gebäude: Mensa (Schulzentrum)", or nothing where there is none.
+ */
+export function ownBuildingsIn(area: {
+  readonly ownBuildings: readonly { readonly name: string; readonly propertyName: string }[]
+}): string | null {
+  return area.ownBuildings.length === 0
+    ? null
+    : `Gebäude: ${area.ownBuildings.map((each) => `${each.name} (${each.propertyName})`).join(', ')}`
 }
 
 /** The columns of the table of the areas, with who an area is named for only where it names people. */
@@ -966,21 +990,22 @@ export function areaTableRow(
     readonly name: string
     readonly properties: readonly { readonly name: string }[]
     readonly buildings: number
+    readonly ownBuildings: readonly { readonly name: string; readonly propertyName: string }[]
     readonly members: readonly { readonly name: string }[]
   },
   reads: { readonly places: boolean; readonly people: boolean },
 ): TableRow {
   const names = (named: readonly { readonly name: string }[]) =>
     named.map((each) => each.name).join(', ')
+  const held = [
+    ...(area.properties.length === 0 ? [] : [names(area.properties)]),
+    ...(area.ownBuildings.length === 0 ? [] : [ownBuildingsIn(area)]),
+  ]
 
   return [
     area.name,
     whatLiesIn(area),
-    !reads.places
-      ? null
-      : area.properties.length === 0
-        ? areaTableWords.noProperty
-        : names(area.properties),
+    !reads.places ? null : held.length === 0 ? areaTableWords.noProperty : held.join('; '),
     ...(reads.people
       ? [area.members.length === 0 ? areaTableWords.nobody : names(area.members)]
       : []),

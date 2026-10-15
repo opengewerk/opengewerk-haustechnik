@@ -17,7 +17,6 @@ import {
 import { activities } from './activities.js'
 import { withinAreas } from './areas.js'
 import { evidence } from './evidence.js'
-import { properties } from './locations.js'
 
 /**
  * The frozen state of a round as a whole (section 2.6 of the concept, #111):
@@ -44,10 +43,11 @@ export const roundRecords = pgTable(
     withinAreas(),
     unique('round_records_tenant_id_key').on(table.tenantId, table.id),
     unique('round_records_once').on(table.tenantId, table.activityId),
+    // The area of what the row hangs on (ADR 0003, addendum of #306).
     foreignKey({
-      columns: [table.tenantId, table.propertyId, table.areaId],
-      foreignColumns: [properties.tenantId, properties.id, properties.areaId],
-      name: 'round_records_follow_their_property',
+      columns: [table.tenantId, table.activityId, table.areaId],
+      foreignColumns: [activities.tenantId, activities.id, activities.areaId],
+      name: 'round_records_follow_their_activity',
     }).onUpdate('cascade'),
     foreignKey({
       columns: [table.tenantId, table.activityId, table.propertyId],
@@ -84,10 +84,16 @@ export const prints = pgTable(
   (table) => [
     tenantIsolation(table.tenantId),
     withinAreas(),
+    // The area of what the row hangs on (ADR 0003, addendum of #306).
     foreignKey({
-      columns: [table.tenantId, table.propertyId, table.areaId],
-      foreignColumns: [properties.tenantId, properties.id, properties.areaId],
-      name: 'prints_follow_their_property',
+      columns: [table.tenantId, table.evidenceId, table.areaId],
+      foreignColumns: [evidence.tenantId, evidence.id, evidence.areaId],
+      name: 'prints_follow_their_evidence',
+    }).onUpdate('cascade'),
+    foreignKey({
+      columns: [table.tenantId, table.activityId, table.areaId],
+      foreignColumns: [activities.tenantId, activities.id, activities.areaId],
+      name: 'prints_follow_their_activity',
     }).onUpdate('cascade'),
     foreignKey({
       columns: [table.tenantId, table.evidenceId, table.propertyId],

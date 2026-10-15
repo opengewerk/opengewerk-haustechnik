@@ -13,7 +13,7 @@ import { tenantColumn } from '@opengewerk/platform-server/schema'
 import { sql } from 'drizzle-orm'
 import { check, foreignKey, index, pgTable, unique, uniqueIndex } from 'drizzle-orm/pg-core'
 
-import { withinAreas } from './areas.js'
+import { areaFromPropertyColumn, areaFromTheProperty, withinAreas } from './areas.js'
 import { assets } from './assets.js'
 import { properties, rooms } from './locations.js'
 
@@ -56,6 +56,7 @@ export const labels = pgTable(
     ...tenantColumn,
     propertyId: reference<'property'>('property_id').notNull(),
     areaId: reference<'area'>('area_id').notNull(),
+    areaFromPropertyId: areaFromPropertyColumn(),
     assetId: reference<'asset'>('asset_id'),
     roomId: reference<'room'>('room_id'),
     ...labelColumns(),
@@ -67,11 +68,23 @@ export const labels = pgTable(
     withinAreas(),
     readableByTheOwner(),
     unique('labels_tenant_id_key').on(table.tenantId, table.id),
+    // The area of what the row hangs on (ADR 0003, addendum of #306).
     foreignKey({
-      columns: [table.tenantId, table.propertyId, table.areaId],
+      columns: [table.tenantId, table.assetId, table.areaId],
+      foreignColumns: [assets.tenantId, assets.id, assets.areaId],
+      name: 'labels_follow_their_asset',
+    }).onUpdate('cascade'),
+    foreignKey({
+      columns: [table.tenantId, table.roomId, table.areaId],
+      foreignColumns: [rooms.tenantId, rooms.id, rooms.areaId],
+      name: 'labels_follow_their_room',
+    }).onUpdate('cascade'),
+    foreignKey({
+      columns: [table.tenantId, table.areaFromPropertyId, table.areaId],
       foreignColumns: [properties.tenantId, properties.id, properties.areaId],
       name: 'labels_follow_their_property',
     }).onUpdate('cascade'),
+    areaFromTheProperty('labels_area_from_the_property', table, [table.assetId, table.roomId]),
     foreignKey({
       columns: [table.tenantId, table.assetId, table.propertyId],
       foreignColumns: [assets.tenantId, assets.id, assets.propertyId],

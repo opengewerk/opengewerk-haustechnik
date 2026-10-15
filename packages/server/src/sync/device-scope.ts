@@ -30,6 +30,11 @@ export interface DeviceScope {
   readonly everyArea: boolean
   /** The properties the person sees, marked as deleted ones included. */
   readonly propertyIds: readonly string[]
+  /**
+   * The buildings the person sees, marked as deleted ones included. A
+   * building with an area of its own is seen apart from its property (#306).
+   */
+  readonly buildingIds: readonly string[]
   readonly activityIds: readonly string[]
   readonly defectIds: readonly string[]
   readonly taskIds: readonly string[]
@@ -49,7 +54,14 @@ export async function deviceScope(
   )
 
   if (seen[0]?.every === true) {
-    return { everyArea: true, propertyIds: [], activityIds: [], defectIds: [], taskIds: [] }
+    return {
+      everyArea: true,
+      propertyIds: [],
+      buildingIds: [],
+      activityIds: [],
+      defectIds: [],
+      taskIds: [],
+    }
   }
 
   const since = new Date(now.getTime() - closedActivitiesStayDays * 24 * 60 * 60 * 1000)
@@ -74,6 +86,7 @@ export async function deviceScope(
   return {
     everyArea: false,
     propertyIds: await ids(sql`select id from properties order by id`),
+    buildingIds: await ids(sql`select id from buildings order by id`),
     activityIds,
     defectIds: await ids(sql`
       select id from defects
@@ -139,10 +152,12 @@ const workEntities = [
  * finds another value drops what it holds of that entity and asks from the
  * start (ADR 0006, point 2).
  *
- * The places are named by a fingerprint over the properties the person sees:
- * another person, other areas, a substitution that begins or ends, or a
- * property moved to another area give another value, and the device lets go
- * of what it may no longer hold. The work and the defects by a fingerprint
+ * The places are named by a fingerprint over the properties and the
+ * buildings the person sees: another person, other areas, a substitution
+ * that begins or ends, or a property or a building moved to another area
+ * give another value, and the device lets go of what it may no longer hold.
+ * The buildings count apart, because one with an area of its own is seen
+ * without the rest of its property (#306). The work and the defects by a fingerprint
  * over the records held: an activity that closed long enough ago or was given
  * to somebody else, and a defect that was set right, are exactly the changes a
  * narrowed pull leaves out, and without that they stayed on the device.
@@ -168,7 +183,7 @@ export function pullScope(scope: DeviceScope): PullScope {
     defects: sql`${column('defects', 'id')} = any(${idArray(scope.defectIds)})`,
     tasks: sql`${column('tasks', 'id')} = any(${idArray(scope.taskIds)})`,
   }
-  const places = `properties:${fingerprintOf(scope.propertyIds)}`
+  const places = `properties:${fingerprintOf(scope.propertyIds)}:buildings:${fingerprintOf(scope.buildingIds)}`
   // The templates of the rounds lie in no area: every device holds them all,
   // whatever it sees, to fill a round in the version it names.
   const operator = 'operator'

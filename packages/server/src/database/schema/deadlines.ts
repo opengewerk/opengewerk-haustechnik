@@ -52,10 +52,26 @@ export const { deadlineStatus, deadlines } = deadlinesSchema({
   columns: deadlineColumns,
   constraints: (table) => [
     withinAreas(),
+    // The area of what the row hangs on (ADR 0003, addendum of #306).
     foreignKey({
-      columns: [table.tenantId, table.propertyId, table.areaId],
+      columns: [table.tenantId, table.dutyId, table.areaId],
+      foreignColumns: [duties.tenantId, duties.id, duties.areaId],
+      name: 'deadlines_follow_their_duty',
+    }).onUpdate('cascade'),
+    foreignKey({
+      columns: [table.tenantId, table.defectId, table.areaId],
+      foreignColumns: [defects.tenantId, defects.id, defects.areaId],
+      name: 'deadlines_follow_their_defect',
+    }).onUpdate('cascade'),
+    foreignKey({
+      columns: [table.tenantId, table.roundPlanId, table.areaId],
+      foreignColumns: [roundPlans.tenantId, roundPlans.id, roundPlans.areaId],
+      name: 'deadlines_follow_their_plan',
+    }).onUpdate('cascade'),
+    foreignKey({
+      columns: [table.tenantId, table.meterPropertyId, table.areaId],
       foreignColumns: [properties.tenantId, properties.id, properties.areaId],
-      name: 'deadlines_follow_their_property',
+      name: 'deadlines_of_meters_follow_their_property',
     }).onUpdate('cascade'),
     foreignKey({
       columns: [table.tenantId, table.dutyId, table.propertyId],

@@ -311,6 +311,46 @@ describe('the list of the properties', () => {
     expect(rowsOf('Liegenschaften mit ihren Gebäuden')).toHaveLength(6)
   })
 
+  /**
+   * A building with an area of its own (#306): it names that area in its
+   * row, and narrowed to that area the list shows its property with it and
+   * nothing else of the property; narrowed to the area of the property, the
+   * property shows its other buildings.
+   */
+  it('names the area of a building that has one of its own, and narrows by it', async () => {
+    const user = userEvent.setup()
+
+    server.put('buildings', { ...gym, areaId: nord.id, ownAreaId: nord.id })
+    await mount('/liegenschaften')
+
+    const chips = await screen.findByRole('group', { name: 'Bereich' })
+
+    await waitFor(() => {
+      expect(rowsOf('Liegenschaften mit ihren Gebäuden')).toContainEqual([
+        'Gebäude: Sporthalle',
+        'Nord',
+      ])
+    })
+    expect(rowsOf('Liegenschaften mit ihren Gebäuden')).toContainEqual(['Gebäude: Schulhaus', ''])
+
+    await user.click(within(chips).getByRole('button', { name: 'Nord' }))
+
+    expect(rowsOf('Liegenschaften mit ihren Gebäuden')).toEqual([
+      ['Ämter Am ProbehangAm Probehang 4, 00001 Beispielstadt', 'Nord'],
+      ['Schulzentrum Am LindenhainAm Lindenhain 7, 00003 Musterhausen', 'Süd'],
+      ['Gebäude: Sporthalle', 'Nord'],
+      ['Werkhof NordLagerweg 12, 00002 Beispielstadt', 'Nord'],
+      ['Gebäude: Halle 1', ''],
+    ])
+
+    await user.click(within(chips).getByRole('button', { name: 'Süd' }))
+
+    expect(rowsOf('Liegenschaften mit ihren Gebäuden')).toEqual([
+      ['Schulzentrum Am LindenhainAm Lindenhain 7, 00003 Musterhausen', 'Süd'],
+      ['Gebäude: Schulhaus', ''],
+    ])
+  })
+
   it('says nothing about areas to somebody who sees one', async () => {
     signedIn('technician', [nord])
     await mount('/liegenschaften')

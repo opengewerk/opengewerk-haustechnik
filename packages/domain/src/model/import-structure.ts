@@ -164,7 +164,8 @@ export function buildingKindsOf(text: string): readonly string[] {
 /** What the person importing can see of the places, which is what a line can name. */
 export interface StructureStock {
   readonly properties: readonly Pick<Property, 'id' | 'name' | 'areaId'>[]
-  readonly buildings: readonly Pick<Building, 'id' | 'propertyId' | 'name'>[]
+  /** With its area, which is its own where it has one (#306). */
+  readonly buildings: readonly Pick<Building, 'id' | 'propertyId' | 'name' | 'areaId'>[]
   readonly floors: readonly Pick<Floor, 'id' | 'buildingId' | 'name'>[]
   readonly rooms: readonly Pick<Room, 'id' | 'floorId' | 'buildingId' | 'number' | 'name'>[]
 }
@@ -354,7 +355,8 @@ export function planStructure(
         building.name,
         parent,
         nameKey(building.name),
-        parent.areaId,
+        // What is made in it takes the area of the building (#306).
+        building.areaId,
       )
     }
   }

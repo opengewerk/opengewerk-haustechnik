@@ -181,32 +181,47 @@ describe('a preview started as a technician in the north', () => {
     await admin.end()
   })
 
-  it('shows the properties of the north and nothing of the south', async () => {
+  /**
+   * The sports hall of the school centre in the south is looked after from
+   * the north (#306): the technician of the north sees the school centre for
+   * it, and nothing else of the south.
+   */
+  it('shows the properties of the north, and of the south the one with a building in the north', async () => {
     const answer = await request(application.getHttpServer()).get('/properties').expect(200)
+    const withANorthernBuilding = (property: (typeof sampleProperties)[number]) =>
+      property.buildings.some((building) => building.ownArea === 'Nord')
 
     expect((answer.body as readonly Named[]).map((property) => property.name).sort()).toEqual(
       sampleProperties
-        .filter((property) => property.area === 'Nord')
+        .filter((property) => property.area === 'Nord' || withANorthernBuilding(property))
         .map((property) => property.name)
         .sort(),
     )
 
-    const { rows } = await admin.query<{ id: string }>(
-      `select p.id from properties p join areas a on a.id = p.area_id where a.name = 'Süd'`,
+    const { rows } = await admin.query<{ id: string; name: string }>(
+      `select p.id, p.name from properties p join areas a on a.id = p.area_id where a.name = 'Süd'`,
     )
 
     expect(rows).toHaveLength(2)
 
     for (const south of rows) {
-      await request(application.getHttpServer()).get(`/properties/${south.id}`).expect(404)
+      const shown = sampleProperties.some(
+        (property) => property.name === south.name && withANorthernBuilding(property),
+      )
+
+      await request(application.getHttpServer())
+        .get(`/properties/${south.id}`)
+        .expect(shown ? 200 : 404)
     }
   })
 
-  it('shows the people to talk to in the north, and nobody of the school in the south', async () => {
+  it('shows the people to talk to in the north, and those of the school with its hall in the north', async () => {
     const answer = await request(application.getHttpServer()).get('/contacts').expect(200)
 
-    expect((answer.body as readonly Person[]).map((contact) => contact.familyName)).toEqual([
+    expect((answer.body as readonly Person[]).map((contact) => contact.familyName).sort()).toEqual([
       'Albers',
+      'Becker',
+      'Hartmann',
     ])
   })
 

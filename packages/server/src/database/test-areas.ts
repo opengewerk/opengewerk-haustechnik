@@ -70,6 +70,93 @@ export const linesThroughARow: Readonly<Record<string, LineThroughARow>> = {
   },
 }
 
+/**
+ * The expression of `within_areas_or_a_building` on a table, as PostgreSQL
+ * writes it back, from `withinAreasOrABuildingExpression` in the schema
+ * (ADR 0003, addendum of #306).
+ */
+function withinAreasOrABuildingAsStored(table: string, propertyColumn: string): string {
+  return (
+    '(( SELECT session_sees_all_areas() AS session_sees_all_areas) OR ' +
+    '(area_id = ANY (( SELECT session_areas() AS session_areas)::uuid[])) OR ' +
+    '(EXISTS ( SELECT 1\n   FROM buildings\n' +
+    `  WHERE ((buildings.tenant_id = ${table}.tenant_id) AND ` +
+    `(buildings.property_id = ${table}.${propertyColumn}) AND (buildings.deleted_at IS NULL)))))`
+  )
+}
+
+/** A table that is read also by whoever sees a building on its property. */
+export interface LineThroughABuilding {
+  /** The policy that reads, for SELECT alone. */
+  readonly policy: string
+  /** How it reads, as PostgreSQL writes it back. */
+  readonly reads: string
+  readonly reason: string
+}
+
+/**
+ * The policies with which such a table writes, one for each command, as
+ * `pg_policy` names the command, and which of their halves ask
+ * `within_areas`: the rows a statement finds, the rows it leaves, or both.
+ */
+export const writesWithinAreas = [
+  { policy: 'within_areas_insert', command: 'a', finds: false, leaves: true },
+  { policy: 'within_areas_update', command: 'w', finds: true, leaves: true },
+  { policy: 'within_areas_delete', command: 'd', finds: true, leaves: false },
+] as const
+
+/**
+ * The trigger that puts a building only on a property whose area the person
+ * holds, as PostgreSQL writes it back (ADR 0003, addendum of #306): without
+ * it, a building of an area of its own would open any property to read.
+ */
+const buildingsOnAPropertyInReach =
+  'CREATE TRIGGER buildings_on_a_property_in_reach BEFORE INSERT OR UPDATE OF property_id ON public.buildings ' +
+  'FOR EACH ROW EXECUTE FUNCTION building_on_a_property_in_reach()'
+
+/**
+ * Tables that are read also by whoever holds only the area of a building on
+ * their property (section 2.8 of the concept, ADR 0003, addendum of #306):
+ * they draw the line with `within_areas_or_a_building` in place of
+ * `within_areas`, which reads like it and lets a row through besides whose
+ * property has a building the person sees, and with the policies of
+ * `writesWithinAreas`, which write like it. A policy for every command would
+ * lend what it lets be read to UPDATE and DELETE as well.
+ */
+export const linesThroughABuilding: Readonly<Record<string, LineThroughABuilding>> = {
+  properties: {
+    policy: 'within_areas_or_a_building',
+    reads: withinAreasOrABuildingAsStored('properties', 'id'),
+    reason: 'the property a building stands on, with its address and its note',
+  },
+  contacts: {
+    policy: 'within_areas_or_a_building',
+    reads: withinAreasOrABuildingAsStored('contacts', 'property_id'),
+    reason: 'the people to talk to at the property a building stands on',
+  },
+}
+
+/**
+ * Tables whose rows follow exactly one of several rows with an area, held by
+ * a check, so that one of the keys of their area holds for every row though
+ * none of their columns is required (ADR 0003, addendum of #306). The check
+ * is named in the reason.
+ */
+export const areaOfOneSource: Readonly<Record<string, string>> = {
+  deadlines:
+    'a deadline follows one source, a duty, a defect, a plan or the meters of a property (deadlines_follow_one_source)',
+  prints: 'a print is of one record, evidence or an activity (prints_of_one_record)',
+}
+
+/** The check of `area_from_property_id` on a table, as PostgreSQL writes it back. */
+function areaFromThePropertyAsStored(carriers: readonly string[]): string {
+  return (
+    'CHECK ((NOT (area_from_property_id IS DISTINCT FROM\nCASE\n' +
+    `    WHEN (num_nonnulls(${carriers.join(', ')}) = 0) THEN property_id\n` +
+    '    ELSE NULL::uuid\nEND)))'
+  )
+}
+
 export interface AreaBoundaryOptions {
   /**
    * The table every place hangs under and takes its area from. `properties`
@@ -88,12 +175,28 @@ export interface AreaBoundaryOptions {
  *   it costs every row a query, and no comparison of results shows it.
  * - Every table with `area_id` has that policy, the few on the list above
  *   aside.
- * - Every table with `property_id` has `area_id` and the key over
- *   `(tenant_id, property_id, area_id)` to the property, with `ON UPDATE
- *   CASCADE`, so that a row follows its property into another area.
+ * - Every table with `area_id` and `property_id` keeps its area by a key
+ *   onto what it hangs on (ADR 0003, addendum of #306): over `(tenant_id,
+ *   <the column that names it>, area_id)` to `(tenant_id, id, area_id)` of a
+ *   table with an area, with `ON UPDATE CASCADE`, so that a row follows what
+ *   it hangs on into another area. Every key that holds `area_id` to a table
+ *   with an area is such a key, and a table has at least one.
+ * - One of them holds for every row: its column is required, or the table is
+ *   on the list `areaOfOneSource`, or it carries `area_from_property_id` with
+ *   a key over it to the property, the trigger `area_from_the_property`, which
+ *   knows every other column a key of its area runs over, and the check of
+ *   the column, written for those columns.
  * - The property table has `area_id` and a key to the areas of its tenant.
  * - A key that points at a row with an area runs over the tenant and the
- *   property, so that a row cannot hang itself on a place of another area.
+ *   property, or holds the area itself, so that a row cannot hang itself on a
+ *   place of another area.
+ * - A table on the list `linesThroughABuilding` draws the line in place of
+ *   `within_areas` with its policy for reading, restrictive, for SELECT alone
+ *   and the application role, with the expression of the building block, and
+ *   with the policies of `writesWithinAreas` for writing, each restrictive,
+ *   for its command alone and the application role, with the expression of
+ *   `within_areas`. While there is such a table, `buildings` carries the
+ *   trigger that puts a building only on a property in reach.
  * - The one exception is a table on the list `linesThroughARow`: its key onto
  *   the row it is a part of is let through, and in exchange it has the
  *   restrictive policy that asks that row, for every command, for the
@@ -103,8 +206,12 @@ export async function areaBoundaryProblems(
   pool: Pool,
   { propertyTable = 'properties' }: AreaBoundaryOptions = {},
 ): Promise<string[]> {
-  const { rows: columns } = await pool.query<{ table_name: string; column_name: string }>(
-    `select c.relname as table_name, a.attname as column_name
+  const { rows: columns } = await pool.query<{
+    table_name: string
+    column_name: string
+    required: boolean
+  }>(
+    `select c.relname as table_name, a.attname as column_name, a.attnotnull as required
        from pg_attribute a
        join pg_class c on c.oid = a.attrelid
        join pg_namespace n on n.oid = c.relnamespace
@@ -152,6 +259,26 @@ export async function areaBoundaryProblems(
        join pg_namespace n on n.oid = c.relnamespace
       where n.nspname = 'public' and p.polname = 'within_areas'`,
   )
+  const { rows: checks } = await pool.query<{
+    table_name: string
+    name: string
+    definition: string
+  }>(
+    `select c.relname as table_name, k.conname as name, pg_get_constraintdef(k.oid) as definition
+       from pg_constraint k
+       join pg_class c on c.oid = k.conrelid
+       join pg_namespace n on n.oid = c.relnamespace
+      where k.contype = 'c' and n.nspname = 'public'`,
+  )
+  const { rows: triggers } = await pool.query<{ table_name: string; carriers: string[] }>(
+    `select c.relname as table_name,
+            array(select argument from unnest(string_to_array(encode(t.tgargs, 'escape'), '\\000'))
+                    as argument where argument <> '') as carriers
+       from pg_trigger t
+       join pg_class c on c.oid = t.tgrelid
+       join pg_namespace n on n.oid = c.relnamespace
+      where n.nspname = 'public' and not t.tgisinternal and t.tgname = 'area_from_the_property'`,
+  )
   const { rows: throughPolicies } = await pool.query<{
     table_name: string
     name: string
@@ -171,11 +298,19 @@ export async function areaBoundaryProblems(
        join pg_class c on c.oid = p.polrelid
        join pg_namespace n on n.oid = c.relnamespace
       where n.nspname = 'public' and p.polname = any ($1::text[])`,
-    [Object.values(linesThroughARow).map((through) => through.policy)],
+    [
+      [
+        ...Object.values(linesThroughARow).map((through) => through.policy),
+        ...Object.values(linesThroughABuilding).map((through) => through.policy),
+        ...writesWithinAreas.map((writes) => writes.policy),
+      ],
+    ],
   )
 
   const has = (table: string, column: string) =>
     columns.some((row) => row.table_name === table && row.column_name === column)
+  const required = (table: string, column: string) =>
+    columns.some((row) => row.table_name === table && row.column_name === column && row.required)
   const tablesWith = (column: string) =>
     [
       ...new Set(columns.filter((row) => row.column_name === column).map((row) => row.table_name)),
@@ -210,7 +345,7 @@ export async function areaBoundaryProblems(
   }
 
   for (const table of tablesWith('area_id')) {
-    if (table in areaColumnsWithoutTheLine) {
+    if (table in areaColumnsWithoutTheLine || table in linesThroughABuilding) {
       continue
     }
 
@@ -219,24 +354,104 @@ export async function areaBoundaryProblems(
     }
   }
 
+  const withAnArea = new Set(
+    tablesWith('area_id').filter((table) => !(table in areaColumnsWithoutTheLine)),
+  )
+  // A key that holds the area of its row to the row it hangs on.
+  const holdsTheArea = (key: (typeof keys)[number]) =>
+    withAnArea.has(key.target) && maps(key, 'area_id', 'area_id')
+
   for (const table of tablesWith('property_id')) {
     if (!has(table, 'area_id')) {
       problems.push(`table ${table}: carries property_id and no area_id`)
       continue
     }
 
-    const follows = keys.some(
+    const ofTheArea = keys.filter((key) => key.table_name === table && holdsTheArea(key))
+    const following = ofTheArea.filter(
       (key) =>
-        key.table_name === table &&
-        key.target === propertyTable &&
-        sameList(key.columns, ['tenant_id', 'property_id', 'area_id']) &&
+        key.columns.length === 3 &&
+        key.columns[0] === 'tenant_id' &&
+        key.columns[2] === 'area_id' &&
         sameList(key.target_columns, ['tenant_id', 'id', 'area_id']) &&
         key.on_update === 'c',
     )
 
-    if (!follows) {
+    for (const key of ofTheArea.filter((found) => !following.includes(found))) {
       problems.push(
-        `table ${table}: no key over (tenant_id, property_id, area_id) to ${propertyTable} with ON UPDATE CASCADE`,
+        `table ${table}, key ${key.name}: holds area_id to ${key.target} without running over (tenant_id, a column, area_id) to (tenant_id, id, area_id) with ON UPDATE CASCADE`,
+      )
+    }
+
+    if (following.length === 0) {
+      problems.push(
+        `table ${table}: no key that keeps its area with what it hangs on, over (tenant_id, a column, area_id) with ON UPDATE CASCADE`,
+      )
+      continue
+    }
+
+    const through = (key: (typeof keys)[number]) => key.columns[1] ?? ''
+
+    if (
+      following.some((key) => required(table, through(key))) ||
+      Object.hasOwn(areaOfOneSource, table)
+    ) {
+      continue
+    }
+
+    const own = following.find(
+      (key) => through(key) === 'area_from_property_id' && key.target === propertyTable,
+    )
+    const others = following.filter((key) => key !== own).map(through)
+
+    if (!has(table, 'area_from_property_id')) {
+      problems.push(
+        `table ${table}: none of the keys of its area holds for every row, and it carries no area_from_property_id`,
+      )
+      continue
+    }
+
+    if (own === undefined) {
+      problems.push(
+        `table ${table}: carries area_from_property_id and no key over it to ${propertyTable} with ON UPDATE CASCADE`,
+      )
+    }
+
+    const trigger = triggers.find((found) => found.table_name === table)
+
+    if (trigger === undefined) {
+      problems.push(
+        `table ${table}: carries area_from_property_id and no trigger area_from_the_property`,
+      )
+      continue
+    }
+
+    for (const column of others.filter((found) => !trigger.carriers.includes(found))) {
+      problems.push(
+        `table ${table}: the trigger area_from_the_property does not know ${column}, over which a key keeps the area`,
+      )
+    }
+
+    // A column the trigger knows that no key of the area runs over is a choice
+    // of the row itself, the own area of a building: its check holds the
+    // choice and the area together, and is the table's own.
+    if (trigger.carriers.some((column) => !others.includes(column))) {
+      const named = `${table}_area_own_or_of_the_property`
+
+      if (!checks.some((found) => found.table_name === table && found.name === named)) {
+        problems.push(`table ${table}: no check ${named}`)
+      }
+
+      continue
+    }
+
+    const check = checks.find(
+      (found) => found.table_name === table && found.name === `${table}_area_from_the_property`,
+    )
+
+    if (check?.definition !== areaFromThePropertyAsStored(trigger.carriers)) {
+      problems.push(
+        `table ${table}: no check ${table}_area_from_the_property for the columns the trigger knows: ${String(check?.definition)}`,
       )
     }
   }
@@ -259,12 +474,8 @@ export async function areaBoundaryProblems(
     }
   }
 
-  const withAnArea = new Set(
-    tablesWith('area_id').filter((table) => !(table in areaColumnsWithoutTheLine)),
-  )
-
   for (const key of keys) {
-    if (!withAnArea.has(key.target)) {
+    if (!withAnArea.has(key.target) || holdsTheArea(key)) {
       continue
     }
 
@@ -322,6 +533,76 @@ export async function areaBoundaryProblems(
           `${where} ${half} through something else than the building block: ${String(expression)}`,
         )
       }
+    }
+  }
+
+  for (const [table, through] of Object.entries(linesThroughABuilding)) {
+    if (!columns.some((row) => row.table_name === table)) {
+      continue
+    }
+
+    // The wide policy reads and nothing else; each way of writing has its
+    // own, as narrow as `within_areas`.
+    const wanted = [
+      { policy: through.policy, command: 'r', using: through.reads, checking: null },
+      ...writesWithinAreas.map((writes) => ({
+        policy: writes.policy,
+        command: writes.command,
+        using: writes.finds ? withinAreasAsStored : null,
+        checking: writes.leaves ? withinAreasAsStored : null,
+      })),
+    ]
+
+    for (const want of wanted) {
+      const where = `table ${table}, policy ${want.policy}`
+      const policy = throughPolicies.find(
+        (found) => found.table_name === table && found.name === want.policy,
+      )
+
+      if (!policy) {
+        problems.push(`table ${table}: is read over a building and has no policy ${want.policy}`)
+        continue
+      }
+
+      if (policy.permissive || policy.command !== want.command) {
+        problems.push(
+          `${where}: not restrictive for ${want.command} alone, so it widens or is widened by another command`,
+        )
+      }
+
+      if (policy.roles.length !== 1 || policy.roles[0] !== applicationRoleName) {
+        problems.push(`${where}: for ${policy.roles.join(', ')} and not for ${applicationRoleName}`)
+      }
+
+      for (const [half, expression, expected] of [
+        ['reads', policy.using, want.using],
+        ['writes', policy.checking, want.checking],
+      ] as const) {
+        if (expression !== expected) {
+          problems.push(
+            `${where} ${half} through something else than the building block: ${String(expression)}`,
+          )
+        }
+      }
+    }
+  }
+
+  // Whoever holds the area of a building reads the property it stands on,
+  // so a building goes onto a property only for whoever holds its area.
+  if (Object.keys(linesThroughABuilding).some((table) => has(table, 'area_id'))) {
+    const { rows: placing } = await pool.query<{ definition: string }>(
+      `select pg_get_triggerdef(t.oid) as definition
+         from pg_trigger t
+         join pg_class c on c.oid = t.tgrelid
+         join pg_namespace n on n.oid = c.relnamespace
+        where n.nspname = 'public' and c.relname = 'buildings'
+          and t.tgname = 'buildings_on_a_property_in_reach'`,
+    )
+
+    if (placing[0]?.definition !== buildingsOnAPropertyInReach) {
+      problems.push(
+        `table buildings: puts a building on a property without asking whether its area is held, so a building opens a property to read: ${String(placing[0]?.definition)}`,
+      )
     }
   }
 

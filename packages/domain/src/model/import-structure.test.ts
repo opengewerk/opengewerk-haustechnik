@@ -39,8 +39,8 @@ const upper = 'f-2' as FloorId
 const stock: StructureStock = {
   properties: [{ id: centre, name: 'Schulzentrum', areaId: north }],
   buildings: [
-    { id: school, propertyId: centre, name: 'Schulhaus' },
-    { id: gym, propertyId: centre, name: 'Turnhalle' },
+    { id: school, propertyId: centre, name: 'Schulhaus', areaId: north },
+    { id: gym, propertyId: centre, name: 'Turnhalle', areaId: north },
   ],
   floors: [
     { id: ground, buildingId: school, name: 'Erdgeschoss' },
@@ -655,6 +655,23 @@ describe('a new place', () => {
     })
   })
 
+  it('takes the area of a building with one of its own, and so does everything under it (#306)', () => {
+    const own: StructureStock = {
+      ...stock,
+      buildings: stock.buildings.map((building) =>
+        building.id === gym ? { ...building, areaId: south } : building,
+      ),
+    }
+    const plan = planOf([{ property: 'Schulzentrum', building: 'Turnhalle', floor: 'OG' }], {
+      stock: own,
+    })
+
+    expect(plan.problems).toEqual([])
+    expect(plan.create.floors.map(({ buildingId, areaId }) => ({ buildingId, areaId }))).toEqual([
+      { buildingId: gym, areaId: south },
+    ])
+  })
+
   it('takes the default area where its property is new, and so does everything under it', () => {
     const plan = planOf([
       { property: 'Neubau', ...address, building: 'Haus A', floor: 'EG', roomNumber: '1' },
@@ -833,7 +850,7 @@ describe('two places of one name', () => {
         ...stock,
         buildings: [
           ...stock.buildings,
-          { id: 'b-9' as BuildingId, propertyId: centre, name: 'Schul Haus' },
+          { id: 'b-9' as BuildingId, propertyId: centre, name: 'Schul Haus', areaId: north },
         ],
       },
     })

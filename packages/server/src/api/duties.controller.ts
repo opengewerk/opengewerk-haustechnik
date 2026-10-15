@@ -294,12 +294,17 @@ async function targetOf(tx: TenantTransaction, values: Values): Promise<Target> 
   if (given(values.assetId)) {
     const asset = await placeOf<Asset>(tx, assets, String(values.assetId), missingAsset)
 
-    place = { propertyId: asset.propertyId, assetId: asset.id, assetKind: asset.kind }
+    place = {
+      propertyId: asset.propertyId,
+      areaId: asset.areaId,
+      assetId: asset.id,
+      assetKind: asset.kind,
+    }
     above = { buildingId: asset.buildingId, roomId: asset.roomId }
   } else if (given(values.roomId)) {
     const room = await placeOf<Room>(tx, rooms, String(values.roomId), missingRoom)
 
-    place = { propertyId: room.propertyId, roomId: room.id }
+    place = { propertyId: room.propertyId, areaId: room.areaId, roomId: room.id }
     above = { buildingId: room.buildingId }
   } else if (given(values.buildingId)) {
     const building = await placeOf<Building>(
@@ -309,7 +314,7 @@ async function targetOf(tx: TenantTransaction, values: Values): Promise<Target> 
       missingBuilding,
     )
 
-    place = { propertyId: building.propertyId, buildingId: building.id }
+    place = { propertyId: building.propertyId, areaId: building.areaId, buildingId: building.id }
   } else if (given(values.propertyId)) {
     place = { propertyId: String(values.propertyId) as Duty['propertyId'] }
   } else {
@@ -326,7 +331,8 @@ async function targetOf(tx: TenantTransaction, values: Values): Promise<Target> 
 
   return {
     propertyId: property.id,
-    areaId: property.areaId,
+    // The area of what the duty hangs on (ADR 0003, addendum of #306).
+    areaId: place.areaId ?? property.areaId,
     buildingId: place.buildingId ?? null,
     roomId: place.roomId ?? null,
     assetId: place.assetId ?? null,

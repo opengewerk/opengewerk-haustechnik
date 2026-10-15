@@ -180,6 +180,21 @@ interface Place {
   readonly annexRoom: string
 }
 
+/**
+ * What names the places a device holds: the properties and the buildings its
+ * person sees (ADR 0003, addendum of #306), every building of those
+ * properties here, the removed ones as well.
+ */
+async function placesNamed(...places: readonly Place[]): Promise<string> {
+  const properties = places.map((place) => place.property)
+  const { rows } = await admin.query<{ id: string }>(
+    'select id from buildings where property_id = any($1::uuid[])',
+    [properties],
+  )
+
+  return `properties:${fingerprintOf(properties)}:buildings:${fingerprintOf(rows.map((row) => row.id))}`
+}
+
 async function placeIn(tenantId: TenantId = small, extra: object = {}): Promise<Place> {
   const header = by('u-duties', tenantId)
   const made = async (path: string, body: object): Promise<string> =>
@@ -2369,7 +2384,7 @@ describe('what a device holds', () => {
     // Named like the places they hang on, so that a device lets them go with the property.
     const narrowed = await narrowedFor('u-tech')
 
-    expect(narrowed['contacts']).toBe(`properties:${fingerprintOf([inNorth.property])}`)
+    expect(narrowed['contacts']).toBe(await placesNamed(inNorth))
 
     await http()
       .delete(`/contacts/${northern}`)
@@ -2414,7 +2429,7 @@ describe('what a device holds', () => {
     // Named like the places they hang on, so that a device lets them go with the property.
     const narrowed = await narrowedFor('u-tech')
 
-    expect(narrowed['building_closures']).toBe(`properties:${fingerprintOf([inNorth.property])}`)
+    expect(narrowed['building_closures']).toBe(await placesNamed(inNorth))
 
     await http()
       .delete(`/buildings/${inNorth.building}/closures/${northern}`)
@@ -2472,10 +2487,10 @@ describe('what a device holds', () => {
     const theSiteManagement = await narrowedFor('u-site')
 
     expect(Object.keys(theTechnician).sort()).toEqual([...syncEntities].sort())
-    expect(theTechnician['properties']).toBe(`properties:${fingerprintOf([inNorth.property])}`)
+    expect(theTechnician['properties']).toBe(await placesNamed(inNorth))
     expect(theTechnician['rooms']).toBe(theTechnician['properties'])
     expect(theTechnician['duties']).toBe(theTechnician['properties'])
-    expect(theSiteManagement['properties']).toBe(`properties:${fingerprintOf([inSouth.property])}`)
+    expect(theSiteManagement['properties']).toBe(await placesNamed(inSouth))
 
     // The same device in the hands of the Objektleitung of the south holds
     // nothing of the north once it has asked from the start, which the other
@@ -2497,9 +2512,7 @@ describe('what a device holds', () => {
     try {
       const after = await narrowedFor('u-tech')
 
-      expect(after['properties']).toBe(
-        `properties:${fingerprintOf([inNorth.property, inSouth.property])}`,
-      )
+      expect(after['properties']).toBe(await placesNamed(inNorth, inSouth))
       expect(after['properties']).not.toBe(before['properties'])
     } finally {
       await admin.query(
@@ -2901,6 +2914,45 @@ describe('a label from a sheet, given to an asset on site', () => {
     })
   })
 
+  /**
+   * The asset stands in a building with an area of its own (#306): the label
+   * leaves the area of the property for the one of the asset.
+   */
+  it('takes the area of an asset in a building with an area of its own', async () => {
+    const at = await placeIn()
+    const asset = await elevatorIn(at)
+    const label = await sheetLabel(at.property)
+    const { rows } = await admin.query<{ id: string }>(
+      'insert into areas (tenant_id, name) values ($1, $2) returning id',
+      [small, 'Bereich der Halle'],
+    )
+    const own = rows[0]?.id ?? ''
+
+    await admin.query('update buildings set own_area_id = $2, area_id = $2 where id = $1', [
+      at.building,
+      own,
+    ])
+
+    try {
+      expect(await outcomes('u-duties', [given(label, asset)])).toEqual([applied])
+
+      const { rows: stored } = await admin.query<{ area: string }>(
+        'select area_id as area from labels where id = $1',
+        [label],
+      )
+
+      expect(stored).toEqual([{ area: own }])
+    } finally {
+      await admin.query(
+        `update buildings set own_area_id = null,
+                area_id = (select area_id from properties where id = $2)
+          where id = $1`,
+        [at.building, at.property],
+      )
+      await admin.query('delete from areas where id = $1', [own])
+    }
+  })
+
   it('is a conflict for the second device where another gave it away or labelled the asset meanwhile', async () => {
     const label = await sheetLabel(place.property)
     const spare = await sheetLabel(place.property)
@@ -2984,5 +3036,102 @@ describe('a label from a sheet, given to an asset on site', () => {
       { outcome: 'conflict', reason: 'online_only', fields: ['blockedAt'] },
     ])
     expect(await rowOf('u-tech', 'labels', free)).toMatchObject({ roomId: null, blockedAt: null })
+  })
+})
+
+/**
+ * A building with an area of its own (section 2.8 of the concept, #306): what
+ * a device records at an asset in it lies in the area of the building, not in
+ * that of the property.
+ */
+describe('a record from a device in a building with an area of its own', () => {
+  it('lies in the area of the building', async () => {
+    const at = await placeIn()
+    const asset = await elevatorIn(at)
+    const { rows } = await admin.query<{ id: string }>(
+      'insert into areas (tenant_id, name) values ($1, $2) returning id',
+      [small, 'Eigener Bereich'],
+    )
+    const own = rows[0]?.id ?? ''
+
+    await admin.query('update buildings set own_area_id = $2, area_id = $2 where id = $1', [
+      at.building,
+      own,
+    ])
+
+    try {
+      const defect = newId<'defect'>()
+
+      expect(
+        await outcomes('u-duties', [
+          operation('defects', 'create', defect, {
+            description: 'Tür klemmt',
+            foundOn: '2026-10-01',
+            propertyId: at.property,
+            assetId: asset,
+          }),
+        ]),
+      ).toEqual([applied])
+
+      const { rows: stored } = await admin.query<{ area: string }>(
+        'select area_id as area from defects where id = $1',
+        [defect],
+      )
+
+      expect(stored).toEqual([{ area: own }])
+
+      // A photo of the defect lies where the defect lies.
+      const photo = newId<'attachment'>()
+
+      expect(
+        await outcomes('u-duties', [
+          operation('attachments', 'create', photo, {
+            title: 'Foto der Tür',
+            propertyId: at.property,
+            defectId: defect,
+          }),
+        ]),
+      ).toEqual([applied])
+
+      const { rows: filed } = await admin.query<{ area: string }>(
+        'select area_id as area from attachments where id = $1',
+        [photo],
+      )
+
+      expect(filed).toEqual([{ area: own }])
+
+      // And one of an activity at the asset where the activity lies.
+      const { rows: work } = await admin.query<{ id: string }>(
+        `insert into activities (tenant_id, property_id, area_id, asset_id, kind, title)
+         values ($1, $2, $3, $4, 'inspection', 'Sichtprüfung Aufzug') returning id`,
+        [small, at.property, own, asset],
+      )
+      const ofTheWork = newId<'attachment'>()
+
+      expect(
+        await outcomes('u-duties', [
+          operation('attachments', 'create', ofTheWork, {
+            title: 'Foto der Prüfung',
+            propertyId: at.property,
+            activityId: work[0]?.id ?? '',
+          }),
+        ]),
+      ).toEqual([applied])
+
+      const { rows: worked } = await admin.query<{ area: string }>(
+        'select area_id as area from attachments where id = $1',
+        [ofTheWork],
+      )
+
+      expect(worked).toEqual([{ area: own }])
+    } finally {
+      await admin.query(
+        `update buildings set own_area_id = null,
+                area_id = (select area_id from properties where id = $2)
+          where id = $1`,
+        [at.building, at.property],
+      )
+      await admin.query('delete from areas where id = $1', [own])
+    }
   })
 })

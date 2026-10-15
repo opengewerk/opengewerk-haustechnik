@@ -31,7 +31,7 @@ import {
   uniqueIndex,
 } from 'drizzle-orm/pg-core'
 
-import { withinAreas } from './areas.js'
+import { areaFromPropertyColumn, areaFromTheProperty, withinAreas } from './areas.js'
 import { assets } from './assets.js'
 import { attachments, attachmentVersions } from './attachments.js'
 import { buildings, optionalTrimmed, properties, rooms, trimmed } from './locations.js'
@@ -95,6 +95,7 @@ export const duties = pgTable(
     ...tenantColumn,
     propertyId: reference<'property'>('property_id').notNull(),
     areaId: reference<'area'>('area_id').notNull(),
+    areaFromPropertyId: areaFromPropertyColumn(),
     buildingId: reference<'building'>('building_id'),
     roomId: reference<'room'>('room_id'),
     assetId: reference<'asset'>('asset_id'),
@@ -134,13 +135,36 @@ export const duties = pgTable(
     tenantIsolation(table.tenantId),
     withinAreas(),
     unique('duties_tenant_id_key').on(table.tenantId, table.id),
+    // What a row that hangs on it points at for its area (ADR 0003, addendum of #306).
+    unique('duties_area_key').on(table.tenantId, table.id, table.areaId),
     // What the evidence of a duty points at, on the property of the duty.
     unique('duties_place').on(table.tenantId, table.id, table.propertyId),
+    // The area of what the row hangs on (ADR 0003, addendum of #306).
     foreignKey({
-      columns: [table.tenantId, table.propertyId, table.areaId],
+      columns: [table.tenantId, table.buildingId, table.areaId],
+      foreignColumns: [buildings.tenantId, buildings.id, buildings.areaId],
+      name: 'duties_follow_their_building',
+    }).onUpdate('cascade'),
+    foreignKey({
+      columns: [table.tenantId, table.roomId, table.areaId],
+      foreignColumns: [rooms.tenantId, rooms.id, rooms.areaId],
+      name: 'duties_follow_their_room',
+    }).onUpdate('cascade'),
+    foreignKey({
+      columns: [table.tenantId, table.assetId, table.areaId],
+      foreignColumns: [assets.tenantId, assets.id, assets.areaId],
+      name: 'duties_follow_their_asset',
+    }).onUpdate('cascade'),
+    foreignKey({
+      columns: [table.tenantId, table.areaFromPropertyId, table.areaId],
       foreignColumns: [properties.tenantId, properties.id, properties.areaId],
       name: 'duties_follow_their_property',
     }).onUpdate('cascade'),
+    areaFromTheProperty('duties_area_from_the_property', table, [
+      table.buildingId,
+      table.roomId,
+      table.assetId,
+    ]),
     foreignKey({
       columns: [table.tenantId, table.buildingId, table.propertyId],
       foreignColumns: [buildings.tenantId, buildings.id, buildings.propertyId],
@@ -316,10 +340,11 @@ export const dutyDismissals = pgTable(
     tenantIsolation(table.tenantId),
     withinAreas(),
     unique('duty_dismissals_tenant_id_key').on(table.tenantId, table.id),
+    // The area of what the row hangs on (ADR 0003, addendum of #306).
     foreignKey({
-      columns: [table.tenantId, table.propertyId, table.areaId],
-      foreignColumns: [properties.tenantId, properties.id, properties.areaId],
-      name: 'duty_dismissals_follow_their_property',
+      columns: [table.tenantId, table.assetId, table.areaId],
+      foreignColumns: [assets.tenantId, assets.id, assets.areaId],
+      name: 'duty_dismissals_follow_their_asset',
     }).onUpdate('cascade'),
     foreignKey({
       columns: [table.tenantId, table.assetId, table.propertyId],

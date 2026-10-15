@@ -1,4 +1,4 @@
-import { BadRequestException, NotFoundException } from '@nestjs/common'
+import { BadRequestException, ForbiddenException, NotFoundException } from '@nestjs/common'
 import type {
   AreaId,
   Asset,
@@ -15,7 +15,7 @@ import {
   type RequestIdentity,
   type TenantTransaction,
 } from '@opengewerk/platform-server'
-import { and, eq, isNull } from 'drizzle-orm'
+import { and, eq, isNull, sql } from 'drizzle-orm'
 import type { PgColumn, PgTable } from 'drizzle-orm/pg-core'
 
 import { areas, assets, buildings, properties, rooms } from '../database/schema/index.js'
@@ -97,6 +97,30 @@ export async function placeOf<Row>(
 }
 
 /**
+ * Refuses a write at a property itself to whoever does not hold its area
+ * (ADR 0003, addendum of #306). Whoever holds only the area of a building on
+ * it reads the property and changes nothing there, puts no building on it
+ * either. The database refuses such a write as well; this says why, where
+ * the database would only say that the row is out of reach, and where an
+ * UPDATE it refuses would only find no row.
+ */
+export async function refuseOutsideItsArea(
+  tx: TenantTransaction,
+  property: Pick<Property, 'areaId'>,
+): Promise<void> {
+  const { rows } = await tx.execute<{ held: boolean }>(
+    sql`select (select session_sees_all_areas())
+               or ${property.areaId}::uuid = any ((select session_areas())::uuid[]) as held`,
+  )
+
+  if (rows[0]?.held !== true) {
+    throw new ForbiddenException(
+      'An der Liegenschaft selbst ändert nur etwas, wer ihren Bereich hat. Sie sehen sie über ein Gebäude in Ihrem Bereich.',
+    )
+  }
+}
+
+/**
  * The area a new property goes into: the one the body names, or, while the
  * tenant has a single area, that one. A small tenant never names an area.
  */
@@ -127,6 +151,29 @@ export async function areaFor(tx: TenantTransaction, named: unknown): Promise<Ar
   }
 
   return found[0].id
+}
+
+/**
+ * The area a building takes from a body (section 2.8 of the concept, ADR
+ * 0003, addendum of #306): one of its own where the body names an area of
+ * the tenant that is not the one of its property, and the area of its
+ * property where the body names nothing or that one. A building given the
+ * area of its property follows the property when it moves.
+ */
+export async function buildingAreaFor(
+  tx: TenantTransaction,
+  named: unknown,
+  propertyAreaId: AreaId,
+): Promise<{ readonly areaId: AreaId; readonly ownAreaId: AreaId | null }> {
+  if (named === undefined || named === null || named === '') {
+    return { areaId: propertyAreaId, ownAreaId: null }
+  }
+
+  const area = await areaFor(tx, named)
+
+  return area === propertyAreaId
+    ? { areaId: propertyAreaId, ownAreaId: null }
+    : { areaId: area, ownAreaId: area }
 }
 
 /** Whether a field of a body names something: neither left out, nor emptied. */
@@ -175,7 +222,7 @@ export async function targetOf(
       'Diese Anlage gibt es nicht oder nicht mehr.',
     )
 
-    place = { propertyId: asset.propertyId, assetId: asset.id }
+    place = { propertyId: asset.propertyId, areaId: asset.areaId, assetId: asset.id }
   } else if (given(values['roomId'])) {
     const room = await placeOf<Room>(
       tx,
@@ -184,7 +231,7 @@ export async function targetOf(
       'Diesen Raum gibt es nicht oder nicht mehr.',
     )
 
-    place = { propertyId: room.propertyId, roomId: room.id }
+    place = { propertyId: room.propertyId, areaId: room.areaId, roomId: room.id }
   } else if (given(values['buildingId'])) {
     const building = await placeOf<Building>(
       tx,
@@ -193,7 +240,7 @@ export async function targetOf(
       'Dieses Gebäude gibt es nicht oder nicht mehr.',
     )
 
-    place = { propertyId: building.propertyId, buildingId: building.id }
+    place = { propertyId: building.propertyId, areaId: building.areaId, buildingId: building.id }
   } else if (given(values['propertyId'])) {
     place = { propertyId: String(values['propertyId']) as Target['propertyId'] }
   } else {
@@ -215,7 +262,9 @@ export async function targetOf(
 
   return {
     propertyId: property.id,
-    areaId: property.areaId,
+    // The area of what the record hangs on, of the property where it hangs on
+    // nothing else (ADR 0003, addendum of #306).
+    areaId: place.areaId ?? property.areaId,
     buildingId: place.buildingId ?? null,
     roomId: place.roomId ?? null,
     assetId: place.assetId ?? null,

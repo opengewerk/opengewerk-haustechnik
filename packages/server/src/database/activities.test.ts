@@ -308,6 +308,25 @@ describe('the keys of the activities and defects', () => {
            values ($1, $2, $3, 'inspection', 'Hauptprüfung Aufzug')`,
           [tenant, here.property, secondArea],
         ),
+      // At a place in a building, in the area of the place (#306).
+      activities_follow_their_building: () =>
+        tried(
+          `insert into activities (tenant_id, property_id, area_id, building_id, kind, title)
+           values ($1, $2, $3, $4, 'inspection', 'Hauptprüfung Aufzug')`,
+          [tenant, here.property, secondArea, here.building],
+        ),
+      activities_follow_their_room: () =>
+        tried(
+          `insert into activities (tenant_id, property_id, area_id, room_id, kind, title)
+           values ($1, $2, $3, $4, 'inspection', 'Hauptprüfung Aufzug')`,
+          [tenant, here.property, secondArea, here.room],
+        ),
+      activities_follow_their_asset: () =>
+        tried(
+          `insert into activities (tenant_id, property_id, area_id, asset_id, kind, title)
+           values ($1, $2, $3, $4, 'inspection', 'Hauptprüfung Aufzug')`,
+          [tenant, here.property, secondArea, here.asset],
+        ),
       activities_at_a_building_of_their_property: () => activityRow('building_id', beside.building),
       activities_at_a_room_of_their_property: () => activityRow('room_id', beside.room),
       activities_at_an_asset_of_their_property: () => activityRow('asset_id', beside.asset),
@@ -319,7 +338,7 @@ describe('the keys of the activities and defects', () => {
            values ($1, $2, $3, 'round', 'Rundgang', '2026-10-07', $4)`,
           [tenant, here.property, here.area, besidePlan],
         ),
-      activity_duties_follow_their_property: () =>
+      activity_duties_follow_their_activity: () =>
         tried(
           `insert into activity_duties (tenant_id, property_id, area_id, activity_id, duty_id)
            values ($1, $2, $3, $4, $5)`,
@@ -337,7 +356,7 @@ describe('the keys of the activities and defects', () => {
            values ($1, $2, $3, $4, $5)`,
           [tenant, here.property, here.area, activity, beside.duty],
         ),
-      work_orders_follow_their_property: async () =>
+      work_orders_follow_their_activity: async () =>
         tried(
           `insert into work_orders (tenant_id, property_id, area_id, activity_id, kind)
            values ($1, $2, $3, $4, 'fault')`,
@@ -354,6 +373,24 @@ describe('the keys of the activities and defects', () => {
           `insert into defects (tenant_id, property_id, area_id, description, found_on)
            values ($1, $2, $3, 'Notbeleuchtung fällt aus.', '2026-10-01')`,
           [tenant, here.property, secondArea],
+        ),
+      defects_follow_their_building: () =>
+        tried(
+          `insert into defects (tenant_id, property_id, area_id, building_id, description, found_on)
+           values ($1, $2, $3, $4, 'Notbeleuchtung fällt aus.', '2026-10-01')`,
+          [tenant, here.property, secondArea, here.building],
+        ),
+      defects_follow_their_room: () =>
+        tried(
+          `insert into defects (tenant_id, property_id, area_id, room_id, description, found_on)
+           values ($1, $2, $3, $4, 'Notbeleuchtung fällt aus.', '2026-10-01')`,
+          [tenant, here.property, secondArea, here.room],
+        ),
+      defects_follow_their_asset: () =>
+        tried(
+          `insert into defects (tenant_id, property_id, area_id, asset_id, description, found_on)
+           values ($1, $2, $3, $4, 'Notbeleuchtung fällt aus.', '2026-10-01')`,
+          [tenant, here.property, secondArea, here.asset],
         ),
       defects_at_a_building_of_their_property: () => defectRow('building_id', beside.building),
       defects_at_a_room_of_their_property: () => defectRow('room_id', beside.room),

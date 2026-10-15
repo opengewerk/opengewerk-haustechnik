@@ -36,7 +36,10 @@ export interface Property extends Synced {
 export interface Building extends Synced {
   readonly id: BuildingId
   readonly propertyId: PropertyId
+  /** Its area: its own where it has one, else the one of its property (section 2.8 of the concept). */
   readonly areaId: AreaId
+  /** The area given to the building itself, or nothing where it has the one of its property. */
+  readonly ownAreaId: AreaId | null
   readonly name: string
   readonly shortCode: string | null
   readonly kinds: readonly BuildingKind[]

@@ -194,6 +194,8 @@ interface SampleBuilding {
   readonly shortCode: string
   readonly kinds: readonly string[]
   readonly yearBuilt: number
+  /** An area of its own, where it is not the one of its property (#306). */
+  readonly ownArea?: PreviewArea
   readonly closures?: readonly SampleClosure[]
   readonly documents?: readonly SampleDocument[]
   readonly floors: readonly SampleFloor[]
@@ -726,6 +728,9 @@ export const sampleProperties: readonly SampleProperty[] = [
         shortCode: 'SH',
         kinds: ['school', 'assembly'],
         yearBuilt: 1982,
+        // Looked after from the north, like the Mensa on the boards (#306):
+        // whoever holds only the north sees the school centre and this hall.
+        ownArea: 'Nord',
         floors: [
           {
             name: 'Erdgeschoss',
@@ -1244,13 +1249,13 @@ export async function plantSampleData(
         assets,
         closures = [],
         documents: buildingDocuments = [],
+        ownArea,
         ...buildingFields
       } = building
-      const madeBuilding = await send(
-        address,
-        `/properties/${created.id}/buildings`,
-        buildingFields,
-      )
+      const madeBuilding = await send(address, `/properties/${created.id}/buildings`, {
+        ...buildingFields,
+        ...(ownArea === undefined ? {} : { ownAreaId: areas.get(ownArea) }),
+      })
       const rooms = new Map<string, string>()
 
       buildingIds.set(building.name, madeBuilding.id)

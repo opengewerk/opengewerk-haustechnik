@@ -81,26 +81,33 @@ type Exact<Row, Model> = [Row] extends [Model] ? ([Model] extends [Row] ? true :
 type Assert<Matches extends true> = Matches
 
 export type PropertyMatches = Assert<Exact<typeof properties.$inferSelect, Property>>
-export type BuildingMatches = Assert<Exact<typeof buildings.$inferSelect, Building>>
+/**
+ * A row that can hang on the property itself, and a building, carry the
+ * property a second time, only so that the key of the area can say it (ADR
+ * 0003, addendum of #306); the model has no use for it.
+ */
+type Placed<Row> = Omit<Row, 'areaFromPropertyId'>
+
+export type BuildingMatches = Assert<Exact<Placed<typeof buildings.$inferSelect>, Building>>
 export type FloorMatches = Assert<Exact<typeof floors.$inferSelect, Floor>>
 export type RoomMatches = Assert<Exact<typeof rooms.$inferSelect, Room>>
 export type ContactMatches = Assert<Exact<typeof contacts.$inferSelect, Contact>>
 export type BuildingClosureMatches = Assert<
   Exact<typeof buildingClosures.$inferSelect, BuildingClosure>
 >
-export type PlaceLabelMatches = Assert<Exact<typeof labels.$inferSelect, PlaceLabel>>
+export type PlaceLabelMatches = Assert<Exact<Placed<typeof labels.$inferSelect>, PlaceLabel>>
 export type ImportMatches = Assert<Exact<typeof imports.$inferSelect, Import>>
 export type KeptKindNameMatches = Assert<Exact<typeof assetKindNames.$inferSelect, KeptKindName>>
-export type DutyMatches = Assert<Exact<typeof duties.$inferSelect, Duty>>
+export type DutyMatches = Assert<Exact<Placed<typeof duties.$inferSelect>, Duty>>
 export type DutyDismissalMatches = Assert<Exact<typeof dutyDismissals.$inferSelect, DutyDismissal>>
 export type EvidenceMatches = Assert<Exact<typeof evidence.$inferSelect, Evidence>>
 export type EvidenceVoidingMatches = Assert<
   Exact<typeof evidenceVoidings.$inferSelect, EvidenceVoiding>
 >
-export type ActivityMatches = Assert<Exact<typeof activities.$inferSelect, Activity>>
+export type ActivityMatches = Assert<Exact<Placed<typeof activities.$inferSelect>, Activity>>
 export type ActivityDutyMatches = Assert<Exact<typeof activityDuties.$inferSelect, ActivityDuty>>
-export type DefectMatches = Assert<Exact<typeof defects.$inferSelect, Defect>>
-export type TaskMatches = Assert<Exact<typeof tasks.$inferSelect, Task>>
+export type DefectMatches = Assert<Exact<Placed<typeof defects.$inferSelect>, Defect>>
+export type TaskMatches = Assert<Exact<Placed<typeof tasks.$inferSelect>, Task>>
 export type DefectClassTermMatches = Assert<
   Exact<typeof defectClassTerms.$inferSelect, KeptDefectClassTerm>
 >
@@ -130,7 +137,7 @@ export type RoundTemplateMatches = Assert<Exact<typeof roundTemplates.$inferSele
 export type RoundTemplateVersionMatches = Assert<
   Exact<typeof roundTemplateVersions.$inferSelect, RoundTemplateVersion>
 >
-export type RoundPlanMatches = Assert<Exact<typeof roundPlans.$inferSelect, RoundPlan>>
+export type RoundPlanMatches = Assert<Exact<Placed<typeof roundPlans.$inferSelect>, RoundPlan>>
 export type RoundRecordMatches = Assert<Exact<typeof roundRecords.$inferSelect, RoundRecord>>
 
 export type MeterPointMatches = Assert<Exact<typeof meterPoints.$inferSelect, MeterPoint>>

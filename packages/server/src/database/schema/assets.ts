@@ -31,7 +31,7 @@ import {
 } from 'drizzle-orm/pg-core'
 
 import { withinAreas } from './areas.js'
-import { buildings, optionalTrimmed, properties, rooms, trimmed } from './locations.js'
+import { buildings, optionalTrimmed, rooms, trimmed } from './locations.js'
 
 // The technology, the other half of the data model (section 2.2 of the
 // concept, ADR 0002, points 4 to 9): an asset in exactly one building and on
@@ -104,6 +104,8 @@ export const assets = pgTable(
     // (`asset_duplicate_candidates`, ADR 0003, addendum on #99).
     readableByTheOwner(),
     unique('assets_tenant_id_key').on(table.tenantId, table.id),
+    // What a row that hangs on it points at for its area (ADR 0003, addendum of #306).
+    unique('assets_area_key').on(table.tenantId, table.id, table.areaId),
     // What an entry of the life cycle and a supply point at.
     unique('assets_place').on(table.tenantId, table.id, table.propertyId),
     // What a component points at: its asset in the building they share.
@@ -113,10 +115,11 @@ export const assets = pgTable(
       table.buildingId,
       table.propertyId,
     ),
+    // The area of what the row hangs on (ADR 0003, addendum of #306).
     foreignKey({
-      columns: [table.tenantId, table.propertyId, table.areaId],
-      foreignColumns: [properties.tenantId, properties.id, properties.areaId],
-      name: 'assets_follow_their_property',
+      columns: [table.tenantId, table.buildingId, table.areaId],
+      foreignColumns: [buildings.tenantId, buildings.id, buildings.areaId],
+      name: 'assets_follow_their_building',
     }).onUpdate('cascade'),
     foreignKey({
       columns: [table.tenantId, table.buildingId, table.propertyId],
@@ -135,6 +138,13 @@ export const assets = pgTable(
       columns: [table.tenantId, table.parentAssetId, table.buildingId, table.propertyId],
       foreignColumns: [table.tenantId, table.id, table.buildingId, table.propertyId],
       name: 'components_in_the_building_of_their_asset',
+    }).onUpdate('cascade'),
+    // And with the area of the building it moves to (ADR 0003, addendum of
+    // #306): both cascades run before either key is checked.
+    foreignKey({
+      columns: [table.tenantId, table.parentAssetId, table.areaId],
+      foreignColumns: [table.tenantId, table.id, table.areaId],
+      name: 'components_follow_their_asset',
     }).onUpdate('cascade'),
     // An asset takes the place of one of its property: the new one stands
     // where the old one stood, and an asset never leaves its property.
@@ -219,10 +229,11 @@ export const assetLifecycle = pgTable(
       foreignColumns: [assets.tenantId, assets.id, assets.propertyId],
       name: 'asset_lifecycle_of_an_asset',
     }),
+    // The area of what the row hangs on (ADR 0003, addendum of #306).
     foreignKey({
-      columns: [table.tenantId, table.propertyId, table.areaId],
-      foreignColumns: [properties.tenantId, properties.id, properties.areaId],
-      name: 'asset_lifecycle_follows_its_property',
+      columns: [table.tenantId, table.assetId, table.areaId],
+      foreignColumns: [assets.tenantId, assets.id, assets.areaId],
+      name: 'asset_lifecycle_follows_its_asset',
     }).onUpdate('cascade'),
     index('asset_lifecycle_asset_idx').on(table.tenantId, table.assetId),
     uniqueIndex('asset_lifecycle_one_state_a_day')
@@ -257,10 +268,11 @@ export const assetSupplies = pgTable(
       foreignColumns: [assets.tenantId, assets.id, assets.propertyId],
       name: 'asset_supplies_of_an_asset',
     }),
+    // The area of what the row hangs on (ADR 0003, addendum of #306).
     foreignKey({
-      columns: [table.tenantId, table.propertyId, table.areaId],
-      foreignColumns: [properties.tenantId, properties.id, properties.areaId],
-      name: 'asset_supplies_follow_their_property',
+      columns: [table.tenantId, table.assetId, table.areaId],
+      foreignColumns: [assets.tenantId, assets.id, assets.areaId],
+      name: 'asset_supplies_follow_their_asset',
     }).onUpdate('cascade'),
     foreignKey({
       columns: [table.tenantId, table.buildingId, table.propertyId],

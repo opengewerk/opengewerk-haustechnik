@@ -26,7 +26,6 @@ import {
   evidenceKindLabel,
   type DutyId,
   type DutyPerson,
-  type Property,
   type WorkOrder,
   type WorkOrderCandidates,
   workOrderDecisionKinds,
@@ -350,7 +349,9 @@ export class WorkOrdersController {
   /**
    * Who may be named on a work order at a property: the people who perform
    * activities, see its area and are not shut out. For whoever plans, and
-   * the name and nothing else of each person.
+   * the name and nothing else of each person. A building, room or asset named
+   * beside the property gives the area, which is its own where its building
+   * has one (ADR 0003, addendum of #306).
    */
   @Get('candidates')
   @RequiresPermission('activity.write')
@@ -365,14 +366,18 @@ export class WorkOrdersController {
     }
 
     const found = await this.database.forTenant(identity, async (tx) => {
-      const property = await placeOf<Property>(
+      const place = await targetOf(
         tx,
-        properties,
-        propertyId,
-        'Diese Liegenschaft gibt es nicht oder nicht mehr.',
+        {
+          propertyId,
+          buildingId: said(query, 'building'),
+          roomId: said(query, 'room'),
+          assetId: said(query, 'asset'),
+        },
+        'Ein Auftrag',
       )
 
-      return candidatesIn(tx, property.areaId)
+      return candidatesIn(tx, place.areaId)
     })
     const named = await this.named(identity, found.performers)
 

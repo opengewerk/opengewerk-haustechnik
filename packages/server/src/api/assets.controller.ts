@@ -600,9 +600,11 @@ export class AssetsController {
            where tenant_id = ${identity.tenantId} and id in (select id from below) and room_id is not null`)
       }
 
+      // With the area of the building it moves to; its components and what
+      // hangs on them follow it there (ADR 0003, addendum of #306).
       const [moved] = await tx
         .update(assets)
-        .set({ buildingId: building.id, roomId })
+        .set({ buildingId: building.id, roomId, areaId: building.areaId })
         .where(and(eq(assets.id, asset.id), isNull(assets.deletedAt)))
         .returning()
 

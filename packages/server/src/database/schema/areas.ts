@@ -15,6 +15,7 @@ import {
   foreignKey,
   index,
   pgPolicy,
+  type PgColumn,
   pgTable,
   text,
   unique,
@@ -263,4 +264,104 @@ export function withinAreas() {
     using: inReach,
     withCheck: inReach,
   })
+}
+
+/**
+ * The column of a row that can hang on the property itself or on something
+ * on it (ADR 0003, addendum of #306): the property, exactly when the row
+ * names nothing else it hangs on, and empty otherwise. The key over it and
+ * `area_id` to the property follows the area of the property for such a row
+ * and lets one in a building go, whose area is the building's.
+ *
+ * Nobody writes it. The trigger `area_from_the_property` of the migration
+ * fills it before a row is written, and the check below holds it. PostgreSQL
+ * takes no key with ON UPDATE CASCADE over a generated column, so it is a
+ * column of its own.
+ */
+export function areaFromPropertyColumn() {
+  return reference<'property'>('area_from_property_id')
+}
+
+/**
+ * The check that holds `area_from_property_id` (ADR 0003, addendum of #306):
+ * the property where none of the columns a row hangs on is filled, and
+ * nothing where one is.
+ */
+export function areaFromTheProperty(
+  name: string,
+  table: { readonly areaFromPropertyId: PgColumn; readonly propertyId: PgColumn },
+  carriers: readonly PgColumn[],
+) {
+  const named = sql.join(
+    carriers.map((carrier) => sql`${carrier}`),
+    sql`, `,
+  )
+
+  return check(
+    name,
+    sql`${table.areaFromPropertyId} is not distinct from (case when num_nonnulls(${named}) = 0 then ${table.propertyId} end)`,
+  )
+}
+
+/**
+ * The expression with which `properties` and `contacts` let a row be read
+ * (ADR 0003, addendum of #306): what `within_areas` lets through, and a row
+ * whose property has a building the person sees and that is not removed.
+ * The sub-select reads `buildings` under the policies of that table, so the
+ * areas of the person decide, as they do for the building itself.
+ */
+export function withinAreasOrABuildingExpression(table: string, propertyColumn: string): string {
+  return (
+    `${withinAreasExpression} OR EXISTS (SELECT 1 FROM buildings WHERE buildings.tenant_id = ${table}.tenant_id ` +
+    `AND buildings.property_id = ${table}.${propertyColumn} AND buildings.deleted_at IS NULL)`
+  )
+}
+
+/**
+ * The line between the areas for a property and the people to talk to there
+ * (section 2.8 of the concept, ADR 0003, addendum of #306). Whoever holds
+ * only the area of a building sees the property it stands on, with its
+ * address, its note and its contacts, and nothing else that hangs on the
+ * property itself. Reading reaches that far; writing stays where
+ * `within_areas` draws the line, so such a person changes nothing at the
+ * property.
+ *
+ * That takes four policies and not one. A policy for every command lends
+ * the rows it lets be read to UPDATE and DELETE as well, and its check only
+ * asks where a row ends up: whoever holds only the area of a building could
+ * move the property into that area, and every row below it would follow by
+ * the keys. Restrictive policies are joined per command, so the wide one
+ * reads only, and one for each way of writing asks `within_areas`. All of
+ * them restrictive, so that no other policy widens them.
+ */
+export function withinAreasOrABuilding(table: string, propertyColumn: string) {
+  const inReach = sql.raw(withinAreasExpression)
+
+  return [
+    pgPolicy('within_areas_or_a_building', {
+      as: 'restrictive',
+      for: 'select',
+      to: applicationRole,
+      using: sql.raw(withinAreasOrABuildingExpression(table, propertyColumn)),
+    }),
+    pgPolicy('within_areas_insert', {
+      as: 'restrictive',
+      for: 'insert',
+      to: applicationRole,
+      withCheck: inReach,
+    }),
+    pgPolicy('within_areas_update', {
+      as: 'restrictive',
+      for: 'update',
+      to: applicationRole,
+      using: inReach,
+      withCheck: inReach,
+    }),
+    pgPolicy('within_areas_delete', {
+      as: 'restrictive',
+      for: 'delete',
+      to: applicationRole,
+      using: inReach,
+    }),
+  ]
 }

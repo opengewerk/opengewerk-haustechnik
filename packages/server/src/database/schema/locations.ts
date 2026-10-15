@@ -24,7 +24,7 @@ import {
   unique,
 } from 'drizzle-orm/pg-core'
 
-import { areas, withinAreas } from './areas.js'
+import { areaFromPropertyColumn, areas, withinAreas, withinAreasOrABuilding } from './areas.js'
 
 // The place, the one half of the data model (section 2.2 of the concept,
 // ADR 0002): a property, its buildings, their floors and the rooms on a
@@ -76,7 +76,8 @@ export const properties = pgTable(
   },
   (table) => [
     tenantIsolation(table.tenantId),
-    withinAreas(),
+    // Seen also by whoever holds only the area of a building on it (#306).
+    ...withinAreasOrABuilding('properties', 'id'),
     unique('properties_tenant_id_key').on(table.tenantId, table.id),
     // What every row with a place points at: the property and its area
     // together, so that the area of the row follows the property.
@@ -98,6 +99,13 @@ export const properties = pgTable(
  * A building on a property, with its kinds, which decide with the federal
  * state which duties are proposed. An outdoor facility is a building of the
  * kind `outdoor` (ADR 0002, point 1).
+ *
+ * Its area is the one of its property until it is given one of its own
+ * (section 2.8 of the concept, ADR 0003, addendum of #306). Without one,
+ * `area_from_property_id` names the property and the key over it follows the
+ * area of the property; with one, that column is empty, the key does not
+ * hold, and `area_id` is `own_area_id`. Everything in the building follows
+ * `area_id` by its own key.
  */
 export const buildings = pgTable(
   'buildings',
@@ -106,6 +114,9 @@ export const buildings = pgTable(
     ...tenantColumn,
     propertyId: reference<'property'>('property_id').notNull(),
     areaId: reference<'area'>('area_id').notNull(),
+    /** The area given to the building itself, or nothing where it has its property's. */
+    ownAreaId: reference<'area'>('own_area_id'),
+    areaFromPropertyId: areaFromPropertyColumn(),
     name: text('name').notNull(),
     shortCode: text('short_code'),
     kinds: buildingKind('kinds').array().notNull().$type<readonly BuildingKind[]>(),
@@ -117,13 +128,30 @@ export const buildings = pgTable(
     tenantIsolation(table.tenantId),
     withinAreas(),
     unique('buildings_tenant_id_key').on(table.tenantId, table.id),
+    // What a row that hangs on it points at for its area (ADR 0003, addendum of #306).
+    unique('buildings_area_key').on(table.tenantId, table.id, table.areaId),
     // What a floor and a room point at: the building on its property.
     unique('buildings_place').on(table.tenantId, table.id, table.propertyId),
     foreignKey({
-      columns: [table.tenantId, table.propertyId, table.areaId],
+      columns: [table.tenantId, table.propertyId],
+      foreignColumns: [properties.tenantId, properties.id],
+      name: 'buildings_on_their_property',
+    }),
+    // The area of the property, where the building has none of its own.
+    foreignKey({
+      columns: [table.tenantId, table.areaFromPropertyId, table.areaId],
       foreignColumns: [properties.tenantId, properties.id, properties.areaId],
       name: 'buildings_follow_their_property',
     }).onUpdate('cascade'),
+    foreignKey({
+      columns: [table.tenantId, table.ownAreaId],
+      foreignColumns: [areas.tenantId, areas.id],
+      name: 'buildings_in_an_own_area_of_the_tenant',
+    }),
+    check(
+      'buildings_area_own_or_of_the_property',
+      sql`(${table.ownAreaId} is null) = (${table.areaFromPropertyId} is not null) and (${table.areaFromPropertyId} is null or ${table.areaFromPropertyId} = ${table.propertyId}) and (${table.ownAreaId} is null or ${table.ownAreaId} = ${table.areaId})`,
+    ),
     index('buildings_property_idx').on(table.tenantId, table.propertyId),
     check('buildings_name_shaped', trimmed(table.name, locationLimits.name)),
     check(
@@ -171,10 +199,11 @@ export const floors = pgTable(
       foreignColumns: [buildings.tenantId, buildings.id, buildings.propertyId],
       name: 'floors_in_their_building',
     }),
+    // The area of what the row hangs on (ADR 0003, addendum of #306).
     foreignKey({
-      columns: [table.tenantId, table.propertyId, table.areaId],
-      foreignColumns: [properties.tenantId, properties.id, properties.areaId],
-      name: 'floors_follow_their_property',
+      columns: [table.tenantId, table.buildingId, table.areaId],
+      foreignColumns: [buildings.tenantId, buildings.id, buildings.areaId],
+      name: 'floors_follow_their_building',
     }).onUpdate('cascade'),
     index('floors_building_idx').on(table.tenantId, table.buildingId),
     check('floors_name_shaped', trimmed(table.name, locationLimits.floorName)),
@@ -212,6 +241,8 @@ export const rooms = pgTable(
     tenantIsolation(table.tenantId),
     withinAreas(),
     unique('rooms_tenant_id_key').on(table.tenantId, table.id),
+    // What a row that hangs on it points at for its area (ADR 0003, addendum of #306).
+    unique('rooms_area_key').on(table.tenantId, table.id, table.areaId),
     unique('rooms_place').on(table.tenantId, table.id, table.propertyId),
     // What an asset points at: the room in its building, so that an asset can
     // only name a room of the building it stands in (#20).
@@ -226,10 +257,11 @@ export const rooms = pgTable(
       foreignColumns: [floors.tenantId, floors.id, floors.buildingId, floors.propertyId],
       name: 'rooms_on_a_floor_of_their_building',
     }),
+    // The area of what the row hangs on (ADR 0003, addendum of #306).
     foreignKey({
-      columns: [table.tenantId, table.propertyId, table.areaId],
-      foreignColumns: [properties.tenantId, properties.id, properties.areaId],
-      name: 'rooms_follow_their_property',
+      columns: [table.tenantId, table.buildingId, table.areaId],
+      foreignColumns: [buildings.tenantId, buildings.id, buildings.areaId],
+      name: 'rooms_follow_their_building',
     }).onUpdate('cascade'),
     index('rooms_floor_idx').on(table.tenantId, table.floorId),
     check(

@@ -23,7 +23,7 @@ import {
 import { activities } from './activities.js'
 import { withinAreas } from './areas.js'
 import { attachments } from './attachments.js'
-import { optionalTrimmed, properties } from './locations.js'
+import { optionalTrimmed } from './locations.js'
 
 /** The answer to a check point, from the list of the form engine. */
 export const checkPointResult = pgEnum('check_point_result', checkPointResults)
@@ -83,10 +83,11 @@ export const activityAnswers = pgTable(
       table.propertyId,
       table.activityId,
     ),
+    // The area of what the row hangs on (ADR 0003, addendum of #306).
     foreignKey({
-      columns: [table.tenantId, table.propertyId, table.areaId],
-      foreignColumns: [properties.tenantId, properties.id, properties.areaId],
-      name: 'activity_answers_follow_their_property',
+      columns: [table.tenantId, table.activityId, table.areaId],
+      foreignColumns: [activities.tenantId, activities.id, activities.areaId],
+      name: 'activity_answers_follow_their_activity',
     }).onUpdate('cascade'),
     foreignKey({
       columns: [table.tenantId, table.activityId, table.propertyId],

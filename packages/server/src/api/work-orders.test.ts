@@ -511,6 +511,43 @@ describe('a new work order', () => {
       .set(testIdentityHeader, by('u-tech', large))
       .expect(403)
   })
+
+  /**
+   * A building with an area of its own (section 2.8 of the concept, #306):
+   * for a work order there, the people of that area are offered, and for one
+   * on the property those of the area of the property.
+   */
+  it('offers for a building with an area of its own the people of that area', async () => {
+    const { property } = await elevatorIn(large, north)
+    const { rows } = await admin.query<{ id: string }>(
+      'select id from buildings where property_id = $1',
+      [property],
+    )
+    const building = rows[0]?.id ?? ''
+    const ask = async (query: string) =>
+      (
+        (
+          await http()
+            .get(`/work-orders/candidates?${query}`)
+            .set(testIdentityHeader, by('u-duties', large))
+            .expect(200)
+        ).body as WorkOrderCandidates
+      ).people.map((person) => person.userId)
+
+    await http()
+      .patch(`/buildings/${building}`)
+      .set(testIdentityHeader, by('u-duties', large))
+      .send({ ownAreaId: south })
+      .expect(200)
+
+    const inTheBuilding = await ask(`property=${property}&building=${building}`)
+    const onTheProperty = await ask(`property=${property}`)
+
+    expect(inTheBuilding).toContain('u-south')
+    expect(inTheBuilding).not.toContain('u-tech')
+    expect(onTheProperty).toContain('u-tech')
+    expect(onTheProperty).not.toContain('u-south')
+  })
 })
 
 describe('who sees a work order', () => {

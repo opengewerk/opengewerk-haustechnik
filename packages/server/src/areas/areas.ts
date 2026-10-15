@@ -2,6 +2,7 @@ import { BadRequestException, ConflictException, NotFoundException } from '@nest
 import {
   type Area,
   type AreaId,
+  type BuildingId,
   areaNameProblem,
   type MemberAreas,
   memberAreasProblem,
@@ -9,7 +10,7 @@ import {
   type TenantId,
 } from '@opengewerk/haustechnik-domain'
 import { isUniqueViolation, isUuid, type TenantTransaction } from '@opengewerk/platform-server'
-import { and, count, eq, inArray, isNull, sql } from 'drizzle-orm'
+import { and, count, eq, inArray, isNotNull, isNull, sql } from 'drizzle-orm'
 
 import {
   areas,
@@ -39,6 +40,9 @@ const oneAreaPerName = 'areas_name_once'
 /** The key by which a property names its area. */
 const propertyNamesAnArea = 'properties_in_an_area_of_the_tenant'
 
+/** The key by which a building names an area of its own (#306). */
+const buildingNamesAnArea = 'buildings_in_an_own_area_of_the_tenant'
+
 const inGerman = (left: { name: string }, right: { name: string }) =>
   left.name.localeCompare(right.name, 'de')
 
@@ -46,8 +50,21 @@ const inGerman = (left: { name: string }, right: { name: string }) =>
 export interface AreaOverview extends Area {
   /** The properties in it, as far as the person asking sees them, by name. */
   readonly properties: readonly { readonly id: PropertyId; readonly name: string }[]
-  /** How many buildings stand on them. */
+  /**
+   * How many buildings lie in it: those on its properties that have no area
+   * of their own, and those elsewhere that have it as their own.
+   */
   readonly buildings: number
+  /**
+   * The buildings that have it as an area of their own, as far as the person
+   * asking sees them, each with its property, by the name of the property and
+   * then its own (#306).
+   */
+  readonly ownBuildings: readonly {
+    readonly id: BuildingId
+    readonly name: string
+    readonly propertyName: string
+  }[]
   /**
    * Who it is named for, of those who can work. Whoever holds in every area
    * is not listed: they are in each of them, and the list would say nothing.
@@ -87,6 +104,16 @@ export async function areaOverview(tx: TenantTransaction): Promise<AreaOverview[
     .from(buildings)
     .where(isNull(buildings.deletedAt))
     .groupBy(buildings.areaId)
+  const own = await tx
+    .select({
+      id: buildings.id,
+      name: buildings.name,
+      propertyName: properties.name,
+      areaId: buildings.ownAreaId,
+    })
+    .from(buildings)
+    .innerJoin(properties, eq(properties.id, buildings.propertyId))
+    .where(and(isNotNull(buildings.ownAreaId), isNull(buildings.deletedAt)))
   const named = await tx
     .select({ userId: memberAreas.userId, areaId: memberAreas.areaId })
     .from(memberAreas)
@@ -106,6 +133,14 @@ export async function areaOverview(tx: TenantTransaction): Promise<AreaOverview[
       .map(({ id, name }) => ({ id, name }))
       .sort(inGerman),
     buildings: standing.find((row) => row.areaId === area.id)?.buildings ?? 0,
+    ownBuildings: own
+      .filter((row) => row.areaId === area.id)
+      .map(({ id, name, propertyName }) => ({ id, name, propertyName }))
+      .sort(
+        (left, right) =>
+          left.propertyName.localeCompare(right.propertyName, 'de') ||
+          left.name.localeCompare(right.name, 'de'),
+      ),
     memberIds: named.filter((row) => row.areaId === area.id).map((row) => row.userId),
   }))
 }
@@ -167,18 +202,34 @@ export async function renameArea(tx: TenantTransaction, id: string, name: unknow
 }
 
 /**
- * What somebody is told who removes an area that is not empty. A property
- * marked deleted is none a list shows, so it is not counted; where only such
- * are left, the sentence says what holds the area.
+ * What somebody is told who removes an area that is not empty. A property or
+ * building marked deleted is none a list shows, so it is not counted; where
+ * only such are left, the sentence says what holds the area. A building
+ * counts where it has the area as one of its own (#306).
  */
-function stillHolds(live: number): string {
-  if (live === 0) {
-    return 'In diesem Bereich liegen noch entfernte Liegenschaften. Sie werden vorher in einen anderen Bereich verlegt.'
+function stillHolds(live: number, buildings: number, removedBuildings: boolean): string {
+  if (live === 0 && buildings === 0) {
+    return removedBuildings
+      ? 'In diesem Bereich liegen noch entfernte Liegenschaften oder Gebäude. Sie werden vorher in einen anderen Bereich verlegt.'
+      : 'In diesem Bereich liegen noch entfernte Liegenschaften. Sie werden vorher in einen anderen Bereich verlegt.'
   }
 
-  return live === 1
-    ? 'In diesem Bereich liegt noch 1 Liegenschaft. Sie wird vorher in einen anderen Bereich verlegt.'
-    : `In diesem Bereich liegen noch ${String(live)} Liegenschaften. Sie werden vorher in einen anderen Bereich verlegt.`
+  const named = [
+    ...(live === 0 ? [] : [live === 1 ? '1 Liegenschaft' : `${String(live)} Liegenschaften`]),
+    ...(buildings === 0
+      ? []
+      : [
+          buildings === 1
+            ? '1 Gebäude mit eigenem Bereich'
+            : `${String(buildings)} Gebäude mit eigenem Bereich`,
+        ]),
+  ]
+
+  if (live + buildings > 1) {
+    return `In diesem Bereich liegen noch ${named.join(' und ')}. Sie werden vorher in einen anderen Bereich verlegt.`
+  }
+
+  return `In diesem Bereich liegt noch ${named.join('')}. ${live === 1 ? 'Sie' : 'Es'} wird vorher in einen anderen Bereich verlegt.`
 }
 
 /**
@@ -188,9 +239,11 @@ function stillHolds(live: number): string {
  * with their number.
  *
  * Properties marked deleted move as well: they still name their area, and the
- * key would hold the area for them. Whoever it was named for holds in one
- * area less afterwards, in none when it was their only one; nobody is
- * blocked by that.
+ * key would hold the area for them. A building that has the area as one of
+ * its own moves with them (#306): it keeps the area named as its own, or has
+ * the one of its property where that is the same. Whoever it was named for
+ * holds in one area less afterwards, in none when it was their only one;
+ * nobody is blocked by that.
  *
  * A tenant keeps one area. And whoever does not see every property of the
  * area cannot empty it: the key of a property out of their sight refuses the
@@ -217,11 +270,21 @@ export async function removeArea(
     .select({ deletedAt: properties.deletedAt })
     .from(properties)
     .where(eq(properties.areaId, id as AreaId))
+  const ownIn = await tx
+    .select({ deletedAt: buildings.deletedAt })
+    .from(buildings)
+    .where(eq(buildings.ownAreaId, id as AreaId))
   const held = inIt.length
 
-  if (held > 0) {
+  if (held > 0 || ownIn.length > 0) {
     if (moveTo === undefined || moveTo === null) {
-      throw new ConflictException(stillHolds(inIt.filter((row) => row.deletedAt === null).length))
+      throw new ConflictException(
+        stillHolds(
+          inIt.filter((row) => row.deletedAt === null).length,
+          ownIn.filter((row) => row.deletedAt === null).length,
+          ownIn.length > 0,
+        ),
+      )
     }
 
     if (moveTo === id || !all.some((area) => area.id === moveTo)) {
@@ -234,14 +297,30 @@ export async function removeArea(
       .update(properties)
       .set({ areaId: moveTo as AreaId })
       .where(eq(properties.areaId, id as AreaId))
+    // After the properties, so that a building whose property is now in the
+    // area named has that one as the area of its property again.
+    await tx.execute(sql`
+      update buildings
+         set own_area_id = case when properties.area_id = ${moveTo as AreaId} then null
+                                else ${moveTo as AreaId}::uuid end,
+             area_id = ${moveTo as AreaId}
+        from properties
+       where properties.tenant_id = buildings.tenant_id and properties.id = buildings.property_id
+         and buildings.own_area_id = ${id as AreaId}`)
   }
 
   try {
     await tx.delete(areas).where(eq(areas.id, id as AreaId))
   } catch (error) {
-    throw violatesKey(error, propertyNamesAnArea)
+    if (violatesKey(error, propertyNamesAnArea)) {
+      throw new ConflictException(
+        'In diesem Bereich liegen Liegenschaften, die Sie nicht sehen. Entfernen kann ihn, wer alle Bereiche sieht.',
+      )
+    }
+
+    throw violatesKey(error, buildingNamesAnArea)
       ? new ConflictException(
-          'In diesem Bereich liegen Liegenschaften, die Sie nicht sehen. Entfernen kann ihn, wer alle Bereiche sieht.',
+          'In diesem Bereich liegen Gebäude, die Sie nicht sehen. Entfernen kann ihn, wer alle Bereiche sieht.',
         )
       : error
   }

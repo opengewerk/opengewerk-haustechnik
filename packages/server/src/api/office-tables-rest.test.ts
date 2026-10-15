@@ -963,7 +963,7 @@ describe('the areas as a table (#236)', () => {
 
     for (const format of ['xlsx', 'csv'] as const) {
       expect(await byArea(by('u-lead', estate), format)).toEqual({
-        heads: ['Bereich', 'Umfang', 'Liegenschaften', 'Zugänge mit diesem Bereich'],
+        heads: ['Bereich', 'Umfang', 'Liegenschaften und Gebäude', 'Zugänge mit diesem Bereich'],
         rows: {
           Nord: ['2 Liegenschaften, 2 Gebäude', 'Hof A, Hof B', 'Hana Haus'],
           Süd: ['keine Liegenschaft', 'keine', 'niemand'],
@@ -974,7 +974,7 @@ describe('the areas as a table (#236)', () => {
 
   it('names who an area is for only for whoever may see the staff, and the properties only for whoever reads places', async () => {
     expect(await byArea(holding('settings.read', 'location.read'))).toEqual({
-      heads: ['Bereich', 'Umfang', 'Liegenschaften'],
+      heads: ['Bereich', 'Umfang', 'Liegenschaften und Gebäude'],
       rows: {
         Nord: ['2 Liegenschaften, 2 Gebäude', 'Hof A, Hof B'],
         Süd: ['keine Liegenschaft', 'keine'],
@@ -984,7 +984,7 @@ describe('the areas as a table (#236)', () => {
     const nameless = await tableOf('/areas/overview/table', {}, holding('settings.read'))
 
     expect(nameless.flat().join(' ')).not.toMatch(/Hana Haus|Hof A|Hof B/)
-    expect(nameless[0]).toEqual(['Bereich', 'Umfang', 'Liegenschaften'])
+    expect(nameless[0]).toEqual(['Bereich', 'Umfang', 'Liegenschaften und Gebäude'])
   })
 
   it('is only for whoever sees the settings', async () => {

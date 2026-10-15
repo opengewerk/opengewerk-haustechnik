@@ -133,13 +133,27 @@ describe('the levels of the place', () => {
            values ($1, $2, $3, 'Haus B', '{office}')`,
           [tenant, here.property, secondArea],
         ),
+      // A building with an area of its own, so that only the key onto its
+      // property holds the property (#306).
+      buildings_on_their_property: () =>
+        tried(
+          `insert into buildings (tenant_id, property_id, area_id, own_area_id, name, kinds)
+           values ($1, $2, $3, $3, 'Haus B', '{office}')`,
+          [tenant, randomUUID(), here.area],
+        ),
+      buildings_in_an_own_area_of_the_tenant: () =>
+        tried(
+          `insert into buildings (tenant_id, property_id, area_id, own_area_id, name, kinds)
+           values ($1, $2, $3, $3, 'Haus B', '{office}')`,
+          [tenant, here.property, elsewhere.area],
+        ),
       floors_in_their_building: () =>
         tried(
           `insert into floors (tenant_id, building_id, property_id, area_id, name, level)
            values ($1, $2, $3, $4, 'Obergeschoss', 1)`,
           [tenant, beside.building, here.property, here.area],
         ),
-      floors_follow_their_property: () =>
+      floors_follow_their_building: () =>
         tried(
           `insert into floors (tenant_id, building_id, property_id, area_id, name, level)
            values ($1, $2, $3, $4, 'Obergeschoss', 1)`,
@@ -147,7 +161,7 @@ describe('the levels of the place', () => {
         ),
       rooms_on_a_floor_of_their_building: () =>
         tried(`update rooms set floor_id = $2 where id = $1`, [here.room, beside.floor]),
-      rooms_follow_their_property: () =>
+      rooms_follow_their_building: () =>
         tried(
           `insert into rooms (tenant_id, floor_id, building_id, property_id, area_id, number)
            values ($1, $2, $3, $4, $5, '0.02')`,
