@@ -416,6 +416,52 @@ describe('a new plan', () => {
     })
     expect(places()).toContain('Feuerwache Nord, ganze Liegenschaft')
   })
+
+  it('offers the people of the area of a building with one of its own, not those of its property (#316)', async () => {
+    // The campus lies in an area of its own and its hall in Nord; the person holds both.
+    const campus: NamedArea = { id: 'a-campus', name: 'Campus' }
+    const site = { ...station, id: 'p-campus', areaId: campus.id, name: 'Campus Mitte' }
+
+    server.put('properties', site)
+    server.put('buildings', {
+      ...guard,
+      id: 'b-hall',
+      propertyId: site.id,
+      areaId: nord.id,
+      ownAreaId: nord.id,
+      name: 'Halle',
+    })
+    written = signedInOffice(
+      'site_management',
+      [nord, campus],
+      {
+        '/rounds/people': [{ userId: 'u-tobias', name: 'Tobias Wendt' }],
+        [`/rounds/performers?area=${nord.id}`]: [{ userId: 'u-lena', name: 'Lena Vogt' }],
+        [`/rounds/performers?area=${campus.id}`]: [{ userId: 'u-karl', name: 'Karl Brandt' }],
+      },
+      (write) => answerToWrite(write),
+    )
+    await mountOffice('/rundgaenge/plaene/neu', server, everything)
+    await screen.findByRole('button', { name: 'Plan anlegen' })
+
+    await waitFor(() => {
+      expect(screen.getByRole('option', { name: 'Campus Mitte, Halle' })).toBeTruthy()
+    })
+    choose('Ort', 'b:b-hall')
+
+    const people = () =>
+      within(screen.getByRole('combobox', { name: 'Person' }))
+        .getAllByRole('option')
+        .map((option) => option.textContent)
+
+    await waitFor(() => {
+      expect(people()).toContain('Lena Vogt')
+    })
+    expect(people()).not.toContain('Karl Brandt')
+
+    fireEvent.click(screen.getByRole('radio', { name: 'Alle im Bereich' }))
+    expect(await screen.findByText(planWords.everybody('Nord'))).toBeTruthy()
+  })
 })
 
 describe('a plan that runs', () => {
