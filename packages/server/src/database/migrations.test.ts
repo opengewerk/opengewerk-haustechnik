@@ -360,4 +360,149 @@ describe('the migrations in this repository', () => {
       expect(text, `${migration.tag} uses VACUUM`).not.toMatch(/\bvacuum\b/i)
     }
   })
+
+  it('check a key they add to a table with rows against every row, past the policies of the owner (#315)', () => {
+    // 0051 and 0052 ran on installations before the rule and stay as they are.
+    const since = index.findIndex((migration) => migration.tag === '0052_building_moves') + 1
+    const texts = index.map((migration) =>
+      readFileSync(join(migrationsFolder, `${migration.tag}.sql`), 'utf8'),
+    )
+    const everything = texts.join('\n')
+
+    expect(since).toBeGreaterThan(0)
+
+    for (const [at, migration] of index.entries()) {
+      if (at >= since) {
+        expect(keysCheckedPastThePolicies(texts[at] ?? '', everything), migration.tag).toEqual([])
+      }
+    }
+  })
+
+  it('would have found the key that held up the update to 0.1.1 (#315)', () => {
+    const text = readFileSync(join(migrationsFolder, '0051_building_areas.sql'), 'utf8')
+    const key = /ALTER TABLE "assets" ADD CONSTRAINT "assets_follow_their_building"[^;]*/.exec(text)
+    const statement = key?.[0] ?? ''
+    const force = (table: string, off: boolean) =>
+      `ALTER TABLE "${table}" ${off ? 'NO ' : ''}FORCE ROW LEVEL SECURITY`
+    const run = (...statements: string[]) =>
+      keysCheckedPastThePolicies(statements.join(';--> statement-breakpoint\n'), text)
+
+    expect(statement).not.toBe('')
+    expect(keysCheckedPastThePolicies(text, text)).toContain(
+      'assets_follow_their_building: "assets", "buildings" under FORCE ROW LEVEL SECURITY',
+    )
+    // Taken off the one side only, the other is still checked as the owner sees it.
+    expect(run(force('assets', true), statement, force('assets', false))).toEqual([
+      'assets_follow_their_building: "buildings" under FORCE ROW LEVEL SECURITY',
+    ])
+    // Taken off both for the statement and given back: checked against every row.
+    expect(
+      run(
+        force('assets', true),
+        force('buildings', true),
+        statement,
+        force('assets', false),
+        force('buildings', false),
+      ),
+    ).toEqual([])
+    // Not given back, the table stays open to its owner after the update.
+    expect(
+      run(force('assets', true), force('buildings', true), statement, force('assets', false)),
+    ).toEqual(['"buildings" without FORCE ROW LEVEL SECURITY after the migration'])
+    // A key on a table the same migration makes has no rows to check yet.
+    expect(
+      run(
+        'CREATE TABLE "lifts" ("id" uuid PRIMARY KEY)',
+        'ALTER TABLE "lifts" ADD CONSTRAINT "lifts_in_a_building" FOREIGN KEY ("id") REFERENCES "public"."buildings"("id")',
+      ),
+    ).toEqual([])
+  })
 })
+
+/**
+ * What a migration checks against the rows of the owner's view instead of all
+ * of them (#315). An installation migrates as the owner of the tables, and
+ * every table of a tenant carries FORCE ROW LEVEL SECURITY, so the query that
+ * checks a new foreign key meets the policies too: next to a table the owner
+ * may read (`readable_by_the_owner`), one it may not makes a row look
+ * orphaned, and one it may not read lets every row through unchecked. Taking
+ * FORCE off both tables for the statement and giving it back after, as 0051
+ * does for its UPDATE, checks the key against every row.
+ *
+ * Read from the text, statement by statement: a table the migration makes has
+ * no rows yet, a key added NOT VALID is not checked until VALIDATE, and the
+ * table a validated key points at is looked up in every migration.
+ */
+function keysCheckedPastThePolicies(text: string, everything: string): string[] {
+  const table = String.raw`(?:ONLY\s+)?(?:"?public"?\.)?"?([a-z_0-9]+)"?`
+  const made = new RegExp(String.raw`^CREATE\s+TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?${table}`, 'i')
+  const force = new RegExp(
+    String.raw`^ALTER\s+TABLE\s+${table}\s+(NO\s+)?FORCE\s+ROW\s+LEVEL\s+SECURITY$`,
+    'i',
+  )
+  const key = new RegExp(
+    String.raw`^ALTER\s+TABLE\s+${table}\s+ADD\s+CONSTRAINT\s+"?([a-z_0-9]+)"?\s+FOREIGN\s+KEY\b[\s\S]*?\bREFERENCES\s+${table}`,
+    'i',
+  )
+  const validated = new RegExp(
+    String.raw`^ALTER\s+TABLE\s+${table}\s+VALIDATE\s+CONSTRAINT\s+"?([a-z_0-9]+)"?`,
+    'i',
+  )
+  const created = new Set<string>()
+  const open = new Set<string>()
+  const problems: string[] = []
+  const statements = text
+    .replace(/--[^\n]*/g, '')
+    .split(';')
+    .map((statement) => statement.trim())
+
+  const check = (constraint: string, child: string, parent: string | undefined) => {
+    if (created.has(child)) {
+      return
+    }
+
+    const forced = [...new Set([child, parent ?? child])].filter(
+      (name) => !created.has(name) && !open.has(name),
+    )
+
+    if (forced.length > 0) {
+      problems.push(
+        `${constraint}: ${forced.map((name) => `"${name}"`).join(', ')} under FORCE ROW LEVEL SECURITY`,
+      )
+    }
+  }
+
+  for (const statement of statements) {
+    const making = made.exec(statement)
+    const forcing = force.exec(statement)
+    const adding = key.exec(statement)
+    const validating = validated.exec(statement)
+
+    if (making?.[1] !== undefined) {
+      created.add(making[1])
+    } else if (forcing?.[1] !== undefined) {
+      if (forcing[2] === undefined) {
+        open.delete(forcing[1])
+      } else {
+        open.add(forcing[1])
+      }
+    } else if (adding?.[1] !== undefined && adding[2] !== undefined && adding[3] !== undefined) {
+      if (!/\bNOT\s+VALID\b/i.test(statement)) {
+        check(adding[2], adding[1], adding[3])
+      }
+    } else if (validating?.[1] !== undefined && validating[2] !== undefined) {
+      const target = new RegExp(
+        String.raw`ADD\s+CONSTRAINT\s+"?${validating[2]}"?\s+FOREIGN\s+KEY\b[\s\S]*?\bREFERENCES\s+${table}`,
+        'i',
+      ).exec(everything)?.[1]
+
+      check(validating[2], validating[1], target)
+    }
+  }
+
+  for (const name of open) {
+    problems.push(`"${name}" without FORCE ROW LEVEL SECURITY after the migration`)
+  }
+
+  return problems
+}

@@ -16,6 +16,7 @@ import {
   functionNames,
   migrationsFolderUpTo,
   ownerDatabaseUrl,
+  ownerRole,
   refusedBy,
   resetSchema,
   revertMigration,
@@ -2984,6 +2985,87 @@ describe('an installation from before buildings had areas of their own', () => {
     )
 
     expect(logged).toContainEqual({ table_name: 'buildings', reason: 'migration' })
+  })
+
+  // An installation updates as the owner of the tables, and PostgreSQL checks
+  // a key that 0051 adds with a query that meets FORCE ROW LEVEL SECURITY.
+  // The owner reads assets and labels (`readable_by_the_owner`), but not the
+  // buildings and rooms they hang on, and took an asset in a building for an
+  // orphan (#315). 0051 cannot change any more; an installation that comes
+  // from before it with such rows lets its owner pass the policies for the
+  // length of the run, as the notes of 0.1.2 say.
+  it('needs its owner to pass the policies for the run when an asset stands in a building or a label hangs in a room (#315)', async () => {
+    await runMigrations(ownerDatabaseUrl(), kept(migrationsFolderUpTo(before)))
+
+    const tenant = { id: newId<'tenant'>() }
+
+    await admin.query('insert into tenants (id, name) values ($1, $2)', [
+      tenant.id,
+      'Wohnbau Nord eG',
+    ])
+    await members(tenant, { 'user-lead': { roles: ['management'] } })
+
+    const { rows: made } = await admin.query<{ id: string; area_id: string }>(
+      `insert into properties (tenant_id, area_id, name, street, postal_code, city, federal_state)
+       select $1, id, 'Schulzentrum', 'Am Lindenhain 7', '00003', 'Musterhausen', 'DE-BW'
+         from areas where tenant_id = $1
+       returning id, area_id`,
+      [tenant.id],
+    )
+    const place = [tenant.id, made[0]?.id, made[0]?.area_id]
+    const { rows: building } = await admin.query<{ id: string }>(
+      `insert into buildings (tenant_id, property_id, area_id, name, kinds)
+       values ($1, $2, $3, 'Mensa', '{school}') returning id`,
+      place,
+    )
+    const { rows: floor } = await admin.query<{ id: string }>(
+      `insert into floors (tenant_id, property_id, area_id, building_id, name, level)
+       values ($1, $2, $3, $4, 'Erdgeschoss', 0) returning id`,
+      [...place, building[0]?.id],
+    )
+    const { rows: room } = await admin.query<{ id: string }>(
+      `insert into rooms (tenant_id, property_id, area_id, building_id, floor_id, number, name)
+       values ($1, $2, $3, $4, $5, 'E.01', 'Küche') returning id`,
+      [...place, building[0]?.id, floor[0]?.id],
+    )
+
+    await admin.query(
+      `insert into assets (tenant_id, property_id, area_id, building_id, kind, name)
+       values ($1, $2, $3, $4, 'probe.elevator', 'Speiseaufzug')`,
+      [...place, building[0]?.id],
+    )
+    await admin.query(
+      `insert into labels (tenant_id, property_id, area_id, room_id, code)
+       values ($1, $2, $3, $4, 'K9PDH4TA6W3XQ7M2')`,
+      [...place, room[0]?.id],
+    )
+
+    // As the owner sees them, the asset has no building: the update is
+    // refused at the first such key and takes nothing in.
+    expect(await refusedBy(runMigrations(ownerDatabaseUrl()))).toEqual({
+      code: '23503',
+      constraint: 'assets_follow_their_building',
+    })
+
+    await admin.query(`alter role "${ownerRole}" bypassrls`)
+
+    try {
+      await runMigrations(ownerDatabaseUrl())
+    } finally {
+      await admin.query(`alter role "${ownerRole}" nobypassrls`)
+    }
+
+    // Every key of 0051 is in, checked against every row.
+    const { rows: keys } = await admin.query<{ name: string; checked: boolean }>(
+      `select conname as name, convalidated as checked from pg_constraint
+        where conname in ('assets_follow_their_building', 'labels_follow_their_room')
+        order by 1`,
+    )
+
+    expect(keys).toEqual([
+      { name: 'assets_follow_their_building', checked: true },
+      { name: 'labels_follow_their_room', checked: true },
+    ])
   })
 })
 

@@ -7,6 +7,18 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
 
 ## [Unreleased]
 
+### Behoben
+
+- Eine Migration, die einen Fremdschlüssel an eine Tabelle mit Zeilen hängt, prüft ihn gegen alle
+  Zeilen (#315). Eine Instanz migriert als Eigentümer der Tabellen, und unter `FORCE ROW LEVEL
+  SECURITY` sah die Prüfung nur, was die Policies ihm zeigen: an `0051_building_areas` hielt sie eine
+  Anlage in einem Gebäude für verwaist und brach das Update von 0.1.0 ab, und an Tabellen, die der
+  Eigentümer gar nicht liest, prüfte sie gegen nichts. Ein Test hält jede Migration nach
+  `0052_building_moves` dazu an, `FORCE` für die Anweisung auf beiden Tabellen aufzuheben und danach
+  zurückzugeben, wie 0051 es für ihre Änderungen schon tut. 0051 und 0052 bleiben, wie sie sind, weil
+  der Lauf eingespielte Migrationen an ihrer Prüfsumme erkennt; ein weiterer Test hält fest, wie eine
+  Instanz mit Daten von 0.1.0 trotzdem über sie kommt.
+
 ## [0.1.1] - 2026-10-15
 
 Die erste Nachlieferung für den Pilotbetrieb, aus dem, was beim Einrichten seiner Instanz auffiel. Ein
