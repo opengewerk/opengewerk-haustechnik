@@ -36,6 +36,7 @@ import {
   Cell,
   Choice,
   Column,
+  Confirm,
   Dialog,
   DialogActions,
   Field,
@@ -69,7 +70,7 @@ import {
 } from '@opengewerk/platform-web/sync'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useNavigate, useParams } from '@tanstack/react-router'
-import { Check, Pause, Play, Plus, Square } from 'lucide-react'
+import { Check, Pause, Play, Plus, Square, Trash2 } from 'lucide-react'
 import { type FormEvent, useMemo, useState } from 'react'
 
 import { areaName, useAreas, useHeldArea } from '../../session/areas.js'
@@ -123,6 +124,8 @@ export const planWords = {
     'Rundgänge nach diesem Tag, die noch niemand begonnen hat, entfallen. Was schon gegangen oder begonnen ist, bleibt, und der Plan bleibt lesbar.',
   ended:
     'Dieser Plan ist beendet und bleibt, wie er war. Für neue Rundgänge legen Sie einen neuen Plan an.',
+  removeAsks:
+    'Der Plan verschwindet aus der Liste der Pläne, und seine Rundgänge, die noch niemand begonnen hat, verschwinden aus „Rundgänge“ und von den Geräten vor Ort. Das Änderungsprotokoll behält, wer ihn angelegt und wer ihn entfernt hat. Entfernen ist für einen Plan, der irrtümlich angelegt wurde; ist schon einer seiner Rundgänge begonnen oder gegangen, beenden Sie ihn.',
   missing: 'Diesen Plan gibt es nicht oder nicht mehr.',
   nobodyKnown: 'Die Namen sind ohne Verbindung nicht bekannt.',
 } as const
@@ -633,6 +636,7 @@ function PlanForm({
   const [trouble, setTrouble] = useState<string | null>(null)
   const [working, setWorking] = useState(false)
   const [ending, setEnding] = useState(false)
+  const [removing, setRemoving] = useState(false)
   const set = (changes: Partial<PlanDraft>) => {
     setDraft((before) => ({ ...before, ...changes }))
   }
@@ -662,6 +666,12 @@ function PlanForm({
       on as IsoDate,
     ) === 'ended'
   const locked = !plans || ended || working
+  // Entered by mistake: no round of it begun, signed or closed, as the route
+  // asks it (#320); otherwise the plan ends.
+  const removable =
+    plan !== null &&
+    !ended &&
+    !rounds.some((each) => each['roundPlanId'] === planId && each['status'] !== 'open')
 
   const templateChoices = templates
     .map((template) => ({
@@ -785,6 +795,27 @@ function PlanForm({
     }
   }
 
+  /** Removes a plan entered by mistake, with its rounds nobody began, and goes back to the plans (#320). */
+  async function remove(id: string): Promise<void> {
+    setTrouble(null)
+    setWorking(true)
+
+    try {
+      const result = await askAt(client, 'DELETE', `/round-plans/${id}`, id)
+
+      if (result.outcome === 'refused') {
+        setTrouble(refusalFor(result))
+
+        return
+      }
+
+      await queries.invalidateQueries({ queryKey: ['rounds'] })
+      await navigate({ to: planListPlace.to })
+    } finally {
+      setWorking(false)
+    }
+  }
+
   async function save(event: FormEvent) {
     event.preventDefault()
 
@@ -871,6 +902,18 @@ function PlanForm({
                   >
                     Beenden
                   </Button>
+                  {removable ? (
+                    <Button
+                      tone="danger"
+                      icon={Trash2}
+                      disabled={working || !status.online}
+                      onClick={() => {
+                        setRemoving(true)
+                      }}
+                    >
+                      Entfernen
+                    </Button>
+                  ) : null}
                   <Button
                     type="submit"
                     form="plan-form"
@@ -1183,6 +1226,31 @@ function PlanForm({
           working={working}
           trouble={trouble}
         />
+      ) : null}
+      {removing && planId !== null ? (
+        <Confirm
+          open
+          title={`„${title}“ entfernen?`}
+          confirm="Entfernen"
+          tone="danger"
+          busy={working}
+          onConfirm={() => {
+            void remove(planId)
+          }}
+          onCancel={() => {
+            setRemoving(false)
+            setTrouble(null)
+          }}
+        >
+          <div className="flex flex-col gap-2">
+            <p>{planWords.removeAsks}</p>
+            {trouble ? (
+              <p role="alert" className="text-[13px] font-semibold text-conflict">
+                {trouble}
+              </p>
+            ) : null}
+          </div>
+        </Confirm>
       ) : null}
     </Screen>
   )

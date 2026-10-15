@@ -3,6 +3,7 @@ import {
   Body,
   ConflictException,
   Controller,
+  Delete,
   Get,
   Header,
   Inject,
@@ -33,8 +34,14 @@ import {
 import { and, eq, isNull } from 'drizzle-orm'
 
 import { CATALOGUE } from '../catalogue.js'
-import { buildings, properties, roundPlans, roundTemplates } from '../database/schema/index.js'
-import { fillAhead, type PlanRow, replan } from '../rounds/plans.js'
+import {
+  activities,
+  buildings,
+  properties,
+  roundPlans,
+  roundTemplates,
+} from '../database/schema/index.js'
+import { fillAhead, type PlanRow, replan, withdrawRounds } from '../rounds/plans.js'
 import { dayInGermany } from '../today.js'
 import { candidatesIn } from './activities.controller.js'
 import { RequiresPermission } from './authorization.js'
@@ -43,6 +50,8 @@ import { type Asking, refuse } from './places.js'
 
 const missing = 'Diesen Plan gibt es nicht oder nicht mehr.'
 const noPerformer = 'Zuständig ist jemand, der Vorgänge ausführt und den Bereich sieht.'
+const walked =
+  'Von diesem Plan ist schon ein Rundgang begonnen, gegangen oder geschlossen. Er wird nicht entfernt, sondern beendet.'
 
 /** What a plan says about when it falls due, as the routes take it. */
 const calendarFields = [
@@ -337,6 +346,63 @@ export class RoundPlansController {
       await replan(tx, before, after, today, new Date(), this.catalogue)
 
       return { id: after.id }
+    })
+  }
+
+  /**
+   * A plan entered by mistake is marked deleted, with every round of it that
+   * nobody has begun, those of past days among them (#320, 4.5 of the
+   * concept). One with a round that somebody began, signed or closed was no
+   * mistake: it ends instead, and its rounds stay, as a duty with evidence
+   * does (4.3). Its deadline goes with it, since the deadlines read only the
+   * plans that are not marked. Its rounds are held while this runs, so that
+   * nobody begins one in between.
+   */
+  @Delete(':id')
+  @RequiresPermission('activity.write')
+  remove(
+    @CurrentIdentity() identity: Asking,
+    @Param('id') id: string,
+  ): Promise<{ id: RoundPlanId }> {
+    if (!isUuid(id)) {
+      throw new NotFoundException(missing)
+    }
+
+    return this.database.forTenant(identity, async (tx) => {
+      const [plan] = await tx
+        .select({ id: roundPlans.id })
+        .from(roundPlans)
+        .where(and(eq(roundPlans.id, id as RoundPlanId), isNull(roundPlans.deletedAt)))
+        .for('no key update')
+
+      if (plan === undefined) {
+        throw new NotFoundException(missing)
+      }
+
+      const rounds = await tx
+        .select({ id: activities.id, status: activities.status })
+        .from(activities)
+        .where(and(eq(activities.roundPlanId, plan.id), isNull(activities.deletedAt)))
+        .for('update')
+
+      if (rounds.some((round) => round.status !== 'open')) {
+        throw new ConflictException(walked)
+      }
+
+      const now = new Date()
+
+      await withdrawRounds(
+        tx,
+        rounds.map((round) => round.id),
+        now,
+      )
+
+      await tx
+        .update(roundPlans)
+        .set({ deletedAt: now, updatedAt: now })
+        .where(eq(roundPlans.id, plan.id))
+
+      return { id: plan.id }
     })
   }
 

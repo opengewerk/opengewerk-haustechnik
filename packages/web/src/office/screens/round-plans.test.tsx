@@ -516,6 +516,53 @@ describe('a plan that runs', () => {
     ])
   })
 
+  it('removes a plan entered by mistake after asking, and goes back to the plans (#320)', async () => {
+    answerToWrite = () => {
+      server.put('round_plans', { ...daily, version: 2, deletedAt: '2026-10-15T12:00:00.000Z' })
+
+      return { status: 200, body: { id: daily.id } }
+    }
+    await mountOffice(`/rundgaenge/plaene/${daily.id}`, server, everything)
+    await screen.findByRole('button', { name: 'Speichern' })
+
+    press('Entfernen')
+
+    const question = within(
+      await screen.findByRole('alertdialog', { name: `„${template.title}“ entfernen?` }),
+    )
+
+    expect(question.getByText(planWords.removeAsks)).toBeTruthy()
+    expect(written).toEqual([])
+
+    fireEvent.click(question.getByRole('button', { name: 'Entfernen' }))
+
+    await waitFor(() => {
+      expect(written).toEqual([
+        { method: 'DELETE', path: `/round-plans/${daily.id}`, body: undefined },
+      ])
+    })
+    await screen.findByRole('heading', { name: 'Pläne', level: 1 })
+  })
+
+  it('offers no removal once a round of the plan was begun, and ending all the same (#320)', async () => {
+    server.put('activities', {
+      id: 'r-begun',
+      kind: 'round',
+      roundPlanId: daily.id,
+      propertyId: station.id,
+      buildingId: guard.id,
+      areaId: nord.id,
+      dueOn: on,
+      status: 'started',
+      title: template.title,
+    })
+    await mountOffice(`/rundgaenge/plaene/${daily.id}`, server, everything)
+    await screen.findByRole('button', { name: 'Speichern' })
+
+    expect(screen.getByRole('button', { name: 'Beenden' })).toBeTruthy()
+    expect(screen.queryByRole('button', { name: 'Entfernen' })).toBeNull()
+  })
+
   it('offers no new plan to whoever only performs', async () => {
     signedIn('technician')
     await mountOffice('/rundgaenge/plaene', server, everything)
@@ -535,7 +582,7 @@ describe('a plan that runs', () => {
     await untilTheRightsAreKnown()
     await screen.findByRole('heading', { name: template.title, level: 1 })
 
-    for (const name of ['Speichern', 'Ruhen lassen', 'Beenden']) {
+    for (const name of ['Speichern', 'Ruhen lassen', 'Beenden', 'Entfernen']) {
       expect(screen.queryByRole('button', { name })).toBeNull()
     }
 
