@@ -365,6 +365,13 @@
       "when": 1792049074049,
       "tag": "0051_building_areas",
       "breakpoints": true
+    },
+    {
+      "idx": 52,
+      "version": "7",
+      "when": 1792059627683,
+      "tag": "0052_building_moves",
+      "breakpoints": true
     }
   ]
 }

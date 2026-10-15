@@ -169,17 +169,17 @@ export const duties = pgTable(
       columns: [table.tenantId, table.buildingId, table.propertyId],
       foreignColumns: [buildings.tenantId, buildings.id, buildings.propertyId],
       name: 'duties_at_a_building_of_their_property',
-    }),
+    }).onUpdate('cascade'),
     foreignKey({
       columns: [table.tenantId, table.roomId, table.propertyId],
       foreignColumns: [rooms.tenantId, rooms.id, rooms.propertyId],
       name: 'duties_at_a_room_of_their_property',
-    }),
+    }).onUpdate('cascade'),
     foreignKey({
       columns: [table.tenantId, table.assetId, table.propertyId],
       foreignColumns: [assets.tenantId, assets.id, assets.propertyId],
       name: 'duties_at_an_asset_of_their_property',
-    }),
+    }).onUpdate('cascade'),
     foreignKey({
       columns: [table.tenantId, table.responsibleUserId],
       foreignColumns: [memberships.tenantId, memberships.userId],
@@ -350,7 +350,7 @@ export const dutyDismissals = pgTable(
       columns: [table.tenantId, table.assetId, table.propertyId],
       foreignColumns: [assets.tenantId, assets.id, assets.propertyId],
       name: 'duty_dismissals_of_an_asset_of_their_property',
-    }),
+    }).onUpdate('cascade'),
     foreignKey({
       columns: [table.tenantId, table.dismissedBy],
       foreignColumns: [memberships.tenantId, memberships.userId],

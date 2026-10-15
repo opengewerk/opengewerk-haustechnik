@@ -5,7 +5,7 @@ import {
   buildingProblems,
   type RecordState,
 } from '@opengewerk/haustechnik-domain'
-import { Panel } from '@opengewerk/platform-web'
+import { Button, Confirm, Panel, SelectField } from '@opengewerk/platform-web'
 import { NoteBox, PageHead, Screen } from '@opengewerk/platform-web/office'
 import { useRight } from '@opengewerk/platform-web/session'
 import {
@@ -13,18 +13,20 @@ import {
   type EditResult,
   type FormField,
   RecordForm,
+  refusalFor,
   text,
   useRecord,
+  useRecords,
   useSync,
   useSyncStatus,
 } from '@opengewerk/platform-web/sync'
 import { useNavigate, useParams } from '@tanstack/react-router'
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 
 import { placePath } from '../../app/place-path.js'
-import { areaName, useAreasQuery } from '../../session/areas.js'
+import { areaName, useAreasQuery, useHeldArea } from '../../session/areas.js'
 import { kindKeysOf, placeAbove } from '../../app/place-records.js'
-import { makeAt } from '../../sync/made-at.js'
+import { askAt, makeAt } from '../../sync/made-at.js'
 import { officePlaces } from '../place-addresses.js'
 import { NotAllowed, RemovePlace } from '../place-forms.js'
 import { PlaceNotFound } from '../place-pages.js'
@@ -54,6 +56,18 @@ export const buildingAreaWords = {
     'Vorgänge. Wer den neuen Bereich nicht hat, sieht das Gebäude danach nicht mehr; die ' +
     'Liegenschaft sieht weiter, wer ihren Bereich hat. Was an der Liegenschaft selbst hängt, bleibt ' +
     'in ihrem Bereich.',
+} as const
+
+/** What the dialog that moves a building says (#307), `gebaeude_verlegen()` of the boards. */
+export const buildingMoveWords = {
+  button: 'In eine andere Liegenschaft verlegen',
+  sub: 'Das Gebäude zieht mit allem um, was in ihm ist.',
+  along:
+    'Geschosse, Räume, Anlagen mit ihren Komponenten, Pflichten, Mängel, Vorgänge, Aufträge, ' +
+    'Aufgaben, Dokumente, Zähler und Etiketten ziehen mit. Das Gebäude bekommt den Bereich der ' +
+    'neuen Liegenschaft, außer es hat einen eigenen.',
+  nowhere:
+    'Es gibt keine andere Liegenschaft in Ihren Bereichen, in die das Gebäude ziehen könnte.',
 } as const
 
 export function NewBuildingScreen() {
@@ -255,22 +269,136 @@ function BuildingForm({
           }
           extraAction={
             editing ? (
-              <RemovePlace
-                label="Gebäude entfernen"
-                question={`„${name}“ entfernen?`}
-                disabled={!status.online}
-                remove={() => client.remove('buildings', buildingId)}
-                onRemoved={() => navigate({ to: officePlaces.property(propertyId) })}
-              >
-                Mit dem Gebäude gehen seine Geschosse und Räume, seine Schließzeiten, die Anlagen
-                darin und alle Pflichten, Vorgänge und Mängel dort. Eine Anlage mit Nachweis wird
-                nicht entfernt, und dann bleibt auch das Gebäude.
-              </RemovePlace>
+              <>
+                <RemovePlace
+                  label="Gebäude entfernen"
+                  question={`„${name}“ entfernen?`}
+                  disabled={!status.online}
+                  remove={() => client.remove('buildings', buildingId)}
+                  onRemoved={() => navigate({ to: officePlaces.property(propertyId) })}
+                >
+                  Mit dem Gebäude gehen seine Geschosse und Räume, seine Schließzeiten, die Anlagen
+                  darin und alle Pflichten, Vorgänge und Mängel dort. Eine Anlage mit Nachweis wird
+                  nicht entfernt, und dann bleibt auch das Gebäude.
+                </RemovePlace>
+                <MoveBuilding building={building} property={property} disabled={!status.online} />
+              </>
             ) : undefined
           }
         />
       </Panel>
     </Screen>
+  )
+}
+
+/**
+ * Moving a building to another property, `gebaeude_verlegen()` of the
+ * boards (#307), with a question first: where to. The building moves with
+ * everything in it. Offered are the properties of the person's areas: a
+ * building goes onto no other (#306). What the device cannot know, evidence
+ * in the building or a supply to a room of another one, the server knows,
+ * and its sentence stands in the question when it refuses.
+ */
+function MoveBuilding({
+  building,
+  property,
+  disabled,
+}: {
+  readonly building: RecordState
+  readonly property: RecordState
+  readonly disabled: boolean
+}) {
+  const client = useSync()
+  const navigate = useNavigate()
+  const buildingId = String(building['id'])
+  const properties = useRecords('properties')
+  const held = useHeldArea()
+  const [asking, setAsking] = useState(false)
+  const [chosen, setChosen] = useState('')
+  const [working, setWorking] = useState(false)
+  const [trouble, setTrouble] = useState<string | null>(null)
+  const [nowhere, setNowhere] = useState(false)
+
+  const targets = useMemo(
+    () =>
+      properties
+        .filter((each) => each['id'] !== property['id'] && held(each['areaId']))
+        .sort((left, right) => text(left, 'name').localeCompare(text(right, 'name'), 'de'))
+        .map((each) => ({ value: String(each['id']), label: text(each, 'name') })),
+    [properties, property, held],
+  )
+  const to = targets.some((target) => target.value === chosen) ? chosen : (targets[0]?.value ?? '')
+
+  async function move() {
+    setWorking(true)
+    setTrouble(null)
+
+    const result = await askAt(client, 'PUT', `/buildings/${buildingId}/property`, buildingId, {
+      propertyId: to,
+    })
+
+    setWorking(false)
+
+    if (result.outcome === 'refused') {
+      setTrouble(refusalFor(result))
+
+      return
+    }
+
+    setAsking(false)
+    await navigate({ to: officePlaces.building(buildingId) })
+  }
+
+  return (
+    <>
+      <Button
+        className="mr-auto"
+        disabled={disabled}
+        onClick={() => {
+          setTrouble(null)
+          setNowhere(targets.length === 0)
+          setAsking(targets.length > 0)
+        }}
+      >
+        {buildingMoveWords.button}
+      </Button>
+      {nowhere ? (
+        <p role="status" className="order-last basis-full text-[13px] font-medium text-ink-muted">
+          {buildingMoveWords.nowhere}
+        </p>
+      ) : null}
+      <Confirm
+        open={asking}
+        title={`${text(building, 'name')} verlegen`}
+        confirm="Verlegen"
+        tone="primary"
+        busy={working}
+        onConfirm={() => {
+          void move()
+        }}
+        onCancel={() => {
+          setAsking(false)
+        }}
+      >
+        <div className="flex flex-col gap-3">
+          <p>{buildingMoveWords.sub}</p>
+          <SelectField
+            label="Liegenschaft"
+            required
+            starred
+            options={targets}
+            value={to}
+            onChange={setChosen}
+          />
+          <NoteBox>{buildingMoveWords.along}</NoteBox>
+          {trouble ? (
+            <p role="alert" className="text-[13px] font-semibold text-conflict">
+              {trouble}
+            </p>
+          ) : null}
+        </div>
+      </Confirm>
+    </>
   )
 }
 

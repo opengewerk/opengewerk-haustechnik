@@ -93,7 +93,7 @@ export const activityAnswers = pgTable(
       columns: [table.tenantId, table.activityId, table.propertyId],
       foreignColumns: [activities.tenantId, activities.id, activities.propertyId],
       name: 'activity_answers_of_an_activity_of_their_property',
-    }),
+    }).onUpdate('cascade'),
     // A photo is a document at the same activity, on its property.
     foreignKey({
       columns: [table.tenantId, table.attachmentId, table.propertyId, table.activityId],

@@ -176,8 +176,11 @@ describe('a closure in the database', () => {
 
     // On a property its building does not stand on.
     expect(await closure(tenant, here.building, beside.property, area)).toEqual(building)
-    // Of a building there is none of.
-    expect(await closure(tenant, randomUUID(), here.property, area)).toEqual(building)
+    // Of a building there is none of: both keys miss it, and either one says so.
+    const nowhere = await closure(tenant, randomUUID(), here.property, area)
+
+    expect(nowhere.code).toBe('23503')
+    expect([building.constraint, ofTheArea.constraint]).toContain(nowhere.constraint)
     // In another area than its building (#306).
     expect(await closure(tenant, here.building, here.property, secondArea)).toEqual(ofTheArea)
   })

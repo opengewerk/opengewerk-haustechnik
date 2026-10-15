@@ -21,6 +21,15 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   (Migration `0051_building_areas`, Nachtrag zu ADR 0003). Die Liste der Liegenschaften filtert nach
   dem Bereich auch über die Gebäude, „Bereiche“ nennt die Gebäude mit eigenem Bereich, und ein Bereich
   wird erst entfernt, wenn auch sie verlegt sind.
+- Ein Gebäude lässt sich in eine andere Liegenschaft desselben Betreibers verlegen (#307). Bei der
+  Einrichtung kann ein Gebäude mit Anlagen in der falschen Liegenschaft stehen, und bisher blieb nur,
+  alles neu anzulegen. Alles darin zieht mit: Geschosse, Räume, Anlagen mit ihren Komponenten,
+  Pflichten, Mängel, Vorgänge, Aufträge, Aufgaben, Dokumente, Zähler und Etiketten, und es bekommt
+  den Bereich der neuen Liegenschaft, außer es hat einen eigenen. Ein Nachweis, eine Unterschrift oder
+  eine Antwort eines Rundgangs darin hält es fest, ebenso, was über das Gebäude hinaus zusammenhängt,
+  und ein anderes Bundesland; der Dialog „In eine andere Liegenschaft verlegen“ im Formular des
+  Gebäudes sagt dann mit einem Satz, warum. In der Datenbank folgen die Schlüssel über die
+  Liegenschaft dem, woran eine Zeile hängt (Migration `0052_building_moves`, Nachtrag zu ADR 0002).
 
 ### Geändert
 

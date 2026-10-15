@@ -92,7 +92,7 @@ export const meterPoints = pgTable(
       columns: [table.tenantId, table.assetId, table.propertyId],
       foreignColumns: [assets.tenantId, assets.id, assets.propertyId],
       name: 'meter_points_of_an_asset_of_their_property',
-    }),
+    }).onUpdate('cascade'),
     foreignKey({
       columns: [table.tenantId, table.mainMeterId, table.propertyId],
       foreignColumns: [assets.tenantId, assets.id, assets.propertyId],
@@ -183,7 +183,7 @@ export const meterReadings = pgTable(
       columns: [table.tenantId, table.assetId, table.propertyId],
       foreignColumns: [assets.tenantId, assets.id, assets.propertyId],
       name: 'meter_readings_of_an_asset_of_their_property',
-    }),
+    }).onUpdate('cascade'),
     foreignKey({
       columns: [table.tenantId, table.activityId, table.propertyId],
       foreignColumns: [activities.tenantId, activities.id, activities.propertyId],
@@ -266,7 +266,7 @@ export const meterExchanges = pgTable(
       columns: [table.tenantId, table.assetId, table.propertyId],
       foreignColumns: [assets.tenantId, assets.id, assets.propertyId],
       name: 'meter_exchanges_of_an_asset_of_their_property',
-    }),
+    }).onUpdate('cascade'),
     uniqueIndex('meter_exchanges_once_a_day').on(table.tenantId, table.assetId, table.exchangedOn),
     check('meter_exchanges_old_number_shaped', trimmed(table.oldNumber, meterLimits.meterNumber)),
     check('meter_exchanges_new_number_shaped', trimmed(table.newNumber, meterLimits.meterNumber)),
@@ -309,7 +309,7 @@ export const meterPauses = pgTable(
       columns: [table.tenantId, table.assetId, table.propertyId],
       foreignColumns: [assets.tenantId, assets.id, assets.propertyId],
       name: 'meter_pauses_of_an_asset_of_their_property',
-    }),
+    }).onUpdate('cascade'),
     index('meter_pauses_asset_idx').on(table.tenantId, table.assetId),
     check('meter_pauses_reason_shaped', trimmed(table.reason, meterLimits.reason)),
     check(

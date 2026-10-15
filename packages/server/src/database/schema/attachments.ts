@@ -135,27 +135,27 @@ export const { attachments, attachmentVersions } = attachmentsSchema({
       columns: [table.tenantId, table.buildingId, table.propertyId],
       foreignColumns: [buildings.tenantId, buildings.id, buildings.propertyId],
       name: 'attachments_at_a_building_of_their_property',
-    }),
+    }).onUpdate('cascade'),
     foreignKey({
       columns: [table.tenantId, table.roomId, table.propertyId],
       foreignColumns: [rooms.tenantId, rooms.id, rooms.propertyId],
       name: 'attachments_at_a_room_of_their_property',
-    }),
+    }).onUpdate('cascade'),
     foreignKey({
       columns: [table.tenantId, table.assetId, table.propertyId],
       foreignColumns: [assets.tenantId, assets.id, assets.propertyId],
       name: 'attachments_at_an_asset_of_their_property',
-    }),
+    }).onUpdate('cascade'),
     foreignKey({
       columns: [table.tenantId, table.activityId, table.propertyId],
       foreignColumns: [activities.tenantId, activities.id, activities.propertyId],
       name: 'attachments_at_an_activity_of_their_property',
-    }),
+    }).onUpdate('cascade'),
     foreignKey({
       columns: [table.tenantId, table.defectId, table.propertyId],
       foreignColumns: [defects.tenantId, defects.id, defects.propertyId],
       name: 'attachments_at_a_defect_of_their_property',
-    }),
+    }).onUpdate('cascade'),
     // What the document that bears the interval of a duty points at: a
     // document of the duty's property (#74).
     unique('attachments_on_their_property').on(table.tenantId, table.id, table.propertyId),

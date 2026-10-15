@@ -632,3 +632,90 @@ function maps(
     (found, position) => found === column && key.target_columns[position] === target,
   )
 }
+
+/**
+ * The line a building moves to another property along (#307, ADR 0002,
+ * addendum of 15.10.2026). Every key over `property_id` onto another table
+ * than the properties either follows what a row hangs on with ON UPDATE
+ * CASCADE, so that a moved building takes the row along, or names something
+ * else and does not follow, with a sentence in `holding` for a move it holds
+ * up. What a row hangs on are the targets of the keys it keeps its area by,
+ * over (tenant_id, a column, area_id), and a room its floor and an asset its
+ * room, the levels of its place.
+ */
+export async function buildingMoveProblems(
+  pool: Pool,
+  holding: Readonly<Record<string, string>>,
+): Promise<string[]> {
+  const { rows: keys } = await pool.query<{
+    table_name: string
+    name: string
+    target: string
+    follows: boolean
+    columns: string[]
+  }>(
+    `select c.relname as table_name, k.conname as name, t.relname as target,
+            k.confupdtype = 'c' as follows,
+            array(select a.attname::text from unnest(k.conkey) with ordinality as x(attnum, n)
+                    join pg_attribute a on a.attrelid = k.conrelid and a.attnum = x.attnum
+                   order by x.n) as columns
+       from pg_constraint k
+       join pg_class c on c.oid = k.conrelid
+       join pg_class t on t.oid = k.confrelid
+       join pg_namespace n on n.oid = c.relnamespace
+      where k.contype = 'f' and n.nspname = 'public'`,
+  )
+  const hangsOn = new Set([
+    ...keys
+      .filter(
+        (key) =>
+          key.columns.length === 3 &&
+          key.columns[0] === 'tenant_id' &&
+          key.columns[2] === 'area_id' &&
+          key.target !== 'properties' &&
+          key.target !== 'areas',
+      )
+      .map((key) => `${key.table_name}.${key.columns[1] ?? ''}`),
+    'rooms.floor_id',
+    'assets.room_id',
+  ])
+  const overTheProperty = keys.filter(
+    (key) => key.columns.includes('property_id') && key.target !== 'properties',
+  )
+  const problems: string[] = []
+
+  for (const key of overTheProperty) {
+    const where = `table ${key.table_name}, key ${key.name}`
+    const carrier = key.columns[1] ?? ''
+
+    if (hangsOn.has(`${key.table_name}.${carrier}`)) {
+      if (!key.follows) {
+        problems.push(
+          `${where}: holds a row to the ${carrier} it hangs on without ON UPDATE CASCADE, so a moved building leaves it behind`,
+        )
+      }
+
+      continue
+    }
+
+    if (key.follows) {
+      problems.push(
+        `${where}: follows ${carrier} with ON UPDATE CASCADE, which the row does not hang on, so a moved building takes along what is not in it`,
+      )
+    }
+
+    if (!(key.name in holding)) {
+      problems.push(
+        `${where}: names ${carrier}, which the row does not hang on, and has no sentence for a move it holds up`,
+      )
+    }
+  }
+
+  for (const name of Object.keys(holding)) {
+    if (!overTheProperty.some((key) => key.name === name && !key.follows)) {
+      problems.push(`sentence for ${name}: no such key over the property that holds a move up`)
+    }
+  }
+
+  return problems
+}

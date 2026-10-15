@@ -49,7 +49,7 @@ export const buildingClosures = pgTable(
       columns: [table.tenantId, table.buildingId, table.propertyId],
       foreignColumns: [buildings.tenantId, buildings.id, buildings.propertyId],
       name: 'building_closures_of_their_building',
-    }),
+    }).onUpdate('cascade'),
     // The area of what the row hangs on (ADR 0003, addendum of #306).
     foreignKey({
       columns: [table.tenantId, table.buildingId, table.areaId],

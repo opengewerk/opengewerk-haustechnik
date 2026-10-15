@@ -95,7 +95,7 @@ export const roundPlans = pgTable(
       columns: [table.tenantId, table.buildingId, table.propertyId],
       foreignColumns: [buildings.tenantId, buildings.id, buildings.propertyId],
       name: 'round_plans_at_a_building_of_their_property',
-    }),
+    }).onUpdate('cascade'),
     foreignKey({
       columns: [table.tenantId, table.templateId],
       foreignColumns: [roundTemplates.tenantId, roundTemplates.id],

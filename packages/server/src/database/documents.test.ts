@@ -258,11 +258,15 @@ describe('a document', () => {
   })
 
   it('hangs on no record of another tenant, whichever part it gets wrong', async () => {
-    // A record of the other tenant under a property of this one.
-    expect(await refusedDocument(here.property, { asset: elsewhere.asset })).toEqual({
-      code: '23503',
-      constraint: 'attachments_at_an_asset_of_their_property',
-    })
+    // A record of the other tenant under a property of this one: the key over
+    // the property and the one over the area both miss it, either one says so.
+    const ofTheOther = await refusedDocument(here.property, { asset: elsewhere.asset })
+
+    expect(ofTheOther.code).toBe('23503')
+    expect([
+      'attachments_at_an_asset_of_their_property',
+      'attachments_follow_their_asset',
+    ]).toContain(ofTheOther.constraint)
 
     // The property of the other tenant, named in this one.
     expect(
