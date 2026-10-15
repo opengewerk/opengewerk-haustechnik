@@ -106,6 +106,15 @@ export const writesWithinAreas = [
 ] as const
 
 /**
+ * The trigger that puts a building only on a property whose area the person
+ * holds, as PostgreSQL writes it back (ADR 0003, addendum of #306): without
+ * it, a building of an area of its own would open any property to read.
+ */
+const buildingsOnAPropertyInReach =
+  'CREATE TRIGGER buildings_on_a_property_in_reach BEFORE INSERT OR UPDATE OF property_id ON public.buildings ' +
+  'FOR EACH ROW EXECUTE FUNCTION building_on_a_property_in_reach()'
+
+/**
  * Tables that are read also by whoever holds only the area of a building on
  * their property (section 2.8 of the concept, ADR 0003, addendum of #306):
  * they draw the line with `within_areas_or_a_building` in place of
@@ -186,7 +195,8 @@ export interface AreaBoundaryOptions {
  *   and the application role, with the expression of the building block, and
  *   with the policies of `writesWithinAreas` for writing, each restrictive,
  *   for its command alone and the application role, with the expression of
- *   `within_areas`.
+ *   `within_areas`. While there is such a table, `buildings` carries the
+ *   trigger that puts a building only on a property in reach.
  * - The one exception is a table on the list `linesThroughARow`: its key onto
  *   the row it is a part of is let through, and in exchange it has the
  *   restrictive policy that asks that row, for every command, for the
@@ -574,6 +584,25 @@ export async function areaBoundaryProblems(
           )
         }
       }
+    }
+  }
+
+  // Whoever holds the area of a building reads the property it stands on,
+  // so a building goes onto a property only for whoever holds its area.
+  if (Object.keys(linesThroughABuilding).some((table) => has(table, 'area_id'))) {
+    const { rows: placing } = await pool.query<{ definition: string }>(
+      `select pg_get_triggerdef(t.oid) as definition
+         from pg_trigger t
+         join pg_class c on c.oid = t.tgrelid
+         join pg_namespace n on n.oid = c.relnamespace
+        where n.nspname = 'public' and c.relname = 'buildings'
+          and t.tgname = 'buildings_on_a_property_in_reach'`,
+    )
+
+    if (placing[0]?.definition !== buildingsOnAPropertyInReach) {
+      problems.push(
+        `table buildings: puts a building on a property without asking whether its area is held, so a building opens a property to read: ${String(placing[0]?.definition)}`,
+      )
     }
   }
 

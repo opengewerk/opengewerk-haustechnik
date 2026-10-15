@@ -1194,4 +1194,48 @@ describe('a building with an area of its own', () => {
       { id: other.buildingId, own: north, area: north },
     ])
   })
+
+  it('leaves the property to whoever holds its area, also where somebody reads it over a building', async () => {
+    const place = await propertyIn(north)
+
+    await give(place.buildingId, south).expect(200)
+
+    // Somebody of the south who may look after places.
+    const fromTheSouth = JSON.stringify({
+      userId: 'u-south',
+      tenantId: large,
+      roles: ['technician'],
+      rights: ['location.read', 'location.write'],
+    })
+    const refused = async (sent: request.Test) =>
+      ((await sent.set(testIdentityHeader, fromTheSouth).expect(403)).body as { message: string })
+        .message
+    const sentence =
+      'An der Liegenschaft selbst ändert nur etwas, wer ihren Bereich hat. Sie sehen sie über ein Gebäude in Ihrem Bereich.'
+
+    await http().get(`/properties/${place.id}`).set(testIdentityHeader, fromTheSouth).expect(200)
+    expect(await refused(http().patch(`/properties/${place.id}`).send({ name: 'Umbenannt' }))).toBe(
+      sentence,
+    )
+    expect(await refused(http().patch(`/properties/${place.id}`).send({ areaId: south }))).toBe(
+      sentence,
+    )
+    expect(await refused(http().delete(`/properties/${place.id}`))).toBe(sentence)
+    expect(
+      await refused(
+        http()
+          .post(`/properties/${place.id}/buildings`)
+          .send({ name: 'Anbau', kinds: ['office'], ownAreaId: south }),
+      ),
+    ).toBe(sentence)
+
+    const { rows } = await admin.query<{ area: string; buildings: number; removed: boolean }>(
+      `select p.area_id as area, p.deleted_at is not null as removed,
+              (select count(*)::int from buildings b where b.property_id = p.id) as buildings
+         from properties p where p.id = $1`,
+      [place.id],
+    )
+
+    expect(rows).toEqual([{ area: north, removed: false, buildings: 1 }])
+  })
 })

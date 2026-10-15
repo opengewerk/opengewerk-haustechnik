@@ -730,13 +730,11 @@ describe('a person with the north', () => {
     expect((await roomOn(south.floor, south.building, south.property, area.south)).code).toBe(
       insufficientPrivilege,
     )
-    // Naming the north for a place of the south: the key that follows what
-    // the row hangs on, the property for a building and the building for a
-    // room (ADR 0003, addendum of #306).
-    expect(await buildingOn(south.property, area.north)).toEqual({
-      code: '23503',
-      constraint: 'buildings_follow_their_property',
-    })
+    // Naming the north for a place of the south: a building goes onto no
+    // property whose area the person does not hold, which the trigger asks
+    // before any key; a room is held by the key that follows its building
+    // (ADR 0003, addendum of #306).
+    expect((await buildingOn(south.property, area.north)).code).toBe(insufficientPrivilege)
     expect(await roomOn(south.floor, south.building, south.property, area.north)).toEqual({
       code: '23503',
       constraint: 'rooms_follow_their_building',
@@ -1006,6 +1004,47 @@ describe('a building with an area of its own', () => {
     } finally {
       await own(null)
     }
+  })
+
+  /**
+   * A building of an area of its own lets whoever holds that area read the
+   * property it stands on, so one put on a property out of reach would be a
+   * way to read it. The keys check the property past every policy; the
+   * trigger `building_on_a_property_in_reach` asks the areas of the person.
+   */
+  it('goes onto a property only for whoever holds the area of the property', async () => {
+    const putOn = (property: string) =>
+      sql`insert into buildings (tenant_id, property_id, area_id, own_area_id, name, kinds)
+          values (${tenant}, ${property}, ${area.south}, ${area.south}, 'Anbau', '{office}')`
+    const movedTo = (property: string) =>
+      sql`update buildings set property_id = ${property}, own_area_id = ${area.south}
+           where id = ${place.south.building}`
+    const tried = async (statement: ReturnType<typeof sql>) =>
+      (await refusedBy(triedAs(person.south, (tx) => tx.execute(statement)))).code
+
+    // A property of the north the south does not see.
+    expect(await tried(putOn(place.north.property))).toBe(insufficientPrivilege)
+    expect(await tried(movedTo(place.north.property))).toBe(insufficientPrivilege)
+
+    await own(area.south)
+
+    try {
+      // Nor once the south reads it over a building of its own on it.
+      expect(await propertiesSeen('properties', person.south)).toEqual(['north', 'south'])
+      expect(await tried(putOn(place.north.property))).toBe(insufficientPrivilege)
+      expect(await tried(movedTo(place.north.property))).toBe(insufficientPrivilege)
+    } finally {
+      await own(null)
+    }
+
+    // The same statements reach a property of the south, and the one the
+    // building already stands on.
+    const reached = await triedAs(person.south, async (tx) => ({
+      put: (await tx.execute(putOn(place.south.property))).rowCount,
+      kept: (await tx.execute(movedTo(place.south.property))).rowCount,
+    }))
+
+    expect(reached).toEqual({ put: 1, kept: 1 })
   })
 
   it('follows a property that moves only without an area of its own', async () => {

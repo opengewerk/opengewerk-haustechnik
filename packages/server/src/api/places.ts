@@ -1,4 +1,4 @@
-import { BadRequestException, NotFoundException } from '@nestjs/common'
+import { BadRequestException, ForbiddenException, NotFoundException } from '@nestjs/common'
 import type {
   AreaId,
   Asset,
@@ -15,7 +15,7 @@ import {
   type RequestIdentity,
   type TenantTransaction,
 } from '@opengewerk/platform-server'
-import { and, eq, isNull } from 'drizzle-orm'
+import { and, eq, isNull, sql } from 'drizzle-orm'
 import type { PgColumn, PgTable } from 'drizzle-orm/pg-core'
 
 import { areas, assets, buildings, properties, rooms } from '../database/schema/index.js'
@@ -94,6 +94,30 @@ export async function placeOf<Row>(
   }
 
   return row as Row
+}
+
+/**
+ * Refuses a write at a property itself to whoever does not hold its area
+ * (ADR 0003, addendum of #306). Whoever holds only the area of a building on
+ * it reads the property and changes nothing there, puts no building on it
+ * either. The database refuses such a write as well; this says why, where
+ * the database would only say that the row is out of reach, and where an
+ * UPDATE it refuses would only find no row.
+ */
+export async function refuseOutsideItsArea(
+  tx: TenantTransaction,
+  property: Pick<Property, 'areaId'>,
+): Promise<void> {
+  const { rows } = await tx.execute<{ held: boolean }>(
+    sql`select (select session_sees_all_areas())
+               or ${property.areaId}::uuid = any ((select session_areas())::uuid[]) as held`,
+  )
+
+  if (rows[0]?.held !== true) {
+    throw new ForbiddenException(
+      'An der Liegenschaft selbst ändert nur etwas, wer ihren Bereich hat. Sie sehen sie über ein Gebäude in Ihrem Bereich.',
+    )
+  }
 }
 
 /**

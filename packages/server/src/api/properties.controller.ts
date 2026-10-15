@@ -34,7 +34,15 @@ import { buildings, properties } from '../database/schema/index.js'
 import { dayInGermany } from '../today.js'
 import { RequiresPermission } from './authorization.js'
 import { propertyTable, propertyTableQuestion } from './office-tables.js'
-import { areaFor, type Asking, buildingAreaFor, fieldsOf, placeOf, refuse } from './places.js'
+import {
+  areaFor,
+  type Asking,
+  buildingAreaFor,
+  fieldsOf,
+  placeOf,
+  refuse,
+  refuseOutsideItsArea,
+} from './places.js'
 
 const missing = 'Diese Liegenschaft gibt es nicht oder nicht mehr.'
 
@@ -163,7 +171,7 @@ export class PropertiesController {
     refuse(propertyProblems(values))
 
     return this.database.forTenant(identity, async (tx) => {
-      await placeOf<Property>(tx, properties, id, missing)
+      await refuseOutsideItsArea(tx, await placeOf<Property>(tx, properties, id, missing))
 
       const { areaId: named, ...rest } = values
 
@@ -187,7 +195,7 @@ export class PropertiesController {
   @RequiresPermission('location.write')
   remove(@CurrentIdentity() identity: Asking, @Param('id') id: string): Promise<Property> {
     return this.database.forTenant(identity, async (tx) => {
-      await placeOf<Property>(tx, properties, id, missing)
+      await refuseOutsideItsArea(tx, await placeOf<Property>(tx, properties, id, missing))
 
       const [removed] = await tx
         .update(properties)
@@ -234,6 +242,9 @@ export class PropertiesController {
 
     return this.database.forTenant(identity, async (tx) => {
       const property = await placeOf<Property>(tx, properties, id, missing)
+
+      await refuseOutsideItsArea(tx, property)
+
       const area = await buildingAreaFor(tx, values.ownAreaId, property.areaId)
       const [created] = await tx
         .insert(buildings)

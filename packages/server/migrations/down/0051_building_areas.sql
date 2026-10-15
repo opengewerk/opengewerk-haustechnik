@@ -34,6 +34,7 @@ DROP POLICY "within_areas_insert" ON "contacts";--> statement-breakpoint
 DROP POLICY "within_areas_update" ON "contacts";--> statement-breakpoint
 DROP POLICY "within_areas_delete" ON "contacts";--> statement-breakpoint
 CREATE POLICY "within_areas" ON "contacts" AS RESTRICTIVE FOR ALL TO "opengewerk_app" USING ((SELECT session_sees_all_areas()) OR area_id = ANY ((SELECT session_areas())::uuid[])) WITH CHECK ((SELECT session_sees_all_areas()) OR area_id = ANY ((SELECT session_areas())::uuid[]));--> statement-breakpoint
+DROP TRIGGER "buildings_on_a_property_in_reach" ON "buildings";--> statement-breakpoint
 DROP TRIGGER "area_from_the_property" ON "buildings";--> statement-breakpoint
 DROP TRIGGER "area_from_the_property" ON "duties";--> statement-breakpoint
 DROP TRIGGER "area_from_the_property" ON "defects";--> statement-breakpoint
@@ -42,6 +43,7 @@ DROP TRIGGER "area_from_the_property" ON "attachments";--> statement-breakpoint
 DROP TRIGGER "area_from_the_property" ON "tasks";--> statement-breakpoint
 DROP TRIGGER "area_from_the_property" ON "labels";--> statement-breakpoint
 DROP TRIGGER "area_from_the_property" ON "round_plans";--> statement-breakpoint
+DROP FUNCTION "building_on_a_property_in_reach"();--> statement-breakpoint
 DROP FUNCTION "area_from_the_property"();--> statement-breakpoint
 REVOKE UPDATE ("area_id") ON "labels" FROM "opengewerk_app";--> statement-breakpoint
 ALTER TABLE "buildings" DROP CONSTRAINT "buildings_area_own_or_of_the_property";--> statement-breakpoint

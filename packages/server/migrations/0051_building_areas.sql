@@ -45,7 +45,9 @@
 -- person sees and that is not removed, and `within_areas_insert`, `_update`
 -- and `_delete`, which write like it. One policy for every command would lend
 -- what it lets be read to UPDATE as well, and whoever holds only a building
--- could move the property into their area with everything below it.
+-- could move the property into their area with everything below it. For the
+-- same reason a building goes onto a property only for whoever holds the
+-- area of the property (`building_on_a_property_in_reach`).
 --
 -- Everything is filled before a key or a check is added. Today every row has
 -- the area of its property, so every new key holds for every row as it is,
@@ -137,6 +139,41 @@ END;
 $$;--> statement-breakpoint
 CREATE TRIGGER "area_from_the_property" BEFORE INSERT OR UPDATE OF "property_id", "own_area_id" ON "buildings"
 	FOR EACH ROW EXECUTE FUNCTION "area_from_the_property"('own_area_id');--> statement-breakpoint
+-- A building goes onto a property only for whoever holds the area of the
+-- property. A building of an area of its own lets whoever holds that area
+-- read the property it stands on, so one put on a property out of reach
+-- would be a way to read it. The keys check the property past every policy,
+-- and a policy on buildings cannot ask properties, whose policy asks
+-- buildings; so it is asked here, for a session the policies apply to.
+CREATE FUNCTION "building_on_a_property_in_reach"() RETURNS trigger
+	LANGUAGE plpgsql
+	SET search_path = pg_catalog, public
+AS $$
+BEGIN
+	IF tg_op = 'UPDATE' AND new.property_id IS NOT DISTINCT FROM old.property_id THEN
+		RETURN new;
+	END IF;
+
+	IF NOT row_security_active('public.buildings') OR (SELECT session_sees_all_areas()) THEN
+		RETURN new;
+	END IF;
+
+	IF NOT EXISTS (
+		SELECT 1
+		  FROM properties
+		 WHERE properties.tenant_id = new.tenant_id
+		   AND properties.id = new.property_id
+		   AND properties.area_id = ANY ((SELECT session_areas())::uuid[])
+	) THEN
+		RAISE EXCEPTION 'Ein Gebäude stellt nur auf eine Liegenschaft, wer ihren Bereich hat.'
+			USING ERRCODE = 'insufficient_privilege';
+	END IF;
+
+	RETURN new;
+END;
+$$;--> statement-breakpoint
+CREATE TRIGGER "buildings_on_a_property_in_reach" BEFORE INSERT OR UPDATE OF "property_id" ON "buildings"
+	FOR EACH ROW EXECUTE FUNCTION "building_on_a_property_in_reach"();--> statement-breakpoint
 CREATE TRIGGER "area_from_the_property" BEFORE INSERT OR UPDATE OF "property_id", "building_id", "room_id", "asset_id" ON "duties"
 	FOR EACH ROW EXECUTE FUNCTION "area_from_the_property"('building_id', 'room_id', 'asset_id');--> statement-breakpoint
 CREATE TRIGGER "area_from_the_property" BEFORE INSERT OR UPDATE OF "property_id", "building_id", "room_id", "asset_id" ON "defects"
