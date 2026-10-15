@@ -195,6 +195,36 @@ describe('the list "Fristen"', () => {
     expect(screen.getByText('2 offen')).toBeTruthy()
   })
 
+  it('names the document of a deadline by its name, leading to it (#327)', async () => {
+    const review = {
+      ...deadline('dl-assessment', {
+        kind: 'risk_assessment.review',
+        kindTitle: 'Wiedervorlage einer Gefährdungsbeurteilung',
+        dueOn: '2026-10-29',
+        buildingId: house.id,
+        asset: null,
+      }),
+      follows: 'document',
+      attachmentId: 'doc-gb',
+      title: 'Gefährdungsbeurteilung Werkstatt 2026',
+      documentKind: 'risk_assessment',
+    } as unknown as DutyDeadlineView
+
+    await mount('/fristen', { [firstPage]: page([review]) })
+
+    await waitFor(() => {
+      expect(rowsOf('Fristen')).toHaveLength(1)
+    })
+    expect(rowsOf('Fristen')[0]?.[1]).toBe(
+      'Gefährdungsbeurteilung Werkstatt 2026Wiedervorlage einer Gefährdungsbeurteilung',
+    )
+    expect(
+      within(screen.getByRole('table', { name: 'Fristen' }))
+        .getByRole('link', { name: 'Gefährdungsbeurteilung Werkstatt 2026' })
+        .getAttribute('href'),
+    ).toBe('/dokumente/doc-gb')
+  })
+
   it('narrows to a property on the server, and offers the area only to whoever sees more than one', async () => {
     await mount('/fristen', {
       [firstPage]: page([lift, yardDuty]),

@@ -1,4 +1,5 @@
 import {
+  documentDateLabel,
   type DocumentHome,
   documentHomeOf,
   type DocumentKind,
@@ -9,7 +10,7 @@ import {
 } from '@opengewerk/haustechnik-domain'
 import { Button, cardLink, Cell, Column, Panel, TablePanel } from '@opengewerk/platform-web'
 import { openVersion, useVersions } from '@opengewerk/platform-web/attachments'
-import { fileSize } from '@opengewerk/platform-web/format'
+import { date, fileSize } from '@opengewerk/platform-web/format'
 import {
   ChangesButton,
   Chip,
@@ -19,7 +20,7 @@ import {
   useTableExport,
 } from '@opengewerk/platform-web/office'
 import { useRight } from '@opengewerk/platform-web/session'
-import { count, text, useRecords, useSync } from '@opengewerk/platform-web/sync'
+import { count, maybeText, text, useRecords, useSync } from '@opengewerk/platform-web/sync'
 import { Link, useNavigate, useParams, useSearch } from '@tanstack/react-router'
 import { Eye, FileText, Pencil, Trash2, Upload } from 'lucide-react'
 import { useMemo, useRef, useState } from 'react'
@@ -28,7 +29,6 @@ import {
   documentHomeLabel,
   documentWords,
   filedOn,
-  fileVersion,
   type HangsOn,
   hangsOn,
   kindWordsOf,
@@ -44,6 +44,7 @@ import {
 } from '../document-addresses.js'
 import {
   EditDocumentDialog,
+  NewVersionDialog,
   RemoveDocumentConfirm,
   UploadDocumentDialog,
   useDocumentSurroundings,
@@ -55,6 +56,7 @@ import { RegisterFilter } from '../register-filter.js'
 
 export const documentRegisterWords = {
   none: 'Noch ist kein Dokument abgelegt.',
+  noDay: 'kein Datum',
   nothingPasses: 'Kein Dokument passt zu dem, wonach die Liste eingegrenzt ist.',
   gone: 'Dieses Dokument gibt es nicht, oder es ist aus der Ablage entfernt worden.',
   whatAVersionIs:
@@ -124,6 +126,8 @@ export function DocumentsScreen() {
   const around = useDocumentSurroundings()
   const [doing, setDoing] = useState<'file' | 'edit' | 'remove' | null>(null)
   const [trouble, setTrouble] = useState<string | null>(null)
+  // A file chosen for a new version, waiting for the day it brings (#327).
+  const [nextFile, setNextFile] = useState<File | null>(null)
   const next = useRef<HTMLInputElement>(null)
 
   const filter = documentFilterOf(search)
@@ -166,7 +170,9 @@ export function DocumentsScreen() {
       return
     }
 
-    setTrouble(await fileVersion(client, chosenId, file))
+    // The new version asks for its own day before it is laid (#327).
+    setTrouble(null)
+    setNextFile(file)
   }
 
   const rowOf = (document: RecordState) => {
@@ -382,8 +388,11 @@ export function DocumentsScreen() {
                   <TablePanel caption={`Fassungen von ${text(chosen, 'title')}`}>
                     <thead>
                       <tr>
-                        <Column className="w-[72px]">Fassung</Column>
+                        <Column className="w-[64px]">Fassung</Column>
                         <Column>Datei</Column>
+                        <Column className="w-[88px]">
+                          {documentDateLabel(maybeText(chosen, 'kind') as DocumentKind | null)}
+                        </Column>
                       </tr>
                     </thead>
                     <tbody>
@@ -409,6 +418,13 @@ export function DocumentsScreen() {
                                 {`${fileSize(count(version, 'sizeBytes'))}, ${filedOn(client, version)}`}
                               </div>
                             </div>
+                          </Cell>
+                          <Cell>
+                            {maybeText(version, 'validUntil') === null ? (
+                              <span className="text-ink-faint">{documentRegisterWords.noDay}</span>
+                            ) : (
+                              date(text(version, 'validUntil'))
+                            )}
                           </Cell>
                         </tr>
                       ))}
@@ -495,6 +511,18 @@ export function DocumentsScreen() {
         </div>
       </div>
       {doing === 'file' ? <UploadDocumentDialog onClose={stopDoing} /> : null}
+      {nextFile !== null && chosen && chosenId !== null ? (
+        <NewVersionDialog
+          key={`${chosenId}-${nextFile.name}`}
+          documentId={chosenId}
+          document={chosen}
+          newest={itsVersions[0]}
+          file={nextFile}
+          onClose={() => {
+            setNextFile(null)
+          }}
+        />
+      ) : null}
       {doing === 'edit' && chosen ? (
         <EditDocumentDialog key={chosenId} document={chosen} onClose={stopDoing} />
       ) : null}

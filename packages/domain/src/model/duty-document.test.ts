@@ -77,6 +77,7 @@ const third = '00000000-0000-7000-8000-000000000003' as AttachmentVersionId
 const document = {
   id: '00000000-0000-7000-8000-0000000000aa' as AttachmentId,
   title: 'Gefährdungsbeurteilung Werkstatt',
+  kind: 'risk_assessment' as const,
   removed: false,
 }
 
@@ -85,6 +86,7 @@ function versions(...ids: AttachmentVersionId[]) {
     id,
     filedOn: `2026-0${String(index + 1)}-01`,
     fileName: 'gb-werkstatt.pdf',
+    validUntil: null,
   }))
 }
 

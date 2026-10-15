@@ -210,7 +210,7 @@ export const propertyTableColumns = {
 /** What a deadline of the meters of a property is called in the list (#120). */
 export const meterDeadlineSubject = 'Zähler ablesen'
 
-/** What a deadline is called in the column "Betrifft": its defect, its plan, its duty, or the meters. */
+/** What a deadline is called in the column "Betrifft": its defect, its plan, its duty, the meters, or its document (#327). */
 export function deadlineSubject(facts: DeadlineFacts): string {
   switch (facts.follows) {
     case 'defect':
@@ -221,6 +221,8 @@ export function deadlineSubject(facts: DeadlineFacts): string {
       return facts.dutyTitle
     case 'meter':
       return meterDeadlineSubject
+    case 'document':
+      return facts.title
   }
 }
 

@@ -125,18 +125,21 @@ const everything = [
 const pointedAt: DutyIntervalDocument = {
   id: assessment.id as DutyIntervalDocument['id'],
   title: assessment.title,
+  kind: 'risk_assessment',
   removed: false,
   version: {
     id: versionId(11) as DutyIntervalDocument['version']['id'],
     number: 1,
     filedOn: '2026-09-02',
     fileName: 'gb-aufzug-2024.pdf',
+    validUntil: '2027-09-01',
   },
   newer: {
     id: versionId(19) as DutyIntervalDocument['version']['id'],
     number: 2,
     filedOn: '2026-10-06',
     fileName: 'gb-aufzug-2026.pdf',
+    validUntil: '2028-10-01',
   },
 }
 
@@ -443,7 +446,10 @@ describe('a duty whose document has a newer version', () => {
         .getByRole('link', { name: 'Gefährdungsbeurteilung Aufzug' })
         .getAttribute('href'),
     ).toBe(`/dokumente/${assessment.id}`)
-    expect(within(card).getByText('Fassung 1 vom 02.09.2026')).toBeTruthy()
+    // With the review of the assessment, the day of the version the duty keeps (#327).
+    expect(
+      within(card).getByText('Fassung 1 vom 02.09.2026, Wiedervorlage 01.09.2027'),
+    ).toBeTruthy()
     expect(
       within(card).getByText(
         'Seit dem 06.10.2026 liegt Fassung 2 des Dokuments vor. Prüfen Sie, ob die Frist noch stimmt. Mit „Ändern“ und „Speichern“ zeigt die Pflicht auf die neue Fassung.',

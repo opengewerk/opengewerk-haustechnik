@@ -1,5 +1,7 @@
 import {
   byNameIn,
+  documentDateLabel,
+  documentDateWords,
   type DocumentKind,
   documentKindLabel,
   documentKinds,
@@ -7,6 +9,7 @@ import {
   documentProblems,
   documentTitleOf,
   fileMediaType,
+  type IsoDate,
   isPhoto,
   type RecordState,
 } from '@opengewerk/haustechnik-domain'
@@ -20,7 +23,7 @@ import {
   SelectField,
 } from '@opengewerk/platform-web'
 import { useVersions } from '@opengewerk/platform-web/attachments'
-import { fileSize } from '@opengewerk/platform-web/format'
+import { date, fileSize } from '@opengewerk/platform-web/format'
 import { NoteBox } from '@opengewerk/platform-web/office'
 import { useRight } from '@opengewerk/platform-web/session'
 import { maybeText, refusalFor, text, useRecords, useSync } from '@opengewerk/platform-web/sync'
@@ -33,6 +36,7 @@ import {
   type DocumentSurroundings,
   documentWords,
   fileDocument,
+  fileVersion,
   documentsAt,
   newestFirst,
   versionWords,
@@ -106,6 +110,40 @@ const kindChoices = [
 ]
 
 /** The two fields a document is named with, in the dialog that files one and the one that corrects one. */
+/** What the field of the day says under it (#327): the review of a risk assessment, the expiry of any other. */
+export function documentDateHint(kind: string): string {
+  return kind === 'risk_assessment'
+    ? 'Die Wiedervorlage wird eine Frist unter „Fristen“. Verantwortlich ist, wer das Datum setzt.'
+    : 'Freiwillig. Ein Ablaufdatum wird eine Frist unter „Fristen“; verantwortlich ist, wer es setzt.'
+}
+
+/** The day a version is valid until or to be reviewed, empty for none. */
+export function DocumentDateField({
+  kind,
+  value,
+  onChange,
+  hint,
+}: {
+  readonly kind: string
+  readonly value: string
+  readonly onChange: (value: string) => void
+  readonly hint?: string
+}) {
+  return (
+    // The box as wide as a day needs, its note under it as wide as the form.
+    <Field
+      label={documentDateLabel(kind === '' ? null : (kind as DocumentKind))}
+      type="date"
+      className="sm:w-[220px]"
+      value={value}
+      hint={hint ?? documentDateHint(kind)}
+      onChange={(event) => {
+        onChange(event.target.value)
+      }}
+    />
+  )
+}
+
 function NameAndKind({
   title,
   kind,
@@ -163,6 +201,7 @@ export function UploadDocumentDialog({
   const [file, setFile] = useState<File | null>(null)
   const [title, setTitle] = useState('')
   const [kind, setKind] = useState('')
+  const [validUntil, setValidUntil] = useState('')
   const [propertyId, setPropertyId] = useState('')
   const [buildingId, setBuildingId] = useState('')
   const [keepOriginal, setKeepOriginal] = useState(false)
@@ -233,7 +272,12 @@ export function UploadDocumentDialog({
         client,
         place ?? { propertyId, ...(buildingId === '' ? {} : { buildingId }) },
         file,
-        { title, kind: kind === '' ? null : (kind as DocumentKind), keepOriginal },
+        {
+          title,
+          kind: kind === '' ? null : (kind as DocumentKind),
+          keepOriginal,
+          validUntil: validUntil === '' ? null : (validUntil as IsoDate),
+        },
       )
 
       if (refused === null) {
@@ -317,6 +361,7 @@ export function UploadDocumentDialog({
           onTitle={setTitle}
           onKind={setKind}
         />
+        <DocumentDateField kind={kind} value={validUntil} onChange={setValidUntil} />
         {place === undefined ? (
           <>
             <div className="grid gap-3 sm:grid-cols-2">
@@ -619,5 +664,97 @@ export function DocumentsCard({
         />
       ) : null}
     </Panel>
+  )
+}
+
+/**
+ * A new version of a document, the board "Neue Fassung mit Gültigkeit"
+ * (#327): the file that was chosen and the day the new version brings. It is
+ * its own: without one, the deadline of the version before drops.
+ */
+export function NewVersionDialog({
+  documentId,
+  document,
+  newest,
+  file,
+  onClose,
+}: {
+  readonly documentId: string
+  readonly document: RecordState
+  readonly newest: RecordState | undefined
+  readonly file: File
+  readonly onClose: () => void
+}) {
+  const client = useSync()
+  const kind = maybeText(document, 'kind') ?? ''
+  const before = newest === undefined ? null : maybeText(newest, 'validUntil')
+  const [validUntil, setValidUntil] = useState('')
+  const [working, setWorking] = useState(false)
+  const [trouble, setTrouble] = useState<string | null>(null)
+
+  return (
+    <Dialog
+      title="Neue Fassung"
+      width={520}
+      onClose={onClose}
+      sub={[
+        text(document, 'title'),
+        before === null
+          ? null
+          : `bisher ${documentDateWords(kind === '' ? null : (kind as DocumentKind), date(before))}`,
+      ]
+        .filter(Boolean)
+        .join(', ')}
+    >
+      <form
+        noValidate
+        className="flex flex-col gap-3"
+        onSubmit={(event) => {
+          event.preventDefault()
+          setWorking(true)
+          void fileVersion(client, documentId, file, {
+            validUntil: validUntil === '' ? null : (validUntil as IsoDate),
+          })
+            .then((refused) => {
+              if (refused === null) {
+                onClose()
+              } else {
+                setTrouble(refused)
+              }
+            })
+            .finally(() => {
+              setWorking(false)
+            })
+        }}
+      >
+        <div className="flex items-center gap-2.5 rounded-control border border-line bg-surface-sunken px-2.5 py-2">
+          <FileText
+            size={18}
+            strokeWidth={1.9}
+            aria-hidden="true"
+            className="shrink-0 text-ink-muted"
+          />
+          <div className="min-w-0 grow leading-[1.32]">
+            <div className="text-[14px] font-medium [overflow-wrap:anywhere]">{file.name}</div>
+            <div className="text-[12px] text-ink-faint">{fileSize(file.size)}</div>
+          </div>
+        </div>
+        <DocumentDateField
+          kind={kind}
+          value={validUntil}
+          onChange={setValidUntil}
+          hint="Die neue Fassung bringt ihr eigenes Datum. Ohne Datum fällt die Frist der alten weg."
+        />
+        <Trouble>{trouble}</Trouble>
+        <DialogActions>
+          <Button type="button" disabled={working} onClick={onClose}>
+            Abbrechen
+          </Button>
+          <Button type="submit" tone="primary" icon={Upload} disabled={working}>
+            {working ? 'Einen Moment' : 'Hochladen'}
+          </Button>
+        </DialogActions>
+      </form>
+    </Dialog>
   )
 }

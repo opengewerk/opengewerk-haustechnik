@@ -8,6 +8,7 @@ import {
   defectProblems,
   distinctFromProblem,
   documentProblems,
+  documentVersionProblems,
   documentTargetProblem,
   meterProblems,
   operatorDocuments,
@@ -246,7 +247,11 @@ export function recordRules(catalogue: Catalogue): RecordRules {
           }),
       },
     ],
-    attachment_versions: filed['attachment_versions'] ?? [],
+    // A version brings its own day, a day of the calendar or none (#327).
+    attachment_versions: [
+      ...(filed['attachment_versions'] ?? []),
+      ...each(documentVersionProblems, ['validUntil']),
+    ],
     // A task says what is to be done, and hangs on its property and on at
     // most one record there (#124).
     tasks: [

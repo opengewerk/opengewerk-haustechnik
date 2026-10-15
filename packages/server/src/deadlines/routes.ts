@@ -18,6 +18,7 @@ import { dutyTitle } from '../database/duty-standing.js'
 import type { ApplicationDeadlineColumns } from '../database/schema/deadlines.js'
 import {
   assets,
+  attachments,
   deadlines,
   defects,
   duties,
@@ -124,8 +125,60 @@ export function deadlineRulesFor(
       const byPlan = new Map<string, (typeof foundPlans)[number]>(
         foundPlans.map((found) => [found.plan.id, found]),
       )
+      // The documents whose day a deadline follows (#327), with what they hang on.
+      const documentIds = [
+        ...new Set(rows.flatMap((row) => (row.attachmentId === null ? [] : [row.attachmentId]))),
+      ]
+      const foundDocuments =
+        documentIds.length === 0
+          ? []
+          : await tx
+              .select({
+                id: attachments.id,
+                title: attachments.title,
+                kind: attachments.kind,
+                buildingId: attachments.buildingId,
+                roomId: attachments.roomId,
+                assetId: attachments.assetId,
+                assetNumber: assets.number,
+                assetName: assets.name,
+                assetBuildingId: assets.buildingId,
+                assetRoomId: assets.roomId,
+                roomBuildingId: rooms.buildingId,
+              })
+              .from(attachments)
+              .leftJoin(assets, eq(assets.id, attachments.assetId))
+              .leftJoin(rooms, eq(rooms.id, attachments.roomId))
+              .where(inArray(attachments.id, documentIds))
+      const byDocument = new Map<string, (typeof foundDocuments)[number]>(
+        foundDocuments.map((document) => [document.id, document]),
+      )
 
       return (row) => {
+        if (row.attachmentId !== null) {
+          const document = byDocument.get(row.attachmentId)
+          const facts: DeadlineFacts = {
+            follows: 'document',
+            attachmentId: row.attachmentId,
+            title: document?.title ?? row.sourceLabel,
+            documentKind: document?.kind ?? null,
+            propertyId: row.propertyId,
+            buildingId:
+              document?.buildingId ?? document?.assetBuildingId ?? document?.roomBuildingId ?? null,
+            roomId: document?.roomId ?? document?.assetRoomId ?? null,
+            asset:
+              document?.assetId === null || document?.assetId === undefined
+                ? null
+                : {
+                    id: document.assetId,
+                    number: document.assetNumber,
+                    name: document.assetName ?? '',
+                  },
+          }
+
+          return { ...facts }
+        }
+
         if (row.meterPropertyId !== null) {
           const facts: DeadlineFacts = {
             follows: 'meter',

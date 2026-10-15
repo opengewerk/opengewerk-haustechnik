@@ -1,6 +1,6 @@
 import type { AttachmentId, AttachmentVersionId, IsoDate } from '@opengewerk/platform-domain'
 
-import type { Document } from './document.js'
+import type { Document, DocumentKind } from './document.js'
 
 /**
  * The document that bears the interval of a duty (section 4.3 of the
@@ -79,12 +79,16 @@ export interface DutyDocumentVersion {
   /** The day it was filed, in Germany; never the time of day (section 9 of the concept). */
   readonly filedOn: IsoDate
   readonly fileName: string
+  /** The day it expires or is to be reviewed, or none (#327). */
+  readonly validUntil: IsoDate | null
 }
 
 /** The document that bears the interval of a duty, as the page of the duty reads it. */
 export interface DutyIntervalDocument {
   readonly id: AttachmentId
   readonly title: string
+  /** Its kind, which says whether its day is a review or an expiry (#327). */
+  readonly kind: DocumentKind | null
   /** Taken out of the records since: the page names it and leads nowhere. */
   readonly removed: boolean
   /** The version the duty points at. */
@@ -101,7 +105,12 @@ export interface DutyIntervalDocument {
  * document's, which the keys of the database rule out.
  */
 export function intervalDocumentReading(
-  document: { readonly id: AttachmentId; readonly title: string; readonly removed: boolean },
+  document: {
+    readonly id: AttachmentId
+    readonly title: string
+    readonly kind: DocumentKind | null
+    readonly removed: boolean
+  },
   versions: readonly Omit<DutyDocumentVersion, 'number'>[],
   pointedAt: AttachmentVersionId,
 ): DutyIntervalDocument | null {

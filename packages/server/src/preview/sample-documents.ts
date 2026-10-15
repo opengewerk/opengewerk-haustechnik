@@ -21,6 +21,8 @@ export interface SampleVersion {
   readonly fileName: string
   /** The line on its page; left out, the file is a picture. */
   readonly words?: string
+  /** The day it is valid until or to be reviewed (#327). */
+  readonly validUntil?: string
 }
 
 /** A document at a sample record, with its versions, the oldest first. */
@@ -253,6 +255,7 @@ async function versionOperations(
         attachmentId: documentId,
         sha256,
         fileName: version.fileName,
+        ...(version.validUntil === undefined ? {} : { validUntil: version.validUntil }),
         mediaType,
         sizeBytes: bytes.byteLength,
         previewSha256,

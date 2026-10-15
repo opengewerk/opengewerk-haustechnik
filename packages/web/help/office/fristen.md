@@ -1,6 +1,6 @@
 # Fristen
 
-Hier steht, was fällig wird, nach Fälligkeit geordnet. Eine Frist folgt ihrer Pflicht, ihrem Mangel, dem Plan eines Rundgangs oder den Zählern einer Liegenschaft: mit dem nächsten Nachweis rückt sie weiter, und solange eine Anlage ruht, ruht auch ihre Frist.
+Hier steht, was fällig wird, nach Fälligkeit geordnet. Eine Frist folgt ihrer Pflicht, ihrem Mangel, dem Plan eines Rundgangs, den Zählern einer Liegenschaft oder dem Datum eines Dokuments: mit dem nächsten Nachweis rückt sie weiter, und solange eine Anlage ruht, ruht auch ihre Frist.
 
 Überfällige Fristen zählt die Navigation neben dem Eintrag. Wie viele Tage vorher und wen die Anwendung erinnert, legen die [Einstellungen](/einstellungen/fristen) fest.
 

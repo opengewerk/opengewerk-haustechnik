@@ -70,7 +70,7 @@ describe('a document of an operator', () => {
     )
   })
 
-  it('has one of the six kinds of the concept, or none', () => {
+  it('has one of the seven kinds of the concept, or none', () => {
     expect(documentKinds.map((kind) => documentKindLabel[kind])).toEqual([
       'Betriebsanleitung',
       'Prüfbescheinigung',
@@ -78,6 +78,7 @@ describe('a document of an operator', () => {
       'Revisionsunterlage',
       'Genehmigung',
       'Konzept',
+      'Gefährdungsbeurteilung',
     ])
 
     for (const kind of [...documentKinds, null, undefined]) {
