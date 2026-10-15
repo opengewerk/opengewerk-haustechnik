@@ -4,6 +4,7 @@ import {
   type DeadlineRegistry,
   type IsoDate,
   morningMinute,
+  remindsBy,
   renderSignature,
   type Right,
   type TenantId,
@@ -11,6 +12,7 @@ import {
 import {
   accountsOf,
   type Database,
+  deadlineRemindsOn,
   deadlineSettingsOf,
   responsibleFor,
   stillOpen,
@@ -297,6 +299,8 @@ export async function dueDeadlines(
           ),
           eq(deadlines.remindedFor, deadlines.dueOn),
           gte(deadlines.remindedAt, since(now)),
+          // Not of a kind the operator set to keep this channel quiet (#269).
+          deadlineRemindsOn(channel, sql`${deadlines.tenantId}`, sql`${deadlines.kind}`),
           notToldBy(
             channel,
             sql`${deadlines.tenantId}`,
@@ -328,6 +332,7 @@ export async function deadlineStillDue(
   tenantId: TenantId,
   notification: Of<'deadline_due'>,
   registry: DeadlineRegistry<ApplicationDeadlineKind>,
+  channel: Channel = 'mail',
 ) {
   const [deadline] = await tx
     .select()
@@ -353,6 +358,12 @@ export async function deadlineStillDue(
         .where(eq(tasks.id, deadline.taskId))
     : []
   const setting = (await deadlineSettingsOf(tx)).get(kind.key) ?? null
+
+  // Set to keep this channel quiet since the message was raised (#269).
+  if (!remindsBy(setting?.reminder ?? null, channel)) {
+    return null
+  }
+
   const recipient = await responsibleFor(tx, tenantId, kind, setting, {
     responsibleUserId: task?.assignee ?? deadline.responsibleUserId,
     naturalUserId: deadline.naturalUserId,

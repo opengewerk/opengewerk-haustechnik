@@ -6,7 +6,7 @@ import {
   type TableFile,
   tableFileType,
 } from '@opengewerk/haustechnik-domain'
-import { TestServer } from '@opengewerk/platform-web/testing'
+import { TestServer, isLocked } from '@opengewerk/platform-web/testing'
 import { fireEvent, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -796,7 +796,7 @@ describe('the import of assets', () => {
       'Abgenommenes Paket: Druckerhöhungsanlage',
       'Allgemein: Förderanlage (KG 460)',
     ])
-    expect(button('Zuordnung speichern').disabled).toBe(true)
+    expect(isLocked(button('Zuordnung speichern'))).toBe(true)
     expect(written.map((write) => write.path)).toEqual(['/imports/assets/table'])
   })
 

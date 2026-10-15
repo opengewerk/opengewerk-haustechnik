@@ -426,6 +426,37 @@ describe('a deadline that reminds', () => {
       await notify(database, operator, raised!, { origin: 'https://haustechnik.example.de' }),
     ).toHaveLength(1)
   })
+
+  it('goes only by mail where the operator set its kind so, and not at all where it set no message (#269)', async () => {
+    await aDeadline()
+    const [forPush] = await dueDeadlines(database, operator, new Date(), undefined, 'push')
+
+    await admin.query(
+      `insert into deadline_settings (tenant_id, kind, reminder) values ($1, 'meter.due', 'email')`,
+      [operator],
+    )
+
+    expect(await dueDeadlines(database, operator, new Date(), undefined, 'push')).toEqual([])
+    // Raised for push before the setting changed, it is not sent either.
+    expect(await notifyPush(database, operator, forPush!, { now: new Date() })).toEqual([])
+
+    const [raised] = await dueDeadlines(database, operator, new Date())
+
+    await admin.query(`update deadline_settings set reminder = 'none' where tenant_id = $1`, [
+      operator,
+    ])
+
+    expect(await dueDeadlines(database, operator, new Date())).toEqual([])
+    expect(
+      await notify(database, operator, raised!, { origin: 'https://haustechnik.example.de' }),
+    ).toEqual([])
+    // The deadline itself stays as it is, in the list.
+    expect(
+      (await admin.query<{ status: string }>(`select status from deadlines`)).rows.map(
+        (row) => row.status,
+      ),
+    ).toEqual(['open'])
+  })
 })
 
 describe('a task that falls due', () => {

@@ -733,36 +733,11 @@ function AssetForm({
               </div>
               {shown.length > 0 || elsewhere.length > 0 ? (
                 <div ref={found} tabIndex={-1} role="group" aria-label="Mögliche Dublette">
-                  {/* The buttons stand in the sentence and not in the action of the
-                      box: beside two buttons a phone leaves the sentence the width
-                      of a letter. Here they wrap under it. */}
-                  <NoteBox tone="conflict" icon={TriangleAlert}>
-                    <span className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
-                      <span className="min-w-0 grow basis-[240px]">
-                        {shown.map((duplicate) => (
-                          <span key={duplicate.id} className="block">
-                            {sameWords(duplicate.same)} wie{' '}
-                            <Link to={officePlaces.asset(duplicate.id)} className="underline">
-                              {nameOf(duplicate)}
-                            </Link>
-                            {placeOf(duplicate) === '' ? '' : `, ${placeOf(duplicate)}`}.
-                          </span>
-                        ))}
-                        {elsewhere.length > 0 ? (
-                          <span className="block">
-                            {sameWords(elsewhere)} wie {assetFormWords.elsewhere}.{' '}
-                            {assetFormWords.notShown}
-                          </span>
-                        ) : null}
-                        {shown.length > 0 ? (
-                          <span className="block">
-                            {editing
-                              ? 'Ist es dieselbe Anlage, steht sie zweimal im Verzeichnis.'
-                              : 'Ist es dieselbe Anlage, öffnen Sie diese, statt eine zweite anzulegen.'}
-                          </span>
-                        ) : null}
-                      </span>
-                      <span className="flex flex-wrap gap-1.5">
+                  <NoteBox
+                    tone="conflict"
+                    icon={TriangleAlert}
+                    action={
+                      <>
                         {shown.length === 1 && shown[0] ? (
                           <Button
                             size="small"
@@ -782,8 +757,31 @@ function AssetForm({
                         >
                           {anyway}
                         </Button>
+                      </>
+                    }
+                  >
+                    {shown.map((duplicate) => (
+                      <span key={duplicate.id} className="block">
+                        {sameWords(duplicate.same)} wie{' '}
+                        <Link to={officePlaces.asset(duplicate.id)} className="underline">
+                          {nameOf(duplicate)}
+                        </Link>
+                        {placeOf(duplicate) === '' ? '' : `, ${placeOf(duplicate)}`}.
                       </span>
-                    </span>
+                    ))}
+                    {elsewhere.length > 0 ? (
+                      <span className="block">
+                        {sameWords(elsewhere)} wie {assetFormWords.elsewhere}.{' '}
+                        {assetFormWords.notShown}
+                      </span>
+                    ) : null}
+                    {shown.length > 0 ? (
+                      <span className="block">
+                        {editing
+                          ? 'Ist es dieselbe Anlage, steht sie zweimal im Verzeichnis.'
+                          : 'Ist es dieselbe Anlage, öffnen Sie diese, statt eine zweite anzulegen.'}
+                      </span>
+                    ) : null}
                   </NoteBox>
                 </div>
               ) : null}
