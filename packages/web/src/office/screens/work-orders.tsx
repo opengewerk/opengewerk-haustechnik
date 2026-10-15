@@ -155,10 +155,32 @@ export function workOrderQuery(id: string) {
   } as const
 }
 
-function candidatesQuery(propertyId: string) {
+/**
+ * Where a work order hangs, as far as the people to choose from depend on it:
+ * the property, and the asset, room or building on it, whose area is its own
+ * where its building has one (#306).
+ */
+interface CandidatePlace {
+  readonly propertyId: string
+  readonly buildingId?: string | null
+  readonly roomId?: string | null
+  readonly assetId?: string | null
+}
+
+function candidatesQuery(place: CandidatePlace) {
+  const at =
+    typeof place.assetId === 'string'
+      ? `&asset=${place.assetId}`
+      : typeof place.roomId === 'string'
+        ? `&room=${place.roomId}`
+        : typeof place.buildingId === 'string'
+          ? `&building=${place.buildingId}`
+          : ''
+
   return {
-    queryKey: [...workOrderKey, 'candidates', propertyId],
-    queryFn: () => request<WorkOrderCandidates>(`/work-orders/candidates?property=${propertyId}`),
+    queryKey: [...workOrderKey, 'candidates', place.propertyId, at],
+    queryFn: () =>
+      request<WorkOrderCandidates>(`/work-orders/candidates?property=${place.propertyId}${at}`),
   } as const
 }
 
@@ -1238,7 +1260,7 @@ function EditWorkOrderDialog({
 }) {
   const client = useSync()
   const queries = useQueryClient()
-  const candidates = useQuery(candidatesQuery(order.propertyId))
+  const candidates = useQuery(candidatesQuery(order))
   const formId = useId()
   const [plan, setPlan] = useState<PlanState>({
     title: order.title,
@@ -1429,8 +1451,23 @@ export function NewWorkOrderScreen() {
           : chosen === undefined
             ? null
             : String(chosen['propertyId'])
+  // And the place on it, whose area may be the one of its building (#306).
+  const place: CandidatePlace = {
+    propertyId: propertyId ?? '',
+    ...(origin === 'defect'
+      ? { buildingId: defect?.place.buildingId ?? null }
+      : origin === 'duty'
+        ? {
+            buildingId: duty.data?.buildingId ?? null,
+            roomId: duty.data?.roomId ?? null,
+            assetId: duty.data?.assetId ?? null,
+          }
+        : home === 'propertyId' || chosen === undefined
+          ? {}
+          : { [home]: String(chosen['id']) }),
+  }
   const candidates = useQuery({
-    ...candidatesQuery(propertyId ?? ''),
+    ...candidatesQuery(place),
     enabled: propertyId !== null,
   })
 

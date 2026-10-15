@@ -309,6 +309,7 @@ describe('the overview of the areas', () => {
           { id: first.id, name: 'Werkhof Nord' },
         ],
         buildings: 2,
+        ownBuildings: [],
         // By name, without whoever holds in every area and without the one
         // who is blocked.
         members: [
@@ -321,6 +322,7 @@ describe('the overview of the areas', () => {
         name: 'Süd',
         properties: [{ id: third.id, name: 'Sporthalle Süd' }],
         buildings: 1,
+        ownBuildings: [],
         members: [{ userId: 'u-south', name: 'Tobias Wendt' }],
       },
     ])
@@ -633,20 +635,23 @@ describe('the areas of somebody who works for the tenant', () => {
         ),
       }
     }
-    const idsOf = async (areaId: string) =>
+    const idsOf = async (areaId: string, table = 'properties') =>
       (
         await admin.query<{ id: string }>(
-          'select id from properties where tenant_id = $1 and area_id = $2',
+          `select id from ${table} where tenant_id = $1 and area_id = $2`,
           [large, areaId],
         )
       ).rows.map((row) => row.id)
+    // The places are named by the properties and the buildings a person sees (#306).
+    const placesIn = async (areaId: string) =>
+      `properties:${fingerprintOf(await idsOf(areaId))}:buildings:${fingerprintOf(await idsOf(areaId, 'buildings'))}`
 
     const inNorth = await idsOf(north)
     const inSouth = await idsOf(south)
     const before = await pull()
 
     expect(before.held.sort()).toEqual([...inNorth].sort())
-    expect(before.narrowed).toBe(`properties:${fingerprintOf(inNorth)}`)
+    expect(before.narrowed).toBe(await placesIn(north))
 
     const given = await give('u-tech', { all: false, areaIds: [south] }).expect(200)
 
@@ -656,12 +661,67 @@ describe('the areas of somebody who works for the tenant', () => {
 
     // The answer names another value, which is what tells the device to drop
     // what it holds of the places and to ask from the start (ADR 0003, 13).
-    expect(after.narrowed).toBe(`properties:${fingerprintOf(inSouth)}`)
+    expect(after.narrowed).toBe(await placesIn(south))
     expect(after.narrowed).not.toBe(before.narrowed)
     expect(after.held.sort()).toEqual([...inSouth].sort())
     expect(await seenBy('u-tech')).toEqual(['Sporthalle Süd'])
 
     await give('u-tech', { all: false, areaIds: [north] }).expect(200)
+  })
+
+  /**
+   * A building given another area (section 2.8 of the concept, #306): whoever
+   * no longer sees it learns it from the value that names the places, and
+   * their device lets go of it; the property they keep.
+   */
+  it('of a building given another area is let go by the devices that no longer see it', async () => {
+    const place = await propertyIn(north)
+    const pull = async () => {
+      const answer = await http()
+        .get('/sync?since=0')
+        .set(testIdentityHeader, by('u-tech'))
+        .expect(200)
+      const changes = answer.body.changes as { entity: string; rows: { id: string }[] }[]
+      const held = (entity: string) =>
+        (changes.find((change) => change.entity === entity)?.rows ?? []).map((row) => row.id)
+
+      return {
+        narrowed: (answer.body.narrowed as Record<string, string>)['buildings'],
+        properties: held('properties'),
+        buildings: held('buildings'),
+      }
+    }
+    const move = (ownAreaId: string | null) =>
+      http()
+        .patch(`/buildings/${place.buildingId}`)
+        .set(testIdentityHeader, by('u-duties'))
+        .send({ ownAreaId })
+
+    const before = await pull()
+
+    expect(before.buildings).toContain(place.buildingId)
+
+    const moved = await move(south).expect(200)
+
+    expect(moved.body).toMatchObject({ ownAreaId: south, areaId: south })
+
+    try {
+      const after = await pull()
+
+      expect(after.narrowed).not.toBe(before.narrowed)
+      expect(after.buildings).not.toContain(place.buildingId)
+      expect(after.properties).toContain(place.id)
+      // Whoever holds only the south sees the property with it.
+      expect(await seenBy('u-south')).toContain(place.name)
+    } finally {
+      // The area of the property, named as its own, is the area of the property.
+      const back = await move(north).expect(200)
+
+      expect(back.body).toMatchObject({ ownAreaId: null, areaId: north })
+    }
+
+    expect((await pull()).buildings).toContain(place.buildingId)
+    expect(await seenBy('u-south')).not.toContain(place.name)
   })
 
   it('may be all of them for anybody, and the ones named again', async () => {
@@ -976,5 +1036,162 @@ describe('a substitution', () => {
     expect(
       (await admin.query('select 1 from substitutions where id = $1', [rows[0]?.id])).rowCount,
     ).toBe(1)
+  })
+})
+
+/**
+ * A building with an area of its own (section 2.8 of the concept, #306): the
+ * routes that write in it give what they write the area of the building, and
+ * what hangs on the property itself keeps the area of the property. Last in
+ * the file: the properties and areas made here would change what the lists
+ * above count.
+ */
+describe('a building with an area of its own', () => {
+  let numbered = 0
+
+  /** An asset in a building, put in past the application, with a component under it. */
+  async function assetIn(property: string, building: string, areaId: string) {
+    const made = async (parent: string | null) =>
+      (
+        await admin.query<{ id: string }>(
+          `insert into assets (tenant_id, property_id, area_id, building_id, parent_asset_id, kind,
+                               number, name)
+           values ($1, $2, $3, $4, $5, 'probe.elevator', $6, 'Aufzug')
+           returning id`,
+          [large, property, areaId, building, parent, `AN-306-${String((numbered += 1))}`],
+        )
+      ).rows[0]?.id ?? ''
+    const asset = await made(null)
+
+    return { asset, component: await made(asset) }
+  }
+
+  const give = (building: string, ownAreaId: string | null) =>
+    http()
+      .patch(`/buildings/${building}`)
+      .set(testIdentityHeader, by('u-duties'))
+      .send({ ownAreaId })
+
+  it('gives a defect and a duty in it its area, and one on the property that of the property', async () => {
+    const place = await propertyIn(north)
+
+    await give(place.buildingId, south).expect(200)
+
+    const { asset } = await assetIn(place.id, place.buildingId, south)
+    const report = (body: object) =>
+      http()
+        .post('/defects')
+        .set(testIdentityHeader, by('u-duties'))
+        .send({ description: 'Tür schließt nicht.', ...body })
+        .expect(201)
+
+    const atTheAsset = await report({ assetId: asset })
+    const onTheProperty = await report({ propertyId: place.id })
+    const duty = await http()
+      .post('/duties')
+      .set(testIdentityHeader, by('u-duties'))
+      .send({
+        buildingId: place.buildingId,
+        label: 'Fluchtwege prüfen',
+        basis: 'authority',
+        sourceNote: 'Brandschutzkonzept',
+        task: 'inspection',
+        intervalMonths: 12,
+      })
+      .expect(201)
+
+    expect([atTheAsset.body.areaId, duty.body.areaId, onTheProperty.body.areaId]).toEqual([
+      south,
+      south,
+      north,
+    ])
+    // Whoever holds the north does not see the defect in the building.
+    await http()
+      .get(`/defects/${atTheAsset.body.id as string}`)
+      .set(testIdentityHeader, by('u-tech'))
+      .expect(404)
+  })
+
+  it('is given at the making of a building, and the area of the property counts as none', async () => {
+    const place = await propertyIn(north)
+    const made = await http()
+      .post(`/properties/${place.id}/buildings`)
+      .set(testIdentityHeader, by('u-duties'))
+      .send({ name: 'Turnhalle', kinds: ['assembly'], ownAreaId: south })
+      .expect(201)
+
+    expect(made.body).toMatchObject({ ownAreaId: south, areaId: south })
+
+    const same = await give(made.body.id as string, north).expect(200)
+
+    expect(same.body).toMatchObject({ ownAreaId: null, areaId: north })
+    // An area of another tenant is none.
+    expect((await give(made.body.id as string, theirs).expect(400)).body.message).toBe(
+      'Den Bereich gibt es bei diesem Betreiber nicht.',
+    )
+  })
+
+  it('takes an asset that moves into it there, with its component', async () => {
+    const place = await propertyIn(north)
+    const hall = await http()
+      .post(`/properties/${place.id}/buildings`)
+      .set(testIdentityHeader, by('u-duties'))
+      .send({ name: 'Turnhalle', kinds: ['assembly'], ownAreaId: south })
+      .expect(201)
+    const { asset, component } = await assetIn(place.id, place.buildingId, north)
+
+    const moved = await http()
+      .put(`/assets/${asset}/location`)
+      .set(testIdentityHeader, by('u-duties'))
+      .send({ buildingId: hall.body.id })
+      .expect(200)
+
+    expect(moved.body).toMatchObject({ buildingId: hall.body.id, areaId: south })
+
+    const { rows } = await admin.query<{ building: string; area: string }>(
+      'select building_id as building, area_id as area from assets where id = $1',
+      [component],
+    )
+
+    expect(rows).toEqual([{ building: hall.body.id, area: south }])
+  })
+
+  it('goes along when its area is removed, to the area named', async () => {
+    const west = await areaNamed(`West ${String((numbered += 1))}`)
+    const place = await propertyIn(north)
+    const other = await propertyIn(south)
+
+    await give(place.buildingId, west).expect(200)
+    await give(other.buildingId, west).expect(200)
+
+    const refused = await http()
+      .delete(`/areas/${west}`)
+      .set(testIdentityHeader, by('u-lead'))
+      .expect(409)
+
+    expect(refused.body.message).toBe(
+      'In diesem Bereich liegen noch 2 Gebäude mit eigenem Bereich. Sie werden vorher in einen anderen Bereich verlegt.',
+    )
+
+    await http()
+      .delete(`/areas/${west}?moveTo=${north}`)
+      .set(testIdentityHeader, by('u-lead'))
+      .expect(200)
+
+    const { rows } = await admin.query<{ id: string; own: string | null; area: string }>(
+      'select id, own_area_id as own, area_id as area from buildings where id = any($1::uuid[])',
+      [[place.buildingId, other.buildingId]],
+    )
+
+    // The one on a property of the north has that area again as the one of
+    // its property, the one on a property of the south keeps the north as its own.
+    expect(
+      rows.sort((left, right) =>
+        left.id === place.buildingId ? -1 : right.id === place.buildingId ? 1 : 0,
+      ),
+    ).toEqual([
+      { id: place.buildingId, own: null, area: north },
+      { id: other.buildingId, own: north, area: north },
+    ])
   })
 })

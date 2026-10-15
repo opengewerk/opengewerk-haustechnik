@@ -358,6 +358,13 @@
       "when": 1792015998002,
       "tag": "0050_deadline_reminder",
       "breakpoints": true
+    },
+    {
+      "idx": 51,
+      "version": "7",
+      "when": 1792049074049,
+      "tag": "0051_building_areas",
+      "breakpoints": true
     }
   ]
 }

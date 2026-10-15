@@ -4,7 +4,7 @@ import { sql } from 'drizzle-orm'
 import { boolean, check, foreignKey, index, pgEnum, pgPolicy, unique } from 'drizzle-orm/pg-core'
 
 import { activities } from './activities.js'
-import { withinAreas } from './areas.js'
+import { areaFromPropertyColumn, areaFromTheProperty, withinAreas } from './areas.js'
 import { assets } from './assets.js'
 import { defects } from './defects.js'
 import { buildings, properties, rooms, trimmed } from './locations.js'
@@ -25,6 +25,7 @@ export const documentKind = pgEnum('document_kind', documentKinds)
 const documentPlace = {
   propertyId: reference<'property'>('property_id').notNull(),
   areaId: reference<'area'>('area_id').notNull(),
+  areaFromPropertyId: areaFromPropertyColumn(),
   buildingId: reference<'building'>('building_id'),
   roomId: reference<'room'>('room_id'),
   assetId: reference<'asset'>('asset_id'),
@@ -92,11 +93,44 @@ export const { attachments, attachmentVersions } = attachmentsSchema({
   columns: documentPlace,
   constraints: (table) => [
     withinAreas(),
+    // The area of what the row hangs on (ADR 0003, addendum of #306).
     foreignKey({
-      columns: [table.tenantId, table.propertyId, table.areaId],
+      columns: [table.tenantId, table.buildingId, table.areaId],
+      foreignColumns: [buildings.tenantId, buildings.id, buildings.areaId],
+      name: 'attachments_follow_their_building',
+    }).onUpdate('cascade'),
+    foreignKey({
+      columns: [table.tenantId, table.roomId, table.areaId],
+      foreignColumns: [rooms.tenantId, rooms.id, rooms.areaId],
+      name: 'attachments_follow_their_room',
+    }).onUpdate('cascade'),
+    foreignKey({
+      columns: [table.tenantId, table.assetId, table.areaId],
+      foreignColumns: [assets.tenantId, assets.id, assets.areaId],
+      name: 'attachments_follow_their_asset',
+    }).onUpdate('cascade'),
+    foreignKey({
+      columns: [table.tenantId, table.activityId, table.areaId],
+      foreignColumns: [activities.tenantId, activities.id, activities.areaId],
+      name: 'attachments_follow_their_activity',
+    }).onUpdate('cascade'),
+    foreignKey({
+      columns: [table.tenantId, table.defectId, table.areaId],
+      foreignColumns: [defects.tenantId, defects.id, defects.areaId],
+      name: 'attachments_follow_their_defect',
+    }).onUpdate('cascade'),
+    foreignKey({
+      columns: [table.tenantId, table.areaFromPropertyId, table.areaId],
       foreignColumns: [properties.tenantId, properties.id, properties.areaId],
       name: 'attachments_follow_their_property',
     }).onUpdate('cascade'),
+    areaFromTheProperty('attachments_area_from_the_property', table, [
+      table.buildingId,
+      table.roomId,
+      table.assetId,
+      table.activityId,
+      table.defectId,
+    ]),
     foreignKey({
       columns: [table.tenantId, table.buildingId, table.propertyId],
       foreignColumns: [buildings.tenantId, buildings.id, buildings.propertyId],

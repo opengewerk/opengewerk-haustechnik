@@ -1,4 +1,4 @@
-import { type AreaId, areaNameProblem } from '@opengewerk/haustechnik-domain'
+import { type AreaId, areaNameProblem, ownBuildingsIn } from '@opengewerk/haustechnik-domain'
 import { TestServer } from '@opengewerk/platform-web/testing'
 import { fireEvent, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
@@ -57,6 +57,7 @@ const nord: AreaEntry = {
     'Wertstoffhof',
   ),
   buildings: 12,
+  ownBuildings: [],
   members: [lena, murat, petra],
 }
 
@@ -70,6 +71,7 @@ const sued: AreaEntry = {
     'Wohnanlage Birkenweg',
   ),
   buildings: 7,
+  ownBuildings: [],
   members: [dennis, murat, tobias],
 }
 
@@ -79,6 +81,7 @@ const west: AreaEntry = {
   name: 'West',
   properties: [],
   buildings: 0,
+  ownBuildings: [],
   members: [],
 }
 
@@ -188,6 +191,22 @@ describe('the areas of a tenant', () => {
       '1 Liegenschaft, 1 Gebäude',
     )
     expect(whatLiesIn(nord)).toBe('7 Liegenschaften, 12 Gebäude')
+    // A building with the area as its own, on a property of another (#306).
+    expect(whatLiesIn({ properties: [], buildings: 1 })).toBe('keine Liegenschaft, 1 Gebäude')
+  })
+
+  it('names a building with the area as its own, and moves it before the area goes', () => {
+    const mensa = { id: 'b-mensa', name: 'Mensa', propertyName: 'Schulzentrum Am Lindenhain' }
+
+    expect(ownBuildingsIn({ ownBuildings: [mensa] })).toBe(
+      'Gebäude: Mensa (Schulzentrum Am Lindenhain)',
+    )
+    expect(ownBuildingsIn({ ownBuildings: [] })).toBeNull()
+    expect(whatMovesFirst({ name: 'Nord', properties: [], ownBuildings: [mensa] })).toBe(
+      'In „Nord“ liegt keine Liegenschaft, aber 1 Gebäude mit eigenem Bereich: Mensa ' +
+        '(Schulzentrum Am Lindenhain). Es wird vorher in einen anderen Bereich verlegt, mit ' +
+        'allem, was darin liegt.',
+    )
   })
 
   it('name the first of a list and count the rest', () => {
@@ -552,9 +571,11 @@ describe('an area that goes', () => {
     expect(whoIsLeft(null)).toBe(areaScreenWords.whoeverHoldsOnlyThis)
     expect(nothingLiesIn('West', ['Dennis Roth'])).toBe('In „West“ liegt keine Liegenschaft.')
     expect(
-      whatMovesFirst({ name: 'Ost', properties: named('Werkhof Ost') }).startsWith(
-        'In „Ost“ liegt noch 1 Liegenschaft: Werkhof Ost. Sie wird vorher',
-      ),
+      whatMovesFirst({
+        name: 'Ost',
+        properties: named('Werkhof Ost'),
+        ownBuildings: [],
+      }).startsWith('In „Ost“ liegt noch 1 Liegenschaft: Werkhof Ost. Sie wird vorher'),
     ).toBe(true)
   })
 })

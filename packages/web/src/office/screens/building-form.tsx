@@ -1,4 +1,5 @@
 import {
+  type Area,
   buildingKindLabel,
   buildingKinds,
   buildingProblems,
@@ -21,6 +22,7 @@ import { useNavigate, useParams } from '@tanstack/react-router'
 import { useState } from 'react'
 
 import { placePath } from '../../app/place-path.js'
+import { areaName, useAreasQuery } from '../../session/areas.js'
 import { kindKeysOf, placeAbove } from '../../app/place-records.js'
 import { makeAt } from '../../sync/made-at.js'
 import { officePlaces } from '../place-addresses.js'
@@ -28,16 +30,31 @@ import { NotAllowed, RemovePlace } from '../place-forms.js'
 import { PlaceNotFound } from '../place-pages.js'
 
 /**
- * A building to make or to change, `neues_gebaeude()` of the boards (4.1 of
- * the concept): what it is called, the short code that stands before its room
- * numbers, the year it was built, and what it is used as, one kind or
- * several, because the kind decides with which duties are proposed.
+ * A building to make or to change, `neues_gebaeude()` and
+ * `gebaeude_bearbeiten()` of the boards (4.1 of the concept): what it is
+ * called, the short code that stands before its room numbers, the year it was
+ * built, what it is used as, one kind or several, because the kind decides
+ * with which duties are proposed, and where there is more than one area, its
+ * area: the one of its property, or one of its own (section 2.8, #306).
  *
  * A building is kept by the office and with a connection (ADR 0006, point 6),
  * and the form says so before anybody fills it in.
  */
 
 const noConnection = 'Ein Gebäude wird mit Verbindung angelegt und geändert. Gerade ist keine da.'
+
+export const buildingAreaWords = {
+  label: 'Bereich',
+  hint: 'Ein eigener Bereich, wenn das Gebäude jemand anderes betreut als die Liegenschaft. Alles im Gebäude folgt ihm.',
+  /** The choice that gives a building the area of its property, with that area's name. */
+  likeTheProperty: (name: string | null) =>
+    name === null ? 'Wie die Liegenschaft' : `Wie die Liegenschaft (${name})`,
+  moves:
+    'Mit dem Bereich wechselt alles im Gebäude: Geschosse, Räume, Anlagen, Pflichten, Mängel und ' +
+    'Vorgänge. Wer den neuen Bereich nicht hat, sieht das Gebäude danach nicht mehr; die ' +
+    'Liegenschaft sieht weiter, wer ihren Bereich hat. Was an der Liegenschaft selbst hängt, bleibt ' +
+    'in ihrem Bereich.',
+} as const
 
 export function NewBuildingScreen() {
   const { propertyId } = useParams({ strict: false }) as { propertyId?: string }
@@ -75,7 +92,7 @@ function yearOf(typed: string | undefined): number | string | null {
   return /^\d+$/.test(trimmed) ? Number(trimmed) : trimmed
 }
 
-const fields: readonly FormField[] = [
+const placeFields: readonly FormField[] = [
   { name: 'name', label: 'Bezeichnung', required: true, place: 'lg:col-span-2' },
   {
     name: 'shortCode',
@@ -103,6 +120,7 @@ function BuildingFormScreen({
 }) {
   const building = useRecord('buildings', buildingId)
   const property = useRecord('properties', building ? String(building['propertyId']) : asked)
+  const areas = useAreasQuery()
 
   if (buildingId !== undefined && !building) {
     return <PlaceNotFound place="building" />
@@ -112,11 +130,20 @@ function BuildingFormScreen({
     return <PlaceNotFound place="property" />
   }
 
+  // The area a building has is read when the form is made: made before the
+  // areas are known, it would start at "wie die Liegenschaft" and take an own
+  // area away on saving. Without the areas there is no field, and nothing
+  // about the area is sent.
+  if (areas.isPending) {
+    return null
+  }
+
   return (
     <BuildingForm
       key={buildingId ?? `new-${String(property['id'])}`}
       property={property}
       building={building}
+      areas={areas.data ?? []}
     />
   )
 }
@@ -124,10 +151,13 @@ function BuildingFormScreen({
 function BuildingForm({
   property,
   building,
+  areas,
 }: {
   readonly property: RecordState
   /** The building to change, or none for a new one. */
   readonly building: RecordState | null
+  /** The areas the person holds in; the field stands where there is more than one. */
+  readonly areas: readonly Area[]
 }) {
   const client = useSync()
   const status = useSyncStatus()
@@ -139,6 +169,25 @@ function BuildingForm({
   // In the order they were chosen, as the building holds them: saving a form
   // nobody ticked anything in changes nothing.
   const [kinds, setKinds] = useState<readonly string[]>(() => kindKeysOf(building))
+  const asksArea = areas.length > 1
+  const ofTheProperty = property['areaId']
+  const fields: readonly FormField[] = asksArea
+    ? [
+        ...placeFields,
+        {
+          name: 'ownAreaId',
+          label: buildingAreaWords.label,
+          options: [
+            { value: '', label: buildingAreaWords.likeTheProperty(areaName(areas, ofTheProperty)) },
+            ...areas
+              .filter((area) => area.id !== ofTheProperty)
+              .map((area) => ({ value: area.id as string, label: area.name })),
+          ],
+          hint: buildingAreaWords.hint,
+          place: 'lg:col-span-2',
+        },
+      ]
+    : placeFields
 
   const back = () => {
     void navigate({
@@ -152,6 +201,8 @@ function BuildingForm({
     shortCode: asTextOrNull(values['shortCode']),
     kinds,
     yearBuilt: yearOf(values['yearBuilt']),
+    // Empty is the area of the property.
+    ...(asksArea ? { ownAreaId: asTextOrNull(values['ownAreaId']) } : {}),
   })
 
   async function save(values: Record<string, string>): Promise<EditResult> {
@@ -191,6 +242,9 @@ function BuildingForm({
           after={
             <>
               <Kinds chosen={kinds} onChange={setKinds} />
+              {editing && asksArea ? (
+                <NoteBox tone="waiting">{buildingAreaWords.moves}</NoteBox>
+              ) : null}
               {editing ? null : (
                 <NoteBox>
                   Geschosse und Räume legen Sie danach im Gebäude an, oder Sie übernehmen sie mit

@@ -294,7 +294,12 @@ export async function propertyTable(
     .from(properties)
     .where(isNull(properties.deletedAt))
   const buildingRows = await tx
-    .select({ id: buildings.id, propertyId: buildings.propertyId, name: buildings.name })
+    .select({
+      id: buildings.id,
+      propertyId: buildings.propertyId,
+      name: buildings.name,
+      areaId: buildings.areaId,
+    })
     .from(buildings)
     .where(isNull(buildings.deletedAt))
   const toDo = isAllowed(identity, 'duty.read')
@@ -321,20 +326,29 @@ export async function propertyTable(
     (asked.urgent && toDo !== null ? byUrgency(numbers.get(left.id), numbers.get(right.id)) : 0) ||
     byNameIn(left.name, right.name)
 
-  const buildingsOf = new Map<string, { id: string; name: string }[]>()
+  const buildingsOf = new Map<string, { id: string; name: string; areaId: string }[]>()
 
+  // As the list shows them: narrowed to an area, the buildings in it, and a
+  // property that lies in it or has a building there (#306).
   for (const building of buildingRows) {
     const propertyId = building.propertyId as string
 
+    if (areaId !== undefined && building.areaId !== areaId) {
+      continue
+    }
+
     buildingsOf.set(propertyId, [
       ...(buildingsOf.get(propertyId) ?? []),
-      { id: building.id as string, name: building.name },
+      { id: building.id as string, name: building.name, areaId: building.areaId as string },
     ])
   }
 
   const shown = propertyRows
     .map((row) => ({ ...row, id: row.id as string, areaId: row.areaId as string }))
-    .filter((property) => areaId === undefined || property.areaId === areaId)
+    .filter(
+      (property) =>
+        areaId === undefined || property.areaId === areaId || buildingsOf.has(property.id),
+    )
     .filter(
       (property) =>
         asked.search === '' ||
@@ -347,7 +361,7 @@ export async function propertyTable(
 
   const row = (
     property: (typeof shown)[number],
-    building: { id: string; name: string } | null,
+    building: { id: string; name: string; areaId: string } | null,
   ): TableRow => {
     const counted = numbers.get(building?.id ?? property.id)
 
@@ -355,7 +369,8 @@ export async function propertyTable(
       property.name,
       building?.name ?? null,
       addressWords(property),
-      ...(showsAreas ? [areaName.get(property.areaId) ?? null] : []),
+      // A building names its area, its property's or its own.
+      ...(showsAreas ? [areaName.get(building?.areaId ?? property.areaId) ?? null] : []),
       ...offered.map(({ key }) => counted?.[key] ?? null),
     ]
   }

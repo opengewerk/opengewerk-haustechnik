@@ -31,7 +31,7 @@ import {
   uniqueIndex,
 } from 'drizzle-orm/pg-core'
 
-import { withinAreas } from './areas.js'
+import { areaFromPropertyColumn, areaFromTheProperty, withinAreas } from './areas.js'
 import { assets } from './assets.js'
 import { defects } from './defects.js'
 import { duties, dutyPerformer } from './duties.js'
@@ -77,6 +77,7 @@ export const activities = pgTable(
     ...tenantColumn,
     propertyId: reference<'property'>('property_id').notNull(),
     areaId: reference<'area'>('area_id').notNull(),
+    areaFromPropertyId: areaFromPropertyColumn(),
     buildingId: reference<'building'>('building_id'),
     roomId: reference<'room'>('room_id'),
     assetId: reference<'asset'>('asset_id'),
@@ -105,16 +106,39 @@ export const activities = pgTable(
     tenantIsolation(table.tenantId),
     withinAreas(),
     unique('activities_tenant_id_key').on(table.tenantId, table.id),
+    // What a row that hangs on it points at for its area (ADR 0003, addendum of #306).
+    unique('activities_area_key').on(table.tenantId, table.id, table.areaId),
     // What the duties of an activity and a defect noticed in it point at, on
     // the property of the activity.
     unique('activities_place').on(table.tenantId, table.id, table.propertyId),
     // What a work order points at: an activity of its kind, on its property.
     unique('activities_kind_place').on(table.tenantId, table.id, table.propertyId, table.kind),
+    // The area of what the row hangs on (ADR 0003, addendum of #306).
     foreignKey({
-      columns: [table.tenantId, table.propertyId, table.areaId],
+      columns: [table.tenantId, table.buildingId, table.areaId],
+      foreignColumns: [buildings.tenantId, buildings.id, buildings.areaId],
+      name: 'activities_follow_their_building',
+    }).onUpdate('cascade'),
+    foreignKey({
+      columns: [table.tenantId, table.roomId, table.areaId],
+      foreignColumns: [rooms.tenantId, rooms.id, rooms.areaId],
+      name: 'activities_follow_their_room',
+    }).onUpdate('cascade'),
+    foreignKey({
+      columns: [table.tenantId, table.assetId, table.areaId],
+      foreignColumns: [assets.tenantId, assets.id, assets.areaId],
+      name: 'activities_follow_their_asset',
+    }).onUpdate('cascade'),
+    foreignKey({
+      columns: [table.tenantId, table.areaFromPropertyId, table.areaId],
       foreignColumns: [properties.tenantId, properties.id, properties.areaId],
       name: 'activities_follow_their_property',
     }).onUpdate('cascade'),
+    areaFromTheProperty('activities_area_from_the_property', table, [
+      table.buildingId,
+      table.roomId,
+      table.assetId,
+    ]),
     foreignKey({
       columns: [table.tenantId, table.buildingId, table.propertyId],
       foreignColumns: [buildings.tenantId, buildings.id, buildings.propertyId],
@@ -239,10 +263,11 @@ export const activityDuties = pgTable(
     tenantIsolation(table.tenantId),
     withinAreas(),
     unique('activity_duties_tenant_id_key').on(table.tenantId, table.id),
+    // The area of what the row hangs on (ADR 0003, addendum of #306).
     foreignKey({
-      columns: [table.tenantId, table.propertyId, table.areaId],
-      foreignColumns: [properties.tenantId, properties.id, properties.areaId],
-      name: 'activity_duties_follow_their_property',
+      columns: [table.tenantId, table.activityId, table.areaId],
+      foreignColumns: [activities.tenantId, activities.id, activities.areaId],
+      name: 'activity_duties_follow_their_activity',
     }).onUpdate('cascade'),
     foreignKey({
       columns: [table.tenantId, table.activityId, table.propertyId],
@@ -316,14 +341,17 @@ export const workOrders = pgTable(
     tenantIsolation(table.tenantId),
     withinAreas(),
     unique('work_orders_tenant_id_key').on(table.tenantId, table.id),
+    // What a row that hangs on it points at for its area (ADR 0003, addendum of #306).
+    unique('work_orders_area_key').on(table.tenantId, table.id, table.areaId),
     // What a defect that a work order sets right points at, on its property.
     unique('work_orders_place').on(table.tenantId, table.id, table.propertyId),
     // One work order for an activity.
     unique('work_orders_one_per_activity').on(table.tenantId, table.activityId),
+    // The area of what the row hangs on (ADR 0003, addendum of #306).
     foreignKey({
-      columns: [table.tenantId, table.propertyId, table.areaId],
-      foreignColumns: [properties.tenantId, properties.id, properties.areaId],
-      name: 'work_orders_follow_their_property',
+      columns: [table.tenantId, table.activityId, table.areaId],
+      foreignColumns: [activities.tenantId, activities.id, activities.areaId],
+      name: 'work_orders_follow_their_activity',
     }).onUpdate('cascade'),
     foreignKey({
       columns: [table.tenantId, table.activityId, table.propertyId, table.activityKind],
@@ -379,10 +407,11 @@ export const workOrderParticipants = pgTable(
     tenantIsolation(table.tenantId),
     withinAreas(),
     unique('work_order_participants_tenant_id_key').on(table.tenantId, table.id),
+    // The area of what the row hangs on (ADR 0003, addendum of #306).
     foreignKey({
-      columns: [table.tenantId, table.propertyId, table.areaId],
-      foreignColumns: [properties.tenantId, properties.id, properties.areaId],
-      name: 'work_order_participants_follow_their_property',
+      columns: [table.tenantId, table.activityId, table.areaId],
+      foreignColumns: [activities.tenantId, activities.id, activities.areaId],
+      name: 'work_order_participants_follow_their_activity',
     }).onUpdate('cascade'),
     foreignKey({
       columns: [table.tenantId, table.activityId, table.propertyId, table.activityKind],
@@ -436,10 +465,11 @@ export const workOrderNotes = pgTable(
     tenantIsolation(table.tenantId),
     withinAreas(),
     unique('work_order_notes_tenant_id_key').on(table.tenantId, table.id),
+    // The area of what the row hangs on (ADR 0003, addendum of #306).
     foreignKey({
-      columns: [table.tenantId, table.propertyId, table.areaId],
-      foreignColumns: [properties.tenantId, properties.id, properties.areaId],
-      name: 'work_order_notes_follow_their_property',
+      columns: [table.tenantId, table.activityId, table.areaId],
+      foreignColumns: [activities.tenantId, activities.id, activities.areaId],
+      name: 'work_order_notes_follow_their_activity',
     }).onUpdate('cascade'),
     foreignKey({
       columns: [table.tenantId, table.activityId, table.propertyId, table.activityKind],

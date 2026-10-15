@@ -384,13 +384,13 @@ describe('a signature', () => {
 
   it('hangs on an activity of its property and on somebody here, key by key', async () => {
     const attempts: Record<string, Record<string, unknown>> = {
-      activity_signatures_follow_their_property: { ...signatureAt(here), area_id: secondArea },
+      activity_signatures_follow_their_activity: { ...signatureAt(here), area_id: secondArea },
       activity_signatures_of_an_activity_of_their_property: {
         ...signatureAt(here),
         activity_id: beside.activity,
       },
       activity_signatures_by_somebody_here: { ...signatureAt(here), signed_by: 'u-nobody' },
-      work_order_decisions_follow_their_property: { ...decisionAt(here), area_id: secondArea },
+      work_order_decisions_follow_their_work_order: { ...decisionAt(here), area_id: secondArea },
       work_order_decisions_of_a_work_order_of_their_property: {
         ...decisionAt(here),
         work_order_id: beside.workOrder,

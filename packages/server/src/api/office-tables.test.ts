@@ -534,6 +534,44 @@ describe('the properties as a table', () => {
     expect(await names({ area: newId() })).toHaveLength(6)
   })
 
+  /**
+   * A building with an area of its own (#306): narrowed to that area, its
+   * property stands with it alone, and each row names the area of its own.
+   */
+  it('narrows to a building with the area as its own, under its property, as the list does', async () => {
+    const lead = by('u-lead', estate)
+    const { rows } = await admin.query<{ id: string }>(
+      `select b.id from buildings b join properties p on p.id = b.property_id
+        where p.tenant_id = $1 and p.name = 'Wohnanlage Birkenweg' and b.name = 'Haus B'`,
+      [estate],
+    )
+    const houseB = rows[0]?.id ?? ''
+    const placesOf = async (query: Readonly<Record<string, string>>) =>
+      (await tableOf('/properties/table', query, lead))
+        .slice(1)
+        .map((row) => `${String(row[0])}/${String(row[1])}/${String(row[3])}`)
+
+    await admin.query('update buildings set own_area_id = $2, area_id = $2 where id = $1', [
+      houseB,
+      estateSouth,
+    ])
+
+    try {
+      expect(await placesOf({ area: estateSouth })).toEqual([
+        'Sporthalle Süd//Süd',
+        'Sporthalle Süd/Haus A/Süd',
+        'Wohnanlage Birkenweg//Nord',
+        'Wohnanlage Birkenweg/Haus B/Süd',
+      ])
+      expect(await placesOf({ area: estateNorth })).not.toContain('Wohnanlage Birkenweg/Haus B/Süd')
+    } finally {
+      await admin.query('update buildings set own_area_id = null, area_id = $2 where id = $1', [
+        houseB,
+        estateNorth,
+      ])
+    }
+  })
+
   it('comes in the order of urgency where the list is ordered so', async () => {
     const lead = by('u-lead', estate)
     const { rows } = await admin.query<{ id: string }>(

@@ -45,11 +45,15 @@ describe('the foundation in this database', () => {
     // and indexes; and a deadline names the task the engine made of it
     // (opengewerk-haustechnik#242, migration 0040), over its property. A duty points at the document that bears its interval and
     // at a version of it (opengewerk-haustechnik#74, migration 0037), over a
-    // unique key on each. Only a restrictive policy may be named here; it
-    // takes rows away and opens none.
+    // unique key on each. Since #306 the area of a deadline follows its
+    // source and that of a document what it hangs on, by a key onto each,
+    // and a document on the property itself names the property for its key a
+    // second time, filled by a trigger (migration 0051); a contact is read by
+    // whoever sees a building of its property. Only a restrictive policy may
+    // be named here; it takes rows away and opens none.
     expect(
       await foundationDeviations(admin, {
-        triggers: ['memberships.default_areas'],
+        triggers: ['memberships.default_areas', 'attachments.area_from_the_property'],
         columns: [
           'deadlines.duty_id',
           'deadlines.defect_id',
@@ -69,10 +73,14 @@ describe('the foundation in this database', () => {
           'attachments.defect_id',
           'attachments.kind',
           'attachments.legacy',
+          'attachments.area_from_property_id',
         ],
         constraints: [
           'deadlines.deadlines_meters_of_their_property',
-          'deadlines.deadlines_follow_their_property',
+          'deadlines.deadlines_follow_their_duty',
+          'deadlines.deadlines_follow_their_defect',
+          'deadlines.deadlines_follow_their_plan',
+          'deadlines.deadlines_of_meters_follow_their_property',
           'deadlines.deadlines_of_a_duty_of_their_property',
           'deadlines.deadlines_of_a_defect_of_their_property',
           'deadlines.deadlines_of_a_plan_of_their_property',
@@ -85,6 +93,12 @@ describe('the foundation in this database', () => {
           'contacts.contacts_phone_shaped',
           'contacts.contacts_email_shaped',
           'attachments.attachments_follow_their_property',
+          'attachments.attachments_follow_their_building',
+          'attachments.attachments_follow_their_room',
+          'attachments.attachments_follow_their_asset',
+          'attachments.attachments_follow_their_activity',
+          'attachments.attachments_follow_their_defect',
+          'attachments.attachments_area_from_the_property',
           'attachments.attachments_at_a_building_of_their_property',
           'attachments.attachments_at_a_room_of_their_property',
           'attachments.attachments_at_an_asset_of_their_property',
@@ -108,7 +122,7 @@ describe('the foundation in this database', () => {
         ],
         policies: [
           'deadlines.within_areas',
-          'contacts.within_areas',
+          'contacts.within_areas_or_a_building',
           'attachments.within_areas',
           'attachment_versions.within_areas_of_their_file',
         ],

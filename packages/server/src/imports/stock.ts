@@ -58,7 +58,12 @@ export async function structureStock(tx: TenantTransaction): Promise<StructureSt
       .from(properties)
       .where(isNull(properties.deletedAt)),
     buildings: await tx
-      .select({ id: buildings.id, propertyId: buildings.propertyId, name: buildings.name })
+      .select({
+        id: buildings.id,
+        propertyId: buildings.propertyId,
+        name: buildings.name,
+        areaId: buildings.areaId,
+      })
       .from(buildings)
       .where(isNull(buildings.deletedAt)),
     floors: await tx

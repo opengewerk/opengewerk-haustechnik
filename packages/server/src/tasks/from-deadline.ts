@@ -28,6 +28,13 @@ type DeadlineRow = typeof deadlines.$inferSelect
  *
  * Written in the transaction of a pass, which works for nobody: the task
  * names nobody who wrote it (`record_task_author`).
+ *
+ * The task hangs on the property and carries the area of the deadline. That
+ * holds while the meters of a property, whose deadline hangs on the property
+ * itself, are the only source that names the action: a task on the property
+ * follows the area of the property (ADR 0003, addendum of #306). A source
+ * with a place, a duty at an asset in a building with an area of its own,
+ * needs the task at that place, or the key of the task refuses it.
  */
 export function taskFromDeadline(): DeadlineActionHandler<ApplicationDeadlineKind, DeadlineRow> {
   return async ({ tx, tenantId, kind, deadline, responsible, now }) => {

@@ -11,7 +11,7 @@ import { sql } from 'drizzle-orm'
 import { check, date, foreignKey, index, pgTable, text } from 'drizzle-orm/pg-core'
 
 import { withinAreas } from './areas.js'
-import { buildings, optionalTrimmed, properties } from './locations.js'
+import { buildings, optionalTrimmed } from './locations.js'
 
 /**
  * The times a building is closed (#86, section 4.1 of the concept): from a
@@ -50,10 +50,11 @@ export const buildingClosures = pgTable(
       foreignColumns: [buildings.tenantId, buildings.id, buildings.propertyId],
       name: 'building_closures_of_their_building',
     }),
+    // The area of what the row hangs on (ADR 0003, addendum of #306).
     foreignKey({
-      columns: [table.tenantId, table.propertyId, table.areaId],
-      foreignColumns: [properties.tenantId, properties.id, properties.areaId],
-      name: 'building_closures_follow_their_property',
+      columns: [table.tenantId, table.buildingId, table.areaId],
+      foreignColumns: [buildings.tenantId, buildings.id, buildings.areaId],
+      name: 'building_closures_follow_their_building',
     }).onUpdate('cascade'),
     index('building_closures_building_idx').on(table.tenantId, table.buildingId),
     // What `closureProblems` asks: it does not end before it begins.

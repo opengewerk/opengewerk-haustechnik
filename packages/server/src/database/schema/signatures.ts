@@ -27,7 +27,7 @@ import {
 
 import { activities, workOrders } from './activities.js'
 import { withinAreas } from './areas.js'
-import { optionalTrimmed, properties } from './locations.js'
+import { optionalTrimmed } from './locations.js'
 
 /** Who a signature is given as, from the list in `domain`. */
 export const signatureRole = pgEnum('signature_role', signatureRoles)
@@ -67,10 +67,11 @@ export const activitySignatures = pgTable(
     tenantIsolation(table.tenantId),
     withinAreas(),
     unique('activity_signatures_tenant_id_key').on(table.tenantId, table.id),
+    // The area of what the row hangs on (ADR 0003, addendum of #306).
     foreignKey({
-      columns: [table.tenantId, table.propertyId, table.areaId],
-      foreignColumns: [properties.tenantId, properties.id, properties.areaId],
-      name: 'activity_signatures_follow_their_property',
+      columns: [table.tenantId, table.activityId, table.areaId],
+      foreignColumns: [activities.tenantId, activities.id, activities.areaId],
+      name: 'activity_signatures_follow_their_activity',
     }).onUpdate('cascade'),
     foreignKey({
       columns: [table.tenantId, table.activityId, table.propertyId],
@@ -130,10 +131,11 @@ export const workOrderDecisions = pgTable(
     tenantIsolation(table.tenantId),
     withinAreas(),
     unique('work_order_decisions_tenant_id_key').on(table.tenantId, table.id),
+    // The area of what the row hangs on (ADR 0003, addendum of #306).
     foreignKey({
-      columns: [table.tenantId, table.propertyId, table.areaId],
-      foreignColumns: [properties.tenantId, properties.id, properties.areaId],
-      name: 'work_order_decisions_follow_their_property',
+      columns: [table.tenantId, table.workOrderId, table.areaId],
+      foreignColumns: [workOrders.tenantId, workOrders.id, workOrders.areaId],
+      name: 'work_order_decisions_follow_their_work_order',
     }).onUpdate('cascade'),
     foreignKey({
       columns: [table.tenantId, table.workOrderId, table.propertyId],

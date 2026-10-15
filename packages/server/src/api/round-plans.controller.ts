@@ -182,17 +182,20 @@ export class RoundPlansController {
 
       holidaysKnown(this.catalogue, property.federalState, values.skipHolidays)
 
-      const buildingId = await this.buildingOf(tx, values.buildingId, property.id)
+      const building = await this.buildingOf(tx, values.buildingId, property.id)
+      // The area of the building it is made for, or of the property (ADR 0003,
+      // addendum of #306).
+      const areaId = building?.areaId ?? property.areaId
 
-      await this.mayPerform(tx, values.performerUserId ?? null, property.areaId, null)
+      await this.mayPerform(tx, values.performerUserId ?? null, areaId, null)
 
       const [made] = await tx
         .insert(roundPlans)
         .values({
           tenantId: identity.tenantId,
           propertyId: property.id,
-          buildingId,
-          areaId: property.areaId,
+          buildingId: building?.id ?? null,
+          areaId,
           templateId: values.templateId as PlanRow['templateId'],
           rhythm: plan.rhythm as PlanRhythm,
           weekdays: inOrder(plan.weekdays),
@@ -392,7 +395,10 @@ export class RoundPlansController {
     tx: TenantTransaction,
     id: unknown,
     propertyId: PlanRow['propertyId'],
-  ): Promise<PlanRow['buildingId']> {
+  ): Promise<{
+    readonly id: NonNullable<PlanRow['buildingId']>
+    readonly areaId: PlanRow['areaId']
+  } | null> {
     if (id === undefined || id === null || id === '') {
       return null
     }
@@ -400,7 +406,7 @@ export class RoundPlansController {
     const [building] =
       typeof id === 'string' && isUuid(id)
         ? await tx
-            .select({ id: buildings.id })
+            .select({ id: buildings.id, areaId: buildings.areaId })
             .from(buildings)
             .where(
               and(
@@ -415,7 +421,7 @@ export class RoundPlansController {
       throw new BadRequestException('Das Gebäude steht nicht auf dieser Liegenschaft.')
     }
 
-    return building.id
+    return building
   }
 
   /** A person named anew performs in the area; one named before stays named. */

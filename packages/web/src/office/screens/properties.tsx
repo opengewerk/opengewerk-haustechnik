@@ -186,8 +186,17 @@ export function PropertyListScreen() {
       : 0) || byName(left, right)
   const buildingsOf = (property: RecordState) =>
     [...(buildings.get(String(property['id'])) ?? [])].sort(inOrder)
+  // Narrowed to an area, a property shows the buildings in it; it is listed
+  // where it lies in the area itself or has a building there (#306).
+  const buildingsShownOf = (property: RecordState) =>
+    areaId === null
+      ? buildingsOf(property)
+      : buildingsOf(property).filter((building) => building['areaId'] === areaId)
   const shown = [...properties]
-    .filter((property) => areaId === null || property['areaId'] === areaId)
+    .filter(
+      (property) =>
+        areaId === null || property['areaId'] === areaId || buildingsShownOf(property).length > 0,
+    )
     .filter(
       (property) => search === '' || searchedIn(property, buildingsOf(property)).includes(search),
     )
@@ -200,7 +209,7 @@ export function PropertyListScreen() {
       : toDoColumns
           .filter(({ key }) => band !== 'M' || tabletColumns.includes(key))
           .filter(({ key }) => toDo.offered.includes(key))
-  const shownBuildings = shown.reduce((sum, property) => sum + buildingsOf(property).length, 0)
+  const shownBuildings = shown.reduce((sum, property) => sum + buildingsShownOf(property).length, 0)
   // What the list shows, as a table: the server reads it the same way (#138).
   const table = useTableExport(
     propertyTableRequest({
@@ -350,7 +359,7 @@ export function PropertyListScreen() {
                   sub={[
                     text(property, 'city'),
                     showsAreas ? areaWords(known, property) : null,
-                    `${buildingsOf(property).length.toLocaleString('de-DE')} Gebäude`,
+                    `${buildingsShownOf(property).length.toLocaleString('de-DE')} Gebäude`,
                   ]
                     .filter(Boolean)
                     .join(' · ')}
@@ -402,7 +411,7 @@ export function PropertyListScreen() {
                     />
                   ))}
                 </tr>,
-                ...buildingsOf(property).map((building) => (
+                ...buildingsShownOf(property).map((building) => (
                   <tr key={String(building['id'])}>
                     <Cell>
                       <div className="flex items-center gap-1.5 pl-[18px] text-ink-muted">
@@ -421,7 +430,14 @@ export function PropertyListScreen() {
                         </span>
                       </div>
                     </Cell>
-                    {showsAreas ? <Cell>{null}</Cell> : null}
+                    {/* A building names its area where it has one of its own (#306). */}
+                    {showsAreas ? (
+                      <Cell>
+                        {building['areaId'] === property['areaId']
+                          ? null
+                          : areaName(known, building['areaId'])}
+                      </Cell>
+                    ) : null}
                     {columns.map(({ key }) => (
                       <NumberCell
                         key={key}
@@ -764,7 +780,10 @@ export function PropertyScreen() {
         }
         main={
           <div className="flex min-w-0 flex-col gap-3.5">
-            <Buildings buildings={[...buildings].sort(byName)} />
+            <Buildings
+              buildings={[...buildings].sort(byName)}
+              propertyAreaId={property['areaId']}
+            />
             {/* What happened there, the newest first (#123). */}
             <TimelineCard place={{ propertyId: String(property['id']) }} />
             {/* What is to be done there, on the property and at its records (#124). */}
@@ -795,7 +814,21 @@ const buildingColumnWords: Readonly<Record<ToDoKey, string>> = {
  * when it was built and what is to do at it (#121), each number a link to its
  * list narrowed to the building.
  */
-function Buildings({ buildings }: { readonly buildings: readonly RecordState[] }) {
+function Buildings({
+  buildings,
+  propertyAreaId,
+}: {
+  readonly buildings: readonly RecordState[]
+  /** The area of the property: a building with another one has an area of its own (#306). */
+  readonly propertyAreaId: unknown
+}) {
+  const areas = useAreas()
+  // The area of a building that has one of its own, where there is more than one.
+  const ownArea = (building: RecordState): string | null =>
+    areas.length > 1 && building['areaId'] !== propertyAreaId
+      ? areaName(areas, building['areaId'])
+      : null
+
   const toDo = usePlacesToDo()
   const columns =
     toDo.numbers === null ? [] : toDoColumns.filter(({ key }) => toDo.offered.includes(key))
@@ -824,7 +857,7 @@ function Buildings({ buildings }: { readonly buildings: readonly RecordState[] }
             {text(building, 'name')}
           </Link>
         ),
-        sub: kindsOf(building).join(', '),
+        sub: [kindsOf(building).join(', '), ownArea(building)].filter(Boolean).join(' · '),
         right:
           year(building) === '' ? undefined : <span className="numeric">{year(building)}</span>,
       }))}
@@ -853,6 +886,11 @@ function Buildings({ buildings }: { readonly buildings: readonly RecordState[] }
                   </Link>
                 </div>
                 <div className="text-[12px] text-ink-faint">{kindsOf(building).join(', ')}</div>
+                {ownArea(building) === null ? null : (
+                  <div className="mt-1">
+                    <AreaBadge name={ownArea(building) ?? ''} />
+                  </div>
+                )}
               </div>
             </Cell>
             <Cell numeric>{year(building)}</Cell>

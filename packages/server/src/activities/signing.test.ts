@@ -859,6 +859,102 @@ describe('an activity with a form', () => {
     )
   })
 
+  /**
+   * The asset a point is about stands in a building with an area of its own
+   * (section 2.8 of the concept, #306): the defect hangs on that asset and
+   * lies in the area of its building, not in that of the activity. Before
+   * the test that makes the same asset in a building of the activity.
+   */
+  it('finds the defect of a point in the area of the building its asset stands in', async () => {
+    const { activity } = await activityToSign()
+    const { rows } = await admin.query<{ property_id: string }>(
+      'select property_id from activities where id = $1',
+      [activity],
+    )
+    const property = rows[0]?.property_id
+    const { rows: made } = await admin.query<{ id: string }>(
+      `insert into areas (tenant_id, name) values ($1, 'Halle') returning id`,
+      [tenant],
+    )
+    const hallArea = made[0]?.id ?? ''
+    const hall = randomUUID()
+
+    await admin.query(
+      'insert into member_areas (tenant_id, user_id, area_id) values ($1, $2, $3)',
+      [tenant, technician, hallArea],
+    )
+    await admin.query(
+      `insert into buildings (id, tenant_id, property_id, area_id, own_area_id, name, kinds)
+       values ($1, $2, $3, $4, $4, 'Halle', '{assembly}')`,
+      [hall, tenant, property, hallArea],
+    )
+
+    try {
+      await admin.query(
+        `insert into assets (id, tenant_id, property_id, area_id, building_id, kind, number, name)
+         values ($1, $2, $3, $4, $5, 'probe.elevator', 'AN-99998', 'Aufzug Halle')`,
+        [pointedAsset, tenant, property, hallArea, hall],
+      )
+      await admin.query(
+        `update activities set form_key = 'probe.door_check', form_version = 1 where id = $1`,
+        [activity],
+      )
+      await admin.query(
+        `update activity_duties set result = 'with_defects' where activity_id = $1`,
+        [activity],
+      )
+      for (const [field, remark] of [
+        ['door', 'Tür klemmt.'],
+        ['frame', 'Rahmen lose.'],
+      ]) {
+        await admin.query(
+          `insert into activity_answers (tenant_id, property_id, area_id, activity_id, field_key,
+                                         result, remark)
+           values ($1, $2, $3, $4, $5, 'not_ok', $6)`,
+          [tenant, property, area, activity, field, remark],
+        )
+      }
+
+      const input = await signatureFor(activity)
+
+      expect(
+        await refusalOf(
+          database.forTenant({ tenantId: tenant, userId: technician }, (tx) =>
+            takeSignature(
+              tx,
+              {
+                tenantId: tenant,
+                writtenBy: technician,
+                at,
+                catalogue: withADoorCheck,
+                nameOf: (id) => names[id] ?? 'Unbekanntes Konto',
+              },
+              input,
+            ),
+          ),
+        ),
+      ).toBe('taken')
+
+      const { rows: found } = await admin.query<{ asset_id: string; area_id: string }>(
+        `select asset_id, area_id from defects where found_in_activity_id = $1
+          order by description desc`,
+        [activity],
+      )
+
+      // The door is the asset in the hall, the frame stays at the activity.
+      expect(found.map((row) => row.area_id)).toEqual([hallArea, area])
+      expect(found[0]?.asset_id).toBe(pointedAsset)
+    } finally {
+      // The asset the form points at is made again by the test after this one.
+      await admin.query('delete from defects where asset_id = $1', [pointedAsset])
+      await admin.query('delete from assets where id = $1', [pointedAsset])
+      await admin.query('delete from member_areas where tenant_id = $1 and area_id = $2', [
+        tenant,
+        hallArea,
+      ])
+    }
+  })
+
   it('finds the defect of a point at the asset the point is about, and at the activity otherwise', async () => {
     const { activity } = await activityToSign()
     const { rows } = await admin.query<{

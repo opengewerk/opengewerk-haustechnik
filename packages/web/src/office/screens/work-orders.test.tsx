@@ -386,7 +386,8 @@ describe('the page of a work order', () => {
       '/auftraege/ac-remedy',
       {
         '/work-orders/ac-remedy': details(remedy),
-        '/work-orders/candidates?property=p-school': candidates,
+        // Asked with the place the order hangs on, whose area it is (#306).
+        '/work-orders/candidates?property=p-school&asset=as-door': candidates,
       },
       'site_management',
       () => ({ status: 200, body: { id: 'ac-remedy' } }),
@@ -554,7 +555,7 @@ describe('a new work order', () => {
       '/auftraege/neu?mangel=df-door',
       {
         '/defects?state=open&limit=200': register,
-        '/work-orders/candidates?property=p-school': candidates,
+        '/work-orders/candidates?property=p-school&building=b-house': candidates,
       },
       'site_management',
       () => ({ status: 201, body: { id: 'ac-new' } }),
@@ -602,7 +603,7 @@ describe('a new work order', () => {
   it('by hand at an asset sends the asset, and nothing without the person who leads it', async () => {
     const { mounted, written } = mount(
       '/auftraege/neu?anlage=as-door',
-      { '/work-orders/candidates?property=p-school': candidates },
+      { '/work-orders/candidates?property=p-school&asset=as-door': candidates },
       'site_management',
       () => ({ status: 201, body: { id: 'ac-new' } }),
     )

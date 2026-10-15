@@ -169,7 +169,7 @@ describe('the keys of the technology', () => {
     const asset = await assetIn(here)
     const besideAsset = await assetIn(beside)
     const attempts: Record<string, () => Promise<{ code: string; constraint: string }>> = {
-      assets_follow_their_property: () =>
+      assets_follow_their_building: () =>
         tried(
           `insert into assets (tenant_id, property_id, area_id, building_id, kind, name)
            values ($1, $2, $3, $4, 'probe.elevator', 'Aufzug')`,
@@ -205,7 +205,7 @@ describe('the keys of the technology', () => {
            values ($1, $2, $3, $4, 'in_service', '2020-01-01')`,
           [tenant, besideAsset, here.property, here.area],
         ),
-      asset_lifecycle_follows_its_property: () =>
+      asset_lifecycle_follows_its_asset: () =>
         tried(
           `insert into asset_lifecycle (tenant_id, asset_id, property_id, area_id, state, valid_from)
            values ($1, $2, $3, $4, 'in_service', '2020-01-01')`,
@@ -217,7 +217,7 @@ describe('the keys of the technology', () => {
            values ($1, $2, $3, $4, $5)`,
           [tenant, besideAsset, here.property, here.area, here.annex],
         ),
-      asset_supplies_follow_their_property: () =>
+      asset_supplies_follow_their_asset: () =>
         tried(
           `insert into asset_supplies (tenant_id, asset_id, property_id, area_id, building_id)
            values ($1, $2, $3, $4, $5)`,
@@ -247,7 +247,12 @@ describe('the keys of the technology', () => {
         order by 1`,
     )
 
-    expect(rows.map((row) => row.name)).toEqual(Object.keys(attempts).sort())
+    // A component stands in the building of its asset and so has its area:
+    // the key that carries the area along refuses nothing the key of the
+    // building lets through, and is asked by the move below (#306).
+    expect(rows.map((row) => row.name)).toEqual(
+      [...Object.keys(attempts), 'components_follow_their_asset'].sort(),
+    )
 
     const refused: Record<string, unknown> = {}
     const expected: Record<string, unknown> = {}
@@ -258,6 +263,48 @@ describe('the keys of the technology', () => {
     }
 
     expect(refused).toEqual(expected)
+  })
+
+  /**
+   * The key that carries the area along (#306): an asset that moves to a
+   * building with an area of its own takes its components there, building and
+   * area at once, and both cascades run before either key is checked.
+   */
+  it('carry a component along into the area of the building its asset moves to', async () => {
+    const asset = await assetIn(here, { room: null })
+    const component = await assetIn(here, { room: null, parent: asset })
+
+    await admin.query('update buildings set own_area_id = $2, area_id = $2 where id = $1', [
+      here.annex,
+      secondArea,
+    ])
+
+    try {
+      await admin.query('update assets set building_id = $2, area_id = $3 where id = $1', [
+        asset,
+        here.annex,
+        secondArea,
+      ])
+
+      const { rows } = await admin.query<{ building: string; area: string }>(
+        'select building_id as building, area_id as area from assets where id = $1',
+        [component],
+      )
+
+      expect(rows).toEqual([{ building: here.annex, area: secondArea }])
+    } finally {
+      await admin.query('update buildings set own_area_id = null, area_id = $2 where id = $1', [
+        here.annex,
+        here.area,
+      ])
+    }
+
+    const { rows: back } = await admin.query<{ area: string }>(
+      'select area_id as area from assets where id = $1',
+      [component],
+    )
+
+    expect(back).toEqual([{ area: here.area }])
   })
 
   it('take an asset in a room of its building, a component under it and what it supplies', async () => {

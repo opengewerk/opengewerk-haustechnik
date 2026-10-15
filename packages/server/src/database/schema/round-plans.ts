@@ -21,7 +21,7 @@ import {
   unique,
 } from 'drizzle-orm/pg-core'
 
-import { withinAreas } from './areas.js'
+import { areaFromPropertyColumn, areaFromTheProperty, withinAreas } from './areas.js'
 import { buildings, properties } from './locations.js'
 import { roundTemplates } from './round-templates.js'
 
@@ -57,6 +57,7 @@ export const roundPlans = pgTable(
     propertyId: reference<'property'>('property_id').notNull(),
     buildingId: reference<'building'>('building_id'),
     areaId: reference<'area'>('area_id').notNull(),
+    areaFromPropertyId: areaFromPropertyColumn(),
     templateId: reference<'round_template'>('template_id').notNull(),
     rhythm: roundPlanRhythm('rhythm').notNull(),
     weekdays: smallint('weekdays').array().$type<readonly Weekday[]>(),
@@ -76,11 +77,20 @@ export const roundPlans = pgTable(
     withinAreas(),
     // What a round and a deadline of a plan point at: a plan on their property.
     unique('round_plans_place').on(table.tenantId, table.id, table.propertyId),
+    // What a row that hangs on it points at for its area (ADR 0003, addendum of #306).
+    unique('round_plans_area_key').on(table.tenantId, table.id, table.areaId),
+    // The area of what the row hangs on (ADR 0003, addendum of #306).
     foreignKey({
-      columns: [table.tenantId, table.propertyId, table.areaId],
+      columns: [table.tenantId, table.buildingId, table.areaId],
+      foreignColumns: [buildings.tenantId, buildings.id, buildings.areaId],
+      name: 'round_plans_follow_their_building',
+    }).onUpdate('cascade'),
+    foreignKey({
+      columns: [table.tenantId, table.areaFromPropertyId, table.areaId],
       foreignColumns: [properties.tenantId, properties.id, properties.areaId],
       name: 'round_plans_follow_their_property',
     }).onUpdate('cascade'),
+    areaFromTheProperty('round_plans_area_from_the_property', table, [table.buildingId]),
     foreignKey({
       columns: [table.tenantId, table.buildingId, table.propertyId],
       foreignColumns: [buildings.tenantId, buildings.id, buildings.propertyId],

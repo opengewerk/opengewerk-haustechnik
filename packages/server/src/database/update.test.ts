@@ -148,6 +148,7 @@ describe('an installation that began on the first migration', () => {
     // settings of the deadlines hang on nothing of this.
     // The plans of the rounds hang on the places and the templates (#113),
     // the notes on a work order on its activity (#118).
+    await revertMigration(admin, '0051_building_areas')
     await revertMigration(admin, '0048_taken_over_readings')
     await revertMigration(admin, '0047_taken_over_deadlines')
     await revertMigration(admin, '0046_rights_of_shipped_roles')
@@ -333,6 +334,7 @@ describe('an installation from before the areas', () => {
     // The places hang on the areas and go first, as on the way back of an
     // installation, and so does what an invitation says about areas.
     // The plans of the rounds hang on the places and the templates (#113).
+    await revertMigration(admin, '0051_building_areas')
     await revertMigration(admin, '0048_taken_over_readings')
     await revertMigration(admin, '0047_taken_over_deadlines')
     await revertMigration(admin, '0046_rights_of_shipped_roles')
@@ -428,6 +430,7 @@ describe('an installation with places', () => {
     )
 
     // The plans of the rounds hang on the places and the templates (#113).
+    await revertMigration(admin, '0051_building_areas')
     await revertMigration(admin, '0048_taken_over_readings')
     await revertMigration(admin, '0047_taken_over_deadlines')
     await revertMigration(admin, '0046_rights_of_shipped_roles')
@@ -548,6 +551,7 @@ describe('an installation with assets', () => {
       [tenant.id, asset, at.property, at.area, at.building],
     )
 
+    await revertMigration(admin, '0051_building_areas')
     await revertMigration(admin, '0048_taken_over_readings')
     await revertMigration(admin, '0047_taken_over_deadlines')
     await revertMigration(admin, '0046_rights_of_shipped_roles')
@@ -675,6 +679,7 @@ describe('an installation with assets', () => {
       [tenant.id, at.property, at.area, at.asset],
     )
 
+    await revertMigration(admin, '0051_building_areas')
     await revertMigration(admin, '0048_taken_over_readings')
     await revertMigration(admin, '0047_taken_over_deadlines')
     await revertMigration(admin, '0046_rights_of_shipped_roles')
@@ -803,6 +808,7 @@ describe('an installation with assets', () => {
       [tenant.id, at.duty, at.property, at.area],
     )
 
+    await revertMigration(admin, '0051_building_areas')
     await revertMigration(admin, '0048_taken_over_readings')
     await revertMigration(admin, '0047_taken_over_deadlines')
     await revertMigration(admin, '0046_rights_of_shipped_roles')
@@ -934,6 +940,7 @@ describe('an installation with assets', () => {
       [tenant.id, at.property, at.area, at.asset, activityId],
     )
 
+    await revertMigration(admin, '0051_building_areas')
     await revertMigration(admin, '0048_taken_over_readings')
     await revertMigration(admin, '0047_taken_over_deadlines')
     await revertMigration(admin, '0046_rights_of_shipped_roles')
@@ -1058,6 +1065,7 @@ describe('an installation with assets', () => {
       ],
     )
 
+    await revertMigration(admin, '0051_building_areas')
     await revertMigration(admin, '0048_taken_over_readings')
     await revertMigration(admin, '0047_taken_over_deadlines')
     await revertMigration(admin, '0046_rights_of_shipped_roles')
@@ -1182,6 +1190,7 @@ describe('an installation with assets', () => {
       [at.order],
     )
 
+    await revertMigration(admin, '0051_building_areas')
     await revertMigration(admin, '0048_taken_over_readings')
     await revertMigration(admin, '0047_taken_over_deadlines')
     await revertMigration(admin, '0046_rights_of_shipped_roles')
@@ -1313,6 +1322,7 @@ describe('an installation with assets', () => {
       [tenant.id, at.property, at.area, correction],
     )
 
+    await revertMigration(admin, '0051_building_areas')
     await revertMigration(admin, '0048_taken_over_readings')
     await revertMigration(admin, '0047_taken_over_deadlines')
     await revertMigration(admin, '0046_rights_of_shipped_roles')
@@ -1391,6 +1401,7 @@ describe('an installation with assets', () => {
     expect(await mayCall('public')).toBe(false)
     expect(await mayCall('opengewerk_app')).toBe(true)
 
+    await revertMigration(admin, '0051_building_areas')
     await revertMigration(admin, '0048_taken_over_readings')
     await revertMigration(admin, '0047_taken_over_deadlines')
     await revertMigration(admin, '0046_rights_of_shipped_roles')
@@ -1461,6 +1472,7 @@ describe('an installation whose invitations name areas', () => {
       [tenant.id, invitation],
     )
 
+    await revertMigration(admin, '0051_building_areas')
     await revertMigration(admin, '0048_taken_over_readings')
     await revertMigration(admin, '0047_taken_over_deadlines')
     await revertMigration(admin, '0046_rights_of_shipped_roles')
@@ -1545,6 +1557,7 @@ describe('an installation whose properties carry notes', () => {
       [tenant.id],
     )
 
+    await revertMigration(admin, '0051_building_areas')
     await revertMigration(admin, '0048_taken_over_readings')
     await revertMigration(admin, '0047_taken_over_deadlines')
     await revertMigration(admin, '0046_rights_of_shipped_roles')
@@ -1642,6 +1655,7 @@ describe('an installation whose properties have people to talk to', () => {
       [tenant.id, property?.id, property?.area_id],
     )
 
+    await revertMigration(admin, '0051_building_areas')
     await revertMigration(admin, '0048_taken_over_readings')
     await revertMigration(admin, '0047_taken_over_deadlines')
     await revertMigration(admin, '0046_rights_of_shipped_roles')
@@ -1742,6 +1756,7 @@ describe('an installation whose buildings have times they are closed', () => {
       [tenant.id, building, property?.id, property?.area_id],
     )
 
+    await revertMigration(admin, '0051_building_areas')
     await revertMigration(admin, '0048_taken_over_readings')
     await revertMigration(admin, '0047_taken_over_deadlines')
     await revertMigration(admin, '0046_rights_of_shipped_roles')
@@ -1868,6 +1883,7 @@ describe('an installation that imported from tables', () => {
 
     expect(await quietTables()).toEqual(['assets', 'buildings', 'floors', 'properties', 'rooms'])
 
+    await revertMigration(admin, '0051_building_areas')
     await revertMigration(admin, '0048_taken_over_readings')
     await revertMigration(admin, '0047_taken_over_deadlines')
     await revertMigration(admin, '0046_rights_of_shipped_roles')
@@ -2018,6 +2034,7 @@ describe('an installation that took stock on site', () => {
       second[0]?.id,
     ])
 
+    await revertMigration(admin, '0051_building_areas')
     await revertMigration(admin, '0048_taken_over_readings')
     await revertMigration(admin, '0047_taken_over_deadlines')
     await revertMigration(admin, '0046_rights_of_shipped_roles')
@@ -2104,6 +2121,7 @@ describe('an installation that took stock on site', () => {
       { takes: 'asked_serials text[], asked_marks text[]', open: false, application: true },
     ])
 
+    await revertMigration(admin, '0051_building_areas')
     await revertMigration(admin, '0048_taken_over_readings')
     await revertMigration(admin, '0047_taken_over_deadlines')
     await revertMigration(admin, '0046_rights_of_shipped_roles')
@@ -2162,6 +2180,7 @@ describe('an installation with labels', () => {
       [tenant.id, property?.id, property?.area_id, stood[0]?.id],
     )
 
+    await revertMigration(admin, '0051_building_areas')
     await revertMigration(admin, '0048_taken_over_readings')
     await revertMigration(admin, '0047_taken_over_deadlines')
     await revertMigration(admin, '0046_rights_of_shipped_roles')
@@ -2283,6 +2302,7 @@ describe('an installation whose activities have answers', () => {
       [tenant.id, property?.id, property?.area_id, activity, 'a'.repeat(64)],
     )
 
+    await revertMigration(admin, '0051_building_areas')
     await revertMigration(admin, '0048_taken_over_readings')
     await revertMigration(admin, '0047_taken_over_deadlines')
     await revertMigration(admin, '0046_rights_of_shipped_roles')
@@ -2404,6 +2424,7 @@ describe('an installation that keeps its defects', () => {
       [tenant.id],
     )
 
+    await revertMigration(admin, '0051_building_areas')
     await revertMigration(admin, '0033_meter_key_days')
     await revertMigration(admin, '0032_meter_readings')
     await revertMigration(admin, '0031_work_order_notes')
@@ -2493,6 +2514,7 @@ describe('an installation with documents', () => {
       [tenant.id, filed[0]?.id, file],
     )
 
+    await revertMigration(admin, '0051_building_areas')
     await revertMigration(admin, '0048_taken_over_readings')
     await revertMigration(admin, '0047_taken_over_deadlines')
     await revertMigration(admin, '0046_rights_of_shipped_roles')
@@ -2633,6 +2655,7 @@ describe('an installation that exchanged an asset', () => {
       admin.query('update assets set replaces_asset_id = id where id = $1', [old[0]?.id]),
     ).rejects.toMatchObject({ constraint: 'assets_not_their_own_successor' })
 
+    await revertMigration(admin, '0051_building_areas')
     await revertMigration(admin, '0048_taken_over_readings')
     await revertMigration(admin, '0047_taken_over_deadlines')
     await revertMigration(admin, '0046_rights_of_shipped_roles')
@@ -2700,6 +2723,7 @@ describe('an installation that exchanged an asset', () => {
       'mail_server_username',
     ])
 
+    await revertMigration(admin, '0051_building_areas')
     await revertMigration(admin, '0048_taken_over_readings')
     await revertMigration(admin, '0047_taken_over_deadlines')
     await revertMigration(admin, '0046_rights_of_shipped_roles')
@@ -2776,6 +2800,7 @@ describe('an installation that exchanged an asset', () => {
       'push_subscriptions',
     ])
 
+    await revertMigration(admin, '0051_building_areas')
     await revertMigration(admin, '0048_taken_over_readings')
     await revertMigration(admin, '0047_taken_over_deadlines')
     await revertMigration(admin, '0046_rights_of_shipped_roles')
@@ -2810,6 +2835,132 @@ describe('an installation that exchanged an asset', () => {
  * right given to one of the four roles in the code, without a migration that
  * writes it into the rows that are there, leaves the tenant here without it.
  */
+/**
+ * The areas of buildings (#306, ADR 0003, addendum of 15.10.2026). An
+ * installation from before 0051 has every row in the area of its property.
+ * The update fills `area_from_property_id` where a row hangs on the property
+ * itself and nowhere else, and every new key holds for what is there. Taken
+ * back, a building with an area of its own has the one of its property again,
+ * with everything in it, and the log says why.
+ */
+describe('an installation from before buildings had areas of their own', () => {
+  /** The migrations an installation carried before 0051. */
+  const before = 51
+
+  it('keeps every row where it was, and gives a building its property back when taken back', async () => {
+    await runMigrations(ownerDatabaseUrl(), kept(migrationsFolderUpTo(before)))
+
+    const tenant = { id: newId<'tenant'>() }
+
+    await admin.query('insert into tenants (id, name) values ($1, $2)', [
+      tenant.id,
+      'Wohnbau Nord eG',
+    ])
+    await members(tenant, { 'user-lead': { roles: ['management'] } })
+
+    const { rows: first } = await admin.query<{ id: string }>(
+      'select id from areas where tenant_id = $1',
+      [tenant.id],
+    )
+    const north = first[0]?.id ?? ''
+    const { rows: second } = await admin.query<{ id: string }>(
+      `insert into areas (tenant_id, name) values ($1, 'Süd') returning id`,
+      [tenant.id],
+    )
+    const south = second[0]?.id ?? ''
+    const { rows: property } = await admin.query<{ id: string }>(
+      `insert into properties (tenant_id, area_id, name, street, postal_code, city, federal_state)
+       values ($1, $2, 'Schulzentrum', 'Am Lindenhain 7', '00003', 'Musterhausen', 'DE-BW')
+       returning id`,
+      [tenant.id, north],
+    )
+    const propertyId = property[0]?.id ?? ''
+    const { rows: building } = await admin.query<{ id: string }>(
+      `insert into buildings (tenant_id, property_id, area_id, name, kinds)
+       values ($1, $2, $3, 'Mensa', '{school}') returning id`,
+      [tenant.id, propertyId, north],
+    )
+    const buildingId = building[0]?.id ?? ''
+    const duty = (label: string, at: string | null) =>
+      admin.query<{ id: string }>(
+        `insert into duties (tenant_id, property_id, area_id, building_id, label, basis, source_note,
+                             counting, interval_months, confirmed_by)
+         values ($1, $2, $3, $4, $5, 'authority', 'Brandschutzkonzept', 'from_performance', 12,
+                 'user-lead')
+         returning id`,
+        [tenant.id, propertyId, north, at, label],
+      )
+    const onTheProperty = (await duty('Zufahrt freihalten', null)).rows[0]?.id
+    const inTheBuilding = (await duty('Fluchtwege prüfen', buildingId)).rows[0]?.id
+
+    await runMigrations(ownerDatabaseUrl())
+
+    const marks = async () =>
+      (
+        await admin.query<{ id: string; area: string; from: string | null }>(
+          `select id, area_id as area, area_from_property_id as "from" from duties
+            where tenant_id = $1
+           union all
+           select id, area_id, area_from_property_id from buildings where tenant_id = $1
+           order by 1`,
+          [tenant.id],
+        )
+      ).rows
+
+    // The building and the duty on the property take their area from it, the
+    // duty in the building from the building.
+    expect(await marks()).toEqual(
+      [
+        { id: buildingId, area: north, from: propertyId },
+        { id: onTheProperty, area: north, from: propertyId },
+        { id: inTheBuilding, area: north, from: null },
+      ].sort((left, right) => String(left.id).localeCompare(String(right.id))),
+    )
+
+    // Given an area of its own, the building takes its duty along.
+    await admin.query(
+      'update buildings set own_area_id = $2, area_id = $2 where tenant_id = $1 and id = $3',
+      [tenant.id, south, buildingId],
+    )
+
+    const { rows: moved } = await admin.query<{ area: string }>(
+      'select area_id as area from duties where id = $1',
+      [inTheBuilding],
+    )
+
+    expect(moved).toEqual([{ area: south }])
+
+    await revertMigration(admin, '0051_building_areas')
+
+    const { rows: back } = await admin.query<{ id: string; area: string }>(
+      `select id, area_id as area from duties where tenant_id = $1
+       union all
+       select id, area_id from buildings where tenant_id = $1
+       order by 1`,
+      [tenant.id],
+    )
+
+    expect(back.map((row) => row.area)).toEqual([north, north, north])
+
+    const { rows: columns } = await admin.query<{ name: string }>(
+      `select column_name as name from information_schema.columns
+        where table_schema = 'public' and column_name in ('own_area_id', 'area_from_property_id')`,
+    )
+
+    expect(columns).toEqual([])
+
+    // The log of the tenant says that the building went back, and why.
+    const { rows: logged } = await admin.query<{ table_name: string; reason: string | null }>(
+      `select distinct table_name, reason from audit_entries
+        where tenant_id = $1 and operation = 'update' and reason = 'migration'
+        order by table_name`,
+      [tenant.id],
+    )
+
+    expect(logged).toContainEqual({ table_name: 'buildings', reason: 'migration' })
+  })
+})
+
 describe('a tenant whose roles are from before a right', () => {
   /** The migrations an installation carried before 0046. */
   const before = 46

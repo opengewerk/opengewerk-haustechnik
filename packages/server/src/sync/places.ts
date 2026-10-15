@@ -192,7 +192,7 @@ async function supplyPlace(
 /**
  * A record that names its place itself, an activity or a defect: the
  * property, and at most one place on it (ADR 0002, point 10). The area comes
- * from the property.
+ * from that place, or from the property where it names none.
  */
 async function targetPlace(
   tx: TenantTransaction,
@@ -203,6 +203,10 @@ async function targetPlace(
   if (!property) {
     return missing('propertyId')
   }
+
+  // The area of what the record hangs on, of the property where it hangs on
+  // nothing else (ADR 0003, addendum of #306).
+  let areaId = property.areaId
 
   for (const [field, table] of [
     ['assetId', assets],
@@ -218,9 +222,11 @@ async function targetPlace(
     if (!place || place.propertyId !== property.id) {
       return missing(field)
     }
+
+    areaId = place.areaId
   }
 
-  values['areaId'] = property.areaId
+  values['areaId'] = areaId
 
   return null
 }
@@ -387,7 +393,7 @@ async function answerPlace(
 /**
  * A document at its place: the property, and at most one record on it, a
  * building, a room, an asset, an activity or a defect, whose photo it is
- * (#116). The area comes from the property. Every one of them has to be there
+ * (#116). The area comes from what it hangs on. Every one of them has to be there
  * for the person asking, so a document cannot be hung on a record of another
  * area or one that is gone. A defect made in the same transmission is there.
  */
@@ -401,16 +407,30 @@ async function documentPlace(
     return refusal
   }
 
+  // On an activity or a defect it lies in the area of that record, which is
+  // the one of its building where that has one of its own (#306).
   if (given(values['activityId'])) {
     const activity = await found<Activity>(tx, activities, values['activityId'])
 
-    return activity && activity.propertyId === values['propertyId'] ? null : missing('activityId')
+    if (!activity || activity.propertyId !== values['propertyId']) {
+      return missing('activityId')
+    }
+
+    values['areaId'] = activity.areaId
+
+    return null
   }
 
   if (given(values['defectId'])) {
     const defect = await found<Defect>(tx, defects, values['defectId'])
 
-    return defect && defect.propertyId === values['propertyId'] ? null : missing('defectId')
+    if (!defect || defect.propertyId !== values['propertyId']) {
+      return missing('defectId')
+    }
+
+    values['areaId'] = defect.areaId
+
+    return null
   }
 
   return null

@@ -2,7 +2,7 @@ import { contactLimits } from '@opengewerk/haustechnik-domain'
 import { contactsSchema, reference } from '@opengewerk/platform-server'
 import { check, foreignKey, index } from 'drizzle-orm/pg-core'
 
-import { withinAreas } from './areas.js'
+import { withinAreasOrABuilding } from './areas.js'
 import { optionalTrimmed, properties, trimmed } from './locations.js'
 
 /**
@@ -36,7 +36,8 @@ export type ContactPlaceColumns = typeof contactPlace
 export const { contacts } = contactsSchema({
   columns: contactPlace,
   constraints: (table) => [
-    withinAreas(),
+    // Seen also by whoever holds only the area of a building on the property (#306).
+    withinAreasOrABuilding('contacts', 'property_id'),
     foreignKey({
       columns: [table.tenantId, table.propertyId, table.areaId],
       foreignColumns: [properties.tenantId, properties.id, properties.areaId],

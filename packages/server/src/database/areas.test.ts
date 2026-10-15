@@ -727,14 +727,16 @@ describe('a person with the north', () => {
     expect((await roomOn(south.floor, south.building, south.property, area.south)).code).toBe(
       insufficientPrivilege,
     )
-    // Naming the north for a place of the south: the key that follows the property.
+    // Naming the north for a place of the south: the key that follows what
+    // the row hangs on, the property for a building and the building for a
+    // room (ADR 0003, addendum of #306).
     expect(await buildingOn(south.property, area.north)).toEqual({
       code: '23503',
       constraint: 'buildings_follow_their_property',
     })
     expect(await roomOn(south.floor, south.building, south.property, area.north)).toEqual({
       code: '23503',
-      constraint: 'rooms_follow_their_property',
+      constraint: 'rooms_follow_their_building',
     })
     // A floor of the south under the building and property of the north: the
     // keys that hold the levels together.
@@ -853,6 +855,175 @@ describe('a property moved to another area', () => {
     }
 
     expect(await areasSeen('rooms', person.north)).toEqual(['north'])
+  })
+})
+
+/**
+ * A building with an area of its own (section 2.8 of the concept, ADR 0003,
+ * addendum of #306): the building of the north is given the south, and
+ * everything in it follows, while what hangs on the property itself stays
+ * with the property. In the fixture the duty hangs on the property, and with
+ * it its evidence, deadline, voiding and print; everything else is in the
+ * building.
+ */
+describe('a building with an area of its own', () => {
+  const own = (to: string | null) =>
+    database.forTenant({ tenantId: tenant, userId: person.lead }, (tx) =>
+      tx.execute(sql`update buildings
+                        set own_area_id = ${to},
+                            area_id = coalesce(${to}::uuid, (select area_id from properties
+                                                              where id = ${place.north.property}))
+                      where id = ${place.north.building}`),
+    )
+
+  /** The properties whose rows of a table somebody reads, by the area the property is in. */
+  async function propertiesSeen(table: string, userId: string): Promise<string[]> {
+    const column = table === 'properties' ? 'id' : 'property_id'
+    const rows = await database.forTenant({ tenantId: tenant, userId }, (tx) =>
+      tx.execute<{ property_id: string }>(
+        sql.raw(`select distinct ${column}::text as property_id from ${table}`),
+      ),
+    )
+
+    return rows.rows
+      .map((row) =>
+        row.property_id === place.north.property
+          ? 'north'
+          : row.property_id === place.south.property
+            ? 'south'
+            : row.property_id,
+      )
+      .sort()
+  }
+
+  it('takes everything in it along and leaves what hangs on the property', async () => {
+    const { rows: tables } = await admin.query<{ table_name: string }>(
+      `select distinct c.relname as table_name
+         from pg_attribute a
+         join pg_class c on c.oid = a.attrelid
+         join pg_namespace n on n.oid = c.relnamespace
+        where n.nspname = 'public' and c.relkind = 'r' and a.attname = 'property_id'
+          and not a.attisdropped
+        order by 1`,
+    )
+    const onTheProperty = [
+      'contacts',
+      'deadlines',
+      'duties',
+      'evidence',
+      'evidence_voidings',
+      'prints',
+    ]
+
+    await own(area.south)
+
+    try {
+      const found: Record<string, unknown> = {}
+      const expected: Record<string, unknown> = {}
+
+      for (const { table_name: table } of tables) {
+        const { rows } = await admin.query<{ area: string }>(
+          `select distinct area_id::text as area from ${table} where property_id = $1`,
+          [place.north.property],
+        )
+
+        found[table] = rows.map((row) => named(row.area))
+        expected[table] = [onTheProperty.includes(table) ? 'north' : 'south']
+      }
+
+      expect(found).toEqual(expected)
+
+      // Whoever holds the north sees the property and what hangs on it, and
+      // nothing of the building; whoever holds the south sees the property,
+      // its contacts and the building with everything in it, and nothing else
+      // that hangs on the property.
+      expect(await propertiesSeen('properties', person.north)).toEqual(['north'])
+      expect(await propertiesSeen('buildings', person.north)).toEqual([])
+      expect(await propertiesSeen('rooms', person.north)).toEqual([])
+      expect(await propertiesSeen('duties', person.north)).toEqual(['north'])
+      expect(await propertiesSeen('properties', person.south)).toEqual(['north', 'south'])
+      expect(await propertiesSeen('contacts', person.south)).toEqual(['north', 'south'])
+      expect(await propertiesSeen('buildings', person.south)).toEqual(['north', 'south'])
+      expect(await propertiesSeen('meter_readings', person.south)).toEqual(['north', 'south'])
+      expect(await propertiesSeen('duties', person.south)).toEqual(['south'])
+      expect(await propertiesSeen('evidence', person.south)).toEqual(['south'])
+    } finally {
+      await own(null)
+    }
+
+    const { rows: back } = await admin.query<{ rows: number }>(
+      `select count(*)::int as rows from rooms where property_id = $1 and area_id = $2`,
+      [place.north.property, area.north],
+    )
+
+    expect(back).toEqual([{ rows: 1 }])
+    expect(await propertiesSeen('properties', person.south)).toEqual(['south'])
+  })
+
+  it('follows a property that moves only without an area of its own', async () => {
+    const move = (to: string) =>
+      database.forTenant({ tenantId: tenant, userId: person.lead }, (tx) =>
+        tx.execute(sql`update properties set area_id = ${to} where id = ${place.north.property}`),
+      )
+    const areaOf = async (table: string) =>
+      (
+        await admin.query<{ area: string }>(
+          `select distinct area_id::text as area from ${table} where property_id = $1`,
+          [place.north.property],
+        )
+      ).rows.map((row) => named(row.area))
+
+    await own(area.north)
+    await move(area.south)
+
+    try {
+      // The building keeps its own area, the property and its duty move.
+      expect(await areaOf('rooms')).toEqual(['north'])
+      expect(await areaOf('duties')).toEqual(['south'])
+    } finally {
+      await move(area.north)
+      await own(null)
+    }
+
+    await move(area.south)
+
+    try {
+      // Without one of its own, the building follows its property.
+      expect(await areaOf('rooms')).toEqual(['south'])
+    } finally {
+      await move(area.north)
+    }
+  })
+
+  it('refuses an area that is not the one of what a row hangs on', async () => {
+    const tried = (statement: ReturnType<typeof sql>) =>
+      refusedBy(triedAs(person.lead, (tx) => tx.execute(statement)))
+
+    // An area of its own beside another area on the building: its check.
+    expect(
+      await tried(sql`update buildings set own_area_id = ${area.south}
+                        where id = ${place.north.building}`),
+    ).toEqual({ code: '23514', constraint: 'buildings_area_own_or_of_the_property' })
+
+    await own(area.south)
+
+    try {
+      // A room that names the area of its property and not that of its building.
+      expect(
+        await tried(sql`insert into rooms (tenant_id, floor_id, building_id, property_id, area_id, number)
+                        values (${tenant}, ${place.north.floor}, ${place.north.building},
+                                ${place.north.property}, ${area.north}, '0.03')`),
+      ).toEqual({ code: '23503', constraint: 'rooms_follow_their_building' })
+      // A duty on the property itself that names the area of the building.
+      expect(
+        await tried(sql`insert into duties (tenant_id, property_id, area_id, label, basis, source_note,
+                                            counting, interval_months, confirmed_by)
+                        values (${tenant}, ${place.north.property}, ${area.south}, 'Probe', 'authority',
+                                'Probe', 'from_performance', 12, ${person.lead})`),
+      ).toEqual({ code: '23503', constraint: 'duties_follow_their_property' })
+    } finally {
+      await own(null)
+    }
   })
 })
 
@@ -1324,7 +1495,8 @@ describe('the catalogue', () => {
         'probe_more',
       ),
     ).toEqual([
-      'table probe_more: no key over (tenant_id, property_id, area_id) to properties with ON UPDATE CASCADE',
+      'table probe_more, key probe_more_follows: holds area_id to properties without running over (tenant_id, a column, area_id) to (tenant_id, id, area_id) with ON UPDATE CASCADE',
+      'table probe_more: no key that keeps its area with what it hangs on, over (tenant_id, a column, area_id) with ON UPDATE CASCADE',
     ])
 
     expect(
@@ -1347,6 +1519,49 @@ describe('the catalogue', () => {
       ),
     ).toEqual([
       'table probe_more, policy within_areas: not restrictive for every command, so another policy can widen it',
+    ])
+  })
+
+  /**
+   * A row that hangs on a room or on the property itself (ADR 0003, addendum
+   * of #306): the key onto the room holds only where a room is named, so the
+   * property needs `area_from_property_id`, with its key, its trigger and its
+   * check.
+   */
+  it('refuses a row that can hang on nothing whose area it follows', async () => {
+    const onARoom = `CREATE TABLE probe_more (${columns},
+       room_id uuid,
+       CONSTRAINT probe_more_follow_their_room FOREIGN KEY (tenant_id, room_id, area_id)
+         REFERENCES rooms (tenant_id, id, area_id) ON UPDATE CASCADE`
+
+    expect(await problemsWith([`${onARoom})`, ...protections('probe_more')], 'probe_more')).toEqual(
+      [
+        'table probe_more: none of the keys of its area holds for every row, and it carries no area_from_property_id',
+      ],
+    )
+
+    expect(
+      await problemsWith(
+        [
+          `${onARoom},
+             area_from_property_id uuid,
+             CONSTRAINT probe_more_follow_their_property FOREIGN KEY (tenant_id, area_from_property_id, area_id)
+               REFERENCES properties (tenant_id, id, area_id) ON UPDATE CASCADE,
+             CONSTRAINT probe_more_area_from_the_property CHECK (area_from_property_id IS NOT DISTINCT FROM
+               (CASE WHEN num_nonnulls(room_id) = 0 THEN property_id END)))`,
+          `CREATE TRIGGER area_from_the_property BEFORE INSERT OR UPDATE OF property_id ON probe_more
+             FOR EACH ROW EXECUTE FUNCTION area_from_the_property()`,
+          ...protections('probe_more'),
+        ],
+        'probe_more',
+      ),
+    ).toEqual([
+      'table probe_more: the trigger area_from_the_property does not know room_id, over which a key keeps the area',
+      `table probe_more: no check probe_more_area_from_the_property for the columns the trigger knows: CHECK ((NOT (area_from_property_id IS DISTINCT FROM
+CASE
+    WHEN (num_nonnulls(room_id) = 0) THEN property_id
+    ELSE NULL::uuid
+END)))`,
     ])
   })
 

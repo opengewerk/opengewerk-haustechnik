@@ -129,6 +129,29 @@ export async function areaFor(tx: TenantTransaction, named: unknown): Promise<Ar
   return found[0].id
 }
 
+/**
+ * The area a building takes from a body (section 2.8 of the concept, ADR
+ * 0003, addendum of #306): one of its own where the body names an area of
+ * the tenant that is not the one of its property, and the area of its
+ * property where the body names nothing or that one. A building given the
+ * area of its property follows the property when it moves.
+ */
+export async function buildingAreaFor(
+  tx: TenantTransaction,
+  named: unknown,
+  propertyAreaId: AreaId,
+): Promise<{ readonly areaId: AreaId; readonly ownAreaId: AreaId | null }> {
+  if (named === undefined || named === null || named === '') {
+    return { areaId: propertyAreaId, ownAreaId: null }
+  }
+
+  const area = await areaFor(tx, named)
+
+  return area === propertyAreaId
+    ? { areaId: propertyAreaId, ownAreaId: null }
+    : { areaId: area, ownAreaId: area }
+}
+
 /** Whether a field of a body names something: neither left out, nor emptied. */
 export function given(value: unknown): boolean {
   return value !== undefined && value !== null && value !== ''
@@ -175,7 +198,7 @@ export async function targetOf(
       'Diese Anlage gibt es nicht oder nicht mehr.',
     )
 
-    place = { propertyId: asset.propertyId, assetId: asset.id }
+    place = { propertyId: asset.propertyId, areaId: asset.areaId, assetId: asset.id }
   } else if (given(values['roomId'])) {
     const room = await placeOf<Room>(
       tx,
@@ -184,7 +207,7 @@ export async function targetOf(
       'Diesen Raum gibt es nicht oder nicht mehr.',
     )
 
-    place = { propertyId: room.propertyId, roomId: room.id }
+    place = { propertyId: room.propertyId, areaId: room.areaId, roomId: room.id }
   } else if (given(values['buildingId'])) {
     const building = await placeOf<Building>(
       tx,
@@ -193,7 +216,7 @@ export async function targetOf(
       'Dieses Gebäude gibt es nicht oder nicht mehr.',
     )
 
-    place = { propertyId: building.propertyId, buildingId: building.id }
+    place = { propertyId: building.propertyId, areaId: building.areaId, buildingId: building.id }
   } else if (given(values['propertyId'])) {
     place = { propertyId: String(values['propertyId']) as Target['propertyId'] }
   } else {
@@ -215,7 +238,9 @@ export async function targetOf(
 
   return {
     propertyId: property.id,
-    areaId: property.areaId,
+    // The area of what the record hangs on, of the property where it hangs on
+    // nothing else (ADR 0003, addendum of #306).
+    areaId: place.areaId ?? property.areaId,
     buildingId: place.buildingId ?? null,
     roomId: place.roomId ?? null,
     assetId: place.assetId ?? null,

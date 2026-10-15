@@ -68,5 +68,13 @@ export const assigned: Check = async ({ tx, operation, values, current }) => {
     .where(and(eq(labels.assetId, asset.id), labelIsValid(labels.blockedAt, labels.deletedAt)))
   const refusal = labelAssignmentRefusal(current, asset, valid !== undefined)
 
-  return refusal === null ? null : answers[refusal]
+  if (refusal !== null) {
+    return answers[refusal]
+  }
+
+  // A label of a sheet lies in the area of its property; on the asset it
+  // lies in that of the asset, which is the one of its building (#306).
+  values['areaId'] = asset.areaId
+
+  return null
 }

@@ -261,7 +261,8 @@ export function decisionsOf(value: unknown): ReadonlyMap<number, DuplicateDecisi
 /** What the person importing can see, which is what a line can name and collide with. */
 export interface AssetImportStock {
   readonly properties: readonly Pick<Property, 'id' | 'name' | 'areaId'>[]
-  readonly buildings: readonly Pick<Building, 'id' | 'propertyId' | 'name'>[]
+  /** With its area, which is its own where it has one (#306). */
+  readonly buildings: readonly Pick<Building, 'id' | 'propertyId' | 'name' | 'areaId'>[]
   readonly floors: readonly Pick<Floor, 'id' | 'buildingId' | 'name'>[]
   readonly rooms: readonly Pick<Room, 'id' | 'floorId' | 'buildingId' | 'number' | 'name'>[]
   /** The assets that carry a serial number or a mark. */
@@ -626,7 +627,8 @@ function placeOf(
     return null
   }
 
-  const place = { propertyId: property.id, areaId: property.areaId, buildingId: building.id }
+  // The area of the building the asset stands in (#306).
+  const place = { propertyId: property.id, areaId: building.areaId, buildingId: building.id }
 
   if (cell('room') === '') {
     return { ...place, roomId: null }

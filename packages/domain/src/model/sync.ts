@@ -13,6 +13,13 @@ import {
  */
 const officeOnly: SyncPolicy = { create: false, change: 'never' }
 
+/**
+ * The property a row names a second time where it hangs on the property
+ * itself, for the key of its area (ADR 0003, addendum of #306). A trigger
+ * fills it, and no device and no form writes it.
+ */
+const areaFromProperty = 'areaFromPropertyId'
+
 /** The states of an activity while its work goes on, before a signature fixes it. */
 const inProgress: readonly SyncValue[] = ['open', 'started']
 
@@ -37,7 +44,7 @@ const toBeSigned: readonly SyncValue[] = [...inProgress, 'signed']
 export const syncPolicies: Readonly<Record<string, SyncPolicy>> = {
   // The places: the office keeps them, with a connection.
   properties: officeOnly,
-  buildings: officeOnly,
+  buildings: { ...officeOnly, reserved: [areaFromProperty] },
   floors: officeOnly,
   // The people to talk to at a property: whoever keeps the properties keeps
   // them, and a device holds them to read and to call.
@@ -52,7 +59,7 @@ export const syncPolicies: Readonly<Record<string, SyncPolicy>> = {
   round_template_versions: officeOnly,
   // The plans of the rounds (#113): whoever plans and hands out work keeps
   // them, and a device holds those of its areas, to read.
-  round_plans: officeOnly,
+  round_plans: { ...officeOnly, reserved: [areaFromProperty] },
   // A room is taken stock of on site; its building, property and area follow
   // its floor.
   rooms: { create: true, change: 'merge', reserved: ['buildingId', 'propertyId', 'areaId'] },
@@ -69,7 +76,7 @@ export const syncPolicies: Readonly<Record<string, SyncPolicy>> = {
   asset_lifecycle: officeOnly,
   asset_supplies: { create: true, change: 'merge', reserved: ['propertyId', 'areaId'] },
   // The register of duties: the office keeps it.
-  duties: officeOnly,
+  duties: { ...officeOnly, reserved: [areaFromProperty] },
   duty_dismissals: officeOnly,
   // An activity takes its progress from a device while its work goes on; a
   // signature or the office ends it, and then a device corrects nothing. One
@@ -82,7 +89,7 @@ export const syncPolicies: Readonly<Record<string, SyncPolicy>> = {
     // The form it is filled in is the server's, written when it is made (#106),
     // and so is the day of the protocol it took as its template (#108) and
     // the plan of a round that made it (#113).
-    reserved: ['areaId', 'formKey', 'formVersion', 'templateOn', 'roundPlanId'],
+    reserved: ['areaId', areaFromProperty, 'formKey', 'formVersion', 'templateOn', 'roundPlanId'],
   },
   // The result of each duty, until the activity is signed.
   activity_duties: {
@@ -143,7 +150,11 @@ export const syncPolicies: Readonly<Record<string, SyncPolicy>> = {
     reserved: ['activityKind', 'propertyId', 'areaId', 'writtenBy'],
   },
   // The answer a defect came of is the server's, written with the signature (#106).
-  defects: { create: true, change: 'merge', reserved: ['areaId', 'foundInAnswerId'] },
+  defects: {
+    create: true,
+    change: 'merge',
+    reserved: ['areaId', areaFromProperty, 'foundInAnswerId'],
+  },
   // A signature is given on the device, also without a connection, and never
   // changed (ADR 0004, point 10). Who gave it is the person signed in, and
   // the server writes what comes of it: the evidence, once every signature
@@ -166,7 +177,7 @@ export const syncPolicies: Readonly<Record<string, SyncPolicy>> = {
   // its kind are corrected afterwards; what it hangs on stays. The area
   // follows its property. That it was taken over from a predecessor
   // application only the import of the server says (#130).
-  attachments: { create: true, change: 'merge', reserved: ['areaId', 'legacy'] },
+  attachments: { create: true, change: 'merge', reserved: ['areaId', areaFromProperty, 'legacy'] },
   // A version is made and never changed, and who filed it is the server's to
   // write. It carries no place: it is seen with its document.
   attachment_versions: attachmentVersionPolicy,
@@ -208,13 +219,13 @@ export const syncPolicies: Readonly<Record<string, SyncPolicy>> = {
     create: false,
     change: 'merge',
     onlyWhile: { field: 'blockedAt', values: [null] },
-    reserved: ['code', 'propertyId', 'areaId'],
+    reserved: ['code', 'propertyId', 'areaId', areaFromProperty],
   },
   // A task is written and done in the office and on site, also without a
   // connection (#124). Its area follows its property, and who wrote it is the
   // server's to say: a device that set it could put its task under somebody
   // else's name, and no person wrote one the deadline engine makes.
-  tasks: { create: true, change: 'merge', reserved: ['areaId', 'createdBy'] },
+  tasks: { create: true, change: 'merge', reserved: ['areaId', areaFromProperty, 'createdBy'] },
 }
 
 /**
@@ -515,6 +526,8 @@ export const syncFieldNames: Readonly<Record<string, string>> = {
   // The place, and what a row hangs on. A property names its area, which
   // the office chooses; every other row takes it from its property.
   areaId: 'Bereich',
+  // The area given to a building itself (#306), which the office sets.
+  ownAreaId: 'Eigener Bereich',
   propertyId: 'Liegenschaft',
   buildingId: 'Gebäude',
   floorId: 'Geschoss',

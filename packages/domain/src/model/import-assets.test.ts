@@ -74,9 +74,9 @@ const stock: AssetImportStock = {
     { id: townHall, name: 'Rathaus', areaId: south },
   ],
   buildings: [
-    { id: school, propertyId: centre, name: 'Schulhaus' },
-    { id: gym, propertyId: centre, name: 'Turnhalle' },
-    { id: oldWing, propertyId: townHall, name: 'Altbau' },
+    { id: school, propertyId: centre, name: 'Schulhaus', areaId: north },
+    { id: gym, propertyId: centre, name: 'Turnhalle', areaId: north },
+    { id: oldWing, propertyId: townHall, name: 'Altbau', areaId: south },
   ],
   floors: [
     { id: ground, buildingId: school, name: 'Erdgeschoss' },
@@ -257,6 +257,19 @@ describe('where the asset of a line stands', () => {
     ])
   })
 
+  it('lies in the area of its building where that has one of its own (#306)', () => {
+    const plan = planOf([{ ...hall, property: 'Schulzentrum', building: 'Turnhalle' }], {
+      stock: {
+        ...stock,
+        buildings: stock.buildings.map((building) =>
+          building.id === gym ? { ...building, areaId: south } : building,
+        ),
+      },
+    })
+
+    expect(plan.create).toEqual([made(2, { propertyId: centre, areaId: south, buildingId: gym })])
+  })
+
   it('is a problem where the line names no property or one that is not there', () => {
     expect(planOf([{ ...hall, property: '' }]).problems).toEqual([
       { lines: [2], what: 'Die Liegenschaft fehlt', next: correctTheFile },
@@ -307,7 +320,7 @@ describe('where the asset of a line stands', () => {
         ...stock,
         buildings: [
           ...stock.buildings,
-          { id: 'b-9' as BuildingId, propertyId: centre, name: 'SCHULHAUS' },
+          { id: 'b-9' as BuildingId, propertyId: centre, name: 'SCHULHAUS', areaId: north },
         ],
       },
     })
@@ -327,7 +340,7 @@ describe('where the asset of a line stands', () => {
         ...stock,
         buildings: [
           ...stock.buildings,
-          { id: 'b-9' as BuildingId, propertyId: townHall, name: 'Schulhaus' },
+          { id: 'b-9' as BuildingId, propertyId: townHall, name: 'Schulhaus', areaId: south },
         ],
       },
     })

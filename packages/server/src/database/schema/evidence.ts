@@ -24,7 +24,7 @@ import { activities } from './activities.js'
 import { withinAreas } from './areas.js'
 import { duties } from './duties.js'
 import { evidenceResult } from './evidence-result.js'
-import { optionalTrimmed, properties, trimmed } from './locations.js'
+import { optionalTrimmed, trimmed } from './locations.js'
 
 /** What an evidence came from, from the list in `domain`. */
 export const evidenceOrigin = pgEnum('evidence_origin', evidenceOrigins)
@@ -81,6 +81,8 @@ export const evidence = pgTable(
     tenantIsolation(table.tenantId),
     withinAreas(),
     unique('evidence_tenant_id_key').on(table.tenantId, table.id),
+    // What a row that hangs on it points at for its area (ADR 0003, addendum of #306).
+    unique('evidence_area_key').on(table.tenantId, table.id, table.areaId),
     // What a correction and a declaration of invalidity point at.
     unique('evidence_tenant_id_property_duty_key').on(
       table.tenantId,
@@ -89,10 +91,11 @@ export const evidence = pgTable(
       table.dutyId,
     ),
     unique('evidence_tenant_id_property_key').on(table.tenantId, table.id, table.propertyId),
+    // The area of what the row hangs on (ADR 0003, addendum of #306).
     foreignKey({
-      columns: [table.tenantId, table.propertyId, table.areaId],
-      foreignColumns: [properties.tenantId, properties.id, properties.areaId],
-      name: 'evidence_follows_its_property',
+      columns: [table.tenantId, table.dutyId, table.areaId],
+      foreignColumns: [duties.tenantId, duties.id, duties.areaId],
+      name: 'evidence_follows_its_duty',
     }).onUpdate('cascade'),
     foreignKey({
       columns: [table.tenantId, table.dutyId, table.propertyId],
@@ -225,10 +228,11 @@ export const evidenceVoidings = pgTable(
     tenantIsolation(table.tenantId),
     withinAreas(),
     unique('evidence_voidings_tenant_id_key').on(table.tenantId, table.id),
+    // The area of what the row hangs on (ADR 0003, addendum of #306).
     foreignKey({
-      columns: [table.tenantId, table.propertyId, table.areaId],
-      foreignColumns: [properties.tenantId, properties.id, properties.areaId],
-      name: 'evidence_voidings_follow_their_property',
+      columns: [table.tenantId, table.evidenceId, table.areaId],
+      foreignColumns: [evidence.tenantId, evidence.id, evidence.areaId],
+      name: 'evidence_voidings_follow_their_evidence',
     }).onUpdate('cascade'),
     foreignKey({
       columns: [table.tenantId, table.evidenceId, table.propertyId],

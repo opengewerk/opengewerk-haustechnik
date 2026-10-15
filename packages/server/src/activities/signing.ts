@@ -137,7 +137,9 @@ export function pageFingerprint(page: SignedPage): string {
   return stateFingerprint(page)
 }
 
-type ActivityRow = typeof activities.$inferSelect
+// Without the column that only the key of the area reads (ADR 0003, addendum
+// of #306), so that an activity of the model is one as well.
+type ActivityRow = Omit<typeof activities.$inferSelect, 'areaFromPropertyId'>
 type SignatureRow = typeof activitySignatures.$inferSelect
 
 /**
@@ -703,7 +705,6 @@ async function defectsFromAnswers(
     await tx.insert(defects).values({
       tenantId: context.tenantId,
       propertyId: activity.propertyId,
-      areaId: activity.areaId,
       ...(await placeOfFinding(tx, activity, finding.about)),
       foundInActivityId: activity.id,
       foundInAnswerId: finding.answer.id,
@@ -797,8 +798,11 @@ async function placeOfFinding(
   tx: TenantTransaction,
   activity: ActivityRow,
   about: { readonly kind: string; readonly id: string } | null,
-): Promise<Pick<ActivityRow, 'buildingId' | 'roomId' | 'assetId'>> {
+): Promise<Pick<ActivityRow, 'areaId' | 'buildingId' | 'roomId' | 'assetId'>> {
+  // The area comes with the place: the one of what the defect hangs on (ADR
+  // 0003, addendum of #306).
   const atTheActivity = {
+    areaId: activity.areaId,
     buildingId: activity.buildingId,
     roomId: activity.roomId,
     assetId: activity.assetId,
@@ -806,7 +810,7 @@ async function placeOfFinding(
 
   if (about?.kind === 'asset') {
     const [asset] = await tx
-      .select({ id: assets.id })
+      .select({ id: assets.id, areaId: assets.areaId })
       .from(assets)
       .where(
         and(
@@ -817,12 +821,14 @@ async function placeOfFinding(
         ),
       )
 
-    return asset ? { buildingId: null, roomId: null, assetId: asset.id } : atTheActivity
+    return asset
+      ? { areaId: asset.areaId, buildingId: null, roomId: null, assetId: asset.id }
+      : atTheActivity
   }
 
   if (about?.kind === 'room') {
     const [room] = await tx
-      .select({ id: rooms.id })
+      .select({ id: rooms.id, areaId: rooms.areaId })
       .from(rooms)
       .where(
         and(
@@ -833,7 +839,9 @@ async function placeOfFinding(
         ),
       )
 
-    return room ? { buildingId: null, roomId: room.id, assetId: null } : atTheActivity
+    return room
+      ? { areaId: room.areaId, buildingId: null, roomId: room.id, assetId: null }
+      : atTheActivity
   }
 
   return atTheActivity

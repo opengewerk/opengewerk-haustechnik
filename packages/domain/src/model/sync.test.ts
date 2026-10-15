@@ -137,7 +137,7 @@ describe('the policies of the sync', () => {
       create: false,
       change: 'merge',
       onlyWhile: { field: 'blockedAt', values: [null] },
-      reserved: ['code', 'propertyId', 'areaId'],
+      reserved: ['code', 'propertyId', 'areaId', 'areaFromPropertyId'],
     })
     expect(offlineEdits['labels']).toEqual({ change: { assetId: true } })
   })

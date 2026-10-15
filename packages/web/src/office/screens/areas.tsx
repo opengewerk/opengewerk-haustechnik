@@ -5,6 +5,7 @@ import {
   areaTableColumns,
   areaTableWords,
   type MemberAreas,
+  ownBuildingsIn,
   whatLiesIn,
 } from '@opengewerk/haustechnik-domain'
 import {
@@ -52,8 +53,14 @@ import { memberAreasQuery } from '../staff-areas.js'
 export interface AreaEntry extends Area {
   /** The properties in it, by name. */
   readonly properties: readonly { readonly id: string; readonly name: string }[]
-  /** How many buildings stand on them. */
+  /** How many buildings lie in it: on its properties, and elsewhere with it as their own. */
   readonly buildings: number
+  /** The buildings that have it as an area of their own, each with its property (#306). */
+  readonly ownBuildings: readonly {
+    readonly id: string
+    readonly name: string
+    readonly propertyName: string
+  }[]
   /** Who it is named for, of those who can work. Whoever holds in every area is not among them. */
   readonly members: readonly { readonly userId: string; readonly name: string }[]
 }
@@ -65,7 +72,7 @@ export const areaOverviewQuery = {
 
 export const areaScreenWords = {
   title: 'Bereiche',
-  what: 'Welche Liegenschaften zusammengehören, und wer sie sieht.',
+  what: 'Welche Liegenschaften und Gebäude zusammengehören, und wer sie sieht.',
   caption: 'Bereiche dieses Betreibers',
   add: 'Bereich anlegen',
   rename: 'Umbenennen',
@@ -73,19 +80,24 @@ export const areaScreenWords = {
   moveAndRemove: 'Verlegen und entfernen',
   rule:
     'Leitung und Technische Leitung sehen alle Bereiche. Eine Liegenschaft gehört zu genau einem ' +
-    'Bereich. Entfernen lässt sich ein Bereich erst, wenn keine Liegenschaft mehr in ihm liegt.',
+    'Bereich, ein Gebäude zu dem seiner Liegenschaft oder einem eigenen. Entfernen lässt sich ein ' +
+    'Bereich erst, wenn keine Liegenschaft und kein Gebäude mit eigenem Bereich mehr in ihm liegt.',
   noProperty: areaTableWords.noProperty,
   nobody: areaTableWords.nobody,
+  movingTitle: 'Liegenschaft oder Gebäude verschieben',
   moving:
-    'Eine Liegenschaft wechselt den Bereich über ihre Seite, „Bearbeiten“. Alles an ihr wechselt ' +
-    'mit: Gebäude, Räume, Anlagen, Pflichten und Vorgänge. Wer den Bereich nicht hat, sieht sie ' +
-    'danach nicht mehr.',
+    'Eine Liegenschaft wechselt den Bereich über ihre Seite, „Bearbeiten“, ein Gebäude über ' +
+    'seine. Alles darin wechselt mit: Räume, Anlagen, Pflichten und Vorgänge, und an einer ' +
+    'Liegenschaft jedes Gebäude ohne eigenen Bereich. Wer den Bereich nicht hat, sieht danach ' +
+    'nicht mehr, was gewechselt hat.',
   onlyOne:
     'Ein kleiner Betreiber hat einen einzigen Bereich und merkt nichts davon; der erste heißt ' +
     '„Alle Liegenschaften“.',
   enforced:
     'Durchgesetzt wird der Bereich in der Datenbank, nicht in jeder Abfrage: eine Zeile mit ' +
-    'Ortsbezug trägt ihren Bereich, und nur die Bereiche der Anfrage kommen durch.',
+    'Ortsbezug trägt ihren Bereich, und nur die Bereiche der Anfrage kommen durch. Wer nur den ' +
+    'Bereich eines Gebäudes hat, sieht die Liegenschaft mit Anschrift und Ansprechpartnern und ' +
+    'darin nur seine Gebäude.',
   whatAnAreaIs: 'Ein Bereich fasst Liegenschaften zusammen, die dieselben Leute sehen.',
   newOne:
     'Den neuen Bereich hat zunächst niemand außer Leitung und Technischer Leitung. Wer ihn ' +
@@ -93,7 +105,9 @@ export const areaScreenWords = {
   renamed:
     'Der Name steht überall, wo eine Liegenschaft ihren Bereich nennt. Wer den Bereich hat, ' +
     'behält ihn.',
-  emptyFirst: 'Ein Bereich lässt sich erst entfernen, wenn keine Liegenschaft mehr in ihm liegt.',
+  emptyFirst:
+    'Ein Bereich lässt sich erst entfernen, wenn keine Liegenschaft und kein Gebäude mit eigenem ' +
+    'Bereich mehr in ihm liegt.',
   moveTo: 'Verlegen nach',
   whereTo: 'Bitte wählen, wohin die Liegenschaften verlegt werden.',
   whoeverHoldsOnlyThis:
@@ -138,21 +152,46 @@ export function inASentence(names: readonly string[]): string {
   return names.length === 1 ? last : `${names.slice(0, -1).join(', ')} und ${last}`
 }
 
-/** What still lies in an area that is to go, and what happens to it first. */
-export function whatMovesFirst(area: Pick<AreaEntry, 'name' | 'properties'>): string {
+/**
+ * What still lies in an area that is to go, and what happens to it first. A
+ * building with the area as its own goes along (#306); where only such
+ * buildings are left, the sentence names them.
+ */
+export function whatMovesFirst(
+  area: Pick<AreaEntry, 'name' | 'properties' | 'ownBuildings'>,
+): string {
+  const own = area.ownBuildings.length
+  const ownNamed = inASentence(
+    firstOf(
+      area.ownBuildings.map((building) => `${building.name} (${building.propertyName})`),
+      namedInTheQuestion,
+    ),
+  )
+
+  if (area.properties.length === 0) {
+    return own === 1
+      ? `In „${area.name}“ liegt keine Liegenschaft, aber 1 Gebäude mit eigenem Bereich: ${ownNamed}. ` +
+          'Es wird vorher in einen anderen Bereich verlegt, mit allem, was darin liegt.'
+      : `In „${area.name}“ liegt keine Liegenschaft, aber ${String(own)} Gebäude mit eigenem ` +
+          `Bereich: ${ownNamed}. Sie werden vorher in einen anderen Bereich verlegt, mit allem, ` +
+          'was darin liegt.'
+  }
+
   const names = inASentence(
     firstOf(
       area.properties.map((property) => property.name),
       namedInTheQuestion,
     ),
   )
+  const along = `Hat ein Gebäude „${area.name}“ als eigenen Bereich, wechselt es ebenso.`
 
   return area.properties.length === 1
     ? `In „${area.name}“ liegt noch 1 Liegenschaft: ${names}. Sie wird vorher in einen anderen ` +
-        'Bereich verlegt, mit allem, was an ihr hängt: Gebäude, Räume, Anlagen, Pflichten und Vorgänge.'
+        'Bereich verlegt, mit allem, was an ihr hängt: Gebäude, Räume, Anlagen, Pflichten und ' +
+        `Vorgänge. ${along}`
     : `In „${area.name}“ liegen noch ${String(area.properties.length)} Liegenschaften: ${names}. ` +
         'Sie werden vorher in einen anderen Bereich verlegt, mit allem, was an ihnen hängt: ' +
-        'Gebäude, Räume, Anlagen, Pflichten und Vorgänge.'
+        `Gebäude, Räume, Anlagen, Pflichten und Vorgänge. ${along}`
 }
 
 /**
@@ -289,15 +328,23 @@ export function AreasScreen() {
     )
   }
 
-  const propertiesOf = (area: AreaEntry): ReactNode =>
-    area.properties.length === 0 ? (
+  const propertiesOf = (area: AreaEntry): ReactNode => {
+    const own = ownBuildingsIn(area)
+
+    return area.properties.length === 0 && own === null ? (
       <span className="text-ink-faint">{areaScreenWords.noProperty}</span>
     ) : (
-      firstOf(
-        area.properties.map((property) => property.name),
-        namedInTheTable,
-      ).join(', ')
+      <>
+        {area.properties.length === 0
+          ? null
+          : firstOf(
+              area.properties.map((property) => property.name),
+              namedInTheTable,
+            ).join(', ')}
+        {own === null ? null : <span className="block">{own}</span>}
+      </>
     )
+  }
 
   const membersOf = (area: AreaEntry): ReactNode =>
     area.members.length === 0 ? (
@@ -312,7 +359,7 @@ export function AreasScreen() {
     sub: (
       <>
         {whatLiesIn(area)}
-        {area.properties.length === 0 ? null : (
+        {area.properties.length === 0 && area.ownBuildings.length === 0 ? null : (
           <span className="mt-0.5 block">{propertiesOf(area)}</span>
         )}
         <span className="mt-0.5 block">Zugänge: {membersOf(area)}</span>
@@ -368,7 +415,7 @@ export function AreasScreen() {
       )}
 
       <div className="grid gap-3 lg:grid-cols-2">
-        <Panel title="Liegenschaft verschieben">
+        <Panel title={areaScreenWords.movingTitle}>
           <div className="flex flex-col gap-2">
             <SettingsText small>{areaScreenWords.moving}</SettingsText>
             <p className="text-[12px] leading-[1.5] text-ink-muted">{areaScreenWords.onlyOne}</p>
@@ -551,7 +598,7 @@ function RemoveArea({
   const [trouble, setTrouble] = useState<string | null>(null)
   const [working, setWorking] = useState(false)
 
-  const moves = area.properties.length > 0 || heldByRemoved !== null
+  const moves = area.properties.length > 0 || area.ownBuildings.length > 0 || heldByRemoved !== null
   const afterwards = whoIsLeft(left)
 
   async function submit() {
@@ -599,7 +646,9 @@ function RemoveArea({
       >
         <SettingsText>
           {heldByRemoved ??
-            (area.properties.length > 0 ? whatMovesFirst(area) : nothingLiesIn(area.name, left))}
+            (area.properties.length > 0 || area.ownBuildings.length > 0
+              ? whatMovesFirst(area)
+              : nothingLiesIn(area.name, left))}
         </SettingsText>
         {moves ? (
           <SelectField

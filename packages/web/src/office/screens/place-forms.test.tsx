@@ -51,6 +51,7 @@ const house = {
   shortCode: 'S',
   kinds: '["school"]',
   yearBuilt: 1975,
+  ownAreaId: null,
 }
 /** Its kinds stand in another order than the form lists them in. */
 const gym = {
@@ -60,6 +61,7 @@ const gym = {
   shortCode: null,
   kinds: '["assembly","school"]',
   yearBuilt: null,
+  ownAreaId: null,
 }
 
 const inHouse = { ...place, buildingId: house.id }
@@ -373,8 +375,15 @@ describe('the form of a new building', () => {
       {
         method: 'POST',
         path: '/properties/p-school/buildings',
-        // The kinds in the order they were ticked, the year as a number.
-        body: { name: 'Mensa', shortCode: 'M', kinds: ['assembly', 'school'], yearBuilt: 2008 },
+        // The kinds in the order they were ticked, the year as a number, and
+        // the area of the property (#306).
+        body: {
+          name: 'Mensa',
+          shortCode: 'M',
+          kinds: ['assembly', 'school'],
+          yearBuilt: 2008,
+          ownAreaId: null,
+        },
       },
     ])
     // The exchange that follows brought it down: its page stands.
@@ -399,6 +408,7 @@ describe('the form of a new building', () => {
       shortCode: null,
       kinds: ['restaurant'],
       yearBuilt: null,
+      ownAreaId: null,
     })
   })
 
@@ -506,6 +516,88 @@ describe('the form of a new building', () => {
       ),
     ).toBeTruthy()
     expect(screen.queryByRole('textbox', { name: 'Bezeichnung' })).toBeNull()
+  })
+})
+
+/**
+ * The area of a building (section 2.8 of the concept, #306): the one of its
+ * property, or one of its own. The field stands where there is more than one
+ * area, and offers the area of the property once, as "wie die Liegenschaft".
+ */
+describe('the area of a building', () => {
+  const area = () => screen.getByRole('combobox', { name: 'Bereich' }) as HTMLSelectElement
+  const offered = () => [...area().options].map((option) => option.textContent)
+
+  it('offers the area of the property once, and gives a new building one of its own', async () => {
+    const user = userEvent.setup()
+
+    answerToWrite = making('buildings', 'b-new', { ...place, areaId: nord.id, ownAreaId: nord.id })
+    await mount(`/liegenschaften/${school.id}/gebaeude/neu`)
+
+    await user.type(await screen.findByRole('textbox', { name: 'Bezeichnung' }), 'Mensa')
+    expect(offered()).toEqual(['Wie die Liegenschaft (Süd)', 'Nord'])
+    expect(area().value).toBe('')
+
+    await user.click(kind('Schule oder Hochschule'))
+    await user.selectOptions(area(), 'Nord')
+    await user.click(screen.getByRole('button', { name: 'Gebäude anlegen' }))
+
+    await waitFor(() => {
+      expect(written).toHaveLength(1)
+    })
+    expect(written[0]?.body).toEqual({
+      name: 'Mensa',
+      shortCode: null,
+      kinds: ['school'],
+      yearBuilt: null,
+      ownAreaId: nord.id,
+    })
+  })
+
+  it('starts with the area of its own and gives the one of the property back', async () => {
+    const user = userEvent.setup()
+    const asked = takingChanges()
+
+    server.put('buildings', { ...gym, areaId: nord.id, ownAreaId: nord.id })
+    await mount(`/gebaeude/${gym.id}/bearbeiten`)
+
+    await screen.findByRole('heading', { level: 1, name: 'Sporthalle bearbeiten' })
+    expect(area().value).toBe(nord.id)
+    // What moving it does, said before saving.
+    expect(screen.getByText(/Mit dem Bereich wechselt alles im Gebäude/)).toBeTruthy()
+
+    await user.selectOptions(area(), 'Wie die Liegenschaft (Süd)')
+    await user.click(screen.getByRole('button', { name: 'Speichern' }))
+
+    await waitFor(() => {
+      expect(asked).toEqual([
+        { what: 'change', entity: 'buildings', id: 'b-gym', values: { ownAreaId: null } },
+      ])
+    })
+  })
+
+  it('is not asked where there is one area, and nothing is sent about it', async () => {
+    const user = userEvent.setup()
+
+    written = signedInOffice('technical_management', [sued], {}, (write) => answerToWrite(write))
+    answerToWrite = making('buildings', 'b-new', place)
+    await mount(`/liegenschaften/${school.id}/gebaeude/neu`)
+
+    await user.type(await screen.findByRole('textbox', { name: 'Bezeichnung' }), 'Mensa')
+    expect(screen.queryByRole('combobox', { name: 'Bereich' })).toBeNull()
+
+    await user.click(kind('Schule oder Hochschule'))
+    await user.click(screen.getByRole('button', { name: 'Gebäude anlegen' }))
+
+    await waitFor(() => {
+      expect(written).toHaveLength(1)
+    })
+    expect(written[0]?.body).toEqual({
+      name: 'Mensa',
+      shortCode: null,
+      kinds: ['school'],
+      yearBuilt: null,
+    })
   })
 })
 

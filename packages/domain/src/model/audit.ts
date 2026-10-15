@@ -79,7 +79,13 @@ export const auditVocabulary: AuditVocabulary = {
     },
     buildings: {
       label: 'Gebäude',
-      fields: { short_code: 'Kürzel', kinds: 'Gebäudearten', year_built: 'Baujahr' },
+      fields: {
+        short_code: 'Kürzel',
+        kinds: 'Gebäudearten',
+        year_built: 'Baujahr',
+        // A building with an area of its own (#306).
+        own_area_id: 'Eigener Bereich',
+      },
     },
     floors: { label: 'Geschoss', fields: { level: 'Ebene' } },
     // The times a building is closed (#86): in which no round is made for it.
@@ -482,6 +488,9 @@ export const auditVocabulary: AuditVocabulary = {
   // point 2, and ADR 0003, point 4).
   commonFields: {
     area_id: 'Bereich',
+    // The property whose area a row has, where it has that one (ADR 0003,
+    // addendum of #306).
+    area_from_property_id: 'Bereich der Liegenschaft',
     property_id: 'Liegenschaft',
     building_id: 'Gebäude',
     room_id: 'Raum',
@@ -558,6 +567,8 @@ export const auditVocabulary: AuditVocabulary = {
   ],
   references: {
     area_id: 'areas',
+    own_area_id: 'areas',
+    area_from_property_id: 'properties',
     property_id: 'properties',
     building_id: 'buildings',
     floor_id: 'floors',

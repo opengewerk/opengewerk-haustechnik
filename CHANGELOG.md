@@ -7,6 +7,20 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
 
 ## [Unreleased]
 
+### Hinzugefügt
+
+- Ein Gebäude kann einen eigenen Bereich haben (#306). An einer Liegenschaft mit mehreren Gebäuden
+  arbeiten oft mehrere Objektleiter, jeder für seine Gebäude, und bisher blieb dafür nur, je
+  Objektleiter eine eigene Liegenschaft an derselben Anschrift anzulegen. Ein Gebäude hat den Bereich
+  seiner Liegenschaft, bis es im Formular einen eigenen bekommt, und alles darin folgt ihm: Geschosse,
+  Räume, Anlagen, Pflichten, Nachweise, Mängel, Vorgänge, Aufgaben, Dokumente, Zähler und Etiketten.
+  Was an der Liegenschaft selbst hängt, bleibt bei ihrem Bereich. Wer nur den Bereich eines Gebäudes
+  hat, sieht die Liegenschaft mit Anschrift, Notiz und Ansprechpartnern und darin seine Gebäude. Die
+  Datenbank hält das wie bisher mit Schlüsseln: jede Zeile folgt dem Bereich dessen, woran sie hängt
+  (Migration `0051_building_areas`, Nachtrag zu ADR 0003). Die Liste der Liegenschaften filtert nach
+  dem Bereich auch über die Gebäude, „Bereiche“ nennt die Gebäude mit eigenem Bereich, und ein Bereich
+  wird erst entfernt, wenn auch sie verlegt sind.
+
 ## [0.1.0] - 2026-10-15
 
 Die erste Fassung von OpenGewerk Haustechnik: Phase 1 des Planungskonzepts, der Stand, mit dem der

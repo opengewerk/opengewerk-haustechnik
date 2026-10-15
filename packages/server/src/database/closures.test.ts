@@ -167,19 +167,19 @@ describe('a closure in the database', () => {
     )
 
     expect(rows.map((row) => row.name)).toEqual([
-      'building_closures_follow_their_property',
+      'building_closures_follow_their_building',
       'building_closures_of_their_building',
     ])
 
     const building = { code: '23503', constraint: 'building_closures_of_their_building' }
-    const property = { code: '23503', constraint: 'building_closures_follow_their_property' }
+    const ofTheArea = { code: '23503', constraint: 'building_closures_follow_their_building' }
 
     // On a property its building does not stand on.
     expect(await closure(tenant, here.building, beside.property, area)).toEqual(building)
     // Of a building there is none of.
     expect(await closure(tenant, randomUUID(), here.property, area)).toEqual(building)
-    // In another area than its property.
-    expect(await closure(tenant, here.building, here.property, secondArea)).toEqual(property)
+    // In another area than its building (#306).
+    expect(await closure(tenant, here.building, here.property, secondArea)).toEqual(ofTheArea)
   })
 
   it('names no building of another tenant, whatever else it names of that tenant', async () => {
@@ -187,7 +187,7 @@ describe('a closure in the database', () => {
 
     expect(refused.code).toBe('23503')
     expect(refused.constraint).toMatch(
-      /^building_closures_(of_their_building|follow_their_property)$/,
+      /^building_closures_(of_their_building|follow_their_building)$/,
     )
   })
 

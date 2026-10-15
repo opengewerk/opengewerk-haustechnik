@@ -34,7 +34,7 @@ import { buildings, properties } from '../database/schema/index.js'
 import { dayInGermany } from '../today.js'
 import { RequiresPermission } from './authorization.js'
 import { propertyTable, propertyTableQuestion } from './office-tables.js'
-import { areaFor, type Asking, fieldsOf, placeOf, refuse } from './places.js'
+import { areaFor, type Asking, buildingAreaFor, fieldsOf, placeOf, refuse } from './places.js'
 
 const missing = 'Diese Liegenschaft gibt es nicht oder nicht mehr.'
 
@@ -213,7 +213,11 @@ export class PropertiesController {
     })
   }
 
-  /** A building on the property. Property and area come from the property, never from the body. */
+  /**
+   * A building on the property. The property comes from the address, never
+   * from the body; the area is the one of the property, or one of its own the
+   * body names (`ownAreaId`, section 2.8 of the concept).
+   */
   @Post(':id/buildings')
   @RequiresPermission('location.write')
   addBuilding(
@@ -221,18 +225,22 @@ export class PropertiesController {
     @Param('id') id: string,
     @Body() body: unknown,
   ): Promise<Building> {
-    const values = fieldsOf(body, buildingFields, ['shortCode'])
+    const values = fieldsOf(body, [...buildingFields, 'ownAreaId'] as const, [
+      'shortCode',
+      'ownAreaId',
+    ])
 
     refuse(buildingProblems({ name: null, kinds: null, ...values }))
 
     return this.database.forTenant(identity, async (tx) => {
       const property = await placeOf<Property>(tx, properties, id, missing)
+      const area = await buildingAreaFor(tx, values.ownAreaId, property.areaId)
       const [created] = await tx
         .insert(buildings)
         .values({
           tenantId: identity.tenantId,
           propertyId: property.id,
-          areaId: property.areaId,
+          ...area,
           name: values.name as string,
           shortCode: (values.shortCode ?? null) as string | null,
           kinds: values.kinds as Building['kinds'],

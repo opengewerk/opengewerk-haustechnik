@@ -28,7 +28,7 @@ import {
 import { activities } from './activities.js'
 import { withinAreas } from './areas.js'
 import { assets } from './assets.js'
-import { optionalTrimmed, properties, trimmed } from './locations.js'
+import { optionalTrimmed, trimmed } from './locations.js'
 
 // What a measuring point holds beside its asset (section 4.9 of the concept,
 // #119): what only a measuring point carries, its readings, the replacements
@@ -82,10 +82,11 @@ export const meterPoints = pgTable(
     withinAreas(),
     unique('meter_points_tenant_id_key').on(table.tenantId, table.id),
     unique('meter_points_one_per_asset').on(table.tenantId, table.assetId),
+    // The area of what the row hangs on (ADR 0003, addendum of #306).
     foreignKey({
-      columns: [table.tenantId, table.propertyId, table.areaId],
-      foreignColumns: [properties.tenantId, properties.id, properties.areaId],
-      name: 'meter_points_follow_their_property',
+      columns: [table.tenantId, table.assetId, table.areaId],
+      foreignColumns: [assets.tenantId, assets.id, assets.areaId],
+      name: 'meter_points_follow_their_asset',
     }).onUpdate('cascade'),
     foreignKey({
       columns: [table.tenantId, table.assetId, table.propertyId],
@@ -172,10 +173,11 @@ export const meterReadings = pgTable(
     unique('meter_readings_tenant_id_key').on(table.tenantId, table.id),
     // What a correction points at: a reading of the same property.
     unique('meter_readings_place').on(table.tenantId, table.id, table.propertyId),
+    // The area of what the row hangs on (ADR 0003, addendum of #306).
     foreignKey({
-      columns: [table.tenantId, table.propertyId, table.areaId],
-      foreignColumns: [properties.tenantId, properties.id, properties.areaId],
-      name: 'meter_readings_follow_their_property',
+      columns: [table.tenantId, table.assetId, table.areaId],
+      foreignColumns: [assets.tenantId, assets.id, assets.areaId],
+      name: 'meter_readings_follow_their_asset',
     }).onUpdate('cascade'),
     foreignKey({
       columns: [table.tenantId, table.assetId, table.propertyId],
@@ -254,10 +256,11 @@ export const meterExchanges = pgTable(
     tenantIsolation(table.tenantId),
     withinAreas(),
     unique('meter_exchanges_tenant_id_key').on(table.tenantId, table.id),
+    // The area of what the row hangs on (ADR 0003, addendum of #306).
     foreignKey({
-      columns: [table.tenantId, table.propertyId, table.areaId],
-      foreignColumns: [properties.tenantId, properties.id, properties.areaId],
-      name: 'meter_exchanges_follow_their_property',
+      columns: [table.tenantId, table.assetId, table.areaId],
+      foreignColumns: [assets.tenantId, assets.id, assets.areaId],
+      name: 'meter_exchanges_follow_their_asset',
     }).onUpdate('cascade'),
     foreignKey({
       columns: [table.tenantId, table.assetId, table.propertyId],
@@ -296,10 +299,11 @@ export const meterPauses = pgTable(
     tenantIsolation(table.tenantId),
     withinAreas(),
     unique('meter_pauses_tenant_id_key').on(table.tenantId, table.id),
+    // The area of what the row hangs on (ADR 0003, addendum of #306).
     foreignKey({
-      columns: [table.tenantId, table.propertyId, table.areaId],
-      foreignColumns: [properties.tenantId, properties.id, properties.areaId],
-      name: 'meter_pauses_follow_their_property',
+      columns: [table.tenantId, table.assetId, table.areaId],
+      foreignColumns: [assets.tenantId, assets.id, assets.areaId],
+      name: 'meter_pauses_follow_their_asset',
     }).onUpdate('cascade'),
     foreignKey({
       columns: [table.tenantId, table.assetId, table.propertyId],

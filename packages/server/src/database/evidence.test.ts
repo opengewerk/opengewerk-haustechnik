@@ -466,7 +466,7 @@ describe('an evidence', () => {
     const report = rowAt(here)
     const elsewhere = await written(rowAt(beside))
     const attempts: Record<string, Record<string, unknown>> = {
-      evidence_follows_its_property: { ...report, area_id: secondArea },
+      evidence_follows_its_duty: { ...report, area_id: secondArea },
       evidence_of_a_duty_of_its_property: { ...report, duty_id: beside.duty },
       evidence_from_an_activity_of_its_property: { ...report, activity_id: beside.activity },
       evidence_performed_by_somebody_here: {
@@ -721,7 +721,7 @@ describe('a declaration of invalidity', () => {
   it('hangs on an evidence of its property and on somebody here, key by key', async () => {
     const values = await voidingAt(here)
     const attempts: Record<string, Record<string, unknown>> = {
-      evidence_voidings_follow_their_property: { ...values, area_id: secondArea },
+      evidence_voidings_follow_their_evidence: { ...values, area_id: secondArea },
       evidence_voidings_of_an_evidence_of_their_property: {
         ...values,
         evidence_id: await written(rowAt(beside)),
