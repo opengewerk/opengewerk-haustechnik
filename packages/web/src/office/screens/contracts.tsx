@@ -591,7 +591,7 @@ export function ContractScreen() {
                         <Button
                           size="small"
                           tone="quiet"
-                          aria-label={`${item.name} nicht mehr erfassen`}
+                          aria-label={`${item.name} entfernen`}
                           onClick={() => {
                             void uncover(item.id)
                           }}
