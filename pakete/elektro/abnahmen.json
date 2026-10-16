@@ -2,161 +2,341 @@
   "entries": [
     {
       "file": "anlagenarten/fixed_equipment.v1.json",
-      "checkedOn": "2026-10-10"
+      "checkedOn": "2026-10-10",
+      "accepted": {
+        "by": "Moritz Kohm",
+        "on": "2026-10-16",
+        "sha256": "b3a8b52048c8b4fb497404ef1398c0a96e9b9e65440ec195c0e946c929911c28"
+      }
     },
     {
       "file": "anlagenarten/lightning_protection.v1.json",
-      "checkedOn": "2026-10-10"
+      "checkedOn": "2026-10-10",
+      "accepted": {
+        "by": "Moritz Kohm",
+        "on": "2026-10-16",
+        "sha256": "cb2077097423d7c5b0842a9f1ff54eec5566e9551598e7bb5cce0ffb61d2459a"
+      }
     },
     {
       "file": "anlagenarten/low_voltage_installation.v1.json",
-      "checkedOn": "2026-10-10"
+      "checkedOn": "2026-10-10",
+      "accepted": {
+        "by": "Moritz Kohm",
+        "on": "2026-10-16",
+        "sha256": "4ba1095625cca4cfc579cdd44aeff6cd3425de8e5c5fc1e1e1e4f72b83b9bd4b"
+      }
     },
     {
       "file": "anlagenarten/portable_equipment.v1.json",
-      "checkedOn": "2026-10-10"
+      "checkedOn": "2026-10-10",
+      "accepted": {
+        "by": "Moritz Kohm",
+        "on": "2026-10-16",
+        "sha256": "a77d6ed22dd69d7ac30f25bb329b865769ca62811eba3c3e8526ba036a323e08"
+      }
     },
     {
       "file": "anlagenarten/residual_current_device.v1.json",
-      "checkedOn": "2026-10-10"
+      "checkedOn": "2026-10-10",
+      "accepted": {
+        "by": "Moritz Kohm",
+        "on": "2026-10-16",
+        "sha256": "3ed15c4c8e2a2ac4aec69d597fff9ba8c4a622ad858e74309145daebf46590ce"
+      }
     },
     {
       "file": "anlagenarten/safety_lighting.v1.json",
-      "checkedOn": "2026-10-10"
+      "checkedOn": "2026-10-10",
+      "accepted": {
+        "by": "Moritz Kohm",
+        "on": "2026-10-16",
+        "sha256": "98b1f474b42e0722a9a275363ec6a042e2490baa858707163e8bee4f7971fac4"
+      }
     },
     {
       "file": "anlagenarten/safety_power_supply.v1.json",
-      "checkedOn": "2026-10-10"
+      "checkedOn": "2026-10-10",
+      "accepted": {
+        "by": "Moritz Kohm",
+        "on": "2026-10-16",
+        "sha256": "4200343eeef916ea8f164c899238d71aa9ec8371ffe75f5e432646d843cc3740"
+      }
     },
     {
       "file": "formulare/portable_equipment_test.v1.json",
-      "checkedOn": "2026-10-10"
+      "checkedOn": "2026-10-10",
+      "accepted": {
+        "by": "Moritz Kohm",
+        "on": "2026-10-16",
+        "sha256": "0aafc723e6a825306f2731c7f340c33d36b363535f0a40fbf0166281fcc8ce68"
+      }
     },
     {
       "file": "formulare/rcd_test_button.v1.json",
-      "checkedOn": "2026-10-10"
+      "checkedOn": "2026-10-10",
+      "accepted": {
+        "by": "Moritz Kohm",
+        "on": "2026-10-16",
+        "sha256": "902452c3108e7a7c35e88185769c5e3058fe24bc592c87a74172e2b2bcf0dd16"
+      }
     },
     {
       "file": "formulare/safety_lighting_function_test.v1.json",
-      "checkedOn": "2026-10-10"
+      "checkedOn": "2026-10-10",
+      "accepted": {
+        "by": "Moritz Kohm",
+        "on": "2026-10-16",
+        "sha256": "1f452d7fffee879bf5c32bb0f9ed6667cab0044ab9c3bfbe3488ba2d7da385df"
+      }
     },
     {
       "file": "pflichten/installation_test_dguv_v3.v1.json",
-      "checkedOn": "2026-10-10"
+      "checkedOn": "2026-10-10",
+      "accepted": {
+        "by": "Moritz Kohm",
+        "on": "2026-10-16",
+        "sha256": "41629dbe8cad3c019aef662d34f4c4590d99a7a1d16caac95769b90349d1ade8"
+      }
     },
     {
       "file": "pflichten/installation_test_dguv_v4.v1.json",
-      "checkedOn": "2026-10-10"
+      "checkedOn": "2026-10-10",
+      "accepted": {
+        "by": "Moritz Kohm",
+        "on": "2026-10-16",
+        "sha256": "eb322e3bf8fc2fe691f190bdf234561d3a95d82638abf280bc388369355523b3"
+      }
     },
     {
       "file": "pflichten/installation_test_special_location_dguv_v3.v1.json",
-      "checkedOn": "2026-10-10"
+      "checkedOn": "2026-10-10",
+      "accepted": {
+        "by": "Moritz Kohm",
+        "on": "2026-10-16",
+        "sha256": "8830a405e21f0ecfca8e1a8e8b5680c629d78334450730f30159ebf6f7d92f4f"
+      }
     },
     {
       "file": "pflichten/portable_equipment_test_baths_kitchens_dguv_v4.v1.json",
-      "checkedOn": "2026-10-10"
+      "checkedOn": "2026-10-10",
+      "accepted": {
+        "by": "Moritz Kohm",
+        "on": "2026-10-16",
+        "sha256": "a5207bc6912d8ec5bf0ca2f8e36f3f3ca96bde6b8d194d7afda9274d3b9266e8"
+      }
     },
     {
       "file": "pflichten/portable_equipment_test_construction_site_dguv_v3.v1.json",
-      "checkedOn": "2026-10-10"
+      "checkedOn": "2026-10-10",
+      "accepted": {
+        "by": "Moritz Kohm",
+        "on": "2026-10-16",
+        "sha256": "9ac4cd9c18149eb7320fa836e95b083dbd5610c9b91b6086659038768194d390"
+      }
     },
     {
       "file": "pflichten/portable_equipment_test_dguv_v3.v1.json",
-      "checkedOn": "2026-10-10"
+      "checkedOn": "2026-10-10",
+      "accepted": {
+        "by": "Moritz Kohm",
+        "on": "2026-10-16",
+        "sha256": "035e46c74a1b73c57919c5dcdbdd83dac06c7ec9ea38f10f93b727cf3e6183ae"
+      }
     },
     {
       "file": "pflichten/portable_equipment_test_offices_care_dguv_v4.v1.json",
-      "checkedOn": "2026-10-10"
+      "checkedOn": "2026-10-10",
+      "accepted": {
+        "by": "Moritz Kohm",
+        "on": "2026-10-16",
+        "sha256": "be392c018d90a008ba62cb77d11b2a621b9ed1cb67196709088966e7664b8f3d"
+      }
     },
     {
       "file": "pflichten/portable_equipment_test_other_areas_dguv_v4.v1.json",
-      "checkedOn": "2026-10-10"
+      "checkedOn": "2026-10-10",
+      "accepted": {
+        "by": "Moritz Kohm",
+        "on": "2026-10-16",
+        "sha256": "9990719fc3053a1c36b27cf5cccdc4d62acd574dedfa3389ee12588aaf8ade2d"
+      }
     },
     {
       "file": "pflichten/portable_equipment_test_workshops_schools_dguv_v4.v1.json",
-      "checkedOn": "2026-10-10"
+      "checkedOn": "2026-10-10",
+      "accepted": {
+        "by": "Moritz Kohm",
+        "on": "2026-10-16",
+        "sha256": "6d2461cfe55db30a577cbc9f9056b659ebc80e4284100f4cde36a523969245de"
+      }
     },
     {
       "file": "pflichten/rcd_test_button_dguv_v3.v1.json",
-      "checkedOn": "2026-10-10"
+      "checkedOn": "2026-10-10",
+      "accepted": {
+        "by": "Moritz Kohm",
+        "on": "2026-10-16",
+        "sha256": "13395493d8f45c6afeed3cac55aa273e0dc335d777fd243ba0d70b9c9f86af03"
+      }
     },
     {
       "file": "pflichten/rcd_test_button_dguv_v4.v1.json",
-      "checkedOn": "2026-10-10"
+      "checkedOn": "2026-10-10",
+      "accepted": {
+        "by": "Moritz Kohm",
+        "on": "2026-10-16",
+        "sha256": "5d7d20ca17654b1f8cb5078f2fd33b5a613f0aef319c08727349d939add0e0c5"
+      }
     },
     {
       "file": "pflichten/safety_lighting_check.v1.json",
-      "checkedOn": "2026-10-10"
+      "checkedOn": "2026-10-10",
+      "accepted": {
+        "by": "Moritz Kohm",
+        "on": "2026-10-16",
+        "sha256": "f2dd14dd378dbf72fb2955eb46a8e5f697590b45fe936f938b812f2801a667b8"
+      }
     },
     {
       "file": "pflichten/safety_power_supply_check.v1.json",
-      "checkedOn": "2026-10-10"
+      "checkedOn": "2026-10-10",
+      "accepted": {
+        "by": "Moritz Kohm",
+        "on": "2026-10-16",
+        "sha256": "c82413fa5b1e3f52a8b109d5f35034cbc757aa65f1622212bcdb9b775dafd0b6"
+      }
     }
   ],
   "rules": [
     {
       "key": "dguv_v3_installation_interval",
       "validFrom": "2005-01-01",
-      "checkedOn": "2026-10-10"
+      "checkedOn": "2026-10-10",
+      "accepted": {
+        "by": "Moritz Kohm",
+        "on": "2026-10-16",
+        "sha256": "29707affe0207af9ce0e220664335445fb8628b2f1f39c946114e65df0359c0a"
+      }
     },
     {
       "key": "dguv_v3_installation_special_location_interval",
       "validFrom": "2005-01-01",
-      "checkedOn": "2026-10-10"
+      "checkedOn": "2026-10-10",
+      "accepted": {
+        "by": "Moritz Kohm",
+        "on": "2026-10-16",
+        "sha256": "6b5b64d9e66a2d9ce750b60a693582eb7742465a496faf816d345cf37a5b6ff3"
+      }
     },
     {
       "key": "dguv_v3_rcd_test_button_interval",
       "validFrom": "2005-01-01",
-      "checkedOn": "2026-10-10"
+      "checkedOn": "2026-10-10",
+      "accepted": {
+        "by": "Moritz Kohm",
+        "on": "2026-10-16",
+        "sha256": "04621a9bc8f2529c4e504d0dbab0a686c3b36bcfa7f858ba7ed7eaaf40a01bf2"
+      }
     },
     {
       "key": "dguv_v3_portable_equipment_interval",
       "validFrom": "2005-01-01",
-      "checkedOn": "2026-10-10"
+      "checkedOn": "2026-10-10",
+      "accepted": {
+        "by": "Moritz Kohm",
+        "on": "2026-10-16",
+        "sha256": "66a2c772e019517adfc65e87d3557adde7b29cca96ba51ed19fc4706103fe0a5"
+      }
     },
     {
       "key": "dguv_v3_portable_equipment_construction_site_interval",
       "validFrom": "2005-01-01",
-      "checkedOn": "2026-10-10"
+      "checkedOn": "2026-10-10",
+      "accepted": {
+        "by": "Moritz Kohm",
+        "on": "2026-10-16",
+        "sha256": "6616bcbe40b098f0cfc0aaf43e935d9f8f8475dd22500a8307110045526879c5"
+      }
     },
     {
       "key": "dguv_v4_installation_interval",
       "validFrom": "2005-01-01",
-      "checkedOn": "2026-10-10"
+      "checkedOn": "2026-10-10",
+      "accepted": {
+        "by": "Moritz Kohm",
+        "on": "2026-10-16",
+        "sha256": "cf777f8656ee6e0ea1f3f18b5bbf61933abe6d86938e66dc32a6623ff7aeaae6"
+      }
     },
     {
       "key": "dguv_v4_rcd_test_button_interval",
       "validFrom": "2005-01-01",
-      "checkedOn": "2026-10-10"
+      "checkedOn": "2026-10-10",
+      "accepted": {
+        "by": "Moritz Kohm",
+        "on": "2026-10-16",
+        "sha256": "00e62f9ae5296851295bfc616c7c5311903657623cb866f8ac8e235b3651793e"
+      }
     },
     {
       "key": "dguv_v4_portable_equipment_baths_kitchens_interval",
       "validFrom": "2005-01-01",
-      "checkedOn": "2026-10-10"
+      "checkedOn": "2026-10-10",
+      "accepted": {
+        "by": "Moritz Kohm",
+        "on": "2026-10-16",
+        "sha256": "8bd33b7d96246dd2df26a1cc6baf64cd3267866dde54f5514ccb4d09579c25c2"
+      }
     },
     {
       "key": "dguv_v4_portable_equipment_workshops_schools_interval",
       "validFrom": "2005-01-01",
-      "checkedOn": "2026-10-10"
+      "checkedOn": "2026-10-10",
+      "accepted": {
+        "by": "Moritz Kohm",
+        "on": "2026-10-16",
+        "sha256": "eff72cb23be9253558d3e75f0691f8371f75450688794e119c0035aaed4fa98a"
+      }
     },
     {
       "key": "dguv_v4_portable_equipment_offices_care_interval",
       "validFrom": "2005-01-01",
-      "checkedOn": "2026-10-10"
+      "checkedOn": "2026-10-10",
+      "accepted": {
+        "by": "Moritz Kohm",
+        "on": "2026-10-16",
+        "sha256": "f5c570bc9519c012c8c0f8247ce6e6d30ff87cff7da16ffb3b7f2c2cbba2088c"
+      }
     }
   ],
   "classes": [
     {
       "key": "no_immediate_danger",
-      "checkedOn": "2026-10-10"
+      "checkedOn": "2026-10-10",
+      "accepted": {
+        "by": "Moritz Kohm",
+        "on": "2026-10-16",
+        "sha256": "5cba1d16f43af40d42d53914dfe584b450146a12c160c5448f841f3d75d32615"
+      }
     },
     {
       "key": "danger",
-      "checkedOn": "2026-10-10"
+      "checkedOn": "2026-10-10",
+      "accepted": {
+        "by": "Moritz Kohm",
+        "on": "2026-10-16",
+        "sha256": "33a4e060988ee73f651816c5639a922f7dff89cec4b3c46d3372d965dddf7c5d"
+      }
     },
     {
       "key": "immediate_danger",
-      "checkedOn": "2026-10-10"
+      "checkedOn": "2026-10-10",
+      "accepted": {
+        "by": "Moritz Kohm",
+        "on": "2026-10-16",
+        "sha256": "fa37c400e262a2c7f96aa38b52df13ef9eb1b7a85caac48d34bad5d5a9e516e1"
+      }
     }
   ]
 }

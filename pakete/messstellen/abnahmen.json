@@ -2,27 +2,57 @@
   "entries": [
     {
       "file": "anlagenarten/cooling_meter.v1.json",
-      "checkedOn": "2026-10-14"
+      "checkedOn": "2026-10-14",
+      "accepted": {
+        "by": "Pilotbetrieb",
+        "on": "2026-10-16",
+        "sha256": "ce1103b3519b3cb8ae47d6877cf7487e44f94326f86fafddf6d0851fb8ace679"
+      }
     },
     {
       "file": "anlagenarten/district_heating_meter.v1.json",
-      "checkedOn": "2026-10-14"
+      "checkedOn": "2026-10-14",
+      "accepted": {
+        "by": "Pilotbetrieb",
+        "on": "2026-10-16",
+        "sha256": "632fca3c1842eef479fe1a2772d153eb915606cbd70593589e7632610987b27d"
+      }
     },
     {
       "file": "anlagenarten/electricity_meter.v1.json",
-      "checkedOn": "2026-10-14"
+      "checkedOn": "2026-10-14",
+      "accepted": {
+        "by": "Pilotbetrieb",
+        "on": "2026-10-16",
+        "sha256": "feaafad6c24132b2a63b79c8f753736a27e6c7ffc92c12d60fe99c97bb9f2ce2"
+      }
     },
     {
       "file": "anlagenarten/gas_meter.v1.json",
-      "checkedOn": "2026-10-14"
+      "checkedOn": "2026-10-14",
+      "accepted": {
+        "by": "Pilotbetrieb",
+        "on": "2026-10-16",
+        "sha256": "1cae9d386e9147d36a1da2d6478d32a159ea5ae26e4f49889b111f416cdab894"
+      }
     },
     {
       "file": "anlagenarten/heat_meter.v1.json",
-      "checkedOn": "2026-10-14"
+      "checkedOn": "2026-10-14",
+      "accepted": {
+        "by": "Pilotbetrieb",
+        "on": "2026-10-16",
+        "sha256": "eaa1e5be3ae8445068b4a1e8e43bff888480da30c79a8e9495e8d46e995c3de9"
+      }
     },
     {
       "file": "anlagenarten/water_meter.v1.json",
-      "checkedOn": "2026-10-14"
+      "checkedOn": "2026-10-14",
+      "accepted": {
+        "by": "Pilotbetrieb",
+        "on": "2026-10-16",
+        "sha256": "47a449fb79956f9c1ebd0d4d16e11177182a6606a6bb1d00a1854dedd7e76bab"
+      }
     }
   ],
   "rules": []

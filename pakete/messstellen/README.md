@@ -35,8 +35,8 @@ Kennung in der Leittechnik trägt jede Messstelle selbst.
   Einheiten der Anwendung gehalten worden.
 - Die Zuordnung zu den Kostengruppen der dritten Ebene ist eine eigene. Gegen den Text der Norm ist
   sie nicht geprüft, er liegt nicht frei vor.
-- Abgenommen hat niemand etwas. Deshalb steht in `abnahmen.json` bei keinem Eintrag eine Abnahme,
-  und die Oberfläche kennzeichnet jeden als nicht abgenommen.
+- Abgenommen hat der Pilotbetrieb jeden Eintrag am 16.10.2026 (Abschnitt 15 des Planungskonzepts);
+  das steht in `abnahmen.json` mit der Prüfsumme dessen, was abgenommen wurde.
 
 ## Was das Paket nicht abdeckt
 

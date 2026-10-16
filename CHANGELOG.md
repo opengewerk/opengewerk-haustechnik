@@ -93,6 +93,11 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   kamen bisher ohne Vorschlag an, und jede Spalte musste von Hand zugeordnet werden. Nur die Köpfe:
   die Werte, an denen der Import Liegenschaften und Gebäude wiedererkennt, bleiben genau. Dafür ist
   das Submodul des Fundaments angehoben.
+- Der Katalog ist fachkundig abgenommen, alle 114 Einträge der sieben Pakete am 16.10.2026: Elektro
+  vom Maintainer, die übrigen Pakete vom Pilotbetrieb, wie Abschnitt 15 des Planungskonzepts es
+  vorsieht. Jede Abnahme nennt die Prüfsumme dessen, was abgenommen wurde, in `abnahmen.json` des
+  Pakets. Bis dahin stand jeder Eintrag überall als „Nicht abgenommen“ da, und ein Betreiber sollte
+  sich auf keine Frist daraus verlassen.
 
 ## [0.1.3] - 2026-10-15
 

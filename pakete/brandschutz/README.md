@@ -7,8 +7,9 @@ den Technischen Regeln für Arbeitsstätten. Viele Fristen dieses Bereichs stehe
 deren Verweise kommen als neue Fassung, sobald die rechtliche Prüfung sie trägt und sie am Text der
 Norm geprüft sind.
 
-Fachkundig abgenommen wird das Paket durch den Pilotbetrieb (Abschnitt 15). Bis dahin ist jeder
-Eintrag gekennzeichnet, und die Oberfläche sagt es.
+Fachkundig abgenommen hat das Paket der Pilotbetrieb am 16.10.2026 (Abschnitt 15), jeder Eintrag
+mit der Prüfsumme dessen, was abgenommen wurde. Wird ein Eintrag geändert, fällt seine Abnahme
+weg, und die Oberfläche kennzeichnet ihn wieder, bis er erneut abgenommen ist.
 
 ## Anlagenarten
 

@@ -11,8 +11,9 @@ Diese erste Fassung bringt Baden-Württemberg, das Land des Pilotbetriebs. Sie n
 Anlagenarten der Pakete [`brandschutz`](../brandschutz/README.md) und
 [`elektro`](../elektro/README.md); eine eigene Anlagenart hat sie nicht.
 
-Fachkundig abgenommen wird das Paket durch den Pilotbetrieb (Abschnitt 15). Bis dahin ist jeder
-Eintrag gekennzeichnet, und die Oberfläche sagt es.
+Fachkundig abgenommen hat das Paket der Pilotbetrieb am 16.10.2026 (Abschnitt 15), jeder Eintrag
+mit der Prüfsumme dessen, was abgenommen wurde. Wird ein Eintrag geändert, fällt seine Abnahme
+weg, und die Oberfläche kennzeichnet ihn wieder, bis er erneut abgenommen ist.
 
 ## Baden-Württemberg
 

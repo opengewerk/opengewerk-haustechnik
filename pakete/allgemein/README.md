@@ -58,5 +58,5 @@ Klasse `gefährlich` macht eine Anlage unsicher.
   Gegen den Text der Norm sind sie nicht geprüft, er liegt nicht frei vor.
 - Die drei Mängelklassen sind am 05.10.2026 gegen Abschnitt 4.6 des Planungskonzepts gehalten
   worden, in dem sie festgelegt sind.
-- Abgenommen hat niemand etwas. Deshalb steht in `abnahmen.json` bei keinem Eintrag eine Abnahme,
-  und die Oberfläche kennzeichnet jeden als nicht abgenommen.
+- Abgenommen hat der Pilotbetrieb jeden Eintrag am 16.10.2026 (Abschnitt 15 des Planungskonzepts);
+  das steht in `abnahmen.json` mit der Prüfsumme dessen, was abgenommen wurde.

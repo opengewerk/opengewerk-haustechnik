@@ -5,73 +5,133 @@
       "key": "new_year",
       "scope": "DE-BW",
       "validFrom": "1995-05-08",
-      "checkedOn": "2026-10-09"
+      "checkedOn": "2026-10-09",
+      "accepted": {
+        "by": "Pilotbetrieb",
+        "on": "2026-10-16",
+        "sha256": "6ce5f7c147b6ecefc54b7bf80d3802ea8329993e2f6c0075c575aa0c19387756"
+      }
     },
     {
       "key": "epiphany",
       "scope": "DE-BW",
       "validFrom": "1995-05-08",
-      "checkedOn": "2026-10-09"
+      "checkedOn": "2026-10-09",
+      "accepted": {
+        "by": "Pilotbetrieb",
+        "on": "2026-10-16",
+        "sha256": "1a753de9587b9ea3c1f927e78b9e6bf54dcaa60fa47b89125524ff26569b1439"
+      }
     },
     {
       "key": "good_friday",
       "scope": "DE-BW",
       "validFrom": "1995-05-08",
-      "checkedOn": "2026-10-09"
+      "checkedOn": "2026-10-09",
+      "accepted": {
+        "by": "Pilotbetrieb",
+        "on": "2026-10-16",
+        "sha256": "ab2395dbc4380e0758ded144d95c0a8ecceef3817572045b2bb99c438a8b2882"
+      }
     },
     {
       "key": "easter_monday",
       "scope": "DE-BW",
       "validFrom": "1995-05-08",
-      "checkedOn": "2026-10-09"
+      "checkedOn": "2026-10-09",
+      "accepted": {
+        "by": "Pilotbetrieb",
+        "on": "2026-10-16",
+        "sha256": "776c854988b18b335fff0b3222b8d8b73cb1e5b047e79ec18000f7c4ed51774f"
+      }
     },
     {
       "key": "labour_day",
       "scope": "DE-BW",
       "validFrom": "1995-05-08",
-      "checkedOn": "2026-10-09"
+      "checkedOn": "2026-10-09",
+      "accepted": {
+        "by": "Pilotbetrieb",
+        "on": "2026-10-16",
+        "sha256": "76c312be1e6bb7f30987db379f0d567bcf571e6d6e8305521054b713bc7c0020"
+      }
     },
     {
       "key": "ascension_day",
       "scope": "DE-BW",
       "validFrom": "1995-05-08",
-      "checkedOn": "2026-10-09"
+      "checkedOn": "2026-10-09",
+      "accepted": {
+        "by": "Pilotbetrieb",
+        "on": "2026-10-16",
+        "sha256": "d283d0d7d78bebfcadb8dc0e1f72d0ab6b5aeef2abee2b6bb53d69853500eb21"
+      }
     },
     {
       "key": "whit_monday",
       "scope": "DE-BW",
       "validFrom": "1995-05-08",
-      "checkedOn": "2026-10-09"
+      "checkedOn": "2026-10-09",
+      "accepted": {
+        "by": "Pilotbetrieb",
+        "on": "2026-10-16",
+        "sha256": "d331f5b1c873fd3823c115bb92792c76e6d496eb06d9abfe3b50fd7e51db5885"
+      }
     },
     {
       "key": "corpus_christi",
       "scope": "DE-BW",
       "validFrom": "1995-05-08",
-      "checkedOn": "2026-10-09"
+      "checkedOn": "2026-10-09",
+      "accepted": {
+        "by": "Pilotbetrieb",
+        "on": "2026-10-16",
+        "sha256": "ef70377ccf308d5c79d6f3f679f24f5978ef3f914b987d58c2c23dac0c65855a"
+      }
     },
     {
       "key": "unity_day",
       "scope": "DE-BW",
       "validFrom": "1990-10-03",
-      "checkedOn": "2026-10-09"
+      "checkedOn": "2026-10-09",
+      "accepted": {
+        "by": "Pilotbetrieb",
+        "on": "2026-10-16",
+        "sha256": "1e13f38656a028f47f1737fdc8f5d6567fc7dd666f4decb8fdcd85fa7dd3baa2"
+      }
     },
     {
       "key": "all_saints_day",
       "scope": "DE-BW",
       "validFrom": "1995-05-08",
-      "checkedOn": "2026-10-09"
+      "checkedOn": "2026-10-09",
+      "accepted": {
+        "by": "Pilotbetrieb",
+        "on": "2026-10-16",
+        "sha256": "5bda62ab17df63c8e6b16cb1399e0c24f8127acb1805aba6f6c074e5bd2fa34c"
+      }
     },
     {
       "key": "christmas_day",
       "scope": "DE-BW",
       "validFrom": "1995-05-08",
-      "checkedOn": "2026-10-09"
+      "checkedOn": "2026-10-09",
+      "accepted": {
+        "by": "Pilotbetrieb",
+        "on": "2026-10-16",
+        "sha256": "0152969e1d4cd2514cc0774c14f2e72658ad82903d6a6d04cd9b6f9718498af4"
+      }
     },
     {
       "key": "second_christmas_day",
       "scope": "DE-BW",
       "validFrom": "1995-05-08",
-      "checkedOn": "2026-10-09"
+      "checkedOn": "2026-10-09",
+      "accepted": {
+        "by": "Pilotbetrieb",
+        "on": "2026-10-16",
+        "sha256": "4b625b6b5a565541ed2b4fd3c4175686da778f30e72d5c45ed870aa107878765"
+      }
     }
   ]
 }
