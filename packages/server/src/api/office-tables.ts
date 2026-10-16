@@ -27,6 +27,11 @@ import {
   documentTableRow,
   type DutyEntry,
   type DutyProposals,
+  evidenceRegisterBlocks,
+  evidenceRegisterColumns,
+  type EvidenceRegisterEntry,
+  evidenceRegisterRows,
+  evidenceRegisterWords,
   dutyTableHeads,
   dutyTableRow,
   everybodyIn,
@@ -550,6 +555,29 @@ export async function dutyTable(
     rows: rows.map((row) =>
       dutyTableRow(row, whereWords(targetWhere(row, names, assetNames)), catalogue, people),
     ),
+  }
+}
+
+/**
+ * The register of evidence as a table (#338): a row per duty, its asset and
+ * place named as the register of duties names them for whoever reads them.
+ */
+export async function evidenceRegisterTable(
+  tx: TenantTransaction,
+  identity: Asking,
+  entries: readonly EvidenceRegisterEntry[],
+): Promise<OutgoingTable> {
+  const names = await placeNamesFor(tx, identity)
+  const assetNames = await assetLookupFor(tx, identity)
+
+  return {
+    name: evidenceRegisterWords.title,
+    columns: evidenceRegisterColumns,
+    rows: evidenceRegisterRows(evidenceRegisterBlocks(entries), (block) => {
+      const where = targetWhere(block.target, names, assetNames)
+
+      return { asset: where.name, place: where.sub }
+    }),
   }
 }
 

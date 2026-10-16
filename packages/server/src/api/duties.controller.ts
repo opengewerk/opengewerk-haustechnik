@@ -108,7 +108,8 @@ import { listedEvidence } from './evidence.controller.js'
 import { dutyProposalFilter, dutyProposals } from './duty-proposals.js'
 import { dutyReading, dutyRegister, dutyRegisterQuestion } from './duty-register.js'
 import { decideUpdates, dutyUpdates, updatePlaceOf } from './duty-updates.js'
-import { dutyTable, proposalTable, wholeList } from './office-tables.js'
+import { evidenceRegisterEntries, evidenceRegisterQuestion } from './evidence-register.js'
+import { dutyTable, evidenceRegisterTable, proposalTable, wholeList } from './office-tables.js'
 import { said } from './register-question.js'
 import { type Asking, fieldsOf, placeOf, refuse } from './places.js'
 
@@ -971,6 +972,38 @@ export class DutiesController {
           this.catalogue,
           identity,
           read.duties.map((duty) => ({ ...duty, responsible: named(duty.responsibleUserId) })),
+        ),
+        format,
+        today,
+      ),
+    )
+  }
+
+  /**
+   * The register of evidence as a table (#338, section 4.3 of the concept):
+   * every duty the choice names with its last evidence, for an inspection or
+   * an audit, as a workbook or as text (`?format=xlsx` or `csv`). Whoever
+   * looks at evidence makes it; it names nobody who answers for a duty.
+   *
+   * Before the page of a duty, like the register.
+   */
+  @Get('evidence-register/table')
+  @RequiresPermission('evidence.read')
+  @Header('Cache-Control', 'no-store')
+  async evidenceRegister(
+    @CurrentIdentity() identity: Asking,
+    @Query() query: Record<string, unknown>,
+  ): Promise<StreamableFile> {
+    const format = tableFormatOf(query)
+    const question = evidenceRegisterQuestion(query)
+    const today = dayInGermany()
+
+    return this.database.forTenant(identity, async (tx) =>
+      tableAnswer(
+        await evidenceRegisterTable(
+          tx,
+          identity,
+          await evidenceRegisterEntries(tx, this.catalogue, today, question),
         ),
         format,
         today,

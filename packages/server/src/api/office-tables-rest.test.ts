@@ -10,6 +10,8 @@ import {
   type DutyProposals,
   type DutyRegister,
   dutyTableWords,
+  evidenceRegisterColumns,
+  evidenceRegisterWords,
   type IsoDate,
   type MeterList,
   meterMediumLabel,
@@ -33,6 +35,11 @@ import {
   resetToMigrated,
   testIdentityHeader,
 } from '../database/test-database.js'
+import {
+  writtenColumnNames,
+  writtenPlaceholders,
+  writtenValues,
+} from '../database/test-evidence.js'
 import { dayInGermany } from '../today.js'
 import { ApiModule } from './api.module.js'
 import type { TemplateRounds } from './round-templates.controller.js'
@@ -699,6 +706,86 @@ describe('the register of duties as a table (#236)', () => {
       expect(table[1]?.at(-1)).toBe(`Beendet seit ${dayInWords(addDays(today, -30))}`)
       expect(stampIn(table, stamps)).toEqual([])
     }
+  })
+})
+
+describe('the register of evidence as a table (#338)', () => {
+  const path = '/duties/evidence-register/table'
+
+  /** An evidence of a duty on a day, put in past the application: signed here, or from the old stock. */
+  async function evidenceOf(duty: string, performedOn: IsoDate, legacy = false): Promise<string> {
+    const values = [...writtenValues('u-duties', performedOn, 'without_defects')]
+
+    if (legacy) {
+      values[2] = 'legacy'
+    }
+
+    await admin.query(
+      `insert into evidence (tenant_id, property_id, area_id, duty_id, performed_on, result,
+                             ${writtenColumnNames})
+       select tenant_id, property_id, area_id, id, $2::date, 'without_defects'::evidence_result,
+              ${writtenPlaceholders(3)}
+         from duties where id = $1`,
+      [duty, performedOn, ...values],
+    )
+
+    return String(values[1])
+  }
+
+  it('holds a row per duty with its last evidence, marks the old stock and what was never recorded, and counts as the register does', async () => {
+    const { property, asset } = await liftIn('Nachweishaus')
+    const doors = await dutyAt(asset, 'Türen prüfen')
+    const call = await dutyAt(asset, 'Notruf prüfen')
+
+    await dutyAt(asset, 'Schacht prüfen')
+
+    const signed = await evidenceOf(doors, addDays(today, -3))
+    const old = await evidenceOf(call, addDays(today, -20), true)
+    const columns = [...evidenceRegisterColumns]
+    const pick = (row: readonly string[]) => [
+      row[columns.indexOf('Pflicht')],
+      row[columns.indexOf('Nummer des Nachweises')],
+      row[columns.indexOf('Kennzeichnung')],
+    ]
+
+    for (const format of ['xlsx', 'csv'] as const) {
+      const table = await tableOf(path, { propertyId: property }, by('u-duties'), format)
+
+      expect(table[0]).toEqual(columns)
+      expect(table.slice(1).map(pick)).toEqual([
+        ['Notruf prüfen', old, evidenceRegisterWords.legacy],
+        ['Schacht prüfen', '', evidenceRegisterWords.never],
+        ['Türen prüfen', signed, ''],
+      ])
+    }
+
+    const register = (
+      await http()
+        .get('/duties/register')
+        .query({ propertyId: property })
+        .set(testIdentityHeader, by('u-duties'))
+        .expect(200)
+    ).body as DutyRegister
+
+    expect(register.total).toBe(3)
+  })
+
+  it('holds nothing of an area the person does not see, and is for whoever looks at evidence', async () => {
+    const { property, asset } = await liftIn('Nachweishaus Süd', large, { areaId: south })
+
+    await dutyAt(asset, 'Türen prüfen')
+
+    // The technician works in the north of the large tenant.
+    expect(await tableOf(path, { propertyId: property }, by('u-tech', large))).toEqual([
+      [...evidenceRegisterColumns],
+    ])
+    expect(
+      (await tableOf(path, { propertyId: property }, by('u-duties', large))).slice(1).length,
+    ).toBe(1)
+    expect(await refusalOf(path, { propertyId: property }, leading('duty.read'))).toEqual({
+      status: 403,
+      message: missingRight('evidence.read'),
+    })
   })
 })
 

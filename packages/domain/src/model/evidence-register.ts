@@ -34,6 +34,7 @@ export type EvidenceRegisterDuty = Pick<
   | 'lastEvidence'
   | 'appointment'
   | 'asset'
+  | 'assetId'
   | 'propertyId'
   | 'buildingId'
   | 'roomId'
@@ -80,6 +81,8 @@ export interface EvidenceRegisterBlock {
   readonly asset: EvidenceRegisterDuty['asset']
   /** The room, the building or the property the duties hang on where they hang on no asset. */
   readonly placeId: string | null
+  /** Where the block stands, as the lists name a place (`targetWhere`). */
+  readonly target: Pick<EvidenceRegisterDuty, 'propertyId' | 'buildingId' | 'roomId' | 'assetId'>
   readonly lines: readonly EvidenceRegisterLine[]
 }
 
@@ -133,6 +136,7 @@ export function evidenceRegisterBlocks(
     {
       asset: EvidenceRegisterDuty['asset']
       placeId: string | null
+      target: EvidenceRegisterBlock['target']
       entries: EvidenceRegisterEntry[]
     }
   >()
@@ -141,7 +145,13 @@ export function evidenceRegisterBlocks(
     const { duty } = entry
     const placeId = duty.asset === null ? (duty.roomId ?? duty.buildingId ?? duty.propertyId) : null
     const key = duty.asset === null ? `place:${String(placeId)}` : `asset:${duty.asset.id}`
-    const block = blocks.get(key) ?? { asset: duty.asset, placeId, entries: [] }
+    const { propertyId, buildingId, roomId, assetId } = duty
+    const block = blocks.get(key) ?? {
+      asset: duty.asset,
+      placeId,
+      target: { propertyId, buildingId, roomId, assetId },
+      entries: [],
+    }
 
     block.entries.push(entry)
     blocks.set(key, block)
@@ -159,6 +169,7 @@ export function evidenceRegisterBlocks(
   return [...blocks.values()].sort(byPlace).map((block) => ({
     asset: block.asset,
     placeId: block.placeId,
+    target: block.target,
     lines: block.entries
       .map(evidenceRegisterLine)
       .sort((one, other) => byNameIn(one.duty, other.duty)),

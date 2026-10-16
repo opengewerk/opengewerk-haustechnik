@@ -52,6 +52,7 @@ function duty(other: Partial<EvidenceRegisterDuty> = {}): EvidenceRegisterDuty {
     },
     appointment: { dueOn: '2027-03-14', onTimeUntil: '2027-03-14' },
     asset: heater,
+    assetId: heater.id,
     propertyId: property,
     buildingId: school,
     roomId: 'r-1' as RoomId,
@@ -135,7 +136,12 @@ describe('the blocks of the register of evidence (#338)', () => {
   it('hold the duties of an asset together, the assets by their number and the places after them, the duties by name', () => {
     const blocks = evidenceRegisterBlocks([
       entry({ id: 'd-temp' as DutyId, title: 'Temperatur am Speicheraustritt' }),
-      entry({ id: 'd-room' as DutyId, title: 'Heizraum frei von Brandlasten', asset: null }),
+      entry({
+        id: 'd-room' as DutyId,
+        title: 'Heizraum frei von Brandlasten',
+        asset: null,
+        assetId: null,
+      }),
       entry({ id: 'd-ext' as DutyId, title: 'Prüfung von Feuerlöschern', asset: extinguisher }),
       entry(),
     ])
@@ -162,6 +168,7 @@ describe('the register of evidence as a table (#338)', () => {
           id: 'd-old' as DutyId,
           title: 'Prüfung von Feuerlöschern',
           asset: extinguisher,
+          assetId: extinguisher.id,
           intervalMonths: 24,
           intervalReason: null,
           lastEvidence: {
