@@ -75,6 +75,12 @@ export const faultWords = {
     'Annehmen legt einen Auftrag der Art „Störung“ an, der die Meldung nennt. Erledigt ist sie mit der Unterschrift unter dem Auftrag.',
   feedback:
     'Bei Annahme und Erledigung bekommt Bescheid, wer gemeldet hat: per Push und als Stand in der eigenen Liste. Einen Grund der Ablehnung sieht die Person ebenfalls dort.',
+  feedbackOutside:
+    'Gemeldet ohne Konto: wer gemeldet hat, bekommt bei Annahme und Erledigung eine E-Mail an die Adresse, die er angegeben hat. Die Adresse sieht hier niemand, und mit der Erledigung oder einer Ablehnung wird sie gelöscht.',
+  feedbackOutsideNone:
+    'Gemeldet ohne Konto und ohne Adresse für eine Rückmeldung: wer gemeldet hat, erfährt nichts weiter.',
+  outside: 'über das Etikett, ohne Anmeldung',
+  byMail: 'per E-Mail bei Annahme und Erledigung',
   defect:
     'Ist die Störung ein Mangel an einer Anlage oder einem Ort, melden Sie ihn von hier. Der Mangel nennt die Meldung als Herkunft.',
   similar:
@@ -624,7 +630,15 @@ export function FaultReportScreen() {
                       </span>
                     ),
                   },
-                  { label: 'Eingegangen', value: moment(shown.receivedAt) },
+                  {
+                    label: 'Eingegangen',
+                    value: shown.outside
+                      ? `${moment(shown.receivedAt)}, ${faultWords.outside}`
+                      : moment(shown.receivedAt),
+                  },
+                  ...(shown.answersByMail
+                    ? [{ label: 'Rückmeldung', value: faultWords.byMail }]
+                    : []),
                   ...(shown.rejectionReason === null
                     ? []
                     : [
@@ -691,7 +705,13 @@ export function FaultReportScreen() {
             <Panel title="Was daraus folgt">
               <div className="flex flex-col gap-2.5 text-[13px] leading-[1.5]">
                 <p>{faultWords.whatFollows}</p>
-                <p>{faultWords.feedback}</p>
+                <p>
+                  {shown.outside
+                    ? shown.answersByMail
+                      ? faultWords.feedbackOutside
+                      : faultWords.feedbackOutsideNone
+                    : faultWords.feedback}
+                </p>
               </div>
             </Panel>
           ) : (

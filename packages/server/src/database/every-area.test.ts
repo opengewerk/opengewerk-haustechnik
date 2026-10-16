@@ -28,6 +28,10 @@ const allowed = [
   // writer answers the outbox and never the person who asked.
   'notifications/notify.ts',
   'notifications/push.ts',
+  // The answers by mail to somebody who reported without an account
+  // (opengewerk-haustechnik#332): a run that works for nobody, like the two
+  // above, and reads the address of a report in whatever area it lies.
+  'notifications/outside-answers.ts',
 ]
 
 const source = fileURLToPath(new URL('..', import.meta.url))
@@ -58,5 +62,27 @@ describe('every area in one transaction', () => {
     // nothing would not have looked.
     expect(naming).toContain('database/every-area.ts')
     expect(naming.filter((file) => !allowed.includes(file))).toEqual([])
+  })
+})
+
+describe('the area of a label in one transaction', () => {
+  /**
+   * The narrower sibling of every area (opengewerk-haustechnik#332): a
+   * transaction without a person that sees the one area of a label, for a
+   * report from somebody without an account. `session_areas()` takes it only
+   * while no person is set; the files that may name the setting are these
+   * two, the way in and the route of that report.
+   */
+  it('is opened by the route of a report without an account and by nothing else', () => {
+    const naming = codeFiles(source).filter((file) =>
+      /app\.label_area|\binLabelArea\b/.test(readFileSync(join(source, file), 'utf8')),
+    )
+
+    expect(naming).toContain('database/label-area.ts')
+    expect(
+      naming.filter(
+        (file) => !['database/label-area.ts', 'api/outside-reports.controller.ts'].includes(file),
+      ),
+    ).toEqual([])
   })
 })

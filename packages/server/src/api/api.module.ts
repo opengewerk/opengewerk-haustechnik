@@ -94,8 +94,11 @@ import { ContractorsController } from './contractors.controller.js'
 import { ContractsController } from './contracts.controller.js'
 import {
   FaultCategorySettingsController,
+  FaultReportSettingsController,
   FaultReportsController,
 } from './fault-reports.controller.js'
+import { OutsideReportsController } from './outside-reports.controller.js'
+import { OUTSIDE_REPORTS, OutsideReports } from '../faults/outside-gate.js'
 import { WorkOrderSettingsController, WorkOrdersController } from './work-orders.controller.js'
 
 /**
@@ -170,6 +173,14 @@ export interface ApiOptions {
    */
   readonly backupStatus?: string | null
   /**
+   * What stands between the page of a label and a machine (#332): the limits
+   * per address and per label, the form with its least time, and the slips
+   * for photos. Left out, the routes of that page stand wherever the
+   * authentication is handed in, with the clock of the machine, and on a
+   * closed instance not; a test hands in one with a clock of its own.
+   */
+  readonly outside?: OutsideReports | null
+  /**
    * Whether the legal texts of the instance are handed out to anybody (#129).
    * Left out, they are wherever the authentication is handed in, and on a
    * closed instance not; the preview, which signs everybody in without it,
@@ -228,6 +239,15 @@ export class ApiModule {
       push = null,
       backupStatus = null,
     } = options
+    // The page of a label for somebody without an account (#332) is the one
+    // place of this application nobody signs in to; it stands where an
+    // instance takes sign ins at all.
+    const outside =
+      options.outside === undefined
+        ? authentication === undefined
+          ? null
+          : new OutsideReports()
+        : options.outside
     const catalogue = options.catalogue ?? shippedCatalogue()
 
     // The authentication is the foundation's, with the rights, the roles and
@@ -388,6 +408,8 @@ export class ApiModule {
         // the settings (#331).
         FaultReportsController,
         FaultCategorySettingsController,
+        FaultReportSettingsController,
+        ...(outside === null ? [] : [OutsideReportsController]),
         MeterSettingsController,
         EvidencePrintController,
         RoundPrintController,
@@ -422,6 +444,7 @@ export class ApiModule {
         { provide: TRUSTED_ORIGINS, useValue: trustedOrigins },
         { provide: VERSION, useValue: version },
         { provide: CATALOGUE, useValue: catalogue },
+        { provide: OUTSIDE_REPORTS, useValue: outside },
         { provide: IDENTITY_SOURCE, useValue: identities },
         // What a refusal says, for the guard of the foundation.
         { provide: AUTHORIZATION, useValue: authorization },

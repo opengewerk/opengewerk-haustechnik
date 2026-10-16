@@ -642,6 +642,7 @@ export const auditVocabulary: AuditVocabulary = {
         description: 'Beschreibung',
         photo_sha256: 'Foto',
         reported_by: 'Gemeldet von',
+        reported_outside: 'Ohne Anmeldung über ein Etikett gemeldet',
         received_at: 'Eingegangen am',
         work_order_id: 'Angenommen als Auftrag',
         accepted_at: 'Angenommen am',
@@ -650,6 +651,12 @@ export const auditVocabulary: AuditVocabulary = {
         merged_into_id: 'Zusammengeführt mit',
         defect_id: 'Als Mangel gemeldet',
       },
+    },
+    // Whether the label takes a report without an account (#332). The
+    // addresses for an answer are in no log at all (`fault_report_contacts`).
+    fault_report_settings: {
+      label: 'Einstellungen der Störungen',
+      fields: { open_by_label: 'Melden ohne Konto über das Etikett' },
     },
   },
   // The deadlines are a table of the foundation (opengewerk-haustechnik#24);
@@ -893,6 +900,7 @@ export const auditVocabulary: AuditVocabulary = {
     meter_pauses: ['starts_on'],
     meter_settings: ['key_day'],
     work_order_settings: ['names_and_times'],
+    fault_report_settings: ['open_by_label'],
     // An article by its number and its name, a supplier and a store by their
     // names, what a store keeps by its article, a booking by its kind.
     articles: { joined: ['number', 'designation'] },
@@ -970,7 +978,11 @@ export const auditVocabulary: AuditVocabulary = {
     service_report_records: ['state'],
     round_template_versions: ['definition'],
   },
-  reasons: {},
+  reasons: {
+    // A report over a label from somebody without an account (#332): the log
+    // names no person for it, and this is why.
+    'report.outside': 'Störmeldung ohne Anmeldung über ein Etikett',
+  },
   rights: rightLabel,
   roles: Object.fromEntries(shippedRoles.map((role) => [role.key, role.label])),
 }

@@ -14,9 +14,11 @@ import {
   runMailCycle as runFoundationCycle,
   type SecretKey,
   startMailWorker as startFoundationWorker,
+  startRepeating,
 } from '@opengewerk/platform-server'
 
 import { occasions } from '../notifications/occasions.js'
+import { answerOutsideReports } from '../notifications/outside-answers.js'
 import { outbox, type OutboxRow } from './outbox.js'
 import { mailServersOfOperators } from './server-settings.js'
 
@@ -84,7 +86,23 @@ export function runMailCycle(job: MailJob): Promise<CycleReport> {
   return runFoundationCycle(bound(job))
 }
 
-/** Runs the job every minute, one pass after the other and never two at once. */
+/**
+ * Runs the job every minute, one pass after the other and never two at once,
+ * and beside it the answers to somebody who reported a fault without an
+ * account (#332), which go through the same mail servers and no outbox.
+ */
 export function startMailWorker(job: MailJob, intervalMs = 60_000): RepeatingJob {
-  return startFoundationWorker(bound(job), intervalMs)
+  const outbox = startFoundationWorker(bound(job), intervalMs)
+  const answers = startRepeating({
+    run: () => answerOutsideReports(job),
+    intervalMs,
+    firstAfterMs: 10_000,
+    failure: 'Die Rückmeldung an Meldende ohne Konto ist gescheitert.',
+  })
+
+  return {
+    stop: async () => {
+      await Promise.all([outbox.stop(), answers.stop()])
+    },
+  }
 }

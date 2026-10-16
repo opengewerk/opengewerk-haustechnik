@@ -1,16 +1,21 @@
-import { type FaultCategory, faultCategoryProblems } from '@opengewerk/haustechnik-domain'
-import { Button, Cell, Column, TablePanel } from '@opengewerk/platform-web'
-import { SettingsPage, SettingsText } from '@opengewerk/platform-web/office'
+import {
+  type FaultCategory,
+  faultCategoryProblems,
+  type FaultReportSettings,
+} from '@opengewerk/haustechnik-domain'
+import { Button, Cell, Column, Panel, TablePanel } from '@opengewerk/platform-web'
+import { NoteBox, SettingsPage, SettingsText } from '@opengewerk/platform-web/office'
 import { useRight } from '@opengewerk/platform-web/session'
 import { refusalFor, request, RequestRefused, useSync } from '@opengewerk/platform-web/sync'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { useState } from 'react'
+import { Check } from 'lucide-react'
+import { useId, useState } from 'react'
 
 import { askAt, makeAt } from '../../sync/made-at.js'
 
 export const faultCategoryWords = {
   title: 'Störungen',
-  what: 'Die Kategorien, aus denen wählt, wer eine Störung meldet.',
+  what: 'Die Kategorien, aus denen wählt, wer eine Störung meldet, und das Melden ohne Konto.',
   from: 'Beim ersten Start stehen hier sechs Vorschläge. Die Reihenfolge ist die der Auswahl beim Melden.',
   caption: 'Kategorien der Störungen mit der Zahl der Meldungen, die sie tragen',
   note: 'Eine entfernte Kategorie steht nicht mehr zur Wahl. Meldungen, die sie tragen, behalten sie.',
@@ -23,7 +28,17 @@ export const faultCategoryWords = {
   loading: 'Wird geladen.',
   failed: 'Die Kategorien ließen sich nicht laden. Sie kommen vom Server, mit Verbindung.',
   saved: 'Gespeichert.',
+  outside: 'Ohne Konto melden',
+  openByLabel: 'Störungen über das Etikett auch ohne Anmeldung annehmen',
+  openByLabelHint:
+    'Eingeschaltet öffnet das Etikett an einem Raum oder einer Anlage ohne Anmeldung eine Seite zum Melden: Kategorie, Beschreibung, Foto und auf Wunsch eine E-Mail-Adresse für die Rückmeldung. Die Seite nennt nur den Raum. Ausgeschaltet sagt das Etikett, dass es eine Anmeldung braucht.',
+  openByLabelNote:
+    'Die Seite steht jedem offen, der das Etikett sieht. Je Etikett und je Anschluss nimmt sie nur wenige Meldungen in der Stunde an, und ein gesperrtes Etikett öffnet nichts. Die Rückmeldung geht über den Mailserver unter „E-Mail-Einstellungen“; die Adresse wird mit der Erledigung gelöscht und steht nicht im Änderungsprotokoll.',
+  save: 'Speichern',
+  settingFailed: 'Die Einstellung ließ sich nicht laden. Sie kommt vom Server, mit Verbindung.',
 } as const
+
+const reportSettingsKey = ['settings', 'fault-reports'] as const
 
 const categoriesKey = ['settings', 'fault-categories'] as const
 
@@ -84,7 +99,116 @@ export function FaultCategorySettingsScreen() {
         </TablePanel>
       )}
       {changes ? <AddCategory /> : null}
+      <OutsideReporting />
     </SettingsPage>
+  )
+}
+
+/**
+ * Whether the label takes a report from somebody without an account (#332,
+ * the card "Ohne Konto melden" of the board), shipped off. Whoever may change
+ * the settings switches it; whoever may only read them sees how it stands.
+ */
+function OutsideReporting() {
+  const settings = useQuery({
+    queryKey: reportSettingsKey,
+    queryFn: () => request<FaultReportSettings>('/settings/fault-reports'),
+    retry: (count, error) => !(error instanceof RequestRefused) && count < 2,
+  })
+
+  if (settings.data === undefined) {
+    return (
+      <SettingsText muted>
+        {settings.isError ? faultCategoryWords.settingFailed : faultCategoryWords.loading}
+      </SettingsText>
+    )
+  }
+
+  return (
+    <OpenByLabelForm key={String(settings.data.openByLabel)} held={settings.data.openByLabel} />
+  )
+}
+
+function OpenByLabelForm({ held }: { readonly held: boolean }) {
+  const client = useSync()
+  const queries = useQueryClient()
+  const changes = useRight('settings.write')
+  const hintId = useId()
+  const [on, setOn] = useState(held)
+  const [trouble, setTrouble] = useState<string | null>(null)
+  const [saved, setSaved] = useState(false)
+  const [working, setWorking] = useState(false)
+
+  async function save() {
+    setWorking(true)
+    setTrouble(null)
+    setSaved(false)
+
+    try {
+      const result = await askAt(client, 'PUT', '/settings/fault-reports', 'fault-reports', {
+        openByLabel: on,
+      })
+
+      if (result.outcome === 'refused') {
+        setTrouble(refusalFor(result))
+
+        return
+      }
+
+      await queries.invalidateQueries({ queryKey: reportSettingsKey })
+      setSaved(true)
+    } finally {
+      setWorking(false)
+    }
+  }
+
+  return (
+    <Panel title={faultCategoryWords.outside}>
+      <form
+        noValidate
+        className="flex flex-col gap-3"
+        onSubmit={(event) => {
+          event.preventDefault()
+          void save()
+        }}
+      >
+        <label className="flex items-start gap-[9px] text-[14px] leading-[1.4] max-lg:min-h-tap">
+          <input
+            type="checkbox"
+            className="mt-0.5 size-4 shrink-0 accent-copper-solid max-lg:size-5"
+            checked={on}
+            disabled={!changes || working}
+            aria-describedby={hintId}
+            onChange={(event) => {
+              setOn(event.target.checked)
+              setSaved(false)
+            }}
+          />
+          <span>
+            {faultCategoryWords.openByLabel}
+            <span id={hintId} className="block text-[13px] text-ink-muted">
+              {faultCategoryWords.openByLabelHint}
+            </span>
+          </span>
+        </label>
+        <NoteBox tone="neutral">{faultCategoryWords.openByLabelNote}</NoteBox>
+        {trouble === null ? null : (
+          <p role="alert" className="text-[13px] font-semibold text-conflict">
+            {trouble}
+          </p>
+        )}
+        {changes ? (
+          <div className="flex items-center gap-2">
+            <Button type="submit" tone="primary" icon={Check} disabled={working || on === held}>
+              {faultCategoryWords.save}
+            </Button>
+            {saved ? (
+              <span className="text-[13px] text-done">{faultCategoryWords.saved}</span>
+            ) : null}
+          </div>
+        ) : null}
+      </form>
+    </Panel>
   )
 }
 

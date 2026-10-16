@@ -55,10 +55,24 @@ export class PreviewIdentitySource implements IdentitySource {
  * with the operator already chosen, so the interface goes straight to work.
  * Every other route of the sign in says that there is none, because signing
  * in, signing out and setting up a second factor have nothing to act on here.
+ *
+ * `signedOut` answers that nobody is signed in, so that the pages before the
+ * sign in show: the page of a label for a report without an account (#332).
+ * The routes behind them still run as the preview's person.
  */
-export function previewSession(identity: Identity, person: PreviewPerson): AuthenticationHandler {
+export function previewSession(
+  identity: Identity,
+  person: PreviewPerson,
+  signedOut = false,
+): AuthenticationHandler {
   return (request, response) => {
     if (request.method === 'GET' && request.path === '/get-session') {
+      if (signedOut) {
+        response.json(null)
+
+        return
+      }
+
       response.json({
         user: {
           id: identity.userId,

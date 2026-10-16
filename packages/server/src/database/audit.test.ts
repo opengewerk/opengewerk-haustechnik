@@ -42,10 +42,14 @@ const tenant: { readonly id: TenantId; readonly name: string } = {
  * trigger. The log writes every value it sees, and a sealed value written
  * there would stay for as long as the log is kept, which is longer than any
  * credential should live.
+ *
+ * `fault_report_contacts` is the second (#332), for the same reason: the
+ * address somebody without an account gave for an answer is removed once the
+ * report is done, and a value in the log could not be removed with it.
  */
 const outsideTheLog = {
   prefixes: [...foundationOutsideTheLog.prefixes],
-  tables: [...foundationOutsideTheLog.tables, 'secrets'],
+  tables: [...foundationOutsideTheLog.tables, 'secrets', 'fault_report_contacts'],
 }
 
 let admin: Pool

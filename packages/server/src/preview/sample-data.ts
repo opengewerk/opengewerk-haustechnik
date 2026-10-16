@@ -1624,6 +1624,10 @@ export async function plantSampleData(
  * reported three of them is the viewer afterwards (`giveSampleFaults`).
  */
 async function plantSampleFaults(address: string): Promise<string[]> {
+  // The label of a room takes a report without an account (#332), to be seen
+  // in a preview started with `PREVIEW_SIGNED_OUT=1`.
+  await send(address, '/settings/fault-reports', { openByLabel: true }, 'PUT')
+
   const categories = await read<FaultCategory[]>(address, '/fault-reports/categories')
   const places = await read<FaultPlaceChoice[]>(address, '/fault-reports/places')
   const school = places.find(
