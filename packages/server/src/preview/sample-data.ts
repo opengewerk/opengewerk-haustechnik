@@ -1114,6 +1114,8 @@ interface SampleOrder {
   readonly urgency?: WorkOrderUrgency
   readonly participants?: readonly string[]
   readonly goes?: 'signed' | 'accepted' | 'checked' | 'rejected'
+  /** The firm of the list that carries it out (#330), by its name. */
+  readonly firm?: string
 }
 
 /** A work order made by hand at a property of the sample operator, by its name. */
@@ -1143,6 +1145,15 @@ const sampleOrdersByHand: readonly SampleOrderByHand[] = [
     kind: 'other',
     goes: 'rejected',
   },
+  // A firm of the list at work (#330): its people are briefed on site and a
+  // permit for the hot work is issued before it begins.
+  {
+    property: 'Schulzentrum Am Lindenhain',
+    title: 'Undichte Lötstelle am Heizungsrücklauf instand setzen',
+    leads: 'preview-wendt',
+    kind: 'other',
+    firm: 'Heizungsbau Beispiel GmbH',
+  },
 ]
 
 /** A work order the planting made, with how far it is to go and the defect it came of. */
@@ -1161,6 +1172,8 @@ export interface PlantedOrder {
  */
 export interface BehindTheRoutes {
   readonly orders: PlantedOrder[]
+  /** The orders a firm of the list carries out, briefed and with a permit on a device (#330). */
+  readonly visits: { readonly activityId: string; readonly leads: string }[]
   /** Labels of a sheet printed for a property, which hang on nothing yet. */
   readonly sheets: { readonly propertyId: string; readonly labels: number }[]
 }
@@ -1419,7 +1432,7 @@ export async function plantSampleData(
   address: string,
   areas: ReadonlyMap<PreviewArea, string>,
 ): Promise<BehindTheRoutes> {
-  const standings: PlantedStandings = { evidence: [], orders: [], sheets: [] }
+  const standings: PlantedStandings = { evidence: [], orders: [], sheets: [], visits: [] }
   const propertyIds = new Map<string, string>()
 
   // The defaults of the three general classes of defects, which the Leitung
@@ -1584,7 +1597,7 @@ export async function plantSampleData(
   // The contracts with the firms (#329), once the duties and the assets they name are there.
   await plantSampleContracts(address)
 
-  return { orders: standings.orders, sheets: standings.sheets }
+  return { orders: standings.orders, sheets: standings.sheets, visits: standings.visits }
 }
 
 /**
@@ -1607,7 +1620,12 @@ async function plantOrder(
     dueOn: daysAhead(7),
     responsibleUserId: order.leads,
     participantUserIds: order.participants ?? [],
+    ...(order.firm === undefined ? {} : { contractorId: sampleFirms.get(order.firm) }),
   })
+
+  if (order.firm !== undefined) {
+    standings.visits.push({ activityId: made.id, leads: order.leads })
+  }
 
   if (order.goes !== undefined) {
     standings.orders.push({

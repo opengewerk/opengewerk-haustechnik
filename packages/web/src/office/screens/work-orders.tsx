@@ -70,7 +70,7 @@ import {
 import { keepPreviousData, useInfiniteQuery, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useNavigate, useParams, useSearch } from '@tanstack/react-router'
 import { Ban, Check, Pencil, Plus, Signature, TriangleAlert, X } from 'lucide-react'
-import { type ReactNode, useDeferredValue, useId, useMemo, useState } from 'react'
+import { lazy, type ReactNode, Suspense, useDeferredValue, useId, useMemo, useState } from 'react'
 
 import { titleOfRoom } from '../../app/place-records.js'
 import { SignatureMark, typedWay } from '../../app/signature-ways.js'
@@ -97,8 +97,18 @@ import { ServiceReportsPanel } from '../service-reports.js'
 import { TasksCard } from '../tasks.js'
 import { ActivityStatusMark, usePlaces } from './activities.js'
 import { asTableAddress } from '../table-address.js'
+import { ContractorField, ContractorName } from '../contractor-field.js'
+
+// The briefings and permits of an order a firm carries out (#330) are fetched
+// when its page shows them and are no part of the entry of the office, which
+// has a budget (`scripts/budget.js`).
+const OrderVisits = lazy(async () => ({ default: (await import('../visits.js')).OrderVisits }))
 
 export const workOrderWords = {
+  // Who carries it out (#330): the own people, or a firm of the list.
+  ownPeople: 'Eigene Leute',
+  firmHint:
+    'Führt eine Fremdfirma den Auftrag aus, wählen Sie sie hier. Den Auftrag führt weiter die verantwortliche Person.',
   measureHint:
     'Nach DIN 31051: Wartung, Inspektion, Instandsetzung oder Verbesserung. Bei den anderen Arten folgt sie aus der Art.',
   notMeasured: 'nicht eingeordnet',
@@ -726,6 +736,16 @@ export function WorkOrderScreen() {
                 },
                 { label: 'Angelegt', value: `am ${date(shown.createdAt.slice(0, 10))}` },
                 { label: 'Verantwortlich', value: shown.responsible?.name ?? null },
+                // The firm of the list that carries it out (#330).
+                {
+                  label: 'Ausführung',
+                  value:
+                    shown.contractorId === null ? (
+                      workOrderWords.ownPeople
+                    ) : (
+                      <ContractorName contractorId={shown.contractorId} note={null} />
+                    ),
+                },
                 {
                   label: 'Beteiligt',
                   value:
@@ -753,6 +773,10 @@ export function WorkOrderScreen() {
               ]}
             />
           </Panel>
+          {/* A firm of the list at work: its briefings and permits (#330). */}
+          <Suspense fallback={null}>
+            <OrderVisits orderId={shown.id} named={shown.contractorId !== null} />
+          </Suspense>
           <Panel title="Notizen von vor Ort">
             {shown.notes.length === 0 ? (
               <p className="text-[13px] leading-[1.45] text-ink-muted">{workOrderWords.noNotes}</p>
@@ -1220,6 +1244,8 @@ interface PlanState {
   readonly dueOn: string
   readonly responsibleUserId: string
   readonly participantUserIds: readonly string[]
+  /** The firm of the list that carries it out (#330), or empty for the own people. */
+  readonly contractorId: string
 }
 
 function PlanFields({
@@ -1339,6 +1365,15 @@ function PlanFields({
           ]}
           {...(problems['responsibleUserId'] ? { problem: problems['responsibleUserId'] } : {})}
         />
+        <ContractorField
+          value={plan.contractorId}
+          noneLabel={workOrderWords.ownPeople}
+          hint={workOrderWords.firmHint}
+          problem={problems['contractorId']}
+          onChange={(value) => {
+            set('contractorId', value)
+          }}
+        />
       </div>
       <div className="flex flex-col gap-1.5">
         <span className="text-[13px] font-medium">Weitere Beteiligte</span>
@@ -1413,6 +1448,7 @@ function planBody(plan: PlanState) {
     dueOn: plan.dueOn === '' ? null : plan.dueOn,
     responsibleUserId: plan.responsibleUserId === '' ? null : plan.responsibleUserId,
     participantUserIds: [...plan.participantUserIds],
+    contractorId: plan.contractorId === '' ? null : plan.contractorId,
   }
 }
 
@@ -1439,6 +1475,7 @@ function EditWorkOrderDialog({
     dueOn: order.dueOn ?? '',
     responsibleUserId: order.responsible?.userId ?? '',
     participantUserIds: order.participants.map((person) => person.userId),
+    contractorId: order.contractorId ?? '',
   })
   const [problems, setProblems] = useState<Readonly<Record<string, string>>>({})
   const [trouble, setTrouble] = useState<string | null>(null)
@@ -1573,6 +1610,7 @@ export function NewWorkOrderScreen() {
     dueOn: '',
     responsibleUserId: '',
     participantUserIds: [],
+    contractorId: '',
   })
   const [problems, setProblems] = useState<Readonly<Record<string, string>>>({})
   const [trouble, setTrouble] = useState<string | null>(null)

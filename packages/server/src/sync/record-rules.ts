@@ -20,6 +20,8 @@ import {
   taskTargetProblem,
   taskTitleProblem,
   serviceReportProblems,
+  briefingProblems,
+  workPermitProblems,
   workOrderMaterialProblems,
   workOrderNoteProblems,
   workOrderProblems,
@@ -219,6 +221,14 @@ export function recordRules(catalogue: Catalogue): RecordRules {
       ['clientName', 'path', 'pageFingerprint', 'deviceInfo'],
       ['clientName', 'path', 'pageFingerprint'],
     ),
+    // A briefing names whom and in what and carries the drawing (#330); a
+    // permit is checked against its form when it lands.
+    briefings: each(
+      briefingProblems,
+      ['personName', 'subject', 'path', 'deviceInfo'],
+      ['personName', 'subject', 'path'],
+    ),
+    work_permits: each(workPermitProblems, ['deviceInfo']),
     defects: [
       ...each(
         defectProblems,

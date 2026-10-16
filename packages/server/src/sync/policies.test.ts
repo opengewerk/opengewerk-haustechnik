@@ -171,6 +171,9 @@ describe('the rights of an operation', () => {
       activity_signatures: { create: true },
       // The client's signature under a service report, before the own one (#324).
       service_reports: { create: true },
+      // A briefing and a permit for hot work at an order of a firm (#330).
+      briefings: { create: true },
+      work_permits: { create: true },
       // Filed and corrected by everybody, taken out of the records from the
       // Objektleitung on (section 7 of the concept).
       attachments: { create: true, change: true, remove: false },

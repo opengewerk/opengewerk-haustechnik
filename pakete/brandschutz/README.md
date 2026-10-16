@@ -56,6 +56,11 @@ und November 2009. Geprüft sind sie am Text der BAuA in der jeweils geltenden F
 ## Formulare und Vorlagen
 
 - `hold_open_device_function_check`: die monatliche Prüfung der Feststellanlage durch den Betreiber.
+- `hot_work_permit`: der Erlaubnisschein für feuergefährliche Arbeiten am Auftrag einer Fremdfirma
+  (#330). Ausgefüllt und erteilt wird er vor Ort, und die ausführende Person unterschreibt darin. Eine
+  schriftliche Erlaubnis für Schweißen, Schneiden und verwandte Verfahren in brandgefährdeten Bereichen
+  verlangt die DGUV Regel 100-500, Kapitel 2.26. Der Text ist eigen und kein Formular eines Versicherers;
+  ein Betreiber, der das Formular seines Versicherers verwenden muss, legt es als Dokument an den Auftrag.
 - Vorlage `fire_extinguisher_visual_check`: eine Sichtkontrolle der Feuerlöscher für einen Rundgang,
   die ein Betreiber übernimmt und anpasst. Eine Pflicht dazu nennt keine der Quellen; sie hilft, einen
   Feuerlöscher, der fehlt oder beschädigt ist, vor der nächsten Wartung zu finden.

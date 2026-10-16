@@ -33,9 +33,14 @@ import { refusalFor, request, RequestRefused, useSync } from '@opengewerk/platfo
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useNavigate, useParams } from '@tanstack/react-router'
 import { Pencil, Plus, Trash2 } from 'lucide-react'
-import { type ReactNode, useDeferredValue, useState } from 'react'
+import { lazy, type ReactNode, Suspense, useDeferredValue, useState } from 'react'
 
 import { askAt } from '../../sync/made-at.js'
+
+// The briefings and permits of a firm (#330) are fetched when its page shows
+// them and are no part of the entry of the office, which has a budget
+// (`scripts/budget.js`).
+const FirmVisits = lazy(async () => ({ default: (await import('../visits.js')).FirmVisits }))
 import { activityPlaces } from '../activity-addresses.js'
 import {
   contractorKey,
@@ -568,6 +573,12 @@ export function ContractorScreen() {
                 )}
               </tbody>
             </TablePanel>
+          ) : null}
+          {/* The briefings and permits at its orders (#330). */}
+          {readsActivities ? (
+            <Suspense fallback={null}>
+              <FirmVisits contractorId={contractorId} />
+            </Suspense>
           ) : null}
           {readsEvidence ? (
             <TablePanel

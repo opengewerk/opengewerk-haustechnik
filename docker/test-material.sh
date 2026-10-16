@@ -30,7 +30,7 @@ guarded_route=/staff
 # The tables counted before the backup and after the restore. The area and
 # the place of the account in it come with the account: a Betreiber gets its
 # first area with its first membership.
-counted_tables='auth_users memberships tenant_roles account_corrections areas member_areas invitations invitation_area_choices invitation_areas properties buildings contacts building_closures assets files mail_settings deadline_settings deadline_runs duties duty_dismissals evidence deadlines activities activity_duties activity_answers work_orders work_order_participants work_order_notes defects meter_points meter_readings meter_exchanges meter_pauses meter_settings work_order_settings activity_signatures work_order_decisions service_reports service_report_records articles suppliers stores store_articles stock_movements work_order_materials store_labels contractors contracts contract_items evidence_voidings round_records prints attachments attachment_versions labels imports asset_kind_names defect_class_terms round_templates round_template_versions round_plans tasks mail_outbox push_subscriptions push_opt_outs push_outbox'
+counted_tables='auth_users memberships tenant_roles account_corrections areas member_areas invitations invitation_area_choices invitation_areas properties buildings contacts building_closures assets files mail_settings deadline_settings deadline_runs duties duty_dismissals evidence deadlines activities activity_duties activity_answers work_orders work_order_participants work_order_notes defects meter_points meter_readings meter_exchanges meter_pauses meter_settings work_order_settings activity_signatures work_order_decisions service_reports service_report_records briefings work_permits articles suppliers stores store_articles stock_movements work_order_materials store_labels contractors contracts contract_items evidence_voidings round_records prints attachments attachment_versions labels imports asset_kind_names defect_class_terms round_templates round_template_versions round_plans tasks mail_outbox push_subscriptions push_opt_outs push_outbox'
 
 # The migrations, and how many of them make the older state an update starts
 # from: the first, without the sequence for work orders that the second brings.
@@ -416,7 +416,19 @@ records_for_backup() {
                                         state, fingerprint)
     select tenant_id, property_id, area_id, id,
            '{\"version\": 1, \"holder\": \"Probe\"}', repeat('0', 64)
-      from service_reports where tenant_id = '$first_tenant';"
+      from service_reports where tenant_id = '$first_tenant';
+    insert into briefings (tenant_id, property_id, area_id, activity_id, contractor_id, person_name,
+                           subject, path, signed_by, signed_at)
+    select a.tenant_id, a.property_id, a.area_id, a.id, c.id, 'Paul Probe', 'Fluchtwege', 'M10,10L200,300',
+           u.id, '2026-10-01T08:00:00Z'
+      from activities a, contractors c, auth_users u
+     where a.tenant_id = '$first_tenant' and c.tenant_id = a.tenant_id and u.email = '$probe_email';
+    insert into work_permits (tenant_id, property_id, area_id, activity_id, contractor_id, form_key,
+                              form_version, answers, signed_by, signed_at)
+    select a.tenant_id, a.property_id, a.area_id, a.id, c.id, 'brandschutz.hot_work_permit', 1,
+           '{\"place\": \"Probe\"}', u.id, '2026-10-01T08:05:00Z'
+      from activities a, contractors c, auth_users u
+     where a.tenant_id = '$first_tenant' and c.tenant_id = a.tenant_id and u.email = '$probe_email';"
   waited=0
   # The duty's own deadline; the plan of a round brings one of its own.
   until test "$(value "select count(*) from deadlines where tenant_id = '$first_tenant' and duty_id is not null")" = 1 &&

@@ -26,6 +26,7 @@ import { SiteActivityScreen, SiteProtocolScreen } from './screens/protocol.js'
 import { SiteResultScreen } from './screens/result.js'
 import { SiteStartScreen } from './screens/start.js'
 import { SiteMaterialScreen } from './screens/material.js'
+import { SiteBriefingScreen, SiteWorkPermitScreen } from './screens/visit.js'
 import {
   SiteCloseOrderScreen,
   SiteNoteScreen,
@@ -105,6 +106,9 @@ export function siteRoutes() {
     at('/vorgaenge/$activityId/leistungsnachweis', SiteServiceReportScreen),
     // Material from the stores for a work order, by scan or search (#326).
     at('/vorgaenge/$activityId/material', SiteMaterialScreen),
+    // A contractor at work: a briefing and the permit for hot work (#330).
+    at('/vorgaenge/$activityId/einweisung', SiteBriefingScreen),
+    at('/vorgaenge/$activityId/erlaubnisschein', SiteWorkPermitScreen),
     // A round of the meters of a property, also without a network (#120).
     at('/ablesung/$propertyId', ReadingRoundScreen),
     // The tasks of the person holding the device, from the menu (#124).

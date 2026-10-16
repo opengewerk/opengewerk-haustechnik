@@ -146,6 +146,9 @@ const workEntities = [
   'work_order_decisions',
   // The client's signature under the service report of a work order (#324).
   'service_reports',
+  // The briefings and permits of a contractor at work (#330).
+  'briefings',
+  'work_permits',
   // The material taken for a work order (#326).
   'work_order_materials',
 ]
@@ -267,6 +270,8 @@ export function pullScope(scope: DeviceScope, reads: PullRights): PullScope {
     work_order_decisions: sql`${column('work_order_decisions', 'work_order_id')} in
       (select id from work_orders where activity_id = any(${activities}))`,
     service_reports: sql`${column('service_reports', 'activity_id')} = any(${activities})`,
+    briefings: sql`${column('briefings', 'activity_id')} = any(${activities})`,
+    work_permits: sql`${column('work_permits', 'activity_id')} = any(${activities})`,
     defects: sql`${column('defects', 'id')} = any(${idArray(scope.defectIds)})`,
     tasks: sql`${column('tasks', 'id')} = any(${idArray(scope.taskIds)})`,
   }

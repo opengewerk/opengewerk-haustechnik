@@ -407,6 +407,34 @@ export const auditVocabulary: AuditVocabulary = {
         page_fingerprint: 'Fingerabdruck der Seite',
       },
     },
+    // A contractor at work (#330): the briefing of one of its people and the
+    // permit for hot work, both at a work order.
+    briefings: {
+      label: 'Einweisung',
+      fields: {
+        activity_id: 'Vorgang',
+        contractor_id: 'Fremdfirma',
+        person_name: 'Name der eingewiesenen Person',
+        subject: 'Worin eingewiesen',
+        path: 'Linienzug',
+        signed_by: 'Aufgenommen von',
+        signed_at: 'Unterschrieben am',
+        device_info: 'Gerät',
+      },
+    },
+    work_permits: {
+      label: 'Erlaubnisschein',
+      fields: {
+        activity_id: 'Vorgang',
+        contractor_id: 'Fremdfirma',
+        form_key: 'Formular',
+        form_version: 'Fassung des Formulars',
+        answers: 'Angaben',
+        signed_by: 'Ausgestellt von',
+        signed_at: 'Ausgestellt am',
+        device_info: 'Gerät',
+      },
+    },
     service_report_records: {
       label: 'Eingefrorener Stand eines Leistungsnachweises',
       fields: {
@@ -701,6 +729,9 @@ export const auditVocabulary: AuditVocabulary = {
       { table: 'work_order_notes', column: 'activity_id' },
       { table: 'service_reports', column: 'activity_id' },
       { table: 'work_order_materials', column: 'activity_id' },
+      // The briefings and permits of a contractor at work (#330).
+      { table: 'briefings', column: 'activity_id' },
+      { table: 'work_permits', column: 'activity_id' },
     ],
     // A defect with its photos.
     defects: [{ table: 'attachments', column: 'defect_id' }],
@@ -856,6 +887,9 @@ export const auditVocabulary: AuditVocabulary = {
     prints: ['evidence_id', 'activity_id', 'service_report_id'],
     // A service report by its client, its frozen state by the report.
     service_reports: ['client_name'],
+    // A briefing by whom it was of, a permit by its form (#330).
+    briefings: ['person_name'],
+    work_permits: ['form_key'],
     service_report_records: ['service_report_id'],
     // An activity by its name, the duty of an activity by the duty, an answer
     // by its point, a work order by its number and a defect by what was

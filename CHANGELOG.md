@@ -9,6 +9,15 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
 
 ### Hinzugefügt
 
+- Einsatz einer Fremdfirma (#330): Ein Auftrag nennt die Fremdfirma aus der Liste, die ihn ausführt,
+  auch einer von Hand oder aus einem Mangel. Vor Ort weist, wer den Auftrag führt oder Arbeit plant und
+  verteilt, die Leute der Firma ein: Name in Druckschrift, worin, und ihr Schriftzug auf dem Gerät, auch
+  ohne Netz. Für feuergefährliche Arbeiten stellt er dort den Erlaubnisschein aus, ein neues Formular im
+  Paket Brandschutz (`hot_work_permit`), in dem die ausführende Person unterschreibt. Beides steht am
+  Auftrag und an der Fremdfirma, lässt sich nicht ändern, auch nicht in der Datenbank, und der
+  Erlaubnisschein bleibt in der Fassung seines Formulars lesbar. So liegt im System, wer vor Ort
+  eingewiesen war und unter welchen Auflagen gearbeitet wurde, statt auf Papier neben der Anwendung.
+  Migration `0061_briefings_and_permits`.
 - Verträge und Gewährleistung (#329): Verträge mit Fremdfirmen unter „Verträge“, mit Beginn, Ende der
   Laufzeit, Verlängerung, Kündigungsfrist, dem Tag einer Kündigung und Reaktionszeit, Preis und Notiz
   als Angaben. Ein Vertrag erfasst Gebäude und Anlagen, zeigt sie aus den Bereichen der Person und

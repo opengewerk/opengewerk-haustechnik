@@ -1,6 +1,7 @@
 import type {
   ActivityId,
   Catalogue,
+  ContractorId,
   Identity,
   ServiceReportId,
   SignatureRole,
@@ -21,6 +22,7 @@ import {
 } from '../activities/signing.js'
 import { bookWithdrawal } from '../activities/materials.js'
 import { checkServiceReport, freezeServiceReport } from '../activities/service-reports.js'
+import { checkBriefing, checkWorkPermit } from '../activities/visits.js'
 
 // A signature given on a device, also without a connection (ADR 0004, points
 // 10 and 11). It travels as a record of its own, and the server checks it
@@ -135,6 +137,71 @@ export const reported: SyncCheck<Sender> = async ({ tx, tenantId, operation, val
     }
 
     throw error
+  }
+}
+
+/** A value of JSON as a device sends it, as text: read out of it, or left as it came where it is none. */
+function jsonOf(value: unknown): unknown {
+  if (typeof value !== 'string') {
+    return value
+  }
+
+  try {
+    return JSON.parse(value) as unknown
+  } catch {
+    return value
+  }
+}
+
+/**
+ * A briefing or a permit for hot work from a device (#330), checked against
+ * the work order as the server holds it, with the catalogue the form of a
+ * permit comes from: one of another shape or with a field left empty is a
+ * mistake its form asks about, and what changed while the device was away,
+ * the order closed or given to another firm or person, is a conflict about
+ * this one operation.
+ */
+export function visited(catalogue: Catalogue): SyncCheck<Sender> {
+  return async ({ tx, tenantId, operation, values, sender }) => {
+    if (
+      (operation.entity !== 'briefings' && operation.entity !== 'work_permits') ||
+      operation.kind !== 'create'
+    ) {
+      return null
+    }
+
+    const shared = {
+      signedBy: sender.userId,
+      rights: sender.rights,
+      activityId: values['activityId'] as ActivityId,
+      contractorId: values['contractorId'] as ContractorId,
+      signedAt: new Date(String(values['signedAt'] ?? '')),
+      deviceInfo: (values['deviceInfo'] ?? null) as string | null,
+    }
+
+    try {
+      await (operation.entity === 'briefings'
+        ? checkBriefing(tx, tenantId, {
+            ...shared,
+            personName: String(values['personName'] ?? ''),
+            subject: String(values['subject'] ?? ''),
+            path: (values['path'] ?? null) as string | null,
+          })
+        : checkWorkPermit(tx, tenantId, catalogue, {
+            ...shared,
+            formKey: String(values['formKey'] ?? ''),
+            formVersion: Number(values['formVersion']),
+            answers: jsonOf(values['answers']),
+          }))
+
+      return null
+    } catch (error) {
+      if (error instanceof SigningRefusal) {
+        return answers[error.about](error.message)
+      }
+
+      throw error
+    }
   }
 }
 

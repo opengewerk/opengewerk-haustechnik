@@ -30,6 +30,8 @@ import type {
   RoundTemplate,
   RoundTemplateVersion,
   ServiceReport,
+  Briefing,
+  WorkPermit,
   ServiceReportRecord,
   StoreLabel,
   StoreMovement,
@@ -77,6 +79,8 @@ import type {
   roundRecords,
   serviceReportRecords,
   serviceReports,
+  briefings,
+  workPermits,
   stockMovements,
   storeLabels,
   storeArticles,
@@ -172,6 +176,8 @@ export type MeterExchangeMatches = Assert<Exact<typeof meterExchanges.$inferSele
 export type MeterPauseMatches = Assert<Exact<typeof meterPauses.$inferSelect, MeterPause>>
 export type MeterSettingMatches = Assert<Exact<typeof meterSettings.$inferSelect, MeterSetting>>
 export type ServiceReportMatches = Assert<Exact<typeof serviceReports.$inferSelect, ServiceReport>>
+export type BriefingMatches = Assert<Exact<typeof briefings.$inferSelect, Briefing>>
+export type WorkPermitMatches = Assert<Exact<typeof workPermits.$inferSelect, WorkPermit>>
 export type ServiceReportRecordMatches = Assert<
   Exact<typeof serviceReportRecords.$inferSelect, ServiceReportRecord>
 >

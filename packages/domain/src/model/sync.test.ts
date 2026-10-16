@@ -72,6 +72,8 @@ describe('the policies of the sync', () => {
       activity_signatures: [true, 'never'],
       work_order_decisions: [false, 'never'],
       service_reports: [true, 'never'],
+      briefings: [true, 'never'],
+      work_permits: [true, 'never'],
       // Who works on an order is handed out in the office (addendum of 08.10.2026, #73).
       work_order_participants: [false, 'never'],
       // "Notiz an einem Vorgang: ja, nie" (#118).

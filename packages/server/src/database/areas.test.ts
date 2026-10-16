@@ -516,6 +516,22 @@ async function placeIn(where: 'north' | 'south'): Promise<void> {
        from service_reports where activity_id = $1`,
     [at.activity, 'e'.repeat(64)],
   )
+  // A briefing and a permit for hot work at the work order (#330).
+  await admin.query(
+    `insert into briefings (tenant_id, property_id, area_id, activity_id, contractor_id, person_name,
+                            subject, path, signed_by, signed_at)
+     select $1, $2, $3, $4, id, 'Marco Petri', 'Fluchtwege', 'M10,10L200,300', $5, '2026-10-01T08:00:00Z'
+       from contractors where tenant_id = $1 order by created_at, id limit 1`,
+    [tenant, at.property, areaId, at.activity, person.lead],
+  )
+  await admin.query(
+    `insert into work_permits (tenant_id, property_id, area_id, activity_id, contractor_id, form_key,
+                               form_version, answers, signed_by, signed_at)
+     select $1, $2, $3, $4, id, 'brandschutz.hot_work_permit', 1, '{"place": "Heizraum"}', $5,
+            '2026-10-01T08:05:00Z'
+       from contractors where tenant_id = $1 order by created_at, id limit 1`,
+    [tenant, at.property, areaId, at.activity, person.lead],
+  )
   // A document at the asset, with the file its one version names.
   await admin.query(
     `insert into files (tenant_id, sha256, size_bytes, media_type)
@@ -643,6 +659,7 @@ describe('a person with the north', () => {
       'asset_supplies',
       'assets',
       'attachments',
+      'briefings',
       'building_closures',
       'buildings',
       'contacts',
@@ -672,6 +689,7 @@ describe('a person with the north', () => {
       'work_order_notes',
       'work_order_participants',
       'work_orders',
+      'work_permits',
     ])
     expect(seen).toEqual(expected)
   })
@@ -871,6 +889,7 @@ describe('a property moved to another area', () => {
         'asset_supplies',
         'assets',
         'attachments',
+        'briefings',
         'building_closures',
         'buildings',
         'contacts',
@@ -899,6 +918,7 @@ describe('a property moved to another area', () => {
         'work_order_notes',
         'work_order_participants',
         'work_orders',
+        'work_permits',
       ])
       expect(below).toEqual(expected)
 

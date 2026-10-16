@@ -42,6 +42,8 @@ const titleFields: Readonly<Record<string, readonly string[]>> = {
   duty_dismissals: ['kind'],
   activities: ['title'],
   work_orders: ['number'],
+  // A briefing by whom it was of (#330).
+  briefings: ['personName'],
   defects: ['description'],
   // A document by its name, a version of one by the name of its file.
   attachments: ['title'],
@@ -142,6 +144,11 @@ export const records: RecordWords = {
     // The client's signature under a service report (#324).
     service_reports:
       'Der Leistungsnachweis wurde nicht angenommen, weil sich der Auftrag inzwischen geändert hat oder schon einen hat. Bitte den Auftrag ansehen und den Auftraggeber, wenn nötig, neu unterschreiben lassen.',
+    // A briefing and a permit for hot work at a work order of a firm (#330).
+    briefings:
+      'Die Einweisung wurde nicht angenommen, weil sich der Auftrag inzwischen geändert hat: er ist abgeschlossen, eine andere Firma führt ihn aus, oder jemand anderes führt ihn. Bitte den Auftrag ansehen und, wenn nötig, neu einweisen.',
+    work_permits:
+      'Der Erlaubnisschein wurde nicht angenommen, weil sich der Auftrag inzwischen geändert hat: er ist abgeschlossen, eine andere Firma führt ihn aus, oder jemand anderes führt ihn. Bitte den Auftrag ansehen und den Erlaubnisschein, wenn nötig, neu ausstellen.',
   },
   // A possible duplicate of an asset taken stock of on site is decided in a
   // card of its own, with what was sent beside the asset (#99).

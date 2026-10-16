@@ -1,0 +1,136 @@
+{
+  "validFrom": "2026-10-01",
+  "title": "Erlaubnisschein für feuergefährliche Arbeiten",
+  "sections": [
+    {
+      "key": "work",
+      "title": "Arbeiten",
+      "fields": [
+        {
+          "kind": "text",
+          "key": "place",
+          "label": "Arbeitsort",
+          "hint": "Gebäude, Geschoss, Raum und wo genau.",
+          "required": true
+        },
+        {
+          "kind": "choice",
+          "key": "method",
+          "label": "Art der Arbeiten",
+          "required": true,
+          "options": [
+            { "value": "welding", "label": "Schweißen" },
+            { "value": "flame_cutting", "label": "Brennschneiden" },
+            { "value": "soldering", "label": "Löten" },
+            { "value": "cut_off_grinding", "label": "Trennschleifen" },
+            { "value": "thawing", "label": "Auftauen" },
+            { "value": "other", "label": "Andere" }
+          ]
+        },
+        {
+          "kind": "text",
+          "key": "description",
+          "label": "Was gemacht wird",
+          "multiline": true,
+          "required": true
+        },
+        {
+          "kind": "text",
+          "key": "period",
+          "label": "Gilt für",
+          "hint": "Tag und Uhrzeit, von bis.",
+          "required": true
+        }
+      ]
+    },
+    {
+      "key": "before",
+      "title": "Vor Beginn der Arbeiten",
+      "hint": "Was nicht erledigt ist und nicht entfällt, wird erledigt, bevor die Erlaubnis erteilt wird.",
+      "fields": [
+        {
+          "kind": "choice",
+          "key": "combustibles",
+          "label": "Brennbare Stoffe und Gegenstände im Umkreis entfernt oder abgedeckt",
+          "required": true,
+          "options": [
+            { "value": "done", "label": "Erledigt" },
+            { "value": "not_needed", "label": "Entfällt" }
+          ]
+        },
+        {
+          "kind": "choice",
+          "key": "openings",
+          "label": "Öffnungen, Fugen und Durchbrüche zu benachbarten Bereichen abgedichtet",
+          "required": true,
+          "options": [
+            { "value": "done", "label": "Erledigt" },
+            { "value": "not_needed", "label": "Entfällt" }
+          ]
+        },
+        {
+          "kind": "choice",
+          "key": "extinguishers",
+          "label": "Geeignete Löschmittel am Arbeitsplatz bereitgestellt",
+          "required": true,
+          "options": [
+            { "value": "done", "label": "Erledigt" },
+            { "value": "not_needed", "label": "Entfällt" }
+          ]
+        },
+        {
+          "kind": "choice",
+          "key": "detectors",
+          "label": "Brandmelder im Arbeitsbereich für die Dauer der Arbeiten abgeschaltet, mit der zuständigen Stelle abgestimmt",
+          "required": true,
+          "options": [
+            { "value": "done", "label": "Erledigt" },
+            { "value": "not_needed", "label": "Entfällt" }
+          ]
+        },
+        {
+          "kind": "choice",
+          "key": "residues",
+          "label": "Behälter und Leitungen im Arbeitsbereich frei von brennbaren Resten",
+          "required": true,
+          "options": [
+            { "value": "done", "label": "Erledigt" },
+            { "value": "not_needed", "label": "Entfällt" }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "watch",
+      "title": "Brandwache",
+      "fields": [
+        {
+          "kind": "text",
+          "key": "during",
+          "label": "Während der Arbeiten",
+          "hint": "Wer mit Löschmittel bereitsteht, solange gearbeitet wird.",
+          "required": true
+        },
+        {
+          "kind": "text",
+          "key": "after",
+          "label": "Nach den Arbeiten",
+          "hint": "Wer den Bereich danach kontrolliert und wie lange.",
+          "required": true
+        }
+      ]
+    },
+    {
+      "key": "end",
+      "title": "Ausführende Person",
+      "fields": [
+        {
+          "kind": "signature",
+          "key": "contractor_signature",
+          "label": "Unterschrift der ausführenden Person",
+          "required": true
+        }
+      ]
+    }
+  ]
+}

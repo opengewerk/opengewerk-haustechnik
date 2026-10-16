@@ -23,13 +23,16 @@ import {
   type ContractorId,
   type ContractorName,
   type ContractorPage,
+  type ContractorVisits,
   contractorProblems,
   contractorServices,
   contractorServicesWords,
   type IsoDate,
+  isAllowed,
   sameFirmName,
 } from '@opengewerk/haustechnik-domain'
 import {
+  accountsOf,
   CurrentIdentity,
   Database,
   isUuid,
@@ -39,14 +42,17 @@ import {
 } from '@opengewerk/platform-server'
 import { and, count, desc, eq, gt, inArray, isNull, or, type SQL } from 'drizzle-orm'
 
+import { visitAccounts, visitRowsOf, visitsOf } from '../activities/visits.js'
 import { CATALOGUE } from '../catalogue.js'
 import { dutyTitle } from '../database/duty-standing.js'
 import { activities, contractors, duties, evidence } from '../database/schema/index.js'
 import { dayInGermany } from '../today.js'
 import { RequiresPermission } from './authorization.js'
 import { type Asking, fieldsOf, refuse } from './places.js'
+import { ordersInSight } from './work-orders.controller.js'
 
 const missing = 'Diese Fremdfirma gibt es nicht oder nicht mehr.'
+const unknownAccount = 'Unbekanntes Konto'
 
 /** The texts of a contractor besides its name, which may be emptied. */
 const texts = ['street', 'postalCode', 'city', 'phone', 'email', 'note'] as const
@@ -315,6 +321,38 @@ export class ContractorsController {
   }
 
   /** A firm with its open duties and activities counted, and the evidence of its reports, newest first. */
+  /**
+   * The briefings and permits for hot work at the orders of a firm (#330),
+   * the latest of each, in the areas of the person and of the orders the
+   * person sees; nothing without "Vorgänge ansehen".
+   */
+  @Get(':id/visits')
+  @RequiresPermission('contractor.read')
+  async visits(
+    @CurrentIdentity() identity: Asking,
+    @Param('id') id: string,
+  ): Promise<ContractorVisits> {
+    if (!isUuid(id)) {
+      throw new NotFoundException(missing)
+    }
+
+    if (!isAllowed(identity, 'activity.read')) {
+      return { briefings: [], permits: [] }
+    }
+
+    const rows = await this.database.forTenant(identity, (tx) =>
+      visitRowsOf(
+        tx,
+        { contractorId: id as ContractorId },
+        ordersInSight(identity),
+        contractorBounds.visits,
+      ),
+    )
+    const accounts = await accountsOf(this.database, visitAccounts(rows), identity.userId)
+
+    return visitsOf(rows, this.catalogue, (userId) => accounts.get(userId)?.name ?? unknownAccount)
+  }
+
   @Get(':id')
   @RequiresPermission('contractor.read')
   page(@CurrentIdentity() identity: Asking, @Param('id') id: string): Promise<ContractorPage> {
