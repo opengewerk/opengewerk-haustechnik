@@ -4,6 +4,7 @@ import {
   ConflictException,
   Controller,
   Delete,
+  ForbiddenException,
   Get,
   Header,
   Inject,
@@ -45,7 +46,7 @@ import {
   tableFormatOf,
   type TenantTransaction,
 } from '@opengewerk/platform-server'
-import { and, count, eq, gt, inArray, isNull, or, type SQL } from 'drizzle-orm'
+import { and, count, eq, gt, inArray, isNull, or, type SQL, sql } from 'drizzle-orm'
 
 import { CATALOGUE } from '../catalogue.js'
 import {
@@ -126,6 +127,24 @@ async function heldContract(
 
   return row
 }
+
+/**
+ * Whether the person of the transaction sees every area. A contract lies in no
+ * area, the duties that name it do; what reaches past the own areas, removing
+ * a contract or giving it to another firm, is for whoever sees all of them, so
+ * that what is counted for it is everything there is.
+ */
+async function seesEveryArea(tx: TenantTransaction): Promise<boolean> {
+  const { rows } = await tx.execute<{ every: boolean }>(
+    sql`select session_sees_all_areas() as every`,
+  )
+
+  return rows[0]?.every === true
+}
+
+/** What a route answers whoever keeps the contracts in some areas only. */
+const everyAreaWanted =
+  'Einen Vertrag entfernen oder einer anderen Fremdfirma geben kann nur, wer alle Bereiche sieht: Pflichten in jedem Bereich können ihn nennen.'
 
 /** A duty that still calls for something on a day: not removed and not ended. */
 function openDuty(on: IsoDate): SQL | undefined {
@@ -469,8 +488,24 @@ export class ContractsController {
     return this.database.forTenant(identity, async (tx) => {
       const held = await heldContract(tx, id)
 
-      if (values['contractorId'] !== undefined) {
+      if (values['contractorId'] !== undefined && values['contractorId'] !== held.contractorId) {
         await checkContractor(tx, values['contractorId'])
+
+        // Another firm: the duties it names keep theirs, so none may name it.
+        if (!(await seesEveryArea(tx))) {
+          throw new ForbiddenException(everyAreaWanted)
+        }
+
+        const [{ naming = 0 } = {}] = await tx
+          .select({ naming: count() })
+          .from(duties)
+          .where(eq(duties.contractId, held.id))
+
+        if (naming > 0) {
+          throw new ConflictException(
+            'Die Fremdfirma eines Vertrags lässt sich nicht ändern, solange Pflichten ihn nennen. Legen Sie für die andere Firma einen eigenen Vertrag an.',
+          )
+        }
       }
 
       refuse(contractTermProblems({ ...held, ...(values as Partial<Contract>) }))
@@ -498,7 +533,12 @@ export class ContractsController {
 
     return this.database.forTenant(identity, async (tx) => {
       const held = await heldContract(tx, id)
-      // Counted where the person sees: the roles that keep the contracts see every area.
+
+      // Counted in every area, which only whoever sees all of them does.
+      if (!(await seesEveryArea(tx))) {
+        throw new ForbiddenException(everyAreaWanted)
+      }
+
       const [{ open = 0 } = {}] = await tx
         .select({ open: count() })
         .from(duties)

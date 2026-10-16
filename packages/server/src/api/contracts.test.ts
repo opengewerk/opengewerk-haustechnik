@@ -12,6 +12,7 @@ import {
   type OrderWarranty,
   type RoleKey,
   roleKeys,
+  rightsOfRoles,
   shippedRoles,
   type TenantId,
   type WorkOrderDetails,
@@ -463,6 +464,84 @@ describe('a duty on a contract', () => {
       .delete(`/contracts/${ended.id}`)
       .set(testIdentityHeader, by('management'))
       .expect(409)
+  })
+})
+
+describe('a contract named in areas the keeper does not see', () => {
+  it('is removed or given to another firm only by whoever sees every area, counting every duty', async () => {
+    const lead = by('management', large)
+    const firmA = await firm('Lüftung Nord GmbH', large)
+    const firmB = await firm('Lüftung Süd GmbH', large)
+    const kept = await contract(firmA, lifts, lead)
+    const { property } = await placeIn(large, south)
+
+    await made(
+      '/duties',
+      {
+        propertyId: property,
+        label: 'Wartung der Lüftung',
+        basis: 'own_decision',
+        sourceNote: 'Herstellervorgabe',
+        task: 'maintenance',
+        intervalMonths: 12,
+        counting: 'from_performance',
+        performer: 'contractor',
+        contractorId: firmA,
+        contractId: kept.id,
+      },
+      lead,
+    )
+
+    // The Objektleitung of the north, given the right to keep the contracts.
+    const northKeeper = JSON.stringify({
+      userId: people.site_management,
+      tenantId: large,
+      roles: ['site_management'],
+      rights: [...rightsOfRoles(['site_management']), 'contract.write'],
+    })
+    const wanted =
+      'Einen Vertrag entfernen oder einer anderen Fremdfirma geben kann nur, wer alle Bereiche sieht: Pflichten in jedem Bereich können ihn nennen.'
+
+    expect(
+      (
+        await http()
+          .delete(`/contracts/${kept.id}`)
+          .set(testIdentityHeader, northKeeper)
+          .expect(403)
+      ).body.message,
+    ).toBe(wanted)
+    expect(
+      (
+        await http()
+          .patch(`/contracts/${kept.id}`)
+          .set(testIdentityHeader, northKeeper)
+          .send({ contractorId: firmB })
+          .expect(403)
+      ).body.message,
+    ).toBe(wanted)
+    // What stays within the contract itself, the keeper of the north changes.
+    await http()
+      .patch(`/contracts/${kept.id}`)
+      .set(testIdentityHeader, northKeeper)
+      .send({ price: '5.200 € netto im Jahr' })
+      .expect(200)
+
+    // Whoever sees every area is refused as well while the duty names it.
+    await http().delete(`/contracts/${kept.id}`).set(testIdentityHeader, lead).expect(409)
+    await http()
+      .patch(`/contracts/${kept.id}`)
+      .set(testIdentityHeader, lead)
+      .send({ contractorId: firmB })
+      .expect(409)
+
+    const [duty] = (
+      await admin.query<{ contractor_id: string }>(
+        'select contractor_id from duties where contract_id = $1',
+        [kept.id],
+      )
+    ).rows
+
+    expect(duty?.contractor_id).toBe(firmA)
   })
 })
 

@@ -103,7 +103,7 @@ ALTER TABLE "deadlines" NO FORCE ROW LEVEL SECURITY;--> statement-breakpoint
 ALTER TABLE "attachments" NO FORCE ROW LEVEL SECURITY;--> statement-breakpoint
 ALTER TABLE "assets" NO FORCE ROW LEVEL SECURITY;--> statement-breakpoint
 ALTER TABLE "work_orders" NO FORCE ROW LEVEL SECURITY;--> statement-breakpoint
-ALTER TABLE "duties" ADD CONSTRAINT "duties_on_a_contract_of_their_contractor" FOREIGN KEY ("tenant_id","contract_id","contractor_id") REFERENCES "public"."contracts"("tenant_id","id","contractor_id") ON DELETE no action ON UPDATE cascade;--> statement-breakpoint
+ALTER TABLE "duties" ADD CONSTRAINT "duties_on_a_contract_of_their_contractor" FOREIGN KEY ("tenant_id","contract_id","contractor_id") REFERENCES "public"."contracts"("tenant_id","id","contractor_id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "deadlines" ADD CONSTRAINT "deadlines_of_a_contract" FOREIGN KEY ("tenant_id","contract_id") REFERENCES "public"."contracts"("tenant_id","id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "deadlines" ADD CONSTRAINT "deadlines_follow_their_asset" FOREIGN KEY ("tenant_id","warranty_asset_id","area_id") REFERENCES "public"."assets"("tenant_id","id","area_id") ON DELETE no action ON UPDATE cascade;--> statement-breakpoint
 ALTER TABLE "deadlines" ADD CONSTRAINT "deadlines_of_an_asset_of_their_property" FOREIGN KEY ("tenant_id","warranty_asset_id","property_id") REFERENCES "public"."assets"("tenant_id","id","property_id") ON DELETE no action ON UPDATE cascade;--> statement-breakpoint

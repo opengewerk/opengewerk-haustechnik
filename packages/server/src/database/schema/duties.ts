@@ -265,12 +265,12 @@ export const duties = pgTable(
       sql`${table.contractorId} is null or ${table.performer} = 'contractor'`,
     ),
     // A contract of the firm that carries the duty out (#329): over the firm, so
-    // that it is one of the firm, and following it when the contract names another.
+    // that it is one of the firm. A contract named by a duty keeps its firm.
     foreignKey({
       columns: [table.tenantId, table.contractId, table.contractorId],
       foreignColumns: [contracts.tenantId, contracts.id, contracts.contractorId],
       name: 'duties_on_a_contract_of_their_contractor',
-    }).onUpdate('cascade'),
+    }),
     index('duties_contract_idx').on(table.tenantId, table.contractId),
     check(
       'duties_contract_with_its_contractor',

@@ -8,7 +8,7 @@ Die Laufzeit beginnt am Tag „Beginn“ und endet am „Ende der Laufzeit“; o
 
 Reaktionszeit und Preis sind Angaben. Die Anwendung rechnet nicht mit ihnen und prüft sie an keinem Auftrag.
 
-Endet ein Vertrag, sagt jede Pflicht, die er erfüllt, „Vertrag abgelaufen“. Die Pflicht läuft weiter; wählen Sie an ihr einen neuen Vertrag oder keinen. Ein Vertrag, der endet, bleibt lesbar. Entfernt wird nur einer, der irrtümlich angelegt ist, und das nur, solange keine offene Pflicht ihn nennt; seine Dokumente gehen mit.
+Endet ein Vertrag, sagt jede Pflicht, die er erfüllt, „Vertrag abgelaufen“. Die Pflicht läuft weiter; wählen Sie an ihr einen neuen Vertrag oder keinen. Ein Vertrag, der endet, bleibt lesbar. Entfernt wird nur einer, der irrtümlich angelegt ist, und das nur, solange keine offene Pflicht ihn nennt; seine Dokumente gehen mit. Die Fremdfirma eines Vertrags lässt sich nicht mehr ändern, sobald eine Pflicht ihn nennt. Entfernen oder einer anderen Firma geben kann einen Vertrag nur, wer alle Bereiche sieht, weil Pflichten in jedem Bereich ihn nennen können.
 
 Ansehen können die Verträge die Leitung, die Technische Leitung und die Objektleitung, anlegen, ändern und entfernen die Leitung und die Technische Leitung.
 

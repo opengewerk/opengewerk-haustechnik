@@ -160,9 +160,11 @@ await checkWidths({
    * had 106 kinds of page on 08.10.2026, and every screen of Phase 1 still to
    * come brings more (opengewerk#576). With the catalogue as one kind of page
    * for each of its screens (#227) there were about 136, and with the help
-   * (#131) the walk stood at the 150 that were the limit until then.
+   * (#131) the walk stood at the 150 that were the limit until then. With the
+   * contracts (#329) it passed the 180 that followed, and Phase 2 brings more
+   * screens still.
    */
-  mostKinds: 180,
+  mostKinds: 240,
   /**
    * Every kind of page is held to the rules of accessibility as well (#132,
    * section 3 of the concept): labels, roles, the order of the headings and
