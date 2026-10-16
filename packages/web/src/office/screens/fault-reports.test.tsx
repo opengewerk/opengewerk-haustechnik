@@ -16,6 +16,7 @@ import {
   untilTheRightsAreKnown,
   type Written,
 } from '../test-office.js'
+import { faultWords } from './fault-reports.js'
 
 /**
  * The faults in the office (#331, section 4.7 of the concept): the inbox of
@@ -43,6 +44,7 @@ const cold: FaultReportEntry = {
   receivedAt: '2026-10-16T05:52:00.000Z',
   state: 'received',
   workOrder: null,
+  outside: false,
 }
 
 const again: FaultReportEntry = {
@@ -63,6 +65,7 @@ const page: FaultReportPage = {
   similar: [again],
   workOrderTitle: null,
   defectId: null,
+  answersByMail: false,
 }
 
 const categories: FaultCategory[] = [
@@ -177,6 +180,22 @@ describe('the page of a report', () => {
     })
   })
 
+  it('says that a report came in without an account, and whether an answer goes out by mail, never to whom', async () => {
+    await opened({ ...page, outside: true, answersByMail: true })
+
+    expect(await screen.findByText(/über das Etikett, ohne Anmeldung/)).toBeTruthy()
+    expect(screen.getByText(faultWords.byMail)).toBeTruthy()
+    expect(screen.getByText(faultWords.feedbackOutside)).toBeTruthy()
+    expect(screen.queryByText(faultWords.feedback)).toBeNull()
+  })
+
+  it('says of a report without an account and without an address that nobody hears more', async () => {
+    await opened({ ...page, outside: true, answersByMail: false })
+
+    expect(await screen.findByText(faultWords.feedbackOutsideNone)).toBeTruthy()
+    expect(screen.queryByText(faultWords.byMail)).toBeNull()
+  })
+
   it('sends no rejection without a reason', async () => {
     const written = await opened(page, () => ({ status: 201, body: page }))
 
@@ -188,6 +207,57 @@ describe('the page of a report', () => {
 
     expect(await within(reject).findByText('Der Grund fehlt.')).toBeTruthy()
     expect(written).toEqual([])
+  })
+})
+
+describe('reporting without an account under "Einstellungen"', () => {
+  it('is shipped off and switched on by whoever changes the settings', async () => {
+    const written = signedInOffice(
+      'management',
+      [nord],
+      {
+        '/settings/fault-categories': categories,
+        '/settings/fault-reports': { openByLabel: false },
+      },
+      () => ({ status: 200, body: { openByLabel: true } }),
+    )
+
+    await mountOffice('/einstellungen/stoerungen', new TestServer(), [])
+    await untilTheRightsAreKnown()
+
+    const card = (await screen.findByRole('checkbox', { name: /ohne Anmeldung annehmen/ })).closest(
+      'form',
+    ) as HTMLElement
+    const box = within(card).getByRole('checkbox') as HTMLInputElement
+
+    expect(box.checked).toBe(false)
+    fireEvent.click(box)
+    fireEvent.click(within(card).getByRole('button', { name: 'Speichern' }))
+
+    await waitFor(() => {
+      expect(written).toContainEqual({
+        method: 'PUT',
+        path: '/settings/fault-reports',
+        body: { openByLabel: true },
+      })
+    })
+  })
+
+  it('is shown to whoever reads the settings, and not to be changed', async () => {
+    signedInOffice('management', [nord], {
+      '/auth/tenants': [{ ...memberIn('management'), rights: ['settings.read'] }],
+      '/settings/fault-categories': categories,
+      '/settings/fault-reports': { openByLabel: true },
+    })
+    await mountOffice('/einstellungen/stoerungen', new TestServer(), [])
+    await untilTheRightsAreKnown()
+
+    const box = (await screen.findByRole('checkbox', {
+      name: /ohne Anmeldung annehmen/,
+    })) as HTMLInputElement
+
+    expect(box.checked).toBe(true)
+    expect(box.disabled).toBe(true)
   })
 })
 

@@ -32,6 +32,7 @@ import {
 import type { Pool } from 'pg'
 
 import { ApiModule } from '../api/api.module.js'
+import { OutsideReports } from '../faults/outside-gate.js'
 import { access } from '../authentication/access.js'
 import { runDeadlineCycle } from '../deadlines/engine.js'
 import { dayInGermany } from '../today.js'
@@ -116,9 +117,16 @@ export async function openPreview(
       // The page of the legal texts shows, signed in or not (#129), and the
       // preview has its sample texts.
       legalTexts: true,
+      // And the page of a label for a report without an account (#332), which
+      // shows with `PREVIEW_SIGNED_OUT=1`.
+      outside: new OutsideReports(),
     }),
     {
-      authenticationHandler: previewSession(identity, person),
+      authenticationHandler: previewSession(
+        identity,
+        person,
+        process.env['PREVIEW_SIGNED_OUT'] === '1',
+      ),
       serverPaths,
       ...(options.interfaceDirectory === undefined
         ? {}

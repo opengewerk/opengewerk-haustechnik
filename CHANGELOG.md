@@ -7,6 +7,19 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
 
 ## [Unreleased]
 
+### Hinzugefügt
+
+- Störmeldung ohne Konto über das Etikett (#332, Abschnitt 4.7 des Konzepts): das Etikett an einem Raum oder einer
+  Anlage öffnet ohne Anmeldung eine Seite mit Kategorie, Beschreibung, Foto und auf Wunsch einer E-Mail-Adresse für die
+  Rückmeldung, sobald die Leitung sie unter „Einstellungen“, „Störungen“ einschaltet. Die Seite nennt nur den Raum; ein
+  unbekanntes, ein gesperrtes und ein ausgeschaltetes Etikett sagen dasselbe. Statt eines Captchas nimmt sie je Anschluss
+  fünf und je Etikett zehn Meldungen in der Stunde an, mit einem versteckten Feld und einer Mindestzeit. Die Meldung landet
+  im Eingang wie eine mit Konto und nennt niemanden; die Adresse bekommt bei Annahme und Erledigung eine E-Mail über den
+  Mailserver des Betreibers, steht in keinem Änderungsprotokoll und wird mit der Erledigung oder einer Ablehnung gelöscht.
+  Warum: wer in einem Gebäude ist und kein Konto hat, soll eine Störung dort melden können, wo sie ist. Die Migration
+  `0065_fault_reports_by_label` bringt die Einstellung, die Tabelle der Adressen und den Weg in die Datenbank für eine
+  Meldung ohne Person; das Fundament zeigt die Seite vor der Anmeldung (opengewerk/opengewerk#652).
+
 ### Geändert
 
 - Vor Ort hat ein Melder keinen Reiter „Konflikte“ mehr und keinen Weg ins Büro, weder als Vorschlag

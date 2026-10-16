@@ -23,6 +23,7 @@ import {
 } from 'lucide-react'
 
 import { application } from '../app/application.js'
+import { signedOutPage } from '../outside/report-by-label.js'
 import { auditScreenWords } from './audit.js'
 
 /**
@@ -66,7 +67,8 @@ const settings = [
     key: 'stoerungen',
     to: '/einstellungen/stoerungen',
     title: 'Störungen',
-    about: 'Die Kategorien, aus denen wählt, wer eine Störung meldet.',
+    about:
+      'Die Kategorien, aus denen wählt, wer eine Störung meldet, und ob das Etikett ohne Anmeldung zum Melden öffnet.',
     icon: MessageSquareWarning,
     right: 'settings.read',
   },
@@ -272,4 +274,7 @@ export const officeApplication: InterfaceApplication = {
   audit: auditScreenWords,
   sentences: { ...application.sentences, staff, instance, audit },
   beforeSignIn: <ScannedLabelNote />,
+  // The label, for a report without an account, where the operator has the
+  // page on (#332); the sign in where not.
+  signedOutPage,
 }

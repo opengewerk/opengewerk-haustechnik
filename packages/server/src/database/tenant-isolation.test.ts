@@ -117,6 +117,7 @@ function rowsOf(tenant: Tenant): readonly Row[] {
   const firm = randomUUID()
   const contract = randomUUID()
   const category = randomUUID()
+  const faultReport = randomUUID()
   const file = randomUUID().replaceAll('-', '').repeat(2)
 
   return [
@@ -739,6 +740,7 @@ function rowsOf(tenant: Tenant): readonly Row[] {
     {
       table: 'fault_reports',
       values: {
+        id: faultReport,
         tenant_id: tenant.id,
         property_id: property,
         area_id: area,
@@ -748,6 +750,19 @@ function rowsOf(tenant: Tenant): readonly Row[] {
         description: 'Der Aufzug hält zwischen den Geschossen.',
         photo_sha256: file,
         reported_by: tenant.userId,
+      },
+    },
+    // Whether the label takes a report without an account, and the address
+    // for the answer to one (#332).
+    { table: 'fault_report_settings', values: { tenant_id: tenant.id, open_by_label: true } },
+    {
+      table: 'fault_report_contacts',
+      values: {
+        tenant_id: tenant.id,
+        fault_report_id: faultReport,
+        property_id: property,
+        area_id: area,
+        address: 'melder@beispiel.example',
       },
     },
     // The signature on the work order, and its rejection.
@@ -1248,6 +1263,8 @@ describe('the tables', () => {
           'an asset taken stock of in one area, entered in the office or read in from a table may stand in another area already, and the policy of the areas hides it from whoever enters it; asked with lists, so that a table is one pass over the assets and not one per line, handed over are the few assets of the tenant of the transaction whose digits fit, and the server alone compares them',
         'label_state_in_tenant(asked text)':
           'a scan of a label in another area is told that it lies outside the areas of the person, not that no such label exists; one word, and the tenant is read from the transaction',
+        'label_open_to_reports(asked text)':
+          'the page of a label takes a report from somebody without an account (#332), who is in no tenant: the code alone has to find the operator and the area of a valid label at a room or an asset whose operator switched the page on; handed out are those two ids, to the server and never further, and nothing for every other code',
       }),
     ).toEqual({
       unexplained: [],

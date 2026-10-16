@@ -26,6 +26,8 @@ import {
   type DefectId,
   type FaultCategory,
   faultCategoryProblems,
+  type FaultReportSettings,
+  faultReportSettingsProblems,
   faultInboxFilters,
   type FaultInboxFilter,
   type FaultLabelAnswer,
@@ -69,6 +71,8 @@ import {
   buildings,
   defects,
   faultCategories,
+  faultReportContacts,
+  faultReportSettings,
   faultReports,
   labels,
   rooms,
@@ -76,6 +80,7 @@ import {
 import {
   categoriesOf,
   ensureCategories,
+  faultReportSettingsOf,
   entryOf,
   type FaultRow,
   inbox,
@@ -642,6 +647,14 @@ export class FaultReportsController {
       similar,
       workOrderTitle: entry.workOrder === null ? null : row.orderTitle,
       defectId: row.report.defectId,
+      // Whether an answer by mail waits, and never to whom (#332).
+      answersByMail:
+        (
+          await tx
+            .select({ id: faultReportContacts.id })
+            .from(faultReportContacts)
+            .where(eq(faultReportContacts.faultReportId, row.report.id))
+        ).length > 0,
     }
   }
 
@@ -936,5 +949,44 @@ export class FaultCategorySettingsController {
     if (same !== undefined) {
       throw new ConflictException('Eine Kategorie mit diesem Namen gibt es schon.')
     }
+  }
+}
+
+/**
+ * What an operator sets for its fault reports under "Einstellungen" (section
+ * 4.7 of the concept, #332): whether the label at a room or an asset takes a
+ * report from somebody without an account. Shipped off; the Leitung switches
+ * it on, as seeing and changing the settings is what section 7 gives to it.
+ */
+@Controller('settings/fault-reports')
+export class FaultReportSettingsController {
+  constructor(private readonly database: Database) {}
+
+  @Get()
+  @RequiresPermission('settings.read')
+  read(@CurrentIdentity() identity: Asking): Promise<FaultReportSettings> {
+    return this.database.forTenant(identity, (tx) => faultReportSettingsOf(tx))
+  }
+
+  @Put()
+  @RequiresPermission('settings.write')
+  set(@CurrentIdentity() identity: Asking, @Body() body: unknown): Promise<FaultReportSettings> {
+    const values = fieldsOf(body, ['openByLabel'], [])
+
+    refuse(faultReportSettingsProblems(values))
+
+    const openByLabel = values.openByLabel as boolean
+
+    return this.database.forTenant(identity, async (tx) => {
+      await tx
+        .insert(faultReportSettings)
+        .values({ tenantId: identity.tenantId, openByLabel })
+        .onConflictDoUpdate({
+          target: [faultReportSettings.tenantId],
+          set: { openByLabel, updatedAt: new Date() },
+        })
+
+      return { openByLabel }
+    })
   }
 }

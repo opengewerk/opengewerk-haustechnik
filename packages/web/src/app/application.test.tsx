@@ -273,10 +273,14 @@ describe('what each entry hands to the foundation', () => {
     // for whoever scanned one comes only with the office (#98).
     expect(application.beforeSignIn).toBeUndefined()
     expect(officeApplication.beforeSignIn).toBeDefined()
+    // So is the page it opens without an account (#332).
+    expect(application.signedOutPage).toBeUndefined()
+    expect(officeApplication.signedOutPage).toBeDefined()
 
     const {
       audit: _audit,
       beforeSignIn: _beforeSignIn,
+      signedOutPage: _signedOutPage,
       sentences: { staff: _staff, instance: _instance, audit: _log, ...sentences },
       ...shared
     } = officeApplication

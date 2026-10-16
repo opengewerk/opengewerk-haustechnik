@@ -377,7 +377,7 @@ async function sendPhoto(photo: File): Promise<string> {
  * linked: what the picker hands over never becomes an address on the page,
  * and there is no address to give back afterwards either.
  */
-function PhotoPreview({ photo, label }: { readonly photo: Blob; readonly label: string }) {
+export function PhotoPreview({ photo, label }: { readonly photo: Blob; readonly label: string }) {
   const canvas = useRef<HTMLCanvasElement>(null)
 
   useEffect(() => {

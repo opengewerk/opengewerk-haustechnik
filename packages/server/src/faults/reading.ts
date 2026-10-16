@@ -11,7 +11,9 @@ import {
   type FaultReportEntry,
   type FaultReportId,
   faultReportState,
+  type FaultReportSettings,
   type FaultReportState,
+  defaultFaultReportSettings,
   type OwnFaultReport,
   type PropertyId,
   proposedFaultCategories,
@@ -28,6 +30,7 @@ import {
   assets,
   buildings,
   faultCategories,
+  faultReportSettings,
   faultReports,
   floors,
   properties,
@@ -47,6 +50,15 @@ import {
  * removed is a row as well, so an operator that removed all of them gets no
  * proposal again.
  */
+/** The settings of the fault reports of the operator of the transaction, or the shipped ones (#332). */
+export async function faultReportSettingsOf(tx: TenantTransaction): Promise<FaultReportSettings> {
+  const [row] = await tx
+    .select({ openByLabel: faultReportSettings.openByLabel })
+    .from(faultReportSettings)
+
+  return row ?? defaultFaultReportSettings
+}
+
 export async function ensureCategories(tx: TenantTransaction, tenantId: string): Promise<void> {
   const [held] = await tx.select({ n: count() }).from(faultCategories)
 
@@ -268,6 +280,7 @@ export function entryOf(row: FaultRow): FaultReportEntry {
       row.report.workOrderId === null || row.orderActivityId === null
         ? null
         : { activityId: row.orderActivityId, number: row.orderNumber },
+    outside: row.report.reportedOutside,
   }
 }
 

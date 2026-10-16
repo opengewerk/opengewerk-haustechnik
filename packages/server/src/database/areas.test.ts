@@ -577,6 +577,13 @@ async function placeIn(where: 'north' | 'south'): Promise<void> {
        from category, memberships where memberships.tenant_id = $1 order by user_id limit 1`,
     [tenant, at.property, areaId, at.building, at.asset],
   )
+  // The address for the answer to it, in the area of its report (#332).
+  await admin.query(
+    `insert into fault_report_contacts (tenant_id, fault_report_id, property_id, area_id, address)
+     select tenant_id, id, property_id, area_id, 'melder@beispiel.example'
+       from fault_reports where tenant_id = $1 and asset_id = $2`,
+    [tenant, at.asset],
+  )
 }
 
 beforeAll(async () => {
@@ -679,6 +686,7 @@ describe('a person with the north', () => {
       'duty_dismissals',
       'evidence',
       'evidence_voidings',
+      'fault_report_contacts',
       'fault_reports',
       'floors',
       'labels',
@@ -910,6 +918,7 @@ describe('a property moved to another area', () => {
         'duty_dismissals',
         'evidence',
         'evidence_voidings',
+        'fault_report_contacts',
         'fault_reports',
         'floors',
         'labels',

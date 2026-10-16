@@ -76,19 +76,22 @@ describe('every route', () => {
    * the one worth counting: adding one turns this test red, which makes it a
    * decision instead of a line in a diff nobody looked at twice.
    */
-  it('that answers without an identity is the health check, the first run, a one time link or the legal texts', () => {
+  it('that answers without an identity is the health check, the first run, a one time link, the legal texts or the page of a label', () => {
     const publicRoutes = routesOf(controllers)
       .filter((route) => route.isPublic)
       .map((route) => route.name)
       .sort()
 
     expect(publicRoutes).toEqual([
+      'GET /fault-reports/by-label/:code',
       'GET /health',
       'GET /invitation/:token',
       'GET /legal-texts',
       'GET /setup',
+      'POST /fault-reports/by-label/:code',
       'POST /invitation/:token',
       'POST /setup',
+      'PUT /fault-reports/by-label/:code/photo/:slip',
     ])
   })
 
@@ -105,7 +108,17 @@ describe('every route', () => {
    * redemption it is the token: random bytes somebody who leads a tenant
    * made, good once, for a limited time, and callable back.
    *
-   * A third entry here would be a public route that writes for some other
+   * The other two write a fault report from somebody without an account over
+   * a label, and its photo (#332, decided 15.10.2026): the one place of this
+   * application nobody signs in to. What stands in for authentication is the
+   * operator, who switched the page on, and the label, which has to be valid
+   * and hang on a room or an asset; the report lands in the inbox and is
+   * decided on like any other. Against a machine stand the limits per address
+   * and per label, the form with its least time and the field nobody sees.
+   * The photo follows its report once, with a slip its answer carried, so
+   * that nothing is stored without a report it belongs to.
+   *
+   * A further entry here would be a public route that writes for some other
    * reason, and there is no other reason.
    */
   it('that answers without an identity writes only where there is nobody to ask yet', () => {
@@ -114,7 +127,12 @@ describe('every route', () => {
       .map((route) => route.name)
       .sort()
 
-    expect(writingAndPublic).toEqual(['POST /invitation/:token', 'POST /setup'])
+    expect(writingAndPublic).toEqual([
+      'POST /fault-reports/by-label/:code',
+      'POST /invitation/:token',
+      'POST /setup',
+      'PUT /fault-reports/by-label/:code/photo/:slip',
+    ])
   })
 
   /**

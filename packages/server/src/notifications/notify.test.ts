@@ -900,6 +900,23 @@ describe('a fault that is reported', () => {
     expect(await receivedFaults(database, operator, new Date())).toEqual([])
   })
 
+  it('is told for a report without an account to everybody who accepts faults in its area (#332)', async () => {
+    const { id } = await one<{ id: string }>(
+      `insert into fault_reports (tenant_id, property_id, area_id, building_id, category_id,
+                                  description, reported_by, reported_outside)
+       values ($1, $2, $3, $4, $5, 'Die Tür klemmt.', null, true)
+       returning id`,
+      [operator, northern, north, northBuilding, category],
+    )
+
+    expect(
+      (await receivedFaults(database, operator, new Date()))
+        .filter((each) => each.faultReportId === id)
+        .map((each) => each.userId)
+        .sort(),
+    ).toEqual(['u-lead', 'u-site'])
+  })
+
   it('is told to nobody once it is decided or long received, and in another area to its people alone', async () => {
     const rejected = await aReport('u-melder')
     const merged = await aReport('u-melder')

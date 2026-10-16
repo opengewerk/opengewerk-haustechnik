@@ -283,6 +283,8 @@ export interface FaultReportEntry {
   readonly receivedAt: string
   readonly state: FaultReportState
   readonly workOrder: { readonly activityId: string; readonly number: string | null } | null
+  /** Whether it came in over a label without an account (#332): it names nobody either way. */
+  readonly outside: boolean
 }
 
 /** The page of a report in the office: the entry, its photo, the reports merged into it and those it may be merged with. */
@@ -297,6 +299,11 @@ export interface FaultReportPage extends FaultReportEntry {
   readonly similar: readonly FaultReportEntry[]
   readonly workOrderTitle: string | null
   readonly defectId: string | null
+  /**
+   * Whether somebody without an account waits for an answer by mail (#332).
+   * The address itself is answered to nobody.
+   */
+  readonly answersByMail: boolean
 }
 
 /** The states the inbox filters by, in the order of its chips. */
@@ -307,4 +314,115 @@ export type FaultInboxFilter = (typeof faultInboxFilters)[number]
 /** How a place is said in one line: "Schulhaus, 2.05 Lehrerzimmer". */
 export function faultPlaceLine(words: FaultPlaceWords): string {
   return words.room === null ? words.building : `${words.building}, ${words.room}`
+}
+
+/**
+ * What an operator sets for its fault reports (#332): whether the label at a
+ * room or an asset takes a report from somebody without an account. Shipped
+ * off, and the Leitung switches it on under "Einstellungen" (decided
+ * 15.10.2026).
+ */
+export interface FaultReportSettings {
+  readonly openByLabel: boolean
+}
+
+export const defaultFaultReportSettings: FaultReportSettings = { openByLabel: false }
+
+/** What is wrong with the settings of the fault reports: a yes or a no. */
+export function faultReportSettingsProblems(
+  body: Readonly<Record<string, unknown>>,
+): Readonly<Problems> {
+  return typeof body['openByLabel'] === 'boolean'
+    ? {}
+    : { openByLabel: 'Ob das Etikett ohne Anmeldung zum Melden öffnet, ist ein Ja oder ein Nein.' }
+}
+
+/**
+ * The page of a label for somebody without an account (section 4.7 of the
+ * concept, #332, decided 15.10.2026): no captcha and no service of a third
+ * party, but a limit per label and per address, a field nobody sees, and a
+ * least time between opening the page and sending it.
+ */
+export const outsideReportRules = {
+  /** Reports per hour from one address, over any label. */
+  perAddress: 5,
+  /** Reports per hour over one label, from anywhere; counted for a code as written, known or not. */
+  perLabel: 10,
+  /** Openings of the page per hour from one address. */
+  pagesPerAddress: 60,
+  /** Seconds a form is open at least before what it sends counts. */
+  leastSeconds: 3,
+  /** Hours a form stays good. */
+  mostHours: 24,
+  /** Minutes the photo of a report can follow it. */
+  photoMinutes: 15,
+  /** The largest photo the page takes, smaller than a file of somebody signed in. */
+  photoBytes: 10_000_000,
+  /** The longest address for an answer. */
+  address: 254,
+} as const
+
+/** What the page says of a label that takes no report: unknown, blocked, switched off or on nothing alike. */
+export const closedLabelSentence =
+  'Über dieses Etikett lässt sich ohne Anmeldung nichts melden. Wer ein Konto hat, meldet sich an und kommt so zum Raum oder zur Anlage.'
+
+/** What the page says once the limit per label or per address is reached. */
+export const tooManyReportsSentence =
+  'Über dieses Etikett oder von diesem Anschluss kamen in kurzer Zeit viele Meldungen. Versuchen Sie es in einer Stunde noch einmal.'
+
+/** What the page says of a form that was open too long, or before the server last started. */
+export const staleFormSentence =
+  'Die Seite war zu lange offen. Laden Sie sie neu und melden Sie noch einmal.'
+
+/**
+ * What the page of a label is told: nothing but that it is closed, whatever
+ * the reason; or, open, the name of the room on the label (for an asset the
+ * room it stands in, none where it stands in no room), the categories, and
+ * the form it sends back, which carries when it was opened.
+ */
+export type OutsideLabelPage =
+  | { readonly open: false }
+  | {
+      readonly open: true
+      readonly room: string | null
+      readonly categories: readonly FaultCategory[]
+      readonly form: string
+    }
+
+/** What answers a report without an account: where its photo may follow, if it has one. */
+export interface OutsideReportReceipt {
+  readonly photo: string | null
+}
+
+/**
+ * Whether an address for an answer looks like one: something, one at sign,
+ * a domain with a dot. Whether it reaches anybody only the mail shows.
+ */
+export function looksLikeAnAddress(value: string): boolean {
+  return value.length <= outsideReportRules.address && /^[^@\s]+@[^@\s]+\.[^@\s]+$/u.test(value)
+}
+
+/**
+ * What is wrong with a report without an account, field by field: a category
+ * and a description as with an account, and an address for the answer only if
+ * somebody gives one. The place is the label's and is not sent.
+ */
+export function outsideReportProblems(body: Readonly<Record<string, unknown>>): Readonly<Problems> {
+  const problems: Problems = {}
+
+  required(problems, body, 'description', faultReportLimits.description, 'Die Beschreibung')
+
+  if (typeof body['categoryId'] !== 'string' || body['categoryId'] === '') {
+    problems['categoryId'] = 'Die Kategorie fehlt.'
+  }
+
+  const contact = body['contact']
+
+  if (contact !== undefined && contact !== null && contact !== '') {
+    if (typeof contact !== 'string' || !looksLikeAnAddress(contact.trim())) {
+      problems['contact'] = 'Das sieht nicht nach einer E-Mail-Adresse aus.'
+    }
+  }
+
+  return problems
 }

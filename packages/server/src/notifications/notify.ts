@@ -951,7 +951,9 @@ export async function receivedFaults(
         and(
           inTheInbox(),
           gte(faultReports.receivedAt, since(now)),
-          sql`${memberships.userId} <> ${faultReports.reportedBy}`,
+          // Nobody is told of their own report; one without an account (#332) has
+          // nobody, and everybody who accepts is told.
+          sql`${memberships.userId} is distinct from ${faultReports.reportedBy}`,
           mayIn('fault.accept', sql`${faultReports.areaId}`),
           notToldBy(
             'push',
