@@ -1,3 +1,5 @@
+// The screens of the instance, the defects and the backup stay in the entry all the
+// same (#374): the shells and the overview import them, so a fetch of their own would win nothing.
 import {
   InstanceLegalTextsScreen,
   InstanceLogScreen,
@@ -17,68 +19,217 @@ import {
 import { dutyPlaces } from './duty-addresses.js'
 import { proposalPlace, proposalPlaces } from './proposal-addresses.js'
 import { importPlaces } from './import-addresses.js'
-import { ManualChapterScreen, ManualScreen } from './instance/manual.js'
 import { InstanceShell } from './instance/shell.js'
-import { AccountScreen } from './screens/account.js'
-import { ActivityListScreen, ActivityScreen } from './screens/activities.js'
-import { AreasScreen } from './screens/areas.js'
-import { AssetFileScreen } from './screens/asset.js'
-import { EditAssetScreen, NewAssetScreen, NewComponentScreen } from './screens/asset-form.js'
-import { AssetRegisterScreen } from './screens/assets.js'
 import { BackupScreen } from './screens/backup.js'
-import { EditBuildingScreen, NewBuildingScreen } from './screens/building-form.js'
-import { BuildingScreen } from './screens/buildings.js'
-import { CatalogueScreen } from './screens/catalogue.js'
-import { ChangeLogScreen } from './screens/change-log.js'
-import { DeadlineListScreen, DeadlineSettingsScreen } from './screens/deadlines.js'
-import { MailSettingsScreen } from './screens/mail-settings.js'
-import { DefectClassSettingsScreen } from './screens/defect-classes.js'
 import { DefectListScreen, DefectScreen, NewDefectScreen } from './screens/defects.js'
-import { DocumentsScreen } from './screens/documents.js'
-import { TaskListScreen } from './tasks.js'
-import { DutyRegisterScreen } from './screens/duties.js'
-import { DutyScreen } from './screens/duty.js'
-import { ConfirmDutyScreen, DutyIntervalScreen } from './screens/duty-confirm.js'
-import { EditDutyScreen, NewDutyScreen } from './screens/duty-form.js'
-import { DutyKindScreen } from './screens/duty-kind.js'
-import { dutyUpdatesPlace, DutyUpdatesScreen } from './screens/duty-updates.js'
-import { DismissedProposalsScreen, ProposalsScreen } from './screens/proposals.js'
-import { EvidenceScreen } from './screens/evidence.js'
-import { EditFloorScreen, NewFloorScreen } from './screens/floor-form.js'
-import { FloorScreen } from './screens/floors.js'
-import { GuideScreen, HelpScreen } from './screens/help.js'
-import { LabelLandingScreen } from './screens/label-landing.js'
-import { MeterSettingsScreen } from './screens/meter-settings.js'
-import { WorkOrderSettingsScreen } from './screens/work-order-settings.js'
-import { MeterListScreen, MeterScreen } from './screens/meters.js'
-import { NumberRangesScreen } from './screens/number-ranges.js'
+import { dutyUpdatesPlace } from './screens/duty-updates.js'
 import { OverviewScreen } from './screens/overview.js'
-import {
-  EditPropertyScreen,
-  NewPropertyScreen,
-  PropertyListScreen,
-  PropertyScreen,
-} from './screens/properties.js'
-import { ReportScreen } from './screens/report.js'
-import { NewTemplateScreen, TemplateScreen } from './screens/round-template.js'
-import { NewPlanScreen, PlanListScreen, PlanScreen } from './screens/round-plans.js'
-import { TemplateListScreen } from './screens/round-templates.js'
-import { RoundScreen } from './screens/round.js'
-import { RoundWeekScreen } from './screens/round-week.js'
-import { EditRoomScreen, NewRoomScreen } from './screens/room-form.js'
-import { RoomScreen } from './screens/rooms.js'
-import { ContractListScreen, ContractScreen } from './screens/contracts.js'
-import { ContractorListScreen, ContractorScreen } from './screens/contractors.js'
-import { StaffScreen } from './screens/staff.js'
-import { TimelineScreen } from './timeline.js'
-import {
-  ArticleListScreen,
-  StoreArticleScreen,
-  StoreStockScreen,
-  SupplierListScreen,
-} from './screens/stores.js'
-import { NewWorkOrderScreen, WorkOrderListScreen, WorkOrderScreen } from './screens/work-orders.js'
 import { OfficeShell } from './shell.js'
+
+// Every screen but the overview, which the office starts at, is fetched when its address
+// is opened (#374): the entry of the office has a budget (`scripts/budget.js`), and most
+// people open few of the screens on a day. A screen shared by several addresses is one
+// chunk, fetched once; the service worker holds every chunk of its version, so a screen
+// opens also after the next version came, until the page takes it over.
+const ManualChapterScreen = lazyRouteComponent(
+  () => import('./instance/manual.js'),
+  'ManualChapterScreen',
+)
+const ManualScreen = lazyRouteComponent(() => import('./instance/manual.js'), 'ManualScreen')
+const AccountScreen = lazyRouteComponent(() => import('./screens/account.js'), 'AccountScreen')
+const ActivityListScreen = lazyRouteComponent(
+  () => import('./screens/activities.js'),
+  'ActivityListScreen',
+)
+const ActivityScreen = lazyRouteComponent(() => import('./screens/activities.js'), 'ActivityScreen')
+const AreasScreen = lazyRouteComponent(() => import('./screens/areas.js'), 'AreasScreen')
+const AssetFileScreen = lazyRouteComponent(() => import('./screens/asset.js'), 'AssetFileScreen')
+const EditAssetScreen = lazyRouteComponent(
+  () => import('./screens/asset-form.js'),
+  'EditAssetScreen',
+)
+const NewAssetScreen = lazyRouteComponent(() => import('./screens/asset-form.js'), 'NewAssetScreen')
+const NewComponentScreen = lazyRouteComponent(
+  () => import('./screens/asset-form.js'),
+  'NewComponentScreen',
+)
+const AssetRegisterScreen = lazyRouteComponent(
+  () => import('./screens/assets.js'),
+  'AssetRegisterScreen',
+)
+const EditBuildingScreen = lazyRouteComponent(
+  () => import('./screens/building-form.js'),
+  'EditBuildingScreen',
+)
+const NewBuildingScreen = lazyRouteComponent(
+  () => import('./screens/building-form.js'),
+  'NewBuildingScreen',
+)
+const BuildingScreen = lazyRouteComponent(() => import('./screens/buildings.js'), 'BuildingScreen')
+const CatalogueScreen = lazyRouteComponent(
+  () => import('./screens/catalogue.js'),
+  'CatalogueScreen',
+)
+const ChangeLogScreen = lazyRouteComponent(
+  () => import('./screens/change-log.js'),
+  'ChangeLogScreen',
+)
+const DeadlineListScreen = lazyRouteComponent(
+  () => import('./screens/deadlines.js'),
+  'DeadlineListScreen',
+)
+const DeadlineSettingsScreen = lazyRouteComponent(
+  () => import('./screens/deadlines.js'),
+  'DeadlineSettingsScreen',
+)
+const MailSettingsScreen = lazyRouteComponent(
+  () => import('./screens/mail-settings.js'),
+  'MailSettingsScreen',
+)
+const DefectClassSettingsScreen = lazyRouteComponent(
+  () => import('./screens/defect-classes.js'),
+  'DefectClassSettingsScreen',
+)
+const DocumentsScreen = lazyRouteComponent(
+  () => import('./screens/documents.js'),
+  'DocumentsScreen',
+)
+const TaskListScreen = lazyRouteComponent(() => import('./tasks.js'), 'TaskListScreen')
+const DutyRegisterScreen = lazyRouteComponent(
+  () => import('./screens/duties.js'),
+  'DutyRegisterScreen',
+)
+const DutyScreen = lazyRouteComponent(() => import('./screens/duty.js'), 'DutyScreen')
+const ConfirmDutyScreen = lazyRouteComponent(
+  () => import('./screens/duty-confirm.js'),
+  'ConfirmDutyScreen',
+)
+const DutyIntervalScreen = lazyRouteComponent(
+  () => import('./screens/duty-confirm.js'),
+  'DutyIntervalScreen',
+)
+const EditDutyScreen = lazyRouteComponent(() => import('./screens/duty-form.js'), 'EditDutyScreen')
+const NewDutyScreen = lazyRouteComponent(() => import('./screens/duty-form.js'), 'NewDutyScreen')
+const DutyKindScreen = lazyRouteComponent(() => import('./screens/duty-kind.js'), 'DutyKindScreen')
+const DutyUpdatesScreen = lazyRouteComponent(
+  () => import('./screens/duty-updates.js'),
+  'DutyUpdatesScreen',
+)
+const DismissedProposalsScreen = lazyRouteComponent(
+  () => import('./screens/proposals.js'),
+  'DismissedProposalsScreen',
+)
+const ProposalsScreen = lazyRouteComponent(
+  () => import('./screens/proposals.js'),
+  'ProposalsScreen',
+)
+const EvidenceScreen = lazyRouteComponent(() => import('./screens/evidence.js'), 'EvidenceScreen')
+const EditFloorScreen = lazyRouteComponent(
+  () => import('./screens/floor-form.js'),
+  'EditFloorScreen',
+)
+const NewFloorScreen = lazyRouteComponent(() => import('./screens/floor-form.js'), 'NewFloorScreen')
+const FloorScreen = lazyRouteComponent(() => import('./screens/floors.js'), 'FloorScreen')
+const GuideScreen = lazyRouteComponent(() => import('./screens/help.js'), 'GuideScreen')
+const HelpScreen = lazyRouteComponent(() => import('./screens/help.js'), 'HelpScreen')
+const LabelLandingScreen = lazyRouteComponent(
+  () => import('./screens/label-landing.js'),
+  'LabelLandingScreen',
+)
+const MeterSettingsScreen = lazyRouteComponent(
+  () => import('./screens/meter-settings.js'),
+  'MeterSettingsScreen',
+)
+const WorkOrderSettingsScreen = lazyRouteComponent(
+  () => import('./screens/work-order-settings.js'),
+  'WorkOrderSettingsScreen',
+)
+const MeterListScreen = lazyRouteComponent(() => import('./screens/meters.js'), 'MeterListScreen')
+const MeterScreen = lazyRouteComponent(() => import('./screens/meters.js'), 'MeterScreen')
+const NumberRangesScreen = lazyRouteComponent(
+  () => import('./screens/number-ranges.js'),
+  'NumberRangesScreen',
+)
+const EditPropertyScreen = lazyRouteComponent(
+  () => import('./screens/properties.js'),
+  'EditPropertyScreen',
+)
+const NewPropertyScreen = lazyRouteComponent(
+  () => import('./screens/properties.js'),
+  'NewPropertyScreen',
+)
+const PropertyListScreen = lazyRouteComponent(
+  () => import('./screens/properties.js'),
+  'PropertyListScreen',
+)
+const PropertyScreen = lazyRouteComponent(() => import('./screens/properties.js'), 'PropertyScreen')
+const ReportScreen = lazyRouteComponent(() => import('./screens/report.js'), 'ReportScreen')
+const NewTemplateScreen = lazyRouteComponent(
+  () => import('./screens/round-template.js'),
+  'NewTemplateScreen',
+)
+const TemplateScreen = lazyRouteComponent(
+  () => import('./screens/round-template.js'),
+  'TemplateScreen',
+)
+const NewPlanScreen = lazyRouteComponent(() => import('./screens/round-plans.js'), 'NewPlanScreen')
+const PlanListScreen = lazyRouteComponent(
+  () => import('./screens/round-plans.js'),
+  'PlanListScreen',
+)
+const PlanScreen = lazyRouteComponent(() => import('./screens/round-plans.js'), 'PlanScreen')
+const TemplateListScreen = lazyRouteComponent(
+  () => import('./screens/round-templates.js'),
+  'TemplateListScreen',
+)
+const RoundScreen = lazyRouteComponent(() => import('./screens/round.js'), 'RoundScreen')
+const RoundWeekScreen = lazyRouteComponent(
+  () => import('./screens/round-week.js'),
+  'RoundWeekScreen',
+)
+const EditRoomScreen = lazyRouteComponent(() => import('./screens/room-form.js'), 'EditRoomScreen')
+const NewRoomScreen = lazyRouteComponent(() => import('./screens/room-form.js'), 'NewRoomScreen')
+const RoomScreen = lazyRouteComponent(() => import('./screens/rooms.js'), 'RoomScreen')
+const ContractListScreen = lazyRouteComponent(
+  () => import('./screens/contracts.js'),
+  'ContractListScreen',
+)
+const ContractScreen = lazyRouteComponent(() => import('./screens/contracts.js'), 'ContractScreen')
+const ContractorListScreen = lazyRouteComponent(
+  () => import('./screens/contractors.js'),
+  'ContractorListScreen',
+)
+const ContractorScreen = lazyRouteComponent(
+  () => import('./screens/contractors.js'),
+  'ContractorScreen',
+)
+const StaffScreen = lazyRouteComponent(() => import('./screens/staff.js'), 'StaffScreen')
+const TimelineScreen = lazyRouteComponent(() => import('./timeline.js'), 'TimelineScreen')
+const ArticleListScreen = lazyRouteComponent(
+  () => import('./screens/stores.js'),
+  'ArticleListScreen',
+)
+const StoreArticleScreen = lazyRouteComponent(
+  () => import('./screens/stores.js'),
+  'StoreArticleScreen',
+)
+const StoreStockScreen = lazyRouteComponent(() => import('./screens/stores.js'), 'StoreStockScreen')
+const SupplierListScreen = lazyRouteComponent(
+  () => import('./screens/stores.js'),
+  'SupplierListScreen',
+)
+const NewWorkOrderScreen = lazyRouteComponent(
+  () => import('./screens/work-orders.js'),
+  'NewWorkOrderScreen',
+)
+const WorkOrderListScreen = lazyRouteComponent(
+  () => import('./screens/work-orders.js'),
+  'WorkOrderListScreen',
+)
+const WorkOrderScreen = lazyRouteComponent(
+  () => import('./screens/work-orders.js'),
+  'WorkOrderScreen',
+)
 
 // The imports are used when an operator moves in and seldom after: their
 // screens are fetched when one is opened and are no part of the entry of the
