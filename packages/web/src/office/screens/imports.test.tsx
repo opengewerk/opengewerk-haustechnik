@@ -143,6 +143,17 @@ interface Sent {
   readonly file: string | null
 }
 
+/** A property and a building on the device, for the choice of a place for all lines (#173). */
+const schoolProperty = {
+  areaId: nord.id,
+  street: null,
+  postalCode: null,
+  city: null,
+  federalState: 'DE-BW',
+  note: null,
+}
+const schoolBuilding = { areaId: nord.id, kinds: ['school'], shortCode: null, yearBuilt: null }
+
 let server: TestServer
 let written: Written[]
 let sent: Sent[]
@@ -398,7 +409,12 @@ describe('the import of places', () => {
     expect(bodyOf('/imports/structure/preview')).toEqual({
       sheet: placesFile.sheets[0],
       mapping: placesMapping,
-      defaults: { areaId: sued.id, federalState: 'DE-BW', buildingKinds: ['school'] },
+      defaults: {
+        propertyId: null,
+        areaId: sued.id,
+        federalState: 'DE-BW',
+        buildingKinds: ['school'],
+      },
     })
     expect(sent.at(-1)).toMatchObject({ path: '/imports/structure/preview', type: tableBodyType })
     // A preview is a question: nothing was taken over by asking.
@@ -415,7 +431,7 @@ describe('the import of places', () => {
     expect(bodyOf('/imports/structure/preview')).toEqual({
       sheet: placesFile.sheets[0],
       mapping: placesMapping,
-      defaults: { areaId: nord.id, federalState: null, buildingKinds: [] },
+      defaults: { propertyId: null, areaId: nord.id, federalState: null, buildingKinds: [] },
     })
   })
 
@@ -424,6 +440,36 @@ describe('the import of places', () => {
 
     expect(bodyOf('/imports/structure/preview')).toMatchObject({
       defaults: { areaId: null, federalState: null, buildingKinds: [] },
+    })
+  })
+
+  it('offers a property for all lines, which then needs no column, and sends it with what the file does not say (#173)', async () => {
+    server.put('properties', { ...schoolProperty, id: 'p-school', name: 'Schulzentrum' })
+    server.put('properties', { ...schoolProperty, id: 'p-hall', name: 'Rathaus' })
+
+    const { user } = await withTheFile()
+
+    expect(
+      within(select('Liegenschaft für alle Zeilen'))
+        .getAllByRole('option')
+        .map((option) => option.textContent),
+    ).toEqual(['Aus der Datei', 'Rathaus', 'Schulzentrum'])
+
+    choose('Feld für Liegenschaft', '')
+
+    expect(button('Weiter zur Vorschau').disabled).toBe(true)
+
+    choose('Liegenschaft für alle Zeilen', 'p-school')
+
+    expect(screen.queryByRole('status')).toBeNull()
+    expect(button('Weiter zur Vorschau').disabled).toBe(false)
+
+    answers['/imports/structure/preview'] = ok(clean)
+    await user.click(button('Weiter zur Vorschau'))
+    await screen.findByRole('list', { name: 'Was die Tabelle anlegen würde' })
+
+    expect(bodyOf('/imports/structure/preview')).toMatchObject({
+      defaults: { propertyId: 'p-school', areaId: nord.id },
     })
   })
 
@@ -573,7 +619,7 @@ describe('the import of places', () => {
     expect(bodyOf('/imports/structure')).toEqual({
       sheet: placesFile.sheets[0],
       mapping: placesMapping,
-      defaults: { areaId: nord.id, federalState: null, buildingKinds: [] },
+      defaults: { propertyId: null, areaId: nord.id, federalState: null, buildingKinds: [] },
       fileName: 'bestand schulzentrum.csv',
       expected: cleanCounts,
     })
@@ -843,6 +889,7 @@ describe('the import of assets', () => {
     expect(bodyOf('/imports/assets/preview')).toEqual({
       sheet: assetsFile.sheets[0],
       mapping: assetsMapping,
+      place: { propertyId: null, buildingId: null },
       kindColumns: {},
     })
     expect(sent.slice(1).map((request) => request.type)).toEqual([
@@ -891,6 +938,7 @@ describe('the import of assets', () => {
     expect(bodyOf('/imports/assets')).toEqual({
       sheet: assetsFile.sheets[0],
       mapping: assetsMapping,
+      place: { propertyId: null, buildingId: null },
       kindColumns: {},
       decisions: {},
       fileName: 'anlagen.xlsx',
@@ -965,6 +1013,7 @@ describe('the import of assets', () => {
     expect(bodyOf('/imports/assets')).toEqual({
       sheet: assetsFile.sheets[0],
       mapping: assetsMapping,
+      place: { propertyId: null, buildingId: null },
       kindColumns: {},
       decisions: { 3: 'skip', 5: 'take' },
       fileName: 'anlagen.xlsx',
@@ -1176,6 +1225,62 @@ describe('the import of assets', () => {
     expect(select('Anlagenart für Feuerlöscher').value).toBe('fertig.pump')
   })
 
+  it('offers a property and one of its buildings for all lines, which then need no column, and sends them (#173)', async () => {
+    server.put('properties', { ...schoolProperty, id: 'p-school', name: 'Schulzentrum' })
+    server.put('buildings', {
+      ...schoolBuilding,
+      id: 'b-house',
+      propertyId: 'p-school',
+      name: 'Schulhaus',
+    })
+    server.put('buildings', {
+      ...schoolBuilding,
+      id: 'b-old',
+      propertyId: 'p-other',
+      name: 'Altbau',
+    })
+
+    const user = userEvent.setup()
+
+    answers['/imports/assets/table'] = ok(assetsFile)
+    await mount(assetsPlace, 'site_management', [nord], kept)
+    await chooseFile(user, 'anlagen.xlsx')
+    await screen.findByRole('table', { name: columnsTable })
+
+    choose('Feld für Standort', '')
+    choose('Feld für Gebäude', '')
+
+    // The building is asked for once the property is chosen, among its own.
+    expect(screen.queryByRole('combobox', { name: 'Gebäude für alle Zeilen' })).toBeNull()
+
+    choose('Liegenschaft für alle Zeilen', 'p-school')
+
+    expect(button('Weiter zu den Anlagenarten').disabled).toBe(true)
+    expect(
+      within(select('Gebäude für alle Zeilen'))
+        .getAllByRole('option')
+        .map((option) => option.textContent),
+    ).toEqual(['Aus der Datei', 'Schulhaus'])
+
+    choose('Gebäude für alle Zeilen', 'b-house')
+
+    expect(button('Weiter zu den Anlagenarten').disabled).toBe(false)
+
+    await user.click(button('Weiter zu den Anlagenarten'))
+    await screen.findByRole('table', { name: kindsTable })
+    choose('Anlagenart für Feuerlöscher', 'fertig.pump')
+    answers['/imports/asset-kinds'] = ok({ names: [] })
+    answers['/imports/assets/preview'] = ok(clean)
+    await user.click(button('Zuordnung speichern'))
+    // The two columns left free are offered to the fields of the kinds; none is given.
+    await user.click(await screen.findByRole('button', { name: 'Weiter zur Vorschau' }))
+    await screen.findByRole('list', { name: 'Was die Tabelle anlegen würde' })
+
+    expect(bodyOf('/imports/assets/preview')).toMatchObject({
+      place: { propertyId: 'p-school', buildingId: 'b-house' },
+    })
+  })
+
   describe('the fields of the asset kinds (#172)', () => {
     const elevatorTable = 'Felder der Anlagenart Aufzugsanlage und ihre Spalten'
     const notesTable = 'Werte der Datei, die nicht übernommen werden'
@@ -1265,6 +1370,7 @@ describe('the import of assets', () => {
       const asked = {
         sheet: fieldsFile.sheets[0],
         mapping: fieldsMapping,
+        place: { propertyId: null, buildingId: null },
         kindColumns: { 'probe.elevator': { stops: 4, firefighters_lift: 5 } },
       }
 
@@ -1307,6 +1413,7 @@ describe('the import of assets', () => {
       expect(bodyOf('/imports/assets/preview')).toEqual({
         sheet: fieldsFile.sheets[0],
         mapping: fieldsMapping,
+        place: { propertyId: null, buildingId: null },
         kindColumns: {},
       })
     })
@@ -1412,6 +1519,7 @@ describe('the import of assets', () => {
       expect(bodyOf('/imports/assets/preview')).toEqual({
         sheet: fieldsFile.sheets[0],
         mapping: { ...fieldsMapping, serialNumber: 4 },
+        place: { propertyId: null, buildingId: null },
         kindColumns: {},
       })
     })
@@ -1468,6 +1576,7 @@ describe('the import of assets', () => {
       expect(bodyOf('/imports/assets/preview')).toEqual({
         sheet: pumps.sheets[0],
         mapping: fieldsMapping,
+        place: { propertyId: null, buildingId: null },
         kindColumns: {},
       })
 

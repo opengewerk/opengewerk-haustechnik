@@ -7,7 +7,7 @@ import {
 import { describe, expect, it } from 'vitest'
 
 import type { AreaId } from './area.js'
-import { correctTheFile } from './import.js'
+import { chooseAgain, chosenPlaceGone, correctTheFile } from './import.js'
 import {
   buildingKindsOf,
   federalStateOf,
@@ -63,6 +63,7 @@ const nothing: StructureStock = { properties: [], buildings: [], floors: [], roo
 
 /** New properties go to the south, which is not where the property of the stock lies. */
 const defaults: StructureDefaults = {
+  propertyId: null,
   areaId: south,
   federalState: 'DE-BW',
   buildingKinds: ['school'],
@@ -185,11 +186,16 @@ describe('the defaults of an import of places', () => {
         federalState: 'DE-HE',
         buildingKinds: ['school', 'office'],
       }),
-    ).toEqual({ areaId: 'area-north', federalState: 'DE-HE', buildingKinds: ['office', 'school'] })
+    ).toEqual({
+      propertyId: null,
+      areaId: 'area-north',
+      federalState: 'DE-HE',
+      buildingKinds: ['office', 'school'],
+    })
   })
 
   it('leave out what is no area, no federal state and no kind of building', () => {
-    const empty = { areaId: null, federalState: null, buildingKinds: [] }
+    const empty = { propertyId: null, areaId: null, federalState: null, buildingKinds: [] }
 
     expect(
       structureDefaultsOf({ areaId: '', federalState: 'Hessen', buildingKinds: 'school' }),
@@ -203,11 +209,17 @@ describe('the defaults of an import of places', () => {
         federalState: 7,
         buildingKinds: ['castle', 'school', 'school'],
       }),
-    ).toEqual({ areaId: 'a', federalState: null, buildingKinds: ['school'] })
+    ).toEqual({ propertyId: null, areaId: 'a', federalState: null, buildingKinds: ['school'] })
+  })
+
+  it('hold a property chosen for all lines, and none where no id came (#173)', () => {
+    expect(structureDefaultsOf({ propertyId: 'p-1' }).propertyId).toBe('p-1')
+    expect(structureDefaultsOf({ propertyId: '' }).propertyId).toBeNull()
+    expect(structureDefaultsOf({ propertyId: 7 }).propertyId).toBeNull()
   })
 
   it('are none for anything that is no record', () => {
-    const empty = { areaId: null, federalState: null, buildingKinds: [] }
+    const empty = { propertyId: null, areaId: null, federalState: null, buildingKinds: [] }
 
     expect(structureDefaultsOf(null)).toEqual(empty)
     expect(structureDefaultsOf(undefined)).toEqual(empty)
@@ -1148,7 +1160,7 @@ describe('what a list rarely says', () => {
         { ...inSchool, floor: '2. OG' },
       ],
       {
-        defaults: { areaId: null, federalState: null, buildingKinds: [] },
+        defaults: { propertyId: null, areaId: null, federalState: null, buildingKinds: [] },
       },
     )
 
@@ -1190,7 +1202,12 @@ describe('what a list rarely says', () => {
 
   it('comes from the defaults: the federal state of a property and the kinds of a building', () => {
     const plan = planOf([whole], {
-      defaults: { areaId: north, federalState: 'DE-HE', buildingKinds: ['office', 'assembly'] },
+      defaults: {
+        propertyId: null,
+        areaId: north,
+        federalState: 'DE-HE',
+        buildingKinds: ['office', 'assembly'],
+      },
     })
 
     expect(plan.create.properties).toMatchObject([{ areaId: north, federalState: 'DE-HE' }])
@@ -1448,7 +1465,7 @@ describe('what the rules of a place say about a new one', () => {
         { property: 'Neubau', building: 'Haus A', yearBuilt: 'alt', floor: 'Dach', level: 'oben' },
         { property: 'Neubau', building: 'Haus A', floor: 'Dach', roomUse: 'Lager' },
       ],
-      { defaults: { areaId: south, federalState: null, buildingKinds: [] } },
+      { defaults: { propertyId: null, areaId: south, federalState: null, buildingKinds: [] } },
     )
 
     expect(plan.problems.length).toBeGreaterThan(6)
@@ -1587,5 +1604,66 @@ describe('an import of places that made nothing, in words', () => {
     expect(structureSummary({ properties: 0, buildings: 0, floors: 0, rooms: 0, known: 4 })).toBe(
       'Nichts angelegt',
     )
+  })
+})
+
+describe('a property chosen for all lines (#173)', () => {
+  const chosen: StructureDefaults = { ...defaults, propertyId: centre }
+
+  it('stands for every line that names none, and a line that names one goes first', () => {
+    const plan = planOf(
+      [
+        { building: 'Neubau' },
+        { building: 'Schulhaus', floor: '2. OG' },
+        { property: 'Gymnasium', ...address, building: 'Haus A' },
+      ],
+      { defaults: chosen },
+    )
+
+    expect(plan.problems).toEqual([])
+    expect(plan.counts).toEqual({ properties: 1, buildings: 2, floors: 1, rooms: 0, known: 0 })
+    expect(plan.create.properties.map((property) => property.name)).toEqual(['Gymnasium'])
+    expect(
+      plan.create.buildings.map((building) => [
+        building.name,
+        building.propertyId,
+        building.areaId,
+      ]),
+    ).toEqual([
+      // In the chosen property, which lies in the north.
+      ['Neubau', centre, north],
+      ['Haus A', 'new-3', south],
+    ])
+    expect(plan.create.floors.map((floor) => [floor.name, floor.buildingId])).toEqual([
+      ['2. OG', school],
+    ])
+  })
+
+  it('is a line of its own where the line names nothing below it', () => {
+    const plan = planOf([{ street: 'Am Ring 1' }], { defaults: chosen })
+
+    expect(plan.problems).toEqual([])
+    expect(plan.known.map(({ table, id, lines }) => [table, id, lines])).toEqual([
+      ['properties', centre, [2]],
+    ])
+  })
+
+  it('is no property any more where it is gone or out of sight, and every line without one says so', () => {
+    const plan = planOf(
+      [{ building: 'Neubau' }, { property: 'Schulzentrum' }, { building: 'Halle' }],
+      {
+        defaults: { ...defaults, propertyId: 'p-9' as PropertyId },
+      },
+    )
+
+    expect(plan.problems).toEqual([{ lines: [2, 4], what: chosenPlaceGone, next: chooseAgain }])
+  })
+
+  it('is no property where it is a building of that id', () => {
+    const plan = planOf([{ building: 'Neubau' }], {
+      defaults: { ...defaults, propertyId: school as string as PropertyId },
+    })
+
+    expect(plan.problems).toEqual([{ lines: [2], what: chosenPlaceGone, next: chooseAgain }])
   })
 })

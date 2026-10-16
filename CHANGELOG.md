@@ -34,6 +34,12 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   angehoben ist. Ansehen kann das Lager jede Rolle (`store.read`), führen ab der Objektleitung
   (`store.write`); Planungskonzept v0.41. Die Verfahrensbeschreibung nennt, dass eine Buchung
   festhält, wer gebucht hat. Migration `0054_stock`.
+- Liegenschaft und Gebäude für alle Zeilen eines Imports (#173): im ersten Schritt lässt sich unter
+  „Was die Datei nicht sagt“ eine Liegenschaft wählen, die für jede Zeile ohne eine gilt, beim Import
+  der Anlagen dazu eines ihrer Gebäude. Die Spalten sind dann keine Pflicht mehr; nennt eine Zeile
+  eine, gilt die Zeile. Eine Raum- oder Anlagenliste gilt oft für ein Haus und nennt es nur im
+  Dateinamen, und bisher musste dafür vor dem Import eine Spalte eingefügt und gleich gefüllt werden.
+  Zur Wahl steht, was die Person sieht.
 
 ### Geändert
 

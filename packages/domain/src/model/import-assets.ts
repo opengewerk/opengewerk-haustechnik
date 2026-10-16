@@ -29,6 +29,10 @@ import { kindFields } from './asset-values.js'
 import type { AssetKind } from './catalogue.js'
 import { costGroupAbove } from './cost-group.js'
 import {
+  chooseAgain,
+  chosenBuildingGone,
+  type ChosenPlace,
+  chosenPlaceGone,
   counted,
   type ImportNote,
   ImportNotes,
@@ -370,13 +374,15 @@ function meterUnitOf(value: string | undefined): string | null {
  * What the lines of a table would make of assets, against what is there and
  * what whoever imports has decided about the lines that may be duplicates.
  * With `cells`, what only an asset kind has is read from the columns given
- * to its fields.
+ * to its fields; `chosen` stands for the property and the building of every
+ * line that names none (#173).
  */
 export function planAssets(
   records: readonly TableRecord[],
   decisions: ReadonlyMap<number, DuplicateDecision>,
   stock: AssetImportStock,
   cells?: KindCells,
+  chosen: ChosenPlace = { propertyId: null, buildingId: null },
 ): AssetImportPlan {
   const problems = new ImportProblems()
   const notes = new ImportNotes()
@@ -409,7 +415,12 @@ export function planAssets(
   for (const { line, values } of records) {
     const cell = (field: string) => values[field] ?? ''
     const before = problems.added
-    const place = placeOf(line, cell, { properties, buildings, floors, roomsOf }, problems)
+    const place = placeOf(
+      line,
+      cell,
+      { properties, buildings, floors, roomsOf, chosen: chosenOf(stock, chosen) },
+      problems,
+    )
     const kindKey = kindOf(line, cell('kind'), kindOfName, stock.kinds, problems)
     const kind = kindKey === null ? undefined : stock.kinds.get(kindKey)
     const yearBuilt = cell('yearBuilt')
@@ -565,6 +576,26 @@ interface Places {
   readonly buildings: ReadonlyMap<string, AssetImportStock['buildings']>
   readonly floors: ReadonlyMap<string, AssetImportStock['floors']>
   readonly roomsOf: ReadonlyMap<string, AssetImportStock['rooms']>
+  readonly chosen: Chosen
+}
+
+/** The chosen property and building as the stock holds them: null where none is chosen, undefined where it is gone. */
+interface Chosen {
+  readonly property: AssetImportStock['properties'][number] | null | undefined
+  readonly building: AssetImportStock['buildings'][number] | null | undefined
+}
+
+function chosenOf(stock: AssetImportStock, chosen: ChosenPlace): Chosen {
+  return {
+    property:
+      chosen.propertyId === null
+        ? null
+        : stock.properties.find((property) => property.id === chosen.propertyId),
+    building:
+      chosen.buildingId === null
+        ? null
+        : stock.buildings.find((building) => building.id === chosen.buildingId),
+  }
 }
 
 const orCorrect = 'anlegen oder die Datei berichtigen'
@@ -595,33 +626,64 @@ function placeOf(
     return found?.length === 1 ? (found[0] ?? null) : null
   }
 
-  if (cell('property') === '') {
+  const { chosen } = places
+
+  if (cell('property') === '' && chosen.property === null) {
     problems.add(line, 'Die Liegenschaft fehlt')
 
     return null
   }
 
-  const property = one(
-    places.properties.get(nameKey(cell('property'))),
-    `Die Liegenschaft „${cell('property')}“`,
-    '',
-  )
+  if (cell('property') === '' && chosen.property === undefined) {
+    problems.add(line, chosenPlaceGone, chooseAgain)
+
+    return null
+  }
+
+  const property =
+    cell('property') === ''
+      ? (chosen.property ?? null)
+      : one(
+          places.properties.get(nameKey(cell('property'))),
+          `Die Liegenschaft „${cell('property')}“`,
+          '',
+        )
 
   if (!property) {
     return null
   }
 
-  if (cell('building') === '') {
+  if (cell('building') === '' && chosen.building === null) {
     problems.add(line, 'Das Gebäude fehlt')
 
     return null
   }
 
-  const building = one(
-    places.buildings.get(`${property.id}\u0000${nameKey(cell('building'))}`),
-    `Das Gebäude „${cell('building')}“`,
-    `in der Liegenschaft ${property.name} `,
-  )
+  if (cell('building') === '' && chosen.building === undefined) {
+    problems.add(line, chosenBuildingGone, chooseAgain)
+
+    return null
+  }
+
+  // A line that names another property than the one of the chosen building names its own building too.
+  if (cell('building') === '' && chosen.building?.propertyId !== property.id) {
+    problems.add(
+      line,
+      `Das gewählte Gebäude ${chosen.building?.name ?? ''} liegt nicht in der Liegenschaft ${property.name}`,
+      'Das Gebäude in der Datei nennen',
+    )
+
+    return null
+  }
+
+  const building =
+    cell('building') === ''
+      ? (chosen.building ?? null)
+      : one(
+          places.buildings.get(`${property.id}\u0000${nameKey(cell('building'))}`),
+          `Das Gebäude „${cell('building')}“`,
+          `in der Liegenschaft ${property.name} `,
+        )
 
   if (!building) {
     return null

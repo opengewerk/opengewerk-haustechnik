@@ -7,9 +7,12 @@ import {
   buildingKinds,
   byNameIn,
   cellHint,
+  type ChosenPlace,
+  chosenPlaceOf,
   counted,
   type DuplicateDecision,
   federalStates,
+  fieldsWithChoice,
   freeColumns,
   type ImportDuplicate,
   type ImportNote,
@@ -65,7 +68,7 @@ import {
   TableFilePanel,
 } from '@opengewerk/platform-web/office'
 import { useRight } from '@opengewerk/platform-web/session'
-import { request, RequestRefused, useSync } from '@opengewerk/platform-web/sync'
+import { request, RequestRefused, text, useRecords, useSync } from '@opengewerk/platform-web/sync'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useNavigate } from '@tanstack/react-router'
 import { Check, ChevronLeft, ChevronRight, Download, Upload } from 'lucide-react'
@@ -360,13 +363,72 @@ const kindsOfBuildings = [
   ...buildingKinds.map((kind) => ({ value: kind as string, label: buildingKindLabel[kind] })),
 ]
 
+const noPlace: ChosenPlace = chosenPlaceOf(null)
+
+const fromTheFile = { value: '', label: 'Aus der Datei' }
+
+/**
+ * The property, and for assets its building, chosen for every line that
+ * names none (#173). Offered is what the device holds, which is what the
+ * person sees.
+ */
+function ChosenPlaceFields({
+  place,
+  onChange,
+  withBuilding = false,
+}: {
+  readonly place: ChosenPlace
+  readonly onChange: (place: ChosenPlace) => void
+  readonly withBuilding?: boolean
+}) {
+  const properties = useRecords('properties')
+  const buildings = useRecords('buildings')
+  const options = (records: typeof properties) => [
+    fromTheFile,
+    ...records
+      .map((record) => ({ value: String(record['id']), label: text(record, 'name') }))
+      .sort((left, right) => byNameIn(left.label, right.label)),
+  ]
+
+  return (
+    <div className="flex flex-wrap items-start gap-x-4 gap-y-3">
+      <div className="w-full sm:w-[300px]">
+        <SelectField
+          label="Liegenschaft für alle Zeilen"
+          value={place.propertyId ?? ''}
+          options={options(properties)}
+          onChange={(value) => {
+            onChange(chosenPlaceOf({ propertyId: value }))
+          }}
+        />
+      </div>
+      {withBuilding && place.propertyId !== null ? (
+        <div className="w-full sm:w-[300px]">
+          <SelectField
+            label="Gebäude für alle Zeilen"
+            value={place.buildingId ?? ''}
+            options={options(
+              buildings.filter((building) => building['propertyId'] === place.propertyId),
+            )}
+            onChange={(value) => {
+              onChange(chosenPlaceOf({ propertyId: place.propertyId, buildingId: value }))
+            }}
+          />
+        </div>
+      ) : null}
+    </div>
+  )
+}
+
 /** The import of properties, buildings, floors and rooms, under "Liegenschaften". */
 export function ImportStructureScreen() {
   const may = useRight('location.write')
   const areas = useAreas()
   const client = useSync()
   const navigate = useNavigate()
-  const table = useTable(structureFields, importRoutes.structure)
+  const [place, setPlace] = useState<ChosenPlace>(noPlace)
+  const fields = fieldsWithChoice(structureFields, place)
+  const table = useTable(fields, importRoutes.structure)
   const [step, setStep] = useState<'columns' | 'preview' | 'done'>('columns')
   const [areaId, setAreaId] = useState('')
   const [federalState, setFederalState] = useState('')
@@ -390,6 +452,7 @@ export function ImportStructureScreen() {
     sheet: table.sheet,
     mapping: table.mapping,
     defaults: {
+      propertyId: place.propertyId,
       areaId: (onlyArea?.id ?? areaId) || null,
       federalState: federalState || null,
       buildingKinds: buildingKind === '' ? [] : [buildingKind],
@@ -569,13 +632,14 @@ export function ImportStructureScreen() {
         <>
           <ColumnsPanel
             sheet={table.sheet}
-            fields={structureFields}
+            fields={fields}
             mapping={table.mapping}
             onChange={table.setMapping}
             note="Flächen kommen mit Phase 3 an Gebäude und Räume; bis dahin bleibt eine solche Spalte draußen."
           />
           <Panel title="Was die Datei nicht sagt">
-            <div className="flex flex-wrap items-start gap-x-4 gap-y-3">
+            <ChosenPlaceFields place={place} onChange={setPlace} />
+            <div className="mt-3 flex flex-wrap items-start gap-x-4 gap-y-3">
               {areas.length > 1 ? (
                 <div className="w-full sm:w-[220px]">
                   <SelectField
@@ -607,9 +671,10 @@ export function ImportStructureScreen() {
               </div>
             </div>
             <p className="mt-2.5 text-[13px] leading-[1.5] text-ink-faint">
-              Liegenschaften und Gebäude, die es schon gibt, bleiben, wie sie sind. Die Ebene eines
-              Geschosses liest der Import aus seiner Bezeichnung (EG, 1. OG, UG), wenn keine Spalte
-              sie nennt.
+              Eine gewählte Liegenschaft gilt für jede Zeile, die keine nennt; nennt eine Zeile
+              eine, gilt die Zeile. Liegenschaften und Gebäude, die es schon gibt, bleiben, wie sie
+              sind. Die Ebene eines Geschosses liest der Import aus seiner Bezeichnung (EG, 1. OG,
+              UG), wenn keine Spalte sie nennt.
             </p>
           </Panel>
         </>
@@ -771,7 +836,9 @@ export function ImportAssetsScreen() {
   const catalogue = useCatalogue()
   const queries = useQueryClient()
   const navigate = useNavigate()
-  const table = useTable(assetImportFields, importRoutes.assets)
+  const [place, setPlace] = useState<ChosenPlace>(noPlace)
+  const fields = fieldsWithChoice(assetImportFields, place)
+  const table = useTable(fields, importRoutes.assets)
   const kept = useQuery({ ...kindNamesQuery, enabled: may })
   const [step, setStep] = useState<'columns' | 'kinds' | 'fields' | 'preview' | 'done'>('columns')
   const [chosen, setChosen] = useState<Readonly<Record<string, string>>>({})
@@ -895,6 +962,7 @@ export function ImportAssetsScreen() {
   const asked = {
     sheet: table.sheet,
     mapping: table.mapping,
+    place,
     kindColumns: Object.fromEntries(
       kindsWithFields
         .map((kind) => [kind.key, columnsOf(kind)] as const)
@@ -1400,13 +1468,22 @@ export function ImportAssetsScreen() {
         }
       />
       {table.sheet ? (
-        <ColumnsPanel
-          sheet={table.sheet}
-          fields={assetImportFields}
-          mapping={table.mapping}
-          onChange={table.setMapping}
-          note="Was nur eine Anlagenart hat, etwa Löschmittel oder Nennleistung, ordnen Sie im Schritt „Felder“ zu. Hier bleibt eine solche Spalte auf „Nicht übernehmen“."
-        />
+        <>
+          <ColumnsPanel
+            sheet={table.sheet}
+            fields={fields}
+            mapping={table.mapping}
+            onChange={table.setMapping}
+            note="Was nur eine Anlagenart hat, etwa Löschmittel oder Nennleistung, ordnen Sie im Schritt „Felder“ zu. Hier bleibt eine solche Spalte auf „Nicht übernehmen“."
+          />
+          <Panel title="Was die Datei nicht sagt">
+            <ChosenPlaceFields place={place} onChange={setPlace} withBuilding />
+            <p className="mt-2.5 text-[13px] leading-[1.5] text-ink-faint">
+              Gilt für jede Zeile, die keine Liegenschaft oder kein Gebäude nennt; nennt eine Zeile
+              eines, gilt die Zeile. Dann braucht die Datei diese Spalten nicht.
+            </p>
+          </Panel>
+        </>
       ) : null}
       {refusal}
       <StepActions onCancel={leave}>

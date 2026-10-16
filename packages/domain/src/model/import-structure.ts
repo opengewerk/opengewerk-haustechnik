@@ -11,6 +11,9 @@ import {
 import type { AreaId } from './area.js'
 import { levelOfFloorName } from './floor-level.js'
 import {
+  chooseAgain,
+  chosenPlaceGone,
+  chosenPlaceOf,
   correctTheFile,
   counted,
   type ImportProblem,
@@ -48,9 +51,10 @@ import {
  * without spaces and case. Nothing that exists is changed and nothing is
  * made twice: such a line is shown as known and makes nothing.
  *
- * What a new record needs and a list rarely says comes from the three
- * defaults: the area and the federal state of a new property and the kinds
- * of a new building. The level of a new floor is read from its name
+ * What a new record needs and a list rarely says comes from the defaults:
+ * the area and the federal state of a new property and the kinds of a new
+ * building. A list for one property may name it nowhere: one chosen for all
+ * lines stands for every line that names none (#173). The level of a new floor is read from its name
  * (`levelOfFloorName`) where no column gives it.
  */
 
@@ -95,12 +99,14 @@ export const structureFields: readonly TableField[] = [
 
 /** What a new property and a new building get where no column says it. */
 export interface StructureDefaults {
+  /** The property of every line that names none (#173). */
+  readonly propertyId: PropertyId | null
   readonly areaId: AreaId | null
   readonly federalState: FederalState | null
   readonly buildingKinds: readonly BuildingKind[]
 }
 
-/** The defaults out of what came over the wire: what is no area, state or kind is left out. */
+/** The defaults out of what came over the wire: what is no property, area, state or kind is left out. */
 export function structureDefaultsOf(value: unknown): StructureDefaults {
   const given = (typeof value === 'object' && value !== null ? value : {}) as Readonly<
     Record<string, unknown>
@@ -108,6 +114,7 @@ export function structureDefaultsOf(value: unknown): StructureDefaults {
   const kinds = Array.isArray(given['buildingKinds']) ? (given['buildingKinds'] as unknown[]) : []
 
   return {
+    propertyId: chosenPlaceOf(given).propertyId,
     areaId:
       typeof given['areaId'] === 'string' && given['areaId'] !== ''
         ? (given['areaId'] as AreaId)
@@ -481,12 +488,23 @@ export function planStructure(
     const roomName = cell('roomName')
     const namesRoom = roomNumber !== '' || roomName !== '' || cell('roomUse') !== ''
 
-    if (cell('property') === '') {
+    let property: Place | null
+
+    if (cell('property') !== '') {
+      property = placeOf(line, 'properties', null, cell('property'), nameKey(cell('property')))
+    } else if (defaults.propertyId !== null) {
+      const chosen = byId.get(defaults.propertyId)
+
+      if (chosen?.table !== 'properties') {
+        problems.add(line, chosenPlaceGone, chooseAgain)
+        continue
+      }
+
+      property = chosen
+    } else {
       problems.add(line, 'Die Liegenschaft fehlt')
       continue
     }
-
-    const property = placeOf(line, 'properties', null, cell('property'), nameKey(cell('property')))
 
     if (!property) {
       continue
