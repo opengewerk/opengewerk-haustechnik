@@ -30,7 +30,7 @@ guarded_route=/staff
 # The tables counted before the backup and after the restore. The area and
 # the place of the account in it come with the account: a Betreiber gets its
 # first area with its first membership.
-counted_tables='auth_users memberships tenant_roles account_corrections areas member_areas invitations invitation_area_choices invitation_areas properties buildings contacts building_closures assets files mail_settings deadline_settings deadline_runs duties duty_dismissals evidence deadlines activities activity_duties activity_answers work_orders work_order_participants work_order_notes defects meter_points meter_readings meter_exchanges meter_pauses meter_settings work_order_settings activity_signatures work_order_decisions service_reports service_report_records articles suppliers stores store_articles stock_movements evidence_voidings round_records prints attachments attachment_versions labels imports asset_kind_names defect_class_terms round_templates round_template_versions round_plans tasks mail_outbox push_subscriptions push_opt_outs push_outbox'
+counted_tables='auth_users memberships tenant_roles account_corrections areas member_areas invitations invitation_area_choices invitation_areas properties buildings contacts building_closures assets files mail_settings deadline_settings deadline_runs duties duty_dismissals evidence deadlines activities activity_duties activity_answers work_orders work_order_participants work_order_notes defects meter_points meter_readings meter_exchanges meter_pauses meter_settings work_order_settings activity_signatures work_order_decisions service_reports service_report_records articles suppliers stores store_articles stock_movements work_order_materials store_labels evidence_voidings round_records prints attachments attachment_versions labels imports asset_kind_names defect_class_terms round_templates round_template_versions round_plans tasks mail_outbox push_subscriptions push_opt_outs push_outbox'
 
 # The migrations, and how many of them make the older state an update starts
 # from: the first, without the sequence for work orders that the second brings.
@@ -386,6 +386,17 @@ records_for_backup() {
       from stores s, articles a, suppliers p, auth_users u
      where s.tenant_id = '$first_tenant' and a.tenant_id = '$first_tenant'
        and p.tenant_id = '$first_tenant' and u.email = '$probe_email';
+    insert into work_order_materials (tenant_id, property_id, area_id, activity_id, store_id, article_id,
+                                      quantity_milli, taken_at, taken_by)
+    select w.tenant_id, w.property_id, w.area_id, w.id, s.id, ar.id, 1000, '2026-10-01T09:20:00Z', u.id
+      from activities w, stores s, articles ar, auth_users u
+     where w.tenant_id = '$first_tenant' and w.kind = 'work_order' and s.tenant_id = '$first_tenant'
+       and ar.tenant_id = '$first_tenant' and u.email = '$probe_email';
+    insert into stock_movements (tenant_id, store_id, article_id, kind, quantity_milli, booked_by, material_id)
+    select tenant_id, store_id, article_id, 'withdrawal', quantity_milli, taken_by, id
+      from work_order_materials where tenant_id = '$first_tenant';
+    insert into store_labels (tenant_id, store_article_id, code)
+    select tenant_id, id, 'MATERA7REGA3B5XY' from store_articles where tenant_id = '$first_tenant';
     insert into service_reports (tenant_id, property_id, area_id, activity_id, client_name, path,
                                  signed_by, signed_at, page_fingerprint)
     select a.tenant_id, a.property_id, a.area_id, a.id, 'Petra Probe', 'M10,10L200,300', u.id,

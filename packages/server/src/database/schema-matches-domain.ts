@@ -29,13 +29,15 @@ import type {
   RoundTemplateVersion,
   ServiceReport,
   ServiceReportRecord,
-  StockMovement,
+  StoreLabel,
+  StoreMovement,
   StockSupplier,
   Store,
   StoreArticle,
   Task,
   WorkOrder,
   WorkOrderDecision,
+  WorkOrderMaterial,
   WorkOrderNote,
   WorkOrderParticipant,
   WorkOrderSetting,
@@ -72,6 +74,7 @@ import type {
   serviceReportRecords,
   serviceReports,
   stockMovements,
+  storeLabels,
   storeArticles,
   stores,
   suppliers,
@@ -79,6 +82,7 @@ import type {
   roundTemplates,
   roundTemplateVersions,
   workOrderDecisions,
+  workOrderMaterials,
   workOrderNotes,
   workOrderParticipants,
   workOrders,
@@ -172,8 +176,12 @@ export type SupplierMatches = Assert<Exact<typeof suppliers.$inferSelect, StockS
 export type StoreMatches = Assert<Exact<typeof stores.$inferSelect, Store>>
 export type StoreArticleMatches = Assert<Exact<typeof storeArticles.$inferSelect, StoreArticle>>
 export type StockMovementMatches = Assert<
-  Exact<Omit<typeof stockMovements.$inferSelect, 'kind'>, Omit<StockMovement, 'kind'>>
+  Exact<Omit<typeof stockMovements.$inferSelect, 'kind'>, Omit<StoreMovement, 'kind'>>
 >
+export type WorkOrderMaterialMatches = Assert<
+  Exact<Omit<typeof workOrderMaterials.$inferSelect, 'activityKind'>, WorkOrderMaterial>
+>
+export type StoreLabelMatches = Assert<Exact<typeof storeLabels.$inferSelect, StoreLabel>>
 export type WorkOrderSettingMatches = Assert<
   Exact<typeof workOrderSettings.$inferSelect, WorkOrderSetting>
 >

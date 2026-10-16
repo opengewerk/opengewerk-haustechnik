@@ -358,6 +358,13 @@ export async function mountSite(
       'meter_pauses',
       'meter_settings',
       'tasks',
+      // The stores, which the device holds whole, and the material of an order (#326).
+      'articles',
+      'stores',
+      'store_articles',
+      'stock_movements',
+      'store_labels',
+      'work_order_materials',
     ],
     onSignedOut: () => {},
   })

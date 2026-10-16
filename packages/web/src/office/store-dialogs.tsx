@@ -1,6 +1,9 @@
 import {
   type Article,
   articlePriceProblem,
+  labelBatchMost,
+  type LabelFormat,
+  labelPrintProblem,
   byNameIn,
   type StockLine,
   stockArticleProblems,
@@ -15,6 +18,7 @@ import {
 } from '@opengewerk/haustechnik-domain'
 import {
   Button,
+  ButtonLink,
   Dialog,
   DialogActions,
   Field,
@@ -25,10 +29,12 @@ import { amount, centsAsInput, parseEuros, parseQuantity } from '@opengewerk/pla
 import { NoteBox } from '@opengewerk/platform-web/office'
 import { type EditResult, refusalFor, useSync } from '@opengewerk/platform-web/sync'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { Check } from 'lucide-react'
-import { type ReactNode, useMemo, useState } from 'react'
+import { Check, Printer } from 'lucide-react'
+import { type ReactNode, useEffect, useMemo, useState } from 'react'
 
+import { printShelfLabels } from '../app/labels.js'
 import { askAt, makeAt } from '../sync/made-at.js'
+import { labelFormats, printLabelWords } from './labels.js'
 import { articleListQuery, storeKey, supplierListQuery } from './store-addresses.js'
 
 /**
@@ -61,6 +67,11 @@ export const storeDialogWords = {
   whereHint: 'Freier Text: wo das Lager steht.',
   storeHasNoArea:
     'Ein Lager gehört dem Betreiber, ohne Bereich. Fahrzeuge als Lager kommen mit Phase 3.',
+  shelfLabels:
+    'Je Artikel ein Etikett für sein Fach in diesem Lager. Wo es noch keines gibt, wird eines angelegt; ein gültiges wird noch einmal gedruckt.',
+  withoutEan: (count: number) => `Die ${String(count)} Artikel dieses Lagers ohne EAN`,
+  everyArticle: (count: number) => `Alle ${String(count)} Artikel dieses Lagers`,
+  noShelf: 'Für diese Auswahl gibt es kein Etikett zu drucken.',
 } as const
 
 /** Asks a route, shows what it refused with, and has the stores read again once it is done. */
@@ -723,6 +734,159 @@ export function SupplierDialog({
           onClose={onClose}
           label={supplier === undefined ? 'Anlegen' : 'Speichern'}
         />
+      </form>
+    </Dialog>
+  )
+}
+
+/**
+ * "Etiketten drucken" at a store (#326, the board "Etiketten für die Fächer
+ * eines Lagers"): one label for the shelf of each article, the articles
+ * without the barcode of their manufacturer or all of them. The server makes
+ * the labels that are missing and answers with the PDF, offered as a link
+ * once it is there.
+ */
+export function ShelfLabelsDialog({
+  storeId,
+  lines,
+  onClose,
+}: {
+  readonly storeId: string
+  readonly lines: readonly StockLine[]
+  readonly onClose: () => void
+}) {
+  const client = useSync()
+  const articles = useQuery(articleListQuery(''))
+  const withoutEan = lines.filter(
+    (line) =>
+      !line.removed &&
+      (articles.data ?? []).some(
+        (article) => article.id === line.articleId && article.ean === null,
+      ),
+  ).length
+  const kept = lines.filter((line) => !line.removed).length
+  const [which, setWhich] = useState<'withoutEan' | 'all'>('withoutEan')
+  const [format, setFormat] = useState<LabelFormat>('sheet')
+  const [start, setStart] = useState('1')
+  const [working, setWorking] = useState(false)
+  const [trouble, setTrouble] = useState<string | null>(null)
+  const [href, setHref] = useState<string | null>(null)
+  const count = which === 'all' ? kept : withoutEan
+  const begin = /^\d{1,3}$/.test(start.trim()) ? Number(start.trim()) : Number.NaN
+  const problem =
+    count === 0
+      ? storeDialogWords.noShelf
+      : labelPrintProblem(format, count, format === 'sheet' ? begin : 1, labelBatchMost)
+
+  useEffect(
+    () => () => {
+      if (href !== null) {
+        URL.revokeObjectURL(href)
+      }
+    },
+    [href],
+  )
+
+  async function print() {
+    setWorking(true)
+    setTrouble(null)
+
+    try {
+      setHref(URL.createObjectURL(await printShelfLabels(storeId, which, format, begin)))
+      await client.synchronise().catch(() => undefined)
+    } catch (error) {
+      setTrouble(error instanceof Error ? error.message : 'Der Druck ist nicht gelungen.')
+    } finally {
+      setWorking(false)
+    }
+  }
+
+  return (
+    <Dialog
+      title="Etiketten drucken"
+      width={600}
+      onClose={onClose}
+      sub={storeDialogWords.shelfLabels}
+    >
+      <form
+        noValidate
+        className="flex flex-col gap-3"
+        onSubmit={(event) => {
+          event.preventDefault()
+
+          if (problem === null) {
+            void print()
+          }
+        }}
+      >
+        <SelectField
+          label="Gedruckt wird"
+          value={which}
+          options={[
+            { value: 'withoutEan', label: storeDialogWords.withoutEan(withoutEan) },
+            { value: 'all', label: storeDialogWords.everyArticle(kept) },
+          ]}
+          onChange={(value) => {
+            setWhich(value as 'withoutEan' | 'all')
+            setHref(null)
+          }}
+        />
+        <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_120px]">
+          <SelectField
+            label="Format"
+            options={labelFormats}
+            value={format}
+            onChange={(value) => {
+              setFormat(value as LabelFormat)
+              setHref(null)
+            }}
+          />
+          {format === 'sheet' ? (
+            <Field
+              label="Beginnen bei"
+              inputMode="numeric"
+              value={start}
+              onChange={(event) => {
+                setStart(event.target.value)
+                setHref(null)
+              }}
+            />
+          ) : null}
+        </div>
+        {format === 'sheet' ? (
+          <p className="text-[12px] leading-[1.45] text-ink-muted">{printLabelWords.startNote}</p>
+        ) : null}
+        {(problem ?? trouble) ? (
+          <p role="alert" className="text-[13px] font-semibold text-conflict">
+            {problem ?? trouble}
+          </p>
+        ) : null}
+        {href === null ? null : <NoteBox>{printLabelWords.ready}</NoteBox>}
+        <DialogActions>
+          <Button type="button" disabled={working} onClick={onClose}>
+            {href === null ? 'Abbrechen' : 'Schließen'}
+          </Button>
+          {href === null ? (
+            <Button
+              type="submit"
+              tone="primary"
+              icon={Printer}
+              disabled={working || problem !== null}
+            >
+              {working ? 'Einen Moment' : 'PDF erzeugen'}
+            </Button>
+          ) : (
+            <ButtonLink
+              tone="primary"
+              icon={Printer}
+              href={href}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              PDF öffnen
+            </ButtonLink>
+          )}
+        </DialogActions>
       </form>
     </Dialog>
   )

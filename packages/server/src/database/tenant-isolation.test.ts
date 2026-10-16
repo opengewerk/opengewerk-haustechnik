@@ -111,6 +111,8 @@ function rowsOf(tenant: Tenant): readonly Row[] {
   const article = randomUUID()
   const supplier = randomUUID()
   const store = randomUUID()
+  const shelf = randomUUID()
+  const material = randomUUID()
   const document = randomUUID()
   const file = randomUUID().replaceAll('-', '').repeat(2)
 
@@ -466,7 +468,13 @@ function rowsOf(tenant: Tenant): readonly Row[] {
     { table: 'stores', values: { id: store, tenant_id: tenant.id, name: 'Hauptlager' } },
     {
       table: 'store_articles',
-      values: { tenant_id: tenant.id, store_id: store, article_id: article, minimum_milli: 10000 },
+      values: {
+        id: shelf,
+        tenant_id: tenant.id,
+        store_id: store,
+        article_id: article,
+        minimum_milli: 10000,
+      },
     },
     {
       table: 'stock_movements',
@@ -624,6 +632,43 @@ function rowsOf(tenant: Tenant): readonly Row[] {
         area_id: area,
         activity_id: activity,
         user_id: tenant.colleagueId,
+      },
+    },
+    // Material taken for the work order, its booking in the store and the
+    // label on the shelf (#326).
+    {
+      table: 'work_order_materials',
+      values: {
+        id: material,
+        tenant_id: tenant.id,
+        property_id: property,
+        area_id: area,
+        activity_id: activity,
+        store_id: store,
+        article_id: article,
+        quantity_milli: 1000,
+        taken_at: '2026-10-01T09:20:00Z',
+        taken_by: tenant.colleagueId,
+      },
+    },
+    {
+      table: 'stock_movements',
+      values: {
+        tenant_id: tenant.id,
+        store_id: store,
+        article_id: article,
+        kind: 'withdrawal',
+        quantity_milli: 1000,
+        booked_by: tenant.colleagueId,
+        material_id: material,
+      },
+    },
+    {
+      table: 'store_labels',
+      values: {
+        tenant_id: tenant.id,
+        store_article_id: shelf,
+        code: labelCodeFrom(randomBytes(10)),
       },
     },
     // A note on the work order (#118).

@@ -104,7 +104,7 @@ export interface PrintOffer {
   readonly count?: number
 }
 
-const formats: readonly { readonly value: LabelFormat; readonly label: string }[] = [
+export const labelFormats: readonly { readonly value: LabelFormat; readonly label: string }[] = [
   { value: 'sheet', label: 'Bogen A4, 70 × 37 mm, 24 je Bogen' },
   { value: 'roll', label: 'Etikettendrucker, 62 × 29 mm' },
 ]
@@ -274,7 +274,7 @@ export function PrintLabelsDialog({
         <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_120px]">
           <SelectField
             label="Format"
-            options={formats}
+            options={labelFormats}
             value={format}
             onChange={(value) => {
               setFormat(value as LabelFormat)

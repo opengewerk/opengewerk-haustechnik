@@ -93,13 +93,37 @@ export type LabelBatch =
  * that are missing and answers with the page. Not a link like the PDF of one
  * label: a link asks with GET, and a request that makes something is none.
  */
-export async function printLabels(
-  batch: LabelBatch,
+export function printLabels(batch: LabelBatch, format: LabelFormat, start: number): Promise<Blob> {
+  const { what, ...named } = batch
+
+  return pdfOfLabels(`/labels/print/${what}`, {
+    ...named,
+    format,
+    ...(format === 'sheet' ? { start } : {}),
+  })
+}
+
+/**
+ * The labels on the shelves of a store (#326): the articles without the
+ * barcode of their manufacturer, or all of them. The server makes the labels
+ * that are missing and answers with the PDF.
+ */
+export function printShelfLabels(
+  storeId: string,
+  which: 'withoutEan' | 'all',
   format: LabelFormat,
   start: number,
 ): Promise<Blob> {
-  const { what, ...named } = batch
-  const response = await fetch(`/labels/print/${what}`, {
+  return pdfOfLabels(`/stores/${encodeURIComponent(storeId)}/labels/print`, {
+    which,
+    format,
+    ...(format === 'sheet' ? { start } : {}),
+  })
+}
+
+/** Asks a route for a PDF of labels, and says what it refused with. */
+async function pdfOfLabels(path: string, body: object): Promise<Blob> {
+  const response = await fetch(path, {
     method: 'POST',
     credentials: 'include',
     headers: {
@@ -107,7 +131,7 @@ export async function printLabels(
       'Content-Type': 'application/json',
       ...workingInHeaders(),
     },
-    body: JSON.stringify({ ...named, format, ...(format === 'sheet' ? { start } : {}) }),
+    body: JSON.stringify(body),
   })
 
   if (!response.ok) {

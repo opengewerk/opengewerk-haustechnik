@@ -12,6 +12,7 @@ import { refusalFor } from '@opengewerk/platform-web/sync'
 
 import type { SyncClient } from '../sync/client.js'
 import type { GivenSignature } from './signature-ways.js'
+import { materialsOnDevice } from './materials.js'
 
 /**
  * Signing an activity on the device (#108, ADR 0004, points 7 and 10): the
@@ -94,7 +95,15 @@ export function reportPageOnDevice(
 ): ServiceReportPage | null {
   const page = pageOnDevice(client, activityId)
 
-  return page === null ? null : serviceReportPageOf(page, clientName, namesAndTimesOnDevice(client))
+  return page === null
+    ? null
+    : serviceReportPageOf(
+        page,
+        clientName,
+        namesAndTimesOnDevice(client),
+        // The material taken for the order stands on the page (#326).
+        materialsOnDevice(client, activityId),
+      )
 }
 
 /**

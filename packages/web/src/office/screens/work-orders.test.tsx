@@ -135,6 +135,7 @@ function details(entry: WorkOrderEntry, further: Partial<WorkOrderDetails> = {})
     signatures: [],
     decisions: [],
     serviceReports: [],
+    materials: [],
     ...further,
   }
 }
@@ -368,6 +369,32 @@ describe('the page of a work order', () => {
     await screen.findByRole('heading', { name: 'Heizkessel Mensa entlüften' })
     expect(screen.getByText('Noch nicht angegeben')).toBeTruthy()
     expect(screen.getByText('Noch keine Notiz von vor Ort.')).toBeTruthy()
+  })
+
+  it('names the material taken on site, without a person or a price (#326)', async () => {
+    const { mounted } = mount('/auftraege/ac-waiting', {
+      '/work-orders/ac-waiting': details(waiting, {
+        materials: [
+          {
+            id: 'wm-1' as never,
+            quantityMilli: 500,
+            unit: 'litre',
+            articleId: 'a-oil' as never,
+            number: 'A-1072',
+            designation: 'Kriechöl',
+            storeId: 's-main' as never,
+            store: 'Hauptlager Betriebshof',
+            takenOn: '2026-10-05',
+          },
+        ],
+      }),
+    })
+
+    await mounted
+    await screen.findByRole('heading', { name: 'Heizkessel Mensa entlüften' })
+    expect(rowsOf('Material mit Menge, Artikel, Lager und Tag')).toEqual([
+      ['0,5 l', 'Kriechöl A-1072', 'Hauptlager Betriebshof', '05.10.2026'],
+    ])
   })
 
   it('accepts a signed order for whoever accepts work orders', async () => {

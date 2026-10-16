@@ -10,6 +10,8 @@ import type {
   StoreId,
 } from '@opengewerk/platform-domain'
 
+import type { WorkOrderMaterialId } from './material.js'
+
 /**
  * The stores of an operator (section 4.12 of the concept, #325), on the
  * building block of the foundation (ADR 0011 in the repository opengewerk):
@@ -71,6 +73,15 @@ export interface StockMovementLine {
   readonly bookedOn: IsoDate
   readonly supplier: string | null
   readonly reason: string | null
+  /**
+   * The work order a withdrawal was taken for (#326), with its number and
+   * title where the person asking sees it, and without them where not.
+   */
+  readonly workOrder: {
+    readonly id: string | null
+    readonly number: string | null
+    readonly title: string | null
+  } | null
 }
 
 /** The page of one article in one store: the article, the stock, the minimum and every booking, the newest first. */
@@ -92,5 +103,10 @@ export interface NewStockMovement {
   readonly reason: string | null
 }
 
-/** A booking as this application keeps it, the one of the foundation as it is. */
-export type StoreMovement = StockMovement
+/**
+ * A booking as this application keeps it: the one of the foundation, and for
+ * a withdrawal at a work order the withdrawal it books, once (#326).
+ */
+export interface StoreMovement extends StockMovement {
+  readonly materialId: WorkOrderMaterialId | null
+}

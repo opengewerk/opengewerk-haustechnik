@@ -105,6 +105,10 @@ async function completed({
     return { ...values, writtenBy: sender.userId }
   }
 
+  if (operation.entity === 'work_order_materials') {
+    return { ...values, takenBy: sender.userId }
+  }
+
   if (operation.entity === 'meter_readings') {
     return { ...values, recordedBy: sender.userId }
   }

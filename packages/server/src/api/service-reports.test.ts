@@ -23,6 +23,7 @@ import type { Pool } from 'pg'
 import request from 'supertest'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
+import { reportedMaterialsOf } from '../activities/materials.js'
 import { pageFingerprint, pageOf } from '../activities/signing.js'
 import { activities } from '../database/schema/index.js'
 import {
@@ -168,7 +169,14 @@ async function reportFor(
     signedAt: new Date().toISOString(),
     deviceInfo: 'Probe-Telefon',
     pageFingerprint: stateFingerprint(
-      serviceReportPageOf(await pageNow(activityId), clientName, namesAndTimes),
+      serviceReportPageOf(
+        await pageNow(activityId),
+        clientName,
+        namesAndTimes,
+        await database.forTenant({ tenantId: small, userId: 'u-lead' }, (tx) =>
+          reportedMaterialsOf(tx, activityId as ActivityId),
+        ),
+      ),
     ),
   })
 }
@@ -369,7 +377,30 @@ describe('the service report of a work order', () => {
   it('is taken from the device of the person who leads the order, in their name, and frozen without names and times', async () => {
     const { id } = await begun()
     const report = newId<'service-report'>()
+    // Material from the store, of an article with a price (#326): the report
+    // names it, and never its price.
+    const made = async (path: string, body: object): Promise<string> =>
+      (await http().post(path).set(testIdentityHeader, by('u-site')).send(body).expect(201)).body
+        .id as string
+    const store = await made('/stores', { name: 'Hauptlager Betriebshof' })
+    const article = await made('/articles', {
+      number: 'A-1060',
+      designation: 'Türschließer-Gleitschiene',
+      unit: 'piece',
+      priceCents: 1290,
+    })
 
+    expect(
+      await outcomes(by('u-tech'), [
+        operation('work_order_materials', 'create', newId<'work-order-material'>(), {
+          activityId: id,
+          storeId: store,
+          articleId: article,
+          quantityMilli: 2000,
+          takenAt: '2026-10-05T07:10:00.000Z',
+        }),
+      ]),
+    ).toEqual([applied])
     expect(
       await outcomes(by('u-tech'), [await reportFor(id, 'Petra Lang', false, report)]),
     ).toEqual([applied])
@@ -390,6 +421,7 @@ describe('the service report of a work order', () => {
         { text: 'Schließblech nachgestellt, Panikschloss geprüft.' },
       ],
       durationMinutes: 45,
+      materials: [{ quantityMilli: 2000, unit: 'piece', designation: 'Türschließer-Gleitschiene' }],
       client: { name: 'Petra Lang', path: 'M10,10L200,300', signedOn: today },
       namesAndTimes: false,
       holder: 'Tobias Wendt',
@@ -425,11 +457,12 @@ describe('the service report of a work order', () => {
 
     expect(html).toContain('Leistungsnachweis')
     expect(html).toContain('Petra Lang')
+    expect(html).toContain('2 Stück Türschließer-Gleitschiene')
     expect(html).not.toContain('Lena Vogt')
     expect(html).not.toMatch(/\d{2}:\d{2}/)
     // No price, in the page or in what it was made of.
-    expect(html).not.toMatch(/€|Preis|EUR/)
-    expect(JSON.stringify(state)).not.toMatch(/price|preis|€/i)
+    expect(html).not.toMatch(/€|Preis|EUR|12,90/)
+    expect(JSON.stringify(state)).not.toMatch(/price|preis|€|1290/i)
   })
 
   it('names who wrote each note and when, and the moment the client signed, once the Leitung switched it on', async () => {

@@ -99,6 +99,9 @@ describe('the policies of the sync', () => {
       stores: [false, 'never'],
       store_articles: [false, 'never'],
       stock_movements: [false, 'never'],
+      // The labels of the shelves, and material taken on site (#326).
+      store_labels: [false, 'never'],
+      work_order_materials: [true, 'never'],
     })
   })
 

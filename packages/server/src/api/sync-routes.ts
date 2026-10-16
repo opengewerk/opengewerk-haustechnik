@@ -88,6 +88,7 @@ export const operationRights: Readonly<Record<string, OperationRights>> = {
   stores: { otherwise: 'store.write' },
   store_articles: { otherwise: 'store.write' },
   stock_movements: { otherwise: 'store.write' },
+  store_labels: { otherwise: 'store.write' },
   asset_supplies: { create: 'asset.record', remove: 'asset.record', otherwise: 'asset.record' },
   duties: { otherwise: 'duty.write' },
   duty_dismissals: { otherwise: 'duty.write' },
@@ -110,6 +111,8 @@ export const operationRights: Readonly<Record<string, OperationRights>> = {
   work_order_participants: { otherwise: 'activity.write' },
   // A note on a work order is the work on it, and is never changed (#118).
   work_order_notes: { create: 'activity.perform', otherwise: 'activity.write' },
+  // Material is taken by whoever does the work, no right of its own (#326).
+  work_order_materials: { create: 'activity.perform', otherwise: 'activity.write' },
   defects: { create: 'defect.report', change: 'defect.report', otherwise: 'defect.write' },
   // The signature is the work's, the countersignature the Objektleitung's,
   // who accepts work orders and countersigns rounds (ADR 0004, addendum on the

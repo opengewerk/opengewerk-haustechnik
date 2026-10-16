@@ -49,11 +49,14 @@ import {
 import { and, asc, eq, isNull, sql } from 'drizzle-orm'
 
 import {
+  activities,
   articles,
   stockMovements,
   storeArticles,
   stores,
   suppliers,
+  workOrderMaterials,
+  workOrders,
 } from '../database/schema/index.js'
 import { dayInGermany } from '../today.js'
 import { RequiresPermission } from './authorization.js'
@@ -618,14 +621,24 @@ export class StoresController {
         .select()
         .from(storeArticles)
         .where(and(eq(storeArticles.storeId, store.id), eq(storeArticles.articleId, article.id)))
+      // A withdrawal names its work order where the person asking sees it:
+      // the withdrawal lies in the area of the order (#326).
       const movements = await tx
-        .select({ movement: stockMovements, supplier: suppliers.name })
+        .select({
+          movement: stockMovements,
+          supplier: suppliers.name,
+          material: workOrderMaterials.activityId,
+          order: { id: activities.id, title: activities.title, number: workOrders.number },
+        })
         .from(stockMovements)
         .leftJoin(suppliers, eq(suppliers.id, stockMovements.supplierId))
+        .leftJoin(workOrderMaterials, eq(workOrderMaterials.id, stockMovements.materialId))
+        .leftJoin(activities, eq(activities.id, workOrderMaterials.activityId))
+        .leftJoin(workOrders, eq(workOrders.activityId, activities.id))
         .where(and(eq(stockMovements.storeId, store.id), eq(stockMovements.articleId, article.id)))
         .orderBy(asc(stockMovements.createdAt), asc(stockMovements.id))
       let level = 0
-      const lines: StockMovementLine[] = movements.map(({ movement, supplier }) => {
+      const lines: StockMovementLine[] = movements.map(({ movement, supplier, order }) => {
         level = stockLevel([
           { kind: 'count', quantityMilli: level, createdAt: new Date(0) },
           { ...movement, kind: movement.kind as NewStockMovement['kind'] },
@@ -639,6 +652,14 @@ export class StoresController {
           bookedOn: dayInGermany(movement.createdAt),
           supplier,
           reason: movement.reason,
+          workOrder:
+            movement.materialId === null
+              ? null
+              : {
+                  id: order?.id ?? null,
+                  number: order?.number ?? null,
+                  title: order?.title ?? null,
+                },
         }
       })
       const minimumMilli = line?.minimumMilli ?? null

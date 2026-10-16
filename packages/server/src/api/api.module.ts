@@ -70,6 +70,7 @@ import {
   AssetLabelsController,
   LabelsController,
   RoomLabelsController,
+  StoreLabelsController,
 } from './labels.controller.js'
 import { OverviewController } from './overview.controller.js'
 import { PropertiesController } from './properties.controller.js'
@@ -338,6 +339,7 @@ export class ApiModule {
         AssetLabelsController,
         RoomLabelsController,
         LabelsController,
+        StoreLabelsController,
         // The list of the documents as a table; the documents themselves
         // are the foundation's.
         DocumentsController,

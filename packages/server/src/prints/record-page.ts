@@ -1,4 +1,5 @@
 import {
+  stockUnitLabel,
   evidenceOriginLabel,
   legacyNote,
   evidenceResultLabel,
@@ -394,6 +395,11 @@ function hours(minutes: number): string {
   return `${String(Math.floor(minutes / 60))}:${String(minutes % 60).padStart(2, '0')} Std.`
 }
 
+/** A quantity in thousandths as a person writes it, `85,5`. */
+function quantityWords(milli: number): string {
+  return (milli / 1000).toLocaleString('de-DE', { maximumFractionDigits: 3 })
+}
+
 /**
  * The PDF of a service report (#324, 4.8): what was done and how long it
  * took, from the state frozen when the server took the client's signature,
@@ -420,6 +426,16 @@ export function serviceReportPrintJob(
               }</p>`,
           )
           .join('')}</div>`
+  // The material from version 2 on (#326): how much of what, never a price.
+  const material =
+    state.materials === undefined || state.materials.length === 0
+      ? ''
+      : `<h2>Material</h2><div class="work">${state.materials
+          .map(
+            (each) =>
+              `<p>${text(`${quantityWords(each.quantityMilli)} ${stockUnitLabel[each.unit]} ${each.designation}`)}</p>`,
+          )
+          .join('')}</div>`
   const client = {
     role: 'signer' as const,
     name: state.client.name,
@@ -444,6 +460,7 @@ export function serviceReportPrintJob(
   ])}
   <h2>Geleistete Arbeit</h2>
   ${work}
+  ${material}
   ${signed}`
 
   return { html: page(body), footerHtml: footer(fingerprint), margin }
