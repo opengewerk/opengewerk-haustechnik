@@ -7,6 +7,18 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
 
 ## [Unreleased]
 
+## [0.1.5] - 2026-10-16
+
+Eine Korrekturfassung für den Pilotbetrieb. Die Datenschutzhinweise einer Instanz blieben leer,
+sobald ihr Text auf einen Pfad verwies, etwa auf das Impressum; jetzt öffnet ein solcher Verweis die
+Seite im selben Fenster. Abschnitte und Fett eines Rechtstexts passen zum Text, und unter
+„Rechtstexte“ der Instanz steht, unter welchen Adressen Impressum und Datenschutzhinweise zu lesen
+sind.
+
+Aktualisiert wird wie bei jeder Fassung in zwei Schritten, vorher gesichert. Es gibt keine Migration
+und kein neues Recht. Wer in seinen Rechtstexten bisher mit der vollen Adresse auf den anderen Text
+verwiesen hat, kann wieder den Pfad nehmen (`/rechtliches`, `/rechtliches/datenschutz`).
+
 ### Behoben
 
 - Die Datenschutzhinweise der Instanz unter `/rechtliches/datenschutz` blieben leer, sobald ihr Text
