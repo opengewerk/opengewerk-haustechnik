@@ -4,7 +4,7 @@ import { dutyInterval, intervalWords } from './duty-record.js'
 import type { DutyEntry } from './duty-register.js'
 import { type EvidenceResult, evidenceResultLabel } from './evidence.js'
 import { byNameIn } from './name-order.js'
-import { dayInWords } from './office-table.js'
+import { dayInWords, type TableRow } from './office-table.js'
 
 /**
  * The register of evidence (#338, section 4.3 of the concept): every duty of
@@ -65,6 +65,9 @@ export interface EvidenceRegisterLine {
   readonly reason: string | null
   /** "14.03.2026, Ohne Mangel", or null where there is no evidence. */
   readonly last: string | null
+  /** The day and the result of the last evidence, each on its own, for a column of a table. */
+  readonly performedOn: IsoDate | null
+  readonly result: string | null
   readonly evidenceId: string | null
   readonly evidenceNumber: string | null
   /** The mark of a line whose last evidence was signed nowhere here, or that has none. */
@@ -104,6 +107,8 @@ export function evidenceRegisterLine(entry: EvidenceRegisterEntry): EvidenceRegi
     interval: intervalWords(duty.shortened ?? dutyInterval(duty)),
     reason: duty.intervalReason,
     last: performed,
+    performedOn: evidence?.performedOn ?? null,
+    result: evidence === null || lastResult === null ? null : evidenceResultLabel[lastResult],
     evidenceId: evidence?.id ?? null,
     evidenceNumber: evidence?.number ?? null,
     mark:
@@ -158,4 +163,48 @@ export function evidenceRegisterBlocks(
       .map(evidenceRegisterLine)
       .sort((one, other) => byNameIn(one.duty, other.duty)),
   }))
+}
+
+/** The columns of the register of evidence as a table, a row per duty. */
+export const evidenceRegisterColumns = [
+  'Anlage',
+  'Ort',
+  'Pflicht',
+  'Fundstelle',
+  'Dokument der Frist',
+  'Frist',
+  'Begründung',
+  'Letzter Nachweis',
+  'Ergebnis',
+  'Nummer des Nachweises',
+  'Kennzeichnung',
+  'Nächste Fälligkeit',
+] as const
+
+/**
+ * The register as the rows of a table: a row per duty, each with its asset
+ * and place in words, as the caller names them for whoever reads it.
+ */
+export function evidenceRegisterRows(
+  blocks: readonly EvidenceRegisterBlock[],
+  named: (block: EvidenceRegisterBlock) => { readonly asset: string; readonly place: string },
+): readonly TableRow[] {
+  return blocks.flatMap((block) => {
+    const { asset, place } = named(block)
+
+    return block.lines.map((line): TableRow => [
+      asset,
+      place,
+      line.duty,
+      line.reference,
+      line.document,
+      line.interval,
+      line.reason,
+      line.performedOn === null ? null : { day: line.performedOn },
+      line.result,
+      line.evidenceNumber,
+      line.mark,
+      line.nextDue === null ? null : { day: line.nextDue },
+    ])
+  })
 }

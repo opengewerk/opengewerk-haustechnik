@@ -7,7 +7,9 @@ import {
   type EvidenceRegisterDuty,
   evidenceRegisterBlocks,
   type EvidenceRegisterEntry,
+  evidenceRegisterColumns,
   evidenceRegisterLine,
+  evidenceRegisterRows,
   evidenceRegisterWords,
 } from './evidence-register.js'
 import type { BuildingId, PropertyId, RoomId } from './location.js'
@@ -77,6 +79,8 @@ describe('a line of the register of evidence (#338)', () => {
       interval: '12 Monate',
       reason: 'Großanlage mit Duschen in der Sporthalle.',
       last: '14.03.2026, Ohne Mangel',
+      performedOn: '2026-03-14',
+      result: 'Ohne Mangel',
       evidenceId: 'e-1',
       evidenceNumber: 'NW-2026-00088',
       mark: null,
@@ -146,5 +150,62 @@ describe('the blocks of the register of evidence (#338)', () => {
       ['AN-00057', ['d-temp', 'd-1']],
       ['r-1', ['d-room']],
     ])
+  })
+})
+
+describe('the register of evidence as a table (#338)', () => {
+  it('has a row per duty with its asset and place, a cell per column, and the days as days', () => {
+    const rows = evidenceRegisterRows(
+      evidenceRegisterBlocks([
+        entry(),
+        entry({
+          id: 'd-old' as DutyId,
+          title: 'Prüfung von Feuerlöschern',
+          asset: extinguisher,
+          intervalMonths: 24,
+          intervalReason: null,
+          lastEvidence: {
+            id: 'e-2' as EvidenceId,
+            number: 'NW-2025-00410',
+            performedOn: '2025-05-12',
+            origin: 'legacy',
+          },
+          appointment: null,
+        }),
+      ]),
+      (block) => ({ asset: block.asset?.name ?? '', place: 'Schulhaus' }),
+    )
+
+    expect(rows).toEqual([
+      [
+        'Feuerlöscher Flur EG',
+        'Schulhaus',
+        'Prüfung von Feuerlöschern',
+        'TrinkwV § 31',
+        null,
+        '24 Monate',
+        null,
+        { day: '2025-05-12' },
+        'Ohne Mangel',
+        'NW-2025-00410',
+        'Altbestand, ohne Unterschrift',
+        null,
+      ],
+      [
+        'Trinkwassererwärmer',
+        'Schulhaus',
+        'Untersuchung auf Legionellen',
+        'TrinkwV § 31',
+        null,
+        '12 Monate',
+        'Großanlage mit Duschen in der Sporthalle.',
+        { day: '2026-03-14' },
+        'Ohne Mangel',
+        'NW-2026-00088',
+        null,
+        { day: '2027-03-14' },
+      ],
+    ])
+    expect(rows.every((row) => row.length === evidenceRegisterColumns.length)).toBe(true)
   })
 })
