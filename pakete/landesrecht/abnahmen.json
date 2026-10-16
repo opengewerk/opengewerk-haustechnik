@@ -2,19 +2,39 @@
   "entries": [
     {
       "file": "pflichten/bw_assembly_inspection.v1.json",
-      "checkedOn": "2026-10-14"
+      "checkedOn": "2026-10-14",
+      "accepted": {
+        "by": "Pilotbetrieb",
+        "on": "2026-10-16",
+        "sha256": "acb012c756fab5888ea169341f3b9d144036891b43ccc7d7456793d0b98943b8"
+      }
     },
     {
       "file": "pflichten/bw_assembly_lightning_protection_inspection.v1.json",
-      "checkedOn": "2026-10-14"
+      "checkedOn": "2026-10-14",
+      "accepted": {
+        "by": "Pilotbetrieb",
+        "on": "2026-10-16",
+        "sha256": "f996346da226abb6deda9a6624333f1f1918967bc6ed26ac92e9afdc3d3594a0"
+      }
     },
     {
       "file": "pflichten/bw_garage_inspection.v1.json",
-      "checkedOn": "2026-10-14"
+      "checkedOn": "2026-10-14",
+      "accepted": {
+        "by": "Pilotbetrieb",
+        "on": "2026-10-16",
+        "sha256": "793d9770cf6e57a3b640994546834266f5175e311fc83f397e22fb63577d5d03"
+      }
     },
     {
       "file": "pflichten/bw_retail_inspection.v1.json",
-      "checkedOn": "2026-10-14"
+      "checkedOn": "2026-10-14",
+      "accepted": {
+        "by": "Pilotbetrieb",
+        "on": "2026-10-16",
+        "sha256": "2a61478cfb15056ec24c836fdaedf027dbb267f138941e3a2781482902916c6c"
+      }
     }
   ],
   "rules": [
@@ -22,37 +42,67 @@
       "key": "assembly_inspection_interval",
       "scope": "DE-BW",
       "validFrom": "2004-07-01",
-      "checkedOn": "2026-10-14"
+      "checkedOn": "2026-10-14",
+      "accepted": {
+        "by": "Pilotbetrieb",
+        "on": "2026-10-16",
+        "sha256": "d97de91b19fdabc46534e79cf3ea7c9c8ffb678cbf64aa5398bc3519116a58f1"
+      }
     },
     {
       "key": "assembly_report_retention",
       "scope": "DE-BW",
       "validFrom": "2004-07-01",
-      "checkedOn": "2026-10-14"
+      "checkedOn": "2026-10-14",
+      "accepted": {
+        "by": "Pilotbetrieb",
+        "on": "2026-10-16",
+        "sha256": "2aab347a2483acc800fe390053e2a3bad9b5c5bd817f7a3ec80a9fd17e43f433"
+      }
     },
     {
       "key": "retail_inspection_interval",
       "scope": "DE-BW",
       "validFrom": "1997-04-01",
-      "checkedOn": "2026-10-14"
+      "checkedOn": "2026-10-14",
+      "accepted": {
+        "by": "Pilotbetrieb",
+        "on": "2026-10-16",
+        "sha256": "08e3ec9275699a461f83af172288107150cad87effd3ea86e502b1fc99d6ed6b"
+      }
     },
     {
       "key": "retail_report_retention",
       "scope": "DE-BW",
       "validFrom": "1997-04-01",
-      "checkedOn": "2026-10-14"
+      "checkedOn": "2026-10-14",
+      "accepted": {
+        "by": "Pilotbetrieb",
+        "on": "2026-10-16",
+        "sha256": "030949782bc9c66bfe16db17143ffdc3f536f76de97a52befc76f126c3d8e9ae"
+      }
     },
     {
       "key": "garage_inspection_interval",
       "scope": "DE-BW",
       "validFrom": "2021-02-01",
-      "checkedOn": "2026-10-14"
+      "checkedOn": "2026-10-14",
+      "accepted": {
+        "by": "Pilotbetrieb",
+        "on": "2026-10-16",
+        "sha256": "c1d7ef3f15bd00ad38ad617dbfe0c2dcde575389c9d35b85f7a3d55c33517860"
+      }
     },
     {
       "key": "garage_report_retention",
       "scope": "DE-BW",
       "validFrom": "2021-02-01",
-      "checkedOn": "2026-10-14"
+      "checkedOn": "2026-10-14",
+      "accepted": {
+        "by": "Pilotbetrieb",
+        "on": "2026-10-16",
+        "sha256": "34fc72617f02b72263227c25cd78c872c737e3d403f5012a063e2b115d690ac7"
+      }
     }
   ]
 }

@@ -2,54 +2,114 @@
   "entries": [
     {
       "file": "anlagenarten/building_automation.v1.json",
-      "checkedOn": "2026-10-05"
+      "checkedOn": "2026-10-05",
+      "accepted": {
+        "by": "Pilotbetrieb",
+        "on": "2026-10-16",
+        "sha256": "dc7e9d4043ca28ad15faa6c059ba7aff6a76ebd69082b0f7226b7f33c72aabaf"
+      }
     },
     {
       "file": "anlagenarten/communication_and_security.v1.json",
-      "checkedOn": "2026-10-05"
+      "checkedOn": "2026-10-05",
+      "accepted": {
+        "by": "Pilotbetrieb",
+        "on": "2026-10-16",
+        "sha256": "15e07da8a33992c19a8a33324eb4d2df71c3917d29532691bc31cf450a7de2bb"
+      }
     },
     {
       "file": "anlagenarten/conveying_system.v1.json",
-      "checkedOn": "2026-10-05"
+      "checkedOn": "2026-10-05",
+      "accepted": {
+        "by": "Pilotbetrieb",
+        "on": "2026-10-16",
+        "sha256": "19494badf9d10499ead48569f96804a99412fd1a60c01849a5e9e67760ad9e18"
+      }
     },
     {
       "file": "anlagenarten/electrical_installation.v1.json",
-      "checkedOn": "2026-10-05"
+      "checkedOn": "2026-10-05",
+      "accepted": {
+        "by": "Pilotbetrieb",
+        "on": "2026-10-16",
+        "sha256": "450bcfc3d17586a713ff607ee0d9c21f86cf78171ff0f5617f3c85776d5a02be"
+      }
     },
     {
       "file": "anlagenarten/heat_supply.v1.json",
-      "checkedOn": "2026-10-05"
+      "checkedOn": "2026-10-05",
+      "accepted": {
+        "by": "Pilotbetrieb",
+        "on": "2026-10-16",
+        "sha256": "262c9df235fce64b1b28f9efcd2a0cda2fab2bdff9ba9ea7aa58d35c5bdaac81"
+      }
     },
     {
       "file": "anlagenarten/other_technical_installation.v1.json",
-      "checkedOn": "2026-10-05"
+      "checkedOn": "2026-10-05",
+      "accepted": {
+        "by": "Pilotbetrieb",
+        "on": "2026-10-16",
+        "sha256": "8a4ee686f90ef3ada633254cfe861b6935e9edc2cf33f96c5243161d6fe9bc66"
+      }
     },
     {
       "file": "anlagenarten/use_specific_installation.v1.json",
-      "checkedOn": "2026-10-05"
+      "checkedOn": "2026-10-05",
+      "accepted": {
+        "by": "Pilotbetrieb",
+        "on": "2026-10-16",
+        "sha256": "69f4175c40402292324a576ad1cb437854104cc39aff0f1300c0902a6cb5da38"
+      }
     },
     {
       "file": "anlagenarten/ventilation_and_air_conditioning.v1.json",
-      "checkedOn": "2026-10-05"
+      "checkedOn": "2026-10-05",
+      "accepted": {
+        "by": "Pilotbetrieb",
+        "on": "2026-10-16",
+        "sha256": "a300910f0ee900461688162e03b4152cf9b9984554614a65dddc13eeaf2a7e54"
+      }
     },
     {
       "file": "anlagenarten/water_wastewater_gas.v1.json",
-      "checkedOn": "2026-10-05"
+      "checkedOn": "2026-10-05",
+      "accepted": {
+        "by": "Pilotbetrieb",
+        "on": "2026-10-16",
+        "sha256": "d79c52b22b272bc2fe8ae777e09c47dc1ea10102c547c17dc04edf4efb89e578"
+      }
     }
   ],
   "rules": [],
   "classes": [
     {
       "key": "minor",
-      "checkedOn": "2026-10-05"
+      "checkedOn": "2026-10-05",
+      "accepted": {
+        "by": "Pilotbetrieb",
+        "on": "2026-10-16",
+        "sha256": "7dda57c400c971586fb461029eb7a8c69c4f0f91d6f347c8f513106c45d28b93"
+      }
     },
     {
       "key": "significant",
-      "checkedOn": "2026-10-05"
+      "checkedOn": "2026-10-05",
+      "accepted": {
+        "by": "Pilotbetrieb",
+        "on": "2026-10-16",
+        "sha256": "4b0906ffe742abe95924fdb0228d6c6ba9f5c46e3bbeecf6e3ec299e0944c1aa"
+      }
     },
     {
       "key": "dangerous",
-      "checkedOn": "2026-10-05"
+      "checkedOn": "2026-10-05",
+      "accepted": {
+        "by": "Pilotbetrieb",
+        "on": "2026-10-16",
+        "sha256": "bae32358b83de24eee914f34af042f2fb34a8ac6f0ab3416fca02da04e850811"
+      }
     }
   ]
 }

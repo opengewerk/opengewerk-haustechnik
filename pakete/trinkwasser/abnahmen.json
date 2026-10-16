@@ -2,71 +2,146 @@
   "entries": [
     {
       "file": "anlagenarten/backflow_preventer.v1.json",
-      "checkedOn": "2026-10-14"
+      "checkedOn": "2026-10-14",
+      "accepted": {
+        "by": "Pilotbetrieb",
+        "on": "2026-10-16",
+        "sha256": "5289df610da9c2ea2a96b639c28a3a1f9866c8230843150bb15c5077d3428115"
+      }
     },
     {
       "file": "anlagenarten/drinking_water_filter.v1.json",
-      "checkedOn": "2026-10-14"
+      "checkedOn": "2026-10-14",
+      "accepted": {
+        "by": "Pilotbetrieb",
+        "on": "2026-10-16",
+        "sha256": "d1a42cd45684b7124a8c898747a5db89b6bd9b2204d8524438e1a2691b8ad35f"
+      }
     },
     {
       "file": "anlagenarten/drinking_water_installation.v1.json",
-      "checkedOn": "2026-10-14"
+      "checkedOn": "2026-10-14",
+      "accepted": {
+        "by": "Pilotbetrieb",
+        "on": "2026-10-16",
+        "sha256": "ef974e9143f34e6434e4211381e3e46c3d20e0e129ee485ee3c8ae73a6956408"
+      }
     },
     {
       "file": "anlagenarten/water_heater.v1.json",
-      "checkedOn": "2026-10-14"
+      "checkedOn": "2026-10-14",
+      "accepted": {
+        "by": "Pilotbetrieb",
+        "on": "2026-10-16",
+        "sha256": "0cd44bbbc8d4a7d9b89aacee9775a11ef22fd9894faf4773967ff936ac5b0f9b"
+      }
     },
     {
       "file": "formulare/legionella_findings.v1.json",
-      "checkedOn": "2026-10-14"
+      "checkedOn": "2026-10-14",
+      "accepted": {
+        "by": "Pilotbetrieb",
+        "on": "2026-10-16",
+        "sha256": "22a65d0c381562542b5d9bae012fb99245f24b0db4565adfccff1ad951ee9164"
+      }
     },
     {
       "file": "pflichten/legionella_sampling_commercial.v1.json",
-      "checkedOn": "2026-10-14"
+      "checkedOn": "2026-10-14",
+      "accepted": {
+        "by": "Pilotbetrieb",
+        "on": "2026-10-16",
+        "sha256": "6c5280722cde2f7b0463473e09f59ef6de422cc96f647eb4a7a3ac537c15c8af"
+      }
     },
     {
       "file": "pflichten/legionella_sampling_public.v1.json",
-      "checkedOn": "2026-10-14"
+      "checkedOn": "2026-10-14",
+      "accepted": {
+        "by": "Pilotbetrieb",
+        "on": "2026-10-16",
+        "sha256": "5639ed3ce97bc810cc3b124aa0f65fec61f1ef8a99eb761caf0042718a6e6034"
+      }
     },
     {
       "file": "vorlagen/hot_water_temperatures.v1.json",
-      "checkedOn": "2026-10-14"
+      "checkedOn": "2026-10-14",
+      "accepted": {
+        "by": "Pilotbetrieb",
+        "on": "2026-10-16",
+        "sha256": "a89f2d0d09f597dcde0086644a3a715152aedf4b44f35c7d9d38c84b5e4e0110"
+      }
     }
   ],
   "rules": [
     {
       "key": "legionella_sampling_interval_public",
       "validFrom": "2023-06-24",
-      "checkedOn": "2026-10-14"
+      "checkedOn": "2026-10-14",
+      "accepted": {
+        "by": "Pilotbetrieb",
+        "on": "2026-10-16",
+        "sha256": "1a345d2c6c265ba3b77c1ed97fe7dc27d67daf75d11c35016d1a9e3940c0b846"
+      }
     },
     {
       "key": "legionella_sampling_interval_commercial",
       "validFrom": "2023-06-24",
-      "checkedOn": "2026-10-14"
+      "checkedOn": "2026-10-14",
+      "accepted": {
+        "by": "Pilotbetrieb",
+        "on": "2026-10-16",
+        "sha256": "1e5b15d6a869b7067c59f9c1f503b1c2d40ab8e733c3fc57801b805a451ba359"
+      }
     },
     {
       "key": "legionella_technical_action_value",
       "validFrom": "2023-06-24",
-      "checkedOn": "2026-10-14"
+      "checkedOn": "2026-10-14",
+      "accepted": {
+        "by": "Pilotbetrieb",
+        "on": "2026-10-16",
+        "sha256": "1e858ee4be166be9af16ea5eed7a30b3b5a2e7c66e0b375d00d3269b3313ed5c"
+      }
     },
     {
       "key": "legionella_record_retention",
       "validFrom": "2023-06-24",
-      "checkedOn": "2026-10-14"
+      "checkedOn": "2026-10-14",
+      "accepted": {
+        "by": "Pilotbetrieb",
+        "on": "2026-10-16",
+        "sha256": "b70fa3dc6195f0638320174036bc805639f91e1ea716f5568f95695b04a9eebf"
+      }
     }
   ],
   "classes": [
     {
       "key": "no_hygienic_impact",
-      "checkedOn": "2026-10-14"
+      "checkedOn": "2026-10-14",
+      "accepted": {
+        "by": "Pilotbetrieb",
+        "on": "2026-10-16",
+        "sha256": "bf12287f70021696e9ca2785dc5eb57369995832a82ec6ff94f613e5a1c65329"
+      }
     },
     {
       "key": "hygienic_concern",
-      "checkedOn": "2026-10-14"
+      "checkedOn": "2026-10-14",
+      "accepted": {
+        "by": "Pilotbetrieb",
+        "on": "2026-10-16",
+        "sha256": "96d1e4e397171b13841130048b364f280bd7a8cd63936582d29fa9db521c87f9"
+      }
     },
     {
       "key": "health_hazard",
-      "checkedOn": "2026-10-14"
+      "checkedOn": "2026-10-14",
+      "accepted": {
+        "by": "Pilotbetrieb",
+        "on": "2026-10-16",
+        "sha256": "03abb2a62af6e3a4e4563e21ed803a1b49e1d3012ad90dfdf168fdbfdd48e7d6"
+      }
     }
   ]
 }

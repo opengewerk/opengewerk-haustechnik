@@ -6,8 +6,9 @@ Fehlerstrom-Schutzeinrichtungen, Sicherheitsbeleuchtung, Sicherheitsstromversorg
 aus den Unfallverhütungsvorschriften; Verweise auf private Normen kommen als neue Fassung, sobald sie
 am Text der Norm geprüft sind.
 
-Fachkundig abgenommen wird das Paket durch den Maintainer (Abschnitt 15). Bis dahin ist jeder Eintrag
-gekennzeichnet, und die Oberfläche sagt es.
+Fachkundig abgenommen hat das Paket der Maintainer am 16.10.2026 (Abschnitt 15), jeder Eintrag
+mit der Prüfsumme dessen, was abgenommen wurde. Wird ein Eintrag geändert, fällt seine Abnahme
+weg, und die Oberfläche kennzeichnet ihn wieder, bis er erneut abgenommen ist.
 
 ## Anlagenarten
 
