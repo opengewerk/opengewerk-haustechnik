@@ -121,6 +121,13 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
 
 ### Geändert
 
+- Das Büro lädt seine Bildschirme je Adresse nach (#374), statt alle beim ersten Aufruf: der Einstieg
+  sinkt von 449,0 auf 291,8 kB gzip, bei einem Budget von 450 kB, das mit jedem Bildschirm knapper
+  wurde. Statisch bleiben nur die Übersicht, mit der das Büro beginnt, und was die Hüllen ohnehin
+  laden. Der Einstieg vor Ort steigt dabei von 267,3 auf 276,2 kB, weil sich die gemeinsamen Teile in
+  kleinere Stücke schneiden; er hält sein Budget von 300 kB. Der Schritt „Budget“ prüft zusätzlich,
+  dass der Service Worker jedes Skript des Baus hält: so öffnet sich ein Bildschirm auch dann noch,
+  wenn schon die nächste Fassung auf dem Server liegt.
 - Ein Gerät, dessen Person das Recht „Fremdfirmen ansehen“ nicht hat, hält von den Fremdfirmen nur
   noch, welche Firma es ist, und ihren Namen (#377). Bisher kamen Anschrift, Telefon, E-Mail-Adresse,
   Kostengruppen und Notiz mit, obwohl die Person sie im Büro nicht sieht. Der Name bleibt, weil ein
