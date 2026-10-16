@@ -1,5 +1,7 @@
 import type { DeadlineKind } from '@opengewerk/platform-domain'
 
+import type { DocumentKind } from './document.js'
+
 /**
  * The deadlines of this application (section 2.4 of the concept), kept by
  * the deadline engine of the foundation (ADR 0010 in the repository
@@ -8,7 +10,14 @@ import type { DeadlineKind } from '@opengewerk/platform-domain'
  */
 
 /** The sources the deadlines of this application follow, by the name a kind gives them. */
-export const deadlineSources = ['duty', 'defect', 'round_plan', 'meter'] as const
+export const deadlineSources = [
+  'duty',
+  'defect',
+  'round_plan',
+  'meter',
+  'document',
+  'risk_assessment',
+] as const
 
 export type DeadlineSource = (typeof deadlineSources)[number]
 
@@ -125,6 +134,44 @@ export const meterDue: ApplicationDeadlineKind = {
 }
 
 /**
+ * The day a document expires (section 4.10, #327, the source "Dokumente mit
+ * Ablaufdatum" of section 2.4): the source names the day the newest version
+ * of a document carries, while the document is there; a new version brings
+ * its own day, or none, and the deadline moves with it or drops. Whoever set
+ * the day answers for it until somebody else is named, and is reminded.
+ */
+export const documentExpires: ApplicationDeadlineKind = {
+  key: 'document.expires',
+  title: 'Ablauf eines Dokuments',
+  about:
+    'Folgt aus dem Datum „Gültig bis“ der neuesten Fassung eines Dokuments: mit einer neuen Fassung rückt sie zu deren Datum, ohne Datum oder mit dem Dokument fällt sie weg.',
+  source: 'document',
+  intervalDays: null,
+  intervalMonths: null,
+  leadDays: 60,
+  responsible: 'source',
+  actions: ['reminder'],
+}
+
+/**
+ * The review of a risk assessment (sections 4.3 and 4.10, #327): the same as
+ * the expiry of a document, by the day its newest version names for the
+ * review. A kind of its own, so that the operator sets its reminder apart.
+ */
+export const riskAssessmentReview: ApplicationDeadlineKind = {
+  key: 'risk_assessment.review',
+  title: 'Wiedervorlage einer Gefährdungsbeurteilung',
+  about:
+    'Folgt aus der Wiedervorlage der neuesten Fassung einer Gefährdungsbeurteilung: mit einer neuen Fassung rückt sie zu deren Datum, ohne Datum oder mit dem Dokument fällt sie weg.',
+  source: 'risk_assessment',
+  intervalDays: null,
+  intervalMonths: null,
+  leadDays: 30,
+  responsible: 'source',
+  actions: ['reminder'],
+}
+
+/**
  * What the task of a deadline says, by the source of its kind (#242). Only a
  * source that stands here can name the action: the engine refuses a kind
  * that names the task without a text for it.
@@ -139,6 +186,8 @@ export const deadlineKinds: readonly ApplicationDeadlineKind[] = [
   defectDue,
   roundDue,
   meterDue,
+  documentExpires,
+  riskAssessmentReview,
 ]
 
 /**
@@ -148,7 +197,11 @@ export const deadlineKinds: readonly ApplicationDeadlineKind[] = [
  * the property itself.
  */
 export type DeadlineFacts =
-  DutyDeadlineFacts | DefectDeadlineFacts | RoundDeadlineFacts | MeterDeadlineFacts
+  | DutyDeadlineFacts
+  | DefectDeadlineFacts
+  | RoundDeadlineFacts
+  | MeterDeadlineFacts
+  | DocumentDeadlineFacts
 
 /** A deadline of a duty: the duty by its title. */
 export interface DutyDeadlineFacts extends DeadlinePlaceFacts {
@@ -175,6 +228,15 @@ export interface RoundDeadlineFacts extends DeadlinePlaceFacts {
 /** A deadline of the meters of a property: the property, which `propertyId` names. */
 export interface MeterDeadlineFacts extends DeadlinePlaceFacts {
   readonly follows: 'meter'
+}
+
+/** A deadline of a document (#327): the document by its name and kind. */
+export interface DocumentDeadlineFacts extends DeadlinePlaceFacts {
+  readonly follows: 'document'
+  readonly attachmentId: string
+  readonly title: string
+  /** The kind of the document, apart from the kind of the deadline. */
+  readonly documentKind: DocumentKind | null
 }
 
 /** What the duty, the defect or the plan of a deadline hangs on. */

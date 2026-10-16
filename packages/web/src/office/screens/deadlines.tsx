@@ -22,6 +22,7 @@ import { Link } from '@tanstack/react-router'
 
 import { useAreas } from '../../session/areas.js'
 import { defectPlaces } from '../defect-addresses.js'
+import { documentPlaces } from '../document-addresses.js'
 import { dutyPlaces } from '../duty-addresses.js'
 import { meterListPlace, meterListWords } from '../meter-addresses.js'
 import { factLink } from '../links.js'
@@ -35,12 +36,13 @@ export type DutyDeadlineView = DeadlineView & DeadlineFacts
 /** What the list and the settings say in the words of this application. */
 export const deadlineWords = {
   meters: meterDeadlineSubject,
-  sub: 'Was fällig wird, nach Fälligkeit. Eine Frist folgt ihrer Pflicht, ihrem Mangel, dem Plan eines Rundgangs oder den Zählern einer Liegenschaft: mit dem nächsten Nachweis rückt sie weiter, mit der Anlage ruht sie, mit der Beseitigung fällt sie weg, mit dem nächsten Rundgang rückt sie zum nächsten Durchgang, mit den Ständen zum nächsten Stichtag.',
+  sub: 'Was fällig wird, nach Fälligkeit. Eine Frist folgt ihrer Pflicht, ihrem Mangel, dem Plan eines Rundgangs, den Zählern einer Liegenschaft oder dem Datum eines Dokuments: mit dem nächsten Nachweis rückt sie weiter, mit der Anlage ruht sie, mit der Beseitigung fällt sie weg, mit dem nächsten Rundgang rückt sie zum nächsten Durchgang, mit den Ständen zum nächsten Stichtag, mit der neuen Fassung zu deren Datum.',
   searchPlaceholder: 'Pflicht, Mangel, Anlage, Liegenschaft …',
   emptyOpen:
-    'Gerade ist keine Frist offen. Eine Frist entsteht mit dem ersten Termin einer bestätigten Pflicht, mit der Frist eines Mangels, mit dem Plan eines Rundgangs und mit den Zählern einer Liegenschaft.',
+    'Gerade ist keine Frist offen. Eine Frist entsteht mit dem ersten Termin einer bestätigten Pflicht, mit der Frist eines Mangels, mit dem Plan eines Rundgangs, mit den Zählern einer Liegenschaft und mit dem Datum eines Dokuments.',
   responsibleOfTheDuty: 'Wen die Pflicht nennt',
   responsibleOfThePlan: 'Wen der Plan nennt',
+  responsibleOfTheDocument: 'Wer das Datum gesetzt hat',
   anchor: 'dem letzten Nachweis',
   defectAnchor: 'dem Tag der Feststellung',
   settingsNote:
@@ -64,9 +66,12 @@ function responsibleLabel(kind: DeadlineKindView): string {
     return 'Die Leitung'
   }
 
+  // The day of a document is answered for by whoever set it (#327).
   return kind.source === 'round_plan'
     ? deadlineWords.responsibleOfThePlan
-    : deadlineWords.responsibleOfTheDuty
+    : kind.source === 'document' || kind.source === 'risk_assessment'
+      ? deadlineWords.responsibleOfTheDocument
+      : deadlineWords.responsibleOfTheDuty
 }
 
 /** What a deadline is called in the list, as its table names it (#236), and where its name leads. */
@@ -86,6 +91,9 @@ function sourceOf(deadline: DutyDeadlineView): { readonly href: string; readonly
         href: `${meterListPlace.to}?${meterListWords.property}=${deadline.propertyId}&${meterListWords.state}=missing`,
         name,
       }
+    case 'document':
+      // The document whose newest version names the day (#327).
+      return { href: documentPlaces.document(deadline.attachmentId), name }
   }
 }
 

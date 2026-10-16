@@ -515,6 +515,24 @@ describe('the settings of a kind', () => {
         intervalMonths: null,
         leadDays: 3,
       }),
+      // The day of a document and the review of a risk assessment (#327),
+      // whose day whoever set it answers for.
+      expect.objectContaining({
+        key: 'document.expires',
+        title: 'Ablauf eines Dokuments',
+        source: 'document',
+        actions: ['reminder'],
+        responsible: 'source',
+        leadDays: 60,
+      }),
+      expect.objectContaining({
+        key: 'risk_assessment.review',
+        title: 'Wiedervorlage einer Gefährdungsbeurteilung',
+        source: 'risk_assessment',
+        actions: ['reminder'],
+        responsible: 'source',
+        leadDays: 30,
+      }),
     ])
 
     await http()

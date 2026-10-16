@@ -3,21 +3,23 @@ import {
   attachmentRules,
   attachmentTitleOf,
   type AttachmentVersion,
+  type IsoDate,
 } from '@opengewerk/platform-domain'
 
 import type { ActivityId } from './activity.js'
 import type { AreaId } from './area.js'
 import type { AssetId } from './asset.js'
 import type { DefectId } from './defect.js'
-import { oneOf, type Problems, required } from './fields.js'
+import { calendarDay, oneOf, type Problems, required } from './fields.js'
 import type { BuildingId, PropertyId, RoomId } from './location.js'
 
 /**
  * What a document is, as section 4.10 of the concept lists the kinds: the
  * manual of an asset, the certificate of an inspection, a circuit diagram,
  * what a contractor hands over when a building is finished or changed, a
- * permit and a concept. A document may have none of them: a photo of a type
- * plate is filed like any other document and is none of the six.
+ * permit, a concept, and since #327 a risk assessment (4.3). A document may
+ * have none of them: a photo of a type plate is filed like any other document
+ * and is none of the seven.
  */
 export const documentKinds = [
   'operating_manual',
@@ -26,6 +28,9 @@ export const documentKinds = [
   'as_built_documentation',
   'permit',
   'concept',
+  // A risk assessment (4.3, #327): a document like any other, whose date is
+  // its review.
+  'risk_assessment',
 ] as const
 
 export type DocumentKind = (typeof documentKinds)[number]
@@ -38,6 +43,7 @@ export const documentKindLabel: Readonly<Record<DocumentKind, string>> = {
   as_built_documentation: 'Revisionsunterlage',
   permit: 'Genehmigung',
   concept: 'Konzept',
+  risk_assessment: 'Gefährdungsbeurteilung',
 }
 
 /**
@@ -76,8 +82,35 @@ export interface Document extends AttachmentRecord {
  * One version of a document, as the foundation keeps it. It carries no place
  * of its own: it is a part of its document and is seen by whoever sees that,
  * which the database asks of the document (ADR 0003, addendum of #97).
+ *
+ * Its validity is its own (4.10, #327): the day it expires, or for a risk
+ * assessment the day it is to be reviewed. A new version brings its own day,
+ * or none; the newest one's is the deadline of the document.
  */
-export type DocumentVersion = AttachmentVersion
+export interface DocumentVersion extends AttachmentVersion {
+  readonly validUntil: IsoDate | null
+}
+
+/** What the day of a version is called: the review of a risk assessment, the expiry of any other. */
+export function documentDateLabel(kind: DocumentKind | null): string {
+  return kind === 'risk_assessment' ? 'Wiedervorlage am' : 'Gültig bis'
+}
+
+/** The day of a version as a list says it beside the kind: "gültig bis 31.03.2027", "Wiedervorlage 29.10.2026". */
+export function documentDateWords(kind: DocumentKind | null, day: string): string {
+  return kind === 'risk_assessment' ? `Wiedervorlage ${day}` : `gültig bis ${day}`
+}
+
+/** What is wrong with the day of a version, or nothing: a day of the calendar, or none. */
+export function documentVersionProblems(
+  version: Readonly<Record<string, unknown>>,
+): Readonly<Problems> {
+  const day = version['validUntil']
+
+  return day === undefined || day === null || calendarDay(day)
+    ? {}
+    : { validUntil: 'Das Datum ist ein Tag, geschrieben 2027-03-31.' }
+}
 
 /** The bound of the name of a document, the same in the form, the sync and the database. */
 export const documentLimits = { title: 120 } as const

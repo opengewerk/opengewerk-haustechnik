@@ -3,6 +3,7 @@ import {
   type AttachmentVersionId,
   type Duty,
   type DutyIntervalDocument,
+  type IsoDate,
   intervalDocumentReading,
 } from '@opengewerk/haustechnik-domain'
 import type { TenantTransaction } from '@opengewerk/platform-server'
@@ -43,7 +44,12 @@ export async function intervalDocumentsOf(
   const ids = [...new Set(pointing.map((duty) => duty.intervalDocumentId as AttachmentId))]
   const whole = ids.length >= readWholeFrom
   const documents = await tx
-    .select({ id: attachments.id, title: attachments.title, deletedAt: attachments.deletedAt })
+    .select({
+      id: attachments.id,
+      title: attachments.title,
+      kind: attachments.kind,
+      deletedAt: attachments.deletedAt,
+    })
     .from(attachments)
     .where(whole ? undefined : inArray(attachments.id, ids))
   const versions = await tx
@@ -52,6 +58,7 @@ export async function intervalDocumentsOf(
       attachmentId: attachmentVersions.attachmentId,
       fileName: attachmentVersions.fileName,
       createdAt: attachmentVersions.createdAt,
+      validUntil: attachmentVersions.validUntil,
     })
     .from(attachmentVersions)
     .where(whole ? undefined : inArray(attachmentVersions.attachmentId, ids))
@@ -59,13 +66,18 @@ export async function intervalDocumentsOf(
   const documentOf = new Map(documents.map((document) => [document.id as string, document]))
   const versionsOf = new Map<
     string,
-    { id: AttachmentVersionId; filedOn: string; fileName: string }[]
+    { id: AttachmentVersionId; filedOn: string; fileName: string; validUntil: IsoDate | null }[]
   >()
 
   for (const version of versions) {
     versionsOf.set(version.attachmentId, [
       ...(versionsOf.get(version.attachmentId) ?? []),
-      { id: version.id, filedOn: dayInGermany(version.createdAt), fileName: version.fileName },
+      {
+        id: version.id,
+        filedOn: dayInGermany(version.createdAt),
+        fileName: version.fileName,
+        validUntil: version.validUntil,
+      },
     ])
   }
 
@@ -75,7 +87,12 @@ export async function intervalDocumentsOf(
       document === undefined
         ? null
         : intervalDocumentReading(
-            { id: document.id, title: document.title, removed: document.deletedAt !== null },
+            {
+              id: document.id,
+              title: document.title,
+              kind: document.kind,
+              removed: document.deletedAt !== null,
+            },
             versionsOf.get(document.id) ?? [],
             duty.intervalDocumentVersionId as AttachmentVersionId,
           )

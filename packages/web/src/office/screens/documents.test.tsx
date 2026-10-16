@@ -367,8 +367,8 @@ describe('the versions of the chosen document', () => {
       'Betriebsanleitung BA 630',
     )
     expect(rowsOf('Fassungen von Betriebsanleitung BA 630')).toEqual([
-      ['2', 'betriebsanleitung-ba630.pdf3,4 MB, 12.09.2026'],
-      ['1', 'betriebsanleitung-ba630.pdf2,9 MB, 14.03.2026'],
+      ['2', 'betriebsanleitung-ba630.pdf3,4 MB, 12.09.2026', 'kein Datum'],
+      ['1', 'betriebsanleitung-ba630.pdf2,9 MB, 14.03.2026', 'kein Datum'],
     ])
     expect(card().textContent).toContain('Betriebsanleitung · AN-00012 Aufzug Schulhaus')
 
@@ -379,7 +379,7 @@ describe('the versions of the chosen document', () => {
       )
     })
     expect(rowsOf('Fassungen von Schaltplan Heizraum')).toEqual([
-      ['1', 'schaltplan-heizraum.pdf820 kB, 02.09.2026'],
+      ['1', 'schaltplan-heizraum.pdf820 kB, 02.09.2026', 'kein Datum'],
     ])
   })
 
@@ -424,12 +424,13 @@ describe('the versions of the chosen document', () => {
     expect(page).toContain('12.09.2026')
     expect(page).not.toContain('u-kraemer')
     expect(page).not.toMatch(/\d{1,2}:\d{2}/)
-    // The versions have a number and a file with its day, and no column for a person.
+    // The versions have a number, a file with its day and the day they are
+    // valid until (#327), and no column for a person.
     expect(
       within(screen.getByRole('table', { name: 'Fassungen von Betriebsanleitung BA 630' }))
         .getAllByRole('columnheader')
         .map((column) => column.textContent),
-    ).toEqual(['Fassung', 'Datei'])
+    ).toEqual(['Fassung', 'Datei', 'Gültig bis'])
   })
 
   it('say so of a document that is not there for this person', async () => {
@@ -693,7 +694,7 @@ describe('filing a document from the list', () => {
 })
 
 describe('what is done to the chosen document', () => {
-  it('lays a new version over it, which names the document and its own file', async () => {
+  it('lays a new version over it, which names the document, its own file and its own day', async () => {
     const { client } = await mount('technician', '/dokumente/d-plan')
 
     fireEvent.change(screen.getByLabelText('Neue Fassung wählen'), {
@@ -703,6 +704,12 @@ describe('what is done to the chosen document', () => {
         ],
       },
     })
+
+    // The new version brings its own day (#327).
+    const dialog = within(await screen.findByRole('dialog', { name: 'Neue Fassung' }))
+
+    fireEvent.change(dialog.getByLabelText('Gültig bis'), { target: { value: '2028-03-31' } })
+    fireEvent.click(dialog.getByRole('button', { name: 'Hochladen' }))
 
     await waitFor(() => {
       expect(rowsOf('Fassungen von Schaltplan Heizraum').map((row) => row[0])).toEqual(['2', '1'])
@@ -715,13 +722,16 @@ describe('what is done to the chosen document', () => {
         operation: 'create',
         attachmentId: plan.id,
         fileName: 'schaltplan-2026.pdf',
+        validUntil: '2028-03-31',
       }),
     ])
     // The version before it is still there, and still opens by its own id.
     expect(rowsOf('Fassungen von Schaltplan Heizraum')[1]).toEqual([
       '1',
       'schaltplan-heizraum.pdf820 kB, 02.09.2026',
+      'kein Datum',
     ])
+    expect(rowsOf('Fassungen von Schaltplan Heizraum')[0]?.[2]).toBe('31.03.2028')
   })
 
   it('corrects its name and its kind, and sends nothing about where it hangs', async () => {

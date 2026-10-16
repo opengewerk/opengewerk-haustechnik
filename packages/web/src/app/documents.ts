@@ -5,12 +5,15 @@ import {
   documentHomeLabel,
   documentHomeOf,
   documentHomeWords,
+  documentDateWords,
   type DocumentKind,
   documentKindOf,
   documentKindWords,
   documentProblems,
   documentTargetProblem,
   documentTitleOf,
+  documentVersionProblems,
+  type IsoDate,
   operatorDocuments,
   type RecordState,
   untitledDocument,
@@ -56,6 +59,15 @@ export interface DocumentFiling {
   readonly keepOriginal?: boolean
   /** How a picture is made smaller, where a test has no canvas that draws. */
   readonly shrink?: ShrinkPicture
+  /** The day the version expires or is to be reviewed (#327); none where nothing is said. */
+  readonly validUntil?: IsoDate | null
+}
+
+/** The day of a version as it travels: only where one is said. */
+function dayOf(filing: Pick<DocumentFiling, 'validUntil'>): { readonly validUntil?: IsoDate } {
+  return filing.validUntil === undefined || filing.validUntil === null
+    ? {}
+    : { validUntil: filing.validUntil }
 }
 
 /** What the foundation is told about a file of this application. */
@@ -101,7 +113,8 @@ export async function fileDocumentAs(
   const problem =
     operatorDocuments.homeProblem(place) ??
     documentTargetProblem({ ...place }) ??
-    Object.values(documentProblems({ title, kind }))[0]
+    Object.values(documentProblems({ title, kind }))[0] ??
+    Object.values(documentVersionProblems(dayOf(filing)))[0]
 
   if (problem !== undefined) {
     return { problem }
@@ -126,6 +139,7 @@ export async function fileDocumentAs(
   const version = await client.create(attachmentVersionEntity, {
     attachmentId: made.id,
     ...prepared,
+    ...dayOf(filing),
   })
 
   return version.outcome === 'refused' ? { problem: refusalFor(version) } : { id: made.id }
@@ -136,9 +150,14 @@ export function fileVersion(
   client: SyncClient,
   documentId: string,
   file: File,
-  filing: Pick<DocumentFiling, 'keepOriginal' | 'shrink'> = {},
+  filing: Pick<DocumentFiling, 'keepOriginal' | 'shrink' | 'validUntil'> = {},
 ): Promise<string | null> {
-  return addVersion(client, documentId, file, optionsOf(filing))
+  const problem = Object.values(documentVersionProblems(dayOf(filing)))[0]
+
+  // A new version brings its own day, or none (#327).
+  return problem === undefined
+    ? addVersion(client, documentId, file, optionsOf(filing), { ...dayOf(filing) })
+    : Promise.resolve(problem)
 }
 
 /** What a document is called where it has no kind: a picture is a photo. */
@@ -186,12 +205,18 @@ export function versionWords(client: SyncClient, version: RecordState, versions:
  * without one, which is what a photo of a type plate is.
  */
 export function kindWordsOf(document: RecordState, newest: RecordState | undefined): string {
-  return documentKindOf(
+  const kind = documentKindOf(
     maybeText(document, 'kind'),
     newest === undefined ? null : text(newest, 'mediaType'),
     // Taken over from a predecessor application, which a list says behind the kind (#130).
     document['legacy'] === true,
   )
+  const day = newest === undefined ? null : maybeText(newest, 'validUntil')
+
+  // The day of the newest version behind it (#327): "Prüfbescheinigung, gültig bis 31.03.2027".
+  return day === null
+    ? kind
+    : `${kind}, ${documentDateWords(maybeText(document, 'kind') as DocumentKind | null, date(day))}`
 }
 
 // What a kind of place a document can hang on is called: said in `domain` (#236).

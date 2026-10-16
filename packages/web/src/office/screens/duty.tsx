@@ -3,8 +3,9 @@ import {
   activityKindOfTask,
   activityStatusLabel,
   countingLabel,
-  dutyBasisLabel,
+  documentDateWords,
   type DueActivityKind,
+  dutyBasisLabel,
   type DutyColleague,
   type DutyDetails,
   type DutyEvidenceEntry,
@@ -98,7 +99,8 @@ export function dutyEvidenceQuery(id: string) {
 /**
  * The document that bears the interval of a duty, as the card "Frist" names
  * it (#74): a link to it and the version the duty points at, by the day it was
- * filed. One taken out of the records is named and leads nowhere.
+ * filed, with the day it is valid until or to be reviewed (#327). One taken
+ * out of the records is named and leads nowhere.
  */
 function IntervalDocument({ duty }: { readonly duty: DutyDetails }) {
   const document = duty.intervalDocument
@@ -119,7 +121,15 @@ function IntervalDocument({ duty }: { readonly duty: DutyDetails }) {
       <div className="text-[12px] text-ink-faint">
         {document.removed
           ? dutyPageWords.documentRemoved
-          : `Fassung ${String(document.version.number)} vom ${date(document.version.filedOn)}`}
+          : [
+              `Fassung ${String(document.version.number)} vom ${date(document.version.filedOn)}`,
+              // Its validity, the review of a risk assessment above all (#327).
+              document.version.validUntil === null
+                ? null
+                : documentDateWords(document.kind, date(document.version.validUntil)),
+            ]
+              .filter(Boolean)
+              .join(', ')}
       </div>
     </div>
   )

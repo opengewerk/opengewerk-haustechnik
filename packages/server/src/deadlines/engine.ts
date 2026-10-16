@@ -25,6 +25,7 @@ import { settleDeadlineTasks, taskFromDeadline } from '../tasks/from-deadline.js
 import {
   type DeadlineValues,
   defectSource,
+  documentSource,
   dutySource,
   meterSource,
   roundPlanSource,
@@ -79,6 +80,10 @@ function bound(
         catalogue: job.catalogue,
       }),
       meter: meterSource({ today: () => dayInGermany(job.now?.() ?? new Date()) }),
+      // The day of the newest version of a document, its expiry or for a
+      // risk assessment its review (#327).
+      document: documentSource(false),
+      risk_assessment: documentSource(true),
     },
     actions: { activity: activityFromDeadline(job.catalogue), task: taskFromDeadline() },
     // A round nobody has begun walks the newest version of its template, and

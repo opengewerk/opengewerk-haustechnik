@@ -797,7 +797,7 @@ describe('a preview started as the Leitung', () => {
       },
       {
         title: 'Gefährdungsbeurteilung Aufzug Schulhaus',
-        kind: 'concept',
+        kind: 'risk_assessment',
         hangsOn: 'assetId',
         versions: 2,
       },

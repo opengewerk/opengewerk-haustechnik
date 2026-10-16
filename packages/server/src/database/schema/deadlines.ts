@@ -3,6 +3,7 @@ import { sql } from 'drizzle-orm'
 import { check, foreignKey, index } from 'drizzle-orm/pg-core'
 
 import { withinAreas } from './areas.js'
+import { attachments } from './attachments.js'
 import { defects } from './defects.js'
 import { duties } from './duties.js'
 import { properties } from './locations.js'
@@ -26,6 +27,8 @@ const deadlineColumns = {
   roundPlanId: reference<'round_plan'>('round_plan_id'),
   /** The property whose meters are to be read, the source `meter` (#120). */
   meterPropertyId: reference<'property'>('meter_property_id'),
+  /** The document whose newest version names a day, the sources `document` and `risk_assessment` (#327). */
+  attachmentId: reference<'attachment'>('attachment_id'),
   /** The task the engine made of this deadline, the action `task` (#242). */
   taskId: reference<'task'>('task_id'),
   propertyId: reference<'property'>('property_id').notNull(),
@@ -74,6 +77,16 @@ export const { deadlineStatus, deadlines } = deadlinesSchema({
       name: 'deadlines_of_meters_follow_their_property',
     }).onUpdate('cascade'),
     foreignKey({
+      columns: [table.tenantId, table.attachmentId, table.areaId],
+      foreignColumns: [attachments.tenantId, attachments.id, attachments.areaId],
+      name: 'deadlines_follow_their_document',
+    }).onUpdate('cascade'),
+    foreignKey({
+      columns: [table.tenantId, table.attachmentId, table.propertyId],
+      foreignColumns: [attachments.tenantId, attachments.id, attachments.propertyId],
+      name: 'deadlines_of_a_document_of_their_property',
+    }).onUpdate('cascade'),
+    foreignKey({
       columns: [table.tenantId, table.dutyId, table.propertyId],
       foreignColumns: [duties.tenantId, duties.id, duties.propertyId],
       name: 'deadlines_of_a_duty_of_their_property',
@@ -98,16 +111,17 @@ export const { deadlineStatus, deadlines } = deadlinesSchema({
     index('deadlines_duty_idx').on(table.tenantId, table.dutyId),
     index('deadlines_defect_idx').on(table.tenantId, table.defectId),
     index('deadlines_round_plan_idx').on(table.tenantId, table.roundPlanId),
+    index('deadlines_attachment_idx').on(table.tenantId, table.attachmentId),
     // The meters of a property are read for the property they hang on.
     check(
       'deadlines_meters_of_their_property',
       sql`${table.meterPropertyId} is null or ${table.meterPropertyId} = ${table.propertyId}`,
     ),
-    // Each follows one source: a duty, a defect, the plan of a round or the
-    // meters of a property.
+    // Each follows one source: a duty, a defect, the plan of a round, the
+    // meters of a property or a document.
     check(
       'deadlines_follow_one_source',
-      sql`num_nonnulls(${table.dutyId}, ${table.defectId}, ${table.roundPlanId}, ${table.meterPropertyId}) = 1`,
+      sql`num_nonnulls(${table.dutyId}, ${table.defectId}, ${table.roundPlanId}, ${table.meterPropertyId}, ${table.attachmentId}) = 1`,
     ),
   ],
 })

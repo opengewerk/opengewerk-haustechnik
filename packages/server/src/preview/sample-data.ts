@@ -684,7 +684,7 @@ export const sampleProperties: readonly SampleProperty[] = [
               { title: 'Typenschild', versions: [{ fileName: 'typenschild.png' }] },
               {
                 title: 'Gefährdungsbeurteilung Aufzug Schulhaus',
-                kind: 'concept',
+                kind: 'risk_assessment',
                 versions: [
                   {
                     fileName: 'gefaehrdungsbeurteilung-aufzug.pdf',
@@ -695,6 +695,8 @@ export const sampleProperties: readonly SampleProperty[] = [
                   {
                     fileName: 'gefaehrdungsbeurteilung-aufzug.pdf',
                     words: 'Gefährdungsbeurteilung Aufzug Schulhaus, Stand 2026',
+                    // Its review, which stands in "Fristen" (#327).
+                    validUntil: daysAhead(40),
                   },
                 ],
               },

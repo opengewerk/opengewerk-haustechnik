@@ -503,6 +503,8 @@ export const offlineEdits: Readonly<Record<string, OfflineEdits>> = {
       mediaType: true,
       sizeBytes: true,
       previewSha256: true,
+      // The day it expires or is to be reviewed (#327).
+      validUntil: true,
     },
   },
 }
@@ -699,6 +701,7 @@ export const syncFieldNames: Readonly<Record<string, string>> = {
   text: 'Text',
   writtenAt: 'Geschrieben am',
   takenAt: 'Entnommen am',
+  validUntil: 'Gültig bis',
   takenBy: 'Entnommen von',
   materialId: 'Material am Auftrag',
   storeArticleId: 'Artikel eines Lagers',

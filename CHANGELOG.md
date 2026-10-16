@@ -49,6 +49,15 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   Artikel ohne EAN druckt das Büro Etiketten der Fächer. So ersetzt die Anwendung die Erfassung
   des Verbrauchs in der Vorgängeranwendung beim Pilotbetrieb. Das Submodul liest dafür auch EAN-8
   (opengewerk/opengewerk#646). Migration `0055_work_order_materials`.
+- Gültigkeit von Dokumenten (#327): eine Fassung trägt auf Wunsch ein Datum, bis zu dem sie gilt,
+  bei einer Gefährdungsbeurteilung den Tag ihrer Wiedervorlage, und das Datum der neuesten Fassung
+  wird eine Frist unter „Fristen“. Eine neue Fassung bringt ihr eigenes Datum, ohne Datum oder mit
+  dem Dokument fällt die Frist weg. Verantwortlich ist, wer das Datum gesetzt hat; wie vorher
+  erinnert wird, steht je Fristart unter den Einstellungen. Zertifikate und Gefährdungsbeurteilungen
+  liefen bisher nur über die Erinnerung der Leute; die Fremdfirmen und Verträge (#328, #329) bauen
+  darauf auf. Die Gefährdungsbeurteilung ist eine eigene Art eines Dokuments (Planungskonzept
+  v0.42), und eine Pflicht, die auf eine zeigt, nennt ihre Wiedervorlage. Migration
+  `0056_document_validity`.
 
 ### Geändert
 

@@ -2,6 +2,7 @@ import {
   addDays,
   addMonths,
   type AreaId,
+  type AttachmentId,
   type Asset,
   awaitsRemedy,
   type Catalogue,
@@ -38,6 +39,8 @@ import { heldOf, keyDateDue, operatorKeyDay } from '../database/meter-standing.j
 import {
   activities,
   assets,
+  attachments,
+  attachmentVersions,
   buildingClosures,
   buildings,
   defects,
@@ -50,13 +53,15 @@ import {
 
 /**
  * What a deadline of this application hangs on, written into its own
- * columns: a duty, a defect or the plan of a round.
+ * columns: a duty, a defect, the plan of a round, the meters of a property or
+ * a document.
  */
 export interface DeadlineValues {
   readonly dutyId: DutyId | null
   readonly defectId: DefectId | null
   readonly roundPlanId: RoundPlanId | null
   readonly meterPropertyId: PropertyId | null
+  readonly attachmentId: AttachmentId | null
   readonly propertyId: PropertyId
   readonly areaId: AreaId
 }
@@ -224,6 +229,7 @@ export function dutySource(options: {
           defectId: null,
           roundPlanId: null,
           meterPropertyId: null,
+          attachmentId: null,
           propertyId: duty.propertyId,
           areaId: duty.areaId,
         },
@@ -291,6 +297,7 @@ export function defectSource(): SourceQuery<DeadlineValues> {
                 defectId: defect.id,
                 roundPlanId: null,
                 meterPropertyId: null,
+                attachmentId: null,
                 propertyId: defect.propertyId,
                 areaId: defect.areaId,
               },
@@ -423,6 +430,7 @@ export function roundPlanSource(options: {
                   defectId: null,
                   roundPlanId: plan.id,
                   meterPropertyId: null,
+                  attachmentId: null,
                   propertyId: plan.propertyId,
                   areaId: plan.areaId,
                 },
@@ -510,11 +518,91 @@ export function meterSource(options: {
                 defectId: null,
                 roundPlanId: null,
                 meterPropertyId: property.id,
+                attachmentId: null,
                 propertyId: property.id,
                 areaId: property.areaId,
               },
             },
           ]
     })
+  }
+}
+
+/**
+ * The sources `document` and `risk_assessment` (#327, sections 2.4, 4.3 and
+ * 4.10 of the concept): one deadline for every document there is whose newest
+ * version names a day, the risk assessments for the one and every other
+ * document for the other. A new version brings its own day and the deadline
+ * moves with it; a version without one, or the document taken out of the
+ * records, lets it drop. Whoever filed that version set the day, and answers
+ * for the deadline until somebody else is named.
+ *
+ * Anchored on the day of the version, so that a deadline marked done comes
+ * back with the next one. Asked for every operator on every pass of the
+ * engine, in every area of it.
+ */
+export function documentSource(reviews: boolean): SourceQuery<DeadlineValues> {
+  return async (tx) => {
+    const rows = await tx
+      .select({
+        id: attachments.id,
+        title: attachments.title,
+        kind: attachments.kind,
+        propertyId: attachments.propertyId,
+        areaId: attachments.areaId,
+        versionId: attachmentVersions.id,
+        validUntil: attachmentVersions.validUntil,
+        createdBy: attachmentVersions.createdBy,
+        createdAt: attachmentVersions.createdAt,
+        assetName: assets.name,
+        assetNumber: assets.number,
+        roomNumber: rooms.number,
+        roomName: rooms.name,
+        buildingName: buildings.name,
+        propertyName: properties.name,
+      })
+      .from(attachmentVersions)
+      .innerJoin(attachments, eq(attachments.id, attachmentVersions.attachmentId))
+      .innerJoin(properties, eq(properties.id, attachments.propertyId))
+      .leftJoin(assets, eq(assets.id, attachments.assetId))
+      .leftJoin(rooms, eq(rooms.id, attachments.roomId))
+      .leftJoin(buildings, eq(buildings.id, attachments.buildingId))
+      .where(and(isNull(attachments.deletedAt), isNull(attachmentVersions.deletedAt)))
+    const newest = new Map<string, (typeof rows)[number]>()
+
+    for (const row of rows) {
+      const before = newest.get(row.id)
+
+      if (
+        before === undefined ||
+        row.createdAt > before.createdAt ||
+        (row.createdAt.getTime() === before.createdAt.getTime() && row.versionId > before.versionId)
+      ) {
+        newest.set(row.id, row)
+      }
+    }
+
+    return [...newest.values()].flatMap((document): ExpectedDeadline<DeadlineValues>[] =>
+      document.validUntil === null || (document.kind === 'risk_assessment') !== reviews
+        ? []
+        : [
+            {
+              sourceId: document.id,
+              sourceLabel: `${document.title}, ${placeOf(document)}`,
+              anchorOn: document.validUntil,
+              namedDueOn: document.validUntil,
+              naturalUserId: document.createdBy,
+              values: {
+                dutyId: null,
+                defectId: null,
+                roundPlanId: null,
+                meterPropertyId: null,
+                attachmentId: document.id,
+                propertyId: document.propertyId,
+                areaId: document.areaId,
+              },
+            },
+          ],
+    )
   }
 }

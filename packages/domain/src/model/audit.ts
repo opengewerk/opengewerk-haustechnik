@@ -570,6 +570,8 @@ export const auditVocabulary: AuditVocabulary = {
       defect_id: 'Mangel',
       round_plan_id: 'Plan eines Rundgangs',
       meter_property_id: 'Zähler der Liegenschaft',
+      // The document whose day a deadline follows (#327).
+      attachment_id: 'Dokument',
       task_id: 'Aufgabe',
       property_id: 'Liegenschaft',
       area_id: 'Bereich',
@@ -580,6 +582,8 @@ export const auditVocabulary: AuditVocabulary = {
       kind: 'Art',
       legacy: 'Altbestand',
     },
+    // The day a version expires or is to be reviewed (#327).
+    attachment_versions: { valid_until: 'Gültig bis' },
   },
   // Every row with a place carries its area and the levels above it (ADR 0002,
   // point 2, and ADR 0003, point 4).

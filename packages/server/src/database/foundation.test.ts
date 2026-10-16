@@ -50,7 +50,10 @@ describe('the foundation in this database', () => {
     // and a document on the property itself names the property for its key a
     // second time, filled by a trigger (migration 0051); a contact is read by
     // whoever sees a building of its property. Only a restrictive policy may
-    // be named here; it takes rows away and opens none.
+    // be named here; it takes rows away and opens none. A version names the
+    // day it is valid until, and a deadline may follow the document whose
+    // newest version names one (opengewerk-haustechnik#327, migration 0056),
+    // over a unique key on the document with its property.
     expect(
       await foundationDeviations(admin, {
         triggers: ['memberships.default_areas', 'attachments.area_from_the_property'],
@@ -74,6 +77,8 @@ describe('the foundation in this database', () => {
           'attachments.kind',
           'attachments.legacy',
           'attachments.area_from_property_id',
+          'attachment_versions.valid_until',
+          'deadlines.attachment_id',
         ],
         constraints: [
           'deadlines.deadlines_meters_of_their_property',
@@ -86,6 +91,9 @@ describe('the foundation in this database', () => {
           'deadlines.deadlines_of_a_plan_of_their_property',
           'deadlines.deadlines_with_a_task_of_their_property',
           'deadlines.deadlines_follow_one_source',
+          'deadlines.deadlines_follow_their_document',
+          'deadlines.deadlines_of_a_document_of_their_property',
+          'attachments.attachments_area_key',
           'contacts.contacts_follow_their_property',
           'contacts.contacts_given_name_shaped',
           'contacts.contacts_family_name_shaped',
@@ -114,6 +122,7 @@ describe('the foundation in this database', () => {
           'deadlines.deadlines_duty_idx',
           'deadlines.deadlines_defect_idx',
           'deadlines.deadlines_round_plan_idx',
+          'deadlines.deadlines_attachment_idx',
           'contacts.contacts_property_idx',
           'attachments.attachments_property_idx',
           'attachments.attachments_asset_idx',

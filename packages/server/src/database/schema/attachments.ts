@@ -1,7 +1,16 @@
-import { documentKinds, documentLimits } from '@opengewerk/haustechnik-domain'
+import { documentKinds, documentLimits, type IsoDate } from '@opengewerk/haustechnik-domain'
 import { applicationRole, attachmentsSchema, reference } from '@opengewerk/platform-server'
 import { sql } from 'drizzle-orm'
-import { boolean, check, foreignKey, index, pgEnum, pgPolicy, unique } from 'drizzle-orm/pg-core'
+import {
+  boolean,
+  check,
+  date,
+  foreignKey,
+  index,
+  pgEnum,
+  pgPolicy,
+  unique,
+} from 'drizzle-orm/pg-core'
 
 import { activities } from './activities.js'
 import { areaFromPropertyColumn, areaFromTheProperty, withinAreas } from './areas.js'
@@ -91,6 +100,9 @@ function withinAreasOfTheirFile() {
  */
 export const { attachments, attachmentVersions } = attachmentsSchema({
   columns: documentPlace,
+  // The day a version expires or is to be reviewed (#327): its own, and the
+  // newest one's is the deadline of the document.
+  versionColumns: { validUntil: date('valid_until', { mode: 'string' }).$type<IsoDate>() },
   constraints: (table) => [
     withinAreas(),
     // The area of what the row hangs on (ADR 0003, addendum of #306).
@@ -159,6 +171,8 @@ export const { attachments, attachmentVersions } = attachmentsSchema({
     // What the document that bears the interval of a duty points at: a
     // document of the duty's property (#74).
     unique('attachments_on_their_property').on(table.tenantId, table.id, table.propertyId),
+    // What the deadline of a document follows into another area (#327).
+    unique('attachments_area_key').on(table.tenantId, table.id, table.areaId),
     // What the photo of an answer points at: a document at its activity (#106).
     unique('attachments_at_their_activity').on(
       table.tenantId,

@@ -10,6 +10,8 @@ import {
   dutyDue,
   meterDue,
   roundDue,
+  documentExpires,
+  riskAssessmentReview,
 } from './deadlines.js'
 
 describe('the kinds of deadline of this application', () => {
@@ -19,7 +21,14 @@ describe('the kinds of deadline of this application', () => {
       actions: [...deadlineActions],
     })
 
-    expect(registry.kinds).toEqual([dutyDue, defectDue, roundDue, meterDue])
+    expect(registry.kinds).toEqual([
+      dutyDue,
+      defectDue,
+      roundDue,
+      meterDue,
+      documentExpires,
+      riskAssessmentReview,
+    ])
     expect(registry.kind('duty.due')).toBe(dutyDue)
     expect(registry.kind('defect.due')).toBe(defectDue)
     expect(registry.kind('round.due')).toBe(roundDue)

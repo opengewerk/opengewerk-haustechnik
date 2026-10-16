@@ -241,6 +241,35 @@ describe('the documents of a room', () => {
     ])
   })
 
+  it('takes a risk assessment with the day it is to be reviewed, which becomes a deadline (#327)', async () => {
+    const { client } = await mount(at)
+
+    fireEvent.click(within(card()).getByRole('button', { name: 'Hochladen' }))
+
+    const dialog = within(await screen.findByRole('dialog', { name: 'Dokument hochladen' }))
+
+    fireEvent.change(dialog.getByLabelText('Datei wählen'), { target: { files: [scan()] } })
+    // Without a kind the day is an expiry; for a risk assessment its review.
+    expect(dialog.getByLabelText('Gültig bis')).toBeTruthy()
+    fireEvent.change(dialog.getByRole('combobox', { name: 'Art' }), {
+      target: { value: 'risk_assessment' },
+    })
+    fireEvent.change(dialog.getByLabelText('Wiedervorlage am'), { target: { value: '2026-10-29' } })
+    expect(
+      dialog.getByText(
+        'Die Wiedervorlage wird eine Frist unter „Fristen“. Verantwortlich ist, wer das Datum setzt.',
+      ),
+    ).toBeTruthy()
+    fireEvent.click(dialog.getByRole('button', { name: 'Hochladen' }))
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog')).toBeNull()
+    })
+    await client.synchronise()
+
+    expect(created('attachments')).toMatchObject([{ kind: 'risk_assessment' }])
+    expect(created('attachment_versions')).toMatchObject([{ validUntil: '2026-10-29' }])
+  })
+
   it('says so of a room nothing is filed at', async () => {
     server.put('rooms', { ...store, id: 'r-empty', number: 'E.3', name: 'Abstellraum' })
     await mount('/raeume/r-empty')
