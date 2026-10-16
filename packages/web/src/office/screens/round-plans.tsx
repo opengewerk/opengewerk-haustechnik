@@ -71,12 +71,13 @@ import {
 } from '@opengewerk/platform-web/sync'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useNavigate, useParams } from '@tanstack/react-router'
-import { Check, Pause, Play, Plus, Square, Trash2 } from 'lucide-react'
+import { Check, Download, Pause, Play, Plus, Square, Trash2 } from 'lucide-react'
 import { type FormEvent, useMemo, useState } from 'react'
 
 import { areaName, useAreas, useHeldArea } from '../../session/areas.js'
 import { useCatalogue } from '../../sync/catalogue.js'
 import { askAt, makeAt } from '../../sync/made-at.js'
+import { PlanTableDialog } from '../plan-table.js'
 import { planListPlace, planPlaces, roundsPlace } from '../round-template-addresses.js'
 import { useTemplateVersions } from './round-templates.js'
 
@@ -637,6 +638,8 @@ function PlanForm({
   const [trouble, setTrouble] = useState<string | null>(null)
   const [working, setWorking] = useState(false)
   const [ending, setEnding] = useState(false)
+  // The rounds of the plan over a period as a table (#344).
+  const [tabling, setTabling] = useState(false)
   const [removing, setRemoving] = useState(false)
   const set = (changes: Partial<PlanDraft>) => {
     setDraft((before) => ({ ...before, ...changes }))
@@ -883,6 +886,14 @@ function PlanForm({
           plan === null ? null : (
             <>
               <ChangesButton table="round_plans" id={String(planId)} />
+              <Button
+                icon={Download}
+                onClick={() => {
+                  setTabling(true)
+                }}
+              >
+                Als Tabelle
+              </Button>
               {plans && !ended ? (
                 <>
                   <Button
@@ -1208,6 +1219,15 @@ function PlanForm({
           </div>
         ) : null}
       </form>
+      {tabling && plan !== null ? (
+        <PlanTableDialog
+          planId={String(planId)}
+          title={title}
+          onClose={() => {
+            setTabling(false)
+          }}
+        />
+      ) : null}
       {ending ? (
         <EndDialog
           onClose={() => {

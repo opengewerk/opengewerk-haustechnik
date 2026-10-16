@@ -42,6 +42,7 @@ import { dayInGermany } from '../today.js'
 import { ApiModule } from './api.module.js'
 import { noRenderer } from './prints.controller.js'
 import { as, testIdentities } from './test-identity.js'
+import { tableReaders } from './test-tables.js'
 
 /**
  * The page of an evidence, its correction and its declaration of invalidity,
@@ -1115,6 +1116,262 @@ describe('the PDF of a round (#111)', () => {
  * state is the evidence itself, and its page shows it whole; the log held it
  * as one cell of JSON.
  */
+describe('a round as a table (#344)', () => {
+  const { tableOf, rawOf } = tableReaders(http)
+
+  /** A round written down with its frozen state, as the PDF of a round puts it in. */
+  async function roundAt(
+    asset: string,
+    performer: string | null,
+    plan: string | null,
+    signedAt: string,
+    title = 'Technikzentrale Schulhaus',
+  ): Promise<string> {
+    const { rows } = await admin.query<{
+      id: string
+      property_id: string
+      area_id: string
+      tenant_id: string
+    }>(
+      `insert into activities (tenant_id, property_id, area_id, asset_id, kind, title, status,
+                               performed_on, due_on, performer, performer_user_id, round_plan_id)
+       select tenant_id, property_id, area_id, id, 'round', 'Rundgang wie er heute heißt', 'done',
+              $2::date, $2::date, case when $3::text is null then null else 'own_staff'::duty_performer end, $3,
+              $4
+         from assets where id = $1
+       returning id, property_id, area_id, tenant_id`,
+      [asset, signedAt.slice(0, 10), performer, plan],
+    )
+    const round = rows[0]
+    const day = signedAt.slice(0, 10) as IsoDate
+    const state: RoundRecordState = {
+      version: 1,
+      title,
+      place: {
+        property: {
+          name: 'Schulzentrum Am Neckar',
+          address: 'Neckarstraße 4, 68535 Edingen-Neckarhausen',
+        },
+        building: { name: 'Haus A', shortCode: null },
+        room: { number: 'E.14', name: 'Heizraum' },
+        asset: null,
+      },
+      dueOn: day,
+      performedOn: day,
+      form: { key: 'template-x', version: 3, title },
+      answers: [
+        {
+          section: 'Heizraum E.14',
+          label: 'Tür schließt selbsttätig',
+          group: null,
+          kind: 'check_point',
+          value: null,
+          result: 'not_ok',
+          remark: 'Türschließer ohne Funktion.',
+          limit: null,
+          photo: null,
+        },
+        {
+          section: 'Heizraum E.14',
+          label: 'Vorlauftemperatur',
+          group: { label: 'Kessel', block: 2 },
+          kind: 'measurement',
+          value: '64,5 °C',
+          result: null,
+          remark: 'Nach dem Entlüften.',
+          limit: { text: '60 bis 70 °C', source: 'Betriebsanleitung', within: true },
+          photo: null,
+        },
+      ],
+      performer: { person: 'Tobias Wendt' },
+      defects: [],
+      signatures: [
+        {
+          name: 'Tobias Wendt',
+          role: 'signer',
+          signedAt,
+          path: 'M10,10L200,80',
+          way: 'drawing',
+          receivedAt: signedAt,
+        },
+      ],
+      evidence: [],
+      writtenBy: 'Tobias Wendt',
+      writtenAt: signedAt,
+    }
+
+    await admin.query(
+      `insert into round_records (tenant_id, property_id, area_id, activity_id, state, fingerprint)
+       values ($1, $2, $3, $4, $5, $6)`,
+      [
+        round?.tenant_id,
+        round?.property_id,
+        round?.area_id,
+        round?.id,
+        JSON.stringify(state),
+        stateFingerprint(state),
+      ],
+    )
+
+    return round?.id ?? ''
+  }
+
+  /** A plan of rounds on the property of an asset. */
+  async function planAt(asset: string): Promise<string> {
+    const { rows: templates } = await admin.query<{ id: string }>(
+      `insert into round_templates (tenant_id, title)
+       select tenant_id, 'Technikzentrale' from assets where id = $1 returning id`,
+      [asset],
+    )
+    const { rows } = await admin.query<{ id: string }>(
+      `insert into round_plans (tenant_id, property_id, area_id, template_id, rhythm, weekdays, starts_on)
+       select tenant_id, property_id, area_id, $2, 'weekly', '{3}', '2026-09-01' from assets where id = $1
+       returning id`,
+      [asset, templates[0]?.id],
+    )
+
+    return rows[0]?.id ?? ''
+  }
+
+  const header = [
+    'Tag der Unterschrift',
+    'Rundgang',
+    'Ort',
+    'Kapitel',
+    'Punkt',
+    'Antwort',
+    'Grenzwert',
+    'Eingehalten',
+    'Bemerkung',
+  ]
+
+  it('is a row a point, from the frozen state, on the day of the signature, without names or times', async () => {
+    const { asset } = await assetWithDuty()
+    // Signed late in the evening: the day in Germany is the next one.
+    const round = await roundAt(asset, 'u-tech', null, '2026-10-05T22:30:00.000Z')
+
+    for (const format of ['xlsx', 'csv'] as const) {
+      expect(await tableOf(`/rounds/${round}/table`, {}, by('u-tech'), format)).toEqual([
+        header,
+        [
+          '2026-10-06',
+          'Technikzentrale Schulhaus',
+          'Schulzentrum Am Neckar, Haus A, E.14 Heizraum',
+          'Heizraum E.14',
+          'Tür schließt selbsttätig',
+          'nicht in Ordnung',
+          '',
+          '',
+          'Türschließer ohne Funktion.',
+        ],
+        [
+          '2026-10-06',
+          'Technikzentrale Schulhaus',
+          'Schulzentrum Am Neckar, Haus A, E.14 Heizraum',
+          'Heizraum E.14',
+          'Kessel 2: Vorlauftemperatur',
+          '64,5 °C',
+          '60 bis 70 °C',
+          'ja',
+          'Nach dem Entlüften.',
+        ],
+      ])
+    }
+
+    const raw = await rawOf(`/rounds/${round}/table`, {}, by('u-tech'), 'csv')
+
+    expect(raw).not.toContain('Tobias Wendt')
+    expect(raw).not.toContain('22:30')
+    expect(raw).not.toContain('Rundgang wie er heute heißt')
+  })
+
+  it('is for whoever sees the round, and none before it is written down', async () => {
+    const { asset } = await assetWithDuty()
+    const another = await roundAt(asset, 'u-site', null, '2026-10-05T08:00:00.000Z')
+
+    await http()
+      .get(`/rounds/${another}/table?format=csv`)
+      .set(testIdentityHeader, by('u-tech'))
+      .expect(404)
+    await http()
+      .get(`/rounds/${another}/table?format=csv`)
+      .set(testIdentityHeader, by('u-tech', large))
+      .expect(404)
+
+    const { rows } = await admin.query<{ id: string }>(
+      `insert into activities (tenant_id, property_id, area_id, asset_id, kind, title, status)
+       select tenant_id, property_id, area_id, id, 'round', 'Offener Rundgang', 'open'
+         from assets where id = $1
+       returning id`,
+      [asset],
+    )
+
+    await http()
+      .get(`/rounds/${rows[0]?.id ?? ''}/table?format=csv`)
+      .set(testIdentityHeader, by('u-site'))
+      .expect(404, /sobald der Rundgang abgeschlossen ist/)
+  })
+
+  it('of the rounds of a plan holds those signed in the period, by their day, and no other', async () => {
+    const { asset } = await assetWithDuty()
+    const plan = await planAt(asset)
+    const other = await planAt(asset)
+
+    await roundAt(asset, null, plan, '2026-10-14T06:00:00.000Z', 'Mittwoch, 14.')
+    await roundAt(asset, null, plan, '2026-10-07T06:00:00.000Z', 'Mittwoch, 7.')
+    await roundAt(asset, null, plan, '2026-09-30T06:00:00.000Z', 'Mittwoch, 30.')
+    await roundAt(asset, null, other, '2026-10-08T06:00:00.000Z', 'Ein anderer Plan')
+
+    const table = await tableOf(
+      `/round-plans/${plan}/table`,
+      { from: '2026-10-01', to: '2026-10-31' },
+      by('u-site'),
+      'csv',
+    )
+
+    expect(table.slice(1).map((row) => [row[0], row[1]])).toEqual([
+      ['2026-10-07', 'Mittwoch, 7.'],
+      ['2026-10-07', 'Mittwoch, 7.'],
+      ['2026-10-14', 'Mittwoch, 14.'],
+      ['2026-10-14', 'Mittwoch, 14.'],
+    ])
+    // Whoever does not see the plan is told it is not there.
+    await http()
+      .get(`/round-plans/${plan}/table?format=csv&from=2026-10-01&to=2026-10-31`)
+      .set(testIdentityHeader, by('u-lead', large))
+      .expect(404)
+  })
+
+  it('of a plan holds no round of an area the person does not see', async () => {
+    const { asset } = await assetWithDuty(large, south)
+    const plan = await planAt(asset)
+
+    await roundAt(asset, null, plan, '2026-10-07T06:00:00.000Z', 'Im Süden')
+
+    const asking = (header: string) =>
+      http()
+        .get(`/round-plans/${plan}/table?format=csv&from=2026-10-01&to=2026-10-31`)
+        .set(testIdentityHeader, header)
+
+    expect((await asking(by('u-lead', large)).expect(200)).text).toContain('Im Süden')
+    // Whoever holds the north only is told the plan is not there.
+    await asking(by('u-tech', large)).expect(404)
+  })
+
+  it('of a plan asks for a period of at most a year', async () => {
+    const { asset } = await assetWithDuty()
+    const plan = await planAt(asset)
+    const asking = (query: string) =>
+      http()
+        .get(`/round-plans/${plan}/table?format=csv&${query}`)
+        .set(testIdentityHeader, by('u-site'))
+
+    await asking('from=2026-10-31&to=2026-10-01').expect(400, /nicht vor dem ersten/)
+    await asking('from=2026-01-01&to=2027-01-02').expect(400, /höchstens 366 Tage/)
+    await asking('from=2026-10-01').expect(400, /Der letzte Tag ist ein Tag/)
+  })
+})
+
 describe('the frozen state in the change log', () => {
   it('is kept to the page of the evidence', async () => {
     const { duty } = await assetWithDuty()

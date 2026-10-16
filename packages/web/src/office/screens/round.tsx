@@ -38,6 +38,7 @@ import {
   NoteBox,
   PageHead,
   Screen,
+  useTableExport,
 } from '@opengewerk/platform-web/office'
 import { useRight, useWho } from '@opengewerk/platform-web/session'
 import {
@@ -162,6 +163,8 @@ export function RoundScreen() {
   const [closing, setClosing] = useState(false)
   const shown = page.data
   const pdf = usePdf(roundPdfAddress(roundId ?? ''), `Rundgang ${shown?.title ?? ''}`)
+  // The same frozen state as a table, a row a point, without names and times (#344).
+  const table = useTableExport(`/rounds/${roundId ?? ''}/table`)
 
   if (shown === undefined || roundId === undefined) {
     const gone = page.error instanceof RequestRefused && page.error.status === 404
@@ -219,7 +222,12 @@ export function RoundScreen() {
         actions={
           <>
             {/* The PDF is made of the state frozen when the round was written down. */}
-            {shown.status === 'done' ? pdf.button : null}
+            {shown.status === 'done' ? (
+              <>
+                {pdf.button}
+                {table.button}
+              </>
+            ) : null}
             <ChangesButton table="activities" id={shown.id} />
             {closable ? (
               <Button
@@ -243,6 +251,7 @@ export function RoundScreen() {
             </Panel>
           ) : null}
           {pdf.trouble}
+          {table.trouble}
           <Answers round={shown} />
         </div>
         <div className="flex min-w-0 flex-col gap-3.5">

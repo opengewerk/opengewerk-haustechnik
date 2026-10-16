@@ -55,6 +55,7 @@ import { dayInGermany } from '../today.js'
 import { candidatesIn, inSight } from './activities.controller.js'
 import { RequiresPermission } from './authorization.js'
 import { roundWeekTable } from './office-tables.js'
+import { roundTable } from './round-tables.js'
 import { type Asking, fieldsOf, refuse } from './places.js'
 import { said } from './register-question.js'
 
@@ -151,6 +152,21 @@ export class RoundsController {
     return this.database.forTenant(identity, async (tx) =>
       tableAnswer(await roundWeekTable(this.database, tx, identity, week, area), format, today),
     )
+  }
+
+  /**
+   * A round written down as a table (#344), after the routes of the week,
+   * whose word would otherwise be taken for the id of a round.
+   */
+  @Get(':id/table')
+  @RequiresPermission('activity.read')
+  @Header('Cache-Control', 'no-store')
+  table(
+    @CurrentIdentity() identity: Asking,
+    @Param('id') id: string,
+    @Query() query: Readonly<Record<string, unknown>>,
+  ): Promise<StreamableFile> {
+    return roundTable(this.database, identity, id, query)
   }
 
   /** The rounds of the week of a Monday and those left open before it, as the person is shown them. */
