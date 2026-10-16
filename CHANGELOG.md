@@ -89,7 +89,8 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   Bereich: entschieden am 16.10.2026, eine Zeile in `contacts`, `attachments` und `deadlines` darf
   genau dann ohne Liegenschaft und Bereich stehen, wenn sie an etwas Betreiberweitem hängt; eine
   Prüfung in der Datenbank hält das, die Policies lassen solche Zeilen für jeden im Betreiber durch,
-  und das Recht „Fremdfirmen pflegen“ entscheidet, wer sie anlegt (Nachtrag in ADR 0003). Lesen,
+  und das Recht „Fremdfirmen pflegen“ entscheidet, wer sie anlegt, wer über ein Dokument einer
+  Firma eine neue Fassung legt, es ändert und es entfernt (Nachtrag in ADR 0003). Lesen,
   in der Liste, als Datei, in der Tabelle „Dokumente“ und auf dem Gerät, kann sie nur, wer
   „Fremdfirmen ansehen“ hat, weil das Recht genau das schützen soll und die Bereiche hier nicht
   greifen; dafür kennt das Fundament ein Leserecht je Elternteil eines Ansprechpartners

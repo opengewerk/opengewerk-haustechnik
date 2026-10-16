@@ -125,6 +125,7 @@ export function DocumentsScreen() {
   const client = useSync()
   const files = useRight('document.record')
   const removes = useRight('document.remove')
+  const keepsFirms = useRight('contractor.write')
   const documents = useRecords('attachments')
   const versions = useVersions()
   const around = useDocumentSurroundings()
@@ -154,6 +155,9 @@ export function DocumentsScreen() {
   const chosen = asked ?? (documentId === undefined ? (listed[0] ?? null) : null)
   const chosenId = chosen ? String(chosen['id']) : null
   const itsVersions = chosenId === null ? [] : (versions.get(chosenId) ?? [])
+  // The papers of a contractor are kept by whoever keeps the firms (#328):
+  // a new version, a change and taking one out ask for it as well.
+  const keepsChosen = keepsFirms || typeof chosen?.['contractorId'] !== 'string'
 
   const show = (to: DocumentFilter) => {
     void navigate({
@@ -452,7 +456,7 @@ export function DocumentsScreen() {
                   }}
                 />
                 <div className="flex flex-wrap gap-1.5">
-                  {files ? (
+                  {files && keepsChosen ? (
                     <Button
                       size="small"
                       icon={Upload}
@@ -479,7 +483,7 @@ export function DocumentsScreen() {
                       Öffnen
                     </Button>
                   ) : null}
-                  {files ? (
+                  {files && keepsChosen ? (
                     <Button
                       size="small"
                       icon={Pencil}
@@ -490,7 +494,7 @@ export function DocumentsScreen() {
                       Bearbeiten
                     </Button>
                   ) : null}
-                  {removes ? (
+                  {removes && keepsChosen ? (
                     <Button
                       size="small"
                       tone="danger"

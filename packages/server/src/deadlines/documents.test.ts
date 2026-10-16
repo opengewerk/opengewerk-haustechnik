@@ -76,9 +76,10 @@ let recorded = Date.parse('2026-10-05T08:00:00Z')
 
 function operation(
   entity: string,
-  kind: 'create' | 'delete',
+  kind: 'create' | 'update' | 'delete',
   recordId: string,
   values: Readonly<Record<string, SyncValue>> = {},
+  seen: Readonly<Record<string, SyncValue>> = {},
 ) {
   recorded += 1000
 
@@ -88,7 +89,11 @@ function operation(
     recordId,
     kind,
     baseVersion: null,
-    patches: Object.entries(values).map(([field, to]) => ({ field, from: null, to })),
+    patches: Object.entries(values).map(([field, to]) => ({
+      field,
+      from: seen[field] ?? null,
+      to,
+    })),
     recordedAt: new Date(recorded).toISOString(),
   }
 }
@@ -580,6 +585,51 @@ describe('the documents of a contractor (#328)', () => {
         `${theirs.narrowed['attachment_versions']}:without-contractors`,
       ])
     }
+  })
+
+  /**
+   * What comes after filing a paper of a firm is keeping the firm as well,
+   * though the policies let the document through for everybody in the
+   * operator: the Haustechnik files documents and the Objektleitung takes them
+   * out, and neither keeps the firms. Each is refused with the right it lacks.
+   */
+  it('is kept after filing, with a new version, a change or taken out, only by whoever keeps the firms', async () => {
+    const firm = await firmOf('Dach Beispiel GmbH')
+    const title = 'Zertifikat Fachbetrieb nach DIN 14675'
+    const { document, outcome } = await certificateOf(firm, '2027-06-30')
+
+    expect(outcome).toEqual(['applied', 'applied'])
+
+    const refusal = async (role: RoleKey, sent: ReturnType<typeof operation>) => {
+      const answer = await http()
+        .post('/sync')
+        .set(testIdentityHeader, by(role, large))
+        .send({ deviceId: 'office', operations: [sent] })
+
+      return [answer.status, answer.body.message as string]
+    }
+    const lacking = [400, missingRight('contractor.write')]
+    const renamed = () =>
+      operation('attachments', 'update', document, { title: 'Zertifikat 2028' }, { title })
+
+    expect(
+      await refusal('technician', await versionOf(by('technician', large), document, '2028-06-30')),
+    ).toEqual(lacking)
+    expect(await refusal('site_management', renamed())).toEqual(lacking)
+    expect(await refusal('site_management', operation('attachments', 'delete', document))).toEqual(
+      lacking,
+    )
+
+    // Whoever keeps the firms does all three.
+    const keeper = by('technical_management', large)
+
+    expect(
+      await outcomes(keeper, [
+        await versionOf(keeper, document, '2028-06-30'),
+        renamed(),
+        operation('attachments', 'delete', document),
+      ]),
+    ).toEqual(['applied', 'applied', 'applied'])
   })
 
   it('drops with the firm taken out of the list', async () => {

@@ -137,7 +137,8 @@ export const operationRights: Readonly<Record<string, OperationRights>> = {
   // 7 of the concept), and what a device may not send at all asks for it too.
   attachments: {
     // The certificates and the insurance of a contractor (#328) are kept by
-    // whoever keeps the firms.
+    // whoever keeps the firms; what comes after making one asks it of the
+    // document as the server holds it (`contractorDocumentKept`).
     create: (patches) =>
       patches.some((patch) => patch.field === 'contractorId' && patch.to !== null)
         ? 'contractor.write'

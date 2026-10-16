@@ -497,6 +497,40 @@ describe('what somebody is offered', () => {
     },
   )
 
+  /**
+   * The papers of a contractor are kept by whoever keeps the firms (#328): the
+   * Objektleitung files documents and takes them out but keeps no firms, so
+   * at a paper of a firm it is offered opening it, and filing another
+   * document elsewhere.
+   */
+  it.each([
+    ['site_management', ['Hochladen', 'Öffnen']],
+    [
+      'technical_management',
+      ['Hochladen', 'Neue Fassung hochladen', 'Öffnen', 'Bearbeiten', 'Entfernen'],
+    ],
+  ] as const)('is at a paper of a contractor only what %s keeps', async (role, expected) => {
+    server.put('attachments', {
+      id: 'd-insurance',
+      propertyId: null,
+      areaId: null,
+      ...nowhere,
+      contractorId: 'c-fire',
+      title: 'Betriebshaftpflicht Brandschutz Beispiel',
+      kind: null,
+    })
+    server.put(
+      'attachment_versions',
+      version(versionId(98), 'd-insurance', 'haftpflicht.pdf', 210_000, '2026-10-16'),
+    )
+    await mount(role, '/dokumente/d-insurance')
+
+    expect(within(card()).getByRole('heading', { level: 3 }).textContent).toBe(
+      'Betriebshaftpflicht Brandschutz Beispiel',
+    )
+    expect(offered()).toEqual(expected)
+  })
+
   it('is opening and nothing else for somebody who may not file documents', async () => {
     await mount('site_management', '/dokumente', ['document.record', 'document.remove'])
 
