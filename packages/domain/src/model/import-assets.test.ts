@@ -11,7 +11,13 @@ import { describe, expect, it } from 'vitest'
 import type { AreaId } from './area.js'
 import { type AssetId, assetLimits } from './asset.js'
 import type { AssetKind } from './catalogue.js'
-import { correctTheFile } from './import.js'
+import {
+  chooseAgain,
+  chosenBuildingGone,
+  type ChosenPlace,
+  chosenPlaceGone,
+  correctTheFile,
+} from './import.js'
 import {
   assetImportFields,
   type AssetImportStock,
@@ -1570,5 +1576,70 @@ describe('what an import of assets made, in words', () => {
 describe('the decisions of a request that is a list', () => {
   it('are none: a decision names its line, and a list only counts', () => {
     expect(decisionsOf(['take', 'skip']).size).toBe(0)
+  })
+})
+
+describe('a property and a building chosen for all lines (#173)', () => {
+  const plannedWith = (rows: readonly Row[], chosen: ChosenPlace) =>
+    planAssets(records(rows), decided(), stock, undefined, chosen)
+  const { property: _property, building: _building, ...unplaced } = hall
+
+  it('stand for every line that names neither, and a line that names one goes first', () => {
+    const plan = plannedWith(
+      [
+        unplaced,
+        { ...unplaced, room: 'E.14' },
+        { ...hall, property: 'Rathaus', building: 'Altbau' },
+      ],
+      { propertyId: centre, buildingId: school },
+    )
+
+    expect(plan.problems).toEqual([])
+    expect(plan.create).toEqual([
+      made(2),
+      made(3, { roomId: 'r-1' }),
+      made(4, { propertyId: townHall, areaId: south, buildingId: oldWing }),
+    ])
+  })
+
+  it('take the building a line names within the chosen property', () => {
+    const plan = plannedWith([{ ...unplaced, building: 'Turnhalle' }], {
+      propertyId: centre,
+      buildingId: null,
+    })
+
+    expect(plan.problems).toEqual([])
+    expect(plan.create).toEqual([made(2, { buildingId: gym })])
+  })
+
+  it('leave a line without its building where only the property is chosen', () => {
+    const plan = plannedWith([unplaced], { propertyId: centre, buildingId: null })
+
+    expect(plan.problems).toEqual([{ lines: [2], what: 'Das Gebäude fehlt', next: correctTheFile }])
+  })
+
+  it('give no line a building of another property than the one it names', () => {
+    const plan = plannedWith([{ ...unplaced, property: 'Rathaus' }], {
+      propertyId: centre,
+      buildingId: school,
+    })
+
+    expect(plan.problems).toEqual([
+      {
+        lines: [2],
+        what: 'Das gewählte Gebäude Schulhaus liegt nicht in der Liegenschaft Rathaus',
+        next: 'Das Gebäude in der Datei nennen',
+      },
+    ])
+    expect(plan.create).toEqual([])
+  })
+
+  it('are no place any more where they are gone or out of sight', () => {
+    expect(
+      plannedWith([unplaced], { propertyId: 'p-9' as PropertyId, buildingId: null }).problems,
+    ).toEqual([{ lines: [2], what: chosenPlaceGone, next: chooseAgain }])
+    expect(
+      plannedWith([unplaced], { propertyId: centre, buildingId: 'b-9' as BuildingId }).problems,
+    ).toEqual([{ lines: [2], what: chosenBuildingGone, next: chooseAgain }])
   })
 })

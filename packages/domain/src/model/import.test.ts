@@ -1,8 +1,12 @@
 import { describe, expect, it } from 'vitest'
 
+import { assetImportFields } from './import-assets.js'
+import { structureFields } from './import-structure.js'
 import {
+  chosenPlaceOf,
   correctTheFile,
   counted,
+  fieldsWithChoice,
   importKindLabel,
   importKinds,
   ImportProblems,
@@ -220,5 +224,46 @@ describe('what an import takes over', () => {
 
     expect(new Set(sentences).size).toBe(3)
     expect(sentences.every((sentence) => sentence.endsWith('.'))).toBe(true)
+  })
+})
+
+describe('a place chosen for all lines of an import (#173)', () => {
+  it('is read from what came over the wire, and no building without its property', () => {
+    expect(chosenPlaceOf({ propertyId: 'p-1', buildingId: 'b-1' })).toEqual({
+      propertyId: 'p-1',
+      buildingId: 'b-1',
+    })
+    expect(chosenPlaceOf({ propertyId: '', buildingId: 'b-1' })).toEqual({
+      propertyId: null,
+      buildingId: null,
+    })
+    expect(chosenPlaceOf({ propertyId: 7, buildingId: [] })).toEqual({
+      propertyId: null,
+      buildingId: null,
+    })
+    expect(chosenPlaceOf(null)).toEqual({ propertyId: null, buildingId: null })
+  })
+
+  it('needs no column for what is chosen, and leaves every other field as it is', () => {
+    const needed = (fields: readonly { key: string; required?: boolean }[]) =>
+      fields.filter((field) => field.required === true).map((field) => field.key)
+
+    expect(
+      needed(fieldsWithChoice(assetImportFields, { propertyId: null, buildingId: null })),
+    ).toEqual(['property', 'building', 'kind', 'name'])
+    expect(
+      needed(fieldsWithChoice(assetImportFields, chosenPlaceOf({ propertyId: 'p-1' }))),
+    ).toEqual(['building', 'kind', 'name'])
+    expect(
+      needed(
+        fieldsWithChoice(
+          assetImportFields,
+          chosenPlaceOf({ propertyId: 'p-1', buildingId: 'b-1' }),
+        ),
+      ),
+    ).toEqual(['kind', 'name'])
+    expect(needed(fieldsWithChoice(structureFields, chosenPlaceOf({ propertyId: 'p-1' })))).toEqual(
+      [],
+    )
   })
 })

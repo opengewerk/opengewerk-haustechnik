@@ -52,7 +52,7 @@ das Gebäude an. Liegenschaft, Gebäude und Geschoss stehen deshalb in jeder Zei
 
 | Feld | Pflicht | Wird auch erkannt als | Was darin steht |
 |---|---|---|---|
-| Liegenschaft | ja | Objekt, Standort, Liegenschaftsname, Name der Liegenschaft | Name der Liegenschaft |
+| Liegenschaft | ja | Objekt, Standort, Liegenschaftsname, Name der Liegenschaft | Name der Liegenschaft; leer gilt die Liegenschaft für alle Zeilen |
 | Straße und Hausnummer | | Straße, Adresse, Anschrift | für eine neue Liegenschaft nötig |
 | Postleitzahl | | PLZ | fünf Ziffern, für eine neue Liegenschaft nötig |
 | Ort | | Stadt, Gemeinde | für eine neue Liegenschaft nötig |
@@ -86,17 +86,24 @@ Was dabei gilt:
   Zahl mit Punkt oder Komma (1.5) sagen keine Ebene; dafür braucht es die Spalte.
 - **Bereich, Bundesland und Gebäudeart** neuer Liegenschaften und Gebäude werden im ersten Schritt
   gewählt, wenn die Datei sie nicht nennt. Wer nur einen Bereich sieht, importiert nur in diesen.
+- **Eine Liegenschaft für alle Zeilen** lässt sich dort ebenfalls wählen, für eine Liste, die nur
+  ein Haus betrifft und es nirgends nennt. Sie gilt für jede Zeile ohne Liegenschaft, und die
+  Spalte ist dann keine Pflicht; nennt eine Zeile eine, gilt die Zeile. Zur Wahl steht, was man
+  sieht.
 - Flächen kommen mit Phase 3 an Gebäude und Räume; bis dahin bleibt eine solche Spalte draußen.
 
 ## Anlagen
 
 Eine Zeile ist eine Anlage. Sie steht in einem Gebäude, das es gibt, und auf Wunsch in einem
-seiner Räume. Der Import der Anlagen legt keinen Ort an.
+seiner Räume. Der Import der Anlagen legt keinen Ort an. Nennt die Liste Liegenschaft und Gebäude
+nicht, weil sie für ein Haus gilt, werden beide im ersten Schritt für alle Zeilen gewählt, das
+Gebäude unter denen der gewählten Liegenschaft. Eine Zeile, die eines davon nennt, geht vor; nennt
+sie eine andere Liegenschaft und kein Gebäude, ist das eine offene Zeile.
 
 | Feld | Pflicht | Wird auch erkannt als | Was darin steht |
 |---|---|---|---|
-| Liegenschaft | ja | Objekt, Standort, Liegenschaftsname | Name der Liegenschaft, wie sie hier heißt |
-| Gebäude | ja | Gebäudename, Haus, Bauteil | Bezeichnung des Gebäudes, wie es hier heißt |
+| Liegenschaft | ja | Objekt, Standort, Liegenschaftsname | Name der Liegenschaft, wie sie hier heißt; leer gilt die gewählte |
+| Gebäude | ja | Gebäudename, Haus, Bauteil | Bezeichnung des Gebäudes, wie es hier heißt; leer gilt das gewählte |
 | Geschoss | | Etage, Stockwerk | hilft, den Raum zu finden, wenn es seine Nummer im Gebäude mehrfach gibt; eine Anlage steht im Gebäude oder in einem Raum, ohne Raum bleibt das Geschoss unbeachtet |
 | Raum | | Raumnummer, Raum-Nr., Raumnr, Raumbezeichnung, Raumname | Nummer des Raums, sonst seine Bezeichnung |
 | Anlagenart | ja | Art, Anlagentyp, Anlagenkategorie, Kategorie, Art der Anlage | die Bezeichnung der Liste, etwa "Feuerlöscher" |

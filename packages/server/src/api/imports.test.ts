@@ -5,6 +5,8 @@ import {
   assetImportFields,
   type AuditPage,
   catalogueOf,
+  chooseAgain,
+  chosenPlaceGone,
   type ColumnMapping,
   importLimits,
   missingRight,
@@ -2227,5 +2229,139 @@ describe('what the lists of a tenant call the asset kinds', () => {
       },
     ])
     expect(unknown.counts).toEqual({ assets: 0, skipped: 0, undecided: 0 })
+  })
+})
+
+describe('a property and a building chosen for all lines (#173)', () => {
+  /** A list of the assets of one hall: it names neither the property nor the building. */
+  const hallHeader = ['Raum', 'Anlagenart', 'Bezeichnung']
+  const hallList = (rows: readonly (readonly string[])[]) => ({
+    ...table(assetImportFields, hallHeader, ...rows),
+    fileName: 'halle.csv',
+    expected: { assets: rows.length, skipped: 0, undecided: 0 },
+  })
+
+  it('stand for every line of a list of assets that names neither, which then needs no such column', async () => {
+    const tenant = await tenantWith()
+    const site = by('site_management', tenant)
+    const place = await placeIn(tenant)
+
+    await elevatorsNamed(tenant)
+
+    const listed = hallList([
+      ['E.14', 'Aufzug', 'Aufzug Nord'],
+      ['', 'Aufzug', 'Aufzug Süd'],
+    ])
+    const unchosen = await sendTable('/imports/assets/preview', site, listed).expect(400)
+
+    expect((unchosen.body as Refusal).message).toBe('Für „Liegenschaft“ ist keine Spalte gewählt.')
+
+    const onlyProperty = await sendTable('/imports/assets/preview', site, {
+      ...listed,
+      place: { propertyId: place.property },
+    }).expect(400)
+
+    expect((onlyProperty.body as Refusal).message).toBe('Für „Gebäude“ ist keine Spalte gewählt.')
+
+    const chosen = { ...listed, place: { propertyId: place.property, buildingId: place.building } }
+
+    expect((await assetsPreview(site, chosen)).problems).toEqual([])
+
+    await sendTable('/imports/assets', site, chosen).expect(201)
+
+    const { rows } = await admin.query(
+      `select name, property_id, area_id, building_id, room_id
+         from assets where tenant_id = $1 order by number`,
+      [tenant.id],
+    )
+
+    expect(rows).toEqual([
+      {
+        name: 'Aufzug Nord',
+        property_id: place.property,
+        area_id: tenant.area,
+        building_id: place.building,
+        room_id: place.room,
+      },
+      {
+        name: 'Aufzug Süd',
+        property_id: place.property,
+        area_id: tenant.area,
+        building_id: place.building,
+        room_id: null,
+      },
+    ])
+  })
+
+  it('are only what the person sees: a building in another area is no place for their lines', async () => {
+    const tenant = await tenantWith('Nord', 'Süd')
+    const site = by('site_management', tenant)
+    const inSouth = await placeIn(tenant, {
+      property: 'Werkhof Süd',
+      building: 'Halle',
+      areaId: tenant.areas['Süd'] ?? '',
+    })
+
+    await elevatorsNamed(tenant)
+
+    const listed = {
+      ...hallList([['', 'Aufzug', 'Aufzug Halle']]),
+      place: { propertyId: inSouth.property, buildingId: inSouth.building },
+    }
+    const before = await rowCounts()
+
+    expect((await assetsPreview(site, listed)).problems).toEqual([
+      { lines: [2], what: chosenPlaceGone, next: chooseAgain },
+    ])
+
+    const refused = await sendTable('/imports/assets', site, listed).expect(422)
+
+    expect((refused.body as Refusal).message).toBe(planHasProblems)
+    expect(await rowCounts()).toEqual(before)
+
+    // Whoever sees the south takes the same list over into the hall.
+    await sendTable('/imports/assets', by('technical_management', tenant), listed).expect(201)
+  })
+
+  it('stands for every line of a list of places that names no property, and the list needs no such column', async () => {
+    const tenant = await tenantWith()
+    const keeper = by('technical_management', tenant)
+    const place = await placeIn(tenant)
+    const listed = table(
+      structureFields,
+      ['Gebäude', 'Geschoss', 'Raum-Nr.'],
+      ['Schulhaus', 'Erdgeschoss', 'E.15'],
+      ['Neubau', 'EG', '0.01'],
+    )
+    const unchosen = await sendTable('/imports/structure/preview', keeper, {
+      ...listed,
+      defaults: defaultsIn(tenant.area),
+    }).expect(400)
+
+    expect((unchosen.body as Refusal).message).toBe('Für „Liegenschaft“ ist keine Spalte gewählt.')
+
+    const chosen = {
+      ...listed,
+      defaults: { ...defaultsIn(tenant.area), propertyId: place.property },
+      fileName: 'schulhaus.csv',
+      expected: { properties: 0, buildings: 1, floors: 1, rooms: 2, known: 0 },
+    }
+
+    expect((await structurePreview(keeper, chosen)).counts).toEqual(chosen.expected)
+
+    await sendTable('/imports/structure', keeper, chosen).expect(201)
+
+    const { rows } = await admin.query(
+      `select b.name as building, r.number as room
+         from rooms r join buildings b on b.id = r.building_id
+        where b.property_id = $1 order by r.number`,
+      [place.property],
+    )
+
+    expect(rows).toEqual([
+      { building: 'Neubau', room: '0.01' },
+      { building: 'Schulhaus', room: 'E.14' },
+      { building: 'Schulhaus', room: 'E.15' },
+    ])
   })
 })

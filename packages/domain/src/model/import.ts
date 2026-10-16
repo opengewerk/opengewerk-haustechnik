@@ -1,6 +1,7 @@
-import type { Id } from '@opengewerk/platform-domain'
+import type { Id, TableField } from '@opengewerk/platform-domain'
 
 import { duplicateKey } from './asset-duplicate.js'
+import type { BuildingId, PropertyId } from './location.js'
 
 /**
  * What every import from a table has in common (#100, section 11 of the
@@ -176,6 +177,49 @@ export const planHasProblems =
 
 /** What a route says to a table that would make nothing. */
 export const planMakesNothing = 'In der Tabelle steht nichts, was es nicht schon gibt.'
+
+/**
+ * A property and a building chosen for every line that names none (#173): a
+ * list for one house often names it only in the name of its file. A line
+ * that names one goes first; the choice fills only what is empty.
+ */
+export interface ChosenPlace {
+  readonly propertyId: PropertyId | null
+  readonly buildingId: BuildingId | null
+}
+
+/** The choice out of what came over the wire: what is no id is left out, and no building without its property. */
+export function chosenPlaceOf(value: unknown): ChosenPlace {
+  const given = (typeof value === 'object' && value !== null ? value : {}) as Readonly<
+    Record<string, unknown>
+  >
+  const id = (key: string) =>
+    typeof given[key] === 'string' && given[key] !== '' ? given[key] : null
+  const propertyId = id('propertyId') as PropertyId | null
+
+  return {
+    propertyId,
+    buildingId: propertyId === null ? null : (id('buildingId') as BuildingId | null),
+  }
+}
+
+/** The fields of a table, with no column needed for what is chosen for all lines. */
+export function fieldsWithChoice(
+  fields: readonly TableField[],
+  chosen: ChosenPlace,
+): readonly TableField[] {
+  const filled = new Set([
+    ...(chosen.propertyId === null ? [] : ['property']),
+    ...(chosen.buildingId === null ? [] : ['building']),
+  ])
+
+  return fields.map((field) => (filled.has(field.key) ? { ...field, required: false } : field))
+}
+
+/** What a line says whose chosen property or building is gone or out of sight. */
+export const chosenPlaceGone = 'Die gewählte Liegenschaft gibt es nicht mehr'
+export const chosenBuildingGone = 'Das gewählte Gebäude gibt es nicht mehr'
+export const chooseAgain = 'Im ersten Schritt neu wählen'
 
 /** Items by a key of theirs; an item whose key is null stands in no group. */
 export function grouped<Item>(

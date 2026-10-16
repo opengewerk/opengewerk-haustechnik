@@ -17,6 +17,7 @@ import {
   assetImportSummary,
   type AssetKindName,
   type Catalogue,
+  chosenPlaceOf,
   deadlineImportFields,
   deadlineImportLimits,
   deadlineImportSummary,
@@ -24,6 +25,7 @@ import {
   decisionsOf,
   documentTitleOf,
   type DutyId,
+  fieldsWithChoice,
   fileNameKey,
   importLimits,
   type KindCells,
@@ -133,12 +135,16 @@ type Given = Readonly<Record<string, unknown>>
  */
 function recordsOf(
   body: unknown,
-  fields: readonly TableField[],
+  fields: readonly TableField[] | ((given: Given) => readonly TableField[]),
 ): { given: Given; records: readonly TableRecord[] } {
   const given = (typeof body === 'object' && body !== null ? body : {}) as Given
   const problem =
     tableSheetProblem(given['sheet']) ??
-    columnMappingProblem(given['mapping'], fields, given['sheet'] as TableSheet)
+    columnMappingProblem(
+      given['mapping'],
+      typeof fields === 'function' ? fields(given) : fields,
+      given['sheet'] as TableSheet,
+    )
 
   if (problem) {
     throw new BadRequestException(problem)
@@ -149,6 +155,15 @@ function recordsOf(
     records: tableRecords(given['sheet'] as TableSheet, given['mapping'] as ColumnMapping),
   }
 }
+
+/**
+ * The fields of a table of places or of assets, with no column needed for
+ * the property and the building chosen for all lines (#173).
+ */
+const structureFieldsFor = (given: Given) =>
+  fieldsWithChoice(structureFields, chosenPlaceOf(given['defaults']))
+const assetFieldsFor = (given: Given) =>
+  fieldsWithChoice(assetImportFields, chosenPlaceOf(given['place']))
 
 /** The name of the file as the log keeps it; a request that names none is a table without a name. */
 function fileNameOf(given: Given): string {
@@ -281,7 +296,7 @@ export class ImportsController {
   @RequiresPermission('location.write')
   @AcceptsTable()
   async structurePreview(@CurrentIdentity() identity: Asking, @Req() request: Request) {
-    const { given, records } = recordsOf(await tableBodyOf(request), structureFields)
+    const { given, records } = recordsOf(await tableBodyOf(request), structureFieldsFor)
     const defaults = structureDefaultsOf(given['defaults'])
 
     return this.database.readingTenant(identity, async (tx) => {
@@ -307,7 +322,7 @@ export class ImportsController {
   @RequiresPermission('location.write')
   @AcceptsTable()
   async takeStructure(@CurrentIdentity() identity: Asking, @Req() request: Request) {
-    const { given, records } = recordsOf(await tableBodyOf(request), structureFields)
+    const { given, records } = recordsOf(await tableBodyOf(request), structureFieldsFor)
     const defaults = structureDefaultsOf(given['defaults'])
 
     return this.database.forTenant(identity, async (tx) => {
@@ -370,8 +385,9 @@ export class ImportsController {
   @RequiresPermission('asset.write')
   @AcceptsTable()
   async assetsPreview(@CurrentIdentity() identity: Asking, @Req() request: Request) {
-    const { given, records } = recordsOf(await tableBodyOf(request), assetImportFields)
+    const { given, records } = recordsOf(await tableBodyOf(request), assetFieldsFor)
     const cells = this.kindCellsOf(given)
+    const chosen = chosenPlaceOf(given['place'])
 
     return this.database.readingTenant(identity, async (tx) => {
       const plan = planAssets(
@@ -379,6 +395,7 @@ export class ImportsController {
         decisionsOf(given['decisions']),
         await assetImportStock(tx, this.catalogue, records),
         cells,
+        chosen,
       )
       const problems = cut(plan.problems)
       const notes = cut(plan.notes)
@@ -400,8 +417,9 @@ export class ImportsController {
   @RequiresPermission('asset.write')
   @AcceptsTable()
   async takeAssets(@CurrentIdentity() identity: Asking, @Req() request: Request) {
-    const { given, records } = recordsOf(await tableBodyOf(request), assetImportFields)
+    const { given, records } = recordsOf(await tableBodyOf(request), assetFieldsFor)
     const cells = this.kindCellsOf(given)
+    const chosen = chosenPlaceOf(given['place'])
 
     return this.database.forTenant(identity, async (tx) => {
       const plan = planAssets(
@@ -409,6 +427,7 @@ export class ImportsController {
         decisionsOf(given['decisions']),
         await assetImportStock(tx, this.catalogue, records),
         cells,
+        chosen,
       )
 
       if (plan.problems.length > 0) {
