@@ -1,7 +1,7 @@
 import {
   suggestedMapping,
   type TableField,
-  tableNameKey,
+  tableHeadKey,
   type TableRecord,
 } from '@opengewerk/platform-domain'
 import { describe, expect, it } from 'vitest'
@@ -109,7 +109,7 @@ const sharedWords = (fields: readonly TableField[]) =>
       .flatMap((other) =>
         wordsOf(field)
           .filter((word) =>
-            wordsOf(other).some((taken) => tableNameKey(taken) === tableNameKey(word)),
+            wordsOf(other).some((taken) => tableHeadKey(taken) === tableHeadKey(word)),
           )
           .map((word) => `${field.key} and ${other.key}: ${word}`),
       ),
@@ -158,6 +158,21 @@ describe('the fields of a table of places', () => {
           word,
         ).toEqual({ [field.key]: 0 })
       }
+    }
+  })
+
+  it('are suggested for a column whose head writes out ä, ö, ü and ß, as a program without them does', () => {
+    for (const [head, key] of [
+      ['STRASSE UND HAUSNUMMER', 'street'],
+      ['GEBAEUDE', 'building'],
+      ['KUERZEL DES GEBAEUDES', 'shortCode'],
+    ] as const) {
+      expect(
+        suggestedMapping([{ index: 0, name: head, sample: '' }], structureFields),
+        head,
+      ).toEqual({
+        [key]: 0,
+      })
     }
   })
 })

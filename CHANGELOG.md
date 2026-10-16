@@ -35,6 +35,14 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   (`store.write`); Planungskonzept v0.41. Die Verfahrensbeschreibung nennt, dass eine Buchung
   festhält, wer gebucht hat. Migration `0054_stock`.
 
+### Geändert
+
+- Der Import schlägt eine Spalte auch vor, wenn ihr Kopf ä, ö, ü und ß ausschreibt, wie es ein
+  Programm ohne Umlaute tut (GEBAEUDE, STRASSE UND HAUSNUMMER), und umgekehrt (#177). Solche Tabellen
+  kamen bisher ohne Vorschlag an, und jede Spalte musste von Hand zugeordnet werden. Nur die Köpfe:
+  die Werte, an denen der Import Liegenschaften und Gebäude wiedererkennt, bleiben genau. Dafür ist
+  das Submodul des Fundaments angehoben.
+
 ## [0.1.3] - 2026-10-15
 
 Die dritte Nachlieferung für den Pilotbetrieb, aus dem Anlegen der Pläne und dem ersten Blick auf

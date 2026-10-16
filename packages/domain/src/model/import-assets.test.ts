@@ -1,7 +1,7 @@
 import {
   suggestedMapping,
   type TableField,
-  tableNameKey,
+  tableHeadKey,
   type TableRecord,
   tableRecords,
   type TableSheet,
@@ -180,7 +180,7 @@ const sharedWords = (fields: readonly TableField[]) =>
       .flatMap((other) =>
         wordsOf(field)
           .filter((word) =>
-            wordsOf(other).some((taken) => tableNameKey(taken) === tableNameKey(word)),
+            wordsOf(other).some((taken) => tableHeadKey(taken) === tableHeadKey(word)),
           )
           .map((word) => `${field.key} and ${other.key}: ${word}`),
       ),
@@ -231,6 +231,21 @@ describe('the fields of a table of assets', () => {
           word,
         ).toEqual({ [field.key]: 0 })
       }
+    }
+  })
+
+  it('are suggested for a column whose head writes out ä, ö, ü and ß, as a program without them does', () => {
+    for (const [head, key] of [
+      ['GEBAEUDE', 'building'],
+      ['ZAEHLERNUMMER', 'meterNumber'],
+      ['GEWAEHRLEISTUNG BIS', 'warrantyEndsOn'],
+    ] as const) {
+      expect(
+        suggestedMapping([{ index: 0, name: head, sample: '' }], assetImportFields),
+        head,
+      ).toEqual({
+        [key]: 0,
+      })
     }
   })
 })
