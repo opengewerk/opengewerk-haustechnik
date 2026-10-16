@@ -165,16 +165,37 @@ const workEntities = [
  * over the records held: an activity that closed long enough ago or was given
  * to somebody else, and a defect that was set right, are exactly the changes a
  * narrowed pull leaves out, and without that they stayed on the device.
+ *
+ * The people and the documents of a contractor lie in no area (#328), so the
+ * policies hand them to everybody in the operator, whatever areas they see. A
+ * device holds them only for whoever sees the contractors, and names them by
+ * another value without that right: one whose person loses it lets them go,
+ * and one whose person gains it asks for them from the start.
  */
-export function pullScope(scope: DeviceScope): PullScope {
+export function pullScope(scope: DeviceScope, readsContractors: boolean): PullScope {
+  const column = (entity: string, name: string) =>
+    sql`${sql.identifier(entity)}.${sql.identifier(name)}`
+  const firms: Readonly<Record<string, SQL>> = readsContractors
+    ? {}
+    : {
+        contacts: sql`${column('contacts', 'contractor_id')} is null`,
+        attachments: sql`${column('attachments', 'contractor_id')} is null`,
+        attachment_versions: sql`${column('attachment_versions', 'attachment_id')} in
+          (select id from attachments where contractor_id is null)`,
+      }
+  const named = (entity: string, value: string) =>
+    Object.hasOwn(firms, entity) ? `${value}:without-contractors` : value
+
   if (scope.everyArea) {
-    return { narrowed: Object.fromEntries(syncEntities.map((entity) => [entity, 'all'])) }
+    return {
+      narrow: (entity) => (Object.hasOwn(firms, entity) ? firms[entity] : undefined),
+      narrowed: Object.fromEntries(syncEntities.map((entity) => [entity, named(entity, 'all')])),
+    }
   }
 
   const activities = idArray(scope.activityIds)
-  const column = (entity: string, name: string) =>
-    sql`${sql.identifier(entity)}.${sql.identifier(name)}`
   const narrowing: Readonly<Record<string, SQL>> = {
+    ...firms,
     activities: sql`${column('activities', 'id')} = any(${activities})`,
     activity_duties: sql`${column('activity_duties', 'activity_id')} = any(${activities})`,
     activity_answers: sql`${column('activity_answers', 'activity_id')} = any(${activities})`,
@@ -198,7 +219,7 @@ export function pullScope(scope: DeviceScope): PullScope {
   return {
     narrow: (entity) => (Object.hasOwn(narrowing, entity) ? narrowing[entity] : undefined),
     narrowed: {
-      ...Object.fromEntries(placeEntities.map((entity) => [entity, places])),
+      ...Object.fromEntries(placeEntities.map((entity) => [entity, named(entity, places)])),
       ...Object.fromEntries(workEntities.map((entity) => [entity, work])),
       defects: `defects:${fingerprintOf(scope.defectIds)}`,
       // The own tasks, by a fingerprint over those held: one that went to

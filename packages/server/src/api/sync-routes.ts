@@ -1,6 +1,7 @@
 import {
   type Catalogue,
   type Identity,
+  isAllowed,
   offlineEditRefusal,
   offlineRules,
   type Operation,
@@ -252,7 +253,8 @@ async function senderOf(
  * and duty kinds come from. A device holds what its person sees, by area, and
  * of that the part ADR 0006 gives it (`deviceScope`): the whole operator for
  * whoever sees every area, the places, their own activities and the open
- * defects for anybody else.
+ * defects for anybody else, and the people and the documents of the
+ * contractors only for whoever sees the contractors (#328).
  */
 export function syncRoutesFor(
   catalogue: Catalogue,
@@ -262,7 +264,8 @@ export function syncRoutesFor(
     sync: syncFor(catalogue),
     permissionFor,
     answerFor,
-    scope: async ({ tx, identity }) => pullScope(await deviceScope(tx, identity.userId)),
+    scope: async ({ tx, identity }) =>
+      pullScope(await deviceScope(tx, identity.userId), isAllowed(identity, 'contractor.read')),
     senderOf: (identity, operations) => senderOf(database, identity, operations),
   }
 }

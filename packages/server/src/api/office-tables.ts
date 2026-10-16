@@ -724,7 +724,8 @@ export async function taskTable(
 
 /**
  * "Dokumente" as a table: the documents of the places in the areas of the
- * person, as a device of theirs holds them, the one changed last first.
+ * person, and those of the contractors for whoever sees them, as a device of
+ * theirs holds them, the one changed last first.
  * What a document hangs on is named for whoever reads that record: a place
  * with `location.read`, an asset with `asset.read`, an activity with
  * `activity.read` as far as the person is shown it, a defect with
@@ -735,7 +736,10 @@ export async function documentTable(
   identity: Asking,
   asked: { readonly kind: string | null; readonly home: DocumentHome | null },
 ): Promise<OutgoingTable> {
+  // The documents of a contractor lie in no area (#328): only for whoever sees the contractors.
+  const readsFirms = isAllowed(identity, 'contractor.read')
   const filed = (await tx.select().from(attachments).where(isNull(attachments.deletedAt)))
+    .filter((document) => readsFirms || document.contractorId === null)
     .map((document) => ({ ...document, home: documentHomeOf(document) }))
     .filter(
       (document) =>
@@ -788,7 +792,7 @@ export async function documentTable(
         )
 
   // The firms whose documents these are (#328), for whoever sees the contractors.
-  const firms = isAllowed(identity, 'contractor.read')
+  const firms = readsFirms
     ? new Map(
         (await tx.select({ id: contractors.id, name: contractors.name }).from(contractors)).map(
           (row) => [row.id as string, row.name],

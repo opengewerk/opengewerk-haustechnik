@@ -403,19 +403,19 @@ describe('the documents of a contractor (#328)', () => {
     firm: string,
     validUntil: string | null,
     role: RoleKey = 'management',
+    title = 'Zertifikat Fachbetrieb nach DIN 14675',
   ) {
     const header = by(role, large)
     const document = newId<'attachment'>()
-    const outcome = await outcomes(header, [
-      operation('attachments', 'create', document, {
-        title: 'Zertifikat Fachbetrieb nach DIN 14675',
-        kind: 'test_certificate',
-        contractorId: firm,
-      }),
-      await versionOf(header, document, validUntil),
-    ])
+    const created = operation('attachments', 'create', document, {
+      title,
+      kind: 'test_certificate',
+      contractorId: firm,
+    })
+    const version = await versionOf(header, document, validUntil)
+    const outcome = await outcomes(header, [created, version])
 
-    return { document, outcome }
+    return { document, version: version.recordId, outcome }
   }
 
   /** The Objektleitung of the large tenant, which sees the north alone, as one that reads deadlines. */
@@ -498,6 +498,88 @@ describe('the documents of a contractor (#328)', () => {
       answer.status === 400 ||
         (answer.body.receipts as { outcome: string }[]).every((each) => each.outcome !== 'applied'),
     ).toBe(true)
+  })
+
+  /**
+   * A document of a firm lies in no area, so the policies hand it to
+   * everybody in the operator. The file, the table "Dokumente" and a device
+   * give it only to whoever sees the firms, whatever areas they see: a role
+   * of the operator's own may read documents and not the firms.
+   */
+  it('goes out as a file, in the table and to a device only to whoever sees the firms', async () => {
+    const firm = await firmOf('Elektro Beispiel GmbH')
+    const title = 'Betriebshaftpflicht Elektro Beispiel 2027'
+    const { document, version, outcome } = await certificateOf(
+      firm,
+      '2027-12-31',
+      'management',
+      title,
+    )
+
+    expect(outcome).toEqual(['applied', 'applied'])
+
+    /** One of the people, with every right of their role save seeing the firms. */
+    const withoutFirms = (role: RoleKey) =>
+      JSON.stringify({
+        userId: people[role],
+        tenantId: large,
+        roles: [role],
+        rights: [...rightsOfRoles([role])].filter((right) => right !== 'contractor.read'),
+      })
+    const file = (header: string) =>
+      http().get(`/attachments/versions/${version}/content`).set(testIdentityHeader, header)
+    const table = async (header: string) =>
+      (
+        await http()
+          .get('/attachments/table?format=csv')
+          .set(testIdentityHeader, header)
+          .buffer(true)
+          .parse((response, done) => {
+            const parts: Buffer[] = []
+
+            response.on('data', (part: Buffer) => parts.push(part))
+            response.on('end', () => {
+              done(null, Buffer.concat(parts).toString('utf8'))
+            })
+          })
+          .expect(200)
+      ).body as string
+    /** The documents and versions a device of the person holds, and what the answer names them by. */
+    const held = async (header: string) => {
+      const answer = await http().get('/sync?since=0').set(testIdentityHeader, header).expect(200)
+      const changes = answer.body.changes as { entity: string; rows: { id: string }[] }[]
+      const ids = (entity: string) =>
+        (changes.find((change) => change.entity === entity)?.rows ?? []).map((row) => row.id)
+
+      return {
+        documents: ids('attachments'),
+        versions: ids('attachment_versions'),
+        narrowed: answer.body.narrowed as Readonly<Record<string, string>>,
+      }
+    }
+
+    await file(by('management', large)).expect(200)
+    await file(withoutFirms('management')).expect(404)
+    expect(await table(by('management', large))).toContain(title)
+    expect(await table(withoutFirms('management'))).not.toContain(title)
+
+    // On the device of whoever sees every area, and of whoever sees the north alone.
+    for (const role of ['management', 'site_management'] as const) {
+      const theirs = await held(by(role, large))
+      const not = await held(withoutFirms(role))
+
+      expect([theirs.documents, theirs.versions]).toEqual([
+        expect.arrayContaining([document]),
+        expect.arrayContaining([version]),
+      ])
+      expect(not.documents).not.toContain(document)
+      expect(not.versions).not.toContain(version)
+      // Named by another value, so that a device lets them go once the right goes.
+      expect([not.narrowed['attachments'], not.narrowed['attachment_versions']]).toEqual([
+        `${theirs.narrowed['attachments']}:without-contractors`,
+        `${theirs.narrowed['attachment_versions']}:without-contractors`,
+      ])
+    }
   })
 
   it('drops with the firm taken out of the list', async () => {

@@ -19,11 +19,16 @@ export const attachmentRights: AttachmentRights<Right> = {
  * asks and under the policies of both tables: a document outside the areas of
  * the person is not there, and neither is a version of it. A document that is
  * marked is not handed out any more, and a record that is marked takes its
- * documents along (`mark_documents_below`), so nothing is left to look at
- * here before a file goes out. An older version is handed out like the
- * newest.
+ * documents along (`mark_documents_below`). An older version is handed out
+ * like the newest.
+ *
+ * A document of a contractor (#328) lies in no area, so the policies let it
+ * through for everybody in the operator: it goes out only to whoever sees the
+ * contractors, and to anybody else it is not there.
  */
 export const attachmentRoutes: AttachmentRoutes<DocumentPlaceColumns> = {
   tables: { attachments, attachmentVersions },
+  readable: ({ identity, attachment }) =>
+    attachment['contractorId'] === null || identity.rights.includes('contractor.read'),
   gone: documentGone,
 }

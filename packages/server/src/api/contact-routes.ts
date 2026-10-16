@@ -34,8 +34,8 @@ export const contactRights: ContactRights<Right> = {
  * The people to talk to at a property (#85, section 4.1 of the concept) and at
  * a contractor (#328, 4.11), on the routes of the foundation (ADR 0010 of the
  * repository opengewerk). What a contact hangs on here and where it lies is
- * said here. The people of a firm are kept by whoever keeps the firms, on
- * top of the rights of the routes.
+ * said here. The people of a firm are kept by whoever keeps the firms and
+ * read by whoever sees them, on top of the rights of the routes.
  *
  * A contact is made, corrected and taken away with a connection, like the
  * property it hangs on (ADR 0006, point 6); a device holds the contacts of
@@ -49,6 +49,7 @@ export const contactRoutes: ContactRoutes<
   table: contacts,
   rules: operatorContacts,
   parentRight: (field) => (field === 'contractorId' ? 'contractor.write' : null),
+  parentReadRight: (field) => (field === 'contractorId' ? 'contractor.read' : null),
   // The area of a contact is the area of its property, and no request names
   // it. The property has to be there for whoever asks: one that is marked,
   // one of another tenant and one outside the areas of the person are

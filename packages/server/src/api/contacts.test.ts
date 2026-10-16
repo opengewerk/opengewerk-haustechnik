@@ -5,6 +5,7 @@ import {
   contactLimits,
   missingRight,
   type RoleKey,
+  rightsOfRoles,
   type TenantId,
 } from '@opengewerk/haustechnik-domain'
 import { Database, newId } from '@opengewerk/platform-server'
@@ -713,6 +714,70 @@ describe('the people of a contractor (#328)', () => {
     const refused = await asked(placesAlone)
 
     expect([refused.status, refused.body.message]).toEqual([403, missingRight('contractor.write')])
+  })
+
+  /**
+   * The people of a firm lie in no area, so the policies hand them to
+   * everybody in the operator. The list and a device give them only to
+   * whoever sees the firms, whatever areas they see: a role of the operator's
+   * own may read the places and not the firms.
+   */
+  it('are read, in the list and on a device, only by whoever sees the firms', async () => {
+    const firm = await firmOf('Sanitär Beispiel GmbH')
+    const ofTheFirm = (
+      await http()
+        .post('/contacts')
+        .set(testIdentityHeader, by('u-duties', large))
+        .send({ contractorId: firm, familyName: 'Krämer' })
+        .expect(201)
+    ).body.id as string
+    const atAPlace = (await contactAt(await propertyIn(large, { areaId: north }), large))[
+      'id'
+    ] as string
+
+    /** One of the people, with every right of their role save seeing the firms. */
+    const withoutFirms = (userId: Person) =>
+      JSON.stringify({
+        userId,
+        tenantId: large,
+        roles: [people[userId]],
+        rights: [...rightsOfRoles([people[userId] as RoleKey])].filter(
+          (right) => right !== 'contractor.read',
+        ),
+      })
+    const listed = async (header: string) =>
+      (
+        (await http().get('/contacts').set(testIdentityHeader, header).expect(200)).body as {
+          id: string
+        }[]
+      ).map((contact) => contact.id)
+    /** The contacts a device of the person holds, and what the answer names them by. */
+    const held = async (header: string) => {
+      const answer = await http().get('/sync?since=0').set(testIdentityHeader, header).expect(200)
+      const changes = answer.body.changes as { entity: string; rows: { id: string }[] }[]
+
+      return {
+        ids: (changes.find((change) => change.entity === 'contacts')?.rows ?? []).map(
+          (row) => row.id,
+        ),
+        narrowed: (answer.body.narrowed as Readonly<Record<string, string>>)['contacts'],
+      }
+    }
+
+    // Whoever sees every area, and the technician of the north.
+    for (const userId of ['u-lead', 'u-tech'] as const) {
+      const theirs = await held(by(userId, large))
+      const not = await held(withoutFirms(userId))
+
+      expect(await listed(by(userId, large))).toEqual(expect.arrayContaining([ofTheFirm, atAPlace]))
+      expect(await listed(withoutFirms(userId))).toContain(atAPlace)
+      expect(await listed(withoutFirms(userId))).not.toContain(ofTheFirm)
+      expect(theirs.ids).toEqual(expect.arrayContaining([ofTheFirm, atAPlace]))
+      expect(not.ids).toContain(atAPlace)
+      expect(not.ids).not.toContain(ofTheFirm)
+      // Named by another value, so that a device lets them go once the right goes.
+      expect(not.narrowed).toBe(`${theirs.narrowed}:without-contractors`)
+    }
   })
 
   it('are refused at a firm that is not there, and at a firm and a property at once', async () => {
