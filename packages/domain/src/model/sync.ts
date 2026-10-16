@@ -839,6 +839,7 @@ export const syncFieldNames: Readonly<Record<string, string>> = {
   minimumMilli: 'Mindestbestand',
   quantityMilli: 'Menge',
   supplierId: 'Lieferant',
+  counterpartStoreId: 'Anderes Lager',
   bookedBy: 'Gebucht von',
   bookedAt: 'Gebucht am',
   namesAndTimes: 'Namen und Uhrzeiten auf dem Leistungsnachweis',

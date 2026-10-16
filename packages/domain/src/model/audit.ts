@@ -232,6 +232,7 @@ export const auditVocabulary: AuditVocabulary = {
         kind: 'Art',
         quantity_milli: 'Menge in Tausendsteln',
         supplier_id: 'Lieferant',
+        counterpart_store_id: 'Anderes Lager',
         reason: 'Grund',
         booked_by: 'Gebucht von',
         booked_at: 'Gebucht am',
@@ -807,6 +808,8 @@ export const auditVocabulary: AuditVocabulary = {
     store_id: 'stores',
     article_id: 'articles',
     supplier_id: 'suppliers',
+    // The other store of a transfer (#391).
+    counterpart_store_id: 'stores',
     // The firm of the list a duty, an activity and an evidence name (#328).
     contractor_id: 'contractors',
     // The contract a duty fulfils and a document belongs to (#329), and what a

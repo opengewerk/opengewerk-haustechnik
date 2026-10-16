@@ -349,15 +349,30 @@ describe('the stock of a store', () => {
     expect(table.text).not.toContain('Kugelhahn DN 20')
   })
 
-  it('keeps an article no longer kept readable at its bookings, and on the list while something of it lies there', async () => {
+  it('removes an article only once nothing of it lies anywhere, and keeps it readable at its bookings (#391)', async () => {
     const { store, article } = await storeWithArticle()
 
     await book(store, { articleId: article, kind: 'receipt', quantityMilli: 2000 }).expect(201)
+
+    const refused = await http()
+      .delete(`/articles/${article}`)
+      .set(testIdentityHeader, by('u-site'))
+      .expect(409)
+
+    expect((refused.body as { message: string }).message).toMatch(
+      /^Der Artikel hat noch Bestand: 2 Stück in „Lager .+“\. Erst eine Zählung auf null, dann lässt er sich entfernen\.$/,
+    )
+
+    await book(store, {
+      articleId: article,
+      kind: 'count',
+      quantityMilli: 0,
+      reason: 'Ausgesondert',
+    }).expect(201)
     await http().delete(`/articles/${article}`).set(testIdentityHeader, by('u-site')).expect(200)
 
-    expect((await stockOf(store)).lines).toEqual([
-      expect.objectContaining({ articleId: article, removed: true, levelMilli: 2000 }),
-    ])
+    // Removed and with nothing there, it leaves the list of the store.
+    expect((await stockOf(store)).lines).toEqual([])
 
     const page = (
       await http()
@@ -367,7 +382,7 @@ describe('the stock of a store', () => {
     ).body as StoreArticlePage
 
     expect(page.article.designation).toBe('Akku Notleuchte 3,6 V')
-    expect(page.movements).toHaveLength(1)
+    expect(page.movements).toHaveLength(2)
     // A new booking of it is refused.
     await book(store, { articleId: article, kind: 'receipt', quantityMilli: 1000 }).expect(404)
   })
@@ -428,5 +443,165 @@ describe('a booking', () => {
     await expect(
       admin.query('delete from stock_movements where article_id = $1', [article]),
     ).rejects.toMatchObject({ code: 'HT005' })
+  })
+})
+
+describe('a store and an article that go (#391)', () => {
+  function moved(store: string, article: string, body: object, header = by('u-site')) {
+    return http()
+      .post(`/stores/${store}/articles/${article}/move`)
+      .set(testIdentityHeader, header)
+      .send(body)
+  }
+
+  async function pageOf(store: string, article: string): Promise<StoreArticlePage> {
+    return (
+      await http()
+        .get(`/stores/${store}/articles/${article}`)
+        .set(testIdentityHeader, by('u-tech'))
+        .expect(200)
+    ).body as StoreArticlePage
+  }
+
+  function minimum(store: string, article: string, minimumMilli: number) {
+    return http()
+      .put(`/stores/${store}/articles/${article}/minimum`)
+      .set(testIdentityHeader, by('u-site'))
+      .send({ minimumMilli })
+      .expect(200)
+  }
+
+  it('removes a store only while it carries no article, and only for whoever keeps the stores', async () => {
+    const { store, article } = await storeWithArticle()
+    const empty = await made('/stores', { name: `Lager ${newId<'store'>().slice(-6)}` })
+
+    await http().delete(`/stores/${empty.id}`).set(testIdentityHeader, by('u-tech')).expect(403)
+    await http().delete(`/stores/${empty.id}`).set(testIdentityHeader, by('u-site')).expect(200)
+    await http().get(`/stores/${empty.id}/stock`).set(testIdentityHeader, by('u-tech')).expect(404)
+
+    await book(store, { articleId: article, kind: 'receipt', quantityMilli: 1000 }).expect(201)
+
+    const refused = await http()
+      .delete(`/stores/${store}`)
+      .set(testIdentityHeader, by('u-site'))
+      .expect(409)
+
+    expect((refused.body as { message: string }).message).toBe(
+      'Das Lager führt noch 1 Artikel. Ziehen Sie sie zuerst in ein anderes Lager um oder entfernen Sie sie; einen Artikel mit Bestand bringt eine Zählung auf null.',
+    )
+  })
+
+  it('moves an article with its stock as a transfer, and joins it where the other store carries it, keeping its minimum there', async () => {
+    const { store, article } = await storeWithArticle()
+    const target = await made('/stores', { name: `Werkstatt ${newId<'store'>().slice(-6)}` })
+
+    await book(store, { articleId: article, kind: 'receipt', quantityMilli: 3000 }).expect(201)
+    await minimum(store, article, 10_000)
+    await book(target.id, { articleId: article, kind: 'receipt', quantityMilli: 2000 }).expect(201)
+    await minimum(target.id, article, 4000)
+
+    await moved(store, article, { toStoreId: target.id }, by('u-tech')).expect(403)
+
+    const answer = await moved(store, article, {
+      toStoreId: target.id,
+      reason: 'Im falschen Lager angelegt',
+    }).expect(201)
+
+    expect(answer.body).toEqual({ storeId: target.id, articleId: article })
+    expect((await stockOf(store)).lines).toEqual([])
+    expect((await stockOf(target.id)).lines).toEqual([
+      expect.objectContaining({ articleId: article, levelMilli: 5000, minimumMilli: 4000 }),
+    ])
+
+    const here = await pageOf(store, article)
+    const there = await pageOf(target.id, article)
+
+    expect(here.carried).toBe(false)
+    expect(here.levelMilli).toBe(0)
+    expect(here.movements[0]).toMatchObject({
+      kind: 'transfer_out',
+      quantityMilli: 3000,
+      levelAfterMilli: 0,
+      reason: 'Im falschen Lager angelegt',
+      counterpartStore: { id: target.id },
+    })
+    expect(there.carried).toBe(true)
+    expect(there.movements[0]).toMatchObject({
+      kind: 'transfer_in',
+      quantityMilli: 3000,
+      levelAfterMilli: 5000,
+      counterpartStore: { id: store },
+    })
+
+    // Gone from here, it does not move from here a second time.
+    await moved(store, article, { toStoreId: target.id }).expect(404)
+
+    // A booking in the store it left brings its line back.
+    await book(store, { articleId: article, kind: 'receipt', quantityMilli: 1000 }).expect(201)
+    expect((await stockOf(store)).lines).toEqual([
+      expect.objectContaining({ articleId: article, levelMilli: 1000 }),
+    ])
+  })
+
+  it('moves an article without bookings with its minimum and books nothing', async () => {
+    const { store, article } = await storeWithArticle()
+    const target = await made('/stores', { name: `Werkstatt ${newId<'store'>().slice(-6)}` })
+
+    await minimum(store, article, 6000)
+    await moved(store, article, { toStoreId: target.id }).expect(201)
+
+    expect((await stockOf(target.id)).lines).toEqual([
+      expect.objectContaining({ articleId: article, levelMilli: 0, minimumMilli: 6000 }),
+    ])
+
+    const { rows } = await admin.query<{ count: string }>(
+      'select count(*) from stock_movements where article_id = $1',
+      [article],
+    )
+
+    expect(rows[0]?.count).toBe('0')
+  })
+
+  it('moves only an article the store carries, into another live store, and none with a stock below zero', async () => {
+    const { store, article } = await storeWithArticle()
+    const target = await made('/stores', { name: `Werkstatt ${newId<'store'>().slice(-6)}` })
+
+    expect((await moved(store, article, { toStoreId: target.id }).expect(404)).body).toMatchObject({
+      message: 'Dieses Lager führt den Artikel nicht.',
+    })
+
+    await minimum(store, article, 1000)
+    await moved(store, article, { toStoreId: store }).expect(400)
+    await moved(store, article, { toStoreId: newId<'store'>() }).expect(404)
+
+    // More went out than lay there, as two devices without a network can make it.
+    await admin.query(
+      `insert into stock_movements (tenant_id, store_id, article_id, kind, quantity_milli, booked_by, counterpart_store_id)
+       values ($1, $2, $3, 'transfer_out', 1000, 'u-tech', $4)`,
+      [small, store, article, target.id],
+    )
+    expect((await moved(store, article, { toStoreId: target.id }).expect(409)).body).toMatchObject({
+      message:
+        'Der Bestand hier ist negativ. Erst eine Zählung, dann lässt sich der Artikel umziehen.',
+    })
+  })
+
+  it('takes a transfer only with the other store, which the database holds as well', async () => {
+    const { store, article } = await storeWithArticle()
+
+    await expect(
+      admin.query(
+        `insert into stock_movements (tenant_id, store_id, article_id, kind, quantity_milli, booked_by)
+         values ($1, $2, $3, 'transfer_in', 1000, 'u-tech')`,
+        [small, store, article],
+      ),
+    ).rejects.toThrow(/stock_movements_transfer_names_its_store/)
+    await expect(
+      admin.query(
+        `insert into stock_movements (tenant_id, store_id, article_id, kind, quantity_milli, booked_by, counterpart_store_id)
+         values ($1, $2, $3, 'transfer_in', 1000, 'u-tech', $2)`,
+        [small, store, article],
+      ),
+    ).rejects.toThrow(/stock_movements_transfer_elsewhere/)
   })
 })
