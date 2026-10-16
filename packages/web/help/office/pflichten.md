@@ -11,3 +11,4 @@ Ein Vorschlag gilt erst, wenn ihn jemand bestätigt, der das Pflichtenverzeichni
 3. Auf der Seite einer Pflicht die verantwortliche Person benennen.
 4. Dort eine Prüfung oder Wartung anlegen, wenn für den Termin noch kein Vorgang läuft.
 5. „Pflicht beenden“, wenn sie nicht mehr gilt. Sie bleibt mit ihren Nachweisen stehen.
+6. Für eine Begehung oder ein Audit „Nachweisverzeichnis“ ausgeben: je Anlage ihre Pflichten mit dem letzten Nachweis, als PDF oder Tabelle. Im PDF folgen auf Wunsch die Nachweise und Prüfbescheinigungen selbst, jede Zeile nennt die Seite ihres Nachweises.

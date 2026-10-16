@@ -72,9 +72,22 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   entschieden; nur ein sonstiger Auftrag wählt sie, und ein solcher aus der Zeit davor sagt „nicht
   eingeordnet“, bis er geändert wird. Die Seiten von Auftrag und Prüfung nennen sie. Migration
   `0058_basic_measure`.
+- Nachweisverzeichnis (#338): im Pflichtenverzeichnis je Anlage ihre Pflichten mit Fundstelle, Frist,
+  Begründung, letztem Nachweis und nächster Fälligkeit, für eine Liegenschaft, ein Gebäude, einen Bereich
+  und eine Auswahl von Anlagenarten, als PDF im Querformat oder als Tabelle, jeweils für den Tag, an dem
+  es entsteht. Ein Nachweis aus dem Altbestand trägt seine Marke, eine Pflicht ohne Nachweis steht als
+  „Nie erfasst“ darin, beendete Pflichten nur auf Wunsch, und der Dialog sagt vorher, wie viele Pflichten
+  es enthält. Im PDF folgen auf Wunsch die Nachweise und die Prüfbescheinigungen, auf denen sie beruhen,
+  so wie die Anwendung sie aufbewahrt, und jede Zeile nennt die Seite ihres Nachweises. So lässt sich eine
+  Begehung allein aus der Anwendung bestreiten. Erzeugen darf, wer das Pflichtenverzeichnis und die
+  Nachweise ansieht; enthalten ist nur, was die Person in ihren Bereichen sieht. Mit Anhang wiegt es
+  höchstens 200 MB, darüber sagt der Server, die Auswahl einzugrenzen.
 
 ### Geändert
 
+- Das Büro lädt die Bildschirme der Importe und den Dialog des Nachweisverzeichnisses erst, wenn sie
+  geöffnet werden (#338). Der Einstieg des Büros stand an seinem Budget von 450 kB gzip und liegt jetzt
+  bei 440 kB; gebraucht werden die Importe beim Einzug eines Betreibers und selten danach.
 - Der Import schlägt eine Spalte auch vor, wenn ihr Kopf ä, ö, ü und ß ausschreibt, wie es ein
   Programm ohne Umlaute tut (GEBAEUDE, STRASSE UND HAUSNUMMER), und umgekehrt (#177). Solche Tabellen
   kamen bisher ohne Vorschlag an, und jede Spalte musste von Hand zugeordnet werden. Nur die Köpfe:

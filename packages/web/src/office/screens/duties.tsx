@@ -31,8 +31,8 @@ import {
 import { maybeText, request, RequestRefused, useRecords } from '@opengewerk/platform-web/sync'
 import { useInfiniteQuery } from '@tanstack/react-query'
 import { Link, useNavigate, useSearch } from '@tanstack/react-router'
-import { TriangleAlert, Upload } from 'lucide-react'
-import { type ReactNode, useMemo } from 'react'
+import { FileText, TriangleAlert, Upload } from 'lucide-react'
+import { lazy, type ReactNode, Suspense, useMemo, useState } from 'react'
 
 import { titleOfRoom } from '../../app/place-records.js'
 import { ReviewMarks } from '../../app/review-marks.js'
@@ -79,6 +79,12 @@ export const dutyRegisterWords = {
   everybody: 'Alle Personen',
 } as const
 
+// The register of evidence is made a few times a year, for an inspection: its
+// dialog is fetched when it is opened and is no part of the entry of the
+// office, which has a budget (`scripts/budget.js`).
+const EvidenceRegisterDialog = lazy(async () => ({
+  default: (await import('../evidence-register.js')).EvidenceRegisterDialog,
+}))
 /**
  * "Pflichtenverzeichnis" in the office, `pflichten()` of the boards (4.3 of
  * the concept): every duty of the operator with what it hangs on, its source,
@@ -127,6 +133,9 @@ export function DutyRegisterScreen() {
   const entersEvidence = useRight('evidence.write')
   const table = useTableExport(asTableAddress(dutyRegisterRequest(filter, 0)))
   const asTable = !namesAPerson(filter) || seesStaff
+  // The register of evidence for an inspection or an audit (#338), for whoever looks at evidence.
+  const readsEvidence = useRight('evidence.read')
+  const [evidenceRegister, setEvidenceRegister] = useState(false)
 
   const narrowed = Object.keys(filter).length > 0
   const first = pages.data?.pages[0]
@@ -212,6 +221,16 @@ export function DutyRegisterScreen() {
         actions={
           <>
             {asTable ? table.button : null}
+            {readsEvidence ? (
+              <Button
+                icon={FileText}
+                onClick={() => {
+                  setEvidenceRegister(true)
+                }}
+              >
+                Nachweisverzeichnis
+              </Button>
+            ) : null}
             {keepsDuties && entersEvidence ? (
               <Button
                 icon={Upload}
@@ -431,6 +450,16 @@ export function DutyRegisterScreen() {
           </tbody>
         </TablePanel>
       )}
+      {evidenceRegister ? (
+        <Suspense fallback={null}>
+          <EvidenceRegisterDialog
+            filter={filter}
+            onClose={() => {
+              setEvidenceRegister(false)
+            }}
+          />
+        </Suspense>
+      ) : null}
     </Screen>
   )
 }

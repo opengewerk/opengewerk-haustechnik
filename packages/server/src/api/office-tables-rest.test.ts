@@ -1,3 +1,9 @@
+import { createHash } from 'node:crypto'
+import { mkdtempSync, rmSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
+
+import { PDFDocument } from '@cantoo/pdf-lib'
 import type { INestApplication } from '@nestjs/common'
 import { Test } from '@nestjs/testing'
 import { catalogueBundle } from '@opengewerk/haustechnik-catalogue'
@@ -10,6 +16,8 @@ import {
   type DutyProposals,
   type DutyRegister,
   dutyTableWords,
+  evidenceRegisterColumns,
+  evidenceRegisterWords,
   type IsoDate,
   type MeterList,
   meterMediumLabel,
@@ -22,7 +30,7 @@ import {
   type TenantId,
   weekNamed,
 } from '@opengewerk/haustechnik-domain'
-import { Database, newId } from '@opengewerk/platform-server'
+import { Database, FileStore, newId, type PrintJob } from '@opengewerk/platform-server'
 import type { Pool } from 'pg'
 import request from 'supertest'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
@@ -33,6 +41,11 @@ import {
   resetToMigrated,
   testIdentityHeader,
 } from '../database/test-database.js'
+import {
+  writtenColumnNames,
+  writtenPlaceholders,
+  writtenValues,
+} from '../database/test-evidence.js'
 import { dayInGermany } from '../today.js'
 import { ApiModule } from './api.module.js'
 import type { TemplateRounds } from './round-templates.controller.js'
@@ -75,9 +88,25 @@ const catalogue = catalogueOf({
 })
 const today = dayInGermany()
 
+/** What the renderer was handed, newest last (#338). */
+const rendered: PrintJob[] = []
+
+/** A PDF of empty pages, as the renderer or a contractor might send one. */
+async function pdfOfPages(count: number): Promise<Uint8Array> {
+  const made = await PDFDocument.create()
+
+  for (let page = 0; page < count; page += 1) {
+    made.addPage()
+  }
+
+  return made.save()
+}
+
 let admin: Pool
 let database: Database
 let app: INestApplication
+/** Where the files of the tests lie: the report behind the register of evidence (#338). */
+let folder = ''
 
 function http() {
   return request(app.getHttpServer())
@@ -198,6 +227,7 @@ async function dutyAt(
 }
 
 beforeAll(async () => {
+  folder = mkdtempSync(join(tmpdir(), 'haustechnik-office-tables-'))
   admin = await connect()
   await resetToMigrated()
 
@@ -262,7 +292,17 @@ beforeAll(async () => {
   database = Database.connect(applicationDatabaseUrl())
 
   const built = await Test.createTestingModule({
-    imports: [ApiModule.create(database, testIdentities, { catalogue })],
+    imports: [
+      ApiModule.create(database, testIdentities, {
+        catalogue,
+        renderer: async (job) => {
+          rendered.push(job)
+
+          return pdfOfPages(1)
+        },
+        files: new FileStore(folder),
+      }),
+    ],
   }).compile()
 
   app = built.createNestApplication()
@@ -273,6 +313,7 @@ afterAll(async () => {
   await app.close()
   await database.close()
   await admin.end()
+  rmSync(folder, { recursive: true, force: true })
 })
 
 describe('the meters as a table (#236)', () => {
@@ -698,6 +739,228 @@ describe('the register of duties as a table (#236)', () => {
       expect(table).toHaveLength(2)
       expect(table[1]?.at(-1)).toBe(`Beendet seit ${dayInWords(addDays(today, -30))}`)
       expect(stampIn(table, stamps)).toEqual([])
+    }
+  })
+})
+
+describe('the register of evidence as a table (#338)', () => {
+  const path = '/duties/evidence-register/table'
+
+  /** An evidence of a duty on a day, put in past the application: signed here, or from the old stock. */
+  async function evidenceOf(duty: string, performedOn: IsoDate, legacy = false): Promise<string> {
+    const values = [...writtenValues('u-duties', performedOn, 'without_defects')]
+
+    if (legacy) {
+      values[2] = 'legacy'
+    }
+
+    await admin.query(
+      `insert into evidence (tenant_id, property_id, area_id, duty_id, performed_on, result,
+                             ${writtenColumnNames})
+       select tenant_id, property_id, area_id, id, $2::date, 'without_defects'::evidence_result,
+              ${writtenPlaceholders(3)}
+         from duties where id = $1`,
+      [duty, performedOn, ...values],
+    )
+
+    return String(values[1])
+  }
+
+  it('holds a row per duty with its last evidence, marks the old stock and what was never recorded, and counts as the register does', async () => {
+    const { property, asset } = await liftIn('Nachweishaus')
+    const doors = await dutyAt(asset, 'Türen prüfen')
+    const call = await dutyAt(asset, 'Notruf prüfen')
+
+    await dutyAt(asset, 'Schacht prüfen')
+
+    const signed = await evidenceOf(doors, addDays(today, -3))
+    const old = await evidenceOf(call, addDays(today, -20), true)
+    const columns = [...evidenceRegisterColumns]
+    const pick = (row: readonly string[]) => [
+      row[columns.indexOf('Pflicht')],
+      row[columns.indexOf('Nummer des Nachweises')],
+      row[columns.indexOf('Kennzeichnung')],
+    ]
+
+    for (const format of ['xlsx', 'csv'] as const) {
+      const table = await tableOf(path, { propertyId: property }, by('u-duties'), format)
+
+      expect(table[0]).toEqual(columns)
+      expect(table.slice(1).map(pick)).toEqual([
+        ['Notruf prüfen', old, evidenceRegisterWords.legacy],
+        ['Schacht prüfen', '', evidenceRegisterWords.never],
+        ['Türen prüfen', signed, ''],
+      ])
+    }
+
+    const register = (
+      await http()
+        .get('/duties/register')
+        .query({ propertyId: property })
+        .set(testIdentityHeader, by('u-duties'))
+        .expect(200)
+    ).body as DutyRegister
+
+    expect(register.total).toBe(3)
+
+    // The same as a PDF on A4 across, made for today.
+    const before = rendered.length
+    const answer = await http()
+      .get('/duties/evidence-register/pdf')
+      .query({ propertyId: property })
+      .set(testIdentityHeader, by('u-duties'))
+      .expect(200)
+
+    expect(answer.headers['content-type']).toContain('application/pdf')
+    expect(rendered).toHaveLength(before + 1)
+
+    const job = rendered.at(-1)
+
+    expect(job?.landscape).toBe(true)
+
+    for (const words of ['Notruf prüfen', 'Schacht prüfen', 'Türen prüfen', signed, old]) {
+      expect(job?.html).toContain(words)
+    }
+
+    expect(job?.html).toContain(evidenceRegisterWords.legacy)
+    expect(job?.html).toContain(evidenceRegisterWords.never)
+    expect(job?.html).toContain('3 Pflichten an 1 Anlage, davon 1 nie erfasst.')
+    expect(
+      (
+        await http()
+          .get('/duties/evidence-register')
+          .query({ propertyId: property })
+          .set(testIdentityHeader, by('u-duties'))
+          .expect(200)
+      ).body,
+    ).toEqual({ duties: register.total, assets: 1, never: 1 })
+  })
+
+  it('names where a duty comes from as the register of duties does: for one from the catalogue the source of its kind', async () => {
+    const { property, asset } = await liftIn('Nachweishaus Katalog')
+    // The main test of a lift, from the package of the tests.
+    const kind = 'probe.elevator_main_test'
+
+    await http()
+      .post('/duties')
+      .set(testIdentityHeader, by('u-duties'))
+      .send({ assetId: asset, kind, intervalMonths: 24 })
+      .expect(201)
+    await dutyAt(asset, 'Türen prüfen')
+
+    const source = catalogue.dutyKind(kind, today)?.definition.source ?? ''
+    const columns = [...evidenceRegisterColumns]
+    const table = await tableOf(path, { propertyId: property }, by('u-duties'), 'csv')
+
+    expect(source).not.toBe('')
+    expect(
+      table
+        .slice(1)
+        .map((row) => row[columns.indexOf('Fundstelle')])
+        .sort(),
+    ).toEqual([source, 'Eigene Festlegung, Hausordnung'].sort())
+  })
+
+  it('has the evidence behind it with attach, each evidence and the report it rests on, and every row names its page', async () => {
+    // A tenant of its own, so that the report filed today stands in no other table.
+    const tenant = newId<'tenant'>() as TenantId
+
+    await admin.query('insert into tenants (id, name) values ($1, $2)', [tenant, 'Anhang Probe'])
+    await admin.query(
+      `insert into memberships (tenant_id, user_id, roles) values ($1, 'u-duties', '{technical_management}')`,
+      [tenant],
+    )
+
+    const { property, asset } = await liftIn('Nachweishaus Anhang', tenant)
+    const doors = await dutyAt(asset, 'Türen prüfen')
+    const call = await dutyAt(asset, 'Notruf prüfen')
+
+    await dutyAt(asset, 'Schacht prüfen')
+
+    // The report of the doors comes as a PDF of two pages, sent ahead as the office does.
+    const report = Buffer.from(await pdfOfPages(2))
+    const sha256 = createHash('sha256').update(report).digest('hex')
+
+    await http()
+      .put(`/files/${sha256}`)
+      .set('content-type', 'application/octet-stream')
+      .set('x-media-type', 'application/pdf')
+      .set(testIdentityHeader, by('u-duties', tenant))
+      .send(report)
+      .expect(200)
+    await http()
+      .post(`/duties/${doors}/report`)
+      .set(testIdentityHeader, by('u-duties', tenant))
+      .send({
+        performedOn: addDays(today, -3),
+        result: 'without_defects',
+        resultReason: null,
+        examiner: 'Klaus Berger',
+        examinerOrganisation: 'Prüfstelle Beispiel',
+        file: { sha256, fileName: 'bericht.pdf', sizeBytes: report.length, previewSha256: null },
+        defects: [],
+      })
+      .expect(201)
+    await evidenceOf(call, addDays(today, -20), true)
+
+    const answer = await http()
+      .get('/duties/evidence-register/pdf')
+      .query({ propertyId: property, attach: '1' })
+      .set(testIdentityHeader, by('u-duties', tenant))
+      .buffer(true)
+      .parse((response, done) => {
+        const chunks: Buffer[] = []
+
+        response.on('data', (chunk: Buffer) => chunks.push(chunk))
+        response.on('end', () => {
+          done(null, Buffer.concat(chunks))
+        })
+      })
+      .expect(200)
+    const whole = await PDFDocument.load(answer.body as Buffer)
+    const html = rendered.at(-1)?.html ?? ''
+
+    // The list on one page, then the call: its print. Then the doors: their
+    // print and the two pages of the report. The shaft has nothing to follow.
+    expect(whole.getPageCount()).toBe(1 + 1 + 1 + 2)
+    expect(html).toContain('Die Nachweise folgen ab Seite 2.')
+    expect([...html.matchAll(/<td class="page">(\d*)<\/td>/g)].map((match) => match[1])).toEqual([
+      '2',
+      '',
+      '3',
+    ])
+    expect(rendered.at(-1)?.footerHtml).toContain('von 5')
+  })
+
+  it('holds nothing of an area the person does not see, and is for whoever looks at duties and evidence', async () => {
+    const { property, asset } = await liftIn('Nachweishaus Süd', large, { areaId: south })
+
+    await dutyAt(asset, 'Türen prüfen')
+
+    // The technician works in the north of the large tenant.
+    expect(await tableOf(path, { propertyId: property }, by('u-tech', large))).toEqual([
+      [...evidenceRegisterColumns],
+    ])
+    expect(
+      (await tableOf(path, { propertyId: property }, by('u-duties', large))).slice(1).length,
+    ).toBe(1)
+    // Nor does its PDF hold the duty.
+    await http()
+      .get('/duties/evidence-register/pdf')
+      .query({ propertyId: property })
+      .set(testIdentityHeader, by('u-tech', large))
+      .expect(200)
+    expect(rendered.at(-1)?.html).not.toContain('Türen prüfen')
+    // It is the register of duties with its evidence: whoever makes it reads both.
+    for (const route of [path, '/duties/evidence-register/pdf', '/duties/evidence-register']) {
+      expect(await refusalOf(route, { propertyId: property }, leading('duty.read'))).toEqual({
+        status: 403,
+        message: missingRight('evidence.read'),
+      })
+      expect(await refusalOf(route, { propertyId: property }, leading('evidence.read'))).toEqual({
+        status: 403,
+        message: missingRight('duty.read'),
+      })
     }
   })
 })

@@ -12,7 +12,9 @@ import {
   Patch,
   Post,
   Query,
+  Res,
   StreamableFile,
+  UnprocessableEntityException,
 } from '@nestjs/common'
 import {
   type Asset,
@@ -52,6 +54,11 @@ import {
   type DutyUpdates,
   dutyTaskLabel,
   dutyTasks,
+  evidenceRegisterBlocks,
+  type EvidenceId,
+  type EvidenceRegisterCount,
+  evidenceRegisterCount,
+  evidenceRegisterWords,
   type FederalState,
   type IntervalKind,
   intervalDocumentProblem,
@@ -108,7 +115,23 @@ import { listedEvidence } from './evidence.controller.js'
 import { dutyProposalFilter, dutyProposals } from './duty-proposals.js'
 import { dutyReading, dutyRegister, dutyRegisterQuestion } from './duty-register.js'
 import { decideUpdates, dutyUpdates, updatePlaceOf } from './duty-updates.js'
-import { dutyTable, proposalTable, wholeList } from './office-tables.js'
+import { evidenceRegisterEntries, evidenceRegisterQuestion } from './evidence-register.js'
+import {
+  dutyTable,
+  evidenceRegisterNames,
+  evidenceRegisterTable,
+  placeNamesFor,
+  proposalTable,
+  wholeList,
+} from './office-tables.js'
+import { keeperOf } from '../labels/faces.js'
+import {
+  carriedWith,
+  type EvidenceAttachment,
+  withEvidenceBehind,
+} from '../prints/evidence-bundle.js'
+import { type EvidencePages, evidenceRegisterPrintJob } from '../prints/evidence-register-page.js'
+import { pdf, Printer } from './prints.controller.js'
 import { said } from './register-question.js'
 import { type Asking, fieldsOf, placeOf, refuse } from './places.js'
 
@@ -742,11 +765,24 @@ async function dismissalAt(
  * allows: the maximum of the day it was confirmed is kept beside it, and the
  * database refuses a longer interval as this route does.
  */
+/**
+ * The register of evidence (#338) is the register of duties with its
+ * evidence: whoever makes it reads both, the duties by the route and the
+ * evidence here. Every shipped role with the one has the other; a role of an
+ * operator's own need not.
+ */
+function readsEvidence(identity: Asking): void {
+  if (!isAllowed(identity, 'evidence.read')) {
+    throw new ForbiddenException(missingRight('evidence.read'))
+  }
+}
+
 @Controller('duties')
 export class DutiesController {
   constructor(
     private readonly database: Database,
     @Inject(CATALOGUE) private readonly catalogue: Catalogue,
+    private readonly printer: Printer,
   ) {}
 
   /** The duties the person asking sees, of one asset, room, building or property where one is named. */
@@ -971,6 +1007,160 @@ export class DutiesController {
           this.catalogue,
           identity,
           read.duties.map((duty) => ({ ...duty, responsible: named(duty.responsibleUserId) })),
+        ),
+        format,
+        today,
+      ),
+    )
+  }
+
+  /**
+   * What the register of evidence would hold under a choice (#338): how many
+   * duties, on how many assets, and how many were never recorded. The dialog
+   * says it before anybody makes the register, and it is the count of the
+   * register of duties under the same choice (acceptance 3).
+   */
+  @Get('evidence-register')
+  @RequiresPermission('duty.read')
+  @Header('Cache-Control', 'no-store')
+  evidenceRegisterCount(
+    @CurrentIdentity() identity: Asking,
+    @Query() query: Record<string, unknown>,
+  ): Promise<EvidenceRegisterCount> {
+    readsEvidence(identity)
+
+    const question = evidenceRegisterQuestion(query)
+
+    return this.database.forTenant(identity, async (tx) =>
+      evidenceRegisterCount(
+        await evidenceRegisterEntries(tx, this.catalogue, dayInGermany(), question),
+      ),
+    )
+  }
+
+  /**
+   * The register of evidence as a PDF on A4 across (#338): a block per
+   * asset, a line per duty with its last evidence, for the day it is asked
+   * for. Made now and not kept, since it says how things stand today. With
+   * `attach=1` the evidence follows the list in the same document, each
+   * evidence once, as the PDF it keeps and the files it rests on, and every
+   * line names the page its evidence begins on (decided by Moritz on
+   * 15.10.2026).
+   */
+  @Get('evidence-register/pdf')
+  @RequiresPermission('duty.read')
+  async evidenceRegisterPdf(
+    @CurrentIdentity() identity: Asking,
+    @Query() query: Record<string, unknown>,
+    @Res({ passthrough: true }) response: { setHeader(name: string, value: string): void },
+  ): Promise<StreamableFile> {
+    readsEvidence(identity)
+
+    const question = evidenceRegisterQuestion(query)
+    const today = dayInGermany()
+    const made = await this.database.forTenant(identity, async (tx) => {
+      const entries = await evidenceRegisterEntries(tx, this.catalogue, today, question)
+      const named = await evidenceRegisterNames(tx, identity)
+      const names = await placeNamesFor(tx, identity)
+      const kinds = question.assetKinds.map(
+        (kind) => this.catalogue.assetKind(kind, today)?.definition.label ?? kind,
+      )
+      const choice = [
+        question.place.propertyId === undefined
+          ? 'Alle Liegenschaften'
+          : (names?.property(question.place.propertyId) ?? 'Liegenschaft'),
+        question.place.buildingId === undefined
+          ? 'alle Gebäude'
+          : (names?.building(question.place.buildingId) ?? 'Gebäude'),
+        kinds.length === 0 ? 'alle Anlagenarten' : `Anlagenarten ${kinds.join(', ')}`,
+        question.ended ? 'mit beendeten Pflichten' : 'ohne beendete Pflichten',
+      ].join(', ')
+
+      return {
+        head: {
+          today,
+          operator: await keeperOf(tx),
+          choice: `${choice}.`,
+          count: evidenceRegisterCount(entries),
+        },
+        blocks: evidenceRegisterBlocks(entries),
+        named,
+      }
+    })
+    const listed = (attached: EvidencePages | null) =>
+      this.printer.fresh(evidenceRegisterPrintJob(made.head, made.blocks, made.named, attached))
+
+    if (query['attach'] !== '1') {
+      return pdf(response, await listed(null), `Nachweisverzeichnis ${today}`)
+    }
+
+    // The evidence behind the list, in the order of its rows, each once: the
+    // print it keeps and the files it rests on, read as the person, so that
+    // nothing beyond their areas follows the list either.
+    const attachments: EvidenceAttachment<EvidenceId>[] = []
+    const evidenceIds = new Set(
+      made.blocks.flatMap((block) =>
+        block.lines.flatMap((line) => (line.evidenceId === null ? [] : [line.evidenceId])),
+      ),
+    )
+
+    let carried = 0
+
+    for (const evidenceId of evidenceIds) {
+      const printed = await this.printer.evidencePrint(identity, evidenceId)
+
+      if (printed !== null) {
+        const attachment = {
+          key: evidenceId,
+          print: printed.bytes,
+          files: await this.printer.evidenceFiles(identity, evidenceId),
+        }
+        const next = carriedWith(carried, attachment)
+
+        // A register past the limit is refused rather than read whole into memory.
+        if (next === null) {
+          throw new UnprocessableEntityException(evidenceRegisterWords.tooLarge)
+        }
+
+        carried = next
+        attachments.push(attachment)
+      }
+    }
+
+    return pdf(
+      response,
+      await withEvidenceBehind(attachments, listed),
+      `Nachweisverzeichnis mit Nachweisen ${today}`,
+    )
+  }
+
+  /**
+   * The register of evidence as a table (#338, section 4.3 of the concept):
+   * every duty the choice names with its last evidence, for an inspection or
+   * an audit, as a workbook or as text (`?format=xlsx` or `csv`). Whoever
+   * looks at evidence makes it; it names nobody who answers for a duty.
+   *
+   * Before the page of a duty, like the register.
+   */
+  @Get('evidence-register/table')
+  @RequiresPermission('duty.read')
+  @Header('Cache-Control', 'no-store')
+  async evidenceRegister(
+    @CurrentIdentity() identity: Asking,
+    @Query() query: Record<string, unknown>,
+  ): Promise<StreamableFile> {
+    readsEvidence(identity)
+
+    const format = tableFormatOf(query)
+    const question = evidenceRegisterQuestion(query)
+    const today = dayInGermany()
+
+    return this.database.forTenant(identity, async (tx) =>
+      tableAnswer(
+        await evidenceRegisterTable(
+          tx,
+          identity,
+          await evidenceRegisterEntries(tx, this.catalogue, today, question),
         ),
         format,
         today,
