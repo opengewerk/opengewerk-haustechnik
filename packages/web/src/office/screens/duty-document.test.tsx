@@ -180,6 +180,8 @@ function duty(further: Readonly<Record<string, unknown>> = {}): DutyDetails {
     removable: false,
     intervalDocument: pointedAt,
     intervalToCheck: true,
+    contractEnded: false,
+    contract: null,
     asset: {
       id: lift.id,
       number: 'AN-00012',

@@ -111,6 +111,8 @@ const kindOf: Readonly<Record<string, string>> = {
   rounds: 'activities',
   'work-orders': 'activities',
   meters: 'assets',
+  // The contracts that cover an asset (#329).
+  'at-asset': 'assets',
 }
 
 /**

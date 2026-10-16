@@ -15,6 +15,7 @@ import {
 import { activities } from './activities.js'
 import { areaFromPropertyColumn, areaFromTheProperty, withinAreasOrNone } from './areas.js'
 import { assets } from './assets.js'
+import { contracts } from './contracts.js'
 import { contractors } from './contractors.js'
 import { defects } from './defects.js'
 import { buildings, properties, rooms, trimmed } from './locations.js'
@@ -37,6 +38,8 @@ const documentPlace = {
   areaId: reference<'area'>('area_id'),
   /** The contractor whose certificate or insurance it is (#328); then no property and no area. */
   contractorId: reference<'contractor'>('contractor_id'),
+  /** The contract it belongs to (#329); then no property and no area either. */
+  contractId: reference<'contract'>('contract_id'),
   areaFromPropertyId: areaFromPropertyColumn(),
   buildingId: reference<'building'>('building_id'),
   roomId: reference<'room'>('room_id'),
@@ -115,11 +118,18 @@ export const { attachments, attachmentVersions } = attachmentsSchema({
       foreignColumns: [contractors.tenantId, contractors.id],
       name: 'attachments_of_a_contractor',
     }),
+    foreignKey({
+      columns: [table.tenantId, table.contractId],
+      foreignColumns: [contracts.tenantId, contracts.id],
+      name: 'attachments_of_a_contract',
+    }),
+    // At a place, at a contractor or at a contract (#329), exactly one.
     check(
       'attachments_at_a_place_or_a_contractor',
-      sql`(${table.contractorId} is null) = (${table.propertyId} is not null) and (${table.areaId} is null) = (${table.propertyId} is null)`,
+      sql`num_nonnulls(${table.propertyId}, ${table.contractorId}, ${table.contractId}) = 1 and (${table.areaId} is null) = (${table.propertyId} is null)`,
     ),
     index('attachments_contractor_idx').on(table.tenantId, table.contractorId),
+    index('attachments_contract_idx').on(table.tenantId, table.contractId),
     // The area of what the row hangs on (ADR 0003, addendum of #306).
     foreignKey({
       columns: [table.tenantId, table.buildingId, table.areaId],

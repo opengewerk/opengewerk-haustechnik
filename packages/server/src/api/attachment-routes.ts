@@ -29,6 +29,8 @@ export const attachmentRights: AttachmentRights<Right> = {
 export const attachmentRoutes: AttachmentRoutes<DocumentPlaceColumns> = {
   tables: { attachments, attachmentVersions },
   readable: ({ identity, attachment }) =>
-    attachment['contractorId'] === null || identity.rights.includes('contractor.read'),
+    (attachment['contractorId'] === null || identity.rights.includes('contractor.read')) &&
+    // The documents of a contract (#329), only for whoever reads the contracts.
+    (attachment['contractId'] === null || identity.rights.includes('contract.read')),
   gone: documentGone,
 }

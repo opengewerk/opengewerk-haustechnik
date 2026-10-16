@@ -27,6 +27,7 @@ import {
   attachments,
   buildings,
   contractors,
+  contracts,
   defects,
   floors,
   properties,
@@ -433,6 +434,20 @@ async function documentPlace(
 
     if (!firm) {
       return missing('contractorId')
+    }
+
+    values['areaId'] = null
+
+    return null
+  }
+
+  // The document of a contract (#329) lies in no area either: the contract
+  // has to be there.
+  if (given(values['contractId'])) {
+    const contract = await found<{ id: string }>(tx, contracts, values['contractId'])
+
+    if (!contract) {
+      return missing('contractId')
     }
 
     values['areaId'] = null

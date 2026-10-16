@@ -100,6 +100,9 @@ function duty(further: Readonly<Record<string, unknown>> = {}): DutyDetails {
     intervalDocumentVersionId: null,
     intervalDocument: null,
     intervalToCheck: false,
+    contractId: null,
+    contractEnded: false,
+    contract: null,
     asset: {
       id: 'a-lift',
       number: 'AN-00012',
@@ -293,6 +296,31 @@ describe('the page of a duty', () => {
     expect(leadsTo('Schulzentrum Am Lindenhain')).toBe('/liegenschaften/p-school')
     expect(leadsTo('Schulhaus')).toBe('/gebaeude/b-house')
     expect(leadsTo('E.14 Heizraum')).toBe('/raeume/r-boiler')
+  })
+
+  it('names the contract it fulfils, and says "Vertrag abgelaufen" once it has ended (#329)', async () => {
+    await opened(
+      'technical_management',
+      duty({
+        contractId: 'k-electric',
+        contractEnded: true,
+        contract: { id: 'k-electric', title: 'Elektroprüfung 2025', endedOn: '2026-09-16' },
+      }),
+    )
+
+    expect(head()).toContain('Vertrag abgelaufen')
+    expect(facts()['Vertrag']).toBe('Elektroprüfung 2025abgelaufen am 16.09.2026')
+    expect(leadsTo('Elektroprüfung 2025')).toBe('/vertraege/k-electric')
+  })
+
+  it('says that its contract has ended to whoever does not read the contracts, without naming it', async () => {
+    await opened(
+      'technician',
+      duty({ contractId: 'k-electric', contractEnded: true, contract: null }),
+    )
+
+    expect(head()).toContain('Vertrag abgelaufen')
+    expect(facts()['Vertrag']).toBeUndefined()
   })
 
   it('shows a duty of the operator own at a room: its basis, its source and its task, and that nobody answers for it', async () => {

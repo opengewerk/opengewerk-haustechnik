@@ -72,4 +72,6 @@ export const serverPaths: readonly string[] = [
   'stores',
   // The contractors of the operator (#328).
   'contractors',
+  // The contracts with them (#329).
+  'contracts',
 ]

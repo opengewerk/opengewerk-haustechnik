@@ -243,6 +243,11 @@ export const syncPolicies: Readonly<Record<string, SyncPolicy>> = {
   // without the right to see them by their name alone (#377). Tenant-wide,
   // without an area.
   contractors: officeOnly,
+  // The contracts with the contractors (#329): kept in the office, with a
+  // connection, and held only by the devices of whoever reads them, for the
+  // name of the contract a document or a duty names. Tenant-wide, without an
+  // area.
+  contracts: officeOnly,
   // The labels on the shelves of a store (#326): made in the office, held by
   // every device, which reads them like the barcode of an article.
   store_labels: officeOnly,
@@ -471,6 +476,7 @@ export const offlineEdits: Readonly<Record<string, OfflineEdits>> = {
       title: true,
       kind: true,
       contractorId: true,
+      contractId: true,
       propertyId: true,
       buildingId: true,
       roomId: true,
@@ -599,6 +605,7 @@ export const syncEntityNames: Readonly<Record<string, string>> = {
   stock_movements: 'Buchung im Lager',
   store_labels: 'Etikett eines Lagerfachs',
   contractors: 'Fremdfirma',
+  contracts: 'Vertrag',
   work_order_materials: 'Material am Auftrag',
   tasks: 'Aufgabe',
 }
@@ -718,6 +725,13 @@ export const syncFieldNames: Readonly<Record<string, string>> = {
   contractorNote: 'Fremdfirma',
   contractorId: 'Fremdfirma aus der Liste',
   services: 'Leistungen',
+  contractId: 'Vertrag',
+  renewalMonths: 'Verlängerung in Monaten',
+  noticeAmount: 'Kündigungsfrist',
+  noticeUnit: 'Einheit der Kündigungsfrist',
+  cancelledTo: 'Gekündigt zum',
+  responseTime: 'Reaktionszeit',
+  price: 'Preis',
   closingReason: 'Grund',
   performedOn: 'Durchgeführt am',
   countersignatureRequired: 'Gegenzeichnung verlangt',

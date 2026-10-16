@@ -17,9 +17,11 @@ import type { Asking } from '../api/places.js'
 import { dutyTitle } from '../database/duty-standing.js'
 import type { ApplicationDeadlineColumns } from '../database/schema/deadlines.js'
 import {
+  activities,
   assets,
   attachments,
   contractors,
+  contracts,
   deadlines,
   defects,
   duties,
@@ -27,6 +29,7 @@ import {
   rooms,
   roundPlans,
   roundTemplates,
+  workOrders,
 } from '../database/schema/index.js'
 import { deadlineKindRegistry } from './registry.js'
 
@@ -154,14 +157,93 @@ export function deadlineRulesFor(
                 // by the maintainer on 16.10.2026, #377).
                 contractorId: contractors.id,
                 contractorName: contractors.name,
+                // The contract of a contract's document (#329), which has no place either.
+                contractId: contracts.id,
+                contractTitle: contracts.title,
               })
               .from(attachments)
               .leftJoin(assets, eq(assets.id, attachments.assetId))
               .leftJoin(rooms, eq(rooms.id, attachments.roomId))
               .leftJoin(contractors, eq(contractors.id, attachments.contractorId))
+              .leftJoin(contracts, eq(contracts.id, attachments.contractId))
               .where(inArray(attachments.id, documentIds))
       const byDocument = new Map<string, (typeof foundDocuments)[number]>(
         foundDocuments.map((document) => [document.id, document]),
+      )
+      // The contracts whose day to give notice or end a deadline follows (#329),
+      // with their firm. Whoever reads deadlines reads what such a deadline
+      // says: the title of the contract, the firm and the day.
+      const contractIds = [
+        ...new Set(rows.flatMap((row) => (row.contractId === null ? [] : [row.contractId]))),
+      ]
+      const foundContracts =
+        contractIds.length === 0
+          ? []
+          : await tx
+              .select({
+                id: contracts.id,
+                title: contracts.title,
+                contractorId: contractors.id,
+                contractorName: contractors.name,
+              })
+              .from(contracts)
+              .innerJoin(contractors, eq(contractors.id, contracts.contractorId))
+              .where(inArray(contracts.id, contractIds))
+      const byContract = new Map<string, (typeof foundContracts)[number]>(
+        foundContracts.map((contract) => [contract.id, contract]),
+      )
+      // The assets and the accepted work orders whose warranty ends (#329).
+      const warrantyAssetIds = [
+        ...new Set(
+          rows.flatMap((row) => (row.warrantyAssetId === null ? [] : [row.warrantyAssetId])),
+        ),
+      ]
+      const warrantyOrderIds = [
+        ...new Set(
+          rows.flatMap((row) => (row.warrantyOrderId === null ? [] : [row.warrantyOrderId])),
+        ),
+      ]
+      const foundAssets =
+        warrantyAssetIds.length === 0
+          ? []
+          : await tx
+              .select({
+                id: assets.id,
+                number: assets.number,
+                name: assets.name,
+                buildingId: assets.buildingId,
+                roomId: assets.roomId,
+              })
+              .from(assets)
+              .where(inArray(assets.id, warrantyAssetIds))
+      const byAsset = new Map<string, (typeof foundAssets)[number]>(
+        foundAssets.map((asset) => [asset.id, asset]),
+      )
+      const foundOrders =
+        warrantyOrderIds.length === 0
+          ? []
+          : await tx
+              .select({
+                id: workOrders.id,
+                activityId: activities.id,
+                number: workOrders.number,
+                title: activities.title,
+                buildingId: activities.buildingId,
+                roomId: activities.roomId,
+                assetId: activities.assetId,
+                assetNumber: assets.number,
+                assetName: assets.name,
+                assetBuildingId: assets.buildingId,
+                assetRoomId: assets.roomId,
+                roomBuildingId: rooms.buildingId,
+              })
+              .from(workOrders)
+              .innerJoin(activities, eq(activities.id, workOrders.activityId))
+              .leftJoin(assets, eq(assets.id, activities.assetId))
+              .leftJoin(rooms, eq(rooms.id, activities.roomId))
+              .where(inArray(workOrders.id, warrantyOrderIds))
+      const byOrder = new Map<string, (typeof foundOrders)[number]>(
+        foundOrders.map((order) => [order.id, order]),
       )
 
       return (row) => {
@@ -177,6 +259,10 @@ export function deadlineRulesFor(
               document?.contractorId === null || document?.contractorId === undefined
                 ? null
                 : { id: document.contractorId, name: document.contractorName ?? '' },
+            contract:
+              document?.contractId === null || document?.contractId === undefined
+                ? null
+                : { id: document.contractId, title: document.contractTitle ?? '' },
             buildingId:
               document?.buildingId ?? document?.assetBuildingId ?? document?.roomBuildingId ?? null,
             roomId: document?.roomId ?? document?.assetRoomId ?? null,
@@ -188,6 +274,61 @@ export function deadlineRulesFor(
                     number: document.assetNumber,
                     name: document.assetName ?? '',
                   },
+          }
+
+          return { ...facts }
+        }
+
+        if (row.contractId !== null) {
+          const contract = byContract.get(row.contractId)
+          const facts: DeadlineFacts = {
+            follows: 'contract',
+            propertyId: null,
+            contract: { id: row.contractId, title: contract?.title ?? row.sourceLabel },
+            contractor: {
+              id: contract?.contractorId ?? '',
+              name: contract?.contractorName ?? '',
+            },
+          }
+
+          return { ...facts }
+        }
+
+        if (row.warrantyAssetId !== null) {
+          const asset = byAsset.get(row.warrantyAssetId)
+          const facts: DeadlineFacts = {
+            follows: 'warranty',
+            workOrder: null,
+            propertyId: row.propertyId ?? '',
+            buildingId: asset?.buildingId ?? null,
+            roomId: asset?.roomId ?? null,
+            asset: {
+              id: row.warrantyAssetId,
+              number: asset?.number ?? null,
+              name: asset?.name ?? row.sourceLabel,
+            },
+          }
+
+          return { ...facts }
+        }
+
+        if (row.warrantyOrderId !== null) {
+          const order = byOrder.get(row.warrantyOrderId)
+          const facts: DeadlineFacts = {
+            follows: 'warranty',
+            workOrder: {
+              id: order?.activityId ?? row.warrantyOrderId,
+              number: order?.number ?? '',
+              title: order?.title ?? row.sourceLabel,
+            },
+            propertyId: row.propertyId ?? '',
+            buildingId:
+              order?.buildingId ?? order?.assetBuildingId ?? order?.roomBuildingId ?? null,
+            roomId: order?.roomId ?? order?.assetRoomId ?? null,
+            asset:
+              order?.assetId && order.assetName !== null
+                ? { id: order.assetId, number: order.assetNumber, name: order.assetName }
+                : null,
           }
 
           return { ...facts }
@@ -261,11 +402,14 @@ export function deadlineRulesFor(
         return { ...facts }
       }
     },
-    // By the name of the property, or of the firm whose document it follows (#328).
+    // By the name of the property, or of the firm whose document it follows (#328),
+    // or of the firm whose contract it follows (#329).
     searchIn: (pattern) =>
       sql`(exists (select 1 from ${properties} where ${properties.id} = ${deadlines.propertyId} and ${properties.name} ilike ${pattern})
         or exists (select 1 from ${attachments} join ${contractors} on ${contractors.id} = ${attachments.contractorId}
-                    where ${attachments.id} = ${deadlines.attachmentId} and ${contractors.name} ilike ${pattern}))`,
+                    where ${attachments.id} = ${deadlines.attachmentId} and ${contractors.name} ilike ${pattern})
+        or exists (select 1 from ${contracts} join ${contractors} on ${contractors.id} = ${contracts.contractorId}
+                    where ${contracts.id} = ${deadlines.contractId} and ${contractors.name} ilike ${pattern}))`,
     filters,
     sentences: {
       notAColleague: 'Verantwortlich ist jemand, der für diesen Betreiber arbeitet.',

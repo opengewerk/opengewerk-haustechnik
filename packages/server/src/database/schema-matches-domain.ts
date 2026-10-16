@@ -6,6 +6,7 @@ import type {
   Building,
   BuildingClosure,
   Contact,
+  Contract,
   Contractor,
   Defect,
   Duty,
@@ -53,6 +54,7 @@ import type {
   buildings,
   contacts,
   contractors,
+  contracts,
   defectClassTerms,
   defects,
   duties,
@@ -115,6 +117,7 @@ export type FloorMatches = Assert<Exact<typeof floors.$inferSelect, Floor>>
 export type RoomMatches = Assert<Exact<typeof rooms.$inferSelect, Room>>
 export type ContactMatches = Assert<Exact<typeof contacts.$inferSelect, Contact>>
 export type ContractorMatches = Assert<Exact<typeof contractors.$inferSelect, Contractor>>
+export type ContractMatches = Assert<Exact<typeof contracts.$inferSelect, Contract>>
 export type BuildingClosureMatches = Assert<
   Exact<typeof buildingClosures.$inferSelect, BuildingClosure>
 >

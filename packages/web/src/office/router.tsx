@@ -67,6 +67,7 @@ import { RoundScreen } from './screens/round.js'
 import { RoundWeekScreen } from './screens/round-week.js'
 import { EditRoomScreen, NewRoomScreen } from './screens/room-form.js'
 import { RoomScreen } from './screens/rooms.js'
+import { ContractListScreen, ContractScreen } from './screens/contracts.js'
 import { ContractorListScreen, ContractorScreen } from './screens/contractors.js'
 import { StaffScreen } from './screens/staff.js'
 import { TimelineScreen } from './timeline.js'
@@ -515,6 +516,17 @@ export function officeRoutes() {
       getParentRoute: () => office,
       path: '/fremdfirmen/$contractorId',
       component: ContractorScreen,
+    }),
+    // The contracts with them (#329): the list and one contract.
+    createRoute({
+      getParentRoute: () => office,
+      path: '/vertraege',
+      component: ContractListScreen,
+    }),
+    createRoute({
+      getParentRoute: () => office,
+      path: '/vertraege/$contractId',
+      component: ContractScreen,
     }),
     // The catalogue: the packages, one of them with one of its parts, and
     // the page of a duty kind under the package it comes from.

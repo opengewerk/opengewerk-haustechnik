@@ -195,6 +195,18 @@ export const rights = [
    */
   'contractor.write',
   /**
+   * The contracts with the contractors (#329, section 4.11 of the concept):
+   * what they cover, the duties they fulfil, their term, notice, response
+   * time and price, and their documents. Tenant-wide and without an area
+   * like the firms; what a contract covers is read only from the own areas.
+   * Whoever reads deadlines reads the deadlines of a contract (its title, the
+   * firm and the day), and every shipped role that reads deadlines has this
+   * right as well.
+   */
+  'contract.read',
+  /** Keeping the contracts: making one, changing it, what it covers, its documents, and removing one no open duty names. */
+  'contract.write',
+  /**
    * Taking what has changed onto a device, and sending what it queued up
    * without a network. The rights the foundation asks for on the routes of the
    * sync (ADR 0006). A different way in, not a different thing to do: what an
@@ -287,6 +299,8 @@ export const rightLabel: Readonly<Record<Right, string>> = {
   'store.write': 'Lager führen',
   'contractor.read': 'Fremdfirmen ansehen',
   'contractor.write': 'Fremdfirmen pflegen',
+  'contract.read': 'Verträge ansehen',
+  'contract.write': 'Verträge führen',
   'sync.read': 'Daten abgleichen',
   'sync.write': 'Änderungen senden',
   'push.write': 'Push auf den eigenen Geräten einrichten',
@@ -385,6 +399,8 @@ const siteManagement: readonly Right[] = [
   'task.assign',
   // Articles, suppliers, stores, receipts and counts (#325).
   'store.write',
+  // The contracts with the firms, read in the own areas (#329).
+  'contract.read',
 ]
 
 /**
@@ -401,6 +417,8 @@ const technicalManagement: readonly Right[] = [
   'deadline.write',
   // The firms that carry out duties, which the register of duties names (#328).
   'contractor.write',
+  // The contracts with them, which a duty names (#329).
+  'contract.write',
 ]
 
 /** In the order of the catalogue, which is the order a screen lists them in. */

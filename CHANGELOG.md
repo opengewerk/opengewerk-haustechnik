@@ -9,6 +9,17 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
 
 ### Hinzugefügt
 
+- Verträge und Gewährleistung (#329): Verträge mit Fremdfirmen unter „Verträge“, mit Beginn, Ende der
+  Laufzeit, Verlängerung, Kündigungsfrist, dem Tag einer Kündigung und Reaktionszeit, Preis und Notiz
+  als Angaben. Ein Vertrag erfasst Gebäude und Anlagen, zeigt sie aus den Bereichen der Person und
+  steht in der Akte jeder erfassten Anlage unter „Verträge und Gewährleistung“, neben der
+  Gewährleistung der Anlage und der abgenommenen Aufträge an ihr. Eine Pflicht nennt den Vertrag, den
+  sie erfüllt, und sagt „Vertrag abgelaufen“, wenn er geendet hat. Kündigungsfrist und Ende eines
+  Vertrags und das Ende einer Gewährleistung stehen in „Fristen“, damit niemand eine Kündigung oder
+  eine Gewährleistung verpasst; bisher stand das in Listen neben der Anwendung. Ein Vertrag hat
+  Dokumente wie eine Fremdfirma, ohne Bereich. Neue Rechte „Verträge ansehen“ (Leitung, Technische
+  Leitung, Objektleitung) und „Verträge führen“ (Leitung, Technische Leitung), wie am 15.10.2026
+  entschieden. Migration `0060_contracts`.
 - Rundgänge als Tabelle (#344): ein abgeschlossener Rundgang neben dem PDF als Excel oder CSV,
   je Punkt eine Zeile mit Antwort, Grenzwert und Bemerkung, und die Rundgänge eines Plans über
   einen Zeitraum, etwa die Temperaturen eines Monats. Gelesen wird der eingefrorene Stand, ohne

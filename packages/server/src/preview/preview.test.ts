@@ -758,7 +758,7 @@ describe('a preview started as the Leitung', () => {
     const documents = rowsOf('attachments')
     const versions = rowsOf('attachment_versions')
     const hangsOn = (document: Record<string, unknown>) =>
-      ['assetId', 'roomId', 'buildingId', 'contractorId'].find(
+      ['assetId', 'roomId', 'buildingId', 'contractorId', 'contractId'].find(
         (field) => document[field] !== null,
       ) ?? 'propertyId'
 
@@ -821,6 +821,8 @@ describe('a preview started as the Leitung', () => {
       },
       { title: 'Schaltplan Heizraum', kind: 'circuit_diagram', hangsOn: 'roomId', versions: 3 },
       { title: 'Typenschild', kind: null, hangsOn: 'assetId', versions: 1 },
+      // The paper of a contract, at the contract (#329).
+      { title: 'Wartungsvertrag Aufzüge', kind: null, hangsOn: 'contractId', versions: 1 },
     ])
 
     // Every version is handed out, an older one like the newest; the photo is

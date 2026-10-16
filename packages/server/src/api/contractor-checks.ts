@@ -1,9 +1,9 @@
 import { BadRequestException } from '@nestjs/common'
-import type { ContractorId } from '@opengewerk/haustechnik-domain'
+import type { ContractId, ContractorId } from '@opengewerk/haustechnik-domain'
 import { isUuid, type TenantTransaction } from '@opengewerk/platform-server'
 import { and, eq, isNull } from 'drizzle-orm'
 
-import { contractors } from '../database/schema/index.js'
+import { contractors, contracts } from '../database/schema/index.js'
 
 /** Whether a field was given a value: not left out and not emptied. */
 function given(value: unknown): boolean {
@@ -49,5 +49,36 @@ export function checkPerformer(
 ): void {
   if ((given(note) || given(contractorId)) && performer !== 'contractor') {
     throw new BadRequestException(sentence)
+  }
+}
+
+/** What a route answers for a contract that is not one of the firm a duty names (#329). */
+export const contractOfAnotherFirm =
+  'Dieser Vertrag gibt es nicht oder nicht mehr, oder er ist keiner der gewählten Fremdfirma.'
+
+/**
+ * The contract a duty fulfils (#329): a live one of the tenant, and one of
+ * the firm the duty names as it will stand, so that the duty and its contract
+ * name the same firm. The key of the database holds the same.
+ */
+export async function checkContract(
+  tx: TenantTransaction,
+  contractId: unknown,
+  contractorId: unknown,
+): Promise<void> {
+  if (!given(contractId)) {
+    return
+  }
+
+  const [found] =
+    typeof contractId === 'string' && isUuid(contractId)
+      ? await tx
+          .select({ contractorId: contracts.contractorId })
+          .from(contracts)
+          .where(and(eq(contracts.id, contractId as ContractId), isNull(contracts.deletedAt)))
+      : []
+
+  if (found === undefined || found.contractorId !== contractorId) {
+    throw new BadRequestException(contractOfAnotherFirm)
   }
 }

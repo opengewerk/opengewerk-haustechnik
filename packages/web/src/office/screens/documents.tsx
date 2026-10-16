@@ -49,6 +49,7 @@ import {
   UploadDocumentDialog,
   useDocumentSurroundings,
 } from '../documents.js'
+import { contractPlaces } from '../contract-addresses.js'
 import { contractorPlaces } from '../contractor-addresses.js'
 import { defectPlaces } from '../defect-addresses.js'
 import { factLink } from '../links.js'
@@ -79,6 +80,7 @@ const homes: readonly DocumentHome[] = [
   'activityId',
   'defectId',
   'contractorId',
+  'contractId',
 ]
 
 /** Where the record a document hangs on is opened; an activity has no page yet. */
@@ -98,6 +100,8 @@ function pageOf(at: HangsOn): string | null {
       return defectPlaces.defect(at.id)
     case 'contractorId':
       return contractorPlaces.contractor(at.id)
+    case 'contractId':
+      return contractPlaces.contract(at.id)
   }
 }
 
@@ -126,6 +130,7 @@ export function DocumentsScreen() {
   const files = useRight('document.record')
   const removes = useRight('document.remove')
   const keepsFirms = useRight('contractor.write')
+  const keepsContracts = useRight('contract.write')
   const documents = useRecords('attachments')
   const versions = useVersions()
   const around = useDocumentSurroundings()
@@ -157,7 +162,10 @@ export function DocumentsScreen() {
   const itsVersions = chosenId === null ? [] : (versions.get(chosenId) ?? [])
   // The papers of a contractor are kept by whoever keeps the firms (#328):
   // a new version, a change and taking one out ask for it as well.
-  const keepsChosen = keepsFirms || typeof chosen?.['contractorId'] !== 'string'
+  // Those of a contract by whoever keeps the contracts (#329).
+  const keepsChosen =
+    (keepsFirms || typeof chosen?.['contractorId'] !== 'string') &&
+    (keepsContracts || typeof chosen?.['contractId'] !== 'string')
 
   const show = (to: DocumentFilter) => {
     void navigate({

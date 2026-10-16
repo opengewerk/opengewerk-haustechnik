@@ -533,6 +533,29 @@ describe('the settings of a kind', () => {
         responsible: 'source',
         leadDays: 30,
       }),
+      // The day to give notice and the end of a contract, and the end of a
+      // warranty (#329), which the Leitung answers for.
+      expect.objectContaining({
+        key: 'contract.notice',
+        source: 'contract_notice',
+        actions: ['reminder'],
+        responsible: 'lead',
+        leadDays: 60,
+      }),
+      expect.objectContaining({
+        key: 'contract.end',
+        source: 'contract_end',
+        actions: ['reminder'],
+        responsible: 'lead',
+        leadDays: 30,
+      }),
+      expect.objectContaining({
+        key: 'warranty.ends',
+        source: 'warranty',
+        actions: ['reminder'],
+        responsible: 'lead',
+        leadDays: 60,
+      }),
     ])
 
     await http()

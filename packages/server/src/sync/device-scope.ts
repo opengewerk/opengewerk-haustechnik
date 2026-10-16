@@ -5,7 +5,7 @@ import {
   type PullScope,
   type TenantTransaction,
 } from '@opengewerk/platform-server'
-import { type SQL, sql } from 'drizzle-orm'
+import { and, type SQL, sql } from 'drizzle-orm'
 
 // What the device of one person holds (ADR 0006, points 1 to 3). The areas
 // are drawn by the database already: a row of a property outside the person's
@@ -175,23 +175,66 @@ const workEntities = [
  * (#377): an order on site names the firm, and the name is no protected fact
  * (section 4.11 of the concept); the address, the contact, the services and
  * the note stay with whoever sees the firms.
+ *
+ * The contracts lie in no area either (#329), and with them their documents:
+ * a device holds both only for whoever reads the contracts, and names them by
+ * another value without that right, in the same way.
  */
-export function pullScope(scope: DeviceScope, readsContractors: boolean): PullScope {
+export function pullScope(scope: DeviceScope, reads: PullRights): PullScope {
   const column = (entity: string, name: string) =>
     sql`${sql.identifier(entity)}.${sql.identifier(name)}`
-  const firms: Readonly<Record<string, SQL>> = readsContractors
-    ? {}
-    : {
-        contacts: sql`${column('contacts', 'contractor_id')} is null`,
-        attachments: sql`${column('attachments', 'contractor_id')} is null`,
-        attachment_versions: sql`${column('attachment_versions', 'attachment_id')} in
+  // What a device holds without a right, by entity: each a condition its rows
+  // have to meet, and the word its value takes on.
+  const withheld = new Map<string, { conditions: SQL[]; words: string[] }>()
+  const withhold = (entity: string, word: string, condition: SQL | null) => {
+    const held = withheld.get(entity) ?? { conditions: [], words: [] }
+
+    withheld.set(entity, {
+      conditions: condition === null ? held.conditions : [...held.conditions, condition],
+      words: [...held.words, word],
+    })
+  }
+
+  if (!reads.contracts) {
+    withhold('contracts', 'without-contracts', sql`false`)
+    withhold(
+      'attachments',
+      'without-contracts',
+      sql`${column('attachments', 'contract_id')} is null`,
+    )
+    withhold(
+      'attachment_versions',
+      'without-contracts',
+      sql`${column('attachment_versions', 'attachment_id')} in
+          (select id from attachments where contract_id is null)`,
+    )
+  }
+
+  if (!reads.contractors) {
+    withhold('contacts', 'without-contractors', sql`${column('contacts', 'contractor_id')} is null`)
+    withhold(
+      'attachments',
+      'without-contractors',
+      sql`${column('attachments', 'contractor_id')} is null`,
+    )
+    withhold(
+      'attachment_versions',
+      'without-contractors',
+      sql`${column('attachment_versions', 'attachment_id')} in
           (select id from attachments where contractor_id is null)`,
-      }
+    )
+    // The firms themselves stay, by their name alone (`answering`).
+    withhold('contractors', 'without-contractors', null)
+  }
+
+  const firms: Readonly<Record<string, SQL>> = Object.fromEntries(
+    [...withheld].flatMap(([entity, { conditions }]) =>
+      conditions.length === 0 ? [] : [[entity, and(...conditions) as SQL]],
+    ),
+  )
   const named = (entity: string, value: string) =>
-    !readsContractors && (Object.hasOwn(firms, entity) || entity === 'contractors')
-      ? `${value}:without-contractors`
-      : value
-  const answering: Pick<PullScope, 'answer'> = readsContractors
+    [value, ...(withheld.get(entity)?.words ?? [])].join(':')
+  const answering: Pick<PullScope, 'answer'> = reads.contractors
     ? {}
     : {
         answer: (changes) =>
@@ -259,9 +302,17 @@ export function pullScope(scope: DeviceScope, readsContractors: boolean): PullSc
       store_labels: operator,
       // The contractors of the operator, whose name an order shows (#328).
       contractors: named('contractors', operator),
+      // The contracts with them (#329), for the name a document or a duty shows.
+      contracts: named('contracts', operator),
     },
     ...answering,
   }
+}
+
+/** The rights a pull asks of the person, for what lies in no area (#328, #329). */
+export interface PullRights {
+  readonly contractors: boolean
+  readonly contracts: boolean
 }
 
 /**

@@ -697,3 +697,137 @@ describe('the documents of a contractor (#328)', () => {
     expect(await deadlinesOf(document, by('management', large))).toEqual([])
   })
 })
+
+/**
+ * The papers of a contract (#329) lie in no area like those of a firm: they
+ * go to a device, out as a file and into the table only for whoever reads
+ * the contracts, and are kept only by whoever keeps them.
+ */
+describe('the papers of a contract (#329)', () => {
+  it('go to a device and out as a file only to whoever reads the contracts, and are kept only by whoever keeps them', async () => {
+    const lead = by('management', large)
+    const firm = (
+      await http()
+        .post('/contractors')
+        .set(testIdentityHeader, lead)
+        .send({ name: 'Aufzugsdienst Beispiel GmbH' })
+        .expect(201)
+    ).body.id as string
+    const contract = (
+      await http()
+        .post('/contracts')
+        .set(testIdentityHeader, lead)
+        .send({ contractorId: firm, title: 'Wartung der Aufzüge', startsOn: '2024-01-01' })
+        .expect(201)
+    ).body.id as string
+    const document = newId<'attachment'>()
+    const title = 'Wartungsvertrag Aufzüge'
+    // Made in this order, as a device records them: the document, then its version.
+    const filed = operation('attachments', 'create', document, { title, contractId: contract })
+    const version = await versionOf(lead, document, null)
+
+    // Filing one asks for the right to keep the contracts.
+    const refusal = async (role: RoleKey, sent: ReturnType<typeof operation>) => {
+      const answer = await http()
+        .post('/sync')
+        .set(testIdentityHeader, by(role, large))
+        .send({ deviceId: 'office', operations: [sent] })
+
+      return [answer.status, answer.body.message as string]
+    }
+    const lacking = [400, missingRight('contract.write')]
+
+    expect(
+      await refusal(
+        'site_management',
+        operation('attachments', 'create', newId<'attachment'>(), { title, contractId: contract }),
+      ),
+    ).toEqual(lacking)
+    expect(await outcomes(lead, [filed, version])).toEqual(['applied', 'applied'])
+
+    const file = (header: string) =>
+      http()
+        .get(`/attachments/versions/${version.recordId}/content`)
+        .set(testIdentityHeader, header)
+    /** The documents and versions a device of the person holds, and what the answer names them by. */
+    const held = async (header: string) => {
+      const answer = await http().get('/sync?since=0').set(testIdentityHeader, header).expect(200)
+      const changes = answer.body.changes as { entity: string; rows: { id: string }[] }[]
+      const ids = (entity: string) =>
+        (changes.find((change) => change.entity === entity)?.rows ?? []).map((row) => row.id)
+
+      return {
+        contracts: ids('contracts'),
+        documents: ids('attachments'),
+        versions: ids('attachment_versions'),
+        narrowed: answer.body.narrowed as Readonly<Record<string, string>>,
+      }
+    }
+
+    // The Objektleitung reads the contracts, the Haustechnik does not.
+    const reads = await held(by('site_management', large))
+    const not = await held(by('technician', large))
+
+    await file(by('site_management', large)).expect(200)
+    await file(by('technician', large)).expect(404)
+
+    // Nor does the table "Dokumente" name it for whoever does not read the contracts.
+    const table = async (header: string) =>
+      (
+        await http()
+          .get('/attachments/table?format=csv')
+          .set(testIdentityHeader, header)
+          .buffer(true)
+          .parse((response, done) => {
+            const parts: Buffer[] = []
+
+            response.on('data', (part: Buffer) => parts.push(part))
+            response.on('end', () => {
+              done(null, Buffer.concat(parts).toString('utf8'))
+            })
+          })
+          .expect(200)
+      ).body as string
+
+    expect(await table(by('site_management', large))).toContain(title)
+    expect(await table(by('technician', large))).not.toContain(title)
+    expect([reads.contracts, reads.documents, reads.versions]).toEqual([
+      expect.arrayContaining([contract]),
+      expect.arrayContaining([document]),
+      expect.arrayContaining([version.recordId]),
+    ])
+    expect(not.contracts).not.toContain(contract)
+    expect(not.documents).not.toContain(document)
+    expect(not.versions).not.toContain(version.recordId)
+    // Named by another value, so that a device lets them go once the right goes.
+    expect([not.narrowed['contracts'], not.narrowed['attachments']]).toEqual([
+      `${String(reads.narrowed['contracts'])}:without-contracts`,
+      expect.stringMatching(/:without-contracts$/),
+    ])
+
+    // A new version, a change and taking it out ask for the right to keep the contracts.
+    const renamed = () =>
+      operation('attachments', 'update', document, { title: 'Wartungsvertrag 2027' }, { title })
+
+    expect(
+      await refusal(
+        'site_management',
+        await versionOf(by('site_management', large), document, null),
+      ),
+    ).toEqual(lacking)
+    expect(await refusal('site_management', renamed())).toEqual(lacking)
+    expect(await refusal('site_management', operation('attachments', 'delete', document))).toEqual(
+      lacking,
+    )
+
+    const keeper = by('technical_management', large)
+
+    expect(
+      await outcomes(keeper, [
+        await versionOf(keeper, document, null),
+        renamed(),
+        operation('attachments', 'delete', document),
+      ]),
+    ).toEqual(['applied', 'applied', 'applied'])
+  })
+})

@@ -237,10 +237,11 @@ export function recordRules(catalogue: Catalogue): RecordRules {
     attachments: [
       ...(filed['attachments'] ?? []),
       ...each(documentProblems, ['title', 'kind'], ['title']),
-      // At a contractor (#328) or at a place, never both.
+      // At a contractor (#328), at a contract (#329) or at a place, exactly one.
       {
         fields: [
           'contractorId',
+          'contractId',
           'propertyId',
           'assetId',
           'roomId',
@@ -251,6 +252,7 @@ export function recordRules(catalogue: Catalogue): RecordRules {
         problem: (at) =>
           documentPlaceProblem({
             contractorId: at('contractorId'),
+            contractId: at('contractId'),
             propertyId: at('propertyId'),
             assetId: at('assetId'),
             roomId: at('roomId'),

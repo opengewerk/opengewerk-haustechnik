@@ -85,6 +85,9 @@ export const nobodyWords = 'Niemand benannt'
 /** What a duty says whose document that bears its interval has a newer version, or was taken out of the records (#74). */
 export const intervalCheckWords = 'Frist prüfen'
 
+/** What a duty says whose contract has ended (#329): the duty goes on, the contract no longer carries it. */
+export const contractEndedWords = 'Vertrag abgelaufen'
+
 /** "Beendet seit 05.09.2026". */
 export function endedWords(duty: Pick<DutyReading, 'endsOn'>): string {
   return duty.endsOn === null ? 'Beendet' : `Beendet seit ${day(duty.endsOn)}`

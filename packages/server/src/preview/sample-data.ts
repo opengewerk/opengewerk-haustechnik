@@ -845,7 +845,7 @@ async function send(
   address: string,
   path: string,
   body: unknown,
-  method: 'POST' | 'PUT' = 'POST',
+  method: 'POST' | 'PUT' | 'PATCH' = 'POST',
 ): Promise<{ id: string }> {
   const response = await fetch(`${address}${path}`, {
     method,
@@ -936,6 +936,71 @@ async function plantSampleContractors(address: string): Promise<void> {
     },
   ]) {
     await plantDocument(address, { contractorId: first }, document)
+  }
+}
+
+/**
+ * The contracts of the sample operator (#329), as the board "Verträge" draws
+ * them: the maintenance of the elevator, renewed every year with three
+ * months' notice and covering the building of the elevator, with its paper;
+ * an open-ended one with the laboratory; and one that has ended, which a duty
+ * of its firm still names, so that it says "Vertrag abgelaufen".
+ */
+async function plantSampleContracts(address: string): Promise<void> {
+  const tester = sampleFirms.get('Prüfdienst Beispiel GmbH') ?? ''
+  const laboratory = sampleFirms.get('Wasserlabor Beispielstadt') ?? ''
+  const lifts = await send(address, '/contracts', {
+    contractorId: tester,
+    title: 'Wartung der Aufzüge',
+    startsOn: daysAhead(-1000),
+    endsOn: daysAhead(-1000 + 364),
+    renewalMonths: 12,
+    noticeAmount: 3,
+    noticeUnit: 'months',
+    responseTime: '4 Stunden bei Personeneinschluss, sonst 24 Stunden',
+    price: '4.800 € netto im Jahr',
+    note: 'Notdienst rund um die Uhr über die Leitstelle.',
+  })
+  const register = await read<{
+    assets: readonly { id: string; name: string; buildingId: string }[]
+  }>(address, '/assets?limit=200')
+  const elevator = register.assets.find((asset) => asset.name === 'Aufzug Haus A')
+
+  if (elevator !== undefined) {
+    await send(address, `/contracts/${lifts.id}/items`, { buildingId: elevator.buildingId })
+  }
+
+  await plantDocument(
+    address,
+    { contractId: lifts.id },
+    {
+      title: 'Wartungsvertrag Aufzüge',
+      versions: [{ fileName: 'wartungsvertrag-aufzuege.pdf', words: 'Wartungsvertrag' }],
+    },
+  )
+  await send(address, '/contracts', {
+    contractorId: laboratory,
+    title: 'Untersuchung des Trinkwassers',
+    startsOn: daysAhead(-500),
+    price: 'nach Aufwand, Preisliste 2026',
+  })
+
+  const ended = await send(address, '/contracts', {
+    contractorId: tester,
+    title: 'Elektroprüfung 2025',
+    startsOn: daysAhead(-400),
+    endsOn: daysAhead(-30),
+    noticeAmount: 6,
+    noticeUnit: 'weeks',
+  })
+  const ofTheTester = await read<{ duties: readonly { id: string }[] }>(
+    address,
+    `/duties/register?contractorId=${encodeURIComponent(tester)}&offset=0&limit=1`,
+  )
+  const named = ofTheTester.duties[0]
+
+  if (named !== undefined) {
+    await send(address, `/duties/${named.id}`, { contractId: ended.id }, 'PATCH')
   }
 }
 
@@ -1515,6 +1580,9 @@ export async function plantSampleData(
       propertyId: propertyIds.get(property),
     })
   }
+
+  // The contracts with the firms (#329), once the duties and the assets they name are there.
+  await plantSampleContracts(address)
 
   return { orders: standings.orders, sheets: standings.sheets }
 }

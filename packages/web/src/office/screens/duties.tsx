@@ -49,6 +49,7 @@ import {
 import {
   dutySourceWords,
   DutyStandingMark,
+  ContractEndedStatus,
   IntervalCheck,
   intervalKindWords,
   kindOfDuty,
@@ -342,10 +343,11 @@ export function DutyRegisterScreen() {
               .filter((part) => part !== null && part !== '')
               .join(' · '),
             right:
-              duty.intervalToCheck || duty.updated || duty.shortened ? (
+              duty.intervalToCheck || duty.contractEnded || duty.updated || duty.shortened ? (
                 <div className="flex flex-col items-end gap-1">
                   <DutyStandingMark duty={duty} />
                   {duty.intervalToCheck ? <IntervalCheck /> : null}
+                  {duty.contractEnded ? <ContractEndedStatus /> : null}
                   {duty.updated || duty.shortened ? (
                     <UpdateMark shortened={Boolean(duty.shortened)} />
                   ) : null}
@@ -425,6 +427,12 @@ export function DutyRegisterScreen() {
                     {duty.intervalToCheck ? (
                       <div className="mt-[3px]">
                         <IntervalCheck />
+                      </div>
+                    ) : null}
+                    {/* The contract it fulfils has ended (#329). */}
+                    {duty.contractEnded ? (
+                      <div className="mt-[3px]">
+                        <ContractEndedStatus />
                       </div>
                     ) : null}
                     {duty.updated || duty.shortened ? (

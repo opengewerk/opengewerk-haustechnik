@@ -56,6 +56,7 @@ import {
   TakeBackLifecycleEntry,
 } from '../asset-dialogs.js'
 import { AssetConditionMark, DutyStateMark } from '../../app/asset-marks.js'
+import { AssetCoverCard } from '../asset-cover.js'
 import { ExchangeAssetDialog, mayBeExchanged } from '../asset-exchange.js'
 import { AssetState } from '../asset-state.js'
 import { cataloguePlaces } from '../catalogue-addresses.js'
@@ -428,6 +429,8 @@ export function AssetFileScreen() {
                 }
               : {})}
           />
+          {/* The warranty, the contracts that cover it and the orders with a warranty of their own (#329). */}
+          <AssetCoverCard assetId={assetId} warrantyEndsOn={asset.warrantyEndsOn} />
           <LabelCardOf holder="assets" id={assetId} />
           <DocumentsCard
             place={{ propertyId: asset.propertyId, assetId }}

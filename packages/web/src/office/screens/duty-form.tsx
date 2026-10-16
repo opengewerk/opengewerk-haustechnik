@@ -34,6 +34,7 @@ import { useNavigate, useParams, useSearch } from '@tanstack/react-router'
 import { Check } from 'lucide-react'
 import { type FormEvent, useMemo, useState } from 'react'
 
+import { ContractField } from '../contract-dialogs.js'
 import { ContractorField, contractorFieldWords } from '../contractor-field.js'
 import { onlyInABuilding, useHeldArea } from '../../session/areas.js'
 import { placePath } from '../../app/place-path.js'
@@ -287,6 +288,8 @@ interface Typed {
   readonly performerNote: string
   /** The firm out of the list (#328), or empty. */
   readonly contractorId: string
+  /** The contract of that firm the duty fulfils (#329), or empty. */
+  readonly contractId: string
 }
 
 /** What a new duty starts with. */
@@ -304,6 +307,7 @@ const blank: Typed = {
   performer: null,
   performerNote: '',
   contractorId: '',
+  contractId: '',
 }
 
 /** What the form starts with over a duty there is: what it says, as text. */
@@ -321,6 +325,7 @@ function typedOf(duty: DutyDetails): Typed {
     performer: duty.performer,
     performerNote: duty.performerNote ?? '',
     contractorId: duty.contractorId ?? '',
+    contractId: duty.contractId ?? '',
   }
 }
 
@@ -350,6 +355,11 @@ function described(typed: Typed) {
     // The firm out of the list, with a contractor alone (#328).
     contractorId:
       typed.performer === 'contractor' && typed.contractorId !== '' ? typed.contractorId : null,
+    // A contract of that firm, with the firm alone (#329).
+    contractId:
+      typed.performer === 'contractor' && typed.contractorId !== '' && typed.contractId !== ''
+        ? typed.contractId
+        : null,
   }
 }
 
@@ -803,6 +813,8 @@ function DutyFields({
   readonly fixedCounting?: Counting
 }) {
   const colleagues = useQuery(dutyColleaguesQuery)
+  // The contracts of a firm, for whoever reads them (#329).
+  const readsContracts = useRight('contract.read')
 
   return (
     <>
@@ -941,7 +953,17 @@ function DutyFields({
           noneLabel={contractorFieldWords.none}
           problem={problems['contractorId'] ?? problems['performerNote']}
           onChange={(value) => {
-            set({ contractorId: value })
+            // Another firm has other contracts.
+            set({ contractorId: value, contractId: '' })
+          }}
+        />
+      ) : null}
+      {typed.performer === 'contractor' && readsContracts ? (
+        <ContractField
+          contractorId={typed.contractorId}
+          value={typed.contractId}
+          onChange={(value) => {
+            set({ contractId: value })
           }}
         />
       ) : null}

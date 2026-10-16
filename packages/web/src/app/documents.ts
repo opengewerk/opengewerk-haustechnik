@@ -43,9 +43,10 @@ import { titleOfRoom } from './place-records.js'
 
 /** Where a new document hangs: its property, and on request one record there. */
 export interface DocumentPlace {
-  /** None for the documents of a contractor (#328), which `contractorId` names. */
+  /** None for the documents of a contractor (#328) or of a contract (#329), which `contractorId` or `contractId` names. */
   readonly propertyId: string | null
   readonly contractorId?: string | null
+  readonly contractId?: string | null
   readonly buildingId?: string | null
   readonly roomId?: string | null
   readonly assetId?: string | null
@@ -250,6 +251,8 @@ export interface DocumentSurroundings {
   readonly defects?: readonly RecordState[]
   /** The contractors of the operator, whose certificates are documents too (#328). */
   readonly contractors?: readonly RecordState[]
+  /** The contracts this device holds, whose papers are documents too (#329). */
+  readonly contracts?: readonly RecordState[]
 }
 
 /** What a document hangs on, as a list names it, and the kind of place it is. */
@@ -305,6 +308,8 @@ export function hangsOn(document: RecordState, around: DocumentSurroundings): Ha
       return as(maybeText(byId(around.defects ?? [], id), 'description'))
     case 'contractorId':
       return as(maybeText(byId(around.contractors ?? [], id), 'name'))
+    case 'contractId':
+      return as(maybeText(byId(around.contracts ?? [], id), 'title'))
     case 'propertyId':
       return as(null)
   }
@@ -323,6 +328,11 @@ export function documentsAt(
   // The documents of a contractor (#328), which hang on nothing else.
   if (place.contractorId !== undefined && place.contractorId !== null) {
     return documents.filter((document) => document['contractorId'] === place.contractorId)
+  }
+
+  // And those of a contract (#329).
+  if (place.contractId !== undefined && place.contractId !== null) {
+    return documents.filter((document) => document['contractId'] === place.contractId)
   }
 
   const home = homes.find((field) => place[field] !== undefined && place[field] !== null)

@@ -307,6 +307,8 @@ export interface WorkOrder extends Synced {
    * one figure for all of them, and no record of anybody's working time.
    */
   readonly durationMinutes: number | null
+  /** The end of the warranty of the work, entered once the order is accepted (#329). */
+  readonly warrantyEndsOn: IsoDate | null
 }
 
 /**

@@ -114,6 +114,8 @@ function rowsOf(tenant: Tenant): readonly Row[] {
   const shelf = randomUUID()
   const material = randomUUID()
   const document = randomUUID()
+  const firm = randomUUID()
+  const contract = randomUUID()
   const file = randomUUID().replaceAll('-', '').repeat(2)
 
   return [
@@ -469,10 +471,31 @@ function rowsOf(tenant: Tenant): readonly Row[] {
     {
       table: 'contractors',
       values: {
-        id: randomUUID(),
+        id: firm,
         tenant_id: tenant.id,
         name: 'Brandschutz Beispiel GmbH',
         services: ['450'],
+      },
+    },
+    // A contract with it, and the asset it covers (#329).
+    {
+      table: 'contracts',
+      values: {
+        id: contract,
+        tenant_id: tenant.id,
+        contractor_id: firm,
+        title: 'Wartung der Brandmeldeanlage',
+        starts_on: '2026-01-01',
+      },
+    },
+    {
+      table: 'contract_items',
+      values: {
+        tenant_id: tenant.id,
+        contract_id: contract,
+        property_id: property,
+        area_id: area,
+        asset_id: asset,
       },
     },
     { table: 'stores', values: { id: store, tenant_id: tenant.id, name: 'Hauptlager' } },

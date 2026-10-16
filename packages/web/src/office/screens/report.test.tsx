@@ -84,6 +84,9 @@ function dutyOf(further: Partial<DutyDetails> = {}): DutyDetails {
     intervalDocumentVersionId: null,
     intervalDocument: null,
     intervalToCheck: false,
+    contractId: null,
+    contractEnded: false,
+    contract: null,
     asset: {
       id: extinguisher.id,
       number: extinguisher.number,

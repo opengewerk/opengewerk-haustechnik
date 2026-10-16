@@ -25,6 +25,7 @@ import {
   type Building,
   byNameIn,
   type Catalogue,
+  type ContractId,
   type ContractorId,
   type CatalogueEntry,
   ceilingOf,
@@ -92,6 +93,7 @@ import { and, asc, desc, eq, isNull, notInArray } from 'drizzle-orm'
 import { underWayFor } from '../activities/for-duty.js'
 import { CATALOGUE } from '../catalogue.js'
 import { dutiesOnADay, dutyTitle } from '../database/duty-standing.js'
+import { contractsOfDuties } from '../database/duty-contracts.js'
 import { intervalDocumentsOf } from '../database/interval-documents.js'
 import {
   activities,
@@ -110,7 +112,7 @@ import {
 import { dayInGermany } from '../today.js'
 import { inSight } from './activities.controller.js'
 import { RequiresPermission } from './authorization.js'
-import { checkContractor, checkPerformer } from './contractor-checks.js'
+import { checkContract, checkContractor, checkPerformer } from './contractor-checks.js'
 import { listedEvidence } from './evidence.controller.js'
 import { dutyProposalFilter, dutyProposals } from './duty-proposals.js'
 import { dutyReading, dutyRegister, dutyRegisterQuestion } from './duty-register.js'
@@ -177,6 +179,7 @@ const newFields = [
   'performer',
   'performerNote',
   'contractorId',
+  'contractId',
 ] as const
 
 /** The fields a duty may change. What it hangs on and what it is stay as they were confirmed. */
@@ -193,6 +196,7 @@ const changeFields = [
   'performer',
   'performerNote',
   'contractorId',
+  'contractId',
 ] as const
 
 /** The fields that may be emptied: an empty text is stored as null. */
@@ -209,6 +213,7 @@ const emptiable = [
   'performer',
   'performerNote',
   'contractorId',
+  'contractId',
 ] as const
 
 /** The fields of a duty of the operator's own, which a duty from the catalogue takes from its kind. */
@@ -522,6 +527,7 @@ const batchFields = [
   'performer',
   'performerNote',
   'contractorId',
+  'contractId',
 ] as const
 
 const batchEmptiable = [
@@ -530,6 +536,7 @@ const batchEmptiable = [
   'performer',
   'performerNote',
   'contractorId',
+  'contractId',
 ] as const
 
 /** A problem of one field as `refuse` takes it, or nothing. */
@@ -654,6 +661,7 @@ function dutyRow(
     performer: (values.performer ?? null) as Duty['performer'],
     performerNote: (values.performerNote ?? null) as string | null,
     contractorId: (values.contractorId ?? null) as ContractorId | null,
+    contractId: (values.contractId ?? null) as ContractId | null,
     confirmedBy: identity.userId,
   }
 }
@@ -1258,10 +1266,11 @@ export class DutiesController {
         activity: underWay.get(duty.id) ?? null,
         removable: !(await leftARecord(tx, identity.tenantId, duty.id)),
         document: (await intervalDocumentsOf(tx, [duty])).get(duty.id) ?? null,
+        contract: (await contractsOfDuties(tx, [duty], today)).get(duty.id) ?? null,
         place: await updatePlaceOf(tx, duty),
       }
     })
-    const { duty, registered, activity, document } = read
+    const { duty, registered, activity, document, contract } = read
     const named = await this.named(identity, [duty.responsibleUserId])
     const ended = dutyHasEnded(duty, today)
 
@@ -1284,6 +1293,10 @@ export class DutiesController {
       // interval wants checking, the duty says to whoever reads it.
       intervalDocument: isAllowed(identity, 'document.read') ? document : null,
       intervalToCheck: intervalToCheck(document, ended),
+      // That its contract has ended, the duty says to whoever reads it; which
+      // contract it is, only to whoever reads the contracts (#329).
+      contractEnded: !ended && contract !== null && contract.endedOn !== null,
+      contract: isAllowed(identity, 'contract.read') ? contract : null,
       activity:
         activity === null
           ? null
@@ -1401,6 +1414,7 @@ export class DutiesController {
 
       await checkResponsible(tx, values.responsibleUserId)
       await checkContractor(tx, values.contractorId)
+      await checkContract(tx, values.contractId, values.contractorId)
 
       const document = given(values.intervalDocumentId)
         ? await intervalDocumentAt(tx, identity, values.intervalDocumentId, target.chain)
@@ -1443,6 +1457,7 @@ export class DutiesController {
     return this.database.forTenant(identity, async (tx) => {
       await checkResponsible(tx, values.responsibleUserId)
       await checkContractor(tx, values.contractorId)
+      await checkContract(tx, values.contractId, values.contractorId)
 
       const rows = []
 
@@ -1568,6 +1583,12 @@ export class DutiesController {
       )
       await checkResponsible(tx, values.responsibleUserId)
       await checkContractor(tx, values.contractorId)
+      // The contract as it will stand, of the firm as it will stand (#329).
+      await checkContract(
+        tx,
+        values.contractId === undefined ? duty.contractId : values.contractId,
+        values.contractorId === undefined ? duty.contractorId : values.contractorId,
+      )
 
       // Naming the document again takes its newest version: whoever saves
       // the interval with it has looked at the interval against that one.

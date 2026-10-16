@@ -123,6 +123,9 @@ await checkWidths({
     // The dialogs of the contractors (#328): a new firm and the names to take over.
     'Fremdfirma anlegen',
     'Namen übernehmen',
+    // The dialogs of the contracts (#329): a new contract and what it covers.
+    'Vertrag anlegen',
+    'Erfassen',
     // The register of evidence at the register of duties (#338).
     'Nachweisverzeichnis',
     // The longest sentences of the instance stand behind it (#80); the Leitung

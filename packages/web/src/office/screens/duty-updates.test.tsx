@@ -370,6 +370,8 @@ describe('a duty the catalogue says something new about', () => {
       performerNote: null,
       ended: false,
       intervalToCheck: false,
+      contractId: null,
+      contractEnded: false,
       asset: {
         id: `a-${id}`,
         number: 'AN-00101',
@@ -435,6 +437,8 @@ describe('a duty the catalogue says something new about', () => {
       intervalDocumentId: null,
       intervalDocumentVersionId: null,
       intervalDocument: null,
+      contractEnded: false,
+      contract: null,
       activity: null,
       update: null,
       ...further,

@@ -12,6 +12,7 @@ import {
   ClipboardCheck,
   FileText,
   Gauge,
+  Handshake,
   HardHat,
   LayoutDashboard,
   Package,
@@ -103,6 +104,7 @@ export const officeNavigation: readonly OfficePlaces[] = [
       { to: '/lager', label: 'Lager', icon: Package, right: 'store.read' },
       // The contractors of the operator, tenant-wide (#328).
       { to: '/fremdfirmen', label: 'Fremdfirmen', icon: HardHat, right: 'contractor.read' },
+      { to: '/vertraege', label: 'Verträge', icon: Handshake, right: 'contract.read' },
     ],
   },
 ]

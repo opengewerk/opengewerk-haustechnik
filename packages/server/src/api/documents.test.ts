@@ -558,7 +558,7 @@ describe('a document filed from a device', () => {
       'Ein Dokument hängt an der Liegenschaft oder an genau einem: einer Anlage, einem Raum, einem Gebäude, einem Vorgang oder einem Mangel.',
     )
     expect(await refusal({ title: 'Schaltplan' })).toBe(
-      'Ein Dokument hängt an einer Liegenschaft, einem Gebäude, einem Raum, einer Anlage, einem Vorgang, einem Mangel oder einer Fremdfirma.',
+      'Ein Dokument hängt an einer Liegenschaft, einem Gebäude, einem Raum, einer Anlage, einem Vorgang, einem Mangel, einer Fremdfirma oder einem Vertrag.',
     )
     expect(await refusal({ title: ' ', propertyId: place.property })).toBe('Die Bezeichnung fehlt.')
     expect(await refusal({ title: 'x'.repeat(121), propertyId: place.property })).toBe(
@@ -924,8 +924,11 @@ describe('what a device holds of the documents', () => {
     expect(rows['attachment_versions']?.map((row) => row['id'])).toContain(atTheNorth.version)
     expect(rows['attachments']?.map((row) => row['propertyId'])).not.toContain(inSouth.property)
     // Dropped and asked again with the places, when the areas of the person change.
-    expect(narrowed['attachments']).toBe(narrowed['properties'])
-    expect(narrowed['attachment_versions']).toBe(narrowed['properties'])
+    // The Haustechnik holds no papers of a contract (#329), and its value says so.
+    expect(narrowed['attachments']).toBe(`${String(narrowed['properties'])}:without-contracts`)
+    expect(narrowed['attachment_versions']).toBe(
+      `${String(narrowed['properties'])}:without-contracts`,
+    )
     expect(narrowed['attachments']).toMatch(/^properties:/)
   })
 })

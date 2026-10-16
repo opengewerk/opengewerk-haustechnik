@@ -185,6 +185,7 @@ Nachträge:
   3. **Die Prüfung im Katalog** (`test-areas.ts`) kennt diese Tabellen unter `rowsInNoArea`, verlangt dort den Ausdruck mit `area_id IS NULL` und die Prüfung mit dem Satz aus Nummer 1. Jede andere Tabelle mit `area_id` bleibt bei Punkt 7.
   4. **Eine Aufgabe aus einer Frist** entsteht nur mit Ort (`tasks/from-deadline.ts`); eine Frist ohne Ort bleibt in der Liste, wie die einer Person, die den Bereich nicht sieht.
   5. **Eine entfernte Fremdfirma** nimmt ihre Ansprechpartner und Dokumente mit (Trigger `contacts_and_documents_follow_deletion`), und die Frist eines entfernten Dokuments fällt mit dem nächsten Lauf weg.
+  6. **Die Verträge (`#329`)** folgen demselben Weg: ein Dokument eines Vertrags (`attachments.contract_id`) und die Fristen eines Vertrags (`deadlines.contract_id`, Kündigungsfrist und Ende) stehen ohne Liegenschaft und Bereich; die Prüfungen aus Nummer 1 lassen statt einer Fremdfirma auch einen Vertrag zu, genau eines von Ort, Fremdfirma und Vertrag. Lesen dürfen sie nur, wer Verträge ansieht, an jedem Weg: Datei, Tabelle "Dokumente" und Abgleich. Was ein Vertrag erfasst (`contract_items`), hat dagegen einen Ort und den Bereich des Gebäudes oder der Anlage, mit `within_areas`.
 
 ## Bestätigung
 

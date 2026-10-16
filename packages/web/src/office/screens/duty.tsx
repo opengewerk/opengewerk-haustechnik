@@ -68,12 +68,14 @@ import { documentPlaces } from '../document-addresses.js'
 import { dutyPlaces, dutyRegisterPlace, evidencePlaces } from '../duty-addresses.js'
 import {
   DutyStandingMark,
+  ContractEndedStatus,
   IntervalCheckStatus,
   intervalKindWords,
   kindOfDuty,
   Nobody,
   performerWords,
 } from '../duty-words.js'
+import { contractPlaces } from '../contract-addresses.js'
 import { EvidenceNumber, ResultMark, StandingMark } from '../evidence-words.js'
 import { LinkButton } from '../link-button.js'
 import { factLink } from '../links.js'
@@ -308,6 +310,7 @@ export function DutyScreen() {
           <>
             <DutyStandingMark duty={duty} />
             {duty.intervalToCheck ? <IntervalCheckStatus /> : null}
+            {duty.contractEnded ? <ContractEndedStatus /> : null}
             {duty.update ? <UpdateStatus /> : null}
             {kind ? <ReviewMarks review={kind.review} /> : null}
           </>
@@ -590,6 +593,27 @@ export function DutyScreen() {
                       performerWords(duty)
                     ),
                 },
+                // The contract it fulfils (#329), for whoever reads the contracts,
+                // and the day it ended where it has.
+                ...(duty.contract === null
+                  ? []
+                  : [
+                      {
+                        label: 'Vertrag',
+                        value: (
+                          <div className="leading-[1.32]">
+                            <Link to={contractPlaces.contract(duty.contract.id)}>
+                              {duty.contract.title}
+                            </Link>
+                            {duty.contract.endedOn === null ? null : (
+                              <div className="text-[12px] text-conflict">
+                                {`abgelaufen am ${date(duty.contract.endedOn)}`}
+                              </div>
+                            )}
+                          </div>
+                        ),
+                      },
+                    ]),
               ]}
             />
           </Panel>

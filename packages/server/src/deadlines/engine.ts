@@ -23,12 +23,14 @@ import { deadlineKindRegistry } from './registry.js'
 import { upgradeOpenRounds } from '../rounds/plans.js'
 import { settleDeadlineTasks, taskFromDeadline } from '../tasks/from-deadline.js'
 import {
+  contractSource,
   type DeadlineValues,
   defectSource,
   documentSource,
   dutySource,
   meterSource,
   roundPlanSource,
+  warrantySource,
 } from './sources.js'
 
 export type { DeadlineReport } from '@opengewerk/platform-server'
@@ -84,6 +86,12 @@ function bound(
       // risk assessment its review (#327).
       document: documentSource(false),
       risk_assessment: documentSource(true),
+      // The day to give notice and the end of a contract, and the end of a warranty (#329).
+      contract_notice: contractSource('notice', {
+        today: () => dayInGermany(job.now?.() ?? new Date()),
+      }),
+      contract_end: contractSource('end', { today: () => dayInGermany(job.now?.() ?? new Date()) }),
+      warranty: warrantySource(),
     },
     actions: { activity: activityFromDeadline(job.catalogue), task: taskFromDeadline() },
     // A round nobody has begun walks the newest version of its template, and

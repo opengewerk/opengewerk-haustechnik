@@ -1,4 +1,5 @@
 import {
+  contractEndedWords,
   type DutyEntry,
   endedWords,
   intervalCheckWords,
@@ -50,6 +51,15 @@ export function Nobody() {
  * "Frist prüfen" beside the state of a duty in the head of its page, in the
  * tone of what waits (4.3 of the concept, #74).
  */
+/** "Vertrag abgelaufen" in the head of a duty (#329): the contract it fulfils has ended. */
+export function ContractEndedStatus() {
+  return (
+    <Status tone="conflict" icon={TriangleAlert}>
+      {contractEndedWords}
+    </Status>
+  )
+}
+
 export function IntervalCheckStatus() {
   return (
     <Status tone="waiting" icon={TriangleAlert}>

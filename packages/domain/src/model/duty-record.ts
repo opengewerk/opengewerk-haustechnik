@@ -12,6 +12,7 @@ import {
 
 import type { AreaId } from './area.js'
 import type { AssetId } from './asset.js'
+import type { ContractId } from './contract.js'
 import type { ContractorId } from './contractor.js'
 import {
   type Counting,
@@ -50,7 +51,8 @@ export const dutyBasisLabel: Readonly<Record<DutyBasis, string>> = {
 
 /**
  * Who performs a duty (section 2.3): the operator's own people or a
- * contractor. Until contracts come (phase 2) a note names the contractor.
+ * contractor, out of the list (#328) and on a contract of it where there is
+ * one (#329). A note keeps what stood as text before the list.
  */
 export const dutyPerformers = ['own_staff', 'contractor'] as const
 
@@ -121,6 +123,8 @@ export interface Duty extends Synced, PlaceTarget {
   readonly performerNote: string | null
   /** The firm out of the list that carries it out (#328); the note is what stood there as text before. */
   readonly contractorId: ContractorId | null
+  /** The contract of that firm the duty fulfils (#329), or none. */
+  readonly contractId: ContractId | null
   readonly confirmedBy: string
   readonly confirmedAt: Date
   /** The day it ends, from which it calls for nothing any more. */

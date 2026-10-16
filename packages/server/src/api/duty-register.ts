@@ -1,5 +1,6 @@
 import { BadRequestException } from '@nestjs/common'
 import {
+  type ContractId,
   type ContractorId,
   type AreaId,
   type BuildingId,
@@ -18,6 +19,7 @@ import {
   type DutyRegisterState,
   dutyRegisterStates,
   endedDuties,
+  type DutyContract,
   type DutyIntervalDocument,
   inDueWindow,
   inRegisterOrder,
@@ -31,6 +33,7 @@ import { isUuid, type TenantTransaction } from '@opengewerk/platform-server'
 import { and, eq, isNotNull, isNull, or, sql } from 'drizzle-orm'
 
 import { dutiesOnADay, dutyTitle, type RegisteredDuty } from '../database/duty-standing.js'
+import { contractsOfDuties } from '../database/duty-contracts.js'
 import { intervalDocumentsOf } from '../database/interval-documents.js'
 import { assets, duties, rooms } from '../database/schema/index.js'
 import { counted, said } from './register-question.js'
@@ -82,6 +85,7 @@ export function dutyRegisterQuestion(
       'dutyKind',
       'responsible',
       'contractorId',
+      'contractId',
     ] as const
   )
     .map((name) => [name, said(query, name)] as const)
@@ -149,6 +153,7 @@ export function dutyEntry(
   catalogue: Catalogue,
   today: IsoDate,
   intervalDocument: DutyIntervalDocument | null = null,
+  contract: DutyContract | null = null,
 ): UnnamedDutyEntry {
   const { duty } = registered
   const ended = dutyHasEnded(duty, today)
@@ -164,8 +169,11 @@ export function dutyEntry(
     performer: duty.performer,
     performerNote: duty.performerNote,
     contractorId: duty.contractorId,
+    contractId: duty.contractId,
     ended,
     intervalToCheck: intervalToCheck(intervalDocument, ended),
+    // A duty that has ended calls for nothing, a contract of it neither (#329).
+    contractEnded: !ended && contract !== null && contract.endedOn !== null,
     asset,
   }
 }
@@ -189,7 +197,7 @@ function placeKey(entry: UnnamedDutyEntry): string {
 /** What narrows the register in the database: where a duty is and what kind it is. */
 export type DutyPlaceFilter = Pick<
   DutyRegisterFilter,
-  'propertyId' | 'areaId' | 'buildingId' | 'assetKind' | 'dutyKind' | 'contractorId'
+  'propertyId' | 'areaId' | 'buildingId' | 'assetKind' | 'dutyKind' | 'contractorId' | 'contractId'
 >
 
 /**
@@ -254,12 +262,19 @@ export async function registeredEntries(
           : isUuid(filter.contractorId)
             ? eq(duties.contractorId, filter.contractorId as ContractorId)
             : sql`false`,
+        // The duties a contract fulfils (#329); one that is no id names none.
+        filter.contractId === undefined
+          ? undefined
+          : isUuid(filter.contractId)
+            ? eq(duties.contractId, filter.contractId as ContractId)
+            : sql`false`,
       ),
     )
 
   const assetOf = new Map(rows.map((row) => [row.duty.id as string, row.asset]))
   const read = rows.map((row) => row.duty as Duty)
   const documents = await intervalDocumentsOf(tx, read)
+  const contractOf = await contractsOfDuties(tx, read, today)
 
   return (await dutiesOnADay(tx, today, read, catalogue)).map((registered) =>
     dutyEntry(
@@ -268,6 +283,7 @@ export async function registeredEntries(
       catalogue,
       today,
       documents.get(registered.duty.id) ?? null,
+      contractOf.get(registered.duty.id) ?? null,
     ),
   )
 }

@@ -191,7 +191,9 @@ export const linesThroughABuilding: Readonly<Record<string, LineThroughABuilding
  */
 export const areaOfOneSource: Readonly<Record<string, string>> = {
   deadlines:
-    'a deadline follows one source, a duty, a defect, a plan or the meters of a property (deadlines_follow_one_source)',
+    'a deadline follows one source, a duty, a defect, a plan, the meters of a property, a document, a contract or a warranty (deadlines_follow_one_source)',
+  // What a contract covers (#329).
+  contract_items: 'an item covers one building or one asset (contract_items_one_target)',
   prints: 'a print is of one record, evidence or an activity (prints_of_one_record)',
 }
 
