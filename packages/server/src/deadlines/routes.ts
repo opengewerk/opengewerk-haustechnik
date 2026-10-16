@@ -148,8 +148,10 @@ export function deadlineRulesFor(
                 roomBuildingId: rooms.buildingId,
                 // The firm of a contractor's document (#328), which has no place.
                 // Named with the title of the document for whoever reads
-                // deadlines, without seeing the firms: the name of a firm is
-                // no secret, its papers are (decided on 16.10.2026, #377).
+                // deadlines, without seeing the firms: the name of a firm and
+                // what the deadline of a paper says, its title, the firm and
+                // the day, are no secret; the paper with its files is (decided
+                // by the maintainer on 16.10.2026, #377).
                 contractorId: contractors.id,
                 contractorName: contractors.name,
               })
