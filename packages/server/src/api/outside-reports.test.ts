@@ -378,22 +378,23 @@ describe('the page of a label without an account', () => {
       neighbour,
     ])
 
-    const answers = await Promise.all(
-      [blocked, onNothing, unknown, elsewhere, 'kein-code'].map(
-        async (code) => (await opened(code).expect(200)).body as unknown,
-      ),
-    )
+    // One after the other: supertest opens a server per request.
+    const answers: unknown[] = []
+
+    for (const code of [blocked, onNothing, unknown, elsewhere, 'kein-code']) {
+      answers.push((await opened(code).expect(200)).body)
+    }
 
     expect(answers).toEqual(answers.map(() => ({ open: false })))
 
     // Sent to all the same, each answers alike: no page ever handed out a form for it.
-    const refused = await Promise.all(
-      [blocked, onNothing, unknown, elsewhere].map(async (code) => {
-        const answer = await sent(code, { form: 'x', categoryId: 'x', description: 'Tür klemmt.' })
+    const refused: (readonly [number, unknown])[] = []
 
-        return [answer.status, answer.body] as const
-      }),
-    )
+    for (const code of [blocked, onNothing, unknown, elsewhere]) {
+      const answer = await sent(code, { form: 'x', categoryId: 'x', description: 'Tür klemmt.' })
+
+      refused.push([answer.status, answer.body])
+    }
 
     expect(refused).toEqual(
       refused.map(() => [
