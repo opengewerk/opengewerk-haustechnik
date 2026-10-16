@@ -260,6 +260,15 @@ function PermitDialog({
   )
 }
 
+/** "Ansehen", named for what it opens. */
+function ShowButton({ label, onClick }: { readonly label: string; readonly onClick: () => void }) {
+  return (
+    <Button size="small" icon={Eye} aria-label={label} onClick={onClick}>
+      {visitWords.show}
+    </Button>
+  )
+}
+
 /** A panel in place of a table that has no row yet. */
 function Empty({ title, said }: { readonly title: string; readonly said: string }) {
   return (
@@ -319,6 +328,15 @@ export function OrderVisits({
             key: briefing.id,
             title: briefing.personName,
             sub: `${visitWords.briefedBy(briefing.signedByName)} · ${moment(briefing.signedAt)}`,
+            // On a telephone the boxes stand in for the table, with the same button.
+            actions: (
+              <ShowButton
+                label={visitWords.showOf(visitWords.briefingOf(briefing.personName))}
+                onClick={() => {
+                  setOpen({ briefing })
+                }}
+              />
+            ),
           }))}
         >
           <thead>
@@ -373,6 +391,14 @@ export function OrderVisits({
             key: permit.id,
             title: permit.form?.title ?? visitWords.permit,
             sub: `${visitWords.permitFor(permit.signerName)} · ${moment(permit.signedAt)}`,
+            actions: (
+              <ShowButton
+                label={visitWords.showOf(permit.form?.title ?? visitWords.permit)}
+                onClick={() => {
+                  setOpen({ permit })
+                }}
+              />
+            ),
           }))}
         >
           <thead>
@@ -463,6 +489,14 @@ export function FirmVisits({ contractorId }: { readonly contractorId: string }) 
             sub: [row.order.orderNumber, row.order.orderTitle, moment(row.at)]
               .filter(Boolean)
               .join(' · '),
+            actions: (
+              <ShowButton
+                label={visitWords.showOf(`${row.what}: ${row.who}`)}
+                onClick={() => {
+                  setOpen(row.open)
+                }}
+              />
+            ),
           }))}
         >
           <thead>
