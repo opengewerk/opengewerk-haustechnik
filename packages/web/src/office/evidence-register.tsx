@@ -33,6 +33,9 @@ export const evidenceRegisterDialogWords = {
   sub: 'Je Anlage ihre Pflichten mit dem letzten Nachweis, für Begehungen und Audits',
   ended: 'Beendete Pflichten aufnehmen',
   endedSub: 'Sonst steht darin, was läuft oder ruht.',
+  attach: 'Nachweise und Prüfbescheinigungen anhängen',
+  attachSub:
+    'Nur im PDF: hinter der Liste in einem Dokument, jede Zeile mit der Seite ihres Nachweises.',
   offline: 'Ohne Verbindung zum Server gibt es kein Nachweisverzeichnis.',
 } as const
 
@@ -71,6 +74,41 @@ function countWords(count: EvidenceRegisterCount): string {
   return `${duties} an ${assets}, davon ${count.never.toLocaleString('de-DE')} nie erfasst. So viele zeigt das Pflichtenverzeichnis unter derselben Auswahl.`
 }
 
+/** A box to tick with a line under it, as the board draws "Beendete Pflichten aufnehmen". */
+function Tick({
+  checked,
+  disabled = false,
+  label,
+  sub,
+  onChange,
+}: {
+  readonly checked: boolean
+  readonly disabled?: boolean
+  readonly label: string
+  readonly sub: string
+  readonly onChange: (checked: boolean) => void
+}) {
+  return (
+    <label
+      className={`flex items-start gap-2.5 text-[14px] leading-[1.4]${disabled ? ' opacity-60' : ''}`}
+    >
+      <input
+        type="checkbox"
+        checked={checked}
+        disabled={disabled}
+        className="mt-0.5 size-4 shrink-0 cursor-pointer accent-copper-solid disabled:cursor-not-allowed"
+        onChange={(event) => {
+          onChange(event.target.checked)
+        }}
+      />
+      <span>
+        {label}
+        <span className="block text-[12px] text-ink-muted">{sub}</span>
+      </span>
+    </label>
+  )
+}
+
 export function EvidenceRegisterDialog({
   filter,
   onClose,
@@ -90,6 +128,7 @@ export function EvidenceRegisterDialog({
   )
   const [ended, setEnded] = useState(false)
   const [format, setFormat] = useState<Format>('pdf')
+  const [attach, setAttach] = useState(true)
   const [working, setWorking] = useState(false)
   const [trouble, setTrouble] = useState<string | null>(null)
 
@@ -142,6 +181,8 @@ export function EvidenceRegisterDialog({
 
     if (format !== 'pdf') {
       asked.set('format', format)
+    } else if (attach) {
+      asked.set('attach', '1')
     }
 
     requestFile(`${address}?${asked.toString()}`, accepts[format])
@@ -248,27 +289,24 @@ export function EvidenceRegisterDialog({
           </div>
         </div>
         {count.data === undefined ? null : <NoteBox>{countWords(count.data)}</NoteBox>}
-        <label className="flex items-start gap-2.5 text-[14px] leading-[1.4]">
-          <input
-            type="checkbox"
-            checked={ended}
-            className="mt-0.5 size-4 shrink-0 cursor-pointer accent-copper-solid"
-            onChange={(event) => {
-              setEnded(event.target.checked)
-            }}
-          />
-          <span>
-            {evidenceRegisterDialogWords.ended}
-            <span className="block text-[12px] text-ink-muted">
-              {evidenceRegisterDialogWords.endedSub}
-            </span>
-          </span>
-        </label>
+        <Tick
+          checked={ended}
+          label={evidenceRegisterDialogWords.ended}
+          sub={evidenceRegisterDialogWords.endedSub}
+          onChange={setEnded}
+        />
         <Choice<Format>
           label="Format"
           value={format}
           onChange={setFormat}
           options={formats.map((each) => ({ value: each.value, label: each.label }))}
+        />
+        <Tick
+          checked={format === 'pdf' && attach}
+          disabled={format !== 'pdf'}
+          label={evidenceRegisterDialogWords.attach}
+          sub={evidenceRegisterDialogWords.attachSub}
+          onChange={setAttach}
         />
         <p className="text-[12px] text-ink-faint">
           Gilt für heute, den {date(today())}, und nennt diesen Tag. Ein Nachweis aus dem Altbestand

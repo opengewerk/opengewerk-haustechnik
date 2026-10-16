@@ -54,6 +54,7 @@ import {
   dutyTaskLabel,
   dutyTasks,
   evidenceRegisterBlocks,
+  type EvidenceId,
   type EvidenceRegisterCount,
   evidenceRegisterCount,
   type FederalState,
@@ -122,7 +123,8 @@ import {
   wholeList,
 } from './office-tables.js'
 import { keeperOf } from '../labels/faces.js'
-import { evidenceRegisterPrintJob } from '../prints/evidence-register-page.js'
+import { type EvidenceAttachment, withEvidenceBehind } from '../prints/evidence-bundle.js'
+import { type EvidencePages, evidenceRegisterPrintJob } from '../prints/evidence-register-page.js'
 import { pdf, Printer } from './prints.controller.js'
 import { said } from './register-question.js'
 import { type Asking, fieldsOf, placeOf, refuse } from './places.js'
@@ -1019,7 +1021,11 @@ export class DutiesController {
   /**
    * The register of evidence as a PDF on A4 across (#338): a block per
    * asset, a line per duty with its last evidence, for the day it is asked
-   * for. Made now and not kept, since it says how things stand today.
+   * for. Made now and not kept, since it says how things stand today. With
+   * `attach=1` the evidence follows the list in the same document, each
+   * evidence once, as the PDF it keeps and the files it rests on, and every
+   * line names the page its evidence begins on (decided by Moritz on
+   * 15.10.2026).
    */
   @Get('evidence-register/pdf')
   @RequiresPermission('evidence.read')
@@ -1030,7 +1036,7 @@ export class DutiesController {
   ): Promise<StreamableFile> {
     const question = evidenceRegisterQuestion(query)
     const today = dayInGermany()
-    const job = await this.database.forTenant(identity, async (tx) => {
+    const made = await this.database.forTenant(identity, async (tx) => {
       const entries = await evidenceRegisterEntries(tx, this.catalogue, today, question)
       const named = await evidenceRegisterNames(tx, identity)
       const names = await placeNamesFor(tx, identity)
@@ -1048,19 +1054,51 @@ export class DutiesController {
         question.ended ? 'mit beendeten Pflichten' : 'ohne beendete Pflichten',
       ].join(', ')
 
-      return evidenceRegisterPrintJob(
-        {
+      return {
+        head: {
           today,
           operator: await keeperOf(tx),
           choice: `${choice}.`,
           count: evidenceRegisterCount(entries),
         },
-        evidenceRegisterBlocks(entries),
+        blocks: evidenceRegisterBlocks(entries),
         named,
-      )
+      }
     })
+    const listed = (attached: EvidencePages | null) =>
+      this.printer.fresh(evidenceRegisterPrintJob(made.head, made.blocks, made.named, attached))
 
-    return pdf(response, await this.printer.fresh(job), `Nachweisverzeichnis ${today}`)
+    if (query['attach'] !== '1') {
+      return pdf(response, await listed(null), `Nachweisverzeichnis ${today}`)
+    }
+
+    // The evidence behind the list, in the order of its rows, each once: the
+    // print it keeps and the files it rests on, read as the person, so that
+    // nothing beyond their areas follows the list either.
+    const attachments: EvidenceAttachment<EvidenceId>[] = []
+    const evidenceIds = new Set(
+      made.blocks.flatMap((block) =>
+        block.lines.flatMap((line) => (line.evidenceId === null ? [] : [line.evidenceId])),
+      ),
+    )
+
+    for (const evidenceId of evidenceIds) {
+      const printed = await this.printer.evidencePrint(identity, evidenceId)
+
+      if (printed !== null) {
+        attachments.push({
+          key: evidenceId,
+          print: printed.bytes,
+          files: await this.printer.evidenceFiles(identity, evidenceId),
+        })
+      }
+    }
+
+    return pdf(
+      response,
+      await withEvidenceBehind(attachments, listed),
+      `Nachweisverzeichnis mit Nachweisen ${today}`,
+    )
   }
 
   /**

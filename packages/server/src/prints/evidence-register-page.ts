@@ -1,11 +1,14 @@
 import {
   dayInWords,
   type EvidenceRegisterBlock,
+  type EvidenceId,
   type EvidenceRegisterCount,
   evidenceRegisterWords,
   type IsoDate,
 } from '@opengewerk/haustechnik-domain'
 import { fontFaces, type PrintJob, text, typeface } from '@opengewerk/platform-server'
+
+import type { AttachedPages } from './evidence-bundle.js'
 
 // The register of evidence as a PDF (#338, the board "Nachweisverzeichnis
 // als PDF, A4 quer"): a block per asset, a line per duty, on A4 turned on
@@ -20,16 +23,49 @@ export interface EvidenceRegisterHead {
   readonly count: EvidenceRegisterCount
 }
 
-function line(entry: EvidenceRegisterBlock['lines'][number]): string {
+type Line = EvidenceRegisterBlock['lines'][number]
+
+/** The pages of the evidence behind the list, by the evidence each row names. */
+export type EvidencePages = AttachedPages<EvidenceId>
+
+function line(entry: Line, attached: EvidencePages | null): string {
   const sub = (words: string | null) =>
     words === null || words === '' ? '' : `<div class="sub">${text(words)}</div>`
   const mark = entry.mark === null ? '' : `<span class="mark">${text(entry.mark)}</span>`
 
-  return `<tr><td>${text(entry.duty)}</td><td>${text(entry.reference)}${sub(entry.document)}</td><td>${text(entry.interval)}</td><td class="muted">${text(entry.reason ?? 'Keine, die Frist des Pakets.')}</td><td>${entry.last === null ? '' : text(entry.last)}${sub(entry.evidenceNumber)}${mark}</td><td>${entry.nextDue === null ? '' : text(dayInWords(entry.nextDue))}</td></tr>`
+  return `<tr><td>${text(entry.duty)}</td><td>${text(entry.reference)}${sub(entry.document)}</td><td>${text(entry.interval)}</td><td class="muted">${text(entry.reason ?? 'Keine, die Frist des Pakets.')}</td><td>${entry.last === null ? '' : text(entry.last)}${sub(entry.evidenceNumber)}${mark}</td><td>${entry.nextDue === null ? '' : text(dayInWords(entry.nextDue))}</td>${attached === null ? '' : `<td class="page">${pageOf(entry, attached)}</td>`}</tr>`
 }
 
-function blockOf(block: EvidenceRegisterBlock, named: { asset: string; place: string }): string {
-  return `<tbody><tr class="block"><td colspan="6"><strong>${text(named.asset)}</strong> <span class="muted">${text(named.place)}</span></td></tr>${block.lines.map(line).join('')}</tbody>`
+function pageOf(entry: Line, attached: EvidencePages): string {
+  const page = entry.evidenceId === null ? undefined : attached.pages.get(entry.evidenceId)
+
+  return page === undefined ? '' : String(page)
+}
+
+function blockOf(
+  block: EvidenceRegisterBlock,
+  named: { asset: string; place: string },
+  attached: EvidencePages | null,
+): string {
+  return `<tbody><tr class="block"><td colspan="${attached === null ? 6 : 7}"><strong>${text(named.asset)}</strong> <span class="muted">${text(named.place)}</span></td></tr>${block.lines.map((entry) => line(entry, attached)).join('')}</tbody>`
+}
+
+/** What the line under the head says of the evidence behind the list. */
+function behind(attached: EvidencePages | null): string {
+  if (attached === null) {
+    return ''
+  }
+
+  const follows =
+    attached.pages.size === 0
+      ? ' Keine Pflicht hat einen Nachweis, der folgen könnte.'
+      : ` Die Nachweise folgen ab Seite ${String(attached.from)}.`
+  const missing =
+    attached.unattached === 0
+      ? ''
+      : ` ${String(attached.unattached)} ${attached.unattached === 1 ? 'Datei ließ' : 'Dateien ließen'} sich nicht anhängen; der Nachweis gibt sie selbst heraus.`
+
+  return follows + missing
 }
 
 function counted(count: EvidenceRegisterCount): string {
@@ -39,17 +75,22 @@ function counted(count: EvidenceRegisterCount): string {
   return `${duties} an ${assets}, davon ${String(count.never)} ${evidenceRegisterWords.never.toLowerCase()}.`
 }
 
-/** The print of the register, for the renderer. */
+/**
+ * The print of the register, for the renderer. With the evidence behind it,
+ * every row names the page its evidence begins on, and the footer counts the
+ * pages of the whole document.
+ */
 export function evidenceRegisterPrintJob(
   head: EvidenceRegisterHead,
   blocks: readonly EvidenceRegisterBlock[],
   named: (block: EvidenceRegisterBlock) => { readonly asset: string; readonly place: string },
+  attached: EvidencePages | null = null,
 ): PrintJob {
   const body = `
   <header><h1>${text(evidenceRegisterWords.title)}</h1><div class="over">Stand ${text(dayInWords(head.today))}<br>${text(head.operator)}</div></header>
-  <p class="choice">${text(head.choice)} ${text(counted(head.count))}</p>
-  <table><thead><tr><th class="duty">Pflicht</th><th class="reference">Fundstelle</th><th class="interval">Frist</th><th>Begründung</th><th class="last">Letzter Nachweis</th><th class="next">Nächste Fälligkeit</th></tr></thead>
-  ${blocks.map((block) => blockOf(block, named(block))).join('')}</table>`
+  <p class="choice">${text(head.choice)} ${text(counted(head.count))}${text(behind(attached))}</p>
+  <table><thead><tr><th class="duty">Pflicht</th><th class="reference">Fundstelle</th><th class="interval">Frist</th><th>Begründung</th><th class="last">Letzter Nachweis</th><th class="next">Nächste Fälligkeit</th>${attached === null ? '' : '<th class="page">Seite</th>'}</tr></thead>
+  ${blocks.map((block) => blockOf(block, named(block), attached)).join('')}</table>`
   const html = `<!doctype html>
 <html lang="de">
 <head>
@@ -64,7 +105,12 @@ header .over { text-align: right; color: #555; font-size: 9pt; line-height: 1.5;
 .choice { margin: 8px 0 0; color: #555; }
 table { width: 100%; border-collapse: collapse; margin-top: 10px; table-layout: fixed; }
 th { text-align: left; font-size: 7.5pt; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: #555; padding: 4px 6px; border-bottom: 1px solid #8a8178; background: #f1ede6; }
-th.duty { width: 20%; } th.reference { width: 18%; } th.interval { width: 9%; } th.last { width: 19%; } th.next { width: 11%; }
+${
+  attached === null
+    ? 'th.duty { width: 20%; } th.reference { width: 18%; } th.interval { width: 9%; } th.last { width: 19%; } th.next { width: 11%; }'
+    : 'th.duty { width: 19%; } th.reference { width: 17%; } th.interval { width: 8%; } th.last { width: 18%; } th.next { width: 11%; } th.page { width: 5%; }'
+}
+th.page, td.page { text-align: right; }
 td { padding: 4px 6px; border-bottom: 1px solid #ddd6cc; vertical-align: top; }
 tbody { break-inside: avoid; }
 tr.block td { padding-top: 9px; border-bottom: 1px solid #8a8178; }
@@ -75,7 +121,7 @@ tr.block td { padding-top: 9px; border-bottom: 1px solid #8a8178; }
 </head>
 <body>${body}</body>
 </html>`
-  const footerHtml = `<style>${fontFaces([400])}</style><div style="font-family: ${typeface}; font-size: 7pt; color: #555; width: 100%; padding: 0 12mm; display: flex; justify-content: space-between; align-items: flex-end;"><div>Erzeugt am ${text(dayInWords(head.today))}. Ein Nachweis aus dem Altbestand ist übernommen und nicht in dieser Anwendung unterschrieben.</div><div>Seite <span class="pageNumber"></span> von <span class="totalPages"></span></div></div>`
+  const footerHtml = `<style>${fontFaces([400])}</style><div style="font-family: ${typeface}; font-size: 7pt; color: #555; width: 100%; padding: 0 12mm; display: flex; justify-content: space-between; align-items: flex-end;"><div>Erzeugt am ${text(dayInWords(head.today))}. Ein Nachweis aus dem Altbestand ist übernommen und nicht in dieser Anwendung unterschrieben.</div><div>Seite <span class="pageNumber"></span> von ${attached === null ? '<span class="totalPages"></span>' : String(attached.total)}</div></div>`
 
   return {
     html,

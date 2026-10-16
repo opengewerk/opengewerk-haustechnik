@@ -1129,4 +1129,42 @@ describe('the register of evidence (#338)', () => {
       ])
     })
   })
+
+  it('is asked for as a PDF with the evidence behind it, unless that is left out, and never as a table', async () => {
+    await mount(
+      '/pflichten?gebaeude=b-house',
+      {
+        '/duties/register?buildingId=b-house&offset=0&limit=50': page([mainTest]),
+        '/duties/evidence-register?buildingId=b-house': { duties: 1, assets: 1, never: 0 },
+      },
+      'management',
+    )
+    await screen.findByRole('table', { name: register })
+
+    const tables = servingTables()
+    const open = async () => {
+      fireEvent.click(await screen.findByRole('button', { name: 'Nachweisverzeichnis' }))
+
+      return within(await screen.findByRole('dialog', { name: 'Nachweisverzeichnis' }))
+    }
+    const attach = /Nachweise und Prüfbescheinigungen anhängen/
+
+    fireEvent.click((await open()).getByRole('button', { name: 'Ausgeben' }))
+    await waitFor(() => {
+      expect(tables.asked).toEqual(['/duties/evidence-register/pdf?buildingId=b-house&attach=1'])
+    })
+
+    const again = await open()
+
+    fireEvent.click(again.getByRole('checkbox', { name: attach }))
+    fireEvent.click(again.getByRole('button', { name: 'Ausgeben' }))
+    await waitFor(() => {
+      expect(tables.asked.at(-1)).toBe('/duties/evidence-register/pdf?buildingId=b-house')
+    })
+
+    const table = await open()
+
+    fireEvent.click(table.getByRole('radio', { name: 'Excel (.xlsx)' }))
+    expect((table.getByRole('checkbox', { name: attach }) as HTMLInputElement).disabled).toBe(true)
+  })
 })

@@ -31,7 +31,8 @@ import {
   RendererUnavailableError,
   type TenantTransaction,
 } from '@opengewerk/platform-server'
-import { and, eq, isNull } from 'drizzle-orm'
+import { files } from '@opengewerk/platform-server/schema'
+import { and, eq, inArray, isNull } from 'drizzle-orm'
 
 import {
   activities,
@@ -163,6 +164,110 @@ export class Printer {
     }
   }
 
+  /**
+   * The PDF of an evidence, as it is or declared invalid, kept the first time
+   * it is asked for; null where the person does not see the evidence.
+   */
+  async evidencePrint(
+    identity: Asking,
+    id: EvidenceId,
+  ): Promise<{ readonly number: string; readonly bytes: Uint8Array } | null> {
+    const held = await this.database.forTenant(identity, async (tx) => {
+      const [row] = await tx.select().from(evidence).where(eq(evidence.id, id))
+
+      if (row === undefined) {
+        return null
+      }
+
+      const [voiding] = await tx
+        .select({ reason: evidenceVoidings.reason, voidedAt: evidenceVoidings.voidedAt })
+        .from(evidenceVoidings)
+        .where(eq(evidenceVoidings.evidenceId, row.id))
+
+      return { row, voiding: voiding ?? null }
+    })
+
+    if (held === null) {
+      return null
+    }
+
+    const { row, voiding } = held
+    const state = readEvidenceState(row.state)
+    const bytes = await this.printed(
+      identity,
+      { evidenceId: row.id, voided: voiding !== null },
+      { propertyId: row.propertyId, areaId: row.areaId },
+      async () =>
+        evidencePrintJob(
+          state,
+          row.fingerprint,
+          await this.photosOf(state.answers),
+          voiding === null
+            ? null
+            : {
+                on: voiding.voidedAt.toISOString().slice(0, 10) as IsoDate,
+                reason: voiding.reason,
+              },
+        ),
+    )
+
+    return { number: state.number, bytes }
+  }
+
+  /**
+   * The files an evidence rests on, in the order its frozen state names them,
+   * with the type the server read off their first bytes: the report of a
+   * contractor, for one (#110). Only those still stored for the tenant, as
+   * the evidence hands them out itself; none where the person does not see
+   * the evidence.
+   */
+  async evidenceFiles(
+    identity: Asking,
+    id: EvidenceId,
+  ): Promise<readonly { readonly mediaType: string; readonly bytes: Uint8Array }[]> {
+    const named = await this.database.forTenant(identity, async (tx) => {
+      const [row] = await tx
+        .select({ state: evidence.state })
+        .from(evidence)
+        .where(eq(evidence.id, id))
+
+      if (row === undefined) {
+        return []
+      }
+
+      const stated = readEvidenceState(row.state).files
+      const stored =
+        stated.length === 0
+          ? []
+          : await tx
+              .select({ sha256: files.sha256, mediaType: files.mediaType })
+              .from(files)
+              .where(
+                and(
+                  eq(files.tenantId, identity.tenantId),
+                  inArray(
+                    files.sha256,
+                    stated.map((file) => file.sha256),
+                  ),
+                ),
+              )
+      const types = new Map(stored.map((file) => [file.sha256, file.mediaType]))
+
+      return stated.flatMap((file) => {
+        const mediaType = types.get(file.sha256)
+
+        return mediaType === undefined ? [] : [{ sha256: file.sha256, mediaType }]
+      })
+    })
+    const read: { mediaType: string; bytes: Uint8Array }[] = []
+
+    for (const file of named) {
+      read.push({ mediaType: file.mediaType, bytes: await this.store.get(file.sha256) })
+    }
+
+    return read
+  }
+
   /** The photos of the answers, read from the store by the hash the frozen state names. */
   async photosOf(answers: readonly StatedAnswer[]): Promise<PrintedPhoto[]> {
     const photos: PrintedPhoto[] = []
@@ -186,10 +291,7 @@ export class Printer {
 /** The PDF of an evidence, as it is or declared invalid. */
 @Controller('evidence')
 export class EvidencePrintController {
-  constructor(
-    private readonly database: Database,
-    private readonly printer: Printer,
-  ) {}
+  constructor(private readonly printer: Printer) {}
 
   @Get(':id/pdf')
   @RequiresPermission('evidence.read')
@@ -202,49 +304,13 @@ export class EvidencePrintController {
       throw new NotFoundException(missingEvidence)
     }
 
-    const held = await this.database.forTenant(identity, async (tx) => {
-      const [row] = await tx
-        .select()
-        .from(evidence)
-        .where(eq(evidence.id, id as EvidenceId))
+    const printed = await this.printer.evidencePrint(identity, id as EvidenceId)
 
-      if (row === undefined) {
-        return null
-      }
-
-      const [voiding] = await tx
-        .select({ reason: evidenceVoidings.reason, voidedAt: evidenceVoidings.voidedAt })
-        .from(evidenceVoidings)
-        .where(eq(evidenceVoidings.evidenceId, row.id))
-
-      return { row, voiding: voiding ?? null }
-    })
-
-    if (held === null) {
+    if (printed === null) {
       throw new NotFoundException(missingEvidence)
     }
 
-    const { row, voiding } = held
-    const state = readEvidenceState(row.state)
-    const bytes = await this.printer.printed(
-      identity,
-      { evidenceId: row.id, voided: voiding !== null },
-      { propertyId: row.propertyId, areaId: row.areaId },
-      async () =>
-        evidencePrintJob(
-          state,
-          row.fingerprint,
-          await this.printer.photosOf(state.answers),
-          voiding === null
-            ? null
-            : {
-                on: voiding.voidedAt.toISOString().slice(0, 10) as IsoDate,
-                reason: voiding.reason,
-              },
-        ),
-    )
-
-    return pdf(response, bytes, `Nachweis ${state.number}`)
+    return pdf(response, printed.bytes, `Nachweis ${printed.number}`)
   }
 }
 

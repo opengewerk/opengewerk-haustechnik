@@ -215,7 +215,7 @@ export function servingTables(): { asked: string[]; saved: string[] } {
   const saved: string[] = []
 
   vi.stubGlobal('fetch', (path: string, init?: RequestInit) => {
-    if (!/\/table(\?|$)/.test(path)) {
+    if (!/\/(table|pdf)(\?|$)/.test(path)) {
       return answered(path, init)
     }
 

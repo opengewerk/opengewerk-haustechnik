@@ -1,3 +1,9 @@
+import { createHash } from 'node:crypto'
+import { mkdtempSync, rmSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
+
+import { PDFDocument } from '@cantoo/pdf-lib'
 import type { INestApplication } from '@nestjs/common'
 import { Test } from '@nestjs/testing'
 import { catalogueBundle } from '@opengewerk/haustechnik-catalogue'
@@ -24,7 +30,7 @@ import {
   type TenantId,
   weekNamed,
 } from '@opengewerk/haustechnik-domain'
-import { Database, newId, type PrintJob } from '@opengewerk/platform-server'
+import { Database, FileStore, newId, type PrintJob } from '@opengewerk/platform-server'
 import type { Pool } from 'pg'
 import request from 'supertest'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
@@ -85,9 +91,22 @@ const today = dayInGermany()
 /** What the renderer was handed, newest last (#338). */
 const rendered: PrintJob[] = []
 
+/** A PDF of empty pages, as the renderer or a contractor might send one. */
+async function pdfOfPages(count: number): Promise<Uint8Array> {
+  const made = await PDFDocument.create()
+
+  for (let page = 0; page < count; page += 1) {
+    made.addPage()
+  }
+
+  return made.save()
+}
+
 let admin: Pool
 let database: Database
 let app: INestApplication
+/** Where the files of the tests lie: the report behind the register of evidence (#338). */
+let folder = ''
 
 function http() {
   return request(app.getHttpServer())
@@ -208,6 +227,7 @@ async function dutyAt(
 }
 
 beforeAll(async () => {
+  folder = mkdtempSync(join(tmpdir(), 'haustechnik-office-tables-'))
   admin = await connect()
   await resetToMigrated()
 
@@ -275,11 +295,12 @@ beforeAll(async () => {
     imports: [
       ApiModule.create(database, testIdentities, {
         catalogue,
-        renderer: (job) => {
+        renderer: async (job) => {
           rendered.push(job)
 
-          return Promise.resolve(new TextEncoder().encode('%PDF probe'))
+          return pdfOfPages(1)
         },
+        files: new FileStore(folder),
       }),
     ],
   }).compile()
@@ -292,6 +313,7 @@ afterAll(async () => {
   await app.close()
   await database.close()
   await admin.end()
+  rmSync(folder, { recursive: true, force: true })
 })
 
 describe('the meters as a table (#236)', () => {
@@ -812,6 +834,102 @@ describe('the register of evidence as a table (#338)', () => {
           .expect(200)
       ).body,
     ).toEqual({ duties: register.total, assets: 1, never: 1 })
+  })
+
+  it('names where a duty comes from as the register of duties does: for one from the catalogue the source of its kind', async () => {
+    const { property, asset } = await liftIn('Nachweishaus Katalog')
+    // The main test of a lift, from the package of the tests.
+    const kind = 'probe.elevator_main_test'
+
+    await http()
+      .post('/duties')
+      .set(testIdentityHeader, by('u-duties'))
+      .send({ assetId: asset, kind, intervalMonths: 24 })
+      .expect(201)
+    await dutyAt(asset, 'Türen prüfen')
+
+    const source = catalogue.dutyKind(kind, today)?.definition.source ?? ''
+    const columns = [...evidenceRegisterColumns]
+    const table = await tableOf(path, { propertyId: property }, by('u-duties'), 'csv')
+
+    expect(source).not.toBe('')
+    expect(
+      table
+        .slice(1)
+        .map((row) => row[columns.indexOf('Fundstelle')])
+        .sort(),
+    ).toEqual([source, 'Eigene Festlegung, Hausordnung'].sort())
+  })
+
+  it('has the evidence behind it with attach, each evidence and the report it rests on, and every row names its page', async () => {
+    // A tenant of its own, so that the report filed today stands in no other table.
+    const tenant = newId<'tenant'>() as TenantId
+
+    await admin.query('insert into tenants (id, name) values ($1, $2)', [tenant, 'Anhang Probe'])
+    await admin.query(
+      `insert into memberships (tenant_id, user_id, roles) values ($1, 'u-duties', '{technical_management}')`,
+      [tenant],
+    )
+
+    const { property, asset } = await liftIn('Nachweishaus Anhang', tenant)
+    const doors = await dutyAt(asset, 'Türen prüfen')
+    const call = await dutyAt(asset, 'Notruf prüfen')
+
+    await dutyAt(asset, 'Schacht prüfen')
+
+    // The report of the doors comes as a PDF of two pages, sent ahead as the office does.
+    const report = Buffer.from(await pdfOfPages(2))
+    const sha256 = createHash('sha256').update(report).digest('hex')
+
+    await http()
+      .put(`/files/${sha256}`)
+      .set('content-type', 'application/octet-stream')
+      .set('x-media-type', 'application/pdf')
+      .set(testIdentityHeader, by('u-duties', tenant))
+      .send(report)
+      .expect(200)
+    await http()
+      .post(`/duties/${doors}/report`)
+      .set(testIdentityHeader, by('u-duties', tenant))
+      .send({
+        performedOn: addDays(today, -3),
+        result: 'without_defects',
+        resultReason: null,
+        examiner: 'Klaus Berger',
+        examinerOrganisation: 'Prüfstelle Beispiel',
+        file: { sha256, fileName: 'bericht.pdf', sizeBytes: report.length, previewSha256: null },
+        defects: [],
+      })
+      .expect(201)
+    await evidenceOf(call, addDays(today, -20), true)
+
+    const answer = await http()
+      .get('/duties/evidence-register/pdf')
+      .query({ propertyId: property, attach: '1' })
+      .set(testIdentityHeader, by('u-duties', tenant))
+      .buffer(true)
+      .parse((response, done) => {
+        const chunks: Buffer[] = []
+
+        response.on('data', (chunk: Buffer) => chunks.push(chunk))
+        response.on('end', () => {
+          done(null, Buffer.concat(chunks))
+        })
+      })
+      .expect(200)
+    const whole = await PDFDocument.load(answer.body as Buffer)
+    const html = rendered.at(-1)?.html ?? ''
+
+    // The list on one page, then the call: its print. Then the doors: their
+    // print and the two pages of the report. The shaft has nothing to follow.
+    expect(whole.getPageCount()).toBe(1 + 1 + 1 + 2)
+    expect(html).toContain('Die Nachweise folgen ab Seite 2.')
+    expect([...html.matchAll(/<td class="page">(\d*)<\/td>/g)].map((match) => match[1])).toEqual([
+      '2',
+      '',
+      '3',
+    ])
+    expect(rendered.at(-1)?.footerHtml).toContain('von 5')
   })
 
   it('holds nothing of an area the person does not see, and is for whoever looks at evidence', async () => {
