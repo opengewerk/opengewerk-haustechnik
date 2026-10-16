@@ -7,6 +7,20 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
 
 ## [Unreleased]
 
+## [0.1.6] - 2026-10-16
+
+Eine zweite Zwischenfassung für den Pilotbetrieb, mit drei weiteren Stücken aus Phase 2. Wer in
+einem Gebäude arbeitet, meldet eine Störung mit Konto dort, wo sie ist, und das Büro nimmt sie unter
+„Störungen“ an. Ein wöchentlicher, monatlicher oder jährlicher Rundgang steht vor Ort ab dem Tag, den
+sein Plan unter „Sichtbar ab“ nennt, und bleibt bis zur Unterschrift ausfüllbar. Lager, Artikel und
+Lieferanten lassen sich entfernen, und ein Artikel zieht mit seinem Bestand in ein anderes Lager um.
+
+Aktualisiert wird wie bei jeder Fassung in zwei Schritten, vorher gesichert. Drei Migrationen kommen
+mit (`0062_fault_reports`, `0063_round_plans_shows_from`, `0064_stock_transfer`); mit der ersten
+bekommen bestehende Betreiber die Rolle Melder und die beiden neuen Rechte. Bestehende Pläne zeigen
+ihre Rundgänge danach ab dem ersten Tag ihrer Woche, ihres Monats oder ihres Jahres; wer einen
+anderen Tag will, stellt ihn im Plan ein.
+
 ### Hinzugefügt
 
 - Störmeldungen mit Konto (#331, Abschnitt 4.7 des Konzepts): die neue Rolle Melder meldet vor Ort an
