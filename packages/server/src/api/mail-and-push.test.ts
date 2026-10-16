@@ -58,6 +58,7 @@ const people = {
   'u-lead': 'management',
   'u-duties': 'technical_management',
   'u-tech': 'technician',
+  'u-melder': 'reporter',
 } as const satisfies Readonly<Record<string, RoleKey>>
 
 type Person = keyof typeof people
@@ -333,15 +334,24 @@ describe('an invitation by mail', () => {
 })
 
 describe('push on the devices of a person', () => {
-  it('is for everybody who works for the operator, with the occasions of this application', async () => {
-    for (const person of ['u-lead', 'u-duties', 'u-tech'] as const) {
+  it('is for everybody who works for the operator, with the occasions that can concern each (#398)', async () => {
+    const offered = async (person: Person) => {
       const answer = await http().get('/push').set(testIdentityHeader, by(person)).expect(200)
 
       expect(answer.body).toMatchObject({ available: true, devices: [] })
-      expect(
-        (answer.body.occasions as { key: string; on: boolean }[]).map((each) => each.key),
-      ).toEqual([...pushOccasions])
+
+      return (answer.body.occasions as { key: string; on: boolean }[]).map((each) => each.key)
     }
+
+    for (const person of ['u-lead', 'u-duties'] as const) {
+      expect(await offered(person)).toEqual([...pushOccasions])
+    }
+
+    // The role Haustechnik accepts no faults, and the Melder hears of its own reports alone.
+    expect(await offered('u-tech')).toEqual(
+      pushOccasions.filter((occasion) => occasion !== 'fault_received'),
+    )
+    expect(await offered('u-melder')).toEqual(['fault_answered'])
   })
 
   it('says so on an instance without a key, and takes no device there', async () => {

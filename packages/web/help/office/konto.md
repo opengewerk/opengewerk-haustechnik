@@ -6,4 +6,4 @@ Hier verwalten Sie Ihren eigenen Zugang: Passwort, zweiten Faktor, Passkeys und 
 
 1. Ein Gerät, das Sie nicht mehr benutzen, unter „Angemeldete Geräte“ abmelden.
 2. Einen Passkey anlegen, um sich ohne Passwort anzumelden.
-3. Push einschalten und wählen, zu welchen Anlässen dieses Gerät Sie benachrichtigt.
+3. Push einschalten und wählen, zu welchen Anlässen dieses Gerät Sie benachrichtigt. Angeboten werden die Anlässe, die Sie mit Ihren Rechten betreffen können; wer keine Störungen annimmt, sieht „Eingegangene Störungen“ nicht.

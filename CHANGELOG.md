@@ -22,6 +22,11 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
 
 ### Geändert
 
+- Unter „Benachrichtigungen“ stehen nur noch die Anlässe für Push, die eine Person mit ihren Rechten betreffen
+  können (#398): ein Melder sieht „Ihre Störmeldungen“ und sonst nichts, die Rolle Haustechnik sieht
+  „Eingegangene Störungen“ nicht. Warum: ein Anlass, der nie eintritt, ließ sich einschalten und blieb
+  stumm, und beim Melder war die Liste fast ganz ohne Bedeutung. Jeder Anlass nennt dafür sein Recht; das
+  Fundament lässt die übrigen weg (opengewerk/opengewerk#653).
 - Vor Ort hat ein Melder keinen Reiter „Konflikte“ mehr und keinen Weg ins Büro, weder als Vorschlag
   auf einem Arbeitsplatz noch im Menü (#392). Warum: sein Gerät hält nichts vom Betreiber, ein
   Konflikt kann dort nicht entstehen, und das Büro schickte ihn gleich zurück nach „Vor Ort“. Dafür
