@@ -48,6 +48,9 @@ import {
   takesAWorkOrder,
   type WorkOrderSettings,
   workOrderSettingsProblems,
+  isCalendarDay,
+  type OrderWarranty,
+  type AssetId,
 } from '@opengewerk/haustechnik-domain'
 import {
   accountsOf,
@@ -59,7 +62,20 @@ import {
   type TenantTransaction,
 } from '@opengewerk/platform-server'
 import { materialsOf } from '../activities/materials.js'
-import { and, asc, count, desc, eq, ilike, inArray, isNull, or, type SQL, sql } from 'drizzle-orm'
+import {
+  and,
+  asc,
+  count,
+  desc,
+  eq,
+  ilike,
+  inArray,
+  isNotNull,
+  isNull,
+  or,
+  type SQL,
+  sql,
+} from 'drizzle-orm'
 
 import { closeAsNotPerformed } from '../activities/closing.js'
 import { serviceReportsOf, workOrderSettingsOf } from '../activities/service-reports.js'
@@ -363,6 +379,48 @@ export class WorkOrdersController {
    * beside the property gives the area, which is its own where its building
    * has one (ADR 0003, addendum of #306).
    */
+  /**
+   * The accepted work orders at an asset that carry a warranty of their own
+   * (#329), as the record of the asset names them in "Verträge und
+   * Gewährleistung": those whoever asks sees, the latest end first.
+   */
+  @Get('warranties')
+  @RequiresPermission('activity.read')
+  warranties(
+    @CurrentIdentity() identity: Asking,
+    @Query('assetId') assetId: unknown,
+  ): Promise<OrderWarranty[]> {
+    return this.database.forTenant(identity, async (tx) => {
+      if (typeof assetId !== 'string' || !isUuid(assetId)) {
+        return []
+      }
+
+      const rows = await tx
+        .select({
+          id: activities.id,
+          number: workOrders.number,
+          title: activities.title,
+          warrantyEndsOn: workOrders.warrantyEndsOn,
+        })
+        .from(activities)
+        .innerJoin(workOrders, theirOrder)
+        .where(
+          and(
+            eq(activities.assetId, assetId as AssetId),
+            eq(activities.kind, 'work_order'),
+            eq(activities.status, 'done'),
+            isNull(activities.deletedAt),
+            isNotNull(workOrders.warrantyEndsOn),
+            ordersInSight(identity),
+          ),
+        )
+        .orderBy(desc(workOrders.warrantyEndsOn))
+        .limit(50)
+
+      return rows.map((row) => ({ ...row, warrantyEndsOn: row.warrantyEndsOn as string }))
+    })
+  }
+
   @Get('candidates')
   @RequiresPermission('activity.write')
   async candidates(
@@ -469,6 +527,7 @@ export class WorkOrdersController {
         .map((userId) => named(userId))
         .filter((person) => person !== null),
       durationMinutes: read.order.durationMinutes,
+      warrantyEndsOn: read.order.warrantyEndsOn,
       notes: read.notes.map((note) => ({
         id: note.id,
         text: note.text,
@@ -866,6 +925,46 @@ export class WorkOrdersController {
 
         throw error
       }
+    })
+
+    return this.read(identity, id)
+  }
+
+  /**
+   * The warranty of an accepted work order (4.11, #329): the day it ends, or
+   * none, by whoever accepts work orders. Its end is a deadline under
+   * "Fristen", and the order stands with it at its asset. An order not yet
+   * accepted has no warranty; the work is what the warranty is for.
+   */
+  @Put(':id/warranty')
+  @RequiresPermission('activity.accept')
+  async warranty(
+    @CurrentIdentity() identity: Asking,
+    @Param('id') id: string,
+    @Body() body: unknown,
+  ): Promise<WorkOrderDetails> {
+    const { warrantyEndsOn } = fieldsOf(body, ['warrantyEndsOn'] as const, ['warrantyEndsOn'])
+
+    if (
+      warrantyEndsOn === undefined ||
+      (warrantyEndsOn !== null && !isCalendarDay(warrantyEndsOn))
+    ) {
+      throw new BadRequestException(
+        'Das Ende der Gewährleistung ist ein Tag, geschrieben 2026-10-03.',
+      )
+    }
+
+    await this.database.forTenant(identity, async (tx) => {
+      const { activity, order } = await orderOf(tx, identity, id)
+
+      if (activity.status !== 'done') {
+        throw new ConflictException('Eine Gewährleistung hat erst ein abgenommener Auftrag.')
+      }
+
+      await tx
+        .update(workOrders)
+        .set({ warrantyEndsOn: warrantyEndsOn as string | null, updatedAt: new Date() })
+        .where(eq(workOrders.id, order.id))
     })
 
     return this.read(identity, id)

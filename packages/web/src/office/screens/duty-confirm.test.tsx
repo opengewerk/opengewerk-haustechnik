@@ -150,6 +150,9 @@ function duty(further: Readonly<Record<string, unknown>> = {}): DutyDetails {
     intervalDocumentVersionId: null,
     intervalDocument: null,
     intervalToCheck: false,
+    contractId: null,
+    contractEnded: false,
+    contract: null,
     asset: {
       id: lift.id,
       number: 'AN-00012',

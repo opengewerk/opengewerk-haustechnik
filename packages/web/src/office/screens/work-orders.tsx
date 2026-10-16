@@ -121,6 +121,13 @@ export const workOrderWords = {
   acceptance:
     'Abnehmen bestätigt die Arbeit, wie sie hier steht, und erledigt den Auftrag. Eine Zurückweisung macht die Unterschrift ungültig und lässt sie stehen; der Auftrag ist dann wieder offen.',
   reasonPlaceholder: 'Nur beim Zurückweisen, Pflicht',
+  // The warranty of an accepted order (#329).
+  noWarranty: 'keine eigene',
+  warrantyReminds:
+    'Vor dem Ende erinnert eine Frist; wie lange vorher, steht unter „Einstellungen“, „Fristen“.',
+  warrantyHint: 'Leer, wenn der Auftrag keine eigene Gewährleistung hat.',
+  warrantyAtTheAsset:
+    'Die Gewährleistung hängt am abgenommenen Auftrag und steht in der Akte seiner Anlage.',
   notSigned:
     'Noch nicht unterschrieben. Abschließen kann den Auftrag nur, wer ihn führt, mit der Unterschrift vor Ort.',
   laterMaterial: 'Material aus dem Lager am Auftrag kommt mit Phase 2 (4.12).',
@@ -860,7 +867,10 @@ function AcceptancePanel({
   const [problem, setProblem] = useState<string | undefined>(undefined)
   const [trouble, setTrouble] = useState<string | null>(null)
   const [working, setWorking] = useState(false)
+  const [warranting, setWarranting] = useState(false)
   const deciding = accepts && order.status === 'signed'
+  // Accepted, an order may carry a warranty of its own (#329).
+  const accepted = order.status === 'done'
 
   async function decide(decision: 'accepted' | 'rejected') {
     const said = reason.trim()
@@ -906,7 +916,23 @@ function AcceptancePanel({
   }
 
   return (
-    <Panel title="Abnahme">
+    <Panel
+      title={accepted ? 'Abnahme und Gewährleistung' : 'Abnahme'}
+      {...(accepted && accepts
+        ? {
+            action: (
+              <Button
+                size="small"
+                onClick={() => {
+                  setWarranting(true)
+                }}
+              >
+                {order.warrantyEndsOn === null ? 'Eintragen' : 'Ändern'}
+              </Button>
+            ),
+          }
+        : {})}
+    >
       <div className="flex flex-col gap-3">
         {order.decisions.length === 0 ? null : (
           <ul className="flex flex-col gap-1.5 text-[13px] leading-[1.45]">
@@ -964,8 +990,107 @@ function AcceptancePanel({
             </div>
           </>
         ) : null}
+        {accepted ? (
+          <>
+            <p className="text-[13px] leading-[1.45]">
+              <span className="font-semibold">Gewährleistung bis </span>
+              {order.warrantyEndsOn === null
+                ? workOrderWords.noWarranty
+                : date(order.warrantyEndsOn)}
+            </p>
+            <p className="text-[12px] text-ink-faint">{workOrderWords.warrantyReminds}</p>
+          </>
+        ) : null}
       </div>
+      {warranting ? (
+        <WarrantyDialog
+          order={order}
+          onClose={() => {
+            setWarranting(false)
+          }}
+        />
+      ) : null}
     </Panel>
+  )
+}
+
+/**
+ * "Gewährleistung eintragen", the board "Abgenommener Auftrag:
+ * Gewährleistung eintragen (4.11)" (#329): the day the warranty of an
+ * accepted order ends, or none. Asked of the route, with a connection.
+ */
+function WarrantyDialog({
+  order,
+  onClose,
+}: {
+  readonly order: WorkOrderDetails
+  readonly onClose: () => void
+}) {
+  const client = useSync()
+  const queries = useQueryClient()
+  const [until, setUntil] = useState(order.warrantyEndsOn ?? '')
+  const [working, setWorking] = useState(false)
+  const [trouble, setTrouble] = useState<string | null>(null)
+
+  async function save() {
+    setWorking(true)
+    setTrouble(null)
+
+    try {
+      const result = await askAt(client, 'PUT', `/work-orders/${order.id}/warranty`, order.id, {
+        warrantyEndsOn: until.trim() === '' ? null : until.trim(),
+      })
+
+      if (result.outcome === 'refused') {
+        setTrouble(refusalFor(result))
+
+        return
+      }
+
+      // The order, and the record of its asset, which names it.
+      await queries.invalidateQueries({ queryKey: workOrderKey })
+      await queries.invalidateQueries({ queryKey: ['contracts'] })
+      onClose()
+    } finally {
+      setWorking(false)
+    }
+  }
+
+  return (
+    <Dialog title="Gewährleistung eintragen" width={520} onClose={onClose}>
+      <form
+        noValidate
+        className="flex flex-col gap-3"
+        onSubmit={(event) => {
+          event.preventDefault()
+          void save()
+        }}
+      >
+        <Field
+          label="Gewährleistung bis"
+          type="date"
+          value={until}
+          hint={workOrderWords.warrantyHint}
+          onChange={(event) => {
+            setUntil(event.target.value)
+          }}
+        />
+        <p className="text-[12px] text-ink-faint">{workOrderWords.warrantyAtTheAsset}</p>
+        {trouble ? (
+          <p role="alert" className="text-[13px] font-semibold text-conflict">
+            {trouble}
+          </p>
+        ) : null}
+        <DialogActions>
+          <Button type="button" disabled={working} onClick={onClose}>
+            Abbrechen
+          </Button>
+          <Button type="submit" tone="primary" icon={Check} disabled={working}>
+            {working ? 'Einen Moment' : 'Speichern'}
+          </Button>
+        </DialogActions>
+      </form>
+    </Dialog>
   )
 }
 

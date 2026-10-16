@@ -352,6 +352,8 @@ export const workOrders = pgTable(
     urgency: workOrderUrgency('urgency').notNull().default('normal'),
     originDefectId: reference<'defect'>('origin_defect_id'),
     durationMinutes: integer('duration_minutes'),
+    // The end of the warranty of the work, entered once the order is accepted (#329).
+    warrantyEndsOn: date('warranty_ends_on', { mode: 'string' }),
     ...timestamps,
     ...syncColumns,
   },

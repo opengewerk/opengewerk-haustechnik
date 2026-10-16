@@ -34,6 +34,7 @@ import {
 import { areaFromPropertyColumn, areaFromTheProperty, withinAreas } from './areas.js'
 import { assets } from './assets.js'
 import { attachments, attachmentVersions } from './attachments.js'
+import { contracts } from './contracts.js'
 import { contractors } from './contractors.js'
 import { buildings, optionalTrimmed, properties, rooms, trimmed } from './locations.js'
 
@@ -124,6 +125,8 @@ export const duties = pgTable(
     performer: dutyPerformer('performer'),
     performerNote: text('performer_note'),
     contractorId: reference<'contractor'>('contractor_id'),
+    // The contract of that firm the duty fulfils (#329).
+    contractId: reference<'contract'>('contract_id'),
     confirmedBy: text('confirmed_by').notNull(),
     confirmedAt: timestamp('confirmed_at', { withTimezone: true }).notNull().defaultNow(),
     endsOn: date('ends_on', { mode: 'string' }),
@@ -260,6 +263,18 @@ export const duties = pgTable(
     check(
       'duties_contractor_for_a_contractor',
       sql`${table.contractorId} is null or ${table.performer} = 'contractor'`,
+    ),
+    // A contract of the firm that carries the duty out (#329): over the firm, so
+    // that it is one of the firm. A contract named by a duty keeps its firm.
+    foreignKey({
+      columns: [table.tenantId, table.contractId, table.contractorId],
+      foreignColumns: [contracts.tenantId, contracts.id, contracts.contractorId],
+      name: 'duties_on_a_contract_of_their_contractor',
+    }),
+    index('duties_contract_idx').on(table.tenantId, table.contractId),
+    check(
+      'duties_contract_with_its_contractor',
+      sql`${table.contractId} is null or ${table.contractorId} is not null`,
     ),
     // A reason for an end only with the day it ends.
     check('duties_end_whole', sql`${table.endReason} is null or ${table.endsOn} is not null`),

@@ -2,7 +2,10 @@ import {
   addDays,
   addMonths,
   type AreaId,
+  type AssetId,
   type AttachmentId,
+  type ContractId,
+  contractStanding,
   type Asset,
   awaitsRemedy,
   type Catalogue,
@@ -18,13 +21,16 @@ import {
   lifecycleStateOn,
   meterRestsOn,
   nextAppointment,
+  noticeBy,
   passSearchDays,
   type PropertyId,
   restsOn,
   roomTitle,
   type RoundPlanId,
   takenOverFrom,
+  termEnd,
   validReadings,
+  type WorkOrderId,
 } from '@opengewerk/haustechnik-domain'
 import type { ExpectedDeadline, SourceQuery } from '@opengewerk/platform-server'
 import { and, eq, gte, inArray, isNotNull, isNull, or } from 'drizzle-orm'
@@ -44,8 +50,10 @@ import {
   buildingClosures,
   buildings,
   contractors,
+  contracts,
   defects,
   duties,
+  workOrders,
   properties,
   rooms,
   roundPlans,
@@ -63,7 +71,10 @@ export interface DeadlineValues {
   readonly roundPlanId: RoundPlanId | null
   readonly meterPropertyId: PropertyId | null
   readonly attachmentId: AttachmentId | null
-  /** None for the document of a contractor (#328), which lies in no area. */
+  readonly contractId: ContractId | null
+  readonly warrantyAssetId: AssetId | null
+  readonly warrantyOrderId: WorkOrderId | null
+  /** None for the document of a contractor (#328) and for a contract (#329), which lie in no area. */
   readonly propertyId: PropertyId | null
   readonly areaId: AreaId | null
 }
@@ -232,6 +243,9 @@ export function dutySource(options: {
           roundPlanId: null,
           meterPropertyId: null,
           attachmentId: null,
+          contractId: null,
+          warrantyAssetId: null,
+          warrantyOrderId: null,
           propertyId: duty.propertyId,
           areaId: duty.areaId,
         },
@@ -300,6 +314,9 @@ export function defectSource(): SourceQuery<DeadlineValues> {
                 roundPlanId: null,
                 meterPropertyId: null,
                 attachmentId: null,
+                contractId: null,
+                warrantyAssetId: null,
+                warrantyOrderId: null,
                 propertyId: defect.propertyId,
                 areaId: defect.areaId,
               },
@@ -433,6 +450,9 @@ export function roundPlanSource(options: {
                   roundPlanId: plan.id,
                   meterPropertyId: null,
                   attachmentId: null,
+                  contractId: null,
+                  warrantyAssetId: null,
+                  warrantyOrderId: null,
                   propertyId: plan.propertyId,
                   areaId: plan.areaId,
                 },
@@ -521,6 +541,9 @@ export function meterSource(options: {
                 roundPlanId: null,
                 meterPropertyId: property.id,
                 attachmentId: null,
+                contractId: null,
+                warrantyAssetId: null,
+                warrantyOrderId: null,
                 propertyId: property.id,
                 areaId: property.areaId,
               },
@@ -563,12 +586,15 @@ export function documentSource(reviews: boolean): SourceQuery<DeadlineValues> {
         buildingName: buildings.name,
         propertyName: properties.name,
         contractorName: contractors.name,
+        contractTitle: contracts.title,
       })
       .from(attachmentVersions)
       .innerJoin(attachments, eq(attachments.id, attachmentVersions.attachmentId))
       // A contractor's document has no property and no area (#328): its deadline neither.
       .leftJoin(properties, eq(properties.id, attachments.propertyId))
       .leftJoin(contractors, eq(contractors.id, attachments.contractorId))
+      // And neither has the document of a contract (#329).
+      .leftJoin(contracts, eq(contracts.id, attachments.contractId))
       .leftJoin(assets, eq(assets.id, attachments.assetId))
       .leftJoin(rooms, eq(rooms.id, attachments.roomId))
       .leftJoin(buildings, eq(buildings.id, attachments.buildingId))
@@ -595,6 +621,7 @@ export function documentSource(reviews: boolean): SourceQuery<DeadlineValues> {
               sourceId: document.id,
               sourceLabel: `${document.title}, ${
                 document.contractorName ??
+                document.contractTitle ??
                 placeOf({ ...document, propertyName: document.propertyName ?? '' })
               }`,
               anchorOn: document.validUntil,
@@ -606,11 +633,153 @@ export function documentSource(reviews: boolean): SourceQuery<DeadlineValues> {
                 roundPlanId: null,
                 meterPropertyId: null,
                 attachmentId: document.id,
+                contractId: null,
+                warrantyAssetId: null,
+                warrantyOrderId: null,
                 propertyId: document.propertyId,
                 areaId: document.areaId,
               },
             },
           ],
     )
+  }
+}
+
+/**
+ * The deadlines of the contracts (#329, the source "Verträge" of section
+ * 2.4): for `notice` the last day to give notice for the end of the term that
+ * runs today, for `end` the end of that term, the day it renews or ends. Both
+ * stay on their day once it has passed, while the term runs, and move on with
+ * the next one. A contract marked as removed has none; one with notice given
+ * has its end and no notice, one without a notice period no notice either.
+ *
+ * Anchored on the day itself, so that a deadline marked done comes back with
+ * the next term. A contract has no place: its deadlines neither, and they are
+ * named by the contract and its firm.
+ */
+export function contractSource(
+  which: 'notice' | 'end',
+  options: { readonly today: () => IsoDate },
+): SourceQuery<DeadlineValues> {
+  return async (tx) => {
+    const today = options.today()
+    const rows = await tx
+      .select({ contract: contracts, contractorName: contractors.name })
+      .from(contracts)
+      .innerJoin(contractors, eq(contractors.id, contracts.contractorId))
+      .where(isNull(contracts.deletedAt))
+
+    return rows.flatMap(({ contract, contractorName }): ExpectedDeadline<DeadlineValues>[] => {
+      const due = which === 'notice' ? noticeBy(contract, today) : termEnd(contract, today)
+
+      // A contract that has ended asks for nothing any more; its duties say so.
+      return due === null || contractStanding(contract, today) === 'ended'
+        ? []
+        : [
+            {
+              sourceId: contract.id,
+              sourceLabel: `${contract.title}, ${contractorName}`,
+              anchorOn: due,
+              namedDueOn: due,
+              naturalUserId: null,
+              values: {
+                dutyId: null,
+                defectId: null,
+                roundPlanId: null,
+                meterPropertyId: null,
+                attachmentId: null,
+                contractId: contract.id,
+                warrantyAssetId: null,
+                warrantyOrderId: null,
+                propertyId: null,
+                areaId: null,
+              },
+            },
+          ]
+    })
+  }
+}
+
+/**
+ * The end of a warranty (#329): of every asset whose record names a day
+ * "Gewährleistung bis", and of every accepted work order with one, each
+ * where it lies. An asset or an order marked as removed has none.
+ */
+export function warrantySource(): SourceQuery<DeadlineValues> {
+  return async (tx) => {
+    const ofAssets = await tx
+      .select({
+        id: assets.id,
+        endsOn: assets.warrantyEndsOn,
+        propertyId: assets.propertyId,
+        areaId: assets.areaId,
+        assetName: assets.name,
+        assetNumber: assets.number,
+        propertyName: properties.name,
+      })
+      .from(assets)
+      .innerJoin(properties, eq(properties.id, assets.propertyId))
+      .where(and(isNull(assets.deletedAt), isNotNull(assets.warrantyEndsOn)))
+    // An order is accepted once it is done (`decideWorkOrder`).
+    const ofOrders = await tx
+      .select({
+        id: workOrders.id,
+        endsOn: workOrders.warrantyEndsOn,
+        number: workOrders.number,
+        title: activities.title,
+        propertyId: workOrders.propertyId,
+        areaId: workOrders.areaId,
+        propertyName: properties.name,
+      })
+      .from(workOrders)
+      .innerJoin(activities, eq(activities.id, workOrders.activityId))
+      .innerJoin(properties, eq(properties.id, workOrders.propertyId))
+      .where(
+        and(
+          isNull(workOrders.deletedAt),
+          isNull(activities.deletedAt),
+          eq(activities.status, 'done'),
+          isNotNull(workOrders.warrantyEndsOn),
+        ),
+      )
+    const empty = {
+      dutyId: null,
+      defectId: null,
+      roundPlanId: null,
+      meterPropertyId: null,
+      attachmentId: null,
+      contractId: null,
+    }
+
+    return [
+      ...ofAssets.map((asset): ExpectedDeadline<DeadlineValues> => ({
+        sourceId: asset.id,
+        sourceLabel: `Gewährleistung, ${[asset.assetNumber, asset.assetName].filter(Boolean).join(' ')}, ${asset.propertyName}`,
+        anchorOn: asset.endsOn as IsoDate,
+        namedDueOn: asset.endsOn as IsoDate,
+        naturalUserId: null,
+        values: {
+          ...empty,
+          warrantyAssetId: asset.id,
+          warrantyOrderId: null,
+          propertyId: asset.propertyId,
+          areaId: asset.areaId,
+        },
+      })),
+      ...ofOrders.map((order): ExpectedDeadline<DeadlineValues> => ({
+        sourceId: order.id,
+        sourceLabel: `Gewährleistung ${[order.number, order.title].filter(Boolean).join(' ')}, ${order.propertyName}`,
+        anchorOn: order.endsOn as IsoDate,
+        namedDueOn: order.endsOn as IsoDate,
+        naturalUserId: null,
+        values: {
+          ...empty,
+          warrantyAssetId: null,
+          warrantyOrderId: order.id,
+          propertyId: order.propertyId,
+          areaId: order.areaId,
+        },
+      })),
+    ]
   }
 }

@@ -9,6 +9,7 @@ import {
 import type { ActivityId } from './activity.js'
 import type { AreaId } from './area.js'
 import type { AssetId } from './asset.js'
+import type { ContractId } from './contract.js'
 import type { ContractorId } from './contractor.js'
 import type { DefectId } from './defect.js'
 import { calendarDay, oneOf, type Problems, required } from './fields.js'
@@ -69,6 +70,8 @@ export interface Document extends AttachmentRecord {
   readonly propertyId: PropertyId | null
   readonly areaId: AreaId | null
   readonly contractorId: ContractorId | null
+  /** The contract it belongs to (#329), which like a contractor has no place. */
+  readonly contractId: ContractId | null
   readonly buildingId: BuildingId | null
   readonly roomId: RoomId | null
   readonly assetId: AssetId | null
@@ -147,10 +150,11 @@ export const operatorDocuments = attachmentRules({
     'activityId',
     'defectId',
     'contractorId',
+    'contractId',
   ],
   text: {
     noHome:
-      'Ein Dokument hängt an einer Liegenschaft, einem Gebäude, einem Raum, einer Anlage, einem Vorgang, einem Mangel oder einer Fremdfirma.',
+      'Ein Dokument hängt an einer Liegenschaft, einem Gebäude, einem Raum, einer Anlage, einem Vorgang, einem Mangel, einer Fremdfirma oder einem Vertrag.',
     mediaType: 'Der Typ der Datei ist nicht so angegeben, wie die Ablage ihn festhält.',
   },
 })
@@ -164,25 +168,29 @@ export const documentTargetFields = [
   'defectId',
 ] as const
 
-/** One of the places a document hangs on, its property and a contractor included. */
-export type DocumentHome = 'propertyId' | 'contractorId' | (typeof documentTargetFields)[number]
+/** One of the places a document hangs on, its property, a contractor and a contract included. */
+export type DocumentHome =
+  'propertyId' | 'contractorId' | 'contractId' | (typeof documentTargetFields)[number]
 
-/** What the server answers for a document that names both a place and a contractor, or neither. */
+/** What the server answers for a document that names more than one of a place, a contractor and a contract, or none. */
 export const documentPlaceOrContractor =
-  'Ein Dokument hängt an einer Liegenschaft oder an einer Fremdfirma, nicht an beiden.'
+  'Ein Dokument hängt an einer Liegenschaft, an einer Fremdfirma oder an einem Vertrag, an genau einem davon.'
 
 /**
- * What is wrong with where a document hangs, or null: at a contractor it
- * names no property and nothing on one (#328), which the check in the
- * database refuses as well; otherwise it names its property.
+ * What is wrong with where a document hangs, or null: at a contractor (#328)
+ * or at a contract (#329) it names no property and nothing on one, which the
+ * check in the database refuses as well; otherwise it names its property.
  */
 export function documentPlaceProblem(document: Readonly<Record<string, unknown>>): string | null {
   const given = (field: string) =>
     document[field] !== undefined && document[field] !== null && document[field] !== ''
-  const atAContractor = given('contractorId')
-  const atAPlace = given('propertyId') || documentTargetFields.some(given)
+  const homes = [
+    given('contractorId'),
+    given('contractId'),
+    given('propertyId') || documentTargetFields.some(given),
+  ]
 
-  return atAContractor === atAPlace ? documentPlaceOrContractor : null
+  return homes.filter(Boolean).length === 1 ? null : documentPlaceOrContractor
 }
 
 /**
@@ -207,6 +215,10 @@ export function documentTargetProblem(target: Readonly<Record<string, unknown>>)
 export function documentHomeOf(document: Readonly<Record<string, unknown>>): DocumentHome {
   if (document['contractorId'] !== undefined && document['contractorId'] !== null) {
     return 'contractorId'
+  }
+
+  if (document['contractId'] !== undefined && document['contractId'] !== null) {
+    return 'contractId'
   }
 
   return (

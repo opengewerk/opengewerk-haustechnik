@@ -2,8 +2,11 @@ import { deadlinesSchema, reference } from '@opengewerk/platform-server'
 import { sql } from 'drizzle-orm'
 import { check, foreignKey, index } from 'drizzle-orm/pg-core'
 
+import { workOrders } from './activities.js'
 import { withinAreasOrNone } from './areas.js'
+import { assets } from './assets.js'
 import { attachments } from './attachments.js'
+import { contracts } from './contracts.js'
 import { defects } from './defects.js'
 import { duties } from './duties.js'
 import { properties } from './locations.js'
@@ -29,9 +32,15 @@ const deadlineColumns = {
   meterPropertyId: reference<'property'>('meter_property_id'),
   /** The document whose newest version names a day, the sources `document` and `risk_assessment` (#327). */
   attachmentId: reference<'attachment'>('attachment_id'),
+  /** The contract whose day to give notice or end it follows, the sources `contract_notice` and `contract_end` (#329). */
+  contractId: reference<'contract'>('contract_id'),
+  /** The asset whose warranty ends, the source `warranty` (#329). */
+  warrantyAssetId: reference<'asset'>('warranty_asset_id'),
+  /** The accepted work order whose warranty ends, the source `warranty` (#329). */
+  warrantyOrderId: reference<'work-order'>('warranty_order_id'),
   /** The task the engine made of this deadline, the action `task` (#242). */
   taskId: reference<'task'>('task_id'),
-  // None for the document of a contractor (#328), which lies in no area.
+  // None for the document of a contractor (#328) and for a contract (#329), which lie in no area.
   propertyId: reference<'property'>('property_id'),
   areaId: reference<'area'>('area_id'),
 }
@@ -114,21 +123,51 @@ export const { deadlineStatus, deadlines } = deadlinesSchema({
     index('deadlines_defect_idx').on(table.tenantId, table.defectId),
     index('deadlines_round_plan_idx').on(table.tenantId, table.roundPlanId),
     index('deadlines_attachment_idx').on(table.tenantId, table.attachmentId),
+    // The contract, which lies in no area, and the warranty of an asset or of a work order (#329).
+    foreignKey({
+      columns: [table.tenantId, table.contractId],
+      foreignColumns: [contracts.tenantId, contracts.id],
+      name: 'deadlines_of_a_contract',
+    }),
+    foreignKey({
+      columns: [table.tenantId, table.warrantyAssetId, table.areaId],
+      foreignColumns: [assets.tenantId, assets.id, assets.areaId],
+      name: 'deadlines_follow_their_asset',
+    }).onUpdate('cascade'),
+    foreignKey({
+      columns: [table.tenantId, table.warrantyAssetId, table.propertyId],
+      foreignColumns: [assets.tenantId, assets.id, assets.propertyId],
+      name: 'deadlines_of_an_asset_of_their_property',
+    }).onUpdate('cascade'),
+    foreignKey({
+      columns: [table.tenantId, table.warrantyOrderId, table.areaId],
+      foreignColumns: [workOrders.tenantId, workOrders.id, workOrders.areaId],
+      name: 'deadlines_follow_their_work_order',
+    }).onUpdate('cascade'),
+    foreignKey({
+      columns: [table.tenantId, table.warrantyOrderId, table.propertyId],
+      foreignColumns: [workOrders.tenantId, workOrders.id, workOrders.propertyId],
+      name: 'deadlines_of_a_work_order_of_their_property',
+    }).onUpdate('cascade'),
+    index('deadlines_contract_idx').on(table.tenantId, table.contractId),
+    index('deadlines_warranty_asset_idx').on(table.tenantId, table.warrantyAssetId),
+    index('deadlines_warranty_order_idx').on(table.tenantId, table.warrantyOrderId),
     // The meters of a property are read for the property they hang on.
     check(
       'deadlines_meters_of_their_property',
       sql`${table.meterPropertyId} is null or ${table.meterPropertyId} = ${table.propertyId}`,
     ),
     // Each follows one source: a duty, a defect, the plan of a round, the
-    // meters of a property or a document.
-    // Without a place only the deadline of a document, which then is a contractor's (#328).
+    // meters of a property, a document, a contract or a warranty.
+    // Without a place only the deadline of a document, which then is a
+    // contractor's (#328) or a contract's, and that of a contract (#329).
     check(
       'deadlines_at_a_place_or_of_a_document',
-      sql`(${table.areaId} is null) = (${table.propertyId} is null) and (${table.propertyId} is not null or ${table.attachmentId} is not null)`,
+      sql`(${table.areaId} is null) = (${table.propertyId} is null) and (${table.propertyId} is not null or ${table.attachmentId} is not null or ${table.contractId} is not null) and (${table.contractId} is null or ${table.propertyId} is null)`,
     ),
     check(
       'deadlines_follow_one_source',
-      sql`num_nonnulls(${table.dutyId}, ${table.defectId}, ${table.roundPlanId}, ${table.meterPropertyId}, ${table.attachmentId}) = 1`,
+      sql`num_nonnulls(${table.dutyId}, ${table.defectId}, ${table.roundPlanId}, ${table.meterPropertyId}, ${table.attachmentId}, ${table.contractId}, ${table.warrantyAssetId}, ${table.warrantyOrderId}) = 1`,
     ),
   ],
 })

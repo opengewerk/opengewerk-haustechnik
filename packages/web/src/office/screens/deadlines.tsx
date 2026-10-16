@@ -21,6 +21,7 @@ import { useQuery } from '@tanstack/react-query'
 import { Link } from '@tanstack/react-router'
 
 import { useAreas } from '../../session/areas.js'
+import { contractPlaces } from '../contract-addresses.js'
 import { contractorPlaces } from '../contractor-addresses.js'
 import { defectPlaces } from '../defect-addresses.js'
 import { documentPlaces } from '../document-addresses.js'
@@ -28,6 +29,7 @@ import { dutyPlaces } from '../duty-addresses.js'
 import { meterListPlace, meterListWords } from '../meter-addresses.js'
 import { factLink } from '../links.js'
 import { officePlaces } from '../place-addresses.js'
+import { workOrderPlaces } from '../work-order-addresses.js'
 import { planPlaces } from '../round-template-addresses.js'
 import { dutyColleaguesQuery } from './duty.js'
 
@@ -95,6 +97,20 @@ function sourceOf(deadline: DutyDeadlineView): { readonly href: string; readonly
     case 'document':
       // The document whose newest version names the day (#327).
       return { href: documentPlaces.document(deadline.attachmentId), name }
+    case 'contract':
+      // The contract whose day to give notice or end it is (#329).
+      return { href: contractPlaces.contract(deadline.contract.id), name }
+    case 'warranty':
+      // The accepted work order or the asset whose warranty ends (#329).
+      return {
+        href:
+          deadline.workOrder !== null
+            ? workOrderPlaces.order(deadline.workOrder.id)
+            : deadline.asset !== null
+              ? officePlaces.asset(deadline.asset.id)
+              : officePlaces.property(deadline.propertyId),
+        name,
+      }
   }
 }
 
@@ -128,12 +144,17 @@ function useWhere(): (deadline: DutyDeadlineView) => { name: string; to: string;
 
   return (deadline) => {
     const { name, sub } = deadlineWhere(deadline, names)
-    // The document of a contractor (#328) stands at the firm, which has no place.
+    // The document of a contractor (#328) stands at the firm, which has no place;
+    // a contract and its documents (#329) at the contract.
     const to =
       deadline.propertyId === null
-        ? deadline.follows === 'document' && deadline.contractor !== null
-          ? contractorPlaces.contractor(deadline.contractor.id)
-          : contractorPlaces.list
+        ? deadline.follows === 'contract'
+          ? contractPlaces.contract(deadline.contract.id)
+          : deadline.follows === 'document' && deadline.contract !== null
+            ? contractPlaces.contract(deadline.contract.id)
+            : deadline.follows === 'document' && deadline.contractor !== null
+              ? contractorPlaces.contractor(deadline.contractor.id)
+              : contractorPlaces.list
         : deadline.asset !== null
           ? officePlaces.asset(deadline.asset.id)
           : deadline.roomId !== null
@@ -259,7 +280,11 @@ export function DeadlineSettingsScreen() {
               ? 'Die Tage nennt jeder Plan selbst.'
               : kind.source === 'meter'
                 ? 'Den Stichtag stellen Sie unter „Zähler“ ein; eine Messstelle kann davon abweichen.'
-                : 'Die Frist gibt jede Pflicht selbst vor.',
+                : kind.source === 'contract_notice' || kind.source === 'contract_end'
+                  ? 'Laufzeit und Kündigungsfrist nennt jeder Vertrag selbst.'
+                  : kind.source === 'warranty'
+                    ? 'Den Tag nennt die Anlage oder der abgenommene Auftrag selbst.'
+                    : 'Die Frist gibt jede Pflicht selbst vor.',
       })}
       actionsSentence={(kind) =>
         kind.source === 'defect'
@@ -268,7 +293,11 @@ export function DeadlineSettingsScreen() {
             ? 'Erinnert die Leitung, wenn der Vorlauf beginnt, und gibt ihr die Aufgabe „Zähler ablesen“, einmal je Liegenschaft. Hat jede Messstelle dort ihren Stand, ist die Aufgabe erledigt und die Frist geht zum nächsten Stichtag.'
             : kind.source === 'round_plan'
               ? 'Legt die Rundgänge eines Plans an, so weit der Vorlauf reicht, jeden Durchgang einmal, damit die Rundgänge der nächsten Woche vorher zugeteilt werden können. Erinnert niemanden.'
-              : 'Erinnert die verantwortliche Person und legt bei ihr die Prüfung oder Wartung an, wenn der Vorlauf beginnt. Nennt die Pflicht niemanden, die Leitung.'
+              : kind.source === 'contract_notice' ||
+                  kind.source === 'contract_end' ||
+                  kind.source === 'warranty'
+                ? 'Erinnert die Leitung, wenn der Vorlauf beginnt, oder wen Sie hier nennen.'
+                : 'Erinnert die verantwortliche Person und legt bei ihr die Prüfung oder Wartung an, wenn der Vorlauf beginnt. Nennt die Pflicht niemanden, die Leitung.'
       }
       badge={() => null}
       note={deadlineWords.settingsNote}

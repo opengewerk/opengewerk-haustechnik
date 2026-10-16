@@ -173,6 +173,8 @@ export interface WorkOrderDetails extends WorkOrderEntry {
   readonly participants: readonly DutyPerson[]
   /** The time spent on it in minutes, as said on site (#118). */
   readonly durationMinutes: number | null
+  /** The end of the warranty of the work, entered once it is accepted (#329). */
+  readonly warrantyEndsOn: IsoDate | null
   /** The notes from the site, the first written first. */
   readonly notes: readonly WorkOrderNoteLine[]
   readonly signatures: readonly WorkOrderSignatureLine[]

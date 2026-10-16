@@ -42,6 +42,7 @@ const whole = [
   'Aufgaben',
   'Lager',
   'Fremdfirmen',
+  'Verträge',
   'Katalog',
 ]
 
@@ -57,7 +58,7 @@ describe('the navigation of the board', () => {
       ['Übersicht'],
       ['Liegenschaften', 'Anlagen', 'Zähler', 'Dokumente'],
       ['Pflichtenverzeichnis', 'Fristen', 'Prüfungen'],
-      ['Rundgänge', 'Mängel', 'Aufträge', 'Aufgaben', 'Lager', 'Fremdfirmen'],
+      ['Rundgänge', 'Mängel', 'Aufträge', 'Aufgaben', 'Lager', 'Fremdfirmen', 'Verträge'],
     ])
     expect(officeFoot.map((place) => place.label)).toEqual(['Katalog'])
   })
@@ -85,8 +86,10 @@ describe('what a role is offered once every screen is built', () => {
 
   // As the board says it: "der Rolle Haustechnik fehlen Fristen und
   // Einstellungen". The settings are the frame's and stand in the tests below.
-  it('is everything but the deadlines for the Haustechnik', () => {
-    expect(offeredTo('technician')).toEqual(whole.filter((label) => label !== 'Fristen'))
+  it('is everything but the deadlines and the contracts for the Haustechnik', () => {
+    expect(offeredTo('technician')).toEqual(
+      whole.filter((label) => label !== 'Fristen' && label !== 'Verträge'),
+    )
   })
 
   it('is nothing that takes a right for somebody who holds none', () => {
@@ -189,6 +192,8 @@ describe('the navigation of the office as it is built today', () => {
     'Aufgaben',
     'Lager',
     'Fremdfirmen',
+    // The contracts, from the Objektleitung on (#329).
+    'Verträge',
     'Katalog',
     'Abgleich',
     'Einstellungen',
@@ -196,7 +201,14 @@ describe('the navigation of the office as it is built today', () => {
   const today: readonly (readonly [RoleKey, readonly string[]])[] = [
     ['management', withDeadlines],
     ['technical_management', withDeadlines],
-    ['site_management', built],
+    [
+      'site_management',
+      [
+        ...built.slice(0, built.indexOf('Fremdfirmen') + 1),
+        'Verträge',
+        ...built.slice(built.indexOf('Fremdfirmen') + 1),
+      ],
+    ],
     ['technician', built],
   ]
 

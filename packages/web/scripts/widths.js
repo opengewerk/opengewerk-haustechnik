@@ -123,6 +123,9 @@ await checkWidths({
     // The dialogs of the contractors (#328): a new firm and the names to take over.
     'Fremdfirma anlegen',
     'Namen übernehmen',
+    // The dialogs of the contracts (#329): a new contract and what it covers.
+    'Vertrag anlegen',
+    'Erfassen',
     // The register of evidence at the register of duties (#338).
     'Nachweisverzeichnis',
     // The longest sentences of the instance stand behind it (#80); the Leitung
@@ -157,9 +160,11 @@ await checkWidths({
    * had 106 kinds of page on 08.10.2026, and every screen of Phase 1 still to
    * come brings more (opengewerk#576). With the catalogue as one kind of page
    * for each of its screens (#227) there were about 136, and with the help
-   * (#131) the walk stood at the 150 that were the limit until then.
+   * (#131) the walk stood at the 150 that were the limit until then. With the
+   * contracts (#329) it passed the 180 that followed, and Phase 2 brings more
+   * screens still.
    */
-  mostKinds: 180,
+  mostKinds: 240,
   /**
    * Every kind of page is held to the rules of accessibility as well (#132,
    * section 3 of the concept): labels, roles, the order of the headings and

@@ -101,6 +101,8 @@ export * from './model/service-report.js'
 export * from './model/store.js'
 // The contractors of the operator, tenant-wide (#328).
 export * from './model/contractor.js'
+// The contracts with them and the warranty (#329).
+export * from './model/contract.js'
 export * from './model/material.js'
 
 // What is done to meet a duty or to set a fault right, and what is noticed on

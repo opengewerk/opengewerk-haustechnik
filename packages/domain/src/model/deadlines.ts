@@ -17,6 +17,9 @@ export const deadlineSources = [
   'meter',
   'document',
   'risk_assessment',
+  'contract_notice',
+  'contract_end',
+  'warranty',
 ] as const
 
 export type DeadlineSource = (typeof deadlineSources)[number]
@@ -172,6 +175,64 @@ export const riskAssessmentReview: ApplicationDeadlineKind = {
 }
 
 /**
+ * The last day to give notice for the end of the term of a contract that
+ * runs (section 4.11, #329, the source "Verträge" of section 2.4): the source
+ * names the day the end of the term and the notice period give. It stays
+ * this day after it has passed, while the term runs, and moves on with the
+ * next term; with notice given or without a notice period it drops. A
+ * contract has no area: whoever leads the operator answers for it unless the
+ * settings name somebody else.
+ */
+export const contractNotice: ApplicationDeadlineKind = {
+  key: 'contract.notice',
+  title: 'Kündigungsfrist eines Vertrags',
+  about:
+    'Folgt aus dem Ende der laufenden Laufzeit und der Kündigungsfrist eines Vertrags: bis zu diesem Tag lässt er sich zum Ende kündigen. Mit der nächsten Laufzeit rückt sie weiter, mit einer Kündigung fällt sie weg.',
+  source: 'contract_notice',
+  intervalDays: null,
+  intervalMonths: null,
+  leadDays: 60,
+  responsible: 'lead',
+  actions: ['reminder'],
+}
+
+/**
+ * The end of the term of a contract (section 4.11, #329): the day it renews
+ * or, without a renewal or once notice is given, the day it ends. Every duty
+ * a contract fulfils says so once it has ended.
+ */
+export const contractEnd: ApplicationDeadlineKind = {
+  key: 'contract.end',
+  title: 'Ende oder Verlängerung eines Vertrags',
+  about:
+    'Folgt aus dem Ende der laufenden Laufzeit eines Vertrags: an diesem Tag verlängert er sich oder endet, wenn er gekündigt ist oder sich nicht verlängert.',
+  source: 'contract_end',
+  intervalDays: null,
+  intervalMonths: null,
+  leadDays: 30,
+  responsible: 'lead',
+  actions: ['reminder'],
+}
+
+/**
+ * The end of a warranty (section 4.11, #329): of an asset, by the day its
+ * record names, or of an accepted work order, by the day entered at it. Both
+ * lie where the asset or the order lies.
+ */
+export const warrantyEnds: ApplicationDeadlineKind = {
+  key: 'warranty.ends',
+  title: 'Ende einer Gewährleistung',
+  about:
+    'Folgt aus dem Tag „Gewährleistung bis“ einer Anlage oder eines abgenommenen Auftrags. Vor dem Ende lässt sich prüfen, ob ein Mangel noch unter die Gewährleistung fällt.',
+  source: 'warranty',
+  intervalDays: null,
+  intervalMonths: null,
+  leadDays: 60,
+  responsible: 'lead',
+  actions: ['reminder'],
+}
+
+/**
  * What the task of a deadline says, by the source of its kind (#242). Only a
  * source that stands here can name the action: the engine refuses a kind
  * that names the task without a text for it.
@@ -188,6 +249,9 @@ export const deadlineKinds: readonly ApplicationDeadlineKind[] = [
   meterDue,
   documentExpires,
   riskAssessmentReview,
+  contractNotice,
+  contractEnd,
+  warrantyEnds,
 ]
 
 /**
@@ -202,6 +266,8 @@ export type DeadlineFacts =
   | RoundDeadlineFacts
   | MeterDeadlineFacts
   | DocumentDeadlineFacts
+  | ContractDeadlineFacts
+  | WarrantyDeadlineFacts
 
 /** A deadline of a duty: the duty by its title. */
 export interface DutyDeadlineFacts extends DeadlinePlaceFacts {
@@ -238,11 +304,37 @@ export interface MeterDeadlineFacts extends DeadlinePlaceFacts {
 export interface DocumentDeadlineFacts extends Omit<DeadlinePlaceFacts, 'propertyId'> {
   readonly propertyId: string | null
   readonly contractor: { readonly id: string; readonly name: string } | null
+  /** The contract whose document it is (#329), which has no place either. */
+  readonly contract: { readonly id: string; readonly title: string } | null
   readonly follows: 'document'
   readonly attachmentId: string
   readonly title: string
   /** The kind of the document, apart from the kind of the deadline. */
   readonly documentKind: DocumentKind | null
+}
+
+/**
+ * A deadline of a contract (#329), the last day to give notice or the end of
+ * its term: the contract by its title and its firm, without a place.
+ */
+export interface ContractDeadlineFacts {
+  readonly follows: 'contract'
+  readonly propertyId: null
+  readonly contract: { readonly id: string; readonly title: string }
+  readonly contractor: { readonly id: string; readonly name: string }
+}
+
+/**
+ * The end of a warranty (#329): of the asset the place names, or of an
+ * accepted work order at its place.
+ */
+export interface WarrantyDeadlineFacts extends DeadlinePlaceFacts {
+  readonly follows: 'warranty'
+  readonly workOrder: {
+    readonly id: string
+    readonly number: string
+    readonly title: string
+  } | null
 }
 
 /** What the duty, the defect or the plan of a deadline hangs on. */

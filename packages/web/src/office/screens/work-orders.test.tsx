@@ -126,6 +126,7 @@ function details(entry: WorkOrderEntry, further: Partial<WorkOrderDetails> = {})
     createdAt: '2026-09-28T06:00:00.000Z',
     performedOn: null,
     closingReason: null,
+    warrantyEndsOn: null,
     origin: {
       kind: 'defect',
       defectId: 'df-door' as never,
@@ -421,6 +422,80 @@ describe('the page of a work order', () => {
         },
       ])
     })
+  })
+
+  it('takes the warranty of an accepted order from whoever accepts work orders, and from nobody before (#329)', async () => {
+    const acceptedPage = {
+      ...signedPage,
+      status: 'done' as const,
+      decisions: [
+        {
+          decision: 'accepted' as const,
+          decidedAt: '2026-10-06T08:00:00.000Z',
+          name: 'Sabine Krämer',
+          reason: null,
+        },
+      ],
+    }
+    const { mounted, written } = mount(
+      '/auftraege/ac-waiting',
+      { '/work-orders/ac-waiting': acceptedPage },
+      'site_management',
+      () => ({ status: 200, body: { ...acceptedPage, warrantyEndsOn: '2028-10-06' } }),
+    )
+
+    await mounted
+    await screen.findByText('keine eigene')
+    fireEvent.click(await screen.findByRole('button', { name: 'Eintragen' }))
+
+    const dialog = within(await screen.findByRole('dialog', { name: 'Gewährleistung eintragen' }))
+
+    fireEvent.change(dialog.getByLabelText('Gewährleistung bis'), {
+      target: { value: '2028-10-06' },
+    })
+    fireEvent.click(dialog.getByRole('button', { name: 'Speichern' }))
+    await waitFor(() => {
+      expect(written).toEqual([
+        {
+          method: 'PUT',
+          path: '/work-orders/ac-waiting/warranty',
+          body: { warrantyEndsOn: '2028-10-06' },
+        },
+      ])
+    })
+  })
+
+  it('offers the warranty neither before the acceptance nor to whoever does not accept', async () => {
+    for (const [page, role] of [
+      [signedPage, 'site_management'],
+      [
+        {
+          ...signedPage,
+          status: 'done' as const,
+          decisions: [
+            {
+              decision: 'accepted' as const,
+              decidedAt: '2026-10-06T08:00:00.000Z',
+              name: 'Sabine Krämer',
+              reason: null,
+            },
+          ],
+        },
+        'technician',
+      ],
+    ] as const) {
+      const { mounted } = mount('/auftraege/ac-waiting', { '/work-orders/ac-waiting': page }, role)
+
+      await mounted
+      await screen.findByRole('heading', { name: signedPage.title })
+      // Accepted, the panel says the warranty, and offers nothing to change it.
+      if (role === 'technician') {
+        await screen.findByText('keine eigene')
+      }
+
+      expect(screen.queryByRole('button', { name: 'Eintragen' })).toBeNull()
+      document.body.innerHTML = ''
+    }
   })
 
   it('turns it back only with the reason', async () => {

@@ -329,6 +329,15 @@ async function placeIn(where: 'north' | 'south'): Promise<void> {
       where === 'north' ? 'AN-00001' : 'AN-00002',
     ],
   )
+  // A contract that covers the building (#329), which follows the building.
+  await admin.query(
+    `with firm as (insert into contractors (tenant_id, name) values ($1, 'Aufzugsdienst') returning id),
+          deal as (insert into contracts (tenant_id, contractor_id, title, starts_on)
+                   select $1, id, 'Wartung der Aufzüge', '2026-01-01' from firm returning id)
+     insert into contract_items (tenant_id, contract_id, property_id, area_id, building_id)
+     select $1, id, $2, $3, $4 from deal`,
+    [tenant, at.property, areaId, at.building],
+  )
   await admin.query(
     `insert into asset_lifecycle (id, tenant_id, asset_id, property_id, area_id, state, valid_from)
      values ($1, $2, $3, $4, $5, 'in_service', '2020-01-01')`,
@@ -637,6 +646,7 @@ describe('a person with the north', () => {
       'building_closures',
       'buildings',
       'contacts',
+      'contract_items',
       'deadlines',
       'defects',
       'duties',
@@ -864,6 +874,7 @@ describe('a property moved to another area', () => {
         'building_closures',
         'buildings',
         'contacts',
+        'contract_items',
         'deadlines',
         'defects',
         'duties',

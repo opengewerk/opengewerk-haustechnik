@@ -145,6 +145,8 @@ export interface DutyRegisterFilter {
   readonly responsible?: string
   /** The firm of the list that carries a duty out (#328). */
   readonly contractorId?: string
+  /** The contract a duty fulfils (#329). */
+  readonly contractId?: string
 }
 
 /** The names of the filters as an address carries them to the server, in the order it reads them. */
@@ -157,6 +159,7 @@ export const dutyRegisterFilters = [
   'assetKind',
   'dutyKind',
   'contractorId',
+  'contractId',
   'responsible',
 ] as const satisfies readonly (keyof DutyRegisterFilter)[]
 
@@ -211,11 +214,14 @@ export interface DutyEntry
       | 'performer'
       | 'performerNote'
       | 'contractorId'
+      | 'contractId'
     > {
   /** Whether it has ended today. Its state then says how it stood when it did, and calls for nothing. */
   readonly ended: boolean
   /** Whether it says "Frist prüfen" (`intervalToCheck`, #74). */
   readonly intervalToCheck: boolean
+  /** Whether it says "Vertrag abgelaufen": the contract it fulfils has ended (#329). */
+  readonly contractEnded: boolean
   readonly asset: DutyAsset | null
   readonly responsible: DutyPerson | null
   readonly lastEvidence: LastEvidence | null
@@ -300,12 +306,26 @@ export interface DutyDetails extends Duty {
   readonly intervalDocument: DutyIntervalDocument | null
   /** Whether it says "Frist prüfen" (`intervalToCheck`), for whoever reads the duty. */
   readonly intervalToCheck: boolean
+  /** Whether it says "Vertrag abgelaufen" (#329), for whoever reads the duty. */
+  readonly contractEnded: boolean
+  /**
+   * The contract it fulfils, for whoever reads the contracts, or null: it
+   * names none, or the contracts are not theirs to see (#329).
+   */
+  readonly contract: DutyContract | null
   /**
    * The inspection or maintenance under way for the duty (#183), as far as
    * the person asking is shown it, or null: none is, or it is not theirs to
    * see.
    */
   readonly activity: DutyActivity | null
+}
+
+/** The contract a duty fulfils, as its page names it (#329): by its title, and the day it ended. */
+export interface DutyContract {
+  readonly id: string
+  readonly title: string
+  readonly endedOn: IsoDate | null
 }
 
 /**

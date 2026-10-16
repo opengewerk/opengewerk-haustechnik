@@ -103,6 +103,8 @@ describe('the policies of the sync', () => {
       store_labels: [false, 'never'],
       // The contractors, kept in the office (#328).
       contractors: [false, 'never'],
+      // The contracts with them (#329), kept in the office.
+      contracts: [false, 'never'],
       work_order_materials: [true, 'never'],
     })
   })

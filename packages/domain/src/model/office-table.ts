@@ -223,8 +223,17 @@ export function deadlineSubject(facts: DeadlineFacts): string {
       return meterDeadlineSubject
     case 'document':
       return facts.title
+    case 'contract':
+      return facts.contract.title
+    case 'warranty':
+      return facts.workOrder === null
+        ? warrantyDeadlineSubject
+        : `${warrantyDeadlineSubject} ${facts.workOrder.number}`
   }
 }
+
+/** What the end of a warranty is called in the list (#329), with the number of a work order behind it where it is one's. */
+export const warrantyDeadlineSubject = 'Gewährleistung'
 
 /** The column of this application in the list "Fristen", between "Betrifft" and "Verantwortlich". */
 export const deadlineTableColumns = { where: 'Anlage und Ort' } as const
@@ -251,9 +260,17 @@ export function deadlineWhere(
   names: PlaceNames | null,
   readsAssets = true,
 ): { readonly name: string; readonly sub: string } {
-  // The document of a contractor stands nowhere: the contractor is what it hangs on (#328).
+  // A contract stands nowhere either: its firm is what the deadline names (#329).
+  if (facts.follows === 'contract') {
+    return { name: facts.contractor.name, sub: 'Vertrag' }
+  }
+
+  // The document of a contractor stands nowhere: the contractor is what it hangs on (#328),
+  // and so does the document of a contract (#329).
   if (facts.follows === 'document' && facts.propertyId === null) {
-    return { name: facts.contractor?.name ?? 'Fremdfirma', sub: 'Fremdfirma' }
+    return facts.contract === null
+      ? { name: facts.contractor?.name ?? 'Fremdfirma', sub: 'Fremdfirma' }
+      : { name: facts.contract.title, sub: 'Vertrag' }
   }
 
   const property =
@@ -1115,6 +1132,7 @@ export const documentHomeLabel: Readonly<Record<DocumentHome, string>> = {
   activityId: 'Vorgang',
   defectId: 'Mangel',
   contractorId: 'Fremdfirma',
+  contractId: 'Vertrag',
 }
 
 /**
@@ -1153,9 +1171,9 @@ export function documentHomeWords(
     return `${documentHomeLabel.propertyId} ${property ?? ''}`.trim()
   }
 
-  // A contractor has no property (#328): its name, or the kind where the person does not read it.
-  if (home === 'contractorId') {
-    return `${documentHomeLabel.contractorId} ${named ?? ''}`.trim()
+  // A contractor has no property (#328), nor has a contract (#329): its name, or the kind where the person does not read it.
+  if (home === 'contractorId' || home === 'contractId') {
+    return `${documentHomeLabel[home]} ${named ?? ''}`.trim()
   }
 
   if (home === 'assetId' && named !== null) {

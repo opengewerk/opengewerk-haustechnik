@@ -14,7 +14,7 @@ import type { PgColumn } from 'drizzle-orm/pg-core'
 import { assignNumber } from '../database/number-ranges.js'
 import * as schema from '../database/schema/index.js'
 import { answered } from './answers.js'
-import { contractorDocumentKept } from './contractor-documents.js'
+import { contractDocumentKept, contractorDocumentKept } from './contractor-documents.js'
 import { unseenDuplicate } from './duplicates.js'
 import { assigned } from './labels.js'
 import { placed } from './places.js'
@@ -153,6 +153,7 @@ export function syncFor(catalogue: Catalogue): ServerSync<Sender> {
       versionFile,
       placed,
       contractorDocumentKept,
+      contractDocumentKept,
       handedOut,
       readOnSite,
       answered(catalogue),

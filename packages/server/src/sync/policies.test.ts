@@ -112,10 +112,13 @@ describe('the rights of an operation', () => {
         )
 
       // The document of a contractor is filed by whoever keeps the firms (#328),
-      // which is asked below; on site a document hangs on a place.
-      const { contractorId: _firm, ...onSite } = (edits.create ?? {}) as Readonly<
-        Record<string, OfflineValues>
-      >
+      // that of a contract by whoever keeps the contracts (#329), both asked
+      // below; on site a document hangs on a place.
+      const {
+        contractorId: _firm,
+        contractId: _contract,
+        ...onSite
+      } = (edits.create ?? {}) as Readonly<Record<string, OfflineValues>>
 
       done[entity] = {
         ...(edits.create && {
@@ -135,6 +138,15 @@ describe('the rights of an operation', () => {
 
     expect(ofAFirm).toBe('contractor.write')
     expect(technician).not.toContain(ofAFirm)
+
+    // And one of a contract the right to keep the contracts (#329).
+    const ofAContract = permissionFor('attachments', 'create', [
+      { field: 'contractId', from: null, to: 'x' },
+    ])
+
+    expect(ofAContract).toBe('contract.write')
+    expect(technician).not.toContain(ofAContract)
+    expect(site).not.toContain(ofAContract)
 
     // A fault found on site becomes a work order there, by whoever hands one out.
     expect(site).toContain(permissionFor('activities', 'create'))

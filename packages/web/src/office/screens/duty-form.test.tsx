@@ -156,6 +156,8 @@ const filledIn = {
   performer: null,
   performerNote: null,
   contractorId: null,
+  // A contract of the firm, only with a firm (#329).
+  contractId: null,
 }
 
 /** The places the form offers to hang the duty on, with the one that is picked. */
@@ -501,6 +503,7 @@ describe('the form of a duty of the operator own', () => {
       responsibleUserId: 'u-lindner',
       performer: 'contractor',
       contractorId: 'c-dach',
+      contractId: null,
     })
   })
 
@@ -612,6 +615,7 @@ function ownDuty(further: Readonly<Record<string, unknown>> = {}): DutyDetails {
     performer: 'contractor',
     performerNote: 'Heizungsbau Beispiel GmbH',
     contractorId: null,
+    contractId: null,
     confirmedBy: 'u-lead',
     confirmedAt: '2026-10-06T08:00:00.000Z',
     endsOn: null,
@@ -626,6 +630,8 @@ function ownDuty(further: Readonly<Record<string, unknown>> = {}): DutyDetails {
     intervalDocumentVersionId: null,
     intervalDocument: null,
     intervalToCheck: false,
+    contractEnded: false,
+    contract: null,
     asset: {
       id: 'a-heater',
       number: 'AN-00057',

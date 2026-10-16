@@ -47,6 +47,8 @@ export type SampleHome =
       readonly assetId?: string
     }
   | { readonly contractorId: string }
+  // The paper of a contract (#329), which has no place either.
+  | { readonly contractId: string }
 
 /** A PDF of one page with one line on it, well formed down to its table of offsets. */
 export function samplePdf(words: string): Buffer {

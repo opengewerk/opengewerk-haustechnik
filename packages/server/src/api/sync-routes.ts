@@ -92,6 +92,8 @@ export const operationRights: Readonly<Record<string, OperationRights>> = {
   store_labels: { otherwise: 'store.write' },
   // The contractors are kept in the office, with a connection (#328).
   contractors: { otherwise: 'contractor.write' },
+  // So are the contracts with them (#329).
+  contracts: { otherwise: 'contract.write' },
   asset_supplies: { create: 'asset.record', remove: 'asset.record', otherwise: 'asset.record' },
   duties: { otherwise: 'duty.write' },
   duty_dismissals: { otherwise: 'duty.write' },
@@ -137,12 +139,16 @@ export const operationRights: Readonly<Record<string, OperationRights>> = {
   // 7 of the concept), and what a device may not send at all asks for it too.
   attachments: {
     // The certificates and the insurance of a contractor (#328) are kept by
-    // whoever keeps the firms; what comes after making one asks it of the
-    // document as the server holds it (`contractorDocumentKept`).
+    // whoever keeps the firms, and the documents of a contract (#329) by
+    // whoever keeps the contracts; what comes after making one asks it of the
+    // document as the server holds it (`contractorDocumentKept`,
+    // `contractDocumentKept`).
     create: (patches) =>
       patches.some((patch) => patch.field === 'contractorId' && patch.to !== null)
         ? 'contractor.write'
-        : 'document.record',
+        : patches.some((patch) => patch.field === 'contractId' && patch.to !== null)
+          ? 'contract.write'
+          : 'document.record',
     change: 'document.record',
     remove: 'document.remove',
     otherwise: 'document.remove',
@@ -267,7 +273,10 @@ export function syncRoutesFor(
     permissionFor,
     answerFor,
     scope: async ({ tx, identity }) =>
-      pullScope(await deviceScope(tx, identity.userId), isAllowed(identity, 'contractor.read')),
+      pullScope(await deviceScope(tx, identity.userId), {
+        contractors: isAllowed(identity, 'contractor.read'),
+        contracts: isAllowed(identity, 'contract.read'),
+      }),
     senderOf: (identity, operations) => senderOf(database, identity, operations),
   }
 }

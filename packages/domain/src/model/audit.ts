@@ -19,6 +19,7 @@ import { lifecycleStateLabel } from './asset.js'
 import { assetValuesWords } from './asset-value-words.js'
 import { buildingKindLabel } from './location.js'
 import { type Catalogue, type CatalogueEntry, countingLabel, dutyTaskLabel } from './catalogue.js'
+import { noticeUnitLabel } from './contract.js'
 import { defectStatusLabel } from './defect.js'
 import { documentKindLabel } from './document.js'
 import { dutyBasisLabel, dutyPerformerLabel } from './duty-record.js'
@@ -264,6 +265,27 @@ export const auditVocabulary: AuditVocabulary = {
         note: 'Notiz',
       },
     },
+    // The contracts with the contractors (#329), and what each covers.
+    contracts: {
+      label: 'Vertrag',
+      fields: {
+        contractor_id: 'Fremdfirma',
+        title: 'Bezeichnung',
+        starts_on: 'Beginn',
+        ends_on: 'Ende der Laufzeit',
+        renewal_months: 'Verlängerung in Monaten',
+        notice_amount: 'Kündigungsfrist',
+        notice_unit: 'Einheit der Kündigungsfrist',
+        cancelled_to: 'Gekündigt zum',
+        response_time: 'Reaktionszeit',
+        price: 'Preis',
+        note: 'Notiz',
+      },
+    },
+    contract_items: {
+      label: 'Von einem Vertrag erfasst',
+      fields: { contract_id: 'Vertrag', building_id: 'Gebäude', asset_id: 'Anlage' },
+    },
     store_labels: {
       label: 'Etikett eines Lagerfachs',
       fields: { store_article_id: 'Artikel eines Lagers', code: 'Code', blocked_at: 'Gesperrt am' },
@@ -302,6 +324,7 @@ export const auditVocabulary: AuditVocabulary = {
         performer: 'Ausgeführt von',
         performer_note: 'Fremdfirma',
         contractor_id: 'Fremdfirma aus der Liste',
+        contract_id: 'Vertrag',
         confirmed_by: 'Bestätigt von',
         confirmed_at: 'Bestätigt am',
         ends_on: 'Endet am',
@@ -487,6 +510,7 @@ export const auditVocabulary: AuditVocabulary = {
         urgency: 'Dringlichkeit',
         origin_defect_id: 'Aus dem Mangel',
         duration_minutes: 'Dauer in Minuten',
+        warranty_ends_on: 'Gewährleistung bis',
       },
     },
     // A note on a work order (#118).
@@ -591,6 +615,10 @@ export const auditVocabulary: AuditVocabulary = {
       meter_property_id: 'Zähler der Liegenschaft',
       // The document whose day a deadline follows (#327).
       attachment_id: 'Dokument',
+      // The contract and the warranty whose day a deadline follows (#329).
+      contract_id: 'Vertrag',
+      warranty_asset_id: 'Gewährleistung der Anlage',
+      warranty_order_id: 'Gewährleistung des Auftrags',
       task_id: 'Aufgabe',
       property_id: 'Liegenschaft',
       area_id: 'Bereich',
@@ -600,6 +628,8 @@ export const auditVocabulary: AuditVocabulary = {
       defect_id: 'Mangel',
       // The firm whose certificate or insurance it is (#328).
       contractor_id: 'Fremdfirma',
+      // The contract it belongs to (#329).
+      contract_id: 'Vertrag',
       kind: 'Art',
       legacy: 'Altbestand',
     },
@@ -723,6 +753,11 @@ export const auditVocabulary: AuditVocabulary = {
     supplier_id: 'suppliers',
     // The firm of the list a duty, an activity and an evidence name (#328).
     contractor_id: 'contractors',
+    // The contract a duty fulfils and a document belongs to (#329), and what a
+    // deadline of a warranty follows.
+    contract_id: 'contracts',
+    warranty_asset_id: 'assets',
+    warranty_order_id: 'work_orders',
     // A withdrawal and the shelf a label is stuck on (#326).
     material_id: 'work_order_materials',
     store_article_id: 'store_articles',
@@ -805,6 +840,9 @@ export const auditVocabulary: AuditVocabulary = {
     store_labels: ['code'],
     // A contractor by its name (#328).
     contractors: ['name'],
+    // A contract by its title, and what it covers by the building or the asset (#329).
+    contracts: ['title'],
+    contract_items: ['asset_id', 'building_id'],
     // A duty of the operator's own by its name, one from the catalogue by its
     // kind; a dismissal by the kind it dismissed.
     duties: ['label', 'kind'],
@@ -900,6 +938,7 @@ export const auditValues: Readonly<
   // The deadlines of the foundation, in the words of its list of deadlines.
   deadlines: { status: { open: 'Offen', done: 'Erledigt', dropped: 'Entfallen' } },
   deadline_settings: { reminder: deadlineReminderLabel },
+  contracts: { notice_unit: noticeUnitLabel },
   defects: { status: defectStatusLabel },
   tasks: { status: { open: 'Offen', done: 'Erledigt' } },
   duties: {

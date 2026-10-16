@@ -102,6 +102,7 @@ import {
   buildingClosures,
   buildings,
   contractors,
+  contracts,
   defects,
   properties,
   rooms,
@@ -737,9 +738,12 @@ export async function documentTable(
   asked: { readonly kind: string | null; readonly home: DocumentHome | null },
 ): Promise<OutgoingTable> {
   // The documents of a contractor lie in no area (#328): only for whoever sees the contractors.
+  // Those of a contract neither (#329): only for whoever reads the contracts.
   const readsFirms = isAllowed(identity, 'contractor.read')
+  const readsContracts = isAllowed(identity, 'contract.read')
   const filed = (await tx.select().from(attachments).where(isNull(attachments.deletedAt)))
     .filter((document) => readsFirms || document.contractorId === null)
+    .filter((document) => readsContracts || document.contractId === null)
     .map((document) => ({ ...document, home: documentHomeOf(document) }))
     .filter(
       (document) =>
@@ -799,6 +803,14 @@ export async function documentTable(
         ),
       )
     : new Map<string, string>()
+  // The contracts whose documents these are (#329), for whoever reads the contracts.
+  const deals = readsContracts
+    ? new Map(
+        (await tx.select({ id: contracts.id, title: contracts.title }).from(contracts)).map(
+          (row) => [row.id as string, row.title],
+        ),
+      )
+    : new Map<string, string>()
 
   /** What a document hangs on by its name, as far as the person reads it. */
   const named = (document: (typeof filed)[number]): string | null => {
@@ -824,6 +836,8 @@ export async function documentTable(
         return found.get(document.defectId as string) ?? null
       case 'contractorId':
         return firms.get(document.contractorId as string) ?? null
+      case 'contractId':
+        return deals.get(document.contractId as string) ?? null
       case 'propertyId':
         return null
     }
