@@ -7,6 +7,19 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
 
 ## [Unreleased]
 
+### Behoben
+
+- Die Datenschutzhinweise der Instanz unter `/rechtliches/datenschutz` blieben leer, sobald ihr Text
+  auf einen Pfad verwies, etwa auf das Impressum (#386). Die Rechtsseite steht vor dem Router, und der
+  Verweis suchte einen; ohne Router ist ein Pfad jetzt ein gewöhnlicher Verweis. Unter "Rechtstexte"
+  der Instanz steht dazu, unter welchen Adressen Impressum und Datenschutzhinweise zu lesen sind.
+- Fett und Überschriften der Rechtstexte passen zum Text (#387). Ein Abschnitt kam als graues Etikett
+  in Kapitälchen, kleiner als der Text darunter, und Fett stand schwerer als jede Überschrift der
+  Anwendung; jetzt ist ein Abschnitt eine Überschrift mit Abstand davor, Fett hat das Gewicht 600.
+  Die Hilfe neben einem Bildschirm behält ihre Etiketten.
+
+Für beide ist das Submodul des Fundaments angehoben (opengewerk/opengewerk#649).
+
 ## [0.1.4] - 2026-10-16
 
 Eine Zwischenfassung für den Pilotbetrieb mit dem, was aus Phase 2 schon fertig ist, vor der Fassung
