@@ -29,13 +29,19 @@ import { amount, centsAsInput, parseEuros, parseQuantity } from '@opengewerk/pla
 import { NoteBox } from '@opengewerk/platform-web/office'
 import { type EditResult, refusalFor, useSync } from '@opengewerk/platform-web/sync'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { Check, Printer } from 'lucide-react'
+import { ArrowRight, Check, Printer, Trash2 } from 'lucide-react'
 import { type ReactNode, useEffect, useMemo, useState } from 'react'
 
 import { printShelfLabels } from '../app/labels.js'
 import { askAt, makeAt } from '../sync/made-at.js'
 import { labelFormats, printLabelWords } from './labels.js'
-import { articleListQuery, storeKey, supplierListQuery } from './store-addresses.js'
+import {
+  articleListQuery,
+  stockQuery,
+  storeKey,
+  storeListQuery,
+  supplierListQuery,
+} from './store-addresses.js'
 
 /**
  * What the stores are kept with in the office (#325, 4.12 of the concept),
@@ -72,6 +78,23 @@ export const storeDialogWords = {
   withoutEan: (count: number) => `Die ${String(count)} Artikel dieses Lagers ohne EAN`,
   everyArticle: (count: number) => `Alle ${String(count)} Artikel dieses Lagers`,
   noShelf: 'Für diese Auswahl gibt es kein Etikett zu drucken.',
+  removeTitle: (name: string) => `${name} entfernen?`,
+  storeGone:
+    'Es steht danach nicht mehr zur Wahl. An Buchungen und an Entnahmen an Aufträgen bleibt es mit seinem Namen lesbar.',
+  articleGone:
+    'Danach steht er bei keinem Eingang und keiner Zählung mehr zur Wahl; an Buchungen und Aufträgen bleibt er lesbar. Hat er noch Bestand, bringt ihn erst eine Zählung auf null.',
+  supplierGone:
+    'Er steht danach bei keinem Wareneingang mehr zur Wahl. An seinen Buchungen bleibt er lesbar.',
+  moveTitle: 'In ein anderes Lager umziehen',
+  moveSub: (article: string, store: string) => `${article}, aus ${store}`,
+  moveStock: (quantity: string, target: string) =>
+    `Der Bestand von ${quantity} geht als Umbuchung mit: ein Abgang hier, ein Zugang in ${target}.`,
+  moveNothing: 'Hier liegt nichts davon; gebucht wird nichts.',
+  moveJoins: (there: string, after: string) =>
+    `Das Lager führt den Artikel schon mit ${there}; danach sind es dort ${after}, und sein Mindestbestand dort bleibt.`,
+  moveLeaves: 'Hier steht der Artikel danach nicht mehr.',
+  moveNote: 'Steht an beiden Buchungen.',
+  noOtherStore: 'Es gibt kein anderes Lager. Legen Sie zuerst eines an.',
 } as const
 
 /** Asks a route, shows what it refused with, and has the stores read again once it is done. */
@@ -115,13 +138,28 @@ function Actions({
   working,
   onClose,
   label,
+  onRemove,
 }: {
   readonly working: boolean
   readonly onClose: () => void
   readonly label: string
+  /** Offers "Entfernen" on the left, for a record that is changed (#391). */
+  readonly onRemove?: (() => void) | undefined
 }) {
   return (
     <DialogActions>
+      {onRemove === undefined ? null : (
+        <Button
+          type="button"
+          tone="danger"
+          icon={Trash2}
+          disabled={working}
+          className="mr-auto"
+          onClick={onRemove}
+        >
+          Entfernen
+        </Button>
+      )}
       <Button type="button" disabled={working} onClick={onClose}>
         Abbrechen
       </Button>
@@ -129,6 +167,192 @@ function Actions({
         {working ? 'Einen Moment' : label}
       </Button>
     </DialogActions>
+  )
+}
+
+/**
+ * Removing a store, an article or a supplier (#391): asked once more, and
+ * marked by the server, never deleted. What the server refuses, a store that
+ * carries an article or an article with stock, the dialog says instead, with
+ * nothing left to press but "Schließen".
+ */
+export function RemoveDialog({
+  name,
+  sentence,
+  path,
+  id,
+  onClose,
+  onRemoved,
+}: {
+  readonly name: string
+  readonly sentence: string
+  readonly path: string
+  readonly id: string
+  readonly onClose: () => void
+  readonly onRemoved: () => void
+}) {
+  const client = useSync()
+  const { working, trouble, ask } = useAsking(onRemoved)
+
+  return (
+    <Dialog title={storeDialogWords.removeTitle(name)} width={520} onClose={onClose}>
+      <div className="flex flex-col gap-3">
+        {trouble === null ? (
+          <p className="text-[14px] leading-[1.5]">{sentence}</p>
+        ) : (
+          <p role="alert" className="text-[14px] leading-[1.5]">
+            {trouble}
+          </p>
+        )}
+        <DialogActions>
+          {trouble === null ? (
+            <>
+              <Button type="button" disabled={working} onClick={onClose}>
+                Abbrechen
+              </Button>
+              <Button
+                type="button"
+                tone="danger"
+                icon={Trash2}
+                disabled={working}
+                onClick={() => {
+                  void ask(() => askAt(client, 'DELETE', path, id))
+                }}
+              >
+                {working ? 'Einen Moment' : 'Entfernen'}
+              </Button>
+            </>
+          ) : (
+            <Button type="button" onClick={onClose}>
+              Schließen
+            </Button>
+          )}
+        </DialogActions>
+      </div>
+    </Dialog>
+  )
+}
+
+/**
+ * Moving an article to another store (#391), `artikel_umziehen()` of the
+ * boards: its stock goes along as a transfer, and where the other store
+ * carries it already the two come together and its minimum there stays.
+ */
+export function MoveDialog({
+  storeId,
+  storeName,
+  article,
+  levelMilli,
+  onClose,
+  onMoved,
+}: {
+  readonly storeId: string
+  readonly storeName: string
+  readonly article: Pick<Article, 'id' | 'designation' | 'unit'>
+  readonly levelMilli: number
+  readonly onClose: () => void
+  readonly onMoved: (storeId: string) => void
+}) {
+  const client = useSync()
+  const stores = useQuery(storeListQuery)
+  const others = (stores.data ?? []).filter((store) => store.id !== storeId)
+  const [chosen, setChosen] = useState('')
+  const target = others.find((store) => store.id === chosen) ?? others[0]
+  const there = useQuery({ ...stockQuery(target?.id ?? '', false), enabled: target !== undefined })
+  const line = there.data?.lines.find((each) => each.articleId === article.id)
+  const [reason, setReason] = useState('')
+  const { working, trouble, ask } = useAsking(() => {
+    if (target !== undefined) {
+      onMoved(target.id)
+    }
+  })
+  const quantity = (milli: number) => quantityOf(milli, article.unit)
+
+  return (
+    <Dialog
+      title={storeDialogWords.moveTitle}
+      sub={storeDialogWords.moveSub(article.designation, storeName)}
+      width={600}
+      onClose={onClose}
+    >
+      <form
+        noValidate
+        className="flex flex-col gap-3"
+        onSubmit={(event) => {
+          event.preventDefault()
+
+          if (target === undefined) {
+            return
+          }
+
+          void ask(() =>
+            askAt(
+              client,
+              'POST',
+              `/stores/${encodeURIComponent(storeId)}/articles/${encodeURIComponent(article.id)}/move`,
+              article.id,
+              { toStoreId: target.id, reason: reason.trim() === '' ? null : reason.trim() },
+            ),
+          )
+        }}
+      >
+        {stores.data !== undefined && target === undefined ? (
+          <p className="text-[14px]">{storeDialogWords.noOtherStore}</p>
+        ) : (
+          <>
+            <SelectField
+              label="In das Lager"
+              required
+              starred
+              value={target?.id ?? ''}
+              options={others.map((store) => ({ value: store.id, label: store.name }))}
+              onChange={setChosen}
+            />
+            {target === undefined ? null : (
+              <NoteBox tone="neutral">
+                {[
+                  levelMilli > 0
+                    ? storeDialogWords.moveStock(quantity(levelMilli), target.name)
+                    : storeDialogWords.moveNothing,
+                  line === undefined
+                    ? null
+                    : storeDialogWords.moveJoins(
+                        quantity(line.levelMilli),
+                        quantity(line.levelMilli + Math.max(levelMilli, 0)),
+                      ),
+                  storeDialogWords.moveLeaves,
+                ]
+                  .filter((part) => part !== null)
+                  .join(' ')}
+              </NoteBox>
+            )}
+            <Field
+              label="Bemerkung"
+              value={reason}
+              maxLength={stockLimits.note}
+              hint={storeDialogWords.moveNote}
+              onChange={(event) => {
+                setReason(event.target.value)
+              }}
+            />
+          </>
+        )}
+        <Trouble>{trouble}</Trouble>
+        <DialogActions>
+          <Button type="button" disabled={working} onClick={onClose}>
+            Abbrechen
+          </Button>
+          <Button
+            type="submit"
+            tone="primary"
+            icon={ArrowRight}
+            disabled={working || target === undefined}
+          >
+            {working ? 'Einen Moment' : 'Umziehen'}
+          </Button>
+        </DialogActions>
+      </form>
+    </Dialog>
   )
 }
 
@@ -485,6 +709,7 @@ export function ArticleDialog({
 }) {
   const client = useSync()
   const { working, trouble, ask } = useAsking(onClose)
+  const [removing, setRemoving] = useState(false)
   const [number, setNumber] = useState(article?.number ?? '')
   const [designation, setDesignation] = useState(article?.designation ?? '')
   const [ean, setEan] = useState(article?.ean ?? '')
@@ -521,6 +746,19 @@ export function ArticleDialog({
       article === undefined
         ? makeAt(client, '/articles', values)
         : askAt(client, 'PATCH', `/articles/${encodeURIComponent(article.id)}`, article.id, values),
+    )
+  }
+
+  if (removing && article !== undefined) {
+    return (
+      <RemoveDialog
+        name={article.designation}
+        sentence={storeDialogWords.articleGone}
+        path={`/articles/${encodeURIComponent(article.id)}`}
+        id={article.id}
+        onClose={onClose}
+        onRemoved={onClose}
+      />
     )
   }
 
@@ -609,6 +847,13 @@ export function ArticleDialog({
           working={working}
           onClose={onClose}
           label={article === undefined ? 'Anlegen' : 'Speichern'}
+          onRemove={
+            article === undefined
+              ? undefined
+              : () => {
+                  setRemoving(true)
+                }
+          }
         />
       </form>
     </Dialog>
@@ -625,6 +870,7 @@ export function SupplierDialog({
 }) {
   const client = useSync()
   const { working, trouble, ask } = useAsking(onClose)
+  const [removing, setRemoving] = useState(false)
   const [name, setName] = useState(supplier?.name ?? '')
   const [customerNumber, setCustomerNumber] = useState(supplier?.customerNumber ?? '')
   const [phone, setPhone] = useState(supplier?.phone ?? '')
@@ -659,6 +905,19 @@ export function SupplierDialog({
             supplier.id,
             values,
           ),
+    )
+  }
+
+  if (removing && supplier !== undefined) {
+    return (
+      <RemoveDialog
+        name={supplier.name}
+        sentence={storeDialogWords.supplierGone}
+        path={`/suppliers/${encodeURIComponent(supplier.id)}`}
+        id={supplier.id}
+        onClose={onClose}
+        onRemoved={onClose}
+      />
     )
   }
 
@@ -733,6 +992,13 @@ export function SupplierDialog({
           working={working}
           onClose={onClose}
           label={supplier === undefined ? 'Anlegen' : 'Speichern'}
+          onRemove={
+            supplier === undefined
+              ? undefined
+              : () => {
+                  setRemoving(true)
+                }
+          }
         />
       </form>
     </Dialog>

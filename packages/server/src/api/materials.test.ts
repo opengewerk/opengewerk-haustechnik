@@ -134,6 +134,19 @@ async function stocked(
   return { store, article }
 }
 
+/** The article counted to zero in its store and then removed, as the office gives one up. */
+async function givenUp(stock: { readonly store: string; readonly article: string }): Promise<void> {
+  await http()
+    .post(`/stores/${stock.store}/movements`)
+    .set(testIdentityHeader, by('u-site'))
+    .send({ articleId: stock.article, kind: 'count', quantityMilli: 0, reason: 'Aufgegeben' })
+    .expect(201)
+  await http()
+    .delete(`/articles/${stock.article}`)
+    .set(testIdentityHeader, by('u-site'))
+    .expect(200)
+}
+
 /** A work order in the north led by Tobias Wendt with Lena Vogt, begun today. */
 async function begun(status: 'started' | 'signed' = 'started'): Promise<string> {
   const property = await made(
@@ -365,10 +378,7 @@ describe('a withdrawal', () => {
     const order = await begun()
     const stock = await stocked(6000)
 
-    await http()
-      .delete(`/articles/${stock.article}`)
-      .set(testIdentityHeader, by('u-site'))
-      .expect(200)
+    await givenUp(stock)
     expect(await outcomes(by('u-tech'), [taking(order, stock, 1000)])).toEqual([
       { outcome: 'conflict', reason: 'record_missing', fields: ['articleId'] },
     ])
@@ -405,10 +415,7 @@ describe('the material of an order', () => {
     await outcomes(by('u-tech'), [taking(order, stock, 1500)])
     // Material of another order stands on that one, not on this.
     await outcomes(by('u-tech'), [taking(await begun(), stock, 700)])
-    await http()
-      .delete(`/articles/${stock.article}`)
-      .set(testIdentityHeader, by('u-site'))
-      .expect(200)
+    await givenUp(stock)
 
     const page = (
       await http().get(`/work-orders/${order}`).set(testIdentityHeader, by('u-lead')).expect(200)

@@ -20,7 +20,7 @@ import { useRight } from '@opengewerk/platform-web/session'
 import { refusalFor, RequestRefused, useSync } from '@opengewerk/platform-web/sync'
 import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useNavigate, useParams, useSearch } from '@tanstack/react-router'
-import { Check, List, Plus, Printer } from 'lucide-react'
+import { ArrowRight, Check, List, Plus, Printer, Trash2 } from 'lucide-react'
 import { type ReactNode, useDeferredValue, useState } from 'react'
 
 import { askAt } from '../../sync/made-at.js'
@@ -39,9 +39,12 @@ import {
 import {
   ArticleDialog,
   BookingDialog,
+  MoveDialog,
   quantityOf,
+  RemoveDialog,
   ShelfLabelsDialog,
   StoreDialog,
+  storeDialogWords,
   SupplierDialog,
 } from '../store-dialogs.js'
 
@@ -164,7 +167,7 @@ export function StoreStockScreen() {
   const address = stockAddressOf(useSearch({ strict: false }))
   const navigate = useNavigate()
   const keeps = useRight('store.write')
-  const [open, setOpen] = useState<'receipt' | 'count' | 'store' | 'labels' | null>(null)
+  const [open, setOpen] = useState<'receipt' | 'count' | 'store' | 'labels' | 'remove' | null>(null)
   const stores = useQuery({ ...storeListQuery, retry: refusedOnce })
   const chosen =
     stores.data?.find((store) => store.id === address.lager) ?? stores.data?.[0] ?? null
@@ -192,6 +195,16 @@ export function StoreStockScreen() {
         actions={
           keeps ? (
             <>
+              {chosen === null ? null : (
+                <Button
+                  icon={Trash2}
+                  onClick={() => {
+                    setOpen('remove')
+                  }}
+                >
+                  Lager entfernen
+                </Button>
+              )}
               {chosen === null ? null : (
                 <Button
                   icon={Printer}
@@ -357,6 +370,21 @@ export function StoreStockScreen() {
           }}
           onMade={(id) => {
             go({ lager: id })
+          }}
+        />
+      ) : null}
+      {open === 'remove' && chosen !== null ? (
+        <RemoveDialog
+          name={chosen.name}
+          sentence={storeDialogWords.storeGone}
+          path={`/stores/${encodeURIComponent(chosen.id)}`}
+          id={chosen.id}
+          onClose={() => {
+            setOpen(null)
+          }}
+          onRemoved={() => {
+            setOpen(null)
+            go({})
           }}
         />
       ) : null}
@@ -639,11 +667,23 @@ function changeOf(movement: StockMovementLine, before: number): string {
 
 /**
  * Where a booking came from, what it was for, or why: the supplier and the
- * note of a receipt, the reason of a count, and the work order a withdrawal
- * was taken for (#326), with a link where the person sees the order.
+ * note of a receipt, the reason of a count, the other store of a transfer
+ * (#391), and the work order a withdrawal was taken for (#326), with a link
+ * where the person sees the order.
  */
 function MovementWhy({ movement }: { readonly movement: StockMovementLine }) {
   const order = movement.workOrder
+  const other = movement.counterpartStore
+
+  if (other !== null) {
+    return (
+      <>
+        {[`${movement.kind === 'transfer_out' ? 'nach' : 'aus'} ${other.name}`, movement.reason]
+          .filter((part) => part !== null)
+          .join(', ')}
+      </>
+    )
+  }
 
   if (order === null) {
     return <>{[movement.supplier, movement.reason].filter((part) => part !== null).join(', ')}</>
@@ -658,7 +698,13 @@ function MovementWhy({ movement }: { readonly movement: StockMovementLine }) {
   )
 }
 
-const kindTone = { receipt: 'done', count: 'waiting', withdrawal: 'neutral' } as const
+const kindTone = {
+  receipt: 'done',
+  count: 'waiting',
+  withdrawal: 'neutral',
+  transfer_out: 'neutral',
+  transfer_in: 'neutral',
+} as const
 
 /**
  * One article in one store, `lager_artikel()` of the boards: its stock, the
@@ -671,7 +717,8 @@ export function StoreArticleScreen() {
     readonly articleId: string
   }
   const keeps = useRight('store.write')
-  const [open, setOpen] = useState<'receipt' | 'count' | null>(null)
+  const navigate = useNavigate()
+  const [open, setOpen] = useState<'receipt' | 'count' | 'move' | null>(null)
   const page = useQuery({ ...storeArticleQuery(storeId, articleId), retry: refusedOnce })
 
   if (page.data === undefined) {
@@ -703,6 +750,16 @@ export function StoreArticleScreen() {
         actions={
           keeps && article.deletedAt === null ? (
             <>
+              {page.data.carried ? (
+                <Button
+                  icon={ArrowRight}
+                  onClick={() => {
+                    setOpen('move')
+                  }}
+                >
+                  In anderes Lager
+                </Button>
+              ) : null}
               <Button
                 icon={List}
                 onClick={() => {
@@ -817,7 +874,22 @@ export function StoreArticleScreen() {
           </Panel>
         }
       />
-      {open === null ? null : (
+      {open === 'move' ? (
+        <MoveDialog
+          storeId={store.id}
+          storeName={store.name}
+          article={article}
+          levelMilli={page.data.levelMilli}
+          onClose={() => {
+            setOpen(null)
+          }}
+          onMoved={(target) => {
+            setOpen(null)
+            void navigate({ to: storePlaces.article(target, article.id) })
+          }}
+        />
+      ) : null}
+      {open === 'receipt' || open === 'count' ? (
         <BookingDialog
           kind={open}
           storeId={store.id}
@@ -839,7 +911,7 @@ export function StoreArticleScreen() {
             setOpen(null)
           }}
         />
-      )}
+      ) : null}
     </Screen>
   )
 }

@@ -46,7 +46,8 @@ import {
   tableFormatOf,
   type TenantTransaction,
 } from '@opengewerk/platform-server'
-import { and, asc, eq, isNull, sql } from 'drizzle-orm'
+import { and, asc, eq, isNotNull, isNull, sql } from 'drizzle-orm'
+import { alias } from 'drizzle-orm/pg-core'
 
 import {
   activities,
@@ -66,12 +67,18 @@ import { type Asking, fieldsOf, refuse } from './places.js'
 // suppliers and stores, the stock of a store, the page of one article in it,
 // the minimum a store keeps, and the bookings of the office, a receipt and a
 // count. Tenant-wide and without an area (2.8): whoever may look at the
-// stores sees all of them. A withdrawal at a work order comes with #326.
+// stores sees all of them. A withdrawal at a work order comes with #326. An
+// empty store and an article without stock are removed, and an article moves
+// to another store with its stock as a transfer (#391).
 
 const missingArticle = 'Diesen Artikel gibt es nicht oder nicht mehr.'
 const missingSupplier = 'Diesen Lieferanten gibt es nicht oder nicht mehr.'
 const missingStore = 'Dieses Lager gibt es nicht oder nicht mehr.'
 const takenNumber = 'Diese Nummer hat schon ein anderer Artikel.'
+const notCarried = 'Dieses Lager führt den Artikel nicht.'
+
+/** The other store a transfer names, read beside the store it is booked in. */
+const counterpartStores = alias(stores, 'counterpart_store')
 
 type ArticleRow = typeof articles.$inferSelect
 type SupplierRow = typeof suppliers.$inferSelect
@@ -294,12 +301,23 @@ export class ArticlesController {
     })
   }
 
-  /** An article no longer kept: marked, never removed; its bookings stay readable. */
+  /**
+   * An article no longer kept: marked, never removed; its bookings stay
+   * readable. Only once no store holds any of it (#391): what lies somewhere
+   * is counted to nothing first, so that no stock vanishes with its article.
+   */
   @Delete(':id')
   @RequiresPermission('store.write')
   remove(@CurrentIdentity() identity: Asking, @Param('id') id: string): Promise<void> {
     return this.database.forTenant(identity, async (tx) => {
       const held = await heldArticle(tx, id)
+      const lying = await stockOfArticle(tx, held)
+
+      if (lying.length > 0) {
+        throw new ConflictException(
+          `Der Artikel hat noch Bestand: ${lying.join(', ')}. Erst eine Zählung auf null, dann lässt er sich entfernen.`,
+        )
+      }
 
       await tx.update(articles).set({ deletedAt: new Date() }).where(eq(articles.id, held.id))
     })
@@ -454,7 +472,54 @@ function quantityWords(milli: number): string {
   return (milli / 1000).toLocaleString('de-DE', { maximumFractionDigits: 3 })
 }
 
-/** Makes sure a store keeps a line for an article, which its list shows. */
+/** The stock the bookings of one article in one store make. */
+async function levelOf(
+  tx: TenantTransaction,
+  storeId: StoreId,
+  articleId: StockArticleId,
+): Promise<number> {
+  const booked = await tx
+    .select({
+      kind: stockMovements.kind,
+      quantityMilli: stockMovements.quantityMilli,
+      createdAt: stockMovements.createdAt,
+    })
+    .from(stockMovements)
+    .where(and(eq(stockMovements.storeId, storeId), eq(stockMovements.articleId, articleId)))
+    .orderBy(asc(stockMovements.createdAt), asc(stockMovements.id))
+
+  return stockLevel(
+    booked.map((movement) => ({ ...movement, kind: movement.kind as NewStockMovement['kind'] })),
+  )
+}
+
+/** What of an article lies in the stores that hold some, "3 Stück in „Hauptlager“", by store. */
+async function stockOfArticle(tx: TenantTransaction, article: ArticleRow): Promise<string[]> {
+  const held = await tx
+    .selectDistinct({ id: stores.id, name: stores.name })
+    .from(stockMovements)
+    .innerJoin(stores, eq(stores.id, stockMovements.storeId))
+    .where(eq(stockMovements.articleId, article.id))
+  const lying: string[] = []
+
+  for (const store of held.sort((left, right) => byNameIn(left.name, right.name))) {
+    const level = await levelOf(tx, store.id, article.id)
+
+    if (level !== 0) {
+      lying.push(
+        `${quantityWords(level)} ${stockUnitLabel[article.unit as StockUnit]} in „${store.name}“`,
+      )
+    }
+  }
+
+  return lying
+}
+
+/**
+ * Makes sure a store keeps a line for an article, which its list shows. A
+ * line the article left with a move (#391) comes back with what is booked
+ * there again.
+ */
 async function keepLine(
   tx: TenantTransaction,
   tenantId: string,
@@ -464,7 +529,11 @@ async function keepLine(
   await tx
     .insert(storeArticles)
     .values({ tenantId: tenantId as never, storeId, articleId })
-    .onConflictDoNothing()
+    .onConflictDoUpdate({
+      target: [storeArticles.tenantId, storeArticles.storeId, storeArticles.articleId],
+      set: { deletedAt: null, updatedAt: new Date() },
+      setWhere: isNotNull(storeArticles.deletedAt),
+    })
 }
 
 /** The stores of the operator, their stock, and the bookings of the office. */
@@ -533,13 +602,119 @@ export class StoresController {
     })
   }
 
+  /**
+   * A store no longer kept (#391): marked, never removed, and readable at its
+   * bookings and the withdrawals at work orders. Only while it carries no
+   * article, as its list shows it: an article that was removed and has
+   * nothing there does not count.
+   */
   @Delete(':id')
   @RequiresPermission('store.write')
   remove(@CurrentIdentity() identity: Asking, @Param('id') id: string): Promise<void> {
     return this.database.forTenant(identity, async (tx) => {
       const held = await heldStore(tx, id)
+      const carried = (await stockOf(tx, held)).lines.length
+
+      if (carried > 0) {
+        throw new ConflictException(
+          `Das Lager führt noch ${String(carried)} Artikel. Ziehen Sie sie zuerst in ein anderes Lager um oder entfernen Sie sie; einen Artikel mit Bestand bringt eine Zählung auf null.`,
+        )
+      }
 
       await tx.update(stores).set({ deletedAt: new Date() }).where(eq(stores.id, held.id))
+    })
+  }
+
+  /**
+   * An article moves to another store (#391), for one entered in the wrong
+   * store: its stock goes along as a transfer, a booking out here and one in
+   * there, each naming the other store, and its line leaves this store. The
+   * other store keeps its own minimum where it carries the article already,
+   * and takes the one from here where not. Without stock nothing is booked.
+   */
+  @Post(':id/articles/:articleId/move')
+  @RequiresPermission('store.write')
+  move(
+    @CurrentIdentity() identity: Asking,
+    @Param('id') id: string,
+    @Param('articleId') articleId: string,
+    @Body() body: unknown,
+  ): Promise<{ readonly storeId: StoreId; readonly articleId: StockArticleId }> {
+    const values = fieldsOf(body, ['toStoreId', 'reason'], ['reason'])
+
+    refuse(stockMovementProblems({ reason: values.reason ?? null }))
+
+    return this.database.forTenant(identity, async (tx) => {
+      const store = await heldStore(tx, id)
+      const article = await heldArticle(tx, articleId)
+
+      if (values.toStoreId === store.id) {
+        throw new BadRequestException('Umgezogen wird in ein anderes Lager.')
+      }
+
+      const target = await heldStore(tx, String(values.toStoreId ?? ''))
+      const [line] = await tx
+        .select()
+        .from(storeArticles)
+        .where(
+          and(
+            eq(storeArticles.storeId, store.id),
+            eq(storeArticles.articleId, article.id),
+            isNull(storeArticles.deletedAt),
+          ),
+        )
+        .for('update')
+
+      if (line === undefined) {
+        throw new NotFoundException(notCarried)
+      }
+
+      const level = await levelOf(tx, store.id, article.id)
+
+      if (level < 0) {
+        throw new ConflictException(
+          'Der Bestand hier ist negativ. Erst eine Zählung, dann lässt sich der Artikel umziehen.',
+        )
+      }
+
+      const reason = (values.reason ?? null) as string | null
+
+      if (level > 0) {
+        const transfer = {
+          tenantId: identity.tenantId,
+          articleId: article.id,
+          quantityMilli: level,
+          reason,
+          bookedBy: identity.userId,
+        }
+
+        await tx.insert(stockMovements).values([
+          { ...transfer, storeId: store.id, kind: 'transfer_out', counterpartStoreId: target.id },
+          { ...transfer, storeId: target.id, kind: 'transfer_in', counterpartStoreId: store.id },
+        ])
+      }
+
+      const now = new Date()
+
+      await tx
+        .update(storeArticles)
+        .set({ deletedAt: now, updatedAt: now })
+        .where(eq(storeArticles.id, line.id))
+      await tx
+        .insert(storeArticles)
+        .values({
+          tenantId: identity.tenantId,
+          storeId: target.id,
+          articleId: article.id,
+          minimumMilli: line.minimumMilli,
+        })
+        .onConflictDoUpdate({
+          target: [storeArticles.tenantId, storeArticles.storeId, storeArticles.articleId],
+          set: { deletedAt: null, minimumMilli: line.minimumMilli, updatedAt: now },
+          setWhere: isNotNull(storeArticles.deletedAt),
+        })
+
+      return { storeId: target.id, articleId: article.id }
     })
   }
 
@@ -627,41 +802,49 @@ export class StoresController {
         .select({
           movement: stockMovements,
           supplier: suppliers.name,
+          counterpart: { id: counterpartStores.id, name: counterpartStores.name },
           material: workOrderMaterials.activityId,
           order: { id: activities.id, title: activities.title, number: workOrders.number },
         })
         .from(stockMovements)
         .leftJoin(suppliers, eq(suppliers.id, stockMovements.supplierId))
+        .leftJoin(counterpartStores, eq(counterpartStores.id, stockMovements.counterpartStoreId))
         .leftJoin(workOrderMaterials, eq(workOrderMaterials.id, stockMovements.materialId))
         .leftJoin(activities, eq(activities.id, workOrderMaterials.activityId))
         .leftJoin(workOrders, eq(workOrders.activityId, activities.id))
         .where(and(eq(stockMovements.storeId, store.id), eq(stockMovements.articleId, article.id)))
         .orderBy(asc(stockMovements.createdAt), asc(stockMovements.id))
       let level = 0
-      const lines: StockMovementLine[] = movements.map(({ movement, supplier, order }) => {
-        level = stockLevel([
-          { kind: 'count', quantityMilli: level, createdAt: new Date(0) },
-          { ...movement, kind: movement.kind as NewStockMovement['kind'] },
-        ])
+      const lines: StockMovementLine[] = movements.map(
+        ({ movement, supplier, counterpart, order }) => {
+          level = stockLevel([
+            { kind: 'count', quantityMilli: level, createdAt: new Date(0) },
+            { ...movement, kind: movement.kind as NewStockMovement['kind'] },
+          ])
 
-        return {
-          id: movement.id,
-          kind: movement.kind as StockMovementLine['kind'],
-          quantityMilli: movement.quantityMilli,
-          levelAfterMilli: level,
-          bookedOn: dayInGermany(movement.createdAt),
-          supplier,
-          reason: movement.reason,
-          workOrder:
-            movement.materialId === null
-              ? null
-              : {
-                  id: order?.id ?? null,
-                  number: order?.number ?? null,
-                  title: order?.title ?? null,
-                },
-        }
-      })
+          return {
+            id: movement.id,
+            kind: movement.kind as StockMovementLine['kind'],
+            quantityMilli: movement.quantityMilli,
+            levelAfterMilli: level,
+            bookedOn: dayInGermany(movement.createdAt),
+            supplier,
+            reason: movement.reason,
+            counterpartStore:
+              counterpart === null || counterpart.id === null
+                ? null
+                : { id: counterpart.id, name: counterpart.name },
+            workOrder:
+              movement.materialId === null
+                ? null
+                : {
+                    id: order?.id ?? null,
+                    number: order?.number ?? null,
+                    title: order?.title ?? null,
+                  },
+          }
+        },
+      )
       const minimumMilli = line?.minimumMilli ?? null
 
       return {
@@ -670,6 +853,7 @@ export class StoresController {
         levelMilli: level,
         minimumMilli,
         below: article.deletedAt === null && belowMinimum(level, minimumMilli),
+        carried: line !== undefined && line.deletedAt === null,
         movements: lines.reverse(),
       }
     })

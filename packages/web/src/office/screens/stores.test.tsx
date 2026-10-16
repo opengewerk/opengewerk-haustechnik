@@ -88,6 +88,7 @@ const answers = {
     levelMilli: 3000,
     minimumMilli: 10_000,
     below: true,
+    carried: true,
     movements: [
       {
         id: 'm-3',
@@ -97,6 +98,7 @@ const answers = {
         bookedOn: '2026-10-13',
         supplier: null,
         reason: null,
+        counterpartStore: null,
         workOrder: { id: 'ac-1', number: 'AU-2026-0031', title: 'Notleuchte Flur instand setzen' },
       },
       {
@@ -107,6 +109,7 @@ const answers = {
         bookedOn: '2026-10-01',
         supplier: null,
         reason: 'Inventur, ein Akku defekt ausgesondert',
+        counterpartStore: null,
         workOrder: null,
       },
       {
@@ -117,6 +120,7 @@ const answers = {
         bookedOn: '2026-09-22',
         supplier: 'Elektro-Großhandel Beispiel GmbH',
         reason: 'Lieferschein 4690-11',
+        counterpartStore: null,
         workOrder: null,
       },
     ],
@@ -173,6 +177,7 @@ describe('the stock of a store', () => {
     expect(screen.queryByRole('button', { name: 'Wareneingang' })).toBeNull()
     expect(screen.queryByRole('button', { name: 'Zählung' })).toBeNull()
     expect(screen.queryByRole('button', { name: 'Lager anlegen' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Lager entfernen' })).toBeNull()
   })
 
   it('narrows to what is below its minimum, the list to order from', async () => {
@@ -393,6 +398,140 @@ describe('an article', () => {
           body: { minimumMilli: 12_000 },
         },
       ])
+    })
+  })
+})
+
+describe('a store and an article that go (#391)', () => {
+  const carriesAnArticle =
+    'Das Lager führt noch 2 Artikel. Ziehen Sie sie zuerst in ein anderes Lager um oder entfernen Sie sie; einen Artikel mit Bestand bringt eine Zählung auf null.'
+
+  it('removes a store for whoever keeps the stores, and says instead why one that carries an article stays', async () => {
+    const written = signedInOffice('site_management', [nord], answers, (write: Written) =>
+      write.method === 'DELETE'
+        ? { status: 409, body: { message: carriesAnArticle } }
+        : { status: 200, body: {} },
+    )
+
+    await mountOffice('/lager', new TestServer(), [])
+    await untilTheRightsAreKnown()
+    await screen.findByRole('table', { name: stockTable })
+    await userEvent.click(screen.getByRole('button', { name: 'Lager entfernen' }))
+
+    const asked = await screen.findByRole('dialog', { name: 'Hauptlager Betriebshof entfernen?' })
+
+    await userEvent.click(within(asked).getByRole('button', { name: 'Entfernen' }))
+
+    expect(await within(asked).findByText(carriesAnArticle)).toBeTruthy()
+    expect(within(asked).getByRole('button', { name: 'Schließen' })).toBeTruthy()
+    expect(within(asked).queryByRole('button', { name: 'Entfernen' })).toBeNull()
+    expect(written).toEqual([{ method: 'DELETE', path: '/stores/s-main', body: undefined }])
+  })
+
+  it('moves an article to another store, saying what that store holds of it already', async () => {
+    const written = signedInOffice(
+      'site_management',
+      [nord],
+      {
+        ...answers,
+        '/stores/s-school/stock': {
+          storeId: 's-school',
+          name: 'Werkstatt Schulzentrum',
+          lines: [{ ...lines[0], levelMilli: 2000, minimumMilli: 4000, below: true }],
+          belowCount: 1,
+        },
+      },
+      () => ({ status: 201, body: { storeId: 's-school', articleId: 'r-akku' } }),
+    )
+
+    await mountOffice('/lager/s-main/artikel/r-akku', new TestServer(), [])
+    await untilTheRightsAreKnown()
+    await userEvent.click(await screen.findByRole('button', { name: 'In anderes Lager' }))
+
+    const asked = await screen.findByRole('dialog', { name: 'In ein anderes Lager umziehen' })
+
+    expect(
+      await within(asked).findByText(
+        'Der Bestand von 3 Stück geht als Umbuchung mit: ein Abgang hier, ein Zugang in Werkstatt Schulzentrum. Das Lager führt den Artikel schon mit 2 Stück; danach sind es dort 5 Stück, und sein Mindestbestand dort bleibt. Hier steht der Artikel danach nicht mehr.',
+      ),
+    ).toBeTruthy()
+
+    await userEvent.type(within(asked).getByLabelText('Bemerkung'), 'Im falschen Lager angelegt')
+    await userEvent.click(within(asked).getByRole('button', { name: 'Umziehen' }))
+
+    await waitFor(() => {
+      expect(written).toEqual([
+        {
+          method: 'POST',
+          path: '/stores/s-main/articles/r-akku/move',
+          body: { toStoreId: 's-school', reason: 'Im falschen Lager angelegt' },
+        },
+      ])
+    })
+  })
+
+  it('shows a transfer among the bookings with the other store, and no move for an article the store no longer carries', async () => {
+    const page = answers['/stores/s-main/articles/r-akku']
+
+    signedInOffice('site_management', [nord], {
+      ...answers,
+      '/stores/s-main/articles/r-akku': {
+        ...page,
+        levelMilli: 0,
+        below: false,
+        carried: false,
+        movements: [
+          {
+            id: 'm-4',
+            kind: 'transfer_out',
+            quantityMilli: 3000,
+            levelAfterMilli: 0,
+            bookedOn: '2026-10-16',
+            supplier: null,
+            reason: 'Im falschen Lager angelegt',
+            counterpartStore: { id: 's-school', name: 'Werkstatt Schulzentrum' },
+            workOrder: null,
+          },
+          ...page.movements,
+        ],
+      },
+    })
+
+    await mountOffice('/lager/s-main/artikel/r-akku', new TestServer(), [])
+    await untilTheRightsAreKnown()
+
+    const name = 'Buchungen mit Tag, Art, Menge, Bestand danach und Anlass'
+
+    await screen.findByRole('table', { name })
+    expect(rowsOf(name)[0]).toEqual([
+      '16.10.2026',
+      'Umbuchung',
+      '−3',
+      '0',
+      'nach Werkstatt Schulzentrum, Im falschen Lager angelegt',
+    ])
+    expect(screen.queryByRole('button', { name: 'In anderes Lager' })).toBeNull()
+  })
+
+  it('removes an article from its dialog, asked once more', async () => {
+    const { written, done } = mounted('site_management', '/lager/artikel')
+
+    await done
+    await untilTheRightsAreKnown()
+    await userEvent.click(
+      (await screen.findAllByRole('button', { name: 'Akku Notleuchte 3,6 V' }))[0] as HTMLElement,
+    )
+
+    const editing = await screen.findByRole('dialog', { name: 'Akku Notleuchte 3,6 V ändern' })
+
+    await userEvent.click(within(editing).getByRole('button', { name: 'Entfernen' }))
+
+    const asked = await screen.findByRole('dialog', { name: 'Akku Notleuchte 3,6 V entfernen?' })
+
+    await userEvent.click(within(asked).getByRole('button', { name: 'Entfernen' }))
+
+    await waitFor(() => {
+      expect(written).toEqual([{ method: 'DELETE', path: '/articles/r-akku', body: undefined }])
     })
   })
 })

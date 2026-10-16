@@ -33,6 +33,15 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   14 Tage vorher, gedacht ist er für den ganzen Monat. Bestehende Pläne zeigen ihre Rundgänge ohne
   weiteres ab dem ersten Tag ihrer Woche, ihres Monats oder ihres Jahres; die Migration
   `0063_round_plans_shows_from` bringt die beiden Spalten dafür.
+- Lager, Artikel und Lieferanten lassen sich im Büro entfernen, und ein Artikel zieht mit seinem
+  Bestand in ein anderes Lager um (#391, Abschnitt 4.12 des Konzepts). Ein Lager geht, solange es
+  keinen Artikel führt, ein Artikel, solange er nirgends Bestand hat; alle drei bleiben an ihren
+  Buchungen lesbar. Der Umzug bucht den Bestand als Umbuchung, einen Abgang hier und einen Zugang
+  dort, mit der neuen Art aus dem Fundament; führt das andere Lager den Artikel schon, kommt der
+  Bestand dazu. Warum: ein Lager ließ sich nicht entfernen, und ein Artikel im falschen Lager kam
+  dort nicht mehr heraus; die Routen zum Entfernen gab es, ohne Prüfung und ohne Knopf. Eine
+  entfernte Lagerzeile kommt mit der nächsten Buchung dort zurück. Die Migration
+  `0064_stock_transfer` bringt die Spalte für das andere Lager und die Prüfungen dazu.
 
 ## [0.1.5] - 2026-10-16
 

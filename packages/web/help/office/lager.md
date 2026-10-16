@@ -8,6 +8,8 @@ Ein Artikel ohne Strichcode des Herstellers bekommt mit „Etiketten drucken“ 
 
 Unter „Artikel“ stehen Nummer, Bezeichnung, die EAN des Herstellers, Einheit und Preis, unter „Lieferanten“ die Bezugsquellen. Ansehen kann das Lager jede Rolle, buchen und ändern, wer das Lager führt.
 
+Ein Artikel, der im falschen Lager angelegt wurde, zieht über „In anderes Lager“ auf seiner Seite um. Sein Bestand geht als Umbuchung mit: ein Abgang hier, ein Zugang im anderen Lager. Führt das andere Lager ihn schon, kommt der Bestand dazu, und sein Mindestbestand dort bleibt. „Lager entfernen“ geht, solange das Lager keinen Artikel mehr führt; einen Artikel entfernen Sie in seinem Dialog unter „Artikel“, sobald er nirgends mehr Bestand hat, und einen Lieferanten in seinem Dialog jederzeit. Was entfernt ist, bleibt an seinen Buchungen lesbar.
+
 ## Kurzanleitung
 
 1. Unter „Artikel“ die Artikel anlegen, unter „Lieferanten“ die Lieferanten.

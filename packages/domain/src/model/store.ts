@@ -73,6 +73,8 @@ export interface StockMovementLine {
   readonly bookedOn: IsoDate
   readonly supplier: string | null
   readonly reason: string | null
+  /** The other store of a transfer (#391): where it went, or where it came from. */
+  readonly counterpartStore: { readonly id: StoreId; readonly name: string } | null
   /**
    * The work order a withdrawal was taken for (#326), with its number and
    * title where the person asking sees it, and without them where not.
@@ -91,6 +93,8 @@ export interface StoreArticlePage {
   readonly levelMilli: number
   readonly minimumMilli: number | null
   readonly below: boolean
+  /** Whether the store carries the article: not once it moved to another store (#391). */
+  readonly carried: boolean
   readonly movements: readonly StockMovementLine[]
 }
 
