@@ -23,6 +23,17 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   steht nur im Änderungsprotokoll. Bestehende Betreiber bekommen die Rolle Melder und die beiden neuen Rechte mit
   der Migration `0062_fault_reports`.
 
+### Geändert
+
+- Ein Rundgang eines wöchentlichen, monatlichen oder jährlichen Plans steht vor Ort ab dem Tag, den
+  der Plan unter „Sichtbar ab“ nennt, vorgegeben ab Montag, ab dem 1. und ab dem 1. Januar, und lässt
+  sich von da an bis zur Unterschrift ausfüllen (#394, Abschnitt 4.5 des Konzepts). Er entsteht
+  rechtzeitig vor diesem Tag, also auch mehr als 14 Tage vor seinem Durchgang. Ein täglicher Plan
+  behält seinen Vorlauf in Tagen. Warum: ein monatlicher Rundgang zum Monatsende erschien höchstens
+  14 Tage vorher, gedacht ist er für den ganzen Monat. Bestehende Pläne zeigen ihre Rundgänge ohne
+  weiteres ab dem ersten Tag ihrer Woche, ihres Monats oder ihres Jahres; die Migration
+  `0063_round_plans_shows_from` bringt die beiden Spalten dafür.
+
 ## [0.1.5] - 2026-10-16
 
 Eine Korrekturfassung für den Pilotbetrieb. Die Datenschutzhinweise einer Instanz blieben leer,

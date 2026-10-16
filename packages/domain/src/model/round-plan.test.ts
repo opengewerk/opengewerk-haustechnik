@@ -8,9 +8,13 @@ import {
   type PlanCalendar,
   planProblems,
   passesBetween,
+  planShowsAhead,
+  type PlanShowing,
   planStateOn,
   rhythmText,
   roundClosable,
+  roundMadeBy,
+  roundShowsFrom,
   roundStateOf,
   type Weekday,
   weekdayOf,
@@ -333,7 +337,7 @@ describe('what is wrong with a plan', () => {
   const weekly = {
     rhythm: 'weekly',
     weekdays: [3],
-    leadDays: 1,
+    leadDays: 0,
     startsOn: '2026-10-07',
     endsOn: null,
   }
@@ -390,10 +394,13 @@ describe('what is wrong with a plan', () => {
   })
 
   it('keeps the lead within what is made ahead, and the last day after the first', () => {
-    expect(planProblems({ ...weekly, leadDays: 15 })).toEqual({
+    const daily = { ...weekly, rhythm: 'daily', weekdays: [1, 2, 3, 4, 5] }
+
+    expect(planProblems({ ...daily, leadDays: 14 })).toEqual({})
+    expect(planProblems({ ...daily, leadDays: 15 })).toEqual({
       leadDays: 'Der Vorlauf ist eine Zahl von 0 bis 14 Tagen.',
     })
-    expect(planProblems({ ...weekly, leadDays: 1.5 })).toEqual({
+    expect(planProblems({ ...daily, leadDays: 1.5 })).toEqual({
       leadDays: 'Der Vorlauf ist eine Zahl von 0 bis 14 Tagen.',
     })
     expect(planProblems({ ...weekly, startsOn: '' })).toEqual({ startsOn: 'Der erste Tag fehlt.' })
@@ -408,6 +415,127 @@ describe('what is wrong with a plan', () => {
 
   it('is not asked about a field that was not given', () => {
     expect(planProblems({ leadDays: 3 })).toEqual({})
+  })
+
+  it('gives a lead only to a daily plan, and every other the day its rounds show from (#394)', () => {
+    expect(planProblems({ ...weekly, leadDays: 2 })).toEqual({
+      leadDays:
+        'Nur ein täglicher Plan hat einen Vorlauf; die anderen zeigen ihren Rundgang ab „Sichtbar ab“.',
+    })
+    expect(planProblems({ ...weekly, showsFromDay: 1 })).toEqual({})
+    expect(planProblems({ ...weekly, showsFromDay: null })).toEqual({})
+    expect(planProblems({ ...weekly, showsFromDay: 8 })).toEqual({
+      showsFromDay: '„Sichtbar ab“ ist ein Wochentag.',
+    })
+    expect(planProblems({ ...weekly, showsFromMonth: 1 })).toEqual({
+      showsFromMonth: 'Nur ein jährlicher Plan nennt den Monat von „Sichtbar ab“.',
+    })
+
+    const monthly = { ...weekly, rhythm: 'monthly', weekdays: null, dayOfMonth: 31 }
+
+    expect(planProblems({ ...monthly, showsFromDay: 31 })).toEqual({})
+    expect(planProblems({ ...monthly, showsFromDay: 0 })).toEqual({
+      showsFromDay: '„Sichtbar ab“ ist ein Tag von 1 bis 31.',
+    })
+
+    const yearly = { ...monthly, rhythm: 'yearly', dayOfMonth: 15, month: 3 }
+
+    expect(planProblems({ ...yearly, showsFromDay: 29, showsFromMonth: 2 })).toEqual({})
+    expect(planProblems({ ...yearly, showsFromDay: 31, showsFromMonth: 4 })).toEqual({
+      showsFromDay: 'Den 31. April gibt es nicht.',
+    })
+    expect(planProblems({ ...yearly, showsFromMonth: 13 })).toEqual({
+      showsFromMonth: 'Der Monat von „Sichtbar ab“ ist eine Zahl von 1 bis 12.',
+    })
+    expect(planProblems({ ...weekly, rhythm: 'daily', weekdays: [1], showsFromDay: 1 })).toEqual({
+      showsFromDay: 'Ein täglicher Plan hat einen Vorlauf, kein „Sichtbar ab“.',
+    })
+  })
+})
+
+describe('from which day a round of a plan shows (#394)', () => {
+  const weekly: PlanShowing = {
+    rhythm: 'weekly',
+    leadDays: 0,
+    showsFromDay: null,
+    showsFromMonth: null,
+  }
+  const monthly: PlanShowing = { ...weekly, rhythm: 'monthly' }
+  const yearly: PlanShowing = { ...weekly, rhythm: 'yearly' }
+  const day = (value: string) => value as IsoDate
+
+  it('shows a weekly round from Monday, or from the day of the week the plan names', () => {
+    // Friday, 23 October 2026.
+    expect(roundShowsFrom(weekly, day('2026-10-23'))).toBe('2026-10-19')
+    expect(roundShowsFrom({ ...weekly, showsFromDay: 3 }, day('2026-10-23'))).toBe('2026-10-21')
+    // A Monday round shown from Friday shows from the Friday before.
+    expect(roundShowsFrom({ ...weekly, showsFromDay: 5 }, day('2026-10-19'))).toBe('2026-10-16')
+    expect(roundShowsFrom({ ...weekly, showsFromDay: 1 }, day('2026-10-19'))).toBe('2026-10-19')
+  })
+
+  it('shows a monthly round from the 1st, or from its day of the month, the last of a shorter one', () => {
+    expect(roundShowsFrom(monthly, day('2026-10-31'))).toBe('2026-10-01')
+    expect(roundShowsFrom(monthly, day('2027-02-28'))).toBe('2027-02-01')
+    expect(roundShowsFrom({ ...monthly, showsFromDay: 20 }, day('2026-10-31'))).toBe('2026-10-20')
+    // The 25th comes after the 5th: the round of 5 November shows from 25 October.
+    expect(roundShowsFrom({ ...monthly, showsFromDay: 25 }, day('2026-11-05'))).toBe('2026-10-25')
+    expect(roundShowsFrom({ ...monthly, showsFromDay: 25 }, day('2027-01-05'))).toBe('2026-12-25')
+    // The 31st of a month of thirty days is its 30th, for the pass and the day it shows from.
+    expect(roundShowsFrom({ ...monthly, showsFromDay: 31 }, day('2026-04-30'))).toBe('2026-04-30')
+    expect(roundShowsFrom({ ...monthly, showsFromDay: 31 }, day('2026-03-05'))).toBe('2026-02-28')
+  })
+
+  it('shows a yearly round from the 1st of January, or from its day of the year', () => {
+    expect(roundShowsFrom(yearly, day('2027-03-15'))).toBe('2027-01-01')
+    expect(
+      roundShowsFrom({ ...yearly, showsFromDay: 1, showsFromMonth: 3 }, day('2027-03-15')),
+    ).toBe('2027-03-01')
+    expect(
+      roundShowsFrom({ ...yearly, showsFromDay: 1, showsFromMonth: 10 }, day('2027-03-15')),
+    ).toBe('2026-10-01')
+    expect(
+      roundShowsFrom({ ...yearly, showsFromDay: 29, showsFromMonth: 2 }, day('2027-03-15')),
+    ).toBe('2027-02-28')
+  })
+
+  it('shows a daily round its lead before, and makes it by its pass as before', () => {
+    const daily: PlanShowing = { ...weekly, rhythm: 'daily', leadDays: 3 }
+
+    expect(roundShowsFrom(daily, day('2026-10-23'))).toBe('2026-10-20')
+    expect(roundMadeBy(daily, day('2026-10-23'))).toBe('2026-10-23')
+    expect(roundMadeBy(monthly, day('2026-10-31'))).toBe('2026-10-01')
+  })
+
+  it('never shows a round after its pass, nor further ahead than the plan looks', () => {
+    const plans = fc.oneof(
+      fc.record({
+        rhythm: fc.constant('weekly' as const),
+        leadDays: fc.constant(0),
+        showsFromDay: fc.option(fc.integer({ min: 1, max: 7 })),
+        showsFromMonth: fc.constant(null),
+      }),
+      fc.record({
+        rhythm: fc.constant('monthly' as const),
+        leadDays: fc.constant(0),
+        showsFromDay: fc.option(fc.integer({ min: 1, max: 31 })),
+        showsFromMonth: fc.constant(null),
+      }),
+      fc.record({
+        rhythm: fc.constant('yearly' as const),
+        leadDays: fc.constant(0),
+        showsFromDay: fc.option(fc.integer({ min: 1, max: 28 })),
+        showsFromMonth: fc.option(fc.integer({ min: 1, max: 12 })),
+      }),
+    )
+
+    fc.assert(
+      fc.property(plans, days, (plan, pass) => {
+        const from = roundShowsFrom(plan, pass)
+
+        expect(from <= pass).toBe(true)
+        expect(addDays(from, planShowsAhead(plan)) >= pass).toBe(true)
+      }),
+    )
   })
 })
 

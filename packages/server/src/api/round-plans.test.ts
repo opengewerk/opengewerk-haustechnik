@@ -1442,3 +1442,107 @@ describe('a plan for a building with an area of its own', () => {
     }
   })
 })
+
+describe('a round that shows from a day of its week, month or year (#394)', () => {
+  /** The day of the month of a day, as a number. */
+  const dateOf = (day: IsoDate) => Number(day.slice(8, 10))
+  /** The month of a day, counted from 1. */
+  const monthOf = (day: IsoDate) => Number(day.slice(5, 7))
+
+  it('makes the round of a monthly pass twenty days ahead today, when it shows from today', async () => {
+    const pass = plus(20)
+    const plan = await planned('u-site', {
+      rhythm: 'monthly',
+      weekdays: null,
+      dayOfMonth: dateOf(pass),
+      showsFromDay: dateOf(today),
+    })
+
+    expect(plan.status).toBe(201)
+    expect((await roundsOf(plan.body['id'])).map((round) => round.due_on)).toEqual([pass])
+
+    const { rows } = await admin.query<{ shows_from_day: number; lead_days: number }>(
+      'select shows_from_day, lead_days from round_plans where id = $1',
+      [plan.body['id']],
+    )
+
+    expect(rows).toEqual([{ shows_from_day: dateOf(today), lead_days: 0 }])
+  })
+
+  it('makes the round of a yearly pass a hundred days ahead, and its deadline falls due when the next one shows', async () => {
+    const pass = plus(100)
+    const plan = await planned('u-site', {
+      rhythm: 'yearly',
+      weekdays: null,
+      dayOfMonth: dateOf(pass),
+      month: monthOf(pass),
+      showsFromDay: dateOf(today),
+      showsFromMonth: monthOf(today),
+    })
+
+    expect(plan.status).toBe(201)
+    expect((await roundsOf(plan.body['id'])).map((round) => round.due_on)).toEqual([pass])
+
+    await engineRun('01:00')
+
+    const { rows } = await admin.query<{ due_on: string; anchor_on: string }>(
+      `select to_char(due_on, 'YYYY-MM-DD') as due_on, to_char(anchor_on, 'YYYY-MM-DD') as anchor_on
+         from deadlines where round_plan_id = $1 and kind = 'round.due'`,
+      [plan.body['id']],
+    )
+
+    // The next pass is a year after this one, and its round shows about a hundred days before it.
+    expect(rows).toHaveLength(1)
+    expect(rows[0]?.anchor_on.slice(5)).toBe(pass.slice(5))
+    expect(rows[0]?.anchor_on.slice(0, 4)).toBe(String(Number(pass.slice(0, 4)) + 1))
+    expect((rows[0]?.due_on ?? '') < (rows[0]?.anchor_on ?? '')).toBe(true)
+    expect(rows[0]?.due_on).toBe(
+      `${String(Number(today.slice(0, 4)) + 1)}-${today.slice(5).replace('02-29', '02-28')}`,
+    )
+  })
+
+  it('drops a lead a weekly plan kept from before at its next change, and takes none for it', async () => {
+    const plan = await planInserted({ rhythm: 'weekly', weekdays: `{${String(weekdayOf(today))}}` })
+
+    await admin.query('update round_plans set lead_days = 3 where id = $1', [plan])
+
+    const rested = await answered(
+      http()
+        .patch(`/round-plans/${plan}`)
+        .set(testIdentityHeader, by('u-site'))
+        .send({ resting: true }),
+    )
+
+    expect(rested.status).toBe(200)
+
+    const { rows } = await admin.query<{ lead_days: number }>(
+      'select lead_days from round_plans where id = $1',
+      [plan],
+    )
+
+    expect(rows).toEqual([{ lead_days: 0 }])
+    expect(
+      await answered(
+        http()
+          .patch(`/round-plans/${plan}`)
+          .set(testIdentityHeader, by('u-site'))
+          .send({ leadDays: 2 }),
+      ),
+    ).toMatchObject({
+      status: 400,
+      message:
+        'Nur ein täglicher Plan hat einen Vorlauf; die anderen zeigen ihren Rundgang ab „Sichtbar ab“.',
+    })
+  })
+
+  it('is held by the database to a day its rhythm can name', async () => {
+    const plan = await planInserted({ rhythm: 'weekly', weekdays: '{3}' })
+
+    await expect(
+      admin.query('update round_plans set shows_from_day = 8 where id = $1', [plan]),
+    ).rejects.toThrow(/round_plans_shows_from/)
+    await expect(
+      admin.query('update round_plans set shows_from_month = 1 where id = $1', [plan]),
+    ).rejects.toThrow(/round_plans_shows_from/)
+  })
+})

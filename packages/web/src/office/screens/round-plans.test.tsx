@@ -330,6 +330,8 @@ describe('a new plan', () => {
         dayOfMonth: null,
         month: null,
         leadDays: 1,
+        showsFromDay: null,
+        showsFromMonth: null,
         startsOn: on,
         endsOn: null,
         performerUserId: 'u-lena',
@@ -361,9 +363,62 @@ describe('a new plan', () => {
       weekdays: null,
       dayOfMonth: 29,
       month: 2,
+      leadDays: 0,
+      showsFromDay: 1,
+      showsFromMonth: 1,
       performerUserId: null,
       propertyId: station.id,
       buildingId: null,
+    })
+  })
+
+  it('sends the day a round of a monthly plan shows from, and no lead (#394)', async () => {
+    answerToWrite = () => ({ status: 201, body: { id: 'plan-new' } })
+    await mountOffice('/rundgaenge/plaene/neu', server, everything)
+    await screen.findByRole('button', { name: 'Plan anlegen' })
+
+    choose('Vorlage', template.id)
+    choose('Ort', `p:${station.id}`)
+    fireEvent.click(screen.getByRole('radio', { name: 'monatlich' }))
+    expect(screen.queryByLabelText('Vorlauf')).toBeNull()
+    type('Tag', '31')
+    type('Sichtbar ab Tag', '20')
+    fireEvent.click(screen.getByRole('radio', { name: 'Alle im Bereich' }))
+    press('Plan anlegen')
+
+    await waitFor(() => {
+      expect(written).toHaveLength(1)
+    })
+    expect(written[0]?.body).toMatchObject({
+      rhythm: 'monthly',
+      dayOfMonth: 31,
+      leadDays: 0,
+      showsFromDay: 20,
+      showsFromMonth: null,
+    })
+  })
+
+  it('sends the day of the week a round of a weekly plan shows from (#394)', async () => {
+    answerToWrite = () => ({ status: 201, body: { id: 'plan-new' } })
+    await mountOffice('/rundgaenge/plaene/neu', server, everything)
+    await screen.findByRole('button', { name: 'Plan anlegen' })
+
+    choose('Vorlage', template.id)
+    choose('Ort', `p:${station.id}`)
+    fireEvent.click(screen.getByRole('radio', { name: 'wöchentlich' }))
+    choose('Sichtbar ab', '3')
+    fireEvent.click(screen.getByRole('radio', { name: 'Alle im Bereich' }))
+    press('Plan anlegen')
+
+    await waitFor(() => {
+      expect(written).toHaveLength(1)
+    })
+    expect(written[0]?.body).toMatchObject({
+      rhythm: 'weekly',
+      dayOfMonth: null,
+      leadDays: 0,
+      showsFromDay: 3,
+      showsFromMonth: null,
     })
   })
 

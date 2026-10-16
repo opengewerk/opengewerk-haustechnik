@@ -64,6 +64,8 @@ export const roundPlans = pgTable(
     dayOfMonth: smallint('day_of_month'),
     month: smallint('month'),
     leadDays: smallint('lead_days').notNull().default(0),
+    showsFromDay: smallint('shows_from_day'),
+    showsFromMonth: smallint('shows_from_month'),
     startsOn: date('starts_on', { mode: 'string' }).notNull(),
     endsOn: date('ends_on', { mode: 'string' }),
     resting: boolean('resting').notNull().default(false),
@@ -125,6 +127,18 @@ export const roundPlans = pgTable(
     check(
       'round_plans_lead',
       sql`${table.leadDays} between 0 and ${sql.raw(String(planLimits.leadDays))}`,
+    ),
+    // From which day a round shows (#394): a day of the week for a weekly
+    // plan, of the month for a monthly or a yearly one, and the month only for
+    // a yearly one; none at all for a daily plan. Empty is the first day.
+    check(
+      'round_plans_shows_from',
+      sql`coalesce(case ${table.rhythm}
+        when 'daily' then ${table.showsFromDay} is null and ${table.showsFromMonth} is null
+        when 'weekly' then (${table.showsFromDay} is null or ${table.showsFromDay} between 1 and 7) and ${table.showsFromMonth} is null
+        when 'monthly' then (${table.showsFromDay} is null or ${table.showsFromDay} between 1 and 31) and ${table.showsFromMonth} is null
+        else (${table.showsFromMonth} is null or ${table.showsFromMonth} between 1 and 12) and (${table.showsFromDay} is null or ${table.showsFromDay} between 1 and (case when ${table.showsFromMonth} = 2 then 29 when ${table.showsFromMonth} in (4, 6, 9, 11) then 30 else 31 end))
+      end, false)`,
     ),
     check(
       'round_plans_in_order',

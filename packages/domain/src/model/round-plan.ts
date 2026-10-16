@@ -97,8 +97,21 @@ export interface RoundPlan extends Synced {
   readonly dayOfMonth: number | null
   /** The month of a yearly plan, counted from 1 for January. */
   readonly month: number | null
-  /** How many days before its pass a round stands on site under "Start". */
+  /**
+   * How many days before its pass a round of a daily plan stands on site
+   * under "Start". The other rhythms show it from a day of its week, month or
+   * year (`showsFromDay`, #394); for them it is 0.
+   */
   readonly leadDays: number
+  /**
+   * From which day a round of a weekly, monthly or yearly plan stands on site
+   * and can be filled in, until it is signed (#394): a day of the week for a
+   * weekly plan, a day of the month for a monthly or a yearly one. None is the
+   * first: Monday, the 1st, the 1st of January. None for a daily plan.
+   */
+  readonly showsFromDay: number | null
+  /** The month of that day for a yearly plan, counted from 1; none is January. */
+  readonly showsFromMonth: number | null
   /** The first day a pass may fall on. */
   readonly startsOn: IsoDate
   /** The last day a pass may fall on; none while the plan runs on. */
@@ -167,6 +180,75 @@ export function weekNumberOf(day: IsoDate): number {
 /** The last day of the month a day lies in, as a number. */
 function lastDayOfMonth(year: number, month: number): number {
   return new Date(Date.UTC(year, month, 0)).getUTCDate()
+}
+
+/** A day written in ISO 8601, with a day of the month a shorter month lacks taken as its last. */
+function dayIn(year: number, month: number, day: number): IsoDate {
+  const date = Math.min(day, lastDayOfMonth(year, month))
+
+  return `${String(year).padStart(4, '0')}-${String(month).padStart(2, '0')}-${String(date).padStart(2, '0')}` as IsoDate
+}
+
+/** What decides from which day a round of a plan shows. */
+export type PlanShowing = Pick<RoundPlan, 'rhythm' | 'leadDays' | 'showsFromDay' | 'showsFromMonth'>
+
+/**
+ * The day from which a round of a plan stands on site under "Start" and can
+ * be filled in (#394, section 4.5): the last day on or before its pass that
+ * is the day the plan names, in its week, month or year, or the one before
+ * when that day comes after the pass. A day a shorter month lacks is its last,
+ * as for the pass itself. A daily plan shows its round its lead before.
+ */
+export function roundShowsFrom(plan: PlanShowing, pass: IsoDate): IsoDate {
+  const year = Number(pass.slice(0, 4))
+  const month = Number(pass.slice(5, 7))
+  const date = Number(pass.slice(8, 10))
+  const day = plan.showsFromDay ?? 1
+
+  switch (plan.rhythm) {
+    case 'daily':
+      return addDays(pass, -plan.leadDays)
+    case 'weekly':
+      return addDays(pass, -((weekdayOf(pass) - day + 7) % 7))
+    case 'monthly': {
+      if (Math.min(day, lastDayOfMonth(year, month)) <= date) {
+        return dayIn(year, month, day)
+      }
+
+      return month === 1 ? dayIn(year - 1, 12, day) : dayIn(year, month - 1, day)
+    }
+    case 'yearly': {
+      const inYear = dayIn(year, plan.showsFromMonth ?? 1, day)
+
+      return inYear <= pass ? inYear : dayIn(year - 1, plan.showsFromMonth ?? 1, day)
+    }
+  }
+}
+
+/**
+ * The most days a round of a plan can show before its pass: as far ahead
+ * the rounds are looked for that have to stand already (`roundMadeBy`).
+ */
+export function planShowsAhead(plan: PlanShowing): number {
+  switch (plan.rhythm) {
+    case 'daily':
+      return plan.leadDays
+    case 'weekly':
+      return 6
+    case 'monthly':
+      return 31
+    case 'yearly':
+      return 366
+  }
+}
+
+/**
+ * The day by which the round of a pass has to be made: the day it shows from
+ * for a weekly, monthly or yearly plan, which the rounds are made the lead of
+ * `round.due` ahead of; the pass itself for a daily plan, as before #394.
+ */
+export function roundMadeBy(plan: PlanShowing, pass: IsoDate): IsoDate {
+  return plan.rhythm === 'daily' ? pass : roundShowsFrom(plan, pass)
 }
 
 /**
@@ -393,6 +475,36 @@ export function planProblems(plan: Readonly<Record<string, unknown>>): Readonly<
     } else if (given(month)) {
       problems['month'] = 'Nur ein jährlicher Plan nennt einen Monat.'
     }
+
+    const showsFromDay = plan['showsFromDay']
+    const showsFromMonth = plan['showsFromMonth']
+
+    if (rhythm === 'daily') {
+      if (given(showsFromDay) || given(showsFromMonth)) {
+        problems['showsFromDay'] = 'Ein täglicher Plan hat einen Vorlauf, kein „Sichtbar ab“.'
+      }
+    } else if (rhythm === 'weekly') {
+      if (given(showsFromDay) && !wholeFromTo(showsFromDay, 1, 7)) {
+        problems['showsFromDay'] = '„Sichtbar ab“ ist ein Wochentag.'
+      }
+    } else if (given(showsFromDay) && !wholeFromTo(showsFromDay, 1, 31)) {
+      problems['showsFromDay'] = '„Sichtbar ab“ ist ein Tag von 1 bis 31.'
+    }
+
+    if (rhythm === 'yearly') {
+      if (given(showsFromMonth) && !wholeFromTo(showsFromMonth, 1, 12)) {
+        problems['showsFromMonth'] = 'Der Monat von „Sichtbar ab“ ist eine Zahl von 1 bis 12.'
+      } else if (
+        problems['showsFromDay'] === undefined &&
+        given(showsFromDay) &&
+        (showsFromDay as number) > lastDayOfMonth(2024, (showsFromMonth as number | null) ?? 1)
+      ) {
+        problems['showsFromDay'] =
+          `Den ${String(showsFromDay)}. ${monthLabel[((showsFromMonth as number | null) ?? 1) - 1] ?? ''} gibt es nicht.`
+      }
+    } else if (rhythm !== 'daily' && given(showsFromMonth)) {
+      problems['showsFromMonth'] = 'Nur ein jährlicher Plan nennt den Monat von „Sichtbar ab“.'
+    }
   }
 
   const lead = plan['leadDays']
@@ -400,6 +512,15 @@ export function planProblems(plan: Readonly<Record<string, unknown>>): Readonly<
   if (lead !== undefined && !wholeFromTo(lead, 0, planLimits.leadDays)) {
     problems['leadDays'] =
       `Der Vorlauf ist eine Zahl von 0 bis ${String(planLimits.leadDays)} Tagen.`
+  } else if (
+    typeof rhythm === 'string' &&
+    rhythm !== 'daily' &&
+    problems['rhythm'] === undefined &&
+    lead !== undefined &&
+    lead !== 0
+  ) {
+    problems['leadDays'] =
+      'Nur ein täglicher Plan hat einen Vorlauf; die anderen zeigen ihren Rundgang ab „Sichtbar ab“.'
   }
 
   const startsOn = plan['startsOn']

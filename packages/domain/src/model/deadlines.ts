@@ -102,7 +102,7 @@ export const roundDue: ApplicationDeadlineKind = {
   key: 'round.due',
   title: 'Rundgang nach Plan',
   about:
-    'Folgt aus dem Plan eines Rundgangs: der nächste Durchgang, für den noch kein Rundgang entstanden ist. Mit dem Vorlauf entstehen die Rundgänge, jeder Durchgang einmal.',
+    'Folgt aus dem Plan eines Rundgangs: der nächste Durchgang, für den noch kein Rundgang entstanden ist, fällig an dem Tag, ab dem sein Rundgang vor Ort steht. Mit dem Vorlauf entstehen die Rundgänge, jeder Durchgang einmal.',
   source: 'round_plan',
   intervalDays: null,
   intervalMonths: null,

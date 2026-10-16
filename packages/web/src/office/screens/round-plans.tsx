@@ -106,6 +106,12 @@ export const planWords = {
   holiday: (name: string) => `${name}, Feiertag`,
   dayHint: 'In einem kürzeren Monat am letzten Tag.',
   leadHint: `So viele Tage vorher steht der Rundgang vor Ort unter „Start“, höchstens ${String(planLimits.leadDays)}.`,
+  showsFromHint:
+    'Ab diesem Tag steht der Rundgang vor Ort unter „Start“ und lässt sich ausfüllen, bis er unterschrieben ist.',
+  showsFromBefore: {
+    monthly: 'Liegt er nach dem Tag des Rundgangs, gilt er im Monat davor.',
+    yearly: 'Liegt er nach dem Tag des Rundgangs, gilt er im Jahr davor.',
+  },
   endsHint: 'Leer: Der Plan läuft weiter.',
   personHint:
     'Zur Wahl steht, wer Vorgänge ausführt und den Bereich sieht. Einzelne Rundgänge teilen Sie unter „Rundgänge“ anders zu.',
@@ -463,6 +469,11 @@ interface PlanDraft {
   readonly dayOfMonth: string
   readonly month: string
   readonly leadDays: string
+  /** The day of the week a round of a weekly plan shows from (#394). */
+  readonly showsFromWeekday: string
+  /** The day of the month or the year a round of a monthly or yearly plan shows from. */
+  readonly showsFromDay: string
+  readonly showsFromMonth: string
   readonly startsOn: string
   readonly endsOn: string
   readonly everybody: boolean
@@ -482,6 +493,9 @@ function draftOf(plan: RecordState | null, on: string): PlanDraft {
       dayOfMonth: on.slice(8, 10).replace(/^0/, ''),
       month: on.slice(5, 7).replace(/^0/, ''),
       leadDays: '0',
+      showsFromWeekday: '1',
+      showsFromDay: '1',
+      showsFromMonth: '1',
       startsOn: on,
       endsOn: '',
       everybody: false,
@@ -502,6 +516,16 @@ function draftOf(plan: RecordState | null, on: string): PlanDraft {
     dayOfMonth: calendar.dayOfMonth === null ? '1' : String(calendar.dayOfMonth),
     month: calendar.month === null ? '1' : String(calendar.month),
     leadDays: String(count(plan, 'leadDays')),
+    showsFromWeekday:
+      calendar.rhythm === 'weekly' && typeof plan['showsFromDay'] === 'number'
+        ? String(plan['showsFromDay'])
+        : '1',
+    showsFromDay:
+      calendar.rhythm !== 'weekly' && typeof plan['showsFromDay'] === 'number'
+        ? String(plan['showsFromDay'])
+        : '1',
+    showsFromMonth:
+      typeof plan['showsFromMonth'] === 'number' ? String(plan['showsFromMonth']) : '1',
     startsOn: calendar.startsOn,
     endsOn: calendar.endsOn ?? '',
     everybody: typeof plan['performerUserId'] !== 'string',
@@ -528,7 +552,15 @@ function calendarValues(draft: PlanDraft): Record<string, unknown> {
     dayOfMonth:
       draft.rhythm === 'monthly' || draft.rhythm === 'yearly' ? whole(draft.dayOfMonth) : null,
     month: draft.rhythm === 'yearly' ? whole(draft.month) : null,
-    leadDays: whole(draft.leadDays),
+    // Only a daily plan has a lead; the others name the day a round shows from (#394).
+    leadDays: draft.rhythm === 'daily' ? whole(draft.leadDays) : 0,
+    showsFromDay:
+      draft.rhythm === 'daily'
+        ? null
+        : draft.rhythm === 'weekly'
+          ? Number(draft.showsFromWeekday)
+          : whole(draft.showsFromDay),
+    showsFromMonth: draft.rhythm === 'yearly' ? whole(draft.showsFromMonth) : null,
     startsOn: draft.startsOn,
     endsOn: draft.endsOn === '' ? null : draft.endsOn,
   }
@@ -1029,18 +1061,33 @@ function PlanForm({
                 </div>
               ) : null}
               {draft.rhythm === 'weekly' ? (
-                <SelectField
-                  label="Wochentag"
-                  options={weekdays.map((day) => ({
-                    value: String(day),
-                    label: weekdayLabel[day],
-                  }))}
-                  value={draft.weekday}
-                  {...problem('weekdays')}
-                  onChange={(weekday) => {
-                    set({ weekday })
-                  }}
-                />
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <SelectField
+                    label="Wochentag"
+                    options={weekdays.map((day) => ({
+                      value: String(day),
+                      label: weekdayLabel[day],
+                    }))}
+                    value={draft.weekday}
+                    {...problem('weekdays')}
+                    onChange={(weekday) => {
+                      set({ weekday })
+                    }}
+                  />
+                  <SelectField
+                    label="Sichtbar ab"
+                    options={weekdays.map((day) => ({
+                      value: String(day),
+                      label: weekdayLabel[day],
+                    }))}
+                    value={draft.showsFromWeekday}
+                    hint={planWords.showsFromHint}
+                    {...problem('showsFromDay')}
+                    onChange={(showsFromWeekday) => {
+                      set({ showsFromWeekday })
+                    }}
+                  />
+                </div>
               ) : null}
               {draft.rhythm === 'monthly' || draft.rhythm === 'yearly' ? (
                 <div className="grid gap-3 sm:grid-cols-[140px_minmax(0,1fr)]">
@@ -1068,7 +1115,50 @@ function PlanForm({
                         set({ month })
                       }}
                     />
-                  ) : null}
+                  ) : (
+                    <Field
+                      label="Sichtbar ab Tag"
+                      inputMode="numeric"
+                      numeric
+                      value={draft.showsFromDay}
+                      hint={`${planWords.showsFromHint} ${planWords.showsFromBefore.monthly}`}
+                      {...problem('showsFromDay')}
+                      onChange={(event) => {
+                        set({ showsFromDay: event.target.value })
+                      }}
+                    />
+                  )}
+                </div>
+              ) : null}
+              {draft.rhythm === 'yearly' ? (
+                <div className="flex flex-col gap-1.5">
+                  <div className="grid gap-3 sm:grid-cols-[140px_minmax(0,1fr)]">
+                    <Field
+                      label="Sichtbar ab Tag"
+                      inputMode="numeric"
+                      numeric
+                      value={draft.showsFromDay}
+                      {...problem('showsFromDay')}
+                      onChange={(event) => {
+                        set({ showsFromDay: event.target.value })
+                      }}
+                    />
+                    <SelectField
+                      label="Sichtbar ab Monat"
+                      options={monthLabel.map((label, index) => ({
+                        value: String(index + 1),
+                        label,
+                      }))}
+                      value={draft.showsFromMonth}
+                      {...problem('showsFromMonth')}
+                      onChange={(showsFromMonth) => {
+                        set({ showsFromMonth })
+                      }}
+                    />
+                  </div>
+                  <p className="text-[12px] text-ink-faint">
+                    {`${planWords.showsFromHint} ${planWords.showsFromBefore.yearly}`}
+                  </p>
                 </div>
               ) : null}
               {holidayState === null ? null : (
@@ -1090,19 +1180,23 @@ function PlanForm({
                   </span>
                 </label>
               )}
-              <div className="grid gap-3 sm:grid-cols-3">
-                <Field
-                  label="Vorlauf"
-                  inputMode="numeric"
-                  numeric
-                  unit="Tage"
-                  value={draft.leadDays}
-                  hint={planWords.leadHint}
-                  {...problem('leadDays')}
-                  onChange={(event) => {
-                    set({ leadDays: event.target.value })
-                  }}
-                />
+              <div
+                className={`grid gap-3 ${draft.rhythm === 'daily' ? 'sm:grid-cols-3' : 'sm:grid-cols-2'}`}
+              >
+                {draft.rhythm === 'daily' ? (
+                  <Field
+                    label="Vorlauf"
+                    inputMode="numeric"
+                    numeric
+                    unit="Tage"
+                    value={draft.leadDays}
+                    hint={planWords.leadHint}
+                    {...problem('leadDays')}
+                    onChange={(event) => {
+                      set({ leadDays: event.target.value })
+                    }}
+                  />
+                ) : null}
                 <Field
                   label="Ab"
                   type="date"

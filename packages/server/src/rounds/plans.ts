@@ -11,6 +11,8 @@ import {
   type IsoDate,
   leadOf,
   passesBetween,
+  planShowsAhead,
+  roundMadeBy,
   passSearchDays,
   type PlanClosure,
   roundDue,
@@ -78,10 +80,14 @@ async function dutiesOf(
 }
 
 /**
- * The rounds of a plan for its passes from a day to a day (#113, section 4.5
- * of the concept), each pass once: the deadline engine when the lead of the
- * next pass begins, and the routes of the plan when it is made, changed or
- * runs again, so that the office sees the rounds of the coming days at once.
+ * The rounds of a plan for its passes from a day on whose round has to be
+ * made by a day (#113, section 4.5 of the concept), each pass once: the
+ * deadline engine when the lead of the next pass begins, and the routes of
+ * the plan when it is made, changed or runs again, so that the office sees
+ * the rounds of the coming days at once. A round of a daily plan has to be
+ * made by its pass, one of a weekly, monthly or yearly plan by the day it
+ * shows from (`roundMadeBy`, #394): the round of the last day of a month is
+ * made in time for the 1st.
  *
  * A round takes the newest version of the template on the day it is made and
  * keeps it; whether it is countersigned, that version says. It is due on its
@@ -108,8 +114,11 @@ export async function fillRounds(
     return 0
   }
 
-  const closures = await daysOffOf(tx, plan, rules, from, until)
-  const passes = passesBetween(plan, from, until, closures)
+  const furthest = addDays(until, planShowsAhead(plan))
+  const closures = await daysOffOf(tx, plan, rules, from, furthest)
+  const passes = passesBetween(plan, from, furthest, closures).filter(
+    (pass) => roundMadeBy(plan, pass) <= until,
+  )
 
   if (passes.length === 0) {
     return 0
@@ -131,7 +140,7 @@ export async function fillRounds(
             eq(activities.roundPlanId, plan.id),
             isNull(activities.deletedAt),
             gte(activities.dueOn, from),
-            lte(activities.dueOn, until),
+            lte(activities.dueOn, furthest),
           ),
         )
     ).map((row) => row.dueOn),

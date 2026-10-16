@@ -109,10 +109,9 @@ export async function giveSamplePlans(
           templateId: kept.id,
           rhythm: 'weekly',
           weekdays: [3],
-          leadDays: 1,
           performerUserId: 'preview-yilmaz',
         },
-        { ...at(third), templateId: walked.id, rhythm: 'monthly', dayOfMonth: 5, leadDays: 3 },
+        { ...at(third), templateId: walked.id, rhythm: 'monthly', dayOfMonth: 31 },
         { ...at(first), templateId: kept.id, rhythm: 'weekly', weekdays: [4], resting: true },
         {
           ...at(third),
