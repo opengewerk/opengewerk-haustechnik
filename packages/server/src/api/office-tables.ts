@@ -27,6 +27,7 @@ import {
   documentTableRow,
   type DutyEntry,
   type DutyProposals,
+  type EvidenceRegisterBlock,
   evidenceRegisterBlocks,
   evidenceRegisterColumns,
   type EvidenceRegisterEntry,
@@ -559,25 +560,36 @@ export async function dutyTable(
 }
 
 /**
- * The register of evidence as a table (#338): a row per duty, its asset and
- * place named as the register of duties names them for whoever reads them.
+ * How the register of evidence names the asset and the place of a block, as
+ * the register of duties names them for whoever reads them (#338).
  */
+export async function evidenceRegisterNames(
+  tx: TenantTransaction,
+  identity: Asking,
+): Promise<(block: EvidenceRegisterBlock) => { readonly asset: string; readonly place: string }> {
+  const names = await placeNamesFor(tx, identity)
+  const assetNames = await assetLookupFor(tx, identity)
+
+  return (block) => {
+    const where = targetWhere(block.target, names, assetNames)
+
+    return { asset: where.name, place: where.sub }
+  }
+}
+
+/** The register of evidence as a table (#338): a row per duty. */
 export async function evidenceRegisterTable(
   tx: TenantTransaction,
   identity: Asking,
   entries: readonly EvidenceRegisterEntry[],
 ): Promise<OutgoingTable> {
-  const names = await placeNamesFor(tx, identity)
-  const assetNames = await assetLookupFor(tx, identity)
-
   return {
     name: evidenceRegisterWords.title,
     columns: evidenceRegisterColumns,
-    rows: evidenceRegisterRows(evidenceRegisterBlocks(entries), (block) => {
-      const where = targetWhere(block.target, names, assetNames)
-
-      return { asset: where.name, place: where.sub }
-    }),
+    rows: evidenceRegisterRows(
+      evidenceRegisterBlocks(entries),
+      await evidenceRegisterNames(tx, identity),
+    ),
   }
 }
 

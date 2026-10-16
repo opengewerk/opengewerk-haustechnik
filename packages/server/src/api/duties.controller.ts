@@ -12,6 +12,7 @@ import {
   Patch,
   Post,
   Query,
+  Res,
   StreamableFile,
 } from '@nestjs/common'
 import {
@@ -52,6 +53,7 @@ import {
   type DutyUpdates,
   dutyTaskLabel,
   dutyTasks,
+  evidenceRegisterBlocks,
   type EvidenceRegisterCount,
   evidenceRegisterCount,
   type FederalState,
@@ -111,7 +113,17 @@ import { dutyProposalFilter, dutyProposals } from './duty-proposals.js'
 import { dutyReading, dutyRegister, dutyRegisterQuestion } from './duty-register.js'
 import { decideUpdates, dutyUpdates, updatePlaceOf } from './duty-updates.js'
 import { evidenceRegisterEntries, evidenceRegisterQuestion } from './evidence-register.js'
-import { dutyTable, evidenceRegisterTable, proposalTable, wholeList } from './office-tables.js'
+import {
+  dutyTable,
+  evidenceRegisterNames,
+  evidenceRegisterTable,
+  placeNamesFor,
+  proposalTable,
+  wholeList,
+} from './office-tables.js'
+import { keeperOf } from '../labels/faces.js'
+import { evidenceRegisterPrintJob } from '../prints/evidence-register-page.js'
+import { pdf, Printer } from './prints.controller.js'
 import { said } from './register-question.js'
 import { type Asking, fieldsOf, placeOf, refuse } from './places.js'
 
@@ -750,6 +762,7 @@ export class DutiesController {
   constructor(
     private readonly database: Database,
     @Inject(CATALOGUE) private readonly catalogue: Catalogue,
+    private readonly printer: Printer,
   ) {}
 
   /** The duties the person asking sees, of one asset, room, building or property where one is named. */
@@ -1001,6 +1014,53 @@ export class DutiesController {
         await evidenceRegisterEntries(tx, this.catalogue, dayInGermany(), question),
       ),
     )
+  }
+
+  /**
+   * The register of evidence as a PDF on A4 across (#338): a block per
+   * asset, a line per duty with its last evidence, for the day it is asked
+   * for. Made now and not kept, since it says how things stand today.
+   */
+  @Get('evidence-register/pdf')
+  @RequiresPermission('evidence.read')
+  async evidenceRegisterPdf(
+    @CurrentIdentity() identity: Asking,
+    @Query() query: Record<string, unknown>,
+    @Res({ passthrough: true }) response: { setHeader(name: string, value: string): void },
+  ): Promise<StreamableFile> {
+    const question = evidenceRegisterQuestion(query)
+    const today = dayInGermany()
+    const job = await this.database.forTenant(identity, async (tx) => {
+      const entries = await evidenceRegisterEntries(tx, this.catalogue, today, question)
+      const named = await evidenceRegisterNames(tx, identity)
+      const names = await placeNamesFor(tx, identity)
+      const kinds = question.assetKinds.map(
+        (kind) => this.catalogue.assetKind(kind, today)?.definition.label ?? kind,
+      )
+      const choice = [
+        question.place.propertyId === undefined
+          ? 'Alle Liegenschaften'
+          : (names?.property(question.place.propertyId) ?? 'Liegenschaft'),
+        question.place.buildingId === undefined
+          ? 'alle Gebäude'
+          : (names?.building(question.place.buildingId) ?? 'Gebäude'),
+        kinds.length === 0 ? 'alle Anlagenarten' : `Anlagenarten ${kinds.join(', ')}`,
+        question.ended ? 'mit beendeten Pflichten' : 'ohne beendete Pflichten',
+      ].join(', ')
+
+      return evidenceRegisterPrintJob(
+        {
+          today,
+          operator: await keeperOf(tx),
+          choice: `${choice}.`,
+          count: evidenceRegisterCount(entries),
+        },
+        evidenceRegisterBlocks(entries),
+        named,
+      )
+    })
+
+    return pdf(response, await this.printer.fresh(job), `Nachweisverzeichnis ${today}`)
   }
 
   /**

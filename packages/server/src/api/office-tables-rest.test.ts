@@ -24,7 +24,7 @@ import {
   type TenantId,
   weekNamed,
 } from '@opengewerk/haustechnik-domain'
-import { Database, newId } from '@opengewerk/platform-server'
+import { Database, newId, type PrintJob } from '@opengewerk/platform-server'
 import type { Pool } from 'pg'
 import request from 'supertest'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
@@ -81,6 +81,9 @@ const catalogue = catalogueOf({
   packages: [...catalogueBundle.packages, ...probeCatalogueBundle.packages],
 })
 const today = dayInGermany()
+
+/** What the renderer was handed, newest last (#338). */
+const rendered: PrintJob[] = []
 
 let admin: Pool
 let database: Database
@@ -269,7 +272,16 @@ beforeAll(async () => {
   database = Database.connect(applicationDatabaseUrl())
 
   const built = await Test.createTestingModule({
-    imports: [ApiModule.create(database, testIdentities, { catalogue })],
+    imports: [
+      ApiModule.create(database, testIdentities, {
+        catalogue,
+        renderer: (job) => {
+          rendered.push(job)
+
+          return Promise.resolve(new TextEncoder().encode('%PDF probe'))
+        },
+      }),
+    ],
   }).compile()
 
   app = built.createNestApplication()
@@ -768,6 +780,29 @@ describe('the register of evidence as a table (#338)', () => {
     ).body as DutyRegister
 
     expect(register.total).toBe(3)
+
+    // The same as a PDF on A4 across, made for today.
+    const before = rendered.length
+    const answer = await http()
+      .get('/duties/evidence-register/pdf')
+      .query({ propertyId: property })
+      .set(testIdentityHeader, by('u-duties'))
+      .expect(200)
+
+    expect(answer.headers['content-type']).toContain('application/pdf')
+    expect(rendered).toHaveLength(before + 1)
+
+    const job = rendered.at(-1)
+
+    expect(job?.landscape).toBe(true)
+
+    for (const words of ['Notruf prüfen', 'Schacht prüfen', 'Türen prüfen', signed, old]) {
+      expect(job?.html).toContain(words)
+    }
+
+    expect(job?.html).toContain(evidenceRegisterWords.legacy)
+    expect(job?.html).toContain(evidenceRegisterWords.never)
+    expect(job?.html).toContain('3 Pflichten an 1 Anlage, davon 1 nie erfasst.')
     expect(
       (
         await http()
@@ -791,6 +826,13 @@ describe('the register of evidence as a table (#338)', () => {
     expect(
       (await tableOf(path, { propertyId: property }, by('u-duties', large))).slice(1).length,
     ).toBe(1)
+    // Nor does its PDF hold the duty.
+    await http()
+      .get('/duties/evidence-register/pdf')
+      .query({ propertyId: property })
+      .set(testIdentityHeader, by('u-tech', large))
+      .expect(200)
+    expect(rendered.at(-1)?.html).not.toContain('Türen prüfen')
     expect(await refusalOf(path, { propertyId: property }, leading('duty.read'))).toEqual({
       status: 403,
       message: missingRight('evidence.read'),

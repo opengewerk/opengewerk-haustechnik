@@ -146,6 +146,23 @@ export class Printer {
     return sha256 === blob.sha256 ? made : this.store.get(sha256)
   }
 
+  /**
+   * The bytes of a print of the day, made now and not kept: a list such as
+   * the register of evidence (#338) says how things stand today, and the next
+   * one is made afresh.
+   */
+  async fresh(job: PrintJob): Promise<Uint8Array> {
+    try {
+      return await this.render(job)
+    } catch (error) {
+      if (error instanceof RendererUnavailableError) {
+        throw new ServiceUnavailableException(noRenderer)
+      }
+
+      throw new BadGatewayException(error instanceof Error ? error.message : String(error))
+    }
+  }
+
   /** The photos of the answers, read from the store by the hash the frozen state names. */
   async photosOf(answers: readonly StatedAnswer[]): Promise<PrintedPhoto[]> {
     const photos: PrintedPhoto[] = []
@@ -392,7 +409,7 @@ async function keptPrint(tx: TenantTransaction, of: PrintOf): Promise<string | n
   return row?.sha256 ?? null
 }
 
-function pdf(response: Response, bytes: Uint8Array, title: string): StreamableFile {
+export function pdf(response: Response, bytes: Uint8Array, title: string): StreamableFile {
   response.setHeader('Cache-Control', 'no-store')
 
   return new StreamableFile(Buffer.from(bytes), {
