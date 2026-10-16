@@ -15,7 +15,9 @@ import { MyTasksMenuRow } from './tasks.js'
  * The tabs of this application are those of its board, each from the moment
  * its screen is built and for whoever holds its right (`useTabs`). Until the
  * first of them arrives, the device on site shows what it holds of the sync,
- * and the menu with the account and the way to the office.
+ * and the menu with the account and the way to the office. A Melder has
+ * neither the conflicts nor the office (#392): nothing on its device can come
+ * into conflict, and the office would send it back.
  *
  * The frame is also where the device sees to it that it holds the catalogue
  * of its server (`useKeepCatalogue`): on site it is asked without a network.
@@ -29,9 +31,13 @@ export function SiteShell() {
   useKeepCatalogue()
   usePushRefresh('site')
 
+  const { tabs, reportsOnly } = useTabs()
+
   return (
     <SiteFrame
-      tabs={useTabs()}
+      tabs={tabs}
+      conflicts={!reportsOnly}
+      office={!reportsOnly}
       menu={
         <>
           <MyTasksMenuRow />
