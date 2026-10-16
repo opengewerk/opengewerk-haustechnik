@@ -3,6 +3,7 @@ import type { RoleKey } from '@opengewerk/haustechnik-domain'
 import { useWho } from '@opengewerk/platform-web/session'
 import { createRootRoute, createRoute } from '@tanstack/react-router'
 import { screen, waitFor, within } from '@testing-library/react'
+import { userEvent } from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { application } from '../app/application.js'
@@ -92,11 +93,13 @@ describe('the tabs on site as the entry is built today', () => {
    * (#99) and the start (#114). The start asks no right; the others stand
    * once the rights of the role are known, before those of the frame.
    */
-  it('are the own reports, the scan and those of the frame for the Melder (#331)', async () => {
+  // Without "Konflikte" (#392): nothing on the device of a Melder can come
+  // into conflict, the tab would only ever stand empty.
+  it('are the own reports, the scan and the menu for the Melder (#331, #392)', async () => {
     signedInAs(memberIn('reporter'))
     await mounted({ routeTree: siteRoutes(), at: '/m/konflikte', basepath: '/m', application })
 
-    const all = ['Meldungen', 'Scannen', 'Konflikte', 'Menü']
+    const all = ['Meldungen', 'Scannen', 'Menü']
 
     await waitFor(() => {
       expect(places()).toEqual([all, all])
@@ -112,6 +115,60 @@ describe('the tabs on site as the entry is built today', () => {
     await waitFor(() => {
       expect(places()).toEqual([all, all])
     })
+  })
+})
+
+/** A device with a fine pointer: on site it looks like a desk, which is offered the office. */
+function onADesk(): void {
+  vi.stubGlobal('matchMedia', (query: string) => ({
+    matches: query === '(any-pointer: fine)',
+    media: query,
+    addEventListener: () => {},
+    removeEventListener: () => {},
+  }))
+}
+
+describe('the office from site (#392)', () => {
+  it('is suggested on a desk and stands in the menu for whoever sees the places', async () => {
+    onADesk()
+    signedInAs(memberIn('technician'))
+    await mounted({ routeTree: siteRoutes(), at: '/m/konflikte', basepath: '/m', application })
+
+    expect(
+      await screen.findByText('Das sieht nach einem Arbeitsplatz aus. Im Büro ist mehr zu sehen.'),
+    ).toBeTruthy()
+
+    const [, bottom] = screen.getAllByRole('navigation', { name: 'Bereiche' })
+
+    await userEvent.click(within(bottom as HTMLElement).getByRole('button', { name: 'Menü' }))
+    expect(
+      within(screen.getByRole('dialog', { name: 'Menü' })).getByRole('link', {
+        name: /Büroansicht/,
+      }),
+    ).toBeTruthy()
+  })
+
+  // The office sends a Melder straight back here, so neither way leads anywhere.
+  it('is neither suggested nor in the menu for the Melder, on a desk either', async () => {
+    onADesk()
+    signedInAs(memberIn('reporter'))
+    await mounted({ routeTree: siteRoutes(), at: '/m/konflikte', basepath: '/m', application })
+
+    await waitFor(() => {
+      expect(places()[0]).toEqual(['Meldungen', 'Scannen', 'Menü'])
+    })
+    expect(
+      screen.queryByText('Das sieht nach einem Arbeitsplatz aus. Im Büro ist mehr zu sehen.'),
+    ).toBeNull()
+
+    const [, bottom] = screen.getAllByRole('navigation', { name: 'Bereiche' })
+
+    await userEvent.click(within(bottom as HTMLElement).getByRole('button', { name: 'Menü' }))
+
+    const sheet = screen.getByRole('dialog', { name: 'Menü' })
+
+    expect(within(sheet).queryByRole('link', { name: /Büroansicht/ })).toBeNull()
+    expect(within(sheet).getByRole('button', { name: 'Abmelden' })).toBeTruthy()
   })
 })
 

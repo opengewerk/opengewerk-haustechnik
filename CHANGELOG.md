@@ -7,6 +7,13 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
 
 ## [Unreleased]
 
+### Geändert
+
+- Vor Ort hat ein Melder keinen Reiter „Konflikte“ mehr und keinen Weg ins Büro, weder als Vorschlag
+  auf einem Arbeitsplatz noch im Menü (#392). Warum: sein Gerät hält nichts vom Betreiber, ein
+  Konflikt kann dort nicht entstehen, und das Büro schickte ihn gleich zurück nach „Vor Ort“. Dafür
+  ist das Submodul des Fundaments angehoben (opengewerk/opengewerk#651).
+
 ## [0.1.6] - 2026-10-16
 
 Eine zweite Zwischenfassung für den Pilotbetrieb, mit drei weiteren Stücken aus Phase 2. Wer in

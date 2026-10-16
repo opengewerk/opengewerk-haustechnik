@@ -10,7 +10,8 @@ export type SitePlace = SiteTab & Offer
 /**
  * The tabs on site as the board "Navigation mit dem Pfad" draws them: Start,
  * Scannen and Aufnehmen. "Konflikte" and "Menü" after them are the frame's of
- * the foundation, which makes the five of the board.
+ * the foundation, which makes the five of the board. A Melder has "Menü" alone
+ * after its own (#392).
  *
  * A tab stands from the moment a screen answers at its address, and only for
  * somebody who holds its right, as a place in the office does (`useBuilt`).
@@ -33,11 +34,25 @@ export const reporterTabs: readonly SitePlace[] = [
   { to: '/scannen', label: 'Scannen', icon: ScanLine, right: 'fault.report' },
 ]
 
-/** The tabs the person signed in is offered, before those of the frame. */
-export function useTabs(): readonly SiteTab[] {
+/** What the frame on site is told about the person signed in. */
+export interface SiteTabs {
+  /** The tabs the person is offered, before those of the frame. */
+  readonly tabs: readonly SiteTab[]
+  /**
+   * Whether the person only reports, as a Melder does (#392). Its device
+   * holds nothing of the operator, so nothing on it can come into conflict,
+   * and the office sends it straight back here: the frame leaves out the tab
+   * "Konflikte", the suggestion of the office and the way to it in the menu.
+   */
+  readonly reportsOnly: boolean
+}
+
+/** The tabs the person signed in is offered, and whether the person only reports. */
+export function useTabs(): SiteTabs {
   const seesPlaces = useRight('location.read')
   const own = useOffered(siteTabs)
   const reporting = useOffered(reporterTabs)
+  const reportsOnly = !seesPlaces && reporting.length > 0
 
-  return seesPlaces ? own : reporting.length > 0 ? reporting : own
+  return { tabs: reportsOnly ? reporting : own, reportsOnly }
 }
