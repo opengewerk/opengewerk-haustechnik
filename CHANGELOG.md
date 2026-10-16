@@ -9,6 +9,10 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
 
 ### Hinzugefügt
 
+- Rundgänge als Tabelle (#344): ein abgeschlossener Rundgang neben dem PDF als Excel oder CSV,
+  je Punkt eine Zeile mit Antwort, Grenzwert und Bemerkung, und die Rundgänge eines Plans über
+  einen Zeitraum, etwa die Temperaturen eines Monats. Gelesen wird der eingefrorene Stand, ohne
+  Namen und Uhrzeiten, wie am 15.10.2026 entschieden.
 - Der Leistungsnachweis eines Auftrags (#324): wo ein Auftraggeber da ist und es möchte,
   unterschreibt er vor dem Abschließen auf dem Gerät die geleistete Arbeit und die Dauer, mit
   Schriftzug und seinem Namen in Druckschrift, auch ohne Netz. Der Pilotbetrieb führt seinen Rapport

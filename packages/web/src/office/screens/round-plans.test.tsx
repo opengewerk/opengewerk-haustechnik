@@ -609,3 +609,28 @@ describe('the plans as a table (#236)', () => {
     })
   })
 })
+
+describe('the rounds of a plan as a table (#344)', () => {
+  it('are asked for over the period chosen, in the format chosen', async () => {
+    await mountOffice(`/rundgaenge/plaene/${daily.id}`, server, everything)
+
+    const opener = await screen.findByRole('button', { name: 'Als Tabelle' })
+    // After the answers of the test, which it hands every other request to.
+    const tables = servingTables()
+
+    fireEvent.click(opener)
+
+    const dialog = within(await screen.findByRole('dialog', { name: 'Rundgänge als Tabelle' }))
+
+    fireEvent.change(dialog.getByLabelText(/^Von/), { target: { value: '2026-10-01' } })
+    fireEvent.change(dialog.getByLabelText(/^Bis/), { target: { value: '2026-10-31' } })
+    fireEvent.click(dialog.getByRole('radio', { name: 'CSV (.csv)' }))
+    fireEvent.click(dialog.getByRole('button', { name: 'Ausgeben' }))
+
+    await waitFor(() => {
+      expect(tables.asked).toEqual([
+        `/round-plans/${daily.id}/table?from=2026-10-01&to=2026-10-31&format=csv`,
+      ])
+    })
+  })
+})

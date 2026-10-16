@@ -1,5 +1,6 @@
 import {
   addMonths,
+  keyDateFor,
   type AssetId,
   type IsoDate,
   type MeterDetails,
@@ -58,6 +59,10 @@ const house = {
 }
 
 const current = `${today().slice(0, 7)}-01` as IsoDate
+// The key date a reading entered today is for: the first of this month up to
+// the 15th, of the next after it (keyDateFor). A test on the real day failed
+// from the 16th on while it asked for the first of this month.
+const enteredFor = keyDateFor(today())
 const back = (months: number) => addMonths(current, -months)
 const place = {
   propertyId: school.id,
@@ -380,7 +385,7 @@ describe('the page of a measuring point', () => {
     await mountOffice(`/zaehler/${main.assetId}`, server, everything)
     await userEvent.click(await screen.findByRole('button', { name: meterWords.enter }))
     await userEvent.type(
-      screen.getByLabelText(meterWords.standAt(current), { exact: false }),
+      screen.getByLabelText(meterWords.standAt(enteredFor), { exact: false }),
       '4.858,7',
     )
     await userEvent.click(screen.getByRole('button', { name: meterWords.save }))
@@ -403,7 +408,7 @@ describe('the page of a measuring point', () => {
     await mountOffice(`/zaehler/${main.assetId}`, server, everything)
     await userEvent.click(await screen.findByRole('button', { name: meterWords.enter }))
     await userEvent.type(
-      screen.getByLabelText(meterWords.standAt(current), { exact: false }),
+      screen.getByLabelText(meterWords.standAt(enteredFor), { exact: false }),
       '4.000',
     )
     await userEvent.click(screen.getByRole('button', { name: meterWords.save }))
@@ -454,7 +459,7 @@ describe('the page of a measuring point', () => {
     await mountOffice(`/zaehler/${main.assetId}`, server, everything)
     await userEvent.click(await screen.findByRole('button', { name: meterWords.enter }))
     await userEvent.type(
-      screen.getByLabelText(meterWords.standAt(current), { exact: false }),
+      screen.getByLabelText(meterWords.standAt(enteredFor), { exact: false }),
       '48.120',
     )
     await userEvent.click(screen.getByRole('button', { name: meterWords.save }))

@@ -3,7 +3,7 @@ import 'fake-indexeddb/auto'
 import { addMonths, type IsoDate, keyDateFor } from '@opengewerk/haustechnik-domain'
 import { today } from '@opengewerk/platform-web/format'
 import { fireEvent, screen, waitFor, within } from '@testing-library/react'
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { servingCatalogue } from '../../app/test-catalogue.js'
 import { formCatalogue, round } from '../test-form.js'
@@ -29,6 +29,13 @@ import {
  */
 
 afterEach(afterEachSiteTest)
+
+// A day in the first half of a month, when the key date of the month has come.
+// From the 16th on the key date is the first of the next month, which has not
+// come yet, and the start rightly names no round; a test on the real day failed
+// then. Only the date is held, the timers run.
+vi.useFakeTimers({ toFake: ['Date'] })
+vi.setSystemTime(new Date('2026-10-05T08:00:00Z'))
 
 const day = today() as IsoDate
 const keyDate = keyDateFor(day)

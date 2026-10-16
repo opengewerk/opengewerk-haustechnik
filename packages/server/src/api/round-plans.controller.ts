@@ -46,6 +46,7 @@ import { dayInGermany } from '../today.js'
 import { candidatesIn } from './activities.controller.js'
 import { RequiresPermission } from './authorization.js'
 import { roundPlanTable } from './office-tables.js'
+import { planTable } from './round-tables.js'
 import { type Asking, refuse } from './places.js'
 
 const missing = 'Diesen Plan gibt es nicht oder nicht mehr.'
@@ -153,6 +154,18 @@ export class RoundPlansController {
         today,
       ),
     )
+  }
+
+  /** The rounds of a plan over a period as a table (#344), after the table of the plans. */
+  @Get(':id/table')
+  @RequiresPermission('activity.read')
+  @Header('Cache-Control', 'no-store')
+  roundsTable(
+    @CurrentIdentity() identity: Asking,
+    @Param('id') id: string,
+    @Query() query: Readonly<Record<string, unknown>>,
+  ): Promise<StreamableFile> {
+    return planTable(this.database, identity, id, query)
   }
 
   /**

@@ -1,4 +1,9 @@
-import type { Id, IsoDate, TenantOwned } from '@opengewerk/platform-domain'
+import {
+  checkPointResultLabel,
+  type Id,
+  type IsoDate,
+  type TenantOwned,
+} from '@opengewerk/platform-domain'
 
 import type { ActivityId } from './activity.js'
 import type { AreaId } from './area.js'
@@ -11,6 +16,7 @@ import type {
   StatedSignature,
 } from './evidence.js'
 import type { PropertyId } from './location.js'
+import { placeWords } from './office-table.js'
 
 /**
  * The frozen state of a round as a whole (section 2.6 of the concept, #111):
@@ -57,4 +63,65 @@ export interface RoundRecord extends Omit<TenantOwned, 'updatedAt'> {
   readonly state: RoundRecordState
   readonly fingerprint: string
   readonly createdAt: Date
+}
+
+// --- A round as a table (#344) ----------------------------------------------------------------
+
+/**
+ * The columns of a round as a table (section 4.5 of the concept, #344): a row
+ * per point, with the day of the signature, the round and its place, the
+ * chapter and the point, the answer, the measured value against its limit
+ * and the remark. Without names and times of day (decided 15.10.2026): who
+ * signed stands in the PDF of the round alone.
+ */
+export const roundTableColumns = [
+  'Tag der Unterschrift',
+  'Rundgang',
+  'Ort',
+  'Kapitel',
+  'Punkt',
+  'Antwort',
+  'Grenzwert',
+  'Eingehalten',
+  'Bemerkung',
+] as const
+
+/** The place of a round in words: property, building, room and asset as far as it names them. */
+export function roundPlaceWords(place: StatedPlace): string {
+  const joined = (parts: readonly (string | null)[]) =>
+    parts.filter((part) => part !== null && part !== '').join(' ')
+
+  return placeWords([
+    place.property.name,
+    place.building?.name,
+    place.room === null ? null : joined([place.room.number, place.room.name]),
+    place.asset === null ? null : joined([place.asset.number, place.asset.name]),
+  ])
+}
+
+/**
+ * The rows of one round as a table, read from its frozen state and never
+ * from the current records, on the day it was signed. A point of a group
+ * that repeats names its block: "Leuchte 2: Funktion".
+ */
+export function roundTableRows(state: RoundRecordState, signedOn: IsoDate): (string | null)[][] {
+  const where = roundPlaceWords(state.place)
+
+  return state.answers.map((answer) => [
+    signedOn,
+    state.title,
+    where,
+    answer.section,
+    answer.group === null
+      ? answer.label
+      : `${answer.group.label} ${String(answer.group.block)}: ${answer.label}`,
+    answer.value ?? (answer.result === null ? null : checkPointResultLabel[answer.result]),
+    answer.limit?.text ?? null,
+    answer.limit === null || answer.limit.within === null
+      ? null
+      : answer.limit.within
+        ? 'ja'
+        : 'nein',
+    answer.remark,
+  ])
 }
