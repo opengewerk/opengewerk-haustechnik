@@ -1,4 +1,7 @@
 import {
+  type BasicMeasure,
+  basicMeasureLabel,
+  basicMeasures,
   activityClosable,
   activityKindOfTask,
   activityLimits,
@@ -96,6 +99,9 @@ import { ActivityStatusMark, usePlaces } from './activities.js'
 import { asTableAddress } from '../table-address.js'
 
 export const workOrderWords = {
+  measureHint:
+    'Nach DIN 31051: Wartung, Inspektion, Instandsetzung oder Verbesserung. Bei den anderen Arten folgt sie aus der Art.',
+  notMeasured: 'nicht eingeordnet',
   sub: 'Aufträge aus Mängeln, aus Terminen der Pflichten und von Hand, der neueste zuerst.',
   searchLabel: 'Aufträge durchsuchen',
   searchPlaceholder: 'Nummer, Auftrag, Liegenschaft …',
@@ -682,6 +688,14 @@ export function WorkOrderScreen() {
               keyWidth={110}
               facts={[
                 { label: 'Art', value: workOrderKindLabel[shown.kind] },
+                // Its basic measure after DIN 31051 (#333).
+                {
+                  label: 'Einordnung',
+                  value:
+                    shown.measure === null
+                      ? workOrderWords.notMeasured
+                      : `${basicMeasureLabel[shown.measure]} nach DIN 31051`,
+                },
                 { label: 'Ursprung', value: <OriginFact order={shown} /> },
                 {
                   label: 'Ort',
@@ -1075,6 +1089,8 @@ function offeredWith(
 interface PlanState {
   readonly title: string
   readonly kind: WorkOrderKind
+  /** The basic measure a work order of another kind chooses (#333), or empty. */
+  readonly measure: BasicMeasure | ''
   readonly urgency: WorkOrderUrgency
   readonly dueOn: string
   readonly responsibleUserId: string
@@ -1133,6 +1149,31 @@ function PlanFields({
           {...(problems['kind'] ? { problem: problems['kind'] } : {})}
         />
       </div>
+      {plan.kind === 'other' ? (
+        // Another kind chooses its basic measure after DIN 31051; every other follows from its kind (#333).
+        <div className="sm:w-[260px]">
+          <SelectField
+            label="Einordnung"
+            required
+            starred
+            value={plan.measure}
+            onChange={(value) => {
+              set('measure', value as BasicMeasure | '')
+            }}
+            options={[
+              { value: '', label: 'Bitte wählen' },
+              ...basicMeasures.map((measure) => ({
+                value: measure,
+                label: basicMeasureLabel[measure],
+              })),
+            ]}
+            {...(problems['measure'] ? { problem: problems['measure'] } : {})}
+          />
+        </div>
+      ) : null}
+      {plan.kind === 'other' ? (
+        <p className="-mt-1 text-[12px] text-ink-faint">{workOrderWords.measureHint}</p>
+      ) : null}
       <Choice<WorkOrderUrgency>
         label="Dringlichkeit"
         value={plan.urgency}
@@ -1242,6 +1283,7 @@ function planBody(plan: PlanState) {
   return {
     title: plan.title.trim(),
     kind: plan.kind,
+    measure: plan.kind === 'other' && plan.measure !== '' ? plan.measure : null,
     urgency: plan.urgency,
     dueOn: plan.dueOn === '' ? null : plan.dueOn,
     responsibleUserId: plan.responsibleUserId === '' ? null : plan.responsibleUserId,
@@ -1267,6 +1309,7 @@ function EditWorkOrderDialog({
   const [plan, setPlan] = useState<PlanState>({
     title: order.title,
     kind: order.kind,
+    measure: order.kind === 'other' ? (order.measure ?? '') : '',
     urgency: order.urgency,
     dueOn: order.dueOn ?? '',
     responsibleUserId: order.responsible?.userId ?? '',
@@ -1400,6 +1443,7 @@ export function NewWorkOrderScreen() {
   const [plan, setPlan] = useState<PlanState>({
     title: '',
     kind: start.assetId === undefined ? 'defect_remedy' : 'other',
+    measure: '',
     urgency: 'normal',
     dueOn: '',
     responsibleUserId: '',

@@ -12,6 +12,7 @@ import {
   activityKindLabel,
   activityStatusLabel,
   workOrderKindLabel,
+  basicMeasureLabel,
   workOrderUrgencyLabel,
 } from './activity.js'
 import { lifecycleStateLabel } from './asset.js'
@@ -482,6 +483,7 @@ export const auditVocabulary: AuditVocabulary = {
         activity_kind: 'Art des Vorgangs',
         number: 'Auftragsnummer',
         kind: 'Art des Auftrags',
+        measure: 'Einordnung nach DIN 31051',
         urgency: 'Dringlichkeit',
         origin_defect_id: 'Aus dem Mangel',
         duration_minutes: 'Dauer in Minuten',
@@ -935,6 +937,7 @@ export const auditValues: Readonly<
   work_orders: {
     activity_kind: activityKindLabel,
     kind: workOrderKindLabel,
+    measure: basicMeasureLabel,
     urgency: workOrderUrgencyLabel,
   },
 }

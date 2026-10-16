@@ -124,6 +124,58 @@ export const workOrderKindLabel: Readonly<Record<WorkOrderKind, string>> = {
 }
 
 /**
+ * The four basic measures of maintenance after DIN 31051 (section 4.4 of the
+ * concept, #333), so that the evaluations speak the language of contracts
+ * and service specifications: a maintenance keeps the condition, an
+ * inspection finds out and judges it, a repair restores it, an improvement
+ * raises what a building or an asset can do. The norm is referred to and
+ * said in words of one's own (section 5).
+ */
+export const basicMeasures = ['maintenance', 'inspection', 'repair', 'improvement'] as const
+
+export type BasicMeasure = (typeof basicMeasures)[number]
+
+export const basicMeasureLabel: Readonly<Record<BasicMeasure, string>> = {
+  maintenance: 'Wartung',
+  inspection: 'Inspektion',
+  repair: 'Instandsetzung',
+  improvement: 'Verbesserung',
+}
+
+/**
+ * The basic measure of an activity (decided 15.10.2026): a maintenance is a
+ * maintenance; an inspection, which a test, a function or visual check and a
+ * sample all are, is an inspection, and so is a round, which looks at the
+ * condition of what it walks past; a fault and the remedy of a defect are a
+ * repair; a work order of another kind chooses, an improvement too. Null for
+ * a work order of another kind that chose none: one from before the choice.
+ */
+export function basicMeasureOf(
+  kind: ActivityKind,
+  order: { readonly kind: WorkOrderKind; readonly measure: BasicMeasure | null } | null,
+): BasicMeasure | null {
+  if (kind !== 'work_order') {
+    return kind === 'maintenance' ? 'maintenance' : 'inspection'
+  }
+
+  if (order === null) {
+    return null
+  }
+
+  switch (order.kind) {
+    case 'fault':
+    case 'defect_remedy':
+      return 'repair'
+    case 'maintenance':
+      return 'maintenance'
+    case 'inspection':
+      return 'inspection'
+    case 'other':
+      return order.measure
+  }
+}
+
+/**
  * How urgent a work order is (section 4.8 of the concept, #73): normal,
  * urgent, or at once, for a fault that holds up the running of a building,
  * which always reaches the person who answers for the order as a push
@@ -245,6 +297,8 @@ export interface WorkOrder extends Synced {
   readonly activityId: ActivityId
   readonly number: string | null
   readonly kind: WorkOrderKind
+  /** The basic measure a work order of another kind chose (#333); the others follow from their kind. */
+  readonly measure: BasicMeasure | null
   readonly urgency: WorkOrderUrgency
   readonly originDefectId: DefectId | null
   /**
@@ -532,6 +586,8 @@ export function finishesWorkOrder(
 export interface WorkOrderPlan {
   readonly title: string
   readonly kind: WorkOrderKind
+  /** The basic measure of a work order of another kind (#333), and none for the others. */
+  readonly measure: BasicMeasure | null
   readonly urgency: WorkOrderUrgency
   readonly dueOn: IsoDate
   readonly responsibleUserId: string
@@ -557,6 +613,19 @@ export function workOrderPlanProblems(plan: Readonly<Record<string, unknown>>): 
     problems,
     workOrderProblems({ kind: plan['kind'] ?? '', urgency: plan['urgency'] ?? '' }),
   )
+
+  // Another kind chooses its basic measure, every other follows from its kind (#333).
+  const measure = plan['measure'] ?? null
+
+  if (plan['kind'] === 'other') {
+    if (!(basicMeasures as readonly unknown[]).includes(measure)) {
+      problems['measure'] =
+        `Ein sonstiger Auftrag nennt seine Einordnung: ${basicMeasures.map((each) => basicMeasureLabel[each]).join(', ')}.`
+    }
+  } else if (measure !== null) {
+    problems['measure'] =
+      'Die Einordnung wählt nur ein sonstiger Auftrag; die anderen folgen aus ihrer Art.'
+  }
 
   if (!calendarDay(plan['dueOn'])) {
     problems['dueOn'] = 'Die Frist ist ein Tag, geschrieben 2026-10-03.'

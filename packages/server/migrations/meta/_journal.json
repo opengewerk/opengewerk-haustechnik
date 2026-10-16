@@ -407,6 +407,13 @@
       "when": 1792108606267,
       "tag": "0057_contractors",
       "breakpoints": true
+    },
+    {
+      "idx": 58,
+      "version": "7",
+      "when": 1792112713573,
+      "tag": "0058_basic_measure",
+      "breakpoints": true
     }
   ]
 }

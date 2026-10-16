@@ -427,7 +427,13 @@ describe('a new work order', () => {
 
   it('by hand hangs on the place it names, on the property it names', async () => {
     const { asset, property } = await elevatorIn()
-    const page = await made({ ...plan, kind: 'other', origin: 'hand', propertyId: property })
+    const page = await made({
+      ...plan,
+      kind: 'other',
+      measure: 'improvement',
+      origin: 'hand',
+      propertyId: property,
+    })
 
     expect(page).toMatchObject({
       propertyId: property,
@@ -550,6 +556,38 @@ describe('a new work order', () => {
   })
 })
 
+describe('the basic measure of a work order after DIN 31051 (#333)', () => {
+  it('follows from its kind, and another kind chooses it', async () => {
+    const { property } = await elevatorIn()
+    const byHand = { ...plan, origin: 'hand', propertyId: property }
+
+    expect((await made({ ...byHand, kind: 'fault' })).measure).toBe('repair')
+    expect((await made({ ...byHand, kind: 'maintenance' })).measure).toBe('maintenance')
+    expect((await made({ ...byHand, kind: 'other', measure: 'improvement' })).measure).toBe(
+      'improvement',
+    )
+  })
+
+  it('is asked of another kind and refused for every other', async () => {
+    const { property } = await elevatorIn()
+    const byHand = { ...plan, origin: 'hand', propertyId: property }
+
+    expect((await order(by('u-site'), { ...byHand, kind: 'other' }).expect(400)).body.message).toBe(
+      'Ein sonstiger Auftrag nennt seine Einordnung: Wartung, Inspektion, Instandsetzung, Verbesserung.',
+    )
+    expect(
+      (await order(by('u-site'), { ...byHand, kind: 'fault', measure: 'repair' }).expect(400)).body
+        .message,
+    ).toBe('Die Einordnung wählt nur ein sonstiger Auftrag; die anderen folgen aus ihrer Art.')
+    // The database holds the same past every route.
+    const fault = await made({ ...byHand, kind: 'fault' })
+
+    await expect(
+      admin.query(`update work_orders set measure = 'repair' where id = $1`, [fault.workOrderId]),
+    ).rejects.toMatchObject({ constraint: 'work_orders_measure_of_another_kind' })
+  })
+})
+
 describe('who sees a work order', () => {
   it('whoever only performs sees what they lead, work on, or what is given to nobody, in the office and on the device, with its notes', async () => {
     const { asset } = await elevatorIn(large, north)
@@ -647,6 +685,7 @@ describe('the list "Aufträge"', () => {
       {
         ...plan,
         kind: 'other',
+        measure: 'improvement',
         origin: 'hand',
         propertyId: two.property,
         responsibleUserId: 'u-south',
@@ -700,6 +739,7 @@ describe('changing a work order', () => {
       await change({
         title: 'Türschließer tauschen',
         kind: 'other',
+        measure: 'repair',
         urgency: 'immediate',
         dueOn: inDays(2),
         responsibleUserId: 'u-other',
@@ -710,6 +750,7 @@ describe('changing a work order', () => {
     expect(changed).toMatchObject({
       title: 'Türschließer tauschen',
       kind: 'other',
+      measure: 'repair',
       urgency: 'immediate',
       dueOn: inDays(2),
       responsible: { userId: 'u-other' },

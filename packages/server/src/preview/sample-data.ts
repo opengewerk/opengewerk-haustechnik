@@ -1492,6 +1492,8 @@ async function plantOrder(
     ...origin,
     title: order.title,
     kind: order.kind ?? 'defect_remedy',
+    // Another kind chooses its basic measure after DIN 31051 (#333): adjusting a window is a repair.
+    ...(order.kind === 'other' ? { measure: 'repair' } : {}),
     urgency: order.urgency ?? 'normal',
     dueOn: daysAhead(7),
     responsibleUserId: order.leads,

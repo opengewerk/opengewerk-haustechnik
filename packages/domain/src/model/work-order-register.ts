@@ -2,6 +2,7 @@ import type { WorkOrderMaterialLine } from './material.js'
 import type { IsoDate } from '@opengewerk/platform-domain'
 
 import type {
+  BasicMeasure,
   ActivityId,
   ActivityStatus,
   WorkOrderId,
@@ -83,6 +84,8 @@ export interface WorkOrderEntry extends PlaceTarget {
   readonly number: string | null
   readonly title: string
   readonly kind: WorkOrderKind
+  /** Its basic measure after DIN 31051 (#333): from its kind, or as another kind chose; none where it chose none. */
+  readonly measure: BasicMeasure | null
   readonly urgency: WorkOrderUrgency
   readonly status: ActivityStatus
   /** Whether the last decision on it turned it back and it was not signed since. */

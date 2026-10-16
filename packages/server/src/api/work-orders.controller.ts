@@ -14,6 +14,7 @@ import {
   StreamableFile,
 } from '@nestjs/common'
 import {
+  basicMeasureOf,
   type Activity,
   activityClosable,
   type ActivityId,
@@ -197,6 +198,8 @@ function planOf(values: Readonly<Record<string, unknown>>): Readonly<Record<stri
   return {
     title: values['title'] ?? null,
     kind: values['kind'] ?? null,
+    // The basic measure of a work order of another kind (#333).
+    measure: values['measure'] ?? null,
     urgency: values['urgency'] ?? null,
     dueOn: values['dueOn'] ?? null,
     responsibleUserId: values['responsibleUserId'] ?? null,
@@ -207,6 +210,7 @@ function planOf(values: Readonly<Record<string, unknown>>): Readonly<Record<stri
 const planFields = [
   'title',
   'kind',
+  'measure',
   'urgency',
   'dueOn',
   'responsibleUserId',
@@ -604,6 +608,7 @@ export class WorkOrdersController {
           activityId,
           number: await assignNumber(tx, identity.tenantId, 'work_order', now),
           kind: planned.kind,
+          measure: planned.measure,
           urgency: planned.urgency,
           originDefectId,
         })
@@ -708,7 +713,7 @@ export class WorkOrdersController {
 
       await tx
         .update(workOrders)
-        .set({ kind: planned.kind, urgency: planned.urgency })
+        .set({ kind: planned.kind, measure: planned.measure, urgency: planned.urgency })
         .where(eq(workOrders.id, order.id))
       await takeOnParticipants(
         tx,
@@ -899,6 +904,7 @@ function entryOf(
     number: order.number,
     title: activity.title,
     kind: order.kind,
+    measure: basicMeasureOf('work_order', order),
     urgency: order.urgency,
     status: activity.status,
     rejected,
