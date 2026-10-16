@@ -31,13 +31,14 @@ import {
 import { maybeText, request, RequestRefused, useRecords } from '@opengewerk/platform-web/sync'
 import { useInfiniteQuery } from '@tanstack/react-query'
 import { Link, useNavigate, useSearch } from '@tanstack/react-router'
-import { TriangleAlert, Upload } from 'lucide-react'
-import { type ReactNode, useMemo } from 'react'
+import { FileText, TriangleAlert, Upload } from 'lucide-react'
+import { type ReactNode, useMemo, useState } from 'react'
 
 import { titleOfRoom } from '../../app/place-records.js'
 import { ReviewMarks } from '../../app/review-marks.js'
 import { useAreas } from '../../session/areas.js'
 import { useCatalogue } from '../../sync/catalogue.js'
+import { EvidenceRegisterDialog } from '../evidence-register.js'
 import { DutyUpdatesNote, UpdateMark } from './duty-updates.js'
 import {
   dutyFilterOf,
@@ -127,6 +128,9 @@ export function DutyRegisterScreen() {
   const entersEvidence = useRight('evidence.write')
   const table = useTableExport(asTableAddress(dutyRegisterRequest(filter, 0)))
   const asTable = !namesAPerson(filter) || seesStaff
+  // The register of evidence for an inspection or an audit (#338), for whoever looks at evidence.
+  const readsEvidence = useRight('evidence.read')
+  const [evidenceRegister, setEvidenceRegister] = useState(false)
 
   const narrowed = Object.keys(filter).length > 0
   const first = pages.data?.pages[0]
@@ -212,6 +216,16 @@ export function DutyRegisterScreen() {
         actions={
           <>
             {asTable ? table.button : null}
+            {readsEvidence ? (
+              <Button
+                icon={FileText}
+                onClick={() => {
+                  setEvidenceRegister(true)
+                }}
+              >
+                Nachweisverzeichnis
+              </Button>
+            ) : null}
             {keepsDuties && entersEvidence ? (
               <Button
                 icon={Upload}
@@ -431,6 +445,14 @@ export function DutyRegisterScreen() {
           </tbody>
         </TablePanel>
       )}
+      {evidenceRegister ? (
+        <EvidenceRegisterDialog
+          filter={filter}
+          onClose={() => {
+            setEvidenceRegister(false)
+          }}
+        />
+      ) : null}
     </Screen>
   )
 }

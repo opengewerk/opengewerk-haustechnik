@@ -1091,3 +1091,42 @@ describe('the register as a table (#236)', () => {
     })
   })
 })
+
+describe('the register of evidence (#338)', () => {
+  it('is asked for with the choice the register is narrowed by, says what it would hold, and leaves in the format chosen', async () => {
+    await mount(
+      '/pflichten?zustand=overdue&gebaeude=b-house',
+      {
+        '/duties/register?state=overdue&buildingId=b-house&offset=0&limit=50': page([mainTest]),
+        '/duties/evidence-register?buildingId=b-house': { duties: 1, assets: 1, never: 0 },
+      },
+      'management',
+    )
+    await screen.findByRole('table', { name: register })
+
+    const tables = servingTables()
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Nachweisverzeichnis' }))
+
+    const dialog = within(await screen.findByRole('dialog', { name: 'Nachweisverzeichnis' }))
+
+    expect(
+      await dialog.findByText(
+        '1 Pflicht an 1 Anlage, davon 0 nie erfasst. So viele zeigt das Pflichtenverzeichnis unter derselben Auswahl.',
+      ),
+    ).toBeTruthy()
+    expect((dialog.getByRole('combobox', { name: 'Gebäude' }) as HTMLSelectElement).value).toBe(
+      'b-house',
+    )
+
+    fireEvent.click(dialog.getByRole('checkbox', { name: /Beendete Pflichten aufnehmen/ }))
+    fireEvent.click(dialog.getByRole('radio', { name: 'CSV (.csv)' }))
+    fireEvent.click(dialog.getByRole('button', { name: 'Ausgeben' }))
+
+    await waitFor(() => {
+      expect(tables.asked).toEqual([
+        '/duties/evidence-register/table?buildingId=b-house&ended=1&format=csv',
+      ])
+    })
+  })
+})
