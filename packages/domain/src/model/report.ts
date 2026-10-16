@@ -1,5 +1,6 @@
 import { fileHashProblem, type IsoDate } from '@opengewerk/platform-domain'
 
+import type { ContractorId } from './contractor.js'
 import { classNotOffered, defectProblems } from './defect.js'
 import { evidenceProblems, type EvidenceResult, evidenceResults } from './evidence.js'
 import type { Problems } from './fields.js'
@@ -39,6 +40,12 @@ export interface Report {
   readonly resultReason: string | null
   readonly examiner: string
   readonly examinerOrganisation: string
+  /**
+   * The firm of the list the report came from (#328), which fills the
+   * organisation in; none for an inspection body that is no contractor of the
+   * operator, whose organisation stays a text.
+   */
+  readonly contractorId: ContractorId | null
   readonly file: ReportFile
   readonly defects: readonly ReportDefect[]
 }

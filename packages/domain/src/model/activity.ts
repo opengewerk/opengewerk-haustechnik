@@ -1,6 +1,7 @@
 import { type Id, type IsoDate, longestFormText, type Synced } from '@opengewerk/platform-domain'
 
 import type { AreaId } from './area.js'
+import type { ContractorId } from './contractor.js'
 import type { DutyTask } from './catalogue.js'
 import type { DefectId } from './defect.js'
 import {
@@ -174,6 +175,8 @@ export interface Activity extends Synced, PlaceTarget {
   readonly performer: DutyPerformer | null
   readonly performerUserId: string | null
   readonly contractorNote: string | null
+  /** The firm out of the list that carries it out (#328), taken over from its duty. */
+  readonly contractorId: ContractorId | null
   /** Why it was not performed; only an activity that was not. */
   readonly closingReason: string | null
   /** The day it was performed on, which every evidence of it carries. */
@@ -596,6 +599,8 @@ export interface ActivityPlan {
   readonly performer: DutyPerformer
   readonly performerUserId: string | null
   readonly contractorNote: string | null
+  /** The firm out of the list (#328); the note is what stood there as text before. */
+  readonly contractorId: ContractorId | null
   readonly dueOn: IsoDate
 }
 
@@ -645,6 +650,10 @@ export function activityPlanProblems(plan: Readonly<Record<string, unknown>>): R
     problems['contractorNote'] === undefined
   ) {
     problems['contractorNote'] = 'Eine Fremdfirma steht nur bei fremder Durchführung.'
+  }
+
+  if (given('contractorId') && performer === 'own_staff') {
+    problems['contractorId'] = 'Eine Fremdfirma steht nur bei fremder Durchführung.'
   }
 
   if (!calendarDay(plan['dueOn'])) {

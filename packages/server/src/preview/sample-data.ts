@@ -861,6 +861,44 @@ async function send(
 }
 
 /**
+ * The firms of the list a sample duty names by its note, filled when the
+ * contractors are planted (#328). A note that is no firm of the list, as
+ * "Beispiel Aufzüge, Kundendienst", stays text, so that the list of the
+ * contractors offers to take it over.
+ */
+const sampleFirms = new Map<string, string>()
+
+/**
+ * The contractors of the sample operator (#328), as the board "Fremdfirmen"
+ * draws them: three firms with their address and the cost groups they work in.
+ */
+async function plantSampleContractors(address: string): Promise<void> {
+  const firms = [
+    {
+      name: 'Prüfdienst Beispiel GmbH',
+      street: 'Industriestraße 12',
+      postalCode: '68169',
+      city: 'Mannheim',
+      phone: '0621 445566',
+      email: 'service@pruefdienst-beispiel.example',
+      services: ['440', '450'],
+      note: 'Rufbereitschaft am Wochenende.',
+    },
+    {
+      name: 'Heizungsbau Beispiel GmbH',
+      postalCode: '69115',
+      city: 'Heidelberg',
+      services: ['410', '420'],
+    },
+    { name: 'Wasserlabor Beispielstadt', postalCode: '68159', city: 'Mannheim', services: ['410'] },
+  ]
+
+  for (const firm of firms) {
+    sampleFirms.set(firm.name, (await send(address, '/contractors', firm)).id)
+  }
+}
+
+/**
  * The stores of the sample operator (#325), as the board "Lager" draws them:
  * two stores, articles with and without a barcode, two suppliers, the
  * minimums of the main store, receipts and a count with its reason, so that
@@ -1127,7 +1165,12 @@ async function plantDuty(
     ...(kind === undefined ? { label, basis, sourceNote, task } : { kind }),
     ...(responsible === undefined ? {} : { responsibleUserId: responsible }),
     ...(performer === undefined ? {} : { performer }),
-    ...(performerNote === undefined ? {} : { performerNote }),
+    // A note that names a firm of the list names the firm (#328).
+    ...(performerNote === undefined
+      ? {}
+      : sampleFirms.has(performerNote)
+        ? { contractorId: sampleFirms.get(performerNote) }
+        : { performerNote }),
     ...(intervalDocumentId === undefined ? {} : { intervalDocumentId }),
   })
 
@@ -1285,6 +1328,9 @@ export async function plantSampleData(
 
   // The stores of the operator (#325).
   await plantSampleStores(address)
+
+  // The contractors of the operator (#328), which the duties name before they are planted.
+  await plantSampleContractors(address)
 
   // The mail server of the operator, as the board "E-Mail-Einstellungen"
   // draws it (#126). The connection of the preview takes it and sends nothing.

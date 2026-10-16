@@ -219,6 +219,8 @@ export function pullScope(scope: DeviceScope): PullScope {
       stock_movements: operator,
       // The labels on the shelves, which a scan reads like a barcode (#326).
       store_labels: operator,
+      // The contractors of the operator, whose name an order shows (#328).
+      contractors: operator,
     },
   }
 }

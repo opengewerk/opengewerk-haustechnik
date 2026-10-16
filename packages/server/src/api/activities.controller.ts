@@ -14,6 +14,7 @@ import {
   StreamableFile,
 } from '@nestjs/common'
 import {
+  type ContractorId,
   type Activity,
   type ActivityCandidates,
   type ActivityDetails,
@@ -69,6 +70,7 @@ import {
 } from '../database/schema/index.js'
 import { dayInGermany } from '../today.js'
 import { RequiresPermission } from './authorization.js'
+import { checkContractor } from './contractor-checks.js'
 import { type Asking, fieldsOf, placeOf, refuse } from './places.js'
 import { counted, said } from './register-question.js'
 import { activityTable, wholeList } from './office-tables.js'
@@ -203,10 +205,16 @@ const planFields = [
   'performer',
   'performerUserId',
   'contractorNote',
+  'contractorId',
   'dueOn',
 ] as const
 
-const emptiable = ['responsibleUserId', 'performerUserId', 'contractorNote'] as const
+const emptiable = [
+  'responsibleUserId',
+  'performerUserId',
+  'contractorNote',
+  'contractorId',
+] as const
 
 /**
  * The activities of an operator in the office (section 4.4 of the concept,
@@ -418,6 +426,7 @@ export class ActivitiesController {
       performer: values.performer ?? null,
       performerUserId: values.performerUserId ?? null,
       contractorNote: values.contractorNote ?? null,
+      contractorId: values.contractorId ?? null,
       dueOn: values.dueOn ?? null,
     }
 
@@ -428,6 +437,11 @@ export class ActivitiesController {
       const { responsible, performers } = await candidatesIn(tx, activity.areaId)
       const anew = (value: unknown, before: string | null) =>
         typeof value === 'string' && value !== before
+
+      // A firm named anew is one of the list that is not removed (#328); one named before stays named.
+      if (anew(plan.contractorId, activity.contractorId)) {
+        await checkContractor(tx, plan.contractorId)
+      }
 
       if (
         anew(plan.responsibleUserId, activity.responsibleUserId) &&
@@ -454,6 +468,7 @@ export class ActivitiesController {
           performer: plan.performer as Activity['performer'],
           performerUserId: plan.performerUserId as string | null,
           contractorNote: plan.contractorNote as string | null,
+          contractorId: plan.contractorId as ContractorId | null,
           dueOn: plan.dueOn as string,
           updatedAt: new Date(),
         })
@@ -658,6 +673,7 @@ function entryOf(
     performer: row.performer,
     performerPerson: named(row.performerUserId),
     contractorNote: row.contractorNote,
+    contractorId: row.contractorId,
   }
 }
 

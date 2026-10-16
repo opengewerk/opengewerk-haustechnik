@@ -485,6 +485,7 @@ describe('the register of duties', () => {
       responsibleUserId: 'u-site',
       performer: 'contractor',
       performerNote: 'Aufzugsdienst Beispiel GmbH',
+      contractorId: null,
       ended: false,
       intervalToCheck: false,
       asset: {

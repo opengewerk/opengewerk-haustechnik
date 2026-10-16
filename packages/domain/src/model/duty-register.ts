@@ -143,6 +143,8 @@ export interface DutyRegisterFilter {
   readonly dutyKind?: string
   /** The person who answers for a duty, or `none` for the duties nobody answers for. */
   readonly responsible?: string
+  /** The firm of the list that carries a duty out (#328). */
+  readonly contractorId?: string
 }
 
 /** The names of the filters as an address carries them to the server, in the order it reads them. */
@@ -154,6 +156,7 @@ export const dutyRegisterFilters = [
   'buildingId',
   'assetKind',
   'dutyKind',
+  'contractorId',
   'responsible',
 ] as const satisfies readonly (keyof DutyRegisterFilter)[]
 
@@ -207,6 +210,7 @@ export interface DutyEntry
       | 'responsibleUserId'
       | 'performer'
       | 'performerNote'
+      | 'contractorId'
     > {
   /** Whether it has ended today. Its state then says how it stood when it did, and calls for nothing. */
   readonly ended: boolean
@@ -316,6 +320,8 @@ export interface DutyActivity {
   readonly dueOn: IsoDate | null
   readonly performer: DutyPerformer | null
   readonly contractorNote: string | null
+  /** The firm out of the list (#328). */
+  readonly contractorId: string | null
 }
 
 /**

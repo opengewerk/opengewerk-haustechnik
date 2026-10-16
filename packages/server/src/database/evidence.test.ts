@@ -478,6 +478,11 @@ describe('an evidence', () => {
         performed_by: 'u-nobody',
       },
       evidence_written_by_somebody_here: { ...report, written_by: 'u-nobody' },
+      // A firm of the list of this tenant, and none that is not there (#328).
+      evidence_name_their_contractor: {
+        ...report,
+        contractor_id: '00000000-0000-7000-8000-000000000328',
+      },
       evidence_replaces_one_of_its_duty: {
         ...report,
         replaces_evidence_id: elsewhere,

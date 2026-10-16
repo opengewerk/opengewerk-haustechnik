@@ -64,6 +64,7 @@ import { RoundScreen } from './screens/round.js'
 import { RoundWeekScreen } from './screens/round-week.js'
 import { EditRoomScreen, NewRoomScreen } from './screens/room-form.js'
 import { RoomScreen } from './screens/rooms.js'
+import { ContractorListScreen, ContractorScreen } from './screens/contractors.js'
 import { StaffScreen } from './screens/staff.js'
 import { TimelineScreen } from './timeline.js'
 import {
@@ -484,6 +485,17 @@ export function officeRoutes() {
       getParentRoute: () => office,
       path: '/lager/$storeId/artikel/$articleId',
       component: StoreArticleScreen,
+    }),
+    // The contractors of the operator (#328): the list and one firm.
+    createRoute({
+      getParentRoute: () => office,
+      path: '/fremdfirmen',
+      component: ContractorListScreen,
+    }),
+    createRoute({
+      getParentRoute: () => office,
+      path: '/fremdfirmen/$contractorId',
+      component: ContractorScreen,
     }),
     // The catalogue: the packages, one of them with one of its parts, and
     // the page of a duty kind under the package it comes from.

@@ -12,6 +12,7 @@ import {
   ClipboardCheck,
   FileText,
   Gauge,
+  HardHat,
   LayoutDashboard,
   Package,
   Route,
@@ -100,6 +101,8 @@ export const officeNavigation: readonly OfficePlaces[] = [
       { to: '/aufgaben', label: 'Aufgaben', icon: SquareCheck, right: 'task.read' },
       // The stores of the operator, tenant-wide (#325).
       { to: '/lager', label: 'Lager', icon: Package, right: 'store.read' },
+      // The contractors of the operator, tenant-wide (#328).
+      { to: '/fremdfirmen', label: 'Fremdfirmen', icon: HardHat, right: 'contractor.read' },
     ],
   },
 ]

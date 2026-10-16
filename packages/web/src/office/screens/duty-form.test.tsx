@@ -92,7 +92,12 @@ async function mount(
   written = signedInOffice(
     role,
     [sued],
-    { ...servingCatalogue(), '/duties/colleagues': colleagues, ...answers },
+    {
+      ...servingCatalogue(),
+      '/duties/colleagues': colleagues,
+      '/contractors': [{ id: 'c-dach', name: 'Dachdecker Beispiel GmbH', services: [] }],
+      ...answers,
+    },
     (write) => answerToWrite(write),
   )
 
@@ -150,6 +155,7 @@ const filledIn = {
   responsibleUserId: null,
   performer: null,
   performerNote: null,
+  contractorId: null,
 }
 
 /** The places the form offers to hang the duty on, with the one that is picked. */
@@ -481,33 +487,36 @@ describe('the form of a duty of the operator own', () => {
     fillIn()
     choose('Verantwortlich', 'u-lindner')
     pick('Fremdfirma')
-    type('Angabe zur Fremdfirma', ' Dachdecker Beispiel GmbH ')
+    await screen.findByRole('option', { name: 'Dachdecker Beispiel GmbH' })
+    choose('Fremdfirma', 'c-dach')
     press('Pflicht anlegen')
 
     await waitFor(() => {
       expect(written).toHaveLength(1)
     })
+    // The firm out of the list (#328).
     expect(written[0]?.body).toEqual({
       buildingId: house.id,
       ...filledIn,
       responsibleUserId: 'u-lindner',
       performer: 'contractor',
-      performerNote: 'Dachdecker Beispiel GmbH',
+      contractorId: 'c-dach',
     })
   })
 
   it('names a contractor only for a duty a contractor performs', async () => {
     await opened(`/pflichten/neu?gebaeude=${house.id}`)
 
-    expect(screen.queryByLabelText('Angabe zur Fremdfirma')).toBeNull()
+    expect(screen.queryByRole('combobox', { name: 'Fremdfirma' })).toBeNull()
 
     answerToWrite = answering({ id: 'd-new' })
     fillIn()
     pick('Fremdfirma')
-    type('Angabe zur Fremdfirma', 'Dachdecker Beispiel GmbH')
+    await screen.findByRole('option', { name: 'Dachdecker Beispiel GmbH' })
+    choose('Fremdfirma', 'c-dach')
     pick('Eigene Leute')
 
-    expect(screen.queryByLabelText('Angabe zur Fremdfirma')).toBeNull()
+    expect(screen.queryByRole('combobox', { name: 'Fremdfirma' })).toBeNull()
 
     press('Pflicht anlegen')
 
@@ -602,6 +611,7 @@ function ownDuty(further: Readonly<Record<string, unknown>> = {}): DutyDetails {
     responsibleUserId: 'u-roth',
     performer: 'contractor',
     performerNote: 'Heizungsbau Beispiel GmbH',
+    contractorId: null,
     confirmedBy: 'u-lead',
     confirmedAt: '2026-10-06T08:00:00.000Z',
     endsOn: null,
@@ -708,7 +718,8 @@ describe('the form over a duty of the operator own (#178)', () => {
     expect(valueOf('Quelle')).toBe('Betriebsanleitung SW 750, Abschnitt 9')
     expect(valueOf('Frist')).toBe('12')
     expect(choice('Einheit').value).toBe('months')
-    expect(valueOf('Angabe zur Fremdfirma')).toBe('Heizungsbau Beispiel GmbH')
+    // What stood as text before the list of the firms (#328).
+    expect(screen.getByText(/Bisher als Text: „Heizungsbau Beispiel GmbH“/)).toBeTruthy()
     expect(screen.getByText('Pflicht an AN-00057 Trinkwassererwärmer')).toBeTruthy()
     // What it hangs on stays, and so does how it counts.
     expect(screen.queryByRole('group', { name: dutyFormWords.hangsOn })).toBeNull()

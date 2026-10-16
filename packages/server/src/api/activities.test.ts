@@ -850,6 +850,7 @@ describe('making an activity by hand (#183)', () => {
       dueOn: made.dueOn,
       performer: 'contractor',
       contractorNote: 'Aufzugsdienst Beispiel GmbH',
+      contractorId: null,
     })
   })
 

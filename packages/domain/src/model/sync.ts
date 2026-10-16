@@ -238,6 +238,10 @@ export const syncPolicies: Readonly<Record<string, SyncPolicy>> = {
   stores: officeOnly,
   store_articles: officeOnly,
   stock_movements: officeOnly,
+  // The contractors of the operator (#328): kept in the office, with a
+  // connection, and held by every device, which names the firm of an order.
+  // Tenant-wide, without an area.
+  contractors: officeOnly,
   // The labels on the shelves of a store (#326): made in the office, held by
   // every device, which reads them like the barcode of an article.
   store_labels: officeOnly,
@@ -591,6 +595,7 @@ export const syncEntityNames: Readonly<Record<string, string>> = {
   store_articles: 'Artikel eines Lagers',
   stock_movements: 'Buchung im Lager',
   store_labels: 'Etikett eines Lagerfachs',
+  contractors: 'Fremdfirma',
   work_order_materials: 'Material am Auftrag',
   tasks: 'Aufgabe',
 }
@@ -707,6 +712,8 @@ export const syncFieldNames: Readonly<Record<string, string>> = {
   storeArticleId: 'Artikel eines Lagers',
   writtenBy: 'Geschrieben von',
   contractorNote: 'Fremdfirma',
+  contractorId: 'Fremdfirma aus der Liste',
+  services: 'Leistungen',
   closingReason: 'Grund',
   performedOn: 'Durchgeführt am',
   countersignatureRequired: 'Gegenzeichnung verlangt',

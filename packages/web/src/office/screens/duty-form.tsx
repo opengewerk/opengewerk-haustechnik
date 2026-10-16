@@ -34,6 +34,7 @@ import { useNavigate, useParams, useSearch } from '@tanstack/react-router'
 import { Check } from 'lucide-react'
 import { type FormEvent, useMemo, useState } from 'react'
 
+import { ContractorField, contractorFieldWords } from '../contractor-field.js'
 import { onlyInABuilding, useHeldArea } from '../../session/areas.js'
 import { placePath } from '../../app/place-path.js'
 import { placeAbove, titleOfRoom } from '../../app/place-records.js'
@@ -284,6 +285,8 @@ interface Typed {
   readonly responsibleUserId: string
   readonly performer: DutyPerformer | null
   readonly performerNote: string
+  /** The firm out of the list (#328), or empty. */
+  readonly contractorId: string
 }
 
 /** What a new duty starts with. */
@@ -300,6 +303,7 @@ const blank: Typed = {
   responsibleUserId: '',
   performer: null,
   performerNote: '',
+  contractorId: '',
 }
 
 /** What the form starts with over a duty there is: what it says, as text. */
@@ -316,6 +320,7 @@ function typedOf(duty: DutyDetails): Typed {
     responsibleUserId: duty.responsibleUserId ?? '',
     performer: duty.performer,
     performerNote: duty.performerNote ?? '',
+    contractorId: duty.contractorId ?? '',
   }
 }
 
@@ -342,6 +347,9 @@ function described(typed: Typed) {
       typed.performer === 'contractor' && typed.performerNote.trim() !== ''
         ? typed.performerNote.trim()
         : null,
+    // The firm out of the list, with a contractor alone (#328).
+    contractorId:
+      typed.performer === 'contractor' && typed.contractorId !== '' ? typed.contractorId : null,
   }
 }
 
@@ -927,12 +935,13 @@ function DutyFields({
         </p>
       ) : null}
       {typed.performer === 'contractor' ? (
-        <Field
-          label="Angabe zur Fremdfirma"
-          value={typed.performerNote}
-          problem={problems['performerNote']}
-          onChange={(event) => {
-            set({ performerNote: event.target.value })
+        <ContractorField
+          value={typed.contractorId}
+          note={typed.performerNote}
+          noneLabel={contractorFieldWords.none}
+          problem={problems['contractorId'] ?? problems['performerNote']}
+          onChange={(value) => {
+            set({ contractorId: value })
           }}
         />
       ) : null}

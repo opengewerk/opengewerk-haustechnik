@@ -8,6 +8,7 @@ import type {
 
 import type { ActivityId, ActivityKind } from './activity.js'
 import type { AreaId } from './area.js'
+import type { ContractorId } from './contractor.js'
 import { type Counting, evidenceKindLabel, evidenceKinds } from './catalogue.js'
 import type { DutyId } from './duty-record.js'
 import { calendarDay, oneOf, optional, type Problems } from './fields.js'
@@ -453,6 +454,8 @@ export interface Evidence extends TenantOwned {
   readonly performedBy: string | null
   readonly examiner: string | null
   readonly examinerOrganisation: string | null
+  /** The firm of the list whose report it is (#328); the organisation stays as it was written. */
+  readonly contractorId: ContractorId | null
   readonly writtenBy: string
   readonly writtenAt: Date
   /** The evidence of the same duty this one corrects, with the reason; both stay. */

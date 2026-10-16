@@ -58,6 +58,14 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   darauf auf. Die Gefährdungsbeurteilung ist eine eigene Art eines Dokuments (Planungskonzept
   v0.42), und eine Pflicht, die auf eine zeigt, nennt ihre Wiedervorlage. Migration
   `0056_document_validity`.
+- Fremdfirmen (#328, erster Teil): eine Liste der Firmen des Betreibers mit Anschrift, Telefon,
+  E-Mail, den Kostengruppen, in denen sie arbeiten, und einer Notiz, betreiberweit und ohne Bereich.
+  Eine Pflicht, ein Vorgang und der Bericht einer Fremdfirma wählen die Firma aus dieser Liste statt
+  sie als Text zu schreiben; ein Vorgang übernimmt sie von seiner Pflicht, ein Nachweis behält seine
+  Organisation, wie sie geschrieben wurde. Namen, die noch als Text an Pflichten stehen, übernimmt
+  das Büro mit einem Klick. Entfernt wird eine Firma nur, solange keine offene Pflicht und kein
+  offener Vorgang sie nennt. Neue Rechte „Fremdfirmen ansehen“ (alle Rollen) und „Fremdfirmen
+  pflegen“ (Leitung und Technische Leitung), Planungskonzept v0.43. Migration `0057_contractors`.
 
 ### Geändert
 

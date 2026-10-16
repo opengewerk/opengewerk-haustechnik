@@ -57,6 +57,7 @@ import { Link, useNavigate, useParams } from '@tanstack/react-router'
 import { Pencil, Plus, Trash2, TriangleAlert, Upload } from 'lucide-react'
 import { useState } from 'react'
 
+import { ContractorName } from '../contractor-field.js'
 import { titleOfRoom } from '../../app/place-records.js'
 import { ReviewMarks } from '../../app/review-marks.js'
 import { useCatalogue } from '../../sync/catalogue.js'
@@ -573,10 +574,21 @@ export function DutyScreen() {
                 {
                   label: 'Ausgeführt von',
                   // In full here: the list names a contractor by its name alone.
+                  // The firm out of the list leads to its page (#328); a name as text stays text.
                   value:
-                    duty.performer === 'contractor' && duty.performerNote !== null
-                      ? `${dutyPerformerLabel.contractor}: ${duty.performerNote}`
-                      : performerWords(duty),
+                    duty.performer === 'contractor' && duty.contractorId ? (
+                      <>
+                        {`${dutyPerformerLabel.contractor}: `}
+                        <ContractorName
+                          contractorId={duty.contractorId}
+                          note={duty.performerNote}
+                        />
+                      </>
+                    ) : duty.performer === 'contractor' && duty.performerNote !== null ? (
+                      `${dutyPerformerLabel.contractor}: ${duty.performerNote}`
+                    ) : (
+                      performerWords(duty)
+                    ),
                 },
               ]}
             />
@@ -1212,11 +1224,21 @@ function NewActivityDialog({
               {
                 label: 'Durchführung',
                 value:
-                  duty.performer === null
-                    ? null
-                    : duty.performer === 'contractor'
-                      ? ['Fremde Durchführung', duty.performerNote].filter(Boolean).join(', ')
-                      : 'Eigene Durchführung',
+                  duty.performer === null ? null : duty.performer === 'contractor' ? (
+                    !duty.contractorId ? (
+                      ['Fremde Durchführung', duty.performerNote].filter(Boolean).join(', ')
+                    ) : (
+                      <>
+                        {'Fremde Durchführung, '}
+                        <ContractorName
+                          contractorId={duty.contractorId}
+                          note={duty.performerNote}
+                        />
+                      </>
+                    )
+                  ) : (
+                    'Eigene Durchführung'
+                  ),
               },
               { label: 'Verantwortlich', value: duty.responsible?.name ?? <Nobody /> },
             ]}

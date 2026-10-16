@@ -135,6 +135,7 @@ function duty(further: Readonly<Record<string, unknown>> = {}): DutyDetails {
     responsibleUserId: 'u-roth',
     performer: 'own_staff',
     performerNote: null,
+    contractorId: null,
     confirmedBy: 'u-lead',
     confirmedAt: '2026-09-14T08:00:00.000Z',
     endsOn: null,
@@ -195,6 +196,8 @@ async function mount(
     {
       ...servingCatalogue(withMoreKinds),
       '/duties/colleagues': colleagues,
+      // The firms of the operator (#328).
+      '/contractors': [{ id: 'c-sued', name: 'Prüfdienst Süd', services: [] }],
       [`/assets/${lift.id}`]: lift,
       '/duties/d-1': duty(),
       '/duties/d-1/evidence': [],
@@ -275,6 +278,7 @@ describe('confirming a proposal', () => {
           responsibleUserId: 'u-roth',
           performer: 'own_staff',
           performerNote: null,
+          contractorId: null,
         },
       },
     ])
@@ -414,7 +418,10 @@ describe('the interval of a duty from the catalogue', () => {
     answerToWrite = answering(duty(), 200)
     type(/^Frist/, '18')
     fireEvent.click(screen.getByRole('radio', { name: 'Fremdfirma' }))
-    type(/^Angabe zur Fremdfirma/, 'Prüfdienst Süd')
+    await screen.findByRole('option', { name: 'Prüfdienst Süd' })
+    fireEvent.change(screen.getByRole('combobox', { name: 'Fremdfirma' }), {
+      target: { value: 'c-sued' },
+    })
     press('Speichern')
 
     await waitFor(() => {
@@ -424,7 +431,7 @@ describe('the interval of a duty from the catalogue', () => {
       {
         method: 'PATCH',
         path: '/duties/d-1',
-        body: { intervalMonths: 18, performer: 'contractor', performerNote: 'Prüfdienst Süd' },
+        body: { intervalMonths: 18, performer: 'contractor', contractorId: 'c-sued' },
       },
     ])
   })

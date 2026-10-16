@@ -41,6 +41,7 @@ const whole = [
   'Aufträge',
   'Aufgaben',
   'Lager',
+  'Fremdfirmen',
   'Katalog',
 ]
 
@@ -56,7 +57,7 @@ describe('the navigation of the board', () => {
       ['Übersicht'],
       ['Liegenschaften', 'Anlagen', 'Zähler', 'Dokumente'],
       ['Pflichtenverzeichnis', 'Fristen', 'Prüfungen'],
-      ['Rundgänge', 'Mängel', 'Aufträge', 'Aufgaben', 'Lager'],
+      ['Rundgänge', 'Mängel', 'Aufträge', 'Aufgaben', 'Lager', 'Fremdfirmen'],
     ])
     expect(officeFoot.map((place) => place.label)).toEqual(['Katalog'])
   })
@@ -168,6 +169,7 @@ describe('the navigation of the office as it is built today', () => {
     'Aufgaben',
     // The stores, for every role to look at (#325).
     'Lager',
+    'Fremdfirmen',
     'Katalog',
     'Abgleich',
   ]
@@ -186,6 +188,7 @@ describe('the navigation of the office as it is built today', () => {
     'Aufträge',
     'Aufgaben',
     'Lager',
+    'Fremdfirmen',
     'Katalog',
     'Abgleich',
     'Einstellungen',

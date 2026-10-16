@@ -34,6 +34,7 @@ import {
 import { areaFromPropertyColumn, areaFromTheProperty, withinAreas } from './areas.js'
 import { assets } from './assets.js'
 import { attachments, attachmentVersions } from './attachments.js'
+import { contractors } from './contractors.js'
 import { buildings, optionalTrimmed, properties, rooms, trimmed } from './locations.js'
 
 // The duties of an operator (section 2.3 of the concept, ADR 0002, points 10
@@ -122,6 +123,7 @@ export const duties = pgTable(
     responsibleUserId: text('responsible_user_id'),
     performer: dutyPerformer('performer'),
     performerNote: text('performer_note'),
+    contractorId: reference<'contractor'>('contractor_id'),
     confirmedBy: text('confirmed_by').notNull(),
     confirmedAt: timestamp('confirmed_at', { withTimezone: true }).notNull().defaultNow(),
     endsOn: date('ends_on', { mode: 'string' }),
@@ -247,6 +249,18 @@ export const duties = pgTable(
       optionalTrimmed(table.performerNote, dutyLimits.performerNote),
     ),
     check('duties_end_reason_shaped', optionalTrimmed(table.endReason, dutyLimits.endReason)),
+    // The firm out of the list of the operator (#328), which lies in no area.
+    foreignKey({
+      columns: [table.tenantId, table.contractorId],
+      foreignColumns: [contractors.tenantId, contractors.id],
+      name: 'duties_name_their_contractor',
+    }),
+    index('duties_contractor_idx').on(table.tenantId, table.contractorId),
+    // A firm out of the list only where a contractor carries the duty out.
+    check(
+      'duties_contractor_for_a_contractor',
+      sql`${table.contractorId} is null or ${table.performer} = 'contractor'`,
+    ),
     // A reason for an end only with the day it ends.
     check('duties_end_whole', sql`${table.endReason} is null or ${table.endsOn} is not null`),
     // The document and its version come together, or neither.

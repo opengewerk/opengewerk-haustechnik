@@ -123,6 +123,8 @@ async function mount(
     {
       ...servingCatalogue(),
       '/duties/colleagues': colleagues,
+      // The firms of the operator (#328).
+      '/contractors': [{ id: 'c-sued', name: 'Prüfdienst Süd', services: [] }],
       '/duties/proposals': proposals,
       ...answers,
     },
@@ -248,8 +250,9 @@ describe('a batch', () => {
       target: { value: 'u-lindner' },
     })
     fireEvent.click(screen.getByRole('radio', { name: 'Fremdfirma' }))
-    fireEvent.change(screen.getByLabelText('Angabe zur Fremdfirma'), {
-      target: { value: ' Prüfdienst Süd ' },
+    await screen.findByRole('option', { name: 'Prüfdienst Süd' })
+    fireEvent.change(screen.getByRole('combobox', { name: 'Fremdfirma' }), {
+      target: { value: 'c-sued' },
     })
     // One chosen less.
     fireEvent.click(screen.getByRole('checkbox', { name: 'AN-00102 Aufzug 2 auswählen' }))
@@ -273,7 +276,7 @@ describe('a batch', () => {
           assetIds: ['a-1', 'a-3', 'a-4', 'a-5', 'a-6', 'a-7'],
           responsibleUserId: 'u-lindner',
           performer: 'contractor',
-          performerNote: 'Prüfdienst Süd',
+          contractorId: 'c-sued',
         },
       },
     ])
@@ -309,7 +312,7 @@ describe('a batch', () => {
         intervalReason: 'Gefährdungsbeurteilung Aufzüge',
         responsibleUserId: null,
         performer: null,
-        performerNote: null,
+        contractorId: null,
       },
     })
   })

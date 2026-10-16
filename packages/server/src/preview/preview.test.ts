@@ -586,7 +586,9 @@ describe('a preview started as the Leitung', () => {
       register.duties.find((duty) => duty.title === 'Hauptprüfung der Aufzugsanlage'),
     ).toMatchObject({
       responsible: { name: expect.stringMatching(/^(Petra Lindner|Dennis Roth)$/) },
-      performerNote: 'Prüfdienst Beispiel GmbH',
+      // The firm out of the list of the preview (#328).
+      performerNote: null,
+      contractorId: expect.any(String) as unknown,
     })
     expect((await asked({ state: 'ended' })).duties.map((duty) => duty.title)).toEqual([
       'Eichung des alten Zählers',

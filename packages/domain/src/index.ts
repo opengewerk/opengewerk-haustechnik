@@ -99,6 +99,8 @@ export * from './model/signature.js'
 export * from './model/service-report.js'
 // The stores, on the building block of the foundation (#325).
 export * from './model/store.js'
+// The contractors of the operator, tenant-wide (#328).
+export * from './model/contractor.js'
 export * from './model/material.js'
 
 // What is done to meet a duty or to set a fault right, and what is noticed on

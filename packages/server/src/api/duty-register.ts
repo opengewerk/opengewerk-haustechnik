@@ -1,5 +1,6 @@
 import { BadRequestException } from '@nestjs/common'
 import {
+  type ContractorId,
   type AreaId,
   type BuildingId,
   type Catalogue,
@@ -27,7 +28,7 @@ import {
   withoutResponsible,
 } from '@opengewerk/haustechnik-domain'
 import { isUuid, type TenantTransaction } from '@opengewerk/platform-server'
-import { and, eq, isNotNull, isNull, or } from 'drizzle-orm'
+import { and, eq, isNotNull, isNull, or, sql } from 'drizzle-orm'
 
 import { dutiesOnADay, dutyTitle, type RegisteredDuty } from '../database/duty-standing.js'
 import { intervalDocumentsOf } from '../database/interval-documents.js'
@@ -73,7 +74,15 @@ export function dutyRegisterQuestion(
   }
 
   const plain = (
-    ['propertyId', 'areaId', 'buildingId', 'assetKind', 'dutyKind', 'responsible'] as const
+    [
+      'propertyId',
+      'areaId',
+      'buildingId',
+      'assetKind',
+      'dutyKind',
+      'responsible',
+      'contractorId',
+    ] as const
   )
     .map((name) => [name, said(query, name)] as const)
     .filter(([, value]) => value !== undefined)
@@ -154,6 +163,7 @@ export function dutyEntry(
     responsibleUserId: duty.responsibleUserId,
     performer: duty.performer,
     performerNote: duty.performerNote,
+    contractorId: duty.contractorId,
     ended,
     intervalToCheck: intervalToCheck(intervalDocument, ended),
     asset,
@@ -179,7 +189,7 @@ function placeKey(entry: UnnamedDutyEntry): string {
 /** What narrows the register in the database: where a duty is and what kind it is. */
 export type DutyPlaceFilter = Pick<
   DutyRegisterFilter,
-  'propertyId' | 'areaId' | 'buildingId' | 'assetKind' | 'dutyKind'
+  'propertyId' | 'areaId' | 'buildingId' | 'assetKind' | 'dutyKind' | 'contractorId'
 >
 
 /**
@@ -238,6 +248,12 @@ export async function registeredEntries(
             ),
         filter.assetKind === undefined ? undefined : eq(assets.kind, filter.assetKind),
         filter.dutyKind === undefined ? undefined : eq(duties.kind, filter.dutyKind),
+        // The duties a firm of the list carries out (#328); one that is no id names none.
+        filter.contractorId === undefined
+          ? undefined
+          : isUuid(filter.contractorId)
+            ? eq(duties.contractorId, filter.contractorId as ContractorId)
+            : sql`false`,
       ),
     )
 

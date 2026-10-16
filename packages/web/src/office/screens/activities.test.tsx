@@ -83,6 +83,7 @@ function activity(id: string, further: Partial<ActivityEntry> = {}): ActivityEnt
     performer: 'own_staff',
     performerPerson: { userId: 'u-wendt', name: 'Tobias Wendt' },
     contractorNote: null,
+    contractorId: null,
     ...further,
   }
 }
@@ -363,6 +364,7 @@ describe('the plan of an activity', () => {
             performer: 'own_staff',
             performerUserId: 'u-yilmaz',
             contractorNote: null,
+            contractorId: null,
             dueOn: '2099-11-02',
           },
         },
@@ -370,10 +372,15 @@ describe('the plan of an activity', () => {
     })
   })
 
-  it('names a contractor instead of a person when a contractor performs it', async () => {
+  it('names a contractor out of the list instead of a person when a contractor performs it', async () => {
     const { mounted, written } = mount(
       '/pruefungen/ac-own',
-      { '/activities/ac-own': details(own), '/activities/ac-own/candidates': candidates },
+      {
+        '/activities/ac-own': details(own),
+        '/activities/ac-own/candidates': candidates,
+        // The firms of the operator (#328).
+        '/contractors': [{ id: 'c-licht', name: 'Licht Beispiel GmbH', services: ['440'] }],
+      },
       'site_management',
       () => ({ status: 200, body: details(own) }),
     )
@@ -381,9 +388,8 @@ describe('the plan of an activity', () => {
     await mounted
     await screen.findByRole('option', { name: 'Murat Yilmaz' })
     fireEvent.click(screen.getByRole('radio', { name: 'Fremde Durchführung' }))
-    fireEvent.change(screen.getByLabelText('Fremdfirma'), {
-      target: { value: 'Licht Beispiel GmbH' },
-    })
+    await screen.findByRole('option', { name: 'Licht Beispiel GmbH' })
+    fireEvent.change(screen.getByLabelText('Fremdfirma'), { target: { value: 'c-licht' } })
     fireEvent.click(screen.getByRole('button', { name: 'Speichern' }))
 
     await waitFor(() => {
@@ -392,7 +398,8 @@ describe('the plan of an activity', () => {
           responsibleUserId: 'u-roth',
           performer: 'contractor',
           performerUserId: null,
-          contractorNote: 'Licht Beispiel GmbH',
+          contractorNote: null,
+          contractorId: 'c-licht',
           dueOn: '2099-10-12',
         },
       ])

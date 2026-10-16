@@ -738,7 +738,7 @@ describe('changing a duty', () => {
       (await change({ intervalMonths: 18, responsibleUserId: 'u-site' }).expect(200)).body,
     ).toMatchObject({ intervalMonths: 18, responsibleUserId: 'u-site', kind: mainTest })
     expect((await change({ performerNote: 'Prüfstelle Süd' }).expect(400)).body.message).toBe(
-      'Die Angabe zur Fremdfirma gehört zu einer Pflicht, die eine Fremdfirma ausführt.',
+      'Die Fremdfirma gehört zu einer Pflicht, die eine Fremdfirma ausführt.',
     )
     expect((await change({ responsibleUserId: 'u-gone' }).expect(400)).body.message).toBe(
       'Verantwortlich ist jemand, der für diesen Betreiber arbeitet.',

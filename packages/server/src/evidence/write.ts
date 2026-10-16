@@ -1,4 +1,5 @@
 import {
+  type ContractorId,
   type ActivityId,
   type AttachmentId,
   type Catalogue,
@@ -103,6 +104,8 @@ export interface EvidenceToWrite {
   /** A person of the operator who did it, or an examiner with the organisation from outside. */
   readonly performedBy: string | null
   readonly examiner: { readonly name: string; readonly organisation: string } | null
+  /** The firm of the list whose report it is (#328), beside the organisation as it was written. */
+  readonly contractorId?: ContractorId | null
   /** The signatures the activity carries, by name and moment (#26, third step). */
   readonly signatures: readonly StatedSignature[]
   /** The files the evidence rests on, by checksum (the documents of phase 1). */
@@ -336,6 +339,7 @@ export async function writeEvidence(
       performedBy: input.performedBy,
       examiner: input.examiner?.name ?? null,
       examinerOrganisation: input.examiner?.organisation ?? null,
+      contractorId: input.contractorId ?? null,
       writtenBy: context.writtenBy,
       writtenAt: context.at,
       replacesEvidenceId: replaced?.id ?? null,

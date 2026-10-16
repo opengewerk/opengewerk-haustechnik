@@ -89,6 +89,8 @@ export const operationRights: Readonly<Record<string, OperationRights>> = {
   store_articles: { otherwise: 'store.write' },
   stock_movements: { otherwise: 'store.write' },
   store_labels: { otherwise: 'store.write' },
+  // The contractors are kept in the office, with a connection (#328).
+  contractors: { otherwise: 'contractor.write' },
   asset_supplies: { create: 'asset.record', remove: 'asset.record', otherwise: 'asset.record' },
   duties: { otherwise: 'duty.write' },
   duty_dismissals: { otherwise: 'duty.write' },

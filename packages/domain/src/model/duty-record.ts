@@ -12,6 +12,7 @@ import {
 
 import type { AreaId } from './area.js'
 import type { AssetId } from './asset.js'
+import type { ContractorId } from './contractor.js'
 import {
   type Counting,
   countings,
@@ -118,6 +119,8 @@ export interface Duty extends Synced, PlaceTarget {
   readonly responsibleUserId: string | null
   readonly performer: DutyPerformer | null
   readonly performerNote: string | null
+  /** The firm out of the list that carries it out (#328); the note is what stood there as text before. */
+  readonly contractorId: ContractorId | null
   readonly confirmedBy: string
   readonly confirmedAt: Date
   /** The day it ends, from which it calls for nothing any more. */

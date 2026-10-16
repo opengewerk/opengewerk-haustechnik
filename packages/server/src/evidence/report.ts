@@ -146,6 +146,7 @@ export async function writeReport(
     resultReason: report.resultReason,
     performedBy: null,
     examiner: { name: report.examiner, organisation: report.examinerOrganisation },
+    contractorId: report.contractorId,
     signatures: [],
     files: [
       { sha256: report.file.sha256, name: report.file.fileName, mediaType: stored.mediaType },
@@ -281,6 +282,7 @@ async function settle(
       performer: 'contractor',
       performerUserId: null,
       contractorNote: report.examinerOrganisation,
+      contractorId: report.contractorId,
     })
     .where(and(eq(activities.tenantId, context.tenantId), eq(activities.id, activityId)))
 }
