@@ -7,6 +7,23 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
 
 ## [Unreleased]
 
+## [0.1.4] - 2026-10-16
+
+Eine Zwischenfassung für den Pilotbetrieb mit dem, was aus Phase 2 schon fertig ist, vor der Fassung
+0.2.0 am Ende der Phase. Ein Auftrag bekommt auf Wunsch einen Leistungsnachweis mit der Unterschrift
+des Auftraggebers, Material kommt aus dem Lager an den Auftrag, und ein Dokument trägt ein Datum, bis
+zu dem es gilt, als Frist. Fremdfirmen stehen in einer Liste mit Ansprechpartnern, Dokumenten,
+Verträgen und Gewährleistung; an einem Auftrag einer Fremdfirma werden ihre Leute vor Ort
+eingewiesen, und der Erlaubnisschein für feuergefährliche Arbeiten ist ein Formular des Pakets
+Brandschutz. Dazu kommen das Nachweisverzeichnis, die Einordnung nach DIN 31051 und abgeschlossene
+Rundgänge als Tabelle; das Büro lädt seine Bildschirme je Adresse nach und startet damit schneller.
+
+Aktualisiert wird wie bei jeder Fassung in zwei Schritten, vorher gesichert. Die Migrationen
+`0053_service_reports` bis `0061_briefings_and_permits` laufen dabei von selbst; die neuen Rechte
+„Verträge ansehen“ und „Verträge führen“ bekommen die Rollen, die sie nach dem Konzept haben. Das
+Formular des Erlaubnisscheins ist neu und noch nicht fachkundig abgenommen; es ist überall so
+gekennzeichnet, wo es gelesen wird.
+
 ### Hinzugefügt
 
 - Einsatz einer Fremdfirma (#330): Ein Auftrag nennt die Fremdfirma aus der Liste, die ihn ausführt,
