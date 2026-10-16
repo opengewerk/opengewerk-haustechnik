@@ -1,0 +1,161 @@
+import type { IsoDate } from '@opengewerk/platform-domain'
+
+import { dutyInterval, intervalWords } from './duty-record.js'
+import type { DutyEntry } from './duty-register.js'
+import { type EvidenceResult, evidenceResultLabel } from './evidence.js'
+import { byNameIn } from './name-order.js'
+import { dayInWords } from './office-table.js'
+
+/**
+ * The register of evidence (#338, section 4.3 of the concept): every duty of
+ * the assets chosen with its last evidence, for an inspection or an audit,
+ * on the day it is made. A block per asset, a line per duty.
+ *
+ * Evidence from the old stock never looks like evidence somebody signed here
+ * (section 11): its line carries the mark "Altbestand, ohne Unterschrift". A
+ * duty without any evidence says "Nie erfasst".
+ */
+export const evidenceRegisterWords = {
+  title: 'Nachweisverzeichnis',
+  legacy: 'Altbestand, ohne Unterschrift',
+  never: 'Nie erfasst',
+} as const
+
+/** What a line of the register reads of a duty: its row in the duty register, as far as the line needs it. */
+export type EvidenceRegisterDuty = Pick<
+  DutyEntry,
+  | 'id'
+  | 'title'
+  | 'sourceNote'
+  | 'intervalDays'
+  | 'intervalMonths'
+  | 'shortened'
+  | 'intervalReason'
+  | 'lastEvidence'
+  | 'appointment'
+  | 'asset'
+  | 'propertyId'
+  | 'buildingId'
+  | 'roomId'
+>
+
+/** The document that bears the interval of a duty, with its version and its day (#74). */
+export interface IntervalDocument {
+  readonly title: string
+  readonly version: number
+  readonly datedOn: IsoDate | null
+}
+
+/** A duty with what only the register of evidence asks of it. */
+export interface EvidenceRegisterEntry {
+  readonly duty: EvidenceRegisterDuty
+  /** The result of its last evidence, which the row of the duty register does not carry. */
+  readonly lastResult: EvidenceResult | null
+  readonly intervalDocument: IntervalDocument | null
+}
+
+/** A line of the register: a duty, in words. */
+export interface EvidenceRegisterLine {
+  readonly dutyId: string
+  readonly duty: string
+  readonly reference: string
+  /** "Bescheid des Gesundheitsamts, Fassung 2 vom 03.02.2026", or null. */
+  readonly document: string | null
+  readonly interval: string
+  readonly reason: string | null
+  /** "14.03.2026, Ohne Mangel", or null where there is no evidence. */
+  readonly last: string | null
+  readonly evidenceId: string | null
+  readonly evidenceNumber: string | null
+  /** The mark of a line whose last evidence was signed nowhere here, or that has none. */
+  readonly mark: (typeof evidenceRegisterWords)['legacy' | 'never'] | null
+  readonly nextDue: IsoDate | null
+}
+
+/** A block of the register: the duties of one asset, or of one place that is no asset. */
+export interface EvidenceRegisterBlock {
+  readonly asset: EvidenceRegisterDuty['asset']
+  /** The room, the building or the property the duties hang on where they hang on no asset. */
+  readonly placeId: string | null
+  readonly lines: readonly EvidenceRegisterLine[]
+}
+
+/** The document of a line in words. */
+function documentWords(document: IntervalDocument): string {
+  const day = document.datedOn === null ? '' : ` vom ${dayInWords(document.datedOn)}`
+
+  return `${document.title}, Fassung ${String(document.version)}${day}`
+}
+
+/** A duty as a line of the register. */
+export function evidenceRegisterLine(entry: EvidenceRegisterEntry): EvidenceRegisterLine {
+  const { duty, lastResult, intervalDocument } = entry
+  const evidence = duty.lastEvidence
+  const performed =
+    evidence === null
+      ? null
+      : `${dayInWords(evidence.performedOn)}${lastResult === null ? '' : `, ${evidenceResultLabel[lastResult]}`}`
+
+  return {
+    dutyId: duty.id,
+    duty: duty.title,
+    reference: duty.sourceNote ?? '',
+    document: intervalDocument === null ? null : documentWords(intervalDocument),
+    interval: intervalWords(duty.shortened ?? dutyInterval(duty)),
+    reason: duty.intervalReason,
+    last: performed,
+    evidenceId: evidence?.id ?? null,
+    evidenceNumber: evidence?.number ?? null,
+    mark:
+      evidence === null
+        ? evidenceRegisterWords.never
+        : evidence.origin === 'legacy'
+          ? evidenceRegisterWords.legacy
+          : null,
+    nextDue: duty.appointment?.dueOn ?? null,
+  }
+}
+
+/**
+ * The register in blocks: a block per asset by its number, then the places
+ * that are no asset; within a block the duties by their name.
+ */
+export function evidenceRegisterBlocks(
+  entries: readonly EvidenceRegisterEntry[],
+): readonly EvidenceRegisterBlock[] {
+  const blocks = new Map<
+    string,
+    {
+      asset: EvidenceRegisterDuty['asset']
+      placeId: string | null
+      entries: EvidenceRegisterEntry[]
+    }
+  >()
+
+  for (const entry of entries) {
+    const { duty } = entry
+    const placeId = duty.asset === null ? (duty.roomId ?? duty.buildingId ?? duty.propertyId) : null
+    const key = duty.asset === null ? `place:${String(placeId)}` : `asset:${duty.asset.id}`
+    const block = blocks.get(key) ?? { asset: duty.asset, placeId, entries: [] }
+
+    block.entries.push(entry)
+    blocks.set(key, block)
+  }
+
+  // Assets first, by their number; the places that are no asset after them.
+  const byPlace = (
+    one: { asset: EvidenceRegisterDuty['asset'] },
+    other: { asset: EvidenceRegisterDuty['asset'] },
+  ) =>
+    one.asset === null || other.asset === null
+      ? Number(one.asset === null) - Number(other.asset === null)
+      : byNameIn(one.asset.number ?? one.asset.name, other.asset.number ?? other.asset.name)
+
+  return [...blocks.values()].sort(byPlace).map((block) => ({
+    asset: block.asset,
+    placeId: block.placeId,
+    lines: block.entries
+      .map(evidenceRegisterLine)
+      .sort((one, other) => byNameIn(one.duty, other.duty)),
+  }))
+}
