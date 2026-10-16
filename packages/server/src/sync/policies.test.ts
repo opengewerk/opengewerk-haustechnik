@@ -111,9 +111,15 @@ describe('the rights of an operation', () => {
           ),
         )
 
+      // The document of a contractor is filed by whoever keeps the firms (#328),
+      // which is asked below; on site a document hangs on a place.
+      const { contractorId: _firm, ...onSite } = (edits.create ?? {}) as Readonly<
+        Record<string, OfflineValues>
+      >
+
       done[entity] = {
         ...(edits.create && {
-          create: technician.includes(asks('create', edits.create) as never),
+          create: technician.includes(asks('create', onSite) as never),
         }),
         ...(edits.change && {
           change: technician.includes(asks('update', edits.change) as never),
@@ -121,6 +127,14 @@ describe('the rights of an operation', () => {
         ...(edits.remove && { remove: technician.includes(asks('delete') as never) }),
       }
     }
+
+    // A document of a contractor asks for the right to keep the firms (#328).
+    const ofAFirm = permissionFor('attachments', 'create', [
+      { field: 'contractorId', from: null, to: 'x' },
+    ])
+
+    expect(ofAFirm).toBe('contractor.write')
+    expect(technician).not.toContain(ofAFirm)
 
     // A fault found on site becomes a work order there, by whoever hands one out.
     expect(site).toContain(permissionFor('activities', 'create'))

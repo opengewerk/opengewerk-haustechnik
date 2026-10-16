@@ -5,6 +5,7 @@ import {
   contactLimits,
   missingRight,
   type RoleKey,
+  rightsOfRoles,
   type TenantId,
 } from '@opengewerk/haustechnik-domain'
 import { Database, newId } from '@opengewerk/platform-server'
@@ -51,7 +52,8 @@ type Person = keyof typeof people & string
 
 const missingProperty = 'Diese Liegenschaft gibt es nicht oder nicht mehr.'
 const missingContact = 'Diesen Ansprechpartner gibt es nicht oder nicht mehr.'
-const withoutProperty = 'Ein Ansprechpartner gehört zu einer Liegenschaft, dieser zu keiner.'
+const withoutProperty =
+  'Ein Ansprechpartner gehört zu einer Liegenschaft oder einer Fremdfirma, dieser zu keiner.'
 
 let admin: Pool
 let database: Database
@@ -658,5 +660,148 @@ describe('the change log of a property', () => {
     expect(about('contacts')).not.toContain(other['id'])
     // And the log calls the contact by its name, as the foundation names one.
     expect(titles[String(contact['id'])]?.title).toBe('Becker')
+  })
+})
+
+describe('the people of a contractor (#328)', () => {
+  /** A firm of the large tenant, made by its Technische Leitung. */
+  async function firmOf(name: string, tenantId: TenantId = large): Promise<string> {
+    return (
+      await http()
+        .post('/contractors')
+        .set(testIdentityHeader, by('u-duties', tenantId))
+        .send({ name })
+        .expect(201)
+    ).body.id as string
+  }
+
+  /**
+   * A firm lies in no area (ADR 0003, addendum of #328), and so do its people:
+   * whoever is in the operator reads them, the technician of the north too.
+   */
+  it('are added at their firm in no area, and read by everybody in the operator', async () => {
+    const firm = await firmOf('Brandschutz Beispiel GmbH')
+    const created = await http()
+      .post('/contacts')
+      .set(testIdentityHeader, by('u-duties', large))
+      .send({ contractorId: firm, familyName: 'Krämer', role: 'Disposition' })
+      .expect(201)
+
+    expect(created.body).toMatchObject({ contractorId: firm, propertyId: null, areaId: null })
+    expect(await readBy('u-tech', large)).toContain(created.body.id)
+    // Nobody of another operator.
+    expect(await readBy('u-tech', small)).not.toContain(created.body.id)
+  })
+
+  it('are kept by whoever keeps the firms as well as the places', async () => {
+    const firm = await firmOf('Aufzug Beispiel GmbH')
+    const asked = (header: string) =>
+      http()
+        .post('/contacts')
+        .set(testIdentityHeader, header)
+        .send({ contractorId: firm, familyName: 'Albers' })
+    // Somebody of an operator's own role who keeps the places and no firms.
+    const placesAlone = JSON.stringify({
+      userId: 'u-duties',
+      tenantId: large,
+      roles: ['technical_management'],
+      rights: ['location.read', 'location.write'],
+    })
+
+    expect((await asked(by('u-lead', large))).status).toBe(201)
+    expect((await asked(by('u-site', large))).status).toBe(403)
+
+    const refused = await asked(placesAlone)
+
+    expect([refused.status, refused.body.message]).toEqual([403, missingRight('contractor.write')])
+  })
+
+  /**
+   * The people of a firm lie in no area, so the policies hand them to
+   * everybody in the operator. The list and a device give them only to
+   * whoever sees the firms, whatever areas they see: a role of the operator's
+   * own may read the places and not the firms.
+   */
+  it('are read, in the list and on a device, only by whoever sees the firms', async () => {
+    const firm = await firmOf('Sanitär Beispiel GmbH')
+    const ofTheFirm = (
+      await http()
+        .post('/contacts')
+        .set(testIdentityHeader, by('u-duties', large))
+        .send({ contractorId: firm, familyName: 'Krämer' })
+        .expect(201)
+    ).body.id as string
+    const atAPlace = (await contactAt(await propertyIn(large, { areaId: north }), large))[
+      'id'
+    ] as string
+
+    /** One of the people, with every right of their role save seeing the firms. */
+    const withoutFirms = (userId: Person) =>
+      JSON.stringify({
+        userId,
+        tenantId: large,
+        roles: [people[userId]],
+        rights: [...rightsOfRoles([people[userId] as RoleKey])].filter(
+          (right) => right !== 'contractor.read',
+        ),
+      })
+    const listed = async (header: string) =>
+      (
+        (await http().get('/contacts').set(testIdentityHeader, header).expect(200)).body as {
+          id: string
+        }[]
+      ).map((contact) => contact.id)
+    /** The contacts a device of the person holds, and what the answer names them by. */
+    const held = async (header: string) => {
+      const answer = await http().get('/sync?since=0').set(testIdentityHeader, header).expect(200)
+      const changes = answer.body.changes as { entity: string; rows: { id: string }[] }[]
+
+      return {
+        ids: (changes.find((change) => change.entity === 'contacts')?.rows ?? []).map(
+          (row) => row.id,
+        ),
+        narrowed: (answer.body.narrowed as Readonly<Record<string, string>>)['contacts'],
+      }
+    }
+
+    // Whoever sees every area, and the technician of the north.
+    for (const userId of ['u-lead', 'u-tech'] as const) {
+      const theirs = await held(by(userId, large))
+      const not = await held(withoutFirms(userId))
+
+      expect(await listed(by(userId, large))).toEqual(expect.arrayContaining([ofTheFirm, atAPlace]))
+      expect(await listed(withoutFirms(userId))).toContain(atAPlace)
+      expect(await listed(withoutFirms(userId))).not.toContain(ofTheFirm)
+      expect(theirs.ids).toEqual(expect.arrayContaining([ofTheFirm, atAPlace]))
+      expect(not.ids).toContain(atAPlace)
+      expect(not.ids).not.toContain(ofTheFirm)
+      // Named by another value, so that a device lets them go once the right goes.
+      expect(not.narrowed).toBe(`${theirs.narrowed}:without-contractors`)
+    }
+  })
+
+  it('are refused at a firm that is not there, and at a firm and a property at once', async () => {
+    const elsewhere = await firmOf('Lüftung Beispiel GmbH', small)
+    const propertyId = await propertyIn(large, { areaId: north })
+    const asked = (body: object) =>
+      http().post('/contacts').set(testIdentityHeader, by('u-duties', large)).send(body)
+
+    for (const contractorId of [elsewhere, newId<'contractor'>()]) {
+      const refused = await asked({ contractorId, familyName: 'Becker' })
+
+      expect([refused.status, refused.body.message]).toEqual([
+        422,
+        'Diese Fremdfirma gibt es nicht oder nicht mehr.',
+      ])
+    }
+
+    const both = await asked({
+      contractorId: await firmOf('Heizung Beispiel GmbH'),
+      propertyId,
+      familyName: 'Becker',
+    })
+
+    expect(both.status).toBeGreaterThanOrEqual(400)
+    expect(both.status).toBeLessThan(500)
   })
 })

@@ -157,7 +157,9 @@ Anhang B nennt jedes Feld der Datenbank, das auf eine Person zeigt. Dieser Absch
 
 - Ansprechpartner einer Liegenschaft stehen mit Vorname, Name, Funktion, E-Mail-Adresse und Telefonnummer dort. Lesen kann sie, wer die Liegenschaft sieht, auch auf dem Gerät vor Ort; pflegen können sie die Leitung und die Technische Leitung. [K4.1, K7, B5, B6, B35]
 - Ein Nachweis aus dem Bericht einer Fremdfirma oder Prüforganisation nennt den Prüfer und seine Organisation als freien Text. [K2.6, B29]
-- Fremdfirmen stehen mit Name, Anschrift, Telefon, E-Mail-Adresse, den Kostengruppen, in denen sie arbeiten, und einer Notiz in einer Liste des Betreibers, ohne Bereich. Das sind Angaben über eine Firma, nicht über eine Person. Ansehen können die Liste alle vier Rollen, auch auf dem Gerät vor Ort; pflegen können sie die Leitung und die Technische Leitung. Eine Pflicht, ein Vorgang und ein Nachweis nennen die Firma aus der Liste; der Nachweis behält daneben die Organisation, wie sie geschrieben wurde, auch wenn die Firma umbenannt oder entfernt wird. Ansprechpartner einer Fremdfirma hält diese Fassung nicht. [K2.6, K2.8, K4.11, K7, B290, B291, B292, B293]
+- Fremdfirmen stehen mit Name, Anschrift, Telefon, E-Mail-Adresse, den Kostengruppen, in denen sie arbeiten, und einer Notiz in einer Liste des Betreibers, ohne Bereich. Das sind Angaben über eine Firma, nicht über eine Person. Ansehen können die Liste alle vier Rollen, auch auf dem Gerät vor Ort; pflegen können sie die Leitung und die Technische Leitung. Eine Pflicht, ein Vorgang und ein Nachweis nennen die Firma aus der Liste; der Nachweis behält daneben die Organisation, wie sie geschrieben wurde, auch wenn die Firma umbenannt oder entfernt wird. [K2.6, K2.8, K4.11, K7, B290, B291, B292, B293]
+- Ansprechpartner einer Fremdfirma stehen mit Vorname, Name, Funktion, E-Mail-Adresse und Telefonnummer an der Firma. Das sind Angaben über Dritte, die der Betreiber selbst einträgt. Wie die Firma liegen sie in keinem Bereich: lesen kann sie jeder, der für den Betreiber arbeitet und Fremdfirmen ansieht, auch auf dem Gerät vor Ort; eine Rolle ohne das Recht „Fremdfirmen ansehen“ bekommt sie weder in der Liste noch auf das Gerät. Pflegen können sie die Leitung und die Technische Leitung. Wird die Firma entfernt, gehen ihre Ansprechpartner mit. [K2.8, K4.11, K7, B294]
+- Dokumente einer Fremdfirma (Zertifikate, Versicherung) hängen an der Firma und liegen in keinem Bereich; ihr Datum wird eine Frist, die jeder sieht, der Fristen ansieht, mit dem Titel des Dokuments und dem Namen der Firma, auch ohne das Recht „Fremdfirmen ansehen“: der Name einer Firma ist keine geschützte Angabe (Planungskonzept v0.44). Die Dokumente selbst, ihre Dateien und ihre Zeilen in der Tabelle „Dokumente“ bekommt nur, wer Dokumente und Fremdfirmen ansieht, im Büro wie auf dem Gerät. Ablegen, eine neue Fassung darüberlegen, Name und Art ändern und sie entfernen können nur die Leitung und die Technische Leitung; die Haustechnik und die Objektleitung, die andere Dokumente ablegen und entfernen, bekommen diese Wege an einem Dokument einer Firma nicht angeboten, und der Server lehnt sie ab. Wer eine Fassung abgelegt hat, steht wie bei jedem Dokument an der Fassung (Abschnitt 3.9) und ist für ihre Frist verantwortlich. [K2.4, K4.10, K4.11, K7, B295, B296, B297]
 - Ein Leistungsnachweis nennt den Auftraggeber mit seinem Namen in Druckschrift und trägt seinen Schriftzug. Lesen kann ihn, wer den Auftrag sieht, im Büro mit seinem PDF; auf dem Gerät liegt er mit dem Auftrag. [K4.8, K9, B273]
 - Melder einer Störung gibt es in dieser Fassung nicht; sie kommen in Phase 2. [K9, K12]
 
@@ -709,6 +711,10 @@ Pfade ohne Vorsatz liegen im Repository `opengewerk/opengewerk-haustechnik`. Pfa
 | B291 | Recht | `contractor.write` | Fremdfirmen pflegen: Leitung, Technische Leitung |
 | B292 | Test | `packages/server/src/api/contractors.test.ts` | `is the Leitung and the Technische Leitung; every role reads them` |
 | B293 | Test | `packages/server/src/api/report.test.ts` | `stays as it was written when the firm is changed or removed, and the inspection names the firm` |
+| B294 | Test | `packages/server/src/api/contacts.test.ts` | `are read, in the list and on a device, only by whoever sees the firms` |
+| B295 | Test | `packages/server/src/deadlines/documents.test.ts` | `goes out as a file, in the table and to a device only to whoever sees the firms` |
+| B296 | Test | `packages/server/src/deadlines/documents.test.ts` | `is kept after filing, with a new version, a change or taken out, only by whoever keeps the firms` |
+| B297 | Test | `packages/server/src/deadlines/documents.test.ts` | `stands in "Fristen" with its title and the firm also for whoever reads deadlines and not the firms` |
 
 ---
 
@@ -781,7 +787,7 @@ Jede Zeile ist der erste Abschnitt einer Adresse, unter der der Server antwortet
 | `auth` | das eigene Konto: Betreiber wählen, eigene Angaben, eigene Geräte, eigene Passkeys, abmelden |
 | `buildings` | Gebäude mit ihren Schließzeiten |
 | `catalogue` | Katalog der Pakete, für jeden Betreiber derselbe und ohne Daten eines Betreibers |
-| `contacts` | Ansprechpartner einer Liegenschaft |
+| `contacts` | Ansprechpartner einer Liegenschaft oder einer Fremdfirma |
 | `contractors` | Fremdfirmen: die Liste, auch als Tabelle, die Seite einer Firma mit ihren offenen Pflichten und den Nachweisen ihrer Berichte, eine neue Firma, ihre Änderung, dass sie entfernt wird, und die Namen an Pflichten, die als Fremdfirmen übernommen werden; ohne Person |
 | `deadlines` | Fristen, auch die des Datums eines Dokuments, ihre Liste auch als Tabelle |
 | `defects` | Mängel: das Mängelverzeichnis, auch als Tabelle, und seine Zahlen, die Seite eines Mangels, ein Mangel von Hand, seine Klasse und Frist, die Nachprüfung und die Klassen, die ein Mangel von Hand nehmen kann |

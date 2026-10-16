@@ -251,7 +251,15 @@ export function deadlineWhere(
   names: PlaceNames | null,
   readsAssets = true,
 ): { readonly name: string; readonly sub: string } {
-  const property = names?.property(facts.propertyId) ?? 'Liegenschaft'
+  // The document of a contractor stands nowhere: the contractor is what it hangs on (#328).
+  if (facts.follows === 'document' && facts.propertyId === null) {
+    return { name: facts.contractor?.name ?? 'Fremdfirma', sub: 'Fremdfirma' }
+  }
+
+  const property =
+    facts.propertyId === null
+      ? 'Liegenschaft'
+      : (names?.property(facts.propertyId) ?? 'Liegenschaft')
   const building = facts.buildingId === null ? null : (names?.building(facts.buildingId) ?? null)
   const place = placeWords([property, building])
 
@@ -1106,6 +1114,7 @@ export const documentHomeLabel: Readonly<Record<DocumentHome, string>> = {
   assetId: 'Anlage',
   activityId: 'Vorgang',
   defectId: 'Mangel',
+  contractorId: 'Fremdfirma',
 }
 
 /**
@@ -1142,6 +1151,11 @@ export function documentHomeWords(
 ): string {
   if (home === 'propertyId') {
     return `${documentHomeLabel.propertyId} ${property ?? ''}`.trim()
+  }
+
+  // A contractor has no property (#328): its name, or the kind where the person does not read it.
+  if (home === 'contractorId') {
+    return `${documentHomeLabel.contractorId} ${named ?? ''}`.trim()
   }
 
   if (home === 'assetId' && named !== null) {

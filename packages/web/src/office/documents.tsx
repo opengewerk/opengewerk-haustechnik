@@ -39,6 +39,7 @@ import {
   fileVersion,
   documentsAt,
   newestFirst,
+  validityWords,
   versionWords,
 } from '../app/documents.js'
 import { onlyInABuilding, useHeldArea } from '../session/areas.js'
@@ -89,10 +90,11 @@ export function useDocumentSurroundings(): DocumentSurroundings {
   const assets = useRecords('assets')
   const activities = useRecords('activities')
   const defects = useRecords('defects')
+  const contractors = useRecords('contractors')
 
   return useMemo(
-    () => ({ properties, buildings, rooms, assets, activities, defects }),
-    [properties, buildings, rooms, assets, activities, defects],
+    () => ({ properties, buildings, rooms, assets, activities, defects, contractors }),
+    [properties, buildings, rooms, assets, activities, defects, contractors],
   )
 }
 
@@ -586,6 +588,7 @@ export function DocumentsCard({
   at,
   title = 'Dokumente',
   files: filesHere = true,
+  says = 'file',
 }: {
   /** The record the documents hang on: the property alone for those of the property itself. */
   readonly place: DocumentPlace
@@ -598,6 +601,11 @@ export function DocumentsCard({
    * property whose area the person does not hold (#309).
    */
   readonly files?: boolean
+  /**
+   * What the line under a document says: its newest file, or its kind and the
+   * day it is valid until, as the page of a contractor shows its papers (#328).
+   */
+  readonly says?: 'file' | 'validity'
 }) {
   const client = useSync()
   const reads = useRight('document.read')
@@ -647,7 +655,11 @@ export function DocumentsCard({
                   {text(document, 'title')}
                 </Link>
                 <div className="text-[12px] text-ink-faint [overflow-wrap:anywhere]">
-                  {newest ? versionWords(client, newest, all.length) : documentWords.onItsWay}
+                  {says === 'validity'
+                    ? validityWords(document, newest)
+                    : newest
+                      ? versionWords(client, newest, all.length)
+                      : documentWords.onItsWay}
                 </div>
               </li>
             )

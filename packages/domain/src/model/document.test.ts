@@ -6,6 +6,8 @@ import {
   documentKinds,
   documentLimits,
   documentProblems,
+  documentPlaceOrContractor,
+  documentPlaceProblem,
   documentTargetProblem,
   documentTitleOf,
   operatorDocuments,
@@ -13,7 +15,7 @@ import {
 import { offlineEditRefusal, offlineRules } from './sync.js'
 
 describe('a document of an operator', () => {
-  it('hangs on a property, a building, a room, an asset, an activity or a defect', () => {
+  it('hangs on a property, a building, a room, an asset, an activity, a defect or a contractor', () => {
     expect(operatorDocuments.homes).toEqual([
       'propertyId',
       'buildingId',
@@ -21,6 +23,7 @@ describe('a document of an operator', () => {
       'assetId',
       'activityId',
       'defectId',
+      'contractorId',
     ])
 
     for (const home of operatorDocuments.homes) {
@@ -31,9 +34,23 @@ describe('a document of an operator', () => {
   it('is told in a sentence where it may hang when it names nothing', () => {
     for (const none of [{}, { propertyId: null }, { propertyId: '', assetId: null }]) {
       expect(operatorDocuments.homeProblem(none)).toBe(
-        'Ein Dokument hängt an einer Liegenschaft, einem Gebäude, einem Raum, einer Anlage, einem Vorgang oder einem Mangel.',
+        'Ein Dokument hängt an einer Liegenschaft, einem Gebäude, einem Raum, einer Anlage, einem Vorgang, einem Mangel oder einer Fremdfirma.',
       )
     }
+  })
+
+  it('hangs on a place or on a contractor, never on both (#328)', () => {
+    expect(documentPlaceProblem({ contractorId: 'a-firm' })).toBeNull()
+    expect(documentPlaceProblem({ propertyId: 'a-property', assetId: 'an-asset' })).toBeNull()
+    expect(documentPlaceProblem({ contractorId: 'a-firm', propertyId: 'a-property' })).toBe(
+      documentPlaceOrContractor,
+    )
+    expect(documentPlaceProblem({ contractorId: 'a-firm', assetId: 'an-asset' })).toBe(
+      documentPlaceOrContractor,
+    )
+    expect(documentPlaceProblem({ propertyId: null, contractorId: '' })).toBe(
+      documentPlaceOrContractor,
+    )
   })
 
   it('hangs on its property or on exactly one record there', () => {

@@ -1,6 +1,7 @@
 import {
   type Catalogue,
   type Identity,
+  isAllowed,
   offlineEditRefusal,
   offlineRules,
   type Operation,
@@ -135,7 +136,13 @@ export const operationRights: Readonly<Record<string, OperationRights>> = {
   // of the records is a right of its own, from the Objektleitung on (section
   // 7 of the concept), and what a device may not send at all asks for it too.
   attachments: {
-    create: 'document.record',
+    // The certificates and the insurance of a contractor (#328) are kept by
+    // whoever keeps the firms; what comes after making one asks it of the
+    // document as the server holds it (`contractorDocumentKept`).
+    create: (patches) =>
+      patches.some((patch) => patch.field === 'contractorId' && patch.to !== null)
+        ? 'contractor.write'
+        : 'document.record',
     change: 'document.record',
     remove: 'document.remove',
     otherwise: 'document.remove',
@@ -247,7 +254,8 @@ async function senderOf(
  * and duty kinds come from. A device holds what its person sees, by area, and
  * of that the part ADR 0006 gives it (`deviceScope`): the whole operator for
  * whoever sees every area, the places, their own activities and the open
- * defects for anybody else.
+ * defects for anybody else, and the people and the documents of the
+ * contractors only for whoever sees the contractors (#328).
  */
 export function syncRoutesFor(
   catalogue: Catalogue,
@@ -257,7 +265,8 @@ export function syncRoutesFor(
     sync: syncFor(catalogue),
     permissionFor,
     answerFor,
-    scope: async ({ tx, identity }) => pullScope(await deviceScope(tx, identity.userId)),
+    scope: async ({ tx, identity }) =>
+      pullScope(await deviceScope(tx, identity.userId), isAllowed(identity, 'contractor.read')),
     senderOf: (identity, operations) => senderOf(database, identity, operations),
   }
 }

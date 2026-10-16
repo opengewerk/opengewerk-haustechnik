@@ -10,6 +10,7 @@ import {
   documentKindOf,
   documentKindWords,
   documentProblems,
+  documentPlaceProblem,
   documentTargetProblem,
   documentTitleOf,
   documentVersionProblems,
@@ -42,7 +43,9 @@ import { titleOfRoom } from './place-records.js'
 
 /** Where a new document hangs: its property, and on request one record there. */
 export interface DocumentPlace {
-  readonly propertyId: string
+  /** None for the documents of a contractor (#328), which `contractorId` names. */
+  readonly propertyId: string | null
+  readonly contractorId?: string | null
   readonly buildingId?: string | null
   readonly roomId?: string | null
   readonly assetId?: string | null
@@ -112,6 +115,7 @@ export async function fileDocumentAs(
   const kind = filing.kind ?? null
   const problem =
     operatorDocuments.homeProblem(place) ??
+    documentPlaceProblem({ ...place }) ??
     documentTargetProblem({ ...place }) ??
     Object.values(documentProblems({ title, kind }))[0] ??
     Object.values(documentVersionProblems(dayOf(filing)))[0]
@@ -201,6 +205,19 @@ export function versionWords(client: SyncClient, version: RecordState, versions:
 }
 
 /**
+ * A document as the page of a contractor names it (#328, the board
+ * "Fremdfirma"): its kind, and the day its newest version is valid until,
+ * which is the deadline of its certificate or insurance.
+ */
+export function validityWords(document: RecordState, newest: RecordState | undefined): string {
+  const kind = maybeText(document, 'kind') as DocumentKind | null
+  const words = documentKindOf(kind, newest ? text(newest, 'mediaType') : null)
+  const day = newest ? maybeText(newest, 'validUntil') : null
+
+  return day === null ? words : `${words}, ${documentDateWords(kind, date(day as IsoDate))}`
+}
+
+/**
  * The kind of a document as a list says it: its kind, or "Foto" for a picture
  * without one, which is what a photo of a type plate is.
  */
@@ -231,6 +248,8 @@ export interface DocumentSurroundings {
   readonly activities: readonly RecordState[]
   /** The defects this device holds; a photo of a defect is named by what was found. */
   readonly defects?: readonly RecordState[]
+  /** The contractors of the operator, whose certificates are documents too (#328). */
+  readonly contractors?: readonly RecordState[]
 }
 
 /** What a document hangs on, as a list names it, and the kind of place it is. */
@@ -284,6 +303,8 @@ export function hangsOn(document: RecordState, around: DocumentSurroundings): Ha
       return as(maybeText(byId(around.activities, id), 'title'))
     case 'defectId':
       return as(maybeText(byId(around.defects ?? [], id), 'description'))
+    case 'contractorId':
+      return as(maybeText(byId(around.contractors ?? [], id), 'name'))
     case 'propertyId':
       return as(null)
   }
@@ -299,6 +320,11 @@ export function documentsAt(
   documents: readonly RecordState[],
   place: DocumentPlace,
 ): readonly RecordState[] {
+  // The documents of a contractor (#328), which hang on nothing else.
+  if (place.contractorId !== undefined && place.contractorId !== null) {
+    return documents.filter((document) => document['contractorId'] === place.contractorId)
+  }
+
   const home = homes.find((field) => place[field] !== undefined && place[field] !== null)
 
   return documents.filter((document) =>

@@ -2,7 +2,7 @@ import { deadlinesSchema, reference } from '@opengewerk/platform-server'
 import { sql } from 'drizzle-orm'
 import { check, foreignKey, index } from 'drizzle-orm/pg-core'
 
-import { withinAreas } from './areas.js'
+import { withinAreasOrNone } from './areas.js'
 import { attachments } from './attachments.js'
 import { defects } from './defects.js'
 import { duties } from './duties.js'
@@ -31,8 +31,9 @@ const deadlineColumns = {
   attachmentId: reference<'attachment'>('attachment_id'),
   /** The task the engine made of this deadline, the action `task` (#242). */
   taskId: reference<'task'>('task_id'),
-  propertyId: reference<'property'>('property_id').notNull(),
-  areaId: reference<'area'>('area_id').notNull(),
+  // None for the document of a contractor (#328), which lies in no area.
+  propertyId: reference<'property'>('property_id'),
+  areaId: reference<'area'>('area_id'),
 }
 
 /** The columns this application gives its deadlines, for the engine of the foundation. */
@@ -54,7 +55,8 @@ export type ApplicationDeadlineColumns = typeof deadlineColumns
 export const { deadlineStatus, deadlines } = deadlinesSchema({
   columns: deadlineColumns,
   constraints: (table) => [
-    withinAreas(),
+    // The deadline of a contractor's document lies in no area (#328).
+    withinAreasOrNone(),
     // The area of what the row hangs on (ADR 0003, addendum of #306).
     foreignKey({
       columns: [table.tenantId, table.dutyId, table.areaId],
@@ -119,6 +121,11 @@ export const { deadlineStatus, deadlines } = deadlinesSchema({
     ),
     // Each follows one source: a duty, a defect, the plan of a round, the
     // meters of a property or a document.
+    // Without a place only the deadline of a document, which then is a contractor's (#328).
+    check(
+      'deadlines_at_a_place_or_of_a_document',
+      sql`(${table.areaId} is null) = (${table.propertyId} is null) and (${table.propertyId} is not null or ${table.attachmentId} is not null)`,
+    ),
     check(
       'deadlines_follow_one_source',
       sql`num_nonnulls(${table.dutyId}, ${table.defectId}, ${table.roundPlanId}, ${table.meterPropertyId}, ${table.attachmentId}) = 1`,

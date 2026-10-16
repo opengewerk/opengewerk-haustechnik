@@ -82,6 +82,22 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   Begehung allein aus der Anwendung bestreiten. Erzeugen darf, wer das Pflichtenverzeichnis und die
   Nachweise ansieht; enthalten ist nur, was die Person in ihren Bereichen sieht. Mit Anhang wiegt es
   höchstens 200 MB, darüber sagt der Server, die Auswahl einzugrenzen.
+- Ansprechpartner und Dokumente einer Fremdfirma (#328, zweiter Teil): auf der Seite der Firma ihre
+  Ansprechpartner und ihre Zertifikate, Versicherung und Nachweise als Fachbetrieb, deren „Gültig bis“
+  eine Frist in „Fristen“ wird, auch abgelaufen. Damit ist die Liste der Fremdfirmen vollständig, wie
+  Abschnitt 4.11 sie beschreibt. Wie die Firma liegen ihre Ansprechpartner und Dokumente in keinem
+  Bereich: entschieden am 16.10.2026, eine Zeile in `contacts`, `attachments` und `deadlines` darf
+  genau dann ohne Liegenschaft und Bereich stehen, wenn sie an etwas Betreiberweitem hängt; eine
+  Prüfung in der Datenbank hält das, die Policies lassen solche Zeilen für jeden im Betreiber durch,
+  und das Recht „Fremdfirmen pflegen“ entscheidet, wer sie anlegt, wer über ein Dokument einer
+  Firma eine neue Fassung legt, es ändert und es entfernt (Nachtrag in ADR 0003). Lesen,
+  in der Liste, als Datei, in der Tabelle „Dokumente“ und auf dem Gerät, kann sie nur, wer
+  „Fremdfirmen ansehen“ hat, weil das Recht genau das schützen soll und die Bereiche hier nicht
+  greifen; dafür kennt das Fundament ein Leserecht je Elternteil eines Ansprechpartners
+  (opengewerk/opengewerk#648), das Submodul ist angehoben. Der Name einer Firma ist dagegen keine
+  geschützte Angabe: die Frist eines Firmendokuments nennt Titel und Firma jedem, der Fristen ansieht
+  (Planungskonzept v0.44). Eine entfernte Firma nimmt ihre Ansprechpartner und Dokumente mit.
+  Migration `0059_contractor_contacts_and_documents`.
 
 ### Geändert
 

@@ -38,13 +38,15 @@ export interface SampleDocument {
   readonly laterVersions?: readonly SampleVersion[]
 }
 
-/** What a sample document hangs on: its property, and on request one record there. */
-export interface SampleHome {
-  readonly propertyId: string
-  readonly buildingId?: string
-  readonly roomId?: string
-  readonly assetId?: string
-}
+/** What a sample document hangs on: its property, and on request one record there, or a contractor (#328). */
+export type SampleHome =
+  | {
+      readonly propertyId: string
+      readonly buildingId?: string
+      readonly roomId?: string
+      readonly assetId?: string
+    }
+  | { readonly contractorId: string }
 
 /** A PDF of one page with one line on it, well formed down to its table of offsets. */
 export function samplePdf(words: string): Buffer {

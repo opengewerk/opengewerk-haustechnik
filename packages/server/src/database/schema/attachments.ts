@@ -13,8 +13,9 @@ import {
 } from 'drizzle-orm/pg-core'
 
 import { activities } from './activities.js'
-import { areaFromPropertyColumn, areaFromTheProperty, withinAreas } from './areas.js'
+import { areaFromPropertyColumn, areaFromTheProperty, withinAreasOrNone } from './areas.js'
 import { assets } from './assets.js'
+import { contractors } from './contractors.js'
 import { defects } from './defects.js'
 import { buildings, properties, rooms, trimmed } from './locations.js'
 
@@ -32,8 +33,10 @@ export const documentKind = pgEnum('document_kind', documentKinds)
  * no route and no device does.
  */
 const documentPlace = {
-  propertyId: reference<'property'>('property_id').notNull(),
-  areaId: reference<'area'>('area_id').notNull(),
+  propertyId: reference<'property'>('property_id'),
+  areaId: reference<'area'>('area_id'),
+  /** The contractor whose certificate or insurance it is (#328); then no property and no area. */
+  contractorId: reference<'contractor'>('contractor_id'),
   areaFromPropertyId: areaFromPropertyColumn(),
   buildingId: reference<'building'>('building_id'),
   roomId: reference<'room'>('room_id'),
@@ -85,8 +88,9 @@ function withinAreasOfTheirFile() {
  * concept): the two tables of the foundation (ADR 0010 in the repository
  * opengewerk), with what a document hangs on here.
  *
- * A document hangs on its property always and on at most one record there,
- * which the check says; every such key runs over the tenant and the
+ * A document hangs on its property and on at most one record there, which
+ * the check says, or on a contractor with no property and no area (#328),
+ * which `attachments_at_a_place_or_a_contractor` holds; every such key runs over the tenant and the
  * property, so that a document cannot hang on a record of another property or
  * of another area (ADR 0003). Its area follows its property by the key with
  * ON UPDATE CASCADE, and the restrictive policy `within_areas` keeps it in
@@ -104,7 +108,18 @@ export const { attachments, attachmentVersions } = attachmentsSchema({
   // newest one's is the deadline of the document.
   versionColumns: { validUntil: date('valid_until', { mode: 'string' }).$type<IsoDate>() },
   constraints: (table) => [
-    withinAreas(),
+    // A document of a contractor lies in no area: whoever is in the operator reads it (#328).
+    withinAreasOrNone(),
+    foreignKey({
+      columns: [table.tenantId, table.contractorId],
+      foreignColumns: [contractors.tenantId, contractors.id],
+      name: 'attachments_of_a_contractor',
+    }),
+    check(
+      'attachments_at_a_place_or_a_contractor',
+      sql`(${table.contractorId} is null) = (${table.propertyId} is not null) and (${table.areaId} is null) = (${table.propertyId} is null)`,
+    ),
+    index('attachments_contractor_idx').on(table.tenantId, table.contractorId),
     // The area of what the row hangs on (ADR 0003, addendum of #306).
     foreignKey({
       columns: [table.tenantId, table.buildingId, table.areaId],

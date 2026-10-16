@@ -8,6 +8,7 @@ import { Test } from '@nestjs/testing'
 import { probeCatalogueBundle } from '@opengewerk/haustechnik-catalogue/testing'
 import {
   catalogueOf,
+  missingRight,
   type RoleKey,
   roleKeys,
   rightsOfRoles,
@@ -75,9 +76,10 @@ let recorded = Date.parse('2026-10-05T08:00:00Z')
 
 function operation(
   entity: string,
-  kind: 'create' | 'delete',
+  kind: 'create' | 'update' | 'delete',
   recordId: string,
   values: Readonly<Record<string, SyncValue>> = {},
+  seen: Readonly<Record<string, SyncValue>> = {},
 ) {
   recorded += 1000
 
@@ -87,7 +89,11 @@ function operation(
     recordId,
     kind,
     baseVersion: null,
-    patches: Object.entries(values).map(([field, to]) => ({ field, from: null, to })),
+    patches: Object.entries(values).map(([field, to]) => ({
+      field,
+      from: seen[field] ?? null,
+      to,
+    })),
     recordedAt: new Date(recorded).toISOString(),
   }
 }
@@ -382,5 +388,312 @@ describe('the day of a document', () => {
       answer.status === 400 ||
         (answer.body.receipts as { outcome: string }[]).every((each) => each.outcome !== 'applied'),
     ).toBe(true)
+  })
+})
+
+describe('the documents of a contractor (#328)', () => {
+  /** A firm of the large tenant, made by its Leitung. */
+  async function firmOf(name: string): Promise<string> {
+    return (
+      await http()
+        .post('/contractors')
+        .set(testIdentityHeader, by('management', large))
+        .send({ name })
+        .expect(201)
+    ).body.id as string
+  }
+
+  /** A certificate of the firm with its first version, as the office files it. */
+  async function certificateOf(
+    firm: string,
+    validUntil: string | null,
+    role: RoleKey = 'management',
+    title = 'Zertifikat Fachbetrieb nach DIN 14675',
+  ) {
+    const header = by(role, large)
+    const document = newId<'attachment'>()
+    const created = operation('attachments', 'create', document, {
+      title,
+      kind: 'test_certificate',
+      contractorId: firm,
+    })
+    const version = await versionOf(header, document, validUntil)
+    const outcome = await outcomes(header, [created, version])
+
+    return { document, version: version.recordId, outcome }
+  }
+
+  /** The Objektleitung of the large tenant, which sees the north alone, as one that reads deadlines. */
+  const northOnly = () =>
+    JSON.stringify({
+      userId: people.site_management,
+      tenantId: large,
+      roles: ['site_management'],
+      rights: [...rightsOfRoles(['site_management']), 'deadline.read'],
+    })
+
+  it('stands in "Fristen" once expired, without a place, with the firm, for whoever is in the operator', async () => {
+    const firm = await firmOf('Brandschutz Beispiel GmbH')
+    // Expired before the pass of 05.10.2026.
+    const { document, outcome } = await certificateOf(firm, '2026-09-30')
+
+    expect(outcome).toEqual(['applied', 'applied'])
+
+    await pass(large)
+
+    const [row] = (await deadlinesOf(document, by('management', large))) as (Row & {
+      readonly propertyId: string | null
+      readonly contractor: { readonly id: string; readonly name: string } | null
+    })[]
+
+    expect(row).toMatchObject({
+      kind: 'document.expires',
+      dueOn: '2026-09-30',
+      follows: 'document',
+      propertyId: null,
+      contractor: { id: firm, name: 'Brandschutz Beispiel GmbH' },
+    })
+    // Whoever sees the north alone reads it, as the firm lies in no area,
+    // and still none of the south.
+    expect(await deadlinesOf(document, northOnly())).toHaveLength(1)
+
+    const inTheSouth = await filed('2026-09-30', 'test_certificate', large, south)
+
+    await pass(large)
+    expect(await deadlinesOf(inTheSouth, northOnly())).toEqual([])
+  })
+
+  /**
+   * The name of a firm is no secret (decided on 16.10.2026, #377): whoever
+   * reads deadlines reads the deadline of a paper of a firm with its title and
+   * the firm, and finds it by the name of the firm, without seeing the firms.
+   * The paper itself stays with whoever sees them.
+   */
+  it('stands in "Fristen" with its title and the firm also for whoever reads deadlines and not the firms', async () => {
+    const firm = await firmOf('Blitzschutz Beispiel GmbH')
+    const title = 'Zertifikat Blitzschutzfachkraft'
+    const { document } = await certificateOf(firm, '2027-03-31', 'management', title)
+    const reader = JSON.stringify({
+      userId: people.site_management,
+      tenantId: large,
+      roles: ['site_management'],
+      rights: [...rightsOfRoles(['site_management']), 'deadline.read'].filter(
+        (right) => right !== 'contractor.read',
+      ),
+    })
+
+    await pass(large)
+
+    expect(await deadlinesOf(document, reader)).toEqual([
+      expect.objectContaining({
+        title,
+        contractor: { id: firm, name: 'Blitzschutz Beispiel GmbH' },
+      }),
+    ])
+
+    const searched = async (words: string) =>
+      (
+        (
+          await http()
+            .get(`/deadlines?limit=200&search=${encodeURIComponent(words)}`)
+            .set(testIdentityHeader, reader)
+            .expect(200)
+        ).body.rows as Row[]
+      ).map((row) => row.attachmentId)
+
+    expect(await searched('Blitzschutz Beispiel')).toEqual([document])
+
+    // By the name the firm has now, too, before the next pass writes it into
+    // the deadline.
+    await http()
+      .patch(`/contractors/${firm}`)
+      .set(testIdentityHeader, by('management', large))
+      .send({ name: 'Ableiter Muster GmbH' })
+      .expect(200)
+    expect(await searched('Ableiter Muster')).toEqual([document])
+  })
+
+  it('is filed by whoever keeps the firms, never at a place as well', async () => {
+    const firm = await firmOf('Aufzug Beispiel GmbH')
+
+    // The Haustechnik files documents but keeps no firms.
+    const refused = await http()
+      .post('/sync')
+      .set(testIdentityHeader, by('technician', large))
+      .send({
+        deviceId: 'office',
+        operations: [
+          operation('attachments', 'create', newId<'attachment'>(), {
+            title: 'Zertifikat',
+            contractorId: firm,
+          }),
+        ],
+      })
+
+    expect(refused.status).toBe(400)
+    expect(refused.body.message).toBe(missingRight('contractor.write'))
+
+    const { property } = await buildingIn(large, north)
+    const answer = await http()
+      .post('/sync')
+      .set(testIdentityHeader, by('management', large))
+      .send({
+        deviceId: 'office',
+        operations: [
+          operation('attachments', 'create', newId<'attachment'>(), {
+            title: 'Zertifikat',
+            contractorId: firm,
+            propertyId: property,
+          }),
+        ],
+      })
+
+    // Refused as a whole, or the operation refused: either way nothing is filed.
+    expect(
+      answer.status === 400 ||
+        (answer.body.receipts as { outcome: string }[]).every((each) => each.outcome !== 'applied'),
+    ).toBe(true)
+  })
+
+  /**
+   * A document of a firm lies in no area, so the policies hand it to
+   * everybody in the operator. The file, the table "Dokumente" and a device
+   * give it only to whoever sees the firms, whatever areas they see: a role
+   * of the operator's own may read documents and not the firms.
+   */
+  it('goes out as a file, in the table and to a device only to whoever sees the firms', async () => {
+    const firm = await firmOf('Elektro Beispiel GmbH')
+    const title = 'Betriebshaftpflicht Elektro Beispiel 2027'
+    const { document, version, outcome } = await certificateOf(
+      firm,
+      '2027-12-31',
+      'management',
+      title,
+    )
+
+    expect(outcome).toEqual(['applied', 'applied'])
+
+    /** One of the people, with every right of their role save seeing the firms. */
+    const withoutFirms = (role: RoleKey) =>
+      JSON.stringify({
+        userId: people[role],
+        tenantId: large,
+        roles: [role],
+        rights: [...rightsOfRoles([role])].filter((right) => right !== 'contractor.read'),
+      })
+    const file = (header: string) =>
+      http().get(`/attachments/versions/${version}/content`).set(testIdentityHeader, header)
+    const table = async (header: string) =>
+      (
+        await http()
+          .get('/attachments/table?format=csv')
+          .set(testIdentityHeader, header)
+          .buffer(true)
+          .parse((response, done) => {
+            const parts: Buffer[] = []
+
+            response.on('data', (part: Buffer) => parts.push(part))
+            response.on('end', () => {
+              done(null, Buffer.concat(parts).toString('utf8'))
+            })
+          })
+          .expect(200)
+      ).body as string
+    /** The documents and versions a device of the person holds, and what the answer names them by. */
+    const held = async (header: string) => {
+      const answer = await http().get('/sync?since=0').set(testIdentityHeader, header).expect(200)
+      const changes = answer.body.changes as { entity: string; rows: { id: string }[] }[]
+      const ids = (entity: string) =>
+        (changes.find((change) => change.entity === entity)?.rows ?? []).map((row) => row.id)
+
+      return {
+        documents: ids('attachments'),
+        versions: ids('attachment_versions'),
+        narrowed: answer.body.narrowed as Readonly<Record<string, string>>,
+      }
+    }
+
+    await file(by('management', large)).expect(200)
+    await file(withoutFirms('management')).expect(404)
+    expect(await table(by('management', large))).toContain(title)
+    expect(await table(withoutFirms('management'))).not.toContain(title)
+
+    // On the device of whoever sees every area, and of whoever sees the north alone.
+    for (const role of ['management', 'site_management'] as const) {
+      const theirs = await held(by(role, large))
+      const not = await held(withoutFirms(role))
+
+      expect([theirs.documents, theirs.versions]).toEqual([
+        expect.arrayContaining([document]),
+        expect.arrayContaining([version]),
+      ])
+      expect(not.documents).not.toContain(document)
+      expect(not.versions).not.toContain(version)
+      // Named by another value, so that a device lets them go once the right goes.
+      expect([not.narrowed['attachments'], not.narrowed['attachment_versions']]).toEqual([
+        `${theirs.narrowed['attachments']}:without-contractors`,
+        `${theirs.narrowed['attachment_versions']}:without-contractors`,
+      ])
+    }
+  })
+
+  /**
+   * What comes after filing a paper of a firm is keeping the firm as well,
+   * though the policies let the document through for everybody in the
+   * operator: the Haustechnik files documents and the Objektleitung takes them
+   * out, and neither keeps the firms. Each is refused with the right it lacks.
+   */
+  it('is kept after filing, with a new version, a change or taken out, only by whoever keeps the firms', async () => {
+    const firm = await firmOf('Dach Beispiel GmbH')
+    const title = 'Zertifikat Fachbetrieb nach DIN 14675'
+    const { document, outcome } = await certificateOf(firm, '2027-06-30')
+
+    expect(outcome).toEqual(['applied', 'applied'])
+
+    const refusal = async (role: RoleKey, sent: ReturnType<typeof operation>) => {
+      const answer = await http()
+        .post('/sync')
+        .set(testIdentityHeader, by(role, large))
+        .send({ deviceId: 'office', operations: [sent] })
+
+      return [answer.status, answer.body.message as string]
+    }
+    const lacking = [400, missingRight('contractor.write')]
+    const renamed = () =>
+      operation('attachments', 'update', document, { title: 'Zertifikat 2028' }, { title })
+
+    expect(
+      await refusal('technician', await versionOf(by('technician', large), document, '2028-06-30')),
+    ).toEqual(lacking)
+    expect(await refusal('site_management', renamed())).toEqual(lacking)
+    expect(await refusal('site_management', operation('attachments', 'delete', document))).toEqual(
+      lacking,
+    )
+
+    // Whoever keeps the firms does all three.
+    const keeper = by('technical_management', large)
+
+    expect(
+      await outcomes(keeper, [
+        await versionOf(keeper, document, '2028-06-30'),
+        renamed(),
+        operation('attachments', 'delete', document),
+      ]),
+    ).toEqual(['applied', 'applied', 'applied'])
+  })
+
+  it('drops with the firm taken out of the list', async () => {
+    const firm = await firmOf('Lüftung Beispiel GmbH')
+    const { document } = await certificateOf(firm, '2027-03-31')
+
+    await pass(large)
+    expect(await deadlinesOf(document, by('management', large))).toHaveLength(1)
+
+    await http()
+      .delete(`/contractors/${firm}`)
+      .set(testIdentityHeader, by('management', large))
+      .expect(200)
+    await pass(large)
+    expect(await deadlinesOf(document, by('management', large))).toEqual([])
   })
 })

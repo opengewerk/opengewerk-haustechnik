@@ -21,6 +21,7 @@ import { useQuery } from '@tanstack/react-query'
 import { Link } from '@tanstack/react-router'
 
 import { useAreas } from '../../session/areas.js'
+import { contractorPlaces } from '../contractor-addresses.js'
 import { defectPlaces } from '../defect-addresses.js'
 import { documentPlaces } from '../document-addresses.js'
 import { dutyPlaces } from '../duty-addresses.js'
@@ -127,14 +128,19 @@ function useWhere(): (deadline: DutyDeadlineView) => { name: string; to: string;
 
   return (deadline) => {
     const { name, sub } = deadlineWhere(deadline, names)
+    // The document of a contractor (#328) stands at the firm, which has no place.
     const to =
-      deadline.asset !== null
-        ? officePlaces.asset(deadline.asset.id)
-        : deadline.roomId !== null
-          ? officePlaces.room(deadline.roomId)
-          : deadline.buildingId !== null
-            ? officePlaces.building(deadline.buildingId)
-            : officePlaces.property(deadline.propertyId)
+      deadline.propertyId === null
+        ? deadline.follows === 'document' && deadline.contractor !== null
+          ? contractorPlaces.contractor(deadline.contractor.id)
+          : contractorPlaces.list
+        : deadline.asset !== null
+          ? officePlaces.asset(deadline.asset.id)
+          : deadline.roomId !== null
+            ? officePlaces.room(deadline.roomId)
+            : deadline.buildingId !== null
+              ? officePlaces.building(deadline.buildingId)
+              : officePlaces.property(deadline.propertyId)
 
     return { name, to, sub }
   }

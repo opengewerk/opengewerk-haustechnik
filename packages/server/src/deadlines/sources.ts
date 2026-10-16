@@ -43,6 +43,7 @@ import {
   attachmentVersions,
   buildingClosures,
   buildings,
+  contractors,
   defects,
   duties,
   properties,
@@ -62,8 +63,9 @@ export interface DeadlineValues {
   readonly roundPlanId: RoundPlanId | null
   readonly meterPropertyId: PropertyId | null
   readonly attachmentId: AttachmentId | null
-  readonly propertyId: PropertyId
-  readonly areaId: AreaId
+  /** None for the document of a contractor (#328), which lies in no area. */
+  readonly propertyId: PropertyId | null
+  readonly areaId: AreaId | null
 }
 
 /** The names of what a duty or a defect hangs on, from the most narrow. */
@@ -560,10 +562,13 @@ export function documentSource(reviews: boolean): SourceQuery<DeadlineValues> {
         roomName: rooms.name,
         buildingName: buildings.name,
         propertyName: properties.name,
+        contractorName: contractors.name,
       })
       .from(attachmentVersions)
       .innerJoin(attachments, eq(attachments.id, attachmentVersions.attachmentId))
-      .innerJoin(properties, eq(properties.id, attachments.propertyId))
+      // A contractor's document has no property and no area (#328): its deadline neither.
+      .leftJoin(properties, eq(properties.id, attachments.propertyId))
+      .leftJoin(contractors, eq(contractors.id, attachments.contractorId))
       .leftJoin(assets, eq(assets.id, attachments.assetId))
       .leftJoin(rooms, eq(rooms.id, attachments.roomId))
       .leftJoin(buildings, eq(buildings.id, attachments.buildingId))
@@ -588,7 +593,10 @@ export function documentSource(reviews: boolean): SourceQuery<DeadlineValues> {
         : [
             {
               sourceId: document.id,
-              sourceLabel: `${document.title}, ${placeOf(document)}`,
+              sourceLabel: `${document.title}, ${
+                document.contractorName ??
+                placeOf({ ...document, propertyName: document.propertyName ?? '' })
+              }`,
               anchorOn: document.validUntil,
               namedDueOn: document.validUntil,
               naturalUserId: document.createdBy,

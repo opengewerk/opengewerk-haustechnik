@@ -180,8 +180,12 @@ export const rights = [
   'store.write',
   /**
    * The contractors of the tenant (#328, section 4.11 of the concept): their
-   * address, contacts and services, and what names them. Tenant-wide and
-   * without an area, like the stores.
+   * address, contacts and services, their people to talk to and their papers
+   * with their files. Not their name: that stands at every duty, activity and
+   * deadline that names a firm, for whoever sees those. Nor what the deadline
+   * of a paper says, its title, the firm and the day: whoever reads deadlines
+   * reads it (both decided by the maintainer on 16.10.2026, #377).
+   * Tenant-wide and without an area, like the stores.
    */
   'contractor.read',
   /**

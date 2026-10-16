@@ -558,7 +558,7 @@ describe('a document filed from a device', () => {
       'Ein Dokument hängt an der Liegenschaft oder an genau einem: einer Anlage, einem Raum, einem Gebäude, einem Vorgang oder einem Mangel.',
     )
     expect(await refusal({ title: 'Schaltplan' })).toBe(
-      'Ein Dokument hängt an einer Liegenschaft, einem Gebäude, einem Raum, einer Anlage, einem Vorgang oder einem Mangel.',
+      'Ein Dokument hängt an einer Liegenschaft, einem Gebäude, einem Raum, einer Anlage, einem Vorgang, einem Mangel oder einer Fremdfirma.',
     )
     expect(await refusal({ title: ' ', propertyId: place.property })).toBe('Die Bezeichnung fehlt.')
     expect(await refusal({ title: 'x'.repeat(121), propertyId: place.property })).toBe(

@@ -461,13 +461,15 @@ export const offlineEdits: Readonly<Record<string, OfflineEdits>> = {
     },
     change: { description: true },
   },
-  // A document at its property, on request at one record there, with its name
-  // and its kind; both are corrected afterwards. Taking it out of the records
-  // goes the same way, and asks for a right of its own.
+  // A document at its property, on request at one record there, or at a
+  // contractor (#328), with its name and its kind; both are corrected
+  // afterwards. Taking it out of the records goes the same way, and asks for
+  // a right of its own.
   attachments: {
     create: {
       title: true,
       kind: true,
+      contractorId: true,
       propertyId: true,
       buildingId: true,
       roomId: true,

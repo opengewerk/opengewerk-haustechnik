@@ -1,4 +1,4 @@
-import { propertyContacts } from '@opengewerk/haustechnik-domain'
+import { operatorContacts } from '@opengewerk/haustechnik-domain'
 import { ContactsPanel, type ContactsPanelWords } from '@opengewerk/platform-web/office'
 import { useRight } from '@opengewerk/platform-web/session'
 import { useSync } from '@opengewerk/platform-web/sync'
@@ -52,7 +52,7 @@ export function PropertyContacts({
   return (
     <ContactsPanel
       parent={{ propertyId }}
-      rules={propertyContacts}
+      rules={operatorContacts}
       words={propertyContactWords}
       creates={keeps}
       corrects={keeps}

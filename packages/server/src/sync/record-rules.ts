@@ -9,6 +9,7 @@ import {
   distinctFromProblem,
   documentProblems,
   documentVersionProblems,
+  documentPlaceProblem,
   documentTargetProblem,
   meterProblems,
   operatorDocuments,
@@ -236,6 +237,28 @@ export function recordRules(catalogue: Catalogue): RecordRules {
     attachments: [
       ...(filed['attachments'] ?? []),
       ...each(documentProblems, ['title', 'kind'], ['title']),
+      // At a contractor (#328) or at a place, never both.
+      {
+        fields: [
+          'contractorId',
+          'propertyId',
+          'assetId',
+          'roomId',
+          'buildingId',
+          'activityId',
+          'defectId',
+        ],
+        problem: (at) =>
+          documentPlaceProblem({
+            contractorId: at('contractorId'),
+            propertyId: at('propertyId'),
+            assetId: at('assetId'),
+            roomId: at('roomId'),
+            buildingId: at('buildingId'),
+            activityId: at('activityId'),
+            defectId: at('defectId'),
+          }),
+      },
       {
         fields: ['assetId', 'roomId', 'buildingId', 'activityId'],
         problem: (at) =>

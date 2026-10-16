@@ -1,7 +1,7 @@
 import type { RoleKey } from '@opengewerk/haustechnik-domain'
 import { TestServer } from '@opengewerk/platform-web/testing'
 import { onlineManager } from '@tanstack/react-query'
-import { screen, waitFor, within } from '@testing-library/react'
+import { fireEvent, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
@@ -286,5 +286,130 @@ describe('the page of a contractor', () => {
     await waitFor(() => {
       expect(written).toEqual([{ method: 'DELETE', path: '/contractors/c-fire' }])
     })
+  })
+})
+
+describe('the people and documents of a contractor (#328)', () => {
+  const firmPlace = { propertyId: null, areaId: null, contractorId: fire.id }
+  const caller = {
+    ...synced,
+    id: 'k-kraemer',
+    ...firmPlace,
+    givenName: 'Petra',
+    familyName: 'Krämer',
+    role: 'Disposition',
+    phone: '0621 445567',
+    email: null,
+  }
+  const certificate = {
+    ...synced,
+    id: 'd-certificate',
+    ...firmPlace,
+    buildingId: null,
+    roomId: null,
+    assetId: null,
+    activityId: null,
+    defectId: null,
+    areaFromPropertyId: null,
+    title: 'Zertifikat Fachbetrieb nach DIN 14675',
+    kind: 'test_certificate',
+    legacy: false,
+  }
+
+  /** The page of the firm, with its people and its certificate on the device. */
+  async function page(role: RoleKey) {
+    const server = new TestServer()
+
+    server.put('contacts', caller)
+    server.put('attachments', certificate)
+    // The certificate of another firm, which this page does not show.
+    server.put('attachments', {
+      ...certificate,
+      id: 'd-lift',
+      contractorId: lift.id,
+      title: 'Zulassung Aufzugsdienst',
+    })
+    server.put('attachment_versions', {
+      id: '00000000-0000-7000-8000-000000000011',
+      attachmentId: certificate.id,
+      sha256: '11'.padEnd(64, 'a'),
+      fileName: 'zertifikat-din-14675.pdf',
+      mediaType: 'application/pdf',
+      sizeBytes: 420_000,
+      previewSha256: null,
+      validUntil: '2027-03-31',
+      createdBy: 'u-lead',
+      createdAt: '2026-10-01T09:00:00.000Z',
+    })
+    signedInOffice(role, [nord], answers)
+
+    const mounted = await mountOffice('/fremdfirmen/c-fire', server, [
+      'contacts',
+      'attachments',
+      'attachment_versions',
+    ])
+
+    await untilTheRightsAreKnown()
+    await screen.findByRole('heading', { name: 'Brandschutz Beispiel GmbH' })
+
+    return { ...mounted, server }
+  }
+
+  const documents = () => screen.getByRole('region', { name: 'Dokumente' })
+
+  it('shows them on the page of the firm, and to whoever only looks nothing to add', async () => {
+    await page('technician')
+
+    expect(await screen.findByText(/Krämer/)).toBeTruthy()
+    expect(
+      await within(documents()).findByRole('link', {
+        name: 'Zertifikat Fachbetrieb nach DIN 14675',
+      }),
+    ).toBeTruthy()
+    // Its kind and the day it is valid until, as the board draws it.
+    expect(within(documents()).getByText('Prüfbescheinigung, gültig bis 31.03.2027')).toBeTruthy()
+    expect(within(documents()).queryByText('Zulassung Aufzugsdienst')).toBeNull()
+    expect(within(documents()).queryByRole('button', { name: 'Hochladen' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Hinzufügen' })).toBeNull()
+  })
+
+  it('files a document at the firm and names no place', async () => {
+    const { client, server } = await page('technical_management')
+
+    fireEvent.click(within(documents()).getByRole('button', { name: 'Hochladen' }))
+
+    const dialog = within(await screen.findByRole('dialog', { name: 'Dokument hochladen' }))
+
+    fireEvent.change(dialog.getByLabelText('Datei wählen'), {
+      target: {
+        files: [
+          new File(['%PDF-1.7 Versicherung'], 'Betriebshaftpflicht 2026.pdf', {
+            type: 'application/pdf',
+          }),
+        ],
+      },
+    })
+    await waitFor(() => {
+      expect(dialog.getByRole<HTMLInputElement>('textbox', { name: /Bezeichnung/ }).value).toBe(
+        'Betriebshaftpflicht 2026',
+      )
+    })
+    expect(dialog.getByText(/^Hängt an:/).textContent).toContain(
+      'Fremdfirma Brandschutz Beispiel GmbH',
+    )
+    fireEvent.click(dialog.getByRole('button', { name: 'Hochladen' }))
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog')).toBeNull()
+    })
+    await client.synchronise()
+
+    expect(
+      server
+        .operations()
+        .filter((operation) => operation.kind === 'create' && operation.entity === 'attachments')
+        .map((operation) =>
+          Object.fromEntries(operation.patches.map((patch) => [patch.field, patch.to])),
+        ),
+    ).toEqual([{ title: 'Betriebshaftpflicht 2026', contractorId: fire.id }])
   })
 })
