@@ -57,7 +57,13 @@ const officePlaces: readonly string[] = [
 ]
 
 /** The screens on site somebody reaches from its tabs and its menu. */
-const sitePlaces: readonly string[] = [...siteTabs.map((tab) => tab.to), '/konflikte', '/aufgaben']
+const sitePlaces: readonly string[] = [
+  ...siteTabs.map((tab) => tab.to),
+  '/konflikte',
+  '/aufgaben',
+  // Reporting a fault, from the menu (#331).
+  '/meldungen',
+]
 
 describe('every page of the navigation', () => {
   it('has a text of its own in the office', () => {
@@ -159,7 +165,7 @@ describe('every text of the help', () => {
   it('is found by the build', () => {
     // A folder the build does not find is empty without a word.
     expect(officeTexts.size).toBeGreaterThan(20)
-    expect(siteTexts.size).toBe(5)
+    expect(siteTexts.size).toBe(6)
     expect(guideTexts.size).toBe(5)
     expect(manualTexts.size).toBe(4)
   })

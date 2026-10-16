@@ -239,6 +239,24 @@ export function rejectedPush(): PushText {
   }
 }
 
+/** A fault reported in an area of the person, named by nothing it says (section 3 of the concept). */
+export function faultReceivedPush(): PushText {
+  return {
+    title: 'Störung eingegangen',
+    body: 'In einem Ihrer Bereiche ist eine Störung gemeldet worden.',
+  }
+}
+
+/** A fault the person reported, accepted or done. */
+export function faultAnsweredPush(step: 'accepted' | 'done'): PushText {
+  return step === 'accepted'
+    ? {
+        title: 'Störmeldung angenommen',
+        body: 'Eine Störung, die Sie gemeldet haben, wird jetzt bearbeitet.',
+      }
+    : { title: 'Störung erledigt', body: 'Eine Störung, die Sie gemeldet haben, ist erledigt.' }
+}
+
 /** The message a person sends themselves from "Konto", to see that push works. */
 export function testPush(application: string): PushText {
   return {

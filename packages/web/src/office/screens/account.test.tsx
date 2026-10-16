@@ -58,6 +58,8 @@ describe('push under "Konto"', () => {
       'Fällige AufgabenAm Morgen des Tages, an dem eine Aufgabe für Sie fällig ist.',
       'Wartet auf Gegenzeichnung oder AbnahmeWenn ein Rundgang oder ein Auftrag in Ihren Bereichen auf Sie wartet.',
       'Zurückgewiesene AufträgeWenn ein Auftrag, den Sie unterschrieben haben, zurückgewiesen wird.',
+      'Eingegangene StörungenWenn in einem Bereich, in dem Sie Störungen annehmen, eine Störung gemeldet wird.',
+      'Ihre StörmeldungenWenn eine Störung, die Sie gemeldet haben, angenommen oder erledigt ist.',
     ])
     // The reminder of a deadline comes by mail whatever is ticked here, as the
     // settings of the deadlines say for its kind (#269).

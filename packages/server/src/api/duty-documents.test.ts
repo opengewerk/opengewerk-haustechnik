@@ -59,6 +59,7 @@ const people: Readonly<Record<RoleKey, string>> = {
   technical_management: 'u-duties',
   site_management: 'u-site',
   technician: 'u-tech',
+  reporter: 'u-reporter',
 }
 
 const mainTest = 'probe.elevator_main_test'

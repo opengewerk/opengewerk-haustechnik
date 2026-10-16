@@ -281,6 +281,7 @@ export function syncRoutesFor(
       pullScope(await deviceScope(tx, identity.userId), {
         contractors: isAllowed(identity, 'contractor.read'),
         contracts: isAllowed(identity, 'contract.read'),
+        places: isAllowed(identity, 'location.read'),
       }),
     senderOf: (identity, operations) => senderOf(database, identity, operations),
   }

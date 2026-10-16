@@ -10,7 +10,7 @@ import { offered } from '../app/places.js'
 import { memberIn, mounted, signedInAs, tenantName } from '../app/test-entry.js'
 import { siteRoutes } from './router.js'
 import { SiteShell } from './shell.js'
-import { siteTabs } from './tabs.js'
+import { reporterTabs, siteTabs } from './tabs.js'
 
 /**
  * The tabs on site (#83): Start, Scannen and Aufnehmen of the board
@@ -18,6 +18,9 @@ import { siteTabs } from './tabs.js'
  * whoever holds its right, before "Konflikte" and "Menü" of the frame. One
  * test per role, against the rights the roles are shipped with.
  */
+
+/** The roles that see the places, the four of phase 1; the Melder has tabs of its own (#331). */
+const phaseOne = roleKeys.filter((key) => key !== 'reporter')
 
 function offeredTo(role: RoleKey): string[] {
   const rights = shippedRoles.find((shipped) => shipped.key === role)?.rights ?? []
@@ -36,8 +39,19 @@ describe('the tabs of the board', () => {
 
   // Everybody of phase 1 works on site: looking at an asset and taking stock
   // are rights of the role "Haustechnik", which every other role holds too.
-  it.each(roleKeys)('are all three for %s once every screen is built', (role) => {
+  it.each(phaseOne)('are all three for %s once every screen is built', (role) => {
     expect(offeredTo(role)).toEqual(['Start', 'Scannen', 'Aufnehmen'])
+  })
+
+  // The Melder sees no place (#331): its own tabs are its reports and the scan.
+  it('are the start alone for the Melder, who has tabs of its own', () => {
+    expect(offeredTo('reporter')).toEqual(['Start'])
+    expect(
+      offered(reporterTabs, ['fault.report'], () => true).map((tab) => [tab.label, tab.to]),
+    ).toEqual([
+      ['Meldungen', '/'],
+      ['Scannen', '/scannen'],
+    ])
   })
 
   it('are the start alone for somebody who may neither look at an asset nor take stock', () => {
@@ -78,7 +92,18 @@ describe('the tabs on site as the entry is built today', () => {
    * (#99) and the start (#114). The start asks no right; the others stand
    * once the rights of the role are known, before those of the frame.
    */
-  it.each(roleKeys)('are those of the board and the frame for %s', async (role) => {
+  it('are the own reports, the scan and those of the frame for the Melder (#331)', async () => {
+    signedInAs(memberIn('reporter'))
+    await mounted({ routeTree: siteRoutes(), at: '/m/konflikte', basepath: '/m', application })
+
+    const all = ['Meldungen', 'Scannen', 'Konflikte', 'Menü']
+
+    await waitFor(() => {
+      expect(places()).toEqual([all, all])
+    })
+  })
+
+  it.each(phaseOne)('are those of the board and the frame for %s', async (role) => {
     signedInAs(memberIn(role))
     await mounted({ routeTree: siteRoutes(), at: '/m/konflikte', basepath: '/m', application })
 
@@ -125,7 +150,7 @@ function siteWithItsPlaces() {
 }
 
 describe('a tab whose screen is built', () => {
-  it.each(roleKeys)('stands for %s before those of the frame', async (role) => {
+  it.each(phaseOne)('stands for %s before those of the frame', async (role) => {
     signedInAs(memberIn(role))
     await mounted({ routeTree: siteWithItsPlaces(), at: '/m/', basepath: '/m', application })
     await screen.findByText(tenantName)

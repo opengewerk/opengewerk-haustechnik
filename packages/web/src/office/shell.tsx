@@ -1,5 +1,6 @@
 import { OfficeFrame } from '@opengewerk/platform-web/office'
-import { usePushRefresh } from '@opengewerk/platform-web/session'
+import { usePushRefresh, useRight } from '@opengewerk/platform-web/session'
+import { useEffect } from 'react'
 
 import { useKeepCatalogue } from '../sync/catalogue.js'
 import { BackupBar } from './screens/backup.js'
@@ -37,6 +38,8 @@ import { useOfficeSearch } from './search-source.js'
  * application's (`useOfficeHelp`).
  */
 export function OfficeShell() {
+  useReporterOnSite()
+
   const { groups, foot } = useNavigation()
   const search = useOfficeSearch()
   const help = useOfficeHelp()
@@ -53,4 +56,20 @@ export function OfficeShell() {
       strips={<BackupBar />}
     />
   )
+}
+
+/**
+ * A Melder works on site and nowhere else (#331, section 4.7 of the concept):
+ * the office has nothing for somebody who reports and sees no place, so it
+ * goes on to the own reports under "Vor Ort".
+ */
+function useReporterOnSite() {
+  const reports = useRight('fault.report')
+  const seesPlaces = useRight('location.read')
+
+  useEffect(() => {
+    if (reports && !seesPlaces) {
+      window.location.replace('/m/')
+    }
+  }, [reports, seesPlaces])
 }

@@ -184,6 +184,16 @@ const workEntities = [
  * another value without that right, in the same way.
  */
 export function pullScope(scope: DeviceScope, reads: PullRights): PullScope {
+  // Whoever does not see the places, a Melder (#331), gets nothing of the
+  // operator on the device: no place, no work, nothing tenant-wide either.
+  // Its screens ask the server for what they show.
+  if (!reads.places) {
+    return {
+      narrow: () => sql`false`,
+      narrowed: Object.fromEntries(syncEntities.map((entity) => [entity, 'nothing'])),
+    }
+  }
+
   const column = (entity: string, name: string) =>
     sql`${sql.identifier(entity)}.${sql.identifier(name)}`
   // What a device holds without a right, by entity: each a condition its rows
@@ -314,10 +324,11 @@ export function pullScope(scope: DeviceScope, reads: PullRights): PullScope {
   }
 }
 
-/** The rights a pull asks of the person, for what lies in no area (#328, #329). */
+/** The rights a pull asks of the person, for what lies in no area (#328, #329), and whether they see the places at all (#331). */
 export interface PullRights {
   readonly contractors: boolean
   readonly contracts: boolean
+  readonly places: boolean
 }
 
 /**

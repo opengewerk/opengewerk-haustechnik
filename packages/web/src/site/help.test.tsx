@@ -50,6 +50,7 @@ describe('"Hilfe" on site', () => {
       '/m/hilfe/bildschirm/aufnehmen',
       '/m/hilfe/bildschirm/konflikte',
       '/m/hilfe/bildschirm/aufgaben',
+      '/m/hilfe/bildschirm/meldungen',
     ])
     expect(within(screens).getByRole('link', { name: /Start/ })).toBeTruthy()
     expect(rows(guides)).toEqual([

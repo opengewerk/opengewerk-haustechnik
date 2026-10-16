@@ -11,6 +11,7 @@ import { contractPlaces } from './contract-addresses.js'
 import { contractorPlaces } from './contractor-addresses.js'
 import { defectPlaces } from './defect-addresses.js'
 import { documentPlaces } from './document-addresses.js'
+import { faultPlaces } from './fault-addresses.js'
 import { dutyPlaces, evidencePlaces } from './duty-addresses.js'
 import { officePlaces } from './place-addresses.js'
 import { planPlaces, templatePlaces } from './round-template-addresses.js'
@@ -41,6 +42,7 @@ const screens: Readonly<Record<string, (id: string) => string>> = {
   round_plans: planPlaces.plan,
   contractors: contractorPlaces.contractor,
   contracts: contractPlaces.contract,
+  fault_reports: faultPlaces.report,
 }
 
 /** The label of the link to a record. */
@@ -59,6 +61,7 @@ const links: Words = {
   round_plans: 'Zum Plan',
   contractors: 'Zur Fremdfirma',
   contracts: 'Zum Vertrag',
+  fault_reports: 'Zur Störmeldung',
 }
 
 export const auditScreenWords: AuditScreenWords = {

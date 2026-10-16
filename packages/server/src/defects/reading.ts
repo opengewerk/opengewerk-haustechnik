@@ -34,6 +34,7 @@ import {
   defects,
   duties,
   evidence,
+  faultReports,
   properties,
   rooms,
   workOrders,
@@ -163,38 +164,44 @@ function narrowedBy(filter: DefectRegisterFilter): SQL[] {
 
 /** The rows of the defects with what a row says beside them. */
 function selectRows(tx: TenantTransaction) {
-  return tx
-    .select({
-      defect: defects,
-      propertyName: properties.name,
-      buildingId: buildings.id,
-      buildingName: buildings.name,
-      roomId: rooms.id,
-      roomNumber: rooms.number,
-      roomName: rooms.name,
-      assetNumber: assets.number,
-      assetName: assets.name,
-      foundInKind: foundIn.kind,
-      foundInTitle: foundIn.title,
-      evidenceDutyId: evidence.dutyId,
-      orderNumber: workOrders.number,
-      orderActivityId: remedy.id,
-      orderTitle: remedy.title,
-      orderStatus: remedy.status,
-      orderPerformedOn: remedy.performedOn,
-    })
-    .from(defects)
-    .innerJoin(properties, eq(properties.id, defects.propertyId))
-    .leftJoin(assets, eq(assets.id, defects.assetId))
-    .leftJoin(rooms, sql`${rooms.id} = coalesce(${defects.roomId}, ${assets.roomId})`)
-    .leftJoin(
-      buildings,
-      sql`${buildings.id} = coalesce(${defects.buildingId}, ${rooms.buildingId}, ${assets.buildingId})`,
-    )
-    .leftJoin(foundIn, eq(foundIn.id, defects.foundInActivityId))
-    .leftJoin(evidence, eq(evidence.id, defects.foundInEvidenceId))
-    .leftJoin(workOrders, eq(workOrders.id, defects.remedyWorkOrderId))
-    .leftJoin(remedy, eq(remedy.id, workOrders.activityId))
+  return (
+    tx
+      .select({
+        defect: defects,
+        propertyName: properties.name,
+        buildingId: buildings.id,
+        buildingName: buildings.name,
+        roomId: rooms.id,
+        roomNumber: rooms.number,
+        roomName: rooms.name,
+        assetNumber: assets.number,
+        assetName: assets.name,
+        foundInKind: foundIn.kind,
+        foundInTitle: foundIn.title,
+        evidenceDutyId: evidence.dutyId,
+        orderNumber: workOrders.number,
+        orderActivityId: remedy.id,
+        orderTitle: remedy.title,
+        orderStatus: remedy.status,
+        orderPerformedOn: remedy.performedOn,
+        faultReportId: faultReports.id,
+        faultReceivedAt: faultReports.receivedAt,
+      })
+      .from(defects)
+      .innerJoin(properties, eq(properties.id, defects.propertyId))
+      .leftJoin(assets, eq(assets.id, defects.assetId))
+      .leftJoin(rooms, sql`${rooms.id} = coalesce(${defects.roomId}, ${assets.roomId})`)
+      .leftJoin(
+        buildings,
+        sql`${buildings.id} = coalesce(${defects.buildingId}, ${rooms.buildingId}, ${assets.buildingId})`,
+      )
+      .leftJoin(foundIn, eq(foundIn.id, defects.foundInActivityId))
+      .leftJoin(evidence, eq(evidence.id, defects.foundInEvidenceId))
+      .leftJoin(workOrders, eq(workOrders.id, defects.remedyWorkOrderId))
+      .leftJoin(remedy, eq(remedy.id, workOrders.activityId))
+      // The fault report it was reported from (#331), in the areas of the person asking.
+      .leftJoin(faultReports, eq(faultReports.defectId, defects.id))
+  )
 }
 
 type Row = Awaited<ReturnType<ReturnType<typeof selectRows>['where']>>[number]
@@ -214,6 +221,14 @@ function originOf(row: Row): DefectOrigin {
 
   if (defect.foundInEvidenceId !== null && row.evidenceDutyId !== null) {
     return { kind: 'report', evidenceId: defect.foundInEvidenceId, dutyId: row.evidenceDutyId }
+  }
+
+  if (row.faultReportId !== null && row.faultReceivedAt !== null) {
+    return {
+      kind: 'fault',
+      faultReportId: row.faultReportId,
+      receivedAt: row.faultReceivedAt.toISOString(),
+    }
   }
 
   return { kind: 'hand' }

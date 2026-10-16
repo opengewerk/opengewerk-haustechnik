@@ -120,6 +120,8 @@ export * from './model/activity-register.js'
 export * from './model/work-order-register.js'
 export * from './model/defect.js'
 export * from './model/defect-register.js'
+// The faults reported by the people in a building, and the inbox of the area (#331).
+export * from './model/fault-report.js'
 
 // What the duties and the defects of an asset say about it, taken together,
 // and the register and the file of an asset as a screen reads them.

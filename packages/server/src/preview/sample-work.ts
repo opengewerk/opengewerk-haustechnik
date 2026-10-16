@@ -2,12 +2,13 @@ import { randomBytes } from 'node:crypto'
 
 import { type ActivityId, type Identity, labelCodeFrom } from '@opengewerk/haustechnik-domain'
 import type { Database } from '@opengewerk/platform-server'
-import { and, eq, isNull } from 'drizzle-orm'
+import { and, eq, inArray, isNull } from 'drizzle-orm'
 
 import { bookWithdrawal } from '../activities/materials.js'
 import {
   activities,
   articles,
+  faultReports,
   storeArticles,
   storeLabels,
   stores,
@@ -138,4 +139,27 @@ export async function giveSampleWork(
       userId: viewer,
     })
   })
+}
+
+/**
+ * Three of the fault reports of the sample data (#331) are the viewer's own:
+ * planted by the Leitung through the route, they name the viewer as who
+ * reported them, so that "Meine Meldungen" on site shows them.
+ */
+export async function giveSampleFaults(
+  database: Database,
+  planter: Identity,
+  viewer: string,
+  faults: readonly string[],
+): Promise<void> {
+  if (faults.length === 0) {
+    return
+  }
+
+  await database.forTenant(planter, (tx) =>
+    tx
+      .update(faultReports)
+      .set({ reportedBy: viewer })
+      .where(inArray(faultReports.id, faults as (typeof faultReports.$inferSelect)['id'][])),
+  )
 }

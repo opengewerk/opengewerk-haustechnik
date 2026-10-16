@@ -4,19 +4,22 @@ import { isPushOccasion, pushEntries, pushOccasions, pushOccasionWords } from '.
 
 /**
  * The occasions a person gets as push (#126). Section 3 of the concept names
- * six occasions; the account offers five choices, because a round that waits
- * for its countersignature and a work order that waits for its acceptance
- * wait for the same person in the same way.
+ * eight occasions; the account offers seven choices, because a round that
+ * waits for its countersignature and a work order that waits for its
+ * acceptance wait for the same person in the same way. The last two came with
+ * the fault reports (#331).
  */
 
 describe('the occasions of push', () => {
-  it('are these five, in the order the account lists them', () => {
+  it('are these seven, in the order the account lists them', () => {
     expect(pushOccasions).toEqual([
       'deadline_due',
       'assigned',
       'task_due',
       'waiting',
       'work_order_rejected',
+      'fault_received',
+      'fault_answered',
     ])
   })
 
@@ -29,6 +32,8 @@ describe('the occasions of push', () => {
       'Fällige Aufgaben',
       'Wartet auf Gegenzeichnung oder Abnahme',
       'Zurückgewiesene Aufträge',
+      'Eingegangene Störungen',
+      'Ihre Störmeldungen',
     ])
     expect(pushOccasions.filter((occasion) => pushOccasionWords[occasion].about === '')).toEqual([])
   })

@@ -70,6 +70,7 @@ import { factLink } from '../links.js'
 import { officePlaces } from '../place-addresses.js'
 import { kindLabel } from './assets.js'
 import { AssetDefectsCard } from './defects.js'
+import { AssetFaultsCard } from './fault-reports.js'
 import { ProposalsNote } from './proposals.js'
 import { AssetOrdersCard, NewOrderAtAssetButton } from './work-orders.js'
 import { TimelineButton } from '../timeline.js'
@@ -274,6 +275,8 @@ export function AssetFileScreen() {
           ) : null}
           {seesEvidence ? <AssetEvidence evidence={evidence.data} /> : null}
           <AssetDefectsCard assetId={assetId} />
+          {/* The faults reported at the asset (#331), for whoever accepts them. */}
+          <AssetFaultsCard assetId={assetId} />
           <AssetOrdersCard assetId={assetId} />
         </div>
         <div className="flex min-w-0 flex-col gap-3.5">

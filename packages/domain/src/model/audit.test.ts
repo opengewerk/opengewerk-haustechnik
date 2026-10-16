@@ -110,6 +110,7 @@ describe('the change log in the words of this application', () => {
       technical_management: 'Technische Leitung',
       site_management: 'Objektleitung',
       technician: 'Haustechnik',
+      reporter: 'Melder',
     })
   })
 

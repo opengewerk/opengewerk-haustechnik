@@ -19,6 +19,7 @@ import {
   type TenantTransaction,
 } from '@opengewerk/platform-server'
 import { and, desc, eq, gte, inArray, isNull, lte, type SQL, sql } from 'drizzle-orm'
+import { alias } from 'drizzle-orm/pg-core'
 
 import { application } from '../configuration.js'
 import { inEveryArea } from '../database/every-area.js'
@@ -26,6 +27,7 @@ import {
   activities,
   activitySignatures,
   deadlines,
+  faultReports,
   invitations,
   mailOutbox,
   mailSettings,
@@ -50,6 +52,7 @@ type DecisionId = (typeof workOrderDecisions.$inferSelect)['id']
 type TaskId = (typeof tasks.$inferSelect)['id']
 type DeadlineId = (typeof deadlines.$inferSelect)['id']
 type InvitationId = (typeof invitations.$inferSelect)['id']
+type FaultReportId = (typeof faultReports.$inferSelect)['id']
 
 /**
  * Something that happened and may be worth a message (#126).
@@ -128,6 +131,26 @@ export type Notification =
       readonly kind: 'work_order_rejected'
       readonly decisionId: DecisionId
     }
+  | {
+      /**
+       * A fault reported in an area, to everybody who accepts faults there
+       * but the person who reported it (#331, section 3 of the concept). Once
+       * per report and person.
+       */
+      readonly kind: 'fault_received'
+      readonly faultReportId: FaultReportId
+      readonly userId: string
+    }
+  | {
+      /**
+       * A report accepted or done, to whoever reported it; a report merged
+       * into another hears what that one hears (decided 15.10.2026). Once per
+       * report and step.
+       */
+      readonly kind: 'fault_answered'
+      readonly faultReportId: FaultReportId
+      readonly step: 'accepted' | 'done'
+    }
 
 /** A notification of one kind, as the writer of that kind receives it. */
 export type Of<Kind extends Notification['kind']> = Extract<Notification, { readonly kind: Kind }>
@@ -157,6 +180,10 @@ export function causeOf(notification: Notification): string {
       return `waiting:${notification.signatureId}:${notification.userId}`
     case 'work_order_rejected':
       return `work_order_rejected:${notification.decisionId}`
+    case 'fault_received':
+      return `fault_received:${notification.faultReportId}:${notification.userId}`
+    case 'fault_answered':
+      return `fault_answered:${notification.faultReportId}:${notification.step}`
   }
 }
 
@@ -896,4 +923,168 @@ export async function stillAssigned(
   return named
     ? { kind: activity.kind, dueOn: activity.dueOn, immediate: activity.urgency === 'immediate' }
     : null
+}
+
+/** A report still in the inbox by itself: not merged, not rejected and never accepted. */
+function inTheInbox(): SQL {
+  return sql`${faultReports.mergedIntoId} is null
+    and ${faultReports.rejectedAt} is null
+    and ${faultReports.workOrderId} is null`
+}
+
+/**
+ * The reports received lately, one notification per person who accepts faults
+ * in their area, takes push and has not been told; never to the person who
+ * reported it (#331).
+ */
+export async function receivedFaults(
+  database: Database,
+  tenantId: TenantId,
+  now: Date,
+): Promise<readonly Of<'fault_received'>[]> {
+  const rows = await inEveryArea(database, actorOf(tenantId), (tx) =>
+    tx
+      .select({ faultReportId: faultReports.id, userId: memberships.userId })
+      .from(faultReports)
+      .innerJoin(memberships, eq(memberships.tenantId, faultReports.tenantId))
+      .where(
+        and(
+          inTheInbox(),
+          gte(faultReports.receivedAt, since(now)),
+          sql`${memberships.userId} <> ${faultReports.reportedBy}`,
+          mayIn('fault.accept', sql`${faultReports.areaId}`),
+          notToldBy(
+            'push',
+            sql`${faultReports.tenantId}`,
+            sql`'fault_received:' || ${faultReports.id}::text || ':' || ${memberships.userId}`,
+          ),
+          takesPush(sql`${faultReports.tenantId}`, sql`${memberships.userId}`, 'fault_received'),
+        ),
+      ),
+  )
+
+  return rows.map((row) => ({ kind: 'fault_received' as const, ...row }))
+}
+
+/** Whether the report of a notification is still in the inbox, for a person who still accepts faults in its area. */
+export async function stillReceived(
+  tx: TenantTransaction,
+  notification: Of<'fault_received'>,
+): Promise<boolean> {
+  const [found] = await tx
+    .select({ id: faultReports.id })
+    .from(faultReports)
+    .innerJoin(memberships, eq(memberships.tenantId, faultReports.tenantId))
+    .where(
+      and(
+        eq(faultReports.id, notification.faultReportId),
+        eq(memberships.userId, notification.userId),
+        inTheInbox(),
+        mayIn('fault.accept', sql`${faultReports.areaId}`),
+      ),
+    )
+
+  return found !== undefined
+}
+
+/** The report a feedback follows: the report itself, or the one it went into. */
+const followed = alias(faultReports, 'followed_report')
+const followedOrder = alias(workOrders, 'followed_order')
+const followedWork = alias(activities, 'followed_work')
+
+/** The reports with the order of the report they follow, and their reporter where that person still works here. */
+function answeredRows(tx: TenantTransaction) {
+  return tx
+    .select({ faultReportId: faultReports.id, reportedBy: faultReports.reportedBy })
+    .from(faultReports)
+    .innerJoin(
+      followed,
+      sql`${followed.id} = coalesce(${faultReports.mergedIntoId}, ${faultReports.id})`,
+    )
+    .innerJoin(followedOrder, eq(followedOrder.id, followed.workOrderId))
+    .innerJoin(followedWork, eq(followedWork.id, followedOrder.activityId))
+    .innerJoin(
+      memberships,
+      and(
+        eq(memberships.tenantId, faultReports.tenantId),
+        eq(memberships.userId, faultReports.reportedBy),
+        isNull(memberships.blockedAt),
+      ),
+    )
+}
+
+/** Where the order a report follows stands for a step: under way or done for "accepted", done for "done". */
+function reached(step: 'accepted' | 'done'): SQL {
+  return step === 'accepted'
+    ? sql`${followedWork.deletedAt} is null and ${followedWork.status} in ('open', 'started', 'signed', 'done')`
+    : sql`${followedWork.deletedAt} is null and ${followedWork.status} in ('signed', 'done')`
+}
+
+/**
+ * The reports accepted or done lately, one notification per report and step
+ * for a reporter who takes push and has not been told (#331). Done is the
+ * signature under the order (decided 15.10.2026).
+ */
+export async function answeredFaults(
+  database: Database,
+  tenantId: TenantId,
+  now: Date,
+): Promise<readonly Of<'fault_answered'>[]> {
+  const from = since(now)
+  const told = (step: 'accepted' | 'done') =>
+    notToldBy(
+      'push',
+      sql`${faultReports.tenantId}`,
+      sql`'fault_answered:' || ${faultReports.id}::text || ${`:${step}`}`,
+    )
+  const takes = takesPush(
+    sql`${faultReports.tenantId}`,
+    sql`${faultReports.reportedBy}`,
+    'fault_answered',
+  )
+
+  return inEveryArea(database, actorOf(tenantId), async (tx) => {
+    const accepted = await answeredRows(tx).where(
+      and(reached('accepted'), gte(followed.acceptedAt, from), told('accepted'), takes),
+    )
+    const done = await answeredRows(tx).where(
+      and(
+        reached('done'),
+        sql`exists (
+          select 1 from ${activitySignatures}
+           where ${activitySignatures.tenantId} = ${followedWork.tenantId}
+             and ${activitySignatures.activityId} = ${followedWork.id}
+             and ${activitySignatures.role} = 'signer'
+             and ${activitySignatures.deletedAt} is null
+             and ${activitySignatures.signedAt} >= ${from})`,
+        told('done'),
+        takes,
+      ),
+    )
+
+    return [
+      ...accepted.map((row) => ({
+        kind: 'fault_answered' as const,
+        faultReportId: row.faultReportId,
+        step: 'accepted' as const,
+      })),
+      ...done.map((row) => ({
+        kind: 'fault_answered' as const,
+        faultReportId: row.faultReportId,
+        step: 'done' as const,
+      })),
+    ]
+  })
+}
+
+/** Who reported the report of a notification, if it still stands where the step says; otherwise null. */
+export async function stillAnswered(
+  tx: TenantTransaction,
+  notification: Of<'fault_answered'>,
+): Promise<string | null> {
+  const [found] = await answeredRows(tx).where(
+    and(eq(faultReports.id, notification.faultReportId), reached(notification.step)),
+  )
+
+  return found?.reportedBy ?? null
 }

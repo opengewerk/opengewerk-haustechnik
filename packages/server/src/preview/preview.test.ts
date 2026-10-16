@@ -492,6 +492,8 @@ describe('a preview started as the Leitung', () => {
       ['Haltegenauigkeit der Kabine nachstellen', 'started', 'normal', false],
       ['Heizkessel Mensa entlüften', 'open', 'immediate', false],
       ['Leuchtmittel im Fahrkorb tauschen', 'signed', 'urgent', false],
+      // A fault report accepted as a work order (#331).
+      ['Sanitär, E.14 Heizraum', 'open', 'normal', false],
       ['Schild mit der Notrufnummer anbringen', 'done', 'normal', false],
       // A firm of the list at work, with a briefing and a permit (#330).
       ['Undichte Lötstelle am Heizungsrücklauf instand setzen', 'open', 'normal', false],

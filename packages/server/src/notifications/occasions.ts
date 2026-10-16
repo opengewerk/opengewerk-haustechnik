@@ -14,6 +14,8 @@ import {
   type Notification,
   type NotifyContext,
   rejectedOrders,
+  answeredFaults,
+  receivedFaults,
   waitingActivities,
 } from './notify.js'
 import {
@@ -21,6 +23,8 @@ import {
   pushDeadlineDue,
   pushImmediate,
   type PushNotifyContext,
+  pushFaultAnswered,
+  pushFaultReceived,
   pushRejected,
   pushTaskDue,
   pushWaiting,
@@ -76,6 +80,16 @@ export const occasions = occasionsOf<Notification, NotificationExtra>({
     causeOf,
     raise: { push: (database, tenantId, now) => rejectedOrders(database, tenantId, now) },
     push: pushRejected,
+  },
+  fault_received: {
+    causeOf,
+    raise: { push: (database, tenantId, now) => receivedFaults(database, tenantId, now) },
+    push: pushFaultReceived,
+  },
+  fault_answered: {
+    causeOf,
+    raise: { push: (database, tenantId, now) => answeredFaults(database, tenantId, now) },
+    push: pushFaultAnswered,
   },
 })
 

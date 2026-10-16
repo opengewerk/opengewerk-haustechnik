@@ -14,6 +14,7 @@ import {
   List,
   Mail,
   Map,
+  MessageSquareWarning,
   ScanLine,
   Server,
   TriangleAlert,
@@ -59,6 +60,14 @@ const settings = [
     title: 'Mängelklassen',
     about: 'Welche Frist zur Beseitigung jede Klasse vorgibt. Die Klassen kommen aus den Paketen.',
     icon: TriangleAlert,
+    right: 'settings.read',
+  },
+  {
+    key: 'stoerungen',
+    to: '/einstellungen/stoerungen',
+    title: 'Störungen',
+    about: 'Die Kategorien, aus denen wählt, wer eine Störung meldet.',
+    icon: MessageSquareWarning,
     right: 'settings.read',
   },
   {

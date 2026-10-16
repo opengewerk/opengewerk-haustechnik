@@ -116,6 +116,7 @@ function rowsOf(tenant: Tenant): readonly Row[] {
   const document = randomUUID()
   const firm = randomUUID()
   const contract = randomUUID()
+  const category = randomUUID()
   const file = randomUUID().replaceAll('-', '').repeat(2)
 
   return [
@@ -727,6 +728,26 @@ function rowsOf(tenant: Tenant): readonly Row[] {
         found_in_activity_id: activity,
         description: 'Notruf im Fahrkorb ohne Verbindung.',
         found_on: '2026-10-01',
+      },
+    },
+    // A category of the fault reports and a report at the asset, with a file
+    // as its photo (#331).
+    {
+      table: 'fault_categories',
+      values: { id: category, tenant_id: tenant.id, name: 'Aufzug', position: 0 },
+    },
+    {
+      table: 'fault_reports',
+      values: {
+        tenant_id: tenant.id,
+        property_id: property,
+        area_id: area,
+        building_id: building,
+        asset_id: asset,
+        category_id: category,
+        description: 'Der Aufzug hält zwischen den Geschossen.',
+        photo_sha256: file,
+        reported_by: tenant.userId,
       },
     },
     // The signature on the work order, and its rejection.

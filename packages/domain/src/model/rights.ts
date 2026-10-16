@@ -129,6 +129,19 @@ export const rights = [
   /** Where a defect goes from there: its class, its time limit and its status. */
   'defect.write',
   /**
+   * Reporting a fault (section 4.7 of the concept, #331): at a building, a
+   * room or an asset of the own areas, with a category, a description and a
+   * photo, and seeing the own reports with their state. Nobody sees the
+   * reports of others by it.
+   */
+  'fault.report',
+  /**
+   * The inbox of the faults in the own areas: accepting a report, which makes
+   * a work order of the kind "Störung", merging it with another of the same
+   * building, or rejecting it with the reason.
+   */
+  'fault.accept',
+  /**
    * Looking at the documents of a place, an asset or an activity: the list,
    * the versions of each, and the file of a version, which the server hands
    * out by the version and never by its hash.
@@ -289,6 +302,8 @@ export const rightLabel: Readonly<Record<Right, string>> = {
   'defect.read': 'Mängel ansehen',
   'defect.report': 'Mängel melden',
   'defect.write': 'Mängel führen',
+  'fault.report': 'Störungen melden',
+  'fault.accept': 'Störungen annehmen',
   'document.read': 'Dokumente ansehen',
   'document.record': 'Dokumente ablegen',
   'document.remove': 'Dokumente entfernen',
@@ -326,9 +341,9 @@ export function missingRight(right: Right): string {
 }
 
 /**
- * The roles a tenant starts with, the four of phase 1. Section 7 of the
- * concept names three more: the reporter and the auditor come with phase 2,
- * the contractor with phase 4.
+ * The roles a tenant starts with: the four of phase 1 and the reporter of
+ * phase 2 (#331). Section 7 of the concept names two more: the auditor comes
+ * with phase 2, the contractor with phase 4.
  *
  * They are rows of the tenant from the moment it comes into being, and what
  * somebody may do is read from those rows (ADR 0010 in the repository
@@ -339,6 +354,7 @@ export const roleKeys = [
   'technical_management',
   'site_management',
   'technician',
+  'reporter',
 ] as const
 
 export type RoleKey = (typeof roleKeys)[number]
@@ -362,6 +378,8 @@ const technician: readonly Right[] = [
   'evidence.read',
   'defect.read',
   'defect.report',
+  // A fault noticed on the way, like anybody who works in a building (#331).
+  'fault.report',
   // The documents of what somebody works on, and a photo at an asset or at a
   // defect, which is filed like any other document.
   'document.read',
@@ -387,6 +405,16 @@ const technician: readonly Right[] = [
  * properties and not the register of duties, which belong to those who see
  * every area.
  */
+/**
+ * The role Melder (sections 4.7 and 7 of the concept, #331): people who work
+ * or live in a building and report what does not work there. It reports and
+ * sees its own reports, and switches push on for the feedback. Its device
+ * takes and sends like every device (section 7: "deshalb haben alle Rollen
+ * beide"), and holds nothing of the operator: whoever does not see the places
+ * gets an empty exchange (`pullScope` in the server).
+ */
+const reporter: readonly Right[] = ['fault.report', 'sync.read', 'sync.write', 'push.write']
+
 const siteManagement: readonly Right[] = [
   ...technician,
   'asset.write',
@@ -395,6 +423,8 @@ const siteManagement: readonly Right[] = [
   'activity.accept',
   'evidence.write',
   'defect.write',
+  // The inbox of the faults in the own areas (#331).
+  'fault.accept',
   'document.remove',
   'task.assign',
   // Articles, suppliers, stores, receipts and counts (#325).
@@ -465,6 +495,13 @@ export const shippedRoles: readonly ShippedRole[] = [
     key: 'technician',
     label: 'Haustechnik',
     rights: inOrder(technician),
+    leads: false,
+    secondFactor: false,
+  },
+  {
+    key: 'reporter',
+    label: 'Melder',
+    rights: inOrder(reporter),
     leads: false,
     secondFactor: false,
   },

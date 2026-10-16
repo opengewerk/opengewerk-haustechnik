@@ -3,6 +3,7 @@ import {
   Body,
   ConflictException,
   Controller,
+  ForbiddenException,
   Get,
   Header,
   Inject,
@@ -53,6 +54,9 @@ import {
   type ContractorId,
   type ContractorVisits,
   type AssetId,
+  type FaultReportId,
+  isAllowed,
+  missingRight,
 } from '@opengewerk/haustechnik-domain'
 import {
   accountsOf,
@@ -98,6 +102,7 @@ import {
   activitySignatures,
   defects,
   duties,
+  faultReports,
   properties,
   workOrderDecisions,
   workOrderNotes,
@@ -106,6 +111,7 @@ import {
   workOrderSettings,
 } from '../database/schema/index.js'
 import { EvidenceRefusal } from '../evidence/write.js'
+import { rowOf as faultRowOf, stateOf as faultStateOf } from '../faults/reading.js'
 import { tellHandedOut } from '../notifications/tell.js'
 import { dayInGermany } from '../today.js'
 import { candidatesIn, containing, inSight } from './activities.controller.js'
@@ -261,6 +267,7 @@ const planFields = [
 const originFields = [
   'origin',
   'defectId',
+  'faultReportId',
   'dutyId',
   'propertyId',
   'buildingId',
@@ -630,14 +637,20 @@ export class WorkOrdersController {
     const values = fieldsOf(
       body,
       [...originFields, ...planFields],
-      ['defectId', 'dutyId', 'propertyId', 'buildingId', 'roomId', 'assetId'],
+      ['defectId', 'faultReportId', 'dutyId', 'propertyId', 'buildingId', 'roomId', 'assetId'],
     )
     const origin = values.origin
 
     if (!(workOrderOrigins as readonly unknown[]).includes(origin)) {
       throw new BadRequestException(
-        'Ein Auftrag entsteht aus einem Mangel, aus einem Termin oder von Hand.',
+        'Ein Auftrag entsteht aus einer Störmeldung, aus einem Mangel, aus einem Termin oder von Hand.',
       )
+    }
+
+    // Accepting a fault report is making its work order (section 4.7 of the
+    // concept, #331): whoever does it accepts faults as well as planning work.
+    if (origin === 'fault' && !isAllowed(identity, 'fault.accept')) {
+      throw new ForbiddenException(missingRight('fault.accept'))
     }
 
     const plan = planOf(values)
@@ -650,8 +663,42 @@ export class WorkOrdersController {
       let place: Target
       let activityId: ActivityId
       let originDefectId: DefectId | null = null
+      let acceptedReport: FaultReportId | null = null
 
-      if (origin === 'defect') {
+      if (origin === 'fault') {
+        if (!given(values.faultReportId)) {
+          throw new BadRequestException('Ein Auftrag aus einer Störmeldung nennt die Meldung.')
+        }
+
+        if (planned.kind !== 'fault') {
+          throw new BadRequestException(
+            'Ein Auftrag aus einer Störmeldung ist einer der Art „Störung“.',
+          )
+        }
+
+        const report = await heldFaultReport(tx, String(values.faultReportId))
+
+        if (faultStateOf(report) !== 'received') {
+          throw new ConflictException(
+            'Ein Auftrag entsteht aus einer Meldung im Eingang. Diese ist schon angenommen, zusammengeführt, abgelehnt oder erledigt.',
+          )
+        }
+
+        // At the asset or the room of the report, otherwise at its building.
+        place = {
+          propertyId: report.report.propertyId,
+          areaId: report.report.areaId,
+          buildingId:
+            report.report.assetId === null && report.report.roomId === null
+              ? report.report.buildingId
+              : null,
+          roomId: report.report.assetId === null ? report.report.roomId : null,
+          assetId: report.report.assetId,
+        } as Target
+        await allowedPeople(tx, place.areaId, planned)
+        activityId = await madeActivity(tx, identity, place, planned)
+        acceptedReport = report.report.id as FaultReportId
+      } else if (origin === 'defect') {
         if (!given(values.defectId)) {
           throw new BadRequestException('Ein Auftrag aus einem Mangel nennt den Mangel.')
         }
@@ -741,6 +788,15 @@ export class WorkOrdersController {
           .update(defects)
           .set({ status: 'ordered', remedyWorkOrderId: order.id })
           .where(eq(defects.id, originDefectId))
+      }
+
+      // The report is accepted with its order and names it; one back in the
+      // inbox after an order not performed names the new one (#331).
+      if (acceptedReport !== null) {
+        await tx
+          .update(faultReports)
+          .set({ workOrderId: order.id, acceptedAt: now, updatedAt: now })
+          .where(eq(faultReports.id, acceptedReport))
       }
 
       return activityId
@@ -1272,6 +1328,26 @@ async function originOf(
   activity: Activity,
   order: WorkOrder,
 ): Promise<WorkOrderOrigin> {
+  // The fault report it accepted (#331), in the areas of the person asking.
+  const [report] = await tx
+    .select({
+      id: faultReports.id,
+      description: faultReports.description,
+      receivedAt: faultReports.receivedAt,
+    })
+    .from(faultReports)
+    .where(eq(faultReports.workOrderId, order.id))
+    .limit(1)
+
+  if (report !== undefined) {
+    return {
+      kind: 'fault',
+      faultReportId: report.id as FaultReportId,
+      description: report.description,
+      receivedAt: report.receivedAt.toISOString(),
+    }
+  }
+
   if (order.originDefectId !== null) {
     const [defect] = await tx
       .select({ id: defects.id, description: defects.description, foundOn: defects.foundOn })
@@ -1348,4 +1424,27 @@ export class WorkOrderSettingsController {
       return { namesAndTimes }
     })
   }
+}
+
+/** A fault report the person asking sees, held until the transaction ends, so that two acceptances of it come one after the other. */
+async function heldFaultReport(tx: TenantTransaction, id: string) {
+  const missing = 'Diese Störmeldung gibt es nicht oder nicht in Ihren Bereichen.'
+
+  if (!isUuid(id)) {
+    throw new NotFoundException(missing)
+  }
+
+  await tx
+    .select({ id: faultReports.id })
+    .from(faultReports)
+    .where(eq(faultReports.id, id as (typeof faultReports.$inferSelect)['id']))
+    .for('update')
+
+  const row = await faultRowOf(tx, id)
+
+  if (row === null) {
+    throw new NotFoundException(missing)
+  }
+
+  return row
 }

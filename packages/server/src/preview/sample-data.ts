@@ -1,6 +1,11 @@
 import { randomUUID } from 'node:crypto'
 
-import type { WorkOrderKind, WorkOrderUrgency } from '@opengewerk/haustechnik-domain'
+import type {
+  FaultCategory,
+  FaultPlaceChoice,
+  WorkOrderKind,
+  WorkOrderUrgency,
+} from '@opengewerk/haustechnik-domain'
 
 import { dayInGermany } from '../today.js'
 import type { PreviewArea } from './preview-database.js'
@@ -1172,6 +1177,8 @@ export interface PlantedOrder {
  */
 export interface BehindTheRoutes {
   readonly orders: PlantedOrder[]
+  /** The fault reports the viewer is to see among the own (#331). */
+  readonly faults: readonly string[]
   /** The orders a firm of the list carries out, briefed and with a permit on a device (#330). */
   readonly visits: { readonly activityId: string; readonly leads: string }[]
   /** Labels of a sheet printed for a property, which hang on nothing yet. */
@@ -1432,7 +1439,13 @@ export async function plantSampleData(
   address: string,
   areas: ReadonlyMap<PreviewArea, string>,
 ): Promise<BehindTheRoutes> {
-  const standings: PlantedStandings = { evidence: [], orders: [], sheets: [], visits: [] }
+  const standings: PlantedStandings = {
+    evidence: [],
+    orders: [],
+    sheets: [],
+    visits: [],
+    faults: [],
+  }
   const propertyIds = new Map<string, string>()
 
   // The defaults of the three general classes of defects, which the Leitung
@@ -1597,7 +1610,69 @@ export async function plantSampleData(
   // The contracts with the firms (#329), once the duties and the assets they name are there.
   await plantSampleContracts(address)
 
-  return { orders: standings.orders, sheets: standings.sheets, visits: standings.visits }
+  // The fault reports in the inbox, one accepted and one rejected (#331).
+  const faults = await plantSampleFaults(address)
+
+  return { orders: standings.orders, sheets: standings.sheets, visits: standings.visits, faults }
+}
+
+/**
+ * The fault reports of the sample operator (#331), as the boards "Störungen"
+ * draw them: two of the same cold radiator in the inbox, a running cistern
+ * accepted as a work order, and a jammed window rejected with the reason. All
+ * at the school house in the south, through the routes, by the Leitung; who
+ * reported three of them is the viewer afterwards (`giveSampleFaults`).
+ */
+async function plantSampleFaults(address: string): Promise<string[]> {
+  const categories = await read<FaultCategory[]>(address, '/fault-reports/categories')
+  const places = await read<FaultPlaceChoice[]>(address, '/fault-reports/places')
+  const school = places.find(
+    (each) => each.property === 'Schulzentrum Am Lindenhain' && each.building === 'Schulhaus',
+  )
+  const [first, second] = school?.rooms ?? []
+
+  if (school === undefined || first === undefined || second === undefined) {
+    throw new Error('Das Schulhaus der Beispieldaten hat keine zwei Räume für die Störmeldungen.')
+  }
+
+  const report = (category: string, description: string, place: Record<string, string>) =>
+    send(address, '/fault-reports', {
+      categoryId: categories.find((each) => each.name === category)?.id,
+      description,
+      ...place,
+    })
+  const cold = await report(
+    'Heizung und Lüftung',
+    'Heizkörper bleibt kalt, auch wenn das Thermostat ganz aufgedreht ist.',
+    { roomId: first.id },
+  )
+
+  await report('Heizung und Lüftung', 'Raum kalt, Heizung aus?', { roomId: first.id })
+
+  const cistern = await report(
+    'Sanitär',
+    'Spülung im WC läuft ständig nach, man hört es im ganzen Flur.',
+    { roomId: second.id },
+  )
+  const window = await report('Sonstiges', 'Fenster im Treppenhaus klemmt.', {
+    buildingId: school.buildingId,
+  })
+
+  await send(address, '/work-orders', {
+    origin: 'fault',
+    faultReportId: cistern.id,
+    title: `Sanitär, ${second.name}`,
+    kind: 'fault',
+    urgency: 'normal',
+    dueOn: daysAhead(1),
+    responsibleUserId: 'preview-wendt',
+    participantUserIds: [],
+  })
+  await send(address, `/fault-reports/${window.id}/reject`, {
+    reason: 'Fenster gehören zum Bauunterhalt der Stadt, bitte dem Hochbauamt melden.',
+  })
+
+  return [cold.id, cistern.id, window.id]
 }
 
 /**

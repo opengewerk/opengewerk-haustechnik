@@ -182,6 +182,11 @@ jobs:
           ALLOWED = {
               # The id field of the issue templates, an identifier and not prose.
               "pruefung",
+              # The addresses of the fault reports (#331) where they stand without a
+              # slash: a settings key, a search parameter and the boards' functions.
+              "stoerung",
+              "stoerungen",
+              "stoermeldung",
           }
 
           EXEMPT = {"LICENSE"}

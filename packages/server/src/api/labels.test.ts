@@ -58,6 +58,7 @@ const people: Readonly<Record<RoleKey, string>> = {
   technical_management: 'u-duties',
   site_management: 'u-site',
   technician: 'u-tech',
+  reporter: 'u-reporter',
 }
 
 const address = 'https://haustechnik.example'
@@ -539,7 +540,8 @@ describe('what a code is for the person asking', () => {
 
     await post(`/assets/${fresh.asset}/labels/${label.id}/block`, lead).expect(200)
 
-    for (const role of roleKeys) {
+    // Every role that sees the assets; the Melder asks its own route (#331).
+    for (const role of roleKeys.filter((key) => rightsOfRoles([key]).has('asset.read'))) {
       expect(await standingOf(label.code, by(role, large)), role).toEqual({ standing: 'blocked' })
     }
   })

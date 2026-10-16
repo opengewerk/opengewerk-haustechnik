@@ -151,4 +151,10 @@ export interface BuildingSituation extends PlaceToDo {
   readonly keyDate: IsoDate
   /** Null for whoever may not read the activities. */
   readonly lastActivities: readonly LastActivity[] | null
+  /**
+   * The fault reports of the building that are not done, received or
+   * accepted (#331, section 4.1 of the concept: "offene Störungen"). Null
+   * for whoever does not accept faults.
+   */
+  readonly openFaults: number | null
 }

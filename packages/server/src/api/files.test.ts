@@ -52,6 +52,7 @@ const people: Readonly<Record<RoleKey, string>> = {
   technical_management: 'u-duties',
   site_management: 'u-site',
   technician: 'u-tech',
+  reporter: 'u-reporter',
 }
 
 let admin: Pool
@@ -187,12 +188,15 @@ afterAll(async () => {
   rmSync(folder, { recursive: true, force: true })
 })
 
+/** The roles that file documents: the four of phase 1, not the Melder (#331). */
+const filers = roleKeys.filter((key) => rightsOfRoles([key]).has('document.record'))
+
 describe('the bytes of a file', () => {
   /**
-   * Section 7 of the concept: all four roles file documents, a photo taken on
-   * site among them.
+   * Section 7 of the concept: all four roles of phase 1 file documents, a
+   * photo taken on site among them. The Melder files none (#331).
    */
-  it.each(roleKeys)('are taken from "%s", who may file a document', async (role) => {
+  it.each(filers)('are taken from "%s", who may file a document', async (role) => {
     const bytes = text()
     const answer = await send(bytes, by(role)).expect(200)
 

@@ -104,6 +104,12 @@ export const holdingTheBuilding: Readonly<Record<string, string>> = {
   duties_interval_document_of_their_property:
     'eine Pflicht mit dem Dokument, das ihren Abstand begründet',
   evidence_from_an_activity_of_its_property: 'ein Nachweis mit dem Vorgang, aus dem er kommt',
+  fault_reports_accepted_as_a_work_order_of_their_property:
+    'eine Störmeldung mit dem Auftrag, als der sie angenommen wurde',
+  fault_reports_merged_in_their_building:
+    'eine Störmeldung mit der, mit der sie zusammengeführt ist',
+  fault_reports_reported_as_a_defect_of_their_property:
+    'eine Störmeldung mit dem Mangel, der aus ihr gemeldet wurde',
   evidence_replaces_one_of_its_duty: 'ein Nachweis mit dem, den er berichtigt',
   meter_points_under_a_meter_of_their_property: 'ein Zähler mit seinem Hauptzähler',
   meter_readings_correct_a_reading_here: 'ein Zählerstand mit dem, den er berichtigt',

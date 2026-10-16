@@ -70,6 +70,7 @@ describe('the catalogue of rights', () => {
       activity: ['read', 'perform', 'write', 'accept'],
       evidence: ['read', 'write'],
       defect: ['read', 'report', 'write'],
+      fault: ['report', 'accept'],
       document: ['read', 'record', 'remove'],
       task: ['read', 'record', 'assign'],
       store: ['read', 'write'],
@@ -106,13 +107,14 @@ describe('the catalogue of rights', () => {
 })
 
 describe('the roles a tenant starts with', () => {
-  it('are the four of phase 1, in the order a screen lists them', () => {
+  it('are the four of phase 1 and the Melder of phase 2, in the order a screen lists them', () => {
     expect(shippedRoles.map((role) => role.key)).toEqual([...roleKeys])
     expect(shippedRoles.map((role) => role.label)).toEqual([
       'Leitung',
       'Technische Leitung',
       'Objektleitung',
       'Haustechnik',
+      'Melder',
     ])
   })
 
@@ -207,6 +209,8 @@ describe('"Technische Leitung"', () => {
       'duty.write',
       'evidence.read',
       'evidence.write',
+      'fault.accept',
+      'fault.report',
       'location.read',
       'location.write',
       'push.write',
@@ -264,6 +268,8 @@ describe('"Objektleitung"', () => {
       'duty.read',
       'evidence.read',
       'evidence.write',
+      'fault.accept',
+      'fault.report',
       'location.read',
       'push.write',
       'reading.write',
@@ -312,6 +318,7 @@ describe('"Haustechnik"', () => {
       'document.record',
       'duty.read',
       'evidence.read',
+      'fault.report',
       'location.read',
       'push.write',
       'reading.write',
@@ -339,6 +346,7 @@ describe('"Haustechnik"', () => {
       'document.remove',
       'duty.write',
       'evidence.write',
+      'fault.accept',
       'location.write',
       'mail.read',
       'mail.write',
@@ -350,6 +358,23 @@ describe('"Haustechnik"', () => {
       'task.assign',
       'template.write',
     ])
+  })
+})
+
+describe('"Melder"', () => {
+  it('may report a fault, see its own reports, switch push on for the feedback and take part in the exchange, and nothing else', () => {
+    expect(may('reporter')).toEqual(['fault.report', 'push.write', 'sync.read', 'sync.write'])
+  })
+
+  it('sees no place, so that its device holds nothing of the operator', () => {
+    expect(mayNot('reporter')).toEqual(
+      expect.arrayContaining(['location.read', 'asset.read', 'activity.read', 'defect.read']),
+    )
+  })
+
+  it('does not lead the tenant and is not asked for a second factor', () => {
+    expect(roleOf('reporter').leads).toBe(false)
+    expect(roleOf('reporter').secondFactor).toBe(false)
   })
 })
 

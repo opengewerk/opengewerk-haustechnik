@@ -48,7 +48,14 @@ export const guideOrder = [
 export const manualOrder = ['installation', 'update', 'sicherung', 'betreiber-anlegen'] as const
 
 /** The texts of the screens on site, in the order of its tabs and then its menu. */
-export const siteHelpOrder = ['index', 'scannen', 'aufnehmen', 'konflikte', 'aufgaben'] as const
+export const siteHelpOrder = [
+  'index',
+  'scannen',
+  'aufnehmen',
+  'konflikte',
+  'aufgaben',
+  'meldungen',
+] as const
 
 /** The first paragraph of a text in plain words, for the line under its title in a list. */
 export function firstParagraph(source: string): string {

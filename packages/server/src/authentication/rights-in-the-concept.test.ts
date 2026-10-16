@@ -88,7 +88,8 @@ describe('the table of rights in section 7 of the concept', () => {
     // An empty table would agree with an empty catalogue, and a parser that
     // found nothing would pass every check below.
     expect(matrix.rows.length).toBeGreaterThanOrEqual(20)
-    expect(roleColumns.length).toBe(4)
+    // The four of phase 1 and the Melder (#331).
+    expect(roleColumns.length).toBe(5)
   })
 
   it('has a column for each role a tenant starts with, under the name a screen shows', () => {
