@@ -7,6 +7,7 @@ import {
 import type { AuditScreenWords } from '@opengewerk/platform-web/office'
 
 import { activityPlaces } from './activity-addresses.js'
+import { contractorPlaces } from './contractor-addresses.js'
 import { defectPlaces } from './defect-addresses.js'
 import { documentPlaces } from './document-addresses.js'
 import { dutyPlaces, evidencePlaces } from './duty-addresses.js'
@@ -37,6 +38,7 @@ const screens: Readonly<Record<string, (id: string) => string>> = {
   defects: defectPlaces.defect,
   round_templates: templatePlaces.template,
   round_plans: planPlaces.plan,
+  contractors: contractorPlaces.contractor,
 }
 
 /** The label of the link to a record. */
@@ -53,6 +55,7 @@ const links: Words = {
   defects: 'Zum Mangel',
   round_templates: 'Zur Vorlage',
   round_plans: 'Zum Plan',
+  contractors: 'Zur Fremdfirma',
 }
 
 export const auditScreenWords: AuditScreenWords = {

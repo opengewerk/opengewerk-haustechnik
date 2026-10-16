@@ -23,6 +23,7 @@ import {
   type Building,
   byNameIn,
   type Catalogue,
+  type ContractorId,
   type CatalogueEntry,
   ceilingOf,
   type Counting,
@@ -102,6 +103,7 @@ import {
 import { dayInGermany } from '../today.js'
 import { inSight } from './activities.controller.js'
 import { RequiresPermission } from './authorization.js'
+import { checkContractor, checkPerformer } from './contractor-checks.js'
 import { listedEvidence } from './evidence.controller.js'
 import { dutyProposalFilter, dutyProposals } from './duty-proposals.js'
 import { dutyReading, dutyRegister, dutyRegisterQuestion } from './duty-register.js'
@@ -151,6 +153,7 @@ const newFields = [
   'responsibleUserId',
   'performer',
   'performerNote',
+  'contractorId',
 ] as const
 
 /** The fields a duty may change. What it hangs on and what it is stay as they were confirmed. */
@@ -166,6 +169,7 @@ const changeFields = [
   'responsibleUserId',
   'performer',
   'performerNote',
+  'contractorId',
 ] as const
 
 /** The fields that may be emptied: an empty text is stored as null. */
@@ -181,6 +185,7 @@ const emptiable = [
   'responsibleUserId',
   'performer',
   'performerNote',
+  'contractorId',
 ] as const
 
 /** The fields of a duty of the operator's own, which a duty from the catalogue takes from its kind. */
@@ -447,14 +452,8 @@ async function checkResponsible(tx: TenantTransaction, userId: unknown): Promise
   }
 }
 
-/** A note on the contractor belongs to a duty a contractor performs. */
-function checkPerformer(performer: unknown, note: unknown): void {
-  if (given(note) && performer !== 'contractor') {
-    throw new BadRequestException(
-      'Die Angabe zur Fremdfirma gehört zu einer Pflicht, die eine Fremdfirma ausführt.',
-    )
-  }
-}
+/** A firm out of the list, or a note on one, belongs to a duty a contractor performs (#328). */
+const contractorOfADuty = 'Die Fremdfirma gehört zu einer Pflicht, die eine Fremdfirma ausführt.'
 
 /** The duty kind of the catalogue a key names today, which has to apply to the asset. */
 function kindFor(catalogue: Catalogue, key: unknown, assetKind: string | null, on: IsoDate) {
@@ -499,6 +498,7 @@ const batchFields = [
   'responsibleUserId',
   'performer',
   'performerNote',
+  'contractorId',
 ] as const
 
 const batchEmptiable = [
@@ -506,6 +506,7 @@ const batchEmptiable = [
   'responsibleUserId',
   'performer',
   'performerNote',
+  'contractorId',
 ] as const
 
 /** A problem of one field as `refuse` takes it, or nothing. */
@@ -629,6 +630,7 @@ function dutyRow(
     responsibleUserId: (values.responsibleUserId ?? null) as string | null,
     performer: (values.performer ?? null) as Duty['performer'],
     performerNote: (values.performerNote ?? null) as string | null,
+    contractorId: (values.contractorId ?? null) as ContractorId | null,
     confirmedBy: identity.userId,
   }
 }
@@ -1102,6 +1104,7 @@ export class DutiesController {
               dueOn: activity.dueOn,
               performer: activity.performer,
               contractorNote: activity.contractorNote,
+              contractorId: activity.contractorId,
             },
     }
   }
@@ -1154,7 +1157,7 @@ export class DutiesController {
     const today = dayInGermany()
 
     refuse(dutyProblems(values))
-    checkPerformer(values.performer, values.performerNote)
+    checkPerformer(values.performer, values.performerNote, values.contractorId, contractorOfADuty)
 
     return this.database.forTenant(identity, async (tx) => {
       const target = await targetOf(tx, values)
@@ -1207,6 +1210,7 @@ export class DutiesController {
       }
 
       await checkResponsible(tx, values.responsibleUserId)
+      await checkContractor(tx, values.contractorId)
 
       const document = given(values.intervalDocumentId)
         ? await intervalDocumentAt(tx, identity, values.intervalDocumentId, target.chain)
@@ -1244,10 +1248,11 @@ export class DutiesController {
     }
 
     refuse({ ...dutyProblems(values), ...problemOf('assetIds', batchAssetsProblem(assetIds)) })
-    checkPerformer(values.performer, values.performerNote)
+    checkPerformer(values.performer, values.performerNote, values.contractorId, contractorOfADuty)
 
     return this.database.forTenant(identity, async (tx) => {
       await checkResponsible(tx, values.responsibleUserId)
+      await checkContractor(tx, values.contractorId)
 
       const rows = []
 
@@ -1368,8 +1373,11 @@ export class DutiesController {
       checkPerformer(
         values.performer === undefined ? duty.performer : values.performer,
         values.performerNote === undefined ? duty.performerNote : values.performerNote,
+        values.contractorId === undefined ? duty.contractorId : values.contractorId,
+        contractorOfADuty,
       )
       await checkResponsible(tx, values.responsibleUserId)
+      await checkContractor(tx, values.contractorId)
 
       // Naming the document again takes its newest version: whoever saves
       // the interval with it has looked at the interval against that one.

@@ -103,6 +103,7 @@ export const dutyRegisterWords = {
   assetKind: 'art',
   dutyKind: 'pflichtart',
   responsible: 'verantwortlich',
+  contractorId: 'fremdfirma',
 } as const satisfies Readonly<Record<keyof DutyRegisterFilter, string>>
 
 /** What an address says after a word, as text: the router reads digits as a number. */
@@ -138,7 +139,15 @@ export function dutyFilterOf(search: Readonly<Record<string, unknown>>): DutyReg
   const state = said(search, dutyRegisterWords.state)
   const due = said(search, dutyRegisterWords.due)
   const plain = (
-    ['propertyId', 'areaId', 'buildingId', 'assetKind', 'dutyKind', 'responsible'] as const
+    [
+      'propertyId',
+      'areaId',
+      'buildingId',
+      'assetKind',
+      'dutyKind',
+      'responsible',
+      'contractorId',
+    ] as const
   ).flatMap((name) => {
     const value = said(search, dutyRegisterWords[name])
 

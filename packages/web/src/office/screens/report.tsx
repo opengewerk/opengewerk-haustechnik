@@ -34,6 +34,12 @@ import { Link, useNavigate, useParams, useSearch } from '@tanstack/react-router'
 import { FileText, Lock, Plus, Trash2 } from 'lucide-react'
 import { useRef, useState } from 'react'
 
+import {
+  ContractorField,
+  contractorFieldWords,
+  ContractorName,
+  useContractorNames,
+} from '../contractor-field.js'
 import { failureSentence } from '../../app/failure.js'
 import { placePath } from '../../app/place-path.js'
 import { placeAbove, titleOfRoom } from '../../app/place-records.js'
@@ -47,6 +53,8 @@ import { officePlaces } from '../place-addresses.js'
 import { dutyEvidenceQuery, dutyQuery } from './duty.js'
 
 export const reportWords = {
+  firmHint:
+    'Füllt die Organisation aus. Eine Prüforganisation, die keine Fremdfirma ist: „Keine aus der Liste“ und als Text.',
   notThere:
     'Diese Pflicht gibt es nicht mehr, oder sie liegt in einem Bereich, den dieser Zugang nicht sieht.',
   noConnection: 'Ein Bericht wird mit Verbindung eingetragen. Gerade ist keine da.',
@@ -130,8 +138,12 @@ export function ReportScreen() {
   const { activity } = duty
   const performedBy =
     activity !== null && activity.id === fromActivity
-      ? { performer: activity.performer, note: activity.contractorNote }
-      : { performer: duty.performer, note: duty.performerNote }
+      ? {
+          performer: activity.performer,
+          note: activity.contractorNote,
+          contractorId: activity.contractorId,
+        }
+      : { performer: duty.performer, note: duty.performerNote, contractorId: duty.contractorId }
 
   return <ReportForm key={duty.id} duty={duty} performedBy={performedBy} unwelcome={unwelcome} />
 }
@@ -146,6 +158,8 @@ function ReportForm({
   readonly performedBy: {
     readonly performer: DutyPerformer | null
     readonly note: string | null
+    /** The firm out of the list (#328). */
+    readonly contractorId: string | null
   }
   /** Why nothing is entered here, or null where a report may be. */
   readonly unwelcome: string | null
@@ -166,7 +180,11 @@ function ReportForm({
   const picker = useRef<HTMLInputElement>(null)
   const [file, setFile] = useState<File | null>(null)
   const [examiner, setExaminer] = useState('')
-  const [organisation, setOrganisation] = useState(contractor ?? '')
+  // The firm out of the list fills the organisation in, until somebody types one (#328).
+  const firmNames = useContractorNames()
+  const [firm, setFirm] = useState((byContractor ? performedBy.contractorId : null) ?? '')
+  const [typedOrganisation, setOrganisation] = useState<string | null>(null)
+  const organisation = typedOrganisation ?? firmNames.get(firm) ?? contractor ?? ''
   const [performedOn, setPerformedOn] = useState('')
   const [result, setResult] = useState<EvidenceResult>('without_defects')
   const [resultReason, setResultReason] = useState('')
@@ -262,6 +280,7 @@ function ReportForm({
       resultReason: result === 'not_performed' ? filled(resultReason) : null,
       examiner: filled(examiner),
       examinerOrganisation: filled(organisation),
+      contractorId: firm === '' ? null : firm,
       defects: namesDefects
         ? defects.map((row) => ({
             description: row.description.trim(),
@@ -369,7 +388,17 @@ function ReportForm({
                 date(duty.appointment.dueOn)
               ),
           },
-          ...(contractor === null ? [] : [{ label: 'Fremdfirma', value: contractor }]),
+          // The firm the duty or the order names, out of the list with a link (#328).
+          ...(!byContractor || (contractor === null && !performedBy.contractorId)
+            ? []
+            : [
+                {
+                  label: 'Fremdfirma',
+                  value: (
+                    <ContractorName contractorId={performedBy.contractorId} note={contractor} />
+                  ),
+                },
+              ]),
           ...(duty.asset === null
             ? []
             : [
@@ -466,6 +495,17 @@ function ReportForm({
                     {problems['file']}
                   </p>
                 ) : null}
+              </div>
+              <div className="sm:w-[360px]">
+                <ContractorField
+                  value={firm}
+                  noneLabel={contractorFieldWords.none}
+                  hint={reportWords.firmHint}
+                  onChange={(value) => {
+                    setFirm(value)
+                    setOrganisation(null)
+                  }}
+                />
               </div>
               <div className="grid gap-3.5 sm:grid-cols-2">
                 <Field

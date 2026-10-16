@@ -52,6 +52,7 @@ import { Link, useNavigate, useSearch } from '@tanstack/react-router'
 import { BookOpen, Check, ChevronDown, ChevronUp, ClipboardCheck } from 'lucide-react'
 import { useMemo, useState } from 'react'
 
+import { ContractorField, contractorFieldWords } from '../contractor-field.js'
 import { ReviewMarks } from '../../app/review-marks.js'
 import { useCatalogue } from '../../sync/catalogue.js'
 import { askAt } from '../../sync/made-at.js'
@@ -710,7 +711,7 @@ function Batch({
   const colleagues = useQuery(dutyColleaguesQuery)
   const [responsibleUserId, setResponsibleUserId] = useState('')
   const [performer, setPerformer] = useState<DutyPerformer | null>(null)
-  const [performerNote, setPerformerNote] = useState('')
+  const [contractorId, setContractorId] = useState('')
   const [interval, setTypedInterval] = useState('')
   const [unit, setUnit] = useState<'months' | 'days'>('months')
   const [intervalReason, setIntervalReason] = useState('')
@@ -798,8 +799,8 @@ function Batch({
           : {}),
         responsibleUserId: responsibleUserId === '' ? null : responsibleUserId,
         performer,
-        performerNote:
-          performer === 'contractor' && performerNote.trim() !== '' ? performerNote.trim() : null,
+        // The firm out of the list, with a contractor alone (#328).
+        contractorId: performer === 'contractor' && contractorId !== '' ? contractorId : null,
       },
       count === 1 ? '1 Pflicht bestätigt.' : `${String(count)} Pflichten bestätigt.`,
     )
@@ -849,13 +850,10 @@ function Batch({
           onChange={setPerformer}
         />
         {performer === 'contractor' ? (
-          <Field
-            label="Angabe zur Fremdfirma"
-            value={performerNote}
-            maxLength={dutyLimits.performerNote}
-            onChange={(event) => {
-              setPerformerNote(event.target.value)
-            }}
+          <ContractorField
+            value={contractorId}
+            noneLabel={contractorFieldWords.none}
+            onChange={setContractorId}
           />
         ) : null}
         {intervalKind === 'none' ? (

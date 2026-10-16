@@ -14,6 +14,7 @@ import {
   StreamableFile,
 } from '@nestjs/common'
 import {
+  type ContractorId,
   type Activity,
   type ActivityCandidates,
   type ActivityDetails,
@@ -69,6 +70,7 @@ import {
 } from '../database/schema/index.js'
 import { dayInGermany } from '../today.js'
 import { RequiresPermission } from './authorization.js'
+import { checkContractor } from './contractor-checks.js'
 import { type Asking, fieldsOf, placeOf, refuse } from './places.js'
 import { counted, said } from './register-question.js'
 import { activityTable, wholeList } from './office-tables.js'
@@ -83,6 +85,8 @@ export interface ActivityQuestion {
   readonly propertyId: string | null
   readonly areaId: string | null
   readonly search: string | null
+  /** The firm of the list that carries the activities out (#328). */
+  readonly contractorId?: string | null
   readonly offset: number
   readonly limit: number
 }
@@ -105,6 +109,7 @@ export function activityQuestionOf(query: Readonly<Record<string, unknown>>): Ac
     propertyId: said(query, 'property') ?? null,
     areaId: said(query, 'area') ?? null,
     search: said(query, 'search')?.trim() || null,
+    contractorId: said(query, 'contractor') ?? null,
     offset: counted(
       said(query, 'offset'),
       0,
@@ -170,10 +175,17 @@ export function inSight(identity: Asking): SQL | undefined {
  */
 export function activityListWhere(
   identity: Asking,
-  question: Pick<ActivityQuestion, 'state' | 'kind' | 'propertyId' | 'areaId' | 'search'>,
+  question: Pick<
+    ActivityQuestion,
+    'state' | 'kind' | 'propertyId' | 'areaId' | 'search' | 'contractorId'
+  >,
   today: IsoDate,
 ): SQL | undefined | null {
-  if ([question.propertyId, question.areaId].some((id) => id !== null && !isUuid(id))) {
+  const contractorId = question.contractorId ?? null
+
+  if (
+    [question.propertyId, question.areaId, contractorId].some((id) => id !== null && !isUuid(id))
+  ) {
     return null
   }
 
@@ -193,6 +205,7 @@ export function activityListWhere(
       ? undefined
       : eq(activities.areaId, question.areaId as Activity['areaId']),
     question.search === null ? undefined : searching(question.search),
+    contractorId === null ? undefined : eq(activities.contractorId, contractorId as ContractorId),
     inSight(identity),
   )
 }
@@ -203,10 +216,16 @@ const planFields = [
   'performer',
   'performerUserId',
   'contractorNote',
+  'contractorId',
   'dueOn',
 ] as const
 
-const emptiable = ['responsibleUserId', 'performerUserId', 'contractorNote'] as const
+const emptiable = [
+  'responsibleUserId',
+  'performerUserId',
+  'contractorNote',
+  'contractorId',
+] as const
 
 /**
  * The activities of an operator in the office (section 4.4 of the concept,
@@ -418,6 +437,7 @@ export class ActivitiesController {
       performer: values.performer ?? null,
       performerUserId: values.performerUserId ?? null,
       contractorNote: values.contractorNote ?? null,
+      contractorId: values.contractorId ?? null,
       dueOn: values.dueOn ?? null,
     }
 
@@ -428,6 +448,11 @@ export class ActivitiesController {
       const { responsible, performers } = await candidatesIn(tx, activity.areaId)
       const anew = (value: unknown, before: string | null) =>
         typeof value === 'string' && value !== before
+
+      // A firm named anew is one of the list that is not removed (#328); one named before stays named.
+      if (anew(plan.contractorId, activity.contractorId)) {
+        await checkContractor(tx, plan.contractorId)
+      }
 
       if (
         anew(plan.responsibleUserId, activity.responsibleUserId) &&
@@ -454,6 +479,7 @@ export class ActivitiesController {
           performer: plan.performer as Activity['performer'],
           performerUserId: plan.performerUserId as string | null,
           contractorNote: plan.contractorNote as string | null,
+          contractorId: plan.contractorId as ContractorId | null,
           dueOn: plan.dueOn as string,
           updatedAt: new Date(),
         })
@@ -658,6 +684,7 @@ function entryOf(
     performer: row.performer,
     performerPerson: named(row.performerUserId),
     contractorNote: row.contractorNote,
+    contractorId: row.contractorId,
   }
 }
 

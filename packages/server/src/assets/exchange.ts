@@ -356,6 +356,7 @@ async function takeOver(
           : null,
       performer: duty.performer,
       performerNote: duty.performerNote,
+      contractorId: duty.contractorId,
       confirmedBy: identity.userId,
     })),
   )

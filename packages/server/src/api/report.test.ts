@@ -208,6 +208,8 @@ interface Entered {
   readonly result?: string
   readonly resultReason?: string | null
   readonly defects?: readonly object[]
+  /** The firm of the list the report came from (#328); none where it is left out. */
+  readonly contractorId?: string | null
 }
 
 /** What the office sends for a report, with defects found by the examiner. */
@@ -218,6 +220,7 @@ function reportOf(entered: Entered) {
     resultReason: entered.resultReason ?? null,
     examiner: 'Klaus Berger',
     examinerOrganisation: 'Brandschutz Beispiel GmbH',
+    ...(entered.contractorId === undefined ? {} : { contractorId: entered.contractorId }),
     file: {
       sha256: entered.sha256,
       fileName: entered.fileName ?? 'bericht-2026-10.pdf',
@@ -811,5 +814,83 @@ describe('the defects of a report', () => {
         dueOn: addDays(daysAgo(6), 14),
       },
     ])
+  })
+})
+
+describe('an evidence that names a firm of the list', () => {
+  it('stays as it was written when the firm is changed or removed, and the inspection names the firm', async () => {
+    const firm = (
+      await http()
+        .post('/contractors')
+        .set(testIdentityHeader, by('u-duties'))
+        .send({ name: 'Brandschutz Beispiel GmbH', services: ['450'] })
+        .expect(201)
+    ).body as { id: string }
+    const duty = await ownDutyAt(await elevatorIn())
+    const activity = await activityFor(duty)
+    const answer = await entered(duty, by('u-site'), { contractorId: firm.id })
+
+    expect(answer.status).toBe(201)
+
+    const kept = async () =>
+      (
+        await admin.query(
+          `select to_jsonb(e) - 'change_sequence' as row from evidence e where id = $1`,
+          [answer.body.id],
+        )
+      ).rows[0] as { row: Record<string, unknown> }
+    const before = await kept()
+    const pageBefore = await pageOf(answer.body.id)
+
+    expect(before.row).toMatchObject({
+      contractor_id: firm.id,
+      examiner_organisation: 'Brandschutz Beispiel GmbH',
+    })
+
+    // The inspection it settled names the firm, beside the organisation as text.
+    const { rows } = await admin.query(
+      'select contractor_id, contractor_note from activities where id = $1',
+      [activity],
+    )
+
+    expect(rows).toEqual([{ contractor_id: firm.id, contractor_note: 'Brandschutz Beispiel GmbH' }])
+
+    await http()
+      .patch(`/contractors/${firm.id}`)
+      .set(testIdentityHeader, by('u-duties'))
+      .send({ name: 'Brandschutz Rhein-Neckar GmbH' })
+      .expect(200)
+    await http()
+      .delete(`/contractors/${firm.id}`)
+      .set(testIdentityHeader, by('u-duties'))
+      .expect(200)
+
+    expect(await kept()).toEqual(before)
+    expect(await pageOf(answer.body.id)).toEqual(pageBefore)
+  })
+
+  it('names no firm that is not there or no longer is', async () => {
+    const duty = await ownDutyAt(await elevatorIn())
+    const gone = (
+      await http()
+        .post('/contractors')
+        .set(testIdentityHeader, by('u-duties'))
+        .send({ name: 'Prüfdienst Alt GmbH' })
+        .expect(201)
+    ).body as { id: string }
+
+    await http()
+      .delete(`/contractors/${gone.id}`)
+      .set(testIdentityHeader, by('u-duties'))
+      .expect(200)
+
+    for (const contractorId of [newId<'contractor'>(), gone.id]) {
+      const answer = await entered(duty, by('u-site'), { contractorId })
+
+      expect(answer.status).toBe(400)
+      expect(answer.body.message).toBe(
+        'Diese Fremdfirma gibt es nicht oder nicht mehr. Wählen Sie eine aus der Liste.',
+      )
+    }
   })
 })

@@ -50,6 +50,7 @@ import { useNavigate, useParams, useSearch } from '@tanstack/react-router'
 import { Check, Info, X } from 'lucide-react'
 import { type FormEvent, useState } from 'react'
 
+import { ContractorField, contractorFieldWords } from '../contractor-field.js'
 import { isWaiting } from '../../app/documents.js'
 import { ReviewMarks } from '../../app/review-marks.js'
 import { useCatalogue } from '../../sync/catalogue.js'
@@ -141,6 +142,8 @@ interface Typed {
   readonly responsibleUserId: string
   readonly performer: DutyPerformer | null
   readonly performerNote: string
+  /** The firm out of the list (#328), or empty. */
+  readonly contractorId: string
 }
 
 /** What a kind allows a duty: the kind of its interval, the maximum and the guide. */
@@ -200,6 +203,9 @@ function described(typed: Typed) {
       typed.performer === 'contractor' && typed.performerNote.trim() !== ''
         ? typed.performerNote.trim()
         : null,
+    // The firm out of the list, with a contractor alone (#328).
+    contractorId:
+      typed.performer === 'contractor' && typed.contractorId !== '' ? typed.contractorId : null,
   }
 }
 
@@ -244,6 +250,7 @@ function startingWith(interval: DeadlineInterval | null): Typed {
     responsibleUserId: '',
     performer: null,
     performerNote: '',
+    contractorId: '',
   }
 }
 
@@ -257,6 +264,7 @@ function typedOf(duty: DutyDetails): Typed {
     responsibleUserId: duty.responsibleUserId ?? '',
     performer: duty.performer,
     performerNote: duty.performerNote ?? '',
+    contractorId: duty.contractorId ?? '',
   }
 }
 
@@ -950,13 +958,13 @@ function IntervalFields({
         </p>
       ) : null}
       {typed.performer === 'contractor' ? (
-        <Field
-          label="Angabe zur Fremdfirma"
-          value={typed.performerNote}
-          maxLength={dutyLimits.performerNote}
-          problem={problems['performerNote']}
-          onChange={(event) => {
-            set({ performerNote: event.target.value })
+        <ContractorField
+          value={typed.contractorId}
+          note={typed.performerNote}
+          noneLabel={contractorFieldWords.none}
+          problem={problems['contractorId'] ?? problems['performerNote']}
+          onChange={(value) => {
+            set({ contractorId: value })
           }}
         />
       ) : null}

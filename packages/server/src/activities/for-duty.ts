@@ -113,6 +113,8 @@ export async function makeActivityForDuty(
             title: dutyTitle(duty, catalogue).trim().slice(0, activityLimits.title).trim(),
             performer: duty.performer,
             contractorNote: duty.performer === 'contractor' ? duty.performerNote : null,
+            // The firm out of the list, as the duty names it (#328).
+            contractorId: duty.performer === 'contractor' ? duty.contractorId : null,
           }
         : {
             kind: 'work_order' as const,

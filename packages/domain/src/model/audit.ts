@@ -249,6 +249,20 @@ export const auditVocabulary: AuditVocabulary = {
         taken_by: 'Entnommen von',
       },
     },
+    // The contractors of the operator (#328).
+    contractors: {
+      label: 'Fremdfirma',
+      fields: {
+        name: 'Name',
+        street: 'Straße',
+        postal_code: 'Postleitzahl',
+        city: 'Ort',
+        phone: 'Telefon',
+        email: 'E-Mail',
+        services: 'Leistungen',
+        note: 'Notiz',
+      },
+    },
     store_labels: {
       label: 'Etikett eines Lagerfachs',
       fields: { store_article_id: 'Artikel eines Lagers', code: 'Code', blocked_at: 'Gesperrt am' },
@@ -286,6 +300,7 @@ export const auditVocabulary: AuditVocabulary = {
         responsible_user_id: 'Verantwortlich',
         performer: 'Ausgeführt von',
         performer_note: 'Fremdfirma',
+        contractor_id: 'Fremdfirma aus der Liste',
         confirmed_by: 'Bestätigt von',
         confirmed_at: 'Bestätigt am',
         ends_on: 'Endet am',
@@ -314,6 +329,7 @@ export const auditVocabulary: AuditVocabulary = {
         performed_by: 'Durchgeführt von',
         examiner: 'Prüfer',
         examiner_organisation: 'Organisation des Prüfers',
+        contractor_id: 'Fremdfirma aus der Liste',
         written_by: 'Festgeschrieben von',
         written_at: 'Festgeschrieben am',
         replaces_evidence_id: 'Berichtigt den Nachweis',
@@ -388,6 +404,7 @@ export const auditVocabulary: AuditVocabulary = {
         performer: 'Durchführung',
         performer_user_id: 'Ausgeführt von',
         contractor_note: 'Fremdfirma',
+        contractor_id: 'Fremdfirma aus der Liste',
         closing_reason: 'Grund',
         performed_on: 'Durchgeführt am',
         countersignature_required: 'Gegenzeichnung verlangt',
@@ -698,6 +715,8 @@ export const auditVocabulary: AuditVocabulary = {
     store_id: 'stores',
     article_id: 'articles',
     supplier_id: 'suppliers',
+    // The firm of the list a duty, an activity and an evidence name (#328).
+    contractor_id: 'contractors',
     // A withdrawal and the shelf a label is stuck on (#326).
     material_id: 'work_order_materials',
     store_article_id: 'store_articles',
@@ -778,6 +797,8 @@ export const auditVocabulary: AuditVocabulary = {
     stock_movements: ['kind'],
     work_order_materials: ['article_id'],
     store_labels: ['code'],
+    // A contractor by its name (#328).
+    contractors: ['name'],
     // A duty of the operator's own by its name, one from the catalogue by its
     // kind; a dismissal by the kind it dismissed.
     duties: ['label', 'kind'],

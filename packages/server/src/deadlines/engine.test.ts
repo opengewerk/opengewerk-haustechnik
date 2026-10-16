@@ -415,7 +415,7 @@ describe('the deadline of a duty', () => {
 async function activitiesOf(dutyId: string) {
   const { rows } = await admin.query<Record<string, unknown>>(
     `select a.kind, a.title, a.status, a.due_on::text, a.responsible_user_id, a.performer,
-            a.performer_user_id, a.contractor_note, a.property_id, a.area_id, a.building_id,
+            a.performer_user_id, a.contractor_note, a.contractor_id, a.property_id, a.area_id, a.building_id,
             a.room_id, a.asset_id, d.property_id as line_property_id, d.area_id as line_area_id
        from activities a
        join activity_duties d on d.tenant_id = a.tenant_id and d.activity_id = a.id
@@ -452,6 +452,7 @@ describe('the activity of a due day', () => {
         performer: null,
         performer_user_id: null,
         contractor_note: null,
+        contractor_id: null,
         property_id: at.property,
         area_id: at.area,
         building_id: null,
@@ -675,20 +676,41 @@ describe('the activity of a due day', () => {
 
   it('makes a maintenance of a maintenance and an inspection of a visual check, and takes the contractor of the duty', async () => {
     const at = await placeIn(small)
-    const ownDuty = async (task: string, performer: string | null, note: string | null) => {
+    // The firm out of the list the duty names (#328).
+    const { rows: firms } = await admin.query<{ id: string }>(
+      `insert into contractors (tenant_id, name) values ($1, 'Aufzug Beispiel GmbH') returning id`,
+      [small],
+    )
+    const firm = (firms[0] as { id: string }).id
+    const ownDuty = async (
+      task: string,
+      performer: string | null,
+      note: string | null,
+      contractor: string | null = null,
+    ) => {
       const { rows } = await admin.query<{ id: string }>(
         `insert into duties (tenant_id, property_id, area_id, building_id, label, basis, source_note, task,
                              counting, interval_months, responsible_user_id, performer, performer_note,
-                             confirmed_by)
+                             contractor_id, confirmed_by)
          values ($1, $2, $3, $4, $5, 'manufacturer', 'Betriebsanleitung', $6, 'from_performance', 12,
-                 'u-site', $7, $8, 'u-duties')
+                 'u-site', $7, $8, $9, 'u-duties')
          returning id`,
-        [small, at.property, at.area, at.building, `Pflicht ${task}`, task, performer, note],
+        [
+          small,
+          at.property,
+          at.area,
+          at.building,
+          `Pflicht ${task}`,
+          task,
+          performer,
+          note,
+          contractor,
+        ],
       )
 
       return (rows[0] as { id: string }).id
     }
-    const maintenance = await ownDuty('maintenance', 'contractor', 'Aufzug Beispiel GmbH')
+    const maintenance = await ownDuty('maintenance', 'contractor', 'Aufzug Beispiel GmbH', firm)
     const check = await ownDuty('visual_check', 'own_staff', null)
 
     // Both met a year ago, both due within the lead.
@@ -704,12 +726,13 @@ describe('the activity of a due day', () => {
         title: 'Pflicht maintenance',
         performer: 'contractor',
         contractor_note: 'Aufzug Beispiel GmbH',
+        contractor_id: firm,
         building_id: at.building,
         asset_id: null,
       },
     ])
     expect(await activitiesOf(check)).toMatchObject([
-      { kind: 'inspection', performer: 'own_staff', contractor_note: null },
+      { kind: 'inspection', performer: 'own_staff', contractor_note: null, contractor_id: null },
     ])
   })
 })

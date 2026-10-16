@@ -97,6 +97,8 @@ export interface ActivityEntry extends PlaceTarget {
   readonly performer: DutyPerformer | null
   readonly performerPerson: DutyPerson | null
   readonly contractorNote: string | null
+  /** The firm out of the list that carries it out (#328). */
+  readonly contractorId: string | null
 }
 
 /** A page of the list, with how many pass the filters and whether a further page follows. */

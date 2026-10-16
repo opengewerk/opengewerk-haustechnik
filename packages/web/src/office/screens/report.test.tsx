@@ -240,6 +240,7 @@ describe('the form of a report', () => {
           resultReason: null,
           examiner: 'Klaus Berger',
           examinerOrganisation: 'Brandschutz Beispiel GmbH',
+          contractorId: null,
           defects: [
             {
               description: 'Wandhalterung locker',
@@ -502,6 +503,7 @@ describe('the contractor a report comes from (#186)', () => {
     dueOn: '2026-09-30',
     performer: 'contractor',
     contractorNote: 'Löschtechnik Beispiel GmbH',
+    contractorId: null,
   } as const
 
   async function openedAt(address: string, duty: DutyDetails) {

@@ -1,5 +1,6 @@
 import { Body, ConflictException, Controller, Inject, Param, Post } from '@nestjs/common'
 import {
+  type ContractorId,
   type Catalogue,
   defectClassChoices,
   type EvidenceLink,
@@ -16,6 +17,7 @@ import { writeReport } from '../evidence/report.js'
 import { EvidenceRefusal } from '../evidence/write.js'
 import { dayInGermany } from '../today.js'
 import { RequiresPermission } from './authorization.js'
+import { checkContractor } from './contractor-checks.js'
 import { type Asking, fieldsOf, placeOf, refuse } from './places.js'
 
 const missing = 'Diese Pflicht gibt es nicht oder nicht mehr.'
@@ -39,6 +41,7 @@ function reportOf(values: Readonly<Record<string, unknown>>): Report {
     resultReason: said(values['resultReason']),
     examiner: said(values['examiner']) ?? '',
     examinerOrganisation: said(values['examinerOrganisation']) ?? '',
+    contractorId: said(values['contractorId']) as ContractorId | null,
     file: {
       sha256: file['sha256'] as string,
       fileName: said(file['fileName']) ?? '',
@@ -83,10 +86,11 @@ export class DutyReportController {
         'resultReason',
         'examiner',
         'examinerOrganisation',
+        'contractorId',
         'file',
         'defects',
       ],
-      ['resultReason'],
+      ['resultReason', 'contractorId'],
     )
 
     // Accounts are read on the instance and never inside a tenant.
@@ -101,6 +105,7 @@ export class DutyReportController {
       )
 
       refuse(reportProblems(values, dayInGermany(), (key) => offered.has(key)))
+      await checkContractor(tx, values['contractorId'])
 
       const report = reportOf(values)
 

@@ -149,6 +149,7 @@ describe('an installation that began on the first migration', () => {
     // settings of the deadlines hang on nothing of this.
     // The plans of the rounds hang on the places and the templates (#113),
     // the notes on a work order on its activity (#118).
+    await revertMigration(admin, '0057_contractors')
     await revertMigration(admin, '0056_document_validity')
     await revertMigration(admin, '0055_work_order_materials')
     await revertMigration(admin, '0054_stock')
@@ -340,6 +341,7 @@ describe('an installation from before the areas', () => {
     // The places hang on the areas and go first, as on the way back of an
     // installation, and so does what an invitation says about areas.
     // The plans of the rounds hang on the places and the templates (#113).
+    await revertMigration(admin, '0057_contractors')
     await revertMigration(admin, '0056_document_validity')
     await revertMigration(admin, '0055_work_order_materials')
     await revertMigration(admin, '0054_stock')
@@ -441,6 +443,7 @@ describe('an installation with places', () => {
     )
 
     // The plans of the rounds hang on the places and the templates (#113).
+    await revertMigration(admin, '0057_contractors')
     await revertMigration(admin, '0056_document_validity')
     await revertMigration(admin, '0055_work_order_materials')
     await revertMigration(admin, '0054_stock')
@@ -566,6 +569,8 @@ describe('an installation with assets', () => {
        values ($1, $2, $3, $4, $5)`,
       [tenant.id, asset, at.property, at.area, at.building],
     )
+
+    await revertMigration(admin, '0057_contractors')
 
     await revertMigration(admin, '0056_document_validity')
     await revertMigration(admin, '0055_work_order_materials')
@@ -700,6 +705,8 @@ describe('an installation with assets', () => {
       [tenant.id, at.property, at.area, at.asset],
     )
 
+    await revertMigration(admin, '0057_contractors')
+
     await revertMigration(admin, '0056_document_validity')
     await revertMigration(admin, '0055_work_order_materials')
     await revertMigration(admin, '0054_stock')
@@ -833,6 +840,8 @@ describe('an installation with assets', () => {
                $3, $4)`,
       [tenant.id, at.duty, at.property, at.area],
     )
+
+    await revertMigration(admin, '0057_contractors')
 
     await revertMigration(admin, '0056_document_validity')
     await revertMigration(admin, '0055_work_order_materials')
@@ -971,6 +980,8 @@ describe('an installation with assets', () => {
       [tenant.id, at.property, at.area, at.asset, activityId],
     )
 
+    await revertMigration(admin, '0057_contractors')
+
     await revertMigration(admin, '0056_document_validity')
     await revertMigration(admin, '0055_work_order_materials')
     await revertMigration(admin, '0054_stock')
@@ -1101,6 +1112,8 @@ describe('an installation with assets', () => {
       ],
     )
 
+    await revertMigration(admin, '0057_contractors')
+
     await revertMigration(admin, '0056_document_validity')
     await revertMigration(admin, '0055_work_order_materials')
     await revertMigration(admin, '0054_stock')
@@ -1230,6 +1243,8 @@ describe('an installation with assets', () => {
          from work_orders where id = $1`,
       [at.order],
     )
+
+    await revertMigration(admin, '0057_contractors')
 
     await revertMigration(admin, '0056_document_validity')
     await revertMigration(admin, '0055_work_order_materials')
@@ -1368,6 +1383,8 @@ describe('an installation with assets', () => {
       [tenant.id, at.property, at.area, correction],
     )
 
+    await revertMigration(admin, '0057_contractors')
+
     await revertMigration(admin, '0056_document_validity')
     await revertMigration(admin, '0055_work_order_materials')
     await revertMigration(admin, '0054_stock')
@@ -1452,6 +1469,8 @@ describe('an installation with assets', () => {
     expect(await mayCall('public')).toBe(false)
     expect(await mayCall('opengewerk_app')).toBe(true)
 
+    await revertMigration(admin, '0057_contractors')
+
     await revertMigration(admin, '0056_document_validity')
     await revertMigration(admin, '0055_work_order_materials')
     await revertMigration(admin, '0054_stock')
@@ -1527,6 +1546,8 @@ describe('an installation whose invitations name areas', () => {
        select $1, $2, id from areas where tenant_id = $1`,
       [tenant.id, invitation],
     )
+
+    await revertMigration(admin, '0057_contractors')
 
     await revertMigration(admin, '0056_document_validity')
     await revertMigration(admin, '0055_work_order_materials')
@@ -1617,6 +1638,8 @@ describe('an installation whose properties carry notes', () => {
         where areas.tenant_id = $1`,
       [tenant.id],
     )
+
+    await revertMigration(admin, '0057_contractors')
 
     await revertMigration(admin, '0056_document_validity')
     await revertMigration(admin, '0055_work_order_materials')
@@ -1720,6 +1743,8 @@ describe('an installation whose properties have people to talk to', () => {
        values ($1, $2, $3, 'Becker', 'Hausmeister'), ($1, $2, $3, 'Albers', 'Schulleitung')`,
       [tenant.id, property?.id, property?.area_id],
     )
+
+    await revertMigration(admin, '0057_contractors')
 
     await revertMigration(admin, '0056_document_validity')
     await revertMigration(admin, '0055_work_order_materials')
@@ -1826,6 +1851,8 @@ describe('an installation whose buildings have times they are closed', () => {
               ($1, $2, $3, $4, '2027-07-27', '2027-09-06', 'Sommerferien')`,
       [tenant.id, building, property?.id, property?.area_id],
     )
+
+    await revertMigration(admin, '0057_contractors')
 
     await revertMigration(admin, '0056_document_validity')
     await revertMigration(admin, '0055_work_order_materials')
@@ -1958,6 +1985,8 @@ describe('an installation that imported from tables', () => {
     )
 
     expect(await quietTables()).toEqual(['assets', 'buildings', 'floors', 'properties', 'rooms'])
+
+    await revertMigration(admin, '0057_contractors')
 
     await revertMigration(admin, '0056_document_validity')
     await revertMigration(admin, '0055_work_order_materials')
@@ -2115,6 +2144,8 @@ describe('an installation that took stock on site', () => {
       second[0]?.id,
     ])
 
+    await revertMigration(admin, '0057_contractors')
+
     await revertMigration(admin, '0056_document_validity')
     await revertMigration(admin, '0055_work_order_materials')
     await revertMigration(admin, '0054_stock')
@@ -2207,6 +2238,8 @@ describe('an installation that took stock on site', () => {
       { takes: 'asked_serials text[], asked_marks text[]', open: false, application: true },
     ])
 
+    await revertMigration(admin, '0057_contractors')
+
     await revertMigration(admin, '0056_document_validity')
     await revertMigration(admin, '0055_work_order_materials')
     await revertMigration(admin, '0054_stock')
@@ -2270,6 +2303,8 @@ describe('an installation with labels', () => {
               ($1, $2, $3, null, 'PDH4TA6W3XQ7M2K9', null)`,
       [tenant.id, property?.id, property?.area_id, stood[0]?.id],
     )
+
+    await revertMigration(admin, '0057_contractors')
 
     await revertMigration(admin, '0056_document_validity')
     await revertMigration(admin, '0055_work_order_materials')
@@ -2398,6 +2433,8 @@ describe('an installation whose activities have answers', () => {
       [tenant.id, property?.id, property?.area_id, activity, 'a'.repeat(64)],
     )
 
+    await revertMigration(admin, '0057_contractors')
+
     await revertMigration(admin, '0056_document_validity')
     await revertMigration(admin, '0055_work_order_materials')
     await revertMigration(admin, '0054_stock')
@@ -2525,6 +2562,8 @@ describe('an installation that keeps its defects', () => {
       [tenant.id],
     )
 
+    await revertMigration(admin, '0057_contractors')
+
     await revertMigration(admin, '0056_document_validity')
     await revertMigration(admin, '0055_work_order_materials')
     await revertMigration(admin, '0054_stock')
@@ -2619,6 +2658,8 @@ describe('an installation with documents', () => {
               ($1, $2, $3, 'konzept-2024.pdf', 'application/pdf', 2048)`,
       [tenant.id, filed[0]?.id, file],
     )
+
+    await revertMigration(admin, '0057_contractors')
 
     await revertMigration(admin, '0056_document_validity')
     await revertMigration(admin, '0055_work_order_materials')
@@ -2766,6 +2807,8 @@ describe('an installation that exchanged an asset', () => {
       admin.query('update assets set replaces_asset_id = id where id = $1', [old[0]?.id]),
     ).rejects.toMatchObject({ constraint: 'assets_not_their_own_successor' })
 
+    await revertMigration(admin, '0057_contractors')
+
     await revertMigration(admin, '0056_document_validity')
     await revertMigration(admin, '0055_work_order_materials')
     await revertMigration(admin, '0054_stock')
@@ -2838,6 +2881,8 @@ describe('an installation that exchanged an asset', () => {
       'mail_server_security',
       'mail_server_username',
     ])
+
+    await revertMigration(admin, '0057_contractors')
 
     await revertMigration(admin, '0056_document_validity')
     await revertMigration(admin, '0055_work_order_materials')
@@ -2920,6 +2965,8 @@ describe('an installation that exchanged an asset', () => {
       'push_outbox',
       'push_subscriptions',
     ])
+
+    await revertMigration(admin, '0057_contractors')
 
     await revertMigration(admin, '0056_document_validity')
     await revertMigration(admin, '0055_work_order_materials')
@@ -3055,6 +3102,8 @@ describe('an installation from before buildings had areas of their own', () => {
     )
 
     expect(moved).toEqual([{ area: south }])
+
+    await revertMigration(admin, '0057_contractors')
 
     await revertMigration(admin, '0056_document_validity')
     await revertMigration(admin, '0055_work_order_materials')
@@ -3199,6 +3248,8 @@ describe('an installation from before buildings moved', () => {
   it('lets what hangs on a building follow it, and no longer when taken back', async () => {
     await runMigrations(ownerDatabaseUrl())
     expect(await state()).toEqual({ follows: 'all', withItsBuilding: true })
+
+    await revertMigration(admin, '0057_contractors')
 
     await revertMigration(admin, '0056_document_validity')
     await revertMigration(admin, '0055_work_order_materials')
@@ -3426,7 +3477,7 @@ describe('a tenant whose roles are from before a right', () => {
     // What the role held stays in front, in its order, and what it lacked
     // follows in the order of the catalogue, migration by migration: what
     // 0046 gives, then what a later one gives. No right is there twice.
-    const later = ['store.read', 'store.write']
+    const later = ['store.read', 'store.write', 'contractor.read', 'contractor.write']
 
     expect(now['technician']?.rights).toEqual([
       ...made,

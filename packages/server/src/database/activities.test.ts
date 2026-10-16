@@ -328,6 +328,13 @@ describe('the keys of the activities and defects', () => {
           [tenant, here.property, secondArea, here.asset],
         ),
       activities_at_a_building_of_their_property: () => activityRow('building_id', beside.building),
+      // A firm of the list of this tenant, and none that is not there (#328).
+      activities_name_their_contractor: () =>
+        tried(
+          `insert into activities (tenant_id, property_id, area_id, kind, title, performer, contractor_id)
+           values ($1, $2, $3, 'inspection', 'Hauptprüfung Aufzug', 'contractor', $4)`,
+          [tenant, here.property, here.area, randomUUID()],
+        ),
       activities_at_a_room_of_their_property: () => activityRow('room_id', beside.room),
       activities_at_an_asset_of_their_property: () => activityRow('asset_id', beside.asset),
       activities_responsible_works_here: () => activityRow('responsible_user_id', 'user-nobody'),

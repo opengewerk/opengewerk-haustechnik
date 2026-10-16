@@ -32,6 +32,7 @@ import {
 } from 'drizzle-orm/pg-core'
 
 import { areaFromPropertyColumn, areaFromTheProperty, withinAreas } from './areas.js'
+import { contractors } from './contractors.js'
 import { assets } from './assets.js'
 import { defects } from './defects.js'
 import { duties, dutyPerformer } from './duties.js'
@@ -89,6 +90,7 @@ export const activities = pgTable(
     performer: dutyPerformer('performer'),
     performerUserId: text('performer_user_id'),
     contractorNote: text('contractor_note'),
+    contractorId: reference<'contractor'>('contractor_id'),
     closingReason: text('closing_reason'),
     performedOn: date('performed_on', { mode: 'string' }),
     countersignatureRequired: boolean('countersignature_required').notNull().default(false),
@@ -211,6 +213,17 @@ export const activities = pgTable(
     check(
       'activities_contractor_named_for_a_contractor',
       sql`${table.contractorNote} is null or ${table.performer} = 'contractor'`,
+    ),
+    // The firm out of the list of the operator (#328), which lies in no area.
+    foreignKey({
+      columns: [table.tenantId, table.contractorId],
+      foreignColumns: [contractors.tenantId, contractors.id],
+      name: 'activities_name_their_contractor',
+    }),
+    index('activities_contractor_idx').on(table.tenantId, table.contractorId),
+    check(
+      'activities_contractor_for_a_contractor',
+      sql`${table.contractorId} is null or ${table.performer} = 'contractor'`,
     ),
     // A reason with "not performed", and only then.
     check(

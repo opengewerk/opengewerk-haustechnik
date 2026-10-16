@@ -77,6 +77,7 @@ import {
 } from 'lucide-react'
 import { type ReactNode, useDeferredValue, useId, useMemo, useState } from 'react'
 
+import { ContractorField, contractorFieldWords, ContractorName } from '../contractor-field.js'
 import { DutyStateMark } from '../../app/asset-marks.js'
 import { useAreas } from '../../session/areas.js'
 import { askAt } from '../../sync/made-at.js'
@@ -240,9 +241,15 @@ export function usePlaces() {
 /** Who performs an activity: the person, or the contractor in words, or nobody yet. */
 function performerOf(activity: ActivityEntry): { main: ReactNode; sub: string | null } {
   if (activity.performer === 'contractor') {
+    const named = activity.contractorId !== null || activity.contractorNote !== null
+
     return {
-      main: activity.contractorNote ?? activityWords.contractor,
-      sub: activity.contractorNote === null ? null : activityWords.contractor,
+      main: named ? (
+        <ContractorName contractorId={activity.contractorId} note={activity.contractorNote} />
+      ) : (
+        activityWords.contractor
+      ),
+      sub: named ? activityWords.contractor : null,
     }
   }
 
@@ -1004,7 +1011,7 @@ function PlanForm({
   const [performer, setPerformer] = useState<DutyPerformer>(activity.performer ?? 'own_staff')
   const [responsible, setResponsible] = useState(activity.responsible?.userId ?? '')
   const [person, setPerson] = useState(activity.performerPerson?.userId ?? '')
-  const [contractor, setContractor] = useState(activity.contractorNote ?? '')
+  const [contractorId, setContractorId] = useState(activity.contractorId ?? '')
   const [dueOn, setDueOn] = useState<string>(activity.dueOn ?? '')
   const [problems, setProblems] = useState<Readonly<Record<string, string>>>({})
   const [trouble, setTrouble] = useState<string | null>(null)
@@ -1029,8 +1036,9 @@ function PlanForm({
       responsibleUserId: responsible === '' ? null : responsible,
       performer,
       performerUserId: performer === 'own_staff' && person !== '' ? person : null,
-      contractorNote:
-        performer === 'contractor' && contractor.trim() !== '' ? contractor.trim() : null,
+      // What stood as text stays; the firm comes out of the list (#328).
+      contractorNote: performer === 'contractor' ? activity.contractorNote : null,
+      contractorId: performer === 'contractor' && contractorId !== '' ? contractorId : null,
       dueOn: dueOn === '' ? null : dueOn,
     }
     const found = activityPlanProblems(values)
@@ -1115,14 +1123,12 @@ function PlanForm({
               {...(problems['performerUserId'] ? { problem: problems['performerUserId'] } : {})}
             />
           ) : (
-            <Field
-              label="Fremdfirma"
-              value={contractor}
-              maxLength={200}
-              onChange={(event) => {
-                setContractor(event.target.value)
-              }}
-              {...(problems['contractorNote'] ? { problem: problems['contractorNote'] } : {})}
+            <ContractorField
+              value={contractorId}
+              note={activity.contractorNote}
+              noneLabel={contractorFieldWords.none}
+              problem={problems['contractorId'] ?? problems['contractorNote']}
+              onChange={setContractorId}
             />
           )}
           <Field

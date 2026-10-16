@@ -465,6 +465,16 @@ function rowsOf(tenant: Tenant): readonly Row[] {
       },
     },
     { table: 'suppliers', values: { id: supplier, tenant_id: tenant.id, name: 'Großhandel' } },
+    // A contractor of the operator (#328).
+    {
+      table: 'contractors',
+      values: {
+        id: randomUUID(),
+        tenant_id: tenant.id,
+        name: 'Brandschutz Beispiel GmbH',
+        services: ['450'],
+      },
+    },
     { table: 'stores', values: { id: store, tenant_id: tenant.id, name: 'Hauptlager' } },
     {
       table: 'store_articles',

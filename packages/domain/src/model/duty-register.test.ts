@@ -155,6 +155,7 @@ describe('a filter of the register', () => {
       'buildingId',
       'assetKind',
       'dutyKind',
+      'contractorId',
       'responsible',
     ])
   })

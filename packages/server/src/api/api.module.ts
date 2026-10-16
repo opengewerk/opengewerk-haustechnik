@@ -90,6 +90,7 @@ import {
   ServiceReportPrintController,
 } from './prints.controller.js'
 import { ArticlesController, StoresController, SuppliersController } from './stock.controller.js'
+import { ContractorsController } from './contractors.controller.js'
 import { WorkOrderSettingsController, WorkOrdersController } from './work-orders.controller.js'
 
 /**
@@ -358,6 +359,7 @@ export class ApiModule {
         WorkOrderSettingsController,
         ArticlesController,
         SuppliersController,
+        ContractorsController,
         StoresController,
         MetersController,
         // The templates of the rounds: a new one and a new version of one.

@@ -22,6 +22,7 @@ import {
 
 import { activities } from './activities.js'
 import { withinAreas } from './areas.js'
+import { contractors } from './contractors.js'
 import { duties } from './duties.js'
 import { evidenceResult } from './evidence-result.js'
 import { optionalTrimmed, trimmed } from './locations.js'
@@ -69,6 +70,8 @@ export const evidence = pgTable(
     performedBy: text('performed_by'),
     examiner: text('examiner'),
     examinerOrganisation: text('examiner_organisation'),
+    // The firm of the list whose report it is (#328), frozen with the rest; the organisation stays as written.
+    contractorId: reference<'contractor'>('contractor_id'),
     writtenBy: text('written_by').notNull(),
     writtenAt: timestamp('written_at', { withTimezone: true }).notNull().defaultNow(),
     replacesEvidenceId: reference<'evidence'>('replaces_evidence_id'),
@@ -142,6 +145,13 @@ export const evidence = pgTable(
       'evidence_examiner_organisation_shaped',
       optionalTrimmed(table.examinerOrganisation, evidenceLimits.examinerOrganisation),
     ),
+    // The firm out of the list of the operator (#328), which lies in no area.
+    foreignKey({
+      columns: [table.tenantId, table.contractorId],
+      foreignColumns: [contractors.tenantId, contractors.id],
+      name: 'evidence_name_their_contractor',
+    }),
+    index('evidence_contractor_idx').on(table.tenantId, table.contractorId),
     // An examiner from outside is named with the organisation, both or neither.
     check(
       'evidence_examiner_with_organisation',
