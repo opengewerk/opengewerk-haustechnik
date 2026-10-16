@@ -94,8 +94,10 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   in der Liste, als Datei, in der Tabelle „Dokumente“ und auf dem Gerät, kann sie nur, wer
   „Fremdfirmen ansehen“ hat, weil das Recht genau das schützen soll und die Bereiche hier nicht
   greifen; dafür kennt das Fundament ein Leserecht je Elternteil eines Ansprechpartners
-  (opengewerk/opengewerk#648), das Submodul ist angehoben. Eine entfernte Firma nimmt ihre
-  Ansprechpartner und Dokumente mit. Migration `0059_contractor_contacts_and_documents`.
+  (opengewerk/opengewerk#648), das Submodul ist angehoben. Der Name einer Firma ist dagegen keine
+  geschützte Angabe: die Frist eines Firmendokuments nennt Titel und Firma jedem, der Fristen ansieht
+  (Planungskonzept v0.44). Eine entfernte Firma nimmt ihre Ansprechpartner und Dokumente mit.
+  Migration `0059_contractor_contacts_and_documents`.
 
 ### Geändert
 

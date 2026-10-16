@@ -463,6 +463,56 @@ describe('the documents of a contractor (#328)', () => {
     expect(await deadlinesOf(inTheSouth, northOnly())).toEqual([])
   })
 
+  /**
+   * The name of a firm is no secret (decided on 16.10.2026, #377): whoever
+   * reads deadlines reads the deadline of a paper of a firm with its title and
+   * the firm, and finds it by the name of the firm, without seeing the firms.
+   * The paper itself stays with whoever sees them.
+   */
+  it('stands in "Fristen" with its title and the firm also for whoever reads deadlines and not the firms', async () => {
+    const firm = await firmOf('Blitzschutz Beispiel GmbH')
+    const title = 'Zertifikat Blitzschutzfachkraft'
+    const { document } = await certificateOf(firm, '2027-03-31', 'management', title)
+    const reader = JSON.stringify({
+      userId: people.site_management,
+      tenantId: large,
+      roles: ['site_management'],
+      rights: [...rightsOfRoles(['site_management']), 'deadline.read'].filter(
+        (right) => right !== 'contractor.read',
+      ),
+    })
+
+    await pass(large)
+
+    expect(await deadlinesOf(document, reader)).toEqual([
+      expect.objectContaining({
+        title,
+        contractor: { id: firm, name: 'Blitzschutz Beispiel GmbH' },
+      }),
+    ])
+
+    const searched = async (words: string) =>
+      (
+        (
+          await http()
+            .get(`/deadlines?limit=200&search=${encodeURIComponent(words)}`)
+            .set(testIdentityHeader, reader)
+            .expect(200)
+        ).body.rows as Row[]
+      ).map((row) => row.attachmentId)
+
+    expect(await searched('Blitzschutz Beispiel')).toEqual([document])
+
+    // By the name the firm has now, too, before the next pass writes it into
+    // the deadline.
+    await http()
+      .patch(`/contractors/${firm}`)
+      .set(testIdentityHeader, by('management', large))
+      .send({ name: 'Ableiter Muster GmbH' })
+      .expect(200)
+    expect(await searched('Ableiter Muster')).toEqual([document])
+  })
+
   it('is filed by whoever keeps the firms, never at a place as well', async () => {
     const firm = await firmOf('Aufzug Beispiel GmbH')
 
