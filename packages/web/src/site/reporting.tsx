@@ -37,7 +37,7 @@ import {
   ScanLine,
   WifiOff,
 } from 'lucide-react'
-import { type FormEvent, useMemo, useRef, useState } from 'react'
+import { type FormEvent, useEffect, useMemo, useRef, useState } from 'react'
 
 import { FaultPhoto } from '../app/fault-photo.js'
 import { NotOffered } from './kit.js'
@@ -373,6 +373,63 @@ async function sendPhoto(photo: File): Promise<string> {
 }
 
 /**
+ * The photo just taken, drawn onto a canvas and cut to fill it. Drawn and not
+ * linked: what the picker hands over never becomes an address on the page,
+ * and there is no address to give back afterwards either.
+ */
+function PhotoPreview({ photo, label }: { readonly photo: Blob; readonly label: string }) {
+  const canvas = useRef<HTMLCanvasElement>(null)
+
+  useEffect(() => {
+    let live = true
+
+    if (typeof createImageBitmap !== 'function') {
+      return undefined
+    }
+
+    createImageBitmap(photo).then(
+      (bitmap) => {
+        const target = canvas.current
+        const context = target?.getContext('2d')
+
+        if (live && target && context) {
+          const scale = Math.max(target.width / bitmap.width, target.height / bitmap.height)
+          const width = bitmap.width * scale
+          const height = bitmap.height * scale
+
+          context.clearRect(0, 0, target.width, target.height)
+          context.drawImage(
+            bitmap,
+            (target.width - width) / 2,
+            (target.height - height) / 2,
+            width,
+            height,
+          )
+        }
+
+        bitmap.close()
+      },
+      () => undefined,
+    )
+
+    return () => {
+      live = false
+    }
+  }, [photo])
+
+  return (
+    <canvas
+      ref={canvas}
+      width={168}
+      height={128}
+      role="img"
+      aria-label={label}
+      className="h-16 w-[84px] shrink-0 rounded-[4px] border border-line bg-surface-sunken"
+    />
+  )
+}
+
+/**
  * "Störung melden", `stoerung_melden()` of the boards: the place from the
  * label or the list, the category, the description and a photo. It goes to
  * the server at once, with a network; the place came there the same way.
@@ -395,7 +452,6 @@ export function ReportFaultScreen() {
   const [problems, setProblems] = useState<Readonly<Record<string, string>>>({})
   const [trouble, setTrouble] = useState<string | null>(null)
   const [working, setWorking] = useState(false)
-  const preview = useMemo(() => (photo === null ? null : URL.createObjectURL(photo)), [photo])
   const back = { to: reportingPlaces.start, label: 'Zu meinen Meldungen' }
 
   if (!reports) {
@@ -548,13 +604,7 @@ export function ReportFaultScreen() {
           }}
         />
         <div className="flex items-center gap-2.5">
-          {preview === null ? null : (
-            <img
-              src={preview}
-              alt={reportingWords.photoField}
-              className="h-16 w-[84px] shrink-0 rounded-[4px] border border-line object-cover"
-            />
-          )}
+          {photo === null ? null : <PhotoPreview photo={photo} label={reportingWords.photoField} />}
           <Button
             icon={Camera}
             height={52}
