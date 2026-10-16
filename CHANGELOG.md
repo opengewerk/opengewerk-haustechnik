@@ -22,6 +22,9 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
 
 ### Geändert
 
+- Die Probe der Sicherung im Stapel der CI zählt auch die Einstellung der Störmeldungen und die Adressen für
+  die Rückmeldung (#332). Warum: eine neue Tabelle, die dort fehlt, prüft die Probe nicht, und bei #332
+  fehlten beide.
 - Unter „Benachrichtigungen“ stehen nur noch die Anlässe für Push, die eine Person mit ihren Rechten betreffen
   können (#398): ein Melder sieht „Ihre Störmeldungen“ und sonst nichts, die Rolle Haustechnik sieht
   „Eingegangene Störungen“ nicht. Warum: ein Anlass, der nie eintritt, ließ sich einschalten und blieb
