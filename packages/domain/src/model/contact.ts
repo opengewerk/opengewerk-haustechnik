@@ -1,21 +1,26 @@
 import { type ContactPerson, contactRules, type ContactTexts } from '@opengewerk/platform-domain'
 
 import type { AreaId } from './area.js'
+import type { ContractorId } from './contractor.js'
 import { optional, type Problems } from './fields.js'
 import type { PropertyId } from './location.js'
 
 /**
  * A person to talk to at a property (section 4.1 of the concept): the
- * caretaker, the head of a school, whoever knows where the key is.
+ * caretaker, the head of a school, whoever knows where the key is; or at a
+ * contractor of the operator (section 4.11, #328): whoever takes the call
+ * there.
  *
  * Who a contact is and how to reach them is the foundation's (ADR 0010 of the
- * repository opengewerk); what one hangs on here is the property, and nothing
- * else. Its area is the area of its property, like that of every row with a
- * place (ADR 0003).
+ * repository opengewerk); what one hangs on here is a property or a
+ * contractor, exactly one. At a property its area is the area of the
+ * property, like that of every row with a place (ADR 0003); at a contractor
+ * it has none, as the contractor has none (addendum of #328).
  */
 export interface Contact extends ContactPerson {
-  readonly propertyId: PropertyId
-  readonly areaId: AreaId
+  readonly propertyId: PropertyId | null
+  readonly areaId: AreaId | null
+  readonly contractorId: ContractorId | null
 }
 
 /** The bounds of the texts of a contact, the same in the form, the route and the database. */
@@ -60,14 +65,14 @@ function tooLong(texts: ContactTexts): Readonly<Problems> {
 /**
  * The rules of the contacts of this application, as the foundation makes them:
  * one object for the form, the route and the sync. A contact hangs on a
- * property, the one parent there is, so "several" cannot happen and has its
- * sentence only because the rules ask for one.
+ * property or on a contractor, exactly one of the two.
  */
-export const propertyContacts = contactRules({
-  parents: ['propertyId'],
+export const operatorContacts = contactRules({
+  parents: ['propertyId', 'contractorId'],
   parentText: {
-    none: 'Ein Ansprechpartner gehört zu einer Liegenschaft, dieser zu keiner.',
-    several: 'Ein Ansprechpartner gehört zu genau einer Liegenschaft.',
+    none: 'Ein Ansprechpartner gehört zu einer Liegenschaft oder einer Fremdfirma, dieser zu keiner.',
+    several:
+      'Ein Ansprechpartner gehört zu einer Liegenschaft oder einer Fremdfirma, nicht zu beiden.',
   },
   problems: tooLong,
 })

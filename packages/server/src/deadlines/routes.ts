@@ -19,6 +19,7 @@ import type { ApplicationDeadlineColumns } from '../database/schema/deadlines.js
 import {
   assets,
   attachments,
+  contractors,
   deadlines,
   defects,
   duties,
@@ -145,10 +146,14 @@ export function deadlineRulesFor(
                 assetBuildingId: assets.buildingId,
                 assetRoomId: assets.roomId,
                 roomBuildingId: rooms.buildingId,
+                // The firm of a contractor's document (#328), which has no place.
+                contractorId: contractors.id,
+                contractorName: contractors.name,
               })
               .from(attachments)
               .leftJoin(assets, eq(assets.id, attachments.assetId))
               .leftJoin(rooms, eq(rooms.id, attachments.roomId))
+              .leftJoin(contractors, eq(contractors.id, attachments.contractorId))
               .where(inArray(attachments.id, documentIds))
       const byDocument = new Map<string, (typeof foundDocuments)[number]>(
         foundDocuments.map((document) => [document.id, document]),
@@ -163,6 +168,10 @@ export function deadlineRulesFor(
             title: document?.title ?? row.sourceLabel,
             documentKind: document?.kind ?? null,
             propertyId: row.propertyId,
+            contractor:
+              document?.contractorId === null || document?.contractorId === undefined
+                ? null
+                : { id: document.contractorId, name: document.contractorName ?? '' },
             buildingId:
               document?.buildingId ?? document?.assetBuildingId ?? document?.roomBuildingId ?? null,
             roomId: document?.roomId ?? document?.assetRoomId ?? null,
@@ -182,7 +191,7 @@ export function deadlineRulesFor(
         if (row.meterPropertyId !== null) {
           const facts: DeadlineFacts = {
             follows: 'meter',
-            propertyId: row.propertyId,
+            propertyId: row.propertyId ?? '',
             buildingId: null,
             roomId: null,
             asset: null,
@@ -198,7 +207,7 @@ export function deadlineRulesFor(
             roundPlanId: row.roundPlanId,
             title: found?.title ?? row.sourceLabel,
             rhythm: found ? rhythmText(found.plan) : '',
-            propertyId: row.propertyId,
+            propertyId: row.propertyId ?? '',
             buildingId: found?.plan.buildingId ?? null,
             roomId: null,
             asset: null,
@@ -213,7 +222,7 @@ export function deadlineRulesFor(
             follows: 'defect',
             defectId: row.defectId,
             description: defect?.description ?? row.sourceLabel,
-            propertyId: row.propertyId,
+            propertyId: row.propertyId ?? '',
             // An asset stands in its building and its room, a room in its building.
             buildingId:
               defect?.buildingId ?? defect?.assetBuildingId ?? defect?.roomBuildingId ?? null,
@@ -233,7 +242,7 @@ export function deadlineRulesFor(
           follows: 'duty',
           dutyId,
           dutyTitle: duty ? dutyTitle(duty, catalogue) : row.sourceLabel,
-          propertyId: row.propertyId,
+          propertyId: row.propertyId ?? '',
           // An asset stands in its building; a duty at a place names it itself.
           buildingId: duty?.buildingId ?? duty?.assetBuildingId ?? null,
           roomId: duty?.roomId ?? null,
@@ -247,8 +256,11 @@ export function deadlineRulesFor(
         return { ...facts }
       }
     },
+    // By the name of the property, or of the firm whose document it follows (#328).
     searchIn: (pattern) =>
-      sql`exists (select 1 from ${properties} where ${properties.id} = ${deadlines.propertyId} and ${properties.name} ilike ${pattern})`,
+      sql`(exists (select 1 from ${properties} where ${properties.id} = ${deadlines.propertyId} and ${properties.name} ilike ${pattern})
+        or exists (select 1 from ${attachments} join ${contractors} on ${contractors.id} = ${attachments.contractorId}
+                    where ${attachments.id} = ${deadlines.attachmentId} and ${contractors.name} ilike ${pattern}))`,
     filters,
     sentences: {
       notAColleague: 'Verantwortlich ist jemand, der für diesen Betreiber arbeitet.',

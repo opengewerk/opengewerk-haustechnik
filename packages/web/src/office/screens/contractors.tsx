@@ -44,7 +44,9 @@ import {
   contractorPlaces,
   contractorQuery,
 } from '../contractor-addresses.js'
+import { ContractorContacts } from '../contractor-contacts.js'
 import { ContractorDialog, TakeoverDialog, useServiceWords } from '../contractor-dialogs.js'
+import { DocumentsCard } from '../documents.js'
 import {
   dutyPlaces,
   dutyRegisterPlace,
@@ -444,6 +446,7 @@ export function ContractorScreen() {
               ]}
             />
           </Card>
+          <ContractorContacts contractorId={contractor.id} removed={removed} />
           <Card title="Leistungen und Notiz">
             {contractor.services.length === 0 ? (
               <p className="text-[13px] text-ink-faint">Keine Leistung angegeben.</p>
@@ -458,6 +461,12 @@ export function ContractorScreen() {
               <p className="text-[12px] whitespace-pre-line text-ink-faint">{contractor.note}</p>
             )}
           </Card>
+          {/* Its certificates and insurance, with their date as a deadline (#328, #327). */}
+          <DocumentsCard
+            place={{ propertyId: null, contractorId: contractor.id }}
+            at={`Fremdfirma ${contractor.name}`}
+            files={keeps && !removed}
+          />
         </div>
         <div className="flex flex-col gap-3.5">
           {readsDuties ? (

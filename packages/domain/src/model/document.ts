@@ -9,6 +9,7 @@ import {
 import type { ActivityId } from './activity.js'
 import type { AreaId } from './area.js'
 import type { AssetId } from './asset.js'
+import type { ContractorId } from './contractor.js'
 import type { DefectId } from './defect.js'
 import { calendarDay, oneOf, type Problems, required } from './fields.js'
 import type { BuildingId, PropertyId, RoomId } from './location.js'
@@ -51,7 +52,10 @@ export const documentKindLabel: Readonly<Record<DocumentKind, string>> = {
  * #97): the file of the foundation (ADR 0010 of the repository opengewerk),
  * with what one hangs on here and what kind of document it is.
  *
- * It hangs on its property always, and at most on one record there: a
+ * It hangs on a contractor of the operator (section 4.11, #328), with no
+ * property and no area, as the contractor has none: its certificates, its
+ * insurance. Every other document hangs on its property, and at most on one
+ * record there: a
  * building, a room, an asset, an activity or a defect, whose photo it is
  * (#116); none of the five is the property itself, like a duty, an activity
  * and a defect (ADR 0002, point 10). Its
@@ -62,8 +66,9 @@ export const documentKindLabel: Readonly<Record<DocumentKind, string>> = {
  * it, and every one of them stays readable.
  */
 export interface Document extends AttachmentRecord {
-  readonly propertyId: PropertyId
-  readonly areaId: AreaId
+  readonly propertyId: PropertyId | null
+  readonly areaId: AreaId | null
+  readonly contractorId: ContractorId | null
   readonly buildingId: BuildingId | null
   readonly roomId: RoomId | null
   readonly assetId: AssetId | null
@@ -134,10 +139,18 @@ export function documentTitleOf(fileName: string): string {
  * is a mistake only a broken client makes.
  */
 export const operatorDocuments = attachmentRules({
-  homes: ['propertyId', 'buildingId', 'roomId', 'assetId', 'activityId', 'defectId'],
+  homes: [
+    'propertyId',
+    'buildingId',
+    'roomId',
+    'assetId',
+    'activityId',
+    'defectId',
+    'contractorId',
+  ],
   text: {
     noHome:
-      'Ein Dokument hängt an einer Liegenschaft, einem Gebäude, einem Raum, einer Anlage, einem Vorgang oder einem Mangel.',
+      'Ein Dokument hängt an einer Liegenschaft, einem Gebäude, einem Raum, einer Anlage, einem Vorgang, einem Mangel oder einer Fremdfirma.',
     mediaType: 'Der Typ der Datei ist nicht so angegeben, wie die Ablage ihn festhält.',
   },
 })
@@ -151,8 +164,26 @@ export const documentTargetFields = [
   'defectId',
 ] as const
 
-/** One of the places a document hangs on, its property included. */
-export type DocumentHome = 'propertyId' | (typeof documentTargetFields)[number]
+/** One of the places a document hangs on, its property and a contractor included. */
+export type DocumentHome = 'propertyId' | 'contractorId' | (typeof documentTargetFields)[number]
+
+/** What the server answers for a document that names both a place and a contractor, or neither. */
+export const documentPlaceOrContractor =
+  'Ein Dokument hängt an einer Liegenschaft oder an einer Fremdfirma, nicht an beiden.'
+
+/**
+ * What is wrong with where a document hangs, or null: at a contractor it
+ * names no property and nothing on one (#328), which the check in the
+ * database refuses as well; otherwise it names its property.
+ */
+export function documentPlaceProblem(document: Readonly<Record<string, unknown>>): string | null {
+  const given = (field: string) =>
+    document[field] !== undefined && document[field] !== null && document[field] !== ''
+  const atAContractor = given('contractorId')
+  const atAPlace = given('propertyId') || documentTargetFields.some(given)
+
+  return atAContractor === atAPlace ? documentPlaceOrContractor : null
+}
 
 /**
  * What is wrong with the record a document hangs on, or null: more than one
@@ -170,10 +201,14 @@ export function documentTargetProblem(target: Readonly<Record<string, unknown>>)
 }
 
 /**
- * What a document hangs on: the one record it names besides its property, or
- * the property where it names none.
+ * What a document hangs on: its contractor, the one record it names besides
+ * its property, or the property where it names neither.
  */
 export function documentHomeOf(document: Readonly<Record<string, unknown>>): DocumentHome {
+  if (document['contractorId'] !== undefined && document['contractorId'] !== null) {
+    return 'contractorId'
+  }
+
   return (
     documentTargetFields.find(
       (field) => document[field] !== undefined && document[field] !== null,

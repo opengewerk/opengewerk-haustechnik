@@ -10,6 +10,7 @@ import {
   documentKindOf,
   documentKindWords,
   documentProblems,
+  documentPlaceProblem,
   documentTargetProblem,
   documentTitleOf,
   documentVersionProblems,
@@ -42,7 +43,9 @@ import { titleOfRoom } from './place-records.js'
 
 /** Where a new document hangs: its property, and on request one record there. */
 export interface DocumentPlace {
-  readonly propertyId: string
+  /** None for the documents of a contractor (#328), which `contractorId` names. */
+  readonly propertyId: string | null
+  readonly contractorId?: string | null
   readonly buildingId?: string | null
   readonly roomId?: string | null
   readonly assetId?: string | null
@@ -112,6 +115,7 @@ export async function fileDocumentAs(
   const kind = filing.kind ?? null
   const problem =
     operatorDocuments.homeProblem(place) ??
+    documentPlaceProblem({ ...place }) ??
     documentTargetProblem({ ...place }) ??
     Object.values(documentProblems({ title, kind }))[0] ??
     Object.values(documentVersionProblems(dayOf(filing)))[0]
@@ -231,6 +235,8 @@ export interface DocumentSurroundings {
   readonly activities: readonly RecordState[]
   /** The defects this device holds; a photo of a defect is named by what was found. */
   readonly defects?: readonly RecordState[]
+  /** The contractors of the operator, whose certificates are documents too (#328). */
+  readonly contractors?: readonly RecordState[]
 }
 
 /** What a document hangs on, as a list names it, and the kind of place it is. */
@@ -284,6 +290,8 @@ export function hangsOn(document: RecordState, around: DocumentSurroundings): Ha
       return as(maybeText(byId(around.activities, id), 'title'))
     case 'defectId':
       return as(maybeText(byId(around.defects ?? [], id), 'description'))
+    case 'contractorId':
+      return as(maybeText(byId(around.contractors ?? [], id), 'name'))
     case 'propertyId':
       return as(null)
   }
@@ -299,6 +307,11 @@ export function documentsAt(
   documents: readonly RecordState[],
   place: DocumentPlace,
 ): readonly RecordState[] {
+  // The documents of a contractor (#328), which hang on nothing else.
+  if (place.contractorId !== undefined && place.contractorId !== null) {
+    return documents.filter((document) => document['contractorId'] === place.contractorId)
+  }
+
   const home = homes.find((field) => place[field] !== undefined && place[field] !== null)
 
   return documents.filter((document) =>

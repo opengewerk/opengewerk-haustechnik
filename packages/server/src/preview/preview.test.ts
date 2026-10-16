@@ -153,7 +153,7 @@ interface Named {
 
 /** Somebody to talk to at a property, as the route of the contacts hands one over. */
 interface Person {
-  readonly propertyId: string
+  readonly propertyId: string | null
   readonly givenName: string | null
   readonly familyName: string
   readonly role: string | null
@@ -219,10 +219,13 @@ describe('a preview started as a technician in the north', () => {
   it('shows the people to talk to in the north, and those of the school with its hall in the north', async () => {
     const answer = await request(application.getHttpServer()).get('/contacts').expect(200)
 
+    // Beside them the people of a firm, who lie in no area (#328).
     expect((answer.body as readonly Person[]).map((contact) => contact.familyName).sort()).toEqual([
       'Albers',
       'Becker',
       'Hartmann',
+      'Krämer',
+      'Weber',
     ])
   })
 
@@ -755,12 +758,17 @@ describe('a preview started as the Leitung', () => {
     const documents = rowsOf('attachments')
     const versions = rowsOf('attachment_versions')
     const hangsOn = (document: Record<string, unknown>) =>
-      ['assetId', 'roomId', 'buildingId'].find((field) => document[field] !== null) ?? 'propertyId'
+      ['assetId', 'roomId', 'buildingId', 'contractorId'].find(
+        (field) => document[field] !== null,
+      ) ?? 'propertyId'
 
     // Every report of the sample duties filed its PDF as a certificate at
     // the asset or the room of its duty (#110); the documents planted beside
     // them are the ones below.
-    const certificates = documents.filter((document) => document['kind'] === 'test_certificate')
+    // The certificate of a firm hangs on the firm and is planted with it (#328).
+    const certificates = documents.filter(
+      (document) => document['kind'] === 'test_certificate' && document['contractorId'] === null,
+    )
 
     expect(certificates.length).toBeGreaterThan(0)
     expect(
@@ -791,6 +799,8 @@ describe('a preview started as the Leitung', () => {
         hangsOn: 'assetId',
         versions: 2,
       },
+      // The insurance of a firm, at the firm (#328).
+      { title: 'Betriebshaftpflicht 2026', kind: null, hangsOn: 'contractorId', versions: 1 },
       {
         title: 'Brandschutzkonzept Schulzentrum',
         kind: 'concept',
@@ -905,7 +915,8 @@ describe('a preview started as the Leitung', () => {
     expect(at('Werkhof Nord')).toEqual([
       { givenName: null, familyName: 'Albers', role: null, phone: null, email: null },
     ])
-    expect(contacts).toHaveLength(3)
+    // Three at properties; the people of a firm stand on the page of the firm (#328).
+    expect(contacts.filter((contact) => contact.propertyId !== null)).toHaveLength(3)
     expect(
       sampleProperties.filter((property) => (property.contacts ?? []).length === 0),
     ).toHaveLength(2)

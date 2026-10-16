@@ -82,6 +82,16 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   Begehung allein aus der Anwendung bestreiten. Erzeugen darf, wer das Pflichtenverzeichnis und die
   Nachweise ansieht; enthalten ist nur, was die Person in ihren Bereichen sieht. Mit Anhang wiegt es
   höchstens 200 MB, darüber sagt der Server, die Auswahl einzugrenzen.
+- Ansprechpartner und Dokumente einer Fremdfirma (#328, zweiter Teil): auf der Seite der Firma ihre
+  Ansprechpartner und ihre Zertifikate, Versicherung und Nachweise als Fachbetrieb, deren „Gültig bis“
+  eine Frist in „Fristen“ wird, auch abgelaufen. Damit ist die Liste der Fremdfirmen vollständig, wie
+  Abschnitt 4.11 sie beschreibt. Wie die Firma liegen ihre Ansprechpartner und Dokumente in keinem
+  Bereich: entschieden am 16.10.2026, eine Zeile in `contacts`, `attachments` und `deadlines` darf
+  genau dann ohne Liegenschaft und Bereich stehen, wenn sie an etwas Betreiberweitem hängt; eine
+  Prüfung in der Datenbank hält das, die Policies lassen solche Zeilen für jeden im Betreiber durch,
+  und das Recht „Fremdfirmen pflegen“ entscheidet, wer sie anlegt (Nachtrag in ADR 0003). Eine
+  entfernte Firma nimmt ihre Ansprechpartner und Dokumente mit. Migration
+  `0059_contractor_contacts_and_documents`.
 
 ### Geändert
 

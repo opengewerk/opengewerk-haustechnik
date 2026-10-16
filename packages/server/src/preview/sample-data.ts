@@ -896,6 +896,47 @@ async function plantSampleContractors(address: string): Promise<void> {
   for (const firm of firms) {
     sampleFirms.set(firm.name, (await send(address, '/contractors', firm)).id)
   }
+
+  // The people and the papers of the first firm, as the board "Fremdfirma"
+  // draws them: its certificate and its insurance, each with its day, which
+  // become deadlines (#328).
+  const first = sampleFirms.get('Prüfdienst Beispiel GmbH') ?? ''
+
+  await send(address, '/contacts', {
+    contractorId: first,
+    givenName: 'Petra',
+    familyName: 'Krämer',
+    role: 'Disposition',
+    phone: '0621 445567',
+  })
+  await send(address, '/contacts', {
+    contractorId: first,
+    familyName: 'Weber',
+    role: 'Prüfsachverständiger',
+    email: 'weber@pruefdienst-beispiel.example',
+  })
+
+  for (const document of [
+    {
+      title: 'Zertifikat Fachbetrieb nach DIN 14675',
+      kind: 'test_certificate' as const,
+      versions: [
+        { fileName: 'zertifikat-din-14675.pdf', words: 'Zertifikat', validUntil: daysAhead(165) },
+      ],
+    },
+    {
+      title: 'Betriebshaftpflicht 2026',
+      versions: [
+        {
+          fileName: 'betriebshaftpflicht-2026.pdf',
+          words: 'Versicherung',
+          validUntil: daysAhead(76),
+        },
+      ],
+    },
+  ]) {
+    await plantDocument(address, { contractorId: first }, document)
+  }
 }
 
 /**

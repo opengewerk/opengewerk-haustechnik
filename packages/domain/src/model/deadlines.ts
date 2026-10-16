@@ -230,8 +230,14 @@ export interface MeterDeadlineFacts extends DeadlinePlaceFacts {
   readonly follows: 'meter'
 }
 
-/** A deadline of a document (#327): the document by its name and kind. */
-export interface DocumentDeadlineFacts extends DeadlinePlaceFacts {
+/**
+ * A deadline of a document (#327): the document by its name and kind. The
+ * document of a contractor (#328) has no property: it names the contractor
+ * instead, and no place.
+ */
+export interface DocumentDeadlineFacts extends Omit<DeadlinePlaceFacts, 'propertyId'> {
+  readonly propertyId: string | null
+  readonly contractor: { readonly id: string; readonly name: string } | null
   readonly follows: 'document'
   readonly attachmentId: string
   readonly title: string

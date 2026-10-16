@@ -135,7 +135,12 @@ export const operationRights: Readonly<Record<string, OperationRights>> = {
   // of the records is a right of its own, from the Objektleitung on (section
   // 7 of the concept), and what a device may not send at all asks for it too.
   attachments: {
-    create: 'document.record',
+    // The certificates and the insurance of a contractor (#328) are kept by
+    // whoever keeps the firms.
+    create: (patches) =>
+      patches.some((patch) => patch.field === 'contractorId' && patch.to !== null)
+        ? 'contractor.write'
+        : 'document.record',
     change: 'document.record',
     remove: 'document.remove',
     otherwise: 'document.remove',

@@ -89,10 +89,11 @@ export function useDocumentSurroundings(): DocumentSurroundings {
   const assets = useRecords('assets')
   const activities = useRecords('activities')
   const defects = useRecords('defects')
+  const contractors = useRecords('contractors')
 
   return useMemo(
-    () => ({ properties, buildings, rooms, assets, activities, defects }),
-    [properties, buildings, rooms, assets, activities, defects],
+    () => ({ properties, buildings, rooms, assets, activities, defects, contractors }),
+    [properties, buildings, rooms, assets, activities, defects, contractors],
   )
 }
 

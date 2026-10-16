@@ -49,6 +49,7 @@ import {
   UploadDocumentDialog,
   useDocumentSurroundings,
 } from '../documents.js'
+import { contractorPlaces } from '../contractor-addresses.js'
 import { defectPlaces } from '../defect-addresses.js'
 import { factLink } from '../links.js'
 import { officePlaces } from '../place-addresses.js'
@@ -77,6 +78,7 @@ const homes: readonly DocumentHome[] = [
   'assetId',
   'activityId',
   'defectId',
+  'contractorId',
 ]
 
 /** Where the record a document hangs on is opened; an activity has no page yet. */
@@ -94,6 +96,8 @@ function pageOf(at: HangsOn): string | null {
       return null
     case 'defectId':
       return defectPlaces.defect(at.id)
+    case 'contractorId':
+      return contractorPlaces.contractor(at.id)
   }
 }
 

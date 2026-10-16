@@ -19,6 +19,52 @@ export const withinAreasAsStored =
   '(area_id = ANY (( SELECT session_areas() AS session_areas)::uuid[])))'
 
 /**
+ * The expression of `within_areas` for a table whose rows may lie in no area,
+ * as PostgreSQL writes it back, from `withinAreasOrNoneExpression` in the
+ * schema (ADR 0003, addendum of #328).
+ */
+export const withinAreasOrNoneAsStored =
+  '((area_id IS NULL) OR ( SELECT session_sees_all_areas() AS session_sees_all_areas) OR ' +
+  '(area_id = ANY (( SELECT session_areas() AS session_areas)::uuid[])))'
+
+/** What a check has to say of a row in no area: it has an area exactly when it has a property. */
+export const noAreaWithoutAProperty = '((area_id IS NULL) = (property_id IS NULL))'
+
+/** A table whose rows may lie in no area, and the check that holds which. */
+export interface RowsInNoArea {
+  /** The check that says a row is without an area exactly when it is without a property. */
+  readonly check: string
+  readonly reason: string
+}
+
+/**
+ * Tables whose rows may be without a property and without an area, exactly
+ * when they hang on something of the whole operator (ADR 0003, addendum of
+ * #328, decided by Moritz on 16.10.2026). Their policies let such a row
+ * through for whoever is in the operator, by `withinAreasOrNoneAsStored`, and
+ * the check named here holds that no row with a property is among them.
+ */
+export const rowsInNoArea: Readonly<Record<string, RowsInNoArea>> = {
+  contacts: {
+    check: 'contacts_at_a_property_or_a_contractor',
+    reason: 'the people of a contractor, which lies in no area',
+  },
+  attachments: {
+    check: 'attachments_at_a_place_or_a_contractor',
+    reason: 'the documents of a contractor, its certificates and its insurance',
+  },
+  deadlines: {
+    check: 'deadlines_at_a_place_or_of_a_document',
+    reason: 'the deadline of a document of a contractor',
+  },
+}
+
+/** The expression `within_areas` reads and writes through on a table, as PostgreSQL writes it back. */
+function withinAreasOf(table: string): string {
+  return Object.hasOwn(rowsInNoArea, table) ? withinAreasOrNoneAsStored : withinAreasAsStored
+}
+
+/**
  * Tables that carry `area_id` and no line between the areas, each with its
  * reason. The areas a person holds are what the functions of the policy read;
  * a policy that asked them there would ask itself. The areas an invitation
@@ -77,7 +123,8 @@ export const linesThroughARow: Readonly<Record<string, LineThroughARow>> = {
  */
 function withinAreasOrABuildingAsStored(table: string, propertyColumn: string): string {
   return (
-    '(( SELECT session_sees_all_areas() AS session_sees_all_areas) OR ' +
+    (Object.hasOwn(rowsInNoArea, table) ? '((area_id IS NULL) OR ' : '(') +
+    '( SELECT session_sees_all_areas() AS session_sees_all_areas) OR ' +
     '(area_id = ANY (( SELECT session_areas() AS session_areas)::uuid[])) OR ' +
     '(EXISTS ( SELECT 1\n   FROM buildings\n' +
     `  WHERE ((buildings.tenant_id = ${table}.tenant_id) AND ` +
@@ -332,7 +379,7 @@ export async function areaBoundaryProblems(
       ['reads', policy.using],
       ['writes', policy.checking],
     ] as const) {
-      if (expression === withinAreasAsStored) {
+      if (expression === withinAreasOf(policy.table_name)) {
         continue
       }
 
@@ -396,6 +443,11 @@ export async function areaBoundaryProblems(
       following.some((key) => required(table, through(key))) ||
       Object.hasOwn(areaOfOneSource, table)
     ) {
+      continue
+    }
+
+    // A row in no area follows nothing; every other has its property, whose key holds (#328).
+    if (Object.hasOwn(rowsInNoArea, table) && !has(table, 'area_from_property_id')) {
       continue
     }
 
@@ -548,8 +600,8 @@ export async function areaBoundaryProblems(
       ...writesWithinAreas.map((writes) => ({
         policy: writes.policy,
         command: writes.command,
-        using: writes.finds ? withinAreasAsStored : null,
-        checking: writes.leaves ? withinAreasAsStored : null,
+        using: writes.finds ? withinAreasOf(table) : null,
+        checking: writes.leaves ? withinAreasOf(table) : null,
       })),
     ]
 
@@ -584,6 +636,24 @@ export async function areaBoundaryProblems(
           )
         }
       }
+    }
+  }
+
+  // A table whose rows may lie in no area holds by a check that only a row
+  // without a property is among them (ADR 0003, addendum of #328).
+  for (const [table, inNoArea] of Object.entries(rowsInNoArea)) {
+    if (!columns.some((row) => row.table_name === table)) {
+      continue
+    }
+
+    const check = checks.find(
+      (found) => found.table_name === table && found.name === inNoArea.check,
+    )
+
+    if (!check?.definition.includes(noAreaWithoutAProperty)) {
+      problems.push(
+        `table ${table}: its rows may lie in no area and no check ${inNoArea.check} says ${noAreaWithoutAProperty}: ${String(check?.definition)}`,
+      )
     }
   }
 

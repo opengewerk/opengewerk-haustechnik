@@ -267,6 +267,29 @@ export function withinAreas() {
 }
 
 /**
+ * The expression of `within_areas` for a table whose rows may lie in no area
+ * (ADR 0003, addendum of #328): a row that hangs on something of the whole
+ * operator, a contractor, has neither property nor area, and whoever is in
+ * the operator reads it; which of them may, the right of the route says. A
+ * check of the table holds that only such a row is without an area, so the
+ * line between the areas stands for every other.
+ */
+export const withinAreasOrNoneExpression = `area_id IS NULL OR ${withinAreasExpression}`
+
+/** `within_areas` for a table whose rows may lie in no area (ADR 0003, addendum of #328). */
+export function withinAreasOrNone() {
+  const inReach = sql.raw(withinAreasOrNoneExpression)
+
+  return pgPolicy('within_areas', {
+    as: 'restrictive',
+    for: 'all',
+    to: applicationRole,
+    using: inReach,
+    withCheck: inReach,
+  })
+}
+
+/**
  * The column of a row that can hang on the property itself or on something
  * on it (ADR 0003, addendum of #306): the property, exactly when the row
  * names nothing else it hangs on, and empty otherwise. The key over it and
@@ -310,9 +333,13 @@ export function areaFromTheProperty(
  * The sub-select reads `buildings` under the policies of that table, so the
  * areas of the person decide, as they do for the building itself.
  */
-export function withinAreasOrABuildingExpression(table: string, propertyColumn: string): string {
+export function withinAreasOrABuildingExpression(
+  table: string,
+  propertyColumn: string,
+  inNoArea = false,
+): string {
   return (
-    `${withinAreasExpression} OR EXISTS (SELECT 1 FROM buildings WHERE buildings.tenant_id = ${table}.tenant_id ` +
+    `${inNoArea ? withinAreasOrNoneExpression : withinAreasExpression} OR EXISTS (SELECT 1 FROM buildings WHERE buildings.tenant_id = ${table}.tenant_id ` +
     `AND buildings.property_id = ${table}.${propertyColumn} AND buildings.deleted_at IS NULL)`
   )
 }
@@ -333,16 +360,19 @@ export function withinAreasOrABuildingExpression(table: string, propertyColumn: 
  * the keys. Restrictive policies are joined per command, so the wide one
  * reads only, and one for each way of writing asks `within_areas`. All of
  * them restrictive, so that no other policy widens them.
+ *
+ * `inNoArea` lets a row without an area through as well, for a table whose
+ * rows may hang on something of the whole operator (addendum of #328).
  */
-export function withinAreasOrABuilding(table: string, propertyColumn: string) {
-  const inReach = sql.raw(withinAreasExpression)
+export function withinAreasOrABuilding(table: string, propertyColumn: string, inNoArea = false) {
+  const inReach = sql.raw(inNoArea ? withinAreasOrNoneExpression : withinAreasExpression)
 
   return [
     pgPolicy('within_areas_or_a_building', {
       as: 'restrictive',
       for: 'select',
       to: applicationRole,
-      using: sql.raw(withinAreasOrABuildingExpression(table, propertyColumn)),
+      using: sql.raw(withinAreasOrABuildingExpression(table, propertyColumn, inNoArea)),
     }),
     pgPolicy('within_areas_insert', {
       as: 'restrictive',

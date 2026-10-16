@@ -71,8 +71,11 @@ export function taskFromDeadline(): DeadlineActionHandler<ApplicationDeadlineKin
       }
     }
 
+    // A deadline without a place, of a contractor's document (#328), has nowhere for a task to hang.
     if (
       responsible === null ||
+      deadline.propertyId === null ||
+      deadline.areaId === null ||
       !(await taskCandidatesIn(tx, deadline.areaId)).includes(responsible)
     ) {
       return

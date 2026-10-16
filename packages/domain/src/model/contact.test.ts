@@ -1,7 +1,7 @@
 import { contactTextFields } from '@opengewerk/platform-domain'
 import { describe, expect, it } from 'vitest'
 
-import { contactLimits, propertyContacts } from './contact.js'
+import { contactLimits, operatorContacts } from './contact.js'
 
 const subjects = {
   givenName: 'Der Vorname',
@@ -12,30 +12,40 @@ const subjects = {
 } as const
 
 describe('somebody to talk to at a property', () => {
-  it('hangs on a property, and on nothing else', () => {
-    expect(propertyContacts.parents).toEqual(['propertyId'])
-    expect(propertyContacts.parentProblem({ propertyId: 'a-property' })).toBeNull()
-    expect(propertyContacts.parentOf({ propertyId: 'a-property' })).toEqual({
+  it('hangs on a property or on a contractor (#328), exactly one of the two', () => {
+    expect(operatorContacts.parents).toEqual(['propertyId', 'contractorId'])
+    expect(operatorContacts.parentProblem({ propertyId: 'a-property' })).toBeNull()
+    expect(operatorContacts.parentOf({ propertyId: 'a-property' })).toEqual({
       field: 'propertyId',
       id: 'a-property',
     })
+    expect(operatorContacts.parentOf({ propertyId: null, contractorId: 'a-firm' })).toEqual({
+      field: 'contractorId',
+      id: 'a-firm',
+    })
+    expect(
+      operatorContacts.parentProblem({ propertyId: 'a-property', contractorId: 'a-firm' }),
+    ).toBe('several')
+    expect(operatorContacts.parentText.several).toBe(
+      'Ein Ansprechpartner gehört zu einer Liegenschaft oder einer Fremdfirma, nicht zu beiden.',
+    )
   })
 
-  it('is told in a sentence that it belongs to a property when it names none', () => {
-    for (const none of [{}, { propertyId: null }, { propertyId: '' }]) {
-      expect(propertyContacts.parentProblem(none)).toBe('none')
-      expect(propertyContacts.parentOf(none)).toBeNull()
+  it('is told in a sentence that it belongs to a property or a contractor when it names none', () => {
+    for (const none of [{}, { propertyId: null }, { propertyId: '', contractorId: null }]) {
+      expect(operatorContacts.parentProblem(none)).toBe('none')
+      expect(operatorContacts.parentOf(none)).toBeNull()
     }
 
-    expect(propertyContacts.parentText.none).toBe(
-      'Ein Ansprechpartner gehört zu einer Liegenschaft, dieser zu keiner.',
+    expect(operatorContacts.parentText.none).toBe(
+      'Ein Ansprechpartner gehört zu einer Liegenschaft oder einer Fremdfirma, dieser zu keiner.',
     )
   })
 
   it('needs a family name and nothing else', () => {
-    expect(propertyContacts.personProblems({ familyName: 'Becker' })).toEqual({})
+    expect(operatorContacts.personProblems({ familyName: 'Becker' })).toEqual({})
     expect(
-      propertyContacts.personProblems({
+      operatorContacts.personProblems({
         givenName: null,
         familyName: 'Becker',
         role: null,
@@ -43,7 +53,7 @@ describe('somebody to talk to at a property', () => {
         email: null,
       }),
     ).toEqual({})
-    expect(propertyContacts.personProblems({ givenName: 'Jens', familyName: ' ' })).toEqual({
+    expect(operatorContacts.personProblems({ givenName: 'Jens', familyName: ' ' })).toEqual({
       familyName: 'Der Nachname fehlt.',
     })
   })
@@ -58,11 +68,11 @@ describe('somebody to talk to at a property', () => {
       const person = { familyName: 'Becker' }
 
       expect(
-        propertyContacts.personProblems({ ...person, [field]: ` ${'x'.repeat(limit)} ` }),
+        operatorContacts.personProblems({ ...person, [field]: ` ${'x'.repeat(limit)} ` }),
         field,
       ).toEqual({})
       expect(
-        propertyContacts.personProblems({ ...person, [field]: 'x'.repeat(limit + 1) }),
+        operatorContacts.personProblems({ ...person, [field]: 'x'.repeat(limit + 1) }),
         field,
       ).toEqual({ [field]: `${subjects[field]} hat höchstens ${String(limit)} Zeichen.` })
     }
@@ -71,7 +81,7 @@ describe('somebody to talk to at a property', () => {
   it('names every text that is too long, in the order a form asks for them', () => {
     expect(
       Object.entries(
-        propertyContacts.personProblems({
+        operatorContacts.personProblems({
           phone: 'x'.repeat(contactLimits.phone + 1),
           familyName: 'x'.repeat(contactLimits.familyName + 1),
           role: 'x'.repeat(contactLimits.role + 1),
@@ -86,13 +96,13 @@ describe('somebody to talk to at a property', () => {
 
   it('is not also told that a missing family name is too long', () => {
     // What is no text has no length: the sentence of the foundation is the whole answer.
-    expect(propertyContacts.personProblems({ familyName: 4471 })).toEqual({
+    expect(operatorContacts.personProblems({ familyName: 4471 })).toEqual({
       familyName: 'Der Nachname fehlt.',
     })
   })
 
   it('leaves a text alone that a change does not name', () => {
-    expect(propertyContacts.personProblems({ phone: '0000 4471' })).toEqual({})
-    expect(propertyContacts.personProblems({})).toEqual({})
+    expect(operatorContacts.personProblems({ phone: '0000 4471' })).toEqual({})
+    expect(operatorContacts.personProblems({})).toEqual({})
   })
 })

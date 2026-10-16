@@ -11,7 +11,8 @@ import { applicationDatabaseUrl, connect, refusedBy, resetToMigrated } from './t
 /**
  * The people to talk to at a property in the database (#85, section 4.1 of
  * the concept): that a contact hangs on a property of its tenant and lies in
- * the area of it, that the contacts of a marked property are marked with it,
+ * the area of it, or on a contractor and in no area (#328), that the contacts
+ * of a marked property or firm are marked with it,
  * that a contact a moved property takes along carries the stamp a device
  * needs, and that the database refuses the texts the model in `domain`
  * refuses.
@@ -32,6 +33,9 @@ let here = ''
 let beside = ''
 /** A property of the other tenant, in an area of its own. */
 let elsewhere = ''
+/** A contractor of the tenant, and one of the other tenant (#328). */
+let firm = ''
+let otherFirm = ''
 
 async function areaOf(tenantId: TenantId, name: string): Promise<string> {
   const { rows } = await admin.query<{ id: string }>(
@@ -49,6 +53,31 @@ async function propertyIn(tenantId: TenantId, areaId: string): Promise<string> {
     `insert into properties (id, tenant_id, area_id, name, street, postal_code, city, federal_state)
      values ($1, $2, $3, 'Schulzentrum', 'Hauptstraße 1', '00001', 'Ort', 'DE-BW')`,
     [id, tenantId, areaId],
+  )
+
+  return id
+}
+
+async function contractorOf(
+  tenantId: TenantId,
+  name = 'Brandschutz Beispiel GmbH',
+): Promise<string> {
+  const { rows } = await admin.query<{ id: string }>(
+    'insert into contractors (tenant_id, name) values ($1, $2) returning id',
+    [tenantId, name],
+  )
+
+  return rows[0]?.id ?? ''
+}
+
+/** A contact at a contractor, in no area (#328). */
+async function contactOf(contractor: string, familyName = 'Krämer'): Promise<string> {
+  const id = randomUUID()
+
+  await admin.query(
+    `insert into contacts (id, tenant_id, contractor_id, family_name, role)
+     select $1, tenant_id, id, $3, 'Disposition' from contractors where id = $2`,
+    [id, contractor, familyName],
   )
 
   return id
@@ -83,6 +112,8 @@ beforeAll(async () => {
   here = await propertyIn(tenant, area)
   beside = await propertyIn(tenant, area)
   elsewhere = await propertyIn(other, await areaOf(other, 'Nord'))
+  firm = await contractorOf(tenant)
+  otherFirm = await contractorOf(other)
 
   database = Database.connect(applicationDatabaseUrl())
 })
@@ -133,7 +164,10 @@ describe('a contact in the database', () => {
         order by 1`,
     )
 
-    expect(rows.map((row) => row.name)).toEqual(['contacts_follow_their_property'])
+    expect(rows.map((row) => row.name)).toEqual([
+      'contacts_follow_their_property',
+      'contacts_of_a_contractor',
+    ])
 
     // In another area than its property.
     expect(await contact(here, secondArea)).toEqual(refused)
@@ -141,17 +175,55 @@ describe('a contact in the database', () => {
     expect(await contact(elsewhere, area)).toEqual(refused)
     // At a property there is none of.
     expect(await contact(randomUUID(), area)).toEqual(refused)
+
+    const ofAFirm = (contractor: string) =>
+      tried(
+        `insert into contacts (tenant_id, contractor_id, family_name) values ($1, $2, 'Krämer')`,
+        [tenant, contractor],
+      )
+    const noSuchFirm = { code: '23503', constraint: 'contacts_of_a_contractor' }
+
+    // At a firm of another tenant, and at one there is none of (#328).
+    expect(await ofAFirm(otherFirm)).toEqual(noSuchFirm)
+    expect(await ofAFirm(randomUUID())).toEqual(noSuchFirm)
   })
 
-  it('has a property: the column is the whole of what a contact hangs on', async () => {
-    expect(
-      (
-        await tried(
-          `insert into contacts (tenant_id, area_id, family_name) values ($1, $2, 'Becker')`,
-          [tenant, area],
-        )
-      ).code,
-    ).toBe('23502')
+  /**
+   * A property or a contractor, exactly one, and an area exactly with a
+   * property (ADR 0003, addendum of #328): a row without an area that hangs
+   * on a property would be read by everybody in the operator.
+   */
+  it('hangs on a property or a contractor, and lies in no area only at a contractor', async () => {
+    const check = { code: '23514', constraint: 'contacts_at_a_property_or_a_contractor' }
+    const attempt = (property: string | null, areaId: string | null, contractor: string | null) =>
+      tried(
+        `insert into contacts (tenant_id, property_id, area_id, contractor_id, family_name)
+         values ($1, $2, $3, $4, 'Becker')`,
+        [tenant, property, areaId, contractor],
+      )
+
+    expect({
+      nothing: await attempt(null, null, null),
+      'an area alone': await attempt(null, area, null),
+      'a property without its area': await attempt(here, null, null),
+      'a property and a firm': await attempt(here, area, firm),
+      'a firm with an area': await attempt(null, area, firm),
+    }).toEqual({
+      nothing: check,
+      'an area alone': check,
+      'a property without its area': check,
+      'a property and a firm': check,
+      'a firm with an area': check,
+    })
+  })
+
+  it('is taken at a contractor, in no area', async () => {
+    const { rowCount } = await admin.query(
+      `insert into contacts (tenant_id, contractor_id, family_name) values ($1, $2, 'Krämer')`,
+      [tenant, firm],
+    )
+
+    expect(rowCount).toBe(1)
   })
 
   it('is taken when it names its property and the area of it', async () => {
@@ -244,6 +316,51 @@ describe('the contacts of a property marked deleted', () => {
     expect(after?.version).toBe(2)
     expect(Number(after?.sequence)).toBeGreaterThan(Number(before?.sequence))
     expect(after?.updated_by).toBe('user-lead')
+  })
+})
+
+describe('the contacts and documents of a contractor marked deleted (#328)', () => {
+  /** A document of the firm, in no area, as the office files it. */
+  async function documentOf(contractor: string): Promise<string> {
+    const { rows } = await admin.query<{ id: string }>(
+      `insert into attachments (tenant_id, contractor_id, title)
+       select tenant_id, id, 'Zertifikat' from contractors where id = $1
+       returning id`,
+      [contractor],
+    )
+
+    return rows[0]?.id ?? ''
+  }
+
+  async function deletedAt(table: string, id: string): Promise<string | null> {
+    const { rows } = await admin.query<{ at: string | null }>(
+      `select deleted_at::text as at from ${table} where id = $1`,
+      [id],
+    )
+
+    return rows[0]?.at ?? null
+  }
+
+  it('are marked with it at the same moment, and none of another firm', async () => {
+    const doomed = await contractorOf(tenant, 'Aufzug Beispiel GmbH')
+    const person = await contactOf(doomed)
+    const certificate = await documentOf(doomed)
+    const neighbour = await contactOf(firm)
+    const kept = await documentOf(firm)
+
+    await asTheApplication(sql`update contractors set deleted_at = now() where id = ${doomed}`)
+
+    const moment = await deletedAt('contractors', doomed)
+
+    expect(moment).not.toBeNull()
+    expect({
+      person: await deletedAt('contacts', person),
+      certificate: await deletedAt('attachments', certificate),
+    }).toEqual({ person: moment, certificate: moment })
+    expect({
+      neighbour: await deletedAt('contacts', neighbour),
+      kept: await deletedAt('attachments', kept),
+    }).toEqual({ neighbour: null, kept: null })
   })
 })
 
@@ -350,10 +467,12 @@ describe('the texts of a contact in the database', () => {
         order by 1`,
     )
 
+    // Beside them the check of what a contact hangs on, tried above (#328).
     expect(rows.map((row) => row.name)).toEqual(
-      Object.keys(columns)
-        .map((column) => `contacts_${column}_shaped`)
-        .sort(),
+      [
+        ...Object.keys(columns).map((column) => `contacts_${column}_shaped`),
+        'contacts_at_a_property_or_a_contractor',
+      ].sort(),
     )
   })
 

@@ -598,11 +598,15 @@ export const auditVocabulary: AuditVocabulary = {
     attachments: {
       activity_id: 'Vorgang',
       defect_id: 'Mangel',
+      // The firm whose certificate or insurance it is (#328).
+      contractor_id: 'Fremdfirma',
       kind: 'Art',
       legacy: 'Altbestand',
     },
     // The day a version expires or is to be reviewed (#327).
     attachment_versions: { valid_until: 'Gültig bis' },
+    // The firm a contact works for (#328).
+    contacts: { contractor_id: 'Fremdfirma' },
   },
   // Every row with a place carries its area and the levels above it (ADR 0002,
   // point 2, and ADR 0003, point 4).

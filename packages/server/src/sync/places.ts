@@ -26,6 +26,7 @@ import {
   assetSupplies,
   attachments,
   buildings,
+  contractors,
   defects,
   floors,
   properties,
@@ -425,6 +426,20 @@ async function documentPlace(
   tx: TenantTransaction,
   values: Record<string, unknown>,
 ): Promise<SyncRefusal | null> {
+  // The document of a contractor (#328) lies in no area, as the firm: the
+  // firm has to be there, and the rule of the record says it names no place.
+  if (given(values['contractorId'])) {
+    const firm = await found<{ id: string }>(tx, contractors, values['contractorId'])
+
+    if (!firm) {
+      return missing('contractorId')
+    }
+
+    values['areaId'] = null
+
+    return null
+  }
+
   const refusal = await targetPlace(tx, values)
 
   if (refusal) {

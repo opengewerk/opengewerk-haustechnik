@@ -101,6 +101,7 @@ import {
   attachmentVersions,
   buildingClosures,
   buildings,
+  contractors,
   defects,
   properties,
   rooms,
@@ -786,6 +787,15 @@ export async function documentTable(
           ).map((row) => [row.id as string, row.description]),
         )
 
+  // The firms whose documents these are (#328), for whoever sees the contractors.
+  const firms = isAllowed(identity, 'contractor.read')
+    ? new Map(
+        (await tx.select({ id: contractors.id, name: contractors.name }).from(contractors)).map(
+          (row) => [row.id as string, row.name],
+        ),
+      )
+    : new Map<string, string>()
+
   /** What a document hangs on by its name, as far as the person reads it. */
   const named = (document: (typeof filed)[number]): string | null => {
     switch (document.home) {
@@ -808,6 +818,8 @@ export async function documentTable(
         return titles.get(document.activityId as string) ?? null
       case 'defectId':
         return found.get(document.defectId as string) ?? null
+      case 'contractorId':
+        return firms.get(document.contractorId as string) ?? null
       case 'propertyId':
         return null
     }
@@ -829,7 +841,7 @@ export async function documentTable(
         home: documentHomeWords(
           document.home,
           named(document),
-          names?.property(document.propertyId as string) ?? null,
+          document.propertyId === null ? null : (names?.property(document.propertyId) ?? null),
         ),
         versions: all.length,
         newest:
