@@ -239,8 +239,9 @@ export const syncPolicies: Readonly<Record<string, SyncPolicy>> = {
   store_articles: officeOnly,
   stock_movements: officeOnly,
   // The contractors of the operator (#328): kept in the office, with a
-  // connection, and held by every device, which names the firm of an order.
-  // Tenant-wide, without an area.
+  // connection, and held by every device, which names the firm of an order;
+  // without the right to see them by their name alone (#377). Tenant-wide,
+  // without an area.
   contractors: officeOnly,
   // The labels on the shelves of a store (#326): made in the office, held by
   // every device, which reads them like the barcode of an article.

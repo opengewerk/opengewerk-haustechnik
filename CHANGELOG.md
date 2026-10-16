@@ -101,6 +101,11 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
 
 ### Geändert
 
+- Ein Gerät, dessen Person das Recht „Fremdfirmen ansehen“ nicht hat, hält von den Fremdfirmen nur
+  noch, welche Firma es ist, und ihren Namen (#377). Bisher kamen Anschrift, Telefon, E-Mail-Adresse,
+  Kostengruppen und Notiz mit, obwohl die Person sie im Büro nicht sieht. Der Name bleibt, weil ein
+  Auftrag vor Ort die Firma nennt und der Name keine geschützte Angabe ist. Verliert die Person das
+  Recht, lässt ihr Gerät die übrigen Angaben beim nächsten Abgleich los.
 - Das Büro lädt die Bildschirme der Importe und den Dialog des Nachweisverzeichnisses erst, wenn sie
   geöffnet werden (#338). Der Einstieg des Büros stand an seinem Budget von 450 kB gzip und liegt jetzt
   bei 440 kB; gebraucht werden die Importe beim Einzug eines Betreibers und selten danach.

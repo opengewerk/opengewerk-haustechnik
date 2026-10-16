@@ -184,7 +184,8 @@ export const rights = [
    * with their files. Not their name: that stands at every duty, activity and
    * deadline that names a firm, for whoever sees those. Nor what the deadline
    * of a paper says, its title, the firm and the day: whoever reads deadlines
-   * reads it (both decided by the maintainer on 16.10.2026, #377).
+   * reads it (both decided by the maintainer on 16.10.2026, #377). A device
+   * without it holds of the firms which one it is and its name, and no more.
    * Tenant-wide and without an area, like the stores.
    */
   'contractor.read',

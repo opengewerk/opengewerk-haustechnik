@@ -170,7 +170,11 @@ const workEntities = [
  * policies hand them to everybody in the operator, whatever areas they see. A
  * device holds them only for whoever sees the contractors, and names them by
  * another value without that right: one whose person loses it lets them go,
- * and one whose person gains it asks for them from the start.
+ * and one whose person gains it asks for them from the start. Of the firms
+ * themselves such a device holds which firm it is and its name, and no more
+ * (#377): an order on site names the firm, and the name is no protected fact
+ * (section 4.11 of the concept); the address, the contact, the services and
+ * the note stay with whoever sees the firms.
  */
 export function pullScope(scope: DeviceScope, readsContractors: boolean): PullScope {
   const column = (entity: string, name: string) =>
@@ -184,12 +188,25 @@ export function pullScope(scope: DeviceScope, readsContractors: boolean): PullSc
           (select id from attachments where contractor_id is null)`,
       }
   const named = (entity: string, value: string) =>
-    Object.hasOwn(firms, entity) ? `${value}:without-contractors` : value
+    !readsContractors && (Object.hasOwn(firms, entity) || entity === 'contractors')
+      ? `${value}:without-contractors`
+      : value
+  const answering: Pick<PullScope, 'answer'> = readsContractors
+    ? {}
+    : {
+        answer: (changes) =>
+          changes.map((change) =>
+            change.entity === 'contractors'
+              ? { ...change, rows: change.rows.map(namedFirm) }
+              : change,
+          ),
+      }
 
   if (scope.everyArea) {
     return {
       narrow: (entity) => (Object.hasOwn(firms, entity) ? firms[entity] : undefined),
       narrowed: Object.fromEntries(syncEntities.map((entity) => [entity, named(entity, 'all')])),
+      ...answering,
     }
   }
 
@@ -241,7 +258,27 @@ export function pullScope(scope: DeviceScope, readsContractors: boolean): PullSc
       // The labels on the shelves, which a scan reads like a barcode (#326).
       store_labels: operator,
       // The contractors of the operator, whose name an order shows (#328).
-      contractors: operator,
+      contractors: named('contractors', operator),
     },
+    ...answering,
   }
+}
+
+/**
+ * What a device without the right to see the contractors holds of a firm
+ * (#377): the firm and its name, with what the sync needs to keep the row.
+ * Named one by one, so that a column the firms gain later stays in the
+ * office until somebody decides otherwise.
+ */
+const firmNamedBy: readonly string[] = [
+  'id',
+  'tenantId',
+  'name',
+  'version',
+  'deletedAt',
+  'changeSequence',
+]
+
+function namedFirm(row: Readonly<Record<string, unknown>>): Record<string, unknown> {
+  return Object.fromEntries(Object.entries(row).filter(([field]) => firmNamedBy.includes(field)))
 }
