@@ -25,6 +25,32 @@ export interface AttachedPages<Key> {
   readonly unattached: number
 }
 
+/**
+ * How much the evidence behind one register may weigh, the prints and the
+ * files together: what a request reads into memory and takes apart. 200 MB
+ * hold some hundred reports of a few pages; a register that needs more is
+ * made for a smaller choice, or without its evidence.
+ */
+export const attachmentLimit = 200 * 1024 * 1024
+
+/**
+ * The bytes carried with one more attachment, or null where it would go past
+ * the limit: asked before the next one is read, so that a request stops at
+ * the limit and not after everything is in memory.
+ */
+export function carriedWith(
+  carried: number,
+  attachment: EvidenceAttachment<unknown>,
+  limit: number = attachmentLimit,
+): number | null {
+  const next =
+    carried +
+    attachment.print.byteLength +
+    attachment.files.reduce((sum, file) => sum + file.bytes.byteLength, 0)
+
+  return next > limit ? null : next
+}
+
 /** A4 upright in points, for a picture a report came as. */
 const a4 = { width: 595.28, height: 841.89 } as const
 const margin = 36

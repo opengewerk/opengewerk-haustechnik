@@ -32,13 +32,12 @@ import { maybeText, request, RequestRefused, useRecords } from '@opengewerk/plat
 import { useInfiniteQuery } from '@tanstack/react-query'
 import { Link, useNavigate, useSearch } from '@tanstack/react-router'
 import { FileText, TriangleAlert, Upload } from 'lucide-react'
-import { type ReactNode, useMemo, useState } from 'react'
+import { lazy, type ReactNode, Suspense, useMemo, useState } from 'react'
 
 import { titleOfRoom } from '../../app/place-records.js'
 import { ReviewMarks } from '../../app/review-marks.js'
 import { useAreas } from '../../session/areas.js'
 import { useCatalogue } from '../../sync/catalogue.js'
-import { EvidenceRegisterDialog } from '../evidence-register.js'
 import { DutyUpdatesNote, UpdateMark } from './duty-updates.js'
 import {
   dutyFilterOf,
@@ -80,6 +79,12 @@ export const dutyRegisterWords = {
   everybody: 'Alle Personen',
 } as const
 
+// The register of evidence is made a few times a year, for an inspection: its
+// dialog is fetched when it is opened and is no part of the entry of the
+// office, which has a budget (`scripts/budget.js`).
+const EvidenceRegisterDialog = lazy(async () => ({
+  default: (await import('../evidence-register.js')).EvidenceRegisterDialog,
+}))
 /**
  * "Pflichtenverzeichnis" in the office, `pflichten()` of the boards (4.3 of
  * the concept): every duty of the operator with what it hangs on, its source,
@@ -446,12 +451,14 @@ export function DutyRegisterScreen() {
         </TablePanel>
       )}
       {evidenceRegister ? (
-        <EvidenceRegisterDialog
-          filter={filter}
-          onClose={() => {
-            setEvidenceRegister(false)
-          }}
-        />
+        <Suspense fallback={null}>
+          <EvidenceRegisterDialog
+            filter={filter}
+            onClose={() => {
+              setEvidenceRegister(false)
+            }}
+          />
+        </Suspense>
       ) : null}
     </Screen>
   )

@@ -19,6 +19,9 @@ export const evidenceRegisterWords = {
   title: 'Nachweisverzeichnis',
   legacy: 'Altbestand, ohne Unterschrift',
   never: 'Nie erfasst',
+  /** What the server answers where the evidence behind the register would weigh too much (#338). */
+  tooLarge:
+    'Mit den Nachweisen dahinter würde das Nachweisverzeichnis größer als 200 MB. Grenzen Sie die Auswahl ein, oder geben Sie es ohne die Nachweise aus.',
 } as const
 
 /** What a line of the register reads of a duty: its row in the duty register, as far as the line needs it. */

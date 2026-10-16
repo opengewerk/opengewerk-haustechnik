@@ -932,7 +932,7 @@ describe('the register of evidence as a table (#338)', () => {
     expect(rendered.at(-1)?.footerHtml).toContain('von 5')
   })
 
-  it('holds nothing of an area the person does not see, and is for whoever looks at evidence', async () => {
+  it('holds nothing of an area the person does not see, and is for whoever looks at duties and evidence', async () => {
     const { property, asset } = await liftIn('Nachweishaus Süd', large, { areaId: south })
 
     await dutyAt(asset, 'Türen prüfen')
@@ -951,10 +951,17 @@ describe('the register of evidence as a table (#338)', () => {
       .set(testIdentityHeader, by('u-tech', large))
       .expect(200)
     expect(rendered.at(-1)?.html).not.toContain('Türen prüfen')
-    expect(await refusalOf(path, { propertyId: property }, leading('duty.read'))).toEqual({
-      status: 403,
-      message: missingRight('evidence.read'),
-    })
+    // It is the register of duties with its evidence: whoever makes it reads both.
+    for (const route of [path, '/duties/evidence-register/pdf', '/duties/evidence-register']) {
+      expect(await refusalOf(route, { propertyId: property }, leading('duty.read'))).toEqual({
+        status: 403,
+        message: missingRight('evidence.read'),
+      })
+      expect(await refusalOf(route, { propertyId: property }, leading('evidence.read'))).toEqual({
+        status: 403,
+        message: missingRight('duty.read'),
+      })
+    }
   })
 })
 

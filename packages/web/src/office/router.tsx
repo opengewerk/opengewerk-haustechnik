@@ -6,7 +6,13 @@ import {
   InstanceTenantsScreen,
 } from '@opengewerk/platform-web/instance'
 import { SettingsScreen, SyncScreen } from '@opengewerk/platform-web/office'
-import { createRootRoute, createRoute, createRouter, Outlet } from '@tanstack/react-router'
+import {
+  createRootRoute,
+  createRoute,
+  createRouter,
+  lazyRouteComponent,
+  Outlet,
+} from '@tanstack/react-router'
 
 import { dutyPlaces } from './duty-addresses.js'
 import { proposalPlace, proposalPlaces } from './proposal-addresses.js'
@@ -41,9 +47,6 @@ import { EvidenceScreen } from './screens/evidence.js'
 import { EditFloorScreen, NewFloorScreen } from './screens/floor-form.js'
 import { FloorScreen } from './screens/floors.js'
 import { GuideScreen, HelpScreen } from './screens/help.js'
-import { ImportDeadlinesScreen } from './screens/import-deadlines.js'
-import { ImportMetersScreen, ImportTemplatesScreen } from './screens/import-history.js'
-import { ImportAssetsScreen, ImportStructureScreen } from './screens/imports.js'
 import { LabelLandingScreen } from './screens/label-landing.js'
 import { MeterSettingsScreen } from './screens/meter-settings.js'
 import { WorkOrderSettingsScreen } from './screens/work-order-settings.js'
@@ -76,6 +79,22 @@ import {
 import { NewWorkOrderScreen, WorkOrderListScreen, WorkOrderScreen } from './screens/work-orders.js'
 import { OfficeShell } from './shell.js'
 
+// The imports are used when an operator moves in and seldom after: their
+// screens are fetched when one is opened and are no part of the entry of the
+// office, which has a budget (`scripts/budget.js`).
+const importScreens = {
+  structure: lazyRouteComponent(() => import('./screens/imports.js'), 'ImportStructureScreen'),
+  assets: lazyRouteComponent(() => import('./screens/imports.js'), 'ImportAssetsScreen'),
+  meters: lazyRouteComponent(() => import('./screens/import-history.js'), 'ImportMetersScreen'),
+  templates: lazyRouteComponent(
+    () => import('./screens/import-history.js'),
+    'ImportTemplatesScreen',
+  ),
+  deadlines: lazyRouteComponent(
+    () => import('./screens/import-deadlines.js'),
+    'ImportDeadlinesScreen',
+  ),
+}
 /**
  * The routes of the office, written out rather than generated from file
  * names: the tree is small enough to read in one screen, and generated
@@ -162,7 +181,7 @@ export function officeRoutes() {
     createRoute({
       getParentRoute: () => office,
       path: importPlaces.structure,
-      component: ImportStructureScreen,
+      component: importScreens.structure,
     }),
     createRoute({
       getParentRoute: () => office,
@@ -241,7 +260,7 @@ export function officeRoutes() {
     createRoute({
       getParentRoute: () => office,
       path: importPlaces.assets,
-      component: ImportAssetsScreen,
+      component: importScreens.assets,
     }),
     createRoute({
       getParentRoute: () => office,
@@ -271,7 +290,7 @@ export function officeRoutes() {
     createRoute({
       getParentRoute: () => office,
       path: importPlaces.meters,
-      component: ImportMetersScreen,
+      component: importScreens.meters,
     }),
     createRoute({
       getParentRoute: () => office,
@@ -291,7 +310,7 @@ export function officeRoutes() {
     createRoute({
       getParentRoute: () => office,
       path: importPlaces.deadlines,
-      component: ImportDeadlinesScreen,
+      component: importScreens.deadlines,
     }),
     createRoute({
       getParentRoute: () => office,
@@ -394,7 +413,7 @@ export function officeRoutes() {
     createRoute({
       getParentRoute: () => office,
       path: importPlaces.templates,
-      component: ImportTemplatesScreen,
+      component: importScreens.templates,
     }),
     createRoute({
       getParentRoute: () => office,

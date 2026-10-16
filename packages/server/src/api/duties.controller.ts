@@ -14,6 +14,7 @@ import {
   Query,
   Res,
   StreamableFile,
+  UnprocessableEntityException,
 } from '@nestjs/common'
 import {
   type Asset,
@@ -57,6 +58,7 @@ import {
   type EvidenceId,
   type EvidenceRegisterCount,
   evidenceRegisterCount,
+  evidenceRegisterWords,
   type FederalState,
   type IntervalKind,
   intervalDocumentProblem,
@@ -123,7 +125,11 @@ import {
   wholeList,
 } from './office-tables.js'
 import { keeperOf } from '../labels/faces.js'
-import { type EvidenceAttachment, withEvidenceBehind } from '../prints/evidence-bundle.js'
+import {
+  carriedWith,
+  type EvidenceAttachment,
+  withEvidenceBehind,
+} from '../prints/evidence-bundle.js'
 import { type EvidencePages, evidenceRegisterPrintJob } from '../prints/evidence-register-page.js'
 import { pdf, Printer } from './prints.controller.js'
 import { said } from './register-question.js'
@@ -759,6 +765,18 @@ async function dismissalAt(
  * allows: the maximum of the day it was confirmed is kept beside it, and the
  * database refuses a longer interval as this route does.
  */
+/**
+ * The register of evidence (#338) is the register of duties with its
+ * evidence: whoever makes it reads both, the duties by the route and the
+ * evidence here. Every shipped role with the one has the other; a role of an
+ * operator's own need not.
+ */
+function readsEvidence(identity: Asking): void {
+  if (!isAllowed(identity, 'evidence.read')) {
+    throw new ForbiddenException(missingRight('evidence.read'))
+  }
+}
+
 @Controller('duties')
 export class DutiesController {
   constructor(
@@ -1003,12 +1021,14 @@ export class DutiesController {
    * register of duties under the same choice (acceptance 3).
    */
   @Get('evidence-register')
-  @RequiresPermission('evidence.read')
+  @RequiresPermission('duty.read')
   @Header('Cache-Control', 'no-store')
   evidenceRegisterCount(
     @CurrentIdentity() identity: Asking,
     @Query() query: Record<string, unknown>,
   ): Promise<EvidenceRegisterCount> {
+    readsEvidence(identity)
+
     const question = evidenceRegisterQuestion(query)
 
     return this.database.forTenant(identity, async (tx) =>
@@ -1028,12 +1048,14 @@ export class DutiesController {
    * 15.10.2026).
    */
   @Get('evidence-register/pdf')
-  @RequiresPermission('evidence.read')
+  @RequiresPermission('duty.read')
   async evidenceRegisterPdf(
     @CurrentIdentity() identity: Asking,
     @Query() query: Record<string, unknown>,
     @Res({ passthrough: true }) response: { setHeader(name: string, value: string): void },
   ): Promise<StreamableFile> {
+    readsEvidence(identity)
+
     const question = evidenceRegisterQuestion(query)
     const today = dayInGermany()
     const made = await this.database.forTenant(identity, async (tx) => {
@@ -1082,15 +1104,26 @@ export class DutiesController {
       ),
     )
 
+    let carried = 0
+
     for (const evidenceId of evidenceIds) {
       const printed = await this.printer.evidencePrint(identity, evidenceId)
 
       if (printed !== null) {
-        attachments.push({
+        const attachment = {
           key: evidenceId,
           print: printed.bytes,
           files: await this.printer.evidenceFiles(identity, evidenceId),
-        })
+        }
+        const next = carriedWith(carried, attachment)
+
+        // A register past the limit is refused rather than read whole into memory.
+        if (next === null) {
+          throw new UnprocessableEntityException(evidenceRegisterWords.tooLarge)
+        }
+
+        carried = next
+        attachments.push(attachment)
       }
     }
 
@@ -1110,12 +1143,14 @@ export class DutiesController {
    * Before the page of a duty, like the register.
    */
   @Get('evidence-register/table')
-  @RequiresPermission('evidence.read')
+  @RequiresPermission('duty.read')
   @Header('Cache-Control', 'no-store')
   async evidenceRegister(
     @CurrentIdentity() identity: Asking,
     @Query() query: Record<string, unknown>,
   ): Promise<StreamableFile> {
+    readsEvidence(identity)
+
     const format = tableFormatOf(query)
     const question = evidenceRegisterQuestion(query)
     const today = dayInGermany()
