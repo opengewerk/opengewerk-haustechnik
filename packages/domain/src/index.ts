@@ -103,6 +103,7 @@ export * from './model/store.js'
 export * from './model/contractor.js'
 // The contracts with them and the warranty (#329).
 export * from './model/contract.js'
+export * from './model/visit.js'
 export * from './model/material.js'
 
 // What is done to meet a duty or to set a fault right, and what is noticed on

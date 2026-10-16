@@ -1,6 +1,7 @@
 import type { WorkOrderMaterialLine } from './material.js'
 import type { IsoDate } from '@opengewerk/platform-domain'
 
+import type { ContractorId } from './contractor.js'
 import type {
   BasicMeasure,
   ActivityId,
@@ -175,6 +176,8 @@ export interface WorkOrderDetails extends WorkOrderEntry {
   readonly durationMinutes: number | null
   /** The end of the warranty of the work, entered once it is accepted (#329). */
   readonly warrantyEndsOn: IsoDate | null
+  /** The firm of the list that carries it out (#328, #330), or null for the own people. */
+  readonly contractorId: ContractorId | null
   /** The notes from the site, the first written first. */
   readonly notes: readonly WorkOrderNoteLine[]
   readonly signatures: readonly WorkOrderSignatureLine[]

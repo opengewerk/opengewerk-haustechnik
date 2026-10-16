@@ -428,6 +428,13 @@
       "when": 1792141714304,
       "tag": "0060_contracts",
       "breakpoints": true
+    },
+    {
+      "idx": 61,
+      "version": "7",
+      "when": 1792149566728,
+      "tag": "0061_briefings_and_permits",
+      "breakpoints": true
     }
   ]
 }

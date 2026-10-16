@@ -8,6 +8,8 @@ Steht an Pflichten noch ein Name als Text, aus der Zeit vor der Liste, bietet di
 
 Auf der Seite einer Firma stehen ihre Ansprechpartner und ihre Dokumente: Zertifikate, Versicherung, Nachweise als Fachbetrieb. Das Datum „Gültig bis“ eines Dokuments wird eine Frist in „Fristen“, wie bei jedem Dokument. Ansprechpartner und Dokumente einer Firma sieht jeder, der für den Betreiber arbeitet, unabhängig vom Bereich.
 
+Unter „Einweisungen und Erlaubnisscheine“ stehen die Einweisungen ihrer Leute und die Erlaubnisscheine für feuergefährliche Arbeiten an ihren Aufträgen, die neuesten zuerst, mit dem Weg zum Auftrag. Gezeigt wird, was an Aufträgen steht, die Sie sehen; aufgenommen wird beides vor Ort.
+
 Eine Firma, die nicht mehr für den Betreiber arbeitet, wird entfernt. Sie steht dann in keiner Auswahl mehr und bleibt lesbar, wo sie genannt ist. Ihre Ansprechpartner und Dokumente gehen mit, und die Fristen ihrer Dokumente fallen weg. Solange eine offene Pflicht oder ein offener Vorgang sie nennt, lässt sie sich nicht entfernen. Ansehen kann die Fremdfirmen jede Rolle, anlegen, ändern und entfernen die Leitung und die Technische Leitung.
 
 ## Kurzanleitung

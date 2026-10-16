@@ -128,6 +128,13 @@ await checkWidths({
     'Erfassen',
     // The register of evidence at the register of duties (#338).
     'Nachweisverzeichnis',
+    // A firm at work (#330): the briefing and the permit on site, and in the
+    // office a briefing and a permit as they were signed, by the names the
+    // sample data give them.
+    'Einweisen',
+    'Erlaubnisschein ausstellen',
+    'Einweisung von Marco Petri ansehen',
+    'Erlaubnisschein für feuergefährliche Arbeiten ansehen',
     // The longest sentences of the instance stand behind it (#80); the Leitung
     // of the preview is operator and administration in one. The form to name
     // somebody to the administration stands open on its page.

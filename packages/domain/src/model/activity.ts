@@ -594,6 +594,12 @@ export interface WorkOrderPlan {
   readonly dueOn: IsoDate
   readonly responsibleUserId: string
   readonly participantUserIds: readonly string[]
+  /**
+   * The firm of the list that carries the order out (#330), or null for the
+   * own people; the person who leads it stays one of the own. Left out, a
+   * change keeps what the order said.
+   */
+  readonly contractorId?: ContractorId | null
 }
 
 /**
@@ -654,6 +660,12 @@ export function workOrderPlanProblems(plan: Readonly<Record<string, unknown>>): 
   } else if (participants.includes(responsible)) {
     problems['participantUserIds'] =
       'Wer den Auftrag führt, steht nicht noch einmal unter den Beteiligten.'
+  }
+
+  const firm = plan['contractorId']
+
+  if (firm !== undefined && firm !== null && (typeof firm !== 'string' || firm === '')) {
+    problems['contractorId'] = 'Die Fremdfirma ist eine aus der Liste, oder keine.'
   }
 
   return problems

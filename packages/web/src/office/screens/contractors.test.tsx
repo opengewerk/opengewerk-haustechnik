@@ -84,6 +84,25 @@ const answers = {
     ],
   },
   '/contractors/c-lift': { contractor: lift, openDuties: 3, openActivities: 1, evidence: [] },
+  // A briefing at an order of the firm (#330).
+  '/contractors/c-fire/visits': {
+    briefings: [
+      {
+        id: 'br-1',
+        activityId: 'ac-fire',
+        orderNumber: 'AU-2026-0034',
+        orderTitle: 'Löschwasserleitung im Keller anschließen',
+        contractorId: 'c-fire',
+        contractorName: 'Brandschutz Beispiel GmbH',
+        personName: 'Marco Petri',
+        subject: 'Fluchtwege',
+        path: 'M10,10L200,300',
+        signedByName: 'Tobias Wendt',
+        signedAt: '2026-10-07T05:40:00.000Z',
+      },
+    ],
+    permits: [],
+  },
   // The activities still to be done that the firm carries out (#328).
   '/activities?state=pending&contractor=c-fire&offset=0&limit=5': {
     total: 1,
@@ -245,6 +264,11 @@ describe('the page of a contractor', () => {
     expect(
       screen.getByRole('link', { name: 'NW-2026-00118 Prüfung der Brandmeldeanlage' }),
     ).toBeTruthy()
+    // The briefings and permits at its orders (#330), with the way to the order.
+    expect((await screen.findByRole('link', { name: 'AU-2026-0034' })).getAttribute('href')).toBe(
+      '/auftraege/ac-fire',
+    )
+    expect(screen.getByText('Marco Petri')).toBeTruthy()
     // Whoever only looks neither changes nor removes the firm.
     expect(screen.queryByRole('button', { name: 'Bearbeiten' })).toBeNull()
     expect(screen.queryByRole('button', { name: 'Entfernen' })).toBeNull()

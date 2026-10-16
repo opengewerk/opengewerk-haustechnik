@@ -50,6 +50,8 @@ import {
   workOrderSettingsProblems,
   isCalendarDay,
   type OrderWarranty,
+  type ContractorId,
+  type ContractorVisits,
   type AssetId,
 } from '@opengewerk/haustechnik-domain'
 import {
@@ -86,6 +88,7 @@ import {
   SigningRefusal,
   signaturesWithTheirStanding,
 } from '../activities/signing.js'
+import { visitAccounts, visitRowsOf, visitsOf } from '../activities/visits.js'
 import { CATALOGUE } from '../catalogue.js'
 import { dutiesOnADay, dutyTitle } from '../database/duty-standing.js'
 import { assignNumber } from '../database/number-ranges.js'
@@ -107,6 +110,7 @@ import { tellHandedOut } from '../notifications/tell.js'
 import { dayInGermany } from '../today.js'
 import { candidatesIn, containing, inSight } from './activities.controller.js'
 import { RequiresPermission } from './authorization.js'
+import { checkContractor } from './contractor-checks.js'
 import { type Asking, fieldsOf, given, placeOf, refuse, type Target, targetOf } from './places.js'
 import { counted, said } from './register-question.js'
 import { wholeList, workOrderTable } from './office-tables.js'
@@ -182,6 +186,24 @@ export function ordersInSight(identity: Asking): SQL | undefined {
       )
 }
 
+/**
+ * Who carries an order out once the office names it (#330): a firm of the
+ * list, or the own people. What only one of the two says goes with the other.
+ */
+function performedBy(
+  contractorId: ContractorId | null,
+  activity: Pick<Activity, 'contractorNote' | 'performerUserId'>,
+) {
+  return contractorId === null
+    ? { performer: 'own_staff' as const, contractorId: null, contractorNote: null }
+    : {
+        performer: 'contractor' as const,
+        contractorId,
+        contractorNote: activity.contractorNote,
+        performerUserId: null,
+      }
+}
+
 /** The row of a work order beside its activity. */
 const theirOrder = and(
   eq(workOrders.tenantId, activities.tenantId),
@@ -220,6 +242,8 @@ function planOf(values: Readonly<Record<string, unknown>>): Readonly<Record<stri
     dueOn: values['dueOn'] ?? null,
     responsibleUserId: values['responsibleUserId'] ?? null,
     participantUserIds: values['participantUserIds'] ?? [],
+    // The firm that carries it out (#330); left out, a change keeps it.
+    ...('contractorId' in values ? { contractorId: values['contractorId'] ?? null } : {}),
   }
 }
 
@@ -231,6 +255,7 @@ const planFields = [
   'dueOn',
   'responsibleUserId',
   'participantUserIds',
+  'contractorId',
 ] as const
 
 const originFields = [
@@ -458,6 +483,27 @@ export class WorkOrdersController {
   }
 
   /**
+   * The briefings and permits for hot work at a work order (#330), the latest
+   * first, each permit with its form in the version it was made in. Taken on
+   * site; read here and changed nowhere.
+   */
+  @Get(':id/visits')
+  @RequiresPermission('activity.read')
+  async visits(
+    @CurrentIdentity() identity: Asking,
+    @Param('id') id: string,
+  ): Promise<ContractorVisits> {
+    const rows = await this.database.forTenant(identity, async (tx) => {
+      const { activity } = await orderOf(tx, identity, id)
+
+      return visitRowsOf(tx, { activityId: activity.id }, undefined)
+    })
+    const named = await this.named(identity, visitAccounts(rows))
+
+    return visitsOf(rows, this.catalogue, (userId) => named(userId)?.name ?? unknownAccount)
+  }
+
+  /**
    * The page of a work order: what the list says, where it came from, the
    * further people who work on it, its signatures with whether each counts,
    * and the decisions on it.
@@ -528,6 +574,7 @@ export class WorkOrdersController {
         .filter((person) => person !== null),
       durationMinutes: read.order.durationMinutes,
       warrantyEndsOn: read.order.warrantyEndsOn,
+      contractorId: read.activity.contractorId,
       notes: read.notes.map((note) => ({
         id: note.id,
         text: note.text,
@@ -658,6 +705,16 @@ export class WorkOrdersController {
         activityId = await madeActivity(tx, identity, place, planned)
       }
 
+      // The firm that carries it out, where the office names one (#330); an
+      // order for a duty keeps the performer of the duty otherwise.
+      if (planned.contractorId !== undefined && planned.contractorId !== null) {
+        await checkContractor(tx, planned.contractorId)
+        await tx
+          .update(activities)
+          .set(performedBy(planned.contractorId, { contractorNote: null, performerUserId: null }))
+          .where(eq(activities.id, activityId))
+      }
+
       const [order] = await tx
         .insert(workOrders)
         .values({
@@ -750,12 +807,17 @@ export class WorkOrdersController {
         throw new BadRequestException(participatesSentence)
       }
 
+      await checkContractor(tx, planned.contractorId)
+
       const [changed] = await tx
         .update(activities)
         .set({
           title: planned.title.trim(),
           dueOn: planned.dueOn,
           responsibleUserId: planned.responsibleUserId,
+          ...(planned.contractorId === undefined
+            ? {}
+            : performedBy(planned.contractorId, activity)),
           updatedAt: new Date(),
         })
         .where(

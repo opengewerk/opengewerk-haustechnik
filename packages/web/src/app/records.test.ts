@@ -91,10 +91,12 @@ describe('a conflict about a record nobody changes', () => {
     expect([...neverChanged].sort()).toEqual([
       'activity_signatures',
       'attachment_versions',
+      'briefings',
       'meter_readings',
       'service_reports',
       'work_order_materials',
       'work_order_notes',
+      'work_permits',
     ])
     expect(neverChanged.filter((entity) => !answered(entity))).toEqual([])
   })

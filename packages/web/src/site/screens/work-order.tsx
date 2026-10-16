@@ -65,6 +65,7 @@ import { siteForms } from '../places.js'
 import { toStart } from './form.js'
 import { SiteTasksCard } from '../tasks.js'
 import { MaterialCard, materialWords } from './material.js'
+import { VisitCard } from './visit.js'
 
 export const workOrderWords = {
   number: 'Auftrag',
@@ -284,7 +285,7 @@ function useOrderNames(activityId: string, wanted: boolean): WorkOrderDetails | 
 }
 
 /** Where an order is, in words: the building, and the floor and the room where it hangs on one. */
-function usePlaceWords(activity: RecordState | null): string {
+export function usePlaceWords(activity: RecordState | null): string {
   const property = useRecord('properties', maybeText(activity, 'propertyId') ?? undefined)
   const asset = useRecord('assets', maybeText(activity, 'assetId') ?? undefined)
   const room = useRecord(
@@ -459,6 +460,8 @@ function WorkOrderOf({ activityId }: { readonly activityId: string }) {
             ]}
           />
         </Panel>
+        {/* A firm of the list carries it out: its briefings and permits (#330). */}
+        <VisitCard activityId={activityId} />
         {withForm ? (
           <Panel title={workOrderWords.protocol}>
             <div className="flex flex-col gap-2.5">

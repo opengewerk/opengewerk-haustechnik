@@ -523,6 +523,9 @@ const placeOf: Readonly<
   // The client's signature under a service report hangs on its work order
   // as a signature does (#324).
   service_reports: signaturePlace,
+  // A briefing and a permit hang on their work order as a signature does (#330).
+  briefings: signaturePlace,
+  work_permits: signaturePlace,
   activity_answers: answerPlace,
   attachments: documentPlace,
   attachment_versions: versionPlace,

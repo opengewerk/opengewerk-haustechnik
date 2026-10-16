@@ -133,6 +133,11 @@ export const operationRights: Readonly<Record<string, OperationRights>> = {
   // The client's signature under a service report is a step of finishing
   // the order, the work on it (#324): no right of its own.
   service_reports: { create: 'activity.perform', otherwise: 'activity.perform' },
+  // A briefing and a permit are taken on site by whoever leads the order or
+  // plans and hands out work (#330, decided on 15.10.2026): no right of its
+  // own; the check of the sync asks who that is.
+  briefings: { create: 'activity.perform', otherwise: 'activity.perform' },
+  work_permits: { create: 'activity.perform', otherwise: 'activity.perform' },
   // Filing a document and correcting its name and its kind is "ablegen"; so
   // is a new version, which is filed like a first one. Taking a document out
   // of the records is a right of its own, from the Objektleitung on (section

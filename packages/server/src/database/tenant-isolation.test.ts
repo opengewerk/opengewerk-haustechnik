@@ -818,6 +818,38 @@ function rowsOf(tenant: Tenant): readonly Row[] {
         fingerprint: 'e'.repeat(64),
       },
     },
+    // A briefing of a person of the firm and a permit for hot work at the
+    // work order (#330).
+    {
+      table: 'briefings',
+      values: {
+        tenant_id: tenant.id,
+        property_id: property,
+        area_id: area,
+        activity_id: activity,
+        contractor_id: firm,
+        person_name: 'Marco Petri',
+        subject: 'Fluchtwege',
+        path: 'M10,10L200,300',
+        signed_by: tenant.userId,
+        signed_at: '2026-10-01T08:00:00Z',
+      },
+    },
+    {
+      table: 'work_permits',
+      values: {
+        tenant_id: tenant.id,
+        property_id: property,
+        area_id: area,
+        activity_id: activity,
+        contractor_id: firm,
+        form_key: 'brandschutz.hot_work_permit',
+        form_version: 1,
+        answers: JSON.stringify({ place: 'Heizraum' }),
+        signed_by: tenant.userId,
+        signed_at: '2026-10-01T08:05:00Z',
+      },
+    },
     // A document at the asset, and the one version of it, which names the
     // file of the tenant above.
     {

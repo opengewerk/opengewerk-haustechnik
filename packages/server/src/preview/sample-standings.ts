@@ -3,6 +3,7 @@ import { randomBytes } from 'node:crypto'
 import {
   type ActivityId,
   type Catalogue,
+  hotWorkPermitForm,
   type Identity,
   labelCodeFrom,
   type PropertyId,
@@ -12,7 +13,14 @@ import { eq } from 'drizzle-orm'
 
 import { freezeServiceReport, serviceReportFingerprint } from '../activities/service-reports.js'
 import { pageFingerprint, pageOf, takeSignature } from '../activities/signing.js'
-import { activities, labels, properties, serviceReports } from '../database/schema/index.js'
+import {
+  activities,
+  briefings,
+  labels,
+  properties,
+  serviceReports,
+  workPermits,
+} from '../database/schema/index.js'
 import { dayInGermany } from '../today.js'
 import { previewColleagues } from './preview-database.js'
 import type { BehindTheRoutes } from './sample-data.js'
@@ -20,6 +28,26 @@ import type { BehindTheRoutes } from './sample-data.js'
 /** A signature as a finger draws it on a telephone, in the units of `signatureBox`. */
 const sampleSignature =
   'M80,260L170,150L240,290L330,120L420,280L510,140L600,260L700,180L820,230L920,200'
+
+/** The people of a firm briefed at a sample order (#330), and in what. */
+const sampleBriefed = ['Marco Petri', 'Jonas Weber']
+const sampleSubject =
+  'Fluchtwege und Sammelplatz, Brandmeldeanlage im Heizraum, Absperrung der Gasleitung, Ansprechpartner vor Ort'
+
+/** What the sample permit for hot work says, by the keys of its form (#330). */
+const samplePermit = {
+  place: 'Schulhaus, Untergeschoss, Heizraum, Rücklauf Heizkreis Turnhalle',
+  method: 'soldering',
+  description: 'Undichte Lötstelle am Rücklauf ausbauen und neu hartlöten.',
+  period: 'Heute, 08:00 bis 16:00',
+  combustibles: 'done',
+  openings: 'not_needed',
+  extinguishers: 'done',
+  detectors: 'done',
+  residues: 'done',
+  during: 'Jonas Weber',
+  after: 'Tobias Wendt, zwei Stunden nach dem Ende',
+}
 
 /** The clients who sign the service reports of the sample orders, one after the other. */
 const sampleClients = ['Petra Lang', 'Jonas Albrecht', 'Miriam Okafor']
@@ -98,6 +126,61 @@ export async function writeSampleStandings(
         typedName: null,
         pageFingerprint: pageFingerprint(await pageOf(tx, row)),
       })
+    }
+
+    // A firm of the list at work (#330): two of its people briefed on the
+    // device of whoever leads the order, and the permit for the hot work in
+    // the version of its form in force today, signed by one of them.
+    const permitForm = catalogue.form(hotWorkPermitForm, dayInGermany(at))
+
+    for (const visit of planted.visits) {
+      const [row] = await tx
+        .select()
+        .from(activities)
+        .where(eq(activities.id, visit.activityId as ActivityId))
+
+      if (row === undefined || row.contractorId === null) {
+        throw new Error(`Den Auftrag ${visit.activityId} einer Fremdfirma gibt es nicht.`)
+      }
+
+      for (const [index, personName] of sampleBriefed.entries()) {
+        await tx.insert(briefings).values({
+          tenantId: planter.tenantId,
+          propertyId: row.propertyId,
+          areaId: row.areaId,
+          activityId: row.id,
+          contractorId: row.contractorId,
+          personName,
+          subject: sampleSubject,
+          path: sampleSignature,
+          signedBy: visit.leads,
+          signedAt: new Date(at.getTime() - (30 - index * 4) * 60_000),
+          deviceInfo: 'Telefon',
+        })
+      }
+
+      if (permitForm !== null) {
+        await tx.insert(workPermits).values({
+          tenantId: planter.tenantId,
+          propertyId: row.propertyId,
+          areaId: row.areaId,
+          activityId: row.id,
+          contractorId: row.contractorId,
+          formKey: permitForm.key,
+          formVersion: permitForm.version,
+          answers: {
+            ...samplePermit,
+            contractor_signature: {
+              name: sampleBriefed[0] ?? 'Marco Petri',
+              path: sampleSignature,
+              signedAt: at.toISOString(),
+            },
+          },
+          signedBy: visit.leads,
+          signedAt: new Date(at.getTime() - 15 * 60_000),
+          deviceInfo: 'Telefon',
+        })
+      }
     }
 
     // The labels of a sheet: on their property and on nothing else, each with

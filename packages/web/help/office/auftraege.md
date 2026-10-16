@@ -8,6 +8,8 @@ Der Auftrag wird vor Ort erledigt, mit Notizen, Material aus dem Lager und Unter
 
 Wo ein Auftraggeber da ist und es möchte, unterschreibt er vor dem Abschließen den Leistungsnachweis auf dem Gerät: die geleistete Arbeit und die Dauer, ohne Preise, mit seinem Namen in Druckschrift. Am Auftrag steht er danach mit seinem PDF. Wird der Auftrag zurückgewiesen, gilt er nicht mehr, und beim nächsten Abschluss entsteht ein neuer.
 
+Führt eine Fremdfirma den Auftrag aus, wählen Sie sie unter „Fremdfirma“; geführt wird er weiter von der verantwortlichen Person. Vor Ort weist diese Person oder wer Arbeit plant und verteilt die Leute der Firma ein: wer eingewiesen wurde und worin, mit der Unterschrift der eingewiesenen Person auf dem Gerät. Für feuergefährliche Arbeiten wie Schweißen oder Löten stellt sie dort den Erlaubnisschein aus, das Formular aus dem Paket Brandschutz, und die ausführende Person unterschreibt darin. Beides steht danach am Auftrag und an der Fremdfirma und lässt sich nicht mehr ändern; der Erlaubnisschein zeigt das Formular in der Fassung, in der er entstand. Eine Einweisung gilt für den Auftrag, zu dem sie gehört.
+
 ## Kurzanleitung
 
 1. „Neuer Auftrag“ anlegen oder ihn aus einem Mangel anlegen: Ort, Art, Dringlichkeit und wer ihn ausführt.

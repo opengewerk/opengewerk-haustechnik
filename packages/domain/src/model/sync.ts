@@ -188,6 +188,32 @@ export const syncPolicies: Readonly<Record<string, SyncPolicy>> = {
     },
     reserved: ['propertyId', 'areaId', 'signedBy'],
   },
+  // A contractor at work (#330): the briefing of one of its people and the
+  // permit for hot work, taken on the device while the order is under way,
+  // also without a connection, and never changed. Who held the device is the
+  // person signed in, which the server writes.
+  briefings: {
+    create: true,
+    change: 'never',
+    gateFrom: {
+      reference: 'activityId',
+      entity: 'activities',
+      field: 'status',
+      values: inProgress,
+    },
+    reserved: ['propertyId', 'areaId', 'signedBy'],
+  },
+  work_permits: {
+    create: true,
+    change: 'never',
+    gateFrom: {
+      reference: 'activityId',
+      entity: 'activities',
+      field: 'status',
+      values: inProgress,
+    },
+    reserved: ['propertyId', 'areaId', 'signedBy'],
+  },
   // A document is filed in the office and on site, also without a connection:
   // a photo of a type plate waits on the device with its bytes. Its name and
   // its kind are corrected afterwards; what it hangs on stays. The area
@@ -453,6 +479,31 @@ export const offlineEdits: Readonly<Record<string, OfflineEdits>> = {
       pageFingerprint: true,
     },
   },
+  // A briefing (#330): whom of which firm, in what, the drawing, when and on
+  // which device; a permit: the form by its key and version and what was
+  // entered in it, when and on which device.
+  briefings: {
+    create: {
+      activityId: true,
+      contractorId: true,
+      personName: true,
+      subject: true,
+      path: true,
+      signedAt: true,
+      deviceInfo: true,
+    },
+  },
+  work_permits: {
+    create: {
+      activityId: true,
+      contractorId: true,
+      formKey: true,
+      formVersion: true,
+      answers: true,
+      signedAt: true,
+      deviceInfo: true,
+    },
+  },
   // A defect is reported with its description and where it was found;
   // afterwards a device completes its description. Its class, the day to set
   // it right by, its status and the work order that does are its further way,
@@ -589,6 +640,8 @@ export const syncEntityNames: Readonly<Record<string, string>> = {
   activity_signatures: 'Unterschrift',
   work_order_decisions: 'Abnahme eines Auftrags',
   service_reports: 'Leistungsnachweis',
+  briefings: 'Einweisung',
+  work_permits: 'Erlaubnisschein',
   attachments: 'Dokument',
   attachment_versions: 'Fassung eines Dokuments',
   labels: 'Etikett',
@@ -766,6 +819,11 @@ export const syncFieldNames: Readonly<Record<string, string>> = {
   // The client's signature under a service report (#324), and the setting
   // whether it names the people who did the work.
   clientName: 'Name des Auftraggebers',
+  // A briefing and a permit for hot work (#330).
+  personName: 'Name der eingewiesenen Person',
+  subject: 'Worin eingewiesen',
+  formKey: 'Formular',
+  answers: 'Angaben',
   // An article, a supplier, a store and a booking in it (#325).
   designation: 'Bezeichnung',
   ean: 'EAN',

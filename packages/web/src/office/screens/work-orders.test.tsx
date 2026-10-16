@@ -1,4 +1,5 @@
 import type {
+  ContractorVisits,
   DefectEntry,
   DefectReading,
   DefectRegister,
@@ -127,6 +128,7 @@ function details(entry: WorkOrderEntry, further: Partial<WorkOrderDetails> = {})
     performedOn: null,
     closingReason: null,
     warrantyEndsOn: null,
+    contractorId: null,
     origin: {
       kind: 'defect',
       defectId: 'df-door' as never,
@@ -582,9 +584,138 @@ describe('the page of a work order', () => {
             dueOn: '2099-10-12',
             responsibleUserId: 'u-vogt',
             participantUserIds: ['u-wendt'],
+            contractorId: null,
           },
         },
       ])
+    })
+  })
+
+  it('names the firm of the list that carries it out, and what was taken on site: the briefings and the permit in the version of its form (#330)', async () => {
+    const visits: ContractorVisits = {
+      briefings: [
+        {
+          id: 'br-1' as ContractorVisits['briefings'][number]['id'],
+          activityId: 'ac-remedy' as ContractorVisits['briefings'][number]['activityId'],
+          orderNumber: 'AU-2026-0029',
+          orderTitle: 'Notausgangstür Saal gängig machen',
+          contractorId: 'c-heat' as ContractorVisits['briefings'][number]['contractorId'],
+          contractorName: 'Heizungsbau Beispiel GmbH',
+          personName: 'Marco Petri',
+          subject: 'Fluchtwege und Brandmeldeanlage',
+          path: 'M10,10L200,300',
+          signedByName: 'Tobias Wendt',
+          signedAt: '2026-10-07T05:40:00.000Z',
+        },
+      ],
+      permits: [
+        {
+          id: 'wp-1' as ContractorVisits['permits'][number]['id'],
+          activityId: 'ac-remedy' as ContractorVisits['permits'][number]['activityId'],
+          orderNumber: 'AU-2026-0029',
+          orderTitle: 'Notausgangstür Saal gängig machen',
+          contractorId: 'c-heat' as ContractorVisits['permits'][number]['contractorId'],
+          contractorName: 'Heizungsbau Beispiel GmbH',
+          formKey: 'brandschutz.hot_work_permit',
+          formVersion: 1,
+          form: {
+            key: 'brandschutz.hot_work_permit',
+            version: 1,
+            title: 'Erlaubnisschein für feuergefährliche Arbeiten',
+            sections: [
+              {
+                key: 'work',
+                title: 'Arbeiten',
+                fields: [
+                  { kind: 'text', key: 'place', label: 'Arbeitsort in der Fassung 1' },
+                  {
+                    kind: 'choice',
+                    key: 'combustibles',
+                    label: 'Brennbares entfernt',
+                    options: [
+                      { value: 'done', label: 'Erledigt' },
+                      { value: 'not_needed', label: 'Entfällt' },
+                    ],
+                  },
+                  {
+                    kind: 'signature',
+                    key: 'signer',
+                    label: 'Unterschrift der ausführenden Person',
+                  },
+                ],
+              },
+            ],
+          },
+          answers: {
+            place: 'Heizraum',
+            combustibles: 'not_needed',
+            signer: {
+              name: 'Marco Petri',
+              path: 'M10,10L200,300',
+              signedAt: '2026-10-07T05:55:00.000Z',
+            },
+          },
+          signerName: 'Marco Petri',
+          signedByName: 'Tobias Wendt',
+          signedAt: '2026-10-07T05:55:00.000Z',
+        },
+      ],
+    }
+    const { mounted } = mount('/auftraege/ac-remedy', {
+      '/work-orders/ac-remedy': details(remedy, {
+        contractorId: 'c-heat' as WorkOrderDetails['contractorId'],
+      }),
+      '/work-orders/ac-remedy/visits': visits,
+      '/contractors': [{ id: 'c-heat', name: 'Heizungsbau Beispiel GmbH' }],
+    })
+
+    await mounted
+    expect(
+      (await screen.findByRole('link', { name: 'Heizungsbau Beispiel GmbH' })).getAttribute('href'),
+    ).toBe('/fremdfirmen/c-heat')
+    expect(await screen.findByText('eingewiesen von Tobias Wendt')).toBeTruthy()
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Erlaubnisschein für feuergefährliche Arbeiten ansehen' }),
+    )
+
+    const dialog = await screen.findByRole('dialog', {
+      name: 'Erlaubnisschein für feuergefährliche Arbeiten',
+    })
+
+    // In the version it was made in, whatever the catalogue holds today.
+    expect(within(dialog).getByText('Arbeitsort in der Fassung 1')).toBeTruthy()
+    expect(within(dialog).getByText('Entfällt')).toBeTruthy()
+    expect(within(dialog).getByRole('img', { name: 'Unterschrift von Marco Petri' })).toBeTruthy()
+  })
+
+  it('gives an order to a firm of the list and back to the own people, by whoever plans (#330)', async () => {
+    const { mounted, written } = mount(
+      '/auftraege/ac-remedy',
+      {
+        '/work-orders/ac-remedy': details(remedy),
+        '/work-orders/candidates?property=p-school&asset=as-door': candidates,
+        '/contractors': [{ id: 'c-heat', name: 'Heizungsbau Beispiel GmbH' }],
+      },
+      'site_management',
+      () => ({ status: 200, body: { id: 'ac-remedy' } }),
+    )
+
+    await mounted
+    fireEvent.click(await screen.findByRole('button', { name: 'Bearbeiten' }))
+
+    const dialog = await screen.findByRole('dialog')
+    const firm = within(dialog).getByRole('combobox', { name: 'Fremdfirma' })
+
+    await within(firm).findByRole('option', { name: 'Heizungsbau Beispiel GmbH' })
+    expect(within(firm).getByRole('option', { name: 'Eigene Leute' })).toBeTruthy()
+    fireEvent.change(firm, { target: { value: 'c-heat' } })
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Speichern' }))
+
+    await waitFor(() => {
+      expect(
+        written.map((write) => (write.body as { contractorId?: unknown }).contractorId),
+      ).toEqual(['c-heat'])
     })
   })
 
@@ -754,6 +885,7 @@ describe('a new work order', () => {
             dueOn: '2099-10-19',
             responsibleUserId: 'u-vogt',
             participantUserIds: [],
+            contractorId: null,
             origin: 'defect',
             defectId: 'df-door',
           },
@@ -807,6 +939,7 @@ describe('a new work order', () => {
             dueOn: '2099-11-02',
             responsibleUserId: 'u-wendt',
             participantUserIds: [],
+            contractorId: null,
             origin: 'hand',
             assetId: 'as-door',
           },

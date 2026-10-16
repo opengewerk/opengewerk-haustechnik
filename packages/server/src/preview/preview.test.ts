@@ -493,6 +493,8 @@ describe('a preview started as the Leitung', () => {
       ['Heizkessel Mensa entlüften', 'open', 'immediate', false],
       ['Leuchtmittel im Fahrkorb tauschen', 'signed', 'urgent', false],
       ['Schild mit der Notrufnummer anbringen', 'done', 'normal', false],
+      // A firm of the list at work, with a briefing and a permit (#330).
+      ['Undichte Lötstelle am Heizungsrücklauf instand setzen', 'open', 'normal', false],
     ])
     expect(list.orders.every((order) => order.number !== null)).toBe(true)
   })

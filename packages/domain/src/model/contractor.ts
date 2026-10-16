@@ -146,7 +146,7 @@ export interface ContractorName {
 }
 
 /** The most names one take-over names, and the most evidence the page of a firm lists. */
-export const contractorBounds = { takeover: 200, evidence: 20 } as const
+export const contractorBounds = { takeover: 200, evidence: 20, visits: 50 } as const
 
 /** Whether two names of a firm are the same, as a person reads them: case and spaces aside. */
 export function sameFirmName(left: string, right: string): boolean {

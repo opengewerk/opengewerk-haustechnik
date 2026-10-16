@@ -351,6 +351,8 @@ export async function mountSite(
       'work_order_notes',
       'work_order_decisions',
       'service_reports',
+      'briefings',
+      'work_permits',
       'work_order_settings',
       'meter_points',
       'meter_readings',
@@ -365,6 +367,8 @@ export async function mountSite(
       'stock_movements',
       'store_labels',
       'work_order_materials',
+      // The firm of an order (#330).
+      'contractors',
     ],
     onSignedOut: () => {},
   })
