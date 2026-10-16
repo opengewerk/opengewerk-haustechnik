@@ -2,7 +2,7 @@ import type { IsoDate } from '@opengewerk/platform-domain'
 
 import { dutyInterval, intervalWords } from './duty-record.js'
 import type { DutyEntry } from './duty-register.js'
-import { type EvidenceResult, evidenceResultLabel } from './evidence.js'
+import { type EvidenceId, type EvidenceResult, evidenceResultLabel } from './evidence.js'
 import { byNameIn } from './name-order.js'
 import { dayInWords, type TableRow } from './office-table.js'
 
@@ -26,7 +26,6 @@ export type EvidenceRegisterDuty = Pick<
   DutyEntry,
   | 'id'
   | 'title'
-  | 'sourceNote'
   | 'intervalDays'
   | 'intervalMonths'
   | 'shortened'
@@ -50,6 +49,13 @@ export interface IntervalDocument {
 /** A duty with what only the register of evidence asks of it. */
 export interface EvidenceRegisterEntry {
   readonly duty: EvidenceRegisterDuty
+  /**
+   * Where the duty comes from, as the register of duties says it: the source
+   * its kind names in the catalogue, or for one of the operator's own its
+   * basis and the source it names. The catalogue is the server's, so the
+   * server puts it in.
+   */
+  readonly source: string
   /** The result of its last evidence, which the row of the duty register does not carry. */
   readonly lastResult: EvidenceResult | null
   readonly intervalDocument: IntervalDocument | null
@@ -69,7 +75,7 @@ export interface EvidenceRegisterLine {
   /** The day and the result of the last evidence, each on its own, for a column of a table. */
   readonly performedOn: IsoDate | null
   readonly result: string | null
-  readonly evidenceId: string | null
+  readonly evidenceId: EvidenceId | null
   readonly evidenceNumber: string | null
   /** The mark of a line whose last evidence was signed nowhere here, or that has none. */
   readonly mark: (typeof evidenceRegisterWords)['legacy' | 'never'] | null
@@ -95,7 +101,7 @@ function documentWords(document: IntervalDocument): string {
 
 /** A duty as a line of the register. */
 export function evidenceRegisterLine(entry: EvidenceRegisterEntry): EvidenceRegisterLine {
-  const { duty, lastResult, intervalDocument } = entry
+  const { duty, source, lastResult, intervalDocument } = entry
   const evidence = duty.lastEvidence
   const performed =
     evidence === null
@@ -105,7 +111,7 @@ export function evidenceRegisterLine(entry: EvidenceRegisterEntry): EvidenceRegi
   return {
     dutyId: duty.id,
     duty: duty.title,
-    reference: duty.sourceNote ?? '',
+    reference: source,
     document: intervalDocument === null ? null : documentWords(intervalDocument),
     interval: intervalWords(duty.shortened ?? dutyInterval(duty)),
     reason: duty.intervalReason,

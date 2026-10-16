@@ -40,7 +40,6 @@ function duty(other: Partial<EvidenceRegisterDuty> = {}): EvidenceRegisterDuty {
   return {
     id: 'd-1' as DutyId,
     title: 'Untersuchung auf Legionellen',
-    sourceNote: 'TrinkwV § 31',
     intervalDays: null,
     intervalMonths: 12,
     shortened: null,
@@ -66,6 +65,7 @@ const entry = (
   more: Partial<Omit<EvidenceRegisterEntry, 'duty'>> = {},
 ): EvidenceRegisterEntry => ({
   duty: duty(other),
+  source: 'TrinkwV § 31',
   lastResult: 'without_defects',
   intervalDocument: null,
   ...more,

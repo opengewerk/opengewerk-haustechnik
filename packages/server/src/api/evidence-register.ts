@@ -1,5 +1,6 @@
 import {
   type Catalogue,
+  dutySourceWords,
   type EvidenceRegisterEntry,
   type EvidenceResult,
   type IsoDate,
@@ -98,6 +99,7 @@ export async function evidenceRegisterEntries(
 
     return {
       duty: entry,
+      source: dutySourceWords(entry, catalogue),
       lastResult: entry.lastEvidence === null ? null : (results.get(entry.lastEvidence.id) ?? null),
       intervalDocument:
         document === null
