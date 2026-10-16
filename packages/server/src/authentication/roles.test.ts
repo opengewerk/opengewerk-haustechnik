@@ -247,7 +247,7 @@ describe('who works for a tenant', () => {
       .expect(400)
 
     expect((refused.body as { message: string }).message).toBe(
-      'Unbekannte Rollen: owner. Es gibt management, technical_management, site_management, technician.',
+      'Unbekannte Rollen: owner. Es gibt management, technical_management, site_management, technician, reporter.',
     )
     expect(await rolesOfMembership(userId)).toEqual({ roles: ['technician'], blocked: false })
 

@@ -37,6 +37,7 @@ const whole = [
   'Fristen',
   'Prüfungen',
   'Rundgänge',
+  'Störungen',
   'Mängel',
   'Aufträge',
   'Aufgaben',
@@ -58,7 +59,16 @@ describe('the navigation of the board', () => {
       ['Übersicht'],
       ['Liegenschaften', 'Anlagen', 'Zähler', 'Dokumente'],
       ['Pflichtenverzeichnis', 'Fristen', 'Prüfungen'],
-      ['Rundgänge', 'Mängel', 'Aufträge', 'Aufgaben', 'Lager', 'Fremdfirmen', 'Verträge'],
+      [
+        'Rundgänge',
+        'Störungen',
+        'Mängel',
+        'Aufträge',
+        'Aufgaben',
+        'Lager',
+        'Fremdfirmen',
+        'Verträge',
+      ],
     ])
     expect(officeFoot.map((place) => place.label)).toEqual(['Katalog'])
   })
@@ -86,10 +96,15 @@ describe('what a role is offered once every screen is built', () => {
 
   // As the board says it: "der Rolle Haustechnik fehlen Fristen und
   // Einstellungen". The settings are the frame's and stand in the tests below.
-  it('is everything but the deadlines and the contracts for the Haustechnik', () => {
+  it('is everything but the deadlines, the faults and the contracts for the Haustechnik', () => {
     expect(offeredTo('technician')).toEqual(
-      whole.filter((label) => label !== 'Fristen' && label !== 'Verträge'),
+      whole.filter((label) => !['Fristen', 'Störungen', 'Verträge'].includes(label)),
     )
+  })
+
+  // The Melder works on site, and the office offers it nothing (#331).
+  it('is the catalogue alone for the Melder', () => {
+    expect(offeredTo('reporter')).toEqual(['Katalog'])
   })
 
   it('is nothing that takes a right for somebody who holds none', () => {
@@ -187,6 +202,8 @@ describe('the navigation of the office as it is built today', () => {
     'Fristen',
     'Prüfungen',
     'Rundgänge',
+    // The inbox of the faults, for whoever accepts them (#331).
+    'Störungen',
     'Mängel',
     'Aufträge',
     'Aufgaben',
@@ -204,7 +221,9 @@ describe('the navigation of the office as it is built today', () => {
     [
       'site_management',
       [
-        ...built.slice(0, built.indexOf('Fremdfirmen') + 1),
+        ...built.slice(0, built.indexOf('Rundgänge') + 1),
+        'Störungen',
+        ...built.slice(built.indexOf('Rundgänge') + 1, built.indexOf('Fremdfirmen') + 1),
         'Verträge',
         ...built.slice(built.indexOf('Fremdfirmen') + 1),
       ],

@@ -20,7 +20,9 @@ import {
   deadlineStillDue,
   type Notification,
   type Of,
+  stillAnswered,
   stillAssigned,
+  stillReceived,
   stillRejected,
   stillWaiting,
   taskStillDue,
@@ -28,6 +30,8 @@ import {
 import {
   assignedPush,
   deadlineDuePush,
+  faultAnsweredPush,
+  faultReceivedPush,
   immediatePush,
   rejectedPush,
   taskDuePush,
@@ -292,6 +296,63 @@ export async function pushRejected(
       userId: order.signer,
       text: rejectedPush(),
       urls: activityUrls('work_order', order.activityId),
+      expiresAt: hoursAfter(context.now, 24),
+    },
+    context.now,
+  )
+}
+
+/** The push message of a fault received in an area, to one who accepts faults there, or none (#331). */
+export async function pushFaultReceived(
+  database: Database,
+  tenantId: TenantId,
+  notification: Of<'fault_received'>,
+  context: PushNotifyContext,
+): Promise<readonly string[]> {
+  if (!(await ask(database, tenantId, (tx) => stillReceived(tx, notification)))) {
+    return []
+  }
+
+  return write(
+    database,
+    tenantId,
+    notification,
+    {
+      kind: 'fault_received',
+      userId: notification.userId,
+      text: faultReceivedPush(),
+      urls: { office: `/stoerungen/${notification.faultReportId}`, site: onSite },
+      expiresAt: hoursAfter(context.now, 24),
+    },
+    context.now,
+  )
+}
+
+/** The push message of a report accepted or done, to whoever reported it, or none (#331). */
+export async function pushFaultAnswered(
+  database: Database,
+  tenantId: TenantId,
+  notification: Of<'fault_answered'>,
+  context: PushNotifyContext,
+): Promise<readonly string[]> {
+  const reporter = await ask(database, tenantId, (tx) => stillAnswered(tx, notification))
+
+  if (reporter === null) {
+    return []
+  }
+
+  // The own reports are a page on site, for every role that reports.
+  const own = `/m/meldungen/${notification.faultReportId}`
+
+  return write(
+    database,
+    tenantId,
+    notification,
+    {
+      kind: 'fault_answered',
+      userId: reporter,
+      text: faultAnsweredPush(notification.step),
+      urls: { office: own, site: own },
       expiresAt: hoursAfter(context.now, 24),
     },
     context.now,

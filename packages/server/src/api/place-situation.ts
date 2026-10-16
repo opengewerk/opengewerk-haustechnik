@@ -28,6 +28,7 @@ import {
 } from '../database/schema/index.js'
 import { keyDateDue, operatorKeyDay } from '../database/meter-standing.js'
 import { defectRegister } from '../defects/reading.js'
+import { openFaultsByBuilding } from '../faults/reading.js'
 import { inSight } from './activities.controller.js'
 import { registeredEntries, registerPage, type UnnamedDutyEntry } from './duty-register.js'
 import { meterStandings } from './meters.controller.js'
@@ -253,6 +254,10 @@ export async function buildingSituation(
     keyDate: meters?.keyDate ?? keyDateDue(today, await operatorKeyDay(tx)),
     lastActivities: isAllowed(identity, 'activity.read')
       ? await lastActivitiesAt(tx, identity, buildingId)
+      : null,
+    // The open faults of the building (#331), for whoever accepts them.
+    openFaults: isAllowed(identity, 'fault.accept')
+      ? ((await openFaultsByBuilding(tx, [building.id])).get(building.id) ?? 0)
       : null,
   }
 }

@@ -15,6 +15,7 @@ import {
   Handshake,
   HardHat,
   LayoutDashboard,
+  MessageSquareWarning,
   Package,
   Route,
   SearchCheck,
@@ -97,6 +98,13 @@ export const officeNavigation: readonly OfficePlaces[] = [
     title: 'Arbeit',
     entries: [
       { to: '/rundgaenge', label: 'Rundgänge', icon: Route, right: 'activity.read' },
+      // The inbox of the faults reported in the own areas (#331).
+      {
+        to: '/stoerungen',
+        label: 'Störungen',
+        icon: MessageSquareWarning,
+        right: 'fault.accept',
+      },
       { to: defectListPlace.to, label: 'Mängel', icon: TriangleAlert, right: 'defect.read' },
       { to: '/auftraege', label: 'Aufträge', icon: Calendar, right: 'activity.read' },
       { to: '/aufgaben', label: 'Aufgaben', icon: SquareCheck, right: 'task.read' },

@@ -90,6 +90,18 @@ const DefectClassSettingsScreen = lazyRouteComponent(
   () => import('./screens/defect-classes.js'),
   'DefectClassSettingsScreen',
 )
+const FaultCategorySettingsScreen = lazyRouteComponent(
+  () => import('./screens/fault-categories.js'),
+  'FaultCategorySettingsScreen',
+)
+const FaultListScreen = lazyRouteComponent(
+  () => import('./screens/fault-reports.js'),
+  'FaultListScreen',
+)
+const FaultReportScreen = lazyRouteComponent(
+  () => import('./screens/fault-reports.js'),
+  'FaultReportScreen',
+)
 const DocumentsScreen = lazyRouteComponent(
   () => import('./screens/documents.js'),
   'DocumentsScreen',
@@ -611,6 +623,17 @@ export function officeRoutes() {
     }),
     // The documents, narrowed by what the address names, and the same list
     // with one document chosen under it, by its id.
+    // The fault reports (#331): the inbox of the area and the page of one.
+    createRoute({
+      getParentRoute: () => office,
+      path: '/stoerungen',
+      component: FaultListScreen,
+    }),
+    createRoute({
+      getParentRoute: () => office,
+      path: '/stoerungen/$faultReportId',
+      component: FaultReportScreen,
+    }),
     // The defects (#116): the list, reporting one by hand, and the page of one.
     createRoute({
       getParentRoute: () => office,
@@ -739,6 +762,12 @@ export function officeRoutes() {
       getParentRoute: () => office,
       path: '/einstellungen/maengelklassen',
       component: DefectClassSettingsScreen,
+    }),
+    // The categories of the fault reports (#331).
+    createRoute({
+      getParentRoute: () => office,
+      path: '/einstellungen/stoerungen',
+      component: FaultCategorySettingsScreen,
     }),
     createRoute({
       getParentRoute: () => office,

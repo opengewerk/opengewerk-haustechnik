@@ -88,6 +88,7 @@ import {
 } from '../defect-addresses.js'
 import { DocumentsCard } from '../documents.js'
 import { evidencePlaces } from '../duty-addresses.js'
+import { faultPlaces } from '../fault-addresses.js'
 import { factLink } from '../links.js'
 import { officePlaces } from '../place-addresses.js'
 import { NarrowedToBuilding } from '../narrowed-to-building.js'
@@ -801,6 +802,15 @@ function OriginFact({ defect }: { readonly defect: DefectReading }) {
             Bericht einer Fremdfirma
           </Link>
           {`, ${day}`}
+        </span>
+      )
+    case 'fault':
+      return (
+        <span>
+          <Link to={faultPlaces.report(origin.faultReportId)} className={factLink}>
+            Störmeldung
+          </Link>
+          {`, eingegangen am ${date(origin.receivedAt)}, festgestellt am ${day}`}
         </span>
       )
     case 'hand':

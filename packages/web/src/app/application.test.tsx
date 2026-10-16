@@ -241,6 +241,7 @@ describe('what each entry hands to the foundation', () => {
       'bereiche',
       'zugaenge',
       'maengelklassen',
+      'stoerungen',
       'meters',
       'work-orders',
       'nummernkreise',

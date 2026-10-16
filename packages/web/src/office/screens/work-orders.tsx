@@ -8,6 +8,8 @@ import {
   activityProblems,
   byNameIn,
   type DefectRegister,
+  faultPlaceLine,
+  type FaultReportEntry,
   durationWords,
   type DutyDetails,
   type DutyPerson,
@@ -77,6 +79,7 @@ import { SignatureMark, typedWay } from '../../app/signature-ways.js'
 import { useAreas, useHeldArea } from '../../session/areas.js'
 import { askAt, makeAt } from '../../sync/made-at.js'
 import { defectPlaces } from '../defect-addresses.js'
+import { faultPlaces } from '../fault-addresses.js'
 import { DocumentsCard } from '../documents.js'
 import { MaterialPanel } from '../material-panel.js'
 import { dutyPlaces, dutyRegisterPlace } from '../duty-addresses.js'
@@ -142,6 +145,8 @@ export const workOrderWords = {
     'Noch nicht unterschrieben. Abschließen kann den Auftrag nur, wer ihn führt, mit der Unterschrift vor Ort.',
   laterMaterial: 'Material aus dem Lager am Auftrag kommt mit Phase 2 (4.12).',
   peopleFailed: 'Wer zur Wahl steht, ließ sich nicht laden. Das braucht eine Verbindung.',
+  fromFault:
+    'Mit dem Anlegen ist die Meldung angenommen, und wer sie gemeldet hat, bekommt Bescheid. Ist der Auftrag unterschrieben, ist sie erledigt. Auftrag und Meldung nennen einander.',
   fromDefect:
     'Der Mangel steht mit dem Anlegen auf „Beauftragt“. Ist der Auftrag unterschrieben, steht er auf „Behoben“.',
   fromDuty:
@@ -159,6 +164,10 @@ export const workOrderWords = {
   appointment: 'Der Termin der Pflicht.',
   noPlace: 'Ein Auftrag hängt an einer Anlage oder einem Ort.',
   noDefect: 'Ein Auftrag aus einem Mangel nennt den Mangel.',
+  noFault: 'Ein Auftrag aus einer Störmeldung nennt die Meldung.',
+  noFaults: 'Im Eingang steht keine Störmeldung.',
+  faultsFailed: 'Die Störmeldungen ließen sich nicht laden. Sie kommen vom Server, mit Verbindung.',
+  takenFromFault: 'Aus der Meldung übernommen.',
   nobodyFurther: 'Niemand weiter beteiligt.',
   noDuration: 'Noch nicht angegeben',
   duration: (minutes: number) => `${durationWords(minutes)} Std.`,
@@ -578,6 +587,15 @@ function OriginFact({ order }: { readonly order: WorkOrderDetails }) {
   const { origin } = order
 
   switch (origin.kind) {
+    case 'fault':
+      return (
+        <span>
+          <Link to={faultPlaces.report(origin.faultReportId)} className={factLink}>
+            {`Störmeldung „${origin.description}“`}
+          </Link>
+          {`, eingegangen am ${date(origin.receivedAt)}`}
+        </span>
+      )
     case 'defect':
       return (
         <span>
@@ -1567,6 +1585,12 @@ const homeLabel: Readonly<Record<Home, string>> = {
 }
 
 /** The found defects without an order, which a new one may come of. */
+/** The reports in the inbox, to accept as a work order (#331). */
+const receivedFaultsQuery = {
+  queryKey: ['fault-reports', 'list', 'received', {}],
+  queryFn: () => request<readonly FaultReportEntry[]>('/fault-reports?state=received'),
+} as const
+
 const foundDefectsQuery = {
   queryKey: ['defects', 'found-for-orders'],
   queryFn: async () => {
@@ -1596,10 +1620,18 @@ export function NewWorkOrderScreen() {
   const rooms = useRecords('rooms')
   const assets = useRecords('assets')
   const held = useHeldArea()
+  const acceptsFaults = useRight('fault.accept')
   const [origin, setOrigin] = useState<WorkOrderOriginKind>(
-    start.dutyId !== undefined ? 'duty' : start.assetId !== undefined ? 'hand' : 'defect',
+    start.faultReportId !== undefined
+      ? 'fault'
+      : start.dutyId !== undefined
+        ? 'duty'
+        : start.assetId !== undefined
+          ? 'hand'
+          : 'defect',
   )
   const [defectId, setDefectId] = useState(start.defectId ?? '')
+  const [faultReportId, setFaultReportId] = useState(start.faultReportId ?? '')
   const [home, setHome] = useState<Home>('assetId')
   const [target, setTarget] = useState(start.assetId ?? '')
   const [plan, setPlan] = useState<PlanState>({
@@ -1616,6 +1648,8 @@ export function NewWorkOrderScreen() {
   const [trouble, setTrouble] = useState<string | null>(null)
   const [working, setWorking] = useState(false)
   const defects = useQuery({ ...foundDefectsQuery, enabled: origin === 'defect' })
+  const faults = useQuery({ ...receivedFaultsQuery, enabled: origin === 'fault' })
+  const fault = faults.data?.find((each) => each.id === faultReportId)
   const duty = useQuery({
     queryKey: ['duties', 'page', start.dutyId ?? ''],
     queryFn: () => request<DutyDetails>(`/duties/${start.dutyId ?? ''}`),
@@ -1651,31 +1685,35 @@ export function NewWorkOrderScreen() {
 
   // The property the people to choose from are asked by.
   const propertyId =
-    origin === 'defect'
-      ? (defect?.place.propertyId ?? null)
-      : origin === 'duty'
-        ? (duty.data?.propertyId ?? null)
-        : home === 'propertyId'
-          ? target === ''
-            ? null
-            : target
-          : chosen === undefined
-            ? null
-            : String(chosen['propertyId'])
+    origin === 'fault'
+      ? (fault?.propertyId ?? null)
+      : origin === 'defect'
+        ? (defect?.place.propertyId ?? null)
+        : origin === 'duty'
+          ? (duty.data?.propertyId ?? null)
+          : home === 'propertyId'
+            ? target === ''
+              ? null
+              : target
+            : chosen === undefined
+              ? null
+              : String(chosen['propertyId'])
   // And the place on it, whose area may be the one of its building (#306).
   const place: CandidatePlace = {
     propertyId: propertyId ?? '',
-    ...(origin === 'defect'
-      ? { buildingId: defect?.place.buildingId ?? null }
-      : origin === 'duty'
-        ? {
-            buildingId: duty.data?.buildingId ?? null,
-            roomId: duty.data?.roomId ?? null,
-            assetId: duty.data?.assetId ?? null,
-          }
-        : home === 'propertyId' || chosen === undefined
-          ? {}
-          : { [home]: String(chosen['id']) }),
+    ...(origin === 'fault'
+      ? { buildingId: fault?.buildingId ?? null }
+      : origin === 'defect'
+        ? { buildingId: defect?.place.buildingId ?? null }
+        : origin === 'duty'
+          ? {
+              buildingId: duty.data?.buildingId ?? null,
+              roomId: duty.data?.roomId ?? null,
+              assetId: duty.data?.assetId ?? null,
+            }
+          : home === 'propertyId' || chosen === undefined
+            ? {}
+            : { [home]: String(chosen['id']) }),
   }
   const candidates = useQuery({
     ...candidatesQuery(place),
@@ -1697,6 +1735,34 @@ export function NewWorkOrderScreen() {
         dueOn: picked.dueOn ?? before.dueOn,
       }))
     }
+  }
+
+  /** A report chosen: the title from its category and place, the kind "Störung" (#331). */
+  const takeFault = (id: string) => {
+    setFaultReportId(id)
+
+    const picked = faults.data?.find((each) => each.id === id)
+
+    if (picked !== undefined) {
+      setPlan((before) => ({
+        ...before,
+        title: `${picked.category}, ${faultPlaceLine(picked.words)}`.slice(0, activityLimits.title),
+        kind: 'fault',
+      }))
+    }
+  }
+
+  // A report from the address, once the reports in the inbox are there.
+  const [tookFault, setTookFault] = useState(false)
+
+  if (
+    origin === 'fault' &&
+    start.faultReportId !== undefined &&
+    faults.data !== undefined &&
+    !tookFault
+  ) {
+    setTookFault(true)
+    takeFault(start.faultReportId)
   }
 
   // A duty from the address: its title, its kind and its appointment, once.
@@ -1733,6 +1799,10 @@ export function NewWorkOrderScreen() {
       found['origin'] = workOrderWords.noDefect
     }
 
+    if (origin === 'fault' && faultReportId === '') {
+      found['origin'] = workOrderWords.noFault
+    }
+
     if (origin === 'duty' && start.dutyId === undefined) {
       found['origin'] = workOrderWords.dutyFromPage
     }
@@ -1754,6 +1824,7 @@ export function NewWorkOrderScreen() {
       const made = await makeAt(client, '/work-orders', {
         ...body,
         origin,
+        ...(origin === 'fault' ? { faultReportId } : {}),
         ...(origin === 'defect' ? { defectId } : {}),
         ...(origin === 'duty' ? { dutyId: start.dutyId ?? null } : {}),
         ...(origin === 'hand' ? { [home]: target } : {}),
@@ -1768,6 +1839,7 @@ export function NewWorkOrderScreen() {
       await queries.invalidateQueries({ queryKey: workOrderKey })
       await queries.invalidateQueries({ queryKey: ['defects'] })
       await queries.invalidateQueries({ queryKey: ['duties'] })
+      await queries.invalidateQueries({ queryKey: ['fault-reports'] })
       void navigate({ to: workOrderPlaces.order(made.id) })
     } finally {
       setWorking(false)
@@ -1775,11 +1847,13 @@ export function NewWorkOrderScreen() {
   }
 
   const follows =
-    origin === 'defect'
-      ? workOrderWords.fromDefect
-      : origin === 'duty'
-        ? workOrderWords.fromDuty
-        : workOrderWords.byHand
+    origin === 'fault'
+      ? workOrderWords.fromFault
+      : origin === 'defect'
+        ? workOrderWords.fromDefect
+        : origin === 'duty'
+          ? workOrderWords.fromDuty
+          : workOrderWords.byHand
 
   return (
     <Screen>
@@ -1809,11 +1883,59 @@ export function NewWorkOrderScreen() {
                   setOrigin(value)
                   setProblems({})
                 }}
-                options={workOrderOrigins.map((each) => ({
-                  value: each,
-                  label: workOrderOriginLabel[each],
-                }))}
+                // Accepting a report is for whoever accepts faults (#331).
+                options={workOrderOrigins
+                  .filter((each) => each !== 'fault' || acceptsFaults)
+                  .map((each) => ({
+                    value: each,
+                    label: workOrderOriginLabel[each],
+                  }))}
               />
+              {origin === 'fault' ? (
+                <SelectField
+                  label="Störmeldung"
+                  required
+                  starred
+                  value={faultReportId}
+                  onChange={takeFault}
+                  options={[
+                    {
+                      value: '',
+                      label: faults.data?.length === 0 ? workOrderWords.noFaults : 'Bitte wählen',
+                    },
+                    ...(faults.data ?? []).map((each) => ({
+                      value: each.id,
+                      label: [
+                        each.description.slice(0, 80),
+                        faultPlaceLine(each.words),
+                        `eingegangen am ${date(each.receivedAt)}`,
+                      ].join(', '),
+                    })),
+                  ]}
+                  {...(problems['origin'] ? { problem: problems['origin'] } : {})}
+                />
+              ) : null}
+              {origin === 'fault' && faults.isError ? (
+                <p role="alert" className="text-[13px] font-semibold text-conflict">
+                  {workOrderWords.faultsFailed}
+                </p>
+              ) : null}
+              {origin === 'fault' && fault !== undefined ? (
+                <div className="flex flex-col gap-1">
+                  <FactList
+                    keyWidth={120}
+                    facts={[
+                      {
+                        label: 'Ort oder Anlage',
+                        value: [fault.words.property, faultPlaceLine(fault.words), fault.assetName]
+                          .filter(Boolean)
+                          .join(', '),
+                      },
+                    ]}
+                  />
+                  <p className="text-[12px] text-ink-faint">{workOrderWords.takenFromFault}</p>
+                </div>
+              ) : null}
               {origin === 'defect' ? (
                 <SelectField
                   label="Mangel"

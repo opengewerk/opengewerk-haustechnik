@@ -126,6 +126,8 @@ export function workOrderListRequest(
 
 /** What a new work order starts from, by the record the way there came from. */
 export interface WorkOrderStart {
+  /** Accepting a fault report (#331). */
+  readonly faultReportId?: string
   readonly defectId?: string
   readonly dutyId?: string
   readonly assetId?: string
@@ -133,6 +135,7 @@ export interface WorkOrderStart {
 
 /** The words of the address for where a new work order starts. */
 export const workOrderStartWords = {
+  faultReportId: 'stoermeldung',
   defectId: 'mangel',
   dutyId: 'pflicht',
   assetId: 'anlage',

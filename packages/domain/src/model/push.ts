@@ -18,6 +18,8 @@ export const pushOccasions = [
   'task_due',
   'waiting',
   'work_order_rejected',
+  'fault_received',
+  'fault_answered',
 ] as const
 
 export type PushOccasion = (typeof pushOccasions)[number]
@@ -49,6 +51,15 @@ export const pushOccasionWords: Readonly<
   work_order_rejected: {
     label: 'Zurückgewiesene Aufträge',
     about: 'Wenn ein Auftrag, den Sie unterschrieben haben, zurückgewiesen wird.',
+  },
+  // The two occasions of the fault reports (#331, sections 3 and 4.7 of the concept).
+  fault_received: {
+    label: 'Eingegangene Störungen',
+    about: 'Wenn in einem Bereich, in dem Sie Störungen annehmen, eine Störung gemeldet wird.',
+  },
+  fault_answered: {
+    label: 'Ihre Störmeldungen',
+    about: 'Wenn eine Störung, die Sie gemeldet haben, angenommen oder erledigt ist.',
   },
 }
 

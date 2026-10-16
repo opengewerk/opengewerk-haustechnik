@@ -7,6 +7,22 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
 
 ## [Unreleased]
 
+### Hinzugefügt
+
+- Störmeldungen mit Konto (#331, Abschnitt 4.7 des Konzepts): die neue Rolle Melder meldet vor Ort an
+  einem Gebäude, einem Raum oder über das Etikett an einer Anlage, mit Kategorie, Beschreibung und
+  Foto, und sieht ihre eigenen Meldungen mit ihrem Stand. Wer in einem Bereich Störungen annimmt,
+  findet sie im Büro unter „Störungen“: Annehmen legt einen Auftrag der Art „Störung“ an, der die
+  Meldung nennt, Zusammenführen legt Meldungen derselben Störung zusammen, Ablehnen verlangt einen
+  Grund. Erledigt ist eine Meldung mit der Unterschrift unter ihrem Auftrag. Aus einer Meldung lässt
+  sich ein Mangel melden, das Lagebild zählt die offenen Störungen eines Gebäudes und die Anlagenakte
+  nennt sie. Die Kategorien legt die Leitung unter „Einstellungen“ fest, mit sechs Vorschlägen beim
+  ersten Start. Dazu zwei Anlässe für Push: eine Störung geht ein, und eine eigene Meldung wird
+  angenommen oder erledigt. Warum: wer in einem Gebäude arbeitet, soll eine Störung dort melden können,
+  wo sie ist, und erfahren, was daraus wird; eine Meldung nennt dabei niemanden, wer gemeldet hat,
+  steht nur im Änderungsprotokoll. Bestehende Betreiber bekommen die Rolle Melder und die beiden neuen Rechte mit
+  der Migration `0062_fault_reports`.
+
 ## [0.1.5] - 2026-10-16
 
 Eine Korrekturfassung für den Pilotbetrieb. Die Datenschutzhinweise einer Instanz blieben leer,

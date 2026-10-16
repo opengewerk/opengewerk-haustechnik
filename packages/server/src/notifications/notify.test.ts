@@ -4,7 +4,14 @@ import type { Pool } from 'pg'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 
 import { applicationDatabaseUrl, connect, resetToMigrated } from '../database/test-database.js'
-import { dueDeadlines, dueTasks, rejectedOrders, waitingActivities } from './notify.js'
+import {
+  answeredFaults,
+  dueDeadlines,
+  dueTasks,
+  receivedFaults,
+  rejectedOrders,
+  waitingActivities,
+} from './notify.js'
 import { notify, notifyPush, occasions } from './occasions.js'
 import { tellHandedOut } from './tell.js'
 
@@ -30,6 +37,8 @@ const people = {
   'u-tech': 'technician',
   'u-site-south': 'site_management',
   'u-tech-south': 'technician',
+  // Somebody who reports faults in the north and does nothing else (#331).
+  'u-melder': 'reporter',
 } as const
 
 type Person = keyof typeof people
@@ -273,6 +282,7 @@ beforeAll(async () => {
   for (const [userId, area] of [
     ['u-site', north],
     ['u-tech', north],
+    ['u-melder', north],
     ['u-site-south', south],
     ['u-tech-south', south],
   ] as const) {
@@ -796,5 +806,205 @@ describe('what is told here', () => {
 
     expect(await dueDeadlines(database, neighbour, new Date(), undefined, 'push')).toEqual([])
     expect((await pushed()).map((each) => each.user)).not.toContain('u-next')
+  })
+})
+
+describe('a fault that is reported', () => {
+  let northBuilding = ''
+  let southBuilding = ''
+  let category = ''
+
+  beforeAll(async () => {
+    const building = async (property: string, area: string) =>
+      (
+        await one<{ id: string }>(
+          `insert into buildings (tenant_id, property_id, area_id, area_from_property_id, name, kinds)
+           values ($1, $2, $3, $2, 'Schulhaus', '{school}') returning id`,
+          [operator, property, area],
+        )
+      ).id
+
+    northBuilding = await building(northern, north)
+    southBuilding = await building(southern, south)
+    category = (
+      await one<{ id: string }>(
+        `insert into fault_categories (tenant_id, name, position) values ($1, 'Heizung und Lüftung', 0)
+         returning id`,
+        [operator],
+      )
+    ).id
+  })
+
+  beforeEach(async () => {
+    await admin.query('delete from fault_reports')
+  })
+
+  /** A report in the north unless it says otherwise, received a moment ago unless it says when. */
+  async function aReport(
+    person: Person,
+    over: { building?: string; property?: string; area?: string; at?: string } = {},
+  ): Promise<string> {
+    return (
+      await one<{ id: string }>(
+        `insert into fault_reports (tenant_id, property_id, area_id, building_id, category_id,
+                                    description, reported_by, received_at)
+         values ($1, $2, $3, $4, $5, 'Der Heizkörper bleibt kalt.', $6,
+                 coalesce($7::timestamptz, now()))
+         returning id`,
+        [
+          operator,
+          over.property ?? northern,
+          over.area ?? north,
+          over.building ?? northBuilding,
+          category,
+          person,
+          over.at ?? null,
+        ],
+      )
+    ).id
+  }
+
+  // Everybody here has a device that takes push (`beforeEach` above).
+  it('is told to everybody who accepts faults in its area, and never to whoever reported it', async () => {
+    const bySite = await aReport('u-site')
+    const byMelder = await aReport('u-melder')
+
+    const raised = await receivedFaults(database, operator, new Date())
+
+    // The Leitung, who sees every area, and the Objektleitung of the north
+    // for the report of the Melder; for its own report the Leitung alone.
+    expect(raised.map((each) => `${each.faultReportId}:${each.userId}`).sort()).toEqual(
+      [`${bySite}:u-lead`, `${byMelder}:u-lead`, `${byMelder}:u-site`].sort(),
+    )
+
+    for (const each of raised) {
+      await notifyPush(database, operator, each, { now: new Date() })
+    }
+
+    expect(await pushed()).toEqual(
+      [
+        { user: 'u-lead', id: bySite },
+        { user: 'u-lead', id: byMelder },
+        { user: 'u-site', id: byMelder },
+      ]
+        .map(({ user, id }) => ({
+          user,
+          kind: 'fault_received',
+          title: 'Störung eingegangen',
+          body: 'In einem Ihrer Bereiche ist eine Störung gemeldet worden.',
+          url: `/stoerungen/${id}`,
+          cause: `fault_received:${id}:${user}`,
+        }))
+        .sort((a, b) => (a.user + a.cause < b.user + b.cause ? -1 : 1)),
+    )
+    expect(await receivedFaults(database, operator, new Date())).toEqual([])
+  })
+
+  it('is told to nobody once it is decided or long received, and in another area to its people alone', async () => {
+    const rejected = await aReport('u-melder')
+    const merged = await aReport('u-melder')
+
+    await aReport('u-melder', { at: '2026-01-01T08:00:00Z' })
+    await admin.query(
+      `update fault_reports set rejected_at = now(), rejection_reason = 'Nicht bei uns.' where id = $1`,
+      [rejected],
+    )
+    await admin.query('update fault_reports set merged_into_id = $1 where id = $2', [
+      await aReport('u-melder', { at: '2026-01-01T08:00:00Z' }),
+      merged,
+    ])
+
+    const inTheSouth = await aReport('u-tech-south', {
+      building: southBuilding,
+      property: southern,
+      area: south,
+    })
+
+    expect(
+      (await receivedFaults(database, operator, new Date()))
+        .map((each) => `${each.faultReportId}:${each.userId}`)
+        .sort(),
+    ).toEqual([`${inTheSouth}:u-lead`, `${inTheSouth}:u-site-south`].sort())
+  })
+
+  it('tells whoever reported it when it is accepted and when it is done, and so whoever reported one merged into it', async () => {
+    const first = await aReport('u-melder')
+    const merged = await aReport('u-tech')
+    const order = await anActivity({ kind: 'work_order' })
+
+    await admin.query('update fault_reports set merged_into_id = $1 where id = $2', [first, merged])
+    await admin.query(
+      'update fault_reports set work_order_id = $1, accepted_at = now() where id = $2',
+      [order.order, first],
+    )
+
+    const accepted = await answeredFaults(database, operator, new Date())
+
+    expect(accepted.map((each) => `${each.faultReportId}:${each.step}`).sort()).toEqual(
+      [`${first}:accepted`, `${merged}:accepted`].sort(),
+    )
+
+    for (const each of accepted) {
+      await notifyPush(database, operator, each, { now: new Date() })
+    }
+
+    expect(await pushed()).toEqual(
+      [
+        { user: 'u-melder', id: first },
+        { user: 'u-tech', id: merged },
+      ].map(({ user, id }) => ({
+        user,
+        kind: 'fault_answered',
+        title: 'Störmeldung angenommen',
+        body: 'Eine Störung, die Sie gemeldet haben, wird jetzt bearbeitet.',
+        url: `/m/meldungen/${id}`,
+        cause: `fault_answered:${id}:accepted`,
+      })),
+    )
+    expect(await answeredFaults(database, operator, new Date())).toEqual([])
+
+    // Done is the signature under the order (decided 15.10.2026).
+    await signedBy(order.id, 'u-tech')
+
+    const done = await answeredFaults(database, operator, new Date())
+
+    expect(done.map((each) => `${each.faultReportId}:${each.step}`).sort()).toEqual(
+      [`${first}:done`, `${merged}:done`].sort(),
+    )
+
+    for (const each of done) {
+      await notifyPush(database, operator, each, { now: new Date() })
+    }
+
+    expect(
+      (await pushed()).filter((each) => each.title === 'Störung erledigt').map((each) => each.user),
+    ).toEqual(['u-melder', 'u-tech'])
+  })
+
+  it('tells nobody who switched it off, whose order was not performed, or who no longer works here', async () => {
+    const off = await aReport('u-melder')
+    const notPerformed = await aReport('u-tech')
+    const blocked = await aReport('u-site')
+
+    for (const report of [off, notPerformed, blocked]) {
+      const order = await anActivity({ kind: 'work_order' })
+
+      await admin.query(
+        'update fault_reports set work_order_id = $1, accepted_at = now() where id = $2',
+        [order.order, report],
+      )
+
+      if (report === notPerformed) {
+        await admin.query(
+          "update activities set status = 'not_performed', closing_reason = 'Doppelt.' where id = $1",
+          [order.id],
+        )
+      }
+    }
+
+    await switchedOff('u-melder', 'fault_answered')
+    await admin.query("update memberships set blocked_at = now() where user_id = 'u-site'")
+
+    expect(await answeredFaults(database, operator, new Date())).toEqual([])
   })
 })

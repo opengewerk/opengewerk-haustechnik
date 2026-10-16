@@ -626,6 +626,28 @@ export const auditVocabulary: AuditVocabulary = {
       label: 'Vorgabe einer Mängelklasse',
       fields: { defect_class: 'Klasse', due_days: 'Tage bis zur Beseitigung' },
     },
+    // The categories of the fault reports and the reports (#331). What a
+    // report hangs on is named below with the fields every row with a place has.
+    fault_categories: {
+      label: 'Kategorie der Störungen',
+      fields: { name: 'Name', position: 'Stelle in der Auswahl', removed_at: 'Entfernt am' },
+    },
+    fault_reports: {
+      label: 'Störmeldung',
+      fields: {
+        category_id: 'Kategorie',
+        description: 'Beschreibung',
+        photo_sha256: 'Foto',
+        reported_by: 'Gemeldet von',
+        received_at: 'Eingegangen am',
+        work_order_id: 'Angenommen als Auftrag',
+        accepted_at: 'Angenommen am',
+        rejected_at: 'Abgelehnt am',
+        rejection_reason: 'Grund der Ablehnung',
+        merged_into_id: 'Zusammengeführt mit',
+        defect_id: 'Als Mangel gemeldet',
+      },
+    },
   },
   // The deadlines are a table of the foundation (opengewerk-haustechnik#24);
   // what a deadline of this application hangs on is this application's own.
@@ -751,6 +773,7 @@ export const auditVocabulary: AuditVocabulary = {
     'defects',
     'round_templates',
     'round_plans',
+    'fault_reports',
   ],
   references: {
     area_id: 'areas',
@@ -789,6 +812,9 @@ export const auditVocabulary: AuditVocabulary = {
     contract_id: 'contracts',
     warranty_asset_id: 'assets',
     warranty_order_id: 'work_orders',
+    // The category of a fault report and the report it went into (#331).
+    category_id: 'fault_categories',
+    merged_into_id: 'fault_reports',
     // A withdrawal and the shelf a label is stuck on (#326).
     material_id: 'work_order_materials',
     store_article_id: 'store_articles',
@@ -828,6 +854,8 @@ export const auditVocabulary: AuditVocabulary = {
     'recorded_by',
     'booked_by',
     'taken_by',
+    // Who reported a fault (#331).
+    'reported_by',
   ],
   // Rows without a name of their own are named after the person they are
   // about, and a substitution after the person whose areas it takes over.
@@ -904,6 +932,9 @@ export const auditVocabulary: AuditVocabulary = {
     work_order_notes: ['text'],
     defects: ['description'],
     defect_class_terms: ['defect_class'],
+    // A category by its name, a fault report by what was reported (#331).
+    fault_categories: ['name'],
+    fault_reports: ['description'],
     // A signature by who gave it, a decision by what it decided.
     activity_signatures: ['signed_by'],
     work_order_decisions: ['decision'],
@@ -1001,6 +1032,8 @@ export const auditValues: Readonly<
       task_due: pushOccasionWords.task_due.label,
       waiting: pushOccasionWords.waiting.label,
       work_order_rejected: pushOccasionWords.work_order_rejected.label,
+      fault_received: pushOccasionWords.fault_received.label,
+      fault_answered: pushOccasionWords.fault_answered.label,
       test: 'Probenachricht',
     },
     status: messageStatusLabel,

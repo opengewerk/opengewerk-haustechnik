@@ -3,6 +3,7 @@ import { SiteFrame, SitePush } from '@opengewerk/platform-web/site'
 
 import { useKeepCatalogue } from '../sync/catalogue.js'
 import { HelpMenuRow } from './help.js'
+import { ReportingMenuRow } from './reporting.js'
 import { useTabs } from './tabs.js'
 import { MyTasksMenuRow } from './tasks.js'
 
@@ -34,6 +35,7 @@ export function SiteShell() {
       menu={
         <>
           <MyTasksMenuRow />
+          <ReportingMenuRow />
           <SitePush entry="site" />
           <HelpMenuRow />
         </>

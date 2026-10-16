@@ -58,8 +58,8 @@ export const defectRegisterPage = { size: 50, most: 200 } as const
 
 /**
  * Where a defect comes from (section 4.6): an activity it was noticed in, a
- * round, a test or a work order; the report of a contractor (#110); or by
- * hand. Fault reports come in phase 2.
+ * round, a test or a work order; the report of a contractor (#110); a fault
+ * report it was reported from (#331); or by hand.
  */
 export type DefectOrigin =
   | { readonly kind: 'hand' }
@@ -70,6 +70,7 @@ export type DefectOrigin =
       readonly title: string
     }
   | { readonly kind: 'report'; readonly evidenceId: string; readonly dutyId: string }
+  | { readonly kind: 'fault'; readonly faultReportId: string; readonly receivedAt: string }
 
 /** What a defect hangs on, by the names a row shows. */
 export interface DefectPlace {

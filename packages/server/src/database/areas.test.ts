@@ -567,6 +567,15 @@ async function placeIn(where: 'north' | 'south'): Promise<void> {
      select $1, $2, $3, $4, 'Typenschild fotografieren', date '2026-10-20', user_id
        from memberships where tenant_id = $1 order by user_id limit 1`,
     [tenant, at.property, areaId, at.asset],
+  ) // A fault reported at the asset, in a category of the tenant (#331).
+  await admin.query(
+    `with category as (
+       insert into fault_categories (tenant_id, name, position) values ($1, 'Aufzug', 0) returning id)
+     insert into fault_reports (tenant_id, property_id, area_id, building_id, asset_id, category_id,
+                                description, reported_by)
+     select $1, $2, $3, $4, $5, category.id, 'Der Aufzug hält zwischen den Geschossen.', user_id
+       from category, memberships where memberships.tenant_id = $1 order by user_id limit 1`,
+    [tenant, at.property, areaId, at.building, at.asset],
   )
 }
 
@@ -670,6 +679,7 @@ describe('a person with the north', () => {
       'duty_dismissals',
       'evidence',
       'evidence_voidings',
+      'fault_reports',
       'floors',
       'labels',
       'meter_exchanges',
@@ -900,6 +910,7 @@ describe('a property moved to another area', () => {
         'duty_dismissals',
         'evidence',
         'evidence_voidings',
+        'fault_reports',
         'floors',
         'labels',
         'meter_exchanges',

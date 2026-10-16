@@ -16,6 +16,7 @@ import type { AssetId } from './asset.js'
 import type { DefectId } from './defect.js'
 import type { DutyId } from './duty-record.js'
 import type { DutyPerson } from './duty-register.js'
+import type { FaultReportId } from './fault-report.js'
 import type { BuildingId, PropertyId, RoomId } from './location.js'
 import type { SignatureRole, WorkOrderDecisionKind } from './signature.js'
 import type { ServiceReportLine } from './service-report.js'
@@ -108,9 +109,9 @@ export interface WorkOrderList {
 
 /**
  * Where a work order came from, and what the page names of it: the defect
- * with what was noticed and when, the duty with its title and the due day it
- * was made for, or nothing for one made by hand. A fault report comes with
- * phase 2.
+ * with what was noticed and when, the fault report it accepted (#331) with
+ * what was reported and when, the duty with its title and the due day it was
+ * made for, or nothing for one made by hand.
  */
 export type WorkOrderOrigin =
   | {
@@ -118,6 +119,12 @@ export type WorkOrderOrigin =
       readonly defectId: DefectId
       readonly description: string
       readonly foundOn: IsoDate
+    }
+  | {
+      readonly kind: 'fault'
+      readonly faultReportId: FaultReportId
+      readonly description: string
+      readonly receivedAt: string
     }
   | {
       readonly kind: 'duty'
@@ -206,6 +213,7 @@ export interface WorkOrderCandidates {
 export type NewWorkOrder = WorkOrderPlan &
   (
     | { readonly origin: 'defect'; readonly defectId: DefectId }
+    | { readonly origin: 'fault'; readonly faultReportId: FaultReportId }
     | { readonly origin: 'duty'; readonly dutyId: DutyId }
     | {
         readonly origin: 'hand'
@@ -217,11 +225,12 @@ export type NewWorkOrder = WorkOrderPlan &
   )
 
 /** Where a new work order may come from in the office, in the order the form offers them. */
-export const workOrderOrigins = ['defect', 'duty', 'hand'] as const
+export const workOrderOrigins = ['fault', 'defect', 'duty', 'hand'] as const
 
 export type WorkOrderOriginKind = (typeof workOrderOrigins)[number]
 
 export const workOrderOriginLabel: Readonly<Record<WorkOrderOriginKind, string>> = {
+  fault: 'Aus einer Störmeldung',
   defect: 'Aus einem Mangel',
   duty: 'Aus einem Termin',
   hand: 'Von Hand',

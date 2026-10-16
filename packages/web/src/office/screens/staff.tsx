@@ -18,6 +18,8 @@ export const roleNotes: Readonly<Record<RoleKey, string>> = {
     'Ihre Bereiche: Rundgänge planen, Aufträge verteilen und abnehmen, Anlagen pflegen.',
   technician:
     'Ihre Bereiche: Rundgänge, Aufträge und Prüfungen ausführen, Anlagen aufnehmen, Zähler ablesen, Mängel melden.',
+  reporter:
+    'Ihre Bereiche: Störungen melden und die eigenen Meldungen sehen, sonst nichts. Arbeitet vor Ort mit Verbindung.',
 }
 
 export const staffScreenWords = {

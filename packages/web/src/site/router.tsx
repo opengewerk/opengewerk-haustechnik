@@ -1,3 +1,4 @@
+import { useRight } from '@opengewerk/platform-web/session'
 import { ConflictScreen } from '@opengewerk/platform-web/site'
 import {
   createRootRoute,
@@ -33,6 +34,14 @@ import {
   SiteServiceReportScreen,
 } from './screens/work-order.js'
 import { SiteGuideScreen, SiteHelpScreen, SiteScreenHelpScreen } from './help.js'
+import {
+  FaultPlaceScreen,
+  FaultReportedScreen,
+  OwnReportScreen,
+  ReportFaultScreen,
+  ReporterScanScreen,
+  ReporterStartScreen,
+} from './reporting.js'
 import { SiteShell } from './shell.js'
 import { MyTasksScreen } from './tasks.js'
 
@@ -67,10 +76,11 @@ export function siteRoutes() {
     createRoute({ getParentRoute: () => root, path, component })
 
   return root.addChildren([
-    at('/', SiteStartScreen),
+    at('/', StartForTheRole),
     at('/konflikte', ConflictScreen),
-    // The tab "Scannen": the label of an asset or a room, read by the camera.
-    at('/scannen', SiteScanScreen),
+    // The tab "Scannen": the label of an asset or a room, read by the camera;
+    // for whoever only reports, the place to report at (#331).
+    at('/scannen', ScanForTheRole),
     // The tab "Aufnehmen": where, and then a room on a floor or an asset in a
     // building, on request in one of its rooms.
     at('/aufnehmen', StockStartScreen),
@@ -113,12 +123,38 @@ export function siteRoutes() {
     at('/ablesung/$propertyId', ReadingRoundScreen),
     // The tasks of the person holding the device, from the menu (#124).
     at('/aufgaben', MyTasksScreen),
+    // Reporting a fault and the own reports (#331): the start of a Melder,
+    // from the menu for every other role that reports.
+    at('/meldungen', ReporterStartScreen),
+    at('/meldungen/$faultReportId', OwnReportScreen),
+    at('/stoerung', ReportFaultScreen),
+    at('/stoerung/ort', FaultPlaceScreen),
+    at('/stoerung/gemeldet', FaultReportedScreen),
     // The help, from the menu (#131): a text for each screen and the quick
     // guides, read without a network.
     at('/hilfe', SiteHelpScreen),
     at('/hilfe/bildschirm/$screen', SiteScreenHelpScreen),
     at('/hilfe/$guide', SiteGuideScreen),
   ])
+}
+
+/**
+ * The start for the role (#331): what is due this week for whoever sees the
+ * places, the own reports for whoever only reports, a Melder.
+ */
+function StartForTheRole() {
+  const seesPlaces = useRight('location.read')
+  const reports = useRight('fault.report')
+
+  return !seesPlaces && reports ? <ReporterStartScreen /> : <SiteStartScreen />
+}
+
+/** The scan for the role: an asset or a room opens for whoever sees the assets, the place to report at for a Melder. */
+function ScanForTheRole() {
+  const seesAssets = useRight('asset.read')
+  const reports = useRight('fault.report')
+
+  return !seesAssets && reports ? <ReporterScanScreen /> : <SiteScanScreen />
 }
 
 export const siteRouter = createRouter({

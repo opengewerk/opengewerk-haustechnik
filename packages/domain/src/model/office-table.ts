@@ -595,13 +595,15 @@ export const defectTableWords = {
   late: 'über der Frist',
 } as const
 
-/** Where a defect comes from, in a word: the kind of its activity, "Bericht" or "von Hand". */
+/** Where a defect comes from, in a word: the kind of its activity, "Bericht", "Störmeldung" or "von Hand". */
 export function defectOriginWord(origin: DefectOrigin): string {
   switch (origin.kind) {
     case 'activity':
       return activityKindLabel[origin.activityKind]
     case 'report':
       return 'Bericht'
+    case 'fault':
+      return 'Störmeldung'
     case 'hand':
       return 'von Hand'
   }

@@ -59,6 +59,7 @@ const people: Readonly<Record<RoleKey, string>> = {
   technical_management: 'u-duties',
   site_management: 'u-site',
   technician: 'u-tech',
+  reporter: 'u-reporter',
 }
 
 let admin: Pool
@@ -367,6 +368,9 @@ afterAll(async () => {
   rmSync(folder, { recursive: true, force: true })
 })
 
+/** The roles that file documents: the four of phase 1, not the Melder (#331). */
+const filers = roleKeys.filter((key) => rightsOfRoles([key]).has('document.record'))
+
 describe('a document filed from a device', () => {
   /**
    * The third point of the acceptance of #97, on the server: a photo taken
@@ -610,8 +614,8 @@ describe('a document filed from a device', () => {
 })
 
 describe('who may do what with a document', () => {
-  /** Section 7 of the concept: all four roles look at documents and file them. */
-  it.each(roleKeys)('"%s" files one, lays a version over it and reads both', async (role) => {
+  /** Section 7 of the concept: all four roles of phase 1 look at documents and file them; the Melder neither (#331). */
+  it.each(filers)('"%s" files one, lays a version over it and reads both', async (role) => {
     const header = by(role)
     const document = await filed(header, { propertyId: place.property, assetId: place.asset })
     const next = pdf('Zweite Fassung')

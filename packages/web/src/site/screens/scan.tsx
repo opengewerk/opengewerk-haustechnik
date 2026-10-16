@@ -80,7 +80,7 @@ const holdIntoTheFrame =
   'Halten Sie das Etikett in den Rahmen. Ohne Kamera geht es über die Suche am Start.'
 
 /** The camera while it looks for a label: the square for the QR code and the sentence under it. */
-function ScanCamera({ onCode }: { readonly onCode: (read: string) => void }) {
+export function ScanCamera({ onCode }: { readonly onCode: (read: string) => void }) {
   const { video, trouble } = useCodeReading(true, onCode, cameraWords)
 
   return (
@@ -219,7 +219,7 @@ const looks = {
 } as const satisfies Readonly<Record<string, Look>>
 
 /** What a code opens not, as the board "Etikett gesperrt, fremd, außerhalb" draws it. */
-function ScanMessage({
+export function ScanMessage({
   message,
   look,
   onAgain,
@@ -250,3 +250,6 @@ function ScanMessage({
     </>
   )
 }
+
+/** The look of each answer of a scan, for the scan of whoever reports (#331). */
+export const scanLooks = looks

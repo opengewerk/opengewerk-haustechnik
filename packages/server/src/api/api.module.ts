@@ -92,6 +92,10 @@ import {
 import { ArticlesController, StoresController, SuppliersController } from './stock.controller.js'
 import { ContractorsController } from './contractors.controller.js'
 import { ContractsController } from './contracts.controller.js'
+import {
+  FaultCategorySettingsController,
+  FaultReportsController,
+} from './fault-reports.controller.js'
 import { WorkOrderSettingsController, WorkOrdersController } from './work-orders.controller.js'
 
 /**
@@ -380,6 +384,10 @@ export class ApiModule {
         // default of each class under the settings.
         DefectsController,
         DefectClassSettingsController,
+        // The fault reports, the inbox of the area, and their categories under
+        // the settings (#331).
+        FaultReportsController,
+        FaultCategorySettingsController,
         MeterSettingsController,
         EvidencePrintController,
         RoundPrintController,

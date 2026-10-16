@@ -265,6 +265,7 @@ const situation: BuildingSituation = {
   neverRecorded: 0,
   openDefects: 2,
   missingReadings: 1,
+  openFaults: 3,
   keyDate: '2026-10-01' as BuildingSituation['keyDate'],
   lastActivities: [
     {
@@ -315,6 +316,8 @@ describe('the Lagebild of a building (#121)', () => {
       '0Nie erfasst > /pflichten?zustand=never_recorded&gebaeude=b-house',
       '2Offene Mängel > /maengel?gebaeude=b-house',
       '1Zählerstände fehlenStichtag 01.10. > /zaehler?gebaeude=b-house&stand=missing',
+      // The open faults, in the inbox narrowed to the building (#331).
+      '3Offene Störungen > /stoerungen?stand=all&gebaeude=b-house',
     ])
     expect(screen.getByRole('heading', { name: 'Zu tun' })).toBeTruthy()
   })
@@ -343,6 +346,7 @@ describe('the Lagebild of a building (#121)', () => {
         openDefects: null,
         missingReadings: null,
         lastActivities: null,
+        openFaults: null,
       },
     })
     await mount(`/gebaeude/${house.id}`)

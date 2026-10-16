@@ -257,6 +257,14 @@ export const previewColleagues: readonly PreviewColleague[] = [
     role: 'technician',
     areas: ['Süd'],
   },
+  // Somebody who works in the school house and reports what does not work (#331).
+  {
+    id: 'preview-neumann',
+    name: 'Petra Neumann',
+    email: 'p.neumann@beispielstadt.example',
+    role: 'reporter',
+    areas: ['Süd'],
+  },
 ]
 
 /** That person at work for the sample operator, with what the role may do. */

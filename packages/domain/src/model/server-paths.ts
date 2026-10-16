@@ -74,4 +74,7 @@ export const serverPaths: readonly string[] = [
   'contractors',
   // The contracts with them (#329).
   'contracts',
+  // The fault reports: reporting one with its photo, the own reports, the
+  // buildings and rooms to report at, and the inbox of the area (#331).
+  'fault-reports',
 ]

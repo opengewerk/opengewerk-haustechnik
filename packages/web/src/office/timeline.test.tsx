@@ -241,6 +241,7 @@ describe('the ways to a timeline', () => {
         due: 0,
         neverRecorded: 0,
         openDefects: null,
+        openFaults: null,
         missingReadings: null,
         keyDate: '2026-10-01',
         lastActivities: [],

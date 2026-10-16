@@ -29,6 +29,7 @@ import { activityPlaces } from './activity-addresses.js'
 import { CountTiles, type Tile } from './count-tiles.js'
 import { defectListPlace, defectSearch } from './defect-addresses.js'
 import { dutyRegisterPlace, dutySearch } from './duty-addresses.js'
+import { faultListPlace } from './fault-addresses.js'
 import { meterListPlace, meterListWords } from './meter-addresses.js'
 import { roundPlaces } from './round-template-addresses.js'
 import { TimelineLink } from './timeline.js'
@@ -41,6 +42,7 @@ export const situationWords = {
   failed: 'Was zu tun ist, ließ sich nicht laden. Es kommt vom Server, mit Verbindung.',
   last: 'Letzte Vorgänge',
   noneLast: 'An diesem Gebäude ist noch kein Vorgang begonnen oder erledigt.',
+  openFaults: 'Offene Störungen',
 } as const
 
 /** The Lagebild of a building, as the server answers it (#121). */
@@ -167,12 +169,33 @@ export function BuildingToDo({ buildingId }: { readonly buildingId: string }) {
       ) : (
         <CountTiles
           label="Was an diesem Gebäude zu tun ist"
-          className="grid-cols-2 sm:grid-cols-3 lg:grid-cols-5"
-          tiles={toDoTiles(read, { buildingId }, read.keyDate)}
+          className={`grid-cols-2 sm:grid-cols-3 ${read.openFaults === null ? 'lg:grid-cols-5' : 'lg:grid-cols-6'}`}
+          tiles={[
+            ...toDoTiles(read, { buildingId }, read.keyDate),
+            ...faultTile(read.openFaults, buildingId),
+          ]}
         />
       )}
     </section>
   )
+}
+
+/**
+ * The open faults of a building as a number of "Zu tun" (#331), leading to the
+ * inbox narrowed to the building; none for whoever does not accept faults.
+ */
+function faultTile(openFaults: number | null, buildingId: string): Tile[] {
+  return openFaults === null
+    ? []
+    : [
+        {
+          value: openFaults,
+          label: situationWords.openFaults,
+          tone: openFaults === 0 ? 'neutral' : 'waiting',
+          to: faultListPlace.to,
+          search: { stand: 'all', gebaeude: buildingId },
+        },
+      ]
 }
 
 /** What a row calls the kind of an activity, as short as the board has it. */
