@@ -52,6 +52,8 @@ import {
   type DutyUpdates,
   dutyTaskLabel,
   dutyTasks,
+  type EvidenceRegisterCount,
+  evidenceRegisterCount,
   type FederalState,
   type IntervalKind,
   intervalDocumentProblem,
@@ -975,6 +977,28 @@ export class DutiesController {
         ),
         format,
         today,
+      ),
+    )
+  }
+
+  /**
+   * What the register of evidence would hold under a choice (#338): how many
+   * duties, on how many assets, and how many were never recorded. The dialog
+   * says it before anybody makes the register, and it is the count of the
+   * register of duties under the same choice (acceptance 3).
+   */
+  @Get('evidence-register')
+  @RequiresPermission('evidence.read')
+  @Header('Cache-Control', 'no-store')
+  evidenceRegisterCount(
+    @CurrentIdentity() identity: Asking,
+    @Query() query: Record<string, unknown>,
+  ): Promise<EvidenceRegisterCount> {
+    const question = evidenceRegisterQuestion(query)
+
+    return this.database.forTenant(identity, async (tx) =>
+      evidenceRegisterCount(
+        await evidenceRegisterEntries(tx, this.catalogue, dayInGermany(), question),
       ),
     )
   }

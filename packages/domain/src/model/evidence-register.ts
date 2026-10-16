@@ -219,3 +219,22 @@ export function evidenceRegisterRows(
     ])
   })
 }
+
+/** What the register would hold, as the dialog says it before it is made: duties, assets and duties never recorded. */
+export interface EvidenceRegisterCount {
+  readonly duties: number
+  readonly assets: number
+  readonly never: number
+}
+
+export function evidenceRegisterCount(
+  entries: readonly EvidenceRegisterEntry[],
+): EvidenceRegisterCount {
+  return {
+    duties: entries.length,
+    assets: new Set(
+      entries.flatMap((entry) => (entry.duty.asset === null ? [] : [entry.duty.asset.id])),
+    ).size,
+    never: entries.filter((entry) => entry.duty.lastEvidence === null).length,
+  }
+}

@@ -8,6 +8,7 @@ import {
   evidenceRegisterBlocks,
   type EvidenceRegisterEntry,
   evidenceRegisterColumns,
+  evidenceRegisterCount,
   evidenceRegisterLine,
   evidenceRegisterRows,
   evidenceRegisterWords,
@@ -214,5 +215,18 @@ describe('the register of evidence as a table (#338)', () => {
       ],
     ])
     expect(rows.every((row) => row.length === evidenceRegisterColumns.length)).toBe(true)
+  })
+})
+
+describe('what the register of evidence would hold (#338)', () => {
+  it('counts the duties, the assets they hang on and the duties never recorded', () => {
+    expect(
+      evidenceRegisterCount([
+        entry(),
+        entry({ id: 'd-2' as DutyId, lastEvidence: null }),
+        entry({ id: 'd-3' as DutyId, asset: extinguisher, assetId: extinguisher.id }),
+        entry({ id: 'd-4' as DutyId, asset: null, assetId: null, lastEvidence: null }),
+      ]),
+    ).toEqual({ duties: 4, assets: 2, never: 2 })
   })
 })

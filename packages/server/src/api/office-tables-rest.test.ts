@@ -768,6 +768,15 @@ describe('the register of evidence as a table (#338)', () => {
     ).body as DutyRegister
 
     expect(register.total).toBe(3)
+    expect(
+      (
+        await http()
+          .get('/duties/evidence-register')
+          .query({ propertyId: property })
+          .set(testIdentityHeader, by('u-duties'))
+          .expect(200)
+      ).body,
+    ).toEqual({ duties: register.total, assets: 1, never: 1 })
   })
 
   it('holds nothing of an area the person does not see, and is for whoever looks at evidence', async () => {
