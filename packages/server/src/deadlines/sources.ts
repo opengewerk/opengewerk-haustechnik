@@ -15,6 +15,7 @@ import {
   type DutyId,
   type FederalState,
   firstOpenPass,
+  roundMadeBy,
   holidayClosures,
   holidaysBetween,
   type IsoDate,
@@ -328,8 +329,11 @@ export function defectSource(): SourceQuery<DeadlineValues> {
 
 /**
  * The source `round_plan` (#113, section 4.5 of the concept): one deadline for
- * every plan that runs, due on its first pass from today on that has no round
- * yet, passing over the days its building is closed. When the lead begins,
+ * every plan that runs, for its first pass from today on that has no round
+ * yet, passing over the days its building is closed. Due on the day its
+ * round has to be made by (`roundMadeBy`, #394): the pass of a daily plan,
+ * the day a round of any other shows from, so that the round of the last day
+ * of a month stands on the 1st. When the lead begins,
  * the engine makes the rounds as far ahead as the lead reaches
  * (`activityFromDeadline`), and the deadline moves on to the first pass after
  * them.
@@ -442,7 +446,7 @@ export function roundPlanSource(options: {
                 sourceId: plan.id,
                 sourceLabel: `${title}, ${buildingName ?? propertyName}`,
                 anchorOn: pass,
-                namedDueOn: pass,
+                namedDueOn: roundMadeBy(plan, pass),
                 naturalUserId: null,
                 values: {
                   dutyId: null,

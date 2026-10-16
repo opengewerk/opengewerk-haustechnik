@@ -61,6 +61,8 @@ const calendarFields = [
   'dayOfMonth',
   'month',
   'leadDays',
+  'showsFromDay',
+  'showsFromMonth',
   'startsOn',
   'endsOn',
 ] as const
@@ -191,6 +193,8 @@ export class RoundPlansController {
       dayOfMonth: values.dayOfMonth ?? null,
       month: values.month ?? null,
       leadDays: values.leadDays ?? 0,
+      showsFromDay: values.showsFromDay ?? null,
+      showsFromMonth: values.showsFromMonth ?? null,
       startsOn: values.startsOn ?? null,
       endsOn: values.endsOn ?? null,
     }
@@ -224,6 +228,8 @@ export class RoundPlansController {
           dayOfMonth: plan.dayOfMonth as number | null,
           month: plan.month as number | null,
           leadDays: plan.leadDays as number,
+          showsFromDay: plan.showsFromDay as number | null,
+          showsFromMonth: plan.showsFromMonth as number | null,
           startsOn: plan.startsOn as string,
           endsOn: plan.endsOn as string | null,
           skipHolidays: values.skipHolidays === true,
@@ -242,8 +248,8 @@ export class RoundPlansController {
   }
 
   /**
-   * A change of a plan: its template, its rhythm and days, its lead, its
-   * first and last day, its person, and whether it rests. A field of the old
+   * A change of a plan: its template, its rhythm and days, its lead or the
+   * day its rounds show from, its first and last day, its person, and whether it rests. A field of the old
    * rhythm that the new one does not name is emptied with it. A plan that
    * has ended stays as it was. The plan is held until its rounds follow, so
    * two changes at once take turns.
@@ -293,7 +299,7 @@ export class RoundPlansController {
         values.rhythm === undefined
           ? {}
           : Object.fromEntries(
-              (['weekdays', 'dayOfMonth', 'month'] as const)
+              (['weekdays', 'dayOfMonth', 'month', 'showsFromDay', 'showsFromMonth'] as const)
                 .filter((field) => values[field] === undefined)
                 .map((field) => [field, null]),
             )
@@ -303,10 +309,18 @@ export class RoundPlansController {
         dayOfMonth: before.dayOfMonth,
         month: before.month,
         leadDays: before.leadDays,
+        showsFromDay: before.showsFromDay,
+        showsFromMonth: before.showsFromMonth,
         startsOn: before.startsOn,
         endsOn: before.endsOn,
         ...cleared,
         ...given(values, calendarFields),
+      }
+
+      // Only a daily plan has a lead (#394). One that a weekly, monthly or
+      // yearly plan kept from before is dropped with the next change.
+      if (calendar.rhythm !== 'daily' && values.leadDays === undefined) {
+        calendar.leadDays = 0
       }
 
       refuse(planProblems(calendar))
@@ -342,6 +356,8 @@ export class RoundPlansController {
           dayOfMonth: calendar.dayOfMonth as number | null,
           month: calendar.month as number | null,
           leadDays: calendar.leadDays as number,
+          showsFromDay: calendar.showsFromDay as number | null,
+          showsFromMonth: calendar.showsFromMonth as number | null,
           startsOn: calendar.startsOn as string,
           endsOn: calendar.endsOn as string | null,
           resting: (values.resting ?? before.resting) as boolean,

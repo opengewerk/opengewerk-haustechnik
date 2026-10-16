@@ -111,8 +111,8 @@ describe('the start', () => {
     expect([...shown.begun, ...shown.today, ...shown.week, ...shown.later]).toEqual([])
   })
 
-  it('shows a round of a later week from the lead of its plan, and not before', () => {
-    const plan = { id: 'rp-1', leadDays: 7 }
+  it('shows a round of a later week from the lead of its daily plan, and not before', () => {
+    const plan = { id: 'rp-1', rhythm: 'daily', leadDays: 7 }
     // Monday of the next week: the lead of seven days reaches it today.
     const inLead = activity({ kind: 'round', dueOn: '2026-10-12', roundPlanId: plan.id })
     // Tuesday of the next week: one day beyond the lead.
@@ -127,12 +127,55 @@ describe('the start', () => {
   })
 
   it('shows a round of this week from its Monday, whatever short lead its plan has', () => {
-    const plan = { id: 'rp-2', leadDays: 0 }
+    const plan = { id: 'rp-2', rhythm: 'daily', leadDays: 0 }
     const friday = activity({ kind: 'round', dueOn: '2026-10-09', roundPlanId: plan.id })
 
     expect(ids(startItems(held([friday], { plans: [plan] }), me, monday).week)).toEqual([
       friday['id'],
     ])
+  })
+
+  it('shows a round of a monthly plan from the 1st of its month, until it is signed (#394)', () => {
+    const plan = { id: 'rp-3', rhythm: 'monthly', leadDays: 0, showsFromDay: null }
+    const endOfOctober = activity({ kind: 'round', dueOn: '2026-10-31', roundPlanId: plan.id })
+    const endOfNovember = activity({ kind: 'round', dueOn: '2026-11-30', roundPlanId: plan.id })
+    const shown = startItems(held([endOfOctober, endOfNovember], { plans: [plan] }), me, monday)
+
+    expect(ids(shown.later)).toEqual([endOfOctober['id']])
+    // Past its day it stands under "Heute" until it is signed.
+    expect(
+      ids(startItems(held([endOfOctober], { plans: [plan] }), me, '2026-11-03' as IsoDate).today),
+    ).toEqual([endOfOctober['id']])
+    // From its day of the month, where the plan names one.
+    expect(
+      startItems(held([endOfOctober], { plans: [{ ...plan, showsFromDay: 20 }] }), me, monday)
+        .later,
+    ).toEqual([])
+  })
+
+  it('shows a round of a weekly plan from the day of the week it names, and one of a yearly plan from its day of the year (#394)', () => {
+    const weekly = { id: 'rp-4', rhythm: 'weekly', leadDays: 0, showsFromDay: 3 }
+    // Tuesday of the next week shows from the Wednesday before it, two days from now.
+    const tuesday = activity({ kind: 'round', dueOn: '2026-10-13', roundPlanId: weekly.id })
+
+    expect(startItems(held([tuesday], { plans: [weekly] }), me, monday).later).toEqual([])
+    expect(
+      ids(startItems(held([tuesday], { plans: [weekly] }), me, '2026-10-07' as IsoDate).later),
+    ).toEqual([tuesday['id']])
+
+    const yearly = {
+      id: 'rp-5',
+      rhythm: 'yearly',
+      leadDays: 0,
+      showsFromDay: null,
+      showsFromMonth: null,
+    }
+    const december = activity({ kind: 'round', dueOn: '2026-12-01', roundPlanId: yearly.id })
+    const nextYear = activity({ kind: 'round', dueOn: '2027-03-15', roundPlanId: yearly.id })
+
+    expect(
+      ids(startItems(held([december, nextYear], { plans: [yearly] }), me, monday).later),
+    ).toEqual([december['id']])
   })
 })
 

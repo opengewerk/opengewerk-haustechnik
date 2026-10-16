@@ -510,6 +510,8 @@ export const auditVocabulary: AuditVocabulary = {
         day_of_month: 'Tag',
         month: 'Monat',
         lead_days: 'Vorlauf',
+        shows_from_day: 'Sichtbar ab',
+        shows_from_month: 'Sichtbar ab, Monat',
         starts_on: 'Ab',
         ends_on: 'Bis',
         resting: 'Ruht',

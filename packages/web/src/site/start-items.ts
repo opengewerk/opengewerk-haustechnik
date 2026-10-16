@@ -3,7 +3,9 @@ import {
   byNameIn,
   type IsoDate,
   monthLabel,
+  type PlanRhythm,
   type RecordState,
+  roundShowsFrom,
   weekdayLabel,
   weekdayOf,
   weekOf,
@@ -16,10 +18,14 @@ import { count, maybeText, text } from '@opengewerk/platform-web/sync'
  * device, the begun ones on top, then those of today and those of this week.
  *
  * The device holds more than that: every activity of the person and every one
- * given to nobody while open, and a round two weeks ahead of its day (#113).
- * A round shows from the lead of its plan, or from the start of its week if
- * that comes first, so that the start is not a list of fourteen days; one the
- * lead shows before its week stands under "Später".
+ * given to nobody while open, and a round as soon as it has to stand (#113).
+ * A round shows from the day its plan names (#394): a round of a weekly plan
+ * from Monday or the day of the week the plan names, of a monthly plan from
+ * the 1st or its day of the month, of a yearly plan from the 1st of January
+ * or its day of the year, and of a daily plan its lead before. It shows from
+ * the start of its week if that comes first; one that shows before its week
+ * stands under "Später", and one whose day is past under "Heute" until it is
+ * signed.
  */
 export interface StartItems {
   readonly begun: readonly RecordState[]
@@ -85,16 +91,35 @@ export function endOfWeek(day: IsoDate): IsoDate {
   return addDays(weekOf(day), 6)
 }
 
+/** A number a record holds, or null where it holds none, as a field of a version before it. */
+function maybeNumber(record: RecordState, field: string): number | null {
+  const value = record[field]
+
+  return typeof value === 'number' ? value : null
+}
+
 /**
- * The day from which an activity of a later week shows on the start: the
- * lead of the plan of a round. Every other one, a round without a plan
- * among them, waits for its week.
+ * The day from which an activity of a later week shows on the start: the day
+ * the plan of a round names (`roundShowsFrom`). Every other one, a round
+ * without a plan among them, waits for its week.
  */
 function showsFrom(activity: RecordState, dueOn: IsoDate, plans: readonly RecordState[]): IsoDate {
   const planId = maybeText(activity, 'roundPlanId')
   const plan = planId === null ? undefined : plans.find((each) => each['id'] === planId)
 
-  return addDays(dueOn, plan === undefined ? 0 : -count(plan, 'leadDays'))
+  if (plan === undefined) {
+    return dueOn
+  }
+
+  return roundShowsFrom(
+    {
+      rhythm: text(plan, 'rhythm') as PlanRhythm,
+      leadDays: count(plan, 'leadDays'),
+      showsFromDay: maybeNumber(plan, 'showsFromDay'),
+      showsFromMonth: maybeNumber(plan, 'showsFromMonth'),
+    },
+    dueOn,
+  )
 }
 
 /** By day, one without a day after those with one, and by title within a day. */

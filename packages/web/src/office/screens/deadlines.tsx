@@ -292,7 +292,7 @@ export function DeadlineSettingsScreen() {
           : kind.source === 'meter'
             ? 'Erinnert die Leitung, wenn der Vorlauf beginnt, und gibt ihr die Aufgabe „Zähler ablesen“, einmal je Liegenschaft. Hat jede Messstelle dort ihren Stand, ist die Aufgabe erledigt und die Frist geht zum nächsten Stichtag.'
             : kind.source === 'round_plan'
-              ? 'Legt die Rundgänge eines Plans an, so weit der Vorlauf reicht, jeden Durchgang einmal, damit die Rundgänge der nächsten Woche vorher zugeteilt werden können. Erinnert niemanden.'
+              ? 'Legt die Rundgänge eines Plans an, jeden Durchgang einmal, mit dem Vorlauf vor dem Tag, ab dem ein Rundgang vor Ort steht, damit er vorher zugeteilt werden kann. Erinnert niemanden.'
               : kind.source === 'contract_notice' ||
                   kind.source === 'contract_end' ||
                   kind.source === 'warranty'

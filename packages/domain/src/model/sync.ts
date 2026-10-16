@@ -896,6 +896,8 @@ export const syncFieldNames: Readonly<Record<string, string>> = {
   dayOfMonth: 'Tag',
   month: 'Monat',
   leadDays: 'Vorlauf',
+  showsFromDay: 'Sichtbar ab',
+  showsFromMonth: 'Sichtbar ab, Monat',
   resting: 'Ruht',
   skipHolidays: 'Gesetzliche Feiertage auslassen',
 }
