@@ -85,6 +85,8 @@ export interface ActivityQuestion {
   readonly propertyId: string | null
   readonly areaId: string | null
   readonly search: string | null
+  /** The firm of the list that carries the activities out (#328). */
+  readonly contractorId?: string | null
   readonly offset: number
   readonly limit: number
 }
@@ -107,6 +109,7 @@ export function activityQuestionOf(query: Readonly<Record<string, unknown>>): Ac
     propertyId: said(query, 'property') ?? null,
     areaId: said(query, 'area') ?? null,
     search: said(query, 'search')?.trim() || null,
+    contractorId: said(query, 'contractor') ?? null,
     offset: counted(
       said(query, 'offset'),
       0,
@@ -172,10 +175,17 @@ export function inSight(identity: Asking): SQL | undefined {
  */
 export function activityListWhere(
   identity: Asking,
-  question: Pick<ActivityQuestion, 'state' | 'kind' | 'propertyId' | 'areaId' | 'search'>,
+  question: Pick<
+    ActivityQuestion,
+    'state' | 'kind' | 'propertyId' | 'areaId' | 'search' | 'contractorId'
+  >,
   today: IsoDate,
 ): SQL | undefined | null {
-  if ([question.propertyId, question.areaId].some((id) => id !== null && !isUuid(id))) {
+  const contractorId = question.contractorId ?? null
+
+  if (
+    [question.propertyId, question.areaId, contractorId].some((id) => id !== null && !isUuid(id))
+  ) {
     return null
   }
 
@@ -195,6 +205,7 @@ export function activityListWhere(
       ? undefined
       : eq(activities.areaId, question.areaId as Activity['areaId']),
     question.search === null ? undefined : searching(question.search),
+    contractorId === null ? undefined : eq(activities.contractorId, contractorId as ContractorId),
     inSight(identity),
   )
 }

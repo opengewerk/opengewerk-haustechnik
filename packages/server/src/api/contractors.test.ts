@@ -278,6 +278,41 @@ describe('a duty a contractor carries out', () => {
   })
 })
 
+describe('the activities of a contractor', () => {
+  it('are those the list narrows to by the firm, and none of another', async () => {
+    const kept = await made({ name: 'Blitzschutz Weber' })
+    const other = await made({ name: 'Blitzschutz Klein' })
+    const named = (await duty({ performer: 'contractor', contractorId: kept.id }, 201)).body as {
+      id: string
+    }
+    const { rows } = await admin.query<{ property_id: string; area_id: string }>(
+      'select property_id, area_id from duties where id = $1',
+      [named.id],
+    )
+    const place = rows[0]
+
+    for (const [firm, title] of [
+      [kept.id, 'Prüfung des Blitzschutzes'],
+      [other.id, 'Prüfung der Erdung'],
+    ] as const) {
+      await admin.query(
+        `insert into activities (tenant_id, property_id, area_id, kind, title, performer, contractor_id)
+         values ($1, $2, $3, 'inspection', $4, 'contractor', $5)`,
+        [small, place?.property_id, place?.area_id, title, firm],
+      )
+    }
+
+    const answer = await http()
+      .get(`/activities?state=pending&contractor=${kept.id}&offset=0&limit=5`)
+      .set(testIdentityHeader, by('u-lead'))
+      .expect(200)
+
+    expect(
+      (answer.body as { activities: { title: string }[] }).activities.map((each) => each.title),
+    ).toEqual(['Prüfung des Blitzschutzes'])
+  })
+})
+
 describe('removing a contractor', () => {
   it('is refused while an open duty names it, and marks it once none does', async () => {
     const kept = await made({ name: 'Aufzüge Süd GmbH' })

@@ -1,4 +1,6 @@
 import {
+  type ActivityList,
+  activityStatusLabel,
   contractorServices,
   contractorServicesWords,
   type DutyRegister,
@@ -34,6 +36,7 @@ import { Pencil, Plus, Trash2 } from 'lucide-react'
 import { type ReactNode, useDeferredValue, useState } from 'react'
 
 import { askAt } from '../../sync/made-at.js'
+import { activityPlaces } from '../activity-addresses.js'
 import {
   contractorKey,
   contractorListQuery,
@@ -82,6 +85,7 @@ export const contractorWords = {
     'Entfernt wird eine Firma nur aus der Auswahl. An Nachweisen und Aufträgen bleibt sie lesbar.',
   noDuty: 'Keine offene Pflicht nennt diese Firma.',
   noEvidence: 'Noch kein Nachweis aus einem Bericht dieser Firma.',
+  noOrder: 'Kein offener Vorgang nennt diese Firma.',
   noAddress: 'nicht angegeben',
 } as const
 
@@ -342,6 +346,17 @@ export function ContractorScreen() {
     queryFn: () => request<DutyRegister>(dutyRegisterRequest({ contractorId }, 0, 5)),
     enabled: readsDuties,
   })
+  // The activities still to be done that the firm carries out (#328).
+  const readsActivities = useRight('activity.read')
+  const orders = useQuery({
+    queryKey: [...contractorKey, 'activities', contractorId],
+    queryFn: () =>
+      request<ActivityList>(
+        `/activities?state=pending&contractor=${encodeURIComponent(contractorId)}&offset=0&limit=5`,
+      ),
+    enabled: readsActivities,
+  })
+  const shownOrders = orders.data?.activities ?? []
 
   if (page.data === undefined) {
     return (
@@ -495,6 +510,49 @@ export function ContractorScreen() {
                         {duty.asset === null ? '' : `${duty.asset.number} ${duty.asset.name}`}
                       </Cell>
                       <Cell>{duty.appointment === null ? '' : date(duty.appointment.dueOn)}</Cell>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </TablePanel>
+          ) : null}
+          {readsActivities ? (
+            <TablePanel
+              title="Aufträge"
+              caption="Offene Vorgänge, die diese Firma ausführt"
+              cards={shownOrders.map((order) => ({
+                key: order.id,
+                title: <Link to={activityPlaces.activity(order.id)}>{order.title}</Link>,
+                sub: [
+                  order.dueOn === null ? null : date(order.dueOn),
+                  activityStatusLabel[order.status],
+                ]
+                  .filter(Boolean)
+                  .join(' · '),
+              }))}
+            >
+              <thead>
+                <tr>
+                  <Column className="min-w-[240px]">Auftrag</Column>
+                  <Column className="w-[110px] min-w-[100px]">Termin</Column>
+                  <Column className="w-[140px] min-w-[120px]">Zustand</Column>
+                </tr>
+              </thead>
+              <tbody>
+                {shownOrders.length === 0 ? (
+                  <tr>
+                    <Cell colSpan={3}>
+                      <span className="text-ink-faint">{contractorWords.noOrder}</span>
+                    </Cell>
+                  </tr>
+                ) : (
+                  shownOrders.map((order) => (
+                    <tr key={order.id}>
+                      <Cell>
+                        <Link to={activityPlaces.activity(order.id)}>{order.title}</Link>
+                      </Cell>
+                      <Cell>{order.dueOn === null ? '' : date(order.dueOn)}</Cell>
+                      <Cell>{activityStatusLabel[order.status]}</Cell>
                     </tr>
                   ))
                 )}

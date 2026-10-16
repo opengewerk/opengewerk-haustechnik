@@ -84,6 +84,30 @@ const answers = {
     ],
   },
   '/contractors/c-lift': { contractor: lift, openDuties: 3, openActivities: 1, evidence: [] },
+  // The activities still to be done that the firm carries out (#328).
+  '/activities?state=pending&contractor=c-fire&offset=0&limit=5': {
+    total: 1,
+    more: false,
+    activities: [
+      {
+        id: 'ac-fire',
+        kind: 'inspection',
+        title: 'Prüfung der Feuerlöscher',
+        status: 'open',
+        dueOn: '2026-10-07',
+        propertyId: 'p-1',
+        areaId: 'a-nord',
+        buildingId: null,
+        roomId: null,
+        assetId: null,
+        responsible: null,
+        performer: 'contractor',
+        performerPerson: null,
+        contractorNote: null,
+        contractorId: 'c-fire',
+      },
+    ],
+  },
 }
 
 function mounted(role: RoleKey, at = '/fremdfirmen') {
@@ -217,6 +241,7 @@ describe('the page of a contractor', () => {
     expect(screen.getByText('68169 Mannheim')).toBeTruthy()
     expect(screen.getByText('Rufbereitschaft am Wochenende.')).toBeTruthy()
     expect(screen.getByText('Organisation: Brandschutz Beispiel GmbH')).toBeTruthy()
+    expect(await screen.findByRole('link', { name: 'Prüfung der Feuerlöscher' })).toBeTruthy()
     expect(
       screen.getByRole('link', { name: 'NW-2026-00118 Prüfung der Brandmeldeanlage' }),
     ).toBeTruthy()
