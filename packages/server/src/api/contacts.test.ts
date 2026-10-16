@@ -69,6 +69,18 @@ function by(userId: Person, tenantId: TenantId = small): string {
 }
 
 /** A property, made through the API by the technical management. */
+/** One of the people of the large tenant, with every right of their role save seeing the firms. */
+function withoutFirms(userId: Person): string {
+  return JSON.stringify({
+    userId,
+    tenantId: large,
+    roles: [people[userId]],
+    rights: [...rightsOfRoles([people[userId] as RoleKey])].filter(
+      (right) => right !== 'contractor.read',
+    ),
+  })
+}
+
 async function propertyIn(tenantId: TenantId = small, extra: object = {}): Promise<string> {
   const created = await http()
     .post('/properties')
@@ -735,16 +747,6 @@ describe('the people of a contractor (#328)', () => {
       'id'
     ] as string
 
-    /** One of the people, with every right of their role save seeing the firms. */
-    const withoutFirms = (userId: Person) =>
-      JSON.stringify({
-        userId,
-        tenantId: large,
-        roles: [people[userId]],
-        rights: [...rightsOfRoles([people[userId] as RoleKey])].filter(
-          (right) => right !== 'contractor.read',
-        ),
-      })
     const listed = async (header: string) =>
       (
         (await http().get('/contacts').set(testIdentityHeader, header).expect(200)).body as {
@@ -803,5 +805,74 @@ describe('the people of a contractor (#328)', () => {
 
     expect(both.status).toBeGreaterThanOrEqual(400)
     expect(both.status).toBeLessThan(500)
+  })
+})
+
+/**
+ * The name of a firm is no protected fact (decided 16.10.2026, #377): an order
+ * on site names the firm. A device of whoever does not see the firms holds
+ * which firm it is and its name, and nothing of its address, contact, services
+ * or note.
+ */
+describe('a contractor on a device (#377)', () => {
+  it('is held by its name alone where the person does not see the firms', async () => {
+    const firm = (
+      await http()
+        .post('/contractors')
+        .set(testIdentityHeader, by('u-duties', large))
+        .send({
+          name: 'Kälte Beispiel GmbH',
+          street: 'Hafenstraße 4',
+          postalCode: '68159',
+          city: 'Mannheim',
+          phone: '0621 123456',
+          email: 'service@kaelte-beispiel.example',
+          services: ['440'],
+          note: 'Schlüssel beim Pförtner.',
+        })
+        .expect(201)
+    ).body.id as string
+    /** The firm as a device of the person holds it, and what the answer names the firms by. */
+    const held = async (header: string) => {
+      const answer = await http().get('/sync?since=0').set(testIdentityHeader, header).expect(200)
+      const changes = answer.body.changes as {
+        entity: string
+        rows: Record<string, unknown>[]
+      }[]
+
+      return {
+        row: changes
+          .find((change) => change.entity === 'contractors')
+          ?.rows.find((row) => row['id'] === firm),
+        narrowed: (answer.body.narrowed as Readonly<Record<string, string>>)['contractors'],
+      }
+    }
+
+    // Whoever sees every area, and the technician of the north.
+    for (const userId of ['u-lead', 'u-tech'] as const) {
+      const theirs = await held(by(userId, large))
+      const not = await held(withoutFirms(userId))
+
+      expect(theirs.row).toMatchObject({
+        name: 'Kälte Beispiel GmbH',
+        street: 'Hafenstraße 4',
+        city: 'Mannheim',
+        phone: '0621 123456',
+        // A list travels as the text of its JSON.
+        services: '["440"]',
+        note: 'Schlüssel beim Pförtner.',
+      })
+      expect(not.row?.['name']).toBe('Kälte Beispiel GmbH')
+      expect(Object.keys(not.row ?? {}).sort()).toEqual([
+        'changeSequence',
+        'deletedAt',
+        'id',
+        'name',
+        'tenantId',
+        'version',
+      ])
+      // Named by another value, so that a device lets the rest go once the right goes.
+      expect(not.narrowed).toBe(`${theirs.narrowed}:without-contractors`)
+    }
   })
 })

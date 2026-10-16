@@ -16,7 +16,8 @@ import { optionalTrimmed, trimmed } from './locations.js'
  * A firm that no longer works for the operator is marked (`deleted_at`) and
  * never removed: a duty, an activity and an evidence that named it go on
  * naming it. Nothing deletes a row, so the application role has no DELETE.
- * The rows travel to every device, to read the firm of an order.
+ * The rows travel to every device, to read the firm of an order; to one whose
+ * person does not see the contractors with nothing but the name (#377).
  */
 export const contractors = pgTable(
   'contractors',

@@ -255,7 +255,8 @@ async function senderOf(
  * of that the part ADR 0006 gives it (`deviceScope`): the whole operator for
  * whoever sees every area, the places, their own activities and the open
  * defects for anybody else, and the people and the documents of the
- * contractors only for whoever sees the contractors (#328).
+ * contractors only for whoever sees the contractors (#328), who alone also
+ * holds more of a firm than its name (#377).
  */
 export function syncRoutesFor(
   catalogue: Catalogue,
