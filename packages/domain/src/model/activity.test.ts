@@ -10,6 +10,9 @@ import {
   activityProblems,
   activityStatusLabel,
   activityStatuses,
+  basicMeasureLabel,
+  basicMeasureOf,
+  basicMeasures,
   durationOf,
   durationWords,
   finishesWorkOrder,
@@ -17,6 +20,7 @@ import {
   workOrderKinds,
   workOrderLimits,
   workOrderNoteProblems,
+  workOrderPlanProblems,
   workOrderProblems,
 } from './activity.js'
 
@@ -253,5 +257,54 @@ describe('the plan of an activity', () => {
         contractorNote: 'x'.repeat(activityLimits.contractorNote + 1),
       }),
     ).toEqual({ contractorNote: 'Die Angabe zur Fremdfirma hat höchstens 200 Zeichen.' })
+  })
+})
+
+describe('the basic measure of an activity after DIN 31051 (#333)', () => {
+  it('is one of the four of the norm, each with its name', () => {
+    expect(basicMeasures.map((measure) => basicMeasureLabel[measure])).toEqual([
+      'Wartung',
+      'Inspektion',
+      'Instandsetzung',
+      'Verbesserung',
+    ])
+  })
+
+  it('follows from the kind: a maintenance is one, an inspection and a round are an inspection', () => {
+    expect(basicMeasureOf('maintenance', null)).toBe('maintenance')
+    expect(basicMeasureOf('inspection', null)).toBe('inspection')
+    expect(basicMeasureOf('round', null)).toBe('inspection')
+  })
+
+  it('of a work order follows from its kind, and another kind chooses', () => {
+    const of = (kind: Parameters<typeof basicMeasureOf>[1] & object) =>
+      basicMeasureOf('work_order', kind)
+
+    expect(of({ kind: 'fault', measure: null })).toBe('repair')
+    expect(of({ kind: 'defect_remedy', measure: null })).toBe('repair')
+    expect(of({ kind: 'maintenance', measure: null })).toBe('maintenance')
+    expect(of({ kind: 'inspection', measure: null })).toBe('inspection')
+    expect(of({ kind: 'other', measure: 'improvement' })).toBe('improvement')
+    // One of another kind from before the choice has none.
+    expect(of({ kind: 'other', measure: null })).toBeNull()
+  })
+
+  it('is asked of a work order of another kind and of no other', () => {
+    const plan = {
+      title: 'Bewegungsmelder umrüsten',
+      urgency: 'normal',
+      dueOn: '2026-10-20',
+      responsibleUserId: 'u-site',
+      participantUserIds: [],
+    }
+
+    expect(workOrderPlanProblems({ ...plan, kind: 'other', measure: null })['measure']).toBe(
+      'Ein sonstiger Auftrag nennt seine Einordnung: Wartung, Inspektion, Instandsetzung, Verbesserung.',
+    )
+    expect(workOrderPlanProblems({ ...plan, kind: 'other', measure: 'improvement' })).toEqual({})
+    expect(workOrderPlanProblems({ ...plan, kind: 'fault', measure: 'repair' })['measure']).toBe(
+      'Die Einordnung wählt nur ein sonstiger Auftrag; die anderen folgen aus ihrer Art.',
+    )
+    expect(workOrderPlanProblems({ ...plan, kind: 'fault', measure: null })).toEqual({})
   })
 })

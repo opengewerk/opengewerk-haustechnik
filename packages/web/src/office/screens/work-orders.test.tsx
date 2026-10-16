@@ -78,6 +78,7 @@ function order(id: string, further: Partial<WorkOrderEntry> = {}): WorkOrderEntr
     number: 'AU-2026-0029',
     title: 'Notausgangstür Saal gängig machen',
     kind: 'defect_remedy',
+    measure: 'repair',
     urgency: 'urgent',
     status: 'open',
     rejected: false,
@@ -97,6 +98,7 @@ const turned = order('ac-turned', {
   number: 'AU-2026-0030',
   title: 'Fensterflügel Gruppenraum 2 einstellen',
   kind: 'other',
+  measure: 'improvement',
   urgency: 'normal',
   status: 'started',
   rejected: true,
@@ -108,6 +110,7 @@ const waiting = order('ac-waiting', {
   number: 'AU-2026-0031',
   title: 'Heizkessel Mensa entlüften',
   kind: 'other',
+  measure: 'maintenance',
   urgency: 'immediate',
   status: 'signed',
   assetId: null,
@@ -282,6 +285,8 @@ describe('the page of a work order', () => {
         .getAttribute('href'),
     ).toBe('/maengel/df-door')
     expect(screen.getByText('Murat Yilmaz')).toBeTruthy()
+    // The basic measure after DIN 31051 another kind chose (#333).
+    expect(screen.getByText('Wartung nach DIN 31051')).toBeTruthy()
     expect(screen.getByRole('img', { name: 'Unterschrift von Lena Vogt' })).toBeTruthy()
     expect(screen.queryByText('gilt nicht mehr')).toBeNull()
   })
@@ -497,6 +502,7 @@ describe('the page of a work order', () => {
           body: {
             title: 'Notausgangstür Saal gängig machen',
             kind: 'defect_remedy',
+            measure: null,
             urgency: 'immediate',
             dueOn: '2099-10-12',
             responsibleUserId: 'u-vogt',
@@ -668,6 +674,7 @@ describe('a new work order', () => {
           body: {
             title: 'Notausgangstür Saal gängig machen',
             kind: 'defect_remedy',
+            measure: null,
             urgency: 'urgent',
             dueOn: '2099-10-19',
             responsibleUserId: 'u-vogt',
@@ -704,6 +711,13 @@ describe('a new work order', () => {
       target: { value: 'u-wendt' },
     })
     fireEvent.click(screen.getByRole('button', { name: 'Auftrag anlegen' }))
+    // A work order of another kind chooses its basic measure after DIN 31051 (#333).
+    await screen.findByText(/Ein sonstiger Auftrag nennt seine Einordnung/)
+    expect(written).toEqual([])
+    fireEvent.change(screen.getByRole('combobox', { name: /Einordnung/ }), {
+      target: { value: 'repair' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Auftrag anlegen' }))
 
     await waitFor(() => {
       expect(written).toEqual([
@@ -713,6 +727,7 @@ describe('a new work order', () => {
           body: {
             title: 'Türschließer tauschen',
             kind: 'other',
+            measure: 'repair',
             urgency: 'normal',
             dueOn: '2099-11-02',
             responsibleUserId: 'u-wendt',

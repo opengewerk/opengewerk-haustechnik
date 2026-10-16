@@ -3,6 +3,7 @@ import {
   activityLimits,
   activityStatuses,
   workOrderKinds,
+  basicMeasures,
   workOrderLimits,
   workOrderUrgencies,
 } from '@opengewerk/haustechnik-domain'
@@ -57,6 +58,8 @@ export const activityStatus = pgEnum('activity_status', activityStatuses)
 
 /** The kind of a work order, from the list in `domain`. */
 export const workOrderKind = pgEnum('work_order_kind', workOrderKinds)
+/** The basic measures of maintenance after DIN 31051 (#333). */
+export const basicMeasure = pgEnum('basic_measure', basicMeasures)
 
 /** How urgent a work order is, from the list in `domain` (#73). */
 export const workOrderUrgency = pgEnum('work_order_urgency', workOrderUrgencies)
@@ -344,6 +347,8 @@ export const workOrders = pgTable(
       .$type<'work_order'>(),
     number: text('number'),
     kind: workOrderKind('kind').notNull(),
+    // The basic measure a work order of another kind chose (#333).
+    measure: basicMeasure('measure'),
     urgency: workOrderUrgency('urgency').notNull().default('normal'),
     originDefectId: reference<'defect'>('origin_defect_id'),
     durationMinutes: integer('duration_minutes'),
@@ -381,6 +386,11 @@ export const workOrders = pgTable(
       .on(table.tenantId, table.number)
       .where(sql`${table.number} is not null`),
     check('work_orders_of_a_work_order', sql`${table.activityKind} = 'work_order'`),
+    // Only another kind chooses its basic measure; every other follows from its kind (#333).
+    check(
+      'work_orders_measure_of_another_kind',
+      sql`${table.measure} is null or ${table.kind} = 'other'`,
+    ),
     check('work_orders_number_shaped', optionalTrimmed(table.number, 40)),
     check(
       'work_orders_duration_shaped',

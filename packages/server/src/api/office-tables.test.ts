@@ -771,6 +771,8 @@ async function orderAt(
         origin: 'hand',
         assetId: asset,
         ...more,
+        // Another kind chooses its basic measure after DIN 31051 (#333), and no other does.
+        measure: ((more as { kind?: string }).kind ?? 'other') === 'other' ? 'repair' : null,
       })
       .expect(201)
   ).body.id

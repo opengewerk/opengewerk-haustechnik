@@ -66,6 +66,12 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   das Büro mit einem Klick. Entfernt wird eine Firma nur, solange keine offene Pflicht und kein
   offener Vorgang sie nennt. Neue Rechte „Fremdfirmen ansehen“ (alle Rollen) und „Fremdfirmen
   pflegen“ (Leitung und Technische Leitung), Planungskonzept v0.43. Migration `0057_contractors`.
+- Einordnung nach DIN 31051 (#333): jeder Vorgang und jeder Auftrag ist Wartung, Inspektion,
+  Instandsetzung oder Verbesserung, damit die Auswertungen (#334) dieselbe Sprache sprechen wie
+  Verträge und Leistungsverzeichnisse. Die Einordnung folgt aus der Art, wie am 15.10.2026
+  entschieden; nur ein sonstiger Auftrag wählt sie, und ein solcher aus der Zeit davor sagt „nicht
+  eingeordnet“, bis er geändert wird. Die Seiten von Auftrag und Prüfung nennen sie. Migration
+  `0058_basic_measure`.
 
 ### Geändert
 

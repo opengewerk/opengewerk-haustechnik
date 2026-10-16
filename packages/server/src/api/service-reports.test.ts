@@ -248,6 +248,7 @@ async function begun(): Promise<{ readonly id: string; readonly asset: string }>
       .send({
         title: 'Notausgangstür gängig machen',
         kind: 'other',
+        measure: 'repair',
         urgency: 'normal',
         dueOn: inDays(10),
         responsibleUserId: 'u-tech',

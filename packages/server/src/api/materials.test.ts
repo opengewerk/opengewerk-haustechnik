@@ -165,6 +165,7 @@ async function begun(status: 'started' | 'signed' = 'started'): Promise<string> 
       .send({
         title: 'Notleuchte Flur instand setzen',
         kind: 'other',
+        measure: 'repair',
         urgency: 'normal',
         dueOn: addDays(dayInGermany(), 10),
         responsibleUserId: 'u-tech',

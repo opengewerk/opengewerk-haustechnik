@@ -652,6 +652,7 @@ export const syncFieldNames: Readonly<Record<string, string>> = {
   startsOn: 'Beginnt am',
   // What is said about an asset.
   kind: 'Art',
+  measure: 'Einordnung',
   mark: 'Kennzeichen',
   manufacturer: 'Hersteller',
   model: 'Typ',

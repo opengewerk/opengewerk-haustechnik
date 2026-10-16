@@ -1,4 +1,7 @@
 import {
+  type ActivityKind,
+  basicMeasureLabel,
+  basicMeasureOf,
   type ActivityCandidates,
   activityClosable,
   type ActivityDetails,
@@ -236,6 +239,13 @@ export function usePlaces() {
       return { name, to, sub, line }
     }
   }, [properties, buildings, rooms, assets])
+}
+
+/** "Inspektion nach DIN 31051": the basic measure an activity of a kind is (#333). */
+function measureWords(kind: ActivityKind): string | null {
+  const measure = basicMeasureOf(kind, null)
+
+  return measure === null ? null : `${basicMeasureLabel[measure]} nach DIN 31051`
 }
 
 /** Who performs an activity: the person, or the contractor in words, or nobody yet. */
@@ -860,6 +870,8 @@ export function ActivityScreen() {
                 ...(qualifications.length === 0
                   ? []
                   : [{ label: 'Qualifikation', value: qualifications.join(', ') }]),
+                // Its basic measure after DIN 31051 (#333), which follows from its kind.
+                { label: 'Einordnung', value: measureWords(shown.kind) },
               ]}
             />
           </Panel>
