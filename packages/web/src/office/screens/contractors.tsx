@@ -466,6 +466,7 @@ export function ContractorScreen() {
             place={{ propertyId: null, contractorId: contractor.id }}
             at={`Fremdfirma ${contractor.name}`}
             files={keeps && !removed}
+            says="validity"
           />
         </div>
         <div className="flex flex-col gap-3.5">

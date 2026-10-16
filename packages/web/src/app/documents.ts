@@ -205,6 +205,19 @@ export function versionWords(client: SyncClient, version: RecordState, versions:
 }
 
 /**
+ * A document as the page of a contractor names it (#328, the board
+ * "Fremdfirma"): its kind, and the day its newest version is valid until,
+ * which is the deadline of its certificate or insurance.
+ */
+export function validityWords(document: RecordState, newest: RecordState | undefined): string {
+  const kind = maybeText(document, 'kind') as DocumentKind | null
+  const words = documentKindOf(kind, newest ? text(newest, 'mediaType') : null)
+  const day = newest ? maybeText(newest, 'validUntil') : null
+
+  return day === null ? words : `${words}, ${documentDateWords(kind, date(day as IsoDate))}`
+}
+
+/**
  * The kind of a document as a list says it: its kind, or "Foto" for a picture
  * without one, which is what a photo of a type plate is.
  */

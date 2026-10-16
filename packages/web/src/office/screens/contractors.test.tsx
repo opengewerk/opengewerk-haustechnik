@@ -366,6 +366,8 @@ describe('the people and documents of a contractor (#328)', () => {
         name: 'Zertifikat Fachbetrieb nach DIN 14675',
       }),
     ).toBeTruthy()
+    // Its kind and the day it is valid until, as the board draws it.
+    expect(within(documents()).getByText('Prüfbescheinigung, gültig bis 31.03.2027')).toBeTruthy()
     expect(within(documents()).queryByText('Zulassung Aufzugsdienst')).toBeNull()
     expect(within(documents()).queryByRole('button', { name: 'Hochladen' })).toBeNull()
     expect(screen.queryByRole('button', { name: 'Hinzufügen' })).toBeNull()
