@@ -40,6 +40,12 @@ export interface DeviceScope {
   readonly taskIds: readonly string[]
   /** The person of the device, whose qualifications it holds and nobody else's (#337). */
   readonly userId: string
+  /**
+   * A fingerprint over the activities emptied with their last evidence
+   * (#409), empty while there is none: what the pull of what they lost is
+   * named by.
+   */
+  readonly emptied?: string
 }
 
 /**
@@ -55,6 +61,16 @@ export async function deviceScope(
     sql`select session_sees_all_areas() as every`,
   )
 
+  // How many activities were emptied, and the last time one was (#409).
+  const { rows: counted } = await tx.execute<{ count: string; latest: string | null }>(
+    sql`select count(*)::text as count, max(emptied_at)::text as latest
+          from activities where emptied_at is not null`,
+  )
+  const emptied =
+    counted[0] === undefined || counted[0].count === '0'
+      ? ''
+      : fingerprintOf([`count:${counted[0].count}`, `latest:${counted[0].latest ?? ''}`])
+
   if (seen[0]?.every === true) {
     return {
       everyArea: true,
@@ -64,6 +80,7 @@ export async function deviceScope(
       defectIds: [],
       taskIds: [],
       userId,
+      emptied,
     }
   }
 
@@ -89,6 +106,7 @@ export async function deviceScope(
   return {
     everyArea: false,
     userId,
+    emptied,
     propertyIds: await ids(sql`select id from properties order by id`),
     buildingIds: await ids(sql`select id from buildings order by id`),
     activityIds,
@@ -136,6 +154,24 @@ const placeEntities = [
   // sheets printed for them: a scan opens an asset without a network. A label
   // carries the property it lies in, whatever it hangs on.
   'labels',
+]
+
+/**
+ * What an activity emptied with its last evidence loses on the server (#409):
+ * its rows are deleted, which a pull of the changes does not carry. A device
+ * that holds them finds another value once an activity is emptied, lets them
+ * go and asks from the start.
+ */
+const emptiedEntities: readonly string[] = [
+  'activity_answers',
+  'activity_signatures',
+  'work_order_participants',
+  'work_order_notes',
+  'work_order_decisions',
+  'work_order_materials',
+  'service_reports',
+  'briefings',
+  'work_permits',
 ]
 
 /** The kinds of record of the work on an activity, held with the activity. */
@@ -290,6 +326,10 @@ export function pullScope(scope: DeviceScope, reads: PullRights): PullScope {
   // a device, and the office reads it from the server.
   const own = sql`${column('qualifications', 'user_id')} = ${scope.userId}`
   const ownValue = `own:${fingerprintOf([scope.userId])}`
+  const afterEmptying = (entity: string, value: string) =>
+    scope.emptied !== undefined && scope.emptied !== '' && emptiedEntities.includes(entity)
+      ? `${value}:emptied-${scope.emptied}`
+      : value
 
   if (scope.everyArea) {
     return {
@@ -300,7 +340,9 @@ export function pullScope(scope: DeviceScope, reads: PullRights): PullScope {
             ? firms[entity]
             : undefined,
       narrowed: {
-        ...Object.fromEntries(syncEntities.map((entity) => [entity, named(entity, 'all')])),
+        ...Object.fromEntries(
+          syncEntities.map((entity) => [entity, afterEmptying(entity, named(entity, 'all'))]),
+        ),
         qualifications: ownValue,
       },
       ...answering,
@@ -337,7 +379,7 @@ export function pullScope(scope: DeviceScope, reads: PullRights): PullScope {
     narrow: (entity) => (Object.hasOwn(narrowing, entity) ? narrowing[entity] : undefined),
     narrowed: {
       ...Object.fromEntries(placeEntities.map((entity) => [entity, named(entity, places)])),
-      ...Object.fromEntries(workEntities.map((entity) => [entity, work])),
+      ...Object.fromEntries(workEntities.map((entity) => [entity, afterEmptying(entity, work)])),
       defects: `defects:${fingerprintOf(scope.defectIds)}`,
       // The own tasks, by a fingerprint over those held: one that went to
       // somebody else or was done long enough ago leaves the device.

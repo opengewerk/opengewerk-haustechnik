@@ -71,10 +71,11 @@ import {
   useSync,
 } from '@opengewerk/platform-web/sync'
 import { keepPreviousData, useInfiniteQuery, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Link, useNavigate, useParams, useSearch } from '@tanstack/react-router'
+import { Link, Navigate, useNavigate, useParams, useSearch } from '@tanstack/react-router'
 import { Ban, Check, Pencil, Plus, Signature, TriangleAlert, X } from 'lucide-react'
 import { lazy, type ReactNode, Suspense, useDeferredValue, useId, useMemo, useState } from 'react'
 
+import { activityPlaces } from '../activity-addresses.js'
 import { titleOfRoom } from '../../app/place-records.js'
 import { SignatureMark, typedWay } from '../../app/signature-ways.js'
 import { useAreas, useHeldArea } from '../../session/areas.js'
@@ -668,6 +669,11 @@ export function WorkOrderScreen() {
         </Empty>
       </Screen>
     )
+  }
+
+  // Emptied with its last evidence (#409): the page of the activity shows its shell.
+  if (shown.emptied === true) {
+    return <Navigate to={activityPlaces.activity(shown.id)} replace />
   }
 
   const where = whereOf(shown)

@@ -454,6 +454,7 @@ describe('the way to a report', () => {
           resultReason: null,
         },
       ],
+      shell: null,
       ...further,
     } as unknown as ActivityDetails
   }

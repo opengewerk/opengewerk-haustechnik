@@ -9,6 +9,12 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
 
 ### Hinzugefügt
 
+- Der Vorgang hinter einem gelöschten Nachweis wird mit seinem letzten Nachweis zur leeren Hülle (#409, Abschnitt 2.6
+  des Konzepts): Art, Ort, Tag und die Pflichten mit ihrem Ergebnis bleiben, Antworten, Unterschriften, Namen, Notizen,
+  Material, Leistungsnachweise, Einweisungen, Erlaubnisscheine und die PDFs gehen, Dokumente werden entfernt. Die
+  Datenbank prüft es selbst und lehnt jeden anderen Weg ab, auch in Bereichen, die die bestätigende Person nicht sieht;
+  ein Gerät lässt los, was es vom Vorgang hielt. Seit #340 ging der Nachweis, sein Vorgang hielt dieselben Namen
+  und Unterschriften aber weiter.
 - Höher signiertes PDF am Nachweis (#341, Abschnitt 2.6 des Konzepts): das PDF eines Nachweises, außerhalb
   signiert, wird am Nachweis abgelegt und dort ausgegeben. Angenommen wird nur das PDF dieses Nachweises mit einer
   Signatur über das ganze Dokument, die zu ihrem Zertifikat passt, geprüft ohne Netz und ohne neue Abhängigkeit; ob

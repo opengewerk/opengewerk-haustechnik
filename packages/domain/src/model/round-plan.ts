@@ -692,4 +692,6 @@ export interface RoundDetails {
   readonly signatures: readonly RoundSignature[]
   readonly defects: readonly RoundDefect[]
   readonly evidence: readonly RoundEvidence[]
+  /** Emptied with its last evidence after the end of the retention (#409); absent otherwise. */
+  readonly emptied?: true
 }

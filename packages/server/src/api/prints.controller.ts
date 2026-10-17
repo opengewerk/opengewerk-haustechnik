@@ -338,7 +338,7 @@ export class RoundPrintController {
       // A round the person sees: for the house technicians one given to them
       // or to nobody, as on its page.
       const [round] = await tx
-        .select({ id: activities.id })
+        .select({ id: activities.id, emptiedAt: activities.emptiedAt })
         .from(activities)
         .where(
           and(
@@ -351,6 +351,13 @@ export class RoundPrintController {
 
       if (round === undefined) {
         throw new NotFoundException(missingRound)
+      }
+
+      // Its frozen state went with its last evidence (#409).
+      if (round.emptiedAt !== null) {
+        throw new NotFoundException(
+          'Dieser Rundgang ist nach Ablauf der Aufbewahrung gelöscht; ein PDF gibt es nicht mehr.',
+        )
       }
 
       const [found] = await tx

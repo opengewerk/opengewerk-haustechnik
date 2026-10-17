@@ -512,6 +512,13 @@
       "when": 1792238849263,
       "tag": "0072_signed_prints",
       "breakpoints": true
+    },
+    {
+      "idx": 73,
+      "version": "7",
+      "when": 1792243652064,
+      "tag": "0073_activity_emptying",
+      "breakpoints": true
     }
   ]
 }

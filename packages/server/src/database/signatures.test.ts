@@ -238,11 +238,13 @@ describe.each([
         tx.execute(sql.raw(`update ${table} set deleted_at = now() where tenant_id = '${tenant}'`)),
       ),
     ).toBe(insufficientPrivilege)
+    // Removing it the application may only with its activity after the end
+    // of the retention (#409); on every other way the lock refuses.
     expect(
       await asApplication((tx) =>
         tx.execute(sql.raw(`delete from ${table} where tenant_id = '${tenant}'`)),
       ),
-    ).toBe(insufficientPrivilege)
+    ).toBe('HT005')
   })
 
   it('is changed and removed by nobody, not by the owner of the tables', async () => {

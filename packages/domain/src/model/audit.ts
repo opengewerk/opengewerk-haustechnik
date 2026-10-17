@@ -573,6 +573,7 @@ export const auditVocabulary: AuditVocabulary = {
         form_version: 'Fassung des Formulars',
         template_on: 'Vorlage vom',
         round_plan_id: 'Plan',
+        emptied_at: 'Gelöscht nach Ablauf der Aufbewahrung am',
       },
     },
     // The answer to a point of the form of an activity (#106).

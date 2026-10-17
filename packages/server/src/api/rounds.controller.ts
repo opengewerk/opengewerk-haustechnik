@@ -568,6 +568,7 @@ export class RoundsController {
       })),
       defects: read.found,
       evidence: read.written,
+      ...(round.emptiedAt === null ? {} : { emptied: true as const }),
     }
   }
 

@@ -5,6 +5,7 @@ import {
   type ActivityCandidates,
   activityClosable,
   type ActivityDetails,
+  type EmptiedActivity,
   type ActivityEntry,
   activityKindLabel,
   activityLimits,
@@ -45,11 +46,12 @@ import {
   TablePanel,
   TextArea,
 } from '@opengewerk/platform-web'
-import { date, today } from '@opengewerk/platform-web/format'
+import { date, moment, today } from '@opengewerk/platform-web/format'
 import {
   ChangesButton,
   Chip,
   Empty,
+  type Fact,
   FactList,
   NoteBox,
   PageHead,
@@ -76,6 +78,7 @@ import {
   Pencil,
   SearchCheck,
   Signature,
+  Trash2,
   Upload,
 } from 'lucide-react'
 import { type ReactNode, useDeferredValue, useId, useMemo, useState } from 'react'
@@ -93,13 +96,13 @@ import {
   activitySearch,
 } from '../activity-addresses.js'
 import { dutyPlaces, evidencePlaces, reportSearch } from '../duty-addresses.js'
-import { ResultMark } from '../evidence-words.js'
+import { EvidenceNumber, ResultMark } from '../evidence-words.js'
 import { factLink } from '../links.js'
 import { QualificationNotes } from '../qualification-note.js'
 import { officePlaces } from '../place-addresses.js'
 import { RegisterFilter } from '../register-filter.js'
-import { roundPlaces } from '../round-template-addresses.js'
-import { workOrderPlaces } from '../work-order-addresses.js'
+import { roundPlaces, roundsPlace } from '../round-template-addresses.js'
+import { workOrderListPlace, workOrderPlaces } from '../work-order-addresses.js'
 import { TasksCard } from '../tasks.js'
 import { asTableAddress } from '../table-address.js'
 
@@ -140,6 +143,13 @@ export const activityWords = {
   closingHint: 'Der Grund steht am Vorgang und bleibt lesbar.',
   whatClosingDoes:
     'Der Vorgang ist damit geschlossen, auch auf den Geräten, und lässt sich nicht wieder öffnen. Der Termin der Pflicht bleibt, wie er ist: ohne Nachweis wird sie überfällig. Einen neuen Vorgang legt an, wer plant und verteilt, auf der Seite der Pflicht.',
+  emptiedMark: 'Gelöscht',
+  emptied: (at: string) =>
+    `Gelöscht am ${moment(at)} mit seinem letzten Nachweis, nach Ablauf der Aufbewahrung. Antworten, Messwerte, Unterschriften, Namen, Notizen, Material und Leistungsnachweise sind gelöscht, seine Dokumente entfernt.`,
+  remains: 'Was bleibt',
+  stillHolds: 'Was weiter gilt',
+  stillHoldsText:
+    'Ein Mangel aus diesem Vorgang bleibt mit seiner Beschreibung, bis er für sich gelöscht wird; er nennt den Vorgang weiter. Wiederherstellen lässt sich ein gelöschter Vorgang nicht.',
 } as const
 
 /** The way a state is drawn, `status()` of the boards: in words, in a tone and with a symbol of its own. */
@@ -637,6 +647,12 @@ export function ActivityScreen() {
     )
   }
 
+  // Emptied with its last evidence (#409): the shell, whatever its kind. The
+  // pages of a work order and a round lead here for one.
+  if (shown.shell !== null) {
+    return <EmptiedActivityView activity={shown} shell={shown.shell} where={whereOf(shown)} />
+  }
+
   // A work order has a page of its own (#117); the duty and the change log
   // name it by its activity and lead here.
   if (shown.kind === 'work_order') {
@@ -910,6 +926,131 @@ export function ActivityScreen() {
  * its duties stays as it is. Asked of the route, with a connection, and not
  * taken back: a new activity is made at the page of the duty.
  */
+/**
+ * An activity emptied with its last evidence after the end of the retention
+ * (#409), the board "Vorgang mit seinem letzten Nachweis gelöscht (2.6)": its
+ * kind, place, day and evidence, its duties with their result, and what went.
+ * Nothing to plan, close or print any more, whatever its kind.
+ */
+function EmptiedActivityView({
+  activity,
+  shell,
+  where,
+}: {
+  readonly activity: ActivityDetails
+  readonly shell: EmptiedActivity
+  readonly where: Where
+}) {
+  const kind = activityKindLabel[activity.kind]
+  const list =
+    activity.kind === 'work_order'
+      ? workOrderListPlace
+      : activity.kind === 'round'
+        ? roundsPlace
+        : activityListPlace
+  const facts: Fact[] = [
+    { label: 'Art', value: kind },
+    {
+      label: 'Ort',
+      value: (
+        <Link to={where.to} className={factLink}>
+          {where.name}
+        </Link>
+      ),
+    },
+    ...(activity.performedOn === null ? [] : [{ label: 'Tag', value: date(activity.performedOn) }]),
+    ...(shell.evidence.length === 0
+      ? []
+      : [
+          {
+            label: shell.evidence.length === 1 ? 'Nachweis' : 'Nachweise',
+            value: (
+              <span className="inline-flex flex-wrap gap-x-3">
+                {shell.evidence.map((each) => (
+                  <EvidenceNumber key={each.id} id={each.id} number={each.number} />
+                ))}
+              </span>
+            ),
+          },
+        ]),
+  ]
+
+  return (
+    <Screen>
+      <PageHead
+        title={shell.orderNumber === null ? kind : `${kind} ${shell.orderNumber}`}
+        crumbs={[list]}
+        phoneBack={list}
+        sub={where.name}
+        badges={
+          <>
+            <Status tone="neutral" icon={Trash2}>
+              {activityWords.emptiedMark}
+            </Status>
+            <Status tone="neutral" icon={SearchCheck}>
+              {kind}
+            </Status>
+          </>
+        }
+      />
+      <div className="grid items-start gap-3.5 lg:grid-cols-[minmax(0,1fr)_310px]">
+        <div className="flex min-w-0 flex-col gap-3.5">
+          <NoteBox icon={Trash2}>{activityWords.emptied(shell.at)}</NoteBox>
+          <Panel title={activityWords.remains}>
+            <FactList keyWidth={110} facts={facts} />
+          </Panel>
+          {activity.duties.length === 0 ? null : (
+            <TablePanel
+              title="Pflichten dieses Vorgangs"
+              caption="Pflichten dieses Vorgangs"
+              cards={activity.duties.map((duty) => ({
+                key: duty.id,
+                title: (
+                  <Link to={dutyPlaces.duty(duty.dutyId)} className={cardLink}>
+                    {duty.title}
+                  </Link>
+                ),
+                sub: duty.source ?? undefined,
+                right: duty.result === null ? null : <ResultMark result={duty.result} />,
+              }))}
+            >
+              <thead>
+                <tr>
+                  <Column className="min-w-[140px]">Pflicht</Column>
+                  <Column className="w-[140px] min-w-[110px]">Ergebnis</Column>
+                </tr>
+              </thead>
+              <tbody>
+                {activity.duties.map((duty) => (
+                  <tr key={duty.id}>
+                    <Cell>
+                      <TwoLines
+                        bold
+                        main={
+                          <Link to={dutyPlaces.duty(duty.dutyId)} className={factLink}>
+                            {duty.title}
+                          </Link>
+                        }
+                        sub={duty.source ?? ''}
+                      />
+                    </Cell>
+                    <Cell>{duty.result === null ? null : <ResultMark result={duty.result} />}</Cell>
+                  </tr>
+                ))}
+              </tbody>
+            </TablePanel>
+          )}
+        </div>
+        <Panel title={activityWords.stillHolds}>
+          <p className="text-[12px] leading-[1.45] text-ink-muted">
+            {activityWords.stillHoldsText}
+          </p>
+        </Panel>
+      </div>
+    </Screen>
+  )
+}
+
 function CloseActivityDialog({
   activity,
   sub,

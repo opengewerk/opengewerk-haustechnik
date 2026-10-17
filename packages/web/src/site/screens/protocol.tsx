@@ -38,6 +38,7 @@ import {
   useActivityForm,
   useWhere,
 } from './form.js'
+import { EmptiedOnSite } from './emptied.js'
 import { SiteResultScreen } from './result.js'
 import { SiteStartScreen } from './start.js'
 import { SiteWorkOrderScreen } from './work-order.js'
@@ -73,6 +74,11 @@ export function SiteActivityScreen() {
 
   if (activity === null) {
     return <NotOnDevice what="Diesen Vorgang" back={{ to: '/', label: 'Zum Start' }} />
+  }
+
+  // Emptied with its last evidence (#409): what it was, and nothing more.
+  if (maybeText(activity, 'emptiedAt') !== null) {
+    return <EmptiedOnSite activity={activity} />
   }
 
   if (text(activity, 'kind') === 'round') {

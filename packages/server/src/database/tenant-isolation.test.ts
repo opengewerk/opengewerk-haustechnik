@@ -1462,7 +1462,20 @@ describe('the tables', () => {
     // the dismissed proposals since #25, the activities with their duties and
     // work orders and the defects since #26.
     expect(rows.length).toBeGreaterThanOrEqual(13)
-    expect(rows.filter((row) => row.deletable).map((row) => row.table_name)).toEqual([])
+    // The one exception, the content of an activity emptied with its last
+    // evidence after the end of the retention (#409): there the lock of each
+    // table refuses every other way, which `activity-emptying.test.ts` holds.
+    expect(rows.filter((row) => row.deletable).map((row) => row.table_name)).toEqual([
+      'activity_answers',
+      'activity_signatures',
+      'briefings',
+      'service_reports',
+      'work_order_decisions',
+      'work_order_materials',
+      'work_order_notes',
+      'work_order_participants',
+      'work_permits',
+    ])
   })
 })
 

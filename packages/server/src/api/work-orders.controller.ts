@@ -1176,6 +1176,7 @@ function entryOf(
     roomId: activity.roomId,
     assetId: activity.assetId,
     responsible: named(activity.responsibleUserId),
+    ...(activity.emptiedAt === null ? {} : { emptied: true as const }),
   }
 }
 
