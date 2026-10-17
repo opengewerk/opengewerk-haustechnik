@@ -199,6 +199,7 @@ export class OverviewController {
       dueIn30Days: listed({ due: 'in_30_days' }).total,
       dueIn90Days: listed({ due: 'in_90_days' }).total,
       neverRecorded: never.total,
+      withoutResponsible: registerPage(seen, {}, today, 0, 0).withoutResponsible ?? 0,
       reportsMissing: isAllowed(identity, 'activity.read')
         ? await this.reportsMissing(tx, identity, today, areaId)
         : null,

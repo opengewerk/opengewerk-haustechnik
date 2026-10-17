@@ -74,6 +74,8 @@ function withinAreasOf(table: string): string {
 export const areaColumnsWithoutTheLine: Readonly<Record<string, string>> = {
   member_areas: 'the areas a person holds, read by the functions of the policy itself',
   invitation_areas: 'the areas an invitation names, kept like those of a person',
+  // A delegation of duties names areas and lies in none (#336); the Leitung and the person it goes to read it whole.
+  duty_delegation_areas: 'the areas a delegation of duties names, read with the delegation',
 }
 
 /**

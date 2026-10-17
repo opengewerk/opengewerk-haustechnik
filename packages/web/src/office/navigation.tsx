@@ -22,6 +22,7 @@ import {
   SearchCheck,
   SquareCheck,
   TriangleAlert,
+  UserCheck,
   Zap,
 } from 'lucide-react'
 
@@ -96,6 +97,13 @@ export const officeNavigation: readonly OfficePlaces[] = [
         icon: SearchCheck,
         right: 'activity.read',
         also: ['/nachweise'],
+      },
+      // The delegations of the duties, for whoever may delegate (#336).
+      {
+        to: '/pflichtenuebertragungen',
+        label: 'Übertragungen',
+        icon: UserCheck,
+        right: 'duty.delegate',
       },
     ],
   },

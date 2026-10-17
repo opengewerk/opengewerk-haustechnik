@@ -279,6 +279,17 @@ export function deadlineRulesFor(
           return { ...facts }
         }
 
+        // A delegation of duties (#336), named by the person it goes to, which its source writes.
+        if (row.delegationId !== null) {
+          const facts: DeadlineFacts = {
+            follows: 'delegation',
+            propertyId: null,
+            delegation: { id: row.delegationId, delegateName: row.sourceLabel },
+          }
+
+          return { ...facts }
+        }
+
         if (row.contractId !== null) {
           const contract = byContract.get(row.contractId)
           const facts: DeadlineFacts = {

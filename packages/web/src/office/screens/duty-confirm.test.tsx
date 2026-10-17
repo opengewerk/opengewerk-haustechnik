@@ -153,6 +153,8 @@ function duty(further: Readonly<Record<string, unknown>> = {}): DutyDetails {
     contractId: null,
     contractEnded: false,
     contract: null,
+    covering: [],
+    delegation: null,
     asset: {
       id: lift.id,
       number: 'AN-00012',

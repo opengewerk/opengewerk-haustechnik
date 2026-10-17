@@ -211,6 +211,7 @@ export interface DutyEntry
       | 'assetId'
       | 'intervalReason'
       | 'responsibleUserId'
+      | 'responsibleDelegationId'
       | 'performer'
       | 'performerNote'
       | 'contractorId'
@@ -299,6 +300,17 @@ export interface DutyDetails extends Duty {
   readonly removable: boolean
   readonly asset: DutyAsset | null
   readonly responsible: DutyPerson | null
+  /** The delegation who answers for it comes from (#336), with its last day, or null: without one, or nobody answers. */
+  readonly delegation: { readonly id: string; readonly lastDay: IsoDate } | null
+  /**
+   * The delegations that cover it today (#336). With one, its person answers;
+   * with several, the office chooses one of their persons at the duty.
+   */
+  readonly covering: readonly {
+    readonly id: string
+    readonly delegateUserId: string
+    readonly delegateName: string
+  }[]
   /**
    * The document that bears its interval (#74), for whoever may look at
    * documents, or null: the duty names none, or it is not theirs to see.

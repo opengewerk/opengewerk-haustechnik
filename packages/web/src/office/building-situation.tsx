@@ -18,7 +18,7 @@ import {
   TablePanel,
 } from '@opengewerk/platform-web'
 import { date } from '@opengewerk/platform-web/format'
-import { Empty } from '@opengewerk/platform-web/office'
+import { Empty, NoteBox } from '@opengewerk/platform-web/office'
 import { request, RequestRefused } from '@opengewerk/platform-web/sync'
 import { useQuery } from '@tanstack/react-query'
 import { Link } from '@tanstack/react-router'
@@ -43,6 +43,10 @@ export const situationWords = {
   last: 'Letzte Vorgänge',
   noneLast: 'An diesem Gebäude ist noch kein Vorgang begonnen oder erledigt.',
   openFaults: 'Offene Störungen',
+  withoutResponsible: (count: number) =>
+    count === 1
+      ? '1 Pflicht an diesem Gebäude hat keine verantwortliche Person.'
+      : `${count.toLocaleString('de-DE')} Pflichten an diesem Gebäude haben keine verantwortliche Person.`,
 } as const
 
 /** The Lagebild of a building, as the server answers it (#121). */
@@ -167,14 +171,32 @@ export function BuildingToDo({ buildingId }: { readonly buildingId: string }) {
           </Empty>
         </Panel>
       ) : (
-        <CountTiles
-          label="Was an diesem Gebäude zu tun ist"
-          className={`grid-cols-2 sm:grid-cols-3 ${read.openFaults === null ? 'lg:grid-cols-5' : 'lg:grid-cols-6'}`}
-          tiles={[
-            ...toDoTiles(read, { buildingId }, read.keyDate),
-            ...faultTile(read.openFaults, buildingId),
-          ]}
-        />
+        <>
+          {/* A duty nobody answers for is said, instead of running on quietly (#336). */}
+          {read.withoutResponsible === 0 ? null : (
+            <NoteBox
+              tone="waiting"
+              action={
+                <Link
+                  to={dutyRegisterPlace.to}
+                  search={dutySearch({ responsible: 'none', buildingId })}
+                >
+                  Anzeigen
+                </Link>
+              }
+            >
+              {situationWords.withoutResponsible(read.withoutResponsible)}
+            </NoteBox>
+          )}
+          <CountTiles
+            label="Was an diesem Gebäude zu tun ist"
+            className={`grid-cols-2 sm:grid-cols-3 ${read.openFaults === null ? 'lg:grid-cols-5' : 'lg:grid-cols-6'}`}
+            tiles={[
+              ...toDoTiles(read, { buildingId }, read.keyDate),
+              ...faultTile(read.openFaults, buildingId),
+            ]}
+          />
+        </>
       )}
     </section>
   )

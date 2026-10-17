@@ -20,6 +20,7 @@ export const deadlineSources = [
   'contract_notice',
   'contract_end',
   'warranty',
+  'delegation',
 ] as const
 
 export type DeadlineSource = (typeof deadlineSources)[number]
@@ -233,6 +234,24 @@ export const warrantyEnds: ApplicationDeadlineKind = {
 }
 
 /**
+ * The end of a delegation of duties (sections 2.4 and 4.3, #336): its last
+ * day, the end it names or the day a revocation brought forward. Without a
+ * place, like a contract; whoever leads the operator answers for it.
+ */
+export const delegationEnds: ApplicationDeadlineKind = {
+  key: 'delegation.ends',
+  title: 'Ende einer Pflichtenübertragung',
+  about:
+    'Folgt aus dem Ende einer unterschriebenen Pflichtenübertragung. Danach sind ihre Pflichten ohne Verantwortlichen, bis eine andere Übertragung sie abdeckt.',
+  source: 'delegation',
+  intervalDays: null,
+  intervalMonths: null,
+  leadDays: 60,
+  responsible: 'lead',
+  actions: ['reminder'],
+}
+
+/**
  * What the task of a deadline says, by the source of its kind (#242). Only a
  * source that stands here can name the action: the engine refuses a kind
  * that names the task without a text for it.
@@ -252,6 +271,7 @@ export const deadlineKinds: readonly ApplicationDeadlineKind[] = [
   contractNotice,
   contractEnd,
   warrantyEnds,
+  delegationEnds,
 ]
 
 /**
@@ -268,6 +288,7 @@ export type DeadlineFacts =
   | DocumentDeadlineFacts
   | ContractDeadlineFacts
   | WarrantyDeadlineFacts
+  | DelegationDeadlineFacts
 
 /** A deadline of a duty: the duty by its title. */
 export interface DutyDeadlineFacts extends DeadlinePlaceFacts {
@@ -322,6 +343,13 @@ export interface ContractDeadlineFacts {
   readonly propertyId: null
   readonly contract: { readonly id: string; readonly title: string }
   readonly contractor: { readonly id: string; readonly name: string }
+}
+
+/** The end of a delegation of duties (#336): the delegation by the name of the person it goes to, without a place. */
+export interface DelegationDeadlineFacts {
+  readonly follows: 'delegation'
+  readonly propertyId: null
+  readonly delegation: { readonly id: string; readonly delegateName: string }
 }
 
 /**

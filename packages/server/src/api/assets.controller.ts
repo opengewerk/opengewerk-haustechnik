@@ -55,6 +55,7 @@ import { and, asc, eq, inArray, isNull, sql } from 'drizzle-orm'
 
 import { exchangeAsset, exchangeStanding } from '../assets/exchange.js'
 import { CATALOGUE } from '../catalogue.js'
+import { applyDelegations } from '../delegations/apply.js'
 import { assetDuplicates, duplicateQuestion } from '../database/asset-duplicates.js'
 import { assetsOnADay, dutyTitle } from '../database/duty-standing.js'
 import { assignNumber } from '../database/number-ranges.js'
@@ -63,6 +64,7 @@ import {
   assets,
   assetSupplies,
   buildings,
+  duties,
   rooms,
 } from '../database/schema/index.js'
 import { dayInGermany } from '../today.js'
@@ -815,15 +817,29 @@ export class AssetsController {
       duties: (said.duties ?? []) as readonly string[],
     }
 
-    return this.database.forTenant(identity, async (tx) =>
-      exchangeAsset(
+    return this.database.forTenant(identity, async (tx) => {
+      const made = await exchangeAsset(
         tx,
         identity,
         await placeOf<Asset>(tx, assets, id, missing),
         exchange,
         (place) => insertAsset(tx, identity, place, values),
-      ),
-    )
+      )
+      // The duties it took over are covered by the delegations as any other (#336).
+      const taken = await tx
+        .select({ id: duties.id })
+        .from(duties)
+        .where(and(eq(duties.assetId, made.id), isNull(duties.deletedAt)))
+
+      await applyDelegations(
+        tx,
+        this.catalogue,
+        today,
+        taken.map((duty) => duty.id),
+      )
+
+      return made
+    })
   }
 
   /**

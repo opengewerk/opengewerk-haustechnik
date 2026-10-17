@@ -123,6 +123,8 @@ export * from './model/defect.js'
 export * from './model/figures.js'
 // The consumption of the meters over time, per building and medium (#335).
 export * from './model/consumption-figures.js'
+// The delegation of the operator's duties, signed by both (#336).
+export * from './model/delegation.js'
 export * from './model/defect-register.js'
 // The faults reported by the people in a building, and the inbox of the area (#331).
 export * from './model/fault-report.js'

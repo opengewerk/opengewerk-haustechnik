@@ -188,7 +188,7 @@ export function OverviewScreen() {
         <>
           <CountTiles
             label="Betreiberverantwortung in Zahlen"
-            className="grid-cols-2 sm:grid-cols-3 lg:grid-cols-6"
+            className={columnsFor(tilesOf(read, inArea).length)}
             tiles={tilesOf(read, inArea)}
           />
           {/* A new version of a package, between the numbers and the lists (#139). */}
@@ -236,6 +236,18 @@ export function OverviewScreen() {
 }
 
 /**
+ * The columns of the tiles, one row on a wide screen however many the
+ * server counts for the person: five without the reports and the defects,
+ * seven with both since the duties without a person (#336).
+ */
+function columnsFor(count: number): string {
+  return count >= 7
+    ? 'grid-cols-2 sm:grid-cols-4 lg:grid-cols-7'
+    : count === 6
+      ? 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-6'
+      : 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-5'
+}
+/**
  * The numbers of the overview, each a link to the list it counts. A number
  * that is zero is drawn quiet, in the colour of the text: nothing calls for
  * attention there.
@@ -271,6 +283,14 @@ function tilesOf(read: Overview, inArea: { readonly areaId?: string }): Tile[] {
       tone: toned(read.neverRecorded, 'conflict'),
       sub: 'Pflicht ohne Nachweis',
       ...duties(dutySearch({ state: 'never_recorded', ...inArea })),
+    },
+    // A duty nobody answers for is said, instead of running on quietly (#336).
+    {
+      value: read.withoutResponsible,
+      label: 'Ohne Verantwortlichen',
+      tone: toned(read.withoutResponsible, 'waiting'),
+      sub: 'Pflicht ohne Person',
+      ...duties(dutySearch({ responsible: 'none', ...inArea })),
     },
   ]
 

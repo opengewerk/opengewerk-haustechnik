@@ -483,6 +483,8 @@ describe('the register of duties', () => {
       roomId: null,
       assetId: lift,
       responsibleUserId: 'u-site',
+      // Without a delegation (#336).
+      responsibleDelegationId: null,
       performer: 'contractor',
       performerNote: 'Aufzugsdienst Beispiel GmbH',
       contractorId: null,

@@ -229,8 +229,13 @@ export function deadlineSubject(facts: DeadlineFacts): string {
       return facts.workOrder === null
         ? warrantyDeadlineSubject
         : `${warrantyDeadlineSubject} ${facts.workOrder.number}`
+    case 'delegation':
+      return `${delegationDeadlineSubject} an ${facts.delegation.delegateName}`
   }
 }
+
+/** What the end of a delegation of duties is called in the list (#336), with the person behind it. */
+export const delegationDeadlineSubject = 'Pflichtenübertragung'
 
 /** What the end of a warranty is called in the list (#329), with the number of a work order behind it where it is one's. */
 export const warrantyDeadlineSubject = 'Gewährleistung'
@@ -263,6 +268,11 @@ export function deadlineWhere(
   // A contract stands nowhere either: its firm is what the deadline names (#329).
   if (facts.follows === 'contract') {
     return { name: facts.contractor.name, sub: 'Vertrag' }
+  }
+
+  // Nor does a delegation of duties (#336): it is the operator's, in the areas it names.
+  if (facts.follows === 'delegation') {
+    return { name: facts.delegation.delegateName, sub: 'Pflichtenübertragung' }
   }
 
   // The document of a contractor stands nowhere: the contractor is what it hangs on (#328),

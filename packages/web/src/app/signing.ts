@@ -1,5 +1,6 @@
 import {
   canonicalForm,
+  type DelegationPage,
   defaultWorkOrderSettings,
   heldPageOf,
   type ServiceReportPage,
@@ -34,7 +35,9 @@ export function pageOnDevice(client: SyncClient, activityId: string): SignedPage
 }
 
 /** SHA-256 over the canonical form of a page, as the server takes it: 64 hexadecimal digits. */
-export async function fingerprintOf(page: SignedPage | ServiceReportPage): Promise<string> {
+export async function fingerprintOf(
+  page: SignedPage | ServiceReportPage | DelegationPage,
+): Promise<string> {
   const digest = await crypto.subtle.digest(
     'SHA-256',
     new TextEncoder().encode(canonicalForm(page)),

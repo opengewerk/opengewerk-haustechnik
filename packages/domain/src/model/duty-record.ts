@@ -14,6 +14,7 @@ import type { AreaId } from './area.js'
 import type { AssetId } from './asset.js'
 import type { ContractId } from './contract.js'
 import type { ContractorId } from './contractor.js'
+import type { DutyDelegationId } from './delegation.js'
 import {
   type Counting,
   countings,
@@ -119,6 +120,11 @@ export interface Duty extends Synced, PlaceTarget {
   readonly keptMonths: number | null
   readonly keptReason: string | null
   readonly responsibleUserId: string | null
+  /**
+   * The delegation the one who answers for it comes from (#336), or null:
+   * then a person answers without a delegation, or nobody does.
+   */
+  readonly responsibleDelegationId: DutyDelegationId | null
   readonly performer: DutyPerformer | null
   readonly performerNote: string | null
   /** The firm out of the list that carries it out (#328); the note is what stood there as text before. */

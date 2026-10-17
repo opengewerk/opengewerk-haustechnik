@@ -85,6 +85,7 @@ describe('the foundation in this database', () => {
           'deadlines.contract_id',
           'deadlines.warranty_asset_id',
           'deadlines.warranty_order_id',
+          'deadlines.delegation_id',
         ],
         constraints: [
           'deadlines.deadlines_meters_of_their_property',
@@ -105,6 +106,7 @@ describe('the foundation in this database', () => {
           'deadlines.deadlines_of_an_asset_of_their_property',
           'deadlines.deadlines_follow_their_work_order',
           'deadlines.deadlines_of_a_work_order_of_their_property',
+          'deadlines.deadlines_of_a_delegation',
           'attachments.attachments_area_key',
           'contacts.contacts_follow_their_property',
           'contacts.contacts_of_a_contractor',
@@ -143,6 +145,7 @@ describe('the foundation in this database', () => {
           'deadlines.deadlines_contract_idx',
           'deadlines.deadlines_warranty_asset_idx',
           'deadlines.deadlines_warranty_order_idx',
+          'deadlines.deadlines_delegation_idx',
           'contacts.contacts_property_idx',
           'contacts.contacts_contractor_idx',
           'attachments.attachments_property_idx',

@@ -439,6 +439,8 @@ describe('a duty the catalogue says something new about', () => {
       intervalDocument: null,
       contractEnded: false,
       contract: null,
+      covering: [],
+      delegation: null,
       activity: null,
       update: null,
       ...further,

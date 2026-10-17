@@ -338,7 +338,11 @@ export function DutyRegisterScreen() {
               whereOf(duty).name,
               propertyOf(duty),
               intervalWords(duty.shortened ?? dutyInterval(duty)),
-              duty.responsible?.name ?? nobodyWords,
+              duty.responsible === null
+                ? nobodyWords
+                : duty.responsibleDelegationId === null && !duty.ended
+                  ? `${duty.responsible.name} (${withoutDelegationWords})`
+                  : duty.responsible.name,
             ]
               .filter((part) => part !== null && part !== '')
               .join(' · '),
@@ -443,7 +447,21 @@ export function DutyRegisterScreen() {
                   </Cell>
                   <Cell>
                     <TwoLines
-                      main={duty.responsible?.name ?? <Nobody />}
+                      main={
+                        duty.responsible === null ? (
+                          <Nobody />
+                        ) : (
+                          <>
+                            {duty.responsible.name}
+                            {/* Somebody who answers without a delegation says so (#336). */}
+                            {duty.responsibleDelegationId === null && !duty.ended ? (
+                              <span className="ml-1.5 text-[12px] font-normal text-waiting">
+                                {withoutDelegationWords}
+                              </span>
+                            ) : null}
+                          </>
+                        )
+                      }
                       sub={performerWords(duty)}
                     />
                   </Cell>
@@ -696,3 +714,6 @@ function Filters({
     </div>
   )
 }
+
+/** What the register says beside somebody who answers for a duty without a delegation (#336). */
+export const withoutDelegationWords = 'ohne Übertragung'

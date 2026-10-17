@@ -79,4 +79,6 @@ export const serverPaths: readonly string[] = [
   'fault-reports',
   // The figures over time, per place and never per person (#334).
   'reports',
+  // The delegations of the operator's duties (#336).
+  'delegations',
 ]

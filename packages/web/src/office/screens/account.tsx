@@ -4,6 +4,8 @@ import {
   type PushPanelWords,
 } from '@opengewerk/platform-web/office'
 
+import { MyDelegationsCard } from '../delegations-account.js'
+
 /**
  * What this application says on the card "Benachrichtigungen" of the
  * foundation (#126, the board "Konto: Benachrichtigungen"): what a message
@@ -26,11 +28,13 @@ export const pushWords: PushPanelWords = {
  * repository opengewerk): light or dark, the second factor, the passkeys, the
  * password and the devices somebody is signed in on. This application adds
  * the card of push on this device (#126), which is the foundation's as well
- * and says here what only this application knows.
+ * and says here what only this application knows, and the delegations of
+ * duties to the person, to sign and to keep as a copy (#336).
  */
 export function AccountScreen() {
   return (
     <Account>
+      <MyDelegationsCard />
       <PushPanel entry="office" words={pushWords} />
     </Account>
   )

@@ -266,6 +266,7 @@ const situation: BuildingSituation = {
   openDefects: 2,
   missingReadings: 1,
   openFaults: 3,
+  withoutResponsible: 0,
   keyDate: '2026-10-01' as BuildingSituation['keyDate'],
   lastActivities: [
     {

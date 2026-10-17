@@ -330,6 +330,8 @@ describe('the overview of the operator responsibility', () => {
         dueIn30Days: (await duties({ due: 'in_30_days' })).total,
         dueIn90Days: (await duties({ due: 'in_90_days' })).total,
         neverRecorded: never.total,
+        // Nobody answers for it (#336), as the register narrowed to nobody counts.
+        withoutResponsible: (await duties({ responsible: 'none' })).total,
         reportsMissing: reports.total,
         defectsOverdue: defects.total,
         soon: named(soon),

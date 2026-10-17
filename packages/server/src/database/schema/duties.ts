@@ -36,6 +36,7 @@ import { assets } from './assets.js'
 import { attachments, attachmentVersions } from './attachments.js'
 import { contracts } from './contracts.js'
 import { contractors } from './contractors.js'
+import { dutyDelegations } from './delegations.js'
 import { buildings, optionalTrimmed, properties, rooms, trimmed } from './locations.js'
 
 // The duties of an operator (section 2.3 of the concept, ADR 0002, points 10
@@ -122,6 +123,8 @@ export const duties = pgTable(
     keptMonths: integer('kept_months'),
     keptReason: text('kept_reason'),
     responsibleUserId: text('responsible_user_id'),
+    /** The delegation the one who answers comes from (#336); none: without a delegation, or nobody. */
+    responsibleDelegationId: reference<'duty-delegation'>('responsible_delegation_id'),
     performer: dutyPerformer('performer'),
     performerNote: text('performer_note'),
     contractorId: reference<'contractor'>('contractor_id'),
@@ -190,6 +193,20 @@ export const duties = pgTable(
       foreignColumns: [memberships.tenantId, memberships.userId],
       name: 'duties_responsible_works_here',
     }),
+    // The person who answers from a delegation is the one it goes to (#336).
+    foreignKey({
+      columns: [table.tenantId, table.responsibleDelegationId, table.responsibleUserId],
+      foreignColumns: [
+        dutyDelegations.tenantId,
+        dutyDelegations.id,
+        dutyDelegations.delegateUserId,
+      ],
+      name: 'duties_responsible_from_their_delegation',
+    }),
+    check(
+      'duties_delegation_names_a_person',
+      sql`${table.responsibleDelegationId} is null or ${table.responsibleUserId} is not null`,
+    ),
     foreignKey({
       columns: [table.tenantId, table.confirmedBy],
       foreignColumns: [memberships.tenantId, memberships.userId],
@@ -259,6 +276,7 @@ export const duties = pgTable(
       name: 'duties_name_their_contractor',
     }),
     index('duties_contractor_idx').on(table.tenantId, table.contractorId),
+    index('duties_delegation_idx').on(table.tenantId, table.responsibleDelegationId),
     // A firm out of the list only where a contractor carries the duty out.
     check(
       'duties_contractor_for_a_contractor',

@@ -632,6 +632,8 @@ function ownDuty(further: Readonly<Record<string, unknown>> = {}): DutyDetails {
     intervalToCheck: false,
     contractEnded: false,
     contract: null,
+    covering: [],
+    delegation: null,
     asset: {
       id: 'a-heater',
       number: 'AN-00057',

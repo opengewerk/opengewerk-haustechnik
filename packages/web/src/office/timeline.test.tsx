@@ -240,6 +240,7 @@ describe('the ways to a timeline', () => {
         overdue: 0,
         due: 0,
         neverRecorded: 0,
+        withoutResponsible: 0,
         openDefects: null,
         openFaults: null,
         missingReadings: null,

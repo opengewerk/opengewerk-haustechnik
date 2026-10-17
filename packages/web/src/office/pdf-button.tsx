@@ -15,11 +15,13 @@ export const pdfWords = {
 /**
  * "PDF öffnen" in the head of the page of an evidence or a round (#111): the
  * file is fetched and opened in a tab of its own. What the server says when
- * it makes none, the page shows below its head.
+ * it makes none, the page shows below its head. Where the PDF is somebody's
+ * copy, the button says so (#336).
  */
 export function usePdf(
   address: string,
   name: string,
+  label: string = pdfWords.open,
 ): { readonly button: React.ReactNode; readonly trouble: React.ReactNode } {
   const [working, setWorking] = useState(false)
   const [trouble, setTrouble] = useState<string | null>(null)
@@ -44,7 +46,7 @@ export function usePdf(
             })
         }}
       >
-        {pdfWords.open}
+        {label}
       </Button>
     ),
     trouble: trouble === null ? null : <NoteBox tone="conflict">{trouble}</NoteBox>,

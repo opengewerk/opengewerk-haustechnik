@@ -80,7 +80,7 @@ Anhang B nennt jedes Feld der Datenbank, das auf eine Person zeigt. Dieser Absch
 - Das Pflichtenverzeichnis und die Seite einer Pflicht nennen die verantwortliche Person mit ihrem Namen, und sie sagen es, wenn für eine Pflicht niemand benannt ist. Lesen kann beides, wer Pflichten ansieht, das sind alle vier Rollen, jede in ihren Bereichen. Wer eine Pflicht bestätigt hat, zeigt kein Bildschirm außer dem Änderungsprotokoll. [K4.3, K7, B75]
 - Sagt der Katalog nach einem Update etwas anderes über eine bestätigte Pflicht, entscheidet, wer das Pflichtenverzeichnis führt: die neue Fassung übernehmen, oder die Pflicht mit Begründung lassen, wie sie ist. An der Pflicht stehen danach die Fassung, gegen die entschieden wurde, und die Begründung. Wer entschieden hat, zeigt kein Bildschirm außer dem Änderungsprotokoll, und die Meldung selbst nennt keine Person. [K2.3, K7, B11, B225, B226]
 - **Zusage:** Nimmt der Tausch einer Anlage eine eigene Pflicht der alten mit, entsteht an der neuen Anlage eine neue Pflicht. Als bestätigend nennt sie, wer getauscht hat, und nicht, wer die alte bestätigt hat. Verantwortlich bleibt, wer es an der alten war, solange die Person für den Betreiber arbeitet und nicht gesperrt ist; sonst ist für die neue Pflicht niemand benannt. Eine eigene Pflicht mitnehmen kann beim Tausch nur, wer auch das Pflichtenverzeichnis führt. [K4.2, K4.3, B260, B261, B262]
-- **Zusage:** Wer für eine Pflicht verantwortlich ist, legt fest, wer das Pflichtenverzeichnis führt. Zur Wahl bekommt diese Person die Namen derer, die für den Betreiber arbeiten, und ob jemand gesperrt ist; Rolle, E-Mail-Adresse und Anmeldungen nennt die Auswahl nicht. Objektleitung und Haustechnik bekommen die Auswahl nicht. [K4.3, K7, B76, B77]
+- **Zusage:** Wer für eine Pflicht verantwortlich ist, die keine Pflichtenübertragung deckt, legt fest, wer das Pflichtenverzeichnis führt; deckt sie eine, ist es deren beauftragte Person (Abschnitt 3.18). Zur Wahl bekommt diese Person die Namen derer, die für den Betreiber arbeiten, und ob jemand gesperrt ist; Rolle, E-Mail-Adresse und Anmeldungen nennt die Auswahl nicht. Objektleitung und Haustechnik bekommen die Auswahl nicht. [K4.3, K7, B76, B77]
 - Wer in einer Liste als verantwortlich, zuständig oder ausführend genannt ist, steht in der Tabelle dieser Liste nur für die Leitung; die Liste am Bildschirm nennt die Person weiter jedem, der sie sehen darf (Abschnitt 5). [K3, K9, B186]
 - Eine Frist nennt, wer für sie verantwortlich ist, wen ihre Quelle als verantwortlich nennt und wer sie geschlossen hat. Fristen sehen die Leitung und die Technische Leitung. [K2.4, B10]
 - Die Liste „Fristen“ nennt zu jeder Frist die verantwortliche Person mit ihrem Namen. Wer einer Frist eine andere Person gibt oder für eine Art von Frist festlegt, wen sie erinnert, bekommt dieselbe Auswahl wie im Pflichtenverzeichnis: die Namen derer, die für den Betreiber arbeiten, und ob jemand gesperrt ist. Neben dem Eintrag „Fristen“ der Navigation steht, wie viele Fristen in den Bereichen der Person überfällig sind; diese Zahl gilt dem Betreiber und keiner Person. [K2.4, K7, B10, B76]
@@ -268,6 +268,20 @@ Anhang B nennt jedes Feld der Datenbank, das auf eine Person zeigt. Dieser Absch
 - **Zusage:** Den Eingang sehen, annehmen, zusammenführen und ablehnen darf, wer Störungen annimmt: die Leitung, die Technische Leitung und die Objektleitung, jede in ihren Bereichen. Die Haustechnik und der Melder werden abgelehnt, und eine Meldung aus einem anderen Bereich ist für niemanden da, der ihn nicht sieht. [K4.7, K7, K2.8, B307, B308, B317, B318]
 - Eine Meldung wird nicht gelöscht. Wie lange sie bleibt, legt das Löschkonzept fest, das mit Phase 2 kommt (Abschnitt 7). [K4.7]
 
+### 3.18 Pflichtenübertragungen
+
+- Eine Pflichtenübertragung hält fest: die beauftragte Person mit ihrem Namen, wie er beim Anlegen im Konto stand, die Bereiche, den Umfang (alle Pflichten darin, bestimmte Pakete oder bestimmte Kostengruppen), die Aufgaben und die Befugnisse in Worten, Beginn und Ende, die beiden Unterschriften und, wird sie widerrufen, den Tag, ab dem sie nicht mehr gilt, den Grund und wer widerrufen hat. Eine Unterschrift hält fest, wer unterschrieben hat, ob für den Betreiber oder als beauftragte Person, den Zeitpunkt nach der Uhr des Servers, den Schriftzug oder den getippten Namen und den Fingerabdruck der Seite, die gezeigt wurde. [K4.3, K2.6]
+- **Zusage:** Anlegen, ändern, für den Betreiber unterschreiben und widerrufen darf nur die Leitung, mit dem Recht „Pflichten übertragen“; einen Entwurf, den noch niemand unterschrieben hat, entfernt sie. Technische Leitung, Objektleitung und Haustechnik werden abgelehnt. [K4.3, K7, B324, B325]
+- **Zusage:** Beauftragt wird nur, wer für den Betreiber arbeitet, Pflichten ansehen darf und jeden Bereich der Übertragung sieht; niemand überträgt sich selbst Pflichten. [K4.3, K7, B334]
+- **Zusage:** Die beauftragte Person liest und unterschreibt ihre Übertragung selbst, im Büro unter „Konto“, und erst, wenn die Leitung unterschrieben hat; vorher sieht sie sie nicht. Wer das Recht nicht hat, liest keine Übertragung einer anderen Person. Unter „Konto“ liegt das PDF mit beiden Unterschriften als ihre Ausfertigung. [K4.3, K7, B331]
+- **Zusage:** Eine Übertragung gilt erst mit beiden Unterschriften, von ihrem Beginn bis zu ihrem letzten Tag. Ab der ersten Unterschrift ändert sie niemand mehr, auch nicht in der Datenbank. Eine Unterschrift gilt nur für die Seite, die gezeigt wurde; wer mit dem getippten Namen bestätigt, bestätigt mit dem Namen seines Kontos. [K4.3, K2.6, B326, B327, B333]
+- **Zusage:** Solange sie gilt, ist die beauftragte Person für jede Pflicht in ihren Bereichen und ihrem Umfang verantwortlich, auch über jemanden hinweg, der ohne Übertragung benannt war. Endet sie oder wird sie widerrufen, ist für ihre Pflichten niemand verantwortlich, bis eine andere sie deckt; die Übersicht und das Lagebild zählen diese Pflichten. [K4.3, B328]
+- **Zusage:** Decken zwei Übertragungen dieselbe Pflicht, wählt, wer das Pflichtenverzeichnis führt, eine ihrer beauftragten Personen, und keine andere. [K4.3, K7, B330]
+- **Zusage:** Ein Widerruf zieht das Ende vor, frühestens auf heute und mit Grund; die Übertragung bleibt danach mit ihren Unterschriften lesbar. [K4.3, B329]
+- **Zusage:** Der letzte Tag einer unterschriebenen Übertragung ist eine Frist der Leitung, und sie nennt die beauftragte Person mit ihrem Namen (Abschnitt 3.4). [K2.4, K4.3, B332]
+- Die Seite einer Pflicht sagt zur verantwortlichen Person, ob sie aus einer Pflichtenübertragung kommt und bis wann diese gilt, oder dass sie ohne Übertragung benannt ist; das Pflichtenverzeichnis sagt „ohne Übertragung“. Lesen kann beides, wer Pflichten ansieht, jede Rolle in ihren Bereichen. Die Übertragung selbst öffnet nur, wer das Recht hat, sie zu führen. [K4.3, K7]
+- Eine Übertragung wird nicht gelöscht, sobald jemand unterschrieben hat. Wie lange sie bleibt, legt das Löschkonzept fest, das mit Phase 2 kommt (Abschnitt 7). [K4.3, K9]
+
 ## 4. Wer was sieht
 
 Phase 1 kennt vier Rollen, Phase 2 bringt den Melder dazu: er sieht seine eigenen Störmeldungen und die Namen der Gebäude und Räume seiner Bereiche und sonst nichts (Abschnitt 3.17). Was jede Rolle darf, steht Recht für Recht in Abschnitt 7 des Planungskonzepts. Für die Daten über Beschäftigte heißt das:
@@ -298,6 +312,9 @@ Phase 1 kennt vier Rollen, Phase 2 bringt den Melder dazu: er sieht seine eigene
 | Wer einen Rundgang unterschrieben und gegengezeichnet hat, mit Namen, Zeichnung oder getipptem Namen und Zeitpunkt | in ihren Bereichen | in ihren Bereichen | in ihren Bereichen | was ihr oder niemandem zugeteilt ist |
 | Aufgaben mit der verantwortlichen Person, mit Namen | in ihren Bereichen | in ihren Bereichen | die ihr zugeteilten und die sie angelegt hat; wer alle Bereiche sieht, alle | die ihr zugeteilten und die sie angelegt hat; wer alle Bereiche sieht, alle |
 | Die Namen zur Wahl, wem eine Aufgabe zugeteilt wird | in ihren Bereichen | in ihren Bereichen | in ihren Bereichen | nein |
+| Pflichtenübertragungen mit der beauftragten Person, den Unterschriften und dem PDF | ja | nein | nein | nein |
+| Die eigenen Pflichtenübertragungen, ab der Unterschrift der Leitung, mit dem PDF als Ausfertigung | ja | ja | ja | ja |
+| Ob die verantwortliche Person einer Pflicht aus einer Übertragung kommt und bis wann, oder ohne Übertragung benannt ist | in ihren Bereichen | in ihren Bereichen | in ihren Bereichen | in ihren Bereichen |
 | Datensätze mit Fassung und Nummer im Abgleich, ohne wer sie zuletzt geändert hat, wann und von welchem Gerät | in ihren Bereichen | in ihren Bereichen | in ihren Bereichen | in ihren Bereichen |
 | Fassungen von Dokumenten mit der Kennung des Kontos, das sie abgelegt hat | in ihren Bereichen | in ihren Bereichen | in ihren Bereichen | in ihren Bereichen |
 | Ein Nachweis im Ganzen: wer ihn ausgeführt, geprüft, unterschrieben, eingetragen oder für ungültig erklärt hat | in ihren Bereichen | in ihren Bereichen | in ihren Bereichen | in ihren Bereichen |
@@ -761,6 +778,17 @@ Pfade ohne Vorsatz liegen im Repository `opengewerk/opengewerk-haustechnik`. Pfa
 | B321 | Test | `packages/server/src/api/figures.test.ts` | `name nobody, in no answer and no table, and group by no person` |
 | B322 | Test | `packages/server/src/api/figures.test.ts` | `see the areas of whoever looks and nothing of the others` |
 | B323 | Test | `packages/server/src/api/figures.test.ts` | `are for whoever may look at them, the Leitung and the Technische Leitung` |
+| B324 | Recht | `duty.delegate` | Pflichten übertragen: Leitung |
+| B325 | Test | `packages/server/src/api/delegations.test.ts` | `is written, changed, signed for the operator and revoked by the Leitung, and by no other role` |
+| B326 | Test | `packages/server/src/api/delegations.test.ts` | `holds once both have signed, and from the first signature on changes in no way, also not in the database` |
+| B327 | Test | `packages/server/src/api/delegations.test.ts` | `takes a signature only for the page that was shown and with the name of the account` |
+| B328 | Test | `packages/server/src/api/delegations.test.ts` | `gives every duty in its scope its person, also over one without a delegation, and leaves them without one once it ended` |
+| B329 | Test | `packages/server/src/api/delegations.test.ts` | `ends earlier with a revocation and its reason, and stays readable` |
+| B330 | Test | `packages/server/src/api/delegations.test.ts` | `leaves a duty that two cover to the office, which chooses one of their persons and nobody else` |
+| B331 | Test | `packages/server/src/api/delegations.test.ts` | `is read by the person it goes to once the Leitung signed, and by nobody else without the right` |
+| B332 | Test | `packages/server/src/api/delegations.test.ts` | `is a deadline at its last day once both signed, named by the person` |
+| B333 | Test | `packages/domain/src/model/delegation.test.ts` | `holds only once both have signed, from its start to its last day` |
+| B334 | Test | `packages/server/src/api/delegations.test.ts` | `goes to somebody who sees every area it names, and to nobody else, not to the Leitung itself` |
 
 ---
 
@@ -787,6 +815,9 @@ Jede Zeile ist ein Feld der Datenbank, das die Kennung eines Kontos hält. Der S
 | `deadlines` | `responsible_user_id` | wer für eine Frist verantwortlich ist |
 | `duties` | `confirmed_by` | wer eine Pflicht bestätigt hat |
 | `duties` | `responsible_user_id` | wer für eine Pflicht verantwortlich ist |
+| `duty_delegation_revocations` | `revoked_by` | wer eine Pflichtenübertragung widerrufen hat |
+| `duty_delegation_signatures` | `signed_by` | wer eine Pflichtenübertragung unterschrieben hat, für den Betreiber oder als beauftragte Person |
+| `duty_delegations` | `delegate_user_id` | an wen Pflichten übertragen sind |
 | `duty_dismissals` | `dismissed_by` | wer einen Vorschlag für eine Pflicht verworfen hat |
 | `evidence` | `performed_by` | wer die Arbeit ausgeführt hat, die ein Nachweis belegt |
 | `evidence` | `written_by` | wer einen Nachweis eingetragen hat |
@@ -840,6 +871,7 @@ Jede Zeile ist der erste Abschnitt einer Adresse, unter der der Server antwortet
 | `contractors` | Fremdfirmen: die Liste, auch als Tabelle, die Seite einer Firma mit ihren offenen Pflichten und den Nachweisen ihrer Berichte, eine neue Firma, ihre Änderung, dass sie entfernt wird, und die Namen an Pflichten, die als Fremdfirmen übernommen werden; ohne Person |
 | `contracts` | Verträge mit Fremdfirmen: die Liste, auch als Tabelle, die Seite eines Vertrags mit dem, was er erfasst, und den Pflichten, die er erfüllt, ein neuer Vertrag, seine Änderung, dass er entfernt wird, was er erfasst, und die Verträge an einer Anlage; ohne Person |
 | `deadlines` | Fristen, auch die des Datums eines Dokuments, ihre Liste auch als Tabelle |
+| `delegations` | Pflichtenübertragungen: die Liste mit den Pflichten ohne Verantwortlichen, die Seite einer Übertragung mit den Pflichten in ihrem Umfang, ihr PDF, eine neue, ihre Änderung, dass ein Entwurf entfernt wird, die Unterschriften und der Widerruf, und die eigenen unter „Konto“ |
 | `defects` | Mängel: das Mängelverzeichnis, auch als Tabelle, und seine Zahlen, die Seite eines Mangels, ein Mangel von Hand, seine Klasse und Frist, die Nachprüfung und die Klassen, die ein Mangel von Hand nehmen kann |
 | `duties` | Pflichten, das Pflichtenverzeichnis und die Vorschläge aus dem Katalog, beide auch als Tabelle, die Nachweise einer Pflicht, die Auswahl der verantwortlichen Person und der Bericht einer Fremdfirma, der zum Nachweis einer Pflicht wird |
 | `duty-dismissals` | verworfene Vorschläge für Pflichten |

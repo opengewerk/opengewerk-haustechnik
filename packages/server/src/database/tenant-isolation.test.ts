@@ -116,6 +116,7 @@ function rowsOf(tenant: Tenant): readonly Row[] {
   const document = randomUUID()
   const firm = randomUUID()
   const contract = randomUUID()
+  const delegation = randomUUID()
   const category = randomUUID()
   const faultReport = randomUUID()
   const file = randomUUID().replaceAll('-', '').repeat(2)
@@ -498,6 +499,48 @@ function rowsOf(tenant: Tenant): readonly Row[] {
         property_id: property,
         area_id: area,
         asset_id: asset,
+      },
+    },
+    // A delegation of the duties with its area, signed for the operator and revoked (#336).
+    {
+      table: 'duty_delegations',
+      values: {
+        id: delegation,
+        tenant_id: tenant.id,
+        delegate_user_id: tenant.userId,
+        delegate_name: 'Jörg Albrecht',
+        scope: 'all',
+        tasks: 'Organisation der Prüfungen.',
+        powers: 'Weisungsbefugnis im Bereich.',
+        starts_on: '2026-11-01',
+        ends_on: '2028-10-31',
+      },
+    },
+    {
+      table: 'duty_delegation_areas',
+      values: { tenant_id: tenant.id, delegation_id: delegation, area_id: area },
+    },
+    {
+      table: 'duty_delegation_signatures',
+      values: {
+        tenant_id: tenant.id,
+        delegation_id: delegation,
+        role: 'operator',
+        signed_by: tenant.userId,
+        signed_at: '2026-10-16T10:12:00Z',
+        typed_name: 'Sabine Krämer',
+        page_fingerprint: 'a'.repeat(64),
+      },
+    },
+    {
+      table: 'duty_delegation_revocations',
+      values: {
+        tenant_id: tenant.id,
+        delegation_id: delegation,
+        effective_on: '2026-12-15',
+        reason: 'Wechsel in die Liegenschaftsverwaltung.',
+        revoked_by: tenant.userId,
+        revoked_at: '2026-12-01T09:00:00Z',
       },
     },
     { table: 'stores', values: { id: store, tenant_id: tenant.id, name: 'Hauptlager' } },
