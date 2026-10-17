@@ -9,6 +9,7 @@ import {
   Building2,
   Calendar,
   CalendarClock,
+  ChartColumn,
   ClipboardCheck,
   FileText,
   Gauge,
@@ -59,7 +60,11 @@ const deadlinesPlace = '/fristen'
  */
 export const officeNavigation: readonly OfficePlaces[] = [
   {
-    entries: [{ to: '/', label: 'Übersicht', icon: LayoutDashboard, right: 'duty.read' }],
+    entries: [
+      { to: '/', label: 'Übersicht', icon: LayoutDashboard, right: 'duty.read' },
+      // The figures over time, for whoever may look at them (#334).
+      { to: '/auswertungen', label: 'Auswertungen', icon: ChartColumn, right: 'report.read' },
+    ],
   },
   {
     title: 'Bestand',

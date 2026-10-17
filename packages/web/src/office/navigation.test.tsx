@@ -29,6 +29,7 @@ function offeredTo(role: RoleKey): string[] {
 
 const whole = [
   'Übersicht',
+  'Auswertungen',
   'Liegenschaften',
   'Anlagen',
   'Zähler',
@@ -56,7 +57,7 @@ describe('the navigation of the board', () => {
       'Arbeit',
     ])
     expect(officeNavigation.map((group) => group.entries.map((place) => place.label))).toEqual([
-      ['Übersicht'],
+      ['Übersicht', 'Auswertungen'],
       ['Liegenschaften', 'Anlagen', 'Zähler', 'Dokumente'],
       ['Pflichtenverzeichnis', 'Fristen', 'Prüfungen'],
       [
@@ -90,15 +91,20 @@ describe('what a role is offered once every screen is built', () => {
     expect(offeredTo('technical_management')).toEqual(whole)
   })
 
-  it('is everything but the deadlines for the Objektleitung', () => {
-    expect(offeredTo('site_management')).toEqual(whole.filter((label) => label !== 'Fristen'))
+  // The figures over time are for the Leitung and the Technische Leitung (#334).
+  it('is everything but the deadlines and the figures for the Objektleitung', () => {
+    expect(offeredTo('site_management')).toEqual(
+      whole.filter((label) => !['Fristen', 'Auswertungen'].includes(label)),
+    )
   })
 
   // As the board says it: "der Rolle Haustechnik fehlen Fristen und
   // Einstellungen". The settings are the frame's and stand in the tests below.
-  it('is everything but the deadlines, the faults and the contracts for the Haustechnik', () => {
+  it('is everything but the deadlines, the faults, the contracts and the figures for the Haustechnik', () => {
     expect(offeredTo('technician')).toEqual(
-      whole.filter((label) => !['Fristen', 'Störungen', 'Verträge'].includes(label)),
+      whole.filter(
+        (label) => !['Fristen', 'Störungen', 'Verträge', 'Auswertungen'].includes(label),
+      ),
     )
   })
 
@@ -194,6 +200,8 @@ describe('the navigation of the office as it is built today', () => {
   // The deadlines and their settings for whoever looks after them (#104).
   const withDeadlines = [
     'Übersicht',
+    // The figures over time, for whoever may look at them (#334).
+    'Auswertungen',
     'Liegenschaften',
     'Anlagen',
     'Zähler',

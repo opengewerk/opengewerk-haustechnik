@@ -77,4 +77,6 @@ export const serverPaths: readonly string[] = [
   // The fault reports: reporting one with its photo, the own reports, the
   // buildings and rooms to report at, and the inbox of the area (#331).
   'fault-reports',
+  // The figures over time, per place and never per person (#334).
+  'reports',
 ]

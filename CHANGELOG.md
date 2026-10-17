@@ -9,6 +9,13 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
 
 ### Hinzugefügt
 
+- Auswertungen über die Zeit (#334, Abschnitt 4.16 des Konzepts): unter „Auswertungen“ die Erfüllung der Pflichten
+  je Monat, Quartal oder Jahr (fällig geworden, rechtzeitig, später, noch offen), die offenen Mängel nach Alter und
+  Klasse, die Störungen nach Kategorie und Gebäude mit der Zeit bis zur Annahme und bis zur Erledigung und die Vorgänge
+  nach DIN 31051, je Bereich, Liegenschaft und Gebäude und als Tabelle. Keine Zahl je Person, auch nicht in der
+  Tabelle. Warum: der Pilotbetrieb braucht die Kennzahlen, bevor die Vorgängeranwendung abgeschaltet wird, und deren
+  Rückstandsliste je Person wird nicht nachgebaut. Das neue Recht „Auswertungen ansehen“ haben Leitung und Technische
+  Leitung; bestehende Betreiber bekommen es mit der Migration `0066_report_right`.
 - Störmeldung ohne Konto über das Etikett (#332, Abschnitt 4.7 des Konzepts): das Etikett an einem Raum oder einer
   Anlage öffnet ohne Anmeldung eine Seite mit Kategorie, Beschreibung, Foto und auf Wunsch einer E-Mail-Adresse für die
   Rückmeldung, sobald die Leitung sie unter „Einstellungen“, „Störungen“ einschaltet. Die Seite nennt nur den Raum; ein
