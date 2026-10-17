@@ -27,6 +27,7 @@ import { areaFromPropertyColumn, areaFromTheProperty, withinAreas } from './area
 import { assets } from './assets.js'
 import { evidence } from './evidence.js'
 import { buildings, optionalTrimmed, properties, rooms, trimmed } from './locations.js'
+import { kindOfItsAsset, withinLimits } from './limit-policies.js'
 
 /** The status of a defect, from the list in `domain`. */
 export const defectStatus = pgEnum('defect_status', defectStatuses)
@@ -74,6 +75,7 @@ export const defects = pgTable(
   (table) => [
     tenantIsolation(table.tenantId),
     withinAreas(),
+    withinLimits(table.propertyId, kindOfItsAsset(table.assetId)),
     unique('defects_tenant_id_key').on(table.tenantId, table.id),
     // What a row that hangs on it points at for its area (ADR 0003, addendum of #306).
     unique('defects_area_key').on(table.tenantId, table.id, table.areaId),

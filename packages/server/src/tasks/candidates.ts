@@ -1,5 +1,6 @@
 import type { Right } from '@opengewerk/haustechnik-domain'
 import type { TenantTransaction } from '@opengewerk/platform-server'
+import { beforeItsEnd } from '@opengewerk/platform-server'
 import { and, isNull, sql } from 'drizzle-orm'
 
 import { memberAllAreas, memberAreas, memberships, tenantRoles } from '../database/schema/index.js'
@@ -26,6 +27,7 @@ export async function taskCandidatesIn(
     .where(
       and(
         isNull(memberships.blockedAt),
+        beforeItsEnd(),
         sql`exists (
           select 1 from ${tenantRoles}
            where ${tenantRoles.tenantId} = ${memberships.tenantId}

@@ -49,7 +49,8 @@ const tenant: { readonly id: TenantId; readonly name: string } = {
  */
 const outsideTheLog = {
   prefixes: [...foundationOutsideTheLog.prefixes],
-  tables: [...foundationOutsideTheLog.tables, 'secrets', 'fault_report_contacts'],
+  // The reads of an auditor (#339) are a log themselves: logging them again would double every request.
+  tables: [...foundationOutsideTheLog.tables, 'secrets', 'fault_report_contacts', 'auditor_reads'],
 }
 
 let admin: Pool

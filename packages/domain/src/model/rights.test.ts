@@ -109,7 +109,7 @@ describe('the catalogue of rights', () => {
 })
 
 describe('the roles a tenant starts with', () => {
-  it('are the four of phase 1 and the Melder of phase 2, in the order a screen lists them', () => {
+  it('are the four of phase 1 and the Melder and the Prüfer of phase 2, in the order a screen lists them', () => {
     expect(shippedRoles.map((role) => role.key)).toEqual([...roleKeys])
     expect(shippedRoles.map((role) => role.label)).toEqual([
       'Leitung',
@@ -117,6 +117,7 @@ describe('the roles a tenant starts with', () => {
       'Objektleitung',
       'Haustechnik',
       'Melder',
+      'Prüfer',
     ])
   })
 
@@ -129,9 +130,20 @@ describe('the roles a tenant starts with', () => {
     }
   })
 
-  it('each hold what the role after them holds', () => {
-    for (const [position, role] of shippedRoles.entries()) {
-      const below = shippedRoles[position + 1]
+  it('each hold what the role after them holds, the four of phase 1, and the Haustechnik what the Melder and the Prüfer hold', () => {
+    // The Melder and the Prüfer stand beside each other, neither holds the other's (#339).
+    const phaseOne = shippedRoles.slice(0, 4)
+    const technician = shippedRoles.find((role) => role.key === 'technician')
+
+    for (const outside of shippedRoles.slice(4)) {
+      expect([
+        outside.key,
+        outside.rights.filter((right) => !technician?.rights.includes(right)),
+      ]).toEqual([outside.key, []])
+    }
+
+    for (const [position, role] of phaseOne.entries()) {
+      const below = phaseOne[position + 1]
 
       if (!below) {
         continue
@@ -389,6 +401,17 @@ describe('"Melder"', () => {
   it('does not lead the tenant and is not asked for a second factor', () => {
     expect(roleOf('reporter').leads).toBe(false)
     expect(roleOf('reporter').secondFactor).toBe(false)
+  })
+})
+
+describe('"Prüfer"', () => {
+  it('reads the duties and their evidence and takes what they hang on, and nothing else: no place, no writing, no push (#339)', () => {
+    expect(may('auditor')).toEqual(['duty.read', 'evidence.read', 'sync.read'])
+  })
+
+  it('does not lead the tenant and is not asked for a second factor', () => {
+    expect(roleOf('auditor').leads).toBe(false)
+    expect(roleOf('auditor').secondFactor).toBe(false)
   })
 })
 

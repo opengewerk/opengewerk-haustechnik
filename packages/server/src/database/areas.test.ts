@@ -19,7 +19,12 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 import { inEveryArea } from './every-area.js'
 import { withinAreasExpression, withinAreasOfTheirFileExpression } from './schema/index.js'
-import { areaBoundaryProblems, areaColumnsWithoutTheLine, linesThroughARow } from './test-areas.js'
+import {
+  areaBoundaryProblems,
+  areaColumnsWithoutTheLine,
+  linesThroughARow,
+  propertyColumnsWithoutAnArea,
+} from './test-areas.js'
 import {
   applicationDatabaseUrl,
   connect,
@@ -870,7 +875,7 @@ describe('a property moved to another area', () => {
       database.forTenant({ tenantId: tenant, userId: person.lead }, (tx) =>
         tx.execute(sql`update properties set area_id = ${to} where id = ${place.north.property}`),
       )
-    const { rows: tables } = await admin.query<{ table_name: string }>(
+    const { rows: everyTable } = await admin.query<{ table_name: string }>(
       `select distinct c.relname as table_name
          from pg_attribute a
          join pg_class c on c.oid = a.attrelid
@@ -879,6 +884,8 @@ describe('a property moved to another area', () => {
           and not a.attisdropped
         order by 1`,
     )
+    // The limits of an access from outside name a property and lie in no area (#339).
+    const tables = everyTable.filter((row) => !(row.table_name in propertyColumnsWithoutAnArea))
 
     await move(area.south)
 
@@ -992,7 +999,7 @@ describe('a building with an area of its own', () => {
   }
 
   it('takes everything in it along and leaves what hangs on the property', async () => {
-    const { rows: tables } = await admin.query<{ table_name: string }>(
+    const { rows: everyTable } = await admin.query<{ table_name: string }>(
       `select distinct c.relname as table_name
          from pg_attribute a
          join pg_class c on c.oid = a.attrelid
@@ -1001,6 +1008,8 @@ describe('a building with an area of its own', () => {
           and not a.attisdropped
         order by 1`,
     )
+    // The limits of an access from outside name a property and lie in no area (#339).
+    const tables = everyTable.filter((row) => !(row.table_name in propertyColumnsWithoutAnArea))
     const onTheProperty = [
       'contacts',
       'deadlines',

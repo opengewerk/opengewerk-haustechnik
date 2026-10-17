@@ -37,6 +37,7 @@ import { attachments, attachmentVersions } from './attachments.js'
 import { contracts } from './contracts.js'
 import { contractors } from './contractors.js'
 import { dutyDelegations } from './delegations.js'
+import { kindOfItsAsset, withinLimits } from './limit-policies.js'
 import { buildings, optionalTrimmed, properties, rooms, trimmed } from './locations.js'
 
 // The duties of an operator (section 2.3 of the concept, ADR 0002, points 10
@@ -142,6 +143,8 @@ export const duties = pgTable(
   (table): PgTableExtraConfigValue[] => [
     tenantIsolation(table.tenantId),
     withinAreas(),
+    // Only the properties and kinds an access from outside is limited to (#339).
+    withinLimits(table.propertyId, kindOfItsAsset(table.assetId)),
     unique('duties_tenant_id_key').on(table.tenantId, table.id),
     // What a row that hangs on it points at for its area (ADR 0003, addendum of #306).
     unique('duties_area_key').on(table.tenantId, table.id, table.areaId),
@@ -386,6 +389,7 @@ export const dutyDismissals = pgTable(
   (table) => [
     tenantIsolation(table.tenantId),
     withinAreas(),
+    withinLimits(table.propertyId, kindOfItsAsset(table.assetId)),
     unique('duty_dismissals_tenant_id_key').on(table.tenantId, table.id),
     // The area of what the row hangs on (ADR 0003, addendum of #306).
     foreignKey({

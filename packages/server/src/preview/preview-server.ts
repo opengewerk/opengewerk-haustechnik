@@ -59,6 +59,7 @@ import { giveSampleTemplates } from './sample-templates.js'
 import { giveSampleMeters } from './sample-meters.js'
 import { giveSampleFaults, giveSampleWork } from './sample-work.js'
 import { writeSampleStandings } from './sample-standings.js'
+import { giveSampleAuditor } from './sample-auditor.js'
 import { giveSampleDelegations, plantSampleDelegations } from './sample-delegations.js'
 import { plantSampleQualifications } from './sample-qualifications.js'
 
@@ -275,6 +276,13 @@ export async function openSamplePreview(
     // The qualifications of the people (#337), before the engine makes the
     // deadline of each end.
     await plantSampleQualifications(`http://127.0.0.1:${String(port)}`)
+    // The auditor from outside (#339): the last day, the limits and a morning
+    // of reads; a viewer who is an auditor reads within the same limits.
+    await giveSampleAuditor(
+      admin,
+      tenant.id,
+      viewer.role === 'auditor' ? previewPeople.viewer.id : null,
+    )
 
     // One pass of the engine, so that the due days have their inspections
     // before somebody looks, and two of them planned (#105). In the morning of

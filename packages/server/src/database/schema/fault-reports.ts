@@ -25,6 +25,7 @@ import { withinAreas } from './areas.js'
 import { assets } from './assets.js'
 import { defects } from './defects.js'
 import { buildings, rooms, trimmed } from './locations.js'
+import { kindOfItsAsset, onNoAsset, withinLimits } from './limit-policies.js'
 
 /**
  * The categories of the fault reports of an operator (section 4.7 of the
@@ -97,6 +98,7 @@ export const faultReports = pgTable(
   (table) => [
     tenantIsolation(table.tenantId),
     withinAreas(),
+    withinLimits(table.propertyId, kindOfItsAsset(table.assetId)),
     unique('fault_reports_tenant_id_key').on(table.tenantId, table.id),
     // What the address of a report without an account follows (#332): the
     // area and the property of its report.
@@ -275,6 +277,7 @@ export const faultReportContacts = pgTable(
   (table) => [
     tenantIsolation(table.tenantId),
     withinAreas(),
+    withinLimits(table.propertyId, onNoAsset()),
     unique('fault_report_contacts_once').on(table.tenantId, table.faultReportId),
     foreignKey({
       columns: [table.tenantId, table.faultReportId, table.areaId],

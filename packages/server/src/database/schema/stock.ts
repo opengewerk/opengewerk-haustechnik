@@ -27,6 +27,7 @@ import {
 
 import { activities, activityKind } from './activities.js'
 import { withinAreas } from './areas.js'
+import { kindOfItsActivity, withinLimits } from './limit-policies.js'
 
 /**
  * The stores of the operator (#325, section 4.12 of the concept), made with
@@ -99,6 +100,7 @@ export const workOrderMaterials = pgTable(
   (table) => [
     tenantIsolation(table.tenantId),
     withinAreas(),
+    withinLimits(table.propertyId, kindOfItsActivity(table.activityId)),
     unique('work_order_materials_tenant_id_key').on(table.tenantId, table.id),
     // The area of what the row hangs on (ADR 0003, addendum of #306).
     foreignKey({

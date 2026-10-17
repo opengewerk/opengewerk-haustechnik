@@ -55,6 +55,7 @@ Anhang B nennt jedes Feld der Datenbank, das auf eine Person zeigt. Dieser Absch
 ### 3.2 Zugehörigkeit, Rollen, Bereiche, Vertretung
 
 - Wer bei einem Betreiber arbeitet, hat dort eine Zugehörigkeit mit einer oder mehreren Rollen. Verlässt jemand den Betreiber, wird die Zugehörigkeit gesperrt und nicht gelöscht: die Person bleibt in der Liste und in allem, was sie unterschrieben hat. [K7, B50]
+- **Zusage:** Eine Zugehörigkeit kann einen letzten Tag haben, den die Leitung mit der Einladung oder unter „Zugänge“ setzt. Danach gilt sie wie gesperrt, ohne dass jemand etwas tut: die Person kommt bei diesem Betreiber nicht mehr hinein, bekommt nichts mehr zugeteilt, verantwortet keine Frist mehr und wird nicht mehr erinnert. Die letzte Leitung bekommt keinen letzten Tag. [K7, B349, B353]
 - Eine Einladung hält Name, E-Mail-Adresse, Rollen und Bereiche der eingeladenen Person und wer eingeladen hat. Ihr Link gilt sieben Tage. Hat der Betreiber einen Mailserver eingerichtet, kann die Leitung die Einladung per E-Mail schicken; sonst gibt sie den Link selbst weiter. [K7, B63, B67]
 - **Zusage:** Der Link einer Einladung per E-Mail entsteht erst, wenn die E-Mail hinausgeht. Im Postausgang und im Änderungsprotokoll steht keiner, der funktioniert. [K9, B227]
 - **Zusage:** Wer den Link einer Einladung öffnet, sieht ohne Anmeldung den Betreiber, Name und Adresse der eingeladenen Person, ihre Rollen und ihre Bereiche, damit sie vor dem Passwort weiß, wofür der Zugang ist. Das gilt nur, solange der Link gilt: ein benutzter, zurückgezogener oder abgelaufener nennt Rollen und Bereiche nicht mehr. Den Link hat die eingeladene Person, oder die Leitung, solange sie ihn nicht weitergegeben hat. [K7, B258, B259]
@@ -294,15 +295,24 @@ Anhang B nennt jedes Feld der Datenbank, das auf eine Person zeigt. Dieser Absch
 - **Zusage:** Wer eine Prüfung, eine Wartung oder einen Auftrag zuteilt und Qualifikationen ansieht, bekommt zu jeder Person den Hinweis, wenn ihr die Art fehlt, die die Pflichtart fordert, oder sie abgelaufen ist. Gespeichert wird trotzdem. Wer ohne dieses Recht zuteilt, bekommt den Hinweis nicht. Vor Ort sieht die Person selbst denselben Hinweis aus ihren eigenen Qualifikationen, wenn sie das Protokoll beginnt. [K4.3, K4.4, K7, B343, B345]
 - Welche Art eine Pflichtart fordert, sagt das Paket in `qualifikationen.json`. Eine Pflichtart, deren Quelle eine Firma nennt (Überwachungsstelle, Sachverständiger, Labor) oder die Stufe offenlässt, fordert keine, und dann gibt es keinen Hinweis. [K2.3, K4.3]
 
+### 3.20 Prüfer von außen
+
+- Ein Prüfer ist ein Zugang mit der Rolle Prüfer: eine Person von außen, etwa von einer Behörde, einem Versicherer oder einer Prüforganisation. Sein Konto steht mit Name und E-Mail-Adresse beim Betreiber wie jedes andere; das ist eine Angabe über einen Dritten. Die Leitung lädt ihn ein, mit einem letzten Tag, in Bereichen wie jeden Zugang und auf Wunsch beschränkt auf Liegenschaften und Anlagenarten. [K4.3, K7, K9]
+- **Zusage:** Ein Prüfer liest Pflichten und Nachweise, mit den Prüfbescheinigungen, die das Nachweisverzeichnis anhängt, und nur in den Liegenschaften und Anlagenarten seines Zugangs; die Datenbank hält das wie den Bereich. Er sieht dabei, wer für eine Pflicht verantwortlich ist und wer einen Nachweis unterschrieben hat. Er ändert nichts, und eine Pflicht wird ihm nicht übertragen. Die Beschränkung steht auf jeder Tabelle mit einer Liegenschaft, nicht nur auf denen, die er über eine Route erreicht. [K4.3, K7, B346, B347, B350, B352, B356]
+- **Zusage:** Ein Zugang als Prüfer hat immer einen letzten Tag; danach sieht er nichts mehr, ohne dass jemand etwas tut. Eine Beschränkung auf Liegenschaften oder Anlagenarten gibt es nur für den Prüfer. [K4.3, K7, B348, B349, B354]
+- **Zusage:** Jede Anfrage eines Prüfers steht im Protokoll der Zugriffe, mit dem Zeitpunkt, was er gelesen oder ausgegeben hat und wovon, geschrieben, bevor die Anfrage beantwortet wird. Lesen kann es die Leitung unter „Zugänge“ und sonst niemand; die Anwendung ändert und löscht keine Zeile davon. [K4.3, K9, B351]
+- Auf seinem Gerät liegt nur, woran die Pflichten hängen: Liegenschaften, Gebäude, Geschosse, Räume, Anlagen, Pflichten und die Namen der Fremdfirmen, in den Grenzen seines Zugangs. [K2.7, K4.3, B355]
+
 ## 4. Wer was sieht
 
-Phase 1 kennt vier Rollen, Phase 2 bringt den Melder dazu: er sieht seine eigenen Störmeldungen und die Namen der Gebäude und Räume seiner Bereiche und sonst nichts (Abschnitt 3.17). Was jede Rolle darf, steht Recht für Recht in Abschnitt 7 des Planungskonzepts. Für die Daten über Beschäftigte heißt das:
+Phase 1 kennt vier Rollen, Phase 2 bringt den Melder dazu: er sieht seine eigenen Störmeldungen und die Namen der Gebäude und Räume seiner Bereiche und sonst nichts (Abschnitt 3.17); und den Prüfer, der Pflichten und Nachweise in den Grenzen seines Zugangs liest (Abschnitt 3.20). Was jede Rolle darf, steht Recht für Recht in Abschnitt 7 des Planungskonzepts. Für die Daten über Beschäftigte heißt das:
 
 | Was | Leitung | Technische Leitung | Objektleitung | Haustechnik |
 | --- | --- | --- | --- | --- |
 | Zugänge: wer hier arbeitet, Rollen, Sperre, zuletzt angemeldet, Geräte | ja | nein | nein | nein |
 | Bereiche je Person und Vertretungen | ja | nein | nein | nein |
 | Änderungsprotokoll | ja | nein | nein | nein |
+| Das Protokoll der Zugriffe eines Prüfers | ja | nein | nein | nein |
 | Das eigene Konto und die eigenen Geräte | ja | ja | ja | ja |
 | Wer für eine Pflicht verantwortlich ist, mit Namen | in ihren Bereichen | in ihren Bereichen | in ihren Bereichen | in ihren Bereichen |
 | Das Pflichtenverzeichnis auf eine Person eingrenzen; die Namen zur Wahl der verantwortlichen Person | ja | ja | nein | nein |
@@ -412,6 +422,7 @@ Leitung und Technische Leitung sehen als Vorgabe alle Bereiche.
 - **Zusage:** Eine Sitzung endet mit dem Abmelden. Wird eine Zugehörigkeit gesperrt, endet sofort, was die Person bei diesem Betreiber offen hat, und nicht erst, wenn ihre Sitzung abläuft. [K7, K9, B47, B51]
 - Ein Nachweis nennt in seinem eingefrorenen Stand, wie lange er nach seiner Pflichtart aufzubewahren ist. In dieser Fassung handelt nichts danach. [K2.6, B29]
 - Eine Vertretung, die jemand vorzeitig beendet, wird gelöscht; wer sie eingetragen und wer sie beendet hat, behält das Änderungsprotokoll. [K2.8]
+- Das Protokoll der Zugriffe eines Prüfers löscht diese Fassung nicht; es bleibt mit der Zugehörigkeit, bis das Löschkonzept regelt, wie lange (Abschnitt 10). [K9]
 - Eine Sicherung enthält alles, was in der Datenbank steht. Aufbewahrt werden nach der Vorgabe vierzehn Generationen; wo sie liegen und ob sie verschlüsselt sind, stellt ein, wer die Instanz betreibt. [K3, B64]
 
 ---
@@ -444,6 +455,7 @@ Diese Bausteine gehören nach dem Fahrplan zu Phase 1 und sind noch nicht gebaut
 - **Schwärzen im Änderungsprotokoll.** Das Planungskonzept sagt, dass ein personenbezogener Wert im Änderungsprotokoll geschwärzt wird und die Kette ganz bleibt. Gebaut ist das nicht: die Werte stehen im Klartext, und kein Eintrag lässt sich ändern. Es gehört zu den Datenschutzfunktionen von Phase 2. [K9, K12]
 - **Löschen mit dem Ende der Aufbewahrung.** Das Planungskonzept sagt, dass ein Nachweis mit dem Ende seiner Aufbewahrung gelöscht wird und der Name mit ihm, nach einem Vorschlag, den die Leitung bestätigt. Gebaut ist das nicht; es kommt in Phase 2. [K2.6, K9, K12]
 - **Ende einer Zugehörigkeit.** Das Planungskonzept sagt, dass nach einer einstellbaren Frist die Angaben eines Kontos entfernt werden, die kein Nachweis mehr braucht. Gebaut ist die Sperre; das Entfernen kommt in Phase 2. [K9, K12]
+- **Aufbewahrung des Protokolls der Zugriffe.** Wie lange die Zeilen des Protokolls eines Prüfers bleiben, sagt das Planungskonzept nicht. Bis das Löschkonzept es regelt, bleiben sie. [K9, K12]
 - **Erzeugte Unterlagen.** Das Verzeichnis der Verarbeitungstätigkeiten, die Beschreibung der technischen und organisatorischen Maßnahmen und die erzeugte Verfahrensbeschreibung kommen in Phase 2, ebenso die Vorlage für eine Betriebs- oder Dienstvereinbarung. [K9, K12]
 
 ---
@@ -543,10 +555,10 @@ Pfade ohne Vorsatz liegen im Repository `opengewerk/opengewerk-haustechnik`. Pfa
 | B72 | Recht | `document.record` | Dokumente ablegen: Leitung, Technische Leitung, Objektleitung, Haustechnik |
 | B73 | Test | `packages/server/src/api/files.test.ts` | `stands in the change log of the tenant with who sent it` |
 | B74 | Test | `packages/server/src/api/files.test.ts` | `is handed out by no route under its hash, not even to "Leitung"` |
-| B75 | Recht | `duty.read` | Pflichten ansehen: Leitung, Technische Leitung, Objektleitung, Haustechnik |
+| B75 | Recht | `duty.read` | Pflichten ansehen: Leitung, Technische Leitung, Objektleitung, Haustechnik, Prüfer |
 | B76 | Test | `packages/server/src/api/duty-register.test.ts` | `are everybody who works for the operator, by name and whether they can still be named, and nothing else of them` |
 | B77 | Test | `packages/server/src/api/duty-register.test.ts` | `let whoever reads duties read the register, a duty and the duties of a room; evidence and colleagues ask for their own` |
-| B78 | Recht | `evidence.read` | Nachweise ansehen: Leitung, Technische Leitung, Objektleitung, Haustechnik |
+| B78 | Recht | `evidence.read` | Nachweise ansehen: Leitung, Technische Leitung, Objektleitung, Haustechnik, Prüfer |
 | B79 | Test | `packages/server/src/api/duty-register.test.ts` | `lists its evidence, the newest first, each with what it means for the appointment, and names nobody` |
 | B80 | Test | `packages/server/src/api/duty-register.test.ts` | `is for whoever keeps the register, and the others are refused` |
 | B81 | Test | `packages/server/src/api/duty-register.test.ts` | `answers without a single number, and says all the same whether more follow` |
@@ -814,6 +826,17 @@ Pfade ohne Vorsatz liegen im Repository `opengewerk/opengewerk-haustechnik`. Pfa
 | B343 | Test | `packages/server/src/api/qualifications.test.ts` | `note at the choice of a performer what of the kind the duties ask for is missing or ran out, for whoever looks at them` |
 | B344 | Test | `packages/server/src/api/qualifications.test.ts` | `name the person at their deadline only for whoever looks at qualifications, also in the table` |
 | B345 | Test | `packages/web/src/site/screens/protocol.test.tsx` | `tells whoever holds it no longer, with the day it ran out` |
+| B346 | Test | `packages/server/src/api/auditors.test.ts` | `reads only the duties of the properties and kinds the access is limited to` |
+| B347 | Test | `packages/server/src/api/auditors.test.ts` | `is held by the database as well, past every route` |
+| B348 | Test | `packages/server/src/api/auditors.test.ts` | `sees nothing after the last day of the access, without anybody doing anything` |
+| B349 | Test | `upstream/opengewerk/packages/platform/server/src/authentication/last-day.test.ts` | `goes with an invitation into the membership, and after it nobody is let in without anybody doing anything` |
+| B350 | Test | `packages/server/src/api/auditors.test.ts` | `changes nothing: every route that writes asks for a right an auditor does not hold` |
+| B351 | Test | `packages/server/src/api/auditors.test.ts` | `has every read written down, and the Leitung reads them in words` |
+| B352 | Test | `packages/server/src/api/auditors.test.ts` | `is given no delegation of duties, which alone would let it sign one` |
+| B353 | Test | `upstream/opengewerk/packages/platform/server/src/authentication/last-day.test.ts` | `takes somebody off the colleagues and the leads of the tenant after it, without a block` |
+| B354 | Test | `packages/server/src/api/auditors.test.ts` | `are refused for a role that is not limited, and the auditor only with a last day` |
+| B355 | Test | `packages/server/src/api/auditors.test.ts` | `holds on its device what the duties hang on, within its limits, and nothing else` |
+| B356 | Test | `packages/server/src/api/auditors.test.ts` | `is held on every table with a property, past every route (review of #408)` |
 
 ---
 
@@ -827,6 +850,7 @@ Jede Zeile ist ein Feld der Datenbank, das die Kennung eines Kontos hält. Der S
 | `activities` | `performer_user_id` | wer einen Vorgang ausführt |
 | `activities` | `responsible_user_id` | wer für einen Vorgang verantwortlich ist |
 | `activity_signatures` | `signed_by` | wer unterschrieben oder gegengezeichnet hat |
+| `auditor_reads` | `user_id` | welcher Prüfer etwas gelesen oder ausgegeben hat |
 | `attachment_versions` | `created_by` | wer eine Fassung eines Dokuments abgelegt hat |
 | `audit_entries` | `user_id` | wer eine Änderung gemacht hat |
 | `auth_accounts` | `user_id` | das Konto, zu dem ein Passwort gehört |
@@ -854,6 +878,8 @@ Jede Zeile ist ein Feld der Datenbank, das die Kennung eines Kontos hält. Der S
 | `mail_outbox` | `requested_by` | wer eine Einladung per E-Mail geschickt hat; bei einer Erinnerung an eine Frist niemand |
 | `member_all_areas` | `user_id` | wessen Zugehörigkeit für alle Bereiche gilt |
 | `member_areas` | `user_id` | für wen ein Bereich genannt ist |
+| `member_limit_asset_kinds` | `user_id` | auf welche Anlagenarten der Zugang eines Prüfers beschränkt ist |
+| `member_limit_properties` | `user_id` | auf welche Liegenschaften der Zugang eines Prüfers beschränkt ist |
 | `member_passkeys` | `user_id` | wessen Passkey bei diesem Betreiber gilt |
 | `memberships` | `user_id` | wer bei diesem Betreiber arbeitet |
 | `meter_points` | `note_by` | wer die Notiz an einer Messstelle geschrieben hat |
@@ -890,6 +916,7 @@ Jede Zeile ist der erste Abschnitt einer Adresse, unter der der Server antwortet
 | `assets` | Anlagen und ihre Komponenten, und die Nachweise einer Anlage; das Anlagenverzeichnis auch als Tabelle |
 | `attachments` | Dokumente: gibt die Datei einer Fassung und ihre Vorschau aus, über die Fassung und nie über die Prüfsumme; die Liste der Dokumente auch als Tabelle |
 | `audit` | Änderungsprotokoll, für die Leitung auch als Tabelle |
+| `auditor-reads` | das Protokoll der Zugriffe der Prüfer, für die Leitung |
 | `auth` | das eigene Konto: Betreiber wählen, eigene Angaben, eigene Geräte, eigene Passkeys, abmelden |
 | `buildings` | Gebäude mit ihren Schließzeiten |
 | `catalogue` | Katalog der Pakete, für jeden Betreiber derselbe und ohne Daten eines Betreibers |

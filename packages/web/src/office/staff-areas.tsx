@@ -1,6 +1,7 @@
 import {
   type Area,
   type InvitationAreas,
+  isLimited,
   type MemberAreas,
   memberAreasInWords,
   memberAreaWords,
@@ -13,6 +14,15 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import type { ReactNode } from 'react'
 
 import { areasQuery } from '../session/areas.js'
+import {
+  invitationLimitsQuery,
+  type LimitChoice,
+  limitChoiceOf,
+  LimitFields,
+  limitsToSend,
+  memberLimitsQuery,
+  noLimitChoice,
+} from './staff-limits.js'
 
 /**
  * The areas somebody holds in, as "Zugänge" shows and changes them (section
@@ -30,6 +40,8 @@ import { areasQuery } from '../session/areas.js'
 export interface AreaChoice {
   readonly all: boolean
   readonly areaIds: readonly string[]
+  /** What an auditor from outside is limited to beside the areas (#339). */
+  readonly limits?: LimitChoice
 }
 
 export const areaWords = {
@@ -131,6 +143,7 @@ function AreaFields({
                 checked={value.areaIds.includes(area.id)}
                 onChange={(event) => {
                   onChange({
+                    ...value,
                     all: false,
                     areaIds: event.target.checked
                       ? [...value.areaIds, area.id]
@@ -165,6 +178,9 @@ export function useAreaAdditions(): StaffAdditions<AreaChoice> {
   const areas = useQuery(areasQuery)
   const members = useQuery(memberAreasQuery)
   const invitations = useQuery(invitationAreasQuery)
+  // What auditors from outside are limited to beside their areas (#339).
+  const limits = useQuery(memberLimitsQuery)
+  const invitationLimits = useQuery(invitationLimitsQuery)
   const named = areas.data ?? noAreas
   const someoneWithout = (members.data ?? []).some(
     (entry) => !entry.all && entry.areaIds.length === 0,
@@ -175,7 +191,12 @@ export function useAreaAdditions(): StaffAdditions<AreaChoice> {
     // As narrow as the boards draw it, so that the buttons of a row stay on
     // one line; wider where "ohne Bereich" has to fit.
     column: someoneWithout ? 'w-[96px]' : 'w-[64px]',
-    known: areas.data !== undefined && members.data !== undefined && invitations.data !== undefined,
+    known:
+      areas.data !== undefined &&
+      members.data !== undefined &&
+      invitations.data !== undefined &&
+      limits.data !== undefined &&
+      invitationLimits.data !== undefined,
     // What the database holds, not what the role would suggest: the line
     // between the areas is drawn from these rows.
     ofMember: (person) => {
@@ -195,17 +216,42 @@ export function useAreaAdditions(): StaffAdditions<AreaChoice> {
       const held =
         person === null ? undefined : members.data?.find((entry) => entry.userId === person.userId)
 
-      return held ? { all: held.all, areaIds: held.areaIds } : areasToBeginWith([], named)
+      const limited = limitChoiceOf(
+        person === null ? undefined : limits.data?.find((entry) => entry.userId === person.userId),
+      )
+
+      return held
+        ? { all: held.all, areaIds: held.areaIds, limits: limited }
+        : { ...areasToBeginWith([], named), limits: limited }
     },
-    fields: (part) => <AreaFields areas={named} {...part} />,
+    fields: (part) => (
+      <>
+        <AreaFields areas={named} {...part} />
+        {part.role !== null && isLimited([part.role]) ? (
+          <LimitFields
+            value={part.value.limits ?? noLimitChoice}
+            areaIds={part.value.all ? null : part.value.areaIds}
+            onChange={(next) => {
+              part.onChange({ ...part.value, limits: next })
+            }}
+          />
+        ) : null}
+      </>
+    ),
     toSend: (value, role) => {
       const all = seesEveryArea([role]) || value.all
 
-      return { all, areaIds: all ? [] : [...value.areaIds] }
+      return {
+        all,
+        areaIds: all ? [] : [...value.areaIds],
+        ...limitsToSend(value.limits ?? noLimitChoice, role),
+      }
     },
     refresh: () => {
       void queries.invalidateQueries({ queryKey: memberAreasQuery.queryKey })
       void queries.invalidateQueries({ queryKey: invitationAreasQuery.queryKey })
+      void queries.invalidateQueries({ queryKey: memberLimitsQuery.queryKey })
+      void queries.invalidateQueries({ queryKey: invitationLimitsQuery.queryKey })
     },
   }
 }

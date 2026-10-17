@@ -14,6 +14,7 @@ import {
   missingRight,
 } from '@opengewerk/haustechnik-domain'
 import type { TenantTransaction } from '@opengewerk/platform-server'
+import { beforeItsEnd } from '@opengewerk/platform-server'
 import { memberships } from '@opengewerk/platform-server/schema'
 import { and, asc, eq, gt, inArray, isNull, or } from 'drizzle-orm'
 
@@ -308,7 +309,13 @@ async function takeOver(
           await tx
             .select({ userId: memberships.userId })
             .from(memberships)
-            .where(and(inArray(memberships.userId, responsible), isNull(memberships.blockedAt)))
+            .where(
+              and(
+                inArray(memberships.userId, responsible),
+                isNull(memberships.blockedAt),
+                beforeItsEnd(),
+              ),
+            )
         ).map((row) => row.userId),
   )
   const documentIds = ids(taken.map((duty) => duty.intervalDocumentId))

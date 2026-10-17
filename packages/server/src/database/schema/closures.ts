@@ -12,6 +12,7 @@ import { check, date, foreignKey, index, pgTable, text } from 'drizzle-orm/pg-co
 
 import { withinAreas } from './areas.js'
 import { buildings, optionalTrimmed } from './locations.js'
+import { onNoAsset, withinLimits } from './limit-policies.js'
 
 /**
  * The times a building is closed (#86, section 4.1 of the concept): from a
@@ -45,6 +46,7 @@ export const buildingClosures = pgTable(
   (table) => [
     tenantIsolation(table.tenantId),
     withinAreas(),
+    withinLimits(table.propertyId, onNoAsset()),
     foreignKey({
       columns: [table.tenantId, table.buildingId, table.propertyId],
       foreignColumns: [buildings.tenantId, buildings.id, buildings.propertyId],

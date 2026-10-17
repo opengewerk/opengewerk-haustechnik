@@ -14,6 +14,7 @@ import { activities } from './activities.js'
 import { areaFromPropertyColumn, areaFromTheProperty, withinAreas } from './areas.js'
 import { assets } from './assets.js'
 import { buildings, properties, rooms, trimmed } from './locations.js'
+import { kindOfItsAssetOrActivity, withinLimits } from './limit-policies.js'
 
 /** Open or done, the two states of the foundation (`taskStatuses`). */
 export const taskStatus = pgEnum('task_status', taskStatuses)
@@ -62,6 +63,7 @@ export const tasks = pgTable(
   (table) => [
     tenantIsolation(table.tenantId),
     withinAreas(),
+    withinLimits(table.propertyId, kindOfItsAssetOrActivity(table.assetId, table.activityId)),
     unique('tasks_tenant_id_key').on(table.tenantId, table.id),
     // For the key of a deadline that names the task made of it (#242).
     unique('tasks_place').on(table.tenantId, table.id, table.propertyId),

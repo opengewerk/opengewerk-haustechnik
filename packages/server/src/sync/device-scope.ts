@@ -191,10 +191,33 @@ export function pullScope(scope: DeviceScope, reads: PullRights): PullScope {
   // Whoever does not see the places, a Melder (#331), gets nothing of the
   // operator on the device: no place, no work, nothing tenant-wide either.
   // Its screens ask the server for what they show.
-  if (!reads.places) {
+  if (!reads.places && !reads.onlyWhatDutiesHangOn) {
     return {
       narrow: () => sql`false`,
       narrowed: Object.fromEntries(syncEntities.map((entity) => [entity, 'nothing'])),
+    }
+  }
+
+  // An auditor from outside (#339) holds what the duties hang on and nothing
+  // else of the operator: no work, no defect, no document. Which of those rows
+  // the database hands over, it decides by the limits of the access
+  // (`within_limits`).
+  if (reads.onlyWhatDutiesHangOn) {
+    return {
+      narrow: (entity) => (dutiesHangOn.includes(entity) ? undefined : sql`false`),
+      narrowed: Object.fromEntries(
+        syncEntities.map((entity) => [
+          entity,
+          dutiesHangOn.includes(entity) ? 'auditor' : 'nothing',
+        ]),
+      ),
+      // A firm by its name alone, as for whoever does not see the contractors (#377).
+      answer: (changes) =>
+        changes.map((change) =>
+          change.entity === 'contractors'
+            ? { ...change, rows: change.rows.map(namedFirm) }
+            : change,
+        ),
     }
   }
 
@@ -351,7 +374,21 @@ export interface PullRights {
   readonly contractors: boolean
   readonly contracts: boolean
   readonly places: boolean
+  /** An auditor from outside (#339): the places, the assets and the duties, and nothing else. */
+  readonly onlyWhatDutiesHangOn?: boolean
 }
+
+/** What the device of an auditor from outside holds (#339). */
+const dutiesHangOn: readonly string[] = [
+  'properties',
+  'buildings',
+  'floors',
+  'rooms',
+  'assets',
+  'duties',
+  // The firm that performs a duty, by its name.
+  'contractors',
+]
 
 /**
  * What a device without the right to see the contractors holds of a firm

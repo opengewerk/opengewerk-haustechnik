@@ -29,6 +29,7 @@ import { activities } from './activities.js'
 import { withinAreas } from './areas.js'
 import { assets } from './assets.js'
 import { optionalTrimmed, trimmed } from './locations.js'
+import { kindOfItsAsset, withinLimits } from './limit-policies.js'
 
 // What a measuring point holds beside its asset (section 4.9 of the concept,
 // #119): what only a measuring point carries, its readings, the replacements
@@ -80,6 +81,7 @@ export const meterPoints = pgTable(
   (table) => [
     tenantIsolation(table.tenantId),
     withinAreas(),
+    withinLimits(table.propertyId, kindOfItsAsset(table.assetId)),
     unique('meter_points_tenant_id_key').on(table.tenantId, table.id),
     unique('meter_points_one_per_asset').on(table.tenantId, table.assetId),
     // The area of what the row hangs on (ADR 0003, addendum of #306).
@@ -170,6 +172,7 @@ export const meterReadings = pgTable(
   (table): PgTableExtraConfigValue[] => [
     tenantIsolation(table.tenantId),
     withinAreas(),
+    withinLimits(table.propertyId, kindOfItsAsset(table.assetId)),
     unique('meter_readings_tenant_id_key').on(table.tenantId, table.id),
     // What a correction points at: a reading of the same property.
     unique('meter_readings_place').on(table.tenantId, table.id, table.propertyId),
@@ -255,6 +258,7 @@ export const meterExchanges = pgTable(
   (table) => [
     tenantIsolation(table.tenantId),
     withinAreas(),
+    withinLimits(table.propertyId, kindOfItsAsset(table.assetId)),
     unique('meter_exchanges_tenant_id_key').on(table.tenantId, table.id),
     // The area of what the row hangs on (ADR 0003, addendum of #306).
     foreignKey({
@@ -298,6 +302,7 @@ export const meterPauses = pgTable(
   (table) => [
     tenantIsolation(table.tenantId),
     withinAreas(),
+    withinLimits(table.propertyId, kindOfItsAsset(table.assetId)),
     unique('meter_pauses_tenant_id_key').on(table.tenantId, table.id),
     // The area of what the row hangs on (ADR 0003, addendum of #306).
     foreignKey({

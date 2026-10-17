@@ -4,6 +4,7 @@ import {
   type DelegationReading,
   type DelegationScope,
   type Identity,
+  isLimited,
   rightsOfRoles,
 } from '@opengewerk/haustechnik-domain'
 import type { Database } from '@opengewerk/platform-server'
@@ -115,7 +116,8 @@ export async function plantSampleDelegations(
   viewer: PreviewViewer,
 ): Promise<SignedByTheDelegate> {
   const today = dayInGermany()
-  const viewerReads = rightsOfRoles([viewer.role]).has('duty.read')
+  // An auditor reads duties but is given none (#339).
+  const viewerReads = rightsOfRoles([viewer.role]).has('duty.read') && !isLimited([viewer.role])
   const signed: string[] = []
 
   // In the area of the viewer, who sees every area a delegation to them names.

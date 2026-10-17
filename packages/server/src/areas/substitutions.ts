@@ -6,7 +6,7 @@ import {
   type Substitution,
   type TenantId,
 } from '@opengewerk/haustechnik-domain'
-import { isUuid, type TenantTransaction } from '@opengewerk/platform-server'
+import { isUuid, stillWorks, type TenantTransaction } from '@opengewerk/platform-server'
 import { and, asc, eq, gte, inArray, lte } from 'drizzle-orm'
 
 import { memberships, substitutions } from '../database/schema/index.js'
@@ -66,7 +66,11 @@ export async function enterSubstitution(
 
   const { substitute, absent, startsOn, endsOn } = wanted as unknown as Substitution
   const people = await tx
-    .select({ userId: memberships.userId, blockedAt: memberships.blockedAt })
+    .select({
+      userId: memberships.userId,
+      blockedAt: memberships.blockedAt,
+      lastDay: memberships.lastDay,
+    })
     .from(memberships)
     .where(
       and(eq(memberships.tenantId, tenantId), inArray(memberships.userId, [substitute, absent])),
@@ -81,7 +85,8 @@ export async function enterSubstitution(
     throw new BadRequestException('Wer vertreten wird, arbeitet nicht für diesen Betreiber.')
   }
 
-  if (standingIn.blockedAt !== null) {
+  // Past the last day of the access as well as shut out.
+  if (!stillWorks(standingIn)) {
     throw new ConflictException('Wer gesperrt ist, vertritt niemanden.')
   }
 

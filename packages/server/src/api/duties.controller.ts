@@ -80,6 +80,7 @@ import {
 } from '@opengewerk/haustechnik-domain'
 import {
   accountsOf,
+  beforeItsEnd,
   CurrentIdentity,
   Database,
   isUuid,
@@ -477,7 +478,9 @@ async function checkResponsible(tx: TenantTransaction, userId: unknown): Promise
   const [member] = await tx
     .select({ userId: memberships.userId })
     .from(memberships)
-    .where(and(eq(memberships.userId, String(userId)), isNull(memberships.blockedAt)))
+    .where(
+      and(eq(memberships.userId, String(userId)), isNull(memberships.blockedAt), beforeItsEnd()),
+    )
 
   if (member === undefined) {
     throw new BadRequestException('Verantwortlich ist jemand, der für diesen Betreiber arbeitet.')

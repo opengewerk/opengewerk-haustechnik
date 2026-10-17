@@ -38,6 +38,7 @@ import { assets } from './assets.js'
 import { defects } from './defects.js'
 import { duties, dutyPerformer } from './duties.js'
 import { evidenceResult } from './evidence-result.js'
+import { kindOfItsActivity, kindOfItsAsset, withinLimits } from './limit-policies.js'
 import { buildings, optionalTrimmed, properties, rooms, trimmed } from './locations.js'
 import { roundPlans } from './round-plans.js'
 
@@ -110,6 +111,8 @@ export const activities = pgTable(
   (table) => [
     tenantIsolation(table.tenantId),
     withinAreas(),
+    // Only the properties and kinds an access from outside is limited to (#339).
+    withinLimits(table.propertyId, kindOfItsAsset(table.assetId)),
     unique('activities_tenant_id_key').on(table.tenantId, table.id),
     // What a row that hangs on it points at for its area (ADR 0003, addendum of #306).
     unique('activities_area_key').on(table.tenantId, table.id, table.areaId),
@@ -278,6 +281,8 @@ export const activityDuties = pgTable(
   (table) => [
     tenantIsolation(table.tenantId),
     withinAreas(),
+    // As far as its activity is within the limits of an access from outside (#339).
+    withinLimits(table.propertyId, kindOfItsActivity(table.activityId)),
     unique('activity_duties_tenant_id_key').on(table.tenantId, table.id),
     // The area of what the row hangs on (ADR 0003, addendum of #306).
     foreignKey({
@@ -360,6 +365,7 @@ export const workOrders = pgTable(
   (table): PgTableExtraConfigValue[] => [
     tenantIsolation(table.tenantId),
     withinAreas(),
+    withinLimits(table.propertyId, kindOfItsActivity(table.activityId)),
     unique('work_orders_tenant_id_key').on(table.tenantId, table.id),
     // What a row that hangs on it points at for its area (ADR 0003, addendum of #306).
     unique('work_orders_area_key').on(table.tenantId, table.id, table.areaId),
@@ -431,6 +437,7 @@ export const workOrderParticipants = pgTable(
   (table) => [
     tenantIsolation(table.tenantId),
     withinAreas(),
+    withinLimits(table.propertyId, kindOfItsActivity(table.activityId)),
     unique('work_order_participants_tenant_id_key').on(table.tenantId, table.id),
     // The area of what the row hangs on (ADR 0003, addendum of #306).
     foreignKey({
@@ -489,6 +496,7 @@ export const workOrderNotes = pgTable(
   (table) => [
     tenantIsolation(table.tenantId),
     withinAreas(),
+    withinLimits(table.propertyId, kindOfItsActivity(table.activityId)),
     unique('work_order_notes_tenant_id_key').on(table.tenantId, table.id),
     // The area of what the row hangs on (ADR 0003, addendum of #306).
     foreignKey({

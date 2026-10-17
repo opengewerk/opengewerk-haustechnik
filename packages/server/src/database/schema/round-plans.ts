@@ -24,6 +24,7 @@ import {
 import { areaFromPropertyColumn, areaFromTheProperty, withinAreas } from './areas.js'
 import { buildings, properties } from './locations.js'
 import { roundTemplates } from './round-templates.js'
+import { onNoAsset, withinLimits } from './limit-policies.js'
 
 /** How often a plan falls due, from the list in `domain`. */
 export const roundPlanRhythm = pgEnum('round_plan_rhythm', planRhythms)
@@ -77,6 +78,7 @@ export const roundPlans = pgTable(
   (table) => [
     tenantIsolation(table.tenantId),
     withinAreas(),
+    withinLimits(table.propertyId, onNoAsset()),
     // What a round and a deadline of a plan point at: a plan on their property.
     unique('round_plans_place').on(table.tenantId, table.id, table.propertyId),
     // What a row that hangs on it points at for its area (ADR 0003, addendum of #306).

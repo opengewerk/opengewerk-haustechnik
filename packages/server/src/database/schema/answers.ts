@@ -24,6 +24,7 @@ import { activities } from './activities.js'
 import { withinAreas } from './areas.js'
 import { attachments } from './attachments.js'
 import { optionalTrimmed } from './locations.js'
+import { kindOfItsActivity, withinLimits } from './limit-policies.js'
 
 /** The answer to a check point, from the list of the form engine. */
 export const checkPointResult = pgEnum('check_point_result', checkPointResults)
@@ -74,6 +75,7 @@ export const activityAnswers = pgTable(
   (table): PgTableExtraConfigValue[] => [
     tenantIsolation(table.tenantId),
     withinAreas(),
+    withinLimits(table.propertyId, kindOfItsActivity(table.activityId)),
     unique('activity_answers_tenant_id_key').on(table.tenantId, table.id),
     // What a defect that came of an answer points at: the answer, on its
     // property and in its activity.

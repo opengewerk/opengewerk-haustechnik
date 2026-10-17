@@ -63,6 +63,20 @@ export const auditVocabulary: AuditVocabulary = {
       label: 'Bereich einer Einladung',
       fields: { invitation_id: 'Einladung' },
     },
+    // What an auditor from outside is limited to beside the areas, and what an invitation limits to (#339).
+    member_limit_properties: { label: 'Liegenschaft eines Prüfers' },
+    member_limit_asset_kinds: {
+      label: 'Anlagenart eines Prüfers',
+      fields: { asset_kind: 'Anlagenart' },
+    },
+    invitation_limit_properties: {
+      label: 'Liegenschaft einer Einladung',
+      fields: { invitation_id: 'Einladung' },
+    },
+    invitation_limit_asset_kinds: {
+      label: 'Anlagenart einer Einladung',
+      fields: { invitation_id: 'Einladung', asset_kind: 'Anlagenart' },
+    },
     substitutions: {
       label: 'Vertretung',
       fields: {
@@ -951,6 +965,11 @@ export const auditVocabulary: AuditVocabulary = {
     // What an invitation says about areas is named after the invitation.
     invitation_area_choices: ['invitation_id'],
     invitation_areas: ['invitation_id'],
+    // What an access is limited to by the person, what an invitation limits to by the invitation (#339).
+    member_limit_properties: ['user_id'],
+    member_limit_asset_kinds: ['user_id'],
+    invitation_limit_properties: ['invitation_id'],
+    invitation_limit_asset_kinds: ['invitation_id'],
     substitutions: ['absent_user_id'],
     // A closure by what it is for, and by its first day where it says nothing.
     building_closures: ['reason', 'starts_on'],

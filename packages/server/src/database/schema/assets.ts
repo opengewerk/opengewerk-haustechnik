@@ -31,6 +31,7 @@ import {
 } from 'drizzle-orm/pg-core'
 
 import { withinAreas } from './areas.js'
+import { kindOfItsAsset, kindOfItself, withinLimits } from './limit-policies.js'
 import { buildings, optionalTrimmed, rooms, trimmed } from './locations.js'
 
 // The technology, the other half of the data model (section 2.2 of the
@@ -100,6 +101,8 @@ export const assets = pgTable(
   (table) => [
     tenantIsolation(table.tenantId),
     withinAreas(),
+    // Only the properties and kinds an access from outside is limited to (#339).
+    withinLimits(table.propertyId, kindOfItself(table.kind)),
     // For the one function that looks past the areas for a possible duplicate
     // (`asset_duplicate_candidates`, ADR 0003, addendum on #99).
     readableByTheOwner(),
@@ -223,6 +226,7 @@ export const assetLifecycle = pgTable(
   (table) => [
     tenantIsolation(table.tenantId),
     withinAreas(),
+    withinLimits(table.propertyId, kindOfItsAsset(table.assetId)),
     unique('asset_lifecycle_tenant_id_key').on(table.tenantId, table.id),
     foreignKey({
       columns: [table.tenantId, table.assetId, table.propertyId],
@@ -262,6 +266,7 @@ export const assetSupplies = pgTable(
   (table) => [
     tenantIsolation(table.tenantId),
     withinAreas(),
+    withinLimits(table.propertyId, kindOfItsAsset(table.assetId)),
     unique('asset_supplies_tenant_id_key').on(table.tenantId, table.id),
     foreignKey({
       columns: [table.tenantId, table.assetId, table.propertyId],

@@ -2,6 +2,7 @@ import {
   type Catalogue,
   type Identity,
   isAllowed,
+  isLimited,
   offlineEditRefusal,
   offlineRules,
   type Operation,
@@ -285,6 +286,7 @@ export function syncRoutesFor(
         contractors: isAllowed(identity, 'contractor.read'),
         contracts: isAllowed(identity, 'contract.read'),
         places: isAllowed(identity, 'location.read'),
+        onlyWhatDutiesHangOn: isLimited(identity.roles),
       }),
     senderOf: (identity, operations) => senderOf(database, identity, operations),
   }

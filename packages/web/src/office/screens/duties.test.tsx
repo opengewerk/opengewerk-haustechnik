@@ -831,6 +831,41 @@ describe('the register of duties', () => {
   })
 })
 
+describe('the register as an auditor from outside reads it (#339)', () => {
+  it('says above the list until when, where and which kinds, and that every access is written down', async () => {
+    await mount(
+      '/pflichten',
+      {
+        [firstPage]: page([mainTest]),
+        '/areas/my-limits': {
+          auditor: true,
+          lastDay: '2036-11-30',
+          properties: ['Schulzentrum Am Lindenhain'],
+          assetKinds: ['probe.elevator'],
+        },
+      },
+      'auditor',
+    )
+    await screen.findByRole('table', { name: register })
+
+    expect(
+      await screen.findByText(
+        /^Sie lesen als Prüfer bis zum 30\.11\.2036: Schulzentrum Am Lindenhain, die Anlagenart /,
+      ),
+    ).toBeTruthy()
+  })
+
+  it('says nothing of it to anybody else', async () => {
+    await mount('/pflichten', {
+      [firstPage]: page([mainTest]),
+      '/areas/my-limits': { auditor: false, lastDay: null, properties: [], assetKinds: [] },
+    })
+    await screen.findByRole('table', { name: register })
+
+    expect(screen.queryByText(/^Sie lesen als Prüfer/)).toBeNull()
+  })
+})
+
 describe('the duties of a room', () => {
   const at = `/raeume/${boilerRoom.id}`
   const reading: DutyReading = {

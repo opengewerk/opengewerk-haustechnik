@@ -21,7 +21,8 @@ import { reporterTabs, siteTabs } from './tabs.js'
  */
 
 /** The roles that see the places, the four of phase 1; the Melder has tabs of its own (#331). */
-const phaseOne = roleKeys.filter((key) => key !== 'reporter')
+// The Melder and the Prüfer of phase 2 stand apart: neither looks at an asset on site.
+const phaseOne = roleKeys.filter((key) => key !== 'reporter' && key !== 'auditor')
 
 function offeredTo(role: RoleKey): string[] {
   const rights = shippedRoles.find((shipped) => shipped.key === role)?.rights ?? []
@@ -53,6 +54,11 @@ describe('the tabs of the board', () => {
       ['Meldungen', '/'],
       ['Scannen', '/scannen'],
     ])
+  })
+
+  // The Prüfer reads in the office (#339): on site it has the start and nothing else.
+  it('are the start alone for the Prüfer', () => {
+    expect(offeredTo('auditor')).toEqual(['Start'])
   })
 
   it('are the start alone for somebody who may neither look at an asset nor take stock', () => {

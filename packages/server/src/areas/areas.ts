@@ -10,7 +10,12 @@ import {
   type PropertyId,
   type TenantId,
 } from '@opengewerk/haustechnik-domain'
-import { isUniqueViolation, isUuid, type TenantTransaction } from '@opengewerk/platform-server'
+import {
+  beforeItsEnd,
+  isUniqueViolation,
+  isUuid,
+  type TenantTransaction,
+} from '@opengewerk/platform-server'
 import { and, count, eq, inArray, isNotNull, isNull, sql } from 'drizzle-orm'
 
 import {
@@ -125,7 +130,7 @@ export async function areaOverview(tx: TenantTransaction): Promise<AreaOverview[
         eq(memberships.userId, memberAreas.userId),
       ),
     )
-    .where(isNull(memberships.blockedAt))
+    .where(and(isNull(memberships.blockedAt), beforeItsEnd()))
 
   return all.sort(inGerman).map((area) => ({
     ...area,

@@ -563,6 +563,32 @@ function rowsOf(tenant: Tenant): readonly Row[] {
         valid_until: '2027-03-31',
       },
     },
+    // What an auditor from outside is limited to, what an invitation limits to, and the log of the reads (#339).
+    {
+      table: 'member_limit_properties',
+      values: { tenant_id: tenant.id, user_id: tenant.colleagueId, property_id: property },
+    },
+    {
+      table: 'member_limit_asset_kinds',
+      values: { tenant_id: tenant.id, user_id: tenant.colleagueId, asset_kind: 'probe.elevator' },
+    },
+    {
+      table: 'invitation_limit_properties',
+      values: { tenant_id: tenant.id, invitation_id: invitation, property_id: property },
+    },
+    {
+      table: 'invitation_limit_asset_kinds',
+      values: { tenant_id: tenant.id, invitation_id: invitation, asset_kind: 'probe.elevator' },
+    },
+    {
+      table: 'auditor_reads',
+      values: {
+        tenant_id: tenant.id,
+        user_id: tenant.colleagueId,
+        route: '/duties/register',
+        path: '/duties/register',
+      },
+    },
     { table: 'stores', values: { id: store, tenant_id: tenant.id, name: 'Hauptlager' } },
     {
       table: 'store_articles',

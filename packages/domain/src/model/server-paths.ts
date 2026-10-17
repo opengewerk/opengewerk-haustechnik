@@ -15,6 +15,8 @@ export const serverPaths: readonly string[] = [
   // The areas of a tenant, and who stands in for whom.
   'areas',
   'substitutions',
+  // Every read of an auditor from outside, for the Leitung (#339).
+  'auditor-reads',
   // The place, from the property to the room.
   'properties',
   'buildings',

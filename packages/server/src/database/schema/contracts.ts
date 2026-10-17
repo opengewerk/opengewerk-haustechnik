@@ -24,6 +24,7 @@ import { withinAreas } from './areas.js'
 import { assets } from './assets.js'
 import { contractors } from './contractors.js'
 import { buildings, optionalTrimmed, trimmed } from './locations.js'
+import { kindOfItsAsset, withinLimits } from './limit-policies.js'
 
 /**
  * The contracts of an operator with its contractors (#329, section 4.11 of
@@ -113,6 +114,7 @@ export const contractItems = pgTable(
   (table) => [
     tenantIsolation(table.tenantId),
     withinAreas(),
+    withinLimits(table.propertyId, kindOfItsAsset(table.assetId)),
     foreignKey({
       columns: [table.tenantId, table.contractId],
       foreignColumns: [contracts.tenantId, contracts.id],

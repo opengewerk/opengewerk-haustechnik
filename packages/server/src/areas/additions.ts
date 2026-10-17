@@ -22,6 +22,13 @@ import {
   invitationAreas,
   invitations,
 } from '../database/schema/index.js'
+import {
+  changeLimits,
+  checkedLimits,
+  inviteLimits,
+  joinLimits,
+  limitsFrom,
+} from '../limits/limits.js'
 import { areasFrom, areasInSight, memberAreasOf, requireAreas, setMemberAreas } from './areas.js'
 
 // What this application keeps beside a membership: the areas somebody holds
@@ -86,6 +93,14 @@ export const areaAdditions: MembershipAdditions = {
         .insert(invitationAreas)
         .values(areaIds.map((areaId) => ({ tenantId, invitationId, areaId })))
     }
+
+    // Beside the areas, what an access from outside is limited to (#339).
+    const limits = limitsFrom(said)
+
+    if (limits !== undefined) {
+      await checkedLimits(tx, invitation.roles, limits)
+      await inviteLimits(tx, invitation, limits)
+    }
   },
 
   /**
@@ -102,6 +117,10 @@ export const areaAdditions: MembershipAdditions = {
    */
   async joined(tx, membership) {
     const { tenantId, userId, invitationId } = membership
+
+    // What the invitation limited an access from outside to (#339), first:
+    // the areas below may return early.
+    await joinLimits(tx, membership)
     const [choice] = await tx
       .select({ everyArea: invitationAreaChoices.everyArea })
       .from(invitationAreaChoices)
@@ -200,6 +219,10 @@ export const areaAdditions: MembershipAdditions = {
     } else if (seesEveryArea(roles)) {
       await setMemberAreas(tx, tenantId, userId, everyArea)
     }
+
+    // And the limits of an access from outside, named or taken with a role
+    // that is not limited (#339).
+    await changeLimits(tx, membership, said)
   },
 
   /**
