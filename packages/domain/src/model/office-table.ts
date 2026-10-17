@@ -232,7 +232,9 @@ export function deadlineSubject(facts: DeadlineFacts): string {
     case 'delegation':
       return `${delegationDeadlineSubject} an ${facts.delegation.delegateName}`
     case 'qualification':
-      return `${facts.qualification.kindLabel}, ${facts.qualification.personName}`
+      return facts.qualification.personName === null
+        ? facts.qualification.kindLabel
+        : `${facts.qualification.kindLabel}, ${facts.qualification.personName}`
   }
 }
 
@@ -279,7 +281,7 @@ export function deadlineWhere(
 
   // Nor does a qualification (#337): it is a person's.
   if (facts.follows === 'qualification') {
-    return { name: facts.qualification.personName, sub: 'Qualifikation' }
+    return { name: facts.qualification.personName ?? 'Eine Person', sub: 'Qualifikation' }
   }
 
   // The document of a contractor stands nowhere: the contractor is what it hangs on (#328),

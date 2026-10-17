@@ -381,7 +381,8 @@ export interface QualificationDeadlineFacts {
   readonly qualification: {
     readonly id: string
     readonly kindLabel: string
-    readonly personName: string
+    /** Nothing for whoever does not look at qualifications: the deadline is theirs to read, the person is not. */
+    readonly personName: string | null
   }
 }
 

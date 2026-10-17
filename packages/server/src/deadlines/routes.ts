@@ -71,7 +71,7 @@ export function deadlineRulesFor(
   return {
     table: deadlines,
     registry: deadlineKindRegistry,
-    describe: async (tx, rows) => {
+    describe: async (tx, rows, identity) => {
       const ids = [...new Set(rows.flatMap((row) => (row.dutyId === null ? [] : [row.dutyId])))]
       const defectIds = [
         ...new Set(rows.flatMap((row) => (row.defectId === null ? [] : [row.defectId]))),
@@ -196,7 +196,10 @@ export function deadlineRulesFor(
       const byContract = new Map<string, (typeof foundContracts)[number]>(
         foundContracts.map((contract) => [contract.id, contract]),
       )
-      // The people whose qualification runs out (#337), by the names of their accounts.
+      // The people whose qualification runs out (#337), by the names of their
+      // accounts, and only for whoever looks at qualifications: the deadline
+      // is read with the right to read deadlines, the person is not.
+      const namesThePeople = isAllowed(identity as Asking, 'qualification.read')
       const qualificationIds = [
         ...new Set(
           rows.flatMap((row) => (row.qualificationId === null ? [] : [row.qualificationId])),
@@ -211,7 +214,7 @@ export function deadlineRulesFor(
               .where(inArray(qualifications.id, qualificationIds))
       const byQualification = new Map(foundQualifications.map((each) => [each.id, each.userId]))
       const names =
-        foundQualifications.length === 0
+        foundQualifications.length === 0 || !namesThePeople
           ? new Map<string, string>()
           : await namesOf([...new Set(foundQualifications.map((each) => each.userId))])
       // The assets and the accepted work orders whose warranty ends (#329).
@@ -311,8 +314,11 @@ export function deadlineRulesFor(
             qualification: {
               id: row.qualificationId,
               kindLabel: row.sourceLabel,
-              personName:
-                held === undefined ? 'Unbekanntes Konto' : (names.get(held) ?? 'Unbekanntes Konto'),
+              personName: !namesThePeople
+                ? null
+                : held === undefined
+                  ? 'Unbekanntes Konto'
+                  : (names.get(held) ?? 'Unbekanntes Konto'),
             },
           }
 

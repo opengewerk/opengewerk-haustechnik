@@ -34,6 +34,7 @@ import {
   resetToMigrated,
   testIdentityHeader,
 } from '../database/test-database.js'
+import { runDeadlinesOf } from '../deadlines/engine.js'
 import { qualificationSource } from '../deadlines/sources.js'
 import { dayInGermany } from '../today.js'
 import { ApiModule } from './api.module.js'
@@ -344,6 +345,36 @@ describe('the qualifications', () => {
     expect(expected.map((each) => [each.sourceId, each.sourceLabel, each.anchorOn])).toEqual([
       [ending.id, 'Sachkundiger für Aufzüge', inDays(30)],
     ])
+  })
+
+  it('name the person at their deadline only for whoever looks at qualifications, also in the table', async () => {
+    await cleared()
+    await entered({ validUntil: inDays(30) })
+    await runDeadlinesOf({ database, catalogue, now: () => new Date() }, tenant, new Date())
+
+    const holding = (...rights: string[]) =>
+      JSON.stringify({ userId: 'u-lead', tenantId: tenant, roles: ['management'], rights })
+    const named = async (...rights: string[]) =>
+      (
+        (
+          await http()
+            .get('/deadlines?kind=qualification.expires')
+            .set(testIdentityHeader, holding('deadline.read', ...rights))
+            .expect(200)
+        ).body as { rows: { qualification: { personName: string | null } }[] }
+      ).rows.map((row) => row.qualification.personName)
+    const table = async (...rights: string[]) =>
+      (
+        await http()
+          .get('/deadlines/table?format=csv&kind=qualification.expires')
+          .set(testIdentityHeader, holding('deadline.read', ...rights))
+          .expect(200)
+      ).text
+
+    expect(await named()).toEqual([null])
+    expect(await named('qualification.read')).toEqual(['Tobias Wendt'])
+    expect(await table()).not.toContain('Tobias Wendt')
+    expect(await table('qualification.read')).toContain('Sachkundiger für Aufzüge, Tobias Wendt')
   })
 
   it('hand the own ones to the person, and the certificate to the person and whoever looks at them', async () => {

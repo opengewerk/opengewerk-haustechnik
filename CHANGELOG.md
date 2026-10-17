@@ -14,7 +14,8 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   Elektro, Brandschutz und Landesrecht nennen in `qualifikationen.json` je Art die Pflichtarten, die sie fordern. Wer
   eine Prüfung, eine Wartung oder einen Auftrag zuteilt, bekommt einen Hinweis, wenn der Person die geforderte Art
   fehlt oder abgelaufen ist, und dieselbe Person vor Ort beim Beginn des Protokolls; gespeichert wird trotzdem. Das
-  Ende einer Qualifikation ist eine Frist der Leitung, die eigenen stehen unter „Konto“. Unter „Woher“ nennt eine
+  Ende einer Qualifikation ist eine Frist der Leitung; wessen Qualifikation es ist, nennt die Liste „Fristen“ nur,
+  wer Qualifikationen ansieht. Die eigenen stehen unter „Konto“. Unter „Woher“ nennt eine
   Prüfung oder Wartung die geforderte Art statt nur der Stufe. Warum: wer eine Prüfung
   ausführt, muss die geforderte Qualifikation haben, und das Büro soll es merken, bevor es zuteilt (entschieden am
   15.10.2026). Die Rechte „Qualifikationen ansehen“ (Leitung, Technische Leitung, Objektleitung) und
