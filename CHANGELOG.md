@@ -164,6 +164,12 @@ verwiesen hat, kann wieder den Pfad nehmen (`/rechtliches`, `/rechtliches/datens
 
 ### Behoben
 
+- Auf dem Telefon öffnet die Adresse der Instanz die Ansicht vor Ort von selbst, und die Anwendung schaltet
+  um, wenn der Browser zwischen seiner mobilen und seiner Desktop-Ansicht wechselt. Bisher öffnete sie immer
+  das Büro, und `/m` musste von Hand eingegeben werden: eine gemerkte Wahl hielt nur den Vorschlag still, und
+  ein Telefon, das für seinen Stift einen feinen Zeiger meldet, bekam gar keinen. Ein Link ins Büro bleibt das
+  Büro, und wer auf dem Telefon das Büro wählt, behält es. Dafür ist das Submodul des Fundaments angehoben
+  (opengewerk/opengewerk#659).
 - Die Datenschutzhinweise der Instanz unter `/rechtliches/datenschutz` blieben leer, sobald ihr Text
   auf einen Pfad verwies, etwa auf das Impressum (#386). Die Rechtsseite steht vor dem Router, und der
   Verweis suchte einen; ohne Router ist ein Pfad jetzt ein gewöhnlicher Verweis. Unter "Rechtstexte"
