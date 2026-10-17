@@ -20,6 +20,7 @@ import { assetValuesWords } from './asset-value-words.js'
 import { buildingKindLabel } from './location.js'
 import { type Catalogue, type CatalogueEntry, countingLabel, dutyTaskLabel } from './catalogue.js'
 import { noticeUnitLabel } from './contract.js'
+import { delegationRoleLabel, delegationScopeLabel } from './delegation.js'
 import { defectStatusLabel } from './defect.js'
 import { documentKindLabel } from './document.js'
 import { dutyBasisLabel, dutyPerformerLabel } from './duty-record.js'
@@ -287,6 +288,47 @@ export const auditVocabulary: AuditVocabulary = {
       label: 'Von einem Vertrag erfasst',
       fields: { contract_id: 'Vertrag', building_id: 'Gebäude', asset_id: 'Anlage' },
     },
+    // The delegations of the operator's duties (#336), their areas, the two signatures and a revocation.
+    duty_delegations: {
+      label: 'Pflichtenübertragung',
+      fields: {
+        delegate_user_id: 'Beauftragte Person',
+        delegate_name: 'Name der beauftragten Person',
+        scope: 'Umfang',
+        packages: 'Pakete',
+        cost_groups: 'Kostengruppen',
+        tasks: 'Aufgaben',
+        powers: 'Befugnisse',
+        starts_on: 'Beginn',
+        ends_on: 'Ende',
+      },
+    },
+    duty_delegation_areas: {
+      label: 'Bereich einer Pflichtenübertragung',
+      fields: { delegation_id: 'Pflichtenübertragung', area_id: 'Bereich' },
+    },
+    duty_delegation_signatures: {
+      label: 'Unterschrift unter einer Pflichtenübertragung',
+      fields: {
+        delegation_id: 'Pflichtenübertragung',
+        role: 'Unterschrieben als',
+        signed_by: 'Unterschrieben von',
+        signed_at: 'Unterschrieben am',
+        path: 'Schriftzug',
+        typed_name: 'Getippter Name',
+        page_fingerprint: 'Fingerabdruck der Seite',
+      },
+    },
+    duty_delegation_revocations: {
+      label: 'Widerruf einer Pflichtenübertragung',
+      fields: {
+        delegation_id: 'Pflichtenübertragung',
+        effective_on: 'Endet am',
+        reason: 'Grund',
+        revoked_by: 'Widerrufen von',
+        revoked_at: 'Widerrufen am',
+      },
+    },
     store_labels: {
       label: 'Etikett eines Lagerfachs',
       fields: { store_article_id: 'Artikel eines Lagers', code: 'Code', blocked_at: 'Gesperrt am' },
@@ -322,6 +364,8 @@ export const auditVocabulary: AuditVocabulary = {
         kept_months: 'So gelassen gegenüber einer Frist der Vorschrift in Monaten',
         kept_reason: 'Begründung, die Pflicht so zu lassen',
         responsible_user_id: 'Verantwortlich',
+        // Where who answers for it comes from (#336).
+        responsible_delegation_id: 'Verantwortlich aus der Pflichtenübertragung',
         performer: 'Ausgeführt von',
         performer_note: 'Fremdfirma',
         contractor_id: 'Fremdfirma aus der Liste',
@@ -679,6 +723,8 @@ export const auditVocabulary: AuditVocabulary = {
       contract_id: 'Vertrag',
       warranty_asset_id: 'Gewährleistung der Anlage',
       warranty_order_id: 'Gewährleistung des Auftrags',
+      // The delegation whose end a deadline follows (#336).
+      delegation_id: 'Pflichtenübertragung',
       task_id: 'Aufgabe',
       property_id: 'Liegenschaft',
       area_id: 'Bereich',
@@ -824,6 +870,9 @@ export const auditVocabulary: AuditVocabulary = {
     contract_id: 'contracts',
     warranty_asset_id: 'assets',
     warranty_order_id: 'work_orders',
+    // The delegation of duties a row hangs on, and the one a duty's responsible comes from (#336).
+    delegation_id: 'duty_delegations',
+    responsible_delegation_id: 'duty_delegations',
     // The category of a fault report and the report it went into (#331).
     category_id: 'fault_categories',
     merged_into_id: 'fault_reports',
@@ -868,6 +917,9 @@ export const auditVocabulary: AuditVocabulary = {
     'taken_by',
     // Who reported a fault (#331).
     'reported_by',
+    // The person a delegation of duties goes to, and who revoked one (#336).
+    'delegate_user_id',
+    'revoked_by',
   ],
   // Rows without a name of their own are named after the person they are
   // about, and a substitution after the person whose areas it takes over.
@@ -915,6 +967,11 @@ export const auditVocabulary: AuditVocabulary = {
     // A contract by its title, and what it covers by the building or the asset (#329).
     contracts: ['title'],
     contract_items: ['asset_id', 'building_id'],
+    // A delegation by its period, what hangs on it by the delegation (#336).
+    duty_delegations: { joined: ['delegate_name', 'starts_on'] },
+    duty_delegation_areas: ['delegation_id'],
+    duty_delegation_signatures: ['delegation_id'],
+    duty_delegation_revocations: ['delegation_id'],
     // A duty of the operator's own by its name, one from the catalogue by its
     // kind; a dismissal by the kind it dismissed.
     duties: ['label', 'kind'],
@@ -1021,6 +1078,8 @@ export const auditValues: Readonly<
   deadlines: { status: { open: 'Offen', done: 'Erledigt', dropped: 'Entfallen' } },
   deadline_settings: { reminder: deadlineReminderLabel },
   contracts: { notice_unit: noticeUnitLabel },
+  duty_delegations: { scope: delegationScopeLabel },
+  duty_delegation_signatures: { role: delegationRoleLabel },
   defects: { status: defectStatusLabel },
   tasks: { status: { open: 'Offen', done: 'Erledigt' } },
   duties: {

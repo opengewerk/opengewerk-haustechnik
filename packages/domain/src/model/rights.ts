@@ -79,6 +79,13 @@ export const rights = [
    */
   'duty.write',
   /**
+   * Delegating the operator's duties in writing (#336, section 4.3):
+   * writing a delegation, signing it for the operator and revoking it.
+   * Only the Leitung, which signs for the operator; the person it goes to
+   * signs and keeps the copy without a right.
+   */
+  'duty.delegate',
+  /**
    * The list of what is due, kept by the deadline engine of the foundation,
    * and the settings of a deadline: its lead time and who is reminded. A
    * deadline is never created by anybody, it follows from its source.
@@ -298,6 +305,7 @@ export const rightLabel: Readonly<Record<Right, string>> = {
   'reading.write': 'Zähler ablesen',
   'duty.read': 'Pflichten ansehen',
   'duty.write': 'Das Pflichtenverzeichnis führen',
+  'duty.delegate': 'Pflichten übertragen',
   'deadline.read': 'Fristen ansehen',
   'deadline.write': 'Fristen bearbeiten',
   'activity.read': 'Vorgänge ansehen',

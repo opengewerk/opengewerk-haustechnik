@@ -24,6 +24,7 @@ import { upgradeOpenRounds } from '../rounds/plans.js'
 import { settleDeadlineTasks, taskFromDeadline } from '../tasks/from-deadline.js'
 import {
   contractSource,
+  delegationSource,
   type DeadlineValues,
   defectSource,
   documentSource,
@@ -92,6 +93,8 @@ function bound(
       }),
       contract_end: contractSource('end', { today: () => dayInGermany(job.now?.() ?? new Date()) }),
       warranty: warrantySource(),
+      // The end of a delegation of duties (#336).
+      delegation: delegationSource({ today: () => dayInGermany(job.now?.() ?? new Date()) }),
     },
     actions: { activity: activityFromDeadline(job.catalogue), task: taskFromDeadline() },
     // A round nobody has begun walks the newest version of its template, and

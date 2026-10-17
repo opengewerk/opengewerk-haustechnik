@@ -12,6 +12,7 @@ import {
   type DefectId,
   defectStatuses,
   dutyInterval,
+  type DutyDelegationId,
   type DutyId,
   type FederalState,
   firstOpenPass,
@@ -19,6 +20,7 @@ import {
   holidayClosures,
   holidaysBetween,
   type IsoDate,
+  lastDayOf,
   lifecycleStateOn,
   meterRestsOn,
   nextAppointment,
@@ -34,7 +36,7 @@ import {
   type WorkOrderId,
 } from '@opengewerk/haustechnik-domain'
 import type { ExpectedDeadline, SourceQuery } from '@opengewerk/platform-server'
-import { and, eq, gte, inArray, isNotNull, isNull, or } from 'drizzle-orm'
+import { and, eq, gte, inArray, isNotNull, isNull, or, sql } from 'drizzle-orm'
 
 import {
   ceilingsOf,
@@ -52,6 +54,9 @@ import {
   buildings,
   contractors,
   contracts,
+  dutyDelegationRevocations,
+  dutyDelegations,
+  dutyDelegationSignatures,
   defects,
   duties,
   workOrders,
@@ -75,6 +80,8 @@ export interface DeadlineValues {
   readonly contractId: ContractId | null
   readonly warrantyAssetId: AssetId | null
   readonly warrantyOrderId: WorkOrderId | null
+  /** The delegation of duties whose end it follows (#336), which lies in no area either. */
+  readonly delegationId: DutyDelegationId | null
   /** None for the document of a contractor (#328) and for a contract (#329), which lie in no area. */
   readonly propertyId: PropertyId | null
   readonly areaId: AreaId | null
@@ -247,6 +254,7 @@ export function dutySource(options: {
           contractId: null,
           warrantyAssetId: null,
           warrantyOrderId: null,
+          delegationId: null,
           propertyId: duty.propertyId,
           areaId: duty.areaId,
         },
@@ -318,6 +326,7 @@ export function defectSource(): SourceQuery<DeadlineValues> {
                 contractId: null,
                 warrantyAssetId: null,
                 warrantyOrderId: null,
+                delegationId: null,
                 propertyId: defect.propertyId,
                 areaId: defect.areaId,
               },
@@ -457,6 +466,7 @@ export function roundPlanSource(options: {
                   contractId: null,
                   warrantyAssetId: null,
                   warrantyOrderId: null,
+                  delegationId: null,
                   propertyId: plan.propertyId,
                   areaId: plan.areaId,
                 },
@@ -548,6 +558,7 @@ export function meterSource(options: {
                 contractId: null,
                 warrantyAssetId: null,
                 warrantyOrderId: null,
+                delegationId: null,
                 propertyId: property.id,
                 areaId: property.areaId,
               },
@@ -640,6 +651,7 @@ export function documentSource(reviews: boolean): SourceQuery<DeadlineValues> {
                 contractId: null,
                 warrantyAssetId: null,
                 warrantyOrderId: null,
+                delegationId: null,
                 propertyId: document.propertyId,
                 areaId: document.areaId,
               },
@@ -695,6 +707,7 @@ export function contractSource(
                 contractId: contract.id,
                 warrantyAssetId: null,
                 warrantyOrderId: null,
+                delegationId: null,
                 propertyId: null,
                 areaId: null,
               },
@@ -766,6 +779,7 @@ export function warrantySource(): SourceQuery<DeadlineValues> {
           ...empty,
           warrantyAssetId: asset.id,
           warrantyOrderId: null,
+          delegationId: null,
           propertyId: asset.propertyId,
           areaId: asset.areaId,
         },
@@ -780,10 +794,69 @@ export function warrantySource(): SourceQuery<DeadlineValues> {
           ...empty,
           warrantyAssetId: null,
           warrantyOrderId: order.id,
+          delegationId: null,
           propertyId: order.propertyId,
           areaId: order.areaId,
         },
       })),
     ]
+  }
+}
+
+/**
+ * The end of a delegation of duties (#336): its last day, the end it names or
+ * the day a revocation brought forward, for every delegation both have
+ * signed, until that day has passed. After it its duties have nobody, which
+ * the register and the overview say. Without a place, like a contract, and
+ * named by the person it goes to.
+ */
+export function delegationSource(options: {
+  readonly today: () => IsoDate
+}): SourceQuery<DeadlineValues> {
+  return async (tx) => {
+    const today = options.today()
+    const rows = await tx
+      .select({
+        id: dutyDelegations.id,
+        delegateName: dutyDelegations.delegateName,
+        endsOn: dutyDelegations.endsOn,
+        signatures: sql<number>`(select count(*)::int from ${dutyDelegationSignatures}
+          where ${dutyDelegationSignatures.delegationId} = ${dutyDelegations.id})`,
+        revokedTo: dutyDelegationRevocations.effectiveOn,
+      })
+      .from(dutyDelegations)
+      .leftJoin(
+        dutyDelegationRevocations,
+        eq(dutyDelegationRevocations.delegationId, dutyDelegations.id),
+      )
+
+    return rows.flatMap((row): ExpectedDeadline<DeadlineValues>[] => {
+      const lastDay = lastDayOf({ endsOn: row.endsOn, revokedTo: row.revokedTo })
+
+      return row.signatures < 2 || lastDay < today
+        ? []
+        : [
+            {
+              sourceId: row.id,
+              sourceLabel: row.delegateName,
+              anchorOn: lastDay,
+              namedDueOn: lastDay,
+              naturalUserId: null,
+              values: {
+                dutyId: null,
+                defectId: null,
+                roundPlanId: null,
+                meterPropertyId: null,
+                attachmentId: null,
+                contractId: null,
+                warrantyAssetId: null,
+                warrantyOrderId: null,
+                delegationId: row.id as DutyDelegationId,
+                propertyId: null,
+                areaId: null,
+              },
+            },
+          ]
+    })
   }
 }
