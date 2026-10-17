@@ -81,4 +81,5 @@ export const serverPaths: readonly string[] = [
   'reports',
   // The delegations of the operator's duties (#336).
   'delegations',
+  'qualifications',
 ]

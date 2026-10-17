@@ -477,6 +477,13 @@
       "when": 1792204149023,
       "tag": "0067_duty_delegations",
       "breakpoints": true
+    },
+    {
+      "idx": 68,
+      "version": "7",
+      "when": 1792213010600,
+      "tag": "0068_qualifications",
+      "breakpoints": true
     }
   ]
 }

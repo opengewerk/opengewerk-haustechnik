@@ -350,6 +350,7 @@ describe('the form of a new asset', () => {
           roundTemplates: [],
           rules: [],
           defectClasses: [],
+          qualifications: [],
         },
       ],
     }

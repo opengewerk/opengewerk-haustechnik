@@ -1,7 +1,7 @@
 import { Button } from '@opengewerk/platform-web'
 import { NoteBox } from '@opengewerk/platform-web/office'
 import { RequestRefused } from '@opengewerk/platform-web/sync'
-import { Printer } from 'lucide-react'
+import { type LucideIcon, Printer } from 'lucide-react'
 import { useState } from 'react'
 
 import { fetchPdf, openPdf } from '../app/prints.js'
@@ -16,12 +16,14 @@ export const pdfWords = {
  * "PDF öffnen" in the head of the page of an evidence or a round (#111): the
  * file is fetched and opened in a tab of its own. What the server says when
  * it makes none, the page shows below its head. Where the PDF is somebody's
- * copy, the button says so (#336).
+ * copy, the button says so (#336); a certificate a person brought shows as a
+ * file and not as a print (#337).
  */
 export function usePdf(
   address: string,
   name: string,
   label: string = pdfWords.open,
+  icon: LucideIcon = Printer,
 ): { readonly button: React.ReactNode; readonly trouble: React.ReactNode } {
   const [working, setWorking] = useState(false)
   const [trouble, setTrouble] = useState<string | null>(null)
@@ -29,7 +31,7 @@ export function usePdf(
   return {
     button: (
       <Button
-        icon={Printer}
+        icon={icon}
         disabled={working}
         onClick={() => {
           setWorking(true)

@@ -13,6 +13,7 @@ import {
   defectStatuses,
   dutyInterval,
   type DutyDelegationId,
+  type QualificationId,
   type DutyId,
   type FederalState,
   firstOpenPass,
@@ -64,6 +65,8 @@ import {
   rooms,
   roundPlans,
   roundTemplates,
+  qualificationKinds,
+  qualifications,
 } from '../database/schema/index.js'
 
 /**
@@ -82,6 +85,8 @@ export interface DeadlineValues {
   readonly warrantyOrderId: WorkOrderId | null
   /** The delegation of duties whose end it follows (#336), which lies in no area either. */
   readonly delegationId: DutyDelegationId | null
+  /** The qualification of a person whose expiry it follows (#337), which lies in no area either. */
+  readonly qualificationId: QualificationId | null
   /** None for the document of a contractor (#328) and for a contract (#329), which lie in no area. */
   readonly propertyId: PropertyId | null
   readonly areaId: AreaId | null
@@ -255,6 +260,7 @@ export function dutySource(options: {
           warrantyAssetId: null,
           warrantyOrderId: null,
           delegationId: null,
+          qualificationId: null,
           propertyId: duty.propertyId,
           areaId: duty.areaId,
         },
@@ -327,6 +333,7 @@ export function defectSource(): SourceQuery<DeadlineValues> {
                 warrantyAssetId: null,
                 warrantyOrderId: null,
                 delegationId: null,
+                qualificationId: null,
                 propertyId: defect.propertyId,
                 areaId: defect.areaId,
               },
@@ -467,6 +474,7 @@ export function roundPlanSource(options: {
                   warrantyAssetId: null,
                   warrantyOrderId: null,
                   delegationId: null,
+                  qualificationId: null,
                   propertyId: plan.propertyId,
                   areaId: plan.areaId,
                 },
@@ -559,6 +567,7 @@ export function meterSource(options: {
                 warrantyAssetId: null,
                 warrantyOrderId: null,
                 delegationId: null,
+                qualificationId: null,
                 propertyId: property.id,
                 areaId: property.areaId,
               },
@@ -652,6 +661,7 @@ export function documentSource(reviews: boolean): SourceQuery<DeadlineValues> {
                 warrantyAssetId: null,
                 warrantyOrderId: null,
                 delegationId: null,
+                qualificationId: null,
                 propertyId: document.propertyId,
                 areaId: document.areaId,
               },
@@ -708,6 +718,7 @@ export function contractSource(
                 warrantyAssetId: null,
                 warrantyOrderId: null,
                 delegationId: null,
+                qualificationId: null,
                 propertyId: null,
                 areaId: null,
               },
@@ -780,6 +791,7 @@ export function warrantySource(): SourceQuery<DeadlineValues> {
           warrantyAssetId: asset.id,
           warrantyOrderId: null,
           delegationId: null,
+          qualificationId: null,
           propertyId: asset.propertyId,
           areaId: asset.areaId,
         },
@@ -795,6 +807,7 @@ export function warrantySource(): SourceQuery<DeadlineValues> {
           warrantyAssetId: null,
           warrantyOrderId: order.id,
           delegationId: null,
+          qualificationId: null,
           propertyId: order.propertyId,
           areaId: order.areaId,
         },
@@ -852,11 +865,70 @@ export function delegationSource(options: {
                 warrantyAssetId: null,
                 warrantyOrderId: null,
                 delegationId: row.id as DutyDelegationId,
+                qualificationId: null,
                 propertyId: null,
                 areaId: null,
               },
             },
           ]
     })
+  }
+}
+
+/**
+ * The expiry of a qualification of a person (#337): its last day, "Gültig
+ * bis", for every qualification that names one and is not taken out of the
+ * records, until that day has passed. Without a place, like a contract, and
+ * named by its kind: whose it is, the list says from the account, and no
+ * reminder by push names a person.
+ */
+export function qualificationSource(options: {
+  readonly today: () => IsoDate
+  readonly catalogue: Catalogue
+}): SourceQuery<DeadlineValues> {
+  return async (tx) => {
+    const today = options.today()
+    const rows = await tx
+      .select({
+        id: qualifications.id,
+        kindKey: qualifications.kindKey,
+        ownLabel: qualificationKinds.label,
+        validUntil: qualifications.validUntil,
+      })
+      .from(qualifications)
+      .leftJoin(qualificationKinds, eq(qualificationKinds.id, qualifications.ownKindId))
+      .where(
+        and(
+          isNull(qualifications.deletedAt),
+          isNotNull(qualifications.validUntil),
+          gte(qualifications.validUntil, today),
+        ),
+      )
+
+    return rows.map((row): ExpectedDeadline<DeadlineValues> => ({
+      sourceId: row.id,
+      sourceLabel:
+        row.ownLabel ??
+        (row.kindKey === null
+          ? 'Qualifikation'
+          : (options.catalogue.qualification(row.kindKey)?.qualification.label ?? row.kindKey)),
+      anchorOn: row.validUntil as IsoDate,
+      namedDueOn: row.validUntil as IsoDate,
+      naturalUserId: null,
+      values: {
+        dutyId: null,
+        defectId: null,
+        roundPlanId: null,
+        meterPropertyId: null,
+        attachmentId: null,
+        contractId: null,
+        warrantyAssetId: null,
+        warrantyOrderId: null,
+        delegationId: null,
+        qualificationId: row.id as QualificationId,
+        propertyId: null,
+        areaId: null,
+      },
+    }))
   }
 }

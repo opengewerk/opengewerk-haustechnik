@@ -86,6 +86,14 @@ export const rights = [
    */
   'duty.delegate',
   /**
+   * The qualifications of the people who work for the operator (#337,
+   * section 4.3): looking at them with their certificates, and keeping
+   * them, with the kinds the operator adds. Everybody sees their own under
+   * "Konto" without a right.
+   */
+  'qualification.read',
+  'qualification.write',
+  /**
    * The list of what is due, kept by the deadline engine of the foundation,
    * and the settings of a deadline: its lead time and who is reminded. A
    * deadline is never created by anybody, it follows from its source.
@@ -306,6 +314,8 @@ export const rightLabel: Readonly<Record<Right, string>> = {
   'duty.read': 'Pflichten ansehen',
   'duty.write': 'Das Pflichtenverzeichnis führen',
   'duty.delegate': 'Pflichten übertragen',
+  'qualification.read': 'Qualifikationen ansehen',
+  'qualification.write': 'Qualifikationen führen',
   'deadline.read': 'Fristen ansehen',
   'deadline.write': 'Fristen bearbeiten',
   'activity.read': 'Vorgänge ansehen',
@@ -448,6 +458,8 @@ const siteManagement: readonly Right[] = [
   'store.write',
   // The contracts with the firms, read in the own areas (#329).
   'contract.read',
+  // Who may carry out what, to assign an activity with the note (#337).
+  'qualification.read',
 ]
 
 /**
@@ -468,6 +480,8 @@ const technicalManagement: readonly Right[] = [
   'contract.write',
   // The figures over time, per place and never per person (#334).
   'report.read',
+  // The qualifications of the people, with the kinds of the operator (#337).
+  'qualification.write',
 ]
 
 /** In the order of the catalogue, which is the order a screen lists them in. */

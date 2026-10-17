@@ -338,5 +338,15 @@
         "sha256": "fa37c400e262a2c7f96aa38b52df13ef9eb1b7a85caac48d34bad5d5a9e516e1"
       }
     }
+  ],
+  "qualifications": [
+    {
+      "key": "electrically_skilled_person",
+      "checkedOn": "2026-10-17"
+    },
+    {
+      "key": "electrically_instructed_person",
+      "checkedOn": "2026-10-17"
+    }
   ]
 }

@@ -28,6 +28,8 @@ import {
   type MeterUnit,
   meterUnits,
   type PackagedForm,
+  type PersonLevel,
+  personLevels,
   qualificationLevels,
   type Retention,
   retentionKinds,
@@ -1467,6 +1469,108 @@ export function readDefectClasses(
   return findings.problems.length > before ? undefined : read
 }
 
+/**
+ * A kind of qualification of a package (#337, decided 15.10.2026): what a
+ * person holds who may carry out a duty, with the level of section 2.3 of
+ * the concept and the keys of the duty kinds of the package that ask for
+ * it. The duty kinds are named here and not in their versions, so that a
+ * merged version stays as it is and a duty confirmed with it asks for the
+ * kind as well.
+ */
+export interface PackageQualification {
+  readonly key: string
+  readonly label: string
+  readonly level: PersonLevel
+  readonly requiredFor: readonly string[]
+}
+
+function packageQualification(
+  value: unknown,
+  spot: Spot,
+  findings: Findings,
+): PackageQualification | undefined {
+  const from = fields(value, spot, findings, ['key', 'label', 'level', 'requiredFor'])
+
+  if (!from) {
+    return undefined
+  }
+
+  const before = findings.problems.length
+  const name = key(from, 'key', spot, findings)
+  const label = text(from, 'label', spot, findings)
+  const level = from['level']
+
+  if (!(personLevels as readonly unknown[]).includes(level)) {
+    findings.say(
+      below(spot, 'level'),
+      `Die Stufe ist eine von ${personLevels.join(', ')}: die Stufen, die eine Person hält.`,
+    )
+  }
+
+  const duties = list(from, 'requiredFor', spot, findings, 'required')
+  const requiredFor = duties
+    ? each(duties, below(spot, 'requiredFor'), findings, (entry, at) =>
+        typeof entry === 'string' && keyPattern.test(entry)
+          ? entry
+          : (findings.say(at, 'Hier steht der Schlüssel einer Pflichtart des Pakets.'), undefined),
+      )
+    : undefined
+
+  if (
+    findings.problems.length > before ||
+    name === undefined ||
+    label === undefined ||
+    requiredFor === undefined
+  ) {
+    return undefined
+  }
+
+  return { key: name, label, level: level as PersonLevel, requiredFor }
+}
+
+/**
+ * The kinds of qualification of a package, `qualifikationen.json` (#337): in
+ * the order they are offered in. A package whose duty kinds ask for no kind
+ * a person holds has no such file, so a file names at least one.
+ */
+export function readQualifications(
+  value: unknown,
+  file: string,
+  findings: Findings,
+): readonly PackageQualification[] | undefined {
+  const spot = spotIn(file)
+  const from = fields(value, spot, findings, ['qualifications'])
+
+  if (!from) {
+    return undefined
+  }
+
+  const before = findings.problems.length
+  const kinds = list(from, 'qualifications', spot, findings, 'required')
+
+  if (kinds?.length === 0) {
+    findings.say(
+      below(spot, 'qualifications'),
+      'Die Datei nennt mindestens eine Art; ein Paket ohne Arten der Qualifikation hat sie nicht.',
+    )
+  }
+
+  const read = kinds
+    ? each(kinds, below(spot, 'qualifications'), findings, packageQualification)
+    : undefined
+
+  if (read) {
+    once(
+      read.map((entry) => entry.key),
+      below(spot, 'qualifications'),
+      findings,
+      'Die Art',
+    )
+  }
+
+  return findings.problems.length > before ? undefined : read
+}
+
 /** What the manifest of a package says. */
 export interface Manifest {
   readonly name: string
@@ -1578,6 +1682,8 @@ export interface Acceptances {
   readonly rules: readonly RuleReview[]
   /** The reviews of the defect classes; a package without classes leaves the list out. */
   readonly classes: readonly ClassReview[]
+  /** The reviews of the kinds of qualification (#337), by their key; a package without them leaves the list out. */
+  readonly qualifications: readonly ClassReview[]
 }
 
 function acceptance(value: unknown, spot: Spot, findings: Findings): PackageAcceptance | undefined {
@@ -1692,7 +1798,7 @@ export function readAcceptances(
   findings: Findings,
 ): Acceptances | undefined {
   const spot = spotIn(file)
-  const from = fields(value, spot, findings, ['entries', 'rules', 'classes'])
+  const from = fields(value, spot, findings, ['entries', 'rules', 'classes', 'qualifications'])
 
   if (!from) {
     return undefined
@@ -1709,11 +1815,16 @@ export function readAcceptances(
   const classes = classList
     ? each(classList, below(spot, 'classes'), findings, classReview)
     : undefined
+  const qualificationList = list(from, 'qualifications', spot, findings, 'optional')
+  const qualifications = qualificationList
+    ? each(qualificationList, below(spot, 'qualifications'), findings, classReview)
+    : undefined
 
   return findings.problems.length > before ||
     entries === undefined ||
     rules === undefined ||
-    classes === undefined
+    classes === undefined ||
+    qualifications === undefined
     ? undefined
-    : { entries, rules, classes }
+    : { entries, rules, classes, qualifications }
 }

@@ -685,6 +685,7 @@ describe('the page of a room', () => {
         roundTemplates: [],
         rules: [],
         defectClasses: [],
+        qualifications: [],
       },
     ],
   }

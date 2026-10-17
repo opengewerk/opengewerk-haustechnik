@@ -2475,11 +2475,17 @@ describe('what a device holds', () => {
     )
     expect((await narrowedFor('u-tech'))['round_templates']).toBe('operator')
   })
-  it('hands whoever sees every area the whole operator, and says so for every kind of record', async () => {
+  it('hands whoever sees every area the whole operator, and says so for every kind of record, but the qualifications of others', async () => {
     const narrowed = await narrowedFor('u-duties')
 
     expect(Object.keys(narrowed).sort()).toEqual([...syncEntities].sort())
-    expect(new Set(Object.values(narrowed))).toEqual(new Set(['all']))
+    // The qualifications of the own person and nobody else's, whatever the
+    // areas (#337).
+    const { qualifications: own, ...rest } = narrowed
+
+    expect(new Set(Object.values(rest))).toEqual(new Set(['all']))
+    expect(own).toMatch(/^own:[0-9a-f]+$/)
+    expect((await narrowedFor('u-tech'))['qualifications']).not.toBe(own)
   })
 
   it('names the places of whoever sees some areas by the properties they see, and others for another person on the same device', async () => {

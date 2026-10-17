@@ -33,7 +33,8 @@ pakete/<name>/
   formulare/             Prüf- und Wartungsprotokolle, <schlüssel>.v<fassung>.json
   vorlagen/              Vorlagen für Rundgänge, <schlüssel>.v<fassung>.json
   mangelklassen.json     die Klassen der Mängel, und ob eine Klasse eine Anlage unsicher macht
-  abnahmen.json          je Fassung, Regel und Mängelklasse: zuletzt geprüft am, abgenommen von wem und wann
+  qualifikationen.json   die Arten der Qualifikation, je Art die Pflichtarten, die sie fordern
+  abnahmen.json          je Fassung, Regel, Mängelklasse und Art: zuletzt geprüft am, abgenommen von wem und wann
   README.md              wer mag, beschreibt hier das Paket
 ```
 
@@ -253,6 +254,35 @@ Beispiel oben ist die Datei des Pakets `allgemein`: seine drei Klassen gelten f�
 der nicht aus einer Prüfung kommt. Ein Mangel aus einer Prüfung nimmt die Klassen des Pakets
 seiner Pflichtart.
 
+### qualifikationen.json
+
+```json
+{
+  "qualifications": [
+    {
+      "key": "electrically_skilled_person",
+      "label": "Elektrofachkraft",
+      "level": "skilled_person",
+      "requiredFor": ["installation_test_dguv_v3", "installation_test_dguv_v4"]
+    }
+  ]
+}
+```
+
+Die Arten der Qualifikation, die eine Person hält und die Pflichtarten des Pakets fordern
+(Abschnitt 4.3 des Konzepts, `#337`), in der Reihenfolge, in der sie zur Wahl stehen. Jede hat
+`key`, `label`, `level` und `requiredFor`. Die Stufe ist eine, die eine Person hält:
+`instructed_person`, `skilled_person` oder `competent_person`; eine Überwachungsstelle, ein
+Sachverständiger und ein Labor sind Firmen und haben keine Art. `requiredFor` nennt die Schlüssel
+der Pflichtarten des Pakets, die die Art fordern; die Stufe der neuesten Fassung jeder genannten
+Pflichtart ist die Stufe der Art, und eine Pflichtart steht bei höchstens einer Art.
+
+Die Pflichtarten stehen hier und nicht in ihren Fassungen, damit eine gemergte Fassung bleibt, wie
+sie ist, und eine Pflicht, die mit einer älteren Fassung bestätigt wurde, die Art genauso fordert.
+Eine Qualifikation einer Person hält ihre Art als `<paket>.<schlüssel>`, deshalb wird der Schlüssel
+einer Art nie neu vergeben. Die Datei gibt es nur in einem Paket mit Arten, und dann nennt sie
+mindestens eine.
+
 ### abnahmen.json
 
 ```json
@@ -265,19 +295,24 @@ seiner Pflichtart.
   ],
   "classes": [
     { "key": "minor", "checkedOn": "2026-10-05" }
+  ],
+  "qualifications": [
+    { "key": "electrically_skilled_person", "checkedOn": "2026-10-17" }
   ]
 }
 ```
 
-Jede Fassung, jede Regel und jede Mängelklasse hat genau einen Eintrag mit dem Tag, an dem sie
-zuletzt gegen ihre Quelle geprüft wurde; `classes` fehlt in einem Paket ohne Mängelklassen. Liegt
+Jede Fassung, jede Regel, jede Mängelklasse und jede Art der Qualifikation hat genau einen Eintrag
+mit dem Tag, an dem sie zuletzt gegen ihre Quelle geprüft wurde; `classes` fehlt in einem Paket ohne
+Mängelklassen, `qualifications` in einem ohne Arten. Eine Art wird gegen die Quellen der
+Pflichtarten geprüft, die sie fordern. Liegt
 der Tag mehr als ein Jahr zurück, ist der Eintrag gekennzeichnet. Einen Monat vorher erinnert der
 Workflow "Katalog prüfen lassen" jeden Montag daran: er hält ein Issue mit allen fälligen Einträgen
 und schreibt es fort, statt ein zweites anzulegen; von Hand mit
 `TODAY=2027-09-20 DRY_RUN=1 pnpm --filter @opengewerk/haustechnik-catalogue run remind` nach dem
 Bau des Katalogs. Wer einen Eintrag fachkundig
 abnimmt, ergänzt `"accepted": { "by": "Name", "on": "2026-10-05", "sha256": "..." }`. Die
-Prüfsumme ist die der Datei, bei einer Regel und bei einer Mängelklasse die ihres Datensatzes;
+Prüfsumme ist die der Datei, bei einer Regel, einer Mängelklasse und einer Art die ihres Datensatzes;
 fehlt sie oder passt sie nicht, nennt der Bau die richtige. Ein Eintrag ohne Abnahme ist überall
 gekennzeichnet, wo er gelesen wird.
 
@@ -292,9 +327,12 @@ gekennzeichnet, wo er gelesen wird.
 - keine Pflichtart nennt eine allgemeine Anlagenart des Pakets `allgemein`: sie steht für eine
   Anlage, deren Fachpaket noch fehlt, und trägt keine Pflichtart
 - kein Schlüssel zweimal, keine Fassung fehlt in einer Reihe, keine beginnt vor der davor
-- für jede Fassung, jede Regel und jede Mängelklasse ein Eintrag in `abnahmen.json`, und jede
+- für jede Fassung, jede Regel, jede Mängelklasse und jede Art der Qualifikation ein Eintrag in `abnahmen.json`, und jede
   Abnahme passt zu ihrer Prüfsumme
-- in einem Pull Request: jede Fassung, die es auf `main` gibt, ist Byte für Byte dieselbe
+- jede Art der Qualifikation nennt Pflichtarten des Pakets, jede mit der Stufe der Art, und keine
+  Pflichtart steht bei zwei Arten
+- in einem Pull Request: jede Fassung, die es auf `main` gibt, ist Byte für Byte dieselbe, und
+  keine gemergte Mängelklasse und keine gemergte Art der Qualifikation fehlt
 
 Was der Bau nicht prüfen kann, prüft die Abnahme: ob die Pflicht so in der Quelle steht, und ob der
 Text eigene Worte sind.

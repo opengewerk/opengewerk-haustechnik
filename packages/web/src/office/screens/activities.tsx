@@ -95,6 +95,7 @@ import {
 import { dutyPlaces, evidencePlaces, reportSearch } from '../duty-addresses.js'
 import { ResultMark } from '../evidence-words.js'
 import { factLink } from '../links.js'
+import { QualificationNotes } from '../qualification-note.js'
 import { officePlaces } from '../place-addresses.js'
 import { RegisterFilter } from '../register-filter.js'
 import { roundPlaces } from '../round-template-addresses.js'
@@ -672,10 +673,15 @@ export function ActivityScreen() {
     .filter((day) => day !== null)
     .sort()
     .at(-1)
+  // The kind of qualification a duty asks for (#337), or else the level its kind names.
   const qualifications = [
     ...new Set(
       shown.duties.flatMap((duty) =>
-        duty.qualification === null ? [] : [qualificationLevelLabel[duty.qualification]],
+        duty.qualificationKind !== null
+          ? [duty.qualificationKind]
+          : duty.qualification === null
+            ? []
+            : [qualificationLevelLabel[duty.qualification]],
       ),
     ),
   ]
@@ -1153,6 +1159,16 @@ function PlanForm({
             {...(problems['dueOn'] ? { problem: problems['dueOn'] } : {})}
           />
         </div>
+        {/* The person chosen lacks the kind the duty asks for (#337): a note, not a refusal. */}
+        {performer === 'own_staff' ? (
+          <QualificationNotes
+            hints={candidates.data?.hints}
+            chosen={[person]}
+            nameOf={(userId) =>
+              candidates.data?.performers.find((each) => each.userId === userId)?.name ?? ''
+            }
+          />
+        ) : null}
         {candidates.isError ? (
           <p role="alert" className="text-[13px] font-semibold text-conflict">
             {activityWords.peopleFailed}

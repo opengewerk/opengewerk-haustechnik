@@ -548,8 +548,9 @@ describe('the page of a work order', () => {
       '/auftraege/ac-remedy',
       {
         '/work-orders/ac-remedy': details(remedy),
-        // Asked with the place the order hangs on, whose area it is (#306).
-        '/work-orders/candidates?property=p-school&asset=as-door': candidates,
+        // Asked with the place the order hangs on, whose area it is (#306),
+        // and the order, whose duties name a kind of qualification (#337).
+        '/work-orders/candidates?property=p-school&asset=as-door&order=ac-remedy': candidates,
       },
       'site_management',
       () => ({ status: 200, body: { id: 'ac-remedy' } }),

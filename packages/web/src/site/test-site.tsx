@@ -360,6 +360,8 @@ export async function mountSite(
       'meter_pauses',
       'meter_settings',
       'tasks',
+      // The own qualifications, against which an activity is begun (#337).
+      'qualifications',
       // The stores, which the device holds whole, and the material of an order (#326).
       'articles',
       'stores',

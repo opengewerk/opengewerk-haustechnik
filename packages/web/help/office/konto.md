@@ -2,6 +2,8 @@
 
 Hier verwalten Sie Ihren eigenen Zugang: Passwort, zweiten Faktor, Passkeys und die Geräte, auf denen Sie angemeldet sind. Dazu die Darstellung, hell oder dunkel, und Push auf diesem Gerät.
 
+Unter „Ihre Qualifikationen“ steht, was die Leitung für Sie eingetragen hat, bis wann es gilt und der Nachweis dazu.
+
 Hat Ihnen der Betreiber Pflichten übertragen, stehen Ihre Pflichtenübertragungen hier, sobald die Leitung unterschrieben hat. Eine, die auf Ihre Unterschrift wartet, lesen Sie ganz und unterschreiben sie; erst dann gilt sie. Zu einer unterschriebenen laden Sie das PDF mit beiden Unterschriften, Ihre Ausfertigung.
 
 ## Kurzanleitung

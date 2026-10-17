@@ -104,5 +104,11 @@
         "sha256": "34fc72617f02b72263227c25cd78c872c737e3d403f5012a063e2b115d690ac7"
       }
     }
+  ],
+  "qualifications": [
+    {
+      "key": "lightning_protection_expert",
+      "checkedOn": "2026-10-17"
+    }
   ]
 }

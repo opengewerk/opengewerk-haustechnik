@@ -165,6 +165,7 @@ export const samplePackage: CataloguePackage = {
     },
   ],
   defectClasses: [],
+  qualifications: [],
 }
 
 /**

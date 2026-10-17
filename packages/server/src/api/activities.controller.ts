@@ -68,6 +68,7 @@ import {
   properties,
   tenantRoles,
 } from '../database/schema/index.js'
+import { qualificationHints } from '../qualifications/hints.js'
 import { dayInGermany } from '../today.js'
 import { RequiresPermission } from './authorization.js'
 import { checkContractor } from './contractor-checks.js'
@@ -372,6 +373,10 @@ export class ActivitiesController {
         appointment: registered?.standing.appointment?.dueOn ?? null,
         lastMetOn: registered?.lastMetOn ?? null,
         qualification: kind?.definition.qualification.level ?? null,
+        qualificationKind:
+          duty.kind === null
+            ? null
+            : (this.catalogue.qualificationFor(duty.kind)?.qualification.label ?? null),
         takesReport: takesAReport(duty, kind),
         result: line.result,
         resultReason: line.resultReason,
@@ -391,7 +396,9 @@ export class ActivitiesController {
    * Who may be named in the plan of an activity: who answers for it among
    * those who plan and hand out work, who performs it among those who
    * perform activities, each seeing the area of the activity and not shut
-   * out. For whoever plans, and the name and nothing else of each person.
+   * out. For whoever plans, and the name and nothing else of each person;
+   * for whoever may look at qualifications, besides, what a performer lacks
+   * of the kind its duties ask for (#337), as a note.
    */
   @Get(':id/candidates')
   @RequiresPermission('activity.write')
@@ -401,8 +408,31 @@ export class ActivitiesController {
   ): Promise<ActivityCandidates> {
     const found = await this.database.forTenant(identity, async (tx) => {
       const activity = await this.activityOf(tx, identity, id)
+      const offered = await candidatesIn(tx, activity.areaId)
 
-      return candidatesIn(tx, activity.areaId)
+      if (!identity.rights.includes('qualification.read')) {
+        return { ...offered, hints: {} }
+      }
+
+      const kinds = await tx
+        .select({ kind: duties.kind })
+        .from(activityDuties)
+        .innerJoin(
+          duties,
+          and(eq(duties.tenantId, activityDuties.tenantId), eq(duties.id, activityDuties.dutyId)),
+        )
+        .where(eq(activityDuties.activityId, activity.id))
+
+      return {
+        ...offered,
+        hints: await qualificationHints(
+          tx,
+          this.catalogue,
+          kinds.map((row) => row.kind),
+          offered.performers,
+          dayInGermany(),
+        ),
+      }
     })
     const accounts = await accountsOf(
       this.database,
@@ -414,7 +444,11 @@ export class ActivitiesController {
         .map((userId) => ({ userId, name: accounts.get(userId)?.name ?? 'Unbekanntes Konto' }))
         .sort((left, right) => byNameIn(left.name, right.name))
 
-    return { responsible: people(found.responsible), performers: people(found.performers) }
+    return {
+      responsible: people(found.responsible),
+      performers: people(found.performers),
+      hints: found.hints,
+    }
   }
 
   /**

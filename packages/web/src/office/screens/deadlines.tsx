@@ -32,6 +32,7 @@ import { factLink } from '../links.js'
 import { officePlaces } from '../place-addresses.js'
 import { workOrderPlaces } from '../work-order-addresses.js'
 import { planPlaces } from '../round-template-addresses.js'
+import { qualificationListPlace } from '../qualification-addresses.js'
 import { dutyColleaguesQuery } from './duty.js'
 
 /** A deadline of this application as the list reads it: what every one says, and its duty or its defect. */
@@ -104,6 +105,9 @@ function sourceOf(deadline: DutyDeadlineView): { readonly href: string; readonly
     case 'delegation':
       // The delegation of duties that ends (#336).
       return { href: delegationPlaces.delegation(deadline.delegation.id), name }
+    case 'qualification':
+      // The qualification of a person that runs out (#337), on the list of the qualifications.
+      return { href: qualificationListPlace.to, name }
     case 'warranty':
       // The accepted work order or the asset whose warranty ends (#329).
       return {

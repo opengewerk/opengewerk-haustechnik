@@ -180,6 +180,7 @@ export const testCatalogue: CatalogueBundle = {
           review: unacceptedReview,
         },
       ],
+      qualifications: [],
     },
     {
       name: 'leer',
@@ -192,6 +193,7 @@ export const testCatalogue: CatalogueBundle = {
       roundTemplates: [],
       rules: [],
       defectClasses: [],
+      qualifications: [],
     },
     {
       name: 'fertig',
@@ -204,6 +206,7 @@ export const testCatalogue: CatalogueBundle = {
       roundTemplates: [],
       rules: [],
       defectClasses: [],
+      qualifications: [],
     },
   ],
 }

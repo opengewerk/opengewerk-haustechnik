@@ -147,6 +147,7 @@ const bundle: CatalogueBundle = {
         },
       ],
       defectClasses: [],
+      qualifications: [],
     },
   ],
 }

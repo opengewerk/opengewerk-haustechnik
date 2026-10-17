@@ -38,6 +38,8 @@ export interface DeviceScope {
   readonly activityIds: readonly string[]
   readonly defectIds: readonly string[]
   readonly taskIds: readonly string[]
+  /** The person of the device, whose qualifications it holds and nobody else's (#337). */
+  readonly userId: string
 }
 
 /**
@@ -61,6 +63,7 @@ export async function deviceScope(
       activityIds: [],
       defectIds: [],
       taskIds: [],
+      userId,
     }
   }
 
@@ -85,6 +88,7 @@ export async function deviceScope(
 
   return {
     everyArea: false,
+    userId,
     propertyIds: await ids(sql`select id from properties order by id`),
     buildingIds: await ids(sql`select id from buildings order by id`),
     activityIds,
@@ -258,10 +262,24 @@ export function pullScope(scope: DeviceScope, reads: PullRights): PullScope {
           ),
       }
 
+  // The qualifications of the person of the device and nobody else's, also
+  // for whoever sees every area (#337): what another holds is no business of
+  // a device, and the office reads it from the server.
+  const own = sql`${column('qualifications', 'user_id')} = ${scope.userId}`
+  const ownValue = `own:${fingerprintOf([scope.userId])}`
+
   if (scope.everyArea) {
     return {
-      narrow: (entity) => (Object.hasOwn(firms, entity) ? firms[entity] : undefined),
-      narrowed: Object.fromEntries(syncEntities.map((entity) => [entity, named(entity, 'all')])),
+      narrow: (entity) =>
+        entity === 'qualifications'
+          ? own
+          : Object.hasOwn(firms, entity)
+            ? firms[entity]
+            : undefined,
+      narrowed: {
+        ...Object.fromEntries(syncEntities.map((entity) => [entity, named(entity, 'all')])),
+        qualifications: ownValue,
+      },
       ...answering,
     }
   }
@@ -284,6 +302,7 @@ export function pullScope(scope: DeviceScope, reads: PullRights): PullScope {
     work_permits: sql`${column('work_permits', 'activity_id')} = any(${activities})`,
     defects: sql`${column('defects', 'id')} = any(${idArray(scope.defectIds)})`,
     tasks: sql`${column('tasks', 'id')} = any(${idArray(scope.taskIds)})`,
+    qualifications: own,
   }
   const places = `properties:${fingerprintOf(scope.propertyIds)}:buildings:${fingerprintOf(scope.buildingIds)}`
   // The templates of the rounds lie in no area: every device holds them all,
@@ -300,6 +319,9 @@ export function pullScope(scope: DeviceScope, reads: PullRights): PullScope {
       // The own tasks, by a fingerprint over those held: one that went to
       // somebody else or was done long enough ago leaves the device.
       tasks: `tasks:${fingerprintOf(scope.taskIds)}`,
+      // The own qualifications (#337), and the kinds of the operator they name.
+      qualifications: ownValue,
+      qualification_kinds: operator,
       round_templates: operator,
       round_template_versions: operator,
       // The key day of the meters, which names the key date of a reading on site (#120).

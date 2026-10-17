@@ -128,6 +128,7 @@ const catalogue: CatalogueBundle = {
       roundTemplates: [],
       rules: [],
       defectClasses: [],
+      qualifications: [],
     },
   ],
 }

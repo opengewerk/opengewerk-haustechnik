@@ -9,6 +9,7 @@ import { attachments } from './attachments.js'
 import { contracts } from './contracts.js'
 import { defects } from './defects.js'
 import { dutyDelegations } from './delegations.js'
+import { qualifications } from './qualifications.js'
 import { duties } from './duties.js'
 import { properties } from './locations.js'
 import { roundPlans } from './round-plans.js'
@@ -41,6 +42,8 @@ const deadlineColumns = {
   warrantyOrderId: reference<'work-order'>('warranty_order_id'),
   /** The delegation of duties whose end it follows, the source `delegation` (#336). */
   delegationId: reference<'duty-delegation'>('delegation_id'),
+  /** The qualification of a person whose expiry it follows, the source `qualification` (#337). */
+  qualificationId: reference<'qualification'>('qualification_id'),
   /** The task the engine made of this deadline, the action `task` (#242). */
   taskId: reference<'task'>('task_id'),
   // None for the document of a contractor (#328) and for a contract (#329), which lie in no area.
@@ -138,6 +141,11 @@ export const { deadlineStatus, deadlines } = deadlinesSchema({
       name: 'deadlines_of_a_delegation',
     }),
     foreignKey({
+      columns: [table.tenantId, table.qualificationId],
+      foreignColumns: [qualifications.tenantId, qualifications.id],
+      name: 'deadlines_of_a_qualification',
+    }),
+    foreignKey({
       columns: [table.tenantId, table.warrantyAssetId, table.areaId],
       foreignColumns: [assets.tenantId, assets.id, assets.areaId],
       name: 'deadlines_follow_their_asset',
@@ -159,6 +167,7 @@ export const { deadlineStatus, deadlines } = deadlinesSchema({
     }).onUpdate('cascade'),
     index('deadlines_contract_idx').on(table.tenantId, table.contractId),
     index('deadlines_delegation_idx').on(table.tenantId, table.delegationId),
+    index('deadlines_qualification_idx').on(table.tenantId, table.qualificationId),
     index('deadlines_warranty_asset_idx').on(table.tenantId, table.warrantyAssetId),
     index('deadlines_warranty_order_idx').on(table.tenantId, table.warrantyOrderId),
     // The meters of a property are read for the property they hang on.
@@ -169,15 +178,15 @@ export const { deadlineStatus, deadlines } = deadlinesSchema({
     // Each follows one source: a duty, a defect, the plan of a round, the
     // meters of a property, a document, a contract or a warranty.
     // Without a place only the deadline of a document, which then is a
-    // contractor's (#328) or a contract's, that of a contract (#329) and that
-    // of a delegation of duties (#336).
+    // contractor's (#328) or a contract's, that of a contract (#329), that
+    // of a delegation of duties (#336) and that of a qualification (#337).
     check(
       'deadlines_at_a_place_or_of_a_document',
-      sql`(${table.areaId} is null) = (${table.propertyId} is null) and (${table.propertyId} is not null or ${table.attachmentId} is not null or ${table.contractId} is not null or ${table.delegationId} is not null) and (${table.contractId} is null or ${table.propertyId} is null) and (${table.delegationId} is null or ${table.propertyId} is null)`,
+      sql`(${table.areaId} is null) = (${table.propertyId} is null) and (${table.propertyId} is not null or ${table.attachmentId} is not null or ${table.contractId} is not null or ${table.delegationId} is not null or ${table.qualificationId} is not null) and (${table.contractId} is null or ${table.propertyId} is null) and (${table.delegationId} is null or ${table.propertyId} is null) and (${table.qualificationId} is null or ${table.propertyId} is null)`,
     ),
     check(
       'deadlines_follow_one_source',
-      sql`num_nonnulls(${table.dutyId}, ${table.defectId}, ${table.roundPlanId}, ${table.meterPropertyId}, ${table.attachmentId}, ${table.contractId}, ${table.warrantyAssetId}, ${table.warrantyOrderId}, ${table.delegationId}) = 1`,
+      sql`num_nonnulls(${table.dutyId}, ${table.defectId}, ${table.roundPlanId}, ${table.meterPropertyId}, ${table.attachmentId}, ${table.contractId}, ${table.warrantyAssetId}, ${table.warrantyOrderId}, ${table.delegationId}, ${table.qualificationId}) = 1`,
     ),
   ],
 })

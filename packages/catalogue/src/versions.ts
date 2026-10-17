@@ -40,13 +40,20 @@ export function changedVersions(
   return problems.sort()
 }
 
-/** The keys a file of defect classes names, or none for a file that is no list of them. */
-function classKeys(bytes: Uint8Array): readonly string[] {
+/**
+ * The keys a file of defect classes or of kinds of qualification names, or
+ * none for a file that is no list of them.
+ */
+function classKeys(
+  bytes: Uint8Array,
+  list: 'classes' | 'qualifications' = 'classes',
+): readonly string[] {
   try {
-    const parsed = JSON.parse(new TextDecoder().decode(bytes)) as { classes?: unknown }
+    const parsed = JSON.parse(new TextDecoder().decode(bytes)) as Record<string, unknown>
+    const entries = parsed[list]
 
-    return Array.isArray(parsed.classes)
-      ? parsed.classes.flatMap((each: unknown) =>
+    return Array.isArray(entries)
+      ? entries.flatMap((each: unknown) =>
           typeof each === 'object' &&
           each !== null &&
           typeof (each as { key?: unknown }).key === 'string'
@@ -83,6 +90,38 @@ export function removedDefectClasses(
       if (!kept.has(key)) {
         problems.push(
           `${path}: Die Mängelklasse "${key}" ist auf main gemergt und fehlt hier. Eine gemergte Klasse bleibt stehen, weil Mängel sie nennen, und ihr Schlüssel wird nicht neu vergeben.`,
+        )
+      }
+    }
+  }
+
+  return problems.sort()
+}
+
+/**
+ * The kinds of qualification that are merged and gone (#337): a qualification
+ * of a person names its kind by its key, so a merged kind stays in its
+ * package, and its key is never given to another. Its word and the duty
+ * kinds that ask for it may change; the loader checks the file itself.
+ */
+export function removedQualifications(
+  base: ReadonlyMap<string, Uint8Array>,
+  head: (path: string) => Uint8Array | null,
+): readonly string[] {
+  const problems: string[] = []
+
+  for (const [path, bytes] of base) {
+    if (!path.endsWith('/qualifikationen.json')) {
+      continue
+    }
+
+    const now = head(path)
+    const kept = new Set(now === null ? [] : classKeys(now, 'qualifications'))
+
+    for (const key of classKeys(bytes, 'qualifications')) {
+      if (!kept.has(key)) {
+        problems.push(
+          `${path}: Die Art der Qualifikation "${key}" ist auf main gemergt und fehlt hier. Eine gemergte Art bleibt stehen, weil Qualifikationen von Personen sie nennen, und ihr Schlüssel wird nicht neu vergeben.`,
         )
       }
     }

@@ -5,6 +5,7 @@ import {
 } from '@opengewerk/platform-web/office'
 import { useQuery } from '@tanstack/react-query'
 import {
+  Award,
   BookOpen,
   Building2,
   Calendar,
@@ -104,6 +105,13 @@ export const officeNavigation: readonly OfficePlaces[] = [
         label: 'Übertragungen',
         icon: UserCheck,
         right: 'duty.delegate',
+      },
+      // The qualifications of the people, for whoever may look at them (#337).
+      {
+        to: '/qualifikationen',
+        label: 'Qualifikationen',
+        icon: Award,
+        right: 'qualification.read',
       },
     ],
   },

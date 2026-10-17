@@ -117,6 +117,7 @@ function rowsOf(tenant: Tenant): readonly Row[] {
   const firm = randomUUID()
   const contract = randomUUID()
   const delegation = randomUUID()
+  const ownKind = randomUUID()
   const category = randomUUID()
   const faultReport = randomUUID()
   const file = randomUUID().replaceAll('-', '').repeat(2)
@@ -541,6 +542,25 @@ function rowsOf(tenant: Tenant): readonly Row[] {
         reason: 'Wechsel in die Liegenschaftsverwaltung.',
         revoked_by: tenant.userId,
         revoked_at: '2026-12-01T09:00:00Z',
+      },
+    },
+    // A kind of the operator's own and a qualification of the person (#337).
+    {
+      table: 'qualification_kinds',
+      values: {
+        id: ownKind,
+        tenant_id: tenant.id,
+        label: 'Hygieneschulung',
+        level: 'instructed_person',
+      },
+    },
+    {
+      table: 'qualifications',
+      values: {
+        tenant_id: tenant.id,
+        user_id: tenant.userId,
+        own_kind_id: ownKind,
+        valid_until: '2027-03-31',
       },
     },
     { table: 'stores', values: { id: store, tenant_id: tenant.id, name: 'Hauptlager' } },

@@ -1,0 +1,27 @@
+{
+  "qualifications": [
+    {
+      "key": "electrically_skilled_person",
+      "label": "Elektrofachkraft",
+      "level": "skilled_person",
+      "requiredFor": [
+        "installation_test_dguv_v3",
+        "installation_test_dguv_v4",
+        "installation_test_special_location_dguv_v3"
+      ]
+    },
+    {
+      "key": "electrically_instructed_person",
+      "label": "Elektrotechnisch unterwiesene Person",
+      "level": "instructed_person",
+      "requiredFor": [
+        "portable_equipment_test_baths_kitchens_dguv_v4",
+        "portable_equipment_test_construction_site_dguv_v3",
+        "portable_equipment_test_dguv_v3",
+        "portable_equipment_test_offices_care_dguv_v4",
+        "portable_equipment_test_other_areas_dguv_v4",
+        "portable_equipment_test_workshops_schools_dguv_v4"
+      ]
+    }
+  ]
+}

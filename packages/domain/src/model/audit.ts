@@ -6,6 +6,7 @@ import {
   ruleScopeNames,
   stockMovementKindLabel,
   stockUnitLabel,
+  personLevelLabel,
 } from '@opengewerk/platform-domain'
 
 import {
@@ -327,6 +328,22 @@ export const auditVocabulary: AuditVocabulary = {
         reason: 'Grund',
         revoked_by: 'Widerrufen von',
         revoked_at: 'Widerrufen am',
+      },
+    },
+    // The kinds the operator adds and the qualifications of the people (#337).
+    qualification_kinds: {
+      label: 'Eigene Art der Qualifikation',
+      fields: { label: 'Bezeichnung', level: 'Stufe' },
+    },
+    qualifications: {
+      label: 'Qualifikation',
+      fields: {
+        user_id: 'Person',
+        kind_key: 'Art',
+        own_kind_id: 'Eigene Art',
+        valid_until: 'Gültig bis',
+        note: 'Notiz',
+        certificate_sha256: 'Nachweis',
       },
     },
     store_labels: {
@@ -725,6 +742,8 @@ export const auditVocabulary: AuditVocabulary = {
       warranty_order_id: 'Gewährleistung des Auftrags',
       // The delegation whose end a deadline follows (#336).
       delegation_id: 'Pflichtenübertragung',
+      // The qualification whose expiry a deadline follows (#337).
+      qualification_id: 'Qualifikation',
       task_id: 'Aufgabe',
       property_id: 'Liegenschaft',
       area_id: 'Bereich',
@@ -873,6 +892,9 @@ export const auditVocabulary: AuditVocabulary = {
     // The delegation of duties a row hangs on, and the one a duty's responsible comes from (#336).
     delegation_id: 'duty_delegations',
     responsible_delegation_id: 'duty_delegations',
+    // The own kind a qualification is of, and the qualification a deadline follows (#337).
+    own_kind_id: 'qualification_kinds',
+    qualification_id: 'qualifications',
     // The category of a fault report and the report it went into (#331).
     category_id: 'fault_categories',
     merged_into_id: 'fault_reports',
@@ -972,6 +994,9 @@ export const auditVocabulary: AuditVocabulary = {
     duty_delegation_areas: ['delegation_id'],
     duty_delegation_signatures: ['delegation_id'],
     duty_delegation_revocations: ['delegation_id'],
+    // An own kind by its label, a qualification by the person who holds it (#337).
+    qualification_kinds: ['label'],
+    qualifications: ['user_id'],
     // A duty of the operator's own by its name, one from the catalogue by its
     // kind; a dismissal by the kind it dismissed.
     duties: ['label', 'kind'],
@@ -1080,6 +1105,7 @@ export const auditValues: Readonly<
   contracts: { notice_unit: noticeUnitLabel },
   duty_delegations: { scope: delegationScopeLabel },
   duty_delegation_signatures: { role: delegationRoleLabel },
+  qualification_kinds: { level: personLevelLabel },
   defects: { status: defectStatusLabel },
   tasks: { status: { open: 'Offen', done: 'Erledigt' } },
   duties: {

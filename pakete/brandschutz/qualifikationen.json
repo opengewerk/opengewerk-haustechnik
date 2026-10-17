@@ -1,0 +1,20 @@
+{
+  "qualifications": [
+    {
+      "key": "fire_extinguisher_expert",
+      "label": "Sachkundiger für die Instandhaltung tragbarer Feuerlöscher",
+      "level": "skilled_person",
+      "requiredFor": [
+        "fire_extinguisher_maintenance"
+      ]
+    },
+    {
+      "key": "hold_open_device_expert",
+      "label": "Sachkundiger für Feststellanlagen",
+      "level": "skilled_person",
+      "requiredFor": [
+        "hold_open_device_annual_check"
+      ]
+    }
+  ]
+}

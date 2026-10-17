@@ -108,6 +108,7 @@ function bundle(content: Partial<CatalogueBundle['packages'][number]> = {}): Cat
         roundTemplates: [],
         rules: [rule('probe.elevator_main_test_interval', '2015-06-01', null, 24)],
         defectClasses: [],
+        qualifications: [],
         ...content,
       },
     ],
@@ -272,8 +273,10 @@ describe('the catalogue', () => {
     // Format 2 had no defect classes at its packages (#61): a device that
     // kept such a bundle is told so, and fetches the one of its server.
     expect(() => catalogueOf({ ...bundle(), format: 2 as never })).toThrow(
-      'Der Katalog hat das Format 2, gelesen wird 3.',
+      'Der Katalog hat das Format 2, gelesen wird 4.',
     )
+    // Format 3 had no kinds of qualification at its packages (#337).
+    expect(() => catalogueOf({ ...bundle(), format: 3 as never })).toThrow(/Format 3/)
     expect(() =>
       catalogueOf(
         bundle({
@@ -351,6 +354,7 @@ describe('a package as a person reads it', () => {
           roundTemplates: [],
           rules: [rule('second.limit', '2015-06-01', null, 12)],
           defectClasses: [],
+          qualifications: [],
         },
       ],
     })
@@ -439,6 +443,36 @@ describe('a package as a person reads it', () => {
     expect(catalogue.form('probe.round', '2027-01-01')).toBeNull()
   })
 
+  it('names the kinds of qualification of the packages, and the one a duty kind asks for (#337)', () => {
+    const catalogue = catalogueOf(
+      bundle({
+        qualifications: [
+          {
+            qualification: {
+              key: 'probe.lift_expert',
+              label: 'Sachkundiger für Aufzüge',
+              level: 'skilled_person',
+              requiredFor: ['probe.elevator_main_test'],
+            },
+            review: unaccepted,
+          },
+        ],
+      }),
+    )
+
+    expect(catalogue.qualifications.map((each) => each.qualification.key)).toEqual([
+      'probe.lift_expert',
+    ])
+    expect(catalogue.qualification('probe.lift_expert')?.qualification.label).toBe(
+      'Sachkundiger für Aufzüge',
+    )
+    expect(catalogue.qualificationFor('probe.elevator_main_test')?.qualification.key).toBe(
+      'probe.lift_expert',
+    )
+    expect(catalogue.qualificationFor('probe.elevator_check')).toBeNull()
+    expect(catalogue.qualification('probe.unknown')).toBeNull()
+  })
+
   it('names the defect classes of a package in the order of its file, and one by the key a defect keeps', () => {
     const made = bundle({
       defectClasses: [
@@ -461,6 +495,7 @@ describe('a package as a person reads it', () => {
           roundTemplates: [],
           rules: [],
           defectClasses: [defectClass('second.minor', 'geringfügig', false)],
+          qualifications: [],
         },
       ],
     })

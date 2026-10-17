@@ -146,6 +146,7 @@ describe('the package shown', () => {
           roundTemplates: [],
           rules: [],
           defectClasses: [],
+          qualifications: [],
         },
         ...testCatalogue.packages,
       ],

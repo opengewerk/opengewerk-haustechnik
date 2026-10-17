@@ -15,6 +15,7 @@ import type {
 import type { AssetId } from './asset.js'
 import type { DefectId } from './defect.js'
 import type { DutyId } from './duty-record.js'
+import type { QualificationHint } from './qualifications.js'
 import type { DutyPerson } from './duty-register.js'
 import type { FaultReportId } from './fault-report.js'
 import type { BuildingId, PropertyId, RoomId } from './location.js'
@@ -203,6 +204,13 @@ export interface WorkOrderDetails extends WorkOrderEntry {
  */
 export interface WorkOrderCandidates {
   readonly people: readonly DutyPerson[]
+  /**
+   * By the person, what of the kind the duties of the order ask for they
+   * lack (#337): only for whoever may look at qualifications, only where it
+   * is lacking, and only where the order names its duties. A note, never a
+   * refusal.
+   */
+  readonly hints?: Readonly<Record<string, QualificationHint>>
 }
 
 /**

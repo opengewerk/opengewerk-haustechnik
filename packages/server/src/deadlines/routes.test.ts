@@ -564,6 +564,14 @@ describe('the settings of a kind', () => {
         responsible: 'lead',
         leadDays: 60,
       }),
+      // The last day of a qualification of a person (#337).
+      expect.objectContaining({
+        key: 'qualification.expires',
+        source: 'qualification',
+        actions: ['reminder'],
+        responsible: 'lead',
+        leadDays: 60,
+      }),
     ])
 
     await http()
