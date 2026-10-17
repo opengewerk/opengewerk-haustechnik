@@ -179,7 +179,8 @@ export function servingPdf(refusal: string | null = null): { asked: string[]; op
   const opened: unknown[] = []
 
   vi.stubGlobal('fetch', (path: string, init?: RequestInit) => {
-    if (!path.endsWith('/pdf')) {
+    // A PDF made for a choice carries it after its address (#345).
+    if (!(path.split('?')[0] ?? '').endsWith('/pdf')) {
       return answered(path, init)
     }
 

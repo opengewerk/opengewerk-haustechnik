@@ -172,6 +172,56 @@ function mount(at: string) {
   return mountOffice(at, server, everything)
 }
 
+/**
+ * Defects the device holds (#345): one of a class that makes an asset unsafe
+ * at the boiler, one of another class at the meter, and one of the unsafe
+ * class at the lamp that is remedied already.
+ */
+const atAsset = {
+  ...place,
+  buildingId: null,
+  roomId: null,
+  foundInActivityId: null,
+  foundOn: '2026-10-16',
+  dueOn: '2026-10-18',
+  status: 'found',
+}
+const unsafeDefects = [
+  {
+    id: 'df-unsafe',
+    ...atAsset,
+    assetId: boiler.id,
+    description: 'Sicherheitsventil bläst nicht ab',
+    defectClass: 'probe.severe',
+  },
+  {
+    id: 'df-slight',
+    ...atAsset,
+    assetId: meter.id,
+    description: 'Plombe fehlt',
+    defectClass: 'probe.slight',
+  },
+  {
+    id: 'df-remedied',
+    ...atAsset,
+    assetId: lamp.id,
+    description: 'Leuchtmittel defekt',
+    defectClass: 'probe.severe',
+    status: 'remedied',
+  },
+]
+
+/** A page on a device that holds those defects, and a catalogue that says which class makes an asset unsafe. */
+function mountWithDefects(at: string, further: Readonly<Record<string, unknown>> = {}) {
+  for (const defect of unsafeDefects) {
+    server.put('defects', defect)
+  }
+
+  signedInOffice('technician', [nord, sued], { ...servingCatalogue(), ...further })
+
+  return mountOffice(at, server, [...everything, 'defects'])
+}
+
 /** The steps of the path over the page, each with where it leads. */
 function path(): string[] {
   return within(screen.getByRole('navigation', { name: 'Pfad' }))
@@ -306,6 +356,36 @@ function toDo(): string[] {
 }
 
 describe('the Lagebild of a building (#121)', () => {
+  it('names the assets of the building a defect puts out of service, with their room and the defect, above what is to do (#345)', async () => {
+    await mountWithDefects(`/gebaeude/${house.id}`, {
+      [`/overview/buildings/${house.id}`]: situation,
+    })
+
+    const named = await screen.findByRole('link', { name: 'AN-00010 Heizkessel' })
+
+    expect(named.getAttribute('href')).toBe('/anlagen/s-boiler')
+    // The word of the class comes with the catalogue of the device.
+    await waitFor(() => {
+      expect(named.parentElement?.textContent).toBe(
+        'Außer Betrieb durch Mangel: AN-00010 Heizkessel, E.14 Heizraum, schwer: Sicherheitsventil bläst nicht ab.',
+      )
+    })
+    // Neither the meter, whose defect is of another class, nor the lamp, whose defect is remedied.
+    expect(screen.queryByRole('link', { name: 'AN-00009 Hauptwasserzähler' })).toBeNull()
+    expect(screen.queryByRole('link', { name: 'AN-00012 Notleuchte Flur' })).toBeNull()
+  })
+
+  it('says nothing of the kind while no defect puts an asset of the building out of service (#345)', async () => {
+    signedInOffice('technician', [nord, sued], {
+      ...servingCatalogue(),
+      [`/overview/buildings/${house.id}`]: situation,
+    })
+    await mountOffice(`/gebaeude/${house.id}`, server, [...everything, 'defects'])
+    await screen.findByRole('list', { name: 'Was an diesem Gebäude zu tun ist' })
+
+    expect(screen.queryByText(/Außer Betrieb durch Mangel/)).toBeNull()
+  })
+
   it('counts what is to do there, each number a link to its list narrowed to the building', async () => {
     signedInOffice('technician', [nord, sued], { [`/overview/buildings/${house.id}`]: situation })
     await mount(`/gebaeude/${house.id}`)
@@ -696,6 +776,20 @@ describe('the page of a room', () => {
     await mount(at)
     await screen.findByText(/Aufzugsanlage/)
   }
+
+  it('says of an asset in it a defect puts out of service so, by the defects the device holds (#345)', async () => {
+    await mountWithDefects(`/raeume/${boilerRoom.id}`)
+
+    await waitFor(() => {
+      expect(rowsOf(inside).map((row) => row[3])).toEqual([
+        // Out of service since the first of January; the defect at it is of another class.
+        'Außer Betrieb',
+        // In service by its life cycle, out of service by its defect.
+        'Außer Betrieb durch Mangel',
+        '',
+      ])
+    })
+  })
 
   it('is called by its number and its name, says what it is used for and stands under its floor', async () => {
     await mount(`/raeume/${boilerRoom.id}`)

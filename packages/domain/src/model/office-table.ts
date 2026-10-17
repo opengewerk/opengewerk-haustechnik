@@ -7,7 +7,13 @@ import {
   type TaskStanding,
 } from '@opengewerk/platform-domain'
 
-import { assetConditionLabel, type AssetEntry, type AssetStanding } from './asset-condition.js'
+import {
+  assetConditionLabel,
+  type AssetEntry,
+  type AssetStanding,
+  showsShutDown,
+  shutDownLabel,
+} from './asset-condition.js'
 import { lifecycleStateLabel } from './asset.js'
 import {
   type ActivityStatus,
@@ -116,7 +122,8 @@ export const assetTableColumns = [
  * The kind and the place come in as words, as the list reads them: the kind
  * from the catalogue, the place from the property, the building and the
  * room. An asset without an entry in its life cycle has an empty cell, as
- * the list shows none.
+ * the list shows none, and one a defect puts out of service says so where
+ * the list does (#345).
  */
 export function assetTableRow(entry: AssetEntry, kind: string, place: string): TableRow {
   return [
@@ -125,7 +132,11 @@ export function assetTableRow(entry: AssetEntry, kind: string, place: string): T
     kind,
     place,
     conditionWords(entry),
-    entry.lifecycleState === null ? null : lifecycleStateLabel[entry.lifecycleState],
+    showsShutDown(entry.lifecycleState, entry.shutDown)
+      ? shutDownLabel
+      : entry.lifecycleState === null
+        ? null
+        : lifecycleStateLabel[entry.lifecycleState],
   ]
 }
 

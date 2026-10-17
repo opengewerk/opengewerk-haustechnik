@@ -258,6 +258,22 @@ afterEach(() => {
 })
 
 describe('the register of assets', () => {
+  it('says of an asset a defect puts out of service so where its life cycle stands (#345)', async () => {
+    const stopped = entry('a-stop', 'AN-00058', 'Aufzug Turnhalle', {
+      condition: 'defect_open',
+      until: null,
+      shutDown: true,
+    })
+
+    await mount('/anlagen', { [firstPage]: page([lift, stopped]) })
+    await screen.findByRole('table', { name: register })
+
+    expect(rowsOf(register).map((row) => row.at(-1))).toEqual([
+      'In Betrieb',
+      'Außer Betrieb durch Mangel',
+    ])
+  })
+
   it('lists what the server names, each with its kind, its place, its condition and its life cycle', async () => {
     await mount('/anlagen', { [firstPage]: page([lift, pump, fan, fresh], 4, 2) })
     await screen.findByRole('table', { name: register })
@@ -1004,6 +1020,101 @@ describe('the file of an asset', () => {
       expect(screen.queryByRole('button', { name: 'Pflicht hinzufügen' })).toBeNull()
     },
   )
+
+  // A defect of a class that makes it unsafe puts it out of service (#345).
+  const unsafe = {
+    id: 'df-1',
+    description: 'Fangvorrichtung greift nicht',
+    defectClass: 'probe.severe',
+    foundOn: '2026-10-15',
+    dueOn: '2026-10-18',
+  }
+
+  it('says in its head that a defect puts it out of service, names the defect first, and that no entry takes it back (#345)', async () => {
+    await mount(
+      at,
+      answers(
+        file({
+          shutDown: true,
+          shutDownBy: [unsafe],
+          components: [
+            {
+              id: 'a-drive',
+              number: 'AN-00013',
+              name: 'Antrieb',
+              kind: 'probe.pump',
+              lifecycleState: null,
+              shutDown: false,
+            },
+          ],
+        }),
+      ),
+    )
+    await screen.findByRole('heading', { level: 1, name: 'Aufzug Schulhaus' })
+    // The word of the class comes with the catalogue of the device.
+    await screen.findByText('Probepaket, Fassung 1.2.0')
+
+    // Over the state of its life cycle, which says "In Betrieb".
+    expect(head()).toContain('Außer Betrieb durch Mangel')
+    expect(head()).not.toContain('In Betrieb')
+
+    const named = await screen.findByRole('link', { name: 'Fangvorrichtung greift nicht' })
+
+    expect(named.getAttribute('href')).toBe('/maengel/df-1')
+    expect(named.parentElement?.textContent).toBe(
+      'Außer Betrieb durch Mangel: Fangvorrichtung greift nicht, schwer, festgestellt am 15.10.2026. ' +
+        'Die Anlage bleibt außer Betrieb, bis der Mangel behoben ist, also bis zur Unterschrift unter seinem Auftrag. ' +
+        'Ihre Pflichten laufen weiter.',
+    )
+    expect(
+      within(screen.getByRole('region', { name: 'Lebenszyklus' })).getByText(
+        'Außer Betrieb durch Mangel gilt, solange ein Mangel sie unsicher macht. Ein Eintrag hier ändert das nicht.',
+      ),
+    ).toBeTruthy()
+  })
+
+  it('tells whoever does not read the defects the state, and not what is wrong (#345)', async () => {
+    await mount(at, answers(file({ shutDown: true, shutDownBy: null })))
+    await screen.findByRole('heading', { level: 1, name: 'Aufzug Schulhaus' })
+
+    expect(head()).toContain('Außer Betrieb durch Mangel')
+    expect(
+      screen.getByText(
+        'Ein Mangel macht die Anlage unsicher. Sie bleibt außer Betrieb, bis er behoben ist. Ihre Pflichten laufen weiter.',
+      ),
+    ).toBeTruthy()
+    expect(screen.queryByRole('link', { name: 'Fangvorrichtung greift nicht' })).toBeNull()
+  })
+
+  it('says it at a component a defect puts out of service, and not in its own head (#345)', async () => {
+    await mount(
+      at,
+      answers(
+        file({
+          shutDown: false,
+          shutDownBy: [],
+          components: [
+            {
+              id: 'a-drive',
+              number: 'AN-00013',
+              name: 'Antrieb',
+              kind: 'probe.pump',
+              lifecycleState: 'in_service',
+              shutDown: true,
+            },
+          ],
+        }),
+      ),
+    )
+    await screen.findByRole('heading', { level: 1, name: 'Aufzug Schulhaus' })
+
+    expect(head()).not.toContain('Außer Betrieb durch Mangel')
+    expect(
+      within(screen.getByRole('region', { name: 'Komponenten' })).getByText(
+        'Außer Betrieb durch Mangel',
+      ),
+    ).toBeTruthy()
+  })
 
   it('says so of an asset that is not there for this person', async () => {
     await mount('/anlagen/a-gone', {})

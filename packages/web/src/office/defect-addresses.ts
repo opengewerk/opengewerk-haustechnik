@@ -178,3 +178,13 @@ export function defectRegisterRequest(
 
   return asked === '' ? '/defects' : `/defects?${asked}`
 }
+
+/**
+ * The report of the defects as a PDF (#345): what the list shows under its
+ * filters, whole and not a page. `/defects/report/pdf?state=overdue&buildingId=…`.
+ */
+export function defectReportRequest(filter: DefectRegisterFilter): string {
+  const [, query = ''] = defectRegisterRequest(filter, 0).split('?')
+
+  return query === '' ? '/defects/report/pdf' : `/defects/report/pdf?${query}`
+}

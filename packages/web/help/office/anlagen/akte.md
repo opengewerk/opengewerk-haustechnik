@@ -2,6 +2,8 @@
 
 Die Akte zeigt alles zu einer Anlage: ihre Angaben und Merkmale, ihren Ort, ihre Komponenten, ihre Pflichten mit dem nächsten Termin, die Nachweise, die Mängel und die Dokumente. Der Zustand oben sagt, ob ein Mangel offen ist.
 
+Steht oben „Außer Betrieb durch Mangel“, macht ein Mangel die Anlage unsicher; der Kasten darüber nennt ihn. Das bleibt so, bis der Mangel behoben ist, und ein Eintrag im Lebenszyklus ändert daran nichts. Ihre Pflichten laufen weiter.
+
 „Verlegen“ ändert den Ort. „Lebenszyklus eintragen“ hält fest, wenn die Anlage stillgelegt, wieder in Betrieb genommen oder zurückgebaut wird. Solange eine Anlage ruht, ruhen ihre Termine.
 
 ## Pflichten

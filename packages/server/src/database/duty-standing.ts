@@ -24,6 +24,8 @@ import {
   replayedTerms,
   restsOn,
   type Rhythm,
+  type ShutDownDefect,
+  shutsDownItsAsset,
   standingEvidence,
   type TakenOverAppointment,
   takenOverFrom,
@@ -465,10 +467,15 @@ export async function termsOfDuties(
   )
 }
 
-/** An asset on a day: the state of its life cycle, its condition, and its duties that have not ended. */
+/**
+ * An asset on a day: the state of its life cycle, its condition, its duties
+ * that have not ended, and the defects that put it out of service (#345),
+ * the one found first first.
+ */
 export interface AssetOnADay extends AssetStanding {
   readonly lifecycleState: LifecycleState | null
   readonly duties: readonly StandingDuty[]
+  readonly shutDownBy: readonly ShutDownDefect[]
 }
 
 /**
@@ -478,7 +485,8 @@ export interface AssetOnADay extends AssetStanding {
  *
  * A duty that has ended is not among the duties of its asset: from the day it
  * ends it calls for nothing. A defect counts as open until it was checked
- * again (`defectIsOpen`).
+ * again (`defectIsOpen`), and puts its asset out of service while it waits
+ * to be set right and its class makes an asset unsafe (`shutsDownItsAsset`).
  */
 export async function assetsOnADay(
   tx: TenantTransaction,
@@ -507,16 +515,33 @@ export async function assetsOnADay(
   const states = await statesByProperty(tx)
   const ceilings = ceilingsOf(catalogue)
   const open = new Map<string, number>()
+  const unsafe = new Map<string, ShutDownDefect[]>()
 
   if (!nothing) {
     for (const defect of await tx
-      .select({ assetId: defects.assetId, status: defects.status })
+      .select({
+        id: defects.id,
+        assetId: defects.assetId,
+        status: defects.status,
+        defectClass: defects.defectClass,
+        description: defects.description,
+        foundOn: defects.foundOn,
+        dueOn: defects.dueOn,
+      })
       .from(defects)
-      .where(
-        and(isNull(defects.deletedAt), isNotNull(defects.assetId), narrowed(defects.assetId)),
-      )) {
+      .where(and(isNull(defects.deletedAt), isNotNull(defects.assetId), narrowed(defects.assetId)))
+      .orderBy(asc(defects.foundOn), asc(defects.createdAt), asc(defects.id))) {
       if (defect.assetId !== null && defectIsOpen(defect.status)) {
         open.set(defect.assetId, (open.get(defect.assetId) ?? 0) + 1)
+      }
+
+      if (defect.assetId !== null && shutsDownItsAsset(defect, catalogue)) {
+        const { id, description, defectClass, foundOn, dueOn } = defect
+
+        unsafe.set(defect.assetId, [
+          ...(unsafe.get(defect.assetId) ?? []),
+          { id, description, defectClass, foundOn, dueOn },
+        ])
       }
     }
   }
@@ -553,6 +578,7 @@ export async function assetsOnADay(
     return {
       lifecycleState,
       duties: own,
+      shutDownBy: unsafe.get(assetId) ?? [],
       ...assetStandingOn({
         openDefects: open.get(assetId) ?? 0,
         resting: restsOn(lifecycleState),

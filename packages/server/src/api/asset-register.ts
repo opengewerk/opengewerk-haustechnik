@@ -179,11 +179,11 @@ export async function assetsPassing(
 
   const onThisDay = await assetsOnADay(tx, today, catalogue)
 
-  return (rows as Omit<AssetEntry, 'lifecycleState' | 'condition' | 'until'>[])
+  return (rows as Omit<AssetEntry, 'lifecycleState' | 'condition' | 'until' | 'shutDown'>[])
     .map((row): AssetEntry => {
-      const { lifecycleState, condition, until } = onThisDay(row.id)
+      const { lifecycleState, condition, until, shutDownBy } = onThisDay(row.id)
 
-      return { ...row, lifecycleState, condition, until }
+      return { ...row, lifecycleState, condition, until, shutDown: shutDownBy.length > 0 }
     })
     .filter((entry) => filter.condition === undefined || entry.condition === filter.condition)
     .filter(

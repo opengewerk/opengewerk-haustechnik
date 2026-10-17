@@ -45,7 +45,16 @@ import { placePath } from '../../app/place-path.js'
 import { placeAbove } from '../../app/place-records.js'
 import { useCatalogue } from '../../sync/catalogue.js'
 import { SiteDocuments } from '../documents.js'
-import { GoButton, isOpenDefect, kindWords, NotOnDevice, OpenDefects, PlainRow } from '../kit.js'
+import { shutDownOn } from '../../app/shut-down.js'
+import {
+  GoButton,
+  isOpenDefect,
+  kindWords,
+  NotOnDevice,
+  OpenDefects,
+  PlainRow,
+  ShutDownNotice,
+} from '../kit.js'
 import { siteDefects, siteForms, sitePlaces, stockTaking } from '../places.js'
 import { SiteTasksCard } from '../tasks.js'
 
@@ -233,6 +242,11 @@ export function SiteAssetScreen() {
             )}
           />
         ) : null}
+        {/* A defect that puts the asset out of service stands first, under the path (#345). */}
+        <ShutDownNotice
+          defects={shutDownOn(defects, catalogue).get(assetId) ?? []}
+          catalogue={catalogue}
+        />
         {performs && work.length > 0 ? (
           <Panel title={siteAssetWords.work}>
             <SiteRows label={siteAssetWords.work}>

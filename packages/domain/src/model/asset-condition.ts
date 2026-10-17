@@ -1,7 +1,8 @@
 import type { DeadlineInterval, IsoDate } from '@opengewerk/platform-domain'
 
 import type { Asset, AssetSupply, LifecycleEntry, LifecycleState } from './asset.js'
-import type { DefectStatus } from './defect.js'
+import type { Catalogue } from './catalogue.js'
+import { awaitsRemedy, type Defect, type DefectStatus } from './defect.js'
 import type { Appointment, DutyStanding, DutyState } from './duty.js'
 import type { Duty } from './duty-record.js'
 import type { Evidence } from './evidence.js'
@@ -50,6 +51,71 @@ export const assetConditionLabel: Readonly<Record<AssetCondition, string>> = {
 export function defectIsOpen(status: DefectStatus): boolean {
   return status !== 'verified'
 }
+
+/** What a defect needs to say for whether it puts its asset out of service. */
+export type DefectAtAsset = Pick<Defect, 'assetId' | 'status' | 'defectClass'>
+
+/**
+ * Whether a defect puts its asset out of service (section 4.6 of the concept,
+ * #345, decision 29 of phase 2): a defect at an asset, of a class that makes
+ * an asset unsafe (`unsafe` in the `mangelklassen.json` of its package), that
+ * waits to be set right. It ends once the defect is remedied, with the
+ * signature under its work order, and not only once it was checked again.
+ *
+ * A defect without a class yet, of a class the catalogue does not know, or at
+ * a place, does not. One at a component puts the component out of service and
+ * not the asset it is one of: the file of that asset says it at the component.
+ */
+export function shutsDownItsAsset(
+  defect: DefectAtAsset,
+  catalogue: Pick<Catalogue, 'defectClass'>,
+): boolean {
+  return (
+    defect.assetId !== null &&
+    awaitsRemedy(defect.status) &&
+    defect.defectClass !== null &&
+    catalogue.defectClass(defect.defectClass)?.defectClass.unsafe === true
+  )
+}
+
+/** The defects among these that put an asset out of service, by the asset each is at, in the order given. */
+export function shutDownBy<D extends DefectAtAsset>(
+  defects: readonly D[],
+  catalogue: Pick<Catalogue, 'defectClass'>,
+): ReadonlyMap<string, readonly D[]> {
+  const by = new Map<string, D[]>()
+
+  for (const defect of defects) {
+    if (defect.assetId !== null && shutsDownItsAsset(defect, catalogue)) {
+      by.set(defect.assetId, [...(by.get(defect.assetId) ?? []), defect])
+    }
+  }
+
+  return by
+}
+
+/** What an asset is called while a defect puts it out of service, on every screen and in every table. */
+export const shutDownLabel = 'Außer Betrieb durch Mangel'
+
+/**
+ * Whether an asset is shown as out of service by a defect instead of the
+ * state of its life cycle: while a defect puts it out of service and the life
+ * cycle has it in service, says nothing yet, or has it out of service as
+ * well. Out of service by a defect is a state and no section of the life
+ * cycle (decision 29 of phase 2): no entry takes it back, and its duties do
+ * not rest (`restsOn` holds the life cycle alone), they go on. An asset that
+ * is planned, decommissioned or removed is shown as what it is; its defects
+ * stand in its file all the same.
+ */
+export function showsShutDown(state: LifecycleState | null, shutDown: boolean): boolean {
+  return shutDown && (state === null || state === 'in_service' || state === 'out_of_service')
+}
+
+/** A defect that puts an asset out of service, as the file of the asset names it. */
+export type ShutDownDefect = Pick<
+  Defect,
+  'id' | 'description' | 'defectClass' | 'foundOn' | 'dueOn'
+>
 
 /** The condition of an asset on a day, and for one in order the day that ends. */
 export interface AssetStanding {
@@ -152,6 +218,8 @@ export interface AssetEntry
     >,
     AssetStanding {
   readonly lifecycleState: LifecycleState | null
+  /** Whether a defect puts it out of service today (`shutsDownItsAsset`, #345). */
+  readonly shutDown: boolean
 }
 
 /** A page of the register, with how much there is behind it. */
@@ -170,8 +238,19 @@ export interface AssetRegister {
 export interface AssetDetails extends Asset, AssetStanding {
   readonly lifecycle: readonly LifecycleEntry[]
   readonly lifecycleState: LifecycleState | null
+  /** Whether a defect puts it out of service today (`shutsDownItsAsset`, #345). */
+  readonly shutDown: boolean
+  /**
+   * The defects that do, oldest first, for whoever reads the defects; null
+   * for anybody else, who is told the state and not what is wrong.
+   */
+  readonly shutDownBy: readonly ShutDownDefect[] | null
   readonly supplies: readonly AssetSupply[]
-  readonly components: readonly Pick<Asset, 'id' | 'number' | 'name' | 'kind'>[]
+  /** The components under it, each with the state of its life cycle and whether a defect puts it out of service. */
+  readonly components: readonly (Pick<Asset, 'id' | 'number' | 'name' | 'kind'> & {
+    readonly lifecycleState: LifecycleState | null
+    readonly shutDown: boolean
+  })[]
   /** The asset it is a component of. */
   readonly parent: Pick<Asset, 'id' | 'number' | 'name'> | null
   /**
