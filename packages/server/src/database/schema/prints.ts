@@ -18,6 +18,7 @@ import { activities } from './activities.js'
 import { withinAreas } from './areas.js'
 import { evidence } from './evidence.js'
 import { serviceReports } from './service-reports.js'
+import { kindOfItsActivity, kindOfItsActivityOrEvidence, withinLimits } from './limit-policies.js'
 
 /**
  * The frozen state of a round as a whole (section 2.6 of the concept, #111):
@@ -42,6 +43,7 @@ export const roundRecords = pgTable(
   (table) => [
     tenantIsolation(table.tenantId),
     withinAreas(),
+    withinLimits(table.propertyId, kindOfItsActivity(table.activityId)),
     unique('round_records_tenant_id_key').on(table.tenantId, table.id),
     unique('round_records_once').on(table.tenantId, table.activityId),
     // The area of what the row hangs on (ADR 0003, addendum of #306).
@@ -87,6 +89,7 @@ export const prints = pgTable(
   (table) => [
     tenantIsolation(table.tenantId),
     withinAreas(),
+    withinLimits(table.propertyId, kindOfItsActivityOrEvidence(table.activityId, table.evidenceId)),
     // The area of what the row hangs on (ADR 0003, addendum of #306).
     foreignKey({
       columns: [table.tenantId, table.evidenceId, table.areaId],

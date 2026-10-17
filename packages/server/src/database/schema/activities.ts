@@ -365,6 +365,7 @@ export const workOrders = pgTable(
   (table): PgTableExtraConfigValue[] => [
     tenantIsolation(table.tenantId),
     withinAreas(),
+    withinLimits(table.propertyId, kindOfItsActivity(table.activityId)),
     unique('work_orders_tenant_id_key').on(table.tenantId, table.id),
     // What a row that hangs on it points at for its area (ADR 0003, addendum of #306).
     unique('work_orders_area_key').on(table.tenantId, table.id, table.areaId),
@@ -436,6 +437,7 @@ export const workOrderParticipants = pgTable(
   (table) => [
     tenantIsolation(table.tenantId),
     withinAreas(),
+    withinLimits(table.propertyId, kindOfItsActivity(table.activityId)),
     unique('work_order_participants_tenant_id_key').on(table.tenantId, table.id),
     // The area of what the row hangs on (ADR 0003, addendum of #306).
     foreignKey({
@@ -494,6 +496,7 @@ export const workOrderNotes = pgTable(
   (table) => [
     tenantIsolation(table.tenantId),
     withinAreas(),
+    withinLimits(table.propertyId, kindOfItsActivity(table.activityId)),
     unique('work_order_notes_tenant_id_key').on(table.tenantId, table.id),
     // The area of what the row hangs on (ADR 0003, addendum of #306).
     foreignKey({

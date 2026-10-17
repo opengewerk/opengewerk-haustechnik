@@ -27,6 +27,7 @@ import {
 import { activities } from './activities.js'
 import { withinAreas } from './areas.js'
 import { optionalTrimmed, trimmed } from './locations.js'
+import { kindOfItsActivity, onNoAsset, withinLimits } from './limit-policies.js'
 
 /**
  * The client's signature under the service report of a work order (section
@@ -59,6 +60,7 @@ export const serviceReports = pgTable(
   (table) => [
     tenantIsolation(table.tenantId),
     withinAreas(),
+    withinLimits(table.propertyId, kindOfItsActivity(table.activityId)),
     unique('service_reports_tenant_id_key').on(table.tenantId, table.id),
     // What a print and a frozen state name: the report with its area and its property.
     unique('service_reports_area_key').on(table.tenantId, table.id, table.areaId),
@@ -124,6 +126,7 @@ export const serviceReportRecords = pgTable(
   (table) => [
     tenantIsolation(table.tenantId),
     withinAreas(),
+    withinLimits(table.propertyId, onNoAsset()),
     unique('service_report_records_tenant_id_key').on(table.tenantId, table.id),
     unique('service_report_records_once').on(table.tenantId, table.serviceReportId),
     // The area of what the row hangs on (ADR 0003, addendum of #306).

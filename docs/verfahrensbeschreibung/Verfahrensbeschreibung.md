@@ -298,7 +298,7 @@ Anhang B nennt jedes Feld der Datenbank, das auf eine Person zeigt. Dieser Absch
 ### 3.20 Prüfer von außen
 
 - Ein Prüfer ist ein Zugang mit der Rolle Prüfer: eine Person von außen, etwa von einer Behörde, einem Versicherer oder einer Prüforganisation. Sein Konto steht mit Name und E-Mail-Adresse beim Betreiber wie jedes andere; das ist eine Angabe über einen Dritten. Die Leitung lädt ihn ein, mit einem letzten Tag, in Bereichen wie jeden Zugang und auf Wunsch beschränkt auf Liegenschaften und Anlagenarten. [K4.3, K7, K9]
-- **Zusage:** Ein Prüfer liest Pflichten und Nachweise, mit den Prüfbescheinigungen, die das Nachweisverzeichnis anhängt, und nur in den Liegenschaften und Anlagenarten seines Zugangs; die Datenbank hält das wie den Bereich. Er sieht dabei, wer für eine Pflicht verantwortlich ist und wer einen Nachweis unterschrieben hat. Er ändert nichts, und eine Pflicht wird ihm nicht übertragen. [K4.3, K7, B346, B347, B350, B352]
+- **Zusage:** Ein Prüfer liest Pflichten und Nachweise, mit den Prüfbescheinigungen, die das Nachweisverzeichnis anhängt, und nur in den Liegenschaften und Anlagenarten seines Zugangs; die Datenbank hält das wie den Bereich. Er sieht dabei, wer für eine Pflicht verantwortlich ist und wer einen Nachweis unterschrieben hat. Er ändert nichts, und eine Pflicht wird ihm nicht übertragen. Die Beschränkung steht auf jeder Tabelle mit einer Liegenschaft, nicht nur auf denen, die er über eine Route erreicht. [K4.3, K7, B346, B347, B350, B352, B356]
 - **Zusage:** Ein Zugang als Prüfer hat immer einen letzten Tag; danach sieht er nichts mehr, ohne dass jemand etwas tut. Eine Beschränkung auf Liegenschaften oder Anlagenarten gibt es nur für den Prüfer. [K4.3, K7, B348, B349, B354]
 - **Zusage:** Jede Anfrage eines Prüfers steht im Protokoll der Zugriffe, mit dem Zeitpunkt, was er gelesen oder ausgegeben hat und wovon, geschrieben, bevor die Anfrage beantwortet wird. Lesen kann es die Leitung unter „Zugänge“ und sonst niemand; die Anwendung ändert und löscht keine Zeile davon. [K4.3, K9, B351]
 - Auf seinem Gerät liegt nur, woran die Pflichten hängen: Liegenschaften, Gebäude, Geschosse, Räume, Anlagen, Pflichten und die Namen der Fremdfirmen, in den Grenzen seines Zugangs. [K2.7, K4.3, B355]
@@ -836,6 +836,7 @@ Pfade ohne Vorsatz liegen im Repository `opengewerk/opengewerk-haustechnik`. Pfa
 | B353 | Test | `upstream/opengewerk/packages/platform/server/src/authentication/last-day.test.ts` | `takes somebody off the colleagues and the leads of the tenant after it, without a block` |
 | B354 | Test | `packages/server/src/api/auditors.test.ts` | `are refused for a role that is not limited, and the auditor only with a last day` |
 | B355 | Test | `packages/server/src/api/auditors.test.ts` | `holds on its device what the duties hang on, within its limits, and nothing else` |
+| B356 | Test | `packages/server/src/api/auditors.test.ts` | `is held on every table with a property, past every route (review of #408)` |
 
 ---
 

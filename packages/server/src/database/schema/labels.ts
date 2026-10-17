@@ -16,6 +16,7 @@ import { check, foreignKey, index, pgTable, unique, uniqueIndex } from 'drizzle-
 import { areaFromPropertyColumn, areaFromTheProperty, withinAreas } from './areas.js'
 import { assets } from './assets.js'
 import { properties, rooms } from './locations.js'
+import { kindOfItsAsset, withinLimits } from './limit-policies.js'
 
 /**
  * The name of the index that keeps a code once in the whole instance, which
@@ -66,6 +67,7 @@ export const labels = pgTable(
   (table) => [
     tenantIsolation(table.tenantId),
     withinAreas(),
+    withinLimits(table.propertyId, kindOfItsAsset(table.assetId)),
     readableByTheOwner(),
     unique('labels_tenant_id_key').on(table.tenantId, table.id),
     // The area of what the row hangs on (ADR 0003, addendum of #306).

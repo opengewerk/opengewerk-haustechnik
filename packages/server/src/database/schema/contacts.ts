@@ -6,6 +6,7 @@ import { check, foreignKey, index } from 'drizzle-orm/pg-core'
 import { withinAreasOrABuilding } from './areas.js'
 import { contractors } from './contractors.js'
 import { optionalTrimmed, properties, trimmed } from './locations.js'
+import { onNoAsset, withinLimits } from './limit-policies.js'
 
 /**
  * What a contact of this application hangs on: its property, with the area of
@@ -45,6 +46,8 @@ export const { contacts } = contactsSchema({
     // Seen also by whoever holds only the area of a building on the property (#306).
     // A contact of a contractor lies in no area: whoever is in the operator reads it (#328).
     ...withinAreasOrABuilding('contacts', 'property_id', true),
+    // A contact of a contractor is outside every limit of an access from outside (#339).
+    withinLimits(table.propertyId, onNoAsset()),
     foreignKey({
       columns: [table.tenantId, table.contractorId],
       foreignColumns: [contractors.tenantId, contractors.id],

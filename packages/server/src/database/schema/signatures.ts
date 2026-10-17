@@ -28,6 +28,7 @@ import {
 import { activities, workOrders } from './activities.js'
 import { withinAreas } from './areas.js'
 import { optionalTrimmed } from './locations.js'
+import { kindOfItsActivity, onNoAsset, withinLimits } from './limit-policies.js'
 
 /** Who a signature is given as, from the list in `domain`. */
 export const signatureRole = pgEnum('signature_role', signatureRoles)
@@ -66,6 +67,7 @@ export const activitySignatures = pgTable(
   (table) => [
     tenantIsolation(table.tenantId),
     withinAreas(),
+    withinLimits(table.propertyId, kindOfItsActivity(table.activityId)),
     unique('activity_signatures_tenant_id_key').on(table.tenantId, table.id),
     // The area of what the row hangs on (ADR 0003, addendum of #306).
     foreignKey({
@@ -130,6 +132,7 @@ export const workOrderDecisions = pgTable(
   (table) => [
     tenantIsolation(table.tenantId),
     withinAreas(),
+    withinLimits(table.propertyId, onNoAsset()),
     unique('work_order_decisions_tenant_id_key').on(table.tenantId, table.id),
     // The area of what the row hangs on (ADR 0003, addendum of #306).
     foreignKey({

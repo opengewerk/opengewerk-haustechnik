@@ -31,6 +31,7 @@ import { activities } from './activities.js'
 import { withinAreas } from './areas.js'
 import { contractors } from './contractors.js'
 import { optionalTrimmed, trimmed } from './locations.js'
+import { kindOfItsActivity, withinLimits } from './limit-policies.js'
 
 /**
  * The briefing of a contractor's person at a work order (section 4.11 of the
@@ -63,6 +64,7 @@ export const briefings = pgTable(
   (table) => [
     tenantIsolation(table.tenantId),
     withinAreas(),
+    withinLimits(table.propertyId, kindOfItsActivity(table.activityId)),
     unique('briefings_tenant_id_key').on(table.tenantId, table.id),
     // The area of what the row hangs on (ADR 0003, addendum of #306).
     foreignKey({
@@ -132,6 +134,7 @@ export const workPermits = pgTable(
   (table) => [
     tenantIsolation(table.tenantId),
     withinAreas(),
+    withinLimits(table.propertyId, kindOfItsActivity(table.activityId)),
     unique('work_permits_tenant_id_key').on(table.tenantId, table.id),
     // The area of what the row hangs on (ADR 0003, addendum of #306).
     foreignKey({

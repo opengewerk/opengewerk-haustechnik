@@ -5865,6 +5865,16 @@
             "opengewerk_app"
           ],
           "using": "area_id IS NULL OR (SELECT session_sees_all_areas()) OR area_id = ANY ((SELECT session_areas())::uuid[])"
+        },
+        "within_limits": {
+          "name": "within_limits",
+          "as": "RESTRICTIVE",
+          "for": "ALL",
+          "to": [
+            "opengewerk_app"
+          ],
+          "using": "((SELECT session_limit_properties()) IS NULL OR \"contacts\".\"property_id\" = ANY ((SELECT session_limit_properties())::uuid[])) AND ((SELECT session_limit_asset_kinds()) IS NULL)",
+          "withCheck": "((SELECT session_limit_properties()) IS NULL OR \"contacts\".\"property_id\" = ANY ((SELECT session_limit_properties())::uuid[])) AND ((SELECT session_limit_asset_kinds()) IS NULL)"
         }
       },
       "checkConstraints": {
@@ -6089,6 +6099,16 @@
           ],
           "using": "(SELECT session_sees_all_areas()) OR area_id = ANY ((SELECT session_areas())::uuid[])",
           "withCheck": "(SELECT session_sees_all_areas()) OR area_id = ANY ((SELECT session_areas())::uuid[])"
+        },
+        "within_limits": {
+          "name": "within_limits",
+          "as": "RESTRICTIVE",
+          "for": "ALL",
+          "to": [
+            "opengewerk_app"
+          ],
+          "using": "((SELECT session_limit_properties()) IS NULL OR \"building_closures\".\"property_id\" = ANY ((SELECT session_limit_properties())::uuid[])) AND ((SELECT session_limit_asset_kinds()) IS NULL)",
+          "withCheck": "((SELECT session_limit_properties()) IS NULL OR \"building_closures\".\"property_id\" = ANY ((SELECT session_limit_properties())::uuid[])) AND ((SELECT session_limit_asset_kinds()) IS NULL)"
         }
       },
       "checkConstraints": {
@@ -6595,6 +6615,16 @@
           ],
           "using": "(SELECT session_sees_all_areas()) OR area_id = ANY ((SELECT session_areas())::uuid[])",
           "withCheck": "(SELECT session_sees_all_areas()) OR area_id = ANY ((SELECT session_areas())::uuid[])"
+        },
+        "within_limits": {
+          "name": "within_limits",
+          "as": "RESTRICTIVE",
+          "for": "ALL",
+          "to": [
+            "opengewerk_app"
+          ],
+          "using": "((SELECT session_limit_properties()) IS NULL OR \"contract_items\".\"property_id\" = ANY ((SELECT session_limit_properties())::uuid[])) AND ((SELECT session_limit_asset_kinds()) IS NULL OR (\"contract_items\".\"asset_id\" IS NOT NULL AND EXISTS (SELECT 1 FROM public.assets a WHERE a.id = \"contract_items\".\"asset_id\" AND a.kind = ANY ((SELECT session_limit_asset_kinds())::text[]))))",
+          "withCheck": "((SELECT session_limit_properties()) IS NULL OR \"contract_items\".\"property_id\" = ANY ((SELECT session_limit_properties())::uuid[])) AND ((SELECT session_limit_asset_kinds()) IS NULL OR (\"contract_items\".\"asset_id\" IS NOT NULL AND EXISTS (SELECT 1 FROM public.assets a WHERE a.id = \"contract_items\".\"asset_id\" AND a.kind = ANY ((SELECT session_limit_asset_kinds())::text[]))))"
         }
       },
       "checkConstraints": {
@@ -7078,6 +7108,16 @@
           ],
           "using": "(SELECT session_sees_all_areas()) OR area_id = ANY ((SELECT session_areas())::uuid[])",
           "withCheck": "(SELECT session_sees_all_areas()) OR area_id = ANY ((SELECT session_areas())::uuid[])"
+        },
+        "within_limits": {
+          "name": "within_limits",
+          "as": "RESTRICTIVE",
+          "for": "ALL",
+          "to": [
+            "opengewerk_app"
+          ],
+          "using": "((SELECT session_limit_properties()) IS NULL OR \"asset_lifecycle\".\"property_id\" = ANY ((SELECT session_limit_properties())::uuid[])) AND ((SELECT session_limit_asset_kinds()) IS NULL OR (\"asset_lifecycle\".\"asset_id\" IS NOT NULL AND EXISTS (SELECT 1 FROM public.assets a WHERE a.id = \"asset_lifecycle\".\"asset_id\" AND a.kind = ANY ((SELECT session_limit_asset_kinds())::text[]))))",
+          "withCheck": "((SELECT session_limit_properties()) IS NULL OR \"asset_lifecycle\".\"property_id\" = ANY ((SELECT session_limit_properties())::uuid[])) AND ((SELECT session_limit_asset_kinds()) IS NULL OR (\"asset_lifecycle\".\"asset_id\" IS NOT NULL AND EXISTS (SELECT 1 FROM public.assets a WHERE a.id = \"asset_lifecycle\".\"asset_id\" AND a.kind = ANY ((SELECT session_limit_asset_kinds())::text[]))))"
         }
       },
       "checkConstraints": {},
@@ -7370,6 +7410,16 @@
           ],
           "using": "(SELECT session_sees_all_areas()) OR area_id = ANY ((SELECT session_areas())::uuid[])",
           "withCheck": "(SELECT session_sees_all_areas()) OR area_id = ANY ((SELECT session_areas())::uuid[])"
+        },
+        "within_limits": {
+          "name": "within_limits",
+          "as": "RESTRICTIVE",
+          "for": "ALL",
+          "to": [
+            "opengewerk_app"
+          ],
+          "using": "((SELECT session_limit_properties()) IS NULL OR \"asset_supplies\".\"property_id\" = ANY ((SELECT session_limit_properties())::uuid[])) AND ((SELECT session_limit_asset_kinds()) IS NULL OR (\"asset_supplies\".\"asset_id\" IS NOT NULL AND EXISTS (SELECT 1 FROM public.assets a WHERE a.id = \"asset_supplies\".\"asset_id\" AND a.kind = ANY ((SELECT session_limit_asset_kinds())::text[]))))",
+          "withCheck": "((SELECT session_limit_properties()) IS NULL OR \"asset_supplies\".\"property_id\" = ANY ((SELECT session_limit_properties())::uuid[])) AND ((SELECT session_limit_asset_kinds()) IS NULL OR (\"asset_supplies\".\"asset_id\" IS NOT NULL AND EXISTS (SELECT 1 FROM public.assets a WHERE a.id = \"asset_supplies\".\"asset_id\" AND a.kind = ANY ((SELECT session_limit_asset_kinds())::text[]))))"
         }
       },
       "checkConstraints": {
@@ -8133,6 +8183,16 @@
           ],
           "using": "(SELECT session_sees_all_areas()) OR area_id = ANY ((SELECT session_areas())::uuid[])",
           "withCheck": "(SELECT session_sees_all_areas()) OR area_id = ANY ((SELECT session_areas())::uuid[])"
+        },
+        "within_limits": {
+          "name": "within_limits",
+          "as": "RESTRICTIVE",
+          "for": "ALL",
+          "to": [
+            "opengewerk_app"
+          ],
+          "using": "((SELECT session_limit_properties()) IS NULL OR \"meter_exchanges\".\"property_id\" = ANY ((SELECT session_limit_properties())::uuid[])) AND ((SELECT session_limit_asset_kinds()) IS NULL OR (\"meter_exchanges\".\"asset_id\" IS NOT NULL AND EXISTS (SELECT 1 FROM public.assets a WHERE a.id = \"meter_exchanges\".\"asset_id\" AND a.kind = ANY ((SELECT session_limit_asset_kinds())::text[]))))",
+          "withCheck": "((SELECT session_limit_properties()) IS NULL OR \"meter_exchanges\".\"property_id\" = ANY ((SELECT session_limit_properties())::uuid[])) AND ((SELECT session_limit_asset_kinds()) IS NULL OR (\"meter_exchanges\".\"asset_id\" IS NOT NULL AND EXISTS (SELECT 1 FROM public.assets a WHERE a.id = \"meter_exchanges\".\"asset_id\" AND a.kind = ANY ((SELECT session_limit_asset_kinds())::text[]))))"
         }
       },
       "checkConstraints": {
@@ -8358,6 +8418,16 @@
           ],
           "using": "(SELECT session_sees_all_areas()) OR area_id = ANY ((SELECT session_areas())::uuid[])",
           "withCheck": "(SELECT session_sees_all_areas()) OR area_id = ANY ((SELECT session_areas())::uuid[])"
+        },
+        "within_limits": {
+          "name": "within_limits",
+          "as": "RESTRICTIVE",
+          "for": "ALL",
+          "to": [
+            "opengewerk_app"
+          ],
+          "using": "((SELECT session_limit_properties()) IS NULL OR \"meter_pauses\".\"property_id\" = ANY ((SELECT session_limit_properties())::uuid[])) AND ((SELECT session_limit_asset_kinds()) IS NULL OR (\"meter_pauses\".\"asset_id\" IS NOT NULL AND EXISTS (SELECT 1 FROM public.assets a WHERE a.id = \"meter_pauses\".\"asset_id\" AND a.kind = ANY ((SELECT session_limit_asset_kinds())::text[]))))",
+          "withCheck": "((SELECT session_limit_properties()) IS NULL OR \"meter_pauses\".\"property_id\" = ANY ((SELECT session_limit_properties())::uuid[])) AND ((SELECT session_limit_asset_kinds()) IS NULL OR (\"meter_pauses\".\"asset_id\" IS NOT NULL AND EXISTS (SELECT 1 FROM public.assets a WHERE a.id = \"meter_pauses\".\"asset_id\" AND a.kind = ANY ((SELECT session_limit_asset_kinds())::text[]))))"
         }
       },
       "checkConstraints": {
@@ -8651,6 +8721,16 @@
           ],
           "using": "(SELECT session_sees_all_areas()) OR area_id = ANY ((SELECT session_areas())::uuid[])",
           "withCheck": "(SELECT session_sees_all_areas()) OR area_id = ANY ((SELECT session_areas())::uuid[])"
+        },
+        "within_limits": {
+          "name": "within_limits",
+          "as": "RESTRICTIVE",
+          "for": "ALL",
+          "to": [
+            "opengewerk_app"
+          ],
+          "using": "((SELECT session_limit_properties()) IS NULL OR \"meter_points\".\"property_id\" = ANY ((SELECT session_limit_properties())::uuid[])) AND ((SELECT session_limit_asset_kinds()) IS NULL OR (\"meter_points\".\"asset_id\" IS NOT NULL AND EXISTS (SELECT 1 FROM public.assets a WHERE a.id = \"meter_points\".\"asset_id\" AND a.kind = ANY ((SELECT session_limit_asset_kinds())::text[]))))",
+          "withCheck": "((SELECT session_limit_properties()) IS NULL OR \"meter_points\".\"property_id\" = ANY ((SELECT session_limit_properties())::uuid[])) AND ((SELECT session_limit_asset_kinds()) IS NULL OR (\"meter_points\".\"asset_id\" IS NOT NULL AND EXISTS (SELECT 1 FROM public.assets a WHERE a.id = \"meter_points\".\"asset_id\" AND a.kind = ANY ((SELECT session_limit_asset_kinds())::text[]))))"
         }
       },
       "checkConstraints": {
@@ -9044,6 +9124,16 @@
           ],
           "using": "(SELECT session_sees_all_areas()) OR area_id = ANY ((SELECT session_areas())::uuid[])",
           "withCheck": "(SELECT session_sees_all_areas()) OR area_id = ANY ((SELECT session_areas())::uuid[])"
+        },
+        "within_limits": {
+          "name": "within_limits",
+          "as": "RESTRICTIVE",
+          "for": "ALL",
+          "to": [
+            "opengewerk_app"
+          ],
+          "using": "((SELECT session_limit_properties()) IS NULL OR \"meter_readings\".\"property_id\" = ANY ((SELECT session_limit_properties())::uuid[])) AND ((SELECT session_limit_asset_kinds()) IS NULL OR (\"meter_readings\".\"asset_id\" IS NOT NULL AND EXISTS (SELECT 1 FROM public.assets a WHERE a.id = \"meter_readings\".\"asset_id\" AND a.kind = ANY ((SELECT session_limit_asset_kinds())::text[]))))",
+          "withCheck": "((SELECT session_limit_properties()) IS NULL OR \"meter_readings\".\"property_id\" = ANY ((SELECT session_limit_properties())::uuid[])) AND ((SELECT session_limit_asset_kinds()) IS NULL OR (\"meter_readings\".\"asset_id\" IS NOT NULL AND EXISTS (SELECT 1 FROM public.assets a WHERE a.id = \"meter_readings\".\"asset_id\" AND a.kind = ANY ((SELECT session_limit_asset_kinds())::text[]))))"
         }
       },
       "checkConstraints": {
@@ -10913,6 +11003,16 @@
           ],
           "using": "(SELECT session_sees_all_areas()) OR area_id = ANY ((SELECT session_areas())::uuid[])",
           "withCheck": "(SELECT session_sees_all_areas()) OR area_id = ANY ((SELECT session_areas())::uuid[])"
+        },
+        "within_limits": {
+          "name": "within_limits",
+          "as": "RESTRICTIVE",
+          "for": "ALL",
+          "to": [
+            "opengewerk_app"
+          ],
+          "using": "((SELECT session_limit_properties()) IS NULL OR \"duty_dismissals\".\"property_id\" = ANY ((SELECT session_limit_properties())::uuid[])) AND ((SELECT session_limit_asset_kinds()) IS NULL OR (\"duty_dismissals\".\"asset_id\" IS NOT NULL AND EXISTS (SELECT 1 FROM public.assets a WHERE a.id = \"duty_dismissals\".\"asset_id\" AND a.kind = ANY ((SELECT session_limit_asset_kinds())::text[]))))",
+          "withCheck": "((SELECT session_limit_properties()) IS NULL OR \"duty_dismissals\".\"property_id\" = ANY ((SELECT session_limit_properties())::uuid[])) AND ((SELECT session_limit_asset_kinds()) IS NULL OR (\"duty_dismissals\".\"asset_id\" IS NOT NULL AND EXISTS (SELECT 1 FROM public.assets a WHERE a.id = \"duty_dismissals\".\"asset_id\" AND a.kind = ANY ((SELECT session_limit_asset_kinds())::text[]))))"
         }
       },
       "checkConstraints": {
@@ -12820,6 +12920,16 @@
           ],
           "using": "(SELECT session_sees_all_areas()) OR area_id = ANY ((SELECT session_areas())::uuid[])",
           "withCheck": "(SELECT session_sees_all_areas()) OR area_id = ANY ((SELECT session_areas())::uuid[])"
+        },
+        "within_limits": {
+          "name": "within_limits",
+          "as": "RESTRICTIVE",
+          "for": "ALL",
+          "to": [
+            "opengewerk_app"
+          ],
+          "using": "((SELECT session_limit_properties()) IS NULL OR \"work_order_notes\".\"property_id\" = ANY ((SELECT session_limit_properties())::uuid[])) AND ((SELECT session_limit_asset_kinds()) IS NULL OR EXISTS (SELECT 1 FROM public.activities a WHERE a.id = \"work_order_notes\".\"activity_id\"))",
+          "withCheck": "((SELECT session_limit_properties()) IS NULL OR \"work_order_notes\".\"property_id\" = ANY ((SELECT session_limit_properties())::uuid[])) AND ((SELECT session_limit_asset_kinds()) IS NULL OR EXISTS (SELECT 1 FROM public.activities a WHERE a.id = \"work_order_notes\".\"activity_id\"))"
         }
       },
       "checkConstraints": {
@@ -13099,6 +13209,16 @@
           ],
           "using": "(SELECT session_sees_all_areas()) OR area_id = ANY ((SELECT session_areas())::uuid[])",
           "withCheck": "(SELECT session_sees_all_areas()) OR area_id = ANY ((SELECT session_areas())::uuid[])"
+        },
+        "within_limits": {
+          "name": "within_limits",
+          "as": "RESTRICTIVE",
+          "for": "ALL",
+          "to": [
+            "opengewerk_app"
+          ],
+          "using": "((SELECT session_limit_properties()) IS NULL OR \"work_order_participants\".\"property_id\" = ANY ((SELECT session_limit_properties())::uuid[])) AND ((SELECT session_limit_asset_kinds()) IS NULL OR EXISTS (SELECT 1 FROM public.activities a WHERE a.id = \"work_order_participants\".\"activity_id\"))",
+          "withCheck": "((SELECT session_limit_properties()) IS NULL OR \"work_order_participants\".\"property_id\" = ANY ((SELECT session_limit_properties())::uuid[])) AND ((SELECT session_limit_asset_kinds()) IS NULL OR EXISTS (SELECT 1 FROM public.activities a WHERE a.id = \"work_order_participants\".\"activity_id\"))"
         }
       },
       "checkConstraints": {
@@ -13415,6 +13535,16 @@
           ],
           "using": "(SELECT session_sees_all_areas()) OR area_id = ANY ((SELECT session_areas())::uuid[])",
           "withCheck": "(SELECT session_sees_all_areas()) OR area_id = ANY ((SELECT session_areas())::uuid[])"
+        },
+        "within_limits": {
+          "name": "within_limits",
+          "as": "RESTRICTIVE",
+          "for": "ALL",
+          "to": [
+            "opengewerk_app"
+          ],
+          "using": "((SELECT session_limit_properties()) IS NULL OR \"work_orders\".\"property_id\" = ANY ((SELECT session_limit_properties())::uuid[])) AND ((SELECT session_limit_asset_kinds()) IS NULL OR EXISTS (SELECT 1 FROM public.activities a WHERE a.id = \"work_orders\".\"activity_id\"))",
+          "withCheck": "((SELECT session_limit_properties()) IS NULL OR \"work_orders\".\"property_id\" = ANY ((SELECT session_limit_properties())::uuid[])) AND ((SELECT session_limit_asset_kinds()) IS NULL OR EXISTS (SELECT 1 FROM public.activities a WHERE a.id = \"work_orders\".\"activity_id\"))"
         }
       },
       "checkConstraints": {
@@ -13734,6 +13864,16 @@
           ],
           "using": "(SELECT session_sees_all_areas()) OR area_id = ANY ((SELECT session_areas())::uuid[])",
           "withCheck": "(SELECT session_sees_all_areas()) OR area_id = ANY ((SELECT session_areas())::uuid[])"
+        },
+        "within_limits": {
+          "name": "within_limits",
+          "as": "RESTRICTIVE",
+          "for": "ALL",
+          "to": [
+            "opengewerk_app"
+          ],
+          "using": "((SELECT session_limit_properties()) IS NULL OR \"activity_answers\".\"property_id\" = ANY ((SELECT session_limit_properties())::uuid[])) AND ((SELECT session_limit_asset_kinds()) IS NULL OR EXISTS (SELECT 1 FROM public.activities a WHERE a.id = \"activity_answers\".\"activity_id\"))",
+          "withCheck": "((SELECT session_limit_properties()) IS NULL OR \"activity_answers\".\"property_id\" = ANY ((SELECT session_limit_properties())::uuid[])) AND ((SELECT session_limit_asset_kinds()) IS NULL OR EXISTS (SELECT 1 FROM public.activities a WHERE a.id = \"activity_answers\".\"activity_id\"))"
         }
       },
       "checkConstraints": {
@@ -14390,6 +14530,16 @@
           ],
           "using": "(SELECT session_sees_all_areas()) OR area_id = ANY ((SELECT session_areas())::uuid[])",
           "withCheck": "(SELECT session_sees_all_areas()) OR area_id = ANY ((SELECT session_areas())::uuid[])"
+        },
+        "within_limits": {
+          "name": "within_limits",
+          "as": "RESTRICTIVE",
+          "for": "ALL",
+          "to": [
+            "opengewerk_app"
+          ],
+          "using": "((SELECT session_limit_properties()) IS NULL OR \"round_plans\".\"property_id\" = ANY ((SELECT session_limit_properties())::uuid[])) AND ((SELECT session_limit_asset_kinds()) IS NULL)",
+          "withCheck": "((SELECT session_limit_properties()) IS NULL OR \"round_plans\".\"property_id\" = ANY ((SELECT session_limit_properties())::uuid[])) AND ((SELECT session_limit_asset_kinds()) IS NULL)"
         }
       },
       "checkConstraints": {
@@ -15010,6 +15160,16 @@
           ],
           "using": "(SELECT session_sees_all_areas()) OR area_id = ANY ((SELECT session_areas())::uuid[])",
           "withCheck": "(SELECT session_sees_all_areas()) OR area_id = ANY ((SELECT session_areas())::uuid[])"
+        },
+        "within_limits": {
+          "name": "within_limits",
+          "as": "RESTRICTIVE",
+          "for": "ALL",
+          "to": [
+            "opengewerk_app"
+          ],
+          "using": "((SELECT session_limit_properties()) IS NULL OR \"defects\".\"property_id\" = ANY ((SELECT session_limit_properties())::uuid[])) AND ((SELECT session_limit_asset_kinds()) IS NULL OR (\"defects\".\"asset_id\" IS NOT NULL AND EXISTS (SELECT 1 FROM public.assets a WHERE a.id = \"defects\".\"asset_id\" AND a.kind = ANY ((SELECT session_limit_asset_kinds())::text[]))))",
+          "withCheck": "((SELECT session_limit_properties()) IS NULL OR \"defects\".\"property_id\" = ANY ((SELECT session_limit_properties())::uuid[])) AND ((SELECT session_limit_asset_kinds()) IS NULL OR (\"defects\".\"asset_id\" IS NOT NULL AND EXISTS (SELECT 1 FROM public.assets a WHERE a.id = \"defects\".\"asset_id\" AND a.kind = ANY ((SELECT session_limit_asset_kinds())::text[]))))"
         }
       },
       "checkConstraints": {
@@ -15295,6 +15455,16 @@
           ],
           "using": "(SELECT session_sees_all_areas()) OR area_id = ANY ((SELECT session_areas())::uuid[])",
           "withCheck": "(SELECT session_sees_all_areas()) OR area_id = ANY ((SELECT session_areas())::uuid[])"
+        },
+        "within_limits": {
+          "name": "within_limits",
+          "as": "RESTRICTIVE",
+          "for": "ALL",
+          "to": [
+            "opengewerk_app"
+          ],
+          "using": "((SELECT session_limit_properties()) IS NULL OR \"activity_signatures\".\"property_id\" = ANY ((SELECT session_limit_properties())::uuid[])) AND ((SELECT session_limit_asset_kinds()) IS NULL OR EXISTS (SELECT 1 FROM public.activities a WHERE a.id = \"activity_signatures\".\"activity_id\"))",
+          "withCheck": "((SELECT session_limit_properties()) IS NULL OR \"activity_signatures\".\"property_id\" = ANY ((SELECT session_limit_properties())::uuid[])) AND ((SELECT session_limit_asset_kinds()) IS NULL OR EXISTS (SELECT 1 FROM public.activities a WHERE a.id = \"activity_signatures\".\"activity_id\"))"
         }
       },
       "checkConstraints": {
@@ -15547,6 +15717,16 @@
           ],
           "using": "(SELECT session_sees_all_areas()) OR area_id = ANY ((SELECT session_areas())::uuid[])",
           "withCheck": "(SELECT session_sees_all_areas()) OR area_id = ANY ((SELECT session_areas())::uuid[])"
+        },
+        "within_limits": {
+          "name": "within_limits",
+          "as": "RESTRICTIVE",
+          "for": "ALL",
+          "to": [
+            "opengewerk_app"
+          ],
+          "using": "((SELECT session_limit_properties()) IS NULL OR \"work_order_decisions\".\"property_id\" = ANY ((SELECT session_limit_properties())::uuid[])) AND ((SELECT session_limit_asset_kinds()) IS NULL)",
+          "withCheck": "((SELECT session_limit_properties()) IS NULL OR \"work_order_decisions\".\"property_id\" = ANY ((SELECT session_limit_properties())::uuid[])) AND ((SELECT session_limit_asset_kinds()) IS NULL)"
         }
       },
       "checkConstraints": {
@@ -15705,6 +15885,16 @@
           ],
           "using": "(SELECT session_sees_all_areas()) OR area_id = ANY ((SELECT session_areas())::uuid[])",
           "withCheck": "(SELECT session_sees_all_areas()) OR area_id = ANY ((SELECT session_areas())::uuid[])"
+        },
+        "within_limits": {
+          "name": "within_limits",
+          "as": "RESTRICTIVE",
+          "for": "ALL",
+          "to": [
+            "opengewerk_app"
+          ],
+          "using": "((SELECT session_limit_properties()) IS NULL OR \"service_report_records\".\"property_id\" = ANY ((SELECT session_limit_properties())::uuid[])) AND ((SELECT session_limit_asset_kinds()) IS NULL)",
+          "withCheck": "((SELECT session_limit_properties()) IS NULL OR \"service_report_records\".\"property_id\" = ANY ((SELECT session_limit_properties())::uuid[])) AND ((SELECT session_limit_asset_kinds()) IS NULL)"
         }
       },
       "checkConstraints": {
@@ -15969,6 +16159,16 @@
           ],
           "using": "(SELECT session_sees_all_areas()) OR area_id = ANY ((SELECT session_areas())::uuid[])",
           "withCheck": "(SELECT session_sees_all_areas()) OR area_id = ANY ((SELECT session_areas())::uuid[])"
+        },
+        "within_limits": {
+          "name": "within_limits",
+          "as": "RESTRICTIVE",
+          "for": "ALL",
+          "to": [
+            "opengewerk_app"
+          ],
+          "using": "((SELECT session_limit_properties()) IS NULL OR \"service_reports\".\"property_id\" = ANY ((SELECT session_limit_properties())::uuid[])) AND ((SELECT session_limit_asset_kinds()) IS NULL OR EXISTS (SELECT 1 FROM public.activities a WHERE a.id = \"service_reports\".\"activity_id\"))",
+          "withCheck": "((SELECT session_limit_properties()) IS NULL OR \"service_reports\".\"property_id\" = ANY ((SELECT session_limit_properties())::uuid[])) AND ((SELECT session_limit_asset_kinds()) IS NULL OR EXISTS (SELECT 1 FROM public.activities a WHERE a.id = \"service_reports\".\"activity_id\"))"
         }
       },
       "checkConstraints": {
@@ -16381,6 +16581,16 @@
           ],
           "using": "(SELECT session_sees_all_areas()) OR area_id = ANY ((SELECT session_areas())::uuid[])",
           "withCheck": "(SELECT session_sees_all_areas()) OR area_id = ANY ((SELECT session_areas())::uuid[])"
+        },
+        "within_limits": {
+          "name": "within_limits",
+          "as": "RESTRICTIVE",
+          "for": "ALL",
+          "to": [
+            "opengewerk_app"
+          ],
+          "using": "((SELECT session_limit_properties()) IS NULL OR \"briefings\".\"property_id\" = ANY ((SELECT session_limit_properties())::uuid[])) AND ((SELECT session_limit_asset_kinds()) IS NULL OR EXISTS (SELECT 1 FROM public.activities a WHERE a.id = \"briefings\".\"activity_id\"))",
+          "withCheck": "((SELECT session_limit_properties()) IS NULL OR \"briefings\".\"property_id\" = ANY ((SELECT session_limit_properties())::uuid[])) AND ((SELECT session_limit_asset_kinds()) IS NULL OR EXISTS (SELECT 1 FROM public.activities a WHERE a.id = \"briefings\".\"activity_id\"))"
         }
       },
       "checkConstraints": {
@@ -16681,6 +16891,16 @@
           ],
           "using": "(SELECT session_sees_all_areas()) OR area_id = ANY ((SELECT session_areas())::uuid[])",
           "withCheck": "(SELECT session_sees_all_areas()) OR area_id = ANY ((SELECT session_areas())::uuid[])"
+        },
+        "within_limits": {
+          "name": "within_limits",
+          "as": "RESTRICTIVE",
+          "for": "ALL",
+          "to": [
+            "opengewerk_app"
+          ],
+          "using": "((SELECT session_limit_properties()) IS NULL OR \"work_permits\".\"property_id\" = ANY ((SELECT session_limit_properties())::uuid[])) AND ((SELECT session_limit_asset_kinds()) IS NULL OR EXISTS (SELECT 1 FROM public.activities a WHERE a.id = \"work_permits\".\"activity_id\"))",
+          "withCheck": "((SELECT session_limit_properties()) IS NULL OR \"work_permits\".\"property_id\" = ANY ((SELECT session_limit_properties())::uuid[])) AND ((SELECT session_limit_asset_kinds()) IS NULL OR EXISTS (SELECT 1 FROM public.activities a WHERE a.id = \"work_permits\".\"activity_id\"))"
         }
       },
       "checkConstraints": {
@@ -19116,6 +19336,16 @@
           ],
           "using": "(SELECT session_sees_all_areas()) OR area_id = ANY ((SELECT session_areas())::uuid[])",
           "withCheck": "(SELECT session_sees_all_areas()) OR area_id = ANY ((SELECT session_areas())::uuid[])"
+        },
+        "within_limits": {
+          "name": "within_limits",
+          "as": "RESTRICTIVE",
+          "for": "ALL",
+          "to": [
+            "opengewerk_app"
+          ],
+          "using": "((SELECT session_limit_properties()) IS NULL OR \"work_order_materials\".\"property_id\" = ANY ((SELECT session_limit_properties())::uuid[])) AND ((SELECT session_limit_asset_kinds()) IS NULL OR EXISTS (SELECT 1 FROM public.activities a WHERE a.id = \"work_order_materials\".\"activity_id\"))",
+          "withCheck": "((SELECT session_limit_properties()) IS NULL OR \"work_order_materials\".\"property_id\" = ANY ((SELECT session_limit_properties())::uuid[])) AND ((SELECT session_limit_asset_kinds()) IS NULL OR EXISTS (SELECT 1 FROM public.activities a WHERE a.id = \"work_order_materials\".\"activity_id\"))"
         }
       },
       "checkConstraints": {
@@ -19891,6 +20121,16 @@
           ],
           "using": "area_id IS NULL OR (SELECT session_sees_all_areas()) OR area_id = ANY ((SELECT session_areas())::uuid[])",
           "withCheck": "area_id IS NULL OR (SELECT session_sees_all_areas()) OR area_id = ANY ((SELECT session_areas())::uuid[])"
+        },
+        "within_limits": {
+          "name": "within_limits",
+          "as": "RESTRICTIVE",
+          "for": "ALL",
+          "to": [
+            "opengewerk_app"
+          ],
+          "using": "((SELECT session_limit_properties()) IS NULL OR \"deadlines\".\"property_id\" = ANY ((SELECT session_limit_properties())::uuid[])) AND ((SELECT session_limit_asset_kinds()) IS NULL OR EXISTS (SELECT 1 FROM public.duties d WHERE d.id = \"deadlines\".\"duty_id\"))",
+          "withCheck": "((SELECT session_limit_properties()) IS NULL OR \"deadlines\".\"property_id\" = ANY ((SELECT session_limit_properties())::uuid[])) AND ((SELECT session_limit_asset_kinds()) IS NULL OR EXISTS (SELECT 1 FROM public.duties d WHERE d.id = \"deadlines\".\"duty_id\"))"
         }
       },
       "checkConstraints": {
@@ -21072,6 +21312,16 @@
           "using": "(SELECT session_sees_all_areas()) OR area_id = ANY ((SELECT session_areas())::uuid[])",
           "withCheck": "(SELECT session_sees_all_areas()) OR area_id = ANY ((SELECT session_areas())::uuid[])"
         },
+        "within_limits": {
+          "name": "within_limits",
+          "as": "RESTRICTIVE",
+          "for": "ALL",
+          "to": [
+            "opengewerk_app"
+          ],
+          "using": "((SELECT session_limit_properties()) IS NULL OR \"labels\".\"property_id\" = ANY ((SELECT session_limit_properties())::uuid[])) AND ((SELECT session_limit_asset_kinds()) IS NULL OR (\"labels\".\"asset_id\" IS NOT NULL AND EXISTS (SELECT 1 FROM public.assets a WHERE a.id = \"labels\".\"asset_id\" AND a.kind = ANY ((SELECT session_limit_asset_kinds())::text[]))))",
+          "withCheck": "((SELECT session_limit_properties()) IS NULL OR \"labels\".\"property_id\" = ANY ((SELECT session_limit_properties())::uuid[])) AND ((SELECT session_limit_asset_kinds()) IS NULL OR (\"labels\".\"asset_id\" IS NOT NULL AND EXISTS (SELECT 1 FROM public.assets a WHERE a.id = \"labels\".\"asset_id\" AND a.kind = ANY ((SELECT session_limit_asset_kinds())::text[]))))"
+        },
         "readable_by_the_owner": {
           "name": "readable_by_the_owner",
           "as": "PERMISSIVE",
@@ -21606,6 +21856,16 @@
           ],
           "using": "(SELECT session_sees_all_areas()) OR area_id = ANY ((SELECT session_areas())::uuid[])",
           "withCheck": "(SELECT session_sees_all_areas()) OR area_id = ANY ((SELECT session_areas())::uuid[])"
+        },
+        "within_limits": {
+          "name": "within_limits",
+          "as": "RESTRICTIVE",
+          "for": "ALL",
+          "to": [
+            "opengewerk_app"
+          ],
+          "using": "((SELECT session_limit_properties()) IS NULL OR \"prints\".\"property_id\" = ANY ((SELECT session_limit_properties())::uuid[])) AND ((SELECT session_limit_asset_kinds()) IS NULL OR (\"prints\".\"activity_id\" IS NOT NULL AND EXISTS (SELECT 1 FROM public.activities a WHERE a.id = \"prints\".\"activity_id\")) OR (\"prints\".\"evidence_id\" IS NOT NULL AND EXISTS (SELECT 1 FROM public.evidence e WHERE e.id = \"prints\".\"evidence_id\")))",
+          "withCheck": "((SELECT session_limit_properties()) IS NULL OR \"prints\".\"property_id\" = ANY ((SELECT session_limit_properties())::uuid[])) AND ((SELECT session_limit_asset_kinds()) IS NULL OR (\"prints\".\"activity_id\" IS NOT NULL AND EXISTS (SELECT 1 FROM public.activities a WHERE a.id = \"prints\".\"activity_id\")) OR (\"prints\".\"evidence_id\" IS NOT NULL AND EXISTS (SELECT 1 FROM public.evidence e WHERE e.id = \"prints\".\"evidence_id\")))"
         }
       },
       "checkConstraints": {
@@ -21764,6 +22024,16 @@
           ],
           "using": "(SELECT session_sees_all_areas()) OR area_id = ANY ((SELECT session_areas())::uuid[])",
           "withCheck": "(SELECT session_sees_all_areas()) OR area_id = ANY ((SELECT session_areas())::uuid[])"
+        },
+        "within_limits": {
+          "name": "within_limits",
+          "as": "RESTRICTIVE",
+          "for": "ALL",
+          "to": [
+            "opengewerk_app"
+          ],
+          "using": "((SELECT session_limit_properties()) IS NULL OR \"round_records\".\"property_id\" = ANY ((SELECT session_limit_properties())::uuid[])) AND ((SELECT session_limit_asset_kinds()) IS NULL OR EXISTS (SELECT 1 FROM public.activities a WHERE a.id = \"round_records\".\"activity_id\"))",
+          "withCheck": "((SELECT session_limit_properties()) IS NULL OR \"round_records\".\"property_id\" = ANY ((SELECT session_limit_properties())::uuid[])) AND ((SELECT session_limit_asset_kinds()) IS NULL OR EXISTS (SELECT 1 FROM public.activities a WHERE a.id = \"round_records\".\"activity_id\"))"
         }
       },
       "checkConstraints": {
@@ -22227,6 +22497,16 @@
           ],
           "using": "(SELECT session_sees_all_areas()) OR area_id = ANY ((SELECT session_areas())::uuid[])",
           "withCheck": "(SELECT session_sees_all_areas()) OR area_id = ANY ((SELECT session_areas())::uuid[])"
+        },
+        "within_limits": {
+          "name": "within_limits",
+          "as": "RESTRICTIVE",
+          "for": "ALL",
+          "to": [
+            "opengewerk_app"
+          ],
+          "using": "((SELECT session_limit_properties()) IS NULL OR \"tasks\".\"property_id\" = ANY ((SELECT session_limit_properties())::uuid[])) AND ((SELECT session_limit_asset_kinds()) IS NULL OR (\"tasks\".\"asset_id\" IS NOT NULL AND EXISTS (SELECT 1 FROM public.assets a WHERE a.id = \"tasks\".\"asset_id\" AND a.kind = ANY ((SELECT session_limit_asset_kinds())::text[]))) OR (\"tasks\".\"activity_id\" IS NOT NULL AND EXISTS (SELECT 1 FROM public.activities a WHERE a.id = \"tasks\".\"activity_id\")))",
+          "withCheck": "((SELECT session_limit_properties()) IS NULL OR \"tasks\".\"property_id\" = ANY ((SELECT session_limit_properties())::uuid[])) AND ((SELECT session_limit_asset_kinds()) IS NULL OR (\"tasks\".\"asset_id\" IS NOT NULL AND EXISTS (SELECT 1 FROM public.assets a WHERE a.id = \"tasks\".\"asset_id\" AND a.kind = ANY ((SELECT session_limit_asset_kinds())::text[]))) OR (\"tasks\".\"activity_id\" IS NOT NULL AND EXISTS (SELECT 1 FROM public.activities a WHERE a.id = \"tasks\".\"activity_id\")))"
         }
       },
       "checkConstraints": {
@@ -22511,6 +22791,16 @@
           ],
           "using": "(SELECT session_sees_all_areas()) OR area_id = ANY ((SELECT session_areas())::uuid[])",
           "withCheck": "(SELECT session_sees_all_areas()) OR area_id = ANY ((SELECT session_areas())::uuid[])"
+        },
+        "within_limits": {
+          "name": "within_limits",
+          "as": "RESTRICTIVE",
+          "for": "ALL",
+          "to": [
+            "opengewerk_app"
+          ],
+          "using": "((SELECT session_limit_properties()) IS NULL OR \"fault_report_contacts\".\"property_id\" = ANY ((SELECT session_limit_properties())::uuid[])) AND ((SELECT session_limit_asset_kinds()) IS NULL)",
+          "withCheck": "((SELECT session_limit_properties()) IS NULL OR \"fault_report_contacts\".\"property_id\" = ANY ((SELECT session_limit_properties())::uuid[])) AND ((SELECT session_limit_asset_kinds()) IS NULL)"
         }
       },
       "checkConstraints": {
@@ -23131,6 +23421,16 @@
           ],
           "using": "(SELECT session_sees_all_areas()) OR area_id = ANY ((SELECT session_areas())::uuid[])",
           "withCheck": "(SELECT session_sees_all_areas()) OR area_id = ANY ((SELECT session_areas())::uuid[])"
+        },
+        "within_limits": {
+          "name": "within_limits",
+          "as": "RESTRICTIVE",
+          "for": "ALL",
+          "to": [
+            "opengewerk_app"
+          ],
+          "using": "((SELECT session_limit_properties()) IS NULL OR \"fault_reports\".\"property_id\" = ANY ((SELECT session_limit_properties())::uuid[])) AND ((SELECT session_limit_asset_kinds()) IS NULL OR (\"fault_reports\".\"asset_id\" IS NOT NULL AND EXISTS (SELECT 1 FROM public.assets a WHERE a.id = \"fault_reports\".\"asset_id\" AND a.kind = ANY ((SELECT session_limit_asset_kinds())::text[]))))",
+          "withCheck": "((SELECT session_limit_properties()) IS NULL OR \"fault_reports\".\"property_id\" = ANY ((SELECT session_limit_properties())::uuid[])) AND ((SELECT session_limit_asset_kinds()) IS NULL OR (\"fault_reports\".\"asset_id\" IS NOT NULL AND EXISTS (SELECT 1 FROM public.assets a WHERE a.id = \"fault_reports\".\"asset_id\" AND a.kind = ANY ((SELECT session_limit_asset_kinds())::text[]))))"
         }
       },
       "checkConstraints": {

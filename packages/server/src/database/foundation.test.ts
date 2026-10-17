@@ -165,8 +165,10 @@ describe('the foundation in this database', () => {
           'contacts.within_areas_update',
           'contacts.within_areas_delete',
           'attachments.within_areas',
-          // The limits of an access from outside (#339).
+          // The limits of an access from outside (#339), on every table with a property.
           'attachments.within_limits',
+          'contacts.within_limits',
+          'deadlines.within_limits',
           'attachment_versions.within_areas_of_their_file',
         ],
       }),

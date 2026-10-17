@@ -14,6 +14,7 @@ import { duties } from './duties.js'
 import { properties } from './locations.js'
 import { roundPlans } from './round-plans.js'
 import { tasks } from './tasks.js'
+import { kindOfItsDuty, withinLimits } from './limit-policies.js'
 
 /**
  * What a deadline of this application hangs on, beside its source: the duty,
@@ -72,6 +73,8 @@ export const { deadlineStatus, deadlines } = deadlinesSchema({
   constraints: (table) => [
     // The deadline of a contractor's document lies in no area (#328).
     withinAreasOrNone(),
+    // Within the limits of an access from outside by the duty it is of (#339).
+    withinLimits(table.propertyId, kindOfItsDuty(table.dutyId)),
     // The area of what the row hangs on (ADR 0003, addendum of #306).
     foreignKey({
       columns: [table.tenantId, table.dutyId, table.areaId],

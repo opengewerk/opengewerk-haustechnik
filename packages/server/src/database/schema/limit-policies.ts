@@ -36,6 +36,16 @@ export function kindOfItsEvidence(evidence: PgColumn): SQL {
   return sql`(${limitKinds} IS NULL OR EXISTS (SELECT 1 FROM public.evidence e WHERE e.id = ${evidence}))`
 }
 
+/** A print of an activity or of an evidence, which are themselves limited. */
+export function kindOfItsActivityOrEvidence(activity: PgColumn, evidence: PgColumn): SQL {
+  return sql`(${limitKinds} IS NULL OR (${activity} IS NOT NULL AND EXISTS (SELECT 1 FROM public.activities a WHERE a.id = ${activity})) OR (${evidence} IS NOT NULL AND EXISTS (SELECT 1 FROM public.evidence e WHERE e.id = ${evidence})))`
+}
+
+/** A row that hangs on no asset: outside a limit to kinds, inside a limit to properties alone. */
+export function onNoAsset(): SQL {
+  return sql`(${limitKinds} IS NULL)`
+}
+
 /**
  * A document: at an asset of the kinds, or a part of an activity that is
  * within the limit, the report of a contractor for one.

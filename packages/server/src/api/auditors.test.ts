@@ -250,6 +250,24 @@ describe('an auditor from outside', () => {
     await limit('u-auditor', [place.school], ['probe.elevator'])
     expect(await register('u-auditor')).toEqual([duty.schoolElevator])
 
+    // A proposal dismissed outside them is none either (finding of the review of #408).
+    await admin.query(
+      `insert into duty_dismissals (tenant_id, property_id, area_id, asset_id, kind, kind_version,
+                                    reason, dismissed_by)
+       select tenant_id, property_id, area_id, id, 'probe.elevator_main_test', 1, 'Gibt es hier nicht.',
+              'u-duties'
+         from assets where id = $1
+       on conflict do nothing`,
+      [place.depotElevator],
+    )
+    expect(
+      (await http().get('/duty-dismissals').set(testIdentityHeader, by('u-auditor')).expect(200))
+        .body,
+    ).toEqual([])
+    expect(
+      (await http().get('/duty-dismissals').set(testIdentityHeader, by('u-duties')).expect(200))
+        .body,
+    ).toHaveLength(1)
     // A duty outside, asked by its key, is none: the database does not hand it over.
     await http()
       .get(`/duties/${duty.depotElevator}`)
@@ -258,6 +276,27 @@ describe('an auditor from outside', () => {
     // And the limits of one auditor are not those of another, nor of anybody else.
     expect(await register('u-other')).toHaveLength(3)
     expect(await register('u-duties')).toHaveLength(3)
+  })
+
+  it('is held on every table with a property, past every route (review of #408)', async () => {
+    // The limits themselves are read by the functions of the policy.
+    const { rows } = await admin.query<{ table_name: string }>(
+      `select c.table_name
+         from information_schema.columns c
+         join information_schema.tables t
+           on t.table_schema = c.table_schema and t.table_name = c.table_name
+        where c.table_schema = 'public' and c.column_name = 'property_id'
+          and t.table_type = 'BASE TABLE'
+          and c.table_name not in ('member_limit_properties', 'invitation_limit_properties')
+          and not exists (
+            select 1 from pg_policies p
+             where p.schemaname = 'public' and p.tablename = c.table_name
+               and p.policyname = 'within_limits' and p.permissive = 'RESTRICTIVE'
+               and p.cmd = 'ALL')
+        order by 1`,
+    )
+
+    expect(rows.map((row) => row.table_name)).toEqual([])
   })
 
   it('is held by the database as well, past every route', async () => {

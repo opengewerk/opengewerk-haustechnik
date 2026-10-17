@@ -1,4 +1,5 @@
 import { type Area, type AreaId, limitWords, shippedRoles } from '@opengewerk/haustechnik-domain'
+import { moment } from '@opengewerk/platform-web/format'
 import { TestServer } from '@opengewerk/platform-web/testing'
 import { fireEvent, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
@@ -310,8 +311,12 @@ describe('an auditor from outside (#339)', () => {
     await screen.findByRole('table', { name: auditorReadWords.caption })
 
     expect(rowsOf(auditorReadWords.caption)).toEqual([
-      ['17.10.2036, 09:14', 'Dr. Frank Seidel', 'Pflicht: Prüfung der Brandmeldeanlage, AN-00048'],
-      ['17.10.2036, 09:11', 'Dr. Frank Seidel', 'Pflichtenverzeichnis'],
+      [
+        moment('2036-10-17T07:14:00.000Z'),
+        'Dr. Frank Seidel',
+        'Pflicht: Prüfung der Brandmeldeanlage, AN-00048',
+      ],
+      [moment('2036-10-17T07:11:00.000Z'), 'Dr. Frank Seidel', 'Pflichtenverzeichnis'],
     ])
   })
 })
