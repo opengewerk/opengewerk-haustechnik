@@ -9,6 +9,15 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
 
 ### Hinzugefügt
 
+- Außer Betrieb durch Mangel und der Mängelbericht als PDF (#345, Abschnitt 4.6 des Konzepts): ein offener Mangel einer
+  Klasse, die eine Anlage unsicher macht, etwa „gefährlich“, setzt seine Anlage außer Betrieb, bis er behoben ist, also
+  bis zur Unterschrift unter seinem Auftrag. Die Akte nennt den Mangel ganz oben, der Raum, das Lagebild und das
+  Anlagenverzeichnis zeigen den Zustand, vor Ort sagt es die Seite der Anlage zuerst. Die Pflichten laufen weiter, und
+  kein Eintrag im Lebenszyklus nimmt den Zustand zurück; eine Komponente steht für sich. In der Liste der Mängel gibt
+  „Mängelbericht“ aus, was die Liste unter ihren Filtern zeigt, je Gebäude, mit Klasse, Frist, Stand und dem ersten
+  Foto, nur aus den Bereichen der Person und mit Tag und Uhrzeit des Abrufs. Warum: die Klassen sagten seit Phase 1,
+  welcher Mangel eine Anlage unsicher macht, und nirgends wirkte es; wer vor einer unsicheren Anlage stand, sah „In
+  Betrieb“.
 - Ein Punkt für jede Anlage einer Art (#343, Abschnitt 4.5 des Konzepts): ein Punkt einer Vorlage nennt statt einer Anlage
   eine Anlagenart, etwa jede Feststellanlage im Gebäude. Welche Anlagen das sind, steht fest, wenn der Rundgang entsteht:
   jede dieser Art am Ort des Plans und in seinem Bereich, ohne die außer Betrieb genommenen und die zurückgebauten. Vor

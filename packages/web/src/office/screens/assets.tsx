@@ -14,6 +14,8 @@ import {
   lifecycleStates,
   placeWords,
   type RecordState,
+  showsShutDown,
+  shutDownLabel,
   withoutLifecycle,
 } from '@opengewerk/haustechnik-domain'
 import { Button, cardLink, Cell, Column, Panel, TablePanel } from '@opengewerk/platform-web'
@@ -236,9 +238,11 @@ export function AssetRegisterScreen() {
               asset.number,
               kindOf(asset),
               placeOf(asset),
-              asset.lifecycleState === null || asset.lifecycleState === 'in_service'
-                ? null
-                : lifecycleStateLabel[asset.lifecycleState],
+              showsShutDown(asset.lifecycleState, asset.shutDown)
+                ? shutDownLabel
+                : asset.lifecycleState === null || asset.lifecycleState === 'in_service'
+                  ? null
+                  : lifecycleStateLabel[asset.lifecycleState],
             ]
               .filter((part) => part !== null && part !== '')
               .join(' · '),
@@ -289,7 +293,7 @@ export function AssetRegisterScreen() {
                   <AssetConditionMark standing={asset} />
                 </Cell>
                 <Cell>
-                  <AssetState state={asset.lifecycleState ?? undefined} />
+                  <AssetState state={asset.lifecycleState ?? undefined} shutDown={asset.shutDown} />
                 </Cell>
               </tr>
             ))}
@@ -304,10 +308,11 @@ export function AssetRegisterScreen() {
 const columnWidths = [
   'w-[96px] min-w-[84px]',
   'min-w-[180px]',
-  'w-[230px] min-w-[150px]',
-  'w-[270px] min-w-[170px]',
+  'w-[210px] min-w-[150px]',
+  'w-[230px] min-w-[170px]',
   'w-[190px] min-w-[150px]',
-  'w-[140px] min-w-[120px]',
+  // Wide enough for "Außer Betrieb durch Mangel" (#345).
+  'w-[220px] min-w-[120px]',
 ] as const
 
 /** What an asset kind is called, or its key where this device has no catalogue that knows it. */

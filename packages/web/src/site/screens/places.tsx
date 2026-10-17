@@ -1,5 +1,5 @@
-import type { RecordState } from '@opengewerk/haustechnik-domain'
-import { Panel } from '@opengewerk/platform-web'
+import { type RecordState, shutDownLabel } from '@opengewerk/haustechnik-domain'
+import { Panel, Status } from '@opengewerk/platform-web'
 import { useRight } from '@opengewerk/platform-web/session'
 import {
   ContactList,
@@ -14,9 +14,10 @@ import {
 } from '@opengewerk/platform-web/site'
 import { maybeText, text, useRecord, useRecords } from '@opengewerk/platform-web/sync'
 import { useParams } from '@tanstack/react-router'
-import { Plus, TriangleAlert } from 'lucide-react'
+import { Ban, Plus, TriangleAlert } from 'lucide-react'
 
 import { placePath } from '../../app/place-path.js'
+import { shutDownOn } from '../../app/shut-down.js'
 import { byLevel, byNumber, kindsOf, placeAbove, titleOfRoom } from '../../app/place-records.js'
 import { useCatalogue } from '../../sync/catalogue.js'
 import { SiteDocuments } from '../documents.js'
@@ -363,6 +364,8 @@ export function SiteRoomScreen() {
       isOpenDefect(defect) &&
       (defect['roomId'] === roomId || standing.has(String(defect['assetId']))),
   )
+  // The assets standing here a defect puts out of service (#345).
+  const shutDown = shutDownOn(open, catalogue)
   const use = maybeText(room, 'use')
   const propertyId = maybeText(room, 'propertyId')
 
@@ -395,9 +398,18 @@ export function SiteRoomScreen() {
                     to={sitePlaces.asset(String(asset['id']))}
                     title={assetTitle(asset)}
                     meta={
-                      parent
-                        ? `Komponente von ${assetTitle(parent)}`
-                        : kindWords(catalogue, maybeText(asset, 'kind'))
+                      <>
+                        {parent
+                          ? `Komponente von ${assetTitle(parent)}`
+                          : kindWords(catalogue, maybeText(asset, 'kind'))}
+                        {shutDown.has(String(asset['id'])) ? (
+                          <span className="mt-1.5 block">
+                            <Status tone="conflict" icon={Ban}>
+                              {shutDownLabel}
+                            </Status>
+                          </span>
+                        ) : null}
+                      </>
                     }
                   />
                 )

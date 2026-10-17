@@ -1,10 +1,10 @@
-import type { Catalogue, RecordState } from '@opengewerk/haustechnik-domain'
+import { type Catalogue, type RecordState, shutDownLabel } from '@opengewerk/haustechnik-domain'
 import { Button, Panel } from '@opengewerk/platform-web'
 import { date, today } from '@opengewerk/platform-web/format'
 import { SiteHeader, SiteScreen, SiteText, type WayBack } from '@opengewerk/platform-web/site'
 import { maybeText, text } from '@opengewerk/platform-web/sync'
 import { useNavigate } from '@tanstack/react-router'
-import type { LucideIcon } from 'lucide-react'
+import { Ban, type LucideIcon } from 'lucide-react'
 import { type ReactNode, type RefObject, useSyncExternalStore } from 'react'
 import { byNameIn } from '@opengewerk/haustechnik-domain'
 
@@ -145,6 +145,56 @@ export function PlainRow({
         <span className="mt-0.5 block text-[15px] leading-[1.35] text-ink-muted">{meta}</span>
       ) : null}
     </li>
+  )
+}
+
+/** What the page of an asset on site says while a defect puts it out of service (#345). */
+export const shutDownWords = {
+  until: (defects: number) =>
+    defects === 1
+      ? 'Die Anlage bleibt außer Betrieb, bis der Mangel behoben ist. Ihre Pflichten laufen weiter.'
+      : 'Die Anlage bleibt außer Betrieb, bis jeder dieser Mängel behoben ist. Ihre Pflichten laufen weiter.',
+} as const
+
+/**
+ * What the page of an asset on site says first while a defect puts it out of
+ * service (#345, `shut_notice()` of the boards): each defect that does, with
+ * its class, and until when. Read from the device, also without a network;
+ * nothing while none does.
+ */
+export function ShutDownNotice({
+  defects,
+  catalogue,
+}: {
+  readonly defects: readonly RecordState[]
+  readonly catalogue: Pick<Catalogue, 'defectClass'> | null
+}) {
+  if (defects.length === 0) {
+    return null
+  }
+
+  const classWord = (key: string | null) =>
+    key === null ? null : (catalogue?.defectClass(key)?.defectClass.label ?? key)
+
+  return (
+    <div
+      role="note"
+      className="flex gap-2.5 rounded-[6px] border border-conflict-edge bg-conflict-fill px-3.5 py-3 text-conflict"
+    >
+      <Ban size={22} strokeWidth={2.2} aria-hidden="true" className="mt-px shrink-0" />
+      <div className="min-w-0">
+        <div className="text-[17px] font-semibold">{shutDownLabel}</div>
+        <p className="mt-[3px] text-[15px] leading-[1.45] text-ink">
+          {`${defects
+            .map((defect) =>
+              [text(defect, 'description'), classWord(maybeText(defect, 'defectClass'))]
+                .filter((part) => part !== null && part !== '')
+                .join(', '),
+            )
+            .join('; ')}. ${shutDownWords.until(defects.length)}`}
+        </p>
+      </div>
+    </div>
   )
 }
 

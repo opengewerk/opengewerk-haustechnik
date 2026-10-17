@@ -17,6 +17,7 @@ import {
   type NamedArea,
   onA,
   rowsOf,
+  servingPdf,
   servingTables,
   signedInOffice,
   untilTheRightsAreKnown,
@@ -199,7 +200,8 @@ describe('the list "Mängel"', () => {
       [
         'Notruf im Fahrkorb ohne Verbindung',
         'AN-00044 Aufzug SchulhausSchulzentrum Am Lindenhain, Schulhaus',
-        'schwer',
+        // "schwer" makes an asset unsafe: the defect puts its asset out of service (#345).
+        'schwerAnlage außer Betrieb',
         '05.10.2026über der Frist',
         'Festgestellt',
         'von Hand, 04.10.2026',
@@ -592,6 +594,52 @@ describe('the list "Mängel" as a table (#236)', () => {
     await waitFor(() => {
       expect(tables.asked).toEqual(['/defects/table?state=overdue&defectClass=none&format=xlsx'])
     })
+  })
+})
+
+describe('the report of the defects (#345)', () => {
+  it('is asked for as a PDF with the list a chip names and what the filter narrows it by, and opened', async () => {
+    const { mounted } = mount('/maengel', {
+      '/defects': register([remedied, late, unclassed]),
+      '/defects?state=overdue': register([late]),
+    })
+
+    await mounted
+    await waitFor(() => {
+      expect(rowsOf(caption)).toHaveLength(3)
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Über der Frist 1' }))
+    await waitFor(() => {
+      expect(rowsOf(caption)).toHaveLength(1)
+    })
+
+    // After the answers of the test, which it hands every other request to.
+    const pdf = servingPdf()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Mängelbericht' }))
+
+    await waitFor(() => {
+      expect(pdf.opened).toEqual(['blob:probe'])
+    })
+    expect(pdf.asked).toEqual(['/defects/report/pdf?state=overdue'])
+  })
+
+  it('says why there is none where the instance makes no PDF', async () => {
+    const { mounted } = mount('/maengel', { '/defects': register([late]) })
+
+    await mounted
+    await waitFor(() => {
+      expect(rowsOf(caption)).toHaveLength(1)
+    })
+
+    const pdf = servingPdf('Auf dieser Instanz ist kein Dienst eingerichtet, der PDFs erzeugt.')
+
+    fireEvent.click(screen.getByRole('button', { name: 'Mängelbericht' }))
+
+    expect(
+      await screen.findByText('Auf dieser Instanz ist kein Dienst eingerichtet, der PDFs erzeugt.'),
+    ).toBeTruthy()
+    expect(pdf.opened).toEqual([])
   })
 })
 

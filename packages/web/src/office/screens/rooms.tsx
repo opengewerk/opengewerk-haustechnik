@@ -15,6 +15,7 @@ import { DoorOpen, Pencil, Plus } from 'lucide-react'
 import { useMemo } from 'react'
 
 import { statesOn } from '../../app/asset-records.js'
+import { useShutDown } from '../../app/shut-down.js'
 import { placePath } from '../../app/place-path.js'
 import { byNumber, placeAbove, titleOfRoom } from '../../app/place-records.js'
 import { useCatalogue } from '../../sync/catalogue.js'
@@ -105,6 +106,7 @@ export function RoomScreen() {
     )
   }, [assets, supplies, roomId, buildingId])
   const states = useMemo(() => statesOn(lifecycle, today()), [lifecycle])
+  const shutDown = useShutDown()
 
   if (!room || !roomId || !floor || !building || !property) {
     return <PlaceNotFound place="room" />
@@ -178,7 +180,7 @@ export function RoomScreen() {
           documents (#97). */}
       <div className="grid gap-3.5 lg:grid-cols-[minmax(0,1fr)_320px]">
         <div className="flex min-w-0 flex-col gap-3.5">
-          <AssetsInside assets={inside} states={states} catalogue={catalogue} />
+          <AssetsInside assets={inside} states={states} shutDown={shutDown} catalogue={catalogue} />
           <AssetsSupplying
             assets={supplying}
             standsIn={standsIn}
@@ -245,17 +247,27 @@ function AssetName({
 /**
  * "Anlagen in diesem Raum": what stands here, each with its kind and the
  * state it is in today. The kind is what the catalogue of this device calls
- * it; the general kind of a cost group has the group behind it (#284).
+ * it; the general kind of a cost group has the group behind it (#284). One a
+ * defect puts out of service says so (#345), by the defects the device holds.
  */
 function AssetsInside({
   assets,
   states,
+  shutDown,
   catalogue,
 }: {
   readonly assets: readonly RecordState[]
   readonly states: ReadonlyMap<string, LifecycleState>
+  readonly shutDown: ReadonlyMap<string, readonly RecordState[]>
   readonly catalogue: Catalogue | null
 }) {
+  const stateOf = (asset: RecordState) => (
+    <AssetState
+      state={states.get(String(asset['id']))}
+      shutDown={shutDown.has(String(asset['id']))}
+    />
+  )
+
   const title = 'Anlagen in diesem Raum'
   const kindOf = (asset: RecordState) => kindLabel(catalogue, text(asset, 'kind'))
   const groupOf = (asset: RecordState) => generalKindGroup(catalogue, text(asset, 'kind'))
@@ -284,15 +296,16 @@ function AssetsInside({
         key: String(asset['id']),
         title: <AssetName asset={asset} className={cardLink} />,
         sub: [maybeText(asset, 'number'), kindWords(asset)].filter(Boolean).join(' · '),
-        right: <AssetState state={states.get(String(asset['id']))} />,
+        right: stateOf(asset),
       }))}
     >
       <thead>
         <tr>
           <Column className="w-[96px] min-w-[84px]">Nummer</Column>
           <Column className="min-w-[160px]">Anlage</Column>
-          <Column className="w-[250px] min-w-[150px]">Anlagenart</Column>
-          <Column className="w-[150px] min-w-[120px]">Zustand</Column>
+          <Column className="w-[200px] min-w-[150px]">Anlagenart</Column>
+          {/* Wide enough for "Außer Betrieb durch Mangel" (#345). */}
+          <Column className="w-[226px] min-w-[120px]">Zustand</Column>
         </tr>
       </thead>
       <tbody>
@@ -311,9 +324,7 @@ function AssetsInside({
                 {kindOf(asset)}
                 {group === null ? null : <span className="text-ink-faint"> ({group})</span>}
               </Cell>
-              <Cell>
-                <AssetState state={states.get(String(asset['id']))} />
-              </Cell>
+              <Cell>{stateOf(asset)}</Cell>
             </tr>
           )
         })}

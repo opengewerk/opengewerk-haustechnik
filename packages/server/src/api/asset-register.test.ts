@@ -344,6 +344,8 @@ describe('the register of assets', () => {
       lifecycleState: 'in_service',
       condition: 'no_duties',
       until: null,
+      // No defect puts it out of service (#345).
+      shutDown: false,
     })
     expect(page.assets[1]?.lifecycleState).toBeNull()
     expect(page.assets[2]?.parentAssetId).toBe(lift)
@@ -617,7 +619,16 @@ describe('the file of an asset', () => {
       condition: file.condition,
       until: file.until,
     }).toEqual({
-      components: [{ id: drive.id, number: drive.number, name: 'Antrieb', kind: 'probe.elevator' }],
+      components: [
+        {
+          id: drive.id,
+          number: drive.number,
+          name: 'Antrieb',
+          kind: 'probe.elevator',
+          lifecycleState: null,
+          shutDown: false,
+        },
+      ],
       parent: null,
       condition: 'never_checked',
       until: null,

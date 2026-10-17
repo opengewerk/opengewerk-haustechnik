@@ -1,7 +1,15 @@
 import { fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, describe, expect, it } from 'vitest'
 
-import { afterEachSiteTest, heater, mountSite, queued, rod, schoolServer } from '../test-site.js'
+import {
+  afterEachSiteTest,
+  heater,
+  mountSite,
+  queued,
+  rod,
+  schoolServer,
+  tooCold,
+} from '../test-site.js'
 
 /**
  * The plain pages of the places on site and of an asset (#99, 4.1 and 4.2 of
@@ -329,5 +337,67 @@ describe('an asset on site', () => {
     expect(screen.getByRole('region', { name: 'Dokumente' })).toBeTruthy()
     expect(screen.queryByRole('button', { name: 'Foto aufnehmen' })).toBeNull()
     expect(screen.queryByLabelText('Foto für die Dokumente')).toBeNull()
+  })
+})
+
+describe('an asset a defect puts out of service, on site (#345)', () => {
+  /** A defect of a class that makes an asset unsafe, at the heater. */
+  const unsafe = {
+    ...tooCold,
+    id: 'd-unsafe',
+    description: 'Fangvorrichtung greift nicht',
+    defectClass: 'probe.severe',
+    dueOn: '2026-10-18',
+  }
+
+  /** The school with these defects beside its own. */
+  function serverWith(...defects: readonly (typeof unsafe)[]) {
+    const server = schoolServer()
+
+    for (const defect of defects) {
+      server.put('defects', defect)
+    }
+
+    return server
+  }
+
+  it('says first on the page of the asset that a defect puts it out of service, which one and until when', async () => {
+    await mountSite('/anlagen/a-heater', { server: serverWith(unsafe) })
+
+    const note = await screen.findByRole('note')
+
+    // The word of the class comes with the catalogue of the device.
+    await waitFor(() => {
+      expect(note.textContent).toBe(
+        'Außer Betrieb durch MangelFangvorrichtung greift nicht, schwer. ' +
+          'Die Anlage bleibt außer Betrieb, bis der Mangel behoben ist. Ihre Pflichten laufen weiter.',
+      )
+    })
+  })
+
+  it('says nothing of the kind for a defect of another class, or one that is remedied', async () => {
+    await mountSite('/anlagen/a-heater', {
+      server: serverWith(
+        { ...unsafe, defectClass: 'probe.slight' },
+        { ...unsafe, id: 'd-remedied', status: 'remedied' },
+      ),
+    })
+    await screen.findByRole('heading', { level: 1, name: 'Aufzug Heizraum' })
+    await waitFor(() => {
+      expect(rowsOf('Offene Mängel')).toHaveLength(2)
+    })
+
+    expect(screen.queryByText(/Außer Betrieb durch Mangel/)).toBeNull()
+  })
+
+  it('says it at the asset in the list of its room', async () => {
+    await mountSite('/raeume/r-boiler', { server: serverWith(unsafe) })
+
+    await waitFor(() => {
+      expect(rowsOf('Steht hier')).toEqual([
+        'AN-00057 Aufzug HeizraumAufzugsanlageAußer Betrieb durch Mangel',
+        'AN-00059 ZirkulationspumpeKomponente von AN-00057 Aufzug Heizraum',
+      ])
+    })
   })
 })

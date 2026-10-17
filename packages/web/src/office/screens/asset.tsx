@@ -15,6 +15,8 @@ import {
   meterUnitSymbol,
   type RecordState,
   restsOn,
+  type ShutDownDefect,
+  shutDownLabel,
 } from '@opengewerk/haustechnik-domain'
 import {
   Button,
@@ -33,6 +35,7 @@ import {
   Empty,
   type Fact,
   FactList,
+  NoteBox,
   PageHead,
   Screen,
 } from '@opengewerk/platform-web/office'
@@ -40,8 +43,8 @@ import { useRight } from '@opengewerk/platform-web/session'
 import { request, RequestRefused, text, useRecords } from '@opengewerk/platform-web/sync'
 import { useQuery, type UseQueryResult } from '@tanstack/react-query'
 import { Link, useNavigate, useParams } from '@tanstack/react-router'
-import { ArrowLeftRight, Pencil, Plus, X, Zap } from 'lucide-react'
-import { type ReactNode, useState } from 'react'
+import { ArrowLeftRight, Ban, Pencil, Plus, X, Zap } from 'lucide-react'
+import { Fragment, type ReactNode, useState } from 'react'
 
 import { assetEvidenceQuery } from '../../app/evidence.js'
 import { placePath } from '../../app/place-path.js'
@@ -60,6 +63,7 @@ import { AssetCoverCard } from '../asset-cover.js'
 import { ExchangeAssetDialog, mayBeExchanged } from '../asset-exchange.js'
 import { AssetState } from '../asset-state.js'
 import { cataloguePlaces } from '../catalogue-addresses.js'
+import { defectPlaces } from '../defect-addresses.js'
 import { DocumentsCard } from '../documents.js'
 import { TasksCard } from '../tasks.js'
 import { dutyPlaces } from '../duty-addresses.js'
@@ -69,7 +73,7 @@ import { LabelCardOf } from '../labels.js'
 import { factLink } from '../links.js'
 import { officePlaces } from '../place-addresses.js'
 import { kindLabel } from './assets.js'
-import { AssetDefectsCard } from './defects.js'
+import { AssetDefectsCard, useClassWord } from './defects.js'
 import { AssetFaultsCard } from './fault-reports.js'
 import { ProposalsNote } from './proposals.js'
 import { AssetOrdersCard, NewOrderAtAssetButton } from './work-orders.js'
@@ -109,6 +113,16 @@ export const assetFileWords = {
   shownOnEntry: 'Beim Anlegen als mögliche Dublette gezeigt.',
   replaces: 'Ersetzt',
   replacedBy: 'Ersetzt durch',
+  /** Until when an asset is out of service by a defect, and what goes on meanwhile (#345). */
+  shutDownUntil: (defects: number) =>
+    defects === 1
+      ? 'Die Anlage bleibt außer Betrieb, bis der Mangel behoben ist, also bis zur Unterschrift unter seinem Auftrag. Ihre Pflichten laufen weiter.'
+      : 'Die Anlage bleibt außer Betrieb, bis jeder dieser Mängel behoben ist, also bis zur Unterschrift unter seinem Auftrag. Ihre Pflichten laufen weiter.',
+  /** For whoever does not read the defects: the state, and not what is wrong. */
+  shutDownUnread:
+    'Ein Mangel macht die Anlage unsicher. Sie bleibt außer Betrieb, bis er behoben ist. Ihre Pflichten laufen weiter.',
+  shutDownLifecycle:
+    'Außer Betrieb durch Mangel gilt, solange ein Mangel sie unsicher macht. Ein Eintrag hier ändert das nicht.',
 } as const
 
 /**
@@ -222,7 +236,7 @@ export function AssetFileScreen() {
         badges={
           <>
             {asset.number === null ? null : <NumberBadge>{asset.number}</NumberBadge>}
-            <AssetState state={asset.lifecycleState ?? undefined} />
+            <AssetState state={asset.lifecycleState ?? undefined} shutDown={asset.shutDown} />
             <AssetConditionMark standing={asset} />
           </>
         }
@@ -262,6 +276,7 @@ export function AssetFileScreen() {
           </>
         }
       />
+      {asset.shutDown ? <ShutDownNote defects={asset.shutDownBy} /> : null}
       <div className="grid gap-3.5 lg:grid-cols-[minmax(0,1fr)_320px]">
         <div className="flex min-w-0 flex-col gap-3.5">
           {seesDuties ? (
@@ -403,6 +418,15 @@ export function AssetFileScreen() {
                         .filter(Boolean)
                         .join(', ')}
                     </div>
+                    {/* A defect at a component puts the component out of service and not this asset (#345). */}
+                    {component.shutDown ? (
+                      <div className="mt-1">
+                        <AssetState
+                          state={component.lifecycleState ?? undefined}
+                          shutDown={component.shutDown}
+                        />
+                      </div>
+                    ) : null}
                   </li>
                 ))}
               </ul>
@@ -906,6 +930,44 @@ function Lifecycle({
           ))}
         </ol>
       )}
+      {asset.shutDown ? (
+        <p className="mt-2 text-[12px] leading-[1.4] text-ink-muted">
+          {assetFileWords.shutDownLifecycle}
+        </p>
+      ) : null}
     </Panel>
+  )
+}
+
+/**
+ * What the file says first while a defect puts the asset out of service
+ * (#345, `anlagenakte(shut=True)` of the boards): each defect that does,
+ * with its class and the day it was found, and that the asset stays out of
+ * service until it is remedied while its duties go on. Whoever does not read
+ * the defects is told the state and not what is wrong.
+ */
+function ShutDownNote({ defects }: { readonly defects: readonly ShutDownDefect[] | null }) {
+  const classWord = useClassWord()
+
+  return (
+    <NoteBox tone="conflict" icon={Ban}>
+      <strong>{shutDownLabel}:</strong>{' '}
+      {defects === null ? (
+        assetFileWords.shutDownUnread
+      ) : (
+        <>
+          {defects.map((defect, index) => (
+            <Fragment key={defect.id}>
+              {index === 0 ? null : '; '}
+              <Link to={defectPlaces.defect(defect.id)} className="underline">
+                {defect.description}
+              </Link>
+              , {classWord(defect.defectClass)}, festgestellt am {date(defect.foundOn)}
+            </Fragment>
+          ))}
+          . {assetFileWords.shutDownUntil(defects.length)}
+        </>
+      )}
+    </NoteBox>
   )
 }

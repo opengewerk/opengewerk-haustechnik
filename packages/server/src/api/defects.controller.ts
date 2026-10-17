@@ -13,6 +13,7 @@ import {
   Post,
   Put,
   Query,
+  Res,
   StreamableFile,
 } from '@nestjs/common'
 import {
@@ -31,14 +32,23 @@ import {
   defectProblems,
   type DefectReading,
   type DefectRegister,
+  defectReportBlocks,
+  defectReportCount,
+  defectReportWhere,
+  defectReportWords,
   type DefectSummary,
+  defectOriginWord,
   defectTermProblem,
+  entryShutsDown,
+  isAllowed,
   type IsoDate,
   statusAfterCheck,
 } from '@opengewerk/haustechnik-domain'
 import {
   CurrentIdentity,
   Database,
+  FILE_STORE,
+  type FileStorage,
   tableAnswer,
   tableFormatOf,
   type TenantTransaction,
@@ -55,10 +65,18 @@ import {
   defectRegisterQuestion,
   defectSummary,
 } from '../defects/reading.js'
-import { dayInGermany } from '../today.js'
+import { defectReportChoice, firstPhotosOf, orderWords } from '../defects/report.js'
+import { keeperOf } from '../labels/faces.js'
+import {
+  type DefectReportLine,
+  type DefectReportPhoto,
+  defectReportPrintJob,
+} from '../prints/defect-report-page.js'
+import { dayInGermany, timeInGermany } from '../today.js'
 import { RequiresPermission } from './authorization.js'
 import { defectTable, wholeList } from './office-tables.js'
 import { type Asking, fieldsOf, given, placeOf, refuse, targetOf } from './places.js'
+import { pdf, Printer } from './prints.controller.js'
 
 const missing = 'Diesen Mangel gibt es nicht oder nicht mehr.'
 
@@ -127,6 +145,8 @@ export class DefectsController {
   constructor(
     private readonly database: Database,
     @Inject(CATALOGUE) private readonly catalogue: Catalogue,
+    private readonly printer: Printer,
+    @Inject(FILE_STORE) private readonly store: FileStorage,
   ) {}
 
   /** A page of the register, narrowed by what the address names. */
@@ -166,6 +186,102 @@ export class DefectsController {
 
       return tableAnswer(defectTable(this.catalogue, identity, rows), format, today)
     })
+  }
+
+  /**
+   * The report of the defects as a PDF on A4 across (#345, section 4.6):
+   * every defect the filter of the list passes, and not a page, in a block
+   * for each building, each with where it is, its class, its days, its status
+   * and its first photo (`firstPhotosOf`). A defect that puts its asset out
+   * of service says so. Made for the moment it is asked for and not kept,
+   * which its head and its foot say with the day and the hour (decided by
+   * Moritz on 15.10.2026). Read in the areas of the person, like the list,
+   * with the places and the assets named as the list names them, and the
+   * work order for whoever reads work orders.
+   *
+   * Before a defect, or its address would be read as an id.
+   */
+  @Get('report/pdf')
+  @RequiresPermission('defect.read')
+  async report(
+    @CurrentIdentity() identity: Asking,
+    @Query() query: Readonly<Record<string, unknown>>,
+    @Res({ passthrough: true }) response: { setHeader(name: string, value: string): void },
+  ): Promise<StreamableFile> {
+    const question = { ...defectRegisterQuestion(query), ...wholeList }
+    const now = new Date()
+    const day = dayInGermany(now)
+    const reads = {
+      places: isAllowed(identity, 'location.read'),
+      assets: isAllowed(identity, 'asset.read'),
+    }
+    const orders = isAllowed(identity, 'activity.read')
+    const made = await this.database.forTenant(identity, async (tx) => {
+      const { defects: rows } = await defectRegister(tx, question, day)
+
+      return {
+        rows,
+        operator: await keeperOf(tx),
+        choice: await defectReportChoice(tx, identity, this.catalogue, question.filter),
+        photos: await firstPhotosOf(
+          tx,
+          rows.map((row) => row.id),
+        ),
+      }
+    })
+    const photoOf = async (defectId: string): Promise<DefectReportPhoto> => {
+      const file = made.photos.get(defectId)
+
+      if (file === undefined || file === 'elsewhere') {
+        return file ?? null
+      }
+
+      try {
+        return { mediaType: file.mediaType, bytes: await this.store.get(file.sha256) }
+      } catch {
+        // A file the store no longer holds stays a word, and the report is made all the same.
+        return 'elsewhere'
+      }
+    }
+    const shutsDown = (row: (typeof made.rows)[number]) => entryShutsDown(row, this.catalogue)
+    const parts = []
+
+    for (const block of defectReportBlocks(made.rows, reads)) {
+      const lines: DefectReportLine[] = []
+
+      for (const defect of block.defects) {
+        lines.push({
+          defect,
+          where: defectReportWhere(defect, reads),
+          origin: defectOriginWord(defect.origin),
+          defectClass:
+            defect.defectClass === null
+              ? null
+              : (this.catalogue.defectClass(defect.defectClass)?.defectClass.label ??
+                defect.defectClass),
+          unsafe: shutsDown(defect),
+          order: orders ? orderWords(defect) : null,
+          photo: await photoOf(defect.id),
+        })
+      }
+
+      parts.push({ title: block.title, sub: block.sub, lines })
+    }
+
+    const bytes = await this.printer.fresh(
+      defectReportPrintJob(
+        {
+          day,
+          time: timeInGermany(now),
+          operator: made.operator,
+          choice: made.choice,
+          count: defectReportCount(made.rows, shutsDown),
+        },
+        parts,
+      ),
+    )
+
+    return pdf(response, bytes, `${defectReportWords.title} ${day}`)
   }
 
   /** How many are open and over their deadline, for the navigation. */

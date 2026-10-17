@@ -5,6 +5,8 @@ import {
   type BuildingSituation,
   type LastActivity,
   type PlaceToDo,
+  type RecordState,
+  shutDownLabel,
   toDoNumbers,
 } from '@opengewerk/haustechnik-domain'
 import {
@@ -19,18 +21,22 @@ import {
 } from '@opengewerk/platform-web'
 import { date } from '@opengewerk/platform-web/format'
 import { Empty, NoteBox } from '@opengewerk/platform-web/office'
-import { request, RequestRefused } from '@opengewerk/platform-web/sync'
+import { maybeText, request, RequestRefused, text, useRecords } from '@opengewerk/platform-web/sync'
 import { useQuery } from '@tanstack/react-query'
 import { Link } from '@tanstack/react-router'
-import { useId } from 'react'
+import { Fragment, useId } from 'react'
 import { Ban, Check, CircleX, type LucideIcon, Play, Signature, TriangleAlert } from 'lucide-react'
 
+import { byNumber, titleOfRoom } from '../app/place-records.js'
+import { useShutDown } from '../app/shut-down.js'
+import { useCatalogue } from '../sync/catalogue.js'
 import { activityPlaces } from './activity-addresses.js'
 import { CountTiles, type Tile } from './count-tiles.js'
 import { defectListPlace, defectSearch } from './defect-addresses.js'
 import { dutyRegisterPlace, dutySearch } from './duty-addresses.js'
 import { faultListPlace } from './fault-addresses.js'
 import { meterListPlace, meterListWords } from './meter-addresses.js'
+import { officePlaces } from './place-addresses.js'
 import { roundPlaces } from './round-template-addresses.js'
 import { TimelineLink } from './timeline.js'
 import { workOrderPlaces } from './work-order-addresses.js'
@@ -330,5 +336,54 @@ export function LastActivities({ buildingId }: { readonly buildingId: string }) 
         )}
       </tbody>
     </TablePanel>
+  )
+}
+
+/**
+ * The assets of a building a defect puts out of service (#345), above what is
+ * to do there, `lagebild(shut=True)` of the boards: each by its number and
+ * name as the way to its file, with its room and the class and description of
+ * each defect that does. Read from the defects the device holds, so that it
+ * stands without a network; nothing while no asset of the building is.
+ */
+export function ShutDownInBuilding({ assets }: { readonly assets: readonly RecordState[] }) {
+  const shutDown = useShutDown()
+  const rooms = useRecords('rooms')
+  const catalogue = useCatalogue()
+  const here = assets.filter((asset) => shutDown.has(String(asset['id']))).sort(byNumber)
+
+  if (here.length === 0) {
+    return null
+  }
+
+  const classWord = (key: string | null) =>
+    key === null ? '' : (catalogue?.defectClass(key)?.defectClass.label ?? key)
+
+  return (
+    <NoteBox tone="conflict" icon={Ban}>
+      <strong>{shutDownLabel}:</strong>{' '}
+      {here.map((asset, index) => {
+        const id = String(asset['id'])
+        const room = rooms.find((each) => each['id'] === asset['roomId'])
+        const defects = shutDown.get(id) ?? []
+
+        return (
+          <Fragment key={id}>
+            {index === 0 ? null : '; '}
+            <Link to={officePlaces.asset(id)} className="underline">
+              {[maybeText(asset, 'number'), text(asset, 'name')].filter(Boolean).join(' ')}
+            </Link>
+            {room ? `, ${titleOfRoom(room)}` : null}
+            {`, ${defects
+              .map(
+                (defect) =>
+                  `${classWord(maybeText(defect, 'defectClass'))}: ${text(defect, 'description')}`,
+              )
+              .join(', ')}`}
+          </Fragment>
+        )
+      })}
+      .
+    </NoteBox>
   )
 }

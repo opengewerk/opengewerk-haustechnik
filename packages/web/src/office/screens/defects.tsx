@@ -16,10 +16,12 @@ import {
   defectRegisterPage,
   defectRegisterStateLabel,
   defectRegisterStates,
+  defectReportWords,
   type DefectStatus,
   defectStatuses,
   defectStatusLabel,
   defectWhere,
+  entryShutsDown,
   type RecordState,
   withoutClass,
 } from '@opengewerk/haustechnik-domain'
@@ -82,11 +84,13 @@ import {
   defectListPlace,
   defectPlaces,
   defectRegisterRequest,
+  defectReportRequest,
   defectSearch,
   defectStartOf,
   defectStartSearch,
 } from '../defect-addresses.js'
 import { DocumentsCard } from '../documents.js'
+import { usePdf } from '../pdf-button.js'
 import { evidencePlaces } from '../duty-addresses.js'
 import { faultPlaces } from '../fault-addresses.js'
 import { factLink } from '../links.js'
@@ -161,7 +165,7 @@ const handClassesQuery = {
 } as const
 
 /** A class by its word: from the catalogue of the device, the key where it has none, and "ohne Klasse" for none. */
-function useClassWord(): (key: string | null) => string {
+export function useClassWord(): (key: string | null) => string {
   const catalogue = useCatalogue()
 
   return (key) =>
@@ -269,6 +273,9 @@ function DefectTable({
   readonly withPlace?: boolean
 }) {
   const classWord = useClassWord()
+  const catalogue = useCatalogue()
+  /** Whether a defect puts its asset out of service (#345), which its class says under its word. */
+  const shutsDown = (defect: DefectEntry) => catalogue !== null && entryShutsDown(defect, catalogue)
 
   return (
     <TablePanel
@@ -285,6 +292,7 @@ function DefectTable({
         sub: [
           withPlace ? whereOf(defect).name : null,
           classWord(defect.defectClass),
+          shutsDown(defect) ? defectReportWords.unsafe : null,
           defect.dueOn === null ? null : `bis ${date(defect.dueOn)}`,
           defect.overdue ? defectWords.late : null,
         ]
@@ -326,6 +334,11 @@ function DefectTable({
                 ) : (
                   classWord(defect.defectClass)
                 )}
+                {shutsDown(defect) ? (
+                  <div className="text-[12px] leading-[1.35] text-conflict">
+                    {defectReportWords.unsafe}
+                  </div>
+                ) : null}
               </Cell>
               <Cell>
                 <DueCell defect={defect} />
@@ -369,6 +382,12 @@ export function DefectListScreen() {
   const pages = useRegister(filter)
   // What the register shows under its filter, whole and not a page, as a table (#236).
   const table = useTableExport(asTableAddress(defectRegisterRequest(filter, 0)))
+  // The same as the report of the defects, a PDF of the moment it is asked for (#345).
+  const report = usePdf(
+    defectReportRequest(filter),
+    `${defectReportWords.title} ${today()}`,
+    defectReportWords.title,
+  )
   const first = pages.data?.pages[0]
   const defects = pages.data?.pages.flatMap((page) => page.defects) ?? []
   const narrowed = Object.keys(filter).some((name) => name !== 'state')
@@ -401,6 +420,7 @@ export function DefectListScreen() {
         actions={
           <>
             {table.button}
+            {report.button}
             {reports ? (
               <Button
                 tone="primary"
@@ -416,6 +436,7 @@ export function DefectListScreen() {
         }
       />
       {table.trouble}
+      {report.trouble}
       <div className="flex flex-wrap items-end gap-x-2.5 gap-y-2">
         <div role="group" aria-label="Liste" className="flex flex-wrap gap-1.5">
           {defectRegisterStates.map((each) => (

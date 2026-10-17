@@ -34,6 +34,7 @@ import {
   exchangeProblems,
   exchangeRefusals,
   type ExchangeStanding,
+  isAllowed,
   type LifecycleEntry,
   lifecycleEntryProblems,
   type LifecycleState,
@@ -359,14 +360,27 @@ export class AssetsController {
   read(@CurrentIdentity() identity: Asking, @Param('id') id: string): Promise<AssetDetails> {
     return this.database.forTenant(identity, async (tx) => {
       const asset = await placeOf<Asset>(tx, assets, id, missing)
-      const { lifecycleState, condition, until } = (
-        await assetsOnADay(tx, dayInGermany(), this.catalogue, [asset.id])
-      )(asset.id)
-      const components = await tx
+      const under = await tx
         .select({ id: assets.id, number: assets.number, name: assets.name, kind: assets.kind })
         .from(assets)
         .where(and(eq(assets.parentAssetId, asset.id), isNull(assets.deletedAt)))
         .orderBy(asc(assets.number), asc(assets.name))
+      // The asset and its components on this day: a component a defect puts
+      // out of service says so in the file of the asset it is one of (#345).
+      const onThisDay = await assetsOnADay(tx, dayInGermany(), this.catalogue, [
+        asset.id,
+        ...under.map((component) => component.id),
+      ])
+      const { lifecycleState, condition, until, shutDownBy } = onThisDay(asset.id)
+      const components = under.map((component) => {
+        const its = onThisDay(component.id)
+
+        return {
+          ...component,
+          lifecycleState: its.lifecycleState,
+          shutDown: its.shutDownBy.length > 0,
+        }
+      })
       const [parent] =
         asset.parentAssetId === null
           ? []
@@ -439,6 +453,9 @@ export class AssetsController {
         lifecycleState,
         condition,
         until,
+        // The state for whoever reads the asset, what is wrong for whoever reads the defects.
+        shutDown: shutDownBy.length > 0,
+        shutDownBy: isAllowed(identity, 'defect.read') ? shutDownBy : null,
         supplies,
         components: components as AssetDetails['components'],
         parent: (parent ?? null) as AssetDetails['parent'],

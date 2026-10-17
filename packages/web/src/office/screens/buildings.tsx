@@ -28,7 +28,7 @@ import {
 import { PrintLabelsButton } from '../labels.js'
 import { factLink } from '../links.js'
 import { BuildingClosures } from '../building-closures.js'
-import { BuildingToDo, LastActivities } from '../building-situation.js'
+import { BuildingToDo, LastActivities, ShutDownInBuilding } from '../building-situation.js'
 import { officePlaces, placeForms } from '../place-addresses.js'
 import { countedAssets, countedRooms, PlaceNotFound } from '../place-pages.js'
 import { TasksCard } from '../tasks.js'
@@ -162,6 +162,8 @@ export function BuildingScreen() {
           </>
         }
       />
+      {/* The assets a defect puts out of service, from the device, above everything else (#345). */}
+      <ShutDownInBuilding assets={assets} />
       {/* What is to do there, counted by the server (#121). */}
       {readsDuties ? <BuildingToDo buildingId={buildingId} /> : null}
       {/* The columns of the board: the floors and the times the building is
