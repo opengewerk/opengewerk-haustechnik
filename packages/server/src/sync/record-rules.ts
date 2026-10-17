@@ -200,6 +200,7 @@ export function recordRules(catalogue: Catalogue): RecordRules {
         ['fieldKey'],
       ),
       rule(answerProblems, ['groupKey', 'blockKey']),
+      rule(answerProblems, ['assetId', 'groupKey']),
       rule(answerProblems, ['value', 'result']),
     ],
     work_orders: [

@@ -4,6 +4,7 @@ import {
   answerVerdict,
   type BlockField,
   type CheckPointResult,
+  everyAssetOf,
   type FilledAnswer,
   type FormDefinition,
   type FormSection,
@@ -11,6 +12,7 @@ import {
   formUnits,
   type GroupField,
   type LimitContext,
+  type PointAssets,
   type RecordState,
 } from '@opengewerk/haustechnik-domain'
 import { today } from '@opengewerk/platform-web/format'
@@ -30,12 +32,13 @@ import type { SyncClient } from '../sync/client.js'
 export const answerEntity = 'activity_answers'
 
 /**
- * One point of a form: a field outside a group, or a field in one block of
- * a repeating group. The signature is not a point; it is the signature of
- * the activity (#108).
+ * One point of a form: a field outside a group, a field in one block of a
+ * repeating group, or a point for every asset of a kind at one of the assets
+ * its round was given (#343). The signature is not a point; it is the
+ * signature of the activity (#108).
  */
 export interface FormPoint {
-  /** Where the point is found in an address: its field, or group, block and field. */
+  /** Where the point is found in an address: its field, or group, block and field, or field and asset. */
   readonly key: string
   readonly section: FormSection
   readonly group: GroupField | null
@@ -43,15 +46,53 @@ export interface FormPoint {
   /** The place of its block among the blocks of its group, counted from one. */
   readonly block: number | null
   readonly field: BlockField
+  /** The asset a point for every asset asks about here, none for every other point. */
+  readonly assetId: string | null
 }
 
-/** The key of a point in an address, its parts apart by dots, which no key contains. */
+/**
+ * The key of a point in an address, its parts apart by dots, which no key
+ * contains, and the asset of a point for every asset after an at sign.
+ */
 export function pointKey(
   groupKey: string | null,
   blockKey: string | null,
   fieldKey: string,
+  assetId: string | null = null,
 ): string {
+  if (assetId !== null) {
+    return `${fieldKey}@${assetId}`
+  }
+
   return groupKey === null || blockKey === null ? fieldKey : `${groupKey}.${blockKey}.${fieldKey}`
+}
+
+/**
+ * The assets a round asks its points for every asset about (#343), as this
+ * device holds them: a value of JSON travels as its text (ADR 0006). One
+ * that cannot be read gives no point an asset.
+ */
+export function pointAssetsOf(activity: RecordState | null | undefined): PointAssets | null {
+  const kept = activity?.['pointAssets']
+  let read: unknown = kept
+
+  if (typeof kept === 'string') {
+    try {
+      read = JSON.parse(kept) as unknown
+    } catch {
+      return null
+    }
+  }
+
+  if (typeof read !== 'object' || read === null || Array.isArray(read)) {
+    return null
+  }
+
+  return Object.values(read).every(
+    (assets) => Array.isArray(assets) && assets.every((asset) => typeof asset === 'string'),
+  )
+    ? (read as PointAssets)
+    : null
 }
 
 /** A block opened on this device that holds no answer yet. */
@@ -79,6 +120,7 @@ export function filledOf(record: RecordState): FilledAnswer {
     result: maybeText(record, 'result') as CheckPointResult | null,
     remark: maybeText(record, 'remark'),
     attachmentId: maybeText(record, 'attachmentId') as FilledAnswer['attachmentId'],
+    assetId: maybeText(record, 'assetId') as FilledAnswer['assetId'],
   }
 }
 
@@ -116,13 +158,15 @@ function blocksOf(
 
 /**
  * Every point of a form in its order: section by section, a group as its
- * blocks with their fields. A block is there once it holds an answer, or
- * while it is open on this device.
+ * blocks with their fields, and a point for every asset as one point for
+ * each of the assets its round was given, in their order (#343). A block is
+ * there once it holds an answer, or while it is open on this device.
  */
 export function pointsOf(
   definition: FormDefinition,
   answers: readonly FilledAnswer[],
   opened: readonly OpenedBlock[] = [],
+  pointAssets: PointAssets | null = null,
 ): readonly FormPoint[] {
   const blocks = blocksOf(answers, opened)
   const points: FormPoint[] = []
@@ -143,6 +187,7 @@ export function pointsOf(
               blockKey,
               block: index + 1,
               field: nested,
+              assetId: null,
             })
           }
         }
@@ -150,7 +195,31 @@ export function pointsOf(
         continue
       }
 
-      points.push({ key: field.key, section, group: null, blockKey: null, block: null, field })
+      if (everyAssetOf(field) !== null) {
+        for (const assetId of pointAssets?.[field.key] ?? []) {
+          points.push({
+            key: pointKey(null, null, field.key, assetId),
+            section,
+            group: null,
+            blockKey: null,
+            block: null,
+            field,
+            assetId,
+          })
+        }
+
+        continue
+      }
+
+      points.push({
+        key: field.key,
+        section,
+        group: null,
+        blockKey: null,
+        block: null,
+        field,
+        assetId: null,
+      })
     }
   }
 
@@ -166,7 +235,8 @@ export function answerAt(
     (answer) =>
       text(answer, 'fieldKey') === point.field.key &&
       maybeText(answer, 'groupKey') === (point.group?.key ?? null) &&
-      maybeText(answer, 'blockKey') === point.blockKey,
+      maybeText(answer, 'blockKey') === point.blockKey &&
+      maybeText(answer, 'assetId') === point.assetId,
   )
 }
 
@@ -316,6 +386,7 @@ export async function saveAnswer(
     ...(point.group === null || point.blockKey === null
       ? {}
       : { groupKey: point.group.key, blockKey: point.blockKey }),
+    ...(point.assetId === null ? {} : { assetId: point.assetId }),
     ...Object.fromEntries(Object.entries(after).filter(([, value]) => value !== null)),
   })
 

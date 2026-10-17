@@ -1,5 +1,6 @@
 import { type Id, type IsoDate, longestFormText, type Synced } from '@opengewerk/platform-domain'
 
+import type { PointAssets } from './answer.js'
 import type { AreaId } from './area.js'
 import type { ContractorId } from './contractor.js'
 import type { DutyTask } from './catalogue.js'
@@ -275,6 +276,14 @@ export interface Activity extends Synced, PlaceTarget {
    * parts do, one each.
    */
   readonly collectiveKind: string | null
+  /**
+   * The assets a round asks each point for every asset of a kind about (#343,
+   * section 4.5 of the concept), by the key of the point: fixed by the server
+   * when the round is made, from the assets of the kind under the place of
+   * its plan and in its area, without those out of service or removed on its
+   * day. Null for a round without such a point and for every other kind.
+   */
+  readonly pointAssets: PointAssets | null
 }
 
 /**

@@ -120,9 +120,10 @@ export const evidenceLimits = {
  * signature keeps when the server took it beside the moment of the device
  * (#79), 8 since an evidence taken over from a predecessor application keeps
  * the next due day its list named (#130), 9 since one written with a
- * collective activity names it (#342).
+ * collective activity names it (#342), 10 since an answer about one asset of
+ * a point for every asset of a kind names the asset (#343).
  */
-export const evidenceStateVersion = 9
+export const evidenceStateVersion = 10
 
 /** The place of an evidence in words, as it was on the day it was written down. */
 export interface StatedPlace {
@@ -220,6 +221,37 @@ export interface StatedAnswer {
     readonly within: boolean | null
   } | null
   readonly photo: StatedFile | null
+  /**
+   * The asset of a point for every asset of a kind the answer is about, as
+   * it stood (#343), since version 10; none on every other answer.
+   */
+  readonly asset?: StatedAnswerAsset
+}
+
+/** An asset an answer is about, as an evidence keeps it: its number and its name. */
+export interface StatedAnswerAsset {
+  readonly number: string | null
+  readonly name: string
+}
+
+/**
+ * The point of a frozen answer in words, as a page, a PDF and a table name
+ * it: its label, in a group that repeats with the group and its block
+ * ("Leuchte 2: Funktion"), and about one asset of a point for every asset
+ * with that asset (#343): "Tür schließt, AN-00043 Feststellanlage".
+ */
+export function statedPointWords(answer: Pick<StatedAnswer, 'label' | 'group' | 'asset'>): string {
+  if (answer.asset !== undefined) {
+    const asset = [answer.asset.number, answer.asset.name]
+      .filter((part) => part !== null && part !== '')
+      .join(' ')
+
+    return `${answer.label}, ${asset}`
+  }
+
+  return answer.group === null
+    ? answer.label
+    : `${answer.group.label} ${String(answer.group.block)}: ${answer.label}`
 }
 
 /**
@@ -306,8 +338,13 @@ export class UnknownEvidenceStateError extends Error {
   }
 }
 
+/** The ninth version: all of the tenth, but no answer names an asset. */
+type EvidenceStateOfVersion9 = Omit<EvidenceState, 'version'> & {
+  readonly version: 9
+}
+
 /** The eighth version: all of the ninth but the collective activity. */
-type EvidenceStateOfVersion8 = Omit<EvidenceState, 'version' | 'collective'> & {
+type EvidenceStateOfVersion8 = Omit<EvidenceStateOfVersion9, 'version' | 'collective'> & {
   readonly version: 8
 }
 
@@ -359,8 +396,10 @@ const readers: Readonly<Record<number, (stored: StoredEvidenceState) => Evidence
   // third names a form or answers, none before the fourth a remark, none
   // before the fifth keeps the drawing of a signature, every signature
   // before the sixth was drawn, none before the seventh says when the server
-  // took it, none before the eighth was taken over with a due day, and none
-  // before the ninth was written with a collective activity.
+  // took it, none before the eighth was taken over with a due day, none
+  // before the ninth was written with a collective activity, and no answer
+  // before the tenth names an asset, which one after it names only where it
+  // is about one.
   1: (stored) => ({
     ...(stored as unknown as EvidenceStateOfVersion1),
     version: evidenceStateVersion,
@@ -429,7 +468,11 @@ const readers: Readonly<Record<number, (stored: StoredEvidenceState) => Evidence
     version: evidenceStateVersion,
     collective: null,
   }),
-  9: (stored) => stored as unknown as EvidenceState,
+  9: (stored) => ({
+    ...(stored as unknown as EvidenceStateOfVersion9),
+    version: evidenceStateVersion,
+  }),
+  10: (stored) => stored as unknown as EvidenceState,
 }
 
 /** The signatures of a state written before version 5, which kept no drawing; all of them drawn. */

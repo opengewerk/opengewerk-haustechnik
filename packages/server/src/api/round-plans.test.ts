@@ -89,8 +89,32 @@ const holidayDays = [3, 6].map((ahead) =>
   plus(ahead).endsWith('-02-29') ? plus(ahead + 1) : plus(ahead),
 )
 const probe = catalogueOf(probeCatalogueBundle)
+const mainTest = probe.dutyKindVersion('probe.elevator_main_test', 1)
+
+/**
+ * A look at every elevator on a round (#343), which a point of a round takes
+ * as its evidence: the probe package has no kind of duty a round fulfils.
+ */
+const elevatorLook =
+  mainTest === null
+    ? null
+    : {
+        ...mainTest,
+        key: 'probe.elevator_look',
+        definition: {
+          ...mainTest.definition,
+          label: 'Sichtkontrolle des Aufzugs',
+          evidence: { kinds: ['round_point' as const] },
+        },
+      }
 const catalogue = {
   ...probe,
+  dutyKind: (key: string, on: IsoDate) =>
+    key === 'probe.elevator_look' ? elevatorLook : probe.dutyKind(key, on),
+  dutyKindVersion: (key: string, version: number) =>
+    key === 'probe.elevator_look' && version === 1
+      ? elevatorLook
+      : probe.dutyKindVersion(key, version),
   ruleSet: ruleSet([
     ...probe.ruleSet.all(),
     ...holidayDays.map((day, index) => ({
@@ -1544,5 +1568,319 @@ describe('a round that shows from a day of its week, month or year (#394)', () =
     await expect(
       admin.query('update round_plans set shows_from_month = 1 where id = $1', [plan]),
     ).rejects.toThrow(/round_plans_shows_from/)
+  })
+})
+
+describe('a point for every asset of a kind (#343)', () => {
+  const everyBuilding = randomUUID()
+  const ownAreaBuilding = randomUUID()
+  const first = randomUUID()
+  const second = randomUUID()
+  const shutDown = randomUUID()
+  const elsewhere = randomUUID()
+  const southern = randomUUID()
+  const looks: Record<string, string> = {}
+  let everyTemplate = ''
+
+  beforeAll(async () => {
+    await admin.query(
+      `insert into buildings (id, tenant_id, property_id, area_id, name, kinds)
+       values ($1, $2, $3, $4, 'Verwaltung', '{school}')`,
+      [everyBuilding, tenant, northProperty, north],
+    )
+    await admin.query(
+      `insert into buildings (id, tenant_id, property_id, area_id, own_area_id, name, kinds)
+       values ($1, $2, $3, $4, $4, 'Werkstatt Süd', '{school}')`,
+      [ownAreaBuilding, tenant, northProperty, south],
+    )
+
+    for (const [id, building, area, number] of [
+      [second, everyBuilding, north, 'AN-00102'],
+      [first, everyBuilding, north, 'AN-00101'],
+      [shutDown, everyBuilding, north, 'AN-00103'],
+      [elsewhere, otherBuilding, north, 'AN-00104'],
+      [southern, ownAreaBuilding, south, 'AN-00105'],
+    ] as const) {
+      await admin.query(
+        `insert into assets (id, tenant_id, property_id, area_id, building_id, kind, number, name)
+         values ($1, $2, $3, $4, $5, 'probe.elevator', $6, $7)`,
+        [id, tenant, northProperty, area, building, number, `Aufzug ${number}`],
+      )
+    }
+
+    // Shut down since a year ago: no round asks about it any more.
+    await admin.query(
+      `insert into asset_lifecycle (tenant_id, property_id, area_id, asset_id, state, valid_from)
+       values ($1, $2, $3, $4, 'decommissioned', $5)`,
+      [tenant, northProperty, north, shutDown, addDays(today, -365)],
+    )
+
+    for (const [name, asset] of [
+      ['first', first],
+      ['second', second],
+      ['shutDown', shutDown],
+    ] as const) {
+      const { rows } = await admin.query<{ id: string }>(
+        `insert into duties (tenant_id, property_id, area_id, asset_id, kind, kind_version,
+                             counting, interval_months, confirmed_by)
+         values ($1, $2, $3, $4, 'probe.elevator_look', 1, 'from_performance', 1, 'u-lead')
+         returning id`,
+        [tenant, northProperty, north, asset],
+      )
+
+      looks[name] = rows[0]?.id ?? ''
+    }
+
+    const { rows: made } = await admin.query<{ id: string }>(
+      `insert into round_templates (tenant_id, title) values ($1, 'Aufzüge, monatlich') returning id`,
+      [tenant],
+    )
+
+    everyTemplate = made[0]?.id ?? ''
+    await admin.query(
+      `insert into round_template_versions (tenant_id, template_id, form_version, definition, asks_countersignature)
+       values ($1, $2, 1, $3, false)`,
+      [
+        tenant,
+        everyTemplate,
+        JSON.stringify({
+          title: 'Aufzüge, monatlich',
+          sections: [
+            {
+              key: 'k1',
+              title: 'Aufzüge',
+              fields: [
+                {
+                  kind: 'check_point',
+                  key: 'p1',
+                  label: 'Aufzug ohne Störung',
+                  everyAssetOf: 'probe.elevator',
+                  fulfilsKind: 'probe.elevator_look',
+                },
+                { kind: 'check_point', key: 'p2', label: 'Maschinenraum verschlossen' },
+              ],
+            },
+          ],
+        }),
+      ],
+    )
+  })
+
+  /** The round of today a plan at the building makes for the technician. */
+  async function roundOfToday(): Promise<ActivityId> {
+    const plan = await planned('u-site', {
+      templateId: everyTemplate,
+      buildingId: everyBuilding,
+      performerUserId: 'u-tech',
+    })
+
+    expect(plan.status).toBe(201)
+
+    const [round] = await roundsOf(plan.body['id'])
+
+    return round?.id as ActivityId
+  }
+
+  async function pointAssetsOf(round: string): Promise<unknown> {
+    const { rows } = await admin.query<{ point_assets: unknown }>(
+      'select point_assets from activities where id = $1',
+      [round],
+    )
+
+    return rows[0]?.point_assets
+  }
+
+  function answerOf(round: string, fieldKey: string, asset: string | null, result: string) {
+    return admin.query(
+      `insert into activity_answers (tenant_id, property_id, area_id, activity_id, field_key, asset_id,
+                                     result, remark)
+       values ($1, $2, $3, $4, $5, $6, $7, $8)`,
+      [
+        tenant,
+        northProperty,
+        north,
+        round,
+        fieldKey,
+        asset,
+        result,
+        result === 'not_ok' ? 'Tür schließt nicht ganz.' : null,
+      ],
+    )
+  }
+
+  it('gives a round every asset of its kind at the place of its plan, without one shut down, and the duty of its kind at each', async () => {
+    const round = await roundOfToday()
+
+    expect(await pointAssetsOf(round)).toEqual({ p1: [first, second] })
+
+    const { rows } = await admin.query<{ duty_id: string }>(
+      'select duty_id from activity_duties where activity_id = $1 and deleted_at is null',
+      [round],
+    )
+
+    expect(rows.map((row) => row.duty_id).sort()).toEqual([looks['first'], looks['second']].sort())
+  })
+
+  it('takes at a plan of the property the assets of its area in every building, and none of a building with an area of its own', async () => {
+    const { rows } = await admin.query<{ id: string }>(
+      `insert into round_plans (tenant_id, property_id, area_id, template_id, rhythm, weekdays, starts_on)
+       values ($1, $2, $3, $4, 'daily', '{1,2,3,4,5,6,7}', $5) returning id`,
+      [tenant, northProperty, north, everyTemplate, today],
+    )
+    const plan = rows[0]?.id ?? ''
+
+    await engineRun('01:00')
+    await engineRun()
+
+    const [round] = await roundsOf(plan)
+
+    // The elevator of the Wache stands there from the start.
+    expect(await pointAssetsOf(round?.id ?? '')).toEqual({
+      p1: [elsewhere, first, second, northAsset],
+    })
+  })
+
+  it('takes an answer for each of its assets and none else, and writes the evidence of the duty of each with the answer about it', async () => {
+    const round = await roundOfToday()
+
+    await admin.query(`update activities set status = 'started', performed_on = $2 where id = $1`, [
+      round,
+      today,
+    ])
+
+    // Without its asset, with one the round was not given, and at a point that asks about none.
+    await expect(answerOf(round, 'p1', null, 'ok')).rejects.toMatchObject({ code: 'HT012' })
+    await expect(answerOf(round, 'p1', shutDown, 'ok')).rejects.toMatchObject({ code: 'HT012' })
+    await expect(answerOf(round, 'p2', first, 'ok')).rejects.toMatchObject({ code: 'HT012' })
+
+    await answerOf(round, 'p1', first, 'ok')
+    await answerOf(round, 'p1', second, 'not_ok')
+    await answerOf(round, 'p2', null, 'ok')
+
+    // Once for each asset.
+    await expect(answerOf(round, 'p1', first, 'ok')).rejects.toMatchObject({ code: '23505' })
+
+    await database.forTenant({ tenantId: tenant, userId: 'u-tech' }, async (tx) => {
+      const [row] = await tx.select().from(activities).where(eq(activities.id, round))
+
+      if (row === undefined) {
+        throw new Error('No such round')
+      }
+
+      await takeSignature(
+        tx,
+        {
+          tenantId: tenant,
+          writtenBy: 'u-tech',
+          at: new Date(),
+          catalogue,
+          nameOf: (userId) => `Person ${userId}`,
+        },
+        {
+          activityId: round,
+          role: 'signer',
+          signedAt: new Date(),
+          deviceInfo: 'Probe-Telefon',
+          path: 'M10,10L200,300',
+          typedName: null,
+          pageFingerprint: pageFingerprint(await pageOf(tx, row)),
+        },
+      )
+    })
+
+    // "Nicht in Ordnung" is a defect at exactly the asset it is about.
+    const { rows: found } = await admin.query<{ asset_id: string; description: string }>(
+      'select asset_id, description from defects where found_in_activity_id = $1',
+      [round],
+    )
+
+    expect(found).toEqual([
+      { asset_id: second, description: 'Aufzug ohne Störung: Tür schließt nicht ganz.' },
+    ])
+
+    // Each duty its own evidence, holding the answer about its asset alone.
+    const { rows: written } = await admin.query<{
+      duty_id: string
+      origin: string
+      result: string
+      state: { answers: { asset?: { number: string | null }; result: string | null }[] }
+    }>('select duty_id, origin, result, state from evidence where activity_id = $1', [round])
+
+    expect(
+      written
+        .map((each) => [
+          each.duty_id,
+          each.origin,
+          each.result,
+          each.state.answers.map((answer) => [answer.asset?.number, answer.result]),
+        ])
+        .sort((left, right) => String(left[0]).localeCompare(String(right[0]))),
+    ).toEqual(
+      [
+        [looks['first'], 'round_point', 'without_defects', [['AN-00101', 'ok']]],
+        [looks['second'], 'round_point', 'with_defects', [['AN-00102', 'not_ok']]],
+      ].sort((left, right) => String(left[0]).localeCompare(String(right[0]))),
+    )
+
+    // The round as a whole names every asset with its answer.
+    const { rows: records } = await admin.query<{
+      state: { answers: { label: string; asset?: { number: string | null } }[] }
+    }>('select state from round_records where activity_id = $1', [round])
+
+    expect(
+      records[0]?.state.answers.map((answer) => [answer.label, answer.asset?.number ?? null]),
+    ).toEqual([
+      ['Aufzug ohne Störung', 'AN-00101'],
+      ['Aufzug ohne Störung', 'AN-00102'],
+      ['Maschinenraum verschlossen', null],
+    ])
+
+    // The office shows the round with its assets named.
+    const shown = await answered(
+      http().get(`/rounds/${round}`).set(testIdentityHeader, by('u-site')),
+    )
+
+    expect(shown.body).toMatchObject({
+      pointAssets: { p1: [first, second] },
+      assets: expect.arrayContaining([
+        { id: first, number: 'AN-00101', name: 'Aufzug AN-00101' },
+        { id: second, number: 'AN-00102', name: 'Aufzug AN-00102' },
+      ]),
+    })
+  })
+
+  it('gives a round nobody has begun the assets of a new version of its template, and none where it has no such point', async () => {
+    const round = await roundOfToday()
+
+    expect(await pointAssetsOf(round)).toEqual({ p1: [first, second] })
+
+    await admin.query(
+      `insert into round_template_versions (tenant_id, template_id, form_version, definition, asks_countersignature)
+       values ($1, $2, 2, $3, false)`,
+      [
+        tenant,
+        everyTemplate,
+        JSON.stringify({
+          title: 'Aufzüge, monatlich',
+          sections: [
+            {
+              key: 'k1',
+              title: 'Aufzüge',
+              fields: [{ kind: 'check_point', key: 'p2', label: 'Maschinenraum verschlossen' }],
+            },
+          ],
+        }),
+      ],
+    )
+    await engineRun()
+
+    expect(await pointAssetsOf(round)).toBeNull()
+
+    const { rows } = await admin.query<{ duty_id: string }>(
+      'select duty_id from activity_duties where activity_id = $1 and deleted_at is null',
+      [round],
+    )
+
+    expect(rows).toEqual([])
   })
 })

@@ -12,6 +12,7 @@ import {
   meetsTheDuty,
   readableStateVersions,
   readEvidenceState,
+  statedPointWords,
   resultAgainstFindings,
   standingEvidence,
   statedReasonProblem,
@@ -177,6 +178,25 @@ const storedStates: Readonly<Record<number, unknown>> = {
       '"signatures":[{"name":"Tobias Wendt","path":"M 10 20 L 30 40","receivedAt":"2026-10-05T07:41:02.000Z","role":"signer",' +
       '"signedAt":"2026-10-05T07:38:00.000Z","way":"drawing"}],' +
       '"version":9,"writtenAt":"2026-10-05T07:41:02.000Z","writtenBy":"Tobias Wendt"}',
+  ),
+  10: JSON.parse(
+    '{"activity":{"kind":"round","title":"Brandschutz Haus A, monatlich"},' +
+      '"answers":[{"asset":{"name":"Feststellanlage 1. OG, Treppenhaus","number":"AN-00043"},"group":null,"kind":"check_point",' +
+      '"label":"Feststellanlage ausgelöst, Tür schließt selbsttätig","limit":null,"photo":null,' +
+      '"remark":"Tür bleibt am Haftmagneten hängen.","result":"not_ok","section":"Türen mit Feststellanlage","value":null}],' +
+      '"collective":null,"defects":[],' +
+      '"duty":{"counting":"from_performance","interval":{"months":1},"kind":"probe.hold_open_device_monthly","kindVersion":1,' +
+      '"label":"Feststellanlage monatlich prüfen","source":"ASR A1.7"},' +
+      '"files":[],"form":{"key":"template-0192f0c4-7b4e-7000-8000-000000000001","title":"Brandschutz Haus A, monatlich","version":2},' +
+      '"nextDueOn":null,"number":"NW-2026-00203","origin":"round_point","performedOn":"2026-10-01",' +
+      '"performer":{"person":"Tobias Wendt"},' +
+      '"place":{"asset":{"kind":"probe.hold_open_device","kindLabel":"Feststellanlage","name":"Feststellanlage 1. OG, Treppenhaus",' +
+      '"number":"AN-00043","serialNumber":null},"building":{"name":"Haus A","shortCode":null},' +
+      '"property":{"address":"Hauptstraße 1, 68535 Edingen-Neckarhausen","name":"Campus"},"room":null},' +
+      '"remark":"Tür bleibt am Haftmagneten hängen.","replaces":null,"result":"with_defects","resultReason":null,"retention":null,' +
+      '"signatures":[{"name":"Tobias Wendt","path":"M 10 20 L 30 40","receivedAt":"2026-10-01T09:12:30.000Z","role":"signer",' +
+      '"signedAt":"2026-10-01T09:12:00.000Z","way":"drawing"}],' +
+      '"version":10,"writtenAt":"2026-10-01T09:12:30.000Z","writtenBy":"Tobias Wendt"}',
   ),
 }
 
@@ -358,13 +378,30 @@ describe('the frozen state', () => {
   it('reads a state of the ninth version, written with a collective activity (#342)', () => {
     const state = readEvidenceState(storedStates[9])
 
-    expect(state.version).toBe(9)
+    expect(state.version).toBe(evidenceStateVersion)
     expect(state.collective).toEqual({ title: 'Prüfung der Feuerlöscher, Haus A', parts: 5 })
     // The one signature under the page of all the assets stands in the evidence of each duty.
     expect(state.signatures.map((signature) => [signature.name, signature.role])).toEqual([
       ['Tobias Wendt', 'signer'],
     ])
     expect(canonicalForm(storedStates[9])).toBe(JSON.stringify(storedStates[9]))
+  })
+
+  it('reads a state of the tenth version, whose answer names the asset it is about (#343)', () => {
+    const state = readEvidenceState(storedStates[10])
+
+    expect(state.version).toBe(10)
+    expect(state.answers.map((answer) => [statedPointWords(answer), answer.result])).toEqual([
+      [
+        'Feststellanlage ausgelöst, Tür schließt selbsttätig, AN-00043 Feststellanlage 1. OG, Treppenhaus',
+        'not_ok',
+      ],
+    ])
+    // A state before it names no asset at an answer.
+    expect(readEvidenceState(storedStates[3]).answers.map((answer) => answer.asset)).toEqual(
+      readEvidenceState(storedStates[3]).answers.map(() => undefined),
+    )
+    expect(canonicalForm(storedStates[10])).toBe(JSON.stringify(storedStates[10]))
   })
 
   it('has a reader and a stored example for every version up to the newest', () => {

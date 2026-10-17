@@ -17,6 +17,7 @@ import {
   readEvidenceState,
   type ServiceReportId,
   type StatedAnswer,
+  statedPointWords,
 } from '@opengewerk/haustechnik-domain'
 import {
   CurrentIdentity,
@@ -279,7 +280,10 @@ export class Printer {
       }
 
       photos.push({
-        caption: answer.remark === null ? answer.label : `${answer.label}: ${answer.remark}`,
+        caption:
+          answer.remark === null
+            ? statedPointWords(answer)
+            : `${statedPointWords(answer)}: ${answer.remark}`,
         mediaType: answer.photo.mediaType,
         bytes: await this.store.get(answer.photo.sha256),
       })

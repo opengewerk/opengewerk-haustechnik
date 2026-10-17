@@ -1,6 +1,12 @@
 import { labelCodeFromScan, type RecordState } from '@opengewerk/haustechnik-domain'
 import { Button } from '@opengewerk/platform-web'
-import { SiteHeader, SiteScreen, SiteText, useCodeReading } from '@opengewerk/platform-web/site'
+import {
+  SiteHeader,
+  SiteScreen,
+  SiteText,
+  useCodeReading,
+  type WayBack,
+} from '@opengewerk/platform-web/site'
 import { maybeText, useRecord } from '@opengewerk/platform-web/sync'
 import { Link } from '@tanstack/react-router'
 import {
@@ -79,14 +85,34 @@ const cameraWords = {
 const holdIntoTheFrame =
   'Halten Sie das Etikett in den Rahmen. Ohne Kamera geht es über die Suche am Start.'
 
-/** The camera while it looks for a label: the square for the QR code and the sentence under it. */
-export function ScanCamera({ onCode }: { readonly onCode: (read: string) => void }) {
+/** What the header of a scan says, and the way back where it is no tab. */
+export interface ScanHead {
+  readonly title: string
+  readonly sub: string
+  readonly back?: WayBack
+}
+
+const scanTab: ScanHead = { title: 'Scannen', sub: 'Etikett an Anlage oder Raum' }
+
+/**
+ * The camera while it looks for a label: the square for the QR code and the
+ * sentence under it. In a round its own header and sentence (#343).
+ */
+export function ScanCamera({
+  onCode,
+  head = scanTab,
+  hint = holdIntoTheFrame,
+}: {
+  readonly onCode: (read: string) => void
+  readonly head?: ScanHead
+  readonly hint?: string
+}) {
   const { video, trouble } = useCodeReading(true, onCode, cameraWords)
 
   return (
     <>
-      <SiteHeader title="Scannen" sub="Etikett an Anlage oder Raum" />
-      <CameraFrame hint={trouble === null ? holdIntoTheFrame : null}>
+      <SiteHeader title={head.title} sub={head.sub} back={head.back} />
+      <CameraFrame hint={trouble === null ? hint : null}>
         <CameraPicture video={video} trouble={trouble} shape="square" />
       </CameraFrame>
     </>
@@ -209,7 +235,7 @@ interface Look {
 }
 
 /** How each message is drawn, `message()` of the board. */
-const looks = {
+export const looks = {
   blocked: { icon: Ban, tone: 'conflict' },
   unknown: { icon: QrCode, tone: 'neutral' },
   outside: { icon: MapIcon, tone: 'waiting' },
@@ -223,16 +249,18 @@ export function ScanMessage({
   message,
   look,
   onAgain,
+  head = scanTab,
 }: {
   readonly message: LabelMessage
   readonly look: Look
   readonly onAgain: () => void
+  readonly head?: ScanHead
 }) {
   const Icon = look.icon
 
   return (
     <>
-      <SiteHeader title="Scannen" sub="Etikett an Anlage oder Raum" />
+      <SiteHeader title={head.title} sub={head.sub} back={head.back} />
       <SiteScreen>
         <section role="status" className={`rounded-[8px] border p-3.5 ${tones[look.tone].box}`}>
           <h2

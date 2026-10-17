@@ -4,6 +4,7 @@ import {
   activityStatuses,
   workOrderKinds,
   basicMeasures,
+  type PointAssets,
   workOrderLimits,
   workOrderUrgencies,
 } from '@opengewerk/haustechnik-domain'
@@ -23,6 +24,7 @@ import {
   foreignKey,
   index,
   integer,
+  jsonb,
   pgEnum,
   pgTable,
   type PgTableExtraConfigValue,
@@ -113,6 +115,10 @@ export const activities = pgTable(
     // The duty kind of a collective activity, which makes it one (#342): the
     // server's to write.
     collectiveKind: text('collective_kind'),
+    // The assets a round asks each point for every asset of a kind about, by
+    // the key of the point (#343): the server's to write, when it makes the
+    // round.
+    pointAssets: jsonb('point_assets').$type<PointAssets>(),
     ...timestamps,
     ...syncColumns,
   },
@@ -265,6 +271,12 @@ export const activities = pgTable(
     check(
       'activities_parts_of_inspections',
       sql`${table.collectiveId} is null or ${table.kind} in ('inspection', 'maintenance')`,
+    ),
+    // Only a round with a form asks about the assets of a point (#343), as
+    // an object of the keys of its points.
+    check(
+      'activities_point_assets_of_a_round',
+      sql`${table.pointAssets} is null or (${table.kind} = 'round' and ${table.formKey} is not null and jsonb_typeof(${table.pointAssets}) = 'object')`,
     ),
     check(
       'activities_contractor_for_a_contractor',

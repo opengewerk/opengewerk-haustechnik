@@ -38,6 +38,11 @@ export const pointWords = {
     'Was hier festgestellt wird, steht in der Akte der Anlage oder des Raums; „nicht in Ordnung“ und ein Wert außerhalb des Grenzwerts werden dort ein Mangel.',
   dutyHint:
     'Die Antwort ist der Nachweis dieser Pflicht, ohne zweite Erfassung. Zur Wahl stehen die Pflichten der Anlage oder des Raums, die einen Punkt eines Rundgangs als Nachweis nehmen.',
+  everyHint:
+    'Welche Anlagen das sind, steht fest, wenn ein Rundgang entsteht: jede dieser Art am Ort seines Plans und in dessen Bereich, ohne die außer Betrieb genommenen und die zurückgebauten. Jede bekommt im Rundgang eine eigene Antwort, und „nicht in Ordnung“ wird ein Mangel an genau dieser Anlage.',
+  kindDutyHint:
+    'Die Antwort zu einer Anlage ist der Nachweis ihrer Pflicht dieser Art, ohne zweite Erfassung. Zur Wahl stehen die Pflichtarten der Anlagenart, die einen Punkt eines Rundgangs als Nachweis nehmen.',
+  every: 'Jede Anlage einer Art',
   noDuty: 'Keine',
   required: 'Muss ausgefüllt werden',
   requiredAlways: 'Ein Prüfpunkt und ein Punkt, der eine Pflicht erfüllt, immer.',
@@ -45,10 +50,18 @@ export const pointWords = {
   chapterHint: 'Steht im Rundgang über seinen Punkten.',
 } as const
 
-/** What the editor offers to choose from in a point: assets, rooms, the duties at one, the rules of a unit. */
+/**
+ * What the editor offers to choose from in a point: assets, rooms, the
+ * duties at one, the rules of a unit, and for a point for every asset the
+ * kinds of asset and the duty kinds of one (#343).
+ */
 export interface PointChoices {
   readonly assets: readonly { readonly value: string; readonly label: string }[]
   readonly rooms: readonly { readonly value: string; readonly label: string }[]
+  readonly assetKinds: readonly { readonly value: string; readonly label: string }[]
+  readonly dutyKinds: (
+    assetKind: string,
+  ) => readonly { readonly value: string; readonly label: string }[]
   readonly duties: (
     kind: 'asset' | 'room',
     id: string,
@@ -140,6 +153,7 @@ export function PointDialog({
   const canFulfil =
     field.kind === 'check_point' || (field.kind === 'measurement' && limit !== 'none')
   const target = field.about?.kind === 'asset' || field.about?.kind === 'room' ? field.about : null
+  const every = field.everyAssetOf ?? null
   const dutyChoices =
     target === null ? [] : choices.duties(target.kind as 'asset' | 'room', target.id)
   const section = draft.sections.findIndex((each) => each.key === chapterKey)
@@ -155,6 +169,10 @@ export function PointDialog({
 
     if (field.about !== undefined) {
       kept['about'] = field.about
+    }
+
+    if (field.everyAssetOf !== undefined) {
+      kept['everyAssetOf'] = field.everyAssetOf
     }
 
     setField(kept as unknown as TemplateField)
@@ -181,9 +199,13 @@ export function PointDialog({
 
     if (!canFulfil) {
       delete base['fulfils']
+      delete base['fulfilsKind']
     }
 
-    if (base['fulfils'] !== undefined && field.kind === 'measurement') {
+    if (
+      (base['fulfils'] !== undefined || base['fulfilsKind'] !== undefined) &&
+      field.kind === 'measurement'
+    ) {
       base['required'] = true
     }
 
@@ -397,19 +419,25 @@ export function PointDialog({
       <div className="flex flex-col gap-1.5">
         <Choice
           label="Zeigt auf"
-          value={target === null ? 'none' : target.kind}
+          value={every !== null ? 'every' : target === null ? 'none' : target.kind}
           options={[
             { value: 'none', label: 'Nichts' },
             { value: 'asset', label: 'Eine Anlage' },
             { value: 'room', label: 'Einen Raum' },
+            { value: 'every', label: pointWords.every },
           ]}
           onChange={(value) => {
             const next = { ...field } as Record<string, unknown>
 
             delete next['fulfils']
+            delete next['fulfilsKind']
+            delete next['everyAssetOf']
 
             if (value === 'none') {
               delete next['about']
+            } else if (value === 'every') {
+              delete next['about']
+              next['everyAssetOf'] = choices.assetKinds[0]?.value ?? ''
             } else {
               const first = (value === 'asset' ? choices.assets : choices.rooms)[0]
 
@@ -451,7 +479,44 @@ export function PointDialog({
             }}
           />
         )}
+        {every === null ? null : (
+          <SelectField
+            label="Anlagenart"
+            value={every}
+            options={
+              choices.assetKinds.some((each) => each.value === every)
+                ? choices.assetKinds
+                : [{ value: every, label: every }, ...choices.assetKinds]
+            }
+            hint={pointWords.everyHint}
+            onChange={(value) => {
+              const next = { ...field, everyAssetOf: value } as Record<string, unknown>
+
+              delete next['fulfilsKind']
+              setField(next as unknown as TemplateField)
+            }}
+          />
+        )}
       </div>
+      {canFulfil && every !== null ? (
+        <SelectField
+          label="Erfüllt die Pflicht"
+          value={field.fulfilsKind ?? ''}
+          options={[{ value: '', label: pointWords.noDuty }, ...choices.dutyKinds(every)]}
+          hint={pointWords.kindDutyHint}
+          onChange={(value) => {
+            const next = { ...field } as Record<string, unknown>
+
+            if (value === '') {
+              delete next['fulfilsKind']
+            } else {
+              next['fulfilsKind'] = value
+            }
+
+            setField(next as unknown as TemplateField)
+          }}
+        />
+      ) : null}
       {canFulfil && target !== null ? (
         <SelectField
           label="Erfüllt die Pflicht"
@@ -476,8 +541,12 @@ export function PointDialog({
           <input
             type="checkbox"
             className="mt-0.5 size-4 accent-copper-solid"
-            checked={field.required === true || field.fulfils !== undefined}
-            disabled={field.fulfils !== undefined}
+            checked={
+              field.required === true ||
+              field.fulfils !== undefined ||
+              field.fulfilsKind !== undefined
+            }
+            disabled={field.fulfils !== undefined || field.fulfilsKind !== undefined}
             onChange={(event) => {
               set({ required: event.target.checked })
             }}

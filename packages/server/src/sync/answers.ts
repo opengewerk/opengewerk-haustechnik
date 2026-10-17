@@ -30,6 +30,7 @@ type AnswerColumns = Pick<
   | 'result'
   | 'remark'
   | 'attachmentId'
+  | 'assetId'
 >
 
 function columnOf(
@@ -43,8 +44,9 @@ function columnOf(
 /**
  * An answer that is given or changed fits the form of its activity: the
  * activity names a form this build knows, the point is a field of it, the
- * answer fills the columns of its kind with a value the field takes, and a
- * photo is a document at the same activity.
+ * answer fills the columns of its kind with a value the field takes, an
+ * answer to a point for every asset names one the round was given for it
+ * (#343), and a photo is a document at the same activity.
  */
 export function answered(catalogue: Catalogue): SyncCheck<Sender> {
   return async ({ tx, operation, values, current }) => {
@@ -80,15 +82,20 @@ export function answered(catalogue: Catalogue): SyncCheck<Sender> {
       return { kind: 'client', message: 'Das Formular dieses Vorgangs kennt dieser Stand nicht.' }
     }
 
-    const problem = answerFitProblem(form, {
-      groupKey: (at('groupKey') ?? null) as string | null,
-      blockKey: (at('blockKey') ?? null) as string | null,
-      fieldKey: String(at('fieldKey')),
-      value: (at('value') ?? null) as string | null,
-      result: (at('result') ?? null) as AnswerColumns['result'],
-      remark: (at('remark') ?? null) as string | null,
-      attachmentId: (at('attachmentId') ?? null) as AnswerColumns['attachmentId'],
-    })
+    const problem = answerFitProblem(
+      form,
+      {
+        groupKey: (at('groupKey') ?? null) as string | null,
+        blockKey: (at('blockKey') ?? null) as string | null,
+        fieldKey: String(at('fieldKey')),
+        value: (at('value') ?? null) as string | null,
+        result: (at('result') ?? null) as AnswerColumns['result'],
+        remark: (at('remark') ?? null) as string | null,
+        attachmentId: (at('attachmentId') ?? null) as AnswerColumns['attachmentId'],
+        assetId: (at('assetId') ?? null) as AnswerColumns['assetId'],
+      },
+      activity.pointAssets,
+    )
 
     if (problem !== null) {
       return { kind: 'client', message: problem }

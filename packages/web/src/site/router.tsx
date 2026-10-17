@@ -22,6 +22,7 @@ import {
   StockStartScreen,
 } from './screens/places.js'
 import { ReadingRoundScreen } from './screens/reading-round.js'
+import { RoundScanScreen } from './screens/round-scan.js'
 import { ReportDefectScreen } from './screens/report-defect.js'
 import { SiteScanScreen } from './screens/scan.js'
 import { TakeAssetScreen } from './screens/take-asset.js'
@@ -119,6 +120,8 @@ export function siteRoutes() {
     at('/vorgaenge/$activityId/leistungsnachweis', SiteServiceReportScreen),
     // Material from the stores for a work order, by scan or search (#326).
     at('/vorgaenge/$activityId/material', SiteMaterialScreen),
+    // The label of an asset scanned in a round opens its point (#343).
+    at('/vorgaenge/$activityId/scannen', RoundScanScreen),
     // A contractor at work: a briefing and the permit for hot work (#330).
     at('/vorgaenge/$activityId/einweisung', SiteBriefingScreen),
     at('/vorgaenge/$activityId/erlaubnisschein', SiteWorkPermitScreen),

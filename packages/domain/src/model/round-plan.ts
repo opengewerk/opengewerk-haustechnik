@@ -1,6 +1,7 @@
 import { addDays, type Id, type IsoDate, type Synced } from '@opengewerk/platform-domain'
 
 import { activityClosable, type ActivityStatus } from './activity.js'
+import type { PointAssets } from './answer.js'
 import type { AreaId } from './area.js'
 import { closureOn } from './closure.js'
 import type { DefectStatus } from './defect.js'
@@ -694,4 +695,15 @@ export interface RoundDetails {
   readonly evidence: readonly RoundEvidence[]
   /** Emptied with its last evidence after the end of the retention (#409); absent otherwise. */
   readonly emptied?: true
+  /** The assets of its points for every asset of a kind (#343), null for a round without one. */
+  readonly pointAssets: PointAssets | null
+  /** Those assets with their number and name, for the rows of the answers. */
+  readonly assets: readonly RoundAsset[]
+}
+
+/** An asset a round asks a point for every asset about, as its page names it (#343). */
+export interface RoundAsset {
+  readonly id: string
+  readonly number: string | null
+  readonly name: string
 }

@@ -379,7 +379,8 @@ async function signaturePlace(
  * come from the activity, and a photo is a document at the same activity. A
  * point that has its answer already was answered by somebody else while the
  * device was away, a conflict about this one operation at the point (ADR
- * 0006, point 7), which a person decides.
+ * 0006, point 7), which a person decides. A point for every asset of a kind
+ * is a point at each of its assets (#343).
  */
 async function answerPlace(
   tx: TenantTransaction,
@@ -396,6 +397,7 @@ async function answerPlace(
 
   const groupKey = values['groupKey']
   const blockKey = values['blockKey']
+  const assetId = values['assetId']
   const [answered] = await tx
     .select({ id: activityAnswers.id })
     .from(activityAnswers)
@@ -409,6 +411,12 @@ async function answerPlace(
           ? eq(activityAnswers.blockKey, blockKey)
           : isNull(activityAnswers.blockKey),
         eq(activityAnswers.fieldKey, String(values['fieldKey'])),
+        typeof assetId === 'string'
+          ? eq(
+              activityAnswers.assetId,
+              assetId as typeof activityAnswers.$inferSelect.assetId & string,
+            )
+          : isNull(activityAnswers.assetId),
         isNull(activityAnswers.deletedAt),
       ),
     )

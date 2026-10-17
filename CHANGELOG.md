@@ -9,6 +9,14 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
 
 ### Hinzugefügt
 
+- Ein Punkt für jede Anlage einer Art (#343, Abschnitt 4.5 des Konzepts): ein Punkt einer Vorlage nennt statt einer Anlage
+  eine Anlagenart, etwa jede Feststellanlage im Gebäude. Welche Anlagen das sind, steht fest, wenn der Rundgang entsteht:
+  jede dieser Art am Ort des Plans und in seinem Bereich, ohne die außer Betrieb genommenen und die zurückgebauten. Vor
+  Ort bekommt jede eine eigene Antwort, das Etikett einer davon öffnet im Rundgang ihren Punkt, und „nicht in Ordnung“
+  wird ein Mangel an genau dieser Anlage. Erfüllt der Punkt eine Pflichtart, ist die Antwort zu einer Anlage der Nachweis
+  ihrer Pflicht dieser Art (Migration `0075_points_for_every_asset`, Stand des Nachweises in Fassung 10). Warum: eine
+  Sichtkontrolle an zwanzig gleichen Anlagen hieß bisher zwanzig Punkte in der Vorlage, die bei jeder neuen Anlage
+  nachgezogen werden mussten.
 - Sammelvorgänge (#342, Abschnitt 4.4 des Konzepts): wer Vorgänge plant und verteilt, stellt im Büro unter „Prüfungen“ aus
   Ort und Pflichtart einen zusammen, vorausgewählt ist, was im Zeitraum fällig wird. Jede Anlage ist ein Teil mit ihrem
   Protokoll, ihrem Tag und ihrem Ergebnis; vor Ort steht der Sammelvorgang als Liste und wird einmal unterschrieben, unter

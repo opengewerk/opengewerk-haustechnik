@@ -15,8 +15,9 @@ import {
 
 import type { ActivityId } from './activity.js'
 import type { AreaId } from './area.js'
+import type { AssetId } from './asset.js'
 import { defectLimits } from './defect.js'
-import type { StatedAnswer, StatedFile } from './evidence.js'
+import type { StatedAnswer, StatedAnswerAsset, StatedFile } from './evidence.js'
 import { oneOf, type Problems } from './fields.js'
 import {
   type BlockField,
@@ -76,10 +77,41 @@ export interface ActivityAnswer extends Synced {
   readonly result: CheckPointResult | null
   readonly remark: string | null
   readonly attachmentId: AttachmentId | null
+  /**
+   * The asset an answer to a point for every asset of a kind is about (#343):
+   * one of those its round was given for the point, and null for every
+   * other answer. A point for every asset is answered once for each of them.
+   */
+  readonly assetId: AssetId | null
 }
 
-/** Where an answer stands in its form: the field, and in a repeating group the group and its block. */
-export type AnswerPoint = Pick<ActivityAnswer, 'groupKey' | 'blockKey' | 'fieldKey'>
+/**
+ * Where an answer stands in its form: the field, in a repeating group the
+ * group and its block, and for a point for every asset of a kind the asset.
+ * An answer that says no asset is about none.
+ */
+export type AnswerPoint = Pick<ActivityAnswer, 'groupKey' | 'blockKey' | 'fieldKey'> & {
+  readonly assetId?: AssetId | null
+}
+
+/**
+ * The assets a round asks a point for every asset of a kind about (#343), by
+ * the key of the point, in the order the round shows them: fixed when the
+ * round is made, from the assets of the kind under the place of its plan.
+ */
+export type PointAssets = Readonly<Record<string, readonly string[]>>
+
+/** The kind of asset a point asks about each of, where it is a point for every asset of a kind (#343). */
+export function everyAssetOf(field: object): string | null {
+  const kind = (field as { readonly everyAssetOf?: unknown }).everyAssetOf
+
+  return typeof kind === 'string' ? kind : null
+}
+
+/** The asset an answer is about, null for one about none. */
+export function assetOfAnswer(answer: AnswerPoint): string | null {
+  return answer.assetId ?? null
+}
 
 /** What an answer says, as the form and the engine read it. */
 export type AnswerContent = Pick<ActivityAnswer, 'value' | 'result' | 'remark' | 'attachmentId'>
@@ -96,6 +128,9 @@ const fieldKeyShape = /^[a-z][a-z0-9_]*$/
  * order of their keys, on the device and on the server alike.
  */
 const blockKeyShape = /^[A-Za-z0-9_-]+$/
+
+/** The shape of the key of an asset: a UUID, in small letters as the database writes it. */
+const assetIdShape = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 
 function keyProblem(
   problems: Problems,
@@ -155,6 +190,16 @@ export function answerProblems(answer: Readonly<Record<string, unknown>>): Reado
   ) {
     problems['blockKey'] =
       'Ein Block gehört zu einer Gruppe, und eine Antwort in einer Gruppe nennt ihren Block.'
+  }
+
+  const asset = answer['assetId']
+
+  if (asset !== undefined && asset !== null) {
+    if (typeof asset !== 'string' || !assetIdShape.test(asset)) {
+      problems['assetId'] = 'Das ist keine Anlage.'
+    } else if (group !== undefined && group !== null) {
+      problems['assetId'] = 'Eine Antwort zu einer Anlage steht in keiner Gruppe.'
+    }
   }
 
   const value = answer['value']
@@ -297,14 +342,41 @@ function columnsProblem(field: BlockField, answer: AnswerContent): string | null
  * the field is there, the answer fills the columns its kind fills, and the
  * value is one the field takes. Whether a measured value lies within its
  * limit is never a reason to refuse it.
+ *
+ * An answer to a point for every asset of a kind names one of its assets,
+ * of those the round was given where they are handed in (#343); every
+ * other answer names none.
  */
-export function answerFitProblem(definition: FormDefinition, answer: FilledAnswer): string | null {
+export function answerFitProblem(
+  definition: FormDefinition,
+  answer: FilledAnswer,
+  pointAssets?: PointAssets | null,
+): string | null {
   const found = answeredField(definition, answer)
 
   if (found === null) {
     return answer.groupKey === null
       ? `Das Feld ${answer.fieldKey} gibt es in ${definition.title} nicht.`
       : `Das Feld ${answer.fieldKey} gibt es in der Gruppe ${answer.groupKey} von ${definition.title} nicht.`
+  }
+
+  const asset = assetOfAnswer(answer)
+  const every = found.group === null ? everyAssetOf(found.field) : null
+
+  if (every === null && asset !== null) {
+    return `Der Punkt „${found.field.label}“ fragt nach keiner Anlage.`
+  }
+
+  if (every !== null && asset === null) {
+    return `Der Punkt „${found.field.label}“ wird für jede seiner Anlagen beantwortet, die Antwort nennt ihre Anlage.`
+  }
+
+  if (
+    asset !== null &&
+    pointAssets !== undefined &&
+    !(pointAssets?.[found.field.key] ?? []).includes(asset)
+  ) {
+    return `Nach dieser Anlage fragt der Punkt „${found.field.label}“ in diesem Rundgang nicht.`
   }
 
   return (
@@ -335,7 +407,9 @@ export function formValuesOf(
     const found = answeredField(definition, answer)
     const value = found === null ? undefined : answerValue(found.field, answer)
 
-    if (found === null || value === undefined) {
+    // A point for every asset has many answers under one key (#343): the
+    // engine asks none of them, `answersMissing` asks each.
+    if (found === null || value === undefined || assetOfAnswer(answer) !== null) {
       continue
     }
 
@@ -390,6 +464,7 @@ export function templateAnswers(
         answerFitProblem(definition, answer) === null
       )
     })
+    .filter((answer) => assetOfAnswer(answer) === null)
     .map(({ groupKey, blockKey, fieldKey, value, result, remark, attachmentId }) => ({
       groupKey,
       blockKey,
@@ -407,6 +482,24 @@ export interface LimitContext {
   readonly on: IsoDate
 }
 
+/**
+ * What the answers of a round are asked with beside the limits (#343): the
+ * assets it asks each point for every asset about, and how an asset is
+ * named in a sentence. Without them such a point asks about no asset, and an
+ * asset is named by its place among those of its point.
+ */
+export interface AnswersContext extends LimitContext {
+  readonly pointAssets?: PointAssets | null
+  readonly assetName?: (id: string) => string | null
+}
+
+/** An asset of a point for every asset in words: its name, or its place among the assets of the point. */
+function assetWords(context: AnswersContext, fieldKey: string, asset: string): string {
+  const place = (context.pointAssets?.[fieldKey] ?? []).indexOf(asset) + 1
+
+  return context.assetName?.(asset) ?? (place > 0 ? `Anlage ${String(place)}` : 'Anlage')
+}
+
 /** How a measured answer stands against the limit of its field. */
 export function answerVerdict(
   field: MeasurementField,
@@ -418,8 +511,15 @@ export function answerVerdict(
   return forms.limitVerdict(field, typeof value === 'number' ? value : null, context)
 }
 
-/** Where a field stands, in words: its label, and in a group the group and the place of its block. */
-function placeOf(found: AnsweredField, block: number | null): string {
+/**
+ * Where a field stands, in words: its label, in a group the group and the
+ * place of its block, and for a point for every asset the asset.
+ */
+function placeOf(found: AnsweredField, block: number | null, asset: string | null = null): string {
+  if (asset !== null) {
+    return `${found.field.label}, ${asset}`
+  }
+
   return found.group === null || block === null
     ? found.field.label
     : `${found.group.label}, Block ${String(block)}: ${found.field.label}`
@@ -465,20 +565,55 @@ function blockPlaces(answers: readonly FilledAnswer[]): (answer: FilledAnswer) =
 export function answersMissing(
   definition: FormDefinition,
   answers: readonly FilledAnswer[],
-  context: LimitContext,
+  context: AnswersContext,
 ): readonly string[] {
   // Every list a group may repeat over is named, so that a group over one has
-  // to answer for each of its items; this application has none yet.
+  // to answer for each of its items; this application has none yet. A point
+  // for every asset is asked below, once for each of its assets (#343).
+  const asked = withoutEveryAsset(definition)
   const missing = [
-    ...forms.sealProblems(definition, formValuesOf(definition, answers), {
+    ...forms.sealProblems(asked, formValuesOf(asked, answers), {
       seal: false,
       items: {},
     }),
   ]
+
+  for (const section of definition.sections) {
+    for (const field of section.fields) {
+      if (field.kind === 'group' || field.kind === 'signature' || everyAssetOf(field) === null) {
+        continue
+      }
+
+      for (const asset of context.pointAssets?.[field.key] ?? []) {
+        const given = answers.find(
+          (answer) =>
+            answer.groupKey === null &&
+            answer.fieldKey === field.key &&
+            assetOfAnswer(answer) === asset,
+        )
+        const value = given === undefined ? undefined : answerValue(field, given)
+        const label = placeOf(
+          { section, group: null, field },
+          null,
+          assetWords(context, field.key, asset),
+        )
+
+        missing.push(
+          ...forms.sealProblems(
+            { ...definition, sections: [{ ...section, fields: [{ ...field, label }] }] },
+            value === undefined ? {} : { [field.key]: value },
+            { seal: false, items: {} },
+          ),
+        )
+      }
+    }
+  }
+
   const blockOf = blockPlaces(answers)
 
   for (const answer of answers) {
     const found = answeredField(definition, answer)
+    const asset = assetOfAnswer(answer)
 
     if (
       found?.field.kind === 'measurement' &&
@@ -486,12 +621,23 @@ export function answersMissing(
       (answer.remark ?? '').trim() === ''
     ) {
       missing.push(
-        `${placeOf(found, blockOf(answer))}: außerhalb des Grenzwerts, die Bemerkung fehlt.`,
+        `${placeOf(found, blockOf(answer), asset === null ? null : assetWords(context, answer.fieldKey, asset))}: außerhalb des Grenzwerts, die Bemerkung fehlt.`,
       )
     }
   }
 
   return missing
+}
+
+/** A form without its points for every asset, which the engine is not asked about (#343). */
+function withoutEveryAsset(definition: FormDefinition): FormDefinition {
+  return {
+    ...definition,
+    sections: definition.sections.map((section) => ({
+      ...section,
+      fields: section.fields.filter((field) => everyAssetOf(field) === null),
+    })),
+  }
 }
 
 /**
@@ -511,12 +657,12 @@ export interface AnswerFinding<Answer extends FilledAnswer = FilledAnswer> {
 export function answerFindings<Answer extends FilledAnswer>(
   definition: FormDefinition,
   answers: readonly Answer[],
-  context: LimitContext,
+  context: AnswersContext,
 ): readonly AnswerFinding<Answer>[] {
   const blockOf = blockPlaces(answers)
   const findings: AnswerFinding<Answer>[] = []
 
-  for (const answer of inFormOrder(definition, answers)) {
+  for (const answer of inFormOrder(definition, answers, context.pointAssets)) {
     const found = answeredField(definition, answer)
 
     if (found === null) {
@@ -550,7 +696,9 @@ export function answerFindings<Answer extends FilledAnswer>(
       findings.push({
         answer,
         description: description.slice(0, defectLimits.description).trim(),
-        about: found.group === null ? (found.field.about ?? null) : null,
+        // An answer about one asset of a point for every asset is found at
+        // that asset (#343).
+        about: aboutOf(found, answer),
       })
     }
   }
@@ -595,6 +743,7 @@ export function answerReadings<Answer extends FilledAnswer>(
 function inFormOrder<Answer extends FilledAnswer>(
   definition: FormDefinition,
   answers: readonly Answer[],
+  pointAssets: PointAssets | null = null,
 ): Answer[] {
   const order = new Map<string, number>()
 
@@ -615,9 +764,31 @@ function inFormOrder<Answer extends FilledAnswer>(
       answer.groupKey === null ? answer.fieldKey : `${answer.groupKey}/${answer.fieldKey}`,
     ) ?? order.size
 
+  // The answers of a point for every asset in the order of its assets (#343).
+  const place = (answer: FilledAnswer) => {
+    const asset = assetOfAnswer(answer)
+
+    return asset === null ? 0 : (pointAssets?.[answer.fieldKey] ?? []).indexOf(asset)
+  }
+
   return [...answers].sort(
-    (left, right) => rank(left) - rank(right) || compare(left.blockKey ?? '', right.blockKey ?? ''),
+    (left, right) =>
+      rank(left) - rank(right) ||
+      compare(left.blockKey ?? '', right.blockKey ?? '') ||
+      place(left) - place(right) ||
+      compare(assetOfAnswer(left) ?? '', assetOfAnswer(right) ?? ''),
   )
+}
+
+/** The asset or the room an answer is about: the asset of a point for every asset, else what its field names outside a group. */
+function aboutOf(found: AnsweredField, answer: FilledAnswer): RecordPointer | null {
+  const asset = assetOfAnswer(answer)
+
+  if (asset !== null) {
+    return { kind: 'asset', id: asset }
+  }
+
+  return found.group === null ? (found.field.about ?? null) : null
 }
 
 /** The words of "yes" and "no", as a form shows them and an evidence keeps them. */
@@ -654,16 +825,22 @@ function valueInWords(field: BlockField, value: FieldValue | undefined): string 
  * result and remark, a measured value with its limit and where the limit
  * comes from, and a photo by the hash of its file. Nothing of it is read from
  * the records again.
+ *
+ * An answer about one asset of a point for every asset names the asset as it
+ * stood (#343), number and name, in the order of the assets of the round.
  */
 export function statedAnswers(
   definition: FormDefinition,
   answers: readonly FilledAnswer[],
-  context: LimitContext & { readonly fileOf: (id: AttachmentId) => StatedFile | null },
+  context: AnswersContext & {
+    readonly fileOf: (id: AttachmentId) => StatedFile | null
+    readonly assetOf?: (id: string) => StatedAnswerAsset | null
+  },
 ): readonly StatedAnswer[] {
   const blockOf = blockPlaces(answers)
   const stated: StatedAnswer[] = []
 
-  for (const answer of inFormOrder(definition, answers)) {
+  for (const answer of inFormOrder(definition, answers, context.pointAssets)) {
     const found = answeredField(definition, answer)
 
     if (found === null) {
@@ -673,6 +850,7 @@ export function statedAnswers(
     const { field } = found
     const block = blockOf(answer)
     const verdict = field.kind === 'measurement' ? answerVerdict(field, answer, context) : null
+    const asset = assetOfAnswer(answer)
 
     stated.push({
       section: found.section.title,
@@ -687,6 +865,14 @@ export function statedAnswers(
           ? null
           : { text: verdict.text, source: verdict.source, within: verdict.within },
       photo: answer.attachmentId === null ? null : context.fileOf(answer.attachmentId),
+      ...(asset === null
+        ? {}
+        : {
+            asset: context.assetOf?.(asset) ?? {
+              number: null,
+              name: assetWords(context, answer.fieldKey, asset),
+            },
+          }),
     })
   }
 

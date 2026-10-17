@@ -401,6 +401,18 @@ export class RoundTemplatesController {
 
         return records.length === 0 ? null : records.map((rule) => rule.record.unit)
       },
+      // The kinds of the catalogue in force today (#343).
+      assetKind: (key) => this.catalogue.assetKind(key, today) !== null,
+      dutyKind: (key) => {
+        const kind = this.catalogue.dutyKind(key, today)
+
+        return kind === null
+          ? null
+          : {
+              assetKinds: kind.definition.scope.assetKinds,
+              takesRoundPoint: kind.definition.evidence.kinds.includes('round_point'),
+            }
+      },
     }
   }
 }

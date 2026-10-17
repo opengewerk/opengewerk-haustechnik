@@ -57,6 +57,8 @@ export const siteForms = {
   close: (activityId: string) => `/vorgaenge/${activityId}/abschliessen`,
   report: (activityId: string) => `/vorgaenge/${activityId}/leistungsnachweis`,
   material: (activityId: string) => `/vorgaenge/${activityId}/material`,
+  // The label of an asset scanned in a round, which opens its point (#343).
+  scan: (activityId: string) => `/vorgaenge/${activityId}/scannen`,
   // A contractor at work (#330): the briefing of one of its people and the permit for hot work.
   briefing: (activityId: string) => `/vorgaenge/${activityId}/einweisung`,
   permit: (activityId: string) => `/vorgaenge/${activityId}/erlaubnisschein`,

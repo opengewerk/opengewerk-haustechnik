@@ -14,6 +14,7 @@ import {
   templateFormKey,
   templateOfFormKey,
   templatePointers,
+  storedTemplate,
   templateProblems,
   type TemplateRecords,
   withTemplates,
@@ -56,6 +57,15 @@ const records: TemplateRecords = {
       ? ['decidegrees_celsius']
       : key === 'probe.inspection_interval'
         ? ['months']
+        : null,
+  // The kinds of the catalogue (#343): hold-open devices with their monthly
+  // check, which a round takes, and a fire door whose check it does not.
+  assetKind: (key) => key === 'probe.hold_open_device' || key === 'probe.fire_door',
+  dutyKind: (key) =>
+    key === 'probe.hold_open_device_monthly'
+      ? { assetKinds: ['probe.hold_open_device'], takesRoundPoint: true }
+      : key === 'probe.fire_door_report'
+        ? { assetKinds: ['probe.fire_door'], takesRoundPoint: false }
         : null,
 }
 
@@ -238,6 +248,62 @@ describe('a version before it is saved', () => {
     expect(
       templateProblems(withPoints(temperature, { ...temperature, key: 'p4' }), records),
     ).toEqual({ 'point.p4': 'Diese Pflicht erfüllt schon ein anderer Punkt.' })
+  })
+
+  it('lets a point ask about every asset of a kind of the catalogue, and fulfil a duty kind there (#343)', () => {
+    const every: TemplateField = {
+      kind: 'check_point',
+      key: 'p5',
+      label: 'Feststellanlage ausgelöst, Tür schließt selbsttätig',
+      everyAssetOf: 'probe.hold_open_device',
+      fulfilsKind: 'probe.hold_open_device_monthly',
+    }
+    const problem = (field: TemplateField) =>
+      templateProblems(withPoints(temperature, field), records)['point.p5'] ?? null
+
+    expect(problem(every)).toBeNull()
+    expect(problem({ ...every, fulfilsKind: undefined })).toBeNull()
+    expect(problem({ ...every, about: { kind: 'asset', id: heater } })).toBe(
+      'Ein Punkt zeigt auf eine Anlage, einen Raum oder jede Anlage einer Art, nur auf eines davon.',
+    )
+    expect(problem({ ...every, everyAssetOf: 'probe.unknown' })).toBe(
+      'Diese Anlagenart kennt der Katalog nicht.',
+    )
+    expect(
+      problem({
+        kind: 'meter_reading',
+        key: 'p5',
+        label: 'Stand',
+        unit: 'cubic_metres',
+        decimals: 0,
+        everyAssetOf: 'probe.hold_open_device',
+      }),
+    ).toBe('Den Stand jeder Messstelle nimmt die Ablesung der Zähler, kein Punkt für jede Anlage.')
+    expect(problem({ ...every, fulfilsKind: undefined, fulfils: temperatureDuty })).toBe(
+      'Ein Punkt für jede Anlage erfüllt eine Pflichtart, keine einzelne Pflicht.',
+    )
+    expect(problem({ ...remark, key: 'p5', fulfilsKind: 'probe.hold_open_device_monthly' })).toBe(
+      'Eine Pflichtart erfüllt nur ein Punkt für jede Anlage einer Art.',
+    )
+    expect(problem({ ...every, kind: 'text', multiline: false } as TemplateField)).toBe(
+      'Eine Pflicht erfüllt nur ein Prüfpunkt oder ein Messwert mit Grenzwert.',
+    )
+    expect(problem({ ...every, fulfilsKind: 'probe.unknown' })).toBe(
+      'Diese Pflichtart kennt der Katalog nicht.',
+    )
+    expect(problem({ ...every, everyAssetOf: 'probe.fire_door' })).toBe(
+      'Diese Pflichtart gilt nicht für diese Anlagenart.',
+    )
+    expect(
+      problem({ ...every, everyAssetOf: 'probe.fire_door', fulfilsKind: 'probe.fire_door_report' }),
+    ).toBe('Diese Pflichtart nimmt keinen Punkt eines Rundgangs als Nachweis.')
+    expect(templateProblems(withPoints(every, { ...every, key: 'p6' }), records)['point.p6']).toBe(
+      'Diese Pflichtart erfüllt schon ein anderer Punkt.',
+    )
+    // A version keeps the kind and the duty kind, and nothing beside them.
+    expect(
+      storedTemplate(withPoints({ ...every, beside: 1 } as TemplateField)).sections[0]?.fields,
+    ).toEqual([every])
   })
 
   it('asks a limit for a rule the catalogue knows in a unit that fits, or a value with its source', () => {

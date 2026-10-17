@@ -132,11 +132,13 @@ export interface TemplateImportPlan {
   readonly create: { readonly templates: readonly PlannedTemplate[] }
 }
 
-/** A list knows no asset, no room, no duty and no rule: a point of it names none. */
+/** A list knows no asset, no room, no duty, no rule and no kind: a point of it names none. */
 const nothingNamed: TemplateRecords = {
   record: () => false,
   duty: () => null,
   ruleUnits: () => null,
+  assetKind: () => false,
+  dutyKind: () => null,
 }
 
 /** A unit as it is compared: "m3" is "m³" to whoever typed it, and "C" is "°C". */

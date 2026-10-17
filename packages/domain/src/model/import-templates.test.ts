@@ -116,6 +116,8 @@ describe('a list of templates', () => {
         record: () => false,
         duty: () => null,
         ruleUnits: () => null,
+        assetKind: () => false,
+        dutyKind: () => null,
       }),
     ).toEqual({})
   })

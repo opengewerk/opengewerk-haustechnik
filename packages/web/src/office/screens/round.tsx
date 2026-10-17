@@ -5,6 +5,7 @@ import {
   type CheckPointResult,
   checkPointResultLabel,
   type FilledAnswer,
+  fulfilledKind,
   type IsoDate,
   type LimitContext,
   roundClosable,
@@ -104,6 +105,8 @@ export const roundWords = {
     'Das Formular dieses Rundgangs kennt dieses Gerät noch nicht. Es kommt mit dem nächsten Abgleich.',
   nothingSaid: 'keine Angabe',
   fulfils: (duty: string) => `erfüllt die Pflicht „${duty}“`,
+  everyAsset: (assets: number) =>
+    assets === 1 ? '1 Anlage, je eine Antwort' : `${String(assets)} Anlagen, je eine Antwort`,
   staysDue: (duty: string) => `die Pflicht „${duty}“ bleibt fällig`,
   becameDefect: 'wurde mit der Unterschrift ein Mangel',
   counterIntro:
@@ -296,25 +299,67 @@ function usePoints(round: RoundDetails) {
   const definition = useFormOf(round.formKey, round.formVersion)
   const catalogue = useCatalogue()
   const answers: readonly FilledAnswer[] = round.page?.answers ?? []
-  const points = definition ? pointsOf(definition, answers) : []
+  const points = definition ? pointsOf(definition, answers, [], round.pointAssets) : []
   const answerOf = (point: FormPoint) =>
     answers.find(
       (answer) =>
         answer.fieldKey === point.field.key &&
         answer.groupKey === (point.group?.key ?? null) &&
-        answer.blockKey === point.blockKey,
+        answer.blockKey === point.blockKey &&
+        (answer.assetId ?? null) === point.assetId,
     )
   const context: LimitContext | null =
     catalogue === null ? null : { rules: catalogue.ruleSet, on: round.performedOn ?? today() }
+  // The assets of the points for every asset, by number and name (#343).
+  const assetWords = (id: string) => {
+    const asset = round.assets.find((each) => each.id === id)
 
-  return { definition, points, answerOf, context }
+    return asset === undefined
+      ? 'Anlage'
+      : [asset.number, asset.name].filter((part) => part !== null && part !== '').join(' ')
+  }
+  const duties = useRecords('duties')
+  // The duty the answer about one asset fulfils: the one of the kind of its
+  // point at that asset (#343), else the one its point names.
+  const dutyOf = (point: FormPoint): string | null => {
+    const named = fulfilledDuty(point.field)
+    const kind = fulfilledKind(point.field)
+
+    if (named !== null || kind === null || point.assetId === null) {
+      return named
+    }
+
+    const found = duties.find(
+      (duty) =>
+        duty['kind'] === kind &&
+        duty['assetId'] === point.assetId &&
+        (duty['deletedAt'] === null || duty['deletedAt'] === undefined),
+    )
+
+    return found === undefined ? null : String(found['id'])
+  }
+
+  return { definition, points, answerOf, context, assetWords, dutyOf }
 }
 
-/** A point by its label, in a block of a group with the group and the number of the block. */
-function labelOf(point: FormPoint): string {
+/**
+ * A point by its label, in a block of a group with the group and the number
+ * of the block; the point of one asset of a point for every asset by the
+ * asset, which stands under the point (#343).
+ */
+function labelOf(point: FormPoint, assetWords: (id: string) => string): string {
+  if (point.assetId !== null) {
+    return assetWords(point.assetId)
+  }
+
   return point.group === null
     ? point.field.label
     : `${point.group.label} ${String(point.block)}: ${point.field.label}`
+}
+
+/** Whether a point is the first of the assets of its point for every asset, which a row of its own heads. */
+function headsItsAssets(point: FormPoint, before: FormPoint | undefined): boolean {
+  return point.assetId !== null && (before === undefined || before.field !== point.field)
 }
 
 /** Whether an answer leaves the duty of its point due: "nicht möglich" and "entfällt" fulfil nothing. */
@@ -324,7 +369,7 @@ function leavesDue(answer: FilledAnswer | undefined): boolean {
 
 /** "Antworten": every point with its answer and what was said with it. */
 function Answers({ round }: { readonly round: RoundDetails }) {
-  const { definition, points, answerOf, context } = usePoints(round)
+  const { definition, points, answerOf, context, assetWords, dutyOf } = usePoints(round)
   const duties = useRecords('duties')
   const catalogue = useCatalogue()
 
@@ -352,7 +397,7 @@ function Answers({ round }: { readonly round: RoundDetails }) {
   }
   // What is said under an answer: the duty it fulfils or leaves due, and the defect it became.
   const notesOf = (point: FormPoint, answer: FilledAnswer | undefined): string[] => {
-    const duty = fulfilledDuty(point.field)
+    const duty = dutyOf(point)
 
     return [
       duty === null
@@ -374,7 +419,10 @@ function Answers({ round }: { readonly round: RoundDetails }) {
 
         return {
           key: point.key,
-          title: labelOf(point),
+          title:
+            point.assetId === null
+              ? labelOf(point, assetWords)
+              : `${point.field.label}, ${labelOf(point, assetWords)}`,
           sub: [point.section.title, saidWith(point, answer, context), ...notesOf(point, answer)]
             .filter(Boolean)
             .join(' · '),
@@ -401,27 +449,42 @@ function Answers({ round }: { readonly round: RoundDetails }) {
             ) : null}
             {points
               .filter((point) => point.section === section)
-              .map((point) => {
+              .map((point, index, inSection) => {
                 const answer = answerOf(point)
                 const notes = notesOf(point, answer)
+                const assets = inSection.filter((each) => each.field === point.field).length
 
                 return (
-                  <tr key={point.key}>
-                    <Cell>{labelOf(point)}</Cell>
-                    <Cell>
-                      <AnswerCell point={point} answer={answer} context={context} />
-                    </Cell>
-                    <Cell>
-                      <div className="leading-[1.4]">
-                        <div>{saidWith(point, answer, context)}</div>
-                        {notes.map((note) => (
-                          <div key={note} className="mt-0.5 text-[12px] text-ink-faint">
-                            {note}
+                  <Fragment key={point.key}>
+                    {headsItsAssets(point, inSection[index - 1]) ? (
+                      <tr>
+                        <Cell colSpan={3}>
+                          <div className="leading-[1.4]">
+                            <div className="font-medium">{point.field.label}</div>
+                            <div className="mt-0.5 text-[12px] text-ink-faint">
+                              {roundWords.everyAsset(assets)}
+                            </div>
                           </div>
-                        ))}
-                      </div>
-                    </Cell>
-                  </tr>
+                        </Cell>
+                      </tr>
+                    ) : null}
+                    <tr>
+                      <Cell>{labelOf(point, assetWords)}</Cell>
+                      <Cell>
+                        <AnswerCell point={point} answer={answer} context={context} />
+                      </Cell>
+                      <Cell>
+                        <div className="leading-[1.4]">
+                          <div>{saidWith(point, answer, context)}</div>
+                          {notes.map((note) => (
+                            <div key={note} className="mt-0.5 text-[12px] text-ink-faint">
+                              {note}
+                            </div>
+                          ))}
+                        </div>
+                      </Cell>
+                    </tr>
+                  </Fragment>
                 )
               })}
           </Fragment>
@@ -676,13 +739,23 @@ function Countersignature({ round }: { readonly round: RoundDetails }) {
 
 /** "Pflichten aus diesem Rundgang": each duty a point fulfils, and how it stands by this round. */
 function Duties({ round }: { readonly round: RoundDetails }) {
-  const { points, answerOf } = usePoints(round)
+  const { points, answerOf, assetWords, dutyOf } = usePoints(round)
   const duties = useRecords('duties')
   const catalogue = useCatalogue()
+  // A duty of an asset of a point for every asset is named with the number of its asset (#343).
   const fulfilling = points.flatMap((point) => {
-    const dutyId = fulfilledDuty(point.field)
+    const dutyId = dutyOf(point)
+    const asset = round.assets.find((each) => each.id === point.assetId)
 
-    return dutyId === null ? [] : [{ dutyId, answer: answerOf(point) }]
+    return dutyId === null
+      ? []
+      : [
+          {
+            dutyId,
+            answer: answerOf(point),
+            asset: point.assetId === null ? null : (asset?.number ?? assetWords(point.assetId)),
+          },
+        ]
   })
 
   if (fulfilling.length === 0) {
@@ -718,14 +791,15 @@ function Duties({ round }: { readonly round: RoundDetails }) {
   return (
     <Panel title="Pflichten aus diesem Rundgang">
       <ul className="flex flex-col gap-[9px]">
-        {fulfilling.map(({ dutyId, answer }) => {
+        {fulfilling.map(({ dutyId, answer, asset }) => {
           const duty = duties.find((each) => each['id'] === dutyId)
           const stands = standing(dutyId, answer)
+          const name = (duty ? dutyNameOf(duty, catalogue) : null) ?? 'Pflicht'
 
           return (
             <li key={dutyId} className="leading-[1.35]">
               <Link to={dutyPlaces.duty(dutyId)} className={factLink}>
-                {(duty ? dutyNameOf(duty, catalogue) : null) ?? 'Pflicht'}
+                {asset === null ? name : `${name}, ${asset}`}
               </Link>
               <div className="text-[12px] text-ink-faint">
                 {stands.to === null ? (

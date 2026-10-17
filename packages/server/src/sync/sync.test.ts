@@ -2027,6 +2027,74 @@ describe('a signature from a device', () => {
       )
     })
 
+    it('takes an answer for each asset of a point for every asset, once each, and none for an asset the round was not given (#343)', async () => {
+      const toSign = await activityToSign({ kind: 'round' })
+      const second = await elevatorIn(place)
+      const elsewhere = await elevatorIn(place)
+      const { rows: template } = await admin.query<{ id: string }>(
+        `insert into round_templates (tenant_id, title) values ($1, 'Aufzüge') returning id`,
+        [small],
+      )
+      const templateId = template[0]?.id ?? ''
+
+      await admin.query(
+        `insert into round_template_versions (tenant_id, template_id, form_version, definition,
+                                              asks_countersignature)
+         values ($1, $2, 1, $3, false)`,
+        [
+          small,
+          templateId,
+          JSON.stringify({
+            title: 'Aufzüge',
+            sections: [
+              {
+                key: 'k1',
+                title: 'Aufzüge',
+                fields: [
+                  {
+                    kind: 'check_point',
+                    key: 'p1',
+                    label: 'Aufzug ohne Störung',
+                    everyAssetOf: 'probe.elevator',
+                  },
+                ],
+              },
+            ],
+          }),
+        ],
+      )
+      await admin.query(
+        `update activities set form_key = $2, form_version = 1, point_assets = $3 where id = $1`,
+        [toSign.activity, `template-${templateId}`, JSON.stringify({ p1: [toSign.asset, second] })],
+      )
+
+      const about = (asset: string | null, result = 'ok') =>
+        answer(toSign.activity, 'p1', { result, ...(asset === null ? {} : { assetId: asset }) })
+
+      // Two devices at two assets of the point merge without noticing.
+      expect(await outcomes('u-tech', [about(toSign.asset)], small, 'phone')).toEqual([applied])
+      expect(await outcomes('u-lead', [about(second)], small, 'tablet')).toEqual([applied])
+      // Two at the same asset are a conflict at the point.
+      expect(
+        await outcomes('u-lead', [about(toSign.asset, 'not_possible')], small, 'tablet'),
+      ).toEqual([{ outcome: 'conflict', reason: 'changed_elsewhere', fields: ['fieldKey'] }])
+
+      const refusal = async (sent: Sent) => {
+        const refused = await send('u-tech', [sent]).expect(400)
+
+        expect(refused.body.operationId).toBe(sent.id)
+
+        return refused.body.message as string
+      }
+
+      expect(await refusal(about(null))).toBe(
+        'Der Punkt „Aufzug ohne Störung“ wird für jede seiner Anlagen beantwortet, die Antwort nennt ihre Anlage.',
+      )
+      expect(await refusal(about(elsewhere))).toBe(
+        'Nach dieser Anlage fragt der Punkt „Aufzug ohne Störung“ in diesem Rundgang nicht.',
+      )
+    })
+
     it('is signed only once every point has its answer, and takes no answer afterwards', async () => {
       const toSign = await withForm()
       // Queued in this order on the device: the work, the answers, the signature.

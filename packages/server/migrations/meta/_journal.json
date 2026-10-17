@@ -526,6 +526,13 @@
       "when": 1792258386424,
       "tag": "0074_collective_activities",
       "breakpoints": true
+    },
+    {
+      "idx": 75,
+      "version": "7",
+      "when": 1792265289102,
+      "tag": "0075_points_for_every_asset",
+      "breakpoints": true
     }
   ]
 }

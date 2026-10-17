@@ -7,7 +7,13 @@ import {
   type Synced,
 } from '@opengewerk/platform-domain'
 
-import { type AnswerContent, answerLimits, answerVerdict, type LimitContext } from './answer.js'
+import {
+  type AnswerContent,
+  answerLimits,
+  answerVerdict,
+  everyAssetOf,
+  type LimitContext,
+} from './answer.js'
 import type { DutyId } from './duty-record.js'
 import { evidenceLimits, type EvidenceResult } from './evidence.js'
 import type { Problems } from './fields.js'
@@ -33,6 +39,8 @@ import {
  *
  * A template belongs to the operator and not to an area, but a point may be
  * about a certain asset or a certain room, and fulfil a certain duty there.
+ * A point may also ask about every asset of a kind (#343), which a round
+ * fixes when it is made, and then fulfil at each of them its duty of a kind.
  * Who changes a template has to see every one of them, in the version that
  * stands and in the one that follows (decided on 04.10.2026), so a template
  * that points into an area is changed only by somebody who sees it.
@@ -66,9 +74,24 @@ export interface RoundTemplate extends Synced {
  * fulfils (section 4.5). Its answer is then the evidence of that duty, with
  * no second entry; the duty is a certain one, at the asset or the room the
  * point is about, as the point is about a certain asset.
+ *
+ * A point for every asset of a kind (#343) names the kind instead of an
+ * asset (`everyAssetOf`), and a round asks it once for each asset it was
+ * given when it was made, each with an answer of its own. Such a point
+ * fulfils no certain duty but a duty kind (`fulfilsKind`): at each of its
+ * assets the duty of that kind, with the answer about that asset.
  */
 export type TemplateField = (Exclude<BlockField, MeasurementField> | TemplateMeasurement) & {
   readonly fulfils?: DutyId
+  readonly everyAssetOf?: string
+  readonly fulfilsKind?: string
+}
+
+/** The duty kind a point for every asset fulfils at each of them, where it fulfils one. */
+export function fulfilledKind(field: object): string | null {
+  const kind = (field as { readonly fulfilsKind?: unknown }).fulfilsKind
+
+  return typeof kind === 'string' && everyAssetOf(field) !== null ? kind : null
 }
 
 /** A measured value of a template, whose limit is a rule or a value the operator states. */
@@ -187,24 +210,26 @@ export function templatePoints(
   )
 }
 
-/** The point of a template that fulfils a duty, if one does. */
+/**
+ * The point of a template that fulfils a duty, if one does: the point that
+ * names it, and else, given its kind, a point for every asset that fulfils
+ * that kind (#343). Which answer of such a point is the one about the asset
+ * of the duty, the caller asks with the asset.
+ */
 export function pointFulfilling(
   definition: Pick<FormDefinition, 'sections'>,
   duty: string,
+  kind: string | null = null,
 ): BlockField | null {
-  for (const section of definition.sections) {
-    for (const field of section.fields) {
-      if (
-        field.kind !== 'group' &&
-        field.kind !== 'signature' &&
-        (field as { readonly fulfils?: unknown }).fulfils === duty
-      ) {
-        return field
-      }
-    }
-  }
+  const points = definition.sections
+    .flatMap((section) => section.fields)
+    .filter((field): field is BlockField => field.kind !== 'group' && field.kind !== 'signature')
 
-  return null
+  return (
+    points.find((field) => (field as { readonly fulfils?: unknown }).fulfils === duty) ??
+    (kind === null ? undefined : points.find((field) => fulfilledKind(field) === kind)) ??
+    null
+  )
 }
 
 /** What a template names outside itself: assets, rooms, duties and rules. */
@@ -248,6 +273,12 @@ export interface TemplateDuty {
   readonly takesRoundPoint: boolean
 }
 
+/** A duty kind of the catalogue as a template asks about it: the kinds of asset it applies to, and whether a point of a round is evidence for it. */
+export interface TemplateDutyKind {
+  readonly assetKinds: readonly string[]
+  readonly takesRoundPoint: boolean
+}
+
 /**
  * What a template is checked against beside itself: the assets and rooms that
  * are there for the person and alive, the duties likewise, and the units of
@@ -257,6 +288,10 @@ export interface TemplateRecords {
   readonly record: (kind: FormRecordKind, id: string) => boolean
   readonly duty: (id: string) => TemplateDuty | null
   readonly ruleUnits: (key: string) => readonly RuleUnit[] | null
+  /** Whether the catalogue has the kind of asset in force today (#343). */
+  readonly assetKind: (key: string) => boolean
+  /** The duty kind of the catalogue in force today, null for one it does not have (#343). */
+  readonly dutyKind: (key: string) => TemplateDutyKind | null
 }
 
 /** A sentence of the engine about a field, with the field named by its label and not by its key. */
@@ -311,7 +346,9 @@ export function isTemplateDefinition(value: unknown): value is TemplateDefinitio
             isKey(field['key']) &&
             isText(field['kind']) &&
             isText(field['label']) &&
-            (field['fulfils'] === undefined || isText(field['fulfils'])),
+            (field['fulfils'] === undefined || isText(field['fulfils'])) &&
+            (field['everyAssetOf'] === undefined || isText(field['everyAssetOf'])) &&
+            (field['fulfilsKind'] === undefined || isText(field['fulfilsKind'])),
         ),
     )
   )
@@ -328,6 +365,91 @@ function textProblem(value: string, most: number, subject: string): string | nul
   }
 
   return value.length > most ? `${subject} hat höchstens ${String(most)} Zeichen.` : null
+}
+
+/** Whether a point is of a kind whose answer can be the evidence of a duty, as a sentence where it is not. */
+function fulfillingProblem(field: TemplateField): string | null {
+  if (
+    field.kind !== 'check_point' &&
+    !(field.kind === 'measurement' && field.limit !== undefined)
+  ) {
+    return 'Eine Pflicht erfüllt nur ein Prüfpunkt oder ein Messwert mit Grenzwert.'
+  }
+
+  return field.kind === 'measurement' && field.required !== true
+    ? 'Ein Messwert, der eine Pflicht erfüllt, muss ausgefüllt werden.'
+    : null
+}
+
+/**
+ * What is wrong with a point for every asset of a kind (#343), as one
+ * sentence: it asks about a kind of the catalogue and nothing beside, is no
+ * reading, which the round of the meters takes, and fulfils a duty kind that
+ * applies to that kind and takes a point of a round as evidence, once.
+ */
+function everyAssetProblem(
+  field: TemplateField,
+  records: TemplateRecords,
+  fulfilledBy: Map<string, string>,
+): string | null {
+  const every = field.everyAssetOf
+
+  if (every !== undefined) {
+    if (field.about !== undefined) {
+      return 'Ein Punkt zeigt auf eine Anlage, einen Raum oder jede Anlage einer Art, nur auf eines davon.'
+    }
+
+    if (field.kind === 'meter_reading') {
+      return 'Den Stand jeder Messstelle nimmt die Ablesung der Zähler, kein Punkt für jede Anlage.'
+    }
+
+    if (!records.assetKind(every)) {
+      return 'Diese Anlagenart kennt der Katalog nicht.'
+    }
+
+    if (field.fulfils !== undefined) {
+      return 'Ein Punkt für jede Anlage erfüllt eine Pflichtart, keine einzelne Pflicht.'
+    }
+  }
+
+  if (field.fulfilsKind === undefined) {
+    return null
+  }
+
+  if (every === undefined) {
+    return 'Eine Pflichtart erfüllt nur ein Punkt für jede Anlage einer Art.'
+  }
+
+  const kindOfPoint = fulfillingProblem(field)
+
+  if (kindOfPoint !== null) {
+    return kindOfPoint
+  }
+
+  const kind = records.dutyKind(field.fulfilsKind)
+
+  if (kind === null) {
+    return 'Diese Pflichtart kennt der Katalog nicht.'
+  }
+
+  if (!kind.assetKinds.includes(every)) {
+    return 'Diese Pflichtart gilt nicht für diese Anlagenart.'
+  }
+
+  if (!kind.takesRoundPoint) {
+    return 'Diese Pflichtart nimmt keinen Punkt eines Rundgangs als Nachweis.'
+  }
+
+  const fulfilled = `kind:${field.fulfilsKind}`
+  const other = fulfilledBy.get(fulfilled)
+
+  if (other !== undefined && other !== field.key) {
+    return 'Diese Pflichtart erfüllt schon ein anderer Punkt.'
+  }
+
+  fulfilledBy.set(fulfilled, field.key)
+
+  return null
 }
 
 /** What is wrong with one point by what the engine does not know, as one sentence. */
@@ -387,6 +509,12 @@ function pointProblem(
     }
   }
 
+  const every = everyAssetProblem(field, records, fulfilledBy)
+
+  if (every !== null) {
+    return every
+  }
+
   if (field.about !== undefined && isObject(field.about)) {
     const { kind, id } = field.about
 
@@ -402,15 +530,10 @@ function pointProblem(
   }
 
   if (field.fulfils !== undefined) {
-    if (
-      field.kind !== 'check_point' &&
-      !(field.kind === 'measurement' && field.limit !== undefined)
-    ) {
-      return 'Eine Pflicht erfüllt nur ein Prüfpunkt oder ein Messwert mit Grenzwert.'
-    }
+    const kindOfPoint = fulfillingProblem(field)
 
-    if (field.kind === 'measurement' && field.required !== true) {
-      return 'Ein Messwert, der eine Pflicht erfüllt, muss ausgefüllt werden.'
+    if (kindOfPoint !== null) {
+      return kindOfPoint
     }
 
     const duty = records.duty(field.fulfils)
@@ -654,6 +777,8 @@ export function storedTemplate(definition: TemplateDefinition): TemplateDefiniti
           'hint',
           'required',
           'fulfils',
+          'everyAssetOf',
+          'fulfilsKind',
           ...(pointProperties[field.kind] ?? []),
         ])
 

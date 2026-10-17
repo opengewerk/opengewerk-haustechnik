@@ -40,6 +40,9 @@ export const applicationConflicts: Readonly<Record<string, string>> = {
   HT010: 'Ein gelöschter Vorgang wird nicht geändert und nimmt nichts mehr auf.',
   // A part of something that is no collective activity (#342).
   HT011: 'Ein Vorgang ist nur Teil eines Sammelvorgangs.',
+  // An answer about an asset its point does not ask about in this round, or
+  // without the asset its point asks about (#343).
+  HT012: 'Nach dieser Anlage fragt der Punkt in diesem Rundgang nicht.',
 }
 
 export const { answerFor, DatabaseExceptionFilter } = databaseErrors(applicationConflicts)

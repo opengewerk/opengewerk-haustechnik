@@ -169,6 +169,8 @@ function HandInOf({ activityId }: { readonly activityId: string }) {
   const navigate = useNavigate()
   const end = useRoundEnd(activityId)
   const { form, where } = end
+  // A point for every asset is named with its asset (#343).
+  const aboutWords = useAboutWords()
 
   if (form.activity === null) {
     return <NotOnDevice what="Diesen Rundgang" back={toStart} />
@@ -251,7 +253,11 @@ function HandInOf({ activityId }: { readonly activityId: string }) {
                   <SiteRow
                     key={point.key}
                     to={siteForms.point(activityId, point.key)}
-                    title={point.field.label}
+                    title={
+                      point.assetId === null
+                        ? point.field.label
+                        : `${point.field.label}, ${aboutWords(point) ?? ''}`
+                    }
                     meta={
                       lack === 'answer'
                         ? handInWords.pointAt(point.section.title, index + 1)
@@ -314,6 +320,8 @@ function SignOf({ activityId }: { readonly activityId: string }) {
   const who = useWho()
   const end = useRoundEnd(activityId)
   const { form } = end
+  // A point for every asset is named with its asset (#343).
+  const aboutWords = useAboutWords()
   const [given, setGiven] = useState<GivenSignature | null>(null)
   const [working, setWorking] = useState(false)
   const [trouble, setTrouble] = useState<string | null>(null)
@@ -395,7 +403,9 @@ function SignOf({ activityId }: { readonly activityId: string }) {
                 className="flex min-h-[34px] items-center gap-2 border-b border-row py-1 last:border-b-0"
               >
                 <span className="min-w-0 grow text-[16px] [overflow-wrap:anywhere]">
-                  {point.field.label}
+                  {point.assetId === null
+                    ? point.field.label
+                    : `${point.field.label}, ${aboutWords(point) ?? ''}`}
                 </span>
                 <AnswerMark state={pointState(point, filledAt(point), context)} />
               </li>

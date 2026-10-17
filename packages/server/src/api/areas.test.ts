@@ -1411,6 +1411,37 @@ describe('a building moved to another property', () => {
     ])
   })
 
+  it('stays where it is while a round of its property has an answer about an asset in it, and says so (#343)', async () => {
+    const from = await propertyIn(north)
+    const to = await propertyIn(north)
+    const here = await roomIn(from.id, from.buildingId, north)
+    const { asset } = await assetIn(from.id, from.buildingId, here.room, north)
+    const { rows } = await admin.query<{ id: string }>(
+      `insert into activities (tenant_id, property_id, area_id, kind, title, status, form_key,
+                               form_version, point_assets)
+       values ($1, $2, $3, 'round', 'Aufzüge, monatlich', 'started', $4, 1, $5) returning id`,
+      [
+        large,
+        from.id,
+        north,
+        'template-0192f0c4-7b4e-7000-8000-000000000343',
+        JSON.stringify({ p1: [asset] }),
+      ],
+    )
+
+    await admin.query(
+      `insert into activity_answers (tenant_id, property_id, area_id, activity_id, field_key, asset_id,
+                                     result)
+       values ($1, $2, $3, $4, 'p1', $5, 'ok')`,
+      [large, from.id, north, rows[0]?.id, asset],
+    )
+
+    expect((await moved(from.buildingId, to.id).expect(400)).body.message).toBe(
+      'An diesem Gebäude hängt eine Antwort eines Rundgangs. Das ist festgeschrieben und nennt seinen Ort; das Gebäude bleibt deshalb, wo es ist.',
+    )
+    expect(await whereThey([['assets', asset]])).toEqual([`assets:${from.id}:${north}`])
+  })
+
   it('stays where it is while something in it ties it to the rest of its property, and says what', async () => {
     const from = await propertyIn(north)
     const to = await propertyIn(north)
