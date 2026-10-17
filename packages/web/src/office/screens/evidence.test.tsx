@@ -156,6 +156,7 @@ function evidence(further: Readonly<Record<string, unknown>> = {}): EvidencePage
     replaces: null,
     replacedBy: null,
     voiding: null,
+    signedPrints: [] as EvidencePage['signedPrints'],
     ...further,
   } as EvidencePage
 }
@@ -478,6 +479,63 @@ describe('the page of an evidence', () => {
     expect(screen.queryByRole('button', { name: /PDF/ })).toBeNull()
     expect(screen.queryByRole('button', { name: 'Berichtigen' })).toBeNull()
     expect(screen.queryByRole('button', { name: 'Für ungültig erklären' })).toBeNull()
+  })
+
+  it('shows a PDF with a higher signature filed at it, and files another one that went up first (#341)', async () => {
+    answerToWrite = answering({ id: 'sp-2' }, 201)
+    await opened(
+      'management',
+      evidence({
+        signedPrints: [
+          {
+            id: 'sp-1',
+            signer: 'Dr. Anna Becker, Prüfstelle Probe GmbH',
+            issuer: 'D-Trust Qualified Signature CA 2025',
+            signedAt: '2026-10-04T08:12:00.000Z',
+            validFrom: '2026-01-01T00:00:00.000Z',
+            validTo: '2036-01-01T00:00:00.000Z',
+            filedBy: 'Dennis Roth',
+            filedAt: '2026-10-04T08:20:00.000Z',
+          },
+        ],
+      }),
+    )
+
+    expect(screen.getByText('Signiert von Dr. Anna Becker, Prüfstelle Probe GmbH')).toBeDefined()
+    expect(screen.getByRole('link', { name: 'Öffnen' }).getAttribute('href')).toBe(
+      '/evidence/e-131/signed-prints/sp-1',
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: 'Ablegen' }))
+
+    const dialog = await screen.findByRole('dialog', { name: 'Signiertes PDF ablegen' })
+
+    fireEvent.change(within(dialog).getByLabelText('Signiertes PDF'), {
+      target: {
+        files: [
+          new File(['%PDF-1.7 signiert'], 'nw-131-signiert.pdf', { type: 'application/pdf' }),
+        ],
+      },
+    })
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Ablegen' }))
+
+    await waitFor(() => {
+      expect(written).toEqual([
+        {
+          method: 'POST',
+          path: '/evidence/e-131/signed-prints',
+          body: { sha256: expect.stringMatching(/^[0-9a-f]{64}$/) },
+        },
+      ])
+    })
+    expect([...server.uploaded.keys()]).toEqual([(written[0]?.body as { sha256: string }).sha256])
+  })
+
+  it('offers filing a signed PDF to nobody who does not enter evidence (#341)', async () => {
+    await opened('technician')
+
+    expect(screen.getByRole('heading', { name: 'Höher signiertes PDF' })).toBeDefined()
+    expect(screen.queryByRole('button', { name: 'Ablegen' })).toBeNull()
   })
 
   it('offers neither to the Haustechnik', async () => {

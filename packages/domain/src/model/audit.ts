@@ -452,6 +452,21 @@ export const auditVocabulary: AuditVocabulary = {
         ended_on: 'Aufbewahrung endete am',
       },
     },
+    // The PDF of an evidence with a higher signature, signed outside (#341).
+    evidence_signed_prints: {
+      label: 'Höher signiertes PDF eines Nachweises',
+      fields: {
+        evidence_id: 'Nachweis',
+        sha256: 'Datei',
+        signer: 'Signiert von',
+        issuer: 'Zertifikat von',
+        signed_at: 'Signiert am',
+        valid_from: 'Zertifikat gültig ab',
+        valid_to: 'Zertifikat gültig bis',
+        filed_by: 'Abgelegt von',
+        filed_at: 'Abgelegt am',
+      },
+    },
     // The longer retention of an operator (#340).
     evidence_retention_settings: {
       label: 'Aufbewahrung der Nachweise',
@@ -972,6 +987,8 @@ export const auditVocabulary: AuditVocabulary = {
     'taken_by',
     // Who reported a fault (#331).
     'reported_by',
+    // Who filed a PDF with a higher signature (#341).
+    'filed_by',
     // The person a delegation of duties goes to, and who revoked one (#336).
     'delegate_user_id',
     'revoked_by',
@@ -1043,6 +1060,7 @@ export const auditVocabulary: AuditVocabulary = {
     evidence: ['number'],
     evidence_voidings: ['evidence_id'],
     evidence_emptyings: ['evidence_id'],
+    evidence_signed_prints: ['evidence_id'],
     evidence_retention_settings: ['minimum_years'],
     // The frozen state of a round by its round.
     round_records: ['activity_id'],

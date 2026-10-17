@@ -568,6 +568,15 @@ async function placeIn(where: 'north' | 'south'): Promise<void> {
      select tenant_id, property_id, area_id, id, $2 from evidence where duty_id = $1 and performed_on = '2025-03-14'`,
     [at.duty, at.file],
   )
+  // The PDF with a higher signature, signed outside (#341).
+  await admin.query(
+    `insert into evidence_signed_prints (tenant_id, property_id, area_id, evidence_id, sha256, signer, issuer,
+                                         valid_from, valid_to, filed_by)
+     select tenant_id, property_id, area_id, id, $2, 'Dr. Anna Becker', 'Dr. Anna Becker',
+            '2026-01-01T00:00:00Z', '2036-01-01T00:00:00Z', $3
+       from evidence where duty_id = $1 and performed_on = '2025-03-14'`,
+    [at.duty, at.file, person.lead],
+  )
   await admin.query(
     `insert into attachments (id, tenant_id, property_id, area_id, asset_id, title, kind)
      values ($1, $2, $3, $4, $5, 'Betriebsanleitung', 'operating_manual')`,
@@ -710,6 +719,7 @@ describe('a person with the north', () => {
       'duty_dismissals',
       'evidence',
       'evidence_emptyings',
+      'evidence_signed_prints',
       'evidence_voidings',
       'fault_report_contacts',
       'fault_reports',
@@ -946,6 +956,7 @@ describe('a property moved to another area', () => {
         'duty_dismissals',
         'evidence',
         'evidence_emptyings',
+        'evidence_signed_prints',
         'evidence_voidings',
         'fault_report_contacts',
         'fault_reports',
@@ -1038,6 +1049,7 @@ describe('a building with an area of its own', () => {
       'duties',
       'evidence',
       'evidence_emptyings',
+      'evidence_signed_prints',
       'evidence_voidings',
       'prints',
     ]

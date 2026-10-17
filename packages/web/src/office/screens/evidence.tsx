@@ -66,6 +66,7 @@ import { dutyPlaces, dutyRegisterPlace, evidencePlaces } from '../duty-addresses
 import { ResultMark, StandingMark } from '../evidence-words.js'
 import { factLink } from '../links.js'
 import { usePdf } from '../pdf-button.js'
+import { SignedPrintsCard } from '../signed-prints.js'
 import { officePlaces } from '../place-addresses.js'
 import { dutyQuery } from './duty.js'
 
@@ -450,6 +451,11 @@ export function EvidenceScreen() {
               </p>
             </Panel>
           )}
+          <SignedPrintsCard
+            evidenceId={shown.id}
+            prints={shown.signedPrints}
+            mayFile={keeps && open}
+          />
           <Panel title="Fingerabdruck des Nachweises">
             <div className="flex flex-col gap-2">
               <p className="text-[12px] leading-[1.45] text-ink-muted">

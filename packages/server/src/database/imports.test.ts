@@ -126,6 +126,7 @@ describe('the triggers of the log', () => {
 
     expect(emptied.map((row) => row.table_name)).toEqual([
       'evidence',
+      'evidence_signed_prints',
       'evidence_voidings',
       'prints',
     ])

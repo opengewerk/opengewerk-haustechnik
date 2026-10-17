@@ -9,6 +9,13 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
 
 ### Hinzugefügt
 
+- Höher signiertes PDF am Nachweis (#341, Abschnitt 2.6 des Konzepts): das PDF eines Nachweises, außerhalb
+  signiert, wird am Nachweis abgelegt und dort ausgegeben. Angenommen wird nur das PDF dieses Nachweises mit einer
+  Signatur über das ganze Dokument, die zu ihrem Zertifikat passt, geprüft ohne Netz und ohne neue Abhängigkeit; ob
+  das Zertifikat einer Vertrauensliste angehört, prüft die Anwendung nicht und sagt das. Der Nachweis ändert sich
+  nicht, und mit dem Löschen nach Ablauf der Aufbewahrung geht das PDF mit (Migration `0072_signed_prints`). Warum:
+  wo eine Vorschrift mehr verlangt als die Unterschrift auf dem Gerät, soll die höhere Signatur beim Nachweis
+  liegen (entschieden am 15.10.2026: nur annehmen).
 - Löschen eines Nachweises nach Ablauf seiner Aufbewahrung (#340, Abschnitt 2.6 des Konzepts, Nachtrag in ADR 0004):
   die Datenbank rechnet das Ende nach der Regel der Pflichtart (Jahre, bis zur nächsten Prüfung, solange die Anlage
   verwendet wird) und der längeren Aufbewahrung des Betreibers, die er unter „Einstellungen“, „Aufbewahrung“ setzt.

@@ -62,7 +62,42 @@ export interface EvidencePage {
   readonly replaces: EvidenceLink | null
   readonly replacedBy: EvidenceLink | null
   readonly voiding: ShownVoiding | null
+  /** The PDFs of it with a higher signature, signed outside (#341), the newest first. */
+  readonly signedPrints: readonly SignedPrint[]
 }
+
+/**
+ * The PDF of an evidence with a higher signature, signed outside and filed
+ * at it (#341, section 2.6 of the concept): who signed it and who issued the
+ * certificate, as the certificate in the file names them, when the signature
+ * says it was made, and who filed it. Whether the certificate belongs to a
+ * list of trusted providers, the application does not check.
+ */
+export interface SignedPrint {
+  readonly id: string
+  readonly signer: string
+  readonly issuer: string
+  /** As an ISO 8601 text in UTC; none where the signature names no moment. */
+  readonly signedAt: string | null
+  readonly validFrom: string
+  readonly validTo: string
+  /** The name of the person, read from the instance. */
+  readonly filedBy: string
+  readonly filedAt: string
+}
+
+/** What filing one says: the file that went up ahead of it, by its hash. */
+export interface SignedPrintFiling {
+  readonly sha256: string
+}
+
+export const signedPrintWords = {
+  noPrint:
+    'Zu diesem Nachweis gibt es noch kein PDF. Erst „PDF öffnen“, dann außerhalb signieren und hier ablegen.',
+  missingFile: 'Die Datei ist nicht auf dem Server.',
+  twice: 'Dieses signierte PDF liegt schon am Nachweis.',
+  missing: 'Dieses signierte PDF gibt es an diesem Nachweis nicht.',
+} as const
 
 /**
  * The page of an evidence after the end of its retention (#340, decided on
