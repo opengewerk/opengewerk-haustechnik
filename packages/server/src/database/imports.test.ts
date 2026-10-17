@@ -120,20 +120,37 @@ describe('the triggers of the log', () => {
     const conditional = rows.filter((row) => row.conditional)
     const always = rows.filter((row) => !row.conditional).map((row) => row.table_name)
 
-    // Beside them the three a deletion after the end of the retention empties,
-    // under a condition of their own (#340).
-    const emptied = conditional.filter((row) => row.definition.includes('evidence_emptying_of('))
+    // Beside them the tables a deletion after the end of the retention
+    // empties, under a condition of their own: those of the evidence (#340)
+    // and those of the activity behind it (#409).
+    const emptied = conditional.filter((row) =>
+      /(evidence|activity)_emptying_of\(/.test(row.definition),
+    )
 
-    expect(emptied.map((row) => row.table_name)).toEqual([
+    expect(emptied.map((row) => row.table_name).sort()).toEqual([
+      'activities',
+      'activity_answers',
+      'activity_duties',
+      'activity_signatures',
+      'briefings',
       'evidence',
       'evidence_signed_prints',
       'evidence_voidings',
       'prints',
+      'round_records',
+      'service_report_records',
+      'service_reports',
+      'work_order_decisions',
+      'work_order_materials',
+      'work_order_notes',
+      'work_order_participants',
+      'work_orders',
+      'work_permits',
     ])
 
     for (const row of emptied) {
       expect(row.definition).toMatch(
-        / AFTER DELETE OR UPDATE ON public\.\w+ FOR EACH ROW WHEN \(\(NOT evidence_emptying_of\(old\.(id|evidence_id)\)\)\) EXECUTE FUNCTION record_change\(\)$/,
+        / AFTER DELETE OR UPDATE ON public\.\w+ FOR EACH ROW WHEN \(\(NOT .*(evidence|activity)_emptying_of\(.*\)\) EXECUTE FUNCTION record_change\(\)$/,
       )
     }
 

@@ -63,11 +63,13 @@ import {
   activityDuties,
   assets,
   duties,
+  evidence,
   memberAllAreas,
   memberAreas,
   memberships,
   properties,
   tenantRoles,
+  workOrders,
 } from '../database/schema/index.js'
 import { qualificationHints } from '../qualifications/hints.js'
 import { dayInGermany } from '../today.js'
@@ -351,8 +353,27 @@ export class ActivitiesController {
         lines.map(({ duty }) => duty as Duty),
         this.catalogue,
       )
+      // What remains once it is emptied with its last evidence (#409).
+      const shell =
+        activity.emptiedAt === null
+          ? null
+          : {
+              at: activity.emptiedAt.toISOString(),
+              evidence: await tx
+                .select({ id: evidence.id, number: evidence.number })
+                .from(evidence)
+                .where(eq(evidence.activityId, activity.id))
+                .orderBy(asc(evidence.number)),
+              orderNumber:
+                (
+                  await tx
+                    .select({ number: workOrders.number })
+                    .from(workOrders)
+                    .where(eq(workOrders.activityId, activity.id))
+                )[0]?.number ?? null,
+            }
 
-      return { activity, lines, standing }
+      return { activity, lines, standing, shell }
     })
     const named = await this.named(identity, [read.activity])
     const lines = read.lines.map(({ line, duty }, index): ActivityDutyLine => {
@@ -390,6 +411,7 @@ export class ActivitiesController {
       performedOn: read.activity.performedOn,
       closingReason: read.activity.closingReason,
       duties: lines,
+      shell: read.shell,
     }
   }
 
@@ -720,6 +742,7 @@ function entryOf(
     performerPerson: named(row.performerUserId),
     contractorNote: row.contractorNote,
     contractorId: row.contractorId,
+    ...(row.emptiedAt === null ? {} : { emptied: true as const }),
   }
 }
 

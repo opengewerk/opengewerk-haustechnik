@@ -256,6 +256,11 @@ export interface Activity extends Synced, PlaceTarget {
    * None for a round made otherwise and for every other kind.
    */
   readonly roundPlanId: RoundPlanId | null
+  /**
+   * When it became an empty shell with its last evidence after the end of the
+   * retention (#409): written by the database and nobody else, null until then.
+   */
+  readonly emptiedAt: Date | null
 }
 
 /**

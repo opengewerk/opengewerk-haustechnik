@@ -163,6 +163,9 @@ export const evidence = pgTable(
       name: 'evidence_name_their_contractor',
     }),
     index('evidence_contractor_idx').on(table.tenantId, table.contractorId),
+    // The evidence of an activity, which the emptying of the activity asks
+    // after (#409).
+    index('evidence_activity_idx').on(table.tenantId, table.activityId),
     // An examiner from outside is named with the organisation, both or neither.
     check(
       'evidence_examiner_with_organisation',

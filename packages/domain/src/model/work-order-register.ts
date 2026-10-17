@@ -95,6 +95,8 @@ export interface WorkOrderEntry extends PlaceTarget {
   readonly rejected: boolean
   readonly dueOn: IsoDate | null
   readonly responsible: DutyPerson | null
+  /** Emptied with its last evidence after the end of the retention (#409); absent otherwise. */
+  readonly emptied?: true
 }
 
 /**

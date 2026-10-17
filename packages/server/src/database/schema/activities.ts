@@ -105,6 +105,9 @@ export const activities = pgTable(
     templateOn: date('template_on', { mode: 'string' }),
     // The plan a round was made by, for its day (#113): the server's to write.
     roundPlanId: reference<'round_plan'>('round_plan_id'),
+    // When it was emptied with its last evidence after the end of the
+    // retention (#409): the database's to write, and only then.
+    emptiedAt: timestamp('emptied_at', { withTimezone: true }),
     ...timestamps,
     ...syncColumns,
   },
@@ -227,6 +230,11 @@ export const activities = pgTable(
       name: 'activities_name_their_contractor',
     }),
     index('activities_contractor_idx').on(table.tenantId, table.contractorId),
+    // The activities emptied after the end of the retention (#409), which a
+    // pull counts for what a device lets go of.
+    index('activities_emptied_idx')
+      .on(table.tenantId, table.emptiedAt)
+      .where(sql`${table.emptiedAt} is not null`),
     check(
       'activities_contractor_for_a_contractor',
       sql`${table.contractorId} is null or ${table.performer} = 'contractor'`,

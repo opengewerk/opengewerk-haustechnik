@@ -50,10 +50,11 @@ import {
   useSync,
 } from '@opengewerk/platform-web/sync'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { Link, useParams } from '@tanstack/react-router'
+import { Link, Navigate, useParams } from '@tanstack/react-router'
 import { Ban, Check, Clock, type LucideIcon, PenLine, Signature, X } from 'lucide-react'
 import { Fragment, useState } from 'react'
 
+import { activityPlaces } from '../activity-addresses.js'
 import { type FormPoint, pointsOf, pointState } from '../../app/answers.js'
 import { dutyNameOf, fulfilledDuty, useFormOf } from '../../app/form-of.js'
 import { PhotoThumb } from '../../app/form-points.js'
@@ -181,6 +182,11 @@ export function RoundScreen() {
         </Empty>
       </Screen>
     )
+  }
+
+  // Emptied with its last evidence (#409): the page of the activity shows its shell.
+  if (shown.emptied === true) {
+    return <Navigate to={activityPlaces.activity(shown.id)} replace />
   }
 
   const look = stateLooks[shown.state]

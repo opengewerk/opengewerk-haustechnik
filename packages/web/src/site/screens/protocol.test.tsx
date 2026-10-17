@@ -14,6 +14,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { servingCatalogue } from '../../app/test-catalogue.js'
 import { memberIn } from '../../app/test-entry.js'
 import { formCatalogue, heaterDuty, inspection, maintenance, workServer } from '../test-form.js'
+import { emptiedWords } from './emptied.js'
 import {
   afterEachSiteTest,
   boilerRoom,
@@ -112,6 +113,25 @@ function heldFor(
 }
 
 describe('the way to an inspection on site', () => {
+  it('says of one emptied with its last evidence what it was, and nothing more (#409)', async () => {
+    const server = workServer()
+
+    server.put('activities', {
+      ...inspection,
+      status: 'done',
+      title: 'Gelöscht nach Ablauf der Aufbewahrung',
+      performedOn: '2016-06-20',
+      emptiedAt: '2026-10-17T07:30:00.000Z',
+    })
+    await mountSite(`/vorgaenge/${inspection.id}`, { server, ...withTheForm })
+
+    await screen.findByRole('heading', { level: 2, name: 'Gelöscht' })
+
+    expect(screen.getByText('Prüfung vom 20.06.2016')).toBeTruthy()
+    expect(screen.getByText(emptiedWords.gone)).toBeTruthy()
+    expect(screen.queryByRole('button', { name: 'Weiter zum Ergebnis' })).toBeNull()
+  })
+
   it('leads from its asset to the inspections and maintenance the own people perform there, open or begun', async () => {
     const server = workServer()
 

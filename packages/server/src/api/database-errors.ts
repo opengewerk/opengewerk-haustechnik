@@ -35,6 +35,9 @@ export const applicationConflicts: Readonly<Record<string, string>> = {
   // The confirmation of a deletion changed or removed (#340).
   HT009:
     'Die Bestätigung, dass ein Nachweis gelöscht wird, wird nicht geändert und nicht gelöscht.',
+  // An activity emptied with its last evidence changed or added to, or
+  // emptied on another way (#409).
+  HT010: 'Ein gelöschter Vorgang wird nicht geändert und nimmt nichts mehr auf.',
 }
 
 export const { answerFor, DatabaseExceptionFilter } = databaseErrors(applicationConflicts)

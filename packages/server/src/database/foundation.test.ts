@@ -56,7 +56,13 @@ describe('the foundation in this database', () => {
     // over a unique key on the document with its property.
     expect(
       await foundationDeviations(admin, {
-        triggers: ['memberships.default_areas', 'attachments.area_from_the_property'],
+        // A document takes nothing new at an activity emptied with its last
+        // evidence after the end of the retention (opengewerk-haustechnik#409, migration 0073).
+        triggers: [
+          'memberships.default_areas',
+          'attachments.area_from_the_property',
+          'attachments.refuses_an_emptied_activity',
+        ],
         columns: [
           'deadlines.duty_id',
           'deadlines.defect_id',

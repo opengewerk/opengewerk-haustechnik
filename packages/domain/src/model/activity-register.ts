@@ -12,7 +12,7 @@ import type { DutyState } from './duty.js'
 import type { QualificationHint } from './qualifications.js'
 import type { DutyId, DutyPerformer } from './duty-record.js'
 import type { DutyPerson } from './duty-register.js'
-import type { EvidenceResult } from './evidence.js'
+import type { EvidenceId, EvidenceResult } from './evidence.js'
 import type { PlaceTarget } from './target.js'
 
 /**
@@ -100,6 +100,8 @@ export interface ActivityEntry extends PlaceTarget {
   readonly contractorNote: string | null
   /** The firm out of the list that carries it out (#328). */
   readonly contractorId: string | null
+  /** Emptied with its last evidence after the end of the retention (#409); absent otherwise. */
+  readonly emptied?: true
 }
 
 /** A page of the list, with how many pass the filters and whether a further page follows. */
@@ -134,12 +136,25 @@ export interface ActivityDutyLine {
   readonly resultReason: string | null
 }
 
+/**
+ * What remains of an activity whose last evidence was deleted after the end of
+ * its retention (#409): when it was emptied, its evidence as shells, and the
+ * number of a work order.
+ */
+export interface EmptiedActivity {
+  readonly at: string
+  readonly evidence: readonly { readonly id: EvidenceId; readonly number: string }[]
+  readonly orderNumber: string | null
+}
+
 /** The page of an activity: what the list says, with the duties it meets and when it came about. */
 export interface ActivityDetails extends ActivityEntry {
   readonly createdAt: string
   readonly performedOn: IsoDate | null
   readonly closingReason: string | null
   readonly duties: readonly ActivityDutyLine[]
+  /** What remains of it once it is emptied (#409); null while it holds what it held. */
+  readonly shell: EmptiedActivity | null
 }
 
 /**

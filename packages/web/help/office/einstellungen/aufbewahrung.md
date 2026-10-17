@@ -13,4 +13,10 @@ Ist die Aufbewahrung eines Nachweises abgelaufen, schlägt die Anwendung vor, ih
 1. Die Nachweise auswählen, die gelöscht werden sollen, einzeln oder alle.
 2. „Ausgewählte löschen“ und die Rückfrage mit „Endgültig löschen“ bestätigen.
 
-Bestätigen kann nur, wer den Betreiber führt, und die Datenbank prüft selbst, ob die Aufbewahrung abgelaufen ist. Vom Nachweis bleibt eine leere Hülle mit Nummer, Pflicht, Tag und Ergebnis; die Frist der Pflicht zählt weiter wie vorher. Inhalt, Unterschriften, Namen, Dateien und die PDF des Nachweises gehen. Was der Vorgang selbst hält und was im Änderungsprotokoll steht, bleibt vorerst. Wiederherstellen lässt sich ein gelöschter Nachweis nicht.
+Bestätigen kann nur, wer den Betreiber führt, und die Datenbank prüft selbst, ob die Aufbewahrung abgelaufen ist. Vom Nachweis bleibt eine leere Hülle mit Nummer, Pflicht, Tag und Ergebnis; die Frist der Pflicht zählt weiter wie vorher. Inhalt, Unterschriften, Namen, Dateien und die PDF des Nachweises gehen. Wiederherstellen lässt sich ein gelöschter Nachweis nicht.
+
+## Der Vorgang dahinter
+
+War es der letzte Nachweis eines Vorgangs, wird mit ihm auch der Vorgang zur leeren Hülle: es bleiben Art, Ort, Tag, die Pflichten mit ihrem Ergebnis, die Nachweise als Hüllen und bei einem Auftrag seine Nummer. Antworten und Messwerte, Unterschriften, Namen, Notizen, Material, Leistungsnachweise, Einweisungen und Erlaubnisscheine gehen, seine Dokumente werden entfernt. Ein Rundgang mit vielen Nachweisen bleibt, bis auch der letzte von ihnen gelöscht ist.
+
+Ein Mangel aus dem Vorgang bleibt mit seiner Beschreibung, ebenso Aufgaben und Zählerstände, die dort entstanden sind. Was das Änderungsprotokoll schon hält, bleibt vorerst.

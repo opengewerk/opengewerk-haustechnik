@@ -21,6 +21,7 @@ import {
   untilTheRightsAreKnown,
   type Written,
 } from '../test-office.js'
+import { activityWords } from './activities.js'
 
 /**
  * "Prüfungen" in the office (#105, 4.4 of the concept): the inspections and
@@ -135,6 +136,7 @@ function details(entry: ActivityEntry, further: Partial<ActivityDetails> = {}): 
         resultReason: null,
       },
     ],
+    shell: null,
     ...further,
   }
 }
@@ -321,6 +323,49 @@ describe('the page of an activity', () => {
     expect(screen.getByText('am 12.09.2026')).toBeTruthy()
     expect(screen.getByText('Fachkraft')).toBeTruthy()
     expect(screen.getByText('12.10.2025')).toBeTruthy()
+  })
+
+  it('shows what stays of one emptied with its last evidence, whatever its kind, and offers nothing (#409)', async () => {
+    const [line] = details(own).duties
+    const { mounted } = mount(
+      '/pruefungen/ac-own',
+      {
+        '/activities/ac-own': details(
+          {
+            ...own,
+            kind: 'work_order',
+            title: 'Gelöscht nach Ablauf der Aufbewahrung',
+            responsible: null,
+            performerPerson: null,
+            emptied: true,
+          },
+          {
+            performedOn: '2016-06-20',
+            duties: line === undefined ? [] : [{ ...line, result: 'without_defects' }],
+            shell: {
+              at: '2026-10-17T07:30:00.000Z',
+              evidence: [{ id: 'ev-48' as never, number: 'NW-2016-00048' }],
+              orderNumber: 'A-2016-0012',
+            },
+          },
+        ),
+      },
+      'management',
+    )
+
+    await mounted
+    await screen.findByRole('heading', { level: 1, name: 'Arbeitsauftrag A-2016-0012' })
+
+    expect(screen.getByText(activityWords.emptied('2026-10-17T07:30:00.000Z'))).toBeTruthy()
+    expect(screen.getByRole('link', { name: 'NW-2016-00048' })).toBeTruthy()
+    expect(screen.getByText('20.06.2016')).toBeTruthy()
+    expect(rowsOf('Pflichten dieses Vorgangs')).toEqual([
+      ['Prüfung der SicherheitsbeleuchtungDIN EN 50172', 'Ohne Mangel'],
+    ])
+    await untilTheRightsAreKnown()
+    expect(screen.queryByRole('button', { name: 'Speichern' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Nicht durchgeführt' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Bericht eintragen' })).toBeNull()
   })
 
   it('says when the activity is not there for this access', async () => {
