@@ -22,6 +22,7 @@ export const deadlineSources = [
   'warranty',
   'delegation',
   'qualification',
+  'evidence',
 ] as const
 
 export type DeadlineSource = (typeof deadlineSources)[number]
@@ -272,6 +273,26 @@ export const qualificationExpires: ApplicationDeadlineKind = {
 }
 
 /**
+ * The end of the retention of an evidence (sections 2.4 and 2.6, #340): the
+ * day its rule, or the longer retention of the operator, runs out, as the
+ * database counts it. Named once it has come; whoever leads the operator
+ * answers for it and confirms the deletion under "Aufbewahrung", and the
+ * deadline is done with it.
+ */
+export const evidenceRetentionEnds: ApplicationDeadlineKind = {
+  key: 'evidence.retention_ends',
+  title: 'Ende der Aufbewahrung eines Nachweises',
+  about:
+    'Folgt aus der Aufbewahrung, die das Regelpaket der Pflichtart nennt, oder der längeren des Betreibers. Danach schlägt der Lauf vor, den Nachweis zu löschen; die Leitung bestätigt es unter „Aufbewahrung“.',
+  source: 'evidence',
+  intervalDays: null,
+  intervalMonths: null,
+  leadDays: 0,
+  responsible: 'lead',
+  actions: ['reminder'],
+}
+
+/**
  * What the task of a deadline says, by the source of its kind (#242). Only a
  * source that stands here can name the action: the engine refuses a kind
  * that names the task without a text for it.
@@ -293,6 +314,7 @@ export const deadlineKinds: readonly ApplicationDeadlineKind[] = [
   warrantyEnds,
   delegationEnds,
   qualificationExpires,
+  evidenceRetentionEnds,
 ]
 
 /**
@@ -311,6 +333,17 @@ export type DeadlineFacts =
   | WarrantyDeadlineFacts
   | DelegationDeadlineFacts
   | QualificationDeadlineFacts
+  | EvidenceDeadlineFacts
+
+/** The end of the retention of an evidence: the evidence by its number, with its duty (#340). */
+export interface EvidenceDeadlineFacts extends DeadlinePlaceFacts {
+  readonly follows: 'evidence'
+  readonly evidence: {
+    readonly id: string
+    readonly number: string
+    readonly dutyTitle: string
+  }
+}
 
 /** A deadline of a duty: the duty by its title. */
 export interface DutyDeadlineFacts extends DeadlinePlaceFacts {

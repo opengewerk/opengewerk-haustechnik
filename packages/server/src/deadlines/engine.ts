@@ -27,6 +27,7 @@ import {
   contractSource,
   delegationSource,
   qualificationSource,
+  evidenceSource,
   type DeadlineValues,
   defectSource,
   documentSource,
@@ -102,6 +103,8 @@ function bound(
         today: () => dayInGermany(job.now?.() ?? new Date()),
         catalogue: job.catalogue,
       }),
+      // The end of the retention of an evidence (#340).
+      evidence: evidenceSource({ today: () => dayInGermany(job.now?.() ?? new Date()) }),
     },
     actions: { activity: activityFromDeadline(job.catalogue), task: taskFromDeadline() },
     // A round nobody has begun walks the newest version of its template, and

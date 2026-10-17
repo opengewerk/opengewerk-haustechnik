@@ -246,6 +246,7 @@ describe('what each entry hands to the foundation', () => {
       'work-orders',
       'nummernkreise',
       'fristen',
+      'aufbewahrung',
       'e-mail',
       'sicherung',
       'protokoll',

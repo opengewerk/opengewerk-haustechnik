@@ -175,7 +175,8 @@ export class Printer {
     const held = await this.database.forTenant(identity, async (tx) => {
       const [row] = await tx.select().from(evidence).where(eq(evidence.id, id))
 
-      if (row === undefined) {
+      // The shell after the end of the retention has no print any more (#340).
+      if (row === undefined || row.emptiedAt !== null) {
         return null
       }
 
@@ -227,11 +228,11 @@ export class Printer {
   ): Promise<readonly { readonly mediaType: string; readonly bytes: Uint8Array }[]> {
     const named = await this.database.forTenant(identity, async (tx) => {
       const [row] = await tx
-        .select({ state: evidence.state })
+        .select({ state: evidence.state, emptiedAt: evidence.emptiedAt })
         .from(evidence)
         .where(eq(evidence.id, id))
 
-      if (row === undefined) {
+      if (row === undefined || row.emptiedAt !== null) {
         return []
       }
 

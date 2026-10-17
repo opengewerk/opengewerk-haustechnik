@@ -29,6 +29,12 @@ export const applicationConflicts: Readonly<Record<string, string>> = {
   // A declaration that an evidence is invalid changed or removed (#26).
   HT006:
     'Eine Ungültigerklärung wird nicht geändert und nicht gelöscht. Der Nachweis bleibt mit ihr lesbar.',
+  // A deletion after the end of the retention confirmed by somebody who does
+  // not lead the operator, or before the end (#340, ADR 0004).
+  HT008: 'Die Aufbewahrung dieses Nachweises ist nicht abgelaufen.',
+  // The confirmation of a deletion changed or removed (#340).
+  HT009:
+    'Die Bestätigung, dass ein Nachweis gelöscht wird, wird nicht geändert und nicht gelöscht.',
 }
 
 export const { answerFor, DatabaseExceptionFilter } = databaseErrors(applicationConflicts)

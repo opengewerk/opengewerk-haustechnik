@@ -9,6 +9,7 @@ import { attachments } from './attachments.js'
 import { contracts } from './contracts.js'
 import { defects } from './defects.js'
 import { dutyDelegations } from './delegations.js'
+import { evidence } from './evidence.js'
 import { qualifications } from './qualifications.js'
 import { duties } from './duties.js'
 import { properties } from './locations.js'
@@ -45,6 +46,8 @@ const deadlineColumns = {
   delegationId: reference<'duty-delegation'>('delegation_id'),
   /** The qualification of a person whose expiry it follows, the source `qualification` (#337). */
   qualificationId: reference<'qualification'>('qualification_id'),
+  /** The evidence whose retention ends, the source `evidence` (#340). */
+  evidenceId: reference<'evidence'>('evidence_id'),
   /** The task the engine made of this deadline, the action `task` (#242). */
   taskId: reference<'task'>('task_id'),
   // None for the document of a contractor (#328) and for a contract (#329), which lie in no area.
@@ -80,6 +83,12 @@ export const { deadlineStatus, deadlines } = deadlinesSchema({
       columns: [table.tenantId, table.dutyId, table.areaId],
       foreignColumns: [duties.tenantId, duties.id, duties.areaId],
       name: 'deadlines_follow_their_duty',
+    }).onUpdate('cascade'),
+    // The end of the retention of an evidence (#340), in the area of the evidence.
+    foreignKey({
+      columns: [table.tenantId, table.evidenceId, table.areaId],
+      foreignColumns: [evidence.tenantId, evidence.id, evidence.areaId],
+      name: 'deadlines_follow_their_evidence',
     }).onUpdate('cascade'),
     foreignKey({
       columns: [table.tenantId, table.defectId, table.areaId],
@@ -171,6 +180,7 @@ export const { deadlineStatus, deadlines } = deadlinesSchema({
     index('deadlines_contract_idx').on(table.tenantId, table.contractId),
     index('deadlines_delegation_idx').on(table.tenantId, table.delegationId),
     index('deadlines_qualification_idx').on(table.tenantId, table.qualificationId),
+    index('deadlines_evidence_idx').on(table.tenantId, table.evidenceId),
     index('deadlines_warranty_asset_idx').on(table.tenantId, table.warrantyAssetId),
     index('deadlines_warranty_order_idx').on(table.tenantId, table.warrantyOrderId),
     // The meters of a property are read for the property they hang on.
@@ -189,7 +199,7 @@ export const { deadlineStatus, deadlines } = deadlinesSchema({
     ),
     check(
       'deadlines_follow_one_source',
-      sql`num_nonnulls(${table.dutyId}, ${table.defectId}, ${table.roundPlanId}, ${table.meterPropertyId}, ${table.attachmentId}, ${table.contractId}, ${table.warrantyAssetId}, ${table.warrantyOrderId}, ${table.delegationId}, ${table.qualificationId}) = 1`,
+      sql`num_nonnulls(${table.dutyId}, ${table.defectId}, ${table.roundPlanId}, ${table.meterPropertyId}, ${table.attachmentId}, ${table.contractId}, ${table.warrantyAssetId}, ${table.warrantyOrderId}, ${table.delegationId}, ${table.qualificationId}, ${table.evidenceId}) = 1`,
     ),
   ],
 })

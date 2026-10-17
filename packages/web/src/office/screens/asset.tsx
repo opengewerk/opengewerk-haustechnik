@@ -809,7 +809,7 @@ function AssetEvidence({
         sub: [entry.dutyTitle, date(entry.performedOn), evidenceResultLabel[entry.result]].join(
           ' · ',
         ),
-        right: <StandingMark standing={entry.standing} />,
+        right: <StandingMark standing={entry.standing} emptied={entry.emptied === true} />,
       }))}
     >
       <thead>
@@ -835,7 +835,7 @@ function AssetEvidence({
               <ResultMark result={entry.result} />
             </Cell>
             <Cell>
-              <StandingMark standing={entry.standing} />
+              <StandingMark standing={entry.standing} emptied={entry.emptied === true} />
             </Cell>
           </tr>
         ))}

@@ -25,6 +25,7 @@ import {
   deadlines,
   defects,
   duties,
+  evidence,
   properties,
   qualifications,
   rooms,
@@ -217,6 +218,34 @@ export function deadlineRulesFor(
         foundQualifications.length === 0 || !namesThePeople
           ? new Map<string, string>()
           : await namesOf([...new Set(foundQualifications.map((each) => each.userId))])
+      // The evidence whose retention ends (#340), with its duty and where that hangs.
+      const evidenceIds = [
+        ...new Set(rows.flatMap((row) => (row.evidenceId === null ? [] : [row.evidenceId]))),
+      ]
+      const foundEvidence =
+        evidenceIds.length === 0
+          ? []
+          : await tx
+              .select({
+                id: evidence.id,
+                number: evidence.number,
+                kind: duties.kind,
+                kindVersion: duties.kindVersion,
+                label: duties.label,
+                buildingId: duties.buildingId,
+                roomId: duties.roomId,
+                assetId: duties.assetId,
+                assetNumber: assets.number,
+                assetName: assets.name,
+                assetBuildingId: assets.buildingId,
+              })
+              .from(evidence)
+              .innerJoin(duties, eq(duties.id, evidence.dutyId))
+              .leftJoin(assets, eq(assets.id, duties.assetId))
+              .where(inArray(evidence.id, evidenceIds))
+      const byEvidence = new Map<string, (typeof foundEvidence)[number]>(
+        foundEvidence.map((each) => [each.id, each]),
+      )
       // The assets and the accepted work orders whose warranty ends (#329).
       const warrantyAssetIds = [
         ...new Set(
@@ -299,6 +328,28 @@ export function deadlineRulesFor(
                     number: document.assetNumber,
                     name: document.assetName ?? '',
                   },
+          }
+
+          return { ...facts }
+        }
+
+        // The end of the retention of an evidence (#340): its number and its duty.
+        if (row.evidenceId !== null) {
+          const held = byEvidence.get(row.evidenceId)
+          const facts: DeadlineFacts = {
+            follows: 'evidence',
+            evidence: {
+              id: row.evidenceId,
+              number: held?.number ?? row.sourceLabel,
+              dutyTitle: held ? dutyTitle(held, catalogue) : row.sourceLabel,
+            },
+            propertyId: row.propertyId ?? '',
+            buildingId: held?.buildingId ?? held?.assetBuildingId ?? null,
+            roomId: held?.roomId ?? null,
+            asset:
+              held?.assetId && held.assetName !== null
+                ? { id: held.assetId, number: held.assetNumber, name: held.assetName }
+                : null,
           }
 
           return { ...facts }

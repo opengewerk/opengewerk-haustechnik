@@ -6,7 +6,7 @@ import {
 } from '@opengewerk/haustechnik-domain'
 import { Status, type StatusTone } from '@opengewerk/platform-web'
 import { Link } from '@tanstack/react-router'
-import { Ban } from 'lucide-react'
+import { Ban, Trash2 } from 'lucide-react'
 
 import { evidencePlaces } from './duty-addresses.js'
 import { factLink } from './links.js'
@@ -36,13 +36,34 @@ export function ResultMark({ result }: { readonly result: EvidenceResult }) {
   return <Status tone={resultTones[result]}>{evidenceResultLabel[result]}</Status>
 }
 
-export function StandingMark({ standing }: { readonly standing: EvidenceStanding }) {
-  return (
+export function StandingMark({
+  standing,
+  emptied = false,
+}: {
+  readonly standing: EvidenceStanding
+  /** Deleted after the end of its retention (#340): what it means for the deadline stays. */
+  readonly emptied?: boolean
+}) {
+  const mark = (
     <Status tone={standingTones[standing]} icon={standing === 'voided' ? Ban : undefined}>
       {evidenceStandingLabel[standing]}
     </Status>
   )
+
+  return emptied ? (
+    <span className="inline-flex flex-wrap gap-1">
+      {mark}
+      <Status tone="neutral" icon={Trash2}>
+        {emptiedMark}
+      </Status>
+    </span>
+  ) : (
+    mark
+  )
 }
+
+/** The mark of an evidence deleted after the end of its retention (#340). */
+export const emptiedMark = 'Gelöscht'
 
 /** The number of an evidence as a link to its page, as every list of evidence shows it. */
 export function EvidenceNumber({ id, number }: { readonly id: string; readonly number: string }) {

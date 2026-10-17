@@ -398,6 +398,25 @@ async function placeIn(where: 'north' | 'south'): Promise<void> {
       ...writtenValues(person.lead, '2025-03-14', 'without_defects'),
     ],
   )
+  // An earlier one, whose retention ended with it, emptied on the confirmation (#340).
+  const { rows: earlier } = await admin.query<{ id: string }>(
+    `insert into evidence (tenant_id, property_id, area_id, duty_id, performed_on, result,
+                           ${writtenColumnNames})
+     values ($1, $2, $3, $4, '2024-03-14', 'without_defects', ${writtenPlaceholders(5)})
+     returning id`,
+    [
+      tenant,
+      at.property,
+      areaId,
+      at.duty,
+      ...writtenValues(person.lead, '2024-03-14', 'without_defects'),
+    ],
+  )
+  await admin.query(
+    `insert into evidence_emptyings (tenant_id, property_id, area_id, evidence_id, confirmed_by, ended_on)
+     values ($1, $2, $3, $4, $5, '2025-03-14')`,
+    [tenant, at.property, areaId, earlier[0]?.id, person.lead],
+  )
   await admin.query(
     `insert into deadlines (tenant_id, kind, source_id, source_label, anchor_on, due_on, duty_id,
                             property_id, area_id)
@@ -497,7 +516,7 @@ async function placeIn(where: 'north' | 'south'): Promise<void> {
   await admin.query(
     `insert into evidence_voidings (tenant_id, property_id, area_id, evidence_id, reason, voided_by)
      select tenant_id, property_id, area_id, id, 'Der Bericht gehört zu einer anderen Anlage.', $2
-       from evidence where duty_id = $1`,
+       from evidence where duty_id = $1 and performed_on = '2025-03-14'`,
     [at.duty, person.lead],
   )
   // The frozen state of the work order as a whole (#111).
@@ -546,7 +565,7 @@ async function placeIn(where: 'north' | 'south'): Promise<void> {
   // The PDF of the evidence, which names that file (#111).
   await admin.query(
     `insert into prints (tenant_id, property_id, area_id, evidence_id, sha256)
-     select tenant_id, property_id, area_id, id, $2 from evidence where duty_id = $1`,
+     select tenant_id, property_id, area_id, id, $2 from evidence where duty_id = $1 and performed_on = '2025-03-14'`,
     [at.duty, at.file],
   )
   await admin.query(
@@ -690,6 +709,7 @@ describe('a person with the north', () => {
       'duties',
       'duty_dismissals',
       'evidence',
+      'evidence_emptyings',
       'evidence_voidings',
       'fault_report_contacts',
       'fault_reports',
@@ -902,7 +922,8 @@ describe('a property moved to another area', () => {
         )
 
         below[table] = rows[0]
-        expected[table] = { rows: 1, elsewhere: 0 }
+        // Two evidence: the one of the duty, and the earlier one emptied (#340).
+        expected[table] = { rows: table === 'evidence' ? 2 : 1, elsewhere: 0 }
       }
 
       expect(tables.map((row) => row.table_name)).toEqual([
@@ -924,6 +945,7 @@ describe('a property moved to another area', () => {
         'duties',
         'duty_dismissals',
         'evidence',
+        'evidence_emptyings',
         'evidence_voidings',
         'fault_report_contacts',
         'fault_reports',
@@ -1015,6 +1037,7 @@ describe('a building with an area of its own', () => {
       'deadlines',
       'duties',
       'evidence',
+      'evidence_emptyings',
       'evidence_voidings',
       'prints',
     ]

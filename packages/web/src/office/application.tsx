@@ -8,6 +8,7 @@ import type {
 } from '@opengewerk/platform-web'
 import { auditLogPath } from '@opengewerk/platform-web/office'
 import {
+  Archive,
   CalendarClock,
   Gauge,
   History,
@@ -17,8 +18,8 @@ import {
   MessageSquareWarning,
   ScanLine,
   Server,
-  TriangleAlert,
   Signature,
+  TriangleAlert,
   Users,
 } from 'lucide-react'
 
@@ -106,6 +107,15 @@ const settings = [
       'Wie viele Tage vorher an eine fällige Pflicht und an die Frist eines Mangels erinnert wird, und wer erinnert wird.',
     icon: CalendarClock,
     right: 'deadline.read',
+  },
+  {
+    key: 'aufbewahrung',
+    to: '/einstellungen/aufbewahrung',
+    title: 'Aufbewahrung',
+    about:
+      'Wie lange Nachweise bleiben, und welche nach Ablauf ihrer Aufbewahrung gelöscht werden können.',
+    icon: Archive,
+    right: 'settings.read',
   },
   {
     key: 'e-mail',

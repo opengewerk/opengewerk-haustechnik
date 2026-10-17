@@ -120,7 +120,25 @@ describe('the triggers of the log', () => {
     const conditional = rows.filter((row) => row.conditional)
     const always = rows.filter((row) => !row.conditional).map((row) => row.table_name)
 
-    expect(conditional.map((row) => row.table_name)).toEqual([
+    // Beside them the three a deletion after the end of the retention empties,
+    // under a condition of their own (#340).
+    const emptied = conditional.filter((row) => row.definition.includes('evidence_emptying_of('))
+
+    expect(emptied.map((row) => row.table_name)).toEqual([
+      'evidence',
+      'evidence_voidings',
+      'prints',
+    ])
+
+    for (const row of emptied) {
+      expect(row.definition).toMatch(
+        / AFTER DELETE OR UPDATE ON public\.\w+ FOR EACH ROW WHEN \(\(NOT evidence_emptying_of\(old\.(id|evidence_id)\)\)\) EXECUTE FUNCTION record_change\(\)$/,
+      )
+    }
+
+    const imported = conditional.filter((row) => !emptied.includes(row))
+
+    expect(imported.map((row) => row.table_name)).toEqual([
       'assets',
       'buildings',
       'floors',
@@ -128,7 +146,7 @@ describe('the triggers of the log', () => {
       'rooms',
     ])
 
-    for (const row of conditional) {
+    for (const row of imported) {
       expect(row.definition).toMatch(
         / AFTER INSERT OR DELETE OR UPDATE ON public\.\w+ FOR EACH ROW WHEN \(\(NOT import_writing\(\)\)\) EXECUTE FUNCTION record_change\(\)$/,
       )

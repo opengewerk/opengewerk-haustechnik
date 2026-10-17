@@ -848,7 +848,9 @@ function Evidence({ evidence }: { readonly evidence: readonly DutyEvidenceEntry[
   }
 
   const result = (entry: DutyEvidenceEntry) => <ResultMark result={entry.result} />
-  const standing = (entry: DutyEvidenceEntry) => <StandingMark standing={entry.standing} />
+  const standing = (entry: DutyEvidenceEntry) => (
+    <StandingMark standing={entry.standing} emptied={entry.emptied === true} />
+  )
   const back = (entry: DutyEvidenceEntry) => (entry.standing === 'counts' ? '' : 'text-ink-muted')
 
   return (

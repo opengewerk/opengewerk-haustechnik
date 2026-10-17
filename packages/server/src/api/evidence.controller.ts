@@ -20,11 +20,14 @@ import {
   type EvidenceId,
   evidenceLimits,
   type EvidenceLink,
-  type EvidencePage,
+  type EvidenceReading,
   type EvidenceResult,
   evidenceStandingOf,
   type IsoDate,
   readEvidenceState,
+  retentionInWords,
+  retentionSentences,
+  type StatedRetention,
   statedReasonProblem,
 } from '@opengewerk/haustechnik-domain'
 import {
@@ -42,7 +45,14 @@ import { and, desc, eq, inArray } from 'drizzle-orm'
 
 import { CATALOGUE } from '../catalogue.js'
 import { dutyTitle } from '../database/duty-standing.js'
-import { assets, duties, evidence, evidenceVoidings, rooms } from '../database/schema/index.js'
+import {
+  assets,
+  duties,
+  evidence,
+  evidenceEmptyings,
+  evidenceVoidings,
+  rooms,
+} from '../database/schema/index.js'
 import { voidEvidence } from '../evidence/voiding.js'
 import { EvidenceRefusal, writeEvidence } from '../evidence/write.js'
 import { dayInGermany } from '../today.js'
@@ -79,6 +89,21 @@ async function evidenceOf(tx: TenantTransaction, id: string) {
 }
 
 /**
+ * An evidence that is more than its empty shell, for what hands out its
+ * content or builds on it: its files, a correction and a declaration of
+ * invalidity (#340). The shell holds nothing to hand out or to correct.
+ */
+async function writtenEvidenceOf(tx: TenantTransaction, id: string) {
+  const row = await evidenceOf(tx, id)
+
+  if (row.emptiedAt !== null) {
+    throw new ConflictException(retentionSentences.emptied)
+  }
+
+  return row
+}
+
+/**
  * The evidence of these duties, the newest first, each with what it means for
  * the appointment of its duty (ADR 0004, points 14 and 15). A correction is of
  * the duty of the evidence it replaces, so the duties may be read together.
@@ -101,6 +126,7 @@ export async function listedEvidence(
       origin: evidence.origin,
       nextDueOn: evidence.nextDueOn,
       replacesEvidenceId: evidence.replacesEvidenceId,
+      emptiedAt: evidence.emptiedAt,
     })
     .from(evidence)
     .where(inArray(evidence.dutyId, [...dutyIds]))
@@ -123,10 +149,16 @@ export async function listedEvidence(
   )
 
   return written.map((row) => {
-    const { replacesEvidenceId: _, nextDueOn, ...shown } = row
+    const { replacesEvidenceId: _, nextDueOn, emptiedAt, ...shown } = row
 
-    // The due day of a list only where an evidence was taken over with one (#130).
-    return { ...shown, standing: standing(row), ...(nextDueOn === null ? {} : { nextDueOn }) }
+    // The due day of a list only where an evidence was taken over with one (#130),
+    // and the mark of the shell only on one (#340).
+    return {
+      ...shown,
+      standing: standing(row),
+      ...(nextDueOn === null ? {} : { nextDueOn }),
+      ...(emptiedAt === null ? {} : { emptied: true as const }),
+    }
   })
 }
 
@@ -156,7 +188,10 @@ export class EvidenceController {
    */
   @Get(':id')
   @RequiresPermission('evidence.read')
-  async page(@CurrentIdentity() identity: Asking, @Param('id') id: string): Promise<EvidencePage> {
+  async page(
+    @CurrentIdentity() identity: Asking,
+    @Param('id') id: string,
+  ): Promise<EvidenceReading> {
     const read = await this.database.forTenant(identity, async (tx) => {
       const row = await evidenceOf(tx, id)
       // The duty as it is today, also when it was ended or entered by
@@ -192,8 +227,19 @@ export class EvidenceController {
           roomId,
           assetId,
         },
+        duty,
         ofTheDuty,
         voiding: voiding ?? null,
+        // What the confirmation found, for the shell after the end of the retention (#340).
+        emptying:
+          row.emptiedAt === null
+            ? null
+            : ((
+                await tx
+                  .select()
+                  .from(evidenceEmptyings)
+                  .where(eq(evidenceEmptyings.evidenceId, row.id))
+              )[0] ?? null),
         replacedBy: (
           await tx
             .select({ id: evidence.id, number: evidence.number })
@@ -202,13 +248,49 @@ export class EvidenceController {
         )[0],
       }
     })
-    const { row, voiding } = read
+    const { row, voiding, emptying } = read
     // Accounts are read on the instance and never inside a tenant.
     const accounts = await accountsOf(
       this.database,
-      voiding === null ? [] : [voiding.voidedBy],
+      [
+        ...(voiding === null ? [] : [voiding.voidedBy]),
+        ...(emptying === null ? [] : [emptying.confirmedBy]),
+      ],
       identity.userId,
     )
+    const standing = read.ofTheDuty.find((entry) => entry.id === row.id)?.standing ?? 'counts'
+
+    if (row.emptiedAt !== null) {
+      return {
+        id: row.id,
+        number: row.number,
+        dutyId: row.dutyId,
+        dutyTitle: read.duty === undefined ? row.number : dutyTitle(read.duty, this.catalogue),
+        place: read.place,
+        performedOn: row.performedOn,
+        result: row.result,
+        standing,
+        emptied: {
+          at: (emptying?.confirmedAt ?? row.emptiedAt).toISOString(),
+          confirmedBy:
+            emptying === null
+              ? unknownAccount
+              : (accounts.get(emptying.confirmedBy)?.name ?? unknownAccount),
+          retention: retentionInWords(
+            (emptying?.retention ?? null) as StatedRetention | null,
+            emptying?.minimumYears ?? null,
+          ),
+          endedOn: (emptying?.endedOn ?? row.performedOn) as IsoDate,
+        },
+        voided:
+          voiding === null
+            ? null
+            : {
+                voidedBy: accounts.get(voiding.voidedBy)?.name ?? unknownAccount,
+                voidedAt: voiding.voidedAt.toISOString(),
+              },
+      }
+    }
     const replaced = read.ofTheDuty.find((entry) => entry.id === row.replacesEvidenceId)
 
     return {
@@ -218,7 +300,7 @@ export class EvidenceController {
       place: read.place,
       state: readEvidenceState(row.state),
       fingerprint: row.fingerprint,
-      standing: read.ofTheDuty.find((entry) => entry.id === row.id)?.standing ?? 'counts',
+      standing,
       replaces: replaced === undefined ? null : { id: replaced.id, number: replaced.number },
       replacedBy: read.replacedBy ?? null,
       voiding:
@@ -253,7 +335,7 @@ export class EvidenceController {
     @Param('position') position: string,
   ): Promise<StreamableFile> {
     const found = await this.database.forTenant(identity, async (tx) => {
-      const row = await evidenceOf(tx, id)
+      const row = await writtenEvidenceOf(tx, id)
       const named = /^\d{1,3}$/.test(position)
         ? readEvidenceState(row.state).files[Number(position)]
         : undefined
@@ -306,7 +388,7 @@ export class EvidenceController {
     // An evidence never changes, so what it is may be read before the
     // transaction that corrects it: the names it needs are asked of the
     // instance, which happens outside a tenant.
-    const known = await this.database.forTenant(identity, (tx) => evidenceOf(tx, id))
+    const known = await this.database.forTenant(identity, (tx) => writtenEvidenceOf(tx, id))
 
     refuse(correctionProblems(values, known.origin, dayInGermany()))
 
@@ -392,7 +474,7 @@ export class EvidenceController {
     refuse(problem === undefined ? {} : { reason: problem })
 
     return this.database.forTenant(identity, async (tx) => {
-      const known = await evidenceOf(tx, id)
+      const known = await writtenEvidenceOf(tx, id)
 
       try {
         const taken = await voidEvidence(

@@ -79,6 +79,9 @@ function responsibleLabel(kind: DeadlineKindView): string {
       : deadlineWords.responsibleOfTheDuty
 }
 
+/** Where the evidence whose retention ended is proposed for deletion (#340). */
+const retentionPlace = '/einstellungen/aufbewahrung'
+
 /** What a deadline is called in the list, as its table names it (#236), and where its name leads. */
 function sourceOf(deadline: DutyDeadlineView): { readonly href: string; readonly name: string } {
   const name = deadlineSubject(deadline)
@@ -108,6 +111,9 @@ function sourceOf(deadline: DutyDeadlineView): { readonly href: string; readonly
     case 'qualification':
       // The qualification of a person that runs out (#337), on the list of the qualifications.
       return { href: qualificationListPlace.to, name }
+    case 'evidence':
+      // The evidence whose retention ended (#340), proposed for deletion under "Aufbewahrung".
+      return { href: retentionPlace, name }
     case 'warranty':
       // The accepted work order or the asset whose warranty ends (#329).
       return {

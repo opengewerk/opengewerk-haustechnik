@@ -5,6 +5,7 @@ import {
   isAllowed,
   type IsoDate,
   readEvidenceState,
+  retentionSentences,
   type SearchAnswer,
   type SearchHit,
   type SearchKind,
@@ -334,8 +335,11 @@ async function evidenceFound(tx: TenantTransaction, words: string) {
         number: evidence.number,
         performedOn: evidence.performedOn,
         state: evidence.state,
+        emptiedAt: evidence.emptiedAt,
+        propertyName: properties.name,
       })
       .from(evidence)
+      .innerJoin(properties, eq(properties.id, evidence.propertyId))
       .where(holding(searchedIn, words))
       .orderBy(closest(searchedIn, words), asc(evidence.number))
       .limit(asked),
@@ -343,6 +347,18 @@ async function evidenceFound(tx: TenantTransaction, words: string) {
 
   return {
     hits: rows.map((row): SearchHit => {
+      // The shell after the end of the retention holds nothing more (#340).
+      if (row.emptiedAt !== null) {
+        return {
+          kind: 'evidence',
+          id: row.id,
+          number: row.number,
+          title: retentionSentences.emptiedTitle,
+          performedOn: row.performedOn as IsoDate,
+          place: row.propertyName,
+        }
+      }
+
       // What the evidence froze, and of it only what the line needs: never
       // who performed it or wrote it down.
       const state = readEvidenceState(row.state)

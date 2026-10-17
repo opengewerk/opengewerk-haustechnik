@@ -235,8 +235,13 @@ export function deadlineSubject(facts: DeadlineFacts): string {
       return facts.qualification.personName === null
         ? facts.qualification.kindLabel
         : `${facts.qualification.kindLabel}, ${facts.qualification.personName}`
+    case 'evidence':
+      return `${evidenceDeadlineSubject} ${facts.evidence.number}, ${facts.evidence.dutyTitle}`
   }
 }
+
+/** What the end of the retention of an evidence is called in the list (#340), with its number and duty behind it. */
+export const evidenceDeadlineSubject = 'Aufbewahrung von'
 
 /** What the end of a delegation of duties is called in the list (#336), with the person behind it. */
 export const delegationDeadlineSubject = 'Pflichtenübertragung'

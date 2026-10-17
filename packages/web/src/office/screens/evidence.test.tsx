@@ -1,5 +1,6 @@
 import type {
   DutyDetails,
+  EmptiedEvidencePage,
   EvidencePage,
   EvidenceState,
   RoleKey,
@@ -426,6 +427,57 @@ describe('the page of an evidence', () => {
 
     expect(await screen.findByText(noRenderer)).toBeDefined()
     expect(screen.getByRole('button', { name: pdfWords.open })).toBeDefined()
+  })
+
+  it('shows what stays after the end of its retention, and offers nothing to print or correct (#340)', async () => {
+    const shell: EmptiedEvidencePage = {
+      id: 'e-shell' as never,
+      number: 'NW-2016-00048',
+      dutyId: 'd-1' as never,
+      dutyTitle: 'Gefährdungsanalyse der Trinkwasserinstallation',
+      place: {
+        propertyId: school.id as never,
+        buildingId: house.id as never,
+        roomId: boilerRoom.id as never,
+        assetId: heater.id as never,
+      },
+      performedOn: '2016-06-20' as never,
+      result: 'without_defects',
+      standing: 'counts',
+      emptied: {
+        at: '2026-10-17T07:30:00.000Z',
+        confirmedBy: 'Sabine Krämer',
+        retention: '10 Jahre',
+        endedOn: '2026-06-20' as never,
+      },
+      voided: null,
+    }
+
+    written = signedInOffice(
+      'management',
+      [sued],
+      { ...servingCatalogue(), [`/evidence/${shell.id}`]: shell, '/duties/d-1': theDuty },
+      (write) => answerToWrite(write),
+    )
+    await mountOffice(`/nachweise/${shell.id}`, server, everything)
+    await screen.findByRole('heading', { level: 1, name: shell.dutyTitle })
+
+    expect(head()).toContain('NW-2016-00048')
+    expect(head()).toContain('Gelöscht')
+    expect(
+      screen.getByText(
+        `Gelöscht am ${moment(shell.emptied.at)} nach Ablauf der Aufbewahrung (10 Jahre, endete am 20.06.2026), bestätigt von Sabine Krämer. Inhalt, Unterschriften, Namen und Dateien sind gelöscht.`,
+      ),
+    ).toBeDefined()
+    expect(factsIn('Was bleibt')).toEqual({
+      Nummer: 'NW-2016-00048',
+      Pflicht: shell.dutyTitle,
+      Tag: '20.06.2016',
+      Ergebnis: 'Ohne Mangel',
+    })
+    expect(screen.queryByRole('button', { name: /PDF/ })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Berichtigen' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Für ungültig erklären' })).toBeNull()
   })
 
   it('offers neither to the Haustechnik', async () => {

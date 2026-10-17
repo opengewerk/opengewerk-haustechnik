@@ -11,6 +11,7 @@ import {
   meterDue,
   roundDue,
   documentExpires,
+  evidenceRetentionEnds,
   riskAssessmentReview,
   contractEnd,
   contractNotice,
@@ -38,6 +39,7 @@ describe('the kinds of deadline of this application', () => {
       warrantyEnds,
       delegationEnds,
       qualificationExpires,
+      evidenceRetentionEnds,
     ])
     expect(registry.kind('duty.due')).toBe(dutyDue)
     expect(registry.kind('defect.due')).toBe(defectDue)

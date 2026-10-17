@@ -165,6 +165,10 @@ const MeterSettingsScreen = lazyRouteComponent(
   () => import('./screens/meter-settings.js'),
   'MeterSettingsScreen',
 )
+const RetentionScreen = lazyRouteComponent(
+  () => import('./screens/retention.js'),
+  'RetentionScreen',
+)
 const WorkOrderSettingsScreen = lazyRouteComponent(
   () => import('./screens/work-order-settings.js'),
   'WorkOrderSettingsScreen',
@@ -784,6 +788,12 @@ export function officeRoutes() {
       getParentRoute: () => office,
       path: '/einstellungen/fristen',
       component: DeadlineSettingsScreen,
+    }),
+    // The retention of the evidence and what can be deleted (#340).
+    createRoute({
+      getParentRoute: () => office,
+      path: '/einstellungen/aufbewahrung',
+      component: RetentionScreen,
     }),
     createRoute({
       getParentRoute: () => office,
