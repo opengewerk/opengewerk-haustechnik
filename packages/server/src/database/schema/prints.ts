@@ -1,6 +1,6 @@
 import type { RoundRecordState } from '@opengewerk/haustechnik-domain'
 import { primaryId, reference, tenantIsolation } from '@opengewerk/platform-server'
-import { files, tenantColumn } from '@opengewerk/platform-server/schema'
+import { files, memberships, tenantColumn } from '@opengewerk/platform-server/schema'
 import { sql } from 'drizzle-orm'
 import {
   boolean,
@@ -18,7 +18,12 @@ import { activities } from './activities.js'
 import { withinAreas } from './areas.js'
 import { evidence } from './evidence.js'
 import { serviceReports } from './service-reports.js'
-import { kindOfItsActivity, kindOfItsActivityOrEvidence, withinLimits } from './limit-policies.js'
+import {
+  kindOfItsActivity,
+  kindOfItsActivityOrEvidence,
+  kindOfItsEvidence,
+  withinLimits,
+} from './limit-policies.js'
 
 /**
  * The frozen state of a round as a whole (section 2.6 of the concept, #111):
@@ -138,5 +143,64 @@ export const prints = pgTable(
       'prints_voided_evidence',
       sql`not ${table.voided} or ${table.evidenceId} is not null or ${table.serviceReportId} is not null`,
     ),
+  ],
+)
+
+/**
+ * The PDF of an evidence with a higher signature, signed outside and filed at
+ * the evidence (#341, section 2.6 of the concept; decided on 15.10.2026: only
+ * taken). The evidence does not change by it. What the file was checked for
+ * on its way in, `evidence/signed-pdf.ts` says; what the certificate names is
+ * kept as it stood in the file. Read and added, never changed or removed, but
+ * with its evidence after the end of the retention (#340).
+ */
+export const evidenceSignedPrints = pgTable(
+  'evidence_signed_prints',
+  {
+    id: primaryId<'evidence-signed-print'>(),
+    ...tenantColumn,
+    propertyId: reference<'property'>('property_id').notNull(),
+    areaId: reference<'area'>('area_id').notNull(),
+    evidenceId: reference<'evidence'>('evidence_id').notNull(),
+    sha256: text('sha256').notNull(),
+    signer: text('signer').notNull(),
+    issuer: text('issuer').notNull(),
+    /** The moment the signature names for itself, where it names one. */
+    signedAt: timestamp('signed_at', { withTimezone: true }),
+    validFrom: timestamp('valid_from', { withTimezone: true }).notNull(),
+    validTo: timestamp('valid_to', { withTimezone: true }).notNull(),
+    filedBy: text('filed_by').notNull(),
+    filedAt: timestamp('filed_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    tenantIsolation(table.tenantId),
+    withinAreas(),
+    withinLimits(table.propertyId, kindOfItsEvidence(table.evidenceId)),
+    unique('evidence_signed_prints_tenant_id_key').on(table.tenantId, table.id),
+    // The area of what the row hangs on (ADR 0003, addendum of #306).
+    foreignKey({
+      columns: [table.tenantId, table.evidenceId, table.areaId],
+      foreignColumns: [evidence.tenantId, evidence.id, evidence.areaId],
+      name: 'evidence_signed_prints_follow_their_evidence',
+    }).onUpdate('cascade'),
+    foreignKey({
+      columns: [table.tenantId, table.evidenceId, table.propertyId],
+      foreignColumns: [evidence.tenantId, evidence.id, evidence.propertyId],
+      name: 'evidence_signed_prints_of_an_evidence_of_their_property',
+    }).onUpdate('cascade'),
+    foreignKey({
+      columns: [table.tenantId, table.sha256],
+      foreignColumns: [files.tenantId, files.sha256],
+      name: 'evidence_signed_prints_in_a_file_of_the_tenant',
+    }),
+    foreignKey({
+      columns: [table.tenantId, table.filedBy],
+      foreignColumns: [memberships.tenantId, memberships.userId],
+      name: 'evidence_signed_prints_filed_by_somebody_here',
+    }),
+    // The same file once at an evidence.
+    uniqueIndex('evidence_signed_prints_once').on(table.tenantId, table.evidenceId, table.sha256),
+    check('evidence_signed_prints_signer_shaped', sql`length(${table.signer}) between 1 and 500`),
+    check('evidence_signed_prints_issuer_shaped', sql`length(${table.issuer}) between 1 and 500`),
   ],
 )

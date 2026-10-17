@@ -943,6 +943,22 @@ function rowsOf(tenant: Tenant): readonly Row[] {
         sha256: file,
       },
     },
+    // The PDF of the evidence with a higher signature, signed outside (#341).
+    {
+      table: 'evidence_signed_prints',
+      values: {
+        tenant_id: tenant.id,
+        property_id: property,
+        area_id: area,
+        evidence_id: evidence,
+        sha256: file,
+        signer: 'Dr. Anna Becker, Prüfstelle Probe GmbH',
+        issuer: 'Dr. Anna Becker, Prüfstelle Probe GmbH',
+        valid_from: '2026-01-01T00:00:00Z',
+        valid_to: '2036-01-01T00:00:00Z',
+        filed_by: tenant.userId,
+      },
+    },
     // The client's signature under the service report of the work order and
     // its frozen state (#324).
     {

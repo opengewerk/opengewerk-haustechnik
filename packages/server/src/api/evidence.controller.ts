@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   ConflictException,
   Controller,
@@ -9,6 +10,7 @@ import {
   Param,
   Post,
   StreamableFile,
+  UnprocessableEntityException,
 } from '@nestjs/common'
 import {
   type Asset,
@@ -27,6 +29,8 @@ import {
   readEvidenceState,
   retentionInWords,
   retentionSentences,
+  type SignedPrint,
+  signedPrintWords,
   type StatedRetention,
   statedReasonProblem,
 } from '@opengewerk/haustechnik-domain'
@@ -50,9 +54,12 @@ import {
   duties,
   evidence,
   evidenceEmptyings,
+  evidenceSignedPrints,
   evidenceVoidings,
+  prints,
   rooms,
 } from '../database/schema/index.js'
+import { checkSignedPdf, SignedPdfRefusal } from '../evidence/signed-pdf.js'
 import { voidEvidence } from '../evidence/voiding.js'
 import { EvidenceRefusal, writeEvidence } from '../evidence/write.js'
 import { dayInGermany } from '../today.js'
@@ -230,6 +237,12 @@ export class EvidenceController {
         duty,
         ofTheDuty,
         voiding: voiding ?? null,
+        // The PDFs with a higher signature, signed outside (#341).
+        signed: await tx
+          .select()
+          .from(evidenceSignedPrints)
+          .where(eq(evidenceSignedPrints.evidenceId, row.id))
+          .orderBy(desc(evidenceSignedPrints.filedAt)),
         // What the confirmation found, for the shell after the end of the retention (#340).
         emptying:
           row.emptiedAt === null
@@ -255,6 +268,7 @@ export class EvidenceController {
       [
         ...(voiding === null ? [] : [voiding.voidedBy]),
         ...(emptying === null ? [] : [emptying.confirmedBy]),
+        ...read.signed.map((each) => each.filedBy),
       ],
       identity.userId,
     )
@@ -311,7 +325,150 @@ export class EvidenceController {
               voidedBy: accounts.get(voiding.voidedBy)?.name ?? unknownAccount,
               voidedAt: voiding.voidedAt.toISOString(),
             },
+      signedPrints: read.signed.map((each): SignedPrint => ({
+        id: each.id,
+        signer: each.signer,
+        issuer: each.issuer,
+        signedAt: each.signedAt?.toISOString() ?? null,
+        validFrom: each.validFrom.toISOString(),
+        validTo: each.validTo.toISOString(),
+        filedBy: accounts.get(each.filedBy)?.name ?? unknownAccount,
+        filedAt: each.filedAt.toISOString(),
+      })),
     }
+  }
+
+  /**
+   * The PDF of this evidence with a higher signature, signed outside, filed at
+   * it (#341; decided on 15.10.2026: only taken). The file went up ahead,
+   * under the right to file a document; here it is named by its hash and
+   * checked (`evidence/signed-pdf.ts`): it is one of the prints of this
+   * evidence with a signature appended that covers the whole file and fits its
+   * certificate. The evidence does not change. Filing is entering evidence.
+   */
+  @Post(':id/signed-prints')
+  @RequiresPermission('evidence.write')
+  async fileSigned(
+    @CurrentIdentity() identity: Asking,
+    @Param('id') id: string,
+    @Body() body: unknown,
+  ): Promise<SignedPrint> {
+    const { sha256 } = fieldsOf(body, ['sha256'], [])
+
+    if (typeof sha256 !== 'string' || !/^[0-9a-f]{64}$/.test(sha256)) {
+      throw new BadRequestException(signedPrintWords.missingFile)
+    }
+
+    const known = await this.database.forTenant(identity, async (tx) => {
+      const row = await writtenEvidenceOf(tx, id)
+      const [stored] = await tx
+        .select({ sha256: files.sha256 })
+        .from(files)
+        .where(and(eq(files.tenantId, identity.tenantId), eq(files.sha256, sha256)))
+      const printed = await tx
+        .select({ sha256: prints.sha256 })
+        .from(prints)
+        .where(eq(prints.evidenceId, row.id))
+
+      return { row, stored, printed }
+    })
+
+    if (known.stored === undefined) {
+      throw new BadRequestException(signedPrintWords.missingFile)
+    }
+
+    if (known.printed.length === 0) {
+      throw new ConflictException(signedPrintWords.noPrint)
+    }
+
+    const file = await this.store.get(sha256)
+    const printBytes = await Promise.all(known.printed.map((each) => this.store.get(each.sha256)))
+    let facts: ReturnType<typeof checkSignedPdf>
+
+    try {
+      facts = checkSignedPdf(file, printBytes)
+    } catch (error) {
+      throw error instanceof SignedPdfRefusal
+        ? new UnprocessableEntityException(error.message)
+        : error
+    }
+
+    const accounts = await accountsOf(this.database, [identity.userId], identity.userId)
+    const [written] = await this.database.forTenant(identity, (tx) =>
+      tx
+        .insert(evidenceSignedPrints)
+        .values({
+          tenantId: identity.tenantId,
+          propertyId: known.row.propertyId,
+          areaId: known.row.areaId,
+          evidenceId: known.row.id,
+          sha256,
+          signer: facts.signer.slice(0, 500),
+          issuer: facts.issuer.slice(0, 500),
+          signedAt: facts.signedAt,
+          validFrom: facts.validFrom,
+          validTo: facts.validTo,
+          filedBy: identity.userId,
+        })
+        .onConflictDoNothing()
+        .returning(),
+    )
+
+    if (written === undefined) {
+      throw new ConflictException(signedPrintWords.twice)
+    }
+
+    return {
+      id: written.id,
+      signer: written.signer,
+      issuer: written.issuer,
+      signedAt: written.signedAt?.toISOString() ?? null,
+      validFrom: written.validFrom.toISOString(),
+      validTo: written.validTo.toISOString(),
+      filedBy: accounts.get(identity.userId)?.name ?? unknownAccount,
+      filedAt: written.filedAt.toISOString(),
+    }
+  }
+
+  /** A PDF with a higher signature filed at this evidence, as it was filed (#341). */
+  @Get(':id/signed-prints/:printId')
+  @RequiresPermission('evidence.read')
+  @Header('Cache-Control', 'no-store')
+  async signedPrint(
+    @CurrentIdentity() identity: Asking,
+    @Param('id') id: string,
+    @Param('printId') printId: string,
+  ): Promise<StreamableFile> {
+    const found = await this.database.forTenant(identity, async (tx) => {
+      const row = await evidenceOf(tx, id)
+
+      if (!isUuid(printId)) {
+        return null
+      }
+
+      const [held] = await tx
+        .select({ sha256: evidenceSignedPrints.sha256 })
+        .from(evidenceSignedPrints)
+        .where(
+          and(
+            eq(evidenceSignedPrints.id, printId as typeof evidenceSignedPrints.$inferSelect.id),
+            eq(evidenceSignedPrints.evidenceId, row.id),
+          ),
+        )
+
+      return held === undefined ? null : { number: row.number, sha256: held.sha256 }
+    })
+
+    if (found === null) {
+      throw new NotFoundException(signedPrintWords.missing)
+    }
+
+    const bytes = await this.store.get(found.sha256)
+
+    return new StreamableFile(Buffer.from(bytes), {
+      type: 'application/pdf',
+      disposition: dispositionFor('application/pdf', `Nachweis ${found.number} signiert.pdf`),
+    })
   }
 
   /**
