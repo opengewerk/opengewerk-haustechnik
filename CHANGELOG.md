@@ -9,6 +9,14 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
 
 ### Hinzugefügt
 
+- Lesender Zugang für Prüfer von außen (#339, Abschnitt 4.3 des Konzepts): die Rolle „Prüfer“ liest Pflichten und
+  Nachweise mit den Prüfbescheinigungen, die das Nachweisverzeichnis anhängt, und gleicht nur ab, woran die Pflichten
+  hängen. Sein Zugang hat immer einen letzten Tag (opengewerk/opengewerk#656, Migration `0069_membership_last_day`),
+  nach dem er von selbst endet, und kann auf Liegenschaften und Anlagenarten beschränkt werden; die Datenbank hält
+  die Beschränkung wie den Bereich (`within_limits`, Migration `0070_auditor`). Jede seiner Anfragen steht im
+  Protokoll der Zugriffe, das die Leitung unter „Zugänge“ sieht. Allgemein kann jeder Zugang einen letzten Tag haben.
+  Warum: eine Behörde, ein Versicherer oder eine Prüforganisation soll die Nachweise selbst einsehen können, ohne
+  mehr zu sehen oder etwas zu ändern (entschieden am 15.10.2026).
 - Qualifikationen der Mitarbeiter (#337, Abschnitt 4.3 des Konzepts): unter „Qualifikationen“ je Person die Arten,
   die sie hält, gültig bis und mit Nachweis, und eigene Arten des Betreibers neben denen der Pakete. Die Pakete
   Elektro, Brandschutz und Landesrecht nennen in `qualifikationen.json` je Art die Pflichtarten, die sie fordern. Wer

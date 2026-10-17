@@ -3,6 +3,7 @@ import { StaffDialogsScreen } from '@opengewerk/platform-web/office'
 import { mailStatus } from '@opengewerk/platform-web/session'
 import { useQuery } from '@tanstack/react-query'
 
+import { AuditorReadsCard } from '../auditor-reads.js'
 import { useAreaAdditions } from '../staff-areas.js'
 import { Substitutions } from '../substitutions.js'
 
@@ -20,6 +21,9 @@ export const roleNotes: Readonly<Record<RoleKey, string>> = {
     'Ihre Bereiche: Rundgänge, Aufträge und Prüfungen ausführen, Anlagen aufnehmen, Zähler ablesen, Mängel melden.',
   reporter:
     'Ihre Bereiche: Störungen melden und die eigenen Meldungen sehen, sonst nichts. Arbeitet vor Ort mit Verbindung.',
+  // The auditor from outside (#339, section 4.3 of the concept).
+  auditor:
+    'Von außen und nur lesend: Pflichten, Nachweise und Prüfbescheinigungen, bis zum letzten Tag. Jeder Zugriff wird festgehalten.',
 }
 
 export const staffScreenWords = {
@@ -61,8 +65,11 @@ export function StaffScreen() {
       roleNotes={roleNotes}
       sentences={staffScreenWords}
       additions={areas}
+      // An auditor from outside is given an access only up to a last day (#339).
+      endingRoles={['auditor']}
     >
       <Substitutions />
+      <AuditorReadsCard />
     </StaffDialogsScreen>
   )
 }

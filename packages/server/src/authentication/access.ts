@@ -49,11 +49,15 @@ export const access: AccessRules<Right> = {
   // written with an invitation, with the membership it becomes and with a
   // change of roles (section 2.8 of the concept).
   additions: areaAdditions,
+  // An auditor from outside reads only up to a last day (#339, section 4.3 of the concept).
+  endingRoles: ['auditor'],
   sentences: {
     noTenantChosen: 'Es ist noch kein Betreiber gewählt. Bitte zuerst einen Betreiber auswählen.',
     noAccessToTenant: 'Kein Zugang zu diesem Betreiber.',
     blockedInTenant:
       'Dieser Zugang ist bei diesem Betreiber gesperrt. Die Leitung kann ihn wieder freigeben.',
+    endedInTenant:
+      'Dieser Zugang bei diesem Betreiber ist abgelaufen. Einen neuen letzten Tag gibt die Leitung.',
     alreadyWorksHere: 'Diese Adresse arbeitet schon für diesen Betreiber.',
     notAMember: 'Dieses Konto arbeitet nicht für diesen Betreiber.',
     accountNotOnlyHere:

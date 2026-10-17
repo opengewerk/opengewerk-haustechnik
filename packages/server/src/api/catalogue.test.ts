@@ -109,14 +109,19 @@ describe('the catalogue of the server', () => {
 })
 
 describe('who reads the catalogue (section 7)', () => {
-  it.each(roleKeys)('is everybody who works for a tenant: %s', async (role) => {
-    for (const path of ['/catalogue', '/catalogue/checksum']) {
-      await request(app.getHttpServer())
-        .get(path)
-        .set(testIdentityHeader, as(tenant, 'u-somebody', role))
-        .expect(200)
-    }
-  })
+  // An auditor has every request written down before it is served, in a
+  // database this test does not have; `auditors.test.ts` holds its catalogue.
+  it.each(roleKeys.filter((role) => role !== 'auditor'))(
+    'is everybody who works for a tenant: %s',
+    async (role) => {
+      for (const path of ['/catalogue', '/catalogue/checksum']) {
+        await request(app.getHttpServer())
+          .get(path)
+          .set(testIdentityHeader, as(tenant, 'u-somebody', role))
+          .expect(200)
+      }
+    },
+  )
 
   it('is whoever syncs a device, also without the right to read duties', async () => {
     for (const path of ['/catalogue', '/catalogue/checksum']) {

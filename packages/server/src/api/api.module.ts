@@ -40,6 +40,7 @@ import {
   VERSION,
 } from '@opengewerk/platform-server'
 
+import { AuditorReadsInterceptor } from '../limits/auditor-reads.js'
 import { access } from '../authentication/access.js'
 import { CATALOGUE, shippedCatalogue } from '../catalogue.js'
 import { changeNumberRange, numberRangesOf } from '../database/number-ranges.js'
@@ -48,6 +49,7 @@ import { mailServersOfOperators } from '../mail/server-settings.js'
 import { invitationMailing } from '../notifications/invitation-mail.js'
 import { pushRules } from '../notifications/push.js'
 import { ActivitiesController } from './activities.controller.js'
+import { AuditorReadsController } from './auditor-reads.controller.js'
 import { AreasController, SubstitutionsController } from './areas.controller.js'
 import { AssetsController, BuildingAssetsController } from './assets.controller.js'
 import { attachmentRights, attachmentRoutes } from './attachment-routes.js'
@@ -421,6 +423,8 @@ export class ApiModule {
         FiguresController,
         DelegationsController,
         QualificationsController,
+        // Every read of an auditor from outside, for the Leitung (#339).
+        AuditorReadsController,
         ...(outside === null ? [] : [OutsideReportsController]),
         MeterSettingsController,
         EvidencePrintController,
@@ -471,6 +475,8 @@ export class ApiModule {
         // which device: that stays on the row and in the change log, which
         // only the Leitung reads (section 9 of the concept).
         { provide: APP_INTERCEPTOR, useClass: StampInterceptor },
+        // Every request of an auditor from outside is written down before it is served (#339).
+        { provide: APP_INTERCEPTOR, useClass: AuditorReadsInterceptor },
       ],
     }
   }

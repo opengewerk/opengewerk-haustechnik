@@ -265,6 +265,14 @@ export const previewColleagues: readonly PreviewColleague[] = [
     role: 'reporter',
     areas: ['Süd'],
   },
+  // An auditor from outside, up to a last day and limited to the school centre (#339).
+  {
+    id: 'preview-seidel',
+    name: 'Dr. Frank Seidel',
+    email: 'f.seidel@pruefstelle.example',
+    role: 'auditor',
+    areas: ['Süd'],
+  },
 ]
 
 /** That person at work for the sample operator, with what the role may do. */

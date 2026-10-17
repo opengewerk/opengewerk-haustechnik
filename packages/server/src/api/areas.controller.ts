@@ -17,8 +17,11 @@ import {
   areaTableRow,
   byNameIn,
   type InvitationAreas,
+  type InvitationLimits,
   isAllowed,
   type MemberAreas,
+  type MemberLimitsOf,
+  type OwnLimits,
   tableNamesPeople,
 } from '@opengewerk/haustechnik-domain'
 import {
@@ -48,6 +51,7 @@ import {
   listSubstitutions,
   type SubstitutionEntry,
 } from '../areas/substitutions.js'
+import { memberLimitsOf, openInvitationLimits, ownLimitsOf } from '../limits/limits.js'
 import { dayInGermany } from '../today.js'
 import { RequiresPermission } from './authorization.js'
 import type { Asking } from './places.js'
@@ -149,6 +153,37 @@ export class AreasController {
   @RequiresPermission('membership.read')
   invitations(@CurrentIdentity() identity: Asking): Promise<InvitationAreas[]> {
     return this.database.forTenant(identity, (tx) => openInvitationAreas(tx))
+  }
+
+  /**
+   * What the accesses from outside are limited to beside their areas (#339):
+   * the properties and kinds of assets, for whoever administers who works
+   * here. An access without a limit is not in it.
+   */
+  @Get('limits')
+  @RequiresPermission('membership.read')
+  limits(@CurrentIdentity() identity: Asking): Promise<MemberLimitsOf[]> {
+    return this.database.forTenant(identity, (tx) => memberLimitsOf(tx))
+  }
+
+  /**
+   * What the person asking is limited to and up to which day (#339), for the
+   * note above the register: every role that reads duties asks it, and an
+   * access without limits gets empty lists.
+   */
+  @Get('my-limits')
+  @RequiresPermission('duty.read')
+  myLimits(@CurrentIdentity() identity: Asking): Promise<OwnLimits> {
+    return this.database.forTenant(identity, (tx) =>
+      ownLimitsOf(tx, identity.userId, identity.roles),
+    )
+  }
+
+  /** What the invitations that can still be used limit to; one that limits nothing is not in it. */
+  @Get('invitation-limits')
+  @RequiresPermission('membership.read')
+  invitationLimits(@CurrentIdentity() identity: Asking): Promise<InvitationLimits[]> {
+    return this.database.forTenant(identity, (tx) => openInvitationLimits(tx))
   }
 
   /** Gives somebody every area or the ones named. */

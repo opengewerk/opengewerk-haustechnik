@@ -61,6 +61,7 @@ import {
 import { EvidenceNumber } from '../evidence-words.js'
 import { importPlaces } from '../import-addresses.js'
 import { factLink } from '../links.js'
+import { OwnLimitsNote } from '../own-limits.js'
 import { officePlaces } from '../place-addresses.js'
 import { assetKindChoices, PlaceFilter, RegisterFilter } from '../register-filter.js'
 import { asTableAddress } from '../table-address.js'
@@ -290,6 +291,8 @@ export function DutyRegisterScreen() {
           </InlineButton>
         </NoteBox>
       )}
+      {/* What an auditor from outside reads, until when, and that it is written down (#339). */}
+      <OwnLimitsNote />
       {/* A new version of a package is said above the list, whatever it is narrowed by (#139). */}
       <DutyUpdatesNote />
       {first !== undefined &&

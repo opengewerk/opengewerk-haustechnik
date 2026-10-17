@@ -16,6 +16,7 @@ import {
 import {
   byNameIn,
   type Catalogue,
+  delegationCovers,
   type DelegationDutyLine,
   type DelegationEntry,
   delegationProblems,
@@ -25,8 +26,8 @@ import {
   delegationScopeWords,
   delegationState,
   delegationTermsOf,
-  delegationCovers,
   type DutyDelegationId,
+  isLimited,
   type IsoDate,
   lastDayOf,
   packageOfKind,
@@ -37,6 +38,7 @@ import {
 } from '@opengewerk/haustechnik-domain'
 import {
   accountsOf,
+  beforeItsEnd,
   CurrentIdentity,
   Database,
   isUuid,
@@ -553,7 +555,7 @@ export class DelegationsController {
     const [member] = await tx
       .select({ userId: memberships.userId, roles: memberships.roles })
       .from(memberships)
-      .where(and(eq(memberships.userId, userId), isNull(memberships.blockedAt)))
+      .where(and(eq(memberships.userId, userId), isNull(memberships.blockedAt), beforeItsEnd()))
     const rights =
       member === undefined
         ? []
@@ -568,6 +570,12 @@ export class DelegationsController {
       throw new BadRequestException(
         'Beauftragt wird jemand, der für diesen Betreiber arbeitet und die Pflichten ansehen darf.',
       )
+    }
+
+    // An auditor from outside reads and carries no duty (#339): so nobody of
+    // whom a delegation asks a signature reads only.
+    if (isLimited(member.roles)) {
+      throw new BadRequestException('Pflichten werden keinem Prüfer übertragen.')
     }
 
     if (userId === identity.userId) {

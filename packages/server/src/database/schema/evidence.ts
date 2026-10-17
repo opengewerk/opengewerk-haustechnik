@@ -25,6 +25,7 @@ import { withinAreas } from './areas.js'
 import { contractors } from './contractors.js'
 import { duties } from './duties.js'
 import { evidenceResult } from './evidence-result.js'
+import { kindOfItsDuty, kindOfItsEvidence, withinLimits } from './limit-policies.js'
 import { optionalTrimmed, trimmed } from './locations.js'
 
 /** What an evidence came from, from the list in `domain`. */
@@ -83,6 +84,8 @@ export const evidence = pgTable(
   (table) => [
     tenantIsolation(table.tenantId),
     withinAreas(),
+    // Only the evidence of duties an access from outside is limited to (#339).
+    withinLimits(table.propertyId, kindOfItsDuty(table.dutyId)),
     unique('evidence_tenant_id_key').on(table.tenantId, table.id),
     // What a row that hangs on it points at for its area (ADR 0003, addendum of #306).
     unique('evidence_area_key').on(table.tenantId, table.id, table.areaId),
@@ -237,6 +240,8 @@ export const evidenceVoidings = pgTable(
   (table) => [
     tenantIsolation(table.tenantId),
     withinAreas(),
+    // As far as its evidence is within the limits of an access from outside (#339).
+    withinLimits(table.propertyId, kindOfItsEvidence(table.evidenceId)),
     unique('evidence_voidings_tenant_id_key').on(table.tenantId, table.id),
     // The area of what the row hangs on (ADR 0003, addendum of #306).
     foreignKey({

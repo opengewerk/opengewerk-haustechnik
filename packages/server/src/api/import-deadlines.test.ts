@@ -63,6 +63,7 @@ const people: Readonly<Record<RoleKey, string>> = {
   site_management: 'u-site',
   technician: 'u-tech',
   reporter: 'u-reporter',
+  auditor: 'u-auditor',
 }
 
 /** A day that was, counted back from today: an evidence is of a day that was. */

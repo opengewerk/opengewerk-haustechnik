@@ -26,6 +26,9 @@ export * from './model/tenant.js'
 // Where somebody may do it: the areas a tenant bundles its properties in, and
 // who stands in for whom.
 export * from './model/area.js'
+// What an access from outside is limited to beside its areas (#339).
+export * from './model/limits.js'
+export * from './model/auditor-reads.js'
 
 // The place: properties, buildings, floors and rooms, and what a record that
 // belongs to a place hangs on.

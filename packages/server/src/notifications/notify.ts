@@ -11,6 +11,7 @@ import {
 } from '@opengewerk/haustechnik-domain'
 import {
   accountsOf,
+  beforeItsEnd,
   type Database,
   deadlineRemindsOn,
   deadlineSettingsOf,
@@ -230,7 +231,7 @@ function takesPush(tenant: SQL, user: SQL, occasion: string): SQL {
  * one. The same question the candidates of a task are found with.
  */
 function mayIn(right: Right, area: SQL): SQL {
-  return sql`${memberships.blockedAt} is null
+  return sql`${memberships.blockedAt} is null and ${beforeItsEnd()}
     and exists (
       select 1 from ${tenantRoles}
        where ${tenantRoles.tenantId} = ${memberships.tenantId}
@@ -608,6 +609,7 @@ export async function taskStillDue(
         eq(memberships.tenantId, tasks.tenantId),
         eq(memberships.userId, tasks.assigneeUserId),
         isNull(memberships.blockedAt),
+        beforeItsEnd(),
       ),
     )
     .where(
@@ -644,7 +646,7 @@ function waitsFor(): SQL {
        and ${activities.responsibleUserId} is not null
        and ${activities.responsibleUserId} <> ${activitySignatures.signedBy}
       then ${memberships.userId} = ${activities.responsibleUserId}
-       and ${memberships.blockedAt} is null
+       and ${memberships.blockedAt} is null and ${beforeItsEnd()}
       else ${mayIn('activity.accept', sql`${activities.areaId}`)}
     end`
 }
@@ -838,6 +840,7 @@ export async function stillRejected(
         eq(memberships.tenantId, activitySignatures.tenantId),
         eq(memberships.userId, activitySignatures.signedBy),
         isNull(memberships.blockedAt),
+        beforeItsEnd(),
       ),
     )
     .where(
@@ -903,6 +906,7 @@ export async function stillAssigned(
         eq(memberships.tenantId, activities.tenantId),
         eq(memberships.userId, notification.userId),
         isNull(memberships.blockedAt),
+        beforeItsEnd(),
       ),
     )
     .where(and(eq(activities.id, notification.activityId), isNull(activities.deletedAt)))
@@ -1011,6 +1015,7 @@ function answeredRows(tx: TenantTransaction) {
         eq(memberships.tenantId, faultReports.tenantId),
         eq(memberships.userId, faultReports.reportedBy),
         isNull(memberships.blockedAt),
+        beforeItsEnd(),
       ),
     )
 }

@@ -1,6 +1,6 @@
 # OpenGewerk Haustechnik: Planungskonzept (Software für Betreiber und ihre Haustechnik) · v0.40
 
-2026-10-15 · Eigenständiges Projekt, Repository `opengewerk-haustechnik` in der GitHub-Organisation `opengewerk` · v0.2 trägt die Entscheidungen vom 01.10.2026 ein, v0.3 die Technik, mit der das Fundament eingebunden wird, v0.4 gleicht Abschnitt 5 und die Wortwahl an die ADRs 0002 bis 0006 an, siehe Abschnitt 15; v0.5 sagt in Abschnitt 7, was jede Rolle im Einzelnen darf, v0.6 nennt dort die Rechte für den Abgleich, v0.7 gibt den eigenen Anlagenarten und den Mängelklassen ihre Phase, v0.8 trägt die Entscheidungen vom 04.10.2026 vor dem Bau von Phase 1 ein, v0.9 gibt der Liegenschaft ihre Notiz, v0.10 sagt, wer ihre Ansprechpartner pflegt, v0.11, was eine Schließzeit ist und wer sie einträgt, v0.12 nennt das Recht, Dokumente abzulegen, v0.13 die Rechte, sie anzusehen und zu entfernen, und woran ein Dokument hängt, v0.14, dass eine eigene Pflicht ihre Tätigkeit nennt, v0.15, welcher Vorgang aus welcher Tätigkeit entsteht, v0.16, wie ein Bericht einer Fremdfirma zum Nachweis wird, v0.17, welche Klassen ein Mangel nehmen kann und was eine Nachprüfung festhält, v0.18, wie ein Vorgang von Hand entsteht und mit Grund geschlossen wird, v0.19, dass auch ein Auftrag mit Grund geschlossen wird, v0.20 nennt das Recht, die Vorlagen der Rundgänge zu führen, und wie ein Punkt eine Pflicht erfüllt, v0.21, welche Dokumente eine Frist tragen und wann eine Pflicht „Frist prüfen“ sagt, v0.22 nennt die Rechte an Aufgaben und woran eine Aufgabe hängt, v0.23, wann eine irrtümlich bestätigte oder angelegte Pflicht entfernt und nicht beendet wird, v0.24, welche Frist welche Aktion auslöst, v0.25, was eine neue Fassung eines Pakets für eine bestätigte Pflicht heißt, v0.26, was an einer trotzdem angelegten Dublette festgehalten wird und dass das Büro wie der Abgleich über die Grenze der Bereiche fragt, v0.27, wie der Import von Anlagen liest, was nur eine Anlagenart hat, v0.28, wie eine Kostengruppe in der Oberfläche heißt, v0.29, was der Tausch einer Anlage im Einzelnen tut, v0.30, über welchen Mailserver eine E-Mail an ein Konto geht, v0.31, auf welchem Weg eine Benachrichtigung kommt, wer sie bekommt und was sie sagt, v0.32, dass der Import von Anlagen bei Dubletten wie das Formular über die Grenze der Bereiche fragt, v0.33, wie der Import laufende Fristen und alte Nachweise übernimmt, v0.34, wie Zählerstände und Vorlagen der Rundgänge übernommen werden und was ein Importpaket ist, v0.35, in welchem Paket die Anlagenarten der Zähler stehen (Vergleich mit openMAINT, Atlas CMMS, eTASK, wave Facilities, pitFM, SPARTACUS, Planon, Lumiform, Wowflow und den Excel-Listen, die vielerorts die eigentliche Software sind); v0.36 nennt, wie eine Frist je Fristart erinnert, und die Netzadresse einer Anmeldung unter den personenbezogenen Daten, v0.37 gibt einem Gebäude einen eigenen Bereich, v0.38 lässt es in eine andere Liegenschaft verlegen, v0.39 lässt einen irrtümlich angelegten Plan eines Rundgangs entfernen, v0.40 trägt die Entscheidungen vom 15.10.2026 vor dem Bau von Phase 2 ein, v0.41 nennt die Rechte am Lager, v0.42 nimmt die Gefährdungsbeurteilung unter die Arten eines Dokuments, v0.43 nennt die Rechte an den Fremdfirmen, v0.44, dass der Name einer Fremdfirma keine geschützte Angabe ist, v0.45 nennt die Rechte an den Verträgen und wie Kündigungsfrist, Verlängerung und Gewährleistung Fristen werden, v0.46 die Rechte an den Störmeldungen und die Rolle Melder, v0.47, ab wann ein Rundgang eines Plans vor Ort steht, v0.48, wie ein Lager und ein Artikel entfernt werden und ein Artikel umzieht, v0.49, wo die Adresse einer Störmeldung ohne Konto steht, wie lange, und wie viele Meldungen die Seite eines Etiketts annimmt, v0.50 nennt das Recht „Auswertungen ansehen“ und wie die Erfüllung der Pflichten über die Zeit gezählt wird, v0.51 sagt, in welchem Monat ein Verbrauch zählt und wann eine Messstelle nicht mitzählt, v0.52 nennt das Recht „Pflichten übertragen“ und wann eine Übertragung gilt, v0.53 nennt die Rechte an den Qualifikationen und wie eine Pflichtart ihre Art nennt
+2026-10-15 · Eigenständiges Projekt, Repository `opengewerk-haustechnik` in der GitHub-Organisation `opengewerk` · v0.2 trägt die Entscheidungen vom 01.10.2026 ein, v0.3 die Technik, mit der das Fundament eingebunden wird, v0.4 gleicht Abschnitt 5 und die Wortwahl an die ADRs 0002 bis 0006 an, siehe Abschnitt 15; v0.5 sagt in Abschnitt 7, was jede Rolle im Einzelnen darf, v0.6 nennt dort die Rechte für den Abgleich, v0.7 gibt den eigenen Anlagenarten und den Mängelklassen ihre Phase, v0.8 trägt die Entscheidungen vom 04.10.2026 vor dem Bau von Phase 1 ein, v0.9 gibt der Liegenschaft ihre Notiz, v0.10 sagt, wer ihre Ansprechpartner pflegt, v0.11, was eine Schließzeit ist und wer sie einträgt, v0.12 nennt das Recht, Dokumente abzulegen, v0.13 die Rechte, sie anzusehen und zu entfernen, und woran ein Dokument hängt, v0.14, dass eine eigene Pflicht ihre Tätigkeit nennt, v0.15, welcher Vorgang aus welcher Tätigkeit entsteht, v0.16, wie ein Bericht einer Fremdfirma zum Nachweis wird, v0.17, welche Klassen ein Mangel nehmen kann und was eine Nachprüfung festhält, v0.18, wie ein Vorgang von Hand entsteht und mit Grund geschlossen wird, v0.19, dass auch ein Auftrag mit Grund geschlossen wird, v0.20 nennt das Recht, die Vorlagen der Rundgänge zu führen, und wie ein Punkt eine Pflicht erfüllt, v0.21, welche Dokumente eine Frist tragen und wann eine Pflicht „Frist prüfen“ sagt, v0.22 nennt die Rechte an Aufgaben und woran eine Aufgabe hängt, v0.23, wann eine irrtümlich bestätigte oder angelegte Pflicht entfernt und nicht beendet wird, v0.24, welche Frist welche Aktion auslöst, v0.25, was eine neue Fassung eines Pakets für eine bestätigte Pflicht heißt, v0.26, was an einer trotzdem angelegten Dublette festgehalten wird und dass das Büro wie der Abgleich über die Grenze der Bereiche fragt, v0.27, wie der Import von Anlagen liest, was nur eine Anlagenart hat, v0.28, wie eine Kostengruppe in der Oberfläche heißt, v0.29, was der Tausch einer Anlage im Einzelnen tut, v0.30, über welchen Mailserver eine E-Mail an ein Konto geht, v0.31, auf welchem Weg eine Benachrichtigung kommt, wer sie bekommt und was sie sagt, v0.32, dass der Import von Anlagen bei Dubletten wie das Formular über die Grenze der Bereiche fragt, v0.33, wie der Import laufende Fristen und alte Nachweise übernimmt, v0.34, wie Zählerstände und Vorlagen der Rundgänge übernommen werden und was ein Importpaket ist, v0.35, in welchem Paket die Anlagenarten der Zähler stehen (Vergleich mit openMAINT, Atlas CMMS, eTASK, wave Facilities, pitFM, SPARTACUS, Planon, Lumiform, Wowflow und den Excel-Listen, die vielerorts die eigentliche Software sind); v0.36 nennt, wie eine Frist je Fristart erinnert, und die Netzadresse einer Anmeldung unter den personenbezogenen Daten, v0.37 gibt einem Gebäude einen eigenen Bereich, v0.38 lässt es in eine andere Liegenschaft verlegen, v0.39 lässt einen irrtümlich angelegten Plan eines Rundgangs entfernen, v0.40 trägt die Entscheidungen vom 15.10.2026 vor dem Bau von Phase 2 ein, v0.41 nennt die Rechte am Lager, v0.42 nimmt die Gefährdungsbeurteilung unter die Arten eines Dokuments, v0.43 nennt die Rechte an den Fremdfirmen, v0.44, dass der Name einer Fremdfirma keine geschützte Angabe ist, v0.45 nennt die Rechte an den Verträgen und wie Kündigungsfrist, Verlängerung und Gewährleistung Fristen werden, v0.46 die Rechte an den Störmeldungen und die Rolle Melder, v0.47, ab wann ein Rundgang eines Plans vor Ort steht, v0.48, wie ein Lager und ein Artikel entfernt werden und ein Artikel umzieht, v0.49, wo die Adresse einer Störmeldung ohne Konto steht, wie lange, und wie viele Meldungen die Seite eines Etiketts annimmt, v0.50 nennt das Recht „Auswertungen ansehen“ und wie die Erfüllung der Pflichten über die Zeit gezählt wird, v0.51 sagt, in welchem Monat ein Verbrauch zählt und wann eine Messstelle nicht mitzählt, v0.52 nennt das Recht „Pflichten übertragen“ und wann eine Übertragung gilt, v0.53 nennt die Rechte an den Qualifikationen und wie eine Pflichtart ihre Art nennt, v0.54 die Rolle Prüfer mit ihren Rechten und den letzten Tag eines Zugangs
 
 Self-hosted Open-Source-System für alle, die Gebäude betreiben und dafür eigene Haustechniker haben. Liegenschaften, Gebäude, Räume und technische Anlagen stehen in einem Datenmodell. Die Betreiberpflichten hängen daran als überwachte Fristen, Rundgänge und Prüfungen laufen auf dem Telefon auch ohne Netz, und zu jeder Pflicht gibt es einen Nachweis, der sich nachträglich nicht ändern lässt.
 
@@ -488,65 +488,65 @@ Regeln für jeden Beitrag:
 | Prüfer | lesend auf Pflichten, Nachweise und Prüfbescheinigungen, befristet, auf Liegenschaften oder Anlagenarten beschränkt, protokolliert |
 
 - Rechte sind feingranular und werden zentral vor jeder Route geprüft; die Datensichtbarkeit sichert zusätzlich die Datenbank (Mandant und Bereich)
-- Zugänge entstehen über Einmal-Links; gesperrt wird die Zugehörigkeit, nicht das Konto; die letzte Leitung lässt sich nicht entmachten
+- Zugänge entstehen über Einmal-Links; gesperrt wird die Zugehörigkeit, nicht das Konto; die letzte Leitung lässt sich nicht entmachten. Ein Zugang kann einen letzten Tag haben, danach endet er von selbst, ohne dass jemand etwas tut; die letzte Leitung bekommt keinen
 - Sicherheitsrelevante Zusagen sind nicht einstellbar: die Unterschrift vor einem Nachweis, die Abnahme eines Auftrags und die Unveränderlichkeit lassen sich per Einstellung verschärfen, nie abschalten
 - Eigene Rollen des Betreibers ab Phase 2. Das Fundament führt Rollen dafür von Anfang an als Daten: die mitgelieferten Rollen sind Zeilen, eigene kommen als weitere dazu. Was sich nach dem Satz darüber nicht abschalten lässt, hängt an keinem Recht, das eine eigene Rolle entziehen könnte. Das Änderungsprotokoll einzusehen bleibt der Leitung vorbehalten und lässt sich keiner eigenen Rolle geben (Abschnitt 9). Ein Recht, das eine spätere Fassung neu bringt, erreicht eine eigene Rolle nicht von selbst; die Leitung sieht, dass es eines gibt
 
-**Rechte je Rolle.** Die Tabelle oben sagt in Worten, wofür eine Rolle da ist. Was sie im Einzelnen darf, steht hier, für die mitgelieferten Rollen: die vier aus Phase 1 und den Melder aus Phase 2. Der Katalog der Rechte im Code ist dieselbe Liste, und ein Test hält beide gegeneinander. Die Bezeichnungen sind die, die ein Betreiber liest, wenn ihm ein Recht fehlt, und ab Phase 2, wenn er eigene Rollen anlegt.
+**Rechte je Rolle.** Die Tabelle oben sagt in Worten, wofür eine Rolle da ist. Was sie im Einzelnen darf, steht hier, für die mitgelieferten Rollen: die vier aus Phase 1, den Melder und den Prüfer aus Phase 2. Der Katalog der Rechte im Code ist dieselbe Liste, und ein Test hält beide gegeneinander. Die Bezeichnungen sind die, die ein Betreiber liest, wenn ihm ein Recht fehlt, und ab Phase 2, wenn er eigene Rollen anlegt.
 
-| Recht | Leitung | Technische Leitung | Objektleitung | Haustechnik | Melder |
-| --- | --- | --- | --- | --- | --- |
-| Liegenschaften, Gebäude und Räume ansehen | ja | ja | ja | ja | nein |
-| Liegenschaften, Gebäude und Geschosse pflegen | ja | ja | nein | nein | nein |
-| Räume aufnehmen | ja | ja | ja | ja | nein |
-| Anlagen ansehen | ja | ja | ja | ja | nein |
-| Anlagen aufnehmen | ja | ja | ja | ja | nein |
-| Anlagen pflegen | ja | ja | ja | nein | nein |
-| Zähler ablesen | ja | ja | ja | ja | nein |
-| Pflichten ansehen | ja | ja | ja | ja | nein |
-| Das Pflichtenverzeichnis führen | ja | ja | nein | nein | nein |
-| Pflichten übertragen | ja | nein | nein | nein | nein |
-| Qualifikationen ansehen | ja | ja | ja | nein | nein |
-| Qualifikationen führen | ja | ja | nein | nein | nein |
-| Fristen ansehen | ja | ja | nein | nein | nein |
-| Fristen bearbeiten | ja | ja | nein | nein | nein |
-| Vorgänge ansehen | ja | ja | ja | ja | nein |
-| Vorgänge ausführen | ja | ja | ja | ja | nein |
-| Vorgänge planen und verteilen | ja | ja | ja | nein | nein |
-| Vorlagen der Rundgänge führen | ja | ja | ja | nein | nein |
-| Aufträge abnehmen und Rundgänge gegenzeichnen | ja | ja | ja | nein | nein |
-| Nachweise ansehen | ja | ja | ja | ja | nein |
-| Nachweise eintragen, berichtigen und für ungültig erklären | ja | ja | ja | nein | nein |
-| Mängel ansehen | ja | ja | ja | ja | nein |
-| Mängel melden | ja | ja | ja | ja | nein |
-| Mängel führen | ja | ja | ja | nein | nein |
-| Störungen melden | ja | ja | ja | ja | ja |
-| Störungen annehmen | ja | ja | ja | nein | nein |
-| Dokumente ansehen | ja | ja | ja | ja | nein |
-| Dokumente ablegen | ja | ja | ja | ja | nein |
-| Dokumente entfernen | ja | ja | ja | nein | nein |
-| Aufgaben ansehen | ja | ja | ja | ja | nein |
-| Eigene Aufgaben anlegen und erledigen | ja | ja | ja | ja | nein |
-| Aufgaben anderen zuteilen | ja | ja | ja | nein | nein |
-| Lager ansehen | ja | ja | ja | ja | nein |
-| Lager führen | ja | ja | ja | nein | nein |
-| Fremdfirmen ansehen | ja | ja | ja | ja | nein |
-| Fremdfirmen pflegen | ja | ja | nein | nein | nein |
-| Verträge ansehen | ja | ja | ja | nein | nein |
-| Verträge führen | ja | ja | nein | nein | nein |
-| Auswertungen ansehen | ja | ja | nein | nein | nein |
-| Daten abgleichen | ja | ja | ja | ja | ja |
-| Änderungen senden | ja | ja | ja | ja | ja |
-| Push auf den eigenen Geräten einrichten | ja | ja | ja | ja | ja |
-| Zugänge ansehen | ja | nein | nein | nein | nein |
-| Zugänge verwalten | ja | nein | nein | nein | nein |
-| Einstellungen ansehen | ja | nein | nein | nein | nein |
-| Einstellungen ändern | ja | nein | nein | nein | nein |
-| Den Mailserver ansehen | ja | nein | nein | nein | nein |
-| Den Mailserver einrichten | ja | nein | nein | nein | nein |
-| Das Änderungsprotokoll einsehen | ja | nein | nein | nein | nein |
+| Recht | Leitung | Technische Leitung | Objektleitung | Haustechnik | Melder | Prüfer |
+| --- | --- | --- | --- | --- | --- | --- |
+| Liegenschaften, Gebäude und Räume ansehen | ja | ja | ja | ja | nein | nein |
+| Liegenschaften, Gebäude und Geschosse pflegen | ja | ja | nein | nein | nein | nein |
+| Räume aufnehmen | ja | ja | ja | ja | nein | nein |
+| Anlagen ansehen | ja | ja | ja | ja | nein | nein |
+| Anlagen aufnehmen | ja | ja | ja | ja | nein | nein |
+| Anlagen pflegen | ja | ja | ja | nein | nein | nein |
+| Zähler ablesen | ja | ja | ja | ja | nein | nein |
+| Pflichten ansehen | ja | ja | ja | ja | nein | ja |
+| Das Pflichtenverzeichnis führen | ja | ja | nein | nein | nein | nein |
+| Pflichten übertragen | ja | nein | nein | nein | nein | nein |
+| Qualifikationen ansehen | ja | ja | ja | nein | nein | nein |
+| Qualifikationen führen | ja | ja | nein | nein | nein | nein |
+| Fristen ansehen | ja | ja | nein | nein | nein | nein |
+| Fristen bearbeiten | ja | ja | nein | nein | nein | nein |
+| Vorgänge ansehen | ja | ja | ja | ja | nein | nein |
+| Vorgänge ausführen | ja | ja | ja | ja | nein | nein |
+| Vorgänge planen und verteilen | ja | ja | ja | nein | nein | nein |
+| Vorlagen der Rundgänge führen | ja | ja | ja | nein | nein | nein |
+| Aufträge abnehmen und Rundgänge gegenzeichnen | ja | ja | ja | nein | nein | nein |
+| Nachweise ansehen | ja | ja | ja | ja | nein | ja |
+| Nachweise eintragen, berichtigen und für ungültig erklären | ja | ja | ja | nein | nein | nein |
+| Mängel ansehen | ja | ja | ja | ja | nein | nein |
+| Mängel melden | ja | ja | ja | ja | nein | nein |
+| Mängel führen | ja | ja | ja | nein | nein | nein |
+| Störungen melden | ja | ja | ja | ja | ja | nein |
+| Störungen annehmen | ja | ja | ja | nein | nein | nein |
+| Dokumente ansehen | ja | ja | ja | ja | nein | nein |
+| Dokumente ablegen | ja | ja | ja | ja | nein | nein |
+| Dokumente entfernen | ja | ja | ja | nein | nein | nein |
+| Aufgaben ansehen | ja | ja | ja | ja | nein | nein |
+| Eigene Aufgaben anlegen und erledigen | ja | ja | ja | ja | nein | nein |
+| Aufgaben anderen zuteilen | ja | ja | ja | nein | nein | nein |
+| Lager ansehen | ja | ja | ja | ja | nein | nein |
+| Lager führen | ja | ja | ja | nein | nein | nein |
+| Fremdfirmen ansehen | ja | ja | ja | ja | nein | nein |
+| Fremdfirmen pflegen | ja | ja | nein | nein | nein | nein |
+| Verträge ansehen | ja | ja | ja | nein | nein | nein |
+| Verträge führen | ja | ja | nein | nein | nein | nein |
+| Auswertungen ansehen | ja | ja | nein | nein | nein | nein |
+| Daten abgleichen | ja | ja | ja | ja | ja | ja |
+| Änderungen senden | ja | ja | ja | ja | ja | nein |
+| Push auf den eigenen Geräten einrichten | ja | ja | ja | ja | ja | nein |
+| Zugänge ansehen | ja | nein | nein | nein | nein | nein |
+| Zugänge verwalten | ja | nein | nein | nein | nein | nein |
+| Einstellungen ansehen | ja | nein | nein | nein | nein | nein |
+| Einstellungen ändern | ja | nein | nein | nein | nein | nein |
+| Den Mailserver ansehen | ja | nein | nein | nein | nein | nein |
+| Den Mailserver einrichten | ja | nein | nein | nein | nein | nein |
+| Das Änderungsprotokoll einsehen | ja | nein | nein | nein | nein | nein |
 
-- Jede Rolle darf, was die Rolle rechts von ihr darf, und der Bereich begrenzt, wo: ein Recht gilt in den Bereichen der Person (2.8)
+- Jede der vier Rollen aus Phase 1 darf, was die Rolle rechts von ihr darf; Melder und Prüfer stehen nebeneinander, und die Haustechnik darf, was jede von beiden darf. Der Bereich begrenzt, wo: ein Recht gilt in den Bereichen der Person (2.8)
 - **Ein Gebäude verlegen** gehört zum Pflegen von Liegenschaften, Gebäuden und Geschossen und hat kein eigenes Recht. Die neue Liegenschaft liegt in einem Bereich der Person, wie jede, an der sie etwas anlegt (4.1, 2.8)
 - **Aufnehmen und pflegen.** Aufnehmen heißt anlegen und die Angaben ergänzen und berichtigen, wie es die Bestandsaufnahme vor Ort braucht (2.7, 4.2). Pflegen ist, was Folgen über den Datensatz hinaus hat: der Lebenszyklus einer Anlage, weil ihre Pflichten ruhen, sobald sie außer Betrieb ist, der Tausch, das Verlegen an einen anderen Ort und das Entfernen. Einen Raum verlegt oder entfernt, wer Liegenschaften, Gebäude und Geschosse pflegt. Dasselbe Recht pflegt die Ansprechpartner einer Liegenschaft, mit Verbindung wie die Liegenschaft selbst; lesen kann sie, wer die Liegenschaft sieht, auch auf dem Gerät vor Ort (4.1, 2.7)
 - **Ausführen, planen, abnehmen.** Vorgänge sind Rundgänge, Prüfungen, Wartungen und Aufträge (2.2). Ausführen ist die Arbeit daran bis zur Unterschrift. Planen und verteilen ist, was davor geschieht: einen Rundgang planen und einen irrtümlich angelegten Plan entfernen, einen Auftrag anlegen und zuteilen, einen offenen Rundgang oder Auftrag mit Grund schließen. Dazu gehören die Schließzeiten eines Gebäudes: wer plant und verteilt, trägt sie ein und entfernt sie, mit Verbindung, auch die Objektleitung, die das Gebäude selbst nicht ändert; lesen kann sie, wer das Gebäude sieht, auch auf dem Gerät vor Ort. Abnehmen und gegenzeichnen ist die zweite Unterschrift (4.1, 4.5, 4.8)
@@ -563,6 +563,7 @@ Regeln für jeden Beitrag:
 - Was die Tabelle oben nennt und hier noch fehlt, kommt mit seiner Phase. Jedes neue Recht steht dann auch in dieser Tabelle
 - **Qualifikationen** (4.3): ansehen heißt die Liste mit den Nachweisen und den Hinweis beim Zuteilen eines Vorgangs, führen heißt eintragen, ändern, herausnehmen und eigene Arten anlegen. Die eigenen sieht jede Person unter „Konto“, mit ihrem Nachweis, und vor Ort beim Beginn eines Vorgangs den Hinweis, ohne ein Recht
 - **Pflichten übertragen** (4.3) heißt anlegen, ändern, für den Betreiber unterschreiben und widerrufen; das ist der Leitung vorbehalten. Die beauftragte Person braucht dafür kein Recht: sie liest und unterschreibt ihre eigene Übertragung unter „Konto“, sobald die Leitung unterschrieben hat, und behält dort das PDF als Ausfertigung
+- **Die Rolle Prüfer** (4.3) liest Pflichten und Nachweise, mit den Prüfbescheinigungen, die das Nachweisverzeichnis anhängt, und gleicht nur ab, woran die Pflichten hängen: Liegenschaften, Gebäude, Geschosse, Räume, Anlagen und die Namen der Fremdfirmen. Sein Zugang hat immer einen letzten Tag. Beschränkt auf Liegenschaften oder Anlagenarten, hält ihn die Datenbank wie den Bereich; mit einer Beschränkung auf Anlagenarten sieht er nichts, was an keiner Anlage hängt. Jede seiner Anfragen steht im Protokoll der Zugriffe, das die Leitung unter „Zugänge“ sieht. Eine Pflicht wird ihm nicht übertragen
 - **Push und Mailserver** (3): Push auf den eigenen Geräten richtet jede Rolle für sich ein und wählt dort die Anlässe; niemand tut es für eine andere Person. Den Mailserver des Betreibers sieht und setzt nur die Leitung: die Anmeldung an einem Postfach ist ein Weg, im Namen des Betreibers an jeden zu schreiben. Ob der Betreiber E-Mails verschickt und von welcher Adresse, erfährt, wer die Einstellungen ansieht
 
 ---
@@ -822,6 +823,10 @@ Die offenen Fragen aus v0.1 sind am 01.10.2026 entschieden worden, die Phasen de
 ---
 
 ## 16. Änderungsprotokoll
+
+### v0.53 → v0.54
+
+- Die Rolle Prüfer in der Tabelle der Rechte (7) und was sie liest, gleicht ab und wie ihr Zugang begrenzt ist; ein Zugang kann einen letzten Tag haben (#339)
 
 ### v0.52 → v0.53
 

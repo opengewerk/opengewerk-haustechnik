@@ -43,6 +43,7 @@ import {
 } from '@opengewerk/haustechnik-domain'
 import {
   accountsOf,
+  beforeItsEnd,
   CurrentIdentity,
   Database,
   isUuid,
@@ -748,6 +749,7 @@ export async function candidatesIn(
     .where(
       and(
         isNull(memberships.blockedAt),
+        beforeItsEnd(),
         or(
           sql`exists (select 1 from ${memberAllAreas} where ${memberAllAreas.tenantId} = ${memberships.tenantId} and ${memberAllAreas.userId} = ${memberships.userId})`,
           sql`exists (select 1 from ${memberAreas} where ${memberAreas.tenantId} = ${memberships.tenantId} and ${memberAreas.userId} = ${memberships.userId} and ${memberAreas.areaId} = ${areaId})`,

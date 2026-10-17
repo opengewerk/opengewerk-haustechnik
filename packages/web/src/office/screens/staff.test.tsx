@@ -1,11 +1,14 @@
-import { type Area, type AreaId, shippedRoles } from '@opengewerk/haustechnik-domain'
+import { type Area, type AreaId, limitWords, shippedRoles } from '@opengewerk/haustechnik-domain'
 import { TestServer } from '@opengewerk/platform-web/testing'
 import { fireEvent, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { servingCatalogue } from '../../app/test-catalogue.js'
 import { memberIn } from '../../app/test-entry.js'
+import { auditorReadWords } from '../auditor-reads.js'
 import { areasToBeginWith, areaWords } from '../staff-areas.js'
+import { limitFieldWords } from '../staff-limits.js'
 import { areasOnTop, substitutionWords } from '../substitutions.js'
 import {
   mountOffice,
@@ -114,6 +117,8 @@ function signedIn(
       '/staff/invitations': [kai],
       '/areas/members': held,
       '/areas/invitations': [{ invitationId: kai.id, all: false, areaIds: [sued.id] }],
+      '/areas/limits': [],
+      '/areas/invitation-limits': [],
       '/substitutions': [autumn],
       [`/staff/${petra.userId}/devices`]: [],
       ...differing,
@@ -208,6 +213,106 @@ describe('the areas somebody holds in', () => {
       all: true,
       areaIds: [],
     })
+  })
+})
+
+describe('an auditor from outside (#339)', () => {
+  const school = {
+    id: 'p-school',
+    areaId: sued.id,
+    name: 'Schulzentrum Am Lindenhain',
+    street: 'Am Lindenhain 7',
+    postalCode: '00003',
+    city: 'Musterhausen',
+    federalState: 'DE-BW',
+    note: null,
+  }
+
+  it('is invited with a last day and the properties and kinds it reads, which only it is asked', async () => {
+    const user = userEvent.setup()
+
+    answerToWrite = () => ({
+      status: 201,
+      body: { token: 'ein-link', expiresAt: '2036-10-12T08:00:00.000Z' },
+    })
+    server.put('properties', school)
+    // The kinds of assets come from the catalogue.
+    signedIn(servingCatalogue())
+    await mount()
+    await user.click(await screen.findByRole('button', { name: 'Zugang anlegen' }))
+
+    const dialog = await screen.findByRole('dialog', { name: 'Zugang anlegen' })
+
+    await user.type(within(dialog).getByLabelText(/^Name/), 'Dr. Frank Seidel')
+    await user.type(within(dialog).getByLabelText(/^E-Mail/), 'f.seidel@pruefstelle.example')
+    // Another role is asked nothing of the limits.
+    expect(within(dialog).queryByRole('group', { name: limitWords.title })).toBeNull()
+    await user.click(within(dialog).getByRole('radio', { name: 'Prüfer' }))
+    await user.click(within(areasPart()).getByRole('checkbox', { name: 'Süd' }))
+
+    const limits = within(dialog).getByRole('group', { name: limitWords.title })
+
+    await user.click(within(limits).getByRole('radio', { name: limitWords.namedProperties }))
+    await user.click(within(limits).getByRole('checkbox', { name: school.name }))
+    await user.selectOptions(
+      within(limits).getByLabelText(limitFieldWords.addKind),
+      'probe.elevator',
+    )
+    // Without a last day nothing goes out.
+    await user.click(within(dialog).getByRole('button', { name: 'Link erzeugen' }))
+    expect(sent('POST', '/staff')).toEqual([])
+    await user.type(within(dialog).getByLabelText(/^Letzter Tag/), '2036-11-30')
+    await user.click(within(dialog).getByRole('button', { name: 'Link erzeugen' }))
+
+    await waitFor(() => {
+      expect(sent('POST', '/staff')).toEqual([
+        {
+          name: 'Dr. Frank Seidel',
+          email: 'f.seidel@pruefstelle.example',
+          roles: ['auditor'],
+          send: 'link',
+          additions: {
+            all: false,
+            areaIds: [sued.id],
+            limits: { propertyIds: [school.id], assetKinds: ['probe.elevator'] },
+          },
+          lastDay: '2036-11-30',
+        },
+      ])
+    })
+  })
+
+  it('has every read listed for the Leitung, with when, who and what', async () => {
+    signedIn({
+      '/auditor-reads': {
+        reads: [
+          {
+            id: 'r-2',
+            readAt: '2036-10-17T07:14:00.000Z',
+            userId: 'u-seidel',
+            personName: 'Dr. Frank Seidel',
+            what: 'Pflicht',
+            subject: 'Prüfung der Brandmeldeanlage, AN-00048',
+          },
+          {
+            id: 'r-1',
+            readAt: '2036-10-17T07:11:00.000Z',
+            userId: 'u-seidel',
+            personName: 'Dr. Frank Seidel',
+            what: 'Pflichtenverzeichnis',
+            subject: null,
+          },
+        ],
+        more: false,
+      },
+    })
+    await mount()
+    await screen.findByRole('table', { name: auditorReadWords.caption })
+
+    expect(rowsOf(auditorReadWords.caption)).toEqual([
+      ['17.10.2036, 09:14', 'Dr. Frank Seidel', 'Pflicht: Prüfung der Brandmeldeanlage, AN-00048'],
+      ['17.10.2036, 09:11', 'Dr. Frank Seidel', 'Pflichtenverzeichnis'],
+    ])
   })
 })
 

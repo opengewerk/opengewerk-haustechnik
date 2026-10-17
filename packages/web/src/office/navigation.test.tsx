@@ -126,6 +126,11 @@ describe('what a role is offered once every screen is built', () => {
     expect(offeredTo('reporter')).toEqual(['Katalog'])
   })
 
+  // The Prüfer reads the duties and their evidence, and the board gives it nothing else (#339).
+  it('is the overview, the register of duties and the catalogue for the Prüfer', () => {
+    expect(offeredTo('auditor')).toEqual(['Übersicht', 'Pflichtenverzeichnis', 'Katalog'])
+  })
+
   it('is nothing that takes a right for somebody who holds none', () => {
     // The overview counts duties, and asks for the right to read them (#122).
     expect(offered(everyPlace, [], () => true).map((place) => place.label)).toEqual(['Katalog'])

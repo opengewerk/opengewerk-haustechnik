@@ -59,6 +59,7 @@ const people: Readonly<Record<RoleKey, string>> = {
   site_management: 'u-site',
   technician: 'u-tech',
   reporter: 'u-reporter',
+  auditor: 'u-auditor',
 }
 
 const address = 'https://haustechnik.example'

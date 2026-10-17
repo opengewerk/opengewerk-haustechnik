@@ -79,6 +79,18 @@ export const areaColumnsWithoutTheLine: Readonly<Record<string, string>> = {
 }
 
 /**
+ * Tables that carry `property_id` and no area, each with its reason: the
+ * properties an access from outside is limited to (#339) are what the
+ * functions of `within_limits` read, and name a person, not a place.
+ */
+export const propertyColumnsWithoutAnArea: Readonly<Record<string, string>> = {
+  member_limit_properties:
+    'the properties an access is limited to, read by the functions of within_limits',
+  invitation_limit_properties:
+    'the properties an invitation limits to, kept like those of an access',
+}
+
+/**
  * The expression of `within_areas_of_their_file` as PostgreSQL writes it
  * back, from `withinAreasOfTheirFileExpression` in the schema. Read from a
  * database once and kept here, like the one above.
@@ -413,6 +425,10 @@ export async function areaBoundaryProblems(
     withAnArea.has(key.target) && maps(key, 'area_id', 'area_id')
 
   for (const table of tablesWith('property_id')) {
+    if (table in propertyColumnsWithoutAnArea) {
+      continue
+    }
+
     if (!has(table, 'area_id')) {
       problems.push(`table ${table}: carries property_id and no area_id`)
       continue

@@ -42,12 +42,13 @@ import {
 import {
   AcceptsBody,
   accountsOf,
+  beforeItsEnd,
   bodyBytesOf,
   CurrentIdentity,
   Database,
   FILE_STORE,
-  type FileStorage,
   fileRowFor,
+  type FileStorage,
   fileUploadType,
   isUuid,
   storedMediaType,
@@ -445,7 +446,7 @@ export class QualificationsController {
     const [member] = await tx
       .select({ userId: memberships.userId })
       .from(memberships)
-      .where(and(eq(memberships.userId, userId), isNull(memberships.blockedAt)))
+      .where(and(eq(memberships.userId, userId), isNull(memberships.blockedAt), beforeItsEnd()))
 
     if (member === undefined) {
       throw new BadRequestException('Eine Qualifikation hat, wer für diesen Betreiber arbeitet.')

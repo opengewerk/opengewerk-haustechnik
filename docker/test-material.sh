@@ -30,7 +30,7 @@ guarded_route=/staff
 # The tables counted before the backup and after the restore. The area and
 # the place of the account in it come with the account: a Betreiber gets its
 # first area with its first membership.
-counted_tables='auth_users memberships tenant_roles account_corrections areas member_areas invitations invitation_area_choices invitation_areas properties buildings contacts building_closures assets files mail_settings deadline_settings deadline_runs duties duty_dismissals evidence deadlines activities activity_duties activity_answers work_orders work_order_participants work_order_notes defects fault_categories fault_reports fault_report_settings fault_report_contacts meter_points meter_readings meter_exchanges meter_pauses meter_settings work_order_settings activity_signatures work_order_decisions service_reports service_report_records briefings work_permits articles suppliers stores store_articles stock_movements work_order_materials store_labels contractors contracts contract_items qualification_kinds qualifications evidence_voidings round_records prints attachments attachment_versions labels imports asset_kind_names defect_class_terms round_templates round_template_versions round_plans tasks mail_outbox push_subscriptions push_opt_outs push_outbox'
+counted_tables='auth_users memberships tenant_roles account_corrections areas member_areas invitations invitation_area_choices invitation_areas properties buildings contacts building_closures assets files mail_settings deadline_settings deadline_runs duties duty_dismissals evidence deadlines activities activity_duties activity_answers work_orders work_order_participants work_order_notes defects fault_categories fault_reports fault_report_settings fault_report_contacts meter_points meter_readings meter_exchanges meter_pauses meter_settings work_order_settings activity_signatures work_order_decisions service_reports service_report_records briefings work_permits articles suppliers stores store_articles stock_movements work_order_materials store_labels contractors contracts contract_items qualification_kinds qualifications member_limit_properties member_limit_asset_kinds invitation_limit_properties invitation_limit_asset_kinds auditor_reads evidence_voidings round_records prints attachments attachment_versions labels imports asset_kind_names defect_class_terms round_templates round_template_versions round_plans tasks mail_outbox push_subscriptions push_opt_outs push_outbox'
 
 # The migrations, and how many of them make the older state an update starts
 # from: the first, without the sequence for work orders that the second brings.
@@ -409,6 +409,19 @@ records_for_backup() {
     select k.tenant_id, u.id, k.id, '2027-03-31'
       from qualification_kinds k, auth_users u
      where k.tenant_id = '$first_tenant' and u.email = '$probe_email';
+    insert into member_limit_properties (tenant_id, user_id, property_id)
+    select p.tenant_id, u.id, p.id from properties p, auth_users u
+     where p.tenant_id = '$first_tenant' and u.email = '$probe_email' limit 1;
+    insert into member_limit_asset_kinds (tenant_id, user_id, asset_kind)
+    select '$first_tenant', u.id, 'probe.elevator' from auth_users u where u.email = '$probe_email';
+    insert into invitation_limit_properties (tenant_id, invitation_id, property_id)
+    select i.tenant_id, i.id, p.id from invitations i join properties p on p.tenant_id = i.tenant_id
+     where i.tenant_id = '$first_tenant' limit 1;
+    insert into invitation_limit_asset_kinds (tenant_id, invitation_id, asset_kind)
+    select tenant_id, id, 'probe.elevator' from invitations where tenant_id = '$first_tenant' limit 1;
+    insert into auditor_reads (tenant_id, user_id, route, path)
+    select '$first_tenant', u.id, '/duties/register', '/duties/register'
+      from auth_users u where u.email = '$probe_email';
     insert into stores (tenant_id, name) values ('$first_tenant', 'Hauptlager Probe');
     insert into store_articles (tenant_id, store_id, article_id, minimum_milli)
     select s.tenant_id, s.id, a.id, 10000 from stores s, articles a where s.tenant_id = '$first_tenant'

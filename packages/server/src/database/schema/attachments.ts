@@ -18,6 +18,7 @@ import { assets } from './assets.js'
 import { contracts } from './contracts.js'
 import { contractors } from './contractors.js'
 import { defects } from './defects.js'
+import { kindOfItsAssetOrActivity, withinLimits } from './limit-policies.js'
 import { buildings, properties, rooms, trimmed } from './locations.js'
 
 /** What kind of document a file is, from the list in `domain`; none for a photo. */
@@ -113,6 +114,8 @@ export const { attachments, attachmentVersions } = attachmentsSchema({
   constraints: (table) => [
     // A document of a contractor lies in no area: whoever is in the operator reads it (#328).
     withinAreasOrNone(),
+    // Only at the properties and kinds an access from outside is limited to, or in an activity within them (#339).
+    withinLimits(table.propertyId, kindOfItsAssetOrActivity(table.assetId, table.activityId)),
     foreignKey({
       columns: [table.tenantId, table.contractorId],
       foreignColumns: [contractors.tenantId, contractors.id],

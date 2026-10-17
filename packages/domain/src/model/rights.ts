@@ -368,9 +368,9 @@ export function missingRight(right: Right): string {
 }
 
 /**
- * The roles a tenant starts with: the four of phase 1 and the reporter of
- * phase 2 (#331). Section 7 of the concept names two more: the auditor comes
- * with phase 2, the contractor with phase 4.
+ * The roles a tenant starts with: the four of phase 1, and the reporter (#331)
+ * and the auditor from outside (#339) of phase 2. Section 7 of the concept
+ * names one more, the contractor, which comes with phase 4.
  *
  * They are rows of the tenant from the moment it comes into being, and what
  * somebody may do is read from those rows (ADR 0010 in the repository
@@ -382,6 +382,7 @@ export const roleKeys = [
   'site_management',
   'technician',
   'reporter',
+  'auditor',
 ] as const
 
 export type RoleKey = (typeof roleKeys)[number]
@@ -441,6 +442,18 @@ const technician: readonly Right[] = [
  * gets an empty exchange (`pullScope` in the server).
  */
 const reporter: readonly Right[] = ['fault.report', 'sync.read', 'sync.write', 'push.write']
+
+/**
+ * The role Prüfer (sections 4.3 and 7 of the concept, #339, decided on
+ * 15.10.2026): somebody from outside who reads the duties, their evidence and
+ * the certificates attached to it, and nothing else. Only up to a last day
+ * (`endingRoles` of the server), only in the properties and kinds of assets
+ * the access names, which the database holds (`within_limits`), and every
+ * request of theirs is written down for the Leitung. The exchange only takes
+ * to the office what the duties hang on (`pullScope` in the server), and the
+ * auditor sends nothing: no push, no writing.
+ */
+const auditor: readonly Right[] = ['duty.read', 'evidence.read', 'sync.read']
 
 const siteManagement: readonly Right[] = [
   ...technician,
@@ -535,6 +548,13 @@ export const shippedRoles: readonly ShippedRole[] = [
     key: 'reporter',
     label: 'Melder',
     rights: inOrder(reporter),
+    leads: false,
+    secondFactor: false,
+  },
+  {
+    key: 'auditor',
+    label: 'Prüfer',
+    rights: inOrder(auditor),
     leads: false,
     secondFactor: false,
   },
