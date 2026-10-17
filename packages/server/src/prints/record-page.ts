@@ -15,6 +15,7 @@ import {
   type StatedCollective,
   type StatedPlace,
   type StatedSignature,
+  statedPointWords,
 } from '@opengewerk/haustechnik-domain'
 import { fontFaces, type PrintJob, text, typeface } from '@opengewerk/platform-server'
 
@@ -141,10 +142,7 @@ function chapters(answers: readonly StatedAnswer[]): string {
       <tbody>${rows
         .map((answer) => {
           const { said, remark } = answerCells(answer)
-          const point =
-            answer.group === null
-              ? answer.label
-              : `${answer.group.label} ${String(answer.group.block)}: ${answer.label}`
+          const point = statedPointWords(answer)
 
           return `<tr><td>${text(point)}</td><td class="said"><strong>${text(said)}</strong></td><td class="muted">${text(remark)}</td></tr>`
         })

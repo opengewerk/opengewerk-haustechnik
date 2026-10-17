@@ -51,6 +51,7 @@ import { CATALOGUE } from '../catalogue.js'
 import { activities, defects, evidence, roundPlans } from '../database/schema/index.js'
 import { EvidenceRefusal } from '../evidence/write.js'
 import { type Handed, tellHandedOut } from '../notifications/tell.js'
+import { pointAssetNames } from '../rounds/point-assets.js'
 import { dayInGermany } from '../today.js'
 import { candidatesIn, inSight } from './activities.controller.js'
 import { RequiresPermission } from './authorization.js'
@@ -520,7 +521,17 @@ export class RoundsController {
         .where(eq(evidence.activityId, round.id))
         .orderBy(asc(evidence.number))
 
-      return { round, standing, page: signed ? await pageOf(tx, round) : null, found, written }
+      // The assets of its points for every asset, named (#343).
+      const names = await pointAssetNames(tx, round.pointAssets)
+
+      return {
+        round,
+        standing,
+        page: signed ? await pageOf(tx, round) : null,
+        found,
+        written,
+        names,
+      }
     })
     const { round, standing } = read
     const accounts = await accountsOf(
@@ -569,6 +580,8 @@ export class RoundsController {
       defects: read.found,
       evidence: read.written,
       ...(round.emptiedAt === null ? {} : { emptied: true as const }),
+      pointAssets: round.pointAssets,
+      assets: [...read.names].map(([id, asset]) => ({ id, ...asset })),
     }
   }
 

@@ -313,6 +313,13 @@ export function limitWords(
 
 /** What a point asks, in a line under its label, as the board writes it. */
 export function pointDetail(field: TemplateField, catalogue: Catalogue | null, on: string): string {
+  const said = kindDetail(field, catalogue, on)
+
+  // A point for every asset is answered once for each of them (#343).
+  return field.everyAssetOf === undefined ? said : `${said}, je Anlage eine Antwort`
+}
+
+function kindDetail(field: TemplateField, catalogue: Catalogue | null, on: string): string {
   const optional = field.required === true ? 'muss ausgefüllt werden' : 'freiwillig'
 
   switch (field.kind) {

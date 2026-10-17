@@ -33,6 +33,7 @@ import {
   roundPlans,
   roundTemplateVersions,
 } from '../database/schema/index.js'
+import { roundAssetsOf } from './point-assets.js'
 
 /** A plan as it stands in its table. */
 export type PlanRow = typeof roundPlans.$inferSelect
@@ -80,6 +81,20 @@ async function dutiesOf(
 }
 
 /**
+ * The duties the points of a round fulfil: those its points name, and those
+ * its points for every asset fulfil at their assets, each once (#343). A
+ * duty a point names is met by that point.
+ */
+function withTheirKind<Duty extends { readonly id: string }>(
+  named: readonly Duty[],
+  ofTheirKind: readonly Duty[],
+): readonly Duty[] {
+  const taken = new Set(named.map((duty) => duty.id))
+
+  return [...named, ...ofTheirKind.filter((duty) => !taken.has(duty.id))]
+}
+
+/**
  * The rounds of a plan for its passes from a day on whose round has to be
  * made by a day (#113, section 4.5 of the concept), each pass once: the
  * deadline engine when the lead of the next pass begins, and the routes of
@@ -96,7 +111,9 @@ async function dutiesOf(
  * in the area. Nobody answers for it in particular; whoever plans in the area
  * sees it. Every point
  * that fulfils a duty that is in force on the day of the pass brings that
- * duty along, with no result: the evidence takes it from the answer.
+ * duty along, with no result: the evidence takes it from the answer. A point
+ * for every asset of a kind is given its assets on the day of the pass, and
+ * brings the duty of its kind at each of them (#343).
  *
  * None while the plan rests, none in a closure of its building, and none for
  * a pass that has a round: the unique index `activities_once_per_pass` holds
@@ -146,6 +163,7 @@ export async function fillRounds(
     ).map((row) => row.dueOn),
   )
   const fulfilled = await dutiesOf(tx, version.definition, plan.propertyId)
+  const fixed = await roundAssetsOf(tx, version.definition, plan)
   const place = { tenantId: plan.tenantId, propertyId: plan.propertyId, areaId: plan.areaId }
   let made = 0
 
@@ -169,6 +187,7 @@ export async function fillRounds(
         formKey: templateFormKey(plan.templateId),
         formVersion: version.formVersion,
         roundPlanId: plan.id,
+        pointAssets: fixed.on(pass),
       })
       .onConflictDoNothing()
       .returning({ id: activities.id })
@@ -177,7 +196,10 @@ export async function fillRounds(
       continue
     }
 
-    const due = fulfilled.filter((duty) => !dutyHasEnded(duty, pass))
+    const due = withTheirKind(
+      fulfilled.filter((duty) => !dutyHasEnded(duty, pass)),
+      fixed.duties(pass),
+    )
 
     if (due.length > 0) {
       await tx
@@ -427,10 +449,10 @@ export async function fillAhead(
  * changed today is walked from the next round on, not from the one after
  * the lead. A round that was begun stays on its version (section 4.5).
  *
- * The round takes the countersignature the version asks for, and the duties
- * its points fulfil: a duty no point fulfils any more is taken off it, one
- * that a point fulfils now is added, while it is in force on the day of the
- * round. Run by the deadline engine at the end of every pass, in every area
+ * The round takes the countersignature the version asks for, the assets of
+ * its points for every asset of a kind anew (#343), and the duties its
+ * points fulfil: a duty no point fulfils any more is taken off it, one that a
+ * point fulfils now is added, while it is in force on the day of the round. Run by the deadline engine at the end of every pass, in every area
  * of the operator; returns how many rounds it moved.
  */
 export async function upgradeOpenRounds(tx: TenantTransaction, now: Date): Promise<number> {
@@ -453,12 +475,15 @@ export async function upgradeOpenRounds(tx: TenantTransaction, now: Date): Promi
       continue
     }
 
+    const dueOn = round.dueOn
+    const fixed = await roundAssetsOf(tx, version.definition, round)
     const [moved] = await tx
       .update(activities)
       .set({
         formVersion: version.formVersion,
         countersignatureRequired: version.asksCountersignature,
         title: version.definition.title.trim().slice(0, activityLimits.title).trim(),
+        pointAssets: fixed.on(dueOn),
         updatedAt: now,
       })
       .where(and(eq(activities.id, round.id), eq(activities.status, 'open')))
@@ -468,11 +493,13 @@ export async function upgradeOpenRounds(tx: TenantTransaction, now: Date): Promi
       continue
     }
 
-    const dueOn = round.dueOn
     const wanted = new Set(
-      (await dutiesOf(tx, version.definition, round.propertyId))
-        .filter((duty) => !dutyHasEnded(duty, dueOn))
-        .map((duty) => duty.id as string),
+      withTheirKind(
+        (await dutiesOf(tx, version.definition, round.propertyId)).filter(
+          (duty) => !dutyHasEnded(duty, dueOn),
+        ),
+        fixed.duties(dueOn),
+      ).map((duty) => duty.id as string),
     )
     const held = await tx
       .select({ id: activityDuties.id, dutyId: activityDuties.dutyId })

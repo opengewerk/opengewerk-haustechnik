@@ -7,13 +7,14 @@ import {
 
 import type { ActivityId } from './activity.js'
 import type { AreaId } from './area.js'
-import type {
-  StatedAnswer,
-  StatedDefect,
-  StatedForm,
-  StatedPerformer,
-  StatedPlace,
-  StatedSignature,
+import {
+  type StatedAnswer,
+  type StatedDefect,
+  type StatedForm,
+  type StatedPerformer,
+  type StatedPlace,
+  type StatedSignature,
+  statedPointWords,
 } from './evidence.js'
 import type { PropertyId } from './location.js'
 import { placeWords } from './office-table.js'
@@ -112,9 +113,7 @@ export function roundTableRows(state: RoundRecordState, signedOn: IsoDate): (str
     state.title,
     where,
     answer.section,
-    answer.group === null
-      ? answer.label
-      : `${answer.group.label} ${String(answer.group.block)}: ${answer.label}`,
+    statedPointWords(answer),
     answer.value ?? (answer.result === null ? null : checkPointResultLabel[answer.result]),
     answer.limit?.text ?? null,
     answer.limit === null || answer.limit.within === null

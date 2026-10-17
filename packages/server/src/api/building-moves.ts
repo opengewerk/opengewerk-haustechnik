@@ -24,7 +24,7 @@ const keptWords = {
  * a sentence says it: "14 Nachweise", "eine Unterschrift". Evidence, the
  * signatures and answers of an activity and the decision on a work order name
  * their place and are never changed, so a building with one of them stays
- * where it is. A print, the record of a round and a voiding come only with
+ * where it is; so does one with an asset a round has an answer about (#343). A print, the record of a round and a voiding come only with
  * one of these.
  */
 export async function keptAsWritten(
@@ -54,7 +54,9 @@ export async function keptAsWritten(
            (select count(*)::int from activity_signatures
              where tenant_id = ${tenantId} and activity_id in (select id from activities_in)) as signatures,
            (select count(*)::int from activity_answers
-             where tenant_id = ${tenantId} and activity_id in (select id from activities_in)) as answers,
+             where tenant_id = ${tenantId}
+               and (activity_id in (select id from activities_in)
+                    or asset_id in (select id from assets_in))) as answers,
            (select count(*)::int from work_order_decisions
              where tenant_id = ${tenantId}
                and work_order_id in (select id from work_orders
@@ -93,6 +95,8 @@ export const holdingTheBuilding: Readonly<Record<string, string>> = {
   // A part at an asset of the building with its collective activity on the property (#342).
   activities_part_of_a_collective: 'eine Prüfung mit dem Sammelvorgang, zu dem sie gehört',
   activity_answers_photo_at_their_activity: 'eine Antwort mit ihrem Foto',
+  // An answer of a round on the property about an asset of the building (#343).
+  activity_answers_about_an_asset_of_their_property: 'eine Antwort mit der Anlage, die sie nennt',
   activity_duties_of_a_duty_of_their_property: 'ein Vorgang mit einer Pflicht, die er erfüllt',
   asset_supplies_to_a_building_of_its_property: 'eine Anlage mit einem Gebäude, das sie versorgt',
   asset_supplies_to_a_room_of_its_property: 'eine Anlage mit einem Raum, den sie versorgt',

@@ -142,6 +142,8 @@ function useTemplateRecords(catalogue: Catalogue | null): {
   readonly choices: PointChoices
   readonly labelOf: (kind: string, id: string) => string | null
   readonly dutyLabel: (id: string) => string | null
+  readonly kindName: (key: string) => string | null
+  readonly dutyKindLabel: (key: string) => string | null
 } {
   const assets = useRecords('assets')
   const rooms = useRecords('rooms')
@@ -185,6 +187,19 @@ function useTemplateRecords(catalogue: Catalogue | null): {
       return live(duty) && (ends === null || ends > on)
     })
     const dutyById = new Map(openDuties.map((each) => [String(each['id']), each]))
+    // The kinds of the catalogue in force today, named with their package (#343).
+    const packageTitle = (key: string) =>
+      catalogue?.packages.find((pack) => key.startsWith(`${pack.name}.`))?.title ?? null
+    const kindLabel = (key: string) => {
+      const kind = catalogue?.assetKind(key, on) ?? null
+
+      return kind === null
+        ? null
+        : [kind.definition.label, packageTitle(key)].filter(Boolean).join(', ')
+    }
+    const roundKinds = (catalogue?.dutyKinds(on) ?? []).filter((kind) =>
+      kind.definition.evidence.kinds.includes('round_point'),
+    )
 
     return {
       records: {
@@ -205,8 +220,27 @@ function useTemplateRecords(catalogue: Catalogue | null): {
 
           return found.length === 0 ? null : found.map((rule) => rule.record.unit)
         },
+        assetKind: (key) => (catalogue?.assetKind(key, on) ?? null) !== null,
+        dutyKind: (key) => {
+          const kind = catalogue?.dutyKind(key, on) ?? null
+
+          return kind === null
+            ? null
+            : {
+                assetKinds: kind.definition.scope.assetKinds,
+                takesRoundPoint: kind.definition.evidence.kinds.includes('round_point'),
+              }
+        },
       },
       choices: {
+        assetKinds: (catalogue?.assetKinds(on) ?? [])
+          .map((kind) => ({ value: kind.key, label: kindLabel(kind.key) ?? kind.key }))
+          .sort((left, right) => byNameIn(left.label, right.label)),
+        dutyKinds: (assetKind) =>
+          roundKinds
+            .filter((kind) => kind.definition.scope.assetKinds.includes(assetKind))
+            .map((kind) => ({ value: kind.key, label: kind.definition.label }))
+            .sort((left, right) => byNameIn(left.label, right.label)),
         assets: [...liveAssets.values()]
           .map((asset) => ({ value: String(asset['id']), label: assetLabel(asset) }))
           .sort((left, right) => byNameIn(left.label, right.label)),
@@ -249,6 +283,9 @@ function useTemplateRecords(catalogue: Catalogue | null): {
 
         return duty === undefined ? null : dutyName(duty)
       },
+      // In the list of points the kind alone, as the board shows it; the choice names its package.
+      kindName: (key) => catalogue?.assetKind(key, on)?.definition.label ?? null,
+      dutyKindLabel: (key) => catalogue?.dutyKind(key, on)?.definition.label ?? null,
     }
   }, [assets, rooms, duties, catalogue, on])
 }
@@ -550,6 +587,8 @@ function TemplateEditor({
                 detail={(field) => pointDetail(field, catalogue, on)}
                 labelOf={known.labelOf}
                 dutyLabel={known.dutyLabel}
+                kindName={known.kindName}
+                dutyKindLabel={known.dutyKindLabel}
                 onEditChapter={() => {
                   setOpening({ kind: 'chapter', key: section.key, isNew: false })
                 }}
@@ -745,6 +784,8 @@ function Chapter({
   detail,
   labelOf,
   dutyLabel,
+  kindName,
+  dutyKindLabel,
   onEditChapter,
   onAddPoint,
   onEditPoint,
@@ -757,6 +798,8 @@ function Chapter({
   readonly detail: (field: TemplateField) => string
   readonly labelOf: (kind: string, id: string) => string | null
   readonly dutyLabel: (id: string) => string | null
+  readonly kindName: (key: string) => string | null
+  readonly dutyKindLabel: (key: string) => string | null
   readonly onEditChapter: () => void
   readonly onAddPoint: () => void
   readonly onEditPoint: (point: TemplateField) => void
@@ -783,11 +826,19 @@ function Chapter({
         problem={pointProblem(field.key)}
         detail={detail(field)}
         target={
-          field.about === undefined
-            ? null
-            : { kind: field.about.kind, label: labelOf(field.about.kind, field.about.id) }
+          field.everyAssetOf !== undefined
+            ? { kind: 'every', label: kindName(field.everyAssetOf) ?? field.everyAssetOf }
+            : field.about === undefined
+              ? null
+              : { kind: field.about.kind, label: labelOf(field.about.kind, field.about.id) }
         }
-        duty={field.fulfils === undefined ? null : (dutyLabel(field.fulfils) ?? '')}
+        duty={
+          field.fulfilsKind !== undefined
+            ? `${dutyKindLabel(field.fulfilsKind) ?? field.fulfilsKind}, je Anlage`
+            : field.fulfils === undefined
+              ? null
+              : (dutyLabel(field.fulfils) ?? '')
+        }
         onEdit={() => {
           onEditPoint(field)
         }}
@@ -865,7 +916,7 @@ function PointRow({
         <Icon size={14} strokeWidth={2.1} aria-hidden="true" />
         {pointKindLabel(field)}
       </span>
-      <div className="min-w-0 grow basis-[180px] leading-[1.35]">
+      <div className="min-w-0 grow basis-[150px] leading-[1.35]">
         <div className="text-[13px] font-medium [overflow-wrap:anywhere]">{field.label}</div>
         <div className="text-[12px] text-ink-faint">{detail}</div>
         {problem === null ? null : (
@@ -873,7 +924,12 @@ function PointRow({
         )}
       </div>
       <div className="flex flex-col items-end gap-1">
-        {target === null ? null : target.label === null ? (
+        {target === null ? null : target.kind === 'every' ? (
+          <span className="inline-flex max-w-[200px] items-start gap-1 rounded-[3px] border border-line bg-sunken px-1.5 py-px text-[12px] font-semibold text-ink">
+            <Zap size={12} strokeWidth={2.2} aria-hidden="true" className="mt-0.5 shrink-0" />
+            <span>Jede Anlage: {target.label}</span>
+          </span>
+        ) : target.label === null ? (
           <span className="inline-flex items-center gap-1 whitespace-nowrap rounded-[3px] border border-conflict-edge bg-conflict-fill px-1.5 py-px text-[12px] font-semibold text-conflict">
             <TriangleAlert size={12} strokeWidth={2.2} aria-hidden="true" />
             {target.kind === 'asset' ? templateWords.goneAsset : templateWords.goneRoom}
@@ -885,9 +941,14 @@ function PointRow({
           </span>
         )}
         {duty === null ? null : (
-          <span className="inline-flex items-center gap-1 whitespace-nowrap rounded-[3px] border border-done-edge bg-done-fill px-1.5 py-px text-[12px] font-semibold text-done">
-            <ClipboardCheck size={12} strokeWidth={2.2} aria-hidden="true" />
-            erfüllt {duty}
+          <span className="inline-flex max-w-[200px] items-start gap-1 rounded-[3px] border border-done-edge bg-done-fill px-1.5 py-px text-[12px] font-semibold text-done">
+            <ClipboardCheck
+              size={12}
+              strokeWidth={2.2}
+              aria-hidden="true"
+              className="mt-0.5 shrink-0"
+            />
+            <span>erfüllt {duty}</span>
           </span>
         )}
       </div>

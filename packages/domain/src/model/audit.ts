@@ -576,6 +576,7 @@ export const auditVocabulary: AuditVocabulary = {
         emptied_at: 'Gelöscht nach Ablauf der Aufbewahrung am',
         collective_id: 'Teil des Sammelvorgangs',
         collective_kind: 'Pflichtart des Sammelvorgangs',
+        point_assets: 'Anlagen der Punkte für jede Anlage',
       },
     },
     // The answer to a point of the form of an activity (#106).
@@ -590,6 +591,7 @@ export const auditVocabulary: AuditVocabulary = {
         result: 'Ergebnis',
         remark: 'Bemerkung',
         attachment_id: 'Foto',
+        asset_id: 'Anlage',
       },
     },
     // The template of a round and its versions (#112). A version is never

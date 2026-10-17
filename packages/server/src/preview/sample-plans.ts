@@ -284,3 +284,86 @@ async function passOf(
 
   return made?.id
 }
+
+/**
+ * A point for every asset of a kind in the preview (#343): the electrical
+ * equipment of Halle 1 in Werkhof Nord, each looked at on its own, in a
+ * weekly round for everybody in the area, beside a point for the hall. Its
+ * rounds are made as the routes make them, so that the round on site asks
+ * the two of them one by one.
+ */
+export async function giveSampleEveryAsset(
+  database: Database,
+  planter: Identity,
+  catalogue: Catalogue,
+): Promise<void> {
+  await database.forTenant(planter, async (tx) => {
+    const today = dayInGermany(new Date())
+    const [hall] = await tx
+      .select({ id: buildings.id, propertyId: buildings.propertyId, areaId: buildings.areaId })
+      .from(buildings)
+      .where(and(eq(buildings.name, 'Halle 1'), isNull(buildings.deletedAt)))
+      .limit(1)
+
+    if (hall === undefined) {
+      return
+    }
+
+    const definition: TemplateDefinition = {
+      title: 'Halle 1, Sichtprüfung',
+      sections: [
+        {
+          key: 'k1',
+          title: 'Ortsveränderliche Betriebsmittel',
+          fields: [
+            {
+              kind: 'check_point',
+              key: 'p1',
+              label: 'Gehäuse, Stecker und Leitung ohne sichtbaren Schaden',
+              everyAssetOf: 'elektro.portable_equipment',
+            },
+          ],
+        },
+        {
+          key: 'k2',
+          title: 'Halle',
+          fields: [{ kind: 'check_point', key: 'p2', label: 'Fluchtweg zum Tor frei' }],
+        },
+      ],
+    }
+    const [template] = await tx
+      .insert(roundTemplates)
+      .values({ tenantId: planter.tenantId, title: definition.title })
+      .returning({ id: roundTemplates.id })
+
+    if (template === undefined) {
+      return
+    }
+
+    await tx.insert(roundTemplateVersions).values({
+      tenantId: planter.tenantId,
+      templateId: template.id,
+      formVersion: 1,
+      definition,
+      asksCountersignature: false,
+    })
+
+    const [plan] = await tx
+      .insert(roundPlans)
+      .values({
+        tenantId: planter.tenantId,
+        propertyId: hall.propertyId,
+        buildingId: hall.id,
+        areaId: hall.areaId,
+        startsOn: today,
+        templateId: template.id,
+        rhythm: 'daily',
+        weekdays: [1, 2, 3, 4, 5, 6, 7],
+      })
+      .returning()
+
+    if (plan !== undefined) {
+      await fillAhead(tx, plan, today, catalogue)
+    }
+  })
+}

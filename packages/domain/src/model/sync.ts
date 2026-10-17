@@ -88,9 +88,10 @@ export const syncPolicies: Readonly<Record<string, SyncPolicy>> = {
     onlyWhile: { field: 'status', values: inProgress },
     // The form it is filled in is the server's, written when it is made (#106),
     // and so is the day of the protocol it took as its template (#108) and
-    // the plan of a round that made it (#113) and what makes a collective
-    // activity and its parts (#342), and the time it was emptied with its
-    // last evidence (#409) the database's.
+    // the plan of a round that made it (#113), what makes a collective
+    // activity and its parts (#342) and the assets of the points for every
+    // asset of a round (#343), and the time it was emptied with its last
+    // evidence (#409) the database's.
     reserved: [
       'areaId',
       areaFromProperty,
@@ -101,6 +102,7 @@ export const syncPolicies: Readonly<Record<string, SyncPolicy>> = {
       'emptiedAt',
       'collectiveId',
       'collectiveKind',
+      'pointAssets',
     ],
   },
   // The result of each duty, until the activity is signed.
@@ -435,13 +437,15 @@ export const offlineEdits: Readonly<Record<string, OfflineEdits>> = {
   // Which duties an activity is to meet is its plan.
   activity_duties: { change: { result: true, resultReason: true, remark: true } },
   // The answer to a point: where it stands in the form, once, and what it
-  // says, as long as the work goes on. An answer taken back is removed.
+  // says, as long as the work goes on, for a point for every asset with the
+  // asset it is about (#343). An answer taken back is removed.
   activity_answers: {
     create: {
       activityId: true,
       groupKey: true,
       blockKey: true,
       fieldKey: true,
+      assetId: true,
       value: true,
       result: true,
       remark: true,

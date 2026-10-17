@@ -53,6 +53,7 @@ import {
   rooms,
   roundRecords,
 } from '../database/schema/index.js'
+import { pointAssetNames } from '../rounds/point-assets.js'
 import { dayInGermany } from '../today.js'
 import { stateFingerprint } from './fingerprint.js'
 
@@ -100,6 +101,11 @@ export interface EvidenceToWrite {
    * every other evidence.
    */
   readonly point?: string | null
+  /**
+   * The asset of a point for every asset of a kind whose answer this
+   * evidence is (#343): its form holds the answer about that asset alone.
+   */
+  readonly pointAsset?: string | null
   /** What was said with the result on site (#108); none for a report. */
   readonly remark?: string | null
   /** A person of the operator who did it, or an examiner with the organisation from outside. */
@@ -539,7 +545,10 @@ async function activityOf(
   context: WritingContext,
   input: EvidenceToWrite,
 ): Promise<
-  Pick<typeof activities.$inferSelect, 'id' | 'kind' | 'title' | 'formKey' | 'formVersion'>
+  Pick<
+    typeof activities.$inferSelect,
+    'id' | 'kind' | 'title' | 'formKey' | 'formVersion' | 'pointAssets'
+  >
 > {
   const [found] = await tx
     .select({
@@ -548,6 +557,7 @@ async function activityOf(
       title: activities.title,
       formKey: activities.formKey,
       formVersion: activities.formVersion,
+      pointAssets: activities.pointAssets,
     })
     .from(activities)
     .innerJoin(
@@ -585,7 +595,7 @@ async function filledFormOf(
   tx: TenantTransaction,
   context: WritingContext,
   activity: Awaited<ReturnType<typeof activityOf>>,
-  input: Pick<EvidenceToWrite, 'point' | 'performedOn'>,
+  input: Pick<EvidenceToWrite, 'point' | 'pointAsset' | 'performedOn'>,
 ): Promise<{ form: StatedForm; answers: readonly StatedAnswer[] } | null> {
   const definition = formOfActivity(await formsFor(tx, context.catalogue, activity), activity)
 
@@ -610,10 +620,14 @@ async function filledFormOf(
       ),
     )
   const point = input.point ?? null
+  const pointAsset = input.pointAsset ?? null
   const answers =
     point === null
       ? every
-      : every.filter((answer) => answer.fieldKey === point && answer.groupKey === null)
+      : every.filter(
+          (answer) =>
+            answer.fieldKey === point && answer.groupKey === null && answer.assetId === pointAsset,
+        )
   const photos = answers
     .map((answer) => answer.attachmentId)
     .filter((id): id is AttachmentId => id !== null)
@@ -643,12 +657,17 @@ async function filledFormOf(
     }
   }
 
+  // An answer about one asset names it as it stands now (#343).
+  const names = await pointAssetNames(tx, activity.pointAssets)
+
   return {
     form: { key: definition.key, version: definition.version, title: definition.title },
     answers: statedAnswers(definition, answers, {
       rules: context.catalogue.ruleSet,
       on: input.performedOn,
       fileOf: (id) => newest.get(id) ?? null,
+      pointAssets: activity.pointAssets,
+      assetOf: (id) => names.get(id) ?? null,
     }),
   }
 }

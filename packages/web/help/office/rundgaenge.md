@@ -6,6 +6,8 @@ Ein Rundgang, der in seiner Woche nicht stattfand, bleibt unten stehen, bis Sie 
 
 Ein abgeschlossener Rundgang lässt sich neben dem PDF als Tabelle ausgeben, je Punkt eine Zeile. Am Plan gibt „Als Tabelle“ die Rundgänge eines Zeitraums aus, etwa die Temperaturen eines Monats. Die Tabelle nennt keine Namen und keine Uhrzeiten; wer unterschrieben hat, steht im PDF.
 
+Ein Punkt kann für jede Anlage einer Art gelten, etwa jede Feststellanlage im Gebäude. Welche Anlagen das sind, steht fest, wenn der Rundgang entsteht: jede dieser Art am Ort des Plans und in seinem Bereich, ohne die außer Betrieb genommenen und die zurückgebauten. Jede bekommt eine eigene Antwort. Erfüllt der Punkt eine Pflichtart, ist die Antwort zu einer Anlage der Nachweis ihrer Pflicht dieser Art.
+
 ## Kurzanleitung
 
 1. Eine Vorlage anlegen: Kapitel und Punkte, auf Wunsch mit Grenzwerten und Pflichten.

@@ -11,7 +11,7 @@ Ein Rundgang ist eine wiederkehrende Kontrolle nach einer Vorlage: Punkt für Pu
 ## Vor Ort
 
 1. Den Rundgang auf dem Start öffnen.
-2. Jeden Punkt beantworten: in Ordnung, nicht in Ordnung, nicht möglich oder entfällt. Verlangt eine Antwort eine Bemerkung, sagt das Feld es.
+2. Jeden Punkt beantworten: in Ordnung, nicht in Ordnung, nicht möglich oder entfällt. Verlangt eine Antwort eine Bemerkung, sagt das Feld es. Ein Punkt für jede Anlage einer Art steht mit jeder seiner Anlagen da; „Etikett scannen“ öffnet den Punkt der Anlage, deren Etikett Sie scannen.
 3. Einen Mangel gleich am Punkt melden, am besten mit Foto.
 4. Am Ende „Abgeben und unterschreiben“. Das Gerät zeigt, was Sie unterschreiben und was noch ohne Antwort ist.
 5. Sobald das Gerät Netz hat, gleicht es ab.

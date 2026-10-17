@@ -22,6 +22,7 @@ import {
 
 import { activities } from './activities.js'
 import { withinAreas } from './areas.js'
+import { assets } from './assets.js'
 import { attachments } from './attachments.js'
 import { optionalTrimmed } from './locations.js'
 import { kindOfItsActivity, withinLimits } from './limit-policies.js'
@@ -66,6 +67,10 @@ export const activityAnswers = pgTable(
     result: checkPointResult('result'),
     remark: text('remark'),
     attachmentId: reference<'attachment'>('attachment_id'),
+    // The asset of a point for every asset of a kind the answer is about
+    // (#343): one of those its round was given for the point, as the trigger
+    // `answers_about_the_assets_of_their_point` of the migration holds.
+    assetId: reference<'asset'>('asset_id'),
     ...timestamps,
     ...syncColumns,
   },
@@ -107,8 +112,16 @@ export const activityAnswers = pgTable(
       ],
       name: 'activity_answers_photo_at_their_activity',
     }),
+    // The asset of a point for every asset is one on the property of the
+    // answer (#343).
+    foreignKey({
+      columns: [table.tenantId, table.assetId, table.propertyId],
+      foreignColumns: [assets.tenantId, assets.id, assets.propertyId],
+      name: 'activity_answers_about_an_asset_of_their_property',
+    }),
     index('activity_answers_activity_idx').on(table.tenantId, table.activityId),
-    // One answer per point among the rows that are not marked.
+    // One answer per point among the rows that are not marked, a point for
+    // every asset once for each of its assets (#343).
     uniqueIndex('activity_answers_once')
       .on(
         table.tenantId,
@@ -116,8 +129,14 @@ export const activityAnswers = pgTable(
         sql`coalesce(${table.groupKey}, '')`,
         sql`coalesce(${table.blockKey}, '')`,
         table.fieldKey,
+        sql`coalesce(${table.assetId}::text, '')`,
       )
       .where(sql`${table.deletedAt} is null`),
+    // An answer about an asset stands in no group.
+    check(
+      'activity_answers_asset_outside_a_group',
+      sql`${table.assetId} is null or ${table.groupKey} is null`,
+    ),
     check('activity_answers_field_key_shaped', fieldKeyShaped(table.fieldKey)),
     check(
       'activity_answers_group_key_shaped',

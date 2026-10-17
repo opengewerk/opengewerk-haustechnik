@@ -1,7 +1,8 @@
 import {
+  type AnswersContext,
+  everyAssetOf,
   type FormDefinition,
   type IsoDate,
-  type LimitContext,
   type RecordState,
   weekdayLabel,
   weekdayOf,
@@ -30,7 +31,15 @@ import {
   useSync,
 } from '@opengewerk/platform-web/sync'
 import { useNavigate, useParams } from '@tanstack/react-router'
-import { ChevronLeft, ChevronRight, ClipboardCheck, DoorOpen, Plus, Zap } from 'lucide-react'
+import {
+  ChevronLeft,
+  ChevronRight,
+  ClipboardCheck,
+  DoorOpen,
+  Plus,
+  ScanLine,
+  Zap,
+} from 'lucide-react'
 import { useMemo, useState } from 'react'
 
 import {
@@ -41,11 +50,12 @@ import {
   isDemanded,
   openedBy,
   type OpenedBlock,
+  pointAssetsOf,
   pointKey,
   pointsOf,
   pointState,
 } from '../../app/answers.js'
-import { fulfilledDuty, useDutyName, useFormOf } from '../../app/form-of.js'
+import { fulfilledDuty, useDutyName, useDutyOfAsset, useFormOf } from '../../app/form-of.js'
 import { askedAsQuestion, PointInput } from '../../app/form-points.js'
 import { titleOfRoom } from '../../app/place-records.js'
 import { useCatalogue } from '../../sync/catalogue.js'
@@ -62,6 +72,9 @@ export const siteFormWords = {
   closed: 'Dieser Vorgang ist abgeschlossen. Seine Antworten lassen sich nicht mehr ändern.',
   mayNot: 'Antworten geben gehört nicht zu den Rechten dieses Zugangs.',
   noPoint: 'Diesen Punkt hat das Formular nicht.',
+  everyAsset: 'Für jede Anlage eine Antwort',
+  noAsset: (label: string) => `„${label}“: An diesem Ort steht keine Anlage dieser Art.`,
+  scan: 'Etikett scannen',
   demanded: (done: number, total: number) =>
     `${String(done)} von ${String(total)} Pflichtpunkten beantwortet`,
   answered: (done: number, total: number) =>
@@ -126,12 +139,44 @@ export function useWhere(activity: RecordState | null): {
   }
 }
 
-/** What a point is about, in words: the asset or room its field names, or else the place of the activity. */
+/**
+ * Where an asset stands, in words: its floor and its room, as the list of a
+ * point for every asset says it under the asset (#343); nothing where the
+ * device holds neither.
+ */
+export function useAssetWhere(): (assetId: string) => string | undefined {
+  const assets = useRecords('assets')
+  const rooms = useRecords('rooms')
+  const floors = useRecords('floors')
+
+  return (assetId) => {
+    const asset = assets.find((each) => each['id'] === assetId) ?? null
+    const room = rooms.find((each) => each['id'] === maybeText(asset, 'roomId')) ?? null
+    const floor = floors.find((each) => each['id'] === maybeText(room, 'floorId')) ?? null
+    const words = [maybeText(floor, 'name'), room === null ? null : titleOfRoom(room)]
+      .filter(Boolean)
+      .join(', ')
+
+    return words === '' ? undefined : words
+  }
+}
+
+/**
+ * What a point is about, in words: the asset of a point for every asset
+ * (#343), the asset or room its field names, or else the place of the
+ * activity.
+ */
 export function useAboutWords(): (point: FormPoint) => string | null {
   const assets = useRecords('assets')
   const rooms = useRecords('rooms')
 
   return (point) => {
+    if (point.assetId !== null) {
+      const asset = assets.find((candidate) => candidate['id'] === point.assetId)
+
+      return asset ? assetTitle(asset) : 'Anlage'
+    }
+
     const about = point.field.about
 
     if (about === undefined) {
@@ -187,14 +232,26 @@ export function useActivityForm(activityId: string, opened: readonly OpenedBlock
   )
   const definition: FormDefinition | null | undefined = activity === null ? null : form
   const filled = useMemo(() => answers.map(filledOf), [answers])
+  // The assets of the points for every asset, fixed when the round was made (#343).
+  const pointAssets = useMemo(() => pointAssetsOf(activity), [activity])
+  const assets = useRecords('assets')
   const points = useMemo(
-    () => (definition ? pointsOf(definition, filled, opened) : []),
-    [definition, filled, opened],
+    () => (definition ? pointsOf(definition, filled, opened, pointAssets) : []),
+    [definition, filled, opened, pointAssets],
   )
-  const context: LimitContext | null =
+  const context: AnswersContext | null =
     catalogue === null
       ? null
-      : { rules: catalogue.ruleSet, on: maybeText(activity, 'performedOn') ?? today() }
+      : {
+          rules: catalogue.ruleSet,
+          on: maybeText(activity, 'performedOn') ?? today(),
+          pointAssets,
+          assetName: (id) => {
+            const asset = assets.find((candidate) => candidate['id'] === id)
+
+            return asset === undefined ? null : assetTitle(asset)
+          },
+        }
   const open = inProgress.includes(status) && !signed
 
   return {
@@ -209,6 +266,31 @@ export function useActivityForm(activityId: string, opened: readonly OpenedBlock
     performs,
     editable: open && performs,
   }
+}
+
+/**
+ * The points of a chapter in runs: the points as they come, and the points
+ * of one point for every asset together, which a heading over its assets
+ * stands for (#343).
+ */
+function segmentsOf(points: readonly FormPoint[]): readonly {
+  readonly every: FormPoint['field'] | null
+  readonly points: readonly FormPoint[]
+}[] {
+  const segments: { every: FormPoint['field'] | null; points: FormPoint[] }[] = []
+
+  for (const point of points) {
+    const every = point.assetId === null ? null : point.field
+    const last = segments.at(-1)
+
+    if (last !== undefined && last.every === every) {
+      last.points.push(point)
+    } else {
+      segments.push({ every, points: [point] })
+    }
+  }
+
+  return segments
 }
 
 /** In place of the form, where the device cannot show it: no catalogue, no form, a version it does not know. */
@@ -295,6 +377,7 @@ export function RoundOverview({
   const form = useActivityForm(activityId, [])
   const where = useWhere(form.activity)
   const aboutWords = useAboutWords()
+  const assetWhere = useAssetWhere()
 
   if (form.activity === null) {
     return <NotOnDevice what="Diesen Vorgang" back={{ to: '/', label: 'Zum Start' }} />
@@ -341,7 +424,11 @@ export function RoundOverview({
     const sectionDemanded = inSection.filter(isDemanded)
     const groups = section.fields.filter((field) => field.kind === 'group')
 
-    if (inSection.length === 0 && groups.length === 0) {
+    if (
+      inSection.length === 0 &&
+      groups.length === 0 &&
+      !section.fields.some((field) => everyAssetOf(field) !== null)
+    ) {
       return null
     }
 
@@ -357,21 +444,76 @@ export function RoundOverview({
           )
         }
       >
-        <SiteRows label={section.title}>
-          {inSection.map((point) => (
-            <SiteRow
-              key={point.key}
-              to={siteForms.point(activityId, point.key)}
-              title={
-                point.group === null || point.block === null
-                  ? point.field.label
-                  : `${point.field.label}, ${siteFormWords.block(point.group.label, point.block)}`
-              }
-              meta={aboutWords(point) ?? (isDemanded(point) ? undefined : siteFormWords.optional)}
-              right={<AnswerMark state={pointState(point, filledAt(point), context)} />}
-            />
+        {segmentsOf(inSection).map((segment) =>
+          segment.every === null ? (
+            <SiteRows key={segment.points[0]?.key ?? section.key} label={section.title}>
+              {segment.points.map((point) => (
+                <SiteRow
+                  key={point.key}
+                  to={siteForms.point(activityId, point.key)}
+                  title={
+                    point.group === null || point.block === null
+                      ? point.field.label
+                      : `${point.field.label}, ${siteFormWords.block(point.group.label, point.block)}`
+                  }
+                  meta={
+                    aboutWords(point) ?? (isDemanded(point) ? undefined : siteFormWords.optional)
+                  }
+                  right={<AnswerMark state={pointState(point, filledAt(point), context)} />}
+                />
+              ))}
+            </SiteRows>
+          ) : (
+            <div key={segment.every.key} className="border-b border-row">
+              <div className="py-2.5">
+                <div className="flex items-baseline gap-2.5">
+                  <h4 className="m-0 min-w-0 grow text-[17px] leading-[1.3] font-semibold [overflow-wrap:anywhere]">
+                    {segment.every.label}
+                  </h4>
+                  <span className="shrink-0 text-[15px] text-ink-muted tabular-nums">
+                    {`${String(segment.points.filter((point) => isAnswered(point, filledAt(point))).length)} von ${String(segment.points.length)}`}
+                  </span>
+                </div>
+                <p className="mt-0.5 text-[15px] text-ink-muted">{siteFormWords.everyAsset}</p>
+                {form.editable ? (
+                  <div className="pt-2.5">
+                    <Button
+                      wide
+                      height={52}
+                      icon={ScanLine}
+                      onClick={() => {
+                        void navigate({ to: siteForms.scan(activityId) })
+                      }}
+                    >
+                      {siteFormWords.scan}
+                    </Button>
+                  </div>
+                ) : null}
+              </div>
+              <SiteRows label={segment.every.label}>
+                {segment.points.map((point) => (
+                  <SiteRow
+                    key={point.key}
+                    to={siteForms.point(activityId, point.key)}
+                    title={aboutWords(point) ?? point.field.label}
+                    meta={point.assetId === null ? undefined : assetWhere(point.assetId)}
+                    right={<AnswerMark state={pointState(point, filledAt(point), context)} />}
+                  />
+                ))}
+              </SiteRows>
+            </div>
+          ),
+        )}
+        {section.fields
+          .filter(
+            (field) =>
+              everyAssetOf(field) !== null && !inSection.some((point) => point.field === field),
+          )
+          .map((field) => (
+            <p key={field.key} className="pt-2.5 text-[15px] text-ink-muted">
+              {siteFormWords.noAsset(field.label)}
+            </p>
           ))}
-        </SiteRows>
         {form.editable
           ? groups.map((group) =>
               group.kind === 'group' && group.repeat === 'free' && group.fields[0] ? (
@@ -467,9 +609,9 @@ export function SitePointScreen() {
   const aboutWords = useAboutWords()
   const [trouble, setTrouble] = useState<string | null>(null)
   const toForm: WayBack = { to: siteForms.form(activityId), label: 'Zurück zum Formular' }
-  const duty = useDutyName(
-    fulfilledDuty(form.points.find((each) => each.key === key)?.field ?? null),
-  )
+  const shown = form.points.find((each) => each.key === key) ?? null
+  const ofAsset = useDutyOfAsset(shown)
+  const duty = useDutyName(fulfilledDuty(shown?.field ?? null) ?? ofAsset)
 
   if (form.activity === null) {
     return <NotOnDevice what="Diesen Vorgang" back={{ to: '/', label: 'Zum Start' }} />
@@ -504,8 +646,9 @@ export function SitePointScreen() {
   const target = aboutWords(point) ?? where.words
   const question = askedAsQuestion(point.field.kind)
   const AboutIcon =
-    point.field.kind !== 'meter_reading' &&
-    (point.field.about?.kind === 'asset' || maybeText(form.activity, 'assetId'))
+    point.assetId !== null ||
+    (point.field.kind !== 'meter_reading' &&
+      (point.field.about?.kind === 'asset' || maybeText(form.activity, 'assetId')))
       ? Zap
       : DoorOpen
 

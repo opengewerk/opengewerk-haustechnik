@@ -123,6 +123,8 @@ const awaiting: RoundDetails = {
   formKey: templateFormKey(templateId),
   formVersion: 3,
   closingReason: null,
+  pointAssets: null,
+  assets: [],
   page,
   signatures: [
     {
@@ -250,6 +252,101 @@ function draw() {
 }
 
 describe('a round that was signed', () => {
+  it('names the answer of each asset of a point for every asset under the point, with the duty of that asset (#343)', async () => {
+    const look = (id: string, assetId: string) => ({
+      ...duty,
+      id,
+      assetId,
+      kind: 'probe.elevator_look',
+      kindVersion: 1,
+      label: 'Sichtkontrolle des Aufzugs',
+    })
+
+    server.put('duties', look('d-a', 'as-a'))
+    server.put('duties', look('d-b', 'as-b'))
+    server.put('round_template_versions', {
+      id: 'v-4',
+      templateId,
+      formVersion: 4,
+      definition: JSON.stringify({
+        title: 'Technikzentrale Schulhaus',
+        sections: [
+          {
+            key: 'k1',
+            title: 'Heizraum E.14',
+            fields: [
+              {
+                kind: 'check_point',
+                key: 'p3',
+                label: 'Aufzug ohne Störung',
+                everyAssetOf: 'probe.elevator',
+                fulfilsKind: 'probe.elevator_look',
+              },
+            ],
+          },
+        ],
+      }),
+      asksCountersignature: false,
+      createdAt: '2026-10-01T08:00:00.000Z',
+    })
+
+    const every: RoundDetails = {
+      ...awaiting,
+      id: 'r-every',
+      status: 'done',
+      state: 'submitted',
+      formVersion: 4,
+      pointAssets: { p3: ['as-a', 'as-b'] },
+      assets: [
+        { id: 'as-b', number: 'AN-00102', name: 'Aufzug Haus B' },
+        { id: 'as-a', number: 'AN-00101', name: 'Aufzug Haus A' },
+      ],
+      page: {
+        ...page,
+        duties: ['d-a', 'd-b'].map((dutyId) => ({
+          dutyId,
+          kind: 'probe.elevator_look',
+          label: null,
+          result: null,
+          resultReason: null,
+        })),
+        answers: [
+          {
+            ...answer,
+            fieldKey: 'p3',
+            assetId: 'as-b',
+            value: null,
+            result: 'not_ok',
+            remark: 'Seil quietscht.',
+          },
+          { ...answer, fieldKey: 'p3', assetId: 'as-a', value: null, result: 'ok', remark: null },
+        ] as unknown as SignedPage['answers'],
+      },
+      defects: [],
+    }
+
+    signedIn('site_management', [every])
+    await mountOffice('/rundgaenge/r-every', server, everything)
+    await screen.findByRole('heading', { name: 'Technikzentrale Schulhaus', level: 1 })
+
+    await waitFor(() => {
+      expect(rowsOf(answersCaption)).toEqual([
+        ['Heizraum E.14'],
+        ['Aufzug ohne Störung2 Anlagen, je eine Antwort'],
+        [
+          'AN-00101 Aufzug Haus A',
+          'In Ordnung',
+          'erfüllt die Pflicht „Sichtkontrolle des Aufzugs“',
+        ],
+        [
+          'AN-00102 Aufzug Haus B',
+          'Nicht in Ordnung',
+          'Seil quietscht.erfüllt die Pflicht „Sichtkontrolle des Aufzugs“wurde mit der Unterschrift ein Mangel',
+        ],
+      ])
+    })
+  })
+
   it('shows each answer as it was signed, what was said with it and what came of it', async () => {
     await mountOffice('/rundgaenge/r-school', server, everything)
     await screen.findByRole('heading', { name: 'Technikzentrale Schulhaus', level: 1 })

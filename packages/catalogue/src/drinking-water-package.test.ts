@@ -218,6 +218,8 @@ describe('the package Trinkwasser', () => {
 
         return rule ? [rule.record.unit] : null
       },
+      assetKind: () => true,
+      dutyKind: () => null,
     }
     const context = { rules: catalogue.ruleSet, on: options.today }
 

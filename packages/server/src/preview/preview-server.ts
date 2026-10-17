@@ -54,7 +54,7 @@ import {
 import { plantSampleTasks } from './sample-tasks.js'
 import { giveSampleForm, samplePackage } from './sample-form.js'
 import { withAnAnnouncedVersion } from './sample-update.js'
-import { giveSamplePlans } from './sample-plans.js'
+import { giveSampleEveryAsset, giveSamplePlans } from './sample-plans.js'
 import { giveSampleTemplates } from './sample-templates.js'
 import { giveSampleMeters } from './sample-meters.js'
 import { giveSampleFaults, giveSampleWork } from './sample-work.js'
@@ -302,6 +302,7 @@ export async function openSamplePreview(
     // signed and waiting for its countersignature and two open from before
     // (#115).
     await giveSamplePlans(database, planter, previewCatalogue)
+    await giveSampleEveryAsset(database, planter, previewCatalogue)
     // An order the viewer leads, begun on site with notes and the time spent,
     // and one the viewer works on beside its lead (#118).
     await giveSampleWork(database, planter, previewPeople.viewer.id)

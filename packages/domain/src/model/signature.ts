@@ -257,15 +257,21 @@ function signedDuty(line: Omit<SignedDuty, 'remark'> & { readonly remark?: strin
   }
 }
 
-/** An answer as the page shows it: its point and what it says, as its row holds it. */
+/**
+ * An answer as the page shows it: its point and what it says, as its row
+ * holds it. The asset of an answer to a point for every asset stands on it
+ * only where there is one (#343), so that a page signed before keeps its
+ * fingerprint.
+ */
 export type SignedAnswer = FilledAnswer
 
-/** Answers in the order of their points: group, block, field, by their keys. */
+/** Answers in the order of their points: group, block, field and asset, by their keys. */
 function byPoint(left: SignedAnswer, right: SignedAnswer): number {
   return (
     compare(left.groupKey ?? '', right.groupKey ?? '') ||
     compare(left.blockKey ?? '', right.blockKey ?? '') ||
-    compare(left.fieldKey, right.fieldKey)
+    compare(left.fieldKey, right.fieldKey) ||
+    compare(left.assetId ?? '', right.assetId ?? '')
   )
 }
 
@@ -290,15 +296,18 @@ export function signedPageOf(parts: SignedPageParts): SignedPage {
       : {
           form: parts.form,
           answers: [...(parts.answers ?? [])]
-            .map(({ groupKey, blockKey, fieldKey, value, result, remark, attachmentId }) => ({
-              groupKey,
-              blockKey,
-              fieldKey,
-              value,
-              result,
-              remark,
-              attachmentId,
-            }))
+            .map(
+              ({ groupKey, blockKey, fieldKey, value, result, remark, attachmentId, assetId }) => ({
+                groupKey,
+                blockKey,
+                fieldKey,
+                value,
+                result,
+                remark,
+                attachmentId,
+                ...(assetId === undefined || assetId === null ? {} : { assetId }),
+              }),
+            )
             .sort(byPoint),
         }),
     ...(parts.durationMinutes === undefined || parts.durationMinutes === null
@@ -446,6 +455,7 @@ export function heldPageOf(held: HeldRecords, activityId: string): SignedPage | 
               result: heldText(answer, 'result') as SignedAnswer['result'],
               remark: heldText(answer, 'remark'),
               attachmentId: heldText(answer, 'attachmentId') as SignedAnswer['attachmentId'],
+              assetId: heldText(answer, 'assetId') as SignedAnswer['assetId'],
             })),
         }),
     ...(activity['kind'] === 'work_order' ? heldWorkOf(held, activityId) : {}),

@@ -2,6 +2,7 @@ import {
   type Catalogue,
   type FormDefinition,
   formOfActivity,
+  fulfilledKind,
   type RecordState,
   type RoundTemplateId,
   withTemplates,
@@ -47,6 +48,31 @@ export function fulfilledDuty(field: object | null): string | null {
   const fulfils = (field as { readonly fulfils?: unknown } | null)?.fulfils
 
   return typeof fulfils === 'string' ? fulfils : null
+}
+
+/**
+ * The duty a point for every asset fulfils at the asset of one of its points
+ * (#343): the duty of the kind of the point at that asset, as this device
+ * holds it; none for every other point.
+ */
+export function useDutyOfAsset(
+  point: { readonly field: object; readonly assetId: string | null } | null,
+): string | null {
+  const duties = useRecords('duties')
+  const kind = point === null ? null : fulfilledKind(point.field)
+
+  if (kind === null || point === null || point.assetId === null) {
+    return null
+  }
+
+  const found = duties.find(
+    (duty) =>
+      maybeText(duty, 'kind') === kind &&
+      maybeText(duty, 'assetId') === point.assetId &&
+      (duty['deletedAt'] === null || duty['deletedAt'] === undefined),
+  )
+
+  return found === undefined ? null : String(found['id'])
 }
 
 /** What a duty is called: the label of its kind in the catalogue, or the one it was given. */

@@ -7,6 +7,8 @@ import {
   answerFindings,
   answerReadings,
   answersMissing,
+  assetOfAnswer,
+  everyAssetOf,
   resultAgainstFindings,
   type Catalogue,
   type EvidenceOrigin,
@@ -64,6 +66,7 @@ import {
   writeRoundRecord,
 } from '../evidence/write.js'
 import { dayInGermany } from '../today.js'
+import { assetInWords, pointAssetNames } from '../rounds/point-assets.js'
 import { partsOf } from './collectives.js'
 import { formsFor } from './template-forms.js'
 
@@ -638,8 +641,21 @@ async function checkWork(
   // that point (#112), so nobody enters one for it; every other duty needs
   // its result.
   const entered = page.duties.filter(
-    (line) => form === null || pointFulfilling(form, line.dutyId) === null,
+    (line) => form === null || pointFulfilling(form, line.dutyId, line.kind) === null,
   )
+  // A point for every asset is asked for each of its assets, named in the
+  // sentence (#343).
+  const names = await pointAssetNames(tx, activity.pointAssets)
+  const answersContext = {
+    rules: catalogue.ruleSet,
+    on: activity.performedOn,
+    pointAssets: activity.pointAssets,
+    assetName: (id: string) => {
+      const asset = names.get(id)
+
+      return asset === undefined ? null : assetInWords(asset)
+    },
+  }
 
   if (entered.some((line) => line.result === null)) {
     throw new SigningRefusal(
@@ -648,12 +664,7 @@ async function checkWork(
   }
 
   const missing =
-    form === null || !answersAsked
-      ? []
-      : answersMissing(form, page.answers ?? [], {
-          rules: catalogue.ruleSet,
-          on: activity.performedOn,
-        })
+    form === null || !answersAsked ? [] : answersMissing(form, page.answers ?? [], answersContext)
 
   if (missing.length > 0) {
     throw new SigningRefusal(
@@ -665,12 +676,7 @@ async function checkWork(
   // activity: neither is "ohne Mangel" (#108).
   const findings =
     page.defects.length +
-    (form === null
-      ? 0
-      : answerFindings(form, page.answers ?? [], {
-          rules: catalogue.ruleSet,
-          on: activity.performedOn,
-        }).length)
+    (form === null ? 0 : answerFindings(form, page.answers ?? [], answersContext).length)
   const contradiction = entered
     .map((line) => resultAgainstFindings(line.result, findings))
     .find((sentence) => sentence !== null)
@@ -855,6 +861,7 @@ async function defectsFromAnswers(
   const findings = answerFindings(form, answers, {
     rules: context.catalogue.ruleSet,
     on: activity.performedOn,
+    pointAssets: activity.pointAssets,
   })
 
   if (findings.length === 0) {
@@ -1217,8 +1224,9 @@ async function writeDown(
   collective: StatedCollective | null = null,
 ): Promise<WrittenEvidence[]> {
   const lines = await tx
-    .select()
+    .select({ line: activityDuties, kind: duties.kind, assetId: duties.assetId })
     .from(activityDuties)
+    .innerJoin(duties, eq(duties.id, activityDuties.dutyId))
     .where(
       and(
         eq(activityDuties.tenantId, context.tenantId),
@@ -1243,12 +1251,20 @@ async function writeDown(
   const form = formOfActivity(await formsFor(tx, context.catalogue, activity), activity)
   const answers = form ? await answersOf(tx, activity) : []
 
-  for (const line of lines) {
-    const point = form ? pointFulfilling(form, line.dutyId) : null
+  for (const { line, kind, assetId } of lines) {
+    const point = form ? pointFulfilling(form, line.dutyId, kind) : null
+    // A point for every asset fulfils the duty of each of its assets with
+    // the answer about that asset (#343).
+    const pointAsset = point !== null && everyAssetOf(point) !== null ? assetId : null
     const answer =
       point === null
         ? null
-        : (answers.find((each) => each.fieldKey === point.key && each.groupKey === null) ?? null)
+        : (answers.find(
+            (each) =>
+              each.fieldKey === point.key &&
+              each.groupKey === null &&
+              assetOfAnswer(each) === pointAsset,
+          ) ?? null)
     const outcome =
       point === null || activity.performedOn === null
         ? null
@@ -1264,6 +1280,7 @@ async function writeDown(
         origin,
         performedOn: activity.performedOn ?? '',
         point: point?.key ?? null,
+        pointAsset,
         result: outcome?.result ?? line.result ?? 'not_performed',
         resultReason: outcome === null ? line.resultReason : outcome.reason,
         remark:

@@ -5,7 +5,12 @@ import { fireEvent, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { servingCatalogue, testCatalogue } from '../../app/test-catalogue.js'
+import {
+  acceptedReview,
+  mainTest,
+  servingCatalogue,
+  testCatalogue,
+} from '../../app/test-catalogue.js'
 import {
   mountOffice,
   type NamedArea,
@@ -110,6 +115,20 @@ const hotWaterMaximum: CatalogueRule = {
   },
 }
 
+/** A look at every elevator on a round, which a point of a round takes as its evidence (#343). */
+const elevatorLook = {
+  key: 'probe.elevator_look',
+  version: 1,
+  validFrom: '2015-06-01',
+  definition: {
+    ...mainTest,
+    label: 'Sichtkontrolle des Aufzugs',
+    evidence: { kinds: ['round_point' as const] },
+    scope: { assetKinds: ['probe.elevator'], conditions: [], buildingKinds: [], states: [] },
+  },
+  review: acceptedReview,
+}
+
 /** The test catalogue with a template of a round that has points, to take over. */
 const catalogue: CatalogueBundle = {
   ...testCatalogue,
@@ -117,6 +136,7 @@ const catalogue: CatalogueBundle = {
     index === 0
       ? {
           ...pack,
+          dutyKinds: [...pack.dutyKinds, elevatorLook],
           rules: [...pack.rules, hotWaterMaximum],
           roundTemplates: pack.roundTemplates.map((entry) => ({
             ...entry,
@@ -377,6 +397,61 @@ describe('the editor of a template', () => {
 
     return (sent.sections[0]?.fields[0] as { limit?: unknown }).limit
   }
+
+  it('asks a point about every asset of a kind, fulfils a duty kind at each of them, and sends both (#343)', async () => {
+    await opened()
+
+    const user = userEvent.setup()
+    const row = document.querySelector('[data-point="p3"]') as HTMLElement
+
+    await user.click(within(row).getByRole('button', { name: 'Bearbeiten' }))
+
+    const dialog = await screen.findByRole('dialog', { name: 'Punkt bearbeiten' })
+
+    await user.click(within(dialog).getByRole('radio', { name: 'Jede Anlage einer Art' }))
+
+    const kind = within(dialog).getByRole('combobox', { name: /^Anlagenart/ }) as HTMLSelectElement
+
+    expect(kind.value).toBe('probe.elevator')
+    expect([...kind.options].map((option) => option.text)).toEqual(
+      expect.arrayContaining(['Aufzugsanlage, Probepaket', 'Druckerhöhungsanlage, Probepaket']),
+    )
+
+    const duty = within(dialog).getByRole('combobox', {
+      name: /^Erfüllt die Pflicht/,
+    }) as HTMLSelectElement
+
+    // Only the duty kinds of the kind that take a point of a round.
+    expect([...duty.options].map((option) => option.text)).toEqual([
+      'Keine',
+      'Sichtkontrolle des Aufzugs',
+    ])
+
+    await user.selectOptions(duty, 'probe.elevator_look')
+    await user.click(within(dialog).getByRole('button', { name: 'Übernehmen' }))
+
+    const changed = document.querySelector('[data-point="p3"]') as HTMLElement
+
+    expect(within(changed).getByText(/Jede Anlage: Aufzugsanlage$/)).toBeTruthy()
+    expect(within(changed).getByText(/erfüllt Sichtkontrolle des Aufzugs, je Anlage/)).toBeTruthy()
+    expect(within(changed).getByText(/je Anlage eine Antwort/)).toBeTruthy()
+
+    answerToWrite = () => ({ status: 201, body: { id: template.id, formVersion: 3 } })
+    await user.click(screen.getByRole('button', { name: 'Als neue Fassung speichern' }))
+    await waitFor(() => {
+      expect(written).toHaveLength(1)
+    })
+
+    const sent = (written[0]?.body as { definition: typeof definition }).definition
+
+    expect(sent.sections[0]?.fields[1]).toEqual({
+      kind: 'check_point',
+      key: 'p3',
+      label: 'Tür schließt selbsttätig',
+      everyAssetOf: 'probe.elevator',
+      fulfilsKind: 'probe.elevator_look',
+    })
+  })
 
   it('sends a value of its own a value has to stay under, and says it so in the list (#299)', async () => {
     await opened()
