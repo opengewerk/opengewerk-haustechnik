@@ -13,7 +13,7 @@ import {
   type WorkOrderDetails,
   type WorkOrderMaterialId,
 } from '@opengewerk/haustechnik-domain'
-import { Database, newId, type PrintJob } from '@opengewerk/platform-server'
+import { Database, isUuid, newId, type PrintJob } from '@opengewerk/platform-server'
 import type { Pool } from 'pg'
 import request from 'supertest'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
@@ -430,7 +430,12 @@ describe('the material of an order', () => {
         storeId: stock.store,
       }),
     ])
-    expect(JSON.stringify(page.materials)).not.toMatch(/u-tech|Tobias|890|price/)
+    // Keys left out: a random key can hold the digits of the price.
+    const withoutKeys = JSON.stringify(page.materials, (_, value: unknown) =>
+      typeof value === 'string' && isUuid(value) ? '' : value,
+    )
+
+    expect(withoutKeys).not.toMatch(/u-tech|Tobias|890|price/)
   })
 
   it('names its work order at the booking in the store, for whoever sees the order', async () => {
