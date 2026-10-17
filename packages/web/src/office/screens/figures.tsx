@@ -1,4 +1,5 @@
 import {
+  type ConsumptionFigures,
   type DefectFigures,
   defectAgeBandLabel,
   defectAgeBands,
@@ -9,6 +10,7 @@ import {
   measureColumnLabel,
   measureColumns,
   type MeasureRow,
+  mediumKeyLabel,
   periodOf,
   type ReportGrid,
   reportGridLabel,
@@ -42,6 +44,7 @@ import { factLink } from '../links.js'
 import { PlaceFilter, RegisterFilter } from '../register-filter.js'
 import { Segmented } from '../segmented.js'
 import { asTableAddress } from '../table-address.js'
+import { ConsumptionTables } from './figures-consumption.js'
 
 export const figuresWords = {
   sub: 'Kennzahlen über die Zeit, je Gebäude, Liegenschaft und Bereich. Keine Zahl je Person.',
@@ -440,7 +443,7 @@ function ActivityFigures({
   )
 }
 
-/** The four views, `tabs()` of the board, each behind a word of the address. */
+/** The views, `tabs()` of the board, each behind a word of the address. */
 function FiguresTabs({ address }: { readonly address: FiguresAddress }) {
   return (
     <nav
@@ -472,6 +475,7 @@ type Answer =
   | { readonly view: 'defects'; readonly figures: DefectFigures }
   | { readonly view: 'faults'; readonly figures: FaultFigures }
   | { readonly view: 'activities'; readonly rows: readonly MeasureRow[] }
+  | { readonly view: 'consumption'; readonly figures: ConsumptionFigures }
 
 async function answerOf(view: ReportView, path: string): Promise<Answer> {
   switch (view) {
@@ -483,6 +487,8 @@ async function answerOf(view: ReportView, path: string): Promise<Answer> {
       return { view, figures: await request<FaultFigures>(path) }
     case 'activities':
       return { view, rows: await request<readonly MeasureRow[]>(path) }
+    case 'consumption':
+      return { view, figures: await request<ConsumptionFigures>(path) }
   }
 }
 
@@ -490,7 +496,8 @@ async function answerOf(view: ReportView, path: string): Promise<Answer> {
  * "Auswertungen" in the office, the four boards of `ht_b_auswertung.py` (4.16 of
  * the concept, #334): the fulfilment of the duties per period, the defects
  * open today by class and age, the faults by category and building, and the
- * activities by the basic measures of DIN 31051. Narrowed by place, area,
+ * activities by the basic measures of DIN 31051, and since #335 the
+ * consumption of the meters per building and medium. Narrowed by place, area,
  * months and grid, each in the address, and as a table with what the filter
  * shows. Never a figure per person: nothing here names one, and the views
  * count per place, class, category and period.
@@ -521,6 +528,9 @@ export function FiguresScreen() {
   const table = useTableExport(asTableAddress(path))
   const answer = asked.data?.view === address.view ? asked.data : undefined
   const choices = monthChoices(on)
+  const consumption = answer?.view === 'consumption' ? answer.figures : undefined
+  // The media of the place as the server named them, or the one the address names while it is asked.
+  const mediums = consumption?.choices ?? (address.medium === undefined ? [] : [address.medium])
 
   /** The address with some parts changed, a part left out for none. */
   const set = (change: Partial<Record<keyof FiguresAddress, string | undefined>>) => {
@@ -603,7 +613,26 @@ export function FiguresScreen() {
             </RegisterFilter>
           </>
         )}
-        {address.view === 'duties' || address.view === 'activities' ? (
+        {address.view === 'consumption' ? (
+          <RegisterFilter
+            label="Medium"
+            className="lg:w-[160px]"
+            value={consumption?.chosen ?? address.medium ?? ''}
+            onChange={(value) => {
+              set({ medium: value })
+            }}
+          >
+            {mediums.length === 0 ? <option value="">Keine Zähler</option> : null}
+            {mediums.map((key) => (
+              <option key={key} value={key}>
+                {mediumKeyLabel(key)}
+              </option>
+            ))}
+          </RegisterFilter>
+        ) : null}
+        {address.view === 'duties' ||
+        address.view === 'activities' ||
+        address.view === 'consumption' ? (
           <div className="flex flex-col gap-[3px]">
             <span className="text-[12px] text-ink-faint max-lg:text-[13px]">Raster</span>
             <Segmented
@@ -642,8 +671,10 @@ export function FiguresScreen() {
         <DefectFiguresTable figures={answer.figures} address={address} />
       ) : answer.view === 'faults' ? (
         <FaultFiguresTables figures={answer.figures} />
-      ) : (
+      ) : answer.view === 'activities' ? (
         <ActivityFigures rows={answer.rows} grid={grid} />
+      ) : (
+        <ConsumptionTables figures={answer.figures} grid={grid} />
       )}
     </Screen>
   )

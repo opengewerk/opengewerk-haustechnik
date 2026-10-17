@@ -9,6 +9,7 @@ import {
 } from '@nestjs/common'
 import {
   type Catalogue,
+  type ConsumptionFigures,
   type DefectFigures,
   defectAgeBandLabel,
   defectAgeBands,
@@ -17,13 +18,17 @@ import {
   type FiguresFilter,
   type FulfilmentRow,
   type IsoDate,
+  isMediumKey,
   lastTwelveMonths,
+  type MediumKey,
   measureColumnLabel,
   measureColumns,
   type MeasureRow,
+  meterUnitSymbol,
   type ReportGrid,
   reportGrids,
   reportPeriodProblems,
+  type SumUnit,
 } from '@opengewerk/haustechnik-domain'
 import {
   CurrentIdentity,
@@ -35,6 +40,7 @@ import {
 } from '@opengewerk/platform-server'
 
 import { CATALOGUE } from '../catalogue.js'
+import { consumptionFigures } from '../figures/consumption.js'
 import { activityFigures, defectFigures, dutyFigures, faultFigures } from '../figures/reading.js'
 import { dayInGermany } from '../today.js'
 import { RequiresPermission } from './authorization.js'
@@ -43,7 +49,10 @@ import type { Asking } from './places.js'
 type Question = Readonly<Record<string, unknown>>
 
 /** The filter a question names: the place, the months and the grid, with the twelve months up to today where it names none. */
-function filterOf(query: Question, today: IsoDate): FiguresFilter {
+function filterOf(
+  query: Question,
+  today: IsoDate,
+): FiguresFilter & { readonly medium?: MediumKey } {
   const said = (key: string) =>
     typeof query[key] === 'string' && query[key] !== '' ? (query[key] as string) : undefined
   const twelve = lastTwelveMonths(today)
@@ -63,11 +72,19 @@ function filterOf(query: Question, today: IsoDate): FiguresFilter {
   const areaId = said('areaId')
   const propertyId = said('propertyId')
   const buildingId = said('buildingId')
+  const medium = said('medium')
+
+  if (medium !== undefined && !isMediumKey(medium)) {
+    throw new BadRequestException(
+      'Ein Medium wird mit seiner Einheit genannt, etwa „electricity:kilowatt_hours“.',
+    )
+  }
 
   return {
     from,
     to,
     grid: grid as ReportGrid,
+    ...(medium === undefined ? {} : { medium }),
     ...(areaId === undefined ? {} : { areaId }),
     ...(propertyId === undefined ? {} : { propertyId }),
     ...(buildingId === undefined ? {} : { buildingId }),
@@ -147,6 +164,72 @@ function activityTable(rows: readonly MeasureRow[]): OutgoingTable {
       ...measureColumns.map((column) => row.counts[column]),
       row.total,
     ]),
+  }
+}
+
+/** A day as a table writes it, `03.06.2026`. */
+function germanDay(day: IsoDate): string {
+  return `${day.slice(8, 10)}.${day.slice(5, 7)}.${day.slice(0, 4)}`
+}
+
+function consumptionTableOf(figures: ConsumptionFigures): OutgoingTable {
+  const unit =
+    figures.chosen === null ? '' : meterUnitSymbol[figures.chosen.split(':')[1] as SumUnit]
+  // In whole units, or an empty cell for a gap or nothing read yet, which the remark names.
+  const figure = (milli: number | null, read: boolean) =>
+    milli === null || !read ? null : milli / 1000
+  const remarks = (...parts: readonly (string | null | false)[]) =>
+    parts.filter((part) => typeof part === 'string').join(', ')
+  const nothing = (row: { readonly read: boolean; readonly readBefore: boolean }) => [
+    !row.read && 'noch kein Stand',
+    !row.readBefore && 'im Vorjahr noch kein Stand',
+  ]
+
+  return {
+    name: 'Auswertung Verbrauch',
+    columns: ['Nach', 'Name', 'Ort', 'Verbrauch', 'Vorjahr', 'Einheit', 'Hinweis'],
+    rows: [
+      ...figures.course.map((row) => [
+        'Zeitraum',
+        row.label,
+        '',
+        figure(row.milli, row.read),
+        figure(row.previousMilli, row.readBefore),
+        unit,
+        row.due
+          ? remarks(
+              row.read && row.milli === null && 'Lücke',
+              row.withGap > 0 && `${String(row.withGap)} mit Lücke`,
+              ...nothing(row),
+            )
+          : 'noch nicht fällig',
+      ]),
+      ...figures.byBuilding.map((row) => [
+        'Gebäude',
+        row.label,
+        row.sub,
+        figure(row.milli, row.read),
+        figure(row.previousMilli, row.readBefore),
+        unit,
+        remarks(row.read && row.milli === null && 'Lücke', ...nothing(row)),
+      ]),
+      ...figures.byMeter.map((row) => [
+        'Messstelle',
+        [row.mark, row.name].filter(Boolean).join(' '),
+        row.building,
+        figure(row.milli, row.read),
+        figure(row.previousMilli, row.readBefore),
+        unit,
+        remarks(
+          row.rest && 'Rest ohne Unterzähler',
+          row.under !== null && `unter ${row.under}`,
+          row.takenOver && 'mit übernommenem Stand',
+          ...row.exchangedOn.map((day) => `getauscht am ${germanDay(day)}`),
+          row.read && row.milli === null && 'Lücke',
+          ...nothing(row),
+        ),
+      ]),
+    ],
   }
 }
 
@@ -247,6 +330,25 @@ export class FiguresController {
   activitiesTable(@CurrentIdentity() identity: Asking, @Query() query: Question) {
     return this.table(identity, query, async (tx, today) =>
       activityTable(await activityFigures(tx, filterOf(query, today))),
+    )
+  }
+
+  @Get('consumption')
+  @RequiresPermission('report.read')
+  consumption(@CurrentIdentity() identity: Asking, @Query() query: Question) {
+    return this.read(identity, (tx, today) =>
+      consumptionFigures(tx, this.catalogue, today, filterOf(query, today)),
+    )
+  }
+
+  @Get('consumption/table')
+  @RequiresPermission('report.read')
+  @Header('Cache-Control', 'no-store')
+  consumptionTable(@CurrentIdentity() identity: Asking, @Query() query: Question) {
+    return this.table(identity, query, async (tx, today) =>
+      consumptionTableOf(
+        await consumptionFigures(tx, this.catalogue, today, filterOf(query, today)),
+      ),
     )
   }
 }

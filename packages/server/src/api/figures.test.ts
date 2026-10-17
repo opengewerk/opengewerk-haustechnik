@@ -3,6 +3,7 @@ import { Test } from '@nestjs/testing'
 import { probeCatalogueBundle } from '@opengewerk/haustechnik-catalogue/testing'
 import {
   catalogueOf,
+  type ConsumptionFigures,
   type DefectFigures,
   type DefectRegister,
   type FaultFigures,
@@ -168,6 +169,80 @@ async function activityAt(asset: string, kind: string, performedOn: IsoDate): Pr
   )
 }
 
+/** A new property with a building in an area; the ids. */
+async function buildingIn(where: 'north' | 'south', name: string) {
+  const header = by('u-lead')
+  const made = async (path: string, body: object): Promise<string> =>
+    (await http().post(path).set(testIdentityHeader, header).send(body).expect(201)).body.id
+  const property = await made('/properties', {
+    name: `Wohnanlage ${name}`,
+    street: 'Hauptstraße 1',
+    postalCode: '68535',
+    city: 'Edingen-Neckarhausen',
+    federalState: 'DE-BW',
+    areaId: areas[where],
+  })
+  const building = await made(`/properties/${property}/buildings`, { name, kinds: ['school'] })
+
+  return { property, building }
+}
+
+/** A water meter in a building; its id. */
+async function meterIn(building: string, mark: string): Promise<string> {
+  return (
+    await http()
+      .post(`/buildings/${building}/assets`)
+      .set(testIdentityHeader, by('u-lead'))
+      .send({
+        kind: 'probe.water_meter',
+        name: `Wasserzähler ${mark}`,
+        mark,
+        meterNumber: `13-${mark}`,
+        meterUnit: 'cubic_metres',
+      })
+      .expect(201)
+  ).body.id
+}
+
+/** Readings of a meter for key dates, read that day by the Haustechnik, in whole cubic metres. */
+async function readingsOf(
+  meter: string,
+  figures: Readonly<Record<string, number>>,
+  source = 'by_hand',
+): Promise<void> {
+  for (const [keyDate, value] of Object.entries(figures)) {
+    await admin.query(
+      `insert into meter_readings (tenant_id, property_id, area_id, asset_id, key_date, read_on,
+                                   value_milli, source, recorded_by)
+       select tenant_id, property_id, area_id, id, $2::date, $2::date, $3, $4::meter_reading_source,
+              'u-tech'
+         from assets where id = $1`,
+      [meter, keyDate, value * 1000, source],
+    )
+  }
+}
+
+/** A meter counting under a main meter. */
+async function under(sub: string, main: string): Promise<void> {
+  await admin.query(
+    `insert into meter_points (tenant_id, property_id, area_id, asset_id, main_meter_id)
+     select tenant_id, property_id, area_id, id, $2 from assets where id = $1`,
+    [sub, main],
+  )
+}
+
+/** The figures of the consumption at a building, by the Leitung. */
+async function consumptionAt(
+  building: string,
+  query: Readonly<Record<string, string>>,
+): Promise<ConsumptionFigures> {
+  return figures<ConsumptionFigures>(
+    'consumption',
+    { buildingId: building, grid: 'month', ...query },
+    by('u-lead'),
+  )
+}
+
 async function stock(where: 'north' | 'south'): Promise<void> {
   const header = by('u-lead')
   const made = async (path: string, body: object): Promise<string> =>
@@ -266,7 +341,7 @@ afterAll(async () => {
 
 describe('the figures over time', () => {
   it('are for whoever may look at them, the Leitung and the Technische Leitung', async () => {
-    for (const view of ['duties', 'defects', 'faults', 'activities']) {
+    for (const view of ['duties', 'defects', 'faults', 'activities', 'consumption']) {
       expect(
         (await http().get(`/reports/${view}`).set(testIdentityHeader, by('u-site')).expect(403))
           .body.message,
@@ -387,6 +462,189 @@ describe('the figures over time', () => {
     ])
   })
 
+  it('sum the consumption of the meters per period with the year before, a main meter with its rest and a sub-meter once', async () => {
+    const { building } = await buildingIn('north', 'Haus Wasser')
+    const main = await meterIn(building, 'HZ-01')
+    const sub = await meterIn(building, 'UZ-01')
+
+    await under(sub, main)
+    await readingsOf(main, {
+      '2025-01-01': 100,
+      '2025-02-01': 130,
+      '2025-03-01': 160,
+      '2026-01-01': 500,
+      '2026-02-01': 540,
+      '2026-03-01': 590,
+    })
+    await readingsOf(sub, {
+      '2025-01-01': 10,
+      '2025-02-01': 20,
+      '2025-03-01': 30,
+      '2026-01-01': 200,
+      '2026-02-01': 215,
+      '2026-03-01': 235,
+    })
+
+    const shown = await consumptionAt(building, { from: '2026-02', to: '2026-03' })
+
+    expect([shown.choices, shown.chosen]).toEqual([['water:cubic_metres'], 'water:cubic_metres'])
+    // What the main meter measured, and not that and the sub-meter again.
+    expect(shown.course.map((row) => [row.label, row.milli, row.previousMilli])).toEqual([
+      ['Februar 2026', 40_000, 30_000],
+      ['März 2026', 50_000, 30_000],
+    ])
+    expect(shown.byBuilding.map((row) => [row.label, row.milli, row.previousMilli])).toEqual([
+      ['Haus Wasser', 90_000, 60_000],
+    ])
+    expect(
+      shown.byMeter.map((row) => [row.mark, row.depth, row.rest, row.under, row.milli]),
+    ).toEqual([
+      ['HZ-01', 0, true, null, 55_000],
+      ['UZ-01', 1, false, 'HZ-01', 35_000],
+    ])
+  })
+
+  it('count across a replacement on both meters, and nothing while a meter rests', async () => {
+    const { building } = await buildingIn('north', 'Haus Tausch')
+    const replaced = await meterIn(building, 'WZ-01')
+    const resting = await meterIn(building, 'WZ-02')
+
+    await readingsOf(replaced, {
+      '2026-01-01': 1000,
+      '2026-02-01': 15,
+      '2026-03-01': 30,
+      '2026-04-01': 45,
+      '2026-05-01': 60,
+    })
+    // The old meter stood at 1040 when it went, the new one began at 0.
+    await admin.query(
+      `insert into meter_exchanges (tenant_id, property_id, area_id, asset_id, exchanged_on,
+                                    old_number, old_end_milli, new_number, new_start_milli)
+       select tenant_id, property_id, area_id, id, '2026-01-20', '13-WZ-01', 1040000, '13-NEU', 0
+         from assets where id = $1`,
+      [replaced],
+    )
+    await readingsOf(resting, { '2026-01-01': 50, '2026-04-01': 50, '2026-05-01': 70 })
+    await admin.query(
+      `insert into meter_pauses (tenant_id, property_id, area_id, asset_id, starts_on, ends_on,
+                                 reason)
+       select tenant_id, property_id, area_id, id, '2026-01-01', '2026-03-31', 'Umbau'
+         from assets where id = $1`,
+      [resting],
+    )
+
+    const shown = await consumptionAt(building, { from: '2026-01', to: '2026-05' })
+
+    expect(shown.course.map((row) => [row.label, row.milli, row.withGap])).toEqual([
+      ['Januar 2026', 0, 0],
+      ['Februar 2026', 55_000, 0],
+      ['März 2026', 15_000, 0],
+      ['April 2026', 15_000, 0],
+      ['Mai 2026', 35_000, 0],
+    ])
+    expect(shown.byMeter.map((row) => [row.mark, row.milli, row.exchangedOn])).toEqual([
+      ['WZ-01', 100_000, ['2026-01-20']],
+      ['WZ-02', 20_000, []],
+    ])
+  })
+
+  it('show a key date without a reading as a gap and count the meter, and never estimate', async () => {
+    const { building } = await buildingIn('north', 'Haus Lücke')
+    const meter = await meterIn(building, 'WZ-10')
+
+    await readingsOf(meter, { '2026-01-01': 10, '2026-04-01': 40 })
+    await readingsOf(meter, { '2026-02-01': 20 }, 'taken_over')
+
+    const months = await consumptionAt(building, { from: '2026-02', to: '2026-04' })
+
+    // April reaches back over March, which has no reading: neither month is known.
+    expect(months.course.map((row) => [row.label, row.milli, row.withGap])).toEqual([
+      ['Februar 2026', 10_000, 0],
+      ['März 2026', null, 1],
+      ['April 2026', null, 1],
+    ])
+    // Over the three months together the readings say it all.
+    expect(months.byMeter.map((row) => [row.mark, row.milli, row.takenOver])).toEqual([
+      ['WZ-10', 30_000, true],
+    ])
+
+    const year = await consumptionAt(building, { from: '2026-01', to: '2026-04', grid: 'year' })
+
+    expect(year.course.map((row) => [row.label, row.milli])).toEqual([['2026', 30_000]])
+  })
+
+  it('see the areas of whoever looks: a measuring point of another area is in no sum', async () => {
+    const south = await buildingIn('south', 'Haus Süd Wasser')
+    const north = await buildingIn('north', 'Haus Nord Wasser')
+    const there = await meterIn(south.building, 'WZ-S1')
+    const here = await meterIn(north.building, 'WZ-N1')
+
+    await readingsOf(there, { '2026-05-01': 0, '2026-06-01': 500 })
+    await readingsOf(here, { '2026-05-01': 0, '2026-06-01': 7 })
+
+    const query = { from: '2026-06', to: '2026-06', grid: 'month' }
+    const marks = (shown: ConsumptionFigures) => shown.byMeter.map((row) => row.mark)
+
+    expect(
+      marks(await figures('consumption', { ...query, areaId: areas.south }, by('u-lead'))),
+    ).toContain('WZ-S1')
+
+    const seen = await figures<ConsumptionFigures>('consumption', query, northOnly)
+
+    expect(marks(seen)).toContain('WZ-N1')
+    expect(marks(seen)).not.toContain('WZ-S1')
+    expect(
+      await figures<ConsumptionFigures>(
+        'consumption',
+        { ...query, areaId: areas.south },
+        northOnly,
+      ),
+    ).toMatchObject({ byBuilding: [], byMeter: [] })
+    expect(
+      (
+        await figures<ConsumptionFigures>(
+          'consumption',
+          { ...query, buildingId: north.building },
+          northOnly,
+        )
+      ).course[0]?.milli,
+    ).toBe(7_000)
+  })
+
+  it('come for the consumption as a table, and refuse a medium they do not know', async () => {
+    const { building } = await buildingIn('north', 'Haus Tabelle')
+    const meter = await meterIn(building, 'WZ-20')
+
+    await readingsOf(meter, { '2026-01-01': 10, '2026-02-01': 12.5 })
+
+    const table = await http()
+      .get('/reports/consumption/table')
+      .query({ buildingId: building, from: '2026-02', to: '2026-02', grid: 'month', format: 'csv' })
+      .set(testIdentityHeader, by('u-lead'))
+      .expect(200)
+
+    expect(
+      table.text
+        .replace(/^\uFEFF/u, '')
+        .trim()
+        .split(/\r?\n/u),
+    ).toEqual([
+      'Nach;Name;Ort;Verbrauch;Vorjahr;Einheit;Hinweis',
+      'Zeitraum;Februar 2026;;2,5;;m³;im Vorjahr noch kein Stand',
+      'Gebäude;Haus Tabelle;Wohnanlage Haus Tabelle;2,5;;m³;im Vorjahr noch kein Stand',
+      'Messstelle;WZ-20 Wasserzähler WZ-20;Haus Tabelle;2,5;;m³;im Vorjahr noch kein Stand',
+    ])
+    expect(
+      (
+        await http()
+          .get('/reports/consumption')
+          .query({ medium: 'steam:kilowatt_hours' })
+          .set(testIdentityHeader, by('u-lead'))
+          .expect(400)
+      ).body.message,
+    ).toBe('Ein Medium wird mit seiner Einheit genannt, etwa „electricity:kilowatt_hours“.')
+  })
+
   it('see the areas of whoever looks and nothing of the others', async () => {
     await dutyAt(places.south.asset, ['2023-01-10', '2024-01-05'])
     await defectAt(places.south.asset, { foundOn: '2020-03-01', dueOn: null, status: 'found' })
@@ -424,7 +682,7 @@ describe('the figures over time', () => {
     const query = { from: '2023-01', to: '2026-10', grid: 'month' }
     const said: string[] = []
 
-    for (const view of ['duties', 'defects', 'faults', 'activities']) {
+    for (const view of ['duties', 'defects', 'faults', 'activities', 'consumption']) {
       said.push(JSON.stringify(await figures(view, query, by('u-lead'))))
       said.push(
         (

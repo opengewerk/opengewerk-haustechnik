@@ -1,4 +1,5 @@
 import {
+  type ConsumptionFigures,
   type DefectFigures,
   type FaultFigures,
   type FulfilmentRow,
@@ -278,6 +279,128 @@ describe('the figures over time', () => {
       expect(tables.asked).toEqual([
         '/reports/activities/table?from=2026-01&to=2026-09&grid=year&format=csv',
       ])
+    })
+  })
+})
+
+function consumption(chosen: ConsumptionFigures['chosen']): ConsumptionFigures {
+  return {
+    choices: ['water:cubic_metres', 'gas:cubic_metres'],
+    chosen,
+    course: [
+      {
+        key: '2026-02',
+        label: 'Februar 2026',
+        milli: 40_000,
+        previousMilli: 30_000,
+        withGap: 0,
+        due: true,
+        read: true,
+        readBefore: true,
+      },
+      {
+        key: '2026-03',
+        label: 'März 2026',
+        milli: null,
+        previousMilli: 30_000,
+        withGap: 1,
+        due: true,
+        read: true,
+        readBefore: true,
+      },
+    ],
+    byBuilding: [
+      {
+        buildingId: house.id,
+        label: house.name,
+        sub: school.name,
+        milli: null,
+        previousMilli: 60_000,
+        read: true,
+        readBefore: true,
+      },
+    ],
+    byMeter: [
+      {
+        assetId: 'as-main',
+        mark: 'HZ-01',
+        name: 'Hauptzähler',
+        building: house.name,
+        depth: 0,
+        under: null,
+        rest: true,
+        read: true,
+        readBefore: true,
+        milli: 25_000,
+        previousMilli: 40_000,
+        takenOver: false,
+        exchangedOn: [],
+      },
+      {
+        assetId: 'as-sub',
+        mark: 'UZ-01',
+        name: 'Unterzähler',
+        building: house.name,
+        depth: 1,
+        under: 'HZ-01',
+        rest: false,
+        read: true,
+        readBefore: false,
+        milli: null,
+        previousMilli: 20_000,
+        takenOver: true,
+        exchangedOn: ['2026-02-20'],
+      },
+    ],
+  }
+}
+
+const courseCaption = 'Verbrauch je Zeitraum mit dem Vorjahr und den Messstellen mit Lücke'
+const meterCaption =
+  'Verbrauch je Messstelle im Zeitraum mit dem Vorjahr, Hauptzähler mit ihrem Rest'
+
+describe('the consumption of the meters', () => {
+  it('shows the course of a medium with the year before, a missing reading as a gap, and each meter under its main meter', async () => {
+    const at = 'from=2026-02&to=2026-03&grid=month'
+
+    await mount('/auswertungen?ansicht=verbrauch&von=2026-02&bis=2026-03', {
+      [`/reports/consumption?${at}`]: consumption('water:cubic_metres'),
+      [`/reports/consumption?${at}&medium=gas%3Acubic_metres`]: {
+        ...consumption('gas:cubic_metres'),
+        course: [],
+        byBuilding: [],
+        byMeter: [],
+      },
+    })
+
+    await waitFor(() => {
+      expect(rowsOf(courseCaption)).toEqual([
+        ['Februar 2026', '40,0 m³', '30,0 m³', '+33 %', '0'],
+        ['März 2026', 'Lücke', '30,0 m³', '', '1'],
+      ])
+    })
+    expect(rowsOf(meterCaption)).toEqual([
+      ['HZ-01 HauptzählerSchulhaus · Rest ohne Unterzähler', '25,0 m³', '40,0 m³'],
+      [
+        'UZ-01 UnterzählerSchulhaus · unter HZ-01 · mit übernommenem Stand · getauscht am 20.02.2026',
+        'Lücke',
+        'noch kein Stand',
+      ],
+    ])
+    expect(screen.getByRole('link', { name: 'UZ-01 Unterzähler' }).getAttribute('href')).toBe(
+      '/zaehler/as-sub',
+    )
+
+    const medium = screen.getByLabelText('Medium') as HTMLSelectElement
+
+    expect([...medium.options].map((option) => option.textContent)).toEqual([
+      'Wasser (m³)',
+      'Gas (m³)',
+    ])
+    fireEvent.change(medium, { target: { value: 'gas:cubic_metres' } })
+
+    await waitFor(() => {
+      expect(rowsOf(courseCaption)).toEqual([])
     })
   })
 })

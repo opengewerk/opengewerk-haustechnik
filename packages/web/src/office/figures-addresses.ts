@@ -1,7 +1,9 @@
 import {
   type IsoDate,
+  isMediumKey,
   isReportMonth,
   lastTwelveMonths,
+  type MediumKey,
   type ReportGrid,
   reportGrids,
   type ReportView,
@@ -20,6 +22,7 @@ const viewWords: Readonly<Record<ReportView, string>> = {
   defects: 'maengel',
   faults: 'stoerungen',
   activities: 'vorgaenge',
+  consumption: 'verbrauch',
 }
 
 const gridWords: Readonly<Record<ReportGrid, string>> = {
@@ -37,6 +40,8 @@ export interface FiguresAddress {
   readonly from?: string
   readonly to?: string
   readonly grid?: ReportGrid
+  /** The medium of the consumption, with its unit (#335). */
+  readonly medium?: MediumKey
 }
 
 function word(search: Readonly<Record<string, unknown>>, name: string): string | undefined {
@@ -53,6 +58,7 @@ export function figuresAddressOf(search: Readonly<Record<string, unknown>>): Fig
   const areaId = word(search, 'bereich')
   const propertyId = word(search, 'liegenschaft')
   const buildingId = word(search, 'gebaeude')
+  const medium = word(search, 'medium')
 
   return {
     view,
@@ -62,6 +68,7 @@ export function figuresAddressOf(search: Readonly<Record<string, unknown>>): Fig
     ...(isReportMonth(from) ? { from } : {}),
     ...(isReportMonth(to) ? { to } : {}),
     ...(grid === undefined ? {} : { grid }),
+    ...(isMediumKey(medium) ? { medium } : {}),
   }
 }
 
@@ -77,6 +84,7 @@ export function figuresSearch(address: FiguresAddress): Record<string, string> {
     ...(address.grid === undefined || address.grid === 'month'
       ? {}
       : { raster: gridWords[address.grid] }),
+    ...(address.medium === undefined ? {} : { medium: address.medium }),
   }
 }
 
@@ -103,6 +111,9 @@ export function figuresRequest(address: FiguresAddress, today: IsoDate): string 
     ...(address.areaId === undefined ? {} : { areaId: address.areaId }),
     ...(address.propertyId === undefined ? {} : { propertyId: address.propertyId }),
     ...(address.buildingId === undefined ? {} : { buildingId: address.buildingId }),
+    ...(address.view === 'consumption' && address.medium !== undefined
+      ? { medium: address.medium }
+      : {}),
   })
 
   return `/reports/${address.view}?${asked.toString()}`
