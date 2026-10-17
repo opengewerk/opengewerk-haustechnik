@@ -88,10 +88,11 @@ import {
   tableFormatOf,
   type TenantTransaction,
 } from '@opengewerk/platform-server'
-import { and, asc, desc, eq, isNull, notInArray } from 'drizzle-orm'
+import { and, asc, desc, eq, inArray, isNull, notInArray } from 'drizzle-orm'
 
 import { underWayFor } from '../activities/for-duty.js'
 import { CATALOGUE } from '../catalogue.js'
+import { applyDelegations, chosenResponsible } from '../delegations/apply.js'
 import { dutiesOnADay, dutyTitle } from '../database/duty-standing.js'
 import { contractsOfDuties } from '../database/duty-contracts.js'
 import { intervalDocumentsOf } from '../database/interval-documents.js'
@@ -1425,7 +1426,8 @@ export class DutiesController {
         .values(dutyRow(identity, target, decided, values, document))
         .returning()
 
-      return created as Duty
+      // A delegation that covers it names who answers for it (#336).
+      return (await withDelegations(tx, this.catalogue, [created as Duty]))[0] as Duty
     })
   }
 
@@ -1472,7 +1474,11 @@ export class DutiesController {
         rows.push(dutyRow(identity, target, decided, values))
       }
 
-      return (await tx.insert(duties).values(rows).returning()) as Duty[]
+      return withDelegations(
+        tx,
+        this.catalogue,
+        (await tx.insert(duties).values(rows).returning()) as Duty[],
+      )
     })
   }
 
@@ -1600,9 +1606,35 @@ export class DutiesController {
             ? noIntervalDocument
             : await intervalDocumentAt(tx, identity, intervalDocumentId, await chainOf(tx, duty))
 
+      // Where a delegation covers the duty, the person comes from it (#336).
+      const responsible =
+        values.responsibleUserId === undefined
+          ? null
+          : await chosenResponsible(
+              tx,
+              this.catalogue,
+              dayInGermany(),
+              duty,
+              values.responsibleUserId === null ? null : String(values.responsibleUserId),
+            )
+
+      if (typeof responsible === 'string') {
+        throw new BadRequestException(responsible)
+      }
+
       const [changed] = await tx
         .update(duties)
-        .set({ ...(rest as Partial<Duty>), ...interval, ...document } as Partial<Duty>)
+        .set({
+          ...(rest as Partial<Duty>),
+          ...interval,
+          ...document,
+          ...(responsible !== null
+            ? {
+                responsibleUserId: responsible.userId,
+                responsibleDelegationId: responsible.delegationId,
+              }
+            : {}),
+        } as Partial<Duty>)
         .where(and(eq(duties.id, duty.id), isNull(duties.deletedAt)))
         .returning()
 
@@ -1821,4 +1853,24 @@ export class DutyDismissalsController {
       return withdrawn as DutyDismissal
     })
   }
+}
+
+/**
+ * Duties just written, with who answers for them once the delegations that
+ * hold today are applied (#336), read again where that changed anything.
+ */
+async function withDelegations(
+  tx: TenantTransaction,
+  catalogue: Catalogue,
+  written: readonly Duty[],
+): Promise<Duty[]> {
+  const ids = written.map((duty) => duty.id)
+
+  if ((await applyDelegations(tx, catalogue, dayInGermany(), ids)) === 0) {
+    return [...written]
+  }
+
+  const read = (await tx.select().from(duties).where(inArray(duties.id, ids))) as Duty[]
+
+  return ids.map((id) => read.find((duty) => duty.id === id) as Duty)
 }

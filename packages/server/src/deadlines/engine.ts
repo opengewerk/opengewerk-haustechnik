@@ -16,6 +16,7 @@ import {
 
 import { activityFromDeadline } from '../activities/from-deadline.js'
 import { inEveryArea } from '../database/every-area.js'
+import { applyDelegations } from '../delegations/apply.js'
 import type { ApplicationDeadlineColumns } from '../database/schema/deadlines.js'
 import { deadlines } from '../database/schema/index.js'
 import { dayInGermany } from '../today.js'
@@ -102,6 +103,8 @@ function bound(
     complete: async (tx, now) => {
       await upgradeOpenRounds(tx, now)
       await settleDeadlineTasks(tx, now)
+      // A delegation of duties begins and ends on a day (#336).
+      await applyDelegations(tx, job.catalogue, dayInGermany(now))
     },
     sentences,
     inTenant: (actor, work) => inEveryArea(job.database, actor, work),

@@ -465,3 +465,74 @@ export function serviceReportPrintJob(
 
   return { html: page(body), footerHtml: footer(fingerprint), margin }
 }
+
+/** What the PDF of a delegation of duties says (#336), read from the delegation as it was signed. */
+export interface DelegationPrint {
+  readonly operator: string
+  readonly delegateName: string
+  readonly areas: readonly string[]
+  readonly scope: string
+  readonly tasks: string
+  readonly powers: string
+  readonly startsOn: IsoDate
+  readonly endsOn: IsoDate
+  readonly signatures: readonly {
+    readonly label: string
+    readonly name: string
+    readonly signedAt: string
+    readonly path: string | null
+    readonly typedName: string | null
+  }[]
+  readonly revocation: {
+    readonly effectiveOn: IsoDate
+    readonly reason: string
+    readonly name: string
+    readonly at: string
+  } | null
+  /** Whether both have signed: before that the page says it is a draft. */
+  readonly signedByBoth: boolean
+}
+
+/**
+ * The PDF of a delegation of duties (#336, section 4.3): the copy the person
+ * keeps under "Konto", with what it says and both signatures, from the rows
+ * that no longer change once somebody signed. Before both signatures it says
+ * it does not hold yet; after a revocation, from when and why it ended.
+ */
+export function delegationPrintJob(print: DelegationPrint, fingerprint: string): PrintJob {
+  const mark = !print.signedByBoth
+    ? '<p class="mark neutral">Noch nicht von beiden unterschrieben: die Übertragung gilt erst mit beiden Unterschriften.</p>'
+    : print.revocation === null
+      ? ''
+      : `<p class="mark neutral">${text(`Widerrufen am ${moment(print.revocation.at)} von ${print.revocation.name}, mit Wirkung zum ${day(print.revocation.effectiveOn)}: ${print.revocation.reason}`)}</p>`
+  const signed = `<div class="signatures">${print.signatures
+    .map((signature) => {
+      const stated = {
+        role: 'signer',
+        name: signature.name,
+        signedAt: signature.signedAt,
+        receivedAt: null,
+        path: signature.path,
+        way: signature.typedName === null ? 'drawing' : 'name',
+      } as StatedSignature
+
+      return `<div class="signature"><p class="label">${text(signature.label)}</p>${drawingOf(stated)}<p class="name">${text(signature.name)}</p><p class="muted">${text(moment(signature.signedAt))}</p></div>`
+    })
+    .join('')}</div>`
+  const body = `
+  <header><h1>Pflichtenübertragung</h1><div class="over">${text(print.operator)}</div></header>
+  ${mark}
+  ${factsOf([
+    ['Betreiber', print.operator],
+    ['Beauftragte Person', print.delegateName],
+    ['Bereiche', print.areas.join(', ')],
+    ['Umfang', print.scope],
+    ['Zeitraum', `${day(print.startsOn)} bis ${day(print.endsOn)}`],
+  ])}
+  <h2>Aufgaben</h2><p>${text(print.tasks)}</p>
+  <h2>Befugnisse</h2><p>${text(print.powers)}</p>
+  <h2>Grundlage</h2><p>Übertragung von Pflichten des Arbeitgebers nach § 13 Abs. 2 ArbSchG und § 13 DGUV Vorschrift 1.</p>
+  ${signed}`
+
+  return { html: page(body), footerHtml: footer(fingerprint), margin }
+}

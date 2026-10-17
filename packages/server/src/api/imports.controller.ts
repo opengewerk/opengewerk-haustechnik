@@ -78,6 +78,7 @@ import { and, asc, eq, isNull, sql } from 'drizzle-orm'
 
 import { areasInSight } from '../areas/areas.js'
 import { CATALOGUE } from '../catalogue.js'
+import { applyDelegations } from '../delegations/apply.js'
 import { assignNumbers } from '../database/number-ranges.js'
 import {
   assetKindNames,
@@ -681,6 +682,14 @@ export class ImportsController {
             )
         }
       }
+
+      // A delegation that covers a duty names who answers for it (#336).
+      await applyDelegations(
+        tx,
+        this.catalogue,
+        dayInGermany(),
+        confirmed.map(({ id }) => id),
+      )
 
       // Every file a line rests on becomes a document at the asset, marked
       // as taken over: that is where it is found among its documents.
