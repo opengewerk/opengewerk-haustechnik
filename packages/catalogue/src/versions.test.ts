@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { changedVersions, removedDefectClasses } from './versions.js'
+import { changedVersions, removedDefectClasses, removedQualifications } from './versions.js'
 
 const bytes = (text: string) => new TextEncoder().encode(text)
 
@@ -86,5 +86,33 @@ describe('a merged class of defects', () => {
       'allgemein/mangelklassen.json: Die Mängelklasse "dangerous" ist auf main gemergt und fehlt hier. Eine gemergte Klasse bleibt stehen, weil Mängel sie nennen, und ihr Schlüssel wird nicht neu vergeben.',
     ])
     expect(removedDefectClasses(merged, () => null)).toHaveLength(2)
+  })
+})
+
+describe('a merged kind of qualification (#337)', () => {
+  const kinds = (keys: readonly string[]) =>
+    bytes(
+      JSON.stringify({
+        qualifications: keys.map((key) => ({
+          key,
+          label: key,
+          level: 'skilled_person',
+          requiredFor: [],
+        })),
+      }),
+    )
+  const merged = new Map([['elektro/qualifikationen.json', kinds(['skilled', 'instructed'])]])
+
+  it('stays in its package, and a new kind is free to come', () => {
+    expect(
+      removedQualifications(merged, () => kinds(['skilled', 'instructed', 'competent'])),
+    ).toEqual([])
+  })
+
+  it('may not go missing, with its file or alone', () => {
+    expect(removedQualifications(merged, () => kinds(['skilled']))).toEqual([
+      'elektro/qualifikationen.json: Die Art der Qualifikation "instructed" ist auf main gemergt und fehlt hier. Eine gemergte Art bleibt stehen, weil Qualifikationen von Personen sie nennen, und ihr Schlüssel wird nicht neu vergeben.',
+    ])
+    expect(removedQualifications(merged, () => null)).toHaveLength(2)
   })
 })

@@ -180,6 +180,7 @@ const withGeneralKind: CatalogueBundle = {
       roundTemplates: [],
       rules: [],
       defectClasses: [],
+      qualifications: [],
     },
   ],
 }

@@ -277,6 +277,13 @@ export const syncPolicies: Readonly<Record<string, SyncPolicy>> = {
   // The labels on the shelves of a store (#326): made in the office, held by
   // every device, which reads them like the barcode of an article.
   store_labels: officeOnly,
+  // The kinds the operator adds to those of the packages (#337): kept in the
+  // office, held by every device, which names the kind of a qualification.
+  qualification_kinds: officeOnly,
+  // The qualifications of the people (#337): kept in the office, with a
+  // connection. A device holds those of its own person and no others, for
+  // the note when an activity is begun on site.
+  qualifications: officeOnly,
   // Material taken for a work order (#326): taken on site while the work goes
   // on, also without a connection, and never changed or removed afterwards.
   // The server books it once in its store. Who took it is the person signed
@@ -659,6 +666,8 @@ export const syncEntityNames: Readonly<Record<string, string>> = {
   store_labels: 'Etikett eines Lagerfachs',
   contractors: 'Fremdfirma',
   contracts: 'Vertrag',
+  qualification_kinds: 'Art einer Qualifikation',
+  qualifications: 'Qualifikation',
   work_order_materials: 'Material am Auftrag',
   tasks: 'Aufgabe',
 }
@@ -773,6 +782,10 @@ export const syncFieldNames: Readonly<Record<string, string>> = {
   writtenAt: 'Geschrieben am',
   takenAt: 'Entnommen am',
   validUntil: 'Gültig bis',
+  // What a qualification of a person is of, and its certificate (#337).
+  kindKey: 'Art der Qualifikation',
+  ownKindId: 'Eigene Art der Qualifikation',
+  certificateSha256: 'Nachweis',
   takenBy: 'Entnommen von',
   materialId: 'Material am Auftrag',
   storeArticleId: 'Artikel eines Lagers',

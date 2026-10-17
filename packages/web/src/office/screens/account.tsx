@@ -5,6 +5,7 @@ import {
 } from '@opengewerk/platform-web/office'
 
 import { MyDelegationsCard } from '../delegations-account.js'
+import { MyQualificationsCard } from '../qualifications-account.js'
 
 /**
  * What this application says on the card "Benachrichtigungen" of the
@@ -35,6 +36,7 @@ export function AccountScreen() {
   return (
     <Account>
       <MyDelegationsCard />
+      <MyQualificationsCard />
       <PushPanel entry="office" words={pushWords} />
     </Account>
   )

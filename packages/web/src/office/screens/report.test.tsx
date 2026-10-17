@@ -448,6 +448,7 @@ describe('the way to a report', () => {
           appointment: '2026-09-30',
           lastMetOn: '2024-09-30',
           qualification: null,
+          qualificationKind: null,
           takesReport: true,
           result: null,
           resultReason: null,

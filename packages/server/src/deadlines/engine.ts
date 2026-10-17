@@ -26,6 +26,7 @@ import { settleDeadlineTasks, taskFromDeadline } from '../tasks/from-deadline.js
 import {
   contractSource,
   delegationSource,
+  qualificationSource,
   type DeadlineValues,
   defectSource,
   documentSource,
@@ -96,6 +97,11 @@ function bound(
       warranty: warrantySource(),
       // The end of a delegation of duties (#336).
       delegation: delegationSource({ today: () => dayInGermany(job.now?.() ?? new Date()) }),
+      // The expiry of a qualification of a person (#337).
+      qualification: qualificationSource({
+        today: () => dayInGermany(job.now?.() ?? new Date()),
+        catalogue: job.catalogue,
+      }),
     },
     actions: { activity: activityFromDeadline(job.catalogue), task: taskFromDeadline() },
     // A round nobody has begun walks the newest version of its template, and

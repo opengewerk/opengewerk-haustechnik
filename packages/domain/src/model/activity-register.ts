@@ -9,6 +9,7 @@ import type {
 } from './activity.js'
 import type { QualificationLevel } from './catalogue.js'
 import type { DutyState } from './duty.js'
+import type { QualificationHint } from './qualifications.js'
 import type { DutyId, DutyPerformer } from './duty-record.js'
 import type { DutyPerson } from './duty-register.js'
 import type { EvidenceResult } from './evidence.js'
@@ -125,6 +126,8 @@ export interface ActivityDutyLine {
   readonly lastMetOn: IsoDate | null
   /** Who may carry it out, as the duty kind of the catalogue says; nothing for a duty of the operator's own. */
   readonly qualification: QualificationLevel | null
+  /** The kind of qualification the catalogue asks of whoever carries it out (#337); nothing where it names none. */
+  readonly qualificationKind: string | null
   /** Whether the report of a contractor is evidence of it, as its kind says (#110). */
   readonly takesReport: boolean
   readonly result: EvidenceResult | null
@@ -148,4 +151,10 @@ export interface ActivityDetails extends ActivityEntry {
 export interface ActivityCandidates {
   readonly responsible: readonly DutyPerson[]
   readonly performers: readonly DutyPerson[]
+  /**
+   * By the person, what of the kind its duties ask for a performer lacks
+   * (#337): only for whoever may look at qualifications, and only where it
+   * is lacking. A note, never a refusal.
+   */
+  readonly hints?: Readonly<Record<string, QualificationHint>>
 }

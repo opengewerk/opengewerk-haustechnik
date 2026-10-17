@@ -218,5 +218,15 @@
         "sha256": "6c37df9a6e5d56202f255d0e0831f87841090e8edbd47a29a98b0cd604d469c0"
       }
     }
+  ],
+  "qualifications": [
+    {
+      "key": "fire_extinguisher_expert",
+      "checkedOn": "2026-10-17"
+    },
+    {
+      "key": "hold_open_device_expert",
+      "checkedOn": "2026-10-17"
+    }
   ]
 }

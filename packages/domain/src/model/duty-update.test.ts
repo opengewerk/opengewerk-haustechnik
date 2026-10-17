@@ -106,6 +106,7 @@ function catalogueWith(content: Partial<CatalogueBundle['packages'][number]> = {
         roundTemplates: [],
         rules: [rule('2015-06-01', null, 24)],
         defectClasses: [],
+        qualifications: [],
         ...content,
       },
     ],

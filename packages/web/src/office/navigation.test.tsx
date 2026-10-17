@@ -38,6 +38,7 @@ const whole = [
   'Fristen',
   'Prüfungen',
   'Übertragungen',
+  'Qualifikationen',
   'Rundgänge',
   'Störungen',
   'Mängel',
@@ -60,7 +61,7 @@ describe('the navigation of the board', () => {
     expect(officeNavigation.map((group) => group.entries.map((place) => place.label))).toEqual([
       ['Übersicht', 'Auswertungen'],
       ['Liegenschaften', 'Anlagen', 'Zähler', 'Dokumente'],
-      ['Pflichtenverzeichnis', 'Fristen', 'Prüfungen', 'Übertragungen'],
+      ['Pflichtenverzeichnis', 'Fristen', 'Prüfungen', 'Übertragungen', 'Qualifikationen'],
       [
         'Rundgänge',
         'Störungen',
@@ -104,11 +105,18 @@ describe('what a role is offered once every screen is built', () => {
 
   // As the board says it: "der Rolle Haustechnik fehlen Fristen und
   // Einstellungen". The settings are the frame's and stand in the tests below.
-  it('is everything but the deadlines, the delegations, the faults, the contracts and the figures for the Haustechnik', () => {
+  it('is everything but the deadlines, the delegations, the qualifications, the faults, the contracts and the figures for the Haustechnik', () => {
     expect(offeredTo('technician')).toEqual(
       whole.filter(
         (label) =>
-          !['Fristen', 'Übertragungen', 'Störungen', 'Verträge', 'Auswertungen'].includes(label),
+          ![
+            'Fristen',
+            'Übertragungen',
+            'Qualifikationen',
+            'Störungen',
+            'Verträge',
+            'Auswertungen',
+          ].includes(label),
       ),
     )
   })
@@ -235,14 +243,25 @@ describe('the navigation of the office as it is built today', () => {
       [
         ...withDeadlines.slice(0, withDeadlines.indexOf('Prüfungen') + 1),
         'Übertragungen',
+        'Qualifikationen',
         ...withDeadlines.slice(withDeadlines.indexOf('Prüfungen') + 1),
       ],
     ],
-    ['technical_management', withDeadlines],
+    // The qualifications, for whoever may look at them (#337).
+    [
+      'technical_management',
+      [
+        ...withDeadlines.slice(0, withDeadlines.indexOf('Prüfungen') + 1),
+        'Qualifikationen',
+        ...withDeadlines.slice(withDeadlines.indexOf('Prüfungen') + 1),
+      ],
+    ],
     [
       'site_management',
       [
-        ...built.slice(0, built.indexOf('Rundgänge') + 1),
+        ...built.slice(0, built.indexOf('Prüfungen') + 1),
+        'Qualifikationen',
+        ...built.slice(built.indexOf('Prüfungen') + 1, built.indexOf('Rundgänge') + 1),
         'Störungen',
         ...built.slice(built.indexOf('Rundgänge') + 1, built.indexOf('Fremdfirmen') + 1),
         'Verträge',

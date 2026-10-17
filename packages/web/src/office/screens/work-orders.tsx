@@ -15,6 +15,7 @@ import {
   type DutyPerson,
   type RecordState,
   signatureLimits,
+  type QualificationHint,
   type WorkOrderCandidates,
   type WorkOrderDetails,
   type WorkOrderEntry,
@@ -84,6 +85,7 @@ import { DocumentsCard } from '../documents.js'
 import { MaterialPanel } from '../material-panel.js'
 import { dutyPlaces, dutyRegisterPlace } from '../duty-addresses.js'
 import { factLink } from '../links.js'
+import { QualificationNotes } from '../qualification-note.js'
 import { RegisterFilter } from '../register-filter.js'
 import {
   workOrderFilterOf,
@@ -199,6 +201,10 @@ interface CandidatePlace {
   readonly buildingId?: string | null
   readonly roomId?: string | null
   readonly assetId?: string | null
+  /** The order whose duties name the kind of qualification its people are told about (#337). */
+  readonly orderId?: string | null
+  /** The duty a new order is made for, with the same note. */
+  readonly dutyId?: string | null
 }
 
 function candidatesQuery(place: CandidatePlace) {
@@ -210,11 +216,14 @@ function candidatesQuery(place: CandidatePlace) {
         : typeof place.buildingId === 'string'
           ? `&building=${place.buildingId}`
           : ''
+  const asked = `${at}${typeof place.orderId === 'string' ? `&order=${place.orderId}` : ''}${
+    typeof place.dutyId === 'string' ? `&duty=${place.dutyId}` : ''
+  }`
 
   return {
-    queryKey: [...workOrderKey, 'candidates', place.propertyId, at],
+    queryKey: [...workOrderKey, 'candidates', place.propertyId, asked],
     queryFn: () =>
-      request<WorkOrderCandidates>(`/work-orders/candidates?property=${place.propertyId}${at}`),
+      request<WorkOrderCandidates>(`/work-orders/candidates?property=${place.propertyId}${asked}`),
   } as const
 }
 
@@ -1274,6 +1283,7 @@ function PlanFields({
   problems,
   disabled,
   dueHint,
+  hints,
 }: {
   readonly plan: PlanState
   readonly onChange: (plan: PlanState) => void
@@ -1282,6 +1292,8 @@ function PlanFields({
   readonly problems: Readonly<Record<string, string>>
   readonly disabled: boolean
   readonly dueHint?: string | undefined
+  /** What the people chosen lack of the kind the duties ask for (#337). */
+  readonly hints?: Readonly<Record<string, QualificationHint>> | undefined
 }) {
   const set = <Name extends keyof PlanState>(name: Name, value: PlanState[Name]) => {
     onChange({ ...plan, [name]: value })
@@ -1447,6 +1459,11 @@ function PlanFields({
           </p>
         ) : null}
       </div>
+      <QualificationNotes
+        hints={hints}
+        chosen={[plan.responsibleUserId, ...plan.participantUserIds]}
+        nameOf={nameOf}
+      />
       {peopleFailed ? (
         <p role="alert" className="text-[13px] font-semibold text-conflict">
           {workOrderWords.peopleFailed}
@@ -1483,7 +1500,7 @@ function EditWorkOrderDialog({
 }) {
   const client = useSync()
   const queries = useQueryClient()
-  const candidates = useQuery(candidatesQuery(order))
+  const candidates = useQuery(candidatesQuery({ ...order, orderId: order.id }))
   const formId = useId()
   const [plan, setPlan] = useState<PlanState>({
     title: order.title,
@@ -1555,6 +1572,7 @@ function EditWorkOrderDialog({
           peopleFailed={candidates.isError}
           problems={problems}
           disabled={working}
+          hints={candidates.data?.hints}
         />
         {trouble ? (
           <p role="alert" className="text-[13px] font-semibold text-conflict">
@@ -1710,6 +1728,7 @@ export function NewWorkOrderScreen() {
               buildingId: duty.data?.buildingId ?? null,
               roomId: duty.data?.roomId ?? null,
               assetId: duty.data?.assetId ?? null,
+              dutyId: start.dutyId ?? null,
             }
           : home === 'propertyId' || chosen === undefined
             ? {}
@@ -2051,6 +2070,7 @@ export function NewWorkOrderScreen() {
                 plan={plan}
                 onChange={setPlan}
                 people={candidates.data?.people ?? []}
+                hints={candidates.data?.hints}
                 peopleFailed={candidates.isError}
                 problems={problems}
                 disabled={working}

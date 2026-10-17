@@ -3,7 +3,7 @@ import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 
 import { isVersionPath } from './paths.js'
-import { changedVersions, removedDefectClasses } from './versions.js'
+import { changedVersions, removedDefectClasses, removedQualifications } from './versions.js'
 
 // Compares the versions of the packages with those of a base, `main` in a
 // pull request: a version that is merged stays as it is, byte for byte
@@ -38,7 +38,11 @@ const merged = new Map<string, Uint8Array>()
 for (const path of listed) {
   const inFolder = path.slice(prefix.length)
 
-  if (isVersionPath(inFolder) || inFolder.endsWith('/mangelklassen.json')) {
+  if (
+    isVersionPath(inFolder) ||
+    inFolder.endsWith('/mangelklassen.json') ||
+    inFolder.endsWith('/qualifikationen.json')
+  ) {
     merged.set(inFolder, git(['cat-file', 'blob', `${base}:${path}`], root))
   }
 }
@@ -48,7 +52,11 @@ const headOf = (path: string): Uint8Array | null => {
 
   return existsSync(full) ? readFileSync(full) : null
 }
-const problems = [...changedVersions(merged, headOf), ...removedDefectClasses(merged, headOf)]
+const problems = [
+  ...changedVersions(merged, headOf),
+  ...removedDefectClasses(merged, headOf),
+  ...removedQualifications(merged, headOf),
+]
 
 if (problems.length > 0) {
   console.error(`Gemergte Fassungen der Pakete sind gegenüber ${base} verändert:`)
@@ -61,5 +69,5 @@ if (problems.length > 0) {
 }
 
 console.log(
-  `${String([...merged.keys()].filter((path) => isVersionPath(path)).length)} gemergte Fassungen sind dieselben wie in ${base}, und keine gemergte Mängelklasse fehlt.`,
+  `${String([...merged.keys()].filter((path) => isVersionPath(path)).length)} gemergte Fassungen sind dieselben wie in ${base}, und keine gemergte Mängelklasse oder Art der Qualifikation fehlt.`,
 )

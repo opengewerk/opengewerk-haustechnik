@@ -21,6 +21,7 @@ export const deadlineSources = [
   'contract_end',
   'warranty',
   'delegation',
+  'qualification',
 ] as const
 
 export type DeadlineSource = (typeof deadlineSources)[number]
@@ -252,6 +253,25 @@ export const delegationEnds: ApplicationDeadlineKind = {
 }
 
 /**
+ * The expiry of a qualification of a person (sections 2.4 and 4.3, #337):
+ * its last day, "Gültig bis". Without a place, like a contract; whoever leads
+ * the operator answers for it, and the person is told when an activity is
+ * assigned to them afterwards.
+ */
+export const qualificationExpires: ApplicationDeadlineKind = {
+  key: 'qualification.expires',
+  title: 'Ablauf einer Qualifikation',
+  about:
+    'Folgt aus „Gültig bis“ einer Qualifikation. Danach bekommt, wer der Person einen Vorgang zuteilt, einen Hinweis, bis eine neue eingetragen ist.',
+  source: 'qualification',
+  intervalDays: null,
+  intervalMonths: null,
+  leadDays: 60,
+  responsible: 'lead',
+  actions: ['reminder'],
+}
+
+/**
  * What the task of a deadline says, by the source of its kind (#242). Only a
  * source that stands here can name the action: the engine refuses a kind
  * that names the task without a text for it.
@@ -272,6 +292,7 @@ export const deadlineKinds: readonly ApplicationDeadlineKind[] = [
   contractEnd,
   warrantyEnds,
   delegationEnds,
+  qualificationExpires,
 ]
 
 /**
@@ -289,6 +310,7 @@ export type DeadlineFacts =
   | ContractDeadlineFacts
   | WarrantyDeadlineFacts
   | DelegationDeadlineFacts
+  | QualificationDeadlineFacts
 
 /** A deadline of a duty: the duty by its title. */
 export interface DutyDeadlineFacts extends DeadlinePlaceFacts {
@@ -350,6 +372,17 @@ export interface DelegationDeadlineFacts {
   readonly follows: 'delegation'
   readonly propertyId: null
   readonly delegation: { readonly id: string; readonly delegateName: string }
+}
+
+/** The expiry of a qualification (#337): its kind and the person, without a place. */
+export interface QualificationDeadlineFacts {
+  readonly follows: 'qualification'
+  readonly propertyId: null
+  readonly qualification: {
+    readonly id: string
+    readonly kindLabel: string
+    readonly personName: string
+  }
 }
 
 /**

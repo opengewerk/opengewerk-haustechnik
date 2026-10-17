@@ -111,6 +111,10 @@ const DelegationScreen = lazyRouteComponent(
   () => import('./screens/delegations.js'),
   'DelegationScreen',
 )
+const QualificationListScreen = lazyRouteComponent(
+  () => import('./screens/qualifications.js'),
+  'QualificationListScreen',
+)
 const DocumentsScreen = lazyRouteComponent(
   () => import('./screens/documents.js'),
   'DocumentsScreen',
@@ -352,6 +356,12 @@ export function officeRoutes() {
       getParentRoute: () => office,
       path: '/pflichtenuebertragungen/$delegationId',
       component: DelegationScreen,
+    }),
+    // The qualifications of the people (#337).
+    createRoute({
+      getParentRoute: () => office,
+      path: '/qualifikationen',
+      component: QualificationListScreen,
     }),
     createRoute({
       getParentRoute: () => office,

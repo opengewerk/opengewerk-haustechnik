@@ -46,6 +46,7 @@ export type PackagePath =
   | { readonly kind: 'manifest'; readonly packageName: string }
   | { readonly kind: 'acceptances'; readonly packageName: string }
   | { readonly kind: 'defectClasses'; readonly packageName: string }
+  | { readonly kind: 'qualifications'; readonly packageName: string }
   | {
       readonly kind: 'entry'
       readonly packageName: string
@@ -89,6 +90,8 @@ export function classify(path: string): PackagePath {
         return { kind: 'acceptances', packageName }
       case 'mangelklassen.json':
         return { kind: 'defectClasses', packageName }
+      case 'qualifikationen.json':
+        return { kind: 'qualifications', packageName }
       case 'README.md':
         return { kind: 'readme' }
       default:

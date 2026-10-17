@@ -30,7 +30,7 @@ guarded_route=/staff
 # The tables counted before the backup and after the restore. The area and
 # the place of the account in it come with the account: a Betreiber gets its
 # first area with its first membership.
-counted_tables='auth_users memberships tenant_roles account_corrections areas member_areas invitations invitation_area_choices invitation_areas properties buildings contacts building_closures assets files mail_settings deadline_settings deadline_runs duties duty_dismissals evidence deadlines activities activity_duties activity_answers work_orders work_order_participants work_order_notes defects fault_categories fault_reports fault_report_settings fault_report_contacts meter_points meter_readings meter_exchanges meter_pauses meter_settings work_order_settings activity_signatures work_order_decisions service_reports service_report_records briefings work_permits articles suppliers stores store_articles stock_movements work_order_materials store_labels contractors contracts contract_items evidence_voidings round_records prints attachments attachment_versions labels imports asset_kind_names defect_class_terms round_templates round_template_versions round_plans tasks mail_outbox push_subscriptions push_opt_outs push_outbox'
+counted_tables='auth_users memberships tenant_roles account_corrections areas member_areas invitations invitation_area_choices invitation_areas properties buildings contacts building_closures assets files mail_settings deadline_settings deadline_runs duties duty_dismissals evidence deadlines activities activity_duties activity_answers work_orders work_order_participants work_order_notes defects fault_categories fault_reports fault_report_settings fault_report_contacts meter_points meter_readings meter_exchanges meter_pauses meter_settings work_order_settings activity_signatures work_order_decisions service_reports service_report_records briefings work_permits articles suppliers stores store_articles stock_movements work_order_materials store_labels contractors contracts contract_items qualification_kinds qualifications evidence_voidings round_records prints attachments attachment_versions labels imports asset_kind_names defect_class_terms round_templates round_template_versions round_plans tasks mail_outbox push_subscriptions push_opt_outs push_outbox'
 
 # The migrations, and how many of them make the older state an update starts
 # from: the first, without the sequence for work orders that the second brings.
@@ -403,6 +403,12 @@ records_for_backup() {
     select a.tenant_id, c.id, a.property_id, a.area_id, a.id
       from contracts c join assets a on a.tenant_id = c.tenant_id
      where c.tenant_id = '$first_tenant';
+    insert into qualification_kinds (tenant_id, label, level)
+    values ('$first_tenant', 'Hygieneschulung Probe', 'instructed_person');
+    insert into qualifications (tenant_id, user_id, own_kind_id, valid_until)
+    select k.tenant_id, u.id, k.id, '2027-03-31'
+      from qualification_kinds k, auth_users u
+     where k.tenant_id = '$first_tenant' and u.email = '$probe_email';
     insert into stores (tenant_id, name) values ('$first_tenant', 'Hauptlager Probe');
     insert into store_articles (tenant_id, store_id, article_id, minimum_milli)
     select s.tenant_id, s.id, a.id, 10000 from stores s, articles a where s.tenant_id = '$first_tenant'

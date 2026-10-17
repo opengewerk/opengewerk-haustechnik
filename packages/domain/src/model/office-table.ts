@@ -231,6 +231,8 @@ export function deadlineSubject(facts: DeadlineFacts): string {
         : `${warrantyDeadlineSubject} ${facts.workOrder.number}`
     case 'delegation':
       return `${delegationDeadlineSubject} an ${facts.delegation.delegateName}`
+    case 'qualification':
+      return `${facts.qualification.kindLabel}, ${facts.qualification.personName}`
   }
 }
 
@@ -273,6 +275,11 @@ export function deadlineWhere(
   // Nor does a delegation of duties (#336): it is the operator's, in the areas it names.
   if (facts.follows === 'delegation') {
     return { name: facts.delegation.delegateName, sub: 'Pflichtenübertragung' }
+  }
+
+  // Nor does a qualification (#337): it is a person's.
+  if (facts.follows === 'qualification') {
+    return { name: facts.qualification.personName, sub: 'Qualifikation' }
   }
 
   // The document of a contractor stands nowhere: the contractor is what it hangs on (#328),

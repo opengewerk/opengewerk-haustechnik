@@ -25,13 +25,20 @@ import {
   type ScopeCondition,
 } from '@opengewerk/haustechnik-domain'
 
-import { defectClassChecksum, entryChecksum, ruleChecksum, sha256 } from './checksum.js'
+import {
+  defectClassChecksum,
+  entryChecksum,
+  qualificationChecksum,
+  ruleChecksum,
+  sha256,
+} from './checksum.js'
 import {
   type Acceptances,
   Findings,
   type Manifest,
   type PackageAcceptance,
   type PackageDefectClass,
+  type PackageQualification,
   type PackageRuleRecord,
   readAcceptances,
   readAssetKind,
@@ -39,6 +46,7 @@ import {
   readDutyKind,
   readForm,
   readManifest,
+  readQualifications,
   type ReadEntry,
   readRules,
   type Spot,
@@ -93,6 +101,8 @@ interface PackageContent {
   readonly rules: RuleInFile[]
   /** In the order of the file, which is the order they are offered in. */
   readonly defectClasses: PackageDefectClass[]
+  /** The kinds of qualification (#337), in the order of the file. */
+  readonly qualifications: PackageQualification[]
 }
 
 function emptyPackage(name: string): PackageContent {
@@ -108,6 +118,7 @@ function emptyPackage(name: string): PackageContent {
     roundTemplates: [],
     rules: [],
     defectClasses: [],
+    qualifications: [],
   }
 }
 
@@ -115,6 +126,9 @@ const unread = Symbol('unread')
 
 /** The one file of a package that names its defect classes. */
 const defectClassesFile = 'mangelklassen.json'
+
+/** The one file of a package that names its kinds of qualification (#337). */
+const qualificationsFile = 'qualifikationen.json'
 
 /** The content of a JSON file, or nothing after saying why it is none. */
 function parsed(bytes: Uint8Array, file: string, findings: Findings): unknown {
@@ -243,6 +257,18 @@ function checkKeys(content: PackageContent, findings: Findings): void {
   }
 
   const ruleKeys = new Set(content.rules.map(({ record }) => record.key))
+
+  for (const { key } of content.qualifications) {
+    const folder = folderOf.get(key)
+    const taken = folder !== undefined ? entryNoun[folder] : ruleKeys.has(key) ? 'die Regel' : null
+
+    if (taken !== null) {
+      findings.say(
+        spotIn(`${content.name}/${qualificationsFile}`),
+        `Die Art der Qualifikation ${key} heißt wie ${taken} ${key}. Ein Schlüssel nennt in seinem Paket genau ein Ding.`,
+      )
+    }
+  }
 
   for (const { key } of content.defectClasses) {
     const folder = folderOf.get(key)
@@ -743,6 +769,52 @@ function checkReviews(content: PackageContent, today: IsoDate, findings: Finding
     }
   }
 
+  const reviewsOfQualification = grouped(acceptances.qualifications, (review) => review.key)
+
+  for (const qualification of content.qualifications) {
+    const reviews = reviewsOfQualification.get(qualification.key) ?? []
+
+    if (reviews.length === 0) {
+      findings.say(
+        spotIn(file),
+        `Für die Art der Qualifikation ${qualification.key} fehlt ein Eintrag, mindestens mit dem Tag, an dem sie zuletzt gegen die Quellen ihrer Pflichtarten geprüft wurde ("checkedOn").`,
+      )
+    } else if (reviews.length > 1) {
+      findings.say(
+        spotIn(file),
+        `Für die Art der Qualifikation ${qualification.key} stehen ${String(reviews.length)} Einträge da, einer gehört hin.`,
+      )
+    }
+
+    for (const review of reviews) {
+      if (review.checkedOn > today) {
+        findings.say(
+          spotIn(file),
+          `Die Art der Qualifikation ${qualification.key} ist am ${review.checkedOn} geprüft, einem Tag, der noch nicht war.`,
+        )
+      }
+
+      checkAcceptance(
+        { file, at: `Art der Qualifikation ${qualification.key}` },
+        review.accepted,
+        qualificationChecksum(qualification),
+        today,
+        findings,
+      )
+    }
+  }
+
+  const qualificationKeys = new Set(content.qualifications.map((each) => each.key))
+
+  for (const review of acceptances.qualifications) {
+    if (!qualificationKeys.has(review.key)) {
+      findings.say(
+        spotIn(file),
+        `Der Eintrag für die Art der Qualifikation ${review.key} nennt keine Art, die es im Paket gibt.`,
+      )
+    }
+  }
+
   const classKeys = new Set(content.defectClasses.map((defectClass) => defectClass.key))
 
   for (const review of acceptances.classes) {
@@ -751,6 +823,61 @@ function checkReviews(content: PackageContent, today: IsoDate, findings: Finding
         spotIn(file),
         `Der Eintrag für die Mängelklasse ${review.key} nennt keine Klasse, die es im Paket gibt.`,
       )
+    }
+  }
+}
+
+/**
+ * The kinds of qualification of a package against its duty kinds (#337):
+ * each names duty kinds of the package, a duty kind is asked for by one kind
+ * at most, and the kind has the level the newest version of the duty kind
+ * asks for. A body, an expert or a laboratory is no level a kind has.
+ */
+function checkQualifications(content: PackageContent, findings: Findings): void {
+  const file = spotIn(`${content.name}/${qualificationsFile}`)
+  const newest = new Map<string, Version<DutyKind>>()
+
+  for (const version of content.dutyKinds) {
+    const known = newest.get(version.key)
+
+    if (known === undefined || known.version < version.version) {
+      newest.set(version.key, version)
+    }
+  }
+
+  const askedBy = new Map<string, string>()
+
+  for (const qualification of content.qualifications) {
+    for (const dutyKey of qualification.requiredFor) {
+      const duty = newest.get(dutyKey)
+
+      if (duty === undefined) {
+        findings.say(
+          file,
+          `Die Art ${qualification.key} nennt die Pflichtart ${dutyKey}, die es im Paket nicht gibt.`,
+        )
+        continue
+      }
+
+      const earlier = askedBy.get(dutyKey)
+
+      if (earlier !== undefined) {
+        findings.say(
+          file,
+          `Die Pflichtart ${dutyKey} steht bei ${earlier} und bei ${qualification.key}. Eine Pflichtart fordert eine Art.`,
+        )
+      }
+
+      askedBy.set(dutyKey, qualification.key)
+
+      const level = duty.read?.definition.qualification.level
+
+      if (level !== undefined && level !== qualification.level) {
+        findings.say(
+          file,
+          `Die Pflichtart ${dutyKey} fordert die Stufe ${level}, die Art ${qualification.key} ist ${qualification.level}.`,
+        )
+      }
     }
   }
 }
@@ -834,6 +961,7 @@ function bundled(content: PackageContent): CataloguePackage {
   const entryReviews = new Map(acceptances.entries.map((each) => [each.file, each]))
   const ruleReviews = new Map(acceptances.rules.map((each) => [ruleIdentity(each), each]))
   const classReviews = new Map(acceptances.classes.map((each) => [each.key, each]))
+  const qualificationReviews = new Map(acceptances.qualifications.map((each) => [each.key, each]))
 
   const entries = <Definition>(
     versions: readonly Version<Definition>[],
@@ -898,6 +1026,19 @@ function bundled(content: PackageContent): CataloguePackage {
         `Die Mängelklasse ${content.name}.${defectClass.key}`,
       ),
     })),
+    // Not sorted either: the order of the file is the order they are offered in.
+    qualifications: content.qualifications.map((qualification) => ({
+      qualification: {
+        key: `${content.name}.${qualification.key}`,
+        label: qualification.label,
+        level: qualification.level,
+        requiredFor: qualification.requiredFor.map((dutyKey) => `${content.name}.${dutyKey}`),
+      },
+      review: review(
+        qualificationReviews.get(qualification.key),
+        `Die Art der Qualifikation ${content.name}.${qualification.key}`,
+      ),
+    })),
   }
 }
 
@@ -946,6 +1087,14 @@ export function loadCatalogue(
         const classes = value === unread ? undefined : readDefectClasses(value, path, findings)
 
         content.defectClasses.push(...(classes ?? []))
+        break
+      }
+      case 'qualifications': {
+        const content = contentOf(place.packageName)
+        const value = parsed(bytes, path, findings)
+        const kinds = value === unread ? undefined : readQualifications(value, path, findings)
+
+        content.qualifications.push(...(kinds ?? []))
         break
       }
       case 'entry': {
@@ -1035,6 +1184,7 @@ export function loadCatalogue(
     }
 
     checkKeys(content, findings)
+    checkQualifications(content, findings)
 
     for (const version of content.dutyKinds) {
       if (version.read) {

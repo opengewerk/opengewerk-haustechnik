@@ -113,6 +113,7 @@ import {
 import { EvidenceRefusal } from '../evidence/write.js'
 import { rowOf as faultRowOf, stateOf as faultStateOf } from '../faults/reading.js'
 import { tellHandedOut } from '../notifications/tell.js'
+import { qualificationHints } from '../qualifications/hints.js'
 import { dayInGermany } from '../today.js'
 import { candidatesIn, containing, inSight } from './activities.controller.js'
 import { RequiresPermission } from './authorization.js'
@@ -477,7 +478,49 @@ export class WorkOrdersController {
         'Ein Auftrag',
       )
 
-      return candidatesIn(tx, place.areaId)
+      const offered = await candidatesIn(tx, place.areaId)
+      // The note on what a person lacks (#337), for whoever may look at
+      // qualifications, of the kinds the duties of an order ask for: of the
+      // order named, or of the duty a new order is made for.
+      const dutyId = said(query, 'duty')
+      const orderId = said(query, 'order')
+
+      if (!identity.rights.includes('qualification.read') || (!dutyId && !orderId)) {
+        return { ...offered, hints: {} }
+      }
+
+      const kinds = [
+        ...(dutyId && isUuid(dutyId)
+          ? await tx
+              .select({ kind: duties.kind })
+              .from(duties)
+              .where(eq(duties.id, dutyId as DutyId))
+          : []),
+        ...(orderId && isUuid(orderId)
+          ? await tx
+              .select({ kind: duties.kind })
+              .from(activityDuties)
+              .innerJoin(
+                duties,
+                and(
+                  eq(duties.tenantId, activityDuties.tenantId),
+                  eq(duties.id, activityDuties.dutyId),
+                ),
+              )
+              .where(eq(activityDuties.activityId, orderId as ActivityId))
+          : []),
+      ]
+
+      return {
+        ...offered,
+        hints: await qualificationHints(
+          tx,
+          this.catalogue,
+          kinds.map((row) => row.kind),
+          offered.performers,
+          dayInGermany(),
+        ),
+      }
     })
     const named = await this.named(identity, found.performers)
 
@@ -486,6 +529,7 @@ export class WorkOrdersController {
         .map((userId) => named(userId))
         .filter((person) => person !== null)
         .sort((left, right) => byNameIn(left.name, right.name)),
+      hints: found.hints,
     }
   }
 

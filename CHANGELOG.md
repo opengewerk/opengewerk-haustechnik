@@ -9,6 +9,17 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
 
 ### Hinzugefügt
 
+- Qualifikationen der Mitarbeiter (#337, Abschnitt 4.3 des Konzepts): unter „Qualifikationen“ je Person die Arten,
+  die sie hält, gültig bis und mit Nachweis, und eigene Arten des Betreibers neben denen der Pakete. Die Pakete
+  Elektro, Brandschutz und Landesrecht nennen in `qualifikationen.json` je Art die Pflichtarten, die sie fordern. Wer
+  eine Prüfung, eine Wartung oder einen Auftrag zuteilt, bekommt einen Hinweis, wenn der Person die geforderte Art
+  fehlt oder abgelaufen ist, und dieselbe Person vor Ort beim Beginn des Protokolls; gespeichert wird trotzdem. Das
+  Ende einer Qualifikation ist eine Frist der Leitung, die eigenen stehen unter „Konto“. Unter „Woher“ nennt eine
+  Prüfung oder Wartung die geforderte Art statt nur der Stufe. Warum: wer eine Prüfung
+  ausführt, muss die geforderte Qualifikation haben, und das Büro soll es merken, bevor es zuteilt (entschieden am
+  15.10.2026). Die Rechte „Qualifikationen ansehen“ (Leitung, Technische Leitung, Objektleitung) und
+  „Qualifikationen führen“ (Leitung, Technische Leitung) bekommen bestehende Betreiber mit der Migration
+  `0068_qualifications`; die Tabellen kommen aus dem Baustein des Fundaments (ADR 0012 in `opengewerk`).
 - Pflichtenübertragung (#336, Abschnitt 4.3 des Konzepts): unter „Übertragungen“ überträgt die Leitung einer Person
   die Pflichten in Bereichen, die diese Person sieht, ganz oder für bestimmte Pakete oder Kostengruppen, mit Aufgaben,
   Befugnissen, Beginn und Ende. Sie gilt mit zwei Unterschriften, der Leitung auf der Seite der Übertragung und der beauftragten Person unter

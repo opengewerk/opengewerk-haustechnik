@@ -1,6 +1,7 @@
 import {
   type FederalState,
   type IsoDate,
+  type PersonLevel,
   type RuleRecord,
   ruleScopeNames,
   ruleScopes,
@@ -364,6 +365,26 @@ export interface CatalogueDefectClass {
   readonly review: CatalogueReview
 }
 
+/**
+ * A kind of qualification of a package (#337): what a person holds who may
+ * carry out the duty kinds that ask for it. The duty kinds are named here
+ * and not in their versions, so that a duty confirmed with an older version
+ * asks for the kind as well.
+ */
+export interface PackageQualificationKind {
+  /** `<package>.<key>`, what a qualification of a person keeps as its kind. */
+  readonly key: string
+  readonly label: string
+  readonly level: PersonLevel
+  /** `<package>.<key>` of the duty kinds that ask for it. */
+  readonly requiredFor: readonly string[]
+}
+
+export interface CatalogueQualification {
+  readonly qualification: PackageQualificationKind
+  readonly review: CatalogueReview
+}
+
 export interface CataloguePackage {
   readonly name: string
   readonly title: string
@@ -376,14 +397,17 @@ export interface CataloguePackage {
   readonly rules: readonly CatalogueRule[]
   /** In the order of the file of the package, which is the order they are offered in. */
   readonly defectClasses: readonly CatalogueDefectClass[]
+  /** The kinds of qualification (#337), in the order of the file of the package. */
+  readonly qualifications: readonly CatalogueQualification[]
 }
 
 /**
  * The shape of the bundle, counted up when it changes so that an old bundle
  * is not misread. Three since a package names its defect classes
- * (opengewerk-haustechnik#61).
+ * (opengewerk-haustechnik#61), four since it names its kinds of
+ * qualification (opengewerk-haustechnik#337).
  */
-export const catalogueFormat = 3
+export const catalogueFormat = 4
 
 /**
  * What the build writes and server and interface load. The checksum is taken
@@ -416,6 +440,8 @@ export interface PackageContents {
   readonly rules: readonly CatalogueRule[]
   /** In the order they are offered in. */
   readonly defectClasses: readonly CatalogueDefectClass[]
+  /** The kinds of qualification (#337), in the order they are offered in. */
+  readonly qualifications: readonly CatalogueQualification[]
 }
 
 /**
@@ -483,6 +509,15 @@ export interface Catalogue {
    * nothing for a package that names none, or that is not there.
    */
   readonly defectClasses: (packageName: string) => readonly CatalogueDefectClass[]
+  /** Every kind of qualification of every package (#337), each package in the order of its file. */
+  readonly qualifications: readonly CatalogueQualification[]
+  /** A kind of qualification by the key a qualification keeps, `<package>.<key>`. */
+  readonly qualification: (key: string) => CatalogueQualification | null
+  /**
+   * The kind of qualification a duty kind asks for, by the key of the duty
+   * kind, `<package>.<key>`; nothing where it asks for none a person holds.
+   */
+  readonly qualificationFor: (dutyKindKey: string) => CatalogueQualification | null
 }
 
 /** The versions of each key, ordered by version. */
@@ -556,6 +591,15 @@ export function catalogueOf(bundle: CatalogueBundle): Catalogue {
       entry.defectClasses.map((each) => [each.defectClass.key, each] as const),
     ),
   )
+  const qualifications = bundle.packages.flatMap((entry) => entry.qualifications)
+  const qualificationByKey = new Map(
+    qualifications.map((each) => [each.qualification.key, each] as const),
+  )
+  const qualificationByDuty = new Map(
+    qualifications.flatMap((each) =>
+      each.qualification.requiredFor.map((dutyKey) => [dutyKey, each] as const),
+    ),
+  )
 
   const rule = (key: string, on: IsoDate, state?: FederalState): CatalogueRule | null => {
     const record = records.at(key, on, state)
@@ -590,6 +634,7 @@ export function catalogueOf(bundle: CatalogueBundle): Catalogue {
         roundTemplates: everyKey(versionsByKey(entry.roundTemplates), on),
         rules: inReadingOrder(entry.rules),
         defectClasses: entry.defectClasses,
+        qualifications: entry.qualifications,
       })),
     assetKind: (key, on) => inForce(assetKinds.get(key), on),
     assetKinds: (on) => everyKey(assetKinds, on),
@@ -619,6 +664,9 @@ export function catalogueOf(bundle: CatalogueBundle): Catalogue {
     defectClass: (key) => defectClasses.get(key) ?? null,
     defectClasses: (packageName) =>
       bundle.packages.find((entry) => entry.name === packageName)?.defectClasses ?? [],
+    qualifications,
+    qualification: (key) => qualificationByKey.get(key) ?? null,
+    qualificationFor: (dutyKindKey) => qualificationByDuty.get(dutyKindKey) ?? null,
   }
 }
 

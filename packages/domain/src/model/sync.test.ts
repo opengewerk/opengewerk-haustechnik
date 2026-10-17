@@ -107,6 +107,9 @@ describe('the policies of the sync', () => {
       contractors: [false, 'never'],
       // The contracts with them (#329), kept in the office.
       contracts: [false, 'never'],
+      // The qualifications of the people (#337), kept in the office.
+      qualification_kinds: [false, 'never'],
+      qualifications: [false, 'never'],
       work_order_materials: [true, 'never'],
     })
   })

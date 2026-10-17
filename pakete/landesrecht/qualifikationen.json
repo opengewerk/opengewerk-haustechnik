@@ -1,0 +1,12 @@
+{
+  "qualifications": [
+    {
+      "key": "lightning_protection_expert",
+      "label": "Sachkundiger für Blitzschutzanlagen",
+      "level": "skilled_person",
+      "requiredFor": [
+        "bw_assembly_lightning_protection_inspection"
+      ]
+    }
+  ]
+}

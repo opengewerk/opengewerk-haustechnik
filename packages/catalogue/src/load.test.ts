@@ -3,8 +3,15 @@ import { fileURLToPath } from 'node:url'
 import { catalogueOf, reviewMarks } from '@opengewerk/haustechnik-domain'
 import { describe, expect, it } from 'vitest'
 
-import { defectClassChecksum, entryChecksum, ruleChecksum, sha256 } from './checksum.js'
+import {
+  defectClassChecksum,
+  entryChecksum,
+  qualificationChecksum,
+  ruleChecksum,
+  sha256,
+} from './checksum.js'
 import { readPackageFiles } from './files.js'
+import type { PackageQualification } from './format.js'
 import { loadCatalogue } from './load.js'
 
 // The probe package is the material: a complete package that loads, and every
@@ -66,11 +73,13 @@ function reviewsWith(more: {
   entries?: readonly Json[]
   rules?: readonly Json[]
   classes?: readonly Json[]
+  qualifications?: readonly Json[]
 }): Json {
   return {
     entries: [...(acceptances['entries'] as readonly Json[]), ...(more.entries ?? [])],
     rules: [...(acceptances['rules'] as readonly Json[]), ...(more.rules ?? [])],
     ...(more.classes === undefined ? {} : { classes: more.classes }),
+    ...(more.qualifications === undefined ? {} : { qualifications: more.qualifications }),
   }
 }
 
@@ -1296,6 +1305,130 @@ describe('a package', () => {
     expect(bundle?.packages.map((entry) => entry.name)).toEqual(['probe', 'zweites'])
     expect(bundle?.packages[1]?.dutyKinds[0]?.definition.scope.assetKinds).toEqual([
       'probe.elevator',
+    ])
+  })
+})
+
+describe('the kinds of qualification (#337)', () => {
+  const qualificationsFile = 'probe/qualifikationen.json'
+  // The main test of the probe package asks for a body of inspection; here a
+  // skilled person, so that a kind a person holds can name it.
+  const bySkilled = {
+    ...contentOf(dutyKindFile),
+    qualification: { level: 'skilled_person' },
+  }
+  const lift: PackageQualification = {
+    key: 'lift_expert',
+    label: 'Sachkundiger für Aufzüge',
+    level: 'skilled_person',
+    requiredFor: ['elevator_main_test'],
+  }
+  const reviewed = reviewsWith({
+    qualifications: [{ key: 'lift_expert', checkedOn: '2026-10-04' }],
+  })
+
+  it('load in the order of their file, under the name outside their package, with the duty kinds that ask for them', () => {
+    const { bundle, problems: found } = loadCatalogue(
+      withFiles({
+        [dutyKindFile]: bySkilled,
+        [qualificationsFile]: { qualifications: [lift] },
+        [acceptancesFile]: reviewed,
+      }),
+      options,
+    )
+
+    expect(found).toEqual([])
+    expect(bundle?.packages[0]?.qualifications).toEqual([
+      {
+        qualification: {
+          key: 'probe.lift_expert',
+          label: 'Sachkundiger für Aufzüge',
+          level: 'skilled_person',
+          requiredFor: ['probe.elevator_main_test'],
+        },
+        review: { checkedOn: '2026-10-04', accepted: null },
+      },
+    ])
+    expect(loadCatalogue(probe, options).bundle?.packages[0]?.qualifications).toEqual([])
+  })
+
+  it('name duty kinds of the package with their level, each duty kind once, and a level a person holds', () => {
+    expect(
+      problems({
+        [dutyKindFile]: bySkilled,
+        [qualificationsFile]: { qualifications: [{ ...lift, requiredFor: ['nothing_here'] }] },
+        [acceptancesFile]: reviewed,
+      }),
+    ).toEqual([
+      `${qualificationsFile}: Die Art lift_expert nennt die Pflichtart nothing_here, die es im Paket nicht gibt.`,
+    ])
+    expect(
+      problems({
+        [qualificationsFile]: { qualifications: [lift] },
+        [acceptancesFile]: reviewed,
+      }),
+    ).toEqual([
+      `${qualificationsFile}: Die Pflichtart elevator_main_test fordert die Stufe approved_body, die Art lift_expert ist skilled_person.`,
+    ])
+    expect(
+      problems({
+        [dutyKindFile]: bySkilled,
+        [qualificationsFile]: {
+          qualifications: [lift, { ...lift, key: 'second_expert', label: 'Zweiter' }],
+        },
+        [acceptancesFile]: reviewsWith({
+          qualifications: [
+            { key: 'lift_expert', checkedOn: '2026-10-04' },
+            { key: 'second_expert', checkedOn: '2026-10-04' },
+          ],
+        }),
+      }),
+    ).toEqual([
+      `${qualificationsFile}: Die Pflichtart elevator_main_test steht bei lift_expert und bei second_expert. Eine Pflichtart fordert eine Art.`,
+    ])
+    expect(
+      problems({
+        [dutyKindFile]: bySkilled,
+        [qualificationsFile]: { qualifications: [{ ...lift, level: 'approved_body' }] },
+        [acceptancesFile]: reviewed,
+      }),
+    ).toEqual([
+      expect.stringMatching(
+        /^probe\/qualifikationen\.json, qualifications\[0\]\.level: Die Stufe ist eine von/,
+      ),
+    ])
+  })
+
+  it('are reviewed once each, and accepted with their checksum', () => {
+    expect(
+      problems({
+        [dutyKindFile]: bySkilled,
+        [qualificationsFile]: { qualifications: [lift] },
+      }),
+    ).toEqual([
+      `${acceptancesFile}: Für die Art der Qualifikation lift_expert fehlt ein Eintrag, mindestens mit dem Tag, an dem sie zuletzt gegen die Quellen ihrer Pflichtarten geprüft wurde ("checkedOn").`,
+    ])
+
+    const checksum = qualificationChecksum(lift)
+
+    expect(
+      problems({
+        [dutyKindFile]: bySkilled,
+        [qualificationsFile]: { qualifications: [{ ...lift, label: 'Anders' }] },
+        [acceptancesFile]: reviewsWith({
+          qualifications: [
+            {
+              key: 'lift_expert',
+              checkedOn: '2026-10-04',
+              accepted: { by: 'Eine Fachkraft', on: '2026-10-04', sha256: checksum },
+            },
+          ],
+        }),
+      }),
+    ).toEqual([
+      expect.stringMatching(
+        /^probe\/abnahmen\.json, Art der Qualifikation lift_expert: Die Abnahme nennt die Prüfsumme /,
+      ),
     ])
   })
 })

@@ -7,15 +7,16 @@ import {
   numberRangeKeys,
 } from '@opengewerk/haustechnik-domain'
 import {
+  accountsOf,
   attachmentParts,
   auditLogParts,
-  contactParts,
-  deadlineParts,
   type Authentication,
   authenticationParts,
   AUTHORIZATION,
   backupStatusParts,
+  contactParts,
   Database,
+  deadlineParts,
   fileParts,
   type FileStorage,
   HealthController,
@@ -28,7 +29,6 @@ import {
   numberRangeParts,
   PUSH,
   type PushContext,
-  pushParts,
   RENDERER,
   type Renderer,
   rendererFor,
@@ -36,6 +36,7 @@ import {
   StampInterceptor,
   syncParts,
   TRUSTED_ORIGINS,
+  pushParts,
   VERSION,
 } from '@opengewerk/platform-server'
 
@@ -98,6 +99,7 @@ import {
   FaultReportsController,
 } from './fault-reports.controller.js'
 import { DelegationsController } from './delegations.controller.js'
+import { QualificationsController } from './qualifications.controller.js'
 import { FiguresController } from './figures.controller.js'
 import { OutsideReportsController } from './outside-reports.controller.js'
 import { OUTSIDE_REPORTS, OutsideReports } from '../faults/outside-gate.js'
@@ -286,7 +288,12 @@ export class ApiModule {
         settingsRead: 'deadline.read',
         settingsWrite: 'deadline.write',
       },
-      rules: deadlineRulesFor(catalogue),
+      // Whose qualification runs out, by the name of the account (#337).
+      rules: deadlineRulesFor(catalogue, async (userIds) => {
+        const accounts = await accountsOf(database, userIds, '')
+
+        return new Map([...accounts].map(([userId, account]) => [userId, account.name]))
+      }),
     })
 
     // The mail server of an operator, set up by whoever may write in its name
@@ -413,6 +420,7 @@ export class ApiModule {
         FaultReportSettingsController,
         FiguresController,
         DelegationsController,
+        QualificationsController,
         ...(outside === null ? [] : [OutsideReportsController]),
         MeterSettingsController,
         EvidencePrintController,

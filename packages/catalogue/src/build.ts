@@ -86,7 +86,7 @@ const unaccepted =
     ])
     .filter((entry) => entry.review.accepted === null).length +
   packages
-    .flatMap((entry) => [...entry.rules, ...entry.defectClasses])
+    .flatMap((entry) => [...entry.rules, ...entry.defectClasses, ...entry.qualifications])
     .filter((entry) => entry.review.accepted === null).length
 
 /** "1 Paket", "2 Pakete", "0 Pakete". */
@@ -120,6 +120,12 @@ console.log(
       count((entry) => entry.defectClasses),
       'Mängelklasse',
       'Mängelklassen',
+    ),
+    ', ',
+    counted(
+      count((entry) => entry.qualifications),
+      'Art der Qualifikation',
+      'Arten der Qualifikation',
     ),
     '; ',
     counted(unaccepted, 'Eintrag', 'Einträge'),

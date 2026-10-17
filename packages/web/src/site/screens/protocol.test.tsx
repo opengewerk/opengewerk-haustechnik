@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto'
 
 import {
+  type CatalogueBundle,
   canonicalForm,
   type FilledAnswer,
   signedPageOf,
@@ -228,6 +229,83 @@ describe('the protocol of an inspection', () => {
         'Wird mit der Unterschrift ein Mangel an AN-00057 Aufzug Heizraum. Klasse und Frist setzt, wer Mängel führt.',
       ),
     ).toBeTruthy()
+  })
+})
+
+describe('the kind of qualification an inspection asks for (#337)', () => {
+  // The duty of the heater, of a kind the catalogue has a kind of qualification asked for.
+  const asking: CatalogueBundle = {
+    ...formCatalogue,
+    sha256: '3'.repeat(64),
+    packages: formCatalogue.packages.map((each, index) =>
+      index === 0
+        ? {
+            ...each,
+            qualifications: [
+              {
+                qualification: {
+                  key: 'probe.heater_expert',
+                  label: 'Sachkundiger für Speicher',
+                  level: 'skilled_person',
+                  requiredFor: ['probe.heater_test'],
+                },
+                review: { checkedOn: '2026-10-01', accepted: null },
+              },
+            ],
+          }
+        : each,
+    ),
+  }
+
+  function heldUntil(validUntil: string | null) {
+    return {
+      id: `q-${String(validUntil)}`,
+      userId: 'u-1',
+      kindKey: 'probe.heater_expert',
+      ownKindId: null,
+      validUntil,
+      note: null,
+      deletedAt: null,
+    }
+  }
+
+  async function begun(held: readonly ReturnType<typeof heldUntil>[]) {
+    const server = workServer()
+
+    server.put('duties', { ...heaterDuty, kind: 'probe.heater_test', kindVersion: 1 })
+
+    for (const each of held) {
+      server.put('qualifications', each)
+    }
+
+    await mountSite(`/vorgaenge/${inspection.id}`, {
+      server,
+      answers: servingCatalogue(asking),
+    })
+    await screen.findByRole('list', { name: 'Prüfen' })
+  }
+
+  it('tells whoever does not hold it, and lets them go on', async () => {
+    await begun([])
+
+    expect((await screen.findByRole('note')).textContent).toBe(
+      'Gefordert ist „Sachkundiger für Speicher“. Unter Ihren Qualifikationen steht sie nicht. Sagen Sie es der Leitung; weiterarbeiten können Sie trotzdem.',
+    )
+    expect(screen.getByRole('group', { name: 'Sicherheitsventil löst aus' })).toBeTruthy()
+  })
+
+  it('tells whoever holds it no longer, with the day it ran out', async () => {
+    await begun([heldUntil('2020-01-31')])
+
+    expect((await screen.findByRole('note')).textContent).toBe(
+      'Gefordert ist „Sachkundiger für Speicher“. Unter Ihren Qualifikationen ist sie am 31.01.2020 abgelaufen. Sagen Sie es der Leitung; weiterarbeiten können Sie trotzdem.',
+    )
+  })
+
+  it('says nothing to whoever holds it', async () => {
+    await begun([heldUntil('2020-01-31'), heldUntil(null)])
+
+    expect(screen.queryByRole('note')).toBeNull()
   })
 })
 

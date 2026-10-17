@@ -125,6 +125,8 @@ export * from './model/figures.js'
 export * from './model/consumption-figures.js'
 // The delegation of the operator's duties, signed by both (#336).
 export * from './model/delegation.js'
+// The qualifications of the people, on the model of the foundation (#337).
+export * from './model/qualifications.js'
 export * from './model/defect-register.js'
 // The faults reported by the people in a building, and the inbox of the area (#331).
 export * from './model/fault-report.js'

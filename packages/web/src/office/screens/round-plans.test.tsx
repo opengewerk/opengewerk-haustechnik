@@ -153,6 +153,7 @@ const withHolidays: CatalogueBundle = {
         },
       ],
       defectClasses: [],
+      qualifications: [],
     },
   ],
 }

@@ -146,7 +146,7 @@ interface SampleDefect {
  * what the register points out.
  */
 export interface SampleDuty {
-  readonly kind?: 'probe.elevator_main_test'
+  readonly kind?: 'probe.elevator_main_test' | 'elektro.installation_test_dguv_v3'
   readonly label?: string
   readonly basis?: 'manufacturer' | 'own_decision'
   readonly sourceNote?: string
@@ -459,6 +459,16 @@ export const sampleProperties: readonly SampleProperty[] = [
             kind: 'elektro.low_voltage_installation',
             name: 'Elektrische Anlage Halle 1',
             values: { special_location: false },
+            // Tested by an Elektrofachkraft, due within the lead: the inspection
+            // the engine makes names who lacks the qualification (#337).
+            duties: [
+              {
+                kind: 'elektro.installation_test_dguv_v3',
+                intervalMonths: 48,
+                metDaysAgo: [1450],
+                responsible: 'preview-lindner',
+              },
+            ],
           },
           {
             kind: 'elektro.residual_current_device',

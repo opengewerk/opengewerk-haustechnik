@@ -1,6 +1,12 @@
-import { maybeText, text, useRecord } from '@opengewerk/platform-web/sync'
+import {
+  type Catalogue,
+  type IsoDate,
+  qualificationCheck,
+  requiredKinds,
+} from '@opengewerk/haustechnik-domain'
+import { maybeText, text, useRecord, useRecords, useRelated } from '@opengewerk/platform-web/sync'
 import { Button, Panel } from '@opengewerk/platform-web'
-import { date } from '@opengewerk/platform-web/format'
+import { date, today } from '@opengewerk/platform-web/format'
 import { AnswerProgress, newBlockKey } from '@opengewerk/platform-web/forms'
 import {
   SiteActionBar,
@@ -10,7 +16,7 @@ import {
   SiteTrouble,
 } from '@opengewerk/platform-web/site'
 import { useNavigate, useParams } from '@tanstack/react-router'
-import { ChevronLeft, Copy, Plus } from 'lucide-react'
+import { ChevronLeft, Copy, Plus, TriangleAlert } from 'lucide-react'
 import { useMemo, useState } from 'react'
 
 import {
@@ -45,6 +51,11 @@ export const protocolWords = {
     `Vorlage ist das Protokoll vom ${date(on)}: Angaben sind übernommen, Antworten und Messwerte werden neu erfasst.`,
   toResult: 'Weiter zum Ergebnis',
   back: 'Zurück',
+  // The kind of qualification the duties ask for, which the person lacks (#337).
+  lacking: (kind: string, ranOut: string | null) =>
+    ranOut === null
+      ? `Gefordert ist „${kind}“. Unter Ihren Qualifikationen steht sie nicht. Sagen Sie es der Leitung; weiterarbeiten können Sie trotzdem.`
+      : `Gefordert ist „${kind}“. Unter Ihren Qualifikationen ist sie am ${date(ranOut)} abgelaufen. Sagen Sie es der Leitung; weiterarbeiten können Sie trotzdem.`,
 } as const
 
 /**
@@ -138,6 +149,9 @@ export function SiteProtocolScreen() {
     <>
       <SiteHeader title={title} sub={where.words} back={back} />
       <SiteScreen>
+        {form.editable ? (
+          <OwnQualification activityId={activityId} catalogue={form.catalogue} />
+        ) : null}
         <AnswerProgress
           done={done}
           total={counted.length}
@@ -260,4 +274,70 @@ export function SiteProtocolScreen() {
       </SiteActionBar>
     </>
   )
+}
+
+/**
+ * Beginning an activity whose duties ask for a kind of qualification the
+ * person does not hold, or holds no longer (#337): told, and not stopped.
+ * The device holds the own qualifications and nobody else's.
+ */
+function OwnQualification({
+  activityId,
+  catalogue,
+}: {
+  readonly activityId: string
+  readonly catalogue: Catalogue | null
+}) {
+  const lines = useRelated('activity_duties', 'activityId', activityId)
+  const duties = useRecords('duties')
+  const held = useRecords('qualifications')
+
+  if (catalogue === null) {
+    return null
+  }
+
+  const kinds = requiredKinds(
+    catalogue,
+    lines.map((line) =>
+      maybeText(duties.find((duty) => duty['id'] === line['dutyId']) ?? null, 'kind'),
+    ),
+  )
+  const own = held.map((row) => ({
+    kindKey: maybeText(row, 'kindKey'),
+    ownKindId: maybeText(row, 'ownKindId'),
+    validUntil: maybeText(row, 'validUntil') as IsoDate | null,
+    deletedAt: (row['deletedAt'] as string | null | undefined) ?? null,
+  }))
+  const day = today()
+
+  for (const kind of kinds) {
+    const check = qualificationCheck(own, kind.key, day)
+
+    if (check !== 'held') {
+      const ranOut = own
+        .filter((row) => row.kindKey === kind.key && row.validUntil !== null)
+        .map((row) => row.validUntil as IsoDate)
+        .sort()
+        .at(-1)
+
+      return (
+        <p
+          role="note"
+          className="flex gap-2.5 rounded-[6px] border border-waiting-edge bg-waiting-fill px-3.5 py-3 text-[15px] leading-[1.4]"
+        >
+          <TriangleAlert
+            size={20}
+            strokeWidth={2}
+            aria-hidden="true"
+            className="shrink-0 text-waiting"
+          />
+          <span>
+            {protocolWords.lacking(kind.label, check === 'expired' ? (ranOut ?? null) : null)}
+          </span>
+        </p>
+      )
+    }
+  }
+
+  return null
 }

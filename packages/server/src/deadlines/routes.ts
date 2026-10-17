@@ -26,6 +26,7 @@ import {
   defects,
   duties,
   properties,
+  qualifications,
   rooms,
   roundPlans,
   roundTemplates,
@@ -58,6 +59,9 @@ function byId(column: typeof deadlines.propertyId | typeof deadlines.areaId) {
  */
 export function deadlineRulesFor(
   catalogue: Catalogue,
+  /** The names of accounts, for the expiry of a qualification (#337); none in a test that asks for none. */
+  namesOf: (userIds: readonly string[]) => Promise<ReadonlyMap<string, string>> = () =>
+    Promise.resolve(new Map()),
 ): DeadlineRules<ApplicationDeadlineKind, ApplicationDeadlineColumns> {
   const filters: Readonly<Record<DeadlineFilterName, (value: string) => SQL | null>> = {
     property: byId(deadlines.propertyId),
@@ -192,6 +196,24 @@ export function deadlineRulesFor(
       const byContract = new Map<string, (typeof foundContracts)[number]>(
         foundContracts.map((contract) => [contract.id, contract]),
       )
+      // The people whose qualification runs out (#337), by the names of their accounts.
+      const qualificationIds = [
+        ...new Set(
+          rows.flatMap((row) => (row.qualificationId === null ? [] : [row.qualificationId])),
+        ),
+      ]
+      const foundQualifications =
+        qualificationIds.length === 0
+          ? []
+          : await tx
+              .select({ id: qualifications.id, userId: qualifications.userId })
+              .from(qualifications)
+              .where(inArray(qualifications.id, qualificationIds))
+      const byQualification = new Map(foundQualifications.map((each) => [each.id, each.userId]))
+      const names =
+        foundQualifications.length === 0
+          ? new Map<string, string>()
+          : await namesOf([...new Set(foundQualifications.map((each) => each.userId))])
       // The assets and the accepted work orders whose warranty ends (#329).
       const warrantyAssetIds = [
         ...new Set(
@@ -274,6 +296,24 @@ export function deadlineRulesFor(
                     number: document.assetNumber,
                     name: document.assetName ?? '',
                   },
+          }
+
+          return { ...facts }
+        }
+
+        // The expiry of a qualification (#337): its kind, which its source
+        // writes, and the person, by the name of the account.
+        if (row.qualificationId !== null) {
+          const held = byQualification.get(row.qualificationId)
+          const facts: DeadlineFacts = {
+            follows: 'qualification',
+            propertyId: null,
+            qualification: {
+              id: row.qualificationId,
+              kindLabel: row.sourceLabel,
+              personName:
+                held === undefined ? 'Unbekanntes Konto' : (names.get(held) ?? 'Unbekanntes Konto'),
+            },
           }
 
           return { ...facts }

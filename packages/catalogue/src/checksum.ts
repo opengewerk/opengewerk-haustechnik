@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto'
 
-import type { PackageDefectClass, PackageRuleRecord } from './format.js'
+import type { PackageDefectClass, PackageQualification, PackageRuleRecord } from './format.js'
 
 export function sha256(content: Uint8Array | string): string {
   return createHash('sha256').update(content).digest('hex')
@@ -44,6 +44,18 @@ export function ruleChecksum(record: PackageRuleRecord): string {
  * must not hang on the others. Its fields in the order of the format, no
  * spacing.
  */
+/** The checksum of a kind of qualification (#337), over what it says. */
+export function qualificationChecksum(qualification: PackageQualification): string {
+  return sha256(
+    JSON.stringify({
+      key: qualification.key,
+      label: qualification.label,
+      level: qualification.level,
+      requiredFor: qualification.requiredFor,
+    }),
+  )
+}
+
 export function defectClassChecksum(defectClass: PackageDefectClass): string {
   return sha256(
     JSON.stringify({
