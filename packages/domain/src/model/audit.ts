@@ -574,6 +574,8 @@ export const auditVocabulary: AuditVocabulary = {
         template_on: 'Vorlage vom',
         round_plan_id: 'Plan',
         emptied_at: 'Gelöscht nach Ablauf der Aufbewahrung am',
+        collective_id: 'Teil des Sammelvorgangs',
+        collective_kind: 'Pflichtart des Sammelvorgangs',
       },
     },
     // The answer to a point of the form of an activity (#106).
@@ -915,6 +917,8 @@ export const auditVocabulary: AuditVocabulary = {
     duty_id: 'duties',
     activity_id: 'activities',
     found_in_activity_id: 'activities',
+    // The collective activity a part belongs to (#342).
+    collective_id: 'activities',
     found_in_evidence_id: 'evidence',
     found_in_answer_id: 'activity_answers',
     remedy_work_order_id: 'work_orders',

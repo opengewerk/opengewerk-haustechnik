@@ -50,6 +50,7 @@ export function leastState(number: string, performedOn: IsoDate, result: string)
       asset: null,
     },
     activity: null,
+    collective: null,
     performer: { examiner: 'Erika Muster', organisation: 'Prüfstelle Süd' },
     defects: [],
     signatures: [],

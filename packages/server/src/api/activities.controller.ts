@@ -20,6 +20,7 @@ import {
   type ActivityDetails,
   type ActivityDutyLine,
   type ActivityEntry,
+  type ActivityId,
   type ActivityList,
   type ActivityListState,
   activityListPage,
@@ -27,6 +28,7 @@ import {
   activityListStatuses,
   activityPlanProblems,
   activityProblems,
+  activityUnderWay,
   byNameIn,
   type Catalogue,
   type DueActivityKind,
@@ -54,6 +56,7 @@ import {
 import { and, asc, count, eq, ilike, inArray, isNull, lt, or, type SQL, sql } from 'drizzle-orm'
 
 import { closeAsNotPerformed } from '../activities/closing.js'
+import { collectiveCounts, partLines, partsOf } from '../activities/collectives.js'
 import { makeActivityForDuty } from '../activities/for-duty.js'
 import { CATALOGUE } from '../catalogue.js'
 import { dutiesOnADay, dutyTitle } from '../database/duty-standing.js'
@@ -145,6 +148,8 @@ function searching(search: string): SQL | undefined {
   return or(
     ilike(activities.title, pattern),
     sql`exists (select 1 from ${assets} where ${assets.id} = ${activities.assetId} and (${assets.number} ilike ${pattern} or ${assets.name} ilike ${pattern}))`,
+    // A collective activity by the assets of its parts (#342).
+    sql`exists (select 1 from activities part join ${assets} on ${assets.id} = part.asset_id where part.collective_id = ${activities.id} and part.deleted_at is null and (${assets.number} ilike ${pattern} or ${assets.name} ilike ${pattern}))`,
     sql`exists (select 1 from ${properties} where ${properties.id} = ${activities.propertyId} and ${properties.name} ilike ${pattern})`,
   )
 }
@@ -197,6 +202,8 @@ export function activityListWhere(
 
   return and(
     isNull(activities.deletedAt),
+    // A part of a collective activity stands on the page of the collective one (#342).
+    isNull(activities.collectiveId),
     inArray(activities.kind, question.kind === null ? [...dueActivityKinds] : [question.kind]),
     statuses === null ? undefined : inArray(activities.status, [...statuses]),
     question.state === 'report_missing'
@@ -314,14 +321,21 @@ export class ActivitiesController {
         .offset(question.offset)
         .limit(question.limit)) as Activity[]
 
-      return { total: counted?.total ?? 0, rows }
+      const counts = await collectiveCounts(
+        tx,
+        rows.filter((row) => row.collectiveKind !== null).map((row) => row.id),
+      )
+
+      return { total: counted?.total ?? 0, rows, counts }
     })
     const named = await this.named(identity, read.rows)
 
     return {
       total: read.total,
       more: question.offset + read.rows.length < read.total,
-      activities: read.rows.map((row) => entryOf(row, named)),
+      activities: read.rows.map((row) =>
+        entryOf(row, named, read.counts, null, this.kindLabel, this.kindSource),
+      ),
     }
   }
 
@@ -373,7 +387,25 @@ export class ActivitiesController {
                 )[0]?.number ?? null,
             }
 
-      return { activity, lines, standing, shell }
+      const parts =
+        activity.collectiveKind === null
+          ? undefined
+          : await partLines(tx, this.catalogue, activity.id, today)
+      const counts = await collectiveCounts(
+        tx,
+        activity.collectiveKind === null ? [] : [activity.id],
+      )
+      const partOf =
+        activity.collectiveId === null
+          ? null
+          : ((
+              await tx
+                .select({ id: activities.id, title: activities.title, status: activities.status })
+                .from(activities)
+                .where(eq(activities.id, activity.collectiveId))
+            )[0] ?? null)
+
+      return { activity, lines, standing, shell, parts, counts, partOf }
     })
     const named = await this.named(identity, [read.activity])
     const lines = read.lines.map(({ line, duty }, index): ActivityDutyLine => {
@@ -406,12 +438,13 @@ export class ActivitiesController {
     })
 
     return {
-      ...entryOf(read.activity, named),
+      ...entryOf(read.activity, named, read.counts, read.partOf, this.kindLabel, this.kindSource),
       createdAt: read.activity.createdAt.toISOString(),
       performedOn: read.activity.performedOn,
       closingReason: read.activity.closingReason,
       duties: lines,
       shell: read.shell,
+      ...(read.parts === undefined ? {} : { parts: read.parts }),
     }
   }
 
@@ -502,6 +535,13 @@ export class ActivitiesController {
 
     const handed = await this.database.forTenant(identity, async (tx) => {
       const activity = await this.activityOf(tx, identity, id)
+
+      await refuseAPart(
+        tx,
+        activity,
+        'Geplant wird der Sammelvorgang; jede Anlage darin folgt ihm.',
+      )
+
       const { responsible, performers } = await candidatesIn(tx, activity.areaId)
       const anew = (value: unknown, before: string | null) =>
         typeof value === 'string' && value !== before
@@ -548,6 +588,28 @@ export class ActivitiesController {
         throw new ConflictException(
           'Geplant wird ein Vorgang, solange er offen ist. Diesen hat schon jemand begonnen.',
         )
+      }
+
+      // The parts of a collective activity take the people over (#342), so
+      // that one device holds all of it; each keeps the day its duty is due.
+      if (activity.collectiveKind !== null) {
+        await tx
+          .update(activities)
+          .set({
+            responsibleUserId: plan.responsibleUserId as string | null,
+            performer: plan.performer as Activity['performer'],
+            performerUserId: plan.performerUserId as string | null,
+            contractorNote: plan.contractorNote as string | null,
+            contractorId: plan.contractorId as ContractorId | null,
+            updatedAt: new Date(),
+          })
+          .where(
+            and(
+              eq(activities.collectiveId, activity.id),
+              eq(activities.status, 'open'),
+              isNull(activities.deletedAt),
+            ),
+          )
       }
 
       // Whoever is named anew is told, once the plan stands (#126).
@@ -659,16 +721,38 @@ export class ActivitiesController {
         )
       }
 
+      await refuseAPart(
+        tx,
+        activity,
+        'Eine Anlage im Sammelvorgang wird nicht für sich geschlossen. Ist sie nicht erreichbar, bekommt sie vor Ort „nicht durchgeführt“ mit Grund; mit Grund geschlossen wird der ganze Sammelvorgang.',
+      )
+
       // Whoever signed it meanwhile waits for the evidence of the signature.
       if (!(await closeAsNotPerformed(tx, activity.id, closingReason as string))) {
         throw new ConflictException(
           'Geschlossen wird ein Vorgang, solange er offen oder begonnen ist. Dieser ist schon unterschrieben oder abgeschlossen.',
         )
       }
+
+      // A collective activity with every part that is not done yet (#342):
+      // no evidence comes of a result entered on site.
+      if (activity.collectiveKind !== null) {
+        for (const part of await partsOf(tx, activity.id as ActivityId)) {
+          await closeAsNotPerformed(tx, part.id as ActivityId, closingReason as string)
+        }
+      }
     })
 
     return this.read(identity, id)
   }
+
+  /** What a duty kind is called, in the newest version the catalogue holds. */
+  private readonly kindLabel = (kind: string): string =>
+    this.catalogue.newestDutyKind(kind)?.definition.label ?? kind
+
+  /** Where a duty kind comes from, in the newest version the catalogue holds. */
+  private readonly kindSource = (kind: string): string | null =>
+    this.catalogue.newestDutyKind(kind)?.definition.source ?? null
 
   /**
    * The activity behind an id, if the person asking is shown it: in their
@@ -721,11 +805,44 @@ export class ActivitiesController {
   }
 }
 
+/**
+ * Refuses an office action at a part of a collective activity while that one
+ * is under way (#342): it is done at the collective activity, for all its
+ * parts. A part left over from one that is done is an activity of its own.
+ */
+async function refuseAPart(
+  tx: TenantTransaction,
+  activity: Activity,
+  sentence: string,
+): Promise<void> {
+  if (activity.collectiveId === null) {
+    return
+  }
+
+  const [collective] = await tx
+    .select({ status: activities.status })
+    .from(activities)
+    .where(and(eq(activities.id, activity.collectiveId), isNull(activities.deletedAt)))
+
+  if (
+    collective !== undefined &&
+    (activityUnderWay as readonly string[]).includes(collective.status)
+  ) {
+    throw new ConflictException(sentence)
+  }
+}
+
 /** An activity as the list shows it, with the people it names by their names. */
 function entryOf(
   row: Activity,
   named: (userId: string | null) => DutyPerson | null,
+  counts: ReadonlyMap<string, { readonly parts: number; readonly withResult: number }> = new Map(),
+  partOf: { readonly id: string; readonly title: string; readonly status: string } | null = null,
+  kindLabel: (kind: string) => string = (kind) => kind,
+  kindSource: (kind: string) => string | null = () => null,
 ): ActivityEntry {
+  const counted = counts.get(row.id)
+
   return {
     id: row.id,
     kind: row.kind,
@@ -743,6 +860,26 @@ function entryOf(
     contractorNote: row.contractorNote,
     contractorId: row.contractorId,
     ...(row.emptiedAt === null ? {} : { emptied: true as const }),
+    ...(row.collectiveKind === null
+      ? {}
+      : {
+          collective: {
+            kind: row.collectiveKind,
+            label: kindLabel(row.collectiveKind),
+            source: kindSource(row.collectiveKind),
+            parts: counted?.parts ?? 0,
+            withResult: counted?.withResult ?? 0,
+          },
+        }),
+    ...(partOf === null
+      ? {}
+      : {
+          partOf: {
+            id: partOf.id as ActivityId,
+            title: partOf.title,
+            underWay: (activityUnderWay as readonly string[]).includes(partOf.status),
+          },
+        }),
   }
 }
 

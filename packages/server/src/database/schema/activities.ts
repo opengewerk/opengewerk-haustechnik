@@ -108,6 +108,11 @@ export const activities = pgTable(
     // When it was emptied with its last evidence after the end of the
     // retention (#409): the database's to write, and only then.
     emptiedAt: timestamp('emptied_at', { withTimezone: true }),
+    // The collective activity it is a part of (#342): the server's to write.
+    collectiveId: reference<'activity'>('collective_id'),
+    // The duty kind of a collective activity, which makes it one (#342): the
+    // server's to write.
+    collectiveKind: text('collective_kind'),
     ...timestamps,
     ...syncColumns,
   },
@@ -235,6 +240,32 @@ export const activities = pgTable(
     index('activities_emptied_idx')
       .on(table.tenantId, table.emptiedAt)
       .where(sql`${table.emptiedAt} is not null`),
+    // A part of a collective activity (#342): of one on its property and of
+    // its kind; that it is a collective activity says the trigger
+    // `part_of_a_collective` of the migration.
+    foreignKey({
+      columns: [table.tenantId, table.collectiveId, table.propertyId, table.kind],
+      foreignColumns: [table.tenantId, table.id, table.propertyId, table.kind],
+      name: 'activities_part_of_a_collective',
+    }),
+    index('activities_collective_idx')
+      .on(table.tenantId, table.collectiveId)
+      .where(sql`${table.collectiveId} is not null`),
+    check(
+      'activities_collective_kind_shaped',
+      sql`${table.collectiveKind} is null or (${table.collectiveKind} ~ '^[a-z][a-z0-9_.-]*$' and char_length(${table.collectiveKind}) <= ${sql.raw(String(activityLimits.formKey))})`,
+    ),
+    // A collective activity is an inspection or a maintenance, with neither a
+    // form nor an asset of its own and no part of another one; its parts are
+    // inspections or maintenance as well.
+    check(
+      'activities_collective_holds_parts',
+      sql`${table.collectiveKind} is null or (${table.kind} in ('inspection', 'maintenance') and ${table.formKey} is null and ${table.assetId} is null and ${table.collectiveId} is null)`,
+    ),
+    check(
+      'activities_parts_of_inspections',
+      sql`${table.collectiveId} is null or ${table.kind} in ('inspection', 'maintenance')`,
+    ),
     check(
       'activities_contractor_for_a_contractor',
       sql`${table.contractorId} is null or ${table.performer} = 'contractor'`,

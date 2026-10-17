@@ -8,6 +8,7 @@ import type {
   DueActivityKind,
 } from './activity.js'
 import type { QualificationLevel } from './catalogue.js'
+import type { CollectivePart } from './collective.js'
 import type { DutyState } from './duty.js'
 import type { QualificationHint } from './qualifications.js'
 import type { DutyId, DutyPerformer } from './duty-record.js'
@@ -102,6 +103,25 @@ export interface ActivityEntry extends PlaceTarget {
   readonly contractorId: string | null
   /** Emptied with its last evidence after the end of the retention (#409); absent otherwise. */
   readonly emptied?: true
+  /**
+   * A collective activity (#342): its duty kind, how many parts it holds and
+   * how many of them have their result.
+   */
+  readonly collective?: {
+    readonly kind: string
+    /** What the duty kind is called, in the newest version the catalogue holds. */
+    readonly label: string
+    /** Where the duty kind comes from, as that version names it. */
+    readonly source: string | null
+    readonly parts: number
+    readonly withResult: number
+  }
+  /**
+   * A part of a collective activity (#342): the one it is part of, and
+   * whether that is still under way. While it is, the part is planned,
+   * closed and signed with it.
+   */
+  readonly partOf?: { readonly id: ActivityId; readonly title: string; readonly underWay: boolean }
 }
 
 /** A page of the list, with how many pass the filters and whether a further page follows. */
@@ -155,6 +175,8 @@ export interface ActivityDetails extends ActivityEntry {
   readonly duties: readonly ActivityDutyLine[]
   /** What remains of it once it is emptied (#409); null while it holds what it held. */
   readonly shell: EmptiedActivity | null
+  /** The parts of a collective activity (#342), an asset each; none for any other. */
+  readonly parts?: readonly CollectivePart[]
 }
 
 /**

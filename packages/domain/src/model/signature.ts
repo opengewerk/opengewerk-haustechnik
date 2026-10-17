@@ -186,6 +186,11 @@ export function signaturesComplete(
  * its text (#118), where it has them: who wrote a note is the server's to
  * write and the further people do not stand on the page (4.8), and the
  * moment of a note is one a device stamps.
+ *
+ * A collective activity (#342, section 4.4 of the concept) shows the page of
+ * each of its parts, by the key of the part: every asset with its protocol
+ * and its result, under one signature. It has no duties and no defects of
+ * its own; its parts have them.
  */
 export interface SignedPage {
   readonly activity: {
@@ -215,6 +220,7 @@ export interface SignedPage {
   readonly answers?: readonly SignedAnswer[]
   readonly durationMinutes?: number
   readonly notes?: readonly SignedNote[]
+  readonly parts?: readonly SignedPage[]
 }
 
 /** A note on a work order as the page shows it: its key and what it says. */
@@ -305,6 +311,13 @@ export function signedPageOf(parts: SignedPageParts): SignedPage {
             .map(({ id, text }) => ({ id, text }))
             .sort((left, right) => compare(left.id, right.id)),
         }),
+    ...(parts.parts === undefined
+      ? {}
+      : {
+          parts: [...parts.parts].sort((left, right) =>
+            compare(left.activity.id, right.activity.id),
+          ),
+        }),
   }
 }
 
@@ -337,8 +350,8 @@ function live(record: HeldRecord): boolean {
  * from the asset of the activity, else its room, else its building; the
  * duties with their results; the defects reported in it, not those an answer
  * makes; with a form, the answers to its points; and for a work order the
- * time spent on it and its notes. Null when the device does not hold the
- * activity.
+ * time spent on it and its notes; for a collective activity the page of each
+ * of its parts (#342). Null when the device does not hold the activity.
  */
 export function heldPageOf(held: HeldRecords, activityId: string): SignedPage | null {
   const activity = held.find('activities', activityId)
@@ -436,6 +449,19 @@ export function heldPageOf(held: HeldRecords, activityId: string): SignedPage | 
             })),
         }),
     ...(activity['kind'] === 'work_order' ? heldWorkOf(held, activityId) : {}),
+    // A collective activity, the page of each of its parts the device holds (#342).
+    ...(heldText(activity, 'collectiveKind') === null
+      ? {}
+      : {
+          parts: held
+            .related('activities', 'collectiveId', activityId)
+            .filter(live)
+            .flatMap((part) => {
+              const page = heldPageOf(held, String(part['id']))
+
+              return page === null ? [] : [page]
+            }),
+        }),
   })
 }
 

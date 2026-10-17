@@ -20,6 +20,7 @@ import {
   roundRecordVersion,
   type RoundRecordState,
   type StatedAnswer,
+  type StatedCollective,
   type StatedDefect,
   type StatedFile,
   type StatedForm,
@@ -127,6 +128,11 @@ export interface EvidenceToWrite {
    * predecessor application have one, and it lies after their day.
    */
   readonly nextDueOn?: IsoDate | null
+  /**
+   * The collective activity the evidence is written with (#342): its title
+   * and how many assets it held. None for every other evidence.
+   */
+  readonly collective?: StatedCollective | null
   /**
    * A number drawn ahead from the sequence of the evidence, in this
    * transaction: an import draws all of its numbers in one step, so that the
@@ -306,6 +312,7 @@ export async function writeEvidence(
     },
     place,
     activity: activity === null ? null : { kind: activity.kind, title: activity.title },
+    collective: input.collective ?? null,
     form: filled?.form ?? null,
     answers: filled?.answers ?? [],
     performer: performerOf(input, context),

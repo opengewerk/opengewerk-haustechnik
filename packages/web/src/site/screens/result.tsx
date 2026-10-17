@@ -1,5 +1,6 @@
 import {
   activityLimits,
+  activityUnderWay,
   answeredField,
   answerFindings,
   answersMissing,
@@ -32,7 +33,7 @@ import {
 } from '@opengewerk/platform-web/sync'
 import { useQuery } from '@tanstack/react-query'
 import { useNavigate, useParams } from '@tanstack/react-router'
-import { Check, ChevronLeft, Plus, Signature } from 'lucide-react'
+import { Check, ChevronLeft, Plus, SearchCheck, Signature } from 'lucide-react'
 import { useCallback, useId, useMemo, useRef, useState } from 'react'
 
 import { answerAt, beginActivity, filledOf, type FormPoint, lackOf } from '../../app/answers.js'
@@ -80,6 +81,10 @@ export const resultWords = {
   found: 'Festgestellt',
   fixed: 'Die Prüfung lässt sich jetzt nicht mehr ändern. Was falsch ist, wird im Büro berichtigt.',
   toPlace: 'Zurück',
+  // A part of a collective activity (#342).
+  toList: 'Zur Liste',
+  signedBelow: 'Unterschrieben wird einmal für alle Anlagen, unter der Liste.',
+  partOf: (title: string) => `Teil von ${title}.`,
 } as const
 
 /** Whether a record is there and not marked. */
@@ -198,6 +203,17 @@ function ResultOf({ activityId }: { readonly activityId: string }) {
         .filter((each) => each['role'] === 'signer')
         .sort((left, right) => (text(left, 'signedAt') < text(right, 'signedAt') ? 1 : -1))[0]
     : undefined
+  // A part of a collective activity has its result here and is signed with
+  // the collective one, once for all its assets, under its list (#342).
+  const collectiveId = maybeText(form.activity, 'collectiveId')
+  const collective = useRecord('activities', collectiveId ?? undefined)
+  const inCollective =
+    collective !== null &&
+    live(collective) &&
+    (activityUnderWay as readonly string[]).includes(text(collective, 'status'))
+  const collectiveSigned = useRelated('activity_signatures', 'activityId', collectiveId ?? '').some(
+    (each) => each['role'] === 'signer',
+  )
   const first = lines[0]
   const [chosen, setChosen] = useState<EvidenceResult | null>(
     (maybeText(first, 'result') as EvidenceResult | null) ?? null,
@@ -296,12 +312,15 @@ function ResultOf({ activityId }: { readonly activityId: string }) {
           ? resultWords.noRemark
           : resultWords.noReason
   }
+  // An asset of a collective activity that could not be reached is not asked
+  // for its answers (section 4.4).
+  const asked = !(inCollective && chosen === 'not_performed')
   const open = form.points.flatMap((point) => {
-    const why = lacking(point)
+    const why = asked ? lacking(point) : null
 
     return why === null ? [] : [{ point, why }]
   })
-  const missing = definition === null ? [] : answersMissing(definition, filled, context)
+  const missing = definition === null || !asked ? [] : answersMissing(definition, filled, context)
   const contradiction = resultAgainstFindings(chosen, found.length)
   const sub = [text(activity, 'title'), maybeText(asset, 'number')].filter(Boolean).join(', ')
   const performedOn = maybeText(activity, 'performedOn')
@@ -324,7 +343,11 @@ function ResultOf({ activityId }: { readonly activityId: string }) {
       : where.back
   const done = order ? { to: siteForms.form(activityId), label: resultWords.toOrder } : where.back
 
-  if (signature !== undefined || text(activity, 'status') === 'done') {
+  if (
+    signature !== undefined ||
+    text(activity, 'status') === 'done' ||
+    (inCollective && collectiveSigned)
+  ) {
     const pending =
       signature !== undefined && client.isPending('activity_signatures', String(signature['id']))
     const signedAt = signature === undefined ? null : maybeText(signature, 'signedAt')
@@ -377,7 +400,7 @@ function ResultOf({ activityId }: { readonly activityId: string }) {
     )
   }
 
-  const editable = form.editable
+  const editable = form.editable && !(inCollective && collectiveSigned)
   const complete = chosen !== null && (chosen !== 'not_performed' || reason.trim() !== '')
   const canSign =
     editable &&
@@ -419,6 +442,18 @@ function ResultOf({ activityId }: { readonly activityId: string }) {
     <>
       <SiteHeader title={resultWords.title} sub={sub} back={back} />
       <SiteScreen>
+        {/* A part of a collective activity says which one (#342). */}
+        {inCollective && collective !== null ? (
+          <p className="flex gap-2.5 rounded-[6px] border border-line bg-surface-sunken px-3.5 py-3 text-[15px] leading-[1.4]">
+            <SearchCheck
+              size={20}
+              strokeWidth={2}
+              aria-hidden="true"
+              className="shrink-0 text-ink-muted"
+            />
+            <span>{resultWords.partOf(text(collective, 'title'))}</span>
+          </p>
+        ) : null}
         {form.open ? null : <SiteText muted>{siteFormWords.closed}</SiteText>}
         {form.open && !form.performs ? <SiteText muted>{siteFormWords.mayNot}</SiteText> : null}
         {missing.length === 0 ? null : (
@@ -538,7 +573,7 @@ function ResultOf({ activityId }: { readonly activityId: string }) {
             </div>
           ) : null}
         </Panel>
-        {editable && finishes ? (
+        {editable && finishes && !inCollective ? (
           <div className="flex flex-col gap-1.5">
             <p className="font-condensed text-[15px] font-semibold tracking-[1.2px] text-ink-faint uppercase">
               {resultWords.signature}
@@ -550,28 +585,47 @@ function ResultOf({ activityId }: { readonly activityId: string }) {
         {editable && !finishes ? <SiteText muted>{resultWords.onlyResponsible}</SiteText> : null}
         {trouble ? <SiteTrouble>{trouble}</SiteTrouble> : null}
       </SiteScreen>
-      <SiteActionBar
-        note={
-          missing.length > 0
-            ? resultWords.missingNote
-            : order
-              ? resultWords.orderNote
-              : resultWords.signNote
-        }
-      >
-        <Button
-          tone="primary"
-          wide
-          height={60}
-          icon={Signature}
-          disabled={!canSign}
-          onClick={() => {
-            void sign()
-          }}
+      {inCollective && collectiveId !== null ? (
+        <SiteActionBar note={resultWords.signedBelow}>
+          <Button
+            tone="primary"
+            wide
+            height={60}
+            icon={ChevronLeft}
+            onClick={() => {
+              // What is typed is on the device before the list shows it.
+              reasonWrite.flush()
+              remarkWrite.flush()
+              void navigate({ to: siteForms.form(collectiveId) })
+            }}
+          >
+            {resultWords.toList}
+          </Button>
+        </SiteActionBar>
+      ) : (
+        <SiteActionBar
+          note={
+            missing.length > 0
+              ? resultWords.missingNote
+              : order
+                ? resultWords.orderNote
+                : resultWords.signNote
+          }
         >
-          {resultWords.sign}
-        </Button>
-      </SiteActionBar>
+          <Button
+            tone="primary"
+            wide
+            height={60}
+            icon={Signature}
+            disabled={!canSign}
+            onClick={() => {
+              void sign()
+            }}
+          >
+            {resultWords.sign}
+          </Button>
+        </SiteActionBar>
+      )}
     </>
   )
 }

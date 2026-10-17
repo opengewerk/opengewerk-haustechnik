@@ -1,4 +1,6 @@
 import {
+  type CollectiveReport,
+  type CollectiveReportPart,
   defaultDueOn,
   type ActivityId,
   documentTitleOf,
@@ -26,6 +28,7 @@ import {
   writeEvidence,
 } from './write.js'
 import { classTermsOf } from '../defects/reading.js'
+import { partsOf } from '../activities/collectives.js'
 
 /** The states of an activity whose work is still to come or still going on. */
 const underWay = ['open', 'started', 'signed'] as const
@@ -201,7 +204,7 @@ async function openActivityOf(
   dutyId: DutyId,
 ): Promise<ActivityId | null> {
   const running = await tx
-    .select({ id: activities.id, status: activities.status })
+    .select({ id: activities.id, status: activities.status, collectiveId: activities.collectiveId })
     .from(activityDuties)
     .innerJoin(
       activities,
@@ -220,6 +223,14 @@ async function openActivityOf(
       ),
     )
     .orderBy(desc(activities.createdAt))
+
+  // A part of a collective activity is settled with all its assets, by the
+  // report entered at the collective activity (#342).
+  if (running.some((activity) => activity.collectiveId !== null)) {
+    throw new EvidenceRefusal(
+      'Diese Pflicht ist Teil eines Sammelvorgangs. Sein Bericht wird am Sammelvorgang eingetragen, für alle seine Anlagen.',
+    )
+  }
 
   const signed = running.find((activity) => activity.status === 'signed')
 
@@ -285,4 +296,213 @@ async function settle(
       contractorId: report.contractorId,
     })
     .where(and(eq(activities.tenantId, context.tenantId), eq(activities.id, activityId)))
+}
+
+/**
+ * Writes the report of a contractor for a collective activity down (#342,
+ * section 4.4 of the concept: "Ein Bericht kann viele Anlagen abdecken und
+ * wird in einem Zug zugeordnet"), in the transaction it is given, so that all
+ * of it is there or none:
+ *
+ * - the file becomes one document at the place of the collective activity,
+ *   of the kind "Prüfbescheinigung", with one version;
+ * - each part, an asset, gets the evidence of its duty with its result, the
+ *   defects the report names at it and the file by its hash, naming the
+ *   collective activity; the defects are found at the place of that duty;
+ * - each part is settled as an open activity is by the report of its duty,
+ *   and the collective activity with them: done, or not performed with the
+ *   reason when none of its assets was.
+ *
+ * Only while nobody has begun one of its assets on site: those are finished
+ * there and signed under the list.
+ */
+export async function writeCollectiveReport(
+  tx: TenantTransaction,
+  context: WritingContext,
+  collectiveId: ActivityId,
+  report: CollectiveReport,
+): Promise<WrittenEvidence[]> {
+  const [collective] = await tx
+    .select()
+    .from(activities)
+    .where(
+      and(
+        eq(activities.tenantId, context.tenantId),
+        eq(activities.id, collectiveId),
+        isNull(activities.deletedAt),
+      ),
+    )
+    .for('no key update')
+
+  if (!collective || collective.collectiveKind === null) {
+    throw new EvidenceRefusal('Diesen Sammelvorgang gibt es nicht.')
+  }
+
+  const parts = await partsOf(tx, collective.id as ActivityId, true)
+
+  if (collective.status !== 'open' || parts.some((part) => part.status !== 'open')) {
+    throw new EvidenceRefusal(
+      'Ein Bericht erledigt einen Sammelvorgang, solange niemand vor Ort eine seiner Anlagen begonnen hat und er nicht abgeschlossen ist.',
+    )
+  }
+
+  const given = new Map(report.parts.map((part) => [part.activityId, part]))
+
+  if (
+    parts.length === 0 ||
+    given.size !== parts.length ||
+    parts.some((part) => !given.has(part.id))
+  ) {
+    throw new EvidenceRefusal(
+      'Der Bericht nennt ein Ergebnis für jede Anlage des Sammelvorgangs, und nur für sie.',
+    )
+  }
+
+  const stored = await storedFile(tx, context, report.file.sha256)
+
+  if (stored === null) {
+    throw new EvidenceRefusal('Die Datei des Berichts ist nicht auf dem Server.')
+  }
+
+  if (stored.sizeBytes !== report.file.sizeBytes) {
+    throw new EvidenceRefusal('Die Größe der Datei passt nicht zu der, die auf dem Server liegt.')
+  }
+
+  if (
+    report.file.previewSha256 !== null &&
+    (await storedFile(tx, context, report.file.previewSha256)) === null
+  ) {
+    throw new EvidenceRefusal('Die Vorschau der Datei ist nicht auf dem Server.')
+  }
+
+  // The file once, at the place of the collective activity.
+  const [document] = await tx
+    .insert(attachments)
+    .values({
+      tenantId: context.tenantId,
+      propertyId: collective.propertyId,
+      areaId: collective.areaId,
+      buildingId: collective.buildingId,
+      roomId: collective.roomId,
+      title: documentTitleOf(report.file.fileName),
+      kind: 'test_certificate',
+    })
+    .returning({ id: attachments.id })
+
+  if (!document) {
+    throw new Error('The document of the report was not written')
+  }
+
+  await tx.insert(attachmentVersions).values({
+    tenantId: context.tenantId,
+    attachmentId: document.id,
+    sha256: report.file.sha256,
+    fileName: report.file.fileName,
+    mediaType: stored.mediaType,
+    sizeBytes: stored.sizeBytes,
+    previewSha256: report.file.previewSha256,
+  })
+
+  const terms = await classTermsOf(tx)
+  const file = {
+    sha256: report.file.sha256,
+    name: report.file.fileName,
+    mediaType: stored.mediaType,
+  }
+  const written: WrittenEvidence[] = []
+
+  for (const part of parts) {
+    const result = given.get(part.id) as CollectiveReportPart
+    const lines = await tx
+      .select({ dutyId: activityDuties.dutyId })
+      .from(activityDuties)
+      .where(
+        and(
+          eq(activityDuties.tenantId, context.tenantId),
+          eq(activityDuties.activityId, part.id),
+          isNull(activityDuties.deletedAt),
+        ),
+      )
+    const stated: StatedDefect[] = result.defects.map((defect) => ({
+      description: defect.description,
+      defectClass: defect.defectClass,
+      dueOn:
+        defect.dueOn ??
+        (defect.defectClass === null
+          ? null
+          : defaultDueOn(report.performedOn, terms.get(defect.defectClass) ?? null)),
+    }))
+
+    for (const { dutyId } of lines) {
+      await holdTheDuty(tx, context.tenantId, dutyId as DutyId)
+
+      const [duty] = await tx
+        .select()
+        .from(duties)
+        .where(and(eq(duties.tenantId, context.tenantId), eq(duties.id, dutyId)))
+
+      if (!duty) {
+        throw new EvidenceRefusal('Diese Pflicht gibt es nicht.')
+      }
+
+      const evidenceOfIt = await writeEvidence(tx, context, {
+        dutyId: duty.id as DutyId,
+        activityId: part.id as ActivityId,
+        origin: 'report',
+        performedOn: report.performedOn,
+        result: result.result,
+        resultReason: result.resultReason,
+        performedBy: null,
+        examiner: { name: report.examiner, organisation: report.examinerOrganisation },
+        contractorId: report.contractorId,
+        signatures: [],
+        files: [file],
+        defects: stated,
+        collective: { title: collective.title, parts: parts.length },
+      })
+
+      if (stated.length > 0) {
+        await tx.insert(defects).values(
+          stated.map((defect) => ({
+            tenantId: context.tenantId,
+            propertyId: duty.propertyId,
+            areaId: duty.areaId,
+            buildingId: duty.buildingId,
+            roomId: duty.roomId,
+            assetId: duty.assetId,
+            foundInActivityId: part.id,
+            foundInEvidenceId: evidenceOfIt.id,
+            description: defect.description,
+            defectClass: defect.defectClass,
+            foundOn: report.performedOn,
+            dueOn: defect.dueOn,
+          })),
+        )
+      }
+
+      await settle(tx, context, part.id as ActivityId, duty.id as DutyId, {
+        ...report,
+        result: result.result,
+        resultReason: result.resultReason,
+        defects: result.defects,
+      })
+      written.push(evidenceOfIt)
+    }
+  }
+
+  const notPerformed = report.parts.every((part) => part.result === 'not_performed')
+
+  await tx
+    .update(activities)
+    .set({
+      status: notPerformed ? 'not_performed' : 'done',
+      closingReason: notPerformed ? (report.parts[0]?.resultReason ?? null) : null,
+      performer: 'contractor',
+      performerUserId: null,
+      contractorNote: report.examinerOrganisation,
+      contractorId: report.contractorId,
+    })
+    .where(and(eq(activities.tenantId, context.tenantId), eq(activities.id, collective.id)))
+
+  return written
 }

@@ -49,6 +49,7 @@ import { mailServersOfOperators } from '../mail/server-settings.js'
 import { invitationMailing } from '../notifications/invitation-mail.js'
 import { pushRules } from '../notifications/push.js'
 import { ActivitiesController } from './activities.controller.js'
+import { CollectivesController } from './collectives.controller.js'
 import { AuditorReadsController } from './auditor-reads.controller.js'
 import { AreasController, SubstitutionsController } from './areas.controller.js'
 import { AssetsController, BuildingAssetsController } from './assets.controller.js'
@@ -390,6 +391,9 @@ export class ApiModule {
         OverviewController,
         // The inspections and the maintenance that came of the due days.
         ActivitiesController,
+        // Collective activities: composing one, and the report of a
+        // contractor for all of its assets (#342).
+        CollectivesController,
         // The work orders: the list, the page, a new one, its change and
         // its acceptance.
         WorkOrdersController,

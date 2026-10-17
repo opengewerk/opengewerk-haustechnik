@@ -152,6 +152,19 @@ export function startItems(held: StartHeld, me: string, today: IsoDate): StartIt
       continue
     }
 
+    // A part of a collective activity stands on the start as the collective
+    // one, while that is to do (#342).
+    const collectiveId = maybeText(activity, 'collectiveId')
+
+    if (
+      collectiveId !== null &&
+      held.activities.some(
+        (each) => each['id'] === collectiveId && live(each) && toDo.includes(text(each, 'status')),
+      )
+    ) {
+      continue
+    }
+
     const dueOn = maybeText(activity, 'dueOn') as IsoDate | null
 
     if (status === 'started') {

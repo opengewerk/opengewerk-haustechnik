@@ -40,6 +40,9 @@ export const serverPaths: readonly string[] = [
   // The inspections and the maintenance that came of the due days, the page
   // of one and its plan.
   'activities',
+  // Composing a collective activity and the report of a contractor for all
+  // of its assets (#342).
+  'collectives',
   // The work orders: the list, the page of one, making one from a defect, a
   // due day or by hand, changing it, and its acceptance or rejection.
   'work-orders',

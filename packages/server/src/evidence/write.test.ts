@@ -348,6 +348,7 @@ describe('an evidence written down', () => {
         },
       },
       activity: { kind: 'inspection', title: 'Sichtprüfung Aufzug Haus A' },
+      collective: null,
       performer: { person: 'Tom Technik' },
       defects: [
         {

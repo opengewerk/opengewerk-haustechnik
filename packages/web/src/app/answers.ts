@@ -344,5 +344,23 @@ export async function beginActivity(
     ...(maybeText(activity, 'performedOn') === null ? { performedOn: today() } : {}),
   })
 
-  return done.outcome === 'refused' ? refusalFor(done) : null
+  if (done.outcome === 'refused') {
+    return refusalFor(done)
+  }
+
+  // A part begins its collective activity with it (#342); the day stays the
+  // part's own.
+  const collectiveId = maybeText(activity, 'collectiveId')
+  const collective =
+    collectiveId === null
+      ? undefined
+      : client.list('activities').find((record) => record['id'] === collectiveId)
+
+  if (collective === undefined || text(collective, 'status') !== 'open') {
+    return null
+  }
+
+  const begun = await client.update('activities', String(collectiveId), { status: 'started' })
+
+  return begun.outcome === 'refused' ? refusalFor(begun) : null
 }

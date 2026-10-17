@@ -519,6 +519,13 @@
       "when": 1792243652064,
       "tag": "0073_activity_emptying",
       "breakpoints": true
+    },
+    {
+      "idx": 74,
+      "version": "7",
+      "when": 1792258386424,
+      "tag": "0074_collective_activities",
+      "breakpoints": true
     }
   ]
 }

@@ -1,10 +1,13 @@
 import { randomUUID } from 'node:crypto'
 
-import type {
-  FaultCategory,
-  FaultPlaceChoice,
-  WorkOrderKind,
-  WorkOrderUrgency,
+import {
+  type CollectiveCandidates,
+  collectiveTitle,
+  type FaultCategory,
+  type FaultPlaceChoice,
+  mayBecomeAPart,
+  type WorkOrderKind,
+  type WorkOrderUrgency,
 } from '@opengewerk/haustechnik-domain'
 
 import { dayInGermany } from '../today.js'
@@ -146,7 +149,10 @@ interface SampleDefect {
  * what the register points out.
  */
 export interface SampleDuty {
-  readonly kind?: 'probe.elevator_main_test' | 'elektro.installation_test_dguv_v3'
+  readonly kind?:
+    | 'probe.elevator_main_test'
+    | 'elektro.installation_test_dguv_v3'
+    | 'elektro.portable_equipment_test_dguv_v3'
   readonly label?: string
   readonly basis?: 'manufacturer' | 'own_decision'
   readonly sourceNote?: string
@@ -443,17 +449,35 @@ export const sampleProperties: readonly SampleProperty[] = [
           // Elektro, after DGUV Vorschrift 3 and 4 alike, as the package
           // cannot know which of the two holds for the operator. At the
           // switch of the hall the one after Vorschrift 4 is dismissed.
+          // Both tested after DGUV Vorschrift 3, one of them overdue: what a
+          // collective activity of the hall takes in one go (#342).
           {
             kind: 'elektro.portable_equipment',
             name: 'Betriebsmittel Werkstatt',
             values: { work_area: 'workshop' },
             room: 'E.01',
+            duties: [
+              {
+                kind: 'elektro.portable_equipment_test_dguv_v3',
+                intervalMonths: 6,
+                metDaysAgo: [190],
+                responsible: 'preview-lindner',
+              },
+            ],
           },
           {
             kind: 'elektro.portable_equipment',
             name: 'Betriebsmittel Lager',
             values: { work_area: 'workshop' },
             room: 'E.02',
+            duties: [
+              {
+                kind: 'elektro.portable_equipment_test_dguv_v3',
+                intervalMonths: 6,
+                metDaysAgo: [175],
+                responsible: 'preview-lindner',
+              },
+            ],
           },
           {
             kind: 'elektro.low_voltage_installation',
@@ -1773,6 +1797,7 @@ export async function planSampleActivities(
   const { activities } = await read<{
     readonly activities: readonly {
       readonly id: string
+      readonly propertyId: string
       readonly areaId: string
       readonly dueOn: string | null
       readonly responsible: { readonly userId: string } | null
@@ -1829,6 +1854,67 @@ export async function planSampleActivities(
 
     for (const { dutyId } of duties) {
       await send(address, '/activities', { dutyId })
+    }
+  }
+
+  await composeSampleCollective(address, activities)
+}
+
+/**
+ * A collective activity (#342), composed through the route as whoever plans
+ * would: on the first property with two duties of one kind that are free to
+ * take, all of them, given to nobody, so that every device of the area holds it.
+ */
+async function composeSampleCollective(
+  address: string,
+  activities: readonly { readonly propertyId?: string }[],
+): Promise<void> {
+  const propertyIds = [
+    ...new Set(
+      activities.flatMap((activity) => (activity.propertyId ? [activity.propertyId] : [])),
+    ),
+  ]
+
+  for (const propertyId of propertyIds) {
+    const { kinds } = await read<CollectiveCandidates>(
+      address,
+      `/collectives/candidates?property=${propertyId}`,
+    )
+
+    for (const kind of kinds.filter((each) => each.duties >= 2)) {
+      const { candidates } = await read<CollectiveCandidates>(
+        address,
+        `/collectives/candidates?property=${propertyId}&kind=${encodeURIComponent(kind.key)}`,
+      )
+      const free = candidates.filter(mayBecomeAPart)
+
+      if (free.length < 2) {
+        continue
+      }
+
+      const { name } = await read<{ readonly name: string }>(address, `/properties/${propertyId}`)
+
+      await send(address, '/collectives', {
+        dutyKind: kind.key,
+        propertyId,
+        buildingId: null,
+        roomId: null,
+        title: collectiveTitle(kind.label, name),
+        dutyIds: free.map((each) => each.dutyId),
+        // Given to nobody, so that every device that sees the area holds it.
+        responsibleUserId: null,
+        performer: 'own_staff',
+        performerUserId: null,
+        contractorNote: null,
+        contractorId: null,
+        dueOn:
+          free
+            .map((each) => each.appointment)
+            .filter((day) => day !== null)
+            .sort()[0] ?? daysAhead(7),
+      })
+
+      return
     }
   }
 }

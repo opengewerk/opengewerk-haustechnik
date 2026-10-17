@@ -1,4 +1,5 @@
 import {
+  collectiveStatement,
   stockUnitLabel,
   evidenceOriginLabel,
   legacyNote,
@@ -11,6 +12,7 @@ import {
   signatureRoleLabel,
   signatureWayLabel,
   type StatedAnswer,
+  type StatedCollective,
   type StatedPlace,
   type StatedSignature,
 } from '@opengewerk/haustechnik-domain'
@@ -352,6 +354,13 @@ export function evidencePrintJob(
     ['Bemerkung', state.remark],
     ['Herkunft', evidenceOriginLabel[state.origin]],
     ['Vorgang', state.activity === null ? null : state.activity.title],
+    // Written with a collective activity, under its one signature (#342).
+    [
+      'Sammelvorgang',
+      (state.collective ?? null) === null
+        ? null
+        : collectiveStatement(state.collective as StatedCollective),
+    ],
     [
       'Formular',
       state.form === null ? null : `${state.form.title}, Fassung ${String(state.form.version)}`,
