@@ -17,10 +17,11 @@
 --   after the end. The application is granted the columns of the shell, the
 --   removal of prints and the reason of a voiding, which the locks refuse on
 --   every other way.
--- - The change log writes nothing at evidence, prints and voidings while a
---   transaction confirms a deletion (`evidence_emptying()`, as
---   `import_writing()` of #100): it would copy what goes. The confirmation
---   itself stands in it.
+-- - The change log writes nothing at the evidence a transaction confirms
+--   for deletion, at its prints and its voiding (`evidence_emptying_of`): it
+--   would copy what goes. Its triggers on these tables are split for that,
+--   writing a row unconditionally and its change or removal unless it is
+--   that one. The confirmation itself stands in it.
 
 CREATE TABLE "evidence_emptyings" (
 	"id" uuid PRIMARY KEY DEFAULT uuidv7() NOT NULL,
@@ -140,17 +141,6 @@ AS $$
 	SELECT EXISTS (
 		SELECT 1 FROM public.evidence_emptyings c
 		 WHERE c.evidence_id = p_evidence AND c.confirmed_at = now()
-	)
-$$;--> statement-breakpoint
-CREATE FUNCTION "evidence_emptying"() RETURNS boolean
-	LANGUAGE sql
-	STABLE
-	SET search_path = pg_catalog, public
-AS $$
-	SELECT EXISTS (
-		SELECT 1 FROM public.evidence_emptyings c
-		 WHERE c.tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid
-		   AND c.confirmed_at = now()
 	)
 $$;--> statement-breakpoint
 
@@ -354,14 +344,20 @@ $$;--> statement-breakpoint
 
 -- The change log, without what goes.
 DROP TRIGGER "audit_changes" ON "evidence";--> statement-breakpoint
-CREATE TRIGGER "audit_changes" AFTER INSERT OR UPDATE OR DELETE ON "evidence"
-	FOR EACH ROW WHEN (NOT public.evidence_emptying()) EXECUTE FUNCTION "record_change"();--> statement-breakpoint
+CREATE TRIGGER "audit_changes" AFTER INSERT ON "evidence"
+	FOR EACH ROW EXECUTE FUNCTION "record_change"();--> statement-breakpoint
+CREATE TRIGGER "audit_changes_unless_emptied" AFTER UPDATE OR DELETE ON "evidence"
+	FOR EACH ROW WHEN (NOT public.evidence_emptying_of(old.id)) EXECUTE FUNCTION "record_change"();--> statement-breakpoint
 DROP TRIGGER "audit_changes" ON "evidence_voidings";--> statement-breakpoint
-CREATE TRIGGER "audit_changes" AFTER INSERT OR UPDATE OR DELETE ON "evidence_voidings"
-	FOR EACH ROW WHEN (NOT public.evidence_emptying()) EXECUTE FUNCTION "record_change"();--> statement-breakpoint
+CREATE TRIGGER "audit_changes" AFTER INSERT ON "evidence_voidings"
+	FOR EACH ROW EXECUTE FUNCTION "record_change"();--> statement-breakpoint
+CREATE TRIGGER "audit_changes_unless_emptied" AFTER UPDATE OR DELETE ON "evidence_voidings"
+	FOR EACH ROW WHEN (NOT public.evidence_emptying_of(old.evidence_id)) EXECUTE FUNCTION "record_change"();--> statement-breakpoint
 DROP TRIGGER "audit_changes" ON "prints";--> statement-breakpoint
-CREATE TRIGGER "audit_changes" AFTER INSERT OR UPDATE OR DELETE ON "prints"
-	FOR EACH ROW WHEN (NOT public.evidence_emptying()) EXECUTE FUNCTION "record_change"();--> statement-breakpoint
+CREATE TRIGGER "audit_changes" AFTER INSERT ON "prints"
+	FOR EACH ROW EXECUTE FUNCTION "record_change"();--> statement-breakpoint
+CREATE TRIGGER "audit_changes_unless_emptied" AFTER UPDATE OR DELETE ON "prints"
+	FOR EACH ROW WHEN (NOT public.evidence_emptying_of(old.evidence_id)) EXECUTE FUNCTION "record_change"();--> statement-breakpoint
 CREATE TRIGGER "audit_changes" AFTER INSERT OR UPDATE OR DELETE ON "evidence_emptyings"
 	FOR EACH ROW EXECUTE FUNCTION "record_change"();--> statement-breakpoint
 CREATE TRIGGER "audit_changes" AFTER INSERT OR UPDATE OR DELETE ON "evidence_retention_settings"

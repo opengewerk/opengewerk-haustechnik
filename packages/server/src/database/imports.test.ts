@@ -122,7 +122,7 @@ describe('the triggers of the log', () => {
 
     // Beside them the three a deletion after the end of the retention empties,
     // under a condition of their own (#340).
-    const emptied = conditional.filter((row) => row.definition.includes('evidence_emptying()'))
+    const emptied = conditional.filter((row) => row.definition.includes('evidence_emptying_of('))
 
     expect(emptied.map((row) => row.table_name)).toEqual([
       'evidence',
@@ -132,7 +132,7 @@ describe('the triggers of the log', () => {
 
     for (const row of emptied) {
       expect(row.definition).toMatch(
-        / AFTER INSERT OR DELETE OR UPDATE ON public\.\w+ FOR EACH ROW WHEN \(\(NOT evidence_emptying\(\)\)\) EXECUTE FUNCTION record_change\(\)$/,
+        / AFTER DELETE OR UPDATE ON public\.\w+ FOR EACH ROW WHEN \(\(NOT evidence_emptying_of\(old\.(id|evidence_id)\)\)\) EXECUTE FUNCTION record_change\(\)$/,
       )
     }
 

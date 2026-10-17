@@ -334,6 +334,17 @@ describe('the retention of an evidence (#340)', () => {
     ).toEqual({ emptied_at: null })
   })
 
+  it('is confirmed by nobody who could make themselves lead (review of #410)', () => {
+    // Only the role that leads hands out roles, and no route makes a role: a
+    // tenant gets its roles when it comes into being. So leading is nothing
+    // somebody who does not lead could give themselves.
+    expect(
+      shippedRoles
+        .filter((role) => role.rights.includes('membership.write'))
+        .map((role) => role.key),
+    ).toEqual(shippedRoles.filter((role) => role.leads).map((role) => role.key))
+  })
+
   it('keeps an evidence as written on every other way, also as its owner', async () => {
     const shell = sql`update evidence
                          set state = '{"version": 0}'::jsonb, emptied_at = now(), examiner = null,
@@ -482,6 +493,26 @@ describe('the retention of an evidence (#340)', () => {
         )
       ).rows.length,
     ).toBe(1)
+
+    // In a transaction that confirms one, the log still writes what else
+    // happens there, such as a declaration of invalidity of another (review of #410).
+    const other = await database.forTenant({ tenantId: tenant, userId: 'u-lead' }, async (tx) => {
+      await tx.execute(
+        sql`insert into evidence_emptyings (tenant_id, property_id, area_id, evidence_id, confirmed_by)
+            select tenant_id, property_id, area_id, id, 'u-lead' from evidence where id = ${proof.own1}`,
+      )
+
+      const { rows: voided } = await tx.execute<{ id: string }>(
+        sql`insert into evidence_voidings (tenant_id, property_id, area_id, evidence_id, reason, voided_by)
+            select tenant_id, property_id, area_id, id, 'Falsche Anlage.', 'u-lead'
+              from evidence where id = ${proof.years2}
+            returning id`,
+      )
+
+      return voided[0]?.id ?? ''
+    })
+
+    expect(await loggedOf('evidence_voidings', other)).toBeGreaterThan(0)
 
     // Once, and nothing more is proposed of it.
     expect((await proposed()).map((each) => each.id)).not.toContain(proof.years1)

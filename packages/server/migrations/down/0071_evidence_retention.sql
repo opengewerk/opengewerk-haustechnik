@@ -12,12 +12,15 @@ $$;--> statement-breakpoint
 REVOKE DELETE ON "prints" FROM "opengewerk_app";--> statement-breakpoint
 REVOKE UPDATE ("reason") ON "evidence_voidings" FROM "opengewerk_app";--> statement-breakpoint
 REVOKE UPDATE ("state", "fingerprint", "emptied_at", "performed_by", "examiner", "examiner_organisation", "contractor_id", "written_by", "result_reason", "replacement_reason") ON "evidence" FROM "opengewerk_app";--> statement-breakpoint
+DROP TRIGGER "audit_changes_unless_emptied" ON "evidence";--> statement-breakpoint
 DROP TRIGGER "audit_changes" ON "evidence";--> statement-breakpoint
 CREATE TRIGGER "audit_changes" AFTER INSERT OR UPDATE OR DELETE ON "evidence"
 	FOR EACH ROW EXECUTE FUNCTION "record_change"();--> statement-breakpoint
+DROP TRIGGER "audit_changes_unless_emptied" ON "evidence_voidings";--> statement-breakpoint
 DROP TRIGGER "audit_changes" ON "evidence_voidings";--> statement-breakpoint
 CREATE TRIGGER "audit_changes" AFTER INSERT OR UPDATE OR DELETE ON "evidence_voidings"
 	FOR EACH ROW EXECUTE FUNCTION "record_change"();--> statement-breakpoint
+DROP TRIGGER "audit_changes_unless_emptied" ON "prints";--> statement-breakpoint
 DROP TRIGGER "audit_changes" ON "prints";--> statement-breakpoint
 CREATE TRIGGER "audit_changes" AFTER INSERT OR UPDATE OR DELETE ON "prints"
 	FOR EACH ROW EXECUTE FUNCTION "record_change"();--> statement-breakpoint
@@ -77,7 +80,6 @@ DROP TABLE "evidence_retention_settings";--> statement-breakpoint
 DROP FUNCTION "emptying_kept_as_written"();--> statement-breakpoint
 DROP FUNCTION "evidence_emptying_empties"();--> statement-breakpoint
 DROP FUNCTION "evidence_emptying_confirmed"();--> statement-breakpoint
-DROP FUNCTION "evidence_emptying"();--> statement-breakpoint
 DROP FUNCTION "evidence_emptying_of"(uuid);--> statement-breakpoint
 DROP FUNCTION "session_leads"();--> statement-breakpoint
 DROP FUNCTION "evidence_retention_ends"(uuid);--> statement-breakpoint
