@@ -299,6 +299,7 @@ export class QualificationsController {
     const id = await this.database.forTenant(identity, async (tx) => {
       await this.checkPerson(tx, values.userId as string)
       await this.checkKind(tx, values.kindKey, values.ownKindId)
+      await this.checkCertificate(tx, certificate)
 
       const [made] = await tx
         .insert(qualifications)
@@ -350,6 +351,7 @@ export class QualificationsController {
       }
 
       refuse(qualificationProblems(values))
+      await this.checkCertificate(tx, certificate)
 
       await tx
         .update(qualifications)
@@ -451,6 +453,17 @@ export class QualificationsController {
   }
 
   /** A kind of the packages, or one of the operator's own not taken out. */
+  private async checkCertificate(
+    tx: TenantTransaction,
+    sha256: string | null | undefined,
+  ): Promise<void> {
+    const problem = await certificateProblem(tx, sha256)
+
+    if (problem !== null) {
+      throw new BadRequestException(problem)
+    }
+  }
+
   private async checkKind(
     tx: TenantTransaction,
     kindKey: string | null,
@@ -571,6 +584,36 @@ export class QualificationsController {
 
     return found
   }
+}
+
+/**
+ * The file a certificate names is one this operator keeps, and a PDF or an
+ * image, as the upload of a certificate takes them: whoever keeps
+ * qualifications cannot hang another kind of file of the operator on one and
+ * read it through the certificate (hardening after the security review of
+ * #407).
+ */
+async function certificateProblem(
+  tx: TenantTransaction,
+  sha256: string | null | undefined,
+): Promise<string | null> {
+  if (sha256 === null || sha256 === undefined) {
+    return null
+  }
+
+  const [file] = await tx
+    .select({ mediaType: files.mediaType })
+    .from(files)
+    .where(eq(files.sha256, sha256))
+    .limit(1)
+
+  if (file === undefined) {
+    return 'Der Nachweis wird zuerst hochgeladen und dann mit seiner Prüfsumme genannt.'
+  }
+
+  return (certificateTypes as readonly string[]).includes(file.mediaType)
+    ? null
+    : 'Ein Nachweis ist ein PDF oder ein Bild.'
 }
 
 /** The certificate a body names: a hash, null to take it away, or nothing where it says none. */

@@ -377,6 +377,44 @@ describe('the qualifications', () => {
     expect(await table('qualification.read')).toContain('Sachkundiger für Aufzüge, Tobias Wendt')
   })
 
+  it('take as a certificate only a PDF or an image the operator keeps, and no other file of it', async () => {
+    await cleared()
+
+    // A file of the operator that came another way, a table of a document for one.
+    const other = createHash('sha256').update('eine Tabelle').digest('hex')
+
+    await admin.query(
+      'insert into files (tenant_id, sha256, size_bytes, media_type) values ($1, $2, $3, $4)',
+      [tenant, other, 12, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'],
+    )
+
+    const refusal = (answer: object) => (answer as { message: string }).message
+
+    expect(refusal(await entered({ certificateSha256: other }, 400))).toBe(
+      'Ein Nachweis ist ein PDF oder ein Bild.',
+    )
+    expect(
+      refusal(
+        await entered(
+          { certificateSha256: createHash('sha256').update('fehlt').digest('hex') },
+          400,
+        ),
+      ),
+    ).toBe('Der Nachweis wird zuerst hochgeladen und dann mit seiner Prüfsumme genannt.')
+
+    const held = await entered()
+
+    await http()
+      .patch(`/qualifications/${held.id}`)
+      .set(testIdentityHeader, by('u-duties'))
+      .send({ certificateSha256: other })
+      .expect(400)
+    expect(
+      (await listOf(by('u-lead'))).qualifications.find((each) => each.id === held.id)
+        ?.hasCertificate,
+    ).toBe(false)
+  })
+
   it('hand the own ones to the person, and the certificate to the person and whoever looks at them', async () => {
     await cleared()
 
