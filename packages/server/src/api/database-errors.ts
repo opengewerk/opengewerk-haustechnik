@@ -38,6 +38,8 @@ export const applicationConflicts: Readonly<Record<string, string>> = {
   // An activity emptied with its last evidence changed or added to, or
   // emptied on another way (#409).
   HT010: 'Ein gelöschter Vorgang wird nicht geändert und nimmt nichts mehr auf.',
+  // A part of something that is no collective activity (#342).
+  HT011: 'Ein Vorgang ist nur Teil eines Sammelvorgangs.',
 }
 
 export const { answerFor, DatabaseExceptionFilter } = databaseErrors(applicationConflicts)

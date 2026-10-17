@@ -101,9 +101,13 @@ function openDuty(on: IsoDate): SQL | undefined {
   return and(isNull(duties.deletedAt), or(isNull(duties.endsOn), gt(duties.endsOn, on)))
 }
 
-/** An activity whose work is still to be done or signed. */
+/**
+ * An activity whose work is still to be done or signed. A collective activity
+ * counts once and not with each of its parts (#342).
+ */
 const openActivity = and(
   isNull(activities.deletedAt),
+  isNull(activities.collectiveId),
   inArray(activities.status, ['open', 'started', 'signed']),
 )
 

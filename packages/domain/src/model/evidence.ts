@@ -119,9 +119,10 @@ export const evidenceLimits = {
  * somebody signed, with the drawing or with the typed name (#209), 7 since a
  * signature keeps when the server took it beside the moment of the device
  * (#79), 8 since an evidence taken over from a predecessor application keeps
- * the next due day its list named (#130).
+ * the next due day its list named (#130), 9 since one written with a
+ * collective activity names it (#342).
  */
-export const evidenceStateVersion = 8
+export const evidenceStateVersion = 9
 
 /** The place of an evidence in words, as it was on the day it was written down. */
 export interface StatedPlace {
@@ -221,6 +222,17 @@ export interface StatedAnswer {
   readonly photo: StatedFile | null
 }
 
+/**
+ * The collective activity an evidence was written with (#342, section 4.4 of
+ * the concept): its title and how many assets it held. Its one signature
+ * stands under a page that named every one of them with its result, and the
+ * evidence of each duty states that signature.
+ */
+export interface StatedCollective {
+  readonly title: string
+  readonly parts: number
+}
+
 /** The evidence a correction replaces: its number, and why it is replaced (ADR 0004, point 14). */
 export interface StatedReplacement {
   readonly number: string
@@ -258,6 +270,11 @@ export interface EvidenceState {
   readonly duty: StatedDuty
   readonly place: StatedPlace
   readonly activity: { readonly kind: ActivityKind; readonly title: string } | null
+  /**
+   * The collective activity it was written with, since version 9 (#342);
+   * none for an evidence of a single activity, or of none.
+   */
+  readonly collective: StatedCollective | null
   /** The form the activity was filled in, since version 3; none for an evidence without one. */
   readonly form: StatedForm | null
   /** The answers to its points in the order of the form, since version 3. */
@@ -289,8 +306,13 @@ export class UnknownEvidenceStateError extends Error {
   }
 }
 
+/** The eighth version: all of the ninth but the collective activity. */
+type EvidenceStateOfVersion8 = Omit<EvidenceState, 'version' | 'collective'> & {
+  readonly version: 8
+}
+
 /** The seventh version: all of the eighth but the next due day a list named. */
-type EvidenceStateOfVersion7 = Omit<EvidenceState, 'version' | 'nextDueOn'> & {
+type EvidenceStateOfVersion7 = Omit<EvidenceStateOfVersion8, 'version' | 'nextDueOn'> & {
   readonly version: 7
 }
 
@@ -337,11 +359,13 @@ const readers: Readonly<Record<number, (stored: StoredEvidenceState) => Evidence
   // third names a form or answers, none before the fourth a remark, none
   // before the fifth keeps the drawing of a signature, every signature
   // before the sixth was drawn, none before the seventh says when the server
-  // took it, and none before the eighth was taken over with a due day.
+  // took it, none before the eighth was taken over with a due day, and none
+  // before the ninth was written with a collective activity.
   1: (stored) => ({
     ...(stored as unknown as EvidenceStateOfVersion1),
     version: evidenceStateVersion,
     nextDueOn: null,
+    collective: null,
     replaces: null,
     form: null,
     answers: [],
@@ -352,6 +376,7 @@ const readers: Readonly<Record<number, (stored: StoredEvidenceState) => Evidence
     ...(stored as unknown as EvidenceStateOfVersion2),
     version: evidenceStateVersion,
     nextDueOn: null,
+    collective: null,
     form: null,
     answers: [],
     remark: null,
@@ -361,6 +386,7 @@ const readers: Readonly<Record<number, (stored: StoredEvidenceState) => Evidence
     ...(stored as unknown as EvidenceStateOfVersion3),
     version: evidenceStateVersion,
     nextDueOn: null,
+    collective: null,
     remark: null,
     signatures: withoutDrawings(stored as unknown as EvidenceStateOfVersion3),
   }),
@@ -368,12 +394,14 @@ const readers: Readonly<Record<number, (stored: StoredEvidenceState) => Evidence
     ...(stored as unknown as EvidenceStateOfVersion4),
     version: evidenceStateVersion,
     nextDueOn: null,
+    collective: null,
     signatures: withoutDrawings(stored as unknown as EvidenceStateOfVersion4),
   }),
   5: (stored) => ({
     ...(stored as unknown as EvidenceStateOfVersion5),
     version: evidenceStateVersion,
     nextDueOn: null,
+    collective: null,
     signatures: (stored as unknown as EvidenceStateOfVersion5).signatures.map((signature) => ({
       ...signature,
       way: 'drawing' as const,
@@ -384,6 +412,7 @@ const readers: Readonly<Record<number, (stored: StoredEvidenceState) => Evidence
     ...(stored as unknown as EvidenceStateOfVersion6),
     version: evidenceStateVersion,
     nextDueOn: null,
+    collective: null,
     signatures: (stored as unknown as EvidenceStateOfVersion6).signatures.map((signature) => ({
       ...signature,
       receivedAt: null,
@@ -393,8 +422,14 @@ const readers: Readonly<Record<number, (stored: StoredEvidenceState) => Evidence
     ...(stored as unknown as EvidenceStateOfVersion7),
     version: evidenceStateVersion,
     nextDueOn: null,
+    collective: null,
   }),
-  8: (stored) => stored as unknown as EvidenceState,
+  8: (stored) => ({
+    ...(stored as unknown as EvidenceStateOfVersion8),
+    version: evidenceStateVersion,
+    collective: null,
+  }),
+  9: (stored) => stored as unknown as EvidenceState,
 }
 
 /** The signatures of a state written before version 5, which kept no drawing; all of them drawn. */

@@ -111,6 +111,20 @@ describe('the start', () => {
     expect([...shown.begun, ...shown.today, ...shown.week, ...shown.later]).toEqual([])
   })
 
+  it('shows a collective activity in the place of its parts, and a part left over from one that is done (#342)', () => {
+    const collective = activity({ collectiveKind: 'probe.heater_test', performerUserId: me })
+    const part = activity({
+      collectiveId: collective['id'],
+      performerUserId: me,
+      status: 'started',
+    })
+    const left = activity({ collectiveId: 'ac-done', performerUserId: me })
+    const done = activity({ id: 'ac-done', collectiveKind: 'probe.heater_test', status: 'done' })
+    const items = startItems(held([collective, part, left, done]), me, monday)
+
+    expect([ids(items.begun), ids(items.today)]).toEqual([[], [collective['id'], left['id']]])
+  })
+
   it('shows a round of a later week from the lead of its daily plan, and not before', () => {
     const plan = { id: 'rp-1', rhythm: 'daily', leadDays: 7 }
     // Monday of the next week: the lead of seven days reaches it today.

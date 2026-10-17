@@ -1,7 +1,11 @@
-import type { IsoDate, RoundRecordState } from '@opengewerk/haustechnik-domain'
+import {
+  type IsoDate,
+  readEvidenceState,
+  type RoundRecordState,
+} from '@opengewerk/haustechnik-domain'
 import { describe, expect, it } from 'vitest'
 
-import { roundPrintJob } from './record-page.js'
+import { evidencePrintJob, roundPrintJob } from './record-page.js'
 
 /** A round as it was frozen, signed with a drawing and countersigned with the typed name. */
 const record: RoundRecordState = {
@@ -60,5 +64,46 @@ describe('the PDF of a round', () => {
     )
     // Nothing for a signature stated before the server kept it.
     expect(html.match(/beim Server/g)).toHaveLength(1)
+  })
+})
+
+describe('the PDF of an evidence', () => {
+  it('says of one written with a collective activity which one, and that its signature stands under all its assets (#342)', () => {
+    const state = readEvidenceState({
+      version: 9,
+      number: 'NW-2026-00140',
+      origin: 'protocol',
+      performedOn: '2026-10-05',
+      result: 'without_defects',
+      resultReason: null,
+      remark: null,
+      replaces: null,
+      nextDueOn: null,
+      duty: {
+        label: 'Prüfung der Feuerlöscher',
+        kind: null,
+        kindVersion: null,
+        source: 'ASR A2.2',
+        interval: { months: 24 },
+        counting: 'from_performance',
+      },
+      place: record.place,
+      activity: { kind: 'inspection', title: 'Prüfung der Feuerlöscher' },
+      collective: { title: 'Prüfung der Feuerlöscher, Haus A', parts: 5 },
+      form: null,
+      answers: [],
+      performer: { person: 'Tobias Wendt' },
+      defects: [],
+      signatures: record.signatures.slice(0, 1),
+      files: [],
+      retention: null,
+      writtenBy: 'Tobias Wendt',
+      writtenAt: '2026-10-05T05:41:02.000Z',
+    })
+    const { html } = evidencePrintJob(state, 'a'.repeat(64), [], null)
+
+    expect(html).toContain(
+      'Prüfung der Feuerlöscher, Haus A, 5 Anlagen. Die Unterschrift steht unter der Seite aller Anlagen.',
+    )
   })
 })

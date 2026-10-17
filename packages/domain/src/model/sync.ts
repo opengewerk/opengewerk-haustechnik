@@ -88,8 +88,9 @@ export const syncPolicies: Readonly<Record<string, SyncPolicy>> = {
     onlyWhile: { field: 'status', values: inProgress },
     // The form it is filled in is the server's, written when it is made (#106),
     // and so is the day of the protocol it took as its template (#108) and
-    // the plan of a round that made it (#113), and the time it was emptied
-    // with its last evidence (#409) the database's.
+    // the plan of a round that made it (#113) and what makes a collective
+    // activity and its parts (#342), and the time it was emptied with its
+    // last evidence (#409) the database's.
     reserved: [
       'areaId',
       areaFromProperty,
@@ -98,6 +99,8 @@ export const syncPolicies: Readonly<Record<string, SyncPolicy>> = {
       'templateOn',
       'roundPlanId',
       'emptiedAt',
+      'collectiveId',
+      'collectiveKind',
     ],
   },
   // The result of each duty, until the activity is signed.

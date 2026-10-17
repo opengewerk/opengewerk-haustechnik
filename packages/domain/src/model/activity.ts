@@ -205,8 +205,9 @@ export const activityLimits = {
 /**
  * An activity at its place: the property always, and at most one of a
  * building, a room or an asset there, like a duty. A collective activity, all
- * the fire extinguishers of a building (section 4.4), hangs on the building
- * and names its duties beside it.
+ * the fire extinguishers of a building (section 4.4, #342), hangs on its
+ * place and holds a part for each of its duties, an activity at the place of
+ * that duty.
  */
 export interface Activity extends Synced, PlaceTarget {
   readonly id: ActivityId
@@ -261,11 +262,24 @@ export interface Activity extends Synced, PlaceTarget {
    * retention (#409): written by the database and nobody else, null until then.
    */
   readonly emptiedAt: Date | null
+  /**
+   * The collective activity it is a part of (#342, section 4.4 of the
+   * concept): written by the server when the office composes one. A part is
+   * an inspection or a maintenance at the place of its duty, like any other,
+   * signed with its collective activity and not on its own.
+   */
+  readonly collectiveId: ActivityId | null
+  /**
+   * The duty kind of a collective activity (#342), which makes it one:
+   * written by the server. A collective activity meets no duty itself; its
+   * parts do, one each.
+   */
+  readonly collectiveKind: string | null
 }
 
 /**
- * A duty an activity is to meet. A collective activity meets many, and one
- * evidence per duty comes of it when it is written down (ADR 0002, point 14).
+ * A duty an activity is to meet, and one evidence per duty comes of it when
+ * it is written down (ADR 0002, point 14).
  */
 export interface ActivityDuty extends Synced {
   readonly id: ActivityDutyId

@@ -42,6 +42,14 @@ const ActivityListScreen = lazyRouteComponent(
   'ActivityListScreen',
 )
 const ActivityScreen = lazyRouteComponent(() => import('./screens/activities.js'), 'ActivityScreen')
+const CollectiveComposeScreen = lazyRouteComponent(
+  () => import('./screens/collectives.js'),
+  'CollectiveComposeScreen',
+)
+const CollectiveReportScreen = lazyRouteComponent(
+  () => import('./screens/collectives.js'),
+  'CollectiveReportScreen',
+)
 const AreasScreen = lazyRouteComponent(() => import('./screens/areas.js'), 'AreasScreen')
 const AssetFileScreen = lazyRouteComponent(() => import('./screens/asset.js'), 'AssetFileScreen')
 const EditAssetScreen = lazyRouteComponent(
@@ -574,6 +582,18 @@ export function officeRoutes() {
       getParentRoute: () => office,
       path: '/pruefungen/$activityId',
       component: ActivityScreen,
+    }),
+    // Composing a collective activity, and the report of a contractor for
+    // all of its assets (#342).
+    createRoute({
+      getParentRoute: () => office,
+      path: '/pruefungen/sammelvorgang',
+      component: CollectiveComposeScreen,
+    }),
+    createRoute({
+      getParentRoute: () => office,
+      path: '/pruefungen/$activityId/bericht',
+      component: CollectiveReportScreen,
     }),
     // The overview of the week (#113), and under it the templates of the
     // rounds (#112): the list, a new one, empty or taken over from a package,

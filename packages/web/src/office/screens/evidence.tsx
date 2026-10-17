@@ -1,4 +1,5 @@
 import {
+  collectiveStatement,
   correctionProblems,
   countingLabel,
   type EmptiedEvidence,
@@ -17,6 +18,7 @@ import {
   retentionKindLabel,
   signatureRoleLabel,
   signatureWayLabel,
+  type StatedCollective,
   type StatedPlace,
   statedReasonProblem,
   type StatedRetention,
@@ -244,6 +246,15 @@ export function EvidenceScreen() {
           ? evidenceOriginLabel[state.origin]
           : `${evidenceOriginLabel[state.origin]}: ${state.activity.title}`,
     },
+    // Written with a collective activity, under its one signature (#342).
+    ...((state.collective ?? null) === null
+      ? []
+      : [
+          {
+            label: 'Sammelvorgang',
+            value: collectiveStatement(state.collective as StatedCollective),
+          },
+        ]),
     {
       label: 'Pflicht',
       value: (

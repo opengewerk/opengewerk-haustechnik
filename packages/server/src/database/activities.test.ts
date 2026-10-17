@@ -265,6 +265,12 @@ describe('the keys of the activities and defects', () => {
   it('hold every row to its place, its activity, its duty and its work order, key by key', async () => {
     const activity = await activityIn(here)
     const besideActivity = await activityIn(beside)
+    // A collective activity on the other property (#342).
+    const besideCollective = await activityIn(beside, { asset: null })
+
+    await admin.query(`update activities set collective_kind = 'probe.check' where id = $1`, [
+      besideCollective,
+    ])
     const besideOrder = await workOrderFor(beside, await activityIn(beside, { kind: 'work_order' }))
     // The evidence of a report on the other property, as one that named a defect (#116).
     const { rows: written } = await admin.query<{ id: string }>(
@@ -339,6 +345,13 @@ describe('the keys of the activities and defects', () => {
       activities_at_an_asset_of_their_property: () => activityRow('asset_id', beside.asset),
       activities_responsible_works_here: () => activityRow('responsible_user_id', 'user-nobody'),
       activities_performer_works_here: () => activityRow('performer_user_id', 'user-nobody'),
+      // A part of a collective activity on another property (#342).
+      activities_part_of_a_collective: () =>
+        tried(
+          `insert into activities (tenant_id, property_id, area_id, kind, title, collective_id)
+           values ($1, $2, $3, 'inspection', 'Prüfung der Feuerlöscher', $4)`,
+          [tenant, here.property, here.area, besideCollective],
+        ),
       activities_of_a_plan_of_their_property: () =>
         tried(
           `insert into activities (tenant_id, property_id, area_id, kind, title, due_on, round_plan_id)

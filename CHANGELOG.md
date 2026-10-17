@@ -9,6 +9,13 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
 
 ### Hinzugefügt
 
+- Sammelvorgänge (#342, Abschnitt 4.4 des Konzepts): wer Vorgänge plant und verteilt, stellt im Büro unter „Prüfungen“ aus
+  Ort und Pflichtart einen zusammen, vorausgewählt ist, was im Zeitraum fällig wird. Jede Anlage ist ein Teil mit ihrem
+  Protokoll, ihrem Tag und ihrem Ergebnis; vor Ort steht der Sammelvorgang als Liste und wird einmal unterschrieben, unter
+  einer Seite mit jeder Anlage und ihrem Ergebnis, und jede Pflicht bekommt ihren Nachweis. Eine Anlage, die nicht
+  erreichbar ist, nimmt „nicht durchgeführt“ mit Grund. Den Bericht einer Fremdfirma für alle Anlagen trägt das Büro in
+  einem Zug ein, die Datei einmal (Migration `0074_collective_activities`, Stand des Nachweises in Fassung 9). Warum: bisher
+  hieß eine Begehung mit 24 Feuerlöschern 24 Vorgänge, 24 Unterschriften und 24 Berichte.
 - Der Vorgang hinter einem gelöschten Nachweis wird mit seinem letzten Nachweis zur leeren Hülle (#409, Abschnitt 2.6
   des Konzepts): Art, Ort, Tag und die Pflichten mit ihrem Ergebnis bleiben, Antworten, Unterschriften, Namen, Notizen,
   Material, Leistungsnachweise, Einweisungen, Erlaubnisscheine und die PDFs gehen, Dokumente werden entfernt. Die

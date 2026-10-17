@@ -19,6 +19,10 @@ export const activityListPlace = { to: '/pruefungen', label: 'Prüfungen' } as c
 
 export const activityPlaces = {
   activity: (id: string) => `/pruefungen/${id}`,
+  // Composing a collective activity, and the report of a contractor for all
+  // of its assets (#342).
+  compose: '/pruefungen/sammelvorgang',
+  collectiveReport: (id: string) => `/pruefungen/${id}/bericht`,
 } as const
 
 /**

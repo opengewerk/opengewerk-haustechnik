@@ -5,7 +5,9 @@ import {
   activityLimits,
   activityUnderWay,
   type Catalogue,
+  type ContractorId,
   type DutyId,
+  type DutyPerformer,
   type FilledAnswer,
   type FormDefinition,
   type IsoDate,
@@ -34,6 +36,18 @@ export interface MakingAnActivity {
    * the own people perform it; who works on it is the office's to say.
    */
   readonly workOrder?: { readonly title: string }
+  /**
+   * A part of a collective activity (#342) instead of an activity of its
+   * own: it takes the plan of the collective activity, who performs it and
+   * which contractor, and stays at the place of its duty with its form.
+   */
+  readonly part?: {
+    readonly collectiveId: ActivityId
+    readonly performer: DutyPerformer
+    readonly performerUserId: string | null
+    readonly contractorNote: string | null
+    readonly contractorId: ContractorId | null
+  }
 }
 
 /** The activity that was made, or why none was. */
@@ -111,10 +125,14 @@ export async function makeActivityForDuty(
         ? {
             kind: activityKindOfTask(task),
             title: dutyTitle(duty, catalogue).trim().slice(0, activityLimits.title).trim(),
-            performer: duty.performer,
-            contractorNote: duty.performer === 'contractor' ? duty.performerNote : null,
-            // The firm out of the list, as the duty names it (#328).
-            contractorId: duty.performer === 'contractor' ? duty.contractorId : null,
+            ...(making.part === undefined
+              ? {
+                  performer: duty.performer,
+                  contractorNote: duty.performer === 'contractor' ? duty.performerNote : null,
+                  // The firm out of the list, as the duty names it (#328).
+                  contractorId: duty.performer === 'contractor' ? duty.contractorId : null,
+                }
+              : making.part),
           }
         : {
             kind: 'work_order' as const,

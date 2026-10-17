@@ -322,6 +322,46 @@ describe('the page a device works out from what it holds', () => {
     expect(heldPageOf(records, 'ac-2')).toBeNull()
   })
 
+  it('shows for a collective activity the page of each of its parts, by the key of the part (#342)', () => {
+    const [single] = held['activities'] ?? []
+    const collective: Readonly<Record<string, readonly HeldRecord[]>> = {
+      ...held,
+      activities: [
+        { ...single, id: 'ac-3', collectiveId: 'ac-0', assetId: null },
+        { ...single, collectiveId: 'ac-0' },
+        // Taken off the collective activity: not on its page.
+        { ...single, id: 'ac-4', collectiveId: 'ac-0', deletedAt: '2026-10-08T10:00:00.000Z' },
+        {
+          id: 'ac-0',
+          kind: 'inspection',
+          title: 'Prüfung Trinkwasser, Haus A',
+          performedOn: null,
+          propertyId: 'p-1',
+          buildingId: 'b-1',
+          roomId: null,
+          assetId: null,
+          formKey: null,
+          formVersion: null,
+          collectiveKind: 'probe.drinking_water_check',
+        },
+      ],
+    }
+    const its = {
+      find: (entity: string, id: string) =>
+        collective[entity]?.find((each) => each['id'] === id) ?? null,
+      related: (entity: string, field: string, id: string) =>
+        (collective[entity] ?? []).filter((each) => each[field] === id),
+    }
+    const page = heldPageOf(its, 'ac-0')
+
+    expect(page?.parts?.map((part) => part.activity.id)).toEqual(['ac-1', 'ac-3'])
+    expect(page?.parts?.[0]).toEqual(heldPageOf(its, 'ac-1'))
+    // It meets no duty itself and reports no defect; its parts do.
+    expect(page).toMatchObject({ duties: [], defects: [] })
+    // A single activity has no parts on its page, so that a page signed before keeps its fingerprint.
+    expect(heldPageOf(records, 'ac-1')).not.toHaveProperty('parts')
+  })
+
   it('shows the time spent on a work order and its notes by their keys, without who wrote them', () => {
     const order: Readonly<Record<string, readonly HeldRecord[]>> = {
       activities: [

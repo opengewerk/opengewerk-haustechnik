@@ -3,6 +3,7 @@ import {
   type ActivitySignatureId,
   type DutyId,
   type ActivityStatus,
+  activityUnderWay,
   answerFindings,
   answerReadings,
   answersMissing,
@@ -12,6 +13,7 @@ import {
   finishesWorkOrder,
   formOfActivity,
   keyDateFor,
+  partAsksForAnswers,
   pointFulfilling,
   pointOutcome,
   readingDoubt,
@@ -23,6 +25,7 @@ import {
   typedNameIsOf,
   signaturesComplete,
   signedPageOf,
+  type StatedCollective,
   type StatedSignature,
   validReadings,
   validSignatures,
@@ -61,6 +64,7 @@ import {
   writeRoundRecord,
 } from '../evidence/write.js'
 import { dayInGermany } from '../today.js'
+import { partsOf } from './collectives.js'
 import { formsFor } from './template-forms.js'
 
 /** A signature as it arrives from the device. */
@@ -223,6 +227,15 @@ export async function pageOf(tx: TenantTransaction, activity: ActivityRow): Prom
           answers: await answersOf(tx, activity),
         }
   const work = activity.kind === 'work_order' ? await workOf(tx, activity) : {}
+  // A collective activity, the page of each of its parts (#342), one after
+  // the other in the transaction.
+  const parts: SignedPage[] = []
+
+  if (activity.collectiveKind !== null) {
+    for (const part of await partsOf(tx, activity.id)) {
+      parts.push(await pageOf(tx, part))
+    }
+  }
 
   return signedPageOf({
     activity: {
@@ -247,7 +260,28 @@ export async function pageOf(tx: TenantTransaction, activity: ActivityRow): Prom
     defects: noticed,
     ...filled,
     ...work,
+    ...(activity.collectiveKind === null ? {} : { parts }),
   })
+}
+
+/**
+ * Whether a collective activity is still under way, so that a part of it is
+ * signed with it and not on its own (#342). A part whose collective activity
+ * is done, closed or out of sight is an activity like any other.
+ */
+async function collectiveUnderWay(
+  tx: TenantTransaction,
+  collectiveId: ActivityId,
+): Promise<boolean> {
+  const [collective] = await tx
+    .select({ status: activities.status })
+    .from(activities)
+    .where(and(eq(activities.id, collectiveId), isNull(activities.deletedAt)))
+
+  return (
+    collective !== undefined &&
+    (activityUnderWay as readonly ActivityStatus[]).includes(collective.status)
+  )
 }
 
 /** The time spent on a work order and the notes on it that are not marked (#118). */
@@ -488,6 +522,20 @@ export async function checkSignature(
     throw new SigningRefusal('Dieser Vorgang ist abgeschlossen.', 'closed')
   }
 
+  // A part of a collective activity is signed with it, once for all its
+  // assets (#342); the parts of a collective activity are held like it, so
+  // that an answer or a result that comes for one of them waits.
+  if (activity.collectiveId !== null && (await collectiveUnderWay(tx, activity.collectiveId))) {
+    throw new SigningRefusal(
+      'Unterschrieben wird der Sammelvorgang, einmal für alle seine Anlagen.',
+      'activity',
+    )
+  }
+
+  if (activity.collectiveKind !== null) {
+    await partsOf(tx, activity.id, true)
+  }
+
   // A work order is finished by the person who answers for it (4.8, #118);
   // the further people write notes and say the time spent, and the office
   // accepts what was signed.
@@ -510,6 +558,51 @@ export async function checkSignature(
     )
   }
 
+  if (activity.collectiveKind === null) {
+    await checkWork(tx, tenantId, activity, page, catalogue, at, input.signedAt, true)
+  } else {
+    await checkParts(tx, tenantId, page, catalogue, at, input.signedAt)
+  }
+
+  const valid = await signaturesOf(tx, activity, fingerprint)
+  const has = (role: SignatureRole) => valid.some((signature) => signature.role === role)
+
+  if (input.role === 'signer' && has('signer')) {
+    throw new SigningRefusal('Dieser Vorgang ist schon unterschrieben.', 'turn')
+  }
+
+  if (input.role === 'countersigner') {
+    if (!activity.countersignatureRequired) {
+      throw new SigningRefusal('Dieser Vorgang wird nicht gegengezeichnet.', 'turn')
+    }
+
+    if (!has('signer')) {
+      throw new SigningRefusal('Gegengezeichnet wird nach der Unterschrift.', 'turn')
+    }
+
+    if (has('countersigner')) {
+      throw new SigningRefusal('Dieser Vorgang ist schon gegengezeichnet.', 'turn')
+    }
+  }
+}
+
+/**
+ * What the work of an activity has to say before it is signed: the day it was
+ * performed, which lies neither after today nor after the signature, duty
+ * kinds that take its way of evidence, a form this version knows, a result
+ * for every duty that does not take it from a point, every answer where
+ * answers are asked for, and no "ohne Mangel" while something is found.
+ */
+async function checkWork(
+  tx: TenantTransaction,
+  tenantId: TenantId,
+  activity: ActivityRow,
+  page: SignedPage,
+  catalogue: Pick<Catalogue, 'formVersion' | 'ruleSet' | 'dutyKindVersion'>,
+  at: Date,
+  signedAt: Date,
+  answersAsked: boolean,
+): Promise<void> {
   if (activity.performedOn === null) {
     throw new SigningRefusal('Der Tag der Durchführung fehlt.')
   }
@@ -523,7 +616,7 @@ export async function checkSignature(
     )
   }
 
-  if (dayInGermany(input.signedAt) < activity.performedOn) {
+  if (dayInGermany(signedAt) < activity.performedOn) {
     throw new SigningRefusal(
       'Der Zeitpunkt der Unterschrift liegt vor dem Tag der Durchführung. Die Uhr des Geräts geht nach.',
     )
@@ -555,7 +648,7 @@ export async function checkSignature(
   }
 
   const missing =
-    form === null
+    form === null || !answersAsked
       ? []
       : answersMissing(form, page.answers ?? [], {
           rules: catalogue.ruleSet,
@@ -585,25 +678,47 @@ export async function checkSignature(
   if (contradiction !== undefined) {
     throw new SigningRefusal(contradiction)
   }
+}
 
-  const valid = await signaturesOf(tx, activity, fingerprint)
-  const has = (role: SignatureRole) => valid.some((signature) => signature.role === role)
+/**
+ * The parts of a collective activity before its one signature (#342): each
+ * with its own work, as a single activity has it, and said with its asset.
+ * A part whose duties were all not performed, an asset that could not be
+ * reached, is not asked for its answers (section 4.4).
+ */
+async function checkParts(
+  tx: TenantTransaction,
+  tenantId: TenantId,
+  page: SignedPage,
+  catalogue: Pick<Catalogue, 'formVersion' | 'ruleSet' | 'dutyKindVersion'>,
+  at: Date,
+  signedAt: Date,
+): Promise<void> {
+  const pages = page.parts ?? []
 
-  if (input.role === 'signer' && has('signer')) {
-    throw new SigningRefusal('Dieser Vorgang ist schon unterschrieben.', 'turn')
+  if (pages.length === 0) {
+    throw new SigningRefusal('Dieser Sammelvorgang hält keine Anlage.')
   }
 
-  if (input.role === 'countersigner') {
-    if (!activity.countersignatureRequired) {
-      throw new SigningRefusal('Dieser Vorgang wird nicht gegengezeichnet.', 'turn')
-    }
+  for (const part of pages) {
+    const asset = part.place.asset
+    const said = asset === null ? part.activity.title : asset.name
 
-    if (!has('signer')) {
-      throw new SigningRefusal('Gegengezeichnet wird nach der Unterschrift.', 'turn')
-    }
-
-    if (has('countersigner')) {
-      throw new SigningRefusal('Dieser Vorgang ist schon gegengezeichnet.', 'turn')
+    try {
+      await checkWork(
+        tx,
+        tenantId,
+        await activityOf(tx, tenantId, part.activity.id as ActivityId),
+        part,
+        catalogue,
+        at,
+        signedAt,
+        partAsksForAnswers(part.duties),
+      )
+    } catch (error) {
+      throw error instanceof SigningRefusal
+        ? new SigningRefusal(`${said}: ${error.message}`, error.about)
+        : error
     }
   }
 }
@@ -621,6 +736,11 @@ export async function followSignature(
   activityId: ActivityId,
 ): Promise<Omit<TakenSignature, 'id'>> {
   const activity = await activityOf(tx, context.tenantId, activityId)
+
+  if (activity.collectiveKind !== null) {
+    return followCollective(tx, context, activity)
+  }
+
   const valid = await signaturesOf(tx, activity, pageFingerprint(await pageOf(tx, activity)))
 
   const signer = valid.find((signature) => signature.role === 'signer')
@@ -644,6 +764,65 @@ export async function followSignature(
     .update(activities)
     .set({ status })
     .where(and(eq(activities.tenantId, context.tenantId), eq(activities.id, activity.id)))
+
+  return { status, written }
+}
+
+/**
+ * What follows the signature of a collective activity (#342): what the
+ * answers of each part come to, as with the signature of a single activity,
+ * and once every signature it calls for is there, the evidence of each duty
+ * of each part, naming the one signature and the collective activity. Every
+ * part is done then, and so is the collective activity.
+ */
+async function followCollective(
+  tx: TenantTransaction,
+  context: WritingContext,
+  collective: ActivityRow,
+): Promise<Omit<TakenSignature, 'id'>> {
+  const valid = await signaturesOf(tx, collective, pageFingerprint(await pageOf(tx, collective)))
+  const parts = await partsOf(tx, collective.id)
+  const signer = valid.find((signature) => signature.role === 'signer')
+
+  if (signer !== undefined) {
+    for (const part of parts) {
+      await defectsFromAnswers(tx, context, part)
+      await readingsFromAnswers(tx, context, part, signer.signedBy ?? context.writtenBy)
+    }
+  }
+
+  const complete = signaturesComplete(collective, valid)
+  const written: WrittenEvidence[] = []
+
+  if (complete) {
+    const stated: StatedCollective = { title: collective.title, parts: parts.length }
+
+    for (const part of parts) {
+      written.push(
+        ...(await writeDown(tx, context, part, valid, originOfActivity(part.kind), stated)),
+      )
+    }
+
+    await tx
+      .update(activities)
+      .set({ status: 'done' })
+      .where(
+        and(
+          eq(activities.tenantId, context.tenantId),
+          inArray(
+            activities.id,
+            parts.map((part) => part.id),
+          ),
+        ),
+      )
+  }
+
+  const status: ActivityStatus = complete ? 'done' : 'signed'
+
+  await tx
+    .update(activities)
+    .set({ status })
+    .where(and(eq(activities.tenantId, context.tenantId), eq(activities.id, collective.id)))
 
   return { status, written }
 }
@@ -1035,6 +1214,7 @@ async function writeDown(
   activity: ActivityRow,
   signatures: readonly (typeof activitySignatures.$inferSelect)[],
   origin: EvidenceOrigin,
+  collective: StatedCollective | null = null,
 ): Promise<WrittenEvidence[]> {
   const lines = await tx
     .select()
@@ -1096,6 +1276,7 @@ async function writeDown(
         examiner: null,
         signatures: stated,
         files: [],
+        collective,
       }),
     )
   }

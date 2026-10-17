@@ -572,6 +572,81 @@ describe('the activity behind an evidence deleted after the end of its retention
     ).toBe('Dieser Rundgang ist nach Ablauf der Aufbewahrung gelöscht; ein PDF gibt es nicht mehr.')
   })
 
+  it('empties a collective activity with the last evidence of its parts, and its signature with it (#342)', async () => {
+    const { id: collective } = await one<{ id: string }>(
+      `insert into activities (tenant_id, property_id, area_id, area_from_property_id, kind, title, status,
+                               collective_kind)
+       select tenant_id, id, area_id, id, 'inspection', 'Sichtkontrolle mit Herrn Maier', 'done', 'probe.sight_check'
+         from properties where id = $1
+       returning id`,
+      [place.property],
+    )
+    const parts: string[] = []
+    const duties: string[] = []
+
+    for (const label of ['Sichtkontrolle Tür', 'Sichtkontrolle Rahmen']) {
+      const { id: dutyId } = await one<{ id: string }>(
+        `insert into duties (tenant_id, property_id, area_id, asset_id, label, basis, source_note, counting,
+                             interval_months, confirmed_by)
+         select tenant_id, property_id, area_id, id, $2, 'own_decision', 'Hausordnung', 'from_performance', 12,
+                'u-duties'
+           from assets where id = $1
+         returning id`,
+        [place.assetNorth, label],
+      )
+      const { id: part } = await one<{ id: string }>(
+        `with part as (
+           insert into activities (tenant_id, property_id, area_id, asset_id, kind, title, status, performed_on,
+                                   collective_id)
+           select tenant_id, property_id, area_id, id, 'inspection', $2, 'done', '2020-05-04', $3
+             from assets where id = $1
+           returning id, tenant_id, property_id, area_id
+         ), line as (
+           insert into activity_duties (tenant_id, property_id, area_id, activity_id, duty_id, result)
+           select tenant_id, property_id, area_id, id, $4, 'without_defects' from part
+         )
+         select id from part`,
+        [place.assetNorth, label, collective, dutyId],
+      )
+
+      parts.push(part)
+      duties.push(dutyId)
+    }
+
+    // The one signature stands at the collective activity, with the name of whoever signed.
+    await admin.query(
+      `insert into activity_signatures (tenant_id, property_id, area_id, activity_id, signed_by, role, signed_at,
+                                        typed_name, page_fingerprint)
+       select tenant_id, property_id, area_id, id, 'u-site', 'signer', now(), 'u-site', $2 from activities
+        where id = $1`,
+      [collective, 'd'.repeat(64)],
+    )
+
+    const first = await evidenceOf(duties[0] as string, parts[0] as string, '2020-05-04')
+    const second = await evidenceOf(duties[1] as string, parts[1] as string, '2020-05-04')
+    const emptied = async (id: string) =>
+      (
+        await one<{ emptied: boolean }>(
+          'select emptied_at is not null as emptied from activities where id = $1',
+          [id],
+        )
+      ).emptied
+
+    await empty('u-lead', [first]).expect(201)
+
+    // The first part goes with its evidence; the collective activity waits for the last of its parts.
+    expect([await emptied(parts[0] as string), await emptied(collective)]).toEqual([true, false])
+    expect(await count('activity_signatures', 'activity_id', collective)).toBe(1)
+
+    await empty('u-lead', [second]).expect(201)
+
+    expect([await emptied(parts[1] as string), await emptied(collective)]).toEqual([true, true])
+    expect(await count('activity_signatures', 'activity_id', collective)).toBe(0)
+    expect(await one('select title from activities where id = $1', [collective])).toEqual({
+      title: 'Gelöscht nach Ablauf der Aufbewahrung',
+    })
+  })
+
   it('is emptied on no other way, also not by the owner of the tables', async () => {
     const order = await workOrder('Heizung entlüften')
     const deleted = (table: string, column = 'activity_id', id = order.id) =>

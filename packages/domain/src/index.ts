@@ -120,6 +120,7 @@ export * from './model/round-plan.js'
 export * from './model/round-record.js'
 export * from './model/round-template.js'
 export * from './model/activity-register.js'
+export * from './model/collective.js'
 export * from './model/work-order-register.js'
 export * from './model/defect.js'
 // The figures over time, per place and never per person (#334).

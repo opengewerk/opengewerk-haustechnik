@@ -38,6 +38,7 @@ import {
   useActivityForm,
   useWhere,
 } from './form.js'
+import { SiteCollectiveScreen } from './collective.js'
 import { EmptiedOnSite } from './emptied.js'
 import { SiteResultScreen } from './result.js'
 import { SiteStartScreen } from './start.js'
@@ -88,6 +89,11 @@ export function SiteActivityScreen() {
 
   if (text(activity, 'kind') === 'work_order') {
     return <SiteWorkOrderScreen />
+  }
+
+  // A collective activity, the list of its assets (#342).
+  if (maybeText(activity, 'collectiveKind') !== null) {
+    return <SiteCollectiveScreen />
   }
 
   return maybeText(activity, 'formKey') === null ? <SiteResultScreen /> : <SiteProtocolScreen />

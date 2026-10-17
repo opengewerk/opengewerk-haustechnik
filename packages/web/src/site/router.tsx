@@ -1,15 +1,18 @@
 import { useRight } from '@opengewerk/platform-web/session'
 import { ConflictScreen } from '@opengewerk/platform-web/site'
+import { maybeText, useRecord } from '@opengewerk/platform-web/sync'
 import {
   createRootRoute,
   createRoute,
   createRouter,
   type RouteComponent,
+  useParams,
 } from '@tanstack/react-router'
 
 import { SiteAssetScreen } from './screens/asset.js'
 import { SitePointScreen } from './screens/form.js'
 import { GiveLabelScreen } from './screens/give-label.js'
+import { SiteCollectiveSignScreen } from './screens/collective.js'
 import { RoundHandInScreen, RoundSignScreen } from './screens/hand-in.js'
 import {
   SiteBuildingScreen,
@@ -107,7 +110,7 @@ export function siteRoutes() {
     at('/vorgaenge/$activityId/ergebnis', SiteResultScreen),
     at('/vorgaenge/$activityId/mangel', ReportDefectScreen),
     at('/vorgaenge/$activityId/abgabe', RoundHandInScreen),
-    at('/vorgaenge/$activityId/unterschrift', RoundSignScreen),
+    at('/vorgaenge/$activityId/unterschrift', SignForTheKind),
     // A work order: its protocol where it is an inspection or a maintenance,
     // a note on it and its finishing with the signature (#118).
     at('/vorgaenge/$activityId/protokoll', SiteProtocolScreen),
@@ -147,6 +150,21 @@ function StartForTheRole() {
   const reports = useRight('fault.report')
 
   return !seesPlaces && reports ? <ReporterStartScreen /> : <SiteStartScreen />
+}
+
+/**
+ * The signature of a round after it is handed in (#114), and the one
+ * signature of a collective activity under the list of its assets (#342).
+ */
+function SignForTheKind() {
+  const { activityId } = useParams({ strict: false }) as { activityId: string }
+  const activity = useRecord('activities', activityId)
+
+  return maybeText(activity, 'collectiveKind') === null ? (
+    <RoundSignScreen />
+  ) : (
+    <SiteCollectiveSignScreen />
+  )
 }
 
 /** The scan for the role: an asset or a room opens for whoever sees the assets, the place to report at for a Melder. */

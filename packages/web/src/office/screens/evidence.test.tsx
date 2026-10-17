@@ -246,6 +246,19 @@ afterEach(() => {
 })
 
 describe('the page of an evidence', () => {
+  it('says of one written with a collective activity which one, and that its signature stands under all its assets (#342)', async () => {
+    await opened(
+      'technician',
+      evidence({
+        state: frozen({ collective: { title: 'Prüfung der Feuerlöscher, Haus A', parts: 5 } }),
+      }),
+    )
+
+    expect(factsIn('Eingefrorener Stand, Fassung 2')['Sammelvorgang']).toBe(
+      'Prüfung der Feuerlöscher, Haus A, 5 Anlagen. Die Unterschrift steht unter der Seite aller Anlagen.',
+    )
+  })
+
   it('shows the frozen state, the signatures and the fingerprint, under the path to its asset', async () => {
     await opened('technician')
 

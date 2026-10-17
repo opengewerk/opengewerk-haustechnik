@@ -163,6 +163,21 @@ const storedStates: Readonly<Record<number, unknown>> = {
       '"signatures":[],' +
       '"version":8,"writtenAt":"2026-10-13T18:02:11.000Z","writtenBy":"Hanna Probe"}',
   ),
+  9: JSON.parse(
+    '{"activity":{"kind":"inspection","title":"Prüfung der Feuerlöscher"},"answers":[],' +
+      '"collective":{"parts":5,"title":"Prüfung der Feuerlöscher, Haus A"},"defects":[],' +
+      '"duty":{"counting":"from_performance","interval":{"months":24},"kind":null,"kindVersion":null,' +
+      '"label":"Prüfung der Feuerlöscher","source":"ASR A2.2"},' +
+      '"files":[],"form":null,"nextDueOn":null,"number":"NW-2026-00140","origin":"protocol","performedOn":"2026-10-05",' +
+      '"performer":{"person":"Tobias Wendt"},' +
+      '"place":{"asset":{"kind":"probe.extinguisher","kindLabel":"Feuerlöscher","name":"Feuerlöscher EG, Flur","number":"AN-00031",' +
+      '"serialNumber":null},"building":{"name":"Haus A","shortCode":null},' +
+      '"property":{"address":"Hauptstraße 1, 68535 Edingen-Neckarhausen","name":"Campus"},"room":null},' +
+      '"remark":null,"replaces":null,"result":"without_defects","resultReason":null,"retention":null,' +
+      '"signatures":[{"name":"Tobias Wendt","path":"M 10 20 L 30 40","receivedAt":"2026-10-05T07:41:02.000Z","role":"signer",' +
+      '"signedAt":"2026-10-05T07:38:00.000Z","way":"drawing"}],' +
+      '"version":9,"writtenAt":"2026-10-05T07:41:02.000Z","writtenBy":"Tobias Wendt"}',
+  ),
 }
 
 describe('the result of a performance', () => {
@@ -324,7 +339,8 @@ describe('the frozen state', () => {
   it('reads a state of the eighth version, taken over with the next due day its list named (#130)', () => {
     const state = readEvidenceState(storedStates[8])
 
-    expect(state.version).toBe(8)
+    expect(state.version).toBe(evidenceStateVersion)
+    expect(state.collective).toBeNull()
     expect([state.origin, state.performedOn, state.nextDueOn]).toEqual([
       'legacy',
       '2024-09-14',
@@ -337,6 +353,18 @@ describe('the frozen state', () => {
       'ohne prüfbare Unterschrift',
     ])
     expect(canonicalForm(storedStates[8])).toBe(JSON.stringify(storedStates[8]))
+  })
+
+  it('reads a state of the ninth version, written with a collective activity (#342)', () => {
+    const state = readEvidenceState(storedStates[9])
+
+    expect(state.version).toBe(9)
+    expect(state.collective).toEqual({ title: 'Prüfung der Feuerlöscher, Haus A', parts: 5 })
+    // The one signature under the page of all the assets stands in the evidence of each duty.
+    expect(state.signatures.map((signature) => [signature.name, signature.role])).toEqual([
+      ['Tobias Wendt', 'signer'],
+    ])
+    expect(canonicalForm(storedStates[9])).toBe(JSON.stringify(storedStates[9]))
   })
 
   it('has a reader and a stored example for every version up to the newest', () => {

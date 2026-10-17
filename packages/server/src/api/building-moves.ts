@@ -90,6 +90,8 @@ export function keptSentence(kept: readonly string[]): string {
  */
 export const holdingTheBuilding: Readonly<Record<string, string>> = {
   activities_of_a_plan_of_their_property: 'ein Rundgang mit dem Plan, nach dem er stattfand',
+  // A part at an asset of the building with its collective activity on the property (#342).
+  activities_part_of_a_collective: 'eine Prüfung mit dem Sammelvorgang, zu dem sie gehört',
   activity_answers_photo_at_their_activity: 'eine Antwort mit ihrem Foto',
   activity_duties_of_a_duty_of_their_property: 'ein Vorgang mit einer Pflicht, die er erfüllt',
   asset_supplies_to_a_building_of_its_property: 'eine Anlage mit einem Gebäude, das sie versorgt',

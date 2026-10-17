@@ -76,6 +76,7 @@ import {
   Clock,
   type LucideIcon,
   Pencil,
+  Plus,
   SearchCheck,
   Signature,
   Trash2,
@@ -105,6 +106,7 @@ import { roundPlaces, roundsPlace } from '../round-template-addresses.js'
 import { workOrderListPlace, workOrderPlaces } from '../work-order-addresses.js'
 import { TasksCard } from '../tasks.js'
 import { asTableAddress } from '../table-address.js'
+import { CollectivePartsPanel, collectiveWords } from './collectives.js'
 
 export const activityWords = {
   sub: 'Prüfungen und Wartungen aus den fälligen Terminen der Pflichten, nach dem Tag, an dem sie fällig sind.',
@@ -321,6 +323,11 @@ function TwoLines({
   )
 }
 
+/** "5 Anlagen": how many assets a collective activity holds (#342). */
+function partsWords(parts: number): string {
+  return parts === 1 ? '1 Anlage' : `${parts.toLocaleString('de-DE')} Anlagen`
+}
+
 /** "14 offen", "3 erledigt": how many the list holds in the state it shows. */
 const countWords: Readonly<Record<ActivityListState, string>> = {
   pending: 'offen',
@@ -343,6 +350,7 @@ const countWords: Readonly<Record<ActivityListState, string>> = {
  * narrowing to a person: a list about somebody would count their work.
  */
 export function ActivityListScreen() {
+  const plans = useRight('activity.write')
   const address = useSearch({ strict: false })
   const filter = useMemo(() => activityFilterOf(address), [address])
   const navigate = useNavigate()
@@ -396,7 +404,22 @@ export function ActivityListScreen() {
         {...(first === undefined
           ? {}
           : { count: `${first.total.toLocaleString('de-DE')} ${countWords[state]}` })}
-        actions={table.button}
+        actions={
+          <>
+            {/* Composing a collective activity is planning and handing out work (#342). */}
+            {plans ? (
+              <Button
+                icon={Plus}
+                onClick={() => {
+                  void navigate({ to: activityPlaces.compose })
+                }}
+              >
+                Sammelvorgang zusammenstellen
+              </Button>
+            ) : null}
+            {table.button}
+          </>
+        }
       />
       {table.trouble}
       <div className="flex flex-wrap items-end gap-x-2.5 gap-y-2">
@@ -518,7 +541,9 @@ export function ActivityListScreen() {
               ),
               sub: [
                 activity.dueOn === null ? null : date(activity.dueOn),
-                where.name,
+                activity.collective === undefined
+                  ? where.name
+                  : `${partsWords(activity.collective.parts)}, ${where.name}`,
                 activity.responsible?.name,
                 typeof performer.main === 'string' ? performer.main : null,
               ]
@@ -575,11 +600,23 @@ export function ActivityListScreen() {
                           {activity.title}
                         </Link>
                       }
-                      sub={activityKindLabel[activity.kind]}
+                      sub={
+                        activity.collective === undefined
+                          ? activityKindLabel[activity.kind]
+                          : `${collectiveWords.mark}, ${activityKindLabel[activity.kind]}`
+                      }
                     />
                   </Cell>
                   <Cell>
-                    <TwoLines main={<Link to={where.to}>{where.name}</Link>} sub={where.sub} />
+                    {/* A collective activity names how many assets it holds, and where (#342). */}
+                    {activity.collective === undefined ? (
+                      <TwoLines main={<Link to={where.to}>{where.name}</Link>} sub={where.sub} />
+                    ) : (
+                      <TwoLines
+                        main={partsWords(activity.collective.parts)}
+                        sub={<Link to={where.to}>{where.line}</Link>}
+                      />
+                    )}
                   </Cell>
                   <Cell>
                     {activity.responsible?.name ?? (
@@ -665,17 +702,29 @@ export function ActivityScreen() {
   }
 
   const where = whereOf(shown)
-  const planning = plans && shown.status === 'open'
+  const collective = shown.collective
+  // A part is planned, closed and signed with its collective activity (#342).
+  const withItsCollective = shown.partOf?.underWay === true
+  const planning = plans && shown.status === 'open' && !withItsCollective
   // Closed with the reason before its signature, by whoever plans (#183).
   const closable =
     plans &&
+    !withItsCollective &&
     (dueActivityKinds as readonly string[]).includes(shown.kind) &&
     (activityClosable as readonly string[]).includes(shown.status)
+  // The report of a contractor for all the assets of a collective activity (#342).
+  const reportsForAll =
+    entersEvidence &&
+    collective !== undefined &&
+    shown.status === 'open' &&
+    shown.performer !== 'own_staff' &&
+    (shown.parts ?? []).every((part) => part.status === 'open')
   // A report meets one duty (#110): offered while the activity is open and
   // not for the own people, for a duty that takes one.
   const [only] = shown.duties
   const reportFor =
     entersEvidence &&
+    !withItsCollective &&
     shown.status === 'open' &&
     shown.performer !== 'own_staff' &&
     shown.duties.length === 1 &&
@@ -712,13 +761,23 @@ export function ActivityScreen() {
           <>
             <ActivityStatusMark status={shown.status} />
             <Status tone="neutral" icon={SearchCheck}>
-              {activityKindLabel[shown.kind]}
+              {collective === undefined ? activityKindLabel[shown.kind] : collectiveWords.mark}
             </Status>
           </>
         }
         actions={
           <>
             <ChangesButton table="activities" id={shown.id} />
+            {reportsForAll ? (
+              <Button
+                icon={Upload}
+                onClick={() => {
+                  void navigate({ to: activityPlaces.collectiveReport(shown.id) })
+                }}
+              >
+                Bericht eintragen
+              </Button>
+            ) : null}
             {reportFor === null ? null : (
               <Button
                 icon={Upload}
@@ -753,84 +812,97 @@ export function ActivityScreen() {
       />
       <div className="grid items-start gap-3.5 lg:grid-cols-[minmax(0,1fr)_320px]">
         <div className="flex min-w-0 flex-col gap-3.5">
-          <TablePanel
-            title="Pflichten dieses Vorgangs"
-            caption="Pflichten dieses Vorgangs"
-            cards={shown.duties.map((duty) => ({
-              key: duty.id,
-              title: (
-                <Link to={dutyPlaces.duty(duty.dutyId)} className={cardLink}>
-                  {duty.title}
-                </Link>
-              ),
-              sub: [duty.appointment === null ? null : date(duty.appointment), where.name]
-                .filter(Boolean)
-                .join(' · '),
-              right:
-                duty.result === null ? (
-                  <DutyStateMark state={duty.state} until={duty.appointment} />
-                ) : (
-                  <ResultMark result={duty.result} />
+          {shown.partOf === undefined ? null : (
+            <NoteBox>
+              {collectiveWords.partNote}{' '}
+              <Link to={activityPlaces.activity(shown.partOf.id)} className={factLink}>
+                {shown.partOf.title}
+              </Link>
+              {shown.partOf.underWay ? `. ${collectiveWords.partRest}` : '.'}
+            </NoteBox>
+          )}
+          {collective === undefined ? (
+            <TablePanel
+              title="Pflichten dieses Vorgangs"
+              caption="Pflichten dieses Vorgangs"
+              cards={shown.duties.map((duty) => ({
+                key: duty.id,
+                title: (
+                  <Link to={dutyPlaces.duty(duty.dutyId)} className={cardLink}>
+                    {duty.title}
+                  </Link>
                 ),
-            }))}
-          >
-            <thead>
-              <tr>
-                <Column className="min-w-[140px]">Pflicht</Column>
-                <Column className="w-[190px] min-w-[130px]">Anlage oder Ort</Column>
-                <Column numeric className="w-[90px] min-w-[84px]">
-                  Termin
-                </Column>
-                <Column className="w-[110px] min-w-[100px]">Zustand</Column>
-                <Column className="w-[110px] min-w-[100px]">Ergebnis</Column>
-              </tr>
-            </thead>
-            <tbody>
-              {shown.duties.map((duty) => (
-                <tr key={duty.id}>
-                  <Cell>
-                    <TwoLines
-                      bold
-                      main={
-                        <Link to={dutyPlaces.duty(duty.dutyId)} className={factLink}>
-                          {duty.title}
-                        </Link>
-                      }
-                      sub={[
-                        duty.source,
-                        duty.interval === null ? null : intervalWords(duty.interval),
-                      ]
-                        .filter(Boolean)
-                        .join(' · ')}
-                    />
-                  </Cell>
-                  <Cell>
-                    <TwoLines main={<Link to={where.to}>{where.name}</Link>} sub={where.sub} />
-                  </Cell>
-                  <Cell numeric>
-                    {duty.appointment === null ? (
-                      <span className="text-ink-faint">keiner</span>
-                    ) : (
-                      date(duty.appointment)
-                    )}
-                  </Cell>
-                  <Cell>
+                sub: [duty.appointment === null ? null : date(duty.appointment), where.name]
+                  .filter(Boolean)
+                  .join(' · '),
+                right:
+                  duty.result === null ? (
                     <DutyStateMark state={duty.state} until={duty.appointment} />
-                  </Cell>
-                  <Cell>
-                    {duty.result === null ? (
-                      <span className="text-ink-faint">{activityWords.noneYet}</span>
-                    ) : (
-                      <TwoLines
-                        main={<ResultMark result={duty.result} />}
-                        sub={duty.resultReason}
-                      />
-                    )}
-                  </Cell>
+                  ) : (
+                    <ResultMark result={duty.result} />
+                  ),
+              }))}
+            >
+              <thead>
+                <tr>
+                  <Column className="min-w-[140px]">Pflicht</Column>
+                  <Column className="w-[190px] min-w-[130px]">Anlage oder Ort</Column>
+                  <Column numeric className="w-[90px] min-w-[84px]">
+                    Termin
+                  </Column>
+                  <Column className="w-[110px] min-w-[100px]">Zustand</Column>
+                  <Column className="w-[110px] min-w-[100px]">Ergebnis</Column>
                 </tr>
-              ))}
-            </tbody>
-          </TablePanel>
+              </thead>
+              <tbody>
+                {shown.duties.map((duty) => (
+                  <tr key={duty.id}>
+                    <Cell>
+                      <TwoLines
+                        bold
+                        main={
+                          <Link to={dutyPlaces.duty(duty.dutyId)} className={factLink}>
+                            {duty.title}
+                          </Link>
+                        }
+                        sub={[
+                          duty.source,
+                          duty.interval === null ? null : intervalWords(duty.interval),
+                        ]
+                          .filter(Boolean)
+                          .join(' · ')}
+                      />
+                    </Cell>
+                    <Cell>
+                      <TwoLines main={<Link to={where.to}>{where.name}</Link>} sub={where.sub} />
+                    </Cell>
+                    <Cell numeric>
+                      {duty.appointment === null ? (
+                        <span className="text-ink-faint">keiner</span>
+                      ) : (
+                        date(duty.appointment)
+                      )}
+                    </Cell>
+                    <Cell>
+                      <DutyStateMark state={duty.state} until={duty.appointment} />
+                    </Cell>
+                    <Cell>
+                      {duty.result === null ? (
+                        <span className="text-ink-faint">{activityWords.noneYet}</span>
+                      ) : (
+                        <TwoLines
+                          main={<ResultMark result={duty.result} />}
+                          sub={duty.resultReason}
+                        />
+                      )}
+                    </Cell>
+                  </tr>
+                ))}
+              </tbody>
+            </TablePanel>
+          ) : (
+            <CollectivePartsPanel activity={shown} />
+          )}
           {planning ? (
             <PlanForm key={shown.id} activity={shown} formId={formId} />
           ) : (
@@ -865,14 +937,22 @@ export function ActivityScreen() {
           <Panel title="So geht es weiter">
             <ol className="m-0 list-decimal pl-[18px] text-[13px] leading-[1.5]">
               <li className="mb-[5px]">
-                {shown.performer === 'contractor'
-                  ? activityWords.stepContractor
-                  : activityWords.stepDevice}
+                {collective !== undefined
+                  ? shown.performer === 'contractor'
+                    ? collectiveWords.stepContractor
+                    : collectiveWords.stepParts
+                  : shown.performer === 'contractor'
+                    ? activityWords.stepContractor
+                    : activityWords.stepDevice}
               </li>
               <li>
-                {shown.performer === 'contractor'
-                  ? activityWords.stepReport
-                  : activityWords.stepSignature}
+                {collective !== undefined
+                  ? shown.performer === 'contractor'
+                    ? collectiveWords.stepReport
+                    : collectiveWords.stepSignature
+                  : shown.performer === 'contractor'
+                    ? activityWords.stepReport
+                    : activityWords.stepSignature}
               </li>
             </ol>
           </Panel>
@@ -885,10 +965,18 @@ export function ActivityScreen() {
               facts={[
                 { label: 'Angelegt', value: `am ${date(shown.createdAt.slice(0, 10))}` },
                 { label: 'Ort', value: where.line },
-                {
-                  label: 'Letzter Nachweis',
-                  value: lastMet === undefined ? 'keiner' : date(lastMet),
-                },
+                ...(collective === undefined
+                  ? [
+                      {
+                        label: 'Letzter Nachweis',
+                        value: lastMet === undefined ? 'keiner' : date(lastMet),
+                      },
+                    ]
+                  : [
+                      { label: 'Pflichtart', value: collective.label },
+                      { label: 'Fundstelle', value: collective.source },
+                      { label: 'Anlagen', value: String(collective.parts) },
+                    ]),
                 ...(qualifications.length === 0
                   ? []
                   : [{ label: 'Qualifikation', value: qualifications.join(', ') }]),
@@ -909,7 +997,7 @@ export function ActivityScreen() {
         <CloseActivityDialog
           key={shown.id}
           activity={shown}
-          sub={where.name}
+          sub={collective === undefined ? where.name : partsWords(collective.parts)}
           onClose={() => {
             setClosing(false)
           }}
@@ -1132,7 +1220,11 @@ function CloseActivityDialog({
             setReason(event.target.value)
           }}
         />
-        <NoteBox>{activityWords.whatClosingDoes}</NoteBox>
+        <NoteBox>
+          {activity.collective === undefined
+            ? activityWords.whatClosingDoes
+            : collectiveWords.whatClosingDoes}
+        </NoteBox>
         {trouble ? (
           <p role="alert" className="text-[13px] font-semibold text-conflict">
             {trouble}
@@ -1253,8 +1345,22 @@ function PlanForm({
           onChange={setPerformer}
           disabled={working}
           options={[
-            { value: 'own_staff', label: 'Eigene Durchführung', note: activityWords.ownNote },
-            { value: 'contractor', label: 'Fremde Durchführung', note: activityWords.foreignNote },
+            {
+              value: 'own_staff',
+              label: 'Eigene Durchführung',
+              note:
+                activity.collective === undefined
+                  ? activityWords.ownNote
+                  : collectiveWords.ownPlanned,
+            },
+            {
+              value: 'contractor',
+              label: 'Fremde Durchführung',
+              note:
+                activity.collective === undefined
+                  ? activityWords.foreignNote
+                  : collectiveWords.foreignPlanned,
+            },
           ]}
         />
         <div className="grid gap-3 sm:grid-cols-3">
