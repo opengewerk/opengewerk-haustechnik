@@ -9,6 +9,12 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
 
 ### Hinzugefügt
 
+- Verbrauch der Zähler in den Auswertungen (#335, Abschnitt 4.9 des Konzepts): ein Reiter „Verbrauch“ mit dem Verlauf
+  eines Mediums je Monat, Quartal oder Jahr und dem Vorjahr, den Summen je Gebäude und je Messstelle, auch als Tabelle.
+  Ein Unterzähler zählt einmal, der Hauptzähler mit seinem Rest; ein Zählertausch rechnet über beide Geräte, eine
+  stillgelegte Messstelle zählt nicht mit, und ein fehlender Stand zum Stichtag ist eine Lücke statt einer Schätzung.
+  Warum: ein Mehrverbrauch fällt so je Gebäude und Medium auf, ohne dass ein Unterzähler doppelt zählt oder eine
+  fehlende Ablesung geschätzt wird (entschieden am 15.10.2026).
 - Auswertungen über die Zeit (#334, Abschnitt 4.16 des Konzepts): unter „Auswertungen“ die Erfüllung der Pflichten
   je Monat, Quartal oder Jahr (fällig geworden, rechtzeitig, später, noch offen), die offenen Mängel nach Alter und
   Klasse, die Störungen nach Kategorie und Gebäude mit der Zeit bis zur Annahme und bis zur Erledigung und die Vorgänge

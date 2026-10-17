@@ -18,8 +18,8 @@ import type { Problems } from './fields.js'
  * processing description says so.
  */
 
-/** The four views of the screen, in the order of its tabs. */
-export const reportViews = ['duties', 'defects', 'faults', 'activities'] as const
+/** The views of the screen, in the order of its tabs; the consumption of the meters since #335. */
+export const reportViews = ['duties', 'defects', 'faults', 'activities', 'consumption'] as const
 
 export type ReportView = (typeof reportViews)[number]
 
@@ -28,6 +28,7 @@ export const reportViewLabel: Readonly<Record<ReportView, string>> = {
   defects: 'Mängel',
   faults: 'Störungen',
   activities: 'Vorgänge',
+  consumption: 'Verbrauch',
 }
 
 /** The grid a period is counted in. */
