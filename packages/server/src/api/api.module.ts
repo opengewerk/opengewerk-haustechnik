@@ -97,6 +97,7 @@ import {
   FaultReportSettingsController,
   FaultReportsController,
 } from './fault-reports.controller.js'
+import { FiguresController } from './figures.controller.js'
 import { OutsideReportsController } from './outside-reports.controller.js'
 import { OUTSIDE_REPORTS, OutsideReports } from '../faults/outside-gate.js'
 import { WorkOrderSettingsController, WorkOrdersController } from './work-orders.controller.js'
@@ -409,6 +410,7 @@ export class ApiModule {
         FaultReportsController,
         FaultCategorySettingsController,
         FaultReportSettingsController,
+        FiguresController,
         ...(outside === null ? [] : [OutsideReportsController]),
         MeterSettingsController,
         EvidencePrintController,

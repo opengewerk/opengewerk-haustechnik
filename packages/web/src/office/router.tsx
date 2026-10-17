@@ -102,6 +102,7 @@ const FaultReportScreen = lazyRouteComponent(
   () => import('./screens/fault-reports.js'),
   'FaultReportScreen',
 )
+const FiguresScreen = lazyRouteComponent(() => import('./screens/figures.js'), 'FiguresScreen')
 const DocumentsScreen = lazyRouteComponent(
   () => import('./screens/documents.js'),
   'DocumentsScreen',
@@ -331,6 +332,8 @@ export function officeRoutes() {
 
   const routes = [
     createRoute({ getParentRoute: () => office, path: '/', component: OverviewScreen }),
+    // The figures over time (#334), a view each behind a word of the address.
+    createRoute({ getParentRoute: () => office, path: '/auswertungen', component: FiguresScreen }),
     createRoute({
       getParentRoute: () => office,
       path: '/liegenschaften',

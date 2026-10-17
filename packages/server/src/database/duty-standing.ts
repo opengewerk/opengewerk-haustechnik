@@ -7,6 +7,7 @@ import {
   type DeadlineInterval,
   defectIsOpen,
   type Duty,
+  type DutyTerm,
   dutyDue,
   dutyInterval,
   type DutyStanding,
@@ -20,7 +21,9 @@ import {
   lifecycleStateOn,
   meetsTheDuty,
   nextAppointment,
+  replayedTerms,
   restsOn,
+  type Rhythm,
   standingEvidence,
   type TakenOverAppointment,
   takenOverFrom,
@@ -277,33 +280,42 @@ export interface DutyOnADay {
  * either. So a duty that was met and ends before it falls due again is met,
  * and never due.
  */
-export function dutyOnADay(
-  duty: CountedDuty,
-  on: {
-    readonly today: IsoDate
-    readonly life: readonly LifeEntry[]
-    readonly met: readonly IsoDate[]
-    /** The appointment its evidence was taken over with from a predecessor application (#130), if it was. */
-    readonly takenOver?: TakenOverAppointment | null
-    readonly leadDays: number
-    /** The maximum of its kind on a day; without one the duty counts with its own interval on every day. */
-    readonly ceiling?: Ceiling
-  },
-): DutyOnADay {
-  const restingOn = (day: IsoDate) =>
-    duty.assetId !== null && restsOn(lifecycleStateOn(on.life, day))
-  const resting = restingOn(on.today)
+/** What a duty is counted from on a day: its life cycle, its evidence taken over and the maximum of its kind. */
+export interface CountedOn {
+  readonly today: IsoDate
+  readonly life: readonly LifeEntry[]
+  readonly met: readonly IsoDate[]
+  /** The appointment its evidence was taken over with from a predecessor application (#130), if it was. */
+  readonly takenOver?: TakenOverAppointment | null
+  readonly leadDays: number
+  /** The maximum of its kind on a day; without one the duty counts with its own interval on every day. */
+  readonly ceiling?: Ceiling
+}
+
+/**
+ * How a duty is counted on a day: its counting and interval, the days its
+ * asset rests, the evidence taken over and the maximum of its kind. The one
+ * place the rhythm is put together, for the standing of a day and for the
+ * terms replayed for the figures over time (#334), so that both count alike.
+ */
+export function rhythmOf(duty: CountedDuty, on: CountedOn): Rhythm {
   const { ceiling } = on
-  const appointment = nextAppointment(
-    {
-      counting: duty.counting,
-      interval: dutyInterval(duty),
-      outOfServiceOn: restingOn,
-      takenOver: on.takenOver ?? null,
-      ...(ceiling === undefined ? {} : { ceiling: { on: ceiling, today: on.today } }),
-    },
-    on.met,
-  )
+
+  return {
+    counting: duty.counting,
+    interval: dutyInterval(duty),
+    outOfServiceOn: (day: IsoDate) =>
+      duty.assetId !== null && restsOn(lifecycleStateOn(on.life, day)),
+    takenOver: on.takenOver ?? null,
+    ...(ceiling === undefined ? {} : { ceiling: { on: ceiling, today: on.today } }),
+  }
+}
+
+export function dutyOnADay(duty: CountedDuty, on: CountedOn): DutyOnADay {
+  const rhythm = rhythmOf(duty, on)
+  const resting = rhythm.outOfServiceOn?.(on.today) ?? false
+  const { ceiling } = on
+  const appointment = nextAppointment(rhythm, on.met)
   const lastMetOn = on.met.at(-1) ?? null
   const shortened = ceiling === undefined ? null : cutShortTo(duty, ceiling(on.today))
 
@@ -407,6 +419,50 @@ export async function dutiesOnADay(
       }),
     }
   })
+}
+
+/**
+ * The terms these duties had up to a day, replayed from their evidence, by
+ * the id of each duty (#334): read like `dutiesOnADay` and counted with the
+ * same rhythm, so that a figure over time and the register say the same of a
+ * duty. A duty never met has none.
+ */
+export async function termsOfDuties(
+  tx: TenantTransaction,
+  today: IsoDate,
+  rows: readonly Duty[],
+  catalogue: Catalogue,
+): Promise<ReadonlyMap<string, readonly DutyTerm[]>> {
+  if (rows.length === 0) {
+    return new Map()
+  }
+
+  const whole = rows.length >= readWholeFrom
+  const assetIds = [
+    ...new Set(rows.flatMap((duty) => (duty.assetId === null ? [] : [duty.assetId]))),
+  ]
+  const lives = await lifecyclesByAsset(tx, whole ? undefined : assetIds)
+  const met = await meetingEvidenceByDuty(tx, whole ? undefined : rows.map((duty) => duty.id))
+  const states = await statesByProperty(tx)
+  const ceilings = ceilingsOf(catalogue)
+
+  return new Map(
+    rows.map((duty) => {
+      const evidenceOfIt = met.get(duty.id) ?? []
+      const state = states.get(duty.propertyId)
+      const days = evidenceOfIt.map((each) => each.performedOn)
+      const rhythm = rhythmOf(duty, {
+        today,
+        life: duty.assetId === null ? [] : (lives.get(duty.assetId) ?? []),
+        met: days,
+        takenOver: takenOverFrom(evidenceOfIt),
+        leadDays: 0,
+        ...(state === undefined ? {} : { ceiling: ceilings(duty.kind, state) }),
+      })
+
+      return [duty.id as string, replayedTerms(rhythm, days, { endsOn: duty.endsOn, today })]
+    }),
+  )
 }
 
 /** An asset on a day: the state of its life cycle, its condition, and its duties that have not ended. */

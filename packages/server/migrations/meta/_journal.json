@@ -463,6 +463,13 @@
       "when": 1792187338906,
       "tag": "0065_fault_reports_by_label",
       "breakpoints": true
+    },
+    {
+      "idx": 66,
+      "version": "7",
+      "when": 1792193607589,
+      "tag": "0066_report_right",
+      "breakpoints": true
     }
   ]
 }

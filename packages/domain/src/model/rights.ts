@@ -220,6 +220,14 @@ export const rights = [
   /** Keeping the contracts: making one, changing it, what it covers, its documents, and removing one no open duty names. */
   'contract.write',
   /**
+   * Looking at the figures over time (section 4.16 of the concept, #334): the
+   * fulfilment of the duties per month, the open defects by age and class,
+   * the faults by category and building, the activities by DIN 31051, and
+   * each as a table. Per place and never per person; in the areas of whoever
+   * looks.
+   */
+  'report.read',
+  /**
    * Taking what has changed onto a device, and sending what it queued up
    * without a network. The rights the foundation asks for on the routes of the
    * sync (ADR 0006). A different way in, not a different thing to do: what an
@@ -316,6 +324,7 @@ export const rightLabel: Readonly<Record<Right, string>> = {
   'contractor.write': 'Fremdfirmen pflegen',
   'contract.read': 'Verträge ansehen',
   'contract.write': 'Verträge führen',
+  'report.read': 'Auswertungen ansehen',
   'sync.read': 'Daten abgleichen',
   'sync.write': 'Änderungen senden',
   'push.write': 'Push auf den eigenen Geräten einrichten',
@@ -449,6 +458,8 @@ const technicalManagement: readonly Right[] = [
   'contractor.write',
   // The contracts with them, which a duty names (#329).
   'contract.write',
+  // The figures over time, per place and never per person (#334).
+  'report.read',
 ]
 
 /** In the order of the catalogue, which is the order a screen lists them in. */
