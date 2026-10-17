@@ -37,7 +37,7 @@ Ein Test hält außerdem dieses Dokument selbst gegen den Quelltext: jeder Beleg
 2. Das Änderungsprotokoll enthält auch, wann sich eine Person bei dem Betreiber an- und abgemeldet hat, und es lässt sich nach Person filtern. Unter „Zugänge“ sieht die Leitung, wann eine Person zuletzt angemeldet war und auf welchen Geräten (Abschnitte 3.3 und 8). Das sind die Stellen, an denen die Anwendung einer Überwachung am nächsten kommt. Dazu kommt das Pflichtenverzeichnis: es nennt zu jeder Pflicht, wer für sie verantwortlich ist, und wer es führt, kann es auf die Pflichten einer Person eingrenzen, auch auf die überfälligen (Abschnitte 3.4 und 5).
 3. Die Auswertungen über die Zeit zählen je Gebäude, Liegenschaft und Bereich und nie je Person: keine Rangliste, keine Zahl je Person (Abschnitt 5). Jede Liste des Büros lässt sich als Tabelle ausgeben, als Excel oder als CSV, mit dem, was sie unter ihrem Filter zeigt. Eine solche Datei verlässt die Anwendung. Wer in einer Liste als verantwortlich, zuständig oder ausführend genannt ist, steht in ihrer Tabelle nur für die Leitung; alle anderen bekommen die Tabelle ohne die Person. Die Zugänge und das Änderungsprotokoll gibt es als Tabelle nur für die Leitung. Die Leitung kann damit als Datei mitnehmen, was ihr die Listen am Bildschirm zeigen, auch wer wofür verantwortlich ist und was eine Person wann geändert hat (Abschnitt 5).
 4. Es gibt keine Erfassung von Arbeitszeit und keinen Standort. Ein Auftrag trägt eine Dauer als seinen Aufwand, eine Zahl für den ganzen Auftrag und nicht je Person (Abschnitte 3.4 und 6).
-5. Diese Fassung löscht nichts nach Ablauf einer Frist. Das Löschkonzept kommt in Phase 2 (Abschnitte 7 und 10).
+5. Nach Ablauf einer Frist löscht diese Fassung nur Nachweise: ist die Aufbewahrung eines Nachweises abgelaufen, wird er auf Bestätigung der Leitung zur leeren Hülle. Alles andere bleibt; das Löschkonzept für den Rest kommt in Phase 2 (Abschnitte 7 und 10).
 6. Was das Planungskonzept zusagt und diese Fassung noch nicht hält oder noch nicht durch einen Test hält, steht in Abschnitt 10.
 
 ---
@@ -114,7 +114,7 @@ Anhang B nennt jedes Feld der Datenbank, das auf eine Person zeigt. Dieser Absch
 - Mit der Unterschrift friert der Server auch den Rundgang im Ganzen ein, auch einen, der keine Pflicht erfüllt: seine Antworten mit den Fotos, die Mängel, die aus ihm hervorgingen, die Unterschriften mit Namen, Rolle, Zeitpunkt und Schriftzug oder dem Weg ohne ihn, wer ihn gegangen ist und in wessen Namen er eingetragen wurde. [K2.6, B148]
 - **Zusage:** Das PDF eines Nachweises und eines Rundgangs entsteht aus dem eingefrorenen Stand, nie aus den laufenden Daten. Einmal erzeugt, bleibt es dieselbe Datei, auch wenn sich später ein Name ändert; wird ein Nachweis für ungültig erklärt, entsteht es einmal neu, mit der Erklärung. Das PDF eines Nachweises bekommt, wer den Nachweis sieht; das eines Rundgangs, wer seine Seite sieht. [K2.6, B149, B150]
 - **Zusage:** Den eingefrorenen Stand eines Rundgangs und ein erzeugtes PDF ändert und löscht niemand, auch nicht der Eigentümer der Tabellen. [K2.6, B151]
-- **Zusage:** Eine Unterschrift, die Abnahme eines Auftrags und ein Nachweis werden von niemandem geändert oder gelöscht, auch nicht vom Eigentümer der Tabellen und nicht von einem Administrator der Datenbank. Kein Recht hebt das auf. [K2.6, K7, B26, B27, B39]
+- **Zusage:** Eine Unterschrift, die Abnahme eines Auftrags und ein Nachweis werden von niemandem geändert oder gelöscht, auch nicht vom Eigentümer der Tabellen und nicht von einem Administrator der Datenbank. Kein Recht hebt das auf. Die eine Ausnahme ist ein Nachweis, dessen Aufbewahrung abgelaufen ist: auf Bestätigung der Leitung wird er zur leeren Hülle (Abschnitt 7). [K2.6, K7, B26, B27, B39, B360]
 - Eine Berichtigung ist ein neuer Nachweis, der den alten nennt; beide bleiben. Eine Ungültigkeitserklärung nennt die Person und den Grund, und der Nachweis bleibt lesbar. Beides dürfen die Leitung, die Technische Leitung und die Objektleitung. [K2.6, B9, B28, B96]
 - **Zusage:** Den Bericht einer Fremdfirma oder Prüforganisation tragen die Leitung, die Technische Leitung und die Objektleitung ein, in ihren Bereichen. Die Haustechnik bekommt den Weg nicht angeboten, und der Server lehnt sie ab. Mit dem Eintragen entsteht der Nachweis: er nennt den Prüfer und seine Organisation, den Tag der Prüfung und das Ergebnis, trägt die Datei, wie sie hochgeladen wurde, und nennt, wer ihn eingetragen hat. [K4.4, K7, B9, B103, B104]
 - **Zusage:** Die Datei, auf die sich ein Nachweis stützt, gibt der Server nur über den Nachweis aus und nur an den, der ihn sieht: beim eigenen Betreiber und in den Bereichen der Person. Nimmt jemand das Dokument der Datei aus der Ablage, bleibt sie am Nachweis lesbar. [K2.6, K4.10, B105, B106]
@@ -415,12 +415,18 @@ Leitung und Technische Leitung sehen als Vorgabe alle Bereiche.
 
 ## 7. Wie lange aufbewahrt wird
 
-- Diese Fassung löscht nichts nach Ablauf einer Frist und macht nichts unkenntlich. Was in den Abschnitten 3 und 8 genannt ist, bleibt, solange die Instanz besteht. Das Löschkonzept mit Aufbewahrungsfristen kommt in Phase 2 (Abschnitt 10). [K2.6, K3, K9]
+- Nach Ablauf einer Frist löscht diese Fassung nur Nachweise, wie die folgenden Punkte es sagen. Was sonst in den Abschnitten 3 und 8 genannt ist, bleibt, solange die Instanz besteht. Das Löschkonzept für den Rest kommt in Phase 2 (Abschnitt 10). [K2.6, K3, K9]
 - **Zusage:** Ein Datensatz, den jemand entfernt, wird als entfernt markiert und nicht gelöscht. Die Anwendung hat in der Datenbank kein Recht, eine solche Zeile zu löschen. [K2.6, B34]
 - **Zusage:** Eine Zugehörigkeit, eine Einladung und die Zeilen der An- und Abmeldungen löscht die Anwendung nicht. [K7, B60]
 - Auch ein Konto löscht die Anwendung in dieser Fassung nicht: sein Name stünde sonst nirgends mehr, wo die Person unterschrieben hat. [K2.6, K7]
 - **Zusage:** Eine Sitzung endet mit dem Abmelden. Wird eine Zugehörigkeit gesperrt, endet sofort, was die Person bei diesem Betreiber offen hat, und nicht erst, wenn ihre Sitzung abläuft. [K7, K9, B47, B51]
-- Ein Nachweis nennt in seinem eingefrorenen Stand, wie lange er nach seiner Pflichtart aufzubewahren ist. In dieser Fassung handelt nichts danach. [K2.6, B29]
+- Ein Nachweis nennt in seinem eingefrorenen Stand, wie lange er nach seiner Pflichtart aufzubewahren ist: eine Zahl von Jahren, bis zur nächsten Prüfung oder solange die Anlage verwendet wird. [K2.6, B29]
+- **Zusage:** Wann die Aufbewahrung endet, rechnet die Datenbank, an einer Stelle für den Vorschlag und für das Löschen: Jahre ab dem Tag der Durchführung; bis zum Tag des nächsten Nachweises derselben Pflicht, der nicht für ungültig erklärt ist; bis zu dem Tag, ab dem die Anlage zurückgebaut ist. Stillgelegt ist nicht zurückgebaut. Ein Nachweis einer eigenen Pflicht bleibt bis zur nächsten Prüfung. Vorher wird nichts vorgeschlagen. [K2.6, B357]
+- **Zusage:** Unter „Aufbewahrung“ stellt die Leitung eine Zahl von Jahren ein, die jeder Nachweis mindestens bleibt; es gilt das spätere Ende, kürzer als die Regel bleibt keiner. [K2.6, B358]
+- **Zusage:** Ist die Aufbewahrung abgelaufen, schlägt die Anwendung das Löschen vor, unter „Aufbewahrung“ und als Frist bei der Leitung. Gelöscht wird erst, wenn jemand bestätigt, der den Betreiber führt. Ein Recht dafür gibt es nicht. Die Datenbank prüft selbst, dass die Person führt, dass sie sich selbst als bestätigend nennt und dass die Aufbewahrung abgelaufen ist; ist einer von mehreren gewählten Nachweisen nicht abgelaufen, wird keiner gelöscht. [K2.6, K7, B359]
+- **Zusage:** Jeden anderen Weg, einen Nachweis zu ändern oder zu löschen, lehnt die Datenbank weiter ab, auch für den Eigentümer der Tabellen. [K2.6, B360]
+- **Zusage:** Vom gelöschten Nachweis bleibt eine leere Hülle: Nummer, Pflicht, Tag, Ergebnis, Ort und der Vorgang, aus dem er kam, damit der Nummernkreis lückenlos bleibt und die Pflicht weiß, wann sie zuletzt erfüllt war. Es gehen der eingefrorene Stand mit Unterschriften, Namen, Antworten und Dateien, wer die Arbeit ausgeführt, geprüft und den Nachweis eingetragen hat, Prüfer und Organisation, die Fremdfirma, die Gründe und sein PDF. Eine Ungültigerklärung bleibt mit wer und wann, ihr Grund wird ein fester Satz. Die Bestätigung nennt, wer bestätigt hat und wann, nach welcher Aufbewahrung und bis zu welchem Tag. Die Seite des Nachweises sagt das, Datei, PDF, Berichtigung und Ungültigerklärung gibt es für die Hülle nicht mehr. [K2.6, K9, B361, B362]
+- **Zusage:** Beim Löschen schreibt das Änderungsprotokoll den Inhalt nicht noch einmal ab; die Bestätigung steht darin. Was es schon hält, bleibt, bis das Schwärzen kommt (Abschnitt 10). [K9, B361]
 - Eine Vertretung, die jemand vorzeitig beendet, wird gelöscht; wer sie eingetragen und wer sie beendet hat, behält das Änderungsprotokoll. [K2.8]
 - Das Protokoll der Zugriffe eines Prüfers löscht diese Fassung nicht; es bleibt mit der Zugehörigkeit, bis das Löschkonzept regelt, wie lange (Abschnitt 10). [K9]
 - Eine Sicherung enthält alles, was in der Datenbank steht. Aufbewahrt werden nach der Vorgabe vierzehn Generationen; wo sie liegen und ob sie verschlüsselt sind, stellt ein, wer die Instanz betreibt. [K3, B64]
@@ -453,7 +459,7 @@ Diese Bausteine gehören nach dem Fahrplan zu Phase 1 und sind noch nicht gebaut
 ## 10. Was das Planungskonzept zusagt und diese Fassung noch nicht hält
 
 - **Schwärzen im Änderungsprotokoll.** Das Planungskonzept sagt, dass ein personenbezogener Wert im Änderungsprotokoll geschwärzt wird und die Kette ganz bleibt. Gebaut ist das nicht: die Werte stehen im Klartext, und kein Eintrag lässt sich ändern. Es gehört zu den Datenschutzfunktionen von Phase 2. [K9, K12]
-- **Löschen mit dem Ende der Aufbewahrung.** Das Planungskonzept sagt, dass ein Nachweis mit dem Ende seiner Aufbewahrung gelöscht wird und der Name mit ihm, nach einem Vorschlag, den die Leitung bestätigt. Gebaut ist das nicht; es kommt in Phase 2. [K2.6, K9, K12]
+- **Was beim Löschen eines Nachweises noch bleibt.** Gebaut ist das Löschen des Nachweises selbst (Abschnitt 7). Es bleibt bis auf Weiteres: der Vorgang, aus dem er kam, mit seinen Unterschriften, Antworten, Notizen und Dokumenten, bis auch dessen Löschen gebaut ist; die Datei seines PDF im Dateispeicher, die keine Adresse mehr herausgibt; was das Änderungsprotokoll schon hält, bis zum Schwärzen; und jede Sicherung, bis sie selbst verfällt. [K2.6, K9, K12]
 - **Ende einer Zugehörigkeit.** Das Planungskonzept sagt, dass nach einer einstellbaren Frist die Angaben eines Kontos entfernt werden, die kein Nachweis mehr braucht. Gebaut ist die Sperre; das Entfernen kommt in Phase 2. [K9, K12]
 - **Aufbewahrung des Protokolls der Zugriffe.** Wie lange die Zeilen des Protokolls eines Prüfers bleiben, sagt das Planungskonzept nicht. Bis das Löschkonzept es regelt, bleiben sie. [K9, K12]
 - **Erzeugte Unterlagen.** Das Verzeichnis der Verarbeitungstätigkeiten, die Beschreibung der technischen und organisatorischen Maßnahmen und die erzeugte Verfahrensbeschreibung kommen in Phase 2, ebenso die Vorlage für eine Betriebs- oder Dienstvereinbarung. [K9, K12]
@@ -837,6 +843,12 @@ Pfade ohne Vorsatz liegen im Repository `opengewerk/opengewerk-haustechnik`. Pfa
 | B354 | Test | `packages/server/src/api/auditors.test.ts` | `are refused for a role that is not limited, and the auditor only with a last day` |
 | B355 | Test | `packages/server/src/api/auditors.test.ts` | `holds on its device what the duties hang on, within its limits, and nothing else` |
 | B356 | Test | `packages/server/src/api/auditors.test.ts` | `is held on every table with a property, past every route (review of #408)` |
+| B357 | Test | `packages/server/src/api/retention.test.ts` | `ends by each form of its rule, and before that nothing is proposed` |
+| B358 | Test | `packages/server/src/api/retention.test.ts` | `lasts longer with the setting of the operator, and never shorter` |
+| B359 | Test | `packages/server/src/api/retention.test.ts` | `is confirmed by whoever leads the operator alone, and the database checks it itself` |
+| B360 | Test | `packages/server/src/api/retention.test.ts` | `keeps an evidence as written on every other way, also as its owner` |
+| B361 | Test | `packages/server/src/api/retention.test.ts` | `leaves the empty shell, without its print, its reasons and a line in the change log` |
+| B362 | Test | `packages/server/src/api/retention.test.ts` | `says what stays of it, and hands out and takes nothing more` |
 
 ---
 
@@ -871,6 +883,7 @@ Jede Zeile ist ein Feld der Datenbank, das die Kennung eines Kontos hält. Der S
 | `evidence` | `performed_by` | wer die Arbeit ausgeführt hat, die ein Nachweis belegt |
 | `evidence` | `written_by` | wer einen Nachweis eingetragen hat |
 | `evidence_voidings` | `voided_by` | wer einen Nachweis für ungültig erklärt hat |
+| `evidence_emptyings` | `confirmed_by` | wer bestätigt hat, dass ein Nachweis nach Ablauf seiner Aufbewahrung gelöscht wird |
 | `fault_reports` | `reported_by` | wer eine Störung gemeldet hat; nur diese Person sieht die Meldung unter ihren eigenen, im Eingang steht sie ohne Namen |
 | `instance_changes` | `user_id` | wer etwas an der Instanz geändert hat |
 | `instance_operators` | `user_id` | wer die Instanz verwaltet |

@@ -15,6 +15,7 @@ import {
   pgEnum,
   pgTable,
   text,
+  integer,
   timestamp,
   unique,
   uniqueIndex,
@@ -73,12 +74,19 @@ export const evidence = pgTable(
     examinerOrganisation: text('examiner_organisation'),
     // The firm of the list whose report it is (#328), frozen with the rest; the organisation stays as written.
     contractorId: reference<'contractor'>('contractor_id'),
-    writtenBy: text('written_by').notNull(),
+    // None in the empty shell after the end of the retention (#340).
+    writtenBy: text('written_by'),
     writtenAt: timestamp('written_at', { withTimezone: true }).notNull().defaultNow(),
     replacesEvidenceId: reference<'evidence'>('replaces_evidence_id'),
     replacementReason: text('replacement_reason'),
     state: jsonb('state').$type<StoredEvidenceState>().notNull(),
     fingerprint: text('fingerprint').notNull(),
+    /**
+     * When the evidence became its empty shell after the end of its retention
+     * (#340, ADR 0004, addendum of 17.10.2026); who confirmed it and by which
+     * rule, `evidence_emptyings` says.
+     */
+    emptiedAt: timestamp('emptied_at', { withTimezone: true }),
     ...timestamps,
   },
   (table) => [
@@ -141,7 +149,7 @@ export const evidence = pgTable(
     // A reason with "not performed", and only then.
     check(
       'evidence_not_performed_with_a_reason',
-      sql`(${table.result} = 'not_performed') = (${table.resultReason} is not null)`,
+      sql`${table.emptiedAt} is not null or (${table.result} = 'not_performed') = (${table.resultReason} is not null)`,
     ),
     check('evidence_examiner_shaped', optionalTrimmed(table.examiner, evidenceLimits.examiner)),
     check(
@@ -164,11 +172,11 @@ export const evidence = pgTable(
     // predecessor names somebody who did it.
     check(
       'evidence_report_by_an_examiner',
-      sql`${table.origin} <> 'report' or ${table.examiner} is not null`,
+      sql`${table.emptiedAt} is not null or ${table.origin} <> 'report' or ${table.examiner} is not null`,
     ),
     check(
       'evidence_performed_by_somebody',
-      sql`${table.origin} = 'legacy' or num_nonnulls(${table.performedBy}, ${table.examiner}) >= 1`,
+      sql`${table.emptiedAt} is not null or ${table.origin} = 'legacy' or num_nonnulls(${table.performedBy}, ${table.examiner}) >= 1`,
     ),
     // One of the two did it: a person of the operator or an examiner from outside.
     check(
@@ -201,13 +209,25 @@ export const evidence = pgTable(
     // A correction names its reason, and only a correction has one.
     check(
       'evidence_replacement_with_a_reason',
-      sql`(${table.replacesEvidenceId} is null) = (${table.replacementReason} is null)`,
+      sql`${table.emptiedAt} is not null or (${table.replacesEvidenceId} is null) = (${table.replacementReason} is null)`,
     ),
     check(
       'evidence_replacement_reason_shaped',
       optionalTrimmed(table.replacementReason, evidenceLimits.replacementReason),
     ),
     check('evidence_not_its_own_replacement', sql`${table.replacesEvidenceId} <> ${table.id}`),
+    // Whoever wrote it down, until it is emptied (#340).
+    check(
+      'evidence_written_by_somebody',
+      sql`${table.emptiedAt} is not null or ${table.writtenBy} is not null`,
+    ),
+    // The empty shell holds nothing of a person and nothing of the content (#340).
+    check(
+      'evidence_emptied_is_empty',
+      sql`${table.emptiedAt} is null or (${table.state} = '{"version": 0}'::jsonb
+        and num_nonnulls(${table.performedBy}, ${table.examiner}, ${table.examinerOrganisation}, ${table.contractorId},
+                         ${table.writtenBy}, ${table.resultReason}, ${table.replacementReason}) = 0)`,
+    ),
   ],
 )
 
@@ -261,5 +281,82 @@ export const evidenceVoidings = pgTable(
     }),
     uniqueIndex('evidence_voided_once').on(table.tenantId, table.evidenceId),
     check('evidence_voidings_reason_shaped', trimmed(table.reason, evidenceLimits.voidingReason)),
+  ],
+)
+
+/**
+ * The confirmation that an evidence whose retention has ended is deleted
+ * (#340, ADR 0004, addendum of 17.10.2026): which, who confirmed it, and by
+ * which rule and longer retention of the operator it ended on which day, as
+ * the database found when it was confirmed. Written by whoever leads the
+ * operator, read, never changed and never removed; the database empties the
+ * evidence when the row is written, after it checked the end itself.
+ */
+export const evidenceEmptyings = pgTable(
+  'evidence_emptyings',
+  {
+    id: primaryId<'evidence_emptying'>(),
+    ...tenantColumn,
+    propertyId: reference<'property'>('property_id').notNull(),
+    areaId: reference<'area'>('area_id').notNull(),
+    evidenceId: reference<'evidence'>('evidence_id').notNull(),
+    confirmedBy: text('confirmed_by').notNull(),
+    confirmedAt: timestamp('confirmed_at', { withTimezone: true }).notNull().defaultNow(),
+    // Written by the database from what it found, not by the application.
+    retention: jsonb('retention'),
+    minimumYears: integer('minimum_years'),
+    endedOn: date('ended_on', { mode: 'string' }).notNull(),
+    ...timestamps,
+  },
+  (table) => [
+    tenantIsolation(table.tenantId),
+    withinAreas(),
+    // As far as its evidence is within the limits of an access from outside (#339).
+    withinLimits(table.propertyId, kindOfItsEvidence(table.evidenceId)),
+    unique('evidence_emptyings_tenant_id_key').on(table.tenantId, table.id),
+    // The area of what the row hangs on (ADR 0003, addendum of #306).
+    foreignKey({
+      columns: [table.tenantId, table.evidenceId, table.areaId],
+      foreignColumns: [evidence.tenantId, evidence.id, evidence.areaId],
+      name: 'evidence_emptyings_follow_their_evidence',
+    }).onUpdate('cascade'),
+    foreignKey({
+      columns: [table.tenantId, table.evidenceId, table.propertyId],
+      foreignColumns: [evidence.tenantId, evidence.id, evidence.propertyId],
+      name: 'evidence_emptyings_of_an_evidence_of_their_property',
+    }).onUpdate('cascade'),
+    foreignKey({
+      columns: [table.tenantId, table.confirmedBy],
+      foreignColumns: [memberships.tenantId, memberships.userId],
+      name: 'evidence_emptyings_by_somebody_here',
+    }),
+    uniqueIndex('evidence_emptied_once').on(table.tenantId, table.evidenceId),
+    check(
+      'evidence_emptyings_minimum_years_shaped',
+      sql`${table.minimumYears} is null or ${table.minimumYears} between 1 and 50`,
+    ),
+  ],
+)
+
+/**
+ * How long the evidence of an operator stays beyond the rule of its package
+ * (section 2.6 of the concept, #340): a number of years from the day it was
+ * performed, the later end counting. One row per operator that set one.
+ */
+export const evidenceRetentionSettings = pgTable(
+  'evidence_retention_settings',
+  {
+    id: primaryId<'evidence-retention-setting'>(),
+    ...tenantColumn,
+    minimumYears: integer('minimum_years'),
+    ...timestamps,
+  },
+  (table) => [
+    tenantIsolation(table.tenantId),
+    unique('evidence_retention_settings_once').on(table.tenantId),
+    check(
+      'evidence_retention_settings_minimum_years_shaped',
+      sql`${table.minimumYears} is null or ${table.minimumYears} between 1 and 50`,
+    ),
   ],
 )

@@ -130,6 +130,8 @@ export * from './model/consumption-figures.js'
 export * from './model/delegation.js'
 // The qualifications of the people, on the model of the foundation (#337).
 export * from './model/qualifications.js'
+// The retention of the evidence and its end (#340).
+export * from './model/retention.js'
 export * from './model/defect-register.js'
 // The faults reported by the people in a building, and the inbox of the area (#331).
 export * from './model/fault-report.js'

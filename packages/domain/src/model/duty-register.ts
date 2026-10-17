@@ -413,4 +413,6 @@ export interface DutyEvidenceEntry extends Pick<
    * predecessor application that names one (#130); left out for every other.
    */
   readonly nextDueOn?: IsoDate
+  /** Set for an evidence deleted after the end of its retention (#340), left out for every other. */
+  readonly emptied?: true
 }

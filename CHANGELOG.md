@@ -9,6 +9,13 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
 
 ### Hinzugefügt
 
+- Löschen eines Nachweises nach Ablauf seiner Aufbewahrung (#340, Abschnitt 2.6 des Konzepts, Nachtrag in ADR 0004):
+  die Datenbank rechnet das Ende nach der Regel der Pflichtart (Jahre, bis zur nächsten Prüfung, solange die Anlage
+  verwendet wird) und der längeren Aufbewahrung des Betreibers, die er unter „Einstellungen“, „Aufbewahrung“ setzt.
+  Abgelaufenes schlägt die Anwendung dort und als Frist zum Löschen vor; bestätigen kann, wer den Betreiber führt,
+  auch mehrere auf einmal, und die Datenbank prüft Person und Ende selbst (Migration `0071_evidence_retention`). Vom
+  Nachweis bleibt eine leere Hülle mit Nummer, Pflicht, Tag und Ergebnis; sein Stand mit Namen und Unterschriften und
+  sein PDF gehen. Warum: ein Name soll nur so lange stehen, wie die Vorschrift es verlangt (entschieden am 15.10.2026).
 - Lesender Zugang für Prüfer von außen (#339, Abschnitt 4.3 des Konzepts): die Rolle „Prüfer“ liest Pflichten und
   Nachweise mit den Prüfbescheinigungen, die das Nachweisverzeichnis anhängt, und gleicht nur ab, woran die Pflichten
   hängen. Sein Zugang hat immer einen letzten Tag (opengewerk/opengewerk#656, Migration `0069_membership_last_day`),

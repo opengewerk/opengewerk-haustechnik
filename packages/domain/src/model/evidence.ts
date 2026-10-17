@@ -431,7 +431,9 @@ export function readEvidenceState(stored: unknown): EvidenceState {
  * An evidence (ADR 0004): which duty was met on which day, with which result,
  * at the place of the duty; its number, where it came from, who did it, who
  * wrote it down and when, its frozen state and the fingerprint over it. The
- * row is never changed and never removed, by anybody.
+ * row is never changed and never removed, by anybody, but for the one
+ * exception of ADR 0004: after the end of its retention it becomes an empty
+ * shell with its number, duty, day and result (#340).
  */
 export interface Evidence extends TenantOwned {
   readonly id: EvidenceId
@@ -456,7 +458,8 @@ export interface Evidence extends TenantOwned {
   readonly examinerOrganisation: string | null
   /** The firm of the list whose report it is (#328); the organisation stays as it was written. */
   readonly contractorId: ContractorId | null
-  readonly writtenBy: string
+  /** Whoever wrote it down; nobody in the empty shell (#340). */
+  readonly writtenBy: string | null
   readonly writtenAt: Date
   /** The evidence of the same duty this one corrects, with the reason; both stay. */
   readonly replacesEvidenceId: EvidenceId | null
@@ -464,6 +467,8 @@ export interface Evidence extends TenantOwned {
   readonly state: StoredEvidenceState
   /** SHA-256 over the canonical form of the state, as 64 hexadecimal digits. */
   readonly fingerprint: string
+  /** When it became the empty shell after the end of its retention (#340); null until then. */
+  readonly emptiedAt: Date | null
 }
 
 export type EvidenceVoidingId = Id<'evidence_voiding'>

@@ -598,11 +598,13 @@ describe('a declaration of invalidity', () => {
         ),
       ),
     ).toBeNull()
+    // The reason the application may write only for an evidence it empties
+    // after the end of its retention (#340); on every other way the lock says no.
     expect(
       await refusalOf((tx) =>
         tx.execute(sql`update evidence_voidings set reason = 'Doch.' where tenant_id = ${tenant}`),
       ),
-    ).toBe(insufficientPrivilege)
+    ).toBe('HT006')
     expect(
       await refusalOf((tx) =>
         tx.execute(sql`delete from evidence_voidings where tenant_id = ${tenant}`),

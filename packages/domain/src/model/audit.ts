@@ -437,7 +437,25 @@ export const auditVocabulary: AuditVocabulary = {
         replacement_reason: 'Grund der Berichtigung',
         state: 'Eingefrorener Stand',
         fingerprint: 'Fingerabdruck',
+        emptied_at: 'Gelöscht nach Ablauf der Aufbewahrung am',
       },
+    },
+    // The confirmation that an evidence is deleted after the end of its retention (#340).
+    evidence_emptyings: {
+      label: 'Löschen eines Nachweises nach Ablauf der Aufbewahrung',
+      fields: {
+        evidence_id: 'Nachweis',
+        confirmed_by: 'Bestätigt von',
+        confirmed_at: 'Bestätigt am',
+        retention: 'Aufbewahrung',
+        minimum_years: 'Mindestens aufbewahren, Jahre',
+        ended_on: 'Aufbewahrung endete am',
+      },
+    },
+    // The longer retention of an operator (#340).
+    evidence_retention_settings: {
+      label: 'Aufbewahrung der Nachweise',
+      fields: { minimum_years: 'Mindestens aufbewahren, Jahre' },
     },
     // An evidence declared invalid (ADR 0004, point 15).
     evidence_voidings: {
@@ -758,6 +776,7 @@ export const auditVocabulary: AuditVocabulary = {
       delegation_id: 'Pflichtenübertragung',
       // The qualification whose expiry a deadline follows (#337).
       qualification_id: 'Qualifikation',
+      evidence_id: 'Nachweis',
       task_id: 'Aufgabe',
       property_id: 'Liegenschaft',
       area_id: 'Bereich',
@@ -1023,6 +1042,8 @@ export const auditVocabulary: AuditVocabulary = {
     // An evidence by its number, and a declaration of invalidity by its evidence.
     evidence: ['number'],
     evidence_voidings: ['evidence_id'],
+    evidence_emptyings: ['evidence_id'],
+    evidence_retention_settings: ['minimum_years'],
     // The frozen state of a round by its round.
     round_records: ['activity_id'],
     // A PDF by what it was made of.

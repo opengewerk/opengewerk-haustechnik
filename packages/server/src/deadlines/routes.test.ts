@@ -572,6 +572,14 @@ describe('the settings of a kind', () => {
         responsible: 'lead',
         leadDays: 60,
       }),
+      // The end of the retention of an evidence (#340).
+      expect.objectContaining({
+        key: 'evidence.retention_ends',
+        source: 'evidence',
+        actions: ['reminder'],
+        responsible: 'lead',
+        leadDays: 0,
+      }),
     ])
 
     await http()

@@ -2,22 +2,21 @@ import {
   addDays,
   addMonths,
   type AreaId,
+  type Asset,
   type AssetId,
   type AttachmentId,
-  type ContractId,
-  contractStanding,
-  type Asset,
   awaitsRemedy,
   type Catalogue,
+  type ContractId,
+  contractStanding,
   type DefectId,
   defectStatuses,
-  dutyInterval,
   type DutyDelegationId,
-  type QualificationId,
   type DutyId,
+  dutyInterval,
+  type EvidenceId,
   type FederalState,
   firstOpenPass,
-  roundMadeBy,
   holidayClosures,
   holidaysBetween,
   type IsoDate,
@@ -28,8 +27,10 @@ import {
   noticeBy,
   passSearchDays,
   type PropertyId,
+  type QualificationId,
   restsOn,
   roomTitle,
+  roundMadeBy,
   type RoundPlanId,
   takenOverFrom,
   termEnd,
@@ -55,18 +56,19 @@ import {
   buildings,
   contractors,
   contracts,
+  defects,
+  duties,
   dutyDelegationRevocations,
   dutyDelegations,
   dutyDelegationSignatures,
-  defects,
-  duties,
-  workOrders,
+  evidence,
   properties,
+  qualificationKinds,
+  qualifications,
   rooms,
   roundPlans,
   roundTemplates,
-  qualificationKinds,
-  qualifications,
+  workOrders,
 } from '../database/schema/index.js'
 
 /**
@@ -87,6 +89,8 @@ export interface DeadlineValues {
   readonly delegationId: DutyDelegationId | null
   /** The qualification of a person whose expiry it follows (#337), which lies in no area either. */
   readonly qualificationId: QualificationId | null
+  /** The evidence whose retention ends (#340). */
+  readonly evidenceId: EvidenceId | null
   /** None for the document of a contractor (#328) and for a contract (#329), which lie in no area. */
   readonly propertyId: PropertyId | null
   readonly areaId: AreaId | null
@@ -261,6 +265,7 @@ export function dutySource(options: {
           warrantyOrderId: null,
           delegationId: null,
           qualificationId: null,
+          evidenceId: null,
           propertyId: duty.propertyId,
           areaId: duty.areaId,
         },
@@ -334,6 +339,7 @@ export function defectSource(): SourceQuery<DeadlineValues> {
                 warrantyOrderId: null,
                 delegationId: null,
                 qualificationId: null,
+                evidenceId: null,
                 propertyId: defect.propertyId,
                 areaId: defect.areaId,
               },
@@ -475,6 +481,7 @@ export function roundPlanSource(options: {
                   warrantyOrderId: null,
                   delegationId: null,
                   qualificationId: null,
+                  evidenceId: null,
                   propertyId: plan.propertyId,
                   areaId: plan.areaId,
                 },
@@ -568,6 +575,7 @@ export function meterSource(options: {
                 warrantyOrderId: null,
                 delegationId: null,
                 qualificationId: null,
+                evidenceId: null,
                 propertyId: property.id,
                 areaId: property.areaId,
               },
@@ -662,6 +670,7 @@ export function documentSource(reviews: boolean): SourceQuery<DeadlineValues> {
                 warrantyOrderId: null,
                 delegationId: null,
                 qualificationId: null,
+                evidenceId: null,
                 propertyId: document.propertyId,
                 areaId: document.areaId,
               },
@@ -719,6 +728,7 @@ export function contractSource(
                 warrantyOrderId: null,
                 delegationId: null,
                 qualificationId: null,
+                evidenceId: null,
                 propertyId: null,
                 areaId: null,
               },
@@ -792,6 +802,7 @@ export function warrantySource(): SourceQuery<DeadlineValues> {
           warrantyOrderId: null,
           delegationId: null,
           qualificationId: null,
+          evidenceId: null,
           propertyId: asset.propertyId,
           areaId: asset.areaId,
         },
@@ -808,6 +819,7 @@ export function warrantySource(): SourceQuery<DeadlineValues> {
           warrantyOrderId: order.id,
           delegationId: null,
           qualificationId: null,
+          evidenceId: null,
           propertyId: order.propertyId,
           areaId: order.areaId,
         },
@@ -866,6 +878,7 @@ export function delegationSource(options: {
                 warrantyOrderId: null,
                 delegationId: row.id as DutyDelegationId,
                 qualificationId: null,
+                evidenceId: null,
                 propertyId: null,
                 areaId: null,
               },
@@ -926,8 +939,58 @@ export function qualificationSource(options: {
         warrantyOrderId: null,
         delegationId: null,
         qualificationId: row.id as QualificationId,
+        evidenceId: null,
         propertyId: null,
         areaId: null,
+      },
+    }))
+  }
+}
+
+/**
+ * The end of the retention of an evidence (sections 2.4 and 2.6, #340): every
+ * evidence that is not yet its empty shell and whose retention has ended on
+ * or before today, as the database counts it (`evidence_retention_ends`), the
+ * same function the confirmation asks. Named once it has come, so that the
+ * list holds what can be deleted and not the years ahead; a longer retention
+ * set later takes it out again, and the engine drops its deadline.
+ */
+export function evidenceSource(options: {
+  readonly today: () => IsoDate
+}): SourceQuery<DeadlineValues> {
+  return async (tx) => {
+    const ends = sql<string | null>`public.evidence_retention_ends(${evidence.id})`
+    const rows = await tx
+      .select({
+        id: evidence.id,
+        number: evidence.number,
+        propertyId: evidence.propertyId,
+        areaId: evidence.areaId,
+        endsOn: ends,
+      })
+      .from(evidence)
+      .where(and(isNull(evidence.emptiedAt), sql`${ends} <= ${options.today()}::date`))
+
+    return rows.map((row): ExpectedDeadline<DeadlineValues> => ({
+      sourceId: row.id,
+      sourceLabel: row.number,
+      anchorOn: row.endsOn as IsoDate,
+      namedDueOn: row.endsOn as IsoDate,
+      naturalUserId: null,
+      values: {
+        dutyId: null,
+        defectId: null,
+        roundPlanId: null,
+        meterPropertyId: null,
+        attachmentId: null,
+        contractId: null,
+        warrantyAssetId: null,
+        warrantyOrderId: null,
+        delegationId: null,
+        qualificationId: null,
+        evidenceId: row.id,
+        propertyId: row.propertyId,
+        areaId: row.areaId,
       },
     }))
   }

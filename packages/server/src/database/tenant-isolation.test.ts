@@ -107,6 +107,8 @@ function rowsOf(tenant: Tenant): readonly Row[] {
   const plan = randomUUID()
   const workOrder = randomUUID()
   const evidence = randomUUID()
+  // An earlier evidence of the duty, emptied after the end of its retention (#340).
+  const earlier = randomUUID()
   const serviceReport = randomUUID()
   const article = randomUUID()
   const supplier = randomUUID()
@@ -657,6 +659,32 @@ function rowsOf(tenant: Tenant): readonly Row[] {
         ...writtenColumns(tenant.userId, '2025-03-14', 'without_defects'),
       },
     },
+    // Its retention ended with the evidence above, and whoever leads confirmed it (#340).
+    {
+      table: 'evidence',
+      values: {
+        id: earlier,
+        tenant_id: tenant.id,
+        property_id: property,
+        area_id: area,
+        duty_id: duty,
+        performed_on: '2024-03-14',
+        result: 'without_defects',
+        ...writtenColumns(tenant.userId, '2024-03-14', 'without_defects'),
+      },
+    },
+    {
+      table: 'evidence_emptyings',
+      values: {
+        tenant_id: tenant.id,
+        property_id: property,
+        area_id: area,
+        evidence_id: earlier,
+        confirmed_by: tenant.userId,
+        ended_on: '2025-03-14',
+      },
+    },
+    { table: 'evidence_retention_settings', values: { tenant_id: tenant.id, minimum_years: null } },
     {
       table: 'deadlines',
       values: {

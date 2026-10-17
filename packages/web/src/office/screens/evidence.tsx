@@ -1,12 +1,16 @@
 import {
   correctionProblems,
   countingLabel,
+  type EmptiedEvidence,
+  type EmptiedEvidencePage,
   evidenceLimits,
   evidenceOriginLabel,
   type EvidencePage,
+  type EvidenceReading,
   evidenceResultLabel,
   evidenceResults,
   intervalWords,
+  isEmptied,
   legacyNote,
   originsFromAnActivity,
   type RecordState,
@@ -14,8 +18,8 @@ import {
   signatureRoleLabel,
   signatureWayLabel,
   type StatedPlace,
-  type StatedRetention,
   statedReasonProblem,
+  type StatedRetention,
 } from '@opengewerk/haustechnik-domain'
 import {
   Button,
@@ -50,7 +54,7 @@ import {
 } from '@opengewerk/platform-web/sync'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useNavigate, useParams } from '@tanstack/react-router'
-import { Ban, History as TakenOver, Lock, Pencil } from 'lucide-react'
+import { Ban, History as TakenOver, Lock, Pencil, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 
 import { placePath } from '../../app/place-path.js'
@@ -69,7 +73,7 @@ import { dutyQuery } from './duty.js'
 export function evidenceQuery(id: string) {
   return {
     queryKey: ['evidence', 'page', id],
-    queryFn: () => request<EvidencePage>(`/evidence/${id}`),
+    queryFn: () => request<EvidenceReading>(`/evidence/${id}`),
   } as const
 }
 
@@ -83,6 +87,15 @@ export function evidenceFilePath(evidenceId: string, position: number): string {
 }
 
 export const evidencePageWords = {
+  emptied: (emptied: EmptiedEvidence) =>
+    `Gelöscht am ${moment(emptied.at)} nach Ablauf der Aufbewahrung (${emptied.retention}, endete am ${date(emptied.endedOn)}), bestätigt von ${emptied.confirmedBy}. Inhalt, Unterschriften, Namen und Dateien sind gelöscht.`,
+  emptiedMark: 'Gelöscht',
+  remains: 'Was bleibt',
+  forTheDeadline: 'Für die Frist',
+  emptiedDeadline:
+    'Der Tag zählt für die Frist der Pflicht weiter wie vorher. Wiederherstellen lässt sich ein gelöschter Nachweis nicht.',
+  emptiedVoided: (voidedAt: string, voidedBy: string) =>
+    `Für ungültig erklärt am ${moment(voidedAt)} von ${voidedBy}. Für die Frist zählt dieser Nachweis nicht.`,
   notThere:
     'Diesen Nachweis gibt es nicht, oder er liegt in einem Bereich, den dieser Zugang nicht sieht.',
   noConnection: 'Ein Nachweis kommt vom Server. Gerade ist keine Verbindung da.',
@@ -156,7 +169,10 @@ export function EvidenceScreen() {
   const rooms = useRecords('rooms')
   const assets = useRecords('assets')
   const catalogue = useCatalogue()
-  const pdf = usePdf(evidencePdfAddress(evidenceId ?? ''), `Nachweis ${shown?.state.number ?? ''}`)
+  const pdf = usePdf(
+    evidencePdfAddress(evidenceId ?? ''),
+    `Nachweis ${shown === undefined ? '' : isEmptied(shown) ? shown.number : shown.state.number}`,
+  )
 
   if (shown === undefined || evidenceId === undefined) {
     const gone = page.error instanceof RequestRefused && page.error.status === 404
@@ -177,7 +193,6 @@ export function EvidenceScreen() {
     )
   }
 
-  const { state } = shown
   const byId = (records: readonly RecordState[], id: string | null) =>
     id === null ? null : (records.find((record) => record['id'] === id) ?? null)
   const property = byId(properties, shown.place.propertyId)
@@ -194,6 +209,15 @@ export function EvidenceScreen() {
         officePlaces,
       )
     : [dutyRegisterPlace]
+
+  // After the end of its retention, the shell alone (#340).
+  if (isEmptied(shown)) {
+    return (
+      <EmptiedEvidenceView page={shown} crumbs={crumbs} asset={byId(assets, shown.place.assetId)} />
+    )
+  }
+
+  const { state } = shown
   const open = shown.standing === 'counts' || shown.standing === 'does_not_meet'
   const voided = shown.voiding !== null
   const sub = [
@@ -870,5 +894,76 @@ export function VoidEvidenceDialog({
         </DialogActions>
       </form>
     </Dialog>
+  )
+}
+
+/**
+ * An evidence after the end of its retention (#340), the board "Nachweis nach
+ * Ablauf der Aufbewahrung gelöscht (2.6)": the empty shell with its number,
+ * duty, day and result, and when and on whose confirmation the rest went.
+ * Nothing to print, correct or declare invalid any more.
+ */
+function EmptiedEvidenceView({
+  page,
+  crumbs,
+  asset,
+}: {
+  readonly page: EmptiedEvidencePage
+  readonly crumbs: Parameters<typeof PageHead>[0]['crumbs']
+  readonly asset: RecordState | null
+}) {
+  const sub =
+    asset === null
+      ? ''
+      : [asset['number'], asset['name']].filter((part) => typeof part === 'string').join(' ')
+  const facts: Fact[] = [
+    { label: 'Nummer', value: <span className="numeric">{page.number}</span> },
+    {
+      label: 'Pflicht',
+      value: (
+        <Link to={dutyPlaces.duty(page.dutyId)} className={factLink}>
+          {page.dutyTitle}
+        </Link>
+      ),
+    },
+    { label: 'Tag', value: date(page.performedOn) },
+    { label: 'Ergebnis', value: <ResultMark result={page.result} /> },
+  ]
+
+  return (
+    <Screen>
+      <PageHead
+        title={page.dutyTitle}
+        crumbs={crumbs}
+        phoneBack={{ to: dutyPlaces.duty(page.dutyId), label: page.dutyTitle }}
+        sub={sub === '' ? undefined : sub}
+        badges={
+          <>
+            <NumberBadge>{page.number}</NumberBadge>
+            <Status tone="neutral" icon={Trash2}>
+              {evidencePageWords.emptiedMark}
+            </Status>
+          </>
+        }
+      />
+      <div className="grid items-start gap-3.5 lg:grid-cols-[minmax(0,1fr)_310px]">
+        <div className="flex min-w-0 flex-col gap-3.5">
+          <NoteBox icon={Trash2}>{evidencePageWords.emptied(page.emptied)}</NoteBox>
+          {page.voided === null ? null : (
+            <NoteBox tone="conflict" icon={Ban}>
+              {evidencePageWords.emptiedVoided(page.voided.voidedAt, page.voided.voidedBy)}
+            </NoteBox>
+          )}
+          <Panel title={evidencePageWords.remains}>
+            <FactList keyWidth={110} facts={facts} />
+          </Panel>
+        </div>
+        <Panel title={evidencePageWords.forTheDeadline}>
+          <p className="text-[12px] leading-[1.45] text-ink-muted">
+            {evidencePageWords.emptiedDeadline}
+          </p>
+        </Panel>
+      </div>
+    </Screen>
   )
 }

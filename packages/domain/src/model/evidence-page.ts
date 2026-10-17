@@ -15,6 +15,7 @@ import {
 } from './evidence.js'
 import type { Problems } from './fields.js'
 import type { BuildingId, PropertyId, RoomId } from './location.js'
+import type { EmptiedEvidence } from './retention.js'
 
 /** Another evidence an evidence names: the one it replaces, or the one that replaced it. */
 export interface EvidenceLink {
@@ -61,6 +62,32 @@ export interface EvidencePage {
   readonly replaces: EvidenceLink | null
   readonly replacedBy: EvidenceLink | null
   readonly voiding: ShownVoiding | null
+}
+
+/**
+ * The page of an evidence after the end of its retention (#340, decided on
+ * 15.10.2026): the empty shell with its number, duty, day and result, and
+ * when and on whose confirmation the rest was deleted. A declaration of
+ * invalidity stays with who and when; its reason went with the rest.
+ */
+export interface EmptiedEvidencePage {
+  readonly id: EvidenceId
+  readonly number: string
+  readonly dutyId: DutyId
+  readonly dutyTitle: string
+  readonly place: EvidencePage['place']
+  readonly performedOn: IsoDate
+  readonly result: EvidenceResult
+  readonly standing: EvidenceStanding
+  readonly emptied: EmptiedEvidence
+  readonly voided: Omit<ShownVoiding, 'reason'> | null
+}
+
+/** What `GET /evidence/:id` answers: the page of an evidence, or what stays of it. */
+export type EvidenceReading = EvidencePage | EmptiedEvidencePage
+
+export function isEmptied(reading: EvidenceReading): reading is EmptiedEvidencePage {
+  return 'emptied' in reading
 }
 
 /**
