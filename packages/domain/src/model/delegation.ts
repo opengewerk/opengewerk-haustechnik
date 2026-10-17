@@ -29,6 +29,25 @@ export const delegationScopeLabel: Readonly<Record<DelegationScope, string>> = {
   cost_groups: 'Kostengruppen',
 }
 
+/**
+ * What a delegation covers, in words, as the list, its page and its PDF say
+ * it: "Alle Pflichten", "Paket Elektro", "Kostengruppen 440, 470". A package
+ * is named by its title where the catalogue is at hand.
+ */
+export function delegationScopeWords(
+  entry: Pick<DelegationTerms, 'scope' | 'packages' | 'costGroups'>,
+  titleOf: (packageName: string) => string = (packageName) => packageName,
+): string {
+  switch (entry.scope) {
+    case 'all':
+      return delegationScopeLabel.all
+    case 'packages':
+      return `${entry.packages.length === 1 ? 'Paket' : 'Pakete'} ${entry.packages.map(titleOf).join(', ')}`
+    case 'cost_groups':
+      return `${entry.costGroups.length === 1 ? 'Kostengruppe' : 'Kostengruppen'} ${entry.costGroups.join(', ')}`
+  }
+}
+
 /** Who signs a delegation: the Leitung for the operator, and the person it goes to. */
 export const delegationRoles = ['operator', 'delegate'] as const
 

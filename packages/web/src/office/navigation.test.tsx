@@ -37,6 +37,7 @@ const whole = [
   'Pflichtenverzeichnis',
   'Fristen',
   'Prüfungen',
+  'Übertragungen',
   'Rundgänge',
   'Störungen',
   'Mängel',
@@ -59,7 +60,7 @@ describe('the navigation of the board', () => {
     expect(officeNavigation.map((group) => group.entries.map((place) => place.label))).toEqual([
       ['Übersicht', 'Auswertungen'],
       ['Liegenschaften', 'Anlagen', 'Zähler', 'Dokumente'],
-      ['Pflichtenverzeichnis', 'Fristen', 'Prüfungen'],
+      ['Pflichtenverzeichnis', 'Fristen', 'Prüfungen', 'Übertragungen'],
       [
         'Rundgänge',
         'Störungen',
@@ -87,23 +88,27 @@ describe('what a role is offered once every screen is built', () => {
     expect(offeredTo('management')).toEqual(whole)
   })
 
-  it('is everything for the Technische Leitung', () => {
-    expect(offeredTo('technical_management')).toEqual(whole)
+  // The delegations of duties are the Leitung's alone (#336).
+  it('is everything but the delegations for the Technische Leitung', () => {
+    expect(offeredTo('technical_management')).toEqual(
+      whole.filter((label) => label !== 'Übertragungen'),
+    )
   })
 
   // The figures over time are for the Leitung and the Technische Leitung (#334).
-  it('is everything but the deadlines and the figures for the Objektleitung', () => {
+  it('is everything but the deadlines, the delegations and the figures for the Objektleitung', () => {
     expect(offeredTo('site_management')).toEqual(
-      whole.filter((label) => !['Fristen', 'Auswertungen'].includes(label)),
+      whole.filter((label) => !['Fristen', 'Übertragungen', 'Auswertungen'].includes(label)),
     )
   })
 
   // As the board says it: "der Rolle Haustechnik fehlen Fristen und
   // Einstellungen". The settings are the frame's and stand in the tests below.
-  it('is everything but the deadlines, the faults, the contracts and the figures for the Haustechnik', () => {
+  it('is everything but the deadlines, the delegations, the faults, the contracts and the figures for the Haustechnik', () => {
     expect(offeredTo('technician')).toEqual(
       whole.filter(
-        (label) => !['Fristen', 'Störungen', 'Verträge', 'Auswertungen'].includes(label),
+        (label) =>
+          !['Fristen', 'Übertragungen', 'Störungen', 'Verträge', 'Auswertungen'].includes(label),
       ),
     )
   })
@@ -224,7 +229,15 @@ describe('the navigation of the office as it is built today', () => {
     'Einstellungen',
   ]
   const today: readonly (readonly [RoleKey, readonly string[]])[] = [
-    ['management', withDeadlines],
+    // The delegations of duties, for the Leitung alone (#336).
+    [
+      'management',
+      [
+        ...withDeadlines.slice(0, withDeadlines.indexOf('Prüfungen') + 1),
+        'Übertragungen',
+        ...withDeadlines.slice(withDeadlines.indexOf('Prüfungen') + 1),
+      ],
+    ],
     ['technical_management', withDeadlines],
     [
       'site_management',

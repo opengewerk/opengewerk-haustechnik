@@ -64,7 +64,7 @@ describe('the catalogue of rights', () => {
       room: ['record'],
       asset: ['read', 'record', 'write'],
       reading: ['write'],
-      duty: ['read', 'write'],
+      duty: ['read', 'write', 'delegate'],
       deadline: ['read', 'write'],
       template: ['write'],
       activity: ['read', 'perform', 'write', 'accept'],
@@ -232,6 +232,7 @@ describe('"Technische Leitung"', () => {
   it('may not say who works for the tenant, set anything for it or read its change log', () => {
     expect(mayNot('technical_management')).toEqual([
       'audit.read',
+      'duty.delegate',
       'mail.read',
       'mail.write',
       'membership.read',
@@ -294,6 +295,7 @@ describe('"Objektleitung"', () => {
       'contractor.write',
       'deadline.read',
       'deadline.write',
+      'duty.delegate',
       'duty.write',
       'location.write',
       'mail.read',
@@ -347,6 +349,7 @@ describe('"Haustechnik"', () => {
       'deadline.write',
       'defect.write',
       'document.remove',
+      'duty.delegate',
       'duty.write',
       'evidence.write',
       'fault.accept',

@@ -68,6 +68,7 @@ import {
   intervalToCheck,
   intervalWords,
   isAllowed,
+  lastDayOf,
   type IsoDate,
   keepingProblems,
   missingRight,
@@ -92,7 +93,8 @@ import { and, asc, desc, eq, inArray, isNull, notInArray } from 'drizzle-orm'
 
 import { underWayFor } from '../activities/for-duty.js'
 import { CATALOGUE } from '../catalogue.js'
-import { applyDelegations, chosenResponsible } from '../delegations/apply.js'
+import { applyDelegations, chosenResponsible, coveringOf } from '../delegations/apply.js'
+import { heldDelegations, standingOf } from '../delegations/reading.js'
 import { dutiesOnADay, dutyTitle } from '../database/duty-standing.js'
 import { contractsOfDuties } from '../database/duty-contracts.js'
 import { intervalDocumentsOf } from '../database/interval-documents.js'
@@ -104,6 +106,7 @@ import {
   attachmentVersions,
   buildings,
   duties,
+  dutyDelegations,
   dutyDismissals,
   evidence,
   memberships,
@@ -1269,6 +1272,14 @@ export class DutiesController {
         document: (await intervalDocumentsOf(tx, [duty])).get(duty.id) ?? null,
         contract: (await contractsOfDuties(tx, [duty], today)).get(duty.id) ?? null,
         place: await updatePlaceOf(tx, duty),
+        // The delegations that cover it today, and the one its person comes from (#336).
+        covering: await coveringOf(tx, this.catalogue, today, duty),
+        delegation:
+          duty.responsibleDelegationId === null
+            ? null
+            : ((
+                await heldDelegations(tx, eq(dutyDelegations.id, duty.responsibleDelegationId))
+              )[0] ?? null),
       }
     })
     const { duty, registered, activity, document, contract } = read
@@ -1290,6 +1301,15 @@ export class DutiesController {
       removable: read.removable,
       asset: read.asset,
       responsible: named(duty.responsibleUserId),
+      delegation:
+        read.delegation === null
+          ? null
+          : { id: read.delegation.delegation.id, lastDay: lastDayOf(standingOf(read.delegation)) },
+      covering: read.covering.map((held) => ({
+        id: held.delegation.id,
+        delegateUserId: held.delegation.delegateUserId,
+        delegateName: held.delegation.delegateName,
+      })),
       // The document itself is for whoever may look at documents; that the
       // interval wants checking, the duty says to whoever reads it.
       intervalDocument: isAllowed(identity, 'document.read') ? document : null,

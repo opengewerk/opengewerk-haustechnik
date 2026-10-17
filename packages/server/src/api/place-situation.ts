@@ -224,13 +224,14 @@ export async function buildingSituation(
     throw new NotFoundException('Dieses Gebäude gibt es nicht oder nicht mehr.')
   }
 
-  const counts = registerPage(
+  const page = registerPage(
     (await registeredEntries(tx, catalogue, today, { buildingId })) ?? [],
     {},
     today,
     0,
     0,
-  ).counts
+  )
+  const { counts } = page
   const openDefects = isAllowed(identity, 'defect.read')
     ? (
         await defectRegister(
@@ -259,6 +260,8 @@ export async function buildingSituation(
     openFaults: isAllowed(identity, 'fault.accept')
       ? ((await openFaultsByBuilding(tx, [building.id])).get(building.id) ?? 0)
       : null,
+    // The duties nobody answers for (#336).
+    withoutResponsible: page.withoutResponsible ?? 0,
   }
 }
 

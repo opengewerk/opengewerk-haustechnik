@@ -108,6 +108,7 @@ const everywhere: Overview = {
   dueIn30Days: 7,
   dueIn90Days: 18,
   neverRecorded: 5,
+  withoutResponsible: 2,
   reportsMissing: 2,
   defectsOverdue: 2,
   soon: [electrics, lighting, roof],
@@ -130,6 +131,7 @@ const inTheNorth: Overview = {
   dueIn30Days: 1,
   dueIn90Days: 2,
   neverRecorded: 1,
+  withoutResponsible: 0,
   reportsMissing: 0,
   defectsOverdue: 0,
   soon: [lighting],
@@ -200,6 +202,7 @@ describe('the overview', () => {
       '7In 30 Tagen fällig > /pflichten?termin=in_30_days',
       '18In 90 Tagen fällig > /pflichten?termin=in_90_days',
       '5Nie erfasstPflicht ohne Nachweis > /pflichten?zustand=never_recorded',
+      '2Ohne VerantwortlichenPflicht ohne Person > /pflichten?verantwortlich=none',
       '2Nachweis fehltFremdfirma, Bericht fehlt > /pruefungen?stand=report_missing',
       '2Mängel über Frist > /maengel?liste=overdue',
     ])
@@ -232,6 +235,7 @@ describe('the overview', () => {
       '1In 30 Tagen fällig > /pflichten?termin=in_30_days&bereich=a-nord',
       '2In 90 Tagen fällig > /pflichten?termin=in_90_days&bereich=a-nord',
       '1Nie erfasstPflicht ohne Nachweis > /pflichten?zustand=never_recorded&bereich=a-nord',
+      '0Ohne VerantwortlichenPflicht ohne Person > /pflichten?bereich=a-nord&verantwortlich=none',
       '0Nachweis fehltFremdfirma, Bericht fehlt > /pruefungen?stand=report_missing&bereich=a-nord',
       '0Mängel über Frist > /maengel?liste=overdue&bereich=a-nord',
     ])
@@ -346,6 +350,7 @@ describe('the overview', () => {
       '7In 30 Tagen fällig',
       '18In 90 Tagen fällig',
       '5Nie erfasstPflicht ohne Nachweis',
+      '2Ohne VerantwortlichenPflicht ohne Person',
     ])
     expect(screen.queryByRole('region', { name: 'Mängel über ihrer Frist' })).toBeNull()
   })

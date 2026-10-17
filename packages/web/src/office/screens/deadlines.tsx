@@ -22,6 +22,7 @@ import { Link } from '@tanstack/react-router'
 
 import { useAreas } from '../../session/areas.js'
 import { contractPlaces } from '../contract-addresses.js'
+import { delegationPlaces } from '../delegation-addresses.js'
 import { contractorPlaces } from '../contractor-addresses.js'
 import { defectPlaces } from '../defect-addresses.js'
 import { documentPlaces } from '../document-addresses.js'
@@ -100,6 +101,9 @@ function sourceOf(deadline: DutyDeadlineView): { readonly href: string; readonly
     case 'contract':
       // The contract whose day to give notice or end it is (#329).
       return { href: contractPlaces.contract(deadline.contract.id), name }
+    case 'delegation':
+      // The delegation of duties that ends (#336).
+      return { href: delegationPlaces.delegation(deadline.delegation.id), name }
     case 'warranty':
       // The accepted work order or the asset whose warranty ends (#329).
       return {

@@ -108,6 +108,7 @@ function entry(id: string, further: Readonly<Record<string, unknown>> = {}): Dut
     contractId: null,
     contractEnded: false,
     contract: null,
+    responsibleDelegationId: null,
     asset: {
       id: 'a-lift',
       number: 'AN-00012',
@@ -312,7 +313,7 @@ describe('the register of duties', () => {
       'Aufzug SchulhausAN-00012 · Schulzentrum Am Lindenhain',
       'Hauptprüfung der Aufzugsanlage§ 16 der Probeverordnung',
       '24 MonateHöchstfrist',
-      'Dennis RothFremdfirma',
+      'Dennis Rothohne ÜbertragungFremdfirma',
       '15.09.2024Altbestand',
       '01.09.2026',
       'Überfällig',
@@ -322,7 +323,7 @@ describe('the register of duties', () => {
       'E.14 HeizraumRaum · Schulzentrum Am Lindenhain',
       'Heizraum frei von BrandlastenEigene Festlegung, Brandschutzordnung Teil C',
       '3 MonateEigene Pflicht',
-      'Dennis Roth',
+      'Dennis Rothohne Übertragung',
       'NW-2026-0004112.03.2026',
       '28.10.2026',
       'Fällig',
@@ -331,7 +332,7 @@ describe('the register of duties', () => {
       'Aufzug SchulhausAN-00012 · Schulzentrum Am Lindenhain',
       'WartungVorgabe des Herstellers, Betriebsanleitung',
       '12 MonateEigene Pflicht',
-      'Dennis RothEigene Leute',
+      'Dennis Rothohne ÜbertragungEigene Leute',
       'NW-2026-0004112.03.2026',
       '12.03.2027',
       'Erfüllt bis 12.03.2027',
@@ -341,7 +342,7 @@ describe('the register of duties', () => {
       'Halle 1Gebäude · Werkhof Nord',
       'Dachrinnen reinigenVorgabe des Herstellers, Betriebsanleitung',
       '180 TageEigene Pflicht',
-      'Dennis RothEigene Leute',
+      'Dennis Rothohne ÜbertragungEigene Leute',
       'NW-2026-0004112.03.2026',
       'keiner',
       'Ruht',
@@ -793,7 +794,7 @@ describe('the register of duties', () => {
 
     expect(boxes.map((box) => box.textContent)).toEqual([
       'ZwischenprüfungAufzug Schulhaus · Schulzentrum Am Lindenhain · 12 Monate · Niemand benanntNie erfasst',
-      'Heizraum frei von BrandlastenE.14 Heizraum · Schulzentrum Am Lindenhain · 3 Monate · Dennis RothFällig',
+      'Heizraum frei von BrandlastenE.14 Heizraum · Schulzentrum Am Lindenhain · 3 Monate · Dennis Roth (ohne Übertragung)Fällig',
     ])
     expect(within(list).getByRole('link', { name: 'Zwischenprüfung' }).getAttribute('href')).toBe(
       '/pflichten/d-interim',

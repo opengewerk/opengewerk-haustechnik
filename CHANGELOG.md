@@ -9,6 +9,18 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
 
 ### Hinzugefügt
 
+- Pflichtenübertragung (#336, Abschnitt 4.3 des Konzepts): unter „Übertragungen“ überträgt die Leitung einer Person
+  die Pflichten in Bereichen, die diese Person sieht, ganz oder für bestimmte Pakete oder Kostengruppen, mit Aufgaben,
+  Befugnissen, Beginn und Ende. Sie gilt mit zwei Unterschriften, der Leitung auf der Seite der Übertragung und der beauftragten Person unter
+  „Konto“, wo auch deren Ausfertigung als PDF liegt; ab der ersten Unterschrift ändert sie niemand mehr. Solange sie gilt,
+  ist die beauftragte Person für jede Pflicht in ihrem Umfang verantwortlich; endet sie oder wird sie mit Grund
+  widerrufen, sind diese Pflichten ohne Verantwortlichen, und die Übersicht, das Lagebild und die Liste der
+  Übertragungen zählen sie. Decken zwei Übertragungen eine Pflicht, wählt das Büro an der Pflicht eine ihrer Personen.
+  Wer ohne Übertragung benannt ist, trägt im Pflichtenverzeichnis und an der Pflicht den Hinweis „ohne Übertragung“, und
+  das Ende einer Übertragung ist eine Frist der Leitung. Warum: der Betreiber muss die Übertragung seiner Pflichten
+  schriftlich und unterschrieben nachweisen können, und eine Pflicht ohne Verantwortlichen soll auffallen, statt still
+  weiterzulaufen (entschieden am 15.10.2026). Das neue Recht „Pflichten übertragen“ hat nur die Leitung; bestehende
+  Betreiber bekommen es mit der Migration `0067_duty_delegations`.
 - Verbrauch der Zähler in den Auswertungen (#335, Abschnitt 4.9 des Konzepts): ein Reiter „Verbrauch“ mit dem Verlauf
   eines Mediums je Monat, Quartal oder Jahr und dem Vorjahr, den Summen je Gebäude und je Messstelle, auch als Tabelle.
   Ein Unterzähler zählt einmal, der Hauptzähler mit seinem Rest; ein Zählertausch rechnet über beide Geräte, eine

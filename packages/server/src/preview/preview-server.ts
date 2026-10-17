@@ -59,6 +59,7 @@ import { giveSampleTemplates } from './sample-templates.js'
 import { giveSampleMeters } from './sample-meters.js'
 import { giveSampleFaults, giveSampleWork } from './sample-work.js'
 import { writeSampleStandings } from './sample-standings.js'
+import { giveSampleDelegations, plantSampleDelegations } from './sample-delegations.js'
 
 /**
  * The server as an instance runs it, with one difference: nobody signs in,
@@ -260,6 +261,16 @@ export async function openSamplePreview(
     // labels of a sheet; and what follows a signature, through the routes.
     await writeSampleStandings(database, planter, planted, previewCatalogue)
     await decideSampleOrders(`http://127.0.0.1:${String(port)}`, planted.orders)
+    // The delegations of duties (#336): written and signed for the operator
+    // through the routes, the signature of the person each goes to behind
+    // them, before the engine makes the deadline of each end.
+    const delegations = await plantSampleDelegations(
+      `http://127.0.0.1:${String(port)}`,
+      areas,
+      viewer,
+    )
+
+    await giveSampleDelegations(database, planter, previewCatalogue, delegations)
 
     // One pass of the engine, so that the due days have their inspections
     // before somebody looks, and two of them planned (#105). In the morning of

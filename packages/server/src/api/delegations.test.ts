@@ -267,6 +267,43 @@ describe('a delegation of duties', () => {
     ).toBeGreaterThan(0)
   })
 
+  it('goes to somebody who sees every area it names, and to nobody else, not to the Leitung itself', async () => {
+    // The Objektleitung of the north sees the north alone.
+    expect(
+      (
+        await http()
+          .post('/delegations')
+          .set(testIdentityHeader, by('u-lead'))
+          .send(terms({ delegateUserId: 'u-site', areaIds: [areas.north, areas.south] }))
+          .expect(400)
+      ).body.message,
+    ).toBe(
+      'Beauftragt wird jemand, der jeden Bereich der Übertragung sieht. Geben Sie der Person die Bereiche unter „Zugänge“, oder wählen Sie andere.',
+    )
+
+    const made = await written({ delegateUserId: 'u-site' })
+
+    await http()
+      .patch(`/delegations/${made.id}`)
+      .set(testIdentityHeader, by('u-lead'))
+      .send(terms({ delegateUserId: 'u-site', areaIds: [areas.north, areas.south] }))
+      .expect(400)
+    // Who sees every area is named for any of them.
+    await written({ areaIds: [areas.north, areas.south] })
+    // And nobody delegates to themself: for the operator signs somebody else.
+    expect(
+      (
+        await http()
+          .post('/delegations')
+          .set(testIdentityHeader, by('u-lead'))
+          .send(terms({ delegateUserId: 'u-lead' }))
+          .expect(400)
+      ).body.message,
+    ).toBe(
+      'Sich selbst überträgt niemand Pflichten: für den Betreiber unterschreibt eine andere Person.',
+    )
+  })
+
   it('holds once both have signed, and from the first signature on changes in no way, also not in the database', async () => {
     const made = await written()
 
@@ -337,9 +374,15 @@ describe('a delegation of duties', () => {
 
     const before = await dutyAt('north', 'u-site')
     const south = await dutyAt('south')
+    // A duty that has ended calls for nobody, and stays as it ended.
+    const ended = await dutyAt('north', 'u-site')
+
+    await admin.query('update duties set ends_on = $2 where id = $1', [ended, today])
+
     const delegation = await signedByBoth()
 
     expect(await responsibleOf(before)).toEqual({ user: 'u-duties', delegation: delegation.id })
+    expect(await responsibleOf(ended)).toEqual({ user: 'u-site', delegation: null })
     // Outside its areas nothing changes.
     expect(await responsibleOf(south)).toEqual({ user: null, delegation: null })
 
@@ -468,6 +511,11 @@ describe('a delegation of duties', () => {
 
   it('is a deadline at its last day once both signed, named by the person', async () => {
     const delegation = await signedByBoth({ endsOn: addDays(today, 90) })
+    // Signed by the Leitung alone, it holds nothing yet and ends nothing.
+    const waiting = await written({ endsOn: addDays(today, 90) })
+
+    await signAs(waiting.id, 'u-lead')
+
     const expected = await inEveryArea(database, { tenantId: tenant, userId: 'u-lead' }, (tx) =>
       delegationSource({ today: () => today })(tx),
     )
@@ -476,5 +524,6 @@ describe('a delegation of duties', () => {
       sourceLabel: 'Jörg Albrecht',
       anchorOn: addDays(today, 90),
     })
+    expect(expected.find((each) => each.sourceId === waiting.id)).toBeUndefined()
   })
 })

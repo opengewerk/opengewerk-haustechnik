@@ -103,6 +103,14 @@ const FaultReportScreen = lazyRouteComponent(
   'FaultReportScreen',
 )
 const FiguresScreen = lazyRouteComponent(() => import('./screens/figures.js'), 'FiguresScreen')
+const DelegationListScreen = lazyRouteComponent(
+  () => import('./screens/delegations.js'),
+  'DelegationListScreen',
+)
+const DelegationScreen = lazyRouteComponent(
+  () => import('./screens/delegations.js'),
+  'DelegationScreen',
+)
 const DocumentsScreen = lazyRouteComponent(
   () => import('./screens/documents.js'),
   'DocumentsScreen',
@@ -334,6 +342,17 @@ export function officeRoutes() {
     createRoute({ getParentRoute: () => office, path: '/', component: OverviewScreen }),
     // The figures over time (#334), a view each behind a word of the address.
     createRoute({ getParentRoute: () => office, path: '/auswertungen', component: FiguresScreen }),
+    // The delegations of the duties (#336): the list and the page of one.
+    createRoute({
+      getParentRoute: () => office,
+      path: '/pflichtenuebertragungen',
+      component: DelegationListScreen,
+    }),
+    createRoute({
+      getParentRoute: () => office,
+      path: '/pflichtenuebertragungen/$delegationId',
+      component: DelegationScreen,
+    }),
     createRoute({
       getParentRoute: () => office,
       path: '/liegenschaften',

@@ -22,7 +22,7 @@ import {
   type DelegationReading,
   type DelegationRole,
   delegationRoleLabel,
-  delegationScopeLabel,
+  delegationScopeWords,
   delegationState,
   delegationTermsOf,
   delegationCovers,
@@ -55,10 +55,11 @@ import {
   dutyDelegationRevocations,
   dutyDelegations,
   dutyDelegationSignatures,
+  memberAllAreas,
+  memberAreas,
   properties,
   rooms,
 } from '../database/schema/index.js'
-import { inEveryArea } from '../database/every-area.js'
 import { dutyTitle } from '../database/duty-standing.js'
 import { applyDelegations } from '../delegations/apply.js'
 import {
@@ -197,7 +198,10 @@ export class DelegationsController {
           operator,
           delegateName: reading.delegateName,
           areas: reading.areas.map((area) => area.name),
-          scope: scopeWords(reading),
+          scope: delegationScopeWords(
+            reading,
+            (name) => this.catalogue.packages.find((pack) => pack.name === name)?.title ?? name,
+          ),
           tasks: reading.tasks,
           powers: reading.powers,
           startsOn: reading.startsOn,
@@ -231,9 +235,14 @@ export class DelegationsController {
 
     const terms = delegationTermsOf(given)
     const id = await this.database.forTenant(identity, async (tx) => {
-      const delegateName = await this.delegateNamed(tx, identity, terms.delegateUserId)
-
       await checkAreas(tx, terms.areaIds)
+
+      const delegateName = await this.delegateNamed(
+        tx,
+        identity,
+        terms.delegateUserId,
+        terms.areaIds,
+      )
 
       const [made] = await tx
         .insert(dutyDelegations)
@@ -285,12 +294,14 @@ export class DelegationsController {
 
     await this.database.forTenant(identity, async (tx) => {
       const held = await this.draftOf(tx, id)
-      const delegateName =
-        terms.delegateUserId === held.delegation.delegateUserId
-          ? held.delegation.delegateName
-          : await this.delegateNamed(tx, identity, terms.delegateUserId)
-
       await checkAreas(tx, terms.areaIds)
+
+      const delegateName = await this.delegateNamed(
+        tx,
+        identity,
+        terms.delegateUserId,
+        terms.areaIds,
+      )
       await tx
         .update(dutyDelegations)
         .set({
@@ -463,9 +474,14 @@ export class DelegationsController {
     return this.reading(identity, id)
   }
 
-  /** The delegations applied to every duty of the operator, in every area. */
+  /**
+   * The delegations applied to the duties, in the areas of whoever asked. A
+   * delegation comes into force with the signature of the person it goes to,
+   * who sees every area it names (`delegateNamed`); the pass of the deadlines
+   * applies them in every area each day, when one begins or ends.
+   */
   private async apply(identity: Asking, today: IsoDate): Promise<void> {
-    await inEveryArea(this.database, identity, (tx) => applyDelegations(tx, this.catalogue, today))
+    await this.database.forTenant(identity, (tx) => applyDelegations(tx, this.catalogue, today))
   }
 
   /**
@@ -525,13 +541,14 @@ export class DelegationsController {
 
   /**
    * The person a delegation goes to, by the name of their account: somebody
-   * who works for the operator, is not blocked, may read the duties, and is
-   * not the one who writes it.
+   * who works for the operator, is not blocked, may read the duties, sees
+   * every area it names, and is not the one who writes it.
    */
   private async delegateNamed(
     tx: TenantTransaction,
     identity: Asking,
     userId: string,
+    areaIds: readonly string[],
   ): Promise<string> {
     const [member] = await tx
       .select({ userId: memberships.userId, roles: memberships.roles })
@@ -556,6 +573,27 @@ export class DelegationsController {
     if (userId === identity.userId) {
       throw new BadRequestException(
         'Sich selbst überträgt niemand Pflichten: für den Betreiber unterschreibt eine andere Person.',
+      )
+    }
+
+    // Responsible for duties the person cannot open is nobody: as for an
+    // activity, whoever is named sees the areas (section 7 of the concept).
+    const [everywhere] = await tx
+      .select({ userId: memberAllAreas.userId })
+      .from(memberAllAreas)
+      .where(eq(memberAllAreas.userId, userId))
+    const seen = new Set(
+      (
+        await tx
+          .select({ areaId: memberAreas.areaId })
+          .from(memberAreas)
+          .where(eq(memberAreas.userId, userId))
+      ).map((row) => row.areaId as string),
+    )
+
+    if (everywhere === undefined && !areaIds.every((areaId) => seen.has(areaId))) {
+      throw new BadRequestException(
+        'Beauftragt wird jemand, der jeden Bereich der Übertragung sieht. Geben Sie der Person die Bereiche unter „Zugänge“, oder wählen Sie andere.',
       )
     }
 
@@ -767,16 +805,4 @@ function signerOf(held: HeldDelegation, identity: Asking): DelegationRole | null
   }
 
   return identity.userId === held.delegation.delegateUserId ? 'delegate' : null
-}
-
-/** What a delegation covers, in words: "Alle Pflichten", "Pakete elektro, trinkwasser", "Kostengruppen 440, 470". */
-function scopeWords(entry: Pick<DelegationEntry, 'scope' | 'packages' | 'costGroups'>): string {
-  switch (entry.scope) {
-    case 'all':
-      return delegationScopeLabel.all
-    case 'packages':
-      return `${delegationScopeLabel.packages} ${entry.packages.join(', ')}`
-    case 'cost_groups':
-      return `${delegationScopeLabel.cost_groups} ${entry.costGroups.join(', ')}`
-  }
 }

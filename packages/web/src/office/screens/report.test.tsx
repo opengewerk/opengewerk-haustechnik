@@ -87,6 +87,8 @@ function dutyOf(further: Partial<DutyDetails> = {}): DutyDetails {
     contractId: null,
     contractEnded: false,
     contract: null,
+    covering: [],
+    delegation: null,
     asset: {
       id: extinguisher.id,
       number: extinguisher.number,

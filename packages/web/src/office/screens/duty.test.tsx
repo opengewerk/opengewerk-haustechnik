@@ -103,6 +103,8 @@ function duty(further: Readonly<Record<string, unknown>> = {}): DutyDetails {
     contractId: null,
     contractEnded: false,
     contract: null,
+    covering: [],
+    delegation: null,
     asset: {
       id: 'a-lift',
       number: 'AN-00012',
@@ -276,7 +278,7 @@ describe('the page of a duty', () => {
       'Art der Frist': 'Höchstfrist',
       Höchstfrist: '24 Monate, am Tag der Bestätigung',
       Begründung: 'Das Gesundheitsamt verlangt die jährliche Prüfung.',
-      Verantwortlich: 'Dennis Roth',
+      Verantwortlich: 'Dennis Rothohne Übertragung',
       'Ausgeführt von': 'Fremdfirma: Prüfdienst Beispiel GmbH',
       Anlage: 'Aufzug Schulhaus, AN-00012',
       Liegenschaft: 'Schulzentrum Am Lindenhain',
@@ -584,9 +586,7 @@ describe('who answers for a duty', () => {
     expect(
       dialog.getByText('Hauptprüfung der Aufzugsanlage, AN-00012 Aufzug Schulhaus'),
     ).toBeTruthy()
-    expect(
-      dialog.getByText(/Die Pflichtenübertragung mit Unterschrift kommt mit Phase 2/),
-    ).toBeTruthy()
+    expect(dialog.getByText(dutyPageWords.delegationRule)).toBeTruthy()
   })
 
   it('keeps somebody shut out in the list where the duty names them, and says that they are', async () => {
@@ -662,6 +662,87 @@ describe('who answers for a duty', () => {
         'Heizraum frei von Brandlasten, Raum E.14 Heizraum',
       ),
     ).toBeTruthy()
+  })
+
+  // The delegations of duties (#336): one that covers the duty names its
+  // person, and only a delegation changes that.
+  it('names the delegation the person comes from, with its last day, and leads the Leitung to it', async () => {
+    await opened(
+      'management',
+      duty({
+        delegation: { id: 'dd-roth', lastDay: '2028-10-31' },
+        covering: [{ id: 'dd-roth', delegateUserId: 'u-roth', delegateName: 'Dennis Roth' }],
+      }),
+      { '/duties/colleagues': colleagues },
+    )
+
+    expect(
+      screen
+        .getByRole('link', { name: 'aus der Pflichtenübertragung, bis 31.10.2028' })
+        .getAttribute('href'),
+    ).toBe('/pflichtenuebertragungen/dd-roth')
+    expect(screen.queryByRole('button', { name: /Verantwortliche Person/ })).toBeNull()
+  })
+
+  it('says where the person comes from to whoever does not delegate, without the way there', async () => {
+    await opened(
+      'technical_management',
+      duty({
+        delegation: { id: 'dd-roth', lastDay: '2028-10-31' },
+        covering: [{ id: 'dd-roth', delegateUserId: 'u-roth', delegateName: 'Dennis Roth' }],
+      }),
+      { '/duties/colleagues': colleagues },
+    )
+
+    expect(screen.getByText('aus der Pflichtenübertragung, bis 31.10.2028')).toBeTruthy()
+    expect(
+      screen.queryByRole('link', { name: 'aus der Pflichtenübertragung, bis 31.10.2028' }),
+    ).toBeNull()
+  })
+
+  it('says "ohne Übertragung" of somebody named where no delegation covers the duty', async () => {
+    await opened('management', duty(), { '/duties/colleagues': colleagues })
+
+    expect(screen.getByText(dutyPageWords.withoutDelegation)).toBeTruthy()
+  })
+
+  it('offers the persons of the delegations that cover the duty, and nobody else, where several do', async () => {
+    await opened(
+      'management',
+      duty({
+        responsibleUserId: null,
+        responsible: null,
+        covering: [
+          { id: 'dd-roth', delegateUserId: 'u-roth', delegateName: 'Dennis Roth' },
+          { id: 'dd-lindner', delegateUserId: 'u-lindner', delegateName: 'Petra Lindner' },
+        ],
+      }),
+      { '/duties/colleagues': colleagues },
+    )
+
+    expect(screen.getByText(dutyPageWords.severalCover(2))).toBeTruthy()
+    // The page says it as well, before anybody opens the choice.
+    expect(
+      screen.getByText(dutyPageWords.chooseAmong(['Dennis Roth', 'Petra Lindner'])),
+    ).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: 'Verantwortliche Person wählen' }))
+
+    const dialog = within(await screen.findByRole('dialog', { name: 'Verantwortliche Person' }))
+
+    expect(offered()).toEqual([dutyPageWords.nobody, 'Dennis Roth', 'Petra Lindner'])
+    expect(
+      dialog.getByText(dutyPageWords.chooseAmong(['Dennis Roth', 'Petra Lindner'])),
+    ).toBeTruthy()
+
+    answerToWrite = answering({ id: 'd-1' })
+    choose('u-lindner')
+    save()
+
+    await waitFor(() => {
+      expect(written).toEqual([
+        { method: 'PATCH', path: '/duties/d-1', body: { responsibleUserId: 'u-lindner' } },
+      ])
+    })
   })
 
   it('asks the server for nothing where nothing was changed', async () => {

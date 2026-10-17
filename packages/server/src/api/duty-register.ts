@@ -166,6 +166,7 @@ export function dutyEntry(
     assetId: duty.assetId,
     intervalReason: duty.intervalReason,
     responsibleUserId: duty.responsibleUserId,
+    responsibleDelegationId: duty.responsibleDelegationId,
     performer: duty.performer,
     performerNote: duty.performerNote,
     contractorId: duty.contractorId,

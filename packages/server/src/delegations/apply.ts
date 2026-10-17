@@ -13,7 +13,7 @@ import type { TenantTransaction } from '@opengewerk/platform-server'
 import { and, eq, gt, inArray, isNull, or } from 'drizzle-orm'
 
 import { assets, duties } from '../database/schema/index.js'
-import { heldDelegations, standingOf, termsOf } from './reading.js'
+import { type HeldDelegation, heldDelegations, standingOf, termsOf } from './reading.js'
 
 /**
  * Who answers for each duty once the delegations that hold today are applied
@@ -25,9 +25,10 @@ import { heldDelegations, standingOf, termsOf } from './reading.js'
  * after a duty is added, and every day in the pass of the deadlines, which
  * is when a delegation begins and ends.
  *
- * The transaction has to see every area of the operator: a delegation that
- * comes into force covers duties beyond the areas of whoever signed it.
- * Duties that ended are left as they are. Returns how many changed.
+ * It works on the duties the transaction sees: in a route those of whoever
+ * asked, and the person who signs a delegation into force sees every area
+ * it names; in the pass of the deadlines every area. Duties that ended are
+ * left as they are. Returns how many changed.
  */
 export async function applyDelegations(
   tx: TenantTransaction,
@@ -98,20 +99,13 @@ export async function applyDelegations(
   return changed
 }
 
-/**
- * Who may be named to answer for a duty, as the office chooses at it (#336):
- * covered by no delegation, anybody, then without a delegation; covered by
- * one, its person and nobody else; covered by several, one of their persons,
- * which is the choice "entscheidet das Büro an der Pflicht". A sentence where
- * the choice is not one of these.
- */
-export async function chosenResponsible(
+/** The delegations that cover a duty today, in the order they were written. */
+export async function coveringOf(
   tx: TenantTransaction,
   catalogue: Catalogue,
   today: IsoDate,
   duty: { readonly areaId: string; readonly kind: string | null; readonly assetId: string | null },
-  chosen: string | null,
-): Promise<Responsible | string> {
+): Promise<HeldDelegation[]> {
   const [asset] =
     duty.assetId === null
       ? []
@@ -127,9 +121,30 @@ export async function chosenResponsible(
         ? null
         : (catalogue.assetKind(asset.kind, today)?.definition.costGroup ?? null),
   }
-  const covering = (await heldDelegations(tx))
+
+  return (await heldDelegations(tx))
     .filter((held) => delegationInForce(standingOf(held), today))
     .filter((held) => delegationCovers(termsOf(held), scope))
+    .sort(
+      (left, right) => left.delegation.createdAt.getTime() - right.delegation.createdAt.getTime(),
+    )
+}
+
+/**
+ * Who may be named to answer for a duty, as the office chooses at it (#336):
+ * covered by no delegation, anybody, then without a delegation; covered by
+ * one, its person and nobody else; covered by several, one of their persons,
+ * which is the choice "entscheidet das Büro an der Pflicht". A sentence where
+ * the choice is not one of these.
+ */
+export async function chosenResponsible(
+  tx: TenantTransaction,
+  catalogue: Catalogue,
+  today: IsoDate,
+  duty: { readonly areaId: string; readonly kind: string | null; readonly assetId: string | null },
+  chosen: string | null,
+): Promise<Responsible | string> {
+  const covering = await coveringOf(tx, catalogue, today, duty)
   const [only] = covering
 
   if (only === undefined) {

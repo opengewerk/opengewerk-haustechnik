@@ -14,6 +14,7 @@ import {
   riskAssessmentReview,
   contractEnd,
   contractNotice,
+  delegationEnds,
   warrantyEnds,
 } from './deadlines.js'
 
@@ -34,6 +35,7 @@ describe('the kinds of deadline of this application', () => {
       contractNotice,
       contractEnd,
       warrantyEnds,
+      delegationEnds,
     ])
     expect(registry.kind('duty.due')).toBe(dutyDue)
     expect(registry.kind('defect.due')).toBe(defectDue)

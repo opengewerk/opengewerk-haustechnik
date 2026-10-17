@@ -749,6 +749,8 @@ export const syncFieldNames: Readonly<Record<string, string>> = {
   keptMonths: 'So gelassen gegenüber einer Frist der Vorschrift in Monaten',
   keptReason: 'Begründung, die Pflicht so zu lassen',
   responsibleUserId: 'Verantwortlich',
+  // The delegation the person who answers for a duty comes from (#336).
+  responsibleDelegationId: 'Pflichtenübertragung',
   assigneeUserId: 'Verantwortlich',
   performer: 'Ausgeführt von',
   performerNote: 'Fremdfirma',

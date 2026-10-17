@@ -556,6 +556,14 @@ describe('the settings of a kind', () => {
         responsible: 'lead',
         leadDays: 60,
       }),
+      // The last day of a delegation of duties (#336).
+      expect.objectContaining({
+        key: 'delegation.ends',
+        source: 'delegation',
+        actions: ['reminder'],
+        responsible: 'lead',
+        leadDays: 60,
+      }),
     ])
 
     await http()

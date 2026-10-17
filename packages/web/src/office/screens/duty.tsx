@@ -76,6 +76,7 @@ import {
   performerWords,
 } from '../duty-words.js'
 import { contractPlaces } from '../contract-addresses.js'
+import { delegationPlaces } from '../delegation-addresses.js'
 import { EvidenceNumber, ResultMark, StandingMark } from '../evidence-words.js'
 import { LinkButton } from '../link-button.js'
 import { factLink } from '../links.js'
@@ -161,8 +162,17 @@ export const dutyPageWords = {
     'Der Termin zählt vom letzten Nachweis, der die Pflicht erfüllt und weder ersetzt noch für ungültig erklärt ist.',
   whoCanBeNamed:
     'Zur Wahl steht, wer für diesen Betreiber arbeitet und nicht gesperrt ist. „Niemand“ nimmt die Person von der Pflicht.',
-  untilDelegation:
-    'Die Pflichtenübertragung mit Unterschrift kommt mit Phase 2. Bis dahin ist verantwortlich, wen die Pflicht nennt; nennt sie niemanden, erinnert ihre Frist die Leitung.',
+  // Who answers for a duty since the delegations (#336).
+  delegationRule:
+    'Deckt eine Pflichtenübertragung die Pflicht, ist ihre beauftragte Person verantwortlich. Hier benennen Sie nur, wen keine Übertragung deckt; die Person trägt dann den Hinweis „ohne Übertragung“.',
+  fromDelegation: (lastDay: string) => `aus der Pflichtenübertragung, bis ${date(lastDay)}`,
+  withoutDelegation: 'ohne Übertragung',
+  severalCover: (count: number) =>
+    `${count === 2 ? 'zwei' : 'mehrere'} Pflichtenübertragungen decken die Pflicht`,
+  chooseAmong: (names: readonly string[]) =>
+    names.length === 2
+      ? `Die Übertragungen an ${names.join(' und an ')} decken beide diese Pflicht. Wählen Sie, wer verantwortlich ist.`
+      : `Die Übertragungen an ${names.slice(0, -1).join(', ')} und ${names.at(-1) ?? ''} decken alle diese Pflicht. Wählen Sie, wer verantwortlich ist.`,
   nobody: 'Niemand',
   whatEnds:
     'Vom Tag des Endes an ruft die Pflicht nach nichts mehr: sie hat keinen Termin und erinnert niemanden. Ihre Nachweise bleiben, und im Verzeichnis steht sie unter „Beendet“.',
@@ -553,19 +563,22 @@ export function DutyScreen() {
           <Panel
             title="Zuständig"
             action={
-              keeps && !duty.ended ? (
+              // One delegation that covers it names the person, and only it changes that (#336).
+              keeps && !duty.ended && duty.covering.length !== 1 ? (
                 <Button
                   size="small"
                   aria-label={
-                    duty.responsible
-                      ? 'Verantwortliche Person ändern'
-                      : 'Verantwortliche Person benennen'
+                    duty.covering.length > 1
+                      ? 'Verantwortliche Person wählen'
+                      : duty.responsible
+                        ? 'Verantwortliche Person ändern'
+                        : 'Verantwortliche Person benennen'
                   }
                   onClick={() => {
                     setNaming(true)
                   }}
                 >
-                  {duty.responsible ? 'Ändern' : 'Benennen'}
+                  {duty.covering.length > 1 ? 'Wählen' : duty.responsible ? 'Ändern' : 'Benennen'}
                 </Button>
               ) : null
             }
@@ -573,7 +586,7 @@ export function DutyScreen() {
             <FactList
               keyWidth={110}
               facts={[
-                { label: 'Verantwortlich', value: duty.responsible?.name ?? <Nobody /> },
+                { label: 'Verantwortlich', value: <Responsible duty={duty} /> },
                 {
                   label: 'Ausgeführt von',
                   // In full here: the list names a contractor by its name alone.
@@ -616,6 +629,14 @@ export function DutyScreen() {
                     ]),
               ]}
             />
+            {/* Several delegations cover it, and none of their persons is chosen yet (#336). */}
+            {duty.covering.length > 1 && duty.delegation === null && !duty.ended ? (
+              <div className="mt-3">
+                <NoteBox tone="waiting" icon={TriangleAlert}>
+                  {dutyPageWords.chooseAmong(duty.covering.map((each) => each.delegateName))}
+                </NoteBox>
+              </div>
+            ) : null}
           </Panel>
           <Panel title="Gilt für">
             <FactList
@@ -899,7 +920,16 @@ export function ResponsibleDialog({
   const [chosen, setChosen] = useState(before)
   const [working, setWorking] = useState(false)
   const [trouble, setTrouble] = useState<string | null>(null)
-  const options = responsibleChoices(colleagues.data, duty.responsible)
+  // Where several delegations cover the duty, the choice is one of their persons (#336).
+  const several = duty.covering.length > 1
+  const options = several
+    ? [
+        ...(duty.covering.some((each) => each.delegateUserId === before)
+          ? []
+          : [{ value: before, label: duty.responsible?.name ?? dutyPageWords.nobody }]),
+        ...duty.covering.map((each) => ({ value: each.delegateUserId, label: each.delegateName })),
+      ]
+    : responsibleChoices(colleagues.data, duty.responsible)
 
   async function save() {
     // Nothing changed is nothing to ask the server for.
@@ -949,10 +979,14 @@ export function ResponsibleDialog({
           label="Verantwortlich"
           options={options}
           value={chosen}
-          hint={dutyPageWords.whoCanBeNamed}
+          {...(several ? {} : { hint: dutyPageWords.whoCanBeNamed })}
           onChange={setChosen}
         />
-        <NoteBox>{dutyPageWords.untilDelegation}</NoteBox>
+        <NoteBox>
+          {several
+            ? dutyPageWords.chooseAmong(duty.covering.map((each) => each.delegateName))
+            : dutyPageWords.delegationRule}
+        </NoteBox>
         {colleagues.isError ? (
           <p role="alert" className="text-[13px] font-semibold text-conflict">
             Wer zur Wahl steht, ließ sich nicht laden. Das braucht eine Verbindung.
@@ -1286,5 +1320,51 @@ function NewActivityDialog({
         </DialogActions>
       </form>
     </Dialog>
+  )
+}
+
+/**
+ * Who answers for a duty, and where that comes from (#336): a delegation,
+ * with its last day and, for whoever may delegate, the way to it; or none,
+ * "ohne Übertragung"; or nobody, with a word where several delegations cover
+ * the duty and the office has yet to choose.
+ */
+function Responsible({ duty }: { readonly duty: DutyDetails }) {
+  const delegates = useRight('duty.delegate')
+
+  if (duty.responsible === null) {
+    return (
+      <div className="leading-[1.35]">
+        <Nobody />
+        {duty.covering.length > 1 ? (
+          <div className="text-[12px] text-ink-faint">
+            {dutyPageWords.severalCover(duty.covering.length)}
+          </div>
+        ) : null}
+      </div>
+    )
+  }
+
+  return (
+    <div className="leading-[1.35]">
+      <div>{duty.responsible.name}</div>
+      {duty.delegation === null ? (
+        // A duty that ended is covered by no delegation, and calls for none.
+        duty.ended ? null : (
+          <div className="text-[12px] text-waiting">{dutyPageWords.withoutDelegation}</div>
+        )
+      ) : delegates ? (
+        <Link
+          to={delegationPlaces.delegation(duty.delegation.id)}
+          className="text-[12px] text-ink-faint"
+        >
+          {dutyPageWords.fromDelegation(duty.delegation.lastDay)}
+        </Link>
+      ) : (
+        <div className="text-[12px] text-ink-faint">
+          {dutyPageWords.fromDelegation(duty.delegation.lastDay)}
+        </div>
+      )}
+    </div>
   )
 }

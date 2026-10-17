@@ -46,6 +46,8 @@ export interface Overview {
   readonly dueIn30Days: number
   readonly dueIn90Days: number
   readonly neverRecorded: number
+  /** The duties nobody answers for (#336): no delegation covers them, and nobody is named. */
+  readonly withoutResponsible: number
   /** Null for whoever may not read the activities, who is not shown the list either. */
   readonly reportsMissing: number | null
   /** Null for whoever may not read the defects. */
@@ -157,4 +159,6 @@ export interface BuildingSituation extends PlaceToDo {
    * for whoever does not accept faults.
    */
   readonly openFaults: number | null
+  /** The duties of the building nobody answers for (#336), which the Lagebild says above its numbers. */
+  readonly withoutResponsible: number
 }
