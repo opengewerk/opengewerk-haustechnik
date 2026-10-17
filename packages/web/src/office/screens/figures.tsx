@@ -44,7 +44,7 @@ import { Segmented } from '../segmented.js'
 import { asTableAddress } from '../table-address.js'
 
 export const figuresWords = {
-  sub: 'Kennzahlen des Betriebs über die Zeit, je Gebäude, Liegenschaft und Bereich. Keine Zahl je Person.',
+  sub: 'Kennzahlen über die Zeit, je Gebäude, Liegenschaft und Bereich. Keine Zahl je Person.',
   noConnection: 'Die Auswertungen kommen vom Server. Gerade ist keine Verbindung da.',
   loading: 'Die Auswertung wird geladen.',
   failed: 'Die Auswertung ließ sich nicht laden. Sie kommt vom Server, mit Verbindung.',
@@ -487,7 +487,7 @@ async function answerOf(view: ReportView, path: string): Promise<Answer> {
 }
 
 /**
- * "Auswertungen" in the office, the boards `HT-Buero-Auswertungen*` (4.16 of
+ * "Auswertungen" in the office, the four boards of `ht_b_auswertung.py` (4.16 of
  * the concept, #334): the fulfilment of the duties per period, the defects
  * open today by class and age, the faults by category and building, and the
  * activities by the basic measures of DIN 31051. Narrowed by place, area,
