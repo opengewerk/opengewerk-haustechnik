@@ -1,10 +1,14 @@
 import {
+  contactLimits,
+  type ContactTextField,
+  contactTextFields,
   type Contractor,
   contractorLimits,
   type ContractorName,
   contractorProblems,
   contractorServices,
   costGroupWords,
+  operatorContacts,
 } from '@opengewerk/haustechnik-domain'
 import {
   Button,
@@ -17,7 +21,7 @@ import {
 import { today } from '@opengewerk/platform-web/format'
 import { type EditResult, refusalFor, useSync } from '@opengewerk/platform-web/sync'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { Check } from 'lucide-react'
+import { Check, Plus } from 'lucide-react'
 import { type ReactNode, useMemo, useState } from 'react'
 
 import { useCatalogue } from '../sync/catalogue.js'
@@ -39,7 +43,185 @@ export const contractorDialogWords = {
   takeoverKeeps: 'Nachweise behalten ihre Organisation, wie sie geschrieben wurde.',
   asNew: 'Als neue Fremdfirma',
   noneChosen: 'Wählen Sie mindestens einen Namen.',
+  contacts: 'Ansprechpartner',
+  contactsOpen: 'einklappen',
+  contactsClosed: 'aufklappen',
+  anotherContact: 'Weiteren hinzufügen',
+  firstContact: 'Ansprechpartner hinzufügen',
+  removeContact: 'Entfernen',
+  contactsHint:
+    'Ein leerer Ansprechpartner wird nicht angelegt. Firma und Ansprechpartner entstehen zusammen; später pflegen Sie sie auf der Seite der Firma.',
 } as const
+
+/** One person to talk to as the dialog holds it, before anything is sent (#383). */
+type ContactDraft = Readonly<Record<ContactTextField, string>> & { readonly key: number }
+
+const emptyContact = (key: number): ContactDraft => ({
+  key,
+  givenName: '',
+  familyName: '',
+  role: '',
+  phone: '',
+  email: '',
+})
+
+/** Whether a person of the dialog says anything; one that says nothing is no contact. */
+function saysSomething(person: ContactDraft): boolean {
+  return contactTextFields.some((field) => person[field].trim() !== '')
+}
+
+/** A person as the route takes it: every text trimmed, an empty one none. */
+function contactOf(person: ContactDraft): Readonly<Record<ContactTextField, string | null>> {
+  return Object.fromEntries(
+    contactTextFields.map((field) => [
+      field,
+      person[field].trim() === '' ? null : person[field].trim(),
+    ]),
+  ) as Record<ContactTextField, string | null>
+}
+
+const contactLabels: Readonly<Record<ContactTextField, string>> = {
+  givenName: 'Vorname',
+  familyName: 'Nachname',
+  role: 'Funktion',
+  phone: 'Telefon',
+  email: 'E-Mail',
+}
+
+/**
+ * The people to talk to in the dialog that makes a firm (#383, the board
+ * "Fremdfirma anlegen, mit Ansprechpartner"): folded away until somebody
+ * opens it, then one person and as many more as wanted, each with the fields
+ * of a contact on the page of the firm.
+ */
+function ContactsSection({
+  people,
+  problems,
+  onChange,
+}: {
+  readonly people: readonly ContactDraft[]
+  readonly problems: Readonly<Record<number, string>>
+  readonly onChange: (people: readonly ContactDraft[]) => void
+}) {
+  const [open, setOpen] = useState(people.length > 0)
+  const next = () => Math.max(0, ...people.map((person) => person.key)) + 1
+  const filled = people.filter(saysSomething).length
+
+  return (
+    <section className="flex flex-col gap-2" aria-label={contractorDialogWords.contacts}>
+      <button
+        type="button"
+        aria-expanded={open}
+        className="flex w-full cursor-pointer items-center gap-2 border-0 bg-transparent p-0 text-left text-ink"
+        onClick={() => {
+          setOpen((was) => {
+            if (!was && people.length === 0) {
+              onChange([emptyContact(1)])
+            }
+
+            return !was
+          })
+        }}
+      >
+        <span className="text-[13px] font-semibold">{contractorDialogWords.contacts}</span>
+        {filled > 0 ? <span className="text-[12px] text-ink-faint">{filled}</span> : null}
+        <span className="grow" />
+        <span className="text-[12px] text-ink-muted">
+          {open ? contractorDialogWords.contactsOpen : contractorDialogWords.contactsClosed}
+        </span>
+      </button>
+      {open ? (
+        <>
+          {people.map((person, index) => (
+            <fieldset
+              key={person.key}
+              className="flex flex-col gap-2.5 rounded-[6px] border border-line bg-surface-sunken p-3"
+            >
+              <legend className="sr-only">{`${contractorDialogWords.contacts} ${String(index + 1)}`}</legend>
+              <div className="grid gap-3 sm:grid-cols-2">
+                {(['givenName', 'familyName'] as const).map((field) => (
+                  <Field
+                    key={field}
+                    label={contactLabels[field]}
+                    {...(field === 'familyName' ? { required: true, starred: true } : {})}
+                    value={person[field]}
+                    maxLength={contactLimits[field]}
+                    {...(field === 'familyName' && problems[person.key] !== undefined
+                      ? { problem: problems[person.key] }
+                      : {})}
+                    onChange={(event) => {
+                      onChange(
+                        people.map((each) =>
+                          each.key === person.key ? { ...each, [field]: event.target.value } : each,
+                        ),
+                      )
+                    }}
+                  />
+                ))}
+              </div>
+              <Field
+                label={contactLabels.role}
+                value={person.role}
+                maxLength={contactLimits.role}
+                onChange={(event) => {
+                  onChange(
+                    people.map((each) =>
+                      each.key === person.key ? { ...each, role: event.target.value } : each,
+                    ),
+                  )
+                }}
+              />
+              <div className="grid gap-3 sm:grid-cols-2">
+                {(['phone', 'email'] as const).map((field) => (
+                  <Field
+                    key={field}
+                    label={contactLabels[field]}
+                    type={field === 'phone' ? 'tel' : 'email'}
+                    value={person[field]}
+                    maxLength={contactLimits[field]}
+                    onChange={(event) => {
+                      onChange(
+                        people.map((each) =>
+                          each.key === person.key ? { ...each, [field]: event.target.value } : each,
+                        ),
+                      )
+                    }}
+                  />
+                ))}
+              </div>
+              <div className="flex justify-end">
+                <Button
+                  size="small"
+                  aria-label={`${contractorDialogWords.contacts} ${String(index + 1)} entfernen`}
+                  onClick={() => {
+                    onChange(people.filter((each) => each.key !== person.key))
+                  }}
+                >
+                  {contractorDialogWords.removeContact}
+                </Button>
+              </div>
+            </fieldset>
+          ))}
+          <div className="flex">
+            <Button
+              size="small"
+              icon={Plus}
+              disabled={people.length >= contractorLimits.contacts}
+              onClick={() => {
+                onChange([...people, emptyContact(next())])
+              }}
+            >
+              {people.length === 0
+                ? contractorDialogWords.firstContact
+                : contractorDialogWords.anotherContact}
+            </Button>
+          </div>
+          <p className="text-[12px] text-ink-faint">{contractorDialogWords.contactsHint}</p>
+        </>
+      ) : null}
+    </section>
+  )
+}
 
 function useAsking(onDone: () => void) {
   const queries = useQueryClient()
@@ -125,6 +307,9 @@ export function ContractorDialog({
   const [email, setEmail] = useState(contractor?.email ?? '')
   const [services, setServices] = useState<readonly string[]>(contractor?.services ?? [])
   const [note, setNote] = useState(contractor?.note ?? '')
+  // The people a new firm is made with (#383); a firm that is there keeps them on its page.
+  const [people, setPeople] = useState<readonly ContactDraft[]>([])
+  const [peopleProblems, setPeopleProblems] = useState<Readonly<Record<number, string>>>({})
   const [problems, setProblems] = useState<Readonly<Record<string, string>>>({})
   const orNull = (value: string) => (value.trim() === '' ? null : value.trim())
   const problemOf = (field: string) =>
@@ -142,16 +327,28 @@ export function ContractorDialog({
       note: orNull(note),
     }
     const found = contractorProblems(values)
+    const said = people.filter(saysSomething)
+    const missing = Object.fromEntries(
+      said.flatMap((person) => {
+        const problem = operatorContacts.personProblems(contactOf(person))['familyName']
+
+        return problem === undefined ? [] : [[person.key, problem] as const]
+      }),
+    )
 
     setProblems(found)
+    setPeopleProblems(missing)
 
-    if (Object.keys(found).length > 0) {
+    if (Object.keys(found).length > 0 || Object.keys(missing).length > 0) {
       return
     }
 
     void ask(() =>
       contractor === undefined
-        ? makeAt(client, '/contractors', values)
+        ? makeAt(client, '/contractors', {
+            ...values,
+            ...(said.length === 0 ? {} : { contacts: said.map(contactOf) }),
+          })
         : askAt(
             client,
             'PATCH',
@@ -280,6 +477,9 @@ export function ContractorDialog({
             setNote(event.target.value)
           }}
         />
+        {contractor === undefined ? (
+          <ContactsSection people={people} problems={peopleProblems} onChange={setPeople} />
+        ) : null}
         <Trouble>{trouble}</Trouble>
         <Actions
           working={working}

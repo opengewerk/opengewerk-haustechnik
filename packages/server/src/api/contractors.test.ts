@@ -441,3 +441,60 @@ describe('the names that stand as text at duties', () => {
       .expect(403)
   })
 })
+
+describe('the people to talk to a contractor is made with (#383)', () => {
+  it('come with the firm in one go, and an entry that says nothing is no contact', async () => {
+    const kept = await made({
+      name: 'Kältetechnik Mit Ansprechpartner GmbH',
+      contacts: [
+        {
+          givenName: 'Klaus',
+          familyName: '  Berger ',
+          role: 'Kundendienst',
+          phone: '0170 2233445',
+          email: 'k.berger@kaelte.example',
+        },
+        { givenName: ' ', familyName: '', role: '', phone: '', email: '' },
+        { familyName: 'Lang', phone: '0621 123' },
+      ],
+    })
+    const { rows } = await admin.query<{
+      family_name: string
+      given_name: string | null
+      area_id: string | null
+    }>(
+      'select family_name, given_name, area_id from contacts where contractor_id = $1 order by family_name',
+      [kept.id],
+    )
+
+    expect(rows).toEqual([
+      { family_name: 'Berger', given_name: 'Klaus', area_id: null },
+      { family_name: 'Lang', given_name: null, area_id: null },
+    ])
+  })
+
+  it('leave no firm behind when one of them is refused', async () => {
+    const name = 'Firma Ohne Nachnamen GmbH'
+    const refused = await firm({
+      name,
+      contacts: [{ familyName: 'Berger' }, { givenName: 'Petra', phone: '0621 1' }],
+    }).expect(400)
+
+    expect((refused.body as { message: string }).message).toBe('Der Nachname fehlt.')
+
+    const { rows } = await admin.query('select 1 from contractors where name = $1', [name])
+
+    expect(rows).toEqual([])
+  })
+
+  it('are at most ten at once, and come only with a firm made by whoever keeps the firms', async () => {
+    await firm({
+      name: 'Zu viele Ansprechpartner GmbH',
+      contacts: Array.from({ length: 11 }, (_, at) => ({ familyName: `Person ${String(at)}` })),
+    }).expect(400)
+    await firm(
+      { name: 'Ohne Recht GmbH', contacts: [{ familyName: 'Berger' }] },
+      by('u-site'),
+    ).expect(403)
+  })
+})

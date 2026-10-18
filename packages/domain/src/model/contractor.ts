@@ -39,6 +39,8 @@ export const contractorLimits = {
   phone: 40,
   email: 254,
   note: 500,
+  /** The people to talk to a firm is made with at once (#383); more come on its page. */
+  contacts: 10,
 } as const
 
 /**

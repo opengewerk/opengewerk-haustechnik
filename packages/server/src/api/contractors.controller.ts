@@ -19,6 +19,9 @@ import {
   type Catalogue,
   type Contractor,
   contractorBounds,
+  contractorLimits,
+  type ContactTextField,
+  contactTextFields,
   type ContractorEntry,
   type ContractorId,
   type ContractorName,
@@ -29,6 +32,7 @@ import {
   contractorServicesWords,
   type IsoDate,
   isAllowed,
+  operatorContacts,
   sameFirmName,
 } from '@opengewerk/haustechnik-domain'
 import {
@@ -45,7 +49,7 @@ import { and, count, desc, eq, gt, inArray, isNull, or, type SQL } from 'drizzle
 import { visitAccounts, visitRowsOf, visitsOf } from '../activities/visits.js'
 import { CATALOGUE } from '../catalogue.js'
 import { dutyTitle } from '../database/duty-standing.js'
-import { activities, contractors, duties, evidence } from '../database/schema/index.js'
+import { activities, contacts, contractors, duties, evidence } from '../database/schema/index.js'
 import { dayInGermany } from '../today.js'
 import { RequiresPermission } from './authorization.js'
 import { type Asking, fieldsOf, refuse } from './places.js'
@@ -75,6 +79,49 @@ function contractorValues(body: unknown, creating: boolean): Record<string, unkn
   }
 
   return values
+}
+
+/**
+ * The people to talk to a firm is made with (#383): each with the texts of a
+ * contact and a family name, as on the page of the firm, and an entry that
+ * says nothing is no contact. The list is held before anything is written,
+ * so that a refused contact leaves no firm behind it.
+ */
+function contactsAtCreation(body: unknown): Record<ContactTextField, string | null>[] {
+  const given =
+    typeof body === 'object' && body !== null
+      ? (body as { contacts?: unknown }).contacts
+      : undefined
+
+  if (given === undefined) {
+    return []
+  }
+
+  if (!Array.isArray(given) || given.length > contractorLimits.contacts) {
+    throw new BadRequestException(
+      `Eine Fremdfirma entsteht mit höchstens ${String(contractorLimits.contacts)} Ansprechpartnern; weitere kommen auf ihrer Seite dazu.`,
+    )
+  }
+
+  return given.flatMap((entry) => {
+    const texts = fieldsOf(entry, contactTextFields, contactTextFields)
+    const said = contactTextFields.some((field) => typeof texts[field] === 'string')
+
+    if (!said) {
+      return []
+    }
+
+    refuse(operatorContacts.personProblems({ familyName: null, ...texts }))
+
+    return [
+      Object.fromEntries(
+        contactTextFields.map((field) => [
+          field,
+          (texts[field] as string | null | undefined) ?? null,
+        ]),
+      ) as Record<ContactTextField, string | null>,
+    ]
+  })
 }
 
 /** A live firm of the tenant, or the refusal that it is not there. */
@@ -418,6 +465,7 @@ export class ContractorsController {
   @RequiresPermission('contractor.write')
   create(@CurrentIdentity() identity: Asking, @Body() body: unknown): Promise<Contractor> {
     const values = contractorValues(body, true)
+    const people = contactsAtCreation(body)
 
     return this.database.forTenant(identity, async (tx) => {
       const [row] = await tx
@@ -427,6 +475,20 @@ export class ContractorsController {
 
       if (row === undefined) {
         throw new Error('The contractor was not written')
+      }
+
+      // Its people in the same transaction: a firm and its contacts come together or not at all (#383).
+      if (people.length > 0) {
+        await tx.insert(contacts).values(
+          people.map(
+            (person) =>
+              ({
+                ...person,
+                tenantId: identity.tenantId,
+                contractorId: row.id,
+              }) as typeof contacts.$inferInsert,
+          ),
+        )
       }
 
       return row
