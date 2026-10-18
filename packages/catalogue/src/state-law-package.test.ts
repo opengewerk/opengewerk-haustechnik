@@ -32,14 +32,24 @@ const options = {
   today: new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Berlin' }).format(new Date()),
 }
 
+// Loaded once: a test below asks for proposals more than a hundred times, and
+// every package more makes a load slower (#352).
+let loaded: Catalogue | undefined
+
 function stateLaw(): Catalogue {
+  if (loaded) {
+    return loaded
+  }
+
   const { bundle, problems } = loadCatalogue(shipped, options)
 
   if (!bundle) {
     throw new Error(`Die Pakete laden nicht: ${problems.join(' ')}`)
   }
 
-  return catalogueOf(bundle)
+  loaded = catalogueOf(bundle)
+
+  return loaded
 }
 
 // The duty kinds of this package the catalogue proposes for an asset, the way
