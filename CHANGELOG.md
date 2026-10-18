@@ -9,6 +9,12 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
 
 ### Hinzugefügt
 
+- Ansprechpartner schon beim Anlegen einer Fremdfirma (#383): der Dialog „Fremdfirma anlegen“ hat einen
+  aufklappbaren Abschnitt „Ansprechpartner“ mit Vorname, Nachname, Funktion, Telefon und E-Mail, mehrere über
+  „Weiteren hinzufügen“. Firma und Ansprechpartner entstehen in einem Zug; ein leerer bleibt weg, und scheitert einer,
+  entsteht auch die Firma nicht. Beim Ändern bleibt es bei der Pflege auf der Seite der Firma. Warum: wer eine Firma
+  mit dem Monteur am Telefon anlegt, musste dafür bisher einen zweiten Dialog auf ihrer Seite öffnen.
+
 - Eigene Anlagenarten und Felder des Betreibers (#62, 2.5 und 4.2 des Konzepts): unter „Katalog“, „Eigene
   dieses Betreibers“ legen die Leitung und die Technische Leitung Anlagenarten an, die kein Paket beschreibt, mit
   Bezeichnung, Kostengruppe, eigenen Angaben und Soll-Dokumenten, und geben Anlagenarten aus Paketen eigene Angaben,

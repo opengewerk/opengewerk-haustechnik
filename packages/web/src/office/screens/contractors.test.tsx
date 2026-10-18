@@ -209,6 +209,62 @@ describe('the list of the contractors', () => {
     })
   })
 
+  // The people to talk to come with the firm (#383): an empty one is none, a filled one needs its family name.
+  it('makes a firm with the people to talk to who say something, and none without a family name', async () => {
+    const { written, done } = mounted('technical_management')
+
+    await done
+    await untilTheRightsAreKnown()
+    await userEvent.click(await screen.findByRole('button', { name: 'Fremdfirma anlegen' }))
+
+    const dialog = within(await screen.findByRole('dialog', { name: 'Fremdfirma anlegen' }))
+
+    await userEvent.type(dialog.getByLabelText(/^Name/), 'Kältetechnik Süd')
+    await userEvent.click(dialog.getByRole('button', { name: /^Ansprechpartner/ }))
+
+    const first = within(dialog.getByRole('group', { name: 'Ansprechpartner 1' }))
+
+    await userEvent.type(first.getByLabelText('Vorname'), 'Klaus')
+    await userEvent.click(dialog.getByRole('button', { name: 'Weiteren hinzufügen' }))
+    await userEvent.click(dialog.getByRole('button', { name: 'Weiteren hinzufügen' }))
+
+    const second = within(dialog.getByRole('group', { name: 'Ansprechpartner 2' }))
+
+    await userEvent.type(second.getByLabelText(/^Nachname/), 'Lang')
+    await userEvent.type(second.getByLabelText('Telefon'), '0621 123')
+    await userEvent.click(dialog.getByRole('button', { name: 'Anlegen' }))
+
+    // The first says something and has no family name: nothing goes out.
+    expect(await first.findByText('Der Nachname fehlt.')).toBeDefined()
+    expect(written).toEqual([])
+
+    await userEvent.type(first.getByLabelText(/^Nachname/), 'Berger')
+    await userEvent.click(dialog.getByRole('button', { name: 'Anlegen' }))
+
+    await waitFor(() => {
+      expect(written).toEqual([
+        {
+          method: 'POST',
+          path: '/contractors',
+          body: {
+            name: 'Kältetechnik Süd',
+            street: null,
+            postalCode: null,
+            city: null,
+            phone: null,
+            email: null,
+            services: [],
+            note: null,
+            contacts: [
+              { givenName: 'Klaus', familyName: 'Berger', role: null, phone: null, email: null },
+              { givenName: null, familyName: 'Lang', role: null, phone: '0621 123', email: null },
+            ],
+          },
+        },
+      ])
+    })
+  })
+
   it('takes the names at duties over, each as a new firm or one of the list', async () => {
     const { written, done } = mounted('technical_management')
 

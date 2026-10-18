@@ -15,7 +15,7 @@ Eine Firma, die nicht mehr für den Betreiber arbeitet, wird entfernt. Sie steht
 ## Kurzanleitung
 
 1. „Namen übernehmen“, wenn die Liste es anbietet: die Namen an den Pflichten werden Fremdfirmen.
-2. „Fremdfirma anlegen“: Name, Anschrift, Telefon, E-Mail und die Kostengruppen eintragen, in denen die Firma arbeitet.
+2. „Fremdfirma anlegen“: Name, Anschrift, Telefon, E-Mail und die Kostengruppen eintragen, in denen die Firma arbeitet. Unter „Ansprechpartner“ gleich die Leute der Firma dazu, jeden mit Nachnamen; ein leerer bleibt weg.
 3. An einer Pflicht unter „Ausgeführt von“ die Fremdfirma wählen.
 4. Den Bericht einer Fremdfirma an der Pflicht eintragen und die Firma aus der Liste wählen.
 5. Auf der Seite der Firma ihre Ansprechpartner eintragen und ihre Zertifikate mit „Gültig bis“ hochladen.
