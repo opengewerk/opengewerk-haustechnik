@@ -139,7 +139,7 @@ describe('the texts and choices of a duty', () => {
       task: 'Die Tätigkeit ist keine von: Prüfung, Wartung, Inspektion, Funktionskontrolle, Sichtkontrolle, Probenahme.',
       performer: 'Ausgeführt wird von eigenen Leuten oder einer Fremdfirma.',
       counting:
-        'Gezählt wird ab dem Tag der Durchführung, ab dem fälligen Tag oder nach § 14 Abs. 5 BetrSichV.',
+        'Gezählt wird ab dem Tag der Durchführung, ab dem fälligen Tag, nach § 14 Abs. 5 BetrSichV oder einmalig.',
       endsOn: 'Das Ende ist ein Tag, geschrieben 2026-10-03.',
     })
     expect(
@@ -153,13 +153,18 @@ describe('the texts and choices of a duty', () => {
     ).toEqual({})
   })
 
-  it('let a duty of the operator own recur, and take the day a duty is counted from as a day (#439)', () => {
-    expect(dutyProblems({ counting: 'once', countedFrom: '2026-02-30' })).toEqual({
-      counting:
-        'Gezählt wird ab dem Tag der Durchführung, ab dem fälligen Tag oder nach § 14 Abs. 5 BetrSichV.',
+  it('take the day a duty is counted from as a day (#439)', () => {
+    expect(dutyProblems({ countedFrom: '2026-02-30' })).toEqual({
       countedFrom: 'Der Tag, ab dem gezählt wird, ist ein Tag, geschrieben 2026-10-03.',
     })
     expect(dutyProblems({ countedFrom: '2026-11-02' })).toEqual({})
+  })
+
+  it('let a duty of the operator own fall due once, on a due day that is a day (#441)', () => {
+    expect(dutyProblems({ counting: 'once', dueOn: '2027-02-30' })).toEqual({
+      dueOn: 'Der Termin ist ein Tag, geschrieben 2026-10-03.',
+    })
+    expect(dutyProblems({ counting: 'once', dueOn: '2027-03-31' })).toEqual({})
   })
 
   it('may leave out what it does not change', () => {

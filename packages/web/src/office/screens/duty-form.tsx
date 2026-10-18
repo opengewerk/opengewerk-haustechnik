@@ -3,7 +3,7 @@ import {
   byNameIn,
   type Counting,
   countingLabel,
-  recurringCountings,
+  countings,
   dutyBases,
   dutyBasisLabel,
   type DutyDetails,
@@ -97,6 +97,13 @@ export const dutyFormWords = {
     'Vorgabe des Herstellers, Auflage aus Baugenehmigung oder Brandschutzkonzept, Forderung des Versicherers oder eigene Festlegung.',
   sourceHint: 'So genau, dass jemand sie nachschlagen kann.',
   countingHint: 'Ab dem fälligen Tag hält den Rhythmus, auch wenn früher gewartet wurde.',
+  // A duty of the operator's own that falls due once (#441).
+  onceHint: 'Mit dem ersten Nachweis erledigt.',
+  dueOnHint: 'Den Tag nennt die Quelle.',
+  noDueOn: 'Der Termin fehlt.',
+  outstandingOnce: 'Bis zu ihrem Termin ist sie ausstehend, mit dem ersten Nachweis erledigt.',
+  dueOnCounts:
+    'Ändert sich der Termin, rückt die Frist mit ihm. Nachweise und Vorgänge bleiben bei der Pflicht.',
   countingStays: 'Bleibt, wie die Pflicht angelegt wurde.',
   noLabel: 'Die Bezeichnung fehlt.',
   noTask: 'Die Tätigkeit fehlt.',
@@ -283,6 +290,8 @@ interface Typed {
   readonly interval: string
   readonly unit: 'months' | 'days'
   readonly counting: Counting
+  /** The due day of a duty that falls due once (#441), as the field of a day gives it. */
+  readonly dueOn: string
   readonly responsibleUserId: string
   readonly performer: DutyPerformer | null
   readonly performerNote: string
@@ -303,6 +312,7 @@ const blank: Typed = {
   interval: '',
   unit: 'months',
   counting: 'from_performance',
+  dueOn: '',
   responsibleUserId: '',
   performer: null,
   performerNote: '',
@@ -321,6 +331,7 @@ function typedOf(duty: DutyDetails): Typed {
     interval: String(duty.intervalDays ?? duty.intervalMonths ?? ''),
     unit: duty.intervalDays === null ? 'months' : 'days',
     counting: duty.counting,
+    dueOn: duty.dueOn ?? '',
     responsibleUserId: duty.responsibleUserId ?? '',
     performer: duty.performer,
     performerNote: duty.performerNote ?? '',
@@ -344,7 +355,10 @@ function described(typed: Typed) {
     task: typed.task === '' ? null : typed.task,
     basis: typed.basis === '' ? null : typed.basis,
     sourceNote: typed.sourceNote.trim(),
-    ...intervalOf(typed),
+    // A duty that falls due once has its due day instead of an interval (#441).
+    ...(typed.counting === 'once'
+      ? { dueOn: typed.dueOn === '' ? null : typed.dueOn }
+      : intervalOf(typed)),
     responsibleUserId: typed.responsibleUserId === '' ? null : typed.responsibleUserId,
     performer: typed.performer,
     // The note names the contractor, and goes only with one.
@@ -373,6 +387,14 @@ function problemsOf(typed: Typed, counting: Counting): Record<string, string> {
     ...(values.basis === null ? { basis: dutyFormWords.noBasis } : {}),
     ...(values.sourceNote === '' ? { sourceNote: dutyFormWords.noSource } : {}),
   }
+  if (counting === 'once') {
+    if (typed.dueOn === '') {
+      wrong['dueOn'] = dutyFormWords.noDueOn
+    }
+
+    return wrong
+  }
+
   const intervalWrong =
     typed.interval.trim() === ''
       ? dutyFormWords.noInterval
@@ -611,7 +633,9 @@ function DutyForm({
             <GoodToKnow
               lines={[
                 dutyFormWords.likeTheCatalogue,
-                dutyFormWords.neverRecorded,
+                typed.counting === 'once'
+                  ? dutyFormWords.outstandingOnce
+                  : dutyFormWords.neverRecorded,
                 dutyFormWords.recurring,
               ]}
             />
@@ -750,7 +774,7 @@ function EditDutyForm({ duty, target }: { readonly duty: DutyDetails; readonly t
             <GoodToKnow
               lines={[
                 dutyFormWords.placeStays,
-                dutyFormWords.intervalCounts,
+                duty.counting === 'once' ? dutyFormWords.dueOnCounts : dutyFormWords.intervalCounts,
                 dutyFormWords.removeOrEnd,
               ]}
             />
@@ -815,6 +839,34 @@ function DutyFields({
   const colleagues = useQuery(dutyColleaguesQuery)
   // The contracts of a firm, for whoever reads them (#329).
   const readsContracts = useRight('contract.read')
+  const once = (fixedCounting ?? typed.counting) === 'once'
+  // How it counts: a choice for a new duty, of the three that recur and
+  // once (#441); over a duty there is, what it was made with.
+  const counted =
+    fixedCounting === undefined ? (
+      <SelectField
+        label="Gezählt"
+        options={countings.map((counting) => ({
+          value: counting,
+          label: countingLabel[counting],
+        }))}
+        value={typed.counting}
+        hint={once ? dutyFormWords.onceHint : dutyFormWords.countingHint}
+        problem={problems['counting']}
+        onChange={(value) => {
+          set({ counting: countings.find((each) => each === value) ?? typed.counting })
+        }}
+      />
+    ) : (
+      <Field
+        label="Gezählt"
+        value={countingLabel[fixedCounting]}
+        readOnly
+        hint={dutyFormWords.countingStays}
+        // Grey as the board draws a field that cannot be changed.
+        className="bg-surface-sunken!"
+      />
+    )
 
   return (
     <>
@@ -869,59 +921,52 @@ function DutyFields({
           }}
         />
       </div>
-      <PanelLabel>Frist</PanelLabel>
-      <div className="grid gap-3 sm:grid-cols-[110px_150px_minmax(0,1fr)]">
-        <Field
-          label="Frist"
-          required
-          starred
-          inputMode="numeric"
-          numeric
-          value={typed.interval}
-          problem={problems['interval']}
-          onChange={(event) => {
-            set({ interval: event.target.value })
-          }}
-        />
-        <SelectField
-          label="Einheit"
-          options={[
-            { value: 'months', label: 'Monate' },
-            { value: 'days', label: 'Tage' },
-          ]}
-          value={typed.unit}
-          onChange={(value) => {
-            set({ unit: value === 'days' ? 'days' : 'months' })
-          }}
-        />
-        {fixedCounting === undefined ? (
-          <SelectField
-            label="Gezählt"
-            // A duty of the operator's own recurs (#439).
-            options={recurringCountings.map((counting) => ({
-              value: counting,
-              label: countingLabel[counting],
-            }))}
-            value={typed.counting}
-            hint={dutyFormWords.countingHint}
-            problem={problems['counting']}
-            onChange={(value) => {
-              set({
-                counting: recurringCountings.find((each) => each === value) ?? typed.counting,
-              })
+      <PanelLabel>{once ? 'Termin' : 'Frist'}</PanelLabel>
+      {once ? (
+        // Counted once, the due day its source names stands where the interval stood (#441).
+        <div className="grid gap-3 sm:grid-cols-[180px_minmax(0,1fr)]">
+          <Field
+            label="Termin"
+            type="date"
+            required
+            starred
+            value={typed.dueOn}
+            hint={dutyFormWords.dueOnHint}
+            problem={problems['dueOn']}
+            onChange={(event) => {
+              set({ dueOn: event.target.value })
             }}
           />
-        ) : (
+          {counted}
+        </div>
+      ) : (
+        <div className="grid gap-3 sm:grid-cols-[110px_150px_minmax(0,1fr)]">
           <Field
-            label="Gezählt"
-            value={countingLabel[fixedCounting]}
-            readOnly
-            hint={dutyFormWords.countingStays}
-            // Grey as the board draws a field that cannot be changed.
-            className="bg-surface-sunken!"
+            label="Frist"
+            required
+            starred
+            inputMode="numeric"
+            numeric
+            value={typed.interval}
+            problem={problems['interval']}
+            onChange={(event) => {
+              set({ interval: event.target.value })
+            }}
           />
-        )}
-      </div>
+          <SelectField
+            label="Einheit"
+            options={[
+              { value: 'months', label: 'Monate' },
+              { value: 'days', label: 'Tage' },
+            ]}
+            value={typed.unit}
+            onChange={(value) => {
+              set({ unit: value === 'days' ? 'days' : 'months' })
+            }}
+          />
+          {counted}
+        </div>
+      )}
       <PanelLabel>Zuständig</PanelLabel>
       <div className="grid items-start gap-3 sm:grid-cols-2">
         <SelectField

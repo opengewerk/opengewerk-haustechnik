@@ -17,11 +17,11 @@ import type { ContractorId } from './contractor.js'
 import type { DutyDelegationId } from './delegation.js'
 import {
   type Counting,
+  countings,
   type DutyTask,
   dutyTaskLabel,
   dutyTasks,
   type IntervalKind,
-  recurringCountings,
 } from './catalogue.js'
 import { calendarDay, oneOf, optional, type Problems, required } from './fields.js'
 import type { PropertyId } from './location.js'
@@ -389,19 +389,25 @@ export function dutyProblems(duty: Readonly<Record<string, unknown>>): Readonly<
     dutyPerformers,
     'Ausgeführt wird von eigenen Leuten oder einer Fremdfirma.',
   )
-  // A duty of the operator's own recurs; only a kind of the catalogue falls due once (#439).
+  // A duty of the operator's own recurs, or falls due once on the day its source names (#441).
   oneOf(
     problems,
     duty,
     'counting',
-    recurringCountings,
-    'Gezählt wird ab dem Tag der Durchführung, ab dem fälligen Tag oder nach § 14 Abs. 5 BetrSichV.',
+    countings,
+    'Gezählt wird ab dem Tag der Durchführung, ab dem fälligen Tag, nach § 14 Abs. 5 BetrSichV oder einmalig.',
   )
 
   const endsOn = duty['endsOn']
 
   if (endsOn !== undefined && endsOn !== null && !calendarDay(endsOn)) {
     problems['endsOn'] = 'Das Ende ist ein Tag, geschrieben 2026-10-03.'
+  }
+
+  const dueOn = duty['dueOn']
+
+  if (dueOn !== undefined && dueOn !== null && !calendarDay(dueOn)) {
+    problems['dueOn'] = 'Der Termin ist ein Tag, geschrieben 2026-10-03.'
   }
 
   const countedFrom = duty['countedFrom']

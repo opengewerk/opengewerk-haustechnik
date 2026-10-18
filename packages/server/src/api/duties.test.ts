@@ -374,7 +374,7 @@ describe('a duty from the catalogue', () => {
   it('takes name, basis, source, task and counting from its kind', async () => {
     const place = await placeIn()
     const fromItsKind =
-      'Eine Pflicht aus dem Katalog nimmt Bezeichnung, Grundlage, Quelle, Tätigkeit und Zählweise von ihrer Pflichtart.'
+      'Eine Pflicht aus dem Katalog nimmt Bezeichnung, Grundlage, Quelle, Tätigkeit, Zählweise und Termin von ihrer Pflichtart.'
 
     for (const own of [{ label: 'Hauptprüfung' }, { task: 'inspection' }]) {
       expect(
@@ -744,10 +744,10 @@ describe('changing a duty', () => {
       'Verantwortlich ist jemand, der für diesen Betreiber arbeitet.',
     )
     expect((await change({ sourceNote: 'Vertrag' }).expect(400)).body.message).toBe(
-      'Eine Pflicht aus dem Katalog nimmt Bezeichnung, Grundlage, Quelle und Tätigkeit von ihrer Pflichtart.',
+      'Eine Pflicht aus dem Katalog nimmt Bezeichnung, Grundlage, Quelle, Tätigkeit und Termin von ihrer Pflichtart.',
     )
     expect((await change({ task: 'maintenance' }).expect(400)).body.message).toBe(
-      'Eine Pflicht aus dem Katalog nimmt Bezeichnung, Grundlage, Quelle und Tätigkeit von ihrer Pflichtart.',
+      'Eine Pflicht aus dem Katalog nimmt Bezeichnung, Grundlage, Quelle, Tätigkeit und Termin von ihrer Pflichtart.',
     )
   })
 

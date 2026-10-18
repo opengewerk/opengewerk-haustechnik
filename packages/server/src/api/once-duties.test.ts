@@ -375,6 +375,110 @@ describe('a duty that falls due once', () => {
   })
 })
 
+/** A duty of the operator's own at an asset, as an insurer asks for it once or again and again (#441). */
+function own(assetId: string, values: object) {
+  return post({
+    assetId,
+    label: 'Prüfung des Sicherheitsventils',
+    basis: 'insurer',
+    sourceNote: 'Versicherungsschein 4711, Auflage 3',
+    task: 'inspection',
+    ...values,
+  })
+}
+
+const noInterval =
+  'Eine einmalige Pflicht hat keine Frist, sondern einen Termin; sie nennt weder Frist noch Begründung noch ein Dokument, das eine Frist trägt.'
+const noDayOfTheAsset =
+  'Eine eigene Pflicht zählt von keinem Tag der Anlage; ihren Termin oder ihre Frist nennt ihre Quelle.'
+const dueDayMissing = 'Der Termin einer einmaligen Pflicht fehlt; ihn nennt ihre Quelle.'
+const recursWithoutDueDay =
+  'Nur eine einmalige Pflicht hat einen Termin; eine Pflicht, die wiederkehrt, hat eine Frist.'
+
+describe("a duty of the operator's own that falls due once (#441)", () => {
+  it('is made with the due day its source names and no interval, and is met for good by its first evidence', async () => {
+    const elevator = await elevatorIn(null)
+    const dueOn = addMonths(today, 5)
+    const made = (await own(elevator, { counting: 'once', dueOn }).expect(201)).body as {
+      id: string
+    }
+
+    expect(made).toMatchObject({
+      kind: null,
+      counting: 'once',
+      dueOn,
+      countedFrom: null,
+      intervalDays: null,
+      intervalMonths: null,
+    })
+    expect(await read(made.id)).toMatchObject({ state: 'outstanding', appointment: { dueOn } })
+    expect(await deadlineOf(made.id)).toBe(dueOn)
+
+    await evidenceOf(made.id, today)
+
+    expect(await read(made.id)).toMatchObject({ state: 'met', appointment: null })
+    expect(await deadlineOf(made.id)).toBeNull()
+  })
+
+  it('is refused without its due day, with an interval or counted from a day of its asset, and only it has a due day', async () => {
+    const elevator = await elevatorIn('2026-11-02')
+
+    expect((await own(elevator, { counting: 'once' }).expect(400)).body.message).toBe(dueDayMissing)
+    expect(
+      (
+        await own(elevator, { counting: 'once', dueOn: '2027-03-31', intervalMonths: 12 }).expect(
+          400,
+        )
+      ).body.message,
+    ).toBe(noInterval)
+    expect(
+      (
+        await own(elevator, {
+          counting: 'once',
+          dueOn: '2027-03-31',
+          countedFrom: '2026-11-02',
+        }).expect(400)
+      ).body.message,
+    ).toBe(noDayOfTheAsset)
+    expect(
+      (await own(elevator, { intervalMonths: 12, dueOn: '2027-03-31' }).expect(400)).body.message,
+    ).toBe(recursWithoutDueDay)
+    expect(
+      (await post({ assetId: elevator, kind: registration, dueOn: '2027-03-31' }).expect(400)).body
+        .message,
+    ).toBe(
+      'Eine Pflicht aus dem Katalog nimmt Bezeichnung, Grundlage, Quelle, Tätigkeit, Zählweise und Termin von ihrer Pflichtart.',
+    )
+  })
+
+  it('changes its due day as its source names it, never to none, never to an interval or a day of its asset', async () => {
+    const elevator = await elevatorIn('2026-11-02')
+    const once = (await own(elevator, { counting: 'once', dueOn: '2027-03-31' }).expect(201)).body
+      .id as string
+    const recurring = (await own(elevator, { intervalMonths: 12 }).expect(201)).body.id as string
+    const fromTheCatalogue = (await post({ assetId: elevator, kind: registration }).expect(201))
+      .body.id as string
+
+    expect((await patch(once, { dueOn: '2027-06-30' }).expect(200)).body).toMatchObject({
+      counting: 'once',
+      dueOn: '2027-06-30',
+    })
+    expect((await read(once)).appointment).toMatchObject({ dueOn: '2027-06-30' })
+    expect((await patch(once, { dueOn: null }).expect(400)).body.message).toBe(dueDayMissing)
+    expect((await patch(once, { intervalMonths: 12 }).expect(400)).body.message).toBe(noInterval)
+    expect((await patch(once, { countedFrom: '2026-11-02' }).expect(400)).body.message).toBe(
+      noDayOfTheAsset,
+    )
+    expect((await patch(recurring, { dueOn: '2027-06-30' }).expect(400)).body.message).toBe(
+      recursWithoutDueDay,
+    )
+    expect((await patch(fromTheCatalogue, { dueOn: '2027-06-30' }).expect(400)).body.message).toBe(
+      'Eine Pflicht aus dem Katalog nimmt Bezeichnung, Grundlage, Quelle, Tätigkeit und Termin von ihrer Pflichtart.',
+    )
+    expect((await read(fromTheCatalogue)).appointment).toMatchObject({ dueOn: registrationDay })
+  })
+})
+
 describe('the database', () => {
   it('holds a duty that falls due once to its due day, without an interval, and a day counted from to it', async () => {
     const elevator = await elevatorIn(null)
