@@ -240,6 +240,7 @@ describe('what each entry hands to the foundation', () => {
     expect(officeApplication.settings.map((entry) => entry.key)).toEqual([
       'bereiche',
       'zugaenge',
+      'rollen',
       'maengelklassen',
       'stoerungen',
       'meters',

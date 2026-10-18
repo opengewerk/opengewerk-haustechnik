@@ -311,7 +311,13 @@ Anhang B nennt jedes Feld der Datenbank, das auf eine Person zeigt. Dieser Absch
 
 ## 4. Wer was sieht
 
-Phase 1 kennt vier Rollen, Phase 2 bringt den Melder dazu: er sieht seine eigenen Störmeldungen und die Namen der Gebäude und Räume seiner Bereiche und sonst nichts (Abschnitt 3.17); und den Prüfer, der Pflichten und Nachweise in den Grenzen seines Zugangs liest (Abschnitt 3.20). Was jede Rolle darf, steht Recht für Recht in Abschnitt 7 des Planungskonzepts. Für die Daten über Beschäftigte heißt das:
+Phase 1 kennt vier Rollen, Phase 2 bringt den Melder dazu: er sieht seine eigenen Störmeldungen und die Namen der Gebäude und Räume seiner Bereiche und sonst nichts (Abschnitt 3.17); und den Prüfer, der Pflichten und Nachweise in den Grenzen seines Zugangs liest (Abschnitt 3.20). Was jede Rolle darf, steht Recht für Recht in Abschnitt 7 des Planungskonzepts.
+
+Dazu kann die Leitung eigene Rollen anlegen, mit Rechten aus derselben Tabelle. Welche Rollen es beim Betreiber gibt, mit ihren Rechten und wie vielen Zugängen jede zugeordnet ist, steht unter „Einstellungen“, „Rollen“, und jede Änderung an einer Rolle im Änderungsprotokoll. Was eine eigene Rolle darf, ist eine Auswahl aus den Rechten der Leitung: die Spalte der Leitung in der Tabelle unten ist die obere Grenze jeder eigenen Rolle.
+
+- **Zusage:** Eine eigene Rolle bekommt nie das Recht, das Änderungsprotokoll einzusehen, die Zugänge anzusehen oder zu verwalten, den Mailserver anzusehen oder einzurichten oder Pflichten zu übertragen; das bleibt der Leitung. Sie führt den Betreiber nie, und eine Rolle eines Betreibers ist bei einem anderen nicht zu sehen. Eine Änderung an einer Rolle gilt beim nächsten Aufruf jeder Person mit dieser Rolle. [K7, K9, B382, B383, B384]
+
+Für die Daten über Beschäftigte heißt das:
 
 | Was | Leitung | Technische Leitung | Objektleitung | Haustechnik |
 | --- | --- | --- | --- | --- |
@@ -556,7 +562,7 @@ Pfade ohne Vorsatz liegen im Repository `opengewerk/opengewerk-haustechnik`. Pfa
 | B57 | Test | `upstream/opengewerk/packages/platform/server/src/sync/controller.test.ts` | `lists what a device has to decide and closes it once, for that device alone` |
 | B58 | Test | `upstream/opengewerk/packages/platform/web/src/gate/sign-out.test.tsx` | `takes the store of every tenant on this device with it, then ends the session` |
 | B59 | Test | `upstream/opengewerk/packages/platform/server/src/instance/instance.test.ts` | `is listed for whoever runs the instance with who leads it and how many work in it, and nothing of what is in it` |
-| B60 | Test | `upstream/opengewerk/packages/platform/server/src/migration/guards.test.ts` | `let nothing that names a tenant be deleted by the application, its mail server aside` |
+| B60 | Test | `upstream/opengewerk/packages/platform/server/src/migration/guards.test.ts` | `let nothing that names a tenant be deleted by the application, its roles and its mail server aside` |
 | B61 | Test | `upstream/opengewerk/packages/platform/domain/src/model/signature.test.ts` | `carries nothing else, because it goes straight into an SVG` |
 | B62 | Stelle | `upstream/opengewerk/packages/platform/server/src/database/schema/authentication.ts` | `ip_address` |
 | B63 | Stelle | `upstream/opengewerk/packages/platform/domain/src/model/invitation.ts` | `invitationDays = 7` |
@@ -878,6 +884,9 @@ Pfade ohne Vorsatz liegen im Repository `opengewerk/opengewerk-haustechnik`. Pfa
 | B379 | Test | `packages/server/src/api/activity-emptying.test.ts` | `empties a collective activity with the last evidence of its parts, and its signature with it (#342)` |
 | B380 | Test | `packages/server/src/api/collectives.test.ts` | `writes one evidence per duty with the file once, each defect at its asset, and settles every part` |
 | B381 | Test | `packages/web/src/site/screens/collective.test.tsx` | `signs once, for the page of every asset, also without a network` |
+| B382 | Test | `packages/server/src/api/roles.test.ts` | `gives a role of its own no right that stays with the Leitung, and never lets it lead` |
+| B383 | Test | `packages/server/src/api/roles.test.ts` | `is not to be seen, changed or given in another tenant` |
+| B384 | Test | `packages/server/src/api/roles.test.ts` | `holds at the next request of everybody with the role` |
 
 ---
 
@@ -988,6 +997,7 @@ Jede Zeile ist der erste Abschnitt einer Adresse, unter der der Server antwortet
 | `push` | Push auf den eigenen Geräten: ob die Instanz Push verschickt, die eigenen Geräte, ein Gerät an- und abmelden, die Anlässe ein- und ausschalten und eine Probenachricht |
 | `qualifications` | Qualifikationen der Personen: die Liste, die eigenen unter „Konto“, die Arten und eine eigene Art, eine Qualifikation eintragen, ändern und herausnehmen, ihr Nachweis hochladen und lesen |
 | `reports` | Auswertungen über die Zeit: die Erfüllung der Pflichten, die offenen Mängel, die Störungen, die Vorgänge nach DIN 31051 und der Verbrauch der Zähler, je Ort und Zeitraum und nie je Person, auch als Tabelle |
+| `roles` | Rollen des Betreibers mit ihren Rechten und wie vielen Zugängen und offenen Einladungen jede zugeordnet ist, für die Leitung; eigene Rollen anlegen, ändern und entfernen; ohne Namen |
 | `rooms` | Räume, mit den Pflichten, die an ihnen hängen |
 | `round-plans` | Pläne der Rundgänge: ihre Liste als Tabelle, ein neuer Plan und die Änderung eines Plans, auch ruhen lassen und beenden; ein Plan nennt die Person, die seine Rundgänge geht, oder niemanden; die abgeschlossenen Rundgänge eines Plans über einen Zeitraum als Tabelle, ohne Person |
 | `round-templates` | Vorlagen der Rundgänge: die eigenen als Tabelle, eine neue, leer oder aus einem Paket übernommen, und eine neue Fassung einer Vorlage; sie nennen Anlagen, Räume und Pflichten und keine Person |

@@ -12,6 +12,7 @@ import {
   CalendarClock,
   Gauge,
   History,
+  KeyRound,
   List,
   Mail,
   Map,
@@ -54,6 +55,15 @@ const settings = [
     about:
       'Wer für diesen Betreiber arbeitet, mit welchen Rollen, Bereichen und Vertretungen, und die Einladungen.',
     icon: Users,
+    right: 'membership.read',
+  },
+  // The roles of the tenant and those it makes for itself (#346).
+  {
+    key: 'rollen',
+    to: '/einstellungen/rollen',
+    title: 'Rollen',
+    about: 'Was jede Rolle darf, und Rollen, die dieser Betreiber selbst zuschneidet.',
+    icon: KeyRound,
     right: 'membership.read',
   },
   {
