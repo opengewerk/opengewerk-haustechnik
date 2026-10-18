@@ -90,10 +90,10 @@ function sampling(characteristics: Characteristics): readonly (readonly [string,
   return proposed(catalogue, 'drinking_water_installation', characteristics)
     .filter((entry) => entry.key.includes('legionella_sampling'))
     .map((entry) => {
-    const rule = catalogue.interval(entry.definition, options.today)
+      const rule = catalogue.interval(entry.definition, options.today)
 
-    return [entry.key, rule === null ? 'none' : `${rule.record.value} ${rule.record.unit}`]
-  })
+      return [entry.key, rule === null ? 'none' : `${rule.record.value} ${rule.record.unit}`]
+    })
 }
 
 // An installation the sampling binds, given out to the public.

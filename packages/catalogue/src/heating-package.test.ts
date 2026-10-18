@@ -218,12 +218,12 @@ describe('the package Heizung', () => {
     expect(checks({ ...six, installed_before_october_2009: false })).toEqual([
       'heizung.heating_check',
     ])
-    expect(checks({ ...six, six_or_more_units: false, installed_before_october_2009: true })).toEqual(
-      [],
-    )
-    expect(checks({ ...six, building_automation: true, installed_before_october_2009: true })).toEqual(
-      [],
-    )
+    expect(
+      checks({ ...six, six_or_more_units: false, installed_before_october_2009: true }),
+    ).toEqual([])
+    expect(
+      checks({ ...six, building_automation: true, installed_before_october_2009: true }),
+    ).toEqual([])
 
     const before = heating.dutyKind('heizung.heating_check_before_2009', '2026-10-18')
     const after = heating.dutyKind('heizung.heating_check', '2026-10-18')
