@@ -9,6 +9,13 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
 
 ### Hinzugefügt
 
+- Vor dem Einschalten von Push steht, über welchen Dienst die Nachrichten gehen (#390): im Konto unter
+  „Benachrichtigungen“ und im Menü vor Ort ein Satz aus dem Fundament (opengewerk/opengewerk#666), dass Push über den
+  Dienst des Browser-Herstellers in den USA geht, mit dem Risiko bei Apple und Mozilla, der Einwilligung durch das
+  Einschalten und dem Verweis auf die Datenschutzhinweise der Instanz; Abschnitt 3.15 der Verfahrensbeschreibung nennt
+  ihn. Warum: für Safari und Firefox ist das Einschalten die Einwilligung nach Art. 49 Abs. 1 lit. a DSGVO, und die
+  gilt nur, wenn die Person vorher vom Risiko weiß.
+
 - Eine Art der Qualifikation deckt andere ab (#406): eine Art in `qualifikationen.json` nennt mit `covers` die Arten
   ihres Pakets, deren Pflichten eine Person dieser Art ebenso ausführt. Im Paket Elektro (Fassung 1.2.0) deckt die
   Elektrofachkraft die elektrotechnisch unterwiesene Person ab. Beim Zuteilen und vor Ort zählt eine abdeckende Art wie
