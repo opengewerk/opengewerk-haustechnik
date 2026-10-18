@@ -1,0 +1,39 @@
+{
+  "validFrom": "2027-01-01",
+  "label": "Klimaanlage energetisch inspizieren lassen (über 70 kW)",
+  "description": "Wer eine eingebaute Klimaanlage oder eine kombinierte Klima- und Lüftungsanlage mit mehr als 70 kW Nennleistung für den Kältebedarf betreibt, lässt sie energetisch inspizieren, nach der DIN SPEC 15240: zum ersten Mal im fünften Jahr nach der Inbetriebnahme oder nach der Erneuerung wesentlicher Bauteile, danach alle fünf Jahre. Eine Anlage, die am 01.10.2023 älter als zehn Jahre war, wird bis zum 31.12.2028 zum ersten Mal inspiziert. Die fachkundige Person schreibt einen Inspektionsbericht mit den Ergebnissen, Ratschlägen und der Registriernummer und übergibt ihn; der Betreiber legt ihn der Behörde auf Verlangen vor. In einem Nichtwohngebäude entfällt die Pflicht, wenn es eine Gebäudeautomation hat oder die Anlage unter einen Vertrag über die Gesamtenergieeffizienz fällt, in einem Wohngebäude mit einer kontinuierlichen elektronischen Überwachung und einer wirksamen Regelung; dann wird der Vorschlag mit dieser Begründung verworfen. Was schon nach der F-Gas-Verordnung geprüft ist, prüft die Inspektion nicht noch einmal.",
+  "task": "condition_assessment",
+  "origin": "state_law",
+  "bindingness": "statute",
+  "source": "§ 74 Abs. 1, § 75 Abs. 3 und 5, § 76 Abs. 1 Satz 2 und 3, Abs. 2 Satz 2 GModG",
+  "interval": {
+    "kind": "maximum",
+    "rule": "ac_inspection_large_interval"
+  },
+  "counting": "from_performance",
+  "qualification": {
+    "level": "skilled_person",
+    "note": "eine fachkundige Person nach § 77 GModG, etwa mit einem Abschluss in Versorgungstechnik oder Technischer Gebäudeausrüstung und Berufserfahrung mit raumlufttechnischen Anlagen, ein Meister oder ein staatlich geprüfter Techniker des Fachs"
+  },
+  "evidence": {
+    "kinds": [
+      "report",
+      "protocol"
+    ],
+    "form": "energy_inspection"
+  },
+  "retention": {
+    "kind": "until_next_inspection"
+  },
+  "scope": {
+    "assetKinds": [
+      "air_conditioning_system"
+    ],
+    "conditions": [
+      {
+        "characteristic": "cooling_capacity",
+        "atLeast": "ac_inspection_large_threshold"
+      }
+    ]
+  }
+}

@@ -1,0 +1,68 @@
+{
+  "note": "Die Inspektion von Klima- und Lüftungsanlagen nach dem Gebäudeenergiegesetz vom 8. August 2020, in Kraft seit dem 1. November 2020, seit dem 29. Juli 2026 Gebäudemodernisierungsgesetz (BGBl. 2026 I Nr. 226), geprüft am Text auf gesetze-im-internet.de und im Bundesgesetzblatt. Ab dem 1. Januar 2027 gilt § 76 in der Fassung von Art. 2 des Gesetzes vom 23. Juli 2026. Eine Nennleistung steht in ganzen Kilowatt, ein Bruchteil aufgerundet: mehr als 12 kW ist dann ab 13 kW, mehr als 70 kW ab 71 kW.",
+  "records": [
+    {
+      "key": "ac_inspection_threshold",
+      "validFrom": "2020-11-01",
+      "validUntil": null,
+      "unit": "kilowatts",
+      "value": 13,
+      "source": "§ 74 Abs. 1 GEG, mehr als 12 kW",
+      "origin": "state_law"
+    },
+    {
+      "key": "ac_inspection_large_threshold",
+      "validFrom": "2020-11-01",
+      "validUntil": null,
+      "unit": "kilowatts",
+      "value": 71,
+      "source": "§ 75 Abs. 3 GEG, mehr als 70 kW",
+      "origin": "state_law"
+    },
+    {
+      "key": "ac_inspection_interval",
+      "validFrom": "2020-11-01",
+      "validUntil": null,
+      "unit": "years",
+      "value": 10,
+      "source": "§ 76 Abs. 2 Satz 1 GEG",
+      "origin": "state_law"
+    },
+    {
+      "key": "ac_inspection_large_interval",
+      "validFrom": "2020-11-01",
+      "validUntil": "2026-12-31",
+      "unit": "years",
+      "value": 10,
+      "source": "§ 76 Abs. 2 Satz 1 GEG",
+      "origin": "state_law"
+    },
+    {
+      "key": "ac_inspection_large_interval",
+      "validFrom": "2027-01-01",
+      "validUntil": null,
+      "unit": "years",
+      "value": 5,
+      "source": "§ 76 Abs. 2 Satz 2 GModG",
+      "origin": "state_law"
+    },
+    {
+      "key": "ventilation_inspection_threshold",
+      "validFrom": "2027-01-01",
+      "validUntil": null,
+      "unit": "kilowatts",
+      "value": 71,
+      "source": "§ 74 Abs. 1 GModG, mehr als 70 kW",
+      "origin": "state_law"
+    },
+    {
+      "key": "ventilation_inspection_interval",
+      "validFrom": "2027-01-01",
+      "validUntil": null,
+      "unit": "years",
+      "value": 5,
+      "source": "§ 76 Abs. 2 Satz 2 GModG",
+      "origin": "state_law"
+    }
+  ]
+}

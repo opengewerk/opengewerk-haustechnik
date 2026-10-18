@@ -707,6 +707,7 @@ describe('a preview started as the Leitung', () => {
       'feiertage',
       'landesrecht',
       'messstellen',
+      'raumluft',
       'trinkwasser',
       'probe',
       'vorschau',

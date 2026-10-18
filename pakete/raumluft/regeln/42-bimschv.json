@@ -1,0 +1,41 @@
+{
+  "note": "Die Verordnung über Verdunstungskühlanlagen, Kühltürme und Nassabscheider vom 12. Juli 2017 (BGBl. I S. 2379; 2018 I S. 202), in Kraft seit dem 19. August 2017, geprüft am Text auf gesetze-im-internet.de. Der Prüfwert 1 ist überschritten, wenn ein Befund über ihm liegt; das Formular misst deshalb mit at_most gegen ihn.",
+  "records": [
+    {
+      "key": "cooling_internal_check_interval",
+      "validFrom": "2017-08-19",
+      "validUntil": null,
+      "unit": "days",
+      "value": 14,
+      "source": "§ 4 Abs. 2 Nr. 1 der 42. BImSchV",
+      "origin": "state_law"
+    },
+    {
+      "key": "cooling_lab_test_interval",
+      "validFrom": "2017-08-19",
+      "validUntil": null,
+      "unit": "months",
+      "value": 3,
+      "source": "§ 4 Abs. 2 Nr. 2 und Abs. 3 der 42. BImSchV",
+      "origin": "state_law"
+    },
+    {
+      "key": "cooling_expert_inspection_interval",
+      "validFrom": "2017-08-19",
+      "validUntil": null,
+      "unit": "years",
+      "value": 5,
+      "source": "§ 14 Abs. 1 der 42. BImSchV",
+      "origin": "state_law"
+    },
+    {
+      "key": "cooling_legionella_test_value",
+      "validFrom": "2017-08-19",
+      "validUntil": null,
+      "unit": "count_per_100_ml",
+      "value": 100,
+      "source": "Anlage 1 der 42. BImSchV, Prüfwert 1 für Verdunstungskühlanlagen",
+      "origin": "state_law"
+    }
+  ]
+}

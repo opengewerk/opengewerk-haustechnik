@@ -1,0 +1,48 @@
+{
+  "validFrom": "2020-11-01",
+  "title": "Energetische Inspektion",
+  "sections": [
+    {
+      "key": "report",
+      "title": "Inspektionsbericht",
+      "fields": [
+        {
+          "kind": "text",
+          "key": "registration",
+          "label": "Registriernummer des Inspektionsberichts",
+          "required": true
+        },
+        {
+          "kind": "text",
+          "key": "inspector",
+          "label": "Inspizierende Person mit Berufsbezeichnung",
+          "required": true,
+          "carry": true
+        },
+        {
+          "kind": "text",
+          "key": "findings",
+          "label": "Ergebnisse und Ratschläge",
+          "multiline": true
+        },
+        {
+          "kind": "check_point",
+          "key": "handed_over",
+          "label": "Inspektionsbericht übergeben"
+        }
+      ]
+    },
+    {
+      "key": "end",
+      "title": "Abschluss",
+      "fields": [
+        {
+          "kind": "signature",
+          "key": "signature",
+          "label": "Unterschrift",
+          "seals": true
+        }
+      ]
+    }
+  ]
+}

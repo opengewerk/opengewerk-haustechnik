@@ -1,0 +1,43 @@
+{
+  "validFrom": "2020-11-01",
+  "label": "Klimaanlage energetisch inspizieren lassen (bis 70 kW)",
+  "description": "Wer eine eingebaute Klimaanlage oder eine kombinierte Klima- und Lüftungsanlage mit mehr als 12 bis 70 kW Nennleistung für den Kältebedarf betreibt, lässt sie energetisch inspizieren: zum ersten Mal im zehnten Jahr nach der Inbetriebnahme oder nach der Erneuerung wesentlicher Bauteile, danach spätestens alle zehn Jahre. Die fachkundige Person schreibt einen Inspektionsbericht mit den Ergebnissen, Ratschlägen und der Registriernummer und übergibt ihn; der Betreiber legt ihn der Behörde auf Verlangen vor. In einem Nichtwohngebäude entfällt die Pflicht, wenn es eine Gebäudeautomation hat oder die Anlage unter einen Vertrag über die Gesamtenergieeffizienz fällt, in einem Wohngebäude mit einer kontinuierlichen elektronischen Überwachung und einer wirksamen Regelung; dann wird der Vorschlag mit dieser Begründung verworfen. Wer mehr als zehn gleichartige Anlagen dieser Größe in vergleichbaren Nichtwohngebäuden betreibt, darf eine Stichprobe inspizieren lassen. Seit dem 29.07.2026 heißt das Gesetz Gebäudemodernisierungsgesetz.",
+  "task": "condition_assessment",
+  "origin": "state_law",
+  "bindingness": "statute",
+  "source": "§ 74 Abs. 1 und § 76 GEG",
+  "interval": {
+    "kind": "maximum",
+    "rule": "ac_inspection_interval"
+  },
+  "counting": "from_performance",
+  "qualification": {
+    "level": "skilled_person",
+    "note": "eine fachkundige Person nach § 77 GEG, etwa mit einem Abschluss in Versorgungstechnik oder Technischer Gebäudeausrüstung und Berufserfahrung mit raumlufttechnischen Anlagen, ein Meister oder ein staatlich geprüfter Techniker des Fachs"
+  },
+  "evidence": {
+    "kinds": [
+      "report",
+      "protocol"
+    ],
+    "form": "energy_inspection"
+  },
+  "retention": {
+    "kind": "until_next_inspection"
+  },
+  "scope": {
+    "assetKinds": [
+      "air_conditioning_system"
+    ],
+    "conditions": [
+      {
+        "characteristic": "cooling_capacity",
+        "atLeast": "ac_inspection_threshold"
+      },
+      {
+        "characteristic": "cooling_capacity",
+        "below": "ac_inspection_large_threshold"
+      }
+    ]
+  }
+}

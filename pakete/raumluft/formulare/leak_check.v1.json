@@ -1,0 +1,111 @@
+{
+  "validFrom": "2024-03-11",
+  "title": "Dichtheitskontrolle nach der F-Gas-Verordnung",
+  "sections": [
+    {
+      "key": "equipment",
+      "title": "Einrichtung",
+      "hint": "Die Angaben, die Art. 7 der Verordnung für die Aufzeichnungen verlangt",
+      "fields": [
+        {
+          "kind": "text",
+          "key": "refrigerant",
+          "label": "Kältemittel",
+          "required": true,
+          "carry": true
+        },
+        {
+          "kind": "number",
+          "key": "charge",
+          "label": "Füllmenge",
+          "unit": "kilograms",
+          "decimals": 2,
+          "carry": true
+        },
+        {
+          "kind": "text",
+          "key": "company",
+          "label": "Ausführendes Unternehmen mit Nummer seines Zertifikats",
+          "required": true,
+          "carry": true
+        },
+        {
+          "kind": "text",
+          "key": "person",
+          "label": "Ausführende Person mit Nummer ihrer Sachkundebescheinigung",
+          "required": true
+        }
+      ]
+    },
+    {
+      "key": "check",
+      "title": "Kontrolle",
+      "fields": [
+        {
+          "kind": "check_point",
+          "key": "tight",
+          "label": "Keine Undichtigkeit festgestellt"
+        },
+        {
+          "kind": "check_point",
+          "key": "detection",
+          "label": "Leckage-Erkennungssystem funktioniert"
+        }
+      ]
+    },
+    {
+      "key": "quantities",
+      "title": "Mengen",
+      "fields": [
+        {
+          "kind": "number",
+          "key": "added",
+          "label": "Nachgefüllte Menge",
+          "unit": "kilograms",
+          "decimals": 2
+        },
+        {
+          "kind": "yes_no",
+          "key": "recycled",
+          "label": "Nachgefülltes Gas recycelt oder aufgearbeitet"
+        },
+        {
+          "kind": "number",
+          "key": "recovered",
+          "label": "Rückgewonnene Menge",
+          "unit": "kilograms",
+          "decimals": 2
+        }
+      ]
+    },
+    {
+      "key": "repair",
+      "title": "Reparatur",
+      "fields": [
+        {
+          "kind": "yes_no",
+          "key": "repaired",
+          "label": "Undichtigkeit repariert"
+        },
+        {
+          "kind": "text",
+          "key": "repair_check",
+          "label": "Nachprüfung der Reparatur, mit Tag und Ergebnis",
+          "multiline": true
+        }
+      ]
+    },
+    {
+      "key": "end",
+      "title": "Abschluss",
+      "fields": [
+        {
+          "kind": "signature",
+          "key": "signature",
+          "label": "Unterschrift",
+          "seals": true
+        }
+      ]
+    }
+  ]
+}

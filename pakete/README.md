@@ -17,7 +17,9 @@ allgemeinen Mängelklassen. Das erste Fachpaket ist [`elektro`](elektro/README.m
 Prüfungen nach den DGUV Vorschriften 3 und 4 und der Arbeitsstättenverordnung, das zweite
 [`brandschutz`](brandschutz/README.md), mit der Arbeitsstättenverordnung und den Technischen Regeln
 für Arbeitsstätten A2.2 und A1.7, das dritte [`trinkwasser`](trinkwasser/README.md), mit der
-Untersuchung auf Legionellen nach der Trinkwasserverordnung. [`landesrecht`](landesrecht/README.md)
+Untersuchung auf Legionellen nach der Trinkwasserverordnung, das vierte
+[`raumluft`](raumluft/README.md), Raumluft und Kälte, mit Lüftungs-, Klima-, Kälte- und
+Verdunstungskühlanlagen. [`landesrecht`](landesrecht/README.md)
 bringt je Land die Prüfung technischer Anlagen in Sonderbauten, zuerst für Baden-Württemberg, und
 nennt dafür die Anlagenarten der Fachpakete. Daneben steht
 [`messstellen`](messstellen/README.md): je Medium eine Anlagenart, die eine Messstelle ist.
@@ -227,7 +229,7 @@ ausgefüllte Formular die Vorlage des nächsten ist). Die Arten:
 - `group`: eine Gruppe von Feldern, die sich wiederholt, mit `repeat: "free"` und ihren `fields`
 
 Einheiten sind `degrees_celsius`, `count_per_100_ml`, `kilowatt_hours`, `megawatt_hours`,
-`cubic_metres`, `ohms`, `megaohms` und `milliamperes`; ein Grenzwert auf einen Widerstand ist eine
+`cubic_metres`, `ohms`, `megaohms`, `milliamperes` und `kilograms`; ein Grenzwert auf einen Widerstand ist eine
 Regel in `kiloohms`, einer auf eine Anzahl je 100 ml eine Regel in derselben Einheit, und für einen
 Strom hat die Regel-Engine keine Einheit. Ein Messwert, ein Prüfpunkt, ein Zählerstand und
 eine Unterschrift werden nie übernommen. Ein Feld eines Pakets zeigt auf keine Anlage und keinen Raum (`about`), denn welche es gibt, weiß erst eine

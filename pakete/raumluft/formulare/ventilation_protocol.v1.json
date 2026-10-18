@@ -1,0 +1,67 @@
+{
+  "validFrom": "2004-08-25",
+  "title": "Wartung und Prüfung der raumlufttechnischen Anlage",
+  "sections": [
+    {
+      "key": "check",
+      "title": "Prüfung",
+      "hint": "Die Prüfgrößen nennt die ASR A3.6 unter Nr. 6.6 Abs. 3",
+      "fields": [
+        {
+          "kind": "check_point",
+          "key": "outdoor_air",
+          "label": "Außenluftvolumenstrom wie geplant"
+        },
+        {
+          "kind": "check_point",
+          "key": "filters",
+          "label": "Luftfilter in Ordnung, Differenzdruck unter dem Wert des Herstellers"
+        },
+        {
+          "kind": "check_point",
+          "key": "supply_temperature",
+          "label": "Zulufttemperatur wie eingestellt"
+        },
+        {
+          "kind": "check_point",
+          "key": "warning",
+          "label": "Warneinrichtung zeigt eine Störung an"
+        },
+        {
+          "kind": "check_point",
+          "key": "clean",
+          "label": "Keine Ablagerungen oder Verunreinigungen in den luftführenden Teilen"
+        }
+      ]
+    },
+    {
+      "key": "maintenance",
+      "title": "Wartung",
+      "fields": [
+        {
+          "kind": "yes_no",
+          "key": "filters_changed",
+          "label": "Luftfilter gewechselt"
+        },
+        {
+          "kind": "text",
+          "key": "note",
+          "label": "Bemerkung",
+          "multiline": true
+        }
+      ]
+    },
+    {
+      "key": "end",
+      "title": "Abschluss",
+      "fields": [
+        {
+          "kind": "signature",
+          "key": "signature",
+          "label": "Unterschrift",
+          "seals": true
+        }
+      ]
+    }
+  ]
+}

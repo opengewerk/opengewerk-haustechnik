@@ -1,0 +1,31 @@
+{
+  "validFrom": "2018-01-01",
+  "label": "Hygieneinspektion der raumlufttechnischen Anlage",
+  "description": "Die Richtlinie VDI 6022 Blatt 1 beschreibt, wie raumlufttechnische Anlagen und Geräte hygienisch betrieben und instand gehalten werden, mit Hygienekontrollen und Hygieneinspektionen durch geschulte Personen. Die Abstände der Richtlinie übernimmt das Paket erst, wenn die rechtliche Prüfung sie trägt; bis dahin legt der Betreiber die Frist selbst fest und begründet sie.",
+  "task": "condition_assessment",
+  "origin": "private_standard",
+  "bindingness": "technical_rule",
+  "source": "VDI 6022 Blatt 1:2018-01, Abschnitt 7.4",
+  "interval": {
+    "kind": "none"
+  },
+  "counting": "from_due",
+  "qualification": {
+    "level": "skilled_person",
+    "note": "eine nach der Richtlinie geschulte Person"
+  },
+  "evidence": {
+    "kinds": [
+      "report"
+    ]
+  },
+  "retention": {
+    "kind": "until_next_inspection"
+  },
+  "scope": {
+    "assetKinds": [
+      "ventilation_system",
+      "air_conditioning_system"
+    ]
+  }
+}
