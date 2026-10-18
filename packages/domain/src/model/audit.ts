@@ -706,7 +706,7 @@ export const auditVocabulary: AuditVocabulary = {
     // on is named below with the fields every row with a place has.
     labels: {
       label: 'Etikett',
-      fields: { code: 'Code', blocked_at: 'Gesperrt am' },
+      fields: { code: 'Code', blocked_at: 'Gesperrt am', print_id: 'Druck' },
     },
     defects: {
       label: 'Mangel',

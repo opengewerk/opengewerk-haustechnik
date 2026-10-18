@@ -2,7 +2,7 @@ import type { PlacesToDo, RoleKey } from '@opengewerk/haustechnik-domain'
 import { RequestRefused } from '@opengewerk/platform-web/sync'
 import { TestServer } from '@opengewerk/platform-web/testing'
 import { focusManager, onlineManager } from '@tanstack/react-query'
-import { act, screen, waitFor, within } from '@testing-library/react'
+import { act, fireEvent, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -1043,6 +1043,106 @@ describe('the page of a property', () => {
         'Diese Liegenschaft gibt es nicht mehr, sie liegt in einem Bereich, den dieser Zugang nicht sieht, oder dieses Gerät kennt sie noch nicht.',
       ),
     ).toBeTruthy()
+  })
+})
+
+describe('the free labels of the sheets of a property (#170)', () => {
+  const lost = '0a1b2c3d-4e5f-4061-8172-839405162738'
+  const kept = '1a1b2c3d-4e5f-4061-8172-839405162738'
+  const free = {
+    prints: [
+      {
+        printId: lost,
+        printedOn: '2026-10-12',
+        labels: [
+          { id: 'l-1', code: '3XQ7M2K9PDH4TA6W' },
+          { id: 'l-2', code: '7M2K9PDH4TA6W3XQ' },
+        ],
+      },
+      { printId: kept, printedOn: '2026-09-02', labels: [{ id: 'l-3', code: 'PDH4TA6W3XQ7M2K9' }] },
+    ],
+  }
+
+  function card(): HTMLElement {
+    return screen.getByRole('region', { name: 'Freie Etiketten vom Bogen' })
+  }
+
+  it('counts them and lists them by print, the codes of a print once it is opened', async () => {
+    answers.set(`/properties/${school.id}/free-labels`, free)
+    await mount(`/liegenschaften/${school.id}`)
+
+    await screen.findByRole('region', { name: 'Freie Etiketten vom Bogen' })
+    expect(within(card()).getByText('3')).toBeTruthy()
+    expect(
+      within(within(card()).getByRole('list', { name: 'Freie Etiketten vom Bogen' }))
+        .getAllByRole('button', { expanded: false })
+        .map((button) => button.textContent),
+    ).toEqual(['Gedruckt am 12.10.20262 frei', 'Gedruckt am 02.09.20261 frei'])
+
+    fireEvent.click(within(card()).getByRole('button', { name: /Gedruckt am 12.10.2026/ }))
+
+    expect(
+      within(within(card()).getByRole('list', { name: 'Gedruckt am 12.10.2026' }))
+        .getAllByRole('listitem')
+        .map((item) => item.textContent),
+    ).toEqual(['3XQ7-M2K9-PDH4-TA6WSperren', '7M2K-9PDH-4TA6-W3XQSperren'])
+  })
+
+  it('blocks one of them, and all of a print after a question', async () => {
+    answers.set(`/properties/${school.id}/free-labels`, free)
+    answerToWrite = () => ({ status: 200, body: { blocked: 1 } })
+    await mount(`/liegenschaften/${school.id}`)
+
+    await screen.findByRole('region', { name: 'Freie Etiketten vom Bogen' })
+    fireEvent.click(within(card()).getByRole('button', { name: /Gedruckt am 12.10.2026/ }))
+    fireEvent.click(within(card()).getByRole('button', { name: '3XQ7-M2K9-PDH4-TA6W sperren' }))
+
+    await waitFor(() => {
+      expect(written.map((write) => `${write.method} ${write.path}`)).toEqual([
+        `POST /properties/${school.id}/free-labels/l-1/block`,
+      ])
+    })
+
+    fireEvent.click(
+      within(card()).getAllByRole('button', { name: 'Alle sperren' })[0] as HTMLElement,
+    )
+
+    const question = await screen.findByRole('alertdialog', {
+      name: 'Alle freien Etiketten des Drucks vom 12.10.2026 sperren?',
+    })
+
+    expect(written).toHaveLength(1)
+    fireEvent.click(within(question).getByRole('button', { name: '2 Etiketten sperren' }))
+
+    await waitFor(() => {
+      expect(written.map((write) => write.path)).toEqual([
+        `/properties/${school.id}/free-labels/l-1/block`,
+        `/properties/${school.id}/free-labels/prints/${lost}/block`,
+      ])
+    })
+  })
+
+  it('offers no blocking to whoever may not take assets into the register', async () => {
+    answers.set(`/properties/${school.id}/free-labels`, free)
+    answers.set('/auth/tenants', [
+      { ...memberIn('technician'), rights: ['location.read', 'asset.read'] },
+    ])
+    await mount(`/liegenschaften/${school.id}`)
+
+    await screen.findByRole('region', { name: 'Freie Etiketten vom Bogen' })
+    fireEvent.click(within(card()).getByRole('button', { name: /Gedruckt am 12.10.2026/ }))
+    expect(within(card()).queryByRole('button', { name: /sperren/i })).toBeNull()
+  })
+
+  it('is not there while no label of a sheet is free', async () => {
+    answers.set(`/properties/${school.id}/free-labels`, { prints: [] })
+    await mount(`/liegenschaften/${school.id}`)
+
+    await screen.findByRole('region', { name: 'Anschrift' })
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 50))
+    })
+    expect(screen.queryByRole('region', { name: 'Freie Etiketten vom Bogen' })).toBeNull()
   })
 })
 

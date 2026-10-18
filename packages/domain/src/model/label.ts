@@ -1,4 +1,4 @@
-import type { Id, Label, Synced } from '@opengewerk/platform-domain'
+import type { Id, IsoDate, Label, Synced } from '@opengewerk/platform-domain'
 
 import type { AreaId } from './area.js'
 import type { AssetId } from './asset.js'
@@ -28,6 +28,31 @@ export interface PlaceLabel extends Synced, Label {
   readonly areaId: AreaId
   readonly assetId: AssetId | null
   readonly roomId: RoomId | null
+  /** The print of a sheet the label came with (#170); none on one printed for an asset or a room. */
+  readonly printId: string | null
+}
+
+/**
+ * The labels of the sheets printed for a property that hang on nothing yet
+ * and still open something (#170), one print at a time, the newest first,
+ * each with the day in Germany it was printed and its codes.
+ *
+ * A print without an id is one an older version made during an update; its
+ * labels stand alone by their day and are blocked one at a time.
+ */
+export interface FreePrint {
+  readonly printId: string | null
+  readonly printedOn: IsoDate
+  readonly labels: readonly { readonly id: LabelId; readonly code: string }[]
+}
+
+export interface FreeLabels {
+  readonly prints: readonly FreePrint[]
+}
+
+/** How many labels a print blocked at once took, of the ones that were free. */
+export interface BlockedPrint {
+  readonly blocked: number
 }
 
 /**

@@ -540,6 +540,13 @@
       "when": 1792277183546,
       "tag": "0076_tenant_roles_of_their_own",
       "breakpoints": true
+    },
+    {
+      "idx": 77,
+      "version": "7",
+      "when": 1792287024966,
+      "tag": "0077_label_prints",
+      "breakpoints": true
     }
   ]
 }

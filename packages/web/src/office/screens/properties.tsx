@@ -65,6 +65,7 @@ import { importPlaces } from '../import-addresses.js'
 import { officePlaces, placeForms, propertyTableRequest } from '../place-addresses.js'
 import { NotAllowed, RemovePlace } from '../place-forms.js'
 import { DocumentsCard } from '../documents.js'
+import { FreeLabelsCard } from '../free-labels.js'
 import { TasksCard } from '../tasks.js'
 import { PropertyContacts } from '../property-contacts.js'
 import { TimelineCard } from '../timeline.js'
@@ -747,6 +748,8 @@ export function PropertyScreen() {
               at={`Liegenschaft ${text(property, 'name')}`}
               files={atTheProperty}
             />
+            {/* The labels of its sheets that hang on nothing yet (#170). */}
+            <FreeLabelsCard propertyId={propertyId} />
           </>
         }
         main={

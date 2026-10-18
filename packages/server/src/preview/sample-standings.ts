@@ -1,4 +1,4 @@
-import { randomBytes } from 'node:crypto'
+import { randomBytes, randomUUID } from 'node:crypto'
 
 import {
   type ActivityId,
@@ -184,7 +184,8 @@ export async function writeSampleStandings(
     }
 
     // The labels of a sheet: on their property and on nothing else, each with
-    // a code of its own, as the route that prints a sheet makes them.
+    // a code of its own and the id of their print, as the route that prints a
+    // sheet makes them (#170).
     for (const sheet of planted.sheets) {
       const [property] = await tx
         .select({ areaId: properties.areaId })
@@ -195,12 +196,15 @@ export async function writeSampleStandings(
         throw new Error(`Die Liegenschaft ${sheet.propertyId} der Beispieldaten gibt es nicht.`)
       }
 
+      const print = randomUUID()
+
       await tx.insert(labels).values(
         Array.from({ length: sheet.labels }, () => ({
           tenantId: planter.tenantId,
           propertyId: sheet.propertyId as PropertyId,
           areaId: property.areaId,
           code: labelCodeFrom(randomBytes(10)),
+          printId: print,
         })),
       )
     }

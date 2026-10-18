@@ -19,11 +19,14 @@ import {
 import {
   type AreaId,
   type Asset,
+  type BlockedPrint,
   type Building,
   type BuildingId,
   byNameIn,
   byNumberIn,
   type Catalogue,
+  type FreeLabels,
+  type FreePrint,
   isLabelCode,
   labelBatchMost,
   labelCountMax,
@@ -52,7 +55,9 @@ import {
   TRUSTED_ORIGINS,
   withLabelCode,
 } from '@opengewerk/platform-server'
-import { and, asc, eq, inArray, isNull, sql } from 'drizzle-orm'
+import { randomUUID } from 'node:crypto'
+
+import { and, asc, desc, eq, inArray, isNull, sql } from 'drizzle-orm'
 import type { PgColumn, PgTable } from 'drizzle-orm/pg-core'
 
 import { CATALOGUE } from '../catalogue.js'
@@ -727,7 +732,8 @@ export class LabelsController extends LabelPrinting {
    * A sheet of labels that hang on nothing yet, for taking stock: each with
    * a code of its own, in the property named, to be given to an asset on
    * site. New labels on every print: one that was never stuck on anything is
-   * not worth finding again.
+   * not worth finding again. The labels of one print share its id (#170), so
+   * that the free ones of a lost sheet are blocked at once.
    */
   @Post('print/blank')
   @HttpCode(200)
@@ -748,6 +754,7 @@ export class LabelsController extends LabelPrinting {
           String(said['propertyId'] ?? ''),
           missingProperty,
         )
+        const printId = randomUUID()
         const made = await tx
           .insert(labels)
           .values(
@@ -757,6 +764,7 @@ export class LabelsController extends LabelPrinting {
               propertyId: property.id,
               areaId: property.areaId,
               code: draw(),
+              printId,
             })),
           )
           .returning({ code: labels.code })
@@ -953,3 +961,125 @@ export class StoreLabelsController extends LabelPrinting {
     }
   }
 }
+
+/** A label of a sheet that hangs on nothing yet and still opens something. */
+function freeIn(propertyId: PropertyId) {
+  return and(
+    eq(labels.propertyId, propertyId),
+    isNull(labels.assetId),
+    isNull(labels.roomId),
+    isNull(labels.blockedAt),
+    isNull(labels.deletedAt),
+  )
+}
+
+/**
+ * The free labels of the sheets printed for a property (#170, 2.8 of the
+ * concept): those that hang on nothing yet and still open something, one
+ * print at a time, so that a lost sheet does not stand as free rows nobody
+ * sees. Read by whoever reads assets, in their areas; blocked, one or all of a
+ * print, by whoever takes assets into the register, who makes and blocks
+ * labels elsewhere as well. A label that hangs on an asset or a room is none
+ * of them and stays as it is.
+ */
+@Controller('properties/:propertyId/free-labels')
+export class FreeLabelsController {
+  constructor(private readonly database: Database) {}
+
+  @Get()
+  @RequiresPermission('asset.read')
+  list(
+    @CurrentIdentity() identity: Asking,
+    @Param('propertyId') propertyId: string,
+  ): Promise<FreeLabels> {
+    return this.database.forTenant(identity, async (tx) => {
+      const property = await placeOf<Property>(tx, properties, propertyId, missingProperty)
+      const rows = await tx
+        .select({
+          id: labels.id,
+          code: labels.code,
+          printId: labels.printId,
+          createdAt: labels.createdAt,
+        })
+        .from(labels)
+        .where(freeIn(property.id))
+        .orderBy(desc(labels.createdAt), asc(labels.code))
+      const prints = new Map<string, FreePrint>()
+
+      for (const row of rows) {
+        const printedOn = dayInGermany(row.createdAt)
+        // A print without an id stands by its moment, as it was made.
+        const key = row.printId ?? `without:${row.createdAt.toISOString()}`
+        const print = prints.get(key) ?? { printId: row.printId, printedOn, labels: [] }
+
+        prints.set(key, { ...print, labels: [...print.labels, { id: row.id, code: row.code }] })
+      }
+
+      return { prints: [...prints.values()] }
+    })
+  }
+
+  /** One free label of the property, blocked for good; one that hangs on something is not reached here. */
+  @Post(':id/block')
+  @HttpCode(200)
+  @RequiresPermission('asset.record')
+  blockOne(
+    @CurrentIdentity() identity: Asking,
+    @Param('propertyId') propertyId: string,
+    @Param('id') id: string,
+  ): Promise<BlockedPrint> {
+    return this.database.forTenant(identity, async (tx) => {
+      const property = await placeOf<Property>(tx, properties, propertyId, missingProperty)
+
+      if (!isUuid(id)) {
+        throw new NotFoundException(freeLabelGone)
+      }
+
+      const blocked = await tx
+        .update(labels)
+        .set({ blockedAt: new Date() })
+        .where(and(freeIn(property.id), eq(labels.id, id as LabelId)))
+        .returning({ id: labels.id })
+
+      if (blocked.length === 0) {
+        throw new NotFoundException(freeLabelGone)
+      }
+
+      return { blocked: blocked.length }
+    })
+  }
+
+  /** Every free label of one print of the property, blocked at once; the others of the print stay as they are. */
+  @Post('prints/:printId/block')
+  @HttpCode(200)
+  @RequiresPermission('asset.record')
+  blockPrint(
+    @CurrentIdentity() identity: Asking,
+    @Param('propertyId') propertyId: string,
+    @Param('printId') printId: string,
+  ): Promise<BlockedPrint> {
+    return this.database.forTenant(identity, async (tx) => {
+      const property = await placeOf<Property>(tx, properties, propertyId, missingProperty)
+
+      if (!isUuid(printId)) {
+        throw new NotFoundException(freePrintGone)
+      }
+
+      const blocked = await tx
+        .update(labels)
+        .set({ blockedAt: new Date() })
+        .where(and(freeIn(property.id), eq(labels.printId, printId)))
+        .returning({ id: labels.id })
+
+      if (blocked.length === 0) {
+        throw new NotFoundException(freePrintGone)
+      }
+
+      return { blocked: blocked.length }
+    })
+  }
+}
+
+const freeLabelGone =
+  'Dieses Etikett ist nicht mehr frei: es hängt an einer Anlage oder einem Raum, ist gesperrt oder gehört zu einer anderen Liegenschaft.'
+const freePrintGone = 'Von diesem Druck ist hier kein Etikett mehr frei.'

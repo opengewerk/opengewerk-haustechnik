@@ -4185,3 +4185,84 @@ describe('a tenant whose roles are from before a right', () => {
     expect(await chainProblem(tenant)).toBeNull()
   })
 })
+
+describe('an installation from before the prints of a sheet (#170)', () => {
+  /** The migrations an installation carried before 0077. */
+  const before = 77
+
+  it('gives the free labels of each sheet the id of one print, and the others none', async () => {
+    await runMigrations(ownerDatabaseUrl(), kept(migrationsFolderUpTo(before)))
+
+    const tenant = { id: newId<'tenant'>() }
+
+    await admin.query('insert into tenants (id, name) values ($1, $2)', [
+      tenant.id,
+      'Wohnbau Nord eG',
+    ])
+    await members(tenant, { 'user-lead': { roles: ['management'] } })
+
+    const { rows: made } = await admin.query<{ id: string; area_id: string }>(
+      `insert into properties (tenant_id, area_id, name, street, postal_code, city, federal_state)
+       select $1, id, 'Schulzentrum', 'Musterweg 1', '00001', 'Beispielstadt', 'DE-BW'
+         from areas where tenant_id = $1
+       returning id, area_id`,
+      [tenant.id],
+    )
+    const property = made[0]
+    const { rows: built } = await admin.query<{ id: string }>(
+      `insert into buildings (tenant_id, property_id, area_id, name, kinds)
+       values ($1, $2, $3, 'Schulhaus', '{school}') returning id`,
+      [tenant.id, property?.id, property?.area_id],
+    )
+    const { rows: stood } = await admin.query<{ id: string }>(
+      `insert into assets (tenant_id, property_id, area_id, building_id, kind, name)
+       values ($1, $2, $3, $4, 'probe.elevator', 'Aufzug') returning id`,
+      [tenant.id, property?.id, property?.area_id, built[0]?.id],
+    )
+    // Two sheets, each made in one statement and so at one moment, and the label of an asset.
+    const sheet = (codes: readonly string[], at: string) =>
+      admin.query(
+        `insert into labels (tenant_id, property_id, area_id, code, created_at, updated_at)
+         select $1, $2, $3, code, $4::timestamptz, $4::timestamptz from unnest($5::text[]) as code`,
+        [tenant.id, property?.id, property?.area_id, at, codes],
+      )
+
+    await sheet(['3XQ7M2K9PDH4TA6W', '7M2K9PDH4TA6W3XQ'], '2026-09-02T08:00:00Z')
+    await sheet(['PDH4TA6W3XQ7M2K9', 'TA6W3XQ7M2K9PDH4'], '2026-10-12T08:00:00Z')
+    await admin.query(
+      `insert into labels (tenant_id, property_id, area_id, asset_id, code, created_at, updated_at)
+       values ($1, $2, $3, $4, 'K9PDH4TA6W3XQ7M2', '2026-09-02T08:00:00Z', '2026-09-02T08:00:00Z')`,
+      [tenant.id, property?.id, property?.area_id, stood[0]?.id],
+    )
+
+    await applyMigrations()
+
+    const { rows } = await admin.query<{ code: string; print_id: string | null }>(
+      'select code, print_id from labels where tenant_id = $1 order by code',
+      [tenant.id],
+    )
+    const printOf = new Map(rows.map((row) => [row.code, row.print_id]))
+
+    expect(printOf.get('3XQ7M2K9PDH4TA6W')).toEqual(printOf.get('7M2K9PDH4TA6W3XQ'))
+    expect(printOf.get('PDH4TA6W3XQ7M2K9')).toEqual(printOf.get('TA6W3XQ7M2K9PDH4'))
+    expect(printOf.get('3XQ7M2K9PDH4TA6W')).not.toBeNull()
+    expect(printOf.get('PDH4TA6W3XQ7M2K9')).not.toBeNull()
+    expect(printOf.get('3XQ7M2K9PDH4TA6W')).not.toEqual(printOf.get('PDH4TA6W3XQ7M2K9'))
+    // The label of an asset, made at the same moment as the first sheet, is none of it.
+    expect(printOf.get('K9PDH4TA6W3XQ7M2')).toBeNull()
+
+    // Every row the update changed is in the log of its tenant, as a migration.
+    const { rows: logged } = await admin.query<{ reason: string | null }>(
+      `select reason from audit_entries
+        where tenant_id = $1 and table_name = 'labels' and operation = 'update'`,
+      [tenant.id],
+    )
+
+    expect(logged.map((row) => row.reason)).toEqual([
+      'migration',
+      'migration',
+      'migration',
+      'migration',
+    ])
+  })
+})

@@ -9,6 +9,13 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
 
 ### Hinzugefügt
 
+- Freie Etiketten vom Bogen (#170): die Seite einer Liegenschaft zeigt die Etiketten ihrer Bogen, die noch an nichts
+  hängen, je Druck mit seinem Tag und den Codes; wer Anlagen aufnimmt, sperrt eins davon oder nach einer Rückfrage
+  alle eines Drucks auf einmal. Dafür trägt jedes Etikett eines Bogens die Kennung seines Drucks (`labels.print_id`,
+  Migration `0077_label_prints`, die die freien Etiketten bestehender Bogen nach ihrem Zeitpunkt zusammenfasst).
+  Warum: ein verlorener Bogen blieb als freie Zeilen stehen, die niemand sah, und wer ihn fand, konnte ein Etikett
+  davon einer Anlage zuordnen.
+
 - Unterlagen für unterwegs (#348, 2.7 des Konzepts): an einer Anlage oder einem Raum vor Ort holt „Für unterwegs
   merken“ die neueste Fassung jedes Dokuments dort auf das Gerät, sodass sie ohne Netz aufgeht. Die Liste
   „Unterlagen für unterwegs“ im Menü nennt die gemerkten Orte mit Dateien und Platz und „Vergessen“. Eine neue
