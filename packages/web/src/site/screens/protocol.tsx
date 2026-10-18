@@ -1,9 +1,4 @@
-import {
-  type Catalogue,
-  type IsoDate,
-  qualificationCheck,
-  requiredKinds,
-} from '@opengewerk/haustechnik-domain'
+import { type Catalogue, heldOf, type IsoDate, requiredKinds } from '@opengewerk/haustechnik-domain'
 import { maybeText, text, useRecord, useRecords, useRelated } from '@opengewerk/platform-web/sync'
 import { Button, Panel } from '@opengewerk/platform-web'
 import { date, today } from '@opengewerk/platform-web/format'
@@ -323,15 +318,10 @@ function OwnQualification({
   const day = today()
 
   for (const kind of kinds) {
-    const check = qualificationCheck(own, kind.key, day)
+    // A kind that covers the one asked for counts as it (#406).
+    const { check, expiredOn } = heldOf(own, kind, day)
 
     if (check !== 'held') {
-      const ranOut = own
-        .filter((row) => row.kindKey === kind.key && row.validUntil !== null)
-        .map((row) => row.validUntil as IsoDate)
-        .sort()
-        .at(-1)
-
       return (
         <p
           role="note"
@@ -343,9 +333,7 @@ function OwnQualification({
             aria-hidden="true"
             className="shrink-0 text-waiting"
           />
-          <span>
-            {protocolWords.lacking(kind.label, check === 'expired' ? (ranOut ?? null) : null)}
-          </span>
+          <span>{protocolWords.lacking(kind.label, expiredOn)}</span>
         </p>
       )
     }

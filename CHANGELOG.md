@@ -9,6 +9,13 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
 
 ### Hinzugefügt
 
+- Eine Art der Qualifikation deckt andere ab (#406): eine Art in `qualifikationen.json` nennt mit `covers` die Arten
+  ihres Pakets, deren Pflichten eine Person dieser Art ebenso ausführt. Im Paket Elektro (Fassung 1.2.0) deckt die
+  Elektrofachkraft die elektrotechnisch unterwiesene Person ab. Beim Zuteilen und vor Ort zählt eine abdeckende Art wie
+  die geforderte; der Bau des Katalogs lehnt eine Abdeckung ab, die auf die Art selbst oder auf eine Art eines anderen
+  Pakets zeigt. Katalogformat 7. Warum: eine Elektrofachkraft bekam an einer Prüfung ortsveränderlicher Geräte den
+  Hinweis, ihr fehle die Qualifikation, obwohl sie diese Prüfung ausführen darf.
+
 - Ausbuchung im Lager (#430): auf der Seite eines Lagers und eines Artikels im Lager bucht, wer das Lager führt, mit
   „Ausbuchung“ Material aus, das für etwas ohne Auftrag gebraucht wird: Artikel, Menge und ein Grund, der Pflicht ist.
   Der Bestand sinkt um die Menge, auch unter null, und die Buchung steht mit ihrem Grund in der Liste des Artikels.

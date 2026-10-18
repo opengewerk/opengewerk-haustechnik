@@ -1,9 +1,10 @@
-import type {
-  IsoDate,
-  PersonLevel,
-  QualificationCheck,
-  QualificationId,
-  QualificationStanding,
+import {
+  type IsoDate,
+  type PersonLevel,
+  type QualificationCheck,
+  qualificationCheck,
+  type QualificationId,
+  type QualificationStanding,
 } from '@opengewerk/platform-domain'
 
 import type { Catalogue } from './catalogue.js'
@@ -73,25 +74,75 @@ export function ownKindIdOf(key: string): string | null {
   return key.startsWith(ownKindPrefix) ? key.slice(ownKindPrefix.length) : null
 }
 
+/** A kind an activity asks for, with every kind that does as well (#406). */
+export interface RequiredKind {
+  readonly key: string
+  readonly label: string
+  /** Its own key first, then the keys of the kinds that cover it. */
+  readonly accepted: readonly string[]
+}
+
 /**
  * The kinds the duty kinds of an activity ask for, each once, by the key a
- * qualification keeps. A duty of the operator's own asks for none.
+ * qualification keeps, with the kinds that cover each (#406). A duty of the
+ * operator's own asks for none.
  */
 export function requiredKinds(
   catalogue: Catalogue,
   dutyKindKeys: readonly (string | null)[],
-): readonly { readonly key: string; readonly label: string }[] {
-  const found = new Map<string, string>()
+): readonly RequiredKind[] {
+  const found = new Map<string, RequiredKind>()
 
   for (const dutyKey of dutyKindKeys) {
     const kind = dutyKey === null ? null : catalogue.qualificationFor(dutyKey)
 
     if (kind !== null) {
-      found.set(kind.qualification.key, kind.qualification.label)
+      const { key, label } = kind.qualification
+
+      found.set(key, {
+        key,
+        label,
+        accepted: [key, ...catalogue.coveredBy(key).map((each) => each.qualification.key)],
+      })
     }
   }
 
-  return [...found].map(([key, label]) => ({ key, label }))
+  return [...found.values()]
+}
+
+/** A qualification of a person as the check reads it. */
+export type HeldQualification = Parameters<typeof qualificationCheck>[0][number]
+
+/**
+ * What a person holds of a kind an activity asks for (#337), on a day: held
+ * where one of the accepted kinds is valid (#406), ran out where one of them
+ * ran out and none is valid, with the last day of the one that ran out last,
+ * and missing where the person holds none of them.
+ */
+export function heldOf(
+  held: readonly HeldQualification[],
+  kind: RequiredKind,
+  day: IsoDate,
+): { readonly check: QualificationCheck; readonly expiredOn: IsoDate | null } {
+  const checks = kind.accepted.map((key) => qualificationCheck(held, key, day))
+  const check: QualificationCheck = checks.includes('held')
+    ? 'held'
+    : checks.includes('expired')
+      ? 'expired'
+      : 'missing'
+  const ranOut = held
+    .filter(
+      (row) =>
+        row.deletedAt === null &&
+        row.kindKey !== null &&
+        kind.accepted.includes(row.kindKey) &&
+        row.validUntil !== null,
+    )
+    .map((row) => row.validUntil as IsoDate)
+    .sort()
+    .at(-1)
+
+  return { check, expiredOn: check === 'expired' ? (ranOut ?? null) : null }
 }
 
 /** The note in words: "Elektrofachkraft fehlt", "Elektrofachkraft abgelaufen am 15.09.2026". */

@@ -1399,6 +1399,7 @@ describe('the kinds of qualification (#337)', () => {
     label: 'Sachkundiger für Aufzüge',
     level: 'skilled_person',
     requiredFor: ['elevator_main_test'],
+    covers: [],
   }
   const reviewed = reviewsWith({
     qualifications: [{ key: 'lift_expert', checkedOn: '2026-10-04' }],
@@ -1422,6 +1423,7 @@ describe('the kinds of qualification (#337)', () => {
           label: 'Sachkundiger für Aufzüge',
           level: 'skilled_person',
           requiredFor: ['probe.elevator_main_test'],
+          covers: [],
         },
         review: { checkedOn: '2026-10-04', accepted: null },
       },
@@ -1474,6 +1476,64 @@ describe('the kinds of qualification (#337)', () => {
         /^probe\/qualifikationen\.json, qualifications\[0\]\.level: Die Stufe ist eine von/,
       ),
     ])
+  })
+
+  it('cover kinds of their own package, and neither themselves nor a kind of another package (#406)', () => {
+    const master: PackageQualification = {
+      key: 'lift_master',
+      label: 'Aufzugsmeister',
+      level: 'skilled_person',
+      requiredFor: [],
+      covers: ['lift_expert'],
+    }
+    const both = reviewsWith({
+      qualifications: [
+        { key: 'lift_expert', checkedOn: '2026-10-04' },
+        { key: 'lift_master', checkedOn: '2026-10-04' },
+      ],
+    })
+    const withMaster = (covers: readonly string[]) => ({
+      [dutyKindFile]: bySkilled,
+      [qualificationsFile]: { qualifications: [lift, { ...master, covers }] },
+      [acceptancesFile]: both,
+    })
+    const { bundle, problems: found } = loadCatalogue(
+      withFiles(withMaster(['lift_expert'])),
+      options,
+    )
+
+    expect(found).toEqual([])
+    expect(bundle?.packages[0]?.qualifications[1]?.qualification.covers).toEqual([
+      'probe.lift_expert',
+    ])
+    expect(bundle?.packages[0]?.qualifications[0]?.qualification.covers).toEqual([])
+    expect(problems(withMaster(['lift_master']))).toEqual([
+      `${qualificationsFile}, qualifications[1].covers: Die Art lift_master deckt sich selbst ab; sie nennt nur andere Arten.`,
+    ])
+    expect(problems(withMaster(['nobody_here']))).toEqual([
+      `${qualificationsFile}, qualifications[1].covers: Die Art lift_master deckt nobody_here ab, die es in diesem Paket nicht gibt. Eine Art deckt nur Arten ihres eigenen Pakets ab.`,
+    ])
+    expect(problems(withMaster(['elektro.electrically_instructed_person']))).toEqual([
+      `${qualificationsFile}, qualifications[1].covers[0]: Hier steht der Schlüssel einer Art desselben Pakets.`,
+    ])
+    expect(problems(withMaster(['lift_expert', 'lift_expert']))).toEqual([
+      expect.stringMatching(/^probe\/qualifikationen\.json, qualifications\[1\]\.covers: /),
+    ])
+  })
+
+  it('keep the checksum of a kind that covers nothing, so that what was accepted stays accepted (#406)', () => {
+    // The checksum as #337 took it, before a kind could cover another.
+    const before = sha256(
+      JSON.stringify({
+        key: lift.key,
+        label: lift.label,
+        level: lift.level,
+        requiredFor: lift.requiredFor,
+      }),
+    )
+
+    expect(qualificationChecksum(lift)).toBe(before)
+    expect(qualificationChecksum({ ...lift, covers: ['other'] })).not.toBe(before)
   })
 
   it('are reviewed once each, and accepted with their checksum', () => {

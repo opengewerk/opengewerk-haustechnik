@@ -267,7 +267,8 @@ seiner Pflichtart.
       "key": "electrically_skilled_person",
       "label": "Elektrofachkraft",
       "level": "skilled_person",
-      "requiredFor": ["installation_test_dguv_v3", "installation_test_dguv_v4"]
+      "requiredFor": ["installation_test_dguv_v3", "installation_test_dguv_v4"],
+      "covers": ["electrically_instructed_person"]
     }
   ]
 }
@@ -280,6 +281,14 @@ Die Arten der Qualifikation, die eine Person hält und die Pflichtarten des Pake
 Sachverständiger und ein Labor sind Firmen und haben keine Art. `requiredFor` nennt die Schlüssel
 der Pflichtarten des Pakets, die die Art fordern; die Stufe der neuesten Fassung jeder genannten
 Pflichtart ist die Stufe der Art, und eine Pflichtart steht bei höchstens einer Art.
+
+`covers` (`#406`) nennt die Arten desselben Pakets, deren Pflichtarten eine Person dieser Art
+ebenso ausführt, etwa die elektrotechnisch unterwiesene Person bei der Elektrofachkraft. Wer eine
+solche Art hält, bekommt beim Zuteilen und vor Ort keinen Hinweis, wenn eine abgedeckte Art
+gefordert ist. Die Abdeckung steht ausdrücklich da und folgt nicht aus der Stufe, weil zwei Arten
+derselben Stufe für verschiedene Anlagen stehen können. Sie nennt nur Arten des eigenen Pakets und
+nie die Art selbst, und sie reicht einen Schritt weit: was eine abgedeckte Art abdeckt, deckt die
+abdeckende nicht von selbst mit ab. Ohne `covers` deckt eine Art nichts ab.
 
 Die Pflichtarten stehen hier und nicht in ihren Fassungen, damit eine gemergte Fassung bleibt, wie
 sie ist, und eine Pflicht, die mit einer älteren Fassung bestätigt wurde, die Art genauso fordert.

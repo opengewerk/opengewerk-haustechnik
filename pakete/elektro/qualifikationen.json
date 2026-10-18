@@ -8,6 +8,9 @@
         "installation_test_dguv_v3",
         "installation_test_dguv_v4",
         "installation_test_special_location_dguv_v3"
+      ],
+      "covers": [
+        "electrically_instructed_person"
       ]
     },
     {

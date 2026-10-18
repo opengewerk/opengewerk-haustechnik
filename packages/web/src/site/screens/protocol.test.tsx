@@ -268,8 +268,20 @@ describe('the kind of qualification an inspection asks for (#337)', () => {
                   label: 'Sachkundiger für Speicher',
                   level: 'skilled_person',
                   requiredFor: ['probe.heater_test'],
+                  covers: [],
                 },
                 review: { checkedOn: '2026-10-01', accepted: null },
+              },
+              // A master of the heater covers its expert (#406).
+              {
+                qualification: {
+                  key: 'probe.heater_master',
+                  label: 'Meister für Speicher',
+                  level: 'skilled_person',
+                  requiredFor: [],
+                  covers: ['probe.heater_expert'],
+                },
+                review: { checkedOn: '2026-10-18', accepted: null },
               },
             ],
           }
@@ -324,6 +336,12 @@ describe('the kind of qualification an inspection asks for (#337)', () => {
 
   it('says nothing to whoever holds it', async () => {
     await begun([heldUntil('2020-01-31'), heldUntil(null)])
+
+    expect(screen.queryByRole('note')).toBeNull()
+  })
+
+  it('says nothing to whoever holds a kind that covers it (#406)', async () => {
+    await begun([{ ...heldUntil(null), id: 'q-master', kindKey: 'probe.heater_master' }])
 
     expect(screen.queryByRole('note')).toBeNull()
   })

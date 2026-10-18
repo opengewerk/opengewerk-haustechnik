@@ -44,7 +44,11 @@ export function ruleChecksum(record: PackageRuleRecord): string {
  * must not hang on the others. Its fields in the order of the format, no
  * spacing.
  */
-/** The checksum of a kind of qualification (#337), over what it says. */
+/**
+ * The checksum of a kind of qualification (#337), over what it says. What it
+ * covers (#406) counts only where it covers something, so that a kind
+ * accepted before stays accepted.
+ */
 export function qualificationChecksum(qualification: PackageQualification): string {
   return sha256(
     JSON.stringify({
@@ -52,6 +56,7 @@ export function qualificationChecksum(qualification: PackageQualification): stri
       label: qualification.label,
       level: qualification.level,
       requiredFor: qualification.requiredFor,
+      ...(qualification.covers.length === 0 ? {} : { covers: qualification.covers }),
     }),
   )
 }

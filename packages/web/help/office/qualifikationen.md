@@ -4,7 +4,7 @@ Hier steht, wer was ausführen darf: je Person ihre Qualifikationen, etwa Elektr
 
 Die Arten kommen aus den Paketen des Katalogs. Jede Pflichtart, deren Quelle eine Person nennt, fordert eine davon, etwa die Prüfung der elektrischen Anlage eine Elektrofachkraft. Unter „Arten“ ergänzen Sie eigene, etwa eine Schulung, die Sie selbst verlangen; eine eigene Art fordert keine Pflichtart.
 
-Wer einer Person eine Prüfung, eine Wartung oder einen Auftrag zuteilt, bekommt einen Hinweis, wenn ihr die geforderte Art fehlt oder abgelaufen ist. Das ist ein Hinweis und keine Sperre: gespeichert wird trotzdem. Dieselbe Person sieht den Hinweis vor Ort, wenn sie das Protokoll beginnt.
+Wer einer Person eine Prüfung, eine Wartung oder einen Auftrag zuteilt, bekommt einen Hinweis, wenn ihr die geforderte Art fehlt oder abgelaufen ist. Manche Arten decken andere ab, wie das Paket sagt: eine Elektrofachkraft darf auch prüfen, was eine elektrotechnisch unterwiesene Person prüft, und bekommt dort keinen Hinweis. Das ist ein Hinweis und keine Sperre: gespeichert wird trotzdem. Dieselbe Person sieht den Hinweis vor Ort, wenn sie das Protokoll beginnt.
 
 Eine Qualifikation mit „Gültig bis“ ist eine Frist unter „Fristen“; vorher erinnert sie die Leitung. Der Nachweis bleibt an der Qualifikation und geht nicht in die Ablage. Ihn sieht, wer Qualifikationen ansieht, und die Person selbst unter „Konto“.
 
