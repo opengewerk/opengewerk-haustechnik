@@ -1,0 +1,33 @@
+{
+  "validFrom": "2022-08-01",
+  "label": "Leiter oder Tritt prüfen",
+  "description": "Leitern und Tritte, die schädigenden Einflüssen ausgesetzt sind, prüft eine zur Prüfung befähigte Person wiederkehrend auf ihren ordnungsgemäßen Zustand, durch Ansehen und eine Funktionsprüfung. Wie oft, legt der Betreiber nach Häufigkeit und Stärke der Nutzung und nach den Mängeln früherer Prüfungen fest; empfohlen wird mindestens einmal im Jahr. Vor jeder Verwendung sieht außerdem, wer die Leiter benutzt, nach ihrem Zustand; dafür gibt es keinen Termin.",
+  "task": "inspection",
+  "origin": "insurer_and_committee_rules",
+  "bindingness": "technical_rule",
+  "source": "§ 14 Abs. 2 BetrSichV, DGUV Information 208-016 (Ausgabe August 2022), Abschnitt 6",
+  "interval": {
+    "kind": "guide",
+    "rule": "ladder_check_interval"
+  },
+  "counting": "from_due",
+  "qualification": {
+    "level": "competent_person",
+    "note": "zur Prüfung befähigte Person nach TRBS 1203"
+  },
+  "evidence": {
+    "kinds": [
+      "protocol",
+      "report"
+    ],
+    "form": "ladder_protocol"
+  },
+  "retention": {
+    "kind": "until_next_inspection"
+  },
+  "scope": {
+    "assetKinds": [
+      "ladder"
+    ]
+  }
+}

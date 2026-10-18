@@ -1,0 +1,39 @@
+{
+  "qualifications": [
+    {
+      "key": "door_expert",
+      "label": "Sachkundige Person für kraftbetätigte Türen und Tore",
+      "level": "skilled_person",
+      "requiredFor": [
+        "powered_door_check"
+      ]
+    },
+    {
+      "key": "ladder_inspector",
+      "label": "Befähigte Person für die Prüfung von Leitern und Tritten",
+      "level": "competent_person",
+      "requiredFor": [
+        "ladder_check"
+      ]
+    },
+    {
+      "key": "shelving_inspector",
+      "label": "Befähigte Person für die Prüfung von Regalen",
+      "level": "competent_person",
+      "requiredFor": [
+        "shelving_check"
+      ]
+    },
+    {
+      "key": "pressure_vessel_inspector",
+      "label": "Befähigte Person für die Prüfung von Druckbehältern",
+      "level": "competent_person",
+      "requiredFor": [
+        "pressure_vessel_external_test_competent_person",
+        "pressure_vessel_internal_test_competent_person",
+        "pressure_vessel_strength_test_competent_person",
+        "pressure_vessel_strength_test_competent_person_extended"
+      ]
+    }
+  ]
+}

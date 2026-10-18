@@ -20,7 +20,10 @@ für Arbeitsstätten A2.2 und A1.7, das dritte [`trinkwasser`](trinkwasser/READM
 Untersuchung auf Legionellen nach der Trinkwasserverordnung, das vierte
 [`raumluft`](raumluft/README.md), Raumluft und Kälte, mit Lüftungs-, Klima-, Kälte- und
 Verdunstungskühlanlagen, das fünfte [`heizung`](heizung/README.md), mit Wärmeerzeugern und Wärmepumpen,
-Abgasanlage, Heizöllagerung und Gasinstallation. [`landesrecht`](landesrecht/README.md)
+Abgasanlage, Heizöllagerung und Gasinstallation, das sechste [`arbeitsmittel`](arbeitsmittel/README.md),
+Förderanlagen und Arbeitsmittel, mit Aufzügen und Druckbehältern nach der Betriebssicherheitsverordnung
+und kraftbetätigten Türen und Toren, Leitern und Regalen nach den Technischen Regeln.
+[`landesrecht`](landesrecht/README.md)
 bringt je Land die Prüfung technischer Anlagen in Sonderbauten, zuerst für Baden-Württemberg, und
 nennt dafür die Anlagenarten der Fachpakete. Daneben steht
 [`messstellen`](messstellen/README.md): je Medium eine Anlagenart, die eine Messstelle ist.

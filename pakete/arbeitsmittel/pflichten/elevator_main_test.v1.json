@@ -1,0 +1,30 @@
+{
+  "validFrom": "2015-06-01",
+  "label": "Hauptprüfung der Aufzugsanlage",
+  "description": "Eine zugelassene Überwachungsstelle prüft die Aufzugsanlage wiederkehrend auf ihren sicheren Zustand, die elektrische Anlage eingeschlossen, soweit es für die sichere Verwendung darauf ankommt. Sie sieht dabei auch nach, ob Notfallplan und Notbefreiungsanleitung da sind und ob die Frist stimmt; hält sie die Frist für zu lang, verkürzt der Betreiber sie mit ihr. Die Frist legt der Betreiber fest, länger als zwei Jahre darf sie nicht sein. Den Monat der nächsten Prüfung und die Prüfstelle zeigt eine Plakette in der Kabine. Die Prüfbescheinigung wird aufbewahrt, solange die Anlage verwendet wird.",
+  "task": "inspection",
+  "origin": "state_law",
+  "bindingness": "statute",
+  "source": "§ 16 Abs. 1, § 17 und Anhang 2 Abschnitt 2 Nr. 4.1 und 4.2 BetrSichV",
+  "interval": {
+    "kind": "maximum",
+    "rule": "elevator_test_interval"
+  },
+  "counting": "betrsichv",
+  "qualification": {
+    "level": "approved_body"
+  },
+  "evidence": {
+    "kinds": [
+      "report"
+    ]
+  },
+  "retention": {
+    "kind": "while_in_use"
+  },
+  "scope": {
+    "assetKinds": [
+      "elevator"
+    ]
+  }
+}

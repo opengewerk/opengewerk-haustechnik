@@ -1,0 +1,27 @@
+{
+  "validFrom": "2015-06-01",
+  "label": "Aufzugsanlage",
+  "costGroup": "461",
+  "fields": [
+    {
+      "key": "stops",
+      "label": "Haltestellen",
+      "kind": "number"
+    }
+  ],
+  "expectedDocuments": [
+    {
+      "key": "emergency_plan",
+      "label": "Notfallplan mit Notbefreiungsanleitung",
+      "kind": "concept",
+      "demand": "required",
+      "source": "Anhang 1 Nr. 4.1 BetrSichV"
+    },
+    {
+      "key": "declaration_of_conformity",
+      "label": "EU-Konformitätserklärung",
+      "kind": "permit",
+      "demand": "recommended"
+    }
+  ]
+}

@@ -1,0 +1,46 @@
+{
+  "validFrom": "2015-06-01",
+  "label": "Regal",
+  "costGroup": "610",
+  "fields": [
+    {
+      "key": "design",
+      "label": "Bauart",
+      "kind": "choice",
+      "options": [
+        {
+          "value": "shelf_rack",
+          "label": "Fachbodenregal"
+        },
+        {
+          "value": "pallet_rack",
+          "label": "Palettenregal"
+        },
+        {
+          "value": "cantilever_rack",
+          "label": "Kragarmregal"
+        },
+        {
+          "value": "flow_rack",
+          "label": "Durchlaufregal"
+        },
+        {
+          "value": "mobile_rack",
+          "label": "Verfahrbares Regal"
+        },
+        {
+          "value": "powered_rack",
+          "label": "Kraftbetriebenes Regal"
+        }
+      ]
+    }
+  ],
+  "expectedDocuments": [
+    {
+      "key": "load_sign",
+      "label": "Belastungsangaben und Aufbauanleitung des Herstellers",
+      "kind": "operating_manual",
+      "demand": "recommended"
+    }
+  ]
+}

@@ -702,6 +702,7 @@ describe('a preview started as the Leitung', () => {
 
     expect(whole.packages.map((entry) => entry.name)).toEqual([
       'allgemein',
+      'arbeitsmittel',
       'brandschutz',
       'elektro',
       'feiertage',

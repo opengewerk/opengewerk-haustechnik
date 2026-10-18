@@ -1,0 +1,65 @@
+{
+  "validFrom": "2022-08-01",
+  "title": "Prüfung einer Leiter oder eines Tritts",
+  "sections": [
+    {
+      "key": "condition",
+      "title": "Zustand",
+      "fields": [
+        {
+          "kind": "check_point",
+          "key": "stiles",
+          "label": "Holme oder Wangen gerade und ohne Risse"
+        },
+        {
+          "kind": "check_point",
+          "key": "rungs",
+          "label": "Sprossen oder Stufen fest, unbeschädigt und trittsicher"
+        },
+        {
+          "kind": "check_point",
+          "key": "joints",
+          "label": "Verbindungen, Gelenke und Beschläge fest"
+        },
+        {
+          "kind": "check_point",
+          "key": "feet",
+          "label": "Füße, Gleitschutz und Leiterschuhe vollständig und wirksam"
+        },
+        {
+          "kind": "check_point",
+          "key": "spreader",
+          "label": "Spreizsicherung wirksam, wo es eine gibt"
+        },
+        {
+          "kind": "check_point",
+          "key": "marking",
+          "label": "Kennzeichnung und Hinweise zur Benutzung lesbar"
+        }
+      ]
+    },
+    {
+      "key": "function",
+      "title": "Funktion",
+      "fields": [
+        {
+          "kind": "check_point",
+          "key": "stands_safely",
+          "label": "Steht sicher und lässt sich bestimmungsgemäß aufstellen und sichern"
+        }
+      ]
+    },
+    {
+      "key": "end",
+      "title": "Abschluss",
+      "fields": [
+        {
+          "kind": "signature",
+          "key": "signature",
+          "label": "Unterschrift",
+          "seals": true
+        }
+      ]
+    }
+  ]
+}

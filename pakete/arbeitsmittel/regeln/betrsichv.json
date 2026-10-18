@@ -1,0 +1,59 @@
+{
+  "note": "Die Höchstfristen der Betriebssicherheitsverordnung für Aufzugsanlagen und Druckbehälter. Am 18.10.2026 gegen die geltende Fassung auf gesetze-im-internet.de geprüft; die Frist der Aufzugsanlage steht seit der Fassung vom 1. Juni 2015 gleich. Ob die Fristen der Druckbehälter seit dem 1. Juni 2015 gleich lauten, prüft die Abnahme.",
+  "records": [
+    {
+      "key": "elevator_test_interval",
+      "validFrom": "2015-06-01",
+      "validUntil": null,
+      "unit": "years",
+      "value": 2,
+      "source": "Anhang 2 Abschnitt 2 Nr. 4.1 Satz 4 BetrSichV",
+      "origin": "state_law"
+    },
+    {
+      "key": "pressure_vessel_external_test_interval",
+      "validFrom": "2015-06-01",
+      "validUntil": null,
+      "unit": "years",
+      "value": 2,
+      "source": "Anhang 2 Abschnitt 4 Nr. 5.8 Tabelle 1 Zeile 2 BetrSichV",
+      "origin": "state_law"
+    },
+    {
+      "key": "pressure_vessel_internal_test_interval",
+      "validFrom": "2015-06-01",
+      "validUntil": null,
+      "unit": "years",
+      "value": 5,
+      "source": "Anhang 2 Abschnitt 4 Nr. 5.8 Tabelle 1 Zeilen 2 und 3 BetrSichV",
+      "origin": "state_law"
+    },
+    {
+      "key": "pressure_vessel_strength_test_interval",
+      "validFrom": "2015-06-01",
+      "validUntil": null,
+      "unit": "years",
+      "value": 10,
+      "source": "Anhang 2 Abschnitt 4 Nr. 5.8 Tabelle 1 Zeilen 2 und 3 BetrSichV",
+      "origin": "state_law"
+    },
+    {
+      "key": "pressure_vessel_competent_person_interval",
+      "validFrom": "2015-06-01",
+      "validUntil": null,
+      "unit": "years",
+      "value": 10,
+      "source": "Anhang 2 Abschnitt 4 Nr. 5.9 Satz 1 BetrSichV",
+      "origin": "state_law"
+    },
+    {
+      "key": "pressure_vessel_extended_strength_test_interval",
+      "validFrom": "2015-06-01",
+      "validUntil": null,
+      "unit": "years",
+      "value": 15,
+      "source": "Anhang 2 Abschnitt 4 Nr. 5.9 Satz 2 BetrSichV",
+      "origin": "state_law"
+    }
+  ]
+}

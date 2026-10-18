@@ -9,6 +9,14 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
 
 ### Hinzugefügt
 
+- Das Paket Förderanlagen und Arbeitsmittel (#353): Aufzugsanlagen mit Haupt- und Zwischenprüfung durch
+  eine zugelassene Überwachungsstelle nach der BetrSichV und ihrer Instandhaltung, Druckbehälter mit
+  äußerer und innerer Prüfung und Festigkeitsprüfung je nach prüfender Stelle mit den Höchstfristen aus
+  Anhang 2 Abschnitt 4, kraftbetätigte Türen und Tore nach der ASR A1.7, Leitern und Tritte nach der DGUV
+  Information 208-016 und Regale nach der TRBS 1201, dazu drei Formulare und vier Arten der
+  Qualifikation. Eine Frist aus einer Technischen Regel oder einer DGUV-Information ist ein Richtwert
+  (entschieden am 18.10.2026). Warum: Aufzüge und Druckbehälter haben Höchstfristen, die ein Betreiber
+  bisher nur als eigene Pflicht führen konnte. Abgenommen ist das Paket noch nicht.
 - Eigene Pflichten, die einmal fällig sind (#441): Unter „Gezählt“ bietet das Formular einer eigenen
   Pflicht „Einmalig“ an und fragt dann statt der Frist den Termin, den ihre Quelle nennt. Bis kurz davor
   ist die Pflicht „Ausstehend bis“, mit ihrem ersten Nachweis ist sie erfüllt; ändern lässt sich der

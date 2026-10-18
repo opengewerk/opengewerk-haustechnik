@@ -1,0 +1,44 @@
+{
+  "validFrom": "2015-06-01",
+  "label": "Festigkeitsprüfung des Druckbehälters durch eine befähigte Person, verlängert",
+  "description": "Hat der Betreiber in der Gefährdungsbeurteilung begründet, dass der Druckbehälter nach äußerer oder innerer Prüfung sicher betrieben werden kann, prüft eine zur Prüfung befähigte Person seine Festigkeit höchstens alle 15 Jahre. Die Frist legt der Betreiber in der Gefährdungsbeurteilung fest, spätestens sechs Monate nach der Inbetriebnahme; die Druckanlage als Ganzes prüft er spätestens alle zehn Jahre. Die Prüfbescheinigung wird aufbewahrt, solange der Behälter verwendet wird.",
+  "task": "inspection",
+  "origin": "state_law",
+  "bindingness": "statute",
+  "source": "§ 16 und Anhang 2 Abschnitt 4 Nr. 5.5, 5.9 und 6 BetrSichV",
+  "interval": {
+    "kind": "maximum",
+    "rule": "pressure_vessel_extended_strength_test_interval"
+  },
+  "counting": "betrsichv",
+  "qualification": {
+    "level": "competent_person",
+    "note": "zur Prüfung befähigte Person nach Anhang 2 Abschnitt 4 Nr. 6 BetrSichV"
+  },
+  "evidence": {
+    "kinds": [
+      "report",
+      "protocol"
+    ]
+  },
+  "retention": {
+    "kind": "while_in_use"
+  },
+  "scope": {
+    "assetKinds": [
+      "pressure_vessel"
+    ],
+    "conditions": [
+      {
+        "characteristic": "testing_body",
+        "oneOf": [
+          "competent_person"
+        ]
+      },
+      {
+        "characteristic": "strength_test_extended",
+        "is": true
+      }
+    ]
+  }
+}

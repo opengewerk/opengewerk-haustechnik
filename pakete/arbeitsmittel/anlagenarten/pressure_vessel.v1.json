@@ -1,0 +1,65 @@
+{
+  "validFrom": "2015-06-01",
+  "label": "Druckbehälter",
+  "costGroup": "473",
+  "characteristics": [
+    {
+      "key": "testing_body",
+      "label": "Wiederkehrende Prüfung nach Anhang 2 Abschnitt 4 Nr. 6 BetrSichV durch",
+      "kind": "choice",
+      "options": [
+        {
+          "value": "approved_body",
+          "label": "Zugelassene Überwachungsstelle"
+        },
+        {
+          "value": "competent_person",
+          "label": "Zur Prüfung befähigte Person"
+        }
+      ]
+    },
+    {
+      "key": "heated",
+      "label": "Mit Feuer, Abgas oder elektrisch beheizt",
+      "kind": "flag"
+    },
+    {
+      "key": "simple_vessel",
+      "label": "Einfacher Druckbehälter nach der Richtlinie 2014/29/EU",
+      "kind": "flag"
+    },
+    {
+      "key": "strength_test_extended",
+      "label": "Frist der Festigkeitsprüfung nach Nr. 5.9 Satz 2 auf 15 Jahre verlängert, begründet in der Gefährdungsbeurteilung",
+      "kind": "flag"
+    }
+  ],
+  "fields": [
+    {
+      "key": "medium",
+      "label": "Inhalt",
+      "kind": "text"
+    }
+  ],
+  "expectedDocuments": [
+    {
+      "key": "declaration_of_conformity",
+      "label": "EU-Konformitätserklärung",
+      "kind": "permit",
+      "demand": "recommended"
+    },
+    {
+      "key": "operating_manual",
+      "label": "Betriebsanleitung",
+      "kind": "operating_manual",
+      "demand": "recommended"
+    },
+    {
+      "key": "risk_assessment",
+      "label": "Gefährdungsbeurteilung mit den Prüffristen",
+      "kind": "risk_assessment",
+      "demand": "required",
+      "source": "§ 3 Abs. 6 BetrSichV, Anhang 2 Abschnitt 4 Nr. 5.4"
+    }
+  ]
+}
