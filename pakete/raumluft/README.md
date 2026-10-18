@@ -22,12 +22,17 @@ Abgenommen ist das Paket noch nicht. Fachkundig abnehmen wird es beim Pilotbetri
 | `air_conditioning_system` | Klimaanlage | 433 |
 | `refrigeration_system` | Kälteanlage | 434 |
 | `evaporative_cooling_system` | Verdunstungskühlanlage | 434 |
+| `co_warning_system` | CO-Warnanlage | 456 |
 
 Die Kostengruppe ist wie in den anderen Paketen eine eigene Zuordnung auf der dritten Ebene der DIN 276,
 Ausgabe 2018-12, und nicht am Text der Norm geprüft.
 
 - **Klimaanlage:** dazu gehören auch eine Teilklimaanlage, ein Splitgerät und eine kombinierte Klima- und
   Lüftungsanlage.
+- **CO-Warnanlage:** die Anlage, die in einer geschlossenen Garage den Gehalt an Kohlenmonoxid misst und
+  warnt, und die Lüftung danach schaltet (Fassung 1.4.0, #354). Sie steht bei den Gefahrmeldeanlagen in 456.
+  Ihre Prüfung kommt aus dem Landesrecht, etwa nach § 16 Abs. 1 Nr. 5 GaVO BW; dieses Paket hat für sie keine
+  Pflichtart.
 - **Verdunstungskühlanlage:** dazu gehört ein Rückkühlwerk mit offenem Kreislauf. Seit der Fassung 1.3.0 des
   Pakets nennt sie in ihrer Fassung 2 das Anlagenbuch ihrer Anlagen „Betriebstagebuch“ nach § 12 der
   42. BImSchV (`book`), vom selben Tag an wie Fassung 1.

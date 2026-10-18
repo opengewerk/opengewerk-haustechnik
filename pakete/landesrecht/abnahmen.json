@@ -10,6 +10,10 @@
       }
     },
     {
+      "file": "pflichten/bw_assembly_inspection.v2.json",
+      "checkedOn": "2026-10-18"
+    },
+    {
       "file": "pflichten/bw_assembly_lightning_protection_inspection.v1.json",
       "checkedOn": "2026-10-14",
       "accepted": {
@@ -26,6 +30,10 @@
         "on": "2026-10-16",
         "sha256": "793d9770cf6e57a3b640994546834266f5175e311fc83f397e22fb63577d5d03"
       }
+    },
+    {
+      "file": "pflichten/bw_garage_inspection.v2.json",
+      "checkedOn": "2026-10-18"
     },
     {
       "file": "pflichten/bw_retail_inspection.v1.json",
