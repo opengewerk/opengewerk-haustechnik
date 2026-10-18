@@ -25,6 +25,7 @@ import {
   meterRestsOn,
   nextAppointment,
   noticeBy,
+  onceAppointment,
   passSearchDays,
   type PropertyId,
   type QualificationId,
@@ -137,6 +138,9 @@ interface DutyRow extends PlaceNames {
   readonly kindVersion: number | null
   readonly label: string | null
   readonly counting: (typeof duties.$inferSelect)['counting']
+  readonly dueOn: IsoDate | null
+  readonly countedFrom: IsoDate | null
+  readonly confirmedAt: Date
   readonly intervalDays: number | null
   readonly intervalMonths: number | null
   readonly responsibleUserId: string | null
@@ -186,6 +190,9 @@ export function dutySource(options: {
         kindVersion: duties.kindVersion,
         label: duties.label,
         counting: duties.counting,
+        dueOn: duties.dueOn,
+        countedFrom: duties.countedFrom,
+        confirmedAt: duties.confirmedAt,
         intervalDays: duties.intervalDays,
         intervalMonths: duties.intervalMonths,
         responsibleUserId: duties.responsibleUserId,
@@ -225,20 +232,33 @@ export function dutySource(options: {
 
       const met = performances.get(duty.id) ?? []
       const days = met.map((each) => each.performedOn)
+      const interval = dutyInterval(duty)
       // With the maximum of the day: a regulation that shortens it counts
-      // from its day, whether anybody took it over or not (#139).
-      const appointment = nextAppointment(
-        {
-          counting: duty.counting,
-          interval: dutyInterval(duty),
-          outOfServiceOn: restingOn,
-          ceiling: { on: ceilings(duty.kind, duty.federalState), today },
-          // What a list named for an evidence taken over stands (#130).
-          takenOver: takenOverFrom(met),
-        },
-        days,
-      )
-      const last = days.at(-1)
+      // from its day, whether anybody took it over or not (#139). A duty that
+      // falls due once is due on its day until an evidence met it (#439).
+      const appointment =
+        interval === null
+          ? duty.dueOn === null
+            ? null
+            : onceAppointment({ dueOn: duty.dueOn, countedFrom: duty.countedFrom }, days)
+          : nextAppointment(
+              {
+                counting: duty.counting,
+                interval,
+                outOfServiceOn: restingOn,
+                ceiling: { on: ceilings(duty.kind, duty.federalState), today },
+                // What a list named for an evidence taken over stands (#130).
+                takenOver: takenOverFrom(met),
+              },
+              days,
+            )
+      // A duty that falls due once has its deadline before anything was done:
+      // from the day it is counted from, or the day it was confirmed.
+      const last =
+        days.at(-1) ??
+        (interval === null
+          ? (duty.countedFrom ?? duty.confirmedAt.toISOString().slice(0, 10))
+          : undefined)
 
       if (appointment === null || last === undefined) {
         continue

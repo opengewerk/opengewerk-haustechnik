@@ -15,6 +15,9 @@ import {
   type FederalState,
   intervalLine,
   type IsoDate,
+  onceDueWords,
+  type OnceInterval,
+  onceStartWords,
   type ProposedAsset,
   proposedAssetName,
   qualificationLevelLabel,
@@ -685,6 +688,24 @@ function itsInterval(
 }
 
 /**
+ * What a batch says of the due day of a duty that falls due once (#439): the
+ * day its source names, or the distance from the commissioning each asset
+ * has in its file; a kind counted from another day of the asset is
+ * confirmed one by one, because that day is one of each asset.
+ */
+function onceBatchWords(catalogue: Catalogue | null, once: OnceInterval, on: IsoDate): string {
+  const due = catalogue === null ? null : onceDueWords(catalogue, once, on)
+
+  if ('dueOn' in once) {
+    return `Termin: ${due ?? ''}, wie die Vorschrift ihn nennt.`
+  }
+
+  return once.from === 'commissioning'
+    ? `Termin: ${due ?? ''}, gezählt ab der Inbetriebnahme in der Akte jeder Anlage. Fehlt sie bei einer, wird keine bestätigt.`
+    : `Der Termin zählt ab dem ${onceStartWords[once.from].day} jeder Anlage; diese Pflicht wird einzeln bestätigt.`
+}
+
+/**
  * The card "Auswahl" beside the list: what is chosen in the open group,
  * confirmed with one person who answers for it and one who performs it, or
  * dismissed with one reason, each in one batch. A kind with a maximum or a
@@ -734,7 +755,10 @@ function Batch({
   const { entry } = group
   const label = entry.definition.label
   const intervalKind = entry.definition.interval.kind
-  const its = intervalKind === 'none' ? null : itsInterval(catalogue, entry, chosen, properties, on)
+  const its =
+    intervalKind === 'none' || intervalKind === 'once'
+      ? null
+      : itsInterval(catalogue, entry, chosen, properties, on)
   const count = chosen.length
   const blocked = working || !status.online || count === 0
 
@@ -897,6 +921,11 @@ function Batch({
               }}
             />
           </>
+        ) : entry.definition.interval.kind === 'once' ? (
+          // A duty that falls due once takes its due day from its kind (#439).
+          <p className="text-[12px] leading-[1.45] text-ink-muted">
+            {onceBatchWords(catalogue, entry.definition.interval, on)}
+          </p>
         ) : (
           <p className="text-[12px] leading-[1.45] text-ink-muted">
             {its === null

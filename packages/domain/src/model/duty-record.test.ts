@@ -153,6 +153,15 @@ describe('the texts and choices of a duty', () => {
     ).toEqual({})
   })
 
+  it('let a duty of the operator own recur, and take the day a duty is counted from as a day (#439)', () => {
+    expect(dutyProblems({ counting: 'once', countedFrom: '2026-02-30' })).toEqual({
+      counting:
+        'Gezählt wird ab dem Tag der Durchführung, ab dem fälligen Tag oder nach § 14 Abs. 5 BetrSichV.',
+      countedFrom: 'Der Tag, ab dem gezählt wird, ist ein Tag, geschrieben 2026-10-03.',
+    })
+    expect(dutyProblems({ countedFrom: '2026-11-02' })).toEqual({})
+  })
+
   it('may leave out what it does not change', () => {
     expect(dutyProblems({})).toEqual({})
     expect(

@@ -52,7 +52,7 @@ function withAKeptTest(bundle: CatalogueBundle): CatalogueBundle {
         return pack
       }
 
-      const keepYears = main.definition.interval.rule.replace(
+      const keepYears = (main.definition.interval as { readonly rule: string }).rule.replace(
         'elevator_main_test_interval',
         'kept_years',
       )
@@ -333,6 +333,7 @@ describe('an evidence written down', () => {
         kindVersion: 1,
         source: 'Betriebsanleitung des Herstellers, Abschnitt 7',
         interval: { months: 12 },
+        dueOn: null,
         counting: 'from_performance',
       },
       place: {
@@ -459,6 +460,30 @@ describe('an evidence written down', () => {
     })
 
     expect(written.state.duty.interval).toEqual({ months: 24 })
+  })
+
+  it('states the due day of a duty that falls due once, and no interval (#439)', async () => {
+    const place = await placeIn()
+    const { rows } = await admin.query<{ id: DutyId }>(
+      `insert into duties (tenant_id, property_id, area_id, asset_id, kind, kind_version, counting,
+                           due_on, confirmed_by)
+       values ($1, $2, $3, $4, $5, 1, 'once', '2027-09-30', $6) returning id`,
+      [tenant, place.property, place.area, place.asset, keptTest, lead],
+    )
+    const written = await write({
+      ...protocol(rows[0]?.id as DutyId, null),
+      origin: 'report',
+      result: 'without_defects',
+      performedBy: null,
+      examiner: { name: 'Erika Muster', organisation: 'Prüfstelle Süd' },
+      signatures: [],
+    })
+
+    expect([
+      written.state.duty.counting,
+      written.state.duty.interval,
+      written.state.duty.dueOn,
+    ]).toEqual(['once', null, '2027-09-30'])
   })
 
   it('stands with its fingerprint in the log', async () => {

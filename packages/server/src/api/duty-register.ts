@@ -126,6 +126,8 @@ export function dutyReading(
     sourceNote: duty.sourceNote,
     task: duty.task,
     counting: duty.counting,
+    dueOn: duty.dueOn,
+    countedFrom: duty.countedFrom,
     intervalDays: duty.intervalDays,
     intervalMonths: duty.intervalMonths,
     endsOn: duty.endsOn,

@@ -95,11 +95,16 @@ export function endedWords(duty: Pick<DutyReading, 'endsOn'>): string {
 
 /** "Erfüllt bis 12.03.2027", or the state alone where no day belongs to it. */
 export function dutyStateWords(state: DutyState, until: IsoDate | null | undefined): string {
-  if (state !== 'met') {
+  if (state !== 'met' && state !== 'outstanding') {
     return dutyStateLabel[state]
   }
 
-  return until === null || until === undefined ? 'Erfüllt' : `${dutyStateLabel.met} ${day(until)}`
+  // A duty that falls due once is outstanding until its due day (#439).
+  if (until === null || until === undefined) {
+    return state === 'met' ? 'Erfüllt' : 'Ausstehend'
+  }
+
+  return `${dutyStateLabel[state]} ${day(until)}`
 }
 
 /**

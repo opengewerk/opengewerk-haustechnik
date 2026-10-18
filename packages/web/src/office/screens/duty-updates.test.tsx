@@ -75,6 +75,7 @@ const shorter: DutyUpdate = {
   lapse: null,
   adoptable: true,
   becomes: { months: 12 },
+  becomesDue: null,
   obstacle: null,
   keepable: false,
 }
@@ -274,6 +275,7 @@ describe('the report of a new version', () => {
       lapse: 'out_of_scope',
       adoptable: false,
       becomes: null,
+      becomesDue: null,
       obstacle: 'Nach der neuen Fassung gilt die Pflichtart für diese Anlage nicht mehr.',
       keepable: true,
     }

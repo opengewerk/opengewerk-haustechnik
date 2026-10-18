@@ -369,8 +369,36 @@ export function nextAppointment(
   return { dueOn, onTimeUntil: dueOn }
 }
 
-/** The states of a duty on a day, in the words of section 2.3 of the concept. */
-export const dutyStates = ['never_recorded', 'dormant', 'overdue', 'due', 'met'] as const
+/**
+ * The appointment of a duty that falls due once (#439): its due day, until an
+ * evidence met it, and then none, for good. What met it before the day it is
+ * counted from does not count: a duty counted from a commissioning asks for
+ * what was done after it, and one whose day moved to a later commissioning
+ * is open again. On time is the due day itself.
+ */
+export function onceAppointment(
+  duty: { readonly dueOn: IsoDate; readonly countedFrom: IsoDate | null },
+  performances: readonly IsoDate[],
+): Appointment | null {
+  const { countedFrom } = duty
+  const met = performances.some((day) => countedFrom === null || day >= countedFrom)
+
+  return met ? null : { dueOn: duty.dueOn, onTimeUntil: duty.dueOn }
+}
+
+/**
+ * The states of a duty on a day, in the words of section 2.3 of the concept.
+ * A duty that falls due once is outstanding until its due day comes near
+ * (#439): it was never met, and nothing is wrong with that yet.
+ */
+export const dutyStates = [
+  'never_recorded',
+  'dormant',
+  'overdue',
+  'due',
+  'outstanding',
+  'met',
+] as const
 
 export type DutyState = (typeof dutyStates)[number]
 
@@ -379,6 +407,7 @@ export const dutyStateLabel: Readonly<Record<DutyState, string>> = {
   dormant: 'Ruht',
   overdue: 'Überfällig',
   due: 'Fällig',
+  outstanding: 'Ausstehend bis',
   met: 'Erfüllt bis',
 }
 
@@ -407,21 +436,27 @@ export interface DutyStanding {
  * recording and the other for a test (section 2.3). Past the last day on
  * which doing it is on time it is overdue, from `leadDays` before its due day
  * it is due, and before that it is met until its due day.
+ *
+ * A duty that falls due once (#439) has its appointment from the day it was
+ * confirmed: before it comes near it is outstanding, not met, and once an
+ * evidence met it, it has no appointment and is met for good.
  */
 export function dutyStateOn(duty: {
   readonly appointment: Appointment | null
   readonly resting: boolean
   readonly leadDays: number
   readonly on: IsoDate
+  readonly once?: boolean
 }): DutyStanding {
   const { appointment, on } = duty
+  const once = duty.once === true
 
   if (duty.resting) {
     return { state: 'dormant', appointment }
   }
 
   if (appointment === null) {
-    return { state: 'never_recorded', appointment }
+    return { state: once ? 'met' : 'never_recorded', appointment }
   }
 
   if (on > appointment.onTimeUntil) {
@@ -432,5 +467,5 @@ export function dutyStateOn(duty: {
     return { state: 'due', appointment }
   }
 
-  return { state: 'met', appointment }
+  return { state: once ? 'outstanding' : 'met', appointment }
 }

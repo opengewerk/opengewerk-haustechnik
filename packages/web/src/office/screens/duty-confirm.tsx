@@ -28,6 +28,9 @@ import {
   intervalOfRule,
   intervalWords,
   type IsoDate,
+  onceDueWords,
+  type OnceInterval,
+  onceStartWords,
   qualificationLevelLabel,
   type RecordState,
 } from '@opengewerk/haustechnik-domain'
@@ -90,12 +93,19 @@ import { afterADecision, assetName, DismissProposalDialog } from './proposals.js
  * the same document takes the newest version again, which is how a duty
  * that says "Frist prüfen" is checked.
  *
+ * A duty that falls due once (#439) has no interval but a due day, from its
+ * kind: the day its source names, which the form shows and nobody changes,
+ * or the distance of its rule from a day of the asset, which the form asks
+ * for, from the commissioning in the file of the asset where its kind counts
+ * from that. The due day stands beside the field as it follows from it.
+ *
  * Whoever keeps the register fills it in, with a connection.
  */
 
 export const confirmWords = {
   title: 'Pflicht bestätigen',
   intervalTitle: 'Frist festlegen',
+  termTitle: 'Termin festlegen',
   mayNot: 'Eine Pflicht bestätigen kann nur, wer das Pflichtenverzeichnis führt.',
   mayNotChange: 'Die Frist einer Pflicht festlegen kann nur, wer das Pflichtenverzeichnis führt.',
   unknownKind: 'Diese Pflichtart kennt der Katalog dieses Geräts nicht.',
@@ -106,6 +116,13 @@ export const confirmWords = {
   noConnection: 'Bestätigt wird eine Pflicht im Büro mit Verbindung. Gerade ist keine da.',
   noConnectionToChange: 'Geändert wird eine Pflicht im Büro mit Verbindung. Gerade ist keine da.',
   noInterval: 'Die Frist fehlt.',
+  onceCounted:
+    'Gibt die Pflichtart vor. Mit dem ersten Nachweis ist die Pflicht erledigt und kehrt nicht wieder.',
+  fromTheFile:
+    'Aus der Akte der Anlage. Wurde sie an einem anderen Tag in Betrieb genommen oder wieder in Betrieb genommen, tragen Sie diesen ein.',
+  fromTheDay:
+    'Von diesem Tag an zählt der Termin. Gilt ein neuer, etwa nach einer Wiederinbetriebnahme, tragen Sie diesen ein.',
+  earlier: 'Geprüft werden darf früher.',
   check: 'Bitte prüfen Sie die markierten Felder.',
   countingGiven: 'Gibt die Pflichtart vor.',
   reasonForGuide: 'Pflicht, weil die Frist vom Richtwert abweicht.',
@@ -118,9 +135,12 @@ export const confirmWords = {
       'Die Vorschrift nennt sie. Die Frist lässt sich nur verkürzen, dafür braucht es keine Begründung.',
     guide: 'Sie legen die Frist fest. Weicht sie vom Richtwert ab, begründen Sie es.',
     none: 'Sie ermitteln die Frist selbst, etwa in der Gefährdungsbeurteilung, und begründen sie immer.',
+    once: 'Die Vorschrift nennt einen Tag oder einen Abstand zu einem Tag der Anlage. Mit dem ersten Nachweis ist die Pflicht erledigt.',
   },
   intervalCounts:
     'Ändert sich die Frist, rechnet der Termin mit ihr neu. Nachweise und Vorgänge bleiben bei der Pflicht.',
+  termCounts:
+    'Ändert sich der Tag, ab dem gezählt wird, rechnet der Termin neu, und ein Nachweis von vor diesem Tag erfüllt die Pflicht nicht mehr. Nachweise und Vorgänge bleiben bei der Pflicht.',
   maximumKept:
     'Die Höchstfrist ist die vom Tag der Bestätigung. Eine neue Fassung des Pakets ändert sie nicht still.',
   document: 'Dokument, das die Frist trägt',
@@ -144,14 +164,27 @@ interface Typed {
   readonly performerNote: string
   /** The firm out of the list (#328), or empty. */
   readonly contractorId: string
+  /** The day a duty that falls due once is counted from (#439), or empty. */
+  readonly countedFrom: string
 }
 
-/** What a kind allows a duty: the kind of its interval, the maximum and the guide. */
+/** What a kind allows a duty: the kind of its interval, the maximum and the guide, or the due day of one that falls due once. */
 interface Allowed {
   readonly kind: IntervalKind
   readonly maximum: DeadlineInterval | null
   readonly guide: DeadlineInterval | null
   readonly counting: Counting
+  readonly once: OnceInterval | null
+}
+
+/** The due day of a kind that falls due once, as it allows a duty; nothing for one that recurs. */
+function onceOf(definition: DutyKind): OnceInterval | null {
+  return definition.interval.kind === 'once' ? definition.interval : null
+}
+
+/** Whether a kind that falls due once counts its due day from a day of the asset, which the form asks for. */
+function countsFromADay(allowed: Allowed): boolean {
+  return allowed.once !== null && 'rule' in allowed.once
 }
 
 /** The interval a kind names on a day, in the state of the place, or nothing. */
@@ -190,12 +223,25 @@ function typedInterval(typed: Typed): DeadlineInterval | null {
     : null
 }
 
-/** What the form says, as the route takes it. */
-function described(typed: Typed) {
+/**
+ * What the form says, as the route takes it. A duty that falls due once
+ * names the day it is counted from instead of an interval, where its kind
+ * counts from one (#439).
+ */
+function described(typed: Typed, allowed: Allowed) {
+  const term =
+    allowed.kind === 'once'
+      ? countsFromADay(allowed)
+        ? { countedFrom: typed.countedFrom === '' ? null : typed.countedFrom }
+        : {}
+      : {
+          ...intervalOf(typed),
+          intervalReason: typed.reason.trim() === '' ? null : typed.reason.trim(),
+          intervalDocumentId: typed.documentId === '' ? null : typed.documentId,
+        }
+
   return {
-    ...intervalOf(typed),
-    intervalReason: typed.reason.trim() === '' ? null : typed.reason.trim(),
-    intervalDocumentId: typed.documentId === '' ? null : typed.documentId,
+    ...term,
     responsibleUserId: typed.responsibleUserId === '' ? null : typed.responsibleUserId,
     performer: typed.performer,
     // The note names the contractor, and goes only with one.
@@ -221,8 +267,17 @@ function needsReason(typed: Typed, allowed: Allowed): boolean {
 
 /** What is wrong with what the form says, by field. */
 function problemsOf(typed: Typed, allowed: Allowed): Record<string, string> {
-  const values = described(typed)
+  const values = described(typed, allowed)
   const wrong: Record<string, string> = { ...dutyProblems(values) }
+
+  if (allowed.kind === 'once') {
+    if (allowed.once !== null && 'rule' in allowed.once && typed.countedFrom === '') {
+      wrong['countedFrom'] = `Der ${onceStartWords[allowed.once.from].day} fehlt.`
+    }
+
+    return wrong
+  }
+
   const intervalWrong =
     typed.interval.trim() === ''
       ? confirmWords.noInterval
@@ -230,7 +285,7 @@ function problemsOf(typed: Typed, allowed: Allowed): Record<string, string> {
 
   if (intervalWrong !== null) {
     wrong['interval'] = intervalWrong
-  } else if (needsReason(typed, allowed) && values.intervalReason === null) {
+  } else if (needsReason(typed, allowed) && typed.reason.trim() === '') {
     wrong['reason'] =
       allowed.kind === 'guide' && allowed.guide !== null
         ? `Der Richtwert beträgt ${intervalWords(allowed.guide)}; eine Frist, die davon abweicht, braucht eine Begründung.`
@@ -240,8 +295,16 @@ function problemsOf(typed: Typed, allowed: Allowed): Record<string, string> {
   return wrong
 }
 
-/** A form that starts from an interval the kind names, or from nothing. */
-function startingWith(interval: DeadlineInterval | null): Typed {
+/**
+ * A form that starts from an interval the kind names, or from nothing; for a
+ * kind that falls due once and counts from the commissioning, from the day
+ * the file of the asset keeps (#439).
+ */
+function startingWith(
+  interval: DeadlineInterval | null,
+  once: OnceInterval | null = null,
+  commissionedOn: IsoDate | null = null,
+): Typed {
   return {
     interval: interval === null ? '' : String('days' in interval ? interval.days : interval.months),
     unit: interval !== null && 'days' in interval ? 'days' : 'months',
@@ -251,6 +314,10 @@ function startingWith(interval: DeadlineInterval | null): Typed {
     performer: null,
     performerNote: '',
     contractorId: '',
+    countedFrom:
+      once !== null && 'rule' in once && once.from === 'commissioning'
+        ? (commissionedOn ?? '')
+        : '',
   }
 }
 
@@ -265,6 +332,7 @@ function typedOf(duty: DutyDetails): Typed {
     performer: duty.performer,
     performerNote: duty.performerNote ?? '',
     contractorId: duty.contractorId ?? '',
+    countedFrom: duty.countedFrom ?? '',
   }
 }
 
@@ -348,8 +416,11 @@ function ConfirmForm({
     maximum: kind === 'maximum' ? named : null,
     guide: kind === 'guide' ? named : null,
     counting: entry.definition.counting,
+    once: onceOf(entry.definition),
   }
-  const [typed, setTyped] = useState<Typed>(() => startingWith(named))
+  const [typed, setTyped] = useState<Typed>(() =>
+    startingWith(named, allowed.once, asset.commissionedOn),
+  )
   const [problems, setProblems] = useState<Readonly<Record<string, string>>>({})
   const [trouble, setTrouble] = useState<string | null>(null)
   const [working, setWorking] = useState(false)
@@ -382,7 +453,7 @@ function ConfirmForm({
       const result = await makeAt(client, '/duties', {
         assetId: asset.id,
         kind: entry.key,
-        ...described(typed),
+        ...described(typed, allowed),
       })
 
       if (result.outcome === 'refused') {
@@ -431,6 +502,7 @@ function ConfirmForm({
                 problems={problems}
                 allowed={allowed}
                 named={null}
+                term={{ catalogue, entry, state, fromTheFile: true }}
                 chain={{
                   propertyId: asset.propertyId,
                   buildingId: asset.buildingId,
@@ -466,10 +538,10 @@ function ConfirmForm({
           </div>
         </div>
         <div className="flex min-w-0 flex-col gap-3.5">
-          <KindPanel catalogue={catalogue} entry={entry} allowed={allowed} />
+          <KindPanel catalogue={catalogue} entry={entry} allowed={allowed} state={state} />
           <Panel title="Was die Pflichtart zulässt">
             <div className="flex flex-col gap-[7px] text-[13px] leading-[1.45] max-sm:text-[15px]">
-              {(['maximum', 'guide', 'none'] as const).map((each) => (
+              {(['maximum', 'guide', 'none', 'once'] as const).map((each) => (
                 <p key={each}>
                   <span className="font-semibold">{intervalKindLabel[each]}.</span>{' '}
                   {confirmWords.allows[each]}
@@ -573,7 +645,9 @@ function IntervalForm({
     maximum: dutyMaximum(duty),
     guide: kind === 'guide' ? namedInterval(catalogue, entry, today(), state) : null,
     counting: duty.counting,
+    once: onceOf(entry.definition),
   }
+  const title = allowed.once === null ? confirmWords.intervalTitle : confirmWords.termTitle
   const [typed, setTyped] = useState<Typed>(() => typedOf(duty))
   const [problems, setProblems] = useState<Readonly<Record<string, string>>>({})
   const [trouble, setTrouble] = useState<string | null>(null)
@@ -604,9 +678,9 @@ function IntervalForm({
     // What differs from what the duty said, field by field: a unit that
     // changed sends the interval under its own name, and the route lets the
     // other one go.
-    const was: Readonly<Record<string, unknown>> = described(typedOf(duty))
+    const was: Readonly<Record<string, unknown>> = described(typedOf(duty), allowed)
     const changes = Object.fromEntries(
-      Object.entries(described(typed)).filter(([field, value]) => was[field] !== value),
+      Object.entries(described(typed, allowed)).filter(([field, value]) => was[field] !== value),
     )
 
     // A newer version lies over the one the duty points at: saving with the
@@ -642,7 +716,7 @@ function IntervalForm({
   return (
     <Screen>
       <PageHead
-        title={confirmWords.intervalTitle}
+        title={title}
         sub={asset ? `${duty.title} an ${assetName(asset)}` : duty.title}
         crumbs={[dutyRegisterPlace, { to: dutyPlaces.duty(duty.id), label: duty.title }]}
         phoneBack={{ to: dutyPlaces.duty(duty.id), label: duty.title }}
@@ -669,6 +743,7 @@ function IntervalForm({
                 allowed={allowed}
                 named={duty.responsible}
                 keptMaximum
+                term={{ catalogue, entry, state, fromTheFile: false }}
                 chain={{
                   propertyId: duty.propertyId,
                   buildingId: duty.asset?.buildingId ?? duty.buildingId,
@@ -700,10 +775,11 @@ function IntervalForm({
             allowed={allowed}
             version={duty.kindVersion}
             keptMaximum
+            state={state}
           />
           <Panel title="Gut zu wissen">
             <div className="flex flex-col gap-[7px] text-[13px] leading-[1.45] max-sm:text-[15px]">
-              <p>{confirmWords.intervalCounts}</p>
+              <p>{allowed.once === null ? confirmWords.intervalCounts : confirmWords.termCounts}</p>
               {allowed.maximum === null ? null : <p>{confirmWords.maximumKept}</p>}
             </div>
           </Panel>
@@ -825,6 +901,7 @@ function IntervalFields({
   problems,
   allowed,
   named,
+  term,
   keptMaximum = false,
   chain,
   pointedAt,
@@ -835,6 +912,8 @@ function IntervalFields({
   readonly allowed: Allowed
   /** Whom the duty names, who stays a choice when shut out; none for a new one. */
   readonly named: DutyDetails['responsible']
+  /** What the due day of a duty that falls due once is worked out from (#439). */
+  readonly term: TermSource
   /** The maximum is the one kept at the duty since the day it was confirmed. */
   readonly keptMaximum?: boolean
   /** Where the duty hangs and what lies above it, where the document that bears its interval may lie. */
@@ -842,7 +921,6 @@ function IntervalFields({
   /** The document a duty there is points at; none for a new one. */
   readonly pointedAt: DutyIntervalDocument | null
 }) {
-  const colleagues = useQuery(dutyColleaguesQuery)
   const seesDocuments = useRight('document.read')
   const interval = typedInterval(typed)
   const departs =
@@ -861,6 +939,15 @@ function IntervalFields({
         : allowed.kind === 'none'
           ? 'Die Pflichtart gibt keine Frist vor.'
           : null
+
+  if (allowed.once !== null) {
+    return (
+      <>
+        <OnceFields typed={typed} set={set} problems={problems} once={allowed.once} term={term} />
+        <ResponsibleFields typed={typed} set={set} problems={problems} named={named} />
+      </>
+    )
+  }
 
   return (
     <>
@@ -930,6 +1017,121 @@ function IntervalFields({
       {seesDocuments ? (
         <DocumentField typed={typed} set={set} chain={chain} pointedAt={pointedAt} />
       ) : null}
+      <ResponsibleFields typed={typed} set={set} problems={problems} named={named} />
+    </>
+  )
+}
+
+/** What the due day of a duty that falls due once is worked out from, and whether its day comes from the file of the asset. */
+interface TermSource {
+  readonly catalogue: Catalogue
+  readonly entry: CatalogueEntry<DutyKind>
+  readonly state: FederalState | undefined
+  /** A new duty takes the commissioning from the file of its asset; a duty there is has its own day. */
+  readonly fromTheFile: boolean
+}
+
+/**
+ * The due day of a duty that falls due once (#439): the day its source names,
+ * grey because nobody changes it, or the day of the asset it is counted from,
+ * with the due day it gives beside it. Then that it is counted once.
+ */
+function OnceFields({
+  typed,
+  set,
+  problems,
+  once,
+  term,
+}: {
+  readonly typed: Typed
+  readonly set: (values: Partial<Typed>) => void
+  readonly problems: Readonly<Record<string, string>>
+  readonly once: OnceInterval
+  readonly term: TermSource
+}) {
+  const { catalogue, entry, state } = term
+  const { definition } = entry
+
+  if ('dueOn' in once) {
+    return (
+      <>
+        <PanelLabel>Termin</PanelLabel>
+        <Field
+          label="Termin"
+          value={date(once.dueOn)}
+          readOnly
+          hint={`Gibt ${definition.source} vor. ${confirmWords.earlier}`}
+          className="bg-surface-sunken!"
+        />
+        <OnceCounting />
+      </>
+    )
+  }
+
+  const from = /^\d{4}-\d{2}-\d{2}$/.test(typed.countedFrom) ? typed.countedFrom : null
+  const due = from === null ? null : catalogue.onceDue(entry, from, state)
+
+  return (
+    <>
+      <PanelLabel>Termin</PanelLabel>
+      <div className="grid gap-3 sm:grid-cols-[180px_minmax(0,1fr)]">
+        <Field
+          label={onceStartWords[once.from].day}
+          type="date"
+          required
+          starred
+          value={typed.countedFrom}
+          problem={problems['countedFrom']}
+          onChange={(event) => {
+            set({ countedFrom: event.target.value })
+          }}
+        />
+        {due === null || from === null ? null : (
+          <p className="flex items-center gap-1.5 self-end pb-2 text-[13px] text-ink-muted">
+            <Info size={15} strokeWidth={2.2} aria-hidden="true" className="shrink-0" />
+            {`Fällig bis ${date(due)}: ${onceDueWords(catalogue, once, from < entry.validFrom ? entry.validFrom : from, state)}`}
+          </p>
+        )}
+      </div>
+      <p className="text-[12px] leading-[1.45] text-ink-muted max-sm:text-[14px]">
+        {term.fromTheFile && once.from === 'commissioning'
+          ? confirmWords.fromTheFile
+          : confirmWords.fromTheDay}
+      </p>
+      <OnceCounting />
+    </>
+  )
+}
+
+/** That a duty that falls due once is counted once, as its kind says. */
+function OnceCounting() {
+  return (
+    <Field
+      label="Gezählt"
+      value={countingLabel.once}
+      readOnly
+      hint={confirmWords.onceCounted}
+      className="bg-surface-sunken!"
+    />
+  )
+}
+
+/** Who answers for a duty and who performs it, under the interval or the due day. */
+function ResponsibleFields({
+  typed,
+  set,
+  problems,
+  named,
+}: {
+  readonly typed: Typed
+  readonly set: (values: Partial<Typed>) => void
+  readonly problems: Readonly<Record<string, string>>
+  readonly named: DutyDetails['responsible']
+}) {
+  const colleagues = useQuery(dutyColleaguesQuery)
+
+  return (
+    <>
       <PanelLabel>Zuständig</PanelLabel>
       <div className="grid items-start gap-3 sm:grid-cols-2">
         <SelectField
@@ -982,6 +1184,7 @@ function KindPanel({
   allowed,
   version,
   keptMaximum = false,
+  state,
 }: {
   readonly catalogue: Catalogue
   readonly entry: CatalogueEntry<DutyKind>
@@ -989,9 +1192,11 @@ function KindPanel({
   /** The version a duty there is was confirmed in; a new one is the version in force. */
   readonly version?: number | null
   readonly keptMaximum?: boolean
+  readonly state?: FederalState | undefined
 }) {
   const kind = entry.definition
   const on = today()
+  const once = onceOf(kind)
   const itsPackage = catalogue.packages.find((each) => each.name === packageOf(entry.key))
   const value =
     allowed.kind === 'maximum' ? allowed.maximum : allowed.kind === 'guide' ? allowed.guide : null
@@ -1022,6 +1227,10 @@ function KindPanel({
                     value: `${intervalWords(value)}${keptMaximum && allowed.kind === 'maximum' ? ', am Tag der Bestätigung' : ''}`,
                   },
                 ]),
+            // The due day of a kind that falls due once (#439).
+            ...(once === null
+              ? []
+              : [{ label: 'Termin', value: onceDueWords(catalogue, once, on, state) }]),
             { label: 'Gezählt', value: countingLabel[allowed.counting] },
             {
               label: 'Qualifikation',

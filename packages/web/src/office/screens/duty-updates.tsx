@@ -4,12 +4,14 @@ import {
   type DeadlineInterval,
   dutyInterval,
   dutyLimits,
+  dutyTermWords,
   type DutyUpdate,
   type DutyUpdateEntry,
   dutyUpdateFieldLabel,
   type DutyUpdates,
   intervalWords,
   type IsoDate,
+  onceWords,
   type RecordState,
   sameInterval,
   updatesSentence,
@@ -319,11 +321,18 @@ export function updateLine(packageName: string, update: DutyUpdate, on: IsoDate)
 function becomesWords(entry: DutyUpdateEntry): string {
   const { update } = entry
 
+  // A duty that falls due once takes the due day of the newest version (#439).
+  if (update.becomesDue !== null) {
+    return `${update.becomesDue === entry.dueOn ? 'bleibt' : 'wird'} ${onceWords(update.becomesDue)}`
+  }
+
   if (update.becomes === null) {
     return update.obstacle ?? ''
   }
 
-  return `${sameInterval(update.becomes, dutyInterval(entry)) ? 'bleibt' : 'wird'} ${intervalWords(update.becomes)}`
+  const own = dutyInterval(entry)
+
+  return `${own !== null && sameInterval(update.becomes, own) ? 'bleibt' : 'wird'} ${intervalWords(update.becomes)}`
 }
 
 /** Where a duty hangs: "AN-00095 · Wohnanlage Birkenweg, Haus 2". */
@@ -613,11 +622,7 @@ function Group({
             cards={entries.map((entry) => ({
               key: entry.id,
               title: linkOf(entry),
-              sub: [
-                place(entry),
-                `Frist ${intervalWords(dutyInterval(entry))}`,
-                becomesWords(entry),
-              ]
+              sub: [place(entry), `Frist ${dutyTermWords(entry)}`, becomesWords(entry)]
                 .filter(Boolean)
                 .join(' · '),
               ...(keeps ? { right: tick(entry) } : {}),
@@ -662,7 +667,7 @@ function Group({
                       <div className="text-[12px] text-ink-faint">{place(entry)}</div>
                     </div>
                   </Cell>
-                  <Cell>{intervalWords(dutyInterval(entry))}</Cell>
+                  <Cell>{dutyTermWords(entry)}</Cell>
                   <Cell>{becomes(entry)}</Cell>
                 </tr>
               ))}

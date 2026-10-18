@@ -38,7 +38,7 @@ import {
   packageOf,
   type ProposedAsset,
 } from './duty-proposal.js'
-import { dutyInterval, intervalWords } from './duty-record.js'
+import { dutyTermWords } from './duty-record.js'
 import type { DutyEntry } from './duty-register.js'
 import { byNameIn } from './name-order.js'
 import {
@@ -845,7 +845,7 @@ export function dutyTableRow(
     where,
     duty.title,
     dutySourceWords(duty, catalogue),
-    intervalWords(dutyInterval(duty)),
+    dutyTermWords(duty),
     intervalKindWords(duty, catalogue),
     duty.intervalToCheck ? intervalCheckWords : null,
     ...(names ? [duty.responsible?.name ?? nobodyWords] : []),

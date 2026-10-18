@@ -349,8 +349,14 @@ interface NamedRule {
 function rulesOf(kind: DutyKind): readonly NamedRule[] {
   const named: NamedRule[] = []
 
-  if (kind.interval.kind !== 'none') {
-    named.push({ role: intervalKindLabel[kind.interval.kind], key: kind.interval.rule })
+  if ('rule' in kind.interval) {
+    named.push({
+      role:
+        kind.interval.kind === 'once'
+          ? 'Abstand des Termins'
+          : intervalKindLabel[kind.interval.kind],
+      key: kind.interval.rule,
+    })
   }
 
   if (kind.retention.kind === 'years') {

@@ -3,7 +3,7 @@ import {
   byNameIn,
   type Counting,
   countingLabel,
-  countings,
+  recurringCountings,
   dutyBases,
   dutyBasisLabel,
   type DutyDetails,
@@ -897,7 +897,8 @@ function DutyFields({
         {fixedCounting === undefined ? (
           <SelectField
             label="Gezählt"
-            options={countings.map((counting) => ({
+            // A duty of the operator's own recurs (#439).
+            options={recurringCountings.map((counting) => ({
               value: counting,
               label: countingLabel[counting],
             }))}
@@ -905,7 +906,9 @@ function DutyFields({
             hint={dutyFormWords.countingHint}
             problem={problems['counting']}
             onChange={(value) => {
-              set({ counting: countings.find((each) => each === value) ?? typed.counting })
+              set({
+                counting: recurringCountings.find((each) => each === value) ?? typed.counting,
+              })
             }}
           />
         ) : (

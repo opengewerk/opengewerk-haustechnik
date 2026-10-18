@@ -8,6 +8,7 @@ import {
   characteristicValueWords,
   dutyInterval,
   type DutyReading,
+  dutyTermWords,
   evidenceResultLabel,
   intervalWords,
   isOwnKind,
@@ -661,9 +662,11 @@ function DistinctFrom({ asset }: { readonly asset: AssetDetails }) {
 
 /** Under the name of a duty: where it comes from and how often it falls due. */
 export function dutyLine(duty: DutyReading, catalogue: Catalogue | null): string {
-  return [dutySourceWords(duty, catalogue), `alle ${intervalWords(dutyInterval(duty))}`]
-    .filter(Boolean)
-    .join(' · ')
+  const interval = dutyInterval(duty)
+  // A duty that falls due once names its due day (#439).
+  const term = interval === null ? dutyTermWords(duty) : `alle ${intervalWords(interval)}`
+
+  return [dutySourceWords(duty, catalogue), term].filter(Boolean).join(' · ')
 }
 
 /**

@@ -106,7 +106,12 @@ function withMoreKinds(bundle: CatalogueBundle): CatalogueBundle {
           like(
             firefighters,
             'Prüfung des Feuerwehraufzugs',
-            { interval: { kind: 'guide', rule: main.definition.interval.rule } },
+            {
+              interval: {
+                kind: 'guide',
+                rule: (main.definition.interval as { readonly rule: string }).rule,
+              },
+            },
             { conditions: [{ characteristic: 'firefighters_lift', is: true }] },
           ),
           like(unguided, 'Kontrolle der Aufzugsanlage durch den Betreiber', {

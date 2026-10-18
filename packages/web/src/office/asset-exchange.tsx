@@ -386,7 +386,7 @@ export function ExchangeAssetDialog({
                     <Tick
                       key={duty.id}
                       label={duty.label ?? ''}
-                      sub={`alle ${intervalWords(dutyInterval(duty))}`}
+                      sub={everyWords(duty)}
                       checked={duties.includes(duty.id)}
                       onChange={(checked) => {
                         setDuties(toggled(duties, duty.id, checked))
@@ -398,7 +398,7 @@ export function ExchangeAssetDialog({
                     <ul className={pointList}>
                       {ends.ownDuties.map((duty) => (
                         <li key={duty.id}>
-                          {duty.label}, alle {intervalWords(dutyInterval(duty))}
+                          {duty.label}, {everyWords(duty)}
                         </li>
                       ))}
                     </ul>
@@ -457,4 +457,11 @@ export function ExchangeAssetDialog({
       </form>
     </Dialog>
   )
+}
+
+/** How often a duty of the operator's own falls due, "alle 12 Monate": such a duty always recurs. */
+function everyWords(duty: ExchangeStanding['ownDuties'][number]): string {
+  const interval = dutyInterval(duty)
+
+  return interval === null ? '' : `alle ${intervalWords(interval)}`
 }

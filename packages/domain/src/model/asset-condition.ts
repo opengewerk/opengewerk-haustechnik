@@ -299,6 +299,8 @@ export interface DutyReading extends Pick<
   | 'sourceNote'
   | 'task'
   | 'counting'
+  | 'dueOn'
+  | 'countedFrom'
   | 'intervalDays'
   | 'intervalMonths'
   | 'endsOn'

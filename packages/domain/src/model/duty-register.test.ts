@@ -55,12 +55,15 @@ describe('the states the register is narrowed to', () => {
     expect(dutyRegisterOrder.slice(0, 2)).toEqual(['never_recorded', 'overdue'])
   })
 
-  it('are called as the states are, a met one without its day', () => {
-    for (const state of dutyRegisterOrder.filter((each) => each !== 'met')) {
+  it('are called as the states are, a met and an outstanding one without its day', () => {
+    for (const state of dutyRegisterOrder.filter(
+      (each) => each !== 'met' && each !== 'outstanding',
+    )) {
       expect(dutyRegisterStateLabel[state]).toBe(dutyStateLabel[state])
     }
 
     expect(dutyRegisterStateLabel.met).toBe('Erfüllt')
+    expect(dutyRegisterStateLabel.outstanding).toBe('Ausstehend')
     expect(dutyRegisterStateLabel.ended).toBe('Beendet')
   })
 })

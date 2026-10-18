@@ -53,6 +53,8 @@ import { officePlaces } from '../place-addresses.js'
 import { dutyEvidenceQuery, dutyQuery } from './duty.js'
 
 export const reportWords = {
+  // A duty that falls due once (#439).
+  onceMet: 'Damit ist die Pflicht erledigt: sie ist einmalig fällig und kehrt nicht wieder.',
   firmHint:
     'Füllt die Organisation aus. Eine Prüforganisation, die keine Fremdfirma ist: „Keine aus der Liste“ und als Text.',
   notThere:
@@ -242,14 +244,27 @@ function ReportForm({
   /** Where the next due day goes, once the report meets the duty: from what counts, and this day. */
   const standing = evidence.data?.filter((entry) => entry.standing === 'counts')
   const counted = standing?.map((entry) => entry.performedOn)
+  // A duty that falls due once is met for good by this report, unless it lies
+  // before the day it is counted from (#439).
+  const interval = duty.shortened ?? dutyInterval(duty)
+  const once = interval === null
+  const meetsItOnce =
+    once &&
+    meetsTheDuty(result) &&
+    performedOn !== '' &&
+    (duty.countedFrom === null || performedOn >= duty.countedFrom)
   const next =
-    counted !== undefined && performedOn !== '' && meetsTheDuty(result) && !duty.ended
+    interval !== null &&
+    counted !== undefined &&
+    performedOn !== '' &&
+    meetsTheDuty(result) &&
+    !duty.ended
       ? // With the interval the duty counts with today: its own, or the
         // maximum a regulation cut it short to (#139).
         nextAppointment(
           {
             counting: duty.counting,
-            interval: duty.shortened ?? dutyInterval(duty),
+            interval,
             // The rhythm goes on from the due day a list named for what was taken over (#130).
             takenOver: takenOverFrom(
               (standing ?? []).map((entry) => ({
@@ -681,11 +696,15 @@ function ReportForm({
           <NoteBox>
             {[
               'Mit dem Festschreiben entsteht der Nachweis mit der nächsten Nummer, und die Datei liegt an ihm.',
-              next === null
-                ? meetsTheDuty(result)
-                  ? `Der Termin rückt dann weiter, ${counting}.`
+              once
+                ? meetsItOnce
+                  ? reportWords.onceMet
                   : 'Am Termin ändert sich nichts.'
-                : `Der Termin rückt auf den ${date(next.dueOn)}, ${counting}.`,
+                : next === null
+                  ? meetsTheDuty(result)
+                    ? `Der Termin rückt dann weiter, ${counting}.`
+                    : 'Am Termin ändert sich nichts.'
+                  : `Der Termin rückt auf den ${date(next.dueOn)}, ${counting}.`,
               namesDefects ? 'Die Mängel kommen in die Liste der Mängel.' : null,
               'Eine offene Prüfung dieser Pflicht ist damit erledigt.',
             ]

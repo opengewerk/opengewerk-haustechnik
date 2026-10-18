@@ -369,6 +369,58 @@ describe('the page of a duty', () => {
     expect(head()).toContain('Nie erfasst')
   })
 
+  it('names the due day of a duty that falls due once, outstanding until it comes near (#439)', async () => {
+    await opened(
+      'technical_management',
+      duty({
+        counting: 'once',
+        dueOn: '2027-09-30',
+        countedFrom: null,
+        intervalMonths: null,
+        maximumMonths: null,
+        intervalReason: null,
+        state: 'outstanding',
+        appointment: { dueOn: '2027-09-30', onTimeUntil: '2027-09-30' },
+        lastMetOn: null,
+      }),
+    )
+
+    expect(head()).toContain('Ausstehend bis 30.09.2027')
+    expect(facts()).toMatchObject({
+      Termin: '30.09.2027',
+      Gezählt: 'Einmalig: mit dem ersten Nachweis erledigt',
+    })
+    expect(facts()['Nächster Termin']).toBeUndefined()
+    expect(await screen.findByRole('button', { name: 'Prüfung anlegen' })).toBeTruthy()
+  })
+
+  it('says of a duty that falls due once and was met that it is done and calls for nothing more (#439)', async () => {
+    await opened(
+      'technical_management',
+      duty({
+        counting: 'once',
+        dueOn: '2027-09-30',
+        countedFrom: null,
+        intervalMonths: null,
+        maximumMonths: null,
+        intervalReason: null,
+        state: 'met',
+        appointment: null,
+        lastMetOn: '2027-06-14',
+      }),
+    )
+
+    expect(head()).toContain('Erfüllt')
+    expect(facts()).toMatchObject({
+      Termin: '30.09.2027, erledigt',
+      'Nächster Termin': 'keiner, die Pflicht ist einmalig',
+      Gezählt: 'Einmalig',
+    })
+    // Once the catalogue knows its kind, which a new activity needs.
+    await screen.findByText('Höchstfrist')
+    expect(screen.queryByRole('button', { name: 'Prüfung anlegen' })).toBeNull()
+  })
+
   it('says of a duty that rests that it does, whatever its last appointment was', async () => {
     await opened('technician', duty({ state: 'dormant' }))
 

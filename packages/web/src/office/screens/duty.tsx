@@ -14,9 +14,11 @@ import {
   dutyPerformerLabel,
   dutyProblems,
   dutyTaskLabel,
+  dutyTermWords,
   evidenceOriginLabel,
   evidenceResultLabel,
   intervalWords,
+  onceDueWords,
   type RecordState,
   takesAReport,
   takesAWorkOrder,
@@ -156,8 +158,13 @@ export const dutyPageWords = {
   restingNote:
     'Die Anlage ist nicht in Betrieb. Die Pflicht ruht, bis sie wieder in Betrieb geht, und verfällt nicht.',
   ended: 'keiner, die Pflicht ist beendet',
+  // A duty that falls due once (#439).
+  onceDone: 'keiner, die Pflicht ist einmalig',
+  onceOpen: 'Einmalig: mit dem ersten Nachweis erledigt',
   noEvidence: 'Für diese Pflicht ist noch kein Nachweis festgehalten.',
   evidenceLoading: 'Die Nachweise werden geladen.',
+  whatMeetsOnce:
+    'Die Pflicht ist mit dem ersten Nachweis ab dem Tag, ab dem sie zählt, erfüllt, solange er weder ersetzt noch für ungültig erklärt ist.',
   whatCounts:
     'Der Termin zählt vom letzten Nachweis, der die Pflicht erfüllt und weder ersetzt noch für ungültig erklärt ist.',
   whoCanBeNamed:
@@ -267,6 +274,25 @@ export function DutyScreen() {
         )
   const maximum = dutyMaximum(duty)
   const { appointment, activity } = duty
+  // A duty that falls due once has its one due day (#439): open until an
+  // evidence met it, and done for good afterwards.
+  const once = duty.counting === 'once'
+  const done = once && appointment === null && !duty.ended && duty.state === 'met'
+  const ownInterval = dutyInterval(duty)
+  // What the source of a duty that falls due once says, in words: "bis
+  // 30.09.2027", or "24 Monate nach der Inbetriebnahme" with the value of
+  // the day it is counted from.
+  const onceInterval = kind?.definition.interval.kind === 'once' ? kind.definition.interval : null
+  const onceSaid =
+    catalogue === null || kind === null || onceInterval === null
+      ? null
+      : onceDueWords(
+          catalogue,
+          onceInterval,
+          duty.countedFrom !== null && duty.countedFrom > kind.validFrom
+            ? duty.countedFrom
+            : kind.validFrom,
+        )
   // What a new activity of this duty is, by its task (#183), and whether one
   // is offered: for whoever plans, while the duty stands, does not rest and
   // has none under way, and once the task is known, which for a duty from the
@@ -275,6 +301,7 @@ export function DutyScreen() {
   const makes =
     plans &&
     !duty.ended &&
+    !done &&
     duty.state !== 'dormant' &&
     activity === null &&
     (duty.kind === null || kind !== null)
@@ -414,16 +441,32 @@ export function DutyScreen() {
               <FactList
                 keyWidth={130}
                 facts={[
-                  {
-                    label: 'Nächster Termin',
-                    value: duty.ended
-                      ? dutyPageWords.ended
-                      : duty.state === 'dormant'
-                        ? dutyPageWords.resting
-                        : appointment === null
-                          ? dutyPageWords.neverRecorded
-                          : date(appointment.dueOn),
-                  },
+                  ...(once
+                    ? [
+                        {
+                          label: 'Termin',
+                          value: duty.ended
+                            ? dutyPageWords.ended
+                            : duty.dueOn === null
+                              ? null
+                              : `${date(duty.dueOn)}${done ? ', erledigt' : ''}`,
+                        },
+                        ...(done
+                          ? [{ label: 'Nächster Termin', value: dutyPageWords.onceDone }]
+                          : []),
+                      ]
+                    : [
+                        {
+                          label: 'Nächster Termin',
+                          value: duty.ended
+                            ? dutyPageWords.ended
+                            : duty.state === 'dormant'
+                              ? dutyPageWords.resting
+                              : appointment === null
+                                ? dutyPageWords.neverRecorded
+                                : date(appointment.dueOn),
+                        },
+                      ]),
                   // Where the counting allows a margin, the last day doing it is on time.
                   ...(!duty.ended &&
                   duty.state !== 'dormant' &&
@@ -440,7 +483,13 @@ export function DutyScreen() {
                         date(duty.lastMetOn)
                       ),
                   },
-                  { label: 'Gezählt', value: countingLabel[duty.counting] },
+                  {
+                    label: 'Gezählt',
+                    value:
+                      once && !done && !duty.ended
+                        ? dutyPageWords.onceOpen
+                        : countingLabel[duty.counting],
+                  },
                   // The activity under way, for whoever reads activities (#183).
                   ...(readsActivities
                     ? [
@@ -485,7 +534,7 @@ export function DutyScreen() {
               ) : null}
             </div>
           </Panel>
-          {seesEvidence ? <Evidence evidence={evidence.data} /> : null}
+          {seesEvidence ? <Evidence evidence={evidence.data} once={once} /> : null}
         </div>
         <div className="flex min-w-0 flex-col gap-3.5">
           {/* What the catalogue says differently, until somebody decides (#139). */}
@@ -503,7 +552,11 @@ export function DutyScreen() {
               // performs it (#102); a duty of the operator's own changes it in
               // its form.
               keeps && !duty.ended && duty.kind !== null ? (
-                <LinkButton to={dutyPlaces.interval(dutyId)} size="small" label="Frist ändern">
+                <LinkButton
+                  to={dutyPlaces.interval(dutyId)}
+                  size="small"
+                  label={once ? 'Termin ändern' : 'Frist ändern'}
+                >
                   Ändern
                 </LinkButton>
               ) : null
@@ -512,38 +565,49 @@ export function DutyScreen() {
             <div className="flex flex-col gap-2.5">
               <FactList
                 keyWidth={96}
-                facts={[
-                  {
-                    label: 'Frist',
-                    // The interval it was confirmed with, and below it what a
-                    // regulation cut it short to (#139).
-                    value: duty.shortened ? (
-                      <span className="flex flex-col gap-[3px]">
-                        <span>{intervalWords(dutyInterval(duty))}</span>
-                        <UpdateMark shortened counts={duty.shortened} />
-                      </span>
-                    ) : (
-                      intervalWords(dutyInterval(duty))
-                    ),
-                  },
-                  { label: 'Art der Frist', value: intervalKindWords(duty, catalogue) },
-                  ...(maximum === null
-                    ? []
+                facts={
+                  once
+                    ? [
+                        // A duty that falls due once has what its source says instead (#439).
+                        { label: 'Art der Frist', value: intervalKindWords(duty, catalogue) },
+                        ...(onceSaid === null ? [] : [{ label: 'Vorgabe', value: onceSaid }]),
+                        ...(duty.countedFrom === null
+                          ? []
+                          : [{ label: 'Gezählt ab', value: date(duty.countedFrom) }]),
+                      ]
                     : [
                         {
-                          label: 'Höchstfrist',
-                          value: `${intervalWords(maximum)}, am Tag der Bestätigung`,
+                          label: 'Frist',
+                          // The interval it was confirmed with, and below it what a
+                          // regulation cut it short to (#139).
+                          value: duty.shortened ? (
+                            <span className="flex flex-col gap-[3px]">
+                              <span>{dutyTermWords(duty)}</span>
+                              <UpdateMark shortened counts={duty.shortened} />
+                            </span>
+                          ) : (
+                            dutyTermWords(duty)
+                          ),
                         },
-                      ]),
-                  ...(duty.intervalReason === null
-                    ? []
-                    : [{ label: 'Begründung', value: duty.intervalReason }]),
-                  // The document that bears the interval, with the version the
-                  // duty points at (#74).
-                  ...(duty.intervalDocument === null
-                    ? []
-                    : [{ label: 'Dokument', value: <IntervalDocument duty={duty} /> }]),
-                ]}
+                        { label: 'Art der Frist', value: intervalKindWords(duty, catalogue) },
+                        ...(maximum === null
+                          ? []
+                          : [
+                              {
+                                label: 'Höchstfrist',
+                                value: `${intervalWords(maximum)}, am Tag der Bestätigung`,
+                              },
+                            ]),
+                        ...(duty.intervalReason === null
+                          ? []
+                          : [{ label: 'Begründung', value: duty.intervalReason }]),
+                        // The document that bears the interval, with the version the
+                        // duty points at (#74).
+                        ...(duty.intervalDocument === null
+                          ? []
+                          : [{ label: 'Dokument', value: <IntervalDocument duty={duty} /> }]),
+                      ]
+                }
               />
               {duty.intervalToCheck && duty.intervalDocument !== null ? (
                 <NoteBox tone="waiting" icon={TriangleAlert}>
@@ -553,9 +617,9 @@ export function DutyScreen() {
                   )}
                 </NoteBox>
               ) : null}
-              {duty.update?.shorter ? (
+              {duty.update?.shorter && ownInterval !== null ? (
                 <NoteBox tone="waiting">
-                  {shorterNote(duty.update.shorter, dutyInterval(duty), today())}
+                  {shorterNote(duty.update.shorter, ownInterval, today())}
                 </NoteBox>
               ) : null}
             </div>
@@ -834,7 +898,14 @@ export function responsibleChoices(
  * it means for the appointment. One a correction replaced and one declared
  * invalid stay in the list and say so; what does not count stands back.
  */
-function Evidence({ evidence }: { readonly evidence: readonly DutyEvidenceEntry[] | undefined }) {
+function Evidence({
+  evidence,
+  once,
+}: {
+  readonly evidence: readonly DutyEvidenceEntry[] | undefined
+  /** Whether the duty falls due once (#439), which its first evidence meets for good. */
+  readonly once: boolean
+}) {
   const title = 'Nachweise'
 
   if (evidence === undefined || evidence.length === 0) {
@@ -857,7 +928,7 @@ function Evidence({ evidence }: { readonly evidence: readonly DutyEvidenceEntry[
     <TablePanel
       title={title}
       caption="Nachweise dieser Pflicht mit Tag, Ergebnis, Herkunft und Bedeutung für die Frist"
-      note={dutyPageWords.whatCounts}
+      note={once ? dutyPageWords.whatMeetsOnce : dutyPageWords.whatCounts}
       cards={evidence.map((entry) => ({
         key: entry.id,
         title: <EvidenceNumber id={entry.id} number={entry.number} />,
