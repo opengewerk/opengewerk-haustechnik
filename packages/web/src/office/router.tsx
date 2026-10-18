@@ -241,6 +241,9 @@ const ContractorScreen = lazyRouteComponent(
   'ContractorScreen',
 )
 const StaffScreen = lazyRouteComponent(() => import('./screens/staff.js'), 'StaffScreen')
+const RolesScreen = lazyRouteComponent(() => import('./screens/roles.js'), 'RolesScreen')
+const RoleScreen = lazyRouteComponent(() => import('./screens/roles.js'), 'RoleScreen')
+const NewRoleScreen = lazyRouteComponent(() => import('./screens/roles.js'), 'NewRoleScreen')
 const TimelineScreen = lazyRouteComponent(() => import('./timeline.js'), 'TimelineScreen')
 const ArticleListScreen = lazyRouteComponent(
   () => import('./screens/stores.js'),
@@ -803,6 +806,22 @@ export function officeRoutes() {
       getParentRoute: () => office,
       path: '/einstellungen/zugaenge',
       component: StaffScreen,
+    }),
+    // The roles of the tenant and those it makes for itself (#346).
+    createRoute({
+      getParentRoute: () => office,
+      path: '/einstellungen/rollen',
+      component: RolesScreen,
+    }),
+    createRoute({
+      getParentRoute: () => office,
+      path: '/einstellungen/rollen/neu',
+      component: NewRoleScreen,
+    }),
+    createRoute({
+      getParentRoute: () => office,
+      path: '/einstellungen/rollen/$roleKey',
+      component: RoleScreen,
     }),
     createRoute({
       getParentRoute: () => office,

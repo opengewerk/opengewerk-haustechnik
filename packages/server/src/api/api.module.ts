@@ -52,6 +52,7 @@ import { ActivitiesController } from './activities.controller.js'
 import { CollectivesController } from './collectives.controller.js'
 import { AuditorReadsController } from './auditor-reads.controller.js'
 import { AreasController, SubstitutionsController } from './areas.controller.js'
+import { RolesController } from './roles.controller.js'
 import { AssetsController, BuildingAssetsController } from './assets.controller.js'
 import { attachmentRights, attachmentRoutes } from './attachment-routes.js'
 import { authorization, AuthorizationGuard } from './authorization.js'
@@ -362,6 +363,8 @@ export class ApiModule {
         ...backingUp.controllers,
         // The areas of a tenant, who holds in which, and who stands in for whom.
         AreasController,
+        // The roles of the tenant and those it makes for itself (#346).
+        RolesController,
         SubstitutionsController,
         // The place: properties, buildings, floors and rooms, and the times a
         // building is closed.

@@ -1,6 +1,7 @@
-import type { RoleKey } from '@opengewerk/haustechnik-domain'
+import { offerableRights, type RoleEntry, type RoleKey } from '@opengewerk/haustechnik-domain'
 import { StaffDialogsScreen } from '@opengewerk/platform-web/office'
-import { mailStatus } from '@opengewerk/platform-web/session'
+import { mailStatus, useRight } from '@opengewerk/platform-web/session'
+import { request } from '@opengewerk/platform-web/sync'
 import { useQuery } from '@tanstack/react-query'
 
 import { AuditorReadsCard } from '../auditor-reads.js'
@@ -24,6 +25,13 @@ export const roleNotes: Readonly<Record<RoleKey, string>> = {
   // The auditor from outside (#339, section 4.3 of the concept).
   auditor:
     'Von außen und nur lesend: Pflichten, Nachweise und Prüfbescheinigungen, bis zum letzten Tag. Jeder Zugriff wird festgehalten.',
+}
+
+/** What a role of the tenant's own is for, under its name on the card (#346): its rights, and a second factor where it asks for one. */
+export function ownRoleNote(role: Pick<RoleEntry, 'rights' | 'secondFactor'>): string {
+  const held = offerableRights.filter((right) => role.rights.includes(right)).length
+
+  return `Eigene Rolle dieses Betreibers, ${String(held)} ${held === 1 ? 'Recht' : 'Rechte'}.${role.secondFactor ? ' Zweiter Faktor Pflicht.' : ''}`
 }
 
 export const staffScreenWords = {
@@ -57,12 +65,27 @@ export const staffScreenWords = {
 export function StaffScreen() {
   const areas = useAreaAdditions()
   const mail = useQuery({ queryKey: ['mail-status'], queryFn: mailStatus })
+  // The roles the tenant made for itself say what they are under their names (#346).
+  const readsRoles = useRight('membership.read')
+  const roles = useQuery({
+    queryKey: ['roles'],
+    queryFn: () => request<readonly RoleEntry[]>('/roles'),
+    enabled: readsRoles,
+  })
+  const notes: Readonly<Record<string, string>> = {
+    ...Object.fromEntries(
+      (roles.data ?? [])
+        .filter((role) => !role.shipped)
+        .map((role) => [role.key, ownRoleNote(role)] as const),
+    ),
+    ...roleNotes,
+  }
 
   return (
     <StaffDialogsScreen
       byMail={mail.data?.configured === true}
       suggestedRole="technician"
-      roleNotes={roleNotes}
+      roleNotes={notes}
       sentences={staffScreenWords}
       additions={areas}
       // An auditor from outside is given an access only up to a last day (#339).

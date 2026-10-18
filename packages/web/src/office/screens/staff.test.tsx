@@ -374,6 +374,38 @@ describe('a new access', () => {
     })
   })
 
+  it('offers a role the tenant made for itself, with what it holds, and goes out with it (#346)', async () => {
+    const user = userEvent.setup()
+    const own = {
+      key: 'own-0123456789ab',
+      label: 'Lagerverwaltung',
+      rights: ['store.read', 'store.write'],
+      leads: false,
+      secondFactor: true,
+    }
+
+    signedIn({
+      '/staff/roles': [...roles, own],
+      '/roles': [{ ...own, shipped: false, holders: 0, invited: 0, newRights: [] }],
+    })
+
+    const dialog = await open(user)
+
+    expect(
+      await within(dialog).findByText(
+        'Eigene Rolle dieses Betreibers, 2 Rechte. Zweiter Faktor Pflicht.',
+      ),
+    ).toBeTruthy()
+
+    await user.click(within(dialog).getByRole('radio', { name: /^Lagerverwaltung/ }))
+    await user.click(within(areasPart()).getByRole('checkbox', { name: 'Süd' }))
+    await user.click(within(dialog).getByRole('button', { name: 'Link erzeugen' }))
+
+    await waitFor(() => {
+      expect(sent('POST', '/staff')).toMatchObject([{ roles: [own.key] }])
+    })
+  })
+
   it('goes out by mail where the operator has set up its mail server', async () => {
     const user = userEvent.setup()
 

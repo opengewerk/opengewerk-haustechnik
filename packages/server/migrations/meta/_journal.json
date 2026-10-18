@@ -533,6 +533,13 @@
       "when": 1792265289102,
       "tag": "0075_points_for_every_asset",
       "breakpoints": true
+    },
+    {
+      "idx": 76,
+      "version": "7",
+      "when": 1792277183546,
+      "tag": "0076_tenant_roles_of_their_own",
+      "breakpoints": true
     }
   ]
 }

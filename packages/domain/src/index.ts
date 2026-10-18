@@ -21,6 +21,8 @@ export * from './model/push.js'
 // What somebody may do with what a tenant keeps, the roles a tenant starts
 // with, and what a tenant may be called.
 export * from './model/rights.js'
+// Roles a tenant makes for itself, and the rights they may hold (#346).
+export * from './model/own-roles.js'
 export * from './model/tenant.js'
 
 // Where somebody may do it: the areas a tenant bundles its properties in, and

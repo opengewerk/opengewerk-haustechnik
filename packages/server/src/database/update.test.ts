@@ -4026,7 +4026,7 @@ describe('a tenant whose roles are from before a right', () => {
     return rows.map((row) => row.name)
   }
 
-  it('cannot have taken a right from one of the four: the application reads and adds roles and nothing else', async () => {
+  it('cannot have taken a right from one of the four: the application changes no shipped role', async () => {
     // 0046 cannot tell a right a row never had from one a tenant took from
     // it. Up to 0046 there is no second kind: the application may neither
     // change nor remove a role, and the one function that names the table
@@ -4039,13 +4039,18 @@ describe('a tenant whose roles are from before a right', () => {
 
     await runMigrations(ownerDatabaseUrl())
 
-    // And it is so still. The day the application may change a role, a
-    // tenant can take a right from one, and this is red: from then on a
-    // migration gives a role only a right that is new in the catalogue,
-    // which nobody can have taken, or says what it does about one that was.
-    // Whoever grants that changes this test and the rule in the README.
-    expect(await applicationMay()).toEqual({ change: false, remove: false })
-    // Whoever leads confirms a deletion after the end of the retention (#340): read too.
+    // Since 0076 a tenant changes and removes roles of its own (#346), and
+    // the application may change a row. A shipped one it leaves as it is:
+    // its route refuses each of the four ("changes a role of its own, which
+    // leaves what is new for it behind, and leaves a shipped role as it is"
+    // in `roles.test.ts`), and the trigger keeps the one that leads whole for
+    // whatever asks. So what a shipped row lacks still never was there, and a
+    // migration gives it a right as before. Whoever lets a route change a
+    // shipped role changes this test and the rule in the README.
+    expect(await applicationMay()).toEqual({ change: true, remove: true })
+    // Whoever leads confirms a deletion after the end of the retention (#340):
+    // read too. The trigger reads only the row it is given and gives none a
+    // right.
     expect(await functionsNamingRoles()).toEqual(['session_leads', 'tenants_with_leads'])
   })
 

@@ -9,6 +9,16 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
 
 ### Hinzugefügt
 
+- Eigene Rollen des Betreibers (#346, Abschnitt 7 des Konzepts): unter „Einstellungen“, „Rollen“ stehen alle Rollen
+  mit ihren Rechten und wie vielen Zugängen jede zugeordnet ist. Die Leitung legt eigene an, auf Wunsch ausgehend von
+  einer mitgelieferten, die selbst bleibt, wie sie ist, wählt ihre Rechte nach Gruppen und den zweiten Faktor; wer
+  ändern darf, sieht auch mit. Änderungsprotokoll, Zugänge, Mailserver und Pflichtenübertragung bleiben der Leitung,
+  und eine eigene Rolle führt den Betreiber nie. Eine Änderung gilt beim nächsten Aufruf jeder Person mit der Rolle;
+  entfernt wird eine Rolle erst, wenn sie keinem Zugang und keiner offenen Einladung mehr zugeordnet ist. Ein Recht
+  einer späteren Fassung erreicht eine eigene Rolle nicht von selbst, die Liste sagt es der Leitung. Am Zugang steht
+  eine eigene Rolle mit ihren Rechten zur Wahl. Das Fundament erlaubt dafür das Ändern und Entfernen einer Rolle
+  (opengewerk/opengewerk#660, Migration `0076_tenant_roles_of_their_own`). Warum: der Pilotbetrieb braucht
+  Zuschnitte, die die festen Rollen nicht hergeben.
 - Außer Betrieb durch Mangel und der Mängelbericht als PDF (#345, Abschnitt 4.6 des Konzepts): ein offener Mangel einer
   Klasse, die eine Anlage unsicher macht, etwa „gefährlich“, setzt seine Anlage außer Betrieb, bis er behoben ist, also
   bis zur Unterschrift unter seinem Auftrag. Die Akte nennt den Mangel ganz oben, der Raum, das Lagebild und das
@@ -123,6 +133,13 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   auf einem Arbeitsplatz noch im Menü (#392). Warum: sein Gerät hält nichts vom Betreiber, ein
   Konflikt kann dort nicht entstehen, und das Büro schickte ihn gleich zurück nach „Vor Ort“. Dafür
   ist das Submodul des Fundaments angehoben (opengewerk/opengewerk#651).
+
+### Behoben
+
+- Nach dem Entfernen bleibt eine Seite nicht mehr mit „ohne Verbindung“ auf dem stehen, was es nicht mehr gibt,
+  etwa auf einem entfernten Entwurf einer Übertragung (gefunden bei #346). Warum: eine Route, die etwas
+  entfernt, antwortet ohne Inhalt, und die Seite las die leere Antwort als JSON, nachdem der Server
+  entfernt hatte. Behoben im Fundament (opengewerk/opengewerk#660), mit dem Submodul angehoben.
 
 ## [0.1.6] - 2026-10-16
 
