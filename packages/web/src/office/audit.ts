@@ -13,6 +13,8 @@ import { defectPlaces } from './defect-addresses.js'
 import { documentPlaces } from './document-addresses.js'
 import { faultPlaces } from './fault-addresses.js'
 import { dutyPlaces, evidencePlaces } from './duty-addresses.js'
+import { importPage } from './import-addresses.js'
+import { ImportOriginLead } from './import-origin.js'
 import { officePlaces } from './place-addresses.js'
 import { planPlaces, templatePlaces } from './round-template-addresses.js'
 
@@ -43,6 +45,8 @@ const screens: Readonly<Record<string, (id: string) => string>> = {
   contractors: contractorPlaces.contractor,
   contracts: contractPlaces.contract,
   fault_reports: faultPlaces.report,
+  // An import is one entry of the log, and its page lists what it made (#174).
+  imports: importPage,
 }
 
 /** The label of the link to a record. */
@@ -62,6 +66,7 @@ const links: Words = {
   contractors: 'Zur Fremdfirma',
   contracts: 'Zum Vertrag',
   fault_reports: 'Zur Störmeldung',
+  imports: 'Zum Import',
 }
 
 export const auditScreenWords: AuditScreenWords = {
@@ -91,6 +96,8 @@ export const auditScreenWords: AuditScreenWords = {
     defects: 'mit seinen Fotos',
     round_templates: 'mit ihren Fassungen',
   },
+  // Over the log of a record an import made, the import (#174): no change says so.
+  lead: ImportOriginLead,
 }
 
 /**

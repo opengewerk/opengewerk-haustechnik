@@ -9,6 +9,14 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
 
 ### Hinzugefügt
 
+- Woher ein Datensatz kommt (#174): über dem Protokoll einer Liegenschaft, eines Gebäudes, Geschosses, Raums
+  oder einer Anlage, die ein Import angelegt hat, steht „Angelegt mit dem Import vom …, Datei …“ mit „Zum Import“,
+  und der Eintrag des Imports im Änderungsprotokoll führt auf seine Seite mit Datei, Zeilen, Ergebnis und allem,
+  was er angelegt hat und noch da ist. Dafür hält die Tabelle `import_records` (Migration `0078_import_records`)
+  je Datensatz den Import fest, geschrieben von einem Trigger, während der Import schreibt; sie reist nicht auf
+  die Geräte. Das Submodul des Fundaments ist angehoben (opengewerk/opengewerk#662). Warum: ein Import schreibt
+  einen Eintrag statt einen je Datensatz, und so sagte bisher nichts, woher eine Anlage aus der Liste kam.
+
 - Freie Etiketten vom Bogen (#170): die Seite einer Liegenschaft zeigt die Etiketten ihrer Bogen, die noch an nichts
   hängen, je Druck mit seinem Tag und den Codes; wer Anlagen aufnimmt, sperrt eins davon oder nach einer Rückfrage
   alle eines Drucks auf einmal. Dafür trägt jedes Etikett eines Bogens die Kennung seines Drucks (`labels.print_id`,

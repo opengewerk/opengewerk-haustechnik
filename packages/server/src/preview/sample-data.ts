@@ -1,11 +1,16 @@
 import { randomUUID } from 'node:crypto'
 
 import {
+  assetImportFields,
   type CollectiveCandidates,
   collectiveTitle,
   type FaultCategory,
   type FaultPlaceChoice,
   mayBecomeAPart,
+  suggestedMapping,
+  tableBodyType,
+  tableColumns,
+  type TableSheet,
   type WorkOrderKind,
   type WorkOrderUrgency,
 } from '@opengewerk/haustechnik-domain'
@@ -1647,7 +1652,88 @@ export async function plantSampleData(
   // The fault reports in the inbox, one accepted and one rejected (#331).
   const faults = await plantSampleFaults(address)
 
+  // The safety lights of the school house, taken over from a list (#174).
+  await importSampleAssets(address)
+
   return { orders: standings.orders, sheets: standings.sheets, visits: standings.visits, faults }
+}
+
+/** The file the safety lights of the school house come from, as its page names it (#174). */
+export const sampleImportFile = 'bestand-schulzentrum.xlsx'
+
+/** The lights the import makes, by name. */
+export const sampleImportedAssets = [
+  'Sicherheitsleuchte Flur Erdgeschoss',
+  'Sicherheitsleuchte Heizraum',
+  'Sicherheitsleuchte Treppenhaus',
+] as const
+
+/**
+ * The safety lights of the school house in the south (#174), as the board
+ * "Ein Import und was er angelegt hat" draws an import: taken over from a
+ * list, the way an operator brings its stock, after everything else, so that
+ * they draw the last numbers. Their log begins with the import, and its page
+ * lists them. The word of the list is kept as the kind it means, as the
+ * second step of the import keeps it.
+ */
+async function importSampleAssets(address: string): Promise<void> {
+  await send(
+    address,
+    '/imports/asset-kinds',
+    { names: [{ name: 'Sicherheitsbeleuchtung', kind: 'elektro.safety_lighting' }] },
+    'PUT',
+  )
+
+  const sheet: TableSheet = {
+    name: 'Anlagen',
+    rows: [
+      ['Liegenschaft', 'Gebäude', 'Raum', 'Anlagenart', 'Bezeichnung'],
+      ...sampleImportedAssets.map((name) => [
+        'Schulzentrum Am Lindenhain',
+        'Schulhaus',
+        name.endsWith('Heizraum') ? 'E.14' : '',
+        'Sicherheitsbeleuchtung',
+        name,
+      ]),
+    ],
+  }
+  const listed = { sheet, mapping: suggestedMapping(tableColumns(sheet), assetImportFields) }
+  const asTable = (path: string, body: unknown) =>
+    fetch(`${address}${path}`, {
+      method: 'POST',
+      headers: { 'content-type': tableBodyType },
+      body: JSON.stringify(body),
+    })
+  const preview = await asTable('/imports/assets/preview', listed)
+
+  if (!preview.ok) {
+    throw new Error(`Die Vorschau des Imports lehnte ab: ${await preview.text()}`)
+  }
+
+  const { counts } = (await preview.json()) as { counts: unknown }
+  const taken = await asTable('/imports/assets', {
+    ...listed,
+    fileName: sampleImportFile,
+    expected: counts,
+  })
+
+  if (!taken.ok) {
+    throw new Error(`Der Import lehnte ab: ${await taken.text()}`)
+  }
+
+  // In service since the same day as every other sample asset, entered afterwards at each of them.
+  const { id } = (await taken.json()) as { id: string }
+  const { records } = await read<{ records: readonly { id: string }[] }>(
+    address,
+    `/imports/${id}/made`,
+  )
+
+  for (const asset of records) {
+    await send(address, `/assets/${asset.id}/lifecycle`, {
+      state: 'in_service',
+      validFrom: inServiceSince,
+    })
+  }
 }
 
 /**

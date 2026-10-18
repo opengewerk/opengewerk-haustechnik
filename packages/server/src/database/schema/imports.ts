@@ -1,13 +1,27 @@
 import {
   assetLimits,
+  type ImportedTable,
+  importedTables,
   type ImportKind,
   importKinds,
   importLimits,
 } from '@opengewerk/haustechnik-domain'
-import { primaryId, tenantIsolation, timestamps } from '@opengewerk/platform-server'
+import { primaryId, reference, tenantIsolation, timestamps } from '@opengewerk/platform-server'
 import { tenantColumn } from '@opengewerk/platform-server/schema'
 import { sql } from 'drizzle-orm'
-import { check, integer, pgTable, text, timestamp, unique, uniqueIndex } from 'drizzle-orm/pg-core'
+import {
+  check,
+  foreignKey,
+  index,
+  integer,
+  pgTable,
+  primaryKey,
+  text,
+  timestamp,
+  unique,
+  uniqueIndex,
+  uuid,
+} from 'drizzle-orm/pg-core'
 
 import { trimmed } from './locations.js'
 
@@ -78,5 +92,44 @@ export const assetKindNames = pgTable(
       sql`char_length(${table.nameKey}) between 1 and ${sql.raw(String(assetLimits.name))}`,
     ),
     check('asset_kind_names_kind_shaped', trimmed(table.kind, assetLimits.kind)),
+  ],
+)
+
+/**
+ * What each import made (#174): a row for every property, building, floor,
+ * room and asset an import wrote, so that its page leads to them and the log
+ * of each of them begins with the import. Written by a trigger on the five
+ * tables while `import_writing()` is true, and only then; the application
+ * writes no row itself and changes none.
+ *
+ * It does not travel (decided on 15.10.2026): a device has no use for it, so
+ * the table has no columns of the sync. It has no area: a row says no more
+ * than the import it names, and every page that reads it joins the record
+ * under the policies of the record's own table.
+ */
+export const importRecords = pgTable(
+  'import_records',
+  {
+    ...tenantColumn,
+    importId: reference<'import'>('import_id').notNull(),
+    tableName: text('table_name').$type<ImportedTable>().notNull(),
+    recordId: uuid('record_id').notNull(),
+  },
+  (table) => [
+    tenantIsolation(table.tenantId),
+    primaryKey({
+      name: 'import_records_pkey',
+      columns: [table.tenantId, table.tableName, table.recordId],
+    }),
+    foreignKey({
+      columns: [table.tenantId, table.importId],
+      foreignColumns: [imports.tenantId, imports.id],
+      name: 'import_records_of_an_import',
+    }),
+    check(
+      'import_records_table_known',
+      sql.raw(`"table_name" in (${importedTables.map((name) => `'${name}'`).join(', ')})`),
+    ),
+    index('import_records_by_import').on(table.tenantId, table.importId),
   ],
 )

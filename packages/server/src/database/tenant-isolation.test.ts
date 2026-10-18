@@ -121,6 +121,7 @@ function rowsOf(tenant: Tenant): readonly Row[] {
   const delegation = randomUUID()
   const ownKind = randomUUID()
   const category = randomUUID()
+  const takenOver = randomUUID()
   const faultReport = randomUUID()
   const file = randomUUID().replaceAll('-', '').repeat(2)
 
@@ -1060,11 +1061,22 @@ function rowsOf(tenant: Tenant): readonly Row[] {
     {
       table: 'imports',
       values: {
+        id: takenOver,
         tenant_id: tenant.id,
         kind: 'assets',
         file_name: 'anlagen-werkhof.xlsx',
         lines: 38,
         summary: '38 Anlagen angelegt',
+      },
+    },
+    // What the import made (#174), with no place of its own either.
+    {
+      table: 'import_records',
+      values: {
+        tenant_id: tenant.id,
+        import_id: takenOver,
+        table_name: 'assets',
+        record_id: asset,
       },
     },
     {

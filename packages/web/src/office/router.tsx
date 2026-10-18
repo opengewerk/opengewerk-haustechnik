@@ -82,6 +82,7 @@ const ChangeLogScreen = lazyRouteComponent(
   () => import('./screens/change-log.js'),
   'ChangeLogScreen',
 )
+const ImportScreen = lazyRouteComponent(() => import('./screens/import.js'), 'ImportScreen')
 const DeadlineListScreen = lazyRouteComponent(
   () => import('./screens/deadlines.js'),
   'DeadlineListScreen',
@@ -874,6 +875,11 @@ export function officeRoutes() {
       getParentRoute: () => office,
       path: '/einstellungen/protokoll',
       component: ChangeLogScreen,
+    }),
+    createRoute({
+      getParentRoute: () => office,
+      path: '/einstellungen/protokoll/importe/$importId',
+      component: ImportScreen,
     }),
   ]
 

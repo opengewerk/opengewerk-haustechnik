@@ -42,6 +42,8 @@ import {
   exchangedSample,
   inServiceSince,
   outOfServiceThisYear,
+  sampleImportedAssets,
+  sampleImportFile,
   sampleProperties,
   schoolHolidays,
 } from './sample-data.js'
@@ -392,6 +394,28 @@ describe('a preview started as the Leitung', () => {
   })
 
   // What the register of assets and the file of an asset are looked at with (#87).
+  // The board "Ein Import und was er angelegt hat" (#174).
+  it('has the safety lights of the school house from an import, whose page lists them', async () => {
+    const server = application.getHttpServer()
+    const { rows } = await admin.query<{ id: string }>(
+      `select id from imports where file_name = $1`,
+      [sampleImportFile],
+    )
+
+    expect(rows).toHaveLength(1)
+
+    const page = (
+      await request(server)
+        .get(`/imports/${String(rows[0]?.id)}/made`)
+        .expect(200)
+    ).body as { readonly records: readonly { readonly table: string; readonly title: string }[] }
+
+    expect(page.records.map((record) => record.table)).toEqual(['assets', 'assets', 'assets'])
+    expect(page.records.map((record) => record.title.replace(/^AN-\d+ /, ''))).toEqual([
+      ...sampleImportedAssets,
+    ])
+  })
+
   it('shows an asset in every condition the register knows', async () => {
     const server = application.getHttpServer()
     const register = (await request(server).get('/assets').query({ limit: '200' }).expect(200))
