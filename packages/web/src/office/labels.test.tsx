@@ -150,6 +150,7 @@ const entry = (of: typeof lift) => ({
   lifecycleState: null,
   condition: 'no_duties',
   until: null,
+  lacking: [],
 })
 
 const files = {

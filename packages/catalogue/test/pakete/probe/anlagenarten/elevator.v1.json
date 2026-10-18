@@ -19,11 +19,16 @@
   "expectedDocuments": [
     {
       "key": "declaration_of_conformity",
-      "label": "EG-Konformitätserklärung"
+      "label": "EG-Konformitätserklärung",
+      "kind": "permit",
+      "demand": "recommended"
     },
     {
       "key": "emergency_plan",
-      "label": "Notfallplan"
+      "label": "Notfallplan",
+      "kind": "concept",
+      "demand": "required",
+      "source": "BetrSichV Anhang 1 Nummer 4.1"
     }
   ]
 }

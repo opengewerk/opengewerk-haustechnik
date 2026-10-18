@@ -8,12 +8,14 @@ import {
   type Characteristic,
   type ChoiceOption,
   countings,
+  documentKinds,
   dutyBindingnesses,
   type DutyInterval,
   type DutyKind,
   dutyTasks,
   type EvidenceKind,
   evidenceKinds,
+  expectedDemands,
   type ExpectedDocument,
   type FederalState,
   federalStates,
@@ -448,16 +450,64 @@ function assetField(value: unknown, spot: Spot, findings: Findings): AssetField 
   }
 }
 
+/**
+ * An expected document (#347): the kind of document that fulfils it, and
+ * whether the package requires it, naming where, or recommends it. One
+ * written before #347 names neither; whether that may stand is a question of
+ * its version (`checkExpectedDocuments` in `load.ts`).
+ */
 function expectedDocument(
   value: unknown,
   spot: Spot,
   findings: Findings,
 ): ExpectedDocument | undefined {
-  const from = fields(value, spot, findings, ['key', 'label'])
-  const name = from ? key(from, 'key', spot, findings) : undefined
-  const label = from ? text(from, 'label', spot, findings) : undefined
+  const from = fields(value, spot, findings, ['key', 'label', 'kind', 'demand', 'source'])
 
-  return name !== undefined && label !== undefined ? { key: name, label } : undefined
+  if (!from) {
+    return undefined
+  }
+
+  const before = findings.problems.length
+  const name = key(from, 'key', spot, findings)
+  const label = text(from, 'label', spot, findings)
+  const kind = missing(from, 'kind') ? null : oneOf(from, 'kind', documentKinds, spot, findings)
+  const demand = missing(from, 'demand')
+    ? null
+    : oneOf(from, 'demand', expectedDemands, spot, findings)
+  const source = optionalText(from, 'source', spot, findings) ?? null
+
+  if (missing(from, 'kind') !== missing(from, 'demand')) {
+    findings.say(
+      spot,
+      'Ein Soll-Dokument nennt die Art des Dokuments (kind) und ob es verlangt oder empfohlen ist (demand), beides zusammen.',
+    )
+  }
+
+  if (demand === 'required' && missing(from, 'source')) {
+    findings.say(
+      below(spot, 'source'),
+      'Ein verlangtes Soll-Dokument nennt seine Fundstelle: den Paragrafen mit Gesetz oder Verordnung oder die Norm mit Ausgabe und Abschnitt.',
+    )
+  }
+
+  if (missing(from, 'demand') && !missing(from, 'source')) {
+    findings.say(
+      below(spot, 'source'),
+      'Eine Fundstelle hat nur ein Soll-Dokument, das sagt, ob es verlangt oder empfohlen ist.',
+    )
+  }
+
+  if (
+    findings.problems.length > before ||
+    name === undefined ||
+    label === undefined ||
+    kind === undefined ||
+    demand === undefined
+  ) {
+    return undefined
+  }
+
+  return { key: name, label, kind, demand, source }
 }
 
 function each<Value>(
@@ -595,6 +645,14 @@ export function readAssetKind(
       below(spot, 'expectedDocuments'),
       findings,
       'Der Schlüssel',
+    )
+    // A document of a kind fulfils every expected document of that kind, so
+    // two of one kind would be fulfilled by one file (#347).
+    once(
+      expectedDocuments.flatMap((entry) => (entry.kind === null ? [] : [entry.kind])),
+      below(spot, 'expectedDocuments'),
+      findings,
+      'Die Art des Dokuments',
     )
   }
 

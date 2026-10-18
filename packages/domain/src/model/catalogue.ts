@@ -11,6 +11,7 @@ import {
   scopeOf,
 } from '@opengewerk/platform-domain'
 
+import type { DocumentKind } from './document.js'
 import type { FormDefinition } from './forms.js'
 import { type BuildingKind, buildingKindLabel } from './location.js'
 import type { MeterKind } from './meter.js'
@@ -220,10 +221,36 @@ export type AssetField =
       readonly options: readonly ChoiceOption[]
     }
 
-/** A document an asset of the kind is expected to have (section 4.10 of the concept). */
+/**
+ * Whether a package requires a document of an asset, naming where, or
+ * recommends it (section 4.10 of the concept, #347).
+ */
+export const expectedDemands = ['required', 'recommended'] as const
+
+export type ExpectedDemand = (typeof expectedDemands)[number]
+
+/** What each demand is called, in the words of the concept. */
+export const expectedDemandLabel: Readonly<Record<ExpectedDemand, string>> = {
+  required: 'verlangt',
+  recommended: 'empfohlen',
+}
+
+/**
+ * A document an asset of the kind is expected to have (section 4.10 of the
+ * concept): the kind of document that fulfils it, and whether the package
+ * requires it, with its source, or recommends it (#347).
+ *
+ * An entry written before #347 names neither kind nor demand. The loader
+ * lets it stand only in a version that is never in force, one a later
+ * version replaces from its first day, and nothing counts it.
+ */
 export interface ExpectedDocument {
   readonly key: string
   readonly label: string
+  readonly kind: DocumentKind | null
+  readonly demand: ExpectedDemand | null
+  /** Where it is required: the paragraph or the standard with its edition and section. */
+  readonly source: string | null
 }
 
 /**
@@ -405,9 +432,10 @@ export interface CataloguePackage {
  * The shape of the bundle, counted up when it changes so that an old bundle
  * is not misread. Three since a package names its defect classes
  * (opengewerk-haustechnik#61), four since it names its kinds of
- * qualification (opengewerk-haustechnik#337).
+ * qualification (opengewerk-haustechnik#337), five since an expected
+ * document names its kind and demand (opengewerk-haustechnik#347).
  */
-export const catalogueFormat = 4
+export const catalogueFormat = 5
 
 /**
  * What the build writes and server and interface load. The checksum is taken

@@ -83,6 +83,7 @@ const everything = [
   'assets',
   'asset_lifecycle',
   'asset_supplies',
+  'attachments',
 ] as const
 
 const register = 'Anlagen mit Anlagenart, Standort, Zustand und Lebenszyklus'
@@ -112,6 +113,7 @@ function entry(
     lifecycleState: 'in_service',
     condition: 'in_order',
     until: '2028-09-24',
+    lacking: [],
     ...further,
   } as AssetEntry
 }
@@ -350,6 +352,55 @@ describe('the register of assets', () => {
     ]).toEqual(['p:p-yard', '', 'none'])
   })
 
+  it('names under an asset what it lacks of the documents its kind expects, and is narrowed by them (#347)', async () => {
+    const lacking = entry('a-lift', 'AN-00012', 'Aufzug Schulhaus', {
+      lacking: [
+        { key: 'emergency_plan', label: 'Notfallplan', demand: 'required' },
+        {
+          key: 'declaration_of_conformity',
+          label: 'EG-Konformitätserklärung',
+          demand: 'recommended',
+        },
+      ],
+    })
+    const { router } = await mount('/anlagen?unterlagen=missing', {
+      '/assets?documents=missing&offset=0&limit=50': page([lacking, pump]),
+      '/assets?documents=required_missing&offset=0&limit=50': page([lacking]),
+    })
+
+    await screen.findByRole('table', { name: register })
+
+    const cell = within(screen.getByRole('table', { name: register }))
+      .getByRole('link', { name: 'Aufzug Schulhaus' })
+      .closest('td')
+
+    expect(cell?.textContent).toBe(
+      'Aufzug SchulhausEs fehlt: Notfallplan (verlangt), EG-Konformitätserklärung',
+    )
+    expect(within(cell as HTMLElement).getByText('Notfallplan (verlangt)').className).toContain(
+      'text-conflict',
+    )
+    // An asset that lacks nothing says nothing of it.
+    expect(rowsOf(register).map((row) => row[1])).toEqual([
+      'Aufzug SchulhausEs fehlt: Notfallplan (verlangt), EG-Konformitätserklärung',
+      'Druckerhöhung',
+    ])
+    expect(filter('Unterlagen').value).toBe('missing')
+    expect([...filter('Unterlagen').options].map((option) => option.text)).toEqual([
+      'Alle',
+      'Es fehlen welche',
+      'Es fehlen verlangte',
+    ])
+
+    choose('Unterlagen', 'required_missing')
+    await waitFor(() => {
+      expect(router.state.location.href).toBe('/anlagen?unterlagen=required_missing')
+    })
+    await waitFor(() => {
+      expect(rowsOf(register)).toHaveLength(1)
+    })
+  })
+
   it('is narrowed by a choice, which goes into the address and to the server', async () => {
     const { router } = await mount('/anlagen', {
       [firstPage]: page([lift, pump]),
@@ -580,6 +631,45 @@ describe('the assets of a building by cost group', () => {
     expect(leadsTo('1 Anlage, Anlagenart nicht im Katalog')).toBe('/anlagen?gebaeude=b-house')
     expect(leadsTo('Anlagenart nicht im Katalog')).toBe('/anlagen?gebaeude=b-house')
     expect(leadsTo('Alle Anlagen')).toBe('/anlagen?gebaeude=b-house')
+  })
+
+  it('say with the stock how many lack documents their kind expects, and lead to them in the register (#347)', async () => {
+    for (const asset of [
+      onDevice('a-1', 'probe.elevator', 'Aufzug Nord'),
+      onDevice('a-2', 'probe.elevator', 'Aufzug Süd'),
+      onDevice('a-3', 'probe.pump', 'Druckerhöhung'),
+      onDevice('a-4', 'probe.elevator', 'Aufzug Ost'),
+    ]) {
+      server.put('assets', asset)
+    }
+
+    const filed = (id: string, assetId: string, kind: string) => ({
+      id,
+      ...place,
+      buildingId: null,
+      roomId: null,
+      assetId,
+      activityId: null,
+      defectId: null,
+      title: id,
+      kind,
+    })
+
+    // The first has both, the second lacks the emergency plan, which is
+    // required, the fourth the manual, which is recommended. A pump expects nothing.
+    server.put('attachments', filed('d-1', 'a-1', 'operating_manual'))
+    server.put('attachments', filed('d-2', 'a-1', 'concept'))
+    server.put('attachments', filed('d-3', 'a-2', 'operating_manual'))
+    server.put('attachments', filed('d-4', 'a-4', 'concept'))
+
+    await mount(`/gebaeude/${house.id}`, {})
+
+    const line = await screen.findByText(/Unterlagen fehlen an/)
+
+    expect(line.textContent).toBe('Unterlagen fehlen an 2 Anlagen, an einer davon verlangte.')
+    expect(within(line).getByRole('link', { name: '2 Anlagen' }).getAttribute('href')).toBe(
+      '/anlagen?gebaeude=b-house&unterlagen=missing',
+    )
   })
 
   it('says so of a building no asset stands in', async () => {

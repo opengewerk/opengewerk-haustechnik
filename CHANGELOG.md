@@ -9,6 +9,15 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
 
 ### Hinzugefügt
 
+- Soll-Dokumente je Anlagenart (#347, 4.10 des Konzepts): das Paket nennt zu jedem Soll-Dokument die Art des
+  Dokuments, das es erfüllt, und ob es verlangt ist, mit Fundstelle, oder empfohlen. Die Akte einer Anlage
+  zeigt unter „Unterlagen“ je Soll-Dokument das Dokument dieser Art an der Anlage oder „Fehlt“ mit
+  „Hochladen“, das die Art vorbelegt; das Anlagenverzeichnis filtert nach „Unterlagen“ und nennt unter jeder
+  Anlage, was ihr fehlt; das Lagebild eines Gebäudes zählt Anlagen mit fehlenden Unterlagen bei den Anlagen.
+  Die Pakete Elektro und Brandschutz bringen ihre Soll-Dokumente als zweite Fassung der Anlagenarten
+  (Fassung 1.1.0), noch ohne Abnahme. Warum: vollständig ist eine Akte, wenn die Datei da ist, nicht wenn
+  ein Haken gesetzt wurde, und bisher sah niemand, was fehlt.
+
 - Eigene Rollen des Betreibers (#346, Abschnitt 7 des Konzepts): unter „Einstellungen“, „Rollen“ stehen alle Rollen
   mit ihren Rechten und wie vielen Zugängen jede zugeordnet ist. Die Leitung legt eigene an, auf Wunsch ausgehend von
   einer mitgelieferten, die selbst bleibt, wie sie ist, wählt ihre Rechte nach Gruppen und den zweiten Faktor; wer

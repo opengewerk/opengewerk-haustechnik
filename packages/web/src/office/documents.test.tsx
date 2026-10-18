@@ -365,3 +365,136 @@ describe('the documents of an asset', () => {
     ])
   })
 })
+
+describe('the documents the kind of an asset expects (#347)', () => {
+  const at = `/anlagen/${lift.id}`
+  const file = {
+    ...lift,
+    mark: null,
+    manufacturer: null,
+    model: null,
+    serialNumber: null,
+    yearBuilt: null,
+    commissionedOn: null,
+    warrantyEndsOn: null,
+    values: {},
+    meterNumber: null,
+    meterUnit: null,
+    lifecycle: [],
+    lifecycleState: null,
+    condition: 'no_duties',
+    until: null,
+    supplies: [],
+    components: [],
+    parent: null,
+    distinctFromAssets: [],
+    distinctFromElsewhere: 0,
+    replacesAssetId: null,
+    replaces: null,
+    replacedBy: null,
+  } as unknown as AssetDetails
+  const answers = { [`/assets/${lift.id}`]: file, [`/assets/${lift.id}/duties`]: [] }
+  // The manual of the asset is one by its kind; the concept of the property is
+  // of the kind the emergency plan asks for, and hangs on the property alone.
+  const ofItsKind = { ...manual, kind: 'operating_manual' }
+  const ofTheProperty = { ...concept, kind: 'concept' }
+
+  function expected(): HTMLElement {
+    return screen.getByRole('region', { name: 'Unterlagen' })
+  }
+
+  /** Each expected document as the card says it: its label, its line and what stands under it. */
+  function said(): string[] {
+    return within(within(expected()).getByRole('list', { name: 'Unterlagen' }))
+      .getAllByRole('listitem')
+      .map((item) => item.textContent ?? '')
+  }
+
+  beforeEach(() => {
+    server.put('attachments', ofItsKind)
+    server.put('attachments', ofTheProperty)
+  })
+
+  it('are there only with a document of their kind at the asset itself, counted in the head of the card', async () => {
+    await mount(at, 'technician', [], answers)
+    await screen.findByRole('heading', { level: 1, name: 'Aufzug Schulhaus' })
+    // The catalogue comes after the file.
+    await screen.findByRole('region', { name: 'Unterlagen' })
+
+    expect(said()).toEqual([
+      'BetriebsanleitungBetriebsanleitung · empfohlenBetriebsanleitung BA 630',
+      'NotfallplanKonzept · verlangt, BetrSichV Anhang 1 Nummer 4.1FehltHochladen',
+    ])
+    expect(within(expected()).getByText('1 von 2')).toBeTruthy()
+    expect(
+      within(expected())
+        .getByRole('link', { name: 'Betriebsanleitung BA 630' })
+        .getAttribute('href'),
+    ).toBe('/dokumente/d-manual')
+  })
+
+  it('files a missing one with its kind chosen, at the asset', async () => {
+    const { client } = await mount(at, 'technician', [], answers)
+
+    await screen.findByRole('heading', { level: 1, name: 'Aufzug Schulhaus' })
+    // The catalogue comes after the file.
+    await screen.findByRole('region', { name: 'Unterlagen' })
+    fireEvent.click(within(expected()).getByRole('button', { name: 'Notfallplan hochladen' }))
+
+    const dialog = within(await screen.findByRole('dialog', { name: 'Dokument hochladen' }))
+
+    expect(dialog.getByRole<HTMLSelectElement>('combobox', { name: 'Art' }).value).toBe('concept')
+    fireEvent.change(dialog.getByLabelText('Datei wählen'), { target: { files: [scan()] } })
+    await waitFor(() => {
+      expect(dialog.getByRole<HTMLInputElement>('textbox', { name: /Bezeichnung/ }).value).toBe(
+        'Wartungsvertrag',
+      )
+    })
+    fireEvent.click(dialog.getByRole('button', { name: 'Hochladen' }))
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog')).toBeNull()
+    })
+    await client.synchronise()
+
+    expect(created('attachments')).toEqual([
+      { title: 'Wartungsvertrag', propertyId: school.id, assetId: lift.id, kind: 'concept' },
+    ])
+    await waitFor(() => {
+      expect(within(expected()).getByText('2 von 2')).toBeTruthy()
+    })
+  })
+
+  it('is missing again once the document of its kind is removed', async () => {
+    const { client } = await mount(at, 'technician', [], answers)
+
+    await screen.findByRole('heading', { level: 1, name: 'Aufzug Schulhaus' })
+    // The catalogue comes after the file.
+    await screen.findByRole('region', { name: 'Unterlagen' })
+    expect(within(expected()).getByText('1 von 2')).toBeTruthy()
+
+    server.put('attachments', { ...ofItsKind, deletedAt: '2026-10-18T08:00:00.000Z' })
+    await client.synchronise()
+
+    await waitFor(() => {
+      expect(within(expected()).getByText('0 von 2')).toBeTruthy()
+    })
+    expect(said()[0]).toBe('BetriebsanleitungBetriebsanleitung · empfohlenFehltHochladen')
+  })
+
+  it('offers no way to file one to somebody who may not file documents', async () => {
+    await mount(at, 'technician', ['document.record'], answers)
+    await screen.findByRole('heading', { level: 1, name: 'Aufzug Schulhaus' })
+    await screen.findByRole('region', { name: 'Unterlagen' })
+
+    expect(within(expected()).queryByRole('button')).toBeNull()
+  })
+
+  it('is not there for whoever may not look at documents', async () => {
+    await mount(at, 'technician', ['document.read'], answers)
+    await screen.findByRole('heading', { level: 1, name: 'Aufzug Schulhaus' })
+    // Once the catalogue names the kind of the asset, the card would stand.
+    await screen.findByRole('link', { name: 'Aufzugsanlage' })
+
+    expect(screen.queryByRole('region', { name: 'Unterlagen' })).toBeNull()
+  })
+})

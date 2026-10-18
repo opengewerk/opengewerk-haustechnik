@@ -247,4 +247,35 @@ describe('the package Elektro', () => {
       ['elektro.immediate_danger', true],
     ])
   })
+
+  it('expects of an installation its circuit diagram and the report of its first test, each required with its source (#347)', () => {
+    const today = options.today
+    const expected = (key: string) =>
+      electrical()
+        .assetKind(key, today)
+        ?.definition.expectedDocuments.map(({ label, kind, demand, source }) => [
+          label,
+          kind,
+          demand,
+          source,
+        ])
+
+    expect(expected('elektro.low_voltage_installation')).toEqual([
+      [
+        'Übersichtsschaltplan',
+        'circuit_diagram',
+        'required',
+        'DIN VDE 0100-510:2014-10, Abschnitt 514.5',
+      ],
+      [
+        'Protokoll der Erstprüfung',
+        'test_certificate',
+        'required',
+        'DIN VDE 0100-600:2017-06, Abschnitt 6.4',
+      ],
+    ])
+    expect(expected('elektro.safety_lighting')).toEqual([
+      ['Prüfbuch', 'test_certificate', 'recommended', null],
+    ])
+  })
 })

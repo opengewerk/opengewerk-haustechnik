@@ -189,12 +189,15 @@ function NameAndKind({
 export function UploadDocumentDialog({
   place,
   at,
+  kind: given,
   onClose,
 }: {
   /** Where the document hangs, where the page it is filed from says so. */
   readonly place?: DocumentPlace
   /** That place in words: "AN-00057 Trinkwassererwärmer". */
   readonly at?: string
+  /** The kind it begins with: the one an expected document names that is missing (#347). */
+  readonly kind?: DocumentKind
   readonly onClose: () => void
 }) {
   const client = useSync()
@@ -203,7 +206,7 @@ export function UploadDocumentDialog({
   const picker = useRef<HTMLInputElement>(null)
   const [file, setFile] = useState<File | null>(null)
   const [title, setTitle] = useState('')
-  const [kind, setKind] = useState('')
+  const [kind, setKind] = useState<string>(given ?? '')
   const [validUntil, setValidUntil] = useState('')
   const [propertyId, setPropertyId] = useState('')
   const [buildingId, setBuildingId] = useState('')

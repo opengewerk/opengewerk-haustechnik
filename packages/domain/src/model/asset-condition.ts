@@ -3,6 +3,7 @@ import type { DeadlineInterval, IsoDate } from '@opengewerk/platform-domain'
 import type { Asset, AssetSupply, LifecycleEntry, LifecycleState } from './asset.js'
 import type { Catalogue } from './catalogue.js'
 import { awaitsRemedy, type Defect, type DefectStatus } from './defect.js'
+import type { DocumentFilter, Expectation } from './expected-documents.js'
 import type { Appointment, DutyStanding, DutyState } from './duty.js'
 import type { Duty } from './duty-record.js'
 import type { Evidence } from './evidence.js'
@@ -194,6 +195,8 @@ export interface AssetRegisterFilter {
   readonly condition?: AssetCondition
   /** A state of the life cycle today, or `none` for an asset without an entry up to today. */
   readonly lifecycle?: LifecycleState | typeof withoutLifecycle
+  /** The assets that lack a document their kind expects, or one it requires (#347). */
+  readonly documents?: DocumentFilter
 }
 
 /** The names of the filters as an address carries them to the server. */
@@ -204,6 +207,7 @@ export const assetRegisterFilters = [
   'kind',
   'condition',
   'lifecycle',
+  'documents',
 ] as const satisfies readonly (keyof AssetRegisterFilter)[]
 
 /** How many assets a page of the register holds, and the most a page may be asked for. */
@@ -220,6 +224,8 @@ export interface AssetEntry
   readonly lifecycleState: LifecycleState | null
   /** Whether a defect puts it out of service today (`shutsDownItsAsset`, #345). */
   readonly shutDown: boolean
+  /** What it lacks of the documents its kind expects (`lackingDocuments`, #347), in the order of the package. */
+  readonly lacking: readonly Pick<Expectation, 'key' | 'label' | 'demand'>[]
 }
 
 /** A page of the register, with how much there is behind it. */

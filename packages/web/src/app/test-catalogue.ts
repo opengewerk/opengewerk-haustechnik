@@ -58,7 +58,23 @@ const elevator: AssetKind = {
   costGroup: '461',
   characteristics: [{ key: 'firefighters_lift', label: 'Feuerwehraufzug', kind: 'flag' }],
   fields: [{ key: 'stops', label: 'Haltestellen', kind: 'number' }],
-  expectedDocuments: [],
+  // What an elevator is expected to have on file (#347): one recommended, one required.
+  expectedDocuments: [
+    {
+      key: 'operating_manual',
+      label: 'Betriebsanleitung',
+      kind: 'operating_manual',
+      demand: 'recommended',
+      source: null,
+    },
+    {
+      key: 'emergency_plan',
+      label: 'Notfallplan',
+      kind: 'concept',
+      demand: 'required',
+      source: 'BetrSichV Anhang 1 Nummer 4.1',
+    },
+  ],
   meter: null,
 }
 

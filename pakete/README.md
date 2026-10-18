@@ -95,11 +95,15 @@ es gebaut wird.
 | `costGroup` | Kostengruppe nach DIN 276, drei Ziffern, etwa `"461"` |
 | `characteristics` | Merkmale, nach denen der Geltungsbereich einer Pflichtart fragt; je Merkmal `key`, `label` und `kind`: `number` mit `unit` aus den Einheiten der Regel-Engine, `flag` für ja oder nein, `choice` mit mindestens zwei `options` aus `value` und `label` |
 | `fields` | weitere Felder einer Anlage dieser Art, nach denen keine Pflicht fragt: `text`, `number` mit einer Einheit zum Anzeigen, `date`, `flag`, `choice` |
-| `expectedDocuments` | Soll-Dokumente mit `key` und `label`, etwa der Notfallplan |
+| `expectedDocuments` | Soll-Dokumente mit `key`, `label`, `kind` (die Art des Dokuments, das es erfüllt: `operating_manual`, `test_certificate`, `circuit_diagram`, `as_built_documentation`, `permit`, `concept`, `risk_assessment`) und `demand`: `required` (verlangt) mit `source`, der Fundstelle, oder `recommended` (empfohlen). Keine zwei derselben Art in einer Fassung |
 | `meter` | nur bei einer Messstelle: `medium`, was sie misst (`electricity`, `water`, `heat`, `district_heating`, `gas`, `cooling`), und `units`, die Einheiten, in denen ein Zähler dieser Art zählt (`kilowatt_hours`, `megawatt_hours`, `cubic_metres`), mindestens eine |
 
 Ein Merkmal mit einer Zahl ist eine ganze Zahl in seiner Einheit, wie der Wert einer Regel: eine
 Füllmenge von 4,9 Tonnen CO2-Äquivalent steht als 4900 in `kilograms_co2e`.
+
+Vorhanden ist ein Soll-Dokument, wenn ein Dokument seiner Art an der Anlage selbst liegt; ein Dokument
+am Raum oder Gebäude zählt nicht. Ein Soll-Dokument von vor #347 nennt weder Art noch `demand`; das
+bleibt nur in einer Fassung stehen, die eine spätere vom selben Tag an ersetzt.
 
 Eine Anlagenart ohne `meter` ist keine Messstelle. Das Medium steht an der Anlagenart,
 Zählernummer und Einheit stehen an der einzelnen Anlage: ein Stromzähler zählt in

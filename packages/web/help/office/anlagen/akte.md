@@ -11,6 +11,15 @@ Steht oben „Außer Betrieb durch Mangel“, macht ein Mangel die Anlage unsich
 1. Die Vorschläge aus dem Katalog bestätigen oder mit Grund verwerfen.
 2. Mit „Pflicht hinzufügen“ eine eigene Pflicht anlegen, wo der Katalog keine kennt.
 
+## Unterlagen
+
+Unter „Unterlagen“ steht, was das Paket für die Anlagenart nennt, etwa den Übersichtsschaltplan einer elektrischen Anlage. „Verlangt“ nennt die Fundstelle, „empfohlen“ ist ein Rat. Vorhanden ist eine Unterlage, wenn ein Dokument ihrer Art an der Anlage selbst liegt; ein Dokument am Raum oder am Gebäude zählt nicht, und ein Dokument ohne Art auch nicht. Liegt dieselbe Anleitung bei vielen gleichen Anlagen, wird sie an jeder abgelegt.
+
+1. Bei einer Unterlage, die fehlt, „Hochladen“ wählen. Die Art ist schon gesetzt.
+2. Die Datei wählen und hochladen. Die Unterlage zählt ab dann als vorhanden.
+
+Wird das Dokument entfernt, fehlt die Unterlage wieder.
+
 ## Tauschen
 
 - „Tauschen“ ersetzt die Anlage durch eine neue. Das gibt es für wen, der Anlagen pflegt, und nicht an einer Messstelle (dafür gibt es den Zählertausch), nicht an einer zurückgebauten und nicht an einer schon getauschten Anlage.

@@ -1,0 +1,34 @@
+{
+  "validFrom": "2005-01-01",
+  "label": "Brandschutztür oder -tor",
+  "costGroup": "344",
+  "fields": [
+    {
+      "key": "rating",
+      "label": "Feuerwiderstand",
+      "kind": "choice",
+      "options": [
+        {
+          "value": "fire_retardant",
+          "label": "feuerhemmend"
+        },
+        {
+          "value": "highly_fire_retardant",
+          "label": "hochfeuerhemmend"
+        },
+        {
+          "value": "fire_resistant",
+          "label": "feuerbeständig"
+        }
+      ]
+    }
+  ],
+  "expectedDocuments": [
+    {
+      "key": "approval",
+      "label": "Zulassung oder Prüfzeugnis",
+      "kind": "permit",
+      "demand": "recommended"
+    }
+  ]
+}
