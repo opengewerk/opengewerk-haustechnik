@@ -91,7 +91,7 @@ export const storeDialogWords = {
     `Der Bestand von ${quantity} geht als Umbuchung mit: ein Abgang hier, ein Zugang in ${target}.`,
   moveNothing: 'Hier liegt nichts davon; gebucht wird nichts.',
   moveJoins: (there: string, after: string) =>
-    `Das Lager führt den Artikel schon mit ${there}; danach sind es dort ${after}, und sein Mindestbestand dort bleibt.`,
+    `Das Lager führt den Artikel schon mit ${there}; danach sind es dort ${after}, und sein Mindestbestand und sein Lagerplatz dort bleiben.`,
   moveLeaves: 'Hier steht der Artikel danach nicht mehr.',
   moveNote: 'Steht an beiden Buchungen.',
   noOtherStore: 'Es gibt kein anderes Lager. Legen Sie zuerst eines an.',

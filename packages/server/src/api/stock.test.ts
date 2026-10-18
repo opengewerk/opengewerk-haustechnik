@@ -605,3 +605,78 @@ describe('a store and an article that go (#391)', () => {
     ).rejects.toThrow(/stock_movements_transfer_elsewhere/)
   })
 })
+
+describe('where an article lies in a store (#385)', () => {
+  function placed(store: string, article: string, bin: unknown, header = by('u-site')) {
+    return http()
+      .put(`/stores/${store}/articles/${article}/bin`)
+      .set(testIdentityHeader, header)
+      .send({ bin })
+  }
+
+  async function binIn(store: string, article: string): Promise<string | null | undefined> {
+    return (await stockOf(store)).lines.find((line) => line.articleId === article)?.bin
+  }
+
+  it('is kept by whoever keeps the stores, for one store, and stands in the stock, its table and the page', async () => {
+    const { store, article } = await storeWithArticle()
+    const other = await made('/stores', { name: `Werkstatt ${newId<'store'>().slice(-6)}` })
+
+    await book(store, { articleId: article, kind: 'receipt', quantityMilli: 3000 }).expect(201)
+    await book(other.id, { articleId: article, kind: 'receipt', quantityMilli: 1000 }).expect(201)
+    await placed(store, article, 'Regal 3, Fach 1', by('u-tech')).expect(403)
+    await placed(store, article, 'x'.repeat(201)).expect(400)
+    await placed(store, article, 3).expect(400)
+
+    const kept = await placed(store, article, '  Regal 3, Fach 1  ').expect(200)
+
+    expect(kept.body).toEqual({ bin: 'Regal 3, Fach 1' })
+    expect(await binIn(store, article)).toBe('Regal 3, Fach 1')
+    expect(await binIn(other.id, article)).toBeNull()
+
+    const page = await http()
+      .get(`/stores/${store}/articles/${article}`)
+      .set(testIdentityHeader, by('u-tech'))
+      .expect(200)
+
+    expect((page.body as StoreArticlePage).bin).toBe('Regal 3, Fach 1')
+
+    const table = await http()
+      .get(`/stores/${store}/stock/table?format=csv`)
+      .set(testIdentityHeader, by('u-tech'))
+      .expect(200)
+
+    expect(table.text).toContain('Lagerplatz')
+    expect(table.text).toContain('Regal 3, Fach 1')
+
+    await placed(store, article, ' ').expect(200)
+
+    expect(await binIn(store, article)).toBeNull()
+  })
+
+  it('stays in its store when the article moves, and the store it reaches keeps its own', async () => {
+    const { store, article } = await storeWithArticle()
+    const fresh = await made('/stores', { name: `Werkstatt ${newId<'store'>().slice(-6)}` })
+    const carrying = await made('/stores', { name: `Keller ${newId<'store'>().slice(-6)}` })
+
+    await book(store, { articleId: article, kind: 'receipt', quantityMilli: 2000 }).expect(201)
+    await placed(store, article, 'Regal 3').expect(200)
+    await http()
+      .post(`/stores/${store}/articles/${article}/move`)
+      .set(testIdentityHeader, by('u-site'))
+      .send({ toStoreId: fresh.id })
+      .expect(201)
+
+    expect(await binIn(fresh.id, article)).toBeNull()
+
+    await placed(carrying.id, article, 'Werkbank').expect(200)
+    await placed(fresh.id, article, 'Regal 9').expect(200)
+    await http()
+      .post(`/stores/${fresh.id}/articles/${article}/move`)
+      .set(testIdentityHeader, by('u-site'))
+      .send({ toStoreId: carrying.id })
+      .expect(201)
+
+    expect(await binIn(carrying.id, article)).toBe('Werkbank')
+  })
+})

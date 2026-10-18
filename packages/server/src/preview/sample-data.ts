@@ -1126,7 +1126,24 @@ async function plantSampleStores(address: string): Promise<void> {
         'PUT',
       )
     }
+
+    // Where it lies in the main store (#385); the ball valve has no place written down yet.
+    const bin = bins[number]
+
+    if (bin !== undefined) {
+      await send(address, `/stores/${main.id}/articles/${article.id}/bin`, { bin }, 'PUT')
+    }
   }
+}
+
+/** Where the articles lie in the main store of the preview (#385). */
+const bins: Readonly<Record<string, string>> = {
+  'A-1001': 'Regal 1, Fach 2',
+  'A-1002': 'Schrank Notlicht',
+  'A-1010': 'Regal 3, Fach 1',
+  'A-1011': 'Regal 3, Fach 1',
+  'A-1020': 'Kabeltrommel 2',
+  'A-1030': 'Regal 5',
 }
 
 /** What an asset supplies, kept until every building of its property is there to be named. */

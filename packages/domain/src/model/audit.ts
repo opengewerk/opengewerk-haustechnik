@@ -261,6 +261,7 @@ export const auditVocabulary: AuditVocabulary = {
       fields: {
         store_id: 'Lager',
         article_id: 'Artikel',
+        bin: 'Lagerplatz',
         minimum_milli: 'Mindestbestand in Tausendsteln',
       },
     },

@@ -600,6 +600,7 @@ function rowsOf(tenant: Tenant): readonly Row[] {
         tenant_id: tenant.id,
         store_id: store,
         article_id: article,
+        bin: 'Regal 1, Fach 2',
         minimum_milli: 10000,
       },
     },

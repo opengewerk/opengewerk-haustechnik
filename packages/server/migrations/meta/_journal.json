@@ -568,6 +568,13 @@
       "when": 1792299530578,
       "tag": "0080_import_record_names",
       "breakpoints": true
+    },
+    {
+      "idx": 81,
+      "version": "7",
+      "when": 1792309007112,
+      "tag": "0081_store_article_bin",
+      "breakpoints": true
     }
   ]
 }
