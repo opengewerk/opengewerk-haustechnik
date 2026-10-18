@@ -502,7 +502,7 @@ describe('a duty whose document has a newer version', () => {
           total: 1,
           assets: 1,
           places: 0,
-          counts: { never_recorded: 0, overdue: 0, due: 0, met: 1, dormant: 0, ended: 0 },
+          counts: { never_recorded: 0, overdue: 0, due: 0, outstanding: 0, met: 1, dormant: 0, ended: 0 },
           withoutResponsible: 0,
           more: false,
           duties: [entry],

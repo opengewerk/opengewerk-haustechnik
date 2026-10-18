@@ -396,7 +396,7 @@ describe('a duty the catalogue says something new about', () => {
         total: 3,
         assets: 3,
         places: 0,
-        counts: { never_recorded: 0, overdue: 0, due: 0, met: 3, dormant: 0, ended: 0 },
+        counts: { never_recorded: 0, overdue: 0, due: 0, outstanding: 0, met: 3, dormant: 0, ended: 0 },
         withoutResponsible: 0,
         more: false,
         duties: [
