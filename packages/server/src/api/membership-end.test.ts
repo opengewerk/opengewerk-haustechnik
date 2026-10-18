@@ -28,6 +28,7 @@ import {
   writtenValues,
 } from '../database/test-evidence.js'
 import { runDeadlinesOf } from '../deadlines/engine.js'
+import { removeEndedAccounts } from '../memberships/end.js'
 import { dayInGermany } from '../today.js'
 import { access } from '../authentication/access.js'
 import { ApiModule } from './api.module.js'
@@ -531,5 +532,28 @@ describe('the end of an access (#356)', () => {
     ).toBe(2)
     // The removal comes after the deadlines are compared, so the next pass finds it done.
     expect(await deadlinesOf(by('u-lead'), 'membership.data_removal')).toEqual([])
+  })
+
+  it('repeats a removal that was cut off before it was written down, and finds nothing left to take', async () => {
+    // As a run stopped after the data went and before the note: the access is due again.
+    await admin.query(
+      "delete from membership_removals where tenant_id = $1 and user_id = 'u-third'",
+      [tenant],
+    )
+    const account = "select name, email from auth_users where id = 'u-third'"
+    const before = (await admin.query(account)).rows
+
+    await expect(removeEndedAccounts(database, tenant, today)).resolves.toBe(1)
+
+    expect(
+      (
+        await admin.query(
+          "select account_removed from membership_removals where tenant_id = $1 and user_id = 'u-third'",
+          [tenant],
+        )
+      ).rows,
+    ).toEqual([{ account_removed: true }])
+    expect((await admin.query(account)).rows).toEqual(before)
+    await expect(removeEndedAccounts(database, tenant, today)).resolves.toBe(0)
   })
 })

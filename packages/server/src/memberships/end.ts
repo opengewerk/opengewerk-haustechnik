@@ -35,13 +35,6 @@ import { forgetPushDevicesOf } from '../notifications/push.js'
  * it removes the data no record needs.
  */
 
-/** The operator a transaction works for, as the foundation set it. */
-export async function tenantOf(tx: TenantTransaction): Promise<TenantId> {
-  const result = await tx.execute(sql`select current_setting('app.tenant_id', true) as id`)
-
-  return result.rows[0]?.['id'] as TenantId
-}
-
 /** The people whose last day here has passed. Somebody blocked is not among them: a block can be undone. */
 export async function endedMembers(
   tx: TenantTransaction,
@@ -223,12 +216,43 @@ export async function removalDaysOf(tx: TenantTransaction): Promise<number> {
   return setting?.removalDays ?? membershipRemovalDays.standard
 }
 
+/** The accesses of an operator whose period after the last day has come and whose removal is not written down yet. */
+async function dueRemovals(tx: TenantTransaction, today: IsoDate): Promise<readonly string[]> {
+  const days = await removalDaysOf(tx)
+  const removed = new Set(
+    (await tx.select({ userId: membershipRemovals.userId }).from(membershipRemovals)).map(
+      (row) => row.userId,
+    ),
+  )
+
+  return (
+    await tx
+      .select({ userId: memberships.userId, lastDay: memberships.lastDay })
+      .from(memberships)
+      .where(isNotNull(memberships.lastDay))
+  )
+    .filter(
+      (row) =>
+        row.lastDay !== null && !removed.has(row.userId) && removalDay(row.lastDay, days) <= today,
+    )
+    .map((row) => row.userId)
+}
+
 /**
  * Removes the data of every access of an operator whose period after the last
  * day has come (#356): the foundation takes the devices and the passkeys here
  * and, where the account works nowhere else, its address, passkeys, second
  * factor and password; the push subscriptions of the person here go as well.
  * Each removal is written down once, and the deadline drops out with it.
+ *
+ * It runs after the pass of the deadlines and outside its transaction, with
+ * transactions of its own: the foundation opens its own for the account, and
+ * none of this waits on a connection while another of the same pass is held
+ * open. First the data goes, then the push devices and the note in one
+ * transaction of the operator. A run cut off between the two finds the access
+ * due again and removes again what is already gone, which changes nothing;
+ * `membership-end.test.ts`, "repeats a removal that was cut off before it was
+ * written down, and finds nothing left to take", holds that.
  *
  * Held by `membership-end.test.ts`, "removes after the period the devices,
  * the passkeys and the address, and leaves what the person signed as it
@@ -240,36 +264,19 @@ export async function removalDaysOf(tx: TenantTransaction): Promise<number> {
  */
 export async function removeEndedAccounts(
   database: Database,
-  tx: TenantTransaction,
   tenantId: TenantId,
   today: IsoDate,
 ): Promise<number> {
-  const days = await removalDaysOf(tx)
-  const removed = new Set(
-    (await tx.select({ userId: membershipRemovals.userId }).from(membershipRemovals)).map(
-      (row) => row.userId,
-    ),
-  )
-  const due = (
-    await tx
-      .select({ userId: memberships.userId, lastDay: memberships.lastDay })
-      .from(memberships)
-      .where(isNotNull(memberships.lastDay))
-  ).filter(
-    (row) =>
-      row.lastDay !== null && !removed.has(row.userId) && removalDay(row.lastDay, days) <= today,
-  )
+  const actor = { tenantId, reason: 'membership.data_removal' }
+  const due = await database.forTenant(actor, (tx) => dueRemovals(tx, today))
 
-  for (const { userId } of due) {
-    const { account } = await removeAccountData(
-      access,
-      database,
-      { tenantId, reason: 'membership.data_removal' },
-      userId,
-    )
+  for (const userId of due) {
+    const { account } = await removeAccountData(access, database, actor, userId)
 
-    await forgetPushDevicesOf(tx, userId)
-    await tx.insert(membershipRemovals).values({ tenantId, userId, accountRemoved: account })
+    await database.forTenant(actor, async (tx) => {
+      await forgetPushDevicesOf(tx, userId)
+      await tx.insert(membershipRemovals).values({ tenantId, userId, accountRemoved: account })
+    })
   }
 
   return due.length
