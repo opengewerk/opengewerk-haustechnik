@@ -54,6 +54,7 @@ export const siteHelpOrder = [
   'aufnehmen',
   'konflikte',
   'aufgaben',
+  'unterwegs',
   'meldungen',
 ] as const
 

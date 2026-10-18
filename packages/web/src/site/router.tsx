@@ -48,6 +48,7 @@ import {
 } from './reporting.js'
 import { SiteShell } from './shell.js'
 import { MyTasksScreen } from './tasks.js'
+import { TravelScreen } from './travel.js'
 
 /**
  * The routes of the entry for the work on site.
@@ -129,6 +130,8 @@ export function siteRoutes() {
     at('/ablesung/$propertyId', ReadingRoundScreen),
     // The tasks of the person holding the device, from the menu (#124).
     at('/aufgaben', MyTasksScreen),
+    // The documents this device keeps for the road, from the menu (#348).
+    at('/unterwegs', TravelScreen),
     // Reporting a fault and the own reports (#331): the start of a Melder,
     // from the menu for every other role that reports.
     at('/meldungen', ReporterStartScreen),

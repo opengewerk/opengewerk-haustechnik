@@ -2,6 +2,7 @@ import { offlineRules } from '@opengewerk/haustechnik-domain'
 import { SyncClient as Mechanism, type SyncStart } from '@opengewerk/platform-web/sync'
 
 import { catalogueKeep, unreadableCatalogueKeep } from './catalogue.js'
+import { travelKeep } from './travel.js'
 
 /**
  * The sync client of this application.
@@ -11,7 +12,8 @@ import { catalogueKeep, unreadableCatalogueKeep } from './catalogue.js'
  * application's is what it is started with: the rules made from its policies,
  * so that a device judges a change as the server will, and the one thing a
  * device keeps for itself beside its records, the catalogue of its server
- * (`catalogue.ts`).
+ * (`catalogue.ts`), and the places it keeps the documents of for the road
+ * (`travel.ts`, #348).
  *
  * Bound here once, so that every screen and every test that starts a client
  * starts this one, and none can start one that decides by other rules or has
@@ -24,7 +26,7 @@ export const SyncClient = {
     return Mechanism.start({
       ...options,
       rules: offlineRules,
-      keeps: [catalogueKeep, unreadableCatalogueKeep],
+      keeps: [catalogueKeep, unreadableCatalogueKeep, travelKeep],
     })
   },
 }

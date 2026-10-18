@@ -1,3 +1,4 @@
+import type { TravelPlace } from '@opengewerk/haustechnik-domain'
 import { Button, Panel } from '@opengewerk/platform-web'
 import { openVersion, useVersions } from '@opengewerk/platform-web/attachments'
 import { useRight } from '@opengewerk/platform-web/session'
@@ -14,6 +15,7 @@ import {
   newestFirst,
   versionWords,
 } from '../app/documents.js'
+import { siteTravelWords, TravelControl, useOnDevice } from './travel.js'
 
 export const siteDocumentWords = {
   takePhoto: 'Foto aufnehmen',
@@ -36,15 +38,22 @@ export const siteDocumentWords = {
  *
  * The button is the field of a file behind a button, which a phone answers
  * with its camera. It opens nothing by itself: the camera comes with the tap.
+ *
+ * At an asset and a room the documents can be kept on the device for the
+ * road (#348): the newest version of each then says that it lies here, and
+ * opens without a network.
  */
 export function SiteDocuments({
   place,
   empty,
+  travel,
 }: {
   /** The record the documents hang on, with its property. */
   readonly place: DocumentPlace
   /** What stands there while nothing is filed. */
   readonly empty: string
+  /** The place as the road names it, where its documents can be kept for it. */
+  readonly travel?: TravelPlace
 }) {
   const client = useSync()
   const reads = useRight('document.read')
@@ -52,6 +61,7 @@ export function SiteDocuments({
   const documents = useRecords('attachments')
   const versions = useVersions()
   const field = useRef<HTMLInputElement>(null)
+  const onDevice = useOnDevice()
   const [trouble, setTrouble] = useState<string | null>(null)
   const here = useMemo(
     () => newestFirst(documentsAt(documents, place), versions),
@@ -96,12 +106,16 @@ export function SiteDocuments({
                   )}
                   <span className="block text-[15px] leading-[1.35] text-ink-muted [overflow-wrap:anywhere]">
                     {newest ? versionWords(client, newest, all.length) : documentWords.onItsWay}
+                    {travel && newest && onDevice(text(newest, 'sha256'))
+                      ? siteTravelWords.onDevice
+                      : null}
                   </span>
                 </li>
               )
             })}
           </ul>
         )}
+        {travel ? <TravelControl place={travel} /> : null}
         {files ? (
           <>
             <input
