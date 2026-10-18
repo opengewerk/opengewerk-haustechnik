@@ -30,6 +30,7 @@ import {
   resetToMigrated,
   testIdentityHeader,
 } from '../database/test-database.js'
+import { dayInGermany } from '../today.js'
 import { ApiModule } from './api.module.js'
 import { as, testIdentities } from './test-identity.js'
 
@@ -893,5 +894,172 @@ describe('a sheet of labels that hang on nothing yet', () => {
     expect((await labelsIn(inSouth.property)).filter((label) => label.asset_id === null)).toEqual(
       [],
     )
+  })
+})
+
+describe('the free labels of the sheets of a property (#170)', () => {
+  /** A sheet printed for the property, and its labels as the database holds them, with the id of their print. */
+  async function sheetOf(property: string, count: number, header: string = by('technician')) {
+    await post('/labels/print/blank', header, { propertyId: property, count }).expect(200)
+
+    const { rows } = await admin.query<{ id: string; code: string; print_id: string | null }>(
+      `select id, code, print_id from labels
+        where property_id = $1 and asset_id is null and room_id is null
+          and print_id = (select print_id from labels where property_id = $1 and print_id is not null
+                           order by created_at desc limit 1)
+        order by code`,
+      [property],
+    )
+
+    return rows
+  }
+
+  /** The free labels of a property by print, as the office reads them: the codes of each print. */
+  async function freeIn(property: string, header: string = by('technician')) {
+    const answer = (await get(`/properties/${property}/free-labels`, header).expect(200)).body as {
+      prints: {
+        printId: string | null
+        printedOn: string
+        labels: { id: string; code: string }[]
+      }[]
+    }
+
+    return answer.prints
+  }
+
+  it('are listed by print, the newest first, with its day and its codes, and none that hangs on something or is blocked', async () => {
+    const fresh = await placeIn()
+    const first = await sheetOf(fresh.property, 5)
+    const second = await sheetOf(fresh.property, 3)
+
+    expect(new Set(first.map((label) => label.print_id)).size).toBe(1)
+    expect(first[0]?.print_id).not.toBe(second[0]?.print_id)
+
+    // One of the first is given to an asset, one of the second blocked.
+    await admin.query('update labels set asset_id = $1 where id = $2', [fresh.asset, first[0]?.id])
+    await admin.query('update labels set blocked_at = now() where id = $1', [second[0]?.id])
+
+    const prints = await freeIn(fresh.property)
+
+    expect(
+      prints.map((print) => [
+        print.printId,
+        print.printedOn,
+        print.labels.map((label) => label.code),
+      ]),
+    ).toEqual([
+      [second[0]?.print_id, dayInGermany(), second.slice(1).map((label) => label.code)],
+      [first[0]?.print_id, dayInGermany(), first.slice(1).map((label) => label.code)],
+    ])
+  })
+
+  it('are blocked one at a time by whoever takes assets into the register, and only while they are free', async () => {
+    const fresh = await placeIn()
+    const [one, two] = await sheetOf(fresh.property, 2)
+    const elsewhere = await placeIn()
+
+    await post(
+      `/properties/${fresh.property}/free-labels/${one?.id ?? ''}/block`,
+      without('technician', 'asset.record'),
+    ).expect(403)
+    expect(
+      (
+        await post(
+          `/properties/${fresh.property}/free-labels/${one?.id ?? ''}/block`,
+          by('technician'),
+        ).expect(200)
+      ).body,
+    ).toEqual({ blocked: 1 })
+
+    // Blocked already, of another property, or hanging on an asset: not reached here.
+    const gone =
+      'Dieses Etikett ist nicht mehr frei: es hängt an einer Anlage oder einem Raum, ist gesperrt oder gehört zu einer anderen Liegenschaft.'
+
+    for (const [property, id] of [
+      [fresh.property, one?.id],
+      [elsewhere.property, two?.id],
+      [fresh.property, 'kein-etikett'],
+    ] as const) {
+      const answer = await post(
+        `/properties/${property}/free-labels/${id ?? ''}/block`,
+        by('technician'),
+      ).expect(404)
+
+      expect(answer.body.message).toBe(gone)
+    }
+
+    await admin.query('update labels set asset_id = $1 where id = $2', [fresh.asset, two?.id])
+    await post(
+      `/properties/${fresh.property}/free-labels/${two?.id ?? ''}/block`,
+      by('technician'),
+    ).expect(404)
+
+    const blocked = new Map(
+      (await labelsIn(fresh.property)).map((label) => [label.code, label.blocked]),
+    )
+
+    expect([blocked.get(one?.code ?? ''), blocked.get(two?.code ?? '')]).toEqual([true, false])
+  })
+
+  it('of one print are blocked at once, and the rest stays as it is', async () => {
+    const fresh = await placeIn()
+    const lost = await sheetOf(fresh.property, 4)
+    const kept = await sheetOf(fresh.property, 2)
+
+    await admin.query('update labels set asset_id = $1 where id = $2', [fresh.asset, lost[0]?.id])
+    await post(
+      `/properties/${fresh.property}/free-labels/prints/${lost[0]?.print_id ?? ''}/block`,
+      without('technician', 'asset.record'),
+    ).expect(403)
+
+    expect(
+      (
+        await post(
+          `/properties/${fresh.property}/free-labels/prints/${lost[0]?.print_id ?? ''}/block`,
+          by('technician'),
+        ).expect(200)
+      ).body,
+    ).toEqual({ blocked: 3 })
+
+    const blocked = new Map(
+      (await labelsIn(fresh.property)).map((label) => [label.code, label.blocked]),
+    )
+
+    // The one given to an asset and the other print stay valid.
+    expect(blocked.get(lost[0]?.code ?? '')).toBe(false)
+    expect(lost.slice(1).map((label) => blocked.get(label.code))).toEqual([true, true, true])
+    expect(kept.map((label) => blocked.get(label.code))).toEqual([false, false])
+    expect((await freeIn(fresh.property)).map((print) => print.printId)).toEqual([
+      kept[0]?.print_id,
+    ])
+
+    // Nothing free left of it, or no print at all.
+    for (const print of [lost[0]?.print_id, 'kein-druck']) {
+      const answer = await post(
+        `/properties/${fresh.property}/free-labels/prints/${print ?? ''}/block`,
+        by('technician'),
+      ).expect(404)
+
+      expect(answer.body.message).toBe('Von diesem Druck ist hier kein Etikett mehr frei.')
+    }
+  })
+
+  it('are read by whoever reads assets, in their areas, and blocked by nobody outside them', async () => {
+    // Printed by the Objektleitung of the south; the technician of the large operator works in the north.
+    const [label] = await sheetOf(inSouth.property, 1, by('site_management', large))
+
+    await get(
+      `/properties/${inSouth.property}/free-labels`,
+      without('technician', 'asset.read'),
+    ).expect(403)
+    await get(`/properties/${inSouth.property}/free-labels`, by('technician', large)).expect(404)
+    await post(
+      `/properties/${inSouth.property}/free-labels/prints/${label?.print_id ?? ''}/block`,
+      by('technician', large),
+    ).expect(404)
+
+    expect(
+      (await labelsIn(inSouth.property)).find((each) => each.code === label?.code)?.blocked,
+    ).toBe(false)
   })
 })

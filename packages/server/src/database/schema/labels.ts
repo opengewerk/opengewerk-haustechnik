@@ -11,7 +11,7 @@ import {
 } from '@opengewerk/platform-server'
 import { tenantColumn } from '@opengewerk/platform-server/schema'
 import { sql } from 'drizzle-orm'
-import { check, foreignKey, index, pgTable, unique, uniqueIndex } from 'drizzle-orm/pg-core'
+import { check, foreignKey, index, pgTable, unique, uniqueIndex, uuid } from 'drizzle-orm/pg-core'
 
 import { areaFromPropertyColumn, areaFromTheProperty, withinAreas } from './areas.js'
 import { assets } from './assets.js'
@@ -61,6 +61,13 @@ export const labels = pgTable(
     assetId: reference<'asset'>('asset_id'),
     roomId: reference<'room'>('room_id'),
     ...labelColumns(),
+    /**
+     * The print a label of a sheet came with (#170): every label of one
+     * sheet printed for a property shares it, so that the free ones of a lost
+     * sheet are blocked at once. None on a label printed for an asset or a
+     * room, which hangs on it from the start.
+     */
+    printId: uuid('print_id'),
     ...timestamps,
     ...syncColumns,
   },

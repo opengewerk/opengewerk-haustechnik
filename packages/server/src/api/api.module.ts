@@ -73,6 +73,7 @@ import { FloorsController } from './floors.controller.js'
 import { ImportsController } from './imports.controller.js'
 import {
   AssetLabelsController,
+  FreeLabelsController,
   LabelsController,
   RoomLabelsController,
   StoreLabelsController,
@@ -381,6 +382,7 @@ export class ApiModule {
         AssetLabelsController,
         RoomLabelsController,
         LabelsController,
+        FreeLabelsController,
         StoreLabelsController,
         // The list of the documents as a table; the documents themselves
         // are the foundation's.

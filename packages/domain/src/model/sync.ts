@@ -887,6 +887,8 @@ export const syncFieldNames: Readonly<Record<string, string>> = {
   // stands in a conflict.
   code: 'Code',
   blockedAt: 'Gesperrt am',
+  // The print of a sheet (#170): written once, when the sheet is printed.
+  printId: 'Druck',
   // What is said about the template of a round and a version of it (#112).
   // The office keeps both; a device holds them to read.
   sourceKey: 'Übernommen aus dem Paket',
