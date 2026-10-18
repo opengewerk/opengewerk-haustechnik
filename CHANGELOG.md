@@ -209,6 +209,10 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
 
 ### Behoben
 
+- Die Tabelle des Änderungsprotokolls nennt eigene Anlagenarten und eigene Felder mit ihren Bezeichnungen (#426),
+  über die Wörter des Betreibers aus dem Fundament (opengewerk/opengewerk#667). Warum: dort stand
+  `eigen.hebeanlage_schmutzwasser` statt „Hebeanlage Schmutzwasser“, während die Seite des Protokolls es richtig nannte.
+
 - KG 610 stand bei den Leistungen der Fremdfirmen ohne Bezeichnung (#384): die Bezeichnung einer Kostengruppe kommt
   von der allgemeinen Anlagenart der Gruppe, und eine solche gibt es nur für 410 bis 490. KG 610 heißt jetzt
   „Ortsveränderliches Betriebsmittel“, in eigenen Worten wie jede Bezeichnung einer Gruppe, im Dialog, in der Liste,

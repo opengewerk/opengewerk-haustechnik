@@ -23,6 +23,7 @@ import {
 } from '../database/test-database.js'
 import { ApiModule } from './api.module.js'
 import { as, testIdentities } from './test-identity.js'
+import { tableReaders } from './test-tables.js'
 
 /**
  * The asset kinds and fields of an operator's own (#62, sections 2.5 and 4.2
@@ -50,6 +51,8 @@ let app: INestApplication
 function http() {
   return request(app.getHttpServer())
 }
+
+const { tableOf } = tableReaders(http)
 
 async function tenantWith(): Promise<TenantId> {
   const id = newId<'tenant'>() as TenantId
@@ -514,6 +517,26 @@ describe("an asset kind of the operator's own", () => {
         }).expect(400),
       ),
     ).toBe('Eine verlangte Unterlage nennt ihre Fundstelle, „Prüfbuch“ nicht.')
+  })
+
+  it('stands in the log as a table with its label and the labels of its fields (#426)', async () => {
+    const tenant = await tenantWith()
+    const { kind } = await liftingStation(tenant)
+    const building = await buildingOf(tenant)
+
+    await post(`/buildings/${building}/assets`, by('technician', tenant), {
+      kind: kind.key,
+      name: 'Hebeanlage Keller',
+      values: { eigen_foerdermenge: 4.5 },
+    }).expect(201)
+
+    const cells = (
+      await tableOf('/audit/table', { table: 'assets' }, by('management', tenant), 'csv')
+    ).flat()
+
+    expect(cells).toContain('Hebeanlage Schmutzwasser')
+    expect(cells.some((cell) => cell.includes('Fördermenge'))).toBe(true)
+    expect(cells.filter((cell) => cell.includes('eigen'))).toEqual([])
   })
 
   it('may be the kind a word of a list means', async () => {
