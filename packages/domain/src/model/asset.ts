@@ -275,6 +275,37 @@ export function distinctFromProblem(value: unknown): string | null {
     : `Wovon eine Anlage verschieden ist, steht als Liste von höchstens ${String(assetLimits.distinctFrom)} Anlagen.`
 }
 
+/** How many assets one correction of their kind names at most, as many as a batch of proposals (#351). */
+export const kindCorrectionMost = 500
+
+/**
+ * What is wrong with a correction of the kind of many assets in one step
+ * (#351, 4.2 of the concept), or null: the new kind named, and the assets as
+ * a list of ids, each once. Whether the kind is one the catalogue knows and
+ * whether each asset fits it are asked against the catalogue.
+ */
+export function kindCorrectionProblem(kind: unknown, assetIds: unknown): string | null {
+  if (typeof kind !== 'string' || kind.trim() === '') {
+    return 'Die neue Anlagenart ist nicht genannt.'
+  }
+
+  if (!Array.isArray(assetIds) || assetIds.length === 0) {
+    return 'Eine Berichtigung nennt mindestens eine Anlage.'
+  }
+
+  if (assetIds.length > kindCorrectionMost) {
+    return `Eine Berichtigung nennt höchstens ${String(kindCorrectionMost)} Anlagen.`
+  }
+
+  if (!assetIds.every((id) => typeof id === 'string' && idShape.test(id))) {
+    return 'Eine Anlage der Berichtigung ist nicht genannt.'
+  }
+
+  return new Set(assetIds).size === assetIds.length
+    ? null
+    : 'Eine Anlage steht zweimal in der Berichtigung.'
+}
+
 /**
  * What is wrong with the values of an asset against its kind (ADR 0002,
  * point 6): a value for a characteristic or a field the kind does not have,

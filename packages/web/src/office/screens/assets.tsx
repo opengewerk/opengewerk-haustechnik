@@ -21,17 +21,36 @@ import {
   shutDownLabel,
   withoutLifecycle,
 } from '@opengewerk/haustechnik-domain'
-import { Button, cardLink, Cell, Column, Panel, TablePanel } from '@opengewerk/platform-web'
+import {
+  Button,
+  cardLink,
+  Cell,
+  Column,
+  Panel,
+  SelectField,
+  TablePanel,
+  useBand,
+} from '@opengewerk/platform-web'
 import { today } from '@opengewerk/platform-web/format'
 import { Empty, PageHead, Screen, useTableExport } from '@opengewerk/platform-web/office'
 import { useRight } from '@opengewerk/platform-web/session'
-import { maybeText, request, text, useRecords } from '@opengewerk/platform-web/sync'
-import { useInfiniteQuery } from '@tanstack/react-query'
+import {
+  maybeText,
+  refusalFor,
+  request,
+  text,
+  useRecords,
+  useSync,
+  useSyncStatus,
+} from '@opengewerk/platform-web/sync'
+import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useNavigate, useSearch } from '@tanstack/react-router'
-import { Plus, Upload } from 'lucide-react'
-import { useMemo } from 'react'
+import { Check, Pencil, Plus, Upload } from 'lucide-react'
+import { useMemo, useState } from 'react'
 
+import { kindChoices } from '../../app/asset-values.js'
 import { useCatalogue } from '../../sync/catalogue.js'
+import { askAt } from '../../sync/made-at.js'
 import {
   assetForms,
   assetRegisterPlace,
@@ -81,6 +100,12 @@ export function AssetRegisterScreen() {
   const rooms = useRecords('rooms')
   // What the register shows under its filter, whole and not a page, as a table (#138).
   const table = useTableExport(registerTableRequest(filter))
+  const band = useBand()
+  // "Anlagenart berichtigen" (#351): a box in front of every row, from the width of a tablet on.
+  const [correcting, setCorrecting] = useState(false)
+  const [chosen, setChosen] = useState<ReadonlySet<string>>(new Set())
+  const [done, setDone] = useState<string | null>(null)
+  const corrects = correcting && band !== 'S'
 
   const pages = useInfiniteQuery({
     queryKey: ['assets', 'register', filter],
@@ -120,6 +145,15 @@ export function AssetRegisterScreen() {
     ])
   }
   const kindOf = (asset: AssetEntry) => kindLabel(catalogue, asset.kind)
+  const chosenAssets = assets.filter((asset) => chosen.has(asset.id))
+  const choose = (ids: ReadonlySet<string>) => {
+    setChosen(ids)
+    setDone(null)
+  }
+  const stopCorrecting = () => {
+    setCorrecting(false)
+    setChosen(new Set())
+  }
 
   return (
     <Screen>
@@ -171,6 +205,22 @@ export function AssetRegisterScreen() {
                       undefined
                     }
                   />
+                  {band === 'S' ? null : (
+                    <Button
+                      icon={Pencil}
+                      aria-pressed={correcting}
+                      onClick={() => {
+                        if (correcting) {
+                          stopCorrecting()
+                        } else {
+                          setCorrecting(true)
+                          setDone(null)
+                        }
+                      }}
+                    >
+                      {kindCorrectionWords.open}
+                    </Button>
+                  )}
                   <Button
                     tone="primary"
                     icon={Plus}
@@ -209,6 +259,23 @@ export function AssetRegisterScreen() {
             }
           : {})}
       />
+      {done ? (
+        <p role="status" className="text-[13px] font-medium text-done">
+          {done}
+        </p>
+      ) : null}
+      {corrects && first !== undefined && first.total > 0 ? (
+        <KindCorrection
+          chosen={chosenAssets}
+          loaded={assets.length}
+          catalogue={catalogue}
+          onDone={(said) => {
+            stopCorrecting()
+            setDone(said)
+          }}
+          onCancel={stopCorrecting}
+        />
+      ) : null}
       {first === undefined ? (
         <Panel>
           <Empty>
@@ -254,10 +321,25 @@ export function AssetRegisterScreen() {
           }))}
           footer={
             <>
+              {corrects ? (
+                <>
+                  <Tick
+                    label={kindCorrectionWords.all(assets.length)}
+                    checked={chosenAssets.length === assets.length}
+                    mixed={chosenAssets.length > 0 && chosenAssets.length < assets.length}
+                    onChange={(checked) => {
+                      choose(new Set(checked ? assets.map((asset) => asset.id) : []))
+                    }}
+                  />
+                  <span>{kindCorrectionWords.chosen(chosenAssets.length, assets.length)}</span>
+                  <span className="grow" />
+                </>
+              ) : null}
               <span>
                 {assets.length.toLocaleString('de-DE')} von {first.total.toLocaleString('de-DE')}
               </span>
-              <span className="grow" />
+              {/* While boxes stand, the count goes right, beside what is chosen at the left. */}
+              {corrects ? null : <span className="grow" />}
               {pages.hasNextPage ? (
                 <Button
                   size="small"
@@ -274,6 +356,11 @@ export function AssetRegisterScreen() {
         >
           <thead>
             <tr>
+              {corrects ? (
+                <Column className="w-[44px] min-w-[44px]">
+                  <span className="sr-only">{kindCorrectionWords.column}</span>
+                </Column>
+              ) : null}
               {/* The headings of the table "Als Tabelle" writes as well. */}
               {assetTableColumns.map((heading, index) => (
                 <Column key={heading} className={columnWidths[index]}>
@@ -285,6 +372,25 @@ export function AssetRegisterScreen() {
           <tbody>
             {assets.map((asset) => (
               <tr key={asset.id}>
+                {corrects ? (
+                  <Cell>
+                    <Tick
+                      label={`${asset.number} ${asset.name} auswählen`}
+                      checked={chosen.has(asset.id)}
+                      onChange={(checked) => {
+                        const next = new Set(chosen)
+
+                        if (checked) {
+                          next.add(asset.id)
+                        } else {
+                          next.delete(asset.id)
+                        }
+
+                        choose(next)
+                      }}
+                    />
+                  </Cell>
+                ) : null}
                 <Cell>
                   <span className="numeric text-ink-faint">{asset.number}</span>
                 </Cell>
@@ -337,6 +443,183 @@ export function generalKindGroup(catalogue: Catalogue | null, key: string): stri
     : undefined
 
   return costGroup === undefined ? null : `KG ${costGroup}`
+}
+
+/** What "Anlagenart berichtigen" says (#351), `anlagen_art_berichtigen()` of the boards. */
+export const kindCorrectionWords = {
+  open: 'Anlagenart berichtigen',
+  column: 'Auswahl',
+  all: (loaded: number) =>
+    loaded === 1
+      ? 'Die geladene Anlage auswählen'
+      : `Alle ${loaded.toLocaleString('de-DE')} geladenen auswählen`,
+  chosen: (count: number, loaded: number) =>
+    `${count.toLocaleString('de-DE')} von ${loaded.toLocaleString('de-DE')} ausgewählt`,
+  kind: 'Neue Anlagenart',
+  now: (labels: readonly string[]) =>
+    labels.length === 1
+      ? `Heute ${labels[0] ?? ''}.`
+      : `Heute ${String(labels.length)} Anlagenarten.`,
+  after:
+    'Ihre Pflichten schlägt der Katalog danach unter „Vorschläge“ vor; Angaben der neuen Art tragen Sie in der Akte nach.',
+  noKind: 'Die neue Anlagenart fehlt.',
+  correct: (count: number) =>
+    count === 1 ? '1 Anlage berichtigen' : `${count.toLocaleString('de-DE')} Anlagen berichtigen`,
+  done: (count: number) =>
+    count === 1 ? '1 Anlage berichtigt.' : `${count.toLocaleString('de-DE')} Anlagen berichtigt.`,
+} as const
+
+/**
+ * What the chosen assets become, above the table (#351, 4.2 of the concept:
+ * "Kommt das Paket, berichtigt das Anlagenverzeichnis die Anlagenart vieler
+ * Anlagen in einem Schritt"). The new kind is one of the catalogue that is no
+ * measuring point: a meter needs its number and unit, which a correction of
+ * many does not give. Whether each asset fits the kind the server asks, for
+ * all of them or none, and its refusal names the asset that does not.
+ */
+function KindCorrection({
+  chosen,
+  loaded,
+  catalogue,
+  onDone,
+  onCancel,
+}: {
+  readonly chosen: readonly AssetEntry[]
+  readonly loaded: number
+  readonly catalogue: Catalogue | null
+  readonly onDone: (said: string) => void
+  readonly onCancel: () => void
+}) {
+  const client = useSync()
+  const status = useSyncStatus()
+  const queries = useQueryClient()
+  const [kind, setKind] = useState('')
+  const [problem, setProblem] = useState<string | null>(null)
+  const [trouble, setTrouble] = useState<string | null>(null)
+  const [working, setWorking] = useState(false)
+  const count = chosen.length
+  const kinds = catalogue
+    ? kindChoices(catalogue).filter(
+        (choice) => catalogue.assetKind(choice.value, today())?.definition.meter === null,
+      )
+    : []
+  const now = [
+    ...new Set(
+      chosen.map((asset) => {
+        const group = generalKindGroup(catalogue, asset.kind)
+
+        return group === null
+          ? kindLabel(catalogue, asset.kind)
+          : `${kindLabel(catalogue, asset.kind)} (${group})`
+      }),
+    ),
+  ]
+
+  async function correct() {
+    if (kind === '') {
+      setProblem(kindCorrectionWords.noKind)
+
+      return
+    }
+
+    setProblem(null)
+    setTrouble(null)
+    setWorking(true)
+
+    try {
+      const result = await askAt(client, 'PUT', '/assets/kind', kind, {
+        kind,
+        assetIds: chosen.map((asset) => asset.id),
+      })
+
+      if (result.outcome === 'refused') {
+        setTrouble(refusalFor(result))
+
+        return
+      }
+
+      // The register reads the kinds anew, and the proposals of the new kinds with it.
+      await queries.invalidateQueries({ queryKey: ['assets'] })
+      await queries.invalidateQueries({ queryKey: ['duties'] })
+      onDone(kindCorrectionWords.done(count))
+    } finally {
+      setWorking(false)
+    }
+  }
+
+  return (
+    <Panel>
+      <div className="flex flex-wrap items-end gap-3">
+        <div className="flex min-w-[240px] flex-1 flex-col gap-1">
+          <p className="text-[14px] font-semibold text-ink">
+            {kindCorrectionWords.chosen(count, loaded)}
+          </p>
+          <p className="text-[12px] leading-[1.45] text-ink-muted">
+            {count === 0 ? '' : `${kindCorrectionWords.now(now)} `}
+            {kindCorrectionWords.after}
+          </p>
+        </div>
+        <div className="w-[330px] max-w-full">
+          <SelectField
+            label={kindCorrectionWords.kind}
+            options={kinds}
+            value={kind}
+            onChange={(value) => {
+              setKind(value)
+              setProblem(null)
+            }}
+            {...(problem === null ? {} : { problem })}
+          />
+        </div>
+        <Button
+          tone="primary"
+          icon={Check}
+          disabled={working || !status.online || count === 0}
+          onClick={() => {
+            void correct()
+          }}
+        >
+          {kindCorrectionWords.correct(count)}
+        </Button>
+        <Button onClick={onCancel}>Abbrechen</Button>
+      </div>
+      {trouble ? (
+        <p role="alert" className="mt-2 text-[13px] font-semibold text-conflict">
+          {trouble}
+        </p>
+      ) : null}
+    </Panel>
+  )
+}
+
+/** A box in front of a row of the register or for all of the page, `box()` of the board. */
+function Tick({
+  label,
+  checked,
+  mixed = false,
+  onChange,
+}: {
+  readonly label: string
+  readonly checked: boolean
+  readonly mixed?: boolean
+  readonly onChange: (checked: boolean) => void
+}) {
+  return (
+    <input
+      type="checkbox"
+      aria-label={label}
+      checked={checked}
+      ref={(element) => {
+        if (element) {
+          element.indeterminate = mixed
+        }
+      }}
+      className="size-4 shrink-0 cursor-pointer accent-copper-solid max-lg:size-5"
+      onChange={(event) => {
+        onChange(event.target.checked)
+      }}
+    />
+  )
 }
 
 /** "412 Anlagen in 11 Liegenschaften". */

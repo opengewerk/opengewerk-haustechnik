@@ -604,6 +604,137 @@ describe('an asset', () => {
   })
 })
 
+describe('the kind of many assets (#351)', () => {
+  const general = 'allgemein.conveying_system'
+  const correct = (
+    body: object,
+    userId: keyof typeof people & string = 'u-tech',
+    tenantId: TenantId = small,
+  ) => http().put('/assets/kind').set(testIdentityHeader, by(userId, tenantId)).send(body)
+  const kindOf = async (id: string, tenantId: TenantId = small): Promise<unknown> =>
+    (await http().get(`/assets/${id}`).set(testIdentityHeader, by('u-tech', tenantId)).expect(200))
+      .body.kind
+
+  /** Acceptance of #351: once a package has come, the register corrects the kind of many assets in one step. */
+  it('is corrected for every asset chosen in one step, and for no other', async () => {
+    const place = await placeIn()
+    const first = await assetIn(place.building, { name: 'Aufzug Haus A', kind: general })
+    const second = await assetIn(place.annex, { name: 'Aufzug Haus B', kind: general })
+    const other = await assetIn(place.building, { name: 'Lastenaufzug', kind: general })
+
+    const answer = await correct({
+      kind: 'probe.elevator',
+      assetIds: [first.id, second.id],
+    }).expect(200)
+
+    // The same assets under the same numbers, now of the kind their package describes.
+    expect(
+      (answer.body as Record<string, unknown>[]).map((each) => [
+        each['id'],
+        each['number'],
+        each['kind'],
+      ]),
+    ).toEqual([
+      [first.id, first['number'], 'probe.elevator'],
+      [second.id, second['number'], 'probe.elevator'],
+    ])
+    expect([await kindOf(first.id), await kindOf(second.id), await kindOf(other.id)]).toEqual([
+      'probe.elevator',
+      'probe.elevator',
+      general,
+    ])
+  })
+
+  it('is corrected for all of them or for none, and a refusal names the asset that does not fit', async () => {
+    const place = await placeIn()
+    const fits = await assetIn(place.building, { name: 'Aufzug Haus A', kind: general })
+    const meter = await assetIn(place.annex, { ...waterMeter, values: { hot_water: false } })
+
+    // Each asset is held against the new kind as one corrected alone, with its values and its meter as they are.
+    await correct({ kind: 'probe.elevator', assetIds: [fits.id, meter.id] })
+      .expect(400)
+      .expect((answer) =>
+        expect(answer.body.message).toBe(
+          `${String(meter['number'])} Hauswasserzähler: Das Feld hot_water hat die Anlagenart Aufzugsanlage nicht.`,
+        ),
+      )
+    expect(await kindOf(fits.id)).toBe(general)
+
+    // A measuring point needs its number and its unit, which a correction of many does not give.
+    await correct({ kind: 'probe.water_meter', assetIds: [fits.id] })
+      .expect(400)
+      .expect((answer) =>
+        expect(answer.body.message).toBe(
+          `${String(fits['number'])} Aufzug Haus A: Die Zählernummer fehlt.`,
+        ),
+      )
+    expect(await kindOf(fits.id)).toBe(general)
+  })
+
+  it('names a kind the catalogue knows and each asset once', async () => {
+    const place = await placeIn()
+    const asset = await assetIn(place.building, { name: 'Aufzug', kind: general })
+    const refused = async (body: object): Promise<string> =>
+      (await correct(body).expect(400)).body.message
+
+    expect([
+      await refused({ assetIds: [asset.id] }),
+      await refused({ kind: 'probe.escalator', assetIds: [asset.id] }),
+      await refused({ kind: 'probe.elevator' }),
+      await refused({ kind: 'probe.elevator', assetIds: [asset.id, asset.id] }),
+      await refused({ kind: 'probe.elevator', assetIds: [String(asset['number'])] }),
+      await refused({
+        kind: 'probe.elevator',
+        assetIds: Array.from({ length: 501 }, () => newId<'asset'>()),
+      }),
+    ]).toEqual([
+      'Die neue Anlagenart ist nicht genannt.',
+      'Die Anlagenart probe.escalator kennt kein Paket des Katalogs.',
+      'Eine Berichtigung nennt mindestens eine Anlage.',
+      'Eine Anlage steht zweimal in der Berichtigung.',
+      'Eine Anlage der Berichtigung ist nicht genannt.',
+      'Eine Berichtigung nennt höchstens 500 Anlagen.',
+    ])
+    expect(await kindOf(asset.id)).toBe(general)
+  })
+
+  it('is corrected by whoever takes stock of assets, and only in their areas', async () => {
+    const inNorth = await placeIn(large, { areaId: north, name: 'Campus Ost' })
+    const inSouth = await placeIn(large, { areaId: south, name: 'Campus Mitte' })
+    const northern = await assetIn(
+      inNorth.building,
+      { name: 'Aufzug Nord', kind: general },
+      'u-tech',
+      large,
+    )
+    const southern = await assetIn(
+      inSouth.building,
+      { name: 'Aufzug Süd', kind: general },
+      'u-duties',
+      large,
+    )
+
+    // The technician works in the north: an asset in the south is not there for them, and nothing is corrected.
+    await correct({ kind: 'probe.elevator', assetIds: [northern.id, southern.id] }, 'u-tech', large)
+      .expect(404)
+      .expect((answer) =>
+        expect(answer.body.message).toBe('Diese Anlage gibt es nicht oder nicht mehr.'),
+      )
+    expect(await kindOf(northern.id, large)).toBe(general)
+
+    // The auditor from outside reads and writes nothing of the register.
+    await http()
+      .put('/assets/kind')
+      .set(testIdentityHeader, as(large, 'u-audit', 'auditor'))
+      .send({ kind: 'probe.elevator', assetIds: [northern.id] })
+      .expect(403)
+      .expect((answer) => expect(answer.body.message).toBe(missingRight('asset.record')))
+
+    await correct({ kind: 'probe.elevator', assetIds: [northern.id] }, 'u-tech', large).expect(200)
+    expect(await kindOf(northern.id, large)).toBe('probe.elevator')
+  })
+})
+
 describe('a component', () => {
   it('hangs under its asset in its building, and moves with it out of its room', async () => {
     const place = await placeIn()
