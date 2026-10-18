@@ -1,4 +1,6 @@
 import {
+  addInterval,
+  type DeadlineInterval,
   type FederalState,
   type IsoDate,
   type PersonLevel,
@@ -92,9 +94,10 @@ export const dutyBindingnessLabel: Readonly<Record<DutyBindingness, string>> = {
  * What the interval of a duty kind is: a maximum the operator may only
  * shorten, a guide the operator sets and justifies a departure from, or no
  * value at all, which the operator determines himself, in the risk assessment
- * for instance.
+ * for instance. A duty that falls due once has no interval but a due day
+ * (#439): one its source names, or one a rule counts from a day of the asset.
  */
-export const intervalKinds = ['maximum', 'guide', 'none'] as const
+export const intervalKinds = ['maximum', 'guide', 'none', 'once'] as const
 
 export type IntervalKind = (typeof intervalKinds)[number]
 
@@ -102,6 +105,26 @@ export const intervalKindLabel: Readonly<Record<IntervalKind, string>> = {
   maximum: 'Höchstfrist',
   guide: 'Richtwert',
   none: 'Ohne Vorgabe',
+  once: 'Einmalig',
+}
+
+/**
+ * The day of an asset a duty that falls due once is counted from (#439): its
+ * commissioning, which the file of the asset keeps, its installation, its
+ * first filling, or the day the operator took it over.
+ */
+export const onceStarts = ['commissioning', 'installation', 'first_filling', 'takeover'] as const
+
+export type OnceStart = (typeof onceStarts)[number]
+
+/** That day in the words of a form, and in those of a due day counted from it. */
+export const onceStartWords: Readonly<
+  Record<OnceStart, { readonly day: string; readonly after: string }>
+> = {
+  commissioning: { day: 'Tag der Inbetriebnahme', after: 'nach der Inbetriebnahme' },
+  installation: { day: 'Tag des Einbaus', after: 'nach dem Einbau' },
+  first_filling: { day: 'Tag der Erstbefüllung', after: 'nach der Erstbefüllung' },
+  takeover: { day: 'Tag der Übernahme', after: 'nach der Übernahme durch den Betreiber' },
 }
 
 /** The units the rule of an interval may be counted in. */
@@ -115,22 +138,36 @@ export const intervalUnits = ['days', 'months', 'years'] as const satisfies read
  * two months after it. A field with fixed values and no expression in a
  * language of its own (ADR 0005, point 14); `nextAppointment` does the
  * counting.
+ *
+ * A duty that falls due once (#439) is counted no further: its first
+ * evidence meets it for good. Only a kind of the catalogue says so; a duty of
+ * the operator's own and a list taken over recur.
  */
-export const countings = ['from_performance', 'from_due', 'betrsichv'] as const
+export const recurringCountings = ['from_performance', 'from_due', 'betrsichv'] as const
+
+export const countings = [...recurringCountings, 'once'] as const
 
 export type Counting = (typeof countings)[number]
+
+export type RecurringCounting = (typeof recurringCountings)[number]
 
 export const countingLabel: Readonly<Record<Counting, string>> = {
   from_performance: 'Ab dem Tag der Durchführung',
   from_due: 'Ab dem fälligen Tag',
   betrsichv: 'Nach § 14 Abs. 5 BetrSichV',
+  once: 'Einmalig',
 }
 
-/** The units a counting takes its interval in: § 14 Abs. 5 BetrSichV knows months and years only. */
+/**
+ * The units a counting takes its interval in: § 14 Abs. 5 BetrSichV knows
+ * months and years only. A duty that falls due once takes the distance of
+ * its due day in the same units as one that recurs.
+ */
 export const countingUnits: Readonly<Record<Counting, readonly RuleUnit[]>> = {
   from_performance: intervalUnits,
   from_due: intervalUnits,
   betrsichv: ['months', 'years'],
+  once: intervalUnits,
 }
 
 /** Who may carry out the task, from the instructed employee to the accredited laboratory. */
@@ -280,6 +317,16 @@ export type DutyInterval =
       readonly legalClearance?: string
     }
   | { readonly kind: 'none' }
+  | OnceInterval
+
+/**
+ * The due day of a duty that falls due once (#439): a day its source names,
+ * or the distance of a rule from a day of the asset. Like an interval, the
+ * distance is a rule and never a number.
+ */
+export type OnceInterval =
+  | { readonly kind: 'once'; readonly dueOn: IsoDate }
+  | { readonly kind: 'once'; readonly rule: string; readonly from: OnceStart }
 
 /**
  * One condition of a scope, on a characteristic of the asset. A threshold is
@@ -442,9 +489,10 @@ export interface CataloguePackage {
  * document names its kind and demand (opengewerk-haustechnik#347), six since
  * the server hands out what its operator added, the asset kinds and fields
  * of its own (opengewerk-haustechnik#62), seven since a kind of qualification
- * names the kinds it covers (opengewerk-haustechnik#406).
+ * names the kinds it covers (opengewerk-haustechnik#406), eight since a duty
+ * kind may fall due once (opengewerk-haustechnik#439).
  */
-export const catalogueFormat = 7
+export const catalogueFormat = 8
 
 /**
  * What the build writes and server and interface load. The checksum is taken
@@ -533,8 +581,22 @@ export interface Catalogue {
   readonly rule: (key: string, on: IsoDate, state?: FederalState) => CatalogueRule | null
   /** Every record of a rule, the whole country before the states, the earliest first. */
   readonly ruleRecords: (key: string) => readonly CatalogueRule[]
-  /** The rule of the interval of a duty kind on a day, or nothing for one without a value. */
+  /** The rule of the interval of a duty kind on a day, or nothing for one without a value or one that falls due once. */
   readonly interval: (dutyKind: DutyKind, on: IsoDate, state?: FederalState) => CatalogueRule | null
+  /**
+   * The due day of a version of a duty kind that falls due once (#439): the
+   * day it names, or the distance its rule has on the day it is counted from,
+   * from that day. A day before the version begins counts with the value of
+   * its first day: a regulation that counts from a day before it came into
+   * force, as § 60b GModG counts from the installation, counts with its own
+   * value. Nothing for a recurring kind, for one counted from a day nobody
+   * named, and where the rule has no value.
+   */
+  readonly onceDue: (
+    entry: Pick<CatalogueEntry<DutyKind>, 'definition' | 'validFrom'>,
+    countedFrom: IsoDate | null,
+    state?: FederalState,
+  ) => IsoDate | null
   /** How long the evidence is kept, with the rule of the years where it has one. */
   readonly retention: (
     dutyKind: DutyKind,
@@ -706,7 +768,30 @@ export function catalogueOf(bundle: CatalogueBundle): Catalogue {
     rule,
     ruleRecords: (key) => inReadingOrder(rules.filter((entry) => entry.record.key === key)),
     interval: (dutyKind, on, state) =>
-      dutyKind.interval.kind === 'none' ? null : rule(dutyKind.interval.rule, on, state),
+      dutyKind.interval.kind === 'maximum' || dutyKind.interval.kind === 'guide'
+        ? rule(dutyKind.interval.rule, on, state)
+        : null,
+    onceDue: (entry, countedFrom, state) => {
+      const { interval } = entry.definition
+
+      if (interval.kind !== 'once') {
+        return null
+      }
+
+      if ('dueOn' in interval) {
+        return interval.dueOn
+      }
+
+      if (countedFrom === null) {
+        return null
+      }
+
+      const asked = countedFrom < entry.validFrom ? entry.validFrom : countedFrom
+      const distance = rule(interval.rule, asked, state)
+      const counted = distance === null ? null : distanceOf(distance.record)
+
+      return counted === null ? null : addInterval(countedFrom, counted)
+    },
     retention: (dutyKind, on, state) => {
       if (dutyKind.retention.kind !== 'years') {
         return { kind: dutyKind.retention.kind }
@@ -925,7 +1010,7 @@ export function dutyKindsNaming(
  * that instead of a number nobody can check.
  */
 export function intervalLine(
-  catalogue: Pick<Catalogue, 'interval'>,
+  catalogue: Pick<Catalogue, 'interval' | 'rule'>,
   kind: DutyKind,
   on: IsoDate,
   state?: FederalState,
@@ -934,12 +1019,60 @@ export function intervalLine(
     return 'die Frist trägt der Betreiber ein'
   }
 
+  if (kind.interval.kind === 'once') {
+    return `einmalig, ${onceDueWords(catalogue, kind.interval, on, state)}`
+  }
+
   const found = catalogue.interval(kind, on, state)
   const label = intervalKindLabel[kind.interval.kind]
 
   return found
     ? `${label} ${ruleValueWords(found.record.value, found.record.unit)}`
     : `${label}, an diesem Tag ohne Wert`
+}
+
+/**
+ * The due day of a kind that falls due once, in words, on a day: "bis
+ * 30.09.2027" for a day its source names, "28 Tage nach der Inbetriebnahme"
+ * for a distance, and that the rule has no value where it has none.
+ */
+export function onceDueWords(
+  catalogue: Pick<Catalogue, 'rule'>,
+  interval: OnceInterval,
+  on: IsoDate,
+  state?: FederalState,
+): string {
+  if ('dueOn' in interval) {
+    return `bis ${dayWords(interval.dueOn)}`
+  }
+
+  const found = catalogue.rule(interval.rule, on, state)
+  const after = onceStartWords[interval.from].after
+
+  return found
+    ? `${ruleValueWords(found.record.value, found.record.unit)} ${after}`
+    : `${after}, an diesem Tag ohne Wert`
+}
+
+/** A day as the office writes it: 30.09.2027. */
+function dayWords(day: IsoDate): string {
+  const [year, month, date] = day.split('-')
+
+  return `${date ?? ''}.${month ?? ''}.${year ?? ''}`
+}
+
+/** The distance of a rule in days, months or years, as a due day is counted; nothing in another unit. */
+function distanceOf(record: RuleRecord): DeadlineInterval | null {
+  switch (record.unit) {
+    case 'days':
+      return { days: record.value }
+    case 'months':
+      return { months: record.value }
+    case 'years':
+      return { months: record.value * 12 }
+    default:
+      return null
+  }
 }
 
 /** What the scope of a duty kind says, each part as the lines a person reads. */

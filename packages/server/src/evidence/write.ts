@@ -315,6 +315,8 @@ export async function writeEvidence(
           duty,
           ceilingOf(context.catalogue, duty.kind, property.federalState)(input.performedOn),
         ) ?? dutyInterval(duty),
+      // A duty that falls due once states its due day instead (#439).
+      dueOn: duty.dueOn,
       counting: duty.counting,
     },
     place,

@@ -112,7 +112,7 @@ function withTwoMoreKinds(bundle: CatalogueBundle): CatalogueBundle {
           ...pack.dutyKinds,
           like(guided, 'Sichtprüfung der Aufzugsanlage', {
             kind: 'guide',
-            rule: main.definition.interval.rule,
+            rule: (main.definition.interval as { readonly rule: string }).rule,
           }),
           like(unguided, 'Kontrolle der Aufzugsanlage durch den Betreiber', { kind: 'none' }),
         ],
@@ -446,6 +446,7 @@ describe('a new version of a package', () => {
       },
       intervalDays: null,
       intervalMonths: 24,
+      dueOn: null,
       update: {
         held: 1,
         newest: 2,
@@ -469,6 +470,7 @@ describe('a new version of a package', () => {
         lapse: null,
         adoptable: true,
         becomes: { months: 12 },
+        becomesDue: null,
         obstacle: null,
         keepable: false,
       },
@@ -492,6 +494,7 @@ describe('a new version of a package', () => {
       adoptable: true,
       // It followed its guide, and follows the new one.
       becomes: { months: 12 },
+      becomesDue: null,
       obstacle: null,
       keepable: true,
     })

@@ -406,6 +406,9 @@ export const auditVocabulary: AuditVocabulary = {
         source_note: 'Quelle',
         task: 'Tätigkeit',
         counting: 'Zählweise',
+        // A duty that falls due once (#439).
+        due_on: 'Termin',
+        counted_from: 'Gezählt ab',
         interval_days: 'Frist in Tagen',
         interval_months: 'Frist in Monaten',
         interval_reason: 'Begründung der Frist',

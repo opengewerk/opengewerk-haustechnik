@@ -71,6 +71,10 @@
         "on": "2026-10-16",
         "sha256": "a89f2d0d09f597dcde0086644a3a715152aedf4b44f35c7d9d38c84b5e4e0110"
       }
+    },
+    {
+      "file": "pflichten/legionella_first_examination.v1.json",
+      "checkedOn": "2026-10-18"
     }
   ],
   "rules": [
@@ -113,6 +117,11 @@
         "on": "2026-10-16",
         "sha256": "b70fa3dc6195f0638320174036bc805639f91e1ea716f5568f95695b04a9eebf"
       }
+    },
+    {
+      "key": "legionella_first_examination_within",
+      "validFrom": "2023-06-24",
+      "checkedOn": "2026-10-18"
     }
   ],
   "classes": [

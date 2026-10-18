@@ -41,6 +41,7 @@ export function leastState(number: string, performedOn: IsoDate, result: string)
       kindVersion: null,
       source: '§ 16 BetrSichV',
       interval: { months: 24 },
+      dueOn: null,
       counting: 'betrsichv',
     },
     place: {

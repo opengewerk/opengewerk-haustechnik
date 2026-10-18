@@ -73,6 +73,7 @@ import {
   keepingProblems,
   missingRight,
   namesAPerson,
+  onceStartWords,
   type Property,
   type Room,
   type RoomId,
@@ -162,6 +163,8 @@ interface Target {
   readonly federalState: FederalState
   /** The asset kind of an asset, which the scope of a duty kind is asked about. */
   readonly assetKind: string | null
+  /** The day an asset went into service, as its file keeps it: what a duty that falls due once may be counted from (#439). */
+  readonly commissionedOn: IsoDate | null
   /** What it hangs on and what lies above it, where the document that bears its interval may lie (#74). */
   readonly chain: DutyPlaceChain
 }
@@ -178,6 +181,7 @@ const newFields = [
   'sourceNote',
   'task',
   'counting',
+  'countedFrom',
   'intervalDays',
   'intervalMonths',
   'intervalReason',
@@ -189,12 +193,17 @@ const newFields = [
   'contractId',
 ] as const
 
-/** The fields a duty may change. What it hangs on and what it is stay as they were confirmed. */
+/**
+ * The fields a duty may change. What it hangs on and what it is stay as they
+ * were confirmed; a duty that falls due once changes the day it is counted
+ * from instead of an interval (#439).
+ */
 const changeFields = [
   'label',
   'basis',
   'sourceNote',
   'task',
+  'countedFrom',
   'intervalDays',
   'intervalMonths',
   'intervalReason',
@@ -312,6 +321,109 @@ function kindInterval(
     : { maximum: null, guide: interval }
 }
 
+/** What a change of a duty may name. */
+type ChangeValues = Partial<Record<(typeof changeFields)[number], unknown>>
+
+/**
+ * What changing a duty that recurs writes of its interval: the interval as it
+ * will stand, within the maximum kept beside it and within one a regulation
+ * shortened since it was confirmed (#139), with its reason where its kind
+ * asks for one. Asked for the reason only where the interval or its reason is
+ * what changes: a duty confirmed before the guide of its kind changed departs
+ * from the guide of today without anybody having decided so, and saying who
+ * answers for it is no reason to ask for one.
+ */
+function intervalChanged(
+  catalogue: Catalogue,
+  duty: Duty,
+  values: ChangeValues,
+  state: FederalState,
+  today: IsoDate,
+): { readonly intervalDays: unknown; readonly intervalMonths: unknown } {
+  if (values.countedFrom !== undefined) {
+    throw new BadRequestException('Nur eine einmalige Pflicht zählt ab einem Tag der Anlage.')
+  }
+
+  const changed = values.intervalDays !== undefined || values.intervalMonths !== undefined
+  const interval = changed
+    ? { intervalDays: values.intervalDays ?? null, intervalMonths: values.intervalMonths ?? null }
+    : { intervalDays: duty.intervalDays, intervalMonths: duty.intervalMonths }
+  const problem = dutyIntervalProblem(interval, duty.counting, dutyMaximum(duty))
+
+  if (problem !== null) {
+    throw new BadRequestException(problem)
+  }
+
+  // A regulation that shortened the maximum since the duty was confirmed
+  // holds for an interval set now as well (#139): no interval is saved that
+  // the appointment would not count with.
+  if (changed && duty.kind !== null) {
+    const inForce = ceilingOf(catalogue, duty.kind, state)(today)
+    const beyond = inForce === null ? null : dutyIntervalProblem(interval, duty.counting, inForce)
+
+    if (beyond !== null) {
+      throw new BadRequestException(beyond)
+    }
+  }
+
+  const reasonAtStake = changed || values.intervalReason !== undefined
+
+  if (reasonAtStake && duty.kind !== null && duty.kindVersion !== null) {
+    const entry = catalogue.dutyKindVersion(duty.kind, duty.kindVersion)
+    const reason = values.intervalReason === undefined ? duty.intervalReason : values.intervalReason
+
+    if (entry !== null) {
+      const { guide } = kindInterval(catalogue, entry, today, state)
+
+      if (
+        intervalNeedsReason(entry.definition.interval.kind, intervalIn(interval), guide) &&
+        !given(reason)
+      ) {
+        throw new BadRequestException(reasonSentence(entry.definition.interval.kind, guide))
+      }
+    }
+  }
+
+  return interval
+}
+
+/**
+ * What changing a duty that falls due once writes of its due day (#439): a
+ * new day it is counted from, say a commissioning again, and the due day the
+ * version of its kind the duty names counts from it. It has no interval, and
+ * a day its source names does not change.
+ */
+function onceChanged(
+  catalogue: Catalogue,
+  duty: Duty,
+  values: ChangeValues,
+  state: FederalState,
+): Partial<Pick<Term, 'dueOn' | 'countedFrom'>> {
+  if (
+    values.intervalDays !== undefined ||
+    values.intervalMonths !== undefined ||
+    values.intervalReason !== undefined ||
+    values.intervalDocumentId !== undefined
+  ) {
+    throw new BadRequestException(noIntervalOnce)
+  }
+
+  if (values.countedFrom === undefined) {
+    return {}
+  }
+
+  const entry =
+    duty.kind === null || duty.kindVersion === null
+      ? null
+      : catalogue.dutyKindVersion(duty.kind, duty.kindVersion)
+
+  if (entry === null) {
+    throw new ConflictException('Die Pflichtart dieser Pflicht kennt der Katalog nicht mehr.')
+  }
+
+  return onceTerm(catalogue, entry, values.countedFrom, null, state)
+}
+
 /**
  * What a duty hangs on: at most one of an asset, a room or a building, and
  * the property itself where none is named. Each is a row the person asking
@@ -340,6 +452,7 @@ async function targetOf(tx: TenantTransaction, values: Values): Promise<Target> 
       areaId: asset.areaId,
       assetId: asset.id,
       assetKind: asset.kind,
+      commissionedOn: asset.commissionedOn,
     }
     above = { buildingId: asset.buildingId, roomId: asset.roomId }
   } else if (given(values.roomId)) {
@@ -379,6 +492,7 @@ async function targetOf(tx: TenantTransaction, values: Values): Promise<Target> 
     assetId: place.assetId ?? null,
     federalState: property.federalState,
     assetKind: place.assetKind ?? null,
+    commissionedOn: place.commissionedOn ?? null,
     chain: {
       propertyId: property.id,
       buildingId: place.buildingId ?? above.buildingId ?? null,
@@ -515,15 +629,86 @@ function kindFor(catalogue: Catalogue, key: unknown, assetKind: string | null, o
 
 /**
  * What a duty is confirmed with: its kind and version, its counting, the
- * maximum or the guide kept beside it (#139) and its interval.
+ * maximum or the guide kept beside it (#139) and its interval; or for a duty
+ * that falls due once, its due day and the day it is counted from (#439).
  */
-interface Decided {
+interface Decided extends Term {
   readonly kind: string | null
   readonly kindVersion: number | null
   readonly counting: Counting
+}
+
+/** How often a duty falls due: an interval with what its kind kept beside it, or a due day. */
+interface Term {
   readonly maximum: DeadlineInterval | null
   readonly guide: DeadlineInterval | null
-  readonly interval: DeadlineInterval
+  readonly interval: DeadlineInterval | null
+  readonly dueOn: IsoDate | null
+  readonly countedFrom: IsoDate | null
+}
+
+/** Why a duty that falls due once takes no interval. */
+const noIntervalOnce =
+  'Eine einmalige Pflicht hat keine Frist, sondern einen Termin; sie nennt weder Frist noch Begründung noch ein Dokument, das eine Frist trägt.'
+
+/**
+ * The due day of a duty that falls due once (#439), from its kind: the day
+ * its source names, or the distance of its rule from the day of the asset it
+ * is counted from. That day is the one the values name; for a kind counted
+ * from the commissioning, else the one the file of the asset keeps. Nothing
+ * of it is typed, so nothing of it overrides the source.
+ */
+function onceTerm(
+  catalogue: Catalogue,
+  entry: CatalogueEntry<DutyKind>,
+  countedFrom: unknown,
+  commissionedOn: IsoDate | null,
+  state: FederalState,
+): Pick<Term, 'dueOn' | 'countedFrom'> {
+  const { interval } = entry.definition
+
+  if (interval.kind !== 'once') {
+    throw new BadRequestException('Nur eine einmalige Pflicht zählt ab einem Tag der Anlage.')
+  }
+
+  if ('dueOn' in interval) {
+    if (given(countedFrom)) {
+      throw new BadRequestException(
+        'Den Termin dieser Pflicht nennt ihre Vorschrift; sie zählt von keinem Tag der Anlage.',
+      )
+    }
+
+    return { dueOn: interval.dueOn, countedFrom: null }
+  }
+
+  const day = given(countedFrom)
+    ? countedFrom
+    : interval.from === 'commissioning'
+      ? commissionedOn
+      : null
+
+  if (day === null) {
+    throw new BadRequestException(
+      `Für diese Pflicht fehlt der ${onceStartWords[interval.from].day}; von ihm aus zählt ihr Termin.`,
+    )
+  }
+
+  // Its shape `dutyProblems` has checked already.
+  if (typeof day !== 'string') {
+    throw new BadRequestException(
+      'Der Tag, ab dem gezählt wird, ist ein Tag, geschrieben 2026-10-03.',
+    )
+  }
+
+  const dueOn = catalogue.onceDue(entry, day, state)
+
+  if (dueOn === null) {
+    throw new ConflictException(
+      'Der Termin dieser Pflichtart hat an diesem Tag in diesem Land keine Regel.',
+    )
+  }
+
+  return { dueOn, countedFrom: day }
 }
 
 /** The fields a batch may name besides its assets: one duty kind, and what every duty of it takes. */
@@ -572,37 +757,20 @@ async function confirmedFromTheCatalogue(
   { itsKindsInterval = false }: { readonly itsKindsInterval?: boolean } = {},
 ): Promise<Decided> {
   const entry = kindFor(catalogue, values.kind, target.assetKind, today)
-  const { maximum, guide } = kindInterval(catalogue, entry, today, target.federalState)
   const counting = entry.definition.counting
-  const named = given(values.intervalDays) || given(values.intervalMonths)
-  const itsOwn = maximum ?? guide
-
-  if (itsKindsInterval && !named && itsOwn === null) {
-    throw new BadRequestException(
-      'Die Frist dieser Pflichtart legt der Betreiber fest; der Stapel nennt sie, mit Begründung.',
-    )
-  }
-
-  const asked =
-    itsKindsInterval && !named && itsOwn !== null
-      ? 'days' in itsOwn
-        ? { intervalDays: itsOwn.days }
-        : { intervalMonths: itsOwn.months }
-      : { intervalDays: values.intervalDays, intervalMonths: values.intervalMonths }
-  const problem = dutyIntervalProblem(asked, counting, maximum)
-
-  if (problem !== null) {
-    throw new BadRequestException(problem)
-  }
-
-  const interval = intervalIn(asked)
-
-  if (
-    intervalNeedsReason(entry.definition.interval.kind, interval, guide) &&
-    !given(values.intervalReason)
-  ) {
-    throw new BadRequestException(reasonSentence(entry.definition.interval.kind, guide))
-  }
+  const term: Term =
+    counting === 'once'
+      ? {
+          maximum: null,
+          guide: null,
+          interval: null,
+          ...onceOfTheCatalogue(catalogue, entry, values, target),
+        }
+      : {
+          ...intervalOfTheCatalogue(catalogue, entry, values, target, today, itsKindsInterval),
+          dueOn: null,
+          countedFrom: null,
+        }
 
   const [standing] = await tx
     .select({ id: duties.id })
@@ -631,7 +799,78 @@ async function confirmedFromTheCatalogue(
       ),
     )
 
-  return { kind: entry.key, kindVersion: entry.version, counting, maximum, guide, interval }
+  return { kind: entry.key, kindVersion: entry.version, counting, ...term }
+}
+
+/** The due day of a duty kind of the catalogue that falls due once, confirmed at an asset (#439). */
+function onceOfTheCatalogue(
+  catalogue: Catalogue,
+  entry: CatalogueEntry<DutyKind>,
+  values: Values,
+  target: Target,
+): Pick<Term, 'dueOn' | 'countedFrom'> {
+  if (
+    given(values.intervalDays) ||
+    given(values.intervalMonths) ||
+    given(values.intervalReason) ||
+    given(values.intervalDocumentId)
+  ) {
+    throw new BadRequestException(noIntervalOnce)
+  }
+
+  return onceTerm(catalogue, entry, values.countedFrom, target.commissionedOn, target.federalState)
+}
+
+/**
+ * The interval of a duty kind of the catalogue that recurs, confirmed at an
+ * asset: within the maximum, with its reason where one is needed, or in a
+ * batch that names none the one of its kind.
+ */
+function intervalOfTheCatalogue(
+  catalogue: Catalogue,
+  entry: CatalogueEntry<DutyKind>,
+  values: Values,
+  target: Target,
+  today: IsoDate,
+  itsKindsInterval: boolean,
+): Pick<Term, 'maximum' | 'guide' | 'interval'> {
+  const { maximum, guide } = kindInterval(catalogue, entry, today, target.federalState)
+  const counting = entry.definition.counting
+  const named = given(values.intervalDays) || given(values.intervalMonths)
+  const itsOwn = maximum ?? guide
+
+  if (given(values.countedFrom)) {
+    throw new BadRequestException('Nur eine einmalige Pflicht zählt ab einem Tag der Anlage.')
+  }
+
+  if (itsKindsInterval && !named && itsOwn === null) {
+    throw new BadRequestException(
+      'Die Frist dieser Pflichtart legt der Betreiber fest; der Stapel nennt sie, mit Begründung.',
+    )
+  }
+
+  const asked =
+    itsKindsInterval && !named && itsOwn !== null
+      ? 'days' in itsOwn
+        ? { intervalDays: itsOwn.days }
+        : { intervalMonths: itsOwn.months }
+      : { intervalDays: values.intervalDays, intervalMonths: values.intervalMonths }
+  const problem = dutyIntervalProblem(asked, counting, maximum)
+
+  if (problem !== null) {
+    throw new BadRequestException(problem)
+  }
+
+  const interval = intervalIn(asked)
+
+  if (
+    intervalNeedsReason(entry.definition.interval.kind, interval, guide) &&
+    !given(values.intervalReason)
+  ) {
+    throw new BadRequestException(reasonSentence(entry.definition.interval.kind, guide))
+  }
+
+  return { maximum, guide, interval }
 }
 
 /** The row of a new duty: where it hangs, what it is, its interval and who answers for it. */
@@ -658,8 +897,10 @@ function dutyRow(
     sourceNote: decided.kind === null ? (values.sourceNote as string) : null,
     task: decided.kind === null ? (values.task as Duty['task']) : null,
     counting: decided.counting,
-    intervalDays: 'days' in interval ? interval.days : null,
-    intervalMonths: 'months' in interval ? interval.months : null,
+    dueOn: decided.dueOn,
+    countedFrom: decided.countedFrom,
+    intervalDays: interval !== null && 'days' in interval ? interval.days : null,
+    intervalMonths: interval !== null && 'months' in interval ? interval.months : null,
     intervalReason: (values.intervalReason ?? null) as string | null,
     ...document,
     maximumDays: maximum !== null && 'days' in maximum ? maximum.days : null,
@@ -1400,6 +1641,12 @@ export class DutiesController {
           throw new BadRequestException(problem)
         }
 
+        if (given(values.countedFrom)) {
+          throw new BadRequestException(
+            'Eine eigene Pflicht kehrt wieder; sie zählt von keinem Tag der Anlage.',
+          )
+        }
+
         decided = {
           kind: null,
           kindVersion: null,
@@ -1407,6 +1654,8 @@ export class DutiesController {
           maximum: null,
           guide: null,
           interval: intervalIn(values),
+          dueOn: null,
+          countedFrom: null,
         }
       }
 
@@ -1526,57 +1775,11 @@ export class DutiesController {
         }
       }
 
-      const intervalChanged =
-        values.intervalDays !== undefined || values.intervalMonths !== undefined
-      const interval = intervalChanged
-        ? {
-            intervalDays: values.intervalDays ?? null,
-            intervalMonths: values.intervalMonths ?? null,
-          }
-        : { intervalDays: duty.intervalDays, intervalMonths: duty.intervalMonths }
-      const problem = dutyIntervalProblem(interval, duty.counting, dutyMaximum(duty))
-
-      if (problem !== null) {
-        throw new BadRequestException(problem)
-      }
-
-      // A regulation that shortened the maximum since the duty was confirmed
-      // holds for an interval set now as well (#139): no interval is saved
-      // that the appointment would not count with.
-      if (intervalChanged && duty.kind !== null) {
-        const property = await placeOf<Property>(tx, properties, duty.propertyId, missingProperty)
-        const inForce = ceilingOf(this.catalogue, duty.kind, property.federalState)(today)
-        const beyond =
-          inForce === null ? null : dutyIntervalProblem(interval, duty.counting, inForce)
-
-        if (beyond !== null) {
-          throw new BadRequestException(beyond)
-        }
-      }
-
-      // Asked where the interval or its reason is what changes. A duty that
-      // was confirmed before the guide of its kind changed departs from the
-      // guide of today without anybody having decided so; saying who answers
-      // for it is no reason to ask for one.
-      const reasonAtStake = intervalChanged || values.intervalReason !== undefined
-
-      if (reasonAtStake && duty.kind !== null && duty.kindVersion !== null) {
-        const entry = this.catalogue.dutyKindVersion(duty.kind, duty.kindVersion)
-        const property = await placeOf<Property>(tx, properties, duty.propertyId, missingProperty)
-        const reason =
-          values.intervalReason === undefined ? duty.intervalReason : values.intervalReason
-
-        if (entry !== null) {
-          const { guide } = kindInterval(this.catalogue, entry, today, property.federalState)
-
-          if (
-            intervalNeedsReason(entry.definition.interval.kind, intervalIn(interval), guide) &&
-            !given(reason)
-          ) {
-            throw new BadRequestException(reasonSentence(entry.definition.interval.kind, guide))
-          }
-        }
-      }
+      const property = await placeOf<Property>(tx, properties, duty.propertyId, missingProperty)
+      const term =
+        duty.counting === 'once'
+          ? onceChanged(this.catalogue, duty, values, property.federalState)
+          : intervalChanged(this.catalogue, duty, values, property.federalState, today)
 
       checkPerformer(
         values.performer === undefined ? duty.performer : values.performer,
@@ -1623,7 +1826,7 @@ export class DutiesController {
         .update(duties)
         .set({
           ...(rest as Partial<Duty>),
-          ...interval,
+          ...term,
           ...document,
           ...(responsible !== null
             ? {

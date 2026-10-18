@@ -39,8 +39,8 @@ function kind(
   key: string,
   label: string,
   assetKinds: readonly string[],
-  interval: 'maximum' | 'guide' | 'none',
-  counting: 'from_performance' | 'from_due' | 'betrsichv' = 'from_performance',
+  interval: 'maximum' | 'guide' | 'none' | 'once',
+  counting: 'from_performance' | 'from_due' | 'betrsichv' | 'once' = 'from_performance',
 ) {
   return {
     key,
@@ -65,6 +65,7 @@ const kinds = [
     'maximum',
     'betrsichv',
   ),
+  kind('probe.elevator_first_test', 'Erstprüfung des Aufzugs', ['probe.elevator'], 'once', 'once'),
 ]
 
 /** Two years for the tests, a year as the guide of the look. */
@@ -338,6 +339,22 @@ describe('the plan of a list of running deadlines', () => {
       planDeadlines(lines({ ...tested, duty: 'Hauptprüfung der Aufzugsanlage' }), stock()).create
         .duties,
     ).toEqual([])
+  })
+
+  it('takes no duty of the catalogue that falls due once: that one is confirmed from its proposal (#439)', () => {
+    const plan = planDeadlines(
+      lines({ ...tested, mark: 'AUF-1', duty: 'Erstprüfung des Aufzugs' }),
+      stock(),
+    )
+
+    expect(plan.create.duties).toEqual([])
+    expect(plan.problems).toEqual([
+      {
+        lines: [2],
+        what: 'Die Pflicht Erstprüfung des Aufzugs ist einmalig fällig; eine Liste übernimmt nur Pflichten, die wiederkehren',
+        next: 'Die Pflicht an der Anlage aus dem Vorschlag bestätigen und ihren Nachweis dort eintragen',
+      },
+    ])
   })
 
   it('holds the interval of a duty of the catalogue to its maximum, its guide and its reason', () => {

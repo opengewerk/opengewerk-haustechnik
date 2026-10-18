@@ -75,6 +75,7 @@ const shorter: DutyUpdate = {
   lapse: null,
   adoptable: true,
   becomes: { months: 12 },
+  becomesDue: null,
   obstacle: null,
   keepable: false,
 }
@@ -274,6 +275,7 @@ describe('the report of a new version', () => {
       lapse: 'out_of_scope',
       adoptable: false,
       becomes: null,
+      becomesDue: null,
       obstacle: 'Nach der neuen Fassung gilt die Pflichtart für diese Anlage nicht mehr.',
       keepable: true,
     }
@@ -394,7 +396,15 @@ describe('a duty the catalogue says something new about', () => {
         total: 3,
         assets: 3,
         places: 0,
-        counts: { never_recorded: 0, overdue: 0, due: 0, met: 3, dormant: 0, ended: 0 },
+        counts: {
+          never_recorded: 0,
+          overdue: 0,
+          due: 0,
+          outstanding: 0,
+          met: 3,
+          dormant: 0,
+          ended: 0,
+        },
         withoutResponsible: 0,
         more: false,
         duties: [

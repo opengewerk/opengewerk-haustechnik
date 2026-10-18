@@ -99,7 +99,7 @@ function withTwoMoreKinds(bundle: CatalogueBundle): CatalogueBundle {
           ...pack.dutyKinds,
           like(guided, 'Sichtprüfung der Aufzugsanlage', {
             kind: 'guide',
-            rule: main.definition.interval.rule,
+            rule: (main.definition.interval as { readonly rule: string }).rule,
           }),
           like(unguided, 'Kontrolle der Aufzugsanlage durch den Betreiber', { kind: 'none' }),
         ],

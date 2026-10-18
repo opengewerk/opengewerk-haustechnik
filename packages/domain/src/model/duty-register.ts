@@ -29,12 +29,14 @@ import {
 /**
  * The states of a duty in the order of the register: never recorded before
  * overdue, because nobody knows since when it has been due (section 2.3),
- * then what is coming, what is met, and last what rests.
+ * then what is coming, what falls due once and is not yet near (#439), what
+ * is met, and last what rests.
  */
 export const dutyRegisterOrder = [
   'never_recorded',
   'overdue',
   'due',
+  'outstanding',
   'met',
   'dormant',
 ] as const satisfies readonly DutyState[]
@@ -52,6 +54,7 @@ export const dutyRegisterStateLabel: Readonly<Record<DutyRegisterState, string>>
   never_recorded: 'Nie erfasst',
   overdue: 'Überfällig',
   due: 'Fällig',
+  outstanding: 'Ausstehend',
   met: 'Erfüllt',
   dormant: 'Ruht',
   ended: 'Beendet',

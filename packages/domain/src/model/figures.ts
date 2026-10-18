@@ -231,6 +231,28 @@ export function replayedTerms(
   return terms
 }
 
+/**
+ * The one term of a duty that falls due once (#439): its due day, met by the
+ * first evidence on or after the day it is counted from. Like a term of a
+ * duty that recurs, it is none once the duty has ended before it, and it has
+ * not fallen due before the day of asking.
+ */
+export function onceTerms(
+  duty: { readonly dueOn: IsoDate; readonly countedFrom: IsoDate | null },
+  metOn: readonly IsoDate[],
+  bounds: { readonly endsOn: IsoDate | null; readonly today: IsoDate },
+): readonly DutyTerm[] {
+  const { dueOn, countedFrom } = duty
+
+  if ((bounds.endsOn !== null && dueOn >= bounds.endsOn) || dueOn > bounds.today) {
+    return []
+  }
+
+  const met = [...metOn].sort().find((day) => countedFrom === null || day >= countedFrom)
+
+  return [{ dueOn, onTimeUntil: dueOn, metOn: met ?? null }]
+}
+
 /** How a term turned out: met by its last day, met later, or not met yet. */
 export type TermOutcome = 'on_time' | 'late' | 'open'
 

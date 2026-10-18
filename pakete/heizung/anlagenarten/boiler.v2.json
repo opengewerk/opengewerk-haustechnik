@@ -1,0 +1,75 @@
+{
+  "validFrom": "2006-11-08",
+  "label": "Heizkessel",
+  "costGroup": "421",
+  "characteristics": [
+    {
+      "key": "fuel",
+      "label": "Brennstoff",
+      "kind": "choice",
+      "options": [
+        {
+          "value": "oil",
+          "label": "Heizöl"
+        },
+        {
+          "value": "gas",
+          "label": "Gas"
+        },
+        {
+          "value": "solid",
+          "label": "Feste Brennstoffe wie Holz oder Pellets"
+        }
+      ]
+    },
+    {
+      "key": "rated_heat_output",
+      "label": "Nennwärmeleistung",
+      "kind": "number",
+      "unit": "kilowatts"
+    },
+    {
+      "key": "condensing",
+      "label": "Brennwertgerät",
+      "kind": "flag"
+    },
+    {
+      "key": "older_than_twelve_years",
+      "label": "Inbetriebnahme oder Kesseltausch liegt mehr als zwölf Jahre zurück",
+      "kind": "flag"
+    },
+    {
+      "key": "self_calibrating",
+      "label": "Mit selbstkalibrierender kontinuierlicher Verbrennungsregelung",
+      "kind": "flag"
+    },
+    {
+      "key": "six_or_more_units",
+      "label": "In einem Gebäude mit mindestens sechs Wohnungen oder sonstigen selbständigen Nutzungseinheiten",
+      "kind": "flag"
+    },
+    {
+      "key": "installed_before_october_2009",
+      "label": "Vor dem 01.10.2009 eingebaut oder aufgestellt",
+      "kind": "flag"
+    },
+    {
+      "key": "building_automation",
+      "label": "Mit standardisierter Gebäudeautomation nach § 56 GModG",
+      "kind": "flag"
+    },
+    {
+      "key": "built_since_march_2010",
+      "label": "Ab dem 22.03.2010 errichtet oder wesentlich geändert",
+      "kind": "flag"
+    }
+  ],
+  "expectedDocuments": [
+    {
+      "key": "operating_manual",
+      "label": "Betriebsanleitung",
+      "kind": "operating_manual",
+      "demand": "recommended"
+    }
+  ]
+}

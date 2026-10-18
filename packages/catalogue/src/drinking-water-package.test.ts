@@ -87,11 +87,13 @@ function proposed(
 function sampling(characteristics: Characteristics): readonly (readonly [string, string])[] {
   const catalogue = drinkingWater()
 
-  return proposed(catalogue, 'drinking_water_installation', characteristics).map((entry) => {
-    const rule = catalogue.interval(entry.definition, options.today)
+  return proposed(catalogue, 'drinking_water_installation', characteristics)
+    .filter((entry) => entry.key.includes('legionella_sampling'))
+    .map((entry) => {
+      const rule = catalogue.interval(entry.definition, options.today)
 
-    return [entry.key, rule === null ? 'none' : `${rule.record.value} ${rule.record.unit}`]
-  })
+      return [entry.key, rule === null ? 'none' : `${rule.record.value} ${rule.record.unit}`]
+    })
 }
 
 // An installation the sampling binds, given out to the public.
@@ -130,11 +132,31 @@ describe('the package Trinkwasser', () => {
     expect(sampling({})).toEqual([])
   })
 
+  it('has a new installation examined once, at the latest twelve months after its commissioning, whoever it is given out to (#439)', () => {
+    const catalogue = drinkingWater()
+    const first = (characteristics: Characteristics) =>
+      proposed(catalogue, 'drinking_water_installation', characteristics)
+        .map((entry) => entry.key)
+        .filter((key) => key.includes('first_examination'))
+
+    expect(first(bound)).toEqual(['trinkwasser.legionella_first_examination'])
+    expect(first({ ...bound, supply: 'commercial' })).toEqual([
+      'trinkwasser.legionella_first_examination',
+    ])
+    expect(first({ ...bound, supply: 'none' })).toEqual([])
+    expect(first({ ...bound, one_or_two_family_house: true })).toEqual([])
+
+    const kind = catalogue.dutyKind('trinkwasser.legionella_first_examination', options.today)
+
+    expect(kind && catalogue.onceDue(kind, '2026-11-02')).toBe('2027-11-02')
+    expect(kind?.definition.source).toBe('§ 31 Abs. 4 TrinkwV')
+  })
+
   it('takes the sampling from an approved laboratory, with its findings as evidence kept for ten years', () => {
     const catalogue = drinkingWater()
     const duties = catalogue
       .dutyKinds(options.today)
-      .filter((entry) => entry.key.startsWith('trinkwasser.'))
+      .filter((entry) => entry.key.startsWith('trinkwasser.legionella_sampling'))
 
     expect(duties).toHaveLength(2)
 

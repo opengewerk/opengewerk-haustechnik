@@ -9,6 +9,15 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
 
 ### Hinzugefügt
 
+- Einmalige Pflichten (#439): Eine Pflichtart kann einmal fällig sein, an einem Tag, den die Vorschrift
+  nennt, oder in einem Abstand zu einem Tag der Anlage wie der Inbetriebnahme. Den Tag nennt der Betreiber
+  beim Bestätigen, vorbelegt aus der Akte der Anlage, und der Termin folgt daraus. Bis kurz vor dem Termin
+  ist die Pflicht „Ausstehend bis“, mit ihrem ersten Nachweis ist sie erfüllt und kehrt nicht wieder. Neu
+  in den Paketen: die Heizungsprüfung nach § 60b GModG bis 30.09.2027 oder nach 15 Jahren, die erste
+  Messung einer Feuerungsanlage, die erste Prüfung der Heizöllagerung bis 01.08.2027, die Erstuntersuchung
+  einer Verdunstungskühlanlage und die erste Untersuchung einer neuen Trinkwasserinstallation auf
+  Legionellen. Warum: Mehrere dieser Termine liegen in den nächsten Monaten, und ein Betreiber, der sich auf
+  den Katalog verlässt, sah sie nicht.
 - Das Paket Heizung (#352): Heizkessel, Wärmepumpe, Abgasanlage, Heizöllagerung und Gasinstallation mit der Wartung nach
   § 60 GEG, der Betriebsprüfung der Wärmepumpe nach § 60a in beiden Fassungen vor und ab dem 01.01.2027, den Messungen
   nach § 15 der 1. BImSchV, Kehren und Feuerstättenschau nach SchfHwG und KÜO, der Prüfung der Heizöllagerung nach der
@@ -32,6 +41,13 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
 - Regeln und Formulare zählen auch in Kilogramm (#351), für die Schwellen der ungesättigten Kältemittel
   und die Mengen einer Dichtheitskontrolle. Das Submodul `upstream/opengewerk` steht dafür auf
   opengewerk/opengewerk#668.
+
+### Geändert
+
+- Eine Bedingung im Geltungsbereich einer Pflichtart fragt nur noch die Fassungen einer Anlagenart, die ab
+  dem Beginn der Pflichtart gelten (#439). Warum: Eine neue Fassung einer Anlagenart vom ersten Tag der
+  alten an kann so ein Merkmal mitbringen, nach dem eine neue Pflichtart fragt; der Heizkessel bekommt so
+  die Angaben für die Heizungsprüfung.
 
 ## [0.1.7] - 2026-10-18
 

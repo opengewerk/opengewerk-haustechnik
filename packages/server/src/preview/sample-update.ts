@@ -39,11 +39,13 @@ export function withAnAnnouncedVersion(
 ): CataloguePackage {
   const first = pack.dutyKinds.find((entry) => entry.key === mainTest && entry.version === 1)
 
-  if (first === undefined || first.definition.interval.kind === 'none') {
+  const interval = first?.definition.interval
+
+  if (first === undefined || interval === undefined || !('rule' in interval)) {
     return pack
   }
 
-  const rule = first.definition.interval.rule
+  const { rule } = interval
   const unchecked = { checkedOn: first.review.checkedOn, accepted: null } as const
 
   return {

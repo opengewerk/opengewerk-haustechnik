@@ -21,6 +21,8 @@ import {
   lifecycleStateOn,
   meetsTheDuty,
   nextAppointment,
+  onceAppointment,
+  onceTerms,
   replayedTerms,
   restsOn,
   type Rhythm,
@@ -259,7 +261,14 @@ export async function statesByProperty(
 /** What the standing of a duty is worked out from. */
 export type CountedDuty = Pick<
   Duty,
-  'id' | 'assetId' | 'counting' | 'intervalDays' | 'intervalMonths' | 'endsOn'
+  | 'id'
+  | 'assetId'
+  | 'counting'
+  | 'dueOn'
+  | 'countedFrom'
+  | 'intervalDays'
+  | 'intervalMonths'
+  | 'endsOn'
 >
 
 /** How a duty stands on a day, and the last day it was met. */
@@ -299,13 +308,19 @@ export interface CountedOn {
  * asset rests, the evidence taken over and the maximum of its kind. The one
  * place the rhythm is put together, for the standing of a day and for the
  * terms replayed for the figures over time (#334), so that both count alike.
+ * A duty that falls due once has no rhythm (#439).
  */
-export function rhythmOf(duty: CountedDuty, on: CountedOn): Rhythm {
+export function rhythmOf(duty: CountedDuty, on: CountedOn): Rhythm | null {
   const { ceiling } = on
+  const interval = dutyInterval(duty)
+
+  if (interval === null) {
+    return null
+  }
 
   return {
     counting: duty.counting,
-    interval: dutyInterval(duty),
+    interval,
     outOfServiceOn: (day: IsoDate) =>
       duty.assetId !== null && restsOn(lifecycleStateOn(on.life, day)),
     takenOver: on.takenOver ?? null,
@@ -313,13 +328,28 @@ export function rhythmOf(duty: CountedDuty, on: CountedOn): Rhythm {
   }
 }
 
+/**
+ * The appointment of a duty on a day: from its rhythm, or for a duty that
+ * falls due once its due day until an evidence met it (#439).
+ */
+function appointmentOf(duty: CountedDuty, rhythm: Rhythm | null, on: CountedOn) {
+  if (rhythm !== null) {
+    return nextAppointment(rhythm, on.met)
+  }
+
+  return duty.dueOn === null
+    ? null
+    : onceAppointment({ dueOn: duty.dueOn, countedFrom: duty.countedFrom }, on.met)
+}
+
 export function dutyOnADay(duty: CountedDuty, on: CountedOn): DutyOnADay {
   const rhythm = rhythmOf(duty, on)
-  const resting = rhythm.outOfServiceOn?.(on.today) ?? false
+  const resting = duty.assetId !== null && restsOn(lifecycleStateOn(on.life, on.today))
   const { ceiling } = on
-  const appointment = nextAppointment(rhythm, on.met)
+  const appointment = appointmentOf(duty, rhythm, on)
   const lastMetOn = on.met.at(-1) ?? null
   const shortened = ceiling === undefined ? null : cutShortTo(duty, ceiling(on.today))
+  const once = duty.counting === 'once'
 
   if (
     !resting &&
@@ -331,7 +361,7 @@ export function dutyOnADay(duty: CountedDuty, on: CountedOn): DutyOnADay {
   }
 
   return {
-    standing: dutyStateOn({ appointment, resting, leadDays: on.leadDays, on: on.today }),
+    standing: dutyStateOn({ appointment, resting, leadDays: on.leadDays, on: on.today, once }),
     lastMetOn,
     shortened,
   }
@@ -461,8 +491,19 @@ export async function termsOfDuties(
         leadDays: 0,
         ...(state === undefined ? {} : { ceiling: ceilings(duty.kind, state) }),
       })
+      const bounds = { endsOn: duty.endsOn, today }
 
-      return [duty.id as string, replayedTerms(rhythm, days, { endsOn: duty.endsOn, today })]
+      // A duty that falls due once has its one term (#439).
+      if (rhythm === null) {
+        const terms =
+          duty.dueOn === null
+            ? []
+            : onceTerms({ dueOn: duty.dueOn, countedFrom: duty.countedFrom }, days, bounds)
+
+        return [duty.id as string, terms]
+      }
+
+      return [duty.id as string, replayedTerms(rhythm, days, bounds)]
     }),
   )
 }

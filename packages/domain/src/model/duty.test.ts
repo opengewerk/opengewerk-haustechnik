@@ -8,12 +8,13 @@ import fc from 'fast-check'
 import { describe, expect, it } from 'vitest'
 
 import { lifecycleStates } from './asset.js'
-import { countings } from './catalogue.js'
+import { recurringCountings } from './catalogue.js'
 import {
   type Appointment,
   dutyStateOn,
   dutyStates,
   nextAppointment,
+  onceAppointment,
   restsOn,
   type Rhythm,
   takenOverFrom,
@@ -29,7 +30,7 @@ const monthly = fc.integer({ min: 1, max: 72 }).map((months): DeadlineInterval =
 const daily = fc.integer({ min: 1, max: 730 }).map((count) => ({ days: count }))
 
 /** A rhythm of any counting, with an interval it takes. */
-const rhythms = fc.constantFrom(...countings).chain((counting) =>
+const rhythms = fc.constantFrom(...recurringCountings).chain((counting) =>
   (counting === 'betrsichv' ? monthly : fc.oneof(monthly, daily)).map((interval): Rhythm => ({
     counting,
     interval,
@@ -332,7 +333,7 @@ describe('the next appointment of a duty', () => {
     it('no longer counts what was done before that evidence', () => {
       fc.assert(
         fc.property(
-          fc.constantFrom(...countings),
+          fc.constantFrom(...recurringCountings),
           fc.array(days, { maxLength: 6 }),
           (counting, performed) => {
             const before = performed.filter((day) => day <= takenOver.performedOn)
@@ -532,6 +533,45 @@ describe('the state of a duty', () => {
         },
       ),
     )
+  })
+})
+
+describe('a duty that falls due once (#439)', () => {
+  const dueOn: IsoDate = '2027-09-30'
+  const appointment = (performances: readonly IsoDate[], countedFrom: IsoDate | null = null) =>
+    onceAppointment({ dueOn, countedFrom }, performances)
+  const state = (day: IsoDate, performances: readonly IsoDate[] = [], resting = false) =>
+    dutyStateOn({
+      appointment: appointment(performances),
+      resting,
+      leadDays: 30,
+      on: day,
+      once: true,
+    }).state
+
+  it('is due on its day until an evidence met it, early or late, and then has no appointment for good', () => {
+    expect(appointment([])).toEqual({ dueOn, onTimeUntil: dueOn })
+    expect(appointment(['2027-06-14'])).toBeNull()
+    expect(appointment(['2028-02-01'])).toBeNull()
+  })
+
+  it('counts no evidence from before the day it is counted from', () => {
+    expect(appointment(['2026-11-20'], '2026-12-01')).toEqual({ dueOn, onTimeUntil: dueOn })
+    expect(appointment(['2026-11-20', '2026-12-01'], '2026-12-01')).toBeNull()
+  })
+
+  it('is outstanding until the lead before its day, then due, then overdue, and met for good once done', () => {
+    expect(state('2026-10-18')).toBe('outstanding')
+    expect(state('2027-08-30')).toBe('outstanding')
+    expect(state('2027-08-31')).toBe('due')
+    expect(state('2027-09-30')).toBe('due')
+    expect(state('2027-10-01')).toBe('overdue')
+    expect(state('2027-10-01', ['2027-06-14'])).toBe('met')
+    expect(state('2040-01-01', ['2027-06-14'])).toBe('met')
+  })
+
+  it('rests with its asset like any duty', () => {
+    expect(state('2027-10-01', [], true)).toBe('dormant')
   })
 })
 

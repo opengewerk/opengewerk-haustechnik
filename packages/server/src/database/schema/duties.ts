@@ -79,6 +79,11 @@ function intervalBounds(days: unknown, months: unknown) {
  * refuses a longer interval: a confirmed duty does not change quietly when the
  * law does (section 2.3), and a maximum may only be shortened.
  *
+ * A duty that falls due once (#439) has no interval but its due day, from its
+ * kind: the day its source names, or the distance of its rule from the day
+ * of the asset it is counted from, which stands beside it. The counting says
+ * which it is.
+ *
  * A new version of a package does not change a confirmed duty quietly either
  * (ADR 0005, point 10, #139). Beside the maximum stands the guide of the day
  * the duty was confirmed, so that a guide corrected later is noticed, and
@@ -110,6 +115,8 @@ export const duties = pgTable(
     sourceNote: text('source_note'),
     task: dutyTask('task'),
     counting: dutyCounting('counting').notNull(),
+    dueOn: date('due_on', { mode: 'string' }),
+    countedFrom: date('counted_from', { mode: 'string' }),
     intervalDays: integer('interval_days'),
     intervalMonths: integer('interval_months'),
     intervalReason: text('interval_reason'),
@@ -304,9 +311,24 @@ export const duties = pgTable(
       'duties_interval_document_whole',
       sql`(${table.intervalDocumentId} is null) = (${table.intervalDocumentVersionId} is null)`,
     ),
+    // An interval in days or in months, never both; a duty that falls due once
+    // has none, but its due day, and the day it is counted from only with it
+    // (#439). The counting is compared as text, so that the migration that
+    // brings its new value may name it.
     check(
       'duties_interval_one_unit',
-      sql`(${table.intervalDays} is null) <> (${table.intervalMonths} is null)`,
+      sql`case when ${table.counting}::text = 'once'
+        then ${table.intervalDays} is null and ${table.intervalMonths} is null
+        else (${table.intervalDays} is null) <> (${table.intervalMonths} is null) end`,
+    ),
+    check(
+      'duties_due_day_once',
+      sql`(${table.counting}::text = 'once') = (${table.dueOn} is not null)`,
+    ),
+    check(
+      'duties_counted_from_once',
+      sql`${table.countedFrom} is null
+        or (${table.counting}::text = 'once' and ${table.countedFrom} <= ${table.dueOn})`,
     ),
     check('duties_interval_in_bounds', intervalBounds(table.intervalDays, table.intervalMonths)),
     check(

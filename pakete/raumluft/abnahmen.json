@@ -53,6 +53,10 @@
       "checkedOn": "2026-10-18"
     },
     {
+      "file": "pflichten/cooling_water_first_lab_test.v1.json",
+      "checkedOn": "2026-10-18"
+    },
+    {
       "file": "pflichten/cooling_water_internal_check.v1.json",
       "checkedOn": "2026-10-18"
     },
@@ -217,6 +221,11 @@
     },
     {
       "key": "cooling_lab_test_interval",
+      "validFrom": "2017-08-19",
+      "checkedOn": "2026-10-18"
+    },
+    {
+      "key": "cooling_first_lab_test_within",
       "validFrom": "2017-08-19",
       "checkedOn": "2026-10-18"
     },

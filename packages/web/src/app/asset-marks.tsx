@@ -8,7 +8,7 @@ import {
   type IsoDate,
 } from '@opengewerk/haustechnik-domain'
 import { Status, statusIcons, type StatusTone } from '@opengewerk/platform-web'
-import { type LucideIcon, Pause } from 'lucide-react'
+import { Clock, type LucideIcon, Pause } from 'lucide-react'
 
 /**
  * How a duty and an asset stand today, as the boards draw it
@@ -28,6 +28,8 @@ const dutyLooks: Readonly<Record<DutyState, Look>> = {
   dormant: { tone: 'neutral', icon: Pause },
   overdue: { tone: 'conflict' },
   due: { tone: 'waiting' },
+  // A duty that falls due once and is not near its day yet (#439).
+  outstanding: { tone: 'neutral', icon: Clock },
   met: { tone: 'done' },
 }
 
@@ -37,7 +39,7 @@ export function DutyStateMark({
   until,
 }: {
   readonly state: DutyState
-  /** For a duty that is met: the day it falls due. */
+  /** For a duty that is met or outstanding: the day it falls due. */
   readonly until?: IsoDate | null
 }) {
   const look = dutyLooks[state]

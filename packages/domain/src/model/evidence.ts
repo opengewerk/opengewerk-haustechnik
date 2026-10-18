@@ -121,9 +121,11 @@ export const evidenceLimits = {
  * (#79), 8 since an evidence taken over from a predecessor application keeps
  * the next due day its list named (#130), 9 since one written with a
  * collective activity names it (#342), 10 since an answer about one asset of
- * a point for every asset of a kind names the asset (#343).
+ * a point for every asset of a kind names the asset (#343), 11 since the duty
+ * of a duty that falls due once states its due day instead of an interval
+ * (#439).
  */
-export const evidenceStateVersion = 10
+export const evidenceStateVersion = 11
 
 /** The place of an evidence in words, as it was on the day it was written down. */
 export interface StatedPlace {
@@ -143,14 +145,15 @@ export interface StatedPlace {
  * The duty as it stood on the day it was met: its name, the duty kind and the
  * version that was confirmed, where it comes from (the source of its kind, or
  * what a duty of the operator's own names) and the interval and counting that
- * applied.
+ * applied. A duty that falls due once has no interval but its due day (#439).
  */
 export interface StatedDuty {
   readonly label: string
   readonly kind: string | null
   readonly kindVersion: number | null
   readonly source: string
-  readonly interval: { readonly days: number } | { readonly months: number }
+  readonly interval: { readonly days: number } | { readonly months: number } | null
+  readonly dueOn: IsoDate | null
   readonly counting: Counting
 }
 
@@ -338,8 +341,16 @@ export class UnknownEvidenceStateError extends Error {
   }
 }
 
+/** The tenth version: all of the eleventh, but the duty states its interval and no due day. */
+type EvidenceStateOfVersion10 = Omit<EvidenceState, 'version' | 'duty'> & {
+  readonly version: 10
+  readonly duty: Omit<StatedDuty, 'interval' | 'dueOn'> & {
+    readonly interval: { readonly days: number } | { readonly months: number }
+  }
+}
+
 /** The ninth version: all of the tenth, but no answer names an asset. */
-type EvidenceStateOfVersion9 = Omit<EvidenceState, 'version'> & {
+type EvidenceStateOfVersion9 = Omit<EvidenceStateOfVersion10, 'version'> & {
   readonly version: 9
 }
 
@@ -397,82 +408,97 @@ const readers: Readonly<Record<number, (stored: StoredEvidenceState) => Evidence
   // before the fifth keeps the drawing of a signature, every signature
   // before the sixth was drawn, none before the seventh says when the server
   // took it, none before the eighth was taken over with a due day, none
-  // before the ninth was written with a collective activity, and no answer
+  // before the ninth was written with a collective activity, no answer
   // before the tenth names an asset, which one after it names only where it
-  // is about one.
-  1: (stored) => ({
-    ...(stored as unknown as EvidenceStateOfVersion1),
-    version: evidenceStateVersion,
-    nextDueOn: null,
-    collective: null,
-    replaces: null,
-    form: null,
-    answers: [],
-    remark: null,
-    signatures: withoutDrawings(stored as unknown as EvidenceStateOfVersion1),
-  }),
-  2: (stored) => ({
-    ...(stored as unknown as EvidenceStateOfVersion2),
-    version: evidenceStateVersion,
-    nextDueOn: null,
-    collective: null,
-    form: null,
-    answers: [],
-    remark: null,
-    signatures: withoutDrawings(stored as unknown as EvidenceStateOfVersion2),
-  }),
-  3: (stored) => ({
-    ...(stored as unknown as EvidenceStateOfVersion3),
-    version: evidenceStateVersion,
-    nextDueOn: null,
-    collective: null,
-    remark: null,
-    signatures: withoutDrawings(stored as unknown as EvidenceStateOfVersion3),
-  }),
-  4: (stored) => ({
-    ...(stored as unknown as EvidenceStateOfVersion4),
-    version: evidenceStateVersion,
-    nextDueOn: null,
-    collective: null,
-    signatures: withoutDrawings(stored as unknown as EvidenceStateOfVersion4),
-  }),
-  5: (stored) => ({
-    ...(stored as unknown as EvidenceStateOfVersion5),
-    version: evidenceStateVersion,
-    nextDueOn: null,
-    collective: null,
-    signatures: (stored as unknown as EvidenceStateOfVersion5).signatures.map((signature) => ({
-      ...signature,
-      way: 'drawing' as const,
-      receivedAt: null,
-    })),
-  }),
-  6: (stored) => ({
-    ...(stored as unknown as EvidenceStateOfVersion6),
-    version: evidenceStateVersion,
-    nextDueOn: null,
-    collective: null,
-    signatures: (stored as unknown as EvidenceStateOfVersion6).signatures.map((signature) => ({
-      ...signature,
-      receivedAt: null,
-    })),
-  }),
-  7: (stored) => ({
-    ...(stored as unknown as EvidenceStateOfVersion7),
-    version: evidenceStateVersion,
-    nextDueOn: null,
-    collective: null,
-  }),
-  8: (stored) => ({
-    ...(stored as unknown as EvidenceStateOfVersion8),
-    version: evidenceStateVersion,
-    collective: null,
-  }),
-  9: (stored) => ({
-    ...(stored as unknown as EvidenceStateOfVersion9),
-    version: evidenceStateVersion,
-  }),
-  10: (stored) => stored as unknown as EvidenceState,
+  // is about one, and no duty before the eleventh states a due day.
+  1: (stored) =>
+    eleventh({
+      ...(stored as unknown as EvidenceStateOfVersion1),
+      version: 10,
+      nextDueOn: null,
+      collective: null,
+      replaces: null,
+      form: null,
+      answers: [],
+      remark: null,
+      signatures: withoutDrawings(stored as unknown as EvidenceStateOfVersion1),
+    }),
+  2: (stored) =>
+    eleventh({
+      ...(stored as unknown as EvidenceStateOfVersion2),
+      version: 10,
+      nextDueOn: null,
+      collective: null,
+      form: null,
+      answers: [],
+      remark: null,
+      signatures: withoutDrawings(stored as unknown as EvidenceStateOfVersion2),
+    }),
+  3: (stored) =>
+    eleventh({
+      ...(stored as unknown as EvidenceStateOfVersion3),
+      version: 10,
+      nextDueOn: null,
+      collective: null,
+      remark: null,
+      signatures: withoutDrawings(stored as unknown as EvidenceStateOfVersion3),
+    }),
+  4: (stored) =>
+    eleventh({
+      ...(stored as unknown as EvidenceStateOfVersion4),
+      version: 10,
+      nextDueOn: null,
+      collective: null,
+      signatures: withoutDrawings(stored as unknown as EvidenceStateOfVersion4),
+    }),
+  5: (stored) =>
+    eleventh({
+      ...(stored as unknown as EvidenceStateOfVersion5),
+      version: 10,
+      nextDueOn: null,
+      collective: null,
+      signatures: (stored as unknown as EvidenceStateOfVersion5).signatures.map((signature) => ({
+        ...signature,
+        way: 'drawing' as const,
+        receivedAt: null,
+      })),
+    }),
+  6: (stored) =>
+    eleventh({
+      ...(stored as unknown as EvidenceStateOfVersion6),
+      version: 10,
+      nextDueOn: null,
+      collective: null,
+      signatures: (stored as unknown as EvidenceStateOfVersion6).signatures.map((signature) => ({
+        ...signature,
+        receivedAt: null,
+      })),
+    }),
+  7: (stored) =>
+    eleventh({
+      ...(stored as unknown as EvidenceStateOfVersion7),
+      version: 10,
+      nextDueOn: null,
+      collective: null,
+    }),
+  8: (stored) =>
+    eleventh({
+      ...(stored as unknown as EvidenceStateOfVersion8),
+      version: 10,
+      collective: null,
+    }),
+  9: (stored) =>
+    eleventh({
+      ...(stored as unknown as EvidenceStateOfVersion9),
+      version: 10,
+    }),
+  10: (stored) => eleventh(stored as unknown as EvidenceStateOfVersion10),
+  11: (stored) => stored as unknown as EvidenceState,
+}
+
+/** A state of the tenth version or an earlier one read up to the tenth, in the newest shape: its duty states no due day. */
+function eleventh(state: EvidenceStateOfVersion10): EvidenceState {
+  return { ...state, version: evidenceStateVersion, duty: { ...state.duty, dueOn: null } }
 }
 
 /** The signatures of a state written before version 5, which kept no drawing; all of them drawn. */

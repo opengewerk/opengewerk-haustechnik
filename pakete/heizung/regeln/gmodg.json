@@ -27,6 +27,15 @@
       "value": 10,
       "source": "§ 96 Abs. 1 Satz 2 Nr. 1 und Abs. 2 GEG",
       "origin": "state_law"
+    },
+    {
+      "key": "heating_check_after_installation",
+      "validFrom": "2024-10-01",
+      "validUntil": null,
+      "unit": "years",
+      "value": 16,
+      "source": "§ 60b Abs. 1 Satz 1 GModG",
+      "origin": "state_law"
     }
   ]
 }

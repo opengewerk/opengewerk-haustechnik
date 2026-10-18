@@ -77,6 +77,12 @@ export function cutShortTo(
   ceiling: DeadlineInterval | null,
 ): DeadlineInterval | null {
   const own = dutyInterval(duty)
+
+  // A duty that falls due once has no interval to cut short (#439).
+  if (own === null) {
+    return null
+  }
+
   const inForce = withinCeiling(own, ceiling)
 
   return sameInterval(own, inForce) ? null : inForce
@@ -88,6 +94,8 @@ export type UpdatedDuty = Pick<
   | 'kind'
   | 'kindVersion'
   | 'counting'
+  | 'dueOn'
+  | 'countedFrom'
   | 'intervalDays'
   | 'intervalMonths'
   | 'intervalReason'
@@ -105,6 +113,7 @@ export type UpdatedDuty = Pick<
 export const dutyUpdateFields = [
   'label',
   'interval',
+  'dueOn',
   'intervalKind',
   'counting',
   'qualification',
@@ -118,6 +127,7 @@ export const dutyUpdateFieldLabel: Readonly<Record<DutyUpdateField, string>> = {
   source: 'Fundstelle',
   intervalKind: 'Art der Frist',
   interval: 'Frist der Vorschrift',
+  dueOn: 'Termin der Vorschrift',
   counting: 'Zählweise',
   qualification: 'Qualifikation',
 }
@@ -171,16 +181,23 @@ export interface DutyUpdate {
    */
   readonly adoptable: boolean
   readonly becomes: DeadlineInterval | null
+  /** For a duty that falls due once (#439), the due day it has afterwards instead of an interval. */
+  readonly becomesDue: IsoDate | null
   /** Why it cannot be taken over, in a sentence, or null. */
   readonly obstacle: string | null
   /** Leaving it as it is needs an interval within the new maximum. */
   readonly keepable: boolean
 }
 
-/** What a duty is held against: a version of its kind and the value of the rule of its interval. */
+/**
+ * What a duty is held against: a version of its kind and the value of the
+ * rule of its interval, or for a duty that falls due once the due day the
+ * version gives it (#439).
+ */
 interface Stand {
   readonly version: number
   readonly rule: DeadlineInterval | null
+  readonly day: IsoDate | null
 }
 
 function sameRule(left: DeadlineInterval | null, right: DeadlineInterval | null): boolean {
@@ -188,7 +205,7 @@ function sameRule(left: DeadlineInterval | null, right: DeadlineInterval | null)
 }
 
 function sameStand(left: Stand, right: Stand): boolean {
-  return left.version === right.version && sameRule(left.rule, right.rule)
+  return left.version === right.version && sameRule(left.rule, right.rule) && left.day === right.day
 }
 
 function later(left: IsoDate, right: IsoDate): IsoDate {
@@ -234,6 +251,7 @@ function carriedRule(
       return rule === null ? null : intervalOfRule(rule.record)
     }
     case 'none':
+    case 'once':
       return null
   }
 }
@@ -252,7 +270,7 @@ function lastWord(
 ): { readonly rule: DeadlineInterval | null; readonly from: IsoDate | null } {
   const interval = newest.definition.interval
 
-  if (interval.kind === 'none') {
+  if (interval.kind === 'none' || interval.kind === 'once') {
     return { rule: null, from: null }
   }
 
@@ -270,7 +288,9 @@ function lastWord(
   // another, the value counts from the day the newest version begins.
   const before = held.definition.interval
   const sameRuleAsHeld =
-    before.kind !== 'none' && before.kind === interval.kind && before.rule === interval.rule
+    (before.kind === 'maximum' || before.kind === 'guide') &&
+    before.kind === interval.kind &&
+    before.rule === interval.rule
 
   return {
     rule: intervalOfRule(found.record),
@@ -310,7 +330,7 @@ interface Reading {
 
 type UpdateCatalogue = Pick<
   Catalogue,
-  'dutyKindVersion' | 'newestDutyKind' | 'interval' | 'ruleRecords' | 'rule'
+  'dutyKindVersion' | 'newestDutyKind' | 'interval' | 'ruleRecords' | 'rule' | 'onceDue'
 >
 
 function readingOf(
@@ -335,8 +355,18 @@ function readingOf(
   return {
     held,
     newest,
-    carried: { version: held.version, rule: carriedRule(catalogue, duty, held, state) },
-    target: { version: newest.version, rule: last.rule },
+    carried: {
+      version: held.version,
+      rule: carriedRule(catalogue, duty, held, state),
+      day: duty.dueOn,
+    },
+    target: {
+      version: newest.version,
+      rule: last.rule,
+      // The due day the newest version gives the duty, counted from the day
+      // the duty is counted from, with the rule of that day (#439).
+      day: catalogue.onceDue(newest, duty.countedFrom, state),
+    },
     ruleFrom: last.from,
   }
 }
@@ -369,6 +399,7 @@ export function dutyUpdate(
       lapse: 'gone',
       adoptable: false,
       becomes: null,
+      becomesDue: null,
       obstacle: dutyLapseWords.gone,
       keepable: false,
     }
@@ -378,7 +409,7 @@ export function dutyUpdate(
   const kept =
     duty.keptVersion === null
       ? null
-      : { version: duty.keptVersion, rule: intervalOf(duty.keptDays, duty.keptMonths) }
+      : { version: duty.keptVersion, rule: intervalOf(duty.keptDays, duty.keptMonths), day: null }
 
   if (sameStand(carried, target) || (kept !== null && sameStand(kept, target))) {
     return null
@@ -393,12 +424,23 @@ export function dutyUpdate(
     }
   }
 
+  // A version stays recurring or falls due once like the one before it, the
+  // build of a package holds that; a duty that falls due once compares its
+  // due day instead of an interval (#439).
+  const once = duty.counting === 'once'
+
   say('label', before.label, after.label)
-  say(
-    'interval',
-    ruleWords(carried.rule, before.interval.kind),
-    ruleWords(target.rule, after.interval.kind),
-  )
+
+  if (once) {
+    say('dueOn', dueWords(carried.day), dueWords(target.day))
+  } else {
+    say(
+      'interval',
+      ruleWords(carried.rule, before.interval.kind),
+      ruleWords(target.rule, after.interval.kind),
+    )
+  }
+
   say(
     'intervalKind',
     intervalKindLabel[before.interval.kind],
@@ -430,6 +472,7 @@ export function dutyUpdate(
     taken !== null && 'values' in taken
       ? intervalOf(taken.values.intervalDays, taken.values.intervalMonths)
       : null
+  const becomesDue = taken !== null && 'values' in taken ? taken.values.dueOn : null
 
   return {
     held: held.version,
@@ -439,21 +482,29 @@ export function dutyUpdate(
     maximum: tighter,
     shorter: cut === null || ruleFrom === null ? null : { interval: cut, from: ruleFrom },
     lapse: outOfScope ? 'out_of_scope' : null,
-    adoptable: becomes !== null,
+    adoptable: becomes !== null || becomesDue !== null,
     becomes,
+    becomesDue,
     obstacle: outOfScope
       ? dutyLapseWords.out_of_scope
       : taken !== null && 'problem' in taken
         ? taken.problem
         : null,
-    keepable: cut === null,
+    // A due day follows from its source; it is taken over, never kept (#439).
+    keepable: !once && cut === null,
   }
+}
+
+/** A due day in words, or that the version gives none. */
+function dueWords(day: IsoDate | null): string {
+  return day === null ? 'ohne Wert' : dayInWords(day)
 }
 
 /** What taking the newest version over writes to a duty. */
 export interface AdoptedValues {
   readonly kindVersion: number
   readonly counting: Duty['counting']
+  readonly dueOn: IsoDate | null
   readonly intervalDays: number | null
   readonly intervalMonths: number | null
   readonly maximumDays: number | null
@@ -498,7 +549,37 @@ export function adoption(
 
   const { held, newest, carried, target } = reading
   const kind = newest.definition.interval.kind
+
+  // A duty that falls due once takes the due day of the newest version, and
+  // nothing else of an interval (#439).
+  if (newest.definition.counting === 'once') {
+    return target.day === null
+      ? { problem: 'Die neue Fassung gibt dieser Pflicht an ihrem Tag keinen Termin.' }
+      : {
+          values: {
+            kindVersion: newest.version,
+            counting: 'once',
+            dueOn: target.day,
+            intervalDays: null,
+            intervalMonths: null,
+            maximumDays: null,
+            maximumMonths: null,
+            guideDays: null,
+            guideMonths: null,
+            keptVersion: null,
+            keptDays: null,
+            keptMonths: null,
+            keptReason: null,
+          },
+        }
+  }
+
   const own = dutyInterval(duty)
+
+  if (own === null) {
+    return { problem: 'Diese Pflicht ist einmalig fällig, die neue Fassung wiederkehrend.' }
+  }
+
   let interval = own
 
   if (kind === 'maximum' && target.rule !== null) {
@@ -538,6 +619,7 @@ export function adoption(
     values: {
       kindVersion: newest.version,
       counting: newest.definition.counting,
+      dueOn: null,
       intervalDays: columns.days,
       intervalMonths: columns.months,
       maximumDays: inColumns(maximum).days,
@@ -586,6 +668,13 @@ export function keeping(
     return { problem: dutyLapseWords.gone }
   }
 
+  if (duty.counting === 'once') {
+    return {
+      problem:
+        'Eine einmalige Pflicht lässt sich nicht so lassen: ihr Termin folgt aus der Vorschrift, die neue Fassung wird übernommen.',
+    }
+  }
+
   if (!update.keepable) {
     return {
       problem:
@@ -630,6 +719,8 @@ export interface DutyUpdateEntry {
   readonly asset: DutyAsset | null
   readonly intervalDays: number | null
   readonly intervalMonths: number | null
+  /** The due day of a duty that falls due once (#439). */
+  readonly dueOn: IsoDate | null
   readonly update: DutyUpdate
 }
 

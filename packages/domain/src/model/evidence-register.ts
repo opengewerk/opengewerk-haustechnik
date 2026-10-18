@@ -1,6 +1,6 @@
 import type { IsoDate } from '@opengewerk/platform-domain'
 
-import { dutyInterval, intervalWords } from './duty-record.js'
+import { dutyTermWords } from './duty-record.js'
 import type { DutyEntry } from './duty-register.js'
 import { type EvidenceId, type EvidenceResult, evidenceResultLabel } from './evidence.js'
 import { byNameIn } from './name-order.js'
@@ -29,6 +29,7 @@ export type EvidenceRegisterDuty = Pick<
   DutyEntry,
   | 'id'
   | 'title'
+  | 'dueOn'
   | 'intervalDays'
   | 'intervalMonths'
   | 'shortened'
@@ -116,7 +117,7 @@ export function evidenceRegisterLine(entry: EvidenceRegisterEntry): EvidenceRegi
     duty: duty.title,
     reference: source,
     document: intervalDocument === null ? null : documentWords(intervalDocument),
-    interval: intervalWords(duty.shortened ?? dutyInterval(duty)),
+    interval: dutyTermWords(duty, duty.shortened),
     reason: duty.intervalReason,
     last: performed,
     performedOn: evidence?.performedOn ?? null,

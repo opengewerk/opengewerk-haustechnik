@@ -124,12 +124,23 @@ Wasser.
 | `origin` | Herkunft: `state_law` (staatliches Recht), `insurer_and_committee_rules` (Regelwerk der Unfallversicherungsträger und der staatlichen Ausschüsse), `private_standard` (private Norm oder Richtlinie) |
 | `bindingness` | Verbindlichkeit: `statute` (Gesetz oder Verordnung), `technical_rule` (technische Regel), `manufacturer` (Vorgabe des Herstellers) |
 | `source` | Fundstelle: der Paragraf mit Gesetz oder Verordnung, die Norm mit Ausgabe und Abschnitt, oder die Regel der Technik. Ohne sie wird eine Pflichtart nicht aufgenommen |
-| `interval` | Frist: `kind` ist `maximum` (Höchstfrist), `guide` (Richtwert) oder `none` (ohne Vorgabe); die ersten beiden nennen in `rule` den Schlüssel einer Regel, nie eine Zahl |
-| `counting` | Zählweise des nächsten Termins: `from_performance` (ab dem Tag der Durchführung), `from_due` (ab dem fälligen Tag; eine Durchführung höchstens ein Zwölftel der Frist vor dem Termin erfüllt ihn, eine frühere zählt neu ab ihrem Tag) oder `betrsichv` (nach § 14 Abs. 5 BetrSichV: Termin als Monat und Jahr, fristgerecht bis zwei Monate danach; die Regel der Frist zählt dann in Monaten oder Jahren) |
+| `interval` | Frist: `kind` ist `maximum` (Höchstfrist), `guide` (Richtwert), `none` (ohne Vorgabe) oder `once` (einmalig); die ersten beiden nennen in `rule` den Schlüssel einer Regel, nie eine Zahl. Eine einmalige nennt entweder in `dueOn` den Tag, den die Vorschrift nennt, oder in `rule` den Abstand und in `from` den Tag der Anlage, ab dem er zählt: `commissioning` (Inbetriebnahme), `installation` (Einbau), `first_filling` (Erstbefüllung) oder `takeover` (Übernahme durch den Betreiber) |
+| `counting` | Zählweise des nächsten Termins: `from_performance` (ab dem Tag der Durchführung), `from_due` (ab dem fälligen Tag; eine Durchführung höchstens ein Zwölftel der Frist vor dem Termin erfüllt ihn, eine frühere zählt neu ab ihrem Tag), `betrsichv` (nach § 14 Abs. 5 BetrSichV: Termin als Monat und Jahr, fristgerecht bis zwei Monate danach; die Regel der Frist zählt dann in Monaten oder Jahren) oder `once` (einmalig, nur mit einer einmaligen Frist) |
 | `qualification` | `level`: `instructed_person`, `skilled_person`, `competent_person`, `approved_body`, `certified_expert` oder `accredited_laboratory`; auf Wunsch eine `note` |
 | `evidence` | `kinds`, eine oder mehrere von `protocol`, `report`, `round_point`, `work_order`; bei einem Protokoll auf Wunsch das `form` |
 | `retention` | Aufbewahrung: `kind` ist `years` mit der `rule` der Jahre, `until_next_inspection` oder `while_in_use` |
 | `scope` | Geltungsbereich: `assetKinds` (mindestens eine), dazu auf Wunsch `conditions`, `buildingKinds` und `states`; eine leere Liste heißt: alle |
+
+Eine einmalige Pflichtart (#439) ist mit ihrem ersten Nachweis erledigt und kehrt nicht wieder. Ihr
+Termin wird nie getippt: Nennt die Vorschrift den Tag, steht er in `dueOn` und liegt nicht vor dem
+Beginn der Fassung; nennt sie einen Abstand, zählt er ab dem Tag der Anlage, den der Betreiber beim
+Bestätigen nennt, bei der Inbetriebnahme vorbelegt aus der Akte der Anlage, und gilt mit dem Wert der
+Regel an diesem Tag. Ein Nachweis von vor diesem Tag erfüllt die Pflicht nicht. Aufbewahrt wird in
+Jahren oder solange die Anlage in Betrieb ist, denn eine nächste Prüfung gibt es nicht. Eine Pflichtart
+ist in jeder Fassung einmalig oder in keiner; was das ändert, ist eine Pflichtart mit eigenem
+Schlüssel. Bekommt eine einmalige Pflichtart eine neue Fassung mit einem anderen Termin, meldet sich
+die Pflicht wie jede und übernimmt ihn; so lassen lässt sie sich nicht, weil ihr Termin aus der
+Vorschrift folgt.
 
 Eine Bedingung in `conditions` nennt ein `characteristic` und vergleicht auf genau eine Art:
 `atLeast` oder `below` mit dem Schlüssel einer Regel in der Einheit des Merkmals, denn auch eine

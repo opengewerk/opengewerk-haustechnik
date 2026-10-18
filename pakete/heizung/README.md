@@ -34,12 +34,16 @@ Die Merkmale:
   zurück? Hat er eine selbstkalibrierende Verbrennungsregelung?
   - Die zwölf Jahre ändern sich mit der Zeit. Der Betreiber setzt das Merkmal um, wenn es so weit ist; die
     Messpflicht bekommt dann ihre kürzere Frist.
+  - Seit Fassung 2 (#439), die vom ersten Tag der Fassung 1 an gilt, vier Fragen mehr für die einmaligen
+    Pflichten: mindestens sechs Wohnungen oder Nutzungseinheiten, eingebaut vor dem 01.10.2009,
+    standardisierte Gebäudeautomation nach § 56 GModG, errichtet oder wesentlich geändert ab dem 22.03.2010.
 - **Wärmepumpe:** die Bauart, mindestens sechs Wohnungen oder Nutzungseinheiten, eingebaut nach dem
   31.12.2023, Fernkontrolle und Wartungsvertrag. Dazu dieselben Merkmale der F-Gas-Verordnung wie eine
   Klimaanlage.
 - **Heizöllagerung:** die Gefährdungsstufe nach § 39 AwSV, ob sie unterirdisch ist und ob sie in einem
   Schutz- oder Überschwemmungsgebiet liegt. Bei Heizöl (Wassergefährdungsklasse 2) ist Stufe A bis 1 m³,
-  B über 1 bis 10 m³, C über 10 bis 100 m³ und D darüber.
+  B über 1 bis 10 m³, C über 10 bis 100 m³ und D darüber. Seit Fassung 2 (#439) dazu, ob sie erst seit
+  dem 01.08.2017 wiederkehrend prüfpflichtig ist und nach dem 31.12.1993 in Betrieb ging.
 
 Solange ein Merkmal fehlt, schlägt der Katalog jede Pflicht vor, die danach fragt.
 
@@ -59,6 +63,20 @@ Solange ein Merkmal fehlt, schlägt der Katalog jede Pflicht vor, die danach fra
 | Gasleitungen auf Gebrauchsfähigkeit prüfen lassen | Gasinstallation | DVGW G 600 (A):2018-09, Abschnitt 13.3 | ohne Vorgabe bis zur rechtlichen Prüfung |
 | Gasinstallation in Augenschein nehmen | Gasinstallation | DVGW G 600 (A):2018-09, Abschnitt 13.3 | ohne Vorgabe bis zur rechtlichen Prüfung |
 
+Einmalig fällig (#439), mit dem ersten Nachweis erledigt:
+
+| Pflichtart | Bedingung | Fundstelle | Termin |
+| --- | --- | --- | --- |
+| Heizungsprüfung und Heizungsoptimierung (Einbau vor dem 01.10.2009) | Heizkessel ab sechs Einheiten, vor dem 01.10.2009 eingebaut, ohne Gebäudeautomation | § 60b Abs. 1 Satz 2 GModG | bis 30.09.2027 |
+| Heizungsprüfung und Heizungsoptimierung nach 15 Jahren | Heizkessel ab sechs Einheiten, nach dem 30.09.2009 eingebaut, ohne Gebäudeautomation | § 60b Abs. 1 Satz 1 GModG | 16 Jahre nach dem Einbau |
+| Feuerungsanlage nach der Inbetriebnahme erstmals messen lassen | Heizkessel, ab dem 22.03.2010 errichtet oder wesentlich geändert | § 14 Abs. 2 und 3 der 1. BImSchV | 28 Tage nach der Inbetriebnahme |
+| Heizöllagerung erstmals durch Sachverständige prüfen lassen | Heizöllagerung, erst seit 2017 prüfpflichtig, in Betrieb nach 1993 | § 70 Abs. 2 Nr. 5 AwSV | bis 01.08.2027 |
+
+Die Heizungsprüfung nach 15 Jahren zählt ab dem Tag des Einbaus, auch wenn er vor dem 01.10.2024 liegt, an
+dem die Pflicht kam: dann mit der Frist ihres ersten Tages. Bei einer Anlage, die schon vor dem Bestätigen
+gemessen oder geprüft wurde, trägt der Betreiber den Bericht als Nachweis ein oder verwirft den Vorschlag mit
+diesem Grund. Die erste Prüfung der Heizöllagerung ist auch der erste Nachweis ihrer wiederkehrenden Prüfung;
+der Bericht steht an beiden Pflichten.
 ### Die Wärmepumpe zum 01.01.2027
 
 Die Betriebsprüfung nach § 60a hat zwei Fassungen, die Regel ihrer Frist zwei Datensätze mit dem Wechsel am
@@ -142,14 +160,12 @@ geringfügig, erheblich, gefährlich. Ihr Bericht nennt sie.
 
 ## Was das Paket nicht abdeckt
 
-- **Einmalige Pflichten** stehen nicht in Paketen, weil der Katalog bisher nur wiederkehrende kennt (#439):
-  - die Heizungsprüfung nach § 60b GModG: für eine vor dem 01.10.2009 eingebaute Anlage bis zum 30.09.2027;
-  - der hydraulische Abgleich nach § 60c;
-  - die erste Betriebsprüfung einer Wärmepumpe mit Fernkontrolle bis 31.12.2026;
-  - die Gebäudeautomation nach § 56 bis 31.12.2029;
-  - die Erstmessung nach § 14 der 1. BImSchV;
-  - die Beratung nach § 4 Abs. 8 der 1. BImSchV;
-  - die Erstprüfung einer Heizöllagerung nach § 70 Abs. 2 Nr. 5 AwSV bis 01.08.2027.
+- **Einmalige Pflichten, die keine Prüfung mit Nachweis sind** (#439):
+  - der hydraulische Abgleich nach § 60c gehört zum Einbau selbst; eine Frist danach nennt das Gesetz nicht;
+  - die erste Betriebsprüfung einer Wärmepumpe mit Fernkontrolle, die bis 31.12.2026 verlangt war und ab
+    2027 entfällt; ohne Fernkontrolle ist die erste Prüfung die erste der wiederkehrenden;
+  - die Gebäudeautomation nach § 56 bis 31.12.2029 ist eine Ausstattung, keine Prüfung;
+  - die Beratung nach § 4 Abs. 8 der 1. BImSchV.
 - Das Betriebsverbot für alte Heizkessel und die 65-%-Regel sind seit dem 29.07.2026 aus dem Gesetz gestrichen
   (§§ 71 bis 73). Der Anteil an Biomasse oder Wasserstoff für Gas- und Ölheizungen, die nach dem 29.07.2026
   eingebaut werden, gilt ab 2029 (§ 43). Er ist eine Pflicht an den Brennstoff, keine Prüfung.

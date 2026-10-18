@@ -56,6 +56,10 @@ const house = { id: 'b-house', ...place, name: 'Schulhaus', kinds: '["school"]',
 const mainTest = 'probe.elevator_main_test'
 const visualCheck = 'probe.visual_check'
 const ownCheck = 'probe.own_check'
+/** Within the 24 months of the main test after the commissioning, once (#439). */
+const firstTest = 'probe.first_test'
+/** Once, on a day the source names (#439). */
+const registration = 'probe.registration'
 
 /** The catalogue of the tests with a kind with a guide and one without a value beside the main test. */
 const withMoreKinds: CatalogueBundle = {
@@ -89,9 +93,25 @@ const withMoreKinds: CatalogueBundle = {
       dutyKinds: [
         ...pack.dutyKinds,
         like(visualCheck, 'Sichtprüfung der Aufzugsanlage', {
-          interval: { kind: 'guide', rule: main.definition.interval.rule },
+          interval: {
+            kind: 'guide',
+            rule: (main.definition.interval as { readonly rule: string }).rule,
+          },
         }),
         like(ownCheck, 'Kontrolle durch den Betreiber', { interval: { kind: 'none' } }),
+        like(firstTest, 'Erstprüfung der Aufzugsanlage', {
+          interval: {
+            kind: 'once',
+            rule: (main.definition.interval as { readonly rule: string }).rule,
+            from: 'commissioning',
+          },
+          counting: 'once',
+        }),
+        like(registration, 'Anmeldung der Aufzugsanlage', {
+          interval: { kind: 'once', dueOn: '2027-09-30' },
+          counting: 'once',
+          source: '§ 99 der Probeverordnung',
+        }),
       ],
     }
   }),
@@ -403,6 +423,116 @@ describe('confirming a proposal', () => {
       expect(screen.queryByText(proposalWords.mayNot)).toBeNull()
     },
   )
+})
+
+describe('confirming a duty that falls due once (#439)', () => {
+  it('shows the day its source names, asks for no interval and sends none', async () => {
+    const router = await confirming(registration)
+
+    expect(screen.queryByLabelText(/^Frist/)).toBeNull()
+    expect((screen.getByLabelText('Termin') as HTMLInputElement).value).toBe('30.09.2027')
+    expect(
+      screen.getByText('Gibt § 99 der Probeverordnung vor. Geprüft werden darf früher.'),
+    ).toBeTruthy()
+
+    answerToWrite = answering({ id: 'd-new' })
+    press('Pflicht bestätigen')
+
+    await waitFor(() => {
+      expect(router.state.location.pathname).toBe('/pflichten/d-new')
+    })
+    expect(written).toEqual([
+      {
+        method: 'POST',
+        path: '/duties',
+        body: {
+          assetId: lift.id,
+          kind: registration,
+          responsibleUserId: null,
+          performer: null,
+          performerNote: null,
+          contractorId: null,
+        },
+      },
+    ])
+  })
+
+  it('asks for the day it is counted from, shows the due day it gives and sends that day', async () => {
+    const router = await confirming(firstTest)
+
+    press('Pflicht bestätigen')
+
+    expect(await screen.findByText('Der Tag der Inbetriebnahme fehlt.')).toBeTruthy()
+    expect(written).toEqual([])
+
+    type(/^Tag der Inbetriebnahme/, '2026-11-02')
+
+    expect(
+      await screen.findByText('Fällig bis 02.11.2028: 24 Monate nach der Inbetriebnahme'),
+    ).toBeTruthy()
+
+    answerToWrite = answering({ id: 'd-new' })
+    press('Pflicht bestätigen')
+
+    await waitFor(() => {
+      expect(router.state.location.pathname).toBe('/pflichten/d-new')
+    })
+    expect(written[0]?.body).toEqual({
+      assetId: lift.id,
+      kind: firstTest,
+      countedFrom: '2026-11-02',
+      responsibleUserId: null,
+      performer: null,
+      performerNote: null,
+      contractorId: null,
+    })
+  })
+
+  it('takes the commissioning from the file of the asset', async () => {
+    await mount(`/pflichten/bestaetigen?anlage=${lift.id}&pflichtart=${firstTest}`, undefined, {
+      [`/assets/${lift.id}`]: { ...lift, commissionedOn: '2026-11-02' },
+    })
+
+    await screen.findByRole('button', { name: 'Pflicht bestätigen' })
+
+    expect((screen.getByLabelText(/^Tag der Inbetriebnahme/) as HTMLInputElement).value).toBe(
+      '2026-11-02',
+    )
+    expect(screen.getByText(confirmWords.fromTheFile)).toBeTruthy()
+  })
+
+  it('changes the day it is counted from of a duty there is, and sends that alone', async () => {
+    await mount('/pflichten/d-1/frist', undefined, {
+      '/duties/d-1': duty({
+        kind: firstTest,
+        counting: 'once',
+        dueOn: '2028-11-02',
+        countedFrom: '2026-11-02',
+        intervalMonths: null,
+        maximumMonths: null,
+        intervalReason: null,
+        title: 'Erstprüfung der Aufzugsanlage',
+      }),
+    })
+
+    await screen.findByRole('button', { name: 'Speichern' })
+
+    expect(screen.getByRole('heading', { name: confirmWords.termTitle })).toBeTruthy()
+
+    answerToWrite = answering(duty(), 200)
+    type(/^Tag der Inbetriebnahme/, '2027-03-01')
+    press('Speichern')
+
+    await waitFor(() => {
+      expect(written).toEqual([
+        {
+          method: 'PATCH',
+          path: '/duties/d-1',
+          body: { countedFrom: '2027-03-01' },
+        },
+      ])
+    })
+  })
 })
 
 describe('the interval of a duty from the catalogue', () => {

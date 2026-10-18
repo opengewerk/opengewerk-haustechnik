@@ -138,6 +138,7 @@ export async function dutyUpdates(
         asset,
         intervalDays: duty.intervalDays,
         intervalMonths: duty.intervalMonths,
+        dueOn: duty.dueOn,
         update,
       })
     }

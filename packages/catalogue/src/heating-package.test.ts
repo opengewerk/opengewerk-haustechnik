@@ -186,7 +186,7 @@ describe('the package Heizung', () => {
         protection_area: false,
         ...values,
       })
-        .filter((key) => key.includes('inspection'))
+        .filter((key) => key.includes('oil_storage_inspection'))
         .map((key) => [key.replace('heizung.', ''), interval(key, '2026-10-18')])
 
     expect(inspected({})).toEqual([])
@@ -205,6 +205,77 @@ describe('the package Heizung', () => {
       heating.dutyKind('heizung.oil_storage_inspection', '2026-10-18')?.definition.qualification
         .level,
     ).toBe('certified_expert')
+  })
+
+  it('has a boiler in a building of six units checked and optimised once, by 30.09.2027 or within a year after 15 years (#439)', () => {
+    const checks = (values: object) =>
+      proposed('boiler', { ...boiler, ...values }).filter((key) => key.includes('heating_check'))
+    const six = { six_or_more_units: true, building_automation: false }
+
+    expect(checks({ ...six, installed_before_october_2009: true })).toEqual([
+      'heizung.heating_check_before_2009',
+    ])
+    expect(checks({ ...six, installed_before_october_2009: false })).toEqual([
+      'heizung.heating_check',
+    ])
+    expect(
+      checks({ ...six, six_or_more_units: false, installed_before_october_2009: true }),
+    ).toEqual([])
+    expect(
+      checks({ ...six, building_automation: true, installed_before_october_2009: true }),
+    ).toEqual([])
+
+    const before = heating.dutyKind('heizung.heating_check_before_2009', '2026-10-18')
+    const after = heating.dutyKind('heizung.heating_check', '2026-10-18')
+
+    expect(before && heating.onceDue(before, null)).toBe('2027-09-30')
+    // Installed on 01.03.2012, before the duty came: within a year after 15 years, with its own rule.
+    expect(after && heating.onceDue(after, '2012-03-01')).toBe('2028-03-01')
+    expect([before?.definition.source, after?.definition.source]).toEqual([
+      '§ 60b Abs. 1 Satz 2 GModG',
+      '§ 60b Abs. 1 Satz 1 GModG',
+    ])
+    expect([before?.definition.counting, after?.definition.qualification.level]).toEqual([
+      'once',
+      'skilled_person',
+    ])
+  })
+
+  it('has a boiler built or changed since 22.03.2010 measured once within four weeks after its commissioning (#439)', () => {
+    const first = (values: object) =>
+      proposed('boiler', { ...boiler, ...values }).filter((key) =>
+        key.includes('first_measurement'),
+      )
+
+    expect(first({ built_since_march_2010: true })).toEqual(['heizung.flue_gas_first_measurement'])
+    expect(first({ built_since_march_2010: false })).toEqual([])
+
+    const kind = heating.dutyKind('heizung.flue_gas_first_measurement', '2026-10-18')
+
+    expect(kind && heating.onceDue(kind, '2026-11-02')).toBe('2026-11-30')
+    expect(kind?.definition.source).toBe('§ 14 Abs. 2 und 3 der 1. BImSchV')
+  })
+
+  it('has heating oil stored since 1994 that the state did not have inspected before 2017 inspected once by 01.08.2027 (#439)', () => {
+    const stored = {
+      hazard_level: 'c',
+      underground: false,
+      protection_area: false,
+      first_inspection_by_august_2027: true,
+    }
+
+    expect(proposed('oil_storage', stored)).toContain('heizung.oil_storage_first_inspection')
+    expect(
+      proposed('oil_storage', { ...stored, first_inspection_by_august_2027: false }),
+    ).not.toContain('heizung.oil_storage_first_inspection')
+
+    const kind = heating.dutyKind('heizung.oil_storage_first_inspection', '2026-10-18')
+
+    expect(kind && heating.onceDue(kind, null)).toBe('2027-08-01')
+    expect([kind?.definition.source, kind?.definition.qualification.level]).toEqual([
+      '§ 70 Abs. 2 Nr. 5 AwSV',
+      'certified_expert',
+    ])
   })
 
   it('keeps a gas installation by the NDAV, and names the TRGI without an interval', () => {

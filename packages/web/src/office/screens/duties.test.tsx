@@ -200,7 +200,15 @@ const atProperty = entry('d-property', {
   endsOn: '2026-09-05',
 })
 
-const counts = { never_recorded: 5, overdue: 3, due: 7, met: 268, dormant: 4, ended: 2 }
+const counts = {
+  never_recorded: 5,
+  overdue: 3,
+  due: 7,
+  outstanding: 0,
+  met: 268,
+  dormant: 4,
+  ended: 2,
+}
 
 function page(duties: readonly DutyEntry[], further: Partial<DutyRegister> = {}): DutyRegister {
   return {
@@ -582,6 +590,7 @@ describe('the register of duties', () => {
       'Nie erfasst 5',
       'Überfällig 3',
       'Fällig 7',
+      'Ausstehend 0',
       'Erfüllt 268',
       'Ruht 4',
       'Beendet 2',
@@ -658,6 +667,7 @@ describe('the register of duties', () => {
       'Nie erfasst',
       'Überfällig',
       'Fällig',
+      'Ausstehend',
       'Erfüllt',
       'Ruht',
       'Beendet',

@@ -24,6 +24,7 @@ import {
   formFieldKinds,
   forms,
   intervalKinds,
+  onceStarts,
   type IsoDate,
   type MeterKind,
   meterMedia,
@@ -688,7 +689,7 @@ function interval(
   findings: Findings,
   origin: CatalogueOrigin | undefined,
 ): DutyInterval | undefined {
-  const from = fields(value, spot, findings, ['kind', 'rule', 'legalClearance'])
+  const from = fields(value, spot, findings, ['kind', 'rule', 'legalClearance', 'dueOn', 'from'])
 
   if (!from) {
     return undefined
@@ -696,6 +697,34 @@ function interval(
 
   const before = findings.problems.length
   const kind = oneOf(from, 'kind', intervalKinds, spot, findings)
+
+  if (kind !== 'once') {
+    for (const name of ['dueOn', 'from']) {
+      if (!missing(from, name)) {
+        findings.say(
+          below(spot, name),
+          'Einen Tag und den Tag, ab dem gezählt wird, nennt nur eine einmalige Frist ("kind": "once").',
+        )
+      }
+    }
+  }
+
+  // A due day its source names, or a rule counted from a day of the asset,
+  // exactly one of the two (#439).
+  if (kind === 'once' && !missing(from, 'dueOn')) {
+    const dueOn = day(from, 'dueOn', spot, findings)
+
+    for (const name of ['rule', 'from', 'legalClearance']) {
+      if (!missing(from, name)) {
+        findings.say(
+          below(spot, name),
+          'Eine einmalige Frist mit festem Tag zählt von keinem Tag der Anlage und nennt keine Regel.',
+        )
+      }
+    }
+
+    return findings.problems.length > before || dueOn === undefined ? undefined : { kind, dueOn }
+  }
 
   if (kind === 'none') {
     if (!missing(from, 'rule')) {
@@ -717,6 +746,17 @@ function interval(
       )
     : reference(from['rule'], below(spot, 'rule'), findings)
   const legalClearance = optionalText(from, 'legalClearance', spot, findings)
+  const start =
+    kind === 'once'
+      ? oneOf(
+          from,
+          'from',
+          onceStarts,
+          spot,
+          findings,
+          'Der Tag, ab dem gezählt wird, fehlt: die Inbetriebnahme (commissioning), der Einbau (installation), die Erstbefüllung (first_filling) oder die Übernahme durch den Betreiber (takeover). Nennt die Vorschrift den Tag selbst, steht er unter "dueOn".',
+        )
+      : undefined
 
   // What a package may say about a private standard (section 5 of the
   // concept): its interval only where the legal review bears it, and the
@@ -741,6 +781,19 @@ function interval(
 
   if (findings.problems.length > before || kind === undefined || rule === undefined) {
     return undefined
+  }
+
+  if (kind === 'once') {
+    if (legalClearance !== undefined) {
+      findings.say(
+        below(spot, 'legalClearance'),
+        'Eine einmalige Frist nennt keinen Vermerk; eine private Norm trägt keinen Termin.',
+      )
+    }
+
+    return start === undefined || legalClearance !== undefined
+      ? undefined
+      : { kind, rule, from: start }
   }
 
   return legalClearance === undefined ? { kind, rule } : { kind, rule, legalClearance }
@@ -992,8 +1045,32 @@ export function readDutyKind(
     countings,
     spot,
     findings,
-    'Die Zählweise fehlt: ab dem Tag der Durchführung (from_performance), ab dem fälligen Tag (from_due) oder nach § 14 Abs. 5 BetrSichV (betrsichv).',
+    'Die Zählweise fehlt: ab dem Tag der Durchführung (from_performance), ab dem fälligen Tag (from_due), nach § 14 Abs. 5 BetrSichV (betrsichv) oder einmalig (once).',
   )
+
+  // A duty that falls due once says so twice, in its counting and its
+  // interval, and keeps its evidence for years or while the asset is in use:
+  // there is no next inspection it could be kept until (#439).
+  if (readInterval !== undefined && counting !== undefined) {
+    if ((readInterval.kind === 'once') !== (counting === 'once')) {
+      findings.say(
+        below(spot, 'counting'),
+        'Einmalig fällig ist eine Pflichtart mit "counting": "once" und "interval": { "kind": "once" }, beides zusammen.',
+      )
+    }
+
+    if (
+      readInterval.kind === 'once' &&
+      'dueOn' in readInterval &&
+      validFrom !== undefined &&
+      readInterval.dueOn < validFrom
+    ) {
+      findings.say(
+        below(below(spot, 'interval'), 'dueOn'),
+        'Der Tag liegt vor dem Beginn der Fassung; jede Pflicht dieser Fassung wäre vom ersten Tag an überfällig.',
+      )
+    }
+  }
 
   const qualificationFields = missing(from, 'qualification')
     ? noted(findings, below(spot, 'qualification'), 'Die geforderte Qualifikation fehlt.')
@@ -1052,6 +1129,13 @@ export function readDutyKind(
   const readRetention = missing(from, 'retention')
     ? noted(findings, below(spot, 'retention'), 'Die Aufbewahrung fehlt.')
     : retention(from['retention'], below(spot, 'retention'), findings)
+
+  if (counting === 'once' && readRetention?.kind === 'until_next_inspection') {
+    findings.say(
+      below(spot, 'retention'),
+      'Eine einmalige Pflicht hat keine nächste Prüfung; ihre Nachweise werden Jahre oder solange die Anlage in Betrieb ist aufbewahrt.',
+    )
+  }
   const readScope = missing(from, 'scope')
     ? noted(findings, below(spot, 'scope'), 'Der Geltungsbereich fehlt.')
     : scope(from['scope'], below(spot, 'scope'), findings)

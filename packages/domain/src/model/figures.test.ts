@@ -7,6 +7,7 @@ import {
   lastTwelveMonths,
   median,
   periodsBetween,
+  onceTerms,
   replayedTerms,
   reportPeriodProblems,
   termOutcome,
@@ -56,6 +57,25 @@ describe('the terms of a duty', () => {
     expect(termOutcome({ ...term, metOn: '2026-03-31' })).toBe('on_time')
     expect(termOutcome({ ...term, metOn: '2026-04-01' })).toBe('late')
     expect(termOutcome({ ...term, metOn: null })).toBe('open')
+  })
+})
+
+describe('the term of a duty that falls due once (#439)', () => {
+  const duty = { dueOn: '2027-09-30', countedFrom: '2026-12-01' } as const
+  const after = { endsOn: null, today: '2028-01-01' } as const
+
+  it('is its due day, met by the first evidence from the day it is counted from', () => {
+    expect(onceTerms(duty, ['2027-07-01', '2026-11-20', '2027-06-14'], after)).toEqual([
+      { dueOn: '2027-09-30', onTimeUntil: '2027-09-30', metOn: '2027-06-14' },
+    ])
+    expect(onceTerms(duty, ['2026-11-20'], after)).toEqual([
+      { dueOn: '2027-09-30', onTimeUntil: '2027-09-30', metOn: null },
+    ])
+  })
+
+  it('has not fallen due before its day, and is none where the duty ended before it', () => {
+    expect(onceTerms(duty, [], { endsOn: null, today: '2027-09-29' })).toEqual([])
+    expect(onceTerms(duty, [], { endsOn: '2027-09-30', today: '2028-01-01' })).toEqual([])
   })
 })
 

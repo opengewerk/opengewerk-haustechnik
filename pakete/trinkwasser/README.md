@@ -38,8 +38,9 @@ Bestand vollständig erfasst werden kann.
 | --- | --- | --- | --- |
 | Auf Legionellen untersuchen lassen (öffentliche Abgabe) | öffentlich, auch neben einer gewerblichen Abgabe | § 31 Abs. 1 und Abs. 2 Nr. 2 Buchst. b TrinkwV | 1 Jahr, Höchstfrist |
 | Auf Legionellen untersuchen lassen (nur gewerbliche Abgabe) | nur gewerblich, etwa an Mieter | § 31 Abs. 1 und Abs. 2 Nr. 2 Buchst. a TrinkwV | 3 Jahre, Höchstfrist |
+| Neue Anlage erstmals auf Legionellen untersuchen lassen | neu in Betrieb, gewerblich oder öffentlich | § 31 Abs. 4 TrinkwV | einmalig, 12 Monate nach der Inbetriebnahme, frühestens nach drei (#439) |
 
-Beide gelten nur, wenn die drei übrigen Merkmale zutreffen: große Trinkwassererwärmung, Duschen oder
+Alle drei gelten nur, wenn die drei übrigen Merkmale zutreffen: große Trinkwassererwärmung, Duschen oder
 Vernebelung, nicht im Ein- oder Zweifamilienhaus. Probennahme und Untersuchung übernimmt eine dafür
 zugelassene Untersuchungsstelle (§ 39 Abs. 1 und 3 TrinkwV). Der Nachweis ist ihr Bericht oder das
 Formular mit dem Befund, aufbewahrt zehn Jahre (§ 44 Abs. 3 TrinkwV).
@@ -76,8 +77,6 @@ gefährdet, Gefahr für die Gesundheit. Die letzte macht eine Anlage unsicher.
   Ursachenklärung vor Ort, Risikoabschätzung und Maßnahmen. Der Befund wird ein Mangel, und die
   Risikoabschätzung liegt als Dokument an der Installation; eine eigene Pflichtart dafür gibt es nicht,
   weil sie nicht wiederkehrt.
-- Die erste Untersuchung einer neuen Anlage drei bis zwölf Monate nach der Inbetriebnahme (§ 31 Abs. 4
-  TrinkwV): ihren Termin setzt der Betreiber, wenn er die Pflicht bestätigt.
 - Mobile und zeitweilige Wasserversorgungsanlagen, für die das Gesundheitsamt die Häufigkeit festlegt,
   und die Untersuchungen, die die Verordnung von Wasserversorgern verlangt.
 - Die Trinkwasserverordnung von 2001, die die von 2023 ersetzt hat.

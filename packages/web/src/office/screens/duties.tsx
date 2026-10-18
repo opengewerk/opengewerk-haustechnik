@@ -3,7 +3,6 @@ import {
   dutyDueWindowLabel,
   dutyDueWindows,
   type DutyEntry,
-  dutyInterval,
   dutyNextDay,
   type DutyRegister,
   type DutyRegisterFilter,
@@ -12,8 +11,8 @@ import {
   dutyRegisterStates,
   dutyTableColumns,
   dutyTableWords,
+  dutyTermWords,
   endedDuties,
-  intervalWords,
   namesAPerson,
   type RecordState,
   withoutResponsible,
@@ -340,7 +339,7 @@ export function DutyRegisterScreen() {
             sub: [
               whereOf(duty).name,
               propertyOf(duty),
-              intervalWords(duty.shortened ?? dutyInterval(duty)),
+              dutyTermWords(duty, duty.shortened),
               duty.responsible === null
                 ? nobodyWords
                 : duty.responsibleDelegationId === null && !duty.ended
@@ -427,7 +426,7 @@ export function DutyRegisterScreen() {
                   <Cell>
                     {/* The interval the duty counts with: its own, or the maximum a regulation cut it to (#139). */}
                     <TwoLines
-                      main={intervalWords(duty.shortened ?? dutyInterval(duty))}
+                      main={dutyTermWords(duty, duty.shortened)}
                       sub={intervalKindWords(duty, catalogue)}
                     />
                     {/* The document that bears the interval has a newer version (#74). */}

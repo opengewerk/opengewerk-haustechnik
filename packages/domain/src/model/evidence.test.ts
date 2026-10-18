@@ -198,6 +198,19 @@ const storedStates: Readonly<Record<number, unknown>> = {
       '"signedAt":"2026-10-01T09:12:00.000Z","way":"drawing"}],' +
       '"version":10,"writtenAt":"2026-10-01T09:12:30.000Z","writtenBy":"Tobias Wendt"}',
   ),
+  11: JSON.parse(
+    '{"activity":{"kind":"inspection","title":"Heizungsprüfung Heizzentrale"},"answers":[],' +
+      '"collective":null,"defects":[],' +
+      '"duty":{"counting":"once","dueOn":"2027-09-30","interval":null,"kind":"probe.heating_check","kindVersion":1,' +
+      '"label":"Heizungsprüfung und Heizungsoptimierung","source":"§ 60b Abs. 1 Satz 2 GModG"},' +
+      '"files":[],"form":null,"nextDueOn":null,"number":"NW-2027-00412","origin":"report","performedOn":"2027-06-14",' +
+      '"performer":{"examiner":"Jana Probe","organisation":"Heizungsbau Beispiel GmbH"},' +
+      '"place":{"asset":{"kind":"probe.boiler","kindLabel":"Wärmeerzeuger","name":"Gas-Heizkessel Heizzentrale",' +
+      '"number":"AN-00064","serialNumber":null},"building":{"name":"Schulhaus","shortCode":null},' +
+      '"property":{"address":"Hauptstraße 1, 68535 Edingen-Neckarhausen","name":"Campus"},"room":null},' +
+      '"remark":null,"replaces":null,"result":"without_defects","resultReason":null,"retention":null,' +
+      '"signatures":[],"version":11,"writtenAt":"2027-06-15T07:30:00.000Z","writtenBy":"Dennis Roth"}',
+  ),
 }
 
 describe('the result of a performance', () => {
@@ -390,7 +403,9 @@ describe('the frozen state', () => {
   it('reads a state of the tenth version, whose answer names the asset it is about (#343)', () => {
     const state = readEvidenceState(storedStates[10])
 
-    expect(state.version).toBe(10)
+    expect(state.version).toBe(evidenceStateVersion)
+    // No duty before the eleventh states a due day.
+    expect([state.duty.interval, state.duty.dueOn]).toEqual([{ months: 1 }, null])
     expect(state.answers.map((answer) => [statedPointWords(answer), answer.result])).toEqual([
       [
         'Feststellanlage ausgelöst, Tür schließt selbsttätig, AN-00043 Feststellanlage 1. OG, Treppenhaus',
@@ -402,6 +417,18 @@ describe('the frozen state', () => {
       readEvidenceState(storedStates[3]).answers.map(() => undefined),
     )
     expect(canonicalForm(storedStates[10])).toBe(JSON.stringify(storedStates[10]))
+  })
+
+  it('reads a state of the eleventh version, of a duty that falls due once with its due day and no interval (#439)', () => {
+    const state = readEvidenceState(storedStates[11])
+
+    expect(state.version).toBe(evidenceStateVersion)
+    expect([state.duty.counting, state.duty.interval, state.duty.dueOn]).toEqual([
+      'once',
+      null,
+      '2027-09-30',
+    ])
+    expect(canonicalForm(storedStates[11])).toBe(JSON.stringify(storedStates[11]))
   })
 
   it('has a reader and a stored example for every version up to the newest', () => {

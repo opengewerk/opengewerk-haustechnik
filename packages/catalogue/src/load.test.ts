@@ -222,12 +222,12 @@ describe('a duty kind', () => {
     ])
   })
 
-  it('says how its next appointment is counted, in one of three ways', () => {
+  it('says how its next appointment is counted, in one of three ways, or that it falls due once', () => {
     expect(problems({ [dutyKindFile]: { ...dutyKind, counting: undefined } })).toEqual([
-      `${dutyKindFile}, counting: Die Zählweise fehlt: ab dem Tag der Durchführung (from_performance), ab dem fälligen Tag (from_due) oder nach § 14 Abs. 5 BetrSichV (betrsichv).`,
+      `${dutyKindFile}, counting: Die Zählweise fehlt: ab dem Tag der Durchführung (from_performance), ab dem fälligen Tag (from_due), nach § 14 Abs. 5 BetrSichV (betrsichv) oder einmalig (once).`,
     ])
     expect(problems({ [dutyKindFile]: { ...dutyKind, counting: 'from_test' } })).toEqual([
-      `${dutyKindFile}, counting: "from_test" ist keiner der Werte from_performance, from_due, betrsichv.`,
+      `${dutyKindFile}, counting: "from_test" ist keiner der Werte from_performance, from_due, betrsichv, once.`,
     ])
   })
 
@@ -422,6 +422,57 @@ describe('a duty kind', () => {
     ).toEqual([
       expect.stringMatching(/scope\.conditions\[0\]: Eine Bedingung vergleicht auf genau eine Art/),
     ])
+  })
+
+  it('asks only the versions of an asset kind in force from the day the duty kind begins (#439)', () => {
+    const second = 'probe/anlagenarten/elevator.v2.json'
+    const withLoad = (validFrom: string) => ({
+      ...assetKind,
+      validFrom,
+      characteristics: [
+        ...(assetKind['characteristics'] as readonly Json[]),
+        { key: 'machine_room', label: 'Mit Triebwerksraum', kind: 'flag' },
+      ],
+    })
+    const asking = {
+      ...dutyKind,
+      scope: {
+        assetKinds: ['elevator'],
+        conditions: [{ characteristic: 'machine_room', is: true }],
+      },
+    }
+    const reviewed = reviewsWith({
+      entries: [{ file: 'anlagenarten/elevator.v2.json', checkedOn: '2026-10-03' }],
+    })
+
+    // A second version from the first day of the first stands in for it on every day.
+    expect(
+      problems({
+        [second]: withLoad('2015-06-01'),
+        [acceptancesFile]: reviewed,
+        [dutyKindFile]: asking,
+      }),
+    ).toEqual([])
+    // One from a later day leaves the first in force before it, and the duty kind begins earlier.
+    expect(
+      problems({
+        [second]: withLoad('2020-01-01'),
+        [acceptancesFile]: reviewed,
+        [dutyKindFile]: asking,
+      }),
+    ).toEqual([
+      expect.stringMatching(
+        /Das Merkmal machine_room hat die Anlagenart probe\.elevator in Fassung 1 nicht\./,
+      ),
+    ])
+    // A duty kind that begins with the second version asks it alone.
+    expect(
+      problems({
+        [second]: withLoad('2020-01-01'),
+        [acceptancesFile]: reviewed,
+        [dutyKindFile]: { ...asking, validFrom: '2020-01-01' },
+      }),
+    ).toEqual([])
   })
 
   it('compares a characteristic with a threshold that is a rule in the same unit', () => {
@@ -705,6 +756,140 @@ describe('the rules', () => {
       expect.stringMatching(/records\[0\]\.source: Die Fundstelle fehlt\./),
       expect.stringMatching(/records\[0\]\.value: Der Wert einer Regel ist eine ganze Zahl/),
       `${rulesFile}, records[0].validUntil: Die Regel endet vor ihrem Beginn.`,
+    ])
+  })
+})
+
+describe('a duty kind that falls due once (#439)', () => {
+  const fixed = {
+    ...dutyKind,
+    counting: 'once',
+    interval: { kind: 'once', dueOn: '2027-09-30' },
+  }
+  const counted = {
+    ...dutyKind,
+    counting: 'once',
+    interval: { kind: 'once', rule: 'elevator_main_test_interval', from: 'commissioning' },
+  }
+
+  it('is taken in with the day its source names, or with a rule and the day of the asset it counts from', () => {
+    expect(problems({ [dutyKindFile]: fixed })).toEqual([])
+    expect(problems({ [dutyKindFile]: counted })).toEqual([])
+
+    const loaded = loadCatalogue(withFiles({ [dutyKindFile]: counted }), options).bundle
+    const entry = loaded?.packages[0]?.dutyKinds.find(
+      (each) => each.key === 'probe.elevator_main_test',
+    )
+
+    expect(entry?.definition.interval).toEqual({
+      kind: 'once',
+      rule: 'probe.elevator_main_test_interval',
+      from: 'commissioning',
+    })
+  })
+
+  it('says so in its counting and its interval, both together', () => {
+    const sentence = `${dutyKindFile}, counting: Einmalig fällig ist eine Pflichtart mit "counting": "once" und "interval": { "kind": "once" }, beides zusammen.`
+
+    expect(problems({ [dutyKindFile]: { ...fixed, counting: 'betrsichv' } })).toEqual([sentence])
+    expect(problems({ [dutyKindFile]: { ...dutyKind, counting: 'once' } })).toEqual([sentence])
+  })
+
+  it('names a day, or a rule with the day of the asset it counts from, and nothing of the other', () => {
+    expect(
+      problems({
+        [dutyKindFile]: {
+          ...counted,
+          interval: { kind: 'once', rule: 'elevator_main_test_interval' },
+        },
+      }),
+    ).toEqual([
+      expect.stringMatching(
+        /^probe\/pflichten\/elevator_main_test\.v1\.json, interval\.from: Der Tag, ab dem gezählt wird, fehlt:/,
+      ),
+    ])
+    expect(
+      problems({
+        [dutyKindFile]: {
+          ...fixed,
+          interval: {
+            kind: 'once',
+            dueOn: '2027-09-30',
+            rule: 'elevator_main_test_interval',
+            from: 'commissioning',
+          },
+        },
+      }),
+    ).toEqual([
+      `${dutyKindFile}, interval.rule: Eine einmalige Frist mit festem Tag zählt von keinem Tag der Anlage und nennt keine Regel.`,
+      `${dutyKindFile}, interval.from: Eine einmalige Frist mit festem Tag zählt von keinem Tag der Anlage und nennt keine Regel.`,
+    ])
+    expect(
+      problems({ [dutyKindFile]: { ...fixed, interval: { kind: 'once', dueOn: '2027-02-30' } } }),
+    ).toEqual([`${dutyKindFile}, interval.dueOn: Hier gehört ein Tag hin, geschrieben 2026-10-03.`])
+    expect(
+      problems({
+        [dutyKindFile]: {
+          ...counted,
+          interval: { kind: 'once', rule: 'elevator_main_test_interval', from: 'repair' },
+        },
+      }),
+    ).toEqual([
+      `${dutyKindFile}, interval.from: "repair" ist keiner der Werte commissioning, installation, first_filling, takeover.`,
+    ])
+    expect(
+      problems({
+        [dutyKindFile]: {
+          ...dutyKind,
+          interval: { kind: 'maximum', rule: 'elevator_main_test_interval', dueOn: '2027-09-30' },
+        },
+      }),
+    ).toEqual([
+      `${dutyKindFile}, interval.dueOn: Einen Tag und den Tag, ab dem gezählt wird, nennt nur eine einmalige Frist ("kind": "once").`,
+    ])
+  })
+
+  it('names no day before its version begins, which would make it overdue from the first', () => {
+    expect(
+      problems({ [dutyKindFile]: { ...fixed, interval: { kind: 'once', dueOn: '2015-05-31' } } }),
+    ).toEqual([
+      `${dutyKindFile}, interval.dueOn: Der Tag liegt vor dem Beginn der Fassung; jede Pflicht dieser Fassung wäre vom ersten Tag an überfällig.`,
+    ])
+  })
+
+  it('counts the distance of its due day in days, months or years', () => {
+    expect(
+      problems({
+        [dutyKindFile]: counted,
+        [rulesFile]: { ...rules, records: [{ ...rule, unit: 'kilowatts' }] },
+      }),
+    ).toEqual([
+      `${dutyKindFile}: Der Abstand des Termins nennt die Regel elevator_main_test_interval, die ab 2015-06-01 in Kilowatt zählt; gezählt wird hier in Tagen, Monaten oder Jahren.`,
+    ])
+  })
+
+  it('keeps its evidence for years or while the asset is in use: there is no next inspection', () => {
+    expect(
+      problems({
+        [dutyKindFile]: { ...fixed, retention: { kind: 'until_next_inspection' } },
+      }),
+    ).toEqual([
+      `${dutyKindFile}, retention: Eine einmalige Pflicht hat keine nächste Prüfung; ihre Nachweise werden Jahre oder solange die Anlage in Betrieb ist aufbewahrt.`,
+    ])
+  })
+
+  it('falls due once in every version or in none', () => {
+    const second = 'probe/pflichten/elevator_main_test.v2.json'
+
+    expect(
+      problems({
+        [second]: { ...fixed, validFrom: '2027-01-01' },
+        [acceptancesFile]: reviewsWith({
+          entries: [{ file: 'pflichten/elevator_main_test.v2.json', checkedOn: '2026-10-03' }],
+        }),
+      }),
+    ).toEqual([
+      `${second}: Die Pflichtart elevator_main_test ist in einer Fassung einmalig fällig und in einer anderen wiederkehrend. Was das ändert, ist eine Pflichtart mit eigenem Schlüssel.`,
     ])
   })
 })

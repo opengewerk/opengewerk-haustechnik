@@ -17,11 +17,11 @@ import type { ContractorId } from './contractor.js'
 import type { DutyDelegationId } from './delegation.js'
 import {
   type Counting,
-  countings,
   type DutyTask,
   dutyTaskLabel,
   dutyTasks,
   type IntervalKind,
+  recurringCountings,
 } from './catalogue.js'
 import { calendarDay, oneOf, optional, type Problems, required } from './fields.js'
 import type { PropertyId } from './location.js'
@@ -88,7 +88,17 @@ export interface Duty extends Synced, PlaceTarget {
   /** What a duty of the operator's own has somebody do; one from the catalogue takes it from its kind. */
   readonly task: DutyTask | null
   readonly counting: Counting
-  /** The interval it actually has, in days or in months, never both. */
+  /**
+   * The due day of a duty that falls due once (#439), from its kind: the day
+   * its source names, or the distance of its rule from the day it is counted
+   * from. Worked out when the duty is confirmed, when that day changes and
+   * when a new version is taken over, and never typed; empty for a duty that
+   * recurs, which has its interval instead.
+   */
+  readonly dueOn: IsoDate | null
+  /** The day of its asset a duty that falls due once is counted from, where its kind counts from one. */
+  readonly countedFrom: IsoDate | null
+  /** The interval it actually has, in days or in months, never both; none for a duty that falls due once. */
   readonly intervalDays: number | null
   readonly intervalMonths: number | null
   readonly intervalReason: string | null
@@ -154,13 +164,40 @@ export interface DutyDismissal extends Synced {
   readonly dismissedBy: string
 }
 
-/** The interval of a duty as the deadline engine counts it. */
+/** The interval of a duty as the deadline engine counts it; none for a duty that falls due once (#439). */
 export function dutyInterval(
   duty: Pick<Duty, 'intervalDays' | 'intervalMonths'>,
-): DeadlineInterval {
-  return duty.intervalMonths !== null
-    ? { months: duty.intervalMonths }
-    : { days: duty.intervalDays ?? 0 }
+): DeadlineInterval | null {
+  if (duty.intervalMonths !== null) {
+    return { months: duty.intervalMonths }
+  }
+
+  return duty.intervalDays === null ? null : { days: duty.intervalDays }
+}
+
+/**
+ * How often a duty falls due, in words: "12 Monate", or the interval a
+ * regulation cut it short to where it was (#139); for a duty that falls due
+ * once, its due day, "einmalig bis 30.09.2027" (#439).
+ */
+export function dutyTermWords(
+  duty: Pick<Duty, 'intervalDays' | 'intervalMonths' | 'dueOn'>,
+  shortened: DeadlineInterval | null = null,
+): string {
+  const interval = shortened ?? dutyInterval(duty)
+
+  if (interval !== null) {
+    return intervalWords(interval)
+  }
+
+  return duty.dueOn === null ? '' : onceWords(duty.dueOn)
+}
+
+/** The due day of a duty that falls due once, in words: "einmalig bis 30.09.2027". */
+export function onceWords(dueOn: IsoDate): string {
+  const [year, month, date] = dueOn.split('-')
+
+  return `einmalig bis ${date ?? ''}.${month ?? ''}.${year ?? ''}`
 }
 
 /** The maximum of a duty, if it has one. */
@@ -352,11 +389,12 @@ export function dutyProblems(duty: Readonly<Record<string, unknown>>): Readonly<
     dutyPerformers,
     'Ausgeführt wird von eigenen Leuten oder einer Fremdfirma.',
   )
+  // A duty of the operator's own recurs; only a kind of the catalogue falls due once (#439).
   oneOf(
     problems,
     duty,
     'counting',
-    countings,
+    recurringCountings,
     'Gezählt wird ab dem Tag der Durchführung, ab dem fälligen Tag oder nach § 14 Abs. 5 BetrSichV.',
   )
 
@@ -364,6 +402,12 @@ export function dutyProblems(duty: Readonly<Record<string, unknown>>): Readonly<
 
   if (endsOn !== undefined && endsOn !== null && !calendarDay(endsOn)) {
     problems['endsOn'] = 'Das Ende ist ein Tag, geschrieben 2026-10-03.'
+  }
+
+  const countedFrom = duty['countedFrom']
+
+  if (countedFrom !== undefined && countedFrom !== null && !calendarDay(countedFrom)) {
+    problems['countedFrom'] = 'Der Tag, ab dem gezählt wird, ist ein Tag, geschrieben 2026-10-03.'
   }
 
   return problems

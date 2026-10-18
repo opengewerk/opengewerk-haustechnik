@@ -259,6 +259,34 @@ function checkExpectedDocuments(versions: readonly Version<AssetKind>[], finding
   }
 }
 
+/**
+ * A duty kind falls due once in every version or in none (#439): a duty
+ * confirmed under one version takes a newer one over, and between a due day
+ * and an interval there is nothing to take over. What changes that is a duty
+ * kind of its own.
+ */
+function checkOnceAcrossVersions(content: PackageContent, findings: Findings): void {
+  const once = new Map<string, boolean>()
+
+  for (const version of content.dutyKinds) {
+    if (!version.read) {
+      continue
+    }
+
+    const itsOwn = version.read.definition.counting === 'once'
+    const known = once.get(version.key)
+
+    if (known !== undefined && known !== itsOwn) {
+      findings.say(
+        spotIn(version.file),
+        `Die Pflichtart ${version.key} ist in einer Fassung einmalig fällig und in einer anderen wiederkehrend. Was das ändert, ist eine Pflichtart mit eigenem Schlüssel.`,
+      )
+    }
+
+    once.set(version.key, known ?? itsOwn)
+  }
+}
+
 /** A key names one thing in its package: one entry of one kind, one rule, or one defect class. */
 function checkKeys(content: PackageContent, findings: Findings): void {
   const folderOf = new Map<string, EntryFolder>()
@@ -417,6 +445,27 @@ function conditionRule(condition: ScopeCondition): string | undefined {
 }
 
 /** Says so when a condition asks for a characteristic one of the asset kinds in scope does not have in that way. */
+/**
+ * The versions of an asset kind in force on some day from a day on: each
+ * holds until the next one begins. One a later version replaces on its own
+ * first day, or before that day, is in force on none of them (#439), so that
+ * a characteristic a new version brings may stand in the scope of a duty
+ * kind that begins with it or after it.
+ */
+function inForceFrom<Definition>(
+  versions: readonly Version<Definition>[],
+  day: IsoDate,
+): readonly Version<Definition>[] {
+  const read = byVersion(versions).filter((version) => version.read !== undefined)
+
+  return read.filter((version, index) => {
+    const begins = version.read?.validFrom ?? day
+    const next = read[index + 1]?.read?.validFrom
+
+    return next === undefined || (next > begins && next > day)
+  })
+}
+
 function checkCondition(
   spot: Spot,
   condition: ScopeCondition,
@@ -424,9 +473,10 @@ function checkCondition(
   home: string,
   index: Index,
   findings: Findings,
+  from: IsoDate,
 ): void {
   for (const kind of kinds) {
-    for (const version of index.versions<AssetKind>('assetKinds', kind)) {
+    for (const version of inForceFrom(index.versions<AssetKind>('assetKinds', kind), from)) {
       if (!version.read) {
         continue
       }
@@ -439,7 +489,7 @@ function checkCondition(
       if (!characteristic) {
         findings.say(
           spot,
-          `Das Merkmal ${condition.characteristic} hat die Anlagenart ${where} nicht. Eine Bedingung fragt nur nach einem Merkmal, das jede Fassung jeder Anlagenart im Geltungsbereich hat.`,
+          `Das Merkmal ${condition.characteristic} hat die Anlagenart ${where} nicht. Eine Bedingung fragt nur nach einem Merkmal, das jede Fassung jeder Anlagenart im Geltungsbereich hat, die ab dem Beginn der Pflichtart gilt.`,
         )
         continue
       }
@@ -512,16 +562,22 @@ function checkDutyKind(
     }
   }
 
-  if (dutyKind.interval.kind !== 'none') {
+  if ('rule' in dutyKind.interval) {
     // § 14 Abs. 5 BetrSichV gives the due day as a month and a year, so a
-    // duty kind counted that way takes its interval in months or years.
+    // duty kind counted that way takes its interval in months or years. The
+    // due day of a duty that falls due once lies its rule after a day of the
+    // asset (#439), in the units of an interval.
     checkRuleReference(
       spot,
       dutyKind.interval.rule,
       home,
       index,
       findings,
-      dutyKind.counting === 'betrsichv' ? 'Die Frist nach § 14 Abs. 5 BetrSichV' : 'Die Frist',
+      dutyKind.counting === 'betrsichv'
+        ? 'Die Frist nach § 14 Abs. 5 BetrSichV'
+        : dutyKind.counting === 'once'
+          ? 'Der Abstand des Termins'
+          : 'Die Frist',
       countingUnits[dutyKind.counting],
     )
 
@@ -553,7 +609,15 @@ function checkDutyKind(
   }
 
   for (const condition of dutyKind.scope.conditions) {
-    checkCondition(spot, condition, kinds, home, index, findings)
+    checkCondition(
+      spot,
+      condition,
+      kinds,
+      home,
+      index,
+      findings,
+      version.read?.validFrom ?? '0000-01-01',
+    )
   }
 
   if (dutyKind.evidence.form !== undefined) {
@@ -946,9 +1010,9 @@ function qualified(dutyKind: DutyKind, home: string): DutyKind {
   return {
     ...dutyKind,
     interval:
-      dutyKind.interval.kind === 'none'
-        ? dutyKind.interval
-        : { ...dutyKind.interval, rule: name(dutyKind.interval.rule) },
+      'rule' in dutyKind.interval
+        ? { ...dutyKind.interval, rule: name(dutyKind.interval.rule) }
+        : dutyKind.interval,
     evidence:
       dutyKind.evidence.form === undefined
         ? dutyKind.evidence
@@ -1219,6 +1283,7 @@ export function loadCatalogue(
     }
 
     checkKeys(content, findings)
+    checkOnceAcrossVersions(content, findings)
     checkQualifications(content, findings)
     checkExpectedDocuments(content.assetKinds, findings)
 

@@ -36,6 +36,15 @@
       "value": 10,
       "source": "§ 44 Abs. 3 TrinkwV",
       "origin": "state_law"
+    },
+    {
+      "key": "legionella_first_examination_within",
+      "validFrom": "2023-06-24",
+      "validUntil": null,
+      "unit": "months",
+      "value": 12,
+      "source": "§ 31 Abs. 4 TrinkwV",
+      "origin": "state_law"
     }
   ]
 }

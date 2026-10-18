@@ -13,6 +13,7 @@ import {
   intervalWords,
   isEmptied,
   legacyNote,
+  onceWords,
   originsFromAnActivity,
   type RecordState,
   retentionKindLabel,
@@ -266,7 +267,13 @@ export function EvidenceScreen() {
     { label: 'Quelle', value: state.duty.source },
     {
       label: 'Frist',
-      value: `${intervalWords(state.duty.interval)}, ${lowerFirst(countingLabel[state.duty.counting])}`,
+      // A duty that falls due once states its due day instead (#439).
+      value:
+        state.duty.interval === null
+          ? state.duty.dueOn === null
+            ? countingLabel[state.duty.counting]
+            : onceWords(state.duty.dueOn)
+          : `${intervalWords(state.duty.interval)}, ${lowerFirst(countingLabel[state.duty.counting])}`,
     },
     { label: 'Ort', value: placeWords(state.place) },
     ...(state.place.asset === null

@@ -1,0 +1,56 @@
+{
+  "validFrom": "2023-06-24",
+  "label": "Neue Anlage erstmals auf Legionellen untersuchen lassen",
+  "description": "Ist eine Trinkwasserinstallation mit großer Trinkwassererwärmung und mit Duschen oder anderer Vernebelung neu in Betrieb genommen und gibt der Betreiber das Wasser gewerblich oder öffentlich ab, lässt er die erste systemische Untersuchung auf Legionellen innerhalb von drei bis zwölf Monaten nach der Inbetriebnahme machen, nicht früher. Danach gilt die wiederkehrende Untersuchung, und der Befund der ersten ist auch ihr erster Nachweis. Die Pflicht ist einmal fällig und mit ihrem Nachweis erledigt.",
+  "task": "sampling",
+  "origin": "state_law",
+  "bindingness": "statute",
+  "source": "§ 31 Abs. 4 TrinkwV",
+  "interval": {
+    "kind": "once",
+    "rule": "legionella_first_examination_within",
+    "from": "commissioning"
+  },
+  "counting": "once",
+  "qualification": {
+    "level": "accredited_laboratory",
+    "note": "eine dafür zugelassene Untersuchungsstelle, die auch die Proben nimmt (§ 39 Abs. 1 und 3 TrinkwV)"
+  },
+  "evidence": {
+    "kinds": [
+      "report",
+      "protocol"
+    ],
+    "form": "legionella_findings"
+  },
+  "retention": {
+    "kind": "years",
+    "rule": "legionella_record_retention"
+  },
+  "scope": {
+    "assetKinds": [
+      "drinking_water_installation"
+    ],
+    "conditions": [
+      {
+        "characteristic": "large_water_heating",
+        "is": true
+      },
+      {
+        "characteristic": "aerosol_outlets",
+        "is": true
+      },
+      {
+        "characteristic": "one_or_two_family_house",
+        "is": false
+      },
+      {
+        "characteristic": "supply",
+        "oneOf": [
+          "commercial",
+          "public"
+        ]
+      }
+    ]
+  }
+}

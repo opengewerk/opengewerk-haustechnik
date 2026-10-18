@@ -119,6 +119,8 @@ function confirmed(more: Partial<UpdatedDuty> = {}): UpdatedDuty {
     kind: key,
     kindVersion: 1,
     counting: 'betrsichv',
+    dueOn: null,
+    countedFrom: null,
     intervalDays: null,
     intervalMonths: 24,
     intervalReason: null,
@@ -219,6 +221,7 @@ describe('what the catalogue says differently about a confirmed duty', () => {
       lapse: null,
       adoptable: true,
       becomes: { months: 24 },
+      becomesDue: null,
       obstacle: null,
       keepable: true,
     })
@@ -251,6 +254,7 @@ describe('what the catalogue says differently about a confirmed duty', () => {
       adoptable: true,
       // Taken over, the interval is the new maximum.
       becomes: { months: 12 },
+      becomesDue: null,
       obstacle: null,
       keepable: false,
     })
@@ -271,6 +275,7 @@ describe('what the catalogue says differently about a confirmed duty', () => {
       keepable: true,
       adoptable: true,
       becomes: { months: 6 },
+      becomesDue: null,
     })
     expect(update?.changes).toEqual([{ field: 'interval', held: '24 Monate', newest: '12 Monate' }])
   })
@@ -333,6 +338,7 @@ describe('what the catalogue says differently about a confirmed duty', () => {
     expect(update).toMatchObject({
       adoptable: false,
       becomes: null,
+      becomesDue: null,
       obstacle:
         'Die neue Fassung verlangt eine Begründung der Frist. Tragen Sie sie an der Pflicht unter „Frist festlegen“ ein und übernehmen Sie danach.',
       keepable: true,
@@ -369,6 +375,7 @@ describe('what the catalogue says differently about a confirmed duty', () => {
       lapse: 'gone',
       adoptable: false,
       becomes: null,
+      becomesDue: null,
       obstacle: 'Der Katalog kennt diese Pflichtart nicht mehr.',
       keepable: false,
     })
@@ -396,6 +403,7 @@ describe('what the catalogue says differently about a confirmed duty', () => {
       lapse: 'out_of_scope',
       adoptable: false,
       becomes: null,
+      becomesDue: null,
       obstacle: 'Nach der neuen Fassung gilt die Pflichtart für diese Anlage nicht mehr.',
       keepable: true,
     })
@@ -417,6 +425,7 @@ describe('taking the newest version over', () => {
       values: {
         kindVersion: 1,
         counting: 'betrsichv',
+        dueOn: null,
         intervalDays: null,
         intervalMonths: 12,
         maximumDays: null,
@@ -578,6 +587,96 @@ describe('a batch of duties', () => {
   })
 })
 
+describe('a new version for a duty that falls due once (#439)', () => {
+  // Counted from the commissioning: 28 days after it, and from 2027 56.
+  const counted: DutyKind = {
+    ...mainTest,
+    interval: { kind: 'once', rule: ruleKey, from: 'commissioning' },
+    counting: 'once',
+  }
+  const distance = [
+    rule('2015-06-01', '2026-12-31', 28, { unit: 'days' }),
+    rule('2027-01-01', null, 56, { unit: 'days' }),
+  ]
+  const once = (more: Partial<UpdatedDuty> = {}) =>
+    confirmed({
+      counting: 'once',
+      dueOn: '2026-11-30',
+      countedFrom: '2026-11-02',
+      intervalMonths: null,
+      maximumMonths: null,
+      ...more,
+    })
+
+  it('says nothing while the version and the due day it gives are the ones the duty carries', () => {
+    const catalogue = catalogueWith({
+      dutyKinds: [version(1, '2015-06-01', counted)],
+      rules: distance,
+    })
+
+    expect(dutyUpdate(catalogue, once(), anywhere, today)).toBeNull()
+  })
+
+  it('reports a due day the newest version gives otherwise, and takes it over without keeping', () => {
+    const fixed: DutyKind = { ...counted, interval: { kind: 'once', dueOn: '2027-03-31' } }
+    const catalogue = catalogueWith({
+      dutyKinds: [version(1, '2015-06-01', counted), version(2, '2026-10-01', fixed)],
+      rules: distance,
+    })
+    const update = dutyUpdate(catalogue, once(), anywhere, today)
+
+    expect(update).toMatchObject({
+      held: 1,
+      newest: 2,
+      changes: [{ field: 'dueOn', held: '30.11.2026', newest: '31.03.2027' }],
+      maximum: null,
+      shorter: null,
+      adoptable: true,
+      becomes: null,
+      becomesDue: '2027-03-31',
+      keepable: false,
+    })
+    expect(adoption(catalogue, once(), state, today)).toEqual({
+      values: {
+        kindVersion: 2,
+        counting: 'once',
+        dueOn: '2027-03-31',
+        intervalDays: null,
+        intervalMonths: null,
+        maximumDays: null,
+        maximumMonths: null,
+        guideDays: null,
+        guideMonths: null,
+        keptVersion: null,
+        keptDays: null,
+        keptMonths: null,
+        keptReason: null,
+      },
+    })
+    expect(keeping(catalogue, once(), anywhere, 'Prüfen wir trotzdem später.', today)).toEqual({
+      problem:
+        'Eine einmalige Pflicht lässt sich nicht so lassen: ihr Termin folgt aus der Vorschrift, die neue Fassung wird übernommen.',
+    })
+  })
+
+  it('counts the due day of a newer version from the day the duty is counted from, with the rule of that day', () => {
+    const later: DutyKind = { ...counted, label: 'Erstprüfung nach der Inbetriebnahme' }
+    const catalogue = catalogueWith({
+      dutyKinds: [version(1, '2015-06-01', counted), version(2, '2026-10-01', later)],
+      rules: distance,
+    })
+
+    // Commissioned in 2026, the rule of 2026 applies: the due day stays.
+    expect(dutyUpdate(catalogue, once(), anywhere, today)).toMatchObject({
+      becomesDue: '2026-11-30',
+    })
+    // Commissioned again in 2027, the rule of 2027.
+    expect(
+      adoption(catalogue, once({ countedFrom: '2027-01-04', dueOn: '2027-02-01' }), state, today),
+    ).toMatchObject({ values: { dueOn: '2027-03-01' } })
+  })
+})
+
 describe('the sentence that announces what a package changes', () => {
   const update = (shorter: { from: string } | null) => ({
     held: 1,
@@ -589,6 +688,7 @@ describe('the sentence that announces what a package changes', () => {
     lapse: null,
     adoptable: true,
     becomes: { months: 12 },
+    becomesDue: null,
     obstacle: null,
     keepable: true,
   })

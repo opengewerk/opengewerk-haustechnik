@@ -760,6 +760,8 @@ export const syncFieldNames: Readonly<Record<string, string>> = {
   sourceNote: 'Quelle',
   task: 'Tätigkeit',
   counting: 'Zählweise',
+  // The day a duty that falls due once is counted from (#439); its due day is `dueOn`.
+  countedFrom: 'Gezählt ab',
   intervalDays: 'Frist in Tagen',
   intervalMonths: 'Frist in Monaten',
   intervalReason: 'Begründung der Frist',

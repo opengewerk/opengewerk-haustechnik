@@ -273,7 +273,7 @@ describe('the catalogue', () => {
     // Format 2 had no defect classes at its packages (#61): a device that
     // kept such a bundle is told so, and fetches the one of its server.
     expect(() => catalogueOf({ ...bundle(), format: 2 as never })).toThrow(
-      'Der Katalog hat das Format 2, gelesen wird 7.',
+      'Der Katalog hat das Format 2, gelesen wird 8.',
     )
     // Format 3 had no kinds of qualification at its packages (#337).
     expect(() => catalogueOf({ ...bundle(), format: 3 as never })).toThrow(/Format 3/)
@@ -281,6 +281,8 @@ describe('the catalogue', () => {
     expect(() => catalogueOf({ ...bundle(), format: 4 as never })).toThrow(/Format 4/)
     // Format 5 knew nothing of what an operator adds (#62).
     expect(() => catalogueOf({ ...bundle(), format: 5 as never })).toThrow(/Format 5/)
+    // Format 7 knew no duty kind that falls due once (#439).
+    expect(() => catalogueOf({ ...bundle(), format: 7 as never })).toThrow(/Format 7/)
     expect(() =>
       catalogueOf(
         bundle({
@@ -622,6 +624,62 @@ describe('the words of a rule', () => {
     // Before the rule begins there is no number, and the line does not invent one.
     expect(intervalLine(catalogue, mainTest, '2015-05-31')).toBe(
       'Höchstfrist, an diesem Tag ohne Wert',
+    )
+  })
+})
+
+describe('a duty kind that falls due once (#439)', () => {
+  const fixed: DutyKind = {
+    ...mainTest,
+    interval: { kind: 'once', dueOn: '2027-09-30' },
+    counting: 'once',
+  }
+  const counted: DutyKind = {
+    ...mainTest,
+    interval: { kind: 'once', rule: 'probe.first_test_within', from: 'commissioning' },
+    counting: 'once',
+  }
+  // Four weeks after the commissioning, and from 2027 eight.
+  const catalogue = catalogueOf(
+    bundle({
+      rules: [
+        rule('probe.first_test_within', '2015-06-01', '2026-12-31', 28, { unit: 'days' }),
+        rule('probe.first_test_within', '2027-01-01', null, 56, { unit: 'days' }),
+      ],
+    }),
+  )
+
+  const version = (definition: DutyKind, validFrom = '2015-06-01') => ({ definition, validFrom })
+
+  it('is due on the day its source names, whatever it is counted from', () => {
+    expect(catalogue.onceDue(version(fixed), null)).toBe('2027-09-30')
+    expect(catalogue.onceDue(version(fixed), '2026-11-02')).toBe('2027-09-30')
+  })
+
+  it('is due the distance its rule has on the day it is counted from, after that day', () => {
+    expect(catalogue.onceDue(version(counted), '2026-11-02')).toBe('2026-11-30')
+    expect(catalogue.onceDue(version(counted), '2027-01-04')).toBe('2027-03-01')
+    expect(catalogue.onceDue(version(counted), null)).toBeNull()
+  })
+
+  it('counts a day before its version begins with the value of its first day, as a regulation counts from an installation before it', () => {
+    expect(catalogue.onceDue(version(counted, '2027-01-01'), '2010-05-03')).toBe('2010-06-28')
+    expect(catalogue.onceDue(version(counted, '2015-06-01'), '2010-05-03')).toBe('2010-05-31')
+  })
+
+  it('has no interval, and a duty kind that recurs has no due day', () => {
+    expect(catalogue.interval(fixed, '2026-10-05')).toBeNull()
+    expect(catalogue.interval(counted, '2026-10-05')).toBeNull()
+    expect(catalogue.onceDue(version(mainTest), '2026-11-02')).toBeNull()
+  })
+
+  it('says its due day in a line', () => {
+    expect(intervalLine(catalogue, fixed, '2026-10-05')).toBe('einmalig, bis 30.09.2027')
+    expect(intervalLine(catalogue, counted, '2026-10-05')).toBe(
+      'einmalig, 28 Tage nach der Inbetriebnahme',
+    )
+    expect(intervalLine(catalogue, counted, '2015-05-31')).toBe(
+      'einmalig, nach der Inbetriebnahme, an diesem Tag ohne Wert',
     )
   })
 })

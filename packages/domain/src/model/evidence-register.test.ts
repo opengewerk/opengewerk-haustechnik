@@ -40,6 +40,7 @@ function duty(other: Partial<EvidenceRegisterDuty> = {}): EvidenceRegisterDuty {
   return {
     id: 'd-1' as DutyId,
     title: 'Untersuchung auf Legionellen',
+    dueOn: null,
     intervalDays: null,
     intervalMonths: 12,
     shortened: null,

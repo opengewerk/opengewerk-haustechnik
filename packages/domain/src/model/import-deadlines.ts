@@ -13,7 +13,7 @@ import {
   type CatalogueEntry,
   type Counting,
   countingLabel,
-  countings,
+  recurringCountings,
   type DutyKind,
   type DutyTask,
   dutyTaskLabel,
@@ -795,7 +795,7 @@ function dutyOf(
     const counting =
       cell('counting') === ''
         ? 'from_performance'
-        : chosen(cell('counting'), countings, countingLabel)
+        : chosen(cell('counting'), recurringCountings, countingLabel)
     const source = cell('sourceNote')
 
     if (name.length > dutyLimits.label) {
@@ -828,7 +828,7 @@ function dutyOf(
     if (counting === null) {
       problems.add(
         line,
-        `Die Zählweise ist eine von: ${countings.map((each) => countingLabel[each]).join(', ')}`,
+        `Die Zählweise ist eine von: ${recurringCountings.map((each) => countingLabel[each]).join(', ')}`,
       )
     }
 
@@ -889,6 +889,19 @@ function dutyOf(
   }
 
   const kind = entry.definition.interval.kind
+
+  // A list carries the rhythm of duties that recur; one that falls due once
+  // is confirmed from its proposal, with the day it is counted from (#439).
+  if (kind === 'once') {
+    problems.add(
+      line,
+      `Die Pflicht ${entry.definition.label} ist einmalig fällig; eine Liste übernimmt nur Pflichten, die wiederkehren`,
+      'Die Pflicht an der Anlage aus dem Vorschlag bestätigen und ihren Nachweis dort eintragen',
+    )
+
+    return null
+  }
+
   const rule =
     kind === 'none'
       ? null
