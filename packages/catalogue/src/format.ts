@@ -1,4 +1,5 @@
 import {
+  type AssetBook,
   type AssetField,
   type AssetKind,
   type BuildingKind,
@@ -593,6 +594,7 @@ export function readAssetKind(
     'fields',
     'expectedDocuments',
     'meter',
+    'book',
   ])
 
   if (!from) {
@@ -606,6 +608,7 @@ export function readAssetKind(
   const meter = missing(from, 'meter')
     ? null
     : meterKind(from['meter'], below(spot, 'meter'), findings)
+  const book = missing(from, 'book') ? null : assetBook(from['book'], below(spot, 'book'), findings)
 
   if (typeof costGroup !== 'string' || !costGroupPattern.test(costGroup)) {
     findings.say(
@@ -665,7 +668,8 @@ export function readAssetKind(
     characteristics === undefined ||
     assetFields === undefined ||
     expectedDocuments === undefined ||
-    meter === undefined
+    meter === undefined ||
+    book === undefined
   ) {
     return undefined
   }
@@ -679,8 +683,32 @@ export function readAssetKind(
       fields: assetFields,
       expectedDocuments,
       meter,
+      // A kind without a book of its own has none in the bundle either, so
+      // that the bundle of every other kind stays as it was.
+      ...(book === null ? {} : { book }),
     },
   }
+}
+
+/**
+ * The name a package gives the book of an asset of a kind (#437), with the
+ * regulation that asks for it: an evaporative cooling system keeps its
+ * "Betriebstagebuch" by § 12 of the 42. BImSchV.
+ */
+function assetBook(value: unknown, spot: Spot, findings: Findings): AssetBook | undefined {
+  const from = fields(value, spot, findings, ['title', 'source'])
+
+  if (!from) {
+    return undefined
+  }
+
+  const before = findings.problems.length
+  const title = text(from, 'title', spot, findings)
+  const source = text(from, 'source', spot, findings)
+
+  return findings.problems.length > before || title === undefined || source === undefined
+    ? undefined
+    : { title, source }
 }
 
 function interval(
@@ -817,10 +845,18 @@ function retention(value: unknown, spot: Spot, findings: Findings): Retention | 
     return findings.problems.length > before || rule === undefined ? undefined : { kind, rule }
   }
 
+  // Kept while the asset is used, the years of a rule after the end of its
+  // use, as the book of an asset is kept (#437).
+  if (kind === 'while_in_use' && !missing(from, 'rule')) {
+    const rule = reference(from['rule'], below(spot, 'rule'), findings)
+
+    return findings.problems.length > before || rule === undefined ? undefined : { kind, rule }
+  }
+
   if (!missing(from, 'rule')) {
     findings.say(
       below(spot, 'rule'),
-      'Eine Regel hat nur die Aufbewahrung über eine Zahl von Jahren.',
+      'Eine Regel hat nur die Aufbewahrung über eine Zahl von Jahren und die Jahre nach der Verwendung.',
     )
   }
 

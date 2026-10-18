@@ -100,6 +100,7 @@ es gebaut wird.
 | `fields` | weitere Felder einer Anlage dieser Art, nach denen keine Pflicht fragt: `text`, `number` mit einer Einheit zum Anzeigen, `date`, `flag`, `choice` |
 | `expectedDocuments` | Soll-Dokumente mit `key`, `label`, `kind` (die Art des Dokuments, das es erfüllt: `operating_manual`, `test_certificate`, `circuit_diagram`, `as_built_documentation`, `permit`, `concept`, `risk_assessment`) und `demand`: `required` (verlangt) mit `source`, der Fundstelle, oder `recommended` (empfohlen). Keine zwei derselben Art in einer Fassung |
 | `meter` | nur bei einer Messstelle: `medium`, was sie misst (`electricity`, `water`, `heat`, `district_heating`, `gas`, `cooling`), und `units`, die Einheiten, in denen ein Zähler dieser Art zählt (`kilowatt_hours`, `megawatt_hours`, `cubic_metres`), mindestens eine |
+| `book` | nur wo eine Vorschrift ein Buch der Anlage verlangt: `title`, sein Name, und `source`, die Fundstelle. Ohne heißt es in der Akte „Anlagenbuch“ (#437) |
 
 Ein Merkmal mit einer Zahl ist eine ganze Zahl in seiner Einheit, wie der Wert einer Regel: eine
 Füllmenge von 4,9 Tonnen CO2-Äquivalent steht als 4900 in `kilograms_co2e`.
@@ -128,7 +129,7 @@ Wasser.
 | `counting` | Zählweise des nächsten Termins: `from_performance` (ab dem Tag der Durchführung), `from_due` (ab dem fälligen Tag; eine Durchführung höchstens ein Zwölftel der Frist vor dem Termin erfüllt ihn, eine frühere zählt neu ab ihrem Tag), `betrsichv` (nach § 14 Abs. 5 BetrSichV: Termin als Monat und Jahr, fristgerecht bis zwei Monate danach; die Regel der Frist zählt dann in Monaten oder Jahren) oder `once` (einmalig, nur mit einer einmaligen Frist) |
 | `qualification` | `level`: `instructed_person`, `skilled_person`, `competent_person`, `approved_body`, `certified_expert` oder `accredited_laboratory`; auf Wunsch eine `note` |
 | `evidence` | `kinds`, eine oder mehrere von `protocol`, `report`, `round_point`, `work_order`; bei einem Protokoll auf Wunsch das `form` |
-| `retention` | Aufbewahrung: `kind` ist `years` mit der `rule` der Jahre, `until_next_inspection` oder `while_in_use` |
+| `retention` | Aufbewahrung: `kind` ist `years` mit der `rule` der Jahre, `until_next_inspection` oder `while_in_use`, dieses auf Wunsch mit der `rule` der Jahre nach dem Ende der Verwendung (#437) |
 | `scope` | Geltungsbereich: `assetKinds` (mindestens eine), dazu auf Wunsch `conditions`, `buildingKinds` und `states`; eine leere Liste heißt: alle |
 
 Eine einmalige Pflichtart (#439) ist mit ihrem ersten Nachweis erledigt und kehrt nicht wieder. Ihr

@@ -61,8 +61,8 @@ let app: INestApplication
 const folder = mkdtempSync(join(tmpdir(), 'retention-'))
 
 /** One duty for each form of the rule, each at an asset of its own. */
-const duty = { years: '', next: '', inUse: '', own: '' }
-const asset = { inUse: '' }
+const duty = { years: '', next: '', inUse: '', own: '', book: '', bookLater: '' }
+const asset = { inUse: '', book: '', bookLater: '' }
 /** The evidence: a first one whose retention ends, and a later one whose does not. */
 const proof = {
   years1: '',
@@ -71,6 +71,8 @@ const proof = {
   nextVoided: '',
   next2: '',
   inUse1: '',
+  book1: '',
+  bookLater1: '',
   own1: '',
   own2: '',
 }
@@ -82,7 +84,19 @@ const retainedYears = (years: number): StatedRetention => ({
   on: '2020-01-01' as IsoDate,
 })
 const untilNext: StatedRetention = { kind: 'until_next_inspection', on: '2020-01-01' as IsoDate }
-const whileInUse: StatedRetention = { kind: 'while_in_use', on: '2020-01-01' as IsoDate }
+const whileInUse: StatedRetention = {
+  kind: 'while_in_use',
+  on: '2020-01-01' as IsoDate,
+  yearsAfter: null,
+  rule: null,
+}
+/** Kept while the asset is used and five years after, as the book of an asset (#437). */
+const fiveYearsAfter: StatedRetention = {
+  kind: 'while_in_use',
+  on: '2018-05-02' as IsoDate,
+  yearsAfter: 5,
+  rule: 'probe_book_retention',
+}
 
 function http() {
   return request(app.getHttpServer())
@@ -219,6 +233,10 @@ beforeAll(async () => {
   asset.inUse = await elevatorAt('Aufzug C')
   duty.inUse = await dutyAt(asset.inUse)
   duty.own = await dutyAt(await elevatorAt('Aufzug D'))
+  asset.book = await elevatorAt('Aufzug E')
+  duty.book = await dutyAt(asset.book)
+  asset.bookLater = await elevatorAt('Aufzug F')
+  duty.bookLater = await dutyAt(asset.bookLater)
 
   proof.years1 = await evidenceOf(duty.years, '2020-03-14', retainedYears(2))
   proof.years2 = await evidenceOf(duty.years, '2020-01-10', retainedYears(10))
@@ -232,6 +250,8 @@ beforeAll(async () => {
   )
   proof.next2 = await evidenceOf(duty.next, '2022-06-01', untilNext)
   proof.inUse1 = await evidenceOf(duty.inUse, '2022-09-09', whileInUse)
+  proof.book1 = await evidenceOf(duty.book, '2018-05-02', fiveYearsAfter)
+  proof.bookLater1 = await evidenceOf(duty.bookLater, '2018-05-02', fiveYearsAfter)
   proof.own1 = await evidenceOf(duty.own, '2021-04-01', null)
   proof.own2 = await evidenceOf(duty.own, '2023-04-01', null)
 })
@@ -277,6 +297,37 @@ describe('the retention of an evidence (#340)', () => {
       endedOn: addDays(today, -1),
       retention: 'Solange die Anlage verwendet wird',
     })
+  })
+
+  it('lasts the years after the use of its asset its state names, and a removal taken back ends nothing (#437)', async () => {
+    const removed = async (assetId: string, on: string) =>
+      (
+        await admin.query<{ id: string }>(
+          `insert into asset_lifecycle (tenant_id, property_id, area_id, asset_id, state, valid_from)
+           select tenant_id, property_id, area_id, id, 'removed', $2 from assets where id = $1
+           returning id`,
+          [assetId, on],
+        )
+      ).rows[0]?.id ?? ''
+    const takenBack = (entryId: string) =>
+      admin.query('update asset_lifecycle set deleted_at = now() where id = $1', [entryId])
+
+    // Removed in 2019 and kept five years after: ended in 2024. Removed
+    // yesterday: it stays another five years.
+    const earlier = await removed(asset.book, '2019-03-01')
+    const later = await removed(asset.bookLater, addDays(today, -1))
+
+    expect(await proposed()).toContainEqual({
+      id: proof.book1,
+      endedOn: '2024-03-01',
+      retention: 'Solange die Anlage verwendet wird und 5 Jahre danach',
+    })
+    expect((await proposed()).map((each) => each.id)).not.toContain(proof.bookLater1)
+
+    // The removal taken back, the asset is in use again, and nothing ends.
+    await takenBack(earlier)
+    await takenBack(later)
+    expect((await proposed()).map((each) => each.id)).not.toContain(proof.book1)
   })
 
   it('lasts longer with the setting of the operator, and never shorter', async () => {

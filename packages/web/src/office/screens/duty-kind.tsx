@@ -11,6 +11,7 @@ import {
   intervalKindLabel,
   qualificationLevelLabel,
   retentionKindLabel,
+  retentionRule,
   reviewMarks,
   ruleScopeNames,
   ruleValueWords,
@@ -323,13 +324,24 @@ function Finding({
   )
 }
 
-/** How long the evidence is kept, with the number of years where the rule has one today. */
+/**
+ * How long the evidence is kept, with the number of years where the rule has
+ * one today: of years, or of the years after the use of the asset (#437).
+ */
 export function retentionWords(catalogue: Catalogue, kind: DutyKind, on: string): string {
-  if (kind.retention.kind !== 'years') {
+  const named = retentionRule(kind.retention)
+
+  if (named === null) {
     return retentionKindLabel[kind.retention.kind]
   }
 
   const kept = catalogue.retention(kind, on)
+
+  if (kind.retention.kind === 'while_in_use') {
+    return kept?.kind === 'while_in_use' && kept.rule !== null
+      ? `${retentionKindLabel.while_in_use} und ${ruleValueWords(kept.rule.record.value, kept.rule.record.unit)} danach`
+      : `${retentionKindLabel.while_in_use}, die Jahre danach heute ohne Wert`
+  }
 
   return kept?.kind === 'years'
     ? ruleValueWords(kept.rule.record.value, kept.rule.record.unit)
@@ -359,8 +371,13 @@ function rulesOf(kind: DutyKind): readonly NamedRule[] {
     })
   }
 
-  if (kind.retention.kind === 'years') {
-    named.push({ role: 'Aufbewahrung', key: kind.retention.rule })
+  const kept = retentionRule(kind.retention)
+
+  if (kept !== null) {
+    named.push({
+      role: kind.retention.kind === 'years' ? 'Aufbewahrung' : 'Aufbewahrung nach der Verwendung',
+      key: kept,
+    })
   }
 
   for (const condition of kind.scope.conditions) {

@@ -29,6 +29,11 @@ export function retentionSettingsProblem(said: unknown): string | null {
     : `Mindestens aufbewahren heißt ${String(min)} bis ${String(max)} Jahre, oder leer.`
 }
 
+/** The years an evidence stays after the use of its asset, " und 5 Jahre danach", or nothing (#437). */
+export function yearsAfterWords(years: number | null): string {
+  return years === null ? '' : ` und ${String(years)} ${years === 1 ? 'Jahr' : 'Jahre'} danach`
+}
+
 /**
  * The retention of an evidence in words, as the proposals and an emptied
  * evidence say it: the form of its rule and the longer retention of the
@@ -46,7 +51,7 @@ export function retentionInWords(
         ? `${String(retention.years)} ${retention.years === 1 ? 'Jahr' : 'Jahre'}`
         : retention.kind === 'until_next_inspection'
           ? 'Bis zur nächsten Prüfung'
-          : 'Solange die Anlage verwendet wird'
+          : `Solange die Anlage verwendet wird${yearsAfterWords(retention.yearsAfter)}`
 
   return minimumYears === null
     ? rule

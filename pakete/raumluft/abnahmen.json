@@ -9,6 +9,10 @@
       "checkedOn": "2026-10-18"
     },
     {
+      "file": "anlagenarten/evaporative_cooling_system.v2.json",
+      "checkedOn": "2026-10-18"
+    },
+    {
       "file": "anlagenarten/refrigeration_system.v1.json",
       "checkedOn": "2026-10-18"
     },
@@ -53,7 +57,15 @@
       "checkedOn": "2026-10-18"
     },
     {
+      "file": "pflichten/cooling_expert_inspection.v2.json",
+      "checkedOn": "2026-10-18"
+    },
+    {
       "file": "pflichten/cooling_water_first_lab_test.v1.json",
+      "checkedOn": "2026-10-18"
+    },
+    {
+      "file": "pflichten/cooling_water_first_lab_test.v2.json",
       "checkedOn": "2026-10-18"
     },
     {
@@ -61,7 +73,15 @@
       "checkedOn": "2026-10-18"
     },
     {
+      "file": "pflichten/cooling_water_internal_check.v2.json",
+      "checkedOn": "2026-10-18"
+    },
+    {
       "file": "pflichten/cooling_water_lab_test.v1.json",
+      "checkedOn": "2026-10-18"
+    },
+    {
+      "file": "pflichten/cooling_water_lab_test.v2.json",
       "checkedOn": "2026-10-18"
     },
     {
@@ -352,6 +372,11 @@
     {
       "key": "ventilation_inspection_interval",
       "validFrom": "2027-01-01",
+      "checkedOn": "2026-10-18"
+    },
+    {
+      "key": "cooling_book_retention",
+      "validFrom": "2017-08-19",
       "checkedOn": "2026-10-18"
     }
   ],

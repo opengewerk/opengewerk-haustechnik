@@ -234,6 +234,29 @@ describe('the package Raumluft und Kälte', () => {
     ]).toEqual(['once', '§ 3 Abs. 7 Satz 1 der 42. BImSchV', 'accredited_laboratory'])
   })
 
+  it('keeps the book of an evaporative cooling system as its "Betriebstagebuch", with its evidence five years after the use (#437)', () => {
+    expect(
+      air.assetKind('raumluft.evaporative_cooling_system', '2026-10-18')?.definition.book,
+    ).toEqual({ title: 'Betriebstagebuch', source: '§ 12 der 42. BImSchV' })
+
+    for (const key of [
+      'cooling_water_internal_check',
+      'cooling_water_lab_test',
+      'cooling_water_first_lab_test',
+      'cooling_expert_inspection',
+    ]) {
+      const kind = air.dutyKind(`raumluft.${key}`, '2026-10-18')
+      const retention = kind ? air.retention(kind.definition, '2026-10-18') : null
+
+      expect(
+        retention?.kind === 'while_in_use' && retention.rule !== null
+          ? [retention.rule.record.value, retention.rule.record.source]
+          : null,
+        key,
+      ).toEqual([5, '§ 12 Abs. 3 Satz 2 der 42. BImSchV'])
+    }
+  })
+
   it('judges a Legionella count above the test value 1 as outside, and the value itself as inside', () => {
     const form = air.form('raumluft.cooling_water_findings', options.today)
     const legionella = fieldsOf(

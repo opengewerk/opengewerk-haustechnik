@@ -9,6 +9,12 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
 
 ### Hinzugefügt
 
+- Das Anlagenbuch (#437): Die Akte einer Anlage gibt alle ihre Nachweise und ihren Lebenszyklus in
+  zeitlicher Folge aus, als PDF oder Tabelle, auf Wunsch mit den Nachweisen dahinter. Eine Anlagenart des
+  Pakets kann ihm einen Namen geben: bei einer Verdunstungskühlanlage ist es das Betriebstagebuch nach § 12
+  der 42. BImSchV mit den Angaben aus Anlage 4 Teil 1, soweit die Akte sie hält. Das Buch nennt keine Person
+  des Betreibers. Warum: Die Verordnung verlangt das Tagebuch jederzeit in Klarschrift, und das
+  Nachweisverzeichnis nennt je Pflicht nur den letzten Nachweis.
 - Einmalige Pflichten (#439): Eine Pflichtart kann einmal fällig sein, an einem Tag, den die Vorschrift
   nennt, oder in einem Abstand zu einem Tag der Anlage wie der Inbetriebnahme. Den Tag nennt der Betreiber
   beim Bestätigen, vorbelegt aus der Akte der Anlage, und der Termin folgt daraus. Bis kurz vor dem Termin
@@ -48,6 +54,17 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   dem Beginn der Pflichtart gelten (#439). Warum: Eine neue Fassung einer Anlagenart vom ersten Tag der
   alten an kann so ein Merkmal mitbringen, nach dem eine neue Pflichtart fragt; der Heizkessel bekommt so
   die Angaben für die Heizungsprüfung.
+- Aufbewahrung über die Verwendung hinaus (#437): Ein Nachweis, der bleibt, solange seine Anlage verwendet
+  wird, kann nach einer Regel seines Pakets eine Zahl von Jahren danach bleiben. Die vier Pflichtarten der
+  Verdunstungskühlanlage bewahren ihre Nachweise so im Paket Raumluft und Kälte 1.3.0 fünf Jahre über den
+  Rückbau hinaus. Warum: Das Betriebstagebuch bleibt fünf Jahre ab seinem letzten Eintrag, und das Löschen
+  nach Ablauf hätte seine Nachweise schon am Tag des Rückbaus vorgeschlagen.
+
+### Behoben
+
+- Ein zurückgenommener Eintrag „Zurückgebaut“ im Lebenszyklus beendete die Aufbewahrung der Nachweise
+  seiner Anlage trotzdem; jetzt zählt er nicht mehr (#437). Warum: Einer Anlage, die weiter verwendet wird,
+  hätte das Löschen sonst ihre Nachweise vorgeschlagen.
 
 ## [0.1.7] - 2026-10-18
 

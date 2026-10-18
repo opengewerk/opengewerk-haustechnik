@@ -219,12 +219,36 @@ describe('the catalogue', () => {
       }),
     )
 
-    expect(catalogue.retention(mainTest, '2026-10-03')).toEqual({ kind: 'while_in_use' })
+    expect(catalogue.retention(mainTest, '2026-10-03')).toEqual({
+      kind: 'while_in_use',
+      rule: null,
+    })
     expect(catalogue.retention(kept, '2026-10-03')).toMatchObject({
       kind: 'years',
       rule: { record: { value: 10, unit: 'years' } },
     })
     expect(catalogue.retention(kept, '2023-06-23')).toBeNull()
+  })
+
+  it('says for evidence kept while the asset is used the years it stays after (#437)', () => {
+    const after: DutyKind = {
+      ...mainTest,
+      retention: { kind: 'while_in_use', rule: 'probe.book_retention' },
+    }
+    const catalogue = catalogueOf(
+      bundle({
+        rules: [
+          rule('probe.elevator_main_test_interval', '2015-06-01', null, 24),
+          rule('probe.book_retention', '2017-08-19', null, 5, { unit: 'years' }),
+        ],
+      }),
+    )
+
+    expect(catalogue.retention(after, '2026-10-03')).toMatchObject({
+      kind: 'while_in_use',
+      rule: { record: { value: 5, unit: 'years' } },
+    })
+    expect(catalogue.retention(after, '2017-08-18')).toBeNull()
   })
 
   it('hands out no entry and no rule without its review', () => {
@@ -273,7 +297,7 @@ describe('the catalogue', () => {
     // Format 2 had no defect classes at its packages (#61): a device that
     // kept such a bundle is told so, and fetches the one of its server.
     expect(() => catalogueOf({ ...bundle(), format: 2 as never })).toThrow(
-      'Der Katalog hat das Format 2, gelesen wird 8.',
+      'Der Katalog hat das Format 2, gelesen wird 9.',
     )
     // Format 3 had no kinds of qualification at its packages (#337).
     expect(() => catalogueOf({ ...bundle(), format: 3 as never })).toThrow(/Format 3/)

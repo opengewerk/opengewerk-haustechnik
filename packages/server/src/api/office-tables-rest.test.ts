@@ -10,6 +10,8 @@ import { catalogueBundle } from '@opengewerk/haustechnik-catalogue'
 import { probeCatalogueBundle } from '@opengewerk/haustechnik-catalogue/testing'
 import {
   addDays,
+  assetBookColumns,
+  assetBookWords,
   catalogueOf,
   dayInWords,
   documentKindLabel,
@@ -42,10 +44,13 @@ import {
   testIdentityHeader,
 } from '../database/test-database.js'
 import {
+  leastState,
+  nextEvidenceNumber,
   writtenColumnNames,
   writtenPlaceholders,
   writtenValues,
 } from '../database/test-evidence.js'
+import { stateFingerprint } from '../evidence/fingerprint.js'
 import { dayInGermany } from '../today.js'
 import { ApiModule } from './api.module.js'
 import type { TemplateRounds } from './round-templates.controller.js'
@@ -961,6 +966,193 @@ describe('the register of evidence as a table (#338)', () => {
         status: 403,
         message: missingRight('duty.read'),
       })
+    }
+  })
+})
+
+describe('the book of an asset (#437)', () => {
+  /** An evidence of a duty on a day from a state with these changes, put in past the application. */
+  async function entryOf(
+    duty: string,
+    performedOn: IsoDate,
+    changes: Partial<ReturnType<typeof leastState>> = {},
+  ): Promise<{ readonly id: string; readonly number: string }> {
+    const number = nextEvidenceNumber()
+    const state = { ...leastState(number, performedOn, 'without_defects'), ...changes }
+    const { rows } = await admin.query<{ id: string }>(
+      `insert into evidence (tenant_id, property_id, area_id, duty_id, performed_on, result, number,
+                             origin, examiner, examiner_organisation, written_by, state, fingerprint)
+       select tenant_id, property_id, area_id, id, $2::date, $3::evidence_result, $4, 'report',
+              'Erika Muster', 'Prüfstelle Süd', 'u-duties', $5, $6
+         from duties where id = $1
+       returning id`,
+      [duty, performedOn, state.result, number, JSON.stringify(state), stateFingerprint(state)],
+    )
+
+    return { id: rows[0]?.id ?? '', number }
+  }
+
+  /** The print of the book of an asset, as the renderer was handed it. */
+  async function bookOf(asset: string, header: string, query: Record<string, string> = {}) {
+    const before = rendered.length
+    const answer = await http()
+      .get(`/assets/${asset}/book/pdf`)
+      .query(query)
+      .set(testIdentityHeader, header)
+      .expect(200)
+
+    expect(answer.headers['content-type']).toContain('application/pdf')
+    // With the evidence behind it each evidence is printed first; the book is printed last.
+    expect(rendered.length).toBeGreaterThan(before)
+
+    return rendered.at(-1)
+  }
+
+  it('holds the life cycle and every evidence of the asset in the order of time, from their frozen states, as a PDF and a table', async () => {
+    const { asset } = await liftIn('Buchhaus')
+    const duty = await dutyAt(asset, 'Notruf prüfen')
+    const checked = await entryOf(duty, addDays(today, -10), {
+      result: 'with_defects',
+      answers: [
+        {
+          section: 'Befund',
+          label: 'Legionella spp.',
+          group: null,
+          kind: 'measurement',
+          value: '1.300 KBE/100 ml',
+          result: null,
+          remark: null,
+          limit: { text: 'höchstens 100 KBE/100 ml', source: null, within: false },
+          photo: null,
+        },
+      ],
+      defects: [{ description: 'Prüfwert 1 überschritten', defectClass: null, dueOn: null }],
+    })
+    const voided = await entryOf(duty, addDays(today, -2))
+
+    await admin.query(
+      `insert into asset_lifecycle (tenant_id, property_id, area_id, asset_id, state, valid_from)
+       select tenant_id, property_id, area_id, id, 'out_of_service', $2 from assets where id = $1`,
+      [asset, addDays(today, -5)],
+    )
+    await admin.query(
+      `insert into evidence_voidings (tenant_id, property_id, area_id, evidence_id, reason, voided_by)
+       select tenant_id, property_id, area_id, id, 'Falsche Anlage.', 'u-lead' from evidence where id = $1`,
+      [voided.id],
+    )
+    // An entry of the life cycle taken back is no entry of the book.
+    await admin.query(
+      `insert into asset_lifecycle (tenant_id, property_id, area_id, asset_id, state, valid_from, deleted_at)
+       select tenant_id, property_id, area_id, id, 'removed', $2, now() from assets where id = $1`,
+      [asset, addDays(today, -1)],
+    )
+
+    const job = await bookOf(asset, by('u-duties'))
+    const html = job?.html ?? ''
+
+    expect(job?.landscape).toBe(true)
+    for (const words of [
+      assetBookWords.title,
+      'Legionella spp.: 1.300 KBE/100 ml, höchstens 100 KBE/100 ml: nicht eingehalten',
+      'Mangel: Prüfwert 1 überschritten',
+      'Für ungültig erklärt: Falsche Anlage.',
+      '3 Einträge vom',
+    ]) {
+      expect(html).toContain(words)
+    }
+    expect([
+      html.indexOf(checked.number),
+      html.indexOf('Außer Betrieb'),
+      html.indexOf(voided.number),
+    ]).toEqual(
+      [
+        html.indexOf(checked.number),
+        html.indexOf('Außer Betrieb'),
+        html.indexOf(voided.number),
+      ].sort((one, other) => one - other),
+    )
+
+    for (const format of ['xlsx', 'csv'] as const) {
+      const table = await tableOf(`/assets/${asset}/book/table`, {}, by('u-duties'), format)
+
+      expect(table[0]).toEqual([...assetBookColumns])
+      // A table leaves out the empty cells at the end of a row.
+      expect(table.slice(1).map((row) => [row[1], row[2], row[4] ?? '', row[9] ?? ''])).toEqual([
+        ['Nachweis', 'Hauptprüfung der Aufzugsanlage', checked.number, ''],
+        ['Lebenszyklus', 'Außer Betrieb', '', ''],
+        [
+          'Nachweis',
+          'Hauptprüfung der Aufzugsanlage',
+          voided.number,
+          'Für ungültig erklärt: Falsche Anlage.',
+        ],
+      ])
+    }
+
+    // With the evidence behind it, every line of an evidence names its page.
+    const attached = await bookOf(asset, by('u-duties'), { attach: '1' })
+
+    expect(attached?.html).toContain('Die Nachweise folgen ab Seite')
+    expect(attached?.html).toContain('<th class="page">Seite</th>')
+  })
+
+  it('names no person of the operator who did the work, neither in the PDF nor in the table', async () => {
+    const { asset } = await liftIn('Buchhaus ohne Namen')
+    const duty = await dutyAt(asset, 'Nutzwasser prüfen')
+
+    await entryOf(duty, addDays(today, -4), { performer: { person: 'Hana Haus' } })
+
+    const html = (await bookOf(asset, by('u-lead')))?.html ?? ''
+    const table = await tableOf(`/assets/${asset}/book/table`, {}, by('u-lead'), 'csv')
+
+    expect(html).toContain(assetBookWords.ownStaff)
+    expect(html).not.toContain('Hana Haus')
+    expect(table[1]?.[assetBookColumns.indexOf('Durchgeführt von')]).toBe(assetBookWords.ownStaff)
+    expect(JSON.stringify(table)).not.toContain('Hana Haus')
+  })
+
+  it('is called by the name its kind gives it, and heads with the fields of the kind and, for whoever reads places, the place', async () => {
+    const { building } = await propertyIn('Kühlhaus')
+    const cooling = await made(`/buildings/${building}/assets`, {
+      kind: 'raumluft.evaporative_cooling_system',
+      name: 'Verdunstungskühlanlage Dach',
+      commissionedOn: '2026-07-06',
+      values: { plant_id: 'VKA-2026-0412' },
+    })
+    const html = (await bookOf(cooling, by('u-duties')))?.html ?? ''
+
+    for (const words of [
+      'Betriebstagebuch',
+      '§ 12 der 42. BImSchV',
+      'Anlagen-ID nach der 42. BImSchV',
+      'VKA-2026-0412',
+      'Neckarstraße 4, 68535 Edingen-Neckarhausen',
+      '06.07.2026',
+    ]) {
+      expect(html).toContain(words)
+    }
+
+    const unplaced = (await bookOf(cooling, leading('asset.read', 'evidence.read')))?.html ?? ''
+
+    expect(unplaced).toContain('VKA-2026-0412')
+    expect(unplaced).not.toContain('Neckarstraße 4')
+    expect(unplaced).not.toContain('Standort')
+  })
+
+  it('is made only by whoever reads the asset and its evidence, and only of an asset in their areas', async () => {
+    const { asset } = await liftIn('Buchhof Süd', large, { areaId: south })
+
+    for (const route of [`/assets/${asset}/book/table`, `/assets/${asset}/book/pdf`]) {
+      expect(await refusalOf(route, {}, leading('asset.read'))).toEqual({
+        status: 403,
+        message: missingRight('evidence.read'),
+      })
+      expect(await refusalOf(route, {}, leading('evidence.read'))).toEqual({
+        status: 403,
+        message: missingRight('asset.read'),
+      })
+      // The technician works in the north of the large tenant.
+      expect((await refusalOf(route, {}, by('u-tech', large))).status).toBe(404)
     }
   })
 })

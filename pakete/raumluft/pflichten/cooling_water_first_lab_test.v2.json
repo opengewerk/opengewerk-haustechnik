@@ -1,0 +1,35 @@
+{
+  "validFrom": "2017-08-19",
+  "label": "Nutzwasser nach der Inbetriebnahme erstmals im Labor untersuchen lassen",
+  "description": "Innerhalb von vier Wochen nach der Inbetriebnahme oder Wiederinbetriebnahme einer Verdunstungskühlanlage lässt der Betreiber das Nutzwasser zum ersten Mal im Labor untersuchen, die Erstuntersuchung. Danach gilt die regelmäßige Untersuchung, und der Befund der ersten ist auch ihr erster Nachweis. Nach einer Wiederinbetriebnahme beginnt die Pflicht neu, vom Tag der Wiederinbetriebnahme an. Der Betreiber trägt das Ergebnis unverzüglich in das Betriebstagebuch der Anlage ein, das er bis fünf Jahre nach dem letzten Eintrag aufbewahrt.",
+  "task": "sampling",
+  "origin": "state_law",
+  "bindingness": "statute",
+  "source": "§ 3 Abs. 7 Satz 1 der 42. BImSchV",
+  "interval": {
+    "kind": "once",
+    "rule": "cooling_first_lab_test_within",
+    "from": "commissioning"
+  },
+  "counting": "once",
+  "qualification": {
+    "level": "accredited_laboratory",
+    "note": "ein akkreditiertes Prüflaboratorium, das auch die Proben nimmt (§ 3 Abs. 8)"
+  },
+  "evidence": {
+    "kinds": [
+      "report",
+      "protocol"
+    ],
+    "form": "cooling_water_findings"
+  },
+  "retention": {
+    "kind": "while_in_use",
+    "rule": "cooling_book_retention"
+  },
+  "scope": {
+    "assetKinds": [
+      "evaporative_cooling_system"
+    ]
+  }
+}
