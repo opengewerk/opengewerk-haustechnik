@@ -1,0 +1,31 @@
+{
+  "validFrom": "2004-08-25",
+  "label": "Verdunstungskühlanlage",
+  "costGroup": "434",
+  "fields": [
+    {
+      "key": "plant_id",
+      "label": "Anlagen-ID nach der 42. BImSchV",
+      "kind": "text"
+    }
+  ],
+  "expectedDocuments": [
+    {
+      "key": "risk_assessment",
+      "label": "Gefährdungsbeurteilung",
+      "kind": "risk_assessment",
+      "demand": "required",
+      "source": "§ 3 Abs. 4 der 42. BImSchV"
+    },
+    {
+      "key": "operating_manual",
+      "label": "Betriebsanleitung",
+      "kind": "operating_manual",
+      "demand": "recommended"
+    }
+  ],
+  "book": {
+    "title": "Betriebstagebuch",
+    "source": "§ 12 der 42. BImSchV"
+  }
+}

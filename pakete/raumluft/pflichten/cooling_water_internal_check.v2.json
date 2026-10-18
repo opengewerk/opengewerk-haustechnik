@@ -1,0 +1,34 @@
+{
+  "validFrom": "2017-08-19",
+  "label": "Nutzwasser betriebsintern überprüfen",
+  "description": "Der Betreiber einer Verdunstungskühlanlage überprüft mindestens alle zwei Wochen betriebsintern chemische, physikalische oder mikrobiologische Kenngrößen des Nutzwassers. Hat ein Laborbefund den Prüfwert 1 bestätigt überschritten, prüft er wöchentlich, bis drei Laboruntersuchungen in Folge ihn wieder einhalten. Der Betreiber trägt das Ergebnis unverzüglich in das Betriebstagebuch der Anlage ein, das er bis fünf Jahre nach dem letzten Eintrag aufbewahrt.",
+  "task": "condition_assessment",
+  "origin": "state_law",
+  "bindingness": "statute",
+  "source": "§ 4 Abs. 2 Nr. 1 der 42. BImSchV",
+  "interval": {
+    "kind": "maximum",
+    "rule": "cooling_internal_check_interval"
+  },
+  "counting": "from_performance",
+  "qualification": {
+    "level": "instructed_person",
+    "note": "die Verordnung nennt keine Stufe; der Betreiber weist das Personal ein"
+  },
+  "evidence": {
+    "kinds": [
+      "protocol",
+      "round_point"
+    ],
+    "form": "cooling_water_protocol"
+  },
+  "retention": {
+    "kind": "while_in_use",
+    "rule": "cooling_book_retention"
+  },
+  "scope": {
+    "assetKinds": [
+      "evaporative_cooling_system"
+    ]
+  }
+}

@@ -28,7 +28,9 @@ Ausgabe 2018-12, und nicht am Text der Norm geprüft.
 
 - **Klimaanlage:** dazu gehören auch eine Teilklimaanlage, ein Splitgerät und eine kombinierte Klima- und
   Lüftungsanlage.
-- **Verdunstungskühlanlage:** dazu gehört ein Rückkühlwerk mit offenem Kreislauf.
+- **Verdunstungskühlanlage:** dazu gehört ein Rückkühlwerk mit offenem Kreislauf. Seit der Fassung 1.3.0 des
+  Pakets nennt sie in ihrer Fassung 2 das Anlagenbuch ihrer Anlagen „Betriebstagebuch“ nach § 12 der
+  42. BImSchV (`book`), vom selben Tag an wie Fassung 1.
 - **Wärmepumpen:** Sie stehen im Paket Heizung (#352) und tragen dieselben Pflichten nach der
   F-Gas-Verordnung. Seit der Fassung 1.1.0 des Pakets nennen die sechzehn Stufen der Dichtheitskontrolle und
   die Kontrolle des Leckage-Erkennungssystems in ihrer Fassung 2 die Wärmepumpe `heizung.heat_pump`, vom
@@ -134,9 +136,11 @@ fünf Jahre.
 - **Was der Betreiber danach tut:** Prüfwert 2, Maßnahmenwert, Meldung an die Behörde und die engeren
   Abstände nach §§ 5, 6, 9 und 10 stehen in der Beschreibung der Pflichtarten.
 
-Die Nachweise bleiben, solange die Anlage in Betrieb ist. Das Betriebstagebuch muss bis fünf Jahre nach seinem
-letzten Eintrag bleiben (§ 12 Abs. 3), und das Paket kennt keine Frist, die erst mit dem letzten Eintrag
-beginnt. Das Betriebstagebuch aus den Nachweisen einer Anlage kommt mit #437.
+Das Betriebstagebuch gibt die Akte der Anlage aus: alle ihre Nachweise und ihren Lebenszyklus in zeitlicher Folge,
+als PDF oder Tabelle (#437). Es muss fünf Jahre ab seinem letzten Eintrag bleiben (§ 12 Abs. 3 Satz 2). Weil es aus
+den Nachweisen entsteht, bleiben die Nachweise der vier Pflichtarten, solange die Anlage verwendet wird, und fünf
+Jahre danach: Seit der Fassung 1.3.0 nennen sie dafür in ihrer Fassung 2 die Regel `cooling_book_retention`, vom
+selben Tag an wie Fassung 1.
 
 ## Formulare
 

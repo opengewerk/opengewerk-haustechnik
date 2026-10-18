@@ -45,6 +45,16 @@
       "value": 100,
       "source": "Anlage 1 der 42. BImSchV, Prüfwert 1 für Verdunstungskühlanlagen",
       "origin": "state_law"
+    },
+    {
+      "key": "cooling_book_retention",
+      "validFrom": "2017-08-19",
+      "validUntil": null,
+      "unit": "years",
+      "value": 5,
+      "source": "§ 12 Abs. 3 Satz 2 der 42. BImSchV",
+      "origin": "state_law",
+      "note": "Das Betriebstagebuch samt Anlagen bleibt fünf Jahre ab seinem letzten Eintrag. Es entsteht aus den Nachweisen der Anlage, deshalb bleiben sie, solange die Anlage verwendet wird, und fünf Jahre danach."
     }
   ]
 }
