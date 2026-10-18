@@ -17,6 +17,8 @@ import type {
   Import,
   KeptDefectClassTerm,
   KeptKindName,
+  MembershipRemoval,
+  MembershipSetting,
   MeterExchange,
   MeterPause,
   MeterPoint,
@@ -67,6 +69,8 @@ import type {
   assetKindNames,
   imports,
   labels,
+  membershipRemovals,
+  membershipSettings,
   tasks,
   meterExchanges,
   meterPauses,
@@ -122,6 +126,13 @@ export type RoomMatches = Assert<Exact<typeof rooms.$inferSelect, Room>>
 export type ContactMatches = Assert<Exact<typeof contacts.$inferSelect, Contact>>
 export type ContractorMatches = Assert<Exact<typeof contractors.$inferSelect, Contractor>>
 export type ContractMatches = Assert<Exact<typeof contracts.$inferSelect, Contract>>
+// The period after the end of an access and when the data of one went (#356).
+export type MembershipSettingMatches = Assert<
+  Exact<typeof membershipSettings.$inferSelect, MembershipSetting>
+>
+export type MembershipRemovalMatches = Assert<
+  Exact<typeof membershipRemovals.$inferSelect, MembershipRemoval>
+>
 export type BuildingClosureMatches = Assert<
   Exact<typeof buildingClosures.$inferSelect, BuildingClosure>
 >

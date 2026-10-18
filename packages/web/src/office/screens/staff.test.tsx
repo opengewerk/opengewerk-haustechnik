@@ -1,4 +1,10 @@
-import { type Area, type AreaId, limitWords, shippedRoles } from '@opengewerk/haustechnik-domain'
+import {
+  type Area,
+  type AreaId,
+  limitWords,
+  membershipEndWords,
+  shippedRoles,
+} from '@opengewerk/haustechnik-domain'
 import { moment } from '@opengewerk/platform-web/format'
 import { TestServer } from '@opengewerk/platform-web/testing'
 import { fireEvent, screen, waitFor, within } from '@testing-library/react'
@@ -122,6 +128,8 @@ function signedIn(
       '/areas/invitation-limits': [],
       '/substitutions': [autumn],
       [`/staff/${petra.userId}/devices`]: [],
+      // The period after the end of an access (#356).
+      '/settings/memberships': { removalDays: 90, standard: true },
       ...differing,
     },
     (write) => answerToWrite(write),
@@ -818,5 +826,77 @@ describe('the substitutions', () => {
       ])
     })
     expect(screen.queryByRole('button', { name: substitutionWords.add })).toBeNull()
+  })
+})
+
+describe('the end of an access (#356)', () => {
+  beforeEach(() => {
+    answerToWrite = () => ({ status: 200, body: { removalDays: 30, standard: false } })
+  })
+
+  it('shows the period after the last day, and a changed one goes out to its route', async () => {
+    const user = userEvent.setup()
+
+    signedIn()
+    await mount()
+
+    const card = await screen.findByRole('region', { name: membershipEndWords.settingTitle })
+    const field = within(card).getByLabelText<HTMLInputElement>(
+      new RegExp(`^${membershipEndWords.removalDaysLabel}`),
+    )
+
+    expect(field.value).toBe('90')
+
+    await user.clear(field)
+    await user.type(field, '0')
+    await user.click(within(card).getByRole('button', { name: 'Speichern' }))
+
+    expect(await within(card).findByText(/mindestens 1 und höchstens 3650/)).toBeTruthy()
+    expect(sent('PUT', '/settings/memberships')).toEqual([])
+
+    await user.clear(field)
+    await user.type(field, '30')
+    await user.click(within(card).getByRole('button', { name: 'Speichern' }))
+
+    await waitFor(() => {
+      expect(sent('PUT', '/settings/memberships')).toEqual([{ removalDays: 30 }])
+    })
+  })
+
+  it('says under the last day what still hangs on the person and what becomes of it, once a day is entered', async () => {
+    const user = userEvent.setup()
+
+    signedIn({
+      [`/settings/memberships/${petra.userId}/assigned`]: {
+        activities: 2,
+        startedActivities: 1,
+        roundPlans: 1,
+        tasks: 3,
+        duties: 5,
+        delegations: 0,
+      },
+    })
+    await mount()
+    await user.click(await screen.findByRole('button', { name: `${petra.name} bearbeiten` }))
+
+    const dialog = await screen.findByRole('dialog', { name: 'Zugang bearbeiten' })
+
+    expect(
+      within(dialog).queryByRole('group', { name: membershipEndWords.hangingOf(petra.name) }),
+    ).toBeNull()
+
+    await user.type(within(dialog).getByLabelText(/^Letzter Tag/), '2036-12-31')
+
+    const hanging = await within(dialog).findByRole('group', {
+      name: membershipEndWords.hangingOf(petra.name),
+    })
+
+    expect(await within(hanging).findByText(membershipEndWords.activities(2, 1))).toBeTruthy()
+    expect(within(hanging).getByText(membershipEndWords.roundPlans(1))).toBeTruthy()
+    expect(within(hanging).getByText(membershipEndWords.tasks(3))).toBeTruthy()
+    expect(within(hanging).getByText(membershipEndWords.duties(5))).toBeTruthy()
+    expect(within(hanging).queryByText(membershipEndWords.delegations(0))).toBeNull()
+    expect(within(hanging).getByText(membershipEndWords.dutiesThen(5))).toBeTruthy()
+    expect(within(hanging).getByText(membershipEndWords.roundPlansThen(1))).toBeTruthy()
   })
 })

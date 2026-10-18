@@ -94,6 +94,7 @@ import { TasksController } from './tasks.controller.js'
 import { syncRoutesFor } from './sync-routes.js'
 import { MeterSettingsController, MetersController } from './meters.controller.js'
 import { EvidenceRetentionController } from './retention.controller.js'
+import { MembershipEndController } from './membership-end.controller.js'
 import {
   EvidencePrintController,
   Printer,
@@ -448,6 +449,7 @@ export class ApiModule {
         MeterSettingsController,
         // The retention of the evidence and the confirmation of its end (#340).
         EvidenceRetentionController,
+        MembershipEndController,
         EvidencePrintController,
         RoundPrintController,
         ServiceReportPrintController,

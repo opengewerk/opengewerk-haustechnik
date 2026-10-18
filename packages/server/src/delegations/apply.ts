@@ -14,6 +14,7 @@ import { and, eq, gt, inArray, isNull, or } from 'drizzle-orm'
 
 import { assets, duties } from '../database/schema/index.js'
 import { type HeldDelegation, heldDelegations, standingOf, termsOf } from './reading.js'
+import { endedMembers } from '../memberships/end.js'
 import { tenantCatalogue } from '../own-kinds/catalogue.js'
 
 /**
@@ -44,8 +45,11 @@ export async function applyDelegations(
   // The cost group of an own kind as well (#62).
   const catalogue = await tenantCatalogue(tx, shipped)
 
+  // A delegation to somebody whose access has ended counts no longer (#356).
+  const ended = await endedMembers(tx, today)
   const inForce = (await heldDelegations(tx))
     .filter((held) => delegationInForce(standingOf(held), today))
+    .filter((held) => !ended.has(held.delegation.delegateUserId))
     .map((held) => ({
       id: held.delegation.id as string,
       delegateUserId: held.delegation.delegateUserId,

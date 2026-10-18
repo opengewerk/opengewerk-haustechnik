@@ -94,6 +94,8 @@ describe('the foundation in this database', () => {
           'deadlines.delegation_id',
           'deadlines.qualification_id',
           'deadlines.evidence_id',
+          // The access whose end or removal a deadline follows (#356).
+          'deadlines.member_user_id',
         ],
         constraints: [
           'deadlines.deadlines_meters_of_their_property',
@@ -117,6 +119,7 @@ describe('the foundation in this database', () => {
           'deadlines.deadlines_of_a_delegation',
           'deadlines.deadlines_of_a_qualification',
           'deadlines.deadlines_follow_their_evidence',
+          'deadlines.deadlines_of_an_access',
           'attachments.attachments_area_key',
           'contacts.contacts_follow_their_property',
           'contacts.contacts_of_a_contractor',
@@ -158,6 +161,7 @@ describe('the foundation in this database', () => {
           'deadlines.deadlines_delegation_idx',
           'deadlines.deadlines_qualification_idx',
           'deadlines.deadlines_evidence_idx',
+          'deadlines.deadlines_member_idx',
           'contacts.contacts_property_idx',
           'contacts.contacts_contractor_idx',
           'attachments.attachments_property_idx',

@@ -9,6 +9,14 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
 
 ### Hinzugefügt
 
+- Das Ende eines Zugangs als Frist (#356): Am Tag nach dem letzten Tag gehen die offenen Vorgänge und Pläne von
+  Rundgängen der Person an die Planung zurück, ihre Aufgaben an die Person, die sie angelegt hat, sonst an die Leitung,
+  und ihre Pflichten stehen ohne Verantwortlichen. Nach einer Frist, die die Leitung unter „Zugänge“ einstellt (ohne
+  Einstellung neunzig Tage), entfernt der Lauf der Fristen Geräte, Passkeys und Geräte für Push-Nachrichten, und wo
+  das Konto nirgends mehr arbeitet auch E-Mail-Adresse, zweiten Faktor und Passwort; der Name bleibt in den
+  Nachweisen. Beides steht unter „Fristen“, den Namen sieht dort nur, wer Zugänge verwaltet. Im Dialog eines Zugangs
+  steht unter dem letzten Tag, was noch an der Person hängt. Migration 0085, Fundament mit opengewerk#669. Warum: Wer
+  den Betreiber verlässt, behielt bisher Konto und Geräte, und was ihr zugeteilt war, blieb bei ihr liegen.
 - Das Paket Förderanlagen und Arbeitsmittel (#353): Aufzugsanlagen mit Haupt- und Zwischenprüfung durch
   eine zugelassene Überwachungsstelle nach der BetrSichV und ihrer Instandhaltung, Druckbehälter mit
   äußerer und innerer Prüfung und Festigkeitsprüfung je nach prüfender Stelle mit den Höchstfristen aus

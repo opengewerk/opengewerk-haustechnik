@@ -5,6 +5,7 @@ import { request } from '@opengewerk/platform-web/sync'
 import { useQuery } from '@tanstack/react-query'
 
 import { AuditorReadsCard } from '../auditor-reads.js'
+import { HangingOnThePerson, MembershipEndCard } from '../membership-end.js'
 import { useAreaAdditions } from '../staff-areas.js'
 import { Substitutions } from '../substitutions.js'
 
@@ -90,7 +91,10 @@ export function StaffScreen() {
       additions={areas}
       // An auditor from outside is given an access only up to a last day (#339).
       endingRoles={['auditor']}
+      // What still hangs on the person, once a last day is entered (#356).
+      afterLastDay={(person) => <HangingOnThePerson userId={person.userId} name={person.name} />}
     >
+      <MembershipEndCard />
       <Substitutions />
       <AuditorReadsCard />
     </StaffDialogsScreen>

@@ -23,6 +23,7 @@ import { dayInGermany } from '../today.js'
 import { deadlineKindRegistry } from './registry.js'
 import { upgradeOpenRounds } from '../rounds/plans.js'
 import { settleDeadlineTasks, taskFromDeadline } from '../tasks/from-deadline.js'
+import { handBackEndedAccesses, removeEndedAccounts, tenantOf } from '../memberships/end.js'
 import {
   contractSource,
   delegationSource,
@@ -32,6 +33,8 @@ import {
   defectSource,
   documentSource,
   dutySource,
+  membershipRemovalSource,
+  membershipSource,
   meterSource,
   roundPlanSource,
   warrantySource,
@@ -105,6 +108,9 @@ function bound(
       }),
       // The end of the retention of an evidence (#340).
       evidence: evidenceSource({ today: () => dayInGermany(job.now?.() ?? new Date()) }),
+      // The end of an access and the day its data goes (#356).
+      membership: membershipSource({ today: () => dayInGermany(job.now?.() ?? new Date()) }),
+      membership_removal: membershipRemovalSource(),
     },
     actions: { activity: activityFromDeadline(job.catalogue), task: taskFromDeadline() },
     // A round nobody has begun walks the newest version of its template, and
@@ -112,8 +118,13 @@ function bound(
     complete: async (tx, now) => {
       await upgradeOpenRounds(tx, now)
       await settleDeadlineTasks(tx, now)
+      // What an access that has ended hands back, before the delegations
+      // are applied, which no longer count for it (#356).
+      await handBackEndedAccesses(tx, dayInGermany(now))
       // A delegation of duties begins and ends on a day (#336).
       await applyDelegations(tx, job.catalogue, dayInGermany(now))
+      // The data of an access whose period after its last day has come (#356).
+      await removeEndedAccounts(job.database, tx, await tenantOf(tx), dayInGermany(now))
     },
     sentences,
     inTenant: (actor, work) => inEveryArea(job.database, actor, work),
