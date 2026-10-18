@@ -1,0 +1,32 @@
+{
+  "validFrom": "2017-08-01",
+  "label": "Heizöllagerung selbst kontrollieren",
+  "description": "Der Betreiber kontrolliert die Heizöllagerung regelmäßig auf Dichtheit und darauf, dass ihre Sicherheitseinrichtungen funktionieren. Eine Frist nennt die Verordnung nicht. Das Merkblatt zu Betriebs- und Verhaltensvorschriften hängt gut sichtbar an der Anlage, und ihre Dokumentation liegt bereit.",
+  "task": "visual_check",
+  "origin": "state_law",
+  "bindingness": "statute",
+  "source": "§ 46 Abs. 1 AwSV",
+  "interval": {
+    "kind": "none"
+  },
+  "counting": "from_due",
+  "qualification": {
+    "level": "instructed_person",
+    "note": "die Verordnung nennt keine Stufe"
+  },
+  "evidence": {
+    "kinds": [
+      "protocol",
+      "round_point"
+    ],
+    "form": "oil_storage_check"
+  },
+  "retention": {
+    "kind": "until_next_inspection"
+  },
+  "scope": {
+    "assetKinds": [
+      "oil_storage"
+    ]
+  }
+}

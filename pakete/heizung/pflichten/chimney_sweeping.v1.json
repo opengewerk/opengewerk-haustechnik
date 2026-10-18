@@ -1,0 +1,30 @@
+{
+  "validFrom": "2013-01-01",
+  "label": "Abgasanlage kehren und überprüfen lassen",
+  "description": "Der Eigentümer lässt die Abgasanlage fristgerecht reinigen und überprüfen, wie der Feuerstättenbescheid es festlegt: welche Arbeiten, wie oft im Kalenderjahr und bis wann. Die Grundzahlen stehen in Anlage 1 der Kehr- und Überprüfungsordnung, je nach Brennstoff und Bauart von viermal im Jahr bis einmal in jedem dritten Jahr. Beauftragt er nicht den bevollmächtigten Bezirksschornsteinfeger, schickt er ihm den Nachweis spätestens 14 Tage nach den Arbeiten. Gefundene Mängel weist er innerhalb von sechs Wochen nach dem Ende der Frist als behoben nach.",
+  "task": "inspection",
+  "origin": "state_law",
+  "bindingness": "statute",
+  "source": "§ 1 Abs. 1 und § 4 SchfHwG mit § 1 KÜO",
+  "interval": {
+    "kind": "none"
+  },
+  "counting": "from_due",
+  "qualification": {
+    "level": "skilled_person",
+    "note": "ein Schornsteinfegerbetrieb, der in der Handwerksrolle eingetragen ist (§ 2 SchfHwG); die Frist trägt der Betreiber aus dem Feuerstättenbescheid ein"
+  },
+  "evidence": {
+    "kinds": [
+      "report"
+    ]
+  },
+  "retention": {
+    "kind": "until_next_inspection"
+  },
+  "scope": {
+    "assetKinds": [
+      "flue_system"
+    ]
+  }
+}

@@ -1,0 +1,32 @@
+{
+  "validFrom": "2018-09-01",
+  "label": "Gasinstallation in Augenschein nehmen",
+  "description": "Das Arbeitsblatt G 600 des DVGW beschreibt, wie der Betreiber seine Gasinstallation selbst regelmäßig in Augenschein nimmt: Leitungen, Absperreinrichtungen und die Versorgung mit Verbrennungsluft. Die Abstände der Regel übernimmt das Paket erst, wenn die rechtliche Prüfung sie trägt; bis dahin legt der Betreiber die Frist selbst fest und begründet sie.",
+  "task": "visual_check",
+  "origin": "private_standard",
+  "bindingness": "technical_rule",
+  "source": "DVGW G 600 (A):2018-09 (TRGI), Abschnitt 13.3",
+  "interval": {
+    "kind": "none"
+  },
+  "counting": "from_due",
+  "qualification": {
+    "level": "instructed_person",
+    "note": "der Betreiber oder eine von ihm eingewiesene Person"
+  },
+  "evidence": {
+    "kinds": [
+      "protocol",
+      "round_point"
+    ],
+    "form": "gas_visual_check"
+  },
+  "retention": {
+    "kind": "until_next_inspection"
+  },
+  "scope": {
+    "assetKinds": [
+      "gas_installation"
+    ]
+  }
+}

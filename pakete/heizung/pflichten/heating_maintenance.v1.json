@@ -1,0 +1,33 @@
+{
+  "validFrom": "2020-11-01",
+  "label": "Wärmeerzeuger warten und instand halten",
+  "description": "Der Betreiber wartet die Teile einer Heizungsanlage, die ihren Wirkungsgrad wesentlich beeinflussen, regelmäßig und hält sie instand, ebenso bei Kühlung, Raumlufttechnik und Warmwasser. Eine Frist nennt das Gesetz nicht; die Abstände ergeben sich aus den Angaben des Herstellers. Dafür ist Fachkunde nötig.",
+  "task": "maintenance",
+  "origin": "state_law",
+  "bindingness": "statute",
+  "source": "§ 60 Abs. 1 und 2 GEG",
+  "interval": {
+    "kind": "none"
+  },
+  "counting": "from_due",
+  "qualification": {
+    "level": "skilled_person",
+    "note": "fachkundig ist, wer die zur Wartung und Instandhaltung notwendigen Kenntnisse und Fertigkeiten hat (§ 60 Abs. 2)"
+  },
+  "evidence": {
+    "kinds": [
+      "protocol",
+      "report"
+    ],
+    "form": "heating_service"
+  },
+  "retention": {
+    "kind": "until_next_inspection"
+  },
+  "scope": {
+    "assetKinds": [
+      "boiler",
+      "heat_pump"
+    ]
+  }
+}

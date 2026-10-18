@@ -1,0 +1,41 @@
+{
+  "validFrom": "2017-08-01",
+  "label": "Unterirdische Heizöllagerung durch Sachverständige prüfen lassen",
+  "description": "Eine unterirdische Heizöllagerung jeder Größe lässt der Betreiber außerhalb von Schutz- und Überschwemmungsgebieten alle fünf Jahre von Sachverständigen prüfen. Die Frist beginnt mit der Prüfung vor der Inbetriebnahme, und es genügt, bis zum Ende des Monats zu prüfen, in dem sie fällig ist. Den Prüfbericht schickt der Sachverständige innerhalb von vier Wochen an die Behörde; ohne oder mit geringfügigem Mangel bringt er eine Plakette an. Geringfügige Mängel beseitigt der Betreiber innerhalb von sechs Monaten, erhebliche und gefährliche unverzüglich, bei einem gefährlichen geht die Anlage außer Betrieb.",
+  "task": "inspection",
+  "origin": "state_law",
+  "bindingness": "statute",
+  "source": "§ 46 Abs. 2 AwSV mit Anlage 5",
+  "interval": {
+    "kind": "maximum",
+    "rule": "oil_storage_inspection_interval"
+  },
+  "counting": "from_due",
+  "qualification": {
+    "level": "certified_expert",
+    "note": "Sachverständige einer nach § 52 AwSV anerkannten Organisation (§ 47 Abs. 1)"
+  },
+  "evidence": {
+    "kinds": [
+      "report"
+    ]
+  },
+  "retention": {
+    "kind": "until_next_inspection"
+  },
+  "scope": {
+    "assetKinds": [
+      "oil_storage"
+    ],
+    "conditions": [
+      {
+        "characteristic": "underground",
+        "is": true
+      },
+      {
+        "characteristic": "protection_area",
+        "is": false
+      }
+    ]
+  }
+}

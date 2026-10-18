@@ -19,7 +19,8 @@ Prüfungen nach den DGUV Vorschriften 3 und 4 und der Arbeitsstättenverordnung,
 für Arbeitsstätten A2.2 und A1.7, das dritte [`trinkwasser`](trinkwasser/README.md), mit der
 Untersuchung auf Legionellen nach der Trinkwasserverordnung, das vierte
 [`raumluft`](raumluft/README.md), Raumluft und Kälte, mit Lüftungs-, Klima-, Kälte- und
-Verdunstungskühlanlagen. [`landesrecht`](landesrecht/README.md)
+Verdunstungskühlanlagen, das fünfte [`heizung`](heizung/README.md), mit Wärmeerzeugern und Wärmepumpen,
+Abgasanlage, Heizöllagerung und Gasinstallation. [`landesrecht`](landesrecht/README.md)
 bringt je Land die Prüfung technischer Anlagen in Sonderbauten, zuerst für Baden-Württemberg, und
 nennt dafür die Anlagenarten der Fachpakete. Daneben steht
 [`messstellen`](messstellen/README.md): je Medium eine Anlagenart, die eine Messstelle ist.

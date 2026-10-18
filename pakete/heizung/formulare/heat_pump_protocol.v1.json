@@ -1,0 +1,89 @@
+{
+  "validFrom": "2024-01-01",
+  "title": "Betriebsprüfung der Wärmepumpe",
+  "sections": [
+    {
+      "key": "check",
+      "title": "Prüfung",
+      "hint": "Die Punkte nennt § 60a Abs. 2 GEG",
+      "fields": [
+        {
+          "kind": "check_point",
+          "key": "balancing",
+          "label": "Hydraulischer Abgleich"
+        },
+        {
+          "kind": "check_point",
+          "key": "control",
+          "label": "Regelparameter: Heizkurve, Absenkzeiten, Heizgrenze, Warmwasser, Pumpen, Bivalenzpunkt"
+        },
+        {
+          "kind": "check_point",
+          "key": "temperatures",
+          "label": "Vor- und Rücklauftemperaturen, Ausdehnungsgefäß"
+        },
+        {
+          "kind": "check_point",
+          "key": "performance",
+          "label": "Jahresarbeitszahl ausgewertet"
+        },
+        {
+          "kind": "check_point",
+          "key": "refrigerant",
+          "label": "Füllstand des Kältemittelkreislaufs"
+        },
+        {
+          "kind": "check_point",
+          "key": "hydraulics",
+          "label": "Hydraulische Komponenten"
+        },
+        {
+          "kind": "check_point",
+          "key": "electrics",
+          "label": "Elektrische Anschlüsse"
+        },
+        {
+          "kind": "check_point",
+          "key": "outdoor_unit",
+          "label": "Außeneinheit"
+        },
+        {
+          "kind": "check_point",
+          "key": "insulation",
+          "label": "Dämmung der Rohrleitungen"
+        }
+      ]
+    },
+    {
+      "key": "result",
+      "title": "Ergebnis",
+      "fields": [
+        {
+          "kind": "text",
+          "key": "optimisation",
+          "label": "Optimierungsbedarf",
+          "multiline": true
+        },
+        {
+          "kind": "text",
+          "key": "inspector",
+          "label": "Prüfende Person mit Beruf oder Schulung",
+          "required": true,
+          "carry": true
+        }
+      ]
+    },
+    {
+      "key": "end",
+      "title": "Abschluss",
+      "fields": [
+        {
+          "kind": "signature",
+          "key": "signature",
+          "label": "Unterschrift",
+          "seals": true
+        }
+      ]
+    }
+  ]
+}

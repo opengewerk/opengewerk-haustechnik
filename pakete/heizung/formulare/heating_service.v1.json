@@ -1,0 +1,61 @@
+{
+  "validFrom": "2020-11-01",
+  "title": "Wartung des Wärmeerzeugers",
+  "sections": [
+    {
+      "key": "service",
+      "title": "Wartung",
+      "hint": "Nach den Angaben des Herstellers",
+      "fields": [
+        {
+          "kind": "check_point",
+          "key": "burner",
+          "label": "Brenner oder Verdichter gewartet"
+        },
+        {
+          "kind": "check_point",
+          "key": "heat_exchanger",
+          "label": "Wärmetauscher und Heizgaswege sauber"
+        },
+        {
+          "kind": "check_point",
+          "key": "control",
+          "label": "Regelung und Heizkurve eingestellt"
+        },
+        {
+          "kind": "check_point",
+          "key": "pumps",
+          "label": "Pumpen und Ventile in Ordnung"
+        },
+        {
+          "kind": "check_point",
+          "key": "safety",
+          "label": "Sicherheitseinrichtungen in Ordnung, Vordruck des Ausdehnungsgefäßes geprüft"
+        },
+        {
+          "kind": "check_point",
+          "key": "tight",
+          "label": "Keine Undichtigkeit"
+        },
+        {
+          "kind": "text",
+          "key": "note",
+          "label": "Bemerkung",
+          "multiline": true
+        }
+      ]
+    },
+    {
+      "key": "end",
+      "title": "Abschluss",
+      "fields": [
+        {
+          "kind": "signature",
+          "key": "signature",
+          "label": "Unterschrift",
+          "seals": true
+        }
+      ]
+    }
+  ]
+}

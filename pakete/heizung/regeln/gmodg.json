@@ -1,0 +1,32 @@
+{
+  "note": "Die Betriebsprüfung von Wärmepumpen nach § 60a des Gebäudeenergiegesetzes, in Kraft seit dem 1. Januar 2024, seit dem 29. Juli 2026 Gebäudemodernisierungsgesetz, ab dem 1. Januar 2027 in der Fassung von Art. 2 des Gesetzes vom 23. Juli 2026 (BGBl. 2026 I Nr. 226), geprüft am Text auf gesetze-im-internet.de und im Bundesgesetzblatt.",
+  "records": [
+    {
+      "key": "heat_pump_check_interval",
+      "validFrom": "2024-01-01",
+      "validUntil": "2026-12-31",
+      "unit": "years",
+      "value": 5,
+      "source": "§ 60a Abs. 1 Satz 3 GEG",
+      "origin": "state_law"
+    },
+    {
+      "key": "heat_pump_check_interval",
+      "validFrom": "2027-01-01",
+      "validUntil": null,
+      "unit": "years",
+      "value": 5,
+      "source": "§ 60a Abs. 1 Satz 3 GModG",
+      "origin": "state_law"
+    },
+    {
+      "key": "heat_pump_record_retention",
+      "validFrom": "2024-01-01",
+      "validUntil": null,
+      "unit": "years",
+      "value": 10,
+      "source": "§ 96 Abs. 1 Satz 2 Nr. 1 und Abs. 2 GEG",
+      "origin": "state_law"
+    }
+  ]
+}

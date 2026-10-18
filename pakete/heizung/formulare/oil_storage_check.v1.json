@@ -1,0 +1,55 @@
+{
+  "validFrom": "2017-08-01",
+  "title": "Eigenkontrolle der Heizöllagerung",
+  "sections": [
+    {
+      "key": "check",
+      "title": "Kontrolle",
+      "fields": [
+        {
+          "kind": "check_point",
+          "key": "tight",
+          "label": "Behälter und Leitungen dicht, kein Heizöl ausgetreten"
+        },
+        {
+          "kind": "check_point",
+          "key": "bund",
+          "label": "Auffangraum trocken und frei"
+        },
+        {
+          "kind": "check_point",
+          "key": "leak_indicator",
+          "label": "Leckanzeiger zeigt keinen Alarm"
+        },
+        {
+          "kind": "check_point",
+          "key": "overfill",
+          "label": "Grenzwertgeber und Füllstandsanzeige vorhanden"
+        },
+        {
+          "kind": "check_point",
+          "key": "notice",
+          "label": "Merkblatt nach Anlage 3 AwSV hängt gut sichtbar an der Anlage"
+        },
+        {
+          "kind": "text",
+          "key": "note",
+          "label": "Bemerkung",
+          "multiline": true
+        }
+      ]
+    },
+    {
+      "key": "end",
+      "title": "Abschluss",
+      "fields": [
+        {
+          "kind": "signature",
+          "key": "signature",
+          "label": "Unterschrift",
+          "seals": true
+        }
+      ]
+    }
+  ]
+}

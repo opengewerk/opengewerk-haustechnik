@@ -1,0 +1,12 @@
+{
+  "qualifications": [
+    {
+      "key": "heat_pump_inspector",
+      "label": "Fachkundige Person für die Betriebsprüfung von Wärmepumpen",
+      "level": "skilled_person",
+      "requiredFor": [
+        "heat_pump_check"
+      ]
+    }
+  ]
+}

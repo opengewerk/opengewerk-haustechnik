@@ -1,0 +1,83 @@
+{
+  "validFrom": "2006-11-08",
+  "label": "Wärmepumpe",
+  "costGroup": "421",
+  "characteristics": [
+    {
+      "key": "heat_pump_type",
+      "label": "Bauart",
+      "kind": "choice",
+      "options": [
+        {
+          "value": "water",
+          "label": "Heizung über Wasser, etwa Luft-Wasser oder Sole-Wasser"
+        },
+        {
+          "value": "air_to_air",
+          "label": "Luft-Luft"
+        },
+        {
+          "value": "hot_water_only",
+          "label": "Nur für Warmwasser"
+        }
+      ]
+    },
+    {
+      "key": "six_or_more_units",
+      "label": "Versorgt ein Gebäude oder Gebäudenetz mit mindestens sechs Wohnungen oder Nutzungseinheiten",
+      "kind": "flag"
+    },
+    {
+      "key": "commissioned_after_2023",
+      "label": "Nach dem 31.12.2023 eingebaut und in Betrieb genommen",
+      "kind": "flag"
+    },
+    {
+      "key": "remote_monitoring",
+      "label": "Mit Fernkontrolle",
+      "kind": "flag"
+    },
+    {
+      "key": "maintenance_contract",
+      "label": "Mit Wartungsvertrag",
+      "kind": "flag"
+    },
+    {
+      "key": "charge_co2e",
+      "label": "Füllmenge fluorierter Treibhausgase nach Anhang I der F-Gas-Verordnung",
+      "kind": "number",
+      "unit": "kilograms_co2e"
+    },
+    {
+      "key": "charge_unsaturated",
+      "label": "Füllmenge ungesättigter H-FKW und H-FCKW nach Anhang II Gruppe 1 der F-Gas-Verordnung",
+      "kind": "number",
+      "unit": "kilograms"
+    },
+    {
+      "key": "hermetically_sealed",
+      "label": "Hermetisch geschlossen und so gekennzeichnet",
+      "kind": "flag"
+    },
+    {
+      "key": "leak_detection",
+      "label": "Mit Leckage-Erkennungssystem",
+      "kind": "flag"
+    }
+  ],
+  "fields": [
+    {
+      "key": "refrigerant",
+      "label": "Kältemittel",
+      "kind": "text"
+    }
+  ],
+  "expectedDocuments": [
+    {
+      "key": "operating_manual",
+      "label": "Betriebsanleitung",
+      "kind": "operating_manual",
+      "demand": "recommended"
+    }
+  ]
+}

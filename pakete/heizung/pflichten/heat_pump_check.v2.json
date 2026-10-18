@@ -1,0 +1,59 @@
+{
+  "validFrom": "2027-01-01",
+  "label": "Wärmepumpe prüfen und optimieren lassen",
+  "description": "Wer eine Wärmepumpe, die nach dem 31.12.2023 in Betrieb genommen wurde und Raumwärme und Warmwasser liefert, in einem Gebäude oder Gebäudenetz mit mindestens sechs Wohnungen oder Nutzungseinheiten betreibt, lässt prüfen, ob sie mit ihren Einstellungen und Komponenten effizient arbeitet, auch als Luft-Luft-Wärmepumpe. Hat sie eine Fernkontrolle oder einen Wartungsvertrag, entfällt die Prüfung ganz; sonst wiederholt sie sich spätestens alle fünf Jahre. Das Ergebnis und was zu optimieren ist, hält die prüfende Person schriftlich fest; die Optimierung folgt innerhalb eines Jahres, und auf Verlangen bekommt ein Mieter Ergebnis und Nachweis. Die erste Prüfung kommt nach einer vollständigen Heizperiode, spätestens zwei Jahre nach der Inbetriebnahme; ihren Termin setzt der Betreiber beim Bestätigen.",
+  "task": "inspection",
+  "origin": "state_law",
+  "bindingness": "statute",
+  "source": "§ 60a Abs. 1, 2 und 4 GModG",
+  "interval": {
+    "kind": "maximum",
+    "rule": "heat_pump_check_interval"
+  },
+  "counting": "from_performance",
+  "qualification": {
+    "level": "skilled_person",
+    "note": "eine Person mit einschlägiger handwerklicher oder technischer Berufsqualifikation in Heizungs-, Kälte-, Luftheizungs- oder Elektrotechnik (§ 60a Abs. 3)"
+  },
+  "evidence": {
+    "kinds": [
+      "protocol",
+      "report"
+    ],
+    "form": "heat_pump_protocol"
+  },
+  "retention": {
+    "kind": "years",
+    "rule": "heat_pump_record_retention"
+  },
+  "scope": {
+    "assetKinds": [
+      "heat_pump"
+    ],
+    "conditions": [
+      {
+        "characteristic": "heat_pump_type",
+        "oneOf": [
+          "water",
+          "air_to_air"
+        ]
+      },
+      {
+        "characteristic": "six_or_more_units",
+        "is": true
+      },
+      {
+        "characteristic": "commissioned_after_2023",
+        "is": true
+      },
+      {
+        "characteristic": "remote_monitoring",
+        "is": false
+      },
+      {
+        "characteristic": "maintenance_contract",
+        "is": false
+      }
+    ]
+  }
+}

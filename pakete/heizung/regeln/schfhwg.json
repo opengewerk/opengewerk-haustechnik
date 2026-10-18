@@ -1,0 +1,14 @@
+{
+  "note": "Die Feuerstättenschau nach dem Schornsteinfeger-Handwerksgesetz vom 26. November 2008 in der Fassung, die seit dem 1. Januar 2013 gilt, geprüft am Text auf gesetze-im-internet.de. Fünf Jahre sind ein Richtwert: das Gesetz sagt, die Schau soll spätestens fünf Jahre nach der letzten stattfinden.",
+  "records": [
+    {
+      "key": "fireplace_inspection_interval",
+      "validFrom": "2013-01-01",
+      "validUntil": null,
+      "unit": "years",
+      "value": 5,
+      "source": "§ 14 SchfHwG",
+      "origin": "state_law"
+    }
+  ]
+}

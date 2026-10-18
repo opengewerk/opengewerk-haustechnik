@@ -1,0 +1,55 @@
+{
+  "validFrom": "2006-11-08",
+  "label": "Heizkessel",
+  "costGroup": "421",
+  "characteristics": [
+    {
+      "key": "fuel",
+      "label": "Brennstoff",
+      "kind": "choice",
+      "options": [
+        {
+          "value": "oil",
+          "label": "Heizöl"
+        },
+        {
+          "value": "gas",
+          "label": "Gas"
+        },
+        {
+          "value": "solid",
+          "label": "Feste Brennstoffe wie Holz oder Pellets"
+        }
+      ]
+    },
+    {
+      "key": "rated_heat_output",
+      "label": "Nennwärmeleistung",
+      "kind": "number",
+      "unit": "kilowatts"
+    },
+    {
+      "key": "condensing",
+      "label": "Brennwertgerät",
+      "kind": "flag"
+    },
+    {
+      "key": "older_than_twelve_years",
+      "label": "Inbetriebnahme oder Kesseltausch liegt mehr als zwölf Jahre zurück",
+      "kind": "flag"
+    },
+    {
+      "key": "self_calibrating",
+      "label": "Mit selbstkalibrierender kontinuierlicher Verbrennungsregelung",
+      "kind": "flag"
+    }
+  ],
+  "expectedDocuments": [
+    {
+      "key": "operating_manual",
+      "label": "Betriebsanleitung",
+      "kind": "operating_manual",
+      "demand": "recommended"
+    }
+  ]
+}

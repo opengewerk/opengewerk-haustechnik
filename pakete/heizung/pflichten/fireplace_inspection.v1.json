@@ -1,0 +1,31 @@
+{
+  "validFrom": "2013-01-01",
+  "label": "Feuerstättenschau zulassen",
+  "description": "Der bevollmächtigte Bezirksschornsteinfeger besichtigt alle Feuerstätten eines Gebäudes auf ihre Betriebs- und Brandsicherheit, zweimal in seinem siebenjährigen Bestellungszeitraum: frühestens drei und möglichst spätestens fünf Jahre nach der letzten. Er kündigt sie an, der Eigentümer gewährt Zutritt und bekommt eine Bescheinigung und danach den Feuerstättenbescheid mit den Fristen der Kehr- und Messarbeiten.",
+  "task": "inspection",
+  "origin": "state_law",
+  "bindingness": "statute",
+  "source": "§ 14 SchfHwG",
+  "interval": {
+    "kind": "guide",
+    "rule": "fireplace_inspection_interval"
+  },
+  "counting": "from_performance",
+  "qualification": {
+    "level": "skilled_person",
+    "note": "nur der bevollmächtigte Bezirksschornsteinfeger"
+  },
+  "evidence": {
+    "kinds": [
+      "report"
+    ]
+  },
+  "retention": {
+    "kind": "until_next_inspection"
+  },
+  "scope": {
+    "assetKinds": [
+      "flue_system"
+    ]
+  }
+}

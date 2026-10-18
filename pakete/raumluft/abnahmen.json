@@ -65,7 +65,15 @@
       "checkedOn": "2026-10-18"
     },
     {
+      "file": "pflichten/leak_check_annex1_band_a.v2.json",
+      "checkedOn": "2026-10-18"
+    },
+    {
       "file": "pflichten/leak_check_annex1_band_a_detection.v1.json",
+      "checkedOn": "2026-10-18"
+    },
+    {
+      "file": "pflichten/leak_check_annex1_band_a_detection.v2.json",
       "checkedOn": "2026-10-18"
     },
     {
@@ -73,7 +81,15 @@
       "checkedOn": "2026-10-18"
     },
     {
+      "file": "pflichten/leak_check_annex1_band_a_sealed.v2.json",
+      "checkedOn": "2026-10-18"
+    },
+    {
       "file": "pflichten/leak_check_annex1_band_a_sealed_detection.v1.json",
+      "checkedOn": "2026-10-18"
+    },
+    {
+      "file": "pflichten/leak_check_annex1_band_a_sealed_detection.v2.json",
       "checkedOn": "2026-10-18"
     },
     {
@@ -81,7 +97,15 @@
       "checkedOn": "2026-10-18"
     },
     {
+      "file": "pflichten/leak_check_annex1_band_b.v2.json",
+      "checkedOn": "2026-10-18"
+    },
+    {
       "file": "pflichten/leak_check_annex1_band_b_detection.v1.json",
+      "checkedOn": "2026-10-18"
+    },
+    {
+      "file": "pflichten/leak_check_annex1_band_b_detection.v2.json",
       "checkedOn": "2026-10-18"
     },
     {
@@ -89,7 +113,15 @@
       "checkedOn": "2026-10-18"
     },
     {
+      "file": "pflichten/leak_check_annex1_band_c.v2.json",
+      "checkedOn": "2026-10-18"
+    },
+    {
       "file": "pflichten/leak_check_annex1_band_c_detection.v1.json",
+      "checkedOn": "2026-10-18"
+    },
+    {
+      "file": "pflichten/leak_check_annex1_band_c_detection.v2.json",
       "checkedOn": "2026-10-18"
     },
     {
@@ -97,7 +129,15 @@
       "checkedOn": "2026-10-18"
     },
     {
+      "file": "pflichten/leak_check_annex2_band_a.v2.json",
+      "checkedOn": "2026-10-18"
+    },
+    {
       "file": "pflichten/leak_check_annex2_band_a_detection.v1.json",
+      "checkedOn": "2026-10-18"
+    },
+    {
+      "file": "pflichten/leak_check_annex2_band_a_detection.v2.json",
       "checkedOn": "2026-10-18"
     },
     {
@@ -105,7 +145,15 @@
       "checkedOn": "2026-10-18"
     },
     {
+      "file": "pflichten/leak_check_annex2_band_a_sealed.v2.json",
+      "checkedOn": "2026-10-18"
+    },
+    {
       "file": "pflichten/leak_check_annex2_band_a_sealed_detection.v1.json",
+      "checkedOn": "2026-10-18"
+    },
+    {
+      "file": "pflichten/leak_check_annex2_band_a_sealed_detection.v2.json",
       "checkedOn": "2026-10-18"
     },
     {
@@ -113,7 +161,15 @@
       "checkedOn": "2026-10-18"
     },
     {
+      "file": "pflichten/leak_check_annex2_band_b.v2.json",
+      "checkedOn": "2026-10-18"
+    },
+    {
       "file": "pflichten/leak_check_annex2_band_b_detection.v1.json",
+      "checkedOn": "2026-10-18"
+    },
+    {
+      "file": "pflichten/leak_check_annex2_band_b_detection.v2.json",
       "checkedOn": "2026-10-18"
     },
     {
@@ -121,11 +177,23 @@
       "checkedOn": "2026-10-18"
     },
     {
+      "file": "pflichten/leak_check_annex2_band_c.v2.json",
+      "checkedOn": "2026-10-18"
+    },
+    {
       "file": "pflichten/leak_check_annex2_band_c_detection.v1.json",
       "checkedOn": "2026-10-18"
     },
     {
+      "file": "pflichten/leak_check_annex2_band_c_detection.v2.json",
+      "checkedOn": "2026-10-18"
+    },
+    {
       "file": "pflichten/leak_detection_system_check.v1.json",
+      "checkedOn": "2026-10-18"
+    },
+    {
+      "file": "pflichten/leak_detection_system_check.v2.json",
       "checkedOn": "2026-10-18"
     },
     {

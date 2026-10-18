@@ -1,0 +1,49 @@
+{
+  "validFrom": "2006-11-08",
+  "label": "Heizöllagerung",
+  "costGroup": "421",
+  "characteristics": [
+    {
+      "key": "hazard_level",
+      "label": "Gefährdungsstufe nach § 39 AwSV",
+      "kind": "choice",
+      "options": [
+        {
+          "value": "a",
+          "label": "A, bis 1 m³ Heizöl"
+        },
+        {
+          "value": "b",
+          "label": "B, über 1 bis 10 m³ Heizöl"
+        },
+        {
+          "value": "c",
+          "label": "C, über 10 bis 100 m³ Heizöl"
+        },
+        {
+          "value": "d",
+          "label": "D, über 100 m³ Heizöl"
+        }
+      ]
+    },
+    {
+      "key": "underground",
+      "label": "Unterirdisch, ganz oder zum Teil",
+      "kind": "flag"
+    },
+    {
+      "key": "protection_area",
+      "label": "In einem Wasserschutz-, Heilquellenschutz- oder Überschwemmungsgebiet",
+      "kind": "flag"
+    }
+  ],
+  "expectedDocuments": [
+    {
+      "key": "as_built_documentation",
+      "label": "Anlagendokumentation",
+      "kind": "as_built_documentation",
+      "demand": "required",
+      "source": "§ 43 Abs. 1 AwSV"
+    }
+  ]
+}

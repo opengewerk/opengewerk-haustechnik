@@ -1,0 +1,30 @@
+{
+  "validFrom": "2018-09-01",
+  "label": "Gasleitungen auf Gebrauchsfähigkeit prüfen lassen",
+  "description": "Das Arbeitsblatt G 600 des DVGW beschreibt, wie der Betreiber seine Gasinstallation instand hält, mit einer Prüfung der Leitungen auf Gebrauchsfähigkeit durch ein Vertragsinstallationsunternehmen. Die Abstände der Regel übernimmt das Paket erst, wenn die rechtliche Prüfung sie trägt; bis dahin legt der Betreiber die Frist selbst fest und begründet sie.",
+  "task": "inspection",
+  "origin": "private_standard",
+  "bindingness": "technical_rule",
+  "source": "DVGW G 600 (A):2018-09 (TRGI), Abschnitt 13.3",
+  "interval": {
+    "kind": "none"
+  },
+  "counting": "from_due",
+  "qualification": {
+    "level": "skilled_person",
+    "note": "der Netzbetreiber oder ein Installationsunternehmen aus dem Installateurverzeichnis eines Netzbetreibers"
+  },
+  "evidence": {
+    "kinds": [
+      "report"
+    ]
+  },
+  "retention": {
+    "kind": "until_next_inspection"
+  },
+  "scope": {
+    "assetKinds": [
+      "gas_installation"
+    ]
+  }
+}
