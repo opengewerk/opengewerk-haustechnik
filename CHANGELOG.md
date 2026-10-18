@@ -7,6 +7,24 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
 
 ## [Unreleased]
 
+### Hinzugefügt
+
+- Das Paket Raumluft und Kälte (#351): Lüftungs-, Klima-, Kälte- und Verdunstungskühlanlagen mit
+  Wartung und Prüfung nach § 4 Abs. 3 ArbStättV, der Hygieneinspektion nach VDI 6022 als Verweis
+  ohne Frist, der energetischen Inspektion nach dem Gebäudemodernisierungsgesetz mit beiden Fassungen
+  vor und ab dem 01.01.2027, sechzehn Stufen der Dichtheitskontrolle nach der Verordnung (EU)
+  2024/573 mit dem Leckage-Erkennungssystem und den Pflichten der 42. BImSchV, dazu fünf Formulare,
+  drei Mängelklassen und zwei Arten der Qualifikation. Warum: Phase 2 macht die Betreiberpflichten
+  vollständig, und die Inspektion über 70 kW wird zum 01.01.2027 kürzer. Abgenommen ist das Paket
+  noch nicht; das macht beim Pilotbetrieb die Technische Leitung.
+- Die Anlagenart vieler Anlagen in einem Schritt berichtigen (#351): „Anlagenart berichtigen“ im
+  Anlagenverzeichnis setzt vor jede Zeile ein Kästchen, und die ausgewählten Anlagen bekommen eine
+  neue Anlagenart aus dem Katalog, alle oder keine. Warum: Anlagen, die bisher eine allgemeine
+  Anlagenart tragen, sollen mit dem Paket für sie nicht einzeln umgestellt werden müssen.
+- Regeln und Formulare zählen auch in Kilogramm (#351), für die Schwellen der ungesättigten Kältemittel
+  und die Mengen einer Dichtheitskontrolle. Das Submodul `upstream/opengewerk` steht dafür auf
+  opengewerk/opengewerk#668.
+
 ## [0.1.7] - 2026-10-18
 
 Die dritte Zwischenfassung für den Pilotbetrieb, mit dem, was aus Phase 2 seit 0.1.6 fertig ist.
