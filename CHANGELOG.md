@@ -178,6 +178,13 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
 
 ### Behoben
 
+- KG 610 stand bei den Leistungen der Fremdfirmen ohne Bezeichnung (#384): die Bezeichnung einer Kostengruppe kommt
+  von der allgemeinen Anlagenart der Gruppe, und eine solche gibt es nur für 410 bis 490. KG 610 heißt jetzt
+  „Ortsveränderliches Betriebsmittel“, in eigenen Worten wie jede Bezeichnung einer Gruppe, im Dialog, in der Liste,
+  im Filter und bei der Wahl der Kostengruppe einer eigenen Anlagenart. Warum: eine allgemeine Anlagenart für 610 im
+  Paket Allgemein hätte eine Gruppe außerhalb der technischen Anlagen in ein Paket gebracht, das genau diese
+  Gruppen beschreibt.
+
 - Ein Datensatz aus einem Import hieß im Änderungsprotokoll „ohne Bezeichnung“ (#422): sein Protokoll hat keinen
   Eintrag, der ihn nennt, weil ein Import ein Eintrag ist. Jetzt hält `import_records` die Nummer, den Namen und die
   Art, mit denen der Import ihn angelegt hat (Migration `0080_import_record_names`), und das Protokoll nennt ihn damit,
