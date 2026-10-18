@@ -198,7 +198,7 @@ records_for_backup() {
     insert into import_records (tenant_id, import_id, table_name, record_id)
     select '$first_tenant', (select id from imports where tenant_id = '$first_tenant' order by created_at desc limit 1),
            'assets', id
-      from assets where tenant_id = '$first_tenant' order by id limit 1;
+      from assets where tenant_id = '$first_tenant' order by assets.id limit 1;
     insert into asset_kind_names (tenant_id, name, name_key, kind)
     values ('$first_tenant', 'Aufzug', 'aufzug', 'allgemein.conveying_system');"
   # The default of a class of defects (opengewerk-haustechnik#116), which the
