@@ -41,6 +41,7 @@ import {
 } from '@opengewerk/platform-server'
 
 import { AuditorReadsInterceptor } from '../limits/auditor-reads.js'
+import { tenantCatalogue } from '../own-kinds/catalogue.js'
 import { access } from '../authentication/access.js'
 import { CATALOGUE, shippedCatalogue } from '../catalogue.js'
 import { changeNumberRange, numberRangesOf } from '../database/number-ranges.js'
@@ -287,6 +288,9 @@ export class ApiModule {
       words: auditValueWordsWith(catalogue),
       // A record an import made is called what the import made it (#422).
       firstValues: namedByImports,
+      // The table of the log names what an operator made itself, its own
+      // asset kinds and fields, as the page does (#426).
+      tenantWords: async (tx) => auditValueWordsWith(await tenantCatalogue(tx, catalogue)),
     })
     // The deadlines the engine keeps, and what an operator sets for a kind:
     // section 7 of the concept gives both to whoever may look after the
