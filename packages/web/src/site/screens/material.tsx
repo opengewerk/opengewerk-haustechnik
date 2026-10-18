@@ -58,6 +58,7 @@ export const materialWords = {
   byLabel: 'am Etikett des Fachs',
   bySearch: 'über die Suche',
   store: 'Lager',
+  bin: (place: string) => `Lagerplatz: ${place}`,
   quantity: 'Menge',
   inStore: (now: string, after: string) => `Im Lager: ${now}, danach ${after}.`,
   inStoreShort: (now: string) => `Im Lager stehen laut diesem Gerät ${now}.`,
@@ -158,6 +159,7 @@ export function SiteMaterialScreen() {
   const work = useWorkOrder(activityId)
   const articles = useRecords('articles')
   const stores = useRecords('stores').filter(live)
+  const shelves = useRecords('store_articles')
   // Read so that the stock below follows the bookings and labels as they arrive.
   useRecords('stock_movements')
   useRecords('store_labels')
@@ -174,6 +176,17 @@ export function SiteMaterialScreen() {
   const back = { to: siteForms.form(activityId), label: 'Zurück zum Auftrag' }
   const article = articles.find((each) => each['id'] === articleId) ?? null
   const unit = text(article, 'unit') || 'piece'
+  // Where the article lies in the store chosen (#385), so that it is found there.
+  const bin =
+    article === null
+      ? null
+      : maybeText(
+          shelves.find(
+            (shelf) =>
+              live(shelf) && shelf['storeId'] === storeId && shelf['articleId'] === article['id'],
+          ) ?? null,
+          'bin',
+        )
   const words = search.trim().toLocaleLowerCase('de')
   const hits = useMemo(
     () =>
@@ -364,6 +377,7 @@ export function SiteMaterialScreen() {
         <SelectField
           label={materialWords.store}
           value={storeId}
+          {...(bin === null ? {} : { hint: materialWords.bin(bin) })}
           options={stores.map((store) => ({
             value: String(store['id']),
             label: text(store, 'name'),

@@ -867,6 +867,7 @@ export const syncFieldNames: Readonly<Record<string, string>> = {
   location: 'Wo',
   storeId: 'Lager',
   articleId: 'Artikel',
+  bin: 'Lagerplatz',
   minimumMilli: 'Mindestbestand',
   quantityMilli: 'Menge',
   supplierId: 'Lieferant',

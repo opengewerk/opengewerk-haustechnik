@@ -49,6 +49,8 @@ export interface StockLine {
   readonly number: string
   readonly designation: string
   readonly unit: StockUnit
+  /** Where it lies in this store (#385), where somebody said so. */
+  readonly bin: string | null
   readonly levelMilli: number
   readonly minimumMilli: number | null
   readonly below: boolean
@@ -86,11 +88,13 @@ export interface StockMovementLine {
   } | null
 }
 
-/** The page of one article in one store: the article, the stock, the minimum and every booking, the newest first. */
+/** The page of one article in one store: the article, the stock, where it lies, the minimum and every booking, the newest first. */
 export interface StoreArticlePage {
   readonly store: { readonly id: StoreId; readonly name: string }
   readonly article: Article
   readonly levelMilli: number
+  /** Where it lies in this store (#385). */
+  readonly bin: string | null
   readonly minimumMilli: number | null
   readonly below: boolean
   /** Whether the store carries the article: not once it moved to another store (#391). */

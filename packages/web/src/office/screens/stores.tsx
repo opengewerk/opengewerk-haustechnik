@@ -1,6 +1,7 @@
 import {
   type Article,
   type StockLine,
+  stockLimits,
   stockMovementKindLabel,
   type StockMovementLine,
   type StockSupplier,
@@ -89,6 +90,9 @@ export const storeWords = {
   minimumHint:
     'Darunter steht der Artikel in der Bestellliste dieses Lagers. Eine Benachrichtigung gibt es dafür nicht.',
   minimumProblem: 'Der Mindestbestand ist eine Zahl ab null, oder leer für keinen.',
+  binHint:
+    'Wo der Artikel in diesem Lager liegt: Regal, Schrank, Fach. Ein anderes Lager führt seinen eigenen.',
+  saveBin: 'Lagerplatz speichern',
   saved: 'Gespeichert.',
   priceNote: 'Angabe für die Kostensicht',
   atAnOrder: 'Entnahme an einem Auftrag außerhalb Ihrer Bereiche',
@@ -299,7 +303,7 @@ export function StoreStockScreen() {
             </Panel>
           ) : (
             <TablePanel
-              caption={`Bestand im Lager ${chosen.name} mit Nummer, Artikel, Einheit, Bestand und Mindestbestand`}
+              caption={`Bestand im Lager ${chosen.name} mit Nummer, Artikel, Lagerplatz, Einheit, Bestand und Mindestbestand`}
               note={storeWords.stockNote}
               cards={lines.map((line) => ({
                 key: line.articleId,
@@ -313,6 +317,7 @@ export function StoreStockScreen() {
                 ),
                 sub: [
                   line.number,
+                  line.bin,
                   `${amount(line.levelMilli)} ${stockUnitLabel[line.unit]}`,
                   line.minimumMilli === null ? null : `Mindestbestand ${amount(line.minimumMilli)}`,
                 ]
@@ -325,6 +330,7 @@ export function StoreStockScreen() {
                 <tr>
                   <Column className="w-[100px] min-w-[84px]">Nr.</Column>
                   <Column className="min-w-[200px]">Artikel</Column>
+                  <Column className="w-[150px] min-w-[120px]">Lagerplatz</Column>
                   <Column className="w-[80px] min-w-[70px]">Einheit</Column>
                   <Column className="w-[90px] min-w-[80px] text-right">Bestand</Column>
                   <Column className="w-[130px] min-w-[120px] text-right">Mindestbestand</Column>
@@ -342,6 +348,7 @@ export function StoreStockScreen() {
                         {line.designation}
                       </Link>
                     </Cell>
+                    <Cell>{line.bin}</Cell>
                     <Cell>{stockUnitLabel[line.unit]}</Cell>
                     <Cell className="text-right tabular-nums">
                       <Level line={line} />
@@ -862,6 +869,13 @@ export function StoreArticleScreen() {
                       ]),
                 ]}
               />
+              <BinForm
+                key={page.data.bin ?? ''}
+                storeId={store.id}
+                articleId={article.id}
+                bin={page.data.bin}
+                keeps={keeps}
+              />
               <MinimumForm
                 key={String(page.data.minimumMilli)}
                 storeId={store.id}
@@ -900,6 +914,7 @@ export function StoreArticleScreen() {
               number: article.number,
               designation: article.designation,
               unit: article.unit,
+              bin: page.data.bin,
               levelMilli: page.data.levelMilli,
               minimumMilli: page.data.minimumMilli,
               below: page.data.below,
@@ -913,6 +928,100 @@ export function StoreArticleScreen() {
         />
       ) : null}
     </Screen>
+  )
+}
+
+/**
+ * Where a store keeps an article (#385): a field and the button that keeps
+ * it; empty for nothing said. It holds for this store only.
+ */
+function BinForm({
+  storeId,
+  articleId,
+  bin,
+  keeps,
+}: {
+  readonly storeId: string
+  readonly articleId: string
+  readonly bin: string | null
+  readonly keeps: boolean
+}) {
+  const client = useSync()
+  const queries = useQueryClient()
+  const held = bin ?? ''
+  const [value, setValue] = useState(held)
+  const [trouble, setTrouble] = useState<string | null>(null)
+  const [saved, setSaved] = useState(false)
+  const [working, setWorking] = useState(false)
+
+  async function save() {
+    setSaved(false)
+    setTrouble(null)
+    setWorking(true)
+
+    try {
+      const result = await askAt(
+        client,
+        'PUT',
+        `/stores/${encodeURIComponent(storeId)}/articles/${encodeURIComponent(articleId)}/bin`,
+        articleId,
+        { bin: value.trim() === '' ? null : value.trim() },
+      )
+
+      if (result.outcome === 'refused') {
+        setTrouble(refusalFor(result))
+
+        return
+      }
+
+      await queries.invalidateQueries({ queryKey: storeKey })
+      setSaved(true)
+    } finally {
+      setWorking(false)
+    }
+  }
+
+  return (
+    <form
+      noValidate
+      className="flex flex-col gap-1.5"
+      onSubmit={(event) => {
+        event.preventDefault()
+        void save()
+      }}
+    >
+      <div className="flex items-end gap-2.5">
+        <div className="w-[180px]">
+          <Field
+            label="Lagerplatz"
+            value={value}
+            maxLength={stockLimits.bin}
+            disabled={!keeps || working}
+            {...(trouble === null ? {} : { problem: trouble })}
+            onChange={(event) => {
+              setValue(event.target.value)
+              setSaved(false)
+            }}
+          />
+        </div>
+        {keeps ? (
+          <Button
+            type="submit"
+            icon={Check}
+            aria-label={storeWords.saveBin}
+            disabled={working || value.trim() === held}
+          >
+            Speichern
+          </Button>
+        ) : null}
+      </div>
+      <p className="text-[12px] text-ink-muted">{storeWords.binHint}</p>
+      {saved ? (
+        <p role="status" className="text-[12px] text-ink-muted">
+          {storeWords.saved}
+        </p>
+      ) : null}
+    </form>
   )
 }
 

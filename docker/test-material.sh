@@ -449,8 +449,8 @@ records_for_backup() {
     select '$first_tenant', u.id, '/duties/register', '/duties/register'
       from auth_users u where u.email = '$probe_email';
     insert into stores (tenant_id, name) values ('$first_tenant', 'Hauptlager Probe');
-    insert into store_articles (tenant_id, store_id, article_id, minimum_milli)
-    select s.tenant_id, s.id, a.id, 10000 from stores s, articles a where s.tenant_id = '$first_tenant'
+    insert into store_articles (tenant_id, store_id, article_id, bin, minimum_milli)
+    select s.tenant_id, s.id, a.id, 'Regal 1, Fach 2', 10000 from stores s, articles a where s.tenant_id = '$first_tenant'
        and a.tenant_id = '$first_tenant';
     insert into stock_movements (tenant_id, store_id, article_id, kind, quantity_milli, supplier_id, booked_by)
     select s.tenant_id, s.id, a.id, 'receipt', 6000, p.id, u.id

@@ -9,6 +9,12 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
 
 ### Hinzugefügt
 
+- Lagerplatz eines Artikels im Lager (#385): auf der Seite eines Artikels im Lager trägt, wer das Lager führt, ein,
+  wo er in diesem Lager liegt, etwa „Regal 3, Fach 1“. Er steht in der Bestandsliste und ihrer Tabelle und vor Ort
+  bei der Entnahme unter dem gewählten Lager; ein anderes Lager führt seinen eigenen, und beim Umzug in ein anderes
+  Lager bleibt er, wo er war. Warum: beim Übernehmen eines Lagers stand der Lagerplatz behelfsweise in der
+  Beschreibung des Artikels, die für jedes Lager gilt, und vor Ort fand man den Artikel nur mit Wissen.
+
 - Ansprechpartner schon beim Anlegen einer Fremdfirma (#383): der Dialog „Fremdfirma anlegen“ hat einen
   aufklappbaren Abschnitt „Ansprechpartner“ mit Vorname, Nachname, Funktion, Telefon und E-Mail, mehrere über
   „Weiteren hinzufügen“. Firma und Ansprechpartner entstehen in einem Zug; ein leerer bleibt weg, und scheitert einer,

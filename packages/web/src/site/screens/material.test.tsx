@@ -84,6 +84,15 @@ function stockServer(status = 'started', receivedMilli = 3000) {
     id: 'sa-filter',
     storeId: 'st-school',
     articleId: 'a-filter',
+    bin: 'Regal 5',
+    minimumMilli: null,
+  })
+  // The battery lies in the workshop too, on a shelf of its own there (#385).
+  server.put('store_articles', {
+    id: 'sa-akku-school',
+    storeId: 'st-school',
+    articleId: 'a-akku',
+    bin: 'Regal 9',
     minimumMilli: null,
   })
   server.put('store_labels', { id: 'sl-1', storeArticleId: 'sa-filter', code, blockedAt: null })
@@ -127,6 +136,8 @@ describe('material at a work order', () => {
     expect(screen.getByText('A-AKKU Akku Notleuchte 3,6 V')).toBeDefined()
     fireEvent.change(screen.getByLabelText(/^Menge/), { target: { value: '2' } })
     expect(screen.getByText('Im Lager: 3 Stück, danach 1 Stück.')).toBeDefined()
+    // The main store has no place for it; the one of the workshop is not said here (#385).
+    expect(screen.queryByText(/^Lagerplatz/)).toBeNull()
     fireEvent.click(screen.getByRole('button', { name: 'Entnehmen' }))
 
     await waitFor(() => {
@@ -160,6 +171,7 @@ describe('material at a work order', () => {
     expect(await screen.findByText('am Etikett des Fachs')).toBeDefined()
     expect(screen.getByText('A-FILTER Taschenfilter G4')).toBeDefined()
     expect((screen.getByLabelText('Lager') as HTMLSelectElement).value).toBe('st-school')
+    expect(screen.getByText('Lagerplatz: Regal 5')).toBeDefined()
   })
 
   it('says so for a code the stores do not know, and leaves the search', async () => {

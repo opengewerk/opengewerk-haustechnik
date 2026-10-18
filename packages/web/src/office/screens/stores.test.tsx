@@ -33,6 +33,7 @@ const lines = [
     number: 'A-1002',
     designation: 'Akku Notleuchte 3,6 V',
     unit: 'piece',
+    bin: 'Schrank Notlicht',
     levelMilli: 3000,
     minimumMilli: 10_000,
     below: true,
@@ -43,6 +44,7 @@ const lines = [
     number: 'A-1020',
     designation: 'Mantelleitung NYM-J 3×1,5',
     unit: 'metre',
+    bin: null,
     levelMilli: 85_500,
     minimumMilli: null,
     below: false,
@@ -86,6 +88,7 @@ const answers = {
     store: { id: 's-main', name: 'Hauptlager Betriebshof' },
     article,
     levelMilli: 3000,
+    bin: 'Schrank Notlicht',
     minimumMilli: 10_000,
     below: true,
     carried: true,
@@ -150,7 +153,7 @@ const negative = {
 }
 
 const stockTable =
-  'Bestand im Lager Hauptlager Betriebshof mit Nummer, Artikel, Einheit, Bestand und Mindestbestand'
+  'Bestand im Lager Hauptlager Betriebshof mit Nummer, Artikel, Lagerplatz, Einheit, Bestand und Mindestbestand'
 
 describe('the stock of a store', () => {
   it('shows every article with its stock and minimum, and says which are below it', async () => {
@@ -161,8 +164,16 @@ describe('the stock of a store', () => {
     await screen.findByRole('table', { name: stockTable })
 
     expect(rowsOf(stockTable)).toEqual([
-      ['A-1002', 'Akku Notleuchte 3,6 V', 'Stück', '3', '10', 'unter Mindestbestand'],
-      ['A-1020', 'Mantelleitung NYM-J 3×1,5', 'm', '85,5', 'keiner', ''],
+      [
+        'A-1002',
+        'Akku Notleuchte 3,6 V',
+        'Schrank Notlicht',
+        'Stück',
+        '3',
+        '10',
+        'unter Mindestbestand',
+      ],
+      ['A-1020', 'Mantelleitung NYM-J 3×1,5', '', 'm', '85,5', 'keiner', ''],
     ])
     expect(screen.getByRole('checkbox', { name: 'Nur unter Mindestbestand (1)' })).toBeDefined()
   })
@@ -271,7 +282,7 @@ describe('the stock below zero and the labels of the shelves', () => {
     await screen.findByRole('table', { name: stockTable })
 
     expect(rowsOf(stockTable)).toEqual([
-      ['A-1020', 'Mantelleitung NYM-J 3×1,5', 'm', '-2', 'keiner', 'negativ, bitte zählen'],
+      ['A-1020', 'Mantelleitung NYM-J 3×1,5', '', 'm', '-2', 'keiner', 'negativ, bitte zählen'],
     ])
   })
 
@@ -400,6 +411,44 @@ describe('an article', () => {
       ])
     })
   })
+
+  it('in a store keeps where the article lies, as whoever keeps the stores writes it (#385)', async () => {
+    const { written, done } = mounted('site_management', '/lager/s-main/artikel/r-akku')
+
+    await done
+    await untilTheRightsAreKnown()
+
+    const place = await screen.findByLabelText('Lagerplatz')
+
+    expect((place as HTMLInputElement).value).toBe('Schrank Notlicht')
+
+    await userEvent.clear(place)
+    await userEvent.type(place, '  Regal 3, Fach 1 ')
+    await userEvent.click(screen.getByRole('button', { name: 'Lagerplatz speichern' }))
+
+    await waitFor(() => {
+      expect(written).toEqual([
+        {
+          method: 'PUT',
+          path: '/stores/s-main/articles/r-akku/bin',
+          body: { bin: 'Regal 3, Fach 1' },
+        },
+      ])
+    })
+  })
+
+  it('shows the Haustechnik where the article lies, and offers no change to it (#385)', async () => {
+    const { done } = mounted('technician', '/lager/s-main/artikel/r-akku')
+
+    await done
+    await untilTheRightsAreKnown()
+
+    const place = await screen.findByLabelText('Lagerplatz')
+
+    expect((place as HTMLInputElement).value).toBe('Schrank Notlicht')
+    expect((place as HTMLInputElement).disabled).toBe(true)
+    expect(screen.queryByRole('button', { name: 'Lagerplatz speichern' })).toBeNull()
+  })
 })
 
 describe('a store and an article that go (#391)', () => {
@@ -452,7 +501,7 @@ describe('a store and an article that go (#391)', () => {
 
     expect(
       await within(asked).findByText(
-        'Der Bestand von 3 Stück geht als Umbuchung mit: ein Abgang hier, ein Zugang in Werkstatt Schulzentrum. Das Lager führt den Artikel schon mit 2 Stück; danach sind es dort 5 Stück, und sein Mindestbestand dort bleibt. Hier steht der Artikel danach nicht mehr.',
+        'Der Bestand von 3 Stück geht als Umbuchung mit: ein Abgang hier, ein Zugang in Werkstatt Schulzentrum. Das Lager führt den Artikel schon mit 2 Stück; danach sind es dort 5 Stück, und sein Mindestbestand und sein Lagerplatz dort bleiben. Hier steht der Artikel danach nicht mehr.',
       ),
     ).toBeTruthy()
 

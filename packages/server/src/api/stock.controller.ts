@@ -450,6 +450,7 @@ async function stockOf(tx: TenantTransaction, store: StoreRow): Promise<StoreSto
         number: article.number,
         designation: article.designation,
         unit: article.unit as StockUnit,
+        bin: line.bin,
         levelMilli,
         minimumMilli: line.minimumMilli,
         below: article.deletedAt === null && belowMinimum(levelMilli, line.minimumMilli),
@@ -753,10 +754,19 @@ export class StoresController {
       return tableAnswer(
         {
           name: only ? `Bestellliste ${stock.name}` : `Lager ${stock.name}`,
-          columns: ['Nummer', 'Artikel', 'Einheit', 'Bestand', 'Mindestbestand', 'Fehlt'],
+          columns: [
+            'Nummer',
+            'Artikel',
+            'Lagerplatz',
+            'Einheit',
+            'Bestand',
+            'Mindestbestand',
+            'Fehlt',
+          ],
           rows: lines.map((line) => [
             line.number,
             line.designation,
+            line.bin,
             stockUnitLabel[line.unit],
             line.levelMilli / 1000,
             line.minimumMilli === null ? null : line.minimumMilli / 1000,
@@ -851,6 +861,7 @@ export class StoresController {
         store: { id: store.id, name: store.name },
         article: articleOf(article),
         levelMilli: level,
+        bin: line?.bin ?? null,
         minimumMilli,
         below: article.deletedAt === null && belowMinimum(level, minimumMilli),
         carried: line !== undefined && line.deletedAt === null,
@@ -891,6 +902,40 @@ export class StoresController {
         })
 
       return { minimumMilli }
+    })
+  }
+
+  /**
+   * Where in a store an article lies (#385), a shelf, a cabinet or a
+   * compartment, or nothing said. It holds for this store only; another
+   * store keeps its own, and a move takes it nowhere.
+   */
+  @Put(':id/articles/:articleId/bin')
+  @RequiresPermission('store.write')
+  bin(
+    @CurrentIdentity() identity: Asking,
+    @Param('id') id: string,
+    @Param('articleId') articleId: string,
+    @Body() body: unknown,
+  ): Promise<{ readonly bin: string | null }> {
+    const values = fieldsOf(body, ['bin'], ['bin'])
+    const bin = (values.bin ?? null) as string | null
+
+    refuse(storeArticleProblems({ bin }))
+
+    return this.database.forTenant(identity, async (tx) => {
+      const store = await heldStore(tx, id)
+      const article = await heldArticle(tx, articleId)
+
+      await tx
+        .insert(storeArticles)
+        .values({ tenantId: identity.tenantId, storeId: store.id, articleId: article.id, bin })
+        .onConflictDoUpdate({
+          target: [storeArticles.tenantId, storeArticles.storeId, storeArticles.articleId],
+          set: { bin, updatedAt: new Date() },
+        })
+
+      return { bin }
     })
   }
 
