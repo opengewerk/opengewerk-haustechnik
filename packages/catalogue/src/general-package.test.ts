@@ -9,7 +9,9 @@ import {
   contractorServices,
   dutyKindsNaming,
   generalPackage,
+  heldOf,
   isGeneralKind,
+  requiredKinds,
 } from '@opengewerk/haustechnik-domain'
 import { describe, expect, it } from 'vitest'
 
@@ -138,5 +140,41 @@ describe('the package Allgemein', () => {
       ['allgemein.significant', 'erheblich', false],
       ['allgemein.dangerous', 'gefährlich', true],
     ])
+  })
+})
+
+describe('the kinds of qualification of the package Elektro (#406)', () => {
+  it('let a skilled electrician carry out the tests of portable equipment without a note', () => {
+    const { bundle } = loadCatalogue(shipped, options)
+
+    if (!bundle) {
+      throw new Error('The packages do not build.')
+    }
+
+    const catalogue = catalogueOf(bundle)
+    const [kind] = requiredKinds(catalogue, ['elektro.portable_equipment_test_dguv_v3'])
+    const skilled = {
+      kindKey: 'elektro.electrically_skilled_person',
+      ownKindId: null,
+      validUntil: null,
+      deletedAt: null,
+    }
+
+    expect(kind?.key).toBe('elektro.electrically_instructed_person')
+    expect(kind && heldOf([skilled], kind, '2026-10-18')).toEqual({
+      check: 'held',
+      expiredOn: null,
+    })
+    // The other way round it does not hold: an instructed person is no skilled one.
+    const [installation] = requiredKinds(catalogue, ['elektro.installation_test_dguv_v3'])
+
+    expect(
+      installation &&
+        heldOf(
+          [{ ...skilled, kindKey: 'elektro.electrically_instructed_person' }],
+          installation,
+          '2026-10-18',
+        ).check,
+    ).toBe('missing')
   })
 })

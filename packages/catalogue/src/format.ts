@@ -1540,6 +1540,13 @@ export interface PackageQualification {
   readonly label: string
   readonly level: PersonLevel
   readonly requiredFor: readonly string[]
+  /**
+   * The kinds of the same package whose duties a person of this kind carries
+   * out as well (#406), such as the instructed person for a skilled one.
+   * Named, not taken from the level: two experts of one level may stand for
+   * different installations. None where the file names none.
+   */
+  readonly covers: readonly string[]
 }
 
 function packageQualification(
@@ -1547,7 +1554,7 @@ function packageQualification(
   spot: Spot,
   findings: Findings,
 ): PackageQualification | undefined {
-  const from = fields(value, spot, findings, ['key', 'label', 'level', 'requiredFor'])
+  const from = fields(value, spot, findings, ['key', 'label', 'level', 'requiredFor', 'covers'])
 
   if (!from) {
     return undefined
@@ -1557,6 +1564,14 @@ function packageQualification(
   const name = key(from, 'key', spot, findings)
   const label = text(from, 'label', spot, findings)
   const level = from['level']
+  const covering = list(from, 'covers', spot, findings, 'optional')
+  const covers = covering
+    ? each(covering, below(spot, 'covers'), findings, (entry, at) =>
+        typeof entry === 'string' && keyPattern.test(entry)
+          ? entry
+          : (findings.say(at, 'Hier steht der Schlüssel einer Art desselben Pakets.'), undefined),
+      )
+    : undefined
 
   if (!(personLevels as readonly unknown[]).includes(level)) {
     findings.say(
@@ -1578,12 +1593,13 @@ function packageQualification(
     findings.problems.length > before ||
     name === undefined ||
     label === undefined ||
-    requiredFor === undefined
+    requiredFor === undefined ||
+    covers === undefined
   ) {
     return undefined
   }
 
-  return { key: name, label, level: level as PersonLevel, requiredFor }
+  return { key: name, label, level: level as PersonLevel, requiredFor, covers }
 }
 
 /**
@@ -1624,9 +1640,36 @@ export function readQualifications(
       findings,
       'Die Art',
     )
+    coverWithin(read, below(spot, 'qualifications'), findings)
   }
 
   return findings.problems.length > before ? undefined : read
+}
+
+/**
+ * What a kind covers (#406): kinds of its own package, each once, and never
+ * itself. A key of another package has no place here, since a kind names
+ * the kinds beside it in the same file.
+ */
+function coverWithin(kinds: readonly PackageQualification[], spot: Spot, findings: Findings): void {
+  const keys = new Set(kinds.map((kind) => kind.key))
+
+  kinds.forEach((kind, index) => {
+    const at = below(below(spot, index), 'covers')
+
+    once(kind.covers, at, findings, 'Die abgedeckte Art')
+
+    for (const covered of kind.covers) {
+      if (covered === kind.key) {
+        findings.say(at, `Die Art ${kind.key} deckt sich selbst ab; sie nennt nur andere Arten.`)
+      } else if (!keys.has(covered)) {
+        findings.say(
+          at,
+          `Die Art ${kind.key} deckt ${covered} ab, die es in diesem Paket nicht gibt. Eine Art deckt nur Arten ihres eigenen Pakets ab.`,
+        )
+      }
+    }
+  })
 }
 
 /** What the manifest of a package says. */

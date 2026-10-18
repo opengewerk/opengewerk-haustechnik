@@ -65,6 +65,8 @@ const people: Readonly<Record<string, { readonly role: RoleKey; readonly name: s
 }
 
 const liftExpert = 'probe.lift_expert'
+// A kind that covers the lift expert (#406), asked for by no duty kind of its own.
+const liftMaster = 'probe.lift_master'
 const bundle: CatalogueBundle = {
   ...probeCatalogueBundle,
   packages: probeCatalogueBundle.packages.map((pack) =>
@@ -78,8 +80,19 @@ const bundle: CatalogueBundle = {
                 label: 'Sachkundiger für Aufzüge',
                 level: 'skilled_person',
                 requiredFor: ['probe.elevator_main_test'],
+                covers: [],
               },
               review: { checkedOn: '2026-10-17', accepted: null },
+            },
+            {
+              qualification: {
+                key: liftMaster,
+                label: 'Aufzugsmeister',
+                level: 'skilled_person',
+                requiredFor: [],
+                covers: [liftExpert],
+              },
+              review: { checkedOn: '2026-10-18', accepted: null },
             },
           ],
         }
@@ -280,6 +293,7 @@ describe('the qualifications', () => {
 
     expect(kinds.map((kind) => [kind.key, kind.origin, kind.requiredFor])).toEqual([
       [liftExpert, 'Paket Probepaket', 1],
+      [liftMaster, 'Paket Probepaket', 0],
     ])
 
     const own = (
@@ -532,5 +546,28 @@ describe('the qualifications', () => {
     ).body as ActivityCandidates
 
     expect(blind.hints).toEqual({})
+  })
+})
+
+describe('a kind that covers another (#406)', () => {
+  it('counts as the kind the duties ask for at the choice of a performer, and ran out as it where it ran out', async () => {
+    await cleared()
+    await entered({ userId: 'u-tech', kind: liftMaster, validUntil: inDays(100) })
+    await entered({ userId: 'u-other', kind: liftMaster, validUntil: inDays(-5) })
+
+    const offered = (
+      await http()
+        .get(`/activities/${activity}/candidates`)
+        .set(testIdentityHeader, by('u-site'))
+        .expect(200)
+    ).body as ActivityCandidates
+
+    expect(offered.hints?.['u-tech']).toBeUndefined()
+    expect(offered.hints?.['u-other']).toEqual({
+      kindLabel: 'Sachkundiger für Aufzüge',
+      check: 'expired',
+      expiredOn: inDays(-5),
+    })
+    expect(offered.hints?.['u-third']?.check).toBe('missing')
   })
 })

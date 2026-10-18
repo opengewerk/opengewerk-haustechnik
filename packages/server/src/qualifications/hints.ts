@@ -1,8 +1,8 @@
 import {
   type Catalogue,
+  heldOf,
   type IsoDate,
   type QualificationHint,
-  qualificationCheck,
   requiredKinds,
 } from '@opengewerk/haustechnik-domain'
 import type { TenantTransaction } from '@opengewerk/platform-server'
@@ -13,9 +13,10 @@ import { qualifications } from '../database/schema/index.js'
 /**
  * What the people offered for an activity lack of the kinds its duties ask
  * for (#337), on a day: by the person, the first kind they do not hold, and
- * whether it is missing or ran out, with its last day. Nothing for whoever
- * holds every kind, and nothing at all where the duties ask for none. A
- * note for whoever assigns, never a refusal.
+ * whether it is missing or ran out, with its last day. A kind that covers
+ * the one asked for counts as it (#406). Nothing for whoever holds every
+ * kind, and nothing at all where the duties ask for none. A note for
+ * whoever assigns, never a refusal.
  */
 export async function qualificationHints(
   tx: TenantTransaction,
@@ -46,19 +47,10 @@ export async function qualificationHints(
     const theirs = held.filter((row) => row.userId === userId)
 
     for (const kind of required) {
-      const check = qualificationCheck(theirs, kind.key, day)
+      const { check, expiredOn } = heldOf(theirs, kind, day)
 
       if (check !== 'held') {
-        const ran = theirs
-          .filter((row) => row.kindKey === kind.key && row.validUntil !== null)
-          .map((row) => row.validUntil as IsoDate)
-          .sort()
-
-        hints[userId] = {
-          kindLabel: kind.label,
-          check,
-          expiredOn: check === 'expired' ? (ran.at(-1) ?? null) : null,
-        }
+        hints[userId] = { kindLabel: kind.label, check, expiredOn }
         break
       }
     }

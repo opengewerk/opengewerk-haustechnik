@@ -1066,6 +1066,7 @@ function bundled(content: PackageContent): CataloguePackage {
         label: qualification.label,
         level: qualification.level,
         requiredFor: qualification.requiredFor.map((dutyKey) => `${content.name}.${dutyKey}`),
+        covers: qualification.covers.map((kindKey) => `${content.name}.${kindKey}`),
       },
       review: review(
         qualificationReviews.get(qualification.key),

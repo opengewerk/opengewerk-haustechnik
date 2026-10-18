@@ -406,6 +406,11 @@ export interface PackageQualificationKind {
   readonly level: PersonLevel
   /** `<package>.<key>` of the duty kinds that ask for it. */
   readonly requiredFor: readonly string[]
+  /**
+   * `<package>.<key>` of the kinds of its package it covers (#406): a person
+   * of this kind carries out what they ask for as well.
+   */
+  readonly covers: readonly string[]
 }
 
 export interface CatalogueQualification {
@@ -436,9 +441,10 @@ export interface CataloguePackage {
  * qualification (opengewerk-haustechnik#337), five since an expected
  * document names its kind and demand (opengewerk-haustechnik#347), six since
  * the server hands out what its operator added, the asset kinds and fields
- * of its own (opengewerk-haustechnik#62).
+ * of its own (opengewerk-haustechnik#62), seven since a kind of qualification
+ * names the kinds it covers (opengewerk-haustechnik#406).
  */
-export const catalogueFormat = 6
+export const catalogueFormat = 7
 
 /**
  * What the build writes and server and interface load. The checksum is taken
@@ -555,6 +561,11 @@ export interface Catalogue {
    * kind, `<package>.<key>`; nothing where it asks for none a person holds.
    */
   readonly qualificationFor: (dutyKindKey: string) => CatalogueQualification | null
+  /**
+   * The kinds that cover a kind (#406), by its key: whoever holds one of
+   * them carries out what the kind is asked for. None for most kinds.
+   */
+  readonly coveredBy: (kindKey: string) => readonly CatalogueQualification[]
 }
 
 /** The versions of each key, ordered by version. */
@@ -637,6 +648,13 @@ export function catalogueOf(bundle: CatalogueBundle): Catalogue {
       each.qualification.requiredFor.map((dutyKey) => [dutyKey, each] as const),
     ),
   )
+  const covering = new Map<string, CatalogueQualification[]>()
+
+  for (const each of qualifications) {
+    for (const covered of each.qualification.covers) {
+      covering.set(covered, [...(covering.get(covered) ?? []), each])
+    }
+  }
 
   const rule = (key: string, on: IsoDate, state?: FederalState): CatalogueRule | null => {
     const record = records.at(key, on, state)
@@ -704,6 +722,7 @@ export function catalogueOf(bundle: CatalogueBundle): Catalogue {
     qualifications,
     qualification: (key) => qualificationByKey.get(key) ?? null,
     qualificationFor: (dutyKindKey) => qualificationByDuty.get(dutyKindKey) ?? null,
+    coveredBy: (kindKey) => covering.get(kindKey) ?? [],
   }
 
   // What its operator added, asked like the rest (#62).
