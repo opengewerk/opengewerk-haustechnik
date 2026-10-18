@@ -1,0 +1,60 @@
+{
+  "validFrom": "2019-03-14",
+  "title": "Prüfung eines Regals",
+  "sections": [
+    {
+      "key": "structure",
+      "title": "Bauteile",
+      "fields": [
+        {
+          "kind": "check_point",
+          "key": "uprights",
+          "label": "Stützen und Rahmen ohne Verformung oder Risse"
+        },
+        {
+          "kind": "check_point",
+          "key": "beams",
+          "label": "Träger und Fachböden unbeschädigt, Trägersicherungen vollständig"
+        },
+        {
+          "kind": "check_point",
+          "key": "anchoring",
+          "label": "Verankerung im Boden fest"
+        },
+        {
+          "kind": "check_point",
+          "key": "impact_protection",
+          "label": "Anfahrschutz vorhanden und unbeschädigt, wo Fahrzeuge fahren"
+        }
+      ]
+    },
+    {
+      "key": "safety",
+      "title": "Schutzeinrichtungen und Kennzeichnung",
+      "fields": [
+        {
+          "kind": "check_point",
+          "key": "safety_devices",
+          "label": "Not-Halt und Schutzeinrichtungen vollständig und wirksam, wo es welche gibt"
+        },
+        {
+          "kind": "check_point",
+          "key": "load_sign",
+          "label": "Angaben zur Belastung vorhanden und eingehalten"
+        }
+      ]
+    },
+    {
+      "key": "end",
+      "title": "Abschluss",
+      "fields": [
+        {
+          "kind": "signature",
+          "key": "signature",
+          "label": "Unterschrift",
+          "seals": true
+        }
+      ]
+    }
+  ]
+}

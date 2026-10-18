@@ -1,0 +1,34 @@
+{
+  "validFrom": "2015-06-01",
+  "label": "Leiter oder Tritt",
+  "costGroup": "610",
+  "fields": [
+    {
+      "key": "design",
+      "label": "Bauart",
+      "kind": "choice",
+      "options": [
+        {
+          "value": "lean_to_ladder",
+          "label": "Anlegeleiter"
+        },
+        {
+          "value": "step_ladder",
+          "label": "Stehleiter"
+        },
+        {
+          "value": "combination_ladder",
+          "label": "Mehrzweckleiter"
+        },
+        {
+          "value": "platform_ladder",
+          "label": "Podestleiter"
+        },
+        {
+          "value": "step_stool",
+          "label": "Tritt"
+        }
+      ]
+    }
+  ]
+}

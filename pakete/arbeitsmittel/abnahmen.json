@@ -1,0 +1,153 @@
+{
+  "entries": [
+    {
+      "file": "anlagenarten/elevator.v1.json",
+      "checkedOn": "2026-10-18"
+    },
+    {
+      "file": "anlagenarten/ladder.v1.json",
+      "checkedOn": "2026-10-18"
+    },
+    {
+      "file": "anlagenarten/powered_door.v1.json",
+      "checkedOn": "2026-10-18"
+    },
+    {
+      "file": "anlagenarten/pressure_vessel.v1.json",
+      "checkedOn": "2026-10-18"
+    },
+    {
+      "file": "anlagenarten/shelving.v1.json",
+      "checkedOn": "2026-10-18"
+    },
+    {
+      "file": "formulare/ladder_protocol.v1.json",
+      "checkedOn": "2026-10-18"
+    },
+    {
+      "file": "formulare/powered_door_protocol.v1.json",
+      "checkedOn": "2026-10-18"
+    },
+    {
+      "file": "formulare/shelving_protocol.v1.json",
+      "checkedOn": "2026-10-18"
+    },
+    {
+      "file": "pflichten/elevator_intermediate_test.v1.json",
+      "checkedOn": "2026-10-18"
+    },
+    {
+      "file": "pflichten/elevator_main_test.v1.json",
+      "checkedOn": "2026-10-18"
+    },
+    {
+      "file": "pflichten/elevator_maintenance.v1.json",
+      "checkedOn": "2026-10-18"
+    },
+    {
+      "file": "pflichten/ladder_check.v1.json",
+      "checkedOn": "2026-10-18"
+    },
+    {
+      "file": "pflichten/powered_door_check.v1.json",
+      "checkedOn": "2026-10-18"
+    },
+    {
+      "file": "pflichten/pressure_vessel_external_test.v1.json",
+      "checkedOn": "2026-10-18"
+    },
+    {
+      "file": "pflichten/pressure_vessel_external_test_competent_person.v1.json",
+      "checkedOn": "2026-10-18"
+    },
+    {
+      "file": "pflichten/pressure_vessel_internal_test.v1.json",
+      "checkedOn": "2026-10-18"
+    },
+    {
+      "file": "pflichten/pressure_vessel_internal_test_competent_person.v1.json",
+      "checkedOn": "2026-10-18"
+    },
+    {
+      "file": "pflichten/pressure_vessel_strength_test.v1.json",
+      "checkedOn": "2026-10-18"
+    },
+    {
+      "file": "pflichten/pressure_vessel_strength_test_competent_person.v1.json",
+      "checkedOn": "2026-10-18"
+    },
+    {
+      "file": "pflichten/pressure_vessel_strength_test_competent_person_extended.v1.json",
+      "checkedOn": "2026-10-18"
+    },
+    {
+      "file": "pflichten/shelving_check.v1.json",
+      "checkedOn": "2026-10-18"
+    }
+  ],
+  "rules": [
+    {
+      "key": "elevator_test_interval",
+      "validFrom": "2015-06-01",
+      "checkedOn": "2026-10-18"
+    },
+    {
+      "key": "pressure_vessel_external_test_interval",
+      "validFrom": "2015-06-01",
+      "checkedOn": "2026-10-18"
+    },
+    {
+      "key": "pressure_vessel_internal_test_interval",
+      "validFrom": "2015-06-01",
+      "checkedOn": "2026-10-18"
+    },
+    {
+      "key": "pressure_vessel_strength_test_interval",
+      "validFrom": "2015-06-01",
+      "checkedOn": "2026-10-18"
+    },
+    {
+      "key": "pressure_vessel_competent_person_interval",
+      "validFrom": "2015-06-01",
+      "checkedOn": "2026-10-18"
+    },
+    {
+      "key": "pressure_vessel_extended_strength_test_interval",
+      "validFrom": "2015-06-01",
+      "checkedOn": "2026-10-18"
+    },
+    {
+      "key": "powered_door_check_interval",
+      "validFrom": "2009-11-01",
+      "checkedOn": "2026-10-18"
+    },
+    {
+      "key": "ladder_check_interval",
+      "validFrom": "2022-08-01",
+      "checkedOn": "2026-10-18"
+    },
+    {
+      "key": "shelving_check_interval",
+      "validFrom": "2019-03-14",
+      "checkedOn": "2026-10-18"
+    }
+  ],
+  "qualifications": [
+    {
+      "key": "door_expert",
+      "checkedOn": "2026-10-18"
+    },
+    {
+      "key": "ladder_inspector",
+      "checkedOn": "2026-10-18"
+    },
+    {
+      "key": "shelving_inspector",
+      "checkedOn": "2026-10-18"
+    },
+    {
+      "key": "pressure_vessel_inspector",
+      "checkedOn": "2026-10-18"
+    }
+  ]
+}

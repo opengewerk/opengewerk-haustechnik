@@ -1,0 +1,33 @@
+{
+  "validFrom": "2009-11-01",
+  "label": "Kraftbetätigte Tür oder kraftbetätigtes Tor prüfen lassen (ASR A1.7)",
+  "description": "Eine kraftbetätigte Tür oder ein kraftbetätigtes Tor prüft eine sachkundige Person nach den Vorgaben des Herstellers vor der ersten Inbetriebnahme, nach wesentlichen Änderungen und wiederkehrend, nach der Regel mindestens einmal im Jahr. Sie beurteilt die Schutzeinrichtungen, misst dazu etwa den Kraftverlauf an den Schließkanten, und sieht nach, ob technische Dokumentation und Betriebsanleitung vollständig sind. Das Ergebnis wird aufgezeichnet und in der Arbeitsstätte aufbewahrt. Eine kraftbetätigte Brandschutztür prüft der Betreiber zusätzlich nach ihrer Zulassung (Paket Brandschutz).",
+  "task": "inspection",
+  "origin": "insurer_and_committee_rules",
+  "bindingness": "technical_rule",
+  "source": "ASR A1.7 Nr. 10.2 Abs. 1 und 2",
+  "interval": {
+    "kind": "guide",
+    "rule": "powered_door_check_interval"
+  },
+  "counting": "from_due",
+  "qualification": {
+    "level": "skilled_person",
+    "note": "Sachkundige mit Messtechnik für den Kraftverlauf an Schließkanten"
+  },
+  "evidence": {
+    "kinds": [
+      "report",
+      "protocol"
+    ],
+    "form": "powered_door_protocol"
+  },
+  "retention": {
+    "kind": "until_next_inspection"
+  },
+  "scope": {
+    "assetKinds": [
+      "powered_door"
+    ]
+  }
+}

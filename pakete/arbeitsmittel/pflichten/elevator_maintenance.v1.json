@@ -1,0 +1,31 @@
+{
+  "validFrom": "2015-06-01",
+  "label": "Aufzugsanlage instand halten",
+  "description": "Der Betreiber hält die Aufzugsanlage instand, so wie Art und Stärke ihrer Nutzung es verlangen, meist über einen Wartungsvertrag mit einer Fachfirma. Eine Frist nennt die Verordnung nicht; der Betreiber legt sie mit der Prüffrist fest, denn die Hauptprüfung rechnet mit der Instandhaltung.",
+  "task": "maintenance",
+  "origin": "state_law",
+  "bindingness": "statute",
+  "source": "§ 10 und Anhang 1 Nr. 4.2 BetrSichV",
+  "interval": {
+    "kind": "none"
+  },
+  "counting": "from_due",
+  "qualification": {
+    "level": "skilled_person",
+    "note": "eine Fachfirma für Aufzugsanlagen"
+  },
+  "evidence": {
+    "kinds": [
+      "report",
+      "work_order"
+    ]
+  },
+  "retention": {
+    "kind": "until_next_inspection"
+  },
+  "scope": {
+    "assetKinds": [
+      "elevator"
+    ]
+  }
+}

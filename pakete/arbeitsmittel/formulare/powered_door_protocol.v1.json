@@ -1,0 +1,78 @@
+{
+  "validFrom": "2009-11-01",
+  "title": "Prüfung einer kraftbetätigten Tür oder eines kraftbetätigten Tors",
+  "sections": [
+    {
+      "key": "documents",
+      "title": "Unterlagen",
+      "fields": [
+        {
+          "kind": "check_point",
+          "key": "documentation",
+          "label": "Technische Dokumentation und Betriebsanleitung vollständig"
+        },
+        {
+          "kind": "text",
+          "key": "instrument",
+          "label": "Messgerät für die Schließkraft",
+          "carry": true,
+          "hint": "Hersteller, Typ und Seriennummer."
+        }
+      ]
+    },
+    {
+      "key": "safety",
+      "title": "Schutzeinrichtungen",
+      "fields": [
+        {
+          "kind": "check_point",
+          "key": "closing_edges",
+          "label": "Schutz an den Schließkanten wirksam"
+        },
+        {
+          "kind": "check_point",
+          "key": "closing_force",
+          "label": "Kraftverlauf an den Schließkanten gemessen und nach den Vorgaben des Herstellers in Ordnung"
+        },
+        {
+          "kind": "check_point",
+          "key": "emergency_stop",
+          "label": "Not-Halt wirksam"
+        },
+        {
+          "kind": "check_point",
+          "key": "manual_release",
+          "label": "Öffnen von Hand oder Notentriegelung möglich"
+        }
+      ]
+    },
+    {
+      "key": "condition",
+      "title": "Zustand",
+      "fields": [
+        {
+          "kind": "check_point",
+          "key": "wings_and_guides",
+          "label": "Flügel, Führungen und Aufhängung unbeschädigt und fest"
+        },
+        {
+          "kind": "check_point",
+          "key": "marking",
+          "label": "Kennzeichnung und Warnhinweise vorhanden"
+        }
+      ]
+    },
+    {
+      "key": "end",
+      "title": "Abschluss",
+      "fields": [
+        {
+          "kind": "signature",
+          "key": "signature",
+          "label": "Unterschrift",
+          "seals": true
+        }
+      ]
+    }
+  ]
+}

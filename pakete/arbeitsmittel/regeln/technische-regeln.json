@@ -1,0 +1,32 @@
+{
+  "note": "Die Richtwerte aus den Technischen Regeln und aus dem Regelwerk der Unfallversicherungsträger, entschieden am 18.10.2026: was eine Technische Regel oder eine DGUV-Information als Frist nennt, ist ein Richtwert. ASR A1.7 am Text in der Fassung GMBl 2022, S. 244, die TRBS 1201 an ihrer Ausgabe vom März 2019 (GMBl 2019, S. 229), die DGUV Information 208-016 an ihrer Ausgabe August 2022 geprüft. Jede Regel beginnt mit der Ausgabe, an der sie geprüft ist.",
+  "records": [
+    {
+      "key": "powered_door_check_interval",
+      "validFrom": "2009-11-01",
+      "validUntil": null,
+      "unit": "years",
+      "value": 1,
+      "source": "ASR A1.7 Nr. 10.2 Abs. 1",
+      "origin": "insurer_and_committee_rules"
+    },
+    {
+      "key": "ladder_check_interval",
+      "validFrom": "2022-08-01",
+      "validUntil": null,
+      "unit": "years",
+      "value": 1,
+      "source": "DGUV Information 208-016, Abschnitt 6",
+      "origin": "insurer_and_committee_rules"
+    },
+    {
+      "key": "shelving_check_interval",
+      "validFrom": "2019-03-14",
+      "validUntil": null,
+      "unit": "years",
+      "value": 1,
+      "source": "TRBS 1201 Anhang 4 Nr. 14",
+      "origin": "insurer_and_committee_rules"
+    }
+  ]
+}

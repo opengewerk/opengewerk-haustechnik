@@ -1,0 +1,38 @@
+{
+  "validFrom": "2015-06-01",
+  "label": "Festigkeitsprüfung des Druckbehälters durch eine Überwachungsstelle",
+  "description": "Eine zugelassene Überwachungsstelle prüft die Festigkeit des Druckbehälters, höchstens alle zehn Jahre, einen einfachen Druckbehälter ebenso. Die Frist legt der Betreiber in der Gefährdungsbeurteilung fest, spätestens sechs Monate nach der Inbetriebnahme; die Druckanlage als Ganzes prüft er spätestens alle zehn Jahre. Die Prüfbescheinigung wird aufbewahrt, solange der Behälter verwendet wird.",
+  "task": "inspection",
+  "origin": "state_law",
+  "bindingness": "statute",
+  "source": "§ 16 und Anhang 2 Abschnitt 4 Nr. 5.5 und 5.8 Tabelle 1 BetrSichV",
+  "interval": {
+    "kind": "maximum",
+    "rule": "pressure_vessel_strength_test_interval"
+  },
+  "counting": "betrsichv",
+  "qualification": {
+    "level": "approved_body"
+  },
+  "evidence": {
+    "kinds": [
+      "report"
+    ]
+  },
+  "retention": {
+    "kind": "while_in_use"
+  },
+  "scope": {
+    "assetKinds": [
+      "pressure_vessel"
+    ],
+    "conditions": [
+      {
+        "characteristic": "testing_body",
+        "oneOf": [
+          "approved_body"
+        ]
+      }
+    ]
+  }
+}

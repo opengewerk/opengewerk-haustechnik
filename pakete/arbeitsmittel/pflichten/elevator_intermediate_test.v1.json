@@ -1,0 +1,30 @@
+{
+  "validFrom": "2015-06-01",
+  "label": "Zwischenprüfung der Aufzugsanlage",
+  "description": "In der Mitte zwischen zwei Hauptprüfungen prüft eine zugelassene Überwachungsstelle die Aufzugsanlage noch einmal: die sicherheitstechnischen Einrichtungen durch Ansehen und einfache Funktionsprüfungen und ausgewählte Bauteile, auf die es für die Sicherheit ankommt. Ihr Abstand ist der der Hauptprüfung, sodass sie im Wechsel mit ihr fällig wird; den ersten Termin setzt die erste Zwischenprüfung nach einer Hauptprüfung. Die Prüfbescheinigung wird aufbewahrt, solange die Anlage verwendet wird.",
+  "task": "inspection",
+  "origin": "state_law",
+  "bindingness": "statute",
+  "source": "§ 16 Abs. 1, § 17 Abs. 1 und Anhang 2 Abschnitt 2 Nr. 4.3 BetrSichV",
+  "interval": {
+    "kind": "maximum",
+    "rule": "elevator_test_interval"
+  },
+  "counting": "betrsichv",
+  "qualification": {
+    "level": "approved_body"
+  },
+  "evidence": {
+    "kinds": [
+      "report"
+    ]
+  },
+  "retention": {
+    "kind": "while_in_use"
+  },
+  "scope": {
+    "assetKinds": [
+      "elevator"
+    ]
+  }
+}

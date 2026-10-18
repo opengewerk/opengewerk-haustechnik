@@ -1,0 +1,51 @@
+{
+  "validFrom": "2009-11-01",
+  "label": "Kraftbetätigte Tür oder kraftbetätigtes Tor",
+  "costGroup": "334",
+  "fields": [
+    {
+      "key": "design",
+      "label": "Bauart",
+      "kind": "choice",
+      "options": [
+        {
+          "value": "sliding_door",
+          "label": "Schiebetür"
+        },
+        {
+          "value": "swing_door",
+          "label": "Drehflügeltür"
+        },
+        {
+          "value": "revolving_door",
+          "label": "Karusselltür"
+        },
+        {
+          "value": "rolling_gate",
+          "label": "Rolltor"
+        },
+        {
+          "value": "sectional_gate",
+          "label": "Sektionaltor"
+        },
+        {
+          "value": "sliding_gate",
+          "label": "Schiebetor"
+        },
+        {
+          "value": "swing_gate",
+          "label": "Drehflügeltor"
+        }
+      ]
+    }
+  ],
+  "expectedDocuments": [
+    {
+      "key": "operating_manual",
+      "label": "Betriebsanleitung mit den Vorgaben des Herstellers zur Prüfung",
+      "kind": "operating_manual",
+      "demand": "required",
+      "source": "ASR A1.7 Nr. 10 Abs. 1 und Nr. 10.2 Abs. 4"
+    }
+  ]
+}

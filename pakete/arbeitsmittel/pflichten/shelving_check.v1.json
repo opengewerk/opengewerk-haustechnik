@@ -1,0 +1,33 @@
+{
+  "validFrom": "2019-03-14",
+  "label": "Regal prüfen",
+  "description": "Regale, auch kraftbetriebene, prüft eine zur Prüfung befähigte Person wiederkehrend: den Zustand der Bauteile, Vollständigkeit und Wirkung von Not-Halt und Schutzeinrichtungen und die Kennzeichnung. Die Technische Regel nennt einmal im Jahr als bewährte Frist. Bei einem Regal, das von Hand be- und entladen wird und keinen schädigenden Einflüssen ausgesetzt ist, kann die Prüfung nach der Gefährdungsbeurteilung entfallen; dann verwirft der Betreiber den Vorschlag mit dieser Begründung.",
+  "task": "inspection",
+  "origin": "insurer_and_committee_rules",
+  "bindingness": "technical_rule",
+  "source": "§ 14 Abs. 2 BetrSichV, TRBS 1201 Anhang 4 Nr. 14",
+  "interval": {
+    "kind": "guide",
+    "rule": "shelving_check_interval"
+  },
+  "counting": "from_due",
+  "qualification": {
+    "level": "competent_person",
+    "note": "zur Prüfung befähigte Person nach TRBS 1203"
+  },
+  "evidence": {
+    "kinds": [
+      "protocol",
+      "report"
+    ],
+    "form": "shelving_protocol"
+  },
+  "retention": {
+    "kind": "until_next_inspection"
+  },
+  "scope": {
+    "assetKinds": [
+      "shelving"
+    ]
+  }
+}
