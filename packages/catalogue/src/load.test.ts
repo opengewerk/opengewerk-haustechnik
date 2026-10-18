@@ -563,6 +563,83 @@ describe('an asset kind', () => {
       }),
     ).toEqual([`${assetKindFile}, meter.units: Die Einheit cubic_metres steht zweimal da.`])
   })
+
+  it('expects documents each of one kind, required with their source or recommended (#347)', () => {
+    const { bundle } = loadCatalogue(probe, options)
+
+    expect(bundle?.packages[0]?.assetKinds[0]?.definition.expectedDocuments).toEqual([
+      {
+        key: 'declaration_of_conformity',
+        label: 'EG-Konformitätserklärung',
+        kind: 'permit',
+        demand: 'recommended',
+        source: null,
+      },
+      {
+        key: 'emergency_plan',
+        label: 'Notfallplan',
+        kind: 'concept',
+        demand: 'required',
+        source: 'BetrSichV Anhang 1 Nummer 4.1',
+      },
+    ])
+
+    const expecting = (expectedDocuments: readonly Json[]) =>
+      problems({ [assetKindFile]: { ...assetKind, expectedDocuments } })
+    const plan = { key: 'emergency_plan', label: 'Notfallplan', kind: 'concept' }
+
+    expect(expecting([{ ...plan, demand: 'required' }])).toEqual([
+      `${assetKindFile}, expectedDocuments[0].source: Ein verlangtes Soll-Dokument nennt seine Fundstelle: den Paragrafen mit Gesetz oder Verordnung oder die Norm mit Ausgabe und Abschnitt.`,
+    ])
+    expect(expecting([plan])).toEqual([
+      `${assetKindFile}, expectedDocuments[0]: Ein Soll-Dokument nennt die Art des Dokuments (kind) und ob es verlangt oder empfohlen ist (demand), beides zusammen.`,
+    ])
+    expect(expecting([{ ...plan, kind: 'logbook', demand: 'maybe' }])).toEqual([
+      `${assetKindFile}, expectedDocuments[0].kind: "logbook" ist keiner der Werte operating_manual, test_certificate, circuit_diagram, as_built_documentation, permit, concept, risk_assessment.`,
+      `${assetKindFile}, expectedDocuments[0].demand: "maybe" ist keiner der Werte required, recommended.`,
+    ])
+    expect(
+      expecting([
+        { key: 'emergency_plan', label: 'Notfallplan', source: 'BetrSichV Anhang 1 Nummer 4.1' },
+      ]),
+    ).toEqual([
+      `${assetKindFile}, expectedDocuments[0].source: Eine Fundstelle hat nur ein Soll-Dokument, das sagt, ob es verlangt oder empfohlen ist.`,
+    ])
+    // One file of a kind would fulfil both.
+    expect(
+      expecting([
+        { ...plan, demand: 'recommended' },
+        { key: 'rescue_concept', label: 'Rettungskonzept', kind: 'concept', demand: 'recommended' },
+      ]),
+    ).toEqual([
+      `${assetKindFile}, expectedDocuments: Die Art des Dokuments concept steht zweimal da.`,
+    ])
+  })
+
+  it('in force names kind and demand of every expected document; one written before stands only where a later version replaces it from its first day (#347)', () => {
+    const before = {
+      ...assetKind,
+      expectedDocuments: [{ key: 'emergency_plan', label: 'Notfallplan' }],
+    }
+    const second = 'probe/anlagenarten/elevator.v2.json'
+    const reviewed = reviewsWith({
+      entries: [{ file: 'anlagenarten/elevator.v2.json', checkedOn: '2026-10-03' }],
+    })
+    const unnamed = `${assetKindFile}, expectedDocuments[0]: Ein Soll-Dokument einer Fassung, die gilt, nennt die Art des Dokuments (kind) und ob es verlangt oder empfohlen ist (demand). Ohne beides steht es nur in einer Fassung, die eine spätere vom ersten Tag an ersetzt.`
+
+    expect(problems({ [assetKindFile]: before })).toEqual([unnamed])
+    expect(
+      problems({ [assetKindFile]: before, [second]: assetKind, [acceptancesFile]: reviewed }),
+    ).toEqual([])
+    // Begun later, the second version leaves the first in force until then.
+    expect(
+      problems({
+        [assetKindFile]: before,
+        [second]: { ...assetKind, validFrom: '2030-01-01' },
+        [acceptancesFile]: reviewed,
+      }),
+    ).toEqual([unnamed])
+  })
 })
 
 describe('the rules', () => {

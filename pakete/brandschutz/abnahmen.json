@@ -19,6 +19,10 @@
       }
     },
     {
+      "file": "anlagenarten/extinguishing_system.v2.json",
+      "checkedOn": "2026-10-18"
+    },
+    {
       "file": "anlagenarten/fire_alarm_system.v1.json",
       "checkedOn": "2026-10-14",
       "accepted": {
@@ -26,6 +30,10 @@
         "on": "2026-10-16",
         "sha256": "3c3b9be4a993bbe38fbcfb9ea077daaefb8dbd062acbd0586ca76de89d9c8112"
       }
+    },
+    {
+      "file": "anlagenarten/fire_alarm_system.v2.json",
+      "checkedOn": "2026-10-18"
     },
     {
       "file": "anlagenarten/fire_damper.v1.json",
@@ -46,6 +54,10 @@
       }
     },
     {
+      "file": "anlagenarten/fire_door.v2.json",
+      "checkedOn": "2026-10-18"
+    },
+    {
       "file": "anlagenarten/fire_extinguisher.v1.json",
       "checkedOn": "2026-10-14",
       "accepted": {
@@ -62,6 +74,10 @@
         "on": "2026-10-16",
         "sha256": "5c883a7714740ec2eb5ea13688a6f00401f9d8fa6900370988c02f6243d25fbc"
       }
+    },
+    {
+      "file": "anlagenarten/hold_open_device.v2.json",
+      "checkedOn": "2026-10-18"
     },
     {
       "file": "anlagenarten/smoke_extraction.v1.json",

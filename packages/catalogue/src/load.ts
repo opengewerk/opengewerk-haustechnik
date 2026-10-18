@@ -226,6 +226,39 @@ function checkVersions<Definition>(
   }
 }
 
+/**
+ * A version of an asset kind that is in force on some day names, of every
+ * expected document, the kind of document that fulfils it and whether it is
+ * required or recommended (#347). One written before names neither, and a
+ * merged version stays as it is; it may stand where a later version begins
+ * on the same day and so replaces it on every day.
+ */
+function checkExpectedDocuments(versions: readonly Version<AssetKind>[], findings: Findings): void {
+  for (const ofKey of grouped(versions, (version) => version.key).values()) {
+    const ordered = byVersion(ofKey)
+
+    ordered.forEach((version, index) => {
+      const read = version.read
+      const later = ordered[index + 1]?.read
+      const replaced =
+        read !== undefined && later !== undefined && later.validFrom === read.validFrom
+
+      if (read === undefined || replaced) {
+        return
+      }
+
+      read.definition.expectedDocuments.forEach((expected, at) => {
+        if (expected.kind === null || expected.demand === null) {
+          findings.say(
+            { file: version.file, at: `expectedDocuments[${String(at)}]` },
+            'Ein Soll-Dokument einer Fassung, die gilt, nennt die Art des Dokuments (kind) und ob es verlangt oder empfohlen ist (demand). Ohne beides steht es nur in einer Fassung, die eine spätere vom ersten Tag an ersetzt.',
+          )
+        }
+      })
+    })
+  }
+}
+
 /** A key names one thing in its package: one entry of one kind, one rule, or one defect class. */
 function checkKeys(content: PackageContent, findings: Findings): void {
   const folderOf = new Map<string, EntryFolder>()
@@ -1185,6 +1218,7 @@ export function loadCatalogue(
 
     checkKeys(content, findings)
     checkQualifications(content, findings)
+    checkExpectedDocuments(content.assetKinds, findings)
 
     for (const version of content.dutyKinds) {
       if (version.read) {

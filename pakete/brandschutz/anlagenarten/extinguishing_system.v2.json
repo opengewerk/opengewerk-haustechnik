@@ -1,0 +1,38 @@
+{
+  "validFrom": "2005-01-01",
+  "label": "Feuerlöschanlage",
+  "costGroup": "474",
+  "fields": [
+    {
+      "key": "kind",
+      "label": "Art",
+      "kind": "choice",
+      "options": [
+        {
+          "value": "sprinkler",
+          "label": "Sprinkleranlage"
+        },
+        {
+          "value": "water_spray",
+          "label": "Sprühwasser- oder Wassernebelanlage"
+        },
+        {
+          "value": "gas",
+          "label": "Gaslöschanlage"
+        },
+        {
+          "value": "other",
+          "label": "andere"
+        }
+      ]
+    }
+  ],
+  "expectedDocuments": [
+    {
+      "key": "log_book",
+      "label": "Betriebsbuch",
+      "kind": "test_certificate",
+      "demand": "recommended"
+    }
+  ]
+}

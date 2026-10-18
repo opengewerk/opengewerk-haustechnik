@@ -8,10 +8,13 @@ import {
   type Catalogue,
   costGroupAbove,
   costGroupWords,
+  documentFilterLabel,
+  documentFilters,
   isGeneralKind,
   type LifecycleState,
   lifecycleStateLabel,
   lifecycleStates,
+  lackingWords,
   placeWords,
   type RecordState,
   showsShutDown,
@@ -243,6 +246,7 @@ export function AssetRegisterScreen() {
                 : asset.lifecycleState === null || asset.lifecycleState === 'in_service'
                   ? null
                   : lifecycleStateLabel[asset.lifecycleState],
+              asset.lacking.length === 0 ? null : `Es fehlt: ${lackingWords(asset.lacking)}`,
             ]
               .filter((part) => part !== null && part !== '')
               .join(' · '),
@@ -286,6 +290,7 @@ export function AssetRegisterScreen() {
                 </Cell>
                 <Cell className="font-medium">
                   <Link to={officePlaces.asset(asset.id)}>{asset.name}</Link>
+                  <LackingLine lacking={asset.lacking} />
                 </Cell>
                 <Cell>{kindOf(asset)}</Cell>
                 <Cell className="text-ink-muted">{placeOf(asset)}</Cell>
@@ -467,12 +472,53 @@ function Filters({
           </option>
         ))}
       </Filter>
+      <Filter
+        label="Unterlagen"
+        className="lg:w-[170px]"
+        value={filter.documents ?? ''}
+        onChange={(value) => {
+          onSet('documents', value)
+        }}
+      >
+        <option value="">Alle</option>
+        {documentFilters.map((documents) => (
+          <option key={documents} value={documents}>
+            {documentFilterLabel[documents]}
+          </option>
+        ))}
+      </Filter>
       <span className="grow max-lg:hidden" />
       {onReset ? (
         <Button size="small" onClick={onReset}>
           Filter zurücksetzen
         </Button>
       ) : null}
+    </div>
+  )
+}
+
+/**
+ * Under the name of an asset: what it lacks of the documents its kind expects
+ * (#347), a required one in the tone of a conflict and with "(verlangt)".
+ */
+function LackingLine({ lacking }: { readonly lacking: AssetEntry['lacking'] }) {
+  if (lacking.length === 0) {
+    return null
+  }
+
+  return (
+    <div className="mt-0.5 text-[12px] leading-[1.35] font-normal text-ink-muted">
+      Es fehlt:{' '}
+      {lacking.map((expected, index) => (
+        <span key={expected.key}>
+          {index > 0 ? ', ' : null}
+          {expected.demand === 'required' ? (
+            <span className="font-medium text-conflict">{lackingWords([expected])}</span>
+          ) : (
+            expected.label
+          )}
+        </span>
+      ))}
     </div>
   )
 }

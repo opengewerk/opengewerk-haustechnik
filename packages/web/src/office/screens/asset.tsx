@@ -65,6 +65,7 @@ import { AssetState } from '../asset-state.js'
 import { cataloguePlaces } from '../catalogue-addresses.js'
 import { defectPlaces } from '../defect-addresses.js'
 import { DocumentsCard } from '../documents.js'
+import { ExpectedDocumentsCard } from '../expected-documents.js'
 import { TasksCard } from '../tasks.js'
 import { dutyPlaces } from '../duty-addresses.js'
 import { dutySourceWords, kindOfDuty, NewDutyButton } from '../duty-words.js'
@@ -459,6 +460,17 @@ export function AssetFileScreen() {
           {/* The warranty, the contracts that cover it and the orders with a warranty of their own (#329). */}
           <AssetCoverCard assetId={assetId} warrantyEndsOn={asset.warrantyEndsOn} />
           <LabelCardOf holder="assets" id={assetId} />
+          {/* What the package expects of the kind, and whether it lies here (#347). */}
+          <ExpectedDocumentsCard
+            kind={kind?.definition ?? null}
+            packageTitle={
+              catalogue?.packages.find(
+                (entry) => entry.name === asset.kind.slice(0, asset.kind.indexOf('.')),
+              )?.title ?? asset.kind
+            }
+            place={{ propertyId: asset.propertyId, assetId }}
+            at={[asset.number, asset.name].filter(Boolean).join(' ')}
+          />
           <DocumentsCard
             place={{ propertyId: asset.propertyId, assetId }}
             at={[asset.number, asset.name].filter(Boolean).join(' ')}

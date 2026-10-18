@@ -8,18 +8,23 @@ import {
   assetRegisterPage,
   type BuildingId,
   type Catalogue,
+  type DocumentFilter,
+  documentFilters,
+  type DocumentKind,
   inCostGroup,
   type IsoDate,
+  lackingDocuments,
+  lacksFor,
   type LifecycleState,
   lifecycleStates,
   type PropertyId,
   withoutLifecycle,
 } from '@opengewerk/haustechnik-domain'
 import { isUuid, type TenantTransaction } from '@opengewerk/platform-server'
-import { and, asc, eq, inArray, isNull } from 'drizzle-orm'
+import { and, asc, eq, inArray, isNotNull, isNull } from 'drizzle-orm'
 
 import { assetsOnADay } from '../database/duty-standing.js'
-import { assets } from '../database/schema/index.js'
+import { assets, attachments } from '../database/schema/index.js'
 import { counted, said } from './register-question.js'
 
 /**
@@ -62,6 +67,12 @@ export function registerQuestion(query: Readonly<Record<string, unknown>>): Regi
     throw new BadRequestException('Diesen Zustand im Lebenszyklus gibt es nicht.')
   }
 
+  const documents = said(query, 'documents')
+
+  if (documents !== undefined && !(documentFilters as readonly string[]).includes(documents)) {
+    throw new BadRequestException('Nach diesen Unterlagen filtert das Anlagenverzeichnis nicht.')
+  }
+
   const propertyId = said(query, 'propertyId')
   const buildingId = said(query, 'buildingId')
   const costGroup = said(query, 'costGroup')
@@ -77,6 +88,7 @@ export function registerQuestion(query: Readonly<Record<string, unknown>>): Regi
       ...(lifecycle === undefined
         ? {}
         : { lifecycle: lifecycle as LifecycleState | typeof withoutLifecycle }),
+      ...(documents === undefined ? {} : { documents: documents as DocumentFilter }),
     },
     offset: counted(
       said(query, 'offset'),
@@ -178,13 +190,21 @@ export async function assetsPassing(
     .orderBy(asc(assets.number), asc(assets.name), asc(assets.id))
 
   const onThisDay = await assetsOnADay(tx, today, catalogue)
+  const kindsAt = await documentKindsAtAssets(tx)
 
-  return (rows as Omit<AssetEntry, 'lifecycleState' | 'condition' | 'until' | 'shutDown'>[])
+  return (
+    rows as Omit<AssetEntry, 'lifecycleState' | 'condition' | 'until' | 'shutDown' | 'lacking'>[]
+  )
     .map((row): AssetEntry => {
       const { lifecycleState, condition, until, shutDownBy } = onThisDay(row.id)
+      const lacking = lackingDocuments(
+        catalogue.assetKind(row.kind, today)?.definition ?? null,
+        kindsAt.get(row.id) ?? [],
+      ).map(({ key, label, demand }) => ({ key, label, demand }))
 
-      return { ...row, lifecycleState, condition, until, shutDown: shutDownBy.length > 0 }
+      return { ...row, lifecycleState, condition, until, shutDown: shutDownBy.length > 0, lacking }
     })
+    .filter((entry) => filter.documents === undefined || lacksFor(filter.documents, entry.lacking))
     .filter((entry) => filter.condition === undefined || entry.condition === filter.condition)
     .filter(
       (entry) =>
@@ -193,4 +213,33 @@ export async function assetsPassing(
           ? entry.lifecycleState === null
           : entry.lifecycleState === filter.lifecycle),
     )
+}
+
+/**
+ * The kinds of the documents that hang on each asset itself and are not
+ * removed (#347): what fulfils the documents its kind expects. A document at
+ * the room or the building of an asset is not among them, and one without a
+ * kind fulfils nothing. The transaction is the person's, so these are the
+ * documents of their areas, as are the assets they hang on.
+ */
+async function documentKindsAtAssets(tx: TenantTransaction): Promise<Map<string, DocumentKind[]>> {
+  const rows = await tx
+    .selectDistinct({ assetId: attachments.assetId, kind: attachments.kind })
+    .from(attachments)
+    .where(
+      and(
+        isNull(attachments.deletedAt),
+        isNotNull(attachments.assetId),
+        isNotNull(attachments.kind),
+      ),
+    )
+  const kinds = new Map<string, DocumentKind[]>()
+
+  for (const { assetId, kind } of rows) {
+    if (assetId !== null && kind !== null) {
+      kinds.set(assetId, [...(kinds.get(assetId) ?? []), kind])
+    }
+  }
+
+  return kinds
 }

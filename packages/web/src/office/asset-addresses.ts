@@ -4,6 +4,8 @@ import {
   type AssetRegisterFilter,
   assetRegisterFilters,
   assetRegisterPage,
+  type DocumentFilter,
+  documentFilters,
   type LifecycleState,
   lifecycleStates,
   withoutLifecycle,
@@ -34,6 +36,7 @@ export const registerWords = {
   kind: 'art',
   condition: 'zustand',
   lifecycle: 'lebenszyklus',
+  documents: 'unterlagen',
 } as const satisfies Readonly<Record<keyof AssetRegisterFilter, string>>
 
 /** What an address says after a word, as text: the router reads "461" as a number. */
@@ -55,6 +58,7 @@ function said(search: Readonly<Record<string, unknown>>, word: string): string |
 export function registerFilterOf(search: Readonly<Record<string, unknown>>): AssetRegisterFilter {
   const condition = said(search, registerWords.condition)
   const lifecycle = said(search, registerWords.lifecycle)
+  const documents = said(search, registerWords.documents)
   const plain = (['propertyId', 'buildingId', 'costGroup', 'kind'] as const).flatMap((name) => {
     const value = said(search, registerWords[name])
 
@@ -69,6 +73,9 @@ export function registerFilterOf(search: Readonly<Record<string, unknown>>): Ass
     ...(lifecycle === withoutLifecycle ||
     (lifecycleStates as readonly (string | undefined)[]).includes(lifecycle)
       ? { lifecycle: lifecycle as LifecycleState | typeof withoutLifecycle }
+      : {}),
+    ...((documentFilters as readonly (string | undefined)[]).includes(documents)
+      ? { documents: documents as DocumentFilter }
       : {}),
   }
 }

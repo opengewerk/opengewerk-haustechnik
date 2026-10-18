@@ -3,6 +3,8 @@ import {
   costGroupAbove,
   costGroupName,
   costGroupWords,
+  type DocumentKind,
+  lackingDocuments,
   type RecordState,
 } from '@opengewerk/haustechnik-domain'
 import { Button, cardLink, Cell, Column, Panel, Status, TablePanel } from '@opengewerk/platform-web'
@@ -369,6 +371,33 @@ function AssetsByCostGroup({
     )
   }, [assets, catalogue])
   const named = useMemo(() => catalogue?.assetKinds(today()) ?? [], [catalogue])
+  const documents = useRecords('attachments')
+  const lacking = useMemo(() => {
+    const day = today()
+    const kindsAt = new Map<unknown, (DocumentKind | null)[]>()
+
+    for (const document of documents) {
+      if (document['assetId'] !== null && document['assetId'] !== undefined) {
+        kindsAt.set(document['assetId'], [
+          ...(kindsAt.get(document['assetId']) ?? []),
+          (maybeText(document, 'kind') ?? null) as DocumentKind | null,
+        ])
+      }
+    }
+
+    const missing = assets.map((asset) =>
+      lackingDocuments(
+        catalogue?.assetKind(text(asset, 'kind'), day)?.definition ?? null,
+        kindsAt.get(asset['id']) ?? [],
+      ),
+    )
+
+    return {
+      any: missing.filter((each) => each.length > 0).length,
+      required: missing.filter((each) => each.some((expected) => expected.demand === 'required'))
+        .length,
+    }
+  }, [assets, documents, catalogue])
 
   if (assets.length === 0) {
     return (
@@ -402,6 +431,11 @@ function AssetsByCostGroup({
         </Link>
       }
       caption="Anlagen dieses Gebäudes, gezählt nach Kostengruppe"
+      footer={
+        lacking.any === 0 ? undefined : (
+          <LackingAssets buildingId={buildingId} any={lacking.any} required={lacking.required} />
+        )
+      }
       cards={groups.map(({ group, count }) => ({
         key: group,
         title: (
@@ -451,5 +485,41 @@ function AssetsByCostGroup({
         ))}
       </tbody>
     </TablePanel>
+  )
+}
+
+/**
+ * Under the assets of a building, with the stock and not with what is to do
+ * (decided on 15.10.2026, #347): how many of them lack documents their kind
+ * expects, and of how many the package requires one, leading to the register
+ * narrowed to the building and to them.
+ */
+function LackingAssets({
+  buildingId,
+  any,
+  required,
+}: {
+  readonly buildingId: string
+  readonly any: number
+  readonly required: number
+}) {
+  const link = (
+    <Link
+      to={assetRegisterPlace.to}
+      search={registerSearch({ buildingId, documents: 'missing' })}
+      className={factLink}
+    >
+      {countedAssets(any)}
+    </Link>
+  )
+
+  return (
+    <span>
+      {required === any ? 'Verlangte Unterlagen fehlen an ' : 'Unterlagen fehlen an '}
+      {link}
+      {required === 0 || required === any
+        ? '.'
+        : `, an ${required === 1 ? 'einer' : required.toLocaleString('de-DE')} davon verlangte.`}
+    </span>
   )
 }

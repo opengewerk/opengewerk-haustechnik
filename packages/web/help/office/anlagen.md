@@ -2,7 +2,7 @@
 
 Das Anlagenverzeichnis führt jede technische Anlage mit ihrer Nummer, ihrer Anlagenart und ihrem Ort. Aus Anlagenart, Merkmalen und Ort schlägt der Katalog die Pflichten vor, die für die Anlage gelten.
 
-Die Liste lässt sich filtern, durchsuchen und als Tabelle herunterladen. Eine Messstelle ist eine Anlage mit Ablesungen und steht zusätzlich unter [Zähler](/zaehler).
+Die Liste lässt sich filtern, durchsuchen und als Tabelle herunterladen. Der Filter „Unterlagen“ zeigt die Anlagen, denen etwas fehlt, was das Paket für ihre Anlagenart nennt, oder nur die, denen verlangte Unterlagen fehlen; unter jeder Anlage steht, was ihr fehlt. Eine Messstelle ist eine Anlage mit Ablesungen und steht zusätzlich unter [Zähler](/zaehler).
 
 ## Kurzanleitung
 

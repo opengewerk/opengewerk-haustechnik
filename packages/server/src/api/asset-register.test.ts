@@ -223,6 +223,26 @@ async function defectAt(asset: string, status: string): Promise<void> {
   )
 }
 
+/**
+ * A document of a kind at an asset or a building, straight into the table:
+ * what the register reads to say which expected documents are there (#347).
+ */
+async function documentAt(
+  home: 'asset_id' | 'building_id',
+  id: string,
+  kind: string | null,
+): Promise<string> {
+  const { rows } = await admin.query<{ id: string }>(
+    `insert into attachments (tenant_id, property_id, area_id, ${home}, title, kind)
+     select tenant_id, property_id, area_id, id, 'Unterlage', $2::document_kind
+       from ${home === 'asset_id' ? 'assets' : 'buildings'} where id = $1
+     returning id`,
+    [id, kind],
+  )
+
+  return rows[0]?.id ?? ''
+}
+
 /** A page of the register as somebody reads it. */
 async function register(
   query: Readonly<Record<string, string>> = {},
@@ -346,6 +366,15 @@ describe('the register of assets', () => {
       until: null,
       // No defect puts it out of service (#345).
       shutDown: false,
+      // Nothing is filed at it of what its kind expects (#347).
+      lacking: [
+        {
+          key: 'declaration_of_conformity',
+          label: 'EG-Konformitätserklärung',
+          demand: 'recommended',
+        },
+        { key: 'emergency_plan', label: 'Notfallplan', demand: 'required' },
+      ],
     })
     expect(page.assets[1]?.lifecycleState).toBeNull()
     expect(page.assets[2]?.parentAssetId).toBe(lift)
@@ -462,6 +491,83 @@ describe('the register of assets', () => {
       .query({ limit: '200' })
       .set(testIdentityHeader, by('u-tech'))
       .expect(200)
+  })
+})
+
+describe('the documents an asset lacks (#347)', () => {
+  /** What each asset of the building lacks, by its name: each document by its label and demand. */
+  async function lackingIn(building: string): Promise<Record<string, string[]>> {
+    return Object.fromEntries(
+      (await register({ buildingId: building })).assets.map((asset) => [
+        asset.name,
+        asset.lacking.map((expected) => `${expected.label}, ${expected.demand}`),
+      ]),
+    )
+  }
+
+  it('are those of its kind without a document of their kind at the asset itself', async () => {
+    const { building } = await placeIn()
+    const planned = await named(building, 'Aufzug mit Notfallplan')
+
+    await named(building, 'Aufzug ohne Unterlagen')
+    await assetIn(building, { ...waterMeter, name: 'Wasserzähler' })
+    // Of the kind the emergency plan asks for, but at the building: it counts for no asset.
+    await documentAt('building_id', building, 'concept')
+    await documentAt('asset_id', planned, 'concept')
+    // A document without a kind, the photo of a type plate, fulfils nothing.
+    await documentAt('asset_id', planned, null)
+
+    expect(await lackingIn(building)).toEqual({
+      'Aufzug mit Notfallplan': ['EG-Konformitätserklärung, recommended'],
+      'Aufzug ohne Unterlagen': ['EG-Konformitätserklärung, recommended', 'Notfallplan, required'],
+      // A kind that expects nothing lacks nothing.
+      Wasserzähler: [],
+    })
+  })
+
+  it('are missing again once the document of their kind is removed', async () => {
+    const { building } = await placeIn()
+    const lift = await named(building, 'Aufzug')
+    const plan = await documentAt('asset_id', lift, 'concept')
+
+    await documentAt('asset_id', lift, 'permit')
+    expect(await lackingIn(building)).toEqual({ Aufzug: [] })
+
+    await admin.query('update attachments set deleted_at = now() where id = $1', [plan])
+
+    expect(await lackingIn(building)).toEqual({ Aufzug: ['Notfallplan, required'] })
+  })
+
+  it('narrow the register to the assets lacking any, or one that is required, and nothing else', async () => {
+    const { building } = await placeIn()
+    const complete = await named(building, 'Aufzug vollständig')
+    const recommended = await named(building, 'Aufzug ohne Konformitätserklärung')
+
+    await named(building, 'Aufzug ohne Notfallplan')
+
+    for (const asset of [complete, recommended]) {
+      await documentAt('asset_id', asset, 'concept')
+    }
+    await documentAt('asset_id', complete, 'permit')
+
+    expect(await namesOf({ buildingId: building, documents: 'missing' })).toEqual([
+      'Aufzug ohne Konformitätserklärung',
+      'Aufzug ohne Notfallplan',
+    ])
+    expect(await namesOf({ buildingId: building, documents: 'required_missing' })).toEqual([
+      'Aufzug ohne Notfallplan',
+    ])
+
+    await http()
+      .get('/assets')
+      .query({ documents: 'alle' })
+      .set(testIdentityHeader, by('u-tech'))
+      .expect(400)
+      .expect((answer) =>
+        expect(answer.body.message).toBe(
+          'Nach diesen Unterlagen filtert das Anlagenverzeichnis nicht.',
+        ),
+      )
   })
 })
 

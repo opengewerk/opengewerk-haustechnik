@@ -28,6 +28,10 @@
       }
     },
     {
+      "file": "anlagenarten/low_voltage_installation.v2.json",
+      "checkedOn": "2026-10-18"
+    },
+    {
       "file": "anlagenarten/portable_equipment.v1.json",
       "checkedOn": "2026-10-10",
       "accepted": {
@@ -53,6 +57,10 @@
         "on": "2026-10-16",
         "sha256": "98b1f474b42e0722a9a275363ec6a042e2490baa858707163e8bee4f7971fac4"
       }
+    },
+    {
+      "file": "anlagenarten/safety_lighting.v2.json",
+      "checkedOn": "2026-10-18"
     },
     {
       "file": "anlagenarten/safety_power_supply.v1.json",
