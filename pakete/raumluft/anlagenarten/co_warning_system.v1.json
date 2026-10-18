@@ -1,0 +1,13 @@
+{
+  "validFrom": "1997-09-01",
+  "label": "CO-Warnanlage",
+  "costGroup": "456",
+  "expectedDocuments": [
+    {
+      "key": "operating_manual",
+      "label": "Betriebsanleitung mit den Vorgaben des Herstellers zu Wartung und Kalibrierung",
+      "kind": "operating_manual",
+      "demand": "recommended"
+    }
+  ]
+}
