@@ -15,8 +15,10 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   Einstellung neunzig Tage), entfernt der Lauf der Fristen Geräte, Passkeys und Geräte für Push-Nachrichten, und wo
   das Konto nirgends mehr arbeitet auch E-Mail-Adresse, zweiten Faktor und Passwort; der Name bleibt in den
   Nachweisen. Beides steht unter „Fristen“, den Namen sieht dort nur, wer Zugänge verwaltet. Im Dialog eines Zugangs
-  steht unter dem letzten Tag, was noch an der Person hängt. Migration 0085, Fundament mit opengewerk#669. Warum: Wer
-  den Betreiber verlässt, behielt bisher Konto und Geräte, und was ihr zugeteilt war, blieb bei ihr liegen.
+  steht unter dem letzten Tag, was noch an der Person hängt. Migration 0085. Das Submodul des Fundaments geht von
+  `e8d66fa` auf `e516659`, dazwischen liegt nur opengewerk#669 (`removeAccountData`, `afterLastDay`), auf `main` des
+  Fundaments. Warum: Wer den Betreiber verlässt, behielt bisher Konto und Geräte, und was ihr zugeteilt war, blieb bei
+  ihr liegen.
 - Landesrecht für die Pakete aus Phase 2 (#354): Die Prüfung der Anlagen einer Versammlungsstätte nennt in
   ihrer zweiten Fassung auch Lüftungs- und Klimaanlagen (§ 37 Abs. 1 Nr. 1 VStättVO BW), die einer Garage
   die maschinelle Zu- und Abluft und die CO-Warnanlage (§ 16 Abs. 1 Nr. 4 und 5 GaVO BW). Das Paket Raumluft

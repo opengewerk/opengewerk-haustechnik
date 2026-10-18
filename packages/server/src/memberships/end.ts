@@ -229,6 +229,14 @@ export async function removalDaysOf(tx: TenantTransaction): Promise<number> {
  * and, where the account works nowhere else, its address, passkeys, second
  * factor and password; the push subscriptions of the person here go as well.
  * Each removal is written down once, and the deadline drops out with it.
+ *
+ * Held by `membership-end.test.ts`, "removes after the period the devices,
+ * the passkeys and the address, and leaves what the person signed as it
+ * was": an account that works for one operator loses its address, one that
+ * also works for a second operator (`u-both`) keeps address and account, and
+ * the name and what the person signed stay for both. The guards inside the
+ * foundation, that the last day has passed and that the account works
+ * nowhere else, are held by `administration.test.ts` there (opengewerk#669).
  */
 export async function removeEndedAccounts(
   database: Database,
