@@ -9,7 +9,7 @@
 -- none; no installation has imported between 0078 and this migration, since
 -- no version brought one without the other.
 ALTER TABLE "import_records" ADD COLUMN "named" jsonb DEFAULT '{}'::jsonb NOT NULL;--> statement-breakpoint
-ALTER TABLE "import_records" ADD CONSTRAINT "import_records_named_object" CHECK (jsonb_typeof("import_records"."named") = 'object');;--> statement-breakpoint
+ALTER TABLE "import_records" ADD CONSTRAINT "import_records_named_object" CHECK (jsonb_typeof("import_records"."named") = 'object');--> statement-breakpoint
 CREATE OR REPLACE FUNCTION "import_record"() RETURNS trigger
 	LANGUAGE plpgsql
 	SET search_path = pg_catalog, public
