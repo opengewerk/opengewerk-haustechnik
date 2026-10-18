@@ -205,6 +205,7 @@ describe('the package Raumluft und Kälte', () => {
   it('has an evaporative cooling system checked inside every two weeks, by a laboratory every three months and by an expert every five years', () => {
     expect(proposed('evaporative_cooling_system', {})).toEqual([
       'cooling_expert_inspection',
+      'cooling_water_first_lab_test',
       'cooling_water_internal_check',
       'cooling_water_lab_test',
     ])
@@ -220,6 +221,17 @@ describe('the package Raumluft und Kälte', () => {
       ['3 months', 'accredited_laboratory'],
       ['5 years', 'certified_expert'],
     ])
+  })
+
+  it('has the water of an evaporative cooling system tested once within four weeks after its commissioning (#439)', () => {
+    const kind = air.dutyKind('raumluft.cooling_water_first_lab_test', '2026-10-18')
+
+    expect(kind && air.onceDue(kind, '2026-11-02')).toBe('2026-11-30')
+    expect([
+      kind?.definition.counting,
+      kind?.definition.source,
+      kind?.definition.qualification.level,
+    ]).toEqual(['once', '§ 3 Abs. 7 Satz 1 der 42. BImSchV', 'accredited_laboratory'])
   })
 
   it('judges a Legionella count above the test value 1 as outside, and the value itself as inside', () => {

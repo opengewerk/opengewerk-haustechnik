@@ -1,0 +1,47 @@
+{
+  "validFrom": "2024-10-01",
+  "label": "Heizungsprüfung und Heizungsoptimierung nach 15 Jahren",
+  "description": "Eine Heizungsanlage mit Wasser als Wärmeträger, die nach dem 30.09.2009 eingebaut oder aufgestellt wurde, keine Wärmepumpe ist und in einem Gebäude mit mindestens sechs Wohnungen oder sonstigen selbständigen Nutzungseinheiten betrieben wird, lässt der Betreiber innerhalb eines Jahres nach Ablauf von 15 Jahren nach dem Einbau prüfen, ob sie energieeffizient betrieben wird, und optimieren. Was zu optimieren ist, setzt der Betreiber innerhalb eines Jahres nach der Prüfung um, und auf Verlangen bekommt ein Mieter Ergebnis und Nachweis. Mit standardisierter Gebäudeautomation entfällt die Prüfung. Die Pflicht ist einmal fällig und mit ihrem Nachweis erledigt.",
+  "task": "inspection",
+  "origin": "state_law",
+  "bindingness": "statute",
+  "source": "§ 60b Abs. 1 Satz 1 GModG",
+  "interval": {
+    "kind": "once",
+    "rule": "heating_check_after_installation",
+    "from": "installation"
+  },
+  "counting": "once",
+  "qualification": {
+    "level": "skilled_person",
+    "note": "eine fachkundige Person im Sinne des § 60a Abs. 3 (§ 60b Abs. 3)"
+  },
+  "evidence": {
+    "kinds": [
+      "report",
+      "protocol"
+    ]
+  },
+  "retention": {
+    "kind": "while_in_use"
+  },
+  "scope": {
+    "assetKinds": [
+      "boiler"
+    ],
+    "conditions": [
+      {
+        "characteristic": "six_or_more_units",
+        "is": true
+      },
+      {
+        "characteristic": "installed_before_october_2009",
+        "is": false
+      },
+      {
+        "characteristic": "building_automation",
+        "is": false
+      }
+    ]
+  }
+}

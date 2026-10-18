@@ -1,0 +1,37 @@
+{
+  "validFrom": "2017-08-01",
+  "label": "Heizöllagerung erstmals durch Sachverständige prüfen lassen",
+  "description": "Eine Heizöllagerung, die nach dem 31.12.1993 in Betrieb genommen wurde und erst seit dem 01.08.2017 wiederkehrend prüfpflichtig ist, weil das Landesrecht davor keine wiederkehrende Prüfung verlangte, lässt der Betreiber bis zum 01.08.2027 zum ersten Mal von Sachverständigen prüfen. Danach gilt die wiederkehrende Prüfung, und der Bericht der ersten ist auch ihr erster Nachweis. Den Prüfbericht schickt der Sachverständige innerhalb von vier Wochen an die Behörde. Die Pflicht ist einmal fällig und mit ihrem Nachweis erledigt.",
+  "task": "inspection",
+  "origin": "state_law",
+  "bindingness": "statute",
+  "source": "§ 70 Abs. 2 Nr. 5 AwSV",
+  "interval": {
+    "kind": "once",
+    "dueOn": "2027-08-01"
+  },
+  "counting": "once",
+  "qualification": {
+    "level": "certified_expert",
+    "note": "Sachverständige einer nach § 52 AwSV anerkannten Organisation (§ 47 Abs. 1)"
+  },
+  "evidence": {
+    "kinds": [
+      "report"
+    ]
+  },
+  "retention": {
+    "kind": "while_in_use"
+  },
+  "scope": {
+    "assetKinds": [
+      "oil_storage"
+    ],
+    "conditions": [
+      {
+        "characteristic": "first_inspection_by_august_2027",
+        "is": true
+      }
+    ]
+  }
+}

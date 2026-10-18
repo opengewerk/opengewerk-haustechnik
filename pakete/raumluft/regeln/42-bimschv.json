@@ -20,6 +20,15 @@
       "origin": "state_law"
     },
     {
+      "key": "cooling_first_lab_test_within",
+      "validFrom": "2017-08-19",
+      "validUntil": null,
+      "unit": "days",
+      "value": 28,
+      "source": "§ 3 Abs. 7 Satz 1 der 42. BImSchV",
+      "origin": "state_law"
+    },
+    {
       "key": "cooling_expert_inspection_interval",
       "validFrom": "2017-08-19",
       "validUntil": null,

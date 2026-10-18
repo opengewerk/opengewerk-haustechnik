@@ -67,6 +67,7 @@ Dichtheitskontrolle vorgeschlagen. Sind die Merkmale in der Akte eingetragen, bl
 | Leckage-Erkennungssystem kontrollieren lassen | mit Leckage-Erkennungssystem | Art. 6 Abs. 1 und 3 VO (EU) 2024/573 | 12 Monate, Höchstfrist |
 | Nutzwasser betriebsintern überprüfen | Verdunstungskühlanlage | § 4 Abs. 2 Nr. 1 der 42. BImSchV | 14 Tage, Höchstfrist |
 | Nutzwasser im Labor untersuchen lassen | Verdunstungskühlanlage | § 4 Abs. 2 Nr. 2 und Abs. 3 der 42. BImSchV | 3 Monate, Höchstfrist |
+| Nutzwasser nach der Inbetriebnahme erstmals im Labor untersuchen lassen | Verdunstungskühlanlage | § 3 Abs. 7 Satz 1 der 42. BImSchV | einmalig, 28 Tage nach der Inbetriebnahme oder Wiederinbetriebnahme (#439) |
 | Verdunstungskühlanlage durch Sachverständige überprüfen lassen | Verdunstungskühlanlage | § 14 Abs. 1 der 42. BImSchV | 5 Jahre, Höchstfrist |
 
 ### Die energetische Inspektion zum 01.01.2027
@@ -159,10 +160,13 @@ Eine eigene Einteilung des Pakets, ohne Fundstelle:
 
 - Die Abstände der Hygieneinspektion nach VDI 6022 und den Wechsel der Luftfilter: Sie stehen in privaten Regeln
   und kommen nach der rechtlichen Prüfung.
-- Die einmaligen Pflichten der 42. BImSchV, mit denen der Betreiber selbst rechnet:
+- Die einmaligen Pflichten der 42. BImSchV, die keine Prüfung mit Nachweis sind:
   - die Gefährdungsbeurteilung vor der Inbetriebnahme (§ 3 Abs. 4), als verlangtes Soll-Dokument der Anlagenart;
   - die Prüfschritte nach Anlage 2;
   - die Anzeige bei der Behörde (§ 13).
+- Die Erstuntersuchung einer Anlage, die bestimmungsgemäß an höchstens 90 aufeinanderfolgenden Tagen im Jahr
+  läuft, binnen zwei Wochen nach jeder jährlichen Wiederaufnahme (§ 3 Abs. 7 Satz 3): Der Betreiber nennt dann
+  an der Erstuntersuchung den Tag der Wiederaufnahme.
 - Kühltürme und Nassabscheider der 42. BImSchV: Sie gehören zu Kraftwerken und Prozessen, nicht zur
   Haustechnik.
 - Die Grenzwerte des Kältemittelverlusts nach § 2 der Chemikalien-Klimaschutzverordnung: Sie folgen aus den

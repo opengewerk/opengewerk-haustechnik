@@ -45,6 +45,15 @@
       "value": 2,
       "source": "§ 15 Abs. 1 der 1. BImSchV",
       "origin": "state_law"
+    },
+    {
+      "key": "flue_gas_first_measurement_within",
+      "validFrom": "2010-03-22",
+      "validUntil": null,
+      "unit": "days",
+      "value": 28,
+      "source": "§ 14 Abs. 2 der 1. BImSchV",
+      "origin": "state_law"
     }
   ]
 }

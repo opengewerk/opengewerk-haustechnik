@@ -1,0 +1,38 @@
+{
+  "validFrom": "2010-03-22",
+  "label": "Feuerungsanlage nach der Inbetriebnahme erstmals messen lassen",
+  "description": "Wer eine Feuerungsanlage ab dem 22.03.2010 errichtet oder wesentlich ändert, lässt innerhalb von vier Wochen nach der Inbetriebnahme von einem Schornsteinfeger feststellen, ob sie die Anforderungen der Verordnung einhält. Ausgenommen sind unter anderem Anlagen bis 11 kW, die nur Brauchwasser erwärmen; bei einem Brennwertgerät entfällt nur die Prüfung der Abgasverluste. Die Pflicht ist einmal fällig und mit der Bescheinigung erledigt.",
+  "task": "inspection",
+  "origin": "state_law",
+  "bindingness": "statute",
+  "source": "§ 14 Abs. 2 und 3 der 1. BImSchV",
+  "interval": {
+    "kind": "once",
+    "rule": "flue_gas_first_measurement_within",
+    "from": "commissioning"
+  },
+  "counting": "once",
+  "qualification": {
+    "level": "skilled_person",
+    "note": "eine Schornsteinfegerin oder ein Schornsteinfeger (§ 14 Abs. 2 der 1. BImSchV)"
+  },
+  "evidence": {
+    "kinds": [
+      "report"
+    ]
+  },
+  "retention": {
+    "kind": "while_in_use"
+  },
+  "scope": {
+    "assetKinds": [
+      "boiler"
+    ],
+    "conditions": [
+      {
+        "characteristic": "built_since_march_2010",
+        "is": true
+      }
+    ]
+  }
+}
