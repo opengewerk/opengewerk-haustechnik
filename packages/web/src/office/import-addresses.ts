@@ -20,3 +20,19 @@ export const importRoutes = {
   templates: '/imports/templates',
   kindNames: '/imports/asset-kinds',
 } as const
+
+/**
+ * The page of one import (#174), under the change log it is opened from: its
+ * entry there leads to it, and so does the line over the log of a record it
+ * made.
+ */
+export function importPage(id: string): string {
+  return `/einstellungen/protokoll/importe/${encodeURIComponent(id)}`
+}
+
+/** What the office reads of an import: what it made, and which import made a record. */
+export const importReadings = {
+  made: (id: string) => `/imports/${encodeURIComponent(id)}/made`,
+  origin: (table: string, id: string) =>
+    `/imports/origins/${encodeURIComponent(table)}/${encodeURIComponent(id)}`,
+} as const

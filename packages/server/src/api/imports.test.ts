@@ -37,6 +37,7 @@ import {
   resetToMigrated,
   testIdentityHeader,
 } from '../database/test-database.js'
+import { dayInGermany } from '../today.js'
 import { ApiModule } from './api.module.js'
 import { as, testIdentities } from './test-identity.js'
 
@@ -2365,5 +2366,128 @@ describe('a property and a building chosen for all lines (#173)', () => {
       { building: 'Schulhaus', room: 'E.14' },
       { building: 'Schulhaus', room: 'E.15' },
     ])
+  })
+})
+
+describe('where a record came from (#174)', () => {
+  interface Reading {
+    readonly fileName: string
+    readonly importedOn: string
+    readonly records: readonly { table: string; id: string; title: string }[]
+  }
+
+  /** The places of the school, taken over from a list by the technical management. */
+  async function schoolTakenOver(tenant: Tenant): Promise<Taken> {
+    const keeper = by('technical_management', tenant)
+    const places = {
+      ...table(structureFields, placeHeader, ...schoolLines()),
+      defaults: defaultsIn(tenant.area),
+    }
+    const seen = await structurePreview(keeper, places)
+
+    return (
+      await sendTable('/imports/structure', keeper, {
+        ...places,
+        fileName: 'bestand-schulzentrum.csv',
+        expected: seen.counts,
+      }).expect(201)
+    ).body as Taken
+  }
+
+  function made(id: string, header: string) {
+    return http().get(`/imports/${id}/made`).set(testIdentityHeader, header)
+  }
+
+  function originOf(table: string, id: string, header: string) {
+    return http().get(`/imports/origins/${table}/${id}`).set(testIdentityHeader, header)
+  }
+
+  it('is kept for every record an import made, and for none made by hand', async () => {
+    const tenant = await tenantWith()
+    const taken = await schoolTakenOver(tenant)
+    const typed = await placeIn(tenant, { property: 'Rathaus' })
+    const { rows } = await admin.query<{ table_name: string; count: string }>(
+      `select table_name, count(*)::text as count from import_records
+        where tenant_id = $1 and import_id = $2 group by table_name order by table_name`,
+      [tenant.id, taken.id],
+    )
+
+    expect(rows).toEqual([
+      { table_name: 'buildings', count: '2' },
+      { table_name: 'floors', count: '4' },
+      { table_name: 'properties', count: '1' },
+      { table_name: 'rooms', count: '48' },
+    ])
+
+    const { rows: byHand } = await admin.query(
+      'select 1 from import_records where record_id = any($1::uuid[])',
+      [[typed.property, typed.building, typed.floor, typed.room]],
+    )
+
+    expect(byHand).toEqual([])
+  })
+
+  it('is read on the page of the import, places first, and over the log of each record', async () => {
+    const tenant = await tenantWith()
+    const lead = by('management', tenant)
+    const taken = await schoolTakenOver(tenant)
+    const reading = (await made(taken.id, lead).expect(200)).body as Reading
+
+    expect(reading.fileName).toBe('bestand-schulzentrum.csv')
+    expect(reading.importedOn).toBe(dayInGermany())
+    expect([...new Set(reading.records.map((record) => record.table))]).toEqual([
+      'properties',
+      'buildings',
+      'floors',
+      'rooms',
+    ])
+    expect(reading.records).toHaveLength(55)
+    expect(reading.records[0]).toEqual({
+      table: 'properties',
+      id: expect.any(String) as string,
+      title: school,
+    })
+
+    const property = reading.records[0]?.id ?? ''
+
+    expect((await originOf('properties', property, lead).expect(200)).body).toEqual({
+      importId: taken.id,
+      fileName: 'bestand-schulzentrum.csv',
+      importedOn: dayInGermany(),
+    })
+
+    // A place typed in has none, and neither has a table an import does not write.
+    const typed = await placeIn(tenant, { property: 'Rathaus' })
+
+    expect((await originOf('properties', typed.property, lead).expect(200)).body).toEqual({})
+    expect((await originOf('duties', property, lead).expect(200)).body).toEqual({})
+  })
+
+  it('leaves out what was removed since, and is read by the Leitung of its operator alone', async () => {
+    const tenant = await tenantWith()
+    const lead = by('management', tenant)
+    const taken = await schoolTakenOver(tenant)
+    const before = ((await made(taken.id, lead).expect(200)).body as Reading).records
+    const room = before.find((record) => record.table === 'rooms')
+
+    await admin.query('update rooms set deleted_at = now() where id = $1', [room?.id])
+
+    const after = ((await made(taken.id, lead).expect(200)).body as Reading).records
+
+    expect(after).toHaveLength(54)
+    expect(after.map((record) => record.id)).not.toContain(room?.id)
+
+    // Not for whoever may not read the log, and not for another operator.
+    await made(taken.id, by('technical_management', tenant)).expect(403)
+    await originOf('properties', before[0]?.id ?? '', by('technical_management', tenant)).expect(
+      403,
+    )
+
+    const other = await tenantWith()
+
+    await made(taken.id, by('management', other)).expect(404)
+    expect(
+      (await originOf('properties', before[0]?.id ?? '', by('management', other)).expect(200)).body,
+    ).toEqual({})
   })
 })

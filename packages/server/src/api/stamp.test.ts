@@ -131,9 +131,15 @@ const askedWith: Readonly<Record<string, Readonly<Record<string, string>>>> = {
 /**
  * The routes that read and are not asked here: the devices of a person, named
  * by an account and not by a record, and answered by the foundation without a
- * record in it.
+ * record in it; and what an import made and which import made a record (#174),
+ * since the operator here has imported nothing and no route lists its imports.
+ * Neither answer has a column of the sync in it.
  */
-const notAsked = ['GET /staff/:userId/devices']
+const notAsked = [
+  'GET /staff/:userId/devices',
+  'GET /imports/:importId/made',
+  'GET /imports/origins/:table/:recordId',
+]
 
 let admin: Pool
 let database: Database
