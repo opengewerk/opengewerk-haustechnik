@@ -58,6 +58,11 @@ describe('a cost group of DIN 276', () => {
     // A group no general kind stands for, and a catalogue without any.
     expect(costGroupWords('430', kinds)).toBe('KG 430')
     expect(costGroupWords('460', [])).toBe('KG 460')
+    // The portable equipment no general kind stands for, in words of our own,
+    // with a catalogue or without one (#384); a name of a prototype is no group.
+    expect(costGroupWords('610', kinds)).toBe('KG 610 Ortsveränderliches Betriebsmittel')
+    expect(costGroupWords('610', [])).toBe('KG 610 Ortsveränderliches Betriebsmittel')
+    expect(costGroupName('constructor', [])).toBeNull()
     expect(costGroupWords('460', kinds.slice(0, 2))).toBe('KG 460')
     expect(costGroupWords('constructor', kinds)).toBe('KG constructor')
   })

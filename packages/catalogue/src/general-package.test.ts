@@ -6,6 +6,7 @@ import {
   catalogueOf,
   costGroupName,
   costGroupWords,
+  contractorServices,
   dutyKindsNaming,
   generalPackage,
   isGeneralKind,
@@ -78,6 +79,15 @@ describe('the package Allgemein', () => {
     )
     expect(costGroupWords('460', kinds)).toBe(`KG 460 ${labels.get('460') ?? ''}`)
     expect(costGroupWords('461', kinds)).toBe('KG 461')
+  })
+
+  it('names every service a contractor may offer, with the packages of this build alone (#384)', () => {
+    const { bundle } = loadCatalogue(shipped, options)
+    const kinds = catalogueOf(bundle as NonNullable<typeof bundle>).assetKinds(options.today)
+
+    expect(contractorServices.filter((service) => costGroupName(service, kinds) === null)).toEqual(
+      [],
+    )
   })
 
   it('describes a general kind by its name and its cost group and by nothing else', () => {

@@ -44,11 +44,25 @@ export function inCostGroup(costGroup: string, group: string): boolean {
 }
 
 /**
+ * The groups outside the technical installations the catalogue keeps assets
+ * in, by what they go by (#384). The package Allgemein has a general kind for
+ * each group of 410 to 490 and for no other, so its words name none of these;
+ * these are words of our own, as every name of a group (#163). 610 holds the
+ * portable electrical equipment, which a contractor may test as a service of
+ * its own.
+ */
+const groupsOutsideTheInstallations: Readonly<Record<string, string>> = {
+  '610': 'Ortsveränderliches Betriebsmittel',
+}
+
+/**
  * What a cost group goes by beside its number: the label of the general asset
  * kind of exactly this group, the words the package Allgemein has for an asset
- * of the group that no package describes more closely (section 4.2). Null for
- * a group no general kind stands for, 461 or one outside the technical
- * installations, and on a device whose catalogue has no such kind.
+ * of the group that no package describes more closely (section 4.2), and for
+ * a group outside the technical installations the catalogue keeps assets in,
+ * words of our own. Null for a group nothing stands for, 461 or one the
+ * catalogue does not keep, and on a device whose catalogue has no general
+ * kind of the group.
  */
 export function costGroupName(
   group: string,
@@ -56,7 +70,10 @@ export function costGroupName(
 ): string | null {
   return (
     kinds.find((kind) => isGeneralKind(kind.key) && kind.definition.costGroup === group)?.definition
-      .label ?? null
+      .label ??
+    (Object.hasOwn(groupsOutsideTheInstallations, group)
+      ? (groupsOutsideTheInstallations[group] ?? null)
+      : null)
   )
 }
 
