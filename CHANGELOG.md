@@ -7,6 +7,26 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
 
 ## [Unreleased]
 
+## [0.1.7] - 2026-10-18
+
+Die dritte Zwischenfassung für den Pilotbetrieb, mit dem, was aus Phase 2 seit 0.1.6 fertig ist.
+Die Leitung überträgt Pflichten an Personen, die Qualifikationen der Mitarbeiter stehen mit ihrem
+Ablauf da und melden sich beim Zuteilen, und ein Prüfer von außen liest Pflichten und Nachweise bis
+zu seinem letzten Tag. Ein Nachweis wird nach Ablauf seiner Aufbewahrung gelöscht und lässt eine
+leere Hülle mit Nummer, Pflicht und Tag zurück, ein höher signiertes PDF lässt sich an ihm ablegen,
+und Sammelvorgänge fassen viele Anlagen einer Pflichtart in einem Zug zusammen. Dazu kommen
+Auswertungen über die Zeit mit dem Verbrauch der Zähler, Störmeldungen ohne Konto über das Etikett,
+eigene Rollen, eigene Anlagenarten und Felder, Soll-Dokumente je Anlagenart, Unterlagen für
+unterwegs, außer Betrieb durch Mangel mit dem Mängelbericht, Punkte für jede Anlage einer Art,
+freie Etiketten vom Bogen und woher ein importierter Datensatz kommt. Im Lager kommen der
+Lagerplatz und die Ausbuchung ohne Auftrag dazu.
+
+Aktualisiert wird wie bei jeder Fassung in zwei Schritten, vorher gesichert. Achtzehn Migrationen
+kommen mit (`0065_fault_reports_by_label` bis `0082_stock_write_off`); mit ihnen bekommen die Rollen
+bestehender Betreiber die neuen Rechte, und jeder Betreiber bekommt die Rolle Prüfer. Vor dem
+Einschalten von Push steht jetzt, über welchen Dienst die Nachrichten gehen und dass sie in die USA
+gehen; die Datenschutzhinweise der Instanz sollten das ebenso nennen.
+
 ### Hinzugefügt
 
 - Vor dem Einschalten von Push steht, über welchen Dienst die Nachrichten gehen (#390): im Konto unter
