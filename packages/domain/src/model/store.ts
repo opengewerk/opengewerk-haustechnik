@@ -105,7 +105,7 @@ export interface StoreArticlePage {
 /** A booking as the office sends it: a receipt or a count; a withdrawal comes with #326. */
 export interface NewStockMovement {
   readonly articleId: StockArticleId
-  readonly kind: Extract<StockMovementKind, 'receipt' | 'count'>
+  readonly kind: Extract<StockMovementKind, 'receipt' | 'count' | 'write_off'>
   readonly quantityMilli: number
   readonly supplierId: StockSupplierId | null
   readonly reason: string | null

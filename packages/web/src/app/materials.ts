@@ -2,6 +2,7 @@ import {
   labelCodeFromScan,
   type RecordState,
   type ReportedMaterial,
+  type StockMovementKind,
   type StockUnit,
   stockOnDevice,
 } from '@opengewerk/haustechnik-domain'
@@ -60,7 +61,7 @@ export function stockOnThisDevice(client: Lister, storeId: string, articleId: st
     client.list('stock_movements').map((movement) => ({
       storeId: text(movement, 'storeId'),
       articleId: text(movement, 'articleId'),
-      kind: text(movement, 'kind') as 'receipt' | 'count' | 'withdrawal',
+      kind: text(movement, 'kind') as StockMovementKind,
       quantityMilli: amountOf(movement, 'quantityMilli'),
       createdAt: text(movement, 'createdAt'),
       materialId: maybeText(movement, 'materialId'),

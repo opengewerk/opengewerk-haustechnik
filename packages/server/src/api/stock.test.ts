@@ -243,8 +243,8 @@ describe('the stock of a store', () => {
     await book(store, { articleId: article, kind: 'receipt', quantityMilli: 1000 }).expect(201)
     expect((await stockOf(store)).lines[0]?.levelMilli).toBe(10_000)
 
-    // Nothing else is booked in the office: no receipt of nothing, no withdrawal,
-    // no supplier at a count.
+    // Nothing else is booked in the office: no receipt of nothing, no withdrawal
+    // (a write-off is what the office takes away, #430), no supplier at a count.
     await book(store, { articleId: article, kind: 'receipt', quantityMilli: 0 }).expect(400)
     await book(store, { articleId: article, kind: 'withdrawal', quantityMilli: 1000 }).expect(400)
     await book(store, {
@@ -678,5 +678,65 @@ describe('where an article lies in a store (#385)', () => {
       .expect(201)
 
     expect(await binIn(carrying.id, article)).toBe('Werkbank')
+  })
+})
+
+describe('a write-off (#430)', () => {
+  it('takes stock away for something without a work order, with its reason, for whoever keeps the stores', async () => {
+    const { store, article } = await storeWithArticle()
+    const writtenOff = (quantityMilli: number, reason?: string, header = by('u-site')) =>
+      book(
+        store,
+        { articleId: article, kind: 'write_off', quantityMilli, ...(reason ? { reason } : {}) },
+        header,
+      )
+
+    await book(store, { articleId: article, kind: 'receipt', quantityMilli: 3000 }).expect(201)
+    await writtenOff(2000, 'Für das Foyer', by('u-tech')).expect(403)
+
+    const unreasoned = await writtenOff(2000).expect(400)
+
+    expect((unreasoned.body as { message: string }).message).toBe(
+      'Eine Ausbuchung nennt ihren Grund.',
+    )
+    await writtenOff(0, 'Für das Foyer').expect(400)
+
+    const booked = await writtenOff(2000, '  Zwei Akkus für das Foyer  ').expect(201)
+
+    expect(booked.body).toMatchObject({ levelMilli: 1000 })
+
+    // More than lies there is written off all the same, and the stock says so.
+    await writtenOff(3000, 'Defekt ausgesondert').expect(201)
+
+    expect(
+      (await stockOf(store)).lines.find((line) => line.articleId === article)?.levelMilli,
+    ).toBe(-2000)
+
+    const page = (
+      await http()
+        .get(`/stores/${store}/articles/${article}`)
+        .set(testIdentityHeader, by('u-tech'))
+        .expect(200)
+    ).body as StoreArticlePage
+
+    expect(page.movements[1]).toMatchObject({
+      kind: 'write_off',
+      quantityMilli: 2000,
+      levelAfterMilli: 1000,
+      reason: 'Zwei Akkus für das Foyer',
+      workOrder: null,
+    })
+  })
+
+  it('names its reason in the database too', async () => {
+    const { store, article } = await storeWithArticle()
+
+    await expect(
+      admin.query(
+        `insert into stock_movements (tenant_id, store_id, article_id, kind, quantity_milli, booked_by)
+         values ($1, $2, $3, 'write_off', 1000, 'u-tech')`,
+        [small, store, article],
+      ),
+    ).rejects.toThrow(/stock_movements_write_off_with_a_reason/)
   })
 })

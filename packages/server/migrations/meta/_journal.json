@@ -575,6 +575,13 @@
       "when": 1792309007112,
       "tag": "0081_store_article_bin",
       "breakpoints": true
+    },
+    {
+      "idx": 82,
+      "version": "7",
+      "when": 1792313025012,
+      "tag": "0082_stock_write_off",
+      "breakpoints": true
     }
   ]
 }

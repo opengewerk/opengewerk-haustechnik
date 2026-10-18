@@ -21,7 +21,7 @@ import { useRight } from '@opengewerk/platform-web/session'
 import { refusalFor, RequestRefused, useSync } from '@opengewerk/platform-web/sync'
 import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useNavigate, useParams, useSearch } from '@tanstack/react-router'
-import { ArrowRight, Check, List, Plus, Printer, Trash2 } from 'lucide-react'
+import { ArrowRight, Check, List, Minus, Plus, Printer, Trash2 } from 'lucide-react'
 import { type ReactNode, useDeferredValue, useState } from 'react'
 
 import { askAt } from '../../sync/made-at.js'
@@ -69,7 +69,7 @@ export const storeWords = {
     'In diesem Lager liegt noch nichts. Ein Wareneingang bringt den ersten Artikel hinein.',
   noneBelow: 'Kein Artikel liegt unter seinem Mindestbestand.',
   stockNote:
-    'Ein Bestand ändert sich nur durch eine Buchung: Wareneingang, Zählung oder Entnahme am Auftrag.',
+    'Ein Bestand ändert sich nur durch eine Buchung: Wareneingang, Zählung, Ausbuchung oder Entnahme am Auftrag.',
   below: 'unter Mindestbestand',
   negative: 'negativ, bitte zählen',
   removed: 'entfällt',
@@ -171,7 +171,9 @@ export function StoreStockScreen() {
   const address = stockAddressOf(useSearch({ strict: false }))
   const navigate = useNavigate()
   const keeps = useRight('store.write')
-  const [open, setOpen] = useState<'receipt' | 'count' | 'store' | 'labels' | 'remove' | null>(null)
+  const [open, setOpen] = useState<
+    'receipt' | 'count' | 'write_off' | 'store' | 'labels' | 'remove' | null
+  >(null)
   const stores = useQuery({ ...storeListQuery, retry: refusedOnce })
   const chosen =
     stores.data?.find((store) => store.id === address.lager) ?? stores.data?.[0] ?? null
@@ -274,6 +276,14 @@ export function StoreStockScreen() {
               {table.button}
               {keeps ? (
                 <>
+                  <Button
+                    icon={Minus}
+                    onClick={() => {
+                      setOpen('write_off')
+                    }}
+                  >
+                    Ausbuchung
+                  </Button>
                   <Button
                     icon={List}
                     onClick={() => {
@@ -404,7 +414,7 @@ export function StoreStockScreen() {
           }}
         />
       ) : null}
-      {(open === 'receipt' || open === 'count') && chosen !== null ? (
+      {(open === 'receipt' || open === 'count' || open === 'write_off') && chosen !== null ? (
         <BookingDialog
           kind={open}
           storeId={chosen.id}
@@ -674,7 +684,7 @@ function changeOf(movement: StockMovementLine, before: number): string {
 
 /**
  * Where a booking came from, what it was for, or why: the supplier and the
- * note of a receipt, the reason of a count, the other store of a transfer
+ * note of a receipt, the reason of a count or a write-off, the other store of a transfer
  * (#391), and the work order a withdrawal was taken for (#326), with a link
  * where the person sees the order.
  */
@@ -711,6 +721,7 @@ const kindTone = {
   withdrawal: 'neutral',
   transfer_out: 'neutral',
   transfer_in: 'neutral',
+  write_off: 'neutral',
 } as const
 
 /**
@@ -725,7 +736,7 @@ export function StoreArticleScreen() {
   }
   const keeps = useRight('store.write')
   const navigate = useNavigate()
-  const [open, setOpen] = useState<'receipt' | 'count' | 'move' | null>(null)
+  const [open, setOpen] = useState<'receipt' | 'count' | 'write_off' | 'move' | null>(null)
   const page = useQuery({ ...storeArticleQuery(storeId, articleId), retry: refusedOnce })
 
   if (page.data === undefined) {
@@ -767,6 +778,14 @@ export function StoreArticleScreen() {
                   In anderes Lager
                 </Button>
               ) : null}
+              <Button
+                icon={Minus}
+                onClick={() => {
+                  setOpen('write_off')
+                }}
+              >
+                Ausbuchung
+              </Button>
               <Button
                 icon={List}
                 onClick={() => {
@@ -827,7 +846,9 @@ export function StoreArticleScreen() {
                           ? { icon: List }
                           : movement.kind === 'receipt'
                             ? { icon: Plus }
-                            : {})}
+                            : movement.kind === 'write_off'
+                              ? { icon: Minus }
+                              : {})}
                       >
                         {stockMovementKindLabel[movement.kind]}
                       </Status>
@@ -903,7 +924,7 @@ export function StoreArticleScreen() {
           }}
         />
       ) : null}
-      {open === 'receipt' || open === 'count' ? (
+      {open === 'receipt' || open === 'count' || open === 'write_off' ? (
         <BookingDialog
           kind={open}
           storeId={store.id}
