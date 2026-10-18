@@ -187,6 +187,7 @@ describe('the stock of a store', () => {
 
     expect(screen.queryByRole('button', { name: 'Wareneingang' })).toBeNull()
     expect(screen.queryByRole('button', { name: 'Zählung' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Ausbuchung' })).toBeNull()
     expect(screen.queryByRole('button', { name: 'Lager anlegen' })).toBeNull()
     expect(screen.queryByRole('button', { name: 'Lager entfernen' })).toBeNull()
   })
@@ -230,6 +231,42 @@ describe('the stock of a store', () => {
             quantityMilli: 20_000,
             supplierId: 'p-elektro',
             reason: 'Lieferschein 4711-23',
+          },
+        },
+      ])
+    })
+  })
+
+  it('writes an article off without a work order, only with its reason (#430)', async () => {
+    const { written, done } = mounted('site_management')
+
+    await done
+    await untilTheRightsAreKnown()
+    await userEvent.click(await screen.findByRole('button', { name: 'Ausbuchung' }))
+
+    const dialog = await screen.findByRole('dialog', { name: 'Ausbuchung' })
+
+    await userEvent.selectOptions(within(dialog).getByLabelText(/^Artikel/), 'r-akku')
+    await userEvent.type(within(dialog).getByLabelText(/^Menge/), '2')
+    expect(within(dialog).getByText('Im Lager: 3 Stück, danach 1 Stück.')).toBeDefined()
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Ausbuchen' }))
+    expect(written).toEqual([])
+    expect(within(dialog).getByText('Eine Ausbuchung nennt ihren Grund.')).toBeDefined()
+
+    await userEvent.type(within(dialog).getByLabelText(/^Grund/), 'Zwei Akkus für das Foyer')
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Ausbuchen' }))
+
+    await waitFor(() => {
+      expect(written).toEqual([
+        {
+          method: 'POST',
+          path: '/stores/s-main/movements',
+          body: {
+            articleId: 'r-akku',
+            kind: 'write_off',
+            quantityMilli: 2000,
+            supplierId: null,
+            reason: 'Zwei Akkus für das Foyer',
           },
         },
       ])

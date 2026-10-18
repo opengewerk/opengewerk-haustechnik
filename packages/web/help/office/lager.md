@@ -2,7 +2,7 @@
 
 Das Lager zeigt, was der Betreiber an Material vorhält: je Lager jeden Artikel mit seinem Lagerplatz, seinem Bestand und dem Mindestbestand. Der Lagerplatz sagt in eigenen Worten, wo der Artikel in diesem Lager liegt, etwa „Regal 3, Fach 1“ oder „Schrank Notlicht“; ein anderes Lager führt seinen eigenen. Vor Ort steht er bei der Entnahme unter dem gewählten Lager. Liegt ein Artikel darunter, steht er in der Bestellliste dieses Lagers; „Nur unter Mindestbestand“ zeigt genau diese, „Als Tabelle“ gibt sie aus.
 
-Ein Bestand ändert sich nur durch eine Buchung: einen Wareneingang, eine Zählung oder eine Entnahme am Auftrag, die vor Ort per Scan oder Suche entsteht, auch ohne Netz. Eine Buchung wird nicht geändert und nicht gelöscht. Stimmt ein Bestand nicht, berichtigt ihn eine Zählung mit ihrem Grund. Haben zwei Geräte ohne Netz mehr entnommen, als dalag, steht der Bestand unter null und sagt es, bis eine Zählung ihn berichtigt.
+Ein Bestand ändert sich nur durch eine Buchung: einen Wareneingang, eine Zählung, eine Ausbuchung oder eine Entnahme am Auftrag, die vor Ort per Scan oder Suche entsteht, auch ohne Netz. Wird ein Artikel für etwas gebraucht, zu dem es keinen Auftrag gibt, bucht ihn „Ausbuchung“ mit Menge und Grund aus; der Grund ist Pflicht und steht an der Buchung. Eine Buchung wird nicht geändert und nicht gelöscht. Stimmt ein Bestand nicht, berichtigt ihn eine Zählung mit ihrem Grund. Haben zwei Geräte ohne Netz mehr entnommen, als dalag, steht der Bestand unter null und sagt es, bis eine Zählung ihn berichtigt.
 
 Ein Artikel ohne Strichcode des Herstellers bekommt mit „Etiketten drucken“ ein eigenes Etikett für sein Fach; vor Ort liest der Scan es wie einen Strichcode.
 
@@ -16,3 +16,4 @@ Ein Artikel, der im falschen Lager angelegt wurde, zieht über „In anderes Lag
 2. „Wareneingang“: Artikel wählen oder seinen Strichcode scannen, Menge und Lieferant eintragen, buchen.
 3. Einen Artikel öffnen und seinen Lagerplatz und den Mindestbestand dieses Lagers setzen.
 4. Bei der Inventur „Zählung“: den gezählten Bestand mit dem Grund buchen.
+5. Für etwas ohne Auftrag „Ausbuchung“: Artikel, Menge und Grund, dann „Ausbuchen“.

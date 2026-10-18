@@ -66,6 +66,12 @@ export const storeDialogWords = {
     `Gebucht steht ${booked}. Die Zählung berichtigt um ${by}.`,
   countedHint: 'Was im Lager liegt, so wie es gezählt wurde.',
   reasonHint: 'Der Grund steht an der Buchung und bleibt lesbar.',
+  writeOffHint: 'Wie viel ohne Auftrag weggenommen wurde.',
+  writeOffFrom: (now: string, after: string) => `Im Lager: ${now}, danach ${after}.`,
+  writeOffReasonHint:
+    'Wofür der Artikel gebraucht wurde. Der Grund steht an der Buchung und bleibt lesbar.',
+  writeOffNote:
+    'Die Ausbuchung ist eine Buchung ohne Auftrag: der Bestand sinkt um die Menge. Geändert oder gelöscht wird sie nicht; eine falsche Menge berichtigt ein Wareneingang oder die nächste Zählung.',
   quantityProblem: 'Die Menge ist eine Zahl ab null, mit höchstens drei Stellen nach dem Komma.',
   priceProblem: 'Der Preis ist ein Betrag in Euro, etwa 23,80.',
   eanHint: 'Ohne EAN bekommt das Lagerfach ein eigenes Etikett.',
@@ -439,8 +445,10 @@ function ArticleChoice({
 /**
  * A booking of the office in a store, as the boards "Wareneingang" and
  * "Zählung" draw it: a receipt, how much and from which supplier where it is said, with
- * a note such as the delivery note; or a count, the stock found, with its
- * reason. Both say what they do to the stock before they are booked.
+ * a note such as the delivery note; a count, the stock found, with its
+ * reason; or a write-off (#430, the board "Ausbuchung"), how much was taken
+ * for something without a work order, and why. Each says what it does to
+ * the stock before it is booked.
  */
 export function BookingDialog({
   kind,
@@ -450,7 +458,7 @@ export function BookingDialog({
   article: given,
   onClose,
 }: {
-  readonly kind: 'receipt' | 'count'
+  readonly kind: 'receipt' | 'count' | 'write_off'
   readonly storeId: string
   readonly storeName: string
   readonly lines: readonly StockLine[]
@@ -500,16 +508,17 @@ export function BookingDialog({
   }
 
   const change =
-    booked === null || milli === null ? null : kind === 'receipt' ? booked + milli : milli
+    booked === null || milli === null
+      ? null
+      : kind === 'receipt'
+        ? booked + milli
+        : kind === 'write_off'
+          ? booked - milli
+          : milli
   const by = booked === null || milli === null ? null : milli - booked
 
   return (
-    <Dialog
-      title={kind === 'receipt' ? 'Wareneingang' : 'Zählung'}
-      sub={storeName}
-      width={600}
-      onClose={onClose}
-    >
+    <Dialog title={bookingTitle[kind]} sub={storeName} width={600} onClose={onClose}>
       <form
         noValidate
         className="flex flex-col gap-3"
@@ -574,7 +583,7 @@ export function BookingDialog({
                   )}
             </NoteBox>
           </>
-        ) : (
+        ) : kind === 'count' ? (
           <>
             <div className="sm:w-[240px]">
               <Field
@@ -615,17 +624,63 @@ export function BookingDialog({
               }}
             />
           </>
+        ) : (
+          <>
+            <div className="sm:w-[240px]">
+              <Field
+                label="Menge"
+                required
+                starred
+                numeric
+                inputMode="decimal"
+                unit={stockUnitLabel[unit]}
+                value={quantity}
+                hint={
+                  booked === null || change === null
+                    ? storeDialogWords.writeOffHint
+                    : storeDialogWords.writeOffFrom(
+                        quantityOf(booked, unit),
+                        quantityOf(change, unit),
+                      )
+                }
+                {...(problems['quantityMilli'] === undefined
+                  ? {}
+                  : { problem: problems['quantityMilli'] })}
+                onChange={(event) => {
+                  setQuantity(event.target.value)
+                }}
+              />
+            </div>
+            <TextArea
+              label="Grund"
+              starred
+              required
+              rows={2}
+              value={reason}
+              maxLength={stockLimits.note}
+              hint={storeDialogWords.writeOffReasonHint}
+              {...(problems['reason'] === undefined ? {} : { problem: problems['reason'] })}
+              onChange={(event) => {
+                setReason(event.target.value)
+              }}
+            />
+            <NoteBox>{storeDialogWords.writeOffNote}</NoteBox>
+          </>
         )}
         <Trouble>{trouble}</Trouble>
-        <Actions
-          working={working}
-          onClose={onClose}
-          label={kind === 'receipt' ? 'Eingang buchen' : 'Zählung buchen'}
-        />
+        <Actions working={working} onClose={onClose} label={bookingAction[kind]} />
       </form>
     </Dialog>
   )
 }
+
+const bookingTitle = { receipt: 'Wareneingang', count: 'Zählung', write_off: 'Ausbuchung' } as const
+
+const bookingAction = {
+  receipt: 'Eingang buchen',
+  count: 'Zählung buchen',
+  write_off: 'Ausbuchen',
+} as const
 
 /** A new store, `lager_neu()` of the boards: its name and, in words, where it is. */
 export function StoreDialog({

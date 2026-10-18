@@ -940,9 +940,10 @@ export class StoresController {
   }
 
   /**
-   * A booking of the office: a receipt, with the supplier where it is said, or
-   * a count with its reason. Written once in the name of whoever is signed
-   * in; nothing overwrites the stock, it is the sum of its bookings.
+   * A booking of the office: a receipt, with the supplier where it is said, a
+   * count with its reason, or a write-off with its reason, for something
+   * without a work order (#430). Written once in the name of whoever is
+   * signed in; nothing overwrites the stock, it is the sum of its bookings.
    */
   @Post(':id/movements')
   @RequiresPermission('store.write')
@@ -957,8 +958,10 @@ export class StoresController {
       ['reason', 'supplierId'],
     )
 
-    if (values.kind !== 'receipt' && values.kind !== 'count') {
-      throw new BadRequestException('Im Büro gebucht wird ein Eingang oder eine Zählung.')
+    if (values.kind !== 'receipt' && values.kind !== 'count' && values.kind !== 'write_off') {
+      throw new BadRequestException(
+        'Im Büro gebucht wird ein Eingang, eine Zählung oder eine Ausbuchung.',
+      )
     }
 
     refuse(stockMovementProblems({ quantityMilli: undefined, ...values }))

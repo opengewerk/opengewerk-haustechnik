@@ -9,6 +9,11 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
 
 ### Hinzugefügt
 
+- Ausbuchung im Lager (#430): auf der Seite eines Lagers und eines Artikels im Lager bucht, wer das Lager führt, mit
+  „Ausbuchung“ Material aus, das für etwas ohne Auftrag gebraucht wird: Artikel, Menge und ein Grund, der Pflicht ist.
+  Der Bestand sinkt um die Menge, auch unter null, und die Buchung steht mit ihrem Grund in der Liste des Artikels.
+  Warum: bisher blieb dafür nur eine Zählung, die den Bestand setzt, statt zu sagen, was weggenommen wurde und wofür.
+
 - Lagerplatz eines Artikels im Lager (#385): auf der Seite eines Artikels im Lager trägt, wer das Lager führt, ein,
   wo er in diesem Lager liegt, etwa „Regal 3, Fach 1“. Er steht in der Bestandsliste und ihrer Tabelle und vor Ort
   bei der Entnahme unter dem gewählten Lager; ein anderes Lager führt seinen eigenen, und beim Umzug in ein anderes
