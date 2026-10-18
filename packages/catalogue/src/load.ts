@@ -354,6 +354,7 @@ const unitNames: Readonly<Record<RuleUnit, string>> = {
   decidegrees_celsius: 'Zehntelgrad Celsius',
   kilowatts: 'Kilowatt',
   kilograms_co2e: 'Kilogramm CO2-Äquivalent',
+  kilograms: 'Kilogramm',
   tonnes_co2e: 'Tonnen CO2-Äquivalent',
   count_per_100_ml: 'Anzahl je 100 ml',
   month_day: 'einem Tag im Jahr',

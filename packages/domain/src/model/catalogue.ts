@@ -822,6 +822,8 @@ export function ruleValueWords(value: number, unit: RuleUnit): string {
       return `${String(value)} kW`
     case 'kilograms_co2e':
       return `${String(value)} kg CO2-Äquivalent`
+    case 'kilograms':
+      return `${String(value)} kg`
     case 'tonnes_co2e':
       return `${String(value)} t CO2-Äquivalent`
     case 'count_per_100_ml':
@@ -886,6 +888,8 @@ export function ruleUnitEntry(unit: RuleUnit): {
       return { symbol: 'kW', places: 0 }
     case 'kilograms_co2e':
       return { symbol: 'kg CO2-Äquivalent', places: 0 }
+    case 'kilograms':
+      return { symbol: 'kg', places: 0 }
     case 'tonnes_co2e':
       return { symbol: 't CO2-Äquivalent', places: 0 }
     case 'count_per_100_ml':

@@ -33,7 +33,9 @@ import { meterUnitSymbol } from './meter.js'
  * of a laboratory states (package Trinkwasser, #93). A limit on a temperature
  * is a rule in tenths of a degree, as the rule engine keeps it (section 2.9),
  * one on a resistance a rule in kiloohms and one on a count a rule in the
- * same count; the rule engine has no unit for a current.
+ * same count; the rule engine has no unit for a current. Kilograms came with
+ * the refrigerant a leak check records as charged, recharged and recovered
+ * (package Raumluft und Kälte, #351), without a limit.
  */
 export const formUnits = {
   degrees_celsius: { sign: '°C', fromRule: { decidegrees_celsius: 100 } },
@@ -44,6 +46,7 @@ export const formUnits = {
   ohms: { sign: 'Ω', fromRule: { kiloohms: 1_000_000 } },
   megaohms: { sign: 'MΩ', fromRule: { kiloohms: 1 } },
   milliamperes: { sign: 'mA' },
+  kilograms: { sign: 'kg' },
 } as const satisfies Readonly<Record<string, FormUnit>>
 
 export type FormUnitKey = keyof typeof formUnits

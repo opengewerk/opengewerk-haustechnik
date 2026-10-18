@@ -340,7 +340,7 @@ gefragt wird.
 | Art | | Art des Punkts, Feldart, Typ | Prüfpunkt, Messwert, Zählerstand, Foto, Bemerkung, Text, Zahl, Auswahl oder Ja oder nein; leer heißt Prüfpunkt |
 | Hinweis | | Erläuterung, Beschreibung, Hilfetext | höchstens 300 Zeichen |
 | Pflichtfeld | | Pflicht, Erforderlich | ja oder nein; leer heißt ja bei Messwert und Zählerstand, sonst nein |
-| Einheit | | | für Messwert, Zählerstand und Zahl: °C, je 100 ml, kWh, MWh, m³, Ω, MΩ oder mA |
+| Einheit | | | für Messwert, Zählerstand und Zahl: °C, je 100 ml, kWh, MWh, m³, Ω, MΩ, mA oder kg |
 | Nachkommastellen | | Stellen, Kommastellen | 0 bis 3; leer heißt 1 beim Messwert, 0 bei der Zahl, beim Zählerstand nach seiner Einheit |
 | Möglichkeiten | | Auswahl, Optionen, Antworten | für eine Auswahl: mindestens zwei, durch Semikolon getrennt |
 | Mindestens | | Mindestwert, Untergrenze, Min | für einen Messwert: der Wert, den er erreichen muss |
