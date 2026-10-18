@@ -9,6 +9,7 @@ import {
   catalogueOf,
   type IsoDate,
   type RoleKey,
+  roundShowsFrom,
   shippedRoles,
   type SignedPage,
   type TenantId,
@@ -565,11 +566,19 @@ describe('the plan of a round', () => {
 
     const after = await roundsOf(id)
 
+    // A weekly round is made once the Monday of its week comes within the
+    // lead (#394), so the pass of the week after the lead is among them from
+    // Monday to Thursday.
     expect(after.map((round) => round.due_on)).toEqual(
       [
         plus(1),
-        ...days(today, plus(reach)).filter(
-          (day) => weekdayOf(day as IsoDate) === weekdayOf(plus(3)),
+        ...days(today, plus(reach + 6)).filter(
+          (day) =>
+            weekdayOf(day as IsoDate) === weekdayOf(plus(3)) &&
+            roundShowsFrom(
+              { rhythm: 'weekly', showsFromDay: null, showsFromMonth: null, leadDays: reach },
+              day as IsoDate,
+            ) <= plus(reach),
         ),
       ].sort(),
     )
