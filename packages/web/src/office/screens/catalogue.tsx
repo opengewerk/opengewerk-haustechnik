@@ -8,6 +8,7 @@ import {
   dutyTaskLabel,
   generalPackage,
   intervalLine,
+  ownPackage,
   type PackageContents,
   type PackagedForm,
   ruleScopeNames,
@@ -28,6 +29,7 @@ import {
   cataloguePlaces,
   isCataloguePart,
 } from '../catalogue-addresses.js'
+import { ownKindPlaces, ownPackageWords } from '../own-kind-addresses.js'
 import { DutyUpdatesNote } from './duty-updates.js'
 
 /**
@@ -84,7 +86,11 @@ export function CatalogueScreen() {
 
   return (
     <Framed>
-      <Packages packages={packages} chosen={chosen.name} />
+      <Packages
+        packages={packages}
+        chosen={chosen.name}
+        own={catalogue.bundle.own?.assetKinds.length ?? 0}
+      />
       <Chosen catalogue={catalogue} contents={chosen} part={part ?? 'pflichtarten'} on={on} />
       <NoteBox>
         Der Katalog erhebt keinen Anspruch auf Vollständigkeit. Er sagt, was er abdeckt; die
@@ -95,7 +101,7 @@ export function CatalogueScreen() {
   )
 }
 
-function Framed({ children }: { readonly children: ReactNode }) {
+export function Framed({ children }: { readonly children: ReactNode }) {
   return (
     <Screen>
       <PageHead
@@ -150,32 +156,53 @@ function Tally({ contents }: { readonly contents: PackageContents }) {
   )
 }
 
-function Packages({
+/**
+ * The packages, and last what the operator added of its own (#62), which has
+ * no version and nothing to accept: it says how many kinds of its own there
+ * are.
+ */
+export function Packages({
   packages,
   chosen,
+  own,
 }: {
   readonly packages: readonly PackageContents[]
   readonly chosen: string
+  readonly own: number
 }) {
+  const ownChosen = chosen === ownPackage
+
   return (
     <TablePanel
       title="Pakete"
       caption="Pakete des Katalogs"
-      cards={packages.map((entry) => ({
-        key: entry.name,
-        title: (
-          <Link to={cataloguePlaces.package(entry.name)} className={cardLink}>
-            {entry.title}
-          </Link>
-        ),
-        sub: [
-          `Fassung ${entry.version}`,
-          counted(entry.assetKinds.length, 'Anlagenart', 'Anlagenarten'),
-          counted(entry.dutyKinds.length, 'Pflichtart', 'Pflichtarten'),
-          counted(entry.forms.length, 'Formular', 'Formulare'),
-        ].join(' · '),
-        right: <Tally contents={entry} />,
-      }))}
+      cards={[
+        ...packages.map((entry) => ({
+          key: entry.name,
+          title: (
+            <Link to={cataloguePlaces.package(entry.name)} className={cardLink}>
+              {entry.title}
+            </Link>
+          ),
+          sub: [
+            `Fassung ${entry.version}`,
+            counted(entry.assetKinds.length, 'Anlagenart', 'Anlagenarten'),
+            counted(entry.dutyKinds.length, 'Pflichtart', 'Pflichtarten'),
+            counted(entry.forms.length, 'Formular', 'Formulare'),
+          ].join(' · '),
+          right: <Tally contents={entry} />,
+        })),
+        {
+          key: ownPackage,
+          title: (
+            <Link to={ownKindPlaces.list} className={cardLink}>
+              {ownPackageWords.title}
+            </Link>
+          ),
+          sub: counted(own, 'Anlagenart', 'Anlagenarten'),
+          right: <Status tone="done">{ownPackageWords.status}</Status>,
+        },
+      ]}
     >
       <thead>
         <tr>
@@ -215,6 +242,21 @@ function Packages({
             </Cell>
           </tr>
         ))}
+        <tr className={ownChosen ? 'bg-selected' : undefined}>
+          <Cell>
+            <Link to={ownKindPlaces.list} aria-current={ownChosen ? 'true' : undefined}>
+              {ownPackageWords.title}
+            </Link>
+            <span className="block text-[12px] text-ink-faint">{ownPackageWords.under}</span>
+          </Cell>
+          <Cell>{''}</Cell>
+          <Cell numeric>{own.toLocaleString('de-DE')}</Cell>
+          <Cell>{''}</Cell>
+          <Cell>{''}</Cell>
+          <Cell>
+            <Status tone="done">{ownPackageWords.status}</Status>
+          </Cell>
+        </tr>
       </tbody>
     </TablePanel>
   )

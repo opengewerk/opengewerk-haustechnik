@@ -13,20 +13,26 @@ import { Database, newId } from '@opengewerk/platform-server'
 import request from 'supertest'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
-import { testIdentityHeader } from '../database/test-database.js'
+import {
+  applicationDatabaseUrl,
+  resetToMigrated,
+  testIdentityHeader,
+} from '../database/test-database.js'
 import { ApiModule } from './api.module.js'
 import { as, testIdentities } from './test-identity.js'
 
 /**
  * The route a device fetches the catalogue of its server from (#90).
  *
- * No database: the catalogue is built into the server, and nothing of a
- * tenant is in the answer. The catalogue is the probe package, as in the
- * tests of the assets; the one this build ships has no package yet.
+ * The catalogue is built into the server, and of a tenant only the asset
+ * kinds and fields of its own are in the answer (#62), which
+ * `own-kinds.test.ts` holds; the tenant here has none, and gets the catalogue
+ * of the build. The catalogue is the probe package, as in the tests of the
+ * assets.
  */
 
 const tenant = newId<'tenant'>() as TenantId
-const database = Database.connect('postgres://unused')
+let database: Database
 
 let app: INestApplication
 let shipped: INestApplication
@@ -43,6 +49,8 @@ async function serving(options: Parameters<typeof ApiModule.create>[2]): Promise
 }
 
 beforeAll(async () => {
+  await resetToMigrated()
+  database = Database.connect(applicationDatabaseUrl())
   app = await serving({ catalogue: catalogueOf(probeCatalogueBundle) })
   shipped = await serving({})
 })
@@ -110,7 +118,7 @@ describe('the catalogue of the server', () => {
 
 describe('who reads the catalogue (section 7)', () => {
   // An auditor has every request written down before it is served, in a
-  // database this test does not have; `auditors.test.ts` holds its catalogue.
+  // row of a tenant this test does not make; `auditors.test.ts` holds its catalogue.
   it.each(roleKeys.filter((role) => role !== 'auditor'))(
     'is everybody who works for a tenant: %s',
     async (role) => {

@@ -29,6 +29,7 @@ import { evidenceOriginLabel, evidenceResultLabel } from './evidence.js'
 import { meterUnitSymbol } from './meter.js'
 import { meterReadingSourceLabel } from './meter-reading.js'
 import { numberRangeLabel } from './number-range.js'
+import { ownFieldSortLabel } from './own-kinds.js'
 import { pushOccasionWords } from './push.js'
 import { planRhythmLabel, weekdayLabel } from './round-plan.js'
 import { templateKeyPrefix } from './round-template.js'
@@ -132,6 +133,29 @@ export const auditVocabulary: AuditVocabulary = {
     asset_kind_names: {
       label: 'Bezeichnung einer Anlagenart',
       fields: { name_key: 'Verglichen als', kind: 'Anlagenart' },
+    },
+    // The asset kinds and fields of the operator's own (#62).
+    own_asset_kinds: {
+      label: 'Eigene Anlagenart',
+      fields: {
+        key: 'Schlüssel',
+        label: 'Bezeichnung',
+        cost_group: 'Kostengruppe',
+        expected_documents: 'Unterlagen',
+        revision: 'Fassung',
+      },
+    },
+    own_asset_fields: {
+      label: 'Eigene Angabe',
+      fields: {
+        asset_kind: 'Anlagenart',
+        key: 'Schlüssel',
+        label: 'Bezeichnung',
+        sort: 'Sorte',
+        unit: 'Einheit',
+        options: 'Auswahl',
+        position: 'Stelle',
+      },
     },
     // The technology (ADR 0002, points 4 to 9).
     assets: {
@@ -902,6 +926,8 @@ export const auditVocabulary: AuditVocabulary = {
     'round_templates',
     'round_plans',
     'fault_reports',
+    // An asset kind of the operator's own, from its page in the catalogue (#62).
+    'own_asset_kinds',
   ],
   references: {
     area_id: 'areas',
@@ -1058,6 +1084,9 @@ export const auditVocabulary: AuditVocabulary = {
     duty_delegation_revocations: ['delegation_id'],
     // An own kind by its label, a qualification by the person who holds it (#337).
     qualification_kinds: ['label'],
+    // An own asset kind and an own field by their labels (#62).
+    own_asset_kinds: ['label'],
+    own_asset_fields: ['label'],
     qualifications: ['user_id'],
     // A duty of the operator's own by its name, one from the catalogue by its
     // kind; a dismissal by the kind it dismissed.
@@ -1171,6 +1200,8 @@ export const auditValues: Readonly<
   duty_delegations: { scope: delegationScopeLabel },
   duty_delegation_signatures: { role: delegationRoleLabel },
   qualification_kinds: { level: personLevelLabel },
+  // The sort of an own field in the words of its dialog (#62).
+  own_asset_fields: { sort: ownFieldSortLabel },
   defects: { status: defectStatusLabel },
   tasks: { status: { open: 'Offen', done: 'Erledigt' } },
   duties: {
@@ -1301,8 +1332,9 @@ export function auditValueWordsWith(catalogue: Catalogue | null): {
   }
 
   const packages = catalogue.bundle.packages
+  // The kinds of the packages and those of the operator's own (#62).
   const assetKinds = namesByKey(
-    packages.flatMap((entry) => entry.assetKinds),
+    [...packages.flatMap((entry) => entry.assetKinds), ...(catalogue.bundle.own?.assetKinds ?? [])],
     (kind) => kind.label,
   )
   const dutyKinds = namesByKey(
@@ -1336,6 +1368,7 @@ export function auditValueWordsWith(catalogue: Catalogue | null): {
       activities: { ...auditValues['activities'], form_key: forms },
       asset_kind_names: { kind: assetKinds },
       assets: { ...auditValues['assets'], kind: assetKinds },
+      own_asset_fields: { ...auditValues['own_asset_fields'], asset_kind: assetKinds },
       defect_class_terms: { defect_class: defectClasses },
       defects: { ...auditValues['defects'], defect_class: defectClasses },
       duties: { ...auditValues['duties'], kind: dutyKinds },

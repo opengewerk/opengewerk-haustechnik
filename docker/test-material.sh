@@ -30,7 +30,7 @@ guarded_route=/staff
 # The tables counted before the backup and after the restore. The area and
 # the place of the account in it come with the account: a Betreiber gets its
 # first area with its first membership.
-counted_tables='auth_users memberships tenant_roles account_corrections areas member_areas invitations invitation_area_choices invitation_areas properties buildings contacts building_closures assets files mail_settings deadline_settings deadline_runs duties duty_dismissals evidence deadlines activities activity_duties activity_answers work_orders work_order_participants work_order_notes defects fault_categories fault_reports fault_report_settings fault_report_contacts meter_points meter_readings meter_exchanges meter_pauses meter_settings work_order_settings activity_signatures work_order_decisions service_reports service_report_records briefings work_permits articles suppliers stores store_articles stock_movements work_order_materials store_labels contractors contracts contract_items qualification_kinds qualifications member_limit_properties member_limit_asset_kinds invitation_limit_properties invitation_limit_asset_kinds auditor_reads evidence_voidings evidence_emptyings evidence_retention_settings round_records prints attachments attachment_versions labels imports import_records asset_kind_names defect_class_terms round_templates round_template_versions round_plans tasks mail_outbox push_subscriptions push_opt_outs push_outbox'
+counted_tables='auth_users memberships tenant_roles account_corrections areas member_areas invitations invitation_area_choices invitation_areas properties buildings contacts building_closures assets files mail_settings deadline_settings deadline_runs duties duty_dismissals evidence deadlines activities activity_duties activity_answers work_orders work_order_participants work_order_notes defects fault_categories fault_reports fault_report_settings fault_report_contacts meter_points meter_readings meter_exchanges meter_pauses meter_settings work_order_settings activity_signatures work_order_decisions service_reports service_report_records briefings work_permits articles suppliers stores store_articles stock_movements work_order_materials store_labels contractors contracts contract_items qualification_kinds qualifications member_limit_properties member_limit_asset_kinds invitation_limit_properties invitation_limit_asset_kinds auditor_reads evidence_voidings evidence_emptyings evidence_retention_settings round_records prints attachments attachment_versions labels imports import_records own_asset_kinds own_asset_fields asset_kind_names defect_class_terms round_templates round_template_versions round_plans tasks mail_outbox push_subscriptions push_opt_outs push_outbox'
 
 # The migrations, and how many of them make the older state an update starts
 # from: the first, without the sequence for work orders that the second brings.
@@ -192,6 +192,7 @@ records_for_backup() {
   # backup and after the restore.
   # What the import made (opengewerk-haustechnik#174): a row naming an asset of
   # the tenant, as the trigger writes it while an import writes.
+  # An asset kind and a field of the operator's own (opengewerk-haustechnik#62).
   sql "
     insert into imports (tenant_id, kind, file_name, lines, summary)
     values ('$first_tenant', 'assets', 'anlagen-werkhof.xlsx', 38, '38 Anlagen angelegt');
@@ -200,7 +201,11 @@ records_for_backup() {
            'assets', id
       from assets where tenant_id = '$first_tenant' order by assets.id limit 1;
     insert into asset_kind_names (tenant_id, name, name_key, kind)
-    values ('$first_tenant', 'Aufzug', 'aufzug', 'allgemein.conveying_system');"
+    values ('$first_tenant', 'Aufzug', 'aufzug', 'allgemein.conveying_system');
+    insert into own_asset_kinds (tenant_id, key, label, cost_group)
+    values ('$first_tenant', 'eigen.hebeanlage', 'Hebeanlage', '411');
+    insert into own_asset_fields (tenant_id, asset_kind, key, label, sort)
+    values ('$first_tenant', 'eigen.hebeanlage', 'eigen_foerdermenge', 'Fördermenge', 'number');"
   # The default of a class of defects (opengewerk-haustechnik#116), which the
   # office sets under "Einstellungen". A row like the others, counted before
   # the backup and after the restore.

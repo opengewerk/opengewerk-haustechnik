@@ -79,8 +79,15 @@ function writtenByKey(catalogue: Catalogue): ReadonlyMap<string, Written> {
   }
 
   const written = new Map<string, Written>()
+  // What the operator added (#62): its own kinds, and its own fields at kinds
+  // of packages, whose keys begin with `eigen_` and are one per operator.
+  const own = catalogue.bundle.own
+  const definitions = [
+    ...[...newest.values(), ...(own?.assetKinds ?? [])].map((entry) => entry.definition),
+    ...Object.values(own?.fields ?? {}).map((fields) => ({ characteristics: [], fields })),
+  ]
 
-  for (const { definition } of newest.values()) {
+  for (const definition of definitions) {
     for (const each of definition.characteristics) {
       if (!written.has(each.key)) {
         written.set(each.key, {

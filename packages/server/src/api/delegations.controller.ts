@@ -78,6 +78,7 @@ import { dayInGermany } from '../today.js'
 import { RequiresPermission } from './authorization.js'
 import { type Asking, refuse } from './places.js'
 import { pdf, Printer } from './prints.controller.js'
+import { tenantCatalogue } from '../own-kinds/catalogue.js'
 
 const missing = 'Diese Pflichtenübertragung gibt es nicht, oder sie ist nicht für Sie.'
 const signedAlready =
@@ -702,6 +703,8 @@ export class DelegationsController {
           inArray(duties.areaId, terms.areaIds as never[]),
         ),
       )
+    // The cost group of an own kind as well (#62).
+    const catalogue = await tenantCatalogue(tx, this.catalogue)
     const lines = rows
       .filter((row) =>
         delegationCovers(terms, {
@@ -710,7 +713,7 @@ export class DelegationsController {
           costGroup:
             row.assetKind === null
               ? null
-              : (this.catalogue.assetKind(row.assetKind, today)?.definition.costGroup ?? null),
+              : (catalogue.assetKind(row.assetKind, today)?.definition.costGroup ?? null),
         }),
       )
       .map((row): DelegationDutyLine => {

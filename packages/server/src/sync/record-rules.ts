@@ -30,8 +30,12 @@ import {
   attachmentRecordRules,
   type RecordRule,
   type RecordRules,
+  recordRulesCheck,
+  type SyncCheck,
 } from '@opengewerk/platform-server'
 
+import { assets } from '../database/schema/index.js'
+import { tenantCatalogue } from '../own-kinds/catalogue.js'
 import { dayInGermany } from '../today.js'
 
 // Whose mistake a broken rule is, a conflict or a refusal of the whole
@@ -304,5 +308,30 @@ export function recordRules(catalogue: Catalogue): RecordRules {
           }),
       },
     ],
+  }
+}
+
+/**
+ * The rules of the records with the kinds of the operator's own (#62): an
+ * operation on an asset is held against the catalogue of its operator, which
+ * only the transaction can read, so that a device takes stock of an asset of
+ * an own kind with the values of its fields. Every other operation, and every
+ * one of an operator that added nothing, is held against the rules of the
+ * build as they are.
+ */
+export function ownKindRules<Sender>(
+  shipped: Catalogue,
+  rules: SyncCheck<Sender>,
+): SyncCheck<Sender> {
+  return async (context) => {
+    if (context.table !== assets) {
+      return rules(context)
+    }
+
+    const catalogue = await tenantCatalogue(context.tx, shipped)
+
+    return catalogue === shipped
+      ? rules(context)
+      : recordRulesCheck<Sender>(recordRules(catalogue))(context)
   }
 }

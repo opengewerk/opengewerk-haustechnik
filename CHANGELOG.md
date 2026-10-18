@@ -9,6 +9,16 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
 
 ### Hinzugefügt
 
+- Eigene Anlagenarten und Felder des Betreibers (#62, 2.5 und 4.2 des Konzepts): unter „Katalog“, „Eigene
+  dieses Betreibers“ legen die Leitung und die Technische Leitung Anlagenarten an, die kein Paket beschreibt, mit
+  Bezeichnung, Kostengruppe, eigenen Angaben und Soll-Dokumenten, und geben Anlagenarten aus Paketen eigene Angaben,
+  ohne das Paket zu ändern. Sie kommen mit dem Katalog auf jedes Gerät, das Formular einer Anlage zeigt sie im Büro
+  und vor Ort, und jeder Wert wird gegen seine Sorte geprüft. Eine Art geht nur, solange keine Anlage sie trägt,
+  eine Angabe nur, solange keine Anlage einen Wert hat. Dafür die Tabellen `own_asset_kinds` und
+  `own_asset_fields` und das Recht „Eigene Anlagenarten und Felder führen“ (Migration `0079_own_asset_kinds`); das
+  Format des Katalogs ist 6. Warum: was kein Paket beschreibt, stand bisher nur unter einer allgemeinen Anlagenart,
+  und was ein Betreiber an einer Anlage zusätzlich führt, hatte keinen Platz.
+
 - Woher ein Datensatz kommt (#174): über dem Protokoll einer Liegenschaft, eines Gebäudes, Geschosses, Raums
   oder einer Anlage, die ein Import angelegt hat, steht „Angelegt mit dem Import vom …, Datei …“ mit „Zum Import“,
   und der Eintrag des Imports im Änderungsprotokoll führt auf seine Seite mit Datei, Zeilen, Ergebnis und allem,

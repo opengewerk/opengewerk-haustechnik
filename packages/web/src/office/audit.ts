@@ -14,6 +14,7 @@ import { documentPlaces } from './document-addresses.js'
 import { faultPlaces } from './fault-addresses.js'
 import { dutyPlaces, evidencePlaces } from './duty-addresses.js'
 import { importPage } from './import-addresses.js'
+import { ownKindPlaces } from './own-kind-addresses.js'
 import { ImportOriginLead } from './import-origin.js'
 import { officePlaces } from './place-addresses.js'
 import { planPlaces, templatePlaces } from './round-template-addresses.js'
@@ -47,6 +48,8 @@ const screens: Readonly<Record<string, (id: string) => string>> = {
   fault_reports: faultPlaces.report,
   // An import is one entry of the log, and its page lists what it made (#174).
   imports: importPage,
+  // An own kind has its page by its key, which the log does not hold: the list leads to it (#62).
+  own_asset_kinds: () => ownKindPlaces.list,
 }
 
 /** The label of the link to a record. */
@@ -67,6 +70,7 @@ const links: Words = {
   contracts: 'Zum Vertrag',
   fault_reports: 'Zur Störmeldung',
   imports: 'Zum Import',
+  own_asset_kinds: 'Zu den eigenen Anlagenarten',
 }
 
 export const auditScreenWords: AuditScreenWords = {

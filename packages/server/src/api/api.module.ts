@@ -71,6 +71,7 @@ import {
 } from './duties.controller.js'
 import { FloorsController } from './floors.controller.js'
 import { ImportOriginController } from './import-origin.controller.js'
+import { OwnKindsController } from './own-kinds.controller.js'
 import { ImportsController } from './imports.controller.js'
 import {
   AssetLabelsController,
@@ -448,6 +449,7 @@ export class ApiModule {
         // The import of places and assets from tables.
         ImportsController,
         ImportOriginController,
+        OwnKindsController,
         // The search by name, number and mark (#125).
         SearchController,
         // Who a task may go to (#124); the tasks themselves travel through the sync.

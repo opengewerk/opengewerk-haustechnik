@@ -3209,3 +3209,60 @@ describe('a record from a device in a building with an area of its own', () => {
     }
   })
 })
+
+describe("an asset of a kind of the operator's own (#62)", () => {
+  it('is taken stock of with the values of its own fields, held to their sort, and unknown to another operator', async () => {
+    const lead = by('u-lead', large)
+    const kind = (
+      await http()
+        .post('/own-kinds')
+        .set(testIdentityHeader, lead)
+        .send({ label: 'Hebeanlage Keller', costGroup: '461' })
+        .expect(201)
+    ).body as { key: string }
+
+    await http()
+      .post('/own-kinds/fields')
+      .set(testIdentityHeader, lead)
+      .send({ assetKind: kind.key, label: 'Fördermenge', sort: 'number', unit: 'm³/h' })
+      .expect(201)
+
+    const there = await placeIn(large, { areaId: north })
+
+    expect(
+      await outcomes(
+        'u-tech',
+        [
+          operation('assets', 'create', newId<'asset'>(), {
+            buildingId: there.building,
+            kind: kind.key,
+            name: 'Hebeanlage Keller',
+            values: '{"eigen_foerdermenge": 4.5}',
+          }),
+        ],
+        large,
+      ),
+    ).toEqual([applied])
+
+    const wrong = operation('assets', 'create', newId<'asset'>(), {
+      buildingId: there.building,
+      kind: kind.key,
+      name: 'Hebeanlage Hof',
+      values: '{"eigen_foerdermenge": "viel"}',
+    })
+
+    expect((await send('u-tech', [wrong], large).expect(400)).body.message).toBe(
+      'Fördermenge ist eine Zahl.',
+    )
+
+    const elsewhere = operation('assets', 'create', newId<'asset'>(), {
+      buildingId: place.building,
+      kind: kind.key,
+      name: 'Hebeanlage',
+    })
+
+    expect((await send('u-tech', [elsewhere]).expect(400)).body.message).toBe(
+      `Die Anlagenart ${kind.key} kennt kein Paket des Katalogs.`,
+    )
+  })
+})

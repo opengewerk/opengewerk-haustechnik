@@ -115,6 +115,7 @@ import {
 import { dayInGermany } from '../today.js'
 import { RequiresPermission } from './authorization.js'
 import type { Asking } from './places.js'
+import { tenantCatalogue } from '../own-kinds/catalogue.js'
 
 /** A request as the helpers of the foundation read it: the body is theirs to read, not a parser's. */
 type Request = Parameters<typeof uploadedTable>[0]
@@ -256,6 +257,29 @@ function chosenFilesOf(value: unknown): ChosenFile[] {
 const unknownAccount = 'Unbekanntes Konto'
 
 /**
+ * The columns a request gives to the fields of asset kinds (#172), with
+ * the sheet they are read from, or the sentence about what is wrong with
+ * them. Held against the catalogue of the operator today, which is the one
+ * the plan reads the kinds of its lines from.
+ */
+function kindCellsOf(given: Given, catalogue: Catalogue): KindCells {
+  const today = dayInGermany()
+  const sheet = given['sheet'] as TableSheet
+  const problem = kindColumnsProblem(
+    given['kindColumns'],
+    (key) => catalogue.assetKind(key, today)?.definition ?? null,
+    given['mapping'] as ColumnMapping,
+    sheet,
+  )
+
+  if (problem) {
+    throw new BadRequestException(problem)
+  }
+
+  return { sheet, columns: (given['kindColumns'] ?? {}) as KindColumns }
+}
+
+/**
  * The import of places and assets from tables (#100, sections 3 and 11 of
  * the concept): the file read into a table, the preview of what its lines
  * would make, and the take-over, whole or not at all.
@@ -387,10 +411,10 @@ export class ImportsController {
   @AcceptsTable()
   async assetsPreview(@CurrentIdentity() identity: Asking, @Req() request: Request) {
     const { given, records } = recordsOf(await tableBodyOf(request), assetFieldsFor)
-    const cells = this.kindCellsOf(given)
     const chosen = chosenPlaceOf(given['place'])
 
     return this.database.readingTenant(identity, async (tx) => {
+      const cells = kindCellsOf(given, await tenantCatalogue(tx, this.catalogue))
       const plan = planAssets(
         records,
         decisionsOf(given['decisions']),
@@ -419,10 +443,10 @@ export class ImportsController {
   @AcceptsTable()
   async takeAssets(@CurrentIdentity() identity: Asking, @Req() request: Request) {
     const { given, records } = recordsOf(await tableBodyOf(request), assetFieldsFor)
-    const cells = this.kindCellsOf(given)
     const chosen = chosenPlaceOf(given['place'])
 
     return this.database.forTenant(identity, async (tx) => {
+      const cells = kindCellsOf(given, await tenantCatalogue(tx, this.catalogue))
       const plan = planAssets(
         records,
         decisionsOf(given['decisions']),
@@ -1052,17 +1076,20 @@ export class ImportsController {
     @Body() body: unknown,
   ): Promise<{ names: AssetKindName[] }> {
     const today = dayInGermany()
-    const problem = kindNamesProblem(body, (key) => this.catalogue.assetKind(key, today) !== null)
-
-    if (problem) {
-      throw new BadRequestException(problem)
-    }
-
-    const names = new Map(
-      (body as { names: AssetKindName[] }).names.map((entry) => [kindNameKey(entry.name), entry]),
-    )
 
     return this.database.forTenant(identity, async (tx) => {
+      // A word may name a kind of the operator's own as well (#62).
+      const catalogue = await tenantCatalogue(tx, this.catalogue)
+      const problem = kindNamesProblem(body, (key) => catalogue.assetKind(key, today) !== null)
+
+      if (problem) {
+        throw new BadRequestException(problem)
+      }
+
+      const names = new Map(
+        (body as { names: AssetKindName[] }).names.map((entry) => [kindNameKey(entry.name), entry]),
+      )
+
       for (const [nameKey, entry] of names) {
         await tx
           .insert(assetKindNames)
@@ -1086,29 +1113,6 @@ export class ImportsController {
           .orderBy(asc(assetKindNames.name)),
       }
     })
-  }
-
-  /**
-   * The columns a request gives to the fields of asset kinds (#172), with
-   * the sheet they are read from, or the sentence about what is wrong with
-   * them. Held against the catalogue of today, which is the one the plan
-   * reads the kinds of its lines from.
-   */
-  private kindCellsOf(given: Given): KindCells {
-    const today = dayInGermany()
-    const sheet = given['sheet'] as TableSheet
-    const problem = kindColumnsProblem(
-      given['kindColumns'],
-      (key) => this.catalogue.assetKind(key, today)?.definition ?? null,
-      given['mapping'] as ColumnMapping,
-      sheet,
-    )
-
-    if (problem) {
-      throw new BadRequestException(problem)
-    }
-
-    return { sheet, columns: (given['kindColumns'] ?? {}) as KindColumns }
   }
 
   /**

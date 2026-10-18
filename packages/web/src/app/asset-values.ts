@@ -104,22 +104,34 @@ export function valuesOf(
   return values
 }
 
+/** What the kinds of the operator's own are listed under, where a package has its title (#62). */
+export const ownKindsTitle = 'Eigene'
+
 /**
  * The kinds of the catalogue in force today, by package and then by name:
  * "Trinkwasser: Trinkwassererwärmung", and "Allgemein: Förderanlage" for an
- * asset whose package is not there yet.
+ * asset whose package is not there yet. The kinds of the operator's own come
+ * last (#62): "Eigene: Hebeanlage Schmutzwasser".
  */
 export function kindChoices(
   catalogue: Catalogue,
 ): readonly { readonly value: string; readonly label: string }[] {
-  return catalogue.contents(today()).flatMap((contents) =>
-    contents.assetKinds
-      .map((entry) => ({
-        value: entry.key,
-        label: `${contents.title}: ${entry.definition.label}`,
-      }))
-      .sort((left, right) => byNameIn(left.label, right.label)),
-  )
+  const byName = (left: { label: string }, right: { label: string }) =>
+    byNameIn(left.label, right.label)
+
+  return [
+    ...catalogue.contents(today()).flatMap((contents) =>
+      contents.assetKinds
+        .map((entry) => ({
+          value: entry.key,
+          label: `${contents.title}: ${entry.definition.label}`,
+        }))
+        .sort(byName),
+    ),
+    ...(catalogue.bundle.own?.assetKinds ?? [])
+      .map((entry) => ({ value: entry.key, label: `${ownKindsTitle}: ${entry.definition.label}` }))
+      .sort(byName),
+  ]
 }
 
 /** The year as the model wants it: nothing, a whole number, or what was typed for the model to refuse. */

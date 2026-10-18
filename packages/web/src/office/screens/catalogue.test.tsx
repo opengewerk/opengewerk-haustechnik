@@ -48,6 +48,8 @@ describe('the packages of the catalogue', () => {
       ['Probepaket', '1.2.0', '2', '2', '1', '6 von 11 abgenommen'],
       ['Leeres Paket', '1.0.0', '0', '0', '0', 'nichts abzunehmen'],
       ['Abgenommenes Paket', '2.0.0', '1', '0', '0', '1 von 1 abgenommen'],
+      // What the operator added comes last, with no version and nothing to accept (#62).
+      ['Eigene dieses BetreibersAnlagenarten und Angaben', '', '0', '', '', 'eigene'],
     ])
   })
 

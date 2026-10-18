@@ -318,6 +318,7 @@ describe('the words of the change log in the office', () => {
       'round_templates',
       'round_plans',
       'fault_reports',
+      'own_asset_kinds',
     ])
     expect(auditVocabulary.records).toEqual([
       'properties',
@@ -332,6 +333,7 @@ describe('the words of the change log in the office', () => {
       'round_templates',
       'round_plans',
       'fault_reports',
+      'own_asset_kinds',
     ])
   })
 

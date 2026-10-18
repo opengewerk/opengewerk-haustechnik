@@ -14,6 +14,7 @@ import { and, eq, gt, inArray, isNull, or } from 'drizzle-orm'
 
 import { assets, duties } from '../database/schema/index.js'
 import { type HeldDelegation, heldDelegations, standingOf, termsOf } from './reading.js'
+import { tenantCatalogue } from '../own-kinds/catalogue.js'
 
 /**
  * Who answers for each duty once the delegations that hold today are applied
@@ -32,13 +33,16 @@ import { type HeldDelegation, heldDelegations, standingOf, termsOf } from './rea
  */
 export async function applyDelegations(
   tx: TenantTransaction,
-  catalogue: Catalogue,
+  shipped: Catalogue,
   today: IsoDate,
   onlyDuties?: readonly string[],
 ): Promise<number> {
   if (onlyDuties !== undefined && onlyDuties.length === 0) {
     return 0
   }
+
+  // The cost group of an own kind as well (#62).
+  const catalogue = await tenantCatalogue(tx, shipped)
 
   const inForce = (await heldDelegations(tx))
     .filter((held) => delegationInForce(standingOf(held), today))
@@ -102,10 +106,11 @@ export async function applyDelegations(
 /** The delegations that cover a duty today, in the order they were written. */
 export async function coveringOf(
   tx: TenantTransaction,
-  catalogue: Catalogue,
+  shipped: Catalogue,
   today: IsoDate,
   duty: { readonly areaId: string; readonly kind: string | null; readonly assetId: string | null },
 ): Promise<HeldDelegation[]> {
+  const catalogue = await tenantCatalogue(tx, shipped)
   const [asset] =
     duty.assetId === null
       ? []

@@ -135,6 +135,11 @@ await checkWidths({
     'Erlaubnisschein ausstellen',
     'Einweisung von Marco Petri ansehen',
     'Erlaubnisschein für feuergefährliche Arbeiten ansehen',
+    // The kinds and fields of the operator's own under "Katalog" (#62): a new
+    // kind, a field at a kind and a document it expects.
+    'Anlagenart anlegen',
+    'Angabe ergänzen',
+    'Unterlage ergänzen',
     // The longest sentences of the instance stand behind it (#80); the Leitung
     // of the preview is operator and administration in one. The form to name
     // somebody to the administration stands open on its page.

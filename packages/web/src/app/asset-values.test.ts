@@ -1,7 +1,8 @@
-import { type AssetKind, assetValueProblems } from '@opengewerk/haustechnik-domain'
+import { type AssetKind, assetValueProblems, catalogueOf } from '@opengewerk/haustechnik-domain'
 import { describe, expect, it } from 'vitest'
 
-import { typedValues, valuesOf } from './asset-values.js'
+import { kindChoices, typedValues, valuesOf } from './asset-values.js'
+import { testCatalogue } from './test-catalogue.js'
 
 const heater: AssetKind = {
   label: 'Trinkwassererwärmung',
@@ -85,5 +86,26 @@ describe('the values of an asset from a form', () => {
       output: '',
       fuel: '',
     })
+  })
+})
+
+describe('the kinds an asset is taken in with', () => {
+  it('are those of the packages, and the kinds the operator added last, under "Eigene" (#62)', () => {
+    const own = {
+      key: 'eigen.hebeanlage',
+      version: 1,
+      validFrom: '2000-01-01',
+      definition: { ...heater, label: 'Hebeanlage' },
+      review: { checkedOn: '2026-10-18', accepted: null },
+    }
+    const catalogue = catalogueOf({ ...testCatalogue, own: { assetKinds: [own], fields: {} } })
+
+    expect(kindChoices(catalogue).map((choice) => choice.label)).toEqual([
+      'Probepaket: Aufzugsanlage',
+      'Probepaket: Druckerhöhungsanlage',
+      'Abgenommenes Paket: Druckerhöhungsanlage',
+      'Eigene: Hebeanlage',
+    ])
+    expect(kindChoices(catalogue).at(-1)?.value).toBe('eigen.hebeanlage')
   })
 })

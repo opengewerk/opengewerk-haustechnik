@@ -118,6 +118,7 @@ import { assetsPassing } from './asset-register.js'
 import { placesToDo } from './place-situation.js'
 import type { Asking } from './places.js'
 import { said } from './register-question.js'
+import { tenantCatalogue } from '../own-kinds/catalogue.js'
 
 /**
  * The lists of the office as tables (#138, section 3 of the concept): what a
@@ -219,11 +220,13 @@ export async function placeNamesFor(
  */
 export async function assetTable(
   tx: TenantTransaction,
-  catalogue: Catalogue,
+  shipped: Catalogue,
   identity: Asking,
   today: IsoDate,
   filter: AssetRegisterFilter,
 ): Promise<OutgoingTable> {
+  // The kinds of the operator's own as well (#62).
+  const catalogue = await tenantCatalogue(tx, shipped)
   const entries = await assetsPassing(tx, catalogue, today, filter)
   const names = isAllowed(identity, 'location.read') ? await namesOf(tx) : null
 
