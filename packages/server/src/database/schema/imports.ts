@@ -14,6 +14,7 @@ import {
   foreignKey,
   index,
   integer,
+  jsonb,
   pgTable,
   primaryKey,
   text,
@@ -114,6 +115,15 @@ export const importRecords = pgTable(
     importId: reference<'import'>('import_id').notNull(),
     tableName: text('table_name').$type<ImportedTable>().notNull(),
     recordId: uuid('record_id').notNull(),
+    /**
+     * The naming fields of the record as the import wrote them, `name`,
+     * `number` and `kind` as text (#422): the log of the record has no entry
+     * that names it, and its page says what it was, not what it is.
+     */
+    named: jsonb('named')
+      .$type<Readonly<Record<string, string | null>>>()
+      .notNull()
+      .default(sql`'{}'::jsonb`),
   },
   (table) => [
     tenantIsolation(table.tenantId),
@@ -131,5 +141,6 @@ export const importRecords = pgTable(
       sql.raw(`"table_name" in (${importedTables.map((name) => `'${name}'`).join(', ')})`),
     ),
     index('import_records_by_import').on(table.tenantId, table.importId),
+    check('import_records_named_object', sql`jsonb_typeof(${table.named}) = 'object'`),
   ],
 )

@@ -45,6 +45,7 @@ import { access } from '../authentication/access.js'
 import { CATALOGUE, shippedCatalogue } from '../catalogue.js'
 import { changeNumberRange, numberRangesOf } from '../database/number-ranges.js'
 import { deadlineRulesFor } from '../deadlines/routes.js'
+import { namedByImports } from '../imports/first-values.js'
 import { mailServersOfOperators } from '../mail/server-settings.js'
 import { invitationMailing } from '../notifications/invitation-mail.js'
 import { pushRules } from '../notifications/push.js'
@@ -284,6 +285,8 @@ export class ApiModule {
       access,
       vocabulary: auditVocabulary,
       words: auditValueWordsWith(catalogue),
+      // A record an import made is called what the import made it (#422).
+      firstValues: namedByImports,
     })
     // The deadlines the engine keeps, and what an operator sets for a kind:
     // section 7 of the concept gives both to whoever may look after the
