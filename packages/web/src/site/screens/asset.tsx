@@ -396,7 +396,11 @@ export function SiteAssetScreen() {
           )}
         </Panel>
         {propertyId === null ? null : (
-          <SiteDocuments place={{ propertyId, assetId }} empty={siteAssetWords.noDocument} />
+          <SiteDocuments
+            place={{ propertyId, assetId }}
+            empty={siteAssetWords.noDocument}
+            travel={{ kind: 'asset', id: assetId }}
+          />
         )}
       </SiteScreen>
       {(records && !label) || reports ? (

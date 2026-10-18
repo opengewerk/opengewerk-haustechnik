@@ -450,6 +450,7 @@ export function SiteRoomScreen() {
           <SiteDocuments
             place={{ propertyId, roomId }}
             empty="Noch kein Dokument an diesem Raum."
+            travel={{ kind: 'room', id: roomId }}
           />
         )}
       </SiteScreen>

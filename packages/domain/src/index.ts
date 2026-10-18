@@ -53,6 +53,7 @@ export * from './model/holiday.js'
 // hangs on here and what kind of document it is.
 export * from './model/document.js'
 export * from './model/expected-documents.js'
+export * from './model/travel.js'
 
 // The tasks of an operator: the task of the foundation, at a place, an asset
 // or an activity (#124).

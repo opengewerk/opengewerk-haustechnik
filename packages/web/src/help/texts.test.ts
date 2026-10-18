@@ -61,6 +61,8 @@ const sitePlaces: readonly string[] = [
   ...siteTabs.map((tab) => tab.to),
   '/konflikte',
   '/aufgaben',
+  // The documents kept for the road, from the menu (#348).
+  '/unterwegs',
   // Reporting a fault, from the menu (#331).
   '/meldungen',
 ]
@@ -165,7 +167,7 @@ describe('every text of the help', () => {
   it('is found by the build', () => {
     // A folder the build does not find is empty without a word.
     expect(officeTexts.size).toBeGreaterThan(20)
-    expect(siteTexts.size).toBe(6)
+    expect(siteTexts.size).toBe(7)
     expect(guideTexts.size).toBe(5)
     expect(manualTexts.size).toBe(4)
   })

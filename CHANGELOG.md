@@ -9,6 +9,14 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
 
 ### Hinzugefügt
 
+- Unterlagen für unterwegs (#348, 2.7 des Konzepts): an einer Anlage oder einem Raum vor Ort holt „Für unterwegs
+  merken“ die neueste Fassung jedes Dokuments dort auf das Gerät, sodass sie ohne Netz aufgeht. Die Liste
+  „Unterlagen für unterwegs“ im Menü nennt die gemerkten Orte mit Dateien und Platz und „Vergessen“. Eine neue
+  Fassung kommt beim nächsten Abgleich, die Datei eines entfernten Dokuments oder eines Orts außerhalb der
+  Bereiche geht dann vom Gerät, beim Abmelden alles. Dafür ist das Submodul des Fundaments angehoben
+  (opengewerk/opengewerk#661). Warum: im Keller und auf dem Dach gibt es oft kein Netz, und bisher lag dort nur,
+  was auf dem Gerät aufgenommen wurde.
+
 - Soll-Dokumente je Anlagenart (#347, 4.10 des Konzepts): das Paket nennt zu jedem Soll-Dokument die Art des
   Dokuments, das es erfüllt, und ob es verlangt ist, mit Fundstelle, oder empfohlen. Die Akte einer Anlage
   zeigt unter „Unterlagen“ je Soll-Dokument das Dokument dieser Art an der Anlage oder „Fehlt“ mit
