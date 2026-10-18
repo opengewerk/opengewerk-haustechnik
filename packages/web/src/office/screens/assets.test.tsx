@@ -1140,6 +1140,51 @@ describe('the file of an asset', () => {
     expect(screen.getByText(/^Vorschläge aus dem Katalog:/)).toBeTruthy()
   })
 
+  it('gives out the book of the asset with its life cycle, as a PDF with the evidence behind it or as a table (#437)', async () => {
+    await mount(at, {
+      ...answers(file()),
+      '/assets/a-lift/evidence': [
+        {
+          id: 'e-131',
+          dutyId: 'd-1',
+          dutyTitle: 'Wartung',
+          number: 'NW-2026-00131',
+          performedOn: '2026-10-01',
+          result: 'without_defects',
+          origin: 'protocol',
+          standing: 'counts',
+        },
+      ],
+    })
+    await screen.findByRole('table', { name: evidenceOfTheAsset })
+
+    const tables = servingTables()
+    const open = async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Anlagenbuch' }))
+
+      return within(await screen.findByRole('dialog', { name: 'Anlagenbuch' }))
+    }
+    const first = await open()
+
+    expect(
+      first.getByText(
+        '2 Einträge vom 03.09.2012 bis 01.10.2026: 1 Nachweis und 1 Eintrag des Lebenszyklus.',
+      ),
+    ).toBeTruthy()
+    fireEvent.click(first.getByRole('button', { name: 'Ausgeben' }))
+    await waitFor(() => {
+      expect(tables.asked).toEqual(['/assets/a-lift/book/pdf?attach=1'])
+    })
+
+    const table = await open()
+
+    fireEvent.click(table.getByRole('radio', { name: 'Excel (.xlsx)' }))
+    fireEvent.click(table.getByRole('button', { name: 'Ausgeben' }))
+    await waitFor(() => {
+      expect(tables.asked.at(-1)).toBe('/assets/a-lift/book/table?format=xlsx')
+    })
+  })
+
   it('says so of an asset without evidence', async () => {
     await mount(at, { ...answers(file()), '/assets/a-lift/evidence': [] })
 

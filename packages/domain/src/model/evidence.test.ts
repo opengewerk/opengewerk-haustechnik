@@ -211,6 +211,20 @@ const storedStates: Readonly<Record<number, unknown>> = {
       '"remark":null,"replaces":null,"result":"without_defects","resultReason":null,"retention":null,' +
       '"signatures":[],"version":11,"writtenAt":"2027-06-15T07:30:00.000Z","writtenBy":"Dennis Roth"}',
   ),
+  12: JSON.parse(
+    '{"activity":{"kind":"inspection","title":"Laboruntersuchung Verdunstungskühlanlage"},"answers":[],' +
+      '"collective":null,"defects":[],' +
+      '"duty":{"counting":"from_performance","dueOn":null,"interval":{"months":3},"kind":"probe.cooling_water_lab_test","kindVersion":2,' +
+      '"label":"Nutzwasser im Labor untersuchen lassen","source":"§ 4 Abs. 2 Nr. 2 und Abs. 3 der 42. BImSchV"},' +
+      '"files":[],"form":null,"nextDueOn":null,"number":"NW-2026-00126","origin":"report","performedOn":"2026-10-02",' +
+      '"performer":{"examiner":"Mara Roth","organisation":"Labor Beispiel GmbH"},' +
+      '"place":{"asset":{"kind":"probe.evaporative_cooling_system","kindLabel":"Verdunstungskühlanlage","name":"Verdunstungskühlanlage Dach",' +
+      '"number":"AN-00120","serialNumber":null},"building":{"name":"Verwaltungsgebäude","shortCode":null},' +
+      '"property":{"address":"Hauptstraße 1, 68535 Edingen-Neckarhausen","name":"Campus"},"room":null},' +
+      '"remark":null,"replaces":null,"result":"without_defects","resultReason":null,' +
+      '"retention":{"kind":"while_in_use","on":"2026-10-02","rule":"probe.cooling_book_retention","yearsAfter":5},' +
+      '"signatures":[],"version":12,"writtenAt":"2026-10-02T14:10:00.000Z","writtenBy":"Dennis Roth"}',
+  ),
 }
 
 describe('the result of a performance', () => {
@@ -429,6 +443,33 @@ describe('the frozen state', () => {
       '2027-09-30',
     ])
     expect(canonicalForm(storedStates[11])).toBe(JSON.stringify(storedStates[11]))
+  })
+
+  it('reads a state of the twelfth version, kept for years after the use of its asset (#437)', () => {
+    const state = readEvidenceState(storedStates[12])
+
+    expect(state.version).toBe(evidenceStateVersion)
+    expect(state.retention).toEqual({
+      kind: 'while_in_use',
+      on: '2026-10-02',
+      rule: 'probe.cooling_book_retention',
+      yearsAfter: 5,
+    })
+    expect(canonicalForm(storedStates[12])).toBe(JSON.stringify(storedStates[12]))
+  })
+
+  it('reads a retention while the asset is used of an earlier version as kept no years after it (#437)', () => {
+    const stored = {
+      ...(storedStates[11] as object),
+      retention: { kind: 'while_in_use', on: '2027-06-14' },
+    }
+
+    expect(readEvidenceState(stored).retention).toEqual({
+      kind: 'while_in_use',
+      on: '2027-06-14',
+      yearsAfter: null,
+      rule: null,
+    })
   })
 
   it('has a reader and a stored example for every version up to the newest', () => {

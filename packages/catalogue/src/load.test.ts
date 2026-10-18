@@ -222,6 +222,44 @@ describe('a duty kind', () => {
     ])
   })
 
+  it('keeps its evidence while the asset is used, and for the years of a rule after that (#437)', () => {
+    const kept = { ...rule, key: 'book_retention', unit: 'years', value: 5 }
+    const files = {
+      [dutyKindFile]: { ...dutyKind, retention: { kind: 'while_in_use', rule: 'book_retention' } },
+      [rulesFile]: { ...rules, records: [rule, kept] },
+      [acceptancesFile]: reviewsWith({
+        rules: [{ key: 'book_retention', validFrom: '2015-06-01', checkedOn: '2026-10-03' }],
+      }),
+    }
+    const loaded = loadCatalogue(withFiles(files), options)
+
+    expect(loaded.problems).toEqual([])
+    expect(
+      loaded.bundle?.packages[0]?.dutyKinds.find((each) => each.key === 'probe.elevator_main_test')
+        ?.definition.retention,
+    ).toEqual({ kind: 'while_in_use', rule: 'probe.book_retention' })
+    expect(
+      problems({
+        [dutyKindFile]: {
+          ...dutyKind,
+          retention: { kind: 'while_in_use', rule: 'elevator_main_test_interval' },
+        },
+      }),
+    ).toEqual([
+      `${dutyKindFile}: Die Aufbewahrung nach der Verwendung nennt die Regel elevator_main_test_interval, die ab 2015-06-01 in Monaten zählt; gezählt wird hier in Jahren.`,
+    ])
+    expect(
+      problems({
+        [dutyKindFile]: {
+          ...dutyKind,
+          retention: { kind: 'until_next_inspection', rule: 'elevator_main_test_interval' },
+        },
+      }),
+    ).toEqual([
+      `${dutyKindFile}, retention.rule: Eine Regel hat nur die Aufbewahrung über eine Zahl von Jahren und die Jahre nach der Verwendung.`,
+    ])
+  })
+
   it('says how its next appointment is counted, in one of three ways, or that it falls due once', () => {
     expect(problems({ [dutyKindFile]: { ...dutyKind, counting: undefined } })).toEqual([
       `${dutyKindFile}, counting: Die Zählweise fehlt: ab dem Tag der Durchführung (from_performance), ab dem fälligen Tag (from_due), nach § 14 Abs. 5 BetrSichV (betrsichv) oder einmalig (once).`,
@@ -576,6 +614,24 @@ describe('a duty kind', () => {
 })
 
 describe('an asset kind', () => {
+  it('may give the book of its assets a name, with the regulation that asks for it (#437)', () => {
+    const book = { title: 'Betriebstagebuch', source: '§ 12 der 42. BImSchV' }
+    const { bundle, problems: found } = loadCatalogue(
+      withFiles({ [assetKindFile]: { ...assetKind, book } }),
+      options,
+    )
+
+    expect(found).toEqual([])
+    expect(bundle?.packages[0]?.assetKinds[0]?.definition.book).toEqual(book)
+    // Without a name of its own the kind holds none, and its bundle stays as it was.
+    expect(
+      loadCatalogue(probe, options).bundle?.packages[0]?.assetKinds[0]?.definition,
+    ).not.toHaveProperty('book')
+    expect(
+      problems({ [assetKindFile]: { ...assetKind, book: { title: 'Betriebstagebuch' } } }),
+    ).toEqual([`${assetKindFile}, book.source: Das Feld fehlt.`])
+  })
+
   it('is no measuring point unless it names the medium and the units of a meter', () => {
     const { bundle } = loadCatalogue(probe, options)
 

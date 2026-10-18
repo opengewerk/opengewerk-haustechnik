@@ -11,6 +11,16 @@ Steht oben „Außer Betrieb durch Mangel“, macht ein Mangel die Anlage unsich
 1. Die Vorschläge aus dem Katalog bestätigen oder mit Grund verwerfen.
 2. Mit „Pflicht hinzufügen“ eine eigene Pflicht anlegen, wo der Katalog keine kennt.
 
+## Anlagenbuch
+
+„Anlagenbuch“ über den Nachweisen gibt alle Nachweise der Anlage und ihren Lebenszyklus in zeitlicher Folge aus, als PDF oder als Tabelle. Bei manchen Anlagenarten heißt es nach der Vorschrift, die es verlangt, bei einer Verdunstungskühlanlage „Betriebstagebuch“.
+
+1. „Anlagenbuch“ wählen. Der Kasten sagt, wie viele Einträge es hat.
+2. Das Format wählen. Im PDF folgen auf Wunsch die Nachweise selbst, jeder Eintrag nennt dann die Seite seines Nachweises.
+3. „Ausgeben“ wählen.
+
+Das Buch gilt für den Tag, an dem es entsteht. Ein ersetzter oder für ungültig erklärter Nachweis bleibt darin und ist so gekennzeichnet. Wer eine Arbeit ausgeführt hat, steht darin nur bei einem Prüfer von außen; die eigenen Beschäftigten nennt erst der einzelne Nachweis.
+
 ## Unterlagen
 
 Unter „Unterlagen“ steht, was das Paket für die Anlagenart nennt, etwa den Übersichtsschaltplan einer elektrischen Anlage. „Verlangt“ nennt die Fundstelle, „empfohlen“ ist ein Rat. Vorhanden ist eine Unterlage, wenn ein Dokument ihrer Art an der Anlage selbst liegt; ein Dokument am Raum oder am Gebäude zählt nicht, und ein Dokument ohne Art auch nicht. Liegt dieselbe Anleitung bei vielen gleichen Anlagen, wird sie an jeder abgelegt.

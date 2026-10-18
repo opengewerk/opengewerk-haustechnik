@@ -758,7 +758,18 @@ function retentionOf(
     return null
   }
 
-  return found.kind === 'years'
-    ? { kind: 'years', years: found.rule.record.value, rule: found.rule.record.key, on }
+  if (found.kind === 'years') {
+    return { kind: 'years', years: found.rule.record.value, rule: found.rule.record.key, on }
+  }
+
+  // Kept while the asset is used, with the years after that use where its
+  // rule names them (#437).
+  return found.kind === 'while_in_use'
+    ? {
+        kind: 'while_in_use',
+        on,
+        yearsAfter: found.rule?.record.value ?? null,
+        rule: found.rule?.record.key ?? null,
+      }
     : { kind: found.kind, on }
 }

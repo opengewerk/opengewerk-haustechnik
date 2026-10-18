@@ -303,6 +303,17 @@ export interface AssetKind {
   readonly fields: readonly AssetField[]
   readonly expectedDocuments: readonly ExpectedDocument[]
   readonly meter: MeterKind | null
+  /**
+   * What the package calls the book of an asset of the kind, with the
+   * regulation that asks for it (#437); without one it is the "Anlagenbuch".
+   */
+  readonly book?: AssetBook
+}
+
+/** The name a package gives the book of an asset of a kind, and where it comes from (#437). */
+export interface AssetBook {
+  readonly title: string
+  readonly source: string
 }
 
 /**
@@ -350,10 +361,21 @@ export interface DutyScope {
   readonly states: readonly FederalState[]
 }
 
+/**
+ * How long the evidence of a duty kind is kept (2.6 of the concept): a number
+ * of years by a rule, until the next inspection, or as long as the asset is
+ * used. Kept while it is used, it may stay for the years of a rule after the
+ * end of its use as well, as the book of an asset must (#437).
+ */
 export type Retention =
   | { readonly kind: 'years'; readonly rule: string }
   | { readonly kind: 'until_next_inspection' }
-  | { readonly kind: 'while_in_use' }
+  | { readonly kind: 'while_in_use'; readonly rule?: string }
+
+/** The rule of years a retention names, if it names one: its years, or the years after the end of use (#437). */
+export function retentionRule(retention: Retention): string | null {
+  return retention.kind === 'until_next_inspection' ? null : (retention.rule ?? null)
+}
 
 /** A duty kind, the same for every operator (section 2.3 of the concept). */
 export interface DutyKind {
@@ -490,9 +512,11 @@ export interface CataloguePackage {
  * the server hands out what its operator added, the asset kinds and fields
  * of its own (opengewerk-haustechnik#62), seven since a kind of qualification
  * names the kinds it covers (opengewerk-haustechnik#406), eight since a duty
- * kind may fall due once (opengewerk-haustechnik#439).
+ * kind may fall due once (opengewerk-haustechnik#439), nine since an asset
+ * kind may name the book of its assets and evidence kept while an asset is
+ * used may stay for years after (opengewerk-haustechnik#437).
  */
-export const catalogueFormat = 8
+export const catalogueFormat = 9
 
 /**
  * What the build writes and server and interface load. The checksum is taken
@@ -597,7 +621,10 @@ export interface Catalogue {
     countedFrom: IsoDate | null,
     state?: FederalState,
   ) => IsoDate | null
-  /** How long the evidence is kept, with the rule of the years where it has one. */
+  /**
+   * How long the evidence is kept, with the rule of the years where it has
+   * one, for evidence kept while the asset is used the years after (#437).
+   */
   readonly retention: (
     dutyKind: DutyKind,
     on: IsoDate,
@@ -605,7 +632,7 @@ export interface Catalogue {
   ) =>
     | { readonly kind: 'years'; readonly rule: CatalogueRule }
     | { readonly kind: 'until_next_inspection' }
-    | { readonly kind: 'while_in_use' }
+    | { readonly kind: 'while_in_use'; readonly rule: CatalogueRule | null }
     | null
   /** A defect class by the key a defect keeps, `<package>.<key>`. */
   readonly defectClass: (key: string) => CatalogueDefectClass | null
@@ -793,13 +820,27 @@ export function catalogueOf(bundle: CatalogueBundle): Catalogue {
       return counted === null ? null : addInterval(countedFrom, counted)
     },
     retention: (dutyKind, on, state) => {
-      if (dutyKind.retention.kind !== 'years') {
-        return { kind: dutyKind.retention.kind }
+      const kept = dutyKind.retention
+
+      if (kept.kind === 'until_next_inspection') {
+        return { kind: kept.kind }
       }
 
-      const years = rule(dutyKind.retention.rule, on, state)
+      const named = retentionRule(kept)
 
-      return years ? { kind: 'years', rule: years } : null
+      if (named === null) {
+        return { kind: 'while_in_use', rule: null }
+      }
+
+      const years = rule(named, on, state)
+
+      if (!years) {
+        return null
+      }
+
+      return kept.kind === 'years'
+        ? { kind: 'years', rule: years }
+        : { kind: 'while_in_use', rule: years }
     },
     defectClass: (key) => defectClasses.get(key) ?? null,
     defectClasses: (packageName) =>

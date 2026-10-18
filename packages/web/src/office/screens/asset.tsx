@@ -1,4 +1,6 @@
 import {
+  assetBookCountWords,
+  assetBookTitle,
   type AssetDetails,
   type AssetEvidenceEntry,
   type AssetField,
@@ -45,8 +47,8 @@ import { useRight } from '@opengewerk/platform-web/session'
 import { request, RequestRefused, text, useRecords } from '@opengewerk/platform-web/sync'
 import { useQuery, type UseQueryResult } from '@tanstack/react-query'
 import { Link, useNavigate, useParams } from '@tanstack/react-router'
-import { ArrowLeftRight, Ban, Pencil, Plus, X, Zap } from 'lucide-react'
-import { Fragment, type ReactNode, useState } from 'react'
+import { ArrowLeftRight, Ban, FileText, Pencil, Plus, X, Zap } from 'lucide-react'
+import { Fragment, lazy, type ReactNode, Suspense, useState } from 'react'
 
 import { assetEvidenceQuery } from '../../app/evidence.js'
 import { placePath } from '../../app/place-path.js'
@@ -81,6 +83,11 @@ import { AssetFaultsCard } from './fault-reports.js'
 import { ProposalsNote } from './proposals.js'
 import { AssetOrdersCard, NewOrderAtAssetButton } from './work-orders.js'
 import { TimelineButton } from '../timeline.js'
+
+// Loaded when the book is asked for (#437), like the register of evidence.
+const AssetBookDialog = lazy(async () => ({
+  default: (await import('../asset-book.js')).AssetBookDialog,
+}))
 
 /** The file of an asset as the server reads it today. */
 export function assetFileQuery(id: string) {
@@ -161,9 +168,9 @@ export function AssetFileScreen() {
   const seesEvidence = useRight('evidence.read')
   const records = useRight('asset.record')
   const keeps = useRight('asset.write')
-  const [changing, setChanging] = useState<'place' | 'supplies' | 'lifecycle' | 'exchange' | null>(
-    null,
-  )
+  const [changing, setChanging] = useState<
+    'place' | 'supplies' | 'lifecycle' | 'exchange' | 'book' | null
+  >(null)
   const [takingBack, setTakingBack] = useState<LifecycleEntry | null>(null)
   const file = useQuery({ ...assetFileQuery(assetId ?? ''), enabled: assetId !== undefined })
   const duties = useQuery({
@@ -196,6 +203,8 @@ export function AssetFileScreen() {
   const room = byId(rooms, asset.roomId)
   const floor = room ? byId(floors, room['floorId']) : null
   const kind = catalogue?.assetKind(asset.kind, today()) ?? null
+  // The book of the asset under the name its kind gives it (#437).
+  const book = assetBookTitle(kind?.definition.book).title
 
   /** A room or a building the asset supplies, as somebody on its property would say it. */
   const supplied = asset.supplies.map((supply) => {
@@ -292,7 +301,22 @@ export function AssetFileScreen() {
               proposals={<ProposalsNote assetId={asset.id} />}
             />
           ) : null}
-          {seesEvidence ? <AssetEvidence evidence={evidence.data} /> : null}
+          {seesEvidence ? (
+            <AssetEvidence
+              evidence={evidence.data}
+              action={
+                <Button
+                  size="small"
+                  icon={FileText}
+                  onClick={() => {
+                    setChanging('book')
+                  }}
+                >
+                  {book}
+                </Button>
+              }
+            />
+          ) : null}
           <AssetDefectsCard assetId={assetId} />
           {/* The faults reported at the asset (#331), for whoever accepts them. */}
           <AssetFaultsCard assetId={assetId} />
@@ -497,6 +521,24 @@ export function AssetFileScreen() {
       ) : null}
       {changing === 'exchange' ? (
         <ExchangeAssetDialog asset={asset} onClose={stopChanging} />
+      ) : null}
+      {changing === 'book' ? (
+        <Suspense fallback={null}>
+          <AssetBookDialog
+            assetId={asset.id}
+            asset={[asset.number, asset.name].filter(Boolean).join(' ')}
+            title={book}
+            count={
+              evidence.data === undefined
+                ? null
+                : assetBookCountWords(
+                    evidence.data.map((entry) => entry.performedOn),
+                    asset.lifecycle.map((entry) => entry.validFrom),
+                  )
+            }
+            onClose={stopChanging}
+          />
+        </Suspense>
       ) : null}
       {takingBack ? (
         <TakeBackLifecycleEntry
@@ -825,14 +867,17 @@ export function Duties({
  */
 function AssetEvidence({
   evidence,
+  action,
 }: {
   readonly evidence: readonly AssetEvidenceEntry[] | undefined
+  /** "Anlagenbuch": all of them with the life cycle, as a PDF or a table (#437). */
+  readonly action: ReactNode
 }) {
   const title = 'Nachweise'
 
   if (evidence === undefined || evidence.length === 0) {
     return (
-      <Panel title={title}>
+      <Panel title={title} action={action}>
         <p className="text-[13px] leading-[1.4] text-ink-muted">
           {evidence === undefined ? assetFileWords.evidenceLoading : assetFileWords.noEvidence}
         </p>
@@ -845,6 +890,7 @@ function AssetEvidence({
   return (
     <TablePanel
       title={title}
+      action={action}
       caption="Nachweise dieser Anlage mit Pflicht, Tag, Ergebnis und Bedeutung für die Frist"
       cards={evidence.map((entry) => ({
         key: entry.id,

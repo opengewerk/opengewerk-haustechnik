@@ -39,22 +39,22 @@ export const evidenceRegisterDialogWords = {
   offline: 'Ohne Verbindung zum Server gibt es kein Nachweisverzeichnis.',
 } as const
 
-const formats = [
+export const formats = [
   { value: 'pdf', label: 'PDF' },
   { value: 'xlsx', label: 'Excel (.xlsx)' },
   { value: 'csv', label: 'CSV (.csv)' },
 ] as const
 
-type Format = (typeof formats)[number]['value']
+export type Format = (typeof formats)[number]['value']
 
-const accepts: Readonly<Record<Format, string>> = {
+export const accepts: Readonly<Record<Format, string>> = {
   pdf: 'application/pdf',
   xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
   csv: 'text/csv',
 }
 
 /** Hands a file to the browser to keep, as the table of a list does. */
-function save(content: Blob, name: string): void {
+export function save(content: Blob, name: string): void {
   const address = URL.createObjectURL(content)
   const link = document.createElement('a')
 
@@ -75,7 +75,7 @@ function countWords(count: EvidenceRegisterCount): string {
 }
 
 /** A box to tick with a line under it, as the board draws "Beendete Pflichten aufnehmen". */
-function Tick({
+export function Tick({
   checked,
   disabled = false,
   label,

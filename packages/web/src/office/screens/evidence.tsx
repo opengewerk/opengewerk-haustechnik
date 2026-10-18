@@ -23,6 +23,7 @@ import {
   type StatedPlace,
   statedReasonProblem,
   type StatedRetention,
+  yearsAfterWords,
 } from '@opengewerk/haustechnik-domain'
 import {
   Button,
@@ -140,8 +141,13 @@ function retentionWords(retention: StatedRetention | null): string | null {
     return null
   }
 
-  return retention.kind === 'years'
-    ? `${String(retention.years)} ${retention.years === 1 ? 'Jahr' : 'Jahre'}`
+  if (retention.kind === 'years') {
+    return `${String(retention.years)} ${retention.years === 1 ? 'Jahr' : 'Jahre'}`
+  }
+
+  // Kept while the asset is used, with the years after where its rule names them (#437).
+  return retention.kind === 'while_in_use'
+    ? `${retentionKindLabel.while_in_use}${yearsAfterWords(retention.yearsAfter)}`
     : retentionKindLabel[retention.kind]
 }
 

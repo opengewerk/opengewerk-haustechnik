@@ -123,9 +123,10 @@ export const evidenceLimits = {
  * collective activity names it (#342), 10 since an answer about one asset of
  * a point for every asset of a kind names the asset (#343), 11 since the duty
  * of a duty that falls due once states its due day instead of an interval
- * (#439).
+ * (#439), 12 since an evidence kept while its asset is used states the years
+ * it is kept after (#437).
  */
-export const evidenceStateVersion = 11
+export const evidenceStateVersion = 12
 
 /** The place of an evidence in words, as it was on the day it was written down. */
 export interface StatedPlace {
@@ -165,7 +166,16 @@ export type StatedPerformer =
 export type StatedRetention =
   | { readonly kind: 'years'; readonly years: number; readonly rule: string; readonly on: IsoDate }
   | { readonly kind: 'until_next_inspection'; readonly on: IsoDate }
-  | { readonly kind: 'while_in_use'; readonly on: IsoDate }
+  | {
+      readonly kind: 'while_in_use'
+      readonly on: IsoDate
+      /**
+       * The years it is kept after the end of use by the rule it names, since
+       * version 12 (#437); none where it is kept only while the asset is used.
+       */
+      readonly yearsAfter: number | null
+      readonly rule: string | null
+    }
 
 export interface StatedDefect {
   readonly description: string
@@ -341,8 +351,17 @@ export class UnknownEvidenceStateError extends Error {
   }
 }
 
+/** The eleventh version: all of the twelfth, but a retention while the asset is used states no years after it. */
+type EvidenceStateOfVersion11 = Omit<EvidenceState, 'version' | 'retention'> & {
+  readonly version: 11
+  readonly retention:
+    | Exclude<StatedRetention, { readonly kind: 'while_in_use' }>
+    | { readonly kind: 'while_in_use'; readonly on: IsoDate }
+    | null
+}
+
 /** The tenth version: all of the eleventh, but the duty states its interval and no due day. */
-type EvidenceStateOfVersion10 = Omit<EvidenceState, 'version' | 'duty'> & {
+type EvidenceStateOfVersion10 = Omit<EvidenceStateOfVersion11, 'version' | 'duty'> & {
   readonly version: 10
   readonly duty: Omit<StatedDuty, 'interval' | 'dueOn'> & {
     readonly interval: { readonly days: number } | { readonly months: number }
@@ -410,7 +429,8 @@ const readers: Readonly<Record<number, (stored: StoredEvidenceState) => Evidence
   // took it, none before the eighth was taken over with a due day, none
   // before the ninth was written with a collective activity, no answer
   // before the tenth names an asset, which one after it names only where it
-  // is about one, and no duty before the eleventh states a due day.
+  // is about one, no duty before the eleventh states a due day, and no
+  // retention before the twelfth the years after the use of its asset.
   1: (stored) =>
     eleventh({
       ...(stored as unknown as EvidenceStateOfVersion1),
@@ -493,12 +513,27 @@ const readers: Readonly<Record<number, (stored: StoredEvidenceState) => Evidence
       version: 10,
     }),
   10: (stored) => eleventh(stored as unknown as EvidenceStateOfVersion10),
-  11: (stored) => stored as unknown as EvidenceState,
+  11: (stored) => twelfth(stored as unknown as EvidenceStateOfVersion11),
+  12: (stored) => stored as unknown as EvidenceState,
 }
 
 /** A state of the tenth version or an earlier one read up to the tenth, in the newest shape: its duty states no due day. */
 function eleventh(state: EvidenceStateOfVersion10): EvidenceState {
-  return { ...state, version: evidenceStateVersion, duty: { ...state.duty, dueOn: null } }
+  return twelfth({ ...state, version: 11, duty: { ...state.duty, dueOn: null } })
+}
+
+/** A state of the eleventh version or an earlier one, in the newest shape: it is kept no years after the use. */
+function twelfth(state: EvidenceStateOfVersion11): EvidenceState {
+  const { retention } = state
+
+  return {
+    ...state,
+    version: evidenceStateVersion,
+    retention:
+      retention?.kind === 'while_in_use'
+        ? { ...retention, yearsAfter: null, rule: null }
+        : retention,
+  }
 }
 
 /** The signatures of a state written before version 5, which kept no drawing; all of them drawn. */

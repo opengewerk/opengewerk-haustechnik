@@ -21,6 +21,7 @@ import {
   ruleHoles,
   ruleScopeNames,
   ruleSet,
+  retentionRule,
   type RuleUnit,
   type ScopeCondition,
 } from '@opengewerk/haustechnik-domain'
@@ -602,10 +603,20 @@ function checkDutyKind(
     }
   }
 
-  if (dutyKind.retention.kind === 'years') {
-    checkRuleReference(spot, dutyKind.retention.rule, home, index, findings, 'Die Aufbewahrung', [
-      'years',
-    ])
+  const kept = retentionRule(dutyKind.retention)
+
+  if (kept !== null) {
+    checkRuleReference(
+      spot,
+      kept,
+      home,
+      index,
+      findings,
+      dutyKind.retention.kind === 'years'
+        ? 'Die Aufbewahrung'
+        : 'Die Aufbewahrung nach der Verwendung',
+      ['years'],
+    )
   }
 
   for (const condition of dutyKind.scope.conditions) {
@@ -1018,9 +1029,9 @@ function qualified(dutyKind: DutyKind, home: string): DutyKind {
         ? dutyKind.evidence
         : { ...dutyKind.evidence, form: name(dutyKind.evidence.form) },
     retention:
-      dutyKind.retention.kind === 'years'
-        ? { ...dutyKind.retention, rule: name(dutyKind.retention.rule) }
-        : dutyKind.retention,
+      dutyKind.retention.kind === 'until_next_inspection' || dutyKind.retention.rule === undefined
+        ? dutyKind.retention
+        : { ...dutyKind.retention, rule: name(dutyKind.retention.rule) },
     scope: {
       ...dutyKind.scope,
       assetKinds: dutyKind.scope.assetKinds.map(name),

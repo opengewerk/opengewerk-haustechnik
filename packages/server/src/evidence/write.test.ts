@@ -35,11 +35,13 @@ const names: Readonly<Record<string, string>> = {
 }
 const mainTest = 'probe.elevator_main_test'
 const keptTest = 'probe.elevator_kept_test'
+const bookTest = 'probe.elevator_book_test'
 const at = new Date('2026-10-03T08:00:00.000Z')
 
 /**
- * The probe package with one more duty kind, like the main test but taking a
- * protocol as well and keeping its evidence for a number of years from a rule.
+ * The probe package with two more duty kinds, like the main test: one taking
+ * a protocol as well and keeping its evidence for a number of years from a
+ * rule, and one keeping it while the asset is used and those years after (#437).
  */
 function withAKeptTest(bundle: CatalogueBundle): CatalogueBundle {
   return {
@@ -75,6 +77,15 @@ function withAKeptTest(bundle: CatalogueBundle): CatalogueBundle {
               counting: 'from_performance',
               evidence: { kinds: ['protocol', 'report'] },
               retention: { kind: 'years', rule: keepYears },
+            },
+          },
+          {
+            ...main,
+            key: bookTest,
+            definition: {
+              ...main.definition,
+              label: 'Prüfung mit Anlagenbuch',
+              retention: { kind: 'while_in_use', rule: keepYears },
             },
           },
         ],
@@ -443,7 +454,32 @@ describe('an evidence written down', () => {
       counting: 'betrsichv',
       interval: { months: 24 },
     })
-    expect(written.state.retention).toEqual({ kind: 'while_in_use', on: '2026-10-01' })
+    expect(written.state.retention).toEqual({
+      kind: 'while_in_use',
+      on: '2026-10-01',
+      yearsAfter: null,
+      rule: null,
+    })
+  })
+
+  it('states the years an evidence kept while its asset is used stays after that use (#437)', async () => {
+    const place = await placeIn()
+    const duty = await dutyOfKind(place, bookTest, 24)
+    const written = await write({
+      ...protocol(duty, null),
+      origin: 'report',
+      result: 'without_defects',
+      performedBy: null,
+      examiner: { name: 'Erika Muster', organisation: 'Prüfstelle Süd' },
+      signatures: [],
+    })
+
+    expect(written.state.retention).toEqual({
+      kind: 'while_in_use',
+      on: '2026-10-01',
+      yearsAfter: 10,
+      rule: 'probe.kept_years',
+    })
   })
 
   it('states the interval the duty counted with on the day, where a regulation cut its own short (#139)', async () => {

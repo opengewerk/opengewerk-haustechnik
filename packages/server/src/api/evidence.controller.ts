@@ -3,17 +3,21 @@ import {
   Body,
   ConflictException,
   Controller,
+  ForbiddenException,
   Get,
   Header,
   Inject,
   NotFoundException,
   Param,
   Post,
+  Query,
+  Res,
   StreamableFile,
   UnprocessableEntityException,
 } from '@nestjs/common'
 import {
   type Asset,
+  assetBookWords,
   type AssetEvidenceEntry,
   type Catalogue,
   correctionProblems,
@@ -25,7 +29,9 @@ import {
   type EvidenceReading,
   type EvidenceResult,
   evidenceStandingOf,
+  isAllowed,
   type IsoDate,
+  missingRight,
   readEvidenceState,
   retentionInWords,
   retentionSentences,
@@ -42,6 +48,8 @@ import {
   FILE_STORE,
   type FileStorage,
   isUuid,
+  tableAnswer,
+  tableFormatOf,
   type TenantTransaction,
 } from '@opengewerk/platform-server'
 import { files } from '@opengewerk/platform-server/schema'
@@ -60,11 +68,19 @@ import {
   rooms,
 } from '../database/schema/index.js'
 import { checkSignedPdf, SignedPdfRefusal } from '../evidence/signed-pdf.js'
+import { assetBookPrintJob, type BookPages } from '../prints/asset-book-page.js'
+import {
+  carriedWith,
+  type EvidenceAttachment,
+  withEvidenceBehind,
+} from '../prints/evidence-bundle.js'
 import { voidEvidence } from '../evidence/voiding.js'
 import { EvidenceRefusal, writeEvidence } from '../evidence/write.js'
 import { dayInGermany } from '../today.js'
+import { assetBookOf, assetBookTable } from './asset-book.js'
 import { RequiresPermission } from './authorization.js'
 import { type Asking, fieldsOf, placeOf, refuse } from './places.js'
+import { pdf, Printer } from './prints.controller.js'
 
 const missing = 'Diesen Nachweis gibt es nicht.'
 const missingFile = 'Diese Datei gibt es an diesem Nachweis nicht.'
@@ -659,6 +675,7 @@ export class AssetEvidenceController {
   constructor(
     private readonly database: Database,
     @Inject(CATALOGUE) private readonly catalogue: Catalogue,
+    private readonly printer: Printer,
   ) {}
 
   @Get(':id/evidence')
@@ -687,5 +704,114 @@ export class AssetEvidenceController {
         )
       ).map((entry) => ({ ...entry, dutyTitle: titles.get(entry.dutyId) ?? 'Pflicht' }))
     })
+  }
+
+  /**
+   * The book of the asset as a PDF (#437, section 8 of the concept): all its
+   * evidence in the order of time with its life cycle, under the name its
+   * kind gives it, for the day it is asked for and never kept. With
+   * `attach=1` every evidence follows it once, as the print it keeps and the
+   * files it rests on, read as the person, and every line names the page its
+   * evidence begins on. Whoever reads the asset and its evidence makes it; no
+   * right of its own.
+   */
+  @Get(':id/book/pdf')
+  @RequiresPermission('evidence.read')
+  async bookPdf(
+    @CurrentIdentity() identity: Asking,
+    @Param('id') id: string,
+    @Query() query: Record<string, unknown>,
+    @Res({ passthrough: true }) response: { setHeader(name: string, value: string): void },
+  ): Promise<StreamableFile> {
+    readsAssets(identity)
+
+    const today = dayInGermany()
+    const book = await this.database.forTenant(identity, async (tx) =>
+      assetBookOf(
+        tx,
+        identity,
+        this.catalogue,
+        await placeOf<Asset>(tx, assets, id, missingAsset),
+        today,
+      ),
+    )
+    const listed = (attached: BookPages | null) =>
+      this.printer.fresh(assetBookPrintJob(book.head, book.lines, attached))
+    const name = `${book.head.title} ${book.head.asset} ${today}`
+
+    if (query['attach'] !== '1') {
+      return pdf(response, await listed(null), name)
+    }
+
+    const attachments: EvidenceAttachment<EvidenceId>[] = []
+    let carried = 0
+
+    for (const line of book.lines) {
+      const printed =
+        line.evidenceId === null
+          ? null
+          : await this.printer.evidencePrint(identity, line.evidenceId)
+
+      if (line.evidenceId !== null && printed !== null) {
+        const attachment = {
+          key: line.evidenceId,
+          print: printed.bytes,
+          files: await this.printer.evidenceFiles(identity, line.evidenceId),
+        }
+        const next = carriedWith(carried, attachment)
+
+        // A book past the limit is refused rather than read whole into memory.
+        if (next === null) {
+          throw new UnprocessableEntityException(assetBookWords.tooLarge)
+        }
+
+        carried = next
+        attachments.push(attachment)
+      }
+    }
+
+    return pdf(response, await withEvidenceBehind(attachments, listed), `${name} mit Nachweisen`)
+  }
+
+  /**
+   * The book of the asset as a table (#437), a row per entry, as a workbook
+   * or as text (`?format=xlsx` or `csv`). Like the PDF it names no person of
+   * the operator.
+   */
+  @Get(':id/book/table')
+  @RequiresPermission('evidence.read')
+  @Header('Cache-Control', 'no-store')
+  async bookTable(
+    @CurrentIdentity() identity: Asking,
+    @Param('id') id: string,
+    @Query() query: Record<string, unknown>,
+  ): Promise<StreamableFile> {
+    readsAssets(identity)
+
+    const format = tableFormatOf(query)
+    const today = dayInGermany()
+
+    return this.database.forTenant(identity, async (tx) =>
+      tableAnswer(
+        assetBookTable(
+          await assetBookOf(
+            tx,
+            identity,
+            this.catalogue,
+            await placeOf<Asset>(tx, assets, id, missingAsset),
+            today,
+          ),
+        ),
+        format,
+        today,
+      ),
+    )
+  }
+}
+
+/** The book is of an asset: whoever makes it reads the asset as well as its evidence. */
+function readsAssets(identity: Asking): void {
+  if (!isAllowed(identity, 'asset.read')) {
+    throw new ForbiddenException(missingRight('asset.read'))
   }
 }
