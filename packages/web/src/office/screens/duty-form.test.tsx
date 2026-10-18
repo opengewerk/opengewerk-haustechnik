@@ -473,6 +473,40 @@ describe('the form of a duty of the operator own', () => {
     })
   })
 
+  it('offers "Einmalig" and then asks for the due day instead of the interval, and sends it with no interval (#441)', async () => {
+    await opened(`/pflichten/neu?gebaeude=${house.id}`)
+
+    fillIn()
+    choose('Gezählt', 'once')
+
+    // The interval gives way to the due day.
+    expect(screen.queryByLabelText('Frist')).toBeNull()
+    expect(screen.queryByRole('combobox', { name: 'Einheit' })).toBeNull()
+    expect(screen.getByText(dutyFormWords.outstandingOnce)).toBeTruthy()
+
+    press('Pflicht anlegen')
+
+    expect(await screen.findByText(dutyFormWords.noDueOn)).toBeTruthy()
+    expect(written).toEqual([])
+
+    answerToWrite = answering({ id: 'd-new' })
+    type('Termin', '2027-03-31')
+    press('Pflicht anlegen')
+
+    await waitFor(() => {
+      expect(written).toHaveLength(1)
+    })
+
+    const { intervalMonths: _, ...withoutInterval } = filledIn
+
+    expect(written[0]?.body).toEqual({
+      buildingId: house.id,
+      ...withoutInterval,
+      counting: 'once',
+      dueOn: '2027-03-31',
+    })
+  })
+
   it('names who answers from the people who can still be named, and who performs it', async () => {
     await opened(`/pflichten/neu?gebaeude=${house.id}`)
 
@@ -758,6 +792,31 @@ describe('the form over a duty of the operator own (#178)', () => {
         body: { sourceNote: 'Betriebsanleitung SW 750, Abschnitt 9.2', intervalMonths: 6 },
       },
     ])
+  })
+
+  it('changes the due day of a duty that falls due once, and offers no interval for it (#441)', async () => {
+    await editing(
+      ownDuty({
+        counting: 'once',
+        dueOn: '2027-03-31',
+        intervalDays: null,
+        intervalMonths: null,
+      }),
+    )
+
+    expect(valueOf('Termin')).toBe('2027-03-31')
+    expect(valueOf('Gezählt')).toBe('Einmalig')
+    expect(screen.queryByLabelText('Frist')).toBeNull()
+    expect(screen.getByText(dutyFormWords.dueOnCounts)).toBeTruthy()
+
+    answerToWrite = answering({ id: 'd-own' }, 200)
+    type('Termin', '2027-06-30')
+    press('Speichern')
+
+    await waitFor(() => {
+      expect(written).toHaveLength(1)
+    })
+    expect(written[0]?.body).toEqual({ dueOn: '2027-06-30' })
   })
 
   it('sends the interval under the other unit where the unit changes', async () => {

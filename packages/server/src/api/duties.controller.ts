@@ -182,6 +182,7 @@ const newFields = [
   'task',
   'counting',
   'countedFrom',
+  'dueOn',
   'intervalDays',
   'intervalMonths',
   'intervalReason',
@@ -196,7 +197,8 @@ const newFields = [
 /**
  * The fields a duty may change. What it hangs on and what it is stay as they
  * were confirmed; a duty that falls due once changes the day it is counted
- * from instead of an interval (#439).
+ * from instead of an interval (#439), or one of the operator's own its due
+ * day (#441).
  */
 const changeFields = [
   'label',
@@ -204,6 +206,7 @@ const changeFields = [
   'sourceNote',
   'task',
   'countedFrom',
+  'dueOn',
   'intervalDays',
   'intervalMonths',
   'intervalReason',
@@ -233,7 +236,7 @@ const emptiable = [
 ] as const
 
 /** The fields of a duty of the operator's own, which a duty from the catalogue takes from its kind. */
-const ownFields = ['label', 'basis', 'sourceNote', 'task', 'counting'] as const
+const ownFields = ['label', 'basis', 'sourceNote', 'task', 'counting', 'dueOn'] as const
 
 type Values = Partial<Record<(typeof newFields)[number], unknown>>
 
@@ -344,6 +347,10 @@ function intervalChanged(
     throw new BadRequestException('Nur eine einmalige Pflicht zählt ab einem Tag der Anlage.')
   }
 
+  if (values.dueOn !== undefined) {
+    throw new BadRequestException(noDueDayRecurring)
+  }
+
   const changed = values.intervalDays !== undefined || values.intervalMonths !== undefined
   const interval = changed
     ? { intervalDays: values.intervalDays ?? null, intervalMonths: values.intervalMonths ?? null }
@@ -391,7 +398,8 @@ function intervalChanged(
  * What changing a duty that falls due once writes of its due day (#439): a
  * new day it is counted from, say a commissioning again, and the due day the
  * version of its kind the duty names counts from it. It has no interval, and
- * a day its source names does not change.
+ * a day its source names does not change. One of the operator's own changes
+ * its due day as typed, as its source names it (#441).
  */
 function onceChanged(
   catalogue: Catalogue,
@@ -406,6 +414,19 @@ function onceChanged(
     values.intervalDocumentId !== undefined
   ) {
     throw new BadRequestException(noIntervalOnce)
+  }
+
+  if (duty.kind === null) {
+    if (values.countedFrom !== undefined) {
+      throw new BadRequestException(ownCountsFromNoDay)
+    }
+
+    if (values.dueOn === null) {
+      throw new BadRequestException(ownDueDayMissing)
+    }
+
+    // A due day named goes as it is, with the rest of the change.
+    return {}
   }
 
   if (values.countedFrom === undefined) {
@@ -819,6 +840,55 @@ function onceOfTheCatalogue(
   }
 
   return onceTerm(catalogue, entry, values.countedFrom, target.commissionedOn, target.federalState)
+}
+
+/** Why a duty of the operator's own is counted from no day of its asset. */
+const ownCountsFromNoDay =
+  'Eine eigene Pflicht zählt von keinem Tag der Anlage; ihren Termin oder ihre Frist nennt ihre Quelle.'
+
+/** Why a duty that recurs has no due day of its own. */
+const noDueDayRecurring =
+  'Nur eine einmalige Pflicht hat einen Termin; eine Pflicht, die wiederkehrt, hat eine Frist.'
+
+/** Why a duty of the operator's own that falls due once is refused without its due day. */
+const ownDueDayMissing = 'Der Termin einer einmaligen Pflicht fehlt; ihn nennt ihre Quelle.'
+
+/**
+ * The due day of a duty of the operator's own that falls due once (#441):
+ * the day its source names, typed as the interval of one that recurs is,
+ * and no interval beside it.
+ */
+function ownOnce(values: Values): Pick<Term, 'interval' | 'dueOn'> {
+  if (
+    given(values.intervalDays) ||
+    given(values.intervalMonths) ||
+    given(values.intervalReason) ||
+    given(values.intervalDocumentId)
+  ) {
+    throw new BadRequestException(noIntervalOnce)
+  }
+
+  if (!given(values.dueOn)) {
+    throw new BadRequestException(ownDueDayMissing)
+  }
+
+  // Its shape `dutyProblems` has checked already.
+  return { interval: null, dueOn: values.dueOn as IsoDate }
+}
+
+/** The interval of a duty of the operator's own that recurs, and no due day beside it. */
+function ownRecurring(values: Values, counting: Counting): Pick<Term, 'interval' | 'dueOn'> {
+  if (given(values.dueOn)) {
+    throw new BadRequestException(noDueDayRecurring)
+  }
+
+  const problem = dutyIntervalProblem(values, counting, null)
+
+  if (problem !== null) {
+    throw new BadRequestException(problem)
+  }
+
+  return { interval: intervalIn(values), dueOn: null }
 }
 
 /**
@@ -1608,7 +1678,7 @@ export class DutiesController {
       if (given(values.kind)) {
         if (ownFields.some((field) => given(values[field]))) {
           throw new BadRequestException(
-            'Eine Pflicht aus dem Katalog nimmt Bezeichnung, Grundlage, Quelle, Tätigkeit und Zählweise von ihrer Pflichtart.',
+            'Eine Pflicht aus dem Katalog nimmt Bezeichnung, Grundlage, Quelle, Tätigkeit, Zählweise und Termin von ihrer Pflichtart.',
           )
         }
 
@@ -1634,18 +1704,11 @@ export class DutiesController {
           )
         }
 
-        const counting = (values.counting ?? 'from_performance') as Counting
-        const problem = dutyIntervalProblem(values, counting, null)
-
-        if (problem !== null) {
-          throw new BadRequestException(problem)
-        }
-
         if (given(values.countedFrom)) {
-          throw new BadRequestException(
-            'Eine eigene Pflicht kehrt wieder; sie zählt von keinem Tag der Anlage.',
-          )
+          throw new BadRequestException(ownCountsFromNoDay)
         }
+
+        const counting = (values.counting ?? 'from_performance') as Counting
 
         decided = {
           kind: null,
@@ -1653,8 +1716,7 @@ export class DutiesController {
           counting,
           maximum: null,
           guide: null,
-          interval: intervalIn(values),
-          dueOn: null,
+          ...(counting === 'once' ? ownOnce(values) : ownRecurring(values, counting)),
           countedFrom: null,
         }
       }
@@ -1761,7 +1823,7 @@ export class DutiesController {
         ownFields.some((field) => values[field as keyof typeof values] !== undefined)
       ) {
         throw new BadRequestException(
-          'Eine Pflicht aus dem Katalog nimmt Bezeichnung, Grundlage, Quelle und Tätigkeit von ihrer Pflichtart.',
+          'Eine Pflicht aus dem Katalog nimmt Bezeichnung, Grundlage, Quelle, Tätigkeit und Termin von ihrer Pflichtart.',
         )
       }
 

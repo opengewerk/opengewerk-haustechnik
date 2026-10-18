@@ -9,6 +9,11 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
 
 ### Hinzugefügt
 
+- Eigene Pflichten, die einmal fällig sind (#441): Unter „Gezählt“ bietet das Formular einer eigenen
+  Pflicht „Einmalig“ an und fragt dann statt der Frist den Termin, den ihre Quelle nennt. Bis kurz davor
+  ist die Pflicht „Ausstehend bis“, mit ihrem ersten Nachweis ist sie erfüllt; ändern lässt sich der
+  Termin im Formular der Pflicht. Warum: Eine Auflage aus der Baugenehmigung oder eine Forderung des
+  Versicherers nennt oft einen einzigen Tag, und bisher kannte nur eine Pflichtart des Katalogs diesen Fall.
 - Das Anlagenbuch (#437): Die Akte einer Anlage gibt alle ihre Nachweise und ihren Lebenszyklus in
   zeitlicher Folge aus, als PDF oder Tabelle, auf Wunsch mit den Nachweisen dahinter. Eine Anlagenart des
   Pakets kann ihm einen Namen geben: bei einer Verdunstungskühlanlage ist es das Betriebstagebuch nach § 12
