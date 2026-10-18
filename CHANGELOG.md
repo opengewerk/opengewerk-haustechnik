@@ -9,6 +9,14 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
 
 ### Hinzugefügt
 
+- Das Paket Heizung (#352): Heizkessel, Wärmepumpe, Abgasanlage, Heizöllagerung und Gasinstallation mit der Wartung nach
+  § 60 GEG, der Betriebsprüfung der Wärmepumpe nach § 60a in beiden Fassungen vor und ab dem 01.01.2027, den Messungen
+  nach § 15 der 1. BImSchV, Kehren und Feuerstättenschau nach SchfHwG und KÜO, der Prüfung der Heizöllagerung nach der
+  AwSV und der Instandhaltung der Gasinstallation nach der NDAV mit der TRGI als Verweis, dazu vier Formulare, drei
+  Mängelklassen und eine Art der Qualifikation. Die Dichtheitskontrollen des Pakets Raumluft und Kälte nennen in ihrer
+  Fassung 2 die Wärmepumpe. Warum: Phase 2 macht die Betreiberpflichten vollständig, und die Betriebsprüfung der
+  Wärmepumpe ändert sich zum 01.01.2027. Abgenommen ist das Paket noch nicht; das macht beim Pilotbetrieb die
+  Technische Leitung.
 - Das Paket Raumluft und Kälte (#351): Lüftungs-, Klima-, Kälte- und Verdunstungskühlanlagen mit
   Wartung und Prüfung nach § 4 Abs. 3 ArbStättV, der Hygieneinspektion nach VDI 6022 als Verweis
   ohne Frist, der energetischen Inspektion nach dem Gebäudemodernisierungsgesetz mit beiden Fassungen

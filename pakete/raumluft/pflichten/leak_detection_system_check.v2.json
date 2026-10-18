@@ -1,0 +1,41 @@
+{
+  "validFrom": "2024-03-11",
+  "label": "Leckage-Erkennungssystem kontrollieren lassen",
+  "description": "Hat eine ortsfeste Kälte- oder Klimaanlage oder Wärmepumpe ein Leckage-Erkennungssystem, wird es mindestens alle zwölf Monate kontrolliert, damit es richtig funktioniert. Pflicht ist ein solches System ab 500 t CO2-Äquivalent an Gasen nach Anhang I oder ab 100 kg an Gasen nach Anhang II Gruppe 1; es warnt den Betreiber oder ein Wartungsunternehmen bei jeder Leckage.",
+  "task": "function_check",
+  "origin": "state_law",
+  "bindingness": "statute",
+  "source": "Art. 6 Abs. 1 und 3 VO (EU) 2024/573",
+  "interval": {
+    "kind": "maximum",
+    "rule": "fgas_detection_check_interval"
+  },
+  "counting": "from_performance",
+  "qualification": {
+    "level": "skilled_person",
+    "note": "die Verordnung nennt keine Stufe"
+  },
+  "evidence": {
+    "kinds": [
+      "protocol",
+      "report"
+    ],
+    "form": "leak_check"
+  },
+  "retention": {
+    "kind": "until_next_inspection"
+  },
+  "scope": {
+    "assetKinds": [
+      "air_conditioning_system",
+      "refrigeration_system",
+      "heizung.heat_pump"
+    ],
+    "conditions": [
+      {
+        "characteristic": "leak_detection",
+        "is": true
+      }
+    ]
+  }
+}

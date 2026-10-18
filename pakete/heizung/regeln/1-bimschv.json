@@ -1,0 +1,50 @@
+{
+  "note": "Die wiederkehrenden Messungen nach der Verordnung über kleine und mittlere Feuerungsanlagen vom 26. Januar 2010, in Kraft seit dem 22. März 2010, geprüft am Text auf gesetze-im-internet.de. Die Verordnung zählt in Kalenderjahren; die Regeln stehen in Jahren.",
+  "records": [
+    {
+      "key": "flue_gas_measurement_threshold",
+      "validFrom": "2010-03-22",
+      "validUntil": null,
+      "unit": "kilowatts",
+      "value": 4,
+      "source": "§ 15 Abs. 1 und 3 der 1. BImSchV",
+      "origin": "state_law"
+    },
+    {
+      "key": "flue_gas_measurement_interval",
+      "validFrom": "2010-03-22",
+      "validUntil": null,
+      "unit": "years",
+      "value": 3,
+      "source": "§ 15 Abs. 3 Nr. 1 der 1. BImSchV",
+      "origin": "state_law"
+    },
+    {
+      "key": "flue_gas_measurement_interval_older",
+      "validFrom": "2010-03-22",
+      "validUntil": null,
+      "unit": "years",
+      "value": 2,
+      "source": "§ 15 Abs. 3 Nr. 2 der 1. BImSchV",
+      "origin": "state_law"
+    },
+    {
+      "key": "flue_gas_measurement_interval_self_calibrating",
+      "validFrom": "2010-03-22",
+      "validUntil": null,
+      "unit": "years",
+      "value": 5,
+      "source": "§ 15 Abs. 3 der 1. BImSchV",
+      "origin": "state_law"
+    },
+    {
+      "key": "flue_gas_measurement_interval_solid",
+      "validFrom": "2010-03-22",
+      "validUntil": null,
+      "unit": "years",
+      "value": 2,
+      "source": "§ 15 Abs. 1 der 1. BImSchV",
+      "origin": "state_law"
+    }
+  ]
+}

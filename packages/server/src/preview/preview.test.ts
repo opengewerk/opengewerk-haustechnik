@@ -705,6 +705,7 @@ describe('a preview started as the Leitung', () => {
       'brandschutz',
       'elektro',
       'feiertage',
+      'heizung',
       'landesrecht',
       'messstellen',
       'raumluft',

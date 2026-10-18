@@ -1,0 +1,43 @@
+{
+  "validFrom": "2010-03-22",
+  "label": "Feuerungsanlage für feste Brennstoffe messen lassen",
+  "description": "Der Betreiber eines Heizkessels für feste Brennstoffe wie Holz oder Pellets ab 4 kW Nennwärmeleistung lässt in jedem zweiten Kalenderjahr von einem Schornsteinfeger messen, ob er die Grenzwerte für Staub und Kohlenmonoxid einhält. Die Abstände zählen in Kalenderjahren; den Zeitraum legt der bevollmächtigte Bezirksschornsteinfeger im Feuerstättenbescheid fest. Den Nachweis bekommt der Bezirksschornsteinfeger, wenn ein anderer Schornsteinfeger gemessen hat.",
+  "task": "inspection",
+  "origin": "state_law",
+  "bindingness": "statute",
+  "source": "§ 15 Abs. 1 der 1. BImSchV",
+  "interval": {
+    "kind": "maximum",
+    "rule": "flue_gas_measurement_interval_solid"
+  },
+  "counting": "from_due",
+  "qualification": {
+    "level": "skilled_person",
+    "note": "eine Schornsteinfegerin oder ein Schornsteinfeger (§ 15 der 1. BImSchV)"
+  },
+  "evidence": {
+    "kinds": [
+      "report"
+    ]
+  },
+  "retention": {
+    "kind": "until_next_inspection"
+  },
+  "scope": {
+    "assetKinds": [
+      "boiler"
+    ],
+    "conditions": [
+      {
+        "characteristic": "fuel",
+        "oneOf": [
+          "solid"
+        ]
+      },
+      {
+        "characteristic": "rated_heat_output",
+        "atLeast": "flue_gas_measurement_threshold"
+      }
+    ]
+  }
+}

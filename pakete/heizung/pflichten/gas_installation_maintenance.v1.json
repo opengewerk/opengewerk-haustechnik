@@ -1,0 +1,30 @@
+{
+  "validFrom": "2006-11-08",
+  "label": "Gasinstallation instand halten",
+  "description": "Der Anschlussnehmer ist für die Gasanlage hinter der Hauptabsperreinrichtung verantwortlich, auch wenn er das Gebäude vermietet, und hält sie nach den anerkannten Regeln der Technik instand. Arbeiten an ihr macht nur der Netzbetreiber oder ein eingetragenes Installationsunternehmen. Eine Frist nennt die Verordnung nicht; die Regeln der Technik stehen in der TRGI.",
+  "task": "maintenance",
+  "origin": "state_law",
+  "bindingness": "statute",
+  "source": "§ 13 Abs. 1 und 2 NDAV",
+  "interval": {
+    "kind": "none"
+  },
+  "counting": "from_due",
+  "qualification": {
+    "level": "skilled_person",
+    "note": "der Netzbetreiber oder ein Installationsunternehmen aus dem Installateurverzeichnis eines Netzbetreibers (§ 13 Abs. 2 NDAV)"
+  },
+  "evidence": {
+    "kinds": [
+      "report"
+    ]
+  },
+  "retention": {
+    "kind": "until_next_inspection"
+  },
+  "scope": {
+    "assetKinds": [
+      "gas_installation"
+    ]
+  }
+}

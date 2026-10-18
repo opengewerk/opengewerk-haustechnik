@@ -1,0 +1,54 @@
+{
+  "validFrom": "2024-03-11",
+  "label": "Auf Dichtheit kontrollieren lassen (5 bis unter 50 t CO2-Äquivalent, hermetisch geschlossen, mit Leckage-Erkennungssystem)",
+  "description": "Der Betreiber einer ortsfesten Kälte- oder Klimaanlage oder Wärmepumpe mit 5 bis unter 50 t CO2-Äquivalent an fluorierten Treibhausgasen nach Anhang I, die nicht Bestandteil von Schäumen sind, lässt sie mindestens alle 24 Monate auf Dichtheit kontrollieren, weil ein Leckage-Erkennungssystem sie überwacht. Eine hermetisch geschlossene und so gekennzeichnete Einrichtung braucht die Kontrolle erst ab 10 t CO2-Äquivalent. Kontrollieren darf nur eine zertifizierte Person. Findet sie eine Undichtigkeit, lässt der Betreiber sie unverzüglich reparieren und frühestens nach 24 Stunden Betrieb, spätestens einen Monat nach der Reparatur prüfen, ob die Reparatur gelungen ist. Zu jeder Einrichtung führt er Aufzeichnungen über Art und Menge der Gase, Nachfüllungen, Rückgewinnung, das ausführende Unternehmen und die Ergebnisse der Kontrollen und Reparaturen und bewahrt sie mindestens fünf Jahre auf.",
+  "task": "inspection",
+  "origin": "state_law",
+  "bindingness": "statute",
+  "source": "Art. 5 Abs. 1 und Abs. 6 Buchst. a VO (EU) 2024/573",
+  "interval": {
+    "kind": "maximum",
+    "rule": "fgas_band_a_detection_interval"
+  },
+  "counting": "from_performance",
+  "qualification": {
+    "level": "skilled_person",
+    "note": "eine natürliche Person mit Zertifizierung nach Art. 10 der Verordnung, in Deutschland mit Sachkundebescheinigung nach § 5 ChemKlimaschutzV (§ 14 Abs. 2)"
+  },
+  "evidence": {
+    "kinds": [
+      "protocol",
+      "report"
+    ],
+    "form": "leak_check"
+  },
+  "retention": {
+    "kind": "years",
+    "rule": "fgas_record_retention"
+  },
+  "scope": {
+    "assetKinds": [
+      "air_conditioning_system",
+      "refrigeration_system",
+      "heizung.heat_pump"
+    ],
+    "conditions": [
+      {
+        "characteristic": "charge_co2e",
+        "atLeast": "fgas_annex1_sealed_threshold"
+      },
+      {
+        "characteristic": "charge_co2e",
+        "below": "fgas_annex1_band_b"
+      },
+      {
+        "characteristic": "hermetically_sealed",
+        "is": true
+      },
+      {
+        "characteristic": "leak_detection",
+        "is": true
+      }
+    ]
+  }
+}

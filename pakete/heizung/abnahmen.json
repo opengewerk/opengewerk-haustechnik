@@ -1,0 +1,197 @@
+{
+  "entries": [
+    {
+      "file": "anlagenarten/boiler.v1.json",
+      "checkedOn": "2026-10-18"
+    },
+    {
+      "file": "anlagenarten/flue_system.v1.json",
+      "checkedOn": "2026-10-18"
+    },
+    {
+      "file": "anlagenarten/gas_installation.v1.json",
+      "checkedOn": "2026-10-18"
+    },
+    {
+      "file": "anlagenarten/heat_pump.v1.json",
+      "checkedOn": "2026-10-18"
+    },
+    {
+      "file": "anlagenarten/oil_storage.v1.json",
+      "checkedOn": "2026-10-18"
+    },
+    {
+      "file": "formulare/gas_visual_check.v1.json",
+      "checkedOn": "2026-10-18"
+    },
+    {
+      "file": "formulare/heat_pump_protocol.v1.json",
+      "checkedOn": "2026-10-18"
+    },
+    {
+      "file": "formulare/heating_service.v1.json",
+      "checkedOn": "2026-10-18"
+    },
+    {
+      "file": "formulare/oil_storage_check.v1.json",
+      "checkedOn": "2026-10-18"
+    },
+    {
+      "file": "pflichten/chimney_sweeping.v1.json",
+      "checkedOn": "2026-10-18"
+    },
+    {
+      "file": "pflichten/fireplace_inspection.v1.json",
+      "checkedOn": "2026-10-18"
+    },
+    {
+      "file": "pflichten/flue_gas_measurement_gas.v1.json",
+      "checkedOn": "2026-10-18"
+    },
+    {
+      "file": "pflichten/flue_gas_measurement_gas_older.v1.json",
+      "checkedOn": "2026-10-18"
+    },
+    {
+      "file": "pflichten/flue_gas_measurement_gas_self_calibrating.v1.json",
+      "checkedOn": "2026-10-18"
+    },
+    {
+      "file": "pflichten/flue_gas_measurement_oil.v1.json",
+      "checkedOn": "2026-10-18"
+    },
+    {
+      "file": "pflichten/flue_gas_measurement_oil_older.v1.json",
+      "checkedOn": "2026-10-18"
+    },
+    {
+      "file": "pflichten/flue_gas_measurement_oil_self_calibrating.v1.json",
+      "checkedOn": "2026-10-18"
+    },
+    {
+      "file": "pflichten/flue_gas_measurement_solid.v1.json",
+      "checkedOn": "2026-10-18"
+    },
+    {
+      "file": "pflichten/gas_installation_maintenance.v1.json",
+      "checkedOn": "2026-10-18"
+    },
+    {
+      "file": "pflichten/gas_installation_serviceability_test.v1.json",
+      "checkedOn": "2026-10-18"
+    },
+    {
+      "file": "pflichten/gas_installation_visual_check.v1.json",
+      "checkedOn": "2026-10-18"
+    },
+    {
+      "file": "pflichten/heat_pump_check.v1.json",
+      "checkedOn": "2026-10-18"
+    },
+    {
+      "file": "pflichten/heat_pump_check.v2.json",
+      "checkedOn": "2026-10-18"
+    },
+    {
+      "file": "pflichten/heating_maintenance.v1.json",
+      "checkedOn": "2026-10-18"
+    },
+    {
+      "file": "pflichten/oil_storage_inspection.v1.json",
+      "checkedOn": "2026-10-18"
+    },
+    {
+      "file": "pflichten/oil_storage_inspection_protected.v1.json",
+      "checkedOn": "2026-10-18"
+    },
+    {
+      "file": "pflichten/oil_storage_inspection_underground.v1.json",
+      "checkedOn": "2026-10-18"
+    },
+    {
+      "file": "pflichten/oil_storage_inspection_underground_protected.v1.json",
+      "checkedOn": "2026-10-18"
+    },
+    {
+      "file": "pflichten/oil_storage_self_check.v1.json",
+      "checkedOn": "2026-10-18"
+    }
+  ],
+  "rules": [
+    {
+      "key": "flue_gas_measurement_threshold",
+      "validFrom": "2010-03-22",
+      "checkedOn": "2026-10-18"
+    },
+    {
+      "key": "flue_gas_measurement_interval",
+      "validFrom": "2010-03-22",
+      "checkedOn": "2026-10-18"
+    },
+    {
+      "key": "flue_gas_measurement_interval_older",
+      "validFrom": "2010-03-22",
+      "checkedOn": "2026-10-18"
+    },
+    {
+      "key": "flue_gas_measurement_interval_self_calibrating",
+      "validFrom": "2010-03-22",
+      "checkedOn": "2026-10-18"
+    },
+    {
+      "key": "flue_gas_measurement_interval_solid",
+      "validFrom": "2010-03-22",
+      "checkedOn": "2026-10-18"
+    },
+    {
+      "key": "oil_storage_inspection_interval",
+      "validFrom": "2017-08-01",
+      "checkedOn": "2026-10-18"
+    },
+    {
+      "key": "oil_storage_inspection_interval_underground_protected",
+      "validFrom": "2017-08-01",
+      "checkedOn": "2026-10-18"
+    },
+    {
+      "key": "heat_pump_check_interval",
+      "validFrom": "2024-01-01",
+      "checkedOn": "2026-10-18"
+    },
+    {
+      "key": "heat_pump_check_interval",
+      "validFrom": "2027-01-01",
+      "checkedOn": "2026-10-18"
+    },
+    {
+      "key": "heat_pump_record_retention",
+      "validFrom": "2024-01-01",
+      "checkedOn": "2026-10-18"
+    },
+    {
+      "key": "fireplace_inspection_interval",
+      "validFrom": "2013-01-01",
+      "checkedOn": "2026-10-18"
+    }
+  ],
+  "classes": [
+    {
+      "key": "minor",
+      "checkedOn": "2026-10-18"
+    },
+    {
+      "key": "significant",
+      "checkedOn": "2026-10-18"
+    },
+    {
+      "key": "dangerous",
+      "checkedOn": "2026-10-18"
+    }
+  ],
+  "qualifications": [
+    {
+      "key": "heat_pump_inspector",
+      "checkedOn": "2026-10-18"
+    }
+  ]
+}

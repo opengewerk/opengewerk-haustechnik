@@ -1,0 +1,47 @@
+{
+  "validFrom": "2010-03-22",
+  "label": "Feuerungsanlage für Heizöl messen lassen (selbstkalibrierend)",
+  "description": "Der Betreiber einer Feuerungsanlage für Heizöl ab 4 kW Nennwärmeleistung lässt von einem Schornsteinfeger messen, ob sie die Grenzwerte einhält, in jedem fünften Kalenderjahr, mit selbstkalibrierender kontinuierlicher Verbrennungsregelung. Die Abstände zählen in Kalenderjahren; den Zeitraum legt der bevollmächtigte Bezirksschornsteinfeger im Feuerstättenbescheid fest. Den Nachweis bekommt der Bezirksschornsteinfeger, wenn ein anderer Schornsteinfeger gemessen hat.",
+  "task": "inspection",
+  "origin": "state_law",
+  "bindingness": "statute",
+  "source": "§ 15 Abs. 3 der 1. BImSchV",
+  "interval": {
+    "kind": "maximum",
+    "rule": "flue_gas_measurement_interval_self_calibrating"
+  },
+  "counting": "from_due",
+  "qualification": {
+    "level": "skilled_person",
+    "note": "eine Schornsteinfegerin oder ein Schornsteinfeger (§ 15 der 1. BImSchV)"
+  },
+  "evidence": {
+    "kinds": [
+      "report"
+    ]
+  },
+  "retention": {
+    "kind": "until_next_inspection"
+  },
+  "scope": {
+    "assetKinds": [
+      "boiler"
+    ],
+    "conditions": [
+      {
+        "characteristic": "fuel",
+        "oneOf": [
+          "oil"
+        ]
+      },
+      {
+        "characteristic": "rated_heat_output",
+        "atLeast": "flue_gas_measurement_threshold"
+      },
+      {
+        "characteristic": "self_calibrating",
+        "is": true
+      }
+    ]
+  }
+}

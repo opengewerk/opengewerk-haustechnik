@@ -1,0 +1,50 @@
+{
+  "validFrom": "2018-09-01",
+  "title": "Augenschein der Gasinstallation",
+  "sections": [
+    {
+      "key": "check",
+      "title": "Augenschein",
+      "fields": [
+        {
+          "kind": "check_point",
+          "key": "smell",
+          "label": "Kein Gasgeruch"
+        },
+        {
+          "kind": "check_point",
+          "key": "pipes",
+          "label": "Leitungen äußerlich unbeschädigt und nicht als Träger oder Halter benutzt"
+        },
+        {
+          "kind": "check_point",
+          "key": "valves",
+          "label": "Absperreinrichtungen zugänglich"
+        },
+        {
+          "kind": "check_point",
+          "key": "air",
+          "label": "Öffnungen für Verbrennungsluft frei"
+        },
+        {
+          "kind": "text",
+          "key": "note",
+          "label": "Bemerkung",
+          "multiline": true
+        }
+      ]
+    },
+    {
+      "key": "end",
+      "title": "Abschluss",
+      "fields": [
+        {
+          "kind": "signature",
+          "key": "signature",
+          "label": "Unterschrift",
+          "seals": true
+        }
+      ]
+    }
+  ]
+}

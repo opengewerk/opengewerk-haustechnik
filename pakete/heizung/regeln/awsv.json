@@ -1,0 +1,23 @@
+{
+  "note": "Die Prüfung durch Sachverständige nach der Verordnung über Anlagen zum Umgang mit wassergefährdenden Stoffen vom 18. April 2017, in Kraft seit dem 1. August 2017, geprüft am Text auf gesetze-im-internet.de. Heizöl EL hat die Wassergefährdungsklasse 2.",
+  "records": [
+    {
+      "key": "oil_storage_inspection_interval",
+      "validFrom": "2017-08-01",
+      "validUntil": null,
+      "unit": "years",
+      "value": 5,
+      "source": "Anlage 5 und 6 AwSV",
+      "origin": "state_law"
+    },
+    {
+      "key": "oil_storage_inspection_interval_underground_protected",
+      "validFrom": "2017-08-01",
+      "validUntil": null,
+      "unit": "months",
+      "value": 30,
+      "source": "Anlage 6 AwSV",
+      "origin": "state_law"
+    }
+  ]
+}

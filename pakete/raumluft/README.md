@@ -29,8 +29,10 @@ Ausgabe 2018-12, und nicht am Text der Norm geprüft.
 - **Klimaanlage:** dazu gehören auch eine Teilklimaanlage, ein Splitgerät und eine kombinierte Klima- und
   Lüftungsanlage.
 - **Verdunstungskühlanlage:** dazu gehört ein Rückkühlwerk mit offenem Kreislauf.
-- **Was noch fehlt:** Wärmepumpen tragen dieselben Pflichten nach der F-Gas-Verordnung; sie kommen mit dem
-  Paket Heizung (#352).
+- **Wärmepumpen:** Sie stehen im Paket Heizung (#352) und tragen dieselben Pflichten nach der
+  F-Gas-Verordnung. Seit der Fassung 1.1.0 des Pakets nennen die sechzehn Stufen der Dichtheitskontrolle und
+  die Kontrolle des Leckage-Erkennungssystems in ihrer Fassung 2 die Wärmepumpe `heizung.heat_pump`, vom
+  selben Tag an wie Fassung 1.
 
 Die Pflichten fragen nach diesen Merkmalen:
 
