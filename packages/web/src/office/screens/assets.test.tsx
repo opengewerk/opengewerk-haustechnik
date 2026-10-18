@@ -20,6 +20,7 @@ import {
   rowsOf,
   servingTables,
   signedInOffice,
+  type WriteAnswer,
 } from '../test-office.js'
 
 /**
@@ -582,6 +583,159 @@ describe('the register of assets', () => {
         .getAllByRole('columnheader')
         .map((heading) => heading.textContent),
     ).toEqual([...assetTableColumns])
+  })
+})
+
+describe('the kind of many assets, corrected in one step (#351)', () => {
+  const older = entry('a-old', 'AN-00140', 'Aufzug Altbau', {
+    kind: 'allgemein.conveying_system',
+    condition: 'no_duties',
+    until: null,
+  })
+  const goods = entry('a-goods', 'AN-00141', 'Lastenaufzug', {
+    kind: 'allgemein.conveying_system',
+    condition: 'no_duties',
+    until: null,
+  })
+  /** The catalogue with the general kind, and a measuring point beside it. */
+  const withMeter: CatalogueBundle = {
+    ...withGeneralKind,
+    packages: [
+      ...withGeneralKind.packages,
+      {
+        name: 'messstellen',
+        title: 'Messstellen',
+        version: '1.0.0',
+        minimumCore: '0.1.0',
+        assetKinds: [
+          {
+            key: 'messstellen.water_meter',
+            version: 1,
+            validFrom: '2015-01-01',
+            definition: {
+              label: 'Wasserzähler',
+              costGroup: '410',
+              characteristics: [],
+              fields: [],
+              expectedDocuments: [],
+              meter: { medium: 'water', units: ['cubic_metres'] },
+            },
+            review: acceptedReview,
+          },
+        ],
+        dutyKinds: [],
+        forms: [],
+        roundTemplates: [],
+        rules: [],
+        defectClasses: [],
+        qualifications: [],
+      },
+    ],
+  }
+  const newKind = 'Neue Anlagenart'
+
+  /** The register with "Anlagenart berichtigen" pressed, and what the screen writes. */
+  async function correcting(answer: WriteAnswer) {
+    const written = signedInOffice(
+      'technician',
+      [sued],
+      { ...servingCatalogue(withMeter), [firstPage]: page([older, goods, lift]) },
+      () => answer,
+    )
+
+    await mountOffice('/anlagen', server, everything)
+    // The names of the kinds come with the catalogue of the device.
+    await within(await screen.findByRole('table', { name: register })).findAllByText('Förderanlage')
+    fireEvent.click(screen.getByRole('button', { name: 'Anlagenart berichtigen' }))
+
+    return written
+  }
+
+  it('puts a box in front of every row and sends the chosen assets with their new kind in one step', async () => {
+    const written = await correcting({ status: 200, body: [] })
+
+    fireEvent.click(screen.getByRole('checkbox', { name: 'AN-00140 Aufzug Altbau auswählen' }))
+    fireEvent.click(screen.getByRole('checkbox', { name: 'AN-00141 Lastenaufzug auswählen' }))
+
+    expect(screen.getAllByText('2 von 3 ausgewählt')).toHaveLength(2)
+    expect(screen.getByText(/^Heute Förderanlage \(KG 460\)\./u)).toBeTruthy()
+
+    // The kinds of the catalogue, and no measuring point: a meter needs its number and unit.
+    const offered = within(screen.getByRole('combobox', { name: newKind }))
+      .getAllByRole('option')
+      .map((option) => option.textContent)
+
+    expect(offered).toContain('Probepaket: Aufzugsanlage')
+    expect(offered).not.toContain('Messstellen: Wasserzähler')
+
+    fireEvent.change(screen.getByRole('combobox', { name: newKind }), {
+      target: { value: 'probe.elevator' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: '2 Anlagen berichtigen' }))
+
+    expect(await screen.findByText('2 Anlagen berichtigt.')).toBeTruthy()
+    expect(written).toEqual([
+      {
+        method: 'PUT',
+        path: '/assets/kind',
+        body: { kind: 'probe.elevator', assetIds: ['a-old', 'a-goods'] },
+      },
+    ])
+    // Done, the boxes are gone again.
+    expect(screen.queryByRole('checkbox')).toBeNull()
+  })
+
+  it('asks for the new kind first, and says what the server refuses', async () => {
+    const refusal =
+      'AN-00012 Aufzug Schulhaus: Das Feld stops hat die Anlagenart Förderanlage nicht.'
+    const written = await correcting({ status: 400, body: { message: refusal } })
+
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Alle 3 geladenen auswählen' }))
+    fireEvent.click(screen.getByRole('button', { name: '3 Anlagen berichtigen' }))
+
+    expect(screen.getByText('Die neue Anlagenart fehlt.')).toBeTruthy()
+    expect(written).toEqual([])
+
+    fireEvent.change(screen.getByRole('combobox', { name: newKind }), {
+      target: { value: 'allgemein.conveying_system' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: '3 Anlagen berichtigen' }))
+
+    expect(await screen.findByText(refusal)).toBeTruthy()
+    expect(written.map((write) => write.body)).toEqual([
+      { kind: 'allgemein.conveying_system', assetIds: ['a-old', 'a-goods', 'a-lift'] },
+    ])
+    // Nothing is corrected, and the choice stays for a second try.
+    expect(screen.getAllByText('3 von 3 ausgewählt')).toHaveLength(2)
+  })
+
+  it('is offered to whoever takes stock of assets, from the width of a tablet on', async () => {
+    const technician = memberIn('technician')
+
+    signedInOffice('technician', [sued], {
+      ...servingCatalogue(withMeter),
+      [firstPage]: page([older]),
+      // A role of the operator's own that reads assets and does not take stock of them (#346).
+      '/auth/tenants': [
+        { ...technician, rights: technician.rights.filter((right) => right !== 'asset.record') },
+      ],
+    })
+    await mountOffice('/anlagen', server, everything)
+    await screen.findByRole('table', { name: register })
+
+    expect(screen.queryByRole('button', { name: 'Anlagenart berichtigen' })).toBeNull()
+  })
+
+  it('is not offered on a phone, where the register stands as cards', async () => {
+    onA('phone')
+    signedInOffice('technician', [sued], {
+      ...servingCatalogue(withMeter),
+      [firstPage]: page([older]),
+    })
+    await mountOffice('/anlagen', server, everything)
+    await screen.findByText('Aufzug Altbau')
+
+    expect(screen.queryByRole('button', { name: 'Anlagenart berichtigen' })).toBeNull()
   })
 })
 

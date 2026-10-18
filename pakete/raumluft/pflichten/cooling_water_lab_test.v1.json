@@ -1,0 +1,33 @@
+{
+  "validFrom": "2017-08-19",
+  "label": "Nutzwasser im Labor untersuchen lassen",
+  "description": "Der Betreiber einer Verdunstungskühlanlage lässt das Nutzwasser mindestens alle drei Monate im Labor auf die allgemeine Koloniezahl und auf Legionellen untersuchen, zum ersten Mal innerhalb von vier Wochen nach der Inbetriebnahme oder Wiederinbetriebnahme. Aus sechs Untersuchungen der Koloniezahl in Folge ergibt sich ihr Referenzwert. Blieben die Legionellen zwei Jahre lang unter dem Prüfwert 1, genügt für sie eine Untersuchung alle sechs Monate, eine davon zwischen dem 1. Juni und dem 31. August; die Koloniezahl bleibt bei drei Monaten. Überschreitet ein Befund einen Prüfwert, wird unverzüglich nachuntersucht, und nach der Bestätigung monatlich; erreicht er den Maßnahmenwert, meldet der Betreiber das unverzüglich der Behörde. Der Betreiber trägt das Ergebnis unverzüglich in das Betriebstagebuch der Anlage ein, das er bis fünf Jahre nach dem letzten Eintrag aufbewahrt.",
+  "task": "sampling",
+  "origin": "state_law",
+  "bindingness": "statute",
+  "source": "§ 4 Abs. 2 Nr. 2 und Abs. 3 der 42. BImSchV",
+  "interval": {
+    "kind": "maximum",
+    "rule": "cooling_lab_test_interval"
+  },
+  "counting": "from_performance",
+  "qualification": {
+    "level": "accredited_laboratory",
+    "note": "ein akkreditiertes Prüflaboratorium, das auch die Proben nimmt (§ 3 Abs. 8)"
+  },
+  "evidence": {
+    "kinds": [
+      "report",
+      "protocol"
+    ],
+    "form": "cooling_water_findings"
+  },
+  "retention": {
+    "kind": "while_in_use"
+  },
+  "scope": {
+    "assetKinds": [
+      "evaporative_cooling_system"
+    ]
+  }
+}

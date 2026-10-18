@@ -1,0 +1,28 @@
+{
+  "validFrom": "2004-08-25",
+  "label": "Lüftungsanlage",
+  "costGroup": "431",
+  "characteristics": [
+    {
+      "key": "rated_output",
+      "label": "Nennleistung",
+      "kind": "number",
+      "unit": "kilowatts"
+    }
+  ],
+  "fields": [
+    {
+      "key": "humidification",
+      "label": "Mit Luftbefeuchtung",
+      "kind": "flag"
+    }
+  ],
+  "expectedDocuments": [
+    {
+      "key": "operating_manual",
+      "label": "Betriebsanleitung",
+      "kind": "operating_manual",
+      "demand": "recommended"
+    }
+  ]
+}

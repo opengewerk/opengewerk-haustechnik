@@ -1,0 +1,149 @@
+{
+  "note": "Die Dichtheitskontrollen nach der Verordnung (EU) 2024/573 über fluorierte Treibhausgase, in Kraft seit dem 11. März 2024, geprüft am Text auf EUR-Lex. Die Vorgängerin, die Verordnung (EU) Nr. 517/2014, hatte für die Gase nach Anhang I dieselben Schwellen und Fristen und keine für die nach Anhang II; sie steht nicht im Paket. Eine Füllmenge steht in ganzen Kilogramm CO2-Äquivalent oder ganzen Kilogramm.",
+  "records": [
+    {
+      "key": "fgas_annex1_threshold",
+      "validFrom": "2024-03-11",
+      "validUntil": null,
+      "unit": "kilograms_co2e",
+      "value": 5000,
+      "source": "Art. 5 Abs. 1 UAbs. 1 VO (EU) 2024/573",
+      "origin": "state_law"
+    },
+    {
+      "key": "fgas_annex1_sealed_threshold",
+      "validFrom": "2024-03-11",
+      "validUntil": null,
+      "unit": "kilograms_co2e",
+      "value": 10000,
+      "source": "Art. 5 Abs. 1 UAbs. 2 Buchst. a VO (EU) 2024/573",
+      "origin": "state_law"
+    },
+    {
+      "key": "fgas_annex1_band_b",
+      "validFrom": "2024-03-11",
+      "validUntil": null,
+      "unit": "kilograms_co2e",
+      "value": 50000,
+      "source": "Art. 5 Abs. 6 Buchst. b VO (EU) 2024/573",
+      "origin": "state_law"
+    },
+    {
+      "key": "fgas_annex1_band_c",
+      "validFrom": "2024-03-11",
+      "validUntil": null,
+      "unit": "kilograms_co2e",
+      "value": 500000,
+      "source": "Art. 5 Abs. 6 Buchst. c VO (EU) 2024/573",
+      "origin": "state_law"
+    },
+    {
+      "key": "fgas_annex2_threshold",
+      "validFrom": "2024-03-11",
+      "validUntil": null,
+      "unit": "kilograms",
+      "value": 1,
+      "source": "Art. 5 Abs. 1 UAbs. 1 VO (EU) 2024/573",
+      "origin": "state_law"
+    },
+    {
+      "key": "fgas_annex2_sealed_threshold",
+      "validFrom": "2024-03-11",
+      "validUntil": null,
+      "unit": "kilograms",
+      "value": 2,
+      "source": "Art. 5 Abs. 1 UAbs. 2 Buchst. b VO (EU) 2024/573",
+      "origin": "state_law"
+    },
+    {
+      "key": "fgas_annex2_band_b",
+      "validFrom": "2024-03-11",
+      "validUntil": null,
+      "unit": "kilograms",
+      "value": 10,
+      "source": "Art. 5 Abs. 6 Buchst. b VO (EU) 2024/573",
+      "origin": "state_law"
+    },
+    {
+      "key": "fgas_annex2_band_c",
+      "validFrom": "2024-03-11",
+      "validUntil": null,
+      "unit": "kilograms",
+      "value": 100,
+      "source": "Art. 5 Abs. 6 Buchst. c VO (EU) 2024/573",
+      "origin": "state_law"
+    },
+    {
+      "key": "fgas_band_a_interval",
+      "validFrom": "2024-03-11",
+      "validUntil": null,
+      "unit": "months",
+      "value": 12,
+      "source": "Art. 5 Abs. 6 Buchst. a VO (EU) 2024/573",
+      "origin": "state_law"
+    },
+    {
+      "key": "fgas_band_a_detection_interval",
+      "validFrom": "2024-03-11",
+      "validUntil": null,
+      "unit": "months",
+      "value": 24,
+      "source": "Art. 5 Abs. 6 Buchst. a VO (EU) 2024/573",
+      "origin": "state_law"
+    },
+    {
+      "key": "fgas_band_b_interval",
+      "validFrom": "2024-03-11",
+      "validUntil": null,
+      "unit": "months",
+      "value": 6,
+      "source": "Art. 5 Abs. 6 Buchst. b VO (EU) 2024/573",
+      "origin": "state_law"
+    },
+    {
+      "key": "fgas_band_b_detection_interval",
+      "validFrom": "2024-03-11",
+      "validUntil": null,
+      "unit": "months",
+      "value": 12,
+      "source": "Art. 5 Abs. 6 Buchst. b VO (EU) 2024/573",
+      "origin": "state_law"
+    },
+    {
+      "key": "fgas_band_c_interval",
+      "validFrom": "2024-03-11",
+      "validUntil": null,
+      "unit": "months",
+      "value": 3,
+      "source": "Art. 5 Abs. 6 Buchst. c VO (EU) 2024/573",
+      "origin": "state_law"
+    },
+    {
+      "key": "fgas_band_c_detection_interval",
+      "validFrom": "2024-03-11",
+      "validUntil": null,
+      "unit": "months",
+      "value": 6,
+      "source": "Art. 5 Abs. 6 Buchst. c VO (EU) 2024/573",
+      "origin": "state_law"
+    },
+    {
+      "key": "fgas_detection_check_interval",
+      "validFrom": "2024-03-11",
+      "validUntil": null,
+      "unit": "months",
+      "value": 12,
+      "source": "Art. 6 Abs. 3 VO (EU) 2024/573",
+      "origin": "state_law"
+    },
+    {
+      "key": "fgas_record_retention",
+      "validFrom": "2024-03-11",
+      "validUntil": null,
+      "unit": "years",
+      "value": 5,
+      "source": "Art. 7 Abs. 2 VO (EU) 2024/573",
+      "origin": "state_law"
+    }
+  ]
+}

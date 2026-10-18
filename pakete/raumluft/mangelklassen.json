@@ -1,0 +1,19 @@
+{
+  "classes": [
+    {
+      "key": "minor",
+      "label": "gering, ohne Einfluss auf Betrieb und Hygiene",
+      "unsafe": false
+    },
+    {
+      "key": "significant",
+      "label": "erheblich, Betrieb, Hygiene oder Dichtheit beeinträchtigt, umgehend beheben",
+      "unsafe": false
+    },
+    {
+      "key": "dangerous",
+      "label": "Gefahr für die Gesundheit, Anlage außer Betrieb nehmen",
+      "unsafe": true
+    }
+  ]
+}

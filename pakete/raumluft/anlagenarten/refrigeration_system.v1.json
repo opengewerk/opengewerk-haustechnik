@@ -1,0 +1,44 @@
+{
+  "validFrom": "2004-08-25",
+  "label": "Kälteanlage",
+  "costGroup": "434",
+  "characteristics": [
+    {
+      "key": "charge_co2e",
+      "label": "Füllmenge fluorierter Treibhausgase nach Anhang I der F-Gas-Verordnung",
+      "kind": "number",
+      "unit": "kilograms_co2e"
+    },
+    {
+      "key": "charge_unsaturated",
+      "label": "Füllmenge ungesättigter H-FKW und H-FCKW nach Anhang II Gruppe 1 der F-Gas-Verordnung",
+      "kind": "number",
+      "unit": "kilograms"
+    },
+    {
+      "key": "hermetically_sealed",
+      "label": "Hermetisch geschlossen und so gekennzeichnet",
+      "kind": "flag"
+    },
+    {
+      "key": "leak_detection",
+      "label": "Mit Leckage-Erkennungssystem",
+      "kind": "flag"
+    }
+  ],
+  "fields": [
+    {
+      "key": "refrigerant",
+      "label": "Kältemittel",
+      "kind": "text"
+    }
+  ],
+  "expectedDocuments": [
+    {
+      "key": "operating_manual",
+      "label": "Betriebsanleitung",
+      "kind": "operating_manual",
+      "demand": "recommended"
+    }
+  ]
+}

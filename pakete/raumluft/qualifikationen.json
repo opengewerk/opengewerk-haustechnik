@@ -1,0 +1,37 @@
+{
+  "qualifications": [
+    {
+      "key": "fgas_certified_person",
+      "label": "Zertifizierte Person für Dichtheitskontrollen (F-Gase)",
+      "level": "skilled_person",
+      "requiredFor": [
+        "leak_check_annex1_band_a",
+        "leak_check_annex1_band_a_detection",
+        "leak_check_annex1_band_a_sealed",
+        "leak_check_annex1_band_a_sealed_detection",
+        "leak_check_annex1_band_b",
+        "leak_check_annex1_band_b_detection",
+        "leak_check_annex1_band_c",
+        "leak_check_annex1_band_c_detection",
+        "leak_check_annex2_band_a",
+        "leak_check_annex2_band_a_detection",
+        "leak_check_annex2_band_a_sealed",
+        "leak_check_annex2_band_a_sealed_detection",
+        "leak_check_annex2_band_b",
+        "leak_check_annex2_band_b_detection",
+        "leak_check_annex2_band_c",
+        "leak_check_annex2_band_c_detection"
+      ]
+    },
+    {
+      "key": "energy_inspector",
+      "label": "Fachkundige Person für die energetische Inspektion",
+      "level": "skilled_person",
+      "requiredFor": [
+        "ac_energy_inspection",
+        "ac_energy_inspection_large",
+        "ventilation_energy_inspection"
+      ]
+    }
+  ]
+}

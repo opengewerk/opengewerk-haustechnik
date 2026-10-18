@@ -1,0 +1,67 @@
+{
+  "validFrom": "2017-08-19",
+  "title": "Befund der Laboruntersuchung des Nutzwassers",
+  "sections": [
+    {
+      "key": "examination",
+      "title": "Untersuchung",
+      "hint": "Aus dem Prüfbericht des Labors",
+      "fields": [
+        {
+          "kind": "text",
+          "key": "laboratory",
+          "label": "Akkreditiertes Prüflaboratorium",
+          "required": true,
+          "carry": true
+        },
+        {
+          "kind": "text",
+          "key": "report",
+          "label": "Nummer des Prüfberichts"
+        },
+        {
+          "kind": "text",
+          "key": "sampled_at",
+          "label": "Zeitpunkt der Probennahme",
+          "required": true
+        }
+      ]
+    },
+    {
+      "key": "results",
+      "title": "Ergebnisse",
+      "fields": [
+        {
+          "kind": "measurement",
+          "key": "legionella",
+          "label": "Legionella spp.",
+          "unit": "count_per_100_ml",
+          "decimals": 0,
+          "required": true,
+          "limit": {
+            "kind": "at_most",
+            "rule": "cooling_legionella_test_value"
+          }
+        },
+        {
+          "kind": "text",
+          "key": "colony_count",
+          "label": "Allgemeine Koloniezahl in KBE je ml",
+          "required": true
+        }
+      ]
+    },
+    {
+      "key": "end",
+      "title": "Abschluss",
+      "fields": [
+        {
+          "kind": "signature",
+          "key": "signature",
+          "label": "Unterschrift",
+          "seals": true
+        }
+      ]
+    }
+  ]
+}

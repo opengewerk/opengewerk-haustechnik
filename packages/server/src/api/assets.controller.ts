@@ -35,6 +35,7 @@ import {
   exchangeRefusals,
   type ExchangeStanding,
   isAllowed,
+  kindCorrectionProblem,
   type LifecycleEntry,
   lifecycleEntryProblems,
   type LifecycleState,
@@ -73,6 +74,7 @@ import { dayInGermany } from '../today.js'
 import { assetRegister, registerQuestion } from './asset-register.js'
 import { RequiresPermission } from './authorization.js'
 import { assetTable } from './office-tables.js'
+import { atTheAsset } from './batch.js'
 import { type Asking, fieldsOf, placeOf, refuse } from './places.js'
 
 const missing = 'Diese Anlage gibt es nicht oder nicht mehr.'
@@ -540,6 +542,54 @@ export class AssetsController {
         .returning()
 
       return changed as Asset
+    })
+  }
+
+  /**
+   * The kind of many assets corrected in one step, once the package for them
+   * has come (#351; section 4.2 of the concept: "Kommt das Paket, berichtigt
+   * das Anlagenverzeichnis die Anlagenart vieler Anlagen in einem Schritt").
+   * Each asset is held against the new kind as one corrected alone, with its
+   * values and its meter as they are. One transaction: all of them or none,
+   * and a refusal names the asset that does not fit. Their duties stay as
+   * they are; those of the new kind are proposed afterwards.
+   */
+  @Put('kind')
+  @RequiresPermission('asset.record')
+  correctKind(@CurrentIdentity() identity: Asking, @Body() body: unknown): Promise<Asset[]> {
+    const { kind } = fieldsOf(body, ['kind'])
+    const assetIds = (body as { assetIds?: unknown } | null)?.assetIds
+
+    const problem = kindCorrectionProblem(kind, assetIds)
+
+    if (problem !== null) {
+      throw new BadRequestException(problem)
+    }
+
+    return this.database.forTenant(identity, async (tx) => {
+      const definition = kindOf(await tenantCatalogue(tx, this.catalogue), kind)
+      const corrected: Asset[] = []
+
+      for (const assetId of assetIds as readonly string[]) {
+        corrected.push(
+          await atTheAsset(tx, assetId, async () => {
+            const asset = await placeOf<Asset>(tx, assets, assetId, missing)
+
+            refuse(assetValueProblems(definition, asset.values))
+            refuse(meterProblems(definition, { ...asset }))
+
+            const [changed] = await tx
+              .update(assets)
+              .set({ kind: kind as string })
+              .where(and(eq(assets.id, asset.id), isNull(assets.deletedAt)))
+              .returning()
+
+            return changed as Asset
+          }),
+        )
+      }
+
+      return corrected
     })
   }
 

@@ -1,0 +1,305 @@
+{
+  "entries": [
+    {
+      "file": "anlagenarten/air_conditioning_system.v1.json",
+      "checkedOn": "2026-10-18"
+    },
+    {
+      "file": "anlagenarten/evaporative_cooling_system.v1.json",
+      "checkedOn": "2026-10-18"
+    },
+    {
+      "file": "anlagenarten/refrigeration_system.v1.json",
+      "checkedOn": "2026-10-18"
+    },
+    {
+      "file": "anlagenarten/ventilation_system.v1.json",
+      "checkedOn": "2026-10-18"
+    },
+    {
+      "file": "formulare/cooling_water_findings.v1.json",
+      "checkedOn": "2026-10-18"
+    },
+    {
+      "file": "formulare/cooling_water_protocol.v1.json",
+      "checkedOn": "2026-10-18"
+    },
+    {
+      "file": "formulare/energy_inspection.v1.json",
+      "checkedOn": "2026-10-18"
+    },
+    {
+      "file": "formulare/leak_check.v1.json",
+      "checkedOn": "2026-10-18"
+    },
+    {
+      "file": "formulare/ventilation_protocol.v1.json",
+      "checkedOn": "2026-10-18"
+    },
+    {
+      "file": "pflichten/ac_energy_inspection.v1.json",
+      "checkedOn": "2026-10-18"
+    },
+    {
+      "file": "pflichten/ac_energy_inspection_large.v1.json",
+      "checkedOn": "2026-10-18"
+    },
+    {
+      "file": "pflichten/ac_energy_inspection_large.v2.json",
+      "checkedOn": "2026-10-18"
+    },
+    {
+      "file": "pflichten/cooling_expert_inspection.v1.json",
+      "checkedOn": "2026-10-18"
+    },
+    {
+      "file": "pflichten/cooling_water_internal_check.v1.json",
+      "checkedOn": "2026-10-18"
+    },
+    {
+      "file": "pflichten/cooling_water_lab_test.v1.json",
+      "checkedOn": "2026-10-18"
+    },
+    {
+      "file": "pflichten/leak_check_annex1_band_a.v1.json",
+      "checkedOn": "2026-10-18"
+    },
+    {
+      "file": "pflichten/leak_check_annex1_band_a_detection.v1.json",
+      "checkedOn": "2026-10-18"
+    },
+    {
+      "file": "pflichten/leak_check_annex1_band_a_sealed.v1.json",
+      "checkedOn": "2026-10-18"
+    },
+    {
+      "file": "pflichten/leak_check_annex1_band_a_sealed_detection.v1.json",
+      "checkedOn": "2026-10-18"
+    },
+    {
+      "file": "pflichten/leak_check_annex1_band_b.v1.json",
+      "checkedOn": "2026-10-18"
+    },
+    {
+      "file": "pflichten/leak_check_annex1_band_b_detection.v1.json",
+      "checkedOn": "2026-10-18"
+    },
+    {
+      "file": "pflichten/leak_check_annex1_band_c.v1.json",
+      "checkedOn": "2026-10-18"
+    },
+    {
+      "file": "pflichten/leak_check_annex1_band_c_detection.v1.json",
+      "checkedOn": "2026-10-18"
+    },
+    {
+      "file": "pflichten/leak_check_annex2_band_a.v1.json",
+      "checkedOn": "2026-10-18"
+    },
+    {
+      "file": "pflichten/leak_check_annex2_band_a_detection.v1.json",
+      "checkedOn": "2026-10-18"
+    },
+    {
+      "file": "pflichten/leak_check_annex2_band_a_sealed.v1.json",
+      "checkedOn": "2026-10-18"
+    },
+    {
+      "file": "pflichten/leak_check_annex2_band_a_sealed_detection.v1.json",
+      "checkedOn": "2026-10-18"
+    },
+    {
+      "file": "pflichten/leak_check_annex2_band_b.v1.json",
+      "checkedOn": "2026-10-18"
+    },
+    {
+      "file": "pflichten/leak_check_annex2_band_b_detection.v1.json",
+      "checkedOn": "2026-10-18"
+    },
+    {
+      "file": "pflichten/leak_check_annex2_band_c.v1.json",
+      "checkedOn": "2026-10-18"
+    },
+    {
+      "file": "pflichten/leak_check_annex2_band_c_detection.v1.json",
+      "checkedOn": "2026-10-18"
+    },
+    {
+      "file": "pflichten/leak_detection_system_check.v1.json",
+      "checkedOn": "2026-10-18"
+    },
+    {
+      "file": "pflichten/ventilation_energy_inspection.v1.json",
+      "checkedOn": "2026-10-18"
+    },
+    {
+      "file": "pflichten/ventilation_hygiene_inspection.v1.json",
+      "checkedOn": "2026-10-18"
+    },
+    {
+      "file": "pflichten/ventilation_maintenance.v1.json",
+      "checkedOn": "2026-10-18"
+    }
+  ],
+  "rules": [
+    {
+      "key": "cooling_internal_check_interval",
+      "validFrom": "2017-08-19",
+      "checkedOn": "2026-10-18"
+    },
+    {
+      "key": "cooling_lab_test_interval",
+      "validFrom": "2017-08-19",
+      "checkedOn": "2026-10-18"
+    },
+    {
+      "key": "cooling_expert_inspection_interval",
+      "validFrom": "2017-08-19",
+      "checkedOn": "2026-10-18"
+    },
+    {
+      "key": "cooling_legionella_test_value",
+      "validFrom": "2017-08-19",
+      "checkedOn": "2026-10-18"
+    },
+    {
+      "key": "fgas_annex1_threshold",
+      "validFrom": "2024-03-11",
+      "checkedOn": "2026-10-18"
+    },
+    {
+      "key": "fgas_annex1_sealed_threshold",
+      "validFrom": "2024-03-11",
+      "checkedOn": "2026-10-18"
+    },
+    {
+      "key": "fgas_annex1_band_b",
+      "validFrom": "2024-03-11",
+      "checkedOn": "2026-10-18"
+    },
+    {
+      "key": "fgas_annex1_band_c",
+      "validFrom": "2024-03-11",
+      "checkedOn": "2026-10-18"
+    },
+    {
+      "key": "fgas_annex2_threshold",
+      "validFrom": "2024-03-11",
+      "checkedOn": "2026-10-18"
+    },
+    {
+      "key": "fgas_annex2_sealed_threshold",
+      "validFrom": "2024-03-11",
+      "checkedOn": "2026-10-18"
+    },
+    {
+      "key": "fgas_annex2_band_b",
+      "validFrom": "2024-03-11",
+      "checkedOn": "2026-10-18"
+    },
+    {
+      "key": "fgas_annex2_band_c",
+      "validFrom": "2024-03-11",
+      "checkedOn": "2026-10-18"
+    },
+    {
+      "key": "fgas_band_a_interval",
+      "validFrom": "2024-03-11",
+      "checkedOn": "2026-10-18"
+    },
+    {
+      "key": "fgas_band_a_detection_interval",
+      "validFrom": "2024-03-11",
+      "checkedOn": "2026-10-18"
+    },
+    {
+      "key": "fgas_band_b_interval",
+      "validFrom": "2024-03-11",
+      "checkedOn": "2026-10-18"
+    },
+    {
+      "key": "fgas_band_b_detection_interval",
+      "validFrom": "2024-03-11",
+      "checkedOn": "2026-10-18"
+    },
+    {
+      "key": "fgas_band_c_interval",
+      "validFrom": "2024-03-11",
+      "checkedOn": "2026-10-18"
+    },
+    {
+      "key": "fgas_band_c_detection_interval",
+      "validFrom": "2024-03-11",
+      "checkedOn": "2026-10-18"
+    },
+    {
+      "key": "fgas_detection_check_interval",
+      "validFrom": "2024-03-11",
+      "checkedOn": "2026-10-18"
+    },
+    {
+      "key": "fgas_record_retention",
+      "validFrom": "2024-03-11",
+      "checkedOn": "2026-10-18"
+    },
+    {
+      "key": "ac_inspection_threshold",
+      "validFrom": "2020-11-01",
+      "checkedOn": "2026-10-18"
+    },
+    {
+      "key": "ac_inspection_large_threshold",
+      "validFrom": "2020-11-01",
+      "checkedOn": "2026-10-18"
+    },
+    {
+      "key": "ac_inspection_interval",
+      "validFrom": "2020-11-01",
+      "checkedOn": "2026-10-18"
+    },
+    {
+      "key": "ac_inspection_large_interval",
+      "validFrom": "2020-11-01",
+      "checkedOn": "2026-10-18"
+    },
+    {
+      "key": "ac_inspection_large_interval",
+      "validFrom": "2027-01-01",
+      "checkedOn": "2026-10-18"
+    },
+    {
+      "key": "ventilation_inspection_threshold",
+      "validFrom": "2027-01-01",
+      "checkedOn": "2026-10-18"
+    },
+    {
+      "key": "ventilation_inspection_interval",
+      "validFrom": "2027-01-01",
+      "checkedOn": "2026-10-18"
+    }
+  ],
+  "classes": [
+    {
+      "key": "minor",
+      "checkedOn": "2026-10-18"
+    },
+    {
+      "key": "significant",
+      "checkedOn": "2026-10-18"
+    },
+    {
+      "key": "dangerous",
+      "checkedOn": "2026-10-18"
+    }
+  ],
+  "qualifications": [
+    {
+      "key": "fgas_certified_person",
+      "checkedOn": "2026-10-18"
+    },
+    {
+      "key": "energy_inspector",
+      "checkedOn": "2026-10-18"
+    }
+  ]
+}

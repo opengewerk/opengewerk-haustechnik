@@ -1,0 +1,63 @@
+{
+  "validFrom": "2017-08-19",
+  "title": "Betriebsinterne Überprüfung des Nutzwassers",
+  "sections": [
+    {
+      "key": "water",
+      "title": "Nutzwasser",
+      "fields": [
+        {
+          "kind": "measurement",
+          "key": "temperature",
+          "label": "Wassertemperatur",
+          "unit": "degrees_celsius",
+          "decimals": 1
+        },
+        {
+          "kind": "text",
+          "key": "ph",
+          "label": "pH-Wert"
+        },
+        {
+          "kind": "text",
+          "key": "conductivity",
+          "label": "Leitfähigkeit"
+        },
+        {
+          "kind": "text",
+          "key": "microbiology",
+          "label": "Mikrobiologische Kenngröße, falls bestimmt"
+        },
+        {
+          "kind": "check_point",
+          "key": "visual",
+          "label": "Keine sichtbare Verschmutzung und kein Belag"
+        }
+      ]
+    },
+    {
+      "key": "biocide",
+      "title": "Biozide",
+      "fields": [
+        {
+          "kind": "text",
+          "key": "biocide",
+          "label": "Biozidzugabe seit der letzten Überprüfung, mit Zeitpunkt, Menge und Art",
+          "multiline": true
+        }
+      ]
+    },
+    {
+      "key": "end",
+      "title": "Abschluss",
+      "fields": [
+        {
+          "kind": "signature",
+          "key": "signature",
+          "label": "Unterschrift",
+          "seals": true
+        }
+      ]
+    }
+  ]
+}

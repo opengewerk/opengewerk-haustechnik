@@ -1,0 +1,34 @@
+{
+  "validFrom": "2004-08-25",
+  "label": "Raumlufttechnische Anlage instand halten und prüfen lassen",
+  "description": "Der Arbeitgeber hält raumlufttechnische Anlagen instand und lässt sie in regelmäßigen Abständen auf ihre Funktionsfähigkeit prüfen. Eine Frist nennt die Verordnung nicht. Nach der Technischen Regel für Arbeitsstätten ASR A3.6 legt der Arbeitgeber Prüf- und Wartungsintervalle in der Gefährdungsbeurteilung fest, mit den Angaben des Herstellers, und hat die Ergebnisse von Wartung und Prüfung in aktuellen Unterlagen. Ist eine Anlage für die Arbeitsstätte erforderlich, zeigt eine selbsttätige Warneinrichtung ihre Störung an, und Ablagerungen, die die Gesundheit über die Raumluft gefährden können, werden umgehend beseitigt.",
+  "task": "maintenance",
+  "origin": "state_law",
+  "bindingness": "statute",
+  "source": "§ 4 Abs. 3 ArbStättV",
+  "interval": {
+    "kind": "none"
+  },
+  "counting": "from_due",
+  "qualification": {
+    "level": "skilled_person",
+    "note": "die Verordnung nennt keine Stufe; wer wartet und prüft, legt der Arbeitgeber in der Gefährdungsbeurteilung fest"
+  },
+  "evidence": {
+    "kinds": [
+      "protocol",
+      "report",
+      "round_point"
+    ],
+    "form": "ventilation_protocol"
+  },
+  "retention": {
+    "kind": "until_next_inspection"
+  },
+  "scope": {
+    "assetKinds": [
+      "ventilation_system",
+      "air_conditioning_system"
+    ]
+  }
+}
