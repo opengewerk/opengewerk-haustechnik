@@ -7,12 +7,15 @@ deshalb ihr Land in `states` und die Gebäudeart, für die ihre Verordnung gilt,
 jede Regel nennt ihr Land in `scope`. Für ein Gebäude in einem anderen Land oder einer anderen
 Gebäudeart schlägt das Paket nichts vor.
 
-Diese erste Fassung bringt Baden-Württemberg, das Land des Pilotbetriebs. Sie nennt die
-Anlagenarten der Pakete [`brandschutz`](../brandschutz/README.md) und
-[`elektro`](../elektro/README.md); eine eigene Anlagenart hat sie nicht.
+Das Paket bringt Baden-Württemberg, das Land des Pilotbetriebs. Es nennt die Anlagenarten der
+Pakete [`brandschutz`](../brandschutz/README.md), [`elektro`](../elektro/README.md) und seit der
+Fassung 1.1.0 (#354) [`raumluft`](../raumluft/README.md); eine eigene Anlagenart hat es nicht. Für die
+Anlagenarten der Pakete [`heizung`](../heizung/README.md) und [`arbeitsmittel`](../arbeitsmittel/README.md)
+verlangen die drei Verordnungen keine Prüfung.
 
-Fachkundig abgenommen hat das Paket der Pilotbetrieb am 16.10.2026 (Abschnitt 15), jeder Eintrag
-mit der Prüfsumme dessen, was abgenommen wurde. Wird ein Eintrag geändert, fällt seine Abnahme
+Fachkundig abgenommen hat die Fassung 1.0.0 der Pilotbetrieb am 16.10.2026 (Abschnitt 15), jeder
+Eintrag mit der Prüfsumme dessen, was abgenommen wurde. Die zweiten Fassungen der Prüfungen in
+Versammlungsstätten und Garagen aus 1.1.0 sind noch nicht abgenommen. Wird ein Eintrag geändert, fällt seine Abnahme
 weg, und die Oberfläche kennzeichnet ihn wieder, bis er erneut abgenommen ist.
 
 ## Baden-Württemberg
@@ -25,10 +28,10 @@ ein sachkundiger Bediensteter einer Verwaltung für deren eigene Anlagen (§ 1 B
 
 | Pflichtart | Gebäudeart | Anlagenarten | Fundstelle | Frist | Wer prüft |
 | --- | --- | --- | --- | --- | --- |
-| Anlagen einer Versammlungsstätte prüfen lassen | Versammlungs- oder Sportstätte | Rauch- und Wärmeabzug, Feuerlöschanlage, Wandhydrant, Brandmeldeanlage, Alarmierungsanlage, Sicherheitsstromversorgung, Sicherheitsbeleuchtung | § 37 Abs. 1 Nr. 2 bis 6 VStättVO BW | 3 Jahre | anerkannter Sachverständiger |
+| Anlagen einer Versammlungsstätte prüfen lassen | Versammlungs- oder Sportstätte | Lüftungsanlage, Klimaanlage, Rauch- und Wärmeabzug, Feuerlöschanlage, Wandhydrant, Brandmeldeanlage, Alarmierungsanlage, Sicherheitsstromversorgung, Sicherheitsbeleuchtung | § 37 Abs. 1 Nr. 1 bis 6 VStättVO BW | 3 Jahre | anerkannter Sachverständiger |
 | Blitzschutz einer Versammlungsstätte prüfen lassen | Versammlungs- oder Sportstätte | Blitzschutzanlage | § 37 Abs. 4 VStättVO BW | 3 Jahre | Sachkundige |
 | Anlagen einer Verkaufsstätte prüfen lassen | Verkaufsstätte | Feuerlöschanlage, Rauch- und Wärmeabzug, Sicherheitsbeleuchtung, Brandmeldeanlage, Sicherheitsstromversorgung | § 30 Abs. 1 VkVO BW | 3 Jahre | anerkannter Sachverständiger |
-| Anlagen einer Garage prüfen lassen | Garage | Rauch- und Wärmeabzug, Feuerlöschanlage, Wandhydrant, Sicherheitsbeleuchtung, Sicherheitsstromversorgung | § 16 Abs. 1 GaVO BW | 3 Jahre | anerkannter Sachverständiger |
+| Anlagen einer Garage prüfen lassen | Garage | Rauch- und Wärmeabzug, Feuerlöschanlage, Wandhydrant, Sicherheitsbeleuchtung, Sicherheitsstromversorgung, Lüftungsanlage, CO-Warnanlage | § 16 Abs. 1 GaVO BW | 3 Jahre | anerkannter Sachverständiger |
 
 Jede Prüfung kommt vor der ersten Inbetriebnahme, nach einer wesentlichen Änderung und dann
 wiederkehrend. Die Frist ist eine Höchstfrist und zählt ab dem Tag der letzten Prüfung; die Berichte
@@ -48,15 +51,20 @@ ihn: ein Vorschlag zu viel wird verworfen, einer zu wenig fällt niemandem auf (
 vom 03.10.2026).
 
 Ebenso steht im Text, was eine Anlagenart weiter fasst als die Verordnung: die VkVO nennt von den
-Feuerlöschanlagen nur die Sprinkleranlagen, die GaVO vom Rauchabzug nur den maschinellen, die
-VStättVO vom Wandhydranten nur den an einer nassen Steigleitung.
+Feuerlöschanlagen nur die Sprinkleranlagen, die GaVO vom Rauchabzug nur den maschinellen und von der
+Lüftung nur die maschinelle Zu- und Abluft, die VStättVO vom Wandhydranten nur den an einer nassen
+Steigleitung und von den Lüftungsanlagen keine, die einzelne Räume im selben Geschoss unmittelbar ins
+Freie be- oder entlüftet. Eine Klimaanlage ist eine Lüftungsanlage.
+
+Die Lüftungs- und CO-Warnanlagen kamen mit der Fassung 1.1.0 als zweite Fassung der Prüfungen in
+Versammlungsstätten und Garagen dazu, vom selben Tag an wie die erste, denn ihre Paragrafen nennen sie
+seit dem 1. Juli 2004 und dem 1. Februar 2021. Eine bestätigte Pflicht meldet die neue Fassung
+(Abschnitt 2.3 des Konzepts); eine Lüftungs- oder CO-Warnanlage bekommt sie als Vorschlag. Wer die Prüfung
+bisher als eigene Pflicht geführt hat, nennt sie beim Bestätigen des Vorschlags; sie endet dann, und ihr
+letzter Nachweis zählt für den Termin der neuen.
 
 ## Was das Paket nicht abdeckt
 
-- Lüftungsanlagen, maschinelle Zu- und Abluft in Garagen und CO-Warnanlagen, die die drei
-  Verordnungen ebenfalls prüfen lassen: ihre Anlagenarten kommen mit dem Paket Raumluft in Phase 2,
-  und mit ihnen eine neue Fassung dieses Pakets. Bis dahin legt der Betreiber diese Prüfungen als
-  eigene Pflichten an.
 - Prüfungen, die eine Baugenehmigung oder ein Brandschutzkonzept im Einzelfall auferlegt (§ 38
   Abs. 3 LBO), etwa in einem Hochhaus, einem Krankenhaus oder einer Schule: dafür gibt es in
   Baden-Württemberg keine Verordnung, und das Paket kennt die Genehmigung nicht. Auch sie legt der Betreiber als eigene

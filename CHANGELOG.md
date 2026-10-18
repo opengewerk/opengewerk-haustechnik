@@ -9,6 +9,12 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
 
 ### Hinzugefügt
 
+- Landesrecht für die Pakete aus Phase 2 (#354): Die Prüfung der Anlagen einer Versammlungsstätte nennt in
+  ihrer zweiten Fassung auch Lüftungs- und Klimaanlagen (§ 37 Abs. 1 Nr. 1 VStättVO BW), die einer Garage
+  die maschinelle Zu- und Abluft und die CO-Warnanlage (§ 16 Abs. 1 Nr. 4 und 5 GaVO BW). Das Paket Raumluft
+  und Kälte bringt dafür die Anlagenart CO-Warnanlage. Eine bestätigte Pflicht meldet die neue Fassung. Warum:
+  Diese Prüfungen musste ein Betreiber in Baden-Württemberg bisher als eigene Pflicht führen. Für Heizung,
+  Aufzüge und Arbeitsmittel verlangen die drei Verordnungen keine Prüfung.
 - Das Paket Förderanlagen und Arbeitsmittel (#353): Aufzugsanlagen mit Haupt- und Zwischenprüfung durch
   eine zugelassene Überwachungsstelle nach der BetrSichV und ihrer Instandhaltung, Druckbehälter mit
   äußerer und innerer Prüfung und Festigkeitsprüfung je nach prüfender Stelle mit den Höchstfristen aus

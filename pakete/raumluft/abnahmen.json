@@ -231,6 +231,10 @@
     {
       "file": "pflichten/ventilation_maintenance.v1.json",
       "checkedOn": "2026-10-18"
+    },
+    {
+      "file": "anlagenarten/co_warning_system.v1.json",
+      "checkedOn": "2026-10-18"
     }
   ],
   "rules": [

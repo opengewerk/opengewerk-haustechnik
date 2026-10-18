@@ -69,9 +69,17 @@ function proposed(
     .filter((key) => key.startsWith('landesrecht.'))
 }
 
-// Every asset kind of the packages of phase 1 the three ordinances name, and
-// one they do not (a fire door), so that a kind too many shows as well.
+// Every asset kind of the packages the three ordinances name, and some they
+// do not (a fire door, a boiler, an elevator, a refrigeration system), so that
+// a kind too many shows as well. Version 2 adds the ventilation and the CO
+// warning systems of the package Raumluft und Kälte (#354).
 const assetKinds = [
+  'raumluft.ventilation_system',
+  'raumluft.air_conditioning_system',
+  'raumluft.co_warning_system',
+  'raumluft.refrigeration_system',
+  'heizung.boiler',
+  'arbeitsmittel.elevator',
   'brandschutz.smoke_extraction',
   'brandschutz.extinguishing_system',
   'brandschutz.wall_hydrant',
@@ -105,6 +113,8 @@ describe('the package Landesrecht', () => {
     const assembly = ['landesrecht.bw_assembly_inspection']
 
     expect(byAssetKind('assembly')).toEqual({
+      'raumluft.ventilation_system': assembly,
+      'raumluft.air_conditioning_system': assembly,
       'brandschutz.smoke_extraction': assembly,
       'brandschutz.extinguishing_system': assembly,
       'brandschutz.wall_hydrant': assembly,
@@ -132,12 +142,37 @@ describe('the package Landesrecht', () => {
     const garage = ['landesrecht.bw_garage_inspection']
 
     expect(byAssetKind('garage')).toEqual({
+      'raumluft.ventilation_system': garage,
+      'raumluft.co_warning_system': garage,
       'brandschutz.smoke_extraction': garage,
       'brandschutz.extinguishing_system': garage,
       'brandschutz.wall_hydrant': garage,
       'elektro.safety_power_supply': garage,
       'elektro.safety_lighting': garage,
     })
+  })
+
+  it('names the installations of the packages of phase 2 in a second version, from the day the first began (#354)', () => {
+    const catalogue = stateLaw()
+
+    for (const [key, validFrom] of [
+      ['landesrecht.bw_assembly_inspection', '2004-07-01'],
+      ['landesrecht.bw_garage_inspection', '2021-02-01'],
+    ] as const) {
+      const first = catalogue.dutyKindVersion(key, 1)
+      const second = catalogue.dutyKindVersion(key, 2)
+
+      expect(second?.validFrom, key).toBe(validFrom)
+      expect(first?.validFrom, key).toBe(validFrom)
+      // What the first version named stays named.
+      expect(second?.definition.scope.assetKinds, key).toEqual(
+        expect.arrayContaining([...(first?.definition.scope.assetKinds ?? [])]),
+      )
+      expect(catalogue.dutyKind(key, options.today)?.version, key).toBe(2)
+    }
+
+    // The retail ordinance names no ventilation, and nothing of the packages Heizung and Arbeitsmittel is inspected.
+    expect(catalogue.dutyKindVersion('landesrecht.bw_retail_inspection', 2)).toBeNull()
   })
 
   it('proposes nothing for a building in another state or of another kind', () => {
@@ -194,7 +229,7 @@ describe('the package Landesrecht', () => {
     ).toEqual([
       [
         'landesrecht.bw_assembly_inspection',
-        '§ 37 Abs. 1 Nr. 2 bis 6 VStättVO BW',
+        '§ 37 Abs. 1 Nr. 1 bis 6 VStättVO BW',
         'state_law',
         'inspection',
         'maximum',
