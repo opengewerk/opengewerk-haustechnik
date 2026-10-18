@@ -39,6 +39,7 @@ import {
   roundTemplates,
 } from '../database/schema/index.js'
 import { dayInGermany } from '../today.js'
+import { tenantCatalogue } from '../own-kinds/catalogue.js'
 
 /**
  * What a plan of an import is held against (#100): the places and assets the
@@ -96,9 +97,11 @@ export async function structureStock(tx: TenantTransaction): Promise<StructureSt
  */
 export async function assetImportStock(
   tx: TenantTransaction,
-  catalogue: Catalogue,
+  shipped: Catalogue,
   records: readonly TableRecord[],
 ): Promise<AssetImportStock> {
+  // The kinds of the operator's own as well (#62).
+  const catalogue = await tenantCatalogue(tx, shipped)
   const seen = await tx
     .select({
       id: assets.id,

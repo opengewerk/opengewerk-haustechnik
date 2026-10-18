@@ -57,6 +57,7 @@ import { and, asc, eq, inArray, isNull, sql } from 'drizzle-orm'
 import { exchangeAsset, exchangeStanding } from '../assets/exchange.js'
 import { CATALOGUE } from '../catalogue.js'
 import { applyDelegations } from '../delegations/apply.js'
+import { tenantCatalogue } from '../own-kinds/catalogue.js'
 import { assetDuplicates, duplicateQuestion } from '../database/asset-duplicates.js'
 import { assetsOnADay, dutyTitle } from '../database/duty-standing.js'
 import { assignNumber } from '../database/number-ranges.js'
@@ -244,10 +245,11 @@ export class BuildingAssetsController {
     @Param('id') id: string,
     @Body() body: unknown,
   ): Promise<Asset> {
-    const values = newAsset(this.catalogue, body)
     const { roomId } = fieldsOf(body, ['roomId'] as const, ['roomId'] as const)
 
     return this.database.forTenant(identity, async (tx) => {
+      // The kinds of the operator's own as well (#62).
+      const values = newAsset(await tenantCatalogue(tx, this.catalogue), body)
       const building = await placeOf<Building>(tx, buildings, id, missingBuilding)
 
       return insertAsset(
@@ -296,8 +298,8 @@ export class AssetsController {
   ): Promise<AssetRegister> {
     const question = registerQuestion(query)
 
-    return this.database.forTenant(identity, (tx) =>
-      assetRegister(tx, this.catalogue, dayInGermany(), question),
+    return this.database.forTenant(identity, async (tx) =>
+      assetRegister(tx, await tenantCatalogue(tx, this.catalogue), dayInGermany(), question),
     )
   }
 
@@ -322,7 +324,11 @@ export class AssetsController {
     const today = dayInGermany()
 
     return this.database.forTenant(identity, async (tx) =>
-      tableAnswer(await assetTable(tx, this.catalogue, identity, today, filter), format, today),
+      tableAnswer(
+        await assetTable(tx, await tenantCatalogue(tx, this.catalogue), identity, today, filter),
+        format,
+        today,
+      ),
     )
   }
 
@@ -522,7 +528,7 @@ export class AssetsController {
     return this.database.forTenant(identity, async (tx) => {
       const asset = await placeOf<Asset>(tx, assets, id, missing)
       const after = { ...asset, ...values }
-      const kind = kindOf(this.catalogue, after.kind)
+      const kind = kindOf(await tenantCatalogue(tx, this.catalogue), after.kind)
 
       refuse(assetValueProblems(kind, after.values))
       refuse(meterProblems(kind, after))
@@ -545,10 +551,10 @@ export class AssetsController {
     @Param('id') id: string,
     @Body() body: unknown,
   ): Promise<Asset> {
-    const values = newAsset(this.catalogue, body)
     const { roomId } = fieldsOf(body, ['roomId'] as const, ['roomId'] as const)
 
     return this.database.forTenant(identity, async (tx) => {
+      const values = newAsset(await tenantCatalogue(tx, this.catalogue), body)
       const parent = await placeOf<Asset>(tx, assets, id, missing)
 
       return insertAsset(
@@ -818,16 +824,6 @@ export class AssetsController {
       throw new BadRequestException('Die neue Anlage fehlt.')
     }
 
-    // Before the asset is held against its kind: a measuring point without
-    // its meter number would be refused for the number, which is not the point.
-    const named = (said.asset as { readonly kind?: unknown }).kind
-    const kind = typeof named === 'string' ? this.catalogue.assetKind(named, today) : null
-
-    if (kind && kind.definition.meter !== null) {
-      throw new BadRequestException(exchangeRefusals.newMeter)
-    }
-
-    const values = newAsset(this.catalogue, said.asset)
     const exchange = {
       on: said.on as string,
       components: (said.components ?? []) as readonly string[],
@@ -835,6 +831,17 @@ export class AssetsController {
     }
 
     return this.database.forTenant(identity, async (tx) => {
+      const catalogue = await tenantCatalogue(tx, this.catalogue)
+      // Before the asset is held against its kind: a measuring point without
+      // its meter number would be refused for the number, which is not the point.
+      const named = (said.asset as { readonly kind?: unknown }).kind
+      const kind = typeof named === 'string' ? catalogue.assetKind(named, today) : null
+
+      if (kind && kind.definition.meter !== null) {
+        throw new BadRequestException(exchangeRefusals.newMeter)
+      }
+
+      const values = newAsset(catalogue, said.asset)
       const made = await exchangeAsset(
         tx,
         identity,
@@ -850,7 +857,7 @@ export class AssetsController {
 
       await applyDelegations(
         tx,
-        this.catalogue,
+        catalogue,
         today,
         taken.map((duty) => duty.id),
       )

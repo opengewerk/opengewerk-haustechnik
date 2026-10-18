@@ -19,7 +19,7 @@ import { unseenDuplicate } from './duplicates.js'
 import { assigned } from './labels.js'
 import { placed } from './places.js'
 import { readOnSite } from './readings.js'
-import { recordRules } from './record-rules.js'
+import { ownKindRules, recordRules } from './record-rules.js'
 import { followed, reported, type Sender, signed, visited } from './signatures.js'
 import { handedOut } from './tasks.js'
 
@@ -154,7 +154,8 @@ export function syncFor(catalogue: Catalogue): ServerSync<Sender> {
     checks: [
       offline,
       normalised,
-      recordRulesCheck(recordRules(catalogue)),
+      // An asset of a kind of the operator's own is held against that kind (#62).
+      ownKindRules(catalogue, recordRulesCheck(recordRules(catalogue))),
       versionFile,
       placed,
       contractorDocumentKept,

@@ -273,12 +273,14 @@ describe('the catalogue', () => {
     // Format 2 had no defect classes at its packages (#61): a device that
     // kept such a bundle is told so, and fetches the one of its server.
     expect(() => catalogueOf({ ...bundle(), format: 2 as never })).toThrow(
-      'Der Katalog hat das Format 2, gelesen wird 5.',
+      'Der Katalog hat das Format 2, gelesen wird 6.',
     )
     // Format 3 had no kinds of qualification at its packages (#337).
     expect(() => catalogueOf({ ...bundle(), format: 3 as never })).toThrow(/Format 3/)
     // Format 4 named no kind and no demand at its expected documents (#347).
     expect(() => catalogueOf({ ...bundle(), format: 4 as never })).toThrow(/Format 4/)
+    // Format 5 knew nothing of what an operator adds (#62).
+    expect(() => catalogueOf({ ...bundle(), format: 5 as never })).toThrow(/Format 5/)
     expect(() =>
       catalogueOf(
         bundle({

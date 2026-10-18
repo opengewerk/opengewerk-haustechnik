@@ -26,6 +26,7 @@ import { and, asc, eq, inArray, isNotNull, isNull } from 'drizzle-orm'
 import { assetsOnADay } from '../database/duty-standing.js'
 import { assets, attachments } from '../database/schema/index.js'
 import { counted, said } from './register-question.js'
+import { tenantCatalogue } from '../own-kinds/catalogue.js'
 
 /**
  * The register of assets over every building (section 4.2 of the concept):
@@ -138,10 +139,12 @@ export async function assetRegister(
  */
 export async function assetsPassing(
   tx: TenantTransaction,
-  catalogue: Catalogue,
+  shipped: Catalogue,
   today: IsoDate,
   filter: AssetRegisterFilter,
 ): Promise<AssetEntry[]> {
+  // The kinds of the operator's own as well (#62).
+  const catalogue = await tenantCatalogue(tx, shipped)
   // An id that is no id names nothing the person could see.
   if ([filter.propertyId, filter.buildingId].some((id) => id !== undefined && !isUuid(id))) {
     return []

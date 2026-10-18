@@ -971,7 +971,7 @@ Jede Zeile ist der erste Abschnitt einer Adresse, unter der der Server antwortet
 | `auditor-reads` | das Protokoll der Zugriffe der Prüfer, für die Leitung |
 | `auth` | das eigene Konto: Betreiber wählen, eigene Angaben, eigene Geräte, eigene Passkeys, abmelden |
 | `buildings` | Gebäude mit ihren Schließzeiten |
-| `catalogue` | Katalog der Pakete, für jeden Betreiber derselbe und ohne Daten eines Betreibers |
+| `catalogue` | Katalog der Pakete, für jeden Betreiber derselbe, dazu die eigenen Anlagenarten und Felder des Betreibers; ohne Daten über Personen |
 | `collectives` | Sammelvorgänge: die Pflichten einer Pflichtart an einem Ort mit den Personen für den Plan, einen zusammenstellen und den Bericht einer Fremdfirma für alle seine Anlagen eintragen |
 | `contacts` | Ansprechpartner einer Liegenschaft oder einer Fremdfirma |
 | `contractors` | Fremdfirmen: die Liste, auch als Tabelle, die Seite einer Firma mit ihren offenen Pflichten und den Nachweisen ihrer Berichte, eine neue Firma, ihre Änderung, dass sie entfernt wird, und die Namen an Pflichten, die als Fremdfirmen übernommen werden; ohne Person |
@@ -992,6 +992,7 @@ Jede Zeile ist der erste Abschnitt einer Adresse, unter der der Server antwortet
 | `labels` | Etiketten: sagt zu einem gescannten Code in einem Wort, ob er für die fragende Person etwas öffnet, und druckt viele Etiketten auf einmal |
 | `legal-texts` | Impressum und Datenschutzhinweise der Instanz, wie die Verwaltung der Instanz sie hinterlegt, ohne Anmeldung lesbar und für jeden Betreiber gleich; sonst nichts über die Instanz |
 | `overview` | Übersicht der Betreiberverantwortung: wie viele Pflichten überfällig, in 30 und in 90 Tagen fällig und nie erfasst sind, wie vielen Prüfungen der Bericht einer Fremdfirma fehlt und wie viele Mängel über ihrer Frist sind, mit den ersten davon; über alle Bereiche der fragenden Person oder einen. Dazu die Zahlen je Liegenschaft und Gebäude, das Lagebild eines Gebäudes mit seinen letzten Vorgängen und die Zeitachse eines Orts. Keine dieser Antworten nennt eine Person |
+| `own-kinds` | Eigene Anlagenarten und Felder des Betreibers mit der Zahl der Anlagen, die sie tragen; ohne Daten über Personen |
 | `meters` | Zähler: die Liste zum Stichtag, auch als Tabelle, die Seite einer Messstelle mit Ständen, Verbrauch und Verlauf, ein Stand von Hand und seine Berichtigung, der Zählertausch, die Stilllegung, die Sperre, die Notiz und was nur die Messstelle trägt |
 | `properties` | Liegenschaften, ihre Liste auch als Tabelle |
 | `push` | Push auf den eigenen Geräten: ob die Instanz Push verschickt, die eigenen Geräte, ein Gerät an- und abmelden, die Anlässe ein- und ausschalten und eine Probenachricht |

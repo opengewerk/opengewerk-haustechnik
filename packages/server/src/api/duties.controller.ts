@@ -141,6 +141,7 @@ import { type EvidencePages, evidenceRegisterPrintJob } from '../prints/evidence
 import { pdf, Printer } from './prints.controller.js'
 import { said } from './register-question.js'
 import { type Asking, fieldsOf, placeOf, refuse } from './places.js'
+import { tenantCatalogue } from '../own-kinds/catalogue.js'
 
 const missing = 'Diese Pflicht gibt es nicht oder nicht mehr.'
 const missingDismissal = 'Diesen verworfenen Vorschlag gibt es nicht oder nicht mehr.'
@@ -1077,8 +1078,9 @@ export class DutiesController {
       const entries = await evidenceRegisterEntries(tx, this.catalogue, today, question)
       const named = await evidenceRegisterNames(tx, identity)
       const names = await placeNamesFor(tx, identity)
+      const catalogue = await tenantCatalogue(tx, this.catalogue)
       const kinds = question.assetKinds.map(
-        (kind) => this.catalogue.assetKind(kind, today)?.definition.label ?? kind,
+        (kind) => catalogue.assetKind(kind, today)?.definition.label ?? kind,
       )
       const choice = [
         question.place.propertyId === undefined

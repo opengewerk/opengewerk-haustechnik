@@ -78,6 +78,15 @@ const CatalogueScreen = lazyRouteComponent(
   () => import('./screens/catalogue.js'),
   'CatalogueScreen',
 )
+const OwnKindsListScreen = lazyRouteComponent(
+  () => import('./screens/own-kinds.js'),
+  'OwnKindsListScreen',
+)
+const OwnFieldsListScreen = lazyRouteComponent(
+  () => import('./screens/own-kinds.js'),
+  'OwnFieldsListScreen',
+)
+const OwnKindScreen = lazyRouteComponent(() => import('./screens/own-kinds.js'), 'OwnKindScreen')
 const ChangeLogScreen = lazyRouteComponent(
   () => import('./screens/change-log.js'),
   'ChangeLogScreen',
@@ -765,6 +774,22 @@ export function officeRoutes() {
     // The catalogue: the packages, one of them with one of its parts, and
     // the page of a duty kind under the package it comes from.
     createRoute({ getParentRoute: () => office, path: '/katalog', component: CatalogueScreen }),
+    // What the operator added (#62), before the packages so that the address is no package.
+    createRoute({
+      getParentRoute: () => office,
+      path: '/katalog/eigen',
+      component: OwnKindsListScreen,
+    }),
+    createRoute({
+      getParentRoute: () => office,
+      path: '/katalog/eigen/angaben',
+      component: OwnFieldsListScreen,
+    }),
+    createRoute({
+      getParentRoute: () => office,
+      path: '/katalog/eigen/arten/$kindKey',
+      component: OwnKindScreen,
+    }),
     createRoute({
       getParentRoute: () => office,
       path: '/katalog/$packageName',

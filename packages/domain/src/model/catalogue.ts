@@ -15,6 +15,7 @@ import type { DocumentKind } from './document.js'
 import type { FormDefinition } from './forms.js'
 import { type BuildingKind, buildingKindLabel } from './location.js'
 import type { MeterKind } from './meter.js'
+import { type OwnCatalogue, withOwn } from './own-kinds.js'
 
 /**
  * The catalogue: what the packages under `pakete/` say, as the build of
@@ -433,9 +434,11 @@ export interface CataloguePackage {
  * is not misread. Three since a package names its defect classes
  * (opengewerk-haustechnik#61), four since it names its kinds of
  * qualification (opengewerk-haustechnik#337), five since an expected
- * document names its kind and demand (opengewerk-haustechnik#347).
+ * document names its kind and demand (opengewerk-haustechnik#347), six since
+ * the server hands out what its operator added, the asset kinds and fields
+ * of its own (opengewerk-haustechnik#62).
  */
-export const catalogueFormat = 5
+export const catalogueFormat = 6
 
 /**
  * What the build writes and server and interface load. The checksum is taken
@@ -446,6 +449,12 @@ export interface CatalogueBundle {
   readonly format: typeof catalogueFormat
   readonly sha256: string
   readonly packages: readonly CataloguePackage[]
+  /**
+   * What the operator added (#62): never in what the build writes, and in
+   * what a server hands out only where its operator keeps a kind or a field
+   * of its own. The checksum is then the server's over both.
+   */
+  readonly own?: OwnCatalogue
 }
 
 /**
@@ -646,7 +655,7 @@ export function catalogueOf(bundle: CatalogueBundle): Catalogue {
       .map((versions) => inForce(versions, on))
       .filter((entry): entry is CatalogueEntry<Definition> => entry !== null)
 
-  return {
+  const catalogue: Catalogue = {
     bundle,
     sha256: bundle.sha256,
     packages: bundle.packages.map(({ name, title, version }) => ({ name, title, version })),
@@ -696,6 +705,9 @@ export function catalogueOf(bundle: CatalogueBundle): Catalogue {
     qualification: (key) => qualificationByKey.get(key) ?? null,
     qualificationFor: (dutyKindKey) => qualificationByDuty.get(dutyKindKey) ?? null,
   }
+
+  // What its operator added, asked like the rest (#62).
+  return bundle.own === undefined ? catalogue : withOwn(catalogue, bundle.own, bundle.sha256)
 }
 
 /** The same day one year earlier; the twenty ninth of February becomes the twenty eighth. */

@@ -56,6 +56,7 @@ import {
 import { pointAssetNames } from '../rounds/point-assets.js'
 import { dayInGermany } from '../today.js'
 import { stateFingerprint } from './fingerprint.js'
+import { tenantCatalogue } from '../own-kinds/catalogue.js'
 
 /** What is to be written down: the performance of one duty and who did it. */
 /**
@@ -721,8 +722,10 @@ export async function placeOf(
             name: asset.name,
             kind: asset.kind,
             kindLabel:
-              context.catalogue.assetKind(asset.kind, dayInGermany(context.at))?.definition.label ??
-              null,
+              (await tenantCatalogue(tx, context.catalogue)).assetKind(
+                asset.kind,
+                dayInGermany(context.at),
+              )?.definition.label ?? null,
             serialNumber: asset.serialNumber,
           },
   }

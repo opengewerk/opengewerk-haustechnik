@@ -10,6 +10,7 @@ import {
   type DutyReading,
   evidenceResultLabel,
   intervalWords,
+  isOwnKind,
   type LifecycleEntry,
   lifecycleStateLabel,
   meterUnitSymbol,
@@ -246,7 +247,8 @@ export function AssetFileScreen() {
             <Status tone="neutral" icon={Zap}>
               {kindLabel(catalogue, asset.kind)}
             </Status>
-            {kind ? <ReviewMarks review={kind.review} /> : null}
+            {/* A kind of the operator's own is accepted by nobody, and says nothing of it (#62). */}
+            {kind && !isOwnKind(kind.key) ? <ReviewMarks review={kind.review} /> : null}
           </>
         }
         actions={
@@ -464,9 +466,11 @@ export function AssetFileScreen() {
           <ExpectedDocumentsCard
             kind={kind?.definition ?? null}
             packageTitle={
-              catalogue?.packages.find(
-                (entry) => entry.name === asset.kind.slice(0, asset.kind.indexOf('.')),
-              )?.title ?? asset.kind
+              isOwnKind(asset.kind)
+                ? null
+                : (catalogue?.packages.find(
+                    (entry) => entry.name === asset.kind.slice(0, asset.kind.indexOf('.')),
+                  )?.title ?? asset.kind)
             }
             place={{ propertyId: asset.propertyId, assetId }}
             at={[asset.number, asset.name].filter(Boolean).join(' ')}

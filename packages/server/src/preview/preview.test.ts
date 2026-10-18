@@ -692,10 +692,13 @@ describe('a preview started as the Leitung', () => {
     const whole = (await request(server).get('/catalogue').expect(200)).body as {
       readonly sha256: string
       readonly packages: readonly { readonly name: string }[]
+      readonly own?: { readonly assetKinds: readonly { readonly key: string }[] }
     }
     const checksum = (await request(server).get('/catalogue/checksum').expect(200)).body as {
       readonly sha256: string
     }
+    // What the sample operator added (#62) comes beside the packages, under a checksum over both.
+    const { own, sha256, ...packages } = whole
 
     expect(whole.packages.map((entry) => entry.name)).toEqual([
       'allgemein',
@@ -708,9 +711,11 @@ describe('a preview started as the Leitung', () => {
       'probe',
       'vorschau',
     ])
-    expect(whole).toEqual(previewBundle)
+    expect(packages).toEqual({ format: previewBundle.format, packages: previewBundle.packages })
+    expect(own?.assetKinds.map((entry) => entry.key)).toEqual(['eigen.hebeanlage_schmutzwasser'])
+    expect(checksum.sha256).toBe(sha256)
+    expect(sha256).not.toBe(previewBundle.sha256)
     // One catalogue of its own: a device that held either bundle fetches this one.
-    expect(checksum.sha256).toBe(previewBundle.sha256)
     expect(previewBundle.sha256).toMatch(/^[0-9a-f]{64}$/)
     expect([catalogueBundle.sha256, probeCatalogueBundle.sha256]).not.toContain(
       previewBundle.sha256,

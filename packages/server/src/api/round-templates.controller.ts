@@ -53,6 +53,7 @@ import { dayInGermany } from '../today.js'
 import { RequiresPermission } from './authorization.js'
 import { roundTemplateTable } from './office-tables.js'
 import type { Asking } from './places.js'
+import { tenantCatalogue } from '../own-kinds/catalogue.js'
 
 const missing = 'Diese Vorlage gibt es nicht.'
 
@@ -359,6 +360,8 @@ export class RoundTemplatesController {
   ): Promise<TemplateRecords> {
     const named = templatePointers(definition)
     const today = dayInGermany(new Date())
+    // A point for every asset of a kind of the operator's own as well (#62).
+    const kinds = await tenantCatalogue(tx, this.catalogue)
     const [liveAssets, liveRooms] = await Promise.all([
       present(tx, assets, named.assets, true),
       present(tx, rooms, named.rooms, true),
@@ -402,7 +405,7 @@ export class RoundTemplatesController {
         return records.length === 0 ? null : records.map((rule) => rule.record.unit)
       },
       // The kinds of the catalogue in force today (#343).
-      assetKind: (key) => this.catalogue.assetKind(key, today) !== null,
+      assetKind: (key) => kinds.assetKind(key, today) !== null,
       dutyKind: (key) => {
         const kind = this.catalogue.dutyKind(key, today)
 

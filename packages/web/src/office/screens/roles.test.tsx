@@ -118,21 +118,21 @@ describe('the list of the roles', () => {
     await screen.findByRole('table', { name: caption })
 
     expect(rowsOf(caption)).toEqual([
-      ['Leitungführt den Betreiber', 'mitgeliefert', 'alle 49', '1', 'Pflicht', 'Ansehen'],
-      ['Technische Leitung', 'mitgeliefert', '41 von 43', '1', '', 'Ansehen'],
-      ['Objektleitung', 'mitgeliefert', '33 von 43', '2', '', 'Ansehen'],
-      ['Haustechnik', 'mitgeliefert', '21 von 43', '3', '', 'Ansehen'],
-      ['Melder', 'mitgeliefert', '4 von 43', '0', '', 'Ansehen'],
-      ['Prüfer', 'mitgeliefert', '3 von 43', '1', '', 'Ansehen'],
+      ['Leitungführt den Betreiber', 'mitgeliefert', 'alle 50', '1', 'Pflicht', 'Ansehen'],
+      ['Technische Leitung', 'mitgeliefert', '42 von 44', '1', '', 'Ansehen'],
+      ['Objektleitung', 'mitgeliefert', '33 von 44', '2', '', 'Ansehen'],
+      ['Haustechnik', 'mitgeliefert', '21 von 44', '3', '', 'Ansehen'],
+      ['Melder', 'mitgeliefert', '4 von 44', '0', '', 'Ansehen'],
+      ['Prüfer', 'mitgeliefert', '3 von 44', '1', '', 'Ansehen'],
       [
         'Hausmeisterei',
         'eigene',
-        `${String(caretakerRights.length)} von 431 neues Recht`,
+        `${String(caretakerRights.length)} von 441 neues Recht`,
         '2',
         '',
         'Bearbeiten',
       ],
-      ['Lagerverwaltung', 'eigene', '2 von 43', '0', 'Pflicht', 'BearbeitenEntfernen'],
+      ['Lagerverwaltung', 'eigene', '2 von 44', '0', 'Pflicht', 'BearbeitenEntfernen'],
     ])
     expect(
       screen.getByText(

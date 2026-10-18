@@ -70,6 +70,13 @@ export const rights = [
    * the asset and need `asset.write`.
    */
   'reading.write',
+  /**
+   * Keeping the asset kinds and fields of the operator's own (#62, decided on
+   * 15.10.2026): a kind no package describes, and a field at any kind. What a
+   * field is decides what every asset of its kind may hold, so it stays with
+   * those who lead the technology.
+   */
+  'kind.write',
   'duty.read',
   /**
    * The register of duties: confirming or dismissing what the catalogue
@@ -311,6 +318,7 @@ export const rightLabel: Readonly<Record<Right, string>> = {
   'asset.record': 'Anlagen aufnehmen',
   'asset.write': 'Anlagen pflegen',
   'reading.write': 'Zähler ablesen',
+  'kind.write': 'Eigene Anlagenarten und Felder führen',
   'duty.read': 'Pflichten ansehen',
   'duty.write': 'Das Pflichtenverzeichnis führen',
   'duty.delegate': 'Pflichten übertragen',
@@ -495,6 +503,8 @@ const technicalManagement: readonly Right[] = [
   'report.read',
   // The qualifications of the people, with the kinds of the operator (#337).
   'qualification.write',
+  // The asset kinds and fields of the operator's own (#62).
+  'kind.write',
 ]
 
 /** In the order of the catalogue, which is the order a screen lists them in. */

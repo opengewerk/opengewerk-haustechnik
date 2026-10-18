@@ -3,7 +3,9 @@ import { today } from '@opengewerk/platform-web/format'
 import { text } from '@opengewerk/platform-web/sync'
 import { ChevronDown } from 'lucide-react'
 import { type ReactNode, useId } from 'react'
-import { byNameIn } from '@opengewerk/haustechnik-domain'
+import { byNameIn, isOwnKind } from '@opengewerk/haustechnik-domain'
+
+import { ownKindsTitle } from '../app/asset-values.js'
 
 /**
  * What the registers of the office are narrowed with, `select_filter()` of
@@ -140,7 +142,9 @@ export function assetKindChoices(catalogue: Catalogue | null): KindChoice[] {
   const packageOf = (key: string) => {
     const name = key.slice(0, key.indexOf('.'))
 
-    return catalogue?.packages.find((entry) => entry.name === name)?.title ?? name
+    return isOwnKind(key)
+      ? ownKindsTitle
+      : (catalogue?.packages.find((entry) => entry.name === name)?.title ?? name)
   }
   const said = (label: string) => entries.filter((entry) => entry.definition.label === label).length
 

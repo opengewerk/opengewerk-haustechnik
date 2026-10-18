@@ -50,6 +50,7 @@ export const impliedRights: Readonly<Partial<Record<Right, readonly Right[]>>> =
   'asset.record': ['asset.read'],
   'asset.write': ['asset.read'],
   'reading.write': ['asset.read'],
+  'kind.write': ['asset.read'],
   'duty.write': ['duty.read'],
   'qualification.write': ['qualification.read'],
   'deadline.read': ['contract.read'],
@@ -228,6 +229,7 @@ export const rightGroups: readonly { readonly title: string; readonly rights: re
         'asset.record',
         'asset.write',
         'reading.write',
+        'kind.write',
       ],
     },
     {

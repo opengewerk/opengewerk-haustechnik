@@ -26,8 +26,9 @@ export const expectedWords = {
   recommended: 'empfohlen',
   missing: 'Fehlt',
   upload: 'Hochladen',
-  note: (packageTitle: string) =>
-    `Was das Paket ${packageTitle} für diese Anlagenart nennt. Vorhanden ist eine Unterlage, wenn ein Dokument ihrer Art an der Anlage liegt.`,
+  /** What the package of the kind names, or, without one, the kind of the operator's own (#62). */
+  note: (packageTitle: string | null) =>
+    `${packageTitle === null ? 'Was diese eigene Anlagenart nennt' : `Was das Paket ${packageTitle} für diese Anlagenart nennt`}. Vorhanden ist eine Unterlage, wenn ein Dokument ihrer Art an der Anlage liegt.`,
 } as const
 
 /** A document of the asset as the question needs it: its record and its kind. */
@@ -52,7 +53,8 @@ export function ExpectedDocumentsCard({
   at,
 }: {
   readonly kind: Pick<AssetKind, 'expectedDocuments'> | null
-  readonly packageTitle: string
+  /** Null for a kind of the operator's own, which no package names. */
+  readonly packageTitle: string | null
   readonly place: DocumentPlace
   /** The asset in words, for the dialog: "AN-00012 Elektrische Anlage Halle 1". */
   readonly at: string

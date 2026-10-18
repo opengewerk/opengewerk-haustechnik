@@ -1655,7 +1655,88 @@ export async function plantSampleData(
   // The safety lights of the school house, taken over from a list (#174).
   await importSampleAssets(address)
 
+  // A kind and fields of the operator's own, and an asset of the kind (#62).
+  await plantSampleOwnKinds(address)
+
   return { orders: standings.orders, sheets: standings.sheets, visits: standings.visits, faults }
+}
+
+/** The kind of the operator's own the preview keeps, and its asset (#62). */
+export const sampleOwnKind = {
+  label: 'Hebeanlage Schmutzwasser',
+  costGroup: '410',
+  asset: 'Hebeanlage Heizraum',
+} as const
+
+/**
+ * What the operator added to the catalogue (#62), as the boards of "Katalog"
+ * draw it: a lifting station with its flow, its pumps and the documents it
+ * expects, one of them in the boiler room of the school house, and a field of
+ * its own at the safety lighting of the package Elektro.
+ */
+async function plantSampleOwnKinds(address: string): Promise<void> {
+  const kind = (await send(address, '/own-kinds', {
+    label: sampleOwnKind.label,
+    costGroup: sampleOwnKind.costGroup,
+  })) as { id: string; key: string }
+  const { key } = kind
+
+  await send(address, '/own-kinds/fields', {
+    assetKind: key,
+    label: 'Fördermenge',
+    sort: 'number',
+    unit: 'm³/h',
+  })
+  await send(address, '/own-kinds/fields', {
+    assetKind: key,
+    label: 'Pumpen',
+    sort: 'choice',
+    options: ['Einzelanlage', 'Doppelanlage'],
+  })
+  await send(address, '/own-kinds/fields', {
+    assetKind: key,
+    label: 'Rückstauebene geprüft',
+    sort: 'flag',
+  })
+  await send(
+    address,
+    `/own-kinds/${kind.id}`,
+    {
+      expectedDocuments: [
+        { label: 'Betriebsanleitung', kind: 'operating_manual', demand: 'recommended' },
+        {
+          label: 'Wartungsnachweis nach Herstellervorgabe',
+          kind: 'test_certificate',
+          demand: 'required',
+          source: 'DIN EN 12056-4, Abschnitt 8',
+        },
+      ],
+    },
+    'PATCH',
+  )
+  await send(address, '/own-kinds/fields', {
+    assetKind: 'elektro.safety_lighting',
+    label: 'Standortnummer im Plan',
+    sort: 'text',
+  })
+
+  const properties = await read<{ id: string; name: string }[]>(address, '/properties')
+  const school = properties.find((property) => property.name === 'Schulzentrum Am Lindenhain')
+  const buildings = await read<{ id: string; name: string }[]>(
+    address,
+    `/properties/${String(school?.id)}/buildings`,
+  )
+  const house = buildings.find((building) => building.name === 'Schulhaus')
+  const made = await send(address, `/buildings/${String(house?.id)}/assets`, {
+    kind: key,
+    name: sampleOwnKind.asset,
+    values: { eigen_foerdermenge: 12, eigen_pumpen: 'o2' },
+  })
+
+  await send(address, `/assets/${made.id}/lifecycle`, {
+    state: 'in_service',
+    validFrom: inServiceSince,
+  })
 }
 
 /** The file the safety lights of the school house come from, as its page names it (#174). */

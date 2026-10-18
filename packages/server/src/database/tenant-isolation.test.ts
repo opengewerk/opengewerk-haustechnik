@@ -1069,6 +1069,26 @@ function rowsOf(tenant: Tenant): readonly Row[] {
         summary: '38 Anlagen angelegt',
       },
     },
+    // An asset kind and a field of the operator's own (#62), with no place either.
+    {
+      table: 'own_asset_kinds',
+      values: {
+        tenant_id: tenant.id,
+        key: 'eigen.hebeanlage',
+        label: 'Hebeanlage',
+        cost_group: '411',
+      },
+    },
+    {
+      table: 'own_asset_fields',
+      values: {
+        tenant_id: tenant.id,
+        asset_kind: 'eigen.hebeanlage',
+        key: 'eigen_foerdermenge',
+        label: 'Fördermenge',
+        sort: 'number',
+      },
+    },
     // What the import made (#174), with no place of its own either.
     {
       table: 'import_records',
@@ -1408,6 +1428,8 @@ describe('the tables', () => {
           'an asset taken stock of in one area, entered in the office or read in from a table may stand in another area already, and the policy of the areas hides it from whoever enters it; asked with lists, so that a table is one pass over the assets and not one per line, handed over are the few assets of the tenant of the transaction whose digits fit, and the server alone compares them',
         'label_state_in_tenant(asked text)':
           'a scan of a label in another area is told that it lies outside the areas of the person, not that no such label exists; one word, and the tenant is read from the transaction',
+        'own_kind_uses()':
+          'a kind or a field the operator added goes only while no asset uses it, and an asset in an area of somebody else uses it as well (#62); handed out are counts and the codes of the choices of a choice, for the tenant of the transaction, never a text an asset holds and never an id',
         'label_open_to_reports(asked text)':
           'the page of a label takes a report from somebody without an account (#332), who is in no tenant: the code alone has to find the operator and the area of a valid label at a room or an asset whose operator switched the page on; handed out are those two ids, to the server and never further, and nothing for every other code',
       }),
