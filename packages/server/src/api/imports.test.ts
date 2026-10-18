@@ -2491,3 +2491,66 @@ describe('where a record came from (#174)', () => {
     ).toEqual({})
   })
 })
+
+describe('what the log calls a record an import made (#422)', () => {
+  it('is the name the import made it with, and a later name wins', async () => {
+    const tenant = await tenantWith()
+    const keeper = by('site_management', tenant)
+    const lead = by('management', tenant)
+
+    await placeIn(tenant)
+    await elevatorsNamed(tenant)
+
+    const listed = table(
+      assetImportFields,
+      assetHeader,
+      assetLine('Aufzug Nord', { serial: 'SN-1', room: 'E.14' }),
+      assetLine('Aufzug Süd', { serial: 'SN-2', room: 'E.14' }),
+    )
+    const shown = await assetsPreview(keeper, listed)
+
+    await sendTable('/imports/assets', keeper, {
+      ...listed,
+      fileName: 'anlagen-schulzentrum.xlsx',
+      expected: shown.counts,
+    }).expect(201)
+
+    const { rows } = await admin.query<{ id: string; number: string }>(
+      'select id, number from assets where tenant_id = $1 order by number',
+      [tenant.id],
+    )
+    const [north, south] = rows
+    const titleOf = async (id: string) => {
+      // A change that names the asset in another table: its life cycle.
+      const page = (
+        await http()
+          .get('/audit/changes')
+          .query({ table: 'assets', record: id })
+          .set(testIdentityHeader, lead)
+          .expect(200)
+      ).body as AuditPage
+
+      return page.titles[id]?.title ?? null
+    }
+
+    for (const asset of [north, south]) {
+      await post(`/assets/${String(asset?.id)}/lifecycle`, keeper, {
+        state: 'in_service',
+        validFrom: '2020-01-01',
+      }).expect(201)
+    }
+
+    expect(await titleOf(String(north?.id))).toBe(`${String(north?.number)} Aufzug Nord`)
+
+    // Renamed afterwards, it is called what its log says.
+    await http()
+      .patch(`/assets/${String(south?.id)}`)
+      .set(testIdentityHeader, keeper)
+      .send({ name: 'Aufzug Süd, Bettenaufzug' })
+      .expect(200)
+
+    expect(await titleOf(String(south?.id))).toBe(
+      `${String(south?.number)} Aufzug Süd, Bettenaufzug`,
+    )
+  })
+})

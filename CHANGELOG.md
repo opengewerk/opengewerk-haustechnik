@@ -178,6 +178,12 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
 
 ### Behoben
 
+- Ein Datensatz aus einem Import hieß im Änderungsprotokoll „ohne Bezeichnung“ (#422): sein Protokoll hat keinen
+  Eintrag, der ihn nennt, weil ein Import ein Eintrag ist. Jetzt hält `import_records` die Nummer, den Namen und die
+  Art, mit denen der Import ihn angelegt hat (Migration `0080_import_record_names`), und das Protokoll nennt ihn damit,
+  bis eine Änderung ihn anders nennt. Dafür ist das Submodul des Fundaments angehoben (opengewerk/opengewerk#663).
+  Warum: wer eine importierte Anlage im Protokoll suchte, fand sie nicht unter ihrem Namen.
+
 - Nach dem Entfernen bleibt eine Seite nicht mehr mit „ohne Verbindung“ auf dem stehen, was es nicht mehr gibt,
   etwa auf einem entfernten Entwurf einer Übertragung (gefunden bei #346). Warum: eine Route, die etwas
   entfernt, antwortet ohne Inhalt, und die Seite las die leere Antwort als JSON, nachdem der Server
