@@ -15,6 +15,7 @@ import {
   workOrderUrgencyLabel,
 } from '@opengewerk/haustechnik-domain'
 import { Button, Field, Panel, Status, TextArea } from '@opengewerk/platform-web'
+import { PhotoTaker } from '@opengewerk/platform-web/forms'
 import { amount, clockTime, date, moment, today } from '@opengewerk/platform-web/format'
 import { accountQuery, useRight, useWho } from '@opengewerk/platform-web/session'
 import {
@@ -40,16 +41,7 @@ import {
 } from '@opengewerk/platform-web/sync'
 import { useQuery } from '@tanstack/react-query'
 import { useNavigate, useParams } from '@tanstack/react-router'
-import {
-  Ban,
-  Camera,
-  Check,
-  ClipboardList,
-  Clock,
-  ImageIcon,
-  Pencil,
-  Signature,
-} from 'lucide-react'
+import { Ban, Check, ClipboardList, Clock, ImageIcon, Pencil, Signature } from 'lucide-react'
 import { type ReactNode, useMemo, useRef, useState } from 'react'
 
 import { beginActivity } from '../../app/answers.js'
@@ -98,7 +90,6 @@ export const workOrderWords = {
   notSent: 'noch nicht übertragen',
   photos: 'Fotos',
   noPhoto: 'Noch kein Foto.',
-  photo: 'Foto',
   photoField: 'Foto zum Auftrag',
   photoOf: (at: number) => `Foto ${String(at)}`,
   notFiled: 'Das Foto ließ sich nicht ablegen.',
@@ -119,7 +110,6 @@ export const workOrderWords = {
 export const noteWords = {
   title: 'Notiz',
   field: 'Notiz',
-  addPhoto: 'Foto hinzufügen',
   photoField: 'Foto zur Notiz',
   photo: 'Foto zur Notiz',
   hint: 'Jede Notiz ist ein eigener Eintrag mit Ihrem Namen und der Uhrzeit des Geräts. Geändert wird sie danach nicht.',
@@ -390,7 +380,9 @@ function WorkOrderOf({ activityId }: { readonly activityId: string }) {
   const defect = useRecord('defects', maybeText(work.order, 'originDefectId') ?? undefined)
   const lines = useRelated('activity_duties', 'activityId', activityId).filter(live)
   const duty = useDutyName(maybeText(lines[0], 'dutyId'))
-  const field = useRef<HTMLInputElement>(null)
+  // Several photos from the gallery are filed one after the other: the first
+  // begins the order, the others find it begun (#458).
+  const filing = useRef<Promise<void>>(Promise.resolve())
   const stored = work.order?.['durationMinutes']
   const [trouble, setTrouble] = useState<string | null>(null)
 
@@ -404,6 +396,18 @@ function WorkOrderOf({ activityId }: { readonly activityId: string }) {
   const late = dueOn !== null && dueOn < today() && underWay.includes(work.status)
   const withForm = maybeText(activity, 'formKey') !== null
   const needsResult = withForm || lines.length > 0
+  const photoThumbs = (
+    <div className="flex flex-wrap items-stretch gap-2">
+      {work.photos.map((photo, index) => (
+        <PhotoThumb
+          key={String(photo['id'])}
+          attachmentId={String(photo['id'])}
+          label={workOrderWords.photoOf(index + 1)}
+          compact
+        />
+      ))}
+    </div>
+  )
   const responsibleWords =
     work.responsible === null
       ? workOrderWords.nobody
@@ -520,68 +524,35 @@ function WorkOrderOf({ activityId }: { readonly activityId: string }) {
           propertyId={maybeText(activity, 'propertyId')}
         />
         <Panel title={workOrderWords.photos}>
-          <div className="flex flex-wrap items-stretch gap-2">
-            {work.photos.length === 0 && !work.files ? (
-              <SiteText muted>{workOrderWords.noPhoto}</SiteText>
-            ) : null}
-            {work.photos.map((photo, index) => (
-              <PhotoThumb
-                key={String(photo['id'])}
-                attachmentId={String(photo['id'])}
-                label={workOrderWords.photoOf(index + 1)}
-                compact
-              />
-            ))}
-            {work.files ? (
-              <>
-                <input
-                  ref={field}
-                  type="file"
-                  accept="image/*"
-                  capture="environment"
-                  hidden
-                  aria-label={workOrderWords.photoField}
-                  onChange={(event) => {
-                    const file = event.target.files?.[0]
+          {work.files ? (
+            <PhotoTaker
+              label={workOrderWords.photoField}
+              multiple
+              photo={work.photos.length === 0 ? null : photoThumbs}
+              onTake={(file) => {
+                setTrouble(null)
+                filing.current = filing.current.then(async () => {
+                  const begun = await beginActivity(client, activityId)
+                  const filed =
+                    begun === null
+                      ? await fileDocument(
+                          client,
+                          { propertyId: text(activity, 'propertyId'), activityId },
+                          file,
+                        ).catch(() => workOrderWords.notFiled)
+                      : begun
 
-                    // The same photo taken twice is a change of the field again.
-                    event.target.value = ''
-
-                    if (!file) {
-                      return
-                    }
-
-                    setTrouble(null)
-                    void (async () => {
-                      const begun = await beginActivity(client, activityId)
-                      const filed =
-                        begun === null
-                          ? await fileDocument(
-                              client,
-                              { propertyId: text(activity, 'propertyId'), activityId },
-                              file,
-                            ).catch(() => workOrderWords.notFiled)
-                          : begun
-
-                      setTrouble(filed)
-                    })()
-                  }}
-                />
-                <div className="flex min-h-16 min-w-[96px] grow">
-                  <Button
-                    wide
-                    height={56}
-                    icon={Camera}
-                    onClick={() => {
-                      field.current?.click()
-                    }}
-                  >
-                    {workOrderWords.photo}
-                  </Button>
-                </div>
-              </>
-            ) : null}
-          </div>
+                  if (filed !== null) {
+                    setTrouble(filed)
+                  }
+                })
+              }}
+            />
+          ) : work.photos.length === 0 ? (
+            <SiteText muted>{workOrderWords.noPhoto}</SiteText>
+          ) : (
+            photoThumbs
+          )}
         </Panel>
         {/* The material from the stores, between the photos and the time spent (#326). */}
         <MaterialCard activityId={activityId} editable={work.editable} />
@@ -748,7 +719,6 @@ export function SiteNoteScreen() {
   const client = useSync()
   const navigate = useNavigate()
   const work = useWorkOrder(activityId)
-  const field = useRef<HTMLInputElement>(null)
   const [said, setSaid] = useState('')
   const [photos, setPhotos] = useState<readonly File[]>([])
   const [trouble, setTrouble] = useState<string | null>(null)
@@ -841,55 +811,28 @@ export function SiteNoteScreen() {
             setSaid(event.target.value)
           }}
         />
-        <div className="flex items-center gap-2.5">
-          {photos.map((photo, index) => (
-            <PickedPhoto
-              key={`${photo.name}-${String(index)}`}
-              label={`${noteWords.photo} ${String(index + 1)}`}
-            />
-          ))}
-          {photos.length === 0 ? (
-            <span
-              aria-hidden="true"
-              className="flex h-16 w-[84px] shrink-0 items-center justify-center rounded-[5px] border border-line bg-surface-sunken text-ink-faint"
-            >
-              <ImageIcon size={22} strokeWidth={1.8} />
-            </span>
-          ) : null}
-          {work.files ? (
-            <>
-              <input
-                ref={field}
-                type="file"
-                accept="image/*"
-                capture="environment"
-                hidden
-                aria-label={noteWords.photoField}
-                onChange={(event) => {
-                  const file = event.target.files?.[0]
-
-                  event.target.value = ''
-
-                  if (file) {
-                    setPhotos((before) => [...before, file])
-                  }
-                }}
-              />
-              <div className="flex grow">
-                <Button
-                  wide
-                  height={52}
-                  icon={Camera}
-                  onClick={() => {
-                    field.current?.click()
-                  }}
-                >
-                  {noteWords.addPhoto}
-                </Button>
-              </div>
-            </>
-          ) : null}
-        </div>
+        {work.files ? (
+          <PhotoTaker
+            label={noteWords.photoField}
+            multiple
+            disabled={working}
+            photo={
+              photos.length === 0 ? null : (
+                <div className="flex flex-wrap gap-2.5">
+                  {photos.map((photo, index) => (
+                    <PickedPhoto
+                      key={`${photo.name}-${String(index)}`}
+                      label={`${noteWords.photo} ${String(index + 1)}`}
+                    />
+                  ))}
+                </div>
+              )
+            }
+            onTake={(file) => {
+              setPhotos((before) => [...before, file])
+            }}
+          />
+        ) : null}
         <SiteText muted size={15}>
           {noteWords.hint}
         </SiteText>

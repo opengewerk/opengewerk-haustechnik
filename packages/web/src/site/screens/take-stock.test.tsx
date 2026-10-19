@@ -1,3 +1,4 @@
+import { fromTheGallery } from '@opengewerk/platform-web/forms'
 import { fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
@@ -150,6 +151,29 @@ describe('an asset taken in on site', () => {
     expect(queued(server)[1]?.values).toMatchObject({
       title: 'Typenschild',
       propertyId: 'p-school',
+      assetId: server.operations()[0]?.recordId,
+    })
+  })
+
+  it('files a photo of the type plate taken before, from the gallery', async () => {
+    const { server } = await assetForm('/aufnehmen/gebaeude/b-house')
+
+    type('Anlagenart', 'probe.pump')
+    type('Bezeichnung', 'Druckerhöhung')
+    fireEvent.change(screen.getByLabelText(fromTheGallery('Foto des Typenschilds')), {
+      target: { files: [new File(['bild'], 'IMG_0412.jpg', { type: 'image/jpeg' })] },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Anlegen' }))
+
+    await waitFor(() => {
+      expect(queued(server).map(({ entity, kind }) => `${entity} ${kind}`)).toEqual([
+        'assets create',
+        'attachments create',
+        'attachment_versions create',
+      ])
+    })
+    expect(queued(server)[1]?.values).toMatchObject({
+      title: 'Typenschild',
       assetId: server.operations()[0]?.recordId,
     })
   })

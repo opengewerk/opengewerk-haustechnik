@@ -63,12 +63,6 @@ type CategoryId = (typeof faultCategories.$inferSelect)['id']
 type ReportId = (typeof faultReports.$inferSelect)['id']
 type ReportRow = typeof faultReports.$inferInsert
 
-/**
- * The kinds of picture the page takes, each one the first bytes show: from
- * outside, a declared type counts for nothing (section 4.10 of the concept).
- */
-const photoTypes = ['image/jpeg', 'image/png', 'image/webp'] as const
-
 /** The answer for every code that takes no report, whatever the reason. */
 const closed: OutsideLabelPage = { open: false }
 
@@ -367,7 +361,12 @@ export class OutsideReportsController {
     const bytes = new Uint8Array(body.buffer, body.byteOffset, body.byteLength)
     const mediaType = recognisedMediaType(bytes)
 
-    if (mediaType === null || !(photoTypes as readonly string[]).includes(mediaType)) {
+    // From outside, a declared type counts for nothing (section 4.10 of the
+    // concept): the first bytes say what a picture is.
+    if (
+      mediaType === null ||
+      !(outsideReportRules.photoTypes as readonly string[]).includes(mediaType)
+    ) {
       throw new UnprocessableEntityException(
         'Ein Foto ist ein Bild als JPEG, PNG oder WebP. Die Meldung selbst ist angekommen.',
       )

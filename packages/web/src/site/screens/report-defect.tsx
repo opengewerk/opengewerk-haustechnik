@@ -1,5 +1,6 @@
 import { defectLimits, defectProblems } from '@opengewerk/haustechnik-domain'
 import { Button, Panel, TextArea } from '@opengewerk/platform-web'
+import { PhotoTaker } from '@opengewerk/platform-web/forms'
 import { today } from '@opengewerk/platform-web/format'
 import { useRight } from '@opengewerk/platform-web/session'
 import {
@@ -17,8 +18,8 @@ import {
   useSync,
 } from '@opengewerk/platform-web/sync'
 import { useNavigate, useParams } from '@tanstack/react-router'
-import { Camera, Check, DoorOpen, Zap } from 'lucide-react'
-import { type FormEvent, useRef, useState } from 'react'
+import { Check, DoorOpen, Zap } from 'lucide-react'
+import { type FormEvent, useState } from 'react'
 
 import { beginActivity } from '../../app/answers.js'
 import { fileDocument } from '../../app/documents.js'
@@ -33,7 +34,6 @@ export const reportDefectWords = {
     'Dieser Vorgang ist unterschrieben oder abgeschlossen. Ein Mangel wird jetzt an der Anlage oder am Raum gemeldet.',
   where: 'Woran',
   remark: 'Bemerkung',
-  takePhoto: 'Foto aufnehmen',
   photoField: 'Foto des Mangels',
   classLater: 'Klasse und Frist setzt, wer Mängel führt.',
   check: 'Bitte prüfen Sie die markierten Felder.',
@@ -85,7 +85,6 @@ export function ReportDefectScreen() {
     maybeText(asset, 'propertyId') ??
     maybeText(room, 'propertyId') ??
     maybeText(building, 'propertyId')
-  const picker = useRef<HTMLInputElement>(null)
   const [remark, setRemark] = useState('')
   const [photos, setPhotos] = useState<readonly File[]>([])
   const [problems, setProblems] = useState<Readonly<Record<string, string>>>({})
@@ -223,40 +222,29 @@ export function ReportDefectScreen() {
             setRemark(event.target.value)
           }}
         />
-        <div className="flex flex-wrap items-center gap-2.5">
-          {photos.map((photo) => (
-            <span
-              key={`${photo.name}-${String(photo.size)}`}
-              className="rounded-control border border-line px-2 py-1 text-[13px] text-ink-muted"
-            >
-              {photo.name}
-            </span>
-          ))}
-          <Button
-            icon={Camera}
-            height={44}
-            disabled={working}
-            onClick={() => {
-              picker.current?.click()
-            }}
-          >
-            {reportDefectWords.takePhoto}
-          </Button>
-          <input
-            ref={picker}
-            type="file"
-            accept="image/*"
-            capture="environment"
-            hidden
-            aria-label={reportDefectWords.photoField}
-            onChange={(event) => {
-              const files = [...(event.target.files ?? [])]
-
-              setPhotos((before) => [...before, ...files])
-              event.target.value = ''
-            }}
-          />
-        </div>
+        {/* From the camera or the gallery, there several at once (#458). */}
+        <PhotoTaker
+          label={reportDefectWords.photoField}
+          multiple
+          disabled={working}
+          photo={
+            photos.length === 0 ? null : (
+              <div className="flex flex-wrap gap-2.5">
+                {photos.map((photo) => (
+                  <span
+                    key={`${photo.name}-${String(photo.size)}`}
+                    className="rounded-control border border-line px-2 py-1 text-[13px] text-ink-muted"
+                  >
+                    {photo.name}
+                  </span>
+                ))}
+              </div>
+            )
+          }
+          onTake={(file) => {
+            setPhotos((before) => [...before, file])
+          }}
+        />
         <SiteText muted size={15}>
           {reportDefectWords.classLater}
         </SiteText>

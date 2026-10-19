@@ -9,11 +9,12 @@ import {
   outsideReportRules,
 } from '@opengewerk/haustechnik-domain'
 import { Button, Field, SelectField, TextArea } from '@opengewerk/platform-web'
+import { PhotoTaker } from '@opengewerk/platform-web/forms'
 import { Gate, GateText, GateWaiting } from '@opengewerk/platform-web/gate'
 import { request, RequestRefused } from '@opengewerk/platform-web/sync'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { Camera, Check, CircleCheck, DoorOpen, Lock, Plus } from 'lucide-react'
-import { type FormEvent, type ReactNode, useRef, useState } from 'react'
+import { Check, CircleCheck, DoorOpen, Lock, Plus } from 'lucide-react'
+import { type FormEvent, type ReactNode, useState } from 'react'
 
 import { PhotoPreview } from '../site/reporting.js'
 
@@ -28,8 +29,6 @@ export const outsideWords = {
   description: 'Beschreibung',
   descriptionHint: 'Was ist kaputt, und seit wann?',
   photo: 'Foto (freiwillig)',
-  takePhoto: 'Foto aufnehmen',
-  retakePhoto: 'Anderes Foto',
   contact: 'E-Mail für eine Rückmeldung (freiwillig)',
   contactHint:
     'Dann bekommen Sie Bescheid, wenn die Meldung angenommen und wenn sie erledigt ist. Mit der Erledigung wird die Adresse gelöscht.',
@@ -208,7 +207,6 @@ function ReportForm({
   readonly form: string
   readonly onSent: (sent: { readonly withAddress: boolean; readonly photoLost: boolean }) => void
 }) {
-  const picker = useRef<HTMLInputElement>(null)
   const [categoryId, setCategoryId] = useState('')
   const [description, setDescription] = useState('')
   const [contact, setContact] = useState('')
@@ -303,35 +301,19 @@ function ReportForm({
         />
         <div className="flex flex-col gap-1.5">
           <span className="text-[15px] font-medium">{outsideWords.photo}</span>
-          <div className="flex items-center gap-2.5">
-            {photo === null ? null : <PhotoPreview photo={photo} label={outsideWords.photo} />}
-            <Button
-              icon={Camera}
-              height={52}
-              disabled={working}
-              onClick={() => {
-                picker.current?.click()
-              }}
-            >
-              {photo === null ? outsideWords.takePhoto : outsideWords.retakePhoto}
-            </Button>
-            <input
-              ref={picker}
-              type="file"
-              accept="image/jpeg,image/png,image/webp"
-              capture="environment"
-              hidden
-              aria-label={outsideWords.photo}
-              onChange={(event) => {
-                const chosen = event.target.files?.[0] ?? null
-
-                setPhoto(
-                  chosen !== null && chosen.size <= outsideReportRules.photoBytes ? chosen : null,
-                )
-                event.target.value = ''
-              }}
-            />
-          </div>
+          {/* Only the kinds of picture the server takes from outside, at the
+              camera and in the gallery (#458). */}
+          <PhotoTaker
+            label={outsideWords.photo}
+            accept={outsideReportRules.photoTypes.join(',')}
+            disabled={working}
+            photo={
+              photo === null ? null : <PhotoPreview photo={photo} label={outsideWords.photo} />
+            }
+            onTake={(chosen) => {
+              setPhoto(chosen.size <= outsideReportRules.photoBytes ? chosen : null)
+            }}
+          />
         </div>
         <Field
           label={outsideWords.contact}

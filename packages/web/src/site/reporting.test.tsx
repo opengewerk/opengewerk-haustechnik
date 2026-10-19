@@ -3,6 +3,9 @@ import type {
   FaultPlaceChoice,
   OwnFaultReport,
 } from '@opengewerk/haustechnik-domain'
+import { createHash } from 'node:crypto'
+
+import { fromTheGallery } from '@opengewerk/platform-web/forms'
 import { fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, describe, expect, it } from 'vitest'
 
@@ -124,6 +127,33 @@ describe('reporting a fault', () => {
       ])
     })
     expect(await screen.findByText(reportingWords.reported)).toBeTruthy()
+  })
+
+  it('sends a photo from the gallery ahead of the report, which names it by its hash', async () => {
+    const sha256 = createHash('sha256').update('bild').digest('hex')
+    const { asked } = await mountSite('/stoerung?raum=r-205', {
+      role: 'reporter',
+      answers: { ...answers, [`PUT /fault-reports/photos/${sha256}`]: {} },
+    })
+
+    expect(await screen.findByText('2.05 Lehrerzimmer')).toBeTruthy()
+    fireEvent.change(await screen.findByLabelText(/Kategorie/), { target: { value: 'c-heat' } })
+    fireEvent.change(screen.getByLabelText(/Beschreibung/), {
+      target: { value: 'Heizkörper bleibt kalt.' },
+    })
+    fireEvent.change(screen.getByLabelText(fromTheGallery(reportingWords.photoField)), {
+      target: { files: [new File(['bild'], 'heizung.jpg', { type: 'image/jpeg' })] },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Melden' }))
+
+    await waitFor(() => {
+      expect(asked.find((each) => each.method === 'POST')?.body).toMatchObject({
+        photoSha256: sha256,
+      })
+    })
+    expect(asked.find((each) => each.method === 'PUT')?.path).toBe(
+      `/fault-reports/photos/${sha256}`,
+    )
   })
 
   it('sends nothing without a place and says how to choose one', async () => {

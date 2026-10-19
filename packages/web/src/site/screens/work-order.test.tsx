@@ -1,5 +1,6 @@
 import 'fake-indexeddb/auto'
 
+import { fromTheGallery } from '@opengewerk/platform-web/forms'
 import { fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, describe, expect, it } from 'vitest'
 
@@ -202,6 +203,58 @@ describe('a work order on site', () => {
     // The first of the work begins the order, with its day.
     expect(queued(server).find((each) => each.entity === 'activities')?.values).toMatchObject({
       status: 'started',
+    })
+  })
+
+  it('files photos from the gallery one after the other, the first beginning the order once', async () => {
+    const { server } = await mountSite(`/vorgaenge/${order.id}`, {
+      server: orderServer({ responsibleUserId: 'u-lead' }),
+    })
+
+    await screen.findByRole('heading', { name: 'Speicher entkalken' })
+    fireEvent.change(screen.getByLabelText(fromTheGallery('Foto zum Auftrag')), {
+      target: {
+        files: [
+          new File(['eins'], 'vorher.jpg', { type: 'image/jpeg' }),
+          new File(['zwei'], 'nachher.jpg', { type: 'image/jpeg' }),
+        ],
+      },
+    })
+
+    await waitFor(() => {
+      expect(
+        queued(server)
+          .filter((each) => each.entity === 'attachments')
+          .map((each) => [each.values['title'], each.values['activityId']]),
+      ).toEqual([
+        ['vorher', order.id],
+        ['nachher', order.id],
+      ])
+    })
+    expect(queued(server).filter((each) => each.entity === 'activities')).toHaveLength(1)
+    expect(screen.queryByRole('alert')).toBeNull()
+  })
+
+  it('takes a photo for a note from the gallery as well, filed at the order with it', async () => {
+    const { server } = await mountSite(`/vorgaenge/${order.id}`, {
+      server: orderServer({ responsibleUserId: 'u-lead' }),
+    })
+
+    await screen.findByRole('heading', { name: 'Speicher entkalken' })
+    fireEvent.click(screen.getByRole('button', { name: 'Notiz schreiben' }))
+    fireEvent.change(await screen.findByRole('textbox', { name: 'Notiz' }), {
+      target: { value: 'Kalk ausgespült.' },
+    })
+    fireEvent.change(screen.getByLabelText(fromTheGallery('Foto zur Notiz')), {
+      target: { files: [new File(['bild'], 'speicher.jpg', { type: 'image/jpeg' })] },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Speichern' }))
+
+    await waitFor(() => {
+      expect(queued(server).find((each) => each.entity === 'attachments')?.values).toMatchObject({
+        title: 'speicher',
+        activityId: order.id,
+      })
     })
   })
 
