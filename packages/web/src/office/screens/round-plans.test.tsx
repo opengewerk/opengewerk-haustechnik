@@ -6,6 +6,7 @@ import {
   weekdayOf,
 } from '@opengewerk/haustechnik-domain'
 import { today } from '@opengewerk/platform-web/format'
+import { updatesHeld } from '@opengewerk/platform-web/shell'
 import { TestServer } from '@opengewerk/platform-web/testing'
 import { onlineManager } from '@tanstack/react-query'
 import { act, fireEvent, screen, waitFor, within } from '@testing-library/react'
@@ -646,6 +647,33 @@ describe('a plan that runs', () => {
     expect(screen.getByRole('combobox', { name: 'Vorlage' }).closest('fieldset')?.disabled).toBe(
       true,
     )
+  })
+
+  it('holds a new version of the application while a day of the week pressed is not saved, and lets it go once it is (#465)', async () => {
+    answerToWrite = () => ({ status: 200, body: { id: daily.id } })
+    await mountOffice(`/rundgaenge/plaene/${daily.id}`, server, everything)
+    await screen.findByRole('button', { name: 'Speichern' })
+    await untilTheRightsAreKnown()
+
+    expect(updatesHeld()).toBe(false)
+
+    // Pressed, not typed: the hold of the foundation for what was typed does not see it.
+    press('Samstag')
+    expect(updatesHeld()).toBe(true)
+
+    // Pressed again, the plan is as it was.
+    press('Samstag')
+    expect(updatesHeld()).toBe(false)
+
+    press('Samstag')
+    press('Speichern')
+
+    await waitFor(() => {
+      expect(written).toHaveLength(1)
+    })
+    await waitFor(() => {
+      expect(updatesHeld()).toBe(false)
+    })
   })
 })
 

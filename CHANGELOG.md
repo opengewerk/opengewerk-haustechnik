@@ -68,6 +68,19 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
 
 ### Geändert
 
+- Eine neue Fassung kommt von selbst (#465): die Leiste „Eine neue Fassung liegt bereit.“ mit „Jetzt übernehmen“ steht
+  nicht mehr über Büro, vor Ort und dem Bereich der Instanz. Die Anwendung übergibt die Registrierung ihres Service
+  Workers an `takeUpdates` des Fundaments (opengewerk/opengewerk#680, Submodul `upstream/opengewerk` auf `efed30a`
+  angehoben), mit einem leeren `onNeedReload`, damit nicht jede offene Seite im selben Augenblick neu lädt. Die Seite
+  übernimmt die wartende Fassung selbst: beim Öffnen, wenn sie schon wartete, wenn die Seite verborgen wird, und wenn die
+  Adresse wechselt. Nie, solange etwas sie hält: Eingaben, die nicht gespeichert sind, eine Unterschrift auf ihrem Feld,
+  der Postausgang beim Senden, und hier dazu der Entwurf einer Vorlage eines Rundgangs und die Wochentage eines Plans,
+  solange sie nicht gespeichert sind; beide entstehen auch durch Drücken, nicht nur durch Tippen. Ohne Netz bleibt eine
+  Seite bei ihrer Fassung, und eine Seite, die offen bleibt, fragt jede Stunde und bei jeder Rückkehr nach einer neuen.
+  Das Kapitel „Update“ des Handbuchs sagt es so, und ADR 0005 hat dazu einen Nachtrag. Warum: eine neue Fassung soll
+  ohne Zutun ankommen, auch auf dem Tablet im Technikraum, das tagelang offen steht und sonst bei der alten bliebe,
+  selbst wenn die mit dem Server nicht mehr abgleichen kann.
+
 - Fotos aus der Galerie an allen Fotoknöpfen vor Ort (#458): Auftrag und Notiz, Mangel melden, Störung melden, das
   Typenschild beim Aufnehmen einer Anlage, die Dokumente eines Orts und die Meldung über das Etikett ohne Anmeldung haben
   neben „Foto aufnehmen“ den Knopf „Aus der Galerie“, den `PhotoTaker` des Fundaments. Wo eine Stelle mehrere Fotos
