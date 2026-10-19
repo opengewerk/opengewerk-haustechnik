@@ -36,9 +36,10 @@ import {
 import { useQuery } from '@tanstack/react-query'
 import { useParams } from '@tanstack/react-router'
 import { QrCode, TriangleAlert } from 'lucide-react'
+import { lazy, Suspense } from 'react'
 
 import { DutyStateMark } from '../../app/asset-marks.js'
-import { holdsBoards } from '../../app/electrical.js'
+import { holdsBoards } from '../../app/holds-boards.js'
 import { generalKindNote, kindFields, typedValues, unitOf } from '../../app/asset-values.js'
 import { assetEvidenceQuery } from '../../app/evidence.js'
 import { useLabelsOf } from '../../app/labels.js'
@@ -58,7 +59,13 @@ import {
 } from '../kit.js'
 import { siteDefects, siteForms, sitePlaces, stockTaking } from '../places.js'
 import { SiteTasksCard } from '../tasks.js'
-import { SiteBoardsBlock } from './boards.js'
+
+// The boards of a low-voltage installation (#349) are fetched with the first such asset:
+// the entry on site has a budget (`scripts/budget.js`), and the service worker holds the
+// chunk, so the block shows without a network as well.
+const SiteBoardsBlock = lazy(async () => ({
+  default: (await import('./boards-block.js')).SiteBoardsBlock,
+}))
 
 export const siteAssetWords = {
   noNumber: 'Nummer folgt nach dem Abgleich',
@@ -252,7 +259,11 @@ export function SiteAssetScreen() {
         />
         {/* The boards of a low-voltage installation, under the path and after a
             defect that puts it out of service (#349). */}
-        {holdsBoards(key) ? <SiteBoardsBlock assetId={assetId} /> : null}
+        {holdsBoards(key) ? (
+          <Suspense fallback={null}>
+            <SiteBoardsBlock assetId={assetId} />
+          </Suspense>
+        ) : null}
         {performs && work.length > 0 ? (
           <Panel title={siteAssetWords.work}>
             <SiteRows label={siteAssetWords.work}>

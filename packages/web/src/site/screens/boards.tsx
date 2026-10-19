@@ -1,4 +1,4 @@
-import { distributionBoardKindLabel, type RecordState } from '@opengewerk/haustechnik-domain'
+import { type RecordState } from '@opengewerk/haustechnik-domain'
 import { Button, Field, IconButton, Panel, SelectField } from '@opengewerk/platform-web'
 import { useRight } from '@opengewerk/platform-web/session'
 import {
@@ -7,8 +7,6 @@ import {
   SiteCrumbs,
   SiteFacts,
   SiteHeader,
-  SiteRow,
-  SiteRows,
   SiteScreen,
   SiteText,
   SiteTrouble,
@@ -21,19 +19,17 @@ import {
   refusalFor,
   text,
   useRecord,
-  useRecords,
   useSync,
 } from '@opengewerk/platform-web/sync'
 import { Link, useNavigate, useParams } from '@tanstack/react-router'
 import { Check, ChevronRight, Pencil, Plus } from 'lucide-react'
-import { type FormEvent, type ReactNode, useId, useState } from 'react'
+import { type FormEvent, useId, useState } from 'react'
 
 import {
   asBoard,
   asEquipment,
   asSection,
   boardFields,
-  boardKindOf,
   circuitFacts,
   CircuitForm,
   circuitGroups,
@@ -45,7 +41,6 @@ import {
   nextPosition,
   ordered,
   sectionFields,
-  sectionsInWords,
   structurePlaces,
   structureWords,
   useBoards,
@@ -58,13 +53,15 @@ import { placePath } from '../../app/place-path.js'
 import { placeAbove } from '../../app/place-records.js'
 import { NotOffered, NotOnDevice } from '../kit.js'
 import { sitePlaces, siteStructure, stockTaking } from '../places.js'
+import { boardWhere, Count, FormButton, siteStructureWords } from './boards-block.js'
 
 /**
  * The electrical structure of a low-voltage installation on site (#349, the
  * boards "Anlage mit Verteilern", "Verteiler", "Stromkreis" and "Stromkreis
- * hinzufügen"): its boards on the page of the asset, a board with its
- * circuits section by section, a circuit with what is known about it and its
- * equipment, and the forms that add and change each of them.
+ * hinzufügen"): a board with its circuits section by section, a circuit with
+ * what is known about it and its equipment, and the forms that add and change
+ * each of them. The boards on the page of the asset are `boards-block.tsx`;
+ * these pages are fetched when their address is opened (`router.tsx`).
  *
  * A technician stands in front of a board and takes it down, without a
  * network like everything here: whoever takes stock of assets adds and
@@ -73,13 +70,6 @@ import { sitePlaces, siteStructure, stockTaking } from '../places.js'
  * is the office's, for whoever keeps the assets, where the whole board is on
  * one screen. The circuit chart is printed in the office as well.
  */
-
-export const siteStructureWords = {
-  unknownStays: 'Was nicht bekannt ist, bleibt leer und lässt sich später ergänzen.',
-  noDesignation: 'Die Bezeichnung fehlt.',
-  notKept: 'Auf diesem Gerät ließ sich das nicht speichern. Die Eingaben stehen noch da.',
-  noCircuit: 'noch kein Stromkreis',
-} as const
 
 /** The places above an asset the device holds, for the path over a page below it. */
 function useAssetAbove(assetId: string | undefined) {
@@ -100,112 +90,6 @@ function useAssetAbove(assetId: string | undefined) {
       ? placePath(placeAbove({ property, building, floor, room, asset }), sitePlaces)
       : [],
   }
-}
-
-/** "Unterverteilung, E.01 Werkstatt, an der Tür": what a board is and where it hangs. */
-function boardWhere(board: RecordState): string {
-  return [distributionBoardKindLabel[boardKindOf(board)], maybeText(board, 'location')]
-    .filter((part): part is string => part !== null)
-    .join(', ')
-}
-
-/** "2 Felder, 10 Stromkreise", "6 Stromkreise", "noch kein Stromkreis". */
-function boardCounts(sections: number, circuits: number): string {
-  return [
-    sections === 0 ? null : sectionsInWords(sections),
-    circuits === 0 ? siteStructureWords.noCircuit : circuitsInWords(circuits),
-  ]
-    .filter((part): part is string => part !== null)
-    .join(', ')
-}
-
-/** A count at the right of the head of a card. */
-function Count({ total }: { readonly total: number }) {
-  return <span className="text-[15px] text-ink-muted tabular-nums">{total}</span>
-}
-
-/** A button under a list that goes to the form of a part, 48 pixels as the boards draw it. */
-function FormButton({
-  to,
-  icon,
-  children,
-}: {
-  readonly to: string
-  readonly icon: typeof Plus
-  readonly children: ReactNode
-}) {
-  const navigate = useNavigate()
-
-  return (
-    <Button
-      wide
-      height={48}
-      icon={icon}
-      onClick={() => {
-        void navigate({ to })
-      }}
-    >
-      {children}
-    </Button>
-  )
-}
-
-/**
- * The boards of a low-voltage installation on the page of the asset, the
- * block "Verteiler" right under the path: each with what it is, where it
- * hangs and what it holds, the way to its page, and the way to one more.
- */
-export function SiteBoardsBlock({ assetId }: { readonly assetId: string }) {
-  const client = useSync()
-  const records = useRight('asset.record')
-  const boards = useBoards(assetId)
-  const sections = useRecords('board_sections')
-  const circuits = useRecords('circuits')
-  const of = (parts: readonly RecordState[], id: string) =>
-    parts.filter((part) => part['distributionBoardId'] === id).length
-
-  return (
-    <Panel title="Verteiler" action={boards.length === 0 ? null : <Count total={boards.length} />}>
-      <div className="flex flex-col gap-2.5">
-        {boards.length === 0 ? (
-          <SiteText muted>{structureWords.noBoards}</SiteText>
-        ) : (
-          <SiteRows label="Verteiler">
-            {boards.map((board) => {
-              const id = String(board['id'])
-
-              return (
-                <SiteRow
-                  key={id}
-                  to={structurePlaces.board(assetId, id)}
-                  title={text(board, 'designation')}
-                  meta={
-                    <>
-                      <span className="block">{boardWhere(board)}</span>
-                      <span className="block">
-                        {boardCounts(of(sections, id), of(circuits, id))}
-                        {client.isPending('distribution_boards', id) ? (
-                          <>
-                            {', '}
-                            <NotSent />
-                          </>
-                        ) : null}
-                      </span>
-                    </>
-                  }
-                />
-              )
-            })}
-          </SiteRows>
-        )}
-        {records ? (
-          <FormButton to={siteStructure.newBoard(assetId)} icon={Plus}>
-            Verteiler hinzufügen
-          </FormButton>
-        ) : null}
-      </div>
-    </Panel>
-  )
 }
 
 /**
