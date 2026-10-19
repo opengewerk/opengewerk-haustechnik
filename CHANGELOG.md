@@ -9,6 +9,12 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
 
 ### Hinzugefügt
 
+- Im Menü der Person im Büro und im Bereich der Instanz steht „Zur Ansicht für vor Ort“ mit der Zeile „Große Knöpfe,
+  auch ohne Netz“ (#464), aus dem Fundament (opengewerk/opengewerk#681, Submodul `upstream/opengewerk` auf `2452f0e`
+  angehoben). Der Eintrag öffnet `/m/` und merkt sich die Wahl, sodass `/` auf diesem Gerät danach in die Ansicht für
+  vor Ort führt, bis dort „Zur Büroansicht“ gewählt wird. Warum: vom Schreibtisch oder vom Tablet in der Desktop-Ansicht
+  kam man bisher nur über die Leiste mit dem Vorschlag dorthin, die nicht immer erscheint, sonst über `/m` von Hand.
+
 - Messungen je Stromkreis im Paket Elektro, Fassung 1.3.0 (#350): die Formulare `installation_initial_test`
   (Erstprüfung nach DIN VDE 0100-600) und `installation_test` (wiederkehrende Prüfung der elektrischen Anlage) mit einer
   Gruppe „Messen je Stromkreis“, die einen Block für jeden Stromkreis der Anlage hat. Schutzleiter, Isolationswiderstand,
