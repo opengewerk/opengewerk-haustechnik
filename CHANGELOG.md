@@ -7,6 +7,28 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
 
 ## [Unreleased]
 
+## [0.1.8] - 2026-10-19
+
+Die vierte Zwischenfassung für den Pilotbetrieb, mit dem, was aus Phase 2 seit 0.1.7 fertig ist.
+Drei Pakete kommen dazu, Raumluft und Kälte, Heizung sowie Förderanlagen und Arbeitsmittel, mit
+dem Landesrecht für sie, dazu einmalige Pflichten und das Anlagenbuch einer Anlage. Für den
+Datenschutz erzeugt die Anwendung die Verfahrensbeschreibung, das Verzeichnis der
+Verarbeitungstätigkeiten, die technischen und organisatorischen Maßnahmen und das Löschkonzept
+selbst, die Leitung gibt die Auskunft über eine Person und schwärzt einen Wert im
+Änderungsprotokoll, und das Ende eines Zugangs ist eine Frist. Im Rundgang kommt ein Foto auch
+aus der Galerie, ein Punkt nimmt mehrere Fotos, an jedem Punkt und bei jeder Antwort, und eine
+Antwort lässt sich zurücknehmen.
+
+Behoben ist, dass Fotos eines Rundgangs auf dem Telefon nach einer Sekunde verschwanden, wenn die
+Person nur den Bereich des Gebäudes hat: der Server legte sie als Konflikt ab, und ein Telefon,
+das im Büro angemeldet und vor Ort weitergeschickt wurde, sah diese Konflikte nicht. Beides ist
+behoben; nach dem Update sieht ein solches Telefon die Konflikte, die schon liegen.
+
+Aktualisiert wird wie bei jeder Fassung in zwei Schritten, vorher gesichert. Acht Migrationen
+kommen mit (`0083_one_time_duties` bis `0090_more_answer_photos`); mit ihnen bekommt die Rolle
+Leitung bestehender Betreiber das Recht, die Dokumente zum Datenschutz zu erzeugen. Eine Antwort
+von vorher behält ihre Seite, jede Unterschrift von vorher gilt weiter.
+
 ### Hinzugefügt
 
 - Mehrere Fotos zu einem Punkt (#451): ein Prüfpunkt und ein Foto-Feld nehmen Fotos aus der Kamera und aus der Galerie,
