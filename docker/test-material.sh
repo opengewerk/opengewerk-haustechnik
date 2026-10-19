@@ -30,7 +30,7 @@ guarded_route=/staff
 # The tables counted before the backup and after the restore. The area and
 # the place of the account in it come with the account: a Betreiber gets its
 # first area with its first membership.
-counted_tables='auth_users memberships tenant_roles account_corrections areas member_areas invitations invitation_area_choices invitation_areas properties buildings contacts building_closures assets files mail_settings deadline_settings deadline_runs duties duty_dismissals evidence deadlines activities activity_duties activity_answers work_orders work_order_participants work_order_notes defects fault_categories fault_reports fault_report_settings fault_report_contacts meter_points meter_readings meter_exchanges meter_pauses meter_settings work_order_settings activity_signatures work_order_decisions service_reports service_report_records briefings work_permits articles suppliers stores store_articles stock_movements work_order_materials store_labels contractors contracts contract_items qualification_kinds qualifications member_limit_properties member_limit_asset_kinds invitation_limit_properties invitation_limit_asset_kinds auditor_reads evidence_voidings evidence_emptyings evidence_retention_settings membership_settings membership_removals processing_descriptions round_records prints attachments attachment_versions labels imports import_records own_asset_kinds own_asset_fields asset_kind_names defect_class_terms round_templates round_template_versions round_plans tasks mail_outbox push_subscriptions push_opt_outs push_outbox'
+counted_tables='auth_users memberships tenant_roles account_corrections areas member_areas invitations invitation_area_choices invitation_areas properties buildings contacts building_closures assets files mail_settings deadline_settings deadline_runs duties duty_dismissals evidence deadlines activities activity_duties activity_answers work_orders work_order_participants work_order_notes defects fault_categories fault_reports fault_report_settings fault_report_contacts meter_points meter_readings meter_exchanges meter_pauses meter_settings work_order_settings activity_signatures work_order_decisions service_reports service_report_records briefings work_permits articles suppliers stores store_articles stock_movements work_order_materials store_labels contractors contracts contract_items qualification_kinds qualifications member_limit_properties member_limit_asset_kinds invitation_limit_properties invitation_limit_asset_kinds auditor_reads evidence_voidings evidence_emptyings evidence_retention_settings membership_settings membership_removals processing_descriptions audit_redactions round_records prints attachments attachment_versions labels imports import_records own_asset_kinds own_asset_fields asset_kind_names defect_class_terms round_templates round_template_versions round_plans tasks mail_outbox push_subscriptions push_opt_outs push_outbox'
 
 # The migrations, and how many of them make the older state an update starts
 # from: the first, without the sequence for work orders that the second brings.
@@ -413,6 +413,19 @@ records_for_backup() {
     select '$first_tenant', u.id, false from auth_users u where u.email = '$probe_email';
     insert into processing_descriptions (tenant_id, made_by, holds_for, text)
     select '$first_tenant', u.id, '0.1.7', '# Verfahrensbeschreibung' from auth_users u where u.email = '$probe_email';
+    -- A value of the log blacked out (#355). The trigger in front of the table
+    -- asks for the tenant of the session and a person who leads it; the probe
+    -- account only works there, so one who leads comes along for it.
+    insert into auth_users (id, name, email) values ('u-probe-lead', 'Leitung der Schwärzung', 'schwaerzung@probe.example.de');
+    insert into memberships (tenant_id, user_id, roles)
+    select '$first_tenant', 'u-probe-lead', array[r.key]
+      from tenant_roles r where r.tenant_id = '$first_tenant' and r.leads order by r.key limit 1;
+    select set_config('app.tenant_id', '$first_tenant', false), set_config('app.user_id', 'u-probe-lead', false);
+    insert into audit_redactions (tenant_id, entry_id, side, reason, redacted_by)
+    select e.tenant_id, e.id, 'new', 'Auskunft der Person', 'u-probe-lead'
+      from audit_entries e
+     where e.tenant_id = '$first_tenant' and e.table_name = 'processing_descriptions' and e.field = 'text';
+    select set_config('app.tenant_id', '', false), set_config('app.user_id', '', false);
     insert into round_records (tenant_id, property_id, area_id, activity_id, state, fingerprint)
     select tenant_id, property_id, area_id, id, '{\"version\": 1, \"title\": \"Rundgang Probe\"}',
            repeat('0', 64)

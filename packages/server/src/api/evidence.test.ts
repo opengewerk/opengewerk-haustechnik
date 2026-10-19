@@ -1391,6 +1391,9 @@ describe('the frozen state in the change log', () => {
       field: 'state',
       before: null,
       after: withheldAuditValue,
+      entryId: expect.any(String),
+      redactedBefore: null,
+      redactedAfter: null,
     })
     // What else the log says about the evidence it says as before.
     expect(fields.find((field) => field.field === 'duty_id')?.after).toBe(duty)

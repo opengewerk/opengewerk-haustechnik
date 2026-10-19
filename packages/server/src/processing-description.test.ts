@@ -7,6 +7,7 @@ import {
   rightLabel,
   rights,
   shippedRoles,
+  subjectAccessSources,
 } from '@opengewerk/haustechnik-domain'
 import { Database } from '@opengewerk/platform-server'
 import { firstSegmentOf, routesOf } from '@opengewerk/platform-server/testing'
@@ -349,6 +350,21 @@ describe('appendix B of the description', () => {
       there.filter((name) => !everywhere.has(name.slice(name.indexOf('.') + 1))),
     )
     expect(rows.filter((row) => (row[2] ?? '') === '')).toEqual([])
+  })
+
+  /**
+   * The information about a person (#355) reads every field of this appendix,
+   * each in exactly one of its parts: a field that comes here and not there
+   * would leave what it holds out of every information.
+   */
+  it('is read whole by the information about a person', () => {
+    const named = tableUnder('## Anhang B: Felder, die auf eine Person zeigen')
+      .map((row) => `${row[0] ?? ''}.${row[1] ?? ''}`)
+      .sort()
+    const read = [...subjectAccessSources()].sort()
+
+    expect(named.length).toBeGreaterThanOrEqual(60)
+    expect(read).toEqual(named)
   })
 })
 

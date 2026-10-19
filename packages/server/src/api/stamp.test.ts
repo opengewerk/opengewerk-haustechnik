@@ -134,11 +134,14 @@ const askedWith: Readonly<Record<string, Readonly<Record<string, string>>>> = {
  * record in it; and what an import made and which import made a record (#174),
  * since the operator here has imported nothing and no route lists its imports.
  * Neither answer has a column of the sync in it. Nor has what hangs on a
- * person (#356), named by an account as well and answered with numbers.
+ * person (#356), named by an account as well and answered with numbers, nor
+ * the information about a person (#355), named by an account and a file whose
+ * parts are held by `subject-access.test.ts`.
  */
 const notAsked = [
   'GET /staff/:userId/devices',
   'GET /settings/memberships/:userId/assigned',
+  'GET /settings/subject-access/people/:userId',
   'GET /imports/:importId/made',
   'GET /imports/origins/:table/:recordId',
 ]

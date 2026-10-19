@@ -1,0 +1,382 @@
+import type { INestApplication } from '@nestjs/common'
+import { Test } from '@nestjs/testing'
+import { probeCatalogueBundle } from '@opengewerk/haustechnik-catalogue/testing'
+import {
+  catalogueOf,
+  missingRight,
+  type RoleKey,
+  shippedRoles,
+  type SubjectAccess,
+  type SubjectAccessChoice,
+  type SubjectAccessMatch,
+  subjectAccessNeedsEveryArea,
+  subjectAccessParts,
+  type TenantId,
+} from '@opengewerk/haustechnik-domain'
+import { Database, newId, type PrintJob } from '@opengewerk/platform-server'
+import { sql } from 'drizzle-orm'
+import { drizzle } from 'drizzle-orm/node-postgres'
+import type { Pool } from 'pg'
+import request from 'supertest'
+import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+
+import {
+  applicationDatabaseUrl,
+  connect,
+  resetToMigrated,
+  testIdentityHeader,
+} from '../database/test-database.js'
+import { insertOf, rowsOf, rowsOfTheInstance, type Tenant } from '../database/test-tenant-rows.js'
+import { ApiModule } from './api.module.js'
+import { as, testIdentities } from './test-identity.js'
+
+/**
+ * The information about a person (#355, section 3 of the concept): made by
+ * the Leitung that sees every area, about a person with an access as a PDF
+ * or JSON, with every part a module holds about that person and nothing about
+ * another, and about a person without one by a search for a name or address.
+ *
+ * The tenant is filled as the test of the isolation fills one: a row in every
+ * table, every column that points at a person naming its Leitung or its
+ * colleague, often both in one row. The information is about each of them in
+ * turn; a third person shares some of those rows as well, and nothing of the
+ * one it is not about may come along.
+ */
+
+const north: Tenant = {
+  id: newId<'tenant'>(),
+  name: 'Wohnbau <Nord> eG',
+  userId: 'user-north',
+  email: 'leitung@nord.example',
+  colleagueId: 'colleague-north',
+}
+const south: Tenant = {
+  id: newId<'tenant'>(),
+  name: 'Wohnbau Süd eG',
+  userId: 'user-south',
+  email: 'leitung@sued.example',
+  colleagueId: 'colleague-south',
+}
+
+/** The other person, who shares rows with the colleague and must not appear in her information. */
+const other = { id: 'other-north', name: 'Bettina Anders', email: 'b.anders@nord.example' }
+
+const catalogue = catalogueOf(probeCatalogueBundle)
+const rendered: PrintJob[] = []
+
+let admin: Pool
+let database: Database
+let app: INestApplication
+
+function http() {
+  return request(app.getHttpServer())
+}
+
+function by(userId: string, role: RoleKey = 'management', tenantId: TenantId = north.id): string {
+  return as(tenantId, userId, role)
+}
+
+/** The information about a person of the north as JSON, asked by its Leitung. */
+async function about(userId: string): Promise<SubjectAccess> {
+  const answer = await http()
+    .get(`/settings/subject-access/people/${userId}?format=json`)
+    .set(testIdentityHeader, by(north.userId))
+    .expect(200)
+
+  return JSON.parse(answer.text) as SubjectAccess
+}
+
+/** The three people of the north as their values stand in a file: id, name and address, each as a JSON string. */
+const people = {
+  [north.userId]: [north.userId, `Leitung ${north.name}`, north.email],
+  [north.colleagueId]: [north.colleagueId, `Kollegium ${north.name}`, `kollegium-${north.email}`],
+  [other.id]: [other.id, other.name, other.email],
+}
+
+beforeAll(async () => {
+  admin = await connect()
+  await resetToMigrated()
+
+  const asAdmin = drizzle(admin)
+
+  for (const row of rowsOfTheInstance(north, south)) {
+    await asAdmin.execute(insertOf(row))
+  }
+
+  for (const tenant of [north, south]) {
+    for (const row of rowsOf(tenant)) {
+      if (row.table !== 'audit_redactions') {
+        await asAdmin.execute(insertOf(row))
+      }
+    }
+
+    for (const role of shippedRoles) {
+      await admin.query(
+        `insert into tenant_roles (tenant_id, key, label, rights, leads, second_factor)
+         values ($1, $2, $3, $4, $5, $6)`,
+        [tenant.id, role.key, role.label, [...role.rights], role.leads, role.secondFactor],
+      )
+    }
+  }
+
+  // The Leitung of the north sees every area; the colleague leads, so that
+  // she blacks out a value of the log below.
+  await admin.query('insert into member_all_areas (tenant_id, user_id) values ($1, $2)', [
+    north.id,
+    north.userId,
+  ])
+  await admin.query(
+    `update memberships set roles = '{management}' where tenant_id = $1 and user_id in ($2, $3)`,
+    [north.id, north.userId, north.colleagueId],
+  )
+
+  // The other person, beside the colleague in rows of the north.
+  await admin.query('insert into auth_users (id, name, email) values ($1, $2, $3)', [
+    other.id,
+    other.name,
+    other.email,
+  ])
+  await admin.query('insert into memberships (tenant_id, user_id, roles) values ($1, $2, $3)', [
+    north.id,
+    other.id,
+    ['technician'],
+  ])
+  await admin.query(
+    'update duties set confirmed_by = $2, confirmed_at = now() where tenant_id = $1',
+    [north.id, other.id],
+  )
+  await admin.query('update tasks set created_by = $2 where tenant_id = $1', [north.id, other.id])
+  await admin.query('update substitutions set substitute_user_id = $2 where tenant_id = $1', [
+    north.id,
+    other.id,
+  ])
+
+  // Who filed a version of a document and who changed a row last, the
+  // database writes from the session; the rows above went in without one.
+  for (const [table, column] of [
+    ['attachment_versions', 'created_by'],
+    ['duties', 'updated_by'],
+  ] as const) {
+    await admin.query(`alter table ${table} disable trigger user`)
+
+    try {
+      await admin.query(`update ${table} set ${column} = $2 where tenant_id = $1`, [
+        north.id,
+        north.colleagueId,
+      ])
+    } finally {
+      await admin.query(`alter table ${table} enable trigger user`)
+    }
+  }
+
+  database = Database.connect(applicationDatabaseUrl())
+
+  // A change by the other person and a redaction by the colleague, through the application.
+  await database.forTenant({ tenantId: north.id, userId: other.id, reason: 'task.write' }, (tx) =>
+    tx.execute(sql`update tasks set title = title || ' (geprüft)' where tenant_id = ${north.id}`),
+  )
+  await database.forTenant(
+    { tenantId: north.id, userId: north.colleagueId, reason: 'audit.redact' },
+    (tx) =>
+      tx.execute(sql`insert into audit_redactions (tenant_id, entry_id, side, reason, redacted_by)
+        select tenant_id, id, 'new', 'Auskunft der Person', ${north.colleagueId}
+          from audit_entries
+         where tenant_id = ${north.id} and new_value is not null and table_name = 'processing_descriptions'
+         order by sequence desc limit 1`),
+  )
+
+  const built = await Test.createTestingModule({
+    imports: [
+      ApiModule.create(database, testIdentities, {
+        catalogue,
+        renderer: (job) => {
+          rendered.push(job)
+
+          return Promise.resolve(new TextEncoder().encode('%PDF-1.7 probe'))
+        },
+      }),
+    ],
+  }).compile()
+
+  app = built.createNestApplication()
+  await app.init()
+})
+
+afterAll(async () => {
+  await app.close()
+  await database.close()
+  await admin.end()
+})
+
+describe('the information about a person with an access (#355)', () => {
+  it('holds what every module holds about the person', async () => {
+    const lead = await about(north.userId)
+    const colleague = await about(north.colleagueId)
+
+    expect(colleague.about).toEqual({
+      kind: 'account',
+      name: `Kollegium ${north.name}`,
+      email: `kollegium-${north.email}`,
+    })
+    expect(colleague.operator).toBe(north.name)
+    expect(colleague.parts.map((part) => part.key)).toEqual(Object.keys(subjectAccessParts))
+
+    // Every part that reads a field of appendix B finds one of the two there,
+    // since every such column of the tenant names one of them.
+    const empty = Object.entries(subjectAccessParts)
+      .filter(([, part]) => part.sources.length > 0)
+      .map(([key]) => key)
+      .filter((key) =>
+        [lead, colleague].every(
+          (access) => (access.parts.find((part) => part.key === key)?.rows.length ?? 0) === 0,
+        ),
+      )
+
+    expect(empty).toEqual([])
+  })
+
+  it('says nothing about another person, not where they share a row', async () => {
+    for (const userId of [north.userId, north.colleagueId]) {
+      const text = JSON.stringify(await about(userId))
+
+      for (const [someone, values] of Object.entries(people)) {
+        for (const value of someone === userId ? [] : values) {
+          expect(text).not.toContain(JSON.stringify(value))
+        }
+      }
+
+      expect(text).not.toContain(south.colleagueId)
+    }
+  })
+
+  it('is printed with every value escaped and the drawing of the signatures', async () => {
+    rendered.length = 0
+
+    const answer = await http()
+      .get(`/settings/subject-access/people/${north.userId}?format=pdf`)
+      .set(testIdentityHeader, by(north.userId))
+      .expect(200)
+
+    expect(answer.headers['content-type']).toBe('application/pdf')
+    expect(answer.headers['cache-control']).toBe('no-store')
+
+    const job = rendered[0]
+
+    expect(job?.html).toContain('Auskunft über Leitung Wohnbau &lt;Nord&gt; eG')
+    expect(job?.html).not.toContain('<Nord>')
+    expect(job?.html).toContain('<svg')
+    expect(job?.html).not.toContain(other.name)
+  })
+
+  it('is made only by the Leitung, of a person of this operator, by a Leitung that sees every area', async () => {
+    for (const role of ['technical_management', 'site_management', 'technician'] as const) {
+      const refused = await http()
+        .get(`/settings/subject-access/people/${north.colleagueId}?format=json`)
+        .set(testIdentityHeader, by(north.userId, role))
+        .expect(403)
+
+      expect(refused.body.message).toBe(missingRight('membership.read'))
+      await http()
+        .get('/settings/subject-access?')
+        .set(testIdentityHeader, by(north.userId, role))
+        .expect(403)
+      await http()
+        .get('/settings/subject-access/matches?term=Becker')
+        .set(testIdentityHeader, by(north.userId, role))
+        .expect(403)
+      await http()
+        .get('/settings/subject-access/matches/file?term=Becker&format=json')
+        .set(testIdentityHeader, by(north.userId, role))
+        .expect(403)
+    }
+
+    // A person of the south is no person of the north, and a file is a PDF or JSON.
+    await http()
+      .get(`/settings/subject-access/people/${south.colleagueId}?format=json`)
+      .set(testIdentityHeader, by(north.userId))
+      .expect(404)
+    await http()
+      .get(`/settings/subject-access/people/${north.colleagueId}?format=xlsx`)
+      .set(testIdentityHeader, by(north.userId))
+      .expect(400)
+
+    // The Leitung of the south does not see every area, so it gets no information at all.
+    const partial = await http()
+      .get(`/settings/subject-access/people/${south.colleagueId}?format=json`)
+      .set(testIdentityHeader, by(south.userId, 'management', south.id))
+      .expect(403)
+
+    expect(partial.body.message).toBe(subjectAccessNeedsEveryArea)
+
+    const searching = await http()
+      .get('/settings/subject-access/matches?term=Becker')
+      .set(testIdentityHeader, by(south.userId, 'management', south.id))
+      .expect(403)
+
+    expect(searching.body.message).toBe(subjectAccessNeedsEveryArea)
+
+    const choice = (
+      await http()
+        .get('/settings/subject-access')
+        .set(testIdentityHeader, by(north.userId))
+        .expect(200)
+    ).body as SubjectAccessChoice
+
+    expect(choice.everyArea).toBe(true)
+    expect(choice.people.map((person) => person.userId)).toContain(north.colleagueId)
+    expect(choice.people.map((person) => person.userId)).not.toContain(south.colleagueId)
+  })
+})
+
+describe('the information about a person without an access (#355)', () => {
+  it('finds a name or an address, and gives what it found as a file', async () => {
+    const matches = (
+      await http()
+        .get('/settings/subject-access/matches?term=becker')
+        .set(testIdentityHeader, by(north.userId))
+        .expect(200)
+    ).body as SubjectAccessMatch[]
+
+    expect(matches.map((match) => match.part)).toContain('contacts')
+
+    const answer = await http()
+      .get('/settings/subject-access/matches/file?term=becker&format=json')
+      .set(testIdentityHeader, by(north.userId))
+      .expect(200)
+    const access = JSON.parse(answer.text) as SubjectAccess
+
+    expect(access.about).toEqual({ kind: 'search', term: 'becker' })
+    expect(access.parts.find((part) => part.key === 'contacts')?.rows.length).toBeGreaterThan(0)
+  })
+
+  it('takes a short search or a pattern of its own as nothing to find', async () => {
+    await http()
+      .get('/settings/subject-access/matches?term=be')
+      .set(testIdentityHeader, by(north.userId))
+      .expect(400)
+
+    const everything = (
+      await http()
+        .get(`/settings/subject-access/matches?term=${encodeURIComponent('%%%')}`)
+        .set(testIdentityHeader, by(north.userId))
+        .expect(200)
+    ).body as SubjectAccessMatch[]
+
+    expect(everything).toEqual([])
+  })
+
+  it('finds nothing of another operator', async () => {
+    const theirs = (
+      await http()
+        .get('/settings/subject-access/matches?term=becker')
+        .set(testIdentityHeader, by(north.userId))
+        .expect(200)
+    ).body as SubjectAccessMatch[]
+    const { rows } = await admin.query<{ count: number }>(
+      `select count(*)::int as count from contacts where tenant_id = $1 and family_name ilike '%becker%'`,
+      [north.id],
+    )
+
+    expect(theirs.filter((match) => match.part === 'contacts')).toHaveLength(rows[0]?.count ?? -1)
+  })
+})

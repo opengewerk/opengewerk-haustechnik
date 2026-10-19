@@ -9,6 +9,18 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
 
 ### Hinzugefügt
 
+- Die Auskunft über eine Person (#355): unter „Einstellungen“, „Datenschutz“ erzeugt die Leitung, die alle Bereiche
+  sieht, alles, was die Anwendung über eine Person hält, als PDF zum Lesen und als JSON zum Mitnehmen, für eine Person
+  mit Zugang über den Zugang und für eine ohne über eine Suche nach Name oder E-Mail-Adresse. Jedes Feld aus Anhang B
+  der Verfahrensbeschreibung liest einer ihrer Abschnitte, ein Test hält beide gleich; über andere Personen steht nichts
+  darin. Warum: Art. 15 und 20 DSGVO verlangen eine vollständige Kopie, und sie von Hand aus jedem Modul zu sammeln, ging
+  bisher nicht.
+- Einen Wert im Änderungsprotokoll schwärzen (#355): die Leitung leert den Wert davor oder danach eines Eintrags, mit
+  Grund, und die Prüfung der Kette geht weiter durch. Das Fundament bringt es mit (ADR 0013 in `opengewerk`), Migration
+  0087 bringt es in diese Anwendung, und das Submodul `upstream/opengewerk` steht auf `fc3116c` (opengewerk/opengewerk#670). Warum: das
+  Konzept sagt, dass ein personenbezogener Wert geschwärzt wird und die Kette ganz bleibt, und bisher stand jeder Wert für
+  immer im Klartext.
+
 - Eine Vorlage für eine Betriebs- oder Dienstvereinbarung (#359) unter `docs/vereinbarung/`, mit Hinweisen für
   Betriebsverfassungsgesetz, Personalvertretungsrecht und kirchliches Recht. Sie verweist auf die erzeugte
   Verfahrensbeschreibung als Anlage, statt sie abzuschreiben; was die Anwendung selbst hält, steht als Zusage mit dem

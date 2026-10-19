@@ -393,7 +393,7 @@ Unter [`docs/verfahrensbeschreibung/`](docs/verfahrensbeschreibung/Verfahrensbes
 - wenn eine Aussage keine Stelle im Konzept nennt oder eine Zusage keinen Test;
 - wenn eine Fassung erscheint und die Zeile "Gilt für" sie nicht nennt.
 
-Wer das auslöst, schreibt im selben Pull Request in die Vorlage, was die Änderung für die Beschäftigten bedeutet. Neben ihr liegt unter [`docs/vereinbarung/`](docs/vereinbarung/Vereinbarung-Vorlage.md) eine Vorlage für eine Betriebs- oder Dienstvereinbarung, die auf sie verweist; derselbe Test hält, dass jede Zusage darin einen Beleg aus Anhang A nennt, unter dem ein Test ist. Eine Aussage, die dort mit "Zusage" beginnt, braucht einen Test, der sie hält; was noch keiner hält, gehört in ihren Abschnitt 10.
+Wer das auslöst, schreibt im selben Pull Request in die Vorlage, was die Änderung für die Beschäftigten bedeutet. Dieselbe Liste aus Anhang B liest die Auskunft über eine Person (#355, `packages/server/src/subject-access/`): `processing-description.test.ts` wird auch rot, wenn ein Feld dort steht und kein Abschnitt der Auskunft es liest. Neben ihr liegt unter [`docs/vereinbarung/`](docs/vereinbarung/Vereinbarung-Vorlage.md) eine Vorlage für eine Betriebs- oder Dienstvereinbarung, die auf sie verweist; derselbe Test hält, dass jede Zusage darin einen Beleg aus Anhang A nennt, unter dem ein Test ist. Eine Aussage, die dort mit "Zusage" beginnt, braucht einen Test, der sie hält; was noch keiner hält, gehört in ihren Abschnitt 10.
 
 ## Projektfamilie
 
