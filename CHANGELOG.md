@@ -109,6 +109,13 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   „Stromkreis in Feld … hinzufügen“ ablehnte, der den Text des Knopfs nicht enthält; der Einstieg lag schon vorher bei
   299,6 kB, und nur wer aufnimmt, öffnet diese Bildschirme.
 
+- Die Seite eines Verteilers im Büro bietet „Änderungen“ an, wie jede Seite eines Datensatzes, für wen das Recht
+  `audit.read` hat (#349). Das Protokoll öffnet sich auf den Verteiler mit seinen Feldern, Stromkreisen und
+  Betriebsmitteln, und von dort führt „Zum Verteiler“ zurück: über die neue Adresse `/verteiler/<Kennung>`, die zur Seite
+  unter der Anlage weiterleitet. Warum: Der Verteiler stand nicht unter den Datensätzen des Protokolls, weil seine Seite
+  unter der Anlage liegt und der Weg aus dem Protokoll nur die Kennung des Verteilers kennt, nicht die der Anlage; so
+  ließ sich sein Protokoll nur über das der ganzen Anlage lesen.
+
 ## [0.1.8] - 2026-10-19
 
 Die vierte Zwischenfassung für den Pilotbetrieb, mit dem, was aus Phase 2 seit 0.1.7 fertig ist.

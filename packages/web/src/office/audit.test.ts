@@ -235,6 +235,12 @@ describe('the words of the change log in the office', () => {
     expect(auditScreenWords.linkWords?.('rooms')).toBe('Zum Raum')
   })
 
+  // The log names a board and not its asset; the address hands on to the page under it (#349).
+  it('open a board by its id alone, which hands on to its page under the asset', () => {
+    expect(auditScreenWords.href?.('distribution_boards', 'd-1')).toBe('/verteiler/d-1')
+    expect(auditScreenWords.linkWords?.('distribution_boards')).toBe('Zum Verteiler')
+  })
+
   // The log of a property takes in the people to talk to there, the log of a
   // building the times it is closed, and each says so beside the chip of the
   // record; every record the vocabulary gives parts has words for them.
@@ -321,6 +327,7 @@ describe('the words of the change log in the office', () => {
       'floors',
       'rooms',
       'assets',
+      'distribution_boards',
       'duties',
       'attachments',
       'activities',
@@ -336,6 +343,7 @@ describe('the words of the change log in the office', () => {
       'floors',
       'rooms',
       'assets',
+      'distribution_boards',
       'duties',
       'attachments',
       'activities',

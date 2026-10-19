@@ -14,6 +14,13 @@ export const structurePlaces = {
     `/anlagen/${assetId}/verteiler/${boardId}/stromkreise/${circuitId}`,
 } as const
 
+/**
+ * A board by its id alone, in the office only: the change log knows a board
+ * and not the asset it hangs on, and this address hands on to its page under
+ * the asset.
+ */
+export const boardLanding = (boardId: string) => `/verteiler/${boardId}`
+
 /** "F3 Steckdosen Werkbank": a circuit by its designation and what it feeds. */
 export function circuitTitle(circuit: RecordState): string {
   return [text(circuit, 'designation'), maybeText(circuit, 'consumer')].filter(Boolean).join(' ')

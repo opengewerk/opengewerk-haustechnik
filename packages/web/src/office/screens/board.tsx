@@ -8,10 +8,17 @@ import {
   rcdText,
 } from '@opengewerk/haustechnik-domain'
 import { Button, IconButton, isNarrow, Panel, Status, useBand } from '@opengewerk/platform-web'
-import { Empty, type Fact, FactList, PageHead, Screen } from '@opengewerk/platform-web/office'
+import {
+  ChangesButton,
+  Empty,
+  type Fact,
+  FactList,
+  PageHead,
+  Screen,
+} from '@opengewerk/platform-web/office'
 import { useRight } from '@opengewerk/platform-web/session'
 import { maybeText, text, useRecord } from '@opengewerk/platform-web/sync'
-import { Link, useNavigate, useParams } from '@tanstack/react-router'
+import { Link, Navigate, useNavigate, useParams } from '@tanstack/react-router'
 import { Pencil, Plus } from 'lucide-react'
 import { type ReactNode, useEffect, useId, useRef, useState } from 'react'
 
@@ -71,6 +78,34 @@ function usePlacesAbove(asset: RecordState | null) {
   const floor = useRecord('floors', maybeText(room, 'floorId') ?? undefined)
 
   return { property, building, floor, room }
+}
+
+/** The page of a board the device does not hold, or not yet. */
+function NotThere() {
+  return (
+    <Screen>
+      <PageHead title="Nicht gefunden" crumbs={[assetRegisterPlace]} />
+      <Empty>{boardScreenWords.notThere}</Empty>
+    </Screen>
+  )
+}
+
+/**
+ * A board by its id alone (`boardLanding`), as the change log links to it:
+ * the log knows the board and not the asset it hangs on, and the page lives
+ * under the asset. The board on this device names its asset, and the landing
+ * hands on to the page.
+ */
+export function BoardLandingScreen() {
+  const { boardId } = useParams({ strict: false }) as { boardId?: string }
+  const board = useRecord('distribution_boards', boardId)
+  const assetId = maybeText(board, 'assetId')
+
+  if (boardId === undefined || assetId === null) {
+    return <NotThere />
+  }
+
+  return <Navigate to={structurePlaces.board(assetId, boardId)} replace />
 }
 
 /** A designation as the door of a board has it: condensed, at the width of "F10". */
@@ -166,12 +201,7 @@ export function BoardScreen() {
     boardId === undefined ||
     maybeText(board, 'assetId') !== assetId
   ) {
-    return (
-      <Screen>
-        <PageHead title="Nicht gefunden" crumbs={[assetRegisterPlace]} />
-        <Empty>{boardScreenWords.notThere}</Empty>
-      </Screen>
-    )
+    return <NotThere />
   }
 
   const designation = text(board, 'designation')
@@ -239,6 +269,9 @@ export function BoardScreen() {
         actions={
           <>
             {chart.button}
+            {/* For whoever reads the log, as on every page of a record: the
+                board with its sections, circuits and equipment. */}
+            <ChangesButton table="distribution_boards" id={boardId} />
             {records ? (
               <>
                 <Button

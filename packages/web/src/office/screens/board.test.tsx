@@ -573,6 +573,34 @@ describe('the page of a board', () => {
   })
 })
 
+describe('the changes of a board', () => {
+  it('lead whoever reads the log to the changes of this board', async () => {
+    await mount(boardAt, 'management')
+
+    const changes = await screen.findByRole('link', { name: 'Änderungen' })
+
+    expect(changes.getAttribute('href')).toBe(
+      `/einstellungen/protokoll?art=distribution_boards&datensatz=${uv1.id}`,
+    )
+  })
+
+  it('are not offered to whoever may not read the log', async () => {
+    await mount(boardAt, 'management', ['audit.read'])
+    await screen.findByRole('heading', { level: 1, name: 'UV 1' })
+
+    expect(screen.queryByRole('link', { name: 'Änderungen' })).toBeNull()
+  })
+
+  it('lead back from the log to the page of the board, by the board alone', async () => {
+    const { router } = await mount(`/verteiler/${uv1.id}`, 'management')
+
+    await waitFor(() => {
+      expect(router.state.location.pathname).toBe(boardAt)
+    })
+    await screen.findByRole('heading', { level: 1, name: 'UV 1' })
+  })
+})
+
 describe('the rights at the structure', () => {
   it('offer nothing to add, change or move without the right to take stock of assets', async () => {
     await mount(circuitAt, 'technician', ['asset.record'])
