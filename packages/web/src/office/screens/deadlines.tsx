@@ -82,6 +82,9 @@ function responsibleLabel(kind: DeadlineKindView): string {
 /** Where the evidence whose retention ended is proposed for deletion (#340). */
 const retentionPlace = '/einstellungen/aufbewahrung'
 
+/** Where the accesses are kept, with the last day and the period after it (#356). */
+const accessesPlace = '/einstellungen/zugaenge'
+
 /** What a deadline is called in the list, as its table names it (#236), and where its name leads. */
 function sourceOf(deadline: DutyDeadlineView): { readonly href: string; readonly name: string } {
   const name = deadlineSubject(deadline)
@@ -114,6 +117,9 @@ function sourceOf(deadline: DutyDeadlineView): { readonly href: string; readonly
     case 'evidence':
       // The evidence whose retention ended (#340), proposed for deletion under "Aufbewahrung".
       return { href: retentionPlace, name }
+    case 'membership':
+      // An access that ends or whose data goes (#356), under "Zugänge".
+      return { href: accessesPlace, name }
     case 'warranty':
       // The accepted work order or the asset whose warranty ends (#329).
       return {

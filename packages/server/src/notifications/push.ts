@@ -10,10 +10,12 @@ import {
   type TenantId,
 } from '@opengewerk/haustechnik-domain'
 import type { Database, PushDraft, PushRules, TenantTransaction } from '@opengewerk/platform-server'
+import { eq } from 'drizzle-orm'
 
 import { application } from '../configuration.js'
 import { inEveryArea } from '../database/every-area.js'
 import { deadlineKindRegistry } from '../deadlines/registry.js'
+import { pushSubscriptions } from '../database/schema/index.js'
 import { pushes } from '../push/outbox.js'
 import {
   causeOf,
@@ -82,6 +84,14 @@ function activityUrls(kind: ActivityKind, id: string): Urls {
  * device works in the office or on site, the occasions in the words of
  * "Konto", and the test message.
  */
+/**
+ * Forgets the devices a person took push on at this operator (#356): once the
+ * data of an access that ended goes, nothing is to be sent there any more.
+ */
+export async function forgetPushDevicesOf(tx: TenantTransaction, userId: string): Promise<void> {
+  await tx.delete(pushSubscriptions).where(eq(pushSubscriptions.userId, userId))
+}
+
 export const pushRules: PushRules<PushEntry, PushOccasion> = {
   store: pushes,
   entries: pushEntries,

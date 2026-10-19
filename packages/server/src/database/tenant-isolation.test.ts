@@ -687,6 +687,12 @@ function rowsOf(tenant: Tenant): readonly Row[] {
       },
     },
     { table: 'evidence_retention_settings', values: { tenant_id: tenant.id, minimum_years: null } },
+    // The period after the end of an access, and when the data of one went (#356).
+    { table: 'membership_settings', values: { tenant_id: tenant.id, removal_days: 90 } },
+    {
+      table: 'membership_removals',
+      values: { tenant_id: tenant.id, user_id: tenant.colleagueId, account_removed: false },
+    },
     {
       table: 'deadlines',
       values: {

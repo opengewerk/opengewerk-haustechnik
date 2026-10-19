@@ -21,6 +21,7 @@ import {
   holidaysBetween,
   type IsoDate,
   lastDayOf,
+  membershipRemovalDays,
   lifecycleStateOn,
   meterRestsOn,
   nextAppointment,
@@ -29,6 +30,7 @@ import {
   passSearchDays,
   type PropertyId,
   type QualificationId,
+  removalDay,
   restsOn,
   roomTitle,
   roundMadeBy,
@@ -39,6 +41,7 @@ import {
   type WorkOrderId,
 } from '@opengewerk/haustechnik-domain'
 import type { ExpectedDeadline, SourceQuery } from '@opengewerk/platform-server'
+import { memberships } from '@opengewerk/platform-server/schema'
 import { and, eq, gte, inArray, isNotNull, isNull, or, sql } from 'drizzle-orm'
 
 import {
@@ -63,6 +66,8 @@ import {
   dutyDelegations,
   dutyDelegationSignatures,
   evidence,
+  membershipRemovals,
+  membershipSettings,
   properties,
   qualificationKinds,
   qualifications,
@@ -92,6 +97,8 @@ export interface DeadlineValues {
   readonly qualificationId: QualificationId | null
   /** The evidence whose retention ends (#340). */
   readonly evidenceId: EvidenceId | null
+  /** The person whose access ends or whose data goes after it (#356), which lies in no area either. */
+  readonly memberUserId: string | null
   /** None for the document of a contractor (#328) and for a contract (#329), which lie in no area. */
   readonly propertyId: PropertyId | null
   readonly areaId: AreaId | null
@@ -286,6 +293,7 @@ export function dutySource(options: {
           delegationId: null,
           qualificationId: null,
           evidenceId: null,
+          memberUserId: null,
           propertyId: duty.propertyId,
           areaId: duty.areaId,
         },
@@ -360,6 +368,7 @@ export function defectSource(): SourceQuery<DeadlineValues> {
                 delegationId: null,
                 qualificationId: null,
                 evidenceId: null,
+                memberUserId: null,
                 propertyId: defect.propertyId,
                 areaId: defect.areaId,
               },
@@ -502,6 +511,7 @@ export function roundPlanSource(options: {
                   delegationId: null,
                   qualificationId: null,
                   evidenceId: null,
+                  memberUserId: null,
                   propertyId: plan.propertyId,
                   areaId: plan.areaId,
                 },
@@ -596,6 +606,7 @@ export function meterSource(options: {
                 delegationId: null,
                 qualificationId: null,
                 evidenceId: null,
+                memberUserId: null,
                 propertyId: property.id,
                 areaId: property.areaId,
               },
@@ -691,6 +702,7 @@ export function documentSource(reviews: boolean): SourceQuery<DeadlineValues> {
                 delegationId: null,
                 qualificationId: null,
                 evidenceId: null,
+                memberUserId: null,
                 propertyId: document.propertyId,
                 areaId: document.areaId,
               },
@@ -749,6 +761,7 @@ export function contractSource(
                 delegationId: null,
                 qualificationId: null,
                 evidenceId: null,
+                memberUserId: null,
                 propertyId: null,
                 areaId: null,
               },
@@ -823,6 +836,7 @@ export function warrantySource(): SourceQuery<DeadlineValues> {
           delegationId: null,
           qualificationId: null,
           evidenceId: null,
+          memberUserId: null,
           propertyId: asset.propertyId,
           areaId: asset.areaId,
         },
@@ -840,6 +854,7 @@ export function warrantySource(): SourceQuery<DeadlineValues> {
           delegationId: null,
           qualificationId: null,
           evidenceId: null,
+          memberUserId: null,
           propertyId: order.propertyId,
           areaId: order.areaId,
         },
@@ -899,6 +914,7 @@ export function delegationSource(options: {
                 delegationId: row.id as DutyDelegationId,
                 qualificationId: null,
                 evidenceId: null,
+                memberUserId: null,
                 propertyId: null,
                 areaId: null,
               },
@@ -960,6 +976,7 @@ export function qualificationSource(options: {
         delegationId: null,
         qualificationId: row.id as QualificationId,
         evidenceId: null,
+        memberUserId: null,
         propertyId: null,
         areaId: null,
       },
@@ -1009,9 +1026,98 @@ export function evidenceSource(options: {
         delegationId: null,
         qualificationId: null,
         evidenceId: row.id,
+        memberUserId: null,
         propertyId: row.propertyId,
         areaId: row.areaId,
       },
     }))
+  }
+}
+
+/**
+ * The deadline of an access (#356): without a place, named only "Zugang",
+ * whose it is the list says to whoever keeps the accesses. Its source is the
+ * membership by its own key, since an account's is no UUID.
+ */
+function accessDeadline(
+  membershipId: string,
+  userId: string,
+  dueOn: IsoDate,
+): ExpectedDeadline<DeadlineValues> {
+  return {
+    sourceId: membershipId,
+    sourceLabel: 'Zugang',
+    anchorOn: dueOn,
+    namedDueOn: dueOn,
+    naturalUserId: null,
+    values: {
+      dutyId: null,
+      defectId: null,
+      roundPlanId: null,
+      meterPropertyId: null,
+      attachmentId: null,
+      contractId: null,
+      warrantyAssetId: null,
+      warrantyOrderId: null,
+      delegationId: null,
+      qualificationId: null,
+      evidenceId: null,
+      memberUserId: userId,
+      propertyId: null,
+      areaId: null,
+    },
+  }
+}
+
+/**
+ * The end of an access (#356): its last day, for every membership that names
+ * one, until that day has passed. After it the access has ended by itself,
+ * and the pass hands back what was assigned to the person.
+ */
+export function membershipSource(options: {
+  readonly today: () => IsoDate
+}): SourceQuery<DeadlineValues> {
+  return async (tx) => {
+    const today = options.today()
+    const rows = await tx
+      .select({ id: memberships.id, userId: memberships.userId, lastDay: memberships.lastDay })
+      .from(memberships)
+      .where(isNotNull(memberships.lastDay))
+
+    return rows.flatMap((row) =>
+      row.lastDay === null || row.lastDay < today
+        ? []
+        : [accessDeadline(row.id, row.userId, row.lastDay)],
+    )
+  }
+}
+
+/**
+ * The day the data of an access goes (#356): the period of the operator,
+ * counted from the day after its last day, for every membership that names a
+ * last day and whose data has not gone. The pass removes it on that day, and
+ * with the removal the deadline drops out.
+ */
+export function membershipRemovalSource(): SourceQuery<DeadlineValues> {
+  return async (tx) => {
+    const [setting] = await tx
+      .select({ removalDays: membershipSettings.removalDays })
+      .from(membershipSettings)
+    const days = setting?.removalDays ?? membershipRemovalDays.standard
+    const removed = new Set(
+      (await tx.select({ userId: membershipRemovals.userId }).from(membershipRemovals)).map(
+        (row) => row.userId,
+      ),
+    )
+    const rows = await tx
+      .select({ id: memberships.id, userId: memberships.userId, lastDay: memberships.lastDay })
+      .from(memberships)
+      .where(isNotNull(memberships.lastDay))
+
+    return rows.flatMap((row) =>
+      row.lastDay === null || removed.has(row.userId)
+        ? []
+        : [accessDeadline(row.id, row.userId, removalDay(row.lastDay, days))],
+    )
   }
 }

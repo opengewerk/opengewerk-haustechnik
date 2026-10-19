@@ -218,6 +218,17 @@ export function deadlineRulesFor(
         foundQualifications.length === 0 || !namesThePeople
           ? new Map<string, string>()
           : await namesOf([...new Set(foundQualifications.map((each) => each.userId))])
+      // The people whose access ends or whose data goes (#356), by the names
+      // of their accounts, and only for whoever keeps the accesses: the
+      // deadline is read with the right to read deadlines, the person is not.
+      const keepsTheAccesses = isAllowed(identity as Asking, 'membership.write')
+      const members = [
+        ...new Set(rows.flatMap((row) => (row.memberUserId === null ? [] : [row.memberUserId]))),
+      ]
+      const memberNames =
+        members.length === 0 || !keepsTheAccesses
+          ? new Map<string, string>()
+          : await namesOf(members)
       // The evidence whose retention ends (#340), with its duty and where that hangs.
       const evidenceIds = [
         ...new Set(rows.flatMap((row) => (row.evidenceId === null ? [] : [row.evidenceId]))),
@@ -370,6 +381,22 @@ export function deadlineRulesFor(
                 : held === undefined
                   ? 'Unbekanntes Konto'
                   : (names.get(held) ?? 'Unbekanntes Konto'),
+            },
+          }
+
+          return { ...facts }
+        }
+
+        // The end of an access or the day its data goes (#356): the person, for whoever keeps the accesses.
+        if (row.memberUserId !== null) {
+          const facts: DeadlineFacts = {
+            follows: 'membership',
+            propertyId: null,
+            membership: {
+              userId: keepsTheAccesses ? row.memberUserId : '',
+              personName: keepsTheAccesses
+                ? (memberNames.get(row.memberUserId) ?? 'Unbekanntes Konto')
+                : null,
             },
           }
 

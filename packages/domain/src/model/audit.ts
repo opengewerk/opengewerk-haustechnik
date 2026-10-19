@@ -500,6 +500,19 @@ export const auditVocabulary: AuditVocabulary = {
       label: 'Aufbewahrung der Nachweise',
       fields: { minimum_years: 'Mindestens aufbewahren, Jahre' },
     },
+    // How long the data of an access stays after its last day, and when it went (#356).
+    membership_settings: {
+      label: 'Frist nach dem Ende eines Zugangs',
+      fields: { removal_days: 'Angaben entfernen nach, Tagen' },
+    },
+    membership_removals: {
+      label: 'Entfernen der Angaben eines beendeten Zugangs',
+      fields: {
+        user_id: 'Person',
+        removed_at: 'Entfernt am',
+        account_removed: 'Auch das Konto, weil es nirgends mehr arbeitet',
+      },
+    },
     // An evidence declared invalid (ADR 0004, point 15).
     evidence_voidings: {
       label: 'Ungültigerklärung eines Nachweises',
@@ -825,6 +838,8 @@ export const auditVocabulary: AuditVocabulary = {
       // The qualification whose expiry a deadline follows (#337).
       qualification_id: 'Qualifikation',
       evidence_id: 'Nachweis',
+      // The access whose end or whose removal a deadline follows (#356).
+      member_user_id: 'Zugang',
       task_id: 'Aufgabe',
       property_id: 'Liegenschaft',
       area_id: 'Bereich',
@@ -1029,6 +1044,8 @@ export const auditVocabulary: AuditVocabulary = {
     // The person a delegation of duties goes to, and who revoked one (#336).
     'delegate_user_id',
     'revoked_by',
+    // The person whose access a deadline follows (#356).
+    'member_user_id',
   ],
   // Rows without a name of their own are named after the person they are
   // about, and a substitution after the person whose areas it takes over.
@@ -1102,6 +1119,9 @@ export const auditVocabulary: AuditVocabulary = {
     evidence_emptyings: ['evidence_id'],
     evidence_signed_prints: ['evidence_id'],
     evidence_retention_settings: ['minimum_years'],
+    // The period after the end of an access by its days, a removal by its person (#356).
+    membership_settings: ['removal_days'],
+    membership_removals: ['user_id'],
     // The frozen state of a round by its round.
     round_records: ['activity_id'],
     // A PDF by what it was made of.

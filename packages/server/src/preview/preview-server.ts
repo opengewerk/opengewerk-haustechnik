@@ -59,6 +59,7 @@ import { giveSampleTemplates } from './sample-templates.js'
 import { giveSampleMeters } from './sample-meters.js'
 import { giveSampleFaults, giveSampleWork } from './sample-work.js'
 import { writeSampleStandings } from './sample-standings.js'
+import { giveSampleLastDay } from './sample-access-end.js'
 import { giveSampleAuditor } from './sample-auditor.js'
 import { giveSampleDelegations, plantSampleDelegations } from './sample-delegations.js'
 import { plantSampleQualifications } from './sample-qualifications.js'
@@ -283,6 +284,8 @@ export async function openSamplePreview(
       tenant.id,
       viewer.role === 'auditor' ? previewPeople.viewer.id : null,
     )
+    // An access that ends in about ten weeks (#356).
+    await giveSampleLastDay(admin, tenant.id)
 
     // One pass of the engine, so that the due days have their inspections
     // before somebody looks, and two of them planned (#105). In the morning of

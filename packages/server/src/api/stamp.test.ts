@@ -133,10 +133,12 @@ const askedWith: Readonly<Record<string, Readonly<Record<string, string>>>> = {
  * by an account and not by a record, and answered by the foundation without a
  * record in it; and what an import made and which import made a record (#174),
  * since the operator here has imported nothing and no route lists its imports.
- * Neither answer has a column of the sync in it.
+ * Neither answer has a column of the sync in it. Nor has what hangs on a
+ * person (#356), named by an account as well and answered with numbers.
  */
 const notAsked = [
   'GET /staff/:userId/devices',
+  'GET /settings/memberships/:userId/assigned',
   'GET /imports/:importId/made',
   'GET /imports/origins/:table/:recordId',
 ]

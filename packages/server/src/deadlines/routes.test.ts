@@ -580,6 +580,21 @@ describe('the settings of a kind', () => {
         responsible: 'lead',
         leadDays: 0,
       }),
+      // The end of an access and the day its data goes (#356).
+      expect.objectContaining({
+        key: 'membership.ends',
+        source: 'membership',
+        actions: ['reminder'],
+        responsible: 'lead',
+        leadDays: 30,
+      }),
+      expect.objectContaining({
+        key: 'membership.data_removal',
+        source: 'membership_removal',
+        actions: ['reminder'],
+        responsible: 'lead',
+        leadDays: 14,
+      }),
     ])
 
     await http()

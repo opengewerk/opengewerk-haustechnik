@@ -74,6 +74,7 @@ export * from './model/asset-duplicate.js'
 // with the asset that goes.
 export * from './model/asset-exchange.js'
 export * from './model/meter.js'
+export * from './model/membership-end.js'
 export * from './model/meter-reading.js'
 export * from './model/meter-register.js'
 export * from './model/cost-group.js'

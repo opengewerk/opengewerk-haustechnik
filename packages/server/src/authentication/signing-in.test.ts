@@ -11,7 +11,7 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from
 
 import { type TestInstance, testInstance, testOrigin, testSetupCode } from '../api/test-instance.js'
 import { applicationDatabaseUrl, connect, resetToMigrated } from '../database/test-database.js'
-import { addStaffMember } from './access.js'
+import { access, addStaffMember } from './access.js'
 
 // The way into an instance of this application, from an empty database to
 // somebody at work, with a real session at every step. The mechanism is the
@@ -216,6 +216,46 @@ describe('somebody who does not lead', () => {
     const refused = await instance.http().get('/staff').set('cookie', cookies).expect(403)
 
     expect((refused.body as { message: string }).message).toBe(missingRight('membership.read'))
+  })
+
+  /**
+   * The end of an access (#356): after the last day the person gets in
+   * nowhere, on the device that was signed in as on a new one, and the device
+   * no longer syncs. Nobody did anything for it on the day.
+   */
+  it('gets in nowhere the day after the last day, and the device that was signed in no longer syncs', async () => {
+    instance = await testInstance(applicationDatabaseUrl())
+
+    const tenantId = await setUp()
+    const { userId } = await addStaffMember(instance.authentication, instance.database, {
+      email: 'technik@klinikum.example',
+      name: 'Max Beispiel',
+      password,
+      tenantId,
+      roles: ['technician'],
+    })
+    const cookies = await instance.signIn('technik@klinikum.example', password)
+
+    await instance.chooseTenant(cookies, tenantId)
+    await instance.http().get('/sync').set('cookie', cookies).expect(200)
+
+    await admin.query(
+      `update memberships set last_day = (now() at time zone 'Europe/Berlin')::date - 1
+        where tenant_id = $1 and user_id = $2`,
+      [tenantId, userId],
+    )
+
+    const refused = await instance.http().get('/sync').set('cookie', cookies).expect(403)
+
+    expect((refused.body as { message: string }).message).toBe(access.sentences.endedInTenant)
+    await instance.http().get('/properties').set('cookie', cookies).expect(403)
+
+    // Signed in again, the operator is not offered.
+    const again = await instance.signIn('technik@klinikum.example', password)
+
+    expect(
+      (await instance.http().get('/auth/tenants').set('cookie', again).expect(200)).body,
+    ).toEqual([])
   })
 })
 

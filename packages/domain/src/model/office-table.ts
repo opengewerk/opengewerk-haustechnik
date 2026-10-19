@@ -248,8 +248,16 @@ export function deadlineSubject(facts: DeadlineFacts): string {
         : `${facts.qualification.kindLabel}, ${facts.qualification.personName}`
     case 'evidence':
       return `${evidenceDeadlineSubject} ${facts.evidence.number}, ${facts.evidence.dutyTitle}`
+    // The person only for whoever keeps the accesses (#356).
+    case 'membership':
+      return facts.membership.personName === null
+        ? membershipDeadlineSubject
+        : `${membershipDeadlineSubject} von ${facts.membership.personName}`
   }
 }
+
+/** What the end of an access and the day its data goes are about in the list (#356), with the person behind it for whoever keeps the accesses. */
+export const membershipDeadlineSubject = 'Zugang'
 
 /** What the end of the retention of an evidence is called in the list (#340), with its number and duty behind it. */
 export const evidenceDeadlineSubject = 'Aufbewahrung von'
@@ -298,6 +306,11 @@ export function deadlineWhere(
   // Nor does a qualification (#337): it is a person's.
   if (facts.follows === 'qualification') {
     return { name: facts.qualification.personName ?? 'Eine Person', sub: 'Qualifikation' }
+  }
+
+  // Nor does an access (#356): it is a person's.
+  if (facts.follows === 'membership') {
+    return { name: facts.membership.personName ?? 'Eine Person', sub: 'Zugang' }
   }
 
   // The document of a contractor stands nowhere: the contractor is what it hangs on (#328),

@@ -8,10 +8,11 @@ import {
   type Database,
   type DeadlineEngine,
   type DeadlineReport,
+  everyTenant,
   type RepeatingJob,
   runDeadlineCycle as runFoundationCycle,
   runDeadlinesOf as runFoundationDeadlinesOf,
-  startDeadlineWorker as startFoundationWorker,
+  startRepeating,
 } from '@opengewerk/platform-server'
 
 import { activityFromDeadline } from '../activities/from-deadline.js'
@@ -23,6 +24,7 @@ import { dayInGermany } from '../today.js'
 import { deadlineKindRegistry } from './registry.js'
 import { upgradeOpenRounds } from '../rounds/plans.js'
 import { settleDeadlineTasks, taskFromDeadline } from '../tasks/from-deadline.js'
+import { handBackEndedAccesses, removeEndedAccounts } from '../memberships/end.js'
 import {
   contractSource,
   delegationSource,
@@ -32,6 +34,8 @@ import {
   defectSource,
   documentSource,
   dutySource,
+  membershipRemovalSource,
+  membershipSource,
   meterSource,
   roundPlanSource,
   warrantySource,
@@ -52,6 +56,8 @@ export interface DeadlineJob {
 const sentences = {
   tenantFailed: (tenantId: TenantId) =>
     `Die Fristen des Betreibers ${tenantId} ließen sich nicht abgleichen.`,
+  removalFailed: (tenantId: TenantId) =>
+    `Die Angaben beendeter Zugänge des Betreibers ${tenantId} ließen sich nicht entfernen.`,
 }
 
 /**
@@ -105,6 +111,9 @@ function bound(
       }),
       // The end of the retention of an evidence (#340).
       evidence: evidenceSource({ today: () => dayInGermany(job.now?.() ?? new Date()) }),
+      // The end of an access and the day its data goes (#356).
+      membership: membershipSource({ today: () => dayInGermany(job.now?.() ?? new Date()) }),
+      membership_removal: membershipRemovalSource(),
     },
     actions: { activity: activityFromDeadline(job.catalogue), task: taskFromDeadline() },
     // A round nobody has begun walks the newest version of its template, and
@@ -112,6 +121,9 @@ function bound(
     complete: async (tx, now) => {
       await upgradeOpenRounds(tx, now)
       await settleDeadlineTasks(tx, now)
+      // What an access that has ended hands back, before the delegations
+      // are applied, which no longer count for it (#356).
+      await handBackEndedAccesses(tx, dayInGermany(now))
       // A delegation of duties begins and ends on a day (#336).
       await applyDelegations(tx, job.catalogue, dayInGermany(now))
     },
@@ -130,18 +142,41 @@ export function runDeadlinesOf(
   tenantId: TenantId,
   now: Date,
 ): Promise<DeadlineReport> {
-  return runFoundationDeadlinesOf(bound(job), tenantId, now)
+  return runFoundationDeadlinesOf(bound(job), tenantId, now).then(async (report) => {
+    await removeEndedAccounts(job.database, tenantId, dayInGermany(now))
+
+    return report
+  })
 }
 
 /**
  * One pass over every operator. An operator whose pass fails does not stop
  * the others, and how each pass ended is written down for the office.
  */
-export function runDeadlineCycle(job: DeadlineJob): Promise<DeadlineReport> {
-  return runFoundationCycle(bound(job))
+export async function runDeadlineCycle(job: DeadlineJob): Promise<DeadlineReport> {
+  const report = await runFoundationCycle(bound(job))
+
+  // The data of an access whose period after its last day has come (#356),
+  // after the passes and outside their transactions: the foundation opens
+  // transactions of its own for the account. One operator whose removal fails
+  // does not stop the others, and the next cycle tries it again.
+  for (const tenantId of await everyTenant(job.database)) {
+    try {
+      await removeEndedAccounts(job.database, tenantId, dayInGermany(job.now?.() ?? new Date()))
+    } catch (error) {
+      console.error(sentences.removalFailed(tenantId), error)
+    }
+  }
+
+  return report
 }
 
-/** Runs the engine every minute, one pass after the other and never two at once. */
+/** Runs the engine every minute, one cycle after the other and never two at once. */
 export function startDeadlineWorker(job: DeadlineJob, intervalMs = 60_000): RepeatingJob {
-  return startFoundationWorker(bound(job), intervalMs)
+  return startRepeating({
+    run: () => runDeadlineCycle(job),
+    intervalMs,
+    firstAfterMs: 10_000,
+    failure: 'Der Abgleich der Fristen ist gescheitert.',
+  })
 }

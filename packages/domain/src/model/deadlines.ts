@@ -23,6 +23,8 @@ export const deadlineSources = [
   'delegation',
   'qualification',
   'evidence',
+  'membership',
+  'membership_removal',
 ] as const
 
 export type DeadlineSource = (typeof deadlineSources)[number]
@@ -293,6 +295,43 @@ export const evidenceRetentionEnds: ApplicationDeadlineKind = {
 }
 
 /**
+ * The end of an access (sections 2.4 and 9, #356): its last day, from the
+ * membership, until that day has passed; afterwards the access has ended by
+ * itself. Without a place; whoever leads the operator answers for it, and
+ * whom it is about only whoever keeps the accesses reads.
+ */
+export const membershipEnds: ApplicationDeadlineKind = {
+  key: 'membership.ends',
+  title: 'Ende eines Zugangs',
+  about:
+    'Folgt aus dem letzten Tag eines Zugangs. Danach endet er von selbst; was der Person zugeteilt ist, geht an die Planung zurück, und ihre Pflichten stehen ohne Verantwortlichen.',
+  source: 'membership',
+  intervalDays: null,
+  intervalMonths: null,
+  leadDays: 30,
+  responsible: 'lead',
+  actions: ['reminder'],
+}
+
+/**
+ * The day the data of an access that ended goes (sections 2.4 and 9, #356):
+ * the period under "Zugänge" after its last day. The pass of the deadlines
+ * removes it on that day by itself, and the deadline is done with it.
+ */
+export const membershipDataRemoval: ApplicationDeadlineKind = {
+  key: 'membership.data_removal',
+  title: 'Angaben eines beendeten Zugangs entfernen',
+  about:
+    'Folgt aus dem letzten Tag eines Zugangs und der Frist unter „Zugänge“. An diesem Tag entfernt der Lauf Geräte, Passkeys und, wo das Konto nirgends mehr arbeitet, die E-Mail; der Name bleibt in den Nachweisen.',
+  source: 'membership_removal',
+  intervalDays: null,
+  intervalMonths: null,
+  leadDays: 14,
+  responsible: 'lead',
+  actions: ['reminder'],
+}
+
+/**
  * What the task of a deadline says, by the source of its kind (#242). Only a
  * source that stands here can name the action: the engine refuses a kind
  * that names the task without a text for it.
@@ -315,6 +354,8 @@ export const deadlineKinds: readonly ApplicationDeadlineKind[] = [
   delegationEnds,
   qualificationExpires,
   evidenceRetentionEnds,
+  membershipEnds,
+  membershipDataRemoval,
 ]
 
 /**
@@ -334,6 +375,7 @@ export type DeadlineFacts =
   | DelegationDeadlineFacts
   | QualificationDeadlineFacts
   | EvidenceDeadlineFacts
+  | MembershipDeadlineFacts
 
 /** The end of the retention of an evidence: the evidence by its number, with its duty (#340). */
 export interface EvidenceDeadlineFacts extends DeadlinePlaceFacts {
@@ -415,6 +457,17 @@ export interface QualificationDeadlineFacts {
     readonly id: string
     readonly kindLabel: string
     /** Nothing for whoever does not look at qualifications: the deadline is theirs to read, the person is not. */
+    readonly personName: string | null
+  }
+}
+
+/** The end of an access or the day its data goes (#356): the person, without a place. */
+export interface MembershipDeadlineFacts {
+  readonly follows: 'membership'
+  readonly propertyId: null
+  readonly membership: {
+    readonly userId: string
+    /** Nothing for whoever does not keep the accesses: the deadline is theirs to read, the person is not. */
     readonly personName: string | null
   }
 }
