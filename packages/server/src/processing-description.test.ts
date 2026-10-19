@@ -56,6 +56,7 @@ function fileAt(path: string): string | null {
 const document = fileAt('docs/verfahrensbeschreibung/Verfahrensbeschreibung.md') ?? ''
 const concept = fileAt('docs/konzept/Planungskonzept.md') ?? ''
 const changelog = fileAt('CHANGELOG.md') ?? ''
+const agreement = fileAt('docs/vereinbarung/Vereinbarung-Vorlage.md') ?? ''
 const lines = document.split(/\r?\n/)
 
 /** The cells of one line of a Markdown table, without the marks of code around them. */
@@ -373,5 +374,37 @@ describe('appendix C of the description', () => {
     expect(answered.length).toBeGreaterThanOrEqual(15)
     expect(rows.map((row) => row[0] ?? '').sort()).toEqual(answered)
     expect(rows.filter((row) => (row[1] ?? '') === '')).toEqual([])
+  })
+})
+
+/**
+ * The template of an agreement with a works council (#359), beside the
+ * description: a rule of it that begins with "Zusage" is one the application
+ * keeps, and section 9 of the concept says that a promise without a test is an
+ * intention. So each names its evidence from appendix A of the description,
+ * and each of those is a test there.
+ */
+describe('the template of an agreement with a works council', () => {
+  const promises = agreement.split(/\r?\n/).filter((line) => /^\d+\. \*\*Zusage:\*\*/.test(line))
+
+  it('is there with its promises, and says that no lawyer has checked it yet', () => {
+    expect(promises.length).toBeGreaterThanOrEqual(15)
+    expect(agreement).toContain('**Nicht rechtlich geprüft.**')
+  })
+
+  it('has a test in the application for every promise it makes', () => {
+    for (const promise of promises) {
+      const cited = citationsIn(promise)
+
+      // A right is evidence beside a test, as in the description, and never instead of one.
+      expect(
+        cited.map((id) => entryById.get(id)?.kind),
+        promise,
+      ).not.toContain(undefined)
+      expect(
+        cited.filter((id) => entryById.get(id)?.kind === 'Test').length,
+        promise,
+      ).toBeGreaterThan(0)
+    }
   })
 })
