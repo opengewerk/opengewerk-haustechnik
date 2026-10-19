@@ -113,7 +113,7 @@ export const processingActivities = [
     title: 'Ansprechpartner und Fremdfirmen',
     sections: ['3.8'],
     subjects: 'Ansprechpartner an Liegenschaften, Prüfer und Beschäftigte von Fremdfirmen',
-    data: 'Vorname, Name, Funktion, E-Mail-Adresse und Telefonnummer; Prüfer und Organisation auf einem Bericht',
+    data: 'Vorname, Name, Funktion, E-Mail-Adresse, Telefon- und Mobilnummer; Prüfer und Organisation auf einem Bericht',
     purpose: 'Ansprechpartner und Fremdfirmen erreichen und fremde Prüfungen nachweisen',
     legalBasis: 'Art. 6 Abs. 1 lit. f DSGVO',
     deletion: [],

@@ -7,6 +7,16 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
 
 ## [Unreleased]
 
+### Hinzugefügt
+
+- Eine zweite Nummer am Ansprechpartner, „Mobil“ (#428): an einer Liegenschaft und an einer Fremdfirma, im Dialog
+  „Fremdfirma anlegen“ neben „Telefon“, auf der Karte im Büro und vor Ort zum Antippen. Die Spalte kommt aus dem
+  Fundament (opengewerk/opengewerk#677, Submodul angehoben) mit der Migration `0091_contact_mobile`, die sie wie die erste
+  Nummer auf 40 Zeichen ohne Leerzeichen am Rand begrenzt. Abgleich, Auskunft über eine Person und
+  Verfahrensbeschreibung (Abschnitt 3.8) nennen sie mit. Warum: viele Monteure haben Festnetz mit Durchwahl und ein
+  Mobiltelefon, und beim Übernehmen der Fremdfirmen aus der Vorgängeranwendung standen oft beide da; Moritz hat am
+  18.10.2026 das eigene Feld entschieden.
+
 ### Geändert
 
 - Fotos aus der Galerie an allen Fotoknöpfen vor Ort (#458): Auftrag und Notiz, Mangel melden, Störung melden, das

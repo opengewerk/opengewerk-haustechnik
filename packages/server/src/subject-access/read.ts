@@ -497,7 +497,7 @@ export async function searchParts(
 
   const contacts = await rowsOf(
     tx,
-    sql`select concat_ws(' ', c.given_name, c.family_name) as name, c.role, c.email, c.phone,
+    sql`select concat_ws(' ', c.given_name, c.family_name) as name, c.role, c.email, c.phone, c.mobile,
                coalesce('Liegenschaft ' || (select p.name from properties p where p.id = c.property_id),
                         'Fremdfirma ' || (select f.name from contractors f where f.id = c.contractor_id)) as "where"
           from contacts c

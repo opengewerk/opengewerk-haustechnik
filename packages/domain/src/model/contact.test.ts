@@ -8,6 +8,7 @@ const subjects = {
   familyName: 'Der Nachname',
   role: 'Die Funktion',
   phone: 'Die Telefonnummer',
+  mobile: 'Die Mobilnummer',
   email: 'Die E-Mail-Adresse',
 } as const
 
@@ -82,6 +83,7 @@ describe('somebody to talk to at a property', () => {
     expect(
       Object.entries(
         operatorContacts.personProblems({
+          mobile: 'x'.repeat(contactLimits.mobile + 1),
           phone: 'x'.repeat(contactLimits.phone + 1),
           familyName: 'x'.repeat(contactLimits.familyName + 1),
           role: 'x'.repeat(contactLimits.role + 1),
@@ -91,6 +93,7 @@ describe('somebody to talk to at a property', () => {
       ['familyName', 'Der Nachname hat höchstens 80 Zeichen.'],
       ['role', 'Die Funktion hat höchstens 80 Zeichen.'],
       ['phone', 'Die Telefonnummer hat höchstens 40 Zeichen.'],
+      ['mobile', 'Die Mobilnummer hat höchstens 40 Zeichen.'],
     ])
   })
 

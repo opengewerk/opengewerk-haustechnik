@@ -62,6 +62,7 @@ const emptyContact = (key: number): ContactDraft => ({
   familyName: '',
   role: '',
   phone: '',
+  mobile: '',
   email: '',
 })
 
@@ -85,6 +86,7 @@ const contactLabels: Readonly<Record<ContactTextField, string>> = {
   familyName: 'Nachname',
   role: 'Funktion',
   phone: 'Telefon',
+  mobile: 'Mobil',
   email: 'E-Mail',
 }
 
@@ -171,12 +173,13 @@ function ContactsSection({
                   )
                 }}
               />
+              {/* Both numbers side by side, the address under them (#428). */}
               <div className="grid gap-3 sm:grid-cols-2">
-                {(['phone', 'email'] as const).map((field) => (
+                {(['phone', 'mobile'] as const).map((field) => (
                   <Field
                     key={field}
                     label={contactLabels[field]}
-                    type={field === 'phone' ? 'tel' : 'email'}
+                    type="tel"
                     value={person[field]}
                     maxLength={contactLimits[field]}
                     onChange={(event) => {
@@ -189,6 +192,19 @@ function ContactsSection({
                   />
                 ))}
               </div>
+              <Field
+                label={contactLabels.email}
+                type="email"
+                value={person.email}
+                maxLength={contactLimits.email}
+                onChange={(event) => {
+                  onChange(
+                    people.map((each) =>
+                      each.key === person.key ? { ...each, email: event.target.value } : each,
+                    ),
+                  )
+                }}
+              />
               <div className="flex justify-end">
                 <Button
                   size="small"

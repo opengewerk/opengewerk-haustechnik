@@ -412,6 +412,7 @@ export const subjectAccessSearchParts = {
       column('role', 'Funktion'),
       column('email', 'E-Mail-Adresse'),
       column('phone', 'Telefon'),
+      column('mobile', 'Mobil'),
       column('where', 'Wo'),
     ],
     sources: ['contacts'],

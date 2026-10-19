@@ -349,6 +349,27 @@ describe('the information about a person without an access (#355)', () => {
     expect(access.parts.find((part) => part.key === 'contacts')?.rows.length).toBeGreaterThan(0)
   })
 
+  it('gives both numbers of a contact it found (#428)', async () => {
+    await admin.query(
+      `update contacts set phone = '0000 4471', mobile = '0000 4479'
+        where tenant_id = $1 and family_name ilike '%becker%'`,
+      [north.id],
+    )
+
+    const answer = await http()
+      .get('/settings/subject-access/matches/file?term=becker&format=json')
+      .set(testIdentityHeader, by(north.userId))
+      .expect(200)
+    const rows =
+      (JSON.parse(answer.text) as SubjectAccess).parts.find((part) => part.key === 'contacts')
+        ?.rows ?? []
+
+    expect(rows.length).toBeGreaterThan(0)
+    expect(rows.map((row) => [row['phone'], row['mobile']])).toEqual(
+      rows.map(() => ['0000 4471', '0000 4479']),
+    )
+  })
+
   it('takes a short search or a pattern of its own as nothing to find', async () => {
     await http()
       .get('/settings/subject-access/matches?term=be')

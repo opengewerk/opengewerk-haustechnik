@@ -401,6 +401,7 @@ describe('the texts of a contact in the database', () => {
     family_name: contactLimits.familyName,
     role: contactLimits.role,
     phone: contactLimits.phone,
+    mobile: contactLimits.mobile,
     email: contactLimits.email,
   } as const
 
@@ -413,13 +414,14 @@ describe('the texts of a contact in the database', () => {
       family_name: 'Becker',
       role: null,
       phone: null,
+      mobile: null,
       email: null,
       [column]: value,
     }
 
     return admin.query(
-      `insert into contacts (tenant_id, property_id, area_id, given_name, family_name, role, phone, email)
-       values ($1, $2, $3, $4, $5, $6, $7, $8)`,
+      `insert into contacts (tenant_id, property_id, area_id, given_name, family_name, role, phone, mobile, email)
+       values ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
       [
         tenant,
         here,
@@ -428,6 +430,7 @@ describe('the texts of a contact in the database', () => {
         texts.family_name,
         texts.role,
         texts.phone,
+        texts.mobile,
         texts.email,
       ],
     )

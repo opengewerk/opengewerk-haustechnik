@@ -293,6 +293,7 @@ describe('whoever keeps the properties', () => {
     await user.type(card().getByLabelText(/Nachname/), 'Wendt')
     await user.type(card().getByLabelText(/Funktion/), 'Haustechnik')
     await user.type(card().getByLabelText(/Telefon/), '0000 4410')
+    await user.type(card().getByLabelText(/Mobil/), '0000 4419')
     await user.click(card().getByRole('button', { name: 'Hinzufügen' }))
 
     await waitFor(() => {
@@ -306,6 +307,7 @@ describe('whoever keeps the properties', () => {
             familyName: 'Wendt',
             role: 'Haustechnik',
             phone: '0000 4410',
+            mobile: '0000 4419',
             email: null,
           },
         },
@@ -314,7 +316,7 @@ describe('whoever keeps the properties', () => {
     // Not through the outbox: the device queued nothing.
     expect(server.operations()).toEqual([])
     await waitFor(() => {
-      expect(people()).toContain('Tobias WendtHaustechnik · 0000 4410')
+      expect(people()).toContain('Tobias WendtHaustechnik · 0000 4410 · 0000 4419')
     })
     // The form is gone, the button is back. The row arrives with the exchange
     // and the form closes once the route has answered, which is a moment
