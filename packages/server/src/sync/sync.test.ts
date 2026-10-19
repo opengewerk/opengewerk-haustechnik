@@ -3208,6 +3208,81 @@ describe('a record from a device in a building with an area of its own', () => {
       await admin.query('delete from areas where id = $1', [own])
     }
   })
+
+  /**
+   * The person holds the area of the building and not that of its property,
+   * which they read through the building and do not change (19.10.2026: every
+   * photo of a round in such a hall came back as `record_missing` on the
+   * property and was gone from the device after the next pull).
+   */
+  it('is made by somebody who holds the area of the building and not that of its property', async () => {
+    const at = await placeIn(large, { areaId: south })
+
+    await admin.query('update buildings set own_area_id = $2, area_id = $2 where id = $1', [
+      at.building,
+      north,
+    ])
+
+    try {
+      const { rows: work } = await admin.query<{ id: string }>(
+        `insert into activities (tenant_id, property_id, area_id, building_id, kind, title)
+         values ($1, $2, $3, $4, 'inspection', 'Rundgang Halle') returning id`,
+        [large, at.property, north, at.building],
+      )
+      const photo = newId<'attachment'>()
+      const defect = newId<'defect'>()
+
+      expect(
+        await outcomes(
+          'u-tech',
+          [
+            operation('attachments', 'create', photo, {
+              title: 'Foto vom Rundgang',
+              propertyId: at.property,
+              activityId: work[0]?.id ?? '',
+            }),
+            operation('defects', 'create', defect, {
+              description: 'Tor klemmt',
+              foundOn: '2026-10-19',
+              propertyId: at.property,
+              buildingId: at.building,
+            }),
+          ],
+          large,
+        ),
+      ).toEqual([applied, applied])
+
+      const { rows: stored } = await admin.query<{ area: string }>(
+        `select area_id as area from attachments where id = $1
+         union all select area_id from defects where id = $2`,
+        [photo, defect],
+      )
+
+      expect(stored).toEqual([{ area: north }, { area: north }])
+
+      // On the property itself the person still makes nothing.
+      expect(
+        await outcomes(
+          'u-tech',
+          [
+            operation('defects', 'create', newId<'defect'>(), {
+              description: 'Zaun beschädigt',
+              foundOn: '2026-10-19',
+              propertyId: at.property,
+            }),
+          ],
+          large,
+        ),
+      ).toEqual([{ outcome: 'conflict', reason: 'record_missing', fields: ['propertyId'] }])
+    } finally {
+      await admin.query(
+        `update buildings set own_area_id = null,
+                area_id = (select area_id from properties where id = $2)
+          where id = $1`,
+        [at.building, at.property],
+      )
+    }
+  })
 })
 
 describe("an asset of a kind of the operator's own (#62)", () => {

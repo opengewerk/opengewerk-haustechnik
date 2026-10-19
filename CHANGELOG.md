@@ -141,6 +141,16 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
 
 ### Behoben
 
+- Ein Foto eines Rundgangs verschwand auf dem Telefon nach einer Sekunde, wenn die Person nur den Bereich des Gebäudes
+  hat und nicht den der Liegenschaft (#306). Der Abgleich prüfte die Liegenschaft eines Dokuments, Mangels oder
+  Vorgangs mit einer geteilten Sperre, und die gibt PostgreSQL nur dem, der die Zeile ändern darf; die Liegenschaft
+  fand er so nicht, und jedes Foto wurde zum Konflikt `record_missing`. War es vor der Antwort aufgenommen, ging die
+  Antwort mit verloren. Jetzt wird die Liegenschaft nur gesperrt, wo ein Datensatz an ihr selbst hängt; darunter
+  sperrt die Prüfung die Anlage, den Raum, das Gebäude, den Vorgang oder den Mangel. An der Liegenschaft selbst legt so
+  eine Person weiter nichts an. Dass der Konflikt auf dem Telefon nicht zu sehen war, behebt das Fundament
+  (opengewerk/opengewerk#674, Submodul angehoben). Warum: Ein Haustechniker eines Gebäudes muss dort Fotos und Mängel
+  festhalten können, ohne die ganze Liegenschaft zu verwalten.
+
 - Ein zurückgenommener Eintrag „Zurückgebaut“ im Lebenszyklus beendete die Aufbewahrung der Nachweise
   seiner Anlage trotzdem; jetzt zählt er nicht mehr (#437). Warum: Einer Anlage, die weiter verwendet wird,
   hätte das Löschen sonst ihre Nachweise vorgeschlagen.
