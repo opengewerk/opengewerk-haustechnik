@@ -95,7 +95,9 @@ import { syncRoutesFor } from './sync-routes.js'
 import { MeterSettingsController, MetersController } from './meters.controller.js'
 import { EvidenceRetentionController } from './retention.controller.js'
 import { MembershipEndController } from './membership-end.controller.js'
+import { PrivacyDocumentsController } from './privacy-documents.controller.js'
 import { ProcessingDescriptionsController } from './processing-descriptions.controller.js'
+import { ProcessingRecordController } from './processing-record.controller.js'
 import { SubjectAccessController } from './subject-access.controller.js'
 import {
   EvidencePrintController,
@@ -453,6 +455,8 @@ export class ApiModule {
         EvidenceRetentionController,
         MembershipEndController,
         ProcessingDescriptionsController,
+        PrivacyDocumentsController,
+        ProcessingRecordController,
         // The information about a person (#355).
         SubjectAccessController,
         EvidencePrintController,

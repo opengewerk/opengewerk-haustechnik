@@ -9,6 +9,18 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
 
 ### Hinzugefügt
 
+- Verzeichnis der Verarbeitungstätigkeiten, technische und organisatorische Maßnahmen und Löschkonzept (#358): unter
+  „Einstellungen“, „Datenschutz“ erzeugt die Leitung jedes der drei Dokumente als PDF, und jede Fassung bleibt mit ihrem
+  Tag. Für das Verzeichnis pflegt sie auf einer eigenen Seite, wer verantwortlich ist, den Datenschutzbeauftragten und je
+  Tätigkeit Zweck, Rechtsgrundlage und Empfänger; Zweck und Rechtsgrundlage schlägt die Anwendung vor, bis die Leitung sie
+  bestätigt. Die 13 Tätigkeiten nennen die Abschnitte der Verfahrensbeschreibung, aus denen sie kommen, und ein Test hält,
+  dass jeder Abschnitt 3 in einer steht. Teil A der Maßnahmen ist die Vorlage `packages/server/templates/measures.md`,
+  deren Aussagen Belege aus Anhang A nennen; Teil B und die Unterauftragsverarbeiter pflegt die Verwaltung der Instanz im
+  Bereich der Instanz unter „Maßnahmen“ (opengewerk/opengewerk#672; Spalten, Migration 0088 und Sätze kamen mit #452). Das
+  Löschkonzept nennt jede Stelle in Anwendung und Fundament, die Zeilen löscht, als Regel oder als Entfernen von Hand, und
+  ein Test wird rot, sobald eine dazukommt. Neue Tabellen `privacy_documents`, `processing_record_settings` und
+  `processing_record_activities` (Migration 0089). Warum: Art. 30 und 32 DSGVO verlangen das Verzeichnis und die
+  Maßnahmen, und bisher musste ein Betreiber sie von Hand schreiben, ohne zu wissen, was die Anwendung tatsächlich hält.
 - Rundgänge: ein Foto zu einem Punkt auch aus der Galerie, und eine Antwort lässt sich zurücknehmen. Neben „Foto
   aufnehmen“, das sofort die Kamera öffnet, steht „Aus der Galerie“ (aus dem Fundament, `PhotoTaker`). Unter einem
   Prüfpunkt, einer Auswahl und Ja oder Nein nimmt „Auswahl zurücknehmen“ die gegebene Antwort zurück, solange sie sich

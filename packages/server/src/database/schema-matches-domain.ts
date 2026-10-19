@@ -18,6 +18,9 @@ import type {
   KeptDefectClassTerm,
   KeptKindName,
   MembershipRemoval,
+  PrivacyDocument,
+  ProcessingRecordActivity,
+  ProcessingRecordSetting,
   ProcessingDescription,
   MembershipSetting,
   MeterExchange,
@@ -72,6 +75,9 @@ import type {
   labels,
   membershipRemovals,
   processingDescriptions,
+  privacyDocuments,
+  processingRecordActivities,
+  processingRecordSettings,
   membershipSettings,
   tasks,
   meterExchanges,
@@ -138,6 +144,16 @@ export type MembershipRemovalMatches = Assert<
 // A description of the processing the Leitung made (#357).
 export type ProcessingDescriptionMatches = Assert<
   Exact<typeof processingDescriptions.$inferSelect, ProcessingDescription>
+>
+// The documents on data protection and what the Leitung wrote for the record (#358).
+export type PrivacyDocumentMatches = Assert<
+  Exact<typeof privacyDocuments.$inferSelect, PrivacyDocument>
+>
+export type ProcessingRecordSettingMatches = Assert<
+  Exact<typeof processingRecordSettings.$inferSelect, ProcessingRecordSetting>
+>
+export type ProcessingRecordActivityMatches = Assert<
+  Exact<typeof processingRecordActivities.$inferSelect, ProcessingRecordActivity>
 >
 export type BuildingClosureMatches = Assert<
   Exact<typeof buildingClosures.$inferSelect, BuildingClosure>

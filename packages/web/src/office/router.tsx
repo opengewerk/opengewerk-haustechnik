@@ -3,6 +3,7 @@
 import {
   InstanceLegalTextsScreen,
   InstanceLogScreen,
+  InstanceMeasuresScreen,
   InstanceOperatorsScreen,
   InstanceSettingsScreen,
   InstanceTenantsScreen,
@@ -191,6 +192,10 @@ const ProcessingDescriptionsScreen = lazyRouteComponent(
   () => import('./screens/processing-descriptions.js'),
   'ProcessingDescriptionsScreen',
 )
+const ProcessingRecordScreen = lazyRouteComponent(
+  () => import('./screens/processing-record.js'),
+  'ProcessingRecordScreen',
+)
 const WorkOrderSettingsScreen = lazyRouteComponent(
   () => import('./screens/work-order-settings.js'),
   'WorkOrderSettingsScreen',
@@ -356,6 +361,12 @@ export function officeRoutes() {
       getParentRoute: () => instance,
       path: '/rechtstexte',
       component: InstanceLegalTextsScreen,
+    }),
+    // Part B of the measures and the subprocessors of the instance (#358).
+    createRoute({
+      getParentRoute: () => instance,
+      path: '/massnahmen',
+      component: InstanceMeasuresScreen,
     }),
     createRoute({
       getParentRoute: () => instance,
@@ -869,6 +880,12 @@ export function officeRoutes() {
       getParentRoute: () => office,
       path: '/einstellungen/datenschutz',
       component: ProcessingDescriptionsScreen,
+    }),
+    // What the Leitung writes for the record of the processing (#358).
+    createRoute({
+      getParentRoute: () => office,
+      path: '/einstellungen/datenschutz/verzeichnis',
+      component: ProcessingRecordScreen,
     }),
     createRoute({
       getParentRoute: () => office,

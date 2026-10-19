@@ -505,6 +505,30 @@ export const auditVocabulary: AuditVocabulary = {
       label: 'Frist nach dem Ende eines Zugangs',
       fields: { removal_days: 'Angaben entfernen nach, Tagen' },
     },
+    // The documents on data protection the Leitung made, and what it wrote for the record (#358).
+    privacy_documents: {
+      label: 'Dokument zum Datenschutz',
+      fields: {
+        kind: 'Art',
+        made_by: 'Erzeugt von',
+        holds_for: 'Gilt für',
+        text: 'Text',
+        changed: 'Geändert gegenüber der vorherigen',
+      },
+    },
+    processing_record_settings: {
+      label: 'Verzeichnis der Verarbeitungstätigkeiten',
+      fields: { controller: 'Verantwortlicher', officer: 'Datenschutzbeauftragter' },
+    },
+    processing_record_activities: {
+      label: 'Tätigkeit im Verzeichnis',
+      fields: {
+        activity: 'Tätigkeit',
+        purpose: 'Zweck',
+        legal_basis: 'Rechtsgrundlage',
+        recipients: 'Empfänger',
+      },
+    },
     // A description of the processing the Leitung made (#357).
     processing_descriptions: {
       label: 'Verfahrensbeschreibung',
@@ -1136,6 +1160,10 @@ export const auditVocabulary: AuditVocabulary = {
     membership_removals: ['user_id'],
     // A description of the processing by the version it holds for (#357).
     processing_descriptions: ['holds_for'],
+    // A document on data protection by its kind, an activity of the record by its key (#358).
+    privacy_documents: ['kind'],
+    processing_record_settings: ['controller'],
+    processing_record_activities: ['activity'],
     // The frozen state of a round by its round.
     round_records: ['activity_id'],
     // A PDF by what it was made of.

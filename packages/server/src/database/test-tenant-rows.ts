@@ -663,6 +663,29 @@ export function rowsOf(tenant: Tenant): readonly Row[] {
         text: '# Verfahrensbeschreibung',
       },
     },
+    // The documents on data protection and what the Leitung wrote for the record (#358).
+    {
+      table: 'privacy_documents',
+      values: {
+        tenant_id: tenant.id,
+        kind: 'record',
+        made_by: tenant.colleagueId,
+        text: '# Verzeichnis der Verarbeitungstätigkeiten',
+      },
+    },
+    {
+      table: 'processing_record_settings',
+      values: { tenant_id: tenant.id, controller: 'Probe GmbH', officer: null },
+    },
+    {
+      table: 'processing_record_activities',
+      values: {
+        tenant_id: tenant.id,
+        activity: 'accounts',
+        purpose: 'Anmeldung',
+        legal_basis: 'Art. 6 Abs. 1 lit. b DSGVO',
+      },
+    },
     {
       table: 'deadlines',
       values: {

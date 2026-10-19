@@ -175,6 +175,50 @@ export const previewPeople = {
 } as const satisfies Readonly<Record<string, PreviewPerson>>
 
 /**
+ * Part B of the measures and the subprocessors of the sample instance (#358),
+ * in the words of the board "Maßnahmen der Instanz". Nobody of these exists.
+ */
+export const previewMeasures = {
+  measures: {
+    serverPlace: 'Deutschland, Nürnberg',
+    serverRoom: 'Rechenzentrum des Anbieters, Anlage 2',
+    entryByProvider: true,
+    accessByKeyOnly: true,
+    accessFirewall: true,
+    accessBehindWebServer: true,
+    accessPeople: 'Sabine Krämer, Jörg Albrecht',
+    accessKeysAt: 'auf dem Server, nur für root lesbar',
+    encryptionHttps: true,
+    encryptionBackups: true,
+    encryptionBackupKeyWith: 'Sabine Krämer, im Passwortmanager',
+    backupTarget: 'Speicher des Anbieters in Falkenstein',
+    backupGenerations: '14',
+    backupRestoreMonths: '6',
+    backupElsewhere: true,
+    updatesSystem: true,
+    updatesApplication: true,
+    updatesBackupFirst: true,
+    logsWebServer: 'Zugriffe mit Netzadresse, 14 Tage',
+    logsForwardAddress: true,
+    staffConfidential: true,
+    staffTrained: true,
+    staffTrainedOn: '02.09.2026',
+  },
+  subprocessors: [
+    {
+      name: 'Rechenbetrieb Beispiel GmbH, Industriestraße 1, 00002 Beispielstadt',
+      service: 'Server und Rechenzentrum',
+      place: 'Deutschland',
+    },
+    {
+      name: 'Speicher Beispiel AG, Am Hafen 7, 00003 Beispielstadt',
+      service: 'Ziel der Sicherungen',
+      place: 'Deutschland',
+    },
+  ],
+} as const
+
+/**
  * The legal notice and the notice on data protection of the sample instance
  * (#129), in the words of the board "Rechtstexte der Instanz". Nobody of
  * these exists; the address is one no post office knows.
@@ -388,6 +432,12 @@ export async function admitPreviewPeople(
     await client.query(
       'update instance_settings set imprint = $1, privacy_notice = $2 where id = 1',
       [...previewLegalTexts],
+    )
+    // Part B of the measures and the subprocessors (#358), as the Verwaltung keeps them.
+    await client.query("select set_config('app.reason', 'instance.measures', true)")
+    await client.query(
+      'update instance_settings set measures = $1, subprocessors = $2 where id = 1',
+      [JSON.stringify(previewMeasures.measures), JSON.stringify(previewMeasures.subprocessors)],
     )
     await client.query('commit')
 
