@@ -617,6 +617,13 @@
       "when": 1792377260562,
       "tag": "0087_audit_redactions",
       "breakpoints": true
+    },
+    {
+      "idx": 88,
+      "version": "7",
+      "when": 1792389282674,
+      "tag": "0088_instance_measures",
+      "breakpoints": true
     }
   ]
 }
