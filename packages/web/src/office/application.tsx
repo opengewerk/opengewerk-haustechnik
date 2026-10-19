@@ -243,6 +243,13 @@ const instance = {
   legal: {
     forAll: 'Es gilt für alle Betreiber auf dieser Instanz.',
   },
+  // Part B of the measures and the subprocessors (#358). The screen itself is
+  // mounted with #358; the foundation asks for its sentences already.
+  measures: {
+    sub: 'Was die Verwaltung sicherstellt, solange sie diese Instanz betreibt. Es gilt für alle Betreiber auf ihr.',
+    what: 'Teil B der technischen und organisatorischen Maßnahmen: was die Verwaltung sicherstellt, solange sie diese Instanz betreibt, und wer dabei für sie arbeitet. Jeder Betreiber auf dieser Instanz bekommt beides in seine Maßnahmen, als Anlage 1 und 2 zum Vertrag zur Auftragsverarbeitung; ändern kann er es nicht. Teil A bringt die Anwendung selbst mit.',
+    ownMail: 'Den Mailserver eines Betreibers trägt dieser selbst ein; er gehört nicht hierher.',
+  },
   log: {
     what: 'Jede Änderung an der Instanz. Was bei einem Betreiber geändert wird, steht in dessen Änderungsprotokoll.',
     aTenant: 'Ein Betreiber',

@@ -12,7 +12,7 @@ import {
   meterFigure,
   type RecordState,
 } from '@opengewerk/haustechnik-domain'
-import { Choice, Field, TextArea } from '@opengewerk/platform-web'
+import { Button, Choice, Field, TextArea } from '@opengewerk/platform-web'
 import { usePreview, useVersions } from '@opengewerk/platform-web/attachments'
 import {
   CheckPointAnswer,
@@ -26,7 +26,7 @@ import {
 } from '@opengewerk/platform-web/forms'
 import { today } from '@opengewerk/platform-web/format'
 import { useSync } from '@opengewerk/platform-web/sync'
-import { ImageIcon, TriangleAlert } from 'lucide-react'
+import { ImageIcon, TriangleAlert, Undo2 } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState } from 'react'
 
 import { beginActivity, filledOf, type FormPoint, saveAnswer, unitSign } from './answers.js'
@@ -45,6 +45,8 @@ export const pointWords = {
   dutyStaysDue: (duty: string) => `Die Pflicht „${duty}“ bleibt dann fällig.`,
   photoOf: (label: string) => `Foto zu ${label}`,
   photoNotFiled: 'Das Foto ließ sich nicht ablegen.',
+  withdraw: 'Auswahl zurücknehmen',
+  withdrawOf: (label: string) => `Auswahl zurücknehmen: ${label}`,
   yes: 'ja',
   no: 'nein',
   reading: 'Zählerstand',
@@ -233,6 +235,32 @@ export function PointInput(props: PointInputProps) {
 }
 
 /**
+ * Takes a picked answer back, so that the point is open again (Moritz,
+ * 19.10.2026: an answer could be changed but not taken back). Under a check
+ * point, a choice and yes or no, while the answer may still be changed.
+ */
+function Withdraw({
+  label,
+  onWithdraw,
+}: {
+  readonly label: string
+  readonly onWithdraw: () => void
+}) {
+  return (
+    <div>
+      <Button
+        icon={Undo2}
+        height={44}
+        aria-label={pointWords.withdrawOf(label)}
+        onClick={onWithdraw}
+      >
+        {pointWords.withdraw}
+      </Button>
+    </div>
+  )
+}
+
+/**
  * Writes a change to the answer of a point, one after the other, and says
  * what went wrong. The first one begins the activity (#108).
  */
@@ -323,6 +351,17 @@ function CheckPointInput(props: PointInputProps) {
           })
         }}
       />
+      {editable && result !== undefined ? (
+        <Withdraw
+          label={point.field.label}
+          onWithdraw={() => {
+            // Remark and photo wait on the screen again, as before an answer,
+            // and go with the next one; the answer itself is taken off.
+            setHeldPhoto(photo)
+            void write({ result: null, remark: null, attachmentId: null })
+          }}
+        />
+      ) : null}
       {more ? (
         <div onBlur={deferred.flush}>
           <RemarkField
@@ -646,15 +685,25 @@ function ChoicePointInput(
   const yesNo = point.field.kind === 'yes_no'
 
   return (
-    <Choice
-      label={point.field.label}
-      options={options}
-      value={value === undefined ? null : String(value)}
-      disabled={!editable}
-      onChange={(picked) => {
-        void write({ value: json(yesNo ? picked === 'true' : picked) })
-      }}
-    />
+    <div className="flex min-w-0 flex-col gap-2.5">
+      <Choice
+        label={point.field.label}
+        options={options}
+        value={value === undefined ? null : String(value)}
+        disabled={!editable}
+        onChange={(picked) => {
+          void write({ value: json(yesNo ? picked === 'true' : picked) })
+        }}
+      />
+      {editable && value !== undefined ? (
+        <Withdraw
+          label={point.field.label}
+          onWithdraw={() => {
+            void write({ value: null })
+          }}
+        />
+      ) : null}
+    </div>
   )
 }
 

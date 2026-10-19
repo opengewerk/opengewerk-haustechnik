@@ -198,6 +198,64 @@ describe('the form of an activity on site', () => {
     })
   })
 
+  it('takes the answer to a check point back, and keeps its remark and photo for the next', async () => {
+    const photo = '01992f3a-0000-7000-8000-00000000f070'
+    const { client } = await mountSite(point('door_closes'), {
+      server: serverWith({
+        id: 'an-door',
+        fieldKey: 'door_closes',
+        result: 'not_ok',
+        remark: 'Der Schließer hängt.',
+        attachmentId: photo,
+      }),
+      ...withTheForm,
+    })
+
+    fireEvent.click(await screen.findByRole('button', { name: /^Auswahl zurücknehmen: / }))
+
+    await waitFor(() => {
+      expect(answersOn(client)).toEqual([])
+    })
+    expect(
+      screen.getByRole('button', { name: 'Nicht in Ordnung' }).getAttribute('aria-pressed'),
+    ).toBe('false')
+    expect(screen.queryByRole('button', { name: /^Auswahl zurücknehmen: / })).toBeNull()
+    expect((screen.getByRole('textbox', { name: 'Bemerkung' }) as HTMLTextAreaElement).value).toBe(
+      'Der Schließer hängt.',
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: 'In Ordnung' }))
+
+    await waitFor(() => {
+      expect(answersOn(client)).toMatchObject([
+        {
+          fieldKey: 'door_closes',
+          result: 'ok',
+          remark: 'Der Schließer hängt.',
+          attachmentId: photo,
+        },
+      ])
+    })
+  })
+
+  it('takes a choice and yes or no back', async () => {
+    const { client } = await mountSite(point('log_book'), {
+      server: serverWith({ id: 'an-log', fieldKey: 'log_book', value: 'false' }),
+      ...withTheForm,
+    })
+
+    expect(((await screen.findByRole('radio', { name: 'nein' })) as HTMLInputElement).checked).toBe(
+      true,
+    )
+    fireEvent.click(screen.getByRole('button', { name: /^Auswahl zurücknehmen: / }))
+
+    await waitFor(() => {
+      expect(answersOn(client)).toEqual([])
+    })
+    expect((screen.getByRole('radio', { name: 'nein' }) as HTMLInputElement).checked).toBe(false)
+    expect(screen.queryByRole('button', { name: /^Auswahl zurücknehmen: / })).toBeNull()
+  })
+
   it('keeps what was typed when the page is closed without a network', async () => {
     const server = serverWith()
     const first = await mountSite(point('noticed'), {
@@ -245,7 +303,7 @@ describe('the form of an activity on site', () => {
 
   it('offers no answer to whoever does not perform activities', async () => {
     await mountSite(point('door_closes'), {
-      server: serverWith(),
+      server: serverWith({ id: 'an-door', fieldKey: 'door_closes', result: 'ok' }),
       rights: memberIn('technician').rights.filter((right) => right !== 'activity.perform'),
       ...withTheForm,
     })
@@ -256,6 +314,8 @@ describe('the form of an activity on site', () => {
     expect(
       (screen.getByRole('button', { name: 'Nicht in Ordnung' }) as HTMLButtonElement).disabled,
     ).toBe(true)
+    // Nor does it take one back.
+    expect(screen.queryByRole('button', { name: /^Auswahl zurücknehmen: / })).toBeNull()
   })
 
   it('offers no answer once the activity is signed', async () => {
@@ -276,6 +336,18 @@ describe('the form of an activity on site', () => {
         }) as HTMLInputElement
       ).disabled,
     ).toBe(true)
+  })
+
+  it('takes no answer back once the activity is signed', async () => {
+    const server = serverWith({ id: 'an-log', fieldKey: 'log_book', value: 'true' })
+
+    server.put('activities', { ...round, status: 'signed' })
+    await mountSite(point('log_book'), { server, ...withTheForm })
+
+    expect(((await screen.findByRole('radio', { name: 'ja' })) as HTMLInputElement).checked).toBe(
+      true,
+    )
+    expect(screen.queryByRole('button', { name: /^Auswahl zurücknehmen: / })).toBeNull()
   })
 })
 

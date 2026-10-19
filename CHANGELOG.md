@@ -9,6 +9,17 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
 
 ### Hinzugefügt
 
+- Rundgänge: ein Foto zu einem Punkt auch aus der Galerie, und eine Antwort lässt sich zurücknehmen. Neben „Foto
+  aufnehmen“, das sofort die Kamera öffnet, steht „Aus der Galerie“ (aus dem Fundament, `PhotoTaker`). Unter einem
+  Prüfpunkt, einer Auswahl und Ja oder Nein nimmt „Auswahl zurücknehmen“ die gegebene Antwort zurück, solange sie sich
+  ändern lässt; der Punkt ist dann wieder offen, und Bemerkung und Foto eines Prüfpunkts bleiben auf dem Bildschirm und
+  gehen mit der nächsten Antwort. Warum: im Rundgang ließ sich kein Foto hinzufügen, das schon gemacht war, und eine
+  Antwort ließ sich nur ändern, nicht zurücknehmen. Das Submodul `upstream/opengewerk` steht dafür auf `09e8dd7`
+  (opengewerk/opengewerk#671, #672 und #673, die einzigen Commits nach `fc3116c` auf `main` des Fundaments). Weil
+  #672 dazwischen liegt, kommt seine Migration hier als 0088 mit: Teil B der Maßnahmen und die
+  Unterauftragsverarbeiter als zwei Spalten der Einstellungen der Instanz, die erst #358 liest. Die Sätze des
+  Bildschirms dazu, die das Fundament seit #672 von jeder Anwendung verlangt, stehen schon hier.
+
 - Die Auskunft über eine Person (#355): unter „Einstellungen“, „Datenschutz“ erzeugt die Leitung, die alle Bereiche
   sieht, alles, was die Anwendung über eine Person hält, als PDF zum Lesen und als JSON zum Mitnehmen, für eine Person
   mit Zugang über den Zugang und für eine ohne über eine Suche nach Name oder E-Mail-Adresse. Jedes Feld aus Anhang B
