@@ -205,6 +205,25 @@ export interface PointInputProps {
 }
 
 /**
+ * A limit in thousandths as the head of a measured value shows it, rounded
+ * to the places of the field towards the strict side as the engine writes it
+ * in the verdict: 2,875 Ω as "≤ 2,87 Ω", never 2,88, so that the mark and the
+ * sentence under it say the same; a lower bound and one a value has to stay
+ * under round up.
+ */
+export function strictLimitMilli(
+  limitMilli: number,
+  decimals: number,
+  bound: 'at_least' | 'at_most' | 'below',
+): number {
+  const step = 10 ** Math.max(0, 3 - decimals)
+
+  return bound === 'at_most'
+    ? Math.floor(limitMilli / step) * step
+    : Math.ceil(limitMilli / step) * step
+}
+
+/**
  * Whether the screen of a point says its label as the question above the
  * input: a check point, a measured value, a number and a reading are asked
  * as a question; a text, a choice, yes or no and a photo carry their label at
@@ -546,7 +565,14 @@ function MeasurementInput(props: PointInputProps & { readonly field: Measurement
   const limit =
     verdict === null || verdict.limitMilli === null || bound === undefined
       ? undefined
-      : limitMark(bound, forms.formatMeasured(verdict.limitMilli, field.unit, field.decimals))
+      : limitMark(
+          bound,
+          forms.formatMeasured(
+            strictLimitMilli(verdict.limitMilli, field.decimals, bound),
+            field.unit,
+            field.decimals,
+          ),
+        )
 
   return (
     <div className="flex min-w-0 flex-col gap-3.5">
