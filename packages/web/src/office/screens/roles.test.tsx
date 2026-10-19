@@ -1,6 +1,7 @@
 import {
   offerableRights,
   type Right,
+  rights,
   type RoleEntry,
   type RoleKey,
   shippedRoles,
@@ -118,7 +119,14 @@ describe('the list of the roles', () => {
     await screen.findByRole('table', { name: caption })
 
     expect(rowsOf(caption)).toEqual([
-      ['Leitungführt den Betreiber', 'mitgeliefert', 'alle 50', '1', 'Pflicht', 'Ansehen'],
+      [
+        'Leitungführt den Betreiber',
+        'mitgeliefert',
+        `alle ${String(rights.length)}`,
+        '1',
+        'Pflicht',
+        'Ansehen',
+      ],
       ['Technische Leitung', 'mitgeliefert', '42 von 44', '1', '', 'Ansehen'],
       ['Objektleitung', 'mitgeliefert', '33 von 44', '2', '', 'Ansehen'],
       ['Haustechnik', 'mitgeliefert', '21 von 44', '3', '', 'Ansehen'],

@@ -95,6 +95,7 @@ import { syncRoutesFor } from './sync-routes.js'
 import { MeterSettingsController, MetersController } from './meters.controller.js'
 import { EvidenceRetentionController } from './retention.controller.js'
 import { MembershipEndController } from './membership-end.controller.js'
+import { ProcessingDescriptionsController } from './processing-descriptions.controller.js'
 import {
   EvidencePrintController,
   Printer,
@@ -450,6 +451,7 @@ export class ApiModule {
         // The retention of the evidence and the confirmation of its end (#340).
         EvidenceRetentionController,
         MembershipEndController,
+        ProcessingDescriptionsController,
         EvidencePrintController,
         RoundPrintController,
         ServiceReportPrintController,

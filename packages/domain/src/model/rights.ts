@@ -286,6 +286,14 @@ export const rights = [
   'mail.read',
   'mail.write',
   /**
+   * Making the documents of data protection (#357, section 9 of the concept):
+   * the description of the processing for a works council, and with #355 and
+   * #358 the information about one person and the record of the processing.
+   * Only the role that leads holds it (decided on 15.10.2026), because the
+   * information holds everything about one person.
+   */
+  'privacy.generate',
+  /**
    * Reading the change log: every field before and after, with who and when.
    * Only the role that leads holds it, which is also what a works council is
    * told (section 9 of the concept).
@@ -360,6 +368,7 @@ export const rightLabel: Readonly<Record<Right, string>> = {
   'settings.write': 'Einstellungen ändern',
   'mail.read': 'Den Mailserver ansehen',
   'mail.write': 'Den Mailserver einrichten',
+  'privacy.generate': 'Auskunft, Verfahrensbeschreibung und Verzeichnis erzeugen',
   'audit.read': 'Das Änderungsprotokoll einsehen',
 }
 

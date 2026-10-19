@@ -1,8 +1,8 @@
-# OpenGewerk Haustechnik: Verfahrensbeschreibung für den Stand von Phase 1
+# OpenGewerk Haustechnik: Verfahrensbeschreibung
 
 - **Gilt für:** Fassung 0.1.7, mit dem Stand von Phase 1 und dem, was aus Phase 2 bis dahin fertig ist
-- **Geschrieben:** von Hand, am 05.10.2026, aus dem Planungskonzept v0.11 und gegen den Quelltext geprüft; am 06.10.2026 um die Dateien im Speicher ergänzt (Planungskonzept v0.12) und um das Pflichtenverzeichnis, am selben Tag um die Dokumente (Planungskonzept v0.13) und um die Etiketten; am 08.10.2026 um die Prüfungen und Wartungen (Planungskonzept v0.15) und um den Bericht einer Fremdfirma (Planungskonzept v0.16), am selben Tag um die Mängel (Planungskonzept v0.17) und um den Vorgang von Hand (Planungskonzept v0.18); am 11.10.2026 um die Liegenschaften und das Anlagenverzeichnis als Tabelle und am selben Tag um die übrigen Listen des Büros als Tabelle, mit der Spalte der Person nur für die Leitung; am 12.10.2026 um die Aufgabe, die eine fällige Zählerablesung anlegt (Planungskonzept v0.24), und am selben Tag um die neue Fassung eines Pakets an bestätigten Pflichten (Planungskonzept v0.25); am 14.10.2026 um die Rechtstexte der Instanz, die ohne Anmeldung zu lesen sind, und am selben Tag um die Netzadresse unter „Angemeldete Geräte“ und die Erinnerung je Fristart; am 15.10.2026 der Fassung 0.1.0 zugeordnet, ohne dass seit dem Tag davor etwas dazukam, das Daten über Beschäftigte betrifft, und am selben Tag um den eigenen Bereich eines Gebäudes (Planungskonzept v0.37); am selben Tag der Fassung 0.1.1 zugeordnet, ohne dass danach etwas dazukam, das Daten über Beschäftigte betrifft: ein verlegtes Gebäude nimmt seine Daten mit, und wer sie sieht, folgt wie bisher dem Bereich (Planungskonzept v0.38); am selben Tag der Fassung 0.1.2 zugeordnet, ohne dass danach etwas dazukam, das Daten über Beschäftigte betrifft: im Plan eines Rundgangs stehen bei einem Gebäude mit eigenem Bereich die Personen dieses Bereichs zur Wahl, wie es die Zusage zu den Rundgängen schon sagte; am selben Tag um das Entfernen eines irrtümlich angelegten Plans (Planungskonzept v0.39); am selben Tag der Fassung 0.1.3 zugeordnet, ohne dass danach etwas dazukam, das Daten über Beschäftigte betrifft: Namen stehen in jeder Liste nach dem Wert ihrer Zahlen, und niemand sieht dadurch mehr als vorher; am selben Tag um den Leistungsnachweis eines Auftrags mit dem Namen des Auftraggebers und die Einstellung, die Namen und Uhrzeiten der Ausführenden darauf nennt (Planungskonzept v0.40); am selben Tag um das Lager, dessen Buchungen festhalten, wer gebucht hat (Planungskonzept v0.41); am selben Tag um das Material am Auftrag, das festhält, wer es entnommen hat; am selben Tag um die Gültigkeit eines Dokuments, deren Frist nennt, wer das Datum gesetzt hat (Planungskonzept v0.42); am 16.10.2026 um die Einweisung und den Erlaubnisschein am Auftrag einer Fremdfirma, die das Konto nennen, auf dessen Gerät sie entstanden; am selben Tag der Fassung 0.1.4 zugeordnet, ohne dass danach etwas dazukam, das Daten über Beschäftigte betrifft: das Büro lädt seine Bildschirme je Adresse nach, und niemand sieht dadurch mehr als vorher; ebenso der Fassung 0.1.5 zugeordnet, die nur die Seite der Rechtstexte berichtigt; am selben Tag um die Störmeldungen mit Konto und die Rolle Melder (Planungskonzept v0.46); am selben Tag der Fassung 0.1.6 zugeordnet, ohne dass danach etwas dazukam, das Daten über Beschäftigte anders betrifft: ein Rundgang steht ab dem Tag „Sichtbar ab“ seines Plans vor Ort, und eine Umbuchung zwischen zwei Lagern hält wie jede Buchung fest, wer gebucht hat; am selben Tag um die Störmeldung ohne Konto über das Etikett, die niemanden nennt, deren Seite außer dem Namen des Raums nichts zeigt und deren Adresse für die Rückmeldung niemand im Büro sieht (Planungskonzept v0.49); am 17.10.2026 um die Auswertungen über die Zeit, die je Ort zählen und nie je Person, und um den Schluss auf eine Person, den eine Zahl je Gebäude zulässt (Planungskonzept v0.50); am 17.10.2026 um den Verbrauch der Zähler in den Auswertungen, der nicht nennt, wer abgelesen hat (Planungskonzept v0.51); am selben Tag um die Pflichtenübertragungen (Planungskonzept v0.52), die Qualifikationen der Mitarbeiter (Planungskonzept v0.53) und den Prüfer von außen mit dem letzten Tag eines Zugangs (Planungskonzept v0.54), um das Löschen eines Nachweises nach Ablauf seiner Aufbewahrung, das höher signierte PDF am Nachweis und den Vorgang, der mit seinem letzten Nachweis zur leeren Hülle wird (Planungskonzept v0.55), und um die Sammelvorgänge (Planungskonzept v0.56); am 18.10.2026 um die eigenen Rollen des Betreibers (Planungskonzept v0.59), die eigenen Anlagenarten und Felder (Planungskonzept v0.64) und den Hinweis auf den Push-Dienst des Browser-Herstellers vor dem Einschalten; am selben Tag der Fassung 0.1.7 zugeordnet, ohne dass danach etwas dazukam, das Daten über Beschäftigte anders betrifft: eine Ausbuchung im Lager hält wie jede Buchung fest, wer gebucht hat; am selben Tag um das Anlagenbuch einer Anlage, das keine Person des Betreibers nennt, und um die Jahre, die ein Nachweis nach der Verwendung seiner Anlage bleibt (Planungskonzept v0.72); am 19.10.2026 um das Ende eines Zugangs: was am Tag danach an die Planung zurückgeht, wie viel vorher noch an der Person hängt, und was nach einer einstellbaren Frist von Konto und Geräten entfernt wird (Planungskonzept v0.75)
-- **Abgelöst durch:** die Verfahrensbeschreibung, die die Anwendung ab Phase 2 selbst erzeugt
+- **Vorlage:** von Hand geschrieben am 05.10.2026, aus dem Planungskonzept v0.11 und gegen den Quelltext geprüft; am 06.10.2026 um die Dateien im Speicher ergänzt (Planungskonzept v0.12) und um das Pflichtenverzeichnis, am selben Tag um die Dokumente (Planungskonzept v0.13) und um die Etiketten; am 08.10.2026 um die Prüfungen und Wartungen (Planungskonzept v0.15) und um den Bericht einer Fremdfirma (Planungskonzept v0.16), am selben Tag um die Mängel (Planungskonzept v0.17) und um den Vorgang von Hand (Planungskonzept v0.18); am 11.10.2026 um die Liegenschaften und das Anlagenverzeichnis als Tabelle und am selben Tag um die übrigen Listen des Büros als Tabelle, mit der Spalte der Person nur für die Leitung; am 12.10.2026 um die Aufgabe, die eine fällige Zählerablesung anlegt (Planungskonzept v0.24), und am selben Tag um die neue Fassung eines Pakets an bestätigten Pflichten (Planungskonzept v0.25); am 14.10.2026 um die Rechtstexte der Instanz, die ohne Anmeldung zu lesen sind, und am selben Tag um die Netzadresse unter „Angemeldete Geräte“ und die Erinnerung je Fristart; am 15.10.2026 der Fassung 0.1.0 zugeordnet, ohne dass seit dem Tag davor etwas dazukam, das Daten über Beschäftigte betrifft, und am selben Tag um den eigenen Bereich eines Gebäudes (Planungskonzept v0.37); am selben Tag der Fassung 0.1.1 zugeordnet, ohne dass danach etwas dazukam, das Daten über Beschäftigte betrifft: ein verlegtes Gebäude nimmt seine Daten mit, und wer sie sieht, folgt wie bisher dem Bereich (Planungskonzept v0.38); am selben Tag der Fassung 0.1.2 zugeordnet, ohne dass danach etwas dazukam, das Daten über Beschäftigte betrifft: im Plan eines Rundgangs stehen bei einem Gebäude mit eigenem Bereich die Personen dieses Bereichs zur Wahl, wie es die Zusage zu den Rundgängen schon sagte; am selben Tag um das Entfernen eines irrtümlich angelegten Plans (Planungskonzept v0.39); am selben Tag der Fassung 0.1.3 zugeordnet, ohne dass danach etwas dazukam, das Daten über Beschäftigte betrifft: Namen stehen in jeder Liste nach dem Wert ihrer Zahlen, und niemand sieht dadurch mehr als vorher; am selben Tag um den Leistungsnachweis eines Auftrags mit dem Namen des Auftraggebers und die Einstellung, die Namen und Uhrzeiten der Ausführenden darauf nennt (Planungskonzept v0.40); am selben Tag um das Lager, dessen Buchungen festhalten, wer gebucht hat (Planungskonzept v0.41); am selben Tag um das Material am Auftrag, das festhält, wer es entnommen hat; am selben Tag um die Gültigkeit eines Dokuments, deren Frist nennt, wer das Datum gesetzt hat (Planungskonzept v0.42); am 16.10.2026 um die Einweisung und den Erlaubnisschein am Auftrag einer Fremdfirma, die das Konto nennen, auf dessen Gerät sie entstanden; am selben Tag der Fassung 0.1.4 zugeordnet, ohne dass danach etwas dazukam, das Daten über Beschäftigte betrifft: das Büro lädt seine Bildschirme je Adresse nach, und niemand sieht dadurch mehr als vorher; ebenso der Fassung 0.1.5 zugeordnet, die nur die Seite der Rechtstexte berichtigt; am selben Tag um die Störmeldungen mit Konto und die Rolle Melder (Planungskonzept v0.46); am selben Tag der Fassung 0.1.6 zugeordnet, ohne dass danach etwas dazukam, das Daten über Beschäftigte anders betrifft: ein Rundgang steht ab dem Tag „Sichtbar ab“ seines Plans vor Ort, und eine Umbuchung zwischen zwei Lagern hält wie jede Buchung fest, wer gebucht hat; am selben Tag um die Störmeldung ohne Konto über das Etikett, die niemanden nennt, deren Seite außer dem Namen des Raums nichts zeigt und deren Adresse für die Rückmeldung niemand im Büro sieht (Planungskonzept v0.49); am 17.10.2026 um die Auswertungen über die Zeit, die je Ort zählen und nie je Person, und um den Schluss auf eine Person, den eine Zahl je Gebäude zulässt (Planungskonzept v0.50); am 17.10.2026 um den Verbrauch der Zähler in den Auswertungen, der nicht nennt, wer abgelesen hat (Planungskonzept v0.51); am selben Tag um die Pflichtenübertragungen (Planungskonzept v0.52), die Qualifikationen der Mitarbeiter (Planungskonzept v0.53) und den Prüfer von außen mit dem letzten Tag eines Zugangs (Planungskonzept v0.54), um das Löschen eines Nachweises nach Ablauf seiner Aufbewahrung, das höher signierte PDF am Nachweis und den Vorgang, der mit seinem letzten Nachweis zur leeren Hülle wird (Planungskonzept v0.55), und um die Sammelvorgänge (Planungskonzept v0.56); am 18.10.2026 um die eigenen Rollen des Betreibers (Planungskonzept v0.59), die eigenen Anlagenarten und Felder (Planungskonzept v0.64) und den Hinweis auf den Push-Dienst des Browser-Herstellers vor dem Einschalten; am selben Tag der Fassung 0.1.7 zugeordnet, ohne dass danach etwas dazukam, das Daten über Beschäftigte anders betrifft: eine Ausbuchung im Lager hält wie jede Buchung fest, wer gebucht hat; am selben Tag um das Anlagenbuch einer Anlage, das keine Person des Betreibers nennt, und um die Jahre, die ein Nachweis nach der Verwendung seiner Anlage bleibt (Planungskonzept v0.72); am 19.10.2026 um das Ende eines Zugangs: was am Tag danach an die Planung zurückgeht, wie viel vorher noch an der Person hängt, und was nach einer einstellbaren Frist von Konto und Geräten entfernt wird (Planungskonzept v0.75); am selben Tag zur Vorlage der Beschreibung, die die Anwendung selbst erzeugt, mit dem, was ein Betreiber eingestellt hat, und den Fassungen, die seine Leitung erzeugt (Planungskonzept v0.76)
+- **Erzeugt:** mit den Vorgaben, für einen Betreiber vor der Installation
 
 ---
 
@@ -10,11 +10,11 @@
 
 OpenGewerk Haustechnik ist eine Software für Betreiber von Gebäuden und ihre Haustechnik. Sie hält fest, wer was wann geändert und unterschrieben hat: das ist der Zweck eines Nachweises. Eben deshalb ist sie geeignet, Verhalten und Leistung von Beschäftigten zu überwachen, und ihre Einführung ist mitbestimmungspflichtig, wo es eine Arbeitnehmervertretung gibt (§ 87 Abs. 1 Nr. 6 BetrVG, § 80 Abs. 1 Nr. 21 BPersVG und die Entsprechungen im Landes- und kirchlichen Recht; Abschnitte 8 und 9 des Planungskonzepts). Auf die Absicht kommt es dabei nicht an.
 
-Dieses Dokument ist für einen Betriebsrat, einen Personalrat oder eine Mitarbeitervertretung geschrieben. Es sagt für den Stand von Phase 1, welche Daten über Beschäftigte in welchem Teil der Anwendung stehen, wer sie sieht, welche Auswertungen es gibt und welche nicht, was sich einschalten lässt, wie lange aufbewahrt wird und was das Änderungsprotokoll festhält.
+Dieses Dokument ist für einen Betriebsrat, einen Personalrat oder eine Mitarbeitervertretung geschrieben. Es sagt, welche Daten über Beschäftigte in welchem Teil der Anwendung stehen, wer sie sieht, welche Auswertungen es gibt und welche nicht, was sich einschalten lässt, wie lange aufbewahrt wird und was das Änderungsprotokoll festhält.
 
 Es ist allgemein gehalten und gilt für jeden Betreiber, der die Anwendung einsetzt. Verantwortlicher im Sinne des Datenschutzrechts ist der Betreiber; wer die Instanz für ihn betreibt, ist Auftragsverarbeiter. Das Dokument ist keine Rechtsberatung und keine Betriebs- oder Dienstvereinbarung, sondern die Grundlage, auf der sich eine verhandeln lässt.
 
-**Von Hand geschrieben.** Das Planungskonzept sieht vor, dass die Anwendung ihre Verfahrensbeschreibung selbst erzeugt, aus dem, was eingeschaltet und eingestellt ist. Das kommt in Phase 2. Bis dahin gibt es dieses Dokument, damit eine Arbeitnehmervertretung es vor dem Parallelbetrieb in der Hand hat.
+**Mit den Vorgaben.** Die Anwendung erzeugt dieses Dokument selbst, aus einer Vorlage und dem, was bei einem Betreiber eingeschaltet und eingestellt ist. Diese Fassung im Repository nennt die Vorgaben, für einen Betreiber vor der Installation. Für einen Betreiber erzeugt seine Leitung es unter „Einstellungen“, „Datenschutz“; jede erzeugte Fassung bleibt dort mit ihrem Tag, damit sich nachlesen lässt, was sich geändert hat.
 
 **Wie es zu lesen ist.** Die Anwendung ist quelloffen, und jede Aussage hier lässt sich nachprüfen. In eckigen Klammern steht, woran eine Aussage hängt:
 
@@ -25,9 +25,9 @@ Es gibt drei Arten von Aussagen:
 
 - Eine **Zusage** ist etwas, worauf sich eine Arbeitnehmervertretung verlassen können soll. Jede Zusage nennt einen Test, der bei jeder Änderung am Quelltext läuft und rot wird, sobald die Zusage nicht mehr stimmt. Das Planungskonzept sagt dazu: eine Zusage ohne Test ist eine Absicht.
 - Alles andere in den Abschnitten 3 bis 8 ist eine **Beschreibung**: so ist es in dieser Fassung gebaut.
-- Abschnitt 9 nennt, was Phase 1 noch bringt, und Abschnitt 10, was das Planungskonzept zusagt und diese Fassung **noch nicht hält**. Beides gehört zum ehrlichen Bild.
+- Abschnitt 9 nennt, was Phase 2 noch bringt, und Abschnitt 10, was das Planungskonzept zusagt und diese Fassung **noch nicht hält**. Beides gehört zum ehrlichen Bild.
 
-Ein Test hält außerdem dieses Dokument selbst gegen den Quelltext: jeder Beleg muss stimmen, jedes Feld der Datenbank, das auf eine Person zeigt, muss in Anhang B stehen, und jede Adresse, die der Server beantwortet, in Anhang C. Kommt mit einem Baustein von Phase 1 etwas dazu, wird der Test rot, bis dieses Dokument es nennt.
+Ein Test hält außerdem dieses Dokument selbst gegen den Quelltext: jeder Beleg muss stimmen, jedes Feld der Datenbank, das auf eine Person zeigt, muss in Anhang B stehen, und jede Adresse, die der Server beantwortet, in Anhang C. Kommt mit einem Baustein etwas dazu, wird der Test rot, bis dieses Dokument es nennt.
 
 ---
 
@@ -39,6 +39,38 @@ Ein Test hält außerdem dieses Dokument selbst gegen den Quelltext: jeder Beleg
 4. Es gibt keine Erfassung von Arbeitszeit und keinen Standort. Ein Auftrag trägt eine Dauer als seinen Aufwand, eine Zahl für den ganzen Auftrag und nicht je Person (Abschnitte 3.4 und 6).
 5. Nach Ablauf einer Frist löscht diese Fassung nur Nachweise und die Vorgänge dahinter: ist die Aufbewahrung eines Nachweises abgelaufen, wird er auf Bestätigung der Leitung zur leeren Hülle, und mit dem letzten Nachweis eines Vorgangs auch der Vorgang. Alles andere bleibt; das Löschkonzept für den Rest kommt in Phase 2 (Abschnitte 7 und 10).
 6. Was das Planungskonzept zusagt und diese Fassung noch nicht hält oder noch nicht durch einen Test hält, steht in Abschnitt 10.
+
+### Bei diesem Betreiber
+
+Diese Fassung nennt die Vorgaben, mit denen ein Betreiber beginnt. Was ein Betreiber davon geändert hat, nennt die Fassung, die seine Leitung unter „Einstellungen“, „Datenschutz“ erzeugt.
+
+| Einstellung | Stand |
+| --- | --- |
+| Rollen | mitgeliefert: Leitung, Technische Leitung, Objektleitung, Haustechnik, Melder und Prüfer; keine eigene |
+| Namen und Uhrzeiten der Ausführenden auf dem Leistungsnachweis | aus |
+| Störmeldung über das Etikett ohne Konto | aus |
+| Nachweise mindestens aufbewahren | keine Zahl von Jahren; es gilt die Regel der Pflichtart |
+| Angaben eines beendeten Zugangs entfernen | nach 90 Tagen, gezählt ab dem Tag nach dem letzten Tag |
+| Mailserver | nicht eingerichtet; ohne ihn geht keine E-Mail hinaus |
+
+Wie jede Art von Frist erinnert (Abschnitte 3.15 und 6):
+
+| Fristart | Vorlauf | Erinnerung |
+| --- | --- | --- |
+| Fälligkeit einer Pflicht | 30 Tage | E-Mail und Push |
+| Frist zur Beseitigung eines Mangels | 7 Tage | E-Mail und Push |
+| Rundgang nach Plan | 14 Tage | E-Mail und Push |
+| Zählerablesung zum Stichtag | 3 Tage | E-Mail und Push |
+| Ablauf eines Dokuments | 60 Tage | E-Mail und Push |
+| Wiedervorlage einer Gefährdungsbeurteilung | 30 Tage | E-Mail und Push |
+| Kündigungsfrist eines Vertrags | 60 Tage | E-Mail und Push |
+| Ende oder Verlängerung eines Vertrags | 30 Tage | E-Mail und Push |
+| Ende einer Gewährleistung | 60 Tage | E-Mail und Push |
+| Ende einer Pflichtenübertragung | 60 Tage | E-Mail und Push |
+| Ablauf einer Qualifikation | 60 Tage | E-Mail und Push |
+| Ende der Aufbewahrung eines Nachweises | am Tag selbst | E-Mail und Push |
+| Ende eines Zugangs | 30 Tage | E-Mail und Push |
+| Angaben eines beendeten Zugangs entfernen | 14 Tage | E-Mail und Push |
 
 ---
 
@@ -314,13 +346,20 @@ Anhang B nennt jedes Feld der Datenbank, das auf eine Person zeigt. Dieser Absch
 - **Zusage:** Jede Anfrage eines Prüfers steht im Protokoll der Zugriffe, mit dem Zeitpunkt, was er gelesen oder ausgegeben hat und wovon, geschrieben, bevor die Anfrage beantwortet wird. Lesen kann es die Leitung unter „Zugänge“ und sonst niemand; die Anwendung ändert und löscht keine Zeile davon. [K4.3, K9, B351]
 - Auf seinem Gerät liegt nur, woran die Pflichten hängen: Liegenschaften, Gebäude, Geschosse, Räume, Anlagen, Pflichten und die Namen der Fremdfirmen, in den Grenzen seines Zugangs. [K2.7, K4.3, B355]
 
+### 3.21 Erzeugte Verfahrensbeschreibungen
+
+- **Zusage:** Eine Verfahrensbeschreibung erzeugt nur die Leitung, unter „Einstellungen“, „Datenschutz“. Jede bleibt mit ihrem Tag, mit wer sie erzeugt hat und mit ihrem ganzen Text; die Anwendung kann eine erzeugte nicht ändern und nicht entfernen. Die Fassungen und wer sie erzeugt hat, sieht nur die Leitung, und nur sie gibt eine als PDF aus. [K7, K9, B394]
+- **Zusage:** Eine erzeugte Verfahrensbeschreibung nennt keine Person, die beim Betreiber arbeitet. Von den Zugängen nennt sie nur, wie viele jede Rolle haben. [K9, B396]
+- **Zusage:** Die Fassung im Repository ist die Vorlage mit den Vorgaben, Zeichen für Zeichen; was die Anwendung für einen Betreiber erzeugt, ist dieselbe Vorlage mit dem, was er eingestellt hat. [K9, B397]
+- **Zusage:** Das PDF ist der Text, wie er erzeugt wurde. Was der Betreiber selbst geschrieben hat, sein Name oder der Name einer eigenen Rolle, steht darin als Text und wird nicht zu einer Auszeichnung oder einem Verweis. [K9, B398]
+
 ## 4. Wer was sieht
 
 Phase 1 kennt vier Rollen, Phase 2 bringt den Melder dazu: er sieht seine eigenen Störmeldungen und die Namen der Gebäude und Räume seiner Bereiche und sonst nichts (Abschnitt 3.17); und den Prüfer, der Pflichten und Nachweise in den Grenzen seines Zugangs liest (Abschnitt 3.20). Was jede Rolle darf, steht Recht für Recht in Abschnitt 7 des Planungskonzepts.
 
 Dazu kann die Leitung eigene Rollen anlegen, mit Rechten aus derselben Tabelle. Welche Rollen es beim Betreiber gibt, mit ihren Rechten und wie vielen Zugängen jede zugeordnet ist, steht unter „Einstellungen“, „Rollen“, und jede Änderung an einer Rolle im Änderungsprotokoll. Was eine eigene Rolle darf, ist eine Auswahl aus den Rechten der Leitung: die Spalte der Leitung in der Tabelle unten ist die obere Grenze jeder eigenen Rolle.
 
-- **Zusage:** Eine eigene Rolle bekommt nie das Recht, das Änderungsprotokoll einzusehen, die Zugänge anzusehen oder zu verwalten, den Mailserver anzusehen oder einzurichten oder Pflichten zu übertragen; das bleibt der Leitung. Sie führt den Betreiber nie, und eine Rolle eines Betreibers ist bei einem anderen nicht zu sehen. Eine Änderung an einer Rolle gilt beim nächsten Aufruf jeder Person mit dieser Rolle. [K7, K9, B382, B383, B384]
+- **Zusage:** Eine eigene Rolle bekommt nie das Recht, das Änderungsprotokoll einzusehen, die Zugänge anzusehen oder zu verwalten, den Mailserver anzusehen oder einzurichten, Pflichten zu übertragen oder Auskunft, Verfahrensbeschreibung und Verzeichnis zu erzeugen; das bleibt der Leitung. Sie führt den Betreiber nie, und eine Rolle eines Betreibers ist bei einem anderen nicht zu sehen. Eine Änderung an einer Rolle gilt beim nächsten Aufruf jeder Person mit dieser Rolle. [K7, K9, B382, B383, B384]
 
 Für die Daten über Beschäftigte heißt das:
 
@@ -330,6 +369,7 @@ Für die Daten über Beschäftigte heißt das:
 | Bereiche je Person und Vertretungen | ja | nein | nein | nein |
 | Änderungsprotokoll | ja | nein | nein | nein |
 | Das Protokoll der Zugriffe eines Prüfers | ja | nein | nein | nein |
+| Die erzeugten Verfahrensbeschreibungen und wer jede erzeugt hat | ja | nein | nein | nein |
 | Das eigene Konto und die eigenen Geräte | ja | ja | ja | ja |
 | Wer für eine Pflicht verantwortlich ist, mit Namen | in ihren Bereichen | in ihren Bereichen | in ihren Bereichen | in ihren Bereichen |
 | Das Pflichtenverzeichnis auf eine Person eingrenzen; die Namen zur Wahl der verantwortlichen Person | ja | ja | nein | nein |
@@ -425,8 +465,9 @@ Leitung und Technische Leitung sehen als Vorgabe alle Bereiche.
 - Der Betreiber hat einen Schalter, der etwas über Beschäftigte einschaltet: die Namen und Uhrzeiten der Ausführenden auf dem Leistungsnachweis (unten). Daneben stellt er ein, ob und wie eine Frist sie erinnert (unten). Jede Person schaltet für sich selbst Push auf ihren Geräten ein und aus und wählt die Anlässe (Abschnitt 3.15). [K3, K4.8, K4.14, K9]
 - Eine Erfassung der Arbeitszeit enthält die Anwendung nicht. Das Planungskonzept sieht sie für Phase 5 als eigenes Modul vor, das ausgeschaltet ausgeliefert wird und beim Einschalten auf die Mitbestimmung hinweist. [K4.14, K12]
 - Einen Standort erhebt die Anwendung nicht. Das Planungskonzept lässt ihn nur mit Einwilligung zu und schließt eine Auswertung von Bewegungen aus. [K9]
-- **Zusage:** Unter „Einstellungen“, „Aufträge“ schaltet die Leitung ein, dass der Leistungsnachweis die Namen und Uhrzeiten der Ausführenden nennt; die Vorgabe ist aus. Was dann darauf steht, sagt Abschnitt 3.5. Ein Leistungsnachweis, der schon unterschrieben ist, bleibt, wie er ist. Ob der Betreiber es eingeschaltet hat, sagt diese von Hand geschriebene Fassung nicht; die erzeugte Verfahrensbeschreibung aus Phase 2 nennt es. [K4.8, K7, K9, B4, B278, B279]
+- **Zusage:** Unter „Einstellungen“, „Aufträge“ schaltet die Leitung ein, dass der Leistungsnachweis die Namen und Uhrzeiten der Ausführenden nennt; die Vorgabe ist aus. Was dann darauf steht, sagt Abschnitt 3.5. Ein Leistungsnachweis, der schon unterschrieben ist, bleibt, wie er ist. Ob es eingeschaltet ist, steht in Abschnitt 2 unter „Bei diesem Betreiber“. [K4.8, K7, K9, B4, B278, B279]
 - Einstellen lassen sich je Fristart der Vorlauf, mit dem eine Frist erinnert, und ob sie per E-Mail und Push, nur per E-Mail oder mit keiner Nachricht erinnert. Das dürfen die Leitung und die Technische Leitung. Mit dem Beginn des Vorlaufs geht die Erinnerung an die verantwortliche Person hinaus, so wie es eingestellt ist (Abschnitt 3.15). [K2.4, K3, B38, B270]
+- **Zusage:** Was Abschnitt 2 unter „Bei diesem Betreiber“ nennt, liest die Anwendung beim Erzeugen aus den Einstellungen des Betreibers: die Rollen mit ihren Rechten, die Schalter dieses Abschnitts, die Aufbewahrung, die Frist nach dem Ende eines Zugangs, den Mailserver und wie jede Frist erinnert. Ändert die Leitung etwas davon, nennt es die nächste erzeugte Beschreibung, und die Liste unter „Datenschutz“ sagt vorher, welche Abschnitte sich geändert haben. [K9, B395]
 - Die sicherheitsrelevanten Zusagen sind nicht einstellbar: die Unterschrift vor einem Nachweis, die Abnahme eines Auftrags und die Unveränderlichkeit lassen sich verschärfen und nie abschalten. [K7]
 
 ---
@@ -469,12 +510,12 @@ Leitung und Technische Leitung sehen als Vorgabe alle Bereiche.
 
 ---
 
-## 9. Was Phase 1 noch bringt
+## 9. Was Phase 2 noch bringt
 
-Diese Bausteine gehören nach dem Fahrplan zu Phase 1 und sind noch nicht gebaut. Mit jedem wird dieses Dokument berichtigt; der Test in Abschnitt 11 erzwingt es, sobald ein Feld mit Personenbezug oder eine Adresse des Servers dazukommt.
+Diese Bausteine des Datenschutzes gehören nach dem Fahrplan zu Phase 2 und sind noch nicht gebaut. Mit jedem wird dieses Dokument berichtigt; der Test in Abschnitt 11 erzwingt es, sobald ein Feld mit Personenbezug oder eine Adresse des Servers dazukommt.
 
-- **Erinnerung je Art der Frist:** Die Einstellungen der Fristen sollen je Art sagen, ob eine Frist per E-Mail, per Push oder auf beiden Wegen erinnert. Dann stellt der Betreiber etwas ein, das Beschäftigte betrifft, und die Abschnitte 3.15 und 6 werden berichtigt. Welche Wahl es gibt, ist noch nicht entschieden. [K2.4, K3]
-- **Erste Fassung:** Mit ihr nennt die Zeile „Gilt für“ ihre Nummer. [K12]
+- **Auskunft und Schwärzen:** Die Leitung erzeugt die Auskunft über eine Person, mit ihren Daten aus jedem Teil der Anwendung, als Datei und maschinenlesbar, und im Änderungsprotokoll wird ein personenbezogener Wert geschwärzt, ohne dass die Kette bricht (Abschnitt 10). [K3, K9, K12]
+- **Erzeugte Unterlagen:** Das Verzeichnis der Verarbeitungstätigkeiten, die Beschreibung der technischen und organisatorischen Maßnahmen und das Löschkonzept entstehen wie dieses Dokument aus dem, was eingestellt ist, dazu eine Vorlage für eine Betriebs- oder Dienstvereinbarung. [K9, K12]
 
 ---
 
@@ -483,13 +524,13 @@ Diese Bausteine gehören nach dem Fahrplan zu Phase 1 und sind noch nicht gebaut
 - **Schwärzen im Änderungsprotokoll.** Das Planungskonzept sagt, dass ein personenbezogener Wert im Änderungsprotokoll geschwärzt wird und die Kette ganz bleibt. Gebaut ist das nicht: die Werte stehen im Klartext, und kein Eintrag lässt sich ändern. Es gehört zu den Datenschutzfunktionen von Phase 2. [K9, K12]
 - **Was beim Löschen eines Nachweises noch bleibt.** Gebaut ist das Löschen des Nachweises und, mit seinem letzten Nachweis, des Vorgangs dahinter (Abschnitt 7). Es bleibt bis auf Weiteres: ein Vorgang ohne Nachweis, Mängel, Aufgaben, Zählerstände und Buchungen im Lager, bis das Löschen dessen gebaut ist, was an keinem Nachweis hängt; die Dokumente des Vorgangs, die nur als entfernt markiert sind, mit ihren Fassungen, und die Dateien im Dateispeicher, die keine Adresse mehr herausgibt, bis das Fundament sie endgültig löscht; was das Änderungsprotokoll schon hält, bis zum Schwärzen; und jede Sicherung, bis sie selbst verfällt. [K2.6, K9, K12]
 - **Aufbewahrung des Protokolls der Zugriffe.** Wie lange die Zeilen des Protokolls eines Prüfers bleiben, sagt das Planungskonzept nicht. Bis das Löschkonzept es regelt, bleiben sie. [K9, K12]
-- **Erzeugte Unterlagen.** Das Verzeichnis der Verarbeitungstätigkeiten, die Beschreibung der technischen und organisatorischen Maßnahmen und die erzeugte Verfahrensbeschreibung kommen in Phase 2, ebenso die Vorlage für eine Betriebs- oder Dienstvereinbarung. [K9, K12]
+- **Löschkonzept.** Was nicht an einem Nachweis hängt, bleibt, solange die Instanz besteht, bis das Löschkonzept sagt, wie lange (Abschnitt 9). [K2.6, K9, K12]
 
 ---
 
 ## 11. Pflege dieses Dokuments
 
-Das Dokument wird wie Quelltext über einen Pull Request geändert. Der Test `packages/server/src/processing-description.test.ts` läuft bei jeder Änderung und hält fest:
+Die Anwendung erzeugt dieses Dokument aus einer Vorlage, `packages/server/templates/processing-description.md`, und aus dem, was bei einem Betreiber eingeschaltet und eingestellt ist. Die Fassung im Repository, `docs/verfahrensbeschreibung/Verfahrensbeschreibung.md`, ist die Vorlage mit den Vorgaben, für einen Betreiber vor der Installation; `pnpm --filter @opengewerk/haustechnik-server run describe` schreibt sie. Geändert wird die Vorlage, wie Quelltext über einen Pull Request. Der Test `packages/server/src/processing-description.test.ts` läuft bei jeder Änderung und hält fest:
 
 - Jeder Beleg in Anhang A stimmt: der Test steht unter diesem Namen in dieser Datei, die Stelle steht so im Quelltext, das Recht heißt so und liegt bei genau diesen Rollen.
 - Jeder Beleg wird im Text verwendet, und jeder Verweis im Text führt auf einen Beleg oder auf einen Abschnitt des Planungskonzepts, den es gibt.
@@ -497,8 +538,9 @@ Das Dokument wird wie Quelltext über einen Pull Request geändert. Der Test `pa
 - Anhang B nennt jedes Feld der Datenbank, das auf eine Person zeigt, und kein anderes.
 - Anhang C nennt jede Adresse, die der Server beantwortet, und keine andere.
 - Die Zeile „Gilt für“ nennt die neueste veröffentlichte Fassung aus `CHANGELOG.md`, und bis es eine gibt, sagt sie das.
+- Die Fassung im Repository ist, was die Vorlage mit den Vorgaben ergibt, Zeichen für Zeichen.
 
-Wer einen Baustein baut, der etwas an den Aussagen ändert, berichtigt das Dokument im selben Pull Request. Ändert er eine der Maßnahmen, die Teil A der Anlage 1 der [Vorlage zur Auftragsverarbeitung](https://opengewerk.de/haustechnik/auftragsverarbeitung/) beschreibt, zieht er die Vorlage mit einem Pull Request an der Website nach. Für eine Arbeitnehmervertretung wird es als PDF ausgegeben; maßgeblich ist die Fassung im Repository.
+Wer einen Baustein baut, der etwas an den Aussagen ändert, berichtigt die Vorlage im selben Pull Request und schreibt die Fassung im Repository neu. Ändert er eine der Maßnahmen, die Teil A der Anlage 1 der [Vorlage zur Auftragsverarbeitung](https://opengewerk.de/haustechnik/auftragsverarbeitung/) beschreibt, zieht er die Vorlage mit einem Pull Request an der Website nach. Für eine Arbeitnehmervertretung erzeugt die Leitung es unter „Einstellungen“, „Datenschutz“ als PDF, mit dem, was beim Betreiber eingestellt ist; jede erzeugte Fassung bleibt dort mit ihrem Tag.
 
 ---
 
@@ -901,6 +943,11 @@ Pfade ohne Vorsatz liegen im Repository `opengewerk/opengewerk-haustechnik`. Pfa
 | B391 | Test | `packages/server/src/api/membership-end.test.ts` | `is counted for whoever keeps the accesses, and for nobody else` |
 | B392 | Test | `packages/server/src/api/membership-end.test.ts` | `removes after the period the devices, the passkeys and the address, and leaves what the person signed as it was` |
 | B393 | Test | `packages/server/src/api/membership-end.test.ts` | `is a deadline until its last day, and so is the day its data goes, named only to whoever keeps the accesses` |
+| B394 | Test | `packages/server/src/api/processing-descriptions.test.ts` | `is made only by the Leitung, and kept with its day, who made it and its whole text` |
+| B395 | Test | `packages/server/src/api/processing-descriptions.test.ts` | `says what is set at the operator, and a change to a setting changes it` |
+| B396 | Test | `packages/server/src/api/processing-descriptions.test.ts` | `names no person who works for the operator, only how many hold each role` |
+| B397 | Test | `packages/server/src/processing-description.test.ts` | `is the template with the defaults, character for character` |
+| B398 | Test | `packages/server/src/api/processing-descriptions.test.ts` | `is printed as it was made, with every character of the operator escaped` |
 
 ---
 
@@ -949,11 +996,12 @@ Jede Zeile ist ein Feld der Datenbank, das die Kennung eines Kontos hält. Der S
 | `member_limit_properties` | `user_id` | auf welche Liegenschaften der Zugang eines Prüfers beschränkt ist |
 | `member_passkeys` | `user_id` | wessen Passkey bei diesem Betreiber gilt |
 | `memberships` | `user_id` | wer bei diesem Betreiber arbeitet |
+| `membership_removals` | `user_id` | wessen Angaben nach dem Ende des Zugangs entfernt wurden |
 | `meter_points` | `note_by` | wer die Notiz an einer Messstelle geschrieben hat |
 | `meter_readings` | `recorded_by` | wer einen Zählerstand eingetragen, berichtigt oder aus einer Liste übernommen hat |
+| `processing_descriptions` | `made_by` | wer eine Verfahrensbeschreibung erzeugt hat |
 | `push_opt_outs` | `user_id` | wer einen Anlass als Push abgeschaltet hat |
 | `push_subscriptions` | `user_id` | wessen Gerät Push empfängt |
-| `membership_removals` | `user_id` | wessen Angaben nach dem Ende des Zugangs entfernt wurden |
 | `qualifications` | `user_id` | wessen Qualifikation es ist; sie reist nur auf das Gerät dieser Person |
 | `round_plans` | `performer_user_id` | wer die Rundgänge eines Plans geht, wenn der Plan jemanden nennt |
 | `service_reports` | `signed_by` | auf wessen Gerät der Auftraggeber einen Leistungsnachweis unterschrieben hat |
@@ -1021,7 +1069,7 @@ Jede Zeile ist der erste Abschnitt einer Adresse, unter der der Server antwortet
 | `rounds` | Rundgänge der Pläne: die Übersicht einer Woche mit den offenen Rundgängen früherer Wochen, auch als Tabelle, wer einen Rundgang geht, auch „wie letzte Woche“, die Namen der Personen, die Pläne und Rundgänge nennen, und die Auswahl, wer in einem Bereich Rundgänge geht; die Seite eines Rundgangs mit seinen Unterschriften, die Gegenzeichnung und das Schließen mit Grund; ein abgeschlossener Rundgang als Tabelle, ohne Person |
 | `search` | Suche über Liegenschaften, Gebäude, Räume, Anlagen und Vorgänge nach Name, Nummer und Kennzeichen und über Nachweise nach ihrer Nummer, in den Bereichen der fragenden Person; höchstens fünf Treffer je Art, und ob es mehr gibt, ohne Zahl. Sie sucht nicht nach Personen, und kein Treffer nennt jemanden |
 | `service-reports` | das PDF eines Leistungsnachweises, aus seinem eingefrorenen Stand, für wen den Auftrag sieht |
-| `settings` | Vorlauf der Fristen und die Vorgabe der Frist je Mängelklasse; die Mängelklassen auch als Tabelle; ob der Betreiber E-Mails verschickt, und für die Leitung sein Mailserver; die Nummernkreise und wann die Instanz zuletzt gesichert wurde, beides ohne eine Person; ob der Leistungsnachweis Namen und Uhrzeiten der Ausführenden nennt; die Kategorien der Störungen, ohne Person; die Frist nach dem Ende eines Zugangs, und für wen Zugänge verwaltet, wie viel noch an einer Person hängt, als Zahlen |
+| `settings` | Vorlauf der Fristen und die Vorgabe der Frist je Mängelklasse; die Mängelklassen auch als Tabelle; ob der Betreiber E-Mails verschickt, und für die Leitung sein Mailserver; die Nummernkreise und wann die Instanz zuletzt gesichert wurde, beides ohne eine Person; ob der Leistungsnachweis Namen und Uhrzeiten der Ausführenden nennt; die Kategorien der Störungen, ohne Person; die Frist nach dem Ende eines Zugangs, und für wen Zugänge verwaltet, wie viel noch an einer Person hängt, als Zahlen; für die Leitung die erzeugten Verfahrensbeschreibungen, wer jede erzeugt hat, eine neue und jede als PDF |
 | `setup` | Ersteinrichtung |
 | `staff` | Zugänge, für die Leitung auch als Tabelle |
 | `stores` | Lager: ihre Liste, der Bestand eines Lagers mit Mindestbestand, auch als Tabelle und als Bestellliste, die Seite eines Artikels in einem Lager mit seinen Buchungen und dem Auftrag einer Entnahme, der Mindestbestand, die Buchung eines Wareneingangs oder einer Zählung und die Etiketten der Fächer; keine Antwort nennt, wer gebucht hat |

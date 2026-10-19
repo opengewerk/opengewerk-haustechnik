@@ -18,6 +18,7 @@ import type {
   KeptDefectClassTerm,
   KeptKindName,
   MembershipRemoval,
+  ProcessingDescription,
   MembershipSetting,
   MeterExchange,
   MeterPause,
@@ -70,6 +71,7 @@ import type {
   imports,
   labels,
   membershipRemovals,
+  processingDescriptions,
   membershipSettings,
   tasks,
   meterExchanges,
@@ -132,6 +134,10 @@ export type MembershipSettingMatches = Assert<
 >
 export type MembershipRemovalMatches = Assert<
   Exact<typeof membershipRemovals.$inferSelect, MembershipRemoval>
+>
+// A description of the processing the Leitung made (#357).
+export type ProcessingDescriptionMatches = Assert<
+  Exact<typeof processingDescriptions.$inferSelect, ProcessingDescription>
 >
 export type BuildingClosureMatches = Assert<
   Exact<typeof buildingClosures.$inferSelect, BuildingClosure>

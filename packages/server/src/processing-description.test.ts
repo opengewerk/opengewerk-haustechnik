@@ -1,7 +1,13 @@
 import { existsSync, readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 
-import { rightLabel, rights, shippedRoles } from '@opengewerk/haustechnik-domain'
+import {
+  describeProcessing,
+  processingPlaces,
+  rightLabel,
+  rights,
+  shippedRoles,
+} from '@opengewerk/haustechnik-domain'
 import { Database } from '@opengewerk/platform-server'
 import { firstSegmentOf, routesOf } from '@opengewerk/platform-server/testing'
 import { is } from 'drizzle-orm'
@@ -12,13 +18,17 @@ import { ApiModule } from './api/api.module.js'
 import { noIdentities } from './api/test-identity.js'
 import { createAuthentication } from './authentication/access.js'
 import * as schema from './database/schema/index.js'
+import { processingTemplate } from './processing-description/template.js'
 
-// Section 9 of the concept: until the application generates the description of
-// its processing, there is one written by hand, for a works council to hold
-// before the parallel run. A document written by hand says what was true on
-// the day it was written. This holds it against the code, so that it says what
-// is true today:
+// Section 9 of the concept: the description of the processing, for a works
+// council. The application makes it from a template written by hand and from
+// what is set at an operator (#357); the file in the repository is the
+// template with the defaults. A text written by hand says what was true on
+// the day it was written. This holds the file against the template and
+// against the code, so that it says what is true today:
 //
+// - the file is what the template gives with the defaults, character for
+//   character;
 // - every entry of its appendix A points at something that is there: a test by
 //   its title, a place by its words, a right by its label and its roles;
 // - every statement names where in the concept it comes from, and every
@@ -141,7 +151,7 @@ function conceptHas(section: string): boolean {
     : concept.includes(`\n## ${section}. `)
 }
 
-describe('the description of the processing, written by hand', () => {
+describe('the description of the processing, in the repository', () => {
   it('is there, and long enough to be the one meant', () => {
     // An empty document would agree with everything below.
     expect(lines.length).toBeGreaterThanOrEqual(150)
@@ -149,8 +159,14 @@ describe('the description of the processing, written by hand', () => {
     expect(statements().length).toBeGreaterThanOrEqual(50)
   })
 
-  it('says that it is written by hand', () => {
-    expect(document).toContain('**Geschrieben:** von Hand')
+  it('is the template with the defaults, character for character', () => {
+    expect(document).toBe(describeProcessing(processingTemplate(), null))
+  })
+
+  it('has every place the application fills exactly once in its template, and the template no other', () => {
+    const places = [...processingTemplate().matchAll(/\{\{([a-z-]+)\}\}/g)].map((match) => match[1])
+
+    expect(places).toEqual([...processingPlaces])
   })
 
   /**

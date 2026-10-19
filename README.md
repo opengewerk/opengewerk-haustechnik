@@ -381,9 +381,11 @@ Was dort in Worten steht, sagt diese Anwendung an einer Stelle: `auditVocabulary
 
 ### Die Verfahrensbeschreibung
 
-Unter [`docs/verfahrensbeschreibung/`](docs/verfahrensbeschreibung/Verfahrensbeschreibung.md) steht für einen Betriebsrat, einen Personalrat oder eine Mitarbeitervertretung, welche Daten über Beschäftigte die Anwendung hält, wer sie sieht, was sie nicht auswertet und was das Änderungsprotokoll festhält (Abschnitt 9 des Konzepts). Für den Stand von Phase 1 ist sie von Hand geschrieben; ab Phase 2 erzeugt die Anwendung sie selbst.
+Unter [`docs/verfahrensbeschreibung/`](docs/verfahrensbeschreibung/Verfahrensbeschreibung.md) steht für einen Betriebsrat, einen Personalrat oder eine Mitarbeitervertretung, welche Daten über Beschäftigte die Anwendung hält, wer sie sieht, was sie nicht auswertet und was das Änderungsprotokoll festhält (Abschnitt 9 des Konzepts). Die Anwendung erzeugt sie selbst: die Leitung unter „Einstellungen“, „Datenschutz“, aus der Vorlage [`packages/server/templates/processing-description.md`](packages/server/templates/processing-description.md) und dem, was beim Betreiber eingestellt ist, jede Fassung mit ihrem Tag. Die Datei unter `docs/` ist die Vorlage mit den Vorgaben, für einen Betreiber vor der Installation; geändert wird die Vorlage, und `pnpm --filter @opengewerk/haustechnik-server run describe` schreibt die Datei neu.
 
-`processing-description.test.ts` im Serverpaket hält sie gegen den Quelltext und wird rot,
+`processing-description.test.ts` im Serverpaket hält sie gegen die Vorlage und den Quelltext und wird rot,
+
+- wenn die Datei nicht mehr ist, was die Vorlage mit den Vorgaben ergibt;
 
 - wenn ein Beleg in ihrem Anhang A nicht mehr stimmt: ein Test heißt anders, eine Stelle steht nicht mehr so da, ein Recht liegt bei einer anderen Rolle;
 - wenn eine Spalte dazukommt, die auf eine Person zeigt, und in Anhang B fehlt;
@@ -391,7 +393,7 @@ Unter [`docs/verfahrensbeschreibung/`](docs/verfahrensbeschreibung/Verfahrensbes
 - wenn eine Aussage keine Stelle im Konzept nennt oder eine Zusage keinen Test;
 - wenn eine Fassung erscheint und die Zeile "Gilt für" sie nicht nennt.
 
-Wer das auslöst, schreibt im selben Pull Request in das Dokument, was die Änderung für die Beschäftigten bedeutet. Eine Aussage, die dort mit "Zusage" beginnt, braucht einen Test, der sie hält; was noch keiner hält, gehört in ihren Abschnitt 10.
+Wer das auslöst, schreibt im selben Pull Request in die Vorlage, was die Änderung für die Beschäftigten bedeutet. Eine Aussage, die dort mit "Zusage" beginnt, braucht einen Test, der sie hält; was noch keiner hält, gehört in ihren Abschnitt 10.
 
 ## Projektfamilie
 

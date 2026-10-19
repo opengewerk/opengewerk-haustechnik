@@ -248,6 +248,7 @@ describe('what each entry hands to the foundation', () => {
       'nummernkreise',
       'fristen',
       'aufbewahrung',
+      'datenschutz',
       'e-mail',
       'sicherung',
       'protokoll',
