@@ -51,6 +51,7 @@ import { ArrowLeftRight, Ban, FileText, Pencil, Plus, X, Zap } from 'lucide-reac
 import { Fragment, lazy, type ReactNode, Suspense, useState } from 'react'
 
 import { holdsBoards } from '../../app/electrical.js'
+import { holdsInverters, useInstallationPeak } from '../../app/pv-power.js'
 import { assetEvidenceQuery } from '../../app/evidence.js'
 import { placePath } from '../../app/place-path.js'
 import { placeAbove, titleOfRoom } from '../../app/place-records.js'
@@ -66,6 +67,7 @@ import {
 import { AssetConditionMark, DutyStateMark } from '../../app/asset-marks.js'
 import { AssetCoverCard } from '../asset-cover.js'
 import { AssetBoardsCard } from '../boards-card.js'
+import { AssetInvertersCard } from '../inverters-card.js'
 import { ExchangeAssetDialog, mayBeExchanged } from '../asset-exchange.js'
 import { AssetState } from '../asset-state.js'
 import { cataloguePlaces } from '../catalogue-addresses.js'
@@ -190,6 +192,8 @@ export function AssetFileScreen() {
   const floors = useRecords('floors')
   const rooms = useRecords('rooms')
   const asset = file.data
+  // The power of a PV installation from its modules on this device (#461).
+  const peak = useInstallationPeak(holdsInverters(asset?.kind) ? assetId : undefined)
 
   if (asset === undefined || assetId === undefined) {
     return <AssetFileUnread file={file} />
@@ -324,6 +328,10 @@ export function AssetFileScreen() {
           {holdsBoards(asset.kind) ? (
             <AssetBoardsCard assetId={assetId} assetName={asset.name} />
           ) : null}
+          {/* The inverters of a PV installation, in the same place (#461). */}
+          {holdsInverters(asset.kind) ? (
+            <AssetInvertersCard assetId={assetId} assetName={asset.name} />
+          ) : null}
           <AssetDefectsCard assetId={assetId} />
           {/* The faults reported at the asset (#331), for whoever accepts them. */}
           <AssetFaultsCard assetId={assetId} />
@@ -347,7 +355,7 @@ export function AssetFileScreen() {
             }
           >
             {/* Wider than the facts of a place: a package names the fields of a kind. */}
-            <FactList facts={masterData(asset, catalogue)} keyWidth={130} />
+            <FactList facts={masterData(asset, catalogue, peak)} keyWidth={130} />
           </Panel>
           <Panel title="Standort und Versorgung">
             <FactList
@@ -593,8 +601,16 @@ function fieldWords(of: AssetField, value: AssetValue): string {
   return assetFieldValueWords(of, value, date)
 }
 
-/** "Stammdaten": the kind and its package, then what is known, each only where it is. */
-function masterData(asset: AssetDetails, catalogue: Catalogue | null): Fact[] {
+/**
+ * "Stammdaten": the kind and its package, then what is known, each only where
+ * it is. The power of a PV installation from its modules after the package
+ * (#461), counted and not typed.
+ */
+function masterData(
+  asset: AssetDetails,
+  catalogue: Catalogue | null,
+  peak: string | null = null,
+): Fact[] {
   const kind = catalogue?.assetKind(asset.kind, today()) ?? null
   const packageName = asset.kind.slice(0, asset.kind.indexOf('.'))
   const itsPackage = catalogue?.packages.find((entry) => entry.name === packageName)
@@ -645,6 +661,7 @@ function masterData(asset: AssetDetails, catalogue: Catalogue | null): Fact[] {
     ...(itsPackage
       ? [{ label: 'Paket', value: `${itsPackage.title}, Fassung ${itsPackage.version}` }]
       : []),
+    ...known('Leistung', peak),
     ...known('Kennzeichen', asset.mark),
     ...known('Hersteller', asset.manufacturer),
     ...known('Typ', asset.model),

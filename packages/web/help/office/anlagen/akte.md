@@ -31,6 +31,16 @@ Eine elektrische Anlage (Niederspannung) nennt unter den Nachweisen ihre Verteil
 
 Anlegen, ändern und verschieben kann, wer Anlagen aufnimmt, vor Ort auch ohne Netz. „Entfernen“ gibt es nur für jemanden, der Anlagen pflegt; mit einem Verteiler oder einem Feld gehen seine Stromkreise samt ihren Betriebsmitteln. Was noch nicht beim Server ist, fehlt im Stromkreisverzeichnis.
 
+## Wechselrichter
+
+Eine PV-Anlage nennt unter den Nachweisen ihre Wechselrichter, jeden mit Ort, Zahl der Strings und der Leistung seiner Module. Ein Wechselrichter öffnet seine Seite: jeder String mit seinen Modulen, in der Reihenfolge, in der sie aufgenommen wurden. Unter „Stammdaten“ steht die Leistung der Anlage, zusammengezählt aus allen Modulen.
+
+1. Mit „Wechselrichter hinzufügen“, „String hinzufügen“ und „Modul hinzufügen“ die Teile anlegen. Ein neues Modul beginnt mit Hersteller, Modell und Leistung des letzten Moduls seines Strings.
+2. Einen Teil am Griff verschieben, ein Modul innerhalb seines Strings. Mit der Tastatur nimmt die Leertaste ihn auf, die Pfeiltasten verschieben ihn und die Leertaste legt ihn ab.
+3. Die Seriennummer eines Moduls liest vor Ort die Kamera vom Code auf seinem Etikett, auch ohne Netz.
+
+Anlegen, ändern und verschieben kann, wer Anlagen aufnimmt, vor Ort auch ohne Netz. „Entfernen“ gibt es nur für jemanden, der Anlagen pflegt; mit einem Wechselrichter gehen seine Strings samt ihren Modulen.
+
 ## Unterlagen
 
 Unter „Unterlagen“ steht, was das Paket für die Anlagenart nennt, etwa den Übersichtsschaltplan einer elektrischen Anlage. „Verlangt“ nennt die Fundstelle, „empfohlen“ ist ein Rat. Vorhanden ist eine Unterlage, wenn ein Dokument ihrer Art an der Anlage selbst liegt; ein Dokument am Raum oder am Gebäude zählt nicht, und ein Dokument ohne Art auch nicht. Liegt dieselbe Anleitung bei vielen gleichen Anlagen, wird sie an jeder abgelegt.

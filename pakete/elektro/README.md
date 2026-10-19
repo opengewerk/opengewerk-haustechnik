@@ -10,7 +10,7 @@ Normen kommen als neue Fassung, sobald sie am Text der Norm geprüft sind.
 Fachkundig abgenommen hat das Paket der Maintainer am 16.10.2026 (Abschnitt 15), jeder Eintrag
 mit der Prüfsumme dessen, was abgenommen wurde. Wird ein Eintrag geändert, fällt seine Abnahme
 weg, und die Oberfläche kennzeichnet ihn wieder, bis er erneut abgenommen ist. Die Einträge, die mit
-der Fassung 1.3.0 dazukamen, sind noch nicht abgenommen und bis dahin gekennzeichnet.
+den Fassungen 1.3.0 und 1.4.0 dazukamen, sind noch nicht abgenommen und bis dahin gekennzeichnet.
 
 ## Anlagenarten
 
@@ -23,14 +23,20 @@ der Fassung 1.3.0 dazukamen, sind noch nicht abgenommen und bis dahin gekennzeic
 | `safety_lighting` | Sicherheitsbeleuchtung | 445 | |
 | `safety_power_supply` | Sicherheitsstromversorgung | 442 | |
 | `lightning_protection` | Blitzschutzanlage | 446 | |
+| `photovoltaic_installation` | PV-Anlage | 442 | |
 
-Die Kostengruppen folgen der DIN 276, Ausgabe 2018-12, auf der dritten Ebene. Ein ortsveränderliches
-Betriebsmittel ist Ausstattung und keine technische Anlage des Bauwerks; es steht deshalb in der
-Kostengruppe 610 und nicht unter 400.
+Die Kostengruppen folgen der DIN 276, Ausgabe 2018-12, auf der dritten Ebene. Eine PV-Anlage erzeugt
+Strom im Gebäude und steht deshalb wie die Sicherheitsstromversorgung in der Kostengruppe 442. Ein
+ortsveränderliches Betriebsmittel ist Ausstattung und keine technische Anlage des Bauwerks; es steht
+deshalb in der Kostengruppe 610 und nicht unter 400.
 
 Ein Merkmal, das niemand eingetragen hat, erfüllt keine Bedingung: Für ein ortsveränderliches
 Betriebsmittel ohne Arbeitsbereich und eine Anlage ohne Angabe zum Raum besonderer Art schlägt das
 Paket nichts vor, was von diesem Merkmal abhängt.
+
+Die PV-Anlage kam mit der Fassung 1.4.0. Unter ihr stehen ihre Wechselrichter, Strings und Module als
+ihre Struktur, wie unter einer elektrischen Anlage ihre Verteiler. Eine Pflichtart bringt das Paket für
+sie nicht mit; eine Pflicht an ihr legt der Betreiber als eigene an.
 
 ## Pflichtarten
 

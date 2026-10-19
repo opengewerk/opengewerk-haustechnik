@@ -97,10 +97,13 @@ export const auditScreenWords: AuditScreenWords = {
     buildings: 'mit seinen Schließzeiten',
     rooms: 'mit seinen Etiketten',
     assets:
-      'mit ihrem Lebenszyklus, dem, was sie versorgt, ihren Etiketten, ihren Verteilern und bei einem Zähler seinen Ständen',
+      'mit ihrem Lebenszyklus, dem, was sie versorgt, ihren Etiketten, ihren Verteilern, ihren Wechselrichtern und bei einem Zähler seinen Ständen',
     // The electrical structure below a low-voltage installation (#349).
     distribution_boards: 'mit seinen Feldern und Stromkreisen',
     circuits: 'mit seinen Betriebsmitteln',
+    // The PV structure below a PV installation (#461).
+    inverters: 'mit seinen Strings',
+    pv_strings: 'mit seinen Modulen',
     attachments: 'mit seinen Fassungen',
     activities:
       'mit den Pflichten, die er erfüllen soll, den Antworten auf sein Formular und bei einem Auftrag dessen Angaben und Beteiligten',

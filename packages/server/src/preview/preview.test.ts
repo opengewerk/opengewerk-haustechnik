@@ -857,6 +857,13 @@ describe('a preview started as the Leitung', () => {
         versions: 1,
       },
       { title: 'Schaltplan Heizraum', kind: 'circuit_diagram', hangsOn: 'roomId', versions: 3 },
+      // The string plan of the PV installation of the hall (#461).
+      {
+        title: 'Stringplan PV-Anlage Halle 1',
+        kind: 'circuit_diagram',
+        hangsOn: 'assetId',
+        versions: 1,
+      },
       { title: 'Typenschild', kind: null, hangsOn: 'assetId', versions: 1 },
       // The paper of a contract, at the contract (#329).
       { title: 'Wartungsvertrag Aufzüge', kind: null, hangsOn: 'contractId', versions: 1 },

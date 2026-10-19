@@ -158,6 +158,12 @@ await checkWidths({
     'Stromkreis hinzufügen',
     'Betriebsmittel hinzufügen',
     'Verteiler bearbeiten',
+    // The PV structure of a PV installation (#461): in the office the dialogs
+    // of a new inverter, string and module, on site the forms the same
+    // buttons lead to.
+    'Wechselrichter hinzufügen',
+    'String hinzufügen',
+    'Modul hinzufügen',
   ],
 
   /**

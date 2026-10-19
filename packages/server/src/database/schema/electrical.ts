@@ -1,9 +1,7 @@
-import { type ElectricalTables, electricalSchema, reference } from '@opengewerk/platform-server'
-import { foreignKey, index, type PgColumn, unique } from 'drizzle-orm/pg-core'
+import { type ElectricalTables, electricalSchema } from '@opengewerk/platform-server'
+import { foreignKey, unique } from 'drizzle-orm/pg-core'
 
-import { withinAreas } from './areas.js'
-import { assets } from './assets.js'
-import { kindOfItsAsset, withinLimits } from './limit-policies.js'
+import { placeColumns, type PlaceColumns, placeKeys } from './structure-place.js'
 
 // The electrical structure below a low-voltage installation (#349, section
 // 4.2 of the concept): board, section, circuit, equipment. The tables are the
@@ -20,45 +18,6 @@ import { kindOfItsAsset, withinLimits } from './limit-policies.js'
 // That the asset is a low-voltage installation (decision 31 of phase 2, "Unter
 // der Niederspannungsanlage wie in OpenGewerk") is held by a trigger of the
 // migration, since no key can say it, and asked by the sync before.
-
-/** The place of a part of the structure: the asset, its property and its area. */
-function placeColumns() {
-  return {
-    assetId: reference<'asset'>('asset_id').notNull(),
-    propertyId: reference<'property'>('property_id').notNull(),
-    areaId: reference<'area'>('area_id').notNull(),
-  }
-}
-
-type PlaceColumns = ReturnType<typeof placeColumns>
-
-/** The columns of a place, as the keys below read them. */
-interface Placed {
-  readonly tenantId: PgColumn
-  readonly assetId: PgColumn
-  readonly propertyId: PgColumn
-  readonly areaId: PgColumn
-}
-
-/** What every table of the structure holds about its place, under names of its own. */
-function placeKeys(name: string, table: Placed) {
-  return [
-    withinAreas(),
-    withinLimits(table.propertyId, kindOfItsAsset(table.assetId)),
-    // The area of what the row hangs on (ADR 0003, addendum of #306).
-    foreignKey({
-      columns: [table.tenantId, table.assetId, table.areaId],
-      foreignColumns: [assets.tenantId, assets.id, assets.areaId],
-      name: `${name}_follow_their_asset`,
-    }).onUpdate('cascade'),
-    foreignKey({
-      columns: [table.tenantId, table.assetId, table.propertyId],
-      foreignColumns: [assets.tenantId, assets.id, assets.propertyId],
-      name: `${name}_of_an_asset_of_their_property`,
-    }).onUpdate('cascade'),
-    index(`${name}_asset_idx`).on(table.tenantId, table.assetId),
-  ]
-}
 
 /**
  * The four tables, named with their type: the keys of a section, a circuit

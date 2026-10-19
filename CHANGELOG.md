@@ -9,6 +9,21 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
 
 ### Hinzugefügt
 
+- Die PV-Struktur unter einer PV-Anlage (#461): Wechselrichter, Strings und Module aus dem Fundament (ADR 0014 in
+  `opengewerk`), mit Migration `0094_photovoltaic_structure`. Das Paket Elektro bringt in der Fassung 1.4.0 die
+  Anlagenart „PV-Anlage“ (`elektro.photovoltaic_installation`, Kostengruppe 442, ohne eigene Pflichtart, bis zur Abnahme
+  gekennzeichnet). Jede der drei Tabellen trägt Anlage, Liegenschaft und Bereich und hält Mandant, Bereich und die Grenzen
+  eines Prüfers wie die Elektro-Struktur; die Datenbank nimmt einen Wechselrichter nur unter einer PV-Anlage an
+  (Fehlerklasse HT015), eine solche Anlage behält ihre Art, solange sie Wechselrichter hat, und was unter einem
+  gelöschten Teil hängt, wird mitmarkiert. Ein Wechselrichter sagt dazu, wo er hängt. In der Anlagenakte steht die Karte
+  „Wechselrichter“ und unter den Stammdaten die Leistung der Anlage aus ihren Modulen („9,60 kWp aus 24 Modulen“), jeder
+  Wechselrichter hat im Büro seine Seite mit seinen Strings und ihren Modulen, und vor Ort wird die Struktur auch ohne Netz
+  aufgenommen, die Seriennummer eines Moduls mit der Kamera vom Code auf seinem Etikett. Aufnehmen und Ändern verlangen
+  „Anlagen aufnehmen“, Entfernen „Anlagen pflegen“. Speicher, Zähler und Wallbox nennen keine PV-Anlage. In der Vorschau
+  hat die „PV-Anlage Dach Halle 1“ einen Wechselrichter mit zwei Strings zu je zwölf Modulen. Warum: Moritz hat an #180
+  entschieden, dass die PV-Anlagen aus OpenGewerk auch hier aufgenommen werden, und seit opengewerk/opengewerk#678 liegt
+  ihre Struktur im Fundament.
+
 - Im Menü der Person im Büro und im Bereich der Instanz steht „Zur Ansicht für vor Ort“ mit der Zeile „Große Knöpfe,
   auch ohne Netz“ (#464), aus dem Fundament (opengewerk/opengewerk#681, Submodul `upstream/opengewerk` auf `2452f0e`
   angehoben). Der Eintrag öffnet `/m/` und merkt sich die Wahl, sodass `/` auf diesem Gerät danach in die Ansicht für

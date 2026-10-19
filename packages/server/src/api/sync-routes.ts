@@ -126,6 +126,25 @@ export const operationRights: Readonly<Record<string, OperationRights>> = {
     remove: 'asset.write',
     otherwise: 'asset.write',
   },
+  // The PV structure below a PV installation, the same way (#461).
+  inverters: {
+    create: 'asset.record',
+    change: 'asset.record',
+    remove: 'asset.write',
+    otherwise: 'asset.write',
+  },
+  pv_strings: {
+    create: 'asset.record',
+    change: 'asset.record',
+    remove: 'asset.write',
+    otherwise: 'asset.write',
+  },
+  pv_modules: {
+    create: 'asset.record',
+    change: 'asset.record',
+    remove: 'asset.write',
+    otherwise: 'asset.write',
+  },
   duties: { otherwise: 'duty.write' },
   duty_dismissals: { otherwise: 'duty.write' },
   activities: { create: 'activity.write', change: 'activity.perform', otherwise: 'activity.write' },

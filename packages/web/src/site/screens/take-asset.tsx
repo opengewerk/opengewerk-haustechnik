@@ -25,7 +25,6 @@ import {
   SiteScreen,
   SiteText,
   SiteTrouble,
-  useCodeReading,
 } from '@opengewerk/platform-web/site'
 import {
   maybeText,
@@ -36,7 +35,7 @@ import {
   useSync,
 } from '@opengewerk/platform-web/sync'
 import { useNavigate, useParams } from '@tanstack/react-router'
-import { Check, Pencil, QrCode, ScanLine, TriangleAlert } from 'lucide-react'
+import { Check, QrCode, ScanLine, TriangleAlert } from 'lucide-react'
 import { type FormEvent, useEffect, useRef, useState } from 'react'
 
 import {
@@ -51,15 +50,9 @@ import {
 import { fileDocument } from '../../app/documents.js'
 import { byNumber, titleOfRoom } from '../../app/place-records.js'
 import { useCatalogue } from '../../sync/catalogue.js'
-import {
-  assetTitle,
-  CameraFrame,
-  CameraPicture,
-  GoButton,
-  NotOffered,
-  NotOnDevice,
-} from '../kit.js'
+import { assetTitle, GoButton, NotOffered, NotOnDevice } from '../kit.js'
 import { sitePlaces, stockTaking } from '../places.js'
+import { SerialReader } from '../serial-reader.js'
 
 export const takeAssetWords = {
   mayNot: 'Anlagen aufnehmen gehört nicht zu den Rechten dieses Zugangs.',
@@ -252,7 +245,14 @@ function TakeAssetForm({
   if (reading) {
     return (
       <SerialReader
-        name={typed.name}
+        {...(typed.name.trim() === '' ? {} : { sub: typed.name })}
+        hint={takeAssetWords.holdThePlate}
+        words={serialCameraWords}
+        accept={(code) => {
+          const said = code.trim()
+
+          return said !== '' && labelCodeFromScan(said) === null ? said : null
+        }}
         onTake={(serialNumber) => {
           set({ serialNumber })
           setReading(false)
@@ -753,78 +753,5 @@ function KindFieldInput({
         onChange(event.target.value)
       }}
     />
-  )
-}
-
-/**
- * The camera on the type plate, board "Seriennummer lesen": it reads the bar
- * code a plate carries beside its serial number and shows what it read, and
- * the person takes it or types the number after all. A label of this
- * application held in front of it is no serial number and is passed over.
- */
-function SerialReader({
-  name,
-  onTake,
-  onClose,
-}: {
-  readonly name: string
-  readonly onTake: (serialNumber: string) => void
-  readonly onClose: () => void
-}) {
-  const [read, setRead] = useState<string | null>(null)
-  const { video, trouble } = useCodeReading(
-    true,
-    (code) => {
-      const said = code.trim()
-
-      if (said !== '' && labelCodeFromScan(said) === null) {
-        setRead(said)
-      }
-    },
-    serialCameraWords,
-  )
-
-  return (
-    <>
-      <SiteHeader title="Seriennummer lesen" {...(name.trim() === '' ? {} : { sub: name })} />
-      <CameraFrame
-        hint={
-          trouble
-            ? null
-            : read === null
-              ? takeAssetWords.holdThePlate
-              : `Erkannt: ${read}. ${takeAssetWords.holdThePlate}`
-        }
-      >
-        <CameraPicture video={video} trouble={trouble} shape="wide" />
-        {read === null || trouble ? null : (
-          <p
-            role="status"
-            className="absolute inset-x-4 bottom-4 rounded-[8px] bg-surface px-3.5 py-2.5 text-center font-condensed text-[24px] font-semibold tracking-[1.2px] text-ink [overflow-wrap:anywhere]"
-          >
-            {read}
-          </p>
-        )}
-      </CameraFrame>
-      <SiteActionBar>
-        <Button wide height={60} icon={Pencil} onClick={onClose}>
-          Von Hand
-        </Button>
-        <Button
-          tone="primary"
-          wide
-          height={60}
-          icon={Check}
-          disabled={read === null}
-          onClick={() => {
-            if (read !== null) {
-              onTake(read)
-            }
-          }}
-        >
-          Übernehmen
-        </Button>
-      </SiteActionBar>
-    </>
   )
 }

@@ -131,7 +131,8 @@ export const linesThroughARow: Readonly<Record<string, LineThroughARow>> = {
 }
 
 /**
- * Keys of the electrical structure (#349) onto the part above a row, each
+ * Keys of the electrical structure (#349) and the PV structure (#461) onto
+ * the part above a row, each
  * with its reason: the keys of the foundation over the tenant and the id
  * (`electricalSchema`, ADR 0014 in the repository opengewerk), which an
  * application cannot change, and the keys of this application that keep a
@@ -152,6 +153,11 @@ export const keysWithinAnAsset: Readonly<Record<string, string>> = {
   equipment_on_a_circuit_of_their_asset: 'a piece of equipment on the asset of its circuit',
   // Not a part of the structure, but held the same way (#350).
   defects_on_a_circuit_of_their_asset: 'a defect on a circuit of the asset it is at',
+  // The PV structure, as the electrical one (#461).
+  pv_strings_inverter_in_tenant: 'a string on its inverter, by the key of the foundation',
+  pv_strings_on_an_inverter_of_their_asset: 'a string on the asset of its inverter',
+  pv_modules_string_in_tenant: 'a module on its string, by the key of the foundation',
+  pv_modules_on_a_string_of_their_asset: 'a module on the asset of its string',
 }
 
 /**

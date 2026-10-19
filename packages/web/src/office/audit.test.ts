@@ -250,10 +250,13 @@ describe('the words of the change log in the office', () => {
       buildings: 'mit seinen Schließzeiten',
       rooms: 'mit seinen Etiketten',
       assets:
-        'mit ihrem Lebenszyklus, dem, was sie versorgt, ihren Etiketten, ihren Verteilern und bei einem Zähler seinen Ständen',
+        'mit ihrem Lebenszyklus, dem, was sie versorgt, ihren Etiketten, ihren Verteilern, ihren Wechselrichtern und bei einem Zähler seinen Ständen',
       // The electrical structure below a low-voltage installation (#349).
       distribution_boards: 'mit seinen Feldern und Stromkreisen',
       circuits: 'mit seinen Betriebsmitteln',
+      // The PV structure below a PV installation (#461).
+      inverters: 'mit seinen Strings',
+      pv_strings: 'mit seinen Modulen',
       attachments: 'mit seinen Fassungen',
       activities:
         'mit den Pflichten, die er erfüllen soll, den Antworten auf sein Formular und bei einem Auftrag dessen Angaben und Beteiligten',
@@ -279,12 +282,16 @@ describe('the words of the change log in the office', () => {
         { table: 'meter_pauses', column: 'asset_id' },
         // A low-voltage installation with its boards (#349).
         { table: 'distribution_boards', column: 'asset_id' },
+        // A PV installation with its inverters (#461).
+        { table: 'inverters', column: 'asset_id' },
       ],
       distribution_boards: [
         { table: 'board_sections', column: 'distribution_board_id' },
         { table: 'circuits', column: 'distribution_board_id' },
       ],
       circuits: [{ table: 'equipment', column: 'circuit_id' }],
+      inverters: [{ table: 'pv_strings', column: 'inverter_id' }],
+      pv_strings: [{ table: 'pv_modules', column: 'pv_string_id' }],
       attachments: [{ table: 'attachment_versions', column: 'attachment_id' }],
       // An activity with the duties it is to meet and what came of each (#105),
       // the answers to the points of its form (#106), and the notes on a

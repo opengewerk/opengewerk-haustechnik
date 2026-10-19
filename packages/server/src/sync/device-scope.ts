@@ -148,6 +148,10 @@ const placeEntities = [
   'board_sections',
   'circuits',
   'equipment',
+  // The PV structure below a PV installation (#461).
+  'inverters',
+  'pv_strings',
+  'pv_modules',
   'duties',
   'duty_dismissals',
   // The documents of those places, of the assets there and of the work on
