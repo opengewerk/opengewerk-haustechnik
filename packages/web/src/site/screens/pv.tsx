@@ -185,9 +185,8 @@ export function SiteStringScreen() {
         back={{ to: sitePlaces.asset(assetId), label: 'Zurück zur Anlage' }}
       />
       <SiteScreen gap={10}>
-        {path.length > 0 ? (
-          <SiteCrumbs items={[...path, { to: sitePlaces.asset(assetId), label: assetName }]} />
-        ) : null}
+        {/* The path ends at the installation already, as on the pages of a board. */}
+        {path.length > 0 ? <SiteCrumbs items={path} /> : null}
         <Panel title="Angaben">
           <div className="flex flex-col gap-3">
             <SiteFacts facts={stringFacts(pvString, inverter, modules)} />

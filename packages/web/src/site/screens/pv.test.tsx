@@ -153,6 +153,8 @@ describe('the inverters of a PV installation on site', () => {
       ['Module', '2 Module, zusammen 0,80 kWp'],
     ])
     expect(screen.getByText('WR 1, PV-Anlage Dach Schulhaus')).toBeTruthy()
+    // The path ends at the installation, named once, as on the pages of a board.
+    expect(screen.getAllByRole('link', { name: 'PV-Anlage Dach Schulhaus' })).toHaveLength(1)
     expect(
       within(screen.getByRole('list', { name: 'Module' }))
         .getAllByRole('listitem')
