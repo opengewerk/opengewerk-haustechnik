@@ -56,7 +56,7 @@ import { giveSampleForm, samplePackage } from './sample-form.js'
 import { withAnAnnouncedVersion } from './sample-update.js'
 import { giveSampleEveryAsset, giveSamplePlans } from './sample-plans.js'
 import { giveSampleTemplates } from './sample-templates.js'
-import { giveSampleElectrical } from './sample-electrical.js'
+import { giveSampleCircuitTest, giveSampleElectrical } from './sample-electrical.js'
 import { giveSampleMeters } from './sample-meters.js'
 import { giveSampleFaults, giveSampleWork } from './sample-work.js'
 import { writeSampleStandings } from './sample-standings.js'
@@ -318,6 +318,9 @@ export async function openSamplePreview(
     // The boards of the low-voltage installation of the hall with their
     // sections, circuits and equipment (#349).
     await giveSampleElectrical(database, planter)
+    // The test of that installation on site, begun by the viewer, with the
+    // first circuits measured and one value outside its limit (#350).
+    await giveSampleCircuitTest(database, planter, previewPeople.viewer.id, previewCatalogue)
   } finally {
     await planting.close()
   }

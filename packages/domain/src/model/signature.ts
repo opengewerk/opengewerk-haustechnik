@@ -9,11 +9,13 @@ import {
 } from '@opengewerk/platform-domain'
 
 import type { ActivityId, ActivityKind, WorkOrderId } from './activity.js'
-import type { AnswerCircuit, FilledAnswer } from './answer.js'
+import { type AnswerCircuit, type FilledAnswer, pageAsksCircuits } from './answer.js'
 import type { AreaId } from './area.js'
+import { type ChartedCircuit, circuitsInChartOrder } from './electrical.js'
 import type { EvidenceResult } from './evidence.js'
 import { oneOf, type Problems } from './fields.js'
 import type { PropertyId } from './location.js'
+import type { FormVersions } from './round-template.js'
 
 /**
  * Who a signature is given as (ADR 0004, points 7 and 8): the person who did
@@ -441,8 +443,17 @@ function live(record: HeldRecord): boolean {
  * makes; with a form, the answers to its points; and for a work order the
  * time spent on it and its notes; for a collective activity the page of each
  * of its parts (#342). Null when the device does not hold the activity.
+ *
+ * Where the form of the activity in the catalogue has a group over the
+ * circuits, the circuits of its asset (#350), as `pageAsksCircuits` says
+ * with the catalogue the device holds; without one the page names none, as
+ * every page before.
  */
-export function heldPageOf(held: HeldRecords, activityId: string): SignedPage | null {
+export function heldPageOf(
+  held: HeldRecords,
+  activityId: string,
+  catalogue: FormVersions | null = null,
+): SignedPage | null {
   const activity = held.find('activities', activityId)
 
   if (activity === null) {
@@ -465,6 +476,14 @@ export function heldPageOf(held: HeldRecords, activityId: string): SignedPage | 
     formKey === null || typeof formVersion !== 'number'
       ? null
       : { key: formKey, version: formVersion }
+  const assetId = heldText(activity, 'assetId')
+  const circuits = pageAsksCircuits(catalogue, {
+    formKey,
+    formVersion: typeof formVersion === 'number' ? formVersion : null,
+    assetId,
+  })
+    ? heldChartOf(held, assetId ?? '')
+    : null
 
   return signedPageOf({
     activity: {
@@ -550,12 +569,64 @@ export function heldPageOf(held: HeldRecords, activityId: string): SignedPage | 
             .related('activities', 'collectiveId', activityId)
             .filter(live)
             .flatMap((part) => {
-              const page = heldPageOf(held, String(part['id']))
+              const page = heldPageOf(held, String(part['id']), catalogue)
 
               return page === null ? [] : [page]
             }),
         }),
+    circuits,
   })
+}
+
+/** A number of a record, or null for a field that says none. */
+function heldNumber(record: HeldRecord, field: string): number | null {
+  const value = record[field]
+
+  return typeof value === 'number' ? value : null
+}
+
+/**
+ * The circuits of an asset as a device holds them (#350), in the order of
+ * the chart: its boards that are not marked, and below them their sections
+ * and circuits that are not marked, found by their board, so that a circuit
+ * written down on this device and not sent yet is among them, as it will be
+ * on the server once it is.
+ */
+function heldChartOf(held: HeldRecords, assetId: string): readonly ChartedCircuit[] {
+  const boards = held.related('distribution_boards', 'assetId', assetId).filter(live)
+  const below = (entity: string) =>
+    boards.flatMap((board) =>
+      held.related(entity, 'distributionBoardId', String(board['id'])).filter(live),
+    )
+
+  return circuitsInChartOrder(
+    boards.map((board) => ({
+      id: String(board['id']),
+      kind: heldText(board, 'kind') as ChartedCircuit['boardKind'],
+      designation: heldText(board, 'designation') ?? '',
+      position: heldNumber(board, 'position') ?? 0,
+    })),
+    below('board_sections').map((section) => ({
+      id: String(section['id']),
+      distributionBoardId: heldText(section, 'distributionBoardId') ?? '',
+      designation: heldText(section, 'designation') ?? '',
+      position: heldNumber(section, 'position') ?? 0,
+    })),
+    below('circuits').map((circuit) => ({
+      id: String(circuit['id']),
+      distributionBoardId: heldText(circuit, 'distributionBoardId') ?? '',
+      boardSectionId: heldText(circuit, 'boardSectionId'),
+      designation: heldText(circuit, 'designation') ?? '',
+      consumer: heldText(circuit, 'consumer'),
+      tripCharacteristic: heldText(
+        circuit,
+        'tripCharacteristic',
+      ) as AnswerCircuit['tripCharacteristic'],
+      ratedCurrentMilli: heldNumber(circuit, 'ratedCurrentMilli'),
+      ratedResidualCurrentMilli: heldNumber(circuit, 'ratedResidualCurrentMilli'),
+      position: heldNumber(circuit, 'position') ?? 0,
+    })),
+  )
 }
 
 /** The time spent on a work order and its notes, as a device holds them. */

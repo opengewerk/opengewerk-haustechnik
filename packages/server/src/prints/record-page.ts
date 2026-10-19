@@ -1,5 +1,6 @@
 import {
   collectiveStatement,
+  distributionBoardKindLabel,
   stockUnitLabel,
   evidenceOriginLabel,
   legacyNote,
@@ -12,10 +13,12 @@ import {
   signatureRoleLabel,
   signatureWayLabel,
   type StatedAnswer,
+  type StatedCircuit,
   type StatedCollective,
   type StatedPlace,
   type StatedSignature,
   statedPointWords,
+  workedOutLimitWords,
 } from '@opengewerk/haustechnik-domain'
 import { fontFaces, type PrintJob, text, typeface } from '@opengewerk/platform-server'
 
@@ -127,8 +130,15 @@ function answerCells(answer: StatedAnswer): { said: string; remark: string } {
   return { said, remark }
 }
 
-/** The answers by the chapter of the form, each with the place of its block in a group. */
-function chapters(answers: readonly StatedAnswer[]): string {
+/**
+ * The answers by the chapter of the form, each with the place of its block in
+ * a group. The answers of a group over the circuits stand in a table of
+ * their own under the label of the group, one row for each circuit (#350).
+ */
+function chapters(
+  answers: readonly StatedAnswer[],
+  circuits: readonly StatedCircuit[] = [],
+): string {
   const bySection = new Map<string, StatedAnswer[]>()
 
   for (const answer of answers) {
@@ -136,22 +146,251 @@ function chapters(answers: readonly StatedAnswer[]): string {
   }
 
   return [...bySection.entries()]
-    .map(
-      ([title, rows]) => `
+    .map(([title, rows]) => {
+      const onCircuits = (answer: StatedAnswer) =>
+        answer.circuit !== undefined &&
+        answer.group !== null &&
+        circuits.some((circuit) => circuit.id === answer.circuit)
+      const points = rows.filter((answer) => !onCircuits(answer))
+      const groups = new Map<string, StatedAnswer[]>()
+
+      for (const answer of rows.filter(onCircuits)) {
+        const label = answer.group?.label ?? ''
+
+        groups.set(label, [...(groups.get(label) ?? []), answer])
+      }
+
+      return `${
+        points.length === 0
+          ? ''
+          : `
     <h2>${text(title)}</h2>
     <table>
       <thead><tr><th class="point">Punkt</th><th class="said">Antwort</th><th>Bemerkung</th></tr></thead>
-      <tbody>${rows
+      <tbody>${points
         .map((answer) => {
           const { said, remark } = answerCells(answer)
-          const point = statedPointWords(answer)
+          const point = statedPointWords(answer, circuits)
 
           return `<tr><td>${text(point)}</td><td class="said"><strong>${text(said)}</strong></td><td class="muted">${text(remark)}</td></tr>`
         })
         .join('')}</tbody>
-    </table>`,
-    )
+    </table>`
+      }${[...groups.entries()]
+        .map(
+          ([label, measured]) => `
+    <h2>${text(label)}</h2>
+    ${circuitTable(measured, circuits)}`,
+        )
+        .join('')}`
+    })
     .join('')
+}
+
+/**
+ * What a label is called in the head of a column: the symbol it ends with,
+ * `RPE` of "Durchgängigkeit des Schutzleiters RPE", as a table of
+ * measurements names a column.
+ */
+function symbolOf(label: string): string {
+  return label.trim().split(/\s+/).at(-1) ?? label
+}
+
+/** A measured value in words, split into its figure and its unit: "0,42 Ω". */
+function figureAndUnit(value: string | null): { figure: string; unit: string } {
+  const at = value?.lastIndexOf(' ') ?? -1
+
+  return value === null || at < 0
+    ? { figure: value ?? '', unit: '' }
+    : { figure: value.slice(0, at), unit: value.slice(at + 1) }
+}
+
+/** A limit in the short words of a table: "höchstens 2,87 Ω" as "≤ 2,87". */
+function shortBound(bound: string): string {
+  const signs: Readonly<Record<string, string>> = {
+    höchstens: '≤',
+    mindestens: '≥',
+    unter: '<',
+  }
+  const [word = '', ...rest] = bound.split(' ')
+  const sign = signs[word]
+  const figure = rest.length > 1 ? rest.slice(0, -1).join(' ') : rest.join(' ')
+
+  return sign === undefined ? bound : `${sign} ${figure}`
+}
+
+/** A column of the table of the circuits: a measured value, by the label of its field. */
+interface MeasuredColumn {
+  readonly label: string
+  readonly unit: string
+  /** How a limit worked out of the circuit comes about, where it is. */
+  readonly workedOut: StatedAnswer['workedOut']
+}
+
+/**
+ * The measurements of a group over the circuits as a table (#350, as the
+ * board of the PDF with the circuits draws it): the circuits board by board in the
+ * order of the chart, each on one line with what protects it, a column for
+ * each measured value of the form, beside the loop impedance the limit worked
+ * out of the circuit, which no other column shows, and what else was said in
+ * the block under "Bemerkung". A value outside its limit is bold and red, so
+ * that it reads in black and white too. The legend under the table says where
+ * each limit comes from, with its sources.
+ */
+function circuitTable(
+  answers: readonly StatedAnswer[],
+  circuits: readonly StatedCircuit[],
+): string {
+  const columns: MeasuredColumn[] = []
+
+  for (const answer of answers) {
+    if (answer.kind === 'measurement' && !columns.some((column) => column.label === answer.label)) {
+      columns.push({
+        label: answer.label,
+        unit: figureAndUnit(answer.value).unit,
+        workedOut: answer.workedOut,
+      })
+    }
+  }
+
+  const ofCircuit = (circuit: StatedCircuit) =>
+    answers.filter((answer) => answer.circuit === circuit.id)
+  const withLimit = (column: MeasuredColumn) => column.workedOut === 'loop_impedance'
+  const head = [
+    '<th>Stromkreis</th>',
+    '<th>Schutz</th>',
+    ...columns.flatMap((column) => [
+      `<th class="figure">${text(`${symbolOf(column.label)} ${column.unit}`.trim())}</th>`,
+      ...(withLimit(column)
+        ? [
+            `<th class="figure">${text(`Grenzwert ${symbolOf(column.label)} ${column.unit}`.trim())}</th>`,
+          ]
+        : []),
+    ]),
+    '<th>Bemerkung</th>',
+  ]
+  const ordered = [...circuits].sort((left, right) => left.place - right.place)
+  let board: string | null = null
+  const rows: string[] = []
+
+  for (const circuit of ordered) {
+    if (circuit.board !== board) {
+      board = circuit.board
+      rows.push(
+        `<tr class="board"><td colspan="${String(head.length)}"><strong>${text(circuit.board)}</strong><span class="muted">, ${text(distributionBoardKindLabel[circuit.boardKind])}</span></td></tr>`,
+      )
+    }
+
+    const said = ofCircuit(circuit)
+    const cells = columns.flatMap((column) => {
+      const answer = said.find((each) => each.label === column.label)
+      const { figure } = figureAndUnit(answer?.value ?? null)
+      const value =
+        answer?.limit?.within === false
+          ? `<strong class="out">${text(figure)}</strong>`
+          : text(figure)
+
+      return [
+        `<td class="figure">${value}</td>`,
+        ...(withLimit(column)
+          ? [
+              `<td class="figure muted">${text(
+                answer?.limit?.bound === undefined ? 'keiner' : shortBound(answer.limit.bound),
+              )}</td>`,
+            ]
+          : []),
+      ]
+    })
+    // What else the block says: its texts, a check point not in order, and
+    // the remark at a value, named by its symbol.
+    const remarks = said.flatMap((answer) => {
+      if (answer.kind === 'measurement') {
+        return answer.remark === null || answer.remark.trim() === ''
+          ? []
+          : [`${symbolOf(answer.label)}: ${answer.remark}`]
+      }
+
+      if (answer.kind === 'check_point') {
+        return answer.result === 'ok' || answer.result === null
+          ? []
+          : [
+              [`${answer.label}: ${results[answer.result] ?? answer.result}`, answer.remark]
+                .filter(Boolean)
+                .join(', '),
+            ]
+      }
+
+      if (answer.kind === 'text') {
+        return answer.value === null ? [] : [answer.value]
+      }
+
+      return answer.value === null ? [] : [`${answer.label}: ${answer.value}`]
+    })
+
+    rows.push(
+      `<tr><td><strong>${text(circuit.designation)}</strong>${circuit.consumer === null ? '' : ` ${text(circuit.consumer)}`}</td><td class="muted protection">${text(circuit.protection ?? 'nicht erfasst')}</td>${cells.join('')}<td class="muted">${text(remarks.join(' '))}</td></tr>`,
+    )
+  }
+
+  return `<table class="circuits">
+      <thead><tr>${head.join('')}</tr></thead>
+      <tbody>${rows.join('')}</tbody>
+    </table>
+    ${circuitLegend(answers, columns)}`
+}
+
+/**
+ * The legend under the table of the circuits: what bold and red means, and
+ * for each measured value where its limit comes from, with its sources, the
+ * values without a limit, and that a circuit without what a limit is worked
+ * out from has none.
+ */
+function circuitLegend(
+  answers: readonly StatedAnswer[],
+  columns: readonly MeasuredColumn[],
+): string {
+  const limited: string[] = []
+  const unlimited: string[] = []
+  const without: string[] = []
+
+  for (const column of columns) {
+    const symbol = symbolOf(column.label)
+    const ofColumn = answers.filter((answer) => answer.label === column.label)
+    const sources = [
+      ...new Set(
+        ofColumn.flatMap((answer) =>
+          (answer.limit?.source ?? '').split('; ').filter((source) => source !== ''),
+        ),
+      ),
+    ].join('; ')
+    const bound = ofColumn.find((answer) => answer.limit?.bound !== undefined)?.limit?.bound
+
+    if (column.workedOut !== undefined) {
+      limited.push(
+        `${symbol} ${workedOutLimitWords[column.workedOut]}${sources === '' ? '' : ` (${sources})`}`,
+      )
+
+      if (ofColumn.some((answer) => answer.limit === null)) {
+        without.push(symbol)
+      }
+    } else if (bound !== undefined) {
+      limited.push(`${symbol} ${bound}${sources === '' ? '' : ` (${sources})`}`)
+    } else {
+      unlimited.push(symbol)
+    }
+  }
+
+  const sentences = [
+    ...limited,
+    ...(unlimited.length === 0 ? [] : [`${unlimited.join(' und ')} ohne Grenzwert`]),
+    ...(without.length === 0
+      ? []
+      : [`ohne Angaben zur Schutzeinrichtung keiner für ${without.join(' und ')}`]),
+  ]
+
+  return `<p class="legend"><strong class="out">Fett und rot</strong>: außerhalb des Grenzwerts, daraus ein Mangel. ${text(
+    sentences.join('; '),
+  )}${sentences.length === 0 ? '' : '. '}Stromkreise und Angaben wie bei der Unterschrift im Stromkreisverzeichnis.</p>`
 }
 
 /** The photos of the answers, two to a row, each under the point it was taken for. */
@@ -272,6 +511,14 @@ figcaption { font-size: 8pt; color: #555; }
 .signature p { margin: 0; }
 .work p { margin: 0; padding: 5px 0; border-bottom: 1px solid #ddd6cc; }
 .work .muted { display: block; font-size: 8pt; }
+table.circuits { font-size: 8pt; line-height: 1.3; }
+table.circuits th { font-size: 7pt; vertical-align: bottom; }
+table.circuits td { padding: 2px 4px; }
+table.circuits .figure { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+table.circuits .protection { white-space: nowrap; }
+table.circuits tr.board td { padding-top: 6px; border-bottom: 1px solid #8a8178; }
+.out { color: #b42318; font-weight: 600; }
+.legend { margin: 6px 0 0; font-size: 7.5pt; line-height: 1.4; color: #555; }
 </style>
 </head>
 <body>${body}</body>
@@ -400,7 +647,7 @@ export function evidencePrintJob(
     ],
     ['Eingetragen', `${state.writtenBy}, ${moment(state.writtenAt)}`],
   ])}
-  ${chapters(state.answers)}
+  ${chapters(state.answers, state.circuits)}
   ${photosOf(photos)}
   ${signaturesOf(state.signatures)}`
 

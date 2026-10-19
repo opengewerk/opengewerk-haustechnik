@@ -156,6 +156,8 @@ describe('the policies of the sync', () => {
       expect.arrayContaining(['formKey', 'formVersion', 'templateOn', 'roundPlanId']),
     )
     expect(syncPolicies['defects']?.reserved).toContain('foundInAnswerId')
+    // The circuit a defect was found on is the server's as well (#350).
+    expect(syncPolicies['defects']?.reserved).toContain('circuitId')
   })
 
   it('let a device give a label from a sheet to an asset while it is not blocked, and nothing else about a label', () => {

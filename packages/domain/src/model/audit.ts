@@ -854,6 +854,7 @@ export const auditVocabulary: AuditVocabulary = {
         found_in_activity_id: 'Festgestellt bei',
         found_in_evidence_id: 'Genannt im Nachweis',
         found_in_answer_id: 'Aus der Antwort',
+        circuit_id: 'Stromkreis',
         remedy_work_order_id: 'Beseitigt mit',
         description: 'Beschreibung',
         defect_class: 'Klasse',

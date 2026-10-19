@@ -17,6 +17,7 @@ import {
   readEvidenceState,
   type ServiceReportId,
   type StatedAnswer,
+  type StatedCircuit,
   statedPointWords,
 } from '@opengewerk/haustechnik-domain'
 import {
@@ -203,7 +204,7 @@ export class Printer {
         evidencePrintJob(
           state,
           row.fingerprint,
-          await this.photosOf(state.answers),
+          await this.photosOf(state.answers, state.circuits),
           voiding === null
             ? null
             : {
@@ -274,9 +275,13 @@ export class Printer {
    * The photos of the answers, read from the store by the hash the frozen
    * state names: every photo of a point, the first and those after it
    * (#451). Where a point has more than one, the caption counts them; one
-   * alone is captioned as before.
+   * alone is captioned as before. A point in the block of a circuit is named
+   * with its circuit (#350).
    */
-  async photosOf(answers: readonly StatedAnswer[]): Promise<PrintedPhoto[]> {
+  async photosOf(
+    answers: readonly StatedAnswer[],
+    circuits: readonly StatedCircuit[] = [],
+  ): Promise<PrintedPhoto[]> {
     const photos: PrintedPhoto[] = []
 
     for (const answer of answers) {
@@ -286,8 +291,8 @@ export class Printer {
       )
       const point =
         answer.remark === null
-          ? statedPointWords(answer)
-          : `${statedPointWords(answer)}: ${answer.remark}`
+          ? statedPointWords(answer, circuits)
+          : `${statedPointWords(answer, circuits)}: ${answer.remark}`
 
       for (const [index, file] of files.entries()) {
         photos.push({

@@ -22,6 +22,16 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   der Anlage, ein Messwert wird mit den Angaben seines Stromkreises beurteilt, vor der Unterschrift fehlt jeder Stromkreis
   ohne Antwort, und ein Mangel aus einem solchen Block nennt Gruppe und Stromkreis und trägt den Stromkreis. Die
   unterschriebene Seite nennt die Stromkreise nur, wo es welche gibt, damit jede ältere Seite ihren Fingerabdruck behält.
+  Gerät und Server bilden diese Seite gleich: hat das Formular des Vorgangs eine Gruppe je Stromkreis, stehen alle
+  Stromkreise seiner Anlage darauf, Verteiler für Verteiler in der Reihenfolge des Stromkreisverzeichnisses. Der Abgleich
+  nimmt eine Antwort in einem solchen Block nur für einen Stromkreis der Anlage des Vorgangs an, auf dem Gerät schon vor
+  dem Einreihen. Mit der Unterschrift wird ein Messwert außerhalb seines Grenzwerts ein Mangel an der Anlage, der seinen
+  Stromkreis in der neuen Spalte `circuit_id` trägt (Migration `0093_defect_circuit`, Fremdschlüssel auf einen Stromkreis
+  derselben Anlage, beim Entfernen des Stromkreises leer). Der eingefrorene Stand des Nachweises (Fassung 14) behält die Stromkreise mit
+  Verteiler, Schutz und Platz, jede Antwort eines Blocks nennt ihren Stromkreis und den berechneten Grenzwert, und das PDF
+  zeigt die Messungen als Tabelle je Verteiler mit Grenzwert der Schleifenimpedanz, Werten außerhalb fett und rot und
+  einer Legende mit den Fundstellen. Ältere Stände bleiben unverändert lesbar. In der Vorschau ist die Prüfung der
+  „Elektrischen Anlage Halle 1“ begonnen, mit den ersten drei Stromkreisen gemessen.
   Warum: Abschnitt 5 des Konzepts sieht die Messwerte je Stromkreis im Paket Elektro für Phase 2 vor, und Moritz hat am
   15.10.2026 entschieden, dass ihre Grenzwerte wie in OpenGewerk als Regeln mit Norm, Ausgabe und Abschnitt stehen und
   ein Wert außerhalb ein Mangel an der Anlage mit dem Stromkreis wird.

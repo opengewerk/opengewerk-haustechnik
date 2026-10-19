@@ -20,7 +20,8 @@ import type { ActivityId } from './activity.js'
 import type { AreaId } from './area.js'
 import type { AssetId } from './asset.js'
 import { defectLimits } from './defect.js'
-import type { StatedAnswer, StatedAnswerAsset, StatedFile } from './evidence.js'
+import { circuitProtectionWords, type ChartedCircuit } from './electrical.js'
+import type { StatedAnswer, StatedAnswerAsset, StatedCircuit, StatedFile } from './evidence.js'
 import { oneOf, type Problems } from './fields.js'
 import {
   type BlockField,
@@ -30,6 +31,8 @@ import {
   forms,
   type GroupField,
   type MeasurementField,
+  type WorkedOutLimitKind,
+  workedOutLimits,
 } from './forms.js'
 import type { PropertyId } from './location.js'
 import type { FormVersions } from './round-template.js'
@@ -174,6 +177,46 @@ type Circuits = readonly AnswerCircuit[] | null | undefined
 /** Whether a group repeats over the circuits of the installation (#350). */
 function overCircuits(group: GroupField | null): boolean {
   return group !== null && group.repeat === 'circuits'
+}
+
+/**
+ * What the sync says to an answer in a group over the circuits for a circuit
+ * that is not one of the asset of the activity (#350), on the device and on
+ * the server alike.
+ */
+export function foreignCircuitWords(groupLabel: string): string {
+  return `„${groupLabel}“ fragt nur nach den Stromkreisen der Anlage des Vorgangs.`
+}
+
+/** Whether a form has a group over the circuits of the installation (#350). */
+export function asksCircuits(definition: Pick<FormDefinition, 'sections'>): boolean {
+  return definition.sections.some((section) =>
+    section.fields.some((field) => field.kind === 'group' && overCircuits(field)),
+  )
+}
+
+/**
+ * Whether the page of an activity names the circuits of its asset (#350):
+ * where the form of the activity, out of the catalogue, has a group over the
+ * circuits and the activity has an asset. Device and server ask the same
+ * catalogue, so that both work out the same page; a template of a round has
+ * no such group.
+ */
+export function pageAsksCircuits(
+  catalogue: FormVersions | null | undefined,
+  activity: {
+    readonly formKey: string | null
+    readonly formVersion: number | null
+    readonly assetId: string | null
+  },
+): boolean {
+  if (catalogue === null || catalogue === undefined || activity.assetId === null) {
+    return false
+  }
+
+  const definition = formOfActivity(catalogue, activity)
+
+  return definition !== null && definition !== undefined && asksCircuits(definition)
 }
 
 /**
@@ -514,7 +557,7 @@ export function answerFitProblem(
     circuits !== undefined &&
     !(circuits ?? []).some((circuit) => circuit.id === answer.blockKey)
   ) {
-    return `„${found.group.label}“ fragt nur nach den Stromkreisen der Anlage des Vorgangs.`
+    return foreignCircuitWords(found.group.label)
   }
 
   return (
@@ -1174,11 +1217,13 @@ export function statedAnswers(
     }
 
     const { field } = found
-    const block = blockOf(answer)
     const circuit = circuitOf(found, answer, context.circuits)
+    // The block of a circuit stands at the place of its circuit on the chart (#350).
+    const block = circuit === null ? blockOf(answer) : circuit.place + 1
     const verdict =
       field.kind === 'measurement' ? answerVerdict(field, answer, { ...context, circuit }) : null
     const asset = assetOfAnswer(answer)
+    const workedOut = field.kind === 'measurement' ? workedOutKind(field) : null
 
     stated.push({
       section: found.section.title,
@@ -1191,7 +1236,13 @@ export function statedAnswers(
       limit:
         verdict === null || verdict.limitMilli === null
           ? null
-          : { text: verdict.text, source: verdict.source, within: verdict.within },
+          : {
+              text: verdict.text,
+              source: verdict.source,
+              within: verdict.within,
+              // The limit itself beside the value in the table of the circuits (#350).
+              ...(circuit === null ? {} : boundOf(verdict.text)),
+            },
       photo: answer.attachmentId === null ? null : context.fileOf(answer.attachmentId),
       ...morePhotosOf(answer, context.fileOf),
       ...(asset === null
@@ -1202,10 +1253,55 @@ export function statedAnswers(
               name: assetWords(context, answer.fieldKey, asset),
             },
           }),
+      // The circuit of its block, by its key (#350), and how a limit worked
+      // out of the circuit comes about, also where the circuit gave none.
+      ...(circuit === null
+        ? {}
+        : { circuit: circuit.id, ...(workedOut === null ? {} : { workedOut }) }),
     })
   }
 
   return stated
+}
+
+/** The kind of a limit worked out of the circuit a measured value is about, or null (#350). */
+function workedOutKind(field: MeasurementField): WorkedOutLimitKind | null {
+  const kind = field.limit?.kind
+
+  return kind !== undefined && Object.hasOwn(workedOutLimits, kind)
+    ? (kind as WorkedOutLimitKind)
+    : null
+}
+
+/**
+ * The limit of a verdict without the verdict, `höchstens 2,87 Ω`, out of the
+ * sentence the engine says it in: "Grenzwert: …", "Innerhalb des
+ * Grenzwerts, …" or "Außerhalb des Grenzwerts, …". Nothing where the
+ * sentence is none of them.
+ */
+export function boundOf(text: string): { readonly bound?: string } {
+  const found = /^(?:Grenzwert: |(?:Innerhalb|Außerhalb) des Grenzwerts, )(.+)\.$/.exec(text)
+
+  return found?.[1] === undefined ? {} : { bound: found[1] }
+}
+
+/**
+ * The circuits of an installation as an evidence keeps them (#350): in the
+ * order of the chart, each with its board and the kind of the board, its
+ * designation and what it supplies, and what protects it in words.
+ */
+export function statedCircuitsOf(circuits: readonly ChartedCircuit[]): readonly StatedCircuit[] {
+  return [...circuits]
+    .sort((left, right) => left.place - right.place)
+    .map((circuit) => ({
+      id: circuit.id,
+      board: circuit.board,
+      boardKind: circuit.boardKind,
+      designation: circuit.designation,
+      consumer: circuit.consumer,
+      protection: circuitProtectionWords(circuit),
+      place: circuit.place,
+    }))
 }
 
 /**

@@ -150,6 +150,8 @@ export const keysWithinAnAsset: Readonly<Record<string, string>> = {
   circuits_on_a_board_of_their_asset: 'a circuit on the asset of its board',
   equipment_circuit_in_tenant: 'a piece of equipment on its circuit, by the key of the foundation',
   equipment_on_a_circuit_of_their_asset: 'a piece of equipment on the asset of its circuit',
+  // Not a part of the structure, but held the same way (#350).
+  defects_on_a_circuit_of_their_asset: 'a defect on a circuit of the asset it is at',
 }
 
 /**

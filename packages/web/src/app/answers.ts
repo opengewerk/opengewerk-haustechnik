@@ -8,6 +8,7 @@ import {
   type FilledAnswer,
   type FormDefinition,
   type FormSection,
+  foreignCircuitWords,
   forms,
   formUnits,
   type GroupField,
@@ -386,6 +387,10 @@ function saysNothing(content: AnswerContent): boolean {
  * not taken from the screen, which may not have drawn the one a write just
  * before it made: two quick taps would otherwise make two answers to one
  * point.
+ *
+ * A point in the block of a circuit is answered only for a circuit of the
+ * asset of the activity this device holds and has not marked (#350), as the
+ * server takes it.
  */
 export async function saveAnswer(
   client: SyncClient,
@@ -405,6 +410,10 @@ export async function saveAnswer(
       : filledOf(held)
   const change = typeof changing === 'function' ? changing(before) : changing
   const after: AnswerContent = { ...before, ...change }
+
+  if (!saysNothing(after) && !onACircuitOfTheAsset(client, activityId, point)) {
+    return foreignCircuitWords(point.group?.label ?? '')
+  }
 
   if (held !== undefined) {
     const done = saysNothing(after)
@@ -434,6 +443,40 @@ export async function saveAnswer(
   })
 
   return made.outcome === 'refused' ? refusalFor(made) : null
+}
+
+/** Whether a record this device holds is not marked. */
+function live(record: RecordState): boolean {
+  return record['deletedAt'] === null || record['deletedAt'] === undefined
+}
+
+/**
+ * Whether a point stands where its activity asks it: every point does, but
+ * one in the block of a group over the circuits only for a circuit on a board
+ * of the asset of the activity, neither of them marked (#350).
+ */
+function onACircuitOfTheAsset(client: SyncClient, activityId: string, point: FormPoint): boolean {
+  if (point.group?.repeat !== 'circuits') {
+    return true
+  }
+
+  const activity = client.list('activities').find((record) => record['id'] === activityId)
+  const assetId = activity === undefined ? null : maybeText(activity, 'assetId')
+  const boards = new Set(
+    client
+      .list('distribution_boards')
+      .filter((board) => assetId !== null && board['assetId'] === assetId && live(board))
+      .map((board) => String(board['id'])),
+  )
+
+  return client
+    .list('circuits')
+    .some(
+      (circuit) =>
+        circuit['id'] === point.blockKey &&
+        boards.has(String(circuit['distributionBoardId'])) &&
+        live(circuit),
+    )
 }
 
 /**

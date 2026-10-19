@@ -164,7 +164,7 @@ describe('an answer to a point for every asset (#343)', () => {
           : { number: 'AN-00041', name: 'Feststellanlage EG' },
     })
 
-    expect(stated.map(statedPointWords)).toEqual([
+    expect(stated.map((answer) => statedPointWords(answer))).toEqual([
       'Feststellanlage ausgelöst, Tür schließt selbsttätig, AN-00041 Feststellanlage EG',
       'Feststellanlage ausgelöst, Tür schließt selbsttätig, AN-00043 Feststellanlage 1. OG',
       'Schließbereich frei',

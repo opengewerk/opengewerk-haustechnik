@@ -2,6 +2,7 @@ import {
   type IsoDate,
   readEvidenceState,
   type RoundRecordState,
+  type StatedAnswer,
 } from '@opengewerk/haustechnik-domain'
 import { describe, expect, it } from 'vitest'
 
@@ -105,5 +106,91 @@ describe('the PDF of an evidence', () => {
     expect(html).toContain(
       'Prüfung der Feuerlöscher, Haus A, 5 Anlagen. Die Unterschrift steht unter der Seite aller Anlagen.',
     )
+  })
+})
+
+describe('the PDF of an evidence measured on circuits (#350)', () => {
+  const zs = (
+    circuit: string,
+    value: string | null,
+    limit: StatedAnswer['limit'],
+  ): StatedAnswer => ({
+    section: 'Messen',
+    label: 'Schleifenimpedanz Zs',
+    group: { label: 'Messen je Stromkreis', block: 1 },
+    kind: 'measurement',
+    value,
+    result: null,
+    remark: null,
+    limit,
+    photo: null,
+    circuit,
+    workedOut: 'loop_impedance',
+  })
+  const state = readEvidenceState({
+    ...(readEvidenceState({
+      version: 9,
+      number: 'NW-2026-00163',
+      origin: 'protocol',
+      performedOn: '2026-10-16',
+      result: 'with_defects',
+      resultReason: null,
+      remark: null,
+      replaces: null,
+      nextDueOn: null,
+      duty: {
+        label: 'Prüfung der elektrischen Anlage',
+        kind: null,
+        kindVersion: null,
+        source: 'DGUV Vorschrift 3',
+        interval: { months: 48 },
+        counting: 'from_due',
+      },
+      place: record.place,
+      activity: { kind: 'inspection', title: 'Prüfung der elektrischen Anlage' },
+      collective: null,
+      form: { key: 'elektro.installation_test', version: 1, title: 'Prüfung' },
+      answers: [],
+      performer: { person: 'Murat Yilmaz' },
+      defects: [],
+      signatures: [],
+      files: [],
+      retention: null,
+      writtenBy: 'Murat Yilmaz',
+      writtenAt: '2026-10-16T13:42:00.000Z',
+    }) as object),
+    version: 14,
+    circuits: [
+      {
+        id: 'c-1',
+        board: 'UV 1',
+        boardKind: 'sub_distribution',
+        designation: 'F14',
+        consumer: 'Hallentor Tor 2',
+        protection: null,
+        place: 0,
+      },
+    ],
+    answers: [
+      zs('c-1', '0,88 Ω', null),
+      {
+        ...zs('c-1', null, null),
+        label: 'Stromkreis in Ordnung',
+        kind: 'check_point',
+        result: 'not_ok',
+        remark: 'Klemme lose',
+        workedOut: undefined,
+      },
+    ],
+  })
+
+  it('says of a circuit without what its limit is worked out from that it has none', () => {
+    const { html } = evidencePrintJob(state, 'a'.repeat(64), [], null)
+
+    expect(html).toContain('<td class="muted protection">nicht erfasst</td>')
+    expect(html).toContain('<td class="figure">0,88</td><td class="figure muted">keiner</td>')
+    expect(html).toContain('ohne Angaben zur Schutzeinrichtung keiner für Zs.')
+    // A check point of the circuit not in order stands with its remark.
+    expect(html).toContain('Stromkreis in Ordnung: nicht in Ordnung, Klemme lose')
   })
 })

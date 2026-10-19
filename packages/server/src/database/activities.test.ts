@@ -415,6 +415,14 @@ describe('the keys of the activities and defects', () => {
       defects_at_a_building_of_their_property: () => defectRow('building_id', beside.building),
       defects_at_a_room_of_their_property: () => defectRow('room_id', beside.room),
       defects_at_an_asset_of_their_property: () => defectRow('asset_id', beside.asset),
+      // A circuit, of the asset the defect is at (#350); none here.
+      defects_on_a_circuit_of_their_asset: () =>
+        tried(
+          `insert into defects (tenant_id, property_id, area_id, asset_id, circuit_id, description,
+                                found_on)
+           values ($1, $2, $3, $4, $5, 'Schleifenimpedanz zu hoch.', '2026-10-01')`,
+          [tenant, here.property, here.area, here.asset, randomUUID()],
+        ),
       defects_found_in_an_activity_of_their_property: () =>
         defectRow('found_in_activity_id', besideActivity),
       defects_named_in_an_evidence_of_their_property: () =>

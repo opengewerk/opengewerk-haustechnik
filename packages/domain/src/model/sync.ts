@@ -172,11 +172,12 @@ export const syncPolicies: Readonly<Record<string, SyncPolicy>> = {
     },
     reserved: ['activityKind', 'propertyId', 'areaId', 'writtenBy'],
   },
-  // The answer a defect came of is the server's, written with the signature (#106).
+  // The answer a defect came of is the server's, written with the signature
+  // (#106), and so is the circuit of an answer measured on one (#350).
   defects: {
     create: true,
     change: 'merge',
-    reserved: ['areaId', areaFromProperty, 'foundInAnswerId'],
+    reserved: ['areaId', areaFromProperty, 'foundInAnswerId', 'circuitId'],
   },
   // A signature is given on the device, also without a connection, and never
   // changed (ADR 0004, point 10). Who gave it is the person signed in, and
