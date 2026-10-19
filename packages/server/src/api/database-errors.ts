@@ -43,6 +43,9 @@ export const applicationConflicts: Readonly<Record<string, string>> = {
   // An answer about an asset its point does not ask about in this round, or
   // without the asset its point asks about (#343).
   HT012: 'Nach dieser Anlage fragt der Punkt in diesem Rundgang nicht.',
+  // A further photo of a point that is no document of its activity, or one
+  // named twice (#451).
+  HT013: 'Jedes Foto eines Punkts ist ein Dokument seines Vorgangs und steht nur einmal an ihm.',
 }
 
 export const { answerFor, DatabaseExceptionFilter } = databaseErrors(applicationConflicts)

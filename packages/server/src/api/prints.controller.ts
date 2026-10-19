@@ -270,23 +270,35 @@ export class Printer {
     return read
   }
 
-  /** The photos of the answers, read from the store by the hash the frozen state names. */
+  /**
+   * The photos of the answers, read from the store by the hash the frozen
+   * state names: every photo of a point, the first and those after it
+   * (#451). Where a point has more than one, the caption counts them; one
+   * alone is captioned as before.
+   */
   async photosOf(answers: readonly StatedAnswer[]): Promise<PrintedPhoto[]> {
     const photos: PrintedPhoto[] = []
 
     for (const answer of answers) {
-      if (answer.photo === null || !answer.photo.mediaType.startsWith('image/')) {
-        continue
-      }
+      const files = [answer.photo, ...(answer.morePhotos ?? [])].filter(
+        (file): file is NonNullable<StatedAnswer['photo']> =>
+          file !== null && file.mediaType.startsWith('image/'),
+      )
+      const point =
+        answer.remark === null
+          ? statedPointWords(answer)
+          : `${statedPointWords(answer)}: ${answer.remark}`
 
-      photos.push({
-        caption:
-          answer.remark === null
-            ? statedPointWords(answer)
-            : `${statedPointWords(answer)}: ${answer.remark}`,
-        mediaType: answer.photo.mediaType,
-        bytes: await this.store.get(answer.photo.sha256),
-      })
+      for (const [index, file] of files.entries()) {
+        photos.push({
+          caption:
+            files.length === 1
+              ? point
+              : `${point} (Foto ${String(index + 1)} von ${String(files.length)})`,
+          mediaType: file.mediaType,
+          bytes: await this.store.get(file.sha256),
+        })
+      }
     }
 
     return photos

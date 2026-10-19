@@ -9,6 +9,14 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
 
 ### Hinzugefügt
 
+- Mehrere Fotos zu einem Punkt (#451): ein Prüfpunkt und ein Foto-Feld nehmen Fotos aus der Kamera und aus der Galerie,
+  dort auch mehrere auf einmal, bei jeder Antwort und schon vor ihr, in der Liste eines Protokolls mit zwei kleinen
+  Knöpfen an jedem Punkt. Jedes Foto nimmt der Knopf in seiner Ecke wieder heraus, solange die Antwort sich ändern lässt.
+  Das erste Foto bleibt in `attachment_id`, die weiteren stehen in der neuen Spalte `more_attachment_ids` (Migration
+  0090), die ein Trigger an Dokumente des Vorgangs bindet. Die unterschriebene Seite nennt sie nur, wo es welche gibt,
+  so dass jede Unterschrift von vorher weiter gilt; der Nachweis hält sie als `morePhotos` (Fassung 13 seines Stands),
+  und das PDF zeigt jedes Foto. Warum: Moritz am 19.10.2026, „Man muss auch mehrere Fotos hinzufügen können“, und
+  Fotos sollen an jedem Punkt gehen, nicht nur bei „nicht in Ordnung“.
 - Verzeichnis der Verarbeitungstätigkeiten, technische und organisatorische Maßnahmen und Löschkonzept (#358): unter
   „Einstellungen“, „Datenschutz“ erzeugt die Leitung jedes der drei Dokumente als PDF, und jede Fassung bleibt mit ihrem
   Tag. Für das Verzeichnis pflegt sie auf einer eigenen Seite, wer verantwortlich ist, den Datenschutzbeauftragten und je

@@ -124,9 +124,10 @@ export const evidenceLimits = {
  * a point for every asset of a kind names the asset (#343), 11 since the duty
  * of a duty that falls due once states its due day instead of an interval
  * (#439), 12 since an evidence kept while its asset is used states the years
- * it is kept after (#437).
+ * it is kept after (#437), 13 since an answer keeps the photos of its point
+ * after the first (#451).
  */
-export const evidenceStateVersion = 12
+export const evidenceStateVersion = 13
 
 /** The place of an evidence in words, as it was on the day it was written down. */
 export interface StatedPlace {
@@ -234,6 +235,11 @@ export interface StatedAnswer {
     readonly within: boolean | null
   } | null
   readonly photo: StatedFile | null
+  /**
+   * The photos of the point after the first, in their order, since version
+   * 13 (#451); none where the point had only one or none.
+   */
+  readonly morePhotos?: readonly StatedFile[]
   /**
    * The asset of a point for every asset of a kind the answer is about, as
    * it stood (#343), since version 10; none on every other answer.
@@ -352,6 +358,9 @@ export class UnknownEvidenceStateError extends Error {
 }
 
 /** The eleventh version: all of the twelfth, but a retention while the asset is used states no years after it. */
+/** No answer before version 13 keeps more than one photo (#451); the shape is the same. */
+type EvidenceStateOfVersion12 = Omit<EvidenceState, 'version'> & { readonly version: 12 }
+
 type EvidenceStateOfVersion11 = Omit<EvidenceState, 'version' | 'retention'> & {
   readonly version: 11
   readonly retention:
@@ -429,8 +438,9 @@ const readers: Readonly<Record<number, (stored: StoredEvidenceState) => Evidence
   // took it, none before the eighth was taken over with a due day, none
   // before the ninth was written with a collective activity, no answer
   // before the tenth names an asset, which one after it names only where it
-  // is about one, no duty before the eleventh states a due day, and no
-  // retention before the twelfth the years after the use of its asset.
+  // is about one, no duty before the eleventh states a due day, no
+  // retention before the twelfth the years after the use of its asset, and
+  // no answer before the thirteenth more than one photo.
   1: (stored) =>
     eleventh({
       ...(stored as unknown as EvidenceStateOfVersion1),
@@ -514,7 +524,11 @@ const readers: Readonly<Record<number, (stored: StoredEvidenceState) => Evidence
     }),
   10: (stored) => eleventh(stored as unknown as EvidenceStateOfVersion10),
   11: (stored) => twelfth(stored as unknown as EvidenceStateOfVersion11),
-  12: (stored) => stored as unknown as EvidenceState,
+  12: (stored) => ({
+    ...(stored as unknown as EvidenceStateOfVersion12),
+    version: evidenceStateVersion,
+  }),
+  13: (stored) => stored as unknown as EvidenceState,
 }
 
 /** A state of the tenth version or an earlier one read up to the tenth, in the newest shape: its duty states no due day. */

@@ -1,4 +1,4 @@
-import { answerLimits, checkPointResults } from '@opengewerk/haustechnik-domain'
+import { answerLimits, type AttachmentId, checkPointResults } from '@opengewerk/haustechnik-domain'
 import {
   primaryId,
   reference,
@@ -18,6 +18,7 @@ import {
   text,
   unique,
   uniqueIndex,
+  uuid,
 } from 'drizzle-orm/pg-core'
 
 import { activities } from './activities.js'
@@ -67,6 +68,15 @@ export const activityAnswers = pgTable(
     result: checkPointResult('result'),
     remark: text('remark'),
     attachmentId: reference<'attachment'>('attachment_id'),
+    // The photos of the point after the first, in the order they were added
+    // (#451). A list has no key behind each entry; the trigger
+    // `answers_more_photos_at_their_activity` of the migration holds them to
+    // documents of the activity, as the key below holds the first.
+    moreAttachmentIds: uuid('more_attachment_ids')
+      .array()
+      .$type<readonly AttachmentId[]>()
+      .notNull()
+      .default(sql`'{}'::uuid[]`),
     // The asset of a point for every asset of a kind the answer is about
     // (#343): one of those its round was given for the point, as the trigger
     // `answers_about_the_assets_of_their_point` of the migration holds.
@@ -160,6 +170,11 @@ export const activityAnswers = pgTable(
     check(
       'activity_answers_value_or_result',
       sql`${table.value} is null or ${table.result} is null`,
+    ),
+    // More photos only beside a first one, twenty at most with it (#451).
+    check(
+      'activity_answers_more_photos_beside_the_first',
+      sql`cardinality(${table.moreAttachmentIds}) = 0 or (${table.attachmentId} is not null and cardinality(${table.moreAttachmentIds}) < ${sql.raw(String(answerLimits.photos))})`,
     ),
     check(
       'activity_answers_say_something',

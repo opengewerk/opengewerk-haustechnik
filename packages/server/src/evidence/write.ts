@@ -1,7 +1,6 @@
 import {
   type ContractorId,
   type ActivityId,
-  type AttachmentId,
   type Catalogue,
   ceilingOf,
   cutShortTo,
@@ -17,6 +16,7 @@ import {
   evidenceStateVersion,
   formOfActivity,
   type IsoDate,
+  photosOfAnswer,
   roundRecordVersion,
   type RoundRecordState,
   type StatedAnswer,
@@ -631,9 +631,8 @@ async function filledFormOf(
           (answer) =>
             answer.fieldKey === point && answer.groupKey === null && answer.assetId === pointAsset,
         )
-  const photos = answers
-    .map((answer) => answer.attachmentId)
-    .filter((id): id is AttachmentId => id !== null)
+  // Every photo of a point, the first and those after it (#451).
+  const photos = answers.flatMap((answer) => photosOfAnswer(answer))
   const versions =
     photos.length === 0
       ? []

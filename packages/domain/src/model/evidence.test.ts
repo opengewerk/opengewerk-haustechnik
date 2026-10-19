@@ -225,6 +225,27 @@ const storedStates: Readonly<Record<number, unknown>> = {
       '"retention":{"kind":"while_in_use","on":"2026-10-02","rule":"probe.cooling_book_retention","yearsAfter":5},' +
       '"signatures":[],"version":12,"writtenAt":"2026-10-02T14:10:00.000Z","writtenBy":"Dennis Roth"}',
   ),
+  // A check point with three photos (#451).
+  13: JSON.parse(
+    '{"activity":{"kind":"inspection","title":"Halle 1, Sichtprüfung"},' +
+      '"answers":[{"group":null,"kind":"check_point","label":"Fluchtweg zum Tor frei","limit":null,' +
+      '"morePhotos":[{"mediaType":"image/jpeg","name":"Foto 2.jpg","sha256":"' +
+      'b'.repeat(64) +
+      '"},{"mediaType":"image/jpeg","name":"Foto 3.jpg","sha256":"' +
+      'c'.repeat(64) +
+      '"}],"photo":{"mediaType":"image/jpeg","name":"Foto 1.jpg","sha256":"' +
+      'a'.repeat(64) +
+      '"},"remark":"Paletten vor dem Tor","result":"not_ok","section":"Halle","value":null}],' +
+      '"collective":null,"defects":[],' +
+      '"duty":{"counting":"from_performance","dueOn":null,"interval":{"days":1},"kind":"probe.walkthrough","kindVersion":1,' +
+      '"label":"Täglicher Rundgang","source":null},' +
+      '"files":[],"form":{"key":"probe.walkthrough","title":"Rundgang Halle","version":1},"nextDueOn":null,' +
+      '"number":"NW-2026-00127","origin":"round","performedOn":"2026-10-19",' +
+      '"performer":null,"place":{"asset":null,"building":{"name":"Halle 1","shortCode":null},' +
+      '"property":{"address":"Hauptstraße 1, 68535 Edingen-Neckarhausen","name":"Werkhof Nord"},"room":null},' +
+      '"remark":null,"replaces":null,"result":"with_defects","resultReason":null,"retention":null,' +
+      '"signatures":[],"version":13,"writtenAt":"2026-10-19T08:40:00.000Z","writtenBy":"Tom Haustechnik"}',
+  ),
 }
 
 describe('the result of a performance', () => {
@@ -493,6 +514,18 @@ describe('the frozen state', () => {
 
       return 'read'
     }
+
+    // The photos of a point after the first since version 13 (#451); a state
+    // from before reads as one whose answers have none.
+    const photos = (version: number) =>
+      readEvidenceState(storedStates[version]).answers.map((answer) =>
+        [answer.photo, ...(answer.morePhotos ?? [])].map((file) => file?.name ?? null),
+      )
+
+    expect(photos(13)).toEqual([['Foto 1.jpg', 'Foto 2.jpg', 'Foto 3.jpg']])
+    expect(
+      readEvidenceState(storedStates[3]).answers.every((a) => a.morePhotos === undefined),
+    ).toBe(true)
 
     expect(refused({ version: evidenceStateVersion + 1 })).toBe(
       `Einen Stand der Fassung ${String(evidenceStateVersion + 1)} kennt dieser Leser nicht.`,

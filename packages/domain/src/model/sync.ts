@@ -450,8 +450,15 @@ export const offlineEdits: Readonly<Record<string, OfflineEdits>> = {
       result: true,
       remark: true,
       attachmentId: true,
+      moreAttachmentIds: true,
     },
-    change: { value: true, result: true, remark: true, attachmentId: true },
+    change: {
+      value: true,
+      result: true,
+      remark: true,
+      attachmentId: true,
+      moreAttachmentIds: true,
+    },
     remove: true,
   },
   // A work order made on site is one for a fault ("Störung"); the time spent
@@ -880,6 +887,8 @@ export const syncFieldNames: Readonly<Record<string, string>> = {
   // What is said about a document and a version of it. Its name and its kind
   // share their entries with an activity and an asset above.
   attachmentId: 'Dokument',
+  // The photos of a point after the first (#451).
+  moreAttachmentIds: 'Weitere Fotos',
   sha256: 'Prüfsumme',
   fileName: 'Dateiname',
   mediaType: 'Dateityp',

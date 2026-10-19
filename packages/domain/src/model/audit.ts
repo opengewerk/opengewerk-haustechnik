@@ -666,6 +666,7 @@ export const auditVocabulary: AuditVocabulary = {
         result: 'Ergebnis',
         remark: 'Bemerkung',
         attachment_id: 'Foto',
+        more_attachment_ids: 'Weitere Fotos',
         asset_id: 'Anlage',
       },
     },
