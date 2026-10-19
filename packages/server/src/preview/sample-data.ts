@@ -248,6 +248,8 @@ export interface SampleContact {
   readonly familyName: string
   readonly role?: string
   readonly phone?: string
+  /** The second number, mostly the mobile one (#428). */
+  readonly mobile?: string
   readonly email?: string
 }
 
@@ -551,6 +553,7 @@ export const sampleProperties: readonly SampleProperty[] = [
         familyName: 'Becker',
         role: 'Hausmeister',
         phone: '0000 4471',
+        mobile: '0000 4479',
         email: 'hausmeister@schulzentrum.example',
       },
       // A title is typed with the given name: a contact has no field of its own for one.
@@ -952,6 +955,7 @@ async function plantSampleContractors(address: string): Promise<void> {
     familyName: 'Krämer',
     role: 'Disposition',
     phone: '0621 445567',
+    mobile: '0000 4468',
   })
   await send(address, '/contacts', {
     contractorId: first,

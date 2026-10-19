@@ -160,6 +160,7 @@ interface Person {
   readonly familyName: string
   readonly role: string | null
   readonly phone: string | null
+  readonly mobile: string | null
   readonly email: string | null
 }
 
@@ -924,11 +925,12 @@ describe('a preview started as the Leitung', () => {
 
       return contacts
         .filter((contact) => contact.propertyId === property?.id)
-        .map(({ givenName, familyName, role, phone, email }) => ({
+        .map(({ givenName, familyName, role, phone, mobile, email }) => ({
           givenName,
           familyName,
           role,
           phone,
+          mobile,
           email,
         }))
         .sort((left, right) => byNameIn(left.familyName, right.familyName))
@@ -940,6 +942,7 @@ describe('a preview started as the Leitung', () => {
         familyName: 'Becker',
         role: 'Hausmeister',
         phone: '0000 4471',
+        mobile: '0000 4479',
         email: 'hausmeister@schulzentrum.example',
       },
       {
@@ -947,11 +950,12 @@ describe('a preview started as the Leitung', () => {
         familyName: 'Hartmann',
         role: 'Schulleitung',
         phone: '0000 4400',
+        mobile: null,
         email: null,
       },
     ])
     expect(at('Werkhof Nord')).toEqual([
-      { givenName: null, familyName: 'Albers', role: null, phone: null, email: null },
+      { givenName: null, familyName: 'Albers', role: null, phone: null, mobile: null, email: null },
     ])
     // Three at properties; the people of a firm stand on the page of the firm (#328).
     expect(contacts.filter((contact) => contact.propertyId !== null)).toHaveLength(3)
@@ -1087,6 +1091,7 @@ describe('a preview started as the Leitung', () => {
 
       for (const contact of property.contacts ?? []) {
         expect(contact.phone ?? '0000 0000').toMatch(/^0000 \d{4}$/)
+        expect(contact.mobile ?? '0000 0000').toMatch(/^0000 \d{4}$/)
         expect(contact.email ?? 'niemand@beispiel.example').toMatch(/\.example$/)
       }
     }

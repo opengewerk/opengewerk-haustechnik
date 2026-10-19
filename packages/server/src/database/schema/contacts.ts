@@ -68,6 +68,7 @@ export const { contacts } = contactsSchema({
     check('contacts_family_name_shaped', trimmed(table.familyName, contactLimits.familyName)),
     check('contacts_role_shaped', optionalTrimmed(table.role, contactLimits.role)),
     check('contacts_phone_shaped', optionalTrimmed(table.phone, contactLimits.phone)),
+    check('contacts_mobile_shaped', optionalTrimmed(table.mobile, contactLimits.mobile)),
     check('contacts_email_shaped', optionalTrimmed(table.email, contactLimits.email)),
   ],
 })

@@ -740,6 +740,7 @@ export const syncFieldNames: Readonly<Record<string, string>> = {
   givenName: 'Vorname',
   familyName: 'Nachname',
   phone: 'Telefon',
+  mobile: 'Mobil',
   email: 'E-Mail',
   // What is said about a time a building is closed. Its last day and what it
   // is for share their entries with a duty below; a device writes no closure,

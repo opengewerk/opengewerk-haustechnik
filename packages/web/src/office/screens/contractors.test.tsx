@@ -232,6 +232,7 @@ describe('the list of the contractors', () => {
 
     await userEvent.type(second.getByLabelText(/^Nachname/), 'Lang')
     await userEvent.type(second.getByLabelText('Telefon'), '0621 123')
+    await userEvent.type(second.getByLabelText('Mobil'), '0170 456')
     await userEvent.click(dialog.getByRole('button', { name: 'Anlegen' }))
 
     // The first says something and has no family name: nothing goes out.
@@ -256,8 +257,22 @@ describe('the list of the contractors', () => {
             services: [],
             note: null,
             contacts: [
-              { givenName: 'Klaus', familyName: 'Berger', role: null, phone: null, email: null },
-              { givenName: null, familyName: 'Lang', role: null, phone: '0621 123', email: null },
+              {
+                givenName: 'Klaus',
+                familyName: 'Berger',
+                role: null,
+                phone: null,
+                mobile: null,
+                email: null,
+              },
+              {
+                givenName: null,
+                familyName: 'Lang',
+                role: null,
+                phone: '0621 123',
+                mobile: '0170 456',
+                email: null,
+              },
             ],
           },
         },

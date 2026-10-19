@@ -29,6 +29,7 @@ export const contactLimits = {
   familyName: 80,
   role: 80,
   phone: 40,
+  mobile: 40,
   email: 254,
 } as const
 
@@ -38,6 +39,7 @@ const subjects = {
   familyName: 'Der Nachname',
   role: 'Die Funktion',
   phone: 'Die Telefonnummer',
+  mobile: 'Die Mobilnummer',
   email: 'Die E-Mail-Adresse',
 } as const
 

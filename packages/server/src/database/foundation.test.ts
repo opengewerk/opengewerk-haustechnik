@@ -128,6 +128,7 @@ describe('the foundation in this database', () => {
           'contacts.contacts_family_name_shaped',
           'contacts.contacts_role_shaped',
           'contacts.contacts_phone_shaped',
+          'contacts.contacts_mobile_shaped',
           'contacts.contacts_email_shaped',
           'attachments.attachments_follow_their_property',
           'attachments.attachments_follow_their_building',
