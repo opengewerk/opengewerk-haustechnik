@@ -693,6 +693,15 @@ function rowsOf(tenant: Tenant): readonly Row[] {
       table: 'membership_removals',
       values: { tenant_id: tenant.id, user_id: tenant.colleagueId, account_removed: false },
     },
+    // A description of the processing the Leitung made (#357).
+    {
+      table: 'processing_descriptions',
+      values: {
+        tenant_id: tenant.id,
+        made_by: tenant.colleagueId,
+        text: '# Verfahrensbeschreibung',
+      },
+    },
     {
       table: 'deadlines',
       values: {

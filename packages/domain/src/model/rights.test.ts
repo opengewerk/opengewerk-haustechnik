@@ -84,6 +84,7 @@ describe('the catalogue of rights', () => {
       membership: ['read', 'write'],
       settings: ['read', 'write'],
       mail: ['read', 'write'],
+      privacy: ['generate'],
       audit: ['read'],
     })
   })
@@ -254,6 +255,7 @@ describe('"Technische Leitung"', () => {
       'mail.write',
       'membership.read',
       'membership.write',
+      'privacy.generate',
       'settings.read',
       'settings.write',
     ])
@@ -321,6 +323,7 @@ describe('"Objektleitung"', () => {
       'mail.write',
       'membership.read',
       'membership.write',
+      'privacy.generate',
       'qualification.write',
       'report.read',
       'settings.read',
@@ -379,6 +382,7 @@ describe('"Haustechnik"', () => {
       'mail.write',
       'membership.read',
       'membership.write',
+      'privacy.generate',
       'qualification.read',
       'qualification.write',
       'report.read',

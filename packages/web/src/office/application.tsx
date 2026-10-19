@@ -19,6 +19,7 @@ import {
   MessageSquareWarning,
   ScanLine,
   Server,
+  ShieldCheck,
   Signature,
   TriangleAlert,
   Users,
@@ -126,6 +127,16 @@ const settings = [
       'Wie lange Nachweise bleiben, und welche nach Ablauf ihrer Aufbewahrung gelöscht werden können.',
     icon: Archive,
     right: 'settings.read',
+  },
+  // The description of the processing for a works council (#357), for the Leitung.
+  {
+    key: 'datenschutz',
+    to: '/einstellungen/datenschutz',
+    title: 'Datenschutz',
+    about:
+      'Die Verfahrensbeschreibung für eine Arbeitnehmervertretung, erzeugt aus dem, was hier eingestellt ist.',
+    icon: ShieldCheck,
+    right: 'privacy.generate',
   },
   {
     key: 'e-mail',

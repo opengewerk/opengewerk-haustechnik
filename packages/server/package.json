@@ -5,7 +5,8 @@
   "type": "module",
   "files": [
     "dist",
-    "migrations"
+    "migrations",
+    "templates"
   ],
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
@@ -17,7 +18,8 @@
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
     "test": "vitest run",
-    "db:generate": "drizzle-kit generate"
+    "db:generate": "drizzle-kit generate",
+    "describe": "node dist/processing-description/describe.js"
   },
   "dependencies": {
     "@cantoo/pdf-lib": "2.11.1",

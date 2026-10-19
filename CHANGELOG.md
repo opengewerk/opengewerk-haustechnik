@@ -9,6 +9,15 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
 
 ### Hinzugefügt
 
+- Die Verfahrensbeschreibung erzeugt die Anwendung jetzt selbst (#357): unter „Einstellungen“, „Datenschutz“ macht die
+  Leitung sie aus einer Vorlage und dem, was beim Betreiber eingestellt ist, mit dem neuen Teil „Bei diesem Betreiber“
+  (Rollen mit der Zahl ihrer Zugänge und den Rechten der eigenen, Namen und Uhrzeiten auf dem Leistungsnachweis,
+  Störmeldung über das Etikett, Aufbewahrung, Frist nach dem Ende eines Zugangs, Mailserver, Erinnerung je Fristart).
+  Jede Fassung bleibt mit ihrem Tag und ihrem Text, die Liste nennt die geänderten Abschnitte, und jede gibt es als
+  PDF. Die Datei im Repository ist die Vorlage mit den Vorgaben, ein Test hält beide gleich. Neues Recht „Auskunft,
+  Verfahrensbeschreibung und Verzeichnis erzeugen“ nur für die Leitung, Migration 0086. Warum: Die von Hand
+  geschriebene Fassung konnte nicht sagen, was ein Betreiber eingeschaltet hat, und eine Arbeitnehmervertretung soll
+  die Beschreibung ihres Betreibers in der Hand haben und sehen, was sich geändert hat.
 - Das Ende eines Zugangs als Frist (#356): Am Tag nach dem letzten Tag gehen die offenen Vorgänge und Pläne von
   Rundgängen der Person an die Planung zurück, ihre Aufgaben an die Person, die sie angelegt hat, sonst an die Leitung,
   und ihre Pflichten stehen ohne Verantwortlichen. Nach einer Frist, die die Leitung unter „Zugänge“ einstellt (ohne

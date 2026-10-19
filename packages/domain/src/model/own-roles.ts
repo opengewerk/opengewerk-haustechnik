@@ -22,6 +22,8 @@ import { type Right, rightLabel, rights, roleKeys } from './rights.js'
  *   boundary.
  * - The mail server, a way of writing in the name of the tenant to anybody.
  * - Delegating duties, which the Leitung signs for the operator.
+ * - Making the documents of data protection (#357), among them the
+ *   information that holds everything about one person (#355).
  */
 export const leadingRights = [
   'duty.delegate',
@@ -29,6 +31,7 @@ export const leadingRights = [
   'membership.write',
   'mail.read',
   'mail.write',
+  'privacy.generate',
   'audit.read',
 ] as const satisfies readonly Right[]
 

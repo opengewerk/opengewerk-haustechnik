@@ -187,6 +187,10 @@ const RetentionScreen = lazyRouteComponent(
   () => import('./screens/retention.js'),
   'RetentionScreen',
 )
+const ProcessingDescriptionsScreen = lazyRouteComponent(
+  () => import('./screens/processing-descriptions.js'),
+  'ProcessingDescriptionsScreen',
+)
 const WorkOrderSettingsScreen = lazyRouteComponent(
   () => import('./screens/work-order-settings.js'),
   'WorkOrderSettingsScreen',
@@ -859,6 +863,12 @@ export function officeRoutes() {
       getParentRoute: () => office,
       path: '/einstellungen/aufbewahrung',
       component: RetentionScreen,
+    }),
+    // The description of the processing and the versions made (#357).
+    createRoute({
+      getParentRoute: () => office,
+      path: '/einstellungen/datenschutz',
+      component: ProcessingDescriptionsScreen,
     }),
     createRoute({
       getParentRoute: () => office,

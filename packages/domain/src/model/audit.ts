@@ -505,6 +505,16 @@ export const auditVocabulary: AuditVocabulary = {
       label: 'Frist nach dem Ende eines Zugangs',
       fields: { removal_days: 'Angaben entfernen nach, Tagen' },
     },
+    // A description of the processing the Leitung made (#357).
+    processing_descriptions: {
+      label: 'Verfahrensbeschreibung',
+      fields: {
+        made_by: 'Erzeugt von',
+        holds_for: 'Gilt für',
+        text: 'Text',
+        changed: 'Geändert gegenüber der vorherigen',
+      },
+    },
     membership_removals: {
       label: 'Entfernen der Angaben eines beendeten Zugangs',
       fields: {
@@ -1046,6 +1056,8 @@ export const auditVocabulary: AuditVocabulary = {
     'revoked_by',
     // The person whose access a deadline follows (#356).
     'member_user_id',
+    // Who made a description of the processing (#357).
+    'made_by',
   ],
   // Rows without a name of their own are named after the person they are
   // about, and a substitution after the person whose areas it takes over.
@@ -1122,6 +1134,8 @@ export const auditVocabulary: AuditVocabulary = {
     // The period after the end of an access by its days, a removal by its person (#356).
     membership_settings: ['removal_days'],
     membership_removals: ['user_id'],
+    // A description of the processing by the version it holds for (#357).
+    processing_descriptions: ['holds_for'],
     // The frozen state of a round by its round.
     round_records: ['activity_id'],
     // A PDF by what it was made of.

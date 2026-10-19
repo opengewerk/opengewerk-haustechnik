@@ -227,7 +227,7 @@ async function namedBy(
 }
 
 /** The roles of the tenant as the list shows them, in the order they were made. */
-async function rolesOf(tx: TenantTransaction): Promise<RoleEntry[]> {
+export async function rolesOf(tx: TenantTransaction): Promise<RoleEntry[]> {
   const rows = await tx.select().from(tenantRoles).orderBy(asc(tenantRoles.id))
   const entries: RoleEntry[] = []
 

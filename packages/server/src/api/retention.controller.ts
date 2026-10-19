@@ -43,7 +43,7 @@ import { RequiresPermission } from './authorization.js'
 import { type Asking, fieldsOf } from './places.js'
 
 /** The longer retention of the operator, or none. */
-async function minimumYearsOf(tx: TenantTransaction): Promise<number | null> {
+export async function minimumYearsOf(tx: TenantTransaction): Promise<number | null> {
   const [row] = await tx
     .select({ minimumYears: evidenceRetentionSettings.minimumYears })
     .from(evidenceRetentionSettings)
