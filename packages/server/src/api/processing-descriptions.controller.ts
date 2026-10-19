@@ -74,6 +74,13 @@ async function newestOf(tx: TenantTransaction) {
  * day, and printed as it was made. "Auskunft, Verfahrensbeschreibung und
  * Verzeichnis erzeugen" for every route, which only the Leitung holds
  * (decided on 15.10.2026): the list names who made each one.
+ *
+ * Held by `processing-descriptions.test.ts` against the database: the three
+ * other shipped roles are refused at every route, the application role can
+ * neither change nor remove a description (42501 from the grants of 0086),
+ * another operator sees none of them, not by the address of its PDF either,
+ * and a role of the operator's own is never given the right. The isolation of
+ * the table by operator is a row of `tenant-isolation.test.ts`.
  */
 @Controller('settings/processing-descriptions')
 export class ProcessingDescriptionsController {
