@@ -72,6 +72,9 @@ export const siteDefects = {
 export const siteForms = {
   form: (activityId: string) => `/vorgaenge/${activityId}`,
   point: (activityId: string, pointKey: string) => `/vorgaenge/${activityId}/punkte/${pointKey}`,
+  // The block of a circuit in a group over the circuits, with its points (#350).
+  circuit: (activityId: string, circuitId: string) =>
+    `/vorgaenge/${activityId}/stromkreise/${circuitId}`,
   result: (activityId: string) => `/vorgaenge/${activityId}/ergebnis`,
   defect: (activityId: string) => `/vorgaenge/${activityId}/mangel`,
   handIn: (activityId: string) => `/vorgaenge/${activityId}/abgabe`,

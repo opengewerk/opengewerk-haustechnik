@@ -1216,6 +1216,139 @@ describe('a form', () => {
     })
   })
 
+  describe('with a group over the circuits and the limits worked out of a circuit (#350)', () => {
+    // The rules the calculators read, in a package of their own as in the
+    // package Elektro: by these keys and in these units.
+    const circuitRules = [
+      ['loop_factor_b', 'factor', 5],
+      ['loop_factor_c', 'factor', 10],
+      ['loop_factor_d', 'factor', 20],
+      ['loop_nominal_voltage', 'volts', 230],
+      ['rcd_trip_current_maximum', 'basis_points', 10_000],
+    ] as const
+    const electrical = (records: readonly (readonly [string, string, number])[]) => ({
+      'elektro/manifest.json': {
+        name: 'elektro',
+        title: 'Elektro',
+        version: '1.0.0',
+        minimumCore: '0.0.0',
+      },
+      'elektro/regeln/vde.json': {
+        note: 'Regeln für die Tests des Laders, aus keiner Norm.',
+        records: records.map(([key, unit, value]) => ({
+          key,
+          validFrom: '2017-06-01',
+          validUntil: null,
+          unit,
+          value,
+          source: 'Probe',
+          origin: 'private_standard',
+        })),
+      },
+      'elektro/abnahmen.json': {
+        entries: [],
+        rules: records.map(([key]) => ({ key, validFrom: '2017-06-01', checkedOn: '2026-10-04' })),
+      },
+    })
+    const loopImpedance = {
+      kind: 'measurement',
+      key: 'loop_impedance',
+      label: 'Schleifenimpedanz Zs',
+      unit: 'ohms',
+      decimals: 2,
+      limit: { kind: 'loop_impedance' },
+    }
+    const tripCurrent = {
+      kind: 'measurement',
+      key: 'rcd_trip_current',
+      label: 'Auslösestrom IΔ',
+      unit: 'milliamperes',
+      decimals: 1,
+      limit: { kind: 'rcd_trip_current' },
+    }
+    const overCircuits = (fields: readonly Json[], repeat = 'circuits') => ({
+      kind: 'group',
+      key: 'circuits',
+      label: 'Messen je Stromkreis',
+      repeat,
+      fields,
+    })
+    const loaded = (
+      fields: readonly unknown[],
+      records: readonly (readonly [string, string, number])[] | null = circuitRules,
+    ) =>
+      loadCatalogue(
+        withFiles({
+          ...(records === null ? {} : electrical(records)),
+          [formFile]: formWithFields([sealIntact, noLeak, reading, ...fields]),
+        }),
+        options,
+      )
+
+    it('loads a group over the circuits with the two limits worked out of a circuit, as they are', () => {
+      const { bundle, problems: found } = loaded([overCircuits([loopImpedance, tripCurrent])])
+
+      expect(found).toEqual([])
+      expect(
+        bundle?.packages.find((entry) => entry.name === 'probe')?.forms[0]?.definition.sections[0]
+          ?.fields[3],
+      ).toEqual(overCircuits([loopImpedance, tripCurrent]))
+    })
+
+    it('works a limit out of a circuit only in a group over the circuits', () => {
+      const sentence = (key: string) =>
+        `${formFile}: Der Grenzwert von ${key} wird aus dem Stromkreis seines Blocks berechnet; das Feld steht deshalb in einer Gruppe je Stromkreis ("repeat": "circuits").`
+
+      expect(loaded([loopImpedance]).problems).toEqual([sentence('loop_impedance')])
+      expect(loaded([overCircuits([tripCurrent], 'free')]).problems).toEqual([
+        sentence('rcd_trip_current'),
+      ])
+    })
+
+    it('works a limit out in the unit it is worked out in', () => {
+      expect(
+        loaded([overCircuits([{ ...loopImpedance, unit: 'megaohms' }, tripCurrent])]).problems,
+      ).toEqual([
+        `${formFile}: Der Grenzwert von loop_impedance wird in Ω berechnet, das Feld misst in MΩ.`,
+      ])
+    })
+
+    it('finds every rule it is worked out of, with its source and in the unit it is read in', () => {
+      expect(
+        loaded(
+          [overCircuits([loopImpedance, tripCurrent])],
+          circuitRules.filter(([key]) => key !== 'loop_factor_c'),
+        ).problems,
+      ).toEqual([
+        `${formFile}: Der berechnete Grenzwert von loop_impedance nennt die Regel elektro.loop_factor_c, die es nicht gibt. Eine Regel steht unter regeln/ mit Gültigkeitszeitraum und Fundstelle.`,
+      ])
+      expect(
+        loaded(
+          [overCircuits([loopImpedance, tripCurrent])],
+          circuitRules.map(([key, unit, value]) =>
+            key === 'rcd_trip_current_maximum' ? [key, 'factor', 1] : [key, unit, value],
+          ),
+        ).problems,
+      ).toEqual([
+        `${formFile}: Der berechnete Grenzwert von rcd_trip_current nennt die Regel elektro.rcd_trip_current_maximum, die ab 2017-06-01 in einem Faktor zählt; gezählt wird hier in Basispunkten.`,
+      ])
+      expect(loaded([overCircuits([tripCurrent])], null).problems).toEqual([
+        `${formFile}: Der berechnete Grenzwert von rcd_trip_current nennt die Regel elektro.rcd_trip_current_maximum aus dem Paket elektro, das es nicht gibt.`,
+      ])
+    })
+
+    it('refuses a list nobody repeats over and a limit nobody works out, each with a sentence', () => {
+      expect(loaded([overCircuits([tripCurrent], 'rooms')]).problems).toEqual([
+        `${formFile}: Die Gruppe circuits wiederholt über eine Liste, die es nicht gibt.`,
+      ])
+      expect(
+        loaded([overCircuits([{ ...tripCurrent, limit: { kind: 'touch_current' } }])]).problems,
+      ).toEqual([
+        `${formFile}: Der Grenzwert von rcd_trip_current ist von einer Art, die es nicht gibt.`,
+      ])
+    })
+  })
+
   it('reads a meter in each of the units a meter counts in', () => {
     expect(
       problems({

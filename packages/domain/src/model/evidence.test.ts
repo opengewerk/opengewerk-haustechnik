@@ -246,6 +246,31 @@ const storedStates: Readonly<Record<number, unknown>> = {
       '"remark":null,"replaces":null,"result":"with_defects","resultReason":null,"retention":null,' +
       '"signatures":[],"version":13,"writtenAt":"2026-10-19T08:40:00.000Z","writtenBy":"Tom Haustechnik"}',
   ),
+  // A value measured on a circuit, outside the limit worked out of it (#350).
+  14: JSON.parse(
+    '{"activity":{"kind":"inspection","title":"Prüfung der elektrischen Anlage"},' +
+      '"answers":[{"circuit":"0192f0c4-7b4e-7000-8000-0000000000f3",' +
+      '"group":{"block":1,"label":"Messen je Stromkreis"},"kind":"measurement","label":"Schleifenimpedanz Zs",' +
+      '"limit":{"bound":"höchstens 2,87 Ω","source":"DIN VDE 0100-410; DIN EN 60898-1, Typ B",' +
+      '"text":"Außerhalb des Grenzwerts, höchstens 2,87 Ω.","within":false},' +
+      '"photo":null,"remark":"Zweimal gemessen, gleicher Wert.","result":null,"section":"Messen","value":"3,40 Ω",' +
+      '"workedOut":"loop_impedance"}],' +
+      '"circuits":[{"board":"UV 1","boardKind":"sub_distribution","consumer":"Steckdosen Werkbank",' +
+      '"designation":"F3","id":"0192f0c4-7b4e-7000-8000-0000000000f3","place":0,"protection":"B 16 A, RCD 30 mA"}],' +
+      '"collective":null,"defects":[{"defectClass":null,"description":"Messen je Stromkreis, F3 Steckdosen Werkbank: ' +
+      'Schleifenimpedanz Zs: 3,40 Ω gemessen.","dueOn":null}],' +
+      '"duty":{"counting":"from_due","dueOn":null,"interval":{"months":48},"kind":"elektro.installation_test_dguv_v3",' +
+      '"kindVersion":2,"label":"Prüfung der elektrischen Anlage (DGUV Vorschrift 3)","source":"§ 5 DGUV Vorschrift 3"},' +
+      '"files":[],"form":{"key":"elektro.installation_test","title":"Wiederkehrende Prüfung der elektrischen Anlage",' +
+      '"version":1},"nextDueOn":null,"number":"NW-2026-00163","origin":"protocol","performedOn":"2026-10-16",' +
+      '"performer":{"person":"Murat Yilmaz"},"place":{"asset":{"kind":"elektro.low_voltage_installation",' +
+      '"kindLabel":"Niederspannungsanlage","name":"Elektrische Anlage Halle 1","number":"AN-00012","serialNumber":null},' +
+      '"building":{"name":"Halle 1","shortCode":null},' +
+      '"property":{"address":"Lagerweg 12, 00002 Beispielstadt","name":"Werkhof Nord"},"room":null},' +
+      '"remark":null,"replaces":null,"result":"with_defects","resultReason":null,' +
+      '"retention":{"kind":"until_next_inspection","on":"2026-10-16"},' +
+      '"signatures":[],"version":14,"writtenAt":"2026-10-16T13:42:00.000Z","writtenBy":"Murat Yilmaz"}',
+  ),
 }
 
 describe('the result of a performance', () => {
@@ -477,6 +502,21 @@ describe('the frozen state', () => {
       yearsAfter: 5,
     })
     expect(canonicalForm(storedStates[12])).toBe(JSON.stringify(storedStates[12]))
+  })
+
+  it('reads a state of the fourteenth version, whose answer names the circuit it was measured on (#350)', () => {
+    const state = readEvidenceState(storedStates[14])
+
+    expect(state.version).toBe(evidenceStateVersion)
+    expect(state.answers.map((answer) => statedPointWords(answer, state.circuits))).toEqual([
+      'Messen je Stromkreis, F3 Steckdosen Werkbank: Schleifenimpedanz Zs',
+    ])
+    // A state before it keeps no circuits, and no answer names one.
+    expect(readEvidenceState(storedStates[13]).circuits).toBeUndefined()
+    expect(readEvidenceState(storedStates[13]).answers.map((answer) => answer.circuit)).toEqual([
+      undefined,
+    ])
+    expect(canonicalForm(storedStates[14])).toBe(JSON.stringify(storedStates[14]))
   })
 
   it('reads a retention while the asset is used of an earlier version as kept no years after it (#437)', () => {

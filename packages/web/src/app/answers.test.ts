@@ -1,10 +1,23 @@
-import { type FilledAnswer, ruleSet } from '@opengewerk/haustechnik-domain'
+import {
+  type BlockField,
+  type FilledAnswer,
+  type GroupField,
+  ruleSet,
+} from '@opengewerk/haustechnik-domain'
 import { today } from '@opengewerk/platform-web/format'
 import { describe, expect, it } from 'vitest'
 
 import { technicalRoom } from '../site/test-form.js'
 import type { SyncClient } from '../sync/client.js'
-import { beginActivity, isDemanded, openedBy, pointKey, pointsOf, pointState } from './answers.js'
+import {
+  beginActivity,
+  isDemanded,
+  openedBy,
+  pointKey,
+  pointsOf,
+  pointState,
+  saveAnswer,
+} from './answers.js'
 
 /**
  * The points of a form as the device lists them, and what each says of its
@@ -163,6 +176,83 @@ describe('beginning an activity with its first input', () => {
   it('writes nothing for one that is begun, signed or closed', async () => {
     for (const status of ['started', 'signed', 'done', 'not_performed']) {
       expect(await begun(status)).toEqual([])
+    }
+  })
+})
+
+describe('an answer in the block of a circuit (#350)', () => {
+  const group: GroupField = {
+    kind: 'group',
+    key: 'circuits',
+    label: 'Messen je Stromkreis',
+    repeat: 'circuits',
+    fields: [{ kind: 'check_point', key: 'circuit_ok', label: 'Stromkreis in Ordnung' }],
+  }
+  const field = group.fields[0] as BlockField
+  const held: Readonly<Record<string, readonly Record<string, unknown>[]>> = {
+    activities: [{ id: 'ac-1', assetId: 'as-1' }],
+    distribution_boards: [
+      { id: 'b-1', assetId: 'as-1', deletedAt: null },
+      { id: 'b-gone', assetId: 'as-1', deletedAt: '2026-10-18T10:00:00.000Z' },
+      { id: 'b-other', assetId: 'as-2', deletedAt: null },
+    ],
+    circuits: [
+      { id: 'c-own', distributionBoardId: 'b-1', deletedAt: null },
+      { id: 'c-marked', distributionBoardId: 'b-1', deletedAt: '2026-10-18T10:00:00.000Z' },
+      { id: 'c-on-gone', distributionBoardId: 'b-gone', deletedAt: null },
+      { id: 'c-other', distributionBoardId: 'b-other', deletedAt: null },
+    ],
+    activity_answers: [],
+  }
+
+  /** What saving an answer for a circuit says, and what it queued. */
+  async function saved(blockKey: string) {
+    const made: unknown[] = []
+    const client = {
+      list: (entity: string) => held[entity] ?? [],
+      create: (entity: string, values: unknown) => {
+        made.push([entity, values])
+
+        return Promise.resolve({ outcome: 'applied' })
+      },
+    } as unknown as SyncClient
+    const point = {
+      key: pointKey(group.key, blockKey, field.key),
+      section: { key: 'measurements', title: 'Messen', fields: [group] },
+      group,
+      blockKey,
+      block: 1,
+      field,
+      assetId: null,
+    }
+
+    return { said: await saveAnswer(client, 'ac-1', point, { result: 'ok' }), made }
+  }
+
+  it('is queued for a circuit on a board of the asset of the activity', async () => {
+    expect(await saved('c-own')).toEqual({
+      said: null,
+      made: [
+        [
+          'activity_answers',
+          {
+            activityId: 'ac-1',
+            fieldKey: 'circuit_ok',
+            groupKey: 'circuits',
+            blockKey: 'c-own',
+            result: 'ok',
+          },
+        ],
+      ],
+    })
+  })
+
+  it('is refused for a circuit of another asset, a marked one and one on a marked board', async () => {
+    for (const circuit of ['c-other', 'c-marked', 'c-on-gone', 'c-unknown']) {
+      expect(await saved(circuit)).toEqual({
+        said: '„Messen je Stromkreis“ fragt nur nach den Stromkreisen der Anlage des Vorgangs.',
+        made: [],
+      })
     }
   })
 })

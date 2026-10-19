@@ -1,4 +1,10 @@
-import { addDays, type Id, type IsoDate, type Synced } from '@opengewerk/platform-domain'
+import {
+  addDays,
+  type CircuitId,
+  type Id,
+  type IsoDate,
+  type Synced,
+} from '@opengewerk/platform-domain'
 
 import type { ActivityId, WorkOrderId } from './activity.js'
 import type { ActivityAnswerId } from './answer.js'
@@ -79,6 +85,13 @@ export interface Defect extends Synced, PlaceTarget {
    * activity names the answer, and so not the defect a second time.
    */
   readonly foundInAnswerId: ActivityAnswerId | null
+  /**
+   * The circuit of the installation it was found on (#350): a value measured
+   * on a circuit outside its limit, or a check point of a circuit not in
+   * order. Written with the signature like the answer; none for every other
+   * defect, and none once the circuit is gone.
+   */
+  readonly circuitId: CircuitId | null
   /** The work order that sets it right, once there is one. */
   readonly remedyWorkOrderId: WorkOrderId | null
   readonly description: string

@@ -327,6 +327,18 @@ describe('a version before it is saved', () => {
     })
   })
 
+  it('takes no limit worked out of a circuit, which a point of a round is not in (#350)', () => {
+    const limited = (limit: unknown) =>
+      templateProblems(withPoints({ ...temperature, limit } as TemplateField), records)
+
+    expect(limited({ kind: 'loop_impedance' })).toEqual({
+      'point.p1': 'Ein Grenzwert ist eine Regel des Katalogs oder ein eigener Wert mit Quelle.',
+    })
+    expect(limited({ kind: 'rcd_trip_current' })).toEqual({
+      'point.p1': 'Ein Grenzwert ist eine Regel des Katalogs oder ein eigener Wert mit Quelle.',
+    })
+  })
+
   it('hands what only the engine knows to the engine, and names the point by its label', () => {
     expect(templateProblems(withPoints({ ...temperature, decimals: 4 }), records)).toEqual({
       'point.p1': '„Temperatur am Speicheraustritt“ zeigt null bis drei Nachkommastellen.',

@@ -55,6 +55,8 @@ import {
   refusalFor,
   request,
   RequestRefused,
+  text,
+  useRecord,
   useRecords,
   useSync,
 } from '@opengewerk/platform-web/sync'
@@ -73,6 +75,7 @@ import {
 import { type ReactNode, useId, useMemo, useRef, useState } from 'react'
 
 import { fileDocument } from '../../app/documents.js'
+import { circuitTitle, structurePlaces } from '../../app/structure-places.js'
 import { titleOfRoom } from '../../app/place-records.js'
 import { askAt, makeAt } from '../../sync/made-at.js'
 import { useAreas, useHeldArea } from '../../session/areas.js'
@@ -847,9 +850,41 @@ function OriginFact({ defect }: { readonly defect: DefectReading }) {
  * named: who reported, classed or checked it stands in its stamp and in the
  * change log (section 9 of the concept).
  */
+/**
+ * The circuit a defect was found on (#350), as the office holds it: the
+ * defect names it once the signature wrote it, and it stands while neither it
+ * nor its board is marked. Its page in the office, its name and its board.
+ */
+function useCircuitOfDefect(defectId: string | undefined) {
+  const defect = useRecord('defects', defectId)
+  const circuit = useRecord('circuits', maybeText(defect, 'circuitId') ?? undefined)
+  const board = useRecord(
+    'distribution_boards',
+    maybeText(circuit, 'distributionBoardId') ?? undefined,
+  )
+  const assetId = maybeText(board, 'assetId')
+
+  if (
+    circuit === null ||
+    board === null ||
+    assetId === null ||
+    maybeText(circuit, 'deletedAt') !== null ||
+    maybeText(board, 'deletedAt') !== null
+  ) {
+    return null
+  }
+
+  return {
+    to: structurePlaces.circuit(assetId, String(board['id']), String(circuit['id'])),
+    name: circuitTitle(circuit),
+    board: text(board, 'designation'),
+  }
+}
+
 export function DefectScreen() {
   const { defectId } = useParams({ strict: false }) as { defectId?: string }
   const page = useQuery({ ...defectQuery(defectId ?? ''), enabled: defectId !== undefined })
+  const circuit = useCircuitOfDefect(defectId)
   const keeps = useRight('defect.write')
   const plans = useRight('activity.write')
   const navigate = useNavigate()
@@ -961,6 +996,22 @@ export function DefectScreen() {
                         </span>
                       ),
                     },
+                    // The circuit it was found on, beside the asset (#350).
+                    ...(circuit === null
+                      ? []
+                      : [
+                          {
+                            label: 'Stromkreis',
+                            value: (
+                              <span>
+                                <Link to={circuit.to} className={factLink}>
+                                  {circuit.name}
+                                </Link>
+                                {`, ${circuit.board}`}
+                              </span>
+                            ),
+                          },
+                        ]),
                     { label: 'Klasse', value: classWord(shown.defectClass) },
                     {
                       label: 'Frist',

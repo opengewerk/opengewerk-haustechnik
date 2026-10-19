@@ -233,7 +233,14 @@ ausgefüllte Formular die Vorlage des nächsten ist). Die Arten:
   `regeln/`, nie eine Zahl im Formular, und die Regel muss in einer Einheit zählen, in die sich der
   Messwert umrechnen lässt: Grad Celsius gegen eine Regel in Zehntelgrad. `at_least` und `at_most`
   nehmen den Wert der Regel selbst als innerhalb, `below` nicht: dort ist schon das Erreichen
-  außerhalb, wie beim technischen Maßnahmenwert für Legionellen.
+  außerhalb, wie beim technischen Maßnahmenwert für Legionellen. In einer Gruppe je Stromkreis gibt
+  es zwei Grenzwerte, die aus dem Stromkreis des Blocks berechnet werden: `{ "kind": "loop_impedance" }`
+  an einem Messwert in `ohms`, aus der Nennspannung (`elektro.loop_nominal_voltage`, in `volts`)
+  und dem Faktor der Charakteristik B, C oder D (`elektro.loop_factor_b`, `_c`, `_d`, in `factor`)
+  bei seinem Nennstrom, und `{ "kind": "rcd_trip_current" }` an einem Messwert in `milliamperes`,
+  als Anteil (`elektro.rcd_trip_current_maximum`, in `basis_points`) an seinem
+  Bemessungsdifferenzstrom. Der Bau verlangt, dass es diese Regeln gibt; ein Stromkreis ohne
+  Charakteristik, Nennstrom oder Bemessungsdifferenzstrom hat keinen Grenzwert.
 - `choice`: eine Auswahl mit mindestens zwei `options`, je mit `value` und `label`
 - `yes_no` und `photo`
 - `check_point`: ein Prüfpunkt mit den Antworten "in Ordnung", "nicht in Ordnung", "entfällt"
@@ -242,12 +249,17 @@ ausgefüllte Formular die Vorlage des nächsten ist). Die Arten:
   ihm deshalb nicht.
 - `meter_reading`: ein Zählerstand mit `unit` und `decimals`
 - `signature`: eine Unterschrift; mit `seals` schreibt sie das Formular fest
-- `group`: eine Gruppe von Feldern, die sich wiederholt, mit `repeat: "free"` und ihren `fields`
+- `group`: eine Gruppe von Feldern, die sich wiederholt, mit `repeat` und ihren `fields`. Mit
+  `"free"` legt die prüfende Person so viele Blöcke an, wie sie braucht; mit `"circuits"` hat die
+  Gruppe einen Block für jeden Stromkreis der Anlage aus ihrem Stromkreisverzeichnis und keinen
+  weiteren, und vor der Unterschrift braucht jeder Stromkreis die Antworten, die die Gruppe verlangt.
+  Eine andere Liste lehnt der Bau ab
 
 Einheiten sind `degrees_celsius`, `count_per_100_ml`, `kilowatt_hours`, `megawatt_hours`,
-`cubic_metres`, `ohms`, `megaohms`, `milliamperes` und `kilograms`; ein Grenzwert auf einen Widerstand ist eine
-Regel in `kiloohms`, einer auf eine Anzahl je 100 ml eine Regel in derselben Einheit, und für einen
-Strom hat die Regel-Engine keine Einheit. Ein Messwert, ein Prüfpunkt, ein Zählerstand und
+`cubic_metres`, `ohms`, `megaohms`, `milliamperes`, `milliseconds` und `kilograms`; ein Grenzwert auf
+einen Widerstand ist eine Regel in `kiloohms`, einer auf eine Anzahl je 100 ml eine Regel in derselben
+Einheit, einer auf eine Zeit eine Regel in `milliseconds`, und für einen Strom hat die Regel-Engine
+keine Einheit; sein Grenzwert wird berechnet. Ein Messwert, ein Prüfpunkt, ein Zählerstand und
 eine Unterschrift werden nie übernommen. Ein Feld eines Pakets zeigt auf keine Anlage und keinen Raum (`about`), denn welche es gibt, weiß erst eine
 Instanz; das kann nur die Vorlage eines Betreibers. Der Bau liest jedes Feld genau und prüft das
 Formular danach mit der Formular-Engine des Fundaments; ein Feld, das er nicht kennt, ist ein
@@ -355,6 +367,8 @@ gekennzeichnet, wo er gelesen wird.
 - jede genannte Regel gibt es, in der passenden Einheit und dort, wo die Pflichtart gilt; keine
   zwei Regeln eines Schlüssels an einem Tag und keine Lücke mitten in einer Reihe
 - jeder Verweis auf eine Anlagenart, ein Merkmal, ein Formular oder ein anderes Paket hat ein Ziel
+- ein Grenzwert, der aus dem Stromkreis berechnet wird, steht in einer Gruppe je Stromkreis, an einem
+  Messwert in der Einheit, in der er berechnet wird, und jede Regel, die er liest, gibt es
 - keine Pflichtart nennt eine allgemeine Anlagenart des Pakets `allgemein`: sie steht für eine
   Anlage, deren Fachpaket noch fehlt, und trägt keine Pflichtart
 - kein Schlüssel zweimal, keine Fassung fehlt in einer Reihe, keine beginnt vor der davor

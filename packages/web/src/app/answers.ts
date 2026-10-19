@@ -1,5 +1,7 @@
 import {
+  type AnswerCircuit,
   type AnswerContent,
+  type AnswersContext,
   answerValue,
   answerVerdict,
   type BlockField,
@@ -8,11 +10,12 @@ import {
   type FilledAnswer,
   type FormDefinition,
   type FormSection,
+  foreignCircuitWords,
   forms,
   formUnits,
   type GroupField,
   jsonText,
-  type LimitContext,
+  type MeasurementField,
   type PointAssets,
   type RecordState,
 } from '@opengewerk/haustechnik-domain'
@@ -261,6 +264,36 @@ export function pointsOf(
   return points
 }
 
+/**
+ * The circuit a point in the block of a group over the circuits is about
+ * (#350), by the key of its block among the circuits given; null for every
+ * other point, and for one about a circuit not among them.
+ */
+export function circuitOfPoint(
+  point: FormPoint,
+  circuits: readonly AnswerCircuit[] | null | undefined,
+): AnswerCircuit | null {
+  return point.group?.repeat === 'circuits'
+    ? (circuits?.find((circuit) => circuit.id === point.blockKey) ?? null)
+    : null
+}
+
+/**
+ * How a measured answer stands against its limit, in the block of a circuit
+ * judged with the facts of that circuit (#350), which a limit worked out of
+ * the circuit needs.
+ */
+export function pointVerdict(
+  point: FormPoint & { readonly field: MeasurementField },
+  answer: AnswerContent,
+  context: AnswersContext,
+) {
+  return answerVerdict(point.field, answer, {
+    ...context,
+    circuit: circuitOfPoint(point, context.circuits),
+  })
+}
+
 /** The record of the answer to a point, where there is one. */
 export function answerAt(
   answers: readonly RecordState[],
@@ -300,7 +333,7 @@ export type Lack = 'answer' | 'remark' | 'reason'
 export function lackOf(
   point: FormPoint,
   given: FilledAnswer | undefined,
-  context: LimitContext,
+  context: AnswersContext,
 ): Lack | null {
   if (given === undefined || !isAnswered(point, given)) {
     return isDemanded(point) ? 'answer' : null
@@ -313,7 +346,7 @@ export function lackOf(
   }
 
   return point.field.kind === 'measurement' &&
-    answerVerdict(point.field, given, context).within === false &&
+    pointVerdict({ ...point, field: point.field }, given, context).within === false &&
     !said
     ? 'remark'
     : null
@@ -328,7 +361,7 @@ export function unitSign(field: Extract<BlockField, { readonly unit: unknown }>)
 export function pointState(
   point: FormPoint,
   answer: FilledAnswer | undefined,
-  context: LimitContext,
+  context: AnswersContext,
 ): PointState {
   const value = answer === undefined ? undefined : answerValue(point.field, answer)
 
@@ -345,7 +378,7 @@ export function pointState(
       return {
         kind: 'value',
         text: forms.formatMeasured(value as number, field.unit, field.decimals),
-        outside: answerVerdict(field, answer, context).within === false,
+        outside: pointVerdict({ ...point, field }, answer, context).within === false,
       }
     case 'number':
     case 'meter_reading':
@@ -386,6 +419,10 @@ function saysNothing(content: AnswerContent): boolean {
  * not taken from the screen, which may not have drawn the one a write just
  * before it made: two quick taps would otherwise make two answers to one
  * point.
+ *
+ * A point in the block of a circuit is answered only for a circuit of the
+ * asset of the activity this device holds and has not marked (#350), as the
+ * server takes it.
  */
 export async function saveAnswer(
   client: SyncClient,
@@ -405,6 +442,10 @@ export async function saveAnswer(
       : filledOf(held)
   const change = typeof changing === 'function' ? changing(before) : changing
   const after: AnswerContent = { ...before, ...change }
+
+  if (!saysNothing(after) && !onACircuitOfTheAsset(client, activityId, point)) {
+    return foreignCircuitWords(point.group?.label ?? '')
+  }
 
   if (held !== undefined) {
     const done = saysNothing(after)
@@ -434,6 +475,40 @@ export async function saveAnswer(
   })
 
   return made.outcome === 'refused' ? refusalFor(made) : null
+}
+
+/** Whether a record this device holds is not marked. */
+function live(record: RecordState): boolean {
+  return record['deletedAt'] === null || record['deletedAt'] === undefined
+}
+
+/**
+ * Whether a point stands where its activity asks it: every point does, but
+ * one in the block of a group over the circuits only for a circuit on a board
+ * of the asset of the activity, neither of them marked (#350).
+ */
+function onACircuitOfTheAsset(client: SyncClient, activityId: string, point: FormPoint): boolean {
+  if (point.group?.repeat !== 'circuits') {
+    return true
+  }
+
+  const activity = client.list('activities').find((record) => record['id'] === activityId)
+  const assetId = activity === undefined ? null : maybeText(activity, 'assetId')
+  const boards = new Set(
+    client
+      .list('distribution_boards')
+      .filter((board) => assetId !== null && board['assetId'] === assetId && live(board))
+      .map((board) => String(board['id'])),
+  )
+
+  return client
+    .list('circuits')
+    .some(
+      (circuit) =>
+        circuit['id'] === point.blockKey &&
+        boards.has(String(circuit['distributionBoardId'])) &&
+        live(circuit),
+    )
 }
 
 /**

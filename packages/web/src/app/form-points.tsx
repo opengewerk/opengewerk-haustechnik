@@ -1,18 +1,18 @@
 import {
   type AnswerContent,
   answerLimits,
+  type AnswersContext,
   type AttachmentId,
-  answerVerdict,
   type CheckPointResult,
   forms,
   isStatedLimit,
   type IsoDate,
-  type LimitContext,
   type MeasurementField,
   meterFigure,
   photoColumns,
   photosOfAnswer,
   type RecordState,
+  workedOutLimits,
 } from '@opengewerk/haustechnik-domain'
 import { Button, Choice, Field, TextArea } from '@opengewerk/platform-web'
 import { usePreview, useVersions } from '@opengewerk/platform-web/attachments'
@@ -31,7 +31,14 @@ import { useSync } from '@opengewerk/platform-web/sync'
 import { ImageIcon, TriangleAlert, Undo2, X } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState } from 'react'
 
-import { beginActivity, filledOf, type FormPoint, saveAnswer, unitSign } from './answers.js'
+import {
+  beginActivity,
+  filledOf,
+  type FormPoint,
+  pointVerdict,
+  saveAnswer,
+  unitSign,
+} from './answers.js'
 import { fileDocumentAs } from './documents.js'
 import { judgedFigure, readingStanding, useHeldMeters } from './meters.js'
 
@@ -42,6 +49,9 @@ export const pointWords = {
   /** Under a measured value outside its limit. */
   outsideBecomesDefect: (target: string) =>
     `Mit der Unterschrift wird daraus ein Mangel an ${target}, wie bei „nicht in Ordnung“.`,
+  /** Either of them in the block of a circuit (#350): the defect has the circuit. */
+  onCircuit: (target: string, circuit: string) =>
+    `Mit der Unterschrift wird daraus ein Mangel an ${target}, mit dem Stromkreis ${circuit} im Bezug.`,
   reasonIsAnswer: '„Entfällt“ und „nicht möglich“ sind Antworten und verlangen einen Grund.',
   /** After it, under a point that fulfils a duty (#114): the evidence then says "nicht durchgeführt". */
   dutyStaysDue: (duty: string) => `Die Pflicht „${duty}“ bleibt dann fällig.`,
@@ -169,10 +179,18 @@ export interface PointInputProps {
   readonly point: FormPoint
   /** The answer to the point, as the device holds it. */
   readonly answer: RecordState | undefined
-  /** The rules and the day a measured value is judged by. */
-  readonly context: LimitContext
+  /**
+   * The rules and the day a measured value is judged by, and the circuits
+   * of the installation, whose facts judge a value in the block of one (#350).
+   */
+  readonly context: AnswersContext
   /** What a finding here becomes a defect at, in words: `Raum E.14 Heizraum`. */
   readonly target: string
+  /**
+   * The circuit of a point in its block, in words, `F3 Steckdosen Werkbank,
+   * UV 1` (#350): a defect of it has the circuit.
+   */
+  readonly circuit?: string
   /** The duty the point fulfils, by its name, where it fulfils one (#112). */
   readonly duty?: string | null
   /** Whether the answer may still be given or changed: the activity is open and the person performs. */
@@ -184,6 +202,25 @@ export interface PointInputProps {
    * itself and shows a remark and a photo where its answer asks for them.
    */
   readonly layout?: 'page' | 'list'
+}
+
+/**
+ * A limit in thousandths as the head of a measured value shows it, rounded
+ * to the places of the field towards the strict side as the engine writes it
+ * in the verdict: 2,875 Ω as "≤ 2,87 Ω", never 2,88, so that the mark and the
+ * sentence under it say the same; a lower bound and one a value has to stay
+ * under round up.
+ */
+export function strictLimitMilli(
+  limitMilli: number,
+  decimals: number,
+  bound: 'at_least' | 'at_most' | 'below',
+): number {
+  const step = 10 ** Math.max(0, 3 - decimals)
+
+  return bound === 'at_most'
+    ? Math.floor(limitMilli / step) * step
+    : Math.ceil(limitMilli / step) * step
 }
 
 /**
@@ -472,7 +509,13 @@ function CheckPointInput(props: PointInputProps) {
           })()
         }}
       />
-      {result === 'not_ok' ? <DefectNote>{pointWords.becomesDefect(target)}</DefectNote> : null}
+      {result === 'not_ok' ? (
+        <DefectNote>
+          {props.circuit === undefined
+            ? pointWords.becomesDefect(target)
+            : pointWords.onCircuit(target, props.circuit)}
+        </DefectNote>
+      ) : null}
       {result === 'not_applicable' || result === 'not_possible' ? (
         <p className="text-[15px] leading-[1.4] text-ink-muted">
           {duty === undefined || duty === null
@@ -492,7 +535,9 @@ function MeasurementInput(props: PointInputProps & { readonly field: Measurement
   const value = parsedValue(answer)
   // Judged also before there is a value, so that the limit stands at the head from the start.
   const verdict =
-    field.limit === undefined ? null : answerVerdict(field, filled ?? nothingYet, context)
+    field.limit === undefined
+      ? null
+      : pointVerdict({ ...props.point, field }, filled ?? nothingYet, context)
   const [remark, setRemark] = useState(filled?.remark ?? '')
   const figure = useDeferredWrite((typed: number | undefined) => {
     void write(
@@ -508,16 +553,26 @@ function MeasurementInput(props: PointInputProps & { readonly field: Measurement
   })
   const unit = unitSign(field)
   // A limit an operator states says its bound beside its kind (#112, below
-  // since #299); one from a rule is its kind, at least, at most or below (#93).
+  // since #299); one from a rule is its kind, at least, at most or below (#93);
+  // one worked out of a circuit is an upper one (#350).
   const bound = isStatedLimit(field.limit)
     ? field.limit.bound
     : field.limit !== undefined && 'rule' in field.limit
       ? field.limit.kind
-      : undefined
+      : field.limit !== undefined && Object.hasOwn(workedOutLimits, field.limit.kind)
+        ? 'at_most'
+        : undefined
   const limit =
     verdict === null || verdict.limitMilli === null || bound === undefined
       ? undefined
-      : limitMark(bound, forms.formatMeasured(verdict.limitMilli, field.unit, field.decimals))
+      : limitMark(
+          bound,
+          forms.formatMeasured(
+            strictLimitMilli(verdict.limitMilli, field.decimals, bound),
+            field.unit,
+            field.decimals,
+          ),
+        )
 
   return (
     <div className="flex min-w-0 flex-col gap-3.5">
@@ -550,7 +605,11 @@ function MeasurementInput(props: PointInputProps & { readonly field: Measurement
         </div>
       ) : null}
       {verdict?.within === false ? (
-        <DefectNote>{pointWords.outsideBecomesDefect(target)}</DefectNote>
+        <DefectNote>
+          {props.circuit === undefined
+            ? pointWords.outsideBecomesDefect(target)
+            : pointWords.onCircuit(target, props.circuit)}
+        </DefectNote>
       ) : null}
     </div>
   )

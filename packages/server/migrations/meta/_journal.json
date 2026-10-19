@@ -652,6 +652,13 @@
       "when": 1792417846929,
       "tag": "0092_electrical_structure",
       "breakpoints": true
+    },
+    {
+      "idx": 93,
+      "version": "7",
+      "when": 1792437534538,
+      "tag": "0093_defect_circuit",
+      "breakpoints": true
     }
   ]
 }

@@ -14,6 +14,7 @@ import {
   type FormUnit,
   formUnits,
   generalPackage,
+  type GroupField,
   type IsoDate,
   nationwide,
   type PackagedForm,
@@ -24,6 +25,7 @@ import {
   retentionRule,
   type RuleUnit,
   type ScopeCondition,
+  workedOutLimits,
 } from '@opengewerk/haustechnik-domain'
 
 import {
@@ -640,13 +642,68 @@ function checkDutyKind(
   }
 }
 
-/** Every field of a form, the fields of its groups included. */
-function fieldsOfForm(form: PackagedForm): readonly FormField[] {
+/** Every field of a form with the group it stands in, null for a field outside a group. */
+function fieldsOfForm(form: PackagedForm): readonly FieldInForm[] {
   return form.sections.flatMap((section) =>
-    section.fields.flatMap((field): readonly FormField[] =>
-      field.kind === 'group' ? [field, ...field.fields] : [field],
+    section.fields.flatMap((field): readonly FieldInForm[] =>
+      field.kind === 'group'
+        ? [
+            { field, group: null },
+            ...field.fields.map((nested) => ({ field: nested, group: field })),
+          ]
+        : [{ field, group: null }],
     ),
   )
+}
+
+interface FieldInForm {
+  readonly field: FormField
+  readonly group: GroupField | null
+}
+
+/**
+ * A limit worked out of the circuit of a block (#350): it stands in a group
+ * over the circuits, whose blocks have one, it is worked out in the unit of
+ * its field, and the rules it reads are there, each with its source, in the
+ * unit it is read in. Without them every value would stand on site without a
+ * verdict.
+ */
+function checkWorkedOut(
+  spot: Spot,
+  field: FormField & { readonly kind: 'measurement' },
+  kind: keyof typeof workedOutLimits,
+  group: GroupField | null,
+  home: string,
+  index: Index,
+  findings: Findings,
+): void {
+  const worked = workedOutLimits[kind]
+
+  if (group === null || group.repeat !== 'circuits') {
+    findings.say(
+      spot,
+      `Der Grenzwert von ${field.key} wird aus dem Stromkreis seines Blocks berechnet; das Feld steht deshalb in einer Gruppe je Stromkreis ("repeat": "circuits").`,
+    )
+  }
+
+  if (field.unit !== worked.unit) {
+    findings.say(
+      spot,
+      `Der Grenzwert von ${field.key} wird in ${formUnits[worked.unit].sign} berechnet, das Feld misst in ${formUnits[field.unit].sign}.`,
+    )
+  }
+
+  for (const rule of worked.rules) {
+    checkRuleReference(
+      spot,
+      rule.key,
+      home,
+      index,
+      findings,
+      `Der berechnete Grenzwert von ${field.key}`,
+      [rule.unit],
+    )
+  }
 }
 
 /**
@@ -663,8 +720,23 @@ function checkForm(
 ): void {
   const spot = spotIn(version.file)
 
-  for (const field of fieldsOfForm(form)) {
+  for (const { field, group } of fieldsOfForm(form)) {
     if (field.kind !== 'measurement' || field.limit === undefined) {
+      continue
+    }
+
+    const { kind } = field.limit
+
+    if (!('rule' in field.limit) && Object.hasOwn(workedOutLimits, kind)) {
+      checkWorkedOut(
+        spot,
+        field,
+        kind as keyof typeof workedOutLimits,
+        group,
+        home,
+        index,
+        findings,
+      )
       continue
     }
 

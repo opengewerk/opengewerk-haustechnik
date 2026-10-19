@@ -11,6 +11,7 @@ import {
 } from '@opengewerk/haustechnik-domain'
 import { refusalFor } from '@opengewerk/platform-web/sync'
 
+import { catalogueKeep, keptCatalogue } from '../sync/catalogue.js'
 import type { SyncClient } from '../sync/client.js'
 import type { GivenSignature } from './signature-ways.js'
 import { materialsOnDevice } from './materials.js'
@@ -23,7 +24,11 @@ import { materialsOnDevice } from './materials.js'
  * signature only where both are the same.
  */
 
-/** The page of an activity as this device holds it, with what waits in its outbox. */
+/**
+ * The page of an activity as this device holds it, with what waits in its
+ * outbox. The catalogue it holds says whether the form of the activity asks
+ * for the circuits of its asset (#350), as the server's does.
+ */
 export function pageOnDevice(client: SyncClient, activityId: string): SignedPage | null {
   return heldPageOf(
     {
@@ -31,6 +36,7 @@ export function pageOnDevice(client: SyncClient, activityId: string): SignedPage
       related: (entity, field, id) => client.list(entity).filter((record) => record[field] === id),
     },
     activityId,
+    keptCatalogue(client.kept(catalogueKeep)),
   )
 }
 

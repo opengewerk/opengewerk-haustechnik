@@ -12,7 +12,7 @@ import {
 } from '@opengewerk/platform-web/site'
 import { useNavigate, useParams } from '@tanstack/react-router'
 import { ChevronLeft, Copy, Plus, TriangleAlert } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { lazy, Suspense, useMemo, useState } from 'react'
 
 import {
   answerAt,
@@ -33,11 +33,20 @@ import {
   useActivityForm,
   useWhere,
 } from './form.js'
-import { SiteCollectiveScreen } from './collective.js'
 import { EmptiedOnSite } from './emptied.js'
 import { SiteResultScreen } from './result.js'
 import { SiteStartScreen } from './start.js'
 import { SiteWorkOrderScreen } from './work-order.js'
+
+// The circuits of an installation in a group over them (#350) are fetched with
+// the protocol that has one: the entry on site has a budget of 300 kB.
+const CircuitsSection = lazy(async () => ({
+  default: (await import('./protocol-circuits.js')).CircuitsSection,
+}))
+// So is the list of the assets of a collective activity (#342), for the same budget.
+const SiteCollectiveScreen = lazy(async () => ({
+  default: (await import('./collective.js')).SiteCollectiveScreen,
+}))
 
 export const protocolWords = {
   origin: (packageTitle: string | null, version: number) =>
@@ -88,7 +97,11 @@ export function SiteActivityScreen() {
 
   // A collective activity, the list of its assets (#342).
   if (maybeText(activity, 'collectiveKind') !== null) {
-    return <SiteCollectiveScreen />
+    return (
+      <Suspense fallback={null}>
+        <SiteCollectiveScreen />
+      </Suspense>
+    )
   }
 
   return maybeText(activity, 'formKey') === null ? <SiteResultScreen /> : <SiteProtocolScreen />
@@ -178,12 +191,68 @@ export function SiteProtocolScreen() {
         {form.open ? null : <SiteText muted>{siteFormWords.closed}</SiteText>}
         {form.open && !form.performs ? <SiteText muted>{siteFormWords.mayNot}</SiteText> : null}
         {definition.sections.map((section) => {
-          const inSection = form.points.filter((point) => point.section.key === section.key)
+          // The blocks of the circuits stand as their cards, each opening its block (#350).
+          const inSection = form.points.filter(
+            (point) => point.section.key === section.key && point.group?.repeat !== 'circuits',
+          )
           const sectionDemanded = inSection.filter(isDemanded)
           const groups = section.fields.filter((field) => field.kind === 'group')
 
           if (inSection.length === 0 && groups.length === 0) {
             return null
+          }
+
+          const list = (
+            <ul aria-label={section.title} className="flex flex-col">
+              {inSection.map((point, index) => {
+                const firstOfBlock =
+                  point.group !== null &&
+                  point.block !== null &&
+                  inSection[index - 1]?.blockKey !== point.blockKey
+
+                return (
+                  <li
+                    key={point.key}
+                    className="flex flex-col gap-2 border-b border-row py-2.5 last:border-b-0"
+                  >
+                    {firstOfBlock && point.group !== null && point.block !== null ? (
+                      <p className="font-condensed text-[14px] font-semibold tracking-[1px] text-ink-faint uppercase">
+                        {siteFormWords.block(point.group.label, point.block)}
+                      </p>
+                    ) : null}
+                    <PointInput
+                      activityId={activityId}
+                      propertyId={text(activity, 'propertyId')}
+                      point={point}
+                      answer={answerAt(form.answers, point)}
+                      context={context}
+                      target={aboutWords(point) ?? where.words}
+                      editable={form.editable}
+                      layout="list"
+                      onTrouble={setTrouble}
+                    />
+                  </li>
+                )
+              })}
+            </ul>
+          )
+
+          if (groups.some((group) => group.kind === 'group' && group.repeat === 'circuits')) {
+            return (
+              <Suspense key={section.key} fallback={null}>
+                <CircuitsSection
+                  activityId={activityId}
+                  assetId={maybeText(activity, 'assetId')}
+                  section={section}
+                  points={form.points}
+                  answers={form.answers}
+                  context={context}
+                  circuits={form.circuits}
+                >
+                  {inSection.length === 0 ? null : list}
+                </CircuitsSection>
+              </Suspense>
+            )
           }
 
           return (
@@ -198,38 +267,7 @@ export function SiteProtocolScreen() {
                 )
               }
             >
-              <ul aria-label={section.title} className="flex flex-col">
-                {inSection.map((point, index) => {
-                  const firstOfBlock =
-                    point.group !== null &&
-                    point.block !== null &&
-                    inSection[index - 1]?.blockKey !== point.blockKey
-
-                  return (
-                    <li
-                      key={point.key}
-                      className="flex flex-col gap-2 border-b border-row py-2.5 last:border-b-0"
-                    >
-                      {firstOfBlock && point.group !== null && point.block !== null ? (
-                        <p className="font-condensed text-[14px] font-semibold tracking-[1px] text-ink-faint uppercase">
-                          {siteFormWords.block(point.group.label, point.block)}
-                        </p>
-                      ) : null}
-                      <PointInput
-                        activityId={activityId}
-                        propertyId={text(activity, 'propertyId')}
-                        point={point}
-                        answer={answerAt(form.answers, point)}
-                        context={context}
-                        target={aboutWords(point) ?? where.words}
-                        editable={form.editable}
-                        layout="list"
-                        onTrouble={setTrouble}
-                      />
-                    </li>
-                  )
-                })}
-              </ul>
+              {list}
               {form.editable
                 ? groups.map((group) =>
                     group.kind === 'group' && group.repeat === 'free' ? (

@@ -1,6 +1,7 @@
 import type {
   BlockFieldKind,
   CheckPointResult,
+  DistributionBoardKind,
   Id,
   IsoDate,
   TenantOwned,
@@ -12,6 +13,7 @@ import type { ContractorId } from './contractor.js'
 import { type Counting, evidenceKindLabel, evidenceKinds } from './catalogue.js'
 import type { DutyId } from './duty-record.js'
 import { calendarDay, oneOf, optional, type Problems } from './fields.js'
+import type { WorkedOutLimitKind } from './forms.js'
 import type { PropertyId } from './location.js'
 import type { SignatureRole, SignatureWay } from './signature.js'
 
@@ -125,9 +127,11 @@ export const evidenceLimits = {
  * of a duty that falls due once states its due day instead of an interval
  * (#439), 12 since an evidence kept while its asset is used states the years
  * it is kept after (#437), 13 since an answer keeps the photos of its point
- * after the first (#451).
+ * after the first (#451), 14 since an evidence of a form with a group over
+ * the circuits keeps the circuits and each answer of such a group names its
+ * circuit (#350).
  */
-export const evidenceStateVersion = 13
+export const evidenceStateVersion = 14
 
 /** The place of an evidence in words, as it was on the day it was written down. */
 export interface StatedPlace {
@@ -233,6 +237,12 @@ export interface StatedAnswer {
     readonly text: string
     readonly source: string | null
     readonly within: boolean | null
+    /**
+     * The limit itself, without the verdict, `höchstens 2,87 Ω`, since
+     * version 14, on an answer in the block of a circuit (#350): a table of
+     * the circuits shows it beside the value.
+     */
+    readonly bound?: string
   } | null
   readonly photo: StatedFile | null
   /**
@@ -245,6 +255,46 @@ export interface StatedAnswer {
    * it stood (#343), since version 10; none on every other answer.
    */
   readonly asset?: StatedAnswerAsset
+  /**
+   * The circuit of the block the answer stands in, by its key among the
+   * circuits of the state, since version 14 (#350); none on every other
+   * answer. Its group names the place of the circuit on the chart, counted
+   * from one, as the place of its block.
+   */
+  readonly circuit?: string
+  /**
+   * The limit of a measured value in the block of a circuit that is worked
+   * out of the circuit, by its kind (#350): the table and its legend say how,
+   * and that a circuit without what it is worked out from has none.
+   */
+  readonly workedOut?: WorkedOutLimitKind
+}
+
+/**
+ * A circuit an evidence names (#350), since version 14: as the page that was
+ * signed held it, with its board, the kind of the board, its designation and
+ * what it supplies, what protects it in words, and its place on the chart,
+ * counted from nought. What was measured on it are the answers that name it.
+ */
+export interface StatedCircuit {
+  readonly id: string
+  readonly board: string
+  readonly boardKind: DistributionBoardKind
+  readonly designation: string
+  readonly consumer: string | null
+  readonly protection: string | null
+  readonly place: number
+}
+
+/**
+ * How a limit worked out of a circuit comes about, for the legend under a
+ * table of the circuits (#350): the loop impedance from the characteristic
+ * and the rated current, the tripping current from the rated residual
+ * current.
+ */
+export const workedOutLimitWords: Readonly<Record<WorkedOutLimitKind, string>> = {
+  loop_impedance: 'aus Charakteristik und Nennstrom',
+  rcd_trip_current: 'höchstens der Bemessungsdifferenzstrom',
 }
 
 /** An asset an answer is about, as an evidence keeps it: its number and its name. */
@@ -259,7 +309,19 @@ export interface StatedAnswerAsset {
  * ("Leuchte 2: Funktion"), and about one asset of a point for every asset
  * with that asset (#343): "Tür schließt, AN-00043 Feststellanlage".
  */
-export function statedPointWords(answer: Pick<StatedAnswer, 'label' | 'group' | 'asset'>): string {
+export function statedPointWords(
+  answer: Pick<StatedAnswer, 'label' | 'group' | 'asset' | 'circuit'>,
+  circuits: readonly StatedCircuit[] = [],
+): string {
+  // In the block of a circuit, the group and the circuit (#350): "Messen je
+  // Stromkreis, F3 Steckdosen Werkbank: Schleifenimpedanz Zs".
+  const circuit =
+    answer.circuit === undefined ? undefined : circuits.find((each) => each.id === answer.circuit)
+
+  if (circuit !== undefined && answer.group !== null) {
+    return `${answer.group.label}, ${statedCircuitWords(circuit)}: ${answer.label}`
+  }
+
   if (answer.asset !== undefined) {
     const asset = [answer.asset.number, answer.asset.name]
       .filter((part) => part !== null && part !== '')
@@ -271,6 +333,15 @@ export function statedPointWords(answer: Pick<StatedAnswer, 'label' | 'group' | 
   return answer.group === null
     ? answer.label
     : `${answer.group.label} ${String(answer.group.block)}: ${answer.label}`
+}
+
+/** A circuit in words, as the chart names it: "F3 Steckdosen Werkbank". */
+export function statedCircuitWords(
+  circuit: Pick<StatedCircuit, 'designation' | 'consumer'>,
+): string {
+  const consumer = circuit.consumer?.trim() ?? ''
+
+  return consumer === '' ? circuit.designation : `${circuit.designation} ${consumer}`
 }
 
 /**
@@ -330,6 +401,13 @@ export interface EvidenceState {
   readonly form: StatedForm | null
   /** The answers to its points in the order of the form, since version 3. */
   readonly answers: readonly StatedAnswer[]
+  /**
+   * The circuits of the installation in the order of the chart, as the page
+   * that was signed held them, since version 14 (#350); none for an evidence
+   * of a form without a group over the circuits, or of an installation
+   * without circuits.
+   */
+  readonly circuits?: readonly StatedCircuit[]
   readonly performer: StatedPerformer | null
   readonly defects: readonly StatedDefect[]
   readonly signatures: readonly StatedSignature[]
@@ -357,10 +435,18 @@ export class UnknownEvidenceStateError extends Error {
   }
 }
 
-/** The eleventh version: all of the twelfth, but a retention while the asset is used states no years after it. */
-/** No answer before version 13 keeps more than one photo (#451); the shape is the same. */
-type EvidenceStateOfVersion12 = Omit<EvidenceState, 'version'> & { readonly version: 12 }
+/**
+ * No evidence before version 14 keeps circuits, and no answer names one
+ * (#350); the shape is the same.
+ */
+type EvidenceStateOfVersion13 = Omit<EvidenceState, 'version'> & { readonly version: 13 }
 
+/** No answer before version 13 keeps more than one photo (#451); the shape is the same. */
+type EvidenceStateOfVersion12 = Omit<EvidenceStateOfVersion13, 'version'> & {
+  readonly version: 12
+}
+
+/** The eleventh version: all of the twelfth, but a retention while the asset is used states no years after it. */
 type EvidenceStateOfVersion11 = Omit<EvidenceState, 'version' | 'retention'> & {
   readonly version: 11
   readonly retention:
@@ -439,8 +525,9 @@ const readers: Readonly<Record<number, (stored: StoredEvidenceState) => Evidence
   // before the ninth was written with a collective activity, no answer
   // before the tenth names an asset, which one after it names only where it
   // is about one, no duty before the eleventh states a due day, no
-  // retention before the twelfth the years after the use of its asset, and
-  // no answer before the thirteenth more than one photo.
+  // retention before the twelfth the years after the use of its asset, no
+  // answer before the thirteenth more than one photo, and none before the
+  // fourteenth a circuit.
   1: (stored) =>
     eleventh({
       ...(stored as unknown as EvidenceStateOfVersion1),
@@ -528,7 +615,11 @@ const readers: Readonly<Record<number, (stored: StoredEvidenceState) => Evidence
     ...(stored as unknown as EvidenceStateOfVersion12),
     version: evidenceStateVersion,
   }),
-  13: (stored) => stored as unknown as EvidenceState,
+  13: (stored) => ({
+    ...(stored as unknown as EvidenceStateOfVersion13),
+    version: evidenceStateVersion,
+  }),
+  14: (stored) => stored as unknown as EvidenceState,
 }
 
 /** A state of the tenth version or an earlier one read up to the tenth, in the newest shape: its duty states no due day. */

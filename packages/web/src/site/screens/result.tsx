@@ -10,6 +10,7 @@ import {
   finishesWorkOrder,
   type RecordState,
   resultAgainstFindings,
+  statedCircuitWords,
 } from '@opengewerk/haustechnik-domain'
 import { Button, Field, Panel } from '@opengewerk/platform-web'
 import { clockTime, today } from '@opengewerk/platform-web/format'
@@ -36,7 +37,14 @@ import { useNavigate, useParams } from '@tanstack/react-router'
 import { Check, ChevronLeft, Plus, SearchCheck, Signature } from 'lucide-react'
 import { useCallback, useId, useMemo, useRef, useState } from 'react'
 
-import { answerAt, beginActivity, filledOf, type FormPoint, lackOf } from '../../app/answers.js'
+import {
+  answerAt,
+  beginActivity,
+  circuitOfPoint,
+  filledOf,
+  type FormPoint,
+  lackOf,
+} from '../../app/answers.js'
 import { useDeferredWrite } from '../../app/form-points.js'
 import { offeredResults, resultNotes } from '../../app/results.js'
 import { type GivenSignature, SignatureWays } from '../../app/signature-ways.js'
@@ -282,10 +290,17 @@ function ResultOf({ activityId }: { readonly activityId: string }) {
   const found: readonly FoundLine[] = [
     ...findings.map((finding) => {
       const field = definition === null ? null : answeredField(definition, finding.answer)?.field
+      // One in the block of a circuit names the circuit (#350).
+      const circuit = context.circuits?.find((each) => each.id === finding.circuitId)
 
       return {
         key: `${finding.answer.groupKey ?? ''}.${finding.answer.blockKey ?? ''}.${finding.answer.fieldKey}`,
-        title: field?.label ?? finding.description,
+        title:
+          field === null || field === undefined
+            ? finding.description
+            : circuit === undefined
+              ? field.label
+              : `${statedCircuitWords(circuit)}: ${field.label}`,
         meta: field?.kind === 'measurement' ? resultWords.outside : resultWords.notOk,
       }
     }),
@@ -299,6 +314,14 @@ function ResultOf({ activityId }: { readonly activityId: string }) {
     const record = answerAt(form.answers, point)
 
     return record === undefined ? undefined : filledOf(record)
+  }
+  /** A point by its label, in the block of a circuit with the circuit (#350). */
+  const pointTitle = (point: FormPoint): string => {
+    const circuit = circuitOfPoint(point, context.circuits)
+
+    return circuit === null
+      ? point.field.label
+      : `${statedCircuitWords(circuit)}: ${point.field.label}`
   }
   /** What a point still lacks before the signature, in a word, or null (`lackOf`). */
   const lacking = (point: FormPoint): string | null => {
@@ -465,7 +488,7 @@ function ResultOf({ activityId }: { readonly activityId: string }) {
                   <SiteRow
                     key={point.key}
                     to={siteForms.point(activityId, point.key)}
-                    title={point.field.label}
+                    title={pointTitle(point)}
                     meta={why}
                   />
                 ))}

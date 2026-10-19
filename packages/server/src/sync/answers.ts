@@ -2,12 +2,14 @@ import {
   type Activity,
   type ActivityAnswer,
   answerFitProblem,
+  asksCircuits,
   type Catalogue,
   formOfActivity,
 } from '@opengewerk/haustechnik-domain'
 import { isUuid, type SyncCheck, type SyncRefusal } from '@opengewerk/platform-server'
 import { and, eq, isNull } from 'drizzle-orm'
 
+import { chartOfAsset } from '../activities/circuits.js'
 import { formsFor } from '../activities/template-forms.js'
 import { activities, attachments } from '../database/schema/index.js'
 import type { Sender } from './signatures.js'
@@ -47,7 +49,9 @@ function columnOf(
  * activity names a form this build knows, the point is a field of it, the
  * answer fills the columns of its kind with a value the field takes, an
  * answer to a point for every asset names one the round was given for it
- * (#343), and a photo is a document at the same activity.
+ * (#343), an answer in the block of a circuit stands for a circuit of the
+ * asset of the activity, of the tenant and not marked (#350), and a photo is
+ * a document at the same activity.
  */
 export function answered(catalogue: Catalogue): SyncCheck<Sender> {
   return async ({ tx, operation, values, current }) => {
@@ -83,6 +87,14 @@ export function answered(catalogue: Catalogue): SyncCheck<Sender> {
       return { kind: 'client', message: 'Das Formular dieses Vorgangs kennt dieser Stand nicht.' }
     }
 
+    // The circuits of the asset of the activity, as its page names them, for
+    // an answer in a group: only a group over the circuits asks them (#350).
+    const circuits =
+      asksCircuits(form) && at('groupKey') !== null
+        ? activity.assetId === null
+          ? []
+          : await chartOfAsset(tx, activity.tenantId, activity.assetId)
+        : undefined
     const problem = answerFitProblem(
       form,
       {
@@ -97,6 +109,7 @@ export function answered(catalogue: Catalogue): SyncCheck<Sender> {
         assetId: (at('assetId') ?? null) as AnswerColumns['assetId'],
       },
       activity.pointAssets,
+      circuits,
     )
 
     if (problem !== null) {

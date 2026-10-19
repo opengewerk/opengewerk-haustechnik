@@ -25,6 +25,7 @@ import { activities, workOrders } from './activities.js'
 import { activityAnswers } from './answers.js'
 import { areaFromPropertyColumn, areaFromTheProperty, withinAreas } from './areas.js'
 import { assets } from './assets.js'
+import { circuits } from './electrical.js'
 import { evidence } from './evidence.js'
 import { buildings, optionalTrimmed, properties, rooms, trimmed } from './locations.js'
 import { kindOfItsAsset, withinLimits } from './limit-policies.js'
@@ -45,7 +46,8 @@ export const defectStatus = pgEnum('defect_status', defectStatuses)
  * against the classes it may take (`defectClassChoices` in `domain`); a
  * reported defect has none until whoever keeps defects gives it one. A defect
  * named in the report of a contractor names that evidence (#110), and one
- * that was checked again the day and what was found (#116).
+ * that was checked again the day and what was found (#116). One found on a
+ * circuit of the installation names the circuit (#350).
  */
 export const defects = pgTable(
   'defects',
@@ -61,6 +63,7 @@ export const defects = pgTable(
     foundInActivityId: reference<'activity'>('found_in_activity_id'),
     foundInEvidenceId: reference<'evidence'>('found_in_evidence_id'),
     foundInAnswerId: reference<'activity-answer'>('found_in_answer_id'),
+    circuitId: reference<'circuit'>('circuit_id'),
     remedyWorkOrderId: reference<'work-order'>('remedy_work_order_id'),
     description: text('description').notNull(),
     defectClass: text('defect_class'),
@@ -151,6 +154,21 @@ export const defects = pgTable(
     uniqueIndex('defects_once_per_answer')
       .on(table.tenantId, table.foundInAnswerId)
       .where(sql`${table.foundInAnswerId} is not null and ${table.deletedAt} is null`),
+    // The circuit it was found on, a circuit of its asset (#350), which
+    // keeps it in the area of that asset as the parts of the structure keep
+    // theirs. A circuit removed for good leaves the defect at its asset,
+    // without the circuit: the migration empties only this column,
+    // `SET NULL ("circuit_id")`, which drizzle has no words for.
+    foreignKey({
+      columns: [table.tenantId, table.circuitId, table.assetId],
+      foreignColumns: [circuits.tenantId, circuits.id, circuits.assetId],
+      name: 'defects_on_a_circuit_of_their_asset',
+    }).onDelete('set null'),
+    check(
+      'defects_circuit_at_an_asset',
+      sql`${table.circuitId} is null or ${table.assetId} is not null`,
+    ),
+    index('defects_circuit_idx').on(table.tenantId, table.circuitId),
     foreignKey({
       columns: [table.tenantId, table.remedyWorkOrderId, table.propertyId],
       foreignColumns: [workOrders.tenantId, workOrders.id, workOrders.propertyId],

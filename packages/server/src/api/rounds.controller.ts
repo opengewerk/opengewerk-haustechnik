@@ -527,7 +527,7 @@ export class RoundsController {
       return {
         round,
         standing,
-        page: signed ? await pageOf(tx, round) : null,
+        page: signed ? await pageOf(tx, round, this.catalogue) : null,
         found,
         written,
         names,

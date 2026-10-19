@@ -27,6 +27,7 @@ import {
   isStatedLimit,
   type MeasurementField,
   type StatedLimit,
+  workedOutLimits,
 } from './forms.js'
 
 /**
@@ -506,6 +507,14 @@ function pointProblem(
       if (!units.every((unit) => fits !== undefined && unit in fits)) {
         return 'Die Regel misst in einer anderen Einheit als der Punkt.'
       }
+    } else if (
+      isObject(limit) &&
+      typeof limit['kind'] === 'string' &&
+      Object.hasOwn(workedOutLimits, limit['kind'])
+    ) {
+      // Worked out of the circuit of a block (#350), which a point of a
+      // round is not in.
+      return 'Ein Grenzwert ist eine Regel des Katalogs oder ein eigener Wert mit Quelle.'
     }
   }
 

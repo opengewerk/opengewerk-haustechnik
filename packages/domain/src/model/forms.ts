@@ -1,15 +1,21 @@
 import {
   blockFieldKinds,
   type BlockField as GeneralBlockField,
+  circuitList,
   formEngine,
   type FormDefinition as GeneralFormDefinition,
   type FormField as GeneralFormField,
   type FormSection as GeneralFormSection,
   type FormUnit,
   type GroupField as GeneralGroupField,
+  type LimitCalculator,
+  loopImpedance,
   type MeasurementField as GeneralMeasurementField,
   type MeterReadingField as GeneralMeterReadingField,
   type NumberField as GeneralNumberField,
+  residualTripCurrent,
+  type RuleSet,
+  type RuleUnit,
 } from '@opengewerk/platform-domain'
 
 import { meterUnitSymbol } from './meter.js'
@@ -35,7 +41,9 @@ import { meterUnitSymbol } from './meter.js'
  * one on a resistance a rule in kiloohms and one on a count a rule in the
  * same count; the rule engine has no unit for a current. Kilograms came with
  * the refrigerant a leak check records as charged, recharged and recovered
- * (package Raumluft und Kälte, #351), without a limit.
+ * (package Raumluft und Kälte, #351), without a limit, and milliseconds with
+ * the tripping time of a residual current device measured on a circuit
+ * (#350), whose limit is a rule in milliseconds as well.
  */
 export const formUnits = {
   degrees_celsius: { sign: '°C', fromRule: { decidegrees_celsius: 100 } },
@@ -47,6 +55,7 @@ export const formUnits = {
   megaohms: { sign: 'MΩ', fromRule: { kiloohms: 1 } },
   milliamperes: { sign: 'mA' },
   kilograms: { sign: 'kg' },
+  milliseconds: { sign: 'ms', fromRule: { milliseconds: 1000 } },
 } as const satisfies Readonly<Record<string, FormUnit>>
 
 export type FormUnitKey = keyof typeof formUnits
@@ -112,15 +121,83 @@ export function isStatedLimit(limit: unknown): limit is StatedLimit {
 }
 
 /**
+ * The limits worked out of the circuit a block is about (#350, ADR 0014 in
+ * the repository opengewerk): the loop impedance from the protective device
+ * of the circuit, and the tripping current from its rated residual current.
+ * Each is worked out in one unit and reads its rules by their keys in this
+ * catalogue, with the unit each of them counts in; the build of the catalogue
+ * asks that they are there.
+ */
+export const workedOutLimits = {
+  loop_impedance: {
+    unit: 'ohms',
+    rules: [
+      { key: 'elektro.loop_factor_b', unit: 'factor' },
+      { key: 'elektro.loop_factor_c', unit: 'factor' },
+      { key: 'elektro.loop_factor_d', unit: 'factor' },
+      { key: 'elektro.loop_nominal_voltage', unit: 'volts' },
+    ],
+  },
+  rcd_trip_current: {
+    unit: 'milliamperes',
+    rules: [{ key: 'elektro.rcd_trip_current_maximum', unit: 'basis_points' }],
+  },
+} as const satisfies Readonly<
+  Record<
+    string,
+    {
+      readonly unit: FormUnitKey
+      readonly rules: readonly { readonly key: string; readonly unit: RuleUnit }[]
+    }
+  >
+>
+
+export type WorkedOutLimitKind = keyof typeof workedOutLimits
+
+/**
+ * The keys the calculators of the foundation ask for, as the trades
+ * application names its rules, and the rule of this catalogue that answers
+ * each. A rule here is named `<package>.<key>` with a key without a dot, so
+ * `elektro.loop.factor_b` is `elektro.loop_factor_b` in the package Elektro.
+ */
+export const foundationCircuitRules: Readonly<Record<string, string>> = {
+  'elektro.loop.factor_b': 'elektro.loop_factor_b',
+  'elektro.loop.factor_c': 'elektro.loop_factor_c',
+  'elektro.loop.factor_d': 'elektro.loop_factor_d',
+  'elektro.loop.nominal_voltage': 'elektro.loop_nominal_voltage',
+  'elektro.rcd.trip_current_maximum': 'elektro.rcd_trip_current_maximum',
+}
+
+/** The rules of the catalogue, asked under the keys the calculators of the foundation use. */
+function asFoundationNames(rules: RuleSet): RuleSet {
+  const named = (key: string) =>
+    Object.hasOwn(foundationCircuitRules, key) ? (foundationCircuitRules[key] ?? key) : key
+
+  return {
+    at: (key, on, state) => rules.at(named(key), on, state),
+    valueAt: (key, unit, on, state) => rules.valueAt(named(key), unit, on, state),
+    keys: () => rules.keys(),
+    all: () => rules.all(),
+  }
+}
+
+/** A calculator of the foundation, handed the rules of this catalogue under the names it asks for. */
+function withCatalogueRules(calculator: LimitCalculator): LimitCalculator<FormTerms> {
+  return (field, context) =>
+    calculator(field, { ...context, rules: asFoundationNames(context.rules) })
+}
+
+/**
  * What the forms of this application name: its units, every kind of field
- * the foundation knows, check points and readings included, no list a group
- * repeats over as yet, and beside the limits of the rules the one an operator
- * states.
+ * the foundation knows, check points and readings included, the circuits of
+ * an installation as the one list a group repeats over (#350), and beside the
+ * limits of the rules the one an operator states and the two worked out of a
+ * circuit.
  */
 export interface FormTerms {
   readonly unit: FormUnitKey
-  readonly list: never
-  readonly limit: 'stated'
+  readonly list: 'circuits'
+  readonly limit: 'stated' | WorkedOutLimitKind
   readonly kind: (typeof blockFieldKinds)[number]
 }
 
@@ -133,10 +210,20 @@ export type NumberField = GeneralNumberField<FormTerms>
 export type MeasurementField = GeneralMeasurementField<FormTerms>
 export type MeterReadingField = GeneralMeterReadingField<FormTerms>
 
-/** The form engine of this application. */
+/**
+ * Where a block of a group over a list keeps the item it is about and its
+ * id. A block is made from the answers whenever it is asked about and never
+ * kept (#350), so it takes the keys the engine names by itself.
+ */
+export const blockKeys = { id: 'itemId', item: 'item' } as const
+
+/**
+ * The form engine of this application. A group over the circuits has one
+ * block for each circuit of the installation (#350).
+ */
 export const forms = formEngine<FormTerms>({
   units: formUnits,
-  lists: {},
+  lists: { circuits: circuitList },
   limits: {
     // The value and its source are read from the field; one that lacks either
     // judges nothing rather than something it does not say.
@@ -149,7 +236,10 @@ export const forms = formEngine<FormTerms>({
             source: field.limit.source,
           }
         : { none: 'Der eigene Grenzwert nennt keinen Wert mit Quelle.' },
+    loop_impedance: withCatalogueRules(loopImpedance),
+    rcd_trip_current: withCatalogueRules(residualTripCurrent),
   },
   kinds: blockFieldKinds,
   records: formRecordKinds,
+  blockKeys,
 })

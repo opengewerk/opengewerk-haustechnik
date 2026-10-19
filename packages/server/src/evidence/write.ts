@@ -20,6 +20,7 @@ import {
   roundRecordVersion,
   type RoundRecordState,
   type StatedAnswer,
+  type StatedCircuit,
   type StatedCollective,
   type StatedDefect,
   type StatedFile,
@@ -30,12 +31,14 @@ import {
   type StatedReplacement,
   type StatedSignature,
   statedAnswers,
+  statedCircuitsOf,
   statedReasonProblem,
   type TenantId,
 } from '@opengewerk/haustechnik-domain'
 import type { TenantTransaction } from '@opengewerk/platform-server'
 import { and, asc, desc, eq, inArray, isNull } from 'drizzle-orm'
 
+import { circuitsOfPage } from '../activities/circuits.js'
 import { formsFor } from '../activities/template-forms.js'
 import { assignNumber } from '../database/number-ranges.js'
 import {
@@ -324,6 +327,8 @@ export async function writeEvidence(
     collective: input.collective ?? null,
     form: filled?.form ?? null,
     answers: filled?.answers ?? [],
+    // The circuits the answers were measured on, as the page held them (#350).
+    ...(filled === null || filled.circuits.length === 0 ? {} : { circuits: filled.circuits }),
     performer: performerOf(input, context),
     defects: found,
     signatures: input.signatures,
@@ -550,7 +555,7 @@ async function activityOf(
 ): Promise<
   Pick<
     typeof activities.$inferSelect,
-    'id' | 'kind' | 'title' | 'formKey' | 'formVersion' | 'pointAssets'
+    'id' | 'kind' | 'title' | 'formKey' | 'formVersion' | 'pointAssets' | 'assetId'
   >
 > {
   const [found] = await tx
@@ -558,6 +563,7 @@ async function activityOf(
       id: activities.id,
       kind: activities.kind,
       title: activities.title,
+      assetId: activities.assetId,
       formKey: activities.formKey,
       formVersion: activities.formVersion,
       pointAssets: activities.pointAssets,
@@ -593,13 +599,23 @@ async function activityOf(
  * in words, a measured value with its limit on the day it was performed, and
  * a photo by the newest version of its document. None for an activity
  * without a form.
+ *
+ * A form with a group over the circuits keeps the circuits of the asset as
+ * the page that was signed held them (#350): the evidence is written in the
+ * transaction of the last signature, which counts only for the page as it
+ * stands, so they are what was signed. An answer in the block of a circuit
+ * names it.
  */
 async function filledFormOf(
   tx: TenantTransaction,
   context: WritingContext,
   activity: Awaited<ReturnType<typeof activityOf>>,
   input: Pick<EvidenceToWrite, 'point' | 'pointAsset' | 'performedOn'>,
-): Promise<{ form: StatedForm; answers: readonly StatedAnswer[] } | null> {
+): Promise<{
+  form: StatedForm
+  answers: readonly StatedAnswer[]
+  circuits: readonly StatedCircuit[]
+} | null> {
   const definition = formOfActivity(await formsFor(tx, context.catalogue, activity), activity)
 
   if (definition === null) {
@@ -661,6 +677,10 @@ async function filledFormOf(
 
   // An answer about one asset names it as it stands now (#343).
   const names = await pointAssetNames(tx, activity.pointAssets)
+  const circuits =
+    point === null
+      ? await circuitsOfPage(tx, { ...activity, tenantId: context.tenantId }, context.catalogue)
+      : null
 
   return {
     form: { key: definition.key, version: definition.version, title: definition.title },
@@ -670,7 +690,9 @@ async function filledFormOf(
       fileOf: (id) => newest.get(id) ?? null,
       pointAssets: activity.pointAssets,
       assetOf: (id) => names.get(id) ?? null,
+      circuits,
     }),
+    circuits: circuits === null ? [] : statedCircuitsOf(circuits),
   }
 }
 

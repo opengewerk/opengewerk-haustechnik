@@ -15,6 +15,8 @@ import {
   type RoundState,
   roundStateLabel,
   signatureLimits,
+  type SignedPage,
+  statedCircuitWords,
   weekdayLabel,
   weekdayOf,
   weekNumberOf,
@@ -57,7 +59,7 @@ import { Ban, Check, Clock, type LucideIcon, PenLine, Signature, X } from 'lucid
 import { Fragment, useState } from 'react'
 
 import { activityPlaces } from '../activity-addresses.js'
-import { type FormPoint, pointsOf, pointState } from '../../app/answers.js'
+import { circuitOfPoint, type FormPoint, pointsOf, pointState } from '../../app/answers.js'
 import { dutyNameOf, fulfilledDuty, useFormOf } from '../../app/form-of.js'
 import { PhotoThumb } from '../../app/form-points.js'
 import { roundPdfAddress } from '../../app/prints.js'
@@ -345,12 +347,23 @@ function usePoints(round: RoundDetails) {
 
 /**
  * A point by its label, in a block of a group with the group and the number
- * of the block; the point of one asset of a point for every asset by the
- * asset, which stands under the point (#343).
+ * of the block, in the block of a circuit with the circuit the page names
+ * (#350); the point of one asset of a point for every asset by the asset,
+ * which stands under the point (#343).
  */
-function labelOf(point: FormPoint, assetWords: (id: string) => string): string {
+function labelOf(
+  point: FormPoint,
+  assetWords: (id: string) => string,
+  circuits: SignedPage['circuits'],
+): string {
   if (point.assetId !== null) {
     return assetWords(point.assetId)
+  }
+
+  const circuit = circuitOfPoint(point, circuits)
+
+  if (circuit !== null && point.group !== null) {
+    return `${point.group.label}, ${statedCircuitWords(circuit)}: ${point.field.label}`
   }
 
   return point.group === null
@@ -422,8 +435,8 @@ function Answers({ round }: { readonly round: RoundDetails }) {
           key: point.key,
           title:
             point.assetId === null
-              ? labelOf(point, assetWords)
-              : `${point.field.label}, ${labelOf(point, assetWords)}`,
+              ? labelOf(point, assetWords, round.page?.circuits)
+              : `${point.field.label}, ${labelOf(point, assetWords, round.page?.circuits)}`,
           sub: [point.section.title, saidWith(point, answer, context), ...notesOf(point, answer)]
             .filter(Boolean)
             .join(' · '),
@@ -470,7 +483,7 @@ function Answers({ round }: { readonly round: RoundDetails }) {
                       </tr>
                     ) : null}
                     <tr>
-                      <Cell>{labelOf(point, assetWords)}</Cell>
+                      <Cell>{labelOf(point, assetWords, round.page?.circuits)}</Cell>
                       <Cell>
                         <AnswerCell point={point} answer={answer} context={context} />
                       </Cell>

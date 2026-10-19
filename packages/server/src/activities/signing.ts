@@ -14,6 +14,8 @@ import {
   type EvidenceOrigin,
   finishesWorkOrder,
   formOfActivity,
+  type FormVersions,
+  type SignedCircuit,
   keyDateFor,
   partAsksForAnswers,
   pointFulfilling,
@@ -67,6 +69,7 @@ import {
 } from '../evidence/write.js'
 import { dayInGermany } from '../today.js'
 import { assetInWords, pointAssetNames } from '../rounds/point-assets.js'
+import { circuitsOfPage, shippedForms } from './circuits.js'
 import { partsOf } from './collectives.js'
 import { formsFor } from './template-forms.js'
 
@@ -153,8 +156,18 @@ type SignatureRow = typeof activitySignatures.$inferSelect
  * What an activity calls for before it is signed, and what the server holds of
  * it: the page as the device shows it, worked out from the records here
  * (ADR 0004, point 7).
+ *
+ * The catalogue says whether the form of the activity has a group over the
+ * circuits, whose page names the circuits of its asset (#350); the device
+ * asks the one it holds, which is the one the server computes with. Without
+ * one given, the catalogue this build ships: the routes and the sync hand in
+ * the one they were given, a test its probe package.
  */
-export async function pageOf(tx: TenantTransaction, activity: ActivityRow): Promise<SignedPage> {
+export async function pageOf(
+  tx: TenantTransaction,
+  activity: ActivityRow,
+  catalogue: FormVersions = shippedForms(),
+): Promise<SignedPage> {
   const tenantId = activity.tenantId
   const [property] = await tx
     .select()
@@ -236,9 +249,11 @@ export async function pageOf(tx: TenantTransaction, activity: ActivityRow): Prom
 
   if (activity.collectiveKind !== null) {
     for (const part of await partsOf(tx, activity.id)) {
-      parts.push(await pageOf(tx, part))
+      parts.push(await pageOf(tx, part, catalogue))
     }
   }
+
+  const circuits = await circuitsOfPage(tx, activity, catalogue)
 
   return signedPageOf({
     activity: {
@@ -264,6 +279,7 @@ export async function pageOf(tx: TenantTransaction, activity: ActivityRow): Prom
     ...filled,
     ...work,
     ...(activity.collectiveKind === null ? {} : { parts }),
+    circuits,
   })
 }
 
@@ -551,7 +567,7 @@ export async function checkSignature(
     )
   }
 
-  const page = await pageOf(tx, activity)
+  const page = await pageOf(tx, activity, catalogue)
   const fingerprint = pageFingerprint(page)
 
   if (input.pageFingerprint !== fingerprint) {
@@ -650,6 +666,9 @@ async function checkWork(
     rules: catalogue.ruleSet,
     on: activity.performedOn,
     pointAssets: activity.pointAssets,
+    // The circuits as the page holds them (#350): what was measured on each
+    // is judged against them, and each needs its answers.
+    circuits: page.circuits ?? null,
     assetName: (id: string) => {
       const asset = names.get(id)
 
@@ -747,12 +766,13 @@ export async function followSignature(
     return followCollective(tx, context, activity)
   }
 
-  const valid = await signaturesOf(tx, activity, pageFingerprint(await pageOf(tx, activity)))
+  const page = await pageOf(tx, activity, context.catalogue)
+  const valid = await signaturesOf(tx, activity, pageFingerprint(page))
 
   const signer = valid.find((signature) => signature.role === 'signer')
 
   if (signer !== undefined) {
-    await defectsFromAnswers(tx, context, activity)
+    await defectsFromAnswers(tx, context, activity, page.circuits ?? null)
     await readingsFromAnswers(tx, context, activity, signer.signedBy ?? context.writtenBy)
 
     if (activity.kind === 'work_order') {
@@ -786,13 +806,17 @@ async function followCollective(
   context: WritingContext,
   collective: ActivityRow,
 ): Promise<Omit<TakenSignature, 'id'>> {
-  const valid = await signaturesOf(tx, collective, pageFingerprint(await pageOf(tx, collective)))
+  const page = await pageOf(tx, collective, context.catalogue)
+  const valid = await signaturesOf(tx, collective, pageFingerprint(page))
   const parts = await partsOf(tx, collective.id)
   const signer = valid.find((signature) => signature.role === 'signer')
 
   if (signer !== undefined) {
     for (const part of parts) {
-      await defectsFromAnswers(tx, context, part)
+      // Judged against the circuits the page of the part names (#350).
+      const circuits = page.parts?.find((each) => each.activity.id === part.id)?.circuits ?? null
+
+      await defectsFromAnswers(tx, context, part, circuits)
       await readingsFromAnswers(tx, context, part, signer.signedBy ?? context.writtenBy)
     }
   }
@@ -845,11 +869,16 @@ async function followCollective(
  *
  * The page of the activity names the answer and not the defect, so the
  * signature stays valid with the defect beside it.
+ *
+ * An answer in the block of a circuit is judged against the circuits the
+ * signed page names, and its defect is at the installation with the circuit
+ * it was found on (#350).
  */
 async function defectsFromAnswers(
   tx: TenantTransaction,
   context: WritingContext,
   activity: ActivityRow,
+  circuits: readonly SignedCircuit[] | null,
 ): Promise<void> {
   const form = formOfActivity(await formsFor(tx, context.catalogue, activity), activity)
 
@@ -862,6 +891,7 @@ async function defectsFromAnswers(
     rules: context.catalogue.ruleSet,
     on: activity.performedOn,
     pointAssets: activity.pointAssets,
+    circuits,
   })
 
   if (findings.length === 0) {
@@ -894,6 +924,7 @@ async function defectsFromAnswers(
       ...(await placeOfFinding(tx, activity, finding.about)),
       foundInActivityId: activity.id,
       foundInAnswerId: finding.answer.id,
+      circuitId: (finding.circuitId ?? null) as typeof defects.$inferInsert.circuitId,
       description: finding.description,
       foundOn: activity.performedOn,
     })
@@ -1121,7 +1152,11 @@ export async function decideWorkOrder(
 
   // Held like a signature: two acceptances at once wrote the order down twice.
   const activity = await activityOf(tx, context.tenantId, order.activityId, true)
-  const valid = await signaturesOf(tx, activity, pageFingerprint(await pageOf(tx, activity)))
+  const valid = await signaturesOf(
+    tx,
+    activity,
+    pageFingerprint(await pageOf(tx, activity, context.catalogue)),
+  )
 
   if (activity.status !== 'signed' || !valid.some((signature) => signature.role === 'signer')) {
     throw new SigningRefusal('Abgenommen oder zurückgewiesen wird ein unterschriebener Auftrag.')

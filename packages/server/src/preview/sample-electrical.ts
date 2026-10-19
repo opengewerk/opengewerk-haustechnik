@@ -1,14 +1,21 @@
-import { type Identity } from '@opengewerk/haustechnik-domain'
+import { type Catalogue, type Identity } from '@opengewerk/haustechnik-domain'
 import type { Database } from '@opengewerk/platform-server'
-import { and, eq, isNull } from 'drizzle-orm'
+import { and, eq, inArray, isNull } from 'drizzle-orm'
 
+import { chartOfAsset } from '../activities/circuits.js'
+import { makeActivityForDuty } from '../activities/for-duty.js'
 import {
+  activities,
+  activityAnswers,
+  activityDuties,
   assets,
   boardSections,
   circuits,
   distributionBoards,
+  duties,
   equipment,
 } from '../database/schema/index.js'
+import { dayInGermany } from '../today.js'
 
 /** The low-voltage installation of the sample operator the structure hangs on. */
 export const sampleInstallation = 'Elektrische Anlage Halle 1'
@@ -254,5 +261,167 @@ export async function giveSampleElectrical(database: Database, planter: Identity
         ],
       },
     ])
+  })
+}
+
+/** The form the test of the installation is filled in (#350), and its duty kind. */
+export const sampleCircuitTest = {
+  form: 'elektro.installation_test',
+  dutyKind: 'elektro.installation_test_dguv_v3',
+} as const
+
+/**
+ * The test of the installation on site, half done (#350): the duty of DGUV
+ * Vorschrift 3 at the installation is due, its inspection in the version
+ * of the duty kind whose form measures every circuit, performed by the
+ * viewer, begun today, with the general points answered and the first three
+ * circuits of the chart measured, the loop impedance of the sockets of the
+ * north wall outside the limit worked out of the circuit, with its remark.
+ * What is left is for the screens on site to show. Called after the boards
+ * are there; the inspection the engine made for the due day is taken, and
+ * one is made where there is none.
+ */
+export async function giveSampleCircuitTest(
+  database: Database,
+  planter: Identity,
+  viewer: string,
+  catalogue: Catalogue,
+): Promise<void> {
+  const today = dayInGermany()
+
+  await database.forTenant(planter, async (tx) => {
+    const [installation] = await tx
+      .select()
+      .from(assets)
+      .where(and(eq(assets.name, sampleInstallation), isNull(assets.deletedAt)))
+    const [duty] =
+      installation === undefined
+        ? []
+        : await tx
+            .select({ id: duties.id })
+            .from(duties)
+            .where(
+              and(
+                eq(duties.assetId, installation.id),
+                eq(duties.kind, sampleCircuitTest.dutyKind),
+                isNull(duties.deletedAt),
+              ),
+            )
+    const form = catalogue.form(sampleCircuitTest.form, today)
+
+    if (installation === undefined || duty === undefined || form === null) {
+      throw new Error(
+        `Die Prüfung der Anlage „${sampleInstallation}“ hat keine Pflicht mit Formular.`,
+      )
+    }
+
+    const underWay = async () =>
+      (
+        await tx
+          .select({ id: activities.id })
+          .from(activities)
+          .innerJoin(
+            activityDuties,
+            and(eq(activityDuties.activityId, activities.id), eq(activityDuties.dutyId, duty.id)),
+          )
+          .where(and(inArray(activities.status, ['open', 'started']), isNull(activities.deletedAt)))
+      )[0]?.id
+    const activityId =
+      (await underWay()) ??
+      (
+        await makeActivityForDuty(tx, catalogue, {
+          tenantId: planter.tenantId,
+          dutyId: duty.id,
+          dueOn: today,
+          responsible: viewer,
+          now: new Date(),
+        })
+      ).made
+
+    if (activityId === null || activityId === undefined) {
+      return
+    }
+
+    await tx
+      .update(activities)
+      .set({
+        status: 'started',
+        performedOn: today,
+        performer: 'own_staff',
+        performerUserId: viewer,
+        formKey: form.key,
+        formVersion: form.version,
+      })
+      .where(eq(activities.id, activityId))
+
+    const place = {
+      tenantId: planter.tenantId,
+      propertyId: installation.propertyId,
+      areaId: installation.areaId,
+      activityId,
+    }
+    const answer = (
+      fieldKey: string,
+      given: { value?: string; result?: 'ok'; remark?: string },
+      block: string | null = null,
+    ) => ({
+      ...place,
+      fieldKey,
+      groupKey: block === null ? null : 'circuits',
+      blockKey: block,
+      value: given.value ?? null,
+      result: given.result ?? null,
+      remark: given.remark ?? null,
+    })
+    const chart = await chartOfAsset(tx, planter.tenantId, installation.id)
+    // RPE, Riso, Zs, IΔ and tΔ in thousandths of their units, the circuits
+    // in the order of the chart; one without an RCD has neither of the last.
+    const measured: readonly (readonly [number, number, number, number, number])[] = [
+      [80, 480_000, 180, 0, 0],
+      [420, 520_000, 920, 21_000, 24_000],
+      [310, 350_000, 3_400, 19_000, 21_000],
+    ]
+    const fields = [
+      'protective_conductor',
+      'insulation_resistance',
+      'loop_impedance',
+      'rcd_trip_current',
+      'rcd_trip_time',
+    ]
+    const circuitAnswers = chart.slice(0, measured.length).flatMap((circuit, index) =>
+      (measured[index] ?? []).flatMap((value, at) =>
+        at >= 3 && circuit.ratedResidualCurrentMilli === null
+          ? []
+          : [
+              answer(
+                fields[at] ?? '',
+                {
+                  value: String(value),
+                  // The loop impedance of the third, outside its limit, with its remark.
+                  ...(index === 2 && at === 2
+                    ? { remark: 'Zweimal gemessen, gleicher Wert.' }
+                    : {}),
+                },
+                circuit.id,
+              ),
+            ],
+      ),
+    )
+
+    await tx
+      .insert(activityAnswers)
+      .values([
+        answer('instrument', { value: JSON.stringify('Installationstester Probe 1664') }),
+        answer('earthing_system', { value: JSON.stringify('tn_s') }),
+        ...[
+          'basic_protection',
+          'protective_devices',
+          'conductors',
+          'identification',
+          'fire_protection',
+          'documentation',
+        ].map((point) => answer(point, { result: 'ok' })),
+        ...circuitAnswers,
+      ])
   })
 }

@@ -2,13 +2,15 @@
 
 Elektrische Anlagen und ortsfeste Betriebsmittel, ortsveränderliche Betriebsmittel,
 Fehlerstrom-Schutzeinrichtungen, Sicherheitsbeleuchtung, Sicherheitsstromversorgung und Blitzschutz
-(Abschnitt 5 des Planungskonzepts). Diese erste Fassung bringt die Einträge aus staatlichem Recht und
-aus den Unfallverhütungsvorschriften; Verweise auf private Normen kommen als neue Fassung, sobald sie
-am Text der Norm geprüft sind.
+(Abschnitt 5 des Planungskonzepts). Die erste Fassung bringt die Einträge aus staatlichem Recht und
+aus den Unfallverhütungsvorschriften. Aus privaten Normen kommen seit der Fassung 1.3.0 die Grenzwerte
+der Messungen je Stromkreis, als Regeln mit Norm, Ausgabe und Abschnitt; weitere Verweise auf private
+Normen kommen als neue Fassung, sobald sie am Text der Norm geprüft sind.
 
 Fachkundig abgenommen hat das Paket der Maintainer am 16.10.2026 (Abschnitt 15), jeder Eintrag
 mit der Prüfsumme dessen, was abgenommen wurde. Wird ein Eintrag geändert, fällt seine Abnahme
-weg, und die Oberfläche kennzeichnet ihn wieder, bis er erneut abgenommen ist.
+weg, und die Oberfläche kennzeichnet ihn wieder, bis er erneut abgenommen ist. Die Einträge, die mit
+der Fassung 1.3.0 dazukamen, sind noch nicht abgenommen und bis dahin gekennzeichnet.
 
 ## Anlagenarten
 
@@ -50,6 +52,9 @@ Die Richtwerte stehen als Regeln in `regeln/dguv.json` und gelten dort ab dem 01
 der Durchführungsanweisungen, deren Text geprüft ist. Für einen Arbeitsbereich, den die Tabelle von
 Vorschrift 4 nicht nennt, gibt sie keinen Richtwert; dort legt der Betreiber die Frist fest.
 
+Die Prüfung der elektrischen Anlage wird seit der zweiten Fassung ihrer drei Pflichtarten mit dem
+Formular `installation_test` als Protokoll nachgewiesen oder wie bisher als Bericht eingetragen.
+
 ### Arbeitsstättenverordnung
 
 Sicherheitsbeleuchtung und Notaggregate hält der Arbeitgeber instand und lässt sie in regelmäßigen
@@ -66,12 +71,30 @@ Die Formulare, die ohne Stromkreis auskommen (Entscheidung vom 04.10.2026):
 - `safety_lighting_function_test`: Funktionsprüfung und Prüfung der Betriebsdauer der
   Sicherheitsbeleuchtung, mit den Leuchten, an denen etwas auffiel
 
-Die Messwerte haben keinen Grenzwert im Formular. Die Grenzwerte stehen in privaten Normen; ob und wie
-das Paket sie nennen darf, klärt die rechtliche Prüfung (Abschnitt 15). Bis dahin beurteilt die
-prüfende Person sie mit dem Prüfpunkt "Grenzwerte eingehalten".
+Die Messwerte des ortsveränderlichen Betriebsmittels haben keinen Grenzwert im Formular. Die
+Grenzwerte stehen in privaten Normen; ob und wie das Paket sie nennen darf, klärt die rechtliche
+Prüfung (Abschnitt 15). Bis dahin beurteilt die prüfende Person sie mit dem Prüfpunkt "Grenzwerte
+eingehalten".
 
-Die wiederkehrende Prüfung der elektrischen Anlage wird mit Ergebnis und Messprotokoll als Bericht
-eingetragen; ihre Messwerte je Stromkreis kommen mit der Elektro-Struktur in Phase 2.
+Die Formulare mit den Messungen je Stromkreis, seit der Fassung 1.3.0:
+
+- `installation_initial_test`: Erstprüfung der elektrischen Anlage nach DIN VDE 0100-600 mit
+  Besichtigen, Erproben und Messen
+- `installation_test`: wiederkehrende Prüfung der elektrischen Anlage nach DGUV Vorschrift 3 oder 4
+  mit DIN VDE 0105-100, mit denselben Messungen
+
+Ihre Gruppe "Messen je Stromkreis" hat einen Block für jeden Stromkreis der Anlage aus dem
+Stromkreisverzeichnis und keinen weiteren: Schutzleiter RPE, Isolationswiderstand Riso,
+Schleifenimpedanz Zs, Auslösestrom IΔ und Auslösezeit tΔ, dazu der Prüfpunkt "Stromkreis in
+Ordnung" und eine Bemerkung. Vor der Unterschrift braucht jeder Stromkreis seinen Prüfpunkt. Die
+Grenzwerte stehen in `regeln/vde.json`, mit denselben Werten und Fundstellen wie im Paket Elektro
+der Handwerkersoftware OpenGewerk: der Isolationswiderstand mindestens 1 MΩ, die Auslösezeit höchstens
+300 ms. Die Schleifenimpedanz und der Auslösestrom werden aus dem Stromkreis berechnet, die
+Schleifenimpedanz aus der Nennspannung und dem Auslösestrom der Charakteristik B, C oder D bei
+seinem Nennstrom, der Auslösestrom aus seinem Bemessungsdifferenzstrom. Ein Messwert außerhalb seines
+Grenzwerts wird ein Mangel an der Anlage, mit dem Stromkreis, an dem er gemessen wurde. Alle
+Grenzwerte gelten ab dem 01.06.2017, der Ausgabe der DIN VDE 0100-600, nach der die Messungen
+aufgebaut sind.
 
 ## Mängelklassen
 
@@ -87,7 +110,7 @@ zu beheben, Gefahr im Verzug. Die letzte macht eine Anlage unsicher.
   mit Fehlerstrom-Schutzeinrichtungen und die arbeitstägliche Prüftaste.
 - Die Schutz- und Hilfsmittel für das Arbeiten an elektrischen Anlagen (Tabelle 1C der
   Durchführungsanweisungen) und die Fristen der Eisenbahn-Unfallkasse.
-- Messwerte je Stromkreis, Verteiler und Betriebsmittel einer Anlage (Phase 2).
+- Messwerte je Verteiler und je Betriebsmittel einer Anlage.
 
 Der Katalog erhebt keinen Anspruch auf Vollständigkeit. Welche Pflicht für eine Anlage gilt,
 entscheidet der Betreiber.

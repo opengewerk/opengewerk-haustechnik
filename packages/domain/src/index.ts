@@ -114,6 +114,8 @@ export * from './model/duty.js'
 export * from './model/duty-record.js'
 export * from './model/canonical.js'
 export * from './model/evidence.js'
+// The measurements of a group over the circuits as a table, in the office and in the PDF (#350).
+export * from './model/circuit-table.js'
 export * from './model/signature.js'
 export * from './model/service-report.js'
 // The stores, on the building block of the foundation (#325).
@@ -207,8 +209,8 @@ export * from './model/report.js'
 export * from './model/deadlines.js'
 
 // The forms of this application: the form engine of the foundation, bound to
-// its units, the kinds of field it shows and the records a field may be
-// about. The types bound to its terms carry the names of the general ones of
+// its units, the kinds of field it shows, the records a field may be about
+// and the circuits a group repeats over, with the limits worked out of one. The types bound to its terms carry the names of the general ones of
 // the foundation, so they are named here once more, and these win.
 export * from './model/forms.js'
 export type {

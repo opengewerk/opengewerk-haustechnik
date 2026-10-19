@@ -124,7 +124,7 @@ export async function writeSampleStandings(
         deviceInfo: 'Telefon',
         path: sampleSignature,
         typedName: null,
-        pageFingerprint: pageFingerprint(await pageOf(tx, row)),
+        pageFingerprint: pageFingerprint(await pageOf(tx, row, catalogue)),
       })
     }
 

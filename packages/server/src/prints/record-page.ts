@@ -1,8 +1,12 @@
 import {
+  type CircuitTable,
+  circuitTablesOf,
   collectiveStatement,
+  distributionBoardKindLabel,
   stockUnitLabel,
   evidenceOriginLabel,
   legacyNote,
+  onACircuit,
   evidenceResultLabel,
   workOrderKindLabel,
   type EvidenceState,
@@ -12,6 +16,7 @@ import {
   signatureRoleLabel,
   signatureWayLabel,
   type StatedAnswer,
+  type StatedCircuit,
   type StatedCollective,
   type StatedPlace,
   type StatedSignature,
@@ -127,8 +132,15 @@ function answerCells(answer: StatedAnswer): { said: string; remark: string } {
   return { said, remark }
 }
 
-/** The answers by the chapter of the form, each with the place of its block in a group. */
-function chapters(answers: readonly StatedAnswer[]): string {
+/**
+ * The answers by the chapter of the form, each with the place of its block in
+ * a group. The answers of a group over the circuits stand in a table of
+ * their own under the label of the group, one row for each circuit (#350).
+ */
+function chapters(
+  answers: readonly StatedAnswer[],
+  circuits: readonly StatedCircuit[] = [],
+): string {
   const bySection = new Map<string, StatedAnswer[]>()
 
   for (const answer of answers) {
@@ -136,22 +148,79 @@ function chapters(answers: readonly StatedAnswer[]): string {
   }
 
   return [...bySection.entries()]
-    .map(
-      ([title, rows]) => `
+    .map(([title, rows]) => {
+      const points = rows.filter((answer) => !onACircuit(answer, circuits))
+
+      return `${
+        points.length === 0
+          ? ''
+          : `
     <h2>${text(title)}</h2>
     <table>
       <thead><tr><th class="point">Punkt</th><th class="said">Antwort</th><th>Bemerkung</th></tr></thead>
-      <tbody>${rows
+      <tbody>${points
         .map((answer) => {
           const { said, remark } = answerCells(answer)
-          const point = statedPointWords(answer)
+          const point = statedPointWords(answer, circuits)
 
           return `<tr><td>${text(point)}</td><td class="said"><strong>${text(said)}</strong></td><td class="muted">${text(remark)}</td></tr>`
         })
         .join('')}</tbody>
-    </table>`,
-    )
+    </table>`
+      }${circuitTablesOf(rows, circuits)
+        .map(
+          (table) => `
+    <h2>${text(table.group)}</h2>
+    ${circuitTable(table)}`,
+        )
+        .join('')}`
+    })
     .join('')
+}
+
+/**
+ * The measurements of a group over the circuits as a table (#350, as the
+ * board of the PDF with the circuits draws it, `circuitTablesOf`): the
+ * circuits board by board in the order of the chart, each on one line with
+ * what protects it, a column for each measured value, beside the loop
+ * impedance the limit worked out of the circuit, and what else was said in
+ * the block under "Bemerkung". A value outside its limit is bold and red, so
+ * that it reads in black and white too. The legend under the table says where
+ * each limit comes from, with its sources.
+ */
+function circuitTable(table: CircuitTable): string {
+  const head = [
+    '<th>Stromkreis</th>',
+    '<th>Schutz</th>',
+    ...table.columns.flatMap((column) => [
+      `<th class="figure">${text(`${column.symbol} ${column.unit}`.trim())}</th>`,
+      ...(column.withLimit
+        ? [`<th class="figure">${text(`Grenzwert ${column.symbol} ${column.unit}`.trim())}</th>`]
+        : []),
+    ]),
+    '<th>Bemerkung</th>',
+  ]
+  const rows = table.boards.flatMap((board) => [
+    `<tr class="board"><td colspan="${String(head.length)}"><strong>${text(board.board)}</strong><span class="muted">, ${text(distributionBoardKindLabel[board.boardKind])}</span></td></tr>`,
+    ...board.rows.map(({ circuit, values, remarks }) => {
+      const cells = values.flatMap((value) => [
+        `<td class="figure">${value.outside ? `<strong class="out">${text(value.figure)}</strong>` : text(value.figure)}</td>`,
+        ...(value.limit === undefined
+          ? []
+          : [`<td class="figure muted">${text(value.limit)}</td>`]),
+      ])
+
+      return `<tr><td><strong>${text(circuit.designation)}</strong>${circuit.consumer === null ? '' : ` ${text(circuit.consumer)}`}</td><td class="muted protection">${text(circuit.protection ?? 'nicht erfasst')}</td>${cells.join('')}<td class="muted">${text(remarks)}</td></tr>`
+    }),
+  ])
+
+  return `<table class="circuits">
+      <thead><tr>${head.join('')}</tr></thead>
+      <tbody>${rows.join('')}</tbody>
+    </table>
+    <p class="legend"><strong class="out">Fett und rot</strong>: außerhalb des Grenzwerts, daraus ein Mangel. ${text(
+      table.limits.join('; '),
+    )}${table.limits.length === 0 ? '' : '. '}Stromkreise und Angaben wie bei der Unterschrift im Stromkreisverzeichnis.</p>`
 }
 
 /** The photos of the answers, two to a row, each under the point it was taken for. */
@@ -272,6 +341,14 @@ figcaption { font-size: 8pt; color: #555; }
 .signature p { margin: 0; }
 .work p { margin: 0; padding: 5px 0; border-bottom: 1px solid #ddd6cc; }
 .work .muted { display: block; font-size: 8pt; }
+table.circuits { font-size: 8pt; line-height: 1.3; }
+table.circuits th { font-size: 7pt; vertical-align: bottom; }
+table.circuits td { padding: 2px 4px; }
+table.circuits .figure { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+table.circuits .protection { white-space: nowrap; }
+table.circuits tr.board td { padding-top: 6px; border-bottom: 1px solid #8a8178; }
+.out { color: #b42318; font-weight: 600; }
+.legend { margin: 6px 0 0; font-size: 7.5pt; line-height: 1.4; color: #555; }
 </style>
 </head>
 <body>${body}</body>
@@ -400,7 +477,7 @@ export function evidencePrintJob(
     ],
     ['Eingetragen', `${state.writtenBy}, ${moment(state.writtenAt)}`],
   ])}
-  ${chapters(state.answers)}
+  ${chapters(state.answers, state.circuits)}
   ${photosOf(photos)}
   ${signaturesOf(state.signatures)}`
 
