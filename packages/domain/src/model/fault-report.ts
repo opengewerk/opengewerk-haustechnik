@@ -358,6 +358,11 @@ export const outsideReportRules = {
   photoMinutes: 15,
   /** The largest photo the page takes, smaller than a file of somebody signed in. */
   photoBytes: 10_000_000,
+  /**
+   * The kinds of picture the page takes, each one the first bytes show; the
+   * page offers no other at the camera or in the gallery (#458).
+   */
+  photoTypes: ['image/jpeg', 'image/png', 'image/webp'],
   /** The longest address for an answer. */
   address: 254,
 } as const

@@ -12,6 +12,7 @@ import {
   type OwnFaultReport,
 } from '@opengewerk/haustechnik-domain'
 import { Button, Panel, SelectField, TextArea } from '@opengewerk/platform-web'
+import { PhotoTaker } from '@opengewerk/platform-web/forms'
 import { date, moment, today } from '@opengewerk/platform-web/format'
 import { useRight } from '@opengewerk/platform-web/session'
 import {
@@ -28,7 +29,6 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useNavigate, useParams, useSearch } from '@tanstack/react-router'
 import {
   Building2,
-  Camera,
   Check,
   ChevronRight,
   DoorOpen,
@@ -81,8 +81,6 @@ export const reportingWords = {
   noPlace: 'Wählen Sie, wo die Störung ist: über das Etikett oder aus der Liste.',
   category: 'Kategorie',
   description: 'Beschreibung',
-  takePhoto: 'Foto aufnehmen',
-  retakePhoto: 'Anderes Foto',
   photoField: 'Foto der Störung',
   nobodyNamed:
     'Die Objektleitung Ihres Bereichs sieht die Meldung, ohne Ihren Namen. Wer gemeldet hat, steht im Änderungsprotokoll.',
@@ -445,7 +443,6 @@ export function ReportFaultScreen() {
     queryFn: () => request<readonly FaultCategory[]>('/fault-reports/categories'),
     enabled: reports,
   })
-  const picker = useRef<HTMLInputElement>(null)
   const [categoryId, setCategoryId] = useState('')
   const [description, setDescription] = useState('')
   const [photo, setPhoto] = useState<File | null>(null)
@@ -603,31 +600,16 @@ export function ReportFaultScreen() {
             setDescription(event.target.value)
           }}
         />
-        <div className="flex items-center gap-2.5">
-          {photo === null ? null : <PhotoPreview photo={photo} label={reportingWords.photoField} />}
-          <Button
-            icon={Camera}
-            height={52}
-            disabled={working}
-            onClick={() => {
-              picker.current?.click()
-            }}
-          >
-            {photo === null ? reportingWords.takePhoto : reportingWords.retakePhoto}
-          </Button>
-          <input
-            ref={picker}
-            type="file"
-            accept="image/*"
-            capture="environment"
-            hidden
-            aria-label={reportingWords.photoField}
-            onChange={(event) => {
-              setPhoto(event.target.files?.[0] ?? null)
-              event.target.value = ''
-            }}
-          />
-        </div>
+        <PhotoTaker
+          label={reportingWords.photoField}
+          disabled={working}
+          photo={
+            photo === null ? null : <PhotoPreview photo={photo} label={reportingWords.photoField} />
+          }
+          onTake={(file) => {
+            setPhoto(file)
+          }}
+        />
         <SiteText muted size={15}>
           {reportingWords.nobodyNamed}
         </SiteText>

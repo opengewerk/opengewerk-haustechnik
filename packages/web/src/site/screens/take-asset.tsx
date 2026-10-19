@@ -14,6 +14,7 @@ import {
   sameWords,
 } from '@opengewerk/haustechnik-domain'
 import { Button, Field, IconButton, SelectField } from '@opengewerk/platform-web'
+import { PhotoTaker } from '@opengewerk/platform-web/forms'
 import { today } from '@opengewerk/platform-web/format'
 import { useRight } from '@opengewerk/platform-web/session'
 import {
@@ -35,7 +36,7 @@ import {
   useSync,
 } from '@opengewerk/platform-web/sync'
 import { useNavigate, useParams } from '@tanstack/react-router'
-import { Camera, Check, Pencil, QrCode, ScanLine, TriangleAlert } from 'lucide-react'
+import { Check, Pencil, QrCode, ScanLine, TriangleAlert } from 'lucide-react'
 import { type FormEvent, useEffect, useRef, useState } from 'react'
 
 import {
@@ -197,7 +198,6 @@ function TakeAssetForm({
   const assets = useRecords('assets')
   const allRooms = useRecords('rooms')
   const buildings = useRecords('buildings')
-  const photoField = useRef<HTMLInputElement>(null)
 
   const [typed, setTyped] = useState<Typed>({
     kind: '',
@@ -539,31 +539,14 @@ function TakeAssetForm({
         />
         <div className="flex flex-col gap-1.5">
           <SiteLabel>Typenschild</SiteLabel>
-          <input
-            ref={photoField}
-            type="file"
-            accept="image/*"
-            capture="environment"
-            hidden
-            aria-label={takeAssetWords.photoField}
-            onChange={(event) => {
-              setPhoto(event.target.files?.[0] ?? null)
-              event.target.value = ''
+          {/* A photo of the plate taken before, from the gallery, as well (#458). */}
+          <PhotoTaker
+            label={takeAssetWords.photoField}
+            photo={photo ? <PhotoThumb photo={photo} /> : null}
+            onTake={(file) => {
+              setPhoto(file)
             }}
           />
-          <div className="flex items-center gap-2.5">
-            <PhotoThumb photo={photo} />
-            <Button
-              wide
-              height={52}
-              icon={Camera}
-              onClick={() => {
-                photoField.current?.click()
-              }}
-            >
-              {photo ? 'Anderes Foto' : 'Foto aufnehmen'}
-            </Button>
-          </div>
         </div>
         {kind && (ownFields.length > 0 || kind.meter !== null) ? (
           <>

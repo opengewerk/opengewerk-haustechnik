@@ -7,6 +7,22 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
 
 ## [Unreleased]
 
+### Geändert
+
+- Fotos aus der Galerie an allen Fotoknöpfen vor Ort (#458): Auftrag und Notiz, Mangel melden, Störung melden, das
+  Typenschild beim Aufnehmen einer Anlage, die Dokumente eines Orts und die Meldung über das Etikett ohne Anmeldung haben
+  neben „Foto aufnehmen“ den Knopf „Aus der Galerie“, den `PhotoTaker` des Fundaments. Wo eine Stelle mehrere Fotos
+  hält, wählt die Galerie auch mehrere auf einmal; am Auftrag gehen sie nacheinander, damit das erste ihn beginnt und die
+  übrigen ihn begonnen finden. Die Seite ohne Anmeldung bietet nur JPEG, PNG und WebP an, dieselbe Liste, die ihr Server
+  prüft (`outsideReportRules.photoTypes`). Warum: bisher öffnete jeder dieser Knöpfe nur die Kamera, und ein Foto, das
+  schon gemacht war, kam nicht hinein.
+
+### Behoben
+
+- Die Dokumente eines Orts vor Ort meldeten nach jedem abgelegten Foto „Das Foto ließ sich nicht ablegen.“ und schwiegen,
+  wenn es wirklich nicht ging (#458). Jetzt steht nur bei einem Fehler etwas da, mit dem Grund. Warum: die Seite las die
+  Antwort des Ablegens verkehrt herum, `null` heißt dort, dass das Foto unterwegs ist.
+
 ## [0.1.8] - 2026-10-19
 
 Die vierte Zwischenfassung für den Pilotbetrieb, mit dem, was aus Phase 2 seit 0.1.7 fertig ist.

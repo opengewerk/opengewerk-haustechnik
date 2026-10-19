@@ -1,9 +1,11 @@
 import {
   closedLabelSentence,
   type OutsideLabelPage,
+  outsideReportRules,
   tooManyReportsSentence,
 } from '@opengewerk/haustechnik-domain'
 import { ApplicationProvider } from '@opengewerk/platform-web'
+import { fromTheGallery } from '@opengewerk/platform-web/forms'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { userEvent } from '@testing-library/user-event'
@@ -199,6 +201,44 @@ describe('the page of a label without an account', () => {
     await waitFor(() => {
       expect(screen.getByRole('alert').textContent).toBe(tooManyReportsSentence)
     })
+  })
+
+  it('offers at the camera and in the gallery only the pictures the server takes, and sends one from the gallery', async () => {
+    serverAnswers((_, method) =>
+      method === 'POST'
+        ? { status: 201, body: { photo: 'slip-1' } }
+        : method === 'PUT'
+          ? { status: 204, body: null }
+          : { status: 200, body: open },
+    )
+    shown()
+
+    await screen.findByRole('heading', { name: outsideWords.report })
+
+    const camera = screen.getByLabelText(outsideWords.photo, { selector: 'input' })
+    const gallery = screen.getByLabelText(fromTheGallery(outsideWords.photo), { selector: 'input' })
+
+    expect(camera.getAttribute('accept')).toBe(outsideReportRules.photoTypes.join(','))
+    expect(gallery.getAttribute('accept')).toBe(outsideReportRules.photoTypes.join(','))
+
+    fireEvent.change(screen.getByRole('combobox', { name: named(outsideWords.category) }), {
+      target: { value: 'c-heat' },
+    })
+    await userEvent.type(
+      screen.getByRole('textbox', { name: named(outsideWords.description) }),
+      'Heizkörper kalt.',
+    )
+    await userEvent.upload(
+      gallery,
+      new File([new Uint8Array([0xff, 0xd8, 0xff, 0xe0])], 'heizung.jpg', { type: 'image/jpeg' }),
+    )
+    await userEvent.click(screen.getByRole('button', { name: outsideWords.send }))
+
+    expect(await screen.findByRole('heading', { name: outsideWords.done })).toBeTruthy()
+    expect(asked.find((each) => each.method === 'POST')?.body).toMatchObject({ photo: true })
+    expect(asked.find((each) => each.method === 'PUT')?.path).toBe(
+      `/fault-reports/by-label/${code}/photo/slip-1`,
+    )
   })
 
   it('sends the photo after the report with the slip its answer carried', async () => {

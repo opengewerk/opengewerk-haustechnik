@@ -1,11 +1,11 @@
 import type { TravelPlace } from '@opengewerk/haustechnik-domain'
-import { Button, Panel } from '@opengewerk/platform-web'
+import { Panel } from '@opengewerk/platform-web'
 import { openVersion, useVersions } from '@opengewerk/platform-web/attachments'
+import { PhotoTaker } from '@opengewerk/platform-web/forms'
 import { useRight } from '@opengewerk/platform-web/session'
 import { SiteText, SiteTrouble } from '@opengewerk/platform-web/site'
 import { text, useRecords, useSync } from '@opengewerk/platform-web/sync'
-import { Camera } from 'lucide-react'
-import { useMemo, useRef, useState } from 'react'
+import { useMemo, useState } from 'react'
 
 import {
   type DocumentPlace,
@@ -18,7 +18,6 @@ import {
 import { siteTravelWords, TravelControl, useOnDevice } from './travel.js'
 
 export const siteDocumentWords = {
-  takePhoto: 'Foto aufnehmen',
   /** What the field behind the button is called, which nobody sees: the camera of the phone answers it. */
   photoField: 'Foto für die Dokumente',
   notFiled: 'Das Foto ließ sich nicht ablegen.',
@@ -60,7 +59,6 @@ export function SiteDocuments({
   const files = useRight('document.record')
   const documents = useRecords('attachments')
   const versions = useVersions()
-  const field = useRef<HTMLInputElement>(null)
   const onDevice = useOnDevice()
   const [trouble, setTrouble] = useState<string | null>(null)
   const here = useMemo(
@@ -117,47 +115,24 @@ export function SiteDocuments({
         )}
         {travel ? <TravelControl place={travel} /> : null}
         {files ? (
-          <>
-            <input
-              ref={field}
-              type="file"
-              accept="image/*"
-              capture="environment"
-              hidden
-              aria-label={siteDocumentWords.photoField}
-              onChange={(event) => {
-                const file = event.target.files?.[0]
-
-                // The same photo taken twice is a change of the field again.
-                event.target.value = ''
-
-                if (!file) {
-                  return
-                }
-
-                setTrouble(null)
-                void fileDocument(client, place, file)
-                  .then((filed) => {
-                    if (filed === null) {
-                      setTrouble(siteDocumentWords.notFiled)
-                    }
-                  })
-                  .catch(() => {
-                    setTrouble(siteDocumentWords.notFiled)
-                  })
-              }}
-            />
-            <Button
-              wide
-              height={52}
-              icon={Camera}
-              onClick={() => {
-                field.current?.click()
-              }}
-            >
-              {siteDocumentWords.takePhoto}
-            </Button>
-          </>
+          // Each photo a document of its own, from the gallery several at once (#458).
+          <PhotoTaker
+            label={siteDocumentWords.photoField}
+            multiple
+            onTake={(file) => {
+              setTrouble(null)
+              // Null is a photo on its way; a sentence says why it is not.
+              void fileDocument(client, place, file)
+                .then((problem) => {
+                  if (problem !== null) {
+                    setTrouble(problem)
+                  }
+                })
+                .catch(() => {
+                  setTrouble(siteDocumentWords.notFiled)
+                })
+            }}
+          />
         ) : null}
         {trouble ? <SiteTrouble>{trouble}</SiteTrouble> : null}
       </div>

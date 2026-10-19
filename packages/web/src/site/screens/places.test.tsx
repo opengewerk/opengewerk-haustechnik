@@ -1,3 +1,4 @@
+import { fromTheGallery } from '@opengewerk/platform-web/forms'
 import { fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, describe, expect, it } from 'vitest'
 
@@ -329,6 +330,45 @@ describe('an asset on site', () => {
       assetId: 'a-rod',
       title: 'typenschild',
     })
+  })
+
+  it('files several photos from the gallery at once, each a document, and says nothing went wrong', async () => {
+    const { server } = await mountSite(`/anlagen/${rod.id}`, {
+      rights: [...reading, 'document.record'],
+    })
+
+    fireEvent.change(screen.getByLabelText(fromTheGallery('Foto für die Dokumente')), {
+      target: {
+        files: [
+          new File(['eins'], 'schild.jpg', { type: 'image/jpeg' }),
+          new File(['zwei'], 'stand.jpg', { type: 'image/jpeg' }),
+        ],
+      },
+    })
+
+    await waitFor(() => {
+      expect(
+        queued(server)
+          .filter((each) => each.entity === 'attachments')
+          .map((each) => String(each.values['title']))
+          .sort(),
+      ).toEqual(['schild', 'stand'])
+    })
+    expect(screen.queryByText('Das Foto ließ sich nicht ablegen.')).toBeNull()
+  })
+
+  it('says why a photo was not filed', async () => {
+    const { server } = await mountSite(`/anlagen/${rod.id}`, {
+      rights: [...reading, 'document.record'],
+    })
+
+    // What a camera hands back that took nothing: a file without a byte.
+    fireEvent.change(screen.getByLabelText('Foto für die Dokumente'), {
+      target: { files: [new File([], 'leer.jpg', { type: 'image/jpeg' })] },
+    })
+
+    expect(await screen.findByText('leer.jpg: Die Datei ist leer.')).toBeTruthy()
+    expect(queued(server)).toEqual([])
   })
 
   it('offers no photo to whoever may only read documents', async () => {

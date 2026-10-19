@@ -1,3 +1,4 @@
+import { fromTheGallery } from '@opengewerk/platform-web/forms'
 import { today } from '@opengewerk/platform-web/format'
 import { fireEvent, screen, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it } from 'vitest'
@@ -42,6 +43,43 @@ describe('a defect reported on site', () => {
     await waitFor(() => {
       expect(router.state.location.pathname).toBe('/anlagen/a-heater')
     })
+  })
+
+  it('files the photos from the camera and the gallery at the defect, there several at once', async () => {
+    const { server } = await mountSite('/anlagen/a-heater/mangel', { rights: reporting })
+
+    fireEvent.change(await screen.findByLabelText(/Bemerkung/), {
+      target: { value: 'Kondensat tropft am Abgasrohr' },
+    })
+    fireEvent.change(screen.getByLabelText(reportDefectWords.photoField), {
+      target: { files: [new File(['eins'], 'abgasrohr.jpg', { type: 'image/jpeg' })] },
+    })
+    fireEvent.change(screen.getByLabelText(fromTheGallery(reportDefectWords.photoField)), {
+      target: {
+        files: [
+          new File(['zwei'], 'boden.jpg', { type: 'image/jpeg' }),
+          new File(['drei'], 'kessel.jpg', { type: 'image/jpeg' }),
+        ],
+      },
+    })
+    expect(screen.getByText('kessel.jpg')).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: 'Melden' }))
+
+    await waitFor(() => {
+      expect(queued(server).filter((each) => each.entity === 'attachments')).toHaveLength(3)
+    })
+
+    const defectId = server.operations()[0]?.recordId
+
+    expect(
+      queued(server)
+        .filter((each) => each.entity === 'attachments')
+        .map((each) => [each.values['title'], each.values['defectId']]),
+    ).toEqual([
+      ['abgasrohr', defectId],
+      ['boden', defectId],
+      ['kessel', defectId],
+    ])
   })
 
   it('waits on the device without a network and goes with the next exchange', async () => {
