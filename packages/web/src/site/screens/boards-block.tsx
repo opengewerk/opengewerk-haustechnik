@@ -57,14 +57,20 @@ export function Count({ total }: { readonly total: number }) {
   return <span className="text-[15px] text-ink-muted tabular-nums">{total}</span>
 }
 
-/** A button under a list that goes to the form of a part, 48 pixels as the boards draw it. */
+/**
+ * A button under a list that goes to the form of a part, 48 pixels as the
+ * boards draw it. `label` names it where the same words stand more than once
+ * on a page, its visible words first.
+ */
 export function FormButton({
   to,
   icon,
+  label,
   children,
 }: {
   readonly to: string
   readonly icon: typeof Plus
+  readonly label?: string
   readonly children: ReactNode
 }) {
   const navigate = useNavigate()
@@ -74,6 +80,7 @@ export function FormButton({
       wide
       height={48}
       icon={icon}
+      {...(label === undefined ? {} : { 'aria-label': label })}
       onClick={() => {
         void navigate({ to })
       }}

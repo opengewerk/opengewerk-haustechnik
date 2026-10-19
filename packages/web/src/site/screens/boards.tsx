@@ -71,8 +71,11 @@ import { boardWhere, Count, FormButton, siteStructureWords } from './boards-bloc
  * one screen. The circuit chart is printed in the office as well.
  */
 
-/** The places above an asset the device holds, for the path over a page below it. */
-function useAssetAbove(assetId: string | undefined) {
+/**
+ * The places above an asset the device holds, for the path over a page below
+ * it; the pages of the PV structure ask it as well (#461).
+ */
+export function useAssetAbove(assetId: string | undefined) {
   const asset = useRecord('assets', assetId)
   const room = useRecord('rooms', maybeText(asset, 'roomId') ?? undefined)
   const floor = useRecord('floors', maybeText(room, 'floorId') ?? undefined)
@@ -539,7 +542,7 @@ function SitePartForm({
 }
 
 /** In place of a form for whoever does not take stock of assets. */
-function NotTaking({
+export function NotTaking({
   title,
   back,
 }: {

@@ -112,6 +112,20 @@ const SiteSectionFormScreen = lazyRouteComponent(
   () => import('./screens/boards.js'),
   'SiteSectionFormScreen',
 )
+// The PV structure of a PV installation (#461), fetched as the boards are.
+const SiteStringScreen = lazyRouteComponent(() => import('./screens/pv.js'), 'SiteStringScreen')
+const SiteInverterFormScreen = lazyRouteComponent(
+  () => import('./screens/pv.js'),
+  'SiteInverterFormScreen',
+)
+const SiteStringFormScreen = lazyRouteComponent(
+  () => import('./screens/pv.js'),
+  'SiteStringFormScreen',
+)
+const SiteModuleFormScreen = lazyRouteComponent(
+  () => import('./screens/pv.js'),
+  'SiteModuleFormScreen',
+)
 
 /**
  * The routes of the entry for the work on site.
@@ -183,6 +197,26 @@ export function siteRoutes() {
     at(
       '/anlagen/$assetId/verteiler/$boardId/stromkreise/$circuitId/betriebsmittel/$equipmentId/bearbeiten',
       SiteEquipmentFormScreen,
+    ),
+    // The PV structure of a PV installation (#461): a string with its
+    // modules, and the forms that add and change an inverter, a string and a
+    // module, also without a network. An inverter stands on the page of its
+    // installation.
+    at('/anlagen/$assetId/wechselrichter/neu', SiteInverterFormScreen),
+    at('/anlagen/$assetId/wechselrichter/$inverterId/bearbeiten', SiteInverterFormScreen),
+    at('/anlagen/$assetId/wechselrichter/$inverterId/strings/neu', SiteStringFormScreen),
+    at('/anlagen/$assetId/wechselrichter/$inverterId/strings/$stringId', SiteStringScreen),
+    at(
+      '/anlagen/$assetId/wechselrichter/$inverterId/strings/$stringId/bearbeiten',
+      SiteStringFormScreen,
+    ),
+    at(
+      '/anlagen/$assetId/wechselrichter/$inverterId/strings/$stringId/module/neu',
+      SiteModuleFormScreen,
+    ),
+    at(
+      '/anlagen/$assetId/wechselrichter/$inverterId/strings/$stringId/module/$moduleId/bearbeiten',
+      SiteModuleFormScreen,
     ),
     // A defect reported at an asset or a room, also without a network (#116).
     at('/anlagen/$assetId/mangel', ReportDefectScreen),

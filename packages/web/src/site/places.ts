@@ -50,6 +50,26 @@ export const siteStructure = {
     `/anlagen/${assetId}/verteiler/${boardId}/stromkreise/${circuitId}/betriebsmittel/${equipmentId}/bearbeiten`,
 } as const
 
+/**
+ * Where the PV structure of a PV installation is taken up on site (#461): a
+ * string opens under its inverter, and each form under the part it adds to or
+ * changes, because a form has nothing else to learn it from. An inverter has
+ * no page of its own on site; it stands on the page of its installation.
+ */
+export const sitePv = {
+  newInverter: (assetId: string) => `/anlagen/${assetId}/wechselrichter/neu`,
+  editInverter: (assetId: string, inverterId: string) =>
+    `/anlagen/${assetId}/wechselrichter/${inverterId}/bearbeiten`,
+  newString: (assetId: string, inverterId: string) =>
+    `/anlagen/${assetId}/wechselrichter/${inverterId}/strings/neu`,
+  editString: (assetId: string, inverterId: string, stringId: string) =>
+    `/anlagen/${assetId}/wechselrichter/${inverterId}/strings/${stringId}/bearbeiten`,
+  newModule: (assetId: string, inverterId: string, stringId: string) =>
+    `/anlagen/${assetId}/wechselrichter/${inverterId}/strings/${stringId}/module/neu`,
+  editModule: (assetId: string, inverterId: string, stringId: string, moduleId: string) =>
+    `/anlagen/${assetId}/wechselrichter/${inverterId}/strings/${stringId}/module/${moduleId}/bearbeiten`,
+} as const
+
 /** Where a defect is reported on site (#116): under the page of the asset or the room it is at. */
 /** A round of the meters of a property, without a network (#120). */
 export const siteReadings = {
