@@ -25,8 +25,8 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   ihre Struktur im Fundament.
 
 - Im Menü der Person im Büro und im Bereich der Instanz steht „Zur Ansicht für vor Ort“ mit der Zeile „Große Knöpfe,
-  auch ohne Netz“ (#464), aus dem Fundament (opengewerk/opengewerk#681, Submodul `upstream/opengewerk` auf `2452f0e`
-  angehoben). Der Eintrag öffnet `/m/` und merkt sich die Wahl, sodass `/` auf diesem Gerät danach in die Ansicht für
+  auch ohne Netz“ (#464), aus dem Fundament (opengewerk/opengewerk#681, mit dem Submodul `upstream/opengewerk` auf
+  `061ced3` angehoben wie zu #465). Der Eintrag öffnet `/m/` und merkt sich die Wahl, sodass `/` auf diesem Gerät danach in die Ansicht für
   vor Ort führt, bis dort „Zur Büroansicht“ gewählt wird. Warum: vom Schreibtisch oder vom Tablet in der Desktop-Ansicht
   kam man bisher nur über die Leiste mit dem Vorschlag dorthin, die nicht immer erscheint, sonst über `/m` von Hand.
 
