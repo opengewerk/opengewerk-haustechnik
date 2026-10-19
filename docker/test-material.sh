@@ -414,14 +414,14 @@ records_for_backup() {
     insert into processing_descriptions (tenant_id, made_by, holds_for, text)
     select '$first_tenant', u.id, '0.1.7', '# Verfahrensbeschreibung' from auth_users u where u.email = '$probe_email';
     -- A value of the log blacked out (#355): the trigger in front of the table
-    -- asks for the tenant and the person of the session, who leads it.
-    select set_config('app.tenant_id', '$first_tenant', false), set_config('app.user_id', u.id, false)
-      from auth_users u where u.email = '$probe_email';
+    -- asks for the tenant of the session and a person of it who leads it.
+    select set_config('app.tenant_id', '$first_tenant', false), set_config('app.user_id', m.user_id, false)
+      from memberships m join tenant_roles r on r.tenant_id = m.tenant_id and r.key = any (m.roles) and r.leads
+     where m.tenant_id = '$first_tenant' order by m.user_id limit 1;
     insert into audit_redactions (tenant_id, entry_id, side, reason, redacted_by)
-    select e.tenant_id, e.id, 'new', 'Auskunft der Person', u.id
-      from audit_entries e, auth_users u
-     where e.tenant_id = '$first_tenant' and e.table_name = 'processing_descriptions' and e.field = 'text'
-       and u.email = '$probe_email';
+    select e.tenant_id, e.id, 'new', 'Auskunft der Person', current_setting('app.user_id')
+      from audit_entries e
+     where e.tenant_id = '$first_tenant' and e.table_name = 'processing_descriptions' and e.field = 'text';
     select set_config('app.tenant_id', '', false), set_config('app.user_id', '', false);
     insert into round_records (tenant_id, property_id, area_id, activity_id, state, fingerprint)
     select tenant_id, property_id, area_id, id, '{\"version\": 1, \"title\": \"Rundgang Probe\"}',
