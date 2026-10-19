@@ -58,12 +58,22 @@ describe('the foundation in this database', () => {
     // on its asset with the property and the area of it, over keys onto the
     // asset and onto the part above, with the policies of a place, the
     // triggers that mark what hangs below and that keep a board on a
-    // low-voltage installation. One deviation stays, on purpose: the key from
+    // low-voltage installation. The PV structure (opengewerk-haustechnik#461,
+    // migration 0094) the same way, with an inverter on a PV installation and
+    // the column that says where it hangs. One deviation stays, on purpose: the key from
     // a circuit to its section empties only the section in the database,
     // as ADR 0014 in the repository opengewerk asks of the migration of an
     // application, and the block says it without the column, which drizzle
     // has no way to write.
-    const structure = ['distribution_boards', 'board_sections', 'circuits', 'equipment']
+    const structure = [
+      'distribution_boards',
+      'board_sections',
+      'circuits',
+      'equipment',
+      'inverters',
+      'pv_strings',
+      'pv_modules',
+    ]
     const sectionKey =
       'FOREIGN KEY (board_section_id, distribution_board_id) REFERENCES board_sections(id, distribution_board_id) ON DELETE SET NULL'
     const onlyTheSection =
@@ -82,6 +92,8 @@ describe('the foundation in this database', () => {
           ...['distribution_boards', 'board_sections', 'circuits'].map(
             (table) => `${table}.structure_follows_deletion`,
           ),
+          'inverters.on_a_photovoltaic_installation',
+          ...['inverters', 'pv_strings'].map((table) => `${table}.structure_follows_deletion`),
         ],
         columns: [
           'deadlines.duty_id',
@@ -119,6 +131,7 @@ describe('the foundation in this database', () => {
           ...structure.flatMap((table) =>
             ['asset_id', 'property_id', 'area_id'].map((column) => `${table}.${column}`),
           ),
+          'inverters.location',
         ],
         constraints: [
           'deadlines.deadlines_meters_of_their_property',
@@ -182,6 +195,10 @@ describe('the foundation in this database', () => {
           'circuits.circuits_on_a_board_of_their_asset',
           'circuits.circuits_of_their_asset',
           'equipment.equipment_on_a_circuit_of_their_asset',
+          'inverters.inverters_of_their_asset',
+          'pv_strings.pv_strings_on_an_inverter_of_their_asset',
+          'pv_strings.pv_strings_of_their_asset',
+          'pv_modules.pv_modules_on_a_string_of_their_asset',
         ],
         indexes: [
           'deadlines.deadlines_duty_idx',

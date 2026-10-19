@@ -30,7 +30,7 @@ guarded_route=/staff
 # The tables counted before the backup and after the restore. The area and
 # the place of the account in it come with the account: a Betreiber gets its
 # first area with its first membership.
-counted_tables='auth_users memberships tenant_roles account_corrections areas member_areas invitations invitation_area_choices invitation_areas properties buildings contacts building_closures assets files mail_settings deadline_settings deadline_runs duties duty_dismissals evidence deadlines activities activity_duties activity_answers work_orders work_order_participants work_order_notes defects fault_categories fault_reports fault_report_settings fault_report_contacts meter_points meter_readings meter_exchanges meter_pauses meter_settings distribution_boards board_sections circuits equipment work_order_settings activity_signatures work_order_decisions service_reports service_report_records briefings work_permits articles suppliers stores store_articles stock_movements work_order_materials store_labels contractors contracts contract_items qualification_kinds qualifications member_limit_properties member_limit_asset_kinds invitation_limit_properties invitation_limit_asset_kinds auditor_reads evidence_voidings evidence_emptyings evidence_retention_settings membership_settings membership_removals processing_descriptions privacy_documents processing_record_settings processing_record_activities audit_redactions round_records prints attachments attachment_versions labels imports import_records own_asset_kinds own_asset_fields asset_kind_names defect_class_terms round_templates round_template_versions round_plans tasks mail_outbox push_subscriptions push_opt_outs push_outbox'
+counted_tables='auth_users memberships tenant_roles account_corrections areas member_areas invitations invitation_area_choices invitation_areas properties buildings contacts building_closures assets files mail_settings deadline_settings deadline_runs duties duty_dismissals evidence deadlines activities activity_duties activity_answers work_orders work_order_participants work_order_notes defects fault_categories fault_reports fault_report_settings fault_report_contacts meter_points meter_readings meter_exchanges meter_pauses meter_settings distribution_boards board_sections circuits equipment inverters pv_strings pv_modules work_order_settings activity_signatures work_order_decisions service_reports service_report_records briefings work_permits articles suppliers stores store_articles stock_movements work_order_materials store_labels contractors contracts contract_items qualification_kinds qualifications member_limit_properties member_limit_asset_kinds invitation_limit_properties invitation_limit_asset_kinds auditor_reads evidence_voidings evidence_emptyings evidence_retention_settings membership_settings membership_removals processing_descriptions privacy_documents processing_record_settings processing_record_activities audit_redactions round_records prints attachments attachment_versions labels imports import_records own_asset_kinds own_asset_fields asset_kind_names defect_class_terms round_templates round_template_versions round_plans tasks mail_outbox push_subscriptions push_opt_outs push_outbox'
 
 # The migrations, and how many of them make the older state an update starts
 # from: the first, without the sequence for work orders that the second brings.
@@ -539,6 +539,24 @@ records_for_backup() {
     insert into equipment (tenant_id, circuit_id, asset_id, property_id, area_id, designation)
     select tenant_id, id, asset_id, property_id, area_id, 'Steckdose Flur'
       from circuits where tenant_id = '$first_tenant';"
+  # The PV structure below a PV installation in the same building
+  # (opengewerk-haustechnik#461): an inverter with a string and a module on
+  # that, on an asset of its own, since an inverter hangs on a PV installation
+  # and on nothing else.
+  sql "
+    insert into assets (tenant_id, property_id, area_id, building_id, kind, name)
+    select tenant_id, property_id, area_id, id, 'elektro.photovoltaic_installation',
+           'PV-Anlage Haus A'
+      from buildings where tenant_id = '$first_tenant';
+    insert into inverters (tenant_id, asset_id, property_id, area_id, designation, rated_power_w)
+    select tenant_id, id, property_id, area_id, 'WR 1', 10000
+      from assets where tenant_id = '$first_tenant' and kind = 'elektro.photovoltaic_installation';
+    insert into pv_strings (tenant_id, inverter_id, asset_id, property_id, area_id, designation)
+    select tenant_id, id, asset_id, property_id, area_id, 'String 1'
+      from inverters where tenant_id = '$first_tenant';
+    insert into pv_modules (tenant_id, pv_string_id, asset_id, property_id, area_id, rated_power_w)
+    select tenant_id, id, asset_id, property_id, area_id, 400
+      from pv_strings where tenant_id = '$first_tenant';"
   waited=0
   # The duty's own deadline; the plan of a round brings one of its own.
   until test "$(value "select count(*) from deadlines where tenant_id = '$first_tenant' and duty_id is not null")" = 1 &&

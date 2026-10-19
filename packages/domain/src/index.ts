@@ -70,6 +70,9 @@ export * from './model/asset.js'
 // The electrical structure below a low-voltage installation, on the
 // building block of the foundation (#349, ADR 0014 in the repository opengewerk).
 export * from './model/electrical.js'
+// The PV structure below a PV installation, on the building block of the
+// foundation as well (#461).
+export * from './model/photovoltaic.js'
 // Whether an asset may already stand in the register, and the general kind
 // of a cost group.
 export * from './model/asset-duplicate.js'

@@ -91,6 +91,7 @@ interface SampleAsset {
     | 'elektro.low_voltage_installation'
     | 'elektro.residual_current_device'
     | 'elektro.safety_lighting'
+    | 'elektro.photovoltaic_installation'
   readonly name: string
   readonly manufacturer?: string
   readonly model?: string
@@ -98,6 +99,8 @@ interface SampleAsset {
   readonly serialNumber?: string
   readonly mark?: string
   readonly yearBuilt?: number
+  /** The day it was put into service, "In Betrieb seit" in its file. */
+  readonly commissionedOn?: string
   readonly values: Readonly<Record<string, unknown>>
   readonly meterNumber?: string
   /** The number of the room it stands in, if it stands in one. */
@@ -517,6 +520,27 @@ export const sampleProperties: readonly SampleProperty[] = [
             kind: 'elektro.safety_lighting',
             name: 'Sicherheitsbeleuchtung Halle 1',
             values: {},
+          },
+          // The PV installation on the roof of the hall (#461), with its
+          // string plan; its inverter, strings and modules come with
+          // `sample-photovoltaic.ts`. The package brings no duty kind for it.
+          {
+            kind: 'elektro.photovoltaic_installation',
+            name: 'PV-Anlage Dach Halle 1',
+            commissionedOn: '2023-06-12',
+            values: {},
+            documents: [
+              {
+                title: 'Stringplan PV-Anlage Halle 1',
+                kind: 'circuit_diagram',
+                versions: [
+                  {
+                    fileName: 'stringplan-halle-1.pdf',
+                    words: 'Stringplan PV-Anlage Halle 1, Stand 2023',
+                  },
+                ],
+              },
+            ],
           },
           // No package describes it yet: the general kind of its cost group,
           // which the catalogue proposes nothing for, and a duty of the

@@ -49,6 +49,9 @@ export const applicationConflicts: Readonly<Record<string, string>> = {
   // A board on an asset that is no low-voltage installation, or such an
   // installation with boards given another kind (#349).
   HT014: 'Ein Verteiler hängt nur unter einer Niederspannungsanlage.',
+  // An inverter on an asset that is no PV installation, or such an
+  // installation with inverters given another kind (#461).
+  HT015: 'Ein Wechselrichter hängt nur unter einer PV-Anlage.',
 }
 
 export const { answerFor, DatabaseExceptionFilter } = databaseErrors(applicationConflicts)

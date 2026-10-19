@@ -3,6 +3,7 @@ import {
   contactsSchema,
   deadlinesSchema,
   electricalSchema,
+  photovoltaicSchema,
 } from '@opengewerk/platform-server'
 import {
   attachmentsGuard,
@@ -49,16 +50,27 @@ const attachmentsOfTheBlocks = attachmentsSchema()
 const electricalOfTheBlocks = electricalSchema()
 
 /**
- * What the four tables need beside their columns, as migration 0092 says it:
- * the application reads, adds and changes a part and removes none, the log
- * watches them and they travel. The foundation brings no description of its
- * own for them, as an application makes the structure only once it needs it.
+ * The PV structure as the foundation makes it, without the place this
+ * application hangs every part on and where an inverter hangs (#461), for the
+ * same reason.
  */
-const electricalGuards: readonly TableGuard[] = [
+const photovoltaicOfTheBlocks = photovoltaicSchema()
+
+/**
+ * What the tables of both structures need beside their columns, as
+ * migrations 0092 and 0094 say it: the application reads, adds and changes a
+ * part and removes none, the log watches them and they travel. The foundation
+ * brings no description of its own for them, as an application makes a
+ * structure only once it needs it.
+ */
+const structureGuards: readonly TableGuard[] = [
   'distribution_boards',
   'board_sections',
   'circuits',
   'equipment',
+  'inverters',
+  'pv_strings',
+  'pv_modules',
 ].map((table) => ({ table, grants: ['select', 'insert', 'update'], audited: true, synced: true }))
 
 /**
@@ -96,6 +108,9 @@ export const madeWithLists: MadeByTheApplication = {
     boardSections: electricalOfTheBlocks.boardSections,
     circuits: electricalOfTheBlocks.circuits,
     equipment: electricalOfTheBlocks.equipment,
+    inverters: photovoltaicOfTheBlocks.inverters,
+    pvStrings: photovoltaicOfTheBlocks.pvStrings,
+    pvModules: photovoltaicOfTheBlocks.pvModules,
   },
   guards: [
     numberRangesGuard,
@@ -104,6 +119,6 @@ export const madeWithLists: MadeByTheApplication = {
     contactsGuard,
     attachmentsGuard,
     attachmentVersionsGuard,
-    ...electricalGuards,
+    ...structureGuards,
   ],
 }

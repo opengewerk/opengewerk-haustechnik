@@ -338,6 +338,10 @@ export async function mountSite(
       'board_sections',
       'circuits',
       'equipment',
+      // The PV structure below a PV installation (#461).
+      'inverters',
+      'pv_strings',
+      'pv_modules',
       'contacts',
       'duties',
       'activities',

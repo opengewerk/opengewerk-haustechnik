@@ -53,6 +53,10 @@ export function rowsOf(tenant: Tenant): readonly Row[] {
   const board = randomUUID()
   const section = randomUUID()
   const circuit = randomUUID()
+  // A PV installation, which alone takes an inverter (#461).
+  const pvInstallation = randomUUID()
+  const inverter = randomUUID()
+  const pvString = randomUUID()
   const duty = randomUUID()
   const activity = randomUUID()
   const template = randomUUID()
@@ -471,6 +475,58 @@ export function rowsOf(tenant: Tenant): readonly Row[] {
         property_id: property,
         area_id: area,
         designation: 'Steckdose Flur',
+      },
+    },
+    // The PV structure below a PV installation (#461).
+    {
+      table: 'assets',
+      values: {
+        id: pvInstallation,
+        tenant_id: tenant.id,
+        property_id: property,
+        area_id: area,
+        building_id: building,
+        kind: 'elektro.photovoltaic_installation',
+        number: 'AN-00003',
+        name: 'PV-Anlage Dach',
+      },
+    },
+    {
+      table: 'inverters',
+      values: {
+        id: inverter,
+        tenant_id: tenant.id,
+        asset_id: pvInstallation,
+        property_id: property,
+        area_id: area,
+        designation: 'WR 1',
+        rated_power_w: 10000,
+        mpp_inputs: 2,
+      },
+    },
+    {
+      table: 'pv_strings',
+      values: {
+        id: pvString,
+        tenant_id: tenant.id,
+        inverter_id: inverter,
+        asset_id: pvInstallation,
+        property_id: property,
+        area_id: area,
+        designation: 'String 1',
+        mpp_input: 1,
+      },
+    },
+    {
+      table: 'pv_modules',
+      values: {
+        tenant_id: tenant.id,
+        pv_string_id: pvString,
+        asset_id: pvInstallation,
+        property_id: property,
+        area_id: area,
+        serial_number: 'BS4-2306-1101',
+        rated_power_w: 400,
       },
     },
     // The key day of the meters of an operator (#120).

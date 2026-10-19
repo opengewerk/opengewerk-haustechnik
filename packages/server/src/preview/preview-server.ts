@@ -58,6 +58,7 @@ import { giveSampleEveryAsset, giveSamplePlans } from './sample-plans.js'
 import { giveSampleTemplates } from './sample-templates.js'
 import { giveSampleCircuitTest, giveSampleElectrical } from './sample-electrical.js'
 import { giveSampleMeters } from './sample-meters.js'
+import { giveSamplePhotovoltaic } from './sample-photovoltaic.js'
 import { giveSampleFaults, giveSampleWork } from './sample-work.js'
 import { writeSampleStandings } from './sample-standings.js'
 import { giveSampleLastDay } from './sample-access-end.js'
@@ -321,6 +322,9 @@ export async function openSamplePreview(
     // The test of that installation on site, begun by the viewer, with the
     // first circuits measured and one value outside its limit (#350).
     await giveSampleCircuitTest(database, planter, previewPeople.viewer.id, previewCatalogue)
+    // The inverter of the PV installation on the roof of the hall with its
+    // two strings of twelve modules (#461).
+    await giveSamplePhotovoltaic(database, planter)
   } finally {
     await planting.close()
   }

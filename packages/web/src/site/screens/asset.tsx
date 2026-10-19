@@ -40,6 +40,7 @@ import { lazy, Suspense } from 'react'
 
 import { DutyStateMark } from '../../app/asset-marks.js'
 import { holdsBoards } from '../../app/holds-boards.js'
+import { holdsInverters, useInstallationPeak } from '../../app/pv-power.js'
 import { generalKindNote, kindFields, typedValues, unitOf } from '../../app/asset-values.js'
 import { assetEvidenceQuery } from '../../app/evidence.js'
 import { useLabelsOf } from '../../app/labels.js'
@@ -65,6 +66,10 @@ import { SiteTasksCard } from '../tasks.js'
 // chunk, so the block shows without a network as well.
 const SiteBoardsBlock = lazy(async () => ({
   default: (await import('./boards-block.js')).SiteBoardsBlock,
+}))
+// The inverters of a PV installation (#461) the same way.
+const SiteInvertersBlock = lazy(async () => ({
+  default: (await import('./inverters-block.js')).SiteInvertersBlock,
 }))
 
 export const siteAssetWords = {
@@ -122,8 +127,16 @@ function valuesOf(asset: RecordState): Readonly<Record<string, never>> {
   }
 }
 
-/** What is known about an asset, as the card "Angaben" lists it: only what somebody entered. */
-function factsOf(asset: RecordState, catalogue: Catalogue | null): readonly SiteFact[] {
+/**
+ * What is known about an asset, as the card "Angaben" lists it: only what
+ * somebody entered, and the power of a PV installation from its modules
+ * (#461), which nobody types.
+ */
+function factsOf(
+  asset: RecordState,
+  catalogue: Catalogue | null,
+  peak: string | null = null,
+): readonly SiteFact[] {
   const key = maybeText(asset, 'kind')
   const kind = key === null ? null : (catalogue?.assetKind(key, today())?.definition ?? null)
   const year = asset['yearBuilt']
@@ -134,6 +147,7 @@ function factsOf(asset: RecordState, catalogue: Catalogue | null): readonly Site
 
   return [
     { label: 'Anlagenart', value: kindWords(catalogue, key) },
+    { label: 'Leistung', value: peak ?? '' },
     { label: 'Hersteller und Typ', value: makerAndModel },
     { label: 'Seriennummer', value: maybeText(asset, 'serialNumber') ?? '' },
     { label: 'Baujahr', value: typeof year === 'number' ? String(year) : '' },
@@ -190,6 +204,8 @@ export function SiteAssetScreen() {
   const propertyId = maybeText(asset, 'propertyId') ?? maybeText(building, 'propertyId')
   const property = useRecord('properties', propertyId ?? undefined)
   const catalogue = useCatalogue()
+  // The power of a PV installation from its modules on this device (#461).
+  const peak = useInstallationPeak(holdsInverters(maybeText(asset, 'kind')) ? assetId : undefined)
   const seesDuties = useRight('duty.read')
   const seesEvidence = useRight('evidence.read')
   const records = useRight('asset.record')
@@ -264,6 +280,12 @@ export function SiteAssetScreen() {
             <SiteBoardsBlock assetId={assetId} />
           </Suspense>
         ) : null}
+        {/* The inverters of a PV installation in the same place (#461). */}
+        {holdsInverters(key) ? (
+          <Suspense fallback={null}>
+            <SiteInvertersBlock assetId={assetId} />
+          </Suspense>
+        ) : null}
         {performs && work.length > 0 ? (
           <Panel title={siteAssetWords.work}>
             <SiteRows label={siteAssetWords.work}>
@@ -300,7 +322,7 @@ export function SiteAssetScreen() {
         <SiteTasksCard field="assetId" id={String(asset['id'])} propertyId={propertyId} />
         <Panel title="Angaben">
           <div className="flex flex-col gap-2.5">
-            <SiteFacts facts={factsOf(asset, catalogue)} />
+            <SiteFacts facts={factsOf(asset, catalogue, peak)} />
             {key !== null && isGeneralKind(key) ? (
               <SiteText muted size={15}>
                 {generalKindNote}

@@ -84,6 +84,12 @@ export const syncPolicies: Readonly<Record<string, SyncPolicy>> = {
   board_sections: { create: true, change: 'merge', reserved: ['assetId', 'propertyId', 'areaId'] },
   circuits: { create: true, change: 'merge', reserved: ['assetId', 'propertyId', 'areaId'] },
   equipment: { create: true, change: 'merge', reserved: ['assetId', 'propertyId', 'areaId'] },
+  // The PV structure below a PV installation (#461), the same way: an
+  // inverter names its asset, a string and a module take the place of the
+  // inverter or the string they hang on.
+  inverters: { create: true, change: 'merge', reserved: ['propertyId', 'areaId'] },
+  pv_strings: { create: true, change: 'merge', reserved: ['assetId', 'propertyId', 'areaId'] },
+  pv_modules: { create: true, change: 'merge', reserved: ['assetId', 'propertyId', 'areaId'] },
   // The register of duties: the office keeps it.
   duties: { ...officeOnly, reserved: [areaFromProperty] },
   duty_dismissals: officeOnly,
@@ -430,6 +436,32 @@ const equipmentDetails: Readonly<Record<string, OfflineValues>> = {
   position: true,
 }
 
+/** What is known about an inverter, a string and a module (#461). */
+const inverterDetails: Readonly<Record<string, OfflineValues>> = {
+  designation: true,
+  location: true,
+  manufacturer: true,
+  model: true,
+  serialNumber: true,
+  ratedPowerW: true,
+  mppInputs: true,
+  position: true,
+}
+const pvStringDetails: Readonly<Record<string, OfflineValues>> = {
+  designation: true,
+  mppInput: true,
+  azimuthDeg: true,
+  tiltDeg: true,
+  position: true,
+}
+const pvModuleDetails: Readonly<Record<string, OfflineValues>> = {
+  manufacturer: true,
+  model: true,
+  serialNumber: true,
+  ratedPowerW: true,
+  position: true,
+}
+
 /** The place a record that belongs to one hangs on (ADR 0002, point 10). */
 const placeTarget: Readonly<Record<string, OfflineValues>> = {
   propertyId: true,
@@ -488,6 +520,25 @@ export const offlineEdits: Readonly<Record<string, OfflineEdits>> = {
   equipment: {
     create: { circuitId: true, ...equipmentDetails },
     change: equipmentDetails,
+    remove: true,
+  },
+  // The PV structure below a PV installation (#461), the same way: a string
+  // stays on its inverter and a module on its string, since the asset of a
+  // part is its parent's. Its serial number a module takes on site from the
+  // code on its label, or typed by hand.
+  inverters: {
+    create: { assetId: true, ...inverterDetails },
+    change: inverterDetails,
+    remove: true,
+  },
+  pv_strings: {
+    create: { inverterId: true, ...pvStringDetails },
+    change: pvStringDetails,
+    remove: true,
+  },
+  pv_modules: {
+    create: { pvStringId: true, ...pvModuleDetails },
+    change: pvModuleDetails,
     remove: true,
   },
   // A work order made on site; rounds, inspections and maintenance are
@@ -733,6 +784,9 @@ export const syncEntityNames: Readonly<Record<string, string>> = {
   board_sections: 'Feld eines Verteilers',
   circuits: 'Stromkreis',
   equipment: 'Betriebsmittel',
+  inverters: 'Wechselrichter',
+  pv_strings: 'String',
+  pv_modules: 'PV-Modul',
   duties: 'Pflicht',
   duty_dismissals: 'Verworfener Vorschlag',
   activities: 'Vorgang',
@@ -969,6 +1023,16 @@ export const syncFieldNames: Readonly<Record<string, string>> = {
   cableCrossSectionMilli: 'Querschnitt',
   cableLengthMilli: 'Leitungslänge',
   cableInstallationMethod: 'Verlegeart',
+  // The PV structure below a PV installation (#461), in the words of its
+  // forms. Its maker, model and serial number share their entries with an
+  // asset.
+  inverterId: 'Wechselrichter',
+  pvStringId: 'String',
+  ratedPowerW: 'Leistung',
+  mppInputs: 'MPP-Eingänge',
+  mppInput: 'MPP-Eingang',
+  azimuthDeg: 'Ausrichtung',
+  tiltDeg: 'Neigung',
   storeId: 'Lager',
   articleId: 'Artikel',
   bin: 'Lagerplatz',

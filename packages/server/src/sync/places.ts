@@ -1,15 +1,15 @@
 import {
   type Activity,
   type Asset,
-  type AssetBoard,
-  type AssetCircuit,
   boardAssetKind,
   type Building,
   type Defect,
   type Floor,
   type Identity,
+  inverterAssetKind,
   type Property,
   type Room,
+  type StructurePlace,
 } from '@opengewerk/haustechnik-domain'
 import {
   type FoundIdentity,
@@ -35,7 +35,9 @@ import {
   defects,
   distributionBoards,
   floors,
+  inverters,
   properties,
+  pvStrings,
   rooms,
   stores,
   workOrders,
@@ -207,41 +209,49 @@ async function supplyPlace(
 }
 
 /**
- * A board on its asset, which is a low-voltage installation (decision 31 of
- * phase 2): property and area come from the asset. An asset of another kind
- * is not one a board can hang on, the same answer as an asset that is gone; a
- * trigger of the database holds it too, for the whole transmission.
+ * The top of a structure on its asset, a board on a low-voltage installation
+ * (decision 31 of phase 2) and an inverter on a PV installation (#461):
+ * property and area come from the asset. An asset of another kind is not one
+ * the part can hang on, the same answer as an asset that is gone; a trigger of
+ * the database holds it too, for the whole transmission.
  */
-async function boardPlace(
-  tx: TenantTransaction,
-  values: Record<string, unknown>,
-): Promise<SyncRefusal | null> {
-  const asset = await found<Asset>(tx, assets, values['assetId'])
-
-  if (!asset || asset.kind !== boardAssetKind) {
-    return missing('assetId')
-  }
-
-  values['propertyId'] = asset.propertyId
-  values['areaId'] = asset.areaId
-
-  return null
-}
-
-/**
- * A section or a circuit on its board, a piece of equipment on its circuit:
- * asset, property and area come from the part above, so that the whole
- * structure lies where its asset lies (#349). Whether the section a circuit
- * names is one of its board asks the check of the structure afterwards.
- */
-function partPlace(
-  field: 'distributionBoardId' | 'circuitId',
+function topPlace(
+  kind: string,
 ): (tx: TenantTransaction, values: Record<string, unknown>) => Promise<SyncRefusal | null> {
   return async (tx, values) => {
-    const parent =
-      field === 'distributionBoardId'
-        ? await found<AssetBoard>(tx, distributionBoards, values[field])
-        : await found<AssetCircuit>(tx, circuits, values[field])
+    const asset = await found<Asset>(tx, assets, values['assetId'])
+
+    if (!asset || asset.kind !== kind) {
+      return missing('assetId')
+    }
+
+    values['propertyId'] = asset.propertyId
+    values['areaId'] = asset.areaId
+
+    return null
+  }
+}
+
+/** The part above a part of a structure, by the field that names it. */
+const partsAbove = {
+  distributionBoardId: distributionBoards,
+  circuitId: circuits,
+  inverterId: inverters,
+  pvStringId: pvStrings,
+} as const
+
+/**
+ * A section or a circuit on its board, a piece of equipment on its circuit,
+ * a string on its inverter and a module on its string: asset, property and
+ * area come from the part above, so that the whole structure lies where its
+ * asset lies (#349, #461). Whether the section a circuit names is one of its
+ * board asks the check of the structure afterwards.
+ */
+function partPlace(
+  field: keyof typeof partsAbove,
+): (tx: TenantTransaction, values: Record<string, unknown>) => Promise<SyncRefusal | null> {
+  return async (tx, values) => {
+    const parent = await found<StructurePlace>(tx, partsAbove[field], values[field])
 
     if (!parent) {
       return missing(field)
@@ -592,10 +602,13 @@ const placeOf: Readonly<
   rooms: roomPlace,
   assets: assetPlace,
   asset_supplies: supplyPlace,
-  distribution_boards: boardPlace,
+  distribution_boards: topPlace(boardAssetKind),
   board_sections: partPlace('distributionBoardId'),
   circuits: partPlace('distributionBoardId'),
   equipment: partPlace('circuitId'),
+  inverters: topPlace(inverterAssetKind),
+  pv_strings: partPlace('inverterId'),
+  pv_modules: partPlace('pvStringId'),
   activities: targetPlace,
   defects: defectPlace,
   work_orders: workOrderPlace,

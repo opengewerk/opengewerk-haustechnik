@@ -352,4 +352,19 @@ describe('the package Elektro', () => {
       ['Prüfbuch', 'test_certificate', 'recommended', null],
     ])
   })
+
+  it('brings the PV installation the PV structure hangs on, in cost group 442 and without a duty kind of its own (#461)', () => {
+    const catalogue = electrical()
+    const kind = catalogue.assetKind('elektro.photovoltaic_installation', options.today)
+
+    expect([kind?.definition.label, kind?.definition.costGroup]).toEqual(['PV-Anlage', '442'])
+    expect(kind?.definition.fields).toEqual([])
+    expect(
+      catalogue
+        .dutyKinds(options.today)
+        .filter((entry) =>
+          entry.definition.scope.assetKinds.includes('elektro.photovoltaic_installation'),
+        ),
+    ).toEqual([])
+  })
 })

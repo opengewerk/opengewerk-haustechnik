@@ -63,6 +63,7 @@ const NewComponentScreen = lazyRouteComponent(
   'NewComponentScreen',
 )
 const BoardScreen = lazyRouteComponent(() => import('./screens/board.js'), 'BoardScreen')
+const InverterScreen = lazyRouteComponent(() => import('./screens/inverter.js'), 'InverterScreen')
 const AssetRegisterScreen = lazyRouteComponent(
   () => import('./screens/assets.js'),
   'AssetRegisterScreen',
@@ -531,6 +532,13 @@ export function officeRoutes() {
       getParentRoute: () => office,
       path: '/anlagen/$assetId/verteiler/$boardId/stromkreise/$circuitId',
       component: BoardScreen,
+    }),
+    // An inverter of a PV installation under its file, with its strings and
+    // their modules (#461).
+    createRoute({
+      getParentRoute: () => office,
+      path: '/anlagen/$assetId/wechselrichter/$inverterId',
+      component: InverterScreen,
     }),
     // The meters on a key date, narrowed by what the address names, and the
     // page of one measuring point under them, by the id of its asset (#119).
