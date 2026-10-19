@@ -57,11 +57,16 @@ type FoundTable = PgTable & { id: PgColumn; deletedAt: PgColumn }
  * The row of an id that is there for the person asking: not marked deleted,
  * and in one of their areas, which the policy decides. Anything else is
  * nothing, an id that is no id at all included.
+ *
+ * Held for a share unless `held` is false. PostgreSQL holds a row that way
+ * only for whoever may change it, the policies for UPDATE included, so a row
+ * the person only reads is not found held.
  */
 async function found<Row>(
   tx: TenantTransaction,
   table: FoundTable,
   id: unknown,
+  held = true,
 ): Promise<Row | null> {
   if (!isUuid(id)) {
     return null
@@ -70,11 +75,11 @@ async function found<Row>(
   // Shared, so that a deletion of the row at the same moment is waited for
   // and seen (#78, T14-4): read without it, the row as it was before would
   // let a new record hang on a place that is gone a moment later.
-  const [row] = await tx
+  const query = tx
     .select()
     .from(table)
     .where(and(eq(table.id, id), isNull(table.deletedAt)))
-    .for('share')
+  const [row] = held ? await query.for('share') : await query
 
   return (row as Row | undefined) ?? null
 }
@@ -82,6 +87,9 @@ async function found<Row>(
 function given(value: unknown): boolean {
   return value !== undefined && value !== null
 }
+
+/** What a record names below its property, each held where it is checked. */
+const placesBelowTheProperty = ['assetId', 'roomId', 'buildingId', 'activityId', 'defectId']
 
 function missing(field: string): SyncRefusal {
   return { kind: 'conflict', reason: 'record_missing', fields: [field] }
@@ -197,12 +205,21 @@ async function supplyPlace(
  * A record that names its place itself, an activity or a defect: the
  * property, and at most one place on it (ADR 0002, point 10). The area comes
  * from that place, or from the property where it names none.
+ *
+ * The property is held only where the record hangs on it itself. Below it the
+ * place is held instead, the asset, room or building here, the activity or
+ * defect of a document by its caller: whoever holds only the area of a
+ * building reads its property through it and changes nothing there (#306), so
+ * held, their property was not found. Every photo of a round in such a
+ * building came back as `record_missing` on the property and was gone from
+ * the device after the next pull (19.10.2026).
  */
 async function targetPlace(
   tx: TenantTransaction,
   values: Record<string, unknown>,
 ): Promise<SyncRefusal | null> {
-  const property = await found<Property>(tx, properties, values['propertyId'])
+  const below = placesBelowTheProperty.some((field) => given(values[field]))
+  const property = await found<Property>(tx, properties, values['propertyId'], !below)
 
   if (!property) {
     return missing('propertyId')
