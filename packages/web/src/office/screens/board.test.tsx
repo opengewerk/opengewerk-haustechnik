@@ -455,7 +455,7 @@ describe('the page of a board', () => {
   it('adds a circuit to the section it was asked from, with its board and section and nothing of the place', async () => {
     await mount(boardAt)
 
-    fireEvent.click(await screen.findByRole('button', { name: 'Stromkreis in Feld 1 hinzufügen' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Stromkreis hinzufügen in Feld 1' }))
     const form = dialog('Stromkreis hinzufügen')
 
     expect((form.getByLabelText('Feld') as HTMLSelectElement).value).toBe(field1.id)
@@ -584,7 +584,7 @@ describe('the rights at the structure', () => {
       'Stromkreis hinzufügen',
       'Feld hinzufügen',
       'Feld 1 bearbeiten',
-      'Stromkreis in Feld 1 hinzufügen',
+      'Stromkreis hinzufügen in Feld 1',
       'Betriebsmittel hinzufügen',
       'Werkbankleuchte bearbeiten',
     ]) {

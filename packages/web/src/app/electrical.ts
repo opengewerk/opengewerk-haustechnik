@@ -1,4 +1,4 @@
-import { boardAssetKind, type RecordState } from '@opengewerk/haustechnik-domain'
+import { type RecordState } from '@opengewerk/haustechnik-domain'
 import { maybeText, text } from '@opengewerk/platform-web/sync'
 import { useBoardsOf } from '@opengewerk/platform-web/electrical'
 
@@ -11,11 +11,7 @@ import { useBoardsOf } from '@opengewerk/platform-web/electrical'
  * both entries say about it.
  */
 export * from '@opengewerk/platform-web/electrical'
-
-/** Whether an asset of this kind has boards: only a low-voltage installation has. */
-export function holdsBoards(kind: string | null | undefined): boolean {
-  return kind === boardAssetKind
-}
+export { holdsBoards } from './holds-boards.js'
 
 /** The boards of an asset, in their order. */
 export function useBoards(assetId: string | undefined) {

@@ -45,6 +45,14 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   wenn es wirklich nicht ging (#458). Jetzt steht nur bei einem Fehler etwas da, mit dem Grund. Warum: die Seite las die
   Antwort des Ablegens verkehrt herum, `null` heißt dort, dass das Foto unterwegs ist.
 
+- Der Einstieg vor Ort hält sein Bündelbudget wieder, 297,2 von 300 kB gzip statt 309,4 (#349). Die Seiten der
+  Elektro-Struktur, der Block „Verteiler“ auf der Seite einer Anlage und die Bildschirme des Aufnehmens (Anlage und Raum
+  aufnehmen, Etikett vergeben) kommen jetzt erst, wenn sie geöffnet werden; der Service Worker hält sie, also öffnen sie
+  auch ohne Netz. Im Büro heißt der Knopf an einem Feld „Stromkreis hinzufügen in Feld …“, mit dem sichtbaren Text vorn.
+  Warum: seit der Elektro-Struktur war die CI auf `main` rot, weil das Budget riss und die Prüfung der Breiten den Namen
+  „Stromkreis in Feld … hinzufügen“ ablehnte, der den Text des Knopfs nicht enthält; der Einstieg lag schon vorher bei
+  299,6 kB, und nur wer aufnimmt, öffnet diese Bildschirme.
+
 ## [0.1.8] - 2026-10-19
 
 Die vierte Zwischenfassung für den Pilotbetrieb, mit dem, was aus Phase 2 seit 0.1.7 fertig ist.

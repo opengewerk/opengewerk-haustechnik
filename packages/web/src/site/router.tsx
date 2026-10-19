@@ -5,21 +5,13 @@ import {
   createRootRoute,
   createRoute,
   createRouter,
+  lazyRouteComponent,
   type RouteComponent,
   useParams,
 } from '@tanstack/react-router'
 
 import { SiteAssetScreen } from './screens/asset.js'
-import {
-  SiteBoardFormScreen,
-  SiteBoardScreen,
-  SiteCircuitFormScreen,
-  SiteCircuitScreen,
-  SiteEquipmentFormScreen,
-  SiteSectionFormScreen,
-} from './screens/boards.js'
 import { SitePointScreen } from './screens/form.js'
-import { GiveLabelScreen } from './screens/give-label.js'
 import { SiteCollectiveSignScreen } from './screens/collective.js'
 import { RoundHandInScreen, RoundSignScreen } from './screens/hand-in.js'
 import {
@@ -33,8 +25,6 @@ import { ReadingRoundScreen } from './screens/reading-round.js'
 import { RoundScanScreen } from './screens/round-scan.js'
 import { ReportDefectScreen } from './screens/report-defect.js'
 import { SiteScanScreen } from './screens/scan.js'
-import { TakeAssetScreen } from './screens/take-asset.js'
-import { TakeRoomScreen } from './screens/take-room.js'
 import { SiteActivityScreen, SiteProtocolScreen } from './screens/protocol.js'
 import { SiteResultScreen } from './screens/result.js'
 import { SiteStartScreen } from './screens/start.js'
@@ -57,6 +47,42 @@ import {
 import { SiteShell } from './shell.js'
 import { MyTasksScreen } from './tasks.js'
 import { TravelScreen } from './travel.js'
+
+// What only taking stock needs, the forms of the tab "Aufnehmen", the label an asset is
+// given and the pages of the electrical structure (#349), is fetched when its address is
+// opened: the entry on site has a budget of 300 kB (`scripts/budget.js`, ADR 0004), and only
+// whoever takes stock opens these, on few days. The service worker holds every chunk of its
+// version, so they open without a network as well.
+const GiveLabelScreen = lazyRouteComponent(
+  () => import('./screens/give-label.js'),
+  'GiveLabelScreen',
+)
+const TakeAssetScreen = lazyRouteComponent(
+  () => import('./screens/take-asset.js'),
+  'TakeAssetScreen',
+)
+const TakeRoomScreen = lazyRouteComponent(() => import('./screens/take-room.js'), 'TakeRoomScreen')
+const SiteBoardFormScreen = lazyRouteComponent(
+  () => import('./screens/boards.js'),
+  'SiteBoardFormScreen',
+)
+const SiteBoardScreen = lazyRouteComponent(() => import('./screens/boards.js'), 'SiteBoardScreen')
+const SiteCircuitFormScreen = lazyRouteComponent(
+  () => import('./screens/boards.js'),
+  'SiteCircuitFormScreen',
+)
+const SiteCircuitScreen = lazyRouteComponent(
+  () => import('./screens/boards.js'),
+  'SiteCircuitScreen',
+)
+const SiteEquipmentFormScreen = lazyRouteComponent(
+  () => import('./screens/boards.js'),
+  'SiteEquipmentFormScreen',
+)
+const SiteSectionFormScreen = lazyRouteComponent(
+  () => import('./screens/boards.js'),
+  'SiteSectionFormScreen',
+)
 
 /**
  * The routes of the entry for the work on site.
