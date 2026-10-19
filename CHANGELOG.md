@@ -24,6 +24,12 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   entschieden, dass die PV-Anlagen aus OpenGewerk auch hier aufgenommen werden, und seit opengewerk/opengewerk#678 liegt
   ihre Struktur im Fundament.
 
+- Im Menü der Person im Büro und im Bereich der Instanz steht „Zur Ansicht für vor Ort“ mit der Zeile „Große Knöpfe,
+  auch ohne Netz“ (#464), aus dem Fundament (opengewerk/opengewerk#681, mit dem Submodul `upstream/opengewerk` auf
+  `061ced3` angehoben wie zu #465). Der Eintrag öffnet `/m/` und merkt sich die Wahl, sodass `/` auf diesem Gerät danach in die Ansicht für
+  vor Ort führt, bis dort „Zur Büroansicht“ gewählt wird. Warum: vom Schreibtisch oder vom Tablet in der Desktop-Ansicht
+  kam man bisher nur über die Leiste mit dem Vorschlag dorthin, die nicht immer erscheint, sonst über `/m` von Hand.
+
 - Messungen je Stromkreis im Paket Elektro, Fassung 1.3.0 (#350): die Formulare `installation_initial_test`
   (Erstprüfung nach DIN VDE 0100-600) und `installation_test` (wiederkehrende Prüfung der elektrischen Anlage) mit einer
   Gruppe „Messen je Stromkreis“, die einen Block für jeden Stromkreis der Anlage hat. Schutzleiter, Isolationswiderstand,
@@ -83,6 +89,20 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
 
 ### Geändert
 
+- Eine neue Fassung kommt von selbst (#465): die Leiste „Eine neue Fassung liegt bereit.“ mit „Jetzt übernehmen“ steht
+  nicht mehr über Büro, vor Ort und dem Bereich der Instanz. Die Anwendung übergibt die Registrierung ihres Service
+  Workers an `takeUpdates` des Fundaments (opengewerk/opengewerk#680 und #682, Submodul `upstream/opengewerk` auf
+  `061ced3` angehoben), mit einem leeren `onNeedReload`, damit nicht jede offene Seite im selben Augenblick neu lädt. Die Seite
+  übernimmt die wartende Fassung selbst: beim Öffnen, wenn sie schon wartete, wenn die Seite verborgen wird, und wenn die
+  Adresse wechselt. Nie, solange etwas sie hält: Eingaben, die nicht gespeichert sind, eine Unterschrift auf ihrem Feld,
+  der Postausgang beim Senden, ein offenes Dateifeld mit Kamera oder Auswahl (sonst ginge das eben gemachte Foto beim
+  Neuladen verloren), und hier dazu der Entwurf einer Vorlage eines Rundgangs und die Wochentage eines Plans,
+  solange sie nicht gespeichert sind; beide entstehen auch durch Drücken, nicht nur durch Tippen. Ohne Netz bleibt eine
+  Seite bei ihrer Fassung, und eine Seite, die offen bleibt, fragt jede Stunde und bei jeder Rückkehr nach einer neuen.
+  Das Kapitel „Update“ des Handbuchs sagt es so, und ADR 0005 hat dazu einen Nachtrag. Warum: eine neue Fassung soll
+  ohne Zutun ankommen, auch auf dem Tablet im Technikraum, das tagelang offen steht und sonst bei der alten bliebe,
+  selbst wenn die mit dem Server nicht mehr abgleichen kann.
+
 - Fotos aus der Galerie an allen Fotoknöpfen vor Ort (#458): Auftrag und Notiz, Mangel melden, Störung melden, das
   Typenschild beim Aufnehmen einer Anlage, die Dokumente eines Orts und die Meldung über das Etikett ohne Anmeldung haben
   neben „Foto aufnehmen“ den Knopf „Aus der Galerie“, den `PhotoTaker` des Fundaments. Wo eine Stelle mehrere Fotos
@@ -104,6 +124,13 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   Warum: seit der Elektro-Struktur war die CI auf `main` rot, weil das Budget riss und die Prüfung der Breiten den Namen
   „Stromkreis in Feld … hinzufügen“ ablehnte, der den Text des Knopfs nicht enthält; der Einstieg lag schon vorher bei
   299,6 kB, und nur wer aufnimmt, öffnet diese Bildschirme.
+
+- Die Seite eines Verteilers im Büro bietet „Änderungen“ an, wie jede Seite eines Datensatzes, für wen das Recht
+  `audit.read` hat (#349). Das Protokoll öffnet sich auf den Verteiler mit seinen Feldern, Stromkreisen und
+  Betriebsmitteln, und von dort führt „Zum Verteiler“ zurück: über die neue Adresse `/verteiler/<Kennung>`, die zur Seite
+  unter der Anlage weiterleitet. Warum: Der Verteiler stand nicht unter den Datensätzen des Protokolls, weil seine Seite
+  unter der Anlage liegt und der Weg aus dem Protokoll nur die Kennung des Verteilers kennt, nicht die der Anlage; so
+  ließ sich sein Protokoll nur über das der ganzen Anlage lesen.
 
 ## [0.1.8] - 2026-10-19
 

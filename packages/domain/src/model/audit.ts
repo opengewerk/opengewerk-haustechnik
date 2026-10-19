@@ -1066,6 +1066,8 @@ export const auditVocabulary: AuditVocabulary = {
     'floors',
     'rooms',
     'assets',
+    // A board of a low-voltage installation, from its page under the asset (#349).
+    'distribution_boards',
     'duties',
     'attachments',
     'activities',

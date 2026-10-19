@@ -11,4 +11,4 @@ Ein Update ist derselbe Befehl wie die Installation. Er baut das Abbild neu, mig
 
 ## Auf den Geräten
 
-Ein Gerät, auf dem die Anwendung offen ist, bekommt die neue Fassung angeboten und wechselt erst, wenn jemand zustimmt. So wird niemandem ein Formular unter den Händen ausgetauscht.
+Ein Gerät, auf dem die Anwendung offen ist, übernimmt die neue Fassung von selbst und lädt die Seite dafür einmal neu: beim nächsten Öffnen, wenn die Seite in den Hintergrund geht, oder beim Wechsel auf eine andere Seite. Solange ein Formular Eingaben hält, die nicht gespeichert sind, eine Unterschrift läuft oder das Gerät kein Netz hat, bleibt es bei seiner Fassung. So wird niemandem ein Formular unter den Händen ausgetauscht. Eine Seite, die lange offen steht, etwa auf einem Tablet im Technikraum, fragt jede Stunde nach einer neuen Fassung.

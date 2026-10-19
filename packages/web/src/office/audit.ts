@@ -6,6 +6,7 @@ import {
 } from '@opengewerk/haustechnik-domain'
 import type { AuditScreenWords } from '@opengewerk/platform-web/office'
 
+import { boardLanding } from '../app/structure-places.js'
 import { activityPlaces } from './activity-addresses.js'
 import { contractPlaces } from './contract-addresses.js'
 import { contractorPlaces } from './contractor-addresses.js'
@@ -36,6 +37,8 @@ const screens: Readonly<Record<string, (id: string) => string>> = {
   floors: officePlaces.floor,
   rooms: officePlaces.room,
   assets: officePlaces.asset,
+  // A board has its page under its asset, which the log does not name (#349).
+  distribution_boards: boardLanding,
   duties: dutyPlaces.duty,
   evidence: evidencePlaces.evidence,
   attachments: documentPlaces.document,
@@ -59,6 +62,7 @@ const links: Words = {
   floors: 'Zum Geschoss',
   rooms: 'Zum Raum',
   assets: 'Zur Anlage',
+  distribution_boards: 'Zum Verteiler',
   duties: 'Zur Pflicht',
   evidence: 'Zum Nachweis',
   attachments: 'Zum Dokument',
