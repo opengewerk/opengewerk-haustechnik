@@ -232,7 +232,12 @@ describe('the deletion concept', () => {
       operator: 'Probe Nord',
       at: '19.10.2026 um 09:30',
       holdsFor: '0.2.0',
-      facts: { ...defaultDeletionFacts, minimumYears: 3, removalDays: 45, backupGenerations: '21' },
+      facts: {
+        ...defaultDeletionFacts,
+        minimumYears: 3,
+        removalDays: 45,
+        backupGenerations: '21 | \\ <b>',
+      },
     })
 
     for (const [index] of deletionRules(defaultDeletionFacts).entries()) {
@@ -241,6 +246,7 @@ describe('the deletion concept', () => {
 
     expect(made).toContain('frühestens nach 3 Jahren')
     expect(made).toContain('45 Tage nach dem letzten Tag')
-    expect(made).toContain('wenn 21 Generationen erreicht sind')
+    // What whoever runs the instance wrote stays text, a bar and a backslash included.
+    expect(made).toContain('wenn 21 \\| \\\\ \\<b\\> Generationen erreicht sind')
   })
 })

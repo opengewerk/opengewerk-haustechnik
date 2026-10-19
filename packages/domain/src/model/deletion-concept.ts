@@ -120,7 +120,7 @@ export function deletionRules(facts: DeletionFacts): readonly DeletionRule[] {
       when:
         facts.backupGenerations === null
           ? 'wenn die Zahl der Generationen erreicht ist, die die Instanz aufbewahrt; nach der Vorgabe vierzehn'
-          : `wenn ${plainInMarkdown(facts.backupGenerations)} Generationen erreicht sind, laut Verwaltung der Instanz (Teil B der Maßnahmen)`,
+          : `wenn ${facts.backupGenerations} Generationen erreicht sind, laut Verwaltung der Instanz (Teil B der Maßnahmen)`,
       setting: 'bei der Verwaltung der Instanz',
       proofs: ['B64'],
     },
@@ -201,8 +201,13 @@ export interface DeletionMade {
   readonly facts: DeletionFacts
 }
 
+/**
+ * A cell of the table as plain text: what whoever runs the instance wrote, the
+ * generations of the backups, comes in unescaped and is escaped here whole, a
+ * backslash and a bar of a table included, like every value of an operator.
+ */
 function cell(value: string): string {
-  return value.replace(/\|/g, '\\|')
+  return plainInMarkdown(value)
 }
 
 /** The deletion concept as Markdown, as the PDF prints it and as it is kept. */
