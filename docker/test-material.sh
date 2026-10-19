@@ -413,13 +413,16 @@ records_for_backup() {
     select '$first_tenant', u.id, false from auth_users u where u.email = '$probe_email';
     insert into processing_descriptions (tenant_id, made_by, holds_for, text)
     select '$first_tenant', u.id, '0.1.7', '# Verfahrensbeschreibung' from auth_users u where u.email = '$probe_email';
-    -- A value of the log blacked out (#355): the trigger in front of the table
-    -- asks for the tenant of the session and a person of it who leads it.
-    select set_config('app.tenant_id', '$first_tenant', false), set_config('app.user_id', m.user_id, false)
-      from memberships m join tenant_roles r on r.tenant_id = m.tenant_id and r.key = any (m.roles) and r.leads
-     where m.tenant_id = '$first_tenant' order by m.user_id limit 1;
+    -- A value of the log blacked out (#355). The trigger in front of the table
+    -- asks for the tenant of the session and a person who leads it; the probe
+    -- account only works there, so one who leads comes along for it.
+    insert into auth_users (id, name, email) values ('u-probe-lead', 'Leitung der Schwärzung', 'schwaerzung@probe.example.de');
+    insert into memberships (tenant_id, user_id, roles)
+    select '$first_tenant', 'u-probe-lead', array[r.key]
+      from tenant_roles r where r.tenant_id = '$first_tenant' and r.leads order by r.key limit 1;
+    select set_config('app.tenant_id', '$first_tenant', false), set_config('app.user_id', 'u-probe-lead', false);
     insert into audit_redactions (tenant_id, entry_id, side, reason, redacted_by)
-    select e.tenant_id, e.id, 'new', 'Auskunft der Person', current_setting('app.user_id')
+    select e.tenant_id, e.id, 'new', 'Auskunft der Person', 'u-probe-lead'
       from audit_entries e
      where e.tenant_id = '$first_tenant' and e.table_name = 'processing_descriptions' and e.field = 'text';
     select set_config('app.tenant_id', '', false), set_config('app.user_id', '', false);
