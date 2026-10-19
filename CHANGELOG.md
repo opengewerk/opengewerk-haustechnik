@@ -91,6 +91,13 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   prüft (`outsideReportRules.photoTypes`). Warum: bisher öffnete jeder dieser Knöpfe nur die Kamera, und ein Foto, das
   schon gemacht war, kam nicht hinein.
 
+- Die README nennt im Status, was seit 0.1.8 auf `main` liegt: die Elektro-Struktur mit dem Stromkreisverzeichnis,
+  die Messwerte je Stromkreis mit Grenzwerten als Regeln und dem Mangel mit Stromkreis, die PV-Struktur unter der
+  Anlagenart „PV-Anlage“, die Nummer „Mobil“ und die Galerie an den Fotoknöpfen vor Ort, dazu, was von Phase 2 noch
+  fehlt, und statt des Meilensteins von Phase 0 den von Phase 2. Unter „Die Technik“ beschreibt ein Absatz, wie je
+  Stromkreis gemessen wird. Warum: der Status endete bei 0.1.8 und verwies noch auf den Meilenstein der abgeschlossenen
+  Phase 0.
+
 ### Behoben
 
 - Die Dokumente eines Orts vor Ort meldeten nach jedem abgelegten Foto „Das Foto ließ sich nicht ablegen.“ und schwiegen,
