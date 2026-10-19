@@ -67,6 +67,9 @@ const place = {
     floor: randomUUID(),
     room: randomUUID(),
     asset: randomUUID(),
+    installation: randomUUID(),
+    board: randomUUID(),
+    circuit: randomUUID(),
     lifecycle: randomUUID(),
     supply: randomUUID(),
     duty: randomUUID(),
@@ -82,6 +85,9 @@ const place = {
     floor: randomUUID(),
     room: randomUUID(),
     asset: randomUUID(),
+    installation: randomUUID(),
+    board: randomUUID(),
+    circuit: randomUUID(),
     lifecycle: randomUUID(),
     supply: randomUUID(),
     duty: randomUUID(),
@@ -375,6 +381,40 @@ async function placeIn(where: 'north' | 'south'): Promise<void> {
     `insert into meter_pauses (tenant_id, asset_id, property_id, area_id, starts_on, reason)
      values ($1, $2, $3, $4, '2026-08-01', 'Sommerferien')`,
     [tenant, at.asset, at.property, areaId],
+  )
+  // The electrical structure below a low-voltage installation in the building (#349).
+  await admin.query(
+    `insert into assets (id, tenant_id, property_id, area_id, building_id, kind, number, name)
+     values ($1, $2, $3, $4, $5, 'elektro.low_voltage_installation', $6, 'Niederspannungsanlage')`,
+    [
+      at.installation,
+      tenant,
+      at.property,
+      areaId,
+      at.building,
+      where === 'north' ? 'AN-00003' : 'AN-00004',
+    ],
+  )
+  await admin.query(
+    `insert into distribution_boards (id, tenant_id, asset_id, property_id, area_id, kind, designation)
+     values ($1, $2, $3, $4, $5, 'main_distribution', 'HV')`,
+    [at.board, tenant, at.installation, at.property, areaId],
+  )
+  const { rows: sections } = await admin.query<{ id: string }>(
+    `insert into board_sections (tenant_id, distribution_board_id, asset_id, property_id, area_id, designation)
+     values ($1, $2, $3, $4, $5, 'Feld 1') returning id`,
+    [tenant, at.board, at.installation, at.property, areaId],
+  )
+  await admin.query(
+    `insert into circuits (id, tenant_id, distribution_board_id, board_section_id, asset_id,
+                           property_id, area_id, designation)
+     values ($1, $2, $3, $4, $5, $6, $7, 'F1')`,
+    [at.circuit, tenant, at.board, sections[0]?.id, at.installation, at.property, areaId],
+  )
+  await admin.query(
+    `insert into equipment (tenant_id, circuit_id, asset_id, property_id, area_id, designation)
+     values ($1, $2, $3, $4, $5, 'Steckdose Flur')`,
+    [tenant, at.circuit, at.installation, at.property, areaId],
   )
   // A duty of the property itself: the evidence below would keep an asset it
   // hung on from being marked, and with it the room the asset stands in.
@@ -708,15 +748,19 @@ describe('a person with the north', () => {
       'asset_supplies',
       'assets',
       'attachments',
+      'board_sections',
       'briefings',
       'building_closures',
       'buildings',
+      'circuits',
       'contacts',
       'contract_items',
       'deadlines',
       'defects',
+      'distribution_boards',
       'duties',
       'duty_dismissals',
+      'equipment',
       'evidence',
       'evidence_emptyings',
       'evidence_signed_prints',
@@ -933,7 +977,12 @@ describe('a property moved to another area', () => {
 
         below[table] = rows[0]
         // Two evidence: the one of the duty, and the earlier one emptied (#340).
-        expected[table] = { rows: table === 'evidence' ? 2 : 1, elsewhere: 0 }
+        // Two assets: the elevator, and the low-voltage installation the
+        // electrical structure hangs on (#349).
+        expected[table] = {
+          rows: table === 'evidence' || table === 'assets' ? 2 : 1,
+          elsewhere: 0,
+        }
       }
 
       expect(tables.map((row) => row.table_name)).toEqual([
@@ -945,15 +994,19 @@ describe('a property moved to another area', () => {
         'asset_supplies',
         'assets',
         'attachments',
+        'board_sections',
         'briefings',
         'building_closures',
         'buildings',
+        'circuits',
         'contacts',
         'contract_items',
         'deadlines',
         'defects',
+        'distribution_boards',
         'duties',
         'duty_dismissals',
+        'equipment',
         'evidence',
         'evidence_emptyings',
         'evidence_signed_prints',

@@ -149,6 +149,15 @@ await checkWidths({
     // first one.
     'Angaben pflegen',
     'Konten und Anmeldung bearbeiten',
+    // The electrical structure of a low-voltage installation (#349): in the
+    // office the dialogs of a new board, section, circuit and piece of
+    // equipment, on site the forms the same buttons lead to, and there the
+    // board changed, whose button says so.
+    'Verteiler hinzufügen',
+    'Feld hinzufügen',
+    'Stromkreis hinzufügen',
+    'Betriebsmittel hinzufügen',
+    'Verteiler bearbeiten',
   ],
 
   /**

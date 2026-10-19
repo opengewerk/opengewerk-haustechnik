@@ -131,6 +131,28 @@ export const linesThroughARow: Readonly<Record<string, LineThroughARow>> = {
 }
 
 /**
+ * Keys of the electrical structure (#349) onto the part above a row, each
+ * with its reason: the keys of the foundation over the tenant and the id
+ * (`electricalSchema`, ADR 0014 in the repository opengewerk), which an
+ * application cannot change, and the keys of this application that keep a
+ * part on the asset of the part above it. Neither runs over the property.
+ * What draws the line instead is the asset: the row and the part it points
+ * at each hang on an asset of their property over their own keys, and the
+ * row on the same asset as the part above it, so that both lie where that
+ * asset lies. The catalogue asks that of every key named here.
+ */
+export const keysWithinAnAsset: Readonly<Record<string, string>> = {
+  board_sections_board_in_tenant: 'a section on its board, by the key of the foundation',
+  board_sections_on_a_board_of_their_asset: 'a section on the asset of its board',
+  circuits_board_in_tenant: 'a circuit on its board, by the key of the foundation',
+  circuits_section_belongs_to_board:
+    'a circuit in a section of its own board, by the key of the foundation',
+  circuits_on_a_board_of_their_asset: 'a circuit on the asset of its board',
+  equipment_circuit_in_tenant: 'a piece of equipment on its circuit, by the key of the foundation',
+  equipment_on_a_circuit_of_their_asset: 'a piece of equipment on the asset of its circuit',
+}
+
+/**
  * The expression of `within_areas_or_a_building` on a table, as PostgreSQL
  * writes it back, from `withinAreasOrABuildingExpression` in the schema
  * (ADR 0003, addendum of #306).
@@ -423,6 +445,28 @@ export async function areaBoundaryProblems(
   // A key that holds the area of its row to the row it hangs on.
   const holdsTheArea = (key: (typeof keys)[number]) =>
     withAnArea.has(key.target) && maps(key, 'area_id', 'area_id')
+  // A table whose rows hang on an asset of their property, over the tenant.
+  const onAnAsset = (table: string) =>
+    keys.some(
+      (key) =>
+        key.table_name === table &&
+        key.target === 'assets' &&
+        maps(key, 'tenant_id', 'tenant_id') &&
+        maps(key, 'asset_id', 'id') &&
+        maps(key, 'property_id', 'property_id'),
+    )
+  // A key between two such rows, where the row carries the asset of the part
+  // above it by another key over the tenant and the asset.
+  const onOneAsset = (key: (typeof keys)[number]) =>
+    onAnAsset(key.table_name) &&
+    onAnAsset(key.target) &&
+    keys.some(
+      (other) =>
+        other.table_name === key.table_name &&
+        other.target !== 'assets' &&
+        maps(other, 'tenant_id', 'tenant_id') &&
+        maps(other, 'asset_id', 'asset_id'),
+    )
 
   for (const table of tablesWith('property_id')) {
     if (table in propertyColumnsWithoutAnArea) {
@@ -561,6 +605,11 @@ export async function areaBoundaryProblems(
 
     // The key of a row onto the row it is a part of; its policy is asked below.
     if (through?.key === key.name && through.target === key.target) {
+      continue
+    }
+
+    // A key within the electrical structure, between two rows on one asset.
+    if (Object.hasOwn(keysWithinAnAsset, key.name) && onOneAsset(key)) {
       continue
     }
 

@@ -60,6 +60,12 @@ describe('the policies of the sync', () => {
       assets: [true, 'merge'],
       asset_lifecycle: [false, 'never'],
       asset_supplies: [true, 'merge'],
+      // The electrical structure below a low-voltage installation, taken
+      // stock of on site like its asset (#349).
+      distribution_boards: [true, 'merge'],
+      board_sections: [true, 'merge'],
+      circuits: [true, 'merge'],
+      equipment: [true, 'merge'],
       duties: [false, 'never'],
       duty_dismissals: [false, 'never'],
       activities: [true, 'merge'],
@@ -312,6 +318,40 @@ describe('what a device writes without a connection', () => {
     expect(offlineEditRefusal(operation('asset_supplies', 'update', { roomId: 'r' }))).toEqual([
       'roomId',
     ])
+  })
+
+  it('takes the structure below a low-voltage installation, and moves no part to another parent', () => {
+    expect(
+      offlineEditRefusal(
+        operation('distribution_boards', 'create', {
+          assetId: 'a',
+          kind: 'main_distribution',
+          designation: 'HV',
+        }),
+      ),
+    ).toBeNull()
+    expect(
+      offlineEditRefusal(
+        operation('circuits', 'create', {
+          distributionBoardId: 'd',
+          boardSectionId: 's',
+          designation: 'F1',
+          ratedCurrentMilli: 16000,
+        }),
+      ),
+    ).toBeNull()
+    expect(offlineEditRefusal(operation('circuits', 'update', { boardSectionId: 's' }))).toBeNull()
+    expect(
+      offlineEditRefusal(operation('circuits', 'update', { distributionBoardId: 'd' })),
+    ).toEqual(['distributionBoardId'])
+    expect(offlineEditRefusal(operation('equipment', 'update', { circuitId: 'c' }))).toEqual([
+      'circuitId',
+    ])
+    expect(
+      offlineEditRefusal(operation('distribution_boards', 'update', { assetId: 'a' })),
+    ).toEqual(['assetId'])
+    expect(syncPolicies['board_sections']?.reserved).toEqual(['assetId', 'propertyId', 'areaId'])
+    expect(syncPolicies['distribution_boards']?.reserved).toEqual(['propertyId', 'areaId'])
   })
 
   it('makes a work order on site and nothing planned, and takes its progress and no plan', () => {

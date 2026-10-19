@@ -1,10 +1,16 @@
-import { attachmentsSchema, contactsSchema, deadlinesSchema } from '@opengewerk/platform-server'
+import {
+  attachmentsSchema,
+  contactsSchema,
+  deadlinesSchema,
+  electricalSchema,
+} from '@opengewerk/platform-server'
 import {
   attachmentsGuard,
   attachmentVersionsGuard,
   contactsGuard,
   deadlinesGuard,
   type MadeByTheApplication,
+  type TableGuard,
   numberRangesGuard,
   secretsGuard,
 } from '@opengewerk/platform-server/migration'
@@ -34,6 +40,28 @@ const contactsOfTheBlocks = contactsSchema()
 const attachmentsOfTheBlocks = attachmentsSchema()
 
 /**
+ * The electrical structure as the foundation makes it (ADR 0014 in the
+ * repository opengewerk), without the asset, the property and the area this
+ * application hangs every part on (#349): so that a change of the building
+ * block in the foundation, which every application has to follow with a
+ * migration of its own, shows here.
+ */
+const electricalOfTheBlocks = electricalSchema()
+
+/**
+ * What the four tables need beside their columns, as migration 0092 says it:
+ * the application reads, adds and changes a part and removes none, the log
+ * watches them and they travel. The foundation brings no description of its
+ * own for them, as an application makes the structure only once it needs it.
+ */
+const electricalGuards: readonly TableGuard[] = [
+  'distribution_boards',
+  'board_sections',
+  'circuits',
+  'equipment',
+].map((table) => ({ table, grants: ['select', 'insert', 'update'], audited: true, synced: true }))
+
+/**
  * The tables of the foundation this application makes with lists of its own:
  * their columns and rules are the foundation's, the values of their enums are
  * this application's.
@@ -59,6 +87,15 @@ export const madeWithLists: MadeByTheApplication = {
     contacts: contactsOfTheBlocks.contacts,
     attachments: attachmentsOfTheBlocks.attachments,
     attachmentVersions: attachmentsOfTheBlocks.attachmentVersions,
+    distributionBoardKind: electricalOfTheBlocks.distributionBoardKind,
+    overcurrentDevice: electricalOfTheBlocks.overcurrentDevice,
+    tripCharacteristic: electricalOfTheBlocks.tripCharacteristic,
+    rcdType: electricalOfTheBlocks.rcdType,
+    cableInstallationMethod: electricalOfTheBlocks.cableInstallationMethod,
+    distributionBoards: electricalOfTheBlocks.distributionBoards,
+    boardSections: electricalOfTheBlocks.boardSections,
+    circuits: electricalOfTheBlocks.circuits,
+    equipment: electricalOfTheBlocks.equipment,
   },
   guards: [
     numberRangesGuard,
@@ -67,5 +104,6 @@ export const madeWithLists: MadeByTheApplication = {
     contactsGuard,
     attachmentsGuard,
     attachmentVersionsGuard,
+    ...electricalGuards,
   ],
 }

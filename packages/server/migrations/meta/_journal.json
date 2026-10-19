@@ -645,6 +645,13 @@
       "when": 1792407234896,
       "tag": "0091_contact_mobile",
       "breakpoints": true
+    },
+    {
+      "idx": 92,
+      "version": "7",
+      "when": 1792417846929,
+      "tag": "0092_electrical_structure",
+      "breakpoints": true
     }
   ]
 }

@@ -26,6 +26,30 @@ export const stockTaking = {
   label: (assetId: string) => `/anlagen/${assetId}/etikett`,
 } as const
 
+/**
+ * Where the electrical structure of a low-voltage installation is taken down
+ * on site (#349): a board and a circuit open at the addresses the office
+ * gives them (`structurePlaces`), each form under the part it adds to or
+ * changes, because a form has nothing else to learn it from.
+ */
+export const siteStructure = {
+  newBoard: (assetId: string) => `/anlagen/${assetId}/verteiler/neu`,
+  editBoard: (assetId: string, boardId: string) =>
+    `/anlagen/${assetId}/verteiler/${boardId}/bearbeiten`,
+  newSection: (assetId: string, boardId: string) =>
+    `/anlagen/${assetId}/verteiler/${boardId}/felder/neu`,
+  editSection: (assetId: string, boardId: string, sectionId: string) =>
+    `/anlagen/${assetId}/verteiler/${boardId}/felder/${sectionId}/bearbeiten`,
+  newCircuit: (assetId: string, boardId: string) =>
+    `/anlagen/${assetId}/verteiler/${boardId}/stromkreise/neu`,
+  editCircuit: (assetId: string, boardId: string, circuitId: string) =>
+    `/anlagen/${assetId}/verteiler/${boardId}/stromkreise/${circuitId}/bearbeiten`,
+  newEquipment: (assetId: string, boardId: string, circuitId: string) =>
+    `/anlagen/${assetId}/verteiler/${boardId}/stromkreise/${circuitId}/betriebsmittel/neu`,
+  editEquipment: (assetId: string, boardId: string, circuitId: string, equipmentId: string) =>
+    `/anlagen/${assetId}/verteiler/${boardId}/stromkreise/${circuitId}/betriebsmittel/${equipmentId}/bearbeiten`,
+} as const
+
 /** Where a defect is reported on site (#116): under the page of the asset or the room it is at. */
 /** A round of the meters of a property, without a network (#120). */
 export const siteReadings = {

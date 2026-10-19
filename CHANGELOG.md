@@ -9,6 +9,18 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
 
 ### Hinzugefügt
 
+- Die Elektro-Struktur unter einer Niederspannungsanlage (#349): Verteiler, Felder, Stromkreise und Betriebsmittel aus
+  dem Fundament (ADR 0014 in `opengewerk`, Submodul angehoben), mit Migration `0092_electrical_structure`. Jede der vier
+  Tabellen trägt Anlage, Liegenschaft und Bereich und hält Mandant, Bereich und die Grenzen eines Prüfers wie jede Tabelle
+  mit Ort; die Datenbank nimmt einen Verteiler nur unter einer Niederspannungsanlage an, eine solche Anlage behält ihre
+  Art, solange sie Verteiler hat, und was unter einem gelöschten Teil hängt, wird mitmarkiert. In der Anlagenakte steht
+  die Karte „Verteiler“, jeder Verteiler hat seinen Bildschirm mit Feldern, Stromkreisen und Betriebsmitteln, und vor Ort
+  wird die Struktur auch ohne Netz aufgenommen und ergänzt. Aufnehmen und Ändern verlangen „Anlagen aufnehmen“, Entfernen
+  „Anlagen pflegen“. Das Stromkreisverzeichnis (`GET /assets/:id/circuit-chart`, mit `?board=` für einen Verteiler)
+  druckt je Verteiler ein Blatt für seine Tür. Warum: Abschnitt 4.2 des Konzepts sieht die Struktur der Niederspannungsanlage
+  mit dem Verzeichnis vor; Moritz hat am 15.10.2026 entschieden, dass sie unter der Anlage steht wie in OpenGewerk und
+  auch vor Ort ohne Netz aufgenommen wird.
+
 - Eine zweite Nummer am Ansprechpartner, „Mobil“ (#428): an einer Liegenschaft und an einer Fremdfirma, im Dialog
   „Fremdfirma anlegen“ neben „Telefon“, auf der Karte im Büro und vor Ort zum Antippen. Die Spalte kommt aus dem
   Fundament (opengewerk/opengewerk#677, Submodul angehoben) mit der Migration `0091_contact_mobile`, die sie wie die erste

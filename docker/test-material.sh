@@ -30,7 +30,7 @@ guarded_route=/staff
 # The tables counted before the backup and after the restore. The area and
 # the place of the account in it come with the account: a Betreiber gets its
 # first area with its first membership.
-counted_tables='auth_users memberships tenant_roles account_corrections areas member_areas invitations invitation_area_choices invitation_areas properties buildings contacts building_closures assets files mail_settings deadline_settings deadline_runs duties duty_dismissals evidence deadlines activities activity_duties activity_answers work_orders work_order_participants work_order_notes defects fault_categories fault_reports fault_report_settings fault_report_contacts meter_points meter_readings meter_exchanges meter_pauses meter_settings work_order_settings activity_signatures work_order_decisions service_reports service_report_records briefings work_permits articles suppliers stores store_articles stock_movements work_order_materials store_labels contractors contracts contract_items qualification_kinds qualifications member_limit_properties member_limit_asset_kinds invitation_limit_properties invitation_limit_asset_kinds auditor_reads evidence_voidings evidence_emptyings evidence_retention_settings membership_settings membership_removals processing_descriptions privacy_documents processing_record_settings processing_record_activities audit_redactions round_records prints attachments attachment_versions labels imports import_records own_asset_kinds own_asset_fields asset_kind_names defect_class_terms round_templates round_template_versions round_plans tasks mail_outbox push_subscriptions push_opt_outs push_outbox'
+counted_tables='auth_users memberships tenant_roles account_corrections areas member_areas invitations invitation_area_choices invitation_areas properties buildings contacts building_closures assets files mail_settings deadline_settings deadline_runs duties duty_dismissals evidence deadlines activities activity_duties activity_answers work_orders work_order_participants work_order_notes defects fault_categories fault_reports fault_report_settings fault_report_contacts meter_points meter_readings meter_exchanges meter_pauses meter_settings distribution_boards board_sections circuits equipment work_order_settings activity_signatures work_order_decisions service_reports service_report_records briefings work_permits articles suppliers stores store_articles stock_movements work_order_materials store_labels contractors contracts contract_items qualification_kinds qualifications member_limit_properties member_limit_asset_kinds invitation_limit_properties invitation_limit_asset_kinds auditor_reads evidence_voidings evidence_emptyings evidence_retention_settings membership_settings membership_removals processing_descriptions privacy_documents processing_record_settings processing_record_activities audit_redactions round_records prints attachments attachment_versions labels imports import_records own_asset_kinds own_asset_fields asset_kind_names defect_class_terms round_templates round_template_versions round_plans tasks mail_outbox push_subscriptions push_opt_outs push_outbox'
 
 # The migrations, and how many of them make the older state an update starts
 # from: the first, without the sequence for work orders that the second brings.
@@ -515,6 +515,30 @@ records_for_backup() {
            '{\"place\": \"Probe\"}', u.id, '2026-10-01T08:05:00Z'
       from activities a, contractors c, auth_users u
      where a.tenant_id = '$first_tenant' and c.tenant_id = a.tenant_id and u.email = '$probe_email';"
+  # The electrical structure below a low-voltage installation in the same
+  # building (opengewerk-haustechnik#349): a board with a section, a circuit
+  # in it and a piece of equipment on that. Its own asset, since a board
+  # hangs on a low-voltage installation and on nothing else.
+  sql "
+    insert into assets (tenant_id, property_id, area_id, building_id, kind, name)
+    select tenant_id, property_id, area_id, id, 'elektro.low_voltage_installation',
+           'Niederspannungsanlage Haus A'
+      from buildings where tenant_id = '$first_tenant';
+    insert into distribution_boards (tenant_id, asset_id, property_id, area_id, kind, designation, location)
+    select tenant_id, id, property_id, area_id, 'main_distribution', 'HV', 'Keller'
+      from assets where tenant_id = '$first_tenant' and kind = 'elektro.low_voltage_installation';
+    insert into board_sections (tenant_id, distribution_board_id, asset_id, property_id, area_id, designation)
+    select tenant_id, id, asset_id, property_id, area_id, 'Feld 1'
+      from distribution_boards where tenant_id = '$first_tenant';
+    insert into circuits (tenant_id, distribution_board_id, board_section_id, asset_id, property_id,
+                          area_id, designation, overcurrent_device, trip_characteristic,
+                          rated_current_milli)
+    select tenant_id, distribution_board_id, id, asset_id, property_id, area_id, 'F1',
+           'circuit_breaker', 'b', 16000
+      from board_sections where tenant_id = '$first_tenant';
+    insert into equipment (tenant_id, circuit_id, asset_id, property_id, area_id, designation)
+    select tenant_id, id, asset_id, property_id, area_id, 'Steckdose Flur'
+      from circuits where tenant_id = '$first_tenant';"
   waited=0
   # The duty's own deadline; the plan of a round brings one of its own.
   until test "$(value "select count(*) from deadlines where tenant_id = '$first_tenant' and duty_id is not null")" = 1 &&

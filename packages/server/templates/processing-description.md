@@ -1056,7 +1056,7 @@ Jede Zeile ist der erste Abschnitt einer Adresse, unter der der Server antwortet
 | `activities` | Prüfungen und Wartungen: die Liste, auch als Tabelle, die Seite eines Vorgangs, die Auswahl der Personen für seinen Plan und der Plan |
 | `areas` | Bereiche und für wen sie genannt sind; ihre Liste auch als Tabelle |
 | `articles` | Artikel des Lagers: die Liste, auch als Tabelle, ein neuer Artikel, seine Änderung und dass er entfällt; ohne Person |
-| `assets` | Anlagen und ihre Komponenten, und die Nachweise einer Anlage; das Anlagenverzeichnis auch als Tabelle, das Anlagenbuch einer Anlage als PDF oder Tabelle, ohne Person des Betreibers |
+| `assets` | Anlagen und ihre Komponenten, und die Nachweise einer Anlage; das Anlagenverzeichnis auch als Tabelle, das Anlagenbuch einer Anlage als PDF oder Tabelle, ohne Person des Betreibers; das Stromkreisverzeichnis einer Niederspannungsanlage als PDF, ohne Person |
 | `attachments` | Dokumente: gibt die Datei einer Fassung und ihre Vorschau aus, über die Fassung und nie über die Prüfsumme; die Liste der Dokumente auch als Tabelle |
 | `audit` | Änderungsprotokoll, für die Leitung auch als Tabelle |
 | `auditor-reads` | das Protokoll der Zugriffe der Prüfer, für die Leitung |

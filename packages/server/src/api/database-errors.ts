@@ -46,6 +46,9 @@ export const applicationConflicts: Readonly<Record<string, string>> = {
   // A further photo of a point that is no document of its activity, or one
   // named twice (#451).
   HT013: 'Jedes Foto eines Punkts ist ein Dokument seines Vorgangs und steht nur einmal an ihm.',
+  // A board on an asset that is no low-voltage installation, or such an
+  // installation with boards given another kind (#349).
+  HT014: 'Ein Verteiler hängt nur unter einer Niederspannungsanlage.',
 }
 
 export const { answerFor, DatabaseExceptionFilter } = databaseErrors(applicationConflicts)

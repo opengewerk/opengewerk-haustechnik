@@ -116,6 +116,12 @@ describe('the change log in the words of this application', () => {
   })
 
   it('says "Betrieb" nowhere, the word of the trades application', () => {
-    expect(JSON.stringify(auditVocabulary)).not.toMatch(/Betrieb/)
+    // As a word of its own, the way the check of the build reads it: the
+    // equipment on a circuit is "Betriebsmittel" in every trade (#349), and
+    // that names no tenant.
+    expect(JSON.stringify(auditVocabulary)).not.toMatch(
+      /\b(?:Betrieb|Betriebs|Betriebe|Betrieben)\b/,
+    )
+    expect(JSON.stringify(auditVocabulary)).toContain('Betriebsmittel')
   })
 })

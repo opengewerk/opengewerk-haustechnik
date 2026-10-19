@@ -1,12 +1,15 @@
-import type {
-  Activity,
-  Asset,
-  Building,
-  Defect,
-  Floor,
-  Identity,
-  Property,
-  Room,
+import {
+  type Activity,
+  type Asset,
+  type AssetBoard,
+  type AssetCircuit,
+  boardAssetKind,
+  type Building,
+  type Defect,
+  type Floor,
+  type Identity,
+  type Property,
+  type Room,
 } from '@opengewerk/haustechnik-domain'
 import {
   type FoundIdentity,
@@ -26,9 +29,11 @@ import {
   assetSupplies,
   attachments,
   buildings,
+  circuits,
   contractors,
   contracts,
   defects,
+  distributionBoards,
   floors,
   properties,
   rooms,
@@ -199,6 +204,55 @@ async function supplyPlace(
   values['areaId'] = asset.areaId
 
   return null
+}
+
+/**
+ * A board on its asset, which is a low-voltage installation (decision 31 of
+ * phase 2): property and area come from the asset. An asset of another kind
+ * is not one a board can hang on, the same answer as an asset that is gone; a
+ * trigger of the database holds it too, for the whole transmission.
+ */
+async function boardPlace(
+  tx: TenantTransaction,
+  values: Record<string, unknown>,
+): Promise<SyncRefusal | null> {
+  const asset = await found<Asset>(tx, assets, values['assetId'])
+
+  if (!asset || asset.kind !== boardAssetKind) {
+    return missing('assetId')
+  }
+
+  values['propertyId'] = asset.propertyId
+  values['areaId'] = asset.areaId
+
+  return null
+}
+
+/**
+ * A section or a circuit on its board, a piece of equipment on its circuit:
+ * asset, property and area come from the part above, so that the whole
+ * structure lies where its asset lies (#349). Whether the section a circuit
+ * names is one of its board asks the check of the structure afterwards.
+ */
+function partPlace(
+  field: 'distributionBoardId' | 'circuitId',
+): (tx: TenantTransaction, values: Record<string, unknown>) => Promise<SyncRefusal | null> {
+  return async (tx, values) => {
+    const parent =
+      field === 'distributionBoardId'
+        ? await found<AssetBoard>(tx, distributionBoards, values[field])
+        : await found<AssetCircuit>(tx, circuits, values[field])
+
+    if (!parent) {
+      return missing(field)
+    }
+
+    values['assetId'] = parent.assetId
+    values['propertyId'] = parent.propertyId
+    values['areaId'] = parent.areaId
+
+    return null
+  }
 }
 
 /**
@@ -538,6 +592,10 @@ const placeOf: Readonly<
   rooms: roomPlace,
   assets: assetPlace,
   asset_supplies: supplyPlace,
+  distribution_boards: boardPlace,
+  board_sections: partPlace('distributionBoardId'),
+  circuits: partPlace('distributionBoardId'),
+  equipment: partPlace('circuitId'),
   activities: targetPlace,
   defects: defectPlace,
   work_orders: workOrderPlace,

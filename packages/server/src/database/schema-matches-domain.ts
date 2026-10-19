@@ -3,6 +3,10 @@ import type {
   Article,
   ActivityDuty,
   ActivitySignature,
+  AssetBoard,
+  AssetBoardSection,
+  AssetCircuit,
+  AssetEquipment,
   Building,
   BuildingClosure,
   Contact,
@@ -56,6 +60,10 @@ import type {
 import type {
   activities,
   articles,
+  boardSections,
+  circuits,
+  distributionBoards,
+  equipment,
   activityDuties,
   activitySignatures,
   buildingClosures,
@@ -132,6 +140,13 @@ export type BuildingMatches = Assert<Exact<Placed<typeof buildings.$inferSelect>
 export type FloorMatches = Assert<Exact<typeof floors.$inferSelect, Floor>>
 export type RoomMatches = Assert<Exact<typeof rooms.$inferSelect, Room>>
 export type ContactMatches = Assert<Exact<typeof contacts.$inferSelect, Contact>>
+// The electrical structure below a low-voltage installation (#349).
+export type AssetBoardMatches = Assert<Exact<typeof distributionBoards.$inferSelect, AssetBoard>>
+export type AssetBoardSectionMatches = Assert<
+  Exact<typeof boardSections.$inferSelect, AssetBoardSection>
+>
+export type AssetCircuitMatches = Assert<Exact<typeof circuits.$inferSelect, AssetCircuit>>
+export type AssetEquipmentMatches = Assert<Exact<typeof equipment.$inferSelect, AssetEquipment>>
 export type ContractorMatches = Assert<Exact<typeof contractors.$inferSelect, Contractor>>
 export type ContractMatches = Assert<Exact<typeof contracts.$inferSelect, Contract>>
 // The period after the end of an access and when the data of one went (#356).

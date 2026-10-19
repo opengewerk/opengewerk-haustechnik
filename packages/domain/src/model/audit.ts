@@ -1,12 +1,22 @@
 import {
   type AuditFormat,
+  type AuditTableWords,
   type AuditVocabulary,
+  cableInstallationMethodName,
   checkPointResultLabel,
   deadlineReminderLabel,
+  distributionBoardKindLabel,
+  overcurrentDeviceName,
+  rcdTypeLabel,
+  tripCharacteristicLabel,
   ruleScopeNames,
   stockMovementKindLabel,
   stockUnitLabel,
   personLevelLabel,
+  structureAuditParts,
+  structureAuditReferences,
+  structureAuditTables,
+  structureAuditTitles,
 } from '@opengewerk/platform-domain'
 
 import {
@@ -36,6 +46,56 @@ import { templateKeyPrefix } from './round-template.js'
 import { signatureRoleLabel, workOrderDecisionLabel } from './signature.js'
 
 import { rightLabel, shippedRoles } from './rights.js'
+
+/**
+ * The tables of the electrical structure this application makes (#349). The
+ * words the foundation has for the structure name the PV structure as well,
+ * which this application does not make, and words for a table nobody watches
+ * are left over (`auditVocabularyGaps`).
+ */
+const electricalTables: readonly string[] = [
+  'distribution_boards',
+  'board_sections',
+  'circuits',
+  'equipment',
+]
+
+/** What the foundation says about the structure, for the tables of the electrical one. */
+function ofTheElectricalStructure<Words>(
+  words: Readonly<Record<string, Words>>,
+  table: (key: string, value: Words) => string = (key) => key,
+): Record<string, Words> {
+  return Object.fromEntries(
+    Object.entries(words).filter(([key, value]) => electricalTables.includes(table(key, value))),
+  )
+}
+
+/**
+ * The fields of the structure the foundation leaves to an application, since
+ * it names none that many tables of an application share. The words of the
+ * assets where an asset has the same field.
+ */
+const structureFields: Readonly<Record<string, Readonly<Record<string, string>>>> = {
+  distribution_boards: { kind: 'Art', designation: 'Bezeichnung', position: 'Reihenfolge' },
+  board_sections: { designation: 'Bezeichnung', position: 'Reihenfolge' },
+  circuits: { designation: 'Bezeichnung', position: 'Reihenfolge' },
+  equipment: {
+    designation: 'Bezeichnung',
+    kind: 'Art',
+    manufacturer: 'Hersteller',
+    model: 'Typ',
+    serial_number: 'Seriennummer',
+    position: 'Reihenfolge',
+  },
+}
+
+/** The words of the four tables, the foundation's with the fields above. */
+const electricalTableWords: Readonly<Record<string, AuditTableWords>> = Object.fromEntries(
+  Object.entries(ofTheElectricalStructure(structureAuditTables)).map(([table, words]) => [
+    table,
+    { ...words, fields: { ...structureFields[table], ...words.fields } },
+  ]),
+)
 
 /**
  * The change log of a tenant in the words of this application (Abschnitt 3 of
@@ -228,6 +288,10 @@ export const auditVocabulary: AuditVocabulary = {
     },
     // The day of the month the readings of the operator are due on (#120).
     meter_settings: { label: 'Stichtag der Zähler', fields: { key_day: 'Tag des Stichtags' } },
+    // The electrical structure below a low-voltage installation, in the
+    // foundation's words (#349, ADR 0014 in the repository opengewerk). The
+    // asset, its property and its area are named with every row with a place.
+    ...electricalTableWords,
     // The stores of the operator, on the building block of the foundation (#325).
     articles: {
       label: 'Artikel',
@@ -943,7 +1007,11 @@ export const auditVocabulary: AuditVocabulary = {
       { table: 'meter_readings', column: 'asset_id' },
       { table: 'meter_exchanges', column: 'asset_id' },
       { table: 'meter_pauses', column: 'asset_id' },
+      // A low-voltage installation with its boards (#349).
+      { table: 'distribution_boards', column: 'asset_id' },
     ],
+    // A board with its sections and circuits, a circuit with its equipment.
+    ...ofTheElectricalStructure(structureAuditParts),
     // A document with its versions: who filed which, and when.
     attachments: [{ table: 'attachment_versions', column: 'attachment_id' }],
     // An activity with the duties it is to meet and what came of each, the
@@ -1045,6 +1113,9 @@ export const auditVocabulary: AuditVocabulary = {
     // What a deadline of this application hangs on beside the above.
     task_id: 'tasks',
     meter_property_id: 'properties',
+    // The board, the section and the circuit a part of the electrical
+    // structure hangs on (#349).
+    ...ofTheElectricalStructure(structureAuditReferences, (_, target) => target),
   },
   // The form of a round is its template, named by a key that begins with a
   // word and ends with the id of the template; the form of an inspection is a
@@ -1098,6 +1169,9 @@ export const auditVocabulary: AuditVocabulary = {
     invitation_limit_properties: ['invitation_id'],
     invitation_limit_asset_kinds: ['invitation_id'],
     substitutions: ['absent_user_id'],
+    // A circuit and a piece of equipment by their designation, or else by
+    // what they supply and what they are (#349).
+    ...ofTheElectricalStructure(structureAuditTitles),
     // A closure by what it is for, and by its first day where it says nothing.
     building_closures: ['reason', 'starts_on'],
     // A version of a template by its number, a plan by the template it walks.
@@ -1259,6 +1333,15 @@ export const auditValues: Readonly<
   articles: { unit: stockUnitLabel },
   asset_lifecycle: { state: lifecycleStateLabel },
   assets: { meter_unit: meterUnitSymbol },
+  // The electrical structure in the words of its forms (#349): a board by
+  // its kind, a protective device and an installation method by their name.
+  distribution_boards: { kind: distributionBoardKindLabel },
+  circuits: {
+    overcurrent_device: overcurrentDeviceName,
+    trip_characteristic: tripCharacteristicLabel,
+    rcd_type: rcdTypeLabel,
+    cable_installation_method: cableInstallationMethodName,
+  },
   attachments: { kind: documentKindLabel },
   // The deadlines of the foundation, in the words of its list of deadlines.
   deadlines: { status: { open: 'Offen', done: 'Erledigt', dropped: 'Entfallen' } },
