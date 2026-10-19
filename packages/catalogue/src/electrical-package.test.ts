@@ -6,6 +6,8 @@ import {
   type CatalogueEntry,
   catalogueOf,
   type DutyKind,
+  forms,
+  type MeasurementField,
   type ScopeCondition,
 } from '@opengewerk/haustechnik-domain'
 import { describe, expect, it } from 'vitest'
@@ -234,6 +236,78 @@ describe('the package Elektro', () => {
         ['elektro.safety_power_supply'],
       ],
     ])
+  })
+
+  it('tests an installation with the measurements per circuit, against the limits of its rules (#350)', () => {
+    const catalogue = electrical()
+    const today = options.today
+
+    expect(
+      [
+        'elektro.installation_test_dguv_v3',
+        'elektro.installation_test_dguv_v4',
+        'elektro.installation_test_special_location_dguv_v3',
+      ].map((key) => catalogue.dutyKind(key, today)?.definition.evidence),
+    ).toEqual(Array(3).fill({ kinds: ['protocol', 'report'], form: 'elektro.installation_test' }))
+
+    for (const key of ['elektro.installation_test', 'elektro.installation_initial_test']) {
+      const sections = catalogue.form(key, today)?.definition.sections ?? []
+      const group = sections
+        .flatMap((section) => section.fields)
+        .find((field) => field.kind === 'group')
+
+      expect(group?.kind === 'group' ? group.repeat : null, key).toBe('circuits')
+
+      const measured = new Map(
+        (group?.kind === 'group' ? group.fields : [])
+          .filter((field): field is MeasurementField => field.kind === 'measurement')
+          .map((field) => [field.key, field]),
+      )
+      // A breaker C 16 with a residual current device of 30 mA, measured on
+      // the day the edition of DIN VDE 0100-600 began.
+      const circuit = {
+        tripCharacteristic: 'c',
+        ratedCurrentMilli: 16_000,
+        ratedResidualCurrentMilli: 30,
+      }
+      const verdict = (field: string, value: number) => {
+        const found = measured.get(field)
+
+        return found === undefined
+          ? null
+          : forms.limitVerdict(found, value, {
+              rules: catalogue.ruleSet,
+              on: '2017-06-01',
+              item: circuit,
+            })
+      }
+
+      expect(
+        [
+          verdict('protective_conductor', 300),
+          verdict('insulation_resistance', 1_000),
+          verdict('loop_impedance', 1_437),
+          verdict('rcd_trip_current', 30_000),
+          verdict('rcd_trip_time', 300_000),
+        ].map((each) => [each?.within, each?.text]),
+        key,
+      ).toEqual([
+        [null, 'Kein Grenzwert.'],
+        [true, 'Innerhalb des Grenzwerts, mindestens 1,00 MΩ.'],
+        [true, 'Innerhalb des Grenzwerts, höchstens 1,43 Ω.'],
+        [true, 'Innerhalb des Grenzwerts, höchstens 30,0 mA.'],
+        [true, 'Innerhalb des Grenzwerts, höchstens 300 ms.'],
+      ])
+      expect(
+        [
+          verdict('insulation_resistance', 999),
+          verdict('loop_impedance', 1_438),
+          verdict('rcd_trip_current', 30_001),
+          verdict('rcd_trip_time', 300_001),
+        ].map((each) => each?.within),
+        key,
+      ).toEqual([false, false, false, false])
+    }
   })
 
   it('brings three defect classes of its own, of which the last makes an asset unsafe', () => {

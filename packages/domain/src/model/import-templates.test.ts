@@ -279,10 +279,10 @@ describe('a point of a list', () => {
       decimals: 0,
     })
     expect(whats(point({ kind: 'Messwert' }))).toEqual([
-      'Die Einheit fehlt: ein Punkt der Art „Messwert“ nennt eine von °C, je 100 ml, kWh, MWh, m³, Ω, MΩ, mA und kg',
+      'Die Einheit fehlt: ein Punkt der Art „Messwert“ nennt eine von °C, je 100 ml, kWh, MWh, m³, Ω, MΩ, mA, kg und ms',
     ])
     expect(whats(point({ kind: 'Messwert', unit: 'bar' }))).toEqual([
-      'Die Einheit „bar“ ist keine von °C, je 100 ml, kWh, MWh, m³, Ω, MΩ, mA und kg',
+      'Die Einheit „bar“ ist keine von °C, je 100 ml, kWh, MWh, m³, Ω, MΩ, mA, kg und ms',
     ])
   })
 

@@ -9,6 +9,23 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
 
 ### Hinzugefügt
 
+- Messungen je Stromkreis im Paket Elektro, Fassung 1.3.0 (#350): die Formulare `installation_initial_test`
+  (Erstprüfung nach DIN VDE 0100-600) und `installation_test` (wiederkehrende Prüfung der elektrischen Anlage) mit einer
+  Gruppe „Messen je Stromkreis“, die einen Block für jeden Stromkreis der Anlage hat. Schutzleiter, Isolationswiderstand,
+  Schleifenimpedanz, Auslösestrom und Auslösezeit werden gegen die Regeln aus `regeln/vde.json` beurteilt, mit denselben
+  Werten und Fundstellen wie im Paket Elektro von OpenGewerk; die Grenzwerte der Schleifenimpedanz und des Auslösestroms
+  berechnen die Rechner des Fundaments aus Charakteristik, Nennstrom und Bemessungsdifferenzstrom des Stromkreises. Die
+  drei Pflichtarten der Prüfung der elektrischen Anlage nennen in ihrer zweiten Fassung das Formular `installation_test`
+  neben dem Bericht. Die Formular-Engine kennt dafür die Liste `circuits`, die Einheit Millisekunden und die beiden
+  berechneten Grenzwerte, und der Bau des Katalogs verlangt, dass ein berechneter Grenzwert in einer Gruppe je Stromkreis
+  steht und die Regeln, die er liest, im Katalog stehen. Eine Antwort in einem solchen Block gehört zu einem Stromkreis
+  der Anlage, ein Messwert wird mit den Angaben seines Stromkreises beurteilt, vor der Unterschrift fehlt jeder Stromkreis
+  ohne Antwort, und ein Mangel aus einem solchen Block nennt Gruppe und Stromkreis und trägt den Stromkreis. Die
+  unterschriebene Seite nennt die Stromkreise nur, wo es welche gibt, damit jede ältere Seite ihren Fingerabdruck behält.
+  Warum: Abschnitt 5 des Konzepts sieht die Messwerte je Stromkreis im Paket Elektro für Phase 2 vor, und Moritz hat am
+  15.10.2026 entschieden, dass ihre Grenzwerte wie in OpenGewerk als Regeln mit Norm, Ausgabe und Abschnitt stehen und
+  ein Wert außerhalb ein Mangel an der Anlage mit dem Stromkreis wird.
+
 - Die Elektro-Struktur unter einer Niederspannungsanlage (#349): Verteiler, Felder, Stromkreise und Betriebsmittel aus
   dem Fundament (ADR 0014 in `opengewerk`, Submodul angehoben), mit Migration `0092_electrical_structure`. Jede der vier
   Tabellen trägt Anlage, Liegenschaft und Bereich und hält Mandant, Bereich und die Grenzen eines Prüfers wie jede Tabelle

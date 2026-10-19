@@ -207,8 +207,8 @@ export * from './model/report.js'
 export * from './model/deadlines.js'
 
 // The forms of this application: the form engine of the foundation, bound to
-// its units, the kinds of field it shows and the records a field may be
-// about. The types bound to its terms carry the names of the general ones of
+// its units, the kinds of field it shows, the records a field may be about
+// and the circuits a group repeats over, with the limits worked out of one. The types bound to its terms carry the names of the general ones of
 // the foundation, so they are named here once more, and these win.
 export * from './model/forms.js'
 export type {

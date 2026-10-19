@@ -1,9 +1,12 @@
 import {
   type AttachmentId,
+  type BlockCircuit,
   type CheckPointResult,
+  type CircuitFacts,
   checkPointResults,
   type FieldValue,
   type FormValues,
+  type GroupBlock,
   type Id,
   type IsoDate,
   type LimitVerdict,
@@ -21,6 +24,7 @@ import type { StatedAnswer, StatedAnswerAsset, StatedFile } from './evidence.js'
 import { oneOf, type Problems } from './fields.js'
 import {
   type BlockField,
+  blockKeys,
   type FormDefinition,
   type FormSection,
   forms,
@@ -149,6 +153,72 @@ export function photoColumns(
 
 /** An answer as far as its form asks it. */
 export type FilledAnswer = AnswerPoint & AnswerContent
+
+/**
+ * A circuit of the installation as the answers of a form are judged with it
+ * (#350): its id, which is the key of its block in a group over the
+ * circuits, how it is named on paper and what its limits are worked out
+ * from, the designation of the board it is on, and its place in the order of
+ * the circuit chart, counted from nought. The page that is signed holds the
+ * circuits so, and the answers are judged against that page.
+ */
+export type AnswerCircuit = BlockCircuit & {
+  readonly id: string
+  readonly board: string
+  readonly place: number
+}
+
+/** The circuits an activity is asked about, none where nobody gave any. */
+type Circuits = readonly AnswerCircuit[] | null | undefined
+
+/** Whether a group repeats over the circuits of the installation (#350). */
+function overCircuits(group: GroupField | null): boolean {
+  return group !== null && group.repeat === 'circuits'
+}
+
+/**
+ * The circuit an answer in a block of a group over the circuits is about,
+ * found by the key of its block among the circuits given; null for an
+ * answer in any other place, and for one about a circuit not among them.
+ */
+function circuitOf(
+  found: AnsweredField | null,
+  point: AnswerPoint,
+  circuits: Circuits,
+): AnswerCircuit | null {
+  if (found === null || !overCircuits(found.group) || point.blockKey === null) {
+    return null
+  }
+
+  return circuits?.find((circuit) => circuit.id === point.blockKey) ?? null
+}
+
+/** The circuit an answer of a form is about (#350), among those given, or null. */
+export function circuitOfAnswer(
+  definition: FormDefinition,
+  point: AnswerPoint,
+  circuits: Circuits,
+): AnswerCircuit | null {
+  return circuitOf(answeredField(definition, point), point, circuits)
+}
+
+/** What a block keeps of its circuit: how it is named and what its limits are worked out from. */
+function blockCircuitOf(circuit: AnswerCircuit): BlockCircuit {
+  return {
+    designation: circuit.designation,
+    consumer: circuit.consumer,
+    tripCharacteristic: circuit.tripCharacteristic,
+    ratedCurrentMilli: circuit.ratedCurrentMilli,
+    ratedResidualCurrentMilli: circuit.ratedResidualCurrentMilli,
+  }
+}
+
+/** A circuit in words, as the chart names it: "F3 Steckdosen Werkbank". */
+function circuitWords(circuit: AnswerCircuit): string {
+  const consumer = circuit.consumer?.trim() ?? ''
+
+  return consumer === '' ? circuit.designation : `${circuit.designation} ${consumer}`
+}
 
 /** Small letters, digits and underscores, the shape of a key of a field in a form. */
 const fieldKeyShape = /^[a-z][a-z0-9_]*$/
@@ -400,11 +470,16 @@ function columnsProblem(field: BlockField, answer: AnswerContent): string | null
  * An answer to a point for every asset of a kind names one of its assets,
  * of those the round was given where they are handed in (#343); every
  * other answer names none.
+ *
+ * An answer in a group over the circuits stands in the block of one of the
+ * circuits of the installation, where they are handed in (#350): the key of
+ * its block is the id of the circuit.
  */
 export function answerFitProblem(
   definition: FormDefinition,
   answer: FilledAnswer,
   pointAssets?: PointAssets | null,
+  circuits?: readonly { readonly id: string }[] | null,
 ): string | null {
   const found = answeredField(definition, answer)
 
@@ -433,6 +508,15 @@ export function answerFitProblem(
     return `Nach dieser Anlage fragt der Punkt „${found.field.label}“ in diesem Rundgang nicht.`
   }
 
+  if (
+    found.group !== null &&
+    overCircuits(found.group) &&
+    circuits !== undefined &&
+    !(circuits ?? []).some((circuit) => circuit.id === answer.blockKey)
+  ) {
+    return `„${found.group.label}“ fragt nur nach den Stromkreisen der Anlage des Vorgangs.`
+  }
+
   return (
     columnsProblem(found.field, answer) ??
     forms.valueProblem(found.field, answerValue(found.field, answer))
@@ -449,13 +533,20 @@ function compare(left: string, right: string): number {
  * its activity: a field outside a group by its key, a group as its blocks in
  * the order of their keys. An answer the form has no field for is left out;
  * the sync refuses one before it is written.
+ *
+ * A block of a group over the circuits carries its circuit, under the keys
+ * the engine keeps an item under (#350). A block of a circuit that is not
+ * among those given is left out, since the engine would refuse it, and
+ * `answersMissing` names it.
  */
 export function formValuesOf(
   definition: FormDefinition,
   answers: readonly FilledAnswer[],
+  circuits?: readonly AnswerCircuit[] | null,
 ): FormValues {
-  const values: Record<string, FieldValue | { readonly values: Record<string, FieldValue> }[]> = {}
+  const values: Record<string, FieldValue | readonly GroupBlock[]> = {}
   const groups = new Map<string, Map<string, Record<string, FieldValue>>>()
+  const circuitOfBlock = new Map<string, AnswerCircuit>()
 
   for (const answer of answers) {
     const found = answeredField(definition, answer)
@@ -472,6 +563,16 @@ export function formValuesOf(
       continue
     }
 
+    if (overCircuits(found.group)) {
+      const circuit = circuitOf(found, answer, circuits)
+
+      if (circuit === null) {
+        continue
+      }
+
+      circuitOfBlock.set(`${answer.groupKey}/${answer.blockKey}`, circuit)
+    }
+
     const blocks = groups.get(answer.groupKey) ?? new Map<string, Record<string, FieldValue>>()
     const block = blocks.get(answer.blockKey) ?? {}
 
@@ -483,7 +584,17 @@ export function formValuesOf(
   for (const [groupKey, blocks] of groups) {
     values[groupKey] = [...blocks.entries()]
       .sort(([left], [right]) => compare(left, right))
-      .map(([, block]) => ({ values: block }))
+      .map(([key, block]): GroupBlock => {
+        const circuit = circuitOfBlock.get(`${groupKey}/${key}`)
+
+        return circuit === undefined
+          ? { values: block }
+          : ({
+              [blockKeys.id]: key,
+              [blockKeys.item]: blockCircuitOf(circuit),
+              values: block,
+            } as GroupBlock)
+      })
   }
 
   return values
@@ -541,10 +652,18 @@ export interface LimitContext {
  * assets it asks each point for every asset about, and how an asset is
  * named in a sentence. Without them such a point asks about no asset, and an
  * asset is named by its place among those of its point.
+ *
+ * What the answers of a form with a group over the circuits are asked with
+ * (#350): the circuits of the installation, as the page that is signed holds
+ * them. A measured value in the block of a circuit is judged with the facts
+ * of that circuit, every circuit needs its answers before the signature, and
+ * a block of a circuit not among them is one too many. Without them a group
+ * over the circuits has no circuit to answer for.
  */
 export interface AnswersContext extends LimitContext {
   readonly pointAssets?: PointAssets | null
   readonly assetName?: (id: string) => string | null
+  readonly circuits?: readonly AnswerCircuit[] | null
 }
 
 /** An asset of a point for every asset in words: its name, or its place among the assets of the point. */
@@ -554,24 +673,42 @@ function assetWords(context: AnswersContext, fieldKey: string, asset: string): s
   return context.assetName?.(asset) ?? (place > 0 ? `Anlage ${String(place)}` : 'Anlage')
 }
 
-/** How a measured answer stands against the limit of its field. */
+/**
+ * How a measured answer stands against the limit of its field. A value in the
+ * block of a circuit is judged with the facts of that circuit (#350), which
+ * a limit worked out of the circuit needs.
+ */
 export function answerVerdict(
   field: MeasurementField,
   answer: AnswerContent,
-  context: LimitContext,
+  context: LimitContext & { readonly circuit?: CircuitFacts | null },
 ): LimitVerdict {
   const value = answer.value === null ? undefined : parsed(answer.value)
 
-  return forms.limitVerdict(field, typeof value === 'number' ? value : null, context)
+  return forms.limitVerdict(field, typeof value === 'number' ? value : null, {
+    rules: context.rules,
+    on: context.on,
+    item: context.circuit ?? null,
+  })
 }
 
 /**
  * Where a field stands, in words: its label, in a group the group and the
- * place of its block, and for a point for every asset the asset.
+ * place of its block, for a point for every asset the asset, and in the
+ * block of a circuit the group and the circuit (#350).
  */
-function placeOf(found: AnsweredField, block: number | null, asset: string | null = null): string {
+function placeOf(
+  found: AnsweredField,
+  block: number | null,
+  asset: string | null = null,
+  circuit: AnswerCircuit | null = null,
+): string {
   if (asset !== null) {
     return `${found.field.label}, ${asset}`
+  }
+
+  if (found.group !== null && circuit !== null) {
+    return `${found.group.label}, ${circuitWords(circuit)}: ${found.field.label}`
   }
 
   return found.group === null || block === null
@@ -615,16 +752,21 @@ function blockPlaces(answers: readonly FilledAnswer[]): (answer: FilledAnswer) =
  * says why (decided on 04.10.2026). It cannot be switched off: a form asks
  * nothing else of the engine than the sealing signature, which is the
  * signature of the activity here.
+ *
+ * A group over the circuits needs the answers it asks for every circuit of
+ * the installation, named by the circuit, whether a block holds any yet or
+ * not, and a block of a circuit the installation does not have is missing
+ * its circuit (#350).
  */
 export function answersMissing(
   definition: FormDefinition,
   answers: readonly FilledAnswer[],
   context: AnswersContext,
 ): readonly string[] {
-  // Every list a group may repeat over is named, so that a group over one has
-  // to answer for each of its items; this application has none yet. A point
-  // for every asset is asked below, once for each of its assets (#343).
-  const asked = withoutEveryAsset(definition)
+  // A point for every asset is asked below, once for each of its assets
+  // (#343), and a group over the circuits once for each circuit, by its name
+  // (#350); the engine is asked about the rest.
+  const asked = withoutCircuitGroups(withoutEveryAsset(definition))
   const missing = [
     ...forms.sealProblems(asked, formValuesOf(asked, answers), {
       seal: false,
@@ -663,24 +805,113 @@ export function answersMissing(
     }
   }
 
+  missing.push(...circuitsMissing(definition, answers, context.circuits))
+
   const blockOf = blockPlaces(answers)
 
   for (const answer of answers) {
     const found = answeredField(definition, answer)
     const asset = assetOfAnswer(answer)
+    const circuit = circuitOf(found, answer, context.circuits)
 
     if (
       found?.field.kind === 'measurement' &&
-      answerVerdict(found.field, answer, context).within === false &&
+      answerVerdict(found.field, answer, { ...context, circuit }).within === false &&
       (answer.remark ?? '').trim() === ''
     ) {
       missing.push(
-        `${placeOf(found, blockOf(answer), asset === null ? null : assetWords(context, answer.fieldKey, asset))}: außerhalb des Grenzwerts, die Bemerkung fehlt.`,
+        `${placeOf(found, blockOf(answer), asset === null ? null : assetWords(context, answer.fieldKey, asset), circuit)}: außerhalb des Grenzwerts, die Bemerkung fehlt.`,
       )
     }
   }
 
   return missing
+}
+
+/**
+ * What a group over the circuits misses (#350): for every circuit given, in
+ * the order of the chart, the answers its block needs, each named with the
+ * group and the circuit, and a block of a circuit that is not among them.
+ */
+function circuitsMissing(
+  definition: FormDefinition,
+  answers: readonly FilledAnswer[],
+  circuits: Circuits,
+): readonly string[] {
+  const missing: string[] = []
+  const inChartOrder = [...(circuits ?? [])].sort((left, right) => left.place - right.place)
+
+  for (const section of definition.sections) {
+    for (const group of section.fields) {
+      if (group.kind !== 'group' || !overCircuits(group)) {
+        continue
+      }
+
+      const blocks = new Map<string, Record<string, FieldValue>>()
+
+      for (const answer of answers) {
+        const found = answeredField(definition, answer)
+        const value = found === null ? undefined : answerValue(found.field, answer)
+
+        if (found?.group?.key !== group.key || answer.blockKey === null) {
+          continue
+        }
+
+        const block = blocks.get(answer.blockKey) ?? {}
+
+        if (value !== undefined) {
+          block[answer.fieldKey] = value
+        }
+
+        blocks.set(answer.blockKey, block)
+      }
+
+      for (const circuit of inChartOrder) {
+        const where = `${group.label}, ${circuitWords(circuit)}`
+
+        // The fields of the block as fields of their own, each named with
+        // the group and the circuit: the engine then asks of them what it
+        // asks of a block, and says where.
+        missing.push(
+          ...forms.sealProblems(
+            {
+              ...definition,
+              sections: [
+                {
+                  ...section,
+                  fields: group.fields.map((field) => ({
+                    ...field,
+                    label: `${where}: ${field.label}`,
+                  })),
+                },
+              ],
+            },
+            blocks.get(circuit.id) ?? {},
+            { seal: false, items: {} },
+          ),
+        )
+      }
+
+      for (const key of blocks.keys()) {
+        if (!inChartOrder.some((circuit) => circuit.id === key)) {
+          missing.push(`${group.label}: Antworten zu einem Stromkreis, den die Anlage nicht hat.`)
+        }
+      }
+    }
+  }
+
+  return missing
+}
+
+/** A form without its groups over the circuits, which the engine is asked about circuit by circuit (#350). */
+function withoutCircuitGroups(definition: FormDefinition): FormDefinition {
+  return {
+    ...definition,
+    sections: definition.sections.map((section) => ({
+      ...section,
+      fields: section.fields.filter((field) => field.kind !== 'group' || !overCircuits(field)),
+    })),
+  }
 }
 
 /** A form without its points for every asset, which the engine is not asked about (#343). */
@@ -705,6 +936,12 @@ export interface AnswerFinding<Answer extends FilledAnswer = FilledAnswer> {
   readonly answer: Answer
   readonly description: string
   readonly about: RecordPointer | null
+  /**
+   * The circuit of the block the answer stands in (#350): a defect at the
+   * installation, with the circuit it was found on. None for every other
+   * answer.
+   */
+  readonly circuitId?: string
 }
 
 /** The defects the answers of an activity come to, in the order of the form. */
@@ -716,14 +953,15 @@ export function answerFindings<Answer extends FilledAnswer>(
   const blockOf = blockPlaces(answers)
   const findings: AnswerFinding<Answer>[] = []
 
-  for (const answer of inFormOrder(definition, answers, context.pointAssets)) {
+  for (const answer of inFormOrder(definition, answers, context.pointAssets, context.circuits)) {
     const found = answeredField(definition, answer)
 
     if (found === null) {
       continue
     }
 
-    const where = placeOf(found, blockOf(answer))
+    const circuit = circuitOf(found, answer, context.circuits)
+    const where = placeOf(found, blockOf(answer), null, circuit)
     const remark = answer.remark?.trim() ?? ''
     let description: string | null = null
 
@@ -733,7 +971,7 @@ export function answerFindings<Answer extends FilledAnswer>(
 
     if (found.field.kind === 'measurement') {
       const field = found.field
-      const verdict = answerVerdict(field, answer, context)
+      const verdict = answerVerdict(field, answer, { ...context, circuit })
       const value = answer.value === null ? undefined : parsed(answer.value)
 
       if (verdict.within === false && typeof value === 'number') {
@@ -753,6 +991,8 @@ export function answerFindings<Answer extends FilledAnswer>(
         // An answer about one asset of a point for every asset is found at
         // that asset (#343).
         about: aboutOf(found, answer),
+        // One in the block of a circuit at the installation, with its circuit (#350).
+        ...(circuit === null ? {} : { circuitId: circuit.id }),
       })
     }
   }
@@ -793,11 +1033,16 @@ export function answerReadings<Answer extends FilledAnswer>(
   })
 }
 
-/** The answers in the order of their form: section by section, field by field, the blocks of a group by their keys. */
+/**
+ * The answers in the order of their form: section by section, field by field,
+ * the blocks of a group by their keys, and those of a group over the
+ * circuits in the order of the chart (#350).
+ */
 function inFormOrder<Answer extends FilledAnswer>(
   definition: FormDefinition,
   answers: readonly Answer[],
   pointAssets: PointAssets | null = null,
+  circuits: Circuits = null,
 ): Answer[] {
   const order = new Map<string, number>()
 
@@ -825,9 +1070,20 @@ function inFormOrder<Answer extends FilledAnswer>(
     return asset === null ? 0 : (pointAssets?.[answer.fieldKey] ?? []).indexOf(asset)
   }
 
+  // The answers of a group over the circuits by the place of their circuit
+  // on the chart, a circuit the chart no longer has after every one it has.
+  const places = new Map(
+    answers.map((answer) => [
+      answer,
+      circuitOfAnswer(definition, answer, circuits)?.place ?? Number.MAX_SAFE_INTEGER,
+    ]),
+  )
+  const onChart = (answer: Answer) => places.get(answer) ?? Number.MAX_SAFE_INTEGER
+
   return [...answers].sort(
     (left, right) =>
       rank(left) - rank(right) ||
+      onChart(left) - onChart(right) ||
       compare(left.blockKey ?? '', right.blockKey ?? '') ||
       place(left) - place(right) ||
       compare(assetOfAnswer(left) ?? '', assetOfAnswer(right) ?? ''),
@@ -910,7 +1166,7 @@ export function statedAnswers(
   const blockOf = blockPlaces(answers)
   const stated: StatedAnswer[] = []
 
-  for (const answer of inFormOrder(definition, answers, context.pointAssets)) {
+  for (const answer of inFormOrder(definition, answers, context.pointAssets, context.circuits)) {
     const found = answeredField(definition, answer)
 
     if (found === null) {
@@ -919,7 +1175,9 @@ export function statedAnswers(
 
     const { field } = found
     const block = blockOf(answer)
-    const verdict = field.kind === 'measurement' ? answerVerdict(field, answer, context) : null
+    const circuit = circuitOf(found, answer, context.circuits)
+    const verdict =
+      field.kind === 'measurement' ? answerVerdict(field, answer, { ...context, circuit }) : null
     const asset = assetOfAnswer(answer)
 
     stated.push({

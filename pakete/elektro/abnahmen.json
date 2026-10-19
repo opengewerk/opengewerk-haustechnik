@@ -72,6 +72,14 @@
       }
     },
     {
+      "file": "formulare/installation_initial_test.v1.json",
+      "checkedOn": "2026-10-19"
+    },
+    {
+      "file": "formulare/installation_test.v1.json",
+      "checkedOn": "2026-10-19"
+    },
+    {
       "file": "formulare/portable_equipment_test.v1.json",
       "checkedOn": "2026-10-10",
       "accepted": {
@@ -108,6 +116,10 @@
       }
     },
     {
+      "file": "pflichten/installation_test_dguv_v3.v2.json",
+      "checkedOn": "2026-10-19"
+    },
+    {
       "file": "pflichten/installation_test_dguv_v4.v1.json",
       "checkedOn": "2026-10-10",
       "accepted": {
@@ -117,6 +129,10 @@
       }
     },
     {
+      "file": "pflichten/installation_test_dguv_v4.v2.json",
+      "checkedOn": "2026-10-19"
+    },
+    {
       "file": "pflichten/installation_test_special_location_dguv_v3.v1.json",
       "checkedOn": "2026-10-10",
       "accepted": {
@@ -124,6 +140,10 @@
         "on": "2026-10-16",
         "sha256": "8830a405e21f0ecfca8e1a8e8b5680c629d78334450730f30159ebf6f7d92f4f"
       }
+    },
+    {
+      "file": "pflichten/installation_test_special_location_dguv_v3.v2.json",
+      "checkedOn": "2026-10-19"
     },
     {
       "file": "pflichten/portable_equipment_test_baths_kitchens_dguv_v4.v1.json",
@@ -316,6 +336,41 @@
         "on": "2026-10-16",
         "sha256": "f5c570bc9519c012c8c0f8247ce6e6d30ff87cff7da16ffb3b7f2c2cbba2088c"
       }
+    },
+    {
+      "key": "insulation_minimum_up_to_500v",
+      "validFrom": "2017-06-01",
+      "checkedOn": "2026-10-19"
+    },
+    {
+      "key": "loop_factor_b",
+      "validFrom": "2017-06-01",
+      "checkedOn": "2026-10-19"
+    },
+    {
+      "key": "loop_factor_c",
+      "validFrom": "2017-06-01",
+      "checkedOn": "2026-10-19"
+    },
+    {
+      "key": "loop_factor_d",
+      "validFrom": "2017-06-01",
+      "checkedOn": "2026-10-19"
+    },
+    {
+      "key": "loop_nominal_voltage",
+      "validFrom": "2017-06-01",
+      "checkedOn": "2026-10-19"
+    },
+    {
+      "key": "rcd_trip_current_maximum",
+      "validFrom": "2017-06-01",
+      "checkedOn": "2026-10-19"
+    },
+    {
+      "key": "rcd_trip_time_maximum",
+      "validFrom": "2017-06-01",
+      "checkedOn": "2026-10-19"
     }
   ],
   "classes": [

@@ -9,7 +9,7 @@ import {
 } from '@opengewerk/platform-domain'
 
 import type { ActivityId, ActivityKind, WorkOrderId } from './activity.js'
-import type { FilledAnswer } from './answer.js'
+import type { AnswerCircuit, FilledAnswer } from './answer.js'
 import type { AreaId } from './area.js'
 import type { EvidenceResult } from './evidence.js'
 import { oneOf, type Problems } from './fields.js'
@@ -191,6 +191,12 @@ export function signaturesComplete(
  * each of its parts, by the key of the part: every asset with its protocol
  * and its result, under one signature. It has no duties and no defects of
  * its own; its parts have them.
+ *
+ * A form with a group over the circuits shows the circuits of the
+ * installation as they stood (#350), by their keys: what was measured on
+ * each is judged against them, so that after the signature it stays what it
+ * was measured against, however the chart changes. A page without such a
+ * form has none, so that a page signed before keeps its fingerprint.
  */
 export interface SignedPage {
   readonly activity: {
@@ -221,7 +227,17 @@ export interface SignedPage {
   readonly durationMinutes?: number
   readonly notes?: readonly SignedNote[]
   readonly parts?: readonly SignedPage[]
+  readonly circuits?: readonly SignedCircuit[]
 }
+
+/**
+ * A circuit as the page shows it (#350): its key, its designation and what
+ * it supplies, what its limits are worked out from, the designation of its
+ * board and its place in the order of the chart, counted from nought. The
+ * page lists the circuits by their keys; the place says in which order they
+ * are shown.
+ */
+export type SignedCircuit = AnswerCircuit
 
 /** A note on a work order as the page shows it: its key and what it says. */
 export interface SignedNote {
@@ -279,9 +295,10 @@ function byPoint(left: SignedAnswer, right: SignedAnswer): number {
  * The parts of a page, where a duty may say null for a remark it has none of,
  * and a work order for the time spent on it.
  */
-export type SignedPageParts = Omit<SignedPage, 'duties' | 'durationMinutes'> & {
+export type SignedPageParts = Omit<SignedPage, 'duties' | 'durationMinutes' | 'circuits'> & {
   readonly duties: readonly (Omit<SignedDuty, 'remark'> & { readonly remark?: string | null })[]
   readonly durationMinutes?: number | null
+  readonly circuits?: readonly SignedCircuit[] | null
 }
 
 /** The page of an activity from its parts, in the order device and server share. */
@@ -341,6 +358,35 @@ export function signedPageOf(parts: SignedPageParts): SignedPage {
           parts: [...parts.parts].sort((left, right) =>
             compare(left.activity.id, right.activity.id),
           ),
+        }),
+    // Only where there are any (#350): every page from before stays what it
+    // was, and its signature counts.
+    ...(parts.circuits === undefined || parts.circuits === null || parts.circuits.length === 0
+      ? {}
+      : {
+          circuits: parts.circuits
+            .map(
+              ({
+                id,
+                designation,
+                consumer,
+                tripCharacteristic,
+                ratedCurrentMilli,
+                ratedResidualCurrentMilli,
+                board,
+                place,
+              }) => ({
+                id,
+                designation,
+                consumer,
+                tripCharacteristic,
+                ratedCurrentMilli,
+                ratedResidualCurrentMilli,
+                board,
+                place,
+              }),
+            )
+            .sort((left, right) => compare(left.id, right.id)),
         }),
   }
 }
