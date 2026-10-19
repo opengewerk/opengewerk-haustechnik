@@ -298,6 +298,15 @@ async function tenantRows(tx: TenantTransaction, userId: string) {
     sql`select created_at as at from processing_descriptions where made_by = ${u} order by created_at`,
   )
 
+  const privacyDocuments = await rowsOf(
+    tx,
+    sql`select case kind when 'record' then 'Verzeichnis der Verarbeitungstätigkeiten'
+                         when 'measures' then 'Technische und organisatorische Maßnahmen'
+                         else 'Löschkonzept' end as what,
+               created_at as at
+          from privacy_documents where made_by = ${u} order by created_at`,
+  )
+
   const changes = await rowsOf(
     tx,
     sql`select changed_at as at, table_name as record, record_id::text as "recordId", field, operation::text as what
@@ -384,6 +393,7 @@ async function tenantRows(tx: TenantTransaction, userId: string) {
     auditorReads,
     invitations,
     processingDescriptions,
+    privacyDocuments,
     log,
     logSummary: [...byRecord].map(([record, seen]) => ({ record, ...seen })),
     lastChanges,
@@ -466,6 +476,7 @@ export async function accountParts(
     part('invitations', here.invitations),
     part('instance', there.instance),
     part('processingDescriptions', here.processingDescriptions),
+    part('privacyDocuments', here.privacyDocuments),
     part('log', here.log),
     part('logSummary', here.logSummary),
     part('lastChanges', here.lastChanges),

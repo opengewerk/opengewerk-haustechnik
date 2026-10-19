@@ -144,6 +144,11 @@ await checkWidths({
     // of the preview is operator and administration in one. The form to name
     // somebody to the administration stands open on its page.
     'Betreiber anlegen',
+    // The record of the processing (#358): the page a button leads to from
+    // "Datenschutz", and the dialog of an activity there, by the name of the
+    // first one.
+    'Angaben pflegen',
+    'Konten und Anmeldung bearbeiten',
   ],
 
   /**

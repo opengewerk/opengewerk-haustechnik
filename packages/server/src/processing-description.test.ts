@@ -2,6 +2,8 @@ import { existsSync, readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 
 import {
+  defaultDeletionFacts,
+  deletionRules,
   describeProcessing,
   processingPlaces,
   rightLabel,
@@ -19,6 +21,7 @@ import { ApiModule } from './api/api.module.js'
 import { noIdentities } from './api/test-identity.js'
 import { createAuthentication } from './authentication/access.js'
 import * as schema from './database/schema/index.js'
+import { measuresTemplate } from './privacy/template.js'
 import { processingTemplate } from './processing-description/template.js'
 
 // Section 9 of the concept: the description of the processing, for a works
@@ -246,7 +249,15 @@ describe('the evidence in appendix A of the description', () => {
   })
 
   it('is used: every entry is cited by a statement, and every citation has an entry', () => {
-    const body = lines.slice(0, lines.indexOf('## Anhang A: Belege')).join('\n')
+    // Part A of the measures and the rules of the deletion concept cite the
+    // same annex (#358), and an entry only they cite is used as well.
+    const body = [
+      lines.slice(0, lines.indexOf('## Anhang A: Belege')).join('\n'),
+      measuresTemplate(),
+      deletionRules(defaultDeletionFacts)
+        .map((rule) => `[${rule.proofs.join(', ')}]`)
+        .join('\n'),
+    ].join('\n')
     const cited = new Set(citationsIn(body).filter((citation) => citation.startsWith('B')))
 
     expect(entries.map((entry) => entry.id).filter((id) => !cited.has(id))).toEqual([])

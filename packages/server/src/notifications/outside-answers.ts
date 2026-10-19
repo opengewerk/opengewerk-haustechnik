@@ -34,7 +34,7 @@ export interface OutsideAnswersJob {
  * report done, and a mail server that does not answer for days does not
  * keep it.
  */
-const giveUpAfterMs = 2 * 24 * 3_600_000
+export const giveUpAfterMs = 2 * 24 * 3_600_000
 
 type ContactRow = typeof faultReportContacts.$inferSelect
 

@@ -360,6 +360,14 @@ export const subjectAccessParts = {
     sources: ['processing_descriptions.made_by'],
     printed: true,
   },
+  // The record, the measures and the deletion concept the person made (#358).
+  privacyDocuments: {
+    title: 'Erzeugte Dokumente zum Datenschutz',
+    note: null,
+    columns: [column('what', 'Dokument'), column('at', 'Erzeugt', 'moment')],
+    sources: ['privacy_documents.made_by'],
+    printed: true,
+  },
   log: {
     title: 'Änderungsprotokoll',
     note: 'Jede Änderung, die die Person gemacht hat, Feld für Feld, ohne die Werte: sie gehören zum Datensatz.',
