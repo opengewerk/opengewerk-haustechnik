@@ -343,7 +343,9 @@ export function BoardScreen() {
                                   <Button
                                     size="small"
                                     icon={Plus}
-                                    aria-label={`Stromkreis in ${name} hinzufügen`}
+                                    // The visible words first, so that whoever speaks to the
+                                    // screen finds the button by what it says.
+                                    aria-label={`Stromkreis hinzufügen in ${name}`}
                                     onClick={() => {
                                       setOpened({ kind: 'circuit', circuit: null, section: id })
                                     }}
