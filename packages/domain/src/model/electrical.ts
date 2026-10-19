@@ -33,8 +33,11 @@ import type { PropertyId } from './location.js'
  */
 export const boardAssetKind = 'elektro.low_voltage_installation'
 
-/** Where a part of the structure lies: its asset, with the property and the area of that. */
-interface StructurePlace {
+/**
+ * Where a part of the structure lies: its asset, with the property and the
+ * area of that. The PV structure lies the same way (#461).
+ */
+export interface StructurePlace {
   readonly assetId: AssetId
   readonly propertyId: PropertyId
   readonly areaId: AreaId

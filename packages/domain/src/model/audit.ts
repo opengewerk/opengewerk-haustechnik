@@ -48,25 +48,28 @@ import { signatureRoleLabel, workOrderDecisionLabel } from './signature.js'
 import { rightLabel, shippedRoles } from './rights.js'
 
 /**
- * The tables of the electrical structure this application makes (#349). The
- * words the foundation has for the structure name the PV structure as well,
- * which this application does not make, and words for a table nobody watches
- * are left over (`auditVocabularyGaps`).
+ * The tables of the structure below an asset this application makes: the
+ * electrical one below a low-voltage installation (#349) and the PV one below
+ * a PV installation (#461). The foundation names both, and words for a table
+ * nobody watches would be left over (`auditVocabularyGaps`).
  */
-const electricalTables: readonly string[] = [
+const structureTables: readonly string[] = [
   'distribution_boards',
   'board_sections',
   'circuits',
   'equipment',
+  'inverters',
+  'pv_strings',
+  'pv_modules',
 ]
 
-/** What the foundation says about the structure, for the tables of the electrical one. */
-function ofTheElectricalStructure<Words>(
+/** What the foundation says about the structure, for the tables this application makes. */
+function ofTheStructure<Words>(
   words: Readonly<Record<string, Words>>,
   table: (key: string, value: Words) => string = (key) => key,
 ): Record<string, Words> {
   return Object.fromEntries(
-    Object.entries(words).filter(([key, value]) => electricalTables.includes(table(key, value))),
+    Object.entries(words).filter(([key, value]) => structureTables.includes(table(key, value))),
   )
 }
 
@@ -87,11 +90,28 @@ const structureFields: Readonly<Record<string, Readonly<Record<string, string>>>
     serial_number: 'Seriennummer',
     position: 'Reihenfolge',
   },
+  // The PV structure in the words of its forms, which say "Modell" (#461),
+  // and where an inverter hangs, which this application asks beside it.
+  inverters: {
+    designation: 'Bezeichnung',
+    location: 'Ort',
+    manufacturer: 'Hersteller',
+    model: 'Modell',
+    serial_number: 'Seriennummer',
+    position: 'Reihenfolge',
+  },
+  pv_strings: { designation: 'Bezeichnung', position: 'Reihenfolge' },
+  pv_modules: {
+    manufacturer: 'Hersteller',
+    model: 'Modell',
+    serial_number: 'Seriennummer',
+    position: 'Reihenfolge',
+  },
 }
 
-/** The words of the four tables, the foundation's with the fields above. */
-const electricalTableWords: Readonly<Record<string, AuditTableWords>> = Object.fromEntries(
-  Object.entries(ofTheElectricalStructure(structureAuditTables)).map(([table, words]) => [
+/** The words of the tables of the structure, the foundation's with the fields above. */
+const structureTableWords: Readonly<Record<string, AuditTableWords>> = Object.fromEntries(
+  Object.entries(ofTheStructure(structureAuditTables)).map(([table, words]) => [
     table,
     { ...words, fields: { ...structureFields[table], ...words.fields } },
   ]),
@@ -291,7 +311,8 @@ export const auditVocabulary: AuditVocabulary = {
     // The electrical structure below a low-voltage installation, in the
     // foundation's words (#349, ADR 0014 in the repository opengewerk). The
     // asset, its property and its area are named with every row with a place.
-    ...electricalTableWords,
+    // The PV structure below a PV installation the same way (#461).
+    ...structureTableWords,
     // The stores of the operator, on the building block of the foundation (#325).
     articles: {
       label: 'Artikel',
@@ -1010,9 +1031,12 @@ export const auditVocabulary: AuditVocabulary = {
       { table: 'meter_pauses', column: 'asset_id' },
       // A low-voltage installation with its boards (#349).
       { table: 'distribution_boards', column: 'asset_id' },
+      // A PV installation with its inverters (#461).
+      { table: 'inverters', column: 'asset_id' },
     ],
-    // A board with its sections and circuits, a circuit with its equipment.
-    ...ofTheElectricalStructure(structureAuditParts),
+    // A board with its sections and circuits, a circuit with its equipment,
+    // an inverter with its strings and a string with its modules.
+    ...ofTheStructure(structureAuditParts),
     // A document with its versions: who filed which, and when.
     attachments: [{ table: 'attachment_versions', column: 'attachment_id' }],
     // An activity with the duties it is to meet and what came of each, the
@@ -1115,8 +1139,9 @@ export const auditVocabulary: AuditVocabulary = {
     task_id: 'tasks',
     meter_property_id: 'properties',
     // The board, the section and the circuit a part of the electrical
-    // structure hangs on (#349).
-    ...ofTheElectricalStructure(structureAuditReferences, (_, target) => target),
+    // structure hangs on (#349), the inverter and the string a part of the PV
+    // structure hangs on (#461).
+    ...ofTheStructure(structureAuditReferences, (_, target) => target),
   },
   // The form of a round is its template, named by a key that begins with a
   // word and ends with the id of the template; the form of an inspection is a
@@ -1171,8 +1196,9 @@ export const auditVocabulary: AuditVocabulary = {
     invitation_limit_asset_kinds: ['invitation_id'],
     substitutions: ['absent_user_id'],
     // A circuit and a piece of equipment by their designation, or else by
-    // what they supply and what they are (#349).
-    ...ofTheElectricalStructure(structureAuditTitles),
+    // what they supply and what they are (#349), a module by its model and
+    // serial number (#461).
+    ...ofTheStructure(structureAuditTitles),
     // A closure by what it is for, and by its first day where it says nothing.
     building_closures: ['reason', 'starts_on'],
     // A version of a template by its number, a plan by the template it walks.

@@ -66,6 +66,10 @@ describe('the policies of the sync', () => {
       board_sections: [true, 'merge'],
       circuits: [true, 'merge'],
       equipment: [true, 'merge'],
+      // The PV structure below a PV installation, the same way (#461).
+      inverters: [true, 'merge'],
+      pv_strings: [true, 'merge'],
+      pv_modules: [true, 'merge'],
       duties: [false, 'never'],
       duty_dismissals: [false, 'never'],
       activities: [true, 'merge'],
@@ -354,6 +358,50 @@ describe('what a device writes without a connection', () => {
     ).toEqual(['assetId'])
     expect(syncPolicies['board_sections']?.reserved).toEqual(['assetId', 'propertyId', 'areaId'])
     expect(syncPolicies['distribution_boards']?.reserved).toEqual(['propertyId', 'areaId'])
+  })
+
+  it('takes the PV structure below a PV installation, and moves no string or module to another parent (#461)', () => {
+    expect(
+      offlineEditRefusal(
+        operation('inverters', 'create', {
+          assetId: 'a',
+          designation: 'WR 1',
+          location: 'E.02 Lager',
+          ratedPowerW: 10000,
+          mppInputs: 2,
+        }),
+      ),
+    ).toBeNull()
+    expect(
+      offlineEditRefusal(
+        operation('pv_strings', 'create', {
+          inverterId: 'i',
+          designation: 'String 1',
+          mppInput: 1,
+        }),
+      ),
+    ).toBeNull()
+    expect(
+      offlineEditRefusal(
+        operation('pv_modules', 'create', {
+          pvStringId: 's',
+          serialNumber: 'BS4-2306-1101',
+          ratedPowerW: 400,
+        }),
+      ),
+    ).toBeNull()
+    expect(offlineEditRefusal(operation('pv_modules', 'update', { serialNumber: 'X1' }))).toBeNull()
+    expect(offlineEditRefusal(operation('inverters', 'update', { assetId: 'a' }))).toEqual([
+      'assetId',
+    ])
+    expect(offlineEditRefusal(operation('pv_strings', 'update', { inverterId: 'i' }))).toEqual([
+      'inverterId',
+    ])
+    expect(offlineEditRefusal(operation('pv_modules', 'update', { pvStringId: 's' }))).toEqual([
+      'pvStringId',
+    ])
+    expect(syncPolicies['pv_modules']?.reserved).toEqual(['assetId', 'propertyId', 'areaId'])
+    expect(syncPolicies['inverters']?.reserved).toEqual(['propertyId', 'areaId'])
   })
 
   it('makes a work order on site and nothing planned, and takes its progress and no plan', () => {

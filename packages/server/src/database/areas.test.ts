@@ -70,6 +70,9 @@ const place = {
     installation: randomUUID(),
     board: randomUUID(),
     circuit: randomUUID(),
+    pvInstallation: randomUUID(),
+    inverter: randomUUID(),
+    pvString: randomUUID(),
     lifecycle: randomUUID(),
     supply: randomUUID(),
     duty: randomUUID(),
@@ -88,6 +91,9 @@ const place = {
     installation: randomUUID(),
     board: randomUUID(),
     circuit: randomUUID(),
+    pvInstallation: randomUUID(),
+    inverter: randomUUID(),
+    pvString: randomUUID(),
     lifecycle: randomUUID(),
     supply: randomUUID(),
     duty: randomUUID(),
@@ -415,6 +421,34 @@ async function placeIn(where: 'north' | 'south'): Promise<void> {
     `insert into equipment (tenant_id, circuit_id, asset_id, property_id, area_id, designation)
      values ($1, $2, $3, $4, $5, 'Steckdose Flur')`,
     [tenant, at.circuit, at.installation, at.property, areaId],
+  )
+  // The PV structure below a PV installation in the building (#461).
+  await admin.query(
+    `insert into assets (id, tenant_id, property_id, area_id, building_id, kind, number, name)
+     values ($1, $2, $3, $4, $5, 'elektro.photovoltaic_installation', $6, 'PV-Anlage')`,
+    [
+      at.pvInstallation,
+      tenant,
+      at.property,
+      areaId,
+      at.building,
+      where === 'north' ? 'AN-00005' : 'AN-00006',
+    ],
+  )
+  await admin.query(
+    `insert into inverters (id, tenant_id, asset_id, property_id, area_id, designation)
+     values ($1, $2, $3, $4, $5, 'WR 1')`,
+    [at.inverter, tenant, at.pvInstallation, at.property, areaId],
+  )
+  await admin.query(
+    `insert into pv_strings (id, tenant_id, inverter_id, asset_id, property_id, area_id, designation)
+     values ($1, $2, $3, $4, $5, $6, 'String 1')`,
+    [at.pvString, tenant, at.inverter, at.pvInstallation, at.property, areaId],
+  )
+  await admin.query(
+    `insert into pv_modules (tenant_id, pv_string_id, asset_id, property_id, area_id, rated_power_w)
+     values ($1, $2, $3, $4, $5, 400)`,
+    [tenant, at.pvString, at.pvInstallation, at.property, areaId],
   )
   // A duty of the property itself: the evidence below would keep an asset it
   // hung on from being marked, and with it the room the asset stands in.
@@ -768,6 +802,7 @@ describe('a person with the north', () => {
       'fault_report_contacts',
       'fault_reports',
       'floors',
+      'inverters',
       'labels',
       'meter_exchanges',
       'meter_pauses',
@@ -775,6 +810,8 @@ describe('a person with the north', () => {
       'meter_readings',
       'prints',
       'properties',
+      'pv_modules',
+      'pv_strings',
       'rooms',
       'round_plans',
       'round_records',
@@ -977,10 +1014,11 @@ describe('a property moved to another area', () => {
 
         below[table] = rows[0]
         // Two evidence: the one of the duty, and the earlier one emptied (#340).
-        // Two assets: the elevator, and the low-voltage installation the
-        // electrical structure hangs on (#349).
+        // Three assets: the elevator, the low-voltage installation the
+        // electrical structure hangs on (#349) and the PV installation the
+        // PV structure hangs on (#461).
         expected[table] = {
-          rows: table === 'evidence' || table === 'assets' ? 2 : 1,
+          rows: table === 'evidence' ? 2 : table === 'assets' ? 3 : 1,
           elsewhere: 0,
         }
       }
@@ -1014,12 +1052,15 @@ describe('a property moved to another area', () => {
         'fault_report_contacts',
         'fault_reports',
         'floors',
+        'inverters',
         'labels',
         'meter_exchanges',
         'meter_pauses',
         'meter_points',
         'meter_readings',
         'prints',
+        'pv_modules',
+        'pv_strings',
         'rooms',
         'round_plans',
         'round_records',

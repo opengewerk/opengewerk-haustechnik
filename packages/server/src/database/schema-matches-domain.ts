@@ -7,6 +7,9 @@ import type {
   AssetBoardSection,
   AssetCircuit,
   AssetEquipment,
+  AssetInverter,
+  AssetPvModule,
+  AssetPvString,
   Building,
   BuildingClosure,
   Contact,
@@ -64,6 +67,9 @@ import type {
   circuits,
   distributionBoards,
   equipment,
+  inverters,
+  pvModules,
+  pvStrings,
   activityDuties,
   activitySignatures,
   buildingClosures,
@@ -147,6 +153,10 @@ export type AssetBoardSectionMatches = Assert<
 >
 export type AssetCircuitMatches = Assert<Exact<typeof circuits.$inferSelect, AssetCircuit>>
 export type AssetEquipmentMatches = Assert<Exact<typeof equipment.$inferSelect, AssetEquipment>>
+// The PV structure below a PV installation (#461).
+export type AssetInverterMatches = Assert<Exact<typeof inverters.$inferSelect, AssetInverter>>
+export type AssetPvStringMatches = Assert<Exact<typeof pvStrings.$inferSelect, AssetPvString>>
+export type AssetPvModuleMatches = Assert<Exact<typeof pvModules.$inferSelect, AssetPvModule>>
 export type ContractorMatches = Assert<Exact<typeof contractors.$inferSelect, Contractor>>
 export type ContractMatches = Assert<Exact<typeof contracts.$inferSelect, Contract>>
 // The period after the end of an access and when the data of one went (#356).

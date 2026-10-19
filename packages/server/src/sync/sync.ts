@@ -139,9 +139,9 @@ async function completed({
  *
  * The order of the checks is behaviour, the first that refuses answers: what
  * may not be written without a connection, then the texts in their form, the
- * rules of `domain` on the fields and the figures of the electrical
- * structure, the file of a version, the place, the section of a circuit on
- * its board and the kind of a low-voltage installation with boards, who may
+ * rules of `domain` on the fields and the figures of the electrical and the
+ * PV structure, the file of a version, the place, the section of a circuit on
+ * its board and the kind of an installation with boards or inverters, who may
  * keep a document of a contractor, the person a task goes to and who may
  * change one, the question that reads other records and puts in what the
  * server derives,
@@ -159,7 +159,8 @@ export function syncFor(catalogue: Catalogue): ServerSync<Sender> {
       normalised,
       // An asset of a kind of the operator's own is held against that kind (#62).
       ownKindRules(catalogue, recordRulesCheck(recordRules(catalogue))),
-      // The figures of a circuit and the kind of a board (#349).
+      // The figures of a circuit and the kind of a board (#349), the figures
+      // of an inverter, a string and a module (#461).
       structureFigures,
       versionFile,
       placed,

@@ -164,6 +164,10 @@ describe('the rights of an operation', () => {
       board_sections: { create: true, change: true, remove: false },
       circuits: { create: true, change: true, remove: false },
       equipment: { create: true, change: true, remove: false },
+      // The PV structure the same way (#461).
+      inverters: { create: true, change: true, remove: false },
+      pv_strings: { create: true, change: true, remove: false },
+      pv_modules: { create: true, change: true, remove: false },
       activities: { create: false, change: true },
       activity_duties: { change: true },
       // The answers to the points of the form, as the work on the activity (#106).
@@ -191,6 +195,7 @@ describe('the rights of an operation', () => {
     })
     expect(site).toContain(permissionFor('attachments', 'delete'))
     expect(permissionFor('circuits', 'delete')).toBe('asset.write')
+    expect(permissionFor('pv_modules', 'delete')).toBe('asset.write')
   })
 
   it('ask for the right of the office once an operation leaves what a device may write', () => {
