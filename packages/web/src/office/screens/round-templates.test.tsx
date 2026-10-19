@@ -1,4 +1,5 @@
 import type { CatalogueBundle, CatalogueRule } from '@opengewerk/haustechnik-domain'
+import { updatesHeld } from '@opengewerk/platform-web/shell'
 import { TestServer } from '@opengewerk/platform-web/testing'
 import { onlineManager } from '@tanstack/react-query'
 import { fireEvent, screen, waitFor, within } from '@testing-library/react'
@@ -349,6 +350,34 @@ describe('the editor of a template', () => {
         /Tür schließt selbsttätig abgelegt\. Stelle 1 von 2 im Kapitel „Unterverteilung“\./,
       ),
     ).toBeTruthy()
+  })
+
+  it('holds a new version of the application while a point moved is not saved, and lets it go once it is (#465)', async () => {
+    answerToWrite = (write) => {
+      const { definition: saved } = write.body as { readonly definition: object }
+
+      server.put('round_template_versions', versionOf(3, saved))
+
+      return { status: 201, body: { id: template.id, formVersion: 3 } }
+    }
+    await opened()
+
+    const user = userEvent.setup()
+
+    expect(updatesHeld()).toBe(false)
+
+    // Pressed, not typed: the hold of the foundation for what was typed does not see it.
+    screen.getByRole('button', { name: 'Tür schließt selbsttätig verschieben' }).focus()
+    await user.keyboard(' {ArrowUp} ')
+
+    expect(updatesHeld()).toBe(true)
+
+    await user.click(screen.getByRole('button', { name: 'Als neue Fassung speichern' }))
+
+    await waitFor(() => {
+      expect(updatesHeld()).toBe(false)
+    })
+    expect(written).toHaveLength(1)
   })
 
   it('adds a point through its dialog', async () => {

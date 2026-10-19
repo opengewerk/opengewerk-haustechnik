@@ -6,7 +6,7 @@ import { openLocalStore, SyncProvider } from '@opengewerk/platform-web/sync'
 import { TestServer } from '@opengewerk/platform-web/testing'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { createMemoryHistory, createRouter, RouterProvider } from '@tanstack/react-router'
-import { render, screen, within } from '@testing-library/react'
+import { fireEvent, render, screen, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { SyncClient } from '../sync/client.js'
@@ -188,5 +188,21 @@ describe('the office of this application', () => {
     await router.navigate({ to: '/konflikte' })
 
     expect(await screen.findByRole('heading', { level: 1, name: 'Abgleich' })).toBeTruthy()
+  })
+
+  /**
+   * The counterpart of "Zur Büroansicht" in the menu on site (#464): the menu
+   * of the person in the office leads to the site, in the words of this
+   * application. What following it remembers is tested in the foundation.
+   */
+  it('leads from the menu of the person to the site, in the words of this application (#464)', async () => {
+    await mount('/')
+
+    fireEvent.click(await screen.findByRole('button', { name: /Konto und Darstellung/ }))
+
+    const site = screen.getByRole('link', { name: /Zur Ansicht für vor Ort/ })
+
+    expect(site.getAttribute('href')).toBe('/m/')
+    expect(site.textContent).toBe('Zur Ansicht für vor OrtGroße Knöpfe, auch ohne Netz')
   })
 })

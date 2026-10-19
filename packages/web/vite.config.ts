@@ -63,7 +63,8 @@ export default defineConfig({
       srcDir: 'src/entry',
       filename: 'service-worker.ts',
       // Nothing is swapped under somebody who is filling in a form. The new
-      // version waits and the application offers it.
+      // version waits, and the page takes it at a moment that costs nobody
+      // anything (`takeUpdates` of the foundation, #465).
       registerType: 'prompt',
       manifest: false,
       injectManifest: {

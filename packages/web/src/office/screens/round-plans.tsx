@@ -58,6 +58,7 @@ import {
   useTableExport,
 } from '@opengewerk/platform-web/office'
 import { useRight } from '@opengewerk/platform-web/session'
+import { useHoldUpdates } from '@opengewerk/platform-web/shell'
 import {
   count,
   flag,
@@ -534,6 +535,11 @@ function draftOf(plan: RecordState | null, on: string): PlanDraft {
   }
 }
 
+/** A draft as it compares with another: the days of the week in their order, whatever order they were pressed in. */
+function draftKey(draft: PlanDraft): string {
+  return JSON.stringify({ ...draft, days: [...draft.days].sort((one, other) => one - other) })
+}
+
 /** A whole number typed in, or what the check refuses. */
 function whole(value: string): number | string {
   return /^\d+$/.test(value.trim()) ? Number(value.trim()) : value
@@ -666,6 +672,8 @@ function PlanForm({
   const rounds = useRecords('activities')
   const people = useQuery(roundPeopleQuery)
   const [draft, setDraft] = useState<PlanDraft>(() => draftOf(plan, on))
+  // What the form began with, or what it sent last and the server took.
+  const [kept, setKept] = useState(draft)
   const [problems, setProblems] = useState<Readonly<Record<string, string>>>({})
   const [trouble, setTrouble] = useState<string | null>(null)
   const [working, setWorking] = useState(false)
@@ -676,6 +684,11 @@ function PlanForm({
   const set = (changes: Partial<PlanDraft>) => {
     setDraft((before) => ({ ...before, ...changes }))
   }
+
+  // A new version of the application waits while the form holds what it has
+  // not sent (#465). The foundation holds for what was typed; the days of the
+  // week are presses, which that hold does not see.
+  useHoldUpdates(draftKey(draft) !== draftKey(kept))
 
   const building = draft.place.startsWith('b:')
     ? buildings.find((each) => `b:${String(each['id'])}` === draft.place)
@@ -880,7 +893,7 @@ function PlanForm({
       return
     }
 
-    await send(
+    const sent = await send(
       planId === null
         ? {
             ...values,
@@ -890,6 +903,10 @@ function PlanForm({
           }
         : { ...values, templateId: draft.templateId },
     )
+
+    if (sent) {
+      setKept(draft)
+    }
   }
 
   const problem = (field: string) => (problems[field] ? { problem: problems[field] } : {})

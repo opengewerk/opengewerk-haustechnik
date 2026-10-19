@@ -22,6 +22,7 @@ import {
   Screen,
 } from '@opengewerk/platform-web/office'
 import { useRight } from '@opengewerk/platform-web/session'
+import { useHoldUpdates } from '@opengewerk/platform-web/shell'
 import { count, flag, maybeText, text, useRecords, useSync } from '@opengewerk/platform-web/sync'
 import { useQuery } from '@tanstack/react-query'
 import { useNavigate, useParams, useSearch } from '@tanstack/react-router'
@@ -432,8 +433,14 @@ function TemplateEditor({
   const reorder = useReorder(draft, setDraft, rows)
 
   const number = version === null ? 0 : count(version, 'formVersion')
-  const changed =
-    version === null || canonicalForm(draft) !== canonicalForm(began) || asks !== beganAsks
+  // What was changed here and is not saved yet.
+  const edited = canonicalForm(draft) !== canonicalForm(began) || asks !== beganAsks
+  const changed = version === null || edited
+
+  // A new version of the application waits while the draft is not saved
+  // (#465). The foundation holds for what was typed; a point moved or taken
+  // out is a press, which that hold does not see.
+  useHoldUpdates(edited)
   const problems = templateProblems(draft, known.records)
   const roundsOn = (formVersion: number) =>
     (rounds.data ?? [])
