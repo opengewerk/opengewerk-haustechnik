@@ -9,6 +9,21 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
 
 ### Hinzugefügt
 
+- Die PV-Struktur unter einer PV-Anlage (#461): Wechselrichter, Strings und Module aus dem Fundament (ADR 0014 in
+  `opengewerk`), mit Migration `0094_photovoltaic_structure`. Das Paket Elektro bringt in der Fassung 1.4.0 die
+  Anlagenart „PV-Anlage“ (`elektro.photovoltaic_installation`, Kostengruppe 442, ohne eigene Pflichtart, bis zur Abnahme
+  gekennzeichnet). Jede der drei Tabellen trägt Anlage, Liegenschaft und Bereich und hält Mandant, Bereich und die Grenzen
+  eines Prüfers wie die Elektro-Struktur; die Datenbank nimmt einen Wechselrichter nur unter einer PV-Anlage an
+  (Fehlerklasse HT015), eine solche Anlage behält ihre Art, solange sie Wechselrichter hat, und was unter einem
+  gelöschten Teil hängt, wird mitmarkiert. Ein Wechselrichter sagt dazu, wo er hängt. In der Anlagenakte steht die Karte
+  „Wechselrichter“ und unter den Stammdaten die Leistung der Anlage aus ihren Modulen („9,60 kWp aus 24 Modulen“), jeder
+  Wechselrichter hat im Büro seine Seite mit seinen Strings und ihren Modulen, und vor Ort wird die Struktur auch ohne Netz
+  aufgenommen, die Seriennummer eines Moduls mit der Kamera vom Code auf seinem Etikett. Aufnehmen und Ändern verlangen
+  „Anlagen aufnehmen“, Entfernen „Anlagen pflegen“. Speicher, Zähler und Wallbox nennen keine PV-Anlage. In der Vorschau
+  hat die „PV-Anlage Dach Halle 1“ einen Wechselrichter mit zwei Strings zu je zwölf Modulen. Warum: Moritz hat an #180
+  entschieden, dass die PV-Anlagen aus OpenGewerk auch hier aufgenommen werden, und seit opengewerk/opengewerk#678 liegt
+  ihre Struktur im Fundament.
+
 - Messungen je Stromkreis im Paket Elektro, Fassung 1.3.0 (#350): die Formulare `installation_initial_test`
   (Erstprüfung nach DIN VDE 0100-600) und `installation_test` (wiederkehrende Prüfung der elektrischen Anlage) mit einer
   Gruppe „Messen je Stromkreis“, die einen Block für jeden Stromkreis der Anlage hat. Schutzleiter, Isolationswiderstand,
