@@ -158,6 +158,16 @@ export function markdownHtml(source: string): string {
 
 /** The print of a description: A4 upright, the text as it was made, and the operator and the day in the footer. */
 export function processingPrintJob(markdown: string, footer: string): PrintJob {
+  return documentPrintJob(markdownHtml(markdown), footer)
+}
+
+/**
+ * A document of the operator as a page for the renderer: the body as it is,
+ * already escaped, the footer with its sentence and the page count. The
+ * description of the processing (#357) and the information about a person
+ * (#355) are printed with it; `styles` adds what a body of its own needs.
+ */
+export function documentPrintJob(body: string, footer: string, styles = ''): PrintJob {
   const html = `<!doctype html>
 <html lang="de">
 <head>
@@ -179,9 +189,10 @@ table { width: 100%; border-collapse: collapse; margin: 4px 0 8px; }
 th { text-align: left; font-size: 7.5pt; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: #555; padding: 4px 6px; border-bottom: 1px solid #8a8178; background: #f1ede6; }
 td { padding: 3px 6px; border-bottom: 1px solid #ddd6cc; vertical-align: top; font-size: 8.5pt; }
 tr { break-inside: avoid; }
+${styles}
 </style>
 </head>
-<body>${markdownHtml(markdown)}</body>
+<body>${body}</body>
 </html>`
   const footerHtml = `<style>${fontFaces([400])}</style><div style="font-family: ${typeface}; font-size: 7pt; color: #555; width: 100%; padding: 0 14mm; display: flex; justify-content: space-between; align-items: flex-end;"><div>${text(footer)}</div><div>Seite <span class="pageNumber"></span> von <span class="totalPages"></span></div></div>`
 

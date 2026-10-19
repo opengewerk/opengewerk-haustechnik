@@ -13,6 +13,7 @@ import { Download, FileText } from 'lucide-react'
 import { useState } from 'react'
 
 import { fetchPdf, openPdf } from '../../app/prints.js'
+import { SubjectAccessPanel } from './subject-access.js'
 
 /** What the screen says beyond the words it shares with the PDF. */
 export const processingScreenWords = {
@@ -65,6 +66,7 @@ export function ProcessingDescriptionsScreen() {
         </>
       )}
       <NoteBox>{processingWords.repository}</NoteBox>
+      <SubjectAccessPanel />
     </SettingsPage>
   )
 }

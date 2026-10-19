@@ -361,7 +361,8 @@ export interface ProcessingDescriptions {
 /** The words of the screen "Datenschutz" and of the PDF. */
 export const processingWords = {
   title: 'Datenschutz',
-  about: 'Die Verfahrensbeschreibung dieses Betreibers für eine Arbeitnehmervertretung.',
+  about:
+    'Die Verfahrensbeschreibung dieses Betreibers für eine Arbeitnehmervertretung und die Auskunft über eine Person.',
   card: 'Verfahrensbeschreibung',
   explanation:
     'Für einen Betriebsrat, einen Personalrat oder eine Mitarbeitervertretung: welche Daten über Beschäftigte wo stehen, wer sie sieht, welche Auswertungen es gibt und welche nicht, was eingeschaltet ist und wie lange aufbewahrt wird. Erzeugt aus dem, was bei diesem Betreiber gerade eingeschaltet und eingestellt ist, als PDF.',

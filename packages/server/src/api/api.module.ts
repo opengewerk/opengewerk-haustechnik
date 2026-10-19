@@ -96,6 +96,7 @@ import { MeterSettingsController, MetersController } from './meters.controller.j
 import { EvidenceRetentionController } from './retention.controller.js'
 import { MembershipEndController } from './membership-end.controller.js'
 import { ProcessingDescriptionsController } from './processing-descriptions.controller.js'
+import { SubjectAccessController } from './subject-access.controller.js'
 import {
   EvidencePrintController,
   Printer,
@@ -452,6 +453,8 @@ export class ApiModule {
         EvidenceRetentionController,
         MembershipEndController,
         ProcessingDescriptionsController,
+        // The information about a person (#355).
+        SubjectAccessController,
         EvidencePrintController,
         RoundPrintController,
         ServiceReportPrintController,

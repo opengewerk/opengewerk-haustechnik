@@ -191,6 +191,14 @@ function drawingOf(signature: StatedSignature): string {
     return '<div class="pad empty">Ohne Zeichnung eingefroren</div>'
   }
 
+  return `<div class="pad">${pathDrawing(path)}</div>`
+}
+
+/**
+ * The drawing of a signature as an image, fitted to the box it was drawn in.
+ * The information about a person (#355) shows the same drawing.
+ */
+export function pathDrawing(path: string): string {
   const figures = (path.match(/-?\d+(?:\.\d+)?/g) ?? []).map(Number)
   const xs = figures.filter((_, index) => index % 2 === 0)
   const ys = figures.filter((_, index) => index % 2 === 1)
@@ -199,7 +207,7 @@ function drawingOf(signature: StatedSignature): string {
   const width = Math.max(Math.max(...xs, 1) - left, 1)
   const height = Math.max(Math.max(...ys, 1) - top, 1)
 
-  return `<div class="pad"><svg viewBox="${String(left - 4)} ${String(top - 4)} ${String(width + 8)} ${String(height + 8)}" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Zeichnung der Unterschrift"><path d="${text(path)}" fill="none" stroke="#1b2430" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>`
+  return `<svg viewBox="${String(left - 4)} ${String(top - 4)} ${String(width + 8)} ${String(height + 8)}" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Zeichnung der Unterschrift"><path d="${text(path)}" fill="none" stroke="#1b2430" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>`
 }
 
 function signaturesOf(signatures: readonly StatedSignature[]): string {
