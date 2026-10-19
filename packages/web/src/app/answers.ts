@@ -1,5 +1,7 @@
 import {
+  type AnswerCircuit,
   type AnswerContent,
+  type AnswersContext,
   answerValue,
   answerVerdict,
   type BlockField,
@@ -13,7 +15,7 @@ import {
   formUnits,
   type GroupField,
   jsonText,
-  type LimitContext,
+  type MeasurementField,
   type PointAssets,
   type RecordState,
 } from '@opengewerk/haustechnik-domain'
@@ -262,6 +264,36 @@ export function pointsOf(
   return points
 }
 
+/**
+ * The circuit a point in the block of a group over the circuits is about
+ * (#350), by the key of its block among the circuits given; null for every
+ * other point, and for one about a circuit not among them.
+ */
+export function circuitOfPoint(
+  point: FormPoint,
+  circuits: readonly AnswerCircuit[] | null | undefined,
+): AnswerCircuit | null {
+  return point.group?.repeat === 'circuits'
+    ? (circuits?.find((circuit) => circuit.id === point.blockKey) ?? null)
+    : null
+}
+
+/**
+ * How a measured answer stands against its limit, in the block of a circuit
+ * judged with the facts of that circuit (#350), which a limit worked out of
+ * the circuit needs.
+ */
+export function pointVerdict(
+  point: FormPoint & { readonly field: MeasurementField },
+  answer: AnswerContent,
+  context: AnswersContext,
+) {
+  return answerVerdict(point.field, answer, {
+    ...context,
+    circuit: circuitOfPoint(point, context.circuits),
+  })
+}
+
 /** The record of the answer to a point, where there is one. */
 export function answerAt(
   answers: readonly RecordState[],
@@ -301,7 +333,7 @@ export type Lack = 'answer' | 'remark' | 'reason'
 export function lackOf(
   point: FormPoint,
   given: FilledAnswer | undefined,
-  context: LimitContext,
+  context: AnswersContext,
 ): Lack | null {
   if (given === undefined || !isAnswered(point, given)) {
     return isDemanded(point) ? 'answer' : null
@@ -314,7 +346,7 @@ export function lackOf(
   }
 
   return point.field.kind === 'measurement' &&
-    answerVerdict(point.field, given, context).within === false &&
+    pointVerdict({ ...point, field: point.field }, given, context).within === false &&
     !said
     ? 'remark'
     : null
@@ -329,7 +361,7 @@ export function unitSign(field: Extract<BlockField, { readonly unit: unknown }>)
 export function pointState(
   point: FormPoint,
   answer: FilledAnswer | undefined,
-  context: LimitContext,
+  context: AnswersContext,
 ): PointState {
   const value = answer === undefined ? undefined : answerValue(point.field, answer)
 
@@ -346,7 +378,7 @@ export function pointState(
       return {
         kind: 'value',
         text: forms.formatMeasured(value as number, field.unit, field.decimals),
-        outside: answerVerdict(field, answer, context).within === false,
+        outside: pointVerdict({ ...point, field }, answer, context).within === false,
       }
     case 'number':
     case 'meter_reading':

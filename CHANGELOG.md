@@ -31,7 +31,17 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   Verteiler, Schutz und Platz, jede Antwort eines Blocks nennt ihren Stromkreis und den berechneten Grenzwert, und das PDF
   zeigt die Messungen als Tabelle je Verteiler mit Grenzwert der Schleifenimpedanz, Werten außerhalb fett und rot und
   einer Legende mit den Fundstellen. Ältere Stände bleiben unverändert lesbar. In der Vorschau ist die Prüfung der
-  „Elektrischen Anlage Halle 1“ begonnen, mit den ersten drei Stromkreisen gemessen.
+  „Elektrischen Anlage Halle 1“ begonnen, mit den ersten drei Stromkreisen gemessen. Vor Ort zeigt das Protokoll im
+  Abschnitt „Messen“ die Stromkreise der Anlage Verteiler für Verteiler als Karten mit Schutz und Stand („noch offen“,
+  „n von m“, „fertig“, „außerhalb des Grenzwerts“); eine Karte öffnet den Block des Stromkreises, ein Punkt seinen
+  Bildschirm mit dem Stromkreis im Kopf und dem berechneten Grenzwert mit Fundstelle, und der Wert geht mit der Kennung
+  des Stromkreises als Block in den Postausgang. Fertig ist ein Block, sobald „Stromkreis in Ordnung“ beantwortet ist. Hat
+  die Anlage noch keinen Stromkreis, sagt der Abschnitt es und führt, wer Anlagen aufnimmt, zu den Verteilern. Das
+  Ergebnis nennt bei einem Mangel und einem offenen Punkt den Stromkreis. Im Büro zeigt der Nachweis die Messungen als
+  Tabelle wie das PDF, aus derselben Funktion der Domäne, und ein Mangel nennt seinen Stromkreis mit dem Weg zu ihm. Damit
+  der Einstieg vor Ort unter seinem Budget bleibt, werden die Abgabe eines Rundgangs, die Unterschrift eines
+  Sammelvorgangs und seine Liste, der Ablesegang, der Scan im Rundgang und das Melden eines Mangels mit ihrer Adresse
+  nachgeladen, wie die neuen Bildschirme der Stromkreise.
   Warum: Abschnitt 5 des Konzepts sieht die Messwerte je Stromkreis im Paket Elektro für Phase 2 vor, und Moritz hat am
   15.10.2026 entschieden, dass ihre Grenzwerte wie in OpenGewerk als Regeln mit Norm, Ausgabe und Abschnitt stehen und
   ein Wert außerhalb ein Mangel an der Anlage mit dem Stromkreis wird.

@@ -9,11 +9,10 @@ import {
   type RouteComponent,
   useParams,
 } from '@tanstack/react-router'
+import { lazy, Suspense } from 'react'
 
 import { SiteAssetScreen } from './screens/asset.js'
 import { SitePointScreen } from './screens/form.js'
-import { SiteCollectiveSignScreen } from './screens/collective.js'
-import { RoundHandInScreen, RoundSignScreen } from './screens/hand-in.js'
 import {
   SiteBuildingScreen,
   SiteFloorScreen,
@@ -21,9 +20,6 @@ import {
   SiteRoomScreen,
   StockStartScreen,
 } from './screens/places.js'
-import { ReadingRoundScreen } from './screens/reading-round.js'
-import { RoundScanScreen } from './screens/round-scan.js'
-import { ReportDefectScreen } from './screens/report-defect.js'
 import { SiteScanScreen } from './screens/scan.js'
 import { SiteActivityScreen, SiteProtocolScreen } from './screens/protocol.js'
 import { SiteResultScreen } from './screens/result.js'
@@ -78,6 +74,39 @@ const SiteCircuitScreen = lazyRouteComponent(
 const SiteEquipmentFormScreen = lazyRouteComponent(
   () => import('./screens/boards.js'),
   'SiteEquipmentFormScreen',
+)
+// The handing in of a round with its signature, the signature of a collective
+// activity, the round of the meters, the label scanned in a round and a
+// defect reported on its own are fetched with
+// their address as well (#350): with the measurements per circuit the entry
+// on site passed its budget, and each of them is a screen of its own that
+// nothing else in the entry draws.
+const RoundHandInScreen = lazyRouteComponent(
+  () => import('./screens/hand-in.js'),
+  'RoundHandInScreen',
+)
+const RoundSignScreen = lazy(async () => ({
+  default: (await import('./screens/hand-in.js')).RoundSignScreen,
+}))
+const SiteCollectiveSignScreen = lazy(async () => ({
+  default: (await import('./screens/collective.js')).SiteCollectiveSignScreen,
+}))
+const ReadingRoundScreen = lazyRouteComponent(
+  () => import('./screens/reading-round.js'),
+  'ReadingRoundScreen',
+)
+const RoundScanScreen = lazyRouteComponent(
+  () => import('./screens/round-scan.js'),
+  'RoundScanScreen',
+)
+const ReportDefectScreen = lazyRouteComponent(
+  () => import('./screens/report-defect.js'),
+  'ReportDefectScreen',
+)
+// The block of a circuit in a protocol that measures every circuit (#350).
+const SiteCircuitBlockScreen = lazyRouteComponent(
+  () => import('./screens/protocol-circuits.js'),
+  'SiteCircuitBlockScreen',
 )
 const SiteSectionFormScreen = lazyRouteComponent(
   () => import('./screens/boards.js'),
@@ -165,6 +194,8 @@ export function siteRoutes() {
     // a network.
     at('/vorgaenge/$activityId', SiteActivityScreen),
     at('/vorgaenge/$activityId/punkte/$pointKey', SitePointScreen),
+    // The block of a circuit with its points (#350).
+    at('/vorgaenge/$activityId/stromkreise/$circuitId', SiteCircuitBlockScreen),
     at('/vorgaenge/$activityId/ergebnis', SiteResultScreen),
     at('/vorgaenge/$activityId/mangel', ReportDefectScreen),
     at('/vorgaenge/$activityId/abgabe', RoundHandInScreen),
@@ -223,9 +254,13 @@ function SignForTheKind() {
   const activity = useRecord('activities', activityId)
 
   return maybeText(activity, 'collectiveKind') === null ? (
-    <RoundSignScreen />
+    <Suspense fallback={null}>
+      <RoundSignScreen />
+    </Suspense>
   ) : (
-    <SiteCollectiveSignScreen />
+    <Suspense fallback={null}>
+      <SiteCollectiveSignScreen />
+    </Suspense>
   )
 }
 

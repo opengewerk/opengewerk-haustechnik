@@ -367,6 +367,64 @@ describe('the page of a defect', () => {
     expect(screen.queryByRole('button', { name: 'Bearbeiten' })).toBeNull()
   })
 
+  it('names the circuit a value outside its limit was measured on, with the way to it (#350)', async () => {
+    const onLift = { propertyId: school.id, areaId: sued.id, assetId: lift.id }
+
+    server.put('distribution_boards', {
+      id: 'b-hv',
+      ...onLift,
+      kind: 'main_distribution',
+      designation: 'HV Halle 1',
+      location: null,
+      position: 0,
+    })
+    server.put('circuits', {
+      id: 'c-f2',
+      ...onLift,
+      distributionBoardId: 'b-hv',
+      boardSectionId: null,
+      designation: 'F2',
+      consumer: 'Steckdosen Nordwand',
+      position: 1,
+    })
+    server.put('defects', {
+      id: late.id,
+      ...onLift,
+      roomId: null,
+      buildingId: house.id,
+      description: late.description,
+      defectClass: null,
+      foundOn: '2026-10-01',
+      dueOn: '2026-10-19',
+      status: 'found',
+      circuitId: 'c-f2',
+    })
+    signedInOffice('site_management', [sued], {
+      ...servingCatalogue(),
+      '/defects/df-late': reading(late),
+    })
+    await mountOffice('/maengel/df-late', server, [
+      ...everything,
+      'defects',
+      'distribution_boards',
+      'circuits',
+    ])
+
+    const link = await screen.findByRole('link', { name: 'F2 Steckdosen Nordwand' })
+
+    expect(link.getAttribute('href')).toBe('/anlagen/as-lift/verteiler/b-hv/stromkreise/c-f2')
+    expect(link.parentElement?.textContent).toBe('F2 Steckdosen Nordwand, HV Halle 1')
+  })
+
+  it('names no circuit for a defect found on none', async () => {
+    const { mounted } = mount('/maengel/df-late', { '/defects/df-late': reading(late) })
+
+    await mounted
+    await steps()
+
+    expect(screen.queryByText('Stromkreis')).toBeNull()
+  })
+
   it('does not offer checking again before the defect is remedied', async () => {
     const { mounted } = mount('/maengel/df-late', { '/defects/df-late': reading(late) })
 

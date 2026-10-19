@@ -4,6 +4,7 @@ import type {
   EvidencePage,
   EvidenceState,
   RoleKey,
+  StatedAnswer,
 } from '@opengewerk/haustechnik-domain'
 import { moment } from '@opengewerk/platform-web/format'
 import { TestServer } from '@opengewerk/platform-web/testing'
@@ -408,6 +409,92 @@ describe('the page of an evidence', () => {
     )
 
     expect(await screen.findByText('leicht')).toBeTruthy()
+  })
+
+  it('shows the measurements per circuit as a table, as the frozen state names the circuits (#350)', async () => {
+    const zs = (
+      circuit: string,
+      value: string,
+      more: Partial<StatedAnswer> = {},
+    ): StatedAnswer => ({
+      section: 'Messen',
+      label: 'Schleifenimpedanz Zs',
+      group: { label: 'Messen je Stromkreis', block: 1 },
+      kind: 'measurement',
+      value,
+      result: null,
+      remark: null,
+      limit: null,
+      photo: null,
+      circuit,
+      workedOut: 'loop_impedance',
+      ...more,
+    })
+
+    await opened(
+      'technician',
+      evidence({
+        state: frozen({
+          circuits: [
+            {
+              id: 'c-q1',
+              board: 'HV Halle 1',
+              boardKind: 'main_distribution',
+              designation: 'Q1',
+              consumer: 'Zuleitung UV Werkstatt',
+              protection: 'gG 63 A',
+              place: 0,
+            },
+            {
+              id: 'c-f2',
+              board: 'HV Halle 1',
+              boardKind: 'main_distribution',
+              designation: 'F2',
+              consumer: 'Steckdosen Nordwand',
+              protection: 'B 16 A, RCD 30 mA',
+              place: 1,
+            },
+          ],
+          answers: [
+            zs('c-q1', '0,18 Ω'),
+            zs('c-f2', '3,40 Ω', {
+              remark: 'Zweimal gemessen, gleicher Wert.',
+              limit: {
+                text: 'Außerhalb des Grenzwerts, höchstens 2,87 Ω.',
+                source: 'DIN VDE 0100-410',
+                within: false,
+                bound: 'höchstens 2,87 Ω',
+              },
+            }),
+          ],
+        }),
+      }),
+    )
+
+    expect(
+      rowsOf('Messen je Stromkreis: Messwerte, Grenzwerte und Bemerkungen je Stromkreis'),
+    ).toEqual([
+      ['HV Halle 1Hauptverteilung'],
+      ['Q1Zuleitung UV WerkstattgG 63 A', '0,18', 'keiner', ''],
+      [
+        'F2Steckdosen NordwandB 16 A, RCD 30 mA',
+        '3,40',
+        '≤ 2,87',
+        'Zs: Zweimal gemessen, gleicher Wert.',
+      ],
+    ])
+    expect(screen.getByText('2 Stromkreise aus 1 Verteiler')).toBeTruthy()
+    expect(
+      screen.getByText(
+        'Grenzwerte: Zs aus Charakteristik und Nennstrom (DIN VDE 0100-410); ohne Angaben zur Schutzeinrichtung keiner für Zs.',
+      ),
+    ).toBeTruthy()
+  })
+
+  it('shows no table of circuits for an evidence without them', async () => {
+    await opened('technician')
+
+    expect(screen.queryByText('Messen je Stromkreis')).toBeNull()
   })
 
   it.each(['management', 'technical_management', 'site_management'] as const)(

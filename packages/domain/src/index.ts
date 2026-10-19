@@ -114,6 +114,8 @@ export * from './model/duty.js'
 export * from './model/duty-record.js'
 export * from './model/canonical.js'
 export * from './model/evidence.js'
+// The measurements of a group over the circuits as a table, in the office and in the PDF (#350).
+export * from './model/circuit-table.js'
 export * from './model/signature.js'
 export * from './model/service-report.js'
 // The stores, on the building block of the foundation (#325).

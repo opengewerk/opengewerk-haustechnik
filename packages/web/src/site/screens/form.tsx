@@ -1,9 +1,13 @@
 import {
   type AnswersContext,
+  asksCircuits,
+  circuitProtectionWords,
   everyAssetOf,
   type FormDefinition,
+  heldChartOf,
   type IsoDate,
   type RecordState,
+  statedCircuitWords,
   weekdayLabel,
   weekdayOf,
 } from '@opengewerk/haustechnik-domain'
@@ -44,6 +48,7 @@ import { useMemo, useState } from 'react'
 
 import {
   answerAt,
+  circuitOfPoint,
   filledOf,
   type FormPoint,
   isAnswered,
@@ -91,6 +96,7 @@ export const siteFormWords = {
   round: 'Rundgang',
   version: (version: number) => `Fassung ${String(version)}`,
   fulfils: (duty: string) => `erfüllt ${duty}`,
+  toCircuit: 'Zurück zum Stromkreis',
 } as const
 
 /** The way back from a round and what follows it: the start, where it was chosen. */
@@ -235,9 +241,19 @@ export function useActivityForm(activityId: string, opened: readonly OpenedBlock
   // The assets of the points for every asset, fixed when the round was made (#343).
   const pointAssets = useMemo(() => pointAssetsOf(activity), [activity])
   const assets = useRecords('assets')
+  const circuits = useHeldCircuits(definition, maybeText(activity, 'assetId'))
+  // Every circuit of the installation has its block, also before it holds an answer (#350).
   const points = useMemo(
-    () => (definition ? pointsOf(definition, filled, opened, pointAssets) : []),
-    [definition, filled, opened, pointAssets],
+    () =>
+      definition
+        ? pointsOf(
+            definition,
+            filled,
+            [...opened, ...circuitBlocksOf(definition, circuits)],
+            pointAssets,
+          )
+        : [],
+    [definition, filled, opened, pointAssets, circuits],
   )
   const context: AnswersContext | null =
     catalogue === null
@@ -246,6 +262,7 @@ export function useActivityForm(activityId: string, opened: readonly OpenedBlock
           rules: catalogue.ruleSet,
           on: maybeText(activity, 'performedOn') ?? today(),
           pointAssets,
+          circuits,
           assetName: (id) => {
             const asset = assets.find((candidate) => candidate['id'] === id)
 
@@ -261,11 +278,59 @@ export function useActivityForm(activityId: string, opened: readonly OpenedBlock
     answers,
     points,
     context,
+    // The circuits of its installation in the order of the chart, with the kind of their board (#350).
+    circuits,
     open,
     signed,
     performs,
     editable: open && performs,
   }
+}
+
+/**
+ * The circuits of the installation of an activity whose form has a group
+ * over them (#350), as this device holds them and as its page names them:
+ * in the order of the chart, without what is marked. None for any other form.
+ */
+function useHeldCircuits(definition: FormDefinition | null | undefined, assetId: string | null) {
+  const boards = useRecords('distribution_boards')
+  const sections = useRecords('board_sections')
+  const circuits = useRecords('circuits')
+  const asks = definition !== null && definition !== undefined && asksCircuits(definition)
+
+  return useMemo(() => {
+    if (!asks || assetId === null) {
+      return null
+    }
+
+    const held: Readonly<Record<string, readonly RecordState[]>> = {
+      distribution_boards: boards,
+      board_sections: sections,
+      circuits,
+    }
+
+    return heldChartOf(
+      {
+        related: (entity, field, id) =>
+          (held[entity] ?? []).filter((record) => record[field] === id),
+      },
+      assetId,
+    )
+  }, [asks, assetId, boards, sections, circuits])
+}
+
+/** A block for each circuit, in each group over the circuits of a form (#350). */
+function circuitBlocksOf(
+  definition: FormDefinition,
+  circuits: readonly { readonly id: string }[] | null,
+): readonly OpenedBlock[] {
+  return definition.sections.flatMap((section) =>
+    section.fields.flatMap((field) =>
+      field.kind === 'group' && field.repeat === 'circuits'
+        ? (circuits ?? []).map((circuit) => ({ groupKey: field.key, blockKey: circuit.id }))
+        : [],
+    ),
+  )
 }
 
 /**
@@ -608,10 +673,20 @@ export function SitePointScreen() {
   const where = useWhere(form.activity)
   const aboutWords = useAboutWords()
   const [trouble, setTrouble] = useState<string | null>(null)
-  const toForm: WayBack = { to: siteForms.form(activityId), label: 'Zurück zum Formular' }
   const shown = form.points.find((each) => each.key === key) ?? null
   const ofAsset = useDutyOfAsset(shown)
   const duty = useDutyName(fulfilledDuty(shown?.field ?? null) ?? ofAsset)
+  // A point in the block of a circuit names the circuit and goes from point to
+  // point within the block, which stands at either end (#350).
+  const circuit = shown === null ? null : circuitOfPoint(shown, form.context?.circuits)
+  const section = useRecord(
+    'board_sections',
+    maybeText(useRecord('circuits', circuit?.id), 'boardSectionId') ?? undefined,
+  )
+  const toForm: WayBack =
+    circuit === null
+      ? { to: siteForms.form(activityId), label: 'Zurück zum Formular' }
+      : { to: siteForms.circuit(activityId, circuit.id), label: siteFormWords.toCircuit }
 
   if (form.activity === null) {
     return <NotOnDevice what="Diesen Vorgang" back={{ to: '/', label: 'Zum Start' }} />
@@ -639,11 +714,22 @@ export function SitePointScreen() {
     )
   }
 
-  const before = form.points[at - 1]
-  const after = form.points[at + 1]
-  // The end of a round is its handing in (#114); every other form goes back to itself.
+  const run =
+    circuit === null
+      ? form.points
+      : form.points.filter((each) => each.group === point.group && each.blockKey === point.blockKey)
+  const place = run.indexOf(point)
+  const before = run[place - 1]
+  const after = run[place + 1]
+  // The end of a round is its handing in (#114); every other form goes back
+  // to itself, a point of a circuit to its block.
   const round = text(form.activity, 'kind') === 'round'
   const target = aboutWords(point) ?? where.words
+  const circuitPlace =
+    circuit === null
+      ? ''
+      : [circuit.board, maybeText(section, 'designation')].filter(Boolean).join(', ')
+  const protection = circuit === null ? null : circuitProtectionWords(circuit)
   const question = askedAsQuestion(point.field.kind)
   const AboutIcon =
     point.assetId !== null ||
@@ -656,11 +742,17 @@ export function SitePointScreen() {
     <>
       <SiteHeader
         title={
-          point.group === null || point.block === null
-            ? point.section.title
-            : siteFormWords.block(point.group.label, point.block)
+          circuit !== null
+            ? statedCircuitWords(circuit)
+            : point.group === null || point.block === null
+              ? point.section.title
+              : siteFormWords.block(point.group.label, point.block)
         }
-        sub={siteFormWords.point(at + 1, form.points.length)}
+        sub={
+          circuit === null
+            ? siteFormWords.point(at + 1, form.points.length)
+            : `${point.section.title}, ${circuitPlace} · ${siteFormWords.point(place + 1, run.length)}`
+        }
         back={toForm}
       />
       <SiteScreen gap={14}>
@@ -670,10 +762,19 @@ export function SitePointScreen() {
               {point.field.label}
             </h2>
           ) : null}
-          <p className="mt-1 flex items-center gap-1.5 text-[15px] text-ink-muted">
-            <AboutIcon size={16} strokeWidth={2} aria-hidden="true" className="shrink-0" />
-            {target}
-          </p>
+          {circuit === null ? (
+            <p className="mt-1 flex items-center gap-1.5 text-[15px] text-ink-muted">
+              <AboutIcon size={16} strokeWidth={2} aria-hidden="true" className="shrink-0" />
+              {target}
+            </p>
+          ) : (
+            <p className="mt-1.5 flex items-center gap-2 text-[15px] text-ink-muted">
+              <span className="shrink-0 rounded-[4px] bg-top px-[7px] py-px font-condensed font-semibold text-top-ink">
+                {circuit.designation}
+              </span>{' '}
+              {[circuit.consumer, protection].filter(Boolean).join(', ')}
+            </p>
+          )}
           {duty === null ? null : (
             <p className="mt-1.5 flex items-center gap-1.5 text-[14px] font-semibold text-done">
               <ClipboardCheck size={15} strokeWidth={2.2} aria-hidden="true" className="shrink-0" />
@@ -690,7 +791,10 @@ export function SitePointScreen() {
           point={point}
           answer={answerAt(form.answers, point)}
           context={form.context}
-          target={target}
+          target={circuit === null ? target : where.words}
+          {...(circuit === null
+            ? {}
+            : { circuit: `${statedCircuitWords(circuit)}, ${circuitPlace}` })}
           duty={duty}
           editable={form.editable}
           onTrouble={setTrouble}
@@ -705,7 +809,7 @@ export function SitePointScreen() {
             icon={ChevronLeft}
             onClick={() => {
               void navigate({
-                to: before ? siteForms.point(activityId, before.key) : siteForms.form(activityId),
+                to: before ? siteForms.point(activityId, before.key) : toForm.to,
               })
             }}
           >
@@ -723,7 +827,7 @@ export function SitePointScreen() {
                   ? siteForms.point(activityId, after.key)
                   : round
                     ? siteForms.handIn(activityId)
-                    : siteForms.form(activityId),
+                    : toForm.to,
               })
             }}
           >

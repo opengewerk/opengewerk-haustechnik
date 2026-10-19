@@ -65,6 +65,7 @@ import { placePath } from '../../app/place-path.js'
 import { evidencePdfAddress } from '../../app/prints.js'
 import { placeAbove } from '../../app/place-records.js'
 import { useCatalogue } from '../../sync/catalogue.js'
+import { CircuitMeasurements } from '../circuit-measurements.js'
 import { askAt, makeAt } from '../../sync/made-at.js'
 import { dutyPlaces, dutyRegisterPlace, evidencePlaces } from '../duty-addresses.js'
 import { ResultMark, StandingMark } from '../evidence-words.js'
@@ -545,6 +546,8 @@ export function EvidenceScreen() {
           </Panel>
         </div>
       </div>
+      {/* The measurements per circuit under both columns, as wide as the page (#350). */}
+      <CircuitMeasurements state={state} />
       {doing === 'correct' ? (
         <CorrectEvidenceDialog
           page={shown}

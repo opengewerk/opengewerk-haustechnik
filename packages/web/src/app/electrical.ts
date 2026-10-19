@@ -1,5 +1,5 @@
 import { type RecordState } from '@opengewerk/haustechnik-domain'
-import { maybeText, text } from '@opengewerk/platform-web/sync'
+import { maybeText } from '@opengewerk/platform-web/sync'
 import { useBoardsOf } from '@opengewerk/platform-web/electrical'
 
 /**
@@ -12,6 +12,7 @@ import { useBoardsOf } from '@opengewerk/platform-web/electrical'
  */
 export * from '@opengewerk/platform-web/electrical'
 export { holdsBoards } from './holds-boards.js'
+export { circuitTitle, structurePlaces } from './structure-places.js'
 
 /** The boards of an asset, in their order. */
 export function useBoards(assetId: string | undefined) {
@@ -27,16 +28,6 @@ export function circuitChartAddress(assetId: string, boardId?: string): string {
 
   return boardId === undefined ? base : `${base}?board=${encodeURIComponent(boardId)}`
 }
-
-/**
- * Where a board and a circuit of it are opened, below the asset they hang on.
- * The same words in both entries; the one on site lives under `/m`.
- */
-export const structurePlaces = {
-  board: (assetId: string, boardId: string) => `/anlagen/${assetId}/verteiler/${boardId}`,
-  circuit: (assetId: string, boardId: string, circuitId: string) =>
-    `/anlagen/${assetId}/verteiler/${boardId}/stromkreise/${circuitId}`,
-} as const
 
 /** What both entries say about the structure, so that a board reads the same on both. */
 export const structureWords = {
@@ -57,11 +48,6 @@ export const structureWords = {
 /** "1 Feld", "3 Felder". */
 export function sectionsInWords(total: number): string {
   return total === 1 ? '1 Feld' : `${String(total)} Felder`
-}
-
-/** "F3 Steckdosen Werkbank": a circuit by its designation and what it feeds. */
-export function circuitTitle(circuit: RecordState): string {
-  return [text(circuit, 'designation'), maybeText(circuit, 'consumer')].filter(Boolean).join(' ')
 }
 
 /**

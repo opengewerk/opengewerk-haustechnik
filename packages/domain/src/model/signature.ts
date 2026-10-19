@@ -592,7 +592,10 @@ function heldNumber(record: HeldRecord, field: string): number | null {
  * written down on this device and not sent yet is among them, as it will be
  * on the server once it is.
  */
-function heldChartOf(held: HeldRecords, assetId: string): readonly ChartedCircuit[] {
+export function heldChartOf(
+  held: Pick<HeldRecords, 'related'>,
+  assetId: string,
+): readonly ChartedCircuit[] {
   const boards = held.related('distribution_boards', 'assetId', assetId).filter(live)
   const below = (entity: string) =>
     boards.flatMap((board) =>
