@@ -75,6 +75,15 @@ export const syncPolicies: Readonly<Record<string, SyncPolicy>> = {
   // it is out of service.
   asset_lifecycle: officeOnly,
   asset_supplies: { create: true, change: 'merge', reserved: ['propertyId', 'areaId'] },
+  // The electrical structure below a low-voltage installation (#349): taken
+  // stock of and completed on site, like the asset it hangs on. A board names
+  // its asset, and its property and area follow that; a section, a circuit
+  // and a piece of equipment take all three from the board or the circuit
+  // they hang on.
+  distribution_boards: { create: true, change: 'merge', reserved: ['propertyId', 'areaId'] },
+  board_sections: { create: true, change: 'merge', reserved: ['assetId', 'propertyId', 'areaId'] },
+  circuits: { create: true, change: 'merge', reserved: ['assetId', 'propertyId', 'areaId'] },
+  equipment: { create: true, change: 'merge', reserved: ['assetId', 'propertyId', 'areaId'] },
   // The register of duties: the office keeps it.
   duties: { ...officeOnly, reserved: [areaFromProperty] },
   duty_dismissals: officeOnly,
@@ -385,6 +394,41 @@ const assetDetails: Readonly<Record<string, OfflineValues>> = {
   meterUnit: true,
 }
 
+/** What is known about a board, a section, a circuit and a piece of equipment (#349). */
+const boardDetails: Readonly<Record<string, OfflineValues>> = {
+  kind: true,
+  designation: true,
+  location: true,
+  position: true,
+}
+const sectionDetails: Readonly<Record<string, OfflineValues>> = {
+  designation: true,
+  position: true,
+}
+const circuitDetails: Readonly<Record<string, OfflineValues>> = {
+  designation: true,
+  consumer: true,
+  overcurrentDevice: true,
+  tripCharacteristic: true,
+  ratedCurrentMilli: true,
+  rcdType: true,
+  ratedResidualCurrentMilli: true,
+  cableType: true,
+  cableCores: true,
+  cableCrossSectionMilli: true,
+  cableLengthMilli: true,
+  cableInstallationMethod: true,
+  position: true,
+}
+const equipmentDetails: Readonly<Record<string, OfflineValues>> = {
+  designation: true,
+  kind: true,
+  manufacturer: true,
+  model: true,
+  serialNumber: true,
+  position: true,
+}
+
 /** The place a record that belongs to one hangs on (ADR 0002, point 10). */
 const placeTarget: Readonly<Record<string, OfflineValues>> = {
   propertyId: true,
@@ -417,6 +461,32 @@ export const offlineEdits: Readonly<Record<string, OfflineEdits>> = {
   // away on site, never changed in place.
   asset_supplies: {
     create: { assetId: true, buildingId: true, roomId: true },
+    remove: true,
+  },
+  // The electrical structure below a low-voltage installation (#349), with
+  // what is known about each part. A circuit moves to another section of its
+  // own board; it moves to another board, and a piece of equipment to another
+  // circuit, only as a new one there, since the asset of a part is its
+  // parent's. A part marked deleted takes what hangs below it along, which
+  // asks for the right to keep assets (`operationRights` of the server).
+  distribution_boards: {
+    create: { assetId: true, ...boardDetails },
+    change: boardDetails,
+    remove: true,
+  },
+  board_sections: {
+    create: { distributionBoardId: true, ...sectionDetails },
+    change: sectionDetails,
+    remove: true,
+  },
+  circuits: {
+    create: { distributionBoardId: true, boardSectionId: true, ...circuitDetails },
+    change: { boardSectionId: true, ...circuitDetails },
+    remove: true,
+  },
+  equipment: {
+    create: { circuitId: true, ...equipmentDetails },
+    change: equipmentDetails,
     remove: true,
   },
   // A work order made on site; rounds, inspections and maintenance are
@@ -658,6 +728,10 @@ export const syncEntityNames: Readonly<Record<string, string>> = {
   assets: 'Anlage',
   asset_lifecycle: 'Lebenszyklus einer Anlage',
   asset_supplies: 'Versorgungsbereich einer Anlage',
+  distribution_boards: 'Verteiler',
+  board_sections: 'Feld eines Verteilers',
+  circuits: 'Stromkreis',
+  equipment: 'Betriebsmittel',
   duties: 'Pflicht',
   duty_dismissals: 'Verworfener Vorschlag',
   activities: 'Vorgang',
@@ -875,6 +949,25 @@ export const syncFieldNames: Readonly<Record<string, string>> = {
   country: 'Land',
   notes: 'Notiz',
   location: 'Wo',
+  // The electrical structure below a low-voltage installation (#349), in the
+  // words of its change log. Its designation, kind, place on the board and
+  // what is said about a piece of equipment share their entries with an
+  // article, an asset and a store.
+  distributionBoardId: 'Verteiler',
+  boardSectionId: 'Feld',
+  circuitId: 'Stromkreis',
+  position: 'Stelle',
+  consumer: 'Verbraucher',
+  overcurrentDevice: 'Schutzeinrichtung',
+  tripCharacteristic: 'Charakteristik',
+  ratedCurrentMilli: 'Nennstrom',
+  rcdType: 'RCD-Typ',
+  ratedResidualCurrentMilli: 'Bemessungsdifferenzstrom',
+  cableType: 'Leitungstyp',
+  cableCores: 'Aderzahl',
+  cableCrossSectionMilli: 'Querschnitt',
+  cableLengthMilli: 'Leitungslänge',
+  cableInstallationMethod: 'Verlegeart',
   storeId: 'Lager',
   articleId: 'Artikel',
   bin: 'Lagerplatz',

@@ -56,6 +56,7 @@ import { giveSampleForm, samplePackage } from './sample-form.js'
 import { withAnAnnouncedVersion } from './sample-update.js'
 import { giveSampleEveryAsset, giveSamplePlans } from './sample-plans.js'
 import { giveSampleTemplates } from './sample-templates.js'
+import { giveSampleElectrical } from './sample-electrical.js'
 import { giveSampleMeters } from './sample-meters.js'
 import { giveSampleFaults, giveSampleWork } from './sample-work.js'
 import { writeSampleStandings } from './sample-standings.js'
@@ -314,6 +315,9 @@ export async function openSamplePreview(
     // Two years of readings, a correction, a replacement, a pause, a lock and
     // a note on the meters of the sample operator (#119).
     await giveSampleMeters(database, planter)
+    // The boards of the low-voltage installation of the hall with their
+    // sections, circuits and equipment (#349).
+    await giveSampleElectrical(database, planter)
   } finally {
     await planting.close()
   }

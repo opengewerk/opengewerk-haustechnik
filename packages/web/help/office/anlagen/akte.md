@@ -21,6 +21,16 @@ Steht oben „Außer Betrieb durch Mangel“, macht ein Mangel die Anlage unsich
 
 Das Buch gilt für den Tag, an dem es entsteht. Ein ersetzter oder für ungültig erklärter Nachweis bleibt darin und ist so gekennzeichnet. Wer eine Arbeit ausgeführt hat, steht darin nur bei einem Prüfer von außen; die eigenen Beschäftigten nennt erst der einzelne Nachweis.
 
+## Verteiler
+
+Eine elektrische Anlage (Niederspannung) nennt unter den Nachweisen ihre Verteiler, jeden mit Ort und Zahl der Stromkreise. Ein Verteiler öffnet seine Seite: zuerst die Stromkreise ohne Feld, dann jedes Feld mit seinen. Ein Stromkreis aus der Liste zeigt sich daneben, mit seinen Betriebsmitteln.
+
+1. Mit „Verteiler hinzufügen“, „Feld hinzufügen“, „Stromkreis hinzufügen“ und „Betriebsmittel hinzufügen“ die Teile anlegen. Ein Stromkreis, der an einem Feld hinzugefügt wird, steht schon in diesem Feld.
+2. Einen Teil am Griff verschieben, einen Stromkreis auch in ein anderes Feld. Mit der Tastatur nimmt die Leertaste ihn auf, die Pfeiltasten verschieben ihn und die Leertaste legt ihn ab.
+3. „Stromkreisverzeichnis“ gibt an der Akte ein Blatt je Verteiler für seine Tür aus, in der Reihenfolge der Liste, auf der Seite eines Verteilers nur dessen Blatt.
+
+Anlegen, ändern und verschieben kann, wer Anlagen aufnimmt, vor Ort auch ohne Netz. „Entfernen“ gibt es nur für jemanden, der Anlagen pflegt; mit einem Verteiler oder einem Feld gehen seine Stromkreise samt ihren Betriebsmitteln. Was noch nicht beim Server ist, fehlt im Stromkreisverzeichnis.
+
 ## Unterlagen
 
 Unter „Unterlagen“ steht, was das Paket für die Anlagenart nennt, etwa den Übersichtsschaltplan einer elektrischen Anlage. „Verlangt“ nennt die Fundstelle, „empfohlen“ ist ein Rat. Vorhanden ist eine Unterlage, wenn ein Dokument ihrer Art an der Anlage selbst liegt; ein Dokument am Raum oder am Gebäude zählt nicht, und ein Dokument ohne Art auch nicht. Liegt dieselbe Anleitung bei vielen gleichen Anlagen, wird sie an jeder abgelegt.

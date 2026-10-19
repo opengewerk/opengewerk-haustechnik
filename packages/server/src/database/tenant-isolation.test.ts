@@ -268,7 +268,15 @@ describe('the tables', () => {
     // The passkey of a member points at the membership, the one such key of
     // the first migration.
     expect(keys.length).toBeGreaterThanOrEqual(1)
-    expect(withoutTheTenant(keys)).toEqual([])
+
+    // The one exception, the same as in the trades application (#349): the
+    // key of the foundation from a circuit to its section pairs the section
+    // with the board, and the circuit's key onto its board runs over the
+    // tenant. The section belongs to that board, the board to the tenant of
+    // the circuit, so the section does as well.
+    expect(withoutTheTenant(keys).map((key) => key.key)).toEqual([
+      'circuits_section_belongs_to_board',
+    ])
   })
 
   /**

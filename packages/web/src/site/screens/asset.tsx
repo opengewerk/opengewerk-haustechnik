@@ -38,6 +38,7 @@ import { useParams } from '@tanstack/react-router'
 import { QrCode, TriangleAlert } from 'lucide-react'
 
 import { DutyStateMark } from '../../app/asset-marks.js'
+import { holdsBoards } from '../../app/electrical.js'
 import { generalKindNote, kindFields, typedValues, unitOf } from '../../app/asset-values.js'
 import { assetEvidenceQuery } from '../../app/evidence.js'
 import { useLabelsOf } from '../../app/labels.js'
@@ -57,6 +58,7 @@ import {
 } from '../kit.js'
 import { siteDefects, siteForms, sitePlaces, stockTaking } from '../places.js'
 import { SiteTasksCard } from '../tasks.js'
+import { SiteBoardsBlock } from './boards.js'
 
 export const siteAssetWords = {
   noNumber: 'Nummer folgt nach dem Abgleich',
@@ -164,7 +166,8 @@ function factsOf(asset: RecordState, catalogue: Catalogue | null): readonly Site
  * which never travels to a device, so the server says it, with a connection;
  * without one the duties stand here by their names. The last evidence is the
  * server's as well, and stands here only with a connection. "Mangel melden"
- * reports a defect at it, also without a network (#116).
+ * reports a defect at it, also without a network (#116). A low-voltage
+ * installation names its boards first (#349).
  */
 export function SiteAssetScreen() {
   const { assetId } = useParams({ strict: false }) as { assetId?: string }
@@ -247,6 +250,9 @@ export function SiteAssetScreen() {
           defects={shutDownOn(defects, catalogue).get(assetId) ?? []}
           catalogue={catalogue}
         />
+        {/* The boards of a low-voltage installation, under the path and after a
+            defect that puts it out of service (#349). */}
+        {holdsBoards(key) ? <SiteBoardsBlock assetId={assetId} /> : null}
         {performs && work.length > 0 ? (
           <Panel title={siteAssetWords.work}>
             <SiteRows label={siteAssetWords.work}>

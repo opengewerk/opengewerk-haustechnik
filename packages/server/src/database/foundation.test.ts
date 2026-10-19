@@ -53,7 +53,23 @@ describe('the foundation in this database', () => {
     // be named here; it takes rows away and opens none. A version names the
     // day it is valid until, and a deadline may follow the document whose
     // newest version names one (opengewerk-haustechnik#327, migration 0056),
-    // over a unique key on the document with its property.
+    // over a unique key on the document with its property. The electrical
+    // structure (opengewerk-haustechnik#349, migration 0092) hangs every part
+    // on its asset with the property and the area of it, over keys onto the
+    // asset and onto the part above, with the policies of a place, the
+    // triggers that mark what hangs below and that keep a board on a
+    // low-voltage installation. One deviation stays, on purpose: the key from
+    // a circuit to its section empties only the section in the database,
+    // as ADR 0014 in the repository opengewerk asks of the migration of an
+    // application, and the block says it without the column, which drizzle
+    // has no way to write.
+    const structure = ['distribution_boards', 'board_sections', 'circuits', 'equipment']
+    const sectionKey =
+      'FOREIGN KEY (board_section_id, distribution_board_id) REFERENCES board_sections(id, distribution_board_id) ON DELETE SET NULL'
+    const onlyTheSection =
+      `table circuits, constraint circuits_section_belongs_to_board: line 1: the blocks say "${sectionKey}", ` +
+      `the database says "${sectionKey} (board_section_id)"`
+
     expect(
       await foundationDeviations(admin, {
         // A document takes nothing new at an activity emptied with its last
@@ -62,6 +78,10 @@ describe('the foundation in this database', () => {
           'memberships.default_areas',
           'attachments.area_from_the_property',
           'attachments.refuses_an_emptied_activity',
+          'distribution_boards.on_a_low_voltage_installation',
+          ...['distribution_boards', 'board_sections', 'circuits'].map(
+            (table) => `${table}.structure_follows_deletion`,
+          ),
         ],
         columns: [
           'deadlines.duty_id',
@@ -96,6 +116,9 @@ describe('the foundation in this database', () => {
           'deadlines.evidence_id',
           // The access whose end or removal a deadline follows (#356).
           'deadlines.member_user_id',
+          ...structure.flatMap((table) =>
+            ['asset_id', 'property_id', 'area_id'].map((column) => `${table}.${column}`),
+          ),
         ],
         constraints: [
           'deadlines.deadlines_meters_of_their_property',
@@ -150,6 +173,15 @@ describe('the foundation in this database', () => {
           'attachments.attachments_of_a_contract',
           'attachments.attachments_at_a_place_or_a_contractor',
           'attachment_versions.attachment_versions_of_their_document',
+          ...structure.flatMap((table) => [
+            `${table}.${table}_follow_their_asset`,
+            `${table}.${table}_of_an_asset_of_their_property`,
+          ]),
+          'distribution_boards.distribution_boards_of_their_asset',
+          'board_sections.board_sections_on_a_board_of_their_asset',
+          'circuits.circuits_on_a_board_of_their_asset',
+          'circuits.circuits_of_their_asset',
+          'equipment.equipment_on_a_circuit_of_their_asset',
         ],
         indexes: [
           'deadlines.deadlines_duty_idx',
@@ -171,6 +203,7 @@ describe('the foundation in this database', () => {
           'attachments.attachments_defect_idx',
           'attachments.attachments_contractor_idx',
           'attachments.attachments_contract_idx',
+          ...structure.map((table) => `${table}.${table}_asset_idx`),
         ],
         policies: [
           'deadlines.within_areas',
@@ -184,8 +217,9 @@ describe('the foundation in this database', () => {
           'contacts.within_limits',
           'deadlines.within_limits',
           'attachment_versions.within_areas_of_their_file',
+          ...structure.flatMap((table) => [`${table}.within_areas`, `${table}.within_limits`]),
         ],
       }),
-    ).toEqual([])
+    ).toEqual([onlyTheSection])
   })
 })

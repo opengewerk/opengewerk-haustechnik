@@ -143,6 +143,11 @@ const placeEntities = [
   'meter_readings',
   'meter_exchanges',
   'meter_pauses',
+  // The electrical structure below a low-voltage installation (#349).
+  'distribution_boards',
+  'board_sections',
+  'circuits',
+  'equipment',
   'duties',
   'duty_dismissals',
   // The documents of those places, of the assets there and of the work on

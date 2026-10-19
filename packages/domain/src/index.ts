@@ -67,6 +67,9 @@ export * from './model/label.js'
 
 // The technology: assets, their components, life cycle and meters.
 export * from './model/asset.js'
+// The electrical structure below a low-voltage installation, on the
+// building block of the foundation (#349, ADR 0014 in the repository opengewerk).
+export * from './model/electrical.js'
 // Whether an asset may already stand in the register, and the general kind
 // of a cost group.
 export * from './model/asset-duplicate.js'

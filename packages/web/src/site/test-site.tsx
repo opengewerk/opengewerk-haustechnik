@@ -333,6 +333,11 @@ export async function mountSite(
       'rooms',
       'assets',
       'asset_supplies',
+      // The electrical structure below a low-voltage installation (#349).
+      'distribution_boards',
+      'board_sections',
+      'circuits',
+      'equipment',
       'contacts',
       'duties',
       'activities',

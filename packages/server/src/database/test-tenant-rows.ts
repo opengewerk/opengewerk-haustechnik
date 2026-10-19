@@ -48,6 +48,11 @@ export function rowsOf(tenant: Tenant): readonly Row[] {
   const building = randomUUID()
   const floor = randomUUID()
   const asset = randomUUID()
+  // A low-voltage installation, which alone takes a board (#349).
+  const installation = randomUUID()
+  const board = randomUUID()
+  const section = randomUUID()
+  const circuit = randomUUID()
   const duty = randomUUID()
   const activity = randomUUID()
   const template = randomUUID()
@@ -401,6 +406,71 @@ export function rowsOf(tenant: Tenant): readonly Row[] {
         starts_on: '2026-08-01',
         ends_on: '2026-09-15',
         reason: 'Sommerferien',
+      },
+    },
+    // The electrical structure below a low-voltage installation (#349).
+    {
+      table: 'assets',
+      values: {
+        id: installation,
+        tenant_id: tenant.id,
+        property_id: property,
+        area_id: area,
+        building_id: building,
+        kind: 'elektro.low_voltage_installation',
+        number: 'AN-00002',
+        name: 'Niederspannungsanlage',
+      },
+    },
+    {
+      table: 'distribution_boards',
+      values: {
+        id: board,
+        tenant_id: tenant.id,
+        asset_id: installation,
+        property_id: property,
+        area_id: area,
+        kind: 'main_distribution',
+        designation: 'HV',
+      },
+    },
+    {
+      table: 'board_sections',
+      values: {
+        id: section,
+        tenant_id: tenant.id,
+        distribution_board_id: board,
+        asset_id: installation,
+        property_id: property,
+        area_id: area,
+        designation: 'Feld 1',
+      },
+    },
+    {
+      table: 'circuits',
+      values: {
+        id: circuit,
+        tenant_id: tenant.id,
+        distribution_board_id: board,
+        board_section_id: section,
+        asset_id: installation,
+        property_id: property,
+        area_id: area,
+        designation: 'F1',
+        overcurrent_device: 'circuit_breaker',
+        trip_characteristic: 'b',
+        rated_current_milli: 16000,
+      },
+    },
+    {
+      table: 'equipment',
+      values: {
+        tenant_id: tenant.id,
+        circuit_id: circuit,
+        asset_id: installation,
+        property_id: property,
+        area_id: area,
+        designation: 'Steckdose Flur',
       },
     },
     // The key day of the meters of an operator (#120).

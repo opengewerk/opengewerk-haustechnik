@@ -10,6 +10,14 @@ import {
 } from '@tanstack/react-router'
 
 import { SiteAssetScreen } from './screens/asset.js'
+import {
+  SiteBoardFormScreen,
+  SiteBoardScreen,
+  SiteCircuitFormScreen,
+  SiteCircuitScreen,
+  SiteEquipmentFormScreen,
+  SiteSectionFormScreen,
+} from './screens/boards.js'
 import { SitePointScreen } from './screens/form.js'
 import { GiveLabelScreen } from './screens/give-label.js'
 import { SiteCollectiveSignScreen } from './screens/collective.js'
@@ -99,6 +107,28 @@ export function siteRoutes() {
     at('/raeume/$roomId', SiteRoomScreen),
     at('/anlagen/$assetId', SiteAssetScreen),
     at('/anlagen/$assetId/etikett', GiveLabelScreen),
+    // The electrical structure of a low-voltage installation (#349): a board,
+    // a circuit of it, and the forms that add and change them, also without
+    // a network.
+    at('/anlagen/$assetId/verteiler/neu', SiteBoardFormScreen),
+    at('/anlagen/$assetId/verteiler/$boardId', SiteBoardScreen),
+    at('/anlagen/$assetId/verteiler/$boardId/bearbeiten', SiteBoardFormScreen),
+    at('/anlagen/$assetId/verteiler/$boardId/felder/neu', SiteSectionFormScreen),
+    at('/anlagen/$assetId/verteiler/$boardId/felder/$sectionId/bearbeiten', SiteSectionFormScreen),
+    at('/anlagen/$assetId/verteiler/$boardId/stromkreise/neu', SiteCircuitFormScreen),
+    at('/anlagen/$assetId/verteiler/$boardId/stromkreise/$circuitId', SiteCircuitScreen),
+    at(
+      '/anlagen/$assetId/verteiler/$boardId/stromkreise/$circuitId/bearbeiten',
+      SiteCircuitFormScreen,
+    ),
+    at(
+      '/anlagen/$assetId/verteiler/$boardId/stromkreise/$circuitId/betriebsmittel/neu',
+      SiteEquipmentFormScreen,
+    ),
+    at(
+      '/anlagen/$assetId/verteiler/$boardId/stromkreise/$circuitId/betriebsmittel/$equipmentId/bearbeiten',
+      SiteEquipmentFormScreen,
+    ),
     // A defect reported at an asset or a room, also without a network (#116).
     at('/anlagen/$assetId/mangel', ReportDefectScreen),
     at('/raeume/$roomId/mangel', ReportDefectScreen),

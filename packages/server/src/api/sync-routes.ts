@@ -99,6 +99,33 @@ export const operationRights: Readonly<Record<string, OperationRights>> = {
   // So are the contracts with them (#329).
   contracts: { otherwise: 'contract.write' },
   asset_supplies: { create: 'asset.record', remove: 'asset.record', otherwise: 'asset.record' },
+  // The electrical structure below a low-voltage installation is taken stock
+  // of like the asset (#349); marking a part deleted, which takes what hangs
+  // below it along, is keeping the asset, "pflegen".
+  distribution_boards: {
+    create: 'asset.record',
+    change: 'asset.record',
+    remove: 'asset.write',
+    otherwise: 'asset.write',
+  },
+  board_sections: {
+    create: 'asset.record',
+    change: 'asset.record',
+    remove: 'asset.write',
+    otherwise: 'asset.write',
+  },
+  circuits: {
+    create: 'asset.record',
+    change: 'asset.record',
+    remove: 'asset.write',
+    otherwise: 'asset.write',
+  },
+  equipment: {
+    create: 'asset.record',
+    change: 'asset.record',
+    remove: 'asset.write',
+    otherwise: 'asset.write',
+  },
   duties: { otherwise: 'duty.write' },
   duty_dismissals: { otherwise: 'duty.write' },
   activities: { create: 'activity.write', change: 'activity.perform', otherwise: 'activity.write' },

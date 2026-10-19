@@ -63,6 +63,7 @@ import { BuildingClosuresController } from './closures.controller.js'
 import { contactRights, contactRoutes } from './contact-routes.js'
 import { DatabaseExceptionFilter } from './database-errors.js'
 import { DefectClassSettingsController, DefectsController } from './defects.controller.js'
+import { CircuitChartController } from './circuit-chart.controller.js'
 import { AssetEvidenceController, EvidenceController } from './evidence.controller.js'
 import { CatalogueController } from './catalogue.controller.js'
 import { DocumentsController } from './documents.controller.js'
@@ -388,9 +389,11 @@ export class ApiModule {
         BuildingClosuresController,
         FloorsController,
         RoomsController,
-        // The technology: assets and their components.
+        // The technology: assets and their components, and the circuit chart
+        // of the electrical structure below a low-voltage installation (#349).
         BuildingAssetsController,
         AssetsController,
+        CircuitChartController,
         // The labels with a QR code on assets and rooms: made, blocked and
         // printed, and what a code is for whoever scans it.
         AssetLabelsController,

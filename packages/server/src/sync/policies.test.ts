@@ -158,6 +158,12 @@ describe('the rights of an operation', () => {
       // A label from a sheet is given to an asset by whoever takes stock.
       labels: { change: true },
       asset_supplies: { create: true, remove: true },
+      // The electrical structure is taken stock of on site (#349); marking a
+      // part deleted is keeping the asset, from the Objektleitung on.
+      distribution_boards: { create: true, change: true, remove: false },
+      board_sections: { create: true, change: true, remove: false },
+      circuits: { create: true, change: true, remove: false },
+      equipment: { create: true, change: true, remove: false },
       activities: { create: false, change: true },
       activity_duties: { change: true },
       // The answers to the points of the form, as the work on the activity (#106).
@@ -184,6 +190,7 @@ describe('the rights of an operation', () => {
       tasks: { create: true, change: true },
     })
     expect(site).toContain(permissionFor('attachments', 'delete'))
+    expect(permissionFor('circuits', 'delete')).toBe('asset.write')
   })
 
   it('ask for the right of the office once an operation leaves what a device may write', () => {

@@ -50,6 +50,7 @@ import { Link, useNavigate, useParams } from '@tanstack/react-router'
 import { ArrowLeftRight, Ban, FileText, Pencil, Plus, X, Zap } from 'lucide-react'
 import { Fragment, lazy, type ReactNode, Suspense, useState } from 'react'
 
+import { holdsBoards } from '../../app/electrical.js'
 import { assetEvidenceQuery } from '../../app/evidence.js'
 import { placePath } from '../../app/place-path.js'
 import { placeAbove, titleOfRoom } from '../../app/place-records.js'
@@ -64,6 +65,7 @@ import {
 } from '../asset-dialogs.js'
 import { AssetConditionMark, DutyStateMark } from '../../app/asset-marks.js'
 import { AssetCoverCard } from '../asset-cover.js'
+import { AssetBoardsCard } from '../boards-card.js'
 import { ExchangeAssetDialog, mayBeExchanged } from '../asset-exchange.js'
 import { AssetState } from '../asset-state.js'
 import { cataloguePlaces } from '../catalogue-addresses.js'
@@ -159,7 +161,8 @@ export const assetFileWords = {
  * are read from the device.
  *
  * What the board draws beyond this arrives with what it shows: confirming
- * duties (#102), evidence (#109), defects (#116) and work orders (#117).
+ * duties (#102), evidence (#109), defects (#116) and work orders (#117). A
+ * low-voltage installation lists its boards under its evidence (#349).
  */
 export function AssetFileScreen() {
   const { assetId } = useParams({ strict: false }) as { assetId?: string }
@@ -316,6 +319,10 @@ export function AssetFileScreen() {
                 </Button>
               }
             />
+          ) : null}
+          {/* The boards of a low-voltage installation, under its evidence (#349). */}
+          {holdsBoards(asset.kind) ? (
+            <AssetBoardsCard assetId={assetId} assetName={asset.name} />
           ) : null}
           <AssetDefectsCard assetId={assetId} />
           {/* The faults reported at the asset (#331), for whoever accepts them. */}
