@@ -9,6 +9,12 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
 
 ### Hinzugefügt
 
+- Eine Vorlage für eine Betriebs- oder Dienstvereinbarung (#359) unter `docs/vereinbarung/`, mit Hinweisen für
+  Betriebsverfassungsgesetz, Personalvertretungsrecht und kirchliches Recht. Sie verweist auf die erzeugte
+  Verfahrensbeschreibung als Anlage, statt sie abzuschreiben; was die Anwendung selbst hält, steht als Zusage mit dem
+  Beleg aus Anhang A der Verfahrensbeschreibung, und ein Test hält, dass jede Zusage einen Test hat. Nicht rechtlich
+  geprüft und so gekennzeichnet. Warum: Eine Arbeitnehmervertretung soll eine Vereinbarung verhandeln können, deren
+  Zusagen die Anwendung nachweislich hält.
 - Die Verfahrensbeschreibung erzeugt die Anwendung jetzt selbst (#357): unter „Einstellungen“, „Datenschutz“ macht die
   Leitung sie aus einer Vorlage und dem, was beim Betreiber eingestellt ist, mit dem neuen Teil „Bei diesem Betreiber“
   (Rollen mit der Zahl ihrer Zugänge und den Rechten der eigenen, Namen und Uhrzeiten auf dem Leistungsnachweis,
