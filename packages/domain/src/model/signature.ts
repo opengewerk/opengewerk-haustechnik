@@ -297,7 +297,7 @@ export function signedPageOf(parts: SignedPageParts): SignedPage {
           form: parts.form,
           answers: [...(parts.answers ?? [])]
             .map(
-              ({ groupKey, blockKey, fieldKey, value, result, remark, attachmentId, assetId }) => ({
+              ({
                 groupKey,
                 blockKey,
                 fieldKey,
@@ -305,6 +305,21 @@ export function signedPageOf(parts: SignedPageParts): SignedPage {
                 result,
                 remark,
                 attachmentId,
+                moreAttachmentIds,
+                assetId,
+              }) => ({
+                groupKey,
+                blockKey,
+                fieldKey,
+                value,
+                result,
+                remark,
+                attachmentId,
+                // Only where there are any (#451): the page of every answer
+                // from before stays what it was, and its signature counts.
+                ...(moreAttachmentIds === undefined || moreAttachmentIds.length === 0
+                  ? {}
+                  : { moreAttachmentIds: [...moreAttachmentIds] }),
                 ...(assetId === undefined || assetId === null ? {} : { assetId }),
               }),
             )
@@ -346,6 +361,25 @@ function heldText(record: HeldRecord | null, field: string): string | null {
   const value = record?.[field]
 
   return typeof value === 'string' ? value : null
+}
+
+/**
+ * A list of texts of a record, which a device holds as the text of its JSON
+ * like every list it pulled; empty for a field that says nothing.
+ */
+function heldTexts(record: HeldRecord | null, field: string): string[] {
+  const value = record?.[field]
+  let list: unknown = value
+
+  if (typeof value === 'string') {
+    try {
+      list = JSON.parse(value) as unknown
+    } catch {
+      return []
+    }
+  }
+
+  return Array.isArray(list) ? list.filter((item): item is string => typeof item === 'string') : []
 }
 
 /** Whether a record is still there and not marked. */
@@ -455,6 +489,9 @@ export function heldPageOf(held: HeldRecords, activityId: string): SignedPage | 
               result: heldText(answer, 'result') as SignedAnswer['result'],
               remark: heldText(answer, 'remark'),
               attachmentId: heldText(answer, 'attachmentId') as SignedAnswer['attachmentId'],
+              moreAttachmentIds: heldTexts(answer, 'moreAttachmentIds').map(
+                (id) => id as NonNullable<SignedAnswer['attachmentId']>,
+              ),
               assetId: heldText(answer, 'assetId') as SignedAnswer['assetId'],
             })),
         }),

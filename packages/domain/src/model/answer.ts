@@ -52,6 +52,8 @@ export const answerLimits = {
   value: 50_000,
   /** What was found at a point that is not in order, or why it was not checked. */
   remark: longestFormText,
+  /** The photos of one point, the first among them (#451). */
+  photos: 20,
 } as const
 
 /**
@@ -77,6 +79,12 @@ export interface ActivityAnswer extends Synced {
   readonly result: CheckPointResult | null
   readonly remark: string | null
   readonly attachmentId: AttachmentId | null
+  /**
+   * The photos of the point after the first, in the order they were added
+   * (#451): documents at the activity like the first, and only beside one.
+   * Empty for every answer from before, whose page they do not change.
+   */
+  readonly moreAttachmentIds: readonly AttachmentId[]
   /**
    * The asset an answer to a point for every asset of a kind is about (#343):
    * one of those its round was given for the point, and null for every
@@ -113,8 +121,31 @@ export function assetOfAnswer(answer: AnswerPoint): string | null {
   return answer.assetId ?? null
 }
 
-/** What an answer says, as the form and the engine read it. */
-export type AnswerContent = Pick<ActivityAnswer, 'value' | 'result' | 'remark' | 'attachmentId'>
+/**
+ * What an answer says, as the form and the engine read it. The photos after
+ * the first are not there where an answer has none (#451).
+ */
+export type AnswerContent = Pick<ActivityAnswer, 'value' | 'result' | 'remark' | 'attachmentId'> & {
+  readonly moreAttachmentIds?: readonly AttachmentId[]
+}
+
+/** The photos of an answer, the first and those after it, in their order (#451). */
+export function photosOfAnswer(answer: AnswerContent): AttachmentId[] {
+  return [
+    ...(answer.attachmentId === null ? [] : [answer.attachmentId]),
+    ...(answer.moreAttachmentIds ?? []),
+  ]
+}
+
+/**
+ * The photos of an answer as its two columns hold them: the first, and those
+ * after it (#451). A photo taken out moves the next one up.
+ */
+export function photoColumns(
+  photos: readonly AttachmentId[],
+): Required<Pick<AnswerContent, 'attachmentId' | 'moreAttachmentIds'>> {
+  return { attachmentId: photos[0] ?? null, moreAttachmentIds: photos.slice(1) }
+}
 
 /** An answer as far as its form asks it. */
 export type FilledAnswer = AnswerPoint & AnswerContent
@@ -306,6 +337,29 @@ export function answerValue(field: BlockField, answer: AnswerContent): FieldValu
 /** The columns each kind of field fills, and the remark of a measured value outside its limit. */
 function columnsProblem(field: BlockField, answer: AnswerContent): string | null {
   const label = field.label
+  const more = answer.moreAttachmentIds ?? []
+
+  // More than one photo at a check point and at a photo field, and only
+  // beside the first (#451).
+  if (more.length > 0) {
+    if (field.kind !== 'check_point' && field.kind !== 'photo') {
+      return `${label}: Fotos nur an einem Prüfpunkt und an einem Foto.`
+    }
+
+    if (answer.attachmentId === null) {
+      return `${label}: weitere Fotos nur neben einem ersten.`
+    }
+
+    const photos = photosOfAnswer(answer)
+
+    if (photos.length > answerLimits.photos) {
+      return `${label}: höchstens ${String(answerLimits.photos)} Fotos.`
+    }
+
+    if (new Set(photos).size !== photos.length) {
+      return `${label}: jedes Foto nur einmal.`
+    }
+  }
 
   switch (field.kind) {
     case 'check_point':
@@ -819,6 +873,21 @@ function valueInWords(field: BlockField, value: FieldValue | undefined): string 
 }
 
 /**
+ * The photos of an answer after the first, as an evidence keeps them (#451):
+ * nothing where there are none, so that a state says what it said before.
+ */
+function morePhotosOf(
+  answer: AnswerContent,
+  fileOf: (id: AttachmentId) => StatedFile | null,
+): { readonly morePhotos?: readonly StatedFile[] } {
+  const files = (answer.moreAttachmentIds ?? [])
+    .map((id) => fileOf(id))
+    .filter((file): file is StatedFile => file !== null)
+
+  return files.length === 0 ? {} : { morePhotos: files }
+}
+
+/**
  * The answers of an activity as its evidence freezes them (ADR 0004, point
  * 3): in the order of the form, each with its section, its label, the group
  * and the place of its block, the value in words, a check point with its
@@ -828,6 +897,7 @@ function valueInWords(field: BlockField, value: FieldValue | undefined): string 
  *
  * An answer about one asset of a point for every asset names the asset as it
  * stood (#343), number and name, in the order of the assets of the round.
+ * The photos after the first follow it where there are any (#451).
  */
 export function statedAnswers(
   definition: FormDefinition,
@@ -865,6 +935,7 @@ export function statedAnswers(
           ? null
           : { text: verdict.text, source: verdict.source, within: verdict.within },
       photo: answer.attachmentId === null ? null : context.fileOf(answer.attachmentId),
+      ...morePhotosOf(answer, context.fileOf),
       ...(asset === null
         ? {}
         : {

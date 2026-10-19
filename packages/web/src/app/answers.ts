@@ -11,6 +11,7 @@ import {
   forms,
   formUnits,
   type GroupField,
+  jsonText,
   type LimitContext,
   type PointAssets,
   type RecordState,
@@ -120,7 +121,41 @@ export function filledOf(record: RecordState): FilledAnswer {
     result: maybeText(record, 'result') as CheckPointResult | null,
     remark: maybeText(record, 'remark'),
     attachmentId: maybeText(record, 'attachmentId') as FilledAnswer['attachmentId'],
+    moreAttachmentIds: heldPhotos(record['moreAttachmentIds']),
     assetId: maybeText(record, 'assetId') as FilledAnswer['assetId'],
+  }
+}
+
+/**
+ * The photos of a point after the first (#451), as the device holds them: the
+ * text of their JSON, like every list it pulled or wrote. None for a record
+ * from before they came.
+ */
+function heldPhotos(value: unknown): NonNullable<FilledAnswer['moreAttachmentIds']> {
+  let list: unknown = value
+
+  if (typeof value === 'string') {
+    try {
+      list = JSON.parse(value) as unknown
+    } catch {
+      return []
+    }
+  }
+
+  return Array.isArray(list)
+    ? list
+        .filter((item): item is string => typeof item === 'string')
+        .map((item) => item as NonNullable<FilledAnswer['attachmentId']>)
+    : []
+}
+
+/** What an answer writes, its photos after the first as the text of their JSON (#451). */
+function written(content: Partial<AnswerContent>): Record<string, string | null> {
+  const { moreAttachmentIds, ...rest } = content
+
+  return {
+    ...rest,
+    ...(moreAttachmentIds === undefined ? {} : { moreAttachmentIds: jsonText(moreAttachmentIds) }),
   }
 }
 
@@ -356,7 +391,9 @@ export async function saveAnswer(
   client: SyncClient,
   activityId: string,
   point: FormPoint,
-  change: Partial<AnswerContent>,
+  // Or worked out from the answer as it stands at the moment of writing: a
+  // photo added while the one before it is still being written (#451).
+  changing: Partial<AnswerContent> | ((before: AnswerContent) => Partial<AnswerContent>),
 ): Promise<string | null> {
   const held = answerAt(
     client.list(answerEntity).filter((answer) => text(answer, 'activityId') === activityId),
@@ -366,12 +403,13 @@ export async function saveAnswer(
     held === undefined
       ? { value: null, result: null, remark: null, attachmentId: null }
       : filledOf(held)
+  const change = typeof changing === 'function' ? changing(before) : changing
   const after: AnswerContent = { ...before, ...change }
 
   if (held !== undefined) {
     const done = saysNothing(after)
       ? await client.remove(answerEntity, String(held['id']))
-      : await client.update(answerEntity, String(held['id']), change)
+      : await client.update(answerEntity, String(held['id']), written(change))
 
     return done.outcome === 'refused' ? refusalFor(done) : null
   }
@@ -380,6 +418,7 @@ export async function saveAnswer(
     return null
   }
 
+  const { moreAttachmentIds: _more, ...said } = after
   const made = await client.create(answerEntity, {
     activityId,
     fieldKey: point.field.key,
@@ -387,7 +426,11 @@ export async function saveAnswer(
       ? {}
       : { groupKey: point.group.key, blockKey: point.blockKey }),
     ...(point.assetId === null ? {} : { assetId: point.assetId }),
-    ...Object.fromEntries(Object.entries(after).filter(([, value]) => value !== null)),
+    ...Object.fromEntries(Object.entries(said).filter(([, value]) => value !== null)),
+    // Photos after the first only where there are any (#451).
+    ...((after.moreAttachmentIds ?? []).length === 0
+      ? {}
+      : { moreAttachmentIds: jsonText(after.moreAttachmentIds) }),
   })
 
   return made.outcome === 'refused' ? refusalFor(made) : null

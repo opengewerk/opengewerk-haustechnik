@@ -189,6 +189,33 @@ describe('an answer in the form of its activity', () => {
     ).toBeNull()
   })
 
+  it('holds more photos at a check point and at a photo, beside the first, each once and twenty at most (#451)', () => {
+    const more = (count: number) =>
+      Array.from(
+        { length: count },
+        (_, index) => `0192f0c4-7b4e-7000-8000-${String(index).padStart(12, '0')}` as AttachmentId,
+      )
+    const fit = (fields: Partial<FilledAnswer> & Pick<FilledAnswer, 'fieldKey'>) =>
+      answerFitProblem(protocol, answer(fields))
+
+    expect(
+      fit({ fieldKey: 'room_tidy', result: 'ok', attachmentId: photo, moreAttachmentIds: more(2) }),
+    ).toBeNull()
+    expect(fit({ fieldKey: 'plate', attachmentId: photo, moreAttachmentIds: more(19) })).toBeNull()
+    expect(fit({ fieldKey: 'room_tidy', result: 'ok', moreAttachmentIds: more(1) })).toBe(
+      'Raum aufgeräumt: weitere Fotos nur neben einem ersten.',
+    )
+    expect(fit({ fieldKey: 'plate', attachmentId: photo, moreAttachmentIds: more(20) })).toBe(
+      'Typenschild: höchstens 20 Fotos.',
+    )
+    expect(fit({ fieldKey: 'plate', attachmentId: photo, moreAttachmentIds: [photo] })).toBe(
+      'Typenschild: jedes Foto nur einmal.',
+    )
+    expect(fit({ fieldKey: 'outlet', value: '61500', moreAttachmentIds: more(1) })).toBe(
+      'Temperatur am Speicheraustritt: Fotos nur an einem Prüfpunkt und an einem Foto.',
+    )
+  })
+
   it('makes the values of the form, the blocks of a group in the order of their keys', () => {
     expect(
       formValuesOf(protocol, [

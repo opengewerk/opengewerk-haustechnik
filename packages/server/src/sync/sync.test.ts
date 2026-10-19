@@ -1343,6 +1343,34 @@ describe('a signature from a device', () => {
     // What the device holds after its last exchange, before the cellar.
     const held = await pulled('u-tech')
     const photo = newId<'attachment'>()
+    // Two more of the displays and two of the leak (#451).
+    const second = newId<'attachment'>()
+    const third = newId<'attachment'>()
+    const leak = newId<'attachment'>()
+    const closer = newId<'attachment'>()
+    const filed = (id: string, title: string) =>
+      operation('attachments', 'create', id, {
+        title,
+        propertyId: place.property,
+        activityId: toSign.activity,
+      })
+    // The files of the two photos of the leak, uploaded ahead of their versions.
+    const bytesOf = (letter: string) => letter.repeat(64)
+
+    await admin.query(
+      `insert into files (tenant_id, sha256, size_bytes, media_type)
+       values ($1, $2, 2048, 'image/jpeg'), ($1, $3, 2048, 'image/jpeg') on conflict do nothing`,
+      [small, bytesOf('d'), bytesOf('e')],
+    )
+
+    const versionOf = (attachmentId: string, letter: string) =>
+      operation('attachment_versions', 'create', newId<'attachment-version'>(), {
+        attachmentId,
+        sha256: bytesOf(letter),
+        sizeBytes: 2048,
+        mediaType: 'image/jpeg',
+        fileName: `${letter}.jpg`,
+      })
     const answer = (fieldKey: string, values: Readonly<Record<string, SyncValue>>) =>
       operation('activity_answers', 'create', newId<'activity-answer'>(), {
         activityId: toSign.activity,
@@ -1353,15 +1381,25 @@ describe('a signature from a device', () => {
     // first answer, the photo filed before the answer that names it.
     const work: Sent[] = [
       ...workDone(toSign).slice(0, 1),
-      answer('tight', { result: 'not_ok', remark: 'Dichtung am Flansch tropft.' }),
+      filed(leak, 'Foto der Dichtung'),
+      versionOf(leak, 'd'),
+      filed(closer, 'Foto der Dichtung, näher'),
+      versionOf(closer, 'e'),
+      answer('tight', {
+        result: 'not_ok',
+        remark: 'Dichtung am Flansch tropft.',
+        attachmentId: leak,
+        moreAttachmentIds: JSON.stringify([closer]),
+      }),
       answer('outlet', { value: '61000' }),
       answer('heat_meter', { value: '1284360' }),
-      operation('attachments', 'create', photo, {
-        title: 'Foto der Anzeigen',
-        propertyId: place.property,
-        activityId: toSign.activity,
+      filed(photo, 'Foto der Anzeigen'),
+      filed(second, 'Foto der Anzeigen, zweites'),
+      filed(third, 'Foto der Anzeigen, drittes'),
+      answer('displays', {
+        attachmentId: photo,
+        moreAttachmentIds: JSON.stringify([second, third]),
       }),
-      answer('displays', { attachmentId: photo }),
     ]
     // The device lays its own work over what it holds and works the page
     // out from that, before anything is sent.
@@ -1421,6 +1459,92 @@ describe('a signature from a device', () => {
     }>('select duty_id, origin, result from evidence where activity_id = $1', [toSign.activity])
 
     expect(evidence).toEqual([{ duty_id: duty, origin: 'round_point', result: 'with_defects' }])
+
+    // With both photos of its point, the first and the one after it (#451).
+    const { rows: stated } = await admin.query<{ first: string; more: number }>(
+      `select state->'answers'->0->'photo'->>'name' as first,
+              jsonb_array_length(state->'answers'->0->'morePhotos') as more
+         from evidence where activity_id = $1`,
+      [toSign.activity],
+    )
+
+    expect(stated).toEqual([{ first: 'd.jpg', more: 1 }])
+  })
+
+  it('takes the photos of a point after the first only as documents of its activity, each once (#451)', async () => {
+    const toSign = await activityToSign()
+    const elsewhere = await activityToSign()
+    const { rows: form } = await admin.query<{ id: string }>(
+      `insert into round_templates (tenant_id, title) values ($1, 'Halle') returning id`,
+      [small],
+    )
+
+    await admin.query(
+      `insert into round_template_versions (tenant_id, template_id, form_version, definition,
+                                            asks_countersignature)
+       values ($1, $2, 1, $3, false)`,
+      [
+        small,
+        form[0]?.id ?? '',
+        JSON.stringify({
+          title: 'Halle',
+          sections: [
+            { key: 'k1', title: 'Halle', fields: [{ kind: 'photo', key: 'gate', label: 'Tor' }] },
+          ],
+        }),
+      ],
+    )
+    await admin.query(
+      'update activities set form_key = $2, form_version = 1 where id = any($1::uuid[])',
+      [[toSign.activity, elsewhere.activity], `template-${form[0]?.id ?? ''}`],
+    )
+
+    const first = newId<'attachment'>()
+    const here = newId<'attachment'>()
+    const there = newId<'attachment'>()
+    const filed = (id: string, activityId: string) =>
+      operation('attachments', 'create', id, {
+        title: 'Foto des Tors',
+        propertyId: place.property,
+        activityId,
+      })
+    const answer = newId<'activity-answer'>()
+    // Against the list as the device holds it: still empty.
+    const photos = (more: readonly string[]) =>
+      operation(
+        'activity_answers',
+        'update',
+        answer,
+        { moreAttachmentIds: JSON.stringify(more) },
+        { moreAttachmentIds: '[]' },
+      )
+
+    expect(
+      await outcomes('u-tech', [
+        ...workDone(toSign).slice(0, 1),
+        filed(first, toSign.activity),
+        filed(here, toSign.activity),
+        filed(there, elsewhere.activity),
+        operation('activity_answers', 'create', answer, {
+          activityId: toSign.activity,
+          fieldKey: 'gate',
+          attachmentId: first,
+        }),
+      ]),
+    ).toEqual([applied, applied, applied, applied, applied])
+
+    // One of another activity is no photo of this point.
+    expect(await outcomes('u-tech', [photos([there])])).toEqual([
+      { outcome: 'conflict', reason: 'record_missing', fields: ['moreAttachmentIds'] },
+    ])
+    expect(await outcomes('u-tech', [photos([here])])).toEqual([applied])
+
+    const { rows } = await admin.query<{ more: string[] }>(
+      'select more_attachment_ids::text[] as more from activity_answers where id = $1',
+      [answer],
+    )
+
+    expect(rows).toEqual([{ more: [here] }])
   })
 
   it('takes an inspection signed without a connection for the page the device works out from what it was sent and what it did', async () => {

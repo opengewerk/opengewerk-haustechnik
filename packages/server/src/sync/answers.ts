@@ -30,6 +30,7 @@ type AnswerColumns = Pick<
   | 'result'
   | 'remark'
   | 'attachmentId'
+  | 'moreAttachmentIds'
   | 'assetId'
 >
 
@@ -92,6 +93,7 @@ export function answered(catalogue: Catalogue): SyncCheck<Sender> {
         result: (at('result') ?? null) as AnswerColumns['result'],
         remark: (at('remark') ?? null) as string | null,
         attachmentId: (at('attachmentId') ?? null) as AnswerColumns['attachmentId'],
+        moreAttachmentIds: listOf(at('moreAttachmentIds')) as AnswerColumns['moreAttachmentIds'],
         assetId: (at('assetId') ?? null) as AnswerColumns['assetId'],
       },
       activity.pointAssets,
@@ -101,10 +103,42 @@ export function answered(catalogue: Catalogue): SyncCheck<Sender> {
       return { kind: 'client', message: problem }
     }
 
-    return Object.hasOwn(values, 'attachmentId') && values['attachmentId'] !== null
-      ? photoAt(tx, activity, values['attachmentId'])
-      : null
+    const first =
+      Object.hasOwn(values, 'attachmentId') && values['attachmentId'] !== null
+        ? await photoAt(tx, activity, values['attachmentId'], 'attachmentId')
+        : null
+
+    if (first !== null || !Object.hasOwn(values, 'moreAttachmentIds')) {
+      return first
+    }
+
+    // The photos after the first, each the same (#451).
+    for (const photo of listOf(values['moreAttachmentIds'])) {
+      const refusal = await photoAt(tx, activity, photo, 'moreAttachmentIds')
+
+      if (refusal !== null) {
+        return refusal
+      }
+    }
+
+    return null
   }
+}
+
+/**
+ * A list as a check is handed it: parsed where it was sent, the text of its
+ * JSON where it is the row as it stands. Empty for anything else.
+ */
+function listOf(value: unknown): unknown[] {
+  if (typeof value === 'string') {
+    try {
+      return listOf(JSON.parse(value) as unknown)
+    } catch {
+      return []
+    }
+  }
+
+  return Array.isArray(value) ? value : []
 }
 
 /** A photo of an answer: a document at the same activity, there for the person asking. */
@@ -112,9 +146,10 @@ async function photoAt(
   tx: Parameters<SyncCheck<Sender>>[0]['tx'],
   activity: Activity,
   attachmentId: unknown,
+  field: 'attachmentId' | 'moreAttachmentIds',
 ): Promise<SyncRefusal | null> {
   if (!isUuid(attachmentId)) {
-    return { kind: 'conflict', reason: 'record_missing', fields: ['attachmentId'] }
+    return { kind: 'conflict', reason: 'record_missing', fields: [field] }
   }
 
   const [document] = await tx
@@ -129,5 +164,5 @@ async function photoAt(
 
   return document?.activityId === activity.id
     ? null
-    : { kind: 'conflict', reason: 'record_missing', fields: ['attachmentId'] }
+    : { kind: 'conflict', reason: 'record_missing', fields: [field] }
 }

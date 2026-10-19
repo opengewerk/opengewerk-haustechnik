@@ -10,6 +10,8 @@ import {
   type LimitContext,
   type MeasurementField,
   meterFigure,
+  photoColumns,
+  photosOfAnswer,
   type RecordState,
 } from '@opengewerk/haustechnik-domain'
 import { Button, Choice, Field, TextArea } from '@opengewerk/platform-web'
@@ -26,7 +28,7 @@ import {
 } from '@opengewerk/platform-web/forms'
 import { today } from '@opengewerk/platform-web/format'
 import { useSync } from '@opengewerk/platform-web/sync'
-import { ImageIcon, TriangleAlert, Undo2 } from 'lucide-react'
+import { ImageIcon, TriangleAlert, Undo2, X } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState } from 'react'
 
 import { beginActivity, filledOf, type FormPoint, saveAnswer, unitSign } from './answers.js'
@@ -44,6 +46,11 @@ export const pointWords = {
   /** After it, under a point that fulfils a duty (#114): the evidence then says "nicht durchgeführt". */
   dutyStaysDue: (duty: string) => `Die Pflicht „${duty}“ bleibt dann fällig.`,
   photoOf: (label: string) => `Foto zu ${label}`,
+  /** One of the photos of a point (#451): counted where there is more than one. */
+  photoNumber: (label: string, index: number, count: number) =>
+    count === 1 ? `Foto zu ${label}` : `Foto ${String(index)} von ${String(count)} zu ${label}`,
+  /** The button in the corner of a photo, which takes it out of the answer. */
+  removePhoto: (photo: string) => `Foto entfernen: ${photo}`,
   photoNotFiled: 'Das Foto ließ sich nicht ablegen.',
   withdraw: 'Auswahl zurücknehmen',
   withdrawOf: (label: string) => `Auswahl zurücknehmen: ${label}`,
@@ -269,7 +276,7 @@ function useAnswerWrite({ activityId, point, onTrouble }: PointInputProps) {
   const queue = useRef<Promise<void>>(Promise.resolve())
 
   return useCallback(
-    (change: Partial<AnswerContent>) => {
+    (change: Partial<AnswerContent> | ((before: AnswerContent) => Partial<AnswerContent>)) => {
       queue.current = queue.current.then(async () => {
         onTrouble(
           (await beginActivity(client, activityId)) ??
@@ -306,6 +313,49 @@ function parsedValue(answer: RecordState | undefined): unknown {
 }
 
 /**
+ * The photos of a point (#451), each small, with a button in its corner that
+ * takes it out of the answer while the answer can be changed. The document it
+ * was filed as stays with the activity.
+ */
+function PhotoStrip({
+  photos,
+  label,
+  editable,
+  onRemove,
+}: {
+  readonly photos: readonly AttachmentId[]
+  readonly label: string
+  readonly editable: boolean
+  readonly onRemove: (photo: AttachmentId) => void
+}) {
+  return (
+    <ul className="flex flex-wrap gap-4 pt-3 pr-3">
+      {photos.map((photo, index) => {
+        const named = pointWords.photoNumber(label, index + 1, photos.length)
+
+        return (
+          <li key={photo} className="relative shrink-0">
+            <PhotoThumb attachmentId={photo} label={named} />
+            {editable ? (
+              <button
+                type="button"
+                aria-label={pointWords.removePhoto(named)}
+                className="absolute -top-3 -right-3 flex size-9 cursor-pointer items-center justify-center rounded-full border border-control bg-surface text-ink"
+                onClick={() => {
+                  onRemove(photo)
+                }}
+              >
+                <X size={18} strokeWidth={2.4} aria-hidden="true" />
+              </button>
+            ) : null}
+          </li>
+        )
+      })}
+    </ul>
+  )
+}
+
+/**
  * A check point: the four answers, the remark or reason under them and a
  * photo. Remark and photo given before the answer wait on the screen and go
  * with it, because an answer to a check point is its result first.
@@ -317,8 +367,9 @@ function CheckPointInput(props: PointInputProps) {
   const filled = answer === undefined ? undefined : filledOf(answer)
   const result = filled?.result ?? undefined
   const [remark, setRemark] = useState(filled?.remark ?? '')
-  const [heldPhoto, setHeldPhoto] = useState<AttachmentId | null>(null)
-  const photo = filled?.attachmentId ?? heldPhoto
+  // Photos taken before the answer wait here and go with it (#451).
+  const [heldPhotos, setHeldPhotos] = useState<readonly AttachmentId[]>([])
+  const photos = filled === undefined ? heldPhotos : photosOfAnswer(filled)
   const deferred = useDeferredWrite((typed: string) => {
     if (result !== undefined) {
       void write({ remark: typed.trim() === '' ? null : typed })
@@ -328,7 +379,7 @@ function CheckPointInput(props: PointInputProps) {
   const inList = layout === 'list'
   // In a list a point says more than its answer where the answer asks for a
   // remark or a reason, or where one was given.
-  const more = !inList || asked.required || remark !== '' || photo !== null
+  const more = !inList || asked.required || remark !== '' || photos.length > 0
 
   return (
     <div className={`flex min-w-0 flex-col ${inList ? 'gap-2.5' : 'gap-3.5'}`}>
@@ -346,7 +397,7 @@ function CheckPointInput(props: PointInputProps) {
           void write({
             result: picked,
             ...(result === undefined
-              ? { remark: remark.trim() === '' ? null : remark, attachmentId: heldPhoto }
+              ? { remark: remark.trim() === '' ? null : remark, ...photoColumns(heldPhotos) }
               : {}),
           })
         }}
@@ -357,8 +408,8 @@ function CheckPointInput(props: PointInputProps) {
           onWithdraw={() => {
             // Remark and photo wait on the screen again, as before an answer,
             // and go with the next one; the answer itself is taken off.
-            setHeldPhoto(photo)
-            void write({ result: null, remark: null, attachmentId: null })
+            setHeldPhotos(photos)
+            void write({ result: null, remark: null, ...photoColumns([]) })
           }}
         />
       ) : null}
@@ -376,36 +427,51 @@ function CheckPointInput(props: PointInputProps) {
           />
         </div>
       ) : null}
-      {more ? (
-        <PhotoTaker
-          label={pointWords.photoOf(point.field.label)}
-          disabled={!editable}
-          photo={
-            photo === null ? undefined : (
-              <PhotoThumb attachmentId={photo} label={pointWords.photoOf(point.field.label)} />
-            )
-          }
-          onTake={(file) => {
-            void (async () => {
-              const filed = await fileDocumentAs(client, { propertyId, activityId }, file)
+      {/* Photos at every point and with every answer, in a list as well
+          (#451, Moritz on 19.10.2026). */}
+      <PhotoTaker
+        label={pointWords.photoOf(point.field.label)}
+        multiple
+        compact={inList}
+        disabled={!editable}
+        photo={
+          photos.length === 0 ? undefined : (
+            <PhotoStrip
+              photos={photos}
+              label={point.field.label}
+              editable={editable}
+              onRemove={(gone) => {
+                if (result === undefined) {
+                  setHeldPhotos((held) => held.filter((id) => id !== gone))
+                } else {
+                  void write((before) =>
+                    photoColumns(photosOfAnswer(before).filter((id) => id !== gone)),
+                  )
+                }
+              }}
+            />
+          )
+        }
+        onTake={(file) => {
+          void (async () => {
+            const filed = await fileDocumentAs(client, { propertyId, activityId }, file)
 
-              if ('problem' in filed) {
-                onTrouble(pointWords.photoNotFiled)
+            if ('problem' in filed) {
+              onTrouble(pointWords.photoNotFiled)
 
-                return
-              }
+              return
+            }
 
-              const id = filed.id as AttachmentId
+            const id = filed.id as AttachmentId
 
-              if (result === undefined) {
-                setHeldPhoto(id)
-              } else {
-                await write({ attachmentId: id })
-              }
-            })()
-          }}
-        />
-      ) : null}
+            if (result === undefined) {
+              setHeldPhotos((held) => [...held, id])
+            } else {
+              await write((before) => photoColumns([...photosOfAnswer(before), id]))
+            }
+          })()
+        }}
+      />
       {result === 'not_ok' ? <DefectNote>{pointWords.becomesDefect(target)}</DefectNote> : null}
       {result === 'not_applicable' || result === 'not_possible' ? (
         <p className="text-[15px] leading-[1.4] text-ink-muted">
@@ -712,7 +778,7 @@ function PhotoPointInput(props: PointInputProps) {
   const { answer, point, editable, propertyId, activityId, onTrouble } = props
   const client = useSync()
   const write = useAnswerWrite(props)
-  const photo = answer === undefined ? null : filledOf(answer).attachmentId
+  const photos = answer === undefined ? [] : photosOfAnswer(filledOf(answer))
 
   return (
     <div className="flex min-w-0 flex-col gap-2">
@@ -721,10 +787,22 @@ function PhotoPointInput(props: PointInputProps) {
       </span>
       <PhotoTaker
         label={point.field.label}
+        multiple
+        compact={props.layout === 'list'}
         disabled={!editable}
         photo={
-          photo === null ? undefined : (
-            <PhotoThumb attachmentId={photo} label={pointWords.photoOf(point.field.label)} />
+          photos.length === 0 ? undefined : (
+            <PhotoStrip
+              photos={photos}
+              label={point.field.label}
+              editable={editable}
+              onRemove={(gone) => {
+                // The last one taken out leaves no answer (`saveAnswer`).
+                void write((before) =>
+                  photoColumns(photosOfAnswer(before).filter((id) => id !== gone)),
+                )
+              }}
+            />
           )
         }
         onTake={(file) => {
@@ -734,7 +812,9 @@ function PhotoPointInput(props: PointInputProps) {
             if ('problem' in filed) {
               onTrouble(pointWords.photoNotFiled)
             } else {
-              await write({ attachmentId: filed.id as AttachmentId })
+              const id = filed.id as AttachmentId
+
+              await write((before) => photoColumns([...photosOfAnswer(before), id]))
             }
           })()
         }}

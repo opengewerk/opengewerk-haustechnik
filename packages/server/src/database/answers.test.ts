@@ -262,6 +262,36 @@ describe('an answer to a point', () => {
     ).toBeNull()
   })
 
+  it('takes more photos beside the first, each a document at its own activity and none twice (#451)', async () => {
+    const at = await placeIn(north)
+    const documentAt = async (activity: string) =>
+      (
+        await admin.query<{ id: string }>(
+          `insert into attachments (tenant_id, property_id, area_id, activity_id, title)
+           values ($1, $2, $3, $4, 'Tor') returning id`,
+          [tenant, at.property, north, activity],
+        )
+      ).rows[0]?.id ?? null
+    const first = await documentAt(at.activity)
+    const second = await documentAt(at.activity)
+    const ofAnother = await documentAt(at.other)
+    let point = 0
+    // Each at a point of its own, so that one answer per point says nothing here.
+    const withPhotos = (attachment: string | null, more: readonly (string | null)[]) =>
+      answered(at, {
+        field_key: `gate_${String((point += 1))}`,
+        result: null,
+        attachment_id: attachment,
+        more_attachment_ids: more,
+      })
+
+    expect(await codeOf(withPhotos(first, [second]))).toBeNull()
+    expect(await codeOf(withPhotos(first, [ofAnother]))).toBe('HT013')
+    expect(await codeOf(withPhotos(first, [second, second]))).toBe('HT013')
+    expect(await codeOf(withPhotos(first, [first]))).toBe('HT013')
+    expect(await codeOf(withPhotos(null, [second]))).toBe(checkViolation)
+  })
+
   it('is given, changed and removed by the application while the activity is not signed', async () => {
     const at = await placeIn(north)
     const id = await answered(at)

@@ -293,6 +293,45 @@ describe('the page a device works out from what it holds', () => {
     )
   })
 
+  it('names the photos of a point after the first only where there are any, so that a page signed before keeps its fingerprint (#451)', () => {
+    const answered = (moreAttachmentIds: string | undefined) => {
+      const answer = {
+        ...held['activity_answers']?.[0],
+        attachmentId: 'at-1',
+        ...(moreAttachmentIds === undefined ? {} : { moreAttachmentIds }),
+      }
+      const holding: Readonly<Record<string, readonly HeldRecord[]>> = {
+        ...held,
+        activity_answers: [answer],
+      }
+
+      return heldPageOf(
+        {
+          find: (entity, id) => holding[entity]?.find((each) => each['id'] === id) ?? null,
+          related: (entity, field, id) =>
+            (holding[entity] ?? []).filter((each) => each[field] === id),
+        },
+        'ac-1',
+      )?.answers
+    }
+    const before = {
+      groupKey: null,
+      blockKey: null,
+      fieldKey: 'insulation',
+      value: null,
+      result: 'not_ok',
+      remark: 'Dämmung lose',
+      attachmentId: 'at-1',
+    }
+
+    // Held as the text of their JSON, as a device holds every list it pulled.
+    expect(answered(undefined)).toStrictEqual([before])
+    expect(answered('[]')).toStrictEqual([before])
+    expect(answered('["at-2","at-3"]')).toStrictEqual([
+      { ...before, moreAttachmentIds: ['at-2', 'at-3'] },
+    ])
+  })
+
   it('says what was said with a result only where something was, so that a page signed before keeps its fingerprint', () => {
     const line = {
       dutyId: 'du-1',

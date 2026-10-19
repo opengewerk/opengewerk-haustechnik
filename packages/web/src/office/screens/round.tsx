@@ -8,6 +8,7 @@ import {
   fulfilledKind,
   type IsoDate,
   type LimitContext,
+  photosOfAnswer,
   roundClosable,
   type RoundDetails,
   type RoundSignature,
@@ -536,7 +537,24 @@ function AnswerCell({
   }
 
   if (point.field.kind === 'photo' && answer?.attachmentId) {
-    return <PhotoThumb attachmentId={answer.attachmentId} label={point.field.label} />
+    // Every photo of the point (#451), one alone named as before.
+    const photos = photosOfAnswer(answer)
+
+    return (
+      <span className="flex flex-wrap gap-2">
+        {photos.map((photo, index) => (
+          <PhotoThumb
+            key={photo}
+            attachmentId={photo}
+            label={
+              photos.length === 1
+                ? point.field.label
+                : `${point.field.label}, Foto ${String(index + 1)} von ${String(photos.length)}`
+            }
+          />
+        ))}
+      </span>
+    )
   }
 
   return (

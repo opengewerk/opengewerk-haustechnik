@@ -111,7 +111,9 @@ function answerCells(answer: StatedAnswer): { said: string; remark: string } {
       : answer.value !== null
         ? answer.value
         : answer.photo !== null
-          ? 'Foto'
+          ? (answer.morePhotos ?? []).length > 0
+            ? `${String(1 + (answer.morePhotos ?? []).length)} Fotos`
+            : 'Foto'
           : 'keine Angabe'
   // The limit says itself whether the value is within it, as on the page of the round.
   const limit =

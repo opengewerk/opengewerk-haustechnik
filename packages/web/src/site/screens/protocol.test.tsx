@@ -215,6 +215,9 @@ describe('the protocol of an inspection', () => {
     ).toBeTruthy()
     // A point in order asks for nothing more in the list.
     expect(screen.queryByRole('textbox', { name: /^Bemerkung/ })).toBeNull()
+    // Photos at every point all the same, small in a list (#451).
+    expect(within(check).getByLabelText('Foto zu Sicherheitsventil löst aus')).toBeTruthy()
+    expect(within(check).getAllByRole('button', { name: 'Galerie' }).length).toBeGreaterThan(0)
   })
 
   it('begins the inspection with its first answer, on the day of the device, once', async () => {

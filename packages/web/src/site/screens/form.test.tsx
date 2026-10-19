@@ -238,6 +238,84 @@ describe('the form of an activity on site', () => {
     })
   })
 
+  it('adds photos to a check point in order, one by one and several from the gallery, and takes one out (#451)', async () => {
+    const { client } = await mountSite(point('door_closes'), {
+      server: serverWith({ id: 'an-door', fieldKey: 'door_closes', result: 'ok' }),
+      ...withTheForm,
+    })
+    const photo = (name: string) => new File([name], `${name}.jpg`, { type: 'image/jpeg' })
+    const photosOf = () => {
+      const [answer] = answersOn(client)
+
+      return [
+        answer?.['attachmentId'] ?? null,
+        ...(JSON.parse(String(answer?.['moreAttachmentIds'] ?? '[]')) as string[]),
+      ].filter((id) => id !== null)
+    }
+
+    fireEvent.change(await screen.findByLabelText('Foto zu Tür schließt selbsttätig'), {
+      target: { files: [photo('erstes')] },
+    })
+    await waitFor(() => {
+      expect(photosOf()).toHaveLength(1)
+    })
+
+    fireEvent.change(screen.getByLabelText('Foto zu Tür schließt selbsttätig, aus der Galerie'), {
+      target: { files: [photo('zweites'), photo('drittes')] },
+    })
+    await waitFor(() => {
+      expect(photosOf()).toHaveLength(3)
+    })
+
+    const [first, second, third] = photosOf()
+
+    expect(new Set([first, second, third]).size).toBe(3)
+    // The answer stays what it was.
+    expect(answersOn(client)).toMatchObject([{ fieldKey: 'door_closes', result: 'ok' }])
+
+    fireEvent.click(
+      await screen.findByRole('button', {
+        name: 'Foto entfernen: Foto 1 von 3 zu Tür schließt selbsttätig',
+      }),
+    )
+    await waitFor(() => {
+      expect(photosOf()).toEqual([second, third])
+    })
+  })
+
+  it('gives the photos taken before the answer to it, all of them (#451)', async () => {
+    const { client } = await mountSite(point('door_closes'), {
+      server: serverWith(),
+      ...withTheForm,
+    })
+
+    fireEvent.change(
+      await screen.findByLabelText('Foto zu Tür schließt selbsttätig, aus der Galerie'),
+      {
+        target: {
+          files: [
+            new File(['eins'], 'eins.jpg', { type: 'image/jpeg' }),
+            new File(['zwei'], 'zwei.jpg', { type: 'image/jpeg' }),
+          ],
+        },
+      },
+    )
+    await screen.findByRole('img', { name: 'Foto 2 von 2 zu Tür schließt selbsttätig' })
+    expect(answersOn(client)).toEqual([])
+
+    fireEvent.click(screen.getByRole('button', { name: 'In Ordnung' }))
+
+    await waitFor(() => {
+      expect(answersOn(client)).toHaveLength(1)
+    })
+
+    const [answer] = answersOn(client)
+
+    expect(answer?.['result']).toBe('ok')
+    expect(answer?.['attachmentId']).toEqual(expect.any(String))
+    expect(JSON.parse(String(answer?.['moreAttachmentIds']))).toHaveLength(1)
+  })
+
   it('takes a choice and yes or no back', async () => {
     const { client } = await mountSite(point('log_book'), {
       server: serverWith({ id: 'an-log', fieldKey: 'log_book', value: 'false' }),
