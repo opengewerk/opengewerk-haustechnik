@@ -170,6 +170,19 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   für Liegenschaften, Fremdfirmen und Verträge, sodass eine eigene Rolle auf ihr Gerät bekam, was ihr die Routen im
   Büro verweigerten.
 
+- Das Submodul `upstream/opengewerk` steht auf `ee06a10` (opengewerk/opengewerk#684, #689, #690, #692 und #693), mit der
+  Migration `0095_session_second_factor`. Der zweite Faktor gehört jetzt zur Sitzung: eine Rolle, die ihn verlangt, und
+  der Bereich der Instanz fragen, ob diese Sitzung einen trägt (Code aus der App, Wiederherstellungscode oder Passkey),
+  und nicht mehr, ob das Konto die App hat. Mit dem Update enden die Sitzungen, die mit dem Passwort auf einem Konto mit
+  App begonnen haben; wer so angemeldet war, meldet sich einmal neu mit dem Code an. Die Anmeldung liest höchstens 64 kB
+  je Anfrage, und ihre Grenzen wie die der Meldeseite eines Etiketts zählen nach der Adresse, die die Anwendung
+  bestimmt: eine IPv6-Adresse nach ihrem /64, Anfragen ohne nutzbare Adresse in einem gemeinsamen Zähler. Keine Antwort
+  der Anwendung bleibt im HTTP-Cache des Browsers, auch die PDFs eines Nachweises, eines Rundgangs und der Etiketten
+  nicht, und die Prüfung der Zahl im Formular eines Stromkreises kommt ohne quadratisches Muster aus. Gefunden in der
+  Sicherheitsprüfung (opengewerk-haustechnik#360). Warum: eine Sitzung mit dem Passwort allein galt als eine mit zweitem
+  Faktor, sobald das Konto die App bekam, die Anmeldung las einen Körper ohne Grenze und zählte hinter einem Proxy
+  anders als die Anwendung, und der Browser durfte Antworten behalten, an die das Abmelden nicht herankommt.
+
 ## [0.1.8] - 2026-10-19
 
 Die vierte Zwischenfassung für den Pilotbetrieb, mit dem, was aus Phase 2 seit 0.1.7 fertig ist.
