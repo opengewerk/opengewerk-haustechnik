@@ -1019,6 +1019,7 @@ Jede Zeile ist ein Feld der Datenbank, das die Kennung eines Kontos hält. Der S
 | `evidence_emptyings` | `confirmed_by` | wer bestätigt hat, dass ein Nachweis nach Ablauf seiner Aufbewahrung gelöscht wird |
 | `evidence_signed_prints` | `filed_by` | wer ein höher signiertes PDF eines Nachweises abgelegt hat |
 | `fault_reports` | `reported_by` | wer eine Störung gemeldet hat; nur diese Person sieht die Meldung unter ihren eigenen, im Eingang steht sie ohne Namen |
+| `file_uploads` | `user_id` | wer eine Datei abgelegt hat; jede Person liest nur ihre eigenen Zeilen, und ein Datensatz nennt eine Datei nur, wenn die Person sie selbst abgelegt hat oder eine für sie sichtbare Zeile sie schon nennt |
 | `instance_changes` | `user_id` | wer etwas an der Instanz geändert hat |
 | `instance_operators` | `user_id` | wer die Instanz verwaltet |
 | `invitations` | `invited_by` | wer eingeladen hat |
@@ -1032,6 +1033,7 @@ Jede Zeile ist ein Feld der Datenbank, das die Kennung eines Kontos hält. Der S
 | `membership_removals` | `user_id` | wessen Angaben nach dem Ende des Zugangs entfernt wurden |
 | `meter_points` | `note_by` | wer die Notiz an einer Messstelle geschrieben hat |
 | `meter_readings` | `recorded_by` | wer einen Zählerstand eingetragen, berichtigt oder aus einer Liste übernommen hat |
+| `password_resets` | `user_id` | wessen Passwort neu gesetzt wurde, über den Link oder auf dem Server, mit Zeitpunkt und ohne den Link |
 | `processing_descriptions` | `made_by` | wer eine Verfahrensbeschreibung erzeugt hat |
 | `privacy_documents` | `made_by` | wer ein Verzeichnis, Maßnahmen oder ein Löschkonzept erzeugt hat |
 | `push_opt_outs` | `user_id` | wer einen Anlass als Push abgeschaltet hat |
@@ -1042,6 +1044,7 @@ Jede Zeile ist ein Feld der Datenbank, das die Kennung eines Kontos hält. Der S
 | `stock_movements` | `booked_by` | wer im Lager einen Wareneingang oder eine Zählung gebucht hat |
 | `substitutions` | `absent_user_id` | wer vertreten wird |
 | `substitutions` | `substitute_user_id` | wer vertritt |
+| `sync_conflicts` | `user_id` | wessen Änderung auf einem Gerät mit einem anderen Stand zusammentraf; nur diese Person sieht den Konflikt und entscheidet ihn |
 | `tasks` | `assignee_user_id` | wer für eine Aufgabe verantwortlich ist |
 | `tasks` | `created_by` | wer eine Aufgabe angelegt hat |
 | `tenant_sessions` | `user_id` | wer sich bei diesem Betreiber an- und abgemeldet hat |
