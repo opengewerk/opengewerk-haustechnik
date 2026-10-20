@@ -4385,7 +4385,7 @@ describe('a tenant whose roles are from before a right', () => {
     // in `roles.test.ts`), and the trigger keeps the one that leads whole for
     // whatever asks. So what a shipped row lacks still never was there, and a
     // migration gives it a right as before. Whoever lets a route change a
-    // shipped role changes this test and the rule in the README.
+    // shipped role changes this test and the rule in docs/entwicklung.md.
     expect(await applicationMay()).toEqual({ change: true, remove: true })
     // Whoever leads confirms a deletion after the end of the retention (#340)
     // and blacks out a value of the log (#355): read too. The triggers read
