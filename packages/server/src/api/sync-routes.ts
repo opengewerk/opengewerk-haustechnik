@@ -317,7 +317,9 @@ async function senderOf(
  * whoever sees every area, the places, their own activities and the open
  * defects for anybody else, and the people and the documents of the
  * contractors only for whoever sees the contractors (#328), who alone also
- * holds more of a firm than its name (#377).
+ * holds more of a firm than its name (#377). Of each kind of record only what
+ * the route that shows it would hand the person: nothing without the right
+ * it asks for (#360).
  */
 export function syncRoutesFor(
   catalogue: Catalogue,
@@ -329,9 +331,7 @@ export function syncRoutesFor(
     answerFor,
     scope: async ({ tx, identity }) =>
       pullScope(await deviceScope(tx, identity.userId), {
-        contractors: isAllowed(identity, 'contractor.read'),
-        contracts: isAllowed(identity, 'contract.read'),
-        places: isAllowed(identity, 'location.read'),
+        holds: (right) => isAllowed(identity, right),
         onlyWhatDutiesHangOn: isLimited(identity.roles),
       }),
     senderOf: (identity, operations) => senderOf(database, identity, operations),

@@ -144,6 +144,18 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   unter der Anlage liegt und der Weg aus dem Protokoll nur die Kennung des Verteilers kennt, nicht die der Anlage; so
   ließ sich sein Protokoll nur über das der ganzen Anlage lesen.
 
+### Sicherheit
+
+- Der Abgleich gibt einem Gerät von jeder Art Datensatz nur noch, was seiner Person auch die Route im Büro zeigt
+  (#360): ohne „Anlagen ansehen“ keine Anlagen mit Zählern, Elektro- und PV-Struktur und keine Etiketten von Anlagen,
+  ohne „Pflichten ansehen“ keine Pflichten, ohne „Vorgänge ansehen“ keine Vorgänge, Aufträge, Vorlagen und Pläne der
+  Rundgänge, und ebenso Mängel, Aufgaben, Dokumente, Lager und Verträge nur mit ihrem Recht. Wo mehrere Routen eine Art
+  zeigen, genügt eines ihrer Rechte. Fällt ein Recht weg oder kommt eines dazu, lässt das Gerät beim nächsten Abgleich
+  los, was es nicht mehr halten darf, oder holt es von vorn; die mitgelieferten Rollen bekommen dasselbe wie bisher.
+  Gefunden in der Sicherheitsprüfung (opengewerk-haustechnik#360). Warum: der Abgleich fragte nur nach den Rechten
+  für Liegenschaften, Fremdfirmen und Verträge, sodass eine eigene Rolle auf ihr Gerät bekam, was ihr die Routen im
+  Büro verweigerten.
+
 ## [0.1.8] - 2026-10-19
 
 Die vierte Zwischenfassung für den Pilotbetrieb, mit dem, was aus Phase 2 seit 0.1.7 fertig ist.

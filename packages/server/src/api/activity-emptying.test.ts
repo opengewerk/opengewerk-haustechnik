@@ -276,11 +276,7 @@ function empty(userId: string, evidenceIds: readonly string[]) {
 /** What a device of a person names the answers by, at a pull. */
 async function namedAnswers(userId: string): Promise<string | undefined> {
   return database.forTenant({ tenantId: tenant, userId }, async (tx) => {
-    const scope = pullScope(await deviceScope(tx, userId), {
-      contractors: true,
-      contracts: true,
-      places: true,
-    })
+    const scope = pullScope(await deviceScope(tx, userId), { holds: () => true })
 
     return scope.narrowed?.['activity_answers']
   })
@@ -748,11 +744,9 @@ describe('the activity behind an evidence deleted after the end of its retention
       await database.forTenant(
         { tenantId: tenant, userId: 'u-lead' },
         async (tx) =>
-          pullScope(await deviceScope(tx, 'u-lead'), {
-            contractors: true,
-            contracts: true,
-            places: true,
-          }).narrowed?.['activities'],
+          pullScope(await deviceScope(tx, 'u-lead'), { holds: () => true }).narrowed?.[
+            'activities'
+          ],
       ),
     ).not.toMatch(/emptied/)
   })
