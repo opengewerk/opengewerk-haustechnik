@@ -30,9 +30,10 @@ Strom im Gebäude und steht deshalb wie die Sicherheitsstromversorgung in der Ko
 ortsveränderliches Betriebsmittel ist Ausstattung und keine technische Anlage des Bauwerks; es steht
 deshalb in der Kostengruppe 610 und nicht unter 400.
 
-Ein Merkmal, das niemand eingetragen hat, erfüllt keine Bedingung: Für ein ortsveränderliches
-Betriebsmittel ohne Arbeitsbereich und eine Anlage ohne Angabe zum Raum besonderer Art schlägt das
-Paket nichts vor, was von diesem Merkmal abhängt.
+Ein Merkmal, das niemand eingetragen hat, gilt als erfüllt, wie überall im Katalog: Ein
+ortsveränderliches Betriebsmittel ohne Arbeitsbereich bekommt die Prüfungen aller Arbeitsbereiche
+vorgeschlagen, eine Anlage ohne Angabe zum Raum besonderer Art beide Prüfungen nach Vorschrift 3. Ein
+Vorschlag zu viel wird verworfen, einer zu wenig fiele niemandem auf.
 
 Die PV-Anlage kam mit der Fassung 1.4.0. Unter ihr stehen ihre Wechselrichter, Strings und Module als
 ihre Struktur, wie unter einer elektrischen Anlage ihre Verteiler. Seit der Fassung 1.5.0 (#468) wird sie
