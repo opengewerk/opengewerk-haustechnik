@@ -7,6 +7,15 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
 
 ## [Unreleased]
 
+### Hinzugefügt
+
+- Ein Verteiler steht in einem Gebäude und, wo bekannt, in einem Raum (#495): im Gebäude seiner
+  Niederspannungsanlage oder in einem, das sie versorgt. Bisher ließen sich die Unterverteilungen eines Gebäudes,
+  das eine Anlage aus einem anderen Gebäude versorgt, nur in deren Akte aufnehmen, und das Gebäude zeigte sie nicht.
+  Die Seite eines Gebäudes im Büro und vor Ort hat jetzt eine Karte "Verteiler" mit "Verteiler aufnehmen", der
+  Dialog eines Verteilers fragt nach Gebäude und Raum, und die Akte der Anlage nennt das Gebäude jedes Verteilers.
+  Vorhandene Verteiler stehen im Gebäude ihrer Anlage (Migration 0100); ihr Bereich bleibt der der Anlage.
+
 ## [0.1.9] - 2026-10-20
 
 Die fünfte Zwischenfassung für den Pilotbetrieb, mit den Korrekturen aus der externen

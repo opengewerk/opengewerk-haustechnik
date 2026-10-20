@@ -52,6 +52,9 @@ export const applicationConflicts: Readonly<Record<string, string>> = {
   // An inverter on an asset that is no PV installation, or such an
   // installation with inverters given another kind (#461).
   HT015: 'Ein Wechselrichter hängt nur unter einer PV-Anlage.',
+  // A board in a building its installation neither stands in nor supplies (#495).
+  HT016:
+    'Ein Verteiler steht im Gebäude seiner Niederspannungsanlage oder in einem, das sie versorgt.',
 }
 
 export const { answerFor, DatabaseExceptionFilter } = databaseErrors(applicationConflicts)

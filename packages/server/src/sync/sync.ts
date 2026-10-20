@@ -22,7 +22,12 @@ import { placed } from './places.js'
 import { readOnSite } from './readings.js'
 import { ownKindRules, recordRules } from './record-rules.js'
 import { followed, reported, type Sender, signed, visited } from './signatures.js'
-import { installationKept, sectionOfItsBoard, structureFigures } from './structure.js'
+import {
+  boardInABuildingOfItsInstallation,
+  installationKept,
+  sectionOfItsBoard,
+  structureFigures,
+} from './structure.js'
 import { handedOut } from './tasks.js'
 
 // The sync on the server is the foundation's (ADR 0010 in the repository
@@ -201,6 +206,8 @@ export function syncFor(catalogue: Catalogue): ServerSync<Sender> {
       versionFile,
       placed,
       sectionOfItsBoard,
+      // The building and the room of a board (#495).
+      boardInABuildingOfItsInstallation,
       installationKept,
       contractorDocumentKept,
       contractDocumentKept,

@@ -53,6 +53,8 @@ const onAsset = { ...place, assetId: installation.id }
 const board = (id: string, designation: string, position: number, more: object = {}) => ({
   id,
   ...onAsset,
+  buildingId: hall.id,
+  roomId: null,
   kind: 'sub_distribution',
   designation,
   location: null,
@@ -320,9 +322,10 @@ describe('the boards in the file of a low-voltage installation', () => {
 
     await waitFor(() => {
       expect(rowsOf(theCard)).toEqual([
-        ['HVHauptverteilung', 'Halle, neben Tor 1', '2'],
-        ['UV 1Unterverteilung, 2 Felder', 'E.01 Werkstatt, an der Tür', '5'],
-        ['UV 2Unterverteilung', 'E.02 Lager', 'keiner'],
+        // The building it stands in above where it hangs (#495).
+        ['HVHauptverteilung', 'Halle 1Halle, neben Tor 1', '2'],
+        ['UV 1Unterverteilung, 2 Felder', 'Halle 1E.01 Werkstatt, an der Tür', '5'],
+        ['UV 2Unterverteilung', 'Halle 1E.02 Lager', 'keiner'],
       ])
     })
     expect(screen.getByRole('link', { name: 'UV 1' }).getAttribute('href')).toBe(boardAt)
@@ -389,6 +392,8 @@ describe('the boards in the file of a low-voltage installation', () => {
         designation: 'UV Büro',
         kind: 'sub_distribution',
         position: 3,
+        // Where the installation stands, unless another building is chosen (#495).
+        buildingId: hall.id,
       },
     })
     expect(made?.values).not.toHaveProperty('propertyId')

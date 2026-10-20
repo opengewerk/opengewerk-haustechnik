@@ -306,6 +306,144 @@ describe('a board', () => {
   })
 })
 
+/** A further building on the property of a place, in its area, and a room in it. */
+async function buildingBeside(
+  at: Place,
+  name: string,
+): Promise<{ building: string; room: string }> {
+  const building = randomUUID()
+  const floor = randomUUID()
+  const room = randomUUID()
+
+  await admin.query(
+    `insert into buildings (id, tenant_id, property_id, area_id, name, kinds)
+     values ($1, $2, $3, $4, $5, '{school}')`,
+    [building, tenant, at.property, at.area, name],
+  )
+  await admin.query(
+    `insert into floors (id, tenant_id, property_id, area_id, building_id, name, level)
+     values ($1, $2, $3, $4, $5, 'EG', 0)`,
+    [floor, tenant, at.property, at.area, building],
+  )
+  await admin.query(
+    `insert into rooms (id, tenant_id, property_id, area_id, building_id, floor_id, name)
+     values ($1, $2, $3, $4, $5, $6, 'Technik')`,
+    [room, tenant, at.property, at.area, building, floor],
+  )
+
+  return { building, room }
+}
+
+/** A board on an asset, in a building and room where they are named. */
+function boardIn(asset: string, building: string | null, room: string | null = null) {
+  return admin.query<{ id: string; building_id: string; room_id: string | null }>(
+    `insert into distribution_boards (tenant_id, asset_id, property_id, area_id, kind, designation,
+                                      building_id, room_id)
+     values ($1, $2, $3, $4, 'sub_distribution', 'UV', $5, $6)
+     returning id, building_id, room_id`,
+    [tenant, asset, here.property, here.area, building, room],
+  )
+}
+
+/**
+ * A board stands in a building (#495, migration 0100): the one of its
+ * installation, or one the installation supplies, by itself or through a
+ * room in it, and in a room of that building where one is named. Made
+ * without a building, it stands where its installation stands, as every
+ * board did before; and it follows the installation to another building,
+ * unless the installation still supplies the one of before.
+ */
+describe('a board in a building', () => {
+  it('stands where its installation stands when nobody names a building', async () => {
+    const asset = await assetIn(here)
+    const { rows } = await boardIn(asset, null)
+
+    expect(rows[0]).toMatchObject({ building_id: here.building, room_id: null })
+  })
+
+  it('stands in a building its installation supplies, by itself or through a room, in a room there', async () => {
+    const asset = await assetIn(here)
+    const annex = await buildingBeside(here, 'Anbau')
+    const hall = await buildingBeside(here, 'Halle')
+
+    await admin.query(
+      `insert into asset_supplies (tenant_id, asset_id, property_id, area_id, building_id)
+       values ($1, $2, $3, $4, $5)`,
+      [tenant, asset, here.property, here.area, annex.building],
+    )
+    await admin.query(
+      `insert into asset_supplies (tenant_id, asset_id, property_id, area_id, room_id)
+       values ($1, $2, $3, $4, $5)`,
+      [tenant, asset, here.property, here.area, hall.room],
+    )
+
+    expect((await boardIn(asset, annex.building, annex.room)).rows[0]).toMatchObject({
+      building_id: annex.building,
+      room_id: annex.room,
+    })
+    expect((await boardIn(asset, hall.building)).rows[0]).toMatchObject({
+      building_id: hall.building,
+    })
+  })
+
+  it('is refused in a building its installation neither stands in nor supplies, and in a room of another', async () => {
+    const asset = await assetIn(here)
+    const elsewhere = await buildingBeside(here, 'Turnhalle')
+    const removed = await buildingBeside(here, 'Pavillon')
+
+    // A supply marked deleted supplies nothing.
+    await admin.query(
+      `insert into asset_supplies (tenant_id, asset_id, property_id, area_id, building_id, deleted_at)
+       values ($1, $2, $3, $4, $5, now())`,
+      [tenant, asset, here.property, here.area, removed.building],
+    )
+
+    expect(await refusedBy(boardIn(asset, elsewhere.building))).toMatchObject({ code: 'HT016' })
+    expect(await refusedBy(boardIn(asset, removed.building))).toMatchObject({ code: 'HT016' })
+    expect(await refusedBy(boardIn(asset, here.building, elsewhere.room))).toMatchObject({
+      constraint: 'distribution_boards_in_a_room_of_their_building',
+    })
+
+    // Nor moved there afterwards.
+    const { rows } = await boardIn(asset, null)
+
+    expect(
+      await refusedBy(
+        admin.query('update distribution_boards set building_id = $1 where id = $2', [
+          elsewhere.building,
+          rows[0]?.id,
+        ]),
+      ),
+    ).toMatchObject({ code: 'HT016' })
+  })
+
+  it('follows its installation to another building, and stays in one the installation supplies', async () => {
+    const asset = await assetIn(here)
+    const annex = await buildingBeside(here, 'Neubau')
+    const moved = await buildingBeside(here, 'Altbau')
+
+    await admin.query(
+      `insert into asset_supplies (tenant_id, asset_id, property_id, area_id, building_id)
+       values ($1, $2, $3, $4, $5)`,
+      [tenant, asset, here.property, here.area, annex.building],
+    )
+
+    const main = (await boardIn(asset, null)).rows[0]?.id
+    const sub = (await boardIn(asset, annex.building, annex.room)).rows[0]?.id
+
+    await admin.query('update assets set building_id = $1 where id = $2', [moved.building, asset])
+
+    const { rows } = await admin.query<{ id: string; building_id: string; room_id: string | null }>(
+      'select id, building_id, room_id from distribution_boards where id = any($1)',
+      [[main, sub]],
+    )
+    const byId = Object.fromEntries(rows.map((row) => [row.id, row]))
+
+    expect(byId[main ?? '']).toMatchObject({ building_id: moved.building, room_id: null })
+    expect(byId[sub ?? '']).toMatchObject({ building_id: annex.building, room_id: annex.room })
+  })
+})
+
 describe('the structure marked deleted', () => {
   it('is only ever marked: the application may read, add and change a part and remove none', async () => {
     const { rows } = await admin.query<{

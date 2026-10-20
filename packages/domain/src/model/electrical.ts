@@ -13,7 +13,7 @@ import {
 import type { AnswerCircuit } from './answer.js'
 import type { AreaId } from './area.js'
 import type { AssetId } from './asset.js'
-import type { PropertyId } from './location.js'
+import type { BuildingId, PropertyId, RoomId } from './location.js'
 
 /**
  * The electrical structure below a low-voltage installation (#349, section
@@ -43,8 +43,15 @@ export interface StructurePlace {
   readonly areaId: AreaId
 }
 
-/** A board on its low-voltage installation. */
-export interface AssetBoard extends DistributionBoard, StructurePlace {}
+/**
+ * A board on its low-voltage installation, in the building it stands in (#495):
+ * the one of the installation or one the installation supplies, and in a room
+ * of it where that is known. Its area stays the one of the installation.
+ */
+export interface AssetBoard extends DistributionBoard, StructurePlace {
+  readonly buildingId: BuildingId
+  readonly roomId: RoomId | null
+}
 
 /** A section of a board, on the asset of its board. */
 export interface AssetBoardSection extends BoardSection, StructurePlace {}

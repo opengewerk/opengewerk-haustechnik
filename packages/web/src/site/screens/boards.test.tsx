@@ -7,6 +7,7 @@ import {
   afterEachSiteTest,
   goOffline,
   goOnline,
+  gym,
   house,
   mountSite,
   queued,
@@ -352,6 +353,69 @@ describe('taking the structure down on site', () => {
 
     expect(await screen.findByText('Die Bezeichnung fehlt.')).toBeTruthy()
     expect(queued(site.server)).toEqual([])
+  })
+})
+
+/**
+ * A board stands in a building the installation supplies (#495): the page of
+ * that building lists it, and a new one taken down from there stands there.
+ */
+describe('the boards of a building on site', () => {
+  const supply = {
+    id: 's-gym',
+    ...place,
+    assetId: installation.id,
+    buildingId: gym.id,
+    roomId: null,
+  }
+  const inGym = {
+    ...empty,
+    id: 'b-in-gym',
+    buildingId: gym.id,
+    roomId: null,
+    designation: 'UV Turnhalle',
+    location: 'Geräteraum',
+  }
+
+  function supplied() {
+    const held = server()
+
+    held.put('asset_supplies', supply)
+    held.put('distribution_boards', inGym)
+
+    return held
+  }
+
+  it('stand on the page of a building the installation supplies, and one more is taken down there', async () => {
+    const held = supplied()
+
+    await mountSite(`/gebaeude/${gym.id}`, { server: held })
+    const block = within(await screen.findByRole('region', { name: 'Verteiler' }))
+
+    await waitFor(() => {
+      expect(block.getAllByRole('link').map((link) => link.textContent)).toEqual([
+        expect.stringContaining('UV Turnhalle'),
+      ])
+    })
+
+    fireEvent.click(block.getByRole('button', { name: 'Verteiler aufnehmen' }))
+
+    await screen.findByRole('heading', { level: 1, name: 'Verteiler hinzufügen' })
+    expect((screen.getByRole('combobox', { name: /Gebäude/ }) as HTMLSelectElement).value).toBe(
+      gym.id,
+    )
+
+    fireEvent.change(screen.getByLabelText(/Bezeichnung/), { target: { value: 'UV Bühne' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Hinzufügen' }))
+
+    await waitFor(() => {
+      expect(queued(held)).toHaveLength(1)
+    })
+    expect(queued(held)[0]).toMatchObject({
+      entity: 'distribution_boards',
+      kind: 'create',
+      values: { assetId: installation.id, buildingId: gym.id, designation: 'UV Bühne' },
+    })
   })
 })
 

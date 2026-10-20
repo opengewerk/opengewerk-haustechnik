@@ -15,6 +15,7 @@ import {
   structureWords,
   useBoards,
 } from '../../app/electrical.js'
+import { titleOfRoom } from '../../app/place-records.js'
 import { siteStructure } from '../places.js'
 
 /**
@@ -146,4 +147,103 @@ export function SiteBoardsBlock({ assetId }: { readonly assetId: string }) {
       </div>
     </Panel>
   )
+}
+
+/**
+ * The block "Verteiler" on the page of a building on site (#495): the boards
+ * that stand in it, of whichever low-voltage installation, each with its
+ * installation and room, the way to its page, and for every installation
+ * that stands in the building or supplies it the way to one more there.
+ */
+export function SiteBuildingBoardsBlock({
+  buildingId,
+  installations,
+}: {
+  readonly buildingId: string
+  /** The installations a board in this building may hang on. */
+  readonly installations: readonly RecordState[]
+}) {
+  const client = useSync()
+  const records = useRight('asset.record')
+  const boards = useRecords('distribution_boards').filter(
+    (board) => board['buildingId'] === buildingId && !board['deletedAt'],
+  )
+  const assets = useRecords('assets')
+  const rooms = useRecords('rooms')
+  const circuits = useRecords('circuits')
+
+  return (
+    <Panel title="Verteiler" action={boards.length === 0 ? null : <Count total={boards.length} />}>
+      <div className="flex flex-col gap-2.5">
+        {boards.length === 0 ? (
+          <SiteText muted>Noch kein Verteiler in diesem Gebäude.</SiteText>
+        ) : (
+          <SiteRows label="Verteiler in diesem Gebäude">
+            {boards.map((board) => {
+              const id = String(board['id'])
+              const assetId = String(board['assetId'])
+              const asset = assets.find((each) => each['id'] === assetId)
+              const room = rooms.find((each) => each['id'] === board['roomId'])
+
+              return (
+                <SiteRow
+                  key={id}
+                  to={structurePlaces.board(assetId, id)}
+                  title={text(board, 'designation')}
+                  meta={
+                    <>
+                      <span className="block">
+                        {[asset ? text(asset, 'name') : null, room ? titleOfRoom(room) : null]
+                          .filter(Boolean)
+                          .join(', ')}
+                      </span>
+                      <span className="block">
+                        {boardWhere(board)}
+                        {', '}
+                        {circuitsOrNone(
+                          circuits.filter((circuit) => circuit['distributionBoardId'] === id)
+                            .length,
+                        )}
+                        {client.isPending('distribution_boards', id) ? (
+                          <>
+                            {', '}
+                            <NotSent />
+                          </>
+                        ) : null}
+                      </span>
+                    </>
+                  }
+                />
+              )
+            })}
+          </SiteRows>
+        )}
+        {records
+          ? installations.map((installation) => {
+              const assetId = String(installation['id'])
+
+              return (
+                <FormButton
+                  key={assetId}
+                  to={`${siteStructure.newBoard(assetId)}?gebaeude=${encodeURIComponent(buildingId)}`}
+                  icon={Plus}
+                  {...(installations.length > 1
+                    ? { label: `Verteiler unter ${text(installation, 'name')} aufnehmen` }
+                    : {})}
+                >
+                  {installations.length > 1
+                    ? `Verteiler unter ${text(installation, 'name')}`
+                    : 'Verteiler aufnehmen'}
+                </FormButton>
+              )
+            })
+          : null}
+      </div>
+    </Panel>
+  )
+}
+
+/** "6 Stromkreise" or "noch kein Stromkreis". */
+function circuitsOrNone(total: number): string {
+  return total === 0 ? siteStructureWords.noCircuit : circuitsInWords(total)
 }

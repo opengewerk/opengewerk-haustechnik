@@ -13,6 +13,7 @@ import {
   structureWords,
   useBoards,
 } from '../app/electrical.js'
+import { useBoardPlaces } from '../app/board-places.js'
 import { BoardDialog, useChart } from './structure-dialogs.js'
 import { useStructureMoves, withDropLine } from './structure-reorder.js'
 import { DropLine } from './template-reorder.js'
@@ -58,6 +59,7 @@ export function AssetBoardsCard({
   const client = useSync()
   const records = useRight('asset.record')
   const boards = useBoards(assetId)
+  const places = useBoardPlaces(assetId)
   const sections = useRecords('board_sections')
   const circuits = useRecords('circuits')
   const body = useRef<HTMLTableSectionElement>(null)
@@ -155,7 +157,11 @@ export function AssetBoardsCard({
                 {text(board, 'designation')}
               </Link>
             ),
-            sub: [boardLine(board, of(sections, id)), maybeText(board, 'location')]
+            sub: [
+              boardLine(board, of(sections, id)),
+              places.standsIn(board),
+              maybeText(board, 'location'),
+            ]
               .filter(Boolean)
               .join(' · '),
             right: count === 0 ? boardsCardWords.none : String(count),
@@ -196,7 +202,16 @@ export function AssetBoardsCard({
                           </div>
                         </div>
                       </Cell>
-                      <Cell>{maybeText(board, 'location')}</Cell>
+                      <Cell>
+                        <div className="leading-[1.3]">
+                          <div>{places.standsIn(board)}</div>
+                          {maybeText(board, 'location') ? (
+                            <div className="text-[12px] text-ink-faint">
+                              {maybeText(board, 'location')}
+                            </div>
+                          ) : null}
+                        </div>
+                      </Cell>
                       <Cell numeric className={count === 0 ? 'text-ink-faint' : undefined}>
                         {count === 0 ? boardsCardWords.none : String(count)}
                       </Cell>

@@ -78,7 +78,14 @@ export async function giveSampleElectrical(database: Database, planter: Identity
       (
         await tx
           .insert(distributionBoards)
-          .values({ ...place, kind, designation, location, position })
+          .values({
+            ...place,
+            buildingId: installation.buildingId,
+            kind,
+            designation,
+            location,
+            position,
+          })
           .returning({ id: distributionBoards.id })
       )[0]?.id
     const sectionOf = async (board: string, designation: string, position: number) =>

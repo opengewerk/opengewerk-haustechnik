@@ -502,9 +502,12 @@ export const offlineEdits: Readonly<Record<string, OfflineEdits>> = {
   // circuit, only as a new one there, since the asset of a part is its
   // parent's. A part marked deleted takes what hangs below it along, which
   // asks for the right to keep assets (`operationRights` of the server).
+  // A board stands in a building and a room (#495), named when it is made and
+  // changed when it moves; the database holds that it is a building of its
+  // installation.
   distribution_boards: {
-    create: { assetId: true, ...boardDetails },
-    change: boardDetails,
+    create: { assetId: true, buildingId: true, roomId: true, ...boardDetails },
+    change: { buildingId: true, roomId: true, ...boardDetails },
     remove: true,
   },
   board_sections: {
