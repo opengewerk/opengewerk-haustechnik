@@ -179,6 +179,93 @@ export function passkeyAddedMessage(facts: {
   return { subject: `Ein neuer Passkey für ${facts.application}`, body }
 }
 
+/** The moment of a change, as a mail names it: day and time in Berlin. */
+function momentOf(at: Date): string {
+  return new Intl.DateTimeFormat('de-DE', {
+    timeZone: 'Europe/Berlin',
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(at)
+}
+
+/**
+ * The notice of a new set of recovery codes (#360), to the account, through
+ * the mail server of the instance. No codes in it, and no link that does
+ * anything by itself.
+ */
+export function recoveryCodesRenewedMessage(facts: {
+  readonly name: string
+  readonly renewedAt: Date
+  readonly link: string
+  readonly application: string
+}): MessageText {
+  const body = [
+    greeting(facts.name || null),
+    '',
+    `für Ihren Zugang zu ${facts.application} wurden am ${momentOf(facts.renewedAt)} Uhr neue ` +
+      'Wiederherstellungscodes erzeugt. Die bisherigen gelten seitdem nicht mehr.',
+    '',
+    'Ihren Zugang sehen Sie unter „Konto“:',
+    '',
+    facts.link,
+    '',
+    'Wenn Sie die Codes nicht selbst erzeugt haben, ändern Sie Ihr Passwort, erzeugen Sie dort ' +
+      'neue Codes und sagen Sie der Leitung Bescheid.',
+    '',
+    '-- ',
+    facts.application,
+  ].join('\n')
+
+  return { subject: `Neue Wiederherstellungscodes für ${facts.application}`, body }
+}
+
+/**
+ * The mail to every account of the administration of the instance when one
+ * was named to it or taken off (#360), and to the one taken off. Whoever is
+ * in the administration sets up the mail server of the instance, and through
+ * it goes the link to a new password of every account.
+ */
+export function operatorsChangedMessage(facts: {
+  readonly name: string
+  readonly appointed: boolean
+  readonly person: string
+  readonly personEmail: string
+  readonly changedAt: Date
+  readonly link: string
+  readonly application: string
+}): MessageText {
+  const who = facts.person ? `${facts.person} (${facts.personEmail})` : facts.personEmail
+  const what = facts.appointed
+    ? `wurde ${who} zur Verwaltung Ihrer Instanz von ${facts.application} benannt.`
+    : `wurde ${who} aus der Verwaltung Ihrer Instanz von ${facts.application} genommen.`
+
+  const body = [
+    greeting(facts.name || null),
+    '',
+    `am ${momentOf(facts.changedAt)} Uhr ${what} Die Verwaltung der Instanz richtet ein, was ` +
+      'allen Betreibern gemeinsam ist, darunter den Mailserver, über den der Link zu einem neuen ' +
+      'Passwort geht.',
+    '',
+    'Die Änderung steht im Protokoll der Instanz:',
+    '',
+    facts.link,
+    '',
+    'Wenn Ihnen niemand diese Änderung angekündigt hat, fragen Sie bei den anderen Konten der ' +
+      'Verwaltung nach.',
+    '',
+    '-- ',
+    facts.application,
+  ].join('\n')
+
+  return {
+    subject: `Die Verwaltung Ihrer Instanz von ${facts.application} hat sich geändert`,
+    body,
+  }
+}
+
 /**
  * The mail about a new mail server of the instance (#360), to the lead of
  * every operator on it.

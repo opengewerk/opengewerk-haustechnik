@@ -7,6 +7,22 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
 
 ## [Unreleased]
 
+### Sicherheit
+
+- Das Fundament steht auf `6b50301` (opengewerk/opengewerk#722, #720, #721) und schließt damit die vier Wege, die Teil 2
+  der Sicherheitsprüfung (#360) gefunden hat: das Geheimnis der Authenticator-App und ihr Abschalten sind ohne
+  Bestätigung nicht mehr erreichbar, neue Wiederherstellungscodes verlangen Passwort und Code und werden per E-Mail
+  gemeldet, die Verwaltung der Instanz und ein Betreiber mit Einladung für jemand anderen ändern sich nur nach der
+  Bestätigung und werden allen Konten der Verwaltung gemeldet, ungenutzte Routen von better-auth sind abgeschaltet,
+  und das gespeicherte Passwort eines Mailservers geht nie mit weniger Verschlüsselung hinaus. Die beiden neuen
+  E-Mails stehen in den Worten dieser Anwendung.
+
+### Geändert
+
+- Der Renderer für PDFs läuft auf `browserless/chromium` 2.57.1 wie im Fundament, und Vite steht auf 8.3.3.
+- Die Prüfung der Breiten misst ohne Service Worker und wartet höchstens zehn Sekunden auf ein ruhiges Netz (#492);
+  sie war an `/einstellungen/protokoll` gelegentlich rot.
+
 ## [0.1.9] - 2026-10-20
 
 Die fünfte Zwischenfassung für den Pilotbetrieb, mit den Korrekturen aus der externen
