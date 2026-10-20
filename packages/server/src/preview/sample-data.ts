@@ -523,12 +523,13 @@ export const sampleProperties: readonly SampleProperty[] = [
           },
           // The PV installation on the roof of the hall (#461), with its
           // string plan; its inverter, strings and modules come with
-          // `sample-photovoltaic.ts`. The package brings no duty kind for it.
+          // `sample-photovoltaic.ts`. The package proposes the test of an
+          // electrical installation for it (#468).
           {
             kind: 'elektro.photovoltaic_installation',
             name: 'PV-Anlage Dach Halle 1',
             commissionedOn: '2023-06-12',
-            values: {},
+            values: { special_location: false },
             documents: [
               {
                 title: 'Stringplan PV-Anlage Halle 1',

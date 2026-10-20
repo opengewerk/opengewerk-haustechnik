@@ -173,7 +173,11 @@ describe('the package Elektro', () => {
   it('tests an installation every four years, in a room of a special kind every year by Vorschrift 3 alone', () => {
     const catalogue = electrical()
 
-    for (const assetKind of ['low_voltage_installation', 'fixed_equipment']) {
+    for (const assetKind of [
+      'low_voltage_installation',
+      'fixed_equipment',
+      'photovoltaic_installation',
+    ]) {
       const ordinary = rulebooks.map((rulebook) =>
         proposed(catalogue, assetKind, { special_location: false }, rulebook).map((entry) =>
           interval(catalogue, entry),
@@ -353,18 +357,24 @@ describe('the package Elektro', () => {
     ])
   })
 
-  it('brings the PV installation the PV structure hangs on, in cost group 442 and without a duty kind of its own (#461)', () => {
+  it('brings the PV installation the PV structure hangs on, in cost group 442 and tested as an electrical installation (#461, #468)', () => {
     const catalogue = electrical()
     const kind = catalogue.assetKind('elektro.photovoltaic_installation', options.today)
 
     expect([kind?.definition.label, kind?.definition.costGroup]).toEqual(['PV-Anlage', '442'])
     expect(kind?.definition.fields).toEqual([])
+    expect(kind?.definition.characteristics.map((entry) => entry.key)).toEqual(['special_location'])
     expect(
       catalogue
         .dutyKinds(options.today)
         .filter((entry) =>
           entry.definition.scope.assetKinds.includes('elektro.photovoltaic_installation'),
-        ),
-    ).toEqual([])
+        )
+        .map((entry) => entry.key),
+    ).toEqual([
+      'elektro.installation_test_dguv_v3',
+      'elektro.installation_test_dguv_v4',
+      'elektro.installation_test_special_location_dguv_v3',
+    ])
   })
 })

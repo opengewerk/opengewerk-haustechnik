@@ -36,6 +36,10 @@
       "checkedOn": "2026-10-19"
     },
     {
+      "file": "anlagenarten/photovoltaic_installation.v2.json",
+      "checkedOn": "2026-10-21"
+    },
+    {
       "file": "anlagenarten/portable_equipment.v1.json",
       "checkedOn": "2026-10-10",
       "accepted": {
@@ -124,6 +128,10 @@
       "checkedOn": "2026-10-19"
     },
     {
+      "file": "pflichten/installation_test_dguv_v3.v3.json",
+      "checkedOn": "2026-10-21"
+    },
+    {
       "file": "pflichten/installation_test_dguv_v4.v1.json",
       "checkedOn": "2026-10-10",
       "accepted": {
@@ -137,6 +145,10 @@
       "checkedOn": "2026-10-19"
     },
     {
+      "file": "pflichten/installation_test_dguv_v4.v3.json",
+      "checkedOn": "2026-10-21"
+    },
+    {
       "file": "pflichten/installation_test_special_location_dguv_v3.v1.json",
       "checkedOn": "2026-10-10",
       "accepted": {
@@ -148,6 +160,10 @@
     {
       "file": "pflichten/installation_test_special_location_dguv_v3.v2.json",
       "checkedOn": "2026-10-19"
+    },
+    {
+      "file": "pflichten/installation_test_special_location_dguv_v3.v3.json",
+      "checkedOn": "2026-10-21"
     },
     {
       "file": "pflichten/portable_equipment_test_baths_kitchens_dguv_v4.v1.json",
