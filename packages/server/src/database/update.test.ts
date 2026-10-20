@@ -4794,3 +4794,87 @@ describe('the conflicts and files from before 0096', () => {
     expect(columns).toEqual([])
   })
 })
+
+/**
+ * 0097 (#474, point 6): whoever runs the instance sees only the invitations to
+ * lead an operator that somebody who runs the instance sent, as 0085 does in
+ * the repository opengewerk. Lea runs the instance, Otto leads the operator
+ * and does not; each invited somebody to lead it.
+ */
+describe('the invitations to lead from 0097', () => {
+  /** The migrations an installation carried before 0097. */
+  const before = 97
+
+  async function northWithTwoInvitations(): Promise<TenantId> {
+    const tenant = newId<'tenant'>()
+
+    await admin.query('insert into tenants (id, name) values ($1, $2)', [tenant, 'Wohnbau Nord eG'])
+    await admin.query(
+      `insert into tenant_roles (tenant_id, key, label, rights, leads, second_factor)
+       values ($1, 'lead', 'Leitung', '{}', true, true)`,
+      [tenant],
+    )
+    await admin.query(
+      `insert into auth_users (id, name, email)
+         values ('lea', 'Lea Leitung', 'lea@beispiel.example'),
+                ('otto', 'Otto Ost', 'otto@beispiel.example')`,
+    )
+    await admin.query(`insert into instance_operators (user_id) values ('lea')`)
+    await admin.query(
+      `insert into memberships (tenant_id, user_id, roles) values ($1, 'otto', array['lead'])`,
+      [tenant],
+    )
+
+    for (const by of ['lea', 'otto']) {
+      await admin.query(
+        `insert into invitations (tenant_id, email, name, roles, token_hash, invited_by, expires_at)
+         values ($1, $2, 'Eingeladen', array['lead'], $3, $4, now() + interval '1 day')`,
+        [tenant, `von-${by}@beispiel.example`, `hash-${by}`, by],
+      )
+    }
+
+    return tenant
+  }
+
+  async function invitedLeads(tenant: TenantId): Promise<string[]> {
+    const { rows } = await admin.query<{ invited_leads: string[] }>(
+      'select invited_leads from tenants_with_leads() where id = $1',
+      [tenant],
+    )
+
+    return [...(rows[0]?.invited_leads ?? [])].sort()
+  }
+
+  it('names only the invitations that somebody who runs the instance sent', async () => {
+    await runMigrations(ownerDatabaseUrl(), kept(migrationsFolderUpTo(before)))
+    const tenant = await northWithTwoInvitations()
+
+    // Before, the list held the one Otto sent from the operator as well.
+    expect(await invitedLeads(tenant)).toEqual([
+      'von-lea@beispiel.example',
+      'von-otto@beispiel.example',
+    ])
+
+    await runMigrations(ownerDatabaseUrl())
+
+    expect(await invitedLeads(tenant)).toEqual(['von-lea@beispiel.example'])
+  })
+
+  it('names every invitation again when the update is taken back', async () => {
+    await applyMigrations()
+    const tenant = await northWithTwoInvitations()
+
+    await revertMigration(admin, '0097_instance_own_invitations')
+
+    expect(await invitedLeads(tenant)).toEqual([
+      'von-lea@beispiel.example',
+      'von-otto@beispiel.example',
+    ])
+
+    const { rows } = await admin.query(
+      `select 1 from pg_policies where tablename = 'instance_operators' and policyname = 'readable_by_the_owner'`,
+    )
+
+    expect(rows).toEqual([])
+  })
+})

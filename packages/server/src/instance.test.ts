@@ -194,6 +194,44 @@ describe('an instance of this application', () => {
   })
 })
 
+/**
+ * Whether the role of the configuration may run an instance is what it can do
+ * and not what it is called (opengewerk/opengewerk#685): a role of another
+ * name that bypasses row level security is refused before anything listens.
+ */
+describe('the role an instance connects as', () => {
+  const role = 'haustechnik_probe_bypass'
+  const password = 'probe-685'
+
+  afterAll(async () => {
+    await admin.query(`drop role if exists "${role}"`)
+  })
+
+  it('is refused when it bypasses row level security, whatever it is called', async () => {
+    await admin.query(`drop role if exists "${role}"`)
+    await admin.query(`create role "${role}" login bypassrls password '${password}'`)
+
+    const url = new URL(applicationDatabaseUrl())
+    url.username = role
+    url.password = password
+
+    const configuration = readConfiguration(
+      application,
+      {
+        DATABASE_URL: url.toString(),
+        STORAGE_PATH: storage,
+        SESSION_SECRET: 's'.repeat(64),
+        TRUSTED_ORIGINS: 'https://haustechnik.example.de',
+      },
+      () => null,
+    )
+
+    await expect(openInstance(configuration, { interfaceDirectory: built })).rejects.toThrow(
+      `"${role}", und diese Rolle hat BYPASSRLS`,
+    )
+  })
+})
+
 describe('the file store of an instance', () => {
   /**
    * `STORAGE_PATH` is the volume the backup takes along. A store somewhere
