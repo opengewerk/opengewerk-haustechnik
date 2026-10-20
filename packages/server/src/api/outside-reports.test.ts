@@ -35,7 +35,7 @@ import { aMailServer, testKey } from '@opengewerk/platform-server/testing'
 import { inArray, sql } from 'drizzle-orm'
 import type { Pool } from 'pg'
 import request from 'supertest'
-import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 
 import {
   applicationDatabaseUrl,
@@ -81,6 +81,9 @@ let folder = ''
 const area = { north: '', south: '' }
 /** The clock of the gate: a test moves it instead of waiting. */
 let clock = Date.parse('2026-10-16T08:00:00.000Z')
+
+/** The gate of the page, on the clock of the test. */
+const gate = new OutsideReports(() => clock)
 
 function http() {
   return request(app.getHttpServer())
@@ -321,7 +324,7 @@ beforeAll(async () => {
       ApiModule.create(database, testIdentities, {
         catalogue,
         files: new FileStore(folder),
-        outside: new OutsideReports(() => clock),
+        outside: gate,
       }),
     ],
   }).compile()
@@ -593,33 +596,96 @@ describe('the page of a label without an account', () => {
     }
   })
 
-  it('takes five reports an hour from an address and ten over a label, counting a code it does not know alike', async () => {
+  it('takes five requests an hour from an address, whatever becomes of them and over whatever code', async () => {
     await switched(true).expect(200)
 
-    const code = await labelOn(north, 'north', { room: north.room })
     const address = anAddress()
-    // Answered and kept nowhere, and counted all the same.
+    // Answered and kept nowhere, and counted against the address all the same.
     const machine = { website: 'x' }
 
     for (let index = 0; index < 5; index += 1) {
-      await sent(await labelOn(north, 'north', { room: north.room }), machine, address).expect(201)
+      const code =
+        index % 2 === 0
+          ? await labelOn(north, 'north', { room: north.room })
+          : labelCodeFrom(randomBytes(10))
+
+      await sent(code, machine, address).expect(201)
     }
+
+    const code = await labelOn(north, 'north', { room: north.room })
 
     expect((await sent(code, machine, address).expect(429)).body.message).toBe(
       tooManyReportsSentence,
     )
 
-    for (const counted of [code, labelCodeFrom(randomBytes(10))]) {
-      for (let index = 0; index < 10; index += 1) {
-        await sent(counted, machine).expect(201)
+    // An hour later the address is taken again.
+    clock += 3_600_001
+    await sent(code, machine, address).expect(201)
+  })
+
+  it('takes ten reports an hour over a label, and counts none that fails at the field nobody sees, the form or its fields (#472)', async () => {
+    await switched(true).expect(200)
+
+    const code = await labelOn(north, 'north', { room: north.room })
+    const reportsOver = async () =>
+      (
+        await one<{ n: number }>(
+          'select count(*)::int as n from fault_reports f join labels l on l.room_id = f.room_id where l.code = $1',
+          [code],
+        )
+      ).n
+    const before = await reportsOver()
+
+    // Each from an address of its own, so that only the label could refuse.
+    for (let round = 0; round < 2; round += 1) {
+      const early = (await opened(code).expect(200)).body as OutsideLabelPage
+
+      if (!early.open) {
+        throw new Error('The label is closed')
       }
 
-      expect((await sent(counted, machine).expect(429)).body.message).toBe(tooManyReportsSentence)
+      // Sent at once, faster than a person reads the page.
+      await sent(code, {
+        form: early.form,
+        categoryId: early.categories[0]?.id,
+        description: 'Tür klemmt.',
+      }).expect(201)
+
+      const form = await filledIn(code)
+
+      await sent(code, { ...form, description: 'Tür klemmt.', website: 'x' }).expect(201)
+      await sent(code, { categoryId: form.categoryId, description: 'Tür klemmt.' }).expect(400)
+      await sent(code, { ...form, form: `${form.form}x`, description: 'Tür klemmt.' }).expect(400)
+      await sent(code, form).expect(400)
+      await sent(code, { ...form, description: ' ' }).expect(400)
+      await sent(code, { ...form, categoryId: 'nichts', description: 'Tür klemmt.' }).expect(400)
+      await sent(code, {
+        ...form,
+        categoryId: newId<'fault-category'>(),
+        description: 'Tür klemmt.',
+      }).expect(400)
     }
+
+    expect(await reportsOver()).toBe(before)
+
+    for (let index = 0; index < 10; index += 1) {
+      await reportedOver(code)
+    }
+
+    const form = await filledIn(code)
+
+    expect(
+      (await sent(code, { ...form, description: 'Tür klemmt.' }).expect(429)).body.message,
+    ).toBe(tooManyReportsSentence)
+    // A label that has had its ten turns away every request, the machine's as well.
+    expect((await sent(code, { website: 'x' }).expect(429)).body.message).toBe(
+      tooManyReportsSentence,
+    )
+    expect(await reportsOver()).toBe(before + 10)
 
     // An hour later the label takes reports again.
     clock += 3_600_001
-    await sent(code, machine).expect(201)
+    await reportedOver(code)
   })
 
   it('opens sixty pages an hour for an address', async () => {
@@ -668,6 +734,59 @@ describe('the page of a label without an account', () => {
       other.receipt.photo ?? '',
       png,
     ).expect(404)
+  })
+
+  it('turns away a report that comes to be written after another took the last of its label (#472)', async () => {
+    await switched(true).expect(200)
+
+    const code = await labelOn(north, 'north', { room: north.room })
+
+    for (let index = 0; index < 9; index += 1) {
+      await reportedOver(code)
+    }
+
+    // Both passed the door at nine; the other one is written a moment sooner.
+    const take = gate.takeLabel.bind(gate)
+    const raced = vi.spyOn(gate, 'takeLabel').mockImplementationOnce((label) => {
+      take(label)
+
+      return take(label)
+    })
+    const form = await filledIn(code)
+    const description = `Tür klemmt ${randomBytes(4).toString('hex')}`
+
+    try {
+      expect((await sent(code, { ...form, description }).expect(429)).body.message).toBe(
+        tooManyReportsSentence,
+      )
+    } finally {
+      raced.mockRestore()
+    }
+
+    expect(
+      await one<{ n: number }>(
+        'select count(*)::int as n from fault_reports where description = $1',
+        [description],
+      ),
+    ).toEqual({ n: 0 })
+  })
+
+  it('refuses a report without a description, one left out as one left empty, and keeps nothing (#472)', async () => {
+    await switched(true).expect(200)
+
+    const code = await labelOn(north, 'north', { room: north.room })
+    const form = await filledIn(code)
+    const before = await one<{ n: number }>('select count(*)::int as n from fault_reports', [])
+
+    for (const description of [undefined, null, '  ']) {
+      expect((await sent(code, { ...form, description }).expect(400)).body.message).toBe(
+        'Die Beschreibung fehlt.',
+      )
+    }
+
+    expect(await one<{ n: number }>('select count(*)::int as n from fault_reports', [])).toEqual(
+      before,
+    )
   })
 
   it('takes a category of this operator that is still offered, and nothing else', async () => {
