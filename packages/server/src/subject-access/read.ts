@@ -112,6 +112,14 @@ async function tenantRows(tx: TenantTransaction, userId: string) {
         order by 2`,
   )
 
+  // The passkeys this operator knows of the person (#474), live or removed:
+  // those recorded here, and none another operator alone knows.
+  const passkeys = await rowsOf(
+    tx,
+    sql`select passkey_id as "passkeyId", name, created_at as "createdAt", removed_at as "removedAt"
+          from member_passkeys where user_id = ${u} order by created_at`,
+  )
+
   const signIns = await rowsOf(
     tx,
     sql`select 'Anmeldung bei diesem Betreiber' as what, started_at as at, ended_at as until, null as device,
@@ -375,6 +383,7 @@ async function tenantRows(tx: TenantTransaction, userId: string) {
   return {
     membership,
     corrections,
+    passkeys,
     substitutions,
     signIns,
     push,
@@ -400,7 +409,11 @@ async function tenantRows(tx: TenantTransaction, userId: string) {
   }
 }
 
-/** What the instance holds about the account: its sign-in, its passkeys, its sessions here, and its part in running the instance. */
+/**
+ * What the instance holds about the account: its sign-in, its passkeys, its
+ * sessions here, and its part in running the instance. Of the passkeys the
+ * part names only those the operator knows (`passkeysHere`).
+ */
 async function instanceRows(
   database: Database,
   tenantId: TenantId,
@@ -418,9 +431,7 @@ async function instanceRows(
     )
     const passkeys = await rowsOf(
       tx,
-      sql`select k.name, k.created_at as "createdAt", k.last_used_at as "lastUsedAt",
-                 exists (select 1 from member_passkeys m
-                          where m.passkey_id = k.id and m.tenant_id = ${tenantId} and m.removed_at is null) as here
+      sql`select k.id, k.created_at as "createdAt", k.last_used_at as "lastUsedAt"
             from auth_passkeys k where k.user_id = ${userId} order by k.created_at`,
     )
     const sessions = await rowsOf(
@@ -443,6 +454,25 @@ async function instanceRows(
   }, asUser)
 }
 
+/**
+ * The passkeys of the account as far as this operator knows them (#474): each
+ * it has on record, with when it was made and last used while the key is
+ * there, and whether it still holds here. A passkey only another operator
+ * knows is not named, nor when it was used there.
+ */
+function passkeysHere(known: readonly Row[], keys: readonly Row[]): Row[] {
+  return known.map((record) => {
+    const key = keys.find((each) => each['id'] === record['passkeyId'])
+
+    return {
+      name: record['name'] ?? null,
+      createdAt: key?.['createdAt'] ?? record['createdAt'] ?? null,
+      lastUsedAt: key?.['lastUsedAt'] ?? null,
+      here: record['removedAt'] === null && key !== undefined,
+    }
+  })
+}
+
 /** The information about an account of this operator, every part in the order of the file. */
 export async function accountParts(
   database: Database,
@@ -454,7 +484,7 @@ export async function accountParts(
 
   return [
     part('account', there.account),
-    part('passkeys', there.passkeys),
+    part('passkeys', passkeysHere(here.passkeys, there.passkeys)),
     part('corrections', here.corrections),
     part('membership', here.membership),
     part('substitutions', here.substitutions),
