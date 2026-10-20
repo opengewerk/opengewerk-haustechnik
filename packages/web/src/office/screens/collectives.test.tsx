@@ -129,6 +129,20 @@ function mount(
   return mountOffice(at, server, everything)
 }
 
+// A select takes a value only once it has the option for it; before that the
+// browser, and happy-dom with it, quietly takes nothing, and the screen goes on
+// without the choice (#478). The places and kinds come with the answers of the
+// server, often after the select itself, on a busy runner long after. So the
+// test waits for the option and not only for the select.
+async function choose(name: RegExp | string, value: string) {
+  const select = await screen.findByRole<HTMLSelectElement>('combobox', { name })
+
+  await waitFor(() => {
+    expect(Array.from(select.options).map((option) => option.value)).toContain(value)
+  })
+  fireEvent.change(select, { target: { value } })
+}
+
 beforeEach(() => {
   localStorage.clear()
   onA('desktop')
@@ -234,12 +248,8 @@ describe('composing a collective activity', () => {
     await mount('/pruefungen/sammelvorgang', answers)
     await untilTheRightsAreKnown()
 
-    fireEvent.change(await screen.findByRole('combobox', { name: /^Liegenschaft/ }), {
-      target: { value: 'p-school' },
-    })
-    fireEvent.change(await screen.findByRole('combobox', { name: /^Pflichtart/ }), {
-      target: { value: 'probe.elevator_main_test' },
-    })
+    await choose(/^Liegenschaft/, 'p-school')
+    await choose(/^Pflichtart/, 'probe.elevator_main_test')
     await screen.findByRole('checkbox', { name: 'AN-d1 Feuerlöscher wählen' })
 
     expect(
@@ -258,18 +268,12 @@ describe('composing a collective activity', () => {
     const { router } = await mount('/pruefungen/sammelvorgang', answers)
 
     await untilTheRightsAreKnown()
-    fireEvent.change(await screen.findByRole('combobox', { name: /^Liegenschaft/ }), {
-      target: { value: 'p-school' },
-    })
-    fireEvent.change(await screen.findByRole('combobox', { name: /^Pflichtart/ }), {
-      target: { value: 'probe.elevator_main_test' },
-    })
+    await choose(/^Liegenschaft/, 'p-school')
+    await choose(/^Pflichtart/, 'probe.elevator_main_test')
     await screen.findByRole('checkbox', { name: 'AN-d1 Feuerlöscher wählen' })
     fireEvent.click(box('d2'))
     fireEvent.click(box('d3'))
-    fireEvent.change(screen.getByRole('combobox', { name: 'Ausführend' }), {
-      target: { value: 'u-wendt' },
-    })
+    await choose('Ausführend', 'u-wendt')
     fireEvent.click(screen.getByRole('button', { name: 'Sammelvorgang anlegen' }))
 
     await waitFor(() => {
