@@ -5,7 +5,7 @@ import {
   tenantNameMaxLength,
   type TenantId,
 } from '@opengewerk/haustechnik-domain'
-import { authenticationPath } from '@opengewerk/platform-server'
+import { authenticationPath, largestAuthenticationBodyBytes } from '@opengewerk/platform-server'
 import type { Pool } from 'pg'
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 
@@ -273,6 +273,35 @@ describe('somebody who does not lead', () => {
     expect(
       (await instance.http().get('/auth/tenants').set('cookie', again).expect(200)).body,
     ).toEqual([])
+  })
+})
+
+/**
+ * The routes of the sign in are mounted here as an instance mounts them
+ * (`mountAuthentication`, #360): behind the limit of their bodies, which
+ * holds before the library reads anything and before anybody is known.
+ */
+describe('the routes of the sign in', () => {
+  it('read no body above their limit, and take one below it to the library', async () => {
+    instance = await testInstance(applicationDatabaseUrl())
+
+    const tooLarge = await instance
+      .authenticate('/sign-in/email')
+      .send({
+        email: 'leitung@klinikum.example',
+        password: 'x'.repeat(largestAuthenticationBodyBytes),
+      })
+      .expect(413)
+
+    expect((tooLarge.body as { message: string }).message).toBe(
+      'Diese Anfrage ist zu groß für die Anmeldung.',
+    )
+
+    // A body of the usual size gets to the library, which answers for itself.
+    await instance
+      .authenticate('/sign-in/email')
+      .send({ email: 'leitung@klinikum.example', password })
+      .expect(401)
   })
 })
 
