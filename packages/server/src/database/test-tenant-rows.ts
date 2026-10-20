@@ -183,6 +183,7 @@ export function rowsOf(tenant: Tenant): readonly Row[] {
         seen: { name: 'seen' },
         found: { name: 'found' },
         device_id: 'tablet',
+        user_id: tenant.userId,
         recorded_at: new Date(),
       },
     },
