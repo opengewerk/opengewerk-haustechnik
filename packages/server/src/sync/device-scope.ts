@@ -1,4 +1,4 @@
-import { closedActivitiesStayDays, syncEntities } from '@opengewerk/haustechnik-domain'
+import { closedActivitiesStayDays, type Right, syncEntities } from '@opengewerk/haustechnik-domain'
 import {
   fingerprintOf,
   idArray,
@@ -202,6 +202,100 @@ const workEntities = [
   'work_order_materials',
 ]
 
+/** A column of an entity, as a condition names it. */
+function column(entity: string, name: string): SQL {
+  return sql`${sql.identifier(entity)}.${sql.identifier(name)}`
+}
+
+/**
+ * What a device needs to hold a kind of record: one of the rights of the
+ * routes that show it in the office, and what it holds without them.
+ */
+interface Reading {
+  /** The rights, any one of which will do. */
+  readonly rights: readonly Right[]
+  /** The rows a device holds without them; none where it is not given. */
+  readonly keeps?: () => SQL
+  /** The word its value takes on without them, where it had one before #360. */
+  readonly word?: string
+}
+
+const placesRead: Reading = { rights: ['location.read'] }
+const assetsRead: Reading = { rights: ['asset.read'] }
+const workRead: Reading = { rights: ['activity.read'] }
+const storesRead: Reading = { rights: ['store.read'] }
+
+/**
+ * What each kind of record asks of whoever holds it on a device (#360): the
+ * right the route that shows it asks for, or of a record without a route of
+ * its own, the right of the route it is shown on. A device holds of a kind of
+ * record only what that route would hand its person, so that a role of the
+ * operator's own that may not look at assets in the office does not find them
+ * on its device either. A kind not named here goes to no device.
+ *
+ * - The own qualifications stand under "Konto" for whoever looks at the
+ *   activities, with the kinds they name, and in the list of everybody's for
+ *   whoever looks at the qualifications.
+ * - The key day of the meters is what the meters are read by, and whether
+ *   names and times stand on a service report is what its page says: each
+ *   for whoever reads those, and for whoever reads the settings.
+ * - Of a firm, whoever looks at the contractors holds all a device holds, and
+ *   whoever looks at the duties, the activities or the contracts, which name
+ *   a firm, its name (#377).
+ * - A label of a room is printed for whoever sees the room; one of an asset,
+ *   and one of a sheet that hangs on nothing yet, for whoever looks at the
+ *   assets.
+ */
+const readings: Readonly<Record<string, Reading>> = {
+  properties: placesRead,
+  buildings: placesRead,
+  floors: placesRead,
+  contacts: placesRead,
+  building_closures: placesRead,
+  rooms: placesRead,
+  round_templates: workRead,
+  round_template_versions: workRead,
+  round_plans: workRead,
+  assets: assetsRead,
+  asset_lifecycle: assetsRead,
+  asset_supplies: assetsRead,
+  distribution_boards: assetsRead,
+  board_sections: assetsRead,
+  circuits: assetsRead,
+  equipment: assetsRead,
+  inverters: assetsRead,
+  pv_strings: assetsRead,
+  pv_modules: assetsRead,
+  meter_points: assetsRead,
+  meter_exchanges: assetsRead,
+  meter_pauses: assetsRead,
+  meter_readings: assetsRead,
+  meter_settings: { rights: ['asset.read', 'settings.read'] },
+  duties: { rights: ['duty.read'] },
+  duty_dismissals: { rights: ['duty.read'] },
+  ...Object.fromEntries(workEntities.map((entity) => [entity, workRead])),
+  work_order_settings: { rights: ['activity.read', 'settings.read'] },
+  defects: { rights: ['defect.read'] },
+  tasks: { rights: ['task.read'] },
+  attachments: { rights: ['document.read'] },
+  attachment_versions: { rights: ['document.read'] },
+  labels: {
+    rights: ['asset.read'],
+    keeps: () => sql`${column('labels', 'room_id')} is not null`,
+  },
+  articles: storesRead,
+  suppliers: storesRead,
+  stores: storesRead,
+  store_articles: storesRead,
+  stock_movements: storesRead,
+  store_labels: storesRead,
+  contractors: { rights: ['contractor.read', 'duty.read', 'activity.read', 'contract.read'] },
+  // The word of the contracts since #329, so that no device asks for them again.
+  contracts: { rights: ['contract.read'], word: 'without-contracts' },
+  qualifications: { rights: ['activity.read', 'qualification.read'] },
+  qualification_kinds: { rights: ['activity.read', 'qualification.read'] },
+}
+
 /**
  * The pull of a scope: what keeps the rows of an entity to what the device
  * holds, and what the answer names for each entity, so that a device that
@@ -231,12 +325,17 @@ const workEntities = [
  * The contracts lie in no area either (#329), and with them their documents:
  * a device holds both only for whoever reads the contracts, and names them by
  * another value without that right, in the same way.
+ *
+ * So does every kind of record without the right to read it (`readings`,
+ * #360): its value takes on a word, a device whose person loses the right
+ * lets go of what it holds, and one whose person gains it asks from the
+ * start.
  */
 export function pullScope(scope: DeviceScope, reads: PullRights): PullScope {
   // Whoever does not see the places, a Melder (#331), gets nothing of the
   // operator on the device: no place, no work, nothing tenant-wide either.
   // Its screens ask the server for what they show.
-  if (!reads.places && !reads.onlyWhatDutiesHangOn) {
+  if (!reads.holds('location.read') && !reads.onlyWhatDutiesHangOn) {
     return {
       narrow: () => sql`false`,
       narrowed: Object.fromEntries(syncEntities.map((entity) => [entity, 'nothing'])),
@@ -246,7 +345,8 @@ export function pullScope(scope: DeviceScope, reads: PullRights): PullScope {
   // An auditor from outside (#339) holds what the duties hang on and nothing
   // else of the operator: no work, no defect, no document. Which of those rows
   // the database hands over, it decides by the limits of the access
-  // (`within_limits`).
+  // (`within_limits`). Only the shipped role is limited, which always reads
+  // the duties, and these are what a duty names to it (#360).
   if (reads.onlyWhatDutiesHangOn) {
     return {
       narrow: (entity) => (dutiesHangOn.includes(entity) ? undefined : sql`false`),
@@ -266,8 +366,6 @@ export function pullScope(scope: DeviceScope, reads: PullRights): PullScope {
     }
   }
 
-  const column = (entity: string, name: string) =>
-    sql`${sql.identifier(entity)}.${sql.identifier(name)}`
   // What a device holds without a right, by entity: each a condition its rows
   // have to meet, and the word its value takes on.
   const withheld = new Map<string, { conditions: SQL[]; words: string[] }>()
@@ -280,8 +378,10 @@ export function pullScope(scope: DeviceScope, reads: PullRights): PullScope {
     })
   }
 
-  if (!reads.contracts) {
-    withhold('contracts', 'without-contracts', sql`false`)
+  const contracts = reads.holds('contract.read')
+  const contractors = reads.holds('contractor.read')
+
+  if (!contracts) {
     withhold(
       'attachments',
       'without-contracts',
@@ -295,7 +395,7 @@ export function pullScope(scope: DeviceScope, reads: PullRights): PullScope {
     )
   }
 
-  if (!reads.contractors) {
+  if (!contractors) {
     withhold('contacts', 'without-contractors', sql`${column('contacts', 'contractor_id')} is null`)
     withhold(
       'attachments',
@@ -312,14 +412,36 @@ export function pullScope(scope: DeviceScope, reads: PullRights): PullScope {
     withhold('contractors', 'without-contractors', null)
   }
 
-  const firms: Readonly<Record<string, SQL>> = Object.fromEntries(
+  // Of each kind of record, nothing without a right to read it, or only the
+  // rows it keeps (#360).
+  for (const entity of syncEntities) {
+    // A kind nobody named a right for goes to no device.
+    const reading = readings[entity] ?? { rights: [] }
+
+    if (!reading.rights.some((right) => reads.holds(right))) {
+      withhold(
+        entity,
+        reading.word ?? `without-${reading.rights.join('-')}`,
+        reading.keeps?.() ?? sql`false`,
+      )
+    }
+  }
+
+  const kept: Readonly<Record<string, SQL>> = Object.fromEntries(
     [...withheld].flatMap(([entity, { conditions }]) =>
       conditions.length === 0 ? [] : [[entity, and(...conditions) as SQL]],
     ),
   )
+  // The rows of an entity the device holds: what its rights keep, and what
+  // the scope keeps of those.
+  const narrowedBy = (entity: string, scoped: SQL | undefined): SQL | undefined => {
+    const conditions = [kept[entity], scoped].filter((condition) => condition !== undefined)
+
+    return conditions.length === 0 ? undefined : and(...conditions)
+  }
   const named = (entity: string, value: string) =>
     [value, ...(withheld.get(entity)?.words ?? [])].join(':')
-  const answering: Pick<PullScope, 'answer'> = reads.contractors
+  const answering: Pick<PullScope, 'answer'> = contractors
     ? {}
     : {
         answer: (changes) =>
@@ -335,32 +457,31 @@ export function pullScope(scope: DeviceScope, reads: PullRights): PullScope {
   // a device, and the office reads it from the server.
   const own = sql`${column('qualifications', 'user_id')} = ${scope.userId}`
   const ownValue = `own:${fingerprintOf([scope.userId])}`
-  const afterEmptying = (entity: string, value: string) =>
-    scope.emptied !== undefined && scope.emptied !== '' && emptiedEntities.includes(entity)
-      ? `${value}:emptied-${scope.emptied}`
-      : value
+  // The value of an entity, with the words of what its rights keep from it
+  // and, for what an emptied activity held, the activities emptied (#409).
+  const valueOf = (entity: string, value: string) => {
+    const words = named(entity, value)
+
+    return scope.emptied !== undefined && scope.emptied !== '' && emptiedEntities.includes(entity)
+      ? `${words}:emptied-${scope.emptied}`
+      : words
+  }
 
   if (scope.everyArea) {
     return {
-      narrow: (entity) =>
-        entity === 'qualifications'
-          ? own
-          : Object.hasOwn(firms, entity)
-            ? firms[entity]
-            : undefined,
-      narrowed: {
-        ...Object.fromEntries(
-          syncEntities.map((entity) => [entity, afterEmptying(entity, named(entity, 'all'))]),
-        ),
-        qualifications: ownValue,
-      },
+      narrow: (entity) => narrowedBy(entity, entity === 'qualifications' ? own : undefined),
+      narrowed: Object.fromEntries(
+        syncEntities.map((entity) => [
+          entity,
+          valueOf(entity, entity === 'qualifications' ? ownValue : 'all'),
+        ]),
+      ),
       ...answering,
     }
   }
 
   const activities = idArray(scope.activityIds)
   const narrowing: Readonly<Record<string, SQL>> = {
-    ...firms,
     activities: sql`${column('activities', 'id')} = any(${activities})`,
     activity_duties: sql`${column('activity_duties', 'activity_id')} = any(${activities})`,
     activity_answers: sql`${column('activity_answers', 'activity_id')} = any(${activities})`,
@@ -383,48 +504,55 @@ export function pullScope(scope: DeviceScope, reads: PullRights): PullScope {
   // whatever it sees, to fill a round in the version it names.
   const operator = 'operator'
   const work = `activities:${fingerprintOf(scope.activityIds)}`
+  const values: Readonly<Record<string, string>> = {
+    ...Object.fromEntries(placeEntities.map((entity) => [entity, places])),
+    ...Object.fromEntries(workEntities.map((entity) => [entity, work])),
+    defects: `defects:${fingerprintOf(scope.defectIds)}`,
+    // The own tasks, by a fingerprint over those held: one that went to
+    // somebody else or was done long enough ago leaves the device.
+    tasks: `tasks:${fingerprintOf(scope.taskIds)}`,
+    // The own qualifications (#337), and the kinds of the operator they name.
+    qualifications: ownValue,
+    qualification_kinds: operator,
+    round_templates: operator,
+    round_template_versions: operator,
+    // The key day of the meters, which names the key date of a reading on site (#120).
+    meter_settings: operator,
+    // Whether names and times stand on a service report, which its page says (#324).
+    work_order_settings: operator,
+    // The stores of the operator, without an area (#325): a device takes
+    // from them at a work order (#326).
+    articles: operator,
+    suppliers: operator,
+    stores: operator,
+    store_articles: operator,
+    stock_movements: operator,
+    // The labels on the shelves, which a scan reads like a barcode (#326).
+    store_labels: operator,
+    // The contractors of the operator, whose name an order shows (#328).
+    contractors: operator,
+    // The contracts with them (#329), for the name a document or a duty shows.
+    contracts: operator,
+  }
 
   return {
-    narrow: (entity) => (Object.hasOwn(narrowing, entity) ? narrowing[entity] : undefined),
-    narrowed: {
-      ...Object.fromEntries(placeEntities.map((entity) => [entity, named(entity, places)])),
-      ...Object.fromEntries(workEntities.map((entity) => [entity, afterEmptying(entity, work)])),
-      defects: `defects:${fingerprintOf(scope.defectIds)}`,
-      // The own tasks, by a fingerprint over those held: one that went to
-      // somebody else or was done long enough ago leaves the device.
-      tasks: `tasks:${fingerprintOf(scope.taskIds)}`,
-      // The own qualifications (#337), and the kinds of the operator they name.
-      qualifications: ownValue,
-      qualification_kinds: operator,
-      round_templates: operator,
-      round_template_versions: operator,
-      // The key day of the meters, which names the key date of a reading on site (#120).
-      meter_settings: operator,
-      // Whether names and times stand on a service report, which its page says (#324).
-      work_order_settings: operator,
-      // The stores of the operator, without an area (#325): a device takes
-      // from them at a work order (#326).
-      articles: operator,
-      suppliers: operator,
-      stores: operator,
-      store_articles: operator,
-      stock_movements: operator,
-      // The labels on the shelves, which a scan reads like a barcode (#326).
-      store_labels: operator,
-      // The contractors of the operator, whose name an order shows (#328).
-      contractors: named('contractors', operator),
-      // The contracts with them (#329), for the name a document or a duty shows.
-      contracts: named('contracts', operator),
-    },
+    narrow: (entity) =>
+      narrowedBy(entity, Object.hasOwn(narrowing, entity) ? narrowing[entity] : undefined),
+    narrowed: Object.fromEntries(
+      Object.entries(values).map(([entity, value]) => [entity, valueOf(entity, value)]),
+    ),
     ...answering,
   }
 }
 
-/** The rights a pull asks of the person, for what lies in no area (#328, #329), and whether they see the places at all (#331). */
+/**
+ * The rights a pull asks of the person: whether they see the places at all
+ * (#331), what lies in no area (#328, #329), and for each kind of record the
+ * right to read it (#360).
+ */
 export interface PullRights {
-  readonly contractors: boolean
-  readonly contracts: boolean
-  readonly places: boolean
+  /** Whether the person holds a right, as the guard of a route asks it. */
+  readonly holds: (right: Right) => boolean
   /** An auditor from outside (#339): the places, the assets and the duties, and nothing else. */
   readonly onlyWhatDutiesHangOn?: boolean
 }
