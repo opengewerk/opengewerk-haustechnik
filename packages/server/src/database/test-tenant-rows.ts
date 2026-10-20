@@ -115,6 +115,21 @@ export function rowsOf(tenant: Tenant): readonly Row[] {
       },
     },
     {
+      // A new password of an account that works here (#360), never its link.
+      table: 'password_resets',
+      values: { tenant_id: tenant.id, user_id: tenant.userId },
+    },
+    {
+      // A change of the mail server of the instance, as every operator keeps
+      // it (#360).
+      table: 'account_mail_server_changes',
+      values: {
+        tenant_id: tenant.id,
+        host_after: 'mail.instanz.example',
+        from_after: 'zugang@instanz.example',
+      },
+    },
+    {
       table: 'account_corrections',
       values: {
         tenant_id: tenant.id,
@@ -194,6 +209,11 @@ export function rowsOf(tenant: Tenant): readonly Row[] {
         size_bytes: 2048,
         media_type: 'application/pdf',
       },
+    },
+    {
+      // Who stored the file (#360): a row the person it names alone reads.
+      table: 'file_uploads',
+      values: { tenant_id: tenant.id, sha256: file, user_id: tenant.userId },
     },
     {
       table: 'mail_settings',

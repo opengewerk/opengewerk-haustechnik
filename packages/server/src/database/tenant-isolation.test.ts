@@ -352,11 +352,21 @@ describe('a tenant', () => {
     const tables = await tablesOfATenant()
     const seen: Record<string, unknown> = {}
     const expected: Record<string, unknown> = {}
+    // A table whose rows a person reads only of their own, who stored which
+    // file (#360), is read as the person its row names. Asked of the
+    // catalogue, so that a table added later with such a policy is not empty
+    // here by mistake.
+    const personal = await admin.query<{ table: string }>(
+      `select c.relname as table from pg_policy p join pg_class c on c.oid = p.polrelid
+        where p.polname = 'held_by_the_person_asking'`,
+    )
+    const heldByThePerson = new Set(personal.rows.map((row) => row.table))
 
     for (const { table, tenantColumn } of tables) {
       const select = `select "${tenantColumn}"::text as tenant from "${table}"`
       const through = async (tenant: Tenant) => {
-        const result = await inEveryArea(database, { tenantId: tenant.id }, (tx) =>
+        const person = heldByThePerson.has(table) ? { userId: tenant.userId } : {}
+        const result = await inEveryArea(database, { tenantId: tenant.id, ...person }, (tx) =>
           tx.execute<{ tenant: string }>(sql.raw(select)),
         )
 
