@@ -101,6 +101,12 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
 
 ### Geändert
 
+- Die README hält nur noch das Wichtigste: was die Anwendung ist, den Stand, den Schnellstart aus dem Paket einer
+  Fassung, wo die Dokumentation steht, Hilfe und Lizenz. Betrieb, Entwicklung sowie Funktionsumfang und Stand stehen
+  unverändert in `docs/betrieb.md`, `docs/entwicklung.md` und `docs/funktionsumfang.md`, und die Verweise auf das
+  Fundament zeigen auf dessen `docs/betrieb.md`. Warum: mit 457 Zeilen stand der Schnellstart hinter einem Absatz
+  über jede Fassung seit 0.1.0.
+
 - Eine neue Fassung kommt von selbst (#465): die Leiste „Eine neue Fassung liegt bereit.“ mit „Jetzt übernehmen“ steht
   nicht mehr über Büro, vor Ort und dem Bereich der Instanz. Die Anwendung übergibt die Registrierung ihres Service
   Workers an `takeUpdates` des Fundaments (opengewerk/opengewerk#680 und #682, Submodul `upstream/opengewerk` auf
