@@ -84,6 +84,7 @@ Anhang B nennt jedes Feld der Datenbank, das auf eine Person zeigt. Dieser Absch
 - **Zusage:** Zu einem Passkey stehen der Name, den die Person ihm gibt, die Art des Geräts und wann er angelegt und zuletzt benutzt wurde. Sehen kann ihn nur das eigene Konto. [K3, B52]
 - Ein Protokoll fehlgeschlagener Anmeldungen je Konto gibt es nicht. Gezählt werden Versuche je Netzadresse und Weg, für kurze Zeit, damit niemand Passwörter durchprobiert. [K9, B46]
 - Jedes neue Passwort eines Kontos, über den Link aus der E-Mail oder auf dem Server gesetzt, steht mit dem Zeitpunkt bei jedem Betreiber, für den das Konto arbeitet, und in seinem Änderungsprotokoll, nie der Link. Einen Tag danach lässt sich auf dem Konto weder ein zweiter Faktor noch ein Passkey einrichten, damit eine Übernahme nicht still bleibt. Ändert jemand den Mailserver der Instanz, über den diese Links hinausgehen, steht das ebenso bei jedem Betreiber, und seine Leitung bekommt eine E-Mail über den Mailserver von vorher. [K9]
+- Neue Wiederherstellungscodes gibt es nur nach dem Passwort und dem Code aus der App, und das Konto bekommt darüber eine E-Mail. Wird ein Konto zur Verwaltung der Instanz benannt oder aus ihr genommen, bekommen alle Konten der Verwaltung und das genommene eine E-Mail mit dem Namen und der Adresse dieses Kontos. Beides geht über den Mailserver der Instanz. [K9]
 
 ### 3.2 Zugehörigkeit, Rollen, Bereiche, Vertretung
 
@@ -293,7 +294,7 @@ Anhang B nennt jedes Feld der Datenbank, das auf eine Person zeigt. Dieser Absch
 - **Zusage:** Die Adresse und die Schlüssel eines Push-Geräts verlassen den Server im Änderungsprotokoll nicht. [K9, B53, B249]
 - Jede E-Mail steht mit Empfänger, Betreff, Text und Stand im Postausgang des Betreibers, jede Push-Nachricht mit Titel, Text und Stand bei ihrem Gerät. Beides steht im Änderungsprotokoll, das nur die Leitung liest (Abschnitt 8). Eine Auswertung, wer wann welche Nachricht bekommen hat, gibt es nicht, und ob eine Nachricht gelesen wurde, erfährt die Anwendung nicht. [K3, K9]
 - E-Mails eines Betreibers gehen über seinen eigenen Mailserver. Den trägt die Leitung unter „E-Mail-Einstellungen“ ein; das Passwort steht versiegelt in der Datenbank und wird nie wieder angezeigt. [K7, K9, B250, B251, B252]
-- **Zusage:** E-Mails an ein Konto, der Link zu einem neuen Passwort und der Hinweis auf einen neuen Passkey, gehen über den Mailserver der Instanz und nie über den eines Betreibers. Ohne ihn geht keine hinaus. [K9, B254, B255]
+- **Zusage:** E-Mails an ein Konto, der Link zu einem neuen Passwort und der Hinweis auf einen neuen Passkey oder neue Wiederherstellungscodes, gehen über den Mailserver der Instanz und nie über den eines Betreibers. Ohne ihn geht keine hinaus. [K9, B254, B255]
 
 ---
 
