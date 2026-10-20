@@ -328,6 +328,46 @@ describe('the information about a person with an access (#355)', () => {
   })
 
   /**
+   * Since migration 0095 a session holds whether it carries a second factor
+   * (#481), and the information names it for each session here (#482).
+   */
+  it('names for each session here whether it carries a second factor', async () => {
+    const withTheApp = 'session-482-app'
+    const withThePassword = 'session-482-password'
+
+    await admin.query(
+      `insert into auth_sessions (id, token, user_id, expires_at, active_tenant_id, sign_in_method,
+                                  second_factor, user_agent)
+       values ($1, $1, $3, now() + interval '1 hour', $4, 'password', true, 'Probe mit App'),
+              ($2, $2, $3, now() + interval '1 hour', $4, 'password', false, 'Probe mit Passwort')`,
+      [withTheApp, withThePassword, north.colleagueId, north.id],
+    )
+
+    try {
+      const sessions =
+        (await about(north.colleagueId)).parts.find((part) => part.key === 'sessions')?.rows ?? []
+
+      expect(
+        sessions
+          .filter((row) => row['what'] === 'Sitzung')
+          .map((row) => [row['device'], row['secondFactor']])
+          .sort(),
+      ).toEqual([
+        ['Probe mit App', true],
+        ['Probe mit Passwort', false],
+      ])
+      // A sign in the operator writes down is no session, and says nothing of it.
+      expect(
+        sessions.filter((row) => row['what'] !== 'Sitzung').map((row) => row['secondFactor']),
+      ).toEqual(sessions.filter((row) => row['what'] !== 'Sitzung').map(() => null))
+    } finally {
+      await admin.query('delete from auth_sessions where id = any($1)', [
+        [withTheApp, withThePassword],
+      ])
+    }
+  })
+
+  /**
    * A passkey belongs to the account, and the account may work for another
    * operator too (#474): the information names the passkeys this operator
    * knows, live or removed, and not one it does not know, nor when that was

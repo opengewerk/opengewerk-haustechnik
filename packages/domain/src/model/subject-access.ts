@@ -154,7 +154,7 @@ export const subjectAccessParts = {
   },
   sessions: {
     title: 'Sitzungen und Anmeldungen',
-    note: 'Die Sitzungen bei diesem Betreiber, die noch gelten, und jede An- und Abmeldung hier.',
+    note: 'Die Sitzungen bei diesem Betreiber, die noch gelten, mit ihrem zweiten Faktor, und jede An- und Abmeldung hier.',
     columns: [
       what,
       column('at', 'Zeitpunkt', 'moment'),
@@ -162,6 +162,8 @@ export const subjectAccessParts = {
       column('device', 'Gerät'),
       column('address', 'IP-Adresse'),
       column('method', 'Weg der Anmeldung'),
+      // Whether a session carries a second factor, which it holds since 0095 (#482).
+      column('secondFactor', 'Zweiter Faktor', 'flag'),
     ],
     sources: ['auth_sessions.user_id', 'tenant_sessions.user_id'],
     printed: true,

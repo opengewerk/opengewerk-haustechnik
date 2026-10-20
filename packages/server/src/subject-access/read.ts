@@ -123,7 +123,7 @@ async function tenantRows(tx: TenantTransaction, userId: string) {
   const signIns = await rowsOf(
     tx,
     sql`select 'Anmeldung bei diesem Betreiber' as what, started_at as at, ended_at as until, null as device,
-               null as address, sign_in_method as method
+               null as address, sign_in_method as method, null::boolean as "secondFactor"
           from tenant_sessions where user_id = ${u} order by started_at`,
   )
 
@@ -411,7 +411,8 @@ async function tenantRows(tx: TenantTransaction, userId: string) {
 
 /**
  * What the instance holds about the account: its sign-in, its passkeys, its
- * sessions here, and its part in running the instance. Of the passkeys the
+ * sessions here with whether each carries a second factor (#482), and its
+ * part in running the instance. Of the passkeys the
  * part names only those the operator knows (`passkeysHere`).
  */
 async function instanceRows(
@@ -437,7 +438,7 @@ async function instanceRows(
     const sessions = await rowsOf(
       tx,
       sql`select 'Sitzung' as what, created_at as at, expires_at as until, user_agent as device,
-                 ip_address as address, sign_in_method as method
+                 ip_address as address, sign_in_method as method, second_factor as "secondFactor"
             from auth_sessions where user_id = ${userId} and active_tenant_id = ${tenantId} order by created_at`,
     )
     const instance = await rowsOf(
