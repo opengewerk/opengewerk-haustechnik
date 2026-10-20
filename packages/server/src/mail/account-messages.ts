@@ -1,12 +1,17 @@
 import type { AccountMessages } from '@opengewerk/platform-server'
 
 import { application } from '../configuration.js'
-import { passkeyAddedMessage, passwordResetMessage } from '../notifications/templates.js'
+import {
+  mailServerChangedMessage,
+  passkeyAddedMessage,
+  passwordResetMessage,
+} from '../notifications/templates.js'
 
 /**
  * What this application says in the mails to an account (#81, #126): the
  * link to a new password and the notice of a new passkey, in its words and
- * under its name.
+ * under its name, and to the lead of every operator when the mail server of
+ * the instance changes (#360).
  *
  * When they go out, and through what, is the foundation's: through the mail
  * server of the instance, which whoever runs the instance sets up in its
@@ -21,4 +26,6 @@ export const accountMessages: AccountMessages = {
   accountPath: '/konto',
   passwordReset: (facts) => passwordResetMessage({ ...facts, application: application.name }),
   passkeyAdded: (facts) => passkeyAddedMessage({ ...facts, application: application.name }),
+  mailServerChanged: (facts) =>
+    mailServerChangedMessage({ ...facts, application: application.name }),
 }
