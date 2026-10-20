@@ -486,7 +486,13 @@ describe('the electrical structure on a device (#349)', () => {
           { buildingId: other },
           { buildingId: supplied },
         ),
-        operation('distribution_boards', 'update', inB, { roomId: room[0]?.id }, { roomId: null }),
+        operation(
+          'distribution_boards',
+          'update',
+          inB,
+          { roomId: room[0]?.id ?? null },
+          { roomId: null },
+        ),
       ]),
     ).toEqual([
       { outcome: 'conflict', reason: 'record_missing', fields: ['buildingId'] },
