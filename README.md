@@ -75,6 +75,29 @@ docker compose -f docker/compose.yaml exec app node dist/add-tenant.js "<name de
 
 Der Lauf der Fristen läuft in der Anwendung, zehn Sekunden nach dem Start und danach jede Minute, und führt die Termine der Pflichten (#25); im Büro sagt `GET /deadlines/run`, wann er einen Betreiber zuletzt durchgegangen ist. Die Dienste für Dateien, PDFs, E-Mail und Push liegen seit #23 im Fundament; E-Mail und Push sind seit #126 gebunden (Abschnitt "Benachrichtigungen" unten), ihre Jobs laufen wie der Lauf der Fristen jede Minute. Dateispeicher und Renderer sind seit #96 gebunden: der Server nimmt den Inhalt einer Datei unter `PUT /files/<prüfsumme>` von dem an, der Dokumente ablegen darf, und reicht den Renderer an alles, was druckt; die Dokumente, die Etiketten und das PDF eines Nachweises bauen darauf auf. Mailserver, E-Mail und Push kommen mit den Benachrichtigungen, ebenfalls in Phase 1 und mit ihren Zeilen in der `.env`. Bis dahin geht eine Einladung als Link hinaus.
 
+### Reverse Proxy
+
+Vor die Anwendung gehört ein Reverse Proxy mit TLS; sie lauscht absichtlich nur auf `127.0.0.1:23800`. Zwei Vorlagen liegen unter `docker/proxy/`, auch im Installationspaket: [`apache.conf`](docker/proxy/apache.conf) für Apache 2.4 und [`nginx.conf`](docker/proxy/nginx.conf) für nginx. Jede ist für sich vollständig, mit der Weiterleitung von HTTP auf HTTPS, dem Zertifikat unter dem Pfad, den certbot anlegt, dem Proxy samt Host, Protokoll und `X-Forwarded-For`, den Grenzen je Pfad und einer Zeitgrenze für lange Drucke. Wie sie eingesetzt wird, steht in ihrem Kopf, und jede Zeile, die zur eigenen Instanz passen muss, trägt einen Kommentar. Der Name darin ist `haustechnik.example.org`: neben OpenGewerk braucht die Haustechnik einen eigenen Hostnamen (siehe oben). Die Gründe stehen ausführlich im README des Fundaments, Abschnitt [„Reverse Proxy“](https://github.com/opengewerk/opengewerk#reverse-proxy); hier steht, was man beim Einrichten wissen muss.
+
+**`X-Forwarded-For` wird ergänzt, nicht durchgereicht.** Die Grenzen je Adresse, etwa für falsche Passwörter, zählen nach dem letzten Eintrag dieses Headers, und das ist der, den der Proxy selbst anhängt. Reicht er den Header nur weiter, wählt ein Client seine Adresse selbst, und alle Anfragen ohne den Header teilen sich einen Zähler: dann sperren wenige Fehlversuche eines Fremden die Anmeldung für alle. Apache mit `ProxyPass` und Caddy hängen von sich aus an, nginx nur mit `proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;`. Die Vorlage für nginx hat die Zeile im `server`-Block; bekommt dort ein `location`-Block ein eigenes `proxy_set_header`, erbt er sie nicht mehr. Ob es stimmt, zeigt nach einer Anmeldung „Konto“ unter „Angemeldete Geräte“: dort steht beim eigenen Gerät die Netzadresse, von der es kam.
+
+**Der Proxy begrenzt Anfragen je Pfad.** Überall reichen 2 MB, groß wird es nur, wo eine Datei kommt. Dort setzt die Anwendung die eigentliche Grenze selbst, mit einem Satz dazu, und liest eine Datei erst, wenn feststeht, wer sie schickt:
+
+| Pfad | Anwendung | Proxy |
+| --- | --- | --- |
+| `/files/`, Dokumente und andere Dateien der Ablage | 25 MB | 50 MB |
+| `POST /sync`, der Postausgang eines Geräts | 8 MB je Übertragung | 50 MB |
+| `/imports/`, Import aus Tabellen | 10 MB die Tabelle, 16 MB mit ihrer Zuordnung | 50 MB |
+| `PUT /fault-reports/photos/<prüfsumme>`, das Foto einer Meldung | 25 MB | 50 MB |
+| `PUT /qualifications/certificates/<prüfsumme>`, der Nachweis einer Qualifikation | 25 MB | 50 MB |
+| `PUT /fault-reports/by-label/<code>/photo/<beleg>`, das Foto einer Meldung über ein Etikett | 10 MB | 12 MB |
+
+Das Foto über ein Etikett kommt ohne Anmeldung; die Anwendung nimmt es nur zu einer Meldung an, die gerade angekommen ist, und der Proxy lässt dort nur knapp mehr durch als sie. Was der Proxy ablehnt, kommt als 413 ohne Satz an, und ein Postausgang, der daran scheitert, bleibt hängen, bis der Proxy es durchlässt. nginx nimmt ohne Angabe nur 1 MB an. Apache wendet `LimitRequestBody` auf eine Anfrage, die es mit `ProxyPass` weiterreicht, gar nicht an; die Vorlage vergleicht deshalb mit mod_rewrite die Länge, die eine Anfrage angibt.
+
+**Ein Druck darf dauern.** Der Renderer bekommt für ein PDF bis zu 60 Sekunden, und das Buch einer Anlage oder das Verzeichnis mit den Nachweisen dahinter druckt jeden Nachweis, der noch keinen Druck hat. nginx bricht ohne Angabe nach 60 Sekunden mit 504 ab, Apache nach seinem `Timeout`, von Haus aus ebenfalls 60 Sekunden; die Vorlagen warten 600.
+
+**Sicherheits-Header und Cache sind Sache der Anwendung.** Sie setzt `Strict-Transport-Security`, `Content-Security-Policy` und die übrigen Sicherheits-Header selbst, ein zweiter aus dem Proxy wäre falsch und nicht strenger. Der Proxy setzt keinen davon ein zweites Mal, ersetzt `Cache-Control` nicht und speichert keine Antwort zwischen; setzt er über eine globale Vorgabe Header, nimmt er sie für diese Instanz heraus. Ob jeder genau einmal ankommt, zeigt `curl -sI https://<adresse>/`.
+
 ## Am Code arbeiten
 
 Vorausgesetzt werden Node 24 und ein aktiviertes Corepack; pnpm kommt in der Version, die im Wurzelpaket steht, und wird nicht von Hand installiert.

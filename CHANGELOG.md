@@ -9,6 +9,18 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
 
 ### Hinzugefügt
 
+- Vorlagen für den Reverse Proxy unter `docker/proxy/`, `apache.conf` für Apache 2.4 und `nginx.conf` für nginx, jede
+  für sich vollständig: die Weiterleitung von HTTP auf HTTPS, das Zertifikat unter dem Pfad, den certbot anlegt, der Proxy
+  auf `127.0.0.1:23800` mit Host, Protokoll und ergänztem `X-Forwarded-For`, 600 Sekunden für lange Drucke wie das Buch
+  einer Anlage mit seinen Nachweisen und keine Sicherheits-Header. Überall gelten 2 MB, 50 MB nur an den Routen, die eine
+  Datei nehmen (`/files/`, `POST /sync`, `/imports/`, das Foto einer Meldung, der Nachweis einer Qualifikation), und
+  12 MB am Foto einer Meldung über ein Etikett, das ohne Anmeldung kommt. Apache vergleicht dafür die angegebene Länge
+  mit mod_rewrite, denn `LimitRequestBody` gilt nicht für eine Anfrage, die `ProxyPass` weiterreicht. Jede Zeile, die
+  zur eigenen Instanz passen muss, trägt einen Kommentar, und beide liegen im Installationspaket, was der Lauf
+  „Installationspaket“ jetzt prüft. Das README hat dazu den Abschnitt „Reverse Proxy“ unter „Betrieb“. Warum: wer
+  installiert, musste sich den vHost bisher selbst zusammensetzen, und ohne eigene Grenzen für die Fotos, Nachweise und
+  Tabellen hätte eine Vorlage nach dem Muster des Fundaments dort alles über 2 MB abgelehnt.
+
 - Die PV-Struktur unter einer PV-Anlage (#461): Wechselrichter, Strings und Module aus dem Fundament (ADR 0014 in
   `opengewerk`), mit Migration `0094_photovoltaic_structure`. Das Paket Elektro bringt in der Fassung 1.4.0 die
   Anlagenart „PV-Anlage“ (`elektro.photovoltaic_installation`, Kostengruppe 442, ohne eigene Pflichtart, bis zur Abnahme

@@ -893,6 +893,15 @@ jobs:
             exit 1
           fi
 
+          # The templates for a reverse proxy travel with the kit: the README
+          # sends whoever installs to them.
+          for template in apache.conf nginx.conf; do
+            if [ ! -f "$RUNNER_TEMP/install/opengewerk-haustechnik/docker/proxy/$template" ]; then
+              echo "Im Paket fehlt docker/proxy/$template." >&2
+              exit 1
+            fi
+          done
+
       - name: Mit einem Befehl starten
         working-directory: ${{ runner.temp }}/install/opengewerk-haustechnik
         env:
