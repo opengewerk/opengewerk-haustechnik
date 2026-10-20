@@ -23,6 +23,9 @@ export function roundPdfAddress(roundId: string): string {
 export async function fetchPdf(address: string): Promise<Blob> {
   const response = await fetch(address, {
     credentials: 'include',
+    // An evidence names people and places of an operator: past the HTTP cache
+    // of the browser, as every request of the foundation (#360).
+    cache: 'no-store',
     headers: { Accept: 'application/pdf, application/json', ...workingInHeaders() },
   })
 
