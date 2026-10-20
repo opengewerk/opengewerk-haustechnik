@@ -121,6 +121,10 @@ const inMigrations: Readonly<Record<string, DeletionRuleKey>> = {
   work_order_materials: 'emptied-activity',
   briefings: 'emptied-activity',
   work_permits: 'emptied-activity',
+  // 0099: the documents of an emptied activity go for good, with their
+  // versions and the files nothing else names (opengewerk/opengewerk#658).
+  attachment_versions: 'emptied-activity',
+  files: 'emptied-activity',
 }
 
 /** Rules that delete nothing in the database of the instance: on a device, and the backups. */

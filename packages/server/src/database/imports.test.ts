@@ -154,7 +154,22 @@ describe('the triggers of the log', () => {
       )
     }
 
-    const imported = conditional.filter((row) => !emptied.includes(row))
+    // And the documents, under the condition of the foundation, while one goes
+    // for good (opengewerk/opengewerk#658).
+    const purged = conditional.filter((row) => /attachment_purging\(/.test(row.definition))
+
+    expect(purged.map((row) => row.table_name).sort()).toEqual([
+      'attachment_versions',
+      'attachments',
+    ])
+
+    for (const row of purged) {
+      expect(row.definition).toMatch(
+        / AFTER DELETE OR UPDATE ON public\.\w+ FOR EACH ROW WHEN \(\(NOT attachment_purging\(.*\)\)\) EXECUTE FUNCTION record_change\(\)$/,
+      )
+    }
+
+    const imported = conditional.filter((row) => !emptied.includes(row) && !purged.includes(row))
 
     expect(imported.map((row) => row.table_name)).toEqual([
       'assets',

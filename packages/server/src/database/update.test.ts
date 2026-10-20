@@ -2504,14 +2504,16 @@ describe('an installation that imported from tables', () => {
     )
 
     // And while a deletion after the end of the retention is confirmed, the
-    // evidence, its voiding and its prints (#340), and what the activity
-    // behind it holds (#409).
+    // evidence, its voiding and its prints (#340), what the activity behind it
+    // holds (#409), and its documents going for good (opengewerk/opengewerk#658).
     expect(await quietTables()).toEqual([
       'activities',
       'activity_answers',
       'activity_duties',
       'activity_signatures',
       'assets',
+      'attachment_versions',
+      'attachments',
       'briefings',
       'buildings',
       'evidence',
@@ -2532,6 +2534,7 @@ describe('an installation that imported from tables', () => {
       'work_permits',
     ])
 
+    await revertMigration(admin, '0099_purge_attachments')
     await revertMigration(admin, '0094_photovoltaic_structure')
 
     await revertMigration(admin, '0093_defect_circuit')

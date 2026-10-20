@@ -4,12 +4,16 @@
 # tests, no .env and nothing built, under the root opengewerk-haustechnik/. The
 # version stands in place of "source" at every image of this project, so that
 # "sh docker/start.sh" and every docker compose command in it pull that version
-# instead of building, and every entry belongs to root.
+# instead of building, and every entry belongs to root. With the digests the
+# release pushed, each image is named "<image>:<version>@sha256:..." (#687 in
+# the repository opengewerk), and start.sh checks its signature before it pulls
+# it; kit-images.sh of the foundation writes both.
 #
-#   sh docker/pack-kit.sh <version> <folder for the kit>
+#   sh docker/pack-kit.sh <version> <folder for the kit> [<image>@sha256:<digest> ...]
 #
-# The workflow "Release" packs with it for a tag; the CI packs with it for
-# every pull request and starts what comes out, without the source beside it.
+# The workflow "Release" packs with it for a tag, with the digests; the CI packs
+# with it for every pull request, without, and starts what comes out, without
+# the source beside it.
 # Leaves opengewerk-haustechnik-<version>.tar.gz and its .sha256 in the folder.
 
 set -eu
@@ -26,6 +30,7 @@ out=${2:-}
 [ -n "$out" ] || fail 'Der Ordner für das Paket fehlt, etwa: sh docker/pack-kit.sh 0.1.0 paket'
 printf '%s' "$version" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$' ||
   fail "Die Fassung $version hat nicht die Form 1.2.3."
+shift 2
 
 root=$(git rev-parse --show-toplevel)
 name=opengewerk-haustechnik
@@ -49,13 +54,7 @@ git -C "$root/upstream/opengewerk" archive HEAD -- \
   docker/start.sh docker/setup.sh docker/postgres-init docker/backup |
   tar -x -C "$work/$name/upstream/opengewerk"
 
-compose="$work/$name/docker/compose.yaml"
-sed -i "s/HAUSTECHNIK_VERSION:-source}/HAUSTECHNIK_VERSION:-$version}/" "$compose"
-
-if grep -q 'HAUSTECHNIK_VERSION:-source}' "$compose" ||
-  ! grep -Fq "HAUSTECHNIK_VERSION:-$version}" "$compose"; then
-  fail "compose.yaml im Paket nennt nicht überall die Fassung $version."
-fi
+sh "$root/upstream/opengewerk/docker/kit-images.sh" "$work/$name/docker/compose.yaml" HAUSTECHNIK "$version" "$@"
 
 mkdir -p "$out"
 kit="$name-$version.tar.gz"

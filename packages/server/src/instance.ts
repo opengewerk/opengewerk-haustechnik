@@ -34,6 +34,8 @@ export interface OpenInstance extends Server {
   readonly mail: MailContext | null
   /** What the push job needs, or null without a key to sign with and on a closed instance. */
   readonly push: PushContext | null
+  /** The store of the files, which the sweep clears of what no operator holds any more. */
+  readonly files: FileStore
 }
 
 /**
@@ -179,5 +181,5 @@ export async function openInstance(
     },
   )
 
-  return { ...server, database, stopSettings, mail, push }
+  return { ...server, database, stopSettings, mail, push, files: output.files }
 }

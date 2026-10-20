@@ -496,7 +496,20 @@ describe('the information about a person with an access (#355)', () => {
       await admin.query('delete from sync_conflicts where id = $1', [conflictId])
       await admin.query('delete from password_resets where user_id = $1', [north.colleagueId])
       await admin.query('delete from file_uploads where sha256 = $1', [sha256])
-      await admin.query('delete from files where sha256 = $1', [sha256])
+      // The lock on files lets a row go only while it is named as the one
+      // being taken (opengewerk/opengewerk#658); the test names it the same way.
+      const sweeping = await admin.connect()
+
+      try {
+        await sweeping.query('begin')
+        await sweeping.query(`select set_config('app.taking_file', $1, true)`, [
+          `${north.id}/${sha256}`,
+        ])
+        await sweeping.query('delete from files where sha256 = $1', [sha256])
+        await sweeping.query('commit')
+      } finally {
+        sweeping.release()
+      }
     }
   })
 })

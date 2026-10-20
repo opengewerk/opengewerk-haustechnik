@@ -320,11 +320,14 @@ describe('the tables', () => {
     // work orders and the defects since #26.
     expect(rows.length).toBeGreaterThanOrEqual(13)
     // The one exception, the content of an activity emptied with its last
-    // evidence after the end of the retention (#409): there the lock of each
-    // table refuses every other way, which `activity-emptying.test.ts` holds.
+    // evidence after the end of the retention (#409), its documents with
+    // their versions included (opengewerk/opengewerk#658): there the lock of
+    // each table refuses every other way, which `activity-emptying.test.ts`
+    // holds.
     expect(rows.filter((row) => row.deletable).map((row) => row.table_name)).toEqual([
       'activity_answers',
       'activity_signatures',
+      'attachment_versions',
       'briefings',
       'service_reports',
       'work_order_decisions',

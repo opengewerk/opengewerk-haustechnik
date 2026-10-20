@@ -133,10 +133,18 @@ jobs:
           cosign sign --yes --recursive "$APP"
           cosign sign --yes --recursive "$BACKUP"
 
+      # The images by the digests just signed (#687 in the repository
+      # opengewerk): start.sh checks the signature of each before it pulls it.
       - name: Installationspaket packen
         env:
           VERSION: ${{ steps.version.outputs.version }}
-        run: sh docker/pack-kit.sh "$VERSION" .
+          APP_DIGEST: ${{ steps.app.outputs.digest }}
+          BACKUP_DIGEST: ${{ steps.backup.outputs.digest }}
+        run: |
+          set -eu
+          sh docker/pack-kit.sh "$VERSION" . \
+            "ghcr.io/opengewerk/opengewerk-haustechnik@$APP_DIGEST" \
+            "ghcr.io/opengewerk/opengewerk-haustechnik-backup@$BACKUP_DIGEST"
 
       - name: Release schreiben
         env:
