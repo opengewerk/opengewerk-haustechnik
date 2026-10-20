@@ -1,5 +1,4 @@
 import {
-  BadGatewayException,
   BadRequestException,
   Body,
   ConflictException,
@@ -43,6 +42,7 @@ import {
 import {
   CurrentIdentity,
   Database,
+  dispositionFor,
   isUniqueViolation,
   isUuid,
   LabelCodeUnavailableError,
@@ -80,6 +80,7 @@ import { dayInGermany } from '../today.js'
 import { assetRegister, registerQuestion } from './asset-register.js'
 import { RequiresPermission } from './authorization.js'
 import { type Asking, placeOf } from './places.js'
+import { renderFailed } from './prints.controller.js'
 
 // The labels with a QR code on assets and rooms (#98, section 3 of the
 // concept). Made and blocked here and nowhere else: the server draws the
@@ -281,14 +282,15 @@ abstract class LabelPrinting {
         throw new ServiceUnavailableException(error.message)
       }
 
-      throw new BadGatewayException(error instanceof Error ? error.message : String(error))
+      throw renderFailed(error)
     }
 
     response.setHeader('Cache-Control', 'no-store')
 
+    // The title can carry the name of a store, quotes and all (#475).
     return new StreamableFile(Buffer.from(bytes), {
       type: 'application/pdf',
-      disposition: `inline; filename="${title}.pdf"`,
+      disposition: dispositionFor('application/pdf', `${title}.pdf`),
       length: bytes.byteLength,
     })
   }

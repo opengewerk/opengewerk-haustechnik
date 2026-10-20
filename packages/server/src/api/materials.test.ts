@@ -115,8 +115,9 @@ async function made(path: string, body: object, header = by('u-site')): Promise<
 async function stocked(
   quantityMilli: number,
   ean: string | null = null,
+  name = `Lager ${newId<'store'>().slice(-6)}`,
 ): Promise<{ readonly store: string; readonly article: string }> {
-  const store = await made('/stores', { name: `Lager ${newId<'store'>().slice(-6)}` })
+  const store = await made('/stores', { name })
   const article = await made('/articles', {
     number: `A-${newId<'article'>().slice(-8)}`,
     designation: 'Akku Notleuchte 3,6 V',
@@ -502,5 +503,21 @@ describe('the labels on the shelves of a store', () => {
 
     // One for each shelf, the second print of the first reusing its label.
     expect(rows[0]?.count).toBe('2')
+  })
+
+  it('are named after the store, also with a quote and a sign beyond Latin-1 in its name (#475)', async () => {
+    const name = `Lager "Süd" ${newId<'store'>().slice(-6)} 5 €`
+    const quoted = await stocked(1000, null, name)
+    const answer = await http()
+      .post(`/stores/${quoted.store}/labels/print`)
+      .set(testIdentityHeader, by('u-site'))
+      .send({})
+      .expect(200)
+    const file = `Etiketten ${name}.pdf`
+
+    expect(answer.headers['content-disposition']).toBe(
+      `inline; filename="${file.replace(/"/g, '_').replace(/[ü€]/g, '_')}"; ` +
+        `filename*=UTF-8''${encodeURIComponent(file)}`,
+    )
   })
 })

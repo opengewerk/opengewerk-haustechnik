@@ -144,6 +144,13 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   unter der Anlage liegt und der Weg aus dem Protokoll nur die Kennung des Verteilers kennt, nicht die der Anlage; so
   ließ sich sein Protokoll nur über das der ganzen Anlage lesen.
 
+- Die Etiketten eines Lagers drucken auch dann, wenn sein Name ein Anführungszeichen oder ein Zeichen wie „€“ enthält,
+  und die Datei trägt den Namen des Lagers (#475). Scheitert der Dienst, der PDFs erzeugt, an einem Druck, nennt die
+  Antwort einen festen Satz und das Protokoll des Servers den Grund; ein Fehler beim Lesen aus Datenbank oder Speicher
+  vor dem Druck wird beantwortet wie auf jeder anderen Route. Gefunden in der Sicherheitsprüfung
+  (opengewerk-haustechnik#360). Warum: der Name des Lagers ging unmaskiert in den Kopf `Content-Disposition`, und die
+  Antwort eines gescheiterten Drucks gab die Meldung des Fehlers weiter.
+
 ### Sicherheit
 
 - Der Abgleich gibt einem Gerät von jeder Art Datensatz nur noch, was seiner Person auch die Route im Büro zeigt
