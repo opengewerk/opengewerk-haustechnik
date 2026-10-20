@@ -21,6 +21,7 @@ import {
   subjectAccessNeedsEveryArea,
   type SubjectAccessPart,
   subjectAccessTermProblem,
+  withoutDrawings,
 } from '@opengewerk/haustechnik-domain'
 import {
   accountsOf,
@@ -226,7 +227,9 @@ export class SubjectAccessController {
       return pdf(response, await this.printer.fresh(subjectAccessPrintJob(access)), name)
     }
 
-    const bytes = Buffer.from(JSON.stringify(access, null, 2), 'utf-8')
+    // Without the drawings of the signatures (#457): a file any editor
+    // changes holds none, the PDF draws them.
+    const bytes = Buffer.from(JSON.stringify(withoutDrawings(access), null, 2), 'utf-8')
 
     response.setHeader('Cache-Control', 'no-store')
 

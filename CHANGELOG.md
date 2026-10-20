@@ -15,6 +15,13 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   das Paket holt weiter aus ghcr.io. Ohne die Secrets `DOCKERHUB_USERNAME` und `DOCKERHUB_TOKEN` tut der Job
   nichts, und die Release-Seite nennt Docker Hub nur, wenn gespiegelt wird.
 
+### Geändert
+
+- Die Auskunft über eine Person als JSON enthält keinen Linienzug einer Unterschrift mehr, an seiner Stelle steht
+  „Schriftzug im PDF der Auskunft“ (#457). Eine Datei, die jedes Programm ändern kann, soll keine Unterschrift
+  tragen, die sich unter einen anderen Text setzen ließe; das PDF der Auskunft zeichnet sie weiter, und keine
+  Tabelle der Anwendung enthält eine.
+
 ## [0.1.9] - 2026-10-20
 
 Die fünfte Zwischenfassung für den Pilotbetrieb, mit den Korrekturen aus der externen

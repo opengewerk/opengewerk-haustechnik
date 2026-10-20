@@ -5,6 +5,7 @@ import {
   auditLanguage,
   auditVocabulary,
   catalogueOf,
+  drawingInThePrint,
   missingRight,
   type RoleKey,
   shippedRoles,
@@ -268,6 +269,33 @@ describe('the information about a person with an access (#355)', () => {
     expect(job?.html).not.toContain('<Nord>')
     expect(job?.html).toContain('<svg')
     expect(job?.html).not.toContain(other.name)
+  })
+
+  /**
+   * A file any editor changes holds no signature (#457): the machine-readable
+   * file says that a drawing is there, and the PDF draws it.
+   */
+  it('holds no drawing of a signature in the machine-readable file, only that one is there', async () => {
+    const found = await http()
+      .get('/settings/subject-access/matches/file?term=becker&format=json')
+      .set(testIdentityHeader, by(north.userId))
+      .expect(200)
+    const files = [await about(north.userId), JSON.parse(found.text) as SubjectAccess]
+    const drawings = files.flatMap((file) =>
+      file.parts.flatMap((part) =>
+        part.columns
+          .filter((column) => column.kind === 'drawing')
+          .flatMap((column) => part.rows.map((row) => row[column.key])),
+      ),
+    )
+
+    expect(drawings).toContain(drawingInThePrint)
+    expect(drawings.filter((value) => value !== null && value !== drawingInThePrint)).toEqual([])
+
+    // Nor anywhere else in the file: no string in it is the path of a signature.
+    const strings = [...found.text.matchAll(/"((?:[^"\\]|\\.)*)"/g)].map((match) => match[1] ?? '')
+
+    expect(strings.filter((value) => /^M\s*-?\d/.test(value))).toEqual([])
   })
 
   it('is made only by the Leitung, of a person of this operator, by a Leitung that sees every area', async () => {
