@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Delete,
+  ForbiddenException,
   Get,
   Header,
   Param,
@@ -54,7 +55,7 @@ import {
 import { memberLimitsOf, openInvitationLimits, ownLimitsOf } from '../limits/limits.js'
 import { dayInGermany } from '../today.js'
 import { RequiresPermission } from './authorization.js'
-import type { Asking } from './places.js'
+import { type Asking, seesEveryAreaNow } from './places.js'
 
 /** An area as the screen of the areas lists it, the people it is named for by name. */
 export type AreaWithPeople = Omit<AreaOverview, 'memberIds'> & {
@@ -62,12 +63,22 @@ export type AreaWithPeople = Omit<AreaOverview, 'memberIds'> & {
 }
 
 /**
+ * What making or removing an area answers whoever holds in some areas only
+ * (#474): a new area is held only by whoever holds in every area, and one
+ * that goes takes away what lies in it from whoever holds in it.
+ */
+const everyAreaWanted =
+  'Einen Bereich anlegen oder entfernen kann nur, wer alle Bereiche sieht: einen neuen hat nur, wer alle hat, und einen entfernten verliert jeder, der in ihm arbeitet.'
+
+/**
  * The areas of a tenant (section 2.8 of the concept, ADR 0003).
  *
  * Which areas there are is read by everybody who sees places, for the areas
  * they hold in: a list filters by them, and a new property is put into one.
  * Keeping them is a setting of the tenant, and who holds in which is part of
- * who works for it; section 7 gives both to the Leitung alone.
+ * who works for it; section 7 gives both to the Leitung alone. A role of the
+ * operator's own that holds the settings in some areas only sees and renames
+ * those, and makes and removes none (#474).
  */
 @Controller('areas')
 export class AreasController {
@@ -80,7 +91,7 @@ export class AreasController {
     return this.database.forTenant(identity, (tx) => areasInSight(tx))
   }
 
-  /** Every area with its properties, its buildings and the people it is named for. */
+  /** Every area the person holds in, with its properties, its buildings and the people it is named for. */
   @Get('overview')
   @RequiresPermission('settings.read')
   async overview(@CurrentIdentity() identity: Asking): Promise<AreaWithPeople[]> {
@@ -206,7 +217,13 @@ export class AreasController {
   create(@CurrentIdentity() identity: Asking, @Body() body: unknown): Promise<Area> {
     const { name } = pick(body, ['name'] as const)
 
-    return this.database.forTenant(identity, (tx) => createArea(tx, identity.tenantId, name))
+    return this.database.forTenant(identity, async (tx) => {
+      if (!(await seesEveryAreaNow(tx))) {
+        throw new ForbiddenException(everyAreaWanted)
+      }
+
+      return createArea(tx, identity.tenantId, name)
+    })
   }
 
   @Patch(':id')
@@ -232,7 +249,13 @@ export class AreasController {
     @Param('id') id: string,
     @Query('moveTo') moveTo: string | undefined,
   ): Promise<{ readonly removed: string; readonly moved: number }> {
-    return this.database.forTenant(identity, (tx) => removeArea(tx, id, moveTo))
+    return this.database.forTenant(identity, async (tx) => {
+      if (!(await seesEveryAreaNow(tx))) {
+        throw new ForbiddenException(everyAreaWanted)
+      }
+
+      return removeArea(tx, id, moveTo)
+    })
   }
 }
 

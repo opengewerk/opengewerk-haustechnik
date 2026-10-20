@@ -48,6 +48,10 @@ let north = ''
 let south = ''
 let theirs = ''
 
+/** What making or removing an area answers whoever does not see every area (#474). */
+const everyAreaWanted =
+  'Einen Bereich anlegen oder entfernen kann nur, wer alle Bereiche sieht: einen neuen hat nur, wer alle hat, und einen entfernten verliert jeder, der in ihm arbeitet.'
+
 const people = {
   'u-lead': { role: 'management', name: 'Sabine Krämer' },
   'u-duties': { role: 'technical_management', name: 'Jörg Albrecht' },
@@ -566,29 +570,33 @@ describe('removing an area', () => {
     await remove(id, south).expect(200)
   })
 
-  it('is refused to whoever does not see every property in it, and says who can', async () => {
+  it('is refused to whoever does not see every area, and says who can', async () => {
     const id = await areaNamed('Außenbezirk')
+    const empty = await areaNamed('Leerstand')
 
     await propertyIn(id, 'Pumpwerk')
 
     // Somebody who may change settings and holds in the north alone: a role
-    // a tenant could make from phase 2 on.
+    // of the operator's own (#474).
     const narrow = JSON.stringify({
       userId: 'u-site',
       tenantId: large,
       roles: ['site_management'],
       rights: ['settings.write'],
     })
-    const answer = await http()
-      .delete(`/areas/${id}?moveTo=${north}`)
-      .set(testIdentityHeader, narrow)
-      .expect(409)
 
-    expect(answer.body.message).toBe(
-      'In diesem Bereich liegen Liegenschaften, die Sie nicht sehen. Entfernen kann ihn, wer alle Bereiche sieht.',
-    )
+    for (const path of [`/areas/${id}?moveTo=${north}`, `/areas/${empty}`, `/areas/${north}`]) {
+      const answer = await http().delete(path).set(testIdentityHeader, narrow).expect(403)
+
+      expect(answer.body.message).toBe(everyAreaWanted)
+    }
+
     expect(await seenBy('u-lead')).toContain('Pumpwerk')
-    expect((await admin.query('select 1 from areas where id = $1', [id])).rowCount).toBe(1)
+    expect(
+      (await admin.query('select 1 from areas where id = any($1)', [[id, empty, north]])).rowCount,
+    ).toBe(3)
+
+    await remove(empty).expect(200)
   })
 
   it('finds no area that is not this tenant’s', async () => {
@@ -599,6 +607,76 @@ describe('removing an area', () => {
     }
 
     expect((await admin.query('select 1 from areas where id = $1', [theirs])).rowCount).toBe(1)
+  })
+})
+
+/**
+ * A role of the operator's own that holds the settings in some areas only
+ * (#474): it sees those areas alone, with the people named for them, renames
+ * only them, and makes and removes none.
+ */
+describe('the areas of a role that holds the settings in some of them', () => {
+  const narrow = JSON.stringify({
+    userId: 'u-site',
+    tenantId: large,
+    roles: ['site_management'],
+    rights: ['location.read', 'settings.read', 'settings.write'],
+  })
+
+  it('are the own ones in the overview, with the people named for them, and in its table', async () => {
+    const overview = (
+      await http().get('/areas/overview').set(testIdentityHeader, narrow).expect(200)
+    ).body as { id: string; members: { userId: string }[] }[]
+
+    expect(overview.map((area) => area.id)).toEqual([north])
+    expect(overview[0]?.members.map((member) => member.userId).sort()).toEqual(['u-site', 'u-tech'])
+
+    const all = (await http().get('/areas/overview').set(testIdentityHeader, by('u-lead')))
+      .body as { id: string }[]
+
+    expect(all.map((area) => area.id)).toEqual(expect.arrayContaining([north, south]))
+
+    const table = await http()
+      .get('/areas/overview/table?format=csv')
+      .set(testIdentityHeader, narrow)
+      .expect(200)
+
+    expect(table.text).toContain('Nord')
+    expect(table.text).not.toContain('Sporthalle Süd')
+    expect(table.text).not.toContain('Tobias Wendt')
+  })
+
+  it('are renamed by it, and another area is none it finds', async () => {
+    const outside = await http()
+      .patch(`/areas/${south}`)
+      .set(testIdentityHeader, narrow)
+      .send({ name: 'Übernommen' })
+      .expect(404)
+
+    expect(outside.body.message).toBe('Diesen Bereich gibt es nicht oder nicht mehr.')
+    await http()
+      .patch(`/areas/${north}`)
+      .set(testIdentityHeader, narrow)
+      .send({ name: ' Nord ' })
+      .expect(200)
+
+    const { rows } = await admin.query<{ name: string }>(
+      'select name from areas where id = any($1) order by name',
+      [[north, south]],
+    )
+
+    expect(rows.map((row) => row.name)).toEqual(['Nord', 'Süd'])
+  })
+
+  it('are made only by whoever sees every area', async () => {
+    const refused = await http()
+      .post('/areas')
+      .set(testIdentityHeader, narrow)
+      .send({ name: 'Neubaugebiet' })
+      .expect(403)
+
+    expect(refused.body.message).toBe(everyAreaWanted)
+    expect((await admin.query(`select 1 from areas where name = 'Neubaugebiet'`)).rowCount).toBe(0)
   })
 })
 

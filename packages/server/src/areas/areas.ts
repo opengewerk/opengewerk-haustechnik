@@ -43,11 +43,13 @@ const unknownArea = 'Den Bereich gibt es bei diesem Betreiber nicht.'
 /** The key that keeps a name to one area of a tenant, whatever its case. */
 const oneAreaPerName = 'areas_name_once'
 
-/** The key by which a property names its area. */
-const propertyNamesAnArea = 'properties_in_an_area_of_the_tenant'
-
-/** The key by which a building names an area of its own (#306). */
-const buildingNamesAnArea = 'buildings_in_an_own_area_of_the_tenant'
+/**
+ * The areas the person asking holds in: all of them for whoever sees every
+ * area, the ones named otherwise, those of somebody they stand in for today
+ * included. Nobody sees or renames an area beyond them (#474). In
+ * parentheses, so that it stays one condition beside another.
+ */
+const inSight = sql`((select session_sees_all_areas()) or ${areas.id} = any ((select session_areas())::uuid[]))`
 
 const inGerman = (left: { name: string }, right: { name: string }) =>
   byNameIn(left.name, right.name)
@@ -84,23 +86,20 @@ export interface AreaOverview extends Area {
  * today included. What a list filters by and what a new property is put into.
  */
 export async function areasInSight(tx: TenantTransaction): Promise<Area[]> {
-  const rows = await tx
-    .select({ id: areas.id, name: areas.name })
-    .from(areas)
-    .where(
-      sql`(select session_sees_all_areas()) or ${areas.id} = any ((select session_areas())::uuid[])`,
-    )
+  const rows = await tx.select({ id: areas.id, name: areas.name }).from(areas).where(inSight)
 
   return rows.sort(inGerman)
 }
 
 /**
- * Every area of the tenant with its properties, its buildings and the people
- * it is named for. The properties and buildings are those the person asking
- * sees, which for the Leitung is all of them.
+ * The areas the person asking holds in with their properties, their
+ * buildings and the people they are named for: every area of the tenant for
+ * whoever sees all of them, which the Leitung does, and only the own ones for
+ * a role of the operator's own that holds in some (#474). The properties and
+ * buildings are those the person asking sees.
  */
 export async function areaOverview(tx: TenantTransaction): Promise<AreaOverview[]> {
-  const all = await tx.select({ id: areas.id, name: areas.name }).from(areas)
+  const all = await tx.select({ id: areas.id, name: areas.name }).from(areas).where(inSight)
   const held = await tx
     .select({ id: properties.id, name: properties.name, areaId: properties.areaId })
     .from(properties)
@@ -181,7 +180,7 @@ export async function createArea(
   }
 }
 
-/** Gives an area another name. */
+/** Gives an area another name: one the person asking holds in, and no other is found. */
 export async function renameArea(tx: TenantTransaction, id: string, name: unknown): Promise<Area> {
   const wanted = nameFrom(name)
 
@@ -193,7 +192,7 @@ export async function renameArea(tx: TenantTransaction, id: string, name: unknow
     const [renamed] = await tx
       .update(areas)
       .set({ name: wanted, updatedAt: new Date() })
-      .where(eq(areas.id, id as AreaId))
+      .where(and(eq(areas.id, id as AreaId), inSight))
       .returning({ id: areas.id, name: areas.name })
 
     if (renamed === undefined) {
@@ -250,9 +249,10 @@ function stillHolds(live: number, buildings: number, removedBuildings: boolean):
  * holds in one area less afterwards, in none when it was their only one;
  * nobody is blocked by that.
  *
- * A tenant keeps one area. And whoever does not see every property of the
- * area cannot empty it: the key of a property out of their sight refuses the
- * removal, and the answer says who can.
+ * A tenant keeps one area. Only whoever sees every area removes one, which
+ * the route asks (#474): somebody else does not see every property of it,
+ * and whoever holds in it loses it. The key of a property still in the area
+ * refuses the removal all the same.
  */
 export async function removeArea(
   tx: TenantTransaction,
@@ -314,36 +314,9 @@ export async function removeArea(
          and buildings.own_area_id = ${id as AreaId}`)
   }
 
-  try {
-    await tx.delete(areas).where(eq(areas.id, id as AreaId))
-  } catch (error) {
-    if (violatesKey(error, propertyNamesAnArea)) {
-      throw new ConflictException(
-        'In diesem Bereich liegen Liegenschaften, die Sie nicht sehen. Entfernen kann ihn, wer alle Bereiche sieht.',
-      )
-    }
-
-    throw violatesKey(error, buildingNamesAnArea)
-      ? new ConflictException(
-          'In diesem Bereich liegen Gebäude, die Sie nicht sehen. Entfernen kann ihn, wer alle Bereiche sieht.',
-        )
-      : error
-  }
+  await tx.delete(areas).where(eq(areas.id, id as AreaId))
 
   return { removed: id as AreaId, moved: held }
-}
-
-/** Whether the database refused a statement for the named foreign key. */
-function violatesKey(error: unknown, key: string): boolean {
-  for (const candidate of [error, (error as { cause?: unknown } | undefined)?.cause]) {
-    const found = candidate as { code?: unknown; constraint?: unknown } | undefined
-
-    if (found?.code === '23503' && found.constraint === key) {
-      return true
-    }
-  }
-
-  return false
 }
 
 /** The areas everybody who works for the tenant holds in. */
