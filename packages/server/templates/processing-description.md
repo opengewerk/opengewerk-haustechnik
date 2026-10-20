@@ -53,6 +53,7 @@ Anhang B nennt jedes Feld der Datenbank, das auf eine Person zeigt. Dieser Absch
 - Ein Konto hält den Namen, die E-Mail-Adresse, ob die Adresse bestätigt ist und ob ein zweiter Faktor eingerichtet ist. Das Passwort steht nur als Hash in der Datenbank, der zweite Faktor und seine Wiederherstellungscodes verschlüsselt. [K3, K9]
 - **Zusage:** Zu einem Passkey stehen der Name, den die Person ihm gibt, die Art des Geräts und wann er angelegt und zuletzt benutzt wurde. Sehen kann ihn nur das eigene Konto. [K3, B52]
 - Ein Protokoll fehlgeschlagener Anmeldungen je Konto gibt es nicht. Gezählt werden Versuche je Netzadresse und Weg, für kurze Zeit, damit niemand Passwörter durchprobiert. [K9, B46]
+- Jedes neue Passwort eines Kontos, über den Link aus der E-Mail oder auf dem Server gesetzt, steht mit dem Zeitpunkt bei jedem Betreiber, für den das Konto arbeitet, und in seinem Änderungsprotokoll, nie der Link. Einen Tag danach lässt sich auf dem Konto weder ein zweiter Faktor noch ein Passkey einrichten, damit eine Übernahme nicht still bleibt. Ändert jemand den Mailserver der Instanz, über den diese Links hinausgehen, steht das ebenso bei jedem Betreiber, und seine Leitung bekommt eine E-Mail über den Mailserver von vorher. [K9]
 
 ### 3.2 Zugehörigkeit, Rollen, Bereiche, Vertretung
 
@@ -79,6 +80,7 @@ Anhang B nennt jedes Feld der Datenbank, das auf eine Person zeigt. Dieser Absch
 - **Zusage:** Jede Person sieht unter „Konto“ die Geräte, auf denen sie angemeldet ist, und meldet sie dort ab. Die Geräte eines anderen Kontos sieht sie nicht und meldet sie nicht ab. [K3, B42, B43]
 - Die Leitung sieht unter „Zugänge“, auf welchen Geräten eine Person bei diesem Betreiber angemeldet ist, seit wann und bis wann, und kann ein Gerät abmelden. [K9, B49]
 - Jede Anmeldung bei einem Betreiber und jede Abmeldung steht als Zeile fest: wer, welches Gerät, Beginn, Ende, Weg der Anmeldung. Diese Zeilen stehen auch im Änderungsprotokoll. [K9, B45]
+- Ein Konflikt beim Abgleich hält das Gerät und die Person, deren Änderung es war. Nur diese Person sieht ihn und entscheidet ihn, auf einem geteilten Gerät also nicht die nächste, die sich dort anmeldet, und die Werte darin nur, solange sie den Datensatz sieht. [K9]
 - Die Liste „Zugänge“ zeigt je Person die Rollen, ob sie gesperrt ist, wann sie zuletzt bei diesem Betreiber angemeldet war, ob ein zweiter Faktor eingerichtet ist und ob es einen Passkey gibt. [K7, B48]
 
 ### 3.4 Zuständigkeit und Zuteilung
@@ -189,6 +191,7 @@ Anhang B nennt jedes Feld der Datenbank, das auf eine Person zeigt. Dieser Absch
 - Wer eine Fassung abgelegt hat, reist als Kennung des Kontos mit der Fassung: sie steht in den Antworten des Servers und auf den Geräten derer, die das Dokument sehen. Anders als der Stempel eines Datensatzes (Abschnitt 3.6) gehört sie zur Fassung selbst. [K2.7, K4.10]
 - Der Bildschirm „Dokumente“ und die Karten an Anlage, Raum und Liegenschaft nennen zu einer Fassung den Tag, an dem sie abgelegt wurde, und weder die Person noch die Uhrzeit. Wer eine Fassung abgelegt hat, zeigt das Änderungsprotokoll, das zu einem Dokument auch seine Fassungen nennt (Abschnitt 8). [K4.10, K9, B83]
 - **Zusage:** Die Datei einer Fassung gibt der Server nur an den aus, der sieht, woran das Dokument hängt: beim eigenen Betreiber und in den Bereichen der Person. Wer außerhalb steht, bekommt dieselbe Antwort wie auf eine Fassung, die es nie gab. [K4.10, K2.8, B84]
+- Wer eine Datei abgelegt hat, steht fest, lesbar nur für die Person selbst. Ein Datensatz nennt eine Datei nur, wenn die Person sie selbst abgelegt hat oder eine Zeile, die sie sieht, sie schon nennt; die Datei eines anderen Bereichs kommt so nicht über einen eigenen Datensatz heraus. [K9]
 - Die Tabelle der Dokumente (Abschnitt 5) nennt zu jedem Dokument die Datei, die Zahl seiner Fassungen und den Tag, an dem die neueste abgelegt wurde („Abgelegt am“), aber weder die Person, die sie abgelegt hat, noch die Uhrzeit. [K3, K4.10, B206]
 - Dokumente ansehen und ablegen können alle vier Rollen, jede in ihren Bereichen; dazu gehören eine neue Fassung und die Berichtigung von Bezeichnung und Art. Aus der Ablage nehmen können ein Dokument die Leitung, die Technische Leitung und die Objektleitung. [K7, B85, B72, B86]
 - **Zusage:** Ein Dokument, das jemand aus der Ablage nimmt, wird markiert und nicht gelöscht, und ausgegeben wird es danach niemandem mehr. Seine Fassungen und ihre Dateien bleiben aufbewahrt, und mit ihnen, wer sie abgelegt hat (Abschnitt 7). [K4.10, B87]
