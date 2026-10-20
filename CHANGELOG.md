@@ -192,6 +192,13 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
 
 ### Sicherheit
 
+- Das Submodul `upstream/opengewerk` steht auf `1d01a3a` (opengewerk/opengewerk#705, #706 und #707), mit der
+  Migration `0097_instance_own_invitations`. Wer die Instanz betreibt, sieht von den offenen Einladungen zur Leitung
+  eines Betreibers nur noch die, die jemand aus dem Bereich der Instanz verschickt hat (#474, Punkt 6), und eine
+  Instanz startet nicht mit einer Datenbankrolle, die Superuser ist, `BYPASSRLS` hat, Tabellen besitzt oder Mitglied
+  des Eigentümers ist. Gefunden in der Sicherheitsprüfung (#360). Warum: die Liste der Instanz nannte auch Adressen,
+  die die Leitung eines Betreibers eingeladen hatte, und geprüft wurde bisher nur der Name der Rolle.
+
 - Der Abgleich gibt einem Gerät von jeder Art Datensatz nur noch, was seiner Person auch die Route im Büro zeigt
   (#360): ohne „Anlagen ansehen“ keine Anlagen mit Zählern, Elektro- und PV-Struktur und keine Etiketten von Anlagen,
   ohne „Pflichten ansehen“ keine Pflichten, ohne „Vorgänge ansehen“ keine Vorgänge, Aufträge, Vorlagen und Pläne der
