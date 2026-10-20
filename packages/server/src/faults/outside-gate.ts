@@ -71,9 +71,10 @@ export type FormState = 'good' | 'early' | 'stale'
  * party). Three things, all in this process:
  *
  * - a limit per hour, on opening the page per address, and on reports per
- *   address and per label. The label is counted by its code as it was
- *   written, known or not, so that the limit says nothing about whether a
- *   code exists;
+ *   address and per label. The address counts every request for a report;
+ *   the label counts only a report that passed its checks and is written
+ *   (#472), so that requests that fail at the field nobody sees, at the form
+ *   or at their fields do not use up the reports a label takes;
  * - the form the page sends back, which carries when it was handed out under
  *   a key of this process: a report sent sooner than a person reads the page
  *   is taken as from a machine, one older than a day as stale, and so is one
@@ -99,9 +100,10 @@ export class OutsideReports {
   }
 
   /**
-   * Whether one more report is allowed from this address and over this code.
-   * Counted against both once it is, and against neither when one refuses: a
-   * report turned away at one limit does not use up the other.
+   * Whether one more request for a report is allowed from this address and
+   * over this code. Counted against the address once it is, whatever becomes
+   * of the request, and against neither when one refuses. The code is only
+   * asked here: a report over it is counted once it is written (`takeLabel`).
    */
   takeReport(address: string, code: string): boolean {
     const now = this.now()
@@ -111,9 +113,17 @@ export class OutsideReports {
     }
 
     this.byAddress.take(address, now)
-    this.byLabel.take(code, now)
 
     return true
+  }
+
+  /**
+   * Whether one more report over this code is allowed, counted against it
+   * once it is: for a report that passed its checks and is about to be
+   * written, and for nothing before (#472).
+   */
+  takeLabel(code: string): boolean {
+    return this.byLabel.take(code, this.now())
   }
 
   /** The form for the page of a code, with the moment it was handed out. */

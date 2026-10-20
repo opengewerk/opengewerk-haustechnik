@@ -208,10 +208,11 @@ export class OutsideReportsController {
   }
 
   /**
-   * A report over a label. Counted against its address and its code before
-   * anything else; a form sent faster than a person reads the page, and the
-   * field nobody sees filled in, are answered as a report is and keep
-   * nothing, so that a machine learns nothing from the answer.
+   * A report over a label. Counted against its address before anything else,
+   * and against its code once it has passed its checks and is written
+   * (#472); a form sent faster than a person reads the page, and the field
+   * nobody sees filled in, are answered as a report is and keep nothing, so
+   * that a machine learns nothing from the answer.
    */
   @Post(':code')
   @PublicRoute()
@@ -280,6 +281,12 @@ export class OutsideReportsController {
 
       if (category === undefined) {
         throw new BadRequestException(missingCategory)
+      }
+
+      // Only now: a request that fails at a check before does not use up the
+      // reports a label takes (#472).
+      if (!this.gate.takeLabel(code)) {
+        throw tooMany()
       }
 
       const [made] = await tx

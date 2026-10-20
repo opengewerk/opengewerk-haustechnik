@@ -10,7 +10,8 @@ export type Problems = Record<string, string>
  * A text the record has to have, named by its subject ("Die Bezeichnung").
  * Undefined is a field that was not given, as in a change of other fields,
  * and is not asked about; null or nothing but spaces is a field that was
- * emptied.
+ * emptied. A check of a new record hands in null for what was not given, so
+ * that a field left out is missing as one that was emptied (#472).
  */
 export function required(
   problems: Problems,

@@ -127,7 +127,14 @@ export function awaitsDecision(state: FaultReportState): boolean {
 export function faultReportProblems(report: Readonly<Record<string, unknown>>): Readonly<Problems> {
   const problems: Problems = {}
 
-  required(problems, report, 'description', faultReportLimits.description, 'Die Beschreibung')
+  // A new report: a description left out is missing, as one left empty (#472).
+  required(
+    problems,
+    { description: report['description'] ?? null },
+    'description',
+    faultReportLimits.description,
+    'Die Beschreibung',
+  )
 
   if (typeof report['categoryId'] !== 'string' || report['categoryId'] === '') {
     problems['categoryId'] = 'Die Kategorie fehlt.'
@@ -346,7 +353,7 @@ export function faultReportSettingsProblems(
 export const outsideReportRules = {
   /** Reports per hour from one address, over any label. */
   perAddress: 5,
-  /** Reports per hour over one label, from anywhere; counted for a code as written, known or not. */
+  /** Reports per hour over one label, from anywhere; counted for a report that is written (#472). */
   perLabel: 10,
   /** Openings of the page per hour from one address. */
   pagesPerAddress: 60,
@@ -415,7 +422,14 @@ export function looksLikeAnAddress(value: string): boolean {
 export function outsideReportProblems(body: Readonly<Record<string, unknown>>): Readonly<Problems> {
   const problems: Problems = {}
 
-  required(problems, body, 'description', faultReportLimits.description, 'Die Beschreibung')
+  // A new report: a description left out is missing, as one left empty (#472).
+  required(
+    problems,
+    { description: body['description'] ?? null },
+    'description',
+    faultReportLimits.description,
+    'Die Beschreibung',
+  )
 
   if (typeof body['categoryId'] !== 'string' || body['categoryId'] === '') {
     problems['categoryId'] = 'Die Kategorie fehlt.'

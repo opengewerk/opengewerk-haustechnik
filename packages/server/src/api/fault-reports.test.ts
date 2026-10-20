@@ -365,6 +365,26 @@ describe('reporting a fault', () => {
     ).toBe('Diese Kategorie gibt es nicht oder nicht mehr.')
   })
 
+  it('needs a description, one left out as one left empty, and keeps nothing without it (#472)', async () => {
+    const [category] = await categories()
+    const counted = () => one<{ n: number }>('select count(*)::int as n from fault_reports', [])
+    const before = await counted()
+
+    for (const description of [undefined, null, '  ']) {
+      expect(
+        (
+          await send('u-melder', {
+            categoryId: category?.id,
+            roomId: north.room,
+            description,
+          }).expect(400)
+        ).body.message,
+      ).toBe('Die Beschreibung fehlt.')
+    }
+
+    expect(await counted()).toEqual(before)
+  })
+
   it('shows the Melder nothing behind its report: no work order, no asset, no defect, no inbox', async () => {
     const id = await reported('u-melder', { assetId: north.asset })
 

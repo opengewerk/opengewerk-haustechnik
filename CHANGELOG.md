@@ -120,6 +120,13 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
 
 ### Behoben
 
+- Die Meldeseite eines Etiketts zählt gegen ihre Grenze von zehn Meldungen je Etikett und Stunde nur noch Meldungen, die
+  sie annimmt; eine Anfrage, die am versteckten Feld, am Formularstand oder an ihren Feldern scheitert, zählt nur gegen
+  die Grenze je Anschluss (#472). Eine Störmeldung ohne Beschreibung weist der Server ab wie eine mit leerer, auf der
+  Meldeseite wie mit Anmeldung. Gefunden in der Sicherheitsprüfung (opengewerk-haustechnik#360). Warum: jede Anfrage
+  verbrauchte die Grenze des Etiketts, bevor sie geprüft war, und eine fehlende Beschreibung kam als Text „undefined“ in
+  die Meldung.
+
 - Die Auswahl „Charakteristik“ im Formular eines Stromkreises zeigt ihren Wert ganz, auch „nicht angegeben“, im Büro
   und vor Ort (aus dem Fundament, opengewerk/opengewerk#683, Submodul `upstream/opengewerk` auf `26430c8` angehoben).
   Warum: bis 1280 Pixel Breite schnitt sie ihren Wert ab, auf dem Telefon wie in einem schmalen Dialog; gefunden bei

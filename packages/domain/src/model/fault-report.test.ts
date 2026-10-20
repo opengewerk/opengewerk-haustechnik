@@ -7,6 +7,7 @@ import {
   faultReportProblems,
   faultReportState,
   mergeProblem,
+  outsideReportProblems,
   proposedFaultCategories,
 } from './fault-report.js'
 
@@ -38,10 +39,33 @@ describe('the state of a fault report', () => {
   })
 })
 
+describe('a report without an account', () => {
+  it('needs a category and a description, one left out as one left empty, and a contact only where one is given (#472)', () => {
+    expect(outsideReportProblems({ categoryId: 'c', description: 'Tür klemmt.' })).toEqual({})
+
+    for (const description of [undefined, null, ' ']) {
+      expect(outsideReportProblems({ categoryId: 'c', description })).toEqual({
+        description: 'Die Beschreibung fehlt.',
+      })
+    }
+
+    expect(outsideReportProblems({ description: 'Tür klemmt.' })).toEqual({
+      categoryId: 'Die Kategorie fehlt.',
+    })
+    expect(
+      outsideReportProblems({ categoryId: 'c', description: 'Tür klemmt.', contact: 'keine' }),
+    ).toEqual({ contact: 'Das sieht nicht nach einer E-Mail-Adresse aus.' })
+  })
+})
+
 describe('a new fault report', () => {
   it('needs a category, a description and exactly one of a building, a room or an asset', () => {
     expect(faultReportProblems({ categoryId: 'c', description: 'Kalt.', roomId: 'r' })).toEqual({})
     expect(faultReportProblems({ categoryId: 'c', description: ' ', buildingId: 'b' })).toEqual({
+      description: 'Die Beschreibung fehlt.',
+    })
+    // Left out as left empty (#472).
+    expect(faultReportProblems({ categoryId: 'c', buildingId: 'b' })).toEqual({
       description: 'Die Beschreibung fehlt.',
     })
     expect(faultReportProblems({ description: 'Kalt.', assetId: 'a' })).toEqual({
