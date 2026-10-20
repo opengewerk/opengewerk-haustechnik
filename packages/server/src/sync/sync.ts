@@ -1,6 +1,7 @@
 import { type Catalogue, offlineEditRefusal, offlineRules } from '@opengewerk/haustechnik-domain'
 import {
   attachmentVersionFiles,
+  type FilePlace,
   recordRulesCheck,
   type ServerSync,
   serverSync,
@@ -8,7 +9,7 @@ import {
   type SyncCheckContext,
   syncTables,
 } from '@opengewerk/platform-server'
-import { getTableColumns } from 'drizzle-orm'
+import { and, eq, getTableColumns, isNotNull, isNull, or } from 'drizzle-orm'
 import type { PgColumn } from 'drizzle-orm/pg-core'
 
 import { assignNumber } from '../database/number-ranges.js'
@@ -78,7 +79,42 @@ const normalised: Check = ({ table, values }) => {
  * A file that never arrived is a conflict about this one version, and not the
  * refusal of everything a device sent with it.
  */
-const versionFile: Check = attachmentVersionFiles()
+const versionFile: Check = attachmentVersionFiles([versionsOnAPlace()])
+
+/**
+ * Where else the file of a new version may come from (#360): a version in
+ * reach of the person, of a document not taken out of the records, that has
+ * these bytes as its file or its preview, so that a file laid over one
+ * document may be laid over another by whoever can open it there.
+ *
+ * Only a document on a place. One of a contractor or of a contract goes out
+ * with a right of its own (`readable`), which a place of the sync does not
+ * ask, so its files are not named from here; whoever lays one of them over
+ * another document sends the file again.
+ */
+function versionsOnAPlace(): FilePlace {
+  const { attachments, attachmentVersions: versions } = schema
+
+  return async (tx, sha256) => {
+    const [named] = await tx
+      .select({ id: versions.id })
+      .from(versions)
+      .innerJoin(
+        attachments,
+        and(eq(attachments.tenantId, versions.tenantId), eq(attachments.id, versions.attachmentId)),
+      )
+      .where(
+        and(
+          isNull(attachments.deletedAt),
+          isNotNull(attachments.propertyId),
+          or(eq(versions.sha256, sha256), eq(versions.previewSha256, sha256)),
+        ),
+      )
+      .limit(1)
+
+    return named !== undefined
+  }
+}
 
 /**
  * What the server puts in on the way to the database (ADR 0006, point 8): the

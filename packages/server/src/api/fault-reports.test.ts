@@ -3,7 +3,7 @@ import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
-import type { INestApplication } from '@nestjs/common'
+import { HttpException, type INestApplication } from '@nestjs/common'
 import { Test } from '@nestjs/testing'
 import { probeCatalogueBundle } from '@opengewerk/haustechnik-catalogue/testing'
 import {
@@ -24,10 +24,10 @@ import {
   type TenantId,
   type WorkOrderDetails,
 } from '@opengewerk/haustechnik-domain'
-import { Database, FileStore, newId } from '@opengewerk/platform-server'
+import { Database, FileStore, newId, UploadLimits } from '@opengewerk/platform-server'
 import type { Pool } from 'pg'
 import request from 'supertest'
-import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 
 import {
   applicationDatabaseUrl,
@@ -532,6 +532,43 @@ describe('reporting a fault', () => {
       .set(testIdentityHeader, by('u-melder-2'))
       .expect(404)
     await http().get(`/fault-reports/${id}/photo`).set(testIdentityHeader, by('u-site')).expect(200)
+  })
+
+  it('takes as the photo of a report only one the person sent, and asks the limits before it keeps one (#360)', async () => {
+    // Sent by another Melder: its hash names nothing the first may hang on a
+    // report, and is answered like a photo never sent.
+    const theirs = photo('u-melder-2', Buffer.concat([png, Buffer.from('zweites')]), 'image/png')
+
+    await theirs.answer.expect(200)
+
+    const [category] = await categories()
+
+    expect(
+      (
+        await send('u-melder', {
+          categoryId: category?.id,
+          description: 'Die Tür klemmt.',
+          roomId: north.room,
+          photoSha256: theirs.sha256,
+        }).expect(400)
+      ).body.message,
+    ).toBe('Das Foto ist nicht angekommen. Nehmen Sie es noch einmal auf.')
+
+    // Past what an hour allows: refused before anything is kept.
+    const limits = vi
+      .spyOn(UploadLimits.prototype, 'admit')
+      .mockRejectedValueOnce(new HttpException('Für diese Stunde ist es genug.', 429))
+    const over = photo('u-melder', Buffer.concat([png, Buffer.from('drittes')]), 'image/png')
+
+    try {
+      await over.answer.expect(429)
+      expect(limits).toHaveBeenCalledTimes(1)
+      expect(
+        (await admin.query('select 1 from files where sha256 = $1', [over.sha256])).rows,
+      ).toEqual([])
+    } finally {
+      limits.mockRestore()
+    }
   })
 })
 

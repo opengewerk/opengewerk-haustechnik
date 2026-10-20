@@ -30,7 +30,7 @@ guarded_route=/staff
 # The tables counted before the backup and after the restore. The area and
 # the place of the account in it come with the account: a Betreiber gets its
 # first area with its first membership.
-counted_tables='auth_users memberships tenant_roles account_corrections areas member_areas invitations invitation_area_choices invitation_areas properties buildings contacts building_closures assets files mail_settings deadline_settings deadline_runs duties duty_dismissals evidence deadlines activities activity_duties activity_answers work_orders work_order_participants work_order_notes defects fault_categories fault_reports fault_report_settings fault_report_contacts meter_points meter_readings meter_exchanges meter_pauses meter_settings distribution_boards board_sections circuits equipment inverters pv_strings pv_modules work_order_settings activity_signatures work_order_decisions service_reports service_report_records briefings work_permits articles suppliers stores store_articles stock_movements work_order_materials store_labels contractors contracts contract_items qualification_kinds qualifications member_limit_properties member_limit_asset_kinds invitation_limit_properties invitation_limit_asset_kinds auditor_reads evidence_voidings evidence_emptyings evidence_retention_settings membership_settings membership_removals processing_descriptions privacy_documents processing_record_settings processing_record_activities audit_redactions round_records prints attachments attachment_versions labels imports import_records own_asset_kinds own_asset_fields asset_kind_names defect_class_terms round_templates round_template_versions round_plans tasks mail_outbox push_subscriptions push_opt_outs push_outbox'
+counted_tables='auth_users memberships tenant_roles account_corrections password_resets account_mail_server_changes areas member_areas invitations invitation_area_choices invitation_areas properties buildings contacts building_closures assets files file_uploads mail_settings deadline_settings deadline_runs duties duty_dismissals evidence deadlines activities activity_duties activity_answers work_orders work_order_participants work_order_notes defects fault_categories fault_reports fault_report_settings fault_report_contacts meter_points meter_readings meter_exchanges meter_pauses meter_settings distribution_boards board_sections circuits equipment inverters pv_strings pv_modules work_order_settings activity_signatures work_order_decisions service_reports service_report_records briefings work_permits articles suppliers stores store_articles stock_movements work_order_materials store_labels contractors contracts contract_items qualification_kinds qualifications member_limit_properties member_limit_asset_kinds invitation_limit_properties invitation_limit_asset_kinds auditor_reads evidence_voidings evidence_emptyings evidence_retention_settings membership_settings membership_removals processing_descriptions privacy_documents processing_record_settings processing_record_activities audit_redactions round_records prints attachments attachment_versions labels imports import_records own_asset_kinds own_asset_fields asset_kind_names defect_class_terms round_templates round_template_versions round_plans tasks mail_outbox push_subscriptions push_opt_outs push_outbox'
 
 # The migrations, and how many of them make the older state an update starts
 # from: the first, without the sequence for work orders that the second brings.
@@ -241,6 +241,16 @@ records_for_backup() {
     select s.tenant_id, 'deadline_due', 'deadline_due:probe:2027-03-01', s.id, 'Frist am 01.03.2027',
            'Fälligkeit einer Pflicht', '/fristen', 'sent', now(), now() + interval '1 day'
       from push_subscriptions s where s.tenant_id = '$first_tenant';"
+  # A new password of an account and a change of the mail server of the
+  # instance, as every Betreiber keeps them (opengewerk-haustechnik#360). Who
+  # stored the file above stands in file_uploads already: the route writes it
+  # with the file.
+  sql "
+    insert into password_resets (tenant_id, user_id)
+    select m.tenant_id, m.user_id
+      from memberships m where m.tenant_id = '$first_tenant' order by m.user_id limit 1;
+    insert into account_mail_server_changes (tenant_id, host_after, from_after)
+    values ('$first_tenant', 'mail.instanz.example', 'zugang@instanz.example');"
   # A mail server, whose table comes with the foundation as well
   # (opengewerk-haustechnik#23). The Leitung sets it under
   # "E-Mail-Einstellungen" (opengewerk-haustechnik#126).

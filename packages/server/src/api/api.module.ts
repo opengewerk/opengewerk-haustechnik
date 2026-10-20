@@ -47,6 +47,7 @@ import { CATALOGUE, shippedCatalogue } from '../catalogue.js'
 import { changeNumberRange, numberRangesOf } from '../database/number-ranges.js'
 import { deadlineRulesFor } from '../deadlines/routes.js'
 import { namedByImports } from '../imports/first-values.js'
+import { accountMessages } from '../mail/account-messages.js'
 import { mailServersOfOperators } from '../mail/server-settings.js'
 import { invitationMailing } from '../notifications/invitation-mail.js'
 import { pushRules } from '../notifications/push.js'
@@ -280,6 +281,9 @@ export class ApiModule {
       invitationMailing: invitationMailing(database, mail),
       instanceSettings: options.instance?.settings,
       legalTexts: options.legalTexts,
+      // The words of the mails to an account, for the area of the instance:
+      // it tells the lead of every operator of a new mail server in them (#360).
+      accountMessages,
     })
     // The routes a device syncs through, with the rules of this application
     // and the catalogue its asset kinds come from: the bar of the sync on

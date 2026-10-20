@@ -179,6 +179,61 @@ export function passkeyAddedMessage(facts: {
   return { subject: `Ein neuer Passkey für ${facts.application}`, body }
 }
 
+/**
+ * The mail about a new mail server of the instance (#360), to the lead of
+ * every operator on it.
+ *
+ * The link to a new password goes out through that server, and whoever sets
+ * it up could read the links there. So the lead of every operator learns of a
+ * change, through the server of before: what it is now, when, where the change
+ * stands in the log, and what to do if nobody announced it. It names no person
+ * and carries no link that does anything by itself.
+ */
+export function mailServerChangedMessage(facts: {
+  readonly name: string
+  readonly host: string | null
+  readonly fromAddress: string | null
+  readonly changedAt: Date
+  readonly link: string
+  readonly application: string
+}): MessageText {
+  const when = new Intl.DateTimeFormat('de-DE', {
+    timeZone: 'Europe/Berlin',
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(facts.changedAt)
+  const what =
+    facts.host === null
+      ? `am ${when} Uhr wurde der Mailserver der Instanz entfernt. Bis wieder einer ` +
+        'eingetragen ist, bekommt niemand mehr einen Link zu einem neuen Passwort.'
+      : `am ${when} Uhr wurde der Mailserver der Instanz geändert. E-Mails an einen Zugang, ` +
+        `darunter der Link zu einem neuen Passwort, gehen jetzt über ${facts.host}, ` +
+        `als Absender steht ${facts.fromAddress ?? facts.host} darin.`
+
+  const body = [
+    greeting(facts.name || null),
+    '',
+    `${what} Diese Nachricht kommt noch über den Mailserver von vorher.`,
+    '',
+    'Die Änderung steht im Änderungsprotokoll Ihres Betreibers, ebenso jedes Passwort, das ' +
+      'für einen Zugang dort neu gesetzt wird:',
+    '',
+    facts.link,
+    '',
+    'Wenn Ihnen niemand, der die Instanz betreibt, diese Änderung angekündigt hat, fragen Sie ' +
+      'nach und sehen Sie im Änderungsprotokoll nach, ob ein Passwort neu gesetzt wurde, das ' +
+      'niemand von Ihnen neu gesetzt hat.',
+    '',
+    '-- ',
+    facts.application,
+  ].join('\n')
+
+  return { subject: `Der Mailserver Ihrer Instanz von ${facts.application} wurde geändert`, body }
+}
+
 /** A deadline the person answers for, by the name of its kind and its day. */
 export function deadlineDuePush(facts: {
   readonly kind: string

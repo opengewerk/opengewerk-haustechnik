@@ -4670,3 +4670,127 @@ describe('the sessions from before 0095', () => {
     expect(sessions).toEqual([{ id: 'with-code' }])
   })
 })
+
+/**
+ * 0096 gives a conflict its person and records who stored a file (#360), as
+ * 0082 and 0083 do in the repository opengewerk, and adds the records of new
+ * passwords and of changes of the mail server of the instance (0084 there).
+ * What was there before gets a person where the stretches of work or the
+ * change log tell exactly one, and none where they do not.
+ */
+describe('the conflicts and files from before 0096', () => {
+  /** The migrations an installation carried before 0096. */
+  const before = 96
+
+  async function tenantWithAnnaAndOtto(): Promise<{ id: TenantId }> {
+    const tenant = { id: newId<'tenant'>() }
+
+    await admin.query('insert into tenants (id, name) values ($1, $2)', [
+      tenant.id,
+      'Wohnbau Nord eG',
+    ])
+    await admin.query(
+      `insert into auth_users (id, name, email)
+         values ('anna', 'Anna Abend', 'anna@beispiel.example'),
+                ('otto', 'Otto Ost', 'otto@beispiel.example')`,
+    )
+    await admin.query(
+      `insert into memberships (tenant_id, user_id, roles)
+         values ($1, 'anna', array['lead']), ($1, 'otto', array['lead'])`,
+      [tenant.id],
+    )
+
+    return tenant
+  }
+
+  it('give a conflict the one person who worked on its device then, and nobody where that is not one person', async () => {
+    await runMigrations(ownerDatabaseUrl(), kept(migrationsFolderUpTo(before)))
+    const tenant = await tenantWithAnnaAndOtto()
+
+    // tablet-a: Anna, still signed in, and Otto, who had signed out before
+    // the conflict came. tablet-b: both at once. desk: nobody named it.
+    await admin.query(
+      `insert into tenant_sessions (tenant_id, user_id, session_id, device_id, started_at, ended_at, sign_in_method)
+         values ($1, 'anna', 's1', 'tablet-a', now() - interval '1 hour', null, 'password'),
+                ($1, 'otto', 's2', 'tablet-a', now() - interval '3 hours', now() - interval '2 hours', 'password'),
+                ($1, 'anna', 's3', 'tablet-b', now() - interval '1 hour', null, 'password'),
+                ($1, 'otto', 's4', 'tablet-b', now() - interval '1 hour', null, 'password')`,
+      [tenant.id],
+    )
+
+    for (const device of ['tablet-a', 'tablet-b', 'desk']) {
+      await admin.query(
+        `insert into sync_conflicts
+           (tenant_id, operation_id, entity, record_id, reason, fields, wanted, seen, found, device_id, recorded_at)
+         values ($1, $2, 'record', $3, 'changed_elsewhere', array['name'], '{}', '{}', '{}', $4, now())`,
+        [tenant.id, newId(), newId(), device],
+      )
+    }
+
+    await applyMigrations()
+
+    const { rows } = await admin.query<{ device_id: string; user_id: string | null }>(
+      'select device_id, user_id from sync_conflicts order by device_id',
+    )
+
+    expect(rows).toEqual([
+      { device_id: 'desk', user_id: null },
+      { device_id: 'tablet-a', user_id: 'anna' },
+      { device_id: 'tablet-b', user_id: null },
+    ])
+  })
+
+  it('record who stored a file of before as the person the change log names for it', async () => {
+    await runMigrations(ownerDatabaseUrl(), kept(migrationsFolderUpTo(before)))
+    const tenant = await tenantWithAnnaAndOtto()
+    const byAnna = 'a'.repeat(64)
+    const byNobody = 'b'.repeat(64)
+    const client = await admin.connect()
+
+    try {
+      // As the application stores a file: in a transaction that names the
+      // person, which the change log takes over.
+      await client.query('begin')
+      await client.query(`select set_config('app.user_id', 'anna', true)`)
+      await client.query(
+        `insert into files (tenant_id, sha256, size_bytes, media_type) values ($1, $2, 2048, 'application/pdf')`,
+        [tenant.id, byAnna],
+      )
+      await client.query('commit')
+    } finally {
+      client.release()
+    }
+
+    // Put in past the application: the change log names nobody.
+    await admin.query(
+      `insert into files (tenant_id, sha256, size_bytes, media_type) values ($1, $2, 2048, 'application/pdf')`,
+      [tenant.id, byNobody],
+    )
+
+    await applyMigrations()
+
+    const { rows } = await admin.query<{ sha256: string; user_id: string }>(
+      'select sha256, user_id from file_uploads order by sha256',
+    )
+
+    expect(rows).toEqual([{ sha256: byAnna, user_id: 'anna' }])
+  })
+
+  it('loses the person, who stored which file and both records when the update is taken back', async () => {
+    await applyMigrations()
+
+    await revertMigration(admin, '0096_conflict_person_file_uploads_password_resets')
+
+    const { rows: tables } = await admin.query<{ name: string | null }>(
+      `select to_regclass(name)::text as name
+         from unnest(array['file_uploads', 'password_resets', 'account_mail_server_changes']) as name`,
+    )
+    const { rows: columns } = await admin.query<{ column_name: string }>(
+      `select column_name from information_schema.columns
+        where table_schema = 'public' and table_name = 'sync_conflicts' and column_name = 'user_id'`,
+    )
+
+    expect(tables).toEqual([{ name: null }, { name: null }, { name: null }])
+    expect(columns).toEqual([])
+  })
+})

@@ -2,6 +2,8 @@ import type { INestApplication } from '@nestjs/common'
 import { Test } from '@nestjs/testing'
 import { probeCatalogueBundle } from '@opengewerk/haustechnik-catalogue/testing'
 import {
+  auditLanguage,
+  auditVocabulary,
   catalogueOf,
   missingRight,
   type RoleKey,
@@ -422,6 +424,79 @@ describe('the information about a person with an access (#355)', () => {
     } finally {
       await admin.query('delete from member_passkeys where passkey_id = any($1)', [[known, gone]])
       await admin.query('delete from auth_passkeys where id = any($1)', [[known, elsewhere]])
+    }
+  })
+
+  /**
+   * Who stored a file is held for that person alone, and whose change met
+   * another state and whose password was set anew name the person too (#360):
+   * the Leitung finds each in the information about the person, without the
+   * values of the conflict, and none in the information about anybody else.
+   */
+  it('names the files, conflicts and new passwords of the person, nobody else', async () => {
+    const sha256 = 'c0ffee'.repeat(10) + 'beef'
+    const conflictId = newId()
+    const language = auditLanguage(auditVocabulary)
+
+    await admin.query(
+      `insert into files (tenant_id, sha256, size_bytes, media_type) values ($1, $2, 4321, 'image/jpeg')`,
+      [north.id, sha256],
+    )
+    await admin.query('insert into file_uploads (tenant_id, sha256, user_id) values ($1, $2, $3)', [
+      north.id,
+      sha256,
+      north.colleagueId,
+    ])
+    await admin.query(
+      `insert into sync_conflicts (id, tenant_id, operation_id, entity, record_id, reason, fields, wanted,
+                                   seen, found, device_id, user_id, recorded_at)
+       values ($1, $2, $3, 'assets', $4, 'changed_elsewhere', '{name,meterUnit}', '{"name": "wanted-360"}', '{}', '{}',
+               'phone-of-the-colleague', $5, '2026-10-03T10:00:00Z')`,
+      [conflictId, north.id, newId(), newId(), north.colleagueId],
+    )
+    await admin.query(
+      `insert into password_resets (tenant_id, user_id, reset_at) values ($1, $2, '2026-10-04T07:00:00Z')`,
+      [north.id, north.colleagueId],
+    )
+
+    try {
+      const colleague = await about(north.colleagueId)
+      const lead = await about(north.userId)
+      const rowsIn = (access: SubjectAccess, key: string) =>
+        access.parts.find((part) => part.key === key)?.rows ?? []
+
+      expect(rowsIn(colleague, 'uploads').filter((row) => row['size'] === 4321)).toEqual([
+        { at: expect.any(String) as unknown, type: 'image/jpeg', size: 4321 },
+      ])
+      expect(
+        rowsIn(colleague, 'conflicts')
+          .filter((row) => row['device'] === 'phone-of-the-colleague')
+          .map((row) => ({ ...row, at: new Date(String(row['at'])).toISOString() })),
+      ).toEqual([
+        {
+          at: '2026-10-03T10:00:00.000Z',
+          record: language.tableLabel('assets'),
+          fields: `${language.fieldName('assets', 'name')}, ${language.fieldName('assets', 'meter_unit')}`,
+          device: 'phone-of-the-colleague',
+          resolvedAt: null,
+        },
+      ])
+      expect(JSON.stringify(colleague)).not.toContain('wanted-360')
+
+      const newPasswords = (access: SubjectAccess) =>
+        rowsIn(access, 'sessions')
+          .filter((row) => row['what'] === 'Passwort neu gesetzt')
+          .map((row) => new Date(String(row['at'])).toISOString())
+
+      expect(newPasswords(colleague)).toEqual(['2026-10-04T07:00:00.000Z'])
+      expect(newPasswords(lead)).not.toContain('2026-10-04T07:00:00.000Z')
+      expect(rowsIn(lead, 'uploads').some((row) => row['size'] === 4321)).toBe(false)
+      expect(JSON.stringify(lead)).not.toContain('phone-of-the-colleague')
+    } finally {
+      await admin.query('delete from sync_conflicts where id = $1', [conflictId])
+      await admin.query('delete from password_resets where user_id = $1', [north.colleagueId])
+      await admin.query('delete from file_uploads where sha256 = $1', [sha256])
+      await admin.query('delete from files where sha256 = $1', [sha256])
     }
   })
 })

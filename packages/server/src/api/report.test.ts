@@ -628,6 +628,17 @@ describe('the report of a contractor', () => {
     expect(missing.status).toBe(409)
     expect(missing.body.message).toBe('Die Datei des Berichts ist nicht auf dem Server.')
 
+    // Sent by somebody else: a hash the person learned elsewhere names
+    // nothing, and is answered like a file never sent (#360).
+    const theirs = pdf('von jemand anderem')
+    const foreign = await http()
+      .post(`/duties/${duty}/report`)
+      .set(testIdentityHeader, by('u-site'))
+      .send(reportOf({ sha256: await sent(theirs, by('u-duties')), sizeBytes: theirs.length }))
+
+    expect(foreign.status).toBe(409)
+    expect(foreign.body.message).toBe('Die Datei des Berichts ist nicht auf dem Server.')
+
     const bytes = pdf('Größe')
     const other = await http()
       .post(`/duties/${duty}/report`)

@@ -154,7 +154,7 @@ export const subjectAccessParts = {
   },
   sessions: {
     title: 'Sitzungen und Anmeldungen',
-    note: 'Die Sitzungen bei diesem Betreiber, die noch gelten, mit ihrem zweiten Faktor, und jede An- und Abmeldung hier.',
+    note: 'Die Sitzungen bei diesem Betreiber, die noch gelten, mit ihrem zweiten Faktor, jede An- und Abmeldung hier und jedes neu gesetzte Passwort.',
     columns: [
       what,
       column('at', 'Zeitpunkt', 'moment'),
@@ -165,7 +165,7 @@ export const subjectAccessParts = {
       // Whether a session carries a second factor, which it holds since 0095 (#482).
       column('secondFactor', 'Zweiter Faktor', 'flag'),
     ],
-    sources: ['auth_sessions.user_id', 'tenant_sessions.user_id'],
+    sources: ['auth_sessions.user_id', 'tenant_sessions.user_id', 'password_resets.user_id'],
     printed: true,
   },
   push: {
@@ -327,6 +327,32 @@ export const subjectAccessParts = {
       column('at', 'Abgelegt', 'moment'),
     ],
     sources: ['attachment_versions.created_by'],
+    printed: true,
+  },
+  // Who stored a file, which the server keeps so that only they may name it (#360).
+  uploads: {
+    title: 'Hochgeladene Dateien',
+    note: 'Jede Datei, die die Person auf den Server geladen hat; wo sie steht, sagen die Teile darüber.',
+    columns: [
+      column('at', 'Hochgeladen', 'moment'),
+      column('type', 'Art'),
+      column('size', 'Größe in Byte', 'number'),
+    ],
+    sources: ['file_uploads.user_id'],
+    printed: true,
+  },
+  // A change of the person that met another state on the server (#360).
+  conflicts: {
+    title: 'Konflikte im Abgleich',
+    note: 'Wo eine Änderung der Person von einem Gerät auf einen anderen Stand traf, ohne die Werte: sie gehören zum Datensatz.',
+    columns: [
+      column('at', 'Zeitpunkt', 'moment'),
+      column('record', 'Art'),
+      column('fields', 'Felder'),
+      column('device', 'Gerät'),
+      column('resolvedAt', 'Gelöst', 'moment'),
+    ],
+    sources: ['sync_conflicts.user_id'],
     printed: true,
   },
   auditorReads: {

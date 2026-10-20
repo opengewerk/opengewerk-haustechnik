@@ -120,11 +120,16 @@ async function tenantRows(tx: TenantTransaction, userId: string) {
           from member_passkeys where user_id = ${u} order by created_at`,
   )
 
+  // With every new password of the person, by the link or on the server (#360).
   const signIns = await rowsOf(
     tx,
     sql`select 'Anmeldung bei diesem Betreiber' as what, started_at as at, ended_at as until, null as device,
                null as address, sign_in_method as method, null::boolean as "secondFactor"
-          from tenant_sessions where user_id = ${u} order by started_at`,
+          from tenant_sessions where user_id = ${u}
+        union all
+        select 'Passwort neu gesetzt', reset_at, null, null, null, null, null
+          from password_resets where user_id = ${u}
+        order by 2`,
   )
 
   const push = await rowsOf(
@@ -289,6 +294,33 @@ async function tenantRows(tx: TenantTransaction, userId: string) {
           from attachment_versions v join attachments a on a.id = v.attachment_id where v.created_by = ${u}`,
   )
 
+  // The fields a conflict touched, by their names, and none of the values. A
+  // field of the sync is the column in camel case.
+  const columnOf = (field: string) =>
+    field.replace(/[A-Z]/g, (letter) => `_${letter.toLowerCase()}`)
+  const conflicts = (
+    await rowsOf(
+      tx,
+      sql`select recorded_at as at, entity, array_to_string(fields, ',') as fields, device_id as device,
+                 resolved_at as "resolvedAt"
+            from sync_conflicts where user_id = ${u} order by recorded_at`,
+    )
+  ).map((row): Row => {
+    const table = String(row['entity'])
+
+    return {
+      at: row['at'] ?? null,
+      record: language.tableLabel(table),
+      fields: String(row['fields'] ?? '')
+        .split(',')
+        .filter((field) => field !== '')
+        .map((field) => language.fieldName(table, columnOf(field)) ?? field)
+        .join(', '),
+      device: row['device'] ?? null,
+      resolvedAt: row['resolvedAt'] ?? null,
+    }
+  })
+
   const auditorReads = await rowsOf(
     tx,
     sql`select read_at as at, route from auditor_reads where user_id = ${u} order by read_at`,
@@ -399,6 +431,7 @@ async function tenantRows(tx: TenantTransaction, userId: string) {
     faults,
     qualifications,
     documents,
+    conflicts,
     auditorReads,
     invitations,
     processingDescriptions,
@@ -482,6 +515,16 @@ export async function accountParts(
 ): Promise<SubjectAccessPart[]> {
   const here = await database.forTenant(identity, (tx) => tenantRows(tx, userId))
   const there = await instanceRows(database, identity.tenantId, userId, identity.userId)
+  // Who stored a file is held for that person alone (#360): read as the
+  // person, the rows are exactly theirs.
+  const uploads = await database.readingTenant({ tenantId: identity.tenantId, userId }, (tx) =>
+    rowsOf(
+      tx,
+      sql`select u.created_at as at, f.media_type as type, f.size_bytes::float8 as size
+            from file_uploads u join files f on f.tenant_id = u.tenant_id and f.sha256 = u.sha256
+           where u.user_id = ${userId} order by u.created_at`,
+    ),
+  )
 
   return [
     part('account', there.account),
@@ -503,6 +546,8 @@ export async function accountParts(
     part('faults', here.faults),
     part('qualifications', here.qualifications),
     part('documents', here.documents),
+    part('uploads', uploads),
+    part('conflicts', here.conflicts),
     part('auditorReads', here.auditorReads),
     part('invitations', here.invitations),
     part('instance', there.instance),

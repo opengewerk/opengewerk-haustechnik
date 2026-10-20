@@ -332,6 +332,12 @@ beforeAll(async () => {
     `insert into files (tenant_id, sha256, size_bytes, media_type) values ($1, $2, 2048, 'application/pdf')`,
     [tenant, fileSha],
   )
+  // The report names its file, which only the person who sent it may (#360).
+  await admin.query('insert into file_uploads (tenant_id, sha256, user_id) values ($1, $2, $3)', [
+    tenant,
+    fileSha,
+    'u-site',
+  ])
 })
 
 afterAll(async () => {

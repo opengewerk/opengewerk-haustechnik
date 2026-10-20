@@ -39,6 +39,7 @@ import {
   isUuid,
   recognisedMediaType,
   type TenantTransaction,
+  UploadLimits,
 } from '@opengewerk/platform-server'
 import { and, eq, isNull } from 'drizzle-orm'
 
@@ -178,6 +179,7 @@ export class OutsideReportsController {
     @Inject(Database) private readonly database: Database,
     @Inject(OUTSIDE_REPORTS) private readonly gate: OutsideReports,
     @Inject(FILE_STORE) private readonly store: FileStorage,
+    @Inject(UploadLimits) private readonly limits: UploadLimits,
   ) {}
 
   /** The page of a label: closed, or the room on the label, the categories and the form. */
@@ -378,6 +380,10 @@ export class OutsideReportsController {
         'Ein Foto ist ein Bild als JPEG, PNG oder WebP. Die Meldung selbst ist angekommen.',
       )
     }
+
+    // Counted for the operator of the label and for nobody's account, since
+    // nobody signed in; and refused while the volume is nearly full (#360).
+    await this.limits.admit({ tenantId: slip.tenantId, userId: null }, bytes.byteLength)
 
     const blob = await this.store.put(bytes)
 

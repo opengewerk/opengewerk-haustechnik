@@ -176,8 +176,18 @@ async function stockIn(tenant: Tenant, area = Object.keys(tenant.areas)[0] ?? ''
 
 let hashes = 0
 
-/** A file of the tenant that went up ahead: a row of the store, by a hash nobody else has. */
-async function sentAhead(tenant: Tenant, name: string, sizeBytes = 2048) {
+/**
+ * A file of the tenant that went up ahead: a row of the store, by a hash
+ * nobody else has, sent by the people of the tenant, among them whoever
+ * imports (#360). Sent by nobody of them, it is a file whose hash somebody
+ * learned elsewhere.
+ */
+async function sentAhead(
+  tenant: Tenant,
+  name: string,
+  sizeBytes = 2048,
+  sentBy: 'the tenant' | 'nobody' = 'the tenant',
+) {
   hashes += 1
 
   const sha256 = hashes.toString(16).padStart(64, 'a')
@@ -186,6 +196,14 @@ async function sentAhead(tenant: Tenant, name: string, sizeBytes = 2048) {
     `insert into files (tenant_id, sha256, size_bytes, media_type) values ($1, $2, $3, 'application/pdf')`,
     [tenant.id, sha256, sizeBytes],
   )
+
+  if (sentBy === 'the tenant') {
+    await admin.query(
+      `insert into file_uploads (tenant_id, sha256, user_id)
+       select tenant_id, $2, user_id from memberships where tenant_id = $1`,
+      [tenant.id, sha256],
+    )
+  }
 
   return { name, sha256, sizeBytes, previewSha256: null }
 }
@@ -450,6 +468,24 @@ describe('the preview of a list of running deadlines', () => {
 })
 
 describe('taking a list of running deadlines over', () => {
+  it('takes no file that the person importing did not send, and answers it like one never sent (#360)', async () => {
+    const tenant = await tenantWith()
+
+    await stockIn(tenant)
+
+    const report = await sentAhead(tenant, 'aufzug-2024.pdf', 2048, 'nobody')
+    const answer = await taken(tenant, {
+      ...list(line({ performedOn: daysAgo(400), nextDueOn: daysAhead(200), file: report.name })),
+      files: [report],
+    })
+
+    expect(answer.status).toBe(409)
+    expect(answer.body).toMatchObject({
+      message:
+        'Die Datei „aufzug-2024.pdf“ ist nicht auf dem Server. Wählen Sie die Dateien noch einmal.',
+    })
+  })
+
   it('confirms the duty, writes the evidence as taken over and files its document, due as the list says', async () => {
     const tenant = await tenantWith()
     const { asset, property } = await stockIn(tenant)

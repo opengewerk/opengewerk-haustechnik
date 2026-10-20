@@ -1362,6 +1362,12 @@ describe('a signature from a device', () => {
        values ($1, $2, 2048, 'image/jpeg'), ($1, $3, 2048, 'image/jpeg') on conflict do nothing`,
       [small, bytesOf('d'), bytesOf('e')],
     )
+    // Sent by the device of the person on the round (#360).
+    await admin.query(
+      `insert into file_uploads (tenant_id, sha256, user_id)
+       values ($1, $2, 'u-tech'), ($1, $3, 'u-tech') on conflict do nothing`,
+      [small, bytesOf('d'), bytesOf('e')],
+    )
 
     const versionOf = (attachmentId: string, letter: string) =>
       operation('attachment_versions', 'create', newId<'attachment-version'>(), {
