@@ -2,7 +2,8 @@
 the kit is installed and how the signatures are checked.
 
 Read by the workflow "Release" with VERSION, APP_DIGEST and BACKUP_DIGEST set,
-and by its test with whatever it hands in. Prints the page.
+and DOCKER_HUB "true" where the release is mirrored there, and by its test with
+whatever it hands in. Prints the page.
 """
 
 import os
@@ -86,7 +87,7 @@ def body_of(changelog, version):
     return f'{introduction}\n\n{link}' if introduction else link
 
 
-def page(changelog, version, app_digest, backup_digest):
+def page(changelog, version, app_digest, backup_digest, mirrored=False):
     body = body_of(changelog, version)
 
     # A version that closes a vulnerability starts its page with a hint, so
@@ -106,6 +107,18 @@ def page(changelog, version, app_digest, backup_digest):
     # backslashes of a pattern before a Windows program sees them.
     identity = f'{REPOSITORY}/.github/workflows/release.yml@refs/tags/v{version}'
 
+    # Docker Hub carries the same images, copied with their signatures by the
+    # job after this one (#494), named only where it runs. The kit still pulls
+    # from ghcr.io.
+    mirror = ''
+    if mirrored:
+        mirror = (
+            '\nDieselben Abbilder liegen mit denselben Digests und Signaturen auch auf Docker Hub, als '
+            f'`opengewerk/opengewerk-haustechnik:{version}` und '
+            f'`opengewerk/opengewerk-haustechnik-backup:{version}`. Das Paket holt sie trotzdem aus '
+            'ghcr.io, denn Docker Hub begrenzt anonyme Pulls.\n'
+        )
+
     return f"""{hint}{body}
 
 ## Installieren und aktualisieren
@@ -114,7 +127,7 @@ Das Paket `opengewerk-haustechnik-{version}.tar.gz` enthält den Ordner `opengew
 
 - `ghcr.io/opengewerk/opengewerk-haustechnik:{version}` (`{app_digest}`)
 - `ghcr.io/opengewerk/opengewerk-haustechnik-backup:{version}` (`{backup_digest}`)
-
+{mirror}
 Gebraucht werden Docker und Docker Compose ab 2.22. Neben OpenGewerk auf demselben Server läuft die Haustechnik mit eigenem Port, eigenem Hostnamen, eigener Datenbank und eigenem Namen des Compose-Projekts. Beide Abbilder sind ohne Schlüssel über Sigstore signiert. Prüfen:
 
 ```bash
@@ -137,6 +150,7 @@ def main():
             os.environ['VERSION'],
             os.environ['APP_DIGEST'],
             os.environ['BACKUP_DIGEST'],
+            os.environ.get('DOCKER_HUB') == 'true',
         )
     )
 
