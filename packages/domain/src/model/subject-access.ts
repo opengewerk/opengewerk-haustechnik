@@ -14,7 +14,10 @@
  * else, and an evidence what this person did, not who signed beside them.
  */
 
-/** How a value of a column reads in the file to read; the machine-readable file keeps it as it is. */
+/**
+ * How a value of a column reads in the file to read; the machine-readable file
+ * keeps it as it is, but for a drawing (`withoutDrawings`).
+ */
 export const subjectAccessColumnKinds = [
   'text',
   'day',
@@ -530,6 +533,50 @@ export function subjectAccessTermProblem(term: unknown): string | null {
     trimmed.length > subjectAccessTermLength.max
     ? `Gesucht wird nach mindestens ${String(subjectAccessTermLength.min)} und höchstens ${String(subjectAccessTermLength.max)} Zeichen.`
     : null
+}
+
+/**
+ * What the machine-readable file holds in the place of the drawing of a
+ * signature (#457): that there is one, and where it is drawn.
+ *
+ * A file any editor changes holds no signature (Moritz, 19.10.2026): a JSON
+ * file stays writable whatever is done to it, and a drawing taken from it
+ * could be put under any other text. Article 15 of the GDPR asks for the
+ * data, not for this format; the file to read draws each signature, and the
+ * machine-readable one says when and that it is there.
+ */
+export const drawingInThePrint = 'Schriftzug im PDF der Auskunft'
+
+/** The information as the machine-readable file holds it: every drawing a sentence, or nothing where there is none. */
+export function withoutDrawings(access: SubjectAccess): SubjectAccess {
+  return {
+    ...access,
+    parts: access.parts.map((part) => {
+      const drawn = part.columns
+        .filter((column) => column.kind === 'drawing')
+        .map((column) => column.key)
+
+      if (drawn.length === 0) {
+        return part
+      }
+
+      return {
+        ...part,
+        rows: part.rows.map((row) => {
+          const copy: Record<string, SubjectAccessValue> = { ...row }
+
+          for (const key of drawn) {
+            const value = row[key]
+
+            copy[key] =
+              value === null || value === undefined || value === '' ? null : drawingInThePrint
+          }
+
+          return copy
+        }),
+      }
+    }),
+  }
 }
 
 /** The two files of an information. */
