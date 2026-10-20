@@ -701,6 +701,49 @@ describe('the page of a label without an account', () => {
     expect((await opened(code, address).expect(429)).body.message).toBe(tooManyReportsSentence)
   })
 
+  it('counts an IPv6 address by its /64, and every request whose address nobody named in one counter (#360)', async () => {
+    await switched(true).expect(200)
+
+    const code = await labelOn(north, 'north', { room: north.room })
+    const machine = { website: 'x' }
+
+    // Five addresses of one /64, as a connection at home picks them: one limit.
+    for (let index = 1; index <= 5; index += 1) {
+      await sent(code, machine, `2001:db8:360:1::${String(index)}`).expect(201)
+    }
+
+    expect((await sent(code, machine, '2001:db8:360:1::ffff').expect(429)).body.message).toBe(
+      tooManyReportsSentence,
+    )
+    await sent(code, machine, '2001:db8:360:2::1').expect(201)
+
+    // Nothing in front named the client: the address of the connection is the
+    // proxy's, the same for everybody, and all such requests share one limit.
+    const unnamed = () => http().post(`/fault-reports/by-label/${code}`).send(machine)
+
+    for (let index = 0; index < 5; index += 1) {
+      await unnamed().expect(201)
+    }
+
+    expect((await unnamed().expect(429)).body.message).toBe(tooManyReportsSentence)
+    await sent(code, machine).expect(201)
+  })
+
+  it('opens sixty pages an hour for the addresses of one /64, as for one address (#360)', async () => {
+    await switched(true).expect(200)
+
+    const code = await labelOn(north, 'north', { room: north.room })
+
+    for (let index = 1; index <= 60; index += 1) {
+      await opened(code, `2001:db8:360:3::${index.toString(16)}`).expect(200)
+    }
+
+    expect((await opened(code, '2001:db8:360:3::ffff').expect(429)).body.message).toBe(
+      tooManyReportsSentence,
+    )
+    await opened(code, '2001:db8:360:4::1').expect(200)
+  })
+
   it('takes the photo of a report once, a picture by its bytes, and none without a report', async () => {
     await switched(true).expect(200)
 

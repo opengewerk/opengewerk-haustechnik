@@ -29,8 +29,8 @@ import {
 import {
   AcceptsBody,
   type AddressedRequest,
+  addressForLimits,
   bodyBytesOf,
-  clientAddress,
   Database,
   FILE_STORE,
   type FileStorage,
@@ -184,7 +184,7 @@ export class OutsideReportsController {
   @Get(':code')
   @PublicRoute()
   async page(@Param('code') code: string, @Req() request: BodyRequest): Promise<OutsideLabelPage> {
-    if (!this.gate.openPage(clientAddress(request))) {
+    if (!this.gate.openPage(addressForLimits(request))) {
       throw tooMany()
     }
 
@@ -222,7 +222,7 @@ export class OutsideReportsController {
     @Body() body: unknown,
     @Req() request: BodyRequest,
   ): Promise<OutsideReportReceipt> {
-    if (!this.gate.takeReport(clientAddress(request), code)) {
+    if (!this.gate.takeReport(addressForLimits(request), code)) {
       throw tooMany()
     }
 
