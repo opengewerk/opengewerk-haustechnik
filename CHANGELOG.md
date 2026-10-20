@@ -132,6 +132,12 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
 
 ### Behoben
 
+- Die Tests des Sammelvorgangs warten, bis eine Auswahl die Option hat, bevor sie sie wählen (#478). Liegenschaften,
+  Pflichtarten und Ausführende kommen mit den Antworten des Servers, oft nach dem Auswahlfeld selbst; ein Wert ohne
+  Option geht im Browser wie in happy-dom still verloren, und auf einem ausgelasteten Runner wartete der Test dann
+  vergeblich auf die Pflichten. Warum: Ein Test, der von der Last des Runners abhängt, macht einen Pull Request rot, der
+  ihn nicht berührt.
+
 - Die Meldeseite eines Etiketts zählt gegen ihre Grenze von zehn Meldungen je Etikett und Stunde nur noch Meldungen, die
   sie annimmt; eine Anfrage, die am versteckten Feld, am Formularstand oder an ihren Feldern scheitert, zählt nur gegen
   die Grenze je Anschluss (#472). Eine Störmeldung ohne Beschreibung weist der Server ab wie eine mit leerer, auf der
