@@ -680,6 +680,13 @@
       "when": 1792495326378,
       "tag": "0096_conflict_person_file_uploads_password_resets",
       "breakpoints": true
+    },
+    {
+      "idx": 97,
+      "version": "7",
+      "when": 1792501735720,
+      "tag": "0097_instance_own_invitations",
+      "breakpoints": true
     }
   ]
 }
