@@ -209,6 +209,26 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   Faktor, sobald das Konto die App bekam, die Anmeldung las einen Körper ohne Grenze und zählte hinter einem Proxy
   anders als die Anwendung, und der Browser durfte Antworten behalten, an die das Abmelden nicht herankommt.
 
+- Das Submodul `upstream/opengewerk` steht auf `6b751f6` (opengewerk/opengewerk#695, #696, #698, #699, #700, #702,
+  #703 und #704), mit der Migration `0096_conflict_person_file_uploads_password_resets`. Ein Konflikt des Abgleichs
+  gehört Gerät und Person; nur sie sieht ihn, und seine Werte nur, solange sie den Datensatz sieht. Eine Datei nennt
+  ein Datensatz nur, wenn die Person sie selbst abgelegt hat oder eine für sie sichtbare Zeile sie schon nennt: das
+  Foto einer Störmeldung, der Nachweis einer Qualifikation (dazu, was eine sichtbare Qualifikation schon nennt), die
+  Datei eines Prüfberichts, die Dateien eines Imports und die Datei einer Fassung im Abgleich (dazu, was ein sichtbares
+  Dokument an einem Ort schon nennt, nicht an einem Dienstleister oder Vertrag). Wer ablegt, hat je Stunde eine
+  Grenze, je Konto und je Betreiber, die Meldeseite eines Etiketts für den Betreiber, und ist das Volume der Dateien
+  fast voll, wird nichts mehr abgelegt; HEIC erkennt der Server an seinen Bytes. Jedes neue Passwort und jede
+  Änderung des Mailservers der Instanz steht bei jedem Betreiber, und die Leitung bekommt über den Mailserver von
+  vorher eine Mail. Die Sicherung schreibt nur noch fertig und verschlüsselt aufs Ziel, und zurückgespielt wird nur
+  ein Archiv, das die Instanz selbst geschrieben hat, als Eigentümer der Tabellen; Archive von vor dem Update nur mit
+  `--skip-origin-check`. Die Dienste in `docker/compose.yaml` geben alle Rechte von root ab, laufen bis auf die
+  Sicherung mit einem Dateisystem, in das nichts schreibt, und die Anwendung hat eine Speichergrenze von 4 GB
+  (`HAUSTECHNIK_MEMORY_LIMIT`). Die Auskunft über eine Person nennt dazu ihre hochgeladenen Dateien, ihre Konflikte im
+  Abgleich ohne deren Werte und ihre neuen Passwörter. Gefunden in der Sicherheitsprüfung (opengewerk-haustechnik#360). Warum: auf einem
+  weitergegebenen Gerät sah die nächste Person die Konflikte der vorigen, ein bekannter Hash öffnete die Datei eines
+  fremden Bereichs, Ablegen hatte keine Grenze, ein neues Passwort blieb still, und ein untergeschobenes Archiv wäre
+  zurückgespielt worden.
+
 ## [0.1.8] - 2026-10-19
 
 Die vierte Zwischenfassung für den Pilotbetrieb, mit dem, was aus Phase 2 seit 0.1.7 fertig ist.
