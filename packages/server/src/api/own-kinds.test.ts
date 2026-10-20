@@ -7,6 +7,7 @@ import {
   missingRight,
   type OwnKindsReading,
   type RoleKey,
+  rightsOfRoles,
   roleKeys,
   type TenantId,
 } from '@opengewerk/haustechnik-domain'
@@ -452,6 +453,76 @@ describe("an asset kind of the operator's own", () => {
         ],
       },
     ])
+  })
+
+  /**
+   * A role of the operator's own that keeps the kinds in some areas only
+   * (#474): it is counted what carries a kind in its areas, and removing a
+   * kind, a field or a choice, which is decided over every area, is for
+   * whoever sees all of them. Making and changing stay with it.
+   */
+  it('counts for whoever keeps them in some areas only what lies there, and leaves removing to whoever sees every area', async () => {
+    const tenant = await tenantWith()
+    const { kind, flow, pumps } = await liftingStation(tenant)
+    const building = await buildingOf(tenant)
+
+    await post(`/buildings/${building}/assets`, by('technician', tenant), {
+      kind: kind.key,
+      name: 'Hebeanlage Keller',
+      values: { eigen_foerdermenge: 3, eigen_pumpen: 'o1' },
+    }).expect(201)
+
+    // A second area, the only one the Objektleitung holds in from now on.
+    const { rows } = await admin.query<{ id: string }>(
+      `insert into areas (tenant_id, name) values ($1, 'Süd') returning id`,
+      [tenant],
+    )
+
+    await admin.query('delete from member_areas where tenant_id = $1 and user_id = $2', [
+      tenant,
+      people.site_management,
+    ])
+    await admin.query(
+      'insert into member_areas (tenant_id, user_id, area_id) values ($1, $2, $3)',
+      [tenant, people.site_management, rows[0]?.id],
+    )
+
+    const narrow = JSON.stringify({
+      userId: people.site_management,
+      tenantId: tenant,
+      roles: ['site_management'],
+      rights: [...rightsOfRoles(['site_management']), 'kind.write'],
+    })
+    const counted = async (header: string) =>
+      ((await get('/own-kinds', header).expect(200)).body as OwnKindsReading).kinds.map(
+        ({ assets, fields }) => [assets, fields.map((each) => each.values)],
+      )
+
+    expect(await counted(narrow)).toEqual([[0, [0, 0]]])
+    expect(await counted(by('technical_management', tenant))).toEqual([[1, [1, 1]]])
+
+    const wanted =
+      'Eine eigene Anlagenart, eine eigene Angabe oder eine Auswahl daran entfernen kann nur, wer alle Bereiche sieht: Anlagen in jedem Bereich können sie tragen.'
+
+    expect((await remove(`/own-kinds/${kind.id}`, narrow).expect(403)).body.message).toBe(wanted)
+    expect((await remove(`/own-kinds/fields/${flow.id}`, narrow).expect(403)).body.message).toBe(
+      wanted,
+    )
+    expect(
+      (
+        await patch(`/own-kinds/fields/${pumps.id}`, narrow, {
+          options: ['Doppelanlage', 'Dreifachanlage'],
+        }).expect(403)
+      ).body.message,
+    ).toBe(wanted)
+
+    // What takes nothing away stays with it.
+    await patch(`/own-kinds/fields/${pumps.id}`, narrow, {
+      options: ['Einzelanlage', 'Doppelanlage', 'Dreifachanlage'],
+    }).expect(200)
+    await patch(`/own-kinds/${kind.id}`, narrow, { label: 'Hebeanlage' }).expect(200)
+    // Whoever sees every area is told what still carries the kind.
+    await remove(`/own-kinds/${kind.id}`, by('technical_management', tenant)).expect(409)
   })
 
   it('is kept by the Leitung and the Technische Leitung alone', async () => {
