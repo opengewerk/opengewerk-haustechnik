@@ -22,6 +22,8 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   tragen, die sich unter einen anderen Text setzen ließe; das PDF der Auskunft zeichnet sie weiter, und keine
   Tabelle der Anwendung enthält eine.
 - Der Renderer für PDFs läuft auf `browserless/chromium` 2.57.1 wie im Fundament, und Vite steht auf 8.3.3.
+- Das Security-Review steht auf `731e352` von opengewerk/.github (opengewerk/.github#45): hebt ein Pull Request das
+  Submodul an, holt es den Diff des Fundaments vorher aus dessen öffentlichem Repository, statt ihn offen zu lassen.
 - Die Prüfung der Breiten misst ohne Service Worker und wartet höchstens zehn Sekunden auf ein ruhiges Netz (#492);
   sie war an `/einstellungen/protokoll` gelegentlich rot.
 
