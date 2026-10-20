@@ -179,6 +179,11 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   alle Bereiche, das Gerät des Prüfers bekam die Namen aller Fremdfirmen, und die Auskunft las die Passkeys des ganzen
   Kontos, auch solche, die nur ein anderer Betreiber kennt.
 
+- Die Auskunft über eine Person nennt bei jeder ihrer Sitzungen bei diesem Betreiber, ob sie einen zweiten Faktor trägt,
+  und die Löschregel „Sitzungen“ nennt, dass Sitzungen ohne zweiten Faktor enden, sobald sich das Konto mit seiner
+  Authenticator-App mit zweitem Faktor anmeldet (#482). Warum: seit der Migration 0095 hält jede Sitzung das fest, und
+  seitdem enden solche Sitzungen, aber Auskunft und Löschkonzept sagten es nicht.
+
 ### Sicherheit
 
 - Der Abgleich gibt einem Gerät von jeder Art Datensatz nur noch, was seiner Person auch die Route im Büro zeigt
