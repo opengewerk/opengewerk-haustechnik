@@ -7,6 +7,14 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
 
 ## [Unreleased]
 
+### Hinzugefügt
+
+- Ein Release spiegelt beide Abbilder mit ihren Signaturen nach Docker Hub, als
+  `opengewerk/opengewerk-haustechnik` und `opengewerk/opengewerk-haustechnik-backup`, wie OpenGewerk es seit 0.4.0
+  tut (#494). Wer dort sucht, findet die Haustechnik neben OpenGewerk, und `cosign verify` gilt dort wie in ghcr.io;
+  das Paket holt weiter aus ghcr.io. Ohne die Secrets `DOCKERHUB_USERNAME` und `DOCKERHUB_TOKEN` tut der Job
+  nichts, und die Release-Seite nennt Docker Hub nur, wenn gespiegelt wird.
+
 ## [0.1.9] - 2026-10-20
 
 Die fünfte Zwischenfassung für den Pilotbetrieb, mit den Korrekturen aus der externen
