@@ -82,7 +82,7 @@ export function deletionRules(facts: DeletionFacts): readonly DeletionRule[] {
     {
       key: 'sessions',
       data: 'Eine Sitzung',
-      when: `beim Abmelden, wenn die Person oder die Leitung ein Gerät abmeldet und wenn der Zugang gesperrt wird. Eine Sitzung gilt ${count(facts.sessionHours, 'Stunde', 'Stunden')}, ein Gerät für den Abgleich ${count(facts.deviceDays, 'Tag', 'Tage')}.`,
+      when: `beim Abmelden, wenn die Person oder die Leitung ein Gerät abmeldet und wenn der Zugang gesperrt wird. Sitzungen ohne zweiten Faktor enden außerdem, sobald sich das Konto, das eine Authenticator-App hat, mit zweitem Faktor anmeldet, etwa beim Einrichten der App. Eine Sitzung gilt ${count(facts.sessionHours, 'Stunde', 'Stunden')}, ein Gerät für den Abgleich ${count(facts.deviceDays, 'Tag', 'Tage')}.`,
       setting: 'nein',
       proofs: ['B47', 'B49', 'B51', 'B44'],
     },

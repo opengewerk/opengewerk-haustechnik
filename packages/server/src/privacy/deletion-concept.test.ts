@@ -222,6 +222,19 @@ describe('the deletion concept', () => {
     }
   })
 
+  /**
+   * A session that began without a second factor ends once the account, which
+   * has the app, signs in with one (#481), and the rule of the sessions says
+   * so (#482).
+   */
+  it('says in the rule of the sessions that those without a second factor end once the account signs in with the app', () => {
+    const sessions = deletionRules(defaultDeletionFacts).find((rule) => rule.key === 'sessions')
+
+    expect(sessions?.when).toContain(
+      'Sitzungen ohne zweiten Faktor enden außerdem, sobald sich das Konto, das eine Authenticator-App hat, mit zweitem Faktor anmeldet',
+    )
+  })
+
   it('is pointed at by the record only with rules it has', () => {
     const rules = new Set(deletionRules(defaultDeletionFacts).map((rule) => rule.key))
 
