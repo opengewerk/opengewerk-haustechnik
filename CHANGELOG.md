@@ -7,6 +7,24 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
 
 ## [Unreleased]
 
+### Hinzugefügt
+
+- Ein Release spiegelt beide Abbilder mit ihren Signaturen nach Docker Hub, als
+  `opengewerk/opengewerk-haustechnik` und `opengewerk/opengewerk-haustechnik-backup`, wie OpenGewerk es seit 0.4.0
+  tut (#494). Wer dort sucht, findet die Haustechnik neben OpenGewerk, und `cosign verify` gilt dort wie in ghcr.io;
+  das Paket holt weiter aus ghcr.io. Ohne die Secrets `DOCKERHUB_USERNAME` und `DOCKERHUB_TOKEN` tut der Job
+  nichts, und die Release-Seite nennt Docker Hub nur, wenn gespiegelt wird.
+
+### Geändert
+
+- Die Auskunft über eine Person als JSON enthält keinen Linienzug einer Unterschrift mehr, an seiner Stelle steht
+  „Schriftzug im PDF der Auskunft“ (#457). Eine Datei, die jedes Programm ändern kann, soll keine Unterschrift
+  tragen, die sich unter einen anderen Text setzen ließe; das PDF der Auskunft zeichnet sie weiter, und keine
+  Tabelle der Anwendung enthält eine.
+- Der Renderer für PDFs läuft auf `browserless/chromium` 2.57.1 wie im Fundament, und Vite steht auf 8.3.3.
+- Die Prüfung der Breiten misst ohne Service Worker und wartet höchstens zehn Sekunden auf ein ruhiges Netz (#492);
+  sie war an `/einstellungen/protokoll` gelegentlich rot.
+
 ### Sicherheit
 
 - Das Fundament steht auf `6b50301` (opengewerk/opengewerk#722, #720, #721) und schließt damit die vier Wege, die Teil 2
@@ -16,12 +34,6 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   Bestätigung und werden allen Konten der Verwaltung gemeldet, ungenutzte Routen von better-auth sind abgeschaltet,
   und das gespeicherte Passwort eines Mailservers geht nie mit weniger Verschlüsselung hinaus. Die beiden neuen
   E-Mails stehen in den Worten dieser Anwendung.
-
-### Geändert
-
-- Der Renderer für PDFs läuft auf `browserless/chromium` 2.57.1 wie im Fundament, und Vite steht auf 8.3.3.
-- Die Prüfung der Breiten misst ohne Service Worker und wartet höchstens zehn Sekunden auf ein ruhiges Netz (#492);
-  sie war an `/einstellungen/protokoll` gelegentlich rot.
 
 ## [0.1.9] - 2026-10-20
 
