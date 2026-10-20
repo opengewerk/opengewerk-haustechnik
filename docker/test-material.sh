@@ -590,11 +590,15 @@ after_record() {
 
   # The Leitung needs a second factor (ADR 0006), and a sign in with one asks
   # for a code from an app. So the account signs in with its password first
-  # and is then given the flag the setup of an app leaves, which the check
-  # reads afresh on every request.
-  sql "update auth_users set two_factor_enabled = true where email = '$lead_email';"
-  [ "$(value "select two_factor_enabled from auth_users where email = '$lead_email'")" = t ] ||
-    fail 'Das Konto der Leitung hat keinen zweiten Faktor bekommen.'
+  # and is then given what the setup of an app leaves: the flag on the
+  # account, and the second factor on the session it was set up in, which is
+  # the one the check reads afresh on every request (#360).
+  sql "update auth_users set two_factor_enabled = true where email = '$lead_email';
+       update auth_sessions set second_factor = true
+        where user_id = (select id from auth_users where email = '$lead_email');"
+  [ "$(value "select bool_and(s.second_factor) from auth_sessions s join auth_users u on u.id = s.user_id
+               where u.email = '$lead_email'")" = t ] ||
+    fail 'Die Sitzung der Leitung hat keinen zweiten Faktor bekommen.'
 
   status=$(curl --silent --output "$temp/backup-status.json" --write-out '%{http_code}' \
     --header "Cookie: $cookies" --header "Origin: $base" "$base/settings/backup")
