@@ -44,7 +44,11 @@ x-hardening: &hardening
 
 services:
   postgres:
-    image: postgres:18-alpine
+    # By its digest (#687 in the repository opengewerk): a tag names whatever
+    # was pushed under it last. The backup of the foundation is built on the
+    # very same image, and "test-stack.sh base-images" stays red until a
+    # raised submodule and this line name the same one.
+    image: postgres:18-alpine@sha256:77f585114c32fbca283dc835b0596f4e52b51b4c6662d7810b2f4084f60a1873
     restart: unless-stopped
     logging: *logging
     <<: *hardening
@@ -122,6 +126,11 @@ services:
     <<: *hardening
     # It writes into the file store below and nowhere else.
     read_only: true
+    # The network of every service, and the one it shares with the renderer
+    # alone (#686 in the repository opengewerk).
+    networks:
+      - default
+      - printing
     # The most memory the application may take, swap included. Past it, Docker
     # ends the application and starts it again; without a limit, the kernel of
     # a machine that runs out ends whichever process it picks, and that can be
@@ -241,8 +250,13 @@ services:
       # up.
       CONCURRENT: '1'
       TIMEOUT: '120000'
-    # No published port either. It is reachable from the docker network only,
-    # which means from the application.
+    # No published port either. It hangs in a network of its own with the
+    # application and nothing else (#686 in the repository opengewerk, found in
+    # the security review #360): Chromium prints what it is handed, and should a
+    # page ever ask for more than it carries, there is no database to reach and,
+    # the network being internal, no internet either.
+    networks:
+      - printing
 
   # Backup and restore by hand, with the image of the foundation's backup:
   #
@@ -338,6 +352,14 @@ services:
         condition: service_healthy
       migrate:
         condition: service_completed_successfully
+
+networks:
+  # The one Compose makes for every service that names no other.
+  default:
+  # The renderer and the application, and nothing else (#686 in the repository
+  # opengewerk). Internal, so that nothing on it reaches beyond the host.
+  printing:
+    internal: true
 
 volumes:
   database:

@@ -277,8 +277,11 @@ describe('the renderer of an instance', () => {
       expect(service.asked.map((request) => request.address)).toEqual([
         '/pdf?token=token-dieses-tests',
       ])
+      // With the policy of a print in front, which loads nothing (opengewerk/opengewerk#686).
       expect(JSON.parse(service.asked[0]?.body ?? '{}')).toMatchObject({
-        html: '<p>Prüfprotokoll</p>',
+        html: expect.stringMatching(
+          /^<meta http-equiv="Content-Security-Policy" content="default-src 'none';[^"]*"><p>Prüfprotokoll<\/p>$/,
+        ),
       })
     } finally {
       await service.close()

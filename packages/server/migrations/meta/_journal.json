@@ -687,6 +687,20 @@
       "when": 1792501735720,
       "tag": "0097_instance_own_invitations",
       "breakpoints": true
+    },
+    {
+      "idx": 98,
+      "version": "7",
+      "when": 1792511030317,
+      "tag": "0098_file_sweep",
+      "breakpoints": true
+    },
+    {
+      "idx": 99,
+      "version": "7",
+      "when": 1792511615670,
+      "tag": "0099_purge_attachments",
+      "breakpoints": true
     }
   ]
 }

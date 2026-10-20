@@ -6,6 +6,7 @@ import {
   invitationLinks,
   readConfiguration,
   runInstance,
+  startFileSweep,
   startupLine,
   stopOnSignals,
 } from '@opengewerk/platform-server'
@@ -40,11 +41,13 @@ async function start(): Promise<void> {
   let mailWorker: { readonly stop: () => Promise<void> } | null = null
   let deadlineWorker: { readonly stop: () => Promise<void> } | null = null
   let pushWorker: { readonly stop: () => Promise<void> } | null = null
+  let fileSweep: { readonly stop: () => Promise<void> } | null = null
 
   stopOnSignals(application.name, [
     () => mailWorker?.stop(),
     () => deadlineWorker?.stop(),
     () => pushWorker?.stop(),
+    () => fileSweep?.stop(),
     instance.stopSettings,
     () => instance.application.close(),
     () => instance.database.close(),
@@ -79,6 +82,9 @@ async function start(): Promise<void> {
       database: instance.database,
       catalogue: shippedCatalogue(),
     })
+    // The bytes of a file no operator holds any more go out of the store,
+    // once a day (#657 in the repository opengewerk).
+    fileSweep = startFileSweep(instance.database, instance.files)
   }
 
   // The jobs that tell people what is due (#126). Neither runs on a closed

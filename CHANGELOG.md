@@ -101,6 +101,16 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
 
 ### Geändert
 
+- Die Dokumente eines Vorgangs, der mit seinem letzten Nachweis nach Ablauf der Aufbewahrung geleert wird, gehen
+  endgültig (opengewerk/opengewerk#658): ihre Fassungen, die Dateien, die nichts anderes mehr nennt, und der Eintrag,
+  wer sie abgelegt hat; vom Dokument bleibt eine Hülle unter "Gelöscht nach Ablauf der Aufbewahrung", damit ein Gerät
+  erfährt, dass es weg ist. Der Weg öffnet sich nur, während der Vorgang geleert wird (`application_attachment_may_go`),
+  die Anwendung selbst darf in `files` nicht löschen, und das Änderungsprotokoll schreibt dabei nichts ab; Migration
+  `0099_purge_attachments`. Dazu nimmt die Anwendung einmal am Tag die Bytes jeder Datei aus dem Speicher, die kein
+  Betreiber mehr hält (opengewerk#657, Migration `0098_file_sweep`). Verfahrensbeschreibung und Maßnahmen sagen es.
+  Warum: das Konzept sagt in 2.6, dass die Dokumente des Vorgangs gehen, gebaut war nur das Markieren, und Titel,
+  Dateinamen und Dateien blieben.
+
 - Die README hält nur noch das Wichtigste: was die Anwendung ist, den Stand, den Schnellstart aus dem Paket einer
   Fassung, wo die Dokumentation steht, Hilfe und Lizenz. Betrieb, Entwicklung sowie Funktionsumfang und Stand stehen
   unverändert in `docs/betrieb.md`, `docs/entwicklung.md` und `docs/funktionsumfang.md`, und die Verweise auf das
@@ -137,6 +147,12 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   Phase 0.
 
 ### Behoben
+
+- Ein Konto mit Authenticator-App, das sich ohne zweiten Faktor angemeldet hat, landet nicht mehr bei der Einrichtung
+  der App, die better-auth ablehnt, sondern erfährt, dass die Anmeldung den Faktor braucht, und meldet sich ab
+  (opengewerk/opengewerk#691). Die Karte eines Konflikts, dessen Datensatz die Person nicht mehr sieht, sagt "Nicht mehr
+  sichtbar" und warum ihre Änderung nicht übernommen wurde, und bietet nur "Schließen" (opengewerk/opengewerk#697).
+  Warum: die Person steckte im Tor fest, und die leere Karte sah aus wie ein Fehler der Anzeige.
 
 - Die Tests des Sammelvorgangs warten, bis eine Auswahl die Option hat, bevor sie sie wählen (#478). Liegenschaften,
   Pflichtarten und Ausführende kommen mit den Antworten des Servers, oft nach dem Auswahlfeld selbst; ein Wert ohne
@@ -197,6 +213,15 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   seitdem enden solche Sitzungen, aber Auskunft und Löschkonzept sagten es nicht.
 
 ### Sicherheit
+
+- Das Submodul `upstream/opengewerk` steht auf `57e099c` (opengewerk/opengewerk#708, #710, #711, #712, #713 und #714).
+  Der Renderer hängt in einem eigenen, internen Netz allein mit der Anwendung und erreicht weder die Datenbank noch das
+  Internet, und jede Druckseite trägt eine Content-Security-Policy, die nichts nachlädt (opengewerk#686). Ein Paket
+  nennt seine Abbilder mit Digest, `start.sh` prüft vor dem Holen ihre Signatur gegen den Workflow "Release" dieser
+  Fassung, und die Basis des Abbilds und die Datenbank stehen ebenfalls per Digest (opengewerk#687);
+  `APPLICATION_REPOSITORY` in `docker/application.env` nennt das Repository, gegen das geprüft wird. Gefunden in der
+  Sicherheitsprüfung (#360). Warum: Chromium druckte im Netz der Datenbank, und ein Tag nennt, was zuletzt unter ihm
+  hochgeladen wurde, nicht die Bytes, die der Release gebaut hat.
 
 - Das Submodul `upstream/opengewerk` steht auf `1d01a3a` (opengewerk/opengewerk#705, #706 und #707), mit der
   Migration `0097_instance_own_invitations`. Wer die Instanz betreibt, sieht von den offenen Einladungen zur Leitung

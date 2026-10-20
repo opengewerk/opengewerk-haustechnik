@@ -16,6 +16,16 @@ updates:
   # sides share. It also stays red when a building block of the foundation
   # changed: this application then owes its database a migration that follows,
   # in the same pull request (ADR 0001, addendum of 02.10.2026).
+  # The base of the image of the application, by its digest (#687 in the
+  # repository opengewerk). The database in docker/compose.yaml is not on the
+  # list on purpose: the backup is built from the submodule on the very same
+  # image, so it moves when the submodule is raised, and "test-stack.sh
+  # base-images" stays red until both name the same.
+  - package-ecosystem: docker
+    directory: /
+    schedule:
+      interval: weekly
+
   - package-ecosystem: gitsubmodule
     directory: /
     schedule:

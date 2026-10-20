@@ -77,7 +77,7 @@ Die technischen und organisatorischen Maßnahmen nach Art. 32 DSGVO, als Anlage 
 
 - Was an keinem Nachweis hängt, löscht sie nicht nach einer Frist: Mängel, Aufgaben, Zählerstände, Buchungen im Lager und das Protokoll der Zugriffe eines Prüfers bleiben, solange die Instanz besteht. Das Löschkonzept nennt sie. [K9, K12]
 - Ein Konto löscht sie nicht ganz: nach dem Ende eines Zugangs gehen Adresse, Passkeys und Geräte, der Name bleibt bei dem, was die Person unterschrieben hat. [K9, B392]
-- Dateien, die als entfernt markiert sind, bleiben im Dateispeicher, bis das Fundament sie endgültig löscht. [K9]
+- Die Dateien eines Dokuments, das jemand aus der Ablage nimmt, bleiben im Dateispeicher. Die Dokumente eines geleerten Vorgangs gehen mit ihren Fassungen endgültig, und die Bytes einer Datei, die danach kein Betreiber mehr hält, nimmt die Anwendung nach einem Tag aus dem Dateispeicher. [K9]
 - Die lokale Ablage eines Geräts verschlüsselt sie nicht eigens. Sie ist so geschützt wie das Gerät und sein Browser; Sperre und Verschlüsselung des Geräts sind Sache dessen, der es stellt. [K2.7]
 
 ## Teil B: Was der Auftragsverarbeiter beim Betrieb sicherstellt

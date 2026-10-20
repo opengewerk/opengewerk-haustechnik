@@ -559,9 +559,13 @@ jobs:
         working-directory: docker
         run: sh ../upstream/opengewerk/docker/test-stack.sh log-limits
 
-      - name: Jeder Dienst gibt seine Rechte ab, die Anwendung hat eine Speichergrenze
+      - name: Jeder Dienst gibt seine Rechte ab, die Anwendung hat eine Speichergrenze, der Renderer ein eigenes Netz
         working-directory: docker
         run: sh ../upstream/opengewerk/docker/test-stack.sh hardening
+
+      - name: Jedes Abbild und jede Basis per Digest, die Sicherung auf dem Abbild der Datenbank
+        working-directory: docker
+        run: sh ../upstream/opengewerk/docker/test-stack.sh base-images
 
       - name: Vorlagen für den Reverse Proxy prüfen
         working-directory: docker
@@ -629,6 +633,10 @@ jobs:
       - name: Der Renderer läuft von Haus aus und druckt ein PDF
         working-directory: docker
         run: sh test-renderer.sh
+
+      - name: Der Renderer erreicht die Anwendung und nicht die Datenbank
+        working-directory: docker
+        run: sh ../upstream/opengewerk/docker/test-stack.sh print-network
 
       - name: Speicherbedarf im Leerlauf melden
         working-directory: docker

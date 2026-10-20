@@ -230,6 +230,18 @@ async function workOrder(title: string) {
      select tenant_id, property_id, area_id, id, 'Foto vom Keller bei Herrn Maier' from (${of}) a
      returning id`,
   )
+  // A version of it, and its file, which nothing else names.
+  const file = document.id.replaceAll('-', '').repeat(2)
+  await admin.query(
+    `insert into files (tenant_id, sha256, size_bytes, media_type)
+     select tenant_id, $2, 1, 'image/jpeg' from attachments where id = $1`,
+    [document.id, file],
+  )
+  await admin.query(
+    `insert into attachment_versions (tenant_id, attachment_id, sha256, file_name, media_type, size_bytes)
+     select tenant_id, id, $2, 'keller-maier.jpg', 'image/jpeg', 1 from attachments where id = $1`,
+    [document.id, file],
+  )
   const defect = await one<{ id: string }>(
     `insert into defects (tenant_id, property_id, area_id, asset_id, found_in_activity_id, found_in_answer_id,
                           description, found_on, status)
@@ -247,6 +259,7 @@ async function workOrder(title: string) {
     signature: signature.id,
     report: report.id,
     document: document.id,
+    file,
     defect: defect.id,
     proof,
   }
@@ -471,12 +484,18 @@ describe('the activity behind an evidence deleted after the end of its retention
       expect(`${table}: ${await count(table, column, id)}`).toBe(`${table}: 0`)
     }
 
-    // Its document is removed the way a person removes one.
+    // Its document goes for good (opengewerk/opengewerk#658): a shell under the
+    // title of the emptying, without its version and without the file nothing
+    // else names.
     expect(
-      await one('select deleted_at is not null as removed from attachments where id = $1', [
+      await one('select title, deleted_at is not null as removed from attachments where id = $1', [
         order.document,
       ]),
-    ).toEqual({ removed: true })
+    ).toEqual({ title: 'Gelöscht nach Ablauf der Aufbewahrung', removed: true })
+    expect(await count('attachment_versions', 'attachment_id', order.document)).toBe(0)
+    expect(
+      await one('select count(*)::int as files from files where sha256 = $1', [order.file]),
+    ).toEqual({ files: 0 })
     // A defect found in it keeps its own content, and loses the answer it was found at.
     expect(
       await one(
@@ -673,6 +692,14 @@ describe('the activity behind an evidence deleted after the end of its retention
                         responsible_user_id = null, performer_user_id = null where id = '${order.id}'`),
       ),
     ).toBe('HT010')
+    // Its document goes for good with it and at no other time
+    // (opengewerk/opengewerk#658), neither as a whole nor version by version.
+    expect(
+      await refusalOf('u-lead', sql`select purge_attachment(${order.document}::uuid, 'weg')`),
+    ).toBe('OG001')
+    expect(
+      await refusalOf('u-lead', deleted('attachment_versions', 'attachment_id', order.document)),
+    ).toBe('OG001')
 
     await expect(
       admin.query('delete from activity_signatures where activity_id = $1', [order.id]),
@@ -686,6 +713,7 @@ describe('the activity behind an evidence deleted after the end of its retention
 
     expect(await count('activity_signatures', 'activity_id', order.id)).toBe(1)
     expect(await count('activity_answers', 'activity_id', order.id)).toBe(1)
+    expect(await count('attachment_versions', 'attachment_id', order.document)).toBe(1)
   })
 
   it('takes nothing new once it is a shell, and is not changed any more', async () => {
