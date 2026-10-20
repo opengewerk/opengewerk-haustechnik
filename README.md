@@ -62,6 +62,16 @@ docker compose -f docker/compose.yaml --profile backup run --rm backup verify.sh
 
 Wie ein Archiv verschlüsselt wird und wohin es gehört, steht in `docker/.env.example`. Die Archive heißen nach der Datenbank (`haustechnik-<zeit>.tar.gz`), ein Ziel lässt sich also mit einer Installation von OpenGewerk teilen: jede Anwendung findet, behält und löscht nur ihre eigenen. Das gilt auch für ein Archiv, das statt `latest` mit seinem Namen genannt wird: eines der anderen Anwendung lehnen `restore.sh` und `verify.sh` ab, bevor sie die Datenbank fragen.
 
+Zurückgespielt wird nur ein Archiv, das diese Instanz selbst geschrieben hat: jede Sicherung hält Name und Prüfsumme ihres Archivs im Volume `backup-status` fest, und `restore.sh` und `verify.sh` prüfen ein Archiv dagegen, bevor sie es lesen. Ist eine Installation verschlüsselt, lehnen sie ein unverschlüsseltes Archiv ab. Auf einer neuen Maschine, die dieses Verzeichnis nicht hat, und für Archive von vor dieser Fassung steht der Schalter `--skip-origin-check` vor dem Archiv; er hebt beide Prüfungen auf, also nur für ein Archiv, dessen Herkunft man kennt:
+
+```bash
+docker compose -f docker/compose.yaml --profile backup run --rm backup restore.sh --skip-origin-check <archiv>
+```
+
+Einzelheiten im README des Fundaments, Abschnitt [„Sicherung und Rückspielen“](https://github.com/opengewerk/opengewerk#sicherung-und-rückspielen).
+
+**Speicher.** Die Anwendung hat eine Speichergrenze von 4 GB, ihr Heap endet bei drei Vierteln davon. Läuft sie voll, startet Docker die Anwendung neu, statt dass der Kernel irgendeinen Prozess beendet, womöglich die Datenbank. Auf einer kleineren Maschine gehört die Grenze unter ihren Speicher, mit Platz für Datenbank und Renderer, in `docker/.env`, etwa `HAUSTECHNIK_MEMORY_LIMIT=2g`. Jeder Dienst gibt dazu die Rechte von root ab, die Docker sonst lässt; wo einer etwas behält, steht der Grund an ihm in `docker/compose.yaml`.
+
 **Neben OpenGewerk auf einem Server.** Die Haustechnik hat ein eigenes Compose-Projekt (`opengewerk-haustechnik`), einen eigenen Port (23800 statt 23700), eine eigene Datenbank in einem eigenen PostgreSQL-Container und eigene Volumes, und ihre Variablen beginnen mit `HAUSTECHNIK_`. Davor gehört ein eigener Hostname: ein Browser hält Cookies je Hostname und nicht je Port, zwei Anwendungen unter einem Namen meldeten sich gegenseitig ab.
 
 Die Kommandozeile ist der Rückweg, wenn sich jemand ausgesperrt hat, und der einzige Weg auf einem Rechner ohne Browser. Das Passwort eines neuen Kontos fragt jeder Befehl verdeckt ab; aus einem Skript kommt es aus `HAUSTECHNIK_PASSWORD`, nie aus einem Argument, denn ein Argument steht in der Prozessliste und im Verlauf der Shell.
