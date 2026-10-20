@@ -75,6 +75,22 @@ type PrintOf =
 export const noRenderer =
   'Auf dieser Instanz ist kein Dienst eingerichtet, der PDFs erzeugt. Der eingefrorene Stand bleibt unverändert; das PDF entsteht, sobald der Dienst läuft.'
 
+/** The sentence when the renderer fails at a page. */
+export const printFailed =
+  'Das PDF ließ sich nicht erzeugen. Was dabei schiefging, steht im Protokoll des Servers.'
+
+/**
+ * The answer when the renderer fails at a page (#475): a fixed sentence, and
+ * what went wrong in the log of the server. What the renderer says can carry
+ * a part of the page and an address inside the installation; neither belongs
+ * in the answer.
+ */
+export function renderFailed(error: unknown): BadGatewayException {
+  console.error('Ein PDF ließ sich nicht erzeugen.', error)
+
+  return new BadGatewayException(printFailed)
+}
+
 /**
  * The PDF of an evidence and of a round (section 2.6 of the concept, #111):
  * "das PDF entsteht beim ersten Abruf und liegt danach im inhaltsadressierten
@@ -113,16 +129,19 @@ export class Printer {
       return this.store.get(kept)
     }
 
+    // Read before the renderer is asked: a failure of the database or the
+    // store is answered as on every other route, not as a refusal of the page.
+    const asked = await job()
     let made: Uint8Array
 
     try {
-      made = await this.render(await job())
+      made = await this.render(asked)
     } catch (error) {
       if (error instanceof RendererUnavailableError) {
         throw new ServiceUnavailableException(noRenderer)
       }
 
-      throw new BadGatewayException(error instanceof Error ? error.message : String(error))
+      throw renderFailed(error)
     }
 
     const blob = await this.store.put(made)
@@ -162,7 +181,7 @@ export class Printer {
         throw new ServiceUnavailableException(noRenderer)
       }
 
-      throw new BadGatewayException(error instanceof Error ? error.message : String(error))
+      throw renderFailed(error)
     }
   }
 

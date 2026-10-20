@@ -28,7 +28,7 @@ import {
 } from '@opengewerk/platform-server'
 import type { Pool } from 'pg'
 import request from 'supertest'
-import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 
 import {
   applicationDatabaseUrl,
@@ -40,7 +40,7 @@ import { leastState, nextEvidenceNumber } from '../database/test-evidence.js'
 import { stateFingerprint } from '../evidence/fingerprint.js'
 import { dayInGermany } from '../today.js'
 import { ApiModule } from './api.module.js'
-import { noRenderer } from './prints.controller.js'
+import { noRenderer, printFailed } from './prints.controller.js'
 import { as, testIdentities } from './test-identity.js'
 import { tableReaders } from './test-tables.js'
 
@@ -957,6 +957,32 @@ describe('the PDF of an evidence (#111)', () => {
         .expect(503, new RegExp(noRenderer.slice(0, 40)))
     } finally {
       renderer = working
+    }
+
+    await pdfOf(id).expect(200)
+  })
+
+  it('says in a sentence of its own that the renderer failed, and leaves what it said to the log (#475)', async () => {
+    const { duty } = await assetWithDuty()
+    const { id } = await evidenceOf(duty, daysAgo(3))
+    const working = renderer
+    const refusal = new Error('Abgelehnt (HTTP 500). Antwort: http://renderer:3000/pdf')
+    const complained = vi.spyOn(console, 'error').mockImplementation(() => undefined)
+
+    renderer = () => Promise.reject(refusal)
+
+    try {
+      const answer = await http()
+        .get(`/evidence/${id}/pdf`)
+        .set(testIdentityHeader, by('u-lead'))
+        .expect(502)
+
+      expect(answer.body.message).toBe(printFailed)
+      expect(JSON.stringify(answer.body)).not.toContain('renderer:3000')
+      expect(complained).toHaveBeenCalledWith(expect.any(String), refusal)
+    } finally {
+      renderer = working
+      complained.mockRestore()
     }
 
     await pdfOf(id).expect(200)

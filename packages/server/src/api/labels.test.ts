@@ -22,7 +22,7 @@ import {
 } from '@opengewerk/platform-server'
 import type { Pool } from 'pg'
 import request from 'supertest'
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import {
   applicationDatabaseUrl,
@@ -32,6 +32,7 @@ import {
 } from '../database/test-database.js'
 import { dayInGermany } from '../today.js'
 import { ApiModule } from './api.module.js'
+import { printFailed } from './prints.controller.js'
 import { as, testIdentities } from './test-identity.js'
 
 /**
@@ -440,7 +441,7 @@ describe('the printed label of an asset', () => {
     expect(printed).toEqual([])
   })
 
-  it('answers with the sentence of the renderer when there is none, and names a refusal as one', async () => {
+  it('answers with the sentence of the renderer when there is none, and names a refusal in a sentence of its own (#475)', async () => {
     const fresh = await placeIn()
     const tech = by('technician')
     const label = await labelOf('assets', fresh.asset, tech)
@@ -449,8 +450,21 @@ describe('the printed label of an asset', () => {
     rendering = () => Promise.reject(new RendererUnavailableError('Kein Renderer eingerichtet.'))
     expect((await get(path, tech).expect(503)).body.message).toBe('Kein Renderer eingerichtet.')
 
-    rendering = () => Promise.reject(new Error('Seite abgelehnt'))
-    expect((await get(path, tech).expect(502)).body.message).toBe('Seite abgelehnt')
+    // What the renderer says goes to the log of the server, never into the answer.
+    const refusal = new Error('Abgelehnt (HTTP 500). Antwort: http://renderer:3000/pdf')
+    const complained = vi.spyOn(console, 'error').mockImplementation(() => undefined)
+
+    rendering = () => Promise.reject(refusal)
+
+    try {
+      const answer = await get(path, tech).expect(502)
+
+      expect(answer.body.message).toBe(printFailed)
+      expect(JSON.stringify(answer.body)).not.toContain('renderer:3000')
+      expect(complained).toHaveBeenCalledWith(expect.any(String), refusal)
+    } finally {
+      complained.mockRestore()
+    }
   })
 })
 
