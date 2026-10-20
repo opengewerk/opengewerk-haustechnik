@@ -281,7 +281,9 @@ services:
       # restore.sh of the foundation plays the dump back as the owner of the
       # tables and not as the superuser, so that a dump can do no more than a
       # migration could (#360). The superuser above locks the application out
-      # and reads every Betreiber for the checks.
+      # and reads every Betreiber for the checks. The schedule, which only
+      # backs up, inherits this with the rest of the anchor; it holds the
+      # password of the superuser anyway, which can do more than the owner.
       OPENGEWERK_OWNER_PASSWORD: ${HAUSTECHNIK_OWNER_PASSWORD:?HAUSTECHNIK_OWNER_PASSWORD fehlt in der .env-Datei}
       STORAGE_PATH: /var/lib/opengewerk-haustechnik/storage
       BACKUP_PATH: /var/lib/opengewerk-haustechnik/backups
