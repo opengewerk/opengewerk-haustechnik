@@ -103,7 +103,7 @@ Anhang B nennt jedes Feld der Datenbank, das auf eine Person zeigt. Dieser Absch
 
 ### 3.3 Geräte und Sitzungen
 
-- Zu jeder Anmeldung gibt es eine Sitzung: die Kennung des Browsers, eine zufällige Kennung des Geräts, die der Browser selbst erzeugt, der Beginn, der Ablauf und der Weg der Anmeldung (Passwort oder Passkey). Reicht der vorgeschaltete Webserver die Netzadresse der Anmeldung durch, steht auch sie in der Zeile der Sitzung. [K9, B62]
+- Zu jeder Anmeldung gibt es eine Sitzung: die Kennung des Browsers, eine zufällige Kennung des Geräts, die der Browser selbst erzeugt, der Beginn, der Ablauf, der Weg der Anmeldung (Passwort oder Passkey) und ob sie einen zweiten Faktor trägt (Code aus der App, Wiederherstellungscode oder Passkey). Reicht der vorgeschaltete Webserver die Netzadresse der Anmeldung durch, steht auch sie in der Zeile der Sitzung. [K9, B62]
 - **Zusage:** Die Netzadresse einer Anmeldung sieht nur die Person selbst, unter „Konto“ an jedem ihrer Geräte, damit sie eine Anmeldung erkennt, die nicht ihre ist. Die Leitung sieht sie unter „Zugänge“ nicht. Hängt ein Browser selbst eine Adresse an, steht keine da, die er gewählt hat. [K9, B49, B267, B268]
 - **Zusage:** Eine Sitzung endet nach zwölf Stunden. Ein Gerät, das sich für den Abgleich angemeldet hat, bleibt dreißig Tage angemeldet. [K9, B44]
 - **Zusage:** Jede Person sieht unter „Konto“ die Geräte, auf denen sie angemeldet ist, und meldet sie dort ab. Die Geräte eines anderen Kontos sieht sie nicht und meldet sie nicht ab. [K3, B42, B43]

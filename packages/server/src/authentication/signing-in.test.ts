@@ -5,7 +5,7 @@ import {
   tenantNameMaxLength,
   type TenantId,
 } from '@opengewerk/haustechnik-domain'
-import { authenticationPath } from '@opengewerk/platform-server'
+import { authenticationPath, largestAuthenticationBodyBytes } from '@opengewerk/platform-server'
 import type { Pool } from 'pg'
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 
@@ -159,6 +159,23 @@ describe('whoever leads a tenant', () => {
     expect((refused.body as { message: string }).message).toBe(secondFactorWall)
   })
 
+  /**
+   * The second factor is the session's and not the account's (#360): a
+   * session that began with the password alone stays at the wall when the
+   * account has the app afterwards, as an account given the app while the
+   * session stood. Only a sign in with the code carries it.
+   */
+  it('gets nowhere with a session of the password alone, also once the account has the app (#360)', async () => {
+    await instance.chooseTenant(cookies, tenantId)
+    await admin.query('update auth_users set two_factor_enabled = true where email = $1', [
+      firstRun.email,
+    ])
+
+    const refused = await instance.http().get('/staff').set('cookie', cookies).expect(403)
+
+    expect((refused.body as { message: string }).message).toBe(secondFactorWall)
+  })
+
   it('works once an authenticator app is set up, and is asked for its code from then on', async () => {
     await instance.chooseTenant(cookies, tenantId)
 
@@ -256,6 +273,35 @@ describe('somebody who does not lead', () => {
     expect(
       (await instance.http().get('/auth/tenants').set('cookie', again).expect(200)).body,
     ).toEqual([])
+  })
+})
+
+/**
+ * The routes of the sign in are mounted here as an instance mounts them
+ * (`mountAuthentication`, #360): behind the limit of their bodies, which
+ * holds before the library reads anything and before anybody is known.
+ */
+describe('the routes of the sign in', () => {
+  it('read no body above their limit, and take one below it to the library', async () => {
+    instance = await testInstance(applicationDatabaseUrl())
+
+    const tooLarge = await instance
+      .authenticate('/sign-in/email')
+      .send({
+        email: 'leitung@klinikum.example',
+        password: 'x'.repeat(largestAuthenticationBodyBytes),
+      })
+      .expect(413)
+
+    expect((tooLarge.body as { message: string }).message).toBe(
+      'Diese Anfrage ist zu groß für die Anmeldung.',
+    )
+
+    // A body of the usual size gets to the library, which answers for itself.
+    await instance
+      .authenticate('/sign-in/email')
+      .send({ email: 'leitung@klinikum.example', password })
+      .expect(401)
   })
 })
 

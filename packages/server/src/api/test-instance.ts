@@ -2,12 +2,13 @@ import type { INestApplication } from '@nestjs/common'
 import { Test } from '@nestjs/testing'
 import {
   type Authentication,
+  authenticationHandler,
   authenticationPath,
   ClosedIdentitySource,
   Database,
+  mountAuthentication,
 } from '@opengewerk/platform-server'
 import { currentCode } from '@opengewerk/platform-server/testing'
-import { toNodeHandler } from 'better-auth/node'
 import request from 'supertest'
 
 import { createAuthentication, SessionIdentitySource } from '../authentication/access.js'
@@ -101,10 +102,11 @@ export async function testInstance(
   const app = built.createNestApplication()
 
   if (!closed) {
-    // In front of the body parser, which is the order an instance uses and
-    // the order that matters: a parser in front leaves the library with an
-    // empty body, and the failure reads like a wrong password.
-    app.use(authenticationPath, toNodeHandler(authentication))
+    // As an instance mounts it (`createServer`, #360): behind the limit of its
+    // bodies and with the address of the client as the instance determines it,
+    // which its limits count by, and in front of the body parser, which would
+    // hand the library a body it had made something else of.
+    mountAuthentication(app, authenticationHandler(authentication))
   }
 
   await app.init()

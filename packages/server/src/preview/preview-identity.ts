@@ -84,6 +84,9 @@ export function previewSession(
           id: previewSessionId,
           userId: identity.userId,
           activeTenantId: identity.tenantId,
+          // Whatever role the preview runs as, its session has the second
+          // factor the management needs, as after a sign in with the code (#360).
+          secondFactor: true,
         },
       })
 

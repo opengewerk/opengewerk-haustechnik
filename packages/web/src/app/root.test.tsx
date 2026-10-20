@@ -33,6 +33,7 @@ const account = {
   name: 'Tim Technik',
   twoFactorEnabled: false,
   signInMethod: 'password' as const,
+  secondFactor: false,
 }
 
 let counter = 0

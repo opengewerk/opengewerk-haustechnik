@@ -126,6 +126,9 @@ async function pdfOfLabels(path: string, body: object): Promise<Blob> {
   const response = await fetch(path, {
     method: 'POST',
     credentials: 'include',
+    // The PDF names the places of an operator: past the HTTP cache of the
+    // browser, as every request of the foundation (#360).
+    cache: 'no-store',
     headers: {
       Accept: 'application/pdf, application/json',
       'Content-Type': 'application/json',

@@ -344,7 +344,7 @@ describe('the settings of a Betreiber', () => {
       status: 200,
       body: {
         user: { id: 'u-1', email: 'leitung@nord.example.de', name: 'Lea Leitung' },
-        session: { activeTenantId: 't-nord' },
+        session: { activeTenantId: 't-nord', secondFactor: true },
       },
     })
     answers.set('GET /auth/tenants', { status: 200, body: [nord] })
@@ -380,7 +380,7 @@ describe('the settings of a Betreiber', () => {
       status: 200,
       body: {
         user: { id: 'u-2', email: 'objekt@nord.example.de', name: 'Ole Objektleitung' },
-        session: { activeTenantId: 't-nord' },
+        session: { activeTenantId: 't-nord', secondFactor: true },
       },
     })
     answers.set('GET /auth/tenants', {

@@ -60,7 +60,8 @@ export function signedInAs(
       '/api/auth/get-session',
       {
         user: { id: 'u-1', email: 'person@nord.example.de', name: 'Pia Person' },
-        session: { activeTenantId: choice.id },
+        // With a second factor where the role needs one, as the server asks it (#360).
+        session: { activeTenantId: choice.id, secondFactor: choice.secondFactor },
       },
     ],
     ['/auth/tenants', [choice]],
