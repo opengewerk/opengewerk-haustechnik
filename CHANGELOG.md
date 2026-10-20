@@ -9,6 +9,10 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
 
 ### Hinzugefügt
 
+- Die PV-Anlage bekommt die wiederkehrende Prüfung nach DGUV Vorschrift 3 und 4 vorgeschlagen (#468, Paket Elektro
+  1.5.0): neue Fassungen der drei Prüfungen der elektrischen Anlage nennen sie im Geltungsbereich, und die Anlagenart
+  hat das Merkmal "Anlage besonderer Art". Bisher hing die Pflicht nur an der Niederspannungsanlage, an der eine
+  PV-Anlage oft gar nicht als Teil erfasst ist, und die PV-Anlage stand ohne Vorschlag da.
 - Ein Release spiegelt beide Abbilder mit ihren Signaturen nach Docker Hub, als
   `opengewerk/opengewerk-haustechnik` und `opengewerk/opengewerk-haustechnik-backup`, wie OpenGewerk es seit 0.4.0
   tut (#494). Wer dort sucht, findet die Haustechnik neben OpenGewerk, und `cosign verify` gilt dort wie in ghcr.io;
