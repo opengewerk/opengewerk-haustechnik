@@ -192,12 +192,11 @@ export function SiteBuildingBoardsBlock({
                   title={text(board, 'designation')}
                   meta={
                     <>
-                      <span className="block">
-                        {[asset ? text(asset, 'name') : null, room ? titleOfRoom(room) : null]
-                          .filter(Boolean)
-                          .join(', ')}
-                      </span>
-                      <span className="block">
+                      {[asset ? text(asset, 'name') : null, room ? titleOfRoom(room) : null]
+                        .filter(Boolean)
+                        .join(', ')}
+                      {' · '}
+                      <span>
                         {boardWhere(board)}
                         {', '}
                         {circuitsOrNone(

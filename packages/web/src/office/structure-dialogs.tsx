@@ -19,7 +19,6 @@ import {
   asBoard,
   asEquipment,
   asSection,
-  boardFields,
   circuitChartAddress,
   CircuitForm,
   circuitTitle,
@@ -34,7 +33,7 @@ import {
 } from '../app/electrical.js'
 import {
   asBoardPlace,
-  boardPlaceFields,
+  boardFormFields,
   boardPlaceValues,
   useBoardPlaces,
 } from '../app/board-places.js'
@@ -154,7 +153,7 @@ export function BoardDialog({
   const places = useBoardPlaces(assetId)
   const boardId = board ? String(board['id']) : null
   const name = text(board, 'designation')
-  const fields = [...boardFields, ...boardPlaceFields(places)]
+  const fields = boardFormFields(places)
 
   return (
     <Dialog

@@ -194,10 +194,10 @@ export function BuildingBoardsCard({
       >
         <thead>
           <tr>
-            <Column className="min-w-[150px]">Verteiler</Column>
-            <Column className="min-w-[160px]">Niederspannungsanlage</Column>
-            <Column className="w-[180px] min-w-[120px]">Raum</Column>
-            <Column numeric className="w-[104px] min-w-[90px]">
+            <Column className="min-w-[100px]">Verteiler</Column>
+            <Column className="min-w-[130px]">Niederspannungsanlage</Column>
+            <Column className="w-[170px] min-w-[110px]">Raum</Column>
+            <Column numeric className="w-[96px] min-w-[96px]">
               Stromkreise
             </Column>
           </tr>

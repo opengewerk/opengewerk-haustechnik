@@ -29,7 +29,6 @@ import {
   asBoard,
   asEquipment,
   asSection,
-  boardFields,
   circuitFacts,
   CircuitForm,
   circuitGroups,
@@ -50,7 +49,7 @@ import {
 } from '../../app/electrical.js'
 import {
   asBoardPlace,
-  boardPlaceFields,
+  boardFormFields,
   boardPlaceValues,
   useBoardPlaces,
 } from '../../app/board-places.js'
@@ -616,7 +615,7 @@ export function SiteBoardFormScreen() {
       <SiteScreen>
         <SitePartForm
           key={boardId ?? `new-${assetId}-${building ?? ''}`}
-          fields={[...boardFields, ...boardPlaceFields(places)]}
+          fields={boardFormFields(places)}
           record={{ ...(board ?? newBoard(boards)), ...boardPlaceValues(board, building) }}
           submitLabel={editing ? 'Speichern' : 'Hinzufügen'}
           onCancel={() => {
