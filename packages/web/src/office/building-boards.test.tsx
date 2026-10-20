@@ -104,7 +104,7 @@ const everything = [
 ] as const
 
 class Server extends TestServer {
-  constructor(rows: Readonly<Record<string, readonly object[]>>) {
+  constructor(rows: Readonly<Record<string, readonly Record<string, unknown>[]>>) {
     super()
 
     for (const [entity, list] of Object.entries(rows)) {
