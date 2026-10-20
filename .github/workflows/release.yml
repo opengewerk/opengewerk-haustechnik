@@ -7,8 +7,9 @@ name: Release
 # CHANGELOG.md for that version and the installation kit that
 # docker/pack-kit.sh packs: the folder docker/ with the version in its
 # compose.yaml and what the start of the foundation needs beside it, so that
-# "sh docker/start.sh" pulls this release instead of building. The same as
-# the workflow of OpenGewerk, with the names of this application.
+# "sh docker/start.sh" pulls this release instead of building. A second
+# job mirrors the images with their signatures to Docker Hub (#494). The same
+# as the workflow of OpenGewerk, with the names of this application.
 
 on:
   push:
@@ -26,6 +27,8 @@ jobs:
   release:
     name: Abbilder veröffentlichen und Release schreiben
     runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
     permissions:
       # The release page and its kit.
       contents: write
@@ -152,6 +155,8 @@ jobs:
           VERSION: ${{ steps.version.outputs.version }}
           APP_DIGEST: ${{ steps.app.outputs.digest }}
           BACKUP_DIGEST: ${{ steps.backup.outputs.digest }}
+          # Whether the job below mirrors the release to Docker Hub (#494).
+          DOCKER_HUB: ${{ secrets.DOCKERHUB_USERNAME != '' && secrets.DOCKERHUB_TOKEN != '' }}
         run: |
           set -eu
           python3 .github/release-notes.py > notes.md
@@ -162,3 +167,17 @@ jobs:
             --notes-file notes.md \
             "opengewerk-haustechnik-$VERSION.tar.gz" \
             "opengewerk-haustechnik-$VERSION.tar.gz.sha256"
+
+  # The same images on Docker Hub, with their signatures, after the release
+  # page exists (#494). Without the secrets the called workflow does nothing.
+  docker-hub:
+    name: Nach Docker Hub spiegeln
+    needs: release
+    permissions:
+      contents: read
+    uses: ./.github/workflows/docker-hub.yml
+    with:
+      version: ${{ needs.release.outputs.version }}
+    secrets:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}

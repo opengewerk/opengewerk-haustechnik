@@ -875,7 +875,19 @@ jobs:
                   ("länger als 125000 Zeichen", len(page) > 125_000),
                   ("ohne die Einleitung", "Die Einleitung einer Probefassung." not in page),
                   ("ohne den Abschnitt zur Installation", "## Installieren und aktualisieren" not in page),
-                  ("ohne die Prüfung beider Signaturen", page.count("cosign verify") != 2),
+                  (
+                      "ohne die Prüfung beider Signaturen",
+                      not all(
+                          f"cosign verify ghcr.io/opengewerk/{image}:0.0.0" in page
+                          for image in ("opengewerk-haustechnik", "opengewerk-haustechnik-backup")
+                      ),
+                  ),
+                  ("mit Docker Hub, ohne dass gespiegelt wird", "auch auf Docker Hub" in page),
+                  (
+                      "ohne Docker Hub, wo gespiegelt wird",
+                      "`opengewerk/opengewerk-haustechnik-backup:0.0.0`"
+                      not in notes.page(changelog, "0.0.0", "sha256:app", "sha256:backup", True),
+                  ),
               ]
               if broken
           ]

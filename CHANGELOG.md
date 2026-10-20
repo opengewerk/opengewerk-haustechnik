@@ -9,12 +9,24 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
 
 ### Hinzugefügt
 
+- Ein Release spiegelt beide Abbilder mit ihren Signaturen nach Docker Hub, als
+  `opengewerk/opengewerk-haustechnik` und `opengewerk/opengewerk-haustechnik-backup`, wie OpenGewerk es seit 0.4.0
+  tut (#494). Wer dort sucht, findet die Haustechnik neben OpenGewerk, und `cosign verify` gilt dort wie in ghcr.io;
+  das Paket holt weiter aus ghcr.io. Ohne die Secrets `DOCKERHUB_USERNAME` und `DOCKERHUB_TOKEN` tut der Job
+  nichts, und die Release-Seite nennt Docker Hub nur, wenn gespiegelt wird.
 - Ein Verteiler steht in einem Gebäude und, wo bekannt, in einem Raum (#495): im Gebäude seiner
   Niederspannungsanlage oder in einem, das sie versorgt. Bisher ließen sich die Unterverteilungen eines Gebäudes,
   das eine Anlage aus einem anderen Gebäude versorgt, nur in deren Akte aufnehmen, und das Gebäude zeigte sie nicht.
   Die Seite eines Gebäudes im Büro und vor Ort hat jetzt eine Karte "Verteiler" mit "Verteiler aufnehmen", der
   Dialog eines Verteilers fragt nach Gebäude und Raum, und die Akte der Anlage nennt das Gebäude jedes Verteilers.
   Vorhandene Verteiler stehen im Gebäude ihrer Anlage (Migration 0100); ihr Bereich bleibt der der Anlage.
+
+### Geändert
+
+- Die Auskunft über eine Person als JSON enthält keinen Linienzug einer Unterschrift mehr, an seiner Stelle steht
+  „Schriftzug im PDF der Auskunft“ (#457). Eine Datei, die jedes Programm ändern kann, soll keine Unterschrift
+  tragen, die sich unter einen anderen Text setzen ließe; das PDF der Auskunft zeichnet sie weiter, und keine
+  Tabelle der Anwendung enthält eine.
 
 ## [0.1.9] - 2026-10-20
 
