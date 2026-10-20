@@ -7,6 +7,31 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
 
 ## [Unreleased]
 
+## [0.1.9] - 2026-10-20
+
+Die fünfte Zwischenfassung für den Pilotbetrieb, mit den Korrekturen aus der externen
+Sicherheitsprüfung (#360) und dem, was aus Phase 2 seit 0.1.8 fertig ist. Elf Lücken sind
+geschlossen, die Advisories erscheinen mit dieser Fassung. Unter anderem liest die Anmeldung keinen
+Körper mehr ohne Grenze, der zweite Faktor gehört zur Sitzung, der Abgleich gibt einer eigenen Rolle
+nur, was ihr auch das Büro zeigt, eine Datei nennt nur, wer sie abgelegt hat oder sie schon sieht,
+den Mailserver der Instanz ändert niemand mehr ohne Bestätigung und ohne dass die Betreiber es
+erfahren, Erinnerungen und Aufgaben erreichen nur jemanden, der den Bereich sieht, und die Sicherung
+kommt nur fertig und verschlüsselt auf das Ziel. Die Dienste laufen gehärtet, der Renderer in einem
+eigenen Netz, und das Paket nennt jedes Abbild mit Digest und prüft seine Signatur vor dem Start.
+
+Aus Phase 2 kommen die Elektro-Struktur unter einer Niederspannungsanlage mit dem
+Stromkreisverzeichnis und Messungen je Stromkreis, die PV-Struktur unter einer PV-Anlage, eine
+zweite Nummer „Mobil“ am Ansprechpartner und Fotos aus der Galerie an allen Fotoknöpfen vor Ort. Die
+Dokumente eines Vorgangs, der nach Ablauf der Aufbewahrung geleert wird, gehen jetzt endgültig, und
+eine neue Fassung wird von selbst übernommen.
+
+Aktualisiert wird wie bei jeder Fassung in zwei Schritten, vorher gesichert; die Migrationen
+`0091_contact_mobile` bis `0099_purge_attachments` laufen von selbst. Danach meldet sich neu an, wer
+nur mit dem Passwort auf einem Konto mit Authenticator-App angemeldet war, und Sicherungen von vor
+dem Update spielt `restore.sh` nur mit `--skip-origin-check` zurück. Startet die Anwendung nicht,
+steht im Protokoll, was ihrer Datenbankrolle fehlt; eine Instanz aus dem Paket ist richtig
+eingerichtet.
+
 ### Hinzugefügt
 
 - Vorlagen für den Reverse Proxy unter `docker/proxy/`, `apache.conf` für Apache 2.4 und `nginx.conf` für nginx, jede
