@@ -20,7 +20,7 @@ import { memberships } from '@opengewerk/platform-server/schema'
 
 import { SigningRefusal } from '../activities/signing.js'
 import { EvidenceRefusal } from '../evidence/write.js'
-import { deviceScope, pullScope } from '../sync/device-scope.js'
+import { deviceScope, firmsOfTheDuties, pullScope } from '../sync/device-scope.js'
 import type { Sender } from '../sync/signatures.js'
 import { syncFor } from '../sync/sync.js'
 import { answerFor as answerForTheDatabase } from './database-errors.js'
@@ -329,11 +329,16 @@ export function syncRoutesFor(
     sync: syncFor(catalogue),
     permissionFor,
     answerFor,
-    scope: async ({ tx, identity }) =>
-      pullScope(await deviceScope(tx, identity.userId), {
+    scope: async ({ tx, identity }) => {
+      const limited = isLimited(identity.roles)
+
+      return pullScope(await deviceScope(tx, identity.userId), {
         holds: (right) => isAllowed(identity, right),
-        onlyWhatDutiesHangOn: isLimited(identity.roles),
-      }),
+        onlyWhatDutiesHangOn: limited,
+        // The firms of an auditor are those its duties name (#474).
+        ...(limited ? { firmsOfTheDuties: await firmsOfTheDuties(tx) } : {}),
+      })
+    },
     senderOf: (identity, operations) => senderOf(database, identity, operations),
   }
 }

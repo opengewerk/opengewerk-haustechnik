@@ -346,14 +346,30 @@ export function pullScope(scope: DeviceScope, reads: PullRights): PullScope {
   // else of the operator: no work, no defect, no document. Which of those rows
   // the database hands over, it decides by the limits of the access
   // (`within_limits`). Only the shipped role is limited, which always reads
-  // the duties, and these are what a duty names to it (#360).
+  // the duties, and these are what a duty names to it (#360). The firms lie in
+  // no area and no limit: of them the device holds those its duties name
+  // (#474), under a value that changes with them, so that a firm a duty comes
+  // to name is asked for and one no duty names any more is let go.
   if (reads.onlyWhatDutiesHangOn) {
+    const firms = reads.firmsOfTheDuties ?? []
+    const firmsHeld = sql`${column('contractors', 'id')} = any(${idArray(firms)})`
+    const firmsValue = `auditor:firms:${fingerprintOf(firms)}`
+
     return {
-      narrow: (entity) => (dutiesHangOn.includes(entity) ? undefined : sql`false`),
+      narrow: (entity) =>
+        entity === 'contractors'
+          ? firmsHeld
+          : dutiesHangOn.includes(entity)
+            ? undefined
+            : sql`false`,
       narrowed: Object.fromEntries(
         syncEntities.map((entity) => [
           entity,
-          dutiesHangOn.includes(entity) ? 'auditor' : 'nothing',
+          entity === 'contractors'
+            ? firmsValue
+            : dutiesHangOn.includes(entity)
+              ? 'auditor'
+              : 'nothing',
         ]),
       ),
       // A firm by its name alone, as for whoever does not see the contractors (#377).
@@ -555,6 +571,23 @@ export interface PullRights {
   readonly holds: (right: Right) => boolean
   /** An auditor from outside (#339): the places, the assets and the duties, and nothing else. */
   readonly onlyWhatDutiesHangOn?: boolean
+  /** The firms the live duties of an auditor name (#474), `firmsOfTheDuties`; none where not given. */
+  readonly firmsOfTheDuties?: readonly string[]
+}
+
+/**
+ * The firms the live duties the person sees name (#474): for an auditor from
+ * outside, whose duties the database keeps to the limits of the access, the
+ * firms its device holds by their name.
+ */
+export async function firmsOfTheDuties(tx: TenantTransaction): Promise<readonly string[]> {
+  const { rows } = await tx.execute<{ id: string }>(
+    sql`select distinct contractor_id as id from duties
+         where deleted_at is null and contractor_id is not null
+         order by 1`,
+  )
+
+  return rows.map((row) => row.id)
 }
 
 /** What the device of an auditor from outside holds (#339). */
@@ -565,7 +598,7 @@ const dutiesHangOn: readonly string[] = [
   'rooms',
   'assets',
   'duties',
-  // The firm that performs a duty, by its name.
+  // The firm that performs a duty, by its name, and only one a duty names (#474).
   'contractors',
 ]
 
