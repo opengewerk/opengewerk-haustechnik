@@ -666,6 +666,13 @@
       "when": 1792443834423,
       "tag": "0094_photovoltaic_structure",
       "breakpoints": true
+    },
+    {
+      "idx": 95,
+      "version": "7",
+      "when": 1792479997818,
+      "tag": "0095_session_second_factor",
+      "breakpoints": true
     }
   ]
 }

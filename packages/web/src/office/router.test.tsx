@@ -73,7 +73,7 @@ beforeEach(() => {
       '/api/auth/get-session',
       {
         user: { id: 'u-1', email: 'leitung@nord.example.de', name: 'Lea Leitung' },
-        session: { activeTenantId: 't-nord' },
+        session: { activeTenantId: 't-nord', secondFactor: true },
       },
     ],
     ['/auth/tenants', [nord]],

@@ -4609,3 +4609,64 @@ describe('an installation from before the prints of a sheet (#170)', () => {
     ])
   })
 })
+
+/**
+ * 0095 makes the second factor a property of the session (#360), as 0081 does
+ * in the repository opengewerk. A session from before cannot always say
+ * whether it had one: with a passkey it did, with the password on an account
+ * that has the app it may or may not. Those end; the rest stay as they were.
+ */
+describe('the sessions from before 0095', () => {
+  /** The migrations an installation carried before 0095. */
+  const before = 95
+
+  it('keep a passkey with its second factor, end the password where the account has the app, and leave the rest without', async () => {
+    await runMigrations(ownerDatabaseUrl(), kept(migrationsFolderUpTo(before)))
+    await admin.query(
+      `insert into auth_users (id, name, email, two_factor_enabled)
+         values ('with-app', 'Anna App', 'anna@beispiel.example', true),
+                ('without-app', 'Otto Ohne', 'otto@beispiel.example', false)`,
+    )
+    await admin.query(
+      `insert into auth_sessions (id, token, user_id, expires_at, sign_in_method)
+         values ('app-password', 't1', 'with-app', now() + interval '1 day', 'password'),
+                ('app-passkey', 't2', 'with-app', now() + interval '1 day', 'passkey'),
+                ('plain-password', 't3', 'without-app', now() + interval '1 day', 'password'),
+                ('plain-passkey', 't4', 'without-app', now() + interval '1 day', 'passkey')`,
+    )
+
+    await applyMigrations()
+
+    const { rows } = await admin.query<{ id: string; second_factor: boolean }>(
+      'select id, second_factor from auth_sessions order by id',
+    )
+
+    expect(rows).toEqual([
+      { id: 'app-passkey', second_factor: true },
+      { id: 'plain-passkey', second_factor: true },
+      { id: 'plain-password', second_factor: false },
+    ])
+  })
+
+  it('loses the column and keeps the sessions that are left when the update is taken back', async () => {
+    await applyMigrations()
+    await admin.query(
+      `insert into auth_users (id, name, email) values ('someone', 'Sara Sitzung', 'sara@beispiel.example')`,
+    )
+    await admin.query(
+      `insert into auth_sessions (id, token, user_id, expires_at, second_factor)
+         values ('with-code', 't1', 'someone', now() + interval '1 day', true)`,
+    )
+
+    await revertMigration(admin, '0095_session_second_factor')
+
+    const { rows: columns } = await admin.query<{ column_name: string }>(
+      `select column_name from information_schema.columns
+        where table_schema = 'public' and table_name = 'auth_sessions' and column_name = 'second_factor'`,
+    )
+    const { rows: sessions } = await admin.query<{ id: string }>('select id from auth_sessions')
+
+    expect(columns).toEqual([])
+    expect(sessions).toEqual([{ id: 'with-code' }])
+  })
+})

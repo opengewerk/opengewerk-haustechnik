@@ -75,6 +75,9 @@ const places: Readonly<Record<string, readonly Why[]>> = {
     ['sessions'],
   'upstream/opengewerk/packages/platform/server/src/authentication/authentication.ts#authPasskeys':
     [{ byHand: 'ein neuer Passkey, der sich nicht festhalten ließ' }],
+  // The sessions without a second factor, once the account has the app (#360).
+  'upstream/opengewerk/packages/platform/server/src/authentication/authentication.ts#authSessions':
+    ['sessions'],
   'upstream/opengewerk/packages/platform/server/src/authentication/passkeys.ts#authPasskeys': [
     { byHand: 'ein Passkey, den seine Person löscht' },
   ],
@@ -103,6 +106,8 @@ const places: Readonly<Record<string, readonly Why[]>> = {
 
 /** The tables the functions of the migrations delete from, by their name in the database. */
 const inMigrations: Readonly<Record<string, DeletionRuleKey>> = {
+  // 0095: the sessions of the password on an account with the app (#360).
+  auth_sessions: 'sessions',
   prints: 'evidence',
   evidence_signed_prints: 'evidence',
   service_report_records: 'emptied-activity',

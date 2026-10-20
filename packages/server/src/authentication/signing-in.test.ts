@@ -159,6 +159,23 @@ describe('whoever leads a tenant', () => {
     expect((refused.body as { message: string }).message).toBe(secondFactorWall)
   })
 
+  /**
+   * The second factor is the session's and not the account's (#360): a
+   * session that began with the password alone stays at the wall when the
+   * account has the app afterwards, as an account given the app while the
+   * session stood. Only a sign in with the code carries it.
+   */
+  it('gets nowhere with a session of the password alone, also once the account has the app (#360)', async () => {
+    await instance.chooseTenant(cookies, tenantId)
+    await admin.query('update auth_users set two_factor_enabled = true where email = $1', [
+      firstRun.email,
+    ])
+
+    const refused = await instance.http().get('/staff').set('cookie', cookies).expect(403)
+
+    expect((refused.body as { message: string }).message).toBe(secondFactorWall)
+  })
+
   it('works once an authenticator app is set up, and is asked for its code from then on', async () => {
     await instance.chooseTenant(cookies, tenantId)
 

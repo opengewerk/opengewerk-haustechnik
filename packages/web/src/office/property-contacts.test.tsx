@@ -122,7 +122,7 @@ function signedIn(role: RoleKey) {
       '/api/auth/get-session',
       {
         user: { id: 'u-1', email: 'person@nord.example.de', name: 'Pia Person' },
-        session: { activeTenantId: 't-nord' },
+        session: { activeTenantId: 't-nord', secondFactor: memberIn(role).secondFactor },
       },
     ],
     ['/auth/tenants', [memberIn(role)]],

@@ -62,7 +62,9 @@ export function signedInOffice(
       '/api/auth/get-session',
       {
         user: { id: 'u-1', email: 'person@nord.example.de', name: 'Pia Person' },
-        session: { activeTenantId: 't-nord' },
+        // With a second factor where the role needs one: the server lets no
+        // session without it work there (#360).
+        session: { activeTenantId: 't-nord', secondFactor: memberIn(role).secondFactor },
       },
     ],
     ['/auth/tenants', [memberIn(role)]],

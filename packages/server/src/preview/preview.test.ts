@@ -239,7 +239,7 @@ describe('a preview started as a technician in the north', () => {
 
     expect(answer.body).toMatchObject({
       user: { id: previewPeople.viewer.id, twoFactorEnabled: true },
-      session: { activeTenantId: tenantId },
+      session: { activeTenantId: tenantId, secondFactor: true },
     })
 
     const refused = await request(application.getHttpServer())
