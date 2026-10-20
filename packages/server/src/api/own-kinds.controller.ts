@@ -4,6 +4,7 @@ import {
   ConflictException,
   Controller,
   Delete,
+  ForbiddenException,
   Get,
   HttpCode,
   Inject,
@@ -44,12 +45,20 @@ import { ownAssetFields, ownAssetKinds } from '../database/schema/index.js'
 import { ownOf, tenantCatalogue } from '../own-kinds/catalogue.js'
 import { dayInGermany } from '../today.js'
 import { RequiresPermission } from './authorization.js'
-import { type Asking, fieldsOf, refuse } from './places.js'
+import { type Asking, fieldsOf, refuse, seesEveryAreaNow } from './places.js'
 
 const kindGone = 'Diese eigene Anlagenart gibt es nicht.'
 const fieldGone = 'Diese eigene Angabe gibt es nicht.'
 
-/** How many assets carry each own kind and hold a value of each own field, past the areas. */
+/**
+ * What removing a kind, a field or a choice of one answers whoever keeps the
+ * kinds in some areas only (#474): an asset in every area may carry it, and
+ * what is counted for it is everything there is.
+ */
+const everyAreaWanted =
+  'Eine eigene Anlagenart, eine eigene Angabe oder eine Auswahl daran entfernen kann nur, wer alle Bereiche sieht: Anlagen in jedem Bereich können sie tragen.'
+
+/** How many assets carry each own kind and hold a value of each own field. */
 interface Uses {
   readonly assets: ReadonlyMap<string, number>
   readonly values: ReadonlyMap<
@@ -59,14 +68,35 @@ interface Uses {
 }
 
 /**
- * Asked of the database as its owner (`own_kind_uses()`, migration 0079): an
- * asset in an area of somebody else carries a kind as well, and a kind or a
- * field goes only while none does. Counts and the codes of choices, nothing
- * an asset says.
+ * The same counts as `own_kind_uses()` (migration 0079), asked as the person:
+ * the assets in their areas and no other (#474).
  */
-async function usesOf(tx: TenantTransaction): Promise<Uses> {
+const usesInSight = sql`
+  select k.key as asset_kind, null::text as field_key,
+         (select count(*)::integer from assets a where a.kind = k.key) as assets,
+         null::text[] as held
+    from own_asset_kinds k
+   where k.deleted_at is null
+  union all
+  select f.asset_kind, f.key, count(a.id)::integer,
+         case when f.sort = 'choice'
+              then array_remove(array_agg(distinct a."values" ->> f.key), null)
+         end
+    from own_asset_fields f
+    left join assets a on a.kind = f.asset_kind and a."values" ? f.key
+   where f.deleted_at is null
+   group by f.asset_kind, f.key, f.sort`
+
+/**
+ * Past the areas, asked of the database as its owner (`own_kind_uses()`,
+ * migration 0079): an asset in an area of somebody else carries a kind as
+ * well, and a kind or a field goes only while none does. That is for whoever
+ * sees every area; anybody else is counted the assets in their own areas.
+ * Counts and the codes of choices, nothing an asset says.
+ */
+async function usesOf(tx: TenantTransaction, everyArea: boolean): Promise<Uses> {
   const result = await tx.execute(
-    sql`select asset_kind, field_key, assets, held from own_kind_uses()`,
+    everyArea ? sql`select asset_kind, field_key, assets, held from own_kind_uses()` : usesInSight,
   )
   const rows = result.rows as {
     asset_kind: string
@@ -146,7 +176,8 @@ function documentsFrom(given: readonly OwnExpectedDocument[]): ExpectedDocument[
  * Everybody else reads them where they are used: in the catalogue a device
  * holds, which the server hands out with them, on the form of an asset and in
  * its file. The counts here look past the areas, because they decide what
- * may go; they are no more than counts.
+ * may go; they are no more than counts, and only whoever sees every area is
+ * given them and removes a kind, a field or a choice (#474).
  */
 @Controller('own-kinds')
 export class OwnKindsController {
@@ -161,7 +192,7 @@ export class OwnKindsController {
   list(@CurrentIdentity() identity: Asking): Promise<OwnKindsReading> {
     return this.database.forTenant(identity, async (tx) => {
       const { kinds, fields } = await ownOf(tx)
-      const uses = await usesOf(tx)
+      const uses = await usesOf(tx, await seesEveryAreaNow(tx))
       const counted = (field: OwnAssetField) => ({
         ...field,
         values: uses.values.get(field.key)?.held ?? 0,
@@ -272,7 +303,12 @@ export class OwnKindsController {
   remove(@CurrentIdentity() identity: Asking, @Param('id') id: string): Promise<void> {
     return this.database.forTenant(identity, async (tx) => {
       const kind = await this.kindAt(tx, id)
-      const carrying = (await usesOf(tx)).assets.get(kind.key) ?? 0
+
+      if (!(await seesEveryAreaNow(tx))) {
+        throw new ForbiddenException(everyAreaWanted)
+      }
+
+      const carrying = (await usesOf(tx, true)).assets.get(kind.key) ?? 0
 
       if (carrying > 0) {
         throw new ConflictException(
@@ -397,10 +433,15 @@ export class OwnKindsController {
 
       if (options !== undefined) {
         const kept = new Set(options.map((option) => option.value))
-        const held = (await usesOf(tx)).values.get(field.key)?.choices ?? []
-        const lost = field.options.filter(
-          (option) => !kept.has(option.value) && held.includes(option.value),
-        )
+        const going = field.options.filter((option) => !kept.has(option.value))
+
+        if (going.length > 0 && !(await seesEveryAreaNow(tx))) {
+          throw new ForbiddenException(everyAreaWanted)
+        }
+
+        const held =
+          going.length === 0 ? [] : ((await usesOf(tx, true)).values.get(field.key)?.choices ?? [])
+        const lost = going.filter((option) => held.includes(option.value))
 
         if (lost.length > 0) {
           throw new ConflictException(
@@ -431,7 +472,12 @@ export class OwnKindsController {
   removeField(@CurrentIdentity() identity: Asking, @Param('id') id: string): Promise<void> {
     return this.database.forTenant(identity, async (tx) => {
       const field = await this.fieldAt(tx, id)
-      const holding = (await usesOf(tx)).values.get(field.key)?.held ?? 0
+
+      if (!(await seesEveryAreaNow(tx))) {
+        throw new ForbiddenException(everyAreaWanted)
+      }
+
+      const holding = (await usesOf(tx, true)).values.get(field.key)?.held ?? 0
 
       if (holding > 0) {
         throw new ConflictException(

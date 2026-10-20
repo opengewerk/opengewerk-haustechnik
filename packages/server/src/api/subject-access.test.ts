@@ -326,6 +326,64 @@ describe('the information about a person with an access (#355)', () => {
     expect(choice.people.map((person) => person.userId)).toContain(north.colleagueId)
     expect(choice.people.map((person) => person.userId)).not.toContain(south.colleagueId)
   })
+
+  /**
+   * A passkey belongs to the account, and the account may work for another
+   * operator too (#474): the information names the passkeys this operator
+   * knows, live or removed, and not one it does not know, nor when that was
+   * used.
+   */
+  it('names the passkeys this operator knows of the person, and no other', async () => {
+    const known = 'passkey-known-474'
+    const elsewhere = 'passkey-elsewhere-474'
+    const gone = 'passkey-gone-474'
+
+    await admin.query(
+      `insert into auth_passkeys (id, name, user_id, public_key, credential_id, counter, device_type,
+                                  backed_up, last_used_at)
+       values ($1, 'Laptop Büro', $3, 'public-key', $1, 0, 'singleDevice', false, '2026-10-01T08:00:00Z'),
+              ($2, 'Telefon bei einem anderen Betreiber', $3, 'public-key', $2, 0, 'singleDevice', false,
+               '2026-10-02T09:00:00Z')`,
+      [known, elsewhere, north.colleagueId],
+    )
+    await admin.query(
+      `insert into member_passkeys (tenant_id, user_id, passkey_id, name, removed_at)
+       values ($1, $2, $3, 'Laptop Büro', null), ($1, $2, $4, 'Alter Schlüssel', now())`,
+      [north.id, north.colleagueId, known, gone],
+    )
+
+    try {
+      const access = await about(north.colleagueId)
+      const passkeys = access.parts.find((part) => part.key === 'passkeys')?.rows ?? []
+
+      // A moment as the database writes it, read as a moment.
+      const moment = (value: unknown) =>
+        value === null ? null : new Date(String(value)).toISOString()
+
+      expect(
+        passkeys
+          .map((row) => ({
+            name: row['name'],
+            created: typeof row['createdAt'] === 'string',
+            lastUsedAt: moment(row['lastUsedAt']),
+            here: row['here'],
+          }))
+          .sort((left, right) => String(left.name).localeCompare(String(right.name))),
+      ).toEqual([
+        { name: 'Alter Schlüssel', created: true, lastUsedAt: null, here: false },
+        { name: 'Laptop Büro', created: true, lastUsedAt: '2026-10-01T08:00:00.000Z', here: true },
+      ])
+
+      const file = JSON.stringify(access)
+
+      expect(file).not.toContain('Telefon bei einem anderen Betreiber')
+      // Nor when the passkey only another operator knows was used.
+      expect(file).not.toMatch(/2026-10-02[ T]09:00/)
+    } finally {
+      await admin.query('delete from member_passkeys where passkey_id = any($1)', [[known, gone]])
+      await admin.query('delete from auth_passkeys where id = any($1)', [[known, elsewhere]])
+    }
+  })
 })
 
 describe('the information about a person without an access (#355)', () => {

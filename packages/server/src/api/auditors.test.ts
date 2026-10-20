@@ -68,6 +68,8 @@ const folder = mkdtempSync(join(tmpdir(), 'auditors-'))
 /** Two properties; at the school an elevator and a water meter, at the depot an elevator. */
 const place = { school: '', depot: '', schoolElevator: '', schoolMeter: '', depotElevator: '' }
 const duty = { schoolElevator: '', schoolMeter: '', depotElevator: '' }
+/** The firm of the elevator at the school, the one at the depot, and one no duty names. */
+const firm = { lifts: '', depot: '', idle: '' }
 const evidence = { schoolElevator: '', schoolMeter: '', depotElevator: '' }
 
 function http() {
@@ -211,6 +213,29 @@ beforeAll(async () => {
   duty.schoolElevator = await dutyAt(place.schoolElevator, 'probe.elevator_main_test')
   duty.schoolMeter = await dutyAt(place.schoolMeter, null)
   duty.depotElevator = await dutyAt(place.depotElevator, 'probe.elevator_main_test')
+
+  for (const [key, name] of [
+    ['lifts', 'Aufzugsdienst Rhein-Neckar GmbH'],
+    ['depot', 'Hebetechnik Nord GmbH'],
+    ['idle', 'Brandschutz Kurpfalz GmbH'],
+  ] as const) {
+    const { rows } = await admin.query<{ id: string }>(
+      `insert into contractors (tenant_id, name, note) values ($1, $2, 'Rahmenvertrag') returning id`,
+      [tenant, name],
+    )
+
+    firm[key] = rows[0]?.id ?? ''
+  }
+
+  for (const [dutyId, firmId] of [
+    [duty.schoolElevator, firm.lifts],
+    [duty.depotElevator, firm.depot],
+  ] as const) {
+    await admin.query(
+      `update duties set performer = 'contractor', contractor_id = $2 where id = $1`,
+      [dutyId, firmId],
+    )
+  }
 
   for (const key of ['schoolElevator', 'schoolMeter', 'depotElevator'] as const) {
     const { rows } = await admin.query<{ id: string }>(
@@ -464,13 +489,69 @@ describe('an auditor from outside', () => {
         .map((change) => [change.entity, change.rows.map((row) => String(row['id']))]),
     )
 
-    expect(Object.keys(held).sort()).toEqual(['assets', 'buildings', 'duties', 'properties'])
+    expect(Object.keys(held).sort()).toEqual([
+      'assets',
+      'buildings',
+      'contractors',
+      'duties',
+      'properties',
+    ])
     expect(held['properties']).toEqual([place.school])
     expect(held['assets']).toEqual([place.schoolElevator])
     expect(held['duties']).toEqual([duty.schoolElevator])
+    // Of the firms only the one its duty names, by its name (#474).
+    expect(held['contractors']).toEqual([firm.lifts])
     // The catalogue the device needs to show them, as for every role.
     for (const path of ['/catalogue', '/catalogue/checksum']) {
       await http().get(path).set(testIdentityHeader, by('u-auditor')).expect(200)
+    }
+  })
+
+  /**
+   * The firms lie in no area and no limit (#474): the device of an auditor
+   * holds only those the duties within its limits name, and the value of the
+   * firms changes with them, so that a firm a duty comes to name is asked for
+   * from the start and one no duty names any more is let go.
+   */
+  it('holds of the firms only those its duties name, and learns of one a duty comes to name', async () => {
+    await limit('u-auditor', [place.school], ['probe.elevator'])
+
+    const pull = async () => {
+      const answer = await http()
+        .get('/sync?since=0')
+        .set(testIdentityHeader, by('u-auditor'))
+        .expect(200)
+      const changes = answer.body.changes as {
+        entity: string
+        rows: Record<string, unknown>[]
+      }[]
+
+      return {
+        value: (answer.body.narrowed as Record<string, string>)['contractors'],
+        firms: changes.find((change) => change.entity === 'contractors')?.rows ?? [],
+      }
+    }
+    const before = await pull()
+
+    expect(before.firms.map((row) => row['id'])).toEqual([firm.lifts])
+    expect(before.firms[0]).not.toHaveProperty('note')
+
+    // The firm of the depot, outside the limits, comes to the duty within them.
+    await admin.query('update duties set contractor_id = $2 where id = $1', [
+      duty.schoolElevator,
+      firm.depot,
+    ])
+
+    try {
+      const after = await pull()
+
+      expect(after.value).not.toBe(before.value)
+      expect(after.firms.map((row) => row['id'])).toEqual([firm.depot])
+    } finally {
+      await admin.query('update duties set contractor_id = $2 where id = $1', [
+        duty.schoolElevator,
+        firm.lifts,
+      ])
     }
   })
 

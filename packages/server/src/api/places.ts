@@ -126,6 +126,20 @@ export async function holdsTheArea(tx: TenantTransaction, areaId: AreaId): Promi
 }
 
 /**
+ * Whether the person asking sees every area. What reaches past the own areas
+ * of a person, because it is counted or changed in all of them, is for
+ * whoever sees all of them (#474): a role of the operator's own that holds a
+ * right in some areas only does it there or not at all.
+ */
+export async function seesEveryAreaNow(tx: TenantTransaction): Promise<boolean> {
+  const { rows } = await tx.execute<{ every: boolean }>(
+    sql`select session_sees_all_areas() as every`,
+  )
+
+  return rows[0]?.every === true
+}
+
+/**
  * The area a new property goes into: the one the body names, or, while the
  * tenant has a single area, that one. A small tenant never names an area.
  */

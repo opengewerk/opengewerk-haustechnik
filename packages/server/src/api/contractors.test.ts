@@ -7,6 +7,7 @@ import {
   type ContractorEntry,
   type ContractorName,
   type ContractorPage,
+  rightsOfRoles,
   type RoleKey,
   shippedRoles,
   type TenantId,
@@ -381,6 +382,36 @@ describe('removing a contractor', () => {
       .expect(409)
 
     expect(refused.body.message).toContain('1 offene Vorgänge')
+  })
+
+  /**
+   * The duties and activities that name a firm lie in every area (#474):
+   * whoever keeps the firms in some areas only does not see all of them, so
+   * removing one is for whoever sees every area.
+   */
+  it('is refused to whoever keeps the firms in some areas only', async () => {
+    const kept = await made({ name: 'Lüftung Mitte GmbH' })
+    // The Objektleitung, which holds in the one area, given the right to keep the firms.
+    const narrow = JSON.stringify({
+      userId: 'u-site',
+      tenantId: small,
+      roles: ['site_management'],
+      rights: [...rightsOfRoles(['site_management']), 'contractor.write'],
+    })
+    const refused = await http()
+      .delete(`/contractors/${kept.id}`)
+      .set(testIdentityHeader, narrow)
+      .expect(403)
+
+    expect(refused.body.message).toBe(
+      'Eine Fremdfirma entfernen kann nur, wer alle Bereiche sieht: Pflichten und Vorgänge in jedem Bereich können sie nennen.',
+    )
+    expect((await listOf()).map((each) => each.id)).toContain(kept.id)
+
+    await http()
+      .delete(`/contractors/${kept.id}`)
+      .set(testIdentityHeader, by('u-duties'))
+      .expect(200)
   })
 })
 

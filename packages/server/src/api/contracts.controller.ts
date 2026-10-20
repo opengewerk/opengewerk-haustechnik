@@ -46,7 +46,7 @@ import {
   tableFormatOf,
   type TenantTransaction,
 } from '@opengewerk/platform-server'
-import { and, count, eq, gt, inArray, isNull, or, type SQL, sql } from 'drizzle-orm'
+import { and, count, eq, gt, inArray, isNull, or, type SQL } from 'drizzle-orm'
 
 import { CATALOGUE } from '../catalogue.js'
 import {
@@ -62,7 +62,7 @@ import { dayInGermany } from '../today.js'
 import { RequiresPermission } from './authorization.js'
 import { checkContractor } from './contractor-checks.js'
 import { registeredEntries } from './duty-register.js'
-import { type Asking, fieldsOf, refuse } from './places.js'
+import { type Asking, fieldsOf, refuse, seesEveryAreaNow } from './places.js'
 
 const missing = 'Diesen Vertrag gibt es nicht oder nicht mehr.'
 
@@ -129,20 +129,11 @@ async function heldContract(
 }
 
 /**
- * Whether the person of the transaction sees every area. A contract lies in no
- * area, the duties that name it do; what reaches past the own areas, removing
- * a contract or giving it to another firm, is for whoever sees all of them, so
- * that what is counted for it is everything there is.
+ * What a route answers whoever keeps the contracts in some areas only. A
+ * contract lies in no area, the duties that name it do; what reaches past the
+ * own areas, removing a contract or giving it to another firm, is for whoever
+ * sees all of them, so that what is counted for it is everything there is.
  */
-async function seesEveryArea(tx: TenantTransaction): Promise<boolean> {
-  const { rows } = await tx.execute<{ every: boolean }>(
-    sql`select session_sees_all_areas() as every`,
-  )
-
-  return rows[0]?.every === true
-}
-
-/** What a route answers whoever keeps the contracts in some areas only. */
 const everyAreaWanted =
   'Einen Vertrag entfernen oder einer anderen Fremdfirma geben kann nur, wer alle Bereiche sieht: Pflichten in jedem Bereich können ihn nennen.'
 
@@ -492,7 +483,7 @@ export class ContractsController {
         await checkContractor(tx, values['contractorId'])
 
         // Another firm: the duties it names keep theirs, so none may name it.
-        if (!(await seesEveryArea(tx))) {
+        if (!(await seesEveryAreaNow(tx))) {
           throw new ForbiddenException(everyAreaWanted)
         }
 
@@ -535,7 +526,7 @@ export class ContractsController {
       const held = await heldContract(tx, id)
 
       // Counted in every area, which only whoever sees all of them does.
-      if (!(await seesEveryArea(tx))) {
+      if (!(await seesEveryAreaNow(tx))) {
         throw new ForbiddenException(everyAreaWanted)
       }
 

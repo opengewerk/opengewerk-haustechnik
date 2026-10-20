@@ -4,6 +4,7 @@ import {
   ConflictException,
   Controller,
   Delete,
+  ForbiddenException,
   Get,
   Header,
   Inject,
@@ -52,10 +53,18 @@ import { dutyTitle } from '../database/duty-standing.js'
 import { activities, contacts, contractors, duties, evidence } from '../database/schema/index.js'
 import { dayInGermany } from '../today.js'
 import { RequiresPermission } from './authorization.js'
-import { type Asking, fieldsOf, refuse } from './places.js'
+import { type Asking, fieldsOf, refuse, seesEveryAreaNow } from './places.js'
 import { ordersInSight } from './work-orders.controller.js'
 
 const missing = 'Diese Fremdfirma gibt es nicht oder nicht mehr.'
+
+/**
+ * What removing a firm answers whoever keeps the firms in some areas only
+ * (#474): the duties and activities that name it lie in every area, and what
+ * is counted for it is everything there is.
+ */
+const everyAreaWanted =
+  'Eine Fremdfirma entfernen kann nur, wer alle Bereiche sieht: Pflichten und Vorgänge in jedem Bereich können sie nennen.'
 const unknownAccount = 'Unbekanntes Konto'
 
 /** The texts of a contractor besides its name, which may be emptied. */
@@ -519,7 +528,8 @@ export class ContractorsController {
   /**
    * A firm that no longer works for the operator: marked, never removed, and
    * readable wherever it is named. Refused while an open duty or an activity
-   * still to be done names it, which then has to name another firm first.
+   * still to be done names it, which then has to name another firm first, and
+   * to whoever does not see every area, for whom they are not all counted.
    */
   @Delete(':id')
   @RequiresPermission('contractor.write')
@@ -528,7 +538,12 @@ export class ContractorsController {
 
     return this.database.forTenant(identity, async (tx) => {
       const held = await heldContractor(tx, id)
-      // Counted where the person sees: the roles that keep the firms see every area.
+
+      // Counted in every area, which only whoever sees all of them does.
+      if (!(await seesEveryAreaNow(tx))) {
+        throw new ForbiddenException(everyAreaWanted)
+      }
+
       const [{ open: openDuties = 0 } = {}] = await tx
         .select({ open: count() })
         .from(duties)

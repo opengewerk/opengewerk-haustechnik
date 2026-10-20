@@ -170,6 +170,15 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   (opengewerk-haustechnik#360). Warum: der Name des Lagers ging unmaskiert in den Kopf `Content-Disposition`, und die
   Antwort eines gescheiterten Drucks gab die Meldung des Fehlers weiter.
 
+- Eine eigene Rolle, die nur einige Bereiche hat, sieht und ändert dort nur noch diese (#474): unter „Bereiche“ stehen
+  nur ihre Bereiche mit den Personen darin, umbenennen lässt sich nur einer davon, und die Zahlen bei den eigenen
+  Anlagenarten zählen nur ihre Bereiche. Einen Bereich anlegen oder entfernen, eine Fremdfirma entfernen und eine eigene
+  Anlagenart, Angabe oder Auswahl entfernen kann nur, wer alle Bereiche sieht. Das Gerät eines Prüfers hält nur noch die
+  Fremdfirmen, die seine Pflichten nennen, und die Auskunft über eine Person nennt nur die Passkeys, die dieser Betreiber
+  kennt. Gefunden in der Sicherheitsprüfung (opengewerk-haustechnik#360). Warum: diese Wege zählten oder änderten über
+  alle Bereiche, das Gerät des Prüfers bekam die Namen aller Fremdfirmen, und die Auskunft las die Passkeys des ganzen
+  Kontos, auch solche, die nur ein anderer Betreiber kennt.
+
 ### Sicherheit
 
 - Der Abgleich gibt einem Gerät von jeder Art Datensatz nur noch, was seiner Person auch die Route im Büro zeigt
