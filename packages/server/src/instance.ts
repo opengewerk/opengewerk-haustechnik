@@ -83,6 +83,18 @@ export async function openInstance(
     )
   }
 
+  // The name of the role is checked with the configuration; what the role can
+  // do only the database knows (opengewerk/opengewerk#685): a superuser, a
+  // role with BYPASSRLS, the owner of a table or a member of the owner runs
+  // without the isolation of the operators.
+  const roleProblem = await database.roleProblem()
+
+  if (roleProblem !== null) {
+    await database.close()
+
+    throw new ConfigurationError(roleProblem)
+  }
+
   // The settings of the instance, kept in memory and read again every half
   // minute, so that a change made in the area of the instance reaches whatever
   // asks them without a restart.
