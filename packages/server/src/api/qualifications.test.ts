@@ -3,7 +3,7 @@ import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
-import type { INestApplication } from '@nestjs/common'
+import { HttpException, type INestApplication } from '@nestjs/common'
 import { Test } from '@nestjs/testing'
 import { probeCatalogueBundle } from '@opengewerk/haustechnik-catalogue/testing'
 import {
@@ -22,10 +22,10 @@ import {
   type TenantId,
   type WorkOrderCandidates,
 } from '@opengewerk/haustechnik-domain'
-import { Database, FileStore, newId } from '@opengewerk/platform-server'
+import { Database, FileStore, newId, UploadLimits } from '@opengewerk/platform-server'
 import type { Pool } from 'pg'
 import request from 'supertest'
-import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 
 import { inEveryArea } from '../database/every-area.js'
 import {
@@ -401,6 +401,13 @@ describe('the qualifications', () => {
       'insert into files (tenant_id, sha256, size_bytes, media_type) values ($1, $2, $3, $4)',
       [tenant, other, 12, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'],
     )
+    // Sent by the person who enters the qualification, so that what is
+    // refused below is the kind of the file and not who sent it (#360).
+    await admin.query('insert into file_uploads (tenant_id, sha256, user_id) values ($1, $2, $3)', [
+      tenant,
+      other,
+      'u-duties',
+    ])
 
     const refusal = (answer: object) => (answer as { message: string }).message
 
@@ -427,6 +434,72 @@ describe('the qualifications', () => {
       (await listOf(by('u-lead'))).qualifications.find((each) => each.id === held.id)
         ?.hasCertificate,
     ).toBe(false)
+  })
+
+  it('take no certificate the person did not send, unless a qualification in reach names it already (#360)', async () => {
+    await cleared()
+
+    // A PDF of the operator that somebody else sent: its hash alone opens
+    // nothing, and is answered like a file never sent.
+    const foreign = createHash('sha256').update('%PDF-1.4 fremd').digest('hex')
+    const refusal = (answer: object) => (answer as { message: string }).message
+
+    await admin.query(
+      'insert into files (tenant_id, sha256, size_bytes, media_type) values ($1, $2, $3, $4)',
+      [tenant, foreign, 14, 'application/pdf'],
+    )
+    await admin.query('insert into file_uploads (tenant_id, sha256, user_id) values ($1, $2, $3)', [
+      tenant,
+      foreign,
+      'u-site',
+    ])
+
+    expect(refusal(await entered({ certificateSha256: foreign }, 400))).toBe(
+      'Der Nachweis wird zuerst hochgeladen und dann mit seiner Prüfsumme genannt.',
+    )
+
+    // Sent by the person who enters it: taken.
+    await admin.query('insert into file_uploads (tenant_id, sha256, user_id) values ($1, $2, $3)', [
+      tenant,
+      foreign,
+      'u-duties',
+    ])
+
+    await entered({ certificateSha256: foreign })
+
+    // The lead did not send it, but a qualification in reach names it: the
+    // lead may lay it over another one.
+    const other = await entered({ userId: 'u-other' })
+
+    await http()
+      .patch(`/qualifications/${other.id}`)
+      .set(testIdentityHeader, by('u-lead'))
+      .send({ certificateSha256: foreign })
+      .expect(200)
+  })
+
+  it('ask the limits of storing before they keep a certificate (#360)', async () => {
+    const bytes = Buffer.from('%PDF-1.4 % Grenze')
+    const sha256 = createHash('sha256').update(bytes).digest('hex')
+    const limits = vi
+      .spyOn(UploadLimits.prototype, 'admit')
+      .mockRejectedValueOnce(new HttpException('Für diese Stunde ist es genug.', 429))
+
+    try {
+      await http()
+        .put(`/qualifications/certificates/${sha256}`)
+        .set(testIdentityHeader, by('u-duties'))
+        .set('Content-Type', 'application/octet-stream')
+        .set('X-Media-Type', 'application/pdf')
+        .send(bytes)
+        .expect(429)
+      expect(limits).toHaveBeenCalledTimes(1)
+      expect((await admin.query('select 1 from files where sha256 = $1', [sha256])).rows).toEqual(
+        [],
+      )
+    } finally {
+      limits.mockRestore()
+    }
   })
 
   it('hand the own ones to the person, and the certificate to the person and whoever looks at them', async () => {

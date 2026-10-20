@@ -69,6 +69,7 @@ import {
   accountsOf,
   CurrentIdentity,
   Database,
+  mayNameFile,
   newId,
   tableBodyOf,
   uploadedTable,
@@ -613,7 +614,9 @@ export class ImportsController {
         throw new ConflictException(planChanged)
       }
 
-      // What a line names lies on the server, with the size the page saw.
+      // What a line names lies on the server, with the size the page saw,
+      // sent by the person importing (#360): a hash of a file of another area
+      // is answered like a file never sent.
       const sent = new Map(chosen.map((file) => [file.name, file]))
       const stored = new Map<string, SentFile & { readonly mediaType: string }>()
       const held = async (sha256: string) => {
@@ -622,7 +625,7 @@ export class ImportsController {
           .from(files)
           .where(and(eq(files.tenantId, tenantId), eq(files.sha256, sha256)))
 
-        return row ?? null
+        return row === undefined || !(await mayNameFile(tx, sha256)) ? null : row
       }
 
       for (const name of new Set(

@@ -51,8 +51,10 @@ import {
   type FileStorage,
   fileUploadType,
   isUuid,
+  mayNameFile,
   storedMediaType,
   type TenantTransaction,
+  UploadLimits,
 } from '@opengewerk/platform-server'
 import { deadlineSettings, files, memberships } from '@opengewerk/platform-server/schema'
 import { and, eq, isNull, sql } from 'drizzle-orm'
@@ -99,6 +101,7 @@ export class QualificationsController {
     private readonly database: Database,
     @Inject(CATALOGUE) private readonly catalogue: Catalogue,
     @Inject(FILE_STORE) private readonly store: FileStorage,
+    private readonly limits: UploadLimits,
   ) {}
 
   /** Every qualification, by person and kind, with how each stands today. */
@@ -262,6 +265,10 @@ export class QualificationsController {
         'Ein Nachweis ist ein PDF oder ein Bild als JPEG, PNG, WebP oder HEIC.',
       )
     }
+
+    // As much as an hour allows the account and the operator, and room left
+    // on the volume (#360).
+    await this.limits.admit(identity, bytes.byteLength)
 
     const blob = await this.store.put(bytes)
 
@@ -592,7 +599,9 @@ export class QualificationsController {
  * image, as the upload of a certificate takes them: whoever keeps
  * qualifications cannot hang another kind of file of the operator on one and
  * read it through the certificate (hardening after the security review of
- * #407).
+ * #407). And it is one the person sent themselves or a qualification in their
+ * reach names already, as when the lead changes one whose certificate the
+ * person brought (#360); a file of somebody else is answered like none.
  */
 async function certificateProblem(
   tx: TenantTransaction,
@@ -608,7 +617,7 @@ async function certificateProblem(
     .where(eq(files.sha256, sha256))
     .limit(1)
 
-  if (file === undefined) {
+  if (file === undefined || !(await mayNameFile(tx, sha256, [qualifications.certificateSha256]))) {
     return 'Der Nachweis wird zuerst hochgeladen und dann mit seiner Prüfsumme genannt.'
   }
 

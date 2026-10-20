@@ -541,6 +541,52 @@ describe('a document filed from a device', () => {
     ])
   })
 
+  it('names a file only when the person sent it or a document in sight on a place names it (#360)', async () => {
+    const lead = by('management', large)
+    const site = by('site_management', large)
+    const tech = by('technician', large)
+    const north = { propertyId: inNorth.property, assetId: inNorth.asset }
+    const missing = { outcome: 'conflict', reason: 'record_missing', fields: ['sha256'] }
+    // A document of the Haustechnik of the north, its version naming bytes it
+    // did not send itself.
+    const own = (bytes: Buffer) => {
+      const document = newId<'attachment'>()
+
+      return outcomes(tech, [
+        operation('attachments', 'create', document, { title: 'Betriebsanleitung', ...north }),
+        versionOf(document, bytes).sent,
+      ])
+    }
+
+    // A file of the south, sent by the Objektleitung there: its hash names
+    // nothing the Haustechnik of the north may open, and is answered as if the
+    // bytes never came.
+    const southern = await filed(site, { propertyId: inSouth.property, assetId: inSouth.asset })
+
+    expect(await own(southern.bytes)).toEqual([applied, missing])
+
+    // A file of a document of the north, sent by somebody else, the lead: in
+    // sight, so it may be laid over a document of the Haustechnik as well.
+    const northern = await filed(lead, north)
+
+    expect(northern.outcomes).toEqual([applied, applied])
+    expect(await own(northern.bytes)).toEqual([applied, applied])
+
+    // A file of a document of a contractor, which goes out with a right of its
+    // own: not named from there.
+    const contractor = (
+      await http()
+        .post('/contractors')
+        .set(testIdentityHeader, lead)
+        .send({ name: 'Aufzugsdienst Rhein-Neckar GmbH' })
+        .expect(201)
+    ).body as { readonly id: string }
+    const firm = await filed(lead, { contractorId: contractor.id })
+
+    expect(firm.outcomes).toEqual([applied, applied])
+    expect(await own(firm.bytes)).toEqual([applied, missing])
+  })
+
   it('is told in the sentence of the form what the rules of domain refuse, with the operation named', async () => {
     const header = by('technician')
     const refusal = async (values: Readonly<Record<string, SyncValue>>) => {

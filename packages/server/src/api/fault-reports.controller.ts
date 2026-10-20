@@ -59,8 +59,10 @@ import {
   fileRowFor,
   fileUploadType,
   isUuid,
+  mayNameFile,
   storedMediaType,
   type TenantTransaction,
+  UploadLimits,
 } from '@opengewerk/platform-server'
 import { and, eq, isNull, ne, type SQL, sql } from 'drizzle-orm'
 
@@ -197,6 +199,7 @@ export class FaultReportsController {
   constructor(
     private readonly database: Database,
     @Inject(FILE_STORE) private readonly store: FileStorage,
+    private readonly limits: UploadLimits,
   ) {}
 
   /** The categories to choose from, the proposal of the first start written once. */
@@ -377,6 +380,10 @@ export class FaultReportsController {
       )
     }
 
+    // As much as an hour allows the account and the operator, and room left
+    // on the volume (#360): counted only for a photo that is one.
+    await this.limits.admit(identity, bytes.byteLength)
+
     const blob = await this.store.put(bytes)
 
     return this.database.forTenant(identity, async (tx) => {
@@ -434,7 +441,13 @@ export class FaultReportsController {
           .from(files)
           .where(eq(files.sha256, String(photo)))
 
-        if (file === undefined || !(photoTypes as readonly string[]).includes(file.mediaType)) {
+        // The photo of a report is one the person sent themselves (#360): a
+        // hash of a file of another area is answered like one never sent.
+        if (
+          file === undefined ||
+          !(photoTypes as readonly string[]).includes(file.mediaType) ||
+          !(await mayNameFile(tx, String(photo)))
+        ) {
           throw new BadRequestException(
             'Das Foto ist nicht angekommen. Nehmen Sie es noch einmal auf.',
           )

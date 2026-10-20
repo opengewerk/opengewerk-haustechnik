@@ -3,7 +3,7 @@ import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
-import type { INestApplication } from '@nestjs/common'
+import { HttpException, type INestApplication } from '@nestjs/common'
 import { Test } from '@nestjs/testing'
 import { probeCatalogueBundle } from '@opengewerk/haustechnik-catalogue/testing'
 import {
@@ -30,6 +30,7 @@ import {
   newId,
   type OutgoingMail,
   type TenantTransaction,
+  UploadLimits,
 } from '@opengewerk/platform-server'
 import { aMailServer, testKey } from '@opengewerk/platform-server/testing'
 import { inArray, sql } from 'drizzle-orm'
@@ -777,6 +778,32 @@ describe('the page of a label without an account', () => {
       other.receipt.photo ?? '',
       png,
     ).expect(404)
+  })
+
+  it('asks the limits of storing for the operator of the label before it keeps a photo (#360)', async () => {
+    await switched(true).expect(200)
+
+    const code = await labelOn(north, 'north', { room: north.room })
+    const { id, receipt } = await reportedOver(code, { photo: true })
+    const limits = vi
+      .spyOn(UploadLimits.prototype, 'admit')
+      .mockRejectedValueOnce(new HttpException('Für diese Stunde ist es genug.', 429))
+
+    try {
+      await photoOf(code, receipt.photo ?? '', png).expect(429)
+      // For the operator and for nobody's account: nobody signed in.
+      expect(limits).toHaveBeenCalledWith({ tenantId: operator, userId: null }, png.byteLength)
+      expect(
+        (
+          await one<{ photo_sha256: string | null }>(
+            'select photo_sha256 from fault_reports where id = $1',
+            [id],
+          )
+        ).photo_sha256,
+      ).toBeNull()
+    } finally {
+      limits.mockRestore()
+    }
   })
 
   it('turns away a report that comes to be written after another took the last of its label (#472)', async () => {

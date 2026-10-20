@@ -8,7 +8,7 @@ import {
   type Report,
   type StatedDefect,
 } from '@opengewerk/haustechnik-domain'
-import type { TenantTransaction } from '@opengewerk/platform-server'
+import { mayNameFile, type TenantTransaction } from '@opengewerk/platform-server'
 import { files } from '@opengewerk/platform-server/schema'
 import { and, desc, eq, inArray, isNull } from 'drizzle-orm'
 
@@ -178,7 +178,12 @@ export async function writeReport(
   return { ...written, activityId: activity }
 }
 
-/** The size and type of a file the tenant holds, as the server read them; null for one it has not. */
+/**
+ * The size and type of a file the tenant holds, as the server read them; null
+ * for one it has not, and for one the person did not send themselves (#360):
+ * the file of a report is uploaded with it, and a hash of a file of another
+ * area is answered like one never sent.
+ */
 async function storedFile(
   tx: TenantTransaction,
   context: WritingContext,
@@ -189,7 +194,11 @@ async function storedFile(
     .from(files)
     .where(and(eq(files.tenantId, context.tenantId), eq(files.sha256, sha256)))
 
-  return row ?? null
+  if (row === undefined || !(await mayNameFile(tx, sha256))) {
+    return null
+  }
+
+  return row
 }
 
 /**

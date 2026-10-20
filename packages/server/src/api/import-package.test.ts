@@ -271,10 +271,17 @@ describe('the example package of the import', () => {
       }
     })
 
+    // Sent ahead by the people of the operator, among them whoever imports
+    // (#360).
     for (const each of files) {
       await admin.query(
         `insert into files (tenant_id, sha256, size_bytes, media_type) values ($1, $2, $3, 'application/pdf')`,
         [tenantId, each.sha256, each.sizeBytes],
+      )
+      await admin.query(
+        `insert into file_uploads (tenant_id, sha256, user_id)
+         select tenant_id, $2, user_id from memberships where tenant_id = $1`,
+        [tenantId, each.sha256],
       )
     }
 
