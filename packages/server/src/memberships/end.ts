@@ -48,15 +48,48 @@ export async function endedMembers(
   return new Set(rows.map((row) => row.userId))
 }
 
-/** The first who leads the operator and still works here, for a task nobody else can take. */
-async function firstLead(tx: TenantTransaction, today: IsoDate): Promise<string | null> {
+/** Whoever leads the operator and still works here, the one longest in it first, for a task nobody else can take. */
+async function leadsInOrder(tx: TenantTransaction, today: IsoDate): Promise<readonly string[]> {
   const result = await tx.execute(sql`
     select m.user_id from memberships m
      where m.blocked_at is null and (m.last_day is null or m.last_day >= ${today})
        and exists (select 1 from tenant_roles r where r.tenant_id = m.tenant_id and r.leads and r.key = any (m.roles))
-     order by m.created_at limit 1`)
+     order by m.created_at, m.user_id`)
 
-  return (result.rows[0]?.['user_id'] as string | undefined) ?? null
+  return result.rows.map((row) => row['user_id'] as string)
+}
+
+/**
+ * Who of these people may take a task in an area (#473): still works here
+ * and is not blocked, may do tasks, and sees the area, every area or this
+ * one. The way a task is assigned to somebody else (section 7 of the
+ * concept), so that a task handed back does not go to somebody who could not
+ * see it.
+ */
+async function mayTakeIn(
+  tx: TenantTransaction,
+  today: IsoDate,
+  people: readonly string[],
+  areaId: string,
+): Promise<ReadonlySet<string>> {
+  if (people.length === 0) {
+    return new Set()
+  }
+
+  const result = await tx.execute(sql`
+    select m.user_id from memberships m
+     where m.user_id in (${sql.join(
+       people.map((person) => sql`${person}`),
+       sql`, `,
+     )}) and m.blocked_at is null
+       and (m.last_day is null or m.last_day >= ${today})
+       and exists (select 1 from tenant_roles r
+                    where r.tenant_id = m.tenant_id and r.key = any (m.roles) and 'task.record' = any (r.rights))
+       and (exists (select 1 from member_all_areas a where a.tenant_id = m.tenant_id and a.user_id = m.user_id)
+            or exists (select 1 from member_areas a
+                        where a.tenant_id = m.tenant_id and a.user_id = m.user_id and a.area_id = ${areaId}))`)
+
+  return new Set(result.rows.map((row) => row['user_id'] as string))
 }
 
 /**
@@ -64,7 +97,8 @@ async function firstLead(tx: TenantTransaction, today: IsoDate): Promise<string 
  * (decided 15.10.2026): their open and started activities go back to
  * planning, as do the plans of rounds they perform; their open tasks go to
  * whoever made them where that person still works here, else to the first
- * who leads the operator; and the duties they answer for themselves stand
+ * who leads the operator, each only to somebody who may take it in its area
+ * (#473); and the duties they answer for themselves stand
  * without a person. A duty they answer for by a delegation follows the
  * delegation, which no longer counts for them (`applyDelegations`). What they
  * signed and what is done stays as it is. Every day once more, and the second
@@ -109,7 +143,7 @@ export async function handBackEndedAccesses(tx: TenantTransaction, today: IsoDat
     )
 
   const openTasks = await tx
-    .select({ id: tasks.id, createdBy: tasks.createdBy })
+    .select({ id: tasks.id, createdBy: tasks.createdBy, areaId: tasks.areaId })
     .from(tasks)
     .where(
       and(eq(tasks.status, 'open'), inArray(tasks.assigneeUserId, ended), isNull(tasks.deletedAt)),
@@ -119,23 +153,12 @@ export async function handBackEndedAccesses(tx: TenantTransaction, today: IsoDat
     return
   }
 
-  const working = new Set(
-    (
-      await tx
-        .select({ userId: memberships.userId })
-        .from(memberships)
-        .where(
-          and(
-            isNull(memberships.blockedAt),
-            or(isNull(memberships.lastDay), gte(memberships.lastDay, today)),
-          ),
-        )
-    ).map((row) => row.userId),
-  )
-  const lead = await firstLead(tx, today)
+  const leads = await leadsInOrder(tx, today)
 
   for (const task of openTasks) {
-    const next = task.createdBy !== null && working.has(task.createdBy) ? task.createdBy : lead
+    const people = [...new Set([...(task.createdBy === null ? [] : [task.createdBy]), ...leads])]
+    const may = await mayTakeIn(tx, today, people, task.areaId)
+    const next = people.find((person) => may.has(person)) ?? null
 
     if (next !== null) {
       await tx

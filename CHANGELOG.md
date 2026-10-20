@@ -214,6 +214,15 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
 
 ### Sicherheit
 
+- Erinnerungen an Fristen per E-Mail und Push, die Push-Meldungen "Heute fällig" und "Wartet auf Abnahme" und eine
+  Aufgabe, die am Ende eines Zugangs zurückgeht, erreichen nur noch jemanden, der den Bereich sieht (#473). Wer ihn
+  nicht sieht, wird übergangen: die Erinnerung an eine Frist und die Aufgabe, die eine Frist anlegt, gehen an die
+  nächste Person in der gewohnten Reihenfolge, die ihn sieht, zuletzt an die Leitung, und ein Auftrag, dessen Leitung
+  den Bereich nicht sieht, wartet auf alle, die dort abnehmen dürfen. Als Person einer Frist nimmt die Liste nur
+  jemanden an, der ihren Bereich sieht. Das Submodul steht dafür auf `1c2db5a` (opengewerk/opengewerk#717). Gefunden in
+  der Sicherheitsprüfung (#360). Warum: die Empfänger wurden nach der Mitgliedschaft gewählt, und eine Person ohne den
+  Bereich bekam Art, Tag und Kennung der Frist.
+
 - Das Submodul `upstream/opengewerk` steht auf `57e099c` (opengewerk/opengewerk#708, #710, #711, #712, #713 und #714).
   Der Renderer hängt in einem eigenen, internen Netz allein mit der Anwendung und erreicht weder die Datenbank noch das
   Internet, und jede Druckseite trägt eine Content-Security-Policy, die nichts nachlädt (opengewerk#686). Ein Paket

@@ -33,6 +33,7 @@ import {
   roundTemplates,
   workOrders,
 } from '../database/schema/index.js'
+import { mayAnswerForDeadlines } from './answerers.js'
 import { deadlineKindRegistry } from './registry.js'
 
 /** A filter by a record, by its id: anything else is no id and is refused. */
@@ -546,8 +547,12 @@ export function deadlineRulesFor(
         or exists (select 1 from ${contracts} join ${contractors} on ${contractors.id} = ${contracts.contractorId}
                     where ${contracts.id} = ${deadlines.contractId} and ${contractors.name} ilike ${pattern}))`,
     filters,
+    // The list names, and a person of a deadline is, only somebody who sees
+    // its area (#473).
+    mayAnswer: mayAnswerForDeadlines,
     sentences: {
       notAColleague: 'Verantwortlich ist jemand, der für diesen Betreiber arbeitet.',
+      outsideThePlace: 'Verantwortlich ist jemand, der den Bereich dieser Frist sieht.',
     },
     // The list as a table (#236): what a deadline is called and what it hangs
     // on, as the list names them; the places only for whoever reads them, and

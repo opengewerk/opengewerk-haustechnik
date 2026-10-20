@@ -410,6 +410,41 @@ describe('the end of an access (#356)', () => {
     await lastDay('u-tech', null)
   })
 
+  it('goes to whoever leads where whoever made a task no longer sees its area (#473)', async () => {
+    const task = await aTask('u-tech', 'u-site')
+    const everywhere = await admin.query<{ tenant_id: string; user_id: string }>(
+      `delete from member_all_areas where tenant_id = $1 and user_id = 'u-site' returning tenant_id, user_id`,
+      [tenant],
+    )
+    const somewhere = await admin.query<{ tenant_id: string; user_id: string; area_id: string }>(
+      `delete from member_areas where tenant_id = $1 and user_id = 'u-site' returning tenant_id, user_id, area_id`,
+      [tenant],
+    )
+
+    try {
+      await lastDay('u-tech', inDays(-1))
+      await pass()
+
+      expect(await column('tasks', 'assignee_user_id', task)).toBe('u-lead')
+    } finally {
+      for (const row of everywhere.rows) {
+        await admin.query('insert into member_all_areas (tenant_id, user_id) values ($1, $2)', [
+          row.tenant_id,
+          row.user_id,
+        ])
+      }
+
+      for (const row of somewhere.rows) {
+        await admin.query(
+          'insert into member_areas (tenant_id, user_id, area_id) values ($1, $2, $3)',
+          [row.tenant_id, row.user_id, row.area_id],
+        )
+      }
+
+      await lastDay('u-tech', null)
+    }
+  })
+
   it('is not given to the last who leads the operator, and to a second one it is', async () => {
     const refused = await http()
       .patch('/staff/u-lead')
