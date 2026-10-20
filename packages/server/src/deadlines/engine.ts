@@ -21,6 +21,7 @@ import { applyDelegations } from '../delegations/apply.js'
 import type { ApplicationDeadlineColumns } from '../database/schema/deadlines.js'
 import { deadlines } from '../database/schema/index.js'
 import { dayInGermany } from '../today.js'
+import { mayAnswerForDeadlines } from './answerers.js'
 import { deadlineKindRegistry } from './registry.js'
 import { upgradeOpenRounds } from '../rounds/plans.js'
 import { settleDeadlineTasks, taskFromDeadline } from '../tasks/from-deadline.js'
@@ -129,6 +130,8 @@ function bound(
     },
     sentences,
     inTenant: (actor, work) => inEveryArea(job.database, actor, work),
+    // A reminder only for somebody who sees the area of the deadline (#473).
+    mayAnswer: mayAnswerForDeadlines,
     ...(job.now ? { now: job.now } : {}),
   }
 }

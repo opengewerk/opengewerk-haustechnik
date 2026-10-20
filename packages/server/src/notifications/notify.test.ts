@@ -208,6 +208,20 @@ async function rejectedBy(order: string, activity: string, person: Person): Prom
   return id
 }
 
+/** Runs a check while a person of the north does not see it, and gives them the north back after (#473). */
+async function withoutTheNorth(person: Person, check: () => Promise<void>): Promise<void> {
+  await admin.query('delete from member_areas where user_id = $1 and area_id = $2', [person, north])
+
+  try {
+    await check()
+  } finally {
+    await admin.query(
+      'insert into member_areas (tenant_id, user_id, area_id) values ($1, $2, $3)',
+      [operator, person, north],
+    )
+  }
+}
+
 /** A task for somebody, due today unless it says otherwise. */
 async function aTask(person: Person, dueOn = today): Promise<string> {
   return (
@@ -386,6 +400,34 @@ describe('a deadline that reminds', () => {
     expect(mail?.body).not.toContain('Schulzentrum')
   })
 
+  it('goes to the person it names where they see its area, and to whoever leads once they no longer do (#473)', async () => {
+    const reminded = async () => {
+      const deadline = await aDeadline()
+
+      await admin.query("update deadlines set responsible_user_id = 'u-tech' where id = $1", [
+        deadline,
+      ])
+
+      const [raised] = await dueDeadlines(database, operator, new Date(), undefined, 'push')
+
+      await notifyPush(database, operator, raised!, { now: new Date() })
+
+      const told = (await pushed()).map((each) => each.user)
+
+      await admin.query('delete from push_outbox')
+      await admin.query('update deadlines set task_id = null')
+      await admin.query('delete from deadlines')
+
+      return told
+    }
+
+    expect(await reminded()).toEqual(['u-tech'])
+
+    await withoutTheNorth('u-tech', async () => {
+      expect(await reminded()).toEqual(['u-lead'])
+    })
+  })
+
   it('goes by push to the same person, with the kind and the day', async () => {
     await aDeadline()
 
@@ -509,6 +551,17 @@ describe('a task that falls due', () => {
     expect(await dueTasks(database, operator, morning)).toEqual([])
   })
 
+  it('is told to nobody once its person no longer sees its area (#473)', async () => {
+    const task = await aTask('u-tech')
+    const [raised] = await dueTasks(database, operator, morning)
+
+    expect(raised).toMatchObject({ taskId: task })
+
+    await withoutTheNorth('u-tech', async () => {
+      expect(await notifyPush(database, operator, raised!, { now: morning })).toEqual([])
+    })
+  })
+
   it('is told to nobody once it is done, or once its person no longer works here', async () => {
     const done = await aTask('u-tech')
     const left = await aTask('u-site')
@@ -612,6 +665,18 @@ describe('a work order that waits for its acceptance', () => {
         url: `/auftraege/${order.id}`,
       },
     ])
+  })
+
+  it('is told to everybody who may accept in its area where whoever leads it no longer sees it (#473)', async () => {
+    const order = await anActivity({ kind: 'work_order', responsible: 'u-site' })
+
+    await signedBy(order.id, 'u-tech')
+
+    await withoutTheNorth('u-site', async () => {
+      expect(
+        (await waitingActivities(database, operator, new Date())).map((each) => each.userId),
+      ).toEqual(['u-lead'])
+    })
   })
 
   it('is told to everybody who may accept in its area where whoever leads it signed it themselves', async () => {

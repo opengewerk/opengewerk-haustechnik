@@ -23,6 +23,7 @@ import { and, desc, eq, gte, inArray, isNull, lte, type SQL, sql } from 'drizzle
 import { alias } from 'drizzle-orm/pg-core'
 
 import { application } from '../configuration.js'
+import { mayAnswerForDeadlines } from '../deadlines/answerers.js'
 import { inEveryArea } from '../database/every-area.js'
 import {
   activities,
@@ -225,6 +226,22 @@ function takesPush(tenant: SQL, user: SQL, occasion: string): SQL {
     )`
 }
 
+/** Whether a person of a tenant sees an area, every area or this one (#473). */
+function personSeesArea(tenant: SQL, person: SQL, area: SQL): SQL {
+  return sql`(exists (select 1 from ${memberAllAreas}
+                  where ${memberAllAreas.tenantId} = ${tenant}
+                    and ${memberAllAreas.userId} = ${person})
+         or exists (select 1 from ${memberAreas}
+                     where ${memberAreas.tenantId} = ${tenant}
+                       and ${memberAreas.userId} = ${person}
+                       and ${memberAreas.areaId} = ${area}))`
+}
+
+/** Whether a membership sees an area, every area or this one (#473). */
+function seesArea(area: SQL): SQL {
+  return personSeesArea(sql`${memberships.tenantId}`, sql`${memberships.userId}`, area)
+}
+
 /**
  * Whether a membership holds a right in an area: not shut out, a role of the
  * operator gives the right, and the person sees the area, every area or this
@@ -237,13 +254,7 @@ function mayIn(right: Right, area: SQL): SQL {
        where ${tenantRoles.tenantId} = ${memberships.tenantId}
          and ${tenantRoles.key} = any(${memberships.roles})
          and ${right} = any(${tenantRoles.rights}))
-    and (exists (select 1 from ${memberAllAreas}
-                  where ${memberAllAreas.tenantId} = ${memberships.tenantId}
-                    and ${memberAllAreas.userId} = ${memberships.userId})
-         or exists (select 1 from ${memberAreas}
-                     where ${memberAreas.tenantId} = ${memberships.tenantId}
-                       and ${memberAreas.userId} = ${memberships.userId}
-                       and ${memberAreas.areaId} = ${area}))`
+    and ${seesArea(area)}`
 }
 
 /**
@@ -353,7 +364,9 @@ export async function dueDeadlines(
  *
  * It goes to the person its task went to, or, for a kind without a task, to
  * the person the engine would name now; somebody shut out in the meantime is
- * passed over for the next one, in the end whoever leads the operator.
+ * passed over for the next one, in the end whoever leads the operator. Only
+ * somebody who sees the area of the deadline (#473): nobody else learns its
+ * kind, its day and the way to it.
  */
 export async function deadlineStillDue(
   tx: TenantTransaction,
@@ -392,10 +405,18 @@ export async function deadlineStillDue(
     return null
   }
 
-  const recipient = await responsibleFor(tx, tenantId, kind, setting, {
-    responsibleUserId: task?.assignee ?? deadline.responsibleUserId,
-    naturalUserId: deadline.naturalUserId,
-  })
+  const recipient = await responsibleFor(
+    tx,
+    tenantId,
+    kind,
+    setting,
+    {
+      responsibleUserId: task?.assignee ?? deadline.responsibleUserId,
+      naturalUserId: deadline.naturalUserId,
+      areaId: deadline.areaId,
+    },
+    mayAnswerForDeadlines,
+  )
 
   return recipient === null ? null : { deadline, kind, recipient }
 }
@@ -593,8 +614,8 @@ export async function dueTasks(
 
 /**
  * The task of a notification, if it is still open, not removed and due on the
- * day the notification is about, and its person still works for the operator;
- * otherwise null.
+ * day the notification is about, and its person still works for the operator
+ * and sees its area (#473); otherwise null.
  */
 export async function taskStillDue(
   tx: TenantTransaction,
@@ -610,6 +631,7 @@ export async function taskStillDue(
         eq(memberships.userId, tasks.assigneeUserId),
         isNull(memberships.blockedAt),
         beforeItsEnd(),
+        seesArea(sql`${tasks.areaId}`),
       ),
     )
     .where(
@@ -638,13 +660,14 @@ function lastSignatureOf(activity: SQL): SQL {
 /** Whom a signed activity waits for, as a condition on a membership beside it. */
 function waitsFor(): SQL {
   // A work order waits for whoever leads it, where it names somebody who did
-  // not sign it themselves; otherwise, like a round, for everybody who may
-  // accept in its area. Never for whoever signed.
+  // not sign it themselves and who sees its area (#473); otherwise, like a
+  // round, for everybody who may accept in its area. Never for whoever signed.
   return sql`${memberships.userId} <> ${activitySignatures.signedBy}
     and case
       when ${activities.kind} = 'work_order'
        and ${activities.responsibleUserId} is not null
        and ${activities.responsibleUserId} <> ${activitySignatures.signedBy}
+       and ${personSeesArea(sql`${activities.tenantId}`, sql`${activities.responsibleUserId}`, sql`${activities.areaId}`)}
       then ${memberships.userId} = ${activities.responsibleUserId}
        and ${memberships.blockedAt} is null and ${beforeItsEnd()}
       else ${mayIn('activity.accept', sql`${activities.areaId}`)}

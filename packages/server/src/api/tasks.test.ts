@@ -670,6 +670,29 @@ describe('the task of a due reading', () => {
     return rows[0]
   }
 
+  it('goes to somebody who sees its area, and not to the person of the kind where they do not (#473)', async () => {
+    const at = await assetIn(north)
+
+    await meterAt(at, 'WZ-81')
+    // The operator names a technician of the south for the readings.
+    await admin.query(
+      `insert into deadline_settings (tenant_id, kind, responsible_user_id)
+       values ($1, 'meter.due', 'u-south')`,
+      [operator],
+    )
+
+    try {
+      await run()
+
+      expect((await tasksAt(at.property)).map((task) => task.assignee_user_id)).toEqual(['u-lead'])
+    } finally {
+      await admin.query(
+        `delete from deadline_settings where tenant_id = $1 and kind = 'meter.due'`,
+        [operator],
+      )
+    }
+  })
+
   it('comes of the key date once its lead begins: one for whoever answers for the deadline, at the property, however often the engine runs', async () => {
     const at = await assetIn(north)
 
@@ -793,7 +816,7 @@ describe('the task of a due reading', () => {
     expect(await tasksAt(at.property)).toMatchObject([{ due_on: '2026-10-01', status: 'open' }])
   })
 
-  it('is made for nobody who does not see the area of the deadline, and the pass goes through all the same', async () => {
+  it('is made for whoever leads where the person of the deadline does not see its area (#473)', async () => {
     const at = await assetIn(north)
     const meter = await meterAt(at, 'WZ-69')
 
@@ -808,12 +831,15 @@ describe('the task of a due reading', () => {
     )
     await run(beforeNovember)
 
+    // Not for the technician, who could not see it, and not for nobody.
+    const made = await tasksAt(at.property)
+
+    expect(made.map((task) => task.assignee_user_id)).toEqual(['u-lead'])
     expect(await deadlineOf(at.property)).toMatchObject({
       due_on: '2026-11-01',
       reminded_for: '2026-11-01',
-      task_id: null,
+      task_id: made[0]?.id,
     })
-    expect(await tasksAt(at.property)).toEqual([])
   })
 
   it('is none for a defect that is due: a defect only reminds', async () => {

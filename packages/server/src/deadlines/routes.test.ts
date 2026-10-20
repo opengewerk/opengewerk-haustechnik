@@ -68,6 +68,7 @@ let places = 0
 /** One page of the list of deadlines, as the route answers it. */
 interface Page {
   readonly rows: readonly {
+    readonly id: string
     readonly dutyId: string
     readonly responsible: { readonly userId: string } | null
   }[]
@@ -249,6 +250,27 @@ describe('the list of deadlines', () => {
     expect(await seen('u-lead')).toEqual([inNorth.duty, inSouth.duty].sort())
   })
 
+  it('takes as the person of a deadline only somebody who sees its area (#473)', async () => {
+    const inSouth = await dutyWithEvidence(large, '2025-05-02', south)
+
+    await runDeadlinesOf({ database, catalogue, now: () => october }, large, october)
+
+    const [entry] = (await pageOf('u-lead', '', large)).rows.filter(
+      (row) => row.dutyId === inSouth.duty,
+    )
+    const patch = (person: string) =>
+      http()
+        .patch(`/deadlines/${entry?.id ?? ''}`)
+        .set(testIdentityHeader, by('u-lead', large))
+        .send({ responsibleUserId: person })
+
+    // The technical management looks after the north alone.
+    expect((await patch('u-duties').expect(422)).body.message).toBe(
+      'Verantwortlich ist jemand, der den Bereich dieser Frist sieht.',
+    )
+    await patch('u-lead').expect(200)
+  })
+
   // #104, acceptance 1: looking after the deadlines and their settings is
   // for the Leitung and the Technische Leitung, a test for each role.
   it.each([
@@ -376,8 +398,19 @@ describe('the list of deadlines as a table', () => {
 
     await admin.query('update duties set responsible_user_id = $1 where id = $2', ['u-site', duty])
     await runDeadlinesOf({ database, catalogue, now: () => october }, large, october)
+    // Named as the person of the deadline while the site management sees its
+    // area, the north (#473); in the large operator it otherwise sees none.
+    await admin.query(
+      'insert into member_areas (tenant_id, user_id, area_id) values ($1, $2, $3)',
+      [large, 'u-site', north],
+    )
 
-    const named = await tableOf(by('u-lead', large), 'search=Tabellenschule')
+    const named = await tableOf(by('u-lead', large), 'search=Tabellenschule').finally(() =>
+      admin.query('delete from member_areas where tenant_id = $1 and user_id = $2', [
+        large,
+        'u-site',
+      ]),
+    )
     const nameless = await tableOf(by('u-duties', large), 'search=Tabellenschule')
 
     expect(named).toEqual([
