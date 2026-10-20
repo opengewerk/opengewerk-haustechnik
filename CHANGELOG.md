@@ -120,6 +120,11 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
 
 ### Behoben
 
+- Die Auswahl „Charakteristik“ im Formular eines Stromkreises zeigt ihren Wert ganz, auch „nicht angegeben“, im Büro
+  und vor Ort (aus dem Fundament, opengewerk/opengewerk#683, Submodul `upstream/opengewerk` auf `26430c8` angehoben).
+  Warum: bis 1280 Pixel Breite schnitt sie ihren Wert ab, auf dem Telefon wie in einem schmalen Dialog; gefunden bei
+  #349.
+
 - Die Dokumente eines Orts vor Ort meldeten nach jedem abgelegten Foto „Das Foto ließ sich nicht ablegen.“ und schwiegen,
   wenn es wirklich nicht ging (#458). Jetzt steht nur bei einem Fehler etwas da, mit dem Grund. Warum: die Seite las die
   Antwort des Ablegens verkehrt herum, `null` heißt dort, dass das Foto unterwegs ist.
