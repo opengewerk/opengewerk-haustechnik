@@ -12,6 +12,10 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
 - Die vier Einträge des Pakets Elektro 1.5.0 (#468), die PV-Anlage im Geltungsbereich der Prüfung nach DGUV
   Vorschrift 3 und 4, sind fachkundig abgenommen, vom Maintainer am 21.10.2026, jeder mit der Prüfsumme seiner
   Datei. Bis dahin standen ihre Vorschläge als „Nicht abgenommen“ da.
+- Vor Ort laden die Seite eines Auftrags mit Notiz, Material, Abschluss und Leistungsnachweis, die Einweisung
+  und der Erlaubnisschein einer Fremdfirma und das Ergebnis einer Prüfung erst, wenn sie geöffnet werden
+  (#502). Der Einstieg vor Ort stand nach #500 mit 300,0 kB genau am Budget von 300 kB, jetzt sind es 281,6 kB;
+  ohne Netz öffnen sie weiter, weil der Service Worker jedes Skript des Baus hält.
 
 ## [0.1.10] - 2026-10-21
 

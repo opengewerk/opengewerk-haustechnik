@@ -22,15 +22,7 @@ import {
 } from './screens/places.js'
 import { SiteScanScreen } from './screens/scan.js'
 import { SiteActivityScreen, SiteProtocolScreen } from './screens/protocol.js'
-import { SiteResultScreen } from './screens/result.js'
 import { SiteStartScreen } from './screens/start.js'
-import { SiteMaterialScreen } from './screens/material.js'
-import { SiteBriefingScreen, SiteWorkPermitScreen } from './screens/visit.js'
-import {
-  SiteCloseOrderScreen,
-  SiteNoteScreen,
-  SiteServiceReportScreen,
-} from './screens/work-order.js'
 import { SiteGuideScreen, SiteHelpScreen, SiteScreenHelpScreen } from './help.js'
 import {
   FaultPlaceScreen,
@@ -125,6 +117,33 @@ const SiteStringFormScreen = lazyRouteComponent(
 const SiteModuleFormScreen = lazyRouteComponent(
   () => import('./screens/pv.js'),
   'SiteModuleFormScreen',
+)
+// A work order beyond its page (a note, its finishing, the service report, the
+// material), the briefing and the permit of a contractor, and the result of an
+// inspection with its signature (#502): the entry on site stood at its budget,
+// and each is opened from the page of its activity, which for a work order is
+// fetched with its address as well (`screens/protocol.tsx`).
+const SiteResultScreen = lazyRouteComponent(() => import('./screens/result.js'), 'SiteResultScreen')
+const SiteNoteScreen = lazyRouteComponent(() => import('./screens/work-order.js'), 'SiteNoteScreen')
+const SiteCloseOrderScreen = lazyRouteComponent(
+  () => import('./screens/work-order.js'),
+  'SiteCloseOrderScreen',
+)
+const SiteServiceReportScreen = lazyRouteComponent(
+  () => import('./screens/work-order.js'),
+  'SiteServiceReportScreen',
+)
+const SiteMaterialScreen = lazyRouteComponent(
+  () => import('./screens/material.js'),
+  'SiteMaterialScreen',
+)
+const SiteBriefingScreen = lazyRouteComponent(
+  () => import('./screens/visit.js'),
+  'SiteBriefingScreen',
+)
+const SiteWorkPermitScreen = lazyRouteComponent(
+  () => import('./screens/visit.js'),
+  'SiteWorkPermitScreen',
 )
 
 /**

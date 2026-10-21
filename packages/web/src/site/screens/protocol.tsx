@@ -34,9 +34,7 @@ import {
   useWhere,
 } from './form.js'
 import { EmptiedOnSite } from './emptied.js'
-import { SiteResultScreen } from './result.js'
 import { SiteStartScreen } from './start.js'
-import { SiteWorkOrderScreen } from './work-order.js'
 
 // The circuits of an installation in a group over them (#350) are fetched with
 // the protocol that has one: the entry on site has a budget of 300 kB.
@@ -46,6 +44,15 @@ const CircuitsSection = lazy(async () => ({
 // So is the list of the assets of a collective activity (#342), for the same budget.
 const SiteCollectiveScreen = lazy(async () => ({
   default: (await import('./collective.js')).SiteCollectiveScreen,
+}))
+// And the page of a work order with its material and the briefing of a
+// contractor, and the result of an inspection with its signature (#502): the
+// entry on site stood at its budget, and a round draws none of them.
+const SiteWorkOrderScreen = lazy(async () => ({
+  default: (await import('./work-order.js')).SiteWorkOrderScreen,
+}))
+const SiteResultScreen = lazy(async () => ({
+  default: (await import('./result.js')).SiteResultScreen,
 }))
 
 export const protocolWords = {
@@ -92,7 +99,11 @@ export function SiteActivityScreen() {
   }
 
   if (text(activity, 'kind') === 'work_order') {
-    return <SiteWorkOrderScreen />
+    return (
+      <Suspense fallback={null}>
+        <SiteWorkOrderScreen />
+      </Suspense>
+    )
   }
 
   // A collective activity, the list of its assets (#342).
@@ -104,7 +115,13 @@ export function SiteActivityScreen() {
     )
   }
 
-  return maybeText(activity, 'formKey') === null ? <SiteResultScreen /> : <SiteProtocolScreen />
+  return maybeText(activity, 'formKey') === null ? (
+    <Suspense fallback={null}>
+      <SiteResultScreen />
+    </Suspense>
+  ) : (
+    <SiteProtocolScreen />
+  )
 }
 
 /**
