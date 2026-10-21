@@ -201,7 +201,7 @@ function checked(file: File): Promise<PdfCheck> {
 }
 
 /**
- * "PDF prüfen" (#457, board `HT-Buero-PDF-Pruefen`): a PDF somebody lays
+ * "PDF prüfen" (#457, the board "PDF prüfen"): a PDF somebody lays
  * before the office, checked against the prints kept here and the signature
  * of the instance. Reached from the register of duties, beside
  * "Nachweisverzeichnis", under the right to see the evidence.

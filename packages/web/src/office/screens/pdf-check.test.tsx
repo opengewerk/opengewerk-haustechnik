@@ -14,7 +14,7 @@ import {
 import { pdfCheckScreenWords } from './pdf-check.js'
 
 /**
- * "PDF prüfen" (#457, board `HT-Buero-PDF-Pruefen`): reached from the
+ * "PDF prüfen" (#457, the board "PDF prüfen"): reached from the
  * register of duties by whoever sees the evidence, it sends the file chosen
  * as it is and says what came back: the print it is, and whether the
  * signature of the instance still holds.
