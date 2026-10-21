@@ -1,4 +1,8 @@
-import type { RetentionProposals, RoleKey } from '@opengewerk/haustechnik-domain'
+import type {
+  RecordRetentionProposals,
+  RetentionProposals,
+  RoleKey,
+} from '@opengewerk/haustechnik-domain'
 import { TestServer } from '@opengewerk/platform-web/testing'
 import { onlineManager } from '@tanstack/react-query'
 import { screen, waitFor, within } from '@testing-library/react'
@@ -12,6 +16,7 @@ import {
   untilTheRightsAreKnown,
   type Written,
 } from '../test-office.js'
+import { recordRetentionWords } from './record-retention.js'
 import { retentionWords } from './retention.js'
 
 /**
@@ -50,6 +55,31 @@ const proposals = (mayConfirm: boolean): RetentionProposals => ({
   more: false,
 })
 
+const recordProposals = (mayConfirm: boolean): RecordRetentionProposals => ({
+  activities: [
+    {
+      activityId: 'a-1' as never,
+      kind: 'Prüfung',
+      title: 'Sichtprüfung der Sicherheitsbeleuchtung',
+      endedOn: '2019-05-28' as never,
+      place: 'Schulzentrum Am Lindenhain',
+      retentionEndedOn: '2026-01-01' as never,
+    },
+  ],
+  defects: [
+    {
+      defectId: 'd-1' as never,
+      foundOn: '2020-11-02' as never,
+      remediedOn: '2021-02-03' as never,
+      description: 'Notbeleuchtung im Treppenhaus ohne Funktion',
+      place: 'Werkhof Nord, Sicherheitsbeleuchtung Halle 1',
+      retentionEndedOn: '2026-02-03' as never,
+    },
+  ],
+  mayConfirm,
+  more: false,
+})
+
 function mounted(role: RoleKey, mayConfirm: boolean) {
   const written = signedInOffice(
     role,
@@ -57,6 +87,14 @@ function mounted(role: RoleKey, mayConfirm: boolean) {
     {
       '/settings/evidence-retention': { minimumYears: 2 },
       '/settings/evidence-retention/proposals': proposals(mayConfirm),
+      '/settings/record-retention': {
+        activity: null,
+        defect: null,
+        task: null,
+        reading_person: null,
+        booking_person: null,
+      },
+      '/settings/record-retention/proposals': recordProposals(mayConfirm),
     },
     (write) =>
       write.method === 'POST' ? { status: 201, body: { emptied: 1 } } : { status: 200, body: {} },
@@ -82,12 +120,16 @@ describe('the retention of the evidence', () => {
 
     await userEvent.clear(field)
     await userEvent.type(field, '51')
-    await userEvent.click(screen.getByRole('button', { name: retentionWords.save }))
+    await userEvent.click(
+      screen.getAllByRole('button', { name: retentionWords.save })[0] as HTMLElement,
+    )
     expect(sent).toEqual([])
 
     await userEvent.clear(field)
     await userEvent.type(field, '5')
-    await userEvent.click(screen.getByRole('button', { name: retentionWords.save }))
+    await userEvent.click(
+      screen.getAllByRole('button', { name: retentionWords.save })[0] as HTMLElement,
+    )
     await waitFor(() => {
       expect(sent).toEqual([
         { method: 'PUT', path: '/settings/evidence-retention', body: { minimumYears: 5 } },
@@ -97,7 +139,9 @@ describe('the retention of the evidence', () => {
     await screen.findByText(retentionWords.saved)
     // Empty is the rule alone.
     await userEvent.clear(field)
-    await userEvent.click(screen.getByRole('button', { name: retentionWords.save }))
+    await userEvent.click(
+      screen.getAllByRole('button', { name: retentionWords.save })[0] as HTMLElement,
+    )
     await waitFor(() => {
       expect(sent.at(-1)).toEqual({
         method: 'PUT',
@@ -116,7 +160,9 @@ describe('the retention of the evidence', () => {
     await userEvent.click(
       await screen.findByRole('checkbox', { name: retentionWords.choose('NW-2016-00048') }),
     )
-    await userEvent.click(screen.getByRole('button', { name: retentionWords.remove }))
+    await userEvent.click(
+      screen.getAllByRole('button', { name: retentionWords.remove })[0] as HTMLElement,
+    )
 
     const question = await screen.findByRole('dialog', { name: retentionWords.confirmTitle(1) })
 
@@ -132,6 +178,100 @@ describe('the retention of the evidence', () => {
           body: { evidenceIds: ['e-2'] },
         },
       ])
+    })
+  })
+
+  it('lengthens what hangs on no evidence, and never below the law', async () => {
+    const { written, done } = mounted('management', true)
+    const sent: Written[] = written
+
+    await done
+    await untilTheRightsAreKnown()
+
+    const kinds = await screen.findByRole('region', { name: recordRetentionWords.kinds })
+    const field = within(kinds).getByLabelText(
+      recordRetentionWords.yearsOf('Vorgang ohne Nachweis'),
+    )
+
+    await userEvent.type(field, '5')
+    await userEvent.click(within(kinds).getByRole('button', { name: recordRetentionWords.save }))
+    expect(sent).toEqual([])
+
+    await userEvent.clear(field)
+    await userEvent.type(field, '10')
+    await userEvent.click(within(kinds).getByRole('button', { name: recordRetentionWords.save }))
+    await waitFor(() => {
+      expect(sent).toEqual([
+        {
+          method: 'PUT',
+          path: '/settings/record-retention',
+          body: {
+            activity: 10,
+            defect: null,
+            task: null,
+            reading_person: null,
+            booking_person: null,
+          },
+        },
+      ])
+    })
+  })
+
+  it('empties the activities and the defects whoever leads chose, after the question, and nothing else', async () => {
+    const { written, done } = mounted('management', true)
+    const sent: Written[] = written
+
+    await done
+    await untilTheRightsAreKnown()
+
+    const activities = await screen.findByRole('region', { name: recordRetentionWords.activities })
+
+    await userEvent.click(
+      within(activities).getByRole('checkbox', {
+        name: recordRetentionWords.choose('Sichtprüfung der Sicherheitsbeleuchtung'),
+      }),
+    )
+    await userEvent.click(
+      within(activities).getByRole('button', { name: recordRetentionWords.remove }),
+    )
+
+    const question = await screen.findByRole('dialog', {
+      name: recordRetentionWords.confirmTitle('activity', 1),
+    })
+
+    expect(sent).toEqual([])
+    await userEvent.click(
+      within(question).getByRole('button', { name: recordRetentionWords.confirm }),
+    )
+    await waitFor(() => {
+      expect(sent).toEqual([
+        {
+          method: 'POST',
+          path: '/settings/record-retention/activity-emptyings',
+          body: { activityIds: ['a-1'] },
+        },
+      ])
+    })
+
+    const defects = screen.getByRole('region', { name: recordRetentionWords.defects })
+
+    await userEvent.click(
+      within(defects).getByRole('checkbox', { name: recordRetentionWords.chooseAll('defect') }),
+    )
+    await userEvent.click(
+      within(defects).getByRole('button', { name: recordRetentionWords.remove }),
+    )
+    await userEvent.click(
+      within(
+        await screen.findByRole('dialog', { name: recordRetentionWords.confirmTitle('defect', 1) }),
+      ).getByRole('button', { name: recordRetentionWords.confirm }),
+    )
+    await waitFor(() => {
+      expect(sent.at(-1)).toEqual({
+        method: 'POST',
+        path: '/settings/record-retention/defect-emptyings',
+        body: { defectIds: ['d-1'] },
+      })
     })
   })
 

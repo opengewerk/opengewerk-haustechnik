@@ -149,10 +149,29 @@ describe('the triggers of the log', () => {
     ])
 
     for (const row of emptied) {
+      // The material at a work order writes its change apart since #412: the
+      // person who took it goes three years after, and the log does not copy it.
       expect(row.definition).toMatch(
-        / AFTER DELETE OR UPDATE ON public\.\w+ FOR EACH ROW WHEN \(\(NOT .*(evidence|activity)_emptying_of\(.*\)\) EXECUTE FUNCTION record_change\(\)$/,
+        row.table_name === 'work_order_materials'
+          ? / AFTER DELETE ON public\.\w+ FOR EACH ROW WHEN \(\(NOT .*activity_emptying_of\(.*\)\) EXECUTE FUNCTION record_change\(\)$/
+          : / AFTER DELETE OR UPDATE ON public\.\w+ FOR EACH ROW WHEN \(\(NOT .*(evidence|activity)_emptying_of\(.*\)\) EXECUTE FUNCTION record_change\(\)$/,
       )
     }
+
+    // What hangs on no evidence (#412): a defect emptied after its retention,
+    // and the person at a reading, a booking and a material who goes.
+    const ownRetention = conditional.filter(
+      (row) =>
+        /defect_emptying_of\(/.test(row.definition) ||
+        /(recorded_by|booked_by|taken_by) IS NOT NULL/.test(row.definition),
+    )
+
+    expect(ownRetention.map((row) => row.table_name).sort()).toEqual([
+      'defects',
+      'meter_readings',
+      'stock_movements',
+      'work_order_materials',
+    ])
 
     // And the documents, under the condition of the foundation, while one goes
     // for good (opengewerk/opengewerk#658).
@@ -169,7 +188,9 @@ describe('the triggers of the log', () => {
       )
     }
 
-    const imported = conditional.filter((row) => !emptied.includes(row) && !purged.includes(row))
+    const imported = conditional.filter(
+      (row) => !emptied.includes(row) && !purged.includes(row) && !ownRetention.includes(row),
+    )
 
     expect(imported.map((row) => row.table_name)).toEqual([
       'assets',

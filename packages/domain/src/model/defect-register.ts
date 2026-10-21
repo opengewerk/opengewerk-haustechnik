@@ -135,6 +135,8 @@ export interface DefectRegister {
 export interface DefectReading
   extends DefectEntry, Pick<Defect, 'areaId' | 'checkedOn' | 'checkNote'> {
   readonly classChoices: readonly DefectClassChoice[]
+  /** When its content went after the end of its retention (#412), as an ISO 8601 text, or null. */
+  readonly emptiedAt: string | null
 }
 
 /** A class a defect may take, by its word, and the days its default gives, if the operator set one. */

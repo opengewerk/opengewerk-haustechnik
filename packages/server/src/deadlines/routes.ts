@@ -2,6 +2,7 @@ import {
   type ApplicationDeadlineKind,
   type Catalogue,
   type DeadlineFacts,
+  defectRetentionEnds,
   type DeadlineFilterName,
   deadlineSubject,
   deadlineTableColumns,
@@ -493,6 +494,43 @@ export function deadlineRulesFor(
             buildingId: found?.plan.buildingId ?? null,
             roomId: null,
             asset: null,
+          }
+
+          return { ...facts }
+        }
+
+        // The end of the retention of an activity without evidence or a
+        // remedied defect (#412), proposed under "Aufbewahrung".
+        if (row.activityId !== null) {
+          const facts: DeadlineFacts = {
+            follows: 'retention',
+            record: { kind: 'activity', id: row.activityId, title: row.sourceLabel },
+            propertyId: row.propertyId ?? '',
+            buildingId: null,
+            roomId: null,
+            asset: null,
+          }
+
+          return { ...facts }
+        }
+
+        if (row.defectId !== null && row.kind === defectRetentionEnds.key) {
+          const defect = byDefect.get(row.defectId)
+          const facts: DeadlineFacts = {
+            follows: 'retention',
+            record: {
+              kind: 'defect',
+              id: row.defectId,
+              title: defect?.description ?? row.sourceLabel,
+            },
+            propertyId: row.propertyId ?? '',
+            buildingId:
+              defect?.buildingId ?? defect?.assetBuildingId ?? defect?.roomBuildingId ?? null,
+            roomId: defect?.roomId ?? defect?.assetRoomId ?? null,
+            asset:
+              defect?.assetId && defect.assetName !== null
+                ? { id: defect.assetId, number: defect.assetNumber, name: defect.assetName }
+                : null,
           }
 
           return { ...facts }

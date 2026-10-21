@@ -188,7 +188,15 @@ async function tenantRows(tx: TenantTransaction, userId: string) {
         union all
         select t.title, ${propertyOf(sql`r.property_id`)}, r.starts_on::text, 'geht die Rundgänge dieses Plans'
           from round_plans r join round_templates t on t.id = r.template_id
-         where r.performer_user_id = ${u}`,
+         where r.performer_user_id = ${u}
+        union all
+        select a.title, ${propertyOf(sql`x.property_id`)}, (x.confirmed_at at time zone 'Europe/Berlin')::date::text,
+               'Löschung nach der Aufbewahrung bestätigt'
+          from activity_emptyings x join activities a on a.id = x.activity_id where x.confirmed_by = ${u}
+        union all
+        select d.description, ${propertyOf(sql`x.property_id`)}, (x.confirmed_at at time zone 'Europe/Berlin')::date::text,
+               'Löschung eines Mangels nach der Aufbewahrung bestätigt'
+          from defect_emptyings x join defects d on d.id = x.defect_id where x.confirmed_by = ${u}`,
   )
 
   const evidenceOf = (alias: string) =>

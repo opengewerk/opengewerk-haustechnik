@@ -152,8 +152,12 @@ export const meterWords = {
   paused: 'stillgelegt',
   first: 'erster Stand',
   over: (months: number) => `über ${String(months)} Monate`,
-  corrected: (name: string, reason: string, before: string) =>
-    `berichtigt von ${name}: ${reason}, vorher ${before}`,
+  corrected: (name: string | null, reason: string, before: string) =>
+    name === null
+      ? `berichtigt: ${reason}, vorher ${before}`
+      : `berichtigt von ${name}: ${reason}, vorher ${before}`,
+  /** The day of a reading and who read it, while the person is still named (#412). */
+  readOnBy: (on: string, name: string | null) => (name === null ? on : `${on}, ${name}`),
   readingsNote:
     'Verbrauch bis zum Stichtag, abgeleitet aus zwei Ständen und nie gespeichert. Eine Zeit, die ganz in einer Stilllegung liegt, hat keinen; über einen Zählertausch rechnet er über beide Zähler.',
   history: 'Verlauf',
@@ -858,7 +862,7 @@ export function MeterScreen() {
                     <Cell>
                       {row.reading === null || original === null ? null : (
                         <TwoLines
-                          main={`${date(original.readOn)}, ${original.name}`}
+                          main={meterWords.readOnBy(date(original.readOn), original.name)}
                           sub={
                             row.corrected.length === 0 || row.reading.correctionReason === null
                               ? undefined
@@ -1683,7 +1687,10 @@ function MeterDialogs({
               facts={[
                 { label: meterWords.keyDate, value: date(dialog.row.keyDate) },
                 { label: meterWords.stand, value: figure(reading.valueMilli) },
-                { label: meterWords.read, value: `${date(original.readOn)}, ${original.name}` },
+                {
+                  label: meterWords.read,
+                  value: meterWords.readOnBy(date(original.readOn), original.name),
+                },
               ]}
             />
             <div className="flex flex-wrap gap-3.5">

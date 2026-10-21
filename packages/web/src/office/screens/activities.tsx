@@ -147,7 +147,7 @@ export const activityWords = {
     'Der Vorgang ist damit geschlossen, auch auf den Geräten, und lässt sich nicht wieder öffnen. Der Termin der Pflicht bleibt, wie er ist: ohne Nachweis wird sie überfällig. Einen neuen Vorgang legt an, wer plant und verteilt, auf der Seite der Pflicht.',
   emptiedMark: 'Gelöscht',
   emptied: (at: string) =>
-    `Gelöscht am ${moment(at)} mit seinem letzten Nachweis, nach Ablauf der Aufbewahrung. Antworten, Messwerte, Unterschriften, Namen, Notizen, Material und Leistungsnachweise sind gelöscht, seine Dokumente entfernt.`,
+    `Gelöscht am ${moment(at)} nach Ablauf der Aufbewahrung. Antworten, Messwerte, Unterschriften, Namen, Notizen, Material und Leistungsnachweise sind gelöscht, seine Dokumente entfernt.`,
   remains: 'Was bleibt',
   stillHolds: 'Was weiter gilt',
   stillHoldsText:

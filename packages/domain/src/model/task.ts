@@ -1,4 +1,4 @@
-import type { Id, TaskBase } from '@opengewerk/platform-domain'
+import type { Id, IsoDate, TaskBase } from '@opengewerk/platform-domain'
 
 import type { ActivityId } from './activity.js'
 import type { AreaId } from './area.js'
@@ -27,6 +27,8 @@ export interface Task extends TaskBase {
   readonly roomId: RoomId | null
   readonly assetId: AssetId | null
   readonly activityId: ActivityId | null
+  /** The day it was done (#412): written by the database from its status; a year later it goes. */
+  readonly doneOn: IsoDate | null
 }
 
 /** How long the text of a task may be, in the form, at the sync and in the database. */

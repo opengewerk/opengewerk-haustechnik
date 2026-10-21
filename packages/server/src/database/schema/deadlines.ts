@@ -3,7 +3,7 @@ import { memberships } from '@opengewerk/platform-server/schema'
 import { sql } from 'drizzle-orm'
 import { check, foreignKey, index, text } from 'drizzle-orm/pg-core'
 
-import { workOrders } from './activities.js'
+import { activities, workOrders } from './activities.js'
 import { withinAreasOrNone } from './areas.js'
 import { assets } from './assets.js'
 import { attachments } from './attachments.js'
@@ -49,6 +49,8 @@ const deadlineColumns = {
   qualificationId: reference<'qualification'>('qualification_id'),
   /** The evidence whose retention ends, the source `evidence` (#340). */
   evidenceId: reference<'evidence'>('evidence_id'),
+  /** The activity without evidence whose retention ends, the source `activity` (#412). */
+  activityId: reference<'activity'>('activity_id'),
   /** The person whose access ends or whose data goes after it, the sources `membership` and `membership_removal` (#356). */
   memberUserId: text('member_user_id'),
   /** The task the engine made of this deadline, the action `task` (#242). */
@@ -92,6 +94,12 @@ export const { deadlineStatus, deadlines } = deadlinesSchema({
       columns: [table.tenantId, table.evidenceId, table.areaId],
       foreignColumns: [evidence.tenantId, evidence.id, evidence.areaId],
       name: 'deadlines_follow_their_evidence',
+    }).onUpdate('cascade'),
+    // The end of the retention of an activity without evidence (#412), in its area.
+    foreignKey({
+      columns: [table.tenantId, table.activityId, table.areaId],
+      foreignColumns: [activities.tenantId, activities.id, activities.areaId],
+      name: 'deadlines_follow_their_activity',
     }).onUpdate('cascade'),
     foreignKey({
       columns: [table.tenantId, table.defectId, table.areaId],
@@ -189,6 +197,7 @@ export const { deadlineStatus, deadlines } = deadlinesSchema({
     index('deadlines_delegation_idx').on(table.tenantId, table.delegationId),
     index('deadlines_qualification_idx').on(table.tenantId, table.qualificationId),
     index('deadlines_evidence_idx').on(table.tenantId, table.evidenceId),
+    index('deadlines_activity_idx').on(table.tenantId, table.activityId),
     index('deadlines_member_idx').on(table.tenantId, table.memberUserId),
     index('deadlines_warranty_asset_idx').on(table.tenantId, table.warrantyAssetId),
     index('deadlines_warranty_order_idx').on(table.tenantId, table.warrantyOrderId),
@@ -209,7 +218,7 @@ export const { deadlineStatus, deadlines } = deadlinesSchema({
     ),
     check(
       'deadlines_follow_one_source',
-      sql`num_nonnulls(${table.dutyId}, ${table.defectId}, ${table.roundPlanId}, ${table.meterPropertyId}, ${table.attachmentId}, ${table.contractId}, ${table.warrantyAssetId}, ${table.warrantyOrderId}, ${table.delegationId}, ${table.qualificationId}, ${table.evidenceId}, ${table.memberUserId}) = 1`,
+      sql`num_nonnulls(${table.dutyId}, ${table.defectId}, ${table.roundPlanId}, ${table.meterPropertyId}, ${table.attachmentId}, ${table.contractId}, ${table.warrantyAssetId}, ${table.warrantyOrderId}, ${table.delegationId}, ${table.qualificationId}, ${table.evidenceId}, ${table.activityId}, ${table.memberUserId}) = 1`,
     ),
   ],
 })

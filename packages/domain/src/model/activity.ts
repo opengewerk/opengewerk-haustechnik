@@ -264,6 +264,12 @@ export interface Activity extends Synced, PlaceTarget {
    */
   readonly emptiedAt: Date | null
   /**
+   * The day it was done or closed as not performed (#412): written by the
+   * database from its status, null while it is not. An activity without
+   * evidence stays six years from the end of that year.
+   */
+  readonly endedOn: IsoDate | null
+  /**
    * The collective activity it is a part of (#342, section 4.4 of the
    * concept): written by the server when the office composes one. A part is
    * an inspection or a maintenance at the place of its duty, like any other,

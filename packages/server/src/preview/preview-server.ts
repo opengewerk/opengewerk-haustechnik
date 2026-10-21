@@ -62,6 +62,7 @@ import { giveSamplePhotovoltaic } from './sample-photovoltaic.js'
 import { giveSampleFaults, giveSampleWork } from './sample-work.js'
 import { writeSampleStandings } from './sample-standings.js'
 import { giveSampleLastDay } from './sample-access-end.js'
+import { giveSampleRetention } from './sample-retention.js'
 import { giveSampleAuditor } from './sample-auditor.js'
 import { giveSampleDelegations, plantSampleDelegations } from './sample-delegations.js'
 import { plantSampleQualifications } from './sample-qualifications.js'
@@ -288,6 +289,8 @@ export async function openSamplePreview(
     )
     // An access that ends in about ten weeks (#356).
     await giveSampleLastDay(admin, tenant.id)
+    // An inspection and a defect whose own retention ended long ago (#412).
+    await giveSampleRetention(admin, tenant.id)
 
     // One pass of the engine, so that the due days have their inspections
     // before somebody looks, and two of them planned (#105). In the morning of

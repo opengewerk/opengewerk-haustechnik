@@ -12,7 +12,7 @@ import { House, Trash2 } from 'lucide-react'
 
 export const emptiedWords = {
   mark: 'Gelöscht',
-  why: 'nach Ablauf der Aufbewahrung seines letzten Nachweises.',
+  why: 'nach Ablauf der Aufbewahrung.',
   of: (kind: string, on: string | null) => (on === null ? kind : `${kind} vom ${date(on)}`),
   gone: 'Was der Vorgang hielt, ist gelöscht, im Büro und auf diesem Gerät. Es bleibt, dass es ihn gab.',
   toStart: 'Zum Start',

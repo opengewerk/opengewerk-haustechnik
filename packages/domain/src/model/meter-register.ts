@@ -77,7 +77,8 @@ export interface MeterList {
 export interface MeterReadingLine extends MeterFigureLine {
   readonly id: MeterReadingId
   readonly source: MeterReadingSource
-  readonly name: string
+  /** Who read it, or null once the person went three years after the reading (#412). */
+  readonly name: string | null
   readonly correctsId: MeterReadingId | null
   readonly correctionReason: string | null
   readonly valid: boolean

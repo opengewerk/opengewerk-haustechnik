@@ -17,6 +17,7 @@ import {
   pgEnum,
   pgTable,
   text,
+  timestamp,
   unique,
   uniqueIndex,
 } from 'drizzle-orm/pg-core'
@@ -72,6 +73,12 @@ export const defects = pgTable(
     status: defectStatus('status').notNull().default('found'),
     checkedOn: date('checked_on', { mode: 'string' }),
     checkNote: text('check_note'),
+    // The day it was remedied (#412): the database's to write, from its
+    // status, for its retention.
+    remediedOn: date('remedied_on', { mode: 'string' }),
+    // When its content went after the end of its retention (#412): the
+    // database's to write, and only then.
+    emptiedAt: timestamp('emptied_at', { withTimezone: true }),
     ...timestamps,
     ...syncColumns,
   },

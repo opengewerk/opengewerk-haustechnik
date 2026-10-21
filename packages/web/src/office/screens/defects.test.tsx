@@ -23,6 +23,7 @@ import {
   untilTheRightsAreKnown,
   type Written,
 } from '../test-office.js'
+import { defectWords } from './defects.js'
 
 /**
  * "Mängel" in the office (#116, 4.6 of the concept): the list asked of the
@@ -135,6 +136,7 @@ function reading(entry: DefectEntry, further: Partial<DefectReading> = {}): Defe
     areaId: sued.id as DefectReading['areaId'],
     checkedOn: null,
     checkNote: null,
+    emptiedAt: null,
     classChoices: choices,
     ...further,
   }
@@ -423,6 +425,24 @@ describe('the page of a defect', () => {
     await steps()
 
     expect(screen.queryByText('Stromkreis')).toBeNull()
+  })
+
+  it('says what stays of one whose content went after its retention, and offers nothing (#412)', async () => {
+    const { mounted } = mount('/maengel/df-remedied', {
+      '/defects/df-remedied': reading(remedied, {
+        description: 'Gelöscht nach Ablauf der Aufbewahrung.',
+        emptiedAt: '2026-10-21T05:40:00.000Z',
+      }),
+    })
+
+    await mounted
+    await untilTheRightsAreKnown()
+    await steps()
+
+    expect(screen.getByText(defectWords.emptied('2026-10-21T05:40:00.000Z'))).toBeDefined()
+    expect(screen.queryByRole('button', { name: 'Nachgeprüft' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Bearbeiten' })).toBeNull()
+    expect(screen.queryByRole('region', { name: 'Fotos' })).toBeNull()
   })
 
   it('does not offer checking again before the defect is remedied', async () => {

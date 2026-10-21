@@ -1,4 +1,5 @@
 import {
+  type ActivityId,
   addDays,
   addMonths,
   type AreaId,
@@ -97,6 +98,8 @@ export interface DeadlineValues {
   readonly qualificationId: QualificationId | null
   /** The evidence whose retention ends (#340). */
   readonly evidenceId: EvidenceId | null
+  /** The activity without evidence whose retention ends (#412). */
+  readonly activityId: ActivityId | null
   /** The person whose access ends or whose data goes after it (#356), which lies in no area either. */
   readonly memberUserId: string | null
   /** None for the document of a contractor (#328) and for a contract (#329), which lie in no area. */
@@ -293,6 +296,7 @@ export function dutySource(options: {
           delegationId: null,
           qualificationId: null,
           evidenceId: null,
+          activityId: null,
           memberUserId: null,
           propertyId: duty.propertyId,
           areaId: duty.areaId,
@@ -368,6 +372,7 @@ export function defectSource(): SourceQuery<DeadlineValues> {
                 delegationId: null,
                 qualificationId: null,
                 evidenceId: null,
+                activityId: null,
                 memberUserId: null,
                 propertyId: defect.propertyId,
                 areaId: defect.areaId,
@@ -511,6 +516,7 @@ export function roundPlanSource(options: {
                   delegationId: null,
                   qualificationId: null,
                   evidenceId: null,
+                  activityId: null,
                   memberUserId: null,
                   propertyId: plan.propertyId,
                   areaId: plan.areaId,
@@ -606,6 +612,7 @@ export function meterSource(options: {
                 delegationId: null,
                 qualificationId: null,
                 evidenceId: null,
+                activityId: null,
                 memberUserId: null,
                 propertyId: property.id,
                 areaId: property.areaId,
@@ -702,6 +709,7 @@ export function documentSource(reviews: boolean): SourceQuery<DeadlineValues> {
                 delegationId: null,
                 qualificationId: null,
                 evidenceId: null,
+                activityId: null,
                 memberUserId: null,
                 propertyId: document.propertyId,
                 areaId: document.areaId,
@@ -761,6 +769,7 @@ export function contractSource(
                 delegationId: null,
                 qualificationId: null,
                 evidenceId: null,
+                activityId: null,
                 memberUserId: null,
                 propertyId: null,
                 areaId: null,
@@ -836,6 +845,7 @@ export function warrantySource(): SourceQuery<DeadlineValues> {
           delegationId: null,
           qualificationId: null,
           evidenceId: null,
+          activityId: null,
           memberUserId: null,
           propertyId: asset.propertyId,
           areaId: asset.areaId,
@@ -854,6 +864,7 @@ export function warrantySource(): SourceQuery<DeadlineValues> {
           delegationId: null,
           qualificationId: null,
           evidenceId: null,
+          activityId: null,
           memberUserId: null,
           propertyId: order.propertyId,
           areaId: order.areaId,
@@ -914,6 +925,7 @@ export function delegationSource(options: {
                 delegationId: row.id as DutyDelegationId,
                 qualificationId: null,
                 evidenceId: null,
+                activityId: null,
                 memberUserId: null,
                 propertyId: null,
                 areaId: null,
@@ -976,6 +988,7 @@ export function qualificationSource(options: {
         delegationId: null,
         qualificationId: row.id as QualificationId,
         evidenceId: null,
+        activityId: null,
         memberUserId: null,
         propertyId: null,
         areaId: null,
@@ -1026,6 +1039,112 @@ export function evidenceSource(options: {
         delegationId: null,
         qualificationId: null,
         evidenceId: row.id,
+        activityId: null,
+        memberUserId: null,
+        propertyId: row.propertyId,
+        areaId: row.areaId,
+      },
+    }))
+  }
+}
+
+/**
+ * The end of the retention of an activity without evidence (#412): six years
+ * from the end of the year it ended, or the operator's longer years, as the
+ * database counts it, once it has come. Every area: the pass works for nobody.
+ */
+export function activityRetentionSource(options: {
+  readonly today: () => IsoDate
+}): SourceQuery<DeadlineValues> {
+  return async (tx) => {
+    const ends = sql<string | null>`public.activity_retention_ends(${activities.id})`
+    const rows = await tx
+      .select({
+        id: activities.id,
+        title: activities.title,
+        propertyId: activities.propertyId,
+        areaId: activities.areaId,
+        endsOn: ends,
+      })
+      .from(activities)
+      .where(
+        and(
+          isNull(activities.emptiedAt),
+          isNull(activities.collectiveId),
+          inArray(activities.status, ['done', 'not_performed']),
+          sql`${ends} <= ${options.today()}::date`,
+        ),
+      )
+
+    return rows.map((row): ExpectedDeadline<DeadlineValues> => ({
+      sourceId: row.id,
+      sourceLabel: row.title,
+      anchorOn: row.endsOn as IsoDate,
+      namedDueOn: row.endsOn as IsoDate,
+      naturalUserId: null,
+      values: {
+        dutyId: null,
+        defectId: null,
+        roundPlanId: null,
+        meterPropertyId: null,
+        attachmentId: null,
+        contractId: null,
+        warrantyAssetId: null,
+        warrantyOrderId: null,
+        delegationId: null,
+        qualificationId: null,
+        evidenceId: null,
+        activityId: row.id,
+        memberUserId: null,
+        propertyId: row.propertyId,
+        areaId: row.areaId,
+      },
+    }))
+  }
+}
+
+/** The end of the retention of a remedied defect (#412): five years from the day it was remedied, or longer. */
+export function defectRetentionSource(options: {
+  readonly today: () => IsoDate
+}): SourceQuery<DeadlineValues> {
+  return async (tx) => {
+    const ends = sql<string | null>`public.defect_retention_ends(${defects.id})`
+    const rows = await tx
+      .select({
+        id: defects.id,
+        description: defects.description,
+        propertyId: defects.propertyId,
+        areaId: defects.areaId,
+        endsOn: ends,
+      })
+      .from(defects)
+      .where(
+        and(
+          isNull(defects.emptiedAt),
+          inArray(defects.status, ['remedied', 'verified']),
+          sql`${ends} <= ${options.today()}::date`,
+        ),
+      )
+
+    return rows.map((row): ExpectedDeadline<DeadlineValues> => ({
+      sourceId: row.id,
+      sourceLabel: row.description,
+      anchorOn: row.endsOn as IsoDate,
+      namedDueOn: row.endsOn as IsoDate,
+      naturalUserId: null,
+      values: {
+        dutyId: null,
+        defectId: row.id,
+        roundPlanId: null,
+        meterPropertyId: null,
+        attachmentId: null,
+        contractId: null,
+        warrantyAssetId: null,
+        warrantyOrderId: null,
+        delegationId: null,
+        qualificationId: null,
+        evidenceId: null,
+        activityId: null,
         memberUserId: null,
         propertyId: row.propertyId,
         areaId: row.areaId,
@@ -1062,6 +1181,7 @@ function accessDeadline(
       delegationId: null,
       qualificationId: null,
       evidenceId: null,
+      activityId: null,
       memberUserId: userId,
       propertyId: null,
       areaId: null,

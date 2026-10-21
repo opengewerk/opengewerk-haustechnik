@@ -154,6 +154,8 @@ export * from './model/delegation.js'
 export * from './model/qualifications.js'
 // The retention of the evidence and its end (#340).
 export * from './model/retention.js'
+// What hangs on no evidence and its own retention (#412).
+export * from './model/record-retention.js'
 export * from './model/defect-register.js'
 // The report of the defects as a PDF, made for the moment it is asked for (#345).
 export * from './model/defect-report.js'

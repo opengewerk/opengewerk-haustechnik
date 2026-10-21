@@ -65,6 +65,10 @@ export function rowsOf(tenant: Tenant): readonly Row[] {
   const evidence = randomUUID()
   // An earlier evidence of the duty, emptied after the end of its retention (#340).
   const earlier = randomUUID()
+  // An activity without evidence and a remedied defect, each emptied after the
+  // end of its own retention (#412).
+  const ended = randomUUID()
+  const remedied = randomUUID()
   const serviceReport = randomUUID()
   const article = randomUUID()
   const supplier = randomUUID()
@@ -782,6 +786,12 @@ export function rowsOf(tenant: Tenant): readonly Row[] {
       },
     },
     { table: 'evidence_retention_settings', values: { tenant_id: tenant.id, minimum_years: null } },
+    // The years of an operator beyond the law, and what the pass removed (#412).
+    { table: 'record_retention_settings', values: { tenant_id: tenant.id, activity_years: 8 } },
+    {
+      table: 'retention_removals',
+      values: { tenant_id: tenant.id, kind: 'task', removed_count: 2 },
+    },
     // The period after the end of an access, and when the data of one went (#356).
     { table: 'membership_settings', values: { tenant_id: tenant.id, removal_days: 90 } },
     {
@@ -995,6 +1005,62 @@ export function rowsOf(tenant: Tenant): readonly Row[] {
         found_in_activity_id: activity,
         description: 'Notruf im Fahrkorb ohne Verbindung.',
         found_on: '2026-10-01',
+      },
+    },
+    // An inspection closed as not performed long ago, without evidence, and a
+    // defect remedied long ago, both emptied on their confirmation (#412).
+    // The days are the owner's to write here, as for a row from before.
+    {
+      table: 'activities',
+      values: {
+        id: ended,
+        tenant_id: tenant.id,
+        property_id: property,
+        area_id: area,
+        asset_id: asset,
+        kind: 'inspection',
+        title: 'Sichtprüfung Aufzug',
+        status: 'not_performed',
+        closing_reason: 'Aufzug außer Betrieb.',
+        ended_on: '2015-06-01',
+      },
+    },
+    {
+      table: 'activity_emptyings',
+      values: {
+        tenant_id: tenant.id,
+        property_id: property,
+        area_id: area,
+        activity_id: ended,
+        confirmed_by: tenant.userId,
+        years: 6,
+        ended_on: '2022-01-01',
+      },
+    },
+    {
+      table: 'defects',
+      values: {
+        id: remedied,
+        tenant_id: tenant.id,
+        property_id: property,
+        area_id: area,
+        asset_id: asset,
+        description: 'Tür schließt zu langsam.',
+        found_on: '2015-11-02',
+        status: 'remedied',
+        remedied_on: '2016-02-01',
+      },
+    },
+    {
+      table: 'defect_emptyings',
+      values: {
+        tenant_id: tenant.id,
+        property_id: property,
+        area_id: area,
+        defect_id: remedied,
+        confirmed_by: tenant.userId,
+        years: 5,
+        ended_on: '2021-02-01',
       },
     },
     // A category of the fault reports and a report at the asset, with a file

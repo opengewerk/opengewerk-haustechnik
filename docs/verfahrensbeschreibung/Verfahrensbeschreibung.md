@@ -69,6 +69,8 @@ Wie jede Art von Frist erinnert (Abschnitte 3.15 und 6):
 | Ende einer Pflichtenübertragung | 60 Tage | E-Mail und Push |
 | Ablauf einer Qualifikation | 60 Tage | E-Mail und Push |
 | Ende der Aufbewahrung eines Nachweises | am Tag selbst | E-Mail und Push |
+| Ende der Aufbewahrung eines Vorgangs ohne Nachweis | am Tag selbst | E-Mail und Push |
+| Ende der Aufbewahrung eines Mangels | am Tag selbst | E-Mail und Push |
 | Ende eines Zugangs | 30 Tage | E-Mail und Push |
 | Angaben eines beendeten Zugangs entfernen | 14 Tage | E-Mail und Push |
 
@@ -248,6 +250,7 @@ Anhang B nennt jedes Feld der Datenbank, das auf eine Person zeigt. Dieser Absch
 ### 3.12 Mängel
 
 - Ein Mangel hängt an einer Liegenschaft, einem Gebäude, einem Raum oder einer Anlage. Er hält fest, was festgestellt wurde und an welchem Tag, woher er kommt (ein Vorgang, der Nachweis aus dem Bericht einer Fremdfirma oder von Hand), seine Klasse, die Frist zur Beseitigung und seinen Stand, und nach einer Nachprüfung deren Tag und eine Bemerkung. Seine Fotos sind Dokumente an ihm (Abschnitt 3.9). [K4.6, K4.10]
+- **Zusage:** Fünf Jahre nach seiner Beseitigung schlägt die Anwendung vor, den Inhalt eines Mangels zu löschen, und die Leitung bestätigt es; seine Zeile bleibt (Abschnitt 7). [K2.6, K4.6, B448]
 - Ein Prüfpunkt „nicht in Ordnung“ und ein Messwert außerhalb seines Grenzwerts werden mit der Unterschrift ein Mangel, mit dem Text des Punkts und der Bemerkung, ohne Klasse und ohne Person. [K4.5, K4.6]
 - Ein Mangel nennt keine Person. Wer ihn gemeldet, eingestuft oder nachgeprüft hat, steht in seinem Stempel (Abschnitt 3.6) und im Änderungsprotokoll; kein anderer Bildschirm zeigt es. Die Bemerkung zur Nachprüfung ist freier Text. [K4.6, K9]
 - Melden können alle vier Rollen, im Büro und vor Ort, dort auch ohne Netz. Klasse, Frist und Nachprüfung setzen die Leitung, die Technische Leitung und die Objektleitung; die Haustechnik meldet ohne Klasse und Frist, und ein Gerät schickt mit einer Meldung keine. [K7, B107, B108]
@@ -258,7 +261,7 @@ Anhang B nennt jedes Feld der Datenbank, das auf eine Person zeigt. Dieser Absch
 ### 3.13 Zähler
 
 - Ein Zählerstand hält fest: den Stichtag, für den er gilt, den Tag der Ablesung, den Stand, auf welchem Weg er kam (von Hand, eigene Runde, Rundgang, Protokoll oder aus einer Liste übernommen) und wer ihn eingetragen hat. Die Person setzt der Server selbst ein. Die Seite einer Messstelle im Büro nennt zu jedem Stand den Namen, für alle, die Anlagen ansehen, in ihren Bereichen. Eine Liste der Stände nach Person gibt es nicht. [K4.9, K4.16, B139]
-- **Zusage:** Ein Zählerstand wird nicht geändert und nicht gelöscht, auch nicht in der Datenbank. Berichtigt wird er durch einen neuen Stand für denselben Stichtag, der ihn nennt, mit Grund und der Person, die berichtigt; beide bleiben sichtbar, gerechnet wird mit dem neuen. [K4.9, B140, B141]
+- **Zusage:** Ein Zählerstand wird nicht geändert und nicht gelöscht, auch nicht in der Datenbank. Berichtigt wird er durch einen neuen Stand für denselben Stichtag, der ihn nennt, mit Grund und der Person, die berichtigt; beide bleiben sichtbar, gerechnet wird mit dem neuen. Drei Jahre nach der Ablesung entfernt der Fristenlauf, wer abgelesen hat; der Stand bleibt (Abschnitt 7). [K4.9, B140, B141, B454]
 - Die Notiz an einer Messstelle nennt, wer sie geschrieben hat und seit wann. Eine Sperre nennt ihren Grund und seit wann, eine Stilllegung ihren Zeitraum und Grund, ein Zählertausch die Nummern und Stände; wer gesperrt, stillgelegt oder getauscht hat, steht nur im Änderungsprotokoll. [K4.9, B142]
 - **Zusage:** Zähler ablesen dürfen alle vier Rollen. Den Zählertausch, die Stilllegung, die Sperre, die Notiz und was nur die Messstelle trägt, ändert, wer Anlagen pflegt: die Leitung, die Technische Leitung und die Objektleitung. Die Haustechnik kann es nicht. [K4.9, K7, B143, B144]
 - Der Verbrauch wird aus den Ständen abgeleitet und nie gespeichert; er nennt keine Person. [K4.9]
@@ -273,6 +276,7 @@ Anhang B nennt jedes Feld der Datenbank, das auf eine Person zeigt. Dieser Absch
 - **Zusage:** Eine Aufgabe liegt im Bereich ihres Orts, an einem Gebäude mit eigenem Bereich in dessen, sonst in dem ihrer Liegenschaft: sie sieht nur, wer ihren Ort sieht. [K2.8, K3, B173, B271]
 - Eine Aufgabe nennt ihre verantwortliche Person mit Namen, in der Liste „Aufgaben“ und an dem Datensatz, an dem sie hängt; die eigene heißt dort „Sie“. Als Tabelle enthält die Liste die verantwortliche Person nur für die Leitung (Abschnitt 5). Nach dem Anlegen wird eine Aufgabe nur noch erledigt oder wieder geöffnet. Wann das geschah und wer es tat, steht in ihrem Stempel (Abschnitt 3.6) und im Änderungsprotokoll, an der Aufgabe selbst nicht. [K3, K9]
 - Wird der Datensatz entfernt, an dem eine Aufgabe hängt, wird die Aufgabe mit ihm entfernt. [K3, B174]
+- **Zusage:** Ein Jahr nach ihrer Erledigung löscht der Fristenlauf eine Aufgabe ganz (Abschnitt 7). [K2.6, B452]
 - Eine Aufgabe legt auch die Fristen-Engine an, ohne dass eine Person sie zuteilt: ist die Ablesung der Zähler einer Liegenschaft fällig, bekommt die Person, die für die Frist verantwortlich ist, mit dem Beginn des Vorlaufs die Aufgabe „Zähler ablesen“, eine je Liegenschaft und Stichtag. Verantwortlich ist, wen das Büro an der Frist oder für ihre Art nennt, sonst die Leitung. Eine solche Aufgabe nennt niemanden, der sie angelegt hat. Keine andere Frist legt eine Aufgabe an. [K2.4, K4.9, B220, B224]
 - **Zusage:** Auch die Engine gibt eine Aufgabe nur einer Person, die nicht gesperrt ist, Aufgaben erledigen darf und den Bereich der Liegenschaft sieht. Sieht die verantwortliche Person den Bereich nicht, geht die Aufgabe an die nächste, die ihn sieht, zuletzt an die Leitung; findet sich niemand, entsteht keine Aufgabe, und die Frist steht weiter in der Liste „Fristen“. [K2.4, K7, B221]
 - Die Aufgabe „Zähler ablesen“ ist erledigt, sobald jede Messstelle der Liegenschaft ihren Stand für den Stichtag hat oder dort nichts mehr abzulesen ist. Das setzt die Engine mit dem Lauf, in dem die Frist weitergeht, und keine Person: der Stempel der Aufgabe nennt dann niemanden, und wer die Stände eingetragen hat, steht an den Ständen (Abschnitt 3.13). [K2.4, K4.9, B222, B223]
@@ -302,10 +306,10 @@ Anhang B nennt jedes Feld der Datenbank, das auf eine Person zeigt. Dieser Absch
 
 - Eine Buchung im Lager, ein Wareneingang oder eine Zählung, hält fest, wer sie gebucht hat. Die Person setzt der Server selbst ein und übernimmt sie nicht aus der Anfrage. Der Bestand eines Lagers, die Seite eines Artikels darin und die Bestellliste nennen keine Person; wer gebucht hat, steht mit Namen im Änderungsprotokoll. Die Buchungen liegen auf jedem Gerät des Betreibers, weil das Lager keinen Bereich hat, mit der Kennung des Kontos, das gebucht hat; den Namen dazu hält ein Gerät nicht, und kein Bildschirm zeigt die Kennung. [K4.12, K9, B283]
 - Das Lager gehört dem Betreiber, ohne Bereich: ansehen können es alle vier Rollen, Artikel, Lieferanten und Lager anlegen, Wareneingang und Zählung buchen und den Mindestbestand setzen die Leitung, die Technische Leitung und die Objektleitung. [K2.8, K4.12, K7, B280, B281, B282]
-- **Zusage:** Eine Buchung im Lager ändert und löscht niemand, auch nicht der Eigentümer der Tabellen. Was nicht stimmt, berichtigt eine Zählung mit ihrem Grund. [K4.12, B284]
+- **Zusage:** Eine Buchung im Lager ändert und löscht niemand, auch nicht der Eigentümer der Tabellen. Was nicht stimmt, berichtigt eine Zählung mit ihrem Grund. Drei Jahre nach der Buchung entfernt der Fristenlauf, wer gebucht hat; die Buchung bleibt (Abschnitt 7). [K4.12, B284, B455]
 - Material am Auftrag entnimmt vor Ort, wer den Auftrag ausführt, auch eine weitere beteiligte Person und auch ohne Netz; ein eigenes Recht gibt es dafür nicht. Die Entnahme hält fest, wer entnommen hat und wann nach der Uhr des Geräts; die Person setzt der Server selbst ein und übernimmt sie nicht vom Gerät. Der Server bucht sie einmal als Entnahme im Lager, mit derselben Person als buchender. Die Seite des Auftrags im Büro, der Bestand und der Leistungsnachweis nennen keine Person; wer entnommen hat, steht mit Namen im Änderungsprotokoll. Die Entnahme liegt mit dem Auftrag auf den Geräten, die ihn halten, mit der Kennung des Kontos und ohne Namen. [K4.8, K4.12, K9, B285]
 - **Zusage:** Material entnimmt nur, wer den Auftrag sieht, und nur, solange er offen oder begonnen ist. [K4.12, K2.8, B286]
-- **Zusage:** Eine Entnahme am Auftrag ändert und löscht niemand, auch nicht der Eigentümer der Tabellen; sie bleibt gebucht, auch wenn der Auftrag zurückgewiesen oder als nicht durchgeführt geschlossen wird. [K4.12, B287]
+- **Zusage:** Eine Entnahme am Auftrag ändert und löscht niemand, auch nicht der Eigentümer der Tabellen; sie bleibt gebucht, auch wenn der Auftrag zurückgewiesen oder als nicht durchgeführt geschlossen wird. Drei Jahre nach der Entnahme entfernt der Fristenlauf, wer entnommen hat (Abschnitt 7). [K4.12, B287, B455]
 
 ### 3.17 Störmeldungen
 
@@ -495,8 +499,8 @@ Leitung und Technische Leitung sehen als Vorgabe alle Bereiche.
 
 ## 7. Wie lange aufbewahrt wird
 
-- Nach Ablauf einer Frist löscht diese Fassung Nachweise und die Vorgänge dahinter, wie die folgenden Punkte es sagen, und die Angaben eines beendeten Zugangs, die kein Nachweis braucht (Abschnitt 3.2). Was sonst in den Abschnitten 3 und 8 genannt ist, bleibt, solange die Instanz besteht. Was wann gelöscht wird und was bleibt, nennt das Löschkonzept, das die Leitung erzeugt (Abschnitt 3.21). [K2.6, K3, K9]
-- **Zusage:** Ein Datensatz, den jemand entfernt, wird als entfernt markiert und nicht gelöscht. Die Anwendung kann eine solche Zeile in der Datenbank nicht löschen. Die eine Ausnahme ist der Inhalt eines Vorgangs, dessen letzter Nachweis nach Ablauf der Aufbewahrung gelöscht wird: ihn löscht die Datenbank in diesem Schritt, auf jedem anderen Weg lehnt sie es ab (folgende Punkte). [K2.6, B34, B370]
+- Nach Ablauf einer Frist löscht diese Fassung Nachweise und die Vorgänge dahinter, was an keinem Nachweis hängt, wie die folgenden Punkte es sagen, und die Angaben eines beendeten Zugangs, die kein Nachweis braucht (Abschnitt 3.2). Was sonst in den Abschnitten 3 und 8 genannt ist, bleibt, solange die Instanz besteht. Was wann gelöscht wird und was bleibt, nennt das Löschkonzept, das die Leitung erzeugt (Abschnitt 3.21). [K2.6, K3, K9]
+- **Zusage:** Ein Datensatz, den jemand entfernt, wird als entfernt markiert und nicht gelöscht. Die Anwendung kann eine solche Zeile in der Datenbank nicht löschen. Die zwei Ausnahmen sind der Inhalt eines Vorgangs, der nach Ablauf der Aufbewahrung gelöscht wird, und eine Aufgabe ein Jahr nach ihrer Erledigung: sie löscht die Datenbank in diesem Schritt, auf jedem anderen Weg lehnt sie es ab (folgende Punkte). [K2.6, B34, B370, B453]
 - **Zusage:** Eine Zugehörigkeit, eine Einladung und die Zeilen der An- und Abmeldungen löscht die Anwendung nicht. [K7, B60]
 - Ein Konto selbst löscht die Anwendung nicht: sein Name stünde sonst nirgends mehr, wo die Person unterschrieben hat. Nach dem Ende eines Zugangs entfernt sie aber, was kein Nachweis braucht (Abschnitt 3.2). Was das Änderungsprotokoll davon schon hält, etwa eine berichtigte E-Mail-Adresse, bleibt, bis die Leitung es schwärzt (Abschnitt 8). [K2.6, K7, K9]
 - **Zusage:** Eine Sitzung endet mit dem Abmelden. Wird eine Zugehörigkeit gesperrt, endet sofort, was die Person bei diesem Betreiber offen hat, und nicht erst, wenn ihre Sitzung abläuft. [K7, K9, B47, B51]
@@ -509,7 +513,12 @@ Leitung und Technische Leitung sehen als Vorgabe alle Bereiche.
 - **Zusage:** Ist der gelöschte Nachweis der letzte seines Vorgangs, wird im selben Schritt auch der Vorgang zur leeren Hülle, auch wenn er in einem Bereich liegt, den die bestätigende Person nicht sieht. Solange ein Nachweis des Vorgangs bleibt, etwa bei einem Rundgang mit vielen, bleibt der Vorgang, wie er ist. [K2.6, B368, B369]
 - **Zusage:** Vom Vorgang bleiben Art, Ort, Tag und Stand, seine Pflichten mit ihrem Ergebnis, seine Nachweise als Hüllen und bei einem Auftrag Nummer, Art und Maßnahme; Titel und Gründe werden ein fester Satz. Es gehen die Antworten und Messwerte, die Unterschriften, wer verantwortlich war, ausgeführt und teilgenommen hat, die Notizen, das Material am Auftrag, die Abnahme oder Zurückweisung, Leistungsnachweise mit ihrem Stand und PDF, Einweisungen und Erlaubnisscheine, der eingefrorene Stand eines Rundgangs und die PDFs des Vorgangs. Seine Dokumente gehen endgültig, mit ihren Fassungen, den Dateien, die nichts anderes mehr nennt, und dem Eintrag, wer sie abgelegt hat; von jedem bleibt eine Hülle unter einem festen Satz, damit ein Gerät erfährt, dass es weg ist. Die Seite des Vorgangs im Büro sagt das und bietet nichts mehr an; ein geleerter Vorgang wird nicht mehr geändert und nimmt nichts Neues auf. [K2.6, K9, B368, B371, B373]
 - **Zusage:** Jeden anderen Weg, den Inhalt eines Vorgangs zu löschen oder ihn zur Hülle zu machen, lehnt die Datenbank ab, auch für den Eigentümer der Tabellen. [K2.6, B370]
-- Ein Mangel aus dem Vorgang bleibt mit seiner Beschreibung und verliert nur den Verweis auf die Antwort, an der er festgestellt wurde; er nennt weiter den Vorgang. Aufgaben und Zählerstände aus dem Vorgang bleiben, ebenso die Buchung einer Entnahme im Lager, dann ohne Verweis auf den Auftrag. Ein Vorgang ohne Nachweis wird auf diesem Weg nicht geleert (Abschnitt 10). [K2.6, K4.6, K4.9, K4.12, B368]
+- Ein Mangel aus dem Vorgang bleibt mit seiner Beschreibung und verliert nur den Verweis auf die Antwort, an der er festgestellt wurde; er nennt weiter den Vorgang. Aufgaben und Zählerstände aus dem Vorgang bleiben, ebenso die Buchung einer Entnahme im Lager, dann ohne Verweis auf den Auftrag; jedes bis zu seiner eigenen Frist (folgende Punkte). [K2.6, K4.6, K4.9, K4.12, B368]
+- **Zusage:** Ein Vorgang ohne Nachweis, erledigt oder als nicht durchgeführt geschlossen, bleibt sechs Jahre ab dem Ende des Jahres, in dem er endete; ein Sammelvorgang zählt mit seinen Teilen als einer, und ein Nachweis eines Teils hält ihn. Den Tag, an dem er endete, schreibt die Datenbank aus seinem Stand. Danach schlägt die Anwendung vor, ihn zu löschen, unter „Aufbewahrung“ und als Frist bei der Leitung; auf Bestätigung der Leitung wird er zur leeren Hülle wie ein Vorgang nach seinem letzten Nachweis. Einen Nachweis sucht die Datenbank dabei in allen Bereichen, auch in denen, die die bestätigende Person nicht sieht. [K2.6, B442, B443, B444, B445, B446, B447]
+- **Zusage:** Ein behobener Mangel bleibt fünf Jahre ab dem Tag der Beseitigung, den die Datenbank aus seinem Stand schreibt. Danach schlägt die Anwendung vor, seinen Inhalt zu löschen, unter „Aufbewahrung“ und als Frist bei der Leitung. Auf Bestätigung der Leitung werden seine Beschreibung und die Bemerkung der Nachprüfung ein fester Satz, der Verweis auf die Antwort geht, und seine Fotos gehen endgültig wie die Dokumente eines Vorgangs. Seine Zeile bleibt mit Ort, Anlage, Tagen, Klasse und Stand, im Anlagenbuch wie in der Liste, und wird danach nicht mehr geändert. [K2.6, K4.6, B447, B448, B449, B450, B451]
+- **Zusage:** Eine erledigte Aufgabe löscht der Fristenlauf ein Jahr nach ihrer Erledigung ganz. Am Zählerstand, an der Buchung im Lager und an der Entnahme am Auftrag entfernt er drei Jahre danach, wer abgelesen, gebucht oder entnommen hat, und wer den Datensatz zuletzt geändert hat; Stand, Buchung und Entnahme bleiben. Ein Gerät, das die Aufgaben hält, lässt die gelöschten los. Für eine Person und vor Ablauf lehnt die Datenbank jeden dieser Wege ab. [K2.6, K4.9, K4.12, B452, B453, B454, B455]
+- **Zusage:** Die Fristen sind die gesetzlichen, die in Frage kommen: § 257 HGB und § 147 AO für den Vorgang, § 634a BGB für den Mangel, § 195 BGB für die Personen; die Aufgabe hat keine eigene und bleibt ein Jahr. Unter „Aufbewahrung“ verlängert die Leitung jede, kürzer bleibt keine; die Datenbank rechnet jedes Ende an einer Stelle. [K2.6, B456, B457, B458]
+- **Zusage:** Vorgang und Mangel löscht nur, wer den Betreiber führt, und nur, was abgelaufen ist; ein Recht dafür gibt es nicht. Die Bestätigung nennt, wer bestätigt hat und wann, nach welcher Zahl von Jahren und bis zu welchem Tag. Das Änderungsprotokoll schreibt den Inhalt dabei nicht noch einmal ab, und was der Fristenlauf entfernt, steht dort nur als Zahl. [K2.6, K7, K9, B444, B449, B459]
 - **Zusage:** Beim Löschen eines Nachweises und eines Vorgangs schreibt das Änderungsprotokoll den Inhalt nicht noch einmal ab; die Bestätigung steht darin. Was es schon hält, bleibt, bis die Leitung es schwärzt (Abschnitt 8). [K9, B361, B368]
 - Eine Vertretung, die jemand vorzeitig beendet, wird gelöscht; wer sie eingetragen und wer sie beendet hat, behält das Änderungsprotokoll. [K2.8]
 - Das Protokoll der Zugriffe eines Prüfers löscht diese Fassung nicht; es bleibt mit der Zugehörigkeit, bis das Löschkonzept regelt, wie lange (Abschnitt 10). [K9]
@@ -542,9 +551,8 @@ Die Bausteine des Datenschutzes, die nach dem Fahrplan zu Phase 2 gehören, sind
 
 ## 10. Was das Planungskonzept zusagt und diese Fassung noch nicht hält
 
-- **Was beim Löschen eines Nachweises noch bleibt.** Gebaut ist das Löschen des Nachweises und, mit seinem letzten Nachweis, des Vorgangs dahinter (Abschnitt 7). Es bleibt bis auf Weiteres: ein Vorgang ohne Nachweis, Mängel, Aufgaben, Zählerstände und Buchungen im Lager, bis das Löschen dessen gebaut ist, was an keinem Nachweis hängt; was das Änderungsprotokoll schon hält, bis die Leitung es schwärzt; und jede Sicherung, bis sie selbst verfällt. [K2.6, K9, K12]
+- **Was beim Löschen noch bleibt.** Gebaut ist das Löschen des Nachweises, des Vorgangs dahinter und dessen, was an keinem Nachweis hängt (Abschnitt 7). Es bleibt bis auf Weiteres, was das Änderungsprotokoll schon hält, bis die Leitung es schwärzt, und jede Sicherung, bis sie selbst verfällt. [K2.6, K9, K12]
 - **Aufbewahrung des Protokolls der Zugriffe.** Wie lange die Zeilen des Protokolls eines Prüfers bleiben, sagt das Planungskonzept nicht. Sie bleiben, und das Löschkonzept nennt sie unter dem, was aufbewahrt wird. [K9, K12]
-- **Was an keinem Nachweis hängt.** Mängel, Aufgaben, Zählerstände und Buchungen im Lager bleiben, solange die Instanz besteht; das Löschkonzept nennt sie unter dem, was aufbewahrt wird. Eine Frist für sie sagt das Planungskonzept nicht. [K2.6, K9, K12]
 
 ---
 
@@ -1011,6 +1019,24 @@ Pfade ohne Vorsatz liegen im Repository `opengewerk/opengewerk-haustechnik`. Pfa
 | B439 | Test | `packages/server/src/api/areas.test.ts` | `are the own ones in the overview, with the people named for them, and in its table` |
 | B440 | Test | `packages/server/src/api/subject-access.test.ts` | `names the passkeys this operator knows of the person, and no other` |
 | B441 | Test | `packages/server/src/api/auditors.test.ts` | `holds of the firms only those its duties name, and learns of one a duty comes to name` |
+| B442 | Test | `packages/server/src/api/retention-beyond-evidence.test.ts` | `is proposed and becomes its shell on the confirmation of whoever leads, six years from the end of its year` |
+| B443 | Test | `packages/server/src/api/retention-beyond-evidence.test.ts` | `is neither proposed nor emptied before the end of its retention` |
+| B444 | Test | `packages/server/src/api/retention-beyond-evidence.test.ts` | `is emptied only by whoever leads` |
+| B445 | Test | `packages/server/src/api/retention-beyond-evidence.test.ts` | `is none while it has an evidence, also one in an area the person who confirms does not see` |
+| B446 | Test | `packages/server/src/api/retention-beyond-evidence.test.ts` | `takes its day of ending from its status, whatever the application says` |
+| B447 | Test | `packages/server/src/api/retention-beyond-evidence.test.ts` | `stands with whoever leads once an activity or a defect has ended, and is done with the confirmation` |
+| B448 | Test | `packages/server/src/api/retention-beyond-evidence.test.ts` | `loses its content and its photos on the confirmation of whoever leads, five years after it was remedied, and keeps its row` |
+| B449 | Test | `packages/server/src/api/retention-beyond-evidence.test.ts` | `is neither proposed nor emptied before five years, nor by whoever does not lead` |
+| B450 | Test | `packages/server/src/api/retention-beyond-evidence.test.ts` | `is not changed any more once emptied, and loses its content on no other way` |
+| B451 | Test | `packages/server/src/api/retention-beyond-evidence.test.ts` | `takes its day of being remedied from its status` |
+| B452 | Test | `packages/server/src/api/retention-beyond-evidence.test.ts` | `removes a task a year after it was done and keeps every other, and counts what went` |
+| B453 | Test | `packages/server/src/api/retention-beyond-evidence.test.ts` | `removes no task for a person, before its year or while open` |
+| B454 | Test | `packages/server/src/api/retention-beyond-evidence.test.ts` | `lets the person at a reading go three years after it and keeps the reading` |
+| B455 | Test | `packages/server/src/api/retention-beyond-evidence.test.ts` | `lets the person at a booking and at a material go three years after it and keeps both` |
+| B456 | Test | `packages/server/src/api/retention-beyond-evidence.test.ts` | `are those of the law in the database, as the domain names them` |
+| B457 | Test | `packages/server/src/api/retention-beyond-evidence.test.ts` | `are lengthened by the operator and never shortened` |
+| B458 | Test | `packages/web/src/office/screens/retention.test.tsx` | `lengthens what hangs on no evidence, and never below the law` |
+| B459 | Test | `packages/web/src/office/screens/retention.test.tsx` | `empties the activities and the defects whoever leads chose, after the question, and nothing else` |
 
 ---
 
@@ -1023,6 +1049,7 @@ Jede Zeile ist ein Feld der Datenbank, das die Kennung eines Kontos hält. Der S
 | `account_corrections` | `user_id` | das Konto, dessen Name oder E-Mail-Adresse die Leitung berichtigt oder die Person selbst geändert hat |
 | `activities` | `performer_user_id` | wer einen Vorgang ausführt |
 | `activities` | `responsible_user_id` | wer für einen Vorgang verantwortlich ist |
+| `activity_emptyings` | `confirmed_by` | wer bestätigt hat, dass ein Vorgang ohne Nachweis nach Ablauf seiner Aufbewahrung gelöscht wird |
 | `activity_signatures` | `signed_by` | wer unterschrieben oder gegengezeichnet hat |
 | `auditor_reads` | `user_id` | welcher Prüfer etwas gelesen oder ausgegeben hat |
 | `attachment_versions` | `created_by` | wer eine Fassung eines Dokuments abgelegt hat |
@@ -1038,6 +1065,7 @@ Jede Zeile ist ein Feld der Datenbank, das die Kennung eines Kontos hält. Der S
 | `deadlines` | `member_user_id` | wessen Zugang endet oder wessen Angaben nach dem Ende entfernt werden |
 | `deadlines` | `natural_user_id` | wen die Quelle einer Frist als verantwortlich nennt |
 | `deadlines` | `responsible_user_id` | wer für eine Frist verantwortlich ist |
+| `defect_emptyings` | `confirmed_by` | wer bestätigt hat, dass der Inhalt eines Mangels nach Ablauf seiner Aufbewahrung gelöscht wird |
 | `duties` | `confirmed_by` | wer eine Pflicht bestätigt hat |
 | `duties` | `responsible_user_id` | wer für eine Pflicht verantwortlich ist |
 | `duty_delegation_revocations` | `revoked_by` | wer eine Pflichtenübertragung widerrufen hat |

@@ -248,12 +248,21 @@ export function deadlineSubject(facts: DeadlineFacts): string {
         : `${facts.qualification.kindLabel}, ${facts.qualification.personName}`
     case 'evidence':
       return `${evidenceDeadlineSubject} ${facts.evidence.number}, ${facts.evidence.dutyTitle}`
+    // An activity without evidence or a defect whose retention ended (#412).
+    case 'retention':
+      return `${retentionDeadlineSubject[facts.record.kind]} ${facts.record.title}`
     // The person only for whoever keeps the accesses (#356).
     case 'membership':
       return facts.membership.personName === null
         ? membershipDeadlineSubject
         : `${membershipDeadlineSubject} von ${facts.membership.personName}`
   }
+}
+
+/** What the end of the retention of what hangs on no evidence is about in the list (#412). */
+export const retentionDeadlineSubject: Readonly<Record<'activity' | 'defect', string>> = {
+  activity: 'Vorgang ohne Nachweis:',
+  defect: 'Mangel:',
 }
 
 /** What the end of an access and the day its data goes are about in the list (#356), with the person behind it for whoever keeps the accesses. */

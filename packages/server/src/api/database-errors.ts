@@ -30,14 +30,17 @@ export const applicationConflicts: Readonly<Record<string, string>> = {
   HT006:
     'Eine Ungültigerklärung wird nicht geändert und nicht gelöscht. Der Nachweis bleibt mit ihr lesbar.',
   // A deletion after the end of the retention confirmed by somebody who does
-  // not lead the operator, or before the end (#340, ADR 0004).
-  HT008: 'Die Aufbewahrung dieses Nachweises ist nicht abgelaufen.',
-  // The confirmation of a deletion changed or removed (#340).
+  // not lead the operator, or before the end (#340, ADR 0004), of an evidence,
+  // an activity without evidence or a defect (#412).
+  HT008: 'Die Aufbewahrung ist nicht abgelaufen.',
+  // The confirmation of a deletion changed or removed (#340), and a task
+  // removed on another way than a year after it was done (#412).
   HT009:
-    'Die Bestätigung, dass ein Nachweis gelöscht wird, wird nicht geändert und nicht gelöscht.',
+    'Die Bestätigung, dass nach Ablauf der Aufbewahrung gelöscht wird, wird nicht geändert und nicht gelöscht.',
   // An activity emptied with its last evidence changed or added to, or
-  // emptied on another way (#409).
-  HT010: 'Ein gelöschter Vorgang wird nicht geändert und nimmt nichts mehr auf.',
+  // emptied on another way (#409), and the same of a defect (#412).
+  HT010:
+    'Was nach Ablauf der Aufbewahrung gelöscht ist, wird nicht geändert und nimmt nichts mehr auf.',
   // A part of something that is no collective activity (#342).
   HT011: 'Ein Vorgang ist nur Teil eines Sammelvorgangs.',
   // An answer about an asset its point does not ask about in this round, or

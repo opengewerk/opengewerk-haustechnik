@@ -96,6 +96,7 @@ import { TasksController } from './tasks.controller.js'
 import { syncRoutesFor } from './sync-routes.js'
 import { MeterSettingsController, MetersController } from './meters.controller.js'
 import { EvidenceRetentionController } from './retention.controller.js'
+import { RecordRetentionController } from './record-retention.controller.js'
 import { MembershipEndController } from './membership-end.controller.js'
 import { PrivacyDocumentsController } from './privacy-documents.controller.js'
 import { ProcessingDescriptionsController } from './processing-descriptions.controller.js'
@@ -460,6 +461,7 @@ export class ApiModule {
         MeterSettingsController,
         // The retention of the evidence and the confirmation of its end (#340).
         EvidenceRetentionController,
+        RecordRetentionController,
         MembershipEndController,
         ProcessingDescriptionsController,
         PrivacyDocumentsController,

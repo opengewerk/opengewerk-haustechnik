@@ -23,6 +23,8 @@ export const deadlineSources = [
   'delegation',
   'qualification',
   'evidence',
+  'activity_retention',
+  'defect_retention',
   'membership',
   'membership_removal',
 ] as const
@@ -295,6 +297,40 @@ export const evidenceRetentionEnds: ApplicationDeadlineKind = {
 }
 
 /**
+ * The end of the retention of an activity without evidence and of a remedied
+ * defect (section 2.6, #412): six years from the end of the year it ended,
+ * five from the day it was remedied, or the longer years of the operator, as
+ * the database counts them. Named once it has come; whoever leads the
+ * operator answers for it and confirms under "Aufbewahrung", and the deadline
+ * is done with it.
+ */
+export const activityRetentionEnds: ApplicationDeadlineKind = {
+  key: 'activity.retention_ends',
+  title: 'Ende der Aufbewahrung eines Vorgangs ohne Nachweis',
+  about:
+    'Ein Vorgang ohne Nachweis bleibt sechs Jahre ab dem Ende des Jahres, in dem er endete, oder länger, wie der Betreiber es einstellt. Danach schlägt der Lauf vor, ihn zu löschen; die Leitung bestätigt es unter „Aufbewahrung“.',
+  source: 'activity_retention',
+  intervalDays: null,
+  intervalMonths: null,
+  leadDays: 0,
+  responsible: 'lead',
+  actions: ['reminder'],
+}
+
+export const defectRetentionEnds: ApplicationDeadlineKind = {
+  key: 'defect.retention_ends',
+  title: 'Ende der Aufbewahrung eines Mangels',
+  about:
+    'Ein behobener Mangel bleibt fünf Jahre ab dem Tag der Beseitigung, oder länger, wie der Betreiber es einstellt. Danach schlägt der Lauf vor, seinen Inhalt zu löschen; die Leitung bestätigt es unter „Aufbewahrung“.',
+  source: 'defect_retention',
+  intervalDays: null,
+  intervalMonths: null,
+  leadDays: 0,
+  responsible: 'lead',
+  actions: ['reminder'],
+}
+
+/**
  * The end of an access (sections 2.4 and 9, #356): its last day, from the
  * membership, until that day has passed; afterwards the access has ended by
  * itself. Without a place; whoever leads the operator answers for it, and
@@ -354,6 +390,8 @@ export const deadlineKinds: readonly ApplicationDeadlineKind[] = [
   delegationEnds,
   qualificationExpires,
   evidenceRetentionEnds,
+  activityRetentionEnds,
+  defectRetentionEnds,
   membershipEnds,
   membershipDataRemoval,
 ]
@@ -375,6 +413,7 @@ export type DeadlineFacts =
   | DelegationDeadlineFacts
   | QualificationDeadlineFacts
   | EvidenceDeadlineFacts
+  | RetentionDeadlineFacts
   | MembershipDeadlineFacts
 
 /** The end of the retention of an evidence: the evidence by its number, with its duty (#340). */
@@ -384,6 +423,20 @@ export interface EvidenceDeadlineFacts extends DeadlinePlaceFacts {
     readonly id: string
     readonly number: string
     readonly dutyTitle: string
+  }
+}
+
+/**
+ * The end of the retention of an activity without evidence or a remedied
+ * defect (#412): which of the two and what it is called, proposed under
+ * "Aufbewahrung".
+ */
+export interface RetentionDeadlineFacts extends DeadlinePlaceFacts {
+  readonly follows: 'retention'
+  readonly record: {
+    readonly kind: 'activity' | 'defect'
+    readonly id: string
+    readonly title: string
   }
 }
 

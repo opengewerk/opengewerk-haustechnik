@@ -106,7 +106,7 @@ export const syncPolicies: Readonly<Record<string, SyncPolicy>> = {
     // the plan of a round that made it (#113), what makes a collective
     // activity and its parts (#342) and the assets of the points for every
     // asset of a round (#343), and the time it was emptied with its last
-    // evidence (#409) the database's.
+    // evidence (#409) the database's, as is the day it ended (#412).
     reserved: [
       'areaId',
       areaFromProperty,
@@ -115,6 +115,7 @@ export const syncPolicies: Readonly<Record<string, SyncPolicy>> = {
       'templateOn',
       'roundPlanId',
       'emptiedAt',
+      'endedOn',
       'collectiveId',
       'collectiveKind',
       'pointAssets',
@@ -183,7 +184,15 @@ export const syncPolicies: Readonly<Record<string, SyncPolicy>> = {
   defects: {
     create: true,
     change: 'merge',
-    reserved: ['areaId', areaFromProperty, 'foundInAnswerId', 'circuitId'],
+    // The day it was remedied and when its content went are the database's (#412).
+    reserved: [
+      'areaId',
+      areaFromProperty,
+      'foundInAnswerId',
+      'circuitId',
+      'remediedOn',
+      'emptiedAt',
+    ],
   },
   // A signature is given on the device, also without a connection, and never
   // changed (ADR 0004, point 10). Who gave it is the person signed in, and
@@ -344,7 +353,12 @@ export const syncPolicies: Readonly<Record<string, SyncPolicy>> = {
   // connection (#124). Its area follows its property, and who wrote it is the
   // server's to say: a device that set it could put its task under somebody
   // else's name, and no person wrote one the deadline engine makes.
-  tasks: { create: true, change: 'merge', reserved: ['areaId', areaFromProperty, 'createdBy'] },
+  // The day a task was done is the database's (#412).
+  tasks: {
+    create: true,
+    change: 'merge',
+    reserved: ['areaId', areaFromProperty, 'createdBy', 'doneOn'],
+  },
 }
 
 /**

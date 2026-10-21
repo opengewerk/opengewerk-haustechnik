@@ -11,6 +11,8 @@ import {
   meterDue,
   roundDue,
   documentExpires,
+  activityRetentionEnds,
+  defectRetentionEnds,
   evidenceRetentionEnds,
   riskAssessmentReview,
   contractEnd,
@@ -42,6 +44,8 @@ describe('the kinds of deadline of this application', () => {
       delegationEnds,
       qualificationExpires,
       evidenceRetentionEnds,
+      activityRetentionEnds,
+      defectRetentionEnds,
       membershipEnds,
       membershipDataRemoval,
     ])

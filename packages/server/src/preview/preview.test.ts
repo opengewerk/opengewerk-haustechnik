@@ -466,7 +466,7 @@ describe('a preview started as the Leitung', () => {
       }[]
     }
 
-    expect(register.counts).toEqual({ open: 5, overdue: 1, verified: 1 })
+    expect(register.counts).toEqual({ open: 5, overdue: 1, verified: 2 })
     expect(
       register.defects.map((defect) => [
         defect.description,
@@ -489,6 +489,8 @@ describe('a preview started as the Leitung', () => {
         'activity',
       ],
       ['Schild mit der Notrufnummer fehlt', 'verified', 'allgemein.significant', false, 'hand'],
+      // Remedied in 2019, so that "Aufbewahrung" proposes it (#412).
+      ['Kabinenlicht flackert', 'verified', null, false, 'hand'],
     ])
   })
 

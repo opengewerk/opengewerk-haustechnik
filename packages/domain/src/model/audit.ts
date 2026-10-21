@@ -585,6 +585,41 @@ export const auditVocabulary: AuditVocabulary = {
       label: 'Aufbewahrung der Nachweise',
       fields: { minimum_years: 'Mindestens aufbewahren, Jahre' },
     },
+    // What hangs on no evidence and its own retention (#412).
+    activity_emptyings: {
+      label: 'Löschen eines Vorgangs ohne Nachweis nach Ablauf der Aufbewahrung',
+      fields: {
+        activity_id: 'Vorgang',
+        confirmed_by: 'Bestätigt von',
+        confirmed_at: 'Bestätigt am',
+        years: 'Aufbewahrung, Jahre',
+        ended_on: 'Aufbewahrung endete am',
+      },
+    },
+    defect_emptyings: {
+      label: 'Löschen eines Mangels nach Ablauf der Aufbewahrung',
+      fields: {
+        defect_id: 'Mangel',
+        confirmed_by: 'Bestätigt von',
+        confirmed_at: 'Bestätigt am',
+        years: 'Aufbewahrung, Jahre',
+        ended_on: 'Aufbewahrung endete am',
+      },
+    },
+    record_retention_settings: {
+      label: 'Aufbewahrung ohne Nachweis',
+      fields: {
+        activity_years: 'Vorgang ohne Nachweis, Jahre',
+        defect_years: 'Mangel nach Beseitigung, Jahre',
+        task_years: 'Erledigte Aufgabe, Jahre',
+        reading_person_years: 'Person am Zählerstand, Jahre',
+        booking_person_years: 'Person an der Buchung im Lager, Jahre',
+      },
+    },
+    retention_removals: {
+      label: 'Gelöscht nach Ablauf der Aufbewahrung',
+      fields: { kind: 'Art', removed_count: 'Anzahl' },
+    },
     // How long the data of an access stays after its last day, and when it went (#356).
     membership_settings: {
       label: 'Frist nach dem Ende eines Zugangs',
@@ -734,6 +769,7 @@ export const auditVocabulary: AuditVocabulary = {
         template_on: 'Vorlage vom',
         round_plan_id: 'Plan',
         emptied_at: 'Gelöscht nach Ablauf der Aufbewahrung am',
+        ended_on: 'Beendet am',
         collective_id: 'Teil des Sammelvorgangs',
         collective_kind: 'Pflichtart des Sammelvorgangs',
         point_assets: 'Anlagen der Punkte für jede Anlage',
@@ -884,6 +920,8 @@ export const auditVocabulary: AuditVocabulary = {
         status: 'Stand',
         checked_on: 'Nachgeprüft am',
         check_note: 'Bemerkung zur Nachprüfung',
+        remedied_on: 'Behoben am',
+        emptied_at: 'Inhalt gelöscht nach Ablauf der Aufbewahrung am',
       },
     },
     // The tasks of an operator (#124). What a task hangs on is named below
@@ -897,6 +935,7 @@ export const auditVocabulary: AuditVocabulary = {
         status: 'Stand',
         activity_id: 'Vorgang',
         created_by: 'Angelegt von',
+        done_on: 'Erledigt am',
       },
     },
     // The default of a class of defects, which the operator sets (#116).
@@ -959,6 +998,8 @@ export const auditVocabulary: AuditVocabulary = {
       // The qualification whose expiry a deadline follows (#337).
       qualification_id: 'Qualifikation',
       evidence_id: 'Nachweis',
+      // The activity without evidence whose retention a deadline follows (#412).
+      activity_id: 'Vorgang',
       // The access whose end or whose removal a deadline follows (#356).
       member_user_id: 'Zugang',
       task_id: 'Aufgabe',
@@ -1259,6 +1300,11 @@ export const auditVocabulary: AuditVocabulary = {
     evidence_emptyings: ['evidence_id'],
     evidence_signed_prints: ['evidence_id'],
     evidence_retention_settings: ['minimum_years'],
+    // What goes after its own retention, by what it is about (#412).
+    activity_emptyings: ['activity_id'],
+    defect_emptyings: ['defect_id'],
+    record_retention_settings: ['activity_years'],
+    retention_removals: ['kind'],
     // The period after the end of an access by its days, a removal by its person (#356).
     membership_settings: ['removal_days'],
     membership_removals: ['user_id'],

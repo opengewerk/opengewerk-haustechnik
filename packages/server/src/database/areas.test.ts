@@ -573,6 +573,35 @@ async function placeIn(where: 'north' | 'south'): Promise<void> {
      values ($1, $2, $3, $4, $5, 'Notruf im Fahrkorb ohne Verbindung.', '2026-10-01')`,
     [tenant, at.property, areaId, at.asset, at.activity],
   )
+  // An inspection without evidence closed long ago and a defect remedied long
+  // ago, each emptied on its confirmation after its own retention (#412).
+  const { rows: ended } = await admin.query<{ id: string }>(
+    `insert into activities (tenant_id, property_id, area_id, asset_id, kind, title, status,
+                             closing_reason, ended_on)
+     values ($1, $2, $3, $4, 'inspection', 'Sichtprüfung Aufzug', 'not_performed',
+             'Aufzug außer Betrieb.', '2015-06-01')
+     returning id`,
+    [tenant, at.property, areaId, at.asset],
+  )
+  await admin.query(
+    `insert into activity_emptyings (tenant_id, property_id, area_id, activity_id, confirmed_by,
+                                     years, ended_on)
+     values ($1, $2, $3, $4, $5, 6, '2022-01-01')`,
+    [tenant, at.property, areaId, ended[0]?.id, person.lead],
+  )
+  const { rows: remedied } = await admin.query<{ id: string }>(
+    `insert into defects (tenant_id, property_id, area_id, asset_id, description, found_on, status,
+                          remedied_on)
+     values ($1, $2, $3, $4, 'Tür schließt zu langsam.', '2015-11-02', 'remedied', '2016-02-01')
+     returning id`,
+    [tenant, at.property, areaId, at.asset],
+  )
+  await admin.query(
+    `insert into defect_emptyings (tenant_id, property_id, area_id, defect_id, confirmed_by, years,
+                                   ended_on)
+     values ($1, $2, $3, $4, $5, 5, '2021-02-01')`,
+    [tenant, at.property, areaId, remedied[0]?.id, person.lead],
+  )
   // The signature on the work order, and its rejection.
   await admin.query(
     `insert into activity_signatures (tenant_id, property_id, area_id, activity_id, signed_by, role,
@@ -777,6 +806,7 @@ describe('a person with the north', () => {
       'activities',
       'activity_answers',
       'activity_duties',
+      'activity_emptyings',
       'activity_signatures',
       'asset_lifecycle',
       'asset_supplies',
@@ -790,6 +820,7 @@ describe('a person with the north', () => {
       'contacts',
       'contract_items',
       'deadlines',
+      'defect_emptyings',
       'defects',
       'distribution_boards',
       'duties',
@@ -1016,9 +1047,14 @@ describe('a property moved to another area', () => {
         // Two evidence: the one of the duty, and the earlier one emptied (#340).
         // Three assets: the elevator, the low-voltage installation the
         // electrical structure hangs on (#349) and the PV installation the
-        // PV structure hangs on (#461).
+        // PV structure hangs on (#461). Two activities and two defects: the
+        // second of each emptied after its own retention (#412).
         expected[table] = {
-          rows: table === 'evidence' ? 2 : table === 'assets' ? 3 : 1,
+          rows: ['evidence', 'activities', 'defects'].includes(table)
+            ? 2
+            : table === 'assets'
+              ? 3
+              : 1,
           elsewhere: 0,
         }
       }
@@ -1027,6 +1063,7 @@ describe('a property moved to another area', () => {
         'activities',
         'activity_answers',
         'activity_duties',
+        'activity_emptyings',
         'activity_signatures',
         'asset_lifecycle',
         'asset_supplies',
@@ -1040,6 +1077,7 @@ describe('a property moved to another area', () => {
         'contacts',
         'contract_items',
         'deadlines',
+        'defect_emptyings',
         'defects',
         'distribution_boards',
         'duties',
