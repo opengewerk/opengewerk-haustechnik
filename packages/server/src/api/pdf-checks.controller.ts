@@ -8,6 +8,7 @@ import {
   PayloadTooLargeException,
   Post,
   Req,
+  UnprocessableEntityException,
 } from '@nestjs/common'
 import {
   largestFileBytes,
@@ -32,6 +33,7 @@ import {
   prints,
   serviceReports,
 } from '../database/schema/index.js'
+import { SignedPdfRefusal } from '../evidence/signed-pdf.js'
 import { instanceSignatureOf } from '../prints/check.js'
 import { RequiresPermission } from './authorization.js'
 import type { Asking } from './places.js'
@@ -75,10 +77,20 @@ export class PdfChecksController {
       return { pdf: false, kept: null, instance: { state: 'none' } }
     }
 
+    let instance: PdfCheck['instance']
+
+    try {
+      instance = instanceSignatureOf(file, await instanceCertificates(this.database))
+    } catch (error) {
+      throw error instanceof SignedPdfRefusal
+        ? new UnprocessableEntityException(error.message)
+        : error
+    }
+
     return {
       pdf: true,
       kept: await this.keptAs(identity, createHash('sha256').update(file).digest('hex')),
-      instance: instanceSignatureOf(file, await instanceCertificates(this.database)),
+      instance,
     }
   }
 

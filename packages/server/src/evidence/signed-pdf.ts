@@ -34,6 +34,7 @@ export const signedPdfSentences = {
   signatureInvalid: 'Die Signatur passt nicht zu ihrem Zertifikat.',
   unknownKind: 'Diese Art der Signatur kennt die Anwendung nicht.',
   unreadable: 'Die Signatur in dieser Datei lässt sich nicht lesen.',
+  tooManySignatures: 'In dieser Datei stehen mehr Signaturen, als hier geprüft werden.',
 } as const
 
 /** What the screen says of the signature, as the certificate in the file names it. */
@@ -227,11 +228,12 @@ interface CmsReading {
 }
 
 /**
- * Reads the CMS signature written as `hex`, over `covered`. Refused with a
- * sentence only where it cannot be read or is of a kind not known here; a
+ * Reads the CMS signature written as `hex`, over the bytes `covered` names in
+ * its parts, which are hashed where they stand and never copied. Refused with
+ * a sentence only where it cannot be read or is of a kind not known here; a
  * digest that does not fit and a signature by no key it carries are answers.
  */
-function readCms(hex: string, covered: Buffer): CmsReading {
+function readCms(hex: string, covered: readonly Uint8Array[]): CmsReading {
   try {
     const info = readElement(hexToBytes(hex))
     const [type, wrapped] = childrenOf(info)
@@ -281,11 +283,14 @@ function readCms(hex: string, covered: Buffer): CmsReading {
     asSigned[0] = 0x31
 
     const time = attribute(listed, oids.signingTime)
+    const hash = createHash(digest)
+
+    for (const part of covered) {
+      hash.update(part)
+    }
 
     return {
-      digestMatches:
-        named !== null &&
-        createHash(digest).update(covered).digest().equals(Buffer.from(named.contents)),
+      digestMatches: named !== null && hash.digest().equals(Buffer.from(named.contents)),
       by:
         certificates.find((certificate) =>
           signedBy(certificate, asSigned, signatureAlgorithm, digest, signature.contents),
@@ -350,11 +355,10 @@ export function checkSignedPdf(file: Uint8Array, prints: readonly Uint8Array[]):
     throw new SignedPdfRefusal(signedPdfSentences.noSignature)
   }
 
-  const covered = Buffer.concat([
+  const read = readCms(contents.slice(1, -1), [
     file.subarray(0, firstLength),
     file.subarray(secondStart, secondStart + secondLength),
   ])
-  const read = readCms(contents.slice(1, -1), covered)
 
   if (!read.digestMatches) {
     throw new SignedPdfRefusal(signedPdfSentences.digestMismatch)
@@ -408,8 +412,17 @@ function claimedMoment(text: string): Date | null {
 }
 
 /**
+ * The most signatures a file is read for. A PDF signed by the instance and
+ * then outside has two; a file with more than this many byte ranges is
+ * refused before any is read, so that a crafted one cannot keep the server
+ * hashing (finding of the security review of #507).
+ */
+export const mostSignatures = 16
+
+/**
  * Every signature in `file`, in the order they stand, each read for what it
- * covers. A file that is no PDF has none.
+ * covers. A file that is no PDF has none; one with more than
+ * `mostSignatures` byte ranges is refused with a sentence.
  */
 export function signaturesIn(file: Uint8Array): readonly FoundSignature[] {
   if (latin1.decode(file.subarray(0, 5)) !== '%PDF-') {
@@ -418,9 +431,18 @@ export function signaturesIn(file: Uint8Array): readonly FoundSignature[] {
 
   const text = latin1.decode(file)
   const pattern = /\/ByteRange\s*\[\s*(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s*\]/g
+  const matches: RegExpExecArray[] = []
   const found: FoundSignature[] = []
 
   for (const match of text.matchAll(pattern)) {
+    matches.push(match)
+
+    if (matches.length > mostSignatures) {
+      throw new SignedPdfRefusal(signedPdfSentences.tooManySignatures)
+    }
+  }
+
+  for (const match of matches) {
     const [start, firstLength, secondStart, secondLength] = match.slice(1, 5).map(Number) as [
       number,
       number,
@@ -440,14 +462,13 @@ export function signaturesIn(file: Uint8Array): readonly FoundSignature[] {
       continue
     }
 
-    const covered = Buffer.concat([
-      file.subarray(0, firstLength),
-      file.subarray(secondStart, endsAt),
-    ])
     const moment = claimedMoment(text.slice(secondStart, Math.min(endsAt, secondStart + 2000)))
 
     try {
-      const read = readCms(contents.slice(1, -1), covered)
+      const read = readCms(contents.slice(1, -1), [
+        file.subarray(0, firstLength),
+        file.subarray(secondStart, endsAt),
+      ])
       const certificate = read.by ?? read.certificates[0] ?? null
 
       found.push({

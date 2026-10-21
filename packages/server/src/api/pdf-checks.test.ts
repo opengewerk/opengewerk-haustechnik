@@ -34,7 +34,7 @@ import {
 } from '../database/test-database.js'
 import { leastState, nextEvidenceNumber } from '../database/test-evidence.js'
 import { stateFingerprint } from '../evidence/fingerprint.js'
-import { signaturesIn } from '../evidence/signed-pdf.js'
+import { signaturesIn, signedPdfSentences } from '../evidence/signed-pdf.js'
 import { makeSigner, signedPdf } from '../evidence/test-signed-pdf.js'
 import { signPdf } from '../prints/pades.js'
 import { ApiModule } from './api.module.js'
@@ -460,6 +460,25 @@ describe('checking a PDF', () => {
       kept: null,
       instance: { state: 'unchanged', signedAt: expect.any(String) },
     })
+  })
+
+  // Finding of the security review of #507: every byte range used to cost a
+  // copy of the whole file, and a crafted file kept the server busy for minutes.
+  it('refuses at once a file with more signatures than are checked', async () => {
+    const crafted = Buffer.concat([
+      Buffer.from('%PDF-<>', 'latin1'),
+      Buffer.from(`/ByteRange [0 5 7 1000000]\n`.repeat(60_000), 'latin1'),
+    ])
+    const started = Date.now()
+    const answer = await http()
+      .post('/pdf-checks')
+      .set(testIdentityHeader, by('u-duties'))
+      .set('content-type', 'application/pdf')
+      .send(crafted)
+      .expect(422)
+
+    expect((answer.body as { message: string }).message).toBe(signedPdfSentences.tooManySignatures)
+    expect(Date.now() - started).toBeLessThan(3000)
   })
 
   it('is refused without the right to see the evidence, and for a file sent as anything but a PDF', async () => {
