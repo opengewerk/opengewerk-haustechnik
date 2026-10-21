@@ -7,6 +7,16 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
 
 ## [Unreleased]
 
+### Hinzugefügt
+
+- Ein abgegebener Rundgang lässt sich bis zur Gegenzeichnung wieder öffnen, im Büro und vor Ort, durch die Person,
+  die ihn abgegeben hat, und wer Rundgänge gegenzeichnet, solange kein Mangel daraus einen Auftrag hat (#510,
+  entschieden am 21.10.2026). Die Antworten bleiben und lassen sich ändern; die Unterschrift zählt nicht mehr und
+  steht nur noch im Änderungsprotokoll, Mängel und Zählerstände aus ihr werden entfernt, und ein Nachweis aus dem
+  Rundgang wird für ungültig erklärt. Die Rückfrage nennt, was wegfällt. Die Datenbank prüft die Grenzen selbst
+  (Migration `0103_round_reopening`). Warum: aus dem Pilotbetrieb gemeldet, ein Rundgang mit einer falschen Angabe
+  ließ sich nach der Abgabe nicht mehr berichtigen.
+
 ### Geändert
 
 - Jeder PDF-Knopf im Büro lädt die Datei herunter, statt sie in einem Tab zu öffnen, unter einem Namen, der sagt,

@@ -722,6 +722,13 @@
       "when": 1792573349968,
       "tag": "0102_instance_signing",
       "breakpoints": true
+    },
+    {
+      "idx": 103,
+      "version": "7",
+      "when": 1792589306621,
+      "tag": "0103_round_reopening",
+      "breakpoints": true
     }
   ]
 }

@@ -699,6 +699,26 @@ export interface RoundDetails {
   readonly pointAssets: PointAssets | null
   /** Those assets with their number and name, for the rows of the answers. */
   readonly assets: readonly RoundAsset[]
+  /** When it was last opened again (#510), none for a round never opened again. */
+  readonly reopenedAt: string | null
+  /**
+   * What opening it again takes away, for the person asking (#510); none
+   * where it is not opened again, or not by them.
+   */
+  readonly reopening: RoundReopening | null
+}
+
+/**
+ * What opening a handed-in round again takes away (#510, section 4.5 of the
+ * concept): the signature that counts, the defects it made of the answers,
+ * the readings it wrote, and the numbers of the evidence declared invalid.
+ */
+export interface RoundReopening {
+  readonly signer: string
+  readonly signedAt: string
+  readonly defects: number
+  readonly readings: number
+  readonly evidence: readonly string[]
 }
 
 /** An asset a round asks a point for every asset about, as its page names it (#343). */

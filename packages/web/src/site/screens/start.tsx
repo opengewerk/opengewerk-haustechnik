@@ -32,6 +32,7 @@ import { useMemo } from 'react'
 
 import { readingStanding, useHeldMeters } from '../../app/meters.js'
 import { titleOfRoom } from '../../app/place-records.js'
+import { countsSinceReopening } from '../../app/round-reopening.js'
 import { assetTitle, useAcross } from '../kit.js'
 import { siteForms, siteReadings } from '../places.js'
 import { useSiteSearch } from '../search-source.js'
@@ -287,6 +288,7 @@ function useStartItems() {
   const plans = useRecords('round_plans')
   const participants = useRecords('work_order_participants')
   const signatures = useRecords('activity_signatures')
+  const client = useSync()
   const day = today() as IsoDate
 
   return {
@@ -298,16 +300,25 @@ function useStartItems() {
             activities,
             plans,
             participants,
+            // A round opened again (#510) is to do again: its signature before counts no more.
             signed: new Set(
               signatures
-                .filter((each) => each['role'] === 'signer')
+                .filter(
+                  (each) =>
+                    each['role'] === 'signer' &&
+                    countsSinceReopening(
+                      activities.find((activity) => activity['id'] === each['activityId']),
+                      each,
+                      client.isPending('activity_signatures', String(each['id'])),
+                    ),
+                )
                 .map((each) => String(each['activityId'])),
             ),
           },
           me,
           day,
         ),
-      [activities, plans, participants, signatures, me, day],
+      [activities, plans, participants, signatures, me, day, client],
     ),
   }
 }

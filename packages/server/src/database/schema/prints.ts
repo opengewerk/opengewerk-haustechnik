@@ -6,6 +6,7 @@ import {
   boolean,
   check,
   foreignKey,
+  index,
   jsonb,
   pgTable,
   text,
@@ -50,7 +51,9 @@ export const roundRecords = pgTable(
     withinAreas(),
     withinLimits(table.propertyId, kindOfItsActivity(table.activityId)),
     unique('round_records_tenant_id_key').on(table.tenantId, table.id),
-    unique('round_records_once').on(table.tenantId, table.activityId),
+    // One per handing in: a round opened again (#510) is written down anew,
+    // which the database holds (`round_record_once_per_opening`).
+    index('round_records_activity_idx').on(table.tenantId, table.activityId),
     // The area of what the row hangs on (ADR 0003, addendum of #306).
     foreignKey({
       columns: [table.tenantId, table.activityId, table.areaId],

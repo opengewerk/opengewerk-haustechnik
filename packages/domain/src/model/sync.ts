@@ -106,7 +106,8 @@ export const syncPolicies: Readonly<Record<string, SyncPolicy>> = {
     // the plan of a round that made it (#113), what makes a collective
     // activity and its parts (#342) and the assets of the points for every
     // asset of a round (#343), and the time it was emptied with its last
-    // evidence (#409) the database's, as is the day it ended (#412).
+    // evidence (#409) the database's, as is the day it ended (#412) and the
+    // moment a handed-in round was opened again (#510).
     reserved: [
       'areaId',
       areaFromProperty,
@@ -116,6 +117,7 @@ export const syncPolicies: Readonly<Record<string, SyncPolicy>> = {
       'roundPlanId',
       'emptiedAt',
       'endedOn',
+      'reopenedAt',
       'collectiveId',
       'collectiveKind',
       'pointAssets',

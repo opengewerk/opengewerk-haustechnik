@@ -270,6 +270,12 @@ export interface Activity extends Synced, PlaceTarget {
    */
   readonly endedOn: IsoDate | null
   /**
+   * When a handed-in round was last opened again (#510, section 4.5 of the
+   * concept): written by the database, null for one never opened again. Only
+   * the signatures the server took after it count.
+   */
+  readonly reopenedAt: Date | null
+  /**
    * The collective activity it is a part of (#342, section 4.4 of the
    * concept): written by the server when the office composes one. A part is
    * an inspection or a maintenance at the place of its duty, like any other,

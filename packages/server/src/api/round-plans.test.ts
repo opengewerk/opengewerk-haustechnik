@@ -18,7 +18,7 @@ import {
   ruleSet,
 } from '@opengewerk/haustechnik-domain'
 import { Database, newId } from '@opengewerk/platform-server'
-import { eq } from 'drizzle-orm'
+import { eq, sql } from 'drizzle-orm'
 import type { Pool } from 'pg'
 import request from 'supertest'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
@@ -972,17 +972,25 @@ describe('a round in the office', () => {
     return rows[0]?.id as ActivityId
   }
 
-  /** Answers the one point of the round on site and signs it there, as the sync takes it. */
-  async function signedOnSite(round: ActivityId, person: Person = 'u-tech') {
+  /**
+   * Answers the one point of the round on site and signs it there, as the
+   * sync takes it; not in order, the signature makes a defect of it.
+   */
+  async function signedOnSite(round: ActivityId, person: Person = 'u-tech', result = 'ok') {
     await admin.query(`update activities set status = 'started', performed_on = $2 where id = $1`, [
       round,
       today,
     ])
     await admin.query(
-      `insert into activity_answers (tenant_id, property_id, area_id, activity_id, field_key, result)
-       values ($1, $2, $3, $4, 'p1', 'ok')`,
-      [tenant, northProperty, north, round],
+      `insert into activity_answers (tenant_id, property_id, area_id, activity_id, field_key, result, remark)
+       values ($1, $2, $3, $4, 'p1', $5, $6)`,
+      [tenant, northProperty, north, round, result, result === 'ok' ? null : 'Aufzug steht.'],
     )
+    await signedAgain(round, person)
+  }
+
+  /** Signs the round as it stands, as the sync takes a signature. */
+  async function signedAgain(round: ActivityId, person: Person = 'u-tech') {
     await database.forTenant({ tenantId: tenant, userId: person }, async (tx) => {
       const [row] = await tx.select().from(activities).where(eq(activities.id, round))
 
@@ -1029,6 +1037,40 @@ describe('a round in the office', () => {
         .send({ ...way, pageFingerprint: fingerprint, deviceInfo: 'Büro' }),
     )
   }
+
+  function reopened(person: Person, round: ActivityId) {
+    return answered(
+      http().post(`/rounds/${round}/reopening`).set(testIdentityHeader, by(person)).send({}),
+    )
+  }
+
+  /** What a round holds, counted past the policies. */
+  async function heldBy(round: ActivityId) {
+    const { rows } = await admin.query<Record<string, number>>(
+      `select (select count(*)::int from activity_answers where activity_id = $1 and deleted_at is null) as answers,
+              (select count(*)::int from activity_signatures where activity_id = $1) as signatures,
+              (select count(*)::int from defects where found_in_activity_id = $1 and deleted_at is null) as defects,
+              (select count(*)::int from meter_readings where activity_id = $1 and deleted_at is null) as readings,
+              (select count(*)::int from round_records where activity_id = $1) as records`,
+      [round],
+    )
+
+    return rows[0]
+  }
+
+  /** What the database answers when a person writes the statement past every route. */
+  async function refusalOf(person: Person, statement: ReturnType<typeof sql>): Promise<unknown> {
+    try {
+      await database.forTenant({ tenantId: tenant, userId: person }, (tx) => tx.execute(statement))
+    } catch (error) {
+      return (error as { cause?: { message?: string } }).cause?.message ?? String(error)
+    }
+
+    return 'written'
+  }
+
+  const opening = (round: ActivityId) =>
+    sql`update activities set status = 'started', reopened_at = now() where id = ${round}`
 
   function closed(person: Person, round: ActivityId, closingReason?: string) {
     return answered(
@@ -1215,6 +1257,215 @@ describe('a round in the office', () => {
     expect(signed.message).toBe(
       'Geschlossen wird ein Rundgang, solange er offen oder begonnen ist. Dieser ist schon unterschrieben oder abgeschlossen.',
     )
+  })
+
+  it('is opened again by whoever signed it: the answers stay, the signature counts no more, and its defect and reading go (#510)', async () => {
+    const round = await roundFor('u-tech')
+
+    await signedOnSite(round, 'u-tech', 'not_ok')
+    await admin.query(
+      `insert into meter_readings (tenant_id, property_id, area_id, asset_id, key_date, read_on,
+                                   value_milli, source, activity_id, recorded_by)
+       values ($1, $2, $3, $4, $5, $5, 1000, 'round', $6, 'u-tech')`,
+      [tenant, northProperty, north, northAsset, today, round],
+    )
+
+    expect((await page('u-tech', round)).body['reopening']).toEqual({
+      signer: 'Person u-tech',
+      signedAt: expect.any(String),
+      defects: 1,
+      readings: 1,
+      evidence: [],
+    })
+    // Before it is opened, no answer changes.
+    expect(
+      await refusalOf(
+        'u-tech',
+        sql`update activity_answers set result = 'ok' where activity_id = ${round}`,
+      ),
+    ).toBe('Nach der Unterschrift ändert sich keine Antwort.')
+
+    const opened = await reopened('u-tech', round)
+
+    expect(opened.status).toBe(201)
+    expect(opened.body).toMatchObject({
+      status: 'started',
+      state: 'started',
+      signatures: [],
+      defects: [],
+      page: null,
+      reopening: null,
+      reopenedAt: expect.any(String),
+    })
+    expect(await heldBy(round)).toEqual({
+      answers: 1,
+      signatures: 1,
+      defects: 0,
+      readings: 0,
+      records: 0,
+    })
+    // The answers change again, as the device changes them.
+    expect(
+      await refusalOf(
+        'u-tech',
+        sql`update activity_answers set result = 'ok', remark = null where activity_id = ${round}`,
+      ),
+    ).toBe('written')
+
+    await signedAgain(round)
+
+    const again = await page('u-site', round)
+
+    expect(again.body).toMatchObject({
+      status: 'signed',
+      state: 'awaiting_countersignature',
+      defects: [],
+      reopenedAt: opened.body['reopenedAt'],
+    })
+    expect(again.body['signatures']).toEqual([
+      expect.objectContaining({ role: 'signer', valid: true }),
+    ])
+  })
+
+  it('is opened again by whoever countersigns, not by somebody else who walks it, and not once countersigned (#510)', async () => {
+    // A round given to nobody, which everybody in the area walks.
+    const plan = await planned('u-site')
+    const round = (await roundsOf(plan.body['id']))[0]?.id as ActivityId
+
+    await signedOnSite(round, 'u-tech')
+
+    const other = await page('u-tech2', round)
+
+    expect(other.status).toBe(200)
+    expect(other.body['reopening']).toBeNull()
+
+    const refused = await reopened('u-tech2', round)
+
+    expect(refused.status).toBe(409)
+    expect(refused.message).toBe(
+      'Wieder öffnen darf, wer den Rundgang abgegeben hat, und wer Rundgänge gegenzeichnet.',
+    )
+    expect((await reopened('u-south', round)).status).toBe(404)
+    expect((await page('u-site', round)).body['reopening']).toMatchObject({
+      signer: 'Person u-tech',
+    })
+    expect((await reopened('u-site', round)).status).toBe(201)
+
+    await signedAgain(round)
+
+    const shown = pageFingerprint((await page('u-site', round)).body['page'] as SignedPage)
+
+    expect((await countersigned('u-site', round, shown)).status).toBe(201)
+
+    const late = await reopened('u-tech', round)
+    const countersignedWords =
+      'Ein gegengezeichneter Rundgang wird nicht wieder geöffnet. Berichtigt oder für ungültig erklärt wird sein Nachweis.'
+
+    expect(late.status).toBe(409)
+    expect(late.message).toBe(countersignedWords)
+    // The database holds the same on every way.
+    expect(await refusalOf('u-site', opening(round))).toBe(countersignedWords)
+  })
+
+  it('is not opened again once a defect from it has a work order (#510)', async () => {
+    const round = await roundFor('u-tech')
+
+    await signedOnSite(round, 'u-tech', 'not_ok')
+
+    const { rows: orders } = await admin.query<{ id: string }>(
+      `with made as (
+         insert into activities (tenant_id, property_id, area_id, kind, title, status)
+         values ($1, $2, $3, 'work_order', 'Aufzug instand setzen', 'open') returning id
+       )
+       insert into work_orders (tenant_id, property_id, area_id, activity_id, number, kind)
+       select $1, $2, $3, id, 'AU-2026-0510', 'inspection' from made returning id`,
+      [tenant, northProperty, north],
+    )
+
+    await admin.query(
+      'update defects set remedy_work_order_id = $2 where found_in_activity_id = $1',
+      [round, orders[0]?.id],
+    )
+
+    expect((await page('u-tech', round)).body['reopening']).toBeNull()
+
+    const refused = await reopened('u-site', round)
+    const orderedWords =
+      'Ein Mangel aus diesem Rundgang hat einen Auftrag. Der Rundgang wird nicht wieder geöffnet.'
+
+    expect(refused.status).toBe(409)
+    expect(refused.message).toBe(orderedWords)
+    expect(await refusalOf('u-site', opening(round))).toBe(orderedWords)
+    expect(await heldBy(round)).toMatchObject({ defects: 1 })
+  })
+
+  it('declares the evidence of a round without countersignature invalid, and writes it down anew with the next signature (#510)', async () => {
+    const round = await roundFor('u-tech')
+
+    await admin.query('update activities set countersignature_required = false where id = $1', [
+      round,
+    ])
+    await signedOnSite(round, 'u-tech')
+
+    const done = await page('u-tech', round)
+    const numbers = (done.body['evidence'] as { number: string }[]).map((each) => each.number)
+
+    expect(done.body['status']).toBe('done')
+    expect(numbers).toHaveLength(1)
+    expect(done.body['reopening']).toMatchObject({ evidence: numbers })
+    // The evidence counts, so the database opens nothing past the route.
+    expect(await refusalOf('u-tech', opening(round))).toBe(
+      'Ein Nachweis aus diesem Rundgang gilt noch. Er wird mit dem Öffnen für ungültig erklärt.',
+    )
+
+    expect((await reopened('u-tech', round)).status).toBe(201)
+
+    const { rows: voided } = await admin.query<{ reason: string; voided_by: string }>(
+      `select v.reason, v.voided_by from evidence_voidings v join evidence e on e.id = v.evidence_id
+        where e.activity_id = $1`,
+      [round],
+    )
+
+    expect(voided).toEqual([{ reason: 'Rundgang wieder geöffnet', voided_by: 'u-tech' }])
+
+    await signedAgain(round)
+
+    const anew = await page('u-tech', round)
+
+    expect(anew.body['status']).toBe('done')
+    expect(anew.body['evidence']).toHaveLength(2)
+    expect(await heldBy(round)).toMatchObject({ records: 2 })
+    // Written down once per handing in: a further record without an opening is refused.
+    expect(
+      await refusalOf(
+        'u-tech',
+        sql`insert into round_records (tenant_id, property_id, area_id, activity_id, state, fingerprint)
+            values (${tenant}, ${northProperty}, ${north}, ${round}, '{}'::jsonb, ${'a'.repeat(64)})`,
+      ),
+    ).toBe('Ein Rundgang wird je Abgabe einmal niedergeschrieben.')
+  })
+
+  it('keeps a reading a round wrote as written on every way but its opening (#510)', async () => {
+    const round = await roundFor('u-tech')
+
+    await signedOnSite(round)
+
+    const { rows } = await admin.query<{ id: string }>(
+      `insert into meter_readings (tenant_id, property_id, area_id, asset_id, key_date, read_on,
+                                   value_milli, source, activity_id, recorded_by)
+       values ($1, $2, $3, $4, $5, $5, 2000, 'round', $6, 'u-tech') returning id`,
+      [tenant, northProperty, north, northAsset, plus(-1), round],
+    )
+
+    expect(
+      await refusalOf(
+        'u-lead',
+        sql`update meter_readings set deleted_at = now() where id = ${rows[0]?.id}`,
+      ),
+    ).toBe(
+      'Ein Zählerstand wird nicht geändert und nicht gelöscht. Berichtigt wird er durch einen neuen Stand, der ihn nennt.',
+    )
+    expect(await heldBy(round)).toMatchObject({ readings: 1 })
   })
 })
 

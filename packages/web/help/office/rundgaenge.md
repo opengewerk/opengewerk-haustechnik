@@ -4,6 +4,8 @@ Hier sehen Sie, welche Rundgänge in einer Woche offen, begonnen und abgegeben s
 
 Ein Rundgang, der in seiner Woche nicht stattfand, bleibt unten stehen, bis Sie ihn mit Grund schließen.
 
+Ist in einem abgegebenen Rundgang etwas falsch angegeben, öffnet „Wieder öffnen“ ihn bis zur Gegenzeichnung wieder, solange kein Mangel daraus einen Auftrag hat. Das können die Person, die ihn abgegeben hat, und wer gegenzeichnet, auch vor Ort. Die Antworten bleiben und lassen sich ändern. Die Unterschrift zählt nicht mehr, Mängel und Zählerstände aus ihr werden entfernt, und ein Nachweis aus dem Rundgang wird für ungültig erklärt; mit der nächsten Abgabe entsteht alles neu. Nach der Gegenzeichnung wird der Nachweis berichtigt oder für ungültig erklärt.
+
 Ein abgeschlossener Rundgang lässt sich neben dem PDF als Tabelle ausgeben, je Punkt eine Zeile. Am Plan gibt „Als Tabelle“ die Rundgänge eines Zeitraums aus, etwa die Temperaturen eines Monats. Die Tabelle nennt keine Namen und keine Uhrzeiten; wer unterschrieben hat, steht im PDF.
 
 Ein Punkt kann für jede Anlage einer Art gelten, etwa jede Feststellanlage im Gebäude. Welche Anlagen das sind, steht fest, wenn der Rundgang entsteht: jede dieser Art am Ort des Plans und in seinem Bereich, ohne die außer Betrieb genommenen und die zurückgebauten. Jede bekommt eine eigene Antwort. Erfüllt der Punkt eine Pflichtart, ist die Antwort zu einer Anlage der Nachweis ihrer Pflicht dieser Art.

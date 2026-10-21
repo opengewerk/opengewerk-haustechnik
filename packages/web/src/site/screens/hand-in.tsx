@@ -4,6 +4,7 @@ import {
   answersMissing,
   type FilledAnswer,
   type RecordState,
+  type RoundDetails,
 } from '@opengewerk/haustechnik-domain'
 import { Button, Panel } from '@opengewerk/platform-web'
 import { AnswerMark } from '@opengewerk/platform-web/forms'
@@ -20,9 +21,10 @@ import {
   SiteText,
   SiteTrouble,
 } from '@opengewerk/platform-web/site'
-import { maybeText, text, useRelated, useSync } from '@opengewerk/platform-web/sync'
+import { maybeText, request, text, useRelated, useSync } from '@opengewerk/platform-web/sync'
+import { useQuery } from '@tanstack/react-query'
 import { useNavigate, useParams } from '@tanstack/react-router'
-import { Check, House, Signature } from 'lucide-react'
+import { Check, House, Signature, Undo2 } from 'lucide-react'
 import { useMemo, useState } from 'react'
 
 import {
@@ -37,6 +39,7 @@ import {
 } from '../../app/answers.js'
 import { type GivenSignature, SignatureWays } from '../../app/signature-ways.js'
 import { failureSentence } from '../../app/failure.js'
+import { countsSinceReopening, ReopenQuestion, reopenWords } from '../../app/round-reopening.js'
 import { signActivity } from '../../app/signing.js'
 import { NotOnDevice, PlainRow } from '../kit.js'
 import { siteForms } from '../places.js'
@@ -93,6 +96,9 @@ export const handInWords = {
   defectAt: (target: string) => `Mangel an ${target}`,
   fixed:
     'Der Rundgang lässt sich jetzt nicht mehr ändern. Was falsch ist, wird im Büro berichtigt oder für ungültig erklärt.',
+  reopenable:
+    'Ist etwas falsch angegeben, öffnen Sie den Rundgang wieder, solange er nicht gegengezeichnet ist. Danach wird im Büro berichtigt oder für ungültig erklärt.',
+  reopenOnline: 'Wieder öffnen geht nur mit Verbindung.',
   toStart: 'Zum Start',
 } as const
 
@@ -119,7 +125,16 @@ function useRoundEnd(activityId: string) {
   const form = useActivityForm(activityId, [])
   const where = useWhere(form.activity)
   const aboutWords = useAboutWords()
-  const signatures = useRelated('activity_signatures', 'activityId', activityId)
+  const client = useSync()
+  // What counts since the round was last opened again (#510).
+  const signatures = useRelated('activity_signatures', 'activityId', activityId).filter(
+    (signature) =>
+      countsSinceReopening(
+        form.activity,
+        signature,
+        client.isPending('activity_signatures', String(signature['id'])),
+      ),
+  )
   const duties = useRelated('activity_duties', 'activityId', activityId).filter(live)
   const filled = useMemo(() => form.answers.map(filledOf), [form.answers])
   const findings: readonly AnswerFinding[] =
@@ -448,13 +463,23 @@ function SignOf({ activityId }: { readonly activityId: string }) {
  * A round that is signed, the board "Abgegeben, wartet auf Gegenzeichnung
  * (4.5)": whether it waits for the countersignature of the site management,
  * when it was signed and whether that has reached the server, and the defects
- * its answers come to. Nothing about it changes on site any more.
+ * its answers come to. Nothing about it changes on site any more, except
+ * that whoever handed it in opens it again until the countersignature, with
+ * a connection (#510): whether they may, and what that takes away, the
+ * server says.
  */
 function HandedIn({ activityId }: { readonly activityId: string }) {
   const client = useSync()
   const navigate = useNavigate()
   const end = useRoundEnd(activityId)
   const activity = end.form.activity
+  const details = useQuery({
+    queryKey: ['rounds', 'round', activityId],
+    queryFn: () => request<RoundDetails>(`/rounds/${activityId}`),
+    retry: false,
+  })
+  const reopening = details.data?.reopening ?? null
+  const [asking, setAsking] = useState(false)
 
   if (activity === null) {
     return <NotOnDevice what="Diesen Rundgang" back={toStart} />
@@ -516,9 +541,42 @@ function HandedIn({ activityId }: { readonly activityId: string }) {
           </Panel>
         )}
         <SiteText muted size={15}>
-          {handInWords.fixed}
+          {reopening !== null || (details.isError && waits)
+            ? handInWords.reopenable
+            : handInWords.fixed}
         </SiteText>
+        {reopening === null ? (
+          details.isError && waits ? (
+            <SiteText muted size={15}>
+              {handInWords.reopenOnline}
+            </SiteText>
+          ) : null
+        ) : (
+          <Button
+            wide
+            height={56}
+            icon={Undo2}
+            onClick={() => {
+              setAsking(true)
+            }}
+          >
+            {reopenWords.reopen}
+          </Button>
+        )}
       </SiteScreen>
+      {asking && reopening !== null ? (
+        <ReopenQuestion
+          roundId={activityId}
+          reopening={reopening}
+          onDone={() => {
+            setAsking(false)
+            void navigate({ to: siteForms.form(activityId) })
+          }}
+          onCancel={() => {
+            setAsking(false)
+          }}
+        />
+      ) : null}
       <SiteActionBar>
         <Button
           tone="dark"

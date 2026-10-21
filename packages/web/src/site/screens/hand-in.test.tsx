@@ -5,6 +5,7 @@ import { fireEvent, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
+import { reopenWords } from '../../app/round-reopening.js'
 import { servingCatalogue } from '../../app/test-catalogue.js'
 import { memberIn } from '../../app/test-entry.js'
 import { formCatalogue, heaterDuty, lineOf, round } from '../test-form.js'
@@ -427,6 +428,108 @@ describe('handing in a round', () => {
     } finally {
       vi.unstubAllGlobals()
     }
+  })
+
+  it('counts a signature from before the round was opened again no more: the round is handed in anew (#510)', async () => {
+    const server = roundServer({}, { status: 'started', reopenedAt: `${today()}T08:00:00.000Z` })
+
+    server.put('activity_signatures', {
+      id: 'sg-before',
+      propertyId: planned.propertyId,
+      areaId: planned.areaId,
+      activityId: planned.id,
+      signedBy: 'u-1',
+      role: 'signer',
+      signedAt: `${today()}T07:38:00.000Z`,
+      deviceInfo: null,
+      path: 'M10,10L20,20',
+      pageFingerprint: '0'.repeat(64),
+      createdAt: `${today()}T07:39:00.000Z`,
+    })
+    await mountSite(`/vorgaenge/${planned.id}/abgabe`, { server, ...withTheForm })
+
+    expect(await screen.findByRole('button', { name: 'Abgeben und unterschreiben' })).toBeDefined()
+    expect(screen.queryByRole('heading', { level: 2, name: 'Abgegeben' })).toBeNull()
+  })
+
+  it('opens a handed-in round again with a connection, after the question that names what goes (#510)', async () => {
+    const server = roundServer({}, { status: 'signed' })
+
+    server.put('activity_signatures', {
+      id: 'sg-1',
+      propertyId: planned.propertyId,
+      areaId: planned.areaId,
+      activityId: planned.id,
+      signedBy: 'u-1',
+      role: 'signer',
+      signedAt: `${today()}T07:38:00.000Z`,
+      deviceInfo: null,
+      path: 'M10,10L20,20',
+      pageFingerprint: '0'.repeat(64),
+      createdAt: `${today()}T07:39:00.000Z`,
+    })
+
+    const site = await mountSite(`/vorgaenge/${planned.id}/abgabe`, {
+      server,
+      answers: {
+        ...withTheForm.answers,
+        [`/rounds/${planned.id}`]: {
+          reopening: {
+            signer: 'Pia Person',
+            signedAt: `${today()}T07:38:00.000Z`,
+            defects: 1,
+            readings: 0,
+            evidence: [],
+          },
+        },
+        [`POST /rounds/${planned.id}/reopening`]: { id: planned.id },
+      },
+    })
+
+    fireEvent.click(await screen.findByRole('button', { name: reopenWords.reopen }))
+
+    const question = await screen.findByRole('alertdialog', { name: reopenWords.title })
+
+    expect(
+      within(question)
+        .getAllByRole('listitem')
+        .map((item) => item.textContent),
+    ).toEqual([
+      expect.stringMatching(/^die Unterschrift von Pia Person, /),
+      '1 Mangel, der mit ihr entstanden ist',
+    ])
+
+    fireEvent.click(within(question).getByRole('button', { name: reopenWords.reopen }))
+
+    await waitFor(() => {
+      expect(site.asked).toContainEqual(
+        expect.objectContaining({ method: 'POST', path: `/rounds/${planned.id}/reopening` }),
+      )
+    })
+  })
+
+  it('offers no opening again where the server says it is not (#510)', async () => {
+    const server = roundServer({}, { status: 'signed' })
+
+    server.put('activity_signatures', {
+      id: 'sg-1',
+      propertyId: planned.propertyId,
+      areaId: planned.areaId,
+      activityId: planned.id,
+      signedBy: 'u-1',
+      role: 'signer',
+      signedAt: `${today()}T07:38:00.000Z`,
+      deviceInfo: null,
+      path: 'M10,10L20,20',
+      pageFingerprint: '0'.repeat(64),
+    })
+    await mountSite(`/vorgaenge/${planned.id}/abgabe`, {
+      server,
+      answers: { ...withTheForm.answers, [`/rounds/${planned.id}`]: { reopening: null } },
+    })
+
+    expect(await screen.findByRole('heading', { level: 2, name: 'Abgegeben' })).toBeDefined()
+    expect(screen.queryByRole('button', { name: reopenWords.reopen })).toBeNull()
   })
 
   it('says a round is done once the server wrote it down, signed where no countersignature is asked', async () => {

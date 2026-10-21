@@ -41,6 +41,7 @@ import {
 import { and, asc, between, desc, eq, inArray, isNotNull, isNull, lt, sql } from 'drizzle-orm'
 
 import { closeAsNotPerformed } from '../activities/closing.js'
+import { reopeningOf, ReopeningRefusal, reopenRound } from '../activities/reopening.js'
 import {
   pageOf,
   SigningRefusal,
@@ -499,7 +500,12 @@ export class RoundsController {
   async read(@CurrentIdentity() identity: Asking, @Param('id') id: string): Promise<RoundDetails> {
     const read = await this.database.forTenant(identity, async (tx) => {
       const round = await roundOf(tx, identity, id)
-      const standing = await signaturesWithTheirStanding(tx, round)
+      // A signature from before the round was opened again stands only in
+      // the change log (#510).
+      const standing = (await signaturesWithTheirStanding(tx, round)).filter(
+        ({ signature }) =>
+          round.reopenedAt === null || signature.createdAt.getTime() > round.reopenedAt.getTime(),
+      )
       const signed = standing.some(({ signature }) => signature.role === 'signer')
       const found = signed
         ? await tx
@@ -524,6 +530,8 @@ export class RoundsController {
       // The assets of its points for every asset, named (#343).
       const names = await pointAssetNames(tx, round.pointAssets)
 
+      const reopening = await reopeningOf(tx, round, identity)
+
       return {
         round,
         standing,
@@ -531,15 +539,17 @@ export class RoundsController {
         found,
         written,
         names,
+        reopening: typeof reopening === 'string' ? null : reopening,
       }
     })
-    const { round, standing } = read
+    const { round, standing, reopening } = read
     const accounts = await accountsOf(
       this.database,
       [
         ...new Set([
           ...standing.map(({ signature }) => signature.signedBy),
           ...(round.performerUserId === null ? [] : [round.performerUserId]),
+          ...(reopening === null ? [] : [reopening.signedBy]),
         ]),
       ],
       identity.userId,
@@ -582,7 +592,54 @@ export class RoundsController {
       ...(round.emptiedAt === null ? {} : { emptied: true as const }),
       pointAssets: round.pointAssets,
       assets: [...read.names].map(([id, asset]) => ({ id, ...asset })),
+      reopenedAt: round.reopenedAt?.toISOString() ?? null,
+      reopening:
+        reopening === null
+          ? null
+          : {
+              signer: nameOf(reopening.signedBy),
+              signedAt: reopening.signedAt.toISOString(),
+              defects: reopening.defects,
+              readings: reopening.readings,
+              evidence: reopening.evidence.map((each) => each.number),
+            },
     }
+  }
+
+  /**
+   * A handed-in round opened again (section 4.5 of the concept, #510,
+   * decided on 21.10.2026): until its countersignature and while no defect
+   * from its answers has a work order, by whoever gave its signature and by
+   * whoever countersigns rounds, with a connection, in the office and on
+   * site. Its answers stay; its signature counts no more, what it made is
+   * removed, and an evidence written from it is declared invalid.
+   */
+  @Post(':id/reopening')
+  @RequiresPermission('activity.perform')
+  async reopen(
+    @CurrentIdentity() identity: Asking,
+    @Param('id') id: string,
+  ): Promise<RoundDetails> {
+    await this.database.forTenant(identity, async (tx) => {
+      const round = await roundOf(tx, identity, id)
+
+      try {
+        await reopenRound(
+          tx,
+          { tenantId: identity.tenantId, writtenBy: identity.userId, at: new Date() },
+          identity,
+          round.id,
+        )
+      } catch (error) {
+        if (error instanceof ReopeningRefusal || error instanceof EvidenceRefusal) {
+          throw new ConflictException(error.message)
+        }
+
+        throw error
+      }
+    })
+
+    return this.read(identity, id)
   }
 
   /**
