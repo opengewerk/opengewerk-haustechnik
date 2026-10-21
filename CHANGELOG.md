@@ -7,6 +7,12 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
 
 ## [Unreleased]
 
+### Geändert
+
+- Die vier Einträge des Pakets Elektro 1.5.0 (#468), die PV-Anlage im Geltungsbereich der Prüfung nach DGUV
+  Vorschrift 3 und 4, sind fachkundig abgenommen, vom Maintainer am 21.10.2026, jeder mit der Prüfsumme seiner
+  Datei. Bis dahin standen ihre Vorschläge als „Nicht abgenommen“ da.
+
 ## [0.1.10] - 2026-10-21
 
 Die sechste Zwischenfassung für den Pilotbetrieb, mit dem zweiten Teil der Korrekturen aus der
