@@ -1,5 +1,4 @@
 import { byNameIn, type RecordState } from '@opengewerk/haustechnik-domain'
-import { boardFields } from '@opengewerk/platform-web/electrical'
 import { type Draft, type FormField, text, useRecords } from '@opengewerk/platform-web/sync'
 import { useMemo } from 'react'
 
@@ -84,20 +83,6 @@ export function useBoardPlaces(assetId: string | undefined) {
       nameOf,
     }
   }, [assets, supplies, buildings, rooms, assetId])
-}
-
-/**
- * The form of a board with its place (#495), as the board draws it: the
- * fields of the foundation with the way it hangs across the whole row, and
- * building and room side by side below.
- */
-export function boardFormFields(places: ReturnType<typeof useBoardPlaces>): readonly FormField[] {
-  return [
-    ...boardFields.map((field) =>
-      field.name === 'location' ? { ...field, place: 'col-span-full' } : field,
-    ),
-    ...boardPlaceFields(places),
-  ]
 }
 
 /** The two fields of the place of a board, in the form of a board. */
