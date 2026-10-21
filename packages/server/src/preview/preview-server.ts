@@ -120,6 +120,15 @@ export async function openPreview(
       files: options.files ?? previewFileStore(),
       renderer: rendererFor(readRendererConfiguration()),
       mail: previewMail(port),
+      // The PDFs with a signature in them are signed as on an instance (#457),
+      // with a key made in this start and sealed with its key.
+      signing: {
+        key: previewKey,
+        subject: {
+          commonName: `127.0.0.1:${String(port)}`,
+          organisation: 'OpenGewerk Haustechnik',
+        },
+      },
       push: previewPush(port),
       // The page of the legal texts shows, signed in or not (#129), and the
       // preview has its sample texts.

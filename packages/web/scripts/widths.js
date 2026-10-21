@@ -126,8 +126,10 @@ await checkWidths({
     // The dialogs of the contracts (#329): a new contract and what it covers.
     'Vertrag anlegen',
     'Erfassen',
-    // The register of evidence at the register of duties (#338).
+    // The register of evidence at the register of duties (#338), and beside it
+    // the page that checks a PDF laid before somebody (#457).
     'Nachweisverzeichnis',
+    'PDF prüfen',
     // A firm at work (#330): the briefing and the permit on site, and in the
     // office a briefing and a permit as they were signed, by the names the
     // sample data give them.

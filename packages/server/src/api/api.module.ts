@@ -24,6 +24,8 @@ import {
   type IdentitySource,
   type InstanceSettingsCache,
   MAIL,
+  SIGNING,
+  type SigningContext,
   type MailContext,
   mailSettingsParts,
   numberRangeParts,
@@ -96,6 +98,7 @@ import { TasksController } from './tasks.controller.js'
 import { syncRoutesFor } from './sync-routes.js'
 import { MeterSettingsController, MetersController } from './meters.controller.js'
 import { EvidenceRetentionController } from './retention.controller.js'
+import { PdfChecksController } from './pdf-checks.controller.js'
 import { RecordRetentionController } from './record-retention.controller.js'
 import { MembershipEndController } from './membership-end.controller.js'
 import { PrivacyDocumentsController } from './privacy-documents.controller.js'
@@ -189,6 +192,11 @@ export interface ApiOptions {
    */
   readonly push?: PushContext | null
   /**
+   * What the instance signs the PDFs with a signature in them with (#457).
+   * Left out, they go out unsigned, as in a test that is not about them.
+   */
+  readonly signing?: SigningContext | null
+  /**
    * Where the backups record their last run (`BACKUP_STATUS_PATH`, #127).
    * Left out, the office is told that nothing is known about backups, which
    * is the truth on a machine that makes none.
@@ -259,6 +267,7 @@ export class ApiModule {
       renderer = rendererFor({ url: undefined, token: undefined }),
       mail = null,
       push = null,
+      signing = null,
       backupStatus = null,
     } = options
     // The page of a label for somebody without an account (#332) is the one
@@ -462,6 +471,7 @@ export class ApiModule {
         // The retention of the evidence and the confirmation of its end (#340).
         EvidenceRetentionController,
         RecordRetentionController,
+        PdfChecksController,
         MembershipEndController,
         ProcessingDescriptionsController,
         PrivacyDocumentsController,
@@ -497,6 +507,7 @@ export class ApiModule {
         // What sends: null on a closed instance, and for push without a key.
         { provide: MAIL, useValue: mail },
         { provide: PUSH, useValue: push },
+        { provide: SIGNING, useValue: signing },
         // What prints a page, for the routes that hand out a PDF.
         { provide: RENDERER, useValue: renderer },
         Printer,

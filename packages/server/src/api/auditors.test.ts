@@ -389,7 +389,9 @@ describe('an auditor from outside', () => {
         .filter((route) => route.permission !== undefined && held.includes(route.permission))
         .map((route) => route.name),
       // Signing a delegation of duties is for the person it goes to, and none goes to an auditor (below).
-    ).toEqual(['POST /delegations/:id/sign'])
+      // Checking a PDF (#457) is sent, not written: it keeps nothing, and the check is written down
+      // as every request of an auditor.
+    ).toEqual(['POST /delegations/:id/sign', 'POST /pdf-checks'])
   })
 
   it('is given no delegation of duties, which alone would let it sign one', async () => {

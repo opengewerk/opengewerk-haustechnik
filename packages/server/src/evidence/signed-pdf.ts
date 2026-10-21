@@ -214,6 +214,98 @@ function nameOf(name: string): string {
   return parts.length === 0 ? name.replace(/\n/g, ', ') : parts.join(', ')
 }
 
+/** What the CMS signature in `/Contents` says of the bytes it covers. */
+interface CmsReading {
+  /** Whether the digest its signed attributes name is the one over the covered bytes. */
+  readonly digestMatches: boolean
+  /** The certificate whose key signed the attributes; null where none of those it carries did. */
+  readonly by: X509Certificate | null
+  /** The certificates it carries, the first one where it names none that signed. */
+  readonly certificates: readonly X509Certificate[]
+  /** The moment its signed attributes name; none where they name none. */
+  readonly signedAt: Date | null
+}
+
+/**
+ * Reads the CMS signature written as `hex`, over `covered`. Refused with a
+ * sentence only where it cannot be read or is of a kind not known here; a
+ * digest that does not fit and a signature by no key it carries are answers.
+ */
+function readCms(hex: string, covered: Buffer): CmsReading {
+  try {
+    const info = readElement(hexToBytes(hex))
+    const [type, wrapped] = childrenOf(info)
+
+    if (type === undefined || oidOf(type) !== oids.signedData || wrapped === undefined) {
+      throw new SignedPdfRefusal(signedPdfSentences.unreadable)
+    }
+
+    const signedData = childrenOf(childrenOf(wrapped)[0] as DerElement)
+    const certificates = signedData
+      .filter((each) => each.tag === 0xa0)
+      .flatMap((each) => childrenOf(each))
+      .map((each) => new X509Certificate(Buffer.from(each.whole)))
+    const signerInfos = signedData.at(-1)
+
+    if (signerInfos === undefined || signerInfos.tag !== 0x31) {
+      throw new SignedPdfRefusal(signedPdfSentences.unreadable)
+    }
+
+    const signer = childrenOf(childrenOf(signerInfos)[0] as DerElement)
+    const digestAlgorithm = signer[2]
+    const attributes = signer[3]
+    const signatureAlgorithm = signer[4]
+    const signature = signer[5]
+
+    if (
+      digestAlgorithm === undefined ||
+      attributes === undefined ||
+      attributes.tag !== 0xa0 ||
+      signatureAlgorithm === undefined ||
+      signature === undefined
+    ) {
+      throw new SignedPdfRefusal(signedPdfSentences.unreadable)
+    }
+
+    const digest = digests[oidOf(childrenOf(digestAlgorithm)[0] as DerElement)]
+
+    if (digest === undefined) {
+      throw new SignedPdfRefusal(signedPdfSentences.unknownKind)
+    }
+
+    const listed = childrenOf(attributes)
+    const named = attribute(listed, oids.messageDigest)
+    // The attributes are signed as a SET, not under the tag they carry in SignerInfo.
+    const asSigned = Buffer.from(attributes.whole)
+
+    asSigned[0] = 0x31
+
+    const time = attribute(listed, oids.signingTime)
+
+    return {
+      digestMatches:
+        named !== null &&
+        createHash(digest).update(covered).digest().equals(Buffer.from(named.contents)),
+      by:
+        certificates.find((certificate) =>
+          signedBy(certificate, asSigned, signatureAlgorithm, digest, signature.contents),
+        ) ?? null,
+      certificates,
+      signedAt: time === null ? null : timeOf(time),
+    }
+  } catch (error) {
+    if (error instanceof SignedPdfRefusal) {
+      throw error
+    }
+
+    if (error instanceof DerRefusal || error instanceof Error) {
+      throw new SignedPdfRefusal(signedPdfSentences.unreadable)
+    }
+
+    throw error
+  }
+}
+
 /**
  * The facts of the signature on `file`, which has to be one of `prints`
  * signed; refused with a sentence otherwise.
@@ -262,89 +354,117 @@ export function checkSignedPdf(file: Uint8Array, prints: readonly Uint8Array[]):
     file.subarray(0, firstLength),
     file.subarray(secondStart, secondStart + secondLength),
   ])
+  const read = readCms(contents.slice(1, -1), covered)
 
-  try {
-    const info = readElement(hexToBytes(contents.slice(1, -1)))
-    const [type, wrapped] = childrenOf(info)
-
-    if (type === undefined || oidOf(type) !== oids.signedData || wrapped === undefined) {
-      throw new SignedPdfRefusal(signedPdfSentences.unreadable)
-    }
-
-    const signedData = childrenOf(childrenOf(wrapped)[0] as DerElement)
-    const certificates = signedData
-      .filter((each) => each.tag === 0xa0)
-      .flatMap((each) => childrenOf(each))
-      .map((each) => new X509Certificate(Buffer.from(each.whole)))
-    const signerInfos = signedData.at(-1)
-
-    if (signerInfos === undefined || signerInfos.tag !== 0x31) {
-      throw new SignedPdfRefusal(signedPdfSentences.unreadable)
-    }
-
-    const signer = childrenOf(childrenOf(signerInfos)[0] as DerElement)
-    const digestAlgorithm = signer[2]
-    const attributes = signer[3]
-    const signatureAlgorithm = signer[4]
-    const signature = signer[5]
-
-    if (
-      digestAlgorithm === undefined ||
-      attributes === undefined ||
-      attributes.tag !== 0xa0 ||
-      signatureAlgorithm === undefined ||
-      signature === undefined
-    ) {
-      throw new SignedPdfRefusal(signedPdfSentences.unreadable)
-    }
-
-    const digest = digests[oidOf(childrenOf(digestAlgorithm)[0] as DerElement)]
-
-    if (digest === undefined) {
-      throw new SignedPdfRefusal(signedPdfSentences.unknownKind)
-    }
-
-    const listed = childrenOf(attributes)
-    const named = attribute(listed, oids.messageDigest)
-
-    if (
-      named === null ||
-      !createHash(digest).update(covered).digest().equals(Buffer.from(named.contents))
-    ) {
-      throw new SignedPdfRefusal(signedPdfSentences.digestMismatch)
-    }
-
-    // The attributes are signed as a SET, not under the tag they carry in SignerInfo.
-    const asSigned = Buffer.from(attributes.whole)
-
-    asSigned[0] = 0x31
-
-    const by = certificates.find((certificate) =>
-      signedBy(certificate, asSigned, signatureAlgorithm, digest, signature.contents),
-    )
-
-    if (by === undefined) {
-      throw new SignedPdfRefusal(signedPdfSentences.signatureInvalid)
-    }
-
-    const time = attribute(listed, oids.signingTime)
-
-    return {
-      signer: nameOf(by.subject),
-      issuer: nameOf(by.issuer),
-      signedAt: time === null ? null : timeOf(time),
-      validFrom: new Date(by.validFrom),
-      validTo: new Date(by.validTo),
-    }
-  } catch (error) {
-    if (error instanceof SignedPdfRefusal) {
-      throw error
-    }
-
-    if (error instanceof DerRefusal || error instanceof Error) {
-      throw new SignedPdfRefusal(signedPdfSentences.unreadable)
-    }
-
-    throw error
+  if (!read.digestMatches) {
+    throw new SignedPdfRefusal(signedPdfSentences.digestMismatch)
   }
+
+  if (read.by === null) {
+    throw new SignedPdfRefusal(signedPdfSentences.signatureInvalid)
+  }
+
+  return {
+    signer: nameOf(read.by.subject),
+    issuer: nameOf(read.by.issuer),
+    signedAt: read.signedAt,
+    validFrom: new Date(read.by.validFrom),
+    validTo: new Date(read.by.validTo),
+  }
+}
+
+/** One signature in a PDF, as it stands there. */
+export interface FoundSignature {
+  /** Where the bytes it covers end: the end of the file as it was signed. */
+  readonly endsAt: number
+  /** The certificate it was made with; null where it could not be read. */
+  readonly certificate: X509Certificate | null
+  /** Who that certificate names. */
+  readonly signer: string | null
+  /** Whether the bytes it covers are still the ones it was made over, by the key of its certificate. */
+  readonly holds: boolean
+  /** The moment it names, in its attributes or in its dictionary (`/M`); none where it names none. */
+  readonly signedAt: Date | null
+}
+
+/** The moment `/M` of a signature dictionary names, in the stretch of text after its `/Contents`. */
+function claimedMoment(text: string): Date | null {
+  const found = /\/M\s*\(D:(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})(Z|[+-]\d{2}'?\d{2}'?)?/.exec(
+    text,
+  )
+
+  if (found === null) {
+    return null
+  }
+
+  const [, year, month, day, hour, minute, second, zone] = found
+  const offset =
+    zone === undefined || zone === 'Z'
+      ? 'Z'
+      : `${zone.slice(0, 3)}:${zone.replace(/'/g, '').slice(3, 5)}`
+  const moment = new Date(`${year}-${month}-${day}T${hour}:${minute}:${second}${offset}`)
+
+  return Number.isNaN(moment.getTime()) ? null : moment
+}
+
+/**
+ * Every signature in `file`, in the order they stand, each read for what it
+ * covers. A file that is no PDF has none.
+ */
+export function signaturesIn(file: Uint8Array): readonly FoundSignature[] {
+  if (latin1.decode(file.subarray(0, 5)) !== '%PDF-') {
+    return []
+  }
+
+  const text = latin1.decode(file)
+  const pattern = /\/ByteRange\s*\[\s*(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s*\]/g
+  const found: FoundSignature[] = []
+
+  for (const match of text.matchAll(pattern)) {
+    const [start, firstLength, secondStart, secondLength] = match.slice(1, 5).map(Number) as [
+      number,
+      number,
+      number,
+      number,
+    ]
+    const endsAt = secondStart + secondLength
+    const contents = text.slice(firstLength, secondStart)
+
+    if (
+      start !== 0 ||
+      secondStart <= firstLength ||
+      endsAt > file.length ||
+      !contents.startsWith('<') ||
+      !contents.endsWith('>')
+    ) {
+      continue
+    }
+
+    const covered = Buffer.concat([
+      file.subarray(0, firstLength),
+      file.subarray(secondStart, endsAt),
+    ])
+    const moment = claimedMoment(text.slice(secondStart, Math.min(endsAt, secondStart + 2000)))
+
+    try {
+      const read = readCms(contents.slice(1, -1), covered)
+      const certificate = read.by ?? read.certificates[0] ?? null
+
+      found.push({
+        endsAt,
+        certificate,
+        signer: certificate === null ? null : nameOf(certificate.subject),
+        holds: read.digestMatches && read.by !== null,
+        signedAt: read.signedAt ?? moment,
+      })
+    } catch (error) {
+      if (!(error instanceof SignedPdfRefusal)) {
+        throw error
+      }
+
+      found.push({ endsAt, certificate: null, signer: null, holds: false, signedAt: moment })
+    }
+  }
+
+  return found
 }

@@ -30,7 +30,7 @@ import {
 import { maybeText, request, RequestRefused, useRecords } from '@opengewerk/platform-web/sync'
 import { useInfiniteQuery } from '@tanstack/react-query'
 import { Link, useNavigate, useSearch } from '@tanstack/react-router'
-import { FileText, TriangleAlert, Upload } from 'lucide-react'
+import { FileText, ShieldCheck, TriangleAlert, Upload } from 'lucide-react'
 import { lazy, type ReactNode, Suspense, useMemo, useState } from 'react'
 
 import { titleOfRoom } from '../../app/place-records.js'
@@ -230,6 +230,16 @@ export function DutyRegisterScreen() {
                 }}
               >
                 Nachweisverzeichnis
+              </Button>
+            ) : null}
+            {readsEvidence ? (
+              <Button
+                icon={ShieldCheck}
+                onClick={() => {
+                  void navigate({ to: '/pflichten/pdf-pruefen' })
+                }}
+              >
+                PDF prüfen
               </Button>
             ) : null}
             {keepsDuties && entersEvidence ? (

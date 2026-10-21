@@ -5,6 +5,7 @@ import {
   Inject,
   Injectable,
   NotFoundException,
+  Optional,
   Param,
   Res,
   ServiceUnavailableException,
@@ -31,6 +32,9 @@ import {
   RENDERER,
   type Renderer,
   RendererUnavailableError,
+  SIGNING,
+  type SigningContext,
+  instanceSigningKey,
   type TenantTransaction,
 } from '@opengewerk/platform-server'
 import { files } from '@opengewerk/platform-server/schema'
@@ -46,6 +50,7 @@ import {
   serviceReports,
 } from '../database/schema/index.js'
 import { serviceReportsOf } from '../activities/service-reports.js'
+import { signPdf } from '../prints/pades.js'
 import { dayInGermany } from '../today.js'
 import {
   evidencePrintJob,
@@ -110,7 +115,23 @@ export class Printer {
     private readonly database: Database,
     @Inject(FILE_STORE) private readonly store: FileStorage,
     @Inject(RENDERER) private readonly render: Renderer,
+    @Optional()
+    @Inject(SIGNING)
+    private readonly signing?: SigningContext | null,
   ) {}
+
+  /**
+   * A PDF with a signature in it, signed by the instance (#457, section 2.6
+   * of the concept), so that every PDF program shows a change made after.
+   * An application without a key, as in a test of something else, hands the
+   * bytes on as they are. A PDF that cannot be signed is not handed out
+   * unsigned: the request fails.
+   */
+  async sign(bytes: Uint8Array): Promise<Uint8Array> {
+    return this.signing
+      ? signPdf(bytes, await instanceSigningKey(this.database, this.signing))
+      : bytes
+  }
 
   /**
    * The bytes of a print: the stored file once there is one, else made now,
@@ -143,6 +164,9 @@ export class Printer {
 
       throw renderFailed(error)
     }
+
+    // Signed before it is kept: the print kept is the signed one, and its hash is the hash of that file.
+    made = await this.sign(made)
 
     const blob = await this.store.put(made)
     const sha256 = await this.database.forTenant(identity, async (tx) => {
@@ -183,6 +207,11 @@ export class Printer {
 
       throw renderFailed(error)
     }
+  }
+
+  /** A print of the day with a signature in it, made now, not kept, and signed (#457). */
+  async freshSigned(job: PrintJob): Promise<Uint8Array> {
+    return this.sign(await this.fresh(job))
   }
 
   /**
