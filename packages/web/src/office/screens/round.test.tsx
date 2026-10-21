@@ -561,10 +561,10 @@ describe('the PDF of a round (#111)', () => {
 
     const pdf = servingPdf()
 
-    fireEvent.click(await screen.findByRole('button', { name: pdfWords.open }))
+    fireEvent.click(await screen.findByRole('button', { name: pdfWords.download }))
 
     await waitFor(() => {
-      expect(pdf.opened).toEqual(['blob:probe'])
+      expect(pdf.saved).toEqual([expect.stringMatching(/^Rundgang .+\.pdf$/)])
     })
     expect(pdf.asked).toEqual(['/rounds/r-school/pdf'])
   })
@@ -573,7 +573,7 @@ describe('the PDF of a round (#111)', () => {
     await mountOffice('/rundgaenge/r-school', server, everything)
     await screen.findByRole('button', { name: roundWords.countersign })
 
-    expect(screen.queryByRole('button', { name: pdfWords.open })).toBeNull()
+    expect(screen.queryByRole('button', { name: pdfWords.download })).toBeNull()
   })
 
   it('says why there is none where the instance makes none', async () => {
@@ -581,7 +581,7 @@ describe('the PDF of a round (#111)', () => {
     await mountOffice('/rundgaenge/r-school', server, everything)
     servingPdf(noRenderer)
 
-    fireEvent.click(await screen.findByRole('button', { name: pdfWords.open }))
+    fireEvent.click(await screen.findByRole('button', { name: pdfWords.download }))
 
     expect(await screen.findByText(noRenderer)).toBeDefined()
   })

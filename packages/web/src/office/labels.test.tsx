@@ -239,7 +239,7 @@ describe('the card of the label in the file of an asset', () => {
 
     expect(shown.getByText(printedLabelCode(onLift.code))).toBeDefined()
     expect(shown.queryByText(printedLabelCode(onBoilerRoom.code))).toBeNull()
-    expect(shown.getByRole('link', { name: 'PDF öffnen' }).getAttribute('href')).toBe(
+    expect(shown.getByRole('link', { name: 'PDF herunterladen' }).getAttribute('href')).toBe(
       `/assets/${lift.id}/labels/${onLift.id}/pdf?format=roll&count=1`,
     )
   })
@@ -293,7 +293,7 @@ describe('the card of the label in the file of an asset', () => {
     await mount(at, 'technician', ['asset.record'])
     await screen.findByRole('heading', { level: 1, name: 'Aufzug Schulhaus' })
 
-    expect(within(card()).getByRole('link', { name: 'PDF öffnen' })).toBeDefined()
+    expect(within(card()).getByRole('link', { name: 'PDF herunterladen' })).toBeDefined()
     expect(within(card()).queryByRole('button', { name: 'Sperren' })).toBeNull()
   })
 
@@ -315,7 +315,7 @@ describe('the card of the label on the page of a room', () => {
     expect(shown.getByText(printedLabelCode(onBoilerRoom.code))).toBeDefined()
     // The label of the asset that stands in the room is the asset's.
     expect(shown.queryByText(printedLabelCode(onLift.code))).toBeNull()
-    expect(shown.getByRole('link', { name: 'PDF öffnen' }).getAttribute('href')).toBe(
+    expect(shown.getByRole('link', { name: 'PDF herunterladen' }).getAttribute('href')).toBe(
       `/rooms/${boilerRoom.id}/labels/${onBoilerRoom.id}/pdf?format=roll&count=1`,
     )
     expect(shown.getByRole('button', { name: 'Sperren' })).toBeDefined()
@@ -378,7 +378,7 @@ describe('the dialog that prints labels, at the register of assets', () => {
     fireEvent.change(shown.getByLabelText('Beginnen bei'), { target: { value: '5' } })
     fireEvent.click(shown.getByRole('button', { name: 'PDF erzeugen' }))
 
-    const link = await shown.findByRole('link', { name: 'PDF öffnen' })
+    const link = await shown.findByRole('link', { name: 'PDF herunterladen' })
 
     expect(link.getAttribute('href')).toBe('blob:etiketten')
     expect(written).toEqual([
@@ -409,7 +409,7 @@ describe('the dialog that prints labels, at the register of assets', () => {
     })
     fireEvent.click(shown.getByRole('button', { name: 'PDF erzeugen' }))
 
-    await shown.findByRole('link', { name: 'PDF öffnen' })
+    await shown.findByRole('link', { name: 'PDF herunterladen' })
 
     expect(written).toEqual([
       {
@@ -457,7 +457,7 @@ describe('the dialog that prints labels, at the register of assets', () => {
     expect((await shown.findByRole('alert')).textContent).toBe(
       'Für diese Instanz ist kein Renderer eingerichtet.',
     )
-    expect(shown.queryByRole('link', { name: 'PDF öffnen' })).toBeNull()
+    expect(shown.queryByRole('link', { name: 'PDF herunterladen' })).toBeNull()
   })
 
   it('prints a sheet only for a property whose area the person holds (#310)', async () => {
@@ -507,7 +507,7 @@ describe('the dialog that prints labels, at a building', () => {
     expect(shown.getByRole('option', { name: 'Die 2 Anlagen dieses Gebäudes' })).toBeDefined()
 
     fireEvent.click(shown.getByRole('button', { name: 'PDF erzeugen' }))
-    await shown.findByRole('link', { name: 'PDF öffnen' })
+    await shown.findByRole('link', { name: 'PDF herunterladen' })
 
     fireEvent.change(shown.getByRole('combobox', { name: 'Gedruckt wird' }), {
       target: { value: 'assets' },

@@ -697,7 +697,7 @@ describe('the report of the defects (#345)', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Mängelbericht' }))
 
     await waitFor(() => {
-      expect(pdf.opened).toEqual(['blob:probe'])
+      expect(pdf.saved).toHaveLength(1)
     })
     expect(pdf.asked).toEqual(['/defects/report/pdf?state=overdue'])
   })
@@ -717,7 +717,7 @@ describe('the report of the defects (#345)', () => {
     expect(
       await screen.findByText('Auf dieser Instanz ist kein Dienst eingerichtet, der PDFs erzeugt.'),
     ).toBeTruthy()
-    expect(pdf.opened).toEqual([])
+    expect(pdf.saved).toEqual([])
   })
 })
 

@@ -173,12 +173,13 @@ export function onA(device: Device): (next: Device) => void {
 /**
  * The PDF as the server hands it out, or the sentence it refuses it with;
  * every other request goes to the answers of the test. Hands back the
- * addresses asked for and what was opened in a tab.
+ * addresses asked for and the names of the files handed to the browser to
+ * save (#509).
  */
-export function servingPdf(refusal: string | null = null): { asked: string[]; opened: unknown[] } {
+export function servingPdf(refusal: string | null = null): { asked: string[]; saved: string[] } {
   const answered = globalThis.fetch
   const asked: string[] = []
-  const opened: unknown[] = []
+  const saved: string[] = []
 
   vi.stubGlobal('fetch', (path: string, init?: RequestInit) => {
     // A PDF made for a choice carries it after its address (#345).
@@ -197,14 +198,17 @@ export function servingPdf(refusal: string | null = null): { asked: string[]; op
           }),
     )
   })
-  vi.stubGlobal('URL', Object.assign(URL, { createObjectURL: () => 'blob:probe' }))
-  vi.stubGlobal('open', (address: string) => {
-    opened.push(address)
-
-    return {}
+  vi.stubGlobal(
+    'URL',
+    Object.assign(URL, { createObjectURL: () => 'blob:probe', revokeObjectURL: () => {} }),
+  )
+  vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(function (
+    this: HTMLAnchorElement,
+  ) {
+    saved.push(this.download)
   })
 
-  return { asked, opened }
+  return { asked, saved }
 }
 
 /**

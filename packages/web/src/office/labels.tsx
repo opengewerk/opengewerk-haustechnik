@@ -15,7 +15,7 @@ import {
 } from '@opengewerk/platform-web/office'
 import { useRight } from '@opengewerk/platform-web/session'
 import { maybeText, text, useSync, useSyncStatus } from '@opengewerk/platform-web/sync'
-import { Printer } from 'lucide-react'
+import { Download, Printer } from 'lucide-react'
 import { useEffect, useState } from 'react'
 
 import {
@@ -321,14 +321,8 @@ export function PrintLabelsDialog({
               {working ? 'Einen Moment' : 'PDF erzeugen'}
             </Button>
           ) : (
-            <ButtonLink
-              tone="primary"
-              icon={Printer}
-              href={href}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              PDF öffnen
+            <ButtonLink tone="primary" icon={Download} href={href} download="Etiketten.pdf">
+              PDF herunterladen
             </ButtonLink>
           )}
         </DialogActions>

@@ -350,7 +350,7 @@ describe('the stock below zero and the labels of the shelves', () => {
         },
       ])
     })
-    expect(await within(dialog).findByRole('link', { name: 'PDF öffnen' })).toBeDefined()
+    expect(await within(dialog).findByRole('link', { name: 'PDF herunterladen' })).toBeDefined()
   })
 
   it('offers no labels to the Haustechnik, which only looks', async () => {
