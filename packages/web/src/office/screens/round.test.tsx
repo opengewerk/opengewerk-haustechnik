@@ -14,6 +14,7 @@ import { fireEvent, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { reopenWords } from '../../app/round-reopening.js'
 import { fingerprintOf } from '../../app/signing.js'
 import { servingCatalogue, testCatalogue } from '../../app/test-catalogue.js'
 import { pdfWords } from '../pdf-button.js'
@@ -125,6 +126,8 @@ const awaiting: RoundDetails = {
   closingReason: null,
   pointAssets: null,
   assets: [],
+  reopenedAt: null,
+  reopening: null,
   page,
   signatures: [
     {
@@ -526,6 +529,89 @@ describe('a round that was signed', () => {
 
     expect(counter.textContent).toBe(`Gegenzeichnung${roundWords.counterWaits}`)
     expect(screen.queryByRole('img', { name: roundWords.pad })).toBeNull()
+  })
+})
+
+describe('a round opened again (#510)', () => {
+  const reopenable: RoundDetails = {
+    ...awaiting,
+    reopening: {
+      signer: 'Tobias Wendt',
+      signedAt: '2026-10-05T05:38:00.000Z',
+      defects: 1,
+      readings: 1,
+      evidence: [],
+    },
+  }
+  const reopened: RoundDetails = {
+    ...awaiting,
+    status: 'started',
+    state: 'started',
+    page: null,
+    signatures: [],
+    reopenedAt: '2026-10-05T07:12:00.000Z',
+  }
+
+  it('is opened again after the question that names what goes, and asks the server nothing before', async () => {
+    signedIn('site_management', [reopenable])
+    answerToWrite = () => ({ status: 201, body: reopened })
+    await mountOffice('/rundgaenge/r-school', server, everything)
+
+    fireEvent.click(await screen.findByRole('button', { name: reopenWords.reopen }))
+
+    const question = await screen.findByRole('alertdialog', { name: reopenWords.title })
+    const lines = within(question)
+      .getAllByRole('listitem')
+      .map((item) => item.textContent)
+
+    expect(lines).toHaveLength(3)
+    expect(lines[0]).toMatch(/^die Unterschrift von Tobias Wendt, 05\.10\.2026, /)
+    expect(lines.slice(1)).toEqual([
+      '1 Mangel, der mit ihr entstanden ist',
+      '1 Zählerstand, den sie an die Messstelle geschrieben hat',
+    ])
+    expect(written).toEqual([])
+
+    fireEvent.click(within(question).getByRole('button', { name: reopenWords.reopen }))
+
+    await waitFor(() => {
+      expect(written).toHaveLength(1)
+    })
+    expect(written[0]).toMatchObject({ method: 'POST', path: '/rounds/r-school/reopening' })
+  })
+
+  it('names each evidence that is declared invalid with it', async () => {
+    signedIn('site_management', [
+      { ...reopenable, reopening: { ...reopenable.reopening!, evidence: ['NW-2026-00152'] } },
+    ])
+    await mountOffice('/rundgaenge/r-school', server, everything)
+
+    fireEvent.click(await screen.findByRole('button', { name: reopenWords.reopen }))
+
+    const question = await screen.findByRole('alertdialog', { name: reopenWords.title })
+
+    expect(within(question).getAllByRole('listitem').at(-1)?.textContent).toBe(
+      '1 Nachweis, der für ungültig erklärt wird: NW-2026-00152',
+    )
+  })
+
+  it('is not offered where the server does not open it again for the person asking', async () => {
+    await mountOffice('/rundgaenge/r-school', server, everything)
+    await screen.findByRole('button', { name: roundWords.countersign })
+
+    expect(screen.queryByRole('button', { name: reopenWords.reopen })).toBeNull()
+  })
+
+  it('says under the signature when it was opened again', async () => {
+    signedIn('site_management', [reopened])
+    await mountOffice('/rundgaenge/r-school', server, everything)
+
+    const signature = await screen.findByRole('region', { name: 'Unterschrift' })
+
+    expect(signature.textContent).toContain(roundWords.notSigned)
+    expect(signature.textContent).toMatch(
+      /Wieder geöffnet am 05\.10\.2026, .*\. Die Unterschrift davor gilt nicht mehr\./,
+    )
   })
 })
 

@@ -402,7 +402,7 @@ async function signaturesOf(tx: TenantTransaction, activity: ActivityRow, finger
     )
     .where(and(eq(workOrders.tenantId, activity.tenantId), eq(workOrders.activityId, activity.id)))
 
-  return validSignatures(signatures, decisions, fingerprint)
+  return validSignatures(signatures, decisions, fingerprint, activity.reopenedAt)
 }
 
 /**

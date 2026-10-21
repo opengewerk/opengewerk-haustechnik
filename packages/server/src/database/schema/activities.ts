@@ -114,6 +114,9 @@ export const activities = pgTable(
     // to write, from its status, for the retention of an activity without
     // evidence.
     endedOn: date('ended_on', { mode: 'string' }),
+    // When a handed-in round was last opened again (#510): the database's to
+    // write. Only signatures the server took after it count.
+    reopenedAt: timestamp('reopened_at', { withTimezone: true }),
     // The collective activity it is a part of (#342): the server's to write.
     collectiveId: reference<'activity'>('collective_id'),
     // The duty kind of a collective activity, which makes it one (#342): the

@@ -63,6 +63,7 @@ import {
 import { fulfilledDuty, useDutyName, useDutyOfAsset, useFormOf } from '../../app/form-of.js'
 import { askedAsQuestion, PointInput } from '../../app/form-points.js'
 import { titleOfRoom } from '../../app/place-records.js'
+import { countsSinceReopening } from '../../app/round-reopening.js'
 import { useCatalogue } from '../../sync/catalogue.js'
 import { assetTitle, NotOffered, NotOnDevice } from '../kit.js'
 import { siteForms, sitePlaces } from '../places.js'
@@ -223,14 +224,17 @@ export function useActivityForm(activityId: string, opened: readonly OpenedBlock
   const status = text(activity, 'status')
   // A work order the office turned back is open again, with its signature
   // standing and no longer counting (#118): there a signature counts while it
-  // waits in the outbox, or once the server says so with the state.
-  const signed = useRelated('activity_signatures', 'activityId', activityId).some(
-    (signature) =>
+  // waits in the outbox, or once the server says so with the state. A round
+  // opened again (#510) counts the signatures after that moment.
+  const signed = useRelated('activity_signatures', 'activityId', activityId).some((signature) => {
+    const pending = client.isPending('activity_signatures', String(signature['id']))
+
+    return (
       signature['role'] === 'signer' &&
-      (text(activity, 'kind') !== 'work_order' ||
-        !inProgress.includes(status) ||
-        client.isPending('activity_signatures', String(signature['id']))),
-  )
+      countsSinceReopening(activity, signature, pending) &&
+      (text(activity, 'kind') !== 'work_order' || !inProgress.includes(status) || pending)
+    )
+  })
   const performs = useRight('activity.perform')
   const form = useFormOf(
     maybeText(activity, 'formKey'),

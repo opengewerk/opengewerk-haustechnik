@@ -55,7 +55,7 @@ import {
 } from '@opengewerk/platform-web/sync'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, Navigate, useParams } from '@tanstack/react-router'
-import { Ban, Check, Clock, type LucideIcon, PenLine, Signature, X } from 'lucide-react'
+import { Ban, Check, Clock, type LucideIcon, PenLine, Signature, Undo2, X } from 'lucide-react'
 import { Fragment, useState } from 'react'
 
 import { activityPlaces } from '../activity-addresses.js'
@@ -63,6 +63,7 @@ import { circuitOfPoint, type FormPoint, pointsOf, pointState } from '../../app/
 import { dutyNameOf, fulfilledDuty, useFormOf } from '../../app/form-of.js'
 import { PhotoThumb } from '../../app/form-points.js'
 import { roundPdfAddress } from '../../app/prints.js'
+import { ReopenQuestion, reopenWords } from '../../app/round-reopening.js'
 import {
   type GivenSignature,
   SignatureMark,
@@ -168,6 +169,8 @@ export function RoundScreen() {
   const page = useQuery({ ...roundQuery(roundId ?? ''), enabled: roundId !== undefined })
   const plans = useRight('activity.write')
   const [closing, setClosing] = useState(false)
+  // Opening a handed-in round again (#510), offered where the server says this person may.
+  const [reopening, setReopening] = useState(false)
   const shown = page.data
   const pdf = usePdf(roundPdfAddress(roundId ?? ''), `Rundgang ${shown?.title ?? ''}`)
   // The same frozen state as a table, a row a point, without names and times (#344).
@@ -241,6 +244,16 @@ export function RoundScreen() {
               </>
             ) : null}
             <ChangesButton table="activities" id={shown.id} />
+            {shown.reopening === null ? null : (
+              <Button
+                icon={Undo2}
+                onClick={() => {
+                  setReopening(true)
+                }}
+              >
+                {reopenWords.reopen}
+              </Button>
+            )}
             {closable ? (
               <Button
                 icon={Ban}
@@ -272,6 +285,12 @@ export function RoundScreen() {
               signatures={shown.signatures.filter((each) => each.role === 'signer')}
               none={roundWords.notSigned}
             />
+            {shown.reopenedAt === null ||
+            shown.signatures.some((each) => each.role === 'signer') ? null : (
+              <p className="mt-1.5 text-[13px] leading-[1.45] text-ink-muted">
+                {reopenWords.reopened(shown.reopenedAt)}
+              </p>
+            )}
           </Panel>
           {shown.countersignatureRequired ? <Countersignature round={shown} /> : null}
           <Duties round={shown} />
@@ -284,6 +303,18 @@ export function RoundScreen() {
           />
         </div>
       </div>
+      {reopening && shown.reopening !== null ? (
+        <ReopenQuestion
+          roundId={shown.id}
+          reopening={shown.reopening}
+          onDone={() => {
+            setReopening(false)
+          }}
+          onCancel={() => {
+            setReopening(false)
+          }}
+        />
+      ) : null}
       {closing ? (
         <CloseRoundDialog
           key={shown.id}

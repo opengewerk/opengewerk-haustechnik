@@ -24,6 +24,7 @@ import { type FormEvent, useState } from 'react'
 import { beginActivity } from '../../app/answers.js'
 import { fileDocument } from '../../app/documents.js'
 import { titleOfRoom } from '../../app/place-records.js'
+import { countsSinceReopening } from '../../app/round-reopening.js'
 import { NotOffered, NotOnDevice } from '../kit.js'
 import { siteForms, sitePlaces } from '../places.js'
 
@@ -66,7 +67,13 @@ export function ReportDefectScreen() {
   // A defect is reported in an activity only while the work on it goes on: in
   // one signed here or closed it would change the page that was signed (#108).
   const signedHere = useRelated('activity_signatures', 'activityId', params.activityId ?? '').some(
-    (signature) => signature['role'] === 'signer',
+    (signature) =>
+      signature['role'] === 'signer' &&
+      countsSinceReopening(
+        activity,
+        signature,
+        client.isPending('activity_signatures', String(signature['id'])),
+      ),
   )
   const fixed =
     params.activityId !== undefined &&

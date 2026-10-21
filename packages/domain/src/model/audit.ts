@@ -770,6 +770,7 @@ export const auditVocabulary: AuditVocabulary = {
         round_plan_id: 'Plan',
         emptied_at: 'Gelöscht nach Ablauf der Aufbewahrung am',
         ended_on: 'Beendet am',
+        reopened_at: 'Wieder geöffnet am',
         collective_id: 'Teil des Sammelvorgangs',
         collective_kind: 'Pflichtart des Sammelvorgangs',
         point_assets: 'Anlagen der Punkte für jede Anlage',

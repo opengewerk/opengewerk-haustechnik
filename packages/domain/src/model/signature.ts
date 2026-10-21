@@ -133,6 +133,9 @@ export interface WorkOrderDecision extends Synced {
  * Which came after which is told by the moment the server took each in
  * (`createdAt`) and not by the clock of a device, which may be wrong; the
  * server takes a decision only on a work order whose signature it holds.
+ *
+ * A round opened again (#510) counts the signatures taken after the moment
+ * it was last opened, the same way.
  */
 export function validSignatures<
   Signature extends Pick<ActivitySignature, 'pageFingerprint' | 'createdAt'>,
@@ -140,16 +143,20 @@ export function validSignatures<
   signatures: readonly Signature[],
   decisions: readonly Pick<WorkOrderDecision, 'decision' | 'createdAt'>[],
   pageFingerprint: string,
+  reopenedAt: Date | null = null,
 ): Signature[] {
-  const rejections = decisions
-    .filter((decision) => decision.decision === 'rejected')
-    .map((decision) => decision.createdAt.getTime())
-  const lastRejection = rejections.length === 0 ? null : Math.max(...rejections)
+  const cuts = [
+    ...decisions
+      .filter((decision) => decision.decision === 'rejected')
+      .map((decision) => decision.createdAt.getTime()),
+    ...(reopenedAt === null ? [] : [reopenedAt.getTime()]),
+  ]
+  const lastCut = cuts.length === 0 ? null : Math.max(...cuts)
 
   return signatures.filter(
     (signature) =>
       signature.pageFingerprint === pageFingerprint &&
-      (lastRejection === null || signature.createdAt.getTime() > lastRejection),
+      (lastCut === null || signature.createdAt.getTime() > lastCut),
   )
 }
 

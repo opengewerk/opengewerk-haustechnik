@@ -58,6 +58,10 @@ export const applicationConflicts: Readonly<Record<string, string>> = {
   // A board in a building its installation neither stands in nor supplies (#495).
   HT016:
     'Ein Verteiler steht im Gebäude seiner Niederspannungsanlage oder in einem, das sie versorgt.',
+  // A round opened again that is not handed in, is countersigned, or has a
+  // defect with a work order or an evidence that still counts (#510).
+  HT017:
+    'Ein abgegebener Rundgang wird bis zur Gegenzeichnung wieder geöffnet, solange kein Mangel daraus einen Auftrag hat.',
 }
 
 export const { answerFor, DatabaseExceptionFilter } = databaseErrors(applicationConflicts)
