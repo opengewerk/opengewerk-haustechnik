@@ -7,6 +7,31 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
 
 ## [Unreleased]
 
+## [0.1.10] - 2026-10-21
+
+Die sechste Zwischenfassung für den Pilotbetrieb, mit dem zweiten Teil der Korrekturen aus der
+externen Sicherheitsprüfung (#360) und dem, was aus Phase 2 seit 0.1.9 fertig ist. Vier Lücken aus
+dem wiederholten Teil zur Anmeldung sind geschlossen, die Advisories erscheinen mit dieser Fassung.
+Eine offene Sitzung liest, schaltet oder umgeht den zweiten Faktor nicht mehr, ändert die Verwaltung
+der Instanz nicht ohne Bestätigung, benennt kein Konto über einen Weg um, der nicht im Protokoll
+steht, und schickt das gespeicherte Passwort eines Mailservers nie mit weniger Verschlüsselung
+hinaus. Neue Wiederherstellungscodes und jede Änderung an der Verwaltung der Instanz meldet eine
+E-Mail.
+
+Aus Phase 2 kommt, dass ein Verteiler in einem Gebäude steht: im Gebäude seiner
+Niederspannungsanlage oder in einem, das sie versorgt (#495). Die Seite eines Gebäudes zeigt seine
+Verteiler und nimmt dort einen neuen auf, im Büro und vor Ort. Eine PV-Anlage bekommt die Prüfung
+nach DGUV Vorschrift 3 und 4 vorgeschlagen wie eine elektrische Anlage (#468, Paket Elektro 1.5.0).
+Die Auskunft über eine Person als JSON enthält keinen Linienzug einer Unterschrift mehr, und ein
+Release spiegelt die Abbilder nach Docker Hub, sobald die Zugangsdaten dafür im Repository stehen
+(#494).
+
+Aktualisiert wird wie bei jeder Fassung in zwei Schritten, vorher gesichert; die Migration
+`0100_boards_in_buildings` läuft von selbst, jeder vorhandene Verteiler steht danach im Gebäude
+seiner Anlage. Danach fragt „Konto“ für neue Wiederherstellungscodes nach Passwort und Code, und die
+Verwaltung der Instanz bestätigt vor dem Benennen oder Entfernen eines Kontos und vor einem Betreiber
+für jemand anderen.
+
 ### Hinzugefügt
 
 - Die PV-Anlage bekommt die wiederkehrende Prüfung nach DGUV Vorschrift 3 und 4 vorgeschlagen (#468, Paket Elektro
