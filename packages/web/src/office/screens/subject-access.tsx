@@ -20,7 +20,7 @@ import { useQuery } from '@tanstack/react-query'
 import { Download, Search } from 'lucide-react'
 import { type FormEvent, useState } from 'react'
 
-import { fetchPdf, openPdf } from '../../app/prints.js'
+import { fetchPdf, savePdf } from '../../app/prints.js'
 
 /** What the card of the information about a person says (#355, the boards "HT-Einst-Auskunft" and "HT-Einst-Auskunft-Suche"). */
 export const subjectAccessWords = {
@@ -98,7 +98,7 @@ function Downloads({ address, name }: { readonly address: string; readonly name:
           disabled={working}
           onClick={() => {
             fetched(async () => {
-              openPdf(await fetchPdf(withFormat(address, 'pdf')), name)
+              savePdf(await fetchPdf(withFormat(address, 'pdf')), name)
             })
           }}
         >

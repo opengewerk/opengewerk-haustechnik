@@ -15,7 +15,7 @@ import { useNavigate } from '@tanstack/react-router'
 import { Download, FileText, Pencil } from 'lucide-react'
 import { useState } from 'react'
 
-import { fetchPdf, openPdf } from '../../app/prints.js'
+import { fetchPdf, savePdf } from '../../app/prints.js'
 import { processingScreenWords } from './processing-descriptions.js'
 
 /** What each card says over its facts (#358), in the words of the board "Datenschutz". */
@@ -252,7 +252,7 @@ function PdfButton({ version }: { readonly version: PrivacyDocumentVersion }) {
           setTrouble(null)
           fetchPdf(`/settings/privacy-documents/${version.id}/pdf`)
             .then((file) => {
-              openPdf(file, `${short} ${day}`)
+              savePdf(file, `${short} ${day}`)
             })
             .catch((error: unknown) => {
               setTrouble(

@@ -25,7 +25,7 @@ Viele Anlagen einer Pflichtart in einem Zug, etwa alle Feuerlöscher eines Gebä
 
 Wo eine Vorschrift mehr verlangt als die Unterschrift auf dem Gerät, wird das PDF eines Nachweises außerhalb signiert, etwa mit einer qualifizierten elektronischen Signatur, und am Nachweis abgelegt.
 
-1. Am Nachweis „PDF öffnen“ und die Datei speichern.
+1. Am Nachweis „PDF herunterladen“.
 2. Mit dem eigenen Werkzeug signieren; die Signatur wird an das PDF angehängt.
 3. Am Nachweis unter „Höher signiertes PDF“ auf „Ablegen“ und die signierte Datei wählen.
 

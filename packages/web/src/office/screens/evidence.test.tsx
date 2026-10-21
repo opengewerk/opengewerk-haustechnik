@@ -507,15 +507,15 @@ describe('the page of an evidence', () => {
     },
   )
 
-  it('opens the PDF of its frozen state in a tab of its own, for every role (#111)', async () => {
+  it('saves the PDF of its frozen state, for every role (#111, #509)', async () => {
     await opened('technician')
 
     const pdf = servingPdf()
 
-    fireEvent.click(screen.getByRole('button', { name: pdfWords.open }))
+    fireEvent.click(screen.getByRole('button', { name: pdfWords.download }))
 
     await waitFor(() => {
-      expect(pdf.opened).toEqual(['blob:probe'])
+      expect(pdf.saved).toEqual([expect.stringMatching(/^Nachweis .+\.pdf$/)])
     })
     expect(pdf.asked).toEqual([`/evidence/${evidence().id}/pdf`])
   })
@@ -524,10 +524,10 @@ describe('the page of an evidence', () => {
     await opened('management')
     servingPdf(noRenderer)
 
-    fireEvent.click(screen.getByRole('button', { name: pdfWords.open }))
+    fireEvent.click(screen.getByRole('button', { name: pdfWords.download }))
 
     expect(await screen.findByText(noRenderer)).toBeDefined()
-    expect(screen.getByRole('button', { name: pdfWords.open })).toBeDefined()
+    expect(screen.getByRole('button', { name: pdfWords.download })).toBeDefined()
   })
 
   it('shows what stays after the end of its retention, and offers nothing to print or correct (#340)', async () => {

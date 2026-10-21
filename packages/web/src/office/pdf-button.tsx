@@ -1,20 +1,20 @@
 import { Button } from '@opengewerk/platform-web'
 import { NoteBox } from '@opengewerk/platform-web/office'
 import { RequestRefused } from '@opengewerk/platform-web/sync'
-import { type LucideIcon, Printer } from 'lucide-react'
+import { Download, type LucideIcon } from 'lucide-react'
 import { useState } from 'react'
 
-import { fetchPdf, openPdf } from '../app/prints.js'
+import { fetchPdf, savePdf } from '../app/prints.js'
 
 /** What the page says when the PDF did not come. */
 export const pdfWords = {
-  open: 'PDF öffnen',
+  download: 'PDF herunterladen',
   offline: 'Ohne Verbindung zum Server gibt es kein PDF.',
 } as const
 
 /**
- * "PDF öffnen" in the head of the page of an evidence or a round (#111): the
- * file is fetched and opened in a tab of its own. What the server says when
+ * "PDF herunterladen" in the head of the page of an evidence or a round
+ * (#111): the file is fetched and saved (#509). What the server says when
  * it makes none, the page shows below its head. Where the PDF is somebody's
  * copy, the button says so (#336); a certificate a person brought shows as a
  * file and not as a print (#337).
@@ -22,8 +22,8 @@ export const pdfWords = {
 export function usePdf(
   address: string,
   name: string,
-  label: string = pdfWords.open,
-  icon: LucideIcon = Printer,
+  label: string = pdfWords.download,
+  icon: LucideIcon = Download,
 ): { readonly button: React.ReactNode; readonly trouble: React.ReactNode } {
   const [working, setWorking] = useState(false)
   const [trouble, setTrouble] = useState<string | null>(null)
@@ -38,7 +38,7 @@ export function usePdf(
           setTrouble(null)
           fetchPdf(address)
             .then((file) => {
-              openPdf(file, name)
+              savePdf(file, name)
             })
             .catch((error: unknown) => {
               setTrouble(error instanceof RequestRefused ? error.message : pdfWords.offline)

@@ -12,7 +12,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Download, FileText } from 'lucide-react'
 import { useState } from 'react'
 
-import { fetchPdf, openPdf } from '../../app/prints.js'
+import { fetchPdf, savePdf } from '../../app/prints.js'
 import { PrivacyDocumentsPanels } from './privacy-documents.js'
 import { SubjectAccessPanel } from './subject-access.js'
 
@@ -227,7 +227,7 @@ function PdfButton({ version }: { readonly version: ProcessingVersion }) {
           setTrouble(null)
           fetchPdf(`/settings/processing-descriptions/${version.id}/pdf`)
             .then((file) => {
-              openPdf(file, `Verfahrensbeschreibung ${day}`)
+              savePdf(file, `Verfahrensbeschreibung ${day}`)
             })
             .catch((error: unknown) => {
               setTrouble(

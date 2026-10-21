@@ -329,7 +329,7 @@ describe('the page of a work order', () => {
     expect(
       within(card).getByText('gilt nicht mehr, Auftrag am 03.10.2026 zurückgewiesen'),
     ).toBeTruthy()
-    expect(within(card).getAllByRole('button', { name: 'PDF öffnen' })).toHaveLength(2)
+    expect(within(card).getAllByRole('button', { name: 'PDF herunterladen' })).toHaveLength(2)
   })
 
   it('says that no service report was signed yet', async () => {
@@ -342,7 +342,7 @@ describe('the page of a work order', () => {
     const card = await screen.findByRole('region', { name: 'Leistungsnachweis' })
 
     expect(within(card).queryByText('Gilt')).toBeNull()
-    expect(within(card).queryByRole('button', { name: 'PDF öffnen' })).toBeNull()
+    expect(within(card).queryByRole('button', { name: 'PDF herunterladen' })).toBeNull()
   })
 
   it('names the time spent and the notes from the site, each with who wrote it and when', async () => {

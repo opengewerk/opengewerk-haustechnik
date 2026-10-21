@@ -40,20 +40,30 @@ export async function fetchPdf(address: string): Promise<Blob> {
   return response.blob()
 }
 
+/** The ending of a file of each kind the server hands out here, for the name it is saved under. */
+const endings: Readonly<Record<string, string>> = {
+  'application/pdf': 'pdf',
+  'image/jpeg': 'jpg',
+  'image/png': 'png',
+  'image/webp': 'webp',
+}
+
 /**
- * Opens a PDF in a tab of its own. A browser that blocks the tab, because
- * the click lies too long back, gets the file to save instead.
+ * Hands a PDF to the browser to save, under the name given and the ending of
+ * its kind (#509). Until then it opened in a tab of its own, and where that
+ * tab showed no bar of a PDF viewer, as in the installed application, it
+ * could be looked at but not kept. A certificate a person brought may be a
+ * picture (#337), and is saved as one.
  */
-export function openPdf(file: Blob, name: string): void {
+export function savePdf(file: Blob, name: string): void {
+  const kind = file.type.split(';')[0]?.trim() ?? ''
   const address = URL.createObjectURL(file)
-
-  if (window.open(address, '_blank') !== null) {
-    return
-  }
-
   const link = document.createElement('a')
 
   link.href = address
-  link.download = `${name}.pdf`
+  link.download = `${name}.${endings[kind] ?? 'pdf'}`
   link.click()
+  setTimeout(() => {
+    URL.revokeObjectURL(address)
+  }, 0)
 }

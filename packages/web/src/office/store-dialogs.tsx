@@ -29,7 +29,7 @@ import { amount, centsAsInput, parseEuros, parseQuantity } from '@opengewerk/pla
 import { NoteBox } from '@opengewerk/platform-web/office'
 import { type EditResult, refusalFor, useSync } from '@opengewerk/platform-web/sync'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { ArrowRight, Check, Printer, Trash2 } from 'lucide-react'
+import { ArrowRight, Check, Download, Printer, Trash2 } from 'lucide-react'
 import { type ReactNode, useEffect, useMemo, useState } from 'react'
 
 import { printShelfLabels } from '../app/labels.js'
@@ -1197,14 +1197,8 @@ export function ShelfLabelsDialog({
               {working ? 'Einen Moment' : 'PDF erzeugen'}
             </Button>
           ) : (
-            <ButtonLink
-              tone="primary"
-              icon={Printer}
-              href={href}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              PDF öffnen
+            <ButtonLink tone="primary" icon={Download} href={href} download="Etiketten Lager.pdf">
+              PDF herunterladen
             </ButtonLink>
           )}
         </DialogActions>

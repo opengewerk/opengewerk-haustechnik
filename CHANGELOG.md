@@ -7,6 +7,16 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
 
 ## [Unreleased]
 
+### Geändert
+
+- Jeder PDF-Knopf im Büro lädt die Datei herunter, statt sie in einem Tab zu öffnen, unter einem Namen, der sagt,
+  was sie ist: Nachweis, Rundgang, Leistungsnachweis, Pflichtenübertragung, Mängelbericht, Auskunft, die Dokumente
+  des Datenschutzes und die Etiketten (#509, entschieden am 21.10.2026). Der Knopf heißt „PDF herunterladen“. Warum:
+  in einem Tab ohne die Leiste eines PDF-Programms, etwa in der installierten Anwendung, ließ sich ein PDF ansehen,
+  aber nicht speichern. Die Karte des Etiketts kommt aus dem Fundament (opengewerk/opengewerk#727).
+- Das Fundament steht auf opengewerk `f56d7bc`, mit der Karte des Etiketts, die das PDF herunterlädt
+  (opengewerk/opengewerk#727). Das braucht #509.
+
 ## [0.2.0] - 2026-10-21
 
 Die Fassung von Phase 2, den vollständigen Betreiberpflichten nach Abschnitt 12 des Planungskonzepts.
