@@ -9,6 +9,10 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
 
 ### Hinzugefügt
 
+- Die PV-Anlage bekommt die wiederkehrende Prüfung nach DGUV Vorschrift 3 und 4 vorgeschlagen (#468, Paket Elektro
+  1.5.0): neue Fassungen der drei Prüfungen der elektrischen Anlage nennen sie im Geltungsbereich, und die Anlagenart
+  hat das Merkmal "Anlage besonderer Art". Bisher hing die Pflicht nur an der Niederspannungsanlage, an der eine
+  PV-Anlage oft gar nicht als Teil erfasst ist, und die PV-Anlage stand ohne Vorschlag da.
 - Ein Release spiegelt beide Abbilder mit ihren Signaturen nach Docker Hub, als
   `opengewerk/opengewerk-haustechnik` und `opengewerk/opengewerk-haustechnik-backup`, wie OpenGewerk es seit 0.4.0
   tut (#494). Wer dort sucht, findet die Haustechnik neben OpenGewerk, und `cosign verify` gilt dort wie in ghcr.io;
@@ -27,6 +31,21 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   „Schriftzug im PDF der Auskunft“ (#457). Eine Datei, die jedes Programm ändern kann, soll keine Unterschrift
   tragen, die sich unter einen anderen Text setzen ließe; das PDF der Auskunft zeichnet sie weiter, und keine
   Tabelle der Anwendung enthält eine.
+- Der Renderer für PDFs läuft auf `browserless/chromium` 2.57.1 wie im Fundament, und Vite steht auf 8.3.3.
+- Das Security-Review steht auf `731e352` von opengewerk/.github (opengewerk/.github#45): hebt ein Pull Request das
+  Submodul an, holt es den Diff des Fundaments vorher aus dessen öffentlichem Repository, statt ihn offen zu lassen.
+- Die Prüfung der Breiten misst ohne Service Worker und wartet höchstens zehn Sekunden auf ein ruhiges Netz (#492);
+  sie war an `/einstellungen/protokoll` gelegentlich rot.
+
+### Sicherheit
+
+- Das Fundament steht auf `6b50301` (opengewerk/opengewerk#722, #720, #721) und schließt damit die vier Wege, die Teil 2
+  der Sicherheitsprüfung (#360) gefunden hat: das Geheimnis der Authenticator-App und ihr Abschalten sind ohne
+  Bestätigung nicht mehr erreichbar, neue Wiederherstellungscodes verlangen Passwort und Code und werden per E-Mail
+  gemeldet, die Verwaltung der Instanz und ein Betreiber mit Einladung für jemand anderen ändern sich nur nach der
+  Bestätigung und werden allen Konten der Verwaltung gemeldet, ungenutzte Routen von better-auth sind abgeschaltet,
+  und das gespeicherte Passwort eines Mailservers geht nie mit weniger Verschlüsselung hinaus. Die beiden neuen
+  E-Mails stehen in den Worten dieser Anwendung.
 
 ## [0.1.9] - 2026-10-20
 

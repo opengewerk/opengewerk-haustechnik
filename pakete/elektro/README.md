@@ -10,7 +10,7 @@ Normen kommen als neue Fassung, sobald sie am Text der Norm geprüft sind.
 Fachkundig abgenommen hat das Paket der Maintainer am 16.10.2026 (Abschnitt 15), jeder Eintrag
 mit der Prüfsumme dessen, was abgenommen wurde. Wird ein Eintrag geändert, fällt seine Abnahme
 weg, und die Oberfläche kennzeichnet ihn wieder, bis er erneut abgenommen ist. Die Einträge, die mit
-den Fassungen 1.3.0 und 1.4.0 dazukamen, sind noch nicht abgenommen und bis dahin gekennzeichnet.
+den Fassungen 1.3.0, 1.4.0 und 1.5.0 dazukamen, sind noch nicht abgenommen und bis dahin gekennzeichnet.
 
 ## Anlagenarten
 
@@ -23,20 +23,25 @@ den Fassungen 1.3.0 und 1.4.0 dazukamen, sind noch nicht abgenommen und bis dahi
 | `safety_lighting` | Sicherheitsbeleuchtung | 445 | |
 | `safety_power_supply` | Sicherheitsstromversorgung | 442 | |
 | `lightning_protection` | Blitzschutzanlage | 446 | |
-| `photovoltaic_installation` | PV-Anlage | 442 | |
+| `photovoltaic_installation` | PV-Anlage | 442 | Anlage besonderer Art |
 
 Die Kostengruppen folgen der DIN 276, Ausgabe 2018-12, auf der dritten Ebene. Eine PV-Anlage erzeugt
 Strom im Gebäude und steht deshalb wie die Sicherheitsstromversorgung in der Kostengruppe 442. Ein
 ortsveränderliches Betriebsmittel ist Ausstattung und keine technische Anlage des Bauwerks; es steht
 deshalb in der Kostengruppe 610 und nicht unter 400.
 
-Ein Merkmal, das niemand eingetragen hat, erfüllt keine Bedingung: Für ein ortsveränderliches
-Betriebsmittel ohne Arbeitsbereich und eine Anlage ohne Angabe zum Raum besonderer Art schlägt das
-Paket nichts vor, was von diesem Merkmal abhängt.
+Ein Merkmal, das niemand eingetragen hat, gilt als erfüllt, wie überall im Katalog: Ein
+ortsveränderliches Betriebsmittel ohne Arbeitsbereich bekommt die Prüfungen aller Arbeitsbereiche
+vorgeschlagen, eine Anlage ohne Angabe zum Raum besonderer Art beide Prüfungen nach Vorschrift 3. Ein
+Vorschlag zu viel wird verworfen, einer zu wenig fiele niemandem auf.
 
 Die PV-Anlage kam mit der Fassung 1.4.0. Unter ihr stehen ihre Wechselrichter, Strings und Module als
-ihre Struktur, wie unter einer elektrischen Anlage ihre Verteiler. Eine Pflichtart bringt das Paket für
-sie nicht mit; eine Pflicht an ihr legt der Betreiber als eigene an.
+ihre Struktur, wie unter einer elektrischen Anlage ihre Verteiler. Seit der Fassung 1.5.0 (#468) wird sie
+als elektrische Anlage nach DIN VDE 0100-712 geprüft: die Prüfung nach DGUV Vorschrift 3 und 4 nennt sie
+im Geltungsbereich, auch wenn sie nicht als Teil einer Niederspannungsanlage erfasst ist. Ob sie als
+Anlage besonderer Art gilt, sagt ihr Merkmal; dann schlägt Vorschrift 3 jedes Jahr vor. Eine Pflichtart,
+die nur eine PV-Anlage hat, etwa aus dem Versicherungsvertrag nach VdS 3145, bringt das Paket nicht
+mit; eine solche Pflicht legt der Betreiber als eigene an.
 
 ## Pflichtarten
 
