@@ -33,6 +33,7 @@ import { BuildingClosures } from '../building-closures.js'
 import { BuildingToDo, LastActivities, ShutDownInBuilding } from '../building-situation.js'
 import { officePlaces, placeForms } from '../place-addresses.js'
 import { countedAssets, countedRooms, PlaceNotFound } from '../place-pages.js'
+import { BuildingBoardsCard } from '../building-boards.js'
 import { TasksCard } from '../tasks.js'
 
 /**
@@ -194,6 +195,8 @@ export function BuildingScreen() {
         </div>
         <div className="flex min-w-0 flex-col gap-3.5">
           <AssetsByCostGroup buildingId={buildingId} assets={assets} catalogue={catalogue} />
+          {/* The boards that stand here, of whichever installation (#495). */}
+          <BuildingBoardsCard buildingId={buildingId} />
           <TasksCard
             field="buildingId"
             id={buildingId}

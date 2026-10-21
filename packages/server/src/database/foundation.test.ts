@@ -60,7 +60,10 @@ describe('the foundation in this database', () => {
     // triggers that mark what hangs below and that keep a board on a
     // low-voltage installation. The PV structure (opengewerk-haustechnik#461,
     // migration 0094) the same way, with an inverter on a PV installation and
-    // the column that says where it hangs. One deviation stays, on purpose: the key from
+    // the column that says where it hangs. A board stands in a building and a
+    // room (opengewerk-haustechnik#495, migration 0100), over keys onto both, an
+    // index on the building and the trigger that keeps it in a building of its
+    // installation. One deviation stays, on purpose: the key from
     // a circuit to its section empties only the section in the database,
     // as ADR 0014 in the repository opengewerk asks of the migration of an
     // application, and the block says it without the column, which drizzle
@@ -89,6 +92,7 @@ describe('the foundation in this database', () => {
           'attachments.area_from_the_property',
           'attachments.refuses_an_emptied_activity',
           'distribution_boards.on_a_low_voltage_installation',
+          'distribution_boards.in_a_building_of_their_installation',
           ...['distribution_boards', 'board_sections', 'circuits'].map(
             (table) => `${table}.structure_follows_deletion`,
           ),
@@ -132,6 +136,8 @@ describe('the foundation in this database', () => {
             ['asset_id', 'property_id', 'area_id'].map((column) => `${table}.${column}`),
           ),
           'inverters.location',
+          'distribution_boards.building_id',
+          'distribution_boards.room_id',
         ],
         constraints: [
           'deadlines.deadlines_meters_of_their_property',
@@ -191,6 +197,8 @@ describe('the foundation in this database', () => {
             `${table}.${table}_of_an_asset_of_their_property`,
           ]),
           'distribution_boards.distribution_boards_of_their_asset',
+          'distribution_boards.distribution_boards_in_a_building_of_their_property',
+          'distribution_boards.distribution_boards_in_a_room_of_their_building',
           'board_sections.board_sections_on_a_board_of_their_asset',
           'circuits.circuits_on_a_board_of_their_asset',
           'circuits.circuits_of_their_asset',
@@ -221,6 +229,7 @@ describe('the foundation in this database', () => {
           'attachments.attachments_contractor_idx',
           'attachments.attachments_contract_idx',
           ...structure.map((table) => `${table}.${table}_asset_idx`),
+          'distribution_boards.distribution_boards_building_idx',
         ],
         policies: [
           'deadlines.within_areas',

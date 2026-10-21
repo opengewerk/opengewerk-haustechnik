@@ -32,6 +32,8 @@ import {
   sectionsInWords,
   structureWords,
 } from '../app/electrical.js'
+import { boardFormFields } from '../app/board-form.js'
+import { asBoardPlace, boardPlaceValues, useBoardPlaces } from '../app/board-places.js'
 import { save } from './evidence-register.js'
 import { RemovePlace } from './place-forms.js'
 
@@ -114,6 +116,8 @@ function boardContents(sections: number, circuits: number): string {
 export function BoardDialog({
   assetId,
   assetName,
+  building = null,
+  room = null,
   board,
   boards,
   sections = 0,
@@ -124,6 +128,13 @@ export function BoardDialog({
   readonly assetId: string
   /** The asset by its name, under the heading. */
   readonly assetName: string
+  /**
+   * The building a new board stands in, where it is added on the page of a
+   * building (#495); left out, the building of the asset.
+   */
+  readonly building?: string | null
+  /** The room a new board stands in, where it is added on the page of a room. */
+  readonly room?: string | null
   /** The board to change; none for a new one. */
   readonly board?: RecordState | null
   /** Every board of the asset, in order. */
@@ -136,8 +147,10 @@ export function BoardDialog({
 }) {
   const client = useSync()
   const keeps = useRight('asset.write')
+  const places = useBoardPlaces(assetId)
   const boardId = board ? String(board['id']) : null
   const name = text(board, 'designation')
+  const fields = boardFormFields(boardFields, places)
 
   return (
     <Dialog
@@ -147,9 +160,12 @@ export function BoardDialog({
       onClose={onClose}
     >
       <RecordForm
-        key={boardId ?? `new-${assetId}`}
-        fields={boardFields}
-        record={board ?? newBoard(boards)}
+        key={boardId ?? `new-${assetId}-${building ?? ''}`}
+        fields={fields}
+        record={{
+          ...(board ?? newBoard(boards)),
+          ...boardPlaceValues(board, building ?? places.own, room),
+        }}
         starred
         submitLabel={boardId === null ? 'Hinzufügen' : 'Speichern'}
         onCancel={onClose}
@@ -158,10 +174,14 @@ export function BoardDialog({
             boardId === null
               ? await client.create('distribution_boards', {
                   ...asBoard(values),
+                  ...asBoardPlace(values),
                   assetId,
                   position: nextPosition(boards),
                 })
-              : await client.update('distribution_boards', boardId, asBoard(values))
+              : await client.update('distribution_boards', boardId, {
+                  ...asBoard(values),
+                  ...asBoardPlace(values),
+                })
 
           if (result.outcome === 'queued') {
             onClose()

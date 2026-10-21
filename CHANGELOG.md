@@ -18,6 +18,12 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   tut (#494). Wer dort sucht, findet die Haustechnik neben OpenGewerk, und `cosign verify` gilt dort wie in ghcr.io;
   das Paket holt weiter aus ghcr.io. Ohne die Secrets `DOCKERHUB_USERNAME` und `DOCKERHUB_TOKEN` tut der Job
   nichts, und die Release-Seite nennt Docker Hub nur, wenn gespiegelt wird.
+- Ein Verteiler steht in einem Gebäude und, wo bekannt, in einem Raum (#495): im Gebäude seiner
+  Niederspannungsanlage oder in einem, das sie versorgt. Bisher ließen sich die Unterverteilungen eines Gebäudes,
+  das eine Anlage aus einem anderen Gebäude versorgt, nur in deren Akte aufnehmen, und das Gebäude zeigte sie nicht.
+  Die Seite eines Gebäudes im Büro und vor Ort hat jetzt eine Karte "Verteiler" mit "Verteiler aufnehmen", der
+  Dialog eines Verteilers fragt nach Gebäude und Raum, und die Akte der Anlage nennt das Gebäude jedes Verteilers.
+  Vorhandene Verteiler stehen im Gebäude ihrer Anlage (Migration 0100); ihr Bereich bleibt der der Anlage.
 
 ### Geändert
 

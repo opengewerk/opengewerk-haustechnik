@@ -15,7 +15,10 @@ import {
 import { maybeText, text, useRecord, useRecords } from '@opengewerk/platform-web/sync'
 import { useParams } from '@tanstack/react-router'
 import { Ban, Plus, TriangleAlert } from 'lucide-react'
+import { lazy, Suspense } from 'react'
 
+import { boardBuildingsOf } from '../../app/board-places.js'
+import { holdsBoards } from '../../app/holds-boards.js'
 import { placePath } from '../../app/place-path.js'
 import { shutDownOn } from '../../app/shut-down.js'
 import { byLevel, byNumber, kindsOf, placeAbove, titleOfRoom } from '../../app/place-records.js'
@@ -55,6 +58,12 @@ function buildingLine(building: RecordState): string {
     .filter((part) => part !== null && part !== '')
     .join(' · ')
 }
+
+// The boards of a building (#495) are fetched with the first building that has
+// one, as on the page of an installation: the entry on site has a budget.
+const SiteBuildingBoardsBlock = lazy(async () => ({
+  default: (await import('./boards-block.js')).SiteBuildingBoardsBlock,
+}))
 
 /** The buildings of a property as rows that lead to their pages. */
 function BuildingRows({ buildings }: { readonly buildings: readonly RecordState[] }) {
@@ -182,6 +191,19 @@ export function SiteBuildingScreen() {
     .sort(byNumber)
   const catalogue = useCatalogue()
   const records = useRight('asset.record')
+  const allAssets = useRecords('assets')
+  const supplies = useRecords('asset_supplies')
+  const allRooms = useRecords('rooms')
+  const boards = useRecords('distribution_boards')
+  // The installations a board here may hang on, and whether one stands here (#495).
+  const installations = allAssets.filter(
+    (asset) =>
+      holdsBoards(maybeText(asset, 'kind')) &&
+      !asset['deletedAt'] &&
+      buildingId !== undefined &&
+      boardBuildingsOf(asset, supplies, allRooms).includes(buildingId),
+  )
+  const boardsHere = boards.some((board) => board['buildingId'] === buildingId)
 
   if (!building || buildingId === undefined) {
     return <NotOnDevice what="Dieses Gebäude" back={backToStart} />
@@ -223,6 +245,12 @@ export function SiteBuildingScreen() {
             </SiteRows>
           )}
         </Panel>
+        {/* The boards in this building, of whichever installation (#495). */}
+        {boardsHere || installations.length > 0 ? (
+          <Suspense fallback={null}>
+            <SiteBuildingBoardsBlock buildingId={buildingId} installations={installations} />
+          </Suspense>
+        ) : null}
         {loose.length === 0 ? null : (
           <Panel title="Anlagen ohne Raum">
             <SiteRows label="Anlagen ohne Raum">

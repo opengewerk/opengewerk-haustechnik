@@ -21,7 +21,7 @@ import {
   useRecord,
   useSync,
 } from '@opengewerk/platform-web/sync'
-import { Link, useNavigate, useParams } from '@tanstack/react-router'
+import { Link, useNavigate, useParams, useSearch } from '@tanstack/react-router'
 import { Check, ChevronRight, Pencil, Plus } from 'lucide-react'
 import { type FormEvent, useId, useState } from 'react'
 
@@ -48,6 +48,8 @@ import {
   useEquipment,
   useSections,
 } from '../../app/electrical.js'
+import { boardFormFields } from '../../app/board-form.js'
+import { asBoardPlace, boardPlaceValues, useBoardPlaces } from '../../app/board-places.js'
 import { CircuitSummary } from '../../app/circuit-summary.js'
 import { placePath } from '../../app/place-path.js'
 import { placeAbove } from '../../app/place-records.js'
@@ -562,13 +564,20 @@ export function SiteBoardFormScreen() {
     assetId?: string
     boardId?: string
   }
+  // Opened from a building, the board stands there (#495).
+  const { gebaeude } = useSearch({ strict: false }) as { gebaeude?: string }
   const navigate = useNavigate()
   const client = useSync()
   const records = useRight('asset.record')
   const { asset } = useAssetAbove(assetId)
   const boards = useBoards(assetId)
   const board = useBoardOf(assetId, boardId)
+  const places = useBoardPlaces(assetId)
   const editing = boardId !== undefined
+  const building =
+    gebaeude !== undefined && places.buildings.some((each) => each.value === gebaeude)
+      ? gebaeude
+      : places.own
 
   if (!asset || assetId === undefined || (editing && !board)) {
     return (
@@ -580,9 +589,11 @@ export function SiteBoardFormScreen() {
   }
 
   const back =
-    boardId === undefined
-      ? { to: sitePlaces.asset(assetId), label: 'Zurück zur Anlage' }
-      : { to: structurePlaces.board(assetId, boardId), label: 'Zurück zum Verteiler' }
+    boardId !== undefined
+      ? { to: structurePlaces.board(assetId, boardId), label: 'Zurück zum Verteiler' }
+      : gebaeude !== undefined
+        ? { to: sitePlaces.building(gebaeude), label: 'Zurück zum Gebäude' }
+        : { to: sitePlaces.asset(assetId), label: 'Zurück zur Anlage' }
   const title = editing ? 'Verteiler bearbeiten' : 'Verteiler hinzufügen'
 
   if (!records) {
@@ -600,9 +611,9 @@ export function SiteBoardFormScreen() {
       />
       <SiteScreen>
         <SitePartForm
-          key={boardId ?? `new-${assetId}`}
-          fields={boardFields}
-          record={board ?? newBoard(boards)}
+          key={boardId ?? `new-${assetId}-${building ?? ''}`}
+          fields={boardFormFields(boardFields, places)}
+          record={{ ...(board ?? newBoard(boards)), ...boardPlaceValues(board, building) }}
           submitLabel={editing ? 'Speichern' : 'Hinzufügen'}
           onCancel={() => {
             void navigate({ to: back.to })
@@ -612,10 +623,14 @@ export function SiteBoardFormScreen() {
               boardId === undefined
                 ? await client.create('distribution_boards', {
                     ...asBoard(values),
+                    ...asBoardPlace(values),
                     assetId,
                     position: nextPosition(boards),
                   })
-                : await client.update('distribution_boards', boardId, asBoard(values))
+                : await client.update('distribution_boards', boardId, {
+                    ...asBoard(values),
+                    ...asBoardPlace(values),
+                  })
 
             if (result.outcome === 'queued') {
               await navigate({ to: structurePlaces.board(assetId, result.id) })

@@ -602,6 +602,8 @@ const placeOf: Readonly<
   rooms: roomPlace,
   assets: assetPlace,
   asset_supplies: supplyPlace,
+  // A board names its building itself, or stands where its asset stands
+  // (#495, migration 0100).
   distribution_boards: topPlace(boardAssetKind),
   board_sections: partPlace('distributionBoardId'),
   circuits: partPlace('distributionBoardId'),

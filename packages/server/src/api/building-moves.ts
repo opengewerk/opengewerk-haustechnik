@@ -100,6 +100,11 @@ export const holdingTheBuilding: Readonly<Record<string, string>> = {
   activity_duties_of_a_duty_of_their_property: 'ein Vorgang mit einer Pflicht, die er erfüllt',
   asset_supplies_to_a_building_of_its_property: 'eine Anlage mit einem Gebäude, das sie versorgt',
   asset_supplies_to_a_room_of_its_property: 'eine Anlage mit einem Raum, den sie versorgt',
+  // A board of an installation in another building, standing in this one (#495).
+  distribution_boards_in_a_building_of_their_property:
+    'ein Verteiler einer Anlage aus einem anderen Gebäude, der in diesem steht',
+  distribution_boards_in_a_room_of_their_building:
+    'ein Verteiler einer Anlage aus einem anderen Gebäude, der in einem Raum dieses Gebäudes steht',
   assets_replace_one_of_their_property: 'eine Anlage mit der, die sie ersetzt hat',
   deadlines_with_a_task_of_their_property: 'eine Frist mit ihrer Aufgabe',
   defects_found_in_an_activity_of_their_property:

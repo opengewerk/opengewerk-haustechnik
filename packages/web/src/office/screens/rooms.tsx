@@ -24,6 +24,7 @@ import { AssetState } from '../asset-state.js'
 import { officePlaces, placeForms } from '../place-addresses.js'
 import { PlaceNotFound } from '../place-pages.js'
 import { DocumentsCard } from '../documents.js'
+import { BuildingBoardsCard } from '../building-boards.js'
 import { TasksCard } from '../tasks.js'
 import { NewDutyButton } from '../duty-words.js'
 import { LabelCardOf } from '../labels.js'
@@ -186,6 +187,8 @@ export function RoomScreen() {
             standsIn={standsIn}
             hereName={text(building, 'name')}
           />
+          {/* The boards that stand in this room, of whichever installation (#495). */}
+          <BuildingBoardsCard buildingId={String(building['id'])} roomId={roomId} />
           {seesDuties ? (
             <Duties
               duties={duties.data}

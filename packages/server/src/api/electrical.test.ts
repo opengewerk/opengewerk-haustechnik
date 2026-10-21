@@ -403,6 +403,103 @@ describe('the electrical structure on a device (#349)', () => {
     ).toEqual([{ outcome: 'conflict', reason: 'record_missing', fields: ['assetId'] }, applied])
   })
 
+  /**
+   * A board stands in a building of its installation (#495): the one it stands
+   * in, one it supplies, or, from a device that names none, the one of the
+   * asset. Another building, or a room of another building, is a conflict
+   * about that board, and the rest of the transmission lands.
+   */
+  it('stands in a building of its installation, and in another only as a conflict about that board', async () => {
+    const at = await placeIn(small, await areaOfSmall())
+    const installation = await assetIn(at)
+    const buildingOn = async (name: string) => {
+      const { rows } = await admin.query<{ id: string }>(
+        `insert into buildings (tenant_id, property_id, area_id, name, kinds)
+         values ($1, $2, $3, $4, '{school}') returning id`,
+        [small, at.property, at.area, name],
+      )
+
+      return rows[0]?.id ?? ''
+    }
+    const supplied = await buildingOn('Haus B')
+    const other = await buildingOn('Haus C')
+
+    await admin.query(
+      `insert into asset_supplies (tenant_id, asset_id, property_id, area_id, building_id)
+       values ($1, $2, $3, $4, $5)`,
+      [small, installation, at.property, at.area, supplied],
+    )
+
+    const inB = newId<'distribution-board'>()
+    const before = newId<'distribution-board'>()
+    const board = (building: string | undefined, designation: string) => ({
+      assetId: installation,
+      ...(building === undefined ? {} : { buildingId: building }),
+      kind: 'sub_distribution',
+      designation,
+    })
+
+    expect(
+      await outcomes('u-tech', [
+        operation('distribution_boards', 'create', inB, board(supplied, 'UV Haus B')),
+        operation(
+          'distribution_boards',
+          'create',
+          newId<'distribution-board'>(),
+          board(other, 'UV Haus C'),
+        ),
+        operation('distribution_boards', 'create', before, board(undefined, 'UV von vorher')),
+      ]),
+    ).toEqual([
+      applied,
+      { outcome: 'conflict', reason: 'record_missing', fields: ['buildingId'] },
+      applied,
+    ])
+
+    const { rows } = await admin.query<{ id: string; building: string }>(
+      'select id, building_id as building from distribution_boards where id = any($1)',
+      [[inB, before]],
+    )
+
+    expect(Object.fromEntries(rows.map((row) => [row.id, row.building]))).toEqual({
+      [inB]: supplied,
+      [before]: at.building,
+    })
+
+    // Moved afterwards: to the building it does not supply, no; nor into a
+    // room of another building than the one it stands in.
+    const { rows: room } = await admin.query<{ id: string }>(
+      `with floor as (
+         insert into floors (tenant_id, property_id, area_id, building_id, name, level)
+         values ($1, $2, $3, $4, 'EG', 0) returning id, tenant_id, property_id, area_id, building_id)
+       insert into rooms (tenant_id, property_id, area_id, building_id, floor_id, name)
+       select tenant_id, property_id, area_id, building_id, id, 'Technik' from floor returning id`,
+      [small, at.property, at.area, other],
+    )
+
+    expect(
+      await outcomes('u-tech', [
+        operation(
+          'distribution_boards',
+          'update',
+          inB,
+          { buildingId: other },
+          { buildingId: supplied },
+        ),
+        operation(
+          'distribution_boards',
+          'update',
+          inB,
+          { roomId: room[0]?.id ?? null },
+          { roomId: null },
+        ),
+      ]),
+    ).toEqual([
+      { outcome: 'conflict', reason: 'record_missing', fields: ['buildingId'] },
+      { outcome: 'conflict', reason: 'record_missing', fields: ['roomId'] },
+    ])
+  })
+
   it('keeps a low-voltage installation with boards one, as a conflict about its kind', async () => {
     const at = await placeIn(small, await areaOfSmall())
     const asset = await assetIn(at)

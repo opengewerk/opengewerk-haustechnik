@@ -1,6 +1,7 @@
-import { type ElectricalTables, electricalSchema } from '@opengewerk/platform-server'
-import { foreignKey, unique } from 'drizzle-orm/pg-core'
+import { type ElectricalTables, electricalSchema, reference } from '@opengewerk/platform-server'
+import { foreignKey, index, unique } from 'drizzle-orm/pg-core'
 
+import { buildings, rooms } from './locations.js'
 import { placeColumns, type PlaceColumns, placeKeys } from './structure-place.js'
 
 // The electrical structure below a low-voltage installation (#349, section
@@ -18,18 +19,49 @@ import { placeColumns, type PlaceColumns, placeKeys } from './structure-place.js
 // That the asset is a low-voltage installation (decision 31 of phase 2, "Unter
 // der Niederspannungsanlage wie in OpenGewerk") is held by a trigger of the
 // migration, since no key can say it, and asked by the sync before.
+//
+// A board stands in a building, and in a room where that is known (#495): the
+// main board stands where the installation stands, a sub-board in every
+// building the installation supplies. The building is the one of the asset or
+// one the asset supplies, by itself or through a room in it, which a trigger
+// of migration 0100 holds and the sync asks before. Its area stays the one of
+// the asset: a test of the installation measures every circuit, and the
+// evidence and its defects belong to the asset.
+
+/** What a board holds about its place beside the asset: the building and the room it stands in. */
+function boardPlaceColumns() {
+  return {
+    ...placeColumns(),
+    buildingId: reference<'building'>('building_id').notNull(),
+    roomId: reference<'room'>('room_id'),
+  }
+}
+
+type BoardPlaceColumns = ReturnType<typeof boardPlaceColumns>
 
 /**
  * The four tables, named with their type: the keys of a section, a circuit
  * and a piece of equipment point at the table above them, which this value
  * holds. Drizzle asks for those keys only once every table is made.
  */
-const structure: ElectricalTables<PlaceColumns, PlaceColumns, PlaceColumns, PlaceColumns> =
-  electricalSchema<PlaceColumns, PlaceColumns, PlaceColumns, PlaceColumns>({
+const structure: ElectricalTables<BoardPlaceColumns, PlaceColumns, PlaceColumns, PlaceColumns> =
+  electricalSchema<BoardPlaceColumns, PlaceColumns, PlaceColumns, PlaceColumns>({
     boards: {
-      columns: placeColumns(),
+      columns: boardPlaceColumns(),
       constraints: (table) => [
         ...placeKeys('distribution_boards', table),
+        // The building and the room on the property of the asset (#495).
+        foreignKey({
+          columns: [table.tenantId, table.buildingId, table.propertyId],
+          foreignColumns: [buildings.tenantId, buildings.id, buildings.propertyId],
+          name: 'distribution_boards_in_a_building_of_their_property',
+        }),
+        foreignKey({
+          columns: [table.tenantId, table.roomId, table.buildingId, table.propertyId],
+          foreignColumns: [rooms.tenantId, rooms.id, rooms.buildingId, rooms.propertyId],
+          name: 'distribution_boards_in_a_room_of_their_building',
+        }),
+        index('distribution_boards_building_idx').on(table.tenantId, table.buildingId),
         // What a section and a circuit point at, so that they stay on the
         // asset of their board.
         unique('distribution_boards_of_their_asset').on(table.tenantId, table.id, table.assetId),

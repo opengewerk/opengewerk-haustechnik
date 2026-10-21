@@ -5,9 +5,9 @@ import {
   structureProblem,
   type SyncCheck,
 } from '@opengewerk/platform-server'
-import { and, eq, isNull } from 'drizzle-orm'
+import { and, eq, isNull, sql } from 'drizzle-orm'
 
-import { boardSections, distributionBoards, inverters } from '../database/schema/index.js'
+import { boardSections, distributionBoards, inverters, rooms } from '../database/schema/index.js'
 
 // What the sync asks about the electrical structure below a low-voltage
 // installation (#349) and the PV structure below a PV installation (#461)
@@ -42,6 +42,67 @@ export const sectionOfItsBoard: Check = async ({ tx, operation, values, current 
   const refused = await sectionRefusal(boardSections, tx, operation, values, current)
 
   return refused ? { kind: 'conflict', reason: refused.reason, fields: refused.fields } : null
+}
+
+/**
+ * A board stands in a building of its installation (#495): the one of the
+ * asset or one it supplies, by itself or through a room in it, and a room it
+ * names is one of that building. A device that names another gets a conflict
+ * about the building or the room, `record_missing`, and the rest of its
+ * transmission lands. Behind it the trigger of migration 0100 and the key
+ * over room and building hold the same, for the whole transmission. A board
+ * made without a building stands where its asset stands.
+ */
+export const boardInABuildingOfItsInstallation: Check = async ({
+  tx,
+  operation,
+  values,
+  current,
+}) => {
+  if (
+    operation.entity !== 'distribution_boards' ||
+    (operation.kind !== 'create' && operation.kind !== 'update') ||
+    !('buildingId' in values || 'roomId' in values)
+  ) {
+    return null
+  }
+
+  const assetId = values['assetId'] ?? current?.['assetId']
+  const buildingId = 'buildingId' in values ? values['buildingId'] : current?.['buildingId']
+  const roomId = 'roomId' in values ? values['roomId'] : current?.['roomId']
+
+  if (typeof buildingId !== 'string' || typeof assetId !== 'string') {
+    return roomId ? { kind: 'conflict', reason: 'record_missing', fields: ['roomId'] } : null
+  }
+
+  const allowed = await tx.execute(
+    sql`select 1 from assets a cross join lateral board_buildings_of(a.tenant_id, a.id) as b(id)
+         where a.id = ${assetId} and b.id = ${buildingId}`,
+  )
+
+  if (allowed.rows.length === 0) {
+    return { kind: 'conflict', reason: 'record_missing', fields: ['buildingId'] }
+  }
+
+  if (typeof roomId === 'string') {
+    const [room] = await tx
+      .select({ id: rooms.id })
+      .from(rooms)
+      .where(
+        and(
+          eq(rooms.id, roomId as never),
+          eq(rooms.buildingId, buildingId as never),
+          isNull(rooms.deletedAt),
+        ),
+      )
+      .limit(1)
+
+    if (!room) {
+      return { kind: 'conflict', reason: 'record_missing', fields: ['roomId'] }
+    }
+  }
+
+  return null
 }
 
 /** The top of each structure, by the kind of the asset it hangs on. */

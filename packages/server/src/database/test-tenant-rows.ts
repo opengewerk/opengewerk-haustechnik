@@ -455,6 +455,7 @@ export function rowsOf(tenant: Tenant): readonly Row[] {
         asset_id: installation,
         property_id: property,
         area_id: area,
+        building_id: building,
         kind: 'main_distribution',
         designation: 'HV',
       },
