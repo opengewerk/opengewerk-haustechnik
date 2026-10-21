@@ -195,7 +195,7 @@ export class DelegationsController {
   ): Promise<StreamableFile> {
     const reading = await this.reading(identity, id)
     const operator = await this.database.forTenant(identity, (tx) => keeperOf(tx))
-    const bytes = await this.printer.fresh(
+    const bytes = await this.printer.freshSigned(
       delegationPrintJob(
         {
           operator,

@@ -39,6 +39,7 @@ const whole = [
   'Prüfungen',
   'Übertragungen',
   'Qualifikationen',
+  'PDF prüfen',
   'Rundgänge',
   'Störungen',
   'Mängel',
@@ -61,7 +62,14 @@ describe('the navigation of the board', () => {
     expect(officeNavigation.map((group) => group.entries.map((place) => place.label))).toEqual([
       ['Übersicht', 'Auswertungen'],
       ['Liegenschaften', 'Anlagen', 'Zähler', 'Dokumente'],
-      ['Pflichtenverzeichnis', 'Fristen', 'Prüfungen', 'Übertragungen', 'Qualifikationen'],
+      [
+        'Pflichtenverzeichnis',
+        'Fristen',
+        'Prüfungen',
+        'Übertragungen',
+        'Qualifikationen',
+        'PDF prüfen',
+      ],
       [
         'Rundgänge',
         'Störungen',
@@ -126,9 +134,15 @@ describe('what a role is offered once every screen is built', () => {
     expect(offeredTo('reporter')).toEqual(['Katalog'])
   })
 
-  // The Prüfer reads the duties and their evidence, and the board gives it nothing else (#339).
-  it('is the overview, the register of duties and the catalogue for the Prüfer', () => {
-    expect(offeredTo('auditor')).toEqual(['Übersicht', 'Pflichtenverzeichnis', 'Katalog'])
+  // The Prüfer reads the duties and their evidence, and the board gives it nothing else (#339)
+  // but the check of a PDF laid before it (#457).
+  it('is the overview, the register of duties, the check of a PDF and the catalogue for the Prüfer', () => {
+    expect(offeredTo('auditor')).toEqual([
+      'Übersicht',
+      'Pflichtenverzeichnis',
+      'PDF prüfen',
+      'Katalog',
+    ])
   })
 
   it('is nothing that takes a right for somebody who holds none', () => {
@@ -201,6 +215,8 @@ describe('the navigation of the office as it is built today', () => {
     'Pflichtenverzeichnis',
     // The inspections and the maintenance, for every role (#105).
     'Prüfungen',
+    // The check of a PDF, for whoever sees the evidence (#457).
+    'PDF prüfen',
     // The templates of the rounds, for every role (#112).
     'Rundgänge',
     // The defects, for every role (#116).
@@ -227,6 +243,7 @@ describe('the navigation of the office as it is built today', () => {
     'Pflichtenverzeichnis',
     'Fristen',
     'Prüfungen',
+    'PDF prüfen',
     'Rundgänge',
     // The inbox of the faults, for whoever accepts them (#331).
     'Störungen',

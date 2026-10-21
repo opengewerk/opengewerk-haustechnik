@@ -224,7 +224,7 @@ export class SubjectAccessController {
     const name = `${subjectAccessTitle(access)} ${access.madeAt.slice(0, 10)}`
 
     if (format === 'pdf') {
-      return pdf(response, await this.printer.fresh(subjectAccessPrintJob(access)), name)
+      return pdf(response, await this.printer.freshSigned(subjectAccessPrintJob(access)), name)
     }
 
     // Without the drawings of the signatures (#457): a file any editor

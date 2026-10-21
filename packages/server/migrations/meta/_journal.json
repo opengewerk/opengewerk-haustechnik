@@ -715,6 +715,13 @@
       "when": 1792568377526,
       "tag": "0101_retention_beyond_evidence",
       "breakpoints": true
+    },
+    {
+      "idx": 102,
+      "version": "7",
+      "when": 1792573349968,
+      "tag": "0102_instance_signing",
+      "breakpoints": true
     }
   ]
 }

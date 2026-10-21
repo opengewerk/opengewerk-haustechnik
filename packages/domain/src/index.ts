@@ -156,6 +156,8 @@ export * from './model/qualifications.js'
 export * from './model/retention.js'
 // What hangs on no evidence and its own retention (#412).
 export * from './model/record-retention.js'
+// A PDF laid before somebody, checked (#457).
+export * from './model/pdf-check.js'
 export * from './model/defect-register.js'
 // The report of the defects as a PDF, made for the moment it is asked for (#345).
 export * from './model/defect-report.js'

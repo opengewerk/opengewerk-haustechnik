@@ -17,12 +17,14 @@ import {
   rendererFor,
   SecretKey,
   type Server,
+  type SigningContext,
   smtpTransport,
   vapidKeysFrom,
 } from '@opengewerk/platform-server'
 
 import { ApiModule } from './api/api.module.js'
 import { createAuthentication, SessionIdentitySource } from './authentication/access.js'
+import { application } from './configuration.js'
 import { accountMessages } from './mail/account-messages.js'
 
 /** A running instance, before it listens, and what stops it again. */
@@ -123,6 +125,16 @@ export async function openInstance(
         }),
       }
 
+  // The key the PDFs with a signature in them are signed with (#457), sealed
+  // like the password of the mail server. Its certificate names the instance
+  // by the host it is reached at, and the application by its name.
+  const signing: SigningContext | null = configuration.closed
+    ? null
+    : {
+        key: SecretKey.from(configuration.sessionSecret),
+        subject: { commonName: hostOf(origin), organisation: application.name },
+      }
+
   // The first trusted origin is also who runs the instance, for whoever
   // runs a push service and wants to reach them.
   const push: PushContext | null =
@@ -168,6 +180,7 @@ export async function openInstance(
             authentication,
             mail,
             push,
+            signing,
             setupCode: configuration.setupCode,
             instance: { settings: instanceSettings },
           },
@@ -182,4 +195,13 @@ export async function openInstance(
   )
 
   return { ...server, database, stopSettings, mail, push, files: output.files }
+}
+
+/** The host an address names, which a certificate of the instance carries; the address itself where it is none. */
+function hostOf(origin: string): string {
+  try {
+    return new URL(origin).host
+  } catch {
+    return origin === '' ? application.name : origin
+  }
 }

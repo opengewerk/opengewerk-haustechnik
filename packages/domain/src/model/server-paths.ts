@@ -50,6 +50,9 @@ export const serverPaths: readonly string[] = [
   'work-orders',
   // The page of an evidence, its correction and its declaration of invalidity.
   'evidence',
+  // A PDF laid before somebody, checked against the prints kept and the
+  // signature of the instance, and not kept itself (#457).
+  'pdf-checks',
   // The defects: the register, the page of one, reporting one by hand, its
   // further way and checking it again.
   'defects',

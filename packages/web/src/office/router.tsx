@@ -47,6 +47,8 @@ const CollectiveComposeScreen = lazyRouteComponent(
   () => import('./screens/collectives.js'),
   'CollectiveComposeScreen',
 )
+// "PDF prüfen" (#457), a page of its own under the register of duties.
+const PdfCheckScreen = lazyRouteComponent(() => import('./screens/pdf-check.js'), 'PdfCheckScreen')
 const CollectiveReportScreen = lazyRouteComponent(
   () => import('./screens/collectives.js'),
   'CollectiveReportScreen',
@@ -408,6 +410,12 @@ export function officeRoutes() {
       getParentRoute: () => office,
       path: '/qualifikationen',
       component: QualificationListScreen,
+    }),
+    // A PDF laid before somebody, checked (#457), from the navigation under "Pflichten".
+    createRoute({
+      getParentRoute: () => office,
+      path: '/pdf-pruefen',
+      component: PdfCheckScreen,
     }),
     createRoute({
       getParentRoute: () => office,

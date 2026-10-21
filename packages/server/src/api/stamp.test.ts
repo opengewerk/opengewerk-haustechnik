@@ -35,6 +35,14 @@ const stamp = ['updatedAt', 'updatedBy', 'deviceId', 'updated_at', 'updated_by',
  */
 const changeLogs = ['GET /audit/changes', 'GET /instance/log']
 
+/**
+ * The devices of the account asking, each by the id it signs in with, so that
+ * one left somewhere can be signed out: the person's own sessions, not the
+ * stamp of a record. The preview has a session of its own since #457, which
+ * the area of the instance asks for its second factor.
+ */
+const ownDevices = ['GET /auth/devices']
+
 /** What marks a record of a table that travels in an answer. */
 const recordMarker = 'changeSequence'
 
@@ -311,7 +319,7 @@ describe('the stamp of the last change', () => {
           continue
         }
 
-        if (!changeLogs.includes(name)) {
+        if (!changeLogs.includes(name) && !ownDevices.includes(name)) {
           leaks.push(...stampsIn(answered).map((where) => `${name} ${where}`))
         }
 

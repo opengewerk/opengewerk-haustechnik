@@ -770,7 +770,11 @@ export class AssetEvidenceController {
       }
     }
 
-    return pdf(response, await withEvidenceBehind(attachments, listed), `${name} mit Nachweisen`)
+    return pdf(
+      response,
+      await this.printer.sign(await withEvidenceBehind(attachments, listed)),
+      `${name} mit Nachweisen`,
+    )
   }
 
   /**

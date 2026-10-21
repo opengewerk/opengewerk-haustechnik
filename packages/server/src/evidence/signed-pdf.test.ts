@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest'
 
-import { checkSignedPdf, signedPdfSentences } from './signed-pdf.js'
+import {
+  checkSignedPdf,
+  mostCertificates,
+  mostSignatureDigits,
+  signaturesIn,
+  signedPdfSentences,
+} from './signed-pdf.js'
 import { makeSigner, signedPdf } from './test-signed-pdf.js'
 
 /**
@@ -84,5 +90,32 @@ describe('a PDF with a higher signature', () => {
     const forged = { ...rsa, certificate: makeSigner('rsa').certificate }
 
     expect(refusalOf(signedPdf(print, forged))).toBe(signedPdfSentences.signatureInvalid)
+  })
+})
+
+// Findings of the security review of #507: what a crafted file could make
+// the server parse and verify was bounded by nothing.
+describe('what is read of a signature at all', () => {
+  const holds = (file: Uint8Array) => signaturesIn(file).map((each) => each.holds)
+
+  it('is a signature with at most eight certificates', () => {
+    expect(holds(signedPdf(print, ecdsa, { certificates: mostCertificates }))).toEqual([true])
+    expect(holds(signedPdf(print, ecdsa, { certificates: mostCertificates + 1 }))).toEqual([false])
+    expect(refusalOf(signedPdf(print, ecdsa, { certificates: mostCertificates + 1 }))).toBe(
+      signedPdfSentences.unreadable,
+    )
+  })
+
+  it('is a signature no larger than is checked', () => {
+    expect(holds(signedPdf(print, ecdsa, { room: mostSignatureDigits }))).toEqual([true])
+    expect(holds(signedPdf(print, ecdsa, { room: mostSignatureDigits + 2 }))).toEqual([false])
+  })
+
+  it('is each byte range once, however often it stands', () => {
+    const signed = Buffer.from(signedPdf(print, ecdsa))
+    const range = /\/ByteRange \[[^\]]*\]/.exec(signed.toString('latin1'))?.[0] ?? ''
+    const repeated = Buffer.concat([signed, Buffer.from(` ${range}`.repeat(40), 'latin1')])
+
+    expect(signaturesIn(new Uint8Array(repeated))).toHaveLength(1)
   })
 })

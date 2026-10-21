@@ -9,6 +9,7 @@ import {
 import { Pool } from 'pg'
 
 import { allowApplicationLogin, applyMigrations, resetSchema } from '../database/test-database.js'
+import { previewSessionId } from './preview-identity.js'
 
 /**
  * A start of the preview that was refused, with the sentence why. Its own
@@ -425,6 +426,14 @@ export async function admitPreviewPeople(
     await client.query('insert into instance_operators (user_id) values ($1)', [
       previewPeople.viewer.id,
     ])
+    // The session the preview answers with, signed in with a second factor:
+    // the area of the instance asks the session for one (#360), and without
+    // this row its screens showed nothing but the sentence that one is needed.
+    await client.query(
+      `insert into auth_sessions (id, token, user_id, expires_at, second_factor)
+       values ($1, $1, $2, now() + interval '1 year', true)`,
+      [previewSessionId, previewPeople.viewer.id],
+    )
     // The legal texts of the instance (#129), as its Verwaltung keeps them:
     // the foot of the sign in links to them and their page shows them.
     await client.query("select set_config('app.reason', 'instance.legal', true)")

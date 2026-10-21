@@ -1429,7 +1429,7 @@ export class DutiesController {
 
     return pdf(
       response,
-      await withEvidenceBehind(attachments, listed),
+      await this.printer.sign(await withEvidenceBehind(attachments, listed)),
       `Nachweisverzeichnis mit Nachweisen ${today}`,
     )
   }

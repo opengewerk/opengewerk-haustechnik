@@ -9,6 +9,14 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
 
 ### Hinzugefügt
 
+- Jedes PDF mit einer Unterschrift darin signiert die Instanz selbst (PAdES), wenn es entsteht: Nachweis, Rundgang,
+  Leistungsnachweis, Pflichtenübertragung, Auskunft über eine Person und Anlagenbuch und Nachweisverzeichnis mit
+  den Nachweisen dahinter (#457, entschieden am 21.10.2026). Wird es danach geändert, zeigt jedes PDF-Programm die
+  Signatur als ungültig; ein Passwort zum Öffnen braucht es nicht. Der Schlüssel entsteht mit dem ersten solchen
+  PDF, versiegelt in der Datenbank, und die Einstellungen der Instanz zeigen sein Zertifikat mit Fingerabdruck und
+  erzeugen einen neuen. Dazu „PDF prüfen“ in der Navigation unter „Pflichten“: ob ein vorgelegtes PDF ein aufbewahrter Druck
+  ist und ob es seit der Signatur der Instanz unverändert ist, ohne die Datei zu speichern. Bis dahin ließ sich
+  ein PDF mit Unterschrift unbemerkt ändern.
 - Was an keinem Nachweis hängt, hat eigene Fristen (#412, entschieden am 21.10.2026). Ein Vorgang ohne Nachweis
   bleibt sechs Jahre ab dem Ende des Jahres, in dem er endete, und wird danach zur leeren Hülle; ein behobener
   Mangel bleibt fünf Jahre und verliert dann Beschreibung, Bemerkung und Fotos, seine Zeile bleibt. Beide schlägt
@@ -19,6 +27,8 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
 
 ### Geändert
 
+- Fundament auf `432137b` mit dem Schlüssel der Instanz (opengewerk/opengewerk#726), dazu die Migration
+  `0102_instance_signing` mit denselben Spalten und demselben Trigger des Protokolls.
 - Das Fundament steht auf opengewerk `43ff07b`: eine Buchung im Lager darf ohne die Person stehen, die gebucht hat
   (opengewerk/opengewerk#725). Das braucht #412.
 - Die vier Einträge des Pakets Elektro 1.5.0 (#468), die PV-Anlage im Geltungsbereich der Prüfung nach DGUV
