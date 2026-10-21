@@ -15,7 +15,7 @@ import { pdfCheckScreenWords } from './pdf-check.js'
 
 /**
  * "PDF prüfen" (#457, the board "PDF prüfen"): reached from the
- * register of duties by whoever sees the evidence, it sends the file chosen
+ * navigation by whoever sees the evidence, it sends the file chosen
  * as it is and says what came back: the print it is, and whether the
  * signature of the instance still holds.
  */
@@ -34,7 +34,7 @@ const kept: PdfCheck = {
   instance: { state: 'unchanged', signedAt: '2026-10-03T12:22:00.000Z' },
 }
 
-function mounted(role: RoleKey, answer: PdfCheck, at = '/pflichten/pdf-pruefen') {
+function mounted(role: RoleKey, answer: PdfCheck, at = '/pdf-pruefen') {
   const written = signedInOffice(
     role,
     [nord],
@@ -112,12 +112,16 @@ describe('checking a PDF', () => {
 })
 
 describe('the way to it', () => {
-  it('is a button beside the register of evidence, for whoever sees the evidence', async () => {
-    const { done } = mounted('technical_management', kept, '/pflichten')
+  it('is an entry under "Pflichten" in the navigation, for whoever sees the evidence', async () => {
+    const { done } = mounted('auditor', kept, '/pflichten')
 
     await done
     await untilTheRightsAreKnown()
 
-    expect(await screen.findByRole('button', { name: 'PDF prüfen' })).toBeTruthy()
+    const navigation = within(screen.getByRole('navigation', { name: 'Hauptbereiche' }))
+
+    expect(navigation.getByRole('link', { name: 'PDF prüfen' }).getAttribute('href')).toBe(
+      '/pdf-pruefen',
+    )
   })
 })

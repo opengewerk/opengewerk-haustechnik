@@ -411,6 +411,12 @@ export function officeRoutes() {
       path: '/qualifikationen',
       component: QualificationListScreen,
     }),
+    // A PDF laid before somebody, checked (#457), from the navigation under "Pflichten".
+    createRoute({
+      getParentRoute: () => office,
+      path: '/pdf-pruefen',
+      component: PdfCheckScreen,
+    }),
     createRoute({
       getParentRoute: () => office,
       path: '/liegenschaften',
@@ -575,12 +581,6 @@ export function officeRoutes() {
       getParentRoute: () => office,
       path: '/pflichten',
       component: DutyRegisterScreen,
-    }),
-    // A PDF laid before somebody, checked (#457), under the register, before the page of a duty.
-    createRoute({
-      getParentRoute: () => office,
-      path: '/pflichten/pdf-pruefen',
-      component: PdfCheckScreen,
     }),
     // The import of running deadlines stands under the register, before the page of a duty (#130).
     createRoute({

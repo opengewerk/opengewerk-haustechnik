@@ -21,6 +21,7 @@ import {
   Package,
   Route,
   SearchCheck,
+  ShieldCheck,
   SquareCheck,
   TriangleAlert,
   UserCheck,
@@ -113,6 +114,9 @@ export const officeNavigation: readonly OfficePlaces[] = [
         icon: Award,
         right: 'qualification.read',
       },
+      // A PDF laid before somebody, checked against the prints kept and the
+      // signature of the instance, for whoever sees the evidence (#457).
+      { to: '/pdf-pruefen', label: 'PDF prüfen', icon: ShieldCheck, right: 'evidence.read' },
     ],
   },
   {

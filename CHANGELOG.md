@@ -14,7 +14,7 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   den Nachweisen dahinter (#457, entschieden am 21.10.2026). Wird es danach geändert, zeigt jedes PDF-Programm die
   Signatur als ungültig; ein Passwort zum Öffnen braucht es nicht. Der Schlüssel entsteht mit dem ersten solchen
   PDF, versiegelt in der Datenbank, und die Einstellungen der Instanz zeigen sein Zertifikat mit Fingerabdruck und
-  erzeugen einen neuen. Dazu „PDF prüfen“ am Pflichtenverzeichnis: ob ein vorgelegtes PDF ein aufbewahrter Druck
+  erzeugen einen neuen. Dazu „PDF prüfen“ in der Navigation unter „Pflichten“: ob ein vorgelegtes PDF ein aufbewahrter Druck
   ist und ob es seit der Signatur der Instanz unverändert ist, ohne die Datei zu speichern. Bis dahin ließ sich
   ein PDF mit Unterschrift unbemerkt ändern.
 - Was an keinem Nachweis hängt, hat eigene Fristen (#412, entschieden am 21.10.2026). Ein Vorgang ohne Nachweis

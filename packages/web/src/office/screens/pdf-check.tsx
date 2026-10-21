@@ -13,8 +13,6 @@ import { Link } from '@tanstack/react-router'
 import { Check, Info, ShieldCheck, TriangleAlert, Upload } from 'lucide-react'
 import { type ReactNode, useRef, useState } from 'react'
 
-import { dutyRegisterPlace } from '../duty-addresses.js'
-
 /** What the page says, so that a test reads the same sentences. */
 export const pdfCheckScreenWords = {
   sub:
@@ -207,8 +205,9 @@ function checked(file: File): Promise<PdfCheck> {
 /**
  * "PDF prüfen" (#457, the board "PDF prüfen"): a PDF somebody lays
  * before the office, checked against the prints kept here and the signature
- * of the instance. Reached from the register of duties, beside
- * "Nachweisverzeichnis", under the right to see the evidence.
+ * of the instance. An entry of its own under "Pflichten" in the navigation,
+ * for whoever sees the evidence: beside "Nachweisverzeichnis" on the register
+ * of duties the row of buttons no longer fit at 1024 pixels.
  */
 export function PdfCheckScreen() {
   const input = useRef<HTMLInputElement>(null)
@@ -217,12 +216,7 @@ export function PdfCheckScreen() {
 
   return (
     <Screen>
-      <PageHead
-        title="PDF prüfen"
-        crumbs={[dutyRegisterPlace]}
-        phoneBack={dutyRegisterPlace}
-        sub={pdfCheckScreenWords.sub}
-      />
+      <PageHead title="PDF prüfen" sub={pdfCheckScreenWords.sub} />
       <Panel roomy>
         <div className="flex flex-wrap items-center gap-2.5">
           <Button
