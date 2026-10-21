@@ -105,7 +105,7 @@ describe('checking a PDF', () => {
 
     expect(
       within(await screen.findByRole('status')).getByText(
-        /danach signiert von Dr\. Anna Becker, Prüfstelle Probe GmbH\. Seitdem unverändert\./,
+        /Danach hat Dr\. Anna Becker, Prüfstelle Probe GmbH eine Signatur angehängt\. Was vorher stand, ist unverändert/,
       ),
     ).toBeTruthy()
   })

@@ -215,6 +215,17 @@ function nameOf(name: string): string {
   return parts.length === 0 ? name.replace(/\n/g, ', ') : parts.join(', ')
 }
 
+/**
+ * How large a signature in `/Contents` may be, in hexadecimal digits, and how
+ * many certificates it may carry, before it is read at all. A signature of the
+ * instance takes 4096 bytes and one certificate; one from outside carries its
+ * chain, two to four. A larger one is refused as unreadable, so that a crafted
+ * file cannot keep the server parsing and verifying (finding of the security
+ * review of #507).
+ */
+export const mostSignatureDigits = 262_144
+export const mostCertificates = 8
+
 /** What the CMS signature in `/Contents` says of the bytes it covers. */
 interface CmsReading {
   /** Whether the digest its signed attributes name is the one over the covered bytes. */
@@ -234,6 +245,10 @@ interface CmsReading {
  * digest that does not fit and a signature by no key it carries are answers.
  */
 function readCms(hex: string, covered: readonly Uint8Array[]): CmsReading {
+  if (hex.length > mostSignatureDigits) {
+    throw new SignedPdfRefusal(signedPdfSentences.unreadable)
+  }
+
   try {
     const info = readElement(hexToBytes(hex))
     const [type, wrapped] = childrenOf(info)
@@ -243,10 +258,15 @@ function readCms(hex: string, covered: readonly Uint8Array[]): CmsReading {
     }
 
     const signedData = childrenOf(childrenOf(wrapped)[0] as DerElement)
-    const certificates = signedData
+    const carried = signedData
       .filter((each) => each.tag === 0xa0)
       .flatMap((each) => childrenOf(each))
-      .map((each) => new X509Certificate(Buffer.from(each.whole)))
+
+    if (carried.length > mostCertificates) {
+      throw new SignedPdfRefusal(signedPdfSentences.unreadable)
+    }
+
+    const certificates = carried.map((each) => new X509Certificate(Buffer.from(each.whole)))
     const signerInfos = signedData.at(-1)
 
     if (signerInfos === undefined || signerInfos.tag !== 0x31) {
@@ -433,8 +453,17 @@ export function signaturesIn(file: Uint8Array): readonly FoundSignature[] {
   const pattern = /\/ByteRange\s*\[\s*(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s*\]/g
   const matches: RegExpExecArray[] = []
   const found: FoundSignature[] = []
+  // The same byte range twice is one signature, read once.
+  const seen = new Set<string>()
 
   for (const match of text.matchAll(pattern)) {
+    const range = match.slice(1, 5).join(' ')
+
+    if (seen.has(range)) {
+      continue
+    }
+
+    seen.add(range)
     matches.push(match)
 
     if (matches.length > mostSignatures) {

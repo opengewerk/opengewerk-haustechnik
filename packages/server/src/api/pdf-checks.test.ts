@@ -467,7 +467,14 @@ describe('checking a PDF', () => {
   it('refuses at once a file with more signatures than are checked', async () => {
     const crafted = Buffer.concat([
       Buffer.from('%PDF-<>', 'latin1'),
-      Buffer.from(`/ByteRange [0 5 7 1000000]\n`.repeat(60_000), 'latin1'),
+      // Each a range of its own: the same one twice is read once.
+      Buffer.from(
+        Array.from(
+          { length: 60_000 },
+          (_, index) => `/ByteRange [0 5 7 ${String(900_000 + index)}]`,
+        ).join(' '),
+        'latin1',
+      ),
     ])
     const started = Date.now()
     const answer = await http()

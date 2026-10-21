@@ -73,7 +73,10 @@ function at(signedAt: string | null): string {
   return signedAt === null ? '' : ` am ${moment(signedAt)}`
 }
 
-function signatureFinding(signature: PdfInstanceSignature): {
+function signatureFinding(
+  signature: PdfInstanceSignature,
+  kept: PdfKept | null,
+): {
   readonly tone: 'done' | 'conflict' | 'muted'
   readonly title: string
   readonly text: string
@@ -87,12 +90,13 @@ function signatureFinding(signature: PdfInstanceSignature): {
       }
     case 'signed_after':
       return {
-        tone: 'done',
+        tone: kept?.kind === 'signed_evidence' ? 'done' : 'muted',
         title: pdfCheckScreenWords.signedTitle,
         text:
-          `Signiert von dieser Instanz${at(signature.signedAt)}, danach signiert von ` +
-          `${signature.by.filter((name) => name !== '').join(' und ') || 'einer weiteren Stelle'}. ` +
-          'Seitdem unverändert.',
+          `Signiert von dieser Instanz${at(signature.signedAt)}. Danach hat ` +
+          `${signature.by.filter((name) => name !== '').join(' und ') || 'eine weitere Stelle'} ` +
+          'eine Signatur angehängt. Was vorher stand, ist unverändert; was mit dieser Signatur ' +
+          'dazukam, deckt die Signatur der Instanz nicht.',
       }
     case 'changed':
       return {
@@ -150,7 +154,7 @@ function Result({ check }: { readonly check: PdfCheck }) {
     )
   }
 
-  const signature = signatureFinding(check.instance)
+  const signature = signatureFinding(check.instance, check.kept)
   const icon = (tone: 'done' | 'conflict' | 'muted', kind: 'kept' | 'signature') =>
     tone === 'conflict' ? (
       <TriangleAlert size={18} strokeWidth={2.2} />

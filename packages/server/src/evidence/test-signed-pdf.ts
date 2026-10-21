@@ -113,7 +113,7 @@ export function makeSigner(
 // --- The signature on a PDF ---------------------------------------------------------------
 
 /** Room for the signature in `/Contents`, in hexadecimal digits. */
-const room = 16384
+const usualRoom = 16384
 
 /**
  * The print with a signature appended: an incremental update with a
@@ -123,8 +123,16 @@ const room = 16384
 export function signedPdf(
   print: Uint8Array,
   signer: Signer,
-  options: { readonly digestOf?: (covered: Buffer) => Buffer; readonly at?: Date } = {},
+  options: {
+    readonly digestOf?: (covered: Buffer) => Buffer
+    readonly at?: Date
+    /** How many times the certificate stands in the signature; once, unless a test says otherwise. */
+    readonly certificates?: number
+    /** Room for the signature in hexadecimal digits, where a test needs more than usual. */
+    readonly room?: number
+  } = {},
 ): Uint8Array {
+  const room = options.room ?? usualRoom
   const head = Buffer.from(
     '\n99 0 obj\n<< /Type /Sig /Filter /Adobe.PPKLite /SubFilter /ETSI.CAdES.detached /ByteRange [0 ########## ########## ##########] /Contents <',
     'latin1',
@@ -170,7 +178,10 @@ export function signedPdf(
         integer(1),
         set(sha256),
         sequence(oid('1.2.840.113549.1.7.1')),
-        element(0xa0, signer.certificate),
+        element(
+          0xa0,
+          ...Array.from({ length: options.certificates ?? 1 }, () => signer.certificate),
+        ),
         set(signerInfo),
       ),
     ),
